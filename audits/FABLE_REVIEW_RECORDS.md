@@ -173,7 +173,7 @@ snapshot → exercise → restore) for satellite DOM logic the headless suite ca
   the star-store shape as a cross-surface contract (three writers/readers agree today by
   discipline, nothing pins it); ⑤ the unstarred-composite display-as-base behavior in the
   dropdowns (correct, or a silent rewrite risk on the next save?).
-- **Supporting docs:** DOC/DOC_speaker_casting.html (spec S1–S5); the four agent reports in this
+- **Supporting docs:** DOC/Research/DOC_speaker_casting.html (spec S1–S5); the four agent reports in this
   session's task files; TODO #95 row.
 
 ### 5. #16c diagnostics — one touch inside `summarize()` (drift surface)
@@ -678,7 +678,7 @@ the spell-less-character Rest fix). Golden doc hash re-baselined deliberately (+
   ("add a note to todo_checkWithFable, THEN go ahead with the implementation", 2026-07-20).
 - **Built by:** Opus 4.8 (NOT Fable) — 2026-07-20.
 - **Design:** converged with the user (both designed independently, then compared — see
-  [DOC/DOC_clock.html](DOC/DOC_clock.html) for the full spec and the decision log C1–C6). TODO #73 row
+  [DOC/Research/DOC_clock.html](DOC/Research/DOC_clock.html) for the full spec and the decision log C1–C6). TODO #73 row
   carries the ratified shape.
 - **Version / commit:** v1.389 — `<this commit>` "feat(clock): campaign clock — the engine finally
   tracks time (#73)".
@@ -707,7 +707,7 @@ the spell-less-character Rest fix). Golden doc hash re-baselined deliberately (+
   should sanity-check that this split is sound (does it leave a confusing two-time-systems state, or is
   elapsed-only genuinely clean for the #73 fix?).
 - **Files touched:** clock.js (new), globals.js (version), state.js, game.js, tag_table.js, api.js,
-  table-talk.js, index.html, sw.js, dev/load-engine.js, dev/engine-tests.js, TODO.md, DOC/DOC_clock.html.
+  table-talk.js, index.html, sw.js, dev/load-engine.js, dev/engine-tests.js, TODO.md, DOC/Research/DOC_clock.html.
 - **Verification done (Opus):** 745 engine assertions green (+14 new clock tests). Failure-cases
   exercised: JUMP-SAFETY (schedule +60min, advance +360min in one tag → fires, elapsed=300); all-events-
   crossed-in-one-jump; monotonic clamp; countdown recomputes on advance; STABLE-HALF PURITY (clock data
@@ -730,7 +730,7 @@ the spell-less-character Rest fix). Golden doc hash re-baselined deliberately (+
   read), but it is logged here so Fable sees the full footprint of the clock subsystem in one place.
   Nothing to review beyond confirming the read is display-only and the day number matches
   `buildClockBlock`. Live-verified: an advanced clock renders "Turn 308 | Day 4", zero console errors.
-- **Supporting docs:** [DOC/DOC_clock.html](DOC/DOC_clock.html); TODO.md #73 + #79 rows.
+- **Supporting docs:** [DOC/Research/DOC_clock.html](DOC/Research/DOC_clock.html); TODO.md #73 + #79 rows.
 
 ### 6. B9/B10 voice-stack campaign — 9 versions in one session, all by Opus (v1.416 → v1.424)
 
@@ -763,7 +763,7 @@ pair of eyes item 3 asked for found exactly what it feared.**
    ORDERING CONTRACT. 796 assertions green.
 4. **Destroy-then-build — sound, but do not build on it.** The ordering flip is correctly
    evidence-backed (every prior failure at stage `spawn`). Superseded in importance by the
-   2026-07-23 external deep dive ([DOC/piper_deepdive.html](DOC/piper_deepdive.html)): the realm
+   2026-07-23 external deep dive ([DOC/Research/piper_deepdive.html](DOC/Research/piper_deepdive.html)): the realm
    axis is orthogonal to the B9 kill, and the entry's own open question — *what accumulates once
    per predict()?* — now has a ranked answer-path (H1: main-page Web-Audio native accumulation;
    the realm can never touch the playback layer) and a discriminating experiment (playback bypass
@@ -849,7 +849,7 @@ Full record: [AUDIT_ARC_NUDGES.md](audits/AUDIT_ARC_NUDGES.md); evidence: `testR
 - **④ TIME_ADVANCE scene rewrite (the drift-surface item): PASS.** Brief A runtime-proved the cache contract: stable half byte-identical (len 30550, djb2 2087269905) across **17 mutation classes** including `[TIME_ADVANCE:]`+`[SCHEDULE:]`; the rewritten doc line is a pure string literal (no state contact); clause guard + re-baselined frozen hash (−1271027224/17350) both green at HEAD. Two test-level gaps found and FIXED v1.501: the cache-invariant test never mutated `worldState.clock` (added), and the clock-face test was gated on `indexOf("pm")` so an AM-only face (`Day 1, 6:00 am`) passed undetected (regex-only now). Both sabotage-proven (S4/S5, scratch copy).
 - **① `.ta` receipt: PASS, memo reasoning AIRTIGHT at runtime.** Brief B's probes: warm memo + push → recompression (`.ta`/`.ck` cross the localStorage boundary intact); post-stamp without invalidate → stale blob (the `.sp` trap reproduced); `[REST:long]` dawn roll genuinely captured in the delta (100→1440, absorbed `[TIME_ADVANCE:8h]` counted once). Coverage gap FIXED v1.501: none of the four #105b tests drove the real `commitGmTurn` (one test's TITLE claimed it; its body called `applyMuts`) — a real-turn-path wiring test (TIME_ADVANCE + dawn roll) and a warm-memo round-trip test added, sabotage-proven (S1/S6). **Accepted residue:** a tags-only GM response (prose empty after stripping) writes no transcript entry at all, so a clock move can go unreceipted — pathological input; synthesizing transcript text would violate transcript sanctity.
 - **② player-facing clock: PASS.** Display-only confirmed — `clockStamp` has zero callers in api.js; the volatile CAMPAIGN CLOCK line is `clockFmt`'s elapsed decomposition, not a clock face; `.ck`-less entries render the bare turn number (the `!=null` guard is the sole protection against `clockStamp`'s null→now fallback, and no caller can bypass it).
-- **③ 1-based day labels: PASS — second opinion on the mid-campaign +1 shift: harmless.** Brief C swept every producer: all three runtime "Day N" builders route through `clockDayNumber()`; no half-renumbered surface exists. The GM receives a day number through exactly two channels, both `buildClockBlock`, both recomputed every turn; the instructions forbid restating; old-prose day references persist verbatim in sessionLog/RAG but those channels are explicitly subordinated to current-state blocks, and empirical incidence across every available save is one in-fiction diary entry. No better alternative exists (migrating the scalar would corrupt `.ck`). The commit's 4 sabotage clauses were not persisted (harness runs are ad-hoc) — independently re-derived and re-proven 4/4, including both half-renumbered states. Stale 0-based artifacts fixed v1.501: state.js migration comment, DOC/DOC_clock.html worked examples.
+- **③ 1-based day labels: PASS — second opinion on the mid-campaign +1 shift: harmless.** Brief C swept every producer: all three runtime "Day N" builders route through `clockDayNumber()`; no half-renumbered surface exists. The GM receives a day number through exactly two channels, both `buildClockBlock`, both recomputed every turn; the instructions forbid restating; old-prose day references persist verbatim in sessionLog/RAG but those channels are explicitly subordinated to current-state blocks, and empirical incidence across every available save is one in-fiction diary entry. No better alternative exists (migrating the scalar would corrupt `.ck`). The commit's 4 sabotage clauses were not persisted (harness runs are ad-hoc) — independently re-derived and re-proven 4/4, including both half-renumbered states. Stale 0-based artifacts fixed v1.501: state.js migration comment, DOC/Research/DOC_clock.html worked examples.
 - **Probe 1 (does the GM now over-charge?): UNDETERMINED — no post-v1.496 `.ta` data exists anywhere on disk** (Brief B parsed 25 saves/corpora, zero `.ta`; the newest export predates the feature by 12 minutes). ACTION (user): play a few dozen turns on ≥v1.496, export, re-run the timeline off `.ta` — then decide cause ②'s warn/floor. Cause ② (tagless turn advances zero, silently) stays open in #106 by design.
 
 **Receipts (delegated-evidence economics):** Brief A 130.7k tok / 28 calls / 254s · B 138.9k / 31 / 296s · C 145.3k / 39 / 314s · D 145.4k / 37 / 330s · E 148.4k / 32 / 324s — ~709k subagent tokens total, ~5.5 min wall clock (parallel), across all three entries. Delegate quality: excellent — every brief ran real-engine probes, reported actual outputs, self-declared scope growth, and labeled UNDETERMINED honestly (B's save-scan re-ran greps as JSON parses after spotting the pretty-print miss; C flagged its own DOM-path limits). Findings-fed: A→2 hardens, B→1 accepted residue + 2 test fixes + the measurement blocker, C→2 doc fixes + re-proven sabotage, D→1 confirmed defect, E→1 confirmed wording defect + 1 TODO row. For next run: briefs should state expected field names in JSON-parse form up front (the grep-miss cost B one retry).
@@ -1004,7 +1004,10 @@ Total ≈ 1.31M delegate tokens / 312 tool calls; wall ≈ 16 min (parallel). De
 
 ### 13 — Verification of the Sol W1–W7 drift-hardening handoff (Opus, docs only)
 
-**Filed:** 2026-08-11. **Artifact:** `DOC/workdone_sol_review.html`. **Commit:** `2220f88`
+**Filed:** 2026-08-11. **Artifact:** `DOC/Research/workdone_sol_doublecheck.html` — restored
+2026-08-13 from `2220f88` under its own filename, because `83bd63b` (08-13) overwrote the
+original path `DOC/Research/workdone_sol_review.html` with a DIFFERENT document (the Fable review &
+action plan); this entry's artifact had existed only in git history since. **Commit:** `2220f88`
 (documentation only — the engine is untouched at v1.601 / `c8c37f1`). **Reviews:**
 `DOC/workdone_sol.html`, whose own final section requests exactly this Fable pass.
 

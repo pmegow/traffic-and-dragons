@@ -23,9 +23,11 @@ Fable_UberAudit.md rows UA19/UA28/UA32/UA33, Known issues #5 and #7.
 
 ### 1.1 Inventory
 
+> **Survey snapshot (2026-07-11).** The rows below record the PRE-exodus survey; only the **Location** row was updated in place. Since 2026-07-12 the server IS a git repository (remote `pmegow/traffic-and-dragons-server`, see §2 item 3 ✅) at the new path outside OneDrive, so the **Version control**, **Secrets**, and **Local dev artifacts** rows no longer describe the current world (`.env` and the dev database left the OneDrive-synced tree with the move — DOC/todos_completed/PROJECT_ONE_DRIVE_EXODUS.html).
+
 | Item | Finding |
 |---|---|
-| **Location** | `C:\Users\hannu\Projects\traffic-and-dragons-server\` — **outside the OneDrive-synced tree** since 2026-07-12 (DOC/PROJECT_ONE_DRIVE_EXODUS.html Phase 4), so no longer a sibling of the game repo. (Original finding: it sat at `OneDrive\Documents\Projects\traffic-and-dragons-server\`, OneDrive-synced, and CLAUDE.md §22's bare `cd traffic-and-dragons-server` read as if it were a subdirectory.) |
+| **Location** | `C:\Users\hannu\Projects\traffic-and-dragons-server\` — **outside the OneDrive-synced tree** since 2026-07-12 (DOC/todos_completed/PROJECT_ONE_DRIVE_EXODUS.html Phase 4), so no longer a sibling of the game repo. (Original finding: it sat at `OneDrive\Documents\Projects\traffic-and-dragons-server\`, OneDrive-synced, and CLAUDE.md §22's bare `cd traffic-and-dragons-server` read as if it were a subdirectory.) |
 | **Version control** | **NONE. `git status` → "not a git repository."** The only copies of the production server code are this OneDrive folder and whatever Docker image Fly currently holds. A `.gitignore` exists (node_modules, .env, db files) but there is no repository behind it. This is the single most urgent finding — see §2. |
 | **Stack** | Node 22 (slim Docker), Hono 4 + `@hono/node-server`, `better-sqlite3`, `dotenv`. ESM. ~500 lines `index.js` + ~88 lines `db.js`. No framework beyond Hono, no ORM, no test file, no lint. |
 | **Naming rot** | `package.json` name is still **`ashen-crown-server`** (the project's pre-rename identity). Dockerfile sets `ENV DB_PATH=/data/ashen.db` while `db.js`'s fallback default is `/data/traffic.db` — **the Dockerfile ENV wins in production, so the live data lives in `ashen.db`.** ⚠ Do NOT "fix" this name without a copy/migration step — pointing the code at `traffic.db` on the volume would silently boot an empty database (a total-data-loss trap wearing a cleanup's clothes). |
@@ -130,7 +132,7 @@ This section costs ~an hour total and none of it waits on any ▶ DECISION.
    Delete the dead `SESSION_SECRET` line while there.
 3. ✅ **DONE 2026-07-12** — ~~Move the dev `.env` and `ashen.db*` out of the OneDrive-synced tree~~
    The whole server folder moved to `C:\Users\hannu\Projects\traffic-and-dragons-server`
-   (DOC/PROJECT_ONE_DRIVE_EXODUS.html Phase 4), taking `.env` and `ashen.db*` with it; the OAuth
+   (DOC/todos_completed/PROJECT_ONE_DRIVE_EXODUS.html Phase 4), taking `.env` and `ashen.db*` with it; the OAuth
    client secret was rotated a second time after the move (ROTATION.md in the server repo).
 4. **Test-restore a Fly volume snapshot once** — a backup that has never been restored is a hope,
    not a backup. Document the restore commands in the new repo's README.

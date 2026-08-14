@@ -1089,7 +1089,7 @@ function retainSessionTail(){
    HERE, before summarize()'s try even existed — no catch, no report, no retry counter. */
 function sessionTokens(){var total=0,i;for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];if(_se&&!_se.bk&&_se.content!=null)total+=String(_se.content).length;}return Math.ceil(total/4);}
 // ── #57 reveal-commitment: knowledge supersession + fork hints ───────────────────
-// Serve-side of leg A (see DOC/todo_57_reveal_commitment.md): the extractor can only retire a
+// Serve-side of leg A (see DOC/todos_completed/todo_57_reveal_commitment.md): the extractor can only retire a
 // fact it can quote EXACTLY, so summarize() hands it the on-file knowledge lines for the NPCs
 // this window actually mentions (ragScanNames — the same deterministic detection the RAG index
 // uses). Also names the detected keys explicitly so sameNpc proposals use exact-key vocabulary.

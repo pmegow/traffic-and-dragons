@@ -1,4 +1,4 @@
-// identity-a0-gate.js — TODO #156 Phase A0: the REPRESENTATION GATE (DOC/identity_hardening_fable.html §7.2).
+// identity-a0-gate.js — TODO #156 Phase A0: the REPRESENTATION GATE (DOC/Research/identity_hardening_fable.html §7.2).
 //
 // An EVIDENCE SPIKE, not shipping code. Nothing here is loaded by index.html, nothing here
 // mutates a real save: the t1593 clone is read from testRuns/, deep-cloned in memory, and all

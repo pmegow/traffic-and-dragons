@@ -66,7 +66,7 @@ selection became RESOLVED, never stored. **#90 M1 (v1.435)** then added the SERV
 (`TTS_LADDER = server → piper → native`), closing the B9 architectural question — narration for
 connected players synthesizes on the self-hosted `tnd-tts` Fly app, zero client wasm work.
 Self-hosting is why the #84/LiveKit cost/ownership objection doesn't apply (our own box); the
-ownership decision stands re-affirmed in DOC/liveKit_findings.html. The v1.434 work-budget
+ownership decision stands re-affirmed in DOC/Research/liveKit_findings.html. The v1.434 work-budget
 governor predates the server tier and meters only the local Piper tier. Shared text-prep
 (`normalizeForTTS`/`splitSentences`) was harvested from the piper_test.html spike at v1.298.
 

@@ -5,7 +5,7 @@ description: The delegated-evidence review workflow — "/fable-review <entry-nu
 
 # /fable-review — delegated-evidence review
 
-The division of labor that works (measured, DOC/FABLE_REVIEW_ACTION.html, 2026-07-24): **the reviewer
+The division of labor that works (measured, DOC/todos_completed/FABLE_REVIEW_ACTION.html, 2026-07-24): **the reviewer
 model writes tight evidence protocols and issues every verdict; delegate agents execute the
 protocols in parallel with tools; the failing-test-first fix discipline doubles as the delegation's
 lie detector.** Raw tokens run ~2× a solo pass — the win is reviewer-quota (judgment-only spend),

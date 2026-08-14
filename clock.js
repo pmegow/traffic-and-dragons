@@ -7,7 +7,7 @@
 // stores one anchor, and every countdown is RECOMPUTED from it. A number the GM never re-states
 // cannot drift.
 //
-// DESIGN (full spec: DOC/DOC_clock.html):
+// DESIGN (full spec: DOC/Research/DOC_clock.html):
 //   • Counter = ONE scalar, worldState.clock.min = total minutes since epoch (campaign start=0),
 //     MONOTONIC. The day/hour/minute view is DERIVED, never stored (no carry-desync).
 //   • The GM does ZERO arithmetic. It emits a duration ESTIMATE in natural units ([TIME_ADVANCE:2h]);

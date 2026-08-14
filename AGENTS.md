@@ -9,7 +9,7 @@ replaced (2026-08-03). The rule now:
 > map, load order, schemas, systems, conventions, dev workflow. Read it before touching
 > anything, and read it THERE, never from a copy. (Its instructions addressed to "Claude"
 > sessions about tier policy apply to you as the boundary rules below.) Open work lives only in
-> [TODO.md](TODO.md). Your current assignments live in [DOC/SOL_TASKS.md](DOC/SOL_TASKS.md).
+> [TODO.md](TODO.md). Your current assignments live in [DOC/todos_completed/SOL_TASKS.md](DOC/todos_completed/SOL_TASKS.md).
 
 ## Hard boundaries — the drift-protection surface (READ-ONLY for you)
 

@@ -18,7 +18,7 @@ table{width:100%;border-collapse:collapse;margin:12px 0 24px;background:var(--pa
 <body>
 <main>
 <h1>Sol review of the drift-hardening action plan</h1>
-<div class="sub">Review target: <a href="driftHardeningActionplan.html">driftHardeningActionplan.html</a> · code/save changes expressly out of scope · 2026-08-11</div>
+<div class="sub">Review target: <a href="../todos_completed/driftHardeningActionplan.html">driftHardeningActionplan.html</a> · code/save changes expressly out of scope · 2026-08-11</div>
 
 <div class="callout stop">
   <strong>Verdict: approve the program, but do not execute the plan as written.</strong>
@@ -57,20 +57,20 @@ table{width:100%;border-collapse:collapse;margin:12px 0 24px;background:var(--pa
 <h2>2. Workstream review</h2>
 
 <h3>W1 — close the Owed hole</h3>
-<p><span class="pill yes">ENDORSE</span> This is the only workstream ready to move directly to a failing test. <code>WEIGHTY_REL_RE</code> at <a href="../globals.js">globals.js:22</a> is used by both core-memory filing (<a href="../game.js">game.js:1140</a>) and downgrade detection (<a href="../game.js">game.js:1265</a>); today it matches <em>wed</em> inside <em>Owed</em>. Word boundaries solve the demonstrated substring class.</p>
+<p><span class="pill yes">ENDORSE</span> This is the only workstream ready to move directly to a failing test. <code>WEIGHTY_REL_RE</code> at <a href="../../globals.js">globals.js:22</a> is used by both core-memory filing (<a href="../../game.js">game.js:1140</a>) and downgrade detection (<a href="../../game.js">game.js:1265</a>); today it matches <em>wed</em> inside <em>Owed</em>. Word boundaries solve the demonstrated substring class.</p>
 <ul>
-<li>Correct the test narrative: runtime order is snapshot → <code>applyMuts</code> → <code>detectCoreMoments</code> → <code>stampRelationshipChanges</code>, not parser → stamp → core detection (<a href="../game.js">game.js:1392–1404</a>).</li>
+<li>Correct the test narrative: runtime order is snapshot → <code>applyMuts</code> → <code>detectCoreMoments</code> → <code>stampRelationshipChanges</code>, not parser → stamp → core detection (<a href="../../game.js">game.js:1392–1404</a>).</li>
 <li>Make morphology explicit. An outer boundary around <code>widow</code> would stop matching <code>widowed</code>; an exact <code>betray</code> would stop matching <code>betrayed</code>. The legitimate matrix must include the forms the product actually intends: wed/weds/wedded/wedding if intended, wife/wives, widow/widowed, betray/betrayed/betrayal/betraying, lover/lovers, betrothed/betrothal, and the blood-bound forms.</li>
 <li>Run the exact two t1666 raw tags through the real commit order. Assert both relationship directions, the pending downgrade state, no false bond moment on any of the four witnessing sheets, persistence/re-fire, and pair-scoped resolution.</li>
 <li>Keep the false lexical cases: owed, showed, midwife, loathes, clover. Add case and punctuation variants.</li>
 </ul>
 
 <h3>W2 — referential integrity for high-impact writes</h3>
-<p><span class="pill rev">ENDORSE PROPOSAL; REVISE ARCHITECTURE</span> The diagnosis is correct: “known NPC” is not evidence that a named NPC is the corpse. The current summary backstop stamps an extracted death if the name is already on file (<a href="../memory.js">memory.js:1231–1241</a>), which creates the exact substitution bias seen with the anonymous scholar and Mokmurian.</p>
-<p>The proposal must extend, not parallel, the shipped #156 identity layer. <code>IDENTITY_DOMAINS</code>, provisional NPCs, same/distinct confirmation, and preimage receipts already own stored-entity resolution (<a href="../identity.js">identity.js:28, 404–465</a>). W2 adds a different missing concept: the actor occupying a scene role and the evidence linking that actor to a canonical entity.</p>
+<p><span class="pill rev">ENDORSE PROPOSAL; REVISE ARCHITECTURE</span> The diagnosis is correct: “known NPC” is not evidence that a named NPC is the corpse. The current summary backstop stamps an extracted death if the name is already on file (<a href="../../memory.js">memory.js:1231–1241</a>), which creates the exact substitution bias seen with the anonymous scholar and Mokmurian.</p>
+<p>The proposal must extend, not parallel, the shipped #156 identity layer. <code>IDENTITY_DOMAINS</code>, provisional NPCs, same/distinct confirmation, and preimage receipts already own stored-entity resolution (<a href="../../identity.js">identity.js:28, 404–465</a>). W2 adds a different missing concept: the actor occupying a scene role and the evidence linking that actor to a canonical entity.</p>
 <ul>
 <li><strong>Phase 1 scope:</strong> entity-bearing writes only—combat foe creation/death, direct NPC death, identity merge, and summary <code>npcDeaths</code>. Most quests have no entity target, so “gate every quest completion on a present scene entity” is not representable today.</li>
-<li><strong>Quest/reward scope requires a transaction design.</strong> <code>[XP:]</code> mutates and levels the party before the title-keyed quest handler runs; rewards carry no quest id, target, or transaction id (<a href="../tag_table.js">tag_table.js:403–450</a>). Post-hoc rollback is unsafe. A preflight envelope or explicit target/transaction metadata is required before W2 can promise to quarantine the whole bundle.</li>
+<li><strong>Quest/reward scope requires a transaction design.</strong> <code>[XP:]</code> mutates and levels the party before the title-keyed quest handler runs; rewards carry no quest id, target, or transaction id (<a href="../../tag_table.js">tag_table.js:403–450</a>). Post-hoc rollback is unsafe. A preflight envelope or explicit target/transaction metadata is required before W2 can promise to quarantine the whole bundle.</li>
 <li><strong>Live and delayed evidence have different lifetimes.</strong> A scene ledger that expires on transition cannot validate a later summarization window spanning several scenes. Either stamp compact entity evidence/source turns onto relevant transcript entries, require extraction output to cite that evidence, or keep live mutation gating and delayed summary validation as two coordinated paths.</li>
 <li><strong>Negative identity must be structured.</strong> A free-prose regex for “not Mokmurian” would itself be a recognizer on the hottest mutation path. Prefer an explicit exclusion/claim with source turn; otherwise proposal-first corpus validation is mandatory.</li>
 <li><strong>Preflight before mutation.</strong> <code>applyMutsTable</code> mutates handler by handler and continues after handler errors. Cross-tag quarantine belongs before table execution, not in <code>npcUpsertTarget</code> and not in rollback.</li>
@@ -165,7 +165,7 @@ table{width:100%;border-collapse:collapse;margin:12px 0 24px;background:var(--pa
 </table>
 
 <h3>Map repair surface</h3>
-<p><span class="pill rev">ENDORSE PAIRWISE DRY-RUN; REJECT THE SECTION AS AN EXECUTABLE RECIPE</span> <a href="../map_cleanup.html">map_cleanup.html</a> supports only merge, reparent, split, and alias operations, applied through the identity executors with preimages. It does not directly re-scope descriptions, delete arbitrary edges, stamp visits, write state notes, or create/descriptively populate Jorgenfist. Some ghost edges may disappear as a side effect of a valid merge, but that must appear in the dry-run receipt.</p>
+<p><span class="pill rev">ENDORSE PAIRWISE DRY-RUN; REJECT THE SECTION AS AN EXECUTABLE RECIPE</span> <a href="../../map_cleanup.html">map_cleanup.html</a> supports only merge, reparent, split, and alias operations, applied through the identity executors with preimages. It does not directly re-scope descriptions, delete arbitrary edges, stamp visits, write state notes, or create/descriptively populate Jorgenfist. Some ghost edges may disappear as a side effect of a valid merge, but that must appear in the dry-run receipt.</p>
 <ul>
 <li>Evaluate each Sealed Forge Passage/Tunnel and Sandpoint|Varisia/Sandpoint pair independently. Default to leave when classification is ambiguous.</li>
 <li>Move description repair, arbitrary edge cleanup, Jorgenfist visit/state filing, and any content allocation to a separate tested repair operation with complete preimages. The merge executor only drops edges that become self-loops after identity resolution; a parent→child edge is not automatically one. Do not perform unsupported work by undocumented console mutation.</li>
@@ -223,7 +223,7 @@ table{width:100%;border-collapse:collapse;margin:12px 0 24px;background:var(--pa
 </div>
 
 <div class="foot">
-Evidence read: <a href="driftHardeningActionplan.html">reconciled action plan</a>, <a href="driftHardening_fable.html">Fable audit</a>, <a href="driftHardening_SOL.html">Sol drift analysis</a>, <a href="identity_hardening_fable.html">identity-hardening adjudication</a>, TODO #167/#168, and current v1.595 source paths cited inline. Three independent read-only challenge briefs examined W1/W3/W4, W2/W6/W7, and W5/campaign repair. This review changed no game code, save, tracker, or source document; the only artifact written is this file.
+Evidence read: <a href="../todos_completed/driftHardeningActionplan.html">reconciled action plan</a>, <a href="driftHardening_fable.html">Fable audit</a>, <a href="driftHardening_SOL.html">Sol drift analysis</a>, <a href="identity_hardening_fable.html">identity-hardening adjudication</a>, TODO #167/#168, and current v1.595 source paths cited inline. Three independent read-only challenge briefs examined W1/W3/W4, W2/W6/W7, and W5/campaign repair. This review changed no game code, save, tracker, or source document; the only artifact written is this file.
 </div>
 </main>
 </body>

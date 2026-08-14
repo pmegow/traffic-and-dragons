@@ -1,6 +1,6 @@
 # SOL_TASKS.md — current assignments for Sol (Codex)
 
-Read [AGENTS.md](../AGENTS.md) first (boundaries + conventions), then [CLAUDE.md](../CLAUDE.md)
+Read [AGENTS.md](../../AGENTS.md) first (boundaries + conventions), then [CLAUDE.md](../../CLAUDE.md)
 for the systems each task touches. Each task below is self-contained, off the drift surface,
 and has a mechanical acceptance criterion. Work them in order; push after each. When a task
 lands, update its TODO.md row's Status cell in the same commit (the full row text is the

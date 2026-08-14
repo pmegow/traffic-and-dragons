@@ -3,7 +3,7 @@
 **TLDR: locations now have real identity — merges, reparents, and splits are O(1) overlay writes with every historical reference resolving at read; the whole doc-ruled t1593 repair (26 ops including the North Road split) ran clean on the clone with zero dangling references; the prompt is byte-identical on unrepaired saves, so nothing changes until a repair is applied; the live repair is now a user session in map_cleanup.html.**
 
 - **Date:** 2026-08-09 · **Version:** v1.582 · **Tier:** Fable (drift surface)
-- **Mandate:** [DOC/identity_hardening_fable.html](../DOC/identity_hardening_fable.html) §7.4, built on the A0 ruling ([AUDIT_identity_A0_representation_gate.md](AUDIT_identity_A0_representation_gate.md)) and Phase A ([AUDIT_identity_phaseA_v1.581.md](AUDIT_identity_phaseA_v1.581.md)).
+- **Mandate:** [DOC/Research/identity_hardening_fable.html](../DOC/Research/identity_hardening_fable.html) §7.4, built on the A0 ruling ([AUDIT_identity_A0_representation_gate.md](AUDIT_identity_A0_representation_gate.md)) and Phase A ([AUDIT_identity_phaseA_v1.581.md](AUDIT_identity_phaseA_v1.581.md)).
 - **Order of work:** critical review → failing tests (16, all red with diagnostics) → implementation → verification → the t1593 clone repair.
 
 ---

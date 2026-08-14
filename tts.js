@@ -704,7 +704,7 @@ var TTS = (function() {
   // the process and THIS layer — the one AudioContext that lives as long as the page, fed one
   // AudioBuffer + one AudioBufferSourceNode per synth, ~90-132 times before every death. WebKit
   // has shipped exactly this fingerprint (count-gated kills at trivial measured memory: WebKit
-  // #198964, #224279). See DOC/piper_deepdive.html H1 and the BUGS.md decision table.
+  // #198964, #224279). See DOC/Research/piper_deepdive.html H1 and the BUGS.md decision table.
   // The counters ride the crash crumb so the NEXT death is self-interpreting:
   //   cs — sources started on the CURRENT context. Death with cs<40 (fresh ctx) → ctx-scoped
   //        accumulation FALSIFIED, run the bypass experiment. Survival past pc≈150 with cr>0

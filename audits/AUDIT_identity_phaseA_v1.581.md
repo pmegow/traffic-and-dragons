@@ -3,7 +3,7 @@
 **TLDR: the Savah fusion class is structurally over — a name-collision write now lands in a provisional identity instead of the established record, the GM settles same/distinct through one nudge, and every merge is reversible; shipped failing-tests-first with 12/12 sabotage proofs, byte-identical legacy replay on 5 corpora, and a live replay on the real t1593 save.**
 
 - **Date:** 2026-08-09 · **Version:** v1.581 · **Tier:** Fable (drift surface)
-- **Mandate:** [DOC/identity_hardening_fable.html](../DOC/identity_hardening_fable.html) §7.3
+- **Mandate:** [DOC/Research/identity_hardening_fable.html](../DOC/Research/identity_hardening_fable.html) §7.3
 - **Order of work (user-directed):** critical review → failing tests → implementation → verification.
 
 ---

@@ -107,7 +107,7 @@
 <header>
   <h1>⚔ LiveKit — findings and verdict</h1>
   <div class="subtitle">Should Traffic and Dragons adopt LiveKit for realtime audio? Investigation for TODO #84.</div>
-  <div class="meta">Written 2026-07-21 · engine v1.415 · sources: five supervisor research lanes (A–E, aggregated web research) cross-checked against the repo itself (stt.js, tts.js, TODO.md, DOC/DOC_multiplayer.html) · design-only, no code written</div>
+  <div class="meta">Written 2026-07-21 · engine v1.415 · sources: five supervisor research lanes (A–E, aggregated web research) cross-checked against the repo itself (stt.js, tts.js, TODO.md, DOC/Research/DOC_multiplayer.html) · design-only, no code written</div>
 </header>
 
 <div class="verdict">
@@ -174,7 +174,7 @@
 
 <div class="card hot">
   <h4>③ Multiplayer shipped as hot-seat on one device — the room model has nothing to route</h4>
-  <p>Three lanes (A, C, D) offered "LiveKit rooms are a natural substrate for PARTY_MAX 4." <span class="tag">DOC/DOC_multiplayer.html</span> locked the opposite: <em>"Hot-seat on one device. No networking, no per-device sync… This removes the entire multiplayer server problem from the first pass."</em> D13 (2026-07-20) records the multi-human session and the user's verdict, <em>"it works."</em> Phases P1–P5 are built; the hot-seat build is closed. Only Q7 (networked co-op, separate devices) remains, explicitly deferred and unscoped.</p>
+  <p>Three lanes (A, C, D) offered "LiveKit rooms are a natural substrate for PARTY_MAX 4." <span class="tag">DOC/Research/DOC_multiplayer.html</span> locked the opposite: <em>"Hot-seat on one device. No networking, no per-device sync… This removes the entire multiplayer server problem from the first pass."</em> D13 (2026-07-20) records the multi-human session and the user's verdict, <em>"it works."</em> Phases P1–P5 are built; the hot-seat build is closed. Only Q7 (networked co-op, separate devices) remains, explicitly deferred and unscoped.</p>
   <p>Even for Q7, the problem shape is <strong>turn-based text state sync</strong> — a labeled action block, a quest log, per-PC location threads — which is the existing Fly.dev REST service's shape, not media routing. Lane D's own top drawback says this plainly, and adds the sharper point: LiveKit data-channel packets are <strong>never buffered for a disconnected participant</strong>. For a game played in cars, where signal drops, a transport that silently discards state for whoever was in a tunnel is the wrong primitive.</p>
 </div>
 
@@ -248,7 +248,7 @@
     <td>2</td>
     <td><strong>It inverts who pays.</strong> The project's economics are BYOK end to end — players pay Anthropic, players pay OpenAI for the Whisper fallback, Piper costs nobody anything. LiveKit bills the <em>developer</em> per connected minute (agent session + WebRTC participant minutes + inference), not per minute of speech.</td>
     <td>B, C, E</td>
-    <td><span class="lean no">BREAKS THE MODEL</span><br><span class="dim">This is the same unit-economics trap <span class="tag">DOC/app_vs_browser.html</span> already reasoned through and rejected for the App Store conversion: "converting doesn't create a business; it creates a billing obligation." The reasoning transfers exactly. See §5.</span></td>
+    <td><span class="lean no">BREAKS THE MODEL</span><br><span class="dim">This is the same unit-economics trap <span class="tag">DOC/Research/app_vs_browser.html</span> already reasoned through and rejected for the App Store conversion: "converting doesn't create a business; it creates a billing obligation." The reasoning transfers exactly. See §5.</span></td>
   </tr>
   <tr>
     <td>3</td>
@@ -337,7 +337,7 @@
   <li>Tokens are server-signed JWTs; the API secret must never reach the browser. Official docs, two lanes.</li>
   <li>Anthropic plugin is Python-only; <code>agents-js</code> omits it and also lacks the fallback adapters. Official docs + an open GitHub issue.</li>
   <li>Published per-minute rates for LiveKit tiers and for Deepgram/AssemblyAI/OpenAI, from vendor pricing pages.</li>
-  <li>Repo-side facts in §2 — I read <span class="tag">stt.js</span>, <span class="tag">helpers.js</span>, <span class="tag">TODO.md</span> and <span class="tag">DOC/DOC_multiplayer.html</span> directly rather than relying on the project summary the lanes were given.</li>
+  <li>Repo-side facts in §2 — I read <span class="tag">stt.js</span>, <span class="tag">helpers.js</span>, <span class="tag">TODO.md</span> and <span class="tag">DOC/Research/DOC_multiplayer.html</span> directly rather than relying on the project summary the lanes were given.</li>
 </ul>
 
 <h4>Vendor claim or single-blog — do not treat as fact</h4>
@@ -442,7 +442,7 @@
   <p>The correct next move is not to buy infrastructure. It is to spend one evening confirming the iOS path works in a car, then ship <strong>#77</strong> — because the read-back gate fixes the one failure mode (a second player's words filed as yours, silently) that no amount of transcription accuracy can ever touch.</p>
 </div>
 
-<footer>Traffic and Dragons · DOC/liveKit_findings.html · standalone doc page (not in the SW app shell) · TODO #84 · 2026-07-21 · engine v1.415</footer>
+<footer>Traffic and Dragons · DOC/Research/liveKit_findings.html · standalone doc page (not in the SW app shell) · TODO #84 · 2026-07-21 · engine v1.415</footer>
 
 </div>
 </body>

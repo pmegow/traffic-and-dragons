@@ -1,5 +1,5 @@
-var CACHE = "tnd-v3-20260813f";
-// Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2).
+var CACHE = "tnd-v3-20260813g";
+// Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todos_completed/todo_TTS_piper.md Phase 2).
 // Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
 // frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
 // EVERY deploy because CACHE bumps every deploy. Without a separate cache name, the purge (which
@@ -112,7 +112,7 @@ self.addEventListener("fetch", function(e){
     );
     return;
   }
-  // Vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2): cache-first against the dedicated
+  // Vendored Piper/ORT assets (DOC/todos_completed/todo_TTS_piper.md Phase 2): cache-first against the dedicated
   // PIPER_CACHE, not the versioned CACHE — keeps the ~20MB of wasm off the per-deploy purge cycle.
   // Not part of APP_SHELL (never precached); first Piper use populates it, then it's permanent.
   if(e.request.url.indexOf("/vendor/piper/") !== -1){

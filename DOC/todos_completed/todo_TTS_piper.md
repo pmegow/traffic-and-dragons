@@ -2,7 +2,7 @@
 
 **Status:** Plan drafted 2026-07-15 by Opus 4.8, based on a validated spike. Reviewed 2026-07-16 by Fable 5 — approved, all 7 forks resolved (§5). **BUILT 2026-07-16 (same day): Phases 1–4 shipped v1.298–v1.301 (Sonnet built each phase, Fable reviewed+revised each before commit); Phase 5 machine-verifiable checks done in the live preview v1.302.** What remains is the HUMAN half of Phase 5: the long-term listen on real narration, Car Mode in a real session, cross-device on the deployed origin, and the post-deploy `curl -I` header check. Build-vs-plan deltas worth knowing: Phase 1 found the quote-drop was CONTENT LOSS (not benign merge) — fixed with a quote-tolerant regex + a loud no-loss fallback net; Phase 3 gained a post-loop epoch check (skip-during-final-unit hole); `_headers` gained an explicit `! Cache-Control` detach.
 **Tier:** Sonnet — CONFIRMED by the Fable review (the TTS layer sits entirely downstream of `cleanTxt` output; it never touches memory, prompts, tags, or transcript). One carve-out: the Phase 2 sw.js change is not drift surface either, but it's the file behind the Netlify bandwidth incident — implement it exactly per the concrete design in Phase 2 (dedicated persistent cache + activate-purge exemption), no improvising.
-**Tracker row:** [TODO.md](../TODO.md) **#41** carries the full research trail (Kokoro/Kitten elimination, Piper validation, the spike findings). This doc is the implementation-facing distillation.
+**Tracker row:** [TODO.md](../../TODO.md) **#41** carries the full research trail (Kokoro/Kitten elimination, Piper validation, the spike findings). This doc is the implementation-facing distillation.
 
 ---
 
@@ -169,6 +169,6 @@ Lift these from `piper_test.html` into `tts.js`. **They are provider-agnostic** 
 
 - **Working spike:** `piper_test.html` (repo root) — the full working blueprint. Run it via a local http server (not file://).
 - **Spike server (throwaway, was in session scratchpad):** a ~30-line static server with a `/piper_vendor/` route mapping. The vendored files it served are temporary; Phase 2 re-vendors into the repo.
-- **Tracker:** [TODO.md](../TODO.md) #41 (full trail: Kokoro/Kitten elimination, all spike findings, live metrics).
+- **Tracker:** [TODO.md](../../TODO.md) #41 (full trail: Kokoro/Kitten elimination, all spike findings, live metrics).
 - **Existing TTS code:** `tts.js` — `speak()` / `_stream()` (Cartesia SSE→PCM) / `_speakNative()` / `scheduleChunk()` / pause/skip/stop / Voice Settings modal.
 - **Related TODO rows:** #9 (per-character voices), #12 (TTS cost / brevity), #2 (Car Mode), #3 (per-character voice IDs).

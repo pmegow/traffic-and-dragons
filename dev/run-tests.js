@@ -683,7 +683,7 @@ try {
 
 // ── VOICE LAB CONTRACT (v1.492, author de-branding experiment) ───────────────────────────
 // author_voice_lab.html tests whether 12 shared attribute dials re-create each author's voice
-// with NO author name in the prompt (DOC/DOC_author_voice.md). The page's pure core (attrs,
+// with NO author name in the prompt (DOC/Research/DOC_author_voice.md). The page's pure core (attrs,
 // baselines, prompt builders) is marker-delimited and evaluated here; the clauses below keep the
 // lab in lockstep with data.js AUTHORS and keep the dial prompt genuinely name-free.
 try {
@@ -698,7 +698,7 @@ try {
   var _labVL = (new Function(_coreVL +
     "; return {attrs: VOICE_ATTRS, base: VOICE_BASELINES, dev: VOICE_DEVICES, flavor: VOICE_FLAVOR, dist: VOICE_DISTILLED, passage: TEST_PASSAGE, band: voiceBand, directive: buildStyleDirective, rewrite: buildRewritePrompt, control: buildControlPrompt, distPrompt: buildDistilledPrompt};"))();
   // ② 12 attributes, 5 non-empty bands each; band mapping covers 1..10.
-  if (_labVL.attrs.length !== 12) _failVL("expected 12 attributes, found " + _labVL.attrs.length + " — update DOC/DOC_author_voice.md and this contract together if the space changes.");
+  if (_labVL.attrs.length !== 12) _failVL("expected 12 attributes, found " + _labVL.attrs.length + " — update DOC/Research/DOC_author_voice.md and this contract together if the space changes.");
   _labVL.attrs.forEach(function (a) {
     if (!a.bands || a.bands.length !== 5 || a.bands.some(function (b) { return !b || b.length < 10; })) _failVL("attribute '" + a.id + "' does not have 5 real band texts.");
     if (_labVL.band(a, 1) !== a.bands[0] || _labVL.band(a, 5) !== a.bands[2] || _labVL.band(a, 10) !== a.bands[4]) _failVL("band mapping broken for '" + a.id + "' (1/5/10 must hit bands 0/2/4).");
@@ -1269,7 +1269,7 @@ try {
   }
 } catch (e) { console.error("PENDING ACTION CHECK FAILED: " + e.message); process.exit(1); }
 
-// ── #113 STT UPGRADES CONTRACT (v1.536 — DOC/DOC_whisper_stt.html §4, user go 2026-08-03) ──
+// ── #113 STT UPGRADES CONTRACT (v1.536 — DOC/Research/DOC_whisper_stt.html §4, user go 2026-08-03) ──
 // stt.js is a DOM-wiring file the headless harness never loads, so the four car-fix wirings
 // are pinned as source contracts (sttBiasPrompt itself is engine-tested in helpers).
 try {
@@ -1307,7 +1307,7 @@ try {
   }
 } catch (e) { console.error("STT UPGRADES CHECK FAILED: " + e.message); process.exit(1); }
 
-// ── #77 CONFIRM GATE CONTRACT (v1.548 — DOC/DOC_nonsense_filter.html §4) ─────────────────
+// ── #77 CONFIRM GATE CONTRACT (v1.548 — DOC/Research/DOC_nonsense_filter.html §4) ─────────────────
 // The pure half (sttConfidence/sttSuspicion/parseConfirmCommand/sttLogEvent) is engine-tested
 // in helpers; the stt.js wiring is pinned here because the harness never loads DOM files.
 try {

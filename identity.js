@@ -5,7 +5,7 @@
 // COLLISION (one name is reused for a new thing, fusing two entities' canon into one record —
 // the three-Savahs class, field-confirmed at t1593). Five stores grew independent partial
 // guards; this file is the shared spine they consolidate into (proposal + adjudicated plan:
-// DOC/identity_hardening_fable.html §7).
+// DOC/Research/identity_hardening_fable.html §7).
 //
 // ONE registry (IDENTITY_DOMAINS — the PROVIDERS/BIBLE_TYPES/TAG_TABLE house pattern), ONE
 // resolver (resolveEntity), ONE action pair ([ALIAS:domain|a|b] / [MERGE:domain|a|b] — thin

@@ -5390,7 +5390,7 @@ function runEngineTests(R){
   });
 
   // ── #113 §4a: the Whisper prompt-bias builder ────────────────────────────────────────────
-  // DOC/DOC_whisper_stt.html: the cloud STT request never told Whisper the campaign's
+  // DOC/Research/DOC_whisper_stt.html: the cloud STT request never told Whisper the campaign's
   // vocabulary, so fantasy nouns decoded to homophones (Frizwick→Physics). sttBiasPrompt
   // serves the words the campaign actually uses — party, roster, places, quest titles —
   // deduped and budget-capped (Whisper's prompt window is ~224 tokens).
@@ -7899,7 +7899,7 @@ function runEngineTests(R){
     return vm&&ids.indexOf(vm[1])>=0?true:"cleared character was not auto-cast: "+JSON.stringify(vm);
   });
 
-  // ── #57 reveal-commitment: supersession + merge hints (DOC/todo_57_reveal_commitment.md) ──
+  // ── #57 reveal-commitment: supersession + merge hints (DOC/todos_completed/todo_57_reveal_commitment.md) ──
   section("#57 reveal-commitment: supersession + merge hints");
   t("extractor supersession: exact match retires to archive and files the replacement",function(){
     makeWorld();
@@ -9261,7 +9261,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #77 confirm gate — the pure half (v1.548) ────────────────────────────────
-  // Design record: DOC/DOC_nonsense_filter.html §4. Layer 0 = confidence capture,
+  // Design record: DOC/Research/DOC_nonsense_filter.html §4. Layer 0 = confidence capture,
   // Layer 1-gate = corrections become suspicion signals instead of silent rewrites,
   // Layer 2 = the read-back. stt.js/ui-carmode wiring is pinned by the #77 CONFIRM GATE
   // contract in run-tests.js; every function with logic lives in helpers.js and runs here.
@@ -12239,7 +12239,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!kinds["leaf-variant"])return "same-parent leaf containment pair (Rusty Dragon vs Sandpoint - Rusty Dragon) not found";
     return true;
   });
-  // ═══ #157: item-bible-driven inventory organization (Sol's spec, DOC/DOC_inventory_reorganization.html) ═══
+  // ═══ #157: item-bible-driven inventory organization (Sol's spec, DOC/Research/DOC_inventory_reorganization.html) ═══
   // View-only grouping: one registry, one pure view model, Unclassified as a SAFETY state (never
   // silently Mundane, never dropped), no fuzzy matching — aliases are exact-after-normalization
   // and collision-refused. The stored inventory array is never reordered or rewritten.
@@ -12862,7 +12862,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // refused the WHOLE envelope (2200 XP, 1500 gp, the completion — all discarded), the quarantine
   // minted a conflict no GM output could resolve, and that conflict then stripped quest/reward tags
   // from EVERY later response whose prose said "Mokmurian" — including an unrelated quest's
-  // completion at t1782. Full analysis: DOC/mature game drift.html.
+  // completion at t1782. Full analysis: DOC/Research/mature game drift.html.
   t("#175①: a death envelope carrying COMBAT_END commits — incidental tags eject to ordinary application",function(){
     makeWorld();worldState.world.location="Jorgenfist";w2Npc("Karg");
     worldState.questLog.push({title:"Boss Hunt",status:"active",desc:"Kill Karg",objectives:[{text:"Kill Karg",done:false}],started:1});

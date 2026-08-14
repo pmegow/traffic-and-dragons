@@ -201,7 +201,7 @@ Suite: 1348 green.
 
 ### 12 — Project-wide drift-risk audit against Runelords t1549 (Sol, no code shipped)
 
-**Filed:** 2026-08-08. **Artifact:** `DOC/Drift_risks_SOL.html`. **Trackers:** TODO
+**Filed:** 2026-08-08. **Artifact:** `DOC/Research/Drift_risks_SOL.html`. **Trackers:** TODO
 #144–#147; existing TODO #136, #5, and #7 are cross-referenced rather than duplicated.
 The owner requested a conservative whole-project search for places canon may drift, with the latest
 Downloads save included and every surviving candidate challenged from three angles. The audit used
@@ -225,7 +225,7 @@ exists. The ranked remedies are recommendations, not pre-approved designs.
 
 ### 11 — Runelords t1467 phantom-presence field analysis (Sol, no code shipped)
 
-**Filed:** 2026-08-07. **Artifact:** `DOC/OffTheRails_sol.html`. **Tracker:** TODO #137.
+**Filed:** 2026-08-07. **Artifact:** `DOC/Research/OffTheRails_sol.html`. **Tracker:** TODO #137.
 The owner requested independent Sol and Fable deep dives into the latest campaign export. Sol's
 finding is that fiction/state first diverged again at t1443 (Daeris stays at the inn) and t1457
 (Morwen remains outside the sealed Spire door); Daeris' first visible teleport is t1463, and the

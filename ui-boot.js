@@ -245,7 +245,7 @@ function wireButtons(){
   // behavior) whenever STT.isAutoListen isn't wired up yet, per the cross-lane contract in
   // ui-carmode.js's _carAutoMic. Wired/initialized exactly like autosend above.
   eachMenuEl("autolisten",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined"&&STT.setAutoListen)STT.setAutoListen(el.checked);});});
-  // #77 — "Confirm unclear voice input" (the Layer-2 gate; DOC/DOC_nonsense_filter.html §4).
+  // #77 — "Confirm unclear voice input" (the Layer-2 gate; DOC/Research/DOC_nonsense_filter.html §4).
   // Default ON when unset; wired/initialized exactly like autolisten above.
   eachMenuEl("sttconfirm",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined"&&STT.setConfirmGate)STT.setConfirmGate(el.checked);eachMenuEl("sttconfirm",function(o){if(o!==el)o.checked=el.checked;});});});
   if(typeof STT!=="undefined")STT.loadSettings();

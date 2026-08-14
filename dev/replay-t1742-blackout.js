@@ -3,7 +3,7 @@
 //
 //   node dev/replay-t1742-blackout.js <t1728.tnd> <t1782.tnd> [--expect-broken]
 //
-// The incident (#175, DOC/mature game drift.html): at t1742 the GM wrapped Mokmurian's death,
+// The incident (#175, DOC/Research/mature game drift.html): at t1742 the GM wrapped Mokmurian's death,
 // [COMBAT_END:victory], 2200 XP, 1500 gp and the quest completion in one CANON_TXN envelope;
 // COMBAT_END was outside the allow-list, the WHOLE envelope quarantined, and the resulting
 // unresolvable conflict then stripped quest/reward tags from every later response that said

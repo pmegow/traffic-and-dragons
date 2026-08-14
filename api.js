@@ -372,7 +372,7 @@ function buildReunionNote(){
   var one=p.names.length===1;
   return"[ENGINE NOTE — REUNION (not a player action): "+p.names.join(", ")+" rejoined the party this turn — "+(one?"their":"each")+" split thread ended at the party's own location ("+p.node+"). The story has NOT yet shown this: acknowledge the reunion in your narration now (a greeting, falling back into step, whatever fits the scene). If the story actually has "+(one?"them":"any of them")+" elsewhere, re-emit [PARTY_SPLIT:<Name>|<Location>|<Sublocation>] instead and they stay split.]";
 }
-// #137 (the t1467 phantom-presence collapse — DOC/OffTheRails_fable.html + _sol.html): the
+// #137 (the t1467 phantom-presence collapse — DOC/Research/OffTheRails_fable.html + _sol.html): the
 // INVERSE of buildSplitAudit above. That audit can only police records that EXIST; when a
 // narrated stay-behind never earns a [PARTY_SPLIT:] (or the tag died to the pre-v1.550 purge),
 // every presence reader defaults the member to co-located and the GM eventually materializes

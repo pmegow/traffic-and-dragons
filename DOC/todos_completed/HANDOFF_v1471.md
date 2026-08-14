@@ -102,6 +102,6 @@ fully-merged `worktree-agent-…` branch; `CHECKPOINT.md` deleted — housekeepi
 
 ## Where the docs live now
 
-`DOC/DOC_class_bible.html` is the #72 spec (Part I current state · II decisions · **II-a the
+`DOC/Research/DOC_class_bible.html` is the #72 spec (Part I current state · II decisions · **II-a the
 concept** · II-b the rubric · III iteration plan). `todo_checkWithFable.md` is empty. Reference docs
 moved into `DOC/`; `CLAUDE.md`, `TODO.md`, `HANDOFF.md`, `todo_checkWithFable.md` stay at root.

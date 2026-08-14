@@ -3,7 +3,7 @@
 **TLDR: measured on the real t1593 save, name-re-keying costs 172 reference rewrites and 2 forced destructive folds for four location merges (and re-pays that on every future operation, forever), while additive domain IDs cost a one-time 1728-instance migration and then 3–4 writes per merge with collisions kept as distinct flagged records — additive IDs win the location domain on both §7.2 criteria (smaller and safer forever).**
 
 - **Date:** 2026-08-09 · **Tier:** Fable (drift surface — critical review recorded below, before code)
-- **Mandate:** [DOC/identity_hardening_fable.html](../DOC/identity_hardening_fable.html) §7.2 — implement the location `merge` twice against a cloned t1593 state; deliver the complete structural-reference inventory, the measured touch-count and failure surface of each approach, and a written ruling. No shipping code.
+- **Mandate:** [DOC/Research/identity_hardening_fable.html](../DOC/Research/identity_hardening_fable.html) §7.2 — implement the location `merge` twice against a cloned t1593 state; deliver the complete structural-reference inventory, the measured touch-count and failure surface of each approach, and a written ruling. No shipping code.
 - **Harness:** [dev/identity-a0-gate.js](../dev/identity-a0-gate.js) (dev-only, not loaded by index.html; loads `globals.js` for `LOC_STATE_CAP` only)
 - **State:** `testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1593.tnd` (gitignored; copy of the 2026-08-09 field export), deep-cloned in memory — the file is never written
 - **Machine-readable results:** `testRuns/identity_a0_results_t1593.json` (regenerate any time with `node dev/identity-a0-gate.js`)

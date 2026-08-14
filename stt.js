@@ -30,7 +30,7 @@ var STT = (function() {
   var _lastErrorWasNoSpeech = false; // stamped by onerror, read by onend for the single auto-retry
   var _noSpeechRetried      = false; // has this car-mode listen cycle already used its one retry?
 
-  // ── #77 confirm gate state (design record: DOC/DOC_nonsense_filter.html §4) ──────────────
+  // ── #77 confirm gate state (design record: DOC/Research/DOC_nonsense_filter.html §4) ──────────────
   var _confirmPending = null;  // {text, tries} — the utterance awaiting a spoken yes/no/redo
   var _utterCorr = [];         // Layer-0 record: sttCorrectNames substitutions this utterance
   var _utterConf = null;       // Layer-0 record: transcript confidence 0..1, null = no signal
@@ -308,7 +308,7 @@ var STT = (function() {
     sendAction(null);
   }
 
-  // ── #77 Layer 2 — the confirm flow (DOC/DOC_nonsense_filter.html §4; three-band design) ──
+  // ── #77 Layer 2 — the confirm flow (DOC/Research/DOC_nonsense_filter.html §4; three-band design) ──
   // Car Mode: speak "I heard: … — send it?" and take a spoken yes/no/redo (the mic reopen is
   // Car Mode's _carAutoMic confirm branch; cloud stays push-to-talk — the driver taps to
   // answer). Outside Car Mode there is no spoken loop: the HOLD is the gate — the text stays
@@ -405,7 +405,7 @@ var STT = (function() {
   // the native block above: start()/stop()/cancel() dispatch into here only when _Rec is
   // null, so native behavior is byte-identical when native recognition exists.
 
-  // ── #113 §4 upgrades (DOC/DOC_whisper_stt.html, user go 2026-08-03) ──────────────
+  // ── #113 §4 upgrades (DOC/Research/DOC_whisper_stt.html, user go 2026-08-03) ──────────────
   var STT_CLOUD_MODEL    = "gpt-4o-mini-transcribe"; // §4b: better noisy-audio WER, half whisper-1's price — verify the id stays current (the PROVIDERS model-string discipline)
   var STT_CLOUD_FALLBACK = "whisper-1";              // §4b: one retry on any primary-model failure — never a silent dead mic
   var STT_MAX_RECORD_MS  = 45000; // §4c: hard cap (was 15000) — endpointing below usually stops long before this

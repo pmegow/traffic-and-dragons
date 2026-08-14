@@ -344,7 +344,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 <!-- Import map: redirects the bare "onnxruntime-web" specifier (which vits-web.js dynamic-imports
      at runtime) to our vendored, SAME-ORIGIN ORT copy instead of the CDN the library defaults to.
      This is the whole trick that avoids CDN/worker/cross-origin-isolation failures — see
-     DOC/todo_TTS_piper.md §1 findings + §2 recipe. Harmlessly ignored by browsers without import-map
+     DOC/todos_completed/todo_TTS_piper.md §1 findings + §2 recipe. Harmlessly ignored by browsers without import-map
      support (the Piper engine then fails to load → loud fallback to native TTS, Phase 4). -->
 <!-- ?tnd=ort-r1 (v1.336, piper-audit #5): ort.wasm.min.js sits in the permanent PIPER_CACHE +
      an immutable HTTP header — this query rev is its ONLY patch-delivery mechanism (same trap

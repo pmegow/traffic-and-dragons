@@ -2,7 +2,7 @@
 
 **TLDR: Sol's spec implemented as specified — both inventory surfaces group through one bible-driven classifier with honest Unclassified containment, aliases resolve canonically (never UI-only), and the curation pass took the real save from 17% to 88% classified with every remaining miss recorded; drop-correctness and both-width legibility were live-fired on the actual 112-row inventory.**
 
-- **Date:** 2026-08-09 · **Version:** v1.583 · **Spec:** [DOC/DOC_inventory_reorganization.html](../DOC/DOC_inventory_reorganization.html) (Sol, reviewed and adopted)
+- **Date:** 2026-08-09 · **Version:** v1.583 · **Spec:** [DOC/Research/DOC_inventory_reorganization.html](../DOC/Research/DOC_inventory_reorganization.html) (Sol, reviewed and adopted)
 - **Order of work:** spec review → failing tests (9, all red) → schema → canonical alias resolution → shared view model → renderers → editor + modal → coverage tool → curation → visual ground truth.
 
 ---

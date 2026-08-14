@@ -4,7 +4,7 @@
 //
 //   node dev/repair-t1782-blackout.js testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1782.tnd
 //
-// What it repairs (evidence: DOC/mature game drift.html; amounts are the EXACT recorded emissions):
+// What it repairs (evidence: DOC/Research/mature game drift.html; amounts are the EXACT recorded emissions):
 //   1. +2200 XP and +1500 gp — the t1742 envelope the engine refused (from its quarantined receipt).
 //   2. +400 XP and +200 gp — the t1782 rewards the blackout stripped (from the sessionLog raw).
 //   3. "Mokmurian's Army" completed + archived (was falsely active 40 turns after the kill).

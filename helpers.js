@@ -958,7 +958,7 @@ function sttNameRoster(ws,mem){
 // tokens; exact roster words pass through untouched; an ambiguous tie between two DIFFERENT
 // canonical words is skipped (never guess between people). Punctuation/casing of the
 // surrounding text is preserved; substitutions use the roster's canonical casing.
-// ── #113 §4a (DOC/DOC_whisper_stt.html, user go 2026-08-03): the Whisper prompt bias ────────
+// ── #113 §4a (DOC/Research/DOC_whisper_stt.html, user go 2026-08-03): the Whisper prompt bias ────────
 // The cloud STT request never told Whisper the campaign's vocabulary, so fantasy nouns decoded
 // to their nearest English homophones (Frizwick→Physics, Morwen→"more when") and the repair
 // fell entirely on sttCorrectNames after the fact. This builds the words the campaign actually
@@ -986,7 +986,7 @@ function sttBiasPrompt(){
   if(s.length>800){s=s.slice(0,800);var cut=s.lastIndexOf(", ");if(cut>0)s=s.slice(0,cut);}/* cap at a clean name boundary */
   return s;
 }
-// ── #77 confirm gate — the pure half (v1.548; design record DOC/DOC_nonsense_filter.html §4) ──
+// ── #77 confirm gate — the pure half (v1.548; design record DOC/Research/DOC_nonsense_filter.html §4) ──
 // Layer 0: sttConfidence turns the OpenAI logprobs array (or nothing) into one 0..1 number.
 // Layer 1-gate: sttSuspicion decides whether an utterance auto-sends or earns the Layer-2
 // read-back. The thresholds are DELIBERATELY data — tune from the sttLogEvent record, never

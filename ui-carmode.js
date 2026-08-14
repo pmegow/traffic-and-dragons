@@ -1,7 +1,7 @@
 // ui-carmode.js — the Car Mode overlay: show/hide, status/party render, tap/next/prev
 // controls, mic auto-start, media session hooks.
 // Split from ui.js at v1.324 per UI_SEAM_MAP.md (TODO #54 / UA17).
-// Car-overlay findings implemented per DOC/todo_carplay.html (2026-07-17 audit) — ranks
+// Car-overlay findings implemented per DOC/todos_completed/todo_carplay.html (2026-07-17 audit) — ranks
 // noted inline. carNotify() below is a CROSS-LANE CONTRACT: stt.js/tts.js/game.js call it
 // with typeof guards, so its signature/semantics must not drift without updating all callers.
 // final-pass #32 — kinds are "error" (turn failures ONLY — arms tap-to-retry; game.js is the
@@ -30,7 +30,7 @@ var CAR_STR = {
   retrying: "Retrying…",
   sending: "Sending…",
   errorPrefix: "⚠ ",
-  // #77 — confirm gate (DOC/DOC_nonsense_filter.html §4 Layer 2)
+  // #77 — confirm gate (DOC/Research/DOC_nonsense_filter.html §4 Layer 2)
   confirmTap: "Yes or no? Tap to answer",
   // #78 — numbered options (CAR_MODE.md Phase 2)
   readingOptions: "Your options…",

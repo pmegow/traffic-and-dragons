@@ -203,7 +203,7 @@ var CAPABILITY_BIBLE={
   // ── ARCHETYPE FEATURES ──────────────────────────────────────────────────────────────────────
   // Class-bible progression features (#72). Named entries here so the GM gets their canon injected
   // every turn like any other capability — which is the whole reason archetype features are written
-  // to be NARRATABLE rather than numeric (DOC/DOC_class_bible.html Part II-a: a feature is a
+  // to be NARRATABLE rather than numeric (DOC/Research/DOC_class_bible.html Part II-a: a feature is a
   // sentence the GM permanently knows about the character).
   //
   // ROGUE / ARCANE TRICKSTER — spine verb: THE SWAP. Object -> idea -> face -> blame -> story ->

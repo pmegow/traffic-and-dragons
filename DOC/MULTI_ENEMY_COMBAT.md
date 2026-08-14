@@ -1,6 +1,6 @@
 # Multi-enemy combat — design (UA26)
 
-**Status: ✅ SHIPPED (v1.264, 2026-07-11 — HANDOFF_batch_v1260.md item 2).** All handlers,
+**Status: ✅ SHIPPED (v1.264, 2026-07-11 — todos_completed/HANDOFF_batch_v1260.md item 2).** All handlers,
 migration, prompt block, and panel landed per this design; 15 engine tests transcribe §8
 (353 total green). One executor deviation, flagged and pinned by test: the F2 same-response
 exemption now CLEARS the old encounter silently instead of skipping the clear — under

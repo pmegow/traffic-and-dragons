@@ -18,7 +18,7 @@
 /manifest.json
   Cache-Control: no-cache
 
-# Vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2) — frozen, same-origin, content-addressed
+# Vendored Piper/ORT assets (DOC/todos_completed/todo_TTS_piper.md Phase 2) — frozen, same-origin, content-addressed
 # by path not name, so they're safe to cache hard. Backstops the SW's dedicated PIPER_CACHE (sw.js)
 # with a plain-HTTP-cache immutable rule. The "! Cache-Control" line DETACHES the value set by the
 # overlapping /*.js no-cache rule above before setting ours — without it, whether the later rule

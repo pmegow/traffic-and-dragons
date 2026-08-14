@@ -1,6 +1,6 @@
 # HANDOFF — the post-cutover additive batch (written at engine v1.260)
 
-**Status: ✅ EXECUTED (banner added 2026-07-16, audit #27)** — all items 0–9 shipped in the post-cutover commits (item 0 legacy-parser deletion v1.261; item 2 multi-enemy combat v1.264, per [MULTI_ENEMY_COMBAT.md](MULTI_ENEMY_COMBAT.md)'s own status header; item 5 condition `cause` v1.267; item 6 epithets v1.268; item 9 reciprocity nudge v1.270; the doc-line items ride in `TAG_DOC_LINES`). Nothing here is a live instruction; retained as the historical design/pre-review record.
+**Status: ✅ EXECUTED (banner added 2026-07-16, audit #27)** — all items 0–9 shipped in the post-cutover commits (item 0 legacy-parser deletion v1.261; item 2 multi-enemy combat v1.264, per [MULTI_ENEMY_COMBAT.md](../MULTI_ENEMY_COMBAT.md)'s own status header; item 5 condition `cause` v1.267; item 6 epithets v1.268; item 9 reciprocity nudge v1.270; the doc-line items ride in `TAG_DOC_LINES`). Nothing here is a live instruction; retained as the historical design/pre-review record.
 
 **Authorship & execution frame.** This is a Fable-authored implementation design, written for
 execution by a later (Opus) session under the drift-protection policy's compensating controls
@@ -356,7 +356,7 @@ Stable-half discipline above.
 
 ## Item 2 — UA26 + UA2: multi-enemy combat + `[ENEMY_SURRENDERS]`
 
-**The design is RATIFIED — [MULTI_ENEMY_COMBAT.md](MULTI_ENEMY_COMBAT.md) is the authority**
+**The design is RATIFIED — [MULTI_ENEMY_COMBAT.md](../MULTI_ENEMY_COMBAT.md) is the authority**
 (all four §7 decisions user-ratified 2026-07-10: no engine initiative; bare `ENEMY_HP` routes to
 the ENGAGED foe with first-living+warn fallback; ENEMY_SURRENDERS is IMPLEMENTED (resolves UA2);
 foe cap 8). This item transcribes it into code. Read that doc in full before starting; the notes
@@ -1151,7 +1151,7 @@ later turns) — consistent with the one-note-per-turn spirit of the quest escal
    reopen when re-baited); the t355 Message bait; a quiet weighty bond (reciprocity nudge).
    Corpus persisted, audit written (test-runs-always-audit), one AUDIT_playtest_v12xx.md in the
    established format.
-   **✅ DONE (2026-07-11): [AUDIT_playtest_v1271.md](../audits/AUDIT_playtest_v1271.md)** — 29 turns, $1.18.
+   **✅ DONE (2026-07-11): [AUDIT_playtest_v1271.md](../../audits/AUDIT_playtest_v1271.md)** — 29 turns, $1.18.
    7/8 scenarios validated live (the #46 `cause` field got no organic condition trigger — carried).
    Two new findings gate follow-up work: **P3-F1** UA26 stats mis-binding on multi-foe
    single-response emissions (Med-High, drift surface) and **P3-F2** the quest-reopen guard
