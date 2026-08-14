@@ -53,7 +53,19 @@ rc |= sabotage.prove({
     { label: "dirty state is no longer labeled as an advisory",
       mustFail: "dirty-tree session advisory is loud and exits zero",
       find: "  console.warn(\"SESSION CHECK ADVISORY — shared-tree state needs attention (warn-only; exit 0)\");",
-      replace: "  console.warn(\"shared-tree state\");" }
+      replace: "  console.warn(\"shared-tree state\");" },
+    { label: "overdue schedule entries are swallowed",
+      mustFail: "overdue schedule entry surfaces loudly and exits zero",
+      find: "    if (entry.due <= today) due.push(entry);",
+      replace: "    if (false) due.push(entry);" },
+    { label: "future schedule entries fire early",
+      mustFail: "future schedule entry stays silent",
+      find: "    if (entry.due <= today) due.push(entry);",
+      replace: "    if (entry.due >= today) due.push(entry);" },
+    { label: "corrupt schedule JSON is swallowed",
+      mustFail: "corrupt schedule warns loudly and exits zero",
+      find: "  catch (e) { return { due: [], errors: [\"dev/schedule.json is malformed or unreadable: \" + e.message] }; }",
+      replace: "  catch (e) { return { due: [], errors: [] }; }" }
   ]
 });
 

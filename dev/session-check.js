@@ -1,5 +1,6 @@
 // session-check.js — #20 warn-only session-start hygiene advisory.
-// Reports shared-tree tracker edits, untracked/ignored testRuns artifacts, and a lane declaration.
+// Reports shared-tree tracker edits, untracked/ignored testRuns artifacts, lane declarations,
+// and due entries in the read-only dev/schedule.json registry.
 // It is intentionally incapable of blocking: every path exits 0 after reporting what it could see.
 var fs = require("fs");
 var path = require("path");
@@ -43,6 +44,41 @@ function uniqueLines(texts) {
   return out.sort();
 }
 
+function localDateString(now) {
+  function two(n) { return n < 10 ? "0" + n : String(n); }
+  return now.getFullYear() + "-" + two(now.getMonth() + 1) + "-" + two(now.getDate());
+}
+
+function validDateString(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  var p = value.split("-");
+  var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+  return d.getUTCFullYear() === +p[0] && d.getUTCMonth() === +p[1] - 1 && d.getUTCDate() === +p[2];
+}
+
+function inspectSchedule(root) {
+  var file = path.join(root, "dev", "schedule.json");
+  var entries;
+  try { entries = JSON.parse(fs.readFileSync(file, "utf8")); }
+  catch (e) { return { due: [], errors: ["dev/schedule.json is malformed or unreadable: " + e.message] }; }
+  if (!(entries instanceof Array)) return { due: [], errors: ["dev/schedule.json is malformed: top level must be an array"] };
+  var due = [];
+  var errors = [];
+  var today = localDateString(new Date());
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+    var label = "dev/schedule.json entry " + i;
+    if (!entry || typeof entry !== "object" || entry instanceof Array) { errors.push(label + " is malformed: expected an object"); continue; }
+    if (typeof entry.id !== "string" || !entry.id.trim()) { errors.push(label + " is malformed: id must be a non-empty string"); continue; }
+    if (typeof entry.due !== "string" || !validDateString(entry.due)) { errors.push(label + " (" + entry.id + ") is malformed: due must be YYYY-MM-DD"); continue; }
+    if (typeof entry.every_days !== "number" || entry.every_days <= 0 || entry.every_days % 1 !== 0) { errors.push(label + " (" + entry.id + ") is malformed: every_days must be a positive integer"); continue; }
+    if (typeof entry.note !== "string" || !entry.note.trim()) { errors.push(label + " (" + entry.id + ") is malformed: note must be a non-empty string"); continue; }
+    // Calendar strings are the contract: no time zone, clock, or time-of-day participates.
+    if (entry.due <= today) due.push(entry);
+  }
+  return { due: due, errors: errors };
+}
+
 function main() {
   var opts;
   try { opts = parseArgs(process.argv.slice(2)); }
@@ -56,6 +92,7 @@ function main() {
   var lanes = [];
   var inspectionErrors = [];
   var parity = null;
+  var schedule = { due: [], errors: [] };
   try {
     var status = git(opts.root, ["status", "--porcelain=v1", "--untracked-files=all", "--", "TODO.md", "DOC/BUGS.md", "todo_checkWithFable.md"]);
     status.split(/\r?\n/).forEach(function (line) { if (line.trim()) trackers.push(line); });
@@ -68,6 +105,7 @@ function main() {
   } catch (e2) { inspectionErrors.push(e2.message); }
   try { parity = hookParity.inspect(opts.root); }
   catch (e3) { inspectionErrors.push("hook parity inspection failed: " + e3.message); }
+  schedule = inspectSchedule(opts.root);
 
   laneCandidates(opts.root, opts.laneFiles).forEach(function (file) {
     if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return;
@@ -76,9 +114,9 @@ function main() {
     lanes.push({ file: slash(opts.root, file), body: body || "(empty declaration)" });
   });
 
-  var findings = trackers.length + artifacts.length + lanes.length + inspectionErrors.length + (parity && !parity.ok ? 1 : 0);
+  var findings = trackers.length + artifacts.length + lanes.length + inspectionErrors.length + schedule.due.length + schedule.errors.length + (parity && !parity.ok ? 1 : 0);
   if (!findings) {
-    console.log("SESSION CHECK OK — no tracker edits, no untracked testRuns files, and no lane declaration present (advisory; exit 0)");
+    console.log("SESSION CHECK OK — no tracker edits, no untracked testRuns files, no lane declaration, and no schedule due (advisory; exit 0)");
     process.exit(0);
   }
 
@@ -96,6 +134,13 @@ function main() {
   if (lanes.length) {
     console.warn("  Lane declaration" + (lanes.length === 1 ? "" : "s") + ":");
     lanes.forEach(function (lane) { console.warn("    " + lane.file + " — " + lane.body); });
+  }
+  schedule.due.forEach(function (entry) {
+    console.warn("  SCHEDULE DUE: " + entry.id + " (due " + entry.due + "; every " + entry.every_days + " days) — " + entry.note);
+  });
+  if (schedule.errors.length) {
+    console.warn("  Schedule registry advisory:");
+    schedule.errors.forEach(function (msg) { console.warn("    " + msg); });
   }
   if (parity && !parity.ok) console.warn("  Pre-commit hook parity: " + parity.message);
   if (inspectionErrors.length) {

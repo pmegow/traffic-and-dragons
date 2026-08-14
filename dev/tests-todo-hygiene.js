@@ -66,6 +66,20 @@ function git(dir, args) {
   if (r.status !== 0) throw new Error("git " + args.join(" ") + " failed: " + resultText(r));
   return r;
 }
+function scheduleRepo(parent, name, scheduleText) {
+  var repo = path.join(parent, name);
+  fs.mkdirSync(repo);
+  fs.mkdirSync(path.join(repo, "DOC"));
+  fs.mkdirSync(path.join(repo, "dev"));
+  fs.writeFileSync(path.join(repo, "TODO.md"), "baseline\n", "utf8");
+  fs.writeFileSync(path.join(repo, "DOC", "BUGS.md"), "bugs\n", "utf8");
+  fs.writeFileSync(path.join(repo, "todo_checkWithFable.md"), "reviews\n", "utf8");
+  fs.writeFileSync(path.join(repo, "dev", "schedule.json"), scheduleText, "utf8");
+  git(repo, ["init", "-q"]);
+  git(repo, ["add", "TODO.md", "DOC/BUGS.md", "todo_checkWithFable.md", "dev/schedule.json"]);
+  git(repo, ["-c", "user.name=Schedule Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture baseline"]);
+  return repo;
+}
 
 var fixture = run("git", ["show", "93c182f^:TODO.md"], { cwd: ROOT });
 if (fixture.status !== 0) {
@@ -136,8 +150,9 @@ try {
     fs.writeFileSync(path.join(repo, "DOC", "BUGS.md"), "bugs\n", "utf8");
     fs.writeFileSync(path.join(repo, "todo_checkWithFable.md"), "reviews\n", "utf8");
     fs.writeFileSync(path.join(repo, ".gitignore"), "testRuns/\n", "utf8");
+    fs.writeFileSync(path.join(repo, "dev", "schedule.json"), JSON.stringify([{ id: "future", due: "2999-12-31", every_days: 14, note: "Synthetic future schedule" }]), "utf8");
     git(repo, ["init", "-q"]);
-    git(repo, ["add", "TODO.md", "DOC/BUGS.md", "todo_checkWithFable.md", ".gitignore"]);
+    git(repo, ["add", "TODO.md", "DOC/BUGS.md", "todo_checkWithFable.md", ".gitignore", "dev/schedule.json"]);
     git(repo, ["-c", "user.name=Hygiene Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture baseline"]);
     fs.appendFileSync(path.join(repo, "TODO.md"), "dirty\n", "utf8");
     fs.writeFileSync(path.join(repo, "testRuns", "unregistered.tnd"), "synthetic\n", "utf8");
@@ -150,6 +165,34 @@ try {
     if (out.indexOf("dev/lane-declaration.json") < 0 || out.indexOf("fixture") < 0) return "lane declaration not reported: " + out;
     if (!/WARN|ADVIS/i.test(out)) return "output was not visibly advisory: " + out;
     return "";
+  });
+
+  test("overdue schedule entry surfaces loudly and exits zero", function () {
+    var repo = scheduleRepo(tmp, "schedule-overdue", JSON.stringify([{ id: "playtest-overdue", due: "2000-01-01", every_days: 14, note: "Synthetic overdue playtest" }]));
+    var r = run(process.execPath, [SESSION, "--root", repo], { cwd: ROOT });
+    var out = resultText(r);
+    if (r.status !== 0) return "schedule advisory blocked with exit " + r.status + ": " + out;
+    if (out.indexOf("playtest-overdue") < 0 || out.indexOf("2000-01-01") < 0 || out.indexOf("Synthetic overdue playtest") < 0)
+      return "overdue schedule entry was not reported completely: " + out;
+    return /SCHEDULE.*DUE|DUE.*SCHEDULE/i.test(out) ? "" : "overdue line was not loud/attributable: " + out;
+  });
+
+  test("future schedule entry stays silent", function () {
+    var repo = scheduleRepo(tmp, "schedule-future", JSON.stringify([{ id: "playtest-future", due: "2999-12-31", every_days: 14, note: "Synthetic future playtest" }]));
+    var r = run(process.execPath, [SESSION, "--root", repo], { cwd: ROOT });
+    var out = resultText(r);
+    if (r.status !== 0) return "future schedule blocked with exit " + r.status + ": " + out;
+    return out.indexOf("playtest-future") < 0 && out.indexOf("Synthetic future playtest") < 0 ? "" : "future schedule surfaced early: " + out;
+  });
+
+  test("corrupt schedule warns loudly and exits zero", function () {
+    var repo = scheduleRepo(tmp, "schedule-corrupt", "{ definitely not json");
+    var r = run(process.execPath, [SESSION, "--root", repo], { cwd: ROOT });
+    var out = resultText(r);
+    if (r.status !== 0) return "corrupt-schedule advisory blocked with exit " + r.status + ": " + out;
+    if (out.indexOf("schedule.json") < 0 || !/malformed|parse|invalid|unreadable/i.test(out))
+      return "corrupt schedule was not loudly attributable: " + out;
+    return /WARN|ADVIS/i.test(out) ? "" : "corrupt schedule output was not advisory: " + out;
   });
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });

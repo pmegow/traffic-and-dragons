@@ -1,0 +1,8 @@
+[
+  {
+    "id": "playtest",
+    "due": "2026-08-28",
+    "every_days": 14,
+    "note": "Playtest-harness run due (#22) — owner green-lights; coordinating session advances due on completion"
+  }
+]
