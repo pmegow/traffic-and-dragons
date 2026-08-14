@@ -14087,6 +14087,57 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ═══ #191: letter-of-the-law objectives — outcomes doctrine + staleness review ═══
+  section("#191: quest staleness review");
+  t("QUEST and QUEST_STEP stamp lastTouch and clear the staleNudged latch",function(){
+    makeWorld();
+    applyMuts("[QUEST:The Sugar War|active|control the candy trade]");
+    var q=worldState.questLog[0];
+    if(q.lastTouch!==worldState.turn)return "QUEST upsert did not stamp lastTouch: "+q.lastTouch;
+    worldState.turn=20;q.staleNudged=15;
+    applyMuts("[QUEST_STEP:The Sugar War|Scout the safe]");
+    if(q.lastTouch!==20)return "QUEST_STEP did not stamp: "+q.lastTouch;
+    if(q.staleNudged!==undefined)return "a touch did not clear the nudge latch";
+    worldState.turn=40;
+    applyMuts("[QUEST:The Sugar War|active]");
+    return q.lastTouch===40?true:"re-emit (the ack path) did not stamp: "+q.lastTouch;
+  });
+  t("buildQuestStaleNudge: fires past QUEST_STALE_TURNS, legacy reads infinitely old, cooldown holds, combat silences",function(){
+    makeWorld();worldState.turn=100;
+    worldState.questLog=[{title:"The Sugar War",status:"active",desc:"",objectives:[{text:"Scout the safe",done:false}],started:1,lastTouch:69}];
+    var n1=buildQuestStaleNudge();
+    if(n1.indexOf("The Sugar War")<0||n1.indexOf("OUTCOMES")<0)return "no nudge at 31 turns stale: "+n1;
+    var n2=buildQuestStaleNudge();
+    if(n2!=="")return "cooldown did not hold: "+n2;
+    delete worldState.questLog[0].staleNudged;
+    worldState.combat={round:1,foes:[{name:"X",hp:1,maxHp:1}]};
+    if(buildQuestStaleNudge()!=="")return "combat did not silence";
+    worldState.combat=null;
+    worldState.questLog[0].lastTouch=95;
+    if(buildQuestStaleNudge()!=="")return "a fresh touch should not nudge";
+    delete worldState.questLog[0].lastTouch;
+    var n3=buildQuestStaleNudge();
+    return n3.indexOf("The Sugar War")>=0?true:"legacy (no lastTouch) must read infinitely old: "+n3;
+  });
+  t("the outcomes-not-rituals doctrine rides the ACTIVE quest block; absent with no actives",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Q",status:"active",desc:"",objectives:[{text:"a",done:false}],started:1}];
+    var b=buildQuestBlock();
+    if(b.indexOf("OUTCOMES, not rituals")<0)return "doctrine line missing from the active block";
+    worldState.questLog=[];
+    b=buildQuestBlock();
+    return b.indexOf("OUTCOMES, not rituals")<0?true:"doctrine line leaked into the no-quests block";
+  });
+  t("#17 quest indicator: a tag-silent active quest reads WATCH as possibly stalled or overtaken",function(){
+    makeWorld();worldState.turn=100;
+    worldState.questLog=[{title:"The Sugar War",status:"active",objectives:[{text:"a",done:false}],lastTouch:60}];
+    var h=healthIndicators(worldState),qi=null,i;for(i=0;i<h.items.length;i++)if(h.items[i].id==="quest")qi=h.items[i];
+    if(qi.level!=="warn"||qi.detail.indexOf("The Sugar War")<0)return "stalled quest not surfaced: "+qi.level+" / "+qi.detail;
+    worldState.questLog[0].lastTouch=90;
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="quest")qi=h.items[i];
+    return qi.level==="ok"?true:"fresh quest should be ok: "+qi.detail;
+  });
+
   // ═══ #23① stagnant-sweep teeth (Known issue #7②③) ═══
   section("#23①: sync badge + rescue-push guards");
   t("syncStatus exposes authExpired (the badge's tap-to-reconnect fork) and the server-turn probe is exported",function(){

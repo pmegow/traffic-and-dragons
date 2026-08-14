@@ -25,6 +25,7 @@ var ARC_DRIFT_RECHECK=50;   // #23 (v1.297): the inverse arc/quest desync (build
 var SUMMARY_KEEP_EX=3;     // #28: max exchanges retained in sessionLog after a summarize
 var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest exchange always kept).
 var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this many turns triggers the engine-note escalation in sendAction (see buildQuestEscalation, api.js)
+var QUEST_STALE_TURNS=30; // #191ⓑ (owner-ruled 2026-08-14): an ACTIVE quest with no QUEST/QUEST_STEP tag activity for this many turns gets the outcomes-review engine note (buildQuestStaleNudge, api.js); also the re-fire cooldown and the #17 stalled-WATCH threshold. Legacy rows without lastTouch read infinitely old (the #133 ruling)
 var QUEST_OBJECTIVE_NUDGE_TURNS=3; // #129: an active quest with ZERO objectives for this many turns triggers the checklist engine note (see buildQuestObjectiveNudge, api.js)
 var CORE_MEMORY_CAP=25;     // #40: defining-moments list cap, PER SHEET since #63 (v1.304) — generous, not infinite; overflow evicts to memory.archive with a loud warn (a full list means the triggers fire too easily, not that we need more storage)
 var RENDER_PTR_CAP=60;      // #30: cap on worldState.renders — POINTERS only ({f,t,k} ≈ 40 bytes), never image bytes. A monotonic per-render list rides the sync blob, so it gets a bound like every other accumulator (standing audit dimension); oldest drop out first. 60 ≈ every render of a long campaign at a realistic render rate, ~2.4KB.
@@ -211,7 +212,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.629";
+var APP_VERSION="v1.630";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

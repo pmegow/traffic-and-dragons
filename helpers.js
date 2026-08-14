@@ -1171,17 +1171,26 @@ function healthIndicators(ws){
   if(tl.length<3)push("tags","State-tag emission","na","not enough responses recorded");
   else push("tags","State-tag emission",zt>=5?"bad":(zt>=3?"warn":"ok"),
     zt===0?"recent responses all carry state tags":zt+" consecutive responses with ZERO state tags"+(zt>=3?" — narration may be desyncing from the sheet":""));
-  // ④ quest credit — an active quest with every objective done that never completes is the
-  // #20 silence class: rewards at risk of never landing.
-  var ql=ws.questLog||[],stuck=[];
+  // ④ quest credit — two blind-spot classes: an active quest with every objective done that
+  // never completes (#20 silence — rewards at risk), and #191's letter-of-the-law class: a
+  // quest overtaken by events whose boxes never check. Spirit-satisfaction isn't detectable;
+  // tag SILENCE is (lastTouch vs QUEST_STALE_TURNS; legacy rows without the stamp read old).
+  var ql=ws.questLog||[],stuck=[],stalled=[];
+  var qStale=(typeof QUEST_STALE_TURNS!=="undefined")?QUEST_STALE_TURNS:30;
   for(i=0;i<ql.length;i++){var q=ql[i];
-    if(q.status==="active"&&q.objectives&&q.objectives.length){
+    if(q.status!=="active")continue;
+    if(q.objectives&&q.objectives.length){
       var d=0;for(j=0;j<q.objectives.length;j++)if(q.objectives[j].done)d++;
       if(d===q.objectives.length)stuck.push(q.title);
     }
+    var qlt=q.lastTouch!=null?q.lastTouch:-1;
+    if(((ws.turn||0)-qlt)>qStale)stalled.push(q.title);
   }
-  push("quest","Quest credit",stuck.length?"warn":"ok",
-    stuck.length?("all objectives complete but quest still open: "+stuck.join(", ")):"no quest sitting complete-but-uncredited");
+  var qBits=[];
+  if(stuck.length)qBits.push("all objectives complete but quest still open: "+stuck.join(", "));
+  if(stalled.length)qBits.push("possibly stalled or overtaken (no progress tags in "+qStale+"+ turns): "+stalled.join(", "));
+  push("quest","Quest credit",qBits.length?"warn":"ok",
+    qBits.length?qBits.join("; "):"no quest sitting complete-but-uncredited or stalled");
   // ⑤ standing anomalies — the engine is already telling itself something is wrong; this
   // surfaces it to the player BEFORE broken fiction does (the t1781 'survived as a proxy' class).
   // NAMED, never counted (owner ruling 2026-08-14 — "you have the information"): subject, quest,
@@ -1220,7 +1229,7 @@ function healthIndicators(ws){
            warn:"Cache reads are running low — worth a report if it persists."},
     tags:{bad:"The story may be moving without the sheet updating. Open the Sheet and tap ⟳ Sync to re-audit.",
           warn:"The story may be moving without the sheet updating. Open the Sheet and tap ⟳ Sync to re-audit."},
-    quest:{warn:"The engine is nudging the GM to close it — if it lingers a few turns, ask about it in-story."},
+    quest:{warn:"The engine is nudging the GM to review or close it — if it lingers a few turns, ask about it in-story."},
     anomaly:{bad:"A canon claim (often a death or its rewards) was refused and withheld. If the story owes you something, submit a report.",
              warn:"Self-correcting state (memory retries or a clock check) — no action needed unless it persists; then submit a report."}
   };

@@ -229,7 +229,8 @@ function buildQuestBlock(){
   var active=[],offered=[],i;
   for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(q.status==="active")active.push(q);else if(q.status==="offered")offered.push(q);}
   var out="";
-  if(active.length){out+="ACTIVE QUESTS (authoritative — steer toward these; advance objectives via [QUEST_STEP:title|objective|done]):\n";for(i=0;i<active.length;i++){var aq=active[i];out+="• "+aq.title+(aq.desc?" — "+aq.desc:"")+"\n";var allDone=false,hasObj=!!(aq.objectives&&aq.objectives.length);if(hasObj){allDone=true;var oj;for(oj=0;oj<aq.objectives.length;oj++){out+="    ["+(aq.objectives[oj].done?"x":" ")+"] "+aq.objectives[oj].text+"\n";if(!aq.objectives[oj].done)allDone=false;}}
+  if(active.length){out+="ACTIVE QUESTS (authoritative — steer toward these; advance objectives via [QUEST_STEP:title|objective|done]):\n";
+    out+="Objectives are OUTCOMES, not rituals: if an objective's outcome has been achieved or made irrelevant by ANY means — accident, excess, a different plan than written — mark it [QUEST_STEP:title|objective|true] in that same response.\n";/* #191ⓐ */for(i=0;i<active.length;i++){var aq=active[i];out+="• "+aq.title+(aq.desc?" — "+aq.desc:"")+"\n";var allDone=false,hasObj=!!(aq.objectives&&aq.objectives.length);if(hasObj){allDone=true;var oj;for(oj=0;oj<aq.objectives.length;oj++){out+="    ["+(aq.objectives[oj].done?"x":" ")+"] "+aq.objectives[oj].text+"\n";if(!aq.objectives[oj].done)allDone=false;}}
     if(allDone)out+="    ⚑ ALL OBJECTIVES COMPLETE — if this quest is truly finished, emit [QUEST:"+aq.title+"|completed] now, together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if work remains, add the next objective via [QUEST_STEP:"+aq.title+"|objective].\n";
     // UA30-b: an active quest with NO objectives can never trip the all-complete teeth above,
     // so it floats forever, invisible to the finish line. Nudge the GM to file trackable steps.
@@ -295,6 +296,33 @@ function buildQuestObjectiveNudge(){
   }
   if(!pick)return"";
   return"[ENGINE NOTE: Quest '"+pick.title+"' has been active for "+stale+" turns with NO recorded objectives — the player has no checklist. In THIS response emit [QUEST_STEP:"+pick.title+"|<first concrete objective>] from the leads the story has already established; add further steps as they become concrete.]";
+}
+// #191ⓑ (owner-designed 2026-08-14): letter-of-the-law objectives — a quest satisfied IN SPIRIT
+// by other means never gets its boxes checked (Sugar War: the safe was cracked on a whim while
+// "scout and plan the heist" sat unchecked), so the all-complete teeth above stay blind and the
+// quest reads "in progress" forever. Spirit-satisfaction is not machine-detectable; tag SILENCE
+// is. An ACTIVE quest with no QUEST/QUEST_STEP activity (q.lastTouch, stamped by both handlers)
+// for QUEST_STALE_TURNS gets a one-shot review note — same shape as buildQuestEscalation: one
+// per turn (stalest), combat-silent, latch stamps on fire (q.staleNudged; re-fires each
+// QUEST_STALE_TURNS until touched, any touch clears it). Legacy rows without lastTouch read
+// infinitely old (the #133 split-audit ruling — the post-upgrade review wave is deliberate).
+// The zero-vocabulary ack: re-emitting [QUEST:title|active] bumps lastTouch, resetting the clock.
+function buildQuestStaleNudge(){
+  if(!worldState||!worldState.questLog||worldState.combat)return"";
+  var pick=null,stale=-1,i;
+  for(i=0;i<worldState.questLog.length;i++){
+    var q=worldState.questLog[i];
+    if(q.status!=="active")continue;
+    var last=q.lastTouch!=null?q.lastTouch:-1;
+    var n=worldState.turn-last;
+    if(n<QUEST_STALE_TURNS)continue;
+    if(q.staleNudged!=null&&worldState.turn-q.staleNudged<QUEST_STALE_TURNS)continue;
+    if(n>stale){stale=n;pick=q;}
+  }
+  if(!pick)return"";
+  pick.staleNudged=worldState.turn;
+  var age=pick.lastTouch!=null?stale+" turns":"a long time (it predates progress tracking)";
+  return"[ENGINE NOTE: Quest '"+pick.title+"' has seen no progress tags for "+age+" while ACTIVE. Objectives are OUTCOMES, not rituals — review them against what has ACTUALLY happened in the story: if an objective's outcome was achieved or made irrelevant by any means, emit [QUEST_STEP:"+pick.title+"|<objective>|true]; if the quest is really finished, emit [QUEST:"+pick.title+"|completed] together with its rewards; if it genuinely stands open as written, re-emit [QUEST:"+pick.title+"|active] to acknowledge this review.]";
 }
 // #134 (t1431 field finding — the multiplying beds; Sol's sibling row #133 carries the stale-splitLoc primary): interior canon has exactly ONE pin, the
 // write-once [LOCATION_DESC:], and the GM files it unprompted for ~8% of sub-locations — so a
@@ -1006,7 +1034,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
