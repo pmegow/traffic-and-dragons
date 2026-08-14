@@ -14320,8 +14320,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[LOCATION:Sandpoint]");
     applyMuts("[LOCATION:Sandpoint Town]");/* the duplicate node */
     var a=memory.map.nodes["Sandpoint"],b=memory.map.nodes["Sandpoint Town"];
-    a.guestbook={"Tess":{turns:[30],resident:false},"Ameiko":{turns:[],resident:true}};
-    b.guestbook={"Tess":{turns:[30,31],resident:false},"Ameiko":{turns:[12],resident:false},"Bosk":{turns:[13],resident:false}};
+    /* resident sits on the DUPLICATE side on purpose — the OR must survive folding FROM the dup
+       (a canonical-side true would pass even with the OR deleted; the sabotage run proved it) */
+    a.guestbook={"Tess":{turns:[30],resident:false},"Ameiko":{turns:[],resident:false}};
+    b.guestbook={"Tess":{turns:[30,31],resident:false},"Ameiko":{turns:[12],resident:true},"Bosk":{turns:[13],resident:false}};
     var R={muts:[],turn:32};
     locMerge("Sandpoint","Sandpoint Town",R);
     var gb=memory.map.nodes["Sandpoint"].guestbook;
@@ -14375,8 +14377,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       "Over":{turns:big,resident:false}};
     healMemory();
     var gb=memory.map.nodes["X"].guestbook;
-    if(gb["JunkTurns"])return "junk-turn record survived the heal (empty non-resident should drop, loudly)";
-    if(gb["NullRec"])return "null record survived the heal";
+    /* KEY-presence checks, not truthiness — a surviving null record is falsy and slipped a
+       truthiness assertion right past the first sabotage run (a persisted null key would crash
+       any later guestbook iteration) */
+    if("JunkTurns" in gb)return "junk-turn record survived the heal (empty non-resident should drop, loudly)";
+    if("NullRec" in gb)return "null record survived the heal";
     if(JSON.stringify(gb["Dupes"].turns)!=="[1,2]")return "turn list not normalized: "+JSON.stringify(gb["Dupes"].turns);
     if(gb["Dupes"].resident!==true)return "resident not coerced to a boolean";
     if(gb["Over"].turns.length!==GB_TURN_CAP)return "import cap not enforced: "+gb["Over"].turns.length;

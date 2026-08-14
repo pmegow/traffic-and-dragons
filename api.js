@@ -70,10 +70,11 @@ function buildGeoBlock(){
     if(!node||!node.guestbook)return;
     var nms=Object.keys(node.guestbook),vis=[],res=[],gi,ti;
     if(!nms.length)return;
-    var latest=function(r){return r.turns.length?r.turns[r.turns.length-1]:(r.agg?r.agg.last:-1);};
-    var first=function(r){return r.agg?r.agg.first:(r.turns.length?r.turns[0]:1e15);};
+    var latest=function(r){var t=r.turns||[];return t.length?t[t.length-1]:(r.agg?r.agg.last:-1);};
+    var first=function(r){var t=r.turns||[];return r.agg?r.agg.first:(t.length?t[0]:1e15);};
     for(gi=0;gi<nms.length;gi++){var rec=node.guestbook[nms[gi]];
-      if(rec.turns.length||rec.agg)vis.push(nms[gi]);
+      if(!rec)continue;/* defense in depth: a malformed record must degrade a line, never crash the prompt build */
+      if((rec.turns||[]).length||rec.agg)vis.push(nms[gi]);
       else if(rec.resident)res.push(nms[gi]);
     }
     var dropped=0;
@@ -83,9 +84,9 @@ function buildGeoBlock(){
     }
     vis.sort(function(a,b){return first(node.guestbook[a])-first(node.guestbook[b]);});
     var ents=[];
-    for(gi=0;gi<vis.length;gi++){var r2=node.guestbook[vis[gi]],parts=[];
+    for(gi=0;gi<vis.length;gi++){var r2=node.guestbook[vis[gi]],r2t=r2.turns||[],parts=[];
       if(r2.agg)parts.push("t"+r2.agg.first+"-t"+r2.agg.last+" x"+r2.agg.count);
-      for(ti=0;ti<r2.turns.length;ti++)parts.push("t"+r2.turns[ti]);
+      for(ti=0;ti<r2t.length;ti++)parts.push("t"+r2t[ti]);
       ents.push(vis[gi]+" ("+parts.join(", ")+")"+(r2.resident?" - usually based here":""));
     }
     if(ents.length)lines.push(label+" remembers these visitors: "+ents.join("; ")+(dropped?"; and "+dropped+" more remembered visitors unlisted":"")+". Only characters recorded at the SAME turn shared that visit - anyone else knows of it second-hand at best, and must not speak as an eyewitness. Anyone unlisted simply has NO recorded visit here: treat their history with this place as UNKNOWN - never assert they were, or were never, here before.");
