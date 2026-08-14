@@ -11,18 +11,23 @@ rc|=sabotage.prove({
   command:["node",["dev/run-tests.js"]],skip:FOCUSED,
   cases:[
     {label:"explicit scene exclusion stops blocking the claimed identity",
+    mustFail:"W2 an explicit exclusion also blocks a later bare named death despite ",
       find:"as[j].entity===canon&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon)",
       replace:"as[j].entity===canon"},
     {label:"same-response scene evidence can self-authorize a combat death",
+    mustFail:"W2 combat-close propagation cannot bypass a scene exclusion, but a pri",
       find:"as[j].sourceTurn<worldState.turn&&(!as[j].revealed||as[j].revealTurn<worldState.turn)&&as[j].entity===canon",
       replace:"as[j].entity===canon"},
     {label:"transaction operations stop matching their declared subject and quest",
+    mustFail:"W2 malformed envelopes and cross-subject death operations fail closed ",
       find:"if(resolveNpcName(m[1].trim())!==resolveNpcName(meta.subject))return{reason:\"death operation names a different NPC than the transaction subject\"};",
       replace:""},
     {label:"semantic XP fingerprints revert to raw spelling and pay +100 twice",
+    mustFail:"W2 transaction ids are idempotent while the same claim id may carry a ",
       find:"if(name===\"XP\"){m=tag.match(/^\\[XP:\\s*\\+?(\\d+)/);if(m)return\"XP:\"+parseInt(m[1],10);}",
       replace:"if(name===\"XP\")return tag;"},
     {label:"proposal-free NPC merges become destructive again",
+    mustFail:"W2 direct merges are proposals first; a delivered exact confirmation a",
       find:"function w2MergeAllowed(canonical,duplicate){if(!worldState||!worldState.sceneRefs)return true;",
       replace:"function w2MergeAllowed(canonical,duplicate){return true;if(!worldState||!worldState.sceneRefs)return true;"}
   ]
@@ -33,6 +38,7 @@ rc|=sabotage.prove({
   command:["node",["dev/run-tests.js"]],skip:FOCUSED,
   cases:[
     {label:"summary extraction writes before referent validation",
+    mustFail:"W2 summary preflight rejects the whole extraction on a conflicting dea",
       find:"  if(typeof validateSummaryExtract===\"function\")validateSummaryExtract(extracted,identityTable);/* #168 W2/W6: whole-extraction preflight before any tier can ratchet disputed identity */\n",
       replace:""}
   ]
@@ -43,6 +49,7 @@ rc|=sabotage.prove({
   command:["node",["dev/run-tests.js"]],skip:FOCUSED,
   cases:[
     {label:"combat-close propagation bypasses the scene ledger",
+    mustFail:"W2 combat-close propagation cannot bypass a scene exclusion, but a pri",
       find:"    if(worldState.sceneRefs&&typeof w2DeathAuthorized===\"function\"&&!w2DeathAuthorized(cn,null)){\n      if(typeof _w2Conflict===\"function\")_w2Conflict(cn,\"-\",\"registered combat foe lacks a prior positive scene binding\");\n      R.muts.push(w.name+\": combat death quarantined (identity unproven)\");\n      continue;\n    }\n",
       replace:""}
   ]
@@ -53,9 +60,11 @@ rc|=sabotage.prove({
   command:["node",["dev/run-tests.js"]],skip:FOCUSED,
   cases:[
     {label:"transaction handlers mutate the authoritative state instead of a clone",
+    mustFail:"W2 state application is atomic when a transaction handler throws after",
       find:"    worldState=_w2Copy(_w2Ws);memory=_w2Copy(_w2Mem);",
       replace:"    worldState=_w2Ws;memory=_w2Mem;"},
     {label:"rolled-back quest success toasts escape the staged side-effect buffer",
+    mustFail:"W2 state application is atomic when a transaction handler throws after",
       find:"\"addMsg\",\"showToast\",\"updateAbPanel\"",
       replace:"\"addMsg\",\"updateAbPanel\""}
   ]
@@ -69,15 +78,19 @@ rc|=sabotage.prove({
   command:["node",["dev/run-tests.js","#168R"]],
   cases:[
     {label:"a just-refused death stops de-authorizing its co-emitted rewards (the stripped-tag evidence hole reopens)",
+    mustFail:"R1: a refused bare death cannot leak its co-emitted quest completion a",
       find:"if(refusedVictim&&",
       replace:"if(false&&"},
     {label:"same-turn summary evidence self-authorizes a corpse again",
+    mustFail:"R6: a summary death cannot cite same-turn scene evidence the tag path ",
       find:"if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;",
       replace:""},
     {label:"a quarantined transaction id becomes citable death authority again",
+    mustFail:"R6b: a summary death citing a quarantined transaction id is refused; a",
       find:"if(_ctr&&_ctr.status===\"quarantined\")return true;",
       replace:"if(false)return true;"},
     {label:"the latched-transition frame buffer stops preserving accepted evidence",
+    mustFail:"R9: accepted frame evidence survives a transition after the overflow l",
       find:"if(s.overflow.frames.length<SCENE_REF_SEALED_CAP){s.overflow.frames.push(old);",
       replace:"if(false){s.overflow.frames.push(old);"}
   ]
@@ -88,9 +101,11 @@ rc|=sabotage.prove({
   command:["node",["dev/run-tests.js","#168R"]],
   cases:[
     {label:"committed receipts stop retiring — the receipt cap permanently kills envelopes again",
+    mustFail:"R3: committed receipts retire on structured-summary success",
       find:"if(typeof w2TxnSummaryRetire===\"function\")w2TxnSummaryRetire();",
       replace:"if(false)w2TxnSummaryRetire();"},
     {label:"array-valued chapterSummary stops normalizing — the t1644 type bypass reopens",
+    mustFail:"R2: an array-valued chapterSummary normalizes and cannot bypass W6 ide",
       find:"if(_snn!=null)extracted.chapterSummary=_snn;",
       replace:"if(false)extracted.chapterSummary=_snn;"}
   ]
@@ -121,6 +136,7 @@ rc|=sabotage.prove({
     },
     {
         "label": "mismatched-subject death ops get ejected instead of refusing (wrong-corpse writes launder through)",
+        "mustFail": "W2 malformed envelopes and cross-subject death operations fail closed ",
         "find": "if(resolveNpcName(m[1].trim())!==resolveNpcName(meta.subject))return{reason:\"death operation names a different NPC than the transaction subject\"};",
         "replace": "if(resolveNpcName(m[1].trim())!==resolveNpcName(meta.subject)){eject.push(ops[i]);continue;}"
     }
@@ -153,21 +169,25 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "committed receipts demote again on a formatting-variant re-emission",
+        "mustFail": "#171②: a committed receipt is NEVER demoted by a later formatting-vari",
         "find": "if(status===\"quarantined\"){if(r.status===\"committed\"){",
         "replace": "if(status===\"quarantined\"){if(false){"
     },
     {
         "label": "the conflict's first actionable reason is overwritten by retries again",
+        "mustFail": "#171③: the conflict keeps its FIRST reason",
         "find": "c.lastReason=reason||c.lastReason;",
         "replace": "c.reason=reason||c.reason;"
     },
     {
         "label": "the same-turn duplicate confirm goes silent again (owner ruled it loud)",
+        "mustFail": "#171④ (ruled loud): a same-turn duplicate bond confirmation refuses wi",
         "find": "if(R)R.muts.push(\"Bond change NOT confirmed (same-response duplicate): \"+(who?who+\" → \":\"\")+ent);",
         "replace": ";"
     },
     {
         "label": "confirmation stops re-verifying the staged preimage (a moved bond gets clobbered)",
+        "mustFail": "#171⑥: confirmation re-verifies the staged preimage",
         "find": "if((row.bond||\"\")!==String(pending.prev||\"\")){",
         "replace": "if(false){"
     }
@@ -180,6 +200,7 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "refusal provenance dies — stripped operations vanish without a trace again (the t1760 class)",
+        "mustFail": "P2: a refused operation's VERBATIM tags survive in the tagLog entry (t",
         "find": "function _w2RefuseLog(tags){if(!tags)return;",
         "replace": "function _w2RefuseLog(tags){return;if(!tags)return;"
     }
@@ -192,11 +213,13 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "the tagLog label sentinel dies — over-cap turns silently truncate again",
+        "mustFail": "P5②: a turn with more than 10 mutation labels carries a '+N more' sent",
         "find": "if((R.muts||[]).length>10)_tlM.push(\"+\"+((R.muts||[]).length-10)+\" more\");",
         "replace": ";"
     },
     {
         "label": "refused provenance never reaches the ring",
+        "mustFail": "P2: a refused operation's VERBATIM tags survive in the tagLog entry (t",
         "find": "if(_tlRef.length){_tlEntry.refused=_tlRef.slice(0,6);",
         "replace": "if(false){_tlEntry.refused=_tlRef.slice(0,6);"
     }
@@ -210,6 +233,7 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "quarantine-archive eviction goes silent again",
+        "mustFail": "P3: identity-quarantine archive eviction is LOUD, never a silent shift",
         "find": "while(a.length>SUMMARY_IDENTITY_QUARANTINE_CAP){var _ev=a.shift();",
         "replace": "while(a.length>SUMMARY_IDENTITY_QUARANTINE_CAP){a.shift();var _ev=null;if(false)"
     },
@@ -221,6 +245,7 @@ rc|=sabotage.prove({
     },
     {
         "label": "past-tense history starts tripping the contradiction (the false-positive class)",
+        "mustFail": "P5①: past-tense survival on a dead NPC is history, not contradiction",
         "find": "var CANON_CONTRA_NOW_RE=/\\bsurviv\\w*\\b[\\s\\S]{0,120}?\\b(?:now|remains|continues|still)\\b/i;",
         "replace": "var CANON_CONTRA_NOW_RE=/\\bsurviv\\w*\\b/i;"
     }
@@ -233,6 +258,7 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "the contradiction note stops consuming its latch (permanent noise)",
+        "mustFail": "P5①: a dead NPC whose stored knowledge asserts PRESENT survival arms t",
         "find": "  delete worldState.canonContradiction;\n  if(!worldState.canonContraNudged)worldState.canonContraNudged={};",
         "replace": "  if(!worldState.canonContraNudged)worldState.canonContraNudged={};"
     }
@@ -252,11 +278,13 @@ rc|=sabotage.prove({
     },
     {
         "label": "scare-quoted narration counts as untagged speech again (the /i defect returns)",
+        "mustFail": "P4a: scare quotes in narration no longer count as an untagged spoken l",
         "find": "(?:says?|said|asks?|asked|answers?|answered|whispers?|whispered|murmurs?|murmured)\\b/.test(p);",
         "replace": "(?:says?|said|asks?|asked|answers?|answered|whispers?|whispered|murmurs?|murmured)\\b/i.test(p);"
     },
     {
         "label": "the gap check re-anchors on before-the-quote text (tag-inside-quote nags forever again)",
+        "mustFail": "P4a: a [SAY:] anywhere in the paragraph silences the gap",
         "find": "if(spoken&&!/\\[SAY:[^\\]]+\\]/.test(p))paragraphGaps++;",
         "replace": "if(spoken&&!/\\[SAY:[^\\]]+\\]/.test(p.slice(0,qm)))paragraphGaps++;"
     }
@@ -276,11 +304,13 @@ rc|=sabotage.prove({
     },
     {
         "label": "dialogue stops being stripped — spoken intent arms the watch again",
+        "mustFail": "P4b/W4: spoken intent, negation, hypotheticals and dreams do not arm t",
         "find": "var s=String(clean||\"\").replace(/\"[^\"]*\"/g,\" \").replace(/“[^”]*”/g,\" \");if(!s)return null;",
         "replace": "var s=String(clean||\"\");if(!s)return null;"
     },
     {
         "label": "commitment pings stop aging out",
+        "mustFail": "P4b/W4: commitmentPing ages out instead of living forever",
         "find": "if(worldState.commitmentPing&&turn-worldState.commitmentPing.turn>COMMITMENT_PING_MAX_AGE)delete worldState.commitmentPing;",
         "replace": ";"
     }
@@ -293,11 +323,13 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "sentence-initial possessives anchor subjects again (valid summaries burn strikes)",
+        "mustFail": "P4b/W6: a sentence-initial POSSESSIVE is not a subject",
         "find": "if(/^['’]s\\b/.test(low.slice(n.length)))continue;",
         "replace": ";"
     },
     {
         "label": "lone reflexives count as subject evidence again (third-party false rejects return)",
+        "mustFail": "P4b/W6: a reflexive about a THIRD PARTY is not subject evidence",
         "find": "if(/\\bshe\\b[^.!?]*\\bherself\\b/.test(low))return\"F\";",
         "replace": "if(/\\bherself\\b/.test(low))return\"F\";"
     }
@@ -310,6 +342,7 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "name-led death claims survive a retraction again",
+        "mustFail": "P4b: NPC_DEATH_RETRACTED scrubs name-led and pronoun-led death claims ",
         "find": "||new RegExp(\"^\\\\s*(?:\"+drName.replace(/[.*+?^${}()|[\\]\\\\]/g,\"\\\\$&\")+\"|he|she|they)\\\\b[^.!?]{0,60}?\\\\b(?:slain|killed|dead|deceased|died|perished)\\\\b\",\"i\").test(s);",
         "replace": ";"
     }
@@ -329,6 +362,7 @@ rc|=sabotage.prove({
     },
     {
         "label": "the roster/place/faction exclusion dies — known names ping as unregistered",
+        "mustFail": "P7: roster NPCs, aliases, map nodes, factions, the hero, and sentence-",
         "find": "if(_recurringKnownName(nm))continue;",
         "replace": ";"
     }
@@ -341,6 +375,7 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "the twice-ignored retirement dies — the registration note becomes permanent noise",
+        "mustFail": "P7: two ignored nudges retire the name for good",
         "find": "  rec.count++;rec.turn=worldState.turn;",
         "replace": "  rec.turn=worldState.turn;"
     }

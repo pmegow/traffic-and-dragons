@@ -13453,6 +13453,45 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!Array.isArray(a.identityQuarantines)||a.identityQuarantines.length!==12)return "quarantine cap wrong: "+JSON.stringify(a.identityQuarantines);
     return a.identityQuarantines[0].reason==="failure 1"&&a.identityQuarantines[11].attempts===3?true:"quarantine receipts lost order/shape";
   });
+  // #183②: the four recognizer-internal bounds, individually pinned. The 2026-08-13 attribution
+  // measurement proved all four mutations MISSED — they hid behind the two macro clauses above,
+  // reading as coverage while guarding nothing. Each test below is the named guard for one
+  // sabotage-w6.js clause (mustFail threads to these titles).
+  t("W6 internals (#183②): alias lists are bounded — 3 max, 120 chars per alias, 180 total",function(){
+    var huge=new Array(140).join("y");
+    var out=_w6AliasList([huge,"Alias One","Alias Two","Alias Three","Alias Four","Alias Five"]);
+    if(out.indexOf(huge)>=0)return "a 139-char alias passed the 120-char cap";
+    if(out.length!==3)return "alias count cap gone: "+JSON.stringify(out);
+    var chars=0,i;for(i=0;i<out.length;i++)chars+=out[i].length;
+    return chars<=180?true:"total alias chars "+chars+" exceed the 180 budget";
+  });
+  t("W6 internals (#183②): a neutral sentence breaks the antecedent — non-adjacent anchors abstain",function(){
+    __w6World();var table=summaryIdentityTable("Ammut is present.");
+    var e=__w6Throws({chapterSummary:"Ammut studies the map. The rain hammers the canvas. She sharpens her knife."},table);
+    return e?"non-adjacent antecedent anchored across a neutral sentence: "+e.message:true;
+  });
+  t("W6 internals (#183②): the identity block trims table.rows to EXACTLY the bounded set it rendered",function(){
+    var table={rows:[],truncated:false},i;
+    for(i=0;i<20;i++)table.rows.push({name:"Actor Number "+i+" With A Deliberately Long Name Padding Out The Line Budget",family:"F",pronouns:"she/her",gender:"F",aliases:["Alias A"+i,"Alias B"+i],kind:"npc",dead:false,handles:["handle-"+i]});
+    var block=buildSummaryIdentityBlock(table);
+    if(block.length>SUMMARY_IDENTITY_CHAR_CAP)return "block exceeds SUMMARY_IDENTITY_CHAR_CAP";
+    if(!table.truncated)return "fixture failed to overflow the cap — enlarge it";
+    return table.rows.length<20?true:"table.rows was not trimmed to the rendered set — validation authority diverges from what the extractor saw";
+  });
+  t("W6 internals (#183②): quarantine receipts bound their raw excerpt at 900 chars",function(){
+    __w6World();memory.archive=undefined;
+    var huge=new Array(1200).join("z");
+    summaryIdentityQuarantine({message:"boom",subject:"Ammut",summaryIdentity:true},[huge,huge],3);
+    var rec=memArchive().identityQuarantines[0];
+    return rec.raw.length<=900?true:"raw excerpt unbounded: "+rec.raw.length+" chars";
+  });
+  /* #183③ PINNED POLICY (owner batch 2026-08-13): the summarize() strike-3 BRANCH — the async
+     network path that decides quarantine-vs-degraded-chapter on the third consecutive failure —
+     is headless-untestable by construction (live model call + DOM toast chain). The REPLAY gate
+     (dev/replay-w6-summary.js) exercises the decision LOGIC via applySummaryExtract replays; the
+     branch's live wiring stays a MANUAL verification item on mature-save sessions. This is a
+     conscious, bounded gap — do not silently widen it: any new logic added to the strike-3
+     branch must land in the replay-reachable half. */
 
   // ── #168 W7: relationship axes — durable bond versus current dynamic ─────────
   section("#168 W7 — relationship axes");

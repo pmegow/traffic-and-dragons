@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The missing-[RETCON:] class — design proposal (#187)</title>
+<style>
+  :root{--bg:#141414;--panel:#181818;--ink:#d8d2c8;--muted:#8a8378;--acc:#b8935a;--good:#7aa86a;--bad:#b06055;}
+  body{background:var(--bg);color:var(--ink);font:15px/1.55 Georgia,serif;max-width:880px;margin:0 auto;padding:28px 18px 80px;}
+  h1{color:var(--acc);font-size:1.5em;border-bottom:1px solid #333;padding-bottom:8px;}
+  h2{color:var(--acc);font-size:1.15em;margin-top:2em;}
+  code,pre{font-family:Consolas,monospace;font-size:.92em;color:#c9b896;background:#1f1c17;border-radius:4px;padding:1px 5px;}
+  pre{padding:10px 14px;overflow-x:auto;border:1px solid #2a2620;}
+  .rule{border-left:3px solid var(--acc);background:var(--panel);padding:10px 14px;margin:14px 0;}
+  .warn{border-left:3px solid var(--bad);background:#1d1614;padding:10px 14px;margin:14px 0;}
+  table{border-collapse:collapse;width:100%;margin:12px 0;}
+  th,td{border:1px solid #2e2a24;padding:6px 10px;text-align:left;vertical-align:top;}
+  th{color:var(--acc);background:#1c1913;}
+  .muted{color:var(--muted);}
+</style>
+</head>
+<body>
+<h1>The missing-[RETCON:] class — design proposal (#187)</h1>
+<p class="muted">Filed 2026-08-13 during the ruling-execution session. Status: DESIGN — no engine code
+ships from this document; the detector half is corpus-gated (the #158/#169 discipline). Source
+thread: Sol's adjudication rejected the delayed-nudge shortcut
+(<a href="driftHardeningActionplan_SOL.html">driftHardeningActionplan_SOL.html</a>, rejected-shortcuts
+list) and prescribed a replacement that was never designed. TODO row #187 tracks this.</p>
+
+<h2>1. The problem</h2>
+<p>When the GM retracts its own PRIOR turn's content inside a new response without emitting
+<code>[RETCON:]</code>, the false prior turn stays RAG-indexed forever. Retrieval later serves the
+retracted scene as episodic truth — the exact pollution class the tag was built to kill, entered
+through the one door the tag can't see: the GM narrating a correction without declaring it.</p>
+
+<h2>2. What exists today</h2>
+<table>
+<tr><th>Piece</th><th>Behavior</th></tr>
+<tr><td><code>[RETCON:]</code> → <code>logTranscript</code> (state.js)</td><td>rc-marks the correcting entry AND the immediately preceding GM entry — <b>adjacency-addressed</b></td></tr>
+<tr><td><code>ragRetrieve</code></td><td>never serves rc-marked entries; drops them from the IDF document set</td></tr>
+<tr><td><code>retconPin</code> (#147)</td><td>the tag's payload injects as CORRECTION IN FORCE until a summarize files it; archives on every exit</td></tr>
+<tr><td><code>mutateTranscriptEntry</code> (#177, v1.615)</td><td>the sanctioned seam for mutating an existing entry — rc-marking an ARBITRARY past entry is now memo-safe by construction</td></tr>
+</table>
+
+<h2>3. Why Sol rejected the delayed nudge — and what the rejection actually pinpoints</h2>
+<p>The obvious fix was a detector that notices an un-tagged retraction at turn N and nudges the GM
+to emit <code>[RETCON:]</code> on turn N+1 or N+2. Sol rejected it: the tag's de-index semantics eat
+<i>the correcting entry and its predecessor</i>, so a LATE tag would de-index turns N+1/N+2 while
+the false turn N stays indexed — the medicine lands on the wrong patient.</p>
+<div class="rule"><b>The key observation: that objection is an artifact of ADJACENCY-ADDRESSED
+marking, not of delayed delivery.</b> If the tag could name its target turn, a late tag would be
+exactly as safe as an immediate one. Fix the addressing and the rejected shortcut becomes the
+correct design.</div>
+
+<h2>4. Proposed design — three independent pieces</h2>
+<h3>4a. Turn-addressed <code>[RETCON:what|turn]</code> (vocabulary extension, drift surface)</h3>
+<p>An optional second field names the retracted turn. <code>[RETCON:the vault was never opened|1612]</code>
+rc-marks every GM entry of turn 1612 (plus the correcting entry, as today). The bare one-field form
+keeps its exact current adjacency behavior — zero migration, the extension is additive. Parse lives
+in <code>logTranscript</code> beside the current rc-mark; the arbitrary-turn mark routes through
+<code>mutateTranscriptEntry</code> (#177 made this safe). Tag-table docs/strip ride the same commit
+(the phantom-tag class is impossible by construction in the UA1 table).</p>
+<h3>4b. The retraction detector (corpus-gated, GM-decides, never auto-marks)</h3>
+<p>A <code>commitGmTurn</code> observer in the shipped mold (#158 phase mismatch / #172 person
+drift): scan committed CLEAN prose for high-confidence retraction shapes anchored to the prior
+turn's content. Candidate cues, deliberately narrow: <code>correction:</code> /
+<code>in truth, &lt;X&gt; never…</code> / <code>that was not &lt;on-file NPC&gt; after all</code> —
+plus a REQUIRED overlap condition: the sentence must name an entity that appears in the previous
+GM entry's <code>e.n</code> index (retractions are about something; free-floating "actually" is
+speech). On fire: arm a one-shot nudge — <i>"if the previous narration was retracted, emit
+[RETCON:what|&lt;N&gt;]; if it was only a clarification, do nothing"</i> — with the turn number
+pre-filled. The GM stays the only writer; prose never auto-marks.</p>
+<div class="warn"><b>Enable gate:</b> the detector ships DISABLED until a full-transcript precision
+audit (the t1788 corpus, 3,573 entries — the #158 standard: the audit's alert count must be
+dominated by true positives, and the phase detector's bar was ONE alert in 328 turns). If the cue
+set can't reach that precision, the detector half is abandoned and only 4a + 4c ship — a
+turn-addressed tag the GM can use spontaneously is already strictly better than today.</div>
+<h3>4c. The owner-side repair operation</h3>
+<p>A receipted dev/console operation — <code>rc-mark turns N..M, reason, preimages to
+memory.archive</code> — for historical cleanups (the t1788 bundle wanted exactly this shape). Post-#177
+it is a ten-line function over <code>mutateTranscriptEntry</code>; it belongs beside the bundle
+script's other receipted ops.</p>
+
+<h2>5. What stays rejected</h2>
+<table>
+<tr><th>Shortcut</th><th>Why it stays dead</th></tr>
+<tr><td>Lexical auto-rc (engine marks on its own detection)</td><td>a false positive silently deletes TRUE scenes from retrieval — worse than the disease</td></tr>
+<tr><td>Blanket transcript rewrites</td><td>transcript is sacred (owner decree 2026-07-17); rc is additive metadata, text never changes</td></tr>
+<tr><td>Adjacency-addressed late tags</td><td>Sol's original objection — de-index lands on the wrong turns</td></tr>
+</table>
+
+<h2>6. Test plan (when implementation is approved)</h2>
+<ul>
+<li>Failing-first: <code>[RETCON:x|N]</code> marks turn N's GM entries and NOT N+1's; bare form byte-identical behavior to today (corpus replays byte-identical).</li>
+<li>Detector fixtures from the audit's true/false positives; the negative set (clarifications, speech, "actually" as filler) must stay silent.</li>
+<li>Memo safety: rc-mark of an old entry through the seam invalidates (the #177 tests already pin the accessor).</li>
+<li>Sabotage: detector-disable, overlap-condition-removal, and turn-parse mutations must each go red with <code>mustFail</code> attribution.</li>
+</ul>
+
+<h2>7. Open questions for the owner</h2>
+<ul>
+<li>Is the turn number visible enough to the GM to be usable? (The prompt shows turn numbers in engine notes; the nudge pre-fills it, so the GM only confirms.)</li>
+<li>Should 4c also un-mark (rc removal) for repair mistakes? Preimages make it reversible either way.</li>
+</ul>
+</body>
+</html>
