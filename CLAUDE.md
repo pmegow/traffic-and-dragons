@@ -266,73 +266,58 @@ Assembled fresh on every request from live state. **Returns `{stable, volatile}`
 
 The GM embeds hidden tags in every response. `applyMuts(text)` parses them and mutates `worldState` and `memory`. Tags are stripped from displayed text by `cleanTxt()`.
 
+**The authoritative registry is `tag_table.js`** — ~57 handlers; parse, strip, and the GM-facing STATE TAGS doc all derive from one entry each, and tags not indexed below (the W2 `SCENE_REF`/`CANON_TXN` family, clock tags, party split) live there and in their own sections. This index is the quick human reference:
+
 | Tag | Effect |
 |---|---|
-| `[HP:+/-X]` | Adjust `character.hp`, clamped to `[0, maxHp]` |
-| `[GOLD:+/-X]` | Adjust `character.gold` |
-| `[ITEM_GAINED:name]` / `[ITEM_LOST:name]` | Push/filter `character.inventory` |
-| `[LOCATION:name]` | Update `world.location`, clear `sublocation`, file to `memory.locations` and `memory.map`. A name that already resolves to a child of the current world node is refused loudly with a GM note asking for `[SUBLOCATION:]` — no world twin or edge minted. **Also clears `worldState.combat`** on a world-location change (the party traveled away; silently when the same response opens a fresh `[COMBAT_START:]`, which rebuilds the tracker) |
-| `[LOCATION_DESC:text]` | Store canonical description for current location (written once on first visit, never overwritten) |
-| `[SUBLOCATION:name]` | Enter a named area within the current world location; sets `world.sublocation` |
-| `[SUBLOCATION_LEAVE]` | Exit sub-location; clears `world.sublocation` |
-| `[TIME:value]` | Accept a free-text phase assertion (e.g. "dawn", "late night") and reconcile the authoritative campaign clock through #131. The string remains compatibility/flavor state, but prompts and UI render current time from `clock.min`, never from this stored twin |
-| `[WEATHER:value]` | Set `world.weather` (free text, e.g. "heavy rain") |
-| `[LOCATION_ITEM:name\|placed]` | Record item left/hidden at current location node; pairs with `[ITEM_LOST:]` |
-| `[LOCATION_ITEM:name\|taken]` | Mark item as taken by NPC/event; player pickup auto-handled by `[ITEM_GAINED:]` |
-| `[LOCATION_STATE:what changed]` | **#105/B17** — append a durable state-change note to the CURRENT map node (`stateNotes[]`, cap `LOC_STATE_CAP`=3, near-dup refresh, loud oldest-eviction). The write-once `[LOCATION_DESC:]` stays untouched — this is the separate, append-only "what the story has DONE to this place" record. Read back TWO ways: `buildGeoBlock` shows the current node's changes beside the frozen description with a this-OVERRIDES instruction, and `buildChangedLocationsBlock` (api.js) injects an ALWAYS-PRESENT remote roll-up (cap `CHANGED_LOC_MAX`=10, volatile half, ""-clean when nothing changed) — always-present because the GM references distant places INSIDE its own output, where mention-triggered injection can never reach |
-| `[NPC:name|status|relation]` | Upsert `worldState.npcs[]` and `memory.npcs{}`. **Death is first-class (B3):** a death status (`npcDeadStatus()` in helpers.js is THE detection) stamps durable `npc.dead=turn` on BOTH stores; once stamped, non-death status writes are REFUSED (warn + toast + `buildDeadStatusNudge`) — revival only via an explicit resurrection status. Dead NPCs render as an affirmative roster `DECEASED:` line, are excluded from GEOGRAPHY "NPCs elsewhere", and are annotated in TOC/detail/graph. Slain REGISTERED combat foes propagate the stamp at encounter close (`propagateSlainFoes`); the extractor's `npcDeaths[]` backstops untagged prose deaths (on-file NPCs only) |
-| `[XP:N]` | Add XP, trigger `checkLevelUp()`. **XP parity:** automatically mirrored to EVERY living party companion's `charSheet` (+ `checkCompanionLevelUp`); a same-response `[COMPANION_XP:]` bonus lands ON TOP of the mirror, never replaces it (#178, owner ruling 2026-08-13 — the old supersede cost doc-obeying GMs' companions their shared awards; the double-count guard is the STATE TAGS bonus-only clause) |
-| `[QUEST:title\|status]` or `[QUEST:title\|status\|desc]` | Upsert `worldState.questLog[]`. status: `offered`/`active`/`completed`/`failed`. `offered` toasts "⚑ Quest opportunity"; `completed`/`failed` archive to `memory.quests` and remove from the live log |
-| `[QUEST_STEP:title\|objective\|done]` | Add an objective to a quest (`done` omitted/false), or mark an existing one complete (`done=true`); matched by objective text |
-| `[COMBAT_START:name\|hp\|ac\|atkbonus\|dmgdie\|morale]` | Multi-foe (UA26): no combat → start the encounter as `{round:1, engaged:null, foes:[foe]}`; combat active → **APPEND a foe** to `foes[]`. Duplicate name while that foe is living → ignored + warn (re-emission, not a new foe); 9th foe → ignored + warn (cap 8, runaway-model guard). g-loop: every occurrence in the response lands |
-| `[COMBAT_STATS:STR:N\|DEX:N\|CON:N\|INT:N\|WIS:N\|CHA:N\|CR:N]` | Set a foe's ability scores and CR (always emit alongside COMBAT_START). Binds by **positional adjacency** (P3-F1): each occurrence goes to the foe whose `[COMBAT_START:]` most recently precedes it in the response text; with no preceding start, `COMBAT_ATTR_FALLBACK="engaged"` routes like bare ENEMY_HP (single living foe, else the engaged foe, else first living + warn) |
-| `[COMBAT_IMMUNE:type,type]` / `[COMBAT_RESIST:...]` / `[COMBAT_VULN:...]` | Set a foe's damage immunities/resistances/vulnerabilities; same positional-adjacency binding + fallback as COMBAT_STATS (the three handlers are factory-generated by `combatAttrEntry`, audit #8); displayed in combat panel |
-| `[ENEMY_HP:Name\|-X]` (named) / `[ENEMY_HP:-X]` (bare) | Adjust a foe's hp (clamped ≥ 0). **Named:** matched exact-then-contains (`combatFoeByName`); no match → warn, NO mutation. **Bare:** single living foe → that foe; else the ENGAGED foe (`combat.engaged` = the foe the player last damaged) if living; else first living + warn — the mutation always lands. Any hit sets `engaged`; hp ≤ 0 sets `down:"slain"` and clears `engaged` |
-| `[ENEMY_SLAIN:Name]` | **Outcome assertion:** the GM narrates a kill and the engine does the arithmetic — foe zeroed, `down:"slain"`, `engaged` cleared. NAMED ONLY: bare warns + no-ops (still strips). Unknown name → warn, no mutation; already-down → quiet no-op ([history](DOC/CLAUDE_HISTORY.md#7-enemy_slain--the-t1188-trafficker-ambush-v1463)) |
-| `[ENEMY_SURRENDERS:Name]` / `[ENEMY_SURRENDERS]` (bare) | Mark foe(s) `down:"surrendered"`: named → that foe via `combatFoeByName` (warn if not found); bare → ALL living foes. Clears `engaged`. A surrendered foe stays in `foes[]` and survives the fight |
-| `[COMBAT_ROUND:N]` | Set `combat.round` (encounter-level) |
-| `[COMBAT_END:outcome]` | Close the WHOLE encounter (`worldState.combat=null`) regardless of foe states. Without the tag, **all foes down auto-closes** — as "surrender" if any foe surrendered, else "victory" |
-| `[ABILITY_GAINED:Name|Desc]` | Append to `character.abilities` (deduplicated) |
-| `[ALIGNMENT:law+1]` / `[ALIGNMENT:good-1]` | Shift `alignLaw`/`alignGood` (-3 to +3), recompute `actualAlignment` |
-| `[ITEM_DEF:name\|category=…\|effect=…\|uses=…\|value=…]` | **#81 — a PROPOSAL, never a write.** Queues a player-confirm record on `worldState.pendingItemDefs` (cap 5, dedupe; instance fields ignored loudly). The confirm modal is the only path to canon: Accept → write-once `worldState.itemBible[key]`, Decline → dropped loudly. Accepted canon re-injects every turn via `buildItemBibleBlock` |
-| `[SPELL_USED:name]` | **Mana spend (#110)** — deduct the spell's capability-bible tier from `character.mana` via `manaPayCast` (tag_table.js, shared with the companion twin). Racial `1/day` spells bypass the pool and keep the hard `used:true` gate; other spells stamp `used` only as informational "cast since rest". Overspend floors at 0 + loud warn — EXCEPT a Necromancer, who overdraws at `MANA_BLOOD_HP` HP per missing point, deducted by the ENGINE (the doc forbids the GM re-emitting `[HP:]` for it — the XP-mirror precedent). Pool math: `manaMax`/`manaCur`/`manaSpellCost` (helpers.js); an ABSENT `c.mana` reads as full (that lazy default IS the migration ruling). Refill: `restSpells()` only |
-| `[MANA:±N\|cause]` / `[COMPANION_MANA:Name\|±N\|cause]` | **#138 — EXTERNAL mana effects only** (a leech's drain, a mana burn, a restorative draught): engine applies to the pool, clamped 0..`manaMax`; loud no-op on a manaless target (never mints a pool). NEVER for cast costs — `manaPayCast` owns those via the cast tags; pairing a `[MANA:]` with the same cast double-charges. Bible pair Mana Leech (necromantic) / Mana Burn (arcane) landed in the same commit |
-| `[LORE:fact]` | Append to `memory.lore` (capped at 30) |
-| `[DECISION:desc]` | Append to `memory.keyDecisions` (capped at 30) |
-| `[FUTURE_EVENT:what|when]` | Append to `memory.futureEvents` |
-| `[FUTURE_EVENT_RESOLVED:what]` | Mark matching future event resolved |
-| `[NPC_NOTE:name|note]` | Append event note to `memory.npcs[name].events` |
-| `[NPC_FORGET:name\|person or event]` | Scrub a specific memory from `memory.npcs[name]` — substring-filters `.knowledge[]` and `.events[]` so the fact stops re-injecting. The engine teeth behind the Arcane Trickster **Oubliate** spell (tier 4). Its lesser sibling **Lethe's Kiss** (tier 3) is narrative-only |
-| `[NPC_SUPERSEDE:name\|outdated fact\|current truth]` | **#57 — reveal commitment.** Retires the matching `.knowledge[]` line(s) (knowledge ONLY, events stay) to `memory.archive.superseded` and records the truth, so a reveal can't coexist with its stale hedge. No-match still records the truth + warns. Extractor side: `summarize()` serves RECORDED FACTS and applies `supersededFacts` echoes the same way; `sameNpc` proposals queue `buildMergeConfirmNudge` for GM-confirmed `[NPC_MERGE:]` — never auto-merged |
-| `[RETCON:what was corrected]` | GM emits when it corrects/rewinds/retracts previously narrated events. Not a mutation — `logTranscript` (state.js) marks the correcting transcript entry AND the immediately preceding GM entry with `rc:1`, and `ragRetrieve` never serves `rc`-marked entries (RAG de-index; see §8b) |
-| `[NPC_PRONOUN:name|pronouns]` | Set pronouns on NPC in both stores |
-| `[NPC_ALIAS:canonical|alias]` | Register alias for an NPC; all future tags using the alias silently resolve to canonical; shown in NPC list as `Name [aka: alias]` |
-| `[NPC_MERGE:canonical|duplicate]` | Absorb duplicate NPC entry into canonical (merges events, knowledge, aliases); cleans up matching relationships; removes duplicate from both stores. **#156:** archives the duplicate's complete pre-image to `memory.archive.identityMerges` BEFORE mutating (reversible by construction); a provisional `°` dup never becomes a permanent alias |
-| `[ALIAS:domain\|canonical\|alias]` / `[MERGE:domain\|canonical\|duplicate]` | **#156 Phase A+B** — the generalized identity pair (domains: `npc` + `location`; capability/item refuse — merge=null by the TYPE ruling). npc operands route into the legacy handlers above (parity engine-tested); location operands drive `locMerge`/`locAliasRegister` (pipe-FREE names only — real sub keys carry pipes and land in the 4-segment refusal by construction, routing structural repairs to map_cleanup.html). An operand containing `\|` or `]` is REFUSED loudly with no mutation (Sol §5); unknown domains refuse loudly. `[MERGE:npc\|New Name\|<provisional>]` with an absent canonical is the RENAME flow for provisional records |
-| `[PARTY_MEMBER:name|true/false]` | Set `partyMember` bool on NPC in `worldState.npcs` and `memory.npcs`; creates NPC entry if missing; flagged in system prompt NPC list |
-| `[DICE:label|result|outcome]` | Rendered visually as a dice block (not a mutation) |
-| `[SKILL_SUCCESS:skillId]` | Increment `character.skills[id]`; toast on level-up |
-| `[CONDITION:name|duration]` | Push `{name, duration}` to `character.conditions` |
-| `[CONDITION_REMOVED:name]` | Filter matching condition from `character.conditions` |
-| `[RELATIONSHIP_BOND:entity|text]` / `[RELATIONSHIP_DYNAMIC:entity|text]` | **#168 W7:** write the durable bond or current dynamic independently. A new bond commits directly; replacing an existing bond stages and requires the exact same tag on a later response. Values over 240 characters are refused loudly |
-| `[RELATIONSHIP_BOND_REMOVED:entity]` / `[RELATIONSHIP_DYNAMIC_REMOVED:entity]` / `[RELATIONSHIP_PAIR_REMOVED:entity]` | Remove only the named axis, or explicitly remove both. Existing-bond and whole-pair destruction use the later-turn confirmation/preimage contract. Empty/absent removals refuse loudly, except when resolving an exact pending compatibility proposal |
-| `[RELATIONSHIP:entity|descriptor]` / `[RELATIONSHIP_REMOVED:entity]` | Compatibility-only legacy forms. They never mutate canon or lexically guess an axis; a bounded persistent decision asks for one explicit W7 tag |
-| `[SAVE_MOD:source|type|amount]` | Upsert `{source, type, amount}` in `character.saveModifiers` |
-| `[SAVE_MOD_REMOVED:source]` | Filter matching save modifier |
-| `[LANGUAGE:name|fluent/broken]` | Push or update language in `character.languages` |
-| `[STORY_BEAT:text]` | Push `{text, turn}` to `character.storyBeats`; also calls `fileDecision` |
-| `[CORE_MEMORY:subject\|text]` | **#40 GM tag** — GM-authored defining moment for the engine-undetectable class (revelations, weddings, vows; pairs with `[NPC_SUPERSEDE:]` at a reveal). Routes through `fileCoreMemory` (game.js) — the SAME write path as the engine triggers: witnessed-by-all fan-out, per-sheet cap 25 + archive eviction, ★ toast. Subject via `resolveNpcName`; text clamped ~200 chars with loud warn; (turn,kind,who) dedupe = one GM moment per subject per turn |
-| `[COMPANION_HP:Name\|+/-N]` | Adjust HP on named party member's `charSheet` (clamped to its maxHp) |
-| `[COMPANION_CONDITION:Name\|cond\|dur]` / `[COMPANION_CONDITION_REMOVED:Name\|cond]` | Add/remove condition on companion `charSheet` |
-| `[COMPANION_RELATIONSHIP_BOND:Name\|entity\|text]` / `[COMPANION_RELATIONSHIP_DYNAMIC:Name\|entity\|text]` and axis/pair removal twins | The W7 operations on the named companion's directed edge; identical confirmation, preimage, bound, and no-guess rules |
-| `[COMPANION_RELATIONSHIP:Name\|entity\|descriptor]` / `[COMPANION_RELATIONSHIP_REMOVED:Name\|entity]` | Compatibility-only legacy forms; queue an explicit axis choice and do not mutate the sheet |
-| `[COMPANION_ITEM_GAINED:Name\|item]` / `[COMPANION_ITEM_LOST:Name\|item]` | Push/filter companion `charSheet.inventory` |
-| `[COMPANION_XP:Name\|N]` | Add XP to companion `charSheet`. For INDIVIDUAL bonuses only — shared party XP arrives automatically via the `[XP:]` mirror (the GM is told never to re-emit a shared award) |
-| `[COMPANION_ABILITY:Name\|nm\|desc]` | Append ability to companion `charSheet.abilities` (deduplicated) |
-| `[COMPANION_ALIGNMENT:Name\|law+1]` | Shift companion `alignLaw`/`alignGood`, recompute `actualAlignment` |
-| `[ARC_COMPLETE:title]` / `[ACT_COMPLETE:title]` / `[ARC_CONTINUE:title\|reason]` | **Skeleton lifecycle.** ARC_COMPLETE closes the named active arc (sequential acts auto-activate the next); ACT_COMPLETE advances the act (parallel acts activate ALL their arcs). `ARC_CONTINUE` (#127) is the OTHER answer to an ARC DRIFT CHECK — the arc is genuinely unfinished: records the reason, resets that arc's drift clock and escalation count (active-arc titles only, else warn + no-op). Engine teeth (#127, api.js): drift checks escalate to a FORCED complete-or-continue fork after two unanswered checks (never auto-closes), and `buildArcStagingNudge` surfaces a never-introduced active arc every `ARC_DRIFT_RECHECK` turns until a matching `[QUEST:\|offered]` exists. The skeleton block also carries the GM-EYES-ONLY knowledge boundary (characters may only voice what the story has surfaced) |
-
-**Companion tags** all route through `findCompanionChar(name)` in `api.js`, which matches a party member by name (`npc.partyMember && npc.charSheet`). They mutate the companion's `charSheet` object rather than `worldState.character`. The GM is instructed (via `buildSysPrompt` COMPANION SHEET TAGS block + DEFAULT_RULES upkeep rule) to use the `COMPANION_` prefix when an event affects a party member instead of the player.
+| `[HP:+/-X]` | Adjust `character.hp`, clamped to [0, maxHp] |
+| `[GOLD:+/-X]` | Adjust gold (parse tolerates `[GOLD:-5 gp]`) |
+| `[ITEM_GAINED:name]` / `[ITEM_LOST:name]` | Push/filter `character.inventory`; GAINED auto-marks a matching location item taken |
+| `[LOCATION:name]` | World move — files to memory+map, clears sublocation AND combat; a child-of-current name refuses loudly, asking for `[SUBLOCATION:]` |
+| `[LOCATION_DESC:text]` | Canonical location description — written once, never overwritten |
+| `[SUBLOCATION:name]` / `[SUBLOCATION_LEAVE]` | Enter/exit a named area inside the current world location |
+| `[TIME:value]` | Phase assertion reconciled into the campaign clock (#131; #142 skip-and-demand across dawn); time renders from `clock.min`, never this stored twin |
+| `[WEATHER:value]` | Set `world.weather` |
+| `[LOCATION_ITEM:name\|placed]` / `[LOCATION_ITEM:name\|taken]` | Record an item left at / taken from the current node |
+| `[LOCATION_STATE:what changed]` | #105 — append a durable state-change note to the current node (cap 3); served in the geo block + the always-present remote roll-up |
+| `[NPC:name\|status\|relation]` | Upsert both NPC stores. Death status (`npcDeadStatus()`) stamps durable `npc.dead` — non-death writes then refuse (revival = explicit resurrected status); slain registered foes propagate at encounter close; the extractor's `npcDeaths[]` backstops prose deaths |
+| `[XP:N]` | Add XP + `checkLevelUp()`; auto-MIRRORED to every living companion (#178 — a same-response `[COMPANION_XP:]` bonus lands ON TOP, never replaces) |
+| `[QUEST:title\|status]` / `[QUEST:title\|status\|desc]` | Upsert quest log (offered/active/completed/failed/declined); completed/failed archive to `memory.quests` |
+| `[QUEST_STEP:title\|objective\|done]` | Add or complete an objective (matched by text) |
+| `[COMBAT_START:name\|hp\|ac\|atkbonus\|dmgdie\|morale]` | Start combat, or APPEND a foe to the encounter (cap 8; duplicate living name warns) |
+| `[COMBAT_STATS:…]` / `[COMBAT_IMMUNE:…]` / `[COMBAT_RESIST:…]` / `[COMBAT_VULN:…]` | Set foe attributes; bind by positional adjacency to the closest preceding COMBAT_START (`COMBAT_ATTR_FALLBACK` otherwise) |
+| `[ENEMY_HP:Name\|-X]` / `[ENEMY_HP:-X]` | Damage a foe — named routes exact-then-contains; bare routes single-living → engaged → first-living + warn. hp ≤ 0 → slain |
+| `[ENEMY_SLAIN:Name]` | Outcome assertion — narrated kill, the engine zeroes the foe. Named only; unknown name warns, no mutation |
+| `[ENEMY_SURRENDERS:Name]` / bare | Mark foe(s) surrendered (bare = all living); a surrendered foe stays in `foes[]` |
+| `[COMBAT_ROUND:N]` | Set encounter round |
+| `[COMBAT_END:outcome]` | Close the whole encounter (all-foes-down auto-closes even without it) |
+| `[ABILITY_GAINED:Name\|Desc]` | Append to `character.abilities` (deduplicated) |
+| `[ALIGNMENT:law+1]` / `[ALIGNMENT:good-1]` | Shift the axes (−3..3), recompute the label (#139 seed-from-label; #140 label flips file defining moments + deity-drift nudges) |
+| `[ITEM_DEF:name\|…]` | #81 PROPOSAL — queues a player confirm (cap 5, dedupe); Accept = write-once `worldState.itemBible` |
+| `[SPELL_USED:name]` | #110 mana spend via `manaPayCast`; racial 1/day keeps the hard `used` gate; a Necromancer overdraws as blood-HP, engine-deducted |
+| `[MANA:±N\|cause]` / `[COMPANION_MANA:Name\|±N\|cause]` | #138 EXTERNAL mana effects only — never cast costs (pairing with a cast double-charges); loud no-op on a manaless target |
+| `[LORE:fact]` / `[DECISION:desc]` | Append to `memory.lore` / `memory.keyDecisions` (cap 30 each) |
+| `[FUTURE_EVENT:what\|when]` / `[FUTURE_EVENT_RESOLVED:what]` | File / resolve a pending event (#29 hygiene: dedupe, scalar `when` → clock schedule, expiry sweep) |
+| `[NPC_NOTE:name\|note]` | Append an event note to the NPC record |
+| `[NPC_FORGET:name\|person or event]` | Scrub matching knowledge/events so the fact stops re-injecting (the Oubliate teeth) |
+| `[NPC_SUPERSEDE:name\|outdated\|truth]` | #57 reveal commitment — retire the stale knowledge line to the archive, record the truth |
+| `[RETCON:what was corrected]` | Not a mutation — `rc`-marks the correcting + preceding transcript entries so RAG never serves them (#187: turn-addressed form + the receipted repair tool) |
+| `[NPC_PRONOUN:name\|pronouns]` / `[NPC_ALIAS:canonical\|alias]` | Set pronouns / register an alias (every NPC-keyed tag resolves aliases) |
+| `[NPC_MERGE:canonical\|duplicate]` | Absorb a duplicate NPC — complete pre-image archived to `memory.archive.identityMerges` FIRST (reversible by construction) |
+| `[ALIAS:domain\|canonical\|alias]` / `[MERGE:domain\|canonical\|duplicate]` | #156 generalized identity pair (npc + location); pipe-bearing/unknown-domain operands refuse loudly; `[MERGE:npc\|New Name\|<provisional>]` is the provisional rename flow |
+| `[PARTY_MEMBER:name\|true/false]` | Toggle party membership (cap enforced; over-cap NPC kept as a non-party ally) |
+| `[DICE:label\|result\|outcome]` | Rendered as a dice block (no mutation) |
+| `[SKILL_SUCCESS:skillId]` | Increment the skill counter; toast on level-up |
+| `[CONDITION:name\|duration]` / `[CONDITION_REMOVED:name]` | Push/filter `character.conditions` |
+| `[RELATIONSHIP_BOND:entity\|text]` / `[RELATIONSHIP_DYNAMIC:entity\|text]` | #168 W7 — write durable bond / current dynamic independently; replacing an existing bond stages a preimage + needs the exact tag re-emitted on a later response; >240 chars refuses |
+| `[RELATIONSHIP_BOND_REMOVED:]` / `[RELATIONSHIP_DYNAMIC_REMOVED:]` / `[RELATIONSHIP_PAIR_REMOVED:]` | Axis/pair removal under the same confirmation/preimage contract |
+| `[RELATIONSHIP:entity\|descriptor]` / `[RELATIONSHIP_REMOVED:entity]` | Compatibility-only — never guess an axis; queue a bounded explicit W7 choice |
+| `[SAVE_MOD:source\|type\|amount]` / `[SAVE_MOD_REMOVED:source]` | Upsert/filter `character.saveModifiers` |
+| `[LANGUAGE:name\|fluent/broken]` | Push or update a language |
+| `[STORY_BEAT:text]` | Push a story beat + `fileDecision` |
+| `[CORE_MEMORY:subject\|text]` | #40 GM-authored defining moment through `fileCoreMemory` — same write path as engine triggers (witnessed-by-all, cap 25, ~200-char clamp) |
+| `[COMPANION_HP:]`, `[COMPANION_CONDITION:]`(+`_REMOVED`), `[COMPANION_RELATIONSHIP_BOND/DYNAMIC:]`(+removals, + legacy compat), `[COMPANION_ITEM_GAINED/LOST:]`, `[COMPANION_XP:]` (individual bonuses ONLY — shared awards arrive via the `[XP:]` mirror), `[COMPANION_ABILITY:]`, `[COMPANION_ALIGNMENT:]` | The player-tag twins for a named party member's `charSheet`, all routed via `findCompanionChar(name)` (api.js); the GM is instructed to use the `COMPANION_` prefix when an event affects a party member |
+| `[ARC_COMPLETE:title]` / `[ACT_COMPLETE:title]` / `[ARC_CONTINUE:title\|reason]` | Skeleton lifecycle (#127 teeth: drift checks escalate to a forced complete-or-continue fork after two unanswered checks; `buildArcStagingNudge` surfaces never-introduced active arcs). The skeleton block carries the GM-EYES-ONLY knowledge boundary |
 
 ### 8. Memory / summarization system (in `memory.js`)
 
