@@ -56,6 +56,13 @@ rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],cases:[
    find:"[TIME_ADVANCE:\"+q.shortfall+\"m]",replace:"[TIME_ADVANCE:\"+(q.shortfall+q.elapsed)+\"m]"}
 ]});
 
+/* #187④a: the turn-addressed [RETCON:what|turn] extension. */
+rc|=sabotage.prove({file:"state.js",command:["node",["dev/run-tests.js","RAG episodic"]],cases:[
+  {label:"turn-addressing silently degrades to adjacency — late corrections eat the wrong turns again (#187④a)",
+    mustFail:"#187④a: turn-addressed [RETCON:what|turn] marks the NAMED turn",
+   find:"if(_rpTm){",replace:"if(false){"}
+]});
+
 /* #188: the bigram qualification lane (the wine-cellar confabulation fix). */
 rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js","RAG episodic"]],cases:[
   {label:"the bigram qualification lane dies — directed memory questions go blind again (#188)",

@@ -3007,6 +3007,31 @@ function runEngineTests(R){
     return b.indexOf("Origin scene")>=0?true:"orphaned index name not resolved: "+b.slice(0,140);
   });
   // ═══ DRIFT PASS order 4 (#147): the correction survives its own retcon ═══
+  t("#187④a: turn-addressed [RETCON:what|turn] marks the NAMED turn's GM entries, never the predecessor",function(){
+    makeWorld();
+    worldState.turn=10;logTranscript("player","p10");logTranscript("gm","the false scene at ten","raw10");
+    worldState.turn=11;logTranscript("player","p11");logTranscript("gm","innocent eleven","raw11");
+    worldState.turn=12;logTranscript("player","p12");logTranscript("gm","In truth the vault stayed sealed.","Prose. [RETCON:the vault was never opened|10]");
+    var tr=worldState.transcript;
+    var e10=tr.filter(function(e){return e.t===10&&e.r==="gm";})[0],e11=tr.filter(function(e){return e.t===11&&e.r==="gm";})[0],e12=tr.filter(function(e){return e.t===12&&e.r==="gm";})[0];
+    if(!e10.rc)return "the named turn was not de-indexed";
+    if(e11.rc)return "the PREDECESSOR was marked — adjacency leaked into the turn-addressed form";
+    if(!e12.rc)return "the correcting entry was not marked";
+    return worldState.retconPin&&worldState.retconPin.what==="the vault was never opened"?true:"pin.what carried the turn field: "+JSON.stringify(worldState.retconPin);
+  });
+  t("#187④a: a named turn with no GM entry warns and NEVER falls back to adjacency",function(){
+    // The Sol guard, verbatim: a late tag must never eat turns the GM did not name.
+    makeWorld();
+    worldState.turn=20;logTranscript("player","p20");logTranscript("gm","innocent twenty","raw20");
+    worldState.turn=21;logTranscript("player","p21");
+    var _w=console.warn,warned="";console.warn=function(m){warned+=String(m);};
+    try{logTranscript("gm","Correction prose.","x [RETCON:something old|5]");}finally{console.warn=_w;}
+    var tr=worldState.transcript;
+    var e20=tr.filter(function(e){return e.t===20&&e.r==="gm";})[0];
+    if(e20.rc)return "adjacency fallback fired — the wrong scene got de-indexed";
+    if(!/no GM entry/.test(warned))return "the miss was silent";
+    return tr[tr.length-1].rc?true:"the correcting entry was not marked";
+  });
   // [RETCON:] de-indexes BOTH halves from RAG (by design), leaving the corrected truth riding
   // only the rolling tail + one unverified extraction pass (Sol R5, live t1547/t1548). The pin
   // keeps it injected until memory files it — and every exit archives, never silent-drops.
@@ -4177,7 +4202,7 @@ function runEngineTests(R){
     // inherited-voice guess: playback gives untagged continuation paragraphs to the NARRATOR and
     // the compliance channel demands the tag.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1765058969&&d.length===22698)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #168 W7: explicit axes, bounded values, pair removal, and compatibility no-guess proposals. */
+    return (__djb2(d)===-941925970&&d.length===22962)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #187④a (v1.618): the RETCON line teaches the turn-addressed second field; re-baselined consciously (the pin's job is to make this paragraph exist). Prior: #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never

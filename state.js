@@ -180,15 +180,33 @@ function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeepi
      no timestamp — the caption degrades to the bare turn number rather than guessing. */
   if(role==="gm"&&typeof clockNow==="function")_e.ck=clockNow();
   if(role==="gm"&&typeof APP_VERSION!=="undefined")_e.v=APP_VERSION;/* #45b: engine version per turn — "what version was the phone on?" is now answerable from any export */
-  if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;var _tr=worldState.transcript,_bi;for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){if(typeof mutateTranscriptEntry==="function")mutateTranscriptEntry(_tr,_bi,function(pe){pe.rc=1;});else _tr[_bi].rc=1;break;}}/* #177: routed through the seam — the rc-mark was memo-safe only by ADJACENCY to this call's own append (length changes → miss); the accessor makes it safe by construction */
-    /* #147: the de-index above removes BOTH versions of the scene from retrieval — correct for
-       the false half, but it leaves the corrected truth riding only the rolling session tail +
-       one unverified extraction. Pin it: the tag's own payload (what was corrected) injects as
-       CORRECTION IN FORCE (buildRetconPinBlock, api.js) until a summarize files it or the
-       RETCON_PIN_SHELF expires — every exit archives to memory.archive.retconPins. Single slot:
-       a newer retcon rotates the prior into the archive here. */
-    var _rpM=String(raw).match(/\[RETCON:([^\]]*)\]/i);
-    if(_rpM&&_rpM[1]&&_rpM[1].trim()){if(worldState.retconPin&&typeof memArchive==="function")memArchive().retconPins.push(worldState.retconPin);worldState.retconPin={what:_rpM[1].trim(),turn:worldState.turn};}}
+  if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;
+    /* #187④a (v1.618): the tag is TURN-ADDRESSED when its payload ends in |<number> —
+       [RETCON:the vault was never opened|1612] rc-marks every GM entry of turn 1612 instead of
+       the immediately preceding one, so a LATE correction de-indexes the right scene (Sol's
+       objection to delayed tags was an artifact of adjacency addressing — the medicine landed
+       on the wrong patient). The bare one-field form keeps its exact adjacency behavior. A
+       parsed turn NEVER falls back to adjacency: if the named turn has no GM entry, warn loudly
+       and mark only the correcting response (eating turns the GM did not name is the exact
+       class the extension exists to kill). All marks route through the #177 seam. */
+    var _tr=worldState.transcript,_bi;
+    var _rpM=String(raw).match(/\[RETCON:([^\]]*)\]/i),_rpWhat=_rpM&&_rpM[1]?_rpM[1].trim():"",_rpTm=_rpWhat.match(/^(.*\S)\s*\|\s*(\d{1,6})\s*$/);
+    if(_rpTm){
+      var _rpTurn=parseInt(_rpTm[2],10),_rpHits=0;_rpWhat=_rpTm[1].trim();
+      for(_bi=_tr.length-1;_bi>=0;_bi--){
+        if(_tr[_bi].t<_rpTurn)break;
+        if(_tr[_bi].r==="gm"&&_tr[_bi].t===_rpTurn){(function(ix){if(typeof mutateTranscriptEntry==="function")mutateTranscriptEntry(_tr,ix,function(pe){pe.rc=1;});else _tr[ix].rc=1;})(_bi);_rpHits++;}
+      }
+      if(!_rpHits&&typeof console!=="undefined")console.warn("[retcon] turn-addressed [RETCON:…|"+_rpTurn+"] names a turn with no GM entry (range 1.."+worldState.turn+") — only the correcting response was de-indexed; NO adjacency fallback");
+    }else{
+      for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){if(typeof mutateTranscriptEntry==="function")mutateTranscriptEntry(_tr,_bi,function(pe){pe.rc=1;});else _tr[_bi].rc=1;break;}}/* #177: routed through the seam — the rc-mark was memo-safe only by ADJACENCY to this call's own append (length changes → miss); the accessor makes it safe by construction */
+    }
+    /* #147: the de-index above removes the false scene from retrieval — correct, but it leaves
+       the corrected truth riding only the rolling session tail + one unverified extraction.
+       Pin it: the tag's what-half injects as CORRECTION IN FORCE (buildRetconPinBlock, api.js)
+       until a summarize files it or the RETCON_PIN_SHELF expires — every exit archives to
+       memory.archive.retconPins. Single slot: a newer retcon rotates the prior into the archive. */
+    if(_rpWhat){if(worldState.retconPin&&typeof memArchive==="function")memArchive().retconPins.push(worldState.retconPin);worldState.retconPin={what:_rpWhat,turn:worldState.turn};}}
   worldState.transcript.push(_e);}
 /* #177: THE sanctioned mutator for an EXISTING transcript entry. The compression memo keys on
    (array ref, length, last-entry ref, last-entry .x), so an in-place field edit on an OLD entry
