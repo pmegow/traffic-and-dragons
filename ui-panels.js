@@ -52,7 +52,20 @@ function updateQuestPanel(){
       +"</div>";
   }
   var listEl=document.getElementById("quest-list");
-  if(listEl)listEl.innerHTML=h||"<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>No active quests</div>";
+  if(listEl){
+    if(!h){
+      /* #23② (owner request 2026-08-14): completed history lives in showQuestModal's History
+         section, but with zero live quests the panel rendered a dead italic line — no clickable
+         path to the journal at all. An archive-backed row restores the entry point. */
+      h="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>No active quests</div>";
+      var _qk=(typeof memory!=="undefined"&&memory&&memory.quests)?Object.keys(memory.quests):[];
+      if(_qk.length){
+        var _qc=0,_qi2;for(_qi2=0;_qi2<_qk.length;_qi2++)if(memory.quests[_qk[_qi2]].status==="completed")_qc++;
+        h+="<div class='qp-item' onclick='showQuestModal()' title='Open the quest journal'><span class='qp-nm'>✓ Completed quests</span><span class='qp-st'>"+_qc+"</span></div>";
+      }
+    }
+    listEl.innerHTML=h;
+  }
 }
 function updateHUD(){
   /* TODO #1 P2 (D6/D7): the hero slot shows activePlayer() — the spotlight PC — while the
