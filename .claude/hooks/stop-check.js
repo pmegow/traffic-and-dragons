@@ -50,7 +50,7 @@ process.stdin.on("end", function () {
     if (!codeVer) warnings.push("⚠ Version drift check unavailable: globals.js has no readable APP_VERSION marker.");
     else if (!memVer) warnings.push("⚠ Version drift check unavailable: memory session_state.md has no readable current version.");
     if (codeVer && memVer && codeVer !== memVer) {
-      warnings.push("⚠ Version drift: globals.js APP_VERSION is v" + codeVer + " but memory session_state.md says v" + memVer + ". Run /memory to refresh.");
+      warnings.push("⚠ Version drift: globals.js APP_VERSION is v" + codeVer + " but memory session_state.md says v" + memVer + "; ask Claude to refresh memory/session_state.md.");
     }
   } catch (e3) {
     warnings.push("⚠ Version drift check unavailable: " + e3.message);

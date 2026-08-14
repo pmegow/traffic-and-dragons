@@ -60,6 +60,8 @@ try {
     var out = text(result);
     if (result.status !== 0) return "blocked with exit " + result.status + ": " + out;
     if (out.indexOf("Version drift") < 0 || out.indexOf("v9.321") < 0 || out.indexOf("v9.320") < 0) return "mismatch not reported: " + out;
+    if (out.indexOf("ask Claude to refresh memory/session_state.md.") < 0) return "actionable refresh guidance missing: " + out;
+    if (out.indexOf("/memory") >= 0) return "nonexistent /memory command recommended: " + out;
     return "";
   });
   test("stop hook reports an unavailable version source instead of swallowing it", function () {
