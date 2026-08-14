@@ -4126,7 +4126,10 @@ function runEngineTests(R){
     // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
     // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
     // the transcript's clean text, polluting RAG excerpts and the narrative export.
-    if(__djb2(_CT_TAGS.source)!==1533725148||_CT_TAGS.source.length!==1455)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    // v1.632 (#173): +LOCATION_RESIDENT strip entry — source grew exactly 18 chars =
+    // "LOCATION_RESIDENT|". An unstripped residency mark would leak bookkeeping into the prose
+    // and the transcript — the exact ledger-speak amendment ⑤ forbids.
+    if(__djb2(_CT_TAGS.source)!==1074971438||_CT_TAGS.source.length!==1473)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -4201,8 +4204,11 @@ function runEngineTests(R){
     // always takes a fresh tag; an untagged one falls to the narrator." The rule that retired the
     // inherited-voice guess: playback gives untagged continuation paragraphs to the NARRATOR and
     // the compliance channel demands the tag.
+    // v1.632 (#173): the one [LOCATION_RESIDENT:] doc line (+485 chars) — residency vocabulary
+    // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
+    // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-941925970&&d.length===22962)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #187④a (v1.618): the RETCON line teaches the turn-addressed second field; re-baselined consciously (the pin's job is to make this paragraph exist). Prior: #168 W7 axes. */
+    return (__djb2(d)===745953416&&d.length===23447)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #187④a (v1.618): the RETCON line teaches the turn-addressed second field; re-baselined consciously (the pin's job is to make this paragraph exist). Prior: #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -14206,6 +14212,232 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
         if(wc>=25)return it.id+" hint is "+wc+" words — the ruling is UNDER 25";
       }else if(it.hint)return it.id+" ["+it.level+"] should carry no hint";
     }
+    return true;
+  });
+
+  // ═══ #173: the location guestbook — per-character visit provenance ═══
+  // Owner-ratified shape (2026-08-12) + the seven pinned Fable amendments (2026-08-14):
+  // node.guestbook[canonicalName]={turns:[...],resident:bool,agg?:{first,last,count}}.
+  // ① cap is PER CHARACTER (GB_TURN_CAP=8; overflow folds oldest into the agg);
+  // ② projection negatives are RECORD-based ("no recorded visit", unrecorded = UNKNOWN);
+  // ③ the party snapshot commits at a POST-HANDLER seam (after same-response split/rejoin
+  //    settles — [LOCATION:] precedes [PARTY_SPLIT:] in table order regardless of textual order);
+  // ④ repair executors fold=union+dedupe+OR-resident, split allocates explicitly, NPC
+  //    alias/merge re-keys; ⑤ projection reads as memory, no ledger-speak; ⑥ backfill is a
+  //    follow-on tool; ⑦ node.npcs is display-only "ever associated".
+  section("#173 guestbook: per-character visit provenance");
+  function gbParty(){/* hero Tess + three sheeted companions, the t1728 cast shape */
+    makeWorld();
+    var nms=["Frizwick","Morwen","Daeris"],i;
+    for(i=0;i<nms.length;i++){
+      worldState.npcs.push({name:nms[i],partyMember:true,status:"ally",rel:"ally",
+        charSheet:{name:nms[i],cls:"Rogue",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+      memory.npcs[nms[i]]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    }
+  }
+  t("arrival snapshot: a same-response split member is excluded from the arrival stamp regardless of TEXTUAL tag order (the brief-A table-order trap)",function(){
+    var orders=[
+      "[PARTY_SPLIT:Frizwick|Sandpoint] The party climbs on. [LOCATION:Jorgenfist]",
+      "[LOCATION:Jorgenfist] Frizwick turns back alone. [PARTY_SPLIT:Frizwick|Sandpoint]"
+    ],oi;
+    for(oi=0;oi<orders.length;oi++){
+      gbParty();worldState.turn=11;
+      applyMuts(orders[oi]);
+      var gb=(memory.map.nodes["Jorgenfist"]||{}).guestbook;
+      if(!gb)return "order "+oi+": Jorgenfist has no guestbook — arrival writer missing";
+      var who=["Tess","Morwen","Daeris"],wi;
+      for(wi=0;wi<who.length;wi++){
+        if(!gb[who[wi]]||gb[who[wi]].turns.indexOf(11)<0)return "order "+oi+": "+who[wi]+" not recorded at the arrival";
+      }
+      if(gb["Frizwick"]&&gb["Frizwick"].turns.length)return "order "+oi+": SPLIT Frizwick was stamped at Jorgenfist — the table-order trap (amendment ③)";
+      var sp=(memory.map.nodes["Sandpoint"]||{}).guestbook;
+      if(!sp||!sp["Frizwick"]||sp["Frizwick"].turns.indexOf(11)<0)return "order "+oi+": the split member's own arrival at Sandpoint went unrecorded";
+    }
+    return true;
+  });
+  t("rejoin records the returning member at the party's current node (explicit rejoin)",function(){
+    gbParty();worldState.turn=10;
+    applyMuts("[LOCATION:Riverford]");/* whole party arrives — Frizwick included */
+    worldState.turn=12;
+    applyMuts("[PARTY_SPLIT:Frizwick|Sandpoint]");
+    worldState.turn=15;
+    applyMuts("She walks back in. [PARTY_SPLIT:Frizwick|rejoin]");
+    var gb=(memory.map.nodes["Riverford"]||{}).guestbook||{};
+    if(!gb["Frizwick"])return "no Frizwick record at the rejoin node";
+    if(gb["Frizwick"].turns.indexOf(15)<0)return "rejoin turn not recorded: "+JSON.stringify(gb["Frizwick"].turns);
+    return gb["Frizwick"].turns.indexOf(10)>=0?true:"her original arrival vanished";
+  });
+  t("same-turn stamps dedupe; the per-character cap folds oldest turns into {first,last,count} and never grows past GB_TURN_CAP (amendment ①)",function(){
+    gbParty();worldState.turn=1;
+    applyMuts("[LOCATION:Millhaven]");
+    var node=memory.map.nodes["Millhaven"],i;
+    if(typeof guestbookStamp!=="function")return "guestbookStamp missing";
+    guestbookStamp("Millhaven","Tess",1);/* duplicate of the arrival stamp */
+    if(node.guestbook["Tess"].turns.length!==1)return "same-turn stamp duplicated: "+JSON.stringify(node.guestbook["Tess"].turns);
+    for(i=2;i<=12;i++)guestbookStamp("Millhaven","Tess",i);
+    var rec=node.guestbook["Tess"];
+    if(rec.turns.length!==GB_TURN_CAP)return "cap not enforced: "+rec.turns.length+" turns";
+    if(rec.turns[0]!==5||rec.turns[rec.turns.length-1]!==12)return "wrong turns survived the fold: "+JSON.stringify(rec.turns);
+    if(!rec.agg||rec.agg.first!==1||rec.agg.last!==4||rec.agg.count!==4)return "aggregate wrong: "+JSON.stringify(rec.agg);
+    guestbookStamp("Millhaven","Tess",3);/* inside the folded region — already counted */
+    if(rec.turns.length!==GB_TURN_CAP||rec.agg.count!==4)return "a turn inside the folded region re-counted";
+    return true;
+  });
+  t("[LOCATION_RESIDENT:] marks resident-only with NO fabricated visit turn; |false clears; a resident with real visits keeps them",function(){
+    gbParty();worldState.turn=8;
+    applyMuts("[LOCATION:Sandpoint]");
+    applyMuts("Ameiko runs this inn. [LOCATION_RESIDENT:Ameiko]");
+    var gb=(memory.map.nodes["Sandpoint"]||{}).guestbook||{};
+    if(!gb["Ameiko"])return "resident record missing";
+    if(gb["Ameiko"].resident!==true)return "resident flag not set";
+    if(gb["Ameiko"].turns.length)return "resident-only record fabricated a visit turn: "+JSON.stringify(gb["Ameiko"].turns);
+    applyMuts("[LOCATION_RESIDENT:Ameiko|false]");
+    if(gb["Ameiko"])return "cleared resident-only record should be dropped entirely";
+    /* a resident who ALSO genuinely visited keeps the turns when residency clears */
+    applyMuts("[NPC:Ameiko|welcoming|ally]");
+    applyMuts("[LOCATION_RESIDENT:Ameiko]");
+    applyMuts("[LOCATION_RESIDENT:Ameiko|false]");
+    gb=(memory.map.nodes["Sandpoint"]||{}).guestbook||{};
+    if(!gb["Ameiko"]||gb["Ameiko"].turns.indexOf(8)<0)return "clearing residency destroyed real visit turns";
+    return gb["Ameiko"].resident===false?true:"resident flag not cleared";
+  });
+  t("[NPC:] contemporaneous write records that NPC here; a SPLIT party member's remote mention is NOT stamped at the camera node",function(){
+    gbParty();worldState.turn=9;
+    applyMuts("[LOCATION:Sandpoint]");
+    applyMuts("[NPC:Bosk|wary|neutral]");
+    var gb=(memory.map.nodes["Sandpoint"]||{}).guestbook||{};
+    if(!gb["Bosk"]||gb["Bosk"].turns.indexOf(9)<0)return "contemporaneous NPC write not recorded";
+    worldState.turn=10;
+    applyMuts("[PARTY_SPLIT:Frizwick|Riverford]");
+    worldState.turn=11;
+    applyMuts("Word arrives about Frizwick. [NPC:Frizwick|worried|ally]");
+    gb=(memory.map.nodes["Sandpoint"]||{}).guestbook||{};
+    var fr=gb["Frizwick"]?gb["Frizwick"].turns:[];
+    return fr.indexOf(11)<0?true:"a SPLIT member's remote mention was stamped at the camera node (false attendance)";
+  });
+  t("locMerge folds guestbooks: turn union + dedupe + OR resident (amendment ④ — today's executor deletes the duplicate's book)",function(){
+    gbParty();worldState.turn=30;
+    applyMuts("[LOCATION:Sandpoint]");
+    applyMuts("[LOCATION:Sandpoint Town]");/* the duplicate node */
+    var a=memory.map.nodes["Sandpoint"],b=memory.map.nodes["Sandpoint Town"];
+    a.guestbook={"Tess":{turns:[30],resident:false},"Ameiko":{turns:[],resident:true}};
+    b.guestbook={"Tess":{turns:[30,31],resident:false},"Ameiko":{turns:[12],resident:false},"Bosk":{turns:[13],resident:false}};
+    var R={muts:[],turn:32};
+    locMerge("Sandpoint","Sandpoint Town",R);
+    var gb=memory.map.nodes["Sandpoint"].guestbook;
+    if(!gb)return "guestbook gone after merge";
+    if(JSON.stringify(gb["Tess"].turns)!=="[30,31]")return "turn union/dedupe wrong: "+JSON.stringify(gb["Tess"].turns);
+    if(gb["Ameiko"].resident!==true)return "resident flag must OR across the fold";
+    if(gb["Ameiko"].turns.indexOf(12)<0)return "duplicate's real visit turn lost";
+    return gb["Bosk"]&&gb["Bosk"].turns.indexOf(13)>=0?true:"duplicate-only guest lost in the fold";
+  });
+  t("locSplit allocates guestbook records explicitly via take.guestbook; unclaimed records stay with the primary (amendment ④)",function(){
+    gbParty();worldState.turn=40;
+    applyMuts("[LOCATION:The Fused Hall]");
+    memory.map.nodes["The Fused Hall"].guestbook={
+      "Tess":{turns:[40],resident:false},
+      "Bosk":{turns:[22],resident:false},
+      "Ameiko":{turns:[],resident:true}};
+    var R={muts:[],turn:41};
+    locSplit("The Fused Hall",{primary:"East Hall",successors:[
+      {key:"East Hall",take:{}},
+      {key:"West Hall",take:{guestbook:["Bosk"]}}
+    ]},R);
+    var e=memory.map.nodes["East Hall"],w=memory.map.nodes["West Hall"];
+    if(!w.guestbook||!w.guestbook["Bosk"]||w.guestbook["Bosk"].turns.indexOf(22)<0)return "explicit allocation did not move Bosk's record";
+    if(e.guestbook&&e.guestbook["Bosk"])return "allocated record duplicated on the primary";
+    if(!e.guestbook||!e.guestbook["Tess"]||e.guestbook["Tess"].turns.indexOf(40)<0)return "unclaimed record did not stay with the primary";
+    return e.guestbook["Ameiko"]&&e.guestbook["Ameiko"].resident===true?true:"resident-only record lost in the split";
+  });
+  t("NPC_MERGE re-keys guestbook records across every node; an alias-keyed record folds under the canonical (amendment ④)",function(){
+    gbParty();worldState.turn=50;
+    applyMuts("[LOCATION:Sandpoint]");
+    applyMuts("[LOCATION:Riverford]");
+    memory.map.nodes["Sandpoint"].guestbook={"The Grafter":{turns:[20],resident:false}};
+    memory.map.nodes["Riverford"].guestbook={"The Grafter":{turns:[33],resident:true},"Ilvane":{turns:[50],resident:false}};
+    memory.npcs["The Grafter"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Ilvane"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[NPC_MERGE:Ilvane|The Grafter]");
+    var s=memory.map.nodes["Sandpoint"].guestbook,r=memory.map.nodes["Riverford"].guestbook;
+    if(s["The Grafter"]||r["The Grafter"])return "orphaned duplicate-name guestbook key survived the merge";
+    if(!s["Ilvane"]||s["Ilvane"].turns.indexOf(20)<0)return "re-key lost the duplicate's visit";
+    if(!r["Ilvane"]||r["Ilvane"].turns.indexOf(33)<0||r["Ilvane"].turns.indexOf(50)<0)return "re-key fold lost turns: "+JSON.stringify(r["Ilvane"]);
+    return r["Ilvane"].resident===true?true:"resident flag must survive the re-key OR";
+  });
+  t("healMemory: malformed guestbook shapes heal on load and the per-character cap is enforced (import defaults)",function(){
+    gbParty();var i;
+    memory.map.nodes["X"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+    var big=[];for(i=1;i<=12;i++)big.push(i);
+    memory.map.nodes["X"].guestbook={
+      "JunkTurns":{turns:"not an array",resident:false},
+      "Dupes":{turns:[2,1,"x",2],resident:"yes"},
+      "NullRec":null,
+      "Over":{turns:big,resident:false}};
+    healMemory();
+    var gb=memory.map.nodes["X"].guestbook;
+    if(gb["JunkTurns"])return "junk-turn record survived the heal (empty non-resident should drop, loudly)";
+    if(gb["NullRec"])return "null record survived the heal";
+    if(JSON.stringify(gb["Dupes"].turns)!=="[1,2]")return "turn list not normalized: "+JSON.stringify(gb["Dupes"].turns);
+    if(gb["Dupes"].resident!==true)return "resident not coerced to a boolean";
+    if(gb["Over"].turns.length!==GB_TURN_CAP)return "import cap not enforced: "+gb["Over"].turns.length;
+    return gb["Over"].agg&&gb["Over"].agg.count===12-GB_TURN_CAP?true:"overflow did not fold into the aggregate: "+JSON.stringify(gb["Over"].agg);
+  });
+  t("GEO projection: attendance reads as MEMORY with the record-based negative (amendments ② ⑤); residents carry the non-presence warning; volatile half ONLY",function(){
+    gbParty();worldState.turn=20;
+    applyMuts("[LOCATION:Jorgenfist]");
+    applyMuts("[LOCATION_RESIDENT:Ameiko]");
+    var g=buildGeoBlock();
+    if(g.indexOf("Tess")<0||g.indexOf("t20")<0)return "attendance line missing who/when";
+    if(g.toLowerCase().indexOf("no recorded visit")<0)return "the record-based negative clause is missing (amendment ②: unrecorded = UNKNOWN, never 'has never been here')";
+    if(/has never been here/i.test(g))return "projection asserts a universal negative — forbidden phrasing";
+    if(/ledger|guestbook|log entry/i.test(g))return "ledger-speak leaked into the projection (amendment ⑤)";
+    if(g.indexOf("Ameiko")<0)return "resident missing from the projection";
+    if(!/not (?:guaranteed|necessarily) present/i.test(g))return "resident line lacks the non-presence warning";
+    var sp=buildSysPrompt();
+    if(sp.stable.toLowerCase().indexOf("no recorded visit")>=0)return "attendance leaked into the STABLE half — cache killer";
+    return sp.volatile.toLowerCase().indexOf("no recorded visit")>=0?true:"attendance absent from the volatile half";
+  });
+  t("shared eyewitness clause: the projection tells the GM that only same-turn attendees share the memory (the t1728 collectivization fix)",function(){
+    gbParty();worldState.turn=11;
+    applyMuts("[PARTY_SPLIT:Frizwick|Sandpoint] [LOCATION:Jorgenfist]");
+    var g=buildGeoBlock();
+    return /second-hand/i.test(g)?true:"the second-hand-knowledge clause is missing from the attendance projection";
+  });
+  t("the t1728 replay (synthetic): split → three-person visit → rejoin → four-person return; Frizwick carries ONLY the return turn at Jorgenfist",function(){
+    gbParty();
+    worldState.turn=10;applyMuts("[PARTY_SPLIT:Frizwick|Sandpoint]");
+    worldState.turn=11;applyMuts("The three of you climb the ridge. [LOCATION:Jorgenfist]");
+    worldState.turn=12;applyMuts("You return to town. [LOCATION:Sandpoint] [LOCATION_RESIDENT:Ameiko]");/* the #133b co-location fold rejoins Frizwick here */
+    worldState.turn=14;applyMuts("All four of you ride back out. [LOCATION:Jorgenfist]");
+    var gb=(memory.map.nodes["Jorgenfist"]||{}).guestbook||{},who=["Tess","Morwen","Daeris"],i;
+    for(i=0;i<who.length;i++){
+      var tr=gb[who[i]]?gb[who[i]].turns:[];
+      if(tr.indexOf(11)<0||tr.indexOf(14)<0)return who[i]+" must carry BOTH Jorgenfist turns, got "+JSON.stringify(tr);
+    }
+    var fr=gb["Frizwick"]?gb["Frizwick"].turns:[];
+    if(fr.indexOf(11)>=0)return "Frizwick inherited the visit she was not on (the t1728 failure verbatim)";
+    if(fr.indexOf(14)<0)return "Frizwick's actual return visit unrecorded: "+JSON.stringify(fr);
+    var sgb=(memory.map.nodes["Sandpoint"]||{}).guestbook||{};
+    if(!sgb["Ameiko"]||sgb["Ameiko"].resident!==true||sgb["Ameiko"].turns.length)return "Ameiko must be resident-only with no fabricated visit turn";
+    return true;
+  });
+  t("[LOCATION_RESIDENT:] strips from display and rides the STATE TAGS doc (tag-table triple: parse+strip+doc in one entry)",function(){
+    var out=cleanTxt("She waves from the bar. [LOCATION_RESIDENT:Ameiko] The fire crackles.");
+    if(out.indexOf("[LOCATION_RESIDENT")>=0)return "tag leaked to display";
+    if(out.indexOf("She waves from the bar.")<0||out.indexOf("The fire crackles.")<0)return "surrounding prose damaged";
+    return buildStateTagsDoc().indexOf("[LOCATION_RESIDENT:")>=0?true:"doc line missing — the GM has no vocabulary for residency";
+  });
+  t("campaign-start seeding stamps the starting party at the opening node (turn 0)",function(){
+    gbParty();
+    delete memory.map.nodes[worldState.world.location];
+    if(typeof guestbookStamp!=="function")return "guestbookStamp missing";
+    /* the startGame seed block is DOM-bound; its guestbook half is the shared seeder below */
+    if(typeof guestbookSeedStart!=="function")return "guestbookSeedStart missing (startGame's testable half)";
+    memory.map.nodes[worldState.world.location]={firstVisit:0,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+    guestbookSeedStart();
+    var gb=memory.map.nodes[worldState.world.location].guestbook||{};
+    var who=["Tess","Frizwick","Morwen","Daeris"],i;
+    for(i=0;i<who.length;i++){if(!gb[who[i]]||gb[who[i]].turns.indexOf(0)<0)return who[i]+" not seeded at the start node";}
     return true;
   });
 

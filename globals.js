@@ -64,6 +64,8 @@ var PROVISIONAL_NUDGE_COOLDOWN=5; // #156 Phase A: buildProvisionalNudge re-fire
 var NPC_INTRO_REL_RE=/(unknown|stranger|unfamiliar|just met|newly met|not yet met|new arrival)/i; // #156 Phase A: an [NPC:] relation slot that reads as an INTRODUCTION — into a history-rich record, that is the Savah collision signature (t1530: "unknown, not yet met" written into the armorer's file). Tested against the RAW rel operand only
 var PHASE_MISMATCH_MIN=240;  // #158: minutes of BAND distance between a narrated phase assertion and the clock before the GM-decides reconcile nudge arms (clockPhaseDetect, clock.js). 4h swallows honest estimation slop and adjacent-phase wording; the t1605 class (dusk narrated at 11:10 am = 7h+) clears it with room
 var LOC_STATE_CAP=3;        // #105 (B17): max durable state-change notes per map node — the record COMPRESSES (newest state is the truest state); overflow evicts the oldest loudly. Small on purpose: every note rides the volatile prompt every turn via the geo block or the changed-locations roll-up
+var GB_TURN_CAP=8;          // #173: max EXACT visit turns kept per character per node in the location guestbook (the cap is per CHARACTER — pinned amendment ①); older turns fold into the {first,last,count} aggregate, never the void
+var GB_PROJ_MAX=14;         // #173: max visitor entries the GEO attendance line renders for one node (most-recent first); overflow renders a visible "+N more" note, never silent truncation
 var CHANGED_LOC_MAX=10;     // #105: max locations shown in the always-present CHANGED LOCATIONS roll-up (most-recent-first); overflow renders a visible "+N more" line, never silent truncation
 var CONSUMABLE_NUDGE_COOLDOWN=6; // #60: after a consumable check fires for an item, don't re-queue that same item for this many turns — one ignored nudge means the GM decided it wasn't spent; re-nagging every mention would railroad a false decrement (the C2 lesson in reverse)
 // 1600 retains 2-3 exchanges at observed mature-campaign prose sizes (t198: GM turns 1,300-3,100
@@ -212,7 +214,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.631";
+var APP_VERSION="v1.632";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

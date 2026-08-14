@@ -203,6 +203,7 @@ function fileLocation(loc,note,turn){
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   if(!memory.map.nodes[loc])memory.map.nodes[loc]={firstVisit:turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
   memory.map.nodes[loc].visits++;
+  guestbookNoteArrival(loc,turn);/* #173: QUEUED during a parse, committed post-handler (amendment ③) — the attendance snapshot must see same-response split/rejoin state settled */
   // Edge + arrival tracking
   var prev=worldState&&worldState.world?worldState.world.location:null;
   if(prev&&prev!==loc){
@@ -220,6 +221,7 @@ function fileSubLocation(name,turn){
   if(typeof locResolve==="function")key=locResolve(key);/* the composed sub key may itself be merged */
   if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:parent,npcs:[],items:[],size:null,travelMins:null};
   memory.map.nodes[key].visits++;memory.map.nodes[key].lastVisit=turn;// stamp recency so buildGeoBlock keeps a re-visited sub-location listed (audit E53)
+  guestbookNoteArrival(key,turn);/* #173: same post-handler commit as the world arrival */
 }
 function fileLocationDesc(desc){
   if(!memory.map||!worldState||!worldState.world)return;
@@ -283,8 +285,138 @@ function mapNpcLocation(name){
   var key=currentNodeKey();/* UA9 */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   if(!memory.map.nodes[key])return;
+  /* #173 (amendment ⑦): node.npcs is DISPLAY-ONLY "ever associated" from here on — a timeless,
+     additive name set kept for the map viewer and repair census. Nothing authoritative may read
+     it; per-visit attendance lives in node.guestbook below. */
   var npcs=memory.map.nodes[key].npcs;if(npcs.indexOf(name)<0)npcs.push(name);
   if(memory.npcs[name])memory.npcs[name].lastSeenAt=key;
+  // #173: a contemporaneous [NPC:] write is recorded attendance ("recorded-evidence boundary" —
+  // a remote mention CAN mis-stamp, accepted in the ratified design) — EXCEPT a split party
+  // member: their thread is provably elsewhere (#137 membership ≠ presence), so the mention is
+  // remote by construction and must not become false eyewitness history at the camera node.
+  var _gbWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;
+  if(!(_gbWs&&_gbWs.partyMember&&_gbWs.charSheet&&_gbWs.charSheet.splitLoc&&_gbWs.charSheet.splitLoc.location))
+    guestbookStamp(key,name,(typeof worldState.turn==="number")?worldState.turn:0);
+}
+
+// ═══ #173: the location guestbook — per-character visit provenance ═══════════════════════════
+// The historical half of #137's "membership ≠ presence" invariant: every split/rejoin can turn
+// one subgroup's past into the reunited party's "we" (the t1728 Frizwick/Jorgenfist failure).
+// Owner-ratified shape: node.guestbook[canonicalName]={turns:[...],resident:bool} — name-keyed,
+// multi-visit turn arrays, deduped, capped PER CHARACTER (GB_TURN_CAP; older turns fold into an
+// {first,last,count} aggregate, never the void). resident:true = "routinely based here"
+// (a proprietor), NEVER "present now"; resident-only records carry NO fabricated visit turn.
+// WRITE SEAM DISCIPLINE (pinned amendment ③): party attendance for an arrival is committed at a
+// POST-HANDLER seam — fileLocation/fileSubLocation only QUEUE the arrival during a parse, and
+// applyMutsTable drains the queue after every handler (including same-response [PARTY_SPLIT:]
+// and the #133b auto-fold) has settled, reading each character's EFFECTIVE location. Outside a
+// parse (campaign start, dev tools) the queue is bypassed and the stamp is immediate.
+var _gbPendingArrivals=[];   // arrivals queued by fileLocation/fileSubLocation during a parse
+var _gbDeferArrivals=false;  // true between guestbookBeginResponse() and guestbookCommitArrivals()
+function guestbookRecordEnsure(node,name){
+  if(!node.guestbook)node.guestbook={};
+  if(!node.guestbook[name])node.guestbook[name]={turns:[],resident:false};
+  return node.guestbook[name];
+}
+function _gbCapFold(rec){/* amendment ①: overflow folds the OLDEST exact turns into the aggregate */
+  while(rec.turns.length>GB_TURN_CAP){
+    var old=rec.turns.shift();
+    if(!rec.agg)rec.agg={first:old,last:old,count:0};
+    if(old<rec.agg.first)rec.agg.first=old;
+    if(old>rec.agg.last)rec.agg.last=old;
+    rec.agg.count++;
+  }
+}
+function guestbookStamp(nodeKey,name,turn){
+  if(!memory||!memory.map||!memory.map.nodes)return false;
+  if(typeof locResolve==="function")nodeKey=locResolve(nodeKey);
+  var node=memory.map.nodes[nodeKey];
+  if(!node){if(typeof console!=="undefined")console.warn("[guestbook] visit stamp for '"+name+"' dropped — node '"+nodeKey+"' not on the map");return false;}
+  if(typeof turn!=="number"||!isFinite(turn))return false;
+  name=resolveNpcName(name);
+  var rec=guestbookRecordEnsure(node,name);
+  if(rec.turns.indexOf(turn)>=0)return false;      /* same-turn dedupe */
+  if(rec.agg&&turn<=rec.agg.last)return false;     /* already inside the folded region — cannot re-verify an individual folded turn */
+  rec.turns.push(turn);
+  rec.turns.sort(function(a,b){return a-b;});
+  _gbCapFold(rec);
+  return true;
+}
+function guestbookSetResident(nodeKey,name,on){
+  if(!memory||!memory.map||!memory.map.nodes)return false;
+  if(typeof locResolve==="function")nodeKey=locResolve(nodeKey);
+  var node=memory.map.nodes[nodeKey];
+  if(!node){if(typeof console!=="undefined")console.warn("[guestbook] resident write for '"+name+"' refused — node '"+nodeKey+"' not on the map");return false;}
+  name=resolveNpcName(name);
+  if(on){guestbookRecordEnsure(node,name).resident=true;return true;}
+  var gb=node.guestbook;
+  if(!gb||!gb[name])return false;
+  if(gb[name].turns.length||gb[name].agg)gb[name].resident=false;/* real visits survive the residency ending */
+  else delete gb[name];/* a cleared resident-only record is empty — drop it whole */
+  return true;
+}
+// Record fold — ONE implementation for locMerge, NPC merge/alias re-key, and repair tooling
+// (amendment ④: fold = turn union + dedupe + OR resident; aggregates merge min/max/sum).
+function guestbookFoldRecords(dst,src){
+  var i,st=(src&&src.turns)||[];
+  for(i=0;i<st.length;i++){if(dst.turns.indexOf(st[i])<0)dst.turns.push(st[i]);}
+  dst.turns.sort(function(a,b){return a-b;});
+  if(src&&src.agg){
+    if(!dst.agg)dst.agg={first:src.agg.first,last:src.agg.last,count:src.agg.count};
+    else{dst.agg.first=Math.min(dst.agg.first,src.agg.first);dst.agg.last=Math.max(dst.agg.last,src.agg.last);dst.agg.count+=src.agg.count;}
+  }
+  dst.resident=!!(dst.resident||(src&&src.resident));
+  _gbCapFold(dst);
+  return dst;
+}
+function guestbookFoldBooks(dstNode,srcNode){/* whole-node union — locMerge's guestbook half */
+  if(!srcNode||!srcNode.guestbook)return;
+  var names=Object.keys(srcNode.guestbook),i;
+  for(i=0;i<names.length;i++){
+    var src=srcNode.guestbook[names[i]];
+    if(src)guestbookFoldRecords(guestbookRecordEnsure(dstNode,names[i]),src);
+  }
+}
+function guestbookRekeyName(canonical,duplicate){/* NPC merge/alias: sweep every node, fold dup-keyed records under the canonical */
+  if(!memory||!memory.map||!memory.map.nodes||canonical===duplicate)return 0;
+  var ks=Object.keys(memory.map.nodes),moved=0,i;
+  for(i=0;i<ks.length;i++){
+    var node=memory.map.nodes[ks[i]],gb=node&&node.guestbook;
+    if(!gb||!gb[duplicate])continue;
+    guestbookFoldRecords(guestbookRecordEnsure(node,canonical),gb[duplicate]);
+    delete gb[duplicate];moved++;
+  }
+  return moved;
+}
+function _gbPresentPartyNames(){/* the hero + every living party member NOT split away */
+  var out=[],i;
+  if(worldState&&worldState.character&&worldState.character.name)out.push(worldState.character.name);
+  var npcs=(worldState&&worldState.npcs)||[];
+  for(i=0;i<npcs.length;i++){var n=npcs[i];
+    if(!n||!n.partyMember)continue;
+    if(typeof npcIsDead==="function"&&npcIsDead(n))continue;
+    if(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location)continue;/* #137: membership ≠ presence */
+    out.push(n.name);
+  }
+  return out;
+}
+function _gbStampParty(nodeKey,turn){
+  var who=_gbPresentPartyNames(),i;
+  for(i=0;i<who.length;i++)guestbookStamp(nodeKey,who[i],turn);
+}
+function guestbookNoteArrival(nodeKey,turn){
+  if(_gbDeferArrivals){_gbPendingArrivals.push({key:nodeKey,turn:turn});return;}
+  _gbStampParty(nodeKey,turn);
+}
+function guestbookBeginResponse(){_gbDeferArrivals=true;_gbPendingArrivals.length=0;}
+function guestbookCommitArrivals(){
+  _gbDeferArrivals=false;
+  var i;for(i=0;i<_gbPendingArrivals.length;i++)_gbStampParty(_gbPendingArrivals[i].key,_gbPendingArrivals[i].turn);
+  _gbPendingArrivals.length=0;
+}
+function guestbookSeedStart(){/* startGame's testable half: the whole creation-time party stands at the opening node (turn 0) */
+  if(!worldState||!worldState.world||!worldState.world.location)return;
+  _gbStampParty(worldState.world.location,0);
 }
 // P6: NPC status/attitude are roster labels re-injected every turn — the GM (and the summarize
 // extractor) drift into sentence-length prose there ("exhausted but precise, has given Varek

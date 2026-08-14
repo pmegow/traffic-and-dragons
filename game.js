@@ -38,6 +38,7 @@ function startGame(char,toneName,toneVoice,authorId){
   if(memory.map&&worldState.world&&worldState.world.location&&!memory.map.nodes[worldState.world.location]){
     memory.map.nodes[worldState.world.location]={firstVisit:0,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
   }
+  if(typeof guestbookSeedStart==="function")guestbookSeedStart();/* #173: the creation-time party stands at the opening node — turn-0 provenance (runs even when a blueprint pre-seeded the node: the party is there either way) */
   saveAll();showGame();syncUI();initAbilities();initSpells();
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
   if(typeof initCampaignFolderForGame==="function")initCampaignFolderForGame();

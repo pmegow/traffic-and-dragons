@@ -59,6 +59,40 @@ function buildGeoBlock(){
   var npcLocs=[],nNames=Object.keys(memory.npcs);
   for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];if(nm.lastSeenAt&&!nm.dead&&!partyHere[nNames[i]]&&!locSame(nm.lastSeenAt,wKey)&&!(subKey&&locSame(nm.lastSeenAt,subKey)))npcLocs.push(nNames[i]+" → "+locResolve(nm.lastSeenAt));}/* #156B: a stamp under the current node's merged alias is HERE, not elsewhere; displays serve the canonical name */
   if(npcLocs.length)lines.push("NPCs elsewhere: "+npcLocs.join(", "));
+  // #173: per-character visit provenance — who this place remembers. Serves the current world
+  // node (and the current sub-location when inside one). Reads as MEMORY, never bookkeeping
+  // (amendment ⑤); negatives are RECORD-based (amendment ②): an unrecorded character is UNKNOWN
+  // here — attendance inherits LOCATION-tag compliance (the motivating save's own Jorgenfist
+  // infiltration ran 57 turns untagged), so absence of a record proves nothing. The same-turn
+  // eyewitness clause is the t1728 fix: a reunited party must not collectivize a subgroup's past.
+  // Overflow is VISIBLE (no silent caps): beyond GB_PROJ_MAX entries, a "+N more" note names the count.
+  function gbAttendanceLines(node,label){
+    if(!node||!node.guestbook)return;
+    var nms=Object.keys(node.guestbook),vis=[],res=[],gi,ti;
+    if(!nms.length)return;
+    var latest=function(r){return r.turns.length?r.turns[r.turns.length-1]:(r.agg?r.agg.last:-1);};
+    var first=function(r){return r.agg?r.agg.first:(r.turns.length?r.turns[0]:1e15);};
+    for(gi=0;gi<nms.length;gi++){var rec=node.guestbook[nms[gi]];
+      if(rec.turns.length||rec.agg)vis.push(nms[gi]);
+      else if(rec.resident)res.push(nms[gi]);
+    }
+    var dropped=0;
+    if(vis.length>GB_PROJ_MAX){
+      vis.sort(function(a,b){return latest(node.guestbook[b])-latest(node.guestbook[a]);});
+      dropped=vis.length-GB_PROJ_MAX;vis=vis.slice(0,GB_PROJ_MAX);
+    }
+    vis.sort(function(a,b){return first(node.guestbook[a])-first(node.guestbook[b]);});
+    var ents=[];
+    for(gi=0;gi<vis.length;gi++){var r2=node.guestbook[vis[gi]],parts=[];
+      if(r2.agg)parts.push("t"+r2.agg.first+"-t"+r2.agg.last+" x"+r2.agg.count);
+      for(ti=0;ti<r2.turns.length;ti++)parts.push("t"+r2.turns[ti]);
+      ents.push(vis[gi]+" ("+parts.join(", ")+")"+(r2.resident?" - usually based here":""));
+    }
+    if(ents.length)lines.push(label+" remembers these visitors: "+ents.join("; ")+(dropped?"; and "+dropped+" more remembered visitors unlisted":"")+". Only characters recorded at the SAME turn shared that visit - anyone else knows of it second-hand at best, and must not speak as an eyewitness. Anyone unlisted simply has NO recorded visit here: treat their history with this place as UNKNOWN - never assert they were, or were never, here before.");
+    if(res.length)lines.push("Usually based at "+label+" (their usual haunt - NOT guaranteed present right now; they appear in a scene only when you place them there): "+res.join(", "));
+  }
+  gbAttendanceLines(wNode,w.location);
+  if(subNode)gbAttendanceLines(subNode,w.sublocation);
   // TODO #1 P5 (D11, F4 "Hard A"): split party members' threads inject EVERY turn while any
   // split exists — the GM must never forget an absent thread (the #53 canon-starve lesson,
   // applied to geography). No splits = this whole section is absent, byte-identical geo.

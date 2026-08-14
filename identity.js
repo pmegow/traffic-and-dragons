@@ -202,6 +202,9 @@ function locFoldNodeRecords(canonNode,dupNode,canonLabel){
       if(typeof console!=="undefined")console.warn("[identity] "+canonLabel+" state notes over cap ("+LOC_STATE_CAP+") after fold — evicted oldest to the archive: \""+ev.n+"\"");
     }
   }
+  /* #173 (amendment ④): the guestbook folds too — turn union + dedupe + OR resident, per name.
+     Before this, locMerge deleted the duplicate's visit provenance with its node (brief B). */
+  if(dupNode.guestbook&&typeof guestbookFoldBooks==="function")guestbookFoldBooks(canonNode,dupNode);
 }
 
 // ── Live-pointer heal + edge compaction (shared by merge and split) ─────────────────────────
@@ -315,8 +318,8 @@ function locSplit(fusedKey,spec,R){
   var entries=_locEntriesEnsure();
   memArchive().identityMerges.push({domain:"location",op:"split",key:fusedKey,primary:spec.primary,successors:succ.map(function(s){return s.key;}),turn:R.turn,
     records:{node:JSON.parse(JSON.stringify(node)),identity:entries[fusedKey]?JSON.parse(JSON.stringify(entries[fusedKey])):null}});
-  var notes=node.stateNotes||[],items=node.items||[],npcs=node.npcs||[];
-  var claimedN={},claimedI={},claimedP={};
+  var notes=node.stateNotes||[],items=node.items||[],npcs=node.npcs||[],gbook=node.guestbook||{};
+  var claimedN={},claimedI={},claimedP={},claimedG={};
   for(i=0;i<succ.length;i++){
     var s=succ[i],take=s.take||{};
     var fresh={firstVisit:node.firstVisit,visits:0,description:null,parent:node.parent||null,npcs:[],items:[],size:null,travelMins:null};
@@ -325,6 +328,10 @@ function locSplit(fusedKey,spec,R){
     for(j=0;j<(take.stateNotes||[]).length;j++){var ni=take.stateNotes[j];if(notes[ni]){fresh.stateNotes=fresh.stateNotes||[];fresh.stateNotes.push(notes[ni]);claimedN[ni]=1;}}
     for(j=0;j<(take.items||[]).length;j++){var ii=take.items[j];if(items[ii]){fresh.items.push(items[ii]);claimedI[ii]=1;}}
     for(j=0;j<(take.npcs||[]).length;j++){if(npcs.indexOf(take.npcs[j])>=0){fresh.npcs.push(take.npcs[j]);claimedP[take.npcs[j]]=1;}}
+    /* #173 (amendment ④): guestbook allocation is EXPLICIT — take.guestbook names the characters
+       whose whole visit record moves to this successor; a silent primary-copy is not evidence.
+       First claim wins (the claimedP pattern); unclaimed records stay with the primary below. */
+    for(j=0;j<(take.guestbook||[]).length;j++){var gk=take.guestbook[j];if(gbook[gk]&&!claimedG[gk]){fresh.guestbook=fresh.guestbook||{};fresh.guestbook[gk]=gbook[gk];claimedG[gk]=1;}}
     for(j=0;j<(take.children||[]).length;j++){var ck=take.children[j],cn=memory.map.nodes[ck];if(cn)cn.parent=s.key;}
     memory.map.nodes[s.key]=fresh;
   }
@@ -334,6 +341,8 @@ function locSplit(fusedKey,spec,R){
   if(prim.stateNotes)prim.stateNotes.sort(function(a,b){return (a.t||0)-(b.t||0);});
   for(i=0;i<items.length;i++){if(!claimedI[i])prim.items.push(items[i]);}
   for(i=0;i<npcs.length;i++){if(!claimedP[npcs[i]])prim.npcs.push(npcs[i]);}
+  var gbNames=Object.keys(gbook);/* #173: unclaimed guestbook records stay with the primary — coarse-but-consistent, same as every other unallocated fact */
+  for(i=0;i<gbNames.length;i++){if(!claimedG[gbNames[i]]){prim.guestbook=prim.guestbook||{};prim.guestbook[gbNames[i]]=gbook[gbNames[i]];}}
   for(i=0;i<memory.map.edges.length;i++){
     var e=memory.map.edges[i];
     if(e.from!==fusedKey&&e.to!==fusedKey)continue;

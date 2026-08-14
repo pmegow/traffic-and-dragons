@@ -488,6 +488,26 @@ function healMemory(){
   // #149: junk-note sweep — the live save carried a literal "none" stateNote on Sandpoint (a
   // no-op that occupies a capped slot and reads as canon). Idempotent; each drop logs.
   if(memory.map&&memory.map.nodes){var _jnk=Object.keys(memory.map.nodes),_jni;for(_jni=0;_jni<_jnk.length;_jni++){var _jnn=memory.map.nodes[_jnk[_jni]];if(_jnn&&Array.isArray(_jnn.stateNotes)&&_jnn.stateNotes.length){var _jnb=_jnn.stateNotes.length;_jnn.stateNotes=_jnn.stateNotes.filter(function(sn){return sn&&String(sn.n||"").trim()&&!/^none[.!]?$/i.test(String(sn.n).trim());});if(_jnn.stateNotes.length<_jnb)console.info("[map] #149: dropped "+(_jnb-_jnn.stateNotes.length)+" junk stateNote(s) on "+_jnk[_jni]);}}}
+  // #173: guestbook shape heal + cap enforcement — imports, server blobs and old saves converge
+  // to the canonical {turns:[...],resident:bool,agg?:{first,last,count}} record shape. Junk
+  // records drop LOUDLY (a silent drop would be this feature failing its own defect class);
+  // over-cap turn lists fold their overflow into the aggregate exactly like the write path.
+  if(memory.map&&memory.map.nodes){var _gbk=Object.keys(memory.map.nodes),_gbi,_gbj;
+    for(_gbi=0;_gbi<_gbk.length;_gbi++){var _gbn=memory.map.nodes[_gbk[_gbi]];
+      if(!_gbn||!_gbn.guestbook||typeof _gbn.guestbook!=="object"){if(_gbn&&_gbn.guestbook!==undefined&&(typeof _gbn.guestbook!=="object"||_gbn.guestbook===null)){console.warn("[guestbook] heal: non-object guestbook on "+_gbk[_gbi]+" dropped");delete _gbn.guestbook;}continue;}
+      var _gbNs=Object.keys(_gbn.guestbook);
+      for(_gbj=0;_gbj<_gbNs.length;_gbj++){var _gbNm=_gbNs[_gbj],_gbR=_gbn.guestbook[_gbNm];
+        if(!_gbR||typeof _gbR!=="object"){console.warn("[guestbook] heal: malformed record for '"+_gbNm+"' at "+_gbk[_gbi]+" dropped");delete _gbn.guestbook[_gbNm];continue;}
+        var _gbT=[],_gbSeen={},_gbx;
+        if(Array.isArray(_gbR.turns)){for(_gbx=0;_gbx<_gbR.turns.length;_gbx++){var _gbV=_gbR.turns[_gbx];if(typeof _gbV==="number"&&isFinite(_gbV)&&!_gbSeen[_gbV]){_gbSeen[_gbV]=1;_gbT.push(_gbV);}}}
+        _gbT.sort(function(a,b){return a-b;});
+        _gbR.turns=_gbT;_gbR.resident=!!_gbR.resident;
+        if(_gbR.agg&&!(typeof _gbR.agg.first==="number"&&typeof _gbR.agg.last==="number"&&typeof _gbR.agg.count==="number"&&_gbR.agg.count>0)){console.warn("[guestbook] heal: malformed/degenerate aggregate for '"+_gbNm+"' at "+_gbk[_gbi]+" dropped (exact turns kept)");delete _gbR.agg;}
+        if(typeof _gbCapFold==="function")_gbCapFold(_gbR);
+        if(!_gbR.turns.length&&!_gbR.agg&&!_gbR.resident){console.warn("[guestbook] heal: empty record for '"+_gbNm+"' at "+_gbk[_gbi]+" dropped");delete _gbn.guestbook[_gbNm];}
+      }
+    }
+  }
   // #144A: converge over-cap knowledge lists. Import/blueprint seeding could exceed the cap-12
   // (the live t1549 save carries Frizwick at 18), and the write-site shift sheds only 1/write —
   // an overfilled list stays overfilled forever, shedding one real-play fact per new fact.
