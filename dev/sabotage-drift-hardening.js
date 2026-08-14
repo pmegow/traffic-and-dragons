@@ -56,4 +56,14 @@ rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],cases:[
    find:"[TIME_ADVANCE:\"+q.shortfall+\"m]",replace:"[TIME_ADVANCE:\"+(q.shortfall+q.elapsed)+\"m]"}
 ]});
 
+/* #188: the bigram qualification lane (the wine-cellar confabulation fix). */
+rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js","RAG episodic"]],cases:[
+  {label:"the bigram qualification lane dies — directed memory questions go blind again (#188)",
+    mustFail:"#188: a rare input PHRASE qualifies and serves its scene",
+   find:"}else if(blex>=RAG_BIGRAM_QUALIFY){sc=blex;}",replace:"}else if(false){sc=blex;}"},
+  {label:"the bigram df ceiling dies — common phrases lift unrelated scenes again (#188)",
+    mustFail:"#188: a phrase carried by more than 1% of entries identifies nothing",
+   find:"if(elig[i].bhits[j]&&bdf[j]<=bMaxDf)",replace:"if(elig[i].bhits[j])"}
+]});
+
 process.exit(rc?1:0);

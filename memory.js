@@ -451,6 +451,9 @@ function futureResolveAssist(summary){
 function ragEnabled(){return !!(typeof worldState!=="undefined"&&worldState)&&worldState.ragMemory!==false;}
 var RAG_BUDGET=2400;   // ~600 tokens of excerpt payload per turn, hard cap
 var RAG_MAX=3;         // excerpts per turn
+var RAG_BIGRAM_W=2;    // #188: per-bigram IDF multiplier (bigrams are rarer than words — weight them like the strong signal they are)
+var RAG_BIGRAM_CAP=10; // #188: cap on the summed bigram bonus — sits OUTSIDE the single-word 8-cap on purpose (a phrase match must be able to beat ensemble entity weight)
+var RAG_BIGRAM_QUALIFY=6; // #188: a bigram score at/above this OPENS the sc>0 gate on its own (df-bounded: a rare phrase can only qualify the few entries that contain it)
 // Known-NPC scan list (lowercased, with aliases AND distinctive name tokens). Full-key
 // substring matching alone missed every honorific-keyed NPC — prose says "Hemlock", the
 // key is "Sheriff Belor Hemlock", no match, entity invisible to the index (the t164
@@ -620,6 +623,28 @@ function ragQueryTerms(inputText){
   }
   return out;
 }
+/* #188 (v1.617): consecutive significant-word PAIRS from the player's input — the channel that
+   lets a directed memory question FIND its scene. Field case (t1788+, the wine-cellar
+   confabulation): "the merchant's wine cellar" — the two cellar scenes were structurally
+   outgunned: two-person scenes carry less additive entity weight than crowded prep scenes at
+   the same place, and the single-word lexical bonus is capped at 8, so the asked-about scenes
+   lost the 3-slot competition and the GM confabulated from near-miss neighbors. A BIGRAM hit
+   ("wine cellar": df=2 in 1,700 entries) is rare enough to both QUALIFY an entry and out-rank
+   ensemble crowd weight — and it is self-bounding: a phrase can only lift the df entries that
+   actually contain it. Pairs are adjacent KEPT tokens (≥4 chars, non-stopword), so
+   "merchant's wine cellar" yields "merchant wine"+"wine cellar" — close enough for prose that
+   says the same thing. Cap 6 bigrams per input. */
+function ragQueryBigrams(inputText){
+  var out=[],seen={},kept=[],i;
+  var words=String(inputText||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/);
+  for(i=0;i<words.length;i++){var w=words[i];if(w.length>=4&&!RAG_STOP[w])kept.push({w:w,pos:i});}
+  for(i=1;i<kept.length;i++){
+    if(kept[i].pos-kept[i-1].pos>2)continue; // allow one short word between ("wine in cellar"), never a gap
+    var bg=kept[i-1].w+" "+kept[i].w;
+    if(!seen[bg]){seen[bg]=1;out.push(bg);if(out.length>=6)break;}
+  }
+  return out;
+}
 // Lowercased scene terms for the TOC lore filter.
 function ragSceneTerms(inputText){
   var q=ragQueryEntities(inputText),terms=[],k;
@@ -693,6 +718,7 @@ function _ragRetrieveScore(inputText){
   if(!tr||tr.length<6)return "";
   var q=ragQueryEntities(inputText||"");
   var terms=ragQueryTerms(inputText||"");
+  var bigrams=ragQueryBigrams(inputText||"");/* #188 */
   // Entity names already score as entities — their tokens double-dipping as lexical terms
   // just flattens the ranking ("hemlock" +3 entity AND +2 term on every mention).
   (function(){
@@ -723,8 +749,9 @@ function _ragRetrieveScore(inputText){
   // Pass 1: backfill missing indexes + per-term document frequency over eligible entries.
   // IDF makes rare words dominate ("broadsheet": ~4 entries → strong; "keep": everywhere →
   // ~nothing) without a hand-tuned stoplist — the t164 lesson. Deterministic, no vectors.
-  var elig=[],df=[],N=0;
+  var elig=[],df=[],N=0,bdf=[];
   for(j=0;j<terms.length;j++)df.push(0);
+  for(j=0;j<bigrams.length;j++)bdf.push(0);
   for(i=0;i<tr.length;i++){
     var en0=tr[i];
     if(en0.r!=="gm")continue;
@@ -740,9 +767,10 @@ function _ragRetrieveScore(inputText){
     if(/^\s*gm\s*[:,]/.test(prev0))continue;
     if(!en0.e){if(!names)names=ragKnownNames();en0.e=ragBackfillEntry(en0,names);}
     var low0=String(en0.x).toLowerCase();
-    var hits0=[];
+    var hits0=[],bhits0=[];
     for(j=0;j<terms.length;j++){var h=low0.indexOf(terms[j])>=0||(prev0&&prev0.indexOf(terms[j])>=0);hits0.push(h);if(h)df[j]++;}
-    elig.push({i:i,en:en0,hits:hits0});
+    for(j=0;j<bigrams.length;j++){var bh=low0.indexOf(bigrams[j])>=0||(prev0&&prev0.indexOf(bigrams[j])>=0);bhits0.push(bh);if(bh)bdf[j]++;}/* #188: literal-phrase containment — hyphenated variants miss, deterministic and conservative */
+    elig.push({i:i,en:en0,hits:hits0,bhits:bhits0});
     N++;
   }
   // Pass 2: score. Entity/location/quest overlap gates; IDF-weighted term hits rank.
@@ -766,11 +794,19 @@ function _ragRetrieveScore(inputText){
     }
     if(q.loc&&(typeof locSame==="function"?locSame(en.e.l,q.loc):en.e.l===q.loc))sc+=2;/* #156B: historical scenes stamped under a merged name still score for the canonical place (the A0 arm-2 property) */
     for(j=0;j<(en.e.q||[]).length;j++){if(qws[en.e.q[j].toLowerCase()])sc+=1;}
+    /* #188: the bigram bonus lives OUTSIDE the single-word 8-cap, and a strong-enough phrase
+       match QUALIFIES on its own (the sc>0 gate used to mean input words could only RANK
+       entries that entity/location/quest overlap had already admitted — a directed "do you
+       remember the <place>" question could never open the gate for its own scene). df-bounded:
+       "wine cellar" at df=2 can lift exactly the 2 entries that contain it, nothing else. */
+    var blex=0,bMaxDf=Math.max(3,Math.ceil(N*0.01));/* a phrase in >1% of entries identifies nothing — "last time" lifted unrelated scenes to 19-21 in the first field run */
+    for(j=0;j<bigrams.length;j++){if(elig[i].bhits[j]&&bdf[j]<=bMaxDf)blex+=Math.log((N+1)/(bdf[j]+1));}
+    blex=Math.min(RAG_BIGRAM_CAP,blex*RAG_BIGRAM_W);
     if(sc>0){
       var lex=0;
       for(j=0;j<terms.length;j++){if(elig[i].hits[j])lex+=Math.log((N+1)/(df[j]+1));}
-      sc+=Math.min(8,lex*1.5);
-    }
+      sc+=Math.min(8,lex*1.5)+blex;
+    }else if(blex>=RAG_BIGRAM_QUALIFY){sc=blex;}
     if(sc>0)cands.push({i:elig[i].i,t:en.t,sc:sc});
   }
   if(!cands.length)return "";

@@ -2699,6 +2699,37 @@ function runEngineTests(R){
     if(en.e.l!=="Ashfen")return "location: "+en.e.l;
     return en.e.q[0]==="The Toll"?true:"quest: "+JSON.stringify(en.e.q);
   });
+  // ── #188: the bigram qualification lane ──────────────────────────────────
+  t("#188: a rare input PHRASE qualifies and serves its scene — the sc>0 gate no longer blinds directed memory questions",function(){
+    // Field case (t1788, the wine-cellar confabulation): input words could only RANK entries
+    // already admitted by entity/location/quest overlap — a "do you remember the <place>"
+    // question could never open the gate for its own scene, and the GM confabulated from
+    // near-miss neighbors. A rare phrase (df-bounded) now qualifies on its own.
+    makeWorld();sessionLog.length=0;delete worldState.ragMemory;/* the shared fixture ships RAG OFF */
+    var i;for(i=1;i<=44;i++){worldState.turn=i;
+      logTranscript("player","filler step "+i);
+      logTranscript("gm",i===4?"The glass gargoyle grinds awake atop the archive door, wings scattering dust.":"Nothing of note happens in this entry, number "+i+", quiet hours only.","(raw)");
+    }
+    worldState.turn=60;worldState.world.location="Somewhere Else";
+    ragRetrieve._memo=null;
+    var out=ragRetrieve("Do you remember the glass gargoyle above the archive?");
+    return out.indexOf("glass gargoyle")>=0?true:"the phrase-bearing scene was not served (gate still blind): "+JSON.stringify(out.slice(0,80));
+  });
+  t("#188: a phrase carried by more than 1% of entries identifies nothing — the df ceiling holds",function(){
+    // First field run: "last time" lifted unrelated scenes to 19-21. The ceiling only BITES at
+    // scale — at tiny N the IDF discount alone stays under the qualify bar (the first version
+    // of this fixture was proven vacuous by its own MISSED sabotage verdict). N=200, df=5:
+    // without the ceiling the phrase scores log(201/6)*2 ≈ 7.0 ≥ 6 and would qualify.
+    makeWorld();sessionLog.length=0;delete worldState.ragMemory;/* the shared fixture ships RAG OFF */
+    var i;for(i=1;i<=200;i++){worldState.turn=i;
+      logTranscript("player","filler step "+i);
+      logTranscript("gm",(i%40===0)?"The grey lantern swings over the door again tonight, entry "+i+".":"Nothing of note happens in this entry, number "+i+", quiet hours only.","(raw)");
+    }
+    worldState.turn=220;worldState.world.location="Somewhere Else";
+    ragRetrieve._memo=null;
+    var out=ragRetrieve("What about the grey lantern by the door?");
+    return out.indexOf("grey lantern")<0?true:"a df-5 phrase above the 1% ceiling qualified scenes — the ceiling is gone";
+  });
   // ── #105b: the clock keeps its receipt ────────────────────────────────────
   // Per-turn elapsed time was computed and thrown away (applyMuts built a "Time +Xm" muts line
   // that no call site captured), so the ONLY record was the running total clock.min. That made
