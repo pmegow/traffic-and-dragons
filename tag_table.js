@@ -838,6 +838,8 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     else if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"|rejoin] ignored — they are not split");
     continue;}
   var psPrev=pcEffectiveLoc(psN.charSheet).location;
+  var psWas=psN.charSheet.splitLoc;/* #189b transition gate: the GM legally RE-AFFIRMS a split every turn (refreshing the audit clock) — only the not-split→split edge or a changed away-location is toast-worthy news (t1835-1837 field: a toast per re-affirm) */
+  var psToastWorthy=!psWas||psWas.location!==psArg||(psWas.sublocation||null)!==(psSub||null);
   /* #133: stamp the split's turn at write — buildSplitAudit ages from it (a re-affirming re-emit
      lands here too, minting a fresh object: new turn, audited-stamp gone — the reset IS the write).
      Legacy splits without .turn read as infinitely old, so stale pre-#133 splits audit immediately. */
@@ -855,7 +857,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(memory.map.nodes[psArg].npcs.indexOf(psName)<0)memory.map.nodes[psArg].npcs.push(psName);
   if(memory.npcs[psName])memory.npcs[psName].lastSeenAt=(psSub?psArg+"|"+psSub:psArg);
   R.muts.push(psName+" splits off to "+psArg+(psSub?" ("+psSub+")":""));
-  if(typeof showToast==="function")showToast("⇢ "+psName+" splits from the party — "+psArg+(psSub?" · "+psSub:""));/* #189 */
+  if(psToastWorthy&&typeof showToast==="function")showToast("⇢ "+psName+" splits from the party — "+psArg+(psSub?" · "+psSub:""));/* #189 — transition-gated */
 }}},
 {t:"COMPANION_HP",apply:function(text,R){var cHpTags=text.match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/g)||[];var cHpi;for(cHpi=0;cHpi<cHpTags.length;cHpi++){var cHpm=cHpTags[cHpi].match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/);if(!cHpm)continue;var cHpCs=findCompanionChar(cHpm[1]);if(!cHpCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cHpm[1].trim()+"' — companion tag dropped (#136③)");continue;}var cHpdv=parseInt(cHpm[2]);cHpCs.hp=Math.min(cHpCs.maxHp||cHpCs.hp,Math.max(0,cHpCs.hp+cHpdv));R.muts.push(cHpm[1].trim()+(cHpdv>0?" healed ":" took ")+Math.abs(cHpdv)+" HP");}}},
 {t:"COMPANION_ITEM_GAINED",apply:function(text,R){var cIgTags=text.match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[],cIgCounts={},cIgi;for(cIgi=0;cIgi<cIgTags.length;cIgi++){var c0=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);if(c0){var ck0=c0[1].trim()+"|"+itemBaseName(c0[2]);cIgCounts[ck0]=(cIgCounts[ck0]||0)+1;}}for(cIgi=0;cIgi<cIgTags.length;cIgi++){var cIgm=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);if(!cIgm)continue;var cOwner=cIgm[1].trim(),cIgCs=findCompanionChar(cOwner);if(!cIgCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cOwner+"' — companion tag dropped (#136③)");continue;}if(!cIgCs.inventory)cIgCs.inventory=[];duplicateItemGrantWarning(cIgCs.inventory,cIgm[2].trim(),cIgCounts[cOwner+"|"+itemBaseName(cIgm[2])],cOwner,R,text);addInventoryItem(cIgCs.inventory,cIgm[2].trim());R.muts.push(cOwner+": +"+cIgm[2].trim());}}},

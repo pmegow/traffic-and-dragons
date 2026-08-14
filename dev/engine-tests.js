@@ -14068,6 +14068,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     __toasts.length=0;
     applyMuts("[PARTY_SPLIT:Daeris|rejoin]");
     if(!__toasts.some(function(s){return /Daeris/.test(s)&&/rejoins/.test(s);}))return "no explicit-rejoin toast: "+JSON.stringify(__toasts);
+    /* re-affirmation is SILENT (t1835-1837 field: the GM legally re-emits the split every turn
+       to refresh the audit clock — a toast per re-affirm is noise, the transition is the news) */
+    applyMuts("[PARTY_SPLIT:Daeris|Shore District]");
+    __toasts.length=0;
+    applyMuts("[PARTY_SPLIT:Daeris|Shore District]");
+    if(__toasts.length)return "re-affirming an unchanged split must NOT toast: "+JSON.stringify(__toasts);
+    applyMuts("[PARTY_SPLIT:Daeris|Shore District|The docks]");
+    if(!__toasts.some(function(s){return /Daeris/.test(s)&&/The docks/.test(s);}))return "a CHANGED split location must toast: "+JSON.stringify(__toasts);
+    applyMuts("[PARTY_SPLIT:Daeris|rejoin]");
     /* auto-rejoin: split to the party's CURRENT node; the #135 grace spares it this response,
        the NEXT response's #133b sweep folds it (Ashfen has no known interiors in this fixture,
        so the #164 granularity gate does not divert it to the audit) */
