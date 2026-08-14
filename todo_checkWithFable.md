@@ -13,6 +13,14 @@ review lands here with its supporting documentation. Two intake classes:
 commits), what it touches, why it's risky or not, supporting docs/tests, and what a reviewer
 should probe first. Self-contained enough that a Fable session needs no other context.
 
+## Off-Fable log
+
+Safe-changes-map work (#21, CLAUDE.md ▸ Dev workflow): ONE line per shipped change —
+`- vX.YYY <commit> — <what> (<shape from the map>)`. Batch-skimmed by Fable; if the skims stay
+clean, this log graduates away. Anything that outgrew a line belongs under Pending Fable review.
+
+(nothing logged yet)
+
 **How to review:** `/fable-review <entry>` (validated workflow — see `.claude/skills/fable-review`).
 When Fable is satisfied (or files follow-ups), move the entry's full record to
 [audits/FABLE_REVIEW_RECORDS.md](audits/FABLE_REVIEW_RECORDS.md) and add one line to the
