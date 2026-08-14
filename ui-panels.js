@@ -440,10 +440,12 @@ function updateHealthDot(){
   if(!worldState||typeof healthIndicators!=="function"){d.style.display="none";return;}
   var h=healthIndicators(worldState);
   if(h.overall==="bad"){
-    /* owner ruling 2026-08-14: a 6px red dot under-sells a real problem — bad renders as the
-       warning triangle, not a dot. warn/ok/na keep the dot family. */
-    d.className="";d.textContent="⚠";
-    d.style.cssText="display:inline-block;margin-left:4px;font-size:12px;line-height:1;color:var(--red);cursor:pointer;";
+    /* owner ruling 2026-08-14: a 6px red dot under-sells a real problem — bad renders as a SOLID
+       red warning triangle with a 50%-grey '!' (inline SVG; the ⚠ text glyph is outline-only).
+       warn/ok/na keep the dot family. */
+    d.className="";
+    d.innerHTML="<svg width='12' height='12' viewBox='0 0 12 12' style='display:block;'><path d='M6 1 L11.3 10.8 L0.7 10.8 Z' fill='var(--red)' stroke='var(--red)' stroke-width='1' stroke-linejoin='round'/><text x='6' y='9.6' text-anchor='middle' font-size='7.5' font-weight='bold' fill='#808080'>!</text></svg>";
+    d.style.cssText="display:inline-block;margin-left:4px;line-height:0;cursor:pointer;";
   }else{
     d.textContent="";
     d.className=h.overall==="warn"?"mdot w":"mdot";
