@@ -710,12 +710,12 @@ function pinAutoCastVoices(sp){
 // free, so the map is stamped even while MUTED (the old post-pass skipped muted turns to save a
 // model call, which left their replays voiceless forever; that limitation is gone). Every
 // failure path is "narrate flat": a throw here must never cost the read itself.
-function narrateWithSpeakers(clean,raw,narEl,entry){
+function narrateWithSpeakers(clean,raw,narEl,entry,trOwn){
   if(typeof TTS==="undefined")return;
   var sp=null;
   try{sp=deriveSpeakerMapFromTags(raw,clean);}catch(e){console.warn("[speakers] tag derivation failed — narrating in one voice:",e&&e.message);}
   if(sp){
-    stampTranscriptSpeakers(entry,sp);
+    stampTranscriptSpeakers(entry,sp,trOwn);/* #177: the OWNING array rides with the entry */
     if(narEl)narEl._sp=sp;   // the per-message replay button reads this at click time
     try{pinAutoCastVoices(sp);}catch(e2){console.warn("[speakers] voice pinning failed (read unaffected):",e2&&e2.message);}
     saveAll();
@@ -1658,7 +1658,7 @@ function commitGmTurn(resp,opts){
     return null;
   }
   var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
-  narrateWithSpeakers(clean,resp,narEl,worldState.transcript[worldState.transcript.length-1]);/* #96: map derives from the response's own [SAY:] tags */
+  narrateWithSpeakers(clean,resp,narEl,worldState.transcript[worldState.transcript.length-1],worldState.transcript);/* #96: map derives from the response's own [SAY:] tags; #177: entry + its owning array captured together */
   generateActions(narEl);
   processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
   /* #81: [ITEM_DEF:] proposals queued by this turn go to the player NOW — the confirm modal is
@@ -1859,13 +1859,15 @@ async function rerollLast(){
     // Keep the transcript honest: the re-rolled scene replaces the discarded one, so the
     // story-compiler record matches what the player actually read (audit #9).
     if(worldState.transcript&&worldState.transcript.length&&worldState.transcript[worldState.transcript.length-1].r==="gm"){
-      worldState.transcript[worldState.transcript.length-1].x=clean.trim();
-      if(typeof ragEntitiesFromRaw==="function")worldState.transcript[worldState.transcript.length-1].e=ragEntitiesFromRaw(resp); // keep the #27 entity index honest too
-      // Audit 07-16 #1: this is an IN-PLACE mutation of the last entry (same object, same
-      // length — no swap), invisible to the serialize memo's identity checks except via its
-      // last-entry .x compare. Invalidate explicitly so even an .e-only change (identical
-      // reroll text) can never persist a stale compressed blob.
-      if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(worldState.transcript);
+      // Audit 07-16 #1 → #177: an IN-PLACE mutation of the last entry (same object, same
+      // length — no swap) is invisible to the serialize memo except via its last-entry .x
+      // compare; an .e-only change (identical reroll text) slipped even that. The accessor
+      // owns the invalidation now — this was the site the explicit-invalidate convention
+      // was invented for.
+      mutateTranscriptEntry(worldState.transcript,worldState.transcript.length-1,function(e){
+        e.x=clean.trim();
+        if(typeof ragEntitiesFromRaw==="function")e.e=ragEntitiesFromRaw(resp); // keep the #27 entity index honest too
+      });
     }
     if(typeof personDriftDetect==="function")personDriftDetect(clean,false);/* #172: a reroll REPLACES the canonical narration, so its PERSON is what the campaign now carries — judge the replacement, exactly as the phase watcher does */
     if(typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: rerolls REPLACE canonical narration but apply NO tags at all ("no muts" above) — so a replacement that asserts a phase has no same-response tag heal, and the nudge is the only channel. Detect on the replacement CLEAN prose. */
@@ -1876,7 +1878,7 @@ async function rerollLast(){
        below uses) rather than re-reading the clock. */
     var _rrEnt=worldState.transcript[worldState.transcript.length-1];
     var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(_rrEnt?_rrEnt.ck:null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
-    narrateWithSpeakers(clean,resp,narEl,_rrEnt);/* #96 */
+    narrateWithSpeakers(clean,resp,narEl,_rrEnt,worldState.transcript);/* #96; #177: owning array rides along */
     saveAll();
     generateActions(narEl);
   }catch(e){

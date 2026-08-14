@@ -45,6 +45,7 @@ var WEIGHTY_REL_RE=/\b(?:married|wed(?:s|ded|ding)?|w(?:ife|ives)|husbands?|spou
 // The word-bounded matcher above closes that creation gap; delivery stays bounded on purpose.
 var REL_DOWNGRADE_COOLDOWN=3;  // turns between deliveries of the same pending check
 var REL_DOWNGRADE_MAX=3;       // total deliveries before the entry retires unanswered
+var REL_DOWNGRADE_EXPIRE_TURNS=60; // #181: muted-but-unresolved entries archive out of live state this many turns after their last delivery (owner 2026-08-13: "60 sounds reasonable, adjust later if need be"); unmuted entries never expire
 var MOOD_AUDIT_TURNS=12;    // v1.381: a party member's recorded MOOD older than this is due for a re-check (buildMoodAudit, api.js). Deliberately far shorter than REL_AUDIT_TURNS below: bonds shift on a ~100-turn scale, mood is scene-scale, and auditing a volatile field on a slow field's clock is what let "watchful, tense" sit pinned on Frizwick for an entire arc. ~12 turns ≈ one play session at the observed rate. An EMPTY mood is eligible immediately — no age wait — since a party member in every scene with no recorded mood is a gap now, not in 12 turns.
 var MOOD_AUDIT_COOLDOWN=12; // v1.381: at most one mood audit per this many turns. Frequency is the real lever on churn — every audit invites re-emission, and re-emission is where vocabulary leaks enter, so a fast audit would keep rolling the corruption dice on characters that were fine.
 var REL_AUDIT_TURNS=40;          // #61: at most one relationship audit per this many turns (buildRelationshipAudit, api.js) — bonds shift on a ~100-turn scale in the wild (t455/t472 Runelords), so 40 re-grounds without nagging; a party join/leave pulls the audit forward via worldState.relAuditDue
@@ -209,7 +210,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.614";
+var APP_VERSION="v1.615";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

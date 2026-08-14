@@ -637,10 +637,25 @@ function buildArcStagingNudge(){
 // The restore tag is PRE-FILLED with the old descriptor — paste-ready compliance, no placeholder.
 // Silent mid-combat WITHOUT stamping a delivery.
 function buildRelationshipDowngradeNudge(){
-  if(!worldState||worldState.combat)return"";
+  if(!worldState)return"";
   var q=worldState.relDowngrades;
   if(!q||!q.length)return"";
-  var d=null,i;
+  var i;
+  /* #181: a muted entry used to be prompt-visible FOREVER — the only exits were resolution or
+     oldest-of-8 eviction (the review's lens-④ finding, the one P6 row never executed). Muted +
+     REL_DOWNGRADE_EXPIRE_TURNS quiet turns → archive the full entry to memory.archive.relDowngrades
+     and drop it from live state. Unmuted entries NEVER expire here (they are still being
+     delivered); the sweep runs even in combat (bookkeeping, not a note). W7's staged-confirmation
+     bond writes remain the structural guard for the class after protection ends. */
+  for(i=q.length-1;i>=0;i--){var ex=q[i];
+    if(ex.muted&&typeof ex.lastFired==="number"&&worldState.turn-ex.lastFired>=REL_DOWNGRADE_EXPIRE_TURNS){
+      if(typeof memArchive==="function"){var _ar=memArchive();if(!_ar.relDowngrades)_ar.relDowngrades=[];var _cp={},_k;for(_k in ex)if(Object.prototype.hasOwnProperty.call(ex,_k))_cp[_k]=ex[_k];_cp.expiredAt=worldState.turn;_ar.relDowngrades.push(_cp);}
+      q.splice(i,1);
+      if(typeof console!=="undefined")console.log("[relationship] muted downgrade preimage for "+(ex.who?ex.who+"→":"")+ex.entity+" expired after "+REL_DOWNGRADE_EXPIRE_TURNS+" quiet turns — archived to memory.archive.relDowngrades (#181)");
+    }}
+  if(!q.length){delete worldState.relDowngrades;return"";}
+  if(worldState.combat)return"";
+  var d=null;
   for(i=0;i<q.length;i++){var e=q[i];if(!e.muted&&(e.lastFired==null||worldState.turn-e.lastFired>=REL_DOWNGRADE_COOLDOWN)){d=e;break;}}
   if(!d)return"";
   d.fired=(d.fired||0)+1;d.lastFired=worldState.turn;

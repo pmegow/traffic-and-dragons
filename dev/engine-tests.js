@@ -5090,6 +5090,36 @@ function runEngineTests(R){
     if(!q||q.length!==1)return "player→Morwen pending check must clear on rewrite; the unrelated pair must stay: "+JSON.stringify(q);
     return q[0].who==="Morwen"?true:"wrong entry cleared: "+JSON.stringify(q[0]);
   });
+  t("#181: a muted-unresolved preimage EXPIRES quiet turns after its last delivery — archived, never evicted to the void",function(){
+    // Review lens ④, the P6 miss: muted entries were prompt-visible FOREVER (only resolution or
+    // oldest-of-8 eviction removed them). Owner 2026-08-13: 60 quiet turns, then archive.
+    __relWorld();
+    memory.archive=undefined;
+    worldState.relDowngrades=[{who:"Morwen",entity:"Tess",prev:"Husband — beloved family",next:"Husband",turn:50,fired:3,lastFired:56,muted:true}];
+    worldState.turn=56+REL_DOWNGRADE_EXPIRE_TURNS-1;
+    buildRelationshipDowngradeNudge();
+    if(!worldState.relDowngrades||worldState.relDowngrades.length!==1)return "expired one turn early";
+    worldState.turn=56+REL_DOWNGRADE_EXPIRE_TURNS;
+    buildRelationshipDowngradeNudge();
+    if(worldState.relDowngrades)return "muted entry survived past expiry";
+    var ar=memory.archive&&memory.archive.relDowngrades;
+    if(!ar||ar.length!==1)return "expired entry was not archived — that would be eviction to the void";
+    if(ar[0].prev!=="Husband — beloved family"||ar[0].expiredAt!==56+REL_DOWNGRADE_EXPIRE_TURNS)return "archived record incomplete: "+JSON.stringify(ar[0]);
+    var s=buildSysPrompt().volatile;
+    return s.indexOf("UNRESOLVED protected bond preimage")<0?true:"expired preimage still prompt-visible";
+  });
+  t("#181: an UNMUTED entry never expires — only the mute path ends protection; combat still sweeps",function(){
+    __relWorld();worldState.turn=500;
+    worldState.relDowngrades=[{who:null,entity:"Morwen",prev:"Wife",next:"pal",turn:50,fired:1,lastFired:60}];
+    buildRelationshipDowngradeNudge();
+    if(!worldState.relDowngrades||worldState.relDowngrades.length!==1)return "unmuted entry expired — 440 quiet turns must not end an ACTIVE guard";
+    worldState.relDowngrades=[{who:null,entity:"Morwen",prev:"Wife",next:"pal",turn:50,fired:3,lastFired:60,muted:true}];
+    worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
+    var n=buildRelationshipDowngradeNudge();
+    worldState.combat=null;
+    if(n!=="")return "combat delivered a note";
+    return worldState.relDowngrades===undefined?true:"the expiry sweep must run even in combat (bookkeeping, not a note)";
+  });
   t("audit: timer fires at REL_AUDIT_TURNS with player+companion bonds and ages; cooldown suppresses re-fire",function(){
     __relWorld();worldState.turn=50;worldState.lastRelAudit=20;
     if(buildRelationshipAudit()!=="")return "fired inside the window (30 turns since last)";
@@ -7424,6 +7454,37 @@ function runEngineTests(R){
     var last=back.transcript[back.transcript.length-1];
     if(!last.sp)return "speaker map lost — the stale memo blob was re-served";
     return last.sp.s&&last.sp.s[0]==="Daeris"&&last.sp.n===2?true:"map corrupted: "+JSON.stringify(last.sp);
+  });
+  t("#177: speaker stamp invalidates the entry's OWNING array, not whatever the global points at",function(){
+    // The entry-4 ★ structural fragility: the old stamp invalidated worldState.transcript AT
+    // STAMP TIME. The derive is synchronous today, so no shipping path desynced them — but any
+    // future capture-to-stamp gap (a campaign switch mid-window) would invalidate the WRONG
+    // array's memo and silently persist a stale compressed blob for the owning one.
+    makeWorld();
+    logTranscript("gm","Array A narration one.","raw");
+    logTranscript("gm","Array A narration two.","raw");
+    var wsA=worldState,trA=wsA.transcript,e=trA[trA.length-1];
+    serializeWorldState(wsA); // prime A's memo with the un-stamped entry
+    var wsB=JSON.parse(JSON.stringify(wsA)); // a different campaign's object graph
+    worldState=wsB;           // the global moves on…
+    try{stampTranscriptSpeakers(e,{n:1,s:{0:"Daeris"}},trA);} // …but the stamp knows its owner
+    finally{worldState=wsA;}
+    var back=parseWorldState(serializeWorldState(wsA));
+    var last=back.transcript[back.transcript.length-1];
+    return last.sp?true:"stale blob served — the stamp invalidated the global's memo, not the owning array's";
+  });
+  t("#177: mutateTranscriptEntry owns memo invalidation for ANY in-place edit of an old entry",function(){
+    makeWorld();
+    logTranscript("gm","Original old-entry text.","raw");
+    logTranscript("gm","Newest entry.","raw");
+    serializeWorldState(); // warm the memo — an old-entry edit changes none of its keys
+    var tr=worldState.transcript;
+    if(!mutateTranscriptEntry(tr,tr.length-2,function(e){e.x="EDITED OLD ENTRY";}))return "accessor refused a valid index";
+    var back=parseWorldState(serializeWorldState());
+    if(back.transcript[back.transcript.length-2].x!=="EDITED OLD ENTRY")return "stale blob — the accessor did not invalidate the memo";
+    if(mutateTranscriptEntry(tr,tr.length,function(){}))return "out-of-bounds index accepted";
+    if(mutateTranscriptEntry(null,0,function(){}))return "null array accepted";
+    return true;
   });
   // (speakerCastList/speakerPassNeeded/buildSpeakerPrompt/parseSpeakerMap tests deleted with the
   // #9 LLM post-pass at v1.447 — attribution now derives from the GM's own [SAY:] tags below.

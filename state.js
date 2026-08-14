@@ -180,7 +180,7 @@ function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeepi
      no timestamp — the caption degrades to the bare turn number rather than guessing. */
   if(role==="gm"&&typeof clockNow==="function")_e.ck=clockNow();
   if(role==="gm"&&typeof APP_VERSION!=="undefined")_e.v=APP_VERSION;/* #45b: engine version per turn — "what version was the phone on?" is now answerable from any export */
-  if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;var _tr=worldState.transcript,_bi;for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){_tr[_bi].rc=1;break;}}
+  if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;var _tr=worldState.transcript,_bi;for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){if(typeof mutateTranscriptEntry==="function")mutateTranscriptEntry(_tr,_bi,function(pe){pe.rc=1;});else _tr[_bi].rc=1;break;}}/* #177: routed through the seam — the rc-mark was memo-safe only by ADJACENCY to this call's own append (length changes → miss); the accessor makes it safe by construction */
     /* #147: the de-index above removes BOTH versions of the scene from retrieval — correct for
        the false half, but it leaves the corrected truth riding only the rolling session tail +
        one unverified extraction. Pin it: the tag's own payload (what was corrected) injects as
@@ -190,17 +190,39 @@ function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeepi
     var _rpM=String(raw).match(/\[RETCON:([^\]]*)\]/i);
     if(_rpM&&_rpM[1]&&_rpM[1].trim()){if(worldState.retconPin&&typeof memArchive==="function")memArchive().retconPins.push(worldState.retconPin);worldState.retconPin={what:_rpM[1].trim(),turn:worldState.turn};}}
   worldState.transcript.push(_e);}
-// #9: stamp the speaker map onto a GM entry AFTER the fact — the post-pass resolves 1-4s after
-// logTranscript already wrote the entry. Additive field, exactly like .e/.m/.v above.
-// The invalidate is LOAD-BEARING, not housekeeping: the transcript compression memo keys on
-// (length, last-entry ref, last-entry .x), and adding a field changes none of them — so without it
-// the next saveCore re-serves the stale compressed blob and every speaker map is silently lost at
-// the localStorage boundary (engine-tested).
-function stampTranscriptSpeakers(entry,sp){
-  if(!entry||!sp||!worldState||!worldState.transcript)return false;
-  entry.sp=sp;
-  if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(worldState.transcript);
+/* #177: THE sanctioned mutator for an EXISTING transcript entry. The compression memo keys on
+   (array ref, length, last-entry ref, last-entry .x), so an in-place field edit on an OLD entry
+   is invisible to it — every such write routes HERE so invalidation is owned by this seam, not
+   by call-site discipline (entry-4 ★: the failure class is a stale compressed blob silently
+   persisting AND syncing — compressWorldStateSnapshot serves both exits). `tr` is the entry's
+   OWNING array, passed by the caller who captured the entry — never assumed from the global
+   (a campaign switch between capture and mutation would invalidate the wrong memo).
+   ONE documented exception bypasses this seam: ragRetrieve's lazy .e backfill (memory.js) —
+   idempotent, and a memoized blob missing backfilled .e is ACCEPTED by the audit ruling. */
+function mutateTranscriptEntry(tr,i,fn){
+  if(!tr||!tr.length||i<0||i>=tr.length||typeof fn!=="function")return false;
+  fn(tr[i]);
+  if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(tr);
   return true;
+}
+// #9: stamp the speaker map onto a GM entry AFTER logTranscript wrote it. Additive field,
+// exactly like .e/.m/.v above. The invalidate is LOAD-BEARING, not housekeeping: without it the
+// next saveCore re-serves the stale compressed blob and every speaker map is silently lost at
+// the localStorage boundary (engine-tested). #177: `tr` = the entry's OWNING array, captured
+// with the entry — the old form invalidated whatever the GLOBAL pointed at during the stamp,
+// which desyncs under any capture-to-stamp gap (the derive is synchronous today; structural
+// beats latent). Falls back to the global for legacy callers, loudly when the entry isn't in it.
+function stampTranscriptSpeakers(entry,sp,tr){
+  tr=tr||(typeof worldState!=="undefined"&&worldState?worldState.transcript:null);
+  if(!entry||!sp||!tr||!tr.length)return false;
+  var i=tr.indexOf(entry);
+  if(i<0){
+    if(typeof console!=="undefined")console.warn("[transcript] speaker stamp: entry is not in the given array — stamping in place; memo for that array invalidated defensively");
+    entry.sp=sp;
+    if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(tr);
+    return true;
+  }
+  return mutateTranscriptEntry(tr,i,function(e){e.sp=sp;});
 }
 // Schema migrations for worldState — fills fields added by later versions. Runs on every
 // load AND on save import (importSave previously skipped these — audit #15). Operates on

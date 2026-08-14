@@ -575,6 +575,11 @@ function ragEntitiesFromRaw(raw){
 }
 // Lazy backfill for pre-Phase-1 entries: tags are long stripped from .x, so this is a
 // known-NPC name scan only (location/quests unrecoverable → stay empty). Idempotent.
+// #177 SANCTIONED SEAM BYPASS: the write below (`en0.e=…` at the retrieval loop) deliberately
+// does NOT route through mutateTranscriptEntry — a memoized compressed blob missing backfilled
+// .e fields is ACCEPTED (audit ruling: the backfill recomputes lazily after any reload, so
+// nothing is lost), and invalidating here would force a full recompression per retrieval.
+// Every OTHER in-place transcript-entry write must use the state.js accessor.
 function ragBackfillEntry(en,names){
   var e={n:[],l:null,q:[]},low=String(en.x||"").toLowerCase();
   ragScanNames(low,names,function(nm){if(e.n.length<12&&e.n.indexOf(nm)<0)e.n.push(nm);});

@@ -89,6 +89,43 @@ try {
   process.exit(1);
 }
 
+// ── TRANSCRIPT MUTATION SEAM CONTRACT (#177, v1.615) ─────────────────────────────────────
+// Entry-4 ★: the compression memo keys on (array ref, length, last-entry ref, last-entry .x),
+// so an in-place field edit on an OLD transcript entry is invisible to it — a mutation site
+// that forgets to invalidate silently persists AND syncs a stale compressed blob. The fix is
+// structural: state.js owns mutateTranscriptEntry(tr,i,fn), and every other shipped file is
+// FORBIDDEN from writing transcript-entry fields directly. Known limit, stated honestly: an
+// ALIASED write (var e=tr[i]; e.x=…) is invisible to this scan — the behavioural #177 engine
+// tests are the deeper guard; this contract kills the greppable class.
+try {
+  var _fsT = require("fs"), _pathT = require("path");
+  var _trRe = /transcript\[[^\]]*\]\s*\.\s*[A-Za-z_$][\w$]*\s*=[^=]/;
+  // self-sabotage check: the clause must be ABLE to fail (a green guard that can't is worse than none)
+  if (!_trRe.test('worldState.transcript[i].x = "boom";') || _trRe.test('if(a===transcript[i].x)b();')) {
+    console.error("TRANSCRIPT SEAM CONTRACT: the scan regex no longer catches its own violation fixture — the clause is vacuous.");
+    process.exit(1);
+  }
+  var _rootT = _pathT.join(__dirname, "..");
+  _fsT.readdirSync(_rootT).forEach(function (f) {
+    if (!/\.js$/.test(f) || f === "state.js") return;
+    var body = _fsT.readFileSync(_pathT.join(_rootT, f), "utf8")
+      .replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    var m = body.match(_trRe);
+    if (m) {
+      console.error("TRANSCRIPT SEAM CONTRACT: " + f + " writes a transcript-entry field directly (“" + m[0].trim() + "”). Route it through mutateTranscriptEntry (state.js) so memo invalidation is owned by the seam — a bypassed write persists a stale compressed blob at BOTH the save and sync exits (#177).");
+      process.exit(1);
+    }
+  });
+  var _memT = _fsT.readFileSync(_pathT.join(_rootT, "memory.js"), "utf8");
+  if (_memT.indexOf("#177 SANCTIONED SEAM BYPASS") < 0) {
+    console.error("TRANSCRIPT SEAM CONTRACT: memory.js lost the '#177 SANCTIONED SEAM BYPASS' marker documenting the one sanctioned aliased write (the RAG lazy .e backfill). If the backfill moved or was rewired, update the seam docs and this contract together.");
+    process.exit(1);
+  }
+} catch (e) {
+  console.error("TRANSCRIPT SEAM CONTRACT: could not verify — " + (e && e.message));
+  process.exit(1);
+}
+
 // ── VOICE-DELETION TRUTHFULNESS CONTRACT (v1.419) ────────────────────────────────────────
 // Field-confirmed 2026-07-22 on iOS 18.7: pressing ✕ toasted "🗑 Deleted" and deleted nothing.
 // The vendored remove() deletes via `(await dir.getFileHandle(n)).remove()` — a CHROME-ONLY File
