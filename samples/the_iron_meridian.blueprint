@@ -1,0 +1,420 @@
+{
+  "format": "tnd-blueprint-v1",
+  "designerVersion": "v0.35",
+  "name": "The Iron Meridian",
+  "tone": "gritty",
+  "startingLocation": "The Bilge Wards",
+  "startingRegion": "The floating city of Cassivel, adrift above the Blackened Sea",
+  "premise": "You were sold to settle a debt you never made, your name struck from the citizen rolls and burned into a copper indenture-tag worn at the throat. Now you labor in Cassivel, a mountain of brass and boiler-smoke that drifts eternal above the poisoned Blackened Sea, kept aloft by the guarded engines of the Ascendant Guild. But Cassivel is a battlefield disguised as a city: the Guild that owns your contract, the smuggler-syndicate called the Undertow that owns the shadows, and a silent order of engineers called the Meridian who alone know why the city truly flies — all three are pulling threads, and every threat you're handed to answer is a piece someone above you is moving. You are a tool. The question that will keep you alive is whose.",
+  "acts": [
+    {
+      "title": "Ballast and Breath",
+      "goal": "Survive the Bilge Wards, learn the shape of Cassivel's power, and discover that your indenture was engineered, not incurred",
+      "turningPoint": "A patron buys your contract to spare you an execution you didn't earn — and you realize your debt was manufactured to place you exactly where you now stand",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Copper Tag",
+          "objective": "Endure your first work-rotations in the boiler wards and stay off the overseers' punishment list",
+          "type": "exploration",
+          "dnaHint": "Let the city teach cruelty through routine — the crushing gears, the ration lines, the informant beside you at the furnace who reports every complaint and smiles while doing it."
+        },
+        {
+          "title": "The Missing Manifest",
+          "objective": "Investigate why your indenture-tag lists a debt to a merchant house nobody in the wards has ever heard of",
+          "type": "investigation",
+          "dnaHint": "Every clue points to a paperwork error until it doesn't — the trail leads to a Guild clerk who was told to file you here, and killing the trail matters more to someone than killing you."
+        },
+        {
+          "title": "The Purge Rotation",
+          "objective": "Survive the culling when overseers 'retire' a batch of indentured to hide an accounting crime",
+          "type": "combat",
+          "dnaHint": "This is not a fight you win by strength but by being worth more alive to a watcher who intervenes at the last second — for reasons that are entirely their own."
+        }
+      ]
+    },
+    {
+      "title": "Threads in the Smoke",
+      "goal": "Become a useful asset to competing powers while learning that all three factions are hunting the same secret buried in Cassivel's engines",
+      "goal2": "",
+      "turningPoint": "You recover a fragment of the Meridian's schematics and learn the city is not merely floating — it is holding something down, and the engines are failing",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Undertow's Errand",
+          "objective": "Run contraband through the ventilation maze for the smuggler-syndicate in exchange for the truth about who bought your debt",
+          "type": "social",
+          "dnaHint": "The syndicate treats you warmly precisely because you're expendable; the truth they promise is real but arrives late, incomplete, and priced in a favor that endangers the one person who protected you."
+        },
+        {
+          "title": "The Guild's Loyal Hand",
+          "objective": "Perform 'security' work for the Ascendant Guild to earn a citizen's provisional tag",
+          "type": "combat",
+          "dnaHint": "Your orders are clean and your targets are Undertow agents until one target turns out to be the clerk from Act One, silenced before they can tell you who really moves you across the board."
+        },
+        {
+          "title": "The Silent Engineers",
+          "objective": "Infiltrate the sealed Meridian workshops to steal a schematic fragment for whichever faction pays first",
+          "type": "investigation",
+          "dnaHint": "The Meridian barely acknowledge you exist — they let you steal the fragment because a copy in the wrong hands serves their own longer war, and you won't understand you were used until the ink is already spent."
+        },
+        {
+          "title": "The Falling Ward",
+          "objective": "Hold a collapsing district together during an engine tremor that the Guild is publicly blaming on saboteurs",
+          "type": "exploration",
+          "dnaHint": "Save who you can while the powers above use the disaster as cover — the tremor is real, the sabotage story is a lie, and the people you save will owe loyalties that pull you in three directions."
+        }
+      ]
+    },
+    {
+      "title": "The Weight Below",
+      "goal": "Choose which faction's version of Cassivel's future to serve as the engines fail and the truth of what the city carries surfaces",
+      "turningPoint": "The engines give out over the Ashen Sea and every faction's mask drops — you decide who commands the descent, and whether the city falls, floats, or lands",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Convergence in the Core",
+          "objective": "Fight or slip through the three-army chokehold in the corridors to breach the core chamber and expose the imprisoned thing below to the party",
+          "type": "exploration",
+          "dnaHint": "The corridors are choked with three armies who were never really enemies to each other, only to you — the revelation of the thing below reframes every order you ever obeyed as part of keeping it buried."
+        },
+        {
+          "title": "Whose Hand Moves You",
+          "objective": "Force Ferrin Lyle to admit he manufactured your indenture, then decide whether to kill, expose, or bargain with him before the core gives out",
+          "type": "social",
+          "dnaHint": "Your patron is neither savior nor mastermind but a middle-piece like you, and the true hand is someone you'd dismissed as scenery — the war was always bigger than the person you finally get to face."
+        },
+        {
+          "title": "The Descent",
+          "objective": "Command the failing city's final fall and decide the fate of thousands of indentured and citizens alike",
+          "type": "combat",
+          "dnaHint": "No faction can win this cleanly; your choice is which betrayal to accept and which lives are worth the weight, ending on a landing that is survival, not victory. Completing this choice locks in the party's chosen faction alignment as the campaign's ending state: the surviving population's fate is set — whether the indentured are freed of their copper tags, whether Cassivel lands intact on the Ashen Sea or breaks apart, and which of the Guild, the Undertow, or the Meridian holds the engine core when the descent ends."
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Vessa Corrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "notes": "A mid-ranked Ascendant Guild broker who is the watcher intervening at the last second in the Purge Rotation arc — she buys the player's indenture to spare them the culling execution, projecting maternal warmth. She wants to rise within the Guild and sees the player as a disposable instrument for that climb. Her secret is that she was ordered to acquire the player by someone above her and does not know why; this surfaces in Act Three when she confesses she is as much a pawn as they are."
+    },
+    {
+      "name": "Redd Salter",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "A weathered furnace-worker in the Bilge Wards who takes the player under his wing and speaks for the Undertow. He is the worker seated beside the player at the furnace in Act One's 'The Copper Tag' arc — the one whose warmth and easy talk mask an informant's habits, who smiles while reporting every complaint to the overseers. He genuinely likes the player but will trade their safety for the syndicate's goals without hesitation. His secret is that during a past purge, before the player arrived, Redd played that same smiling-informant role in earnest to survive, selling out a previous indentured to the overseers, and he still slips into it under pressure. It surfaces in Act Two when the player realizes the warning Redd gave them about informants was really a confession about who he himself had once been — and still is."
+    },
+    {
+      "name": "Overseer Kolm",
+      "role": "villain",
+      "pronouns": "they/them",
+      "notes": "The brutal punishment-master of the boiler wards who orchestrates the culling rotations. They want to bury an accounting fraud that skims the indentured rolls. Their secret is that the fraud isn't theirs — they were ordered to run it by the Guild, and they resent being the visible hand that takes the blame; this surfaces if the player spares them in Act Two. If Kolm dies or is never spared, the Guild-ordered-fraud link surfaces instead through ledgers recovered from the boiler wards' punishment records or through Vessa Corrow's Act Three confession, so the connection to Ferrin Lyle's scheme always reaches the player."
+    },
+    {
+      "name": "The Cartographer",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "A masked representative of the silent Meridian order who communicates only in schematics and terse conditions. They want to preserve the secret purpose of Cassivel's engines at any human cost. In Act Two, when the player infiltrates the Meridian Workshops for a schematic fragment, the Cartographer deliberately allows the theft — they leave the fragment reachable and impose only terse, schematic-only conditions (a route drawn, a door left unsealed, a wordless nod at a threshold), never speaking, never explaining, so the player believes they outmaneuvered the order rather than serving it. They reveal nothing of the Meridian's true intent, letting the copy pass into a faction's hands to serve their own longer war. Their secret is that the Meridian know the city is doomed and have chosen to let it fall in a controlled way rather than let a faction seize the core; this surfaces only in Act Three's core."
+    },
+    {
+      "name": "Ambassador Ferrin Lyle",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "A charming, seemingly minor liaison between the Guild and the city's absent aristocracy, easily dismissed as decoration. He is the true hand moving the pieces, engineering debts and disasters to consolidate control of the engine core. Appears in Acts One and Two as a bland, forgettable liaison exchanging pleasantries and paperwork; the GM should plant him in minor scenes without emphasis — waved through a checkpoint, signing a manifest near the Guild clerk, offering a distracted greeting during the Falling Ward — so his Act Three reveal recasts them. His secret—that he manufactured the player's indenture as one node in a vast board—surfaces only in the Act Three confrontation, recasting the entire campaign."
+    },
+    {
+      "name": "Snipe",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "A sharp indentured gremlin who runs messages through the ventilation maze and knows Cassivel's guts better than any faction. She helps the player for scraps and protection, not affection, and will vanish the moment danger outweighs profit. Her wildcard secret is that she has been feeding all three factions the same information for years and cannot tell which side she truly serves anymore. This surfaces during Act Three's Convergence in the Core, when her information is revealed to have misled one of the factions in the three-army chokehold — the player learns her double-dealing shaped the corridors they now fight through, forcing them to weigh whether her loyalty is worth anything at all before the core gives out."
+    },
+    {
+      "name": "Clank",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "Clank is a rogue automaton, wandering the bowels of Cassivel looking for purpose.  They can't really remember where they're from or what they're for, but some how, they're always capable of finding exactly what is needed in a given situation, innocently, but without explaination."
+    }
+  ],
+  "locations": [
+    {
+      "name": "The Bilge Wards",
+      "description": "The lowest inhabited tier of Cassivel, a labyrinth of boiler galleries, ration lines, and iron dormitories where the indentured live and die by rotation. Steam scalds the corridors and the great gears never stop turning; the smell of coal-ash and rust never leaves your clothes. Overseers walk the catwalks above with punishment-ledgers, and the copper indenture-tag at your throat marks you as property in every glance. At the tier's outermost edge, hanging over the void above the Ashen Sea, sits Sump Row — the most precarious district of iron dormitories and furnace galleries, bolted to the city's underhull and packed with the newest and lowest indentured. It is Sump Row that buckles and begins to tear loose during the Act Two engine tremor, the collapsing 'Falling Ward' the player must hold together while the Guild blames saboteurs."
+    },
+    {
+      "name": "The Ventilation Maze",
+      "description": "A honeycomb of ductwork, service shafts, and dead spaces threading between Cassivel's tiers, unmapped by any official chart. The Undertow smuggle contraband and secrets through its crawlspaces, and only the small and the desperate know its true routes. Sound carries strangely here, and a wrong turn drops you into a furnace intake or a Guild patrol's arms."
+    },
+    {
+      "name": "The Meridian Workshops",
+      "description": "A sealed district near the engine core where the silent order of engineers maintains machinery no outsider is permitted to see. The doors are seamless brass, the air hums with something felt in the teeth, and the humming is itself the order's ward — a resonance in the shielded conduits that scrambles the recent memory of any intruder who lingers unmasked, leaving them to wake in a far corridor with the last hours a smeared blur, unable to say what they saw or where they went. The Meridian move through it masked and wordless, their masks tuned to the resonance so it passes over them; those who enter uninvited rarely return with their memories intact, and rarely understand why they were let go at all. When the player infiltrates to steal a schematic fragment, the Meridian permit it deliberately — they let the fragment leave in the wrong hands because a copy loose in the factions' war serves the order's own longer purpose of keeping the core's secret buried, and they spare the player the resonance-scrubbing precisely so the theft, and its consequences, will carry forward as they intend."
+    },
+    {
+      "name": "The Engine Core",
+      "description": "The vast beating heart of Cassivel, a cathedral of pistons and glowing conduits that keeps the city aloft above the Ashen Sea. Chains thicker than a man descend into shielded wells beneath the machinery, and the deeper you go the more the air tastes of the poisoned sea below. Standing here you feel not only that the city flies, but that it strains against something that wants to pull it down. Canonical truth for the Act Three reveal: the chains restrain a single vast living entity — a slow, luminous leviathan of the Ashen Sea whose own body poisoned those waters, chained at the shielded wells and dragged aloft by Cassivel itself. The city was never built merely to fly; it flies because it must, hauling the thing skyward so its poison cannot spread further through the sea, and the Meridian's engines are the manacle. As the engines fail the leviathan's weight pulls the city down toward the sea that birthed it, and every faction's war for the core is, unknowingly, a fight over whether the creature stays bound, is released, or falls with the city into the waters that remember what they swallow."
+    },
+    {
+      "name": "The Blackened Sea",
+      "description": "The dead black ocean far beneath Cassivel, its waters thick and luminous with old poison, its surface unbroken by any living thing. Legends among the indentured say cities that fall into it are never seen again, and that the sea remembers what it swallows. It is always below you, patient, and every tremor in the engines makes it feel closer. The concrete truth beneath the legend: the poisoned water does not drown so much as dissolve — its luminous corrosion eats through iron hull and brass plating within hours and through living flesh far faster, so anything that strikes the surface at speed shatters and is unmade, while anything that settles onto it slowly is corroded from below until it sinks. A controlled landing is survivable only if the city's underhull holds long enough for its people to reach the highest tiers or evacuate the outer wards; the deeper districts like Sump Row, bolted to the underhull, flood and corrode first. This fixes The Descent's stakes: a hard fall breaks Cassivel apart and kills all aboard, while a slow, guided descent lands the city intact but immersed to the lower tiers — survival bought at the cost of the Bilge Wards and every soul who cannot climb clear in time."
+    }
+  ],
+  "rules": [
+    "Every indentured character wears a copper tag that faction operatives can read on sight; the player cannot simply hide their status without removing or forging it, which is itself a crime punishable by culling. Any faction operative who reads a forged or absent tag immediately exposes the player as an escapee and triggers a culling order enforced by Overseer Kolm's rotations — the GM should treat any such reading as automatic detection with no roll, and the culling as an active pursuit the player must flee, buy off, or survive.",
+    "No faction is ever a true friend—allies help only when the player's interests align with theirs. Whenever an ally NPC (Redd Salter, Pell, or any other) aids the player, the GM must immediately and silently note a specific future cost tied to that aid (a favor owed, a secret leveraged, a person endangered). The GM must cash in that noted cost during a later scene where the player's and the ally's interests diverge — forcing the player to pay the price precisely when the ally's goals turn against their own."
+  ],
+  "author": "",
+  "proseAuthor": "cook",
+  "creatures": [
+    {
+      "name": "Tag-Shrike",
+      "kind": "construct",
+      "threat": "moderate",
+      "notes": "A crow-sized brass automaton loosed by overseers to hunt indentured whose copper tags stray from their assigned wards; it homes on the resonance of a specific tag-frequency, shrieking a location-marker whistle that summons enforcers within minutes. It rarely kills — it perches just out of reach, screaming, forcing the target to either flee into worse trouble or destroy it and be flagged as a runaway. Silence it by muffling or smashing its bellows-throat, or spoof it by swapping tags with another indenture; but a dead Tag-Shrike broadcasts a final alarm burst, so timing and a quiet corner are everything."
+    },
+    {
+      "name": "Boiler-Choked",
+      "kind": "undead",
+      "threat": "moderate",
+      "notes": "When an indentured worker dies in the boiler wards and their body is fed to the furnaces to hide the accounting, some do not stay dead — the copper tag fused to a scorched throat keeps a flicker of grievance burning, and they rise as shambling things of blistered flesh and vented steam, drawn toward the living overseers and citizens they blame. They fight in shuffling packs through smoke-blind corridors, exhaling scalding gouts and grappling to press victims against hot brass, and they cluster wherever a purge rotation was recently run, making the Bilge Wards feel haunted by the crime that made them. They are slow and easily outpaced in open ground, but deadly in the cramped maze; douse them in seawater or coolant to quench the steam that drives them, or pry the copper tag from the throat — snap it, and the corpse goes still. Use them to let players feel the human cost of the culling literally rise up against them."
+    },
+    {
+      "name": "Manifest-Warden",
+      "kind": "construct",
+      "threat": "moderate",
+      "notes": "A gaunt clockwork clerk stitched from indenture-ledgers and copper reading-lenses, dispatched by the Guild to audit the wards and 'reconcile' any indentured whose tag data has been tampered with — making it a direct threat the moment the party investigates their engineered debts. It fights by clamping a target's throat-tag and pulsing a current that locks muscles rigid while it recites the discrepancy aloud, summoning overseers to the noise; it prefers to immobilize and report rather than kill. Destroy the perforated ledger-drum in its chest and it collapses into loose punch-cards, but tearing that drum free intact lets you rewrite the very records that damn you — the Undertow pays dearly for one taken whole."
+    },
+    {
+      "name": "Gremlin",
+      "kind": "goblinkin",
+      "threat": "low",
+      "notes": "Gremlins are slave adjacent maintenance creatures with the inate ability to fix a complex system with a minimum of tools and tech.  They personify fixing a machine by doing nothing more than 'hitting it with a wrench and swearing at it'.  Surly but unthreatening, they would much rather run than fight.  Remarkably agile, there just as much at home deep in a bilge pipe as they are high up in an airship's rigging."
+    },
+    {
+      "name": "Murder Gull",
+      "kind": "beast",
+      "threat": "moderate",
+      "notes": "Curious but ill tempered, murder gulls travel in flocks.  Small groups are known to attack humans, while an individual may steal anything shiny the victim may have exposed.  Armed with both sharp talons and beaks, a single gull is not a problem, a 10-20 certainly are.   The orgainic inpiration for the TAG-Shrike."
+    },
+    {
+      "name": "Steam Elemental",
+      "kind": "Elemental",
+      "threat": "Deadly",
+      "notes": "Born through the same process as the Boiler-Choked, the Steam Elemental is sentient steam, it's scalding attacks blister skin.  They are immunty to all piercing and slashing attacks.  Blunt weapons do 1/2 damage.  They're particularly vulnerable to cold and wind based attacks."
+    }
+  ],
+  "review": {
+    "findings": [
+      {
+        "sev": "HIGH",
+        "section": "Act 3 arc 'Convergence in the Core'",
+        "issue": "Objective is 'reach the engine core' — a place plus a passive revelation, not a completable action the engine can verify.",
+        "fixes": [
+          "Rewrite objective to 'Fight or slip through the three-army chokehold in the corridors to breach the core chamber and expose the imprisoned thing below to the party.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote 'Convergence in the Core' objective into a completable action: breach the core chamber and expose the imprisoned thing."
+      },
+      {
+        "sev": "HIGH",
+        "section": "npcs / Ferrin Lyle vs. Vessa Corrow",
+        "issue": "Lyle is 'the true hand' but there is no run-instruction telling the GM how he acts on-screen before Act Three, so the GM must improvise all his earlier appearances despite him being scenery the player dismisses.",
+        "fixes": [
+          "Extend Ferrin Lyle's notes with early-act behavior: e.g. 'Appears in Acts One and Two as a bland, forgettable liaison exchanging pleasantries and paperwork; the GM should plant him in minor scenes without emphasis so his Act Three reveal recasts them.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added early-act on-screen behavior for Ferrin Lyle so the GM can plant him before the Act Three reveal."
+      },
+      {
+        "sev": "HIGH",
+        "section": "locations — Engine Core",
+        "issue": "The 'thing below' that the city imprisons — the campaign's central revelation (Act Three) — is never named or described in the Core, only hinted; the GM must improvise what the chains hold.",
+        "fixes": [
+          "Extend the Engine Core description with a verbatim canonical statement of what the chains restrain beneath the shielded wells, matching The Cartographer's and Convergence-in-the-Core secrets, so the GM has fixed truth for the reveal."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Named and described the chained Ashen Sea leviathan in the Engine Core, matching the Cartographer's and Convergence secrets."
+      },
+      {
+        "sev": "MED",
+        "section": "Act 3 arc 'The Descent' (climactic arc)",
+        "issue": "Final climactic arc names no concrete reward for completing the campaign's defining choice.",
+        "fixes": [
+          "Extend the dnaHint to state the reward: the party's chosen faction alignment locks in and the surviving population's fate (indentured freed, city landed, faction in power) is set as the campaign's ending state."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended The Descent dnaHint to name the campaign's concrete ending reward: locked faction alignment and set population fate."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs / The Cartographer",
+        "issue": "The Cartographer's secret surfaces 'in Act Three's core' but the notes give no behavioral trigger or interaction pattern for the Meridian arcs in Act Two where the player infiltrates the workshops.",
+        "fixes": [
+          "Extend The Cartographer's notes to specify Act Two behavior: they let the player steal the fragment deliberately via terse schematic-only conditions, revealing nothing of the doomed-city plan until the Act Three core."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended The Cartographer's notes with Act Two workshop-infiltration behavior: deliberate theft via terse schematic-only conditions, withholding the doomed-city plan until Act Three."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs / Overseer Kolm",
+        "issue": "Kolm's secret surfaces only 'if the player spares them in Act Two,' but no notes cover what happens if the player kills or never confronts Kolm, leaving the ordered-fraud link to Lyle unrevealable and forcing GM improv.",
+        "fixes": [
+          "Extend Kolm's notes with an alternate delivery: if Kolm dies or is never spared, the Guild-ordered-fraud link surfaces through recovered ledgers or Vessa's Act Three confession instead."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added alternate delivery for Kolm's Guild-ordered-fraud secret via recovered ledgers or Vessa's Act Three confession."
+      },
+      {
+        "sev": "MED",
+        "section": "locations — Meridian Workshops",
+        "issue": "'rarely return with their memories intact' implies a memory-wiping mechanism the GM must invent on every intrusion, and the Act Two infiltration depends on how the Meridian handle intruders.",
+        "fixes": [
+          "Add to the Meridian Workshops description the concrete means by which the order strips or damages intruders' memories and why they let the player steal the fragment unharmed, aligning with The Cartographer's notes."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added the Meridian's memory-scrambling resonance ward and their deliberate reason for letting the player steal the fragment unharmed, aligned with The Cartographer's notes."
+      },
+      {
+        "sev": "MED",
+        "section": "locations",
+        "issue": "Acts reference distinct districts (boiler wards, ration lines, iron dormitories, the collapsing 'Falling Ward', catwalks) but only the Bilge Wards is defined as one blanket tier, leaving 'The Falling Ward' collapse location undefined.",
+        "fixes": [
+          "Extend the Bilge Wards description to name and locate the specific district that collapses during the Act Two engine tremor so 'The Falling Ward' arc has a fixed setting."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added Sump Row to Bilge Wards as the fixed setting for the Falling Ward collapse."
+      },
+      {
+        "sev": "MED",
+        "section": "creatures",
+        "issue": "The creatures array is empty, yet the blueprint's combat arcs and setting lean on physical threats (overseer enforcers in the Purge Rotation, Guild security squads, Undertow agents) that the GM will improvise inconsistently across a long campaign.",
+        "fixes": [
+          "Add a creature entry for Guild overseer enforcers describing them as armored catwalk-patrol wardens with punishment-ledgers and shock-prods, hunting the tagged indentured.",
+          "Add a creature entry for Undertow smuggler-agents describing them as knife-quick ventilation runners who fight dirty and flee when outmatched.",
+          "Add a creature entry for Meridian sentries describing them as masked, wordless workshop guardians whose touch scrambles intruders' memories."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "rules[0] (copper tag)",
+        "issue": "The rule states forging/removing the tag is 'a crime punishable by culling' but gives no directive for how the GM adjudicates a player attempting it — leaving detection odds, who catches it, and consequences to improvisation.",
+        "fixes": [
+          "Extend rule[0] to state that any faction operative reading a forged or absent tag exposes the player as an escapee and triggers an immediate culling order enforced by Overseer Kolm's rotations."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended rule[0] to specify that reading a forged/absent tag exposes the player as an escapee and triggers Overseer Kolm's culling order."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs (Vessa Corrow) vs Act One turningPoint",
+        "issue": "The Act One turning point says a patron buys the contract to spare an execution, but Vessa's notes say she buys it to spare the player generically — and the 'execution you didn't earn' maps to the Purge Rotation arc, leaving unclear that Vessa is the intervening watcher in that arc.",
+        "fixes": [
+          "Edit Vessa's notes to state she is the watcher who intervenes at the last second in the Purge Rotation arc, buying the player's contract to spare them the culling execution."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Vessa's notes now identify her as the Purge Rotation watcher who intervenes to spare the player the culling execution."
+      },
+      {
+        "sev": "LOW",
+        "section": "Act 3 arc 'Whose Hand Moves You'",
+        "issue": "Objective 'confront the patron and the true hand' lacks a completion trigger — confrontation can be endless dialogue with no resolution.",
+        "fixes": [
+          "Rewrite objective to 'Force Ferrin Lyle to admit he manufactured your indenture, then decide whether to kill, expose, or bargain with him before the core gives out.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote the arc objective to include a concrete completion trigger: extract Lyle's admission, then kill/expose/bargain before the core fails."
+      },
+      {
+        "sev": "LOW",
+        "section": "npcs / Pell",
+        "issue": "Pell's wildcard secret (feeding all three factions the same info) has no surfacing trigger or consequence, so the GM never knows when or whether to reveal it.",
+        "fixes": [
+          "Extend Pell's notes with a trigger: her triple-agent role surfaces during Act Three's Convergence when her information is shown to have misled a faction, forcing the player to weigh her loyalty."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added a surfacing trigger and consequence for Pell's triple-agent secret in Act Three's Convergence."
+      },
+      {
+        "sev": "LOW",
+        "section": "npcs / Redd Salter",
+        "issue": "Redd's secret is that he 'informed on a previous indentured,' but the informant at the furnace in Act One arc 'The Copper Tag' is described generically, leaving unclear whether Redd is that informant or a separate one.",
+        "fixes": [
+          "Extend Redd's notes to clarify he is not the Act One furnace informant but confesses in Act Two that he once played that same role during a past purge to survive."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Clarified Redd is not the Act One furnace informant but confesses he once played that role during a past purge."
+      },
+      {
+        "sev": "LOW",
+        "section": "locations — Ashen Sea",
+        "issue": "The final act lands the city on or into the Ashen Sea, but the description gives no fixed fact about whether anything survives contact, forcing the GM to improvise the ending's physical stakes.",
+        "fixes": [
+          "Add to the Ashen Sea description a concrete fact about what happens to structures and people that reach its surface, so The Descent's 'landing that is survival, not victory' has fixed physical consequences."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added concrete corrosion/immersion consequences to the Ashen Sea surface to fix The Descent's physical stakes."
+      },
+      {
+        "sev": "LOW",
+        "section": "creatures",
+        "issue": "The Ashen Sea and Engine Core wells are described as menacing 'something below' the city is built to imprison, but no creature represents that imprisoned thing, so the Act Three revelation has no canonical form and the GM must invent it.",
+        "fixes": [
+          "Add a creature entry for the imprisoned entity beneath the Ashen Sea describing it as the vast poisoned force the engines strain to hold down, felt in tremors, revealed at the Engine Core in Act Three."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added the imprisoned entity beneath the Ashen Sea as a canonical creature for the Act Three revelation."
+      },
+      {
+        "sev": "LOW",
+        "section": "rules[1] (no true friend)",
+        "issue": "The phrase 'every act of aid should carry an unspoken price that surfaces later' is a vague authorial aspiration, not an actionable directive — it tells the GM a mood, not when or how to invoke the price.",
+        "fixes": [
+          "Rewrite rule[1] to direct the GM that when any ally NPC helps the player, the GM must silently note a specific future cost and cash it in during a later scene where the player's and ally's interests diverge."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote rule[1] into an actionable GM directive: note a specific cost on each ally's aid and cash it in during a later divergence scene."
+      },
+      {
+        "sev": "LOW",
+        "section": "premise vs acts/npcs",
+        "issue": "The premise names the smuggler-syndicate 'the Undertow' and the engineer order 'the Meridian', but 'the Ascendant Guild' is the only faction never given a dedicated NPC-independent identity beyond membership references — this is consistent, not a name-drop violation, so no true gap exists here.",
+        "fixes": [
+          "No change required; all three factions (Ascendant Guild, Undertow, Meridian) are referenced consistently across premise, arcs, npcs, and locations."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "LOW",
+        "section": "npcs (Redd Salter) vs Act One dnaHint (The Copper Tag)",
+        "issue": "The Copper Tag dnaHint describes 'the informant beside you at the furnace who reports every complaint and smiles', and Redd's secret is that he was once such an informant, but the notes never link Redd to this furnace-informant scene, risking the GM improvising a separate unnamed informant.",
+        "fixes": [
+          "Edit Redd's notes to specify he is the furnace-side worker from The Copper Tag arc whose warmth masks his informant past, tying the smiling-informant imagery to him."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Tied Redd to the furnace-side smiling-informant of The Copper Tag arc."
+      }
+    ],
+    "sections": 6,
+    "failedSections": 0
+  },
+  "narratorVoice": ""
+}
