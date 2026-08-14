@@ -257,3 +257,23 @@ E097–E109; E114–E134. The veto rationales are A01–A07 above.
   `tests-b9-transport.js`, `tests-c13-adapter.js`, and `tests-dedup-a.js` each failed before tests
   with `ENGINE LOAD FAILED in api.js: buildProvisionalNudge is not defined`.
 - Hook parity → tracked `dev/pre-commit` blob `4e1ddd6…`; installed hook blob `1276d307…`.
+
+## Ratification (owner + Fable adjudication, 2026-08-14)
+
+The coordinating Fable session spot-verified the census before the veto skim: the `417476e`
+commit touched exactly the lane's files; the unwired-suite claim REPRODUCES verbatim
+(`tests-b9-transport.js` → `ENGINE LOAD FAILED in api.js: buildProvisionalNudge is not defined` —
+the copied-engine-list rot class the ENGINE MANIFEST CONTRACT was built against, alive in three
+standalone suites); accept rationales A01–A07 sampled — the unit layer is accepted while every
+drift-critical wiring item stays queued, as the ruling required.
+
+**Owner rulings (via the question UI):**
+1. **ACCEPT list ratified in full** — all 13 groups. Acceptance is a decision record, not a
+   deletion; any section can be re-opened by a later finding.
+2. **NEEDS-PROOF order approved as filed** — harness self-trust first (prove the prover), then
+   hook/CI enforcement, then the frozen-hash/tag-vocabulary/stable-purity crown jewels, then
+   TABLE TALK isolation, SERVER TTS clauses, transcript boundaries.
+3. **Lane 2 continuation authorized:** repair the five found defects (three unwired suites via
+   manifest-derived lists, the inert stop-hook `ui.js` branch, installed-hook parity) and then
+   run the ordered queue. Same lane bounds: dev/, .claude/hooks/, audits/, own TODO rows; no
+   game code, no version markers; loosening or re-baselining any existing assertion stays Fable.
