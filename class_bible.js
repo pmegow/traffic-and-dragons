@@ -736,7 +736,8 @@ var CLASS_BIBLE = {
         "Cone of Cold",
         "Telekinesis",
         "Wall of Force",
-        "Hold Monster"
+        "Hold Monster",
+        "Shape Shift"
       ],
       "6": [
         "Chain Lightning",
@@ -1040,11 +1041,14 @@ var CLASS_BIBLE = {
       "2": [
         "Pass Without Trace",
         "Spike Growth",
-        "Silence"
+        "Silence",
+        "Fletch"
       ],
       "3": [
         "Conjure Barrage",
-        "Lightning Arrow"
+        "Lightning Arrow",
+        "Breathe Water",
+        "Conjure Animals"
       ],
       "4": [
         "Swift Quiver",
