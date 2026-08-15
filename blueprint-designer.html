@@ -102,6 +102,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
      HARD RULE unchanged: this page never writes the game's state keys (no loadState/saveCore here). -->
 <script src="globals.js"></script>
 <script src="data.js"></script>
+<script src="class_bible.js"></script>
 <script src="helpers.js"></script>
 <script src="state.js"></script>
 <script src="storage-adapter.js"></script>
@@ -114,7 +115,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.35";
+var BP_DESIGNER_VERSION="v0.36";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -147,6 +148,7 @@ function collapseAll(){
   for(i=0;i<bp.npcs.length;i++)bp.npcs[i]._c=1;
   for(i=0;i<bp.creatures.length;i++)bp.creatures[i]._c=1;
   for(i=0;i<bp.locations.length;i++)bp.locations[i]._c=1;
+  for(i=0;i<(bp.customClasses||[]).length;i++)bp.customClasses[i]._c=1;
 }
 
 // Delegates to the engine's escHtml (helpers.js) — which, unlike the old local copy, escapes
@@ -156,6 +158,25 @@ function collapseAll(){
 function esc(s){return escHtml(s==null?"":s);}
 function blankArc(){return {title:"",objective:"",type:"",dnaHint:"",reward:""};}
 function blankAct(){return {title:"",goal:"",turningPoint:"",reward:"",parallel:false,arcs:[blankArc()]};}
+// #192 — a fresh custom class starts with a full stat priority and one ability row, so the
+// two validation demands an author is most likely to trip (permutation, ≥1 ability) start
+// satisfied-in-shape and only need CONTENT.
+function blankCustomClass(){return {name:"",desc:"",hd:8,prime:"STR",statPriority:["STR","CON","DEX","WIS","CHA","INT"],gear:"",abilities:[{nm:"",ds:""}],skillSeeds:[],features:[]};}
+// #192 — keep the availability roster following custom-class identity changes: naming a class
+// under an active restriction ADDS it (an author defining a class means to offer it); renaming
+// rewrites the entry; clearing the name — or deleting the class — removes it, so a restriction
+// can never hold an orphan the validator would refuse.
+function availRename(oldName,newName){
+  if(!Array.isArray(bp.availableClasses))return;
+  var i,low=String(oldName==null?"":oldName).trim().toLowerCase(),nu=String(newName==null?"":newName).trim();
+  for(i=bp.availableClasses.length-1;i>=0;i--){
+    if(low&&String(bp.availableClasses[i]).toLowerCase()===low){
+      if(nu)bp.availableClasses[i]=nu;else bp.availableClasses.splice(i,1);
+      return;
+    }
+  }
+  if(nu&&!low)bp.availableClasses.push(nu);
+}
 function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",narratorVoice:"",tone:"",startingLocation:"",startingRegion:"",premise:"",acts:[blankAct()],npcs:[],locations:[],creatures:[],rules:[]});}
 
 function setStatus(msg,cls){var el=document.getElementById("statusline");el.textContent=msg||"";el.className=cls||"";}
@@ -216,7 +237,7 @@ function renderFindingCard(F,i){
 }
 function cardHead(tsec,i,j,label,summary,btns){
   return "<div class='cardhead'><span class='cardlbl' data-op='togcard' data-tsec='"+tsec+"' data-i='"+i+"' data-j='"+j+"'>"
-    +((tsec==="act"?bp.acts[i]._c:tsec==="arc"?bp.acts[i].arcs[j]._c:tsec==="npc"?bp.npcs[i]._c:tsec==="creature"?bp.creatures[i]._c:bp.locations[i]._c)?"&#9656;":"&#9662;")
+    +((tsec==="act"?bp.acts[i]._c:tsec==="arc"?bp.acts[i].arcs[j]._c:tsec==="npc"?bp.npcs[i]._c:tsec==="creature"?bp.creatures[i]._c:tsec==="cclass"?bp.customClasses[i]._c:bp.locations[i]._c)?"&#9656;":"&#9662;")
     +" "+label+(summary?" &mdash; "+esc(summary):"")+"</span>"+btns+"</div>";
 }
 function render(){
@@ -325,6 +346,68 @@ function render(){
   h+="<button class='addbtn' data-op='addloc' data-i='0' data-j='0'>+ Add location</button>";
   }
   h+="</div>";
+  // Custom classes (#192) — campaign-specific classes carried by the file (the steampunk
+  // Tinkerer that exists nowhere else). Ability-based chassis only for now: spellcasting
+  // customs need capability-bible support and arrive with the engine wiring (TODO #192).
+  h+="<div class='sect'>"+secH("cclasses","Custom Classes ("+bp.customClasses.length+")");
+  if(secOpen.cclasses!==false){
+  h+="<div style='font-size:11px;color:var(--t2);margin-bottom:10px;'>Classes that exist only in this campaign. Ability-based chassis for now &mdash; spellcasting custom classes arrive with the engine's class-overlay work.</div>";
+  if(!bp.customClasses.length)h+="<div class='empty'>None — the base classes cover this campaign.</div>";
+  for(i=0;i<bp.customClasses.length;i++){
+    var K=bp.customClasses[i];
+    h+="<div class='card'>"+cardHead("cclass",i,0,esc(K.name||("Custom class "+(i+1))),K.desc,movBtns("cclass",i,0));
+    if(!K._c){
+      var hdOpts="",hdi,HDs=[6,8,10,12];
+      for(hdi=0;hdi<HDs.length;hdi++)hdOpts+="<option value='"+HDs[hdi]+"'"+(K.hd===HDs[hdi]?" selected":"")+">d"+HDs[hdi]+"</option>";
+      var stOpts="",sti;
+      for(sti=0;sti<CUSTOM_CLASS_STATS.length;sti++)stOpts+="<option value='"+CUSTOM_CLASS_STATS[sti]+"'"+(K.prime===CUSTOM_CLASS_STATS[sti]?" selected":"")+">"+CUSTOM_CLASS_STATS[sti]+"</option>";
+      h+="<div class='grid2'>"
+      +fld("Name *",txt("cclass",i,0,"name",K.name,"e.g. Tinkerer"))
+      +fld("One-line blurb *",txt("cclass",i,0,"desc",K.desc,"e.g. Gadgeteer, saboteur, field engineer"))
+      +fld("Hit die","<select data-sec='cclass' data-i='"+i+"' data-j='0' data-k='hd'>"+hdOpts+"</select>")
+      +fld("Prime stat","<select data-sec='cclass' data-i='"+i+"' data-j='0' data-k='prime'>"+stOpts+"</select>")
+      +"</div>"
+      +fld("Stat priority (all six, best first)",txt("cclass",i,0,"statPriority",(K.statPriority||[]).join(", "),"e.g. INT, DEX, CON, WIS, CHA, STR"))
+      +fld("Starting gear",txt("cclass",i,0,"gear",K.gear,"comma-separated starting kit"))
+      +fld("Skill seeds (creation skills, comma-separated)",txt("cclass",i,0,"skillSeeds",(K.skillSeeds||[]).join(", "),"e.g. Intimidation, Endure Pain"));
+      h+="<label>Starting abilities * (name &middot; effect)</label>";
+      for(j=0;j<(K.abilities||[]).length;j++){
+        h+="<div class='rowline'><div style='flex:1;'>"+txt("cabil",i,j,"nm",K.abilities[j].nm,"ability name")+"</div><div style='flex:2;'>"+txt("cabil",i,j,"ds",K.abilities[j].ds,"what it does")+"</div>"
+        +"<button class='mini sq' data-op='breakout' data-i='"+i+"' data-j='"+j+"' data-bsec='cabil' data-bk='ds' data-blabel='Ability: "+esc(K.abilities[j].nm||"effect")+"' title='Open large editor'>&#10530;</button>"
+        +movBtns("cabil",i,j)+"</div>";
+      }
+      h+="<button class='addbtn' data-op='addcabil' data-i='"+i+"' data-j='0' style='margin-bottom:8px;'>+ Add starting ability</button>";
+      h+="<label>Level features (level &middot; name &middot; effect)</label>";
+      for(j=0;j<(K.features||[]).length;j++){
+        h+="<div class='rowline'><div style='width:52px;flex:none;'>"+txt("cfeat",i,j,"lvl",String(K.features[j].lvl==null?"":K.features[j].lvl),"lvl")+"</div><div style='flex:1;'>"+txt("cfeat",i,j,"nm",K.features[j].nm,"feature name")+"</div><div style='flex:2;'>"+txt("cfeat",i,j,"ds",K.features[j].ds,"what it does")+"</div>"
+        +"<button class='mini sq' data-op='breakout' data-i='"+i+"' data-j='"+j+"' data-bsec='cfeat' data-bk='ds' data-blabel='Feature: "+esc(K.features[j].nm||"effect")+"' title='Open large editor'>&#10530;</button>"
+        +movBtns("cfeat",i,j)+"</div>";
+      }
+      h+="<button class='addbtn' data-op='addcfeat' data-i='"+i+"' data-j='0'>+ Add level feature</button>";
+    }
+    h+="</div>";
+  }
+  h+="<button class='addbtn' data-op='addcclass' data-i='0' data-j='0'>+ Add custom class</button>";
+  }
+  h+="</div>";
+  // Available classes (#192) — the curated creation roster. Checked = offered at creation.
+  // Leaving EVERYTHING checked writes no restriction at all (absent = unrestricted), so a
+  // future base class is never excluded by a file that never meant to curate.
+  var clsRoster=blueprintClassList(bp),avCount=0;
+  for(i=0;i<clsRoster.length;i++){if(blueprintClassAvailable(bp,clsRoster[i].name))avCount++;}
+  h+="<div class='sect'>"+secH("avcls","Available Classes ("+avCount+" of "+clsRoster.length+")");
+  if(secOpen.avcls!==false){
+  h+="<div style='font-size:11px;color:var(--t2);margin-bottom:10px;'>Unchecked classes are not offered at character creation in this campaign (a steampunk sky-city might exclude Druids and Rangers). Rides the .blueprint file; creation-screen enforcement lands with the engine's class-overlay work.</div>";
+  h+="<div class='grid2'>";
+  for(i=0;i<clsRoster.length;i++){
+    var CR=clsRoster[i],avOn=blueprintClassAvailable(bp,CR.name);
+    h+="<label class='chk'><input type='checkbox' data-avcls='"+esc(CR.name)+"'"+(avOn?" checked":"")+"/> "+esc(CR.name)
+      +(CR.custom?" <span style='color:var(--acc);font-size:10px;'>(custom)</span>":"")
+      +(CR.desc?" <span style='color:var(--t2);font-size:11px;'>&mdash; "+esc(CR.desc)+"</span>":"")+"</label>";
+  }
+  h+="</div>";
+  }
+  h+="</div>";
   // Rules
   h+="<div class='sect'>"+secH("rules","Custom Narrative Rules ("+bp.rules.length+")");
   if(secOpen.rules!==false){
@@ -372,7 +455,7 @@ function render(){
 function updateCounts(){
   var arcs=0,i;for(i=0;i<bp.acts.length;i++)arcs+=(bp.acts[i].arcs||[]).length;
   var el=document.getElementById("counts");
-  if(el)el.textContent=bp.acts.length+" acts · "+arcs+" arcs · "+bp.npcs.length+" NPCs · "+bp.creatures.length+" creatures · "+bp.locations.length+" locations · "+bp.rules.length+" rules";
+  if(el)el.textContent=bp.acts.length+" acts · "+arcs+" arcs · "+bp.npcs.length+" NPCs · "+bp.creatures.length+" creatures · "+bp.locations.length+" locations · "+(bp.customClasses||[]).length+" custom classes · "+bp.rules.length+" rules";
 }
 
 // ── Field binding (delegated) ──────────────────────────────────────────────────
@@ -389,17 +472,31 @@ var FIELD_ROOTS={
   npc:function(i,j){return bp.npcs[i];},
   creature:function(i,j){return bp.creatures[i];},
   loc:function(i,j){return bp.locations[i];},
+  cclass:function(i,j){return bp.customClasses[i];},                                  // #192
+  cabil:function(i,j){return bp.customClasses[i]&&bp.customClasses[i].abilities[j];}, // #192 starting-ability rows
+  cfeat:function(i,j){return bp.customClasses[i]&&bp.customClasses[i].features[j];},  // #192 level-feature rows
   revfix:function(i,j){var f=bp.review&&bp.review.findings[i];return f&&f.fixes;} // v0.15/v0.19: review fixes are editable; k = option index into fixes[]
 };
 function bpFieldGet(sec,i,j,k){
   if(sec==="rule")return i<bp.rules.length?(bp.rules[i]||""):"";
   var f=FIELD_ROOTS[sec],o=f&&f(i,j);
-  return o?(o[k]||""):"";
+  if(!o)return "";
+  if(sec==="cclass"&&(k==="statPriority"||k==="skillSeeds"))return (o[k]||[]).join(", "); // #192 canonical arrays render as CSV
+  return o[k]||"";
 }
+// #192 — the custom-class routing subtleties live HERE, at the single field boundary (the
+// bestiary-notes lesson): bp always holds the CANONICAL shape (arrays for statPriority/
+// skillSeeds, numbers for hd/lvl — what fileOut ships), the inputs speak CSV/strings, and
+// the availability roster follows a class rename live so it can never hold an orphan.
 function bpFieldSet(sec,i,j,k,v){
   if(sec==="rule"){if(i<bp.rules.length)bp.rules[i]=v;return;}
   var f=FIELD_ROOTS[sec],o=f&&f(i,j);
-  if(o)o[k]=v;
+  if(!o)return;
+  if(sec==="cclass"&&k==="name"){var _oldNm=o.name;o.name=v;availRename(_oldNm,v);return;}
+  if(sec==="cclass"&&(k==="statPriority"||k==="skillSeeds")){o[k]=csvToList(v,k==="statPriority");return;}
+  if(sec==="cclass"&&k==="hd"){o[k]=parseInt(v,10);return;}
+  if(sec==="cfeat"&&k==="lvl"){o[k]=/^\d+$/.test(String(v).trim())?parseInt(v,10):String(v);return;} // non-numeric input kept verbatim — validation names it loudly at Save
+  o[k]=v;
 }
 function onField(e){
   var t=e.target,sec=t.getAttribute("data-sec");if(!sec)return;
@@ -433,7 +530,7 @@ document.addEventListener("click",function(e){
   if(op==="togdone"){secOpen.reviewDone=!secOpen.reviewDone;render();return;}
   if(op==="togcard"){
     var ts=t.getAttribute("data-tsec");
-    var co=ts==="act"?bp.acts[i]:ts==="arc"?(bp.acts[i]&&bp.acts[i].arcs[j]):ts==="npc"?bp.npcs[i]:ts==="creature"?bp.creatures[i]:bp.locations[i];
+    var co=ts==="act"?bp.acts[i]:ts==="arc"?(bp.acts[i]&&bp.acts[i].arcs[j]):ts==="npc"?bp.npcs[i]:ts==="creature"?bp.creatures[i]:ts==="cclass"?bp.customClasses[i]:bp.locations[i];
     if(co){co._c=co._c?0:1;render();}
     return;
   }
@@ -457,11 +554,34 @@ document.addEventListener("click",function(e){
   else if(op==="delloc")bp.locations.splice(i,1);
   else if(op==="uploc")move(bp.locations,i,-1);
   else if(op==="downloc")move(bp.locations,i,1);
+  else if(op==="addcclass")bp.customClasses.push(blankCustomClass());
+  else if(op==="delcclass"){if(!confirm("Remove custom class \""+(bp.customClasses[i].name||"(unnamed)")+"\"?"))return;availRename(bp.customClasses[i].name,"");bp.customClasses.splice(i,1);}
+  else if(op==="upcclass")move(bp.customClasses,i,-1);
+  else if(op==="downcclass")move(bp.customClasses,i,1);
+  else if(op==="addcabil")bp.customClasses[i].abilities.push({nm:"",ds:""});
+  else if(op==="delcabil")bp.customClasses[i].abilities.splice(j,1);
+  else if(op==="upcabil")move(bp.customClasses[i].abilities,j,-1);
+  else if(op==="downcabil")move(bp.customClasses[i].abilities,j,1);
+  else if(op==="addcfeat")bp.customClasses[i].features.push({lvl:2,nm:"",ds:""});
+  else if(op==="delcfeat")bp.customClasses[i].features.splice(j,1);
+  else if(op==="upcfeat")move(bp.customClasses[i].features,j,-1);
+  else if(op==="downcfeat")move(bp.customClasses[i].features,j,1);
   else if(op==="addrule")bp.rules.push("");
   else if(op==="delrule")bp.rules.splice(i,1);
   else if(op==="uprule")move(bp.rules,i,-1);
   else if(op==="downrule")move(bp.rules,i,1);
   else return;
+  markDirty();render();
+});
+
+// #192 — Available Classes checkboxes. Unchecking any box writes the full CHECKED list to
+// bp.availableClasses; re-checking everything DELETES the field entirely (absent = no
+// restriction, so a future base class is never excluded by a file that never meant to curate).
+document.addEventListener("change",function(e){
+  var t=e.target;if(!t.getAttribute||t.getAttribute("data-avcls")==null)return;
+  var boxes=document.querySelectorAll("[data-avcls]"),av=[],allOn=true,i;
+  for(i=0;i<boxes.length;i++){if(boxes[i].checked)av.push(boxes[i].getAttribute("data-avcls"));else allOn=false;}
+  if(allOn)delete bp.availableClasses;else bp.availableClasses=av;
   markDirty();render();
 });
 
@@ -1132,6 +1252,22 @@ document.getElementById("btn-library").addEventListener("click",function(){
     });
   });
 });
+
+// ── Test seam (#192 — satellite testability rule 2026-07-29; the designer owed one) ────────
+// Drives the real page logic headlessly / in the preview pane: no picker, no gesture. The pure
+// halves (normalize/validate/roster assembly) live in game.js and are engine-tested; this seam
+// reaches the page's own working state and its field-routing boundary.
+window.__bpdTest={
+  getBp:function(){return bp;},
+  load:function(obj){loadBlueprintObject(obj);},
+  out:function(){return fileOut();},
+  validate:function(){return designerValidate();},
+  fieldGet:function(s,i,j,k){return bpFieldGet(s,i,j,k);},
+  fieldSet:function(s,i,j,k,v){bpFieldSet(s,i,j,k,v);},
+  blankCustomClass:blankCustomClass,
+  availRename:availRename,
+  rerender:function(){render();}
+};
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 if(typeof loadProviderSettings==="function")loadProviderSettings(); // API key/provider for the LLM features

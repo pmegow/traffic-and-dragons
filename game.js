@@ -1932,6 +1932,49 @@ function validateBlueprint(bp){
     }
   }
   if(bp.creatures){var ci;for(ci=0;ci<bp.creatures.length;ci++){if(!bp.creatures[ci].name)return"Creature "+(ci+1)+" is missing a name.";}}
+  // #192 — custom classes + the curated availability roster. Every refusal is LOUD and names
+  // the class: this data becomes character-progression canon when the engine consumes it, and
+  // a malformed class discovered at level-up would be far worse than a refused save.
+  if(bp.customClasses&&bp.customClasses.length){
+    var cci,seenCC={};
+    for(cci=0;cci<bp.customClasses.length;cci++){
+      var cc=bp.customClasses[cci],who="Custom class "+(cci+1);
+      if(!cc||typeof cc!=="object")return who+" is not an object.";
+      if(!cc.name)return who+" is missing a name.";
+      who="Custom class \""+cc.name+"\"";
+      if(cc.name.indexOf("|")>=0)return who+" — names are identity keys and cannot contain \"|\".";
+      if(classDef(cc.name))return who+" duplicates a base class — rename it.";
+      if(seenCC[cc.name.toLowerCase()])return who+" is defined twice.";
+      seenCC[cc.name.toLowerCase()]=1;
+      if(CUSTOM_CLASS_HIT_DICE.indexOf(cc.hd)<0)return who+" needs a hit die of 6, 8, 10, or 12.";
+      if(CUSTOM_CLASS_STATS.indexOf(cc.prime)<0)return who+" needs a prime stat (STR/DEX/CON/INT/WIS/CHA).";
+      var sp=cc.statPriority||[],spi;
+      if(sp.length!==6)return who+" — stat priority must list all six stats, best first.";
+      for(spi=0;spi<6;spi++){if(sp.indexOf(CUSTOM_CLASS_STATS[spi])<0)return who+" — stat priority is missing "+CUSTOM_CLASS_STATS[spi]+".";}
+      if(!cc.abilities||!cc.abilities.length)return who+" needs at least one starting ability.";
+      var cai;for(cai=0;cai<cc.abilities.length;cai++){var ab=cc.abilities[cai];if(!ab||!ab.nm||!ab.ds)return who+" — starting ability "+(cai+1)+" needs both a name and an effect.";}
+      var cfi;for(cfi=0;cfi<(cc.features||[]).length;cfi++){
+        var ft=cc.features[cfi];
+        if(!ft||!ft.nm||!ft.ds)return who+" — level feature "+(cfi+1)+" needs both a name and an effect.";
+        if(typeof ft.lvl!=="number"||ft.lvl%1!==0||ft.lvl<2||ft.lvl>20)return who+" — level feature \""+ft.nm+"\" needs a level between 2 and 20.";
+      }
+      if(typeof SKILLS!=="undefined"){
+        var ssi;for(ssi=0;ssi<(cc.skillSeeds||[]).length;ssi++){
+          var seed=String(cc.skillSeeds[ssi]).toLowerCase(),seedOk=false,ski;
+          for(ski=0;ski<SKILLS.length;ski++){if(SKILLS[ski].id.toLowerCase()===seed||SKILLS[ski].label.toLowerCase()===seed){seedOk=true;break;}}
+          if(!seedOk)return who+" — skill seed \""+cc.skillSeeds[ssi]+"\" is not a known skill.";
+        }
+      }
+    }
+  }
+  if(bp.availableClasses){
+    if(!bp.availableClasses.length)return "Available-classes restriction is empty — no class could ever be picked; check at least one class or remove the restriction.";
+    var avi;for(avi=0;avi<bp.availableClasses.length;avi++){
+      var avn=bp.availableClasses[avi],avKnown=!!classDef(avn),avj;
+      if(!avKnown&&bp.customClasses){for(avj=0;avj<bp.customClasses.length;avj++){if(bp.customClasses[avj]&&String(bp.customClasses[avj].name).toLowerCase()===String(avn).toLowerCase()){avKnown=true;break;}}}
+      if(!avKnown)return "Available class \""+avn+"\" is neither a base class nor a custom class in this blueprint.";
+    }
+  }
   return null;
 }
 // ── Blueprint Designer §5.1 (D1/D1b) — the load-time normalizer ────────────────
@@ -1970,7 +2013,70 @@ function normalizeBlueprint(bp){
   if(!Array.isArray(bp.locations))bp.locations=[];
   if(!Array.isArray(bp.rules))bp.rules=[];
   if(!Array.isArray(bp.creatures))bp.creatures=[]; // v1.176 — campaign bestiary
+  // #192 — campaign class roster (see the block comment above normalizeCustomClass).
+  // availableClasses ABSENT means "no restriction" — never expand it to a full list here,
+  // or a future base class would be silently excluded by every file that never meant to curate.
+  if(!Array.isArray(bp.customClasses))bp.customClasses=[];
+  for(var _cci=0;_cci<bp.customClasses.length;_cci++)normalizeCustomClass(bp.customClasses[_cci]);
+  if(!Array.isArray(bp.availableClasses))delete bp.availableClasses; // null/junk shapes → absence (unrestricted) beats guessing
+  else{
+    var _avSeen={},_avList=[],_avi;
+    for(_avi=0;_avi<bp.availableClasses.length;_avi++){
+      var _avn=String(bp.availableClasses[_avi]==null?"":bp.availableClasses[_avi]).trim();
+      if(_avn&&!_avSeen[_avn.toLowerCase()]){_avSeen[_avn.toLowerCase()]=1;_avList.push(_avn);}
+    }
+    bp.availableClasses=_avList; // an authored-empty list survives to validation, which refuses it LOUDLY
+  }
   return bp;
+}
+// ── #192 — blueprint class roster: custom classes + curated availability ───────
+// A blueprint may carry campaign-specific classes (customClasses — the steampunk Tinkerer
+// that exists nowhere else) and a curated creation roster (availableClasses). The engine
+// does NOT consume either field yet: creation-screen filtering and the classDef() overlay
+// are the follow-on milestone (TODO #192). Normalize/validate keep the authored data
+// canonical and loudly checkable now, so the designer and the future wizard read ONE shape.
+var CUSTOM_CLASS_STATS=["STR","DEX","CON","INT","WIS","CHA"];
+var CUSTOM_CLASS_HIT_DICE=[6,8,10,12];
+// CSV-or-array → clean array. The designer's text inputs speak CSV; the file format is
+// always the array (fileOut ships whatever bp holds, so canonicalization must happen
+// before the field ever rests in bp — bpFieldSet routes through this too).
+function csvToList(v,upper){
+  var arr=Array.isArray(v)?v:String(v==null?"":v).split(/[,;]+/);
+  var out=[],i,s;
+  for(i=0;i<arr.length;i++){s=String(arr[i]==null?"":arr[i]).trim();if(upper)s=s.toUpperCase();if(s)out.push(s);}
+  return out;
+}
+function normalizeCustomClass(cc){
+  if(!cc||typeof cc!=="object")return cc;
+  cc.name=cc.name==null?"":String(cc.name).trim();
+  cc.desc=cc.desc==null?"":String(cc.desc);
+  cc.gear=cc.gear==null?"":String(cc.gear);
+  cc.prime=cc.prime==null?"":String(cc.prime).trim().toUpperCase();
+  if(typeof cc.hd==="string"&&/^\d+$/.test(cc.hd.trim()))cc.hd=parseInt(cc.hd,10);
+  cc.statPriority=csvToList(cc.statPriority,true);
+  cc.skillSeeds=csvToList(cc.skillSeeds,false);
+  if(!Array.isArray(cc.abilities))cc.abilities=[];
+  cc.abilities.forEach(function(a){if(a&&typeof a==="object"){a.nm=a.nm==null?"":String(a.nm);a.ds=a.ds==null?"":String(a.ds);}});
+  if(!Array.isArray(cc.features))cc.features=[];
+  cc.features.forEach(function(f){if(f&&typeof f==="object"){f.nm=f.nm==null?"":String(f.nm);f.ds=f.ds==null?"":String(f.ds);if(typeof f.lvl==="string"&&/^\d+$/.test(f.lvl.trim()))f.lvl=parseInt(f.lvl,10);}});
+  return cc;
+}
+// The checkable class roster for a blueprint: every base class from the class bible first,
+// then the blueprint's own custom classes in authored order. Pure — the designer's Available
+// Classes checklist and (later) the creation wizard's filter both read THIS list, so the two
+// surfaces can never disagree about what "all classes" means.
+function blueprintClassList(bp){
+  var out=[],L=classDefs(),i;
+  for(i=0;i<L.length;i++)out.push({name:L[i].id,desc:L[i].desc||"",custom:false});
+  var cc=(bp&&bp.customClasses)||[];
+  for(i=0;i<cc.length;i++){if(cc[i]&&cc[i].name)out.push({name:cc[i].name,desc:cc[i].desc||"",custom:true});}
+  return out;
+}
+function blueprintClassAvailable(bp,name){
+  if(!bp||!Array.isArray(bp.availableClasses))return true; // absent = no restriction
+  var i,n=String(name==null?"":name).toLowerCase();
+  for(i=0;i<bp.availableClasses.length;i++){if(String(bp.availableClasses[i]).toLowerCase()===n)return true;}
+  return false;
 }
 // Moved here from ui.js (v1.156) so the headless suite can exercise it — it's pure
 // data logic. Packages the current campaign into a blueprint (strips per-run state:

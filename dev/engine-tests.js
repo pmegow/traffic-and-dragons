@@ -1728,6 +1728,78 @@ function runEngineTests(R){
     if(!worldState.bestiary||worldState.bestiary[0].name!=="Chasm Spawn")return "bestiary not seeded";
     return true;
   });
+  // ── #192 — blueprint class roster: custom classes + curated availability ─────
+  function validCustomClass(){
+    return {name:"Tinkerer",desc:"Gadgeteer and saboteur",hd:8,prime:"INT",
+      statPriority:["INT","DEX","CON","WIS","CHA","STR"],gear:"toolkit, hand crossbow",
+      abilities:[{nm:"Jury-Rig",ds:"Improvise a device from scrap, once per scene."}],
+      skillSeeds:["Intimidation"],
+      features:[{lvl:2,nm:"Overclock",ds:"Push a device past its limits for one round."}]};
+  }
+  function classRosterBp(extra){
+    var bp={format:"tnd-blueprint-v1",name:"CC",premise:"p",acts:[{title:"A",goal:"g",arcs:[{title:"a",objective:"o"}]}]},k;
+    for(k in extra)bp[k]=extra[k];
+    return normalizeBlueprint(bp);
+  }
+  t("#192 normalize: customClasses defaults to [], availableClasses stays ABSENT (absent = no restriction)",function(){
+    var bp=classRosterBp({});
+    if(!Array.isArray(bp.customClasses))return "customClasses not defaulted";
+    if("availableClasses" in bp)return "availableClasses materialized — a future base class would be silently excluded by old files";
+    return validateBlueprint(bp)===null?true:"clean blueprint fails: "+validateBlueprint(bp);
+  });
+  t("#192 normalize: CSV strings canonicalize to arrays (stats uppercased), junk availableClasses drops, dedupe/trim, idempotent",function(){
+    var cc=validCustomClass();cc.statPriority="int, dex, con, wis, cha, str";cc.skillSeeds="Intimidation";
+    var bp=classRosterBp({customClasses:[cc],availableClasses:["Warrior"," Warrior ","","Tinkerer"]});
+    if(JSON.stringify(cc.statPriority)!==JSON.stringify(["INT","DEX","CON","WIS","CHA","STR"]))return "statPriority: "+JSON.stringify(cc.statPriority);
+    if(JSON.stringify(cc.skillSeeds)!==JSON.stringify(["Intimidation"]))return "skillSeeds: "+JSON.stringify(cc.skillSeeds);
+    if(JSON.stringify(bp.availableClasses)!==JSON.stringify(["Warrior","Tinkerer"]))return "availableClasses: "+JSON.stringify(bp.availableClasses);
+    var junk=classRosterBp({availableClasses:"Warrior"});
+    if("availableClasses" in junk)return "non-array availableClasses kept";
+    var one=JSON.stringify(bp);
+    return JSON.stringify(normalizeBlueprint(bp))===one?true:"second normalize pass changed output";
+  });
+  t("#192 validate: a custom class shadowing a base class is refused; a twice-defined custom is refused",function(){
+    var cc=validCustomClass();cc.name="Warrior";
+    var err=validateBlueprint(classRosterBp({customClasses:[cc]}));
+    if(!err||err.indexOf("duplicates a base class")<0)return "shadow got: "+err;
+    var err2=validateBlueprint(classRosterBp({customClasses:[validCustomClass(),validCustomClass()]}));
+    return err2&&err2.indexOf("defined twice")>=0?true:"twin got: "+err2;
+  });
+  t("#192 validate: the failure conditions actually fail (hd, prime, stat priority, abilities, feature level, skill seed, pipe name)",function(){
+    var cases=[
+      [function(c){c.hd=7;},"hit die"],
+      [function(c){c.prime="LCK";},"prime stat"],
+      [function(c){c.statPriority=["INT","DEX","CON","WIS","CHA"];},"stat priority"],
+      [function(c){c.abilities=[];},"starting ability"],
+      [function(c){c.abilities=[{nm:"Named",ds:""}];},"name and an effect"],
+      [function(c){c.features[0].lvl=25;},"level between 2 and 20"],
+      [function(c){c.skillSeeds=["Basketweaving"];},"known skill"],
+      [function(c){c.name="Tin|kerer";},"cannot contain"]
+    ],i;
+    for(i=0;i<cases.length;i++){
+      var cc=validCustomClass();cases[i][0](cc);
+      var err=validateBlueprint(classRosterBp({customClasses:[cc]}));
+      if(!err||err.indexOf(cases[i][1])<0)return "case "+i+" ("+cases[i][1]+") got: "+err;
+    }
+    return true;
+  });
+  t("#192 validate: availableClasses must name real classes and cannot be empty; custom names count as real",function(){
+    if(!validateBlueprint(classRosterBp({availableClasses:["Druidz"]})))return "unknown class passed";
+    if(!validateBlueprint(classRosterBp({availableClasses:[]})))return "empty restriction passed";
+    var ok=classRosterBp({customClasses:[validCustomClass()],availableClasses:["Warrior","Tinkerer"]});
+    return validateBlueprint(ok)===null?true:"valid roster rejected: "+validateBlueprint(ok);
+  });
+  t("#192 blueprintClassList: every base class first, customs appended and flagged; availability honors absent=all, case-insensitive",function(){
+    var bp=classRosterBp({customClasses:[validCustomClass()]});
+    var list=blueprintClassList(bp),base=classDefs(),i;
+    if(list.length!==base.length+1)return "length "+list.length+" (base "+base.length+")";
+    for(i=0;i<base.length;i++){if(list[i].name!==base[i].id||list[i].custom)return "base row "+i+" wrong: "+JSON.stringify(list[i]);}
+    if(list[base.length].name!=="Tinkerer"||!list[base.length].custom)return "custom row wrong: "+JSON.stringify(list[base.length]);
+    if(!blueprintClassAvailable(bp,"Druid"))return "absent restriction blocked Druid";
+    bp.availableClasses=["Tinkerer"];
+    if(blueprintClassAvailable(bp,"Druid"))return "restriction ignored";
+    return blueprintClassAvailable(bp,"tinkerer")?true:"case-insensitive availability lookup failed";
+  });
   t("MP-P1: playerCount()===1 on a legacy world (no isPC flags) — the single-player invariant",function(){
     makeWorld();
     if(playerCount()!==1)return "bare world: "+playerCount();

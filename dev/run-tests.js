@@ -811,6 +811,32 @@ try {
   console.log("[voice-lab] contract OK — " + _idsVL.length + " authors × 12 dials, prompts name-free");
 } catch (e) { console.error("VOICE LAB CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── BLUEPRINT DESIGNER CONTRACT (#192, class roster — v1.637) ────────────────────────────
+// blueprint-designer.html gained Custom Classes + Available Classes (customClasses /
+// availableClasses in the .blueprint schema; the pure halves — normalize/validate/roster —
+// live in game.js and are engine-tested). These source pins keep the page's half honest,
+// and pay the designer's outstanding seam debt (satellite testability rule 2026-07-29).
+try {
+  var _fsBD = require("fs"), _pathBD = require("path");
+  var _failBD = function (msg) { console.error("BLUEPRINT DESIGNER CONTRACT: " + msg); process.exit(1); };
+  var _pageBD = _fsBD.readFileSync(_pathBD.join(__dirname, "..", "blueprint-designer.html"), "utf8");
+  // ① The browser test seam exists (the designer owed one since 2026-07-29).
+  if (_pageBD.indexOf("window.__bpdTest") < 0) _failBD("the designer's window test seam is gone — satellites with logic must stay drivable.");
+  // ② class_bible.js is loaded — the Available Classes roster's base half reads classDefs(),
+  //    which throws without CLASS_BIBLE (the page shipped without it before #192).
+  if (!/<script src=["']class_bible\.js["']><\/script>/.test(_pageBD)) _failBD("class_bible.js script tag missing — classDefs() has no data and the class sections crash at render.");
+  // ③ The checkable roster is BUILT from the shared blueprintClassList (game.js) — a hand-rolled
+  //    base list here would silently diverge from what the creation wizard will later offer.
+  if (_pageBD.indexOf("blueprintClassList(") < 0) _failBD("the Available Classes section no longer reads blueprintClassList() — designer and engine rosters can now diverge.");
+  // ④ Field routing goes through FIELD_ROOTS for all three new sections (the bestiary-notes
+  //    split-brain lesson: private routing breaks the breakout editor invisibly).
+  ["cclass:", "cabil:", "cfeat:"].forEach(function (kk) { if (_pageBD.indexOf(kk) < 0) _failBD("FIELD_ROOTS lost the '" + kk + "' route — field edits/breakout for that section are silently dead."); });
+  // ⑤ The section wiring exists (add-class control + availability checkboxes).
+  if (_pageBD.indexOf("addcclass") < 0) _failBD("the + Add custom class control is gone.");
+  if (_pageBD.indexOf("data-avcls") < 0) _failBD("the availability checkboxes are gone.");
+  console.log("[blueprint-designer] contract OK — class roster sections wired, seam present");
+} catch (e) { console.error("BLUEPRINT DESIGNER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────
 // The wire format is the disk format ({__lz} transcript), and the reconcile ADOPT used to
 // consume the pulled blob RAW (worldState = data.worldState — never parseWorldState): shipping
