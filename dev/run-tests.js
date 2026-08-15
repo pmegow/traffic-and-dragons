@@ -682,6 +682,23 @@ try {
     _failBE("cap edit: a hit must not touch other entries");
   if (_cedApply(_cedEs, "zzz", { effect: "x" }) !== false || _cedEs.length !== 2 || _cedEs[0].obj.effect !== "new")
     _failBE("cap edit: an unknown key must be refused untouched, never invented");
+  // The class-view Add to Bible action is intentionally an UPSERT, not the strict card-edit
+  // operation above: a missing definition is appended, while an entry that appeared between
+  // opening the form and pressing the button is replaced in place (never duplicated).
+  var _cedAdd = [], _cedDraft = { effect: "conjure 12 magic arrows" };
+  if (_cedApply(_cedAdd, "fletch", _cedDraft, true) !== true || _cedAdd.length !== 1 ||
+      _cedAdd[0].key !== "fletch" || _cedAdd[0].obj !== _cedDraft || _cedAdd[0].dirty !== true)
+    _failBE("Add to Bible upsert: a missing spell must append one dirty capability entry");
+  var _cedReplacement = { effect: "revised arrows" };
+  if (_cedApply(_cedAdd, "fletch", _cedReplacement, true) !== true || _cedAdd.length !== 1 ||
+      _cedAdd[0].obj !== _cedReplacement || _cedAdd[0].dirty !== true)
+    _failBE("Add to Bible upsert: an existing spell must be replaced in place, never duplicated");
+  var _cedClassAdd = _slice("var badges = m.querySelectorAll", "// \"+ from bible\" picker");
+  if (!_cedClassAdd || _cedClassAdd.indexOf("upsertShippedCapability(ak, o") < 0)
+    _failBE("Add to Bible button is not wired to the named capability upsert path");
+  var _cedUpsertPath = _slice("function upsertShippedCapability", "function updateShippedCapability");
+  if (!_cedUpsertPath || !/updateShippedCapability\(key, obj, onDone, true\)/.test(_cedUpsertPath))
+    _failBE("named capability upsert path no longer enables creation in the fresh-file writer");
   var _cedCard = _slice("function showCard", "// >>> CAP EDIT");
   if (!_cedCard) _failBE("could not isolate showCard ahead of the CAP EDIT markers");
   if (_cedCard.indexOf("id='m-edit'") < 0 || _cedCard.indexOf("capForm(") < 0 || _cedCard.indexOf("Update Bible") < 0)

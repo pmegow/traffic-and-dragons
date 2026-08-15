@@ -1442,7 +1442,7 @@ function serializeItemBible(bible) {
       // (validated by install-bible) and clears any legacy staged copy; failure keeps the form
       // open with the values intact (the async-saver contract).
       capForm(nm, ADD[ak] || { kind: "ability", tier: 0, cost: "passive", isMagical: false, category: ["martial"], range: "self", targets: "self", duration: "always on", save: "N/A", dice: "N/A", effect: "" },
-        function (o) { updateShippedCapability(ak, o, function () { delete ADD[ak]; render(); }, true); return false; },
+        function (o) { upsertShippedCapability(ak, o, function () { delete ADD[ak]; render(); }); return false; },
         ADD[ak] ? function () { delete ADD[ak]; markDirty(); render(); } : null,
         ADD[ak] ? "Update Bible" : "Add to Bible");   // ● legacy staged copy = re-saving it durably; ○ fresh miss = adding
     };
@@ -1538,6 +1538,11 @@ function serializeItemBible(bible) {
   // result — a blob and an anchor click, with no handle, permission or swap file to be refused.
   // `node dev/install-bible.js capability` then validates and installs it. That is the workflow
   // install-bible.js exists for, and it has never failed here.
+  function upsertShippedCapability(key, obj, onDone) {
+    // The class-view button owns create-or-replace semantics. Keeping that choice in a named
+    // boundary prevents a missing boolean at a UI call site from quietly turning Add into Update.
+    updateShippedCapability(key, obj, onDone, true);
+  }
   function updateShippedCapability(key, obj, onDone, allowCreate) {
     // ONE-CLICK PATH FIRST: if the local bible-server is running (node dev/bible-server.js), it
     // reads and installs — no picker, no download, no command. Validation still happens in
