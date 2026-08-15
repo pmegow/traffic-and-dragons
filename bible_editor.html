@@ -495,7 +495,7 @@ function serializeItemBible(bible) {
     // below survives only as the fallback for when the server isn't running.
     serverSaveBible().then(function (r) {
       if (r === "network") {
-        console.info("[bible] bible-server not running — falling back to the FSA save ladder (start it with: node dev/bible-server.js)");
+        console.info("[bible] save helper is offline — falling back to the recovery save ladder; normally open the editor with Bible Editor.cmd");
         legacySaveBible();
       }
     });
@@ -834,14 +834,16 @@ function serializeItemBible(bible) {
   setInterval(probeServer, 20000); probeServer();
   function srvPill() {
     if (_srvUp === true) return " · <span style='color:var(--good,#7aa86a)'>● bible-server — saves are one-click, validated</span>";
-    if (_srvUp === false) return " · <span style='color:var(--warn,#c9a227)'>○ server offline — saves fall back to FSA/download (start: node dev/bible-server.js)</span>";
+    if (_srvUp === false) return " · <span style='color:var(--warn,#c9a227)'>○ save helper offline — reopen via Bible Editor.cmd for direct saves</span>";
     return "";
   }
   function fileLine() {
     if (!CUR) { $("fileline").innerHTML = "<span class='muted'>No bible open — press <b>📂 Open bible…</b> and pick class_bible.js or capability_bible.js from the project folder.</span>" + srvPill(); return; }
     var h = "<b>" + esc(CUR.name) + "</b> · " + BIBLE_TYPES[CUR.typeId].label;
     h += srvPill();
-    h += CUR.handle ? " · <span class='muted'>saves in place</span>" : " · <span class='muted'>no file handle — Save will download</span>";
+    if (_srvUp !== true) {
+      h += CUR.handle ? " · <span class='muted'>offline fallback can save in place</span>" : " · <span class='muted'>offline fallback will download</span>";
+    }
     if (CUR.dirty) h += " · <span class='dirty'>unsaved changes</span>";
     if (_pendingHandle) h += " · <button id='reconn'>Reconnect " + esc(_pendingHandle.name) + "</button>";
     $("fileline").innerHTML = h;
@@ -1544,7 +1546,7 @@ function serializeItemBible(bible) {
     updateShippedCapability(key, obj, onDone, true);
   }
   function updateShippedCapability(key, obj, onDone, allowCreate) {
-    // ONE-CLICK PATH FIRST: if the local bible-server is running (node dev/bible-server.js), it
+    // ONE-CLICK PATH FIRST: Bible Editor.cmd opens the page with the local helper running, so it
     // reads and installs — no picker, no download, no command. Validation still happens in
     // dev/install-bible.js on the Node side. If the server is not up, fall through to the
     // read-and-download flow below, which always works.
@@ -1568,7 +1570,7 @@ function serializeItemBible(bible) {
     })["catch"](function (e) {
       var m = (e && e.message) || "";
       if (/Failed to fetch|NetworkError|load failed/i.test(m)) {
-        console.info("[bible] bible-server not running — using the read-and-download flow instead (start it with: node dev/bible-server.js)");
+        console.info("[bible] save helper is offline — using the read-and-download recovery flow; normally open the editor with Bible Editor.cmd");
         legacyDownloadFlow();
         return;
       }
@@ -1615,9 +1617,8 @@ function serializeItemBible(bible) {
         // #26 residual closed (#72 overhaul): NO optimistic in-page apply on the download path —
         // painting the edit as live while disk waits for install is exactly the Diamond Skin
         // illusion. The card keeps showing the PROJECT's truth until install-bible runs.
-        note("⬇ downloaded — \"" + key + "\" is NOT in the project yet. Run: node dev/install-bible.js capability, then reload this page.");
-        console.info("[bible] capability edit downloaded (" + key + ") — install with: node dev/install-bible.js capability");
-        alert("Downloaded capability_bible.js with \"" + key + "\" updated.\n\nOnly that entry's line changed — comments and untouched entries are byte-identical.\n\nTo install it, run:\n\n    node dev/install-bible.js capability\n\n(it validates the file and refuses anything broken before replacing the project copy)");
+        note("⬇ downloaded only — \"" + key + "\" is NOT in the project yet. Install this recovery copy once with: node dev/install-bible.js capability. For direct saves, reopen via Bible Editor.cmd.");
+        console.info("[bible] capability edit downloaded (" + key + ") — install once with: node dev/install-bible.js capability; use Bible Editor.cmd next time for direct saves");
         if (onDone) onDone();
         render();
       });

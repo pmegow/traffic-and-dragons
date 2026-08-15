@@ -12,7 +12,8 @@ var SUITES = [
   "dev/tests-verification-enforcement.js",
   "dev/tests-sabotage-meta.js",
   "dev/tests-file-forensics.js",
-  "dev/tests-install-bible.js"
+  "dev/tests-install-bible.js",
+  "dev/tests-bible-editor-launcher.js"
 ];
 
 for (var i = 0; i < SUITES.length; i++) {

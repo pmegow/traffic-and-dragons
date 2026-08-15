@@ -8,7 +8,9 @@
 // empties) that has been the reliable path all along. Node writes the file; no browser file API
 // is involved anywhere.
 //
-// Usage:  node dev/bible-server.js     (leave it running while you triage; Ctrl+C when done)
+// Normal use: double-click `Bible Editor.cmd` in the project root. It starts this helper hidden
+// and opens the editor FROM this server, so same-origin saves need no token or file-picker dance.
+// Direct use remains available: node dev/bible-server.js
 //
 // Security posture: binds 127.0.0.1 only, writes only via install-bible.js (which decides the
 // target from the file's own content). WRITE AUTH (#72 workflow overhaul, 2026-08-14): an
@@ -27,16 +29,41 @@ var crypto = require("crypto");
 var execFile = require("child_process").execFile;
 
 var ROOT = path.join(__dirname, "..");
-var PORT = 7373;
+var PORT = process.env.BIBLE_PORT === undefined ? 7373 : Number(process.env.BIBLE_PORT);
 var TARGET = path.join(ROOT, "capability_bible.js");
 var TOKEN = crypto.randomBytes(16).toString("hex");   // per-run write token — never persisted
+var EDITOR_ASSETS = {
+  "/": "bible_editor.html",
+  "/bible_editor.html": "bible_editor.html",
+  "/data.js": "data.js",
+  "/capability_bible.js": "capability_bible.js",
+  "/item_bible.js": "item_bible.js",
+  "/helpers.js": "helpers.js",
+  "/class_bible.js": "class_bible.js"
+};
+var MIME = { ".html": "text/html", ".js": "text/javascript" };
 var CORS = {
   "Access-Control-Allow-Origin": "*",          // the pages run from file:// (Origin: null)
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, X-Bible-Token"
 };
 
-http.createServer(function (req, res) {
+function serveEditorAsset(req, res) {
+  var urlPath = decodeURIComponent(String(req.url || "/").split("?")[0]);
+  var rel = EDITOR_ASSETS[urlPath];
+  if (!rel) return false;
+  fs.readFile(path.join(ROOT, rel), function (err, data) {
+    if (err) { res.writeHead(404, { "Content-Type": "text/plain" }); res.end("not found"); return; }
+    res.writeHead(200, {
+      "Content-Type": MIME[path.extname(rel).toLowerCase()] || "application/octet-stream",
+      "Cache-Control": "no-store"
+    });
+    res.end(data);
+  });
+  return true;
+}
+
+var server = http.createServer(function (req, res) {
   function send(code, obj) {
     var h = { "Content-Type": "application/json" }, k;
     for (k in CORS) h[k] = CORS[k];
@@ -84,7 +111,9 @@ http.createServer(function (req, res) {
     return;
   }
 
-  send(404, { ok: false, output: "unknown route (this server has /bible and /install only)" });
+  if (req.method === "GET" && serveEditorAsset(req, res)) return;
+
+  send(404, { ok: false, output: "unknown route (this server serves the Bible editor plus /bible and /install)" });
 }).on("error", function (e) {
   // Loud, named failure instead of a raw stack (2026-08-02 field confusion): the common case is
   // a still-running older instance — which after the token change is ALSO a security problem,
@@ -101,10 +130,14 @@ http.createServer(function (req, res) {
   }
   console.error("✗ bible-server could not start: " + e.message);
   process.exit(1);
-}).listen(PORT, "127.0.0.1", function () {
-  console.log("bible-server listening on http://127.0.0.1:" + PORT);
+});
+
+server.listen(PORT, "127.0.0.1", function () {
+  var actualPort = server.address().port;
+  console.log("bible-server listening on http://127.0.0.1:" + actualPort);
   console.log("");
-  console.log("  Local pages (http://localhost / 127.0.0.1) write with NO token — just save.");
+  console.log("  Editor: http://127.0.0.1:" + actualPort + "/bible_editor.html");
+  console.log("  Server-hosted editor writes with NO token — just save.");
   console.log("  WRITE TOKEN — only needed by file:// pages (new one every server start):");
   console.log("  " + TOKEN);
   console.log("");

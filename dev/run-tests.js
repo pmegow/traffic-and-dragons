@@ -736,6 +736,14 @@ try {
     _failBE("updateShippedCapability no longer downloads the composed bible — the edit would have nowhere to go");
   if (_usc.indexOf("install-bible.js capability") < 0)
     _failBE("updateShippedCapability no longer tells the user the install command — a download nobody installs is a silent failure");
+  if (/alert\("Downloaded capability_bible\.js/.test(_usc))
+    _failBE("the offline capability fallback still blocks on the redundant download/install alert");
+  var _beLauncher = _pathBE.join(__dirname, "..", "Bible Editor.cmd");
+  if (!_fsBE.existsSync(_beLauncher))
+    _failBE("the one-click Bible Editor launcher is missing from the project root");
+  var _beLauncherSrc = _fsBE.readFileSync(_beLauncher, "utf8");
+  if (_beLauncherSrc.indexOf("dev\\launch-bible-editor.js") < 0)
+    _failBE("Bible Editor.cmd no longer starts the validated local editor launcher");
   if (!/if \(onSave\(draft\) !== false\) closeModal\(\)/.test(_bePage))
     _failBE("capForm closes unconditionally after onSave again — a failed async Update Bible write would eat the user's edited values");
 
