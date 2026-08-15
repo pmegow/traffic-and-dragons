@@ -19,6 +19,14 @@ function prove(name, cases) {
       { encoding: "utf8" });
     if (clone.status !== 0) throw new Error("scratch clone failed: " + output(clone));
     fs.copyFileSync(path.join(__dirname, "run-tests.js"), path.join(scratch, "dev", "run-tests.js"));
+    // Mutate the bytes under review, not the last committed copy. Without this, a pre-commit
+    // sabotage run can report on stale code (or fail every mutation as NOT-APPLIED) while the
+    // actual working change remains completely untested.
+    Array.from(new Set(cases.map(c => c.file))).forEach(function (rel) {
+      var src = path.join(ROOT, rel), dst = path.join(scratch, rel);
+      fs.mkdirSync(path.dirname(dst), { recursive: true });
+      fs.copyFileSync(src, dst);
+    });
 
     for (const c of cases) {
       const target = path.join(scratch, c.file);

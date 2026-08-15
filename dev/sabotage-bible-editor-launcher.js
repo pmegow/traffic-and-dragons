@@ -19,11 +19,18 @@ const WORKING_FILES = [
 ];
 const cases = [
   {
-    label: "offline recovery alert is reintroduced",
+    label: "capability download fallback is reintroduced",
     file: "bible_editor.html",
-    mustFail: "offline recovery does not block on a redundant install alert",
-    find: "        if (onDone) onDone();",
-    replace: "        alert(\"Downloaded capability_bible.js; install it manually.\");\n        if (onDone) onDone();"
+    mustFail: "Add/Update Bible can never download a recovery copy",
+    find: "  function updateShippedCapability(key, obj, onDone, allowCreate) {",
+    replace: "  function updateShippedCapability(key, obj, onDone, allowCreate) {\n    function legacyDownloadFlow() { var a = document.createElement(\"a\"); a.download = \"capability_bible.js\"; a.click(); }"
+  },
+  {
+    label: "local writer failure becomes silent",
+    file: "bible_editor.html",
+    mustFail: "local writer failure stays loud and preserves the capability form",
+    find: 'm = "local project writer is unavailable — reopen this editor with Bible Editor.cmd";\n      note("✗ Update Bible failed:',
+    replace: 'm = "save failed";\n      note("✗ Update Bible failed:'
   },
   {
     label: "write-token prompt returns to the Bible editor",
@@ -36,7 +43,7 @@ const cases = [
     label: "shared version loses its visible semver shape",
     file: "dev/bible-editor-version.js",
     mustFail: "Bible Editor version has a visible semver shape",
-    find: 'var BIBLE_EDITOR_VERSION = "1.0.0";',
+    find: 'var BIBLE_EDITOR_VERSION = "1.1.0";',
     replace: 'var BIBLE_EDITOR_VERSION = "unknown";'
   },
   {
@@ -75,11 +82,18 @@ const cases = [
     replace: 'true'
   },
   {
-    label: "online status claims Save will download",
+    label: "online/offline mode language returns",
     file: "bible_editor.html",
-    mustFail: "online status does not contradict itself with a download warning",
-    find: "    if (_srvUp !== true) {\n      h += CUR.handle",
-    replace: "    if (true) {\n      h += CUR.handle"
+    mustFail: "editor describes one local project-file workflow, not online and offline modes",
+    find: "● local project writer ready — saves update this checkout",
+    replace: "● online save mode ready"
+  },
+  {
+    label: "Save as alternate workflow returns",
+    file: "bible_editor.html",
+    mustFail: "toolbar exposes no alternate Save as workflow",
+    find: '  <button id="reload">',
+    replace: '  <button id="saveas">Save as</button>\n  <button id="reload">'
   },
   {
     label: "root shortcut bypasses the launcher",
@@ -92,8 +106,22 @@ const cases = [
     label: "launcher returns to a file URL",
     file: "dev/launch-bible-editor.js",
     mustFail: "launcher opens the server-hosted editor",
-    find: "http://127.0.0.1:7373/bible_editor.html",
+    find: '"http://127.0.0.1:" + PORT + "/bible_editor.html"',
     replace: "file:///bible_editor.html"
+  },
+  {
+    label: "launcher health check ignores its configured port",
+    file: "dev/launch-bible-editor.js",
+    mustFail: "real launcher starts the local writer and exits cleanly",
+    find: 'port: PORT, path: "/health"',
+    replace: 'port: 7373, path: "/health"'
+  },
+  {
+    label: "launcher lifecycle fixture loses the helper PID receipt",
+    file: "dev/launch-bible-editor.js",
+    mustFail: "launcher exposes its helper PID to the lifecycle fixture only",
+    find: 'fs.writeFileSync(process.env.BIBLE_LAUNCH_PID_FILE, String(helper.pid))',
+    replace: 'void helper.pid'
   },
   {
     label: "server stops serving the editor",

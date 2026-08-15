@@ -5,13 +5,15 @@
 // The browser cannot launch Node or safely overwrite a OneDrive file itself; this is the narrow
 // desktop boundary that turns every editor Save/Add/Update action into the direct server path.
 var cp = require("child_process");
+var fs = require("fs");
 var http = require("http");
 var path = require("path");
 var EDITOR_VERSION = require("./bible-editor-version.js");
 
 var ROOT = path.join(__dirname, "..");
-var EDITOR_URL = "http://127.0.0.1:7373/bible_editor.html";
-var HEALTH = { host: "127.0.0.1", port: 7373, path: "/health", timeout: 500 };
+var PORT = process.env.BIBLE_PORT === undefined ? 7373 : Number(process.env.BIBLE_PORT);
+var EDITOR_URL = "http://127.0.0.1:" + PORT + "/bible_editor.html";
+var HEALTH = { host: "127.0.0.1", port: PORT, path: "/health", timeout: 500 };
 
 function isHealthy(done) {
   var settled = false;
@@ -59,7 +61,7 @@ function waitForServer(attempt) {
     if (ok) { openEditor(); return; }
     if (foundVersion !== null) { staleHelper(foundVersion); return; }
     if (attempt >= 30) {
-      console.error("Bible Editor helper did not start. Port 7373 may belong to another program.");
+      console.error("Bible Editor helper did not start. Port " + PORT + " may belong to another program.");
       process.exitCode = 1;
       return;
     }
@@ -80,6 +82,17 @@ isHealthy(function (ok, foundVersion) {
     console.error("Could not start the Bible Editor helper: " + e.message);
     process.exitCode = 1;
   });
+  // Test-only lifecycle receipt. Production launchers never set this variable; it lets the
+  // disposable fixture stop the detached helper after proving it survives this process.
+  if (process.env.BIBLE_LAUNCH_PID_FILE) {
+    try { fs.writeFileSync(process.env.BIBLE_LAUNCH_PID_FILE, String(helper.pid)); }
+    catch (e) {
+      console.error("Could not record the Bible Editor helper PID: " + e.message);
+      try { helper.kill(); } catch (ignore) {}
+      process.exitCode = 1;
+      return;
+    }
+  }
   helper.unref();
   waitForServer(0);
 });

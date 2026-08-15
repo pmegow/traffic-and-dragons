@@ -7,6 +7,8 @@
 const cp = require("child_process");
 const fs = require("fs");
 const http = require("http");
+const net = require("net");
+const os = require("os");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
@@ -54,6 +56,40 @@ function waitForPort(child) {
     child.on("exit", code => { if (!done) { done = true; clearTimeout(timer); reject(new Error("server exited " + code + "\n" + out)); } });
   });
 }
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.on("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const port = probe.address().port;
+      probe.close(err => err ? reject(err) : resolve(port));
+    });
+  });
+}
+function runLauncher(port, pidFile) {
+  return new Promise((resolve, reject) => {
+    const child = cp.spawn(process.execPath, [path.join(__dirname, "launch-bible-editor.js")], {
+      cwd: ROOT,
+      env: Object.assign({}, process.env, {
+        BIBLE_PORT: String(port), BIBLE_LAUNCH_NO_OPEN: "1", BIBLE_LAUNCH_PID_FILE: pidFile
+      }),
+      stdio: ["ignore", "pipe", "pipe"], windowsHide: true
+    });
+    let out = "";
+    child.stdout.on("data", chunk => { out += chunk; });
+    child.stderr.on("data", chunk => { out += chunk; });
+    const timer = setTimeout(() => { child.kill(); reject(new Error("launcher did not exit\n" + out)); }, 10000);
+    child.on("error", reject);
+    child.on("exit", code => { clearTimeout(timer); resolve({ code: code, output: out }); });
+  });
+}
+function listeningPid(port) {
+  if (process.platform !== "win32") return null;
+  const netstat = cp.spawnSync("netstat", ["-ano"], { encoding: "utf8" });
+  const re = new RegExp("127\\.0\\.0\\.1:" + port + "\\s+0\\.0\\.0\\.0:0\\s+LISTENING\\s+(\\d+)", "i");
+  const m = String(netstat.stdout || "").match(re);
+  return m ? Number(m[1]) : null;
+}
 
 (async function () {
   const cmdPath = path.join(ROOT, "Bible Editor.cmd");
@@ -71,8 +107,15 @@ function waitForPort(child) {
   }
   if (fs.existsSync(editorPath)) {
     const editorSrc = fs.readFileSync(editorPath, "utf8");
-    verdict(!/alert\("Downloaded capability_bible\.js/.test(editorSrc),
-      "offline recovery does not block on a redundant install alert");
+    const capabilitySave = editorSrc.slice(editorSrc.indexOf("function updateShippedCapability"),
+      editorSrc.indexOf("// ── toolbar"));
+    verdict(capabilitySave.indexOf("legacyDownloadFlow") < 0 &&
+        capabilitySave.indexOf("URL.createObjectURL") < 0 &&
+        !/a\.download\s*=/.test(capabilitySave),
+      "Add/Update Bible can never download a recovery copy");
+    verdict(capabilitySave.indexOf("local project writer is unavailable") >= 0 &&
+        capabilitySave.indexOf("nothing was written; your values are still in the form") >= 0,
+      "local writer failure stays loud and preserves the capability form");
     verdict(editorSrc.indexOf("function srvToken") < 0 &&
         editorSrc.indexOf("X-Bible-Token") < 0 &&
         editorSrc.indexOf("bible-server write token") < 0,
@@ -82,8 +125,14 @@ function waitForPort(child) {
       "Bible Editor renders the shared version in its header");
     verdict(editorSrc.indexOf('X-Bible-Editor-Version') >= 0,
       "Bible Editor sends its version on every install request");
-    verdict(/if \(_srvUp !== true\) \{\s*h \+= CUR\.handle/.test(editorSrc),
-      "online status does not contradict itself with a download warning");
+    const writerStatus = editorSrc.slice(editorSrc.indexOf("function srvPill"),
+      editorSrc.indexOf("function fileLine"));
+    verdict(writerStatus.indexOf("online") < 0 && writerStatus.indexOf("offline") < 0 &&
+        writerStatus.indexOf("local project writer ready") >= 0 &&
+        writerStatus.indexOf("local project writer unavailable") >= 0,
+      "editor describes one local project-file workflow, not online and offline modes");
+    verdict(editorSrc.indexOf('id="saveas"') < 0 && editorSrc.indexOf('$("saveas")') < 0,
+      "toolbar exposes no alternate Save as workflow");
   }
   if (fs.existsSync(cmdPath)) {
     verdict(/dev\\launch-bible-editor\.js/i.test(fs.readFileSync(cmdPath, "utf8")),
@@ -91,7 +140,8 @@ function waitForPort(child) {
   }
   if (fs.existsSync(launchPath)) {
     const src = fs.readFileSync(launchPath, "utf8");
-    verdict(src.indexOf("http://127.0.0.1:7373/bible_editor.html") >= 0,
+    verdict(src.indexOf('var PORT = process.env.BIBLE_PORT') >= 0 &&
+        src.indexOf('"http://127.0.0.1:" + PORT + "/bible_editor.html"') >= 0,
       "launcher opens the server-hosted editor");
     verdict(src.indexOf('require("./bible-editor-version.js")') >= 0 &&
         src.indexOf("j.version === EDITOR_VERSION") >= 0,
@@ -133,6 +183,28 @@ function waitForPort(child) {
     verdict(false, "launcher server starts on a disposable port", e.message);
   } finally {
     child.kill();
+  }
+
+  const launchPort = await freePort();
+  const pidFile = path.join(os.tmpdir(), "tnd-bible-launcher-fixture-" + process.pid + ".pid");
+  let helperPid = null;
+  try {
+    try { fs.unlinkSync(pidFile); } catch (ignore) {}
+    const launched = await runLauncher(launchPort, pidFile);
+    verdict(launched.code === 0 && launched.output.indexOf("Bible Editor ready:") >= 0,
+      "real launcher starts the local writer and exits cleanly", launched.output.trim());
+    const launchedHealth = await get(launchPort, "/health");
+    verdict(launchedHealth.status === 200 && /\"ok\":true/.test(launchedHealth.body),
+      "launcher-started writer survives after the launcher exits");
+    helperPid = fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null;
+    verdict(Number.isInteger(helperPid) && helperPid > 0,
+      "launcher exposes its helper PID to the lifecycle fixture only");
+  } catch (e) {
+    verdict(false, "real launcher lifecycle fixture completes", e.message);
+  } finally {
+    if (!helperPid) helperPid = listeningPid(launchPort);
+    if (helperPid) { try { process.kill(helperPid); } catch (ignore) {} }
+    try { fs.unlinkSync(pidFile); } catch (ignore) {}
   }
 
   if (fail) {

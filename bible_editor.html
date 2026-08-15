@@ -9,11 +9,9 @@
   bible_study.html (user call 2026-07-27): bible_study stays the read-only viewer because the
   bibles may become PLAYER-FACING, and players must never find a mutable surface there.
 
-  v2 (2026-07-28, user call): OPEN a bible from disk and SAVE BACK OVER IT. The v1 download-only
-  flow dropped exports in ~/Downloads, so a fill session ended with a manual file move — friction
-  that scales badly across 234 slots and 175 capability entries. The File System Access API gives
-  a real handle (verified working from file:// in Chromium), so Save overwrites the original in
-  its own directory, behind a confirm. Download stays as the fallback for browsers without FSA.
+  Normal use is deliberately local: Bible Editor.cmd opens this page with a loopback-only writer,
+  and Save overwrites the matching bible in THIS project checkout after validation. Publishing or
+  uploading the changed project is a separate action. There is no download-copy save mode.
 
   BIBLE TYPES ARE A REGISTRY (BIBLE_TYPES), not a set of branches: detect / parse / serialize /
   render per type. Adding the item bible later is ONE ENTRY, not new conditionals — the standing
@@ -101,8 +99,7 @@ for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');}
 <div id="bar">
   <h1>Bible Editor <span class="muted">dev tool</span> <span class="editor-version" id="editor-version"></span></h1>
   <button class="primary" id="open">📂 Open bible…</button>
-  <button class="primary" id="save" disabled>💾 Save (overwrite)</button>
-  <button class="primary" id="saveas">💾 Save as… (always works)</button>
+  <button class="primary" id="save" disabled>💾 Save project file</button>
   <button id="reload">↻ Reload from disk</button>
   <button id="clr-adds" style="display:none">⌫ Clear merged (<span id="clrn">0</span>)</button>
   <span id="draftnote"></span>
@@ -249,12 +246,10 @@ function serializeItemBible(bible) {
 
 (function () {
   var DRAFT_K = "tnd_bible_editor_draft_v1";
-  var FS_IDB = "tnd_bible_fs_v1", FS_STORE = "handles", FS_KEY = "bibleFile", FS_CAP_KEY = "capBibleFile";
+  var FS_IDB = "tnd_bible_fs_v1", FS_STORE = "handles", FS_KEY = "bibleFile";
   var CUR = null;        // {typeId, data, handle, name, dirty}
   var ADD = {}, activeCls = null, capFilter = "", itemFilter = "";
   var _dragPath = null;  // feature-row path being dragged via its ⋮⋮ grip (null = no drag in flight)
-  var _capHandle = null; // capability_bible.js's OWN handle (the card's Update Bible write path)
-  var _pendingHandle = null;   // restored but not yet re-permissioned (the #30 pattern)
   var _lastHandle = null;
   var _openedMtime = 0;      // [diag] file timestamp observed when this handle last read the file      // last bible handle seen, permissioned or not — the picker's startIn seed
 
@@ -328,17 +323,11 @@ function serializeItemBible(bible) {
   }
   function _idbPut(k, v) { return _idbOpen().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction(FS_STORE, "readwrite"); tx.objectStore(FS_STORE).put(v, k); tx.oncomplete = function () { res(true); }; tx.onerror = function () { rej(tx.error); }; }); }); }
   function _idbGet(k) { return _idbOpen().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction(FS_STORE, "readonly"); var rq = tx.objectStore(FS_STORE).get(k); rq.onsuccess = function () { res(rq.result || null); }; rq.onerror = function () { rej(rq.error); }; }); }); }
-  // Without a delete, a handle that has gone DEAD is cached forever and restored on every boot —
-  // so closing the tab and relaunching resurrects the exact handle that cannot write, which is
-  // what made saving look permanently broken (user, 2026-07-28: "it's always blocked somehow").
-  function _idbDel(k) { return _idbOpen().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction(FS_STORE, "readwrite"); tx.objectStore(FS_STORE)["delete"](k); tx.oncomplete = function () { res(true); }; tx.onerror = function () { rej(tx.error); }; }); }); }
-
   var HAS_FSA = (typeof window.showOpenFilePicker === "function");
-  var BIBLE_SRV = "http://127.0.0.1:7373";   // dev/bible-server.js — THE save path when running
+  var BIBLE_SRV = "http://127.0.0.1:7373";   // loopback-only writer for this project checkout
 
-  // The ONE way this page POSTs /install. Bible Editor.cmd serves this page from localhost,
-  // which is the server's write authority; a directly opened file:// copy is recovery-only and
-  // receives a loud refusal instead of asking the user to copy credentials between windows.
+  // The ONE way this page asks Node to update a project bible. Bible Editor.cmd serves this page
+  // from localhost, which proves the editor and writer belong to the same local checkout.
   function srvInstall(body) {
     return fetch(BIBLE_SRV + "/install", {
       method: "POST", headers: { "Content-Type": "text/plain",
@@ -450,7 +439,7 @@ function serializeItemBible(bible) {
         }
         loadFromText(txt, h, h.name);
         _idbPut(FS_KEY, h)["catch"](function (e) { console.warn("[bible] handle not persisted:", e && e.message); });
-        note("opened " + h.name + " — Save now writes in place");
+        note("opened " + h.name + " — Save updates the matching local project bible");
       });
     })["catch"](function (e) {
       if (e && e.name === "AbortError") return;      // user cancelled the picker — not an error
@@ -458,138 +447,13 @@ function serializeItemBible(bible) {
     });
   }
 
-  // Save, in TWO stages, because of the activation rule above.
-  // Stage 1 (this function) spends the click's activation on requestPermission if that is what is
-  // missing — no modal may run before it. Permission does NOT survive a browser restart, so on
-  // every fresh launch the restored handle is merely "prompt" and CUR.handle is null; the old code
-  // read that as "no handle" and SILENTLY dumped a download instead of asking for permission. That
-  // is why saving "always" ended up in Downloads (user, 2026-07-28).
+  // Save has one contract: update the matching bible in this project checkout through the local
+  // writer. Publishing/uploading that tracked file is deliberately outside the editor.
   function saveBible() {
     if (!CUR) return;
-    // THE SAVE FUNCTION (v1.518): server-first — one click, validated by dev/install-bible.js
-    // (including the stale-draft fill-regression guard for the class bible). The FSA ladder
-    // below survives only as the fallback for when the server isn't running.
-    serverSaveBible().then(function (r) {
-      if (r === "network") {
-        console.info("[bible] save helper is offline — falling back to the recovery save ladder; normally open the editor with Bible Editor.cmd");
-        legacySaveBible();
-      }
-    });
+    serverSaveBible();
   }
-  function legacySaveBible() {
-    if (CUR.handle) { writeInPlace(); return; }
-    if (_pendingHandle && _pendingHandle.requestPermission) {
-      var ph = _pendingHandle;
-      ph.requestPermission({ mode: "readwrite" }).then(function (p) {
-        if (p !== "granted") {
-          alert("Save needs write permission for " + ph.name + ", and it was declined.\n\nDownloading a copy instead so nothing is lost.");
-          downloadCopy(); return;
-        }
-        _pendingHandle = null; CUR.handle = ph; CUR.name = ph.name; fileLine();
-        note("write access re-granted for " + ph.name);
-        writeInPlace();
-      })["catch"](function (e) {
-        alert("Could not re-grant write permission: " + (e && e.message) + "\n\nDownloading a copy instead.");
-        downloadCopy();
-      });
-      return;
-    }
-    alert("No file is open from disk, so Save cannot write in place.\n\n" +
-      "Press 📂 Open bible… and pick the file — after that Save overwrites it directly.\n\n" +
-      "Downloading a copy meanwhile so nothing is lost.");
-    downloadCopy();
-  }
-  // ── Save as… — the path that CANNOT go stale ───────────────────────────────
-  // A handle minted by showSaveFilePicker and written inside the SAME user gesture has no window
-  // in which the file can change underneath it, so it cannot hit the InvalidStateError that has
-  // made in-place saving unreliable on this machine. One extra click (confirm the filename),
-  // and it always works. No modal may precede the picker — activation rule above.
-  function saveAsBible() {
-    if (!CUR) return;
-    if (!HAS_FSA) { downloadCopy(); return; }
-    var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);   // serialize BEFORE the picker: no modals allowed first
-    window.showSaveFilePicker({
-      id: "tnd-bible",
-      suggestedName: CUR.name && CUR.name !== "(unsaved)" ? CUR.name : (CUR.typeId + "_bible.js"),
-      types: [{ description: "Bible source", accept: { "text/javascript": [".js"] } }]
-    }).then(function (h) {
-      return h.createWritable().then(function (w) {
-        return w.write(ser).then(function () { return w.close(); });
-      }).then(function () {
-        CUR.handle = h; CUR.name = h.name; CUR.dirty = false;
-        _pendingHandle = null;
-        if (_saveT) { clearTimeout(_saveT); _saveT = null; }
-        try { localStorage.removeItem(DRAFT_K); } catch (e) {}
-        _idbPut(FS_KEY, h)["catch"](function (e) { console.warn("[bible] handle not persisted:", e && e.message); });
-        note("saved → " + h.name);
-        render();
-      });
-    })["catch"](function (e) {
-      if (e && e.name === "AbortError") { note("save as… cancelled"); return; }
-      alert("Save as… failed: " + (e && e.message) + "\n\nFalling back to a download.");
-      downloadCopy();
-    });
-  }
-  // Stage 2: the actual write. Modals are fine from here — activation is already spent.
-  function writeInPlace() {
-    if (!applyNameNormalization()) return;      // capitalization fixed on save, never silently
-    var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);
-    var warn = "Overwrite " + CUR.name + " in place?\n\nThis REPLACES the file on disk. It is a tracked file — `git diff` shows exactly what changed and `git checkout` undoes it.";
-    if (CUR.typeId === "capability") warn += "\n\nUntouched entries and all comments are preserved verbatim; only entries you edited are rewritten.";
-    if (!confirm(warn)) return;
-    CUR.handle.createWritable().then(function (w) {
-      return w.write(ser).then(function () { return w.close(); });
-    }).then(function () {
-      CUR.dirty = false;
-      // Cancel the pending debounced draft write FIRST. Without this it fires ~600ms later and
-      // writes the draft straight back after the save just cleared it — so every subsequent
-      // launch restored a phantom "unsaved" draft for work that WAS saved, which is why the
-      // editor always opened dirty (measured through the test hook, 2026-07-28).
-      if (_saveT) { clearTimeout(_saveT); _saveT = null; }
-      try { localStorage.removeItem(DRAFT_K); } catch (e) {}
-      note("saved → " + CUR.name);
-      render();
-    })["catch"](function (e) {
-      // A dead handle cannot be repaired here — re-reading does NOT clear it (measured
-      // 2026-07-28: reload-from-disk, edit, immediate save, still refused). The trap was that the
-      // handle is PERSISTED in IndexedDB and restored on every boot, so relaunching the page
-      // resurrected the same unusable handle and saving looked permanently broken. So: discard it
-      // in both places, drop the UI's "saves in place" claim, and send the user to the picker.
-      var dead = e && (e.name === "InvalidStateError" || /changed since it was read from disk/i.test(e.message || ""));
-      if (dead) {
-        // DIAGNOSTIC, not a fix: re-read the file and report whether it actually changed since we
-        // opened it. If the timestamps match, "the file changed" is a false explanation and the
-        // rejection is about something else entirely — which is the fact still missing.
-        var _h = CUR.handle;
-        if (_h && _h.getFile) {
-          _h.getFile().then(function (f) {
-            var moved = _openedMtime && f.lastModified !== _openedMtime;
-            console.warn("[bible][diag] handle rejected the write. opened=" +
-              (_openedMtime ? new Date(_openedMtime).toISOString() : "unknown") +
-              " nowOnDisk=" + new Date(f.lastModified).toISOString() +
-              " size=" + f.size + " → file " + (moved ? "DID change since open" : "did NOT change since open") +
-              (moved ? "" : "  ⇐ so the 'file changed' story is wrong and the cause is elsewhere"));
-          })["catch"](function (e2) { console.warn("[bible][diag] could not re-read the file:", e2 && e2.message); });
-        }
-        CUR.handle = null;
-        _pendingHandle = null;
-        _idbDel(FS_KEY)["catch"](function (e2) { console.warn("[bible] could not purge the dead handle:", e2 && e2.message); });
-        console.info("[bible] dead file handle discarded (IndexedDB purged) — it will not come back on the next launch");
-        fileLine();
-        alert("Save failed — this file handle is dead.\n\n" + (e && e.message) + "\n\n" +
-          "It has been DISCARDED, including the copy kept for next launch, so it will stop coming " +
-          "back. Press 📂 Open bible… and pick " + CUR.name + " again to mint a working one.\n\n" +
-          "Your current version is downloading now so nothing is lost.");
-        downloadCopy();
-        return;
-      }
-      alert("Save failed: " + (e && e.message) + "\n\nFalling back to a download; move it over the original yourself.");
-      downloadCopy();
-    });
-  }
-
-  // Re-read the open file from disk, replacing what is in the tab. The recovery for a stale handle
-  // (see saveBible) and the way to pick up a file that changed underneath you mid-session.
+  // Re-read an explicitly opened file, replacing what is in the tab.
   function reloadFromDisk() {
     if (!CUR) { alert("No bible open."); return; }
     if (!CUR.handle) { alert("No file handle — this bible was not opened from disk (or the permission lapsed).\n\nUse 📂 Open bible… to pick it up again."); return; }
@@ -599,7 +463,7 @@ function serializeItemBible(bible) {
       loadFromText(txt, _h, _n);
       note("reloaded " + _n + " from disk");
     })["catch"](function (e) {
-      alert("Reload failed: " + (e && e.message) + "\n\nIf the permission lapsed, press Reconnect (or re-open the file).");
+      alert("Reload failed: " + (e && e.message) + "\n\nUse 📂 Open bible… to select the file again.");
     });
   }
 
@@ -613,22 +477,12 @@ function serializeItemBible(bible) {
     return out;
   }
 
-  function downloadCopy() {
-    if (!CUR) return;
-    if (!applyNameNormalization()) return;      // same rule on the fallback path
-    var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);
-    var b = new Blob([ser], { type: "text/plain" }), a = document.createElement("a");
-    a.href = URL.createObjectURL(b); a.download = CUR.name && CUR.name !== "(unsaved)" ? CUR.name : (CUR.typeId + "_bible.js"); a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
-  }
-
-  // ── server-first save (v1.518): THE save function ──────────────────────────
-  // POSTs the serialized bible to dev/bible-server.js, which installs it through
+  // ── local project save ─────────────────────────────────────────────────────
+  // POSTs the serialized bible to the loopback writer, which installs it through
   // dev/install-bible.js — full validation before the tracked file is touched, including the
   // stale-draft fill-regression guard (a class save with FEWER filled slots than the file on
   // disk is refused: that is the signature of an old tab draft about to erase finished work).
-  // Resolves "done" (saved, or refused-and-reported) or "network" (server not running — the
-  // caller falls back to the FSA/download ladder).
+  // A failure never switches workflows: the draft stays intact and the reason is shown.
   function serverSaveBible() {
     if (!applyNameNormalization()) return Promise.resolve("done");   // user declined the rename list
     var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);
@@ -645,34 +499,19 @@ function serializeItemBible(bible) {
         CUR.dirty = false;
         if (_saveT) { clearTimeout(_saveT); _saveT = null; }   // cancel the debounce BEFORE clearing — the phantom-draft rule
         try { localStorage.removeItem(DRAFT_K); } catch (e) {}
-        note("✓ saved " + CUR.name + " through the bible server (validated by install-bible)");
-        console.info("[bible] server save output:\n" + j.output);
+        note("✓ saved " + CUR.name + " to the local project (validated by install-bible)");
+        console.info("[bible] local project save output:\n" + j.output);
         render();
         return "done";
       })
       ["catch"](function (e) {
         var m = (e && e.message) || "";
-        if (/Failed to fetch|NetworkError|load failed/i.test(m)) return "network";
-        note("✗ server save failed: " + m + " — nothing was written");
-        console.warn("[bible] server save failed:", m);
+        if (/Failed to fetch|NetworkError|load failed/i.test(m))
+          m = "local project writer is unavailable — reopen this editor with Bible Editor.cmd";
+        note("✗ Save failed: " + m + " — nothing was written; your draft is still here");
+        console.warn("[bible] local project save failed:", m);
         return "done";
       });
-  }
-
-  function reconnect() {
-    if (!_pendingHandle || !_pendingHandle.requestPermission) return;
-    var h = _pendingHandle;
-    h.requestPermission({ mode: "readwrite" }).then(function (p) {
-      if (p !== "granted") { note("permission declined — Save will download instead"); return; }
-      _pendingHandle = null;
-      h.getFile().then(function (f) { _openedMtime = f.lastModified; return f.text(); }).then(function (txt) {
-        var hadDraft = CUR && CUR.dirty;
-        if (hadDraft && !confirm("Re-open " + h.name + " from disk?\n\nYour unsaved draft edits will be replaced by the file's contents.")) {
-          CUR.handle = h; render(); return;       // keep the draft, just re-attach the handle
-        }
-        loadFromText(txt, h, h.name); note("reconnected " + h.name);
-      });
-    })["catch"](function (e) { console.warn("[bible] reconnect failed:", e && e.message); });
   }
 
   function note(msg) { $("draftnote").textContent = msg; }
@@ -797,10 +636,8 @@ function serializeItemBible(bible) {
     "20": "CAPSTONE — one dramatic defining ability; the thing the character is remembered for"
   };
 
-  // ── #72 overhaul: the save-mode is VISIBLE before you type ────────────────────────────────
-  // The three save routes (server / FSA / download) have three trust levels, and which one a
-  // Save will take was previously discoverable only by saving. The pill answers it up front and
-  // re-checks every 20s + after every save attempt.
+  // The editor has one save route. This status says whether its local project writer is ready,
+  // and re-checks every 20s so a stopped helper cannot masquerade as a usable Save button.
   var _srvUp = null;   // null = unknown, true/false once probed
   var _srvVersion = null;
   function probeServer() {
@@ -813,22 +650,18 @@ function serializeItemBible(bible) {
     if (_srvUp === true && _srvVersion !== BIBLE_EDITOR_VERSION)
       return " · <span style='color:var(--bad)'>● version mismatch — editor v" + esc(BIBLE_EDITOR_VERSION) +
         ", helper v" + esc(_srvVersion || "unversioned") + "; close this tab and reopen Bible Editor.cmd</span>";
-    if (_srvUp === true) return " · <span style='color:var(--good,#7aa86a)'>● bible-server — saves are one-click, validated</span>";
-    if (_srvUp === false) return " · <span style='color:var(--warn,#c9a227)'>○ save helper offline — reopen via Bible Editor.cmd for direct saves</span>";
+    if (_srvUp === true) return " · <span style='color:var(--good,#7aa86a)'>● local project writer ready — saves update this checkout</span>";
+    if (_srvUp === false) return " · <span style='color:var(--bad)'>✕ local project writer unavailable — reopen via Bible Editor.cmd</span>";
     return "";
   }
   function fileLine() {
     if (!CUR) { $("fileline").innerHTML = "<span class='muted'>No bible open — press <b>📂 Open bible…</b> and pick class_bible.js or capability_bible.js from the project folder.</span>" + srvPill(); return; }
     var h = "<b>" + esc(CUR.name) + "</b> · " + BIBLE_TYPES[CUR.typeId].label;
     h += srvPill();
-    if (_srvUp !== true) {
-      h += CUR.handle ? " · <span class='muted'>offline fallback can save in place</span>" : " · <span class='muted'>offline fallback will download</span>";
-    }
     if (CUR.dirty) h += " · <span class='dirty'>unsaved changes</span>";
-    if (_pendingHandle) h += " · <button id='reconn'>Reconnect " + esc(_pendingHandle.name) + "</button>";
     $("fileline").innerHTML = h;
-    if ($("reconn")) $("reconn").onclick = reconnect;
-    $("save").disabled = false;
+    $("save").disabled = (_srvUp !== true);
+    $("save").title = _srvUp === true ? "Overwrite this bible in the local project checkout" : "Reopen with Bible Editor.cmd to start the local project writer";
     // surface merged additions as a one-click cleanup, never an automatic deletion of authored data
     var merged = mergedAdds();
     $("clr-adds").style.display = merged.length ? "" : "none";
@@ -1424,7 +1257,7 @@ function serializeItemBible(bible) {
       // (validated by install-bible) and clears any legacy staged copy; failure keeps the form
       // open with the values intact (the async-saver contract).
       capForm(nm, ADD[ak] || { kind: "ability", tier: 0, cost: "passive", isMagical: false, category: ["martial"], range: "self", targets: "self", duration: "always on", save: "N/A", dice: "N/A", effect: "" },
-        function (o) { upsertShippedCapability(ak, o, function () { delete ADD[ak]; render(); }); return false; },
+        function (o) { upsertShippedCapability(ak, o, function () { closeModal(); delete ADD[ak]; render(); }); return false; },
         ADD[ak] ? function () { delete ADD[ak]; markDirty(); render(); } : null,
         ADD[ak] ? "Update Bible" : "Add to Bible");   // ● legacy staged copy = re-saving it durably; ○ fresh miss = adding
     };
@@ -1503,33 +1336,17 @@ function serializeItemBible(bible) {
   }
   // <<< CAP EDIT
   // ── Update Bible from the card ─────────────────────────────────────────────
-  // capability_bible.js gets its OWN handle (FS_CAP_KEY), separate from the tab's open file, so
-  // a balance pass never leaves the class view. The file is read fresh in the SAME promise chain
-  // as the write, so the changed-since-read window that plagued the main Save cannot open here,
-  // and the minimal-diff serializer keeps comments and untouched entries byte-identical.
-  // Gesture-requiring calls (picker / requestPermission) come FIRST, questions after — the
-  // activation rule at the top of this file. On any failure the form stays open with the user's
-  // values: loud alert, nothing lost, and a retry reuses the held handle inside a fresh click.
-  // ── Update Bible from the card: read via FSA, write via DOWNLOAD ──────────
-  // Structural decision 2026-08-01, after three rounds of failed in-place saving (v1.512/514/515).
-  // MEASURED on this machine (Windows + OneDrive tree): FSA reads are reliable, FSA WRITES are
-  // refused with a false "changed since it was read from disk" claim that no re-read, retry or
-  // fresh handle cures — and the save-dialog workaround minted an EMPTY capability_bible.js in
-  // the wrong folder, which the code then read back as the bible. So this flow no longer writes
-  // a file. It reads the real bible (reliable), applies the edit in memory, and DOWNLOADS the
-  // result — a blob and an anchor click, with no handle, permission or swap file to be refused.
-  // `node dev/install-bible.js capability` then validates and installs it. That is the workflow
-  // install-bible.js exists for, and it has never failed here.
+  // Read capability_bible.js fresh from THIS checkout, apply one minimal-diff edit, then send it
+  // back through the same local validation gate as Save. Failure leaves the form open and never
+  // downloads a substitute file.
   function upsertShippedCapability(key, obj, onDone) {
     // The class-view button owns create-or-replace semantics. Keeping that choice in a named
     // boundary prevents a missing boolean at a UI call site from quietly turning Add into Update.
     updateShippedCapability(key, obj, onDone, true);
   }
   function updateShippedCapability(key, obj, onDone, allowCreate) {
-    // ONE-CLICK PATH FIRST: Bible Editor.cmd opens the page with the local helper running, so it
-    // reads and installs — no picker, no download, no command. Validation still happens in
-    // dev/install-bible.js on the Node side. If the server is not up, fall through to the
-    // read-and-download flow below, which always works.
+    // Bible Editor.cmd opens the page with the local writer running: no picker, download, token,
+    // or install command. Validation still happens in dev/install-bible.js before disk changes.
     var BSRV = BIBLE_SRV;
     fetch(BSRV + "/bible").then(function (r) { return r.json(); }).then(function (g) {
       if (!g.ok) throw new Error(g.output || "server could not read the bible");
@@ -1549,70 +1366,15 @@ function serializeItemBible(bible) {
         });
     })["catch"](function (e) {
       var m = (e && e.message) || "";
-      if (/Failed to fetch|NetworkError|load failed/i.test(m)) {
-        console.info("[bible] save helper is offline — using the read-and-download recovery flow; normally open the editor with Bible Editor.cmd");
-        legacyDownloadFlow();
-        return;
-      }
-      // note(), not a modal: nothing may consume activation ahead of the legacy path's picker
+      if (/Failed to fetch|NetworkError|load failed/i.test(m))
+        m = "local project writer is unavailable — reopen this editor with Bible Editor.cmd";
       note("✗ Update Bible failed: " + m + " — nothing was written; your values are still in the form");
-      console.warn("[bible] server install failed:", m);
+      console.warn("[bible] local project capability save failed:", m);
     });
-    function legacyDownloadFlow() {
-    // Reported through note(), NOT a modal: alert/confirm consume transient user activation, and
-    // the contract (rightly) pins that nothing prompts ahead of the picker in this function.
-    if (!HAS_FSA) {
-      note("⚠ reading capability_bible.js needs the File System Access API (Chrome/Edge) — open capability_bible.js in this editor instead; your values stay in the form");
-      console.warn("[bible] no File System Access API — the card's Update Bible cannot read the file here");
-      return;
-    }
-    // gesture-requiring call FIRST — nothing may prompt before the picker (the activation rule)
-    function pick() {
-      return window.showOpenFilePicker({ id: "tnd-bible", types: [{ description: "capability_bible.js", accept: { "text/javascript": [".js"] } }], multiple: false })
-        .then(function (hs) { return hs[0]; });
-    }
-    // A handle restored from IndexedDB can point at a file that has since been moved or deleted;
-    // reading it then throws NotFoundError and the flow used to die there. A gone file is not an
-    // error to report — it is a reason to ask for the file again (once, loudly in the console).
-    var got = _capHandle
-      ? _capHandle.getFile().then(function () { return _capHandle; })["catch"](function (e) {
-          console.warn("[bible] the remembered capability_bible.js handle is unusable (" + (e && e.name) + ") — asking for the file again");
-          _capHandle = null; _idbDel(FS_CAP_KEY)["catch"](function () {});
-          return pick();
-        })
-      : pick();
-    got.then(function (h) {
-      return h.getFile().then(function (f) { return f.text(); }).then(function (src) {
-        if (!BIBLE_TYPES["capability"].detect(src))
-          throw new Error(h.name + " is not the capability bible (no CAPABILITY_BIBLE block) — pick capability_bible.js from the project folder");
-        var st = BIBLE_TYPES["capability"].parse(src);
-        if (!capApplyEdit(st.entries, key, obj, allowCreate))
-          throw new Error("\"" + key + "\" is not in " + h.name + " — is that the capability bible this entry came from?");
-        _capHandle = h;                       // reads are the reliable half; keep it for next time
-        _idbPut(FS_CAP_KEY, h)["catch"](function () {});
-        var ser = serializeCapabilityBible(st);
-        var b = new Blob([ser], { type: "text/javascript" }), a = document.createElement("a");
-        a.href = URL.createObjectURL(b); a.download = "capability_bible.js"; a.click();
-        setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
-        // #26 residual closed (#72 overhaul): NO optimistic in-page apply on the download path —
-        // painting the edit as live while disk waits for install is exactly the Diamond Skin
-        // illusion. The card keeps showing the PROJECT's truth until install-bible runs.
-        note("⬇ downloaded only — \"" + key + "\" is NOT in the project yet. Install this recovery copy once with: node dev/install-bible.js capability. For direct saves, reopen via Bible Editor.cmd.");
-        console.info("[bible] capability edit downloaded (" + key + ") — install once with: node dev/install-bible.js capability; use Bible Editor.cmd next time for direct saves");
-        if (onDone) onDone();
-        render();
-      });
-    })["catch"](function (e) {
-      if (e && e.name === "AbortError") { note("update cancelled — the form still holds your values"); return; }
-      _capHandle = null;
-      alert("Update Bible failed: " + (e && e.message) + "\n\nYour edited values are still in the form — nothing is lost.");
-    });
-    }   // end legacyDownloadFlow
   }
   // ── toolbar ───────────────────────────────────────────────────────────────
   $("open").onclick = openBible;
   $("save").onclick = saveBible;
-  $("saveas").onclick = saveAsBible;
   $("reload").onclick = reloadFromDisk;
   $("clr-adds").onclick = function () {
     var merged = mergedAdds();
@@ -1625,12 +1387,12 @@ function serializeItemBible(bible) {
     note("cleared " + merged.length + " already-merged addition(s)");
     markDirty(); render();
   };
-  // non-FSA fallback: a plain file input (import only; Save then downloads)
+  // Non-FSA fallback: a plain file input for reading; Save still uses the local project writer.
   var fi = document.createElement("input");
   fi.type = "file"; fi.accept = ".js"; fi.id = "file-input"; fi.style.display = "none";
   fi.onchange = function () {
     var f = fi.files && fi.files[0]; if (!f) return;
-    f.text().then(function (txt) { try { loadFromText(txt, null, f.name); note("opened " + f.name + " (no handle — Save downloads)"); } catch (e) { alert(e.message); } });
+    f.text().then(function (txt) { try { loadFromText(txt, null, f.name); note("opened " + f.name + " — Save updates the matching local project bible"); } catch (e) { alert(e.message); } });
   };
   document.body.appendChild(fi);
 
@@ -1641,39 +1403,27 @@ function serializeItemBible(bible) {
     activeCls = Object.keys(CUR.data.bible)[0];
   }
   render();
-  // restore a previously-opened file handle. Permission does NOT survive a reload (the #30
-  // lesson), so a lapsed handle is parked and re-granted inside the Reconnect click.
+  // Restore a previously-opened handle only for Open/Reload reads; Save never uses browser file
+  // handles and always writes through the local project writer.
   // ── TEST HOOK (dev-only satellite) ────────────────────────────────────────
-  // The save path could not be exercised by any harness, because the file picker is an OS dialog
-  // needing a real user gesture — which is exactly how four bad "fixes" shipped unverified. This
-  // exposes the internals so an automated check can drive the ACTUAL load → edit → save code
-  // against a real FileSystemFileHandle (an OPFS handle needs no picker and no gesture), and read
-  // the bytes back. bible_editor.html is a dev tool that never ships to players.
+  // Exposes the pure/editor state seams used by the dev-only harness.
   window.__bibleTest = {
     getCUR: function () { return CUR; },
-    attach: function (handle, name) { CUR.handle = handle; CUR.name = name || handle.name; _pendingHandle = null; fileLine(); },
+    attach: function (handle, name) { CUR.handle = handle; CUR.name = name || handle.name; fileLine(); },
     loadFromText: loadFromText,
     saveBible: saveBible,
-    saveAsBible: saveAsBible,
     markDirty: markDirty,
     moveFeat: moveFeat,
-    setCapHandle: function (h) { _capHandle = h; },
     updateShippedCapability: updateShippedCapability,
     capApplyEdit: capApplyEdit,
     serialize: function () { return BIBLE_TYPES[CUR.typeId].serialize(CUR.data); }
   };
-  // the capability handle needs no Reconnect ceremony: a lapsed permission is re-granted inside
-  // the Update Bible click itself (the gesture is right there), so restoring the handle is enough
-  if (HAS_FSA) _idbGet(FS_CAP_KEY).then(function (h) {
-    if (h && h.queryPermission) _capHandle = h;
-  })["catch"](function () {});
   if (HAS_FSA) _idbGet(FS_KEY).then(function (h) {
     if (!h || !h.queryPermission) return;
     _lastHandle = h;   // set REGARDLESS of permission: startIn is only a location hint, so a
                        // lapsed handle still points the picker at the right folder
-    return h.queryPermission({ mode: "readwrite" }).then(function (p) {
+    return h.queryPermission({ mode: "read" }).then(function (p) {
       if (p === "granted") { CUR.handle = h; CUR.name = h.name; }
-      else _pendingHandle = h;
       fileLine();
     });
   })["catch"](function (e) { console.warn("[bible] handle restore failed:", e && e.message); });

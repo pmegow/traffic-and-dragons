@@ -425,6 +425,8 @@ try {
     _failBE("retired Capability additions counter is still wired");
   if (_bePage.indexOf('id="discard"') >= 0 || _bePage.indexOf('$("discard")') >= 0)
     _failBE("toolbar still exposes the retired Discard draft control");
+  if (_bePage.indexOf('id="saveas"') >= 0 || _bePage.indexOf('$("saveas")') >= 0)
+    _failBE("toolbar still exposes Save as — Bible Editor has one local project-file save path");
 
   // ── ITEM BIBLE half (#81, same discipline): item_bible.js is machine-regenerated wholesale ──
   var _biFile = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "item_bible.js"), "utf8").replace(/\r\n/g, "\n");
@@ -598,36 +600,8 @@ try {
   if (!/moveFeat\(/.test(_bePage.slice(_bePage.indexOf("function wireClass"))))
     _failBE("wireClass never routes a drop through moveFeat — the grips are decoration");
 
-  // The mtime-based staleness pre-check was REMOVED at v1.486 (user call): re-reading the file
-  // does not clear a dead FSA handle — measured, reload-from-disk then an immediate save still
-  // refused — so the check added a prompt and no cure. Kept from that work: the unsaved-edits
-  // guard on openBible, which fixed a real silent-data-loss path (opening replaced the tab's
-  // contents wordlessly) and is unrelated to the save failure.
-  // Pinned by BEHAVIOUR, not by prose: the guard must live inside openBible and be conditional on
-  // CUR.dirty. (An earlier version pinned the exact sentence and failed the build the moment the
-  // wording was improved — a contract should catch a missing guard, not a reworded one.)
-
-  // ── DEAD HANDLE PURGE (v1.487) ───────────────────────────────────────────────────────
-  // Root cause of "I have not once been able to save": the FSA handle is persisted in
-  // IndexedDB and restored on every boot, so once it went dead, relaunching the page brought
-  // the SAME unusable handle back — forever. There was no delete path at all. A save failure
-  // must now purge it from IndexedDB and from memory, or the loop returns.
-  // NOT indexOf("function _idbDel") — that substring survives a rename to _idbDelUNUSED, so the
-  // clause read as coverage while catching nothing (caught by sabotage, 2026-07-28). Pin the exact
-  // signature AND that the body actually deletes from the store.
-  if (!/function _idbDel\(k\)/.test(_bePage) || !/objectStore\(FS_STORE\)\["delete"\]\(k\)/.test(_bePage))
-    _failBE("_idbDel is gone or no longer deletes — without it a dead file handle is cached in IndexedDB and restored on every launch");
-  var _saveFn = _bePage.slice(_bePage.indexOf("function saveBible"), _bePage.indexOf("function downloadCopy"));
-  if (_saveFn.indexOf("_idbDel(FS_KEY)") < 0)
-    _failBE("saveBible no longer purges the persisted handle on failure — the dead handle will resurrect on the next launch");
-  if (_saveFn.indexOf("CUR.handle = null") < 0)
-    _failBE("saveBible no longer drops the dead in-memory handle — the UI would keep claiming 'saves in place'");
-
-  // ── USER-ACTIVATION ORDERING (v1.488) ────────────────────────────────────────────────
-  // showOpenFilePicker() and requestPermission() need transient user activation, and
-  // alert/confirm/prompt CONSUME it. A confirm() placed ahead of the picker at v1.485 meant the
-  // picker never opened — and since the picker is the ONLY route to a fresh handle, the editor
-  // deadlocked: every Save fell through to a download and nothing could restore it. Pin the order.
+  // Open remains a read-only convenience for switching bible types. It must keep the unsaved-edit
+  // guard, but Save itself has no browser file-handle, permission, Save-as, or download branches.
   function _slice(from, to) { var i = _bePage.indexOf(from); var j = _bePage.indexOf(to, i + 1); return (i < 0 || j < 0) ? "" : _bePage.slice(i, j); }
   function _at(hay, re) { var m = hay.match(re); return m ? hay.indexOf(m[0]) : -1; }
   var _ob = _slice("function openBible", "function saveBible");
@@ -638,33 +612,21 @@ try {
     _failBE("openBible asks a modal question BEFORE showOpenFilePicker — that consumes user activation and the picker will never open (the v1.485 deadlock)");
   if (!/CUR\.dirty[\s\S]{0,120}confirm\(/.test(_ob) || !/UNSAVED EDITS/i.test(_ob))
     _failBE("openBible lost its unsaved-edits guard — loading a file would silently discard the tab's edits");
-  var _sb = _slice("function saveBible", "function writeInPlace");
-  if (!_sb) _failBE("could not isolate saveBible (writeInPlace split gone?)");
-  // NOT /requestPermission/ — that substring survives in the `_pendingHandle.requestPermission`
-  // existence guard, so deleting the actual CALL still passed (caught by sabotage). Require an
-  // invocation with its options object.
-  var _sbPerm = _at(_sb, /requestPermission\(\{/), _sbAsk = _at(_sb, /(confirm|alert|prompt)\(/);
-  if (_sbPerm < 0) _failBE("saveBible no longer re-grants write permission — a fresh browser launch always lands in Downloads instead");
-  if (_sbAsk >= 0 && _sbAsk < _sbPerm)
-    _failBE("saveBible asks a modal question BEFORE requestPermission — that consumes user activation and the permission prompt will fail");
-  // and the no-handle path must never dump a download without saying why
-  if (/if \(!CUR\.handle\) \{ downloadCopy\(\); return; \}/.test(_bePage))
-    _failBE("saveBible silently downloads when there is no handle — it must explain and point at 📂 Open bible…");
-  // A successful save must CANCEL the pending debounced draft write before clearing the draft key.
-  // Otherwise the timer fires ~600ms later and writes the draft straight back, so the next launch
-  // restores a phantom "unsaved" draft for work that was saved — measured through the test hook.
-  var _wp = _slice("function writeInPlace", "function downloadCopy");
-  if (!_wp) _failBE("could not isolate writeInPlace");
-  var _clr = _at(_wp, /clearTimeout\(_saveT\)/), _rm = _at(_wp, /removeItem\(DRAFT_K\)/);
-  if (_clr < 0) _failBE("writeInPlace no longer cancels the pending draft debounce — a saved file will reopen as a phantom dirty draft");
-  if (_rm >= 0 && _clr > _rm) _failBE("writeInPlace cancels the draft debounce AFTER clearing the draft key — the timer still resurrects it");
-  // Save as... clears the draft too, so it needs the SAME cancel — a gap found by dev/sabotage.js
-  // when a mutation aimed at writeInPlace landed on this copy instead and nothing caught it.
-  var _sa = _slice("function saveAsBible", "function writeInPlace");
-  if (!_sa) _failBE("could not isolate saveAsBible");
-  var _saClr = _at(_sa, /clearTimeout\(_saveT\)/), _saRm = _at(_sa, /removeItem\(DRAFT_K\)/);
-  if (_saRm >= 0 && _saClr < 0) _failBE("saveAsBible clears the draft but never cancels the pending debounce — the draft resurrects after a Save as...");
-  if (_saRm >= 0 && _saClr > _saRm) _failBE("saveAsBible cancels the draft debounce AFTER clearing the key — the timer still resurrects it");
+  var _sb = _slice("function saveBible", "function reloadFromDisk");
+  if (!_sb || _sb.indexOf("serverSaveBible();") < 0)
+    _failBE("Save is no longer wired directly to the local project writer");
+  if (/legacySaveBible|downloadCopy|saveAsBible|writeInPlace|showSaveFilePicker|createWritable/.test(_sb))
+    _failBE("Save regained an alternate browser-file or download workflow");
+  if (/function (legacySaveBible|downloadCopy|saveAsBible|writeInPlace)\b|showSaveFilePicker|createWritable|URL\.createObjectURL|a\.download\s*=/.test(_bePage))
+    _failBE("Bible Editor still contains an alternate Save-as/download write path — project-file save must be the only workflow");
+  var _localSave = _slice("function serverSaveBible", "function note");
+  if (!_localSave || _localSave.indexOf("srvInstall(ser)") < 0)
+    _failBE("local project Save no longer routes through the validated install boundary");
+  if (_localSave.indexOf("local project writer is unavailable") < 0 || _localSave.indexOf("your draft is still here") < 0)
+    _failBE("local project Save failure is not loud or does not promise the preserved draft");
+  var _clr = _at(_localSave, /clearTimeout\(_saveT\)/), _rm = _at(_localSave, /removeItem\(DRAFT_K\)/);
+  if (_clr < 0 || (_rm >= 0 && _clr > _rm))
+    _failBE("local project Save does not cancel the draft debounce before clearing the saved draft");
 
   // ── CAP EDIT CONTRACT (v1.512) ───────────────────────────────────────────────────────
   // The card's ✎ Update Bible flow (user request 2026-08-01, the balance pass): edit a SHIPPED
@@ -696,6 +658,8 @@ try {
   var _cedClassAdd = _slice("var badges = m.querySelectorAll", "// \"+ from bible\" picker");
   if (!_cedClassAdd || _cedClassAdd.indexOf("upsertShippedCapability(ak, o") < 0)
     _failBE("Add to Bible button is not wired to the named capability upsert path");
+  if (_cedClassAdd.indexOf("function () { closeModal(); delete ADD[ak]; render(); }") < 0)
+    _failBE("successful Add to Bible does not close its form — a completed local write still looks unfinished");
   var _cedUpsertPath = _slice("function upsertShippedCapability", "function updateShippedCapability");
   if (!_cedUpsertPath || !/updateShippedCapability\(key, obj, onDone, true\)/.test(_cedUpsertPath))
     _failBE("named capability upsert path no longer enables creation in the fresh-file writer");
@@ -706,38 +670,20 @@ try {
   var _usc = _slice("function updateShippedCapability", "// ── toolbar");
   if (!_usc) _failBE("could not isolate updateShippedCapability");
   if (_at(_usc, /\.detect\(/) < 0 || _at(_usc, /\.detect\(/) > _at(_usc, /\.parse\(/))
-    _failBE("updateShippedCapability no longer verifies the picked file IS the capability bible before parsing — a wrong pick would be treated as the bible");
-  var _uscAsk = _at(_usc, /(confirm|alert|prompt)\(/), _uscPick = _at(_usc, /showOpenFilePicker/);
-  if (_uscPick < 0) _failBE("updateShippedCapability lost its file-read path");
-  if (_uscAsk >= 0 && _uscAsk < _uscPick)
-    _failBE("updateShippedCapability prompts BEFORE the picker — that consumes user activation and the picker will never open (the v1.485 deadlock class)");
-  /* Re-baselined 2026-08-14 (#26 residual / #72 overhaul — Fable, deliberate): the old clause
-     required BOTH "successful" paths to refresh the in-page bible, but the download fallback
-     was never a write — painting its edit as live was exactly the Diamond Skin illusion. The
-     pin now runs BOTH directions: the server path must refresh, the download path must NOT. */
+    _failBE("updateShippedCapability no longer verifies the local project file IS the capability bible before parsing");
+  if (_usc.indexOf('fetch(BSRV + "/bible")') < 0)
+    _failBE("updateShippedCapability no longer reads capability_bible.js fresh from the local project writer");
+  /* Re-baselined 2026-08-15 by owner ruling: there is no online/offline save mode. The helper
+     writes the LOCAL project checkout; deployment/upload is a separate later action. Add/Update
+     must either complete that validated local write or fail loudly with the form intact. */
   var _uscApplies = (_usc.match(/CAPABILITY_BIBLE\[key\]\s*=\s*obj/g) || []).length;
-  if (_uscApplies < 1)
+  if (_uscApplies !== 1)
     _failBE("updateShippedCapability no longer refreshes the in-page CAPABILITY_BIBLE on the server success path — badges and cards would show stale values after a real write");
-  if (_uscApplies > 1)
-    _failBE("updateShippedCapability refreshes the in-page CAPABILITY_BIBLE beyond the server path — the download fallback is NOT a write (the Diamond Skin illusion, #26): the page must keep showing project truth until install-bible runs");
-  if (_at(_usc, /NOT in the project yet/) < 0)
-    _failBE("the download fallback lost its honest not-saved-yet note (#26) — a downloaded edit would look saved again");
-  // ── WRITE-BY-DOWNLOAD (v1.516) ───────────────────────────────────────────────────────
-  // Three field failures (v1.512/514/515) established that FSA WRITES are refused on the
-  // author's machine while READS work, and that the save-dialog workaround minted an EMPTY
-  // bible in the wrong folder. The flow must therefore read + compose + DOWNLOAD, never write
-  // a file handle, and must name the install command — a download the user cannot install is
-  // a silent failure with extra steps.
-  if (/createWritable/.test(_usc))
-    _failBE("updateShippedCapability writes through an FSA handle again — that path is REFUSED on the author's machine (v1.512/514/515); it must download and let dev/install-bible.js install");
-  if (/showSaveFilePicker/.test(_usc))
-    _failBE("updateShippedCapability re-introduced the save dialog — it minted an EMPTY capability_bible.js in the wrong folder (field failure 2026-08-01)");
-  if (_usc.indexOf("URL.createObjectURL") < 0 || !/a\.download\s*=/.test(_usc))
-    _failBE("updateShippedCapability no longer downloads the composed bible — the edit would have nowhere to go");
-  if (_usc.indexOf("install-bible.js capability") < 0)
-    _failBE("updateShippedCapability no longer tells the user the install command — a download nobody installs is a silent failure");
-  if (/alert\("Downloaded capability_bible\.js/.test(_usc))
-    _failBE("the offline capability fallback still blocks on the redundant download/install alert");
+  if (/legacyDownloadFlow|showOpenFilePicker|URL\.createObjectURL|a\.download\s*=/.test(_usc))
+    _failBE("Add/Update Bible still has a download or file-picker fallback — it must write the local project bible or fail with the form intact");
+  if (_usc.indexOf("local project writer is unavailable") < 0 ||
+      _usc.indexOf("nothing was written; your values are still in the form") < 0)
+    _failBE("Add/Update Bible does not loudly preserve the edit when the local project writer is unavailable");
   var _beLauncher = _pathBE.join(__dirname, "..", "Bible Editor.cmd");
   if (!_fsBE.existsSync(_beLauncher))
     _failBE("the one-click Bible Editor launcher is missing from the project root");
