@@ -74,7 +74,7 @@ ratification record below.
 | `sabotage-w2.js` | W2 transaction/refusal/receipt boundaries; `--focused` is only the section-scoped subset used by CI | 44/44 | 44/44 |
 | `sabotage-w6.js` | W6 summary-identity validator, retry lifecycle, import receipt; not all summarization/memory | 21/21 | 20/21 |
 | `sabotage-w7.js` | W7 relationship axes, migration, merge, and nudge authority | 27/27 | 26/27 |
-| `sabotage-todo-hygiene.js` | #20 moved-row identity and warn-only session advisory | 10/10 | 10/10 |
+| `sabotage-todo-hygiene.js` | #20 moved-row identity and warn-only session advisory; since 2026-08-14 also the fixture git env scrub (TODO #27) and the #16④ doc-size thresholds | 19/19 | 19/19 |
 
 The 12 exit-only cases are exactly the eight BIB PICKER cases, the two #158 game wiring cases,
 W6's `ui-files` rejected-summary import receipt, and W7's failed-provider nudge consumption. They

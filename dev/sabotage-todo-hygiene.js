@@ -65,7 +65,45 @@ rc |= sabotage.prove({
     { label: "corrupt schedule JSON is swallowed",
       mustFail: "corrupt schedule warns loudly and exits zero",
       find: "  catch (e) { return { due: [], errors: [\"dev/schedule.json is malformed or unreadable: \" + e.message] }; }",
-      replace: "  catch (e) { return { due: [], errors: [] }; }" }
+      replace: "  catch (e) { return { due: [], errors: [] }; }" },
+    { label: "doc-size inspection is no longer consulted",
+      mustFail: "doc over its watch threshold surfaces loudly and exits zero",
+      find: "  try { docs = docSize.inspect(opts.root); }\n  catch (e4) { inspectionErrors.push(\"doc-size inspection failed: \" + e4.message); }",
+      replace: "" }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "dev/tests-todo-hygiene.js",
+  command: ["node", ["dev/tests-todo-hygiene.js"]],
+  cases: [
+    { label: "fixture git env scrub is dropped — inherited GIT_DIR/GIT_WORK_TREE reach fixture repos again",
+      mustFail: "fixture git calls ignore inherited repo-location env (GIT_DIR/GIT_WORK_TREE)",
+      find: "  [\"GIT_DIR\", \"GIT_WORK_TREE\", \"GIT_INDEX_FILE\", \"GIT_COMMON_DIR\", \"GIT_OBJECT_DIRECTORY\",\n   \"GIT_ALTERNATE_OBJECT_DIRECTORIES\", \"GIT_PREFIX\"].forEach(function (k) { delete env[k]; });",
+      replace: "" }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "dev/doc-size.js",
+  command: ["node", ["dev/tests-todo-hygiene.js"]],
+  cases: [
+    { label: "watch threshold stops firing",
+      mustFail: "doc over its watch threshold surfaces loudly and exits zero",
+      find: "    else if (size >= doc.watchBytes)\n      warnings.push(\"DOC SIZE WATCH: \"",
+      replace: "    else if (false)\n      warnings.push(\"DOC SIZE WATCH: \"" },
+    { label: "problem threshold never escalates",
+      mustFail: "doc over its problem threshold escalates past WATCH",
+      find: "    if (size >= doc.problemBytes)\n      warnings.push(\"DOC SIZE PROBLEM: \"",
+      replace: "    if (false)\n      warnings.push(\"DOC SIZE PROBLEM: \"" },
+    { label: "missing watched doc is silently skipped",
+      mustFail: "missing watched doc warns loudly and exits zero",
+      find: "    catch (e) { errors.push(doc.file + \" could not be measured: \" + e.message); return; }",
+      replace: "    catch (e) { return; }" },
+    { label: "registry watch threshold is inflated to infinity",
+      mustFail: "doc over its watch threshold surfaces loudly and exits zero",
+      find: "    watchBytes: 120210,",
+      replace: "    watchBytes: 999999999," }
   ]
 });
 

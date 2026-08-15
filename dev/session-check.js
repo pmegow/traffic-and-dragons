@@ -1,11 +1,13 @@
 // session-check.js — #20 warn-only session-start hygiene advisory.
 // Reports shared-tree tracker edits, untracked/ignored testRuns artifacts, lane declarations,
-// and due entries in the read-only dev/schedule.json registry.
+// due entries in the read-only dev/schedule.json registry, and watched-doc size budgets
+// (#16④ — dev/doc-size.js owns the thresholds; this only relays its findings).
 // It is intentionally incapable of blocking: every path exits 0 after reporting what it could see.
 var fs = require("fs");
 var path = require("path");
 var cp = require("child_process");
 var hookParity = require("./check-hook-parity.js");
+var docSize = require("./doc-size.js");
 
 function parseArgs(argv) {
   var out = { root: path.join(__dirname, ".."), laneFiles: [] };
@@ -106,6 +108,9 @@ function main() {
   try { parity = hookParity.inspect(opts.root); }
   catch (e3) { inspectionErrors.push("hook parity inspection failed: " + e3.message); }
   schedule = inspectSchedule(opts.root);
+  var docs = { warnings: [], errors: [] };
+  try { docs = docSize.inspect(opts.root); }
+  catch (e4) { inspectionErrors.push("doc-size inspection failed: " + e4.message); }
 
   laneCandidates(opts.root, opts.laneFiles).forEach(function (file) {
     if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return;
@@ -114,9 +119,9 @@ function main() {
     lanes.push({ file: slash(opts.root, file), body: body || "(empty declaration)" });
   });
 
-  var findings = trackers.length + artifacts.length + lanes.length + inspectionErrors.length + schedule.due.length + schedule.errors.length + (parity && !parity.ok ? 1 : 0);
+  var findings = trackers.length + artifacts.length + lanes.length + inspectionErrors.length + schedule.due.length + schedule.errors.length + docs.warnings.length + docs.errors.length + (parity && !parity.ok ? 1 : 0);
   if (!findings) {
-    console.log("SESSION CHECK OK — no tracker edits, no untracked testRuns files, no lane declaration, and no schedule due (advisory; exit 0)");
+    console.log("SESSION CHECK OK — no tracker edits, no untracked testRuns files, no lane declaration, no schedule due, and watched docs under budget (advisory; exit 0)");
     process.exit(0);
   }
 
@@ -141,6 +146,11 @@ function main() {
   if (schedule.errors.length) {
     console.warn("  Schedule registry advisory:");
     schedule.errors.forEach(function (msg) { console.warn("    " + msg); });
+  }
+  docs.warnings.forEach(function (line) { console.warn("  " + line); });
+  if (docs.errors.length) {
+    console.warn("  Doc size advisory:");
+    docs.errors.forEach(function (msg) { console.warn("    " + msg); });
   }
   if (parity && !parity.ok) console.warn("  Pre-commit hook parity: " + parity.message);
   if (inspectionErrors.length) {
