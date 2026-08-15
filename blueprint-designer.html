@@ -97,9 +97,15 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <main id="app"></main>
 <input type="file" id="file-inp" accept=".blueprint,.campaign" style="display:none;">
 
-<!-- Full engine chain in canonical order (v1.180) — state.js supplies store/keys/loadProviderSettings,
-     storage-adapter the cloud library, api.js callGM/repairModelJson for the generate/review features.
-     HARD RULE unchanged: this page never writes the game's state keys (no loadState/saveCore here). -->
+<!-- Engine chain in canonical order (v1.180; repaired v0.37) — state.js supplies store/keys/
+     loadProviderSettings, storage-adapter the cloud library, api.js callGM/repairModelJson for
+     the generate/review features. clock.js + identity.js + tag_table.js are LOAD-BEARING for
+     api.js: its top-level NOTE_BUILDERS array evaluates their builder functions at load, and
+     without them api.js aborts BEFORE defining callGM — which silently killed every designer
+     LLM feature from v1.581 (identity.js landed in the chain) until v0.37 (the #17 rot class:
+     a hand-copied engine list drifts as the engine grows; the run-tests BLUEPRINT DESIGNER
+     CONTRACT now pins these three tags before api.js). HARD RULE unchanged: this page never
+     writes the game's state keys (no loadState/saveCore here). -->
 <script src="globals.js"></script>
 <script src="data.js"></script>
 <script src="class_bible.js"></script>
@@ -107,6 +113,9 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="state.js"></script>
 <script src="storage-adapter.js"></script>
 <script src="memory.js"></script>
+<script src="clock.js"></script>
+<script src="identity.js"></script>
+<script src="tag_table.js"></script>
 <script src="api.js"></script>
 <script src="campaign_generator.js"></script>
 <script src="game.js"></script>
@@ -115,7 +124,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.36";
+var BP_DESIGNER_VERSION="v0.37";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────

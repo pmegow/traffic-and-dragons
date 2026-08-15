@@ -834,6 +834,17 @@ try {
   // ⑤ The section wiring exists (add-class control + availability checkboxes).
   if (_pageBD.indexOf("addcclass") < 0) _failBD("the + Add custom class control is gone.");
   if (_pageBD.indexOf("data-avcls") < 0) _failBD("the availability checkboxes are gone.");
+  // ⑥ (v0.37) The engine chain is load-complete for api.js: its top-level NOTE_BUILDERS array
+  //    evaluates clock.js/identity.js/tag_table.js builder functions at load, so a missing tag
+  //    aborts api.js BEFORE callGM exists — every designer LLM feature died this way from
+  //    v1.581 to v0.37 (the #17 hand-copied-list rot class). Each tag must exist AND precede api.js.
+  var _apiAtBD = _pageBD.indexOf("<script src=\"api.js\">");
+  if (_apiAtBD < 0) _failBD("api.js script tag not found — the tag-shape changed; update this contract.");
+  ["clock.js", "identity.js", "tag_table.js"].forEach(function (dep) {
+    var at = _pageBD.indexOf("<script src=\"" + dep + "\">");
+    if (at < 0) _failBD(dep + " script tag missing — api.js will abort at NOTE_BUILDERS and callGM never exists (dead LLM features).");
+    if (at > _apiAtBD) _failBD(dep + " loads AFTER api.js — NOTE_BUILDERS still evaluates into a ReferenceError.");
+  });
   console.log("[blueprint-designer] contract OK — class roster sections wired, seam present");
 } catch (e) { console.error("BLUEPRINT DESIGNER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 

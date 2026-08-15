@@ -21,7 +21,10 @@ rc |= sabotage.prove({
       replace: "handRolledClassList(bp)" },
     { label: "FIELD_ROOTS loses the cclass route — breakout/edit silently dead",
       find: "cclass:function(i,j){return bp.customClasses[i];}",
-      replace: "cclassGone:function(i,j){return bp.customClasses[i];}" }
+      replace: "cclassGone:function(i,j){return bp.customClasses[i];}" },
+    { label: "identity.js dropped from the engine chain — api.js aborts before callGM (the v1.581–v0.37 dead-LLM-features rot)",
+      find: "<script src=\"identity.js\"></script>\n",
+      replace: "" }
   ]
 });
 
