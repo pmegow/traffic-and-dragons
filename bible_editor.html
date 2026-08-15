@@ -651,7 +651,7 @@ function serializeItemBible(bible) {
       return " · <span style='color:var(--bad)'>● version mismatch — editor v" + esc(BIBLE_EDITOR_VERSION) +
         ", helper v" + esc(_srvVersion || "unversioned") + "; close this tab and reopen Bible Editor.cmd</span>";
     if (_srvUp === true) return " · <span style='color:var(--good,#7aa86a)'>● local project writer ready — saves update this checkout</span>";
-    if (_srvUp === false) return " · <span style='color:var(--bad)'>✕ local project writer unavailable — reopen via Bible Editor.cmd</span>";
+    if (_srvUp === false) return " · <span style='color:var(--bad);font-weight:700' title='local project writer unavailable'>Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit.</span>";
     return "";
   }
   function fileLine() {

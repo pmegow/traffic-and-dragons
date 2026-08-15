@@ -25,6 +25,7 @@ clean, this log graduates away. Anything that outgrew a line belongs under Pendi
 - unversioned · 2026-08-14 — Bible Editor write-token prompt/retry deleted; localhost Origin remains the write authority, direct-file/foreign pages refuse without credentials; 11/11 fixtures + 7/7 sabotage (satellite UI + additive dev coverage)
 - unversioned · 2026-08-14 — Shared Bible Editor v1.0.0 label + helper/launcher compatibility handshake; stale helper/page writes refuse, 19/19 fixtures + 13/13 sabotage + rendered check (satellite UI + additive dev tooling/coverage)
 - unversioned · 2026-08-15 — Bible Editor v1.1.0 made project-file saving the only workflow: no Save As/download/file-handle writes, loud draft-preserving writer failure, success closes Add form, and launcher lifecycle is exercised; 24/24 fixtures + 17/17 launcher sabotage + 27/27 remaining sabotage + disposable add/update/failure browser run (satellite UI + additive dev tooling/coverage)
+- unversioned · 2026-08-15 — Bible Editor v1.1.1 gives the unavailable-writer state the explicit READ ONLY / launch-via-cmd instruction; 25/25 fixtures + 18/18 sabotage + rendered disabled-Save check (satellite UI + additive dev coverage)
 
 **How to review:** `/fable-review <entry>` (validated workflow — see `.claude/skills/fable-review`).
 When Fable is satisfied (or files follow-ups), move the entry's full record to

@@ -43,7 +43,7 @@ const cases = [
     label: "shared version loses its visible semver shape",
     file: "dev/bible-editor-version.js",
     mustFail: "Bible Editor version has a visible semver shape",
-    find: 'var BIBLE_EDITOR_VERSION = "1.1.0";',
+    find: 'var BIBLE_EDITOR_VERSION = "1.1.1";',
     replace: 'var BIBLE_EDITOR_VERSION = "unknown";'
   },
   {
@@ -87,6 +87,13 @@ const cases = [
     mustFail: "editor describes one local project-file workflow, not online and offline modes",
     find: "● local project writer ready — saves update this checkout",
     replace: "● online save mode ready"
+  },
+  {
+    label: "read-only launch instruction disappears",
+    file: "bible_editor.html",
+    mustFail: "unavailable writer shows the exact read-only launch instruction",
+    find: "Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit",
+    replace: "Save unavailable"
   },
   {
     label: "Save as alternate workflow returns",

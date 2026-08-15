@@ -131,6 +131,8 @@ function listeningPid(port) {
         writerStatus.indexOf("local project writer ready") >= 0 &&
         writerStatus.indexOf("local project writer unavailable") >= 0,
       "editor describes one local project-file workflow, not online and offline modes");
+    verdict(writerStatus.indexOf("Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit") >= 0,
+      "unavailable writer shows the exact read-only launch instruction");
     verdict(editorSrc.indexOf('id="saveas"') < 0 && editorSrc.indexOf('$("saveas")') < 0,
       "toolbar exposes no alternate Save as workflow");
   }
