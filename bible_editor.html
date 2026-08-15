@@ -352,17 +352,22 @@ function serializeItemBible(bible) {
     }
     return t;
   }
-  // The ONE way this page POSTs /install — sends the token, absorbs a stale-token 403 with a
-  // single re-ask-and-retry. Every save path routes through here (contract-pinned).
+  // The ONE way this page POSTs /install — absorbs a 403 with a single ask-and-retry. Every
+  // save path routes through here (contract-pinned). #72 overhaul (2026-08-14): TOKENLESS
+  // FIRST — the server allow-lists local origins, so served pages (localhost / 127.0.0.1)
+  // write with zero ceremony; the token prompt survives only for file:// pages and is asked
+  // AFTER a 403, never pre-emptively. The token-paste is gone from the recommended workflow.
   function srvInstall(body) {
-    var t = srvToken(false);
-    if (t === null) return Promise.reject(new Error("save cancelled — no write token entered (it is printed in the bible-server terminal)"));
     function post(tok) {
-      return fetch(BIBLE_SRV + "/install", { method: "POST", headers: { "Content-Type": "text/plain", "X-Bible-Token": tok }, body: body });
+      var h = { "Content-Type": "text/plain" };
+      if (tok) h["X-Bible-Token"] = tok;
+      return fetch(BIBLE_SRV + "/install", { method: "POST", headers: h, body: body });
     }
-    return post(t).then(function (r) {
+    var stored = null;
+    try { stored = sessionStorage.getItem("tnd_bible_srv_tok_v1"); } catch (e) {}
+    return post(stored).then(function (r) {
       if (r.status !== 403) return r;
-      var t2 = srvToken(true);                 // stale token (server restarted) — re-ask once
+      var t2 = srvToken(true);                 // file:// page (or stale token) — ask once
       if (t2 === null) return r;               // cancelled: let the 403 JSON surface loudly
       return post(t2);
     });
@@ -819,9 +824,26 @@ function serializeItemBible(bible) {
     "20": "CAPSTONE — one dramatic defining ability; the thing the character is remembered for"
   };
 
+  // ── #72 overhaul: the save-mode is VISIBLE before you type ────────────────────────────────
+  // The three save routes (server / FSA / download) have three trust levels, and which one a
+  // Save will take was previously discoverable only by saving. The pill answers it up front and
+  // re-checks every 20s + after every save attempt.
+  var _srvUp = null;   // null = unknown, true/false once probed
+  function probeServer() {
+    fetch(BIBLE_SRV + "/health").then(function (r) { return r.json(); })
+      .then(function (j) { _srvUp = !!(j && j.ok); fileLine(); })
+      ["catch"](function () { _srvUp = false; fileLine(); });
+  }
+  setInterval(probeServer, 20000); probeServer();
+  function srvPill() {
+    if (_srvUp === true) return " · <span style='color:var(--good,#7aa86a)'>● bible-server — saves are one-click, validated</span>";
+    if (_srvUp === false) return " · <span style='color:var(--warn,#c9a227)'>○ server offline — saves fall back to FSA/download (start: node dev/bible-server.js)</span>";
+    return "";
+  }
   function fileLine() {
-    if (!CUR) { $("fileline").innerHTML = "<span class='muted'>No bible open — press <b>📂 Open bible…</b> and pick class_bible.js or capability_bible.js from the project folder.</span>"; return; }
+    if (!CUR) { $("fileline").innerHTML = "<span class='muted'>No bible open — press <b>📂 Open bible…</b> and pick class_bible.js or capability_bible.js from the project folder.</span>" + srvPill(); return; }
     var h = "<b>" + esc(CUR.name) + "</b> · " + BIBLE_TYPES[CUR.typeId].label;
+    h += srvPill();
     h += CUR.handle ? " · <span class='muted'>saves in place</span>" : " · <span class='muted'>no file handle — Save will download</span>";
     if (CUR.dirty) h += " · <span class='dirty'>unsaved changes</span>";
     if (_pendingHandle) h += " · <button id='reconn'>Reconnect " + esc(_pendingHandle.name) + "</button>";
@@ -1589,8 +1611,10 @@ function serializeItemBible(bible) {
         var b = new Blob([ser], { type: "text/javascript" }), a = document.createElement("a");
         a.href = URL.createObjectURL(b); a.download = "capability_bible.js"; a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
-        CAPABILITY_BIBLE[key] = obj;          // badges/cards/tooltips reflect the edit immediately
-        note("⬇ downloaded capability_bible.js with \"" + key + "\" updated — run: node dev/install-bible.js capability");
+        // #26 residual closed (#72 overhaul): NO optimistic in-page apply on the download path —
+        // painting the edit as live while disk waits for install is exactly the Diamond Skin
+        // illusion. The card keeps showing the PROJECT's truth until install-bible runs.
+        note("⬇ downloaded — \"" + key + "\" is NOT in the project yet. Run: node dev/install-bible.js capability, then reload this page.");
         console.info("[bible] capability edit downloaded (" + key + ") — install with: node dev/install-bible.js capability");
         alert("Downloaded capability_bible.js with \"" + key + "\" updated.\n\nOnly that entry's line changed — comments and untouched entries are byte-identical.\n\nTo install it, run:\n\n    node dev/install-bible.js capability\n\n(it validates the file and refuses anything broken before replacing the project copy)");
         if (onDone) onDone();

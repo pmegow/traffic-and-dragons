@@ -681,8 +681,17 @@ try {
   if (_uscPick < 0) _failBE("updateShippedCapability lost its file-read path");
   if (_uscAsk >= 0 && _uscAsk < _uscPick)
     _failBE("updateShippedCapability prompts BEFORE the picker — that consumes user activation and the picker will never open (the v1.485 deadlock class)");
-  if ((_usc.match(/CAPABILITY_BIBLE\[key\]\s*=\s*obj/g) || []).length < 2)
-    _failBE("updateShippedCapability no longer refreshes both successful paths in the in-page CAPABILITY_BIBLE — badges and cards would show stale values after an edit");
+  /* Re-baselined 2026-08-14 (#26 residual / #72 overhaul — Fable, deliberate): the old clause
+     required BOTH "successful" paths to refresh the in-page bible, but the download fallback
+     was never a write — painting its edit as live was exactly the Diamond Skin illusion. The
+     pin now runs BOTH directions: the server path must refresh, the download path must NOT. */
+  var _uscApplies = (_usc.match(/CAPABILITY_BIBLE\[key\]\s*=\s*obj/g) || []).length;
+  if (_uscApplies < 1)
+    _failBE("updateShippedCapability no longer refreshes the in-page CAPABILITY_BIBLE on the server success path — badges and cards would show stale values after a real write");
+  if (_uscApplies > 1)
+    _failBE("updateShippedCapability refreshes the in-page CAPABILITY_BIBLE beyond the server path — the download fallback is NOT a write (the Diamond Skin illusion, #26): the page must keep showing project truth until install-bible runs");
+  if (_at(_usc, /NOT in the project yet/) < 0)
+    _failBE("the download fallback lost its honest not-saved-yet note (#26) — a downloaded edit would look saved again");
   // ── WRITE-BY-DOWNLOAD (v1.516) ───────────────────────────────────────────────────────
   // Three field failures (v1.512/514/515) established that FSA WRITES are refused on the
   // author's machine while READS work, and that the save-dialog workaround minted an EMPTY

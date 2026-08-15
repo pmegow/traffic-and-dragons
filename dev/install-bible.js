@@ -24,7 +24,8 @@ var DOWNLOADS = path.join(process.env.USERPROFILE || process.env.HOME || "", "Do
 
 var TYPES = {
   "class": { target: "class_bible.js", pattern: /^class_bible.*\.js$/i, globals: ["CLASS_BIBLE", "CLASS_XP_LEVELS"] },
-  "capability": { target: "capability_bible.js", pattern: /^capability_bible.*\.js$/i, globals: ["CAPABILITY_BIBLE"] }
+  "capability": { target: "capability_bible.js", pattern: /^capability_bible.*\.js$/i, globals: ["CAPABILITY_BIBLE"] },
+  "item": { target: "item_bible.js", pattern: /^item_bible.*\.js$/i, globals: ["ITEM_BIBLE"] } /* #72 overhaul: previously missing — item uploads content-sniffed into the class branch and died on a confusing shape error */
 };
 
 function die(msg) { console.error("\n  ✗ " + msg + "\n"); process.exit(1); }
@@ -48,7 +49,9 @@ if (explicit) {
   if (!fs.existsSync(src)) die("no such file: " + src);
   // infer the type from the contents rather than the filename (downloads get " (3)" suffixes)
   var head = fs.readFileSync(src, "utf8");
-  typeKey = /var\s+CAPABILITY_BIBLE/.test(head) ? "capability" : "class";
+  typeKey = /var\s+CAPABILITY_BIBLE/.test(head) ? "capability"
+          : /var\s+ITEM_BIBLE/.test(head) ? "item" /* #72 overhaul: item uploads previously fell into the class branch and were refused with a confusing shape error */
+          : "class";
 } else {
   var spec = TYPES[typeKey];
   if (!fs.existsSync(DOWNLOADS)) die("cannot find your Downloads folder at " + DOWNLOADS);

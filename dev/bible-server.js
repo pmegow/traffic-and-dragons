@@ -10,13 +10,15 @@
 //
 // Usage:  node dev/bible-server.js     (leave it running while you triage; Ctrl+C when done)
 //
-// Security posture: binds 127.0.0.1 only, serves exactly two routes, writes only via
-// install-bible.js (which decides the target from the file's own content). WRITES additionally
-// require a per-run random token (ChatGPT review 2026-08-01): loopback binding blocks remote
-// hosts, but any webpage open in any browser can still POST to localhost while this runs —
-// and install-bible validates SHAPE, not author intent. The token is printed at startup and
-// entered once in the page; CORS stays "*" because the pages run from file:// (Origin: null),
-// which no origin allowlist can express.
+// Security posture: binds 127.0.0.1 only, writes only via install-bible.js (which decides the
+// target from the file's own content). WRITE AUTH (#72 workflow overhaul, 2026-08-14): an
+// ORIGIN allow-list replaces the token-paste for the standard flows — a request with no Origin
+// header (curl/node: a local process, and loopback binding already restricts to this machine)
+// or an Origin on http://localhost / http://127.0.0.1 (any port — the editor served locally;
+// a drive-by webpage cannot forge these, the browser sets Origin) writes without ceremony.
+// The per-run token SURVIVES as the fallback for Origin:null (file:// pages — but also
+// sandboxed drive-by iframes, which is exactly why null cannot join the allow-list) and any
+// foreign origin. Net: the token paste disappears from the recommended workflow entirely.
 var http = require("http");
 var fs = require("fs");
 var path = require("path");
@@ -43,6 +45,12 @@ http.createServer(function (req, res) {
   }
   if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
 
+  if (req.method === "GET" && req.url === "/health") {
+    // cheap liveness probe for the editor's status pill — never reads a file
+    send(200, { ok: true, server: "bible-server", auth: "origin-allowlist (token only for file://)" });
+    return;
+  }
+
   if (req.method === "GET" && req.url === "/bible") {
     try { send(200, { ok: true, text: fs.readFileSync(TARGET, "utf8") }); }
     catch (e) { send(500, { ok: false, output: "could not read capability_bible.js: " + e.message }); }
@@ -50,11 +58,13 @@ http.createServer(function (req, res) {
   }
 
   if (req.method === "POST" && req.url === "/install") {
-    // Write auth: refuse before reading the body. A drive-by page can reach this port; only a
-    // page the user pasted this run's token into may write.
-    if (req.headers["x-bible-token"] !== TOKEN) {
-      console.warn("[install] " + new Date().toLocaleTimeString() + " REFUSED — missing/wrong X-Bible-Token (the page needs the token printed when this server started)");
-      send(403, { ok: false, output: "write refused: missing or wrong X-Bible-Token.\nCopy the token from the bible-server terminal into the page's token prompt (it changes on every server start)." });
+    // Write auth (refuse before reading the body): local-origin requests pass; everything else
+    // needs this run's token. See the security-posture comment up top for the threat model.
+    var origin = req.headers["origin"];
+    var localOrigin = !origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    if (!localOrigin && req.headers["x-bible-token"] !== TOKEN) {
+      console.warn("[install] " + new Date().toLocaleTimeString() + " REFUSED — origin " + JSON.stringify(origin || null) + " is not local and no valid X-Bible-Token was sent");
+      send(403, { ok: false, output: "write refused: this page's origin (" + (origin || "null") + ") is not localhost.\nA file:// page needs the write token printed in the bible-server terminal (new one each start)." });
       return;
     }
     var body = "";
@@ -94,7 +104,8 @@ http.createServer(function (req, res) {
 }).listen(PORT, "127.0.0.1", function () {
   console.log("bible-server listening on http://127.0.0.1:" + PORT);
   console.log("");
-  console.log("  WRITE TOKEN (paste into the page when it asks — new token every server start):");
+  console.log("  Local pages (http://localhost / 127.0.0.1) write with NO token — just save.");
+  console.log("  WRITE TOKEN — only needed by file:// pages (new one every server start):");
   console.log("  " + TOKEN);
   console.log("");
   console.log("Leave this window open while you triage — the pages' save buttons talk to it.");
