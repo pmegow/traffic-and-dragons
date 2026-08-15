@@ -101,12 +101,9 @@ for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');}
   <h1>Bible Editor <span class="muted">dev tool</span></h1>
   <button class="primary" id="open">📂 Open bible…</button>
   <button class="primary" id="save" disabled>💾 Save (overwrite)</button>
-  <button id="download">⬇ Download copy</button>
   <button class="primary" id="saveas">💾 Save as… (always works)</button>
   <button id="reload">↻ Reload from disk</button>
-  <button id="exp-adds">⬇ Capability additions (<span id="addn">0</span>)</button>
   <button id="clr-adds" style="display:none">⌫ Clear merged (<span id="clrn">0</span>)</button>
-  <button id="discard">Discard draft</button>
   <span id="draftnote"></span>
   <span id="prog"></span>
   <div id="fileline"></div>
@@ -471,7 +468,7 @@ function serializeItemBible(bible) {
       return h.getFile().then(function (f) { _openedMtime = f.lastModified; return f.text(); }).then(function (txt) {
         // Asked HERE, not before the picker: activation is already spent on the picker, and
         // nothing is at risk until there is actually a file to load.
-        if (CUR && CUR.dirty && !confirm("Replace this tab with " + h.name + "?\n\nThere are UNSAVED EDITS here and loading the file discards them.\n\nCancel keeps them — ⬇ Download copy writes them to a file.")) {
+        if (CUR && CUR.dirty && !confirm("Replace this tab with " + h.name + "?\n\nThere are UNSAVED EDITS here and loading the file discards them.\n\nCancel keeps the current draft.")) {
           note("open cancelled — your unsaved edits are untouched");
           return;
         }
@@ -666,7 +663,7 @@ function serializeItemBible(bible) {
           note("✗ install-bible REFUSED the save — nothing was written (details in an alert + console)");
           console.warn("[bible] install refused:\n" + j.output);
           alert("The save was REFUSED — nothing was written:\n\n" + String(j.output || "").slice(0, 700) +
-            "\n\nIf this says 'FEWER filled level slots', this tab is holding a STALE draft — use ↻ Reload from disk (or Discard draft) before re-applying today's edits.");
+            "\n\nIf this says 'FEWER filled level slots', this tab is holding a STALE draft — use ↻ Reload from disk before re-applying today's edits.");
           return "done";
         }
         CUR.dirty = false;
@@ -869,8 +866,7 @@ function serializeItemBible(bible) {
       for (l in e.levels) { slots++; if (!e.levels[l].features.length) blanks++; }
       e.archetypes.forEach(function (a) { for (var al in a.levels) { slots++; if (!a.levels[al].features.length) blanks++; } });
     }
-    $("prog").textContent = (slots - blanks) + " / " + slots + " level slots filled · " + Object.keys(ADD).length + " capability additions";
-    $("addn").textContent = Object.keys(ADD).length;
+    $("prog").textContent = (slots - blanks) + " / " + slots + " level slots filled";
   }
 
   function render() {
@@ -1630,12 +1626,6 @@ function serializeItemBible(bible) {
   // ── toolbar ───────────────────────────────────────────────────────────────
   $("open").onclick = openBible;
   $("save").onclick = saveBible;
-  $("download").onclick = downloadCopy;
-  $("discard").onclick = function () {
-    if (!confirm("Discard the local draft and reload?")) return;
-    try { localStorage.removeItem(DRAFT_K); } catch (e) {}
-    location.reload();
-  };
   $("saveas").onclick = saveAsBible;
   $("reload").onclick = reloadFromDisk;
   $("clr-adds").onclick = function () {
@@ -1648,15 +1638,6 @@ function serializeItemBible(bible) {
     console.info("[bible] cleared merged additions: " + merged.join(", "));
     note("cleared " + merged.length + " already-merged addition(s)");
     markDirty(); render();
-  };
-  $("exp-adds").onclick = function () {
-    var ks = Object.keys(ADD);
-    if (!ks.length) { alert("No capability additions in this draft.\n\n(Open capability_bible.js directly to edit existing entries in place.)"); return; }
-    var out = "// capability_bible additions from bible_editor — paste into CAPABILITY_BIBLE,\n// or open capability_bible.js here and add them directly.\n";
-    ks.sort().forEach(function (k) { out += JSON.stringify(k) + ": " + JSON.stringify(ADD[k], null, 2) + ",\n"; });
-    var b = new Blob([out], { type: "text/plain" }), a = document.createElement("a");
-    a.href = URL.createObjectURL(b); a.download = "capability_additions.js.txt"; a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
   };
   // non-FSA fallback: a plain file input (import only; Save then downloads)
   var fi = document.createElement("input");

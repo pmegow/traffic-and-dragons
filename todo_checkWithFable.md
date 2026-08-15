@@ -19,7 +19,7 @@ Safe-changes-map work (#21, CLAUDE.md ▸ Dev workflow): ONE line per shipped ch
 `- vX.YYY <commit> — <what> (<shape from the map>)`. Batch-skimmed by Fable; if the skims stay
 clean, this log graduates away. Anything that outgrew a line belongs under Pending Fable review.
 
-(nothing logged yet)
+- unversioned · 2026-08-14 — Bible editor toolbar removed Download copy, Capability additions, and Discard draft; source contract + 4/4 sabotage + rendered localhost check (read-only satellite UI + additive dev coverage)
 
 **How to review:** `/fable-review <entry>` (validated workflow — see `.claude/skills/fable-review`).
 When Fable is satisfied (or files follow-ups), move the entry's full record to

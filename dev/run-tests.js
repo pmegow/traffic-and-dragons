@@ -413,6 +413,19 @@ try {
   // the editor is a satellite: it must never be reachable from the game's own UI surface
   if (_bePage.indexOf("id=\"bible-editor-link\"") >= 0) _failBE("unexpected in-game link marker");
 
+  // The server-first authoring loop has one primary action: Save. These three legacy toolbar
+  // controls exposed obsolete export/draft-management branches and made the normal path look
+  // conditional. Pin both the visible controls and their DOM lookups so removing the markup
+  // cannot leave a boot-time null dereference behind.
+  if (_bePage.indexOf('id="download"') >= 0 || _bePage.indexOf('$("download")') >= 0)
+    _failBE("toolbar still exposes the retired Download copy control");
+  if (_bePage.indexOf('id="exp-adds"') >= 0 || _bePage.indexOf('$("exp-adds")') >= 0)
+    _failBE("toolbar still exposes the retired Capability additions control");
+  if (_bePage.indexOf('id="addn"') >= 0 || _bePage.indexOf('$("addn")') >= 0)
+    _failBE("retired Capability additions counter is still wired");
+  if (_bePage.indexOf('id="discard"') >= 0 || _bePage.indexOf('$("discard")') >= 0)
+    _failBE("toolbar still exposes the retired Discard draft control");
+
   // ── ITEM BIBLE half (#81, same discipline): item_bible.js is machine-regenerated wholesale ──
   var _biFile = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "item_bible.js"), "utf8").replace(/\r\n/g, "\n");
   var _serItems = new Function(_serM[0] + "\nreturn serializeItemBible;")();
