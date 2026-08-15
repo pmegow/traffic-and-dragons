@@ -1,0 +1,165 @@
+{
+  "format": "tnd-blueprint-v1",
+  "name": "modelTestCampaign",
+  "author": "",
+  "tone": "swords",
+  "proseAuthor": "howard",
+  "narratorVoice": "en_GB-southern_english_female-low",
+  "premise": "Korrag, a freed Northlander pit-fighter, finds his past is not so easily escaped when he discovers his former master, Valerius, is not just a slaver but the high priest of a sorcerous death cult. To earn his coin and quiet his conscience, Korrag must dismantle Valerius's growing operation in the corrupt city of Ashenveil and pursue him into the Blighted Reach to stop a ritual that would grant a malevolent, ancient entity known as the Chained King a foothold in the world.",
+  "acts": [
+    {
+      "title": "Act 1: The Iron Collar",
+      "goal": "Survive being dragged back into the world of the fighting pits and uncover the sorcerous nature of Valerius's new enterprise.",
+      "turningPoint": "Korrag is forced to kill a former friend twisted by a sorcerous brand, learning the brand is a conduit for a terrible power Valerius is channeling from the Blighted Reach.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "An Unwanted Reunion",
+          "objective": "Survive a targeted ambush on a merchant caravan and identify the attackers as slavers from your past.",
+          "type": "combat",
+          "dnaHint": "The ambush is brutally efficient, but the lead slaver recognizes you, pausing the slaughter to offer you a place back at his side with a sneer, a chance to be a wolf among sheep again.",
+          "status": "pending"
+        },
+        {
+          "title": "The Gilded Cage",
+          "objective": "Infiltrate or investigate a clandestine fighting arena in Ashenveil to find the source of the fighters' unnatural strength.",
+          "type": "investigation",
+          "dnaHint": "Every official record is a dead end, but the hushed whispers of the terrified populace speak of elixirs granting impossible strength at the cost of the user's soul, all supplied by Valerius himself under the moniker 'The Shadow Alchemist'.",
+          "status": "pending"
+        },
+        {
+          "title": "The Price of Freedom",
+          "objective": "Confront a branded, recaptured pit-fighter you once knew, now a pawn of Valerius.",
+          "type": "social",
+          "dnaHint": "A corrupt Guard-Captain offers a heavy purse for your old friend's capture, while your friend begs you for death before the sorcery consumes him, forcing a direct choice between your two motivations: coin and conscience.",
+          "status": "pending"
+        }
+      ],
+      "status": "pending"
+    },
+    {
+      "title": "Act 2: Coils of the Serpent",
+      "goal": "Cripple Valerius's operations by striking at his supply of captives, his alchemical source, and his political protection.",
+      "turningPoint": "After dismantling his network, Korrag is confronted by a magically-empowered Valerius, who reveals his Ashenveil operation was merely a crucible, using a corrupted map fragment to open a portal to his main fortress and leaving a branded monstrosity to cover his escape.",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Chain Breakers",
+          "objective": "Track and raid Valerius's slaver camps in the wilderness surrounding Ashenveil to cut off his supply of fighters.",
+          "type": "exploration",
+          "dnaHint": "The freed captives are not grateful allies; they are desperate, brutalized survivors who will eye your supplies and steel, potentially turning on you once their immediate captors are slain.",
+          "status": "pending"
+        },
+        {
+          "title": "The Poisoned Spring",
+          "objective": "Venture into the corrupted Undercroft of Ashenveil to find and destroy the alchemical spring poisoning the city's foundations.",
+          "type": "combat",
+          "dnaHint": "The 'spring' is a pulsating, fleshy heart in a cave guarded by flora and fauna warped into unnatural abominations by its foul influence, and destroying it unleashes a psychic scream of agony.",
+          "status": "pending"
+        },
+        {
+          "title": "A Serpent in the Court",
+          "objective": "Identify and expose Valerius's powerful benefactor on the Ashenveil city council.",
+          "type": "investigation",
+          "dnaHint": "Your investigation reveals the benefactor is not a man motivated by greed but a secret zealot who offers you a fortune to walk away, forcing a final choice between coin and conscience before he martyrs himself to buy his master time.",
+          "status": "pending"
+        }
+      ],
+      "status": "pending"
+    },
+    {
+      "title": "Act 3: The Heart of Blight",
+      "goal": "Pursue Valerius to his fortress deep in the Blighted Reach and stop his final ritual.",
+      "turningPoint": "Korrag confronts Valerius, rejecting his offer of ultimate power and killing his former master. The ritual is stopped, but the ancient power is only banished, not destroyed, leaving Korrag with his pay and a conscience that is quiet, if not entirely clean.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Ashen Road",
+          "objective": "Follow Valerius's corrupted trail through the Blighted Reach, overcoming three spectral trials from your past to reveal the hidden path to his fortress.",
+          "type": "exploration",
+          "dnaHint": "The land itself has become an extension of Valerius's will, with spectral visions of the fighting pits and shadowy figures from your past emerging from the fog to harry and torment you.",
+          "status": "pending"
+        },
+        {
+          "title": "The Final Arena",
+          "objective": "Breach the fortress and defeat Valerius's elite, branded champions.",
+          "type": "combat",
+          "dnaHint": "The fortress is a grotesque cathedral built around a bleeding obsidian monolith, and each champion you face is a twisted, powerful echo of a fighter you once knew, respected, or even killed.",
+          "status": "pending"
+        },
+        {
+          "title": "The Blackened Heart",
+          "objective": "Confront Valerius at the heart of the monolith and stop his ritual before it is complete.",
+          "type": "combat",
+          "dnaHint": "Valerius, no longer fully human, offers you a place at his side as the Chained King's herald, forcing a final confrontation not just of steel, but of will, amidst the screaming souls powering the ritual.",
+          "status": "pending"
+        }
+      ],
+      "status": "pending"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Theron Wyndfall",
+      "role": "enemy",
+      "notes": "Valerius wants Korrag alive for the red rites in Ashenveil.; Valerius's warehouse is guarded by Kadrun Zethran and requires the watchword 'the King is bound' at the iron grate.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Nolan Grimtide",
+      "role": "enemy",
+      "notes": "",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Cavin Tharwick",
+      "role": "enemy",
+      "notes": "Valerius uses a dark elixir that grants pit-fighters unnatural strength at the cost of extreme self-mutilation.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Orvun Islevane",
+      "role": "acquaintance",
+      "notes": "Orvun Islevane demands gold to allow masterless outlanders entry through the gates of Ashenveil.; Accepted a ten-gold bribe to abandon his post and allow a Northlander passage.; He accepted a five-gold bribe to look the other way after Void Ironside was slain.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Ratchwick Duskmantle",
+      "role": "acquaintance",
+      "notes": "",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Void Ironside",
+      "role": "enemy",
+      "notes": "The Northlander is a resilient warrior who will ambush him rather than flee.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Morwen Ulvane",
+      "role": "acquaintance",
+      "notes": "",
+      "pronouns": "she/her"
+    },
+    {
+      "name": "Kadrun Zethran",
+      "role": "enemy",
+      "notes": "Kadrun was employed by an unnamed 'Master' who paid him to capture Korrag alive.",
+      "pronouns": "he/him"
+    }
+  ],
+  "locations": [
+    {
+      "name": "The Crossroads of Ashenveil",
+      "description": "A desolate three-way fork of packed earth and gray ash. The South Road leads south to the High Gate of Ashenveil, the North Road leads north into the wilderness, and a narrow wagon trail winds east into the Blighted Reach."
+    },
+    {
+      "name": "Ashenveil",
+      "description": "A sprawling, soot-choked port city of rotting wood and dark granite. The air smells of coal smoke, stale sea water, and rotting fish. The High Gate leads north to the Crossroads, the harbor docks lie to the east, and the twisting maze of the Low Quarter spreads south."
+    }
+  ],
+  "creatures": [],
+  "rules": [],
+  "startingRegion": "The Blighted Reach",
+  "startingLocation": "The Crossroads of Ashenveil"
+}

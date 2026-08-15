@@ -19,6 +19,30 @@ protocol and the evaluator, never the runner.
 **Never type or paste an API key.** If `tnd_ak_v1` is unset, stop and ask the user to enter it in
 the visible preview themselves.
 
+## Model-comparison runs — the standard campaign (owner ruling 2026-08-15)
+
+When a run's purpose is comparing MODELS/PROVIDERS (not exercising fresh skeleton generation),
+**every run starts from the same fixed campaign** so results are apples-to-apples:
+
+- **Blueprint:** `samples/modeltestcampaign.blueprint` (exported from the 50-turn gemini-3.5-flash
+  baseline run at v1.635 — tone `swords`, Howard voice, The Blighted Reach / Crossroads of
+  Ashenveil, 3 acts, 8 NPCs). Do NOT regenerate the skeleton; the blueprint IS the control.
+- **Character:** the exact Korrag template — Northlander Human Warrior, STR 16 / DEX 12 / CON 14 /
+  INT 10 / WIS 10 / CHA 13, gold 40, Longsword + Chainmail, True Neutral, trait "Blunt", flaw
+  "Distrusts sorcery", motivation "Coin and a quiet conscience" (the harness-header template with
+  these values; name/gender/age: Korrag / M / 32). Same seed every run.
+- **Start procedure (headless):** fetch the blueprint file, `validateBlueprint(bp)` must return
+  falsy, then set the global `pendingBlueprint = bp` and call
+  `startGame(char, tone.nm, tone.vc, "howard")` with `tone = TONES.filter(t => t.id === bp.tone)[0]`
+  (ES5 in the page: use `function(t){...}`). `startGame` applies the blueprint and SKIPS skeleton
+  generation. `_campName`: `modelTestCampaign_<provider>`.
+- **Artifacts:** save → `testRuns/modelTestCampaign_<provider>.tnd`; corpus →
+  `dev/corpus_playtest_v<ver>_<provider>.json`; audit → `audits/AUDIT_playtest_v<ver>_<provider>.md`,
+  judged against the gemini baseline (`dev/corpus_playtest_v1635_gemini.json`,
+  `audits/AUDIT_playtest_v1635_gemini.md`) — same 50-turn shape unless the user says otherwise.
+- First live comparison signal on record: the owner judged the Howard voice CLEARER on
+  gemini-3.5-flash than Sonnet (see the baseline audit's "Owner field verdict").
+
 ## /playtest run [N]
 
 Default N = 10. Turns cost real money — state the estimate and confirm before a run over ~25.
@@ -53,6 +77,16 @@ Judges the corpus already on disk (or in localStorage — pull it first, then pe
    window); don't pull all N narrations. Compare against the live
    `AUTHORS.filter(...)[0].vc`/`.contentDNA`. Verdict: holding steady vs. drifting toward
    generic/flat, with concrete before/after quotes.
+3b. **Narrative COHERENCE (mandatory since the 2026-08-15 gemini lesson — per-turn checks masked
+   cross-turn incoherence; the owner caught it only by reading the compiled story).** Three parts:
+   ① **dead-actor scan** — for every `[NPC:name|dead]` in `raw[]`, flag any LATER `log[]` narration
+   where that name speaks or acts (substring match on the name is enough; the gemini run had
+   Theron shrieking two turns after his death tag); ② **thread-dropout** — take the opening
+   premise's key nouns (caravan, patron, macguffin) and check they appear after the first act's
+   turns — a premise mentioned only in the first ~7 turns of 50 is a dropped thread; ③ **read the
+   compiled narrative** (`buildNarrativeHtml(worldState)`) start to finish as a STORY, not a log —
+   repeated kills, unexplained scene jumps, and resurrections only surface at this altitude.
+   Tag-perfect turns can still be a broken story: tag syntax and canon obedience are separable.
 4. Write `audits/AUDIT_playtest_v<ver>.md` in the house shape: **Run** header (turns, save, model,
    cost, corpus link, what commissioned it) · a bolded one-paragraph **Verdict** · a **checks**
    table (check | ✅/❌ + evidence) · honest negatives recorded as their own rows · a closing list
