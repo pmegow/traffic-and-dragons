@@ -16,8 +16,20 @@ var SUITES = [
   "dev/tests-bible-editor-launcher.js"
 ];
 
+// TODO #27 class, second instance (2026-08-15): git exports repo-location env (GIT_DIR,
+// GIT_INDEX_FILE, ...) into pre-commit hook environments — pathspec commits export an
+// absolute GIT_DIR + temp GIT_INDEX_FILE, which redirected tests-file-forensics' fixture
+// git calls into the MAIN repo and killed the suite deterministically (green in isolation,
+// red under the gate). Standalone suites are self-contained verifiers with their own
+// fixture repos; none may inherit the caller's repo location. Scrubbing here covers all
+// suites AND their child processes (env inherits down).
+var SCRUB = ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+  "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX"];
+var childEnv = Object.assign({}, process.env);
+SCRUB.forEach(function (k) { delete childEnv[k]; });
+
 for (var i = 0; i < SUITES.length; i++) {
-  var run = cp.spawnSync(process.execPath, [SUITES[i]], { cwd: ROOT, encoding: "utf8" });
+  var run = cp.spawnSync(process.execPath, [SUITES[i]], { cwd: ROOT, encoding: "utf8", env: childEnv });
   process.stdout.write(String(run.stdout || ""));
   process.stderr.write(String(run.stderr || ""));
   if (run.status !== 0) {
