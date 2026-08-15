@@ -52,6 +52,10 @@ function waitForPort(child) {
     const editorSrc = fs.readFileSync(editorPath, "utf8");
     verdict(!/alert\("Downloaded capability_bible\.js/.test(editorSrc),
       "offline recovery does not block on a redundant install alert");
+    verdict(editorSrc.indexOf("function srvToken") < 0 &&
+        editorSrc.indexOf("X-Bible-Token") < 0 &&
+        editorSrc.indexOf("bible-server write token") < 0,
+      "Bible editor never asks the user for a write token");
     verdict(/if \(_srvUp !== true\) \{\s*h \+= CUR\.handle/.test(editorSrc),
       "online status does not contradict itself with a download warning");
   }

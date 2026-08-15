@@ -25,6 +25,13 @@ const cases = [
     replace: "        alert(\"Downloaded capability_bible.js; install it manually.\");\n        if (onDone) onDone();"
   },
   {
+    label: "write-token prompt returns to the Bible editor",
+    file: "bible_editor.html",
+    mustFail: "Bible editor never asks the user for a write token",
+    find: "  function srvInstall(body) {",
+    replace: "  function srvToken() { return prompt(\"bible-server write token\"); }\n  function srvInstall(body) {"
+  },
+  {
     label: "online status claims Save will download",
     file: "bible_editor.html",
     mustFail: "online status does not contradict itself with a download warning",

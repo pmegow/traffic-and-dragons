@@ -333,40 +333,12 @@ function serializeItemBible(bible) {
   var HAS_FSA = (typeof window.showOpenFilePicker === "function");
   var BIBLE_SRV = "http://127.0.0.1:7373";   // dev/bible-server.js — THE save path when running
 
-  // ── per-run write token (ChatGPT review 2026-08-01) ────────────────────────
-  // The server refuses /install without the token it printed at startup — the guard against a
-  // drive-by page POSTing to localhost while the server runs. Asked for ONCE per browser
-  // session (sessionStorage); a 403 means the server restarted with a fresh token, so re-ask
-  // once and retry. A cancelled prompt aborts the save LOUDLY via the caller's error path.
-  function srvToken(forceAsk) {
-    var k = "tnd_bible_srv_tok_v1", t = null;
-    try { t = sessionStorage.getItem(k); } catch (e) {}
-    if (forceAsk || !t) {
-      t = prompt("bible-server write token (printed in the server's terminal at startup):", t || "");
-      if (t === null) return null;             // user cancelled
-      t = t.trim();
-      try { sessionStorage.setItem(k, t); } catch (e) {}
-    }
-    return t;
-  }
-  // The ONE way this page POSTs /install — absorbs a 403 with a single ask-and-retry. Every
-  // save path routes through here (contract-pinned). #72 overhaul (2026-08-14): TOKENLESS
-  // FIRST — the server allow-lists local origins, so served pages (localhost / 127.0.0.1)
-  // write with zero ceremony; the token prompt survives only for file:// pages and is asked
-  // AFTER a 403, never pre-emptively. The token-paste is gone from the recommended workflow.
+  // The ONE way this page POSTs /install. Bible Editor.cmd serves this page from localhost,
+  // which is the server's write authority; a directly opened file:// copy is recovery-only and
+  // receives a loud refusal instead of asking the user to copy credentials between windows.
   function srvInstall(body) {
-    function post(tok) {
-      var h = { "Content-Type": "text/plain" };
-      if (tok) h["X-Bible-Token"] = tok;
-      return fetch(BIBLE_SRV + "/install", { method: "POST", headers: h, body: body });
-    }
-    var stored = null;
-    try { stored = sessionStorage.getItem("tnd_bible_srv_tok_v1"); } catch (e) {}
-    return post(stored).then(function (r) {
-      if (r.status !== 403) return r;
-      var t2 = srvToken(true);                 // file:// page (or stale token) — ask once
-      if (t2 === null) return r;               // cancelled: let the 403 JSON surface loudly
-      return post(t2);
+    return fetch(BIBLE_SRV + "/install", {
+      method: "POST", headers: { "Content-Type": "text/plain" }, body: body
     });
   }
 

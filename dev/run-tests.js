@@ -1261,9 +1261,10 @@ try {
 // ── BIBLE-SERVER WRITE-AUTH CONTRACT (v1.521, ChatGPT review 2026-08-01) ─────────────────
 // dev/bible-server.js binds loopback, but ANY webpage open while it runs can POST to
 // localhost, and install-bible validates shape, not author intent — so /install requires a
-// per-run random token printed at server startup. These clauses pin the whole chain: token
-// generated, checked before the body is read, refused with 403, and every client page routes
-// through the ONE header-sending helper (a second raw "/install" fetch = a bypass).
+// per-run random token printed at server startup. The supported Bible Editor is instead served
+// from localhost: its browser-set Origin is the authority, so it must never ask the user for a
+// token. These clauses pin both routes: local-origin/token auth is checked before the body, the
+// editor is prompt-free, and the legacy necro tool still carries the fallback token.
 try {
   var _fsB = require("fs"), _pathB = require("path");
   var _rootB = _pathB.join(__dirname, "..");
@@ -1288,17 +1289,20 @@ try {
     console.error("BIBLE-SERVER WRITE-AUTH: Access-Control-Allow-Headers lost X-Bible-Token — the browser preflight would strip auth and every save 403s.");
     process.exit(1);
   }
-  // ④ Each client page has exactly ONE "/install" call — the srvInstall helper that sends the
-  //    token. A second occurrence is a raw fetch bypassing auth (it would 403 at runtime, but
-  //    fail here first, at commit time, with a reason).
-  ["bible_editor.html", "necro_spells_TMP.html"].forEach(function (pg) {
-    var _pgSrc = _ncB(_fsB.readFileSync(_pathB.join(_rootB, pg), "utf8"));
-    var _n = (_pgSrc.match(/\/install"/g) || []).length;
-    if (_n !== 1 || _pgSrc.indexOf("X-Bible-Token") < 0) {
-      console.error("BIBLE-SERVER WRITE-AUTH: " + pg + " must POST /install ONLY through srvInstall (found " + _n + ' "/install" call(s); X-Bible-Token ' + (_pgSrc.indexOf("X-Bible-Token") < 0 ? "MISSING" : "present") + ") — a raw fetch bypasses the write token.");
-      process.exit(1);
-    }
-  });
+  // ④ Both clients keep one POST boundary. The supported editor has NO credential UI; the
+  //    legacy file:// necro tool retains the token fallback until it gains its own launcher.
+  var _editorAuth = _ncB(_fsB.readFileSync(_pathB.join(_rootB, "bible_editor.html"), "utf8"));
+  if ((_editorAuth.match(/\/install"/g) || []).length !== 1 ||
+      _editorAuth.indexOf("X-Bible-Token") >= 0 || _editorAuth.indexOf("srvToken") >= 0 ||
+      _editorAuth.indexOf("bible-server write token") >= 0) {
+    console.error("BIBLE-SERVER WRITE-AUTH: bible_editor.html must have one /install boundary and ZERO write-token headers/prompts — Bible Editor.cmd supplies localhost authority.");
+    process.exit(1);
+  }
+  var _necroAuth = _ncB(_fsB.readFileSync(_pathB.join(_rootB, "necro_spells_TMP.html"), "utf8"));
+  if ((_necroAuth.match(/\/install"/g) || []).length !== 1 || _necroAuth.indexOf("X-Bible-Token") < 0) {
+    console.error("BIBLE-SERVER WRITE-AUTH: necro_spells_TMP.html lost its single authenticated /install boundary.");
+    process.exit(1);
+  }
 } catch (e) { console.error("BIBLE-SERVER WRITE-AUTH CHECK FAILED: " + e.message); process.exit(1); }
 
 // ── ENGINE MANIFEST CONTRACT (ChatGPT review 2026-08-01, finding 5 — the #17 rot class) ──

@@ -91,7 +91,7 @@ var server = http.createServer(function (req, res) {
     var localOrigin = !origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
     if (!localOrigin && req.headers["x-bible-token"] !== TOKEN) {
       console.warn("[install] " + new Date().toLocaleTimeString() + " REFUSED — origin " + JSON.stringify(origin || null) + " is not local and no valid X-Bible-Token was sent");
-      send(403, { ok: false, output: "write refused: this page's origin (" + (origin || "null") + ") is not localhost.\nA file:// page needs the write token printed in the bible-server terminal (new one each start)." });
+      send(403, { ok: false, output: "write refused: this page's origin (" + (origin || "null") + ") is not localhost.\nOpen the project-root Bible Editor.cmd for direct saves. Legacy file:// tools may use the server token, but the Bible Editor never asks for one." });
       return;
     }
     var body = "";
