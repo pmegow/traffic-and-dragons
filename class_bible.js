@@ -32,7 +32,7 @@ var CLASS_BIBLE = {
     "prime": "STR",
     "castStat": "INT",
     "desc": "Weapon master, armor bearer",
-    "gear": "hand-and-a-half sword, chainmail, belt knife, travel rations (3 days)",
+    "gear": "hand-and-a-half sword, chainmail, belt knife, travel rations (3 days), first aide kit.",
     "statPriority": [
       "STR",
       "CON",
@@ -644,11 +644,11 @@ var CLASS_BIBLE = {
   "Sorcerer": {
     "id": "Sorcerer",
     "nm": "Sorcerer",
-    "hd": 6,
+    "hd": 4,
     "prime": "INT",
     "castStat": "INT",
     "desc": "Arcane power, fragile body",
-    "gear": "carved staff, spell components, grimoire, travel rations (3 days)",
+    "gear": "carved staff, spell components, grimoire, travel rations (3 days), first aid kit",
     "statPriority": [
       "INT",
       "DEX",
@@ -691,25 +691,46 @@ var CLASS_BIBLE = {
         "Magic Missile",
         "Shield",
         "Thunderwave",
-        "Chromatic Orb"
+        "Chromatic Orb",
+        "Silent Image",
+        "Sleep",
+        "Ventriloquism",
+        "Hole",
+        "Absorb Elements",
+        "Grease"
       ],
       "2": [
         "Misty Step",
         "Scorching Ray",
         "Hold Person",
-        "Invisibility"
+        "Invisibility",
+        "Arcane Lock",
+        "Darkness",
+        "Mirror Image",
+        "Phantasmal Force",
+        "Silence",
+        "Spider Climb"
       ],
       "3": [
         "Fireball",
         "Counterspell",
-        "Fly"
+        "Fly",
+        "Diamond Skin",
+        "Dispel Magic",
+        "Fear",
+        "Telepathy",
+        "Astral Steed",
+        "Breathe Water",
+        "Lethe's Kiss",
+        "Shrink"
       ],
       "4": [
         "Ice Storm",
         "Wall of Fire",
         "Greater Invisibility",
         "Banishment",
-        "Polymorph"
+        "Polymorph",
+        "Archmage Hand"
       ],
       "5": [
         "Cone of Cold",
@@ -720,13 +741,19 @@ var CLASS_BIBLE = {
       "6": [
         "Chain Lightning",
         "Disintegrate",
-        "Globe of Invulnerability"
+        "Globe of Invulnerability",
+        "Gemstone Warriors"
       ],
       "cantrips": [
         "Fire Bolt",
         "Ray of Frost",
         "Mage Hand",
-        "Prestidigitation"
+        "Prestidigitation",
+        "Dancing Lights",
+        "Flash",
+        "Message",
+        "Thaumaturgy",
+        "Light"
       ]
     },
     "levels": {
