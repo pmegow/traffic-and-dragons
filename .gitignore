@@ -22,6 +22,10 @@ audits/AUDIT_FABLE_*.md
 # it showed in every `git status` and one stray `git add -A` would have committed it.
 Campaigns/
 
+# Exported narrative mementos (#5 story compiler output) — personal play output, same class as
+# Campaigns/ (user call 2026-08-15)
+momentos/
+
 # Personal Claude Code settings (hooks + launch.json ARE committed)
 .claude/settings.local.json
 
