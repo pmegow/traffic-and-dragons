@@ -72,7 +72,10 @@ Judges the corpus already on disk (or in localStorage — pull it first, then pe
 2. **Tag fidelity** — `__pt.raw[]` holds the raw GM responses. Check the tags the turn's prose
    implies actually landed (spend → `[GOLD:-N]`, taking → `[ITEM_GAINED:]`, quest close, combat
    lifecycle). A narrated effect with no tag is a silent desync — the failure class this run exists
-   to catch.
+   to catch. **Unknown-tag census: derive the known list FROM `tag_table.js`** (TAG_TABLE handler
+   names + TAG_NO_HANDLER + the strip-only names), never from a hand list or the docs index — the
+   2026-08-15 gemini audit falsely flagged two LEGITIMATE tags (`SCENE_DEATH`, `LOCATION_SIZE`)
+   because its census list was hand-built.
 3. **Prose-voice / content-DNA drift** — sample turns spread early/mid/late (plus any combat
    window); don't pull all N narrations. Compare against the live
    `AUTHORS.filter(...)[0].vc`/`.contentDNA`. Verdict: holding steady vs. drifting toward
