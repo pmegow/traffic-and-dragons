@@ -56,6 +56,8 @@ textarea{width:100%;resize:vertical;}
 .badge.pend{color:var(--pend);}
 .badge.miss{color:var(--t2);}
 .x{color:var(--bad);cursor:pointer;border:none;background:none;font-size:14px;padding:0 4px;}
+.pen{color:var(--t1);cursor:pointer;border:none;background:none;font-size:13px;padding:0 4px;}
+.pen:hover{color:var(--acc);}
 .lvl{border:1px solid var(--brd);border-radius:8px;padding:8px 12px;margin:8px 0;background:var(--bg2);}
 .lvl .lv{color:var(--acc);font-weight:bold;margin-right:8px;}
 .lvl.blank{border-style:dashed;}
@@ -1147,6 +1149,25 @@ function serializeItemBible(bible) {
     if (onDrop) $("m-drop").onclick = function () { onDrop(); closeModal(); };
   }
   function closeModal() { $("modal").style.display = "none"; }
+  // ✎ large-editor modal for a feature's description (class view). Reads and writes through
+  // target(path) — the exact seam the inline onchange handler uses — never a parallel copy.
+  function openProseModal(path) {
+    var t = target(path); if (!t) return;
+    var f = t.arr[t.i];
+    $("modal-box").innerHTML =
+      "<h3 style='margin:0 0 4px'>" + esc(f.nm || "Feature") + "</h3>" +
+      "<p class='muted' style='margin:0 0 8px'>Feature description — the same field as the inline input, with room to breathe.</p>" +
+      "<textarea id='prose-ta' rows='12' style='width:100%;box-sizing:border-box'>" + esc(f.ds || "") + "</textarea>" +
+      "<div style='margin-top:12px;display:flex;gap:10px'><button class='primary' id='prose-save'>Save</button><button id='prose-cancel'>Cancel</button></div>";
+    $("modal").style.display = "flex";
+    $("prose-save").onclick = function () {
+      var t2 = target(path);
+      if (t2) { t2.arr[t2.i].ds = $("prose-ta").value; markDirty(); render(); }
+      closeModal();
+    };
+    $("prose-cancel").onclick = closeModal;
+    $("prose-ta").focus();
+  }
 
   // ── CLASS bible view ──────────────────────────────────────────────────────
   function classTabs() {
@@ -1161,6 +1182,7 @@ function serializeItemBible(bible) {
     return "<div class='feat' data-frow='" + path + "'><span class='grip' title='drag to move / reorder'>⋮⋮</span>" + badgeFor(f.nm) +
       "<input class='nm' type='text' value='" + esc(f.nm) + "' data-p='" + path + "' data-f='nm' placeholder='Feature name'>" +
       "<input class='ds' type='text' value='" + esc(f.ds) + "' data-p='" + path + "' data-f='ds' placeholder='summary prose'>" +
+      "<button class='pen' data-pen='" + path + "' title='edit description in a large editor'>✎</button>" +
       "<button class='x' data-del='" + path + "' title='remove'>✕</button></div>";
   }
   function levelBlock(levels, base, label, rubric) {
@@ -1288,6 +1310,13 @@ function serializeItemBible(bible) {
     for (i = 0; i < dels.length; i++) dels[i].onclick = function () {
       var t = target(this.getAttribute("data-del"));
       if (t) { t.arr.splice(t.i, 1); markDirty(); render(); }
+    };
+    // Owner request 2026-08-14 (mid-Sorcerer-review): the ds field is one crammed line — the ✎
+    // opens a roomy modal editor over the SAME write path the inline input uses (target →
+    // mutate → markDirty → render), so dirty-tracking and draft persistence cannot diverge.
+    var pens = m.querySelectorAll("button[data-pen]");
+    for (i = 0; i < pens.length; i++) pens[i].onclick = function () {
+      openProseModal(this.getAttribute("data-pen"));
     };
     var adds = m.querySelectorAll("button[data-add]");
     for (i = 0; i < adds.length; i++) adds[i].onclick = function () {
