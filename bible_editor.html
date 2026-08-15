@@ -1417,10 +1417,16 @@ function serializeItemBible(bible) {
       // cost defaults to a REAL value: no entry in the bible uses "N/A" for cost, because every
       // capability costs something (at-will / slot / passive / per-rest / per-day).
       var ak = addKey(nm);
+      // #26 (owner data loss, 2026-08-14): the old save handler was `ADD[ak] = o` — a page-memory
+      // stage that NOTHING ever flushed to disk. Four authored Sorcerer spells looked saved all
+      // session and vanished on reload. Adds now go through the SAME durable write path as the
+      // shipped-entry balance pass, with allowCreate — success lands in capability_bible.js
+      // (validated by install-bible) and clears any legacy staged copy; failure keeps the form
+      // open with the values intact (the async-saver contract).
       capForm(nm, ADD[ak] || { kind: "ability", tier: 0, cost: "passive", isMagical: false, category: ["martial"], range: "self", targets: "self", duration: "always on", save: "N/A", dice: "N/A", effect: "" },
-        function (o) { ADD[ak] = o; markDirty(); render(); },
+        function (o) { updateShippedCapability(ak, o, function () { delete ADD[ak]; render(); }, true); return false; },
         ADD[ak] ? function () { delete ADD[ak]; markDirty(); render(); } : null,
-        ADD[ak] ? "Update Bible" : "Add to Bible");   // ● staged addition = updating your definition; ○ fresh miss = adding
+        ADD[ak] ? "Update Bible" : "Add to Bible");   // ● legacy staged copy = re-saving it durably; ○ fresh miss = adding
     };
   }
   // "+ from bible" picker: checkbox list of every unused capability-bible SPELL of the
@@ -1485,10 +1491,14 @@ function serializeItemBible(bible) {
   // Update Bible button). Pure so run-tests.js can pin it: returns true and stamps obj+dirty
   // when the key exists; false and touches NOTHING when it does not — the caller must refuse
   // to invent entries (a miss here means the picked file is not the bible the card came from).
-  function capApplyEdit(entries, key, obj) {
+  function capApplyEdit(entries, key, obj, allowCreate) {
     for (var i = 0; i < entries.length; i++) {
       if (entries[i].key === key) { entries[i].obj = obj; entries[i].dirty = true; return true; }
     }
+    // #26: the class-view "Add to Bible" is a legitimate NEW key — append it (dirty → the
+    // serializer emits it canonically at the end). allowCreate is passed ONLY by the add flow,
+    // so the unknown-key refusal keeps guarding Update-path typos exactly as before.
+    if (allowCreate) { entries.push({ key: key, obj: obj, dirty: true }); return true; }
     return false;
   }
   // <<< CAP EDIT
@@ -1510,7 +1520,7 @@ function serializeItemBible(bible) {
   // result — a blob and an anchor click, with no handle, permission or swap file to be refused.
   // `node dev/install-bible.js capability` then validates and installs it. That is the workflow
   // install-bible.js exists for, and it has never failed here.
-  function updateShippedCapability(key, obj, onDone) {
+  function updateShippedCapability(key, obj, onDone, allowCreate) {
     // ONE-CLICK PATH FIRST: if the local bible-server is running (node dev/bible-server.js), it
     // reads and installs — no picker, no download, no command. Validation still happens in
     // dev/install-bible.js on the Node side. If the server is not up, fall through to the
@@ -1520,7 +1530,7 @@ function serializeItemBible(bible) {
       if (!g.ok) throw new Error(g.output || "server could not read the bible");
       if (!BIBLE_TYPES["capability"].detect(g.text)) throw new Error("the server's capability_bible.js has no CAPABILITY_BIBLE block — is the project checkout healthy?");
       var st = BIBLE_TYPES["capability"].parse(g.text);
-      if (!capApplyEdit(st.entries, key, obj))
+      if (!capApplyEdit(st.entries, key, obj, allowCreate))
         throw new Error("\"" + key + "\" is not in capability_bible.js — is this entry's name right?");
       return srvInstall(serializeCapabilityBible(st))
         .then(function (r) { return r.json(); })
@@ -1571,7 +1581,7 @@ function serializeItemBible(bible) {
         if (!BIBLE_TYPES["capability"].detect(src))
           throw new Error(h.name + " is not the capability bible (no CAPABILITY_BIBLE block) — pick capability_bible.js from the project folder");
         var st = BIBLE_TYPES["capability"].parse(src);
-        if (!capApplyEdit(st.entries, key, obj))
+        if (!capApplyEdit(st.entries, key, obj, allowCreate))
           throw new Error("\"" + key + "\" is not in " + h.name + " — is that the capability bible this entry came from?");
         _capHandle = h;                       // reads are the reliable half; keep it for next time
         _idbPut(FS_CAP_KEY, h)["catch"](function () {});
@@ -1658,6 +1668,7 @@ function serializeItemBible(bible) {
     moveFeat: moveFeat,
     setCapHandle: function (h) { _capHandle = h; },
     updateShippedCapability: updateShippedCapability,
+    capApplyEdit: capApplyEdit,
     serialize: function () { return BIBLE_TYPES[CUR.typeId].serialize(CUR.data); }
   };
   // the capability handle needs no Reconnect ceremony: a lapsed permission is re-granted inside
