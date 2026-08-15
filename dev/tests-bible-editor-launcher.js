@@ -107,6 +107,18 @@ function listeningPid(port) {
   }
   if (fs.existsSync(editorPath)) {
     const editorSrc = fs.readFileSync(editorPath, "utf8");
+    const writerGateMatch = editorSrc.match(/\/\/ >>> WRITER GATE([\s\S]*?)\/\/ <<< WRITER GATE/);
+    let writerOriginOK = null;
+    if (writerGateMatch) {
+      try { writerOriginOK = new Function(writerGateMatch[1] + "\nreturn writerOriginOK;")(); }
+      catch (ignore) {}
+    }
+    verdict(typeof writerOriginOK === "function" &&
+        writerOriginOK({ protocol: "file:", hostname: "" }) === false &&
+        writerOriginOK({ protocol: "http:", hostname: "127.0.0.1" }) === true &&
+        writerOriginOK({ protocol: "http:", hostname: "localhost" }) === true &&
+        writerOriginOK({ protocol: "https:", hostname: "example.com" }) === false,
+      "file pages stay read-only even while the helper is healthy");
     const capabilitySave = editorSrc.slice(editorSrc.indexOf("function updateShippedCapability"),
       editorSrc.indexOf("// ── toolbar"));
     verdict(capabilitySave.indexOf("legacyDownloadFlow") < 0 &&
@@ -116,6 +128,13 @@ function listeningPid(port) {
     verdict(capabilitySave.indexOf("local project writer is unavailable") >= 0 &&
         capabilitySave.indexOf("nothing was written; your values are still in the form") >= 0,
       "local writer failure stays loud and preserves the capability form");
+    verdict(capabilitySave.indexOf("if (!projectWriteReady())") >= 0 &&
+        capabilitySave.indexOf("if (!projectWriteReady())") < capabilitySave.indexOf('fetch(BSRV + "/bible")'),
+      "capability writes refuse read-only pages before the first fetch");
+    const capabilityForm = editorSrc.slice(editorSrc.indexOf("function capForm"),
+      editorSrc.indexOf("function closeModal"));
+    verdict(capabilityForm.indexOf("syncWriterControls();") >= 0,
+      "read-only mode disables capability form write controls");
     verdict(editorSrc.indexOf("function srvToken") < 0 &&
         editorSrc.indexOf("X-Bible-Token") < 0 &&
         editorSrc.indexOf("bible-server write token") < 0,

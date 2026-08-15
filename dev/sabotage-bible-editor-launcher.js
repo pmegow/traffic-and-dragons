@@ -43,8 +43,15 @@ const cases = [
     label: "shared version loses its visible semver shape",
     file: "dev/bible-editor-version.js",
     mustFail: "Bible Editor version has a visible semver shape",
-    find: 'var BIBLE_EDITOR_VERSION = "1.1.1";',
+    find: 'var BIBLE_EDITOR_VERSION = "1.1.2";',
     replace: 'var BIBLE_EDITOR_VERSION = "unknown";'
+  },
+  {
+    label: "file pages trust a healthy helper as write authority",
+    file: "bible_editor.html",
+    mustFail: "file pages stay read-only even while the helper is healthy",
+    find: '    return p === "http:" && (h === "127.0.0.1" || h === "localhost");',
+    replace: "    return true;"
   },
   {
     label: "version label disappears from the editor header",
@@ -92,8 +99,22 @@ const cases = [
     label: "read-only launch instruction disappears",
     file: "bible_editor.html",
     mustFail: "unavailable writer shows the exact read-only launch instruction",
-    find: "Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit",
-    replace: "Save unavailable"
+    find: "    if (_srvUp === false) return \" · <span style='color:var(--bad);font-weight:700' title='local project writer unavailable'>Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit.</span>\";",
+    replace: "    if (_srvUp === false) return \" · <span style='color:var(--bad)'>Save unavailable</span>\";"
+  },
+  {
+    label: "capability write reaches fetch from a read-only page",
+    file: "bible_editor.html",
+    mustFail: "capability writes refuse read-only pages before the first fetch",
+    find: "    if (!projectWriteReady()) {\n      note(\"Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit. — nothing was written; your values are still in the form\");",
+    replace: "    if (false) {\n      note(\"Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit. — nothing was written; your values are still in the form\");"
+  },
+  {
+    label: "capability form leaves its write button enabled in read-only mode",
+    file: "bible_editor.html",
+    mustFail: "read-only mode disables capability form write controls",
+    find: '    $("modal").style.display = "flex";\n    syncWriterControls();\n    $("cap-cost").onchange',
+    replace: '    $("modal").style.display = "flex";\n    $("cap-cost").onchange'
   },
   {
     label: "Save as alternate workflow returns",

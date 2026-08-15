@@ -326,9 +326,20 @@ function serializeItemBible(bible) {
   var HAS_FSA = (typeof window.showOpenFilePicker === "function");
   var BIBLE_SRV = "http://127.0.0.1:7373";   // loopback-only writer for this project checkout
 
+  // >>> WRITER GATE
+  // A healthy helper is not enough: file:// has Origin:null and is deliberately refused by the
+  // writer. Only the page served from the loopback launcher is an editable Bible Editor.
+  function writerOriginOK(loc) {
+    var p = String(loc && loc.protocol || "").toLowerCase();
+    var h = String(loc && loc.hostname || "").toLowerCase();
+    return p === "http:" && (h === "127.0.0.1" || h === "localhost");
+  }
+  // <<< WRITER GATE
+
   // The ONE way this page asks Node to update a project bible. Bible Editor.cmd serves this page
   // from localhost, which proves the editor and writer belong to the same local checkout.
   function srvInstall(body) {
+    if (!projectWriteReady()) return Promise.reject(new Error("Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit."));
     return fetch(BIBLE_SRV + "/install", {
       method: "POST", headers: { "Content-Type": "text/plain",
         "X-Bible-Editor-Version": BIBLE_EDITOR_VERSION }, body: body
@@ -484,6 +495,10 @@ function serializeItemBible(bible) {
   // disk is refused: that is the signature of an old tab draft about to erase finished work).
   // A failure never switches workflows: the draft stays intact and the reason is shown.
   function serverSaveBible() {
+    if (!projectWriteReady()) {
+      note("Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit. — nothing was written; your draft is still here");
+      return Promise.resolve("done");
+    }
     if (!applyNameNormalization()) return Promise.resolve("done");   // user declined the rename list
     var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);
     return srvInstall(ser)
@@ -640,7 +655,22 @@ function serializeItemBible(bible) {
   // and re-checks every 20s so a stopped helper cannot masquerade as a usable Save button.
   var _srvUp = null;   // null = unknown, true/false once probed
   var _srvVersion = null;
+  function projectWriteReady() {
+    return writerOriginOK(window.location) && _srvUp === true && _srvVersion === BIBLE_EDITOR_VERSION;
+  }
+  function syncWriterControls() {
+    var ready = projectWriteReady(), ids = ["save", "m-save", "m-edit"], i, b;
+    for (i = 0; i < ids.length; i++) {
+      b = $(ids[i]);
+      if (!b) continue;
+      b.disabled = !ready;
+      b.title = ready ? "Write to the local project checkout" : "Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit.";
+    }
+  }
   function probeServer() {
+    if (!writerOriginOK(window.location)) {
+      _srvUp = false; _srvVersion = null; fileLine(); return;
+    }
     fetch(BIBLE_SRV + "/health").then(function (r) { return r.json(); })
       .then(function (j) { _srvUp = !!(j && j.ok); _srvVersion = j && j.version || null; fileLine(); })
       ["catch"](function () { _srvUp = false; _srvVersion = null; fileLine(); });
@@ -650,18 +680,17 @@ function serializeItemBible(bible) {
     if (_srvUp === true && _srvVersion !== BIBLE_EDITOR_VERSION)
       return " · <span style='color:var(--bad)'>● version mismatch — editor v" + esc(BIBLE_EDITOR_VERSION) +
         ", helper v" + esc(_srvVersion || "unversioned") + "; close this tab and reopen Bible Editor.cmd</span>";
-    if (_srvUp === true) return " · <span style='color:var(--good,#7aa86a)'>● local project writer ready — saves update this checkout</span>";
+    if (projectWriteReady()) return " · <span style='color:var(--good,#7aa86a)'>● local project writer ready — saves update this checkout</span>";
     if (_srvUp === false) return " · <span style='color:var(--bad);font-weight:700' title='local project writer unavailable'>Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit.</span>";
     return "";
   }
   function fileLine() {
+    syncWriterControls();
     if (!CUR) { $("fileline").innerHTML = "<span class='muted'>No bible open — press <b>📂 Open bible…</b> and pick class_bible.js or capability_bible.js from the project folder.</span>" + srvPill(); return; }
     var h = "<b>" + esc(CUR.name) + "</b> · " + BIBLE_TYPES[CUR.typeId].label;
     h += srvPill();
     if (CUR.dirty) h += " · <span class='dirty'>unsaved changes</span>";
     $("fileline").innerHTML = h;
-    $("save").disabled = (_srvUp !== true);
-    $("save").title = _srvUp === true ? "Overwrite this bible in the local project checkout" : "Reopen with Bible Editor.cmd to start the local project writer";
     // surface merged additions as a one-click cleanup, never an automatic deletion of authored data
     var merged = mergedAdds();
     $("clr-adds").style.display = merged.length ? "" : "none";
@@ -940,6 +969,7 @@ function serializeItemBible(bible) {
       (onDrop ? "<button id='m-drop'>Remove</button>" : "") + "<button id='m-close'>Cancel</button></div>";
     $("modal-box").innerHTML = h;
     $("modal").style.display = "flex";
+    syncWriterControls();
     $("cap-cost").onchange = function () {
       $("cap-cost-custom").style.display = (this.value === "custom…") ? "" : "none";
       if (this.value === "custom…") $("cap-cost-custom").focus();
@@ -1307,6 +1337,7 @@ function serializeItemBible(bible) {
       "<div style='margin-top:12px;display:flex;gap:10px'><button class='primary' id='m-edit'>✎ Update Bible…</button><button id='m-close'>Close</button></div>";
     $("modal").style.display = "flex";
     $("m-close").onclick = closeModal;
+    syncWriterControls();
     // Balance pass straight from the card (user request 2026-08-01): edit the SHIPPED entry's
     // text and attributes and write capability_bible.js surgically — the class bible stays this
     // tab's open file. The form is opened on the KEY (lowercase), not the display name, so the
@@ -1348,6 +1379,11 @@ function serializeItemBible(bible) {
     // Bible Editor.cmd opens the page with the local writer running: no picker, download, token,
     // or install command. Validation still happens in dev/install-bible.js before disk changes.
     var BSRV = BIBLE_SRV;
+    if (!projectWriteReady()) {
+      note("Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit. — nothing was written; your values are still in the form");
+      console.warn("[bible] capability write refused before fetch: editor is read-only");
+      return;
+    }
     fetch(BSRV + "/bible").then(function (r) { return r.json(); }).then(function (g) {
       if (!g.ok) throw new Error(g.output || "server could not read the bible");
       if (!BIBLE_TYPES["capability"].detect(g.text)) throw new Error("the server's capability_bible.js has no CAPABILITY_BIBLE block — is the project checkout healthy?");
@@ -1415,6 +1451,8 @@ function serializeItemBible(bible) {
     markDirty: markDirty,
     moveFeat: moveFeat,
     updateShippedCapability: updateShippedCapability,
+    writerOriginOK: writerOriginOK,
+    projectWriteReady: projectWriteReady,
     capApplyEdit: capApplyEdit,
     serialize: function () { return BIBLE_TYPES[CUR.typeId].serialize(CUR.data); }
   };
