@@ -34,6 +34,7 @@
 body{background:var(--bg);color:var(--t0);font:14px/1.5 Georgia,serif;margin:0;}
 #bar{position:sticky;top:0;z-index:5;background:var(--bg2);border-bottom:1px solid var(--brd);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 #bar h1{font-size:16px;color:var(--acc);margin:0 10px 0 0;}
+.editor-version{color:var(--t1);font-size:11px;font-weight:normal;letter-spacing:.35px;white-space:nowrap;}
 button{font-family:Georgia,serif;font-size:13px;background:var(--bg3);color:var(--t0);border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;}
 button:hover{border-color:var(--acc);}
 button.primary{border-color:var(--acc);color:var(--acc);}
@@ -92,13 +93,13 @@ textarea{width:100%;resize:vertical;}
      the SW but their SUBRESOURCES are not, and Chrome caches file:// scripts too; a unique
      query per open defeats both. Editors open rarely — the extra fetch is noise. -->
 <script>
-(function(){var q="?fresh="+Date.now(),fs=["data.js","capability_bible.js","item_bible.js","helpers.js","class_bible.js"],i;
+(function(){var q="?fresh="+Date.now(),fs=["dev/bible-editor-version.js","data.js","capability_bible.js","item_bible.js","helpers.js","class_bible.js"],i;
 for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');})();
 </script>
 </head>
 <body>
 <div id="bar">
-  <h1>Bible Editor <span class="muted">dev tool</span></h1>
+  <h1>Bible Editor <span class="muted">dev tool</span> <span class="editor-version" id="editor-version"></span></h1>
   <button class="primary" id="open">📂 Open bible…</button>
   <button class="primary" id="save" disabled>💾 Save (overwrite)</button>
   <button class="primary" id="saveas">💾 Save as… (always works)</button>
@@ -260,6 +261,8 @@ function serializeItemBible(bible) {
   function $(id) { return document.getElementById(id); }
   function esc(s) { return escHtml(String(s == null ? "" : s)); }
   function deep(o) { return JSON.parse(JSON.stringify(o)); }
+  $("editor-version").textContent = "v" + BIBLE_EDITOR_VERSION;
+  document.title = "Bible Editor v" + BIBLE_EDITOR_VERSION + " — bible authoring";
 
   // ── bible type REGISTRY — adding the item bible later is one entry ────────
   var BIBLE_TYPES = {
@@ -338,7 +341,8 @@ function serializeItemBible(bible) {
   // receives a loud refusal instead of asking the user to copy credentials between windows.
   function srvInstall(body) {
     return fetch(BIBLE_SRV + "/install", {
-      method: "POST", headers: { "Content-Type": "text/plain" }, body: body
+      method: "POST", headers: { "Content-Type": "text/plain",
+        "X-Bible-Editor-Version": BIBLE_EDITOR_VERSION }, body: body
     });
   }
 
@@ -798,13 +802,17 @@ function serializeItemBible(bible) {
   // Save will take was previously discoverable only by saving. The pill answers it up front and
   // re-checks every 20s + after every save attempt.
   var _srvUp = null;   // null = unknown, true/false once probed
+  var _srvVersion = null;
   function probeServer() {
     fetch(BIBLE_SRV + "/health").then(function (r) { return r.json(); })
-      .then(function (j) { _srvUp = !!(j && j.ok); fileLine(); })
-      ["catch"](function () { _srvUp = false; fileLine(); });
+      .then(function (j) { _srvUp = !!(j && j.ok); _srvVersion = j && j.version || null; fileLine(); })
+      ["catch"](function () { _srvUp = false; _srvVersion = null; fileLine(); });
   }
   setInterval(probeServer, 20000); probeServer();
   function srvPill() {
+    if (_srvUp === true && _srvVersion !== BIBLE_EDITOR_VERSION)
+      return " · <span style='color:var(--bad)'>● version mismatch — editor v" + esc(BIBLE_EDITOR_VERSION) +
+        ", helper v" + esc(_srvVersion || "unversioned") + "; close this tab and reopen Bible Editor.cmd</span>";
     if (_srvUp === true) return " · <span style='color:var(--good,#7aa86a)'>● bible-server — saves are one-click, validated</span>";
     if (_srvUp === false) return " · <span style='color:var(--warn,#c9a227)'>○ save helper offline — reopen via Bible Editor.cmd for direct saves</span>";
     return "";

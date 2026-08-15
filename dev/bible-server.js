@@ -27,6 +27,7 @@ var path = require("path");
 var os = require("os");
 var crypto = require("crypto");
 var execFile = require("child_process").execFile;
+var EDITOR_VERSION = require("./bible-editor-version.js");
 
 var ROOT = path.join(__dirname, "..");
 var PORT = process.env.BIBLE_PORT === undefined ? 7373 : Number(process.env.BIBLE_PORT);
@@ -35,6 +36,7 @@ var TOKEN = crypto.randomBytes(16).toString("hex");   // per-run write token —
 var EDITOR_ASSETS = {
   "/": "bible_editor.html",
   "/bible_editor.html": "bible_editor.html",
+  "/dev/bible-editor-version.js": "dev/bible-editor-version.js",
   "/data.js": "data.js",
   "/capability_bible.js": "capability_bible.js",
   "/item_bible.js": "item_bible.js",
@@ -45,7 +47,7 @@ var MIME = { ".html": "text/html", ".js": "text/javascript" };
 var CORS = {
   "Access-Control-Allow-Origin": "*",          // the pages run from file:// (Origin: null)
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Bible-Token"
+  "Access-Control-Allow-Headers": "Content-Type, X-Bible-Token, X-Bible-Editor-Version"
 };
 
 function serveEditorAsset(req, res) {
@@ -74,7 +76,8 @@ var server = http.createServer(function (req, res) {
 
   if (req.method === "GET" && req.url === "/health") {
     // cheap liveness probe for the editor's status pill — never reads a file
-    send(200, { ok: true, server: "bible-server", auth: "origin-allowlist (token only for file://)" });
+    send(200, { ok: true, server: "bible-server", version: EDITOR_VERSION,
+      auth: "origin-allowlist (token only for legacy file:// tools)" });
     return;
   }
 
@@ -88,7 +91,15 @@ var server = http.createServer(function (req, res) {
     // Write auth (refuse before reading the body): local-origin requests pass; everything else
     // needs this run's token. See the security-posture comment up top for the threat model.
     var origin = req.headers["origin"];
+    var servedOrigin = !!origin && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
     var localOrigin = !origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    if (servedOrigin && req.headers["x-bible-editor-version"] !== EDITOR_VERSION) {
+      console.warn("[install] " + new Date().toLocaleTimeString() + " REFUSED — editor/helper version mismatch");
+      send(409, { ok: false, output: "Bible Editor version mismatch: helper v" + EDITOR_VERSION +
+        ", page v" + (req.headers["x-bible-editor-version"] || "unversioned") +
+        ". Close this tab and reopen Bible Editor.cmd." });
+      return;
+    }
     if (!localOrigin && req.headers["x-bible-token"] !== TOKEN) {
       console.warn("[install] " + new Date().toLocaleTimeString() + " REFUSED — origin " + JSON.stringify(origin || null) + " is not local and no valid X-Bible-Token was sent");
       send(403, { ok: false, output: "write refused: this page's origin (" + (origin || "null") + ") is not localhost.\nOpen the project-root Bible Editor.cmd for direct saves. Legacy file:// tools may use the server token, but the Bible Editor never asks for one." });
@@ -137,6 +148,7 @@ server.listen(PORT, "127.0.0.1", function () {
   console.log("bible-server listening on http://127.0.0.1:" + actualPort);
   console.log("");
   console.log("  Editor: http://127.0.0.1:" + actualPort + "/bible_editor.html");
+  console.log("  Version: v" + EDITOR_VERSION);
   console.log("  Server-hosted editor writes with NO token — just save.");
   console.log("  WRITE TOKEN — only needed by file:// pages (new one every server start):");
   console.log("  " + TOKEN);

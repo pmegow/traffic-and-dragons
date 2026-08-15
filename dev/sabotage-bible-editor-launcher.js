@@ -13,6 +13,7 @@ const WORKING_FILES = [
   "Bible Editor.cmd",
   "bible_editor.html",
   "dev/bible-server.js",
+  "dev/bible-editor-version.js",
   "dev/launch-bible-editor.js",
   "dev/tests-bible-editor-launcher.js"
 ];
@@ -30,6 +31,48 @@ const cases = [
     mustFail: "Bible editor never asks the user for a write token",
     find: "  function srvInstall(body) {",
     replace: "  function srvToken() { return prompt(\"bible-server write token\"); }\n  function srvInstall(body) {"
+  },
+  {
+    label: "shared version loses its visible semver shape",
+    file: "dev/bible-editor-version.js",
+    mustFail: "Bible Editor version has a visible semver shape",
+    find: 'var BIBLE_EDITOR_VERSION = "1.0.0";',
+    replace: 'var BIBLE_EDITOR_VERSION = "unknown";'
+  },
+  {
+    label: "version label disappears from the editor header",
+    file: "bible_editor.html",
+    mustFail: "Bible Editor renders the shared version in its header",
+    find: ' <span class="editor-version" id="editor-version"></span>',
+    replace: ""
+  },
+  {
+    label: "editor stops identifying its version on writes",
+    file: "bible_editor.html",
+    mustFail: "Bible Editor sends its version on every install request",
+    find: '"X-Bible-Editor-Version": BIBLE_EDITOR_VERSION',
+    replace: '"X-Removed-Version": BIBLE_EDITOR_VERSION'
+  },
+  {
+    label: "helper stops reporting its version",
+    file: "dev/bible-server.js",
+    mustFail: "helper reports the shared Bible Editor version",
+    find: 'version: EDITOR_VERSION,',
+    replace: 'version: "unknown",'
+  },
+  {
+    label: "helper accepts a stale served editor",
+    file: "dev/bible-server.js",
+    mustFail: "helper refuses a stale served editor before reading its upload",
+    find: 'if (servedOrigin && req.headers["x-bible-editor-version"] !== EDITOR_VERSION) {',
+    replace: 'if (false) {'
+  },
+  {
+    label: "launcher reuses a stale helper",
+    file: "dev/launch-bible-editor.js",
+    mustFail: "launcher refuses a stale helper version",
+    find: 'j.version === EDITOR_VERSION',
+    replace: 'true'
   },
   {
     label: "online status claims Save will download",

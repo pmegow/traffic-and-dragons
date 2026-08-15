@@ -7,6 +7,7 @@
 var cp = require("child_process");
 var http = require("http");
 var path = require("path");
+var EDITOR_VERSION = require("./bible-editor-version.js");
 
 var ROOT = path.join(__dirname, "..");
 var EDITOR_URL = "http://127.0.0.1:7373/bible_editor.html";
@@ -21,11 +22,15 @@ function isHealthy(done) {
     res.on("end", function () {
       if (settled) return;
       settled = true;
-      done(res.statusCode === 200 && /\"server\":\"bible-server\"/.test(body));
+      var j = null;
+      try { j = JSON.parse(body); } catch (ignore) {}
+      var ours = !!(j && j.server === "bible-server");
+      done(res.statusCode === 200 && ours && j.version === EDITOR_VERSION,
+        ours ? (j.version || "unversioned") : null);
     });
   });
   req.on("timeout", function () { req.destroy(); });
-  req.on("error", function () { if (!settled) { settled = true; done(false); } });
+  req.on("error", function () { if (!settled) { settled = true; done(false, null); } });
 }
 
 function openEditor() {
@@ -43,9 +48,16 @@ function openEditor() {
   opener.unref();
 }
 
+function staleHelper(foundVersion) {
+  console.error("Bible Editor helper is v" + foundVersion + ", but this launcher is v" +
+    EDITOR_VERSION + ". Close the old helper, then run Bible Editor.cmd again.");
+  process.exitCode = 1;
+}
+
 function waitForServer(attempt) {
-  isHealthy(function (ok) {
+  isHealthy(function (ok, foundVersion) {
     if (ok) { openEditor(); return; }
+    if (foundVersion !== null) { staleHelper(foundVersion); return; }
     if (attempt >= 30) {
       console.error("Bible Editor helper did not start. Port 7373 may belong to another program.");
       process.exitCode = 1;
@@ -55,8 +67,9 @@ function waitForServer(attempt) {
   });
 }
 
-isHealthy(function (ok) {
+isHealthy(function (ok, foundVersion) {
   if (ok) { openEditor(); return; }
+  if (foundVersion !== null) { staleHelper(foundVersion); return; }
   var helper = cp.spawn(process.execPath, [path.join(__dirname, "bible-server.js")], {
     cwd: ROOT,
     detached: true,
