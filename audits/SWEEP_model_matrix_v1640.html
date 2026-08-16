@@ -1,0 +1,133 @@
+<title>The Korrag Matrix</title>
+<style>
+:root{
+  --bg:#f7f1e6; --ink:#2b2620; --dim:#8a7f6d; --line:#e3d8c4; --panel:#fdf9f0;
+  --acc:#b8935a; --acc-ink:#8a6a38;
+  --pass:#5a7a4d; --pass-bg:#eef0e2;
+  --fail:#a04a38; --fail-bg:#f5e6e0;
+  --warn:#a0783c; --warn-bg:#f4ecda;
+  --mono:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+    --acc:#c9a568; --acc-ink:#c9a568;
+    --pass:#8fae7c; --pass-bg:#232a1e;
+    --fail:#c97b66; --fail-bg:#31211c;
+    --warn:#c79a55; --warn-bg:#2c2517;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+  --acc:#c9a568; --acc-ink:#c9a568;
+  --pass:#8fae7c; --pass-bg:#232a1e;
+  --fail:#c97b66; --fail-bg:#31211c;
+  --warn:#c79a55; --warn-bg:#2c2517;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Georgia,'Iowan Old Style','Times New Roman',serif}
+.wrap{max-width:1080px;margin:0 auto;padding:48px 24px 80px}
+header{border-bottom:2px solid var(--acc);padding-bottom:22px;margin-bottom:26px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-ink);margin:0 0 12px}
+h1{font-size:30px;line-height:1.2;margin:0 0 10px;font-weight:700;text-wrap:balance}
+.standfirst{font-size:16px;font-style:italic;color:var(--dim);margin:0;max-width:70ch}
+h2{font-size:19px;margin:40px 0 4px}
+h2 + .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+p{margin:0 0 14px;max-width:75ch}
+a{color:var(--acc-ink)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:12px;padding:2px 8px;border:1px solid;white-space:nowrap}
+.chip.pass{color:var(--pass);border-color:var(--pass);background:var(--pass-bg)}
+.chip.fail{color:var(--fail);border-color:var(--fail);background:var(--fail-bg)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.tablewrap{overflow-x:auto;margin:16px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.4;min-width:1040px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--acc);position:sticky;top:0;background:var(--panel)}
+tbody th{font-weight:700;font-size:13px;white-space:nowrap}
+td .n{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums}
+td .sub{display:block;font-size:11.5px;color:var(--dim);margin-top:2px}
+.tier-b thead th:nth-child(-n+5){}
+.defs{border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--panel);border-radius:4px;padding:14px 18px;margin:18px 0;font-size:14px}
+.defs dt{font-weight:700;margin-top:8px}
+.defs dt:first-child{margin-top:0}
+.defs dd{margin:2px 0 0 0;color:var(--ink)}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 22px}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Traffic and Dragons &middot; Model sweep &middot; comparison matrix &middot; August 14&ndash;16, 2026</p>
+  <h1>The Korrag Matrix</h1>
+  <p class="standfirst">All eight arms of the sweep in one table — including the two axes the anti-drift engine exists for. The narrative companion is <em>The Korrag Variations</em>.</p>
+</header>
+
+<h2>The matrix</h2>
+<p class="kicker">8 models &middot; 50 committed turns each &middot; identical blueprint, character, and voice brief</p>
+<div class="tablewrap"><table>
+<thead><tr>
+  <th>Axis</th>
+  <th>Gemini 3.5 Flash</th><th>GPT-4o</th><th>Grok 4.3</th><th>Sonnet 4.6</th>
+  <th>Gemini 3.7 Flash</th><th>GPT-5.6 Sol</th><th>Grok 4.6</th><th>Sonnet 5</th>
+</tr></thead>
+<tbody>
+<tr><th>Class / index</th>
+  <td><span class="n">budget ~40</span></td><td><span class="n">legacy ~30s</span></td><td><span class="n">budget 25</span></td><td><span class="n">upper-mid</span></td>
+  <td><span class="n">frontier ~56</span></td><td><span class="n">frontier ~59+</span></td><td><span class="n">frontier ~61</span></td><td><span class="n">frontier ~55</span></td></tr>
+<tr><th>Tag discipline</th>
+  <td><span class="chip pass">0/50 zero-tag</span></td><td><span class="chip fail">15/50; no mechanics</span></td><td><span class="chip fail">34/50</span></td><td><span class="chip pass">0/50</span></td>
+  <td><span class="chip pass">0/50</span></td><td><span class="chip pass">3/50</span></td><td><span class="chip warn">0/50, maximalist</span><span class="sub">141 dynamics/50t</span></td><td><span class="chip pass">0/50</span></td></tr>
+<tr><th>Narrative continuity</th>
+  <td><span class="chip fail">broken</span><span class="sub">premise dropped t7; scene whiplash; kill loops</span></td>
+  <td><span class="chip fail">none formed</span><span class="sub">premise never adopted; ~20 empty travel turns</span></td>
+  <td><span class="chip warn">one arc, loops</span><span class="sub">premise dropped t15; repeated beats</span></td>
+  <td><span class="chip pass">excellent</span><span class="sub">premise 18/50, t1&ndash;t49; connected intrigue</span></td>
+  <td><span class="chip pass">connected</span><span class="sub">premise evolves t8&ndash;t48 into pit conspiracy</span></td>
+  <td><span class="chip pass">connected</span><span class="sub">token&rarr;pits&rarr;cistern chain; one duplicate-narration blip</span></td>
+  <td><span class="chip pass">connected</span><span class="sub">premise t1&ndash;t50, single thread</span></td>
+  <td><span class="chip pass">best of study</span><span class="sub">premise 20/50, t1&ndash;t50</span></td></tr>
+<tr><th>Drift avoidance</th>
+  <td><span class="chip fail">prose defies state</span><span class="sub">dead NPCs resurrected 3&times; against injected canon</span></td>
+  <td><span class="chip fail">silent desync</span><span class="sub">sheet frozen at creation through narrated peril</span></td>
+  <td><span class="chip fail">silent desync</span><span class="sub">frozen sheet; stale combat panel 48 turns</span></td>
+  <td><span class="chip pass">clean</span><span class="sub">zero divergence; one meta-commentary display leak (t48)</span></td>
+  <td><span class="chip warn">one divergence</span><span class="sub">Knox death tag led prose by 4 turns, self-resolved</span></td>
+  <td><span class="chip pass">clean</span><span class="sub">sheet moved with prose; dead stayed dead</span></td>
+  <td><span class="chip pass">clean, noisy</span><span class="sub">no contradiction found; emission churn is noise, not drift</span></td>
+  <td><span class="chip pass">clean + corrective</span><span class="sub">&ldquo;Theron is dead, and stays dead&rdquo;</span></td></tr>
+<tr><th>Dead-actor test</th>
+  <td><span class="chip fail">resurrections</span></td><td><span class="chip warn">untested</span></td><td><span class="chip pass">passed live</span></td><td><span class="chip pass">pushback shown</span></td>
+  <td><span class="chip warn">premature tag</span></td><td><span class="chip pass">clean</span></td><td><span class="chip pass">clean</span></td><td><span class="chip pass">clean + pushback</span></td></tr>
+<tr><th>Howard voice</th>
+  <td><span class="chip pass">strong</span></td><td><span class="chip fail">generic</span></td><td><span class="chip pass">strong, terse</span></td><td><span class="chip warn">house-style drift</span></td>
+  <td><span class="chip pass">strong</span></td><td><span class="chip warn">terse tactical</span></td><td><span class="chip warn">noir, past-tense</span></td><td><span class="chip pass">strong</span></td></tr>
+<tr><th>Memory extraction</th>
+  <td><span class="chip pass">6/6</span></td><td><span class="chip pass">5/5</span></td><td><span class="chip fail">filed nothing</span></td><td><span class="chip pass">8/8</span></td>
+  <td><span class="chip pass">5/5</span></td><td><span class="chip pass">3/3</span></td><td><span class="chip pass">5/5</span></td><td><span class="chip pass">6/6</span></td></tr>
+<tr><th>Sheet at t50</th>
+  <td><span class="n">3/14 HP &middot; 290 XP</span></td><td><span class="n">frozen at creation</span></td><td><span class="n">frozen at creation</span></td><td><span class="n">5/14 &middot; 150 XP</span></td>
+  <td><span class="n">L2 &middot; 19/23 &middot; 140g</span></td><td><span class="n">L2 &middot; 3/23 &middot; 430 XP</span></td><td><span class="n">1/14 &middot; 245 XP</span></td><td><span class="n">L2 &middot; 15/23 &middot; 525 XP</span></td></tr>
+<tr><th>Speed (median/turn)</th>
+  <td><span class="n">~13s</span></td><td><span class="n">paced 60s (429 wall)</span></td><td><span class="n">~11s</span></td><td><span class="n">~14s</span></td>
+  <td><span class="n">~15s</span></td><td><span class="n">~34s</span></td><td><span class="n">~100s + 1 hang</span></td><td><span class="n">7s</span></td></tr>
+<tr><th>Cost, 50 turns</th>
+  <td><span class="n">~$0.50</span></td><td><span class="n">~$0.90</span></td><td><span class="n">~$2.00</span></td><td><span class="n">$3.22</span></td>
+  <td><span class="n">~$0.55</span></td><td><span class="n">~$2&ndash;2.50</span></td><td><span class="n">~$1.50&ndash;2</span></td><td><span class="n">$2.64</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>The two new axes</h2>
+<p class="kicker">Definitions &amp; the short-run standard</p>
+<div class="defs">
+  <dt>Narrative continuity</dt>
+  <dd>Does the run read as one continuous fiction? Measured by premise retention across the span (the caravan-mention scan), scene-to-scene causality on the story read, and the absence of loops, teleports, and dropped threads. Distinct from drift: a story can wander without ever contradicting state.</dd>
+  <dt>Drift avoidance</dt>
+  <dd>Does the prose stay in agreement with committed state &mdash; the axis the engine&rsquo;s anti-drift stack exists to protect? Failures here are silent by nature: a sheet frozen while the story narrates wounds and loot, or prose defying an injected death. <strong>The owner&rsquo;s standard applies: fifty turns is a shallow run, so any drift visible at this depth is a real problem, not a rounding error.</strong> By that standard all three budget-class arms fail outright, Gemini 3.7 Flash carries one self-resolving blemish, and the four clean sheets are all frontier-class.</dd>
+</div>
+<p>Note on scope: drift avoidance graded here covers state/prose agreement observable in 50 turns. The long-horizon drift classes the engine guards against (memory-tier decay, alias fragmentation, canon erosion across hundreds of turns) are beyond a shallow run&rsquo;s reach by construction &mdash; the mature-campaign evidence for those lives in the Runelords field record, not this study.</p>
+
+<footer>
+  <span>Traffic and Dragons &middot; engine v1.640</span>
+  <span>8 arms &middot; rounds 1&ndash;2 &middot; total spend &asymp; $14.15</span>
+  <span>companion: The Korrag Variations (narrative report)</span>
+</footer>
+</div>
