@@ -138,7 +138,16 @@ footer{margin-top:70px;padding-top:18px;border-top:1px solid var(--line);font-fa
   <div class="statrow"><span>zero-tag turns <b>3/50</b></span><span>sheet at t50 <b>LEVEL 2 &middot; 3/23 HP &middot; 430 XP</b></span><span>dead-actor <b>clean</b></span></div>
   <p>The second tier-matched arm, and the second confirmation. Where its budget-class ancestor gpt-4o froze the sheet for fifty turns, Sol crossed the level gate, took real damage down to 3&nbsp;HP, ran seven full combat lifecycles with dice everywhere (66 rolls, 37 combat rounds), kept an active quest, and even used the W2 evidence vocabulary unprompted. The dead-actor scan came back <em>clean</em> &mdash; Aldric Saltborn dies at turn&nbsp;2 and every later mention is his corpse being looted or probed, no premature tag, no resurrection. Two bring-up findings came free: the GPT-5 family rejects the <span class="n">max_tokens</span> parameter outright (the adapter now switches by model family &mdash; without this run, any player picking a GPT-5 model would have crashed on turn one), and the real model IDs are <span class="n">gpt-5.6-sol/-luna/-terra</span>, not the bare &ldquo;gpt-5.6&rdquo; the leaderboard name suggested. The weak axis is voice: Howard&rsquo;s vocabulary in a terse, tactical rhythm &mdash; more combat report than saga (~420 characters a turn).</p>
   <blockquote>Beneath Aldric Saltborn&rsquo;s corpse, the branded iron now beats against the earth with the rhythm of a buried heart.<span class="who">turn 4 &mdash; the dead staying dead, and staying interesting</span></blockquote>
-  <p><strong>With two tier-matched arms in, the pattern is no longer a hypothesis about one provider: capability class decides the GM contract, and provider identity mostly decides the voice.</strong> Remaining arm when wanted: Grok 4.6.</p>
+  <p><strong>With two tier-matched arms in, the pattern is no longer a hypothesis about one provider: capability class decides the GM contract, and provider identity mostly decides the voice.</strong></p>
+</div>
+
+<div class="arm">
+  <h3>Grok 4.6 &mdash; third confirmation, loudest pen</h3>
+  <p class="model">grok-4.6 (frontier class) &middot; campaign modelTestCampaign_grok46 &middot; ~$1.50&ndash;2 est &middot; slowest arm (~2.4h; one hung request recovered)</p>
+  <div class="statrow"><span>zero-tag turns <b>0/50</b> (4.3: 34/50)</span><span>dead-actor <b>clean</b></span><span>caravan span <b>t1&ndash;t50</b></span><span>sheet <b>1/14 HP &middot; 245 XP</b></span></div>
+  <p>Everything its budget sibling lacked, arrived at once: full tag vocabulary, chapters filing (4.3 filed none), an active quest, three clean deaths with zero dead-actor flags, and the premise alive from the first turn to the last. Its signature quirk is the opposite failure of 4.3&rsquo;s silence: <em>tag maximalism</em> &mdash; 160 NPC writes and 141 relationship-dynamic updates in 50 turns (~3 a turn), all absorbed by the engine&rsquo;s caps and dedupe but the noisiest emission profile on record. The prose is distinctive: hard-boiled, clipped, and notably PAST-tense second person &mdash; Howard&rsquo;s brutality in noir grammar (&ldquo;Your longsword smashed up under his chin and stood out a handspan from the back of his skull&rdquo;). Two ops findings: xAI latency made this the slowest arm by far (~90&ndash;120s a turn), and one request hung forever mid-run &mdash; exposing that the app&rsquo;s GM call has <strong>no client-side timeout</strong> (filed as a Known-issues row; a live player would stare at &ldquo;The world turns&hellip;&rdquo; until reload).</p>
+  <blockquote>He crashed into the ash with one boot trapped in the stirrup.<span class="who">turn 2 &mdash; grok 4.6&rsquo;s noir-Howard register</span></blockquote>
+  <p><strong>Round two closes 3-for-3: every tier-matched model held the contract its budget sibling failed.</strong> The capability threshold is real, and it sits below all three frontier arms and above all three budget arms.</p>
 </div>
 
 <h2>What the sweep surfaced beyond the models</h2>
@@ -167,6 +176,6 @@ footer{margin-top:70px;padding-top:18px;border-top:1px solid var(--line);font-fa
 <footer>
   <span>Traffic and Dragons &middot; engine v1.640</span>
   <span>rounds 1&ndash;2 &middot; 2026-08-14 &rarr; 2026-08-15</span>
-  <span>total spend &asymp; $9.50</span>
+  <span>total spend &asymp; $11.50</span>
 </footer>
 </div>
