@@ -32,6 +32,10 @@
 | Prose voice (Howard) | ❌ generic ornate fantasy; weakest of the three arms |
 | Rate limiting | ⚠ Default-tier OpenAI cannot sustain the app's ~31k tokens/turn cadence — 44× 429 until paced to ~1 turn/min. Live-play implication: gpt-4o players on low-tier keys will see failed turns at normal play speed |
 
+## Owner field verdict (2026-08-15, memento read)
+
+"A whole lot of nothing happens… 'take stock of my surroundings and press on' ×12 … that's nearly 20 turns where nothing actually happens. It's a non-graphical hiking simulator." Confirms the audit's premise-never-adopted and no-mechanics findings from the story side. The read also caught something the audit missed: **the memento shows runs of player actions with no narrative between them** — those are ORPHAN transcript entries from the 429 window (the player line is logged before the GM call; the dedup guard is same-text-only, so differently-worded failed attempts each stranded a line, and the identical fallback re-logged legally whenever a successful turn interleaved; the harness meanwhile kept clicking suggestion buttons left enabled from the last successful turn). The audit's claim that "the story stream itself is 50 clean responses" was true of the GM half only — the PLAYER half of the permanent record is polluted. Graduated to **TODO #28** (transcript integrity, drift surface, Fable design).
+
 ## Sweep scoreboard (3 of 5 arms)
 
 | Axis | gemini-3.5-flash | claude-sonnet-4-6 | gpt-4o |
