@@ -38,8 +38,9 @@ When a run's purpose is comparing MODELS/PROVIDERS (not exercising fresh skeleto
   generation. `_campName`: `modelTestCampaign_<provider>`.
 - **Artifacts:** save → `testRuns/modelTestCampaign_<provider>.tnd`; corpus →
   `dev/corpus_playtest_v<ver>_<provider>.json`; audit → `audits/AUDIT_playtest_v<ver>_<provider>.md`,
-  judged against the gemini baseline (`dev/corpus_playtest_v1635_gemini.json`,
-  `audits/AUDIT_playtest_v1635_gemini.md`) — same 50-turn shape unless the user says otherwise.
+  judged against the gemini baseline (`dev/corpus_playtest_v1635_gemini.json`; the sweep summary
+  is `audits/SWEEP_model_comparison_v1637.html` — the per-arm audit .md files were removed at
+  owner ruling 2026-08-15 and live in git history) — same 50-turn shape unless the user says otherwise.
 - First live comparison signal on record: the owner judged the Howard voice CLEARER on
   gemini-3.5-flash than Sonnet (see the baseline audit's "Owner field verdict").
 
