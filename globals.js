@@ -155,11 +155,13 @@ var PROVIDERS={
     endpoint:"https://api.openai.com/v1/chat/completions",
     defaultModel:"gpt-4o",
     upgradeModel:"gpt-4o",
-    models:["gpt-5.6","gpt-4o","gpt-4o-mini","gpt-4.1"], // gpt-5.6 added for the #22 round-2 tier-matched sweep (2026-08-15); ID unverified until a live call — defaults stay on the verified model
+    models:["gpt-5.6-sol","gpt-4o","gpt-4o-mini","gpt-4.1"], // gpt-5.6-sol added for the #22 round-2 tier-matched sweep (2026-08-15) — ID VERIFIED against the live /v1/models list (the bare "gpt-5.6" guess does not exist; siblings luna/terra do); defaults stay on gpt-4o pending a green run
     // OpenAI carries the system prompt as the first message, uses Bearer auth,
-    // and returns choices[0].message.content. max_tokens works for gpt-4o.
+    // and returns choices[0].message.content. max_tokens works for gpt-4o; gpt-5.x REJECTS it
+    // with HTTP 400 and demands max_completion_tokens (found live 2026-08-15, the gpt-5.6-sol
+    // bring-up) — model-conditional so the validated gpt-4o path stays byte-identical.
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
-    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
+    buildBody:function(msgs,sys,maxTok,model){var b={model:model,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};if(/^gpt-5/.test(model))b.max_completion_tokens=maxTok;else b.max_tokens=maxTok;return b;},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
     parseUsage:OPENAI_USAGE,
     parseFinish:OPENAI_FINISH,
@@ -214,7 +216,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.639";
+var APP_VERSION="v1.640";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
