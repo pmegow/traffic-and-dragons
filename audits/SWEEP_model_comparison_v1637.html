@@ -1,0 +1,151 @@
+<title>The Korrag Variations</title>
+<style>
+:root{
+  --bg:#f7f1e6; --ink:#2b2620; --dim:#8a7f6d; --line:#e3d8c4; --panel:#fdf9f0;
+  --acc:#b8935a; --acc-ink:#8a6a38;
+  --pass:#5a7a4d; --pass-bg:#eef0e2;
+  --fail:#a04a38; --fail-bg:#f5e6e0;
+  --warn:#a0783c; --warn-bg:#f4ecda;
+  --mono:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+    --acc:#c9a568; --acc-ink:#c9a568;
+    --pass:#8fae7c; --pass-bg:#232a1e;
+    --fail:#c97b66; --fail-bg:#31211c;
+    --warn:#c79a55; --warn-bg:#2c2517;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+  --acc:#c9a568; --acc-ink:#c9a568;
+  --pass:#8fae7c; --pass-bg:#232a1e;
+  --fail:#c97b66; --fail-bg:#31211c;
+  --warn:#c79a55; --warn-bg:#2c2517;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.7 Georgia,'Iowan Old Style','Times New Roman',serif}
+.wrap{max-width:760px;margin:0 auto;padding:52px 24px 90px}
+header{border-bottom:2px solid var(--acc);padding-bottom:26px;margin-bottom:8px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-ink);margin:0 0 14px}
+h1{font-size:34px;line-height:1.2;margin:0 0 12px;font-weight:700;text-wrap:balance}
+.standfirst{font-size:18px;font-style:italic;color:var(--dim);margin:0;max-width:60ch}
+h2{font-size:22px;margin:52px 0 6px;text-wrap:balance}
+h2 + .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 16px}
+p{margin:0 0 16px;max-width:66ch}
+strong{font-weight:700}
+a{color:var(--acc-ink)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;border-radius:12px;padding:2px 10px;border:1px solid;white-space:nowrap}
+.chip.pass{color:var(--pass);border-color:var(--pass);background:var(--pass-bg)}
+.chip.fail{color:var(--fail);border-color:var(--fail);background:var(--fail-bg)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.tablewrap{overflow-x:auto;margin:20px 0 8px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.45}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--acc)}
+tbody th{font-weight:700;font-size:14px;white-space:nowrap}
+td .n{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.arm{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:24px 26px;margin:26px 0}
+.arm h3{margin:0 0 2px;font-size:19px}
+.arm .model{font-family:var(--mono);font-size:12px;color:var(--dim);margin:0 0 14px}
+.statrow{display:flex;flex-wrap:wrap;gap:8px 22px;font-family:var(--mono);font-size:12.5px;color:var(--dim);margin:0 0 14px;font-variant-numeric:tabular-nums}
+.statrow b{color:var(--ink);font-weight:700}
+blockquote{margin:18px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);font-style:italic;color:var(--ink)}
+blockquote .who{display:block;font-family:var(--mono);font-size:11px;font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:8px}
+.note{border:1px solid var(--line);border-left:3px solid var(--warn);background:var(--panel);border-radius:4px;padding:14px 18px;margin:20px 0;font-size:15px}
+.note.finding{border-left-color:var(--fail)}
+.note .tag{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:6px}
+ul{margin:0 0 16px;padding-left:22px}
+li{margin-bottom:8px;max-width:62ch}
+footer{margin-top:70px;padding-top:18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 24px}
+@media (max-width:560px){h1{font-size:27px}.arm{padding:18px 16px}}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Traffic and Dragons &middot; Model sweep report &middot; August 14&ndash;15, 2026</p>
+  <h1>The Korrag Variations</h1>
+  <p class="standfirst">One campaign, one character, four AI Game Masters. Fifty turns each on an identical blueprint &mdash; and four different games came back.</p>
+</header>
+
+<p style="margin-top:28px">Korrag &mdash; a scarred Northlander pit-fighter with a longsword, forty gold, and a distrust of sorcery &mdash; walked into the same ambush at the Crossroads of Ashenveil four times, under four different models, with the campaign skeleton, prose voice (Robert&nbsp;E.&nbsp;Howard), and starting conditions pinned as a control. The engine judged every run the same way: state-tag discipline, story coherence across turns, author-voice fidelity, and what the character sheet says at turn&nbsp;50.</p>
+<p><strong>The sweep&rsquo;s one-line result: only the Claude arm held both halves of the GM contract &mdash; true state <em>and</em> a true story.</strong> Every other model kept exactly one half. That splits a capability people usually treat as single: writing correct state tags and <em>obeying</em> the state you were handed turn out to be separable skills.</p>
+
+<h2>Scoreboard</h2>
+<p class="kicker">Four arms &middot; 50 committed turns each &middot; same blueprint &amp; character</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Axis</th><th>Gemini 3.5 Flash</th><th>Sonnet 4.6</th><th>GPT-4o</th><th>Grok 4.3</th></tr></thead>
+<tbody>
+<tr><th>Tag discipline</th><td><span class="chip pass">excellent</span></td><td><span class="chip pass">excellent</span></td><td><span class="chip fail">collapsed</span></td><td><span class="chip fail">worst</span></td></tr>
+<tr><th>Story coherence</th><td><span class="chip fail">failed</span></td><td><span class="chip pass">excellent</span></td><td><span class="chip warn">no premise</span></td><td><span class="chip warn">arc, loops</span></td></tr>
+<tr><th>Dead-actor obedience</th><td><span class="chip fail">resurrections</span></td><td><span class="chip pass">pushback</span></td><td><span class="chip warn">untested</span></td><td><span class="chip pass">passed live</span></td></tr>
+<tr><th>Howard voice</th><td><span class="chip pass">strong</span></td><td><span class="chip warn">partial</span></td><td><span class="chip fail">generic</span></td><td><span class="chip pass">strong, terse</span></td></tr>
+<tr><th>Memory extraction</th><td><span class="chip pass">6/6 clean</span></td><td><span class="chip pass">8/8 clean</span></td><td><span class="chip pass">5/5 clean</span></td><td><span class="chip fail">filed nothing</span></td></tr>
+<tr><th>Cost, 50 turns</th><td><span class="n">~$0.50</span></td><td><span class="n">$3.22</span></td><td><span class="n">~$0.90</span></td><td><span class="n">~$2.00</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>The four games Korrag played</h2>
+
+<div class="arm">
+  <h3>Gemini &mdash; the beautiful unreliable narrator</h3>
+  <p class="model">gemini-3.5-flash &middot; campaign modelTestCampaign_gemini</p>
+  <div class="statrow"><span>zero-tag turns <b>0/50</b></span><span>chapters <b>6</b></span><span>end state <b>3/14 HP &middot; 290 XP</b></span></div>
+  <p>Mechanically flawless on paper &mdash; every turn tagged, every kill evidenced through the proper channel, clean JSON extraction &mdash; and the owner judged its Howard voice <em>clearer than Sonnet&rsquo;s</em>. Then the compiled story fell apart on a close read: the same three slavers were executed at turn&nbsp;19, narrated alive and <em>groaning</em> at turn&nbsp;20, killed again at 21 and once more at 22, while the caravan premise vanished after turn&nbsp;7. The engine&rsquo;s guards kept the ledgers true throughout; they could not make the storyteller read them.</p>
+  <blockquote>&ldquo;No, wait, Korrag!&rdquo; Theron shrieks &mdash; two turns after his own death tag.<span class="who">turn 21, the resurrection loop</span></blockquote>
+</div>
+
+<div class="arm">
+  <h3>Sonnet &mdash; the reliable narrator in its own voice</h3>
+  <p class="model">claude-sonnet-4-6 &middot; campaign modelTestCampaign_sonnet &middot; the production GM</p>
+  <div class="statrow"><span>zero-tag turns <b>0/50</b></span><span>premise alive <b>t1&ndash;t49</b></span><span>cost <b>$3.22 actual</b></span></div>
+  <p>The inverse. The caravan premise stayed load-bearing across the whole run (referenced in 18 of 50 turns), the story compiled into one connected underworld intrigue, and when the harness demanded something impossible, the GM pushed back instead of complying &mdash; the exact obedience Gemini lacked. The cost: the Howard pastiche fades into Sonnet&rsquo;s own lean, psychological house style. One genuine blemish &mdash; at turn&nbsp;48 internal tag-reasoning leaked into displayed prose (&ldquo;No time tag needed.&rdquo;), now on watch.</p>
+  <blockquote>You have already knocked. The moment for signaling has passed.<span class="who">turn 25, refusing an impossible action</span></blockquote>
+</div>
+
+<div class="arm">
+  <h3>GPT-4o &mdash; the hiking simulator</h3>
+  <p class="model">gpt-4o &middot; campaign modelTestCampaign_gpt4o &middot; reinforce block active</p>
+  <div class="statrow"><span>zero-tag turns <b>15/50</b></span><span>combat / quest / economy tags <b>0</b></span><span>sheet at t50 <b>frozen at creation</b></span></div>
+  <p>The historical desync class at full scale, with the provider-specific reinforcement prompt active. Fifteen consecutive untagged responses to open; even after tags resumed, no combat, quest, gold, HP, XP, or item tag ever fired &mdash; the character sheet ended the run byte-identical to creation through narrated ambushes and a mansion break-in. The blueprint premise was never adopted at all. Operationally, a default-tier OpenAI key could not sustain the app&rsquo;s cadence (44&times; rate-limit rejections) until the run was paced to one turn a minute.</p>
+  <blockquote>A whole lot of nothing happens&hellip; It&rsquo;s a non-graphical hiking simulator.<span class="who">owner field verdict, memento read</span></blockquote>
+</div>
+
+<div class="arm">
+  <h3>Grok &mdash; story instincts, empty ledger</h3>
+  <p class="model">grok-4.3 &middot; campaign modelTestCampaign_grok</p>
+  <div class="statrow"><span>zero-tag turns <b>34/50</b></span><span>combat registrations <b>1</b> (stale 48 turns)</span><span>chapters filed <b>0</b></span></div>
+  <p>The third split. Real story instincts: the premise adopted from the opening line, one coherent forty-turn chase against a slaver from Korrag&rsquo;s pit-fighting past, and a live pass of the dead-actor test that Gemini failed. Underneath: the worst tag discipline of the sweep &mdash; when Grok does emit, the syntax is perfect; it just doesn&rsquo;t, two-thirds of the time. Six narrated woundings never touched HP, five kills never granted XP, and the memory extractor ran while filing nothing durable. The voice is genuine Howard, unusually terse (~370 characters a turn).</p>
+  <blockquote>Theron Wyndfall lies dead at your feet&hellip; No attack comes from the corpse.<span class="who">turn 44, passing the dead-actor test</span></blockquote>
+</div>
+
+<h2>What the sweep surfaced beyond the models</h2>
+<p class="kicker">Findings that outlived the runs</p>
+<div class="note finding">
+  <span class="tag">Engine defect &middot; filed as TODO #28 &middot; drift surface</span>
+  Failed turns strand <strong>orphan player entries</strong> in the permanent transcript: the player&rsquo;s action is logged before the GM call, and the dedup guard only catches same-text retries. Invisible in normal play; the GPT-4o rate-limit storm rendered it at scale &mdash; the owner&rsquo;s memento read caught strings of actions nobody answered. The transcript feeds the story compiler and RAG, so the fix waits on a proper design pass.
+</div>
+<div class="note">
+  <span class="tag">Harness lesson &middot; already fixed for future runs</span>
+  The original runner counted log entries, not committed turns &mdash; under rate limiting it reported a 50-turn success that contained 15 real turns. Every subsequent arm ran on a committed-turn driver that only counts when the world actually advances, with automatic backoff.
+</div>
+<div class="note">
+  <span class="tag">Protocol corrections &middot; recorded in the audits</span>
+  Two of this sweep&rsquo;s own findings were retracted on evidence: the &ldquo;invented tags&rdquo; charged to Gemini were legitimate registry vocabulary (the census now derives from the tag table itself, never a hand list), and the audit protocol gained a mandatory narrative-coherence pass &mdash; the per-turn checks that graded Gemini &ldquo;excellent&rdquo; were blind to a broken story until the owner read it whole.
+</div>
+<div class="note">
+  <span class="tag">Small gaps &middot; queued</span>
+  The in-app cost meter prices only Anthropic models &mdash; Gemini, GPT-4o, and Grok runs all display $0 (token counts stay honest). One registry batch once verified prices are at hand.
+</div>
+
+<h2>Where this stands</h2>
+<p>All remedies are <strong>parked by owner ruling</strong> pending a close read of the four mementos and per-arm notes. The live candidates, in evidence order: a canon-obedience reinforcement for Gemini (its only failing axis, and the cheapest path to a budget GM tier with the voice the owner prefers), a no-repeat action picker for the harness, and the #28 transcript design pass. The Ollama arm was culled &mdash; no local model installed, and none expected for 99% of players.</p>
+<p>Primary sources: the four audit files in <span class="n">audits/</span> (AUDIT_playtest_v1635_gemini through v1637_grok), raw corpora in <span class="n">dev/</span>, and the four memento chronicles &mdash; all committed to master.</p>
+
+<footer>
+  <span>Traffic and Dragons &middot; engine v1.637</span>
+  <span>sweep 2026-08-14 &rarr; 2026-08-15</span>
+  <span>total spend &asymp; $6.60</span>
+</footer>
+</div>
