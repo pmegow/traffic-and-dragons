@@ -155,7 +155,7 @@ var PROVIDERS={
     endpoint:"https://api.openai.com/v1/chat/completions",
     defaultModel:"gpt-4o",
     upgradeModel:"gpt-4o",
-    models:["gpt-4o","gpt-4o-mini","gpt-4.1"],
+    models:["gpt-5.6","gpt-4o","gpt-4o-mini","gpt-4.1"], // gpt-5.6 added for the #22 round-2 tier-matched sweep (2026-08-15); ID unverified until a live call — defaults stay on the verified model
     // OpenAI carries the system prompt as the first message, uses Bearer auth,
     // and returns choices[0].message.content. max_tokens works for gpt-4o.
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
@@ -171,7 +171,7 @@ var PROVIDERS={
     endpoint:"https://api.x.ai/v1/chat/completions",
     defaultModel:"grok-4.3", // current xAI flagship (June 2026); old grok-2-*/grok-beta IDs are retired and 400
     upgradeModel:"grok-4.3",
-    models:["grok-4.3","grok-4","grok-3","grok-3-mini","grok-code-fast-1"],
+    models:["grok-4.6","grok-4.5","grok-4.3","grok-4","grok-3","grok-3-mini","grok-code-fast-1"], // 4.6/4.5 added for the #22 round-2 tier-matched sweep (2026-08-15); IDs unverified until a live call
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
@@ -187,7 +187,7 @@ var PROVIDERS={
     endpoint:function(model){return "https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent";},
     defaultModel:"gemini-3.5-flash", // current stable flagship (June 2026); gemini-1.5-*/2.0-flash are retired and 404
     upgradeModel:"gemini-2.5-pro",
-    models:["gemini-3.5-flash","gemini-2.5-pro","gemini-2.5-flash","gemini-2.5-flash-lite"],
+    models:["gemini-3.7-flash","gemini-3.5-flash","gemini-2.5-pro","gemini-2.5-flash","gemini-2.5-flash-lite"], // 3.7-flash added for the #22 round-2 tier-matched sweep (2026-08-15; artificialanalysis index ~56 ≈ Sonnet-5 class); ID unverified until a live call
     headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
     buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
     parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
@@ -214,7 +214,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.637";
+var APP_VERSION="v1.638";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
