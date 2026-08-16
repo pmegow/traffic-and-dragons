@@ -309,6 +309,18 @@ Parked watches and break-glass items — deliberately OUT of the backlog so they
 
 ## Architecture decisions
 
+### Server-side model routing — BYOK will be eliminated (2026-08-16)
+**Decision:** The BYO-API-key model is slated for elimination; GM calls (and the other provider-key riders) move server-side behind the subscription. The `PROVIDERS` table was always documented as "the intended server-side routing table under the subscription model" — this ruling pulls that trigger. Direction only: **nothing is built, and the design conversation is deliberately deferred** (owner, 2026-08-16).
+
+**Why:** user experience — the #22 model sweep required pasting four different provider keys into a modal to run four arms; no player should ever meet that. The sweep also delivered the unit economics that make an operator-curated tier menu executable: Sonnet 5 ≈ $0.053/turn (premium, cleanest canon), gemini-3.7-flash ≈ $0.011/turn (budget, best voice), both contract-clean (audits/SWEEP_model_matrix_v1640.html).
+
+**Recorded consequences, for the future design pass:**
+- **The operator becomes the data steward** — every player's campaign prose (18+ content included) transits the operator's keys; retention, logging discipline, key custody (Fly secrets), and a real privacy posture become product features. **Standing sub-ruling (owner, 2026-08-16): DeepSeek (or any PRC-jurisdiction provider) is per-campaign explicit OPT-IN at most, never a pool default** — with no BYOK escape hatch, the jurisdiction choice is the operator's and must not be made silently for players.
+- **Per-user metering/quota is the subscription** — one org key serving many players is the gpt-4o 429 lesson at scale.
+- **This forces L3** (the commercial shape) — entitlements need it; first concrete movement on that long-term row.
+- **Two riders silently assume BYOK today** and need the same treatment or explicit carve-outs: STT transcription ("cost rides the player's own key" was decisive in declining LiveKit) and the fal.ai render key.
+- Natural host: the existing Fly server (GitHub OAuth, session tokens); this evolves storage-adapter's world, not greenfield. Related rows when design starts: #5/UA33 (state authority), #29 (callGM timeout moves server-side), the provider adapters port as-is.
+
 ### Age is cosmetic-only (2026-08-10)
 **Decision:** Character/companion `age` is a display-and-render field ONLY. It is deliberately injected into ZERO gameplay prompts — not the player identity header, not the PARTY MEMBER SHEETS block. Only the image-render prompt writers read it (scene render `doRender`, the portrait paths). Do NOT "fix" the missing injection.
 
