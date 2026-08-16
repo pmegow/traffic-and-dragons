@@ -1,4 +1,4 @@
-var MDL="claude-sonnet-4-6";
+var MDL="claude-sonnet-5"; // default GM model — flipped from 4.6 on owner ruling 2026-08-15 (Sonnet 5's launch pricing made permanent; see MODEL_PRICING)
 var SCENE_REF_ACTOR_CAP=10;     // #168 W2: accepted referents in one active scene. Overflow preserves them and makes irreversible identity writes fail closed.
 var SCENE_REF_NEGATIVE_CAP=10;  // #168 W2: explicit/inference exclusions per active scene; same no-eviction rule as actors.
 var SCENE_REF_SEALED_CAP=6;     // #168 W2: transitioned frames retained until a structured summary acknowledges them.
@@ -102,10 +102,10 @@ var OPENAI_FINISH=function(data){var c=data.choices&&data.choices[0];return (c&&
 // Keyed by model-ID prefix so dated IDs (claude-haiku-4-5-20251001) still match.
 var MODEL_PRICING={
   "claude-opus-4-8":  {in:5.00, out:25.00, cacheWrite:6.25, cacheRead:0.50},
-  // ⚠ Sonnet 5 is INTRO pricing ($2/$10) through 2026-08-31 — sticker is $3/$15. UPDATE this
-  // entry on Sep 1, 2026 or cost telemetry silently undercounts by 33%. Note its new tokenizer
-  // bills ~30% more tokens for the same text, so per-TURN cost ≈ 0.87× of 4.6 during intro,
-  // ≈1.3× after (see TODO #30 row).
+  // Sonnet 5's launch pricing ($2/$10) is PERMANENT (owner-confirmed 2026-08-15; the planned
+  // Sep 1 rise to $3/$15 was cancelled) — which is why it became the default GM model. Its
+  // tokenizer bills ~30% more tokens for the same text, so real per-TURN cost ≈ 0.87× of 4.6,
+  // not the full 33% the rate card suggests (see TODO #30 row).
   "claude-sonnet-5":  {in:2.00, out:10.00, cacheWrite:2.50, cacheRead:0.20},
   "claude-sonnet-4-6":{in:3.00, out:15.00, cacheWrite:3.75, cacheRead:0.30},
   "claude-haiku-4-5": {in:1.00, out:5.00,  cacheWrite:1.25, cacheRead:0.10}
@@ -119,7 +119,7 @@ var PROVIDERS={
     id:"anthropic", label:"Claude (Anthropic)", keyHint:"sk-ant-...",
     endpoint:"https://api.anthropic.com/v1/messages",
     defaultModel:MDL,
-    upgradeModel:"claude-sonnet-4-6",
+    upgradeModel:"claude-sonnet-5", // escalation target must never sit below (or cost more than) the default — moved with MDL 2026-08-15
     models:["claude-opus-4-8","claude-sonnet-5","claude-sonnet-4-6","claude-haiku-4-5-20251001"],
     headers:function(key){return {"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};},
     // {stable, volatile} → two system blocks with a cache_control breakpoint after the stable
@@ -214,7 +214,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.638";
+var APP_VERSION="v1.639";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

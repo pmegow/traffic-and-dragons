@@ -6479,7 +6479,7 @@ function runEngineTests(R){
   t("upgradeModelFor: escalates per provider, honors the toggle (UA39 t371 — still used by the skeleton)",function(){
     var savedUp=allowModelUpgrade,savedProv=activeProvider;
     allowModelUpgrade=true;activeProvider="anthropic";
-    if(upgradeModelFor()!=="claude-sonnet-4-6")return "anthropic escalation wrong: "+upgradeModelFor();
+    if(upgradeModelFor()!=="claude-sonnet-5")return "anthropic escalation wrong: "+upgradeModelFor();/* pinned literal moved with the v1.639 default flip (sonnet-5 pricing made permanent) */
     activeProvider="openai";
     if(upgradeModelFor()!==PROVIDERS.openai.upgradeModel)return "provider-specific upgrade not used";
     allowModelUpgrade=false;
