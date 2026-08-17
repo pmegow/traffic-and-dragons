@@ -67,7 +67,7 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 <div class="tablewrap"><table>
 <thead><tr>
   <th>Axis</th>
-  <th>Sonnet 5 <span style="font-weight:400">(default)</span></th><th>Opus 5 <span class="chip warn" style="vertical-align:middle">unlisted</span></th><th>Gemini 3.7 Flash</th><th>GPT-5.6 Sol</th>
+  <th>Sonnet 5 <span style="font-weight:400">(default)</span></th><th>Opus 5 <span class="chip warn" style="vertical-align:middle">unlisted</span></th><th>Gemini 3.7 Flash <span style="font-weight:400">(low thinking, shipped v1.645)</span></th><th>GPT-5.6 Sol</th>
 </tr></thead>
 <tbody>
 <tr><th>Tag discipline</th>
@@ -83,12 +83,12 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 <tr><th>Drift avoidance</th>
   <td><span class="chip pass">clean + corrective</span><span class="sub">&ldquo;Theron is dead, and stays dead&rdquo;</span></td>
   <td><span class="chip pass">clean, exemplary</span><span class="sub">the dead man&rsquo;s falchion stays looted, remembered, and in-hand 30 turns later</span></td>
-  <td><span class="chip warn">one divergence</span><span class="sub">a death tag led its prose by 4 turns, self-resolved</span></td>
+  <td><span class="chip pass">clean at shipped config</span><span class="sub">the premature death tag belonged to the thinking-ON config; the shipped LOW arm re-ran clean — 4/4 deaths tagged the same turn as the prose kill</span></td>
   <td><span class="chip pass">clean</span></td></tr>
 <tr><th>Dead-actor test</th>
   <td><span class="chip pass">clean + pushback</span></td>
   <td><span class="chip pass">clean + literary</span><span class="sub">every post-death mention is corpse, memory, or inherited steel</span></td>
-  <td><span class="chip warn">premature tag</span></td>
+  <td><span class="chip pass">clean (low arm)</span></td>
   <td><span class="chip pass">clean</span></td></tr>
 <tr><th>Howard voice</th>
   <td><span class="chip pass">strong</span></td>
@@ -103,11 +103,11 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
   <td><span class="n">L2 &middot; 400 XP</span></td>
   <td><span class="n">L2 &middot; 430 XP</span></td></tr>
 <tr><th>Speed (median/turn)</th>
-  <td><span class="n">7s</span></td><td><span class="n">17s (p90 38s)</span></td><td><span class="n">~15s</span></td><td><span class="n">~34s</span></td></tr>
+  <td><span class="n">7s</span></td><td><span class="n">17s (p90 38s)</span></td><td><span class="n">~8s at shipped LOW</span><span class="sub">was ~15s thinking-on</span></td><td><span class="n">~34s</span></td></tr>
 <tr><th>Cost, 50 turns</th>
   <td><span class="n">$2.64 actual</span></td>
   <td><span class="n">&asymp;$8&ndash;9 est</span><span class="sub">UNVERIFIED pricing (no MODEL_PRICING entry; est. at Opus-4-8 rates); drained the account mid-run</span></td>
-  <td><span class="n">~$0.55 est</span></td>
+  <td><span class="n">~$0.50 est</span><span class="sub">thinking tokens → 0 at LOW (wire-verified)</span></td>
   <td><span class="n">~$2&ndash;2.50 est</span></td></tr>
 </tbody>
 </table></div>
@@ -117,7 +117,7 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 <p><strong>Sonnet&nbsp;5 — the default, and the right one.</strong> Fastest by a factor of two, cleanest corrective instincts, best premise retention, mid-band price. The reference experience.</p>
 <p><strong>Opus&nbsp;5 — benchmarked, then unlisted (owner ruling, 2026-08-16).</strong> At ~3&times; Sonnet’s cost it “doesn’t make economic sense at the moment” — pulled from the player menu the day it was measured; the benchmark stands as the spec for a future honestly-priced premium tier, and restoring the model is one registry line. What it showed: Everything Sonnet does plus depth nobody else showed: the only arm to reach level&nbsp;3 and the archetype gate, twice the XP flow, a three-quest web, ten filed chapters, resolved future-events, and prose that treats a looted falchion as a thirty-turn memory. It costs roughly 3&times; Sonnet and needs its price verified &mdash; a premium tier in the literal sense.</p>
 <blockquote>Kadrun Zethran&rsquo;s hand was on this grip six hours ago. He shouted the odds on your life for three winters and now his blade rides your hip.<span class="who">opus-5, turn 42 &mdash; drift avoidance as storytelling</span></blockquote>
-<p><strong>Gemini 3.7 Flash — the budget seat.</strong> A fifth of Sonnet&rsquo;s price, strong voice, one self-healing blemish on record. The economy option that doesn&rsquo;t feel like one.</p>
+<p><strong>Gemini 3.7 Flash — the budget seat, upgraded.</strong> Since v1.645 it ships with thinking pinned LOW — measured faster (~8s/turn), cheaper (thinking tokens to zero), with MORE prose per turn and cleaner canon than its thinking-on self (no premature death tag; stale threads actively resolved). Its author fidelity is now controlled evidence, not impression: the 2026-08-16 Muir discrimination arm rendered a second voice DISTINCTLY (ornate lexicon 3.2–4.1/1k words vs 0–2.1 in both Howard arms) — the voice work is capability, not house style. Full five-arm data: audits/SWEEP_five_arms_v1645.html.</p>
 <p><strong>GPT-5.6 Sol — mechanically rich, stylistically flat.</strong> Holds everything, sings nothing. Kept for players who bring their OpenAI account; not the recommendation.</p>
 
 <div class="defs">
@@ -125,8 +125,8 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 </div>
 
 <footer>
-  <span>Traffic and Dragons &middot; engine v1.643</span>
+  <span>Traffic and Dragons &middot; engine v1.645</span>
   <span>menu benchmarked 2026-08-16 &middot; study total &asymp; $23</span>
-  <span>companions: The Korrag Variations &middot; The Korrag Matrix</span>
+  <span>companions: The Korrag Variations &middot; The Korrag Matrix &middot; the five-arm Reckoning (SWEEP_five_arms_v1645)</span>
 </footer>
 </div>
