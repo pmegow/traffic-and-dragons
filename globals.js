@@ -129,16 +129,17 @@ var PROVIDERS={
     // stable block clears it (enforced by an engine test); verify live via usage.cache_read_input_tokens.
     buildBody:function(msgs,sys,maxTok,model){
       var body={model:model,max_tokens:maxTok,messages:msgs};
-      // Sonnet 5 runs ADAPTIVE THINKING when `thinking` is omitted (4.6 ran thinking-off) —
-      // unguarded, every GM turn would bill thinking as output tokens AND eat into maxTok=1000
-      // (truncated narration mid-scene). Explicit disabled preserves the 4.6-equivalent turn
-      // shape. Sonnet-5-only: 4.6 doesn't need it, and Fable-tier models would 400 on it.
-      if(model.indexOf("claude-sonnet-5")===0)body.thinking={type:"disabled"};
+      // Claude 5 models run ADAPTIVE THINKING when `thinking` is omitted (4.6 ran thinking-off) —
+      // unguarded, every GM turn bills thinking as output tokens AND eats into maxTok=1000; on
+      // opus-5 the FIRST content block is then a thinking block and parseResponse saw "Empty
+      // response" (found live 2026-08-16, the opus-5 money turn). Explicit disabled preserves the
+      // 4.6-equivalent turn shape; opus-5 accepting {type:"disabled"} was probe-verified live.
+      if(/^claude-(sonnet|opus)-5/.test(model))body.thinking={type:"disabled"};
       if(typeof sys==="string")body.system=sys;
       else body.system=[{type:"text",text:sys.stable,cache_control:{type:"ephemeral"}},{type:"text",text:sys.volatile}];
       return body;
     },
-    parseResponse:function(data){if(!data.content||!data.content[0]||!data.content[0].text)throw new Error("Empty response");return data.content[0].text;},
+    parseResponse:function(data){var i;if(data.content)for(i=0;i<data.content.length;i++){if(data.content[i]&&data.content[i].type!=="thinking"&&typeof data.content[i].text==="string")return data.content[i].text;}throw new Error("Empty response");}, // tolerant of thinking-bearing responses: first non-thinking text block wins (the opus-5 lesson)
     parseFinish:function(data){return data.stop_reason==="max_tokens"?"max_tokens":null;},
     // Anthropic: input_tokens EXCLUDES cached tokens (a turn's real input = in + cacheRead).
     // Prompt caching is LIVE (#11, v1.151) — healthy play shows cacheRead >> in on turn calls.
@@ -186,7 +187,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.641";
+var APP_VERSION="v1.642";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
