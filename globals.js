@@ -180,14 +180,14 @@ var PROVIDERS={
     headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
     buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
     parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
-    parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:u.candidatesTokenCount||0,cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};},
+    parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:(u.candidatesTokenCount||0)+(u.thoughtsTokenCount||0),cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};}, // thoughtsTokenCount folded into out (probe 2026-08-16: gemini-3.7-flash thinks MANDATORILY — 745 thought tokens per 51 output on a trivial call, billed as output, previously invisible to the meter)
     parseFinish:function(data){var c=data.candidates&&data.candidates[0];return (c&&c.finishReason==="MAX_TOKENS")?"MAX_TOKENS":null;},
     reinforce:TAG_REINFORCE,
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
 var carMode=false;
-var APP_VERSION="v1.643";
+var APP_VERSION="v1.644";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
