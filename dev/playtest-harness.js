@@ -44,7 +44,11 @@
 // 4. Run in small batches (5-10 turns), NOT all 50 in one eval call — preview_eval has a ~30s
 //    tool-side timeout, but the page keeps running the async batch in the background regardless.
 //    Just re-poll; you won't lose progress:
-//      window.__ptRunBatch(5)         // first call: safe to await directly, usually finishes in time
+//      window.__ptRunToTurn(50, 0)    // PREFERRED since 2026-08-16: counts COMMITTED turns only,
+//                                     // auto-backs-off on rate limits/load shedding, stamps per-turn
+//                                     // times; gapMs paces slow tiers (60000 tamed gpt-4o tier-1).
+//      window.__ptRunBatch(5)         // legacy batch driver: counts log entries — can diverge from
+//                                     // real turns under provider failures (the gpt-4o 429 lesson)
 //      window.__ptRunBatch(45)        // later calls: fire-and-forget (don't await), then poll:
 //      window.__pt.log.length         // check progress
 //      window.__pt.errors             // check for turn failures
@@ -104,6 +108,35 @@
     }
     return [];
   }
+  // #22 model-sweep graduation (2026-08-16): the COMMITTED-TURN driver. __ptRunBatch counts
+  // log entries, which the gpt-4o 429 storm proved can diverge from real turns (failed sendAction
+  // calls logged as 'turns'; a 50-entry 'success' held 15 real turns). This driver advances on
+  // worldState.turn ONLY, backs off 30s when a turn fails to land (rate limits, load shedding,
+  // credit walls — it self-resumes when the cause clears), stamps per-turn wall-clock times into
+  // the corpus (t), and paces with gapMs when a provider needs it (60000 tamed gpt-4o tier-1).
+  window.__ptRunToTurn = async function(targetTurn, gapMs){
+    while(worldState.turn < targetTurn){
+      try{
+        if(gapMs) await sleep(gapMs);
+        await waitIdle(90000);
+        var before = worldState.turn;
+        var acts = await waitForActions(30000);
+        var actionText = acts.length ? ((typeof toFirstPerson==='function') ? toFirstPerson(acts[Math.floor(Math.random()*acts.length)]) : acts[0]) : 'I take stock of my surroundings and press on.';
+        await sendAction(actionText);
+        await waitIdle(90000);
+        if(worldState.turn > before){
+          var narEls = document.querySelectorAll('#story-narrative .msg.narrator');
+          window.__pt.log.push({ turn: worldState.turn, action: actionText, narration: narEls.length?narEls[narEls.length-1].textContent:'', hp: worldState.character.hp, maxHp: worldState.character.maxHp, gold: worldState.character.gold, xp: worldState.character.xp, combat: worldState.combat?{engaged:worldState.combat.engaged||null,foes:(worldState.combat.foes||[]).map(function(f){return {name:f.name,hp:f.hp,down:f.down||null};})}:null, sessionTokensApprox:(typeof sessionTokens==='function')?sessionTokens():null, t:Date.now() });
+          persist();
+        } else {
+          window.__pt.errors.push({turn: worldState.turn, message: 'turn did not advance — backing off'});
+          persist();
+          await sleep(30000);
+        }
+      }catch(e){ window.__pt.errors.push({turn: worldState.turn, message: e && e.message}); persist(); await sleep(15000); }
+    }
+    return {logEntries: window.__pt.log.length, turn: worldState.turn, errors: window.__pt.errors.length};
+  };
   window.__ptRunBatch = async function(n){
     for(var i=0;i<n;i++){
       try{
