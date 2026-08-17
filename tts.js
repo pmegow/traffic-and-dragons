@@ -311,6 +311,31 @@ var TTS = (function() {
   // (google.rpc.RetryInfo in the 429 body) when present. 503 and transient errors keep the old
   // single quick retry — load-shedding and blips are not quota windows.
   var GEMINI_TTS_429_BACKOFF_MS = [5000, 15000, 30000];
+  // #41d (owner's second capture): Google's RetryInfo quoted 1986s — 33 MINUTES. That is not a
+  // rolling-minute window clearing, it is a deeper quota bucket, and no live read can absorb it.
+  // A hint beyond the cap means the tier is DONE for a while: degrade immediately, honestly, and
+  // remember the quoted delay (capped) so the next reads don't burn a probe request every 60s
+  // against a quota Google already said is closed.
+  var GEMINI_TTS_429_HINT_CAP_MS = 45000;
+  var GEMINI_TTS_DEGRADE_CAP_MS  = 600000;  // longest window a hint may extend the degrade to (10 min)
+  // Pure decision: how long to wait before 429 retry number `tries` (0-based), given Google's
+  // hint (0 = none). -1 = do not wait — degrade now.
+  function _geminiQuotaWaitMs(hintMs, tries) {
+    if (hintMs > GEMINI_TTS_429_HINT_CAP_MS) return -1;
+    if (hintMs > 0) return hintMs;
+    if (tries < GEMINI_TTS_429_BACKOFF_MS.length) return GEMINI_TTS_429_BACKOFF_MS[tries];
+    return -1;
+  }
+  // Abort-interruptible sleep: a skip mid-wait resolves immediately instead of letting a 30s
+  // quota wait outlive the read (the #41c check ran only AFTER the full wait).
+  function _geminiWait(ms, signal) {
+    return new Promise(function(res) {
+      var tid = setTimeout(function() { unhook(); res(); }, ms);
+      function onAbort() { clearTimeout(tid); unhook(); res(); }
+      function unhook() { try { if (signal) signal.removeEventListener("abort", onAbort); } catch (e) {} }
+      try { if (signal) { if (signal.aborted) { onAbort(); return; } signal.addEventListener("abort", onAbort); } } catch (e) {}
+    });
+  }
   function _geminiRetryDelayMs(j) {
     try {
       var det = j && j.error && j.error.details;
@@ -416,7 +441,7 @@ var TTS = (function() {
     return pick;
   }
 
-  var _geminiTtsErr = "", _geminiTtsErrAt = 0, _geminiTtsToasted = false;
+  var _geminiTtsErr = "", _geminiTtsErrAt = 0, _geminiTtsErrFor = 0, _geminiTtsToasted = false;
   function geminiTtsEnabled() { return store.get(GEMINI_TTS_K) === "1"; }
   function _geminiKey() {
     try {
@@ -429,15 +454,16 @@ var TTS = (function() {
     if (!_geminiKey()) return false;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
     if (_geminiTtsErr) {
-      if (Date.now() - _geminiTtsErrAt < GEMINI_TTS_RETRY_MS) return false;
-      _geminiTtsErr = ""; _geminiTtsErrAt = 0;
+      if (Date.now() - _geminiTtsErrAt < (_geminiTtsErrFor || GEMINI_TTS_RETRY_MS)) return false;/* #41d: a quota hint may have extended the window */
+      _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiTtsErrFor = 0;
     }
     return true;
   }
-  function _geminiTtsDegrade(reason) {
+  function _geminiTtsDegrade(reason, forMs) {
     _geminiTtsErr = String(reason || "Gemini TTS failed");
     _geminiTtsErrAt = Date.now();
-    console.warn("[tts gemini] degraded — " + _geminiTtsErr + " (local ladder for " + (GEMINI_TTS_RETRY_MS / 1000) + "s)");
+    _geminiTtsErrFor = Math.min(Math.max(forMs || GEMINI_TTS_RETRY_MS, GEMINI_TTS_RETRY_MS), GEMINI_TTS_DEGRADE_CAP_MS);/* #41d: a quota hint may extend the window (capped) — never shrink it */
+    console.warn("[tts gemini] degraded — " + _geminiTtsErr + " (local ladder for " + (_geminiTtsErrFor / 1000) + "s)");
     if (!_geminiTtsToasted) {
       _geminiTtsToasted = true;
       if (typeof showToast === "function") showToast("Gemini voice unavailable — using the local voice");
@@ -2439,15 +2465,24 @@ var TTS = (function() {
       // masquerades as a skip). Without the check, a 30s quota wait would outlive the skip,
       // mint a fresh controller, and bill a synthesis nobody will hear.
       if (lastCtrl && lastCtrl.signal && lastCtrl.signal.aborted && !timedOut) { failReason = "aborted by skip"; break; }
-      if (is429 && quotaTries < GEMINI_TTS_429_BACKOFF_MS.length) {
-        var wait = retryHint || GEMINI_TTS_429_BACKOFF_MS[quotaTries];
+      if (is429) {
+        var wait = _geminiQuotaWaitMs(retryHint, quotaTries);
+        if (wait < 0) {
+          // #41d: the quota is closed beyond this read's patience. Say so with Google's own
+          // number, and let the degrade window honor it (capped) instead of the flat 60s.
+          if (retryHint > GEMINI_TTS_429_HINT_CAP_MS) {
+            failReason = "quota exhausted — Google asks for " + Math.round(retryHint / 1000) + "s";
+            return { fail: failReason, degradeMs: Math.min(retryHint, GEMINI_TTS_DEGRADE_CAP_MS) };
+          }
+          break;
+        }
         quotaTries++;
         console.warn("[tts gemini] quota window (429) — waiting " + Math.round(wait / 1000) + "s before retry " + quotaTries + "/" + GEMINI_TTS_429_BACKOFF_MS.length + " (scheduled runway absorbs the wait)");
-        await new Promise(function(res) { setTimeout(res, wait); });
+        await _geminiWait(wait, lastCtrl && lastCtrl.signal);
         if (lastCtrl && lastCtrl.signal && lastCtrl.signal.aborted) { failReason = "aborted by skip"; break; }
         continue;
       }
-      if (!quickTried && !is429) { quickTried = true; await new Promise(function(res) { setTimeout(res, 1200); }); continue; }
+      if (!quickTried) { quickTried = true; await _geminiWait(1200, lastCtrl && lastCtrl.signal); if (lastCtrl && lastCtrl.signal && lastCtrl.signal.aborted && !timedOut) { failReason = "aborted by skip"; break; } continue; }
       break;
     }
     return b64 ? { b64: b64, rate: rate } : { fail: failReason || "no audio" };
@@ -2519,7 +2554,7 @@ var TTS = (function() {
         for (var k = i; k < groups.length; k++) rem += (rem ? " " : "") + groups[k].text;
         if (rem) _queue.unshift({ text: rem, piper: true, voiceId: voiceBaseId(voiceId) });
         handedOff = true;
-        _geminiTtsDegrade("group " + (i + 1) + "/" + groups.length + ": " + ((got && got.fail) || "no audio"));
+        _geminiTtsDegrade("group " + (i + 1) + "/" + groups.length + ": " + ((got && got.fail) || "no audio"), got && got.degradeMs);
         abortAll();
         break;
       }
@@ -4066,10 +4101,12 @@ var TTS = (function() {
                fastStartCh: GEMINI_TTS_FAST_START_CH, prefetch: GEMINI_TTS_PREFETCH,
                retryDelayMs: _geminiRetryDelayMs,                                 // #41c
                backoff429: function() { return GEMINI_TTS_429_BACKOFF_MS.slice(); },
+               quotaWaitMs: _geminiQuotaWaitMs, hintCapMs: GEMINI_TTS_429_HINT_CAP_MS,  // #41d
+               degrade: _geminiTtsDegrade,
                pcm: _pcm16ToAudioBuffer, ladder: function() { return TTS_LADDER.slice(); },
                keys: { on: GEMINI_TTS_K, dir: GEMINI_DIR_K, narr: GEMINI_NARRATOR_K },
-               degradeState: function() { return { err: _geminiTtsErr, at: _geminiTtsErrAt }; },
-               resetDegrade: function() { _geminiTtsErr = ""; _geminiTtsErrAt = 0; },
+               degradeState: function() { return { err: _geminiTtsErr, at: _geminiTtsErrAt, forMs: _geminiTtsErrFor }; },
+               resetDegrade: function() { _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiTtsErrFor = 0; },
                testLine: GEMINI_TEST_LINE,
                phase: _auditionPhase, setPhaseCb: function(fn) { _auditionCb = fn; } },
     testGeminiVoice: testGeminiVoice,   // #41: audition one Gemini voice (settings-modal ▶ Test)

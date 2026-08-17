@@ -43,7 +43,15 @@ rc |= sabotage.prove({
     { label: "#41c RetryInfo parser gutted — Google says exactly how long to wait and we stop listening",
       mustFail: "Google's own retryDelay is honored",
       find: "          var m = String(d.retryDelay).match(/^([\\d.]+)s$/);\n          if (m) return Math.round(parseFloat(m[1]) * 1000);",
-      replace: "          if (d.retryDelay) return 0;" }
+      replace: "          if (d.retryDelay) return 0;" },
+    { label: "#41d hint cap removed — a 33-minute RetryInfo becomes a 33-minute mid-read wait (the owner's second capture)",
+      mustFail: "an absurd quota hint is refused",
+      find: "    if (hintMs > GEMINI_TTS_429_HINT_CAP_MS) return -1;\n    if (hintMs > 0) return hintMs;",
+      replace: "    if (hintMs > 0) return hintMs;" },
+    { label: "#41d degrade-window extension dropped — a closed quota gets a probe request burned against it every 60s",
+      mustFail: "quota hint EXTENDS the degrade window",
+      find: "    _geminiTtsErrFor = Math.min(Math.max(forMs || GEMINI_TTS_RETRY_MS, GEMINI_TTS_RETRY_MS), GEMINI_TTS_DEGRADE_CAP_MS);",
+      replace: "    _geminiTtsErrFor = GEMINI_TTS_RETRY_MS;" }
   ]
 });
 

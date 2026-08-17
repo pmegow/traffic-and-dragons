@@ -7552,6 +7552,32 @@ function runEngineTests(R){
     if(GEM.retryDelayMs(null)!==0) return "null body did not fall back to 0";
     return true;
   });
+  // #41d (owner's second capture): RetryInfo quoted 1986s — 33 MINUTES. A hint beyond the
+  // runway's absorption is a CLOSED quota, not a wait: degrade now, and let the degrade window
+  // honor Google's number (capped) so later reads don't burn a probe against it every 60s.
+  t("#41d an absurd quota hint is refused, a sane one is honored, and the fallback schedule caps out",function(){
+    if(GEM.quotaWaitMs(1986000,0)!==-1) return "a 33-minute hint was accepted as a live-read wait";
+    if(GEM.quotaWaitMs(GEM.hintCapMs+1,0)!==-1) return "a hint just over the cap was accepted";
+    if(GEM.quotaWaitMs(8000,0)!==8000) return "a sane 8s hint was not honored: "+GEM.quotaWaitMs(8000,0);
+    var b=GEM.backoff429();
+    if(GEM.quotaWaitMs(0,0)!==b[0]||GEM.quotaWaitMs(0,2)!==b[2]) return "no-hint retries do not follow the schedule";
+    if(GEM.quotaWaitMs(0,b.length)!==-1) return "the schedule never runs out — a read could wait forever";
+    return true;
+  });
+  t("#41d a quota hint EXTENDS the degrade window (capped) and reset clears it — a closed quota is not re-probed every 60s",function(){
+    GEM.resetDegrade();
+    GEM.degrade("quota exhausted — Google asks for 1986s",1986000);
+    var st=GEM.degradeState();
+    if(!st.forMs||st.forMs<=60000) return "hint did not extend the window: "+JSON.stringify(st.forMs);
+    if(st.forMs>600000) return "window exceeded the 10-min cap: "+st.forMs;
+    if(GEM.ok()!==false) return "tier still reports ok inside the extended window";
+    GEM.resetDegrade();
+    GEM.degrade("plain failure");
+    var st2=GEM.degradeState();
+    if(st2.forMs>60000) return "a plain degrade inherited an extended window: "+st2.forMs;
+    GEM.resetDegrade();
+    return GEM.degradeState().forMs===0?true:"reset left a stale window";
+  });
   _gemClean();
 
   section("TTS engine selection (#41 Phase 4)");
