@@ -64,8 +64,9 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 <p>Commissioned off one observation: opus-5 costs 16&ndash;18&times; gemini-3.7-flash-low per 50 turns and is not 16&ndash;18&times; better, so the difference could buy something else. This page tests whether "something else" can be Gemini's TTS.</p>
 
 <div class="defs">
-  <p><strong>Bottom line.</strong> <span class="chip pass">viable</span> The arithmetic works, and better than expected: moving the <em>default</em> from sonnet-5 to gemini-3.7-flash-low frees <span class="n">$2.14</span> per 50 turns, and premium Gemini voice on that same run costs <span class="n">$1.21</span>. The voiced experience lands <strong><span class="n">$0.93 cheaper than today's silent-tier default</span></strong>.</p>
-  <p>Two caveats decide whether it ships: Car Mode needs <strong>streaming</strong>, which exists only on the <span class="n">3.1</span> model at the <em>higher</em> $20/1M rate; and all three TTS models are <strong>preview</strong>, with restrictive rate limits and no stability promise.</p>
+  <p><strong>Bottom line.</strong> <span class="chip pass">viable</span> <span class="chip pass">probe run</span> The arithmetic works, but by a thinner margin than first estimated. Moving the <em>default</em> from sonnet-5 to gemini-3.7-flash-low frees <span class="n">$2.14</span> per 50 turns; premium Gemini voice on that same run costs a <strong>measured</strong> <span class="n">$1.75</span>. The voiced experience lands <strong><span class="n">$0.39 cheaper than today's silent-tier default</span></strong> &mdash; still cheaper, with a far better voice, but not the $0.93 the estimate promised.</p>
+  <p><strong>Car Mode is answered: time to first audio is <span class="n win">840 ms</span> streaming</strong> &mdash; against a current server tier whose cold chain has hit 10.17 s. Non-streaming took <span class="n">31 s</span> for the same clip, so streaming is not optional.</p>
+  <p>The remaining caveat is that all three TTS models are <strong>preview</strong>, with restrictive rate limits and no stability promise.</p>
 </div>
 
 <h2>What Gemini TTS actually is</h2>
@@ -101,21 +102,44 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 <h2>The cost model</h2>
 <p class="kicker">our measured chars/turn &middot; 50-turn campaign &middot; not vendor examples</p>
 
-<p>Each arm's character count is the real average from its committed corpus. Speech rate is assumed at <strong>15 chars/second</strong> (~150 wpm); sensitivity is shown below and this is the one number that should be measured before anything is committed.</p>
+<p>Each arm's character count is the real average from its committed corpus. The conversion is no longer assumed &mdash; it is <strong>measured from the probe below</strong> at <span class="n">2.412 audio tokens per character</span>.</p>
 
 <div class="tablewrap">
 <table>
-<thead><tr><th>Arm</th><th>Chars / 50 turns</th><th>Audio</th><th>TTS @ $10/1M<br><span class="sub">2.5-flash, no streaming</span></th><th>TTS @ $20/1M<br><span class="sub">3.1-flash, streaming</span></th><th>GM cost</th><th>Total (3.1)</th></tr></thead>
+<thead><tr><th>Arm</th><th>Chars / 50 turns</th><th>Audio</th><th>Estimated<br><span class="sub">assumed rates</span></th><th>MEASURED @ $20/1M<br><span class="sub">3.1-flash, streaming</span></th><th>GM cost</th><th>Total</th></tr></thead>
 <tbody>
-<tr><th>gpt-5.6-sol</th><td><span class="n">17,550</span></td><td><span class="n">20 min</span></td><td><span class="n">$0.29</span></td><td><span class="n">$0.58</span></td><td><span class="n">~$2.25</span></td><td><span class="n">$2.83</span></td></tr>
-<tr><th>gemini-3.7 (low)</th><td><span class="n">36,350</span></td><td><span class="n">40 min</span></td><td><span class="n">$0.61</span></td><td><span class="n">$1.21</span></td><td><span class="n">~$0.50</span></td><td><span class="n win">$1.71</span></td></tr>
-<tr><th>claude-sonnet-5</th><td><span class="n">47,550</span></td><td><span class="n">53 min</span></td><td><span class="n">$0.79</span></td><td><span class="n">$1.58</span></td><td><span class="n">$2.64</span></td><td><span class="n">$4.22</span></td></tr>
-<tr><th>claude-opus-5</th><td><span class="n">77,200</span></td><td><span class="n">86 min</span></td><td><span class="n">$1.29</span></td><td><span class="n">$2.57</span></td><td><span class="n">~$8.50</span></td><td><span class="n bad">$11.07</span></td></tr>
+<tr><th>gpt-5.6-sol</th><td><span class="n">17,550</span></td><td><span class="n">22 min</span></td><td><span class="n sub">$0.58</span></td><td><span class="n">$0.85</span></td><td><span class="n">~$2.25</span></td><td><span class="n">$3.10</span></td></tr>
+<tr><th>gemini-3.7 (low)</th><td><span class="n">36,350</span></td><td><span class="n">46 min</span></td><td><span class="n sub">$1.21</span></td><td><span class="n">$1.75</span></td><td><span class="n">~$0.50</span></td><td><span class="n win">$2.25</span></td></tr>
+<tr><th>claude-sonnet-5</th><td><span class="n">47,550</span></td><td><span class="n">60 min</span></td><td><span class="n sub">$1.58</span></td><td><span class="n">$2.29</span></td><td><span class="n">$2.64</span></td><td><span class="n">$4.93</span></td></tr>
+<tr><th>claude-opus-5</th><td><span class="n">77,200</span></td><td><span class="n">97 min</span></td><td><span class="n sub">$2.57</span></td><td><span class="n">$3.72</span></td><td><span class="n">~$8.50</span></td><td><span class="n bad">$12.22</span></td></tr>
 </tbody>
 </table>
 </div>
 
-<p><strong>Speech-rate sensitivity</strong> (gemini-low at $20/1M): 13 chars/s &rarr; <span class="n">$1.40</span> &middot; 15 chars/s &rarr; <span class="n">$1.21</span> &middot; 17 chars/s &rarr; <span class="n">$1.07</span>. A &plusmn;13% error in the assumption moves the answer by &plusmn;$0.17 per 50 turns, which does not change any conclusion here.</p>
+<p>Every TTS figure came in <strong>~45% above the estimate</strong>, for two compounding reasons found only by measuring &mdash; see the probe.</p>
+
+<h2>The probe</h2>
+<p class="kicker">one real corpus turn, synthesized &middot; $0.06 total</p>
+
+<p>Turn 10 of the low-thinking run (631 speakable characters, narration plus Sylvie's dialogue) synthesized on <span class="n">gemini-3.1-flash-tts-preview</span>, with a <span class="n">[SAY:]</span>-style direction: <em>"Narrate as a grim sword-and-sorcery storyteller, low and unhurried. Deliver Sylvie's quoted lines as a frightened, hissing whisper."</em></p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Measurement</th><th>Assumed</th><th>Measured</th><th>Consequence</th></tr></thead>
+<tbody>
+<tr><th>Speech rate</th><td><span class="n">15 chars/s</span></td><td><span class="n">13.27 chars/s</span></td><td>Speech is slower than assumed &rarr; more audio seconds per turn</td></tr>
+<tr><th>Billing rate</th><td><span class="n">25 tok/s</span></td><td><span class="n bad">32.0 tok/s</span></td><td>The widely-published 25 tok/s figure is <strong>wrong</strong> for this model</td></tr>
+<tr><th>Combined</th><td>&mdash;</td><td><span class="n">2.412 tok/char</span></td><td>The only ratio worth keeping &mdash; it bypasses both assumptions</td></tr>
+<tr><th>Time to first audio<br><span class="sub">streaming</span></th><td>unknown</td><td><span class="n win">840 ms</span></td><td>Comfortably inside Car Mode needs</td></tr>
+<tr><th>Same clip, non-streaming</th><td>unknown</td><td><span class="n bad">31 s</span></td><td>Streaming is mandatory, not preferred</td></tr>
+<tr><th>Streaming throughput</th><td>&mdash;</td><td><span class="n">52 s audio in 21 s</span></td><td>Faster than realtime &mdash; playback starts at 840 ms and never starves</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>The 25 tokens/second figure is the trap.</strong> It appears in Google's own worked example and across every pricing aggregator, and it is what the first cost model used. The billed reality on <span class="n">3.1-flash</span> was 1,522 audio tokens for 47.56 seconds &mdash; 32.0 tok/s, about 28% higher. Combined with speech being slower than 150 wpm, the estimate was 45% light. <em>This is the entire justification for probing before committing.</em></p>
+
+<p><strong>Voice.</strong> Two samples were produced for the same passage &mdash; <span class="n">Algenib</span> (Gravelly) and <span class="n">Gacrux</span> (Mature) &mdash; specifically to judge whether the model changes register for Sylvie's quoted whisper. That is the capability Piper structurally cannot provide, and it is the part no spreadsheet can settle.</p>
 
 <h2>The decision this actually forces</h2>
 <p class="kicker">the swap that pays for itself</p>
@@ -124,8 +148,8 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 
 <div class="defs">
   <p><strong>Today:</strong> sonnet-5 default, silent tier (self-hosted Piper, ~$0 marginal) = <span class="n">$2.64</span> / 50 turns.</p>
-  <p><strong>Proposed:</strong> gemini-3.7-flash-low default + Gemini 3.1 streaming voice = <span class="n">$0.50 + $1.21 = $1.71</span> / 50 turns.</p>
-  <p><strong>Net: <span class="win">$0.93 cheaper</span>, with a dramatically better voice added rather than removed.</strong></p>
+  <p><strong>Proposed:</strong> gemini-3.7-flash-low default + Gemini 3.1 streaming voice = <span class="n">$0.50 + $1.75 = $2.25</span> / 50 turns.</p>
+  <p><strong>Net: <span class="win">$0.39 cheaper</span> (measured), with a dramatically better voice added rather than removed.</strong> The margin is real but thin enough that it should be treated as "voice for free," not "voice plus savings."</p>
 </div>
 
 <p>The honest counterweight: today's TTS marginal cost is approximately <em>zero</em>, because we self-host Piper. This introduces a real per-use COGS line where none existed. The trade is only favourable because the GM-side saving is larger than the voice-side cost &mdash; it is not free money, it is a good exchange rate.</p>
@@ -151,17 +175,21 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 
 <ul>
   <li><span class="chip warn">blocker-ish</span> <strong>Preview status.</strong> All three models are preview, with "more restrictive rate limits" and no stability guarantee. This project has already been bitten by retired Gemini IDs returning 404. A shipped tier on a preview model needs the ladder as a genuine safety net, plus acceptance that it can break on Google's schedule.</li>
-  <li><span class="chip warn">measure</span> <strong>Time to first audio.</strong> Unmeasured, and Car Mode is the demanding case. Our current server chain already hit 10.17s cold, which is why <span class="n">SERVER_TTS_TIMEOUT_FIRST_MS</span> is 15s. Streaming should help materially, but "should" is not a measurement.</li>
-  <li><span class="chip warn">measure</span> <strong>The 15 chars/sec assumption</strong> &mdash; one real synthesis of a known passage settles it and firms every dollar above.</li>
+  <li><span class="chip pass">resolved</span> <strong>Time to first audio &mdash; 840 ms streaming.</strong> Comfortably inside Car Mode needs and far better than the current server chain's 10.17s cold worst case. Non-streaming was 31s, so the tier must be built on streaming.</li>
+  <li><span class="chip pass">resolved</span> <strong>The rate assumptions</strong> &mdash; measured at 2.412 tok/char (13.27 chars/s, 32.0 tok/s). Every cost figure above is now measurement-backed, and 45% higher than the estimate.</li>
   <li><span class="chip fail">decided elsewhere</span> <strong>Who pays.</strong> On a player's own key this repeats precisely the objection that killed LiveKit &mdash; per-use cost riding the player's key. It only makes sense server-proxied under the subscription model (BYOK-elimination ruling, 2026-08-16), which is also the architecture recommended above.</li>
   <li><span class="chip warn">probe</span> <strong>Free tier.</strong> 3.1-flash and 2.5-flash both list a free tier. Its limits are unstated here and worth probing &mdash; it may cover development and early play entirely.</li>
   <li><strong>Rate limits vs burst shape.</strong> A game turn produces a burst of short units, not one long clip. Preview rate limits are per-minute; the queue may need pacing that Piper never required.</li>
 </ul>
 
-<h2>Recommended next step</h2>
-<p class="kicker">no code was written for this page</p>
+<h2>Where it stands</h2>
+<p class="kicker">probe complete &middot; still no engine code written</p>
 
-<p>The cheapest decisive experiment is a <strong>one-off synthesis probe against the real thing</strong>: take a genuine 700-character narration turn from the low-thinking corpus, synthesize it on <span class="n">gemini-3.1-flash-tts-preview</span> with a cast voice and one <span class="n">[SAY:]</span>-style emotional direction, and measure three numbers &mdash; time to first audio, actual audio duration (settling chars/sec), and billed audio tokens. That converts every estimate on this page into a measurement for a few cents, and it also answers the question no spreadsheet can: <em>does it sound good enough to be worth a new COGS line?</em></p>
+<p>The numbers are settled and they support building it: <span class="n">$0.39</span> cheaper than today with a far better voice, 840 ms to first audio, and a style-control capability the current stack structurally cannot match. What is <em>not</em> settled is whether the voice is good enough to justify introducing a COGS line where the marginal cost is currently zero &mdash; that is an owner listening call on the two samples, not an engineering one.</p>
+
+<p>If it proceeds, the build order suggested by the architecture section is: ① a Gemini backend inside the existing <span class="n">tnd-tts</span> app behind the current <span class="n">/api/tts</span> contract, so the client never learns a new tier; ② a curated voice bank mapping prebuilt voices into #174 casting; ③ wiring #96 <span class="n">[SAY:]</span> attribution into per-utterance style direction, which is the actual product win. Piper stays the offline floor throughout.</p>
+
+<p>Two things to carry into that work: the preview-model risk is unmitigated (the ladder is the safety net), and per-minute rate limits against a game turn's burst of short units are still unprobed &mdash; a load shape Piper never had to care about.</p>
 
 <footer>
   <span>Traffic and Dragons &middot; engine v1.645</span>
