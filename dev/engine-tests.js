@@ -7400,6 +7400,21 @@ function runEngineTests(R){
     var got=g[0].voice; _gemClean();
     return got==="Charon" ? true : "narration spoke as "+got+" instead of the chosen narrator";
   });
+  // The ▶ Test button must audition the SELECTED voice, not the saved narrator — otherwise every
+  // voice in the dropdown sounds identical and the picker is decorative.
+  t("forceVoice overrides both the narrator and the cast map (the audition path)",function(){
+    _gemClean(); store.set(GEM.keys.narr,"Charon");
+    var units=[{text:"a"},{text:"b"}];
+    var g=GEM.group(units,"",{1:"en_US-libritts_r-medium#1"},"Sulafat");
+    var bad=g.filter(function(x){return x.voice!=="Sulafat";});
+    _gemClean();
+    return bad.length===0 ? true : "forceVoice ignored — got "+g.map(function(x){return x.voice;}).join(",");
+  });
+  t("audition sample line carries narration AND quoted speech — where overacting shows",function(){
+    var L=GEM.testLine||"";
+    if (L.length<40) return "test line too short to judge delivery";
+    return /["“]/.test(L) ? true : "test line has no quoted dialogue to audition";
+  });
   t("grouping never drops or duplicates text — the remainder hand-off depends on it",function(){
     var units=[],i; for(i=0;i<40;i++) units.push({text:"u"+i});
     var voices={5:"en_US-libritts_r-medium#1",6:"en_US-libritts_r-medium#1",20:"en_US-libritts_r-medium#3"};

@@ -428,10 +428,12 @@ var TTS = (function() {
   // this tier picks its narrator from its OWN setting — falling back to the item's Piper id here
   // sent unattributed narration through the hash instead of the chosen narrator voice, so a scene
   // read with Schedar selected came back in Umbriel. Only CAST units consult the mapping.
-  function _geminiGroupUnits(units, voiceId, voices) {
+  // forceVoice (4th param) exists for the audition button: a Test press must speak the voice being
+  // AUDITIONED, not the saved narrator, and must not require saving first.
+  function _geminiGroupUnits(units, voiceId, voices, forceVoice) {
     var groups = [], cur = null;
     for (var i = 0; i < units.length; i++) {
-      var v = _geminiVoiceFor((voices && voices[i]) || "");
+      var v = forceVoice || _geminiVoiceFor((voices && voices[i]) || "");
       var t = units[i].text || "";
       if (cur && cur.voice === v && (cur.text.length + t.length + 1) <= GEMINI_TTS_MAX_GROUP_CH) {
         cur.text += " " + t; cur.last = units[i];
@@ -1521,7 +1523,7 @@ var TTS = (function() {
     _curItem = item;   // v1.438: retained so a doomed-ctx rebuild can requeue the interrupted item
     _curNative = !!item.native;
     if (item.native) _speakNative(item.text);
-    else if (item.gemini) _speakGemini(item.text, item.voiceId, item.voices);
+    else if (item.gemini) _speakGemini(item.text, item.voiceId, item.voices, item.forceVoice, item.dir);
     else if (item.server) _speakServer(item.text, item.voiceId, item.voices);
     else if (item.piper) _speakPiper(item.text, item.voiceId, item.voices);
     // #9 sweep: the third branch (the removed cloud provider) is gone. Every item a
@@ -2307,7 +2309,7 @@ var TTS = (function() {
   //      concurrency ≥4 reliably produced 429 RESOURCE_EXHAUSTED in the probe.
   // Everything else — epoch guard after every await, backpressure, remainder hand-off down the
   // ladder, pause/skip semantics — is deliberately identical to the server tier.
-  async function _speakGemini(text, voiceId, voices) {
+  async function _speakGemini(text, voiceId, voices, forceVoice, dirOverride) {
     var myEpoch = ++_piperEpoch;
 
     var ctx = _ensureCtx();
@@ -2321,7 +2323,7 @@ var TTS = (function() {
 
     var units = splitSentences(text, null, true);   // same prep as the other cloud tier
     if (!units.length) { _drain(); return; }
-    var groups = _geminiGroupUnits(units, voiceId, voices);
+    var groups = _geminiGroupUnits(units, voiceId, voices, forceVoice);
 
     _sources = [];
     var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
@@ -2330,7 +2332,7 @@ var TTS = (function() {
     var anyOk      = false;
     var handedOff  = false;
     var key        = _geminiKey();
-    var direction  = geminiDirection();
+    var direction  = (typeof dirOverride === "string" && dirOverride) ? dirOverride : geminiDirection();
 
     function onAllDone() { _sources = []; _nextStart = 0; _drain(); }
 
@@ -3564,6 +3566,31 @@ var TTS = (function() {
       _drain();
     });
   }
+  // #41: audition one Gemini voice. Deliberately NOT routed through testVoice() — that one walks the
+  // Piper/server ladder and would audition the wrong engine entirely.
+  //
+  // Two things make this useful rather than decorative: it speaks the voice currently SELECTED in
+  // the dropdown (not the saved narrator), and it uses the direction text as currently TYPED (not
+  // the saved one). Tuning the delivery is an edit-listen-edit loop, and forcing a save between
+  // every attempt would make it unusable. The sample line carries narration AND a quoted line on
+  // purpose: quoted speech is where the over-acting shows, so it is the thing worth hearing.
+  var GEMINI_TEST_LINE = "The lamps gutter as the door swings wide, and the hall falls quiet. " +
+                         "\"You are late,\" she says, not looking up from the map. " +
+                         "Rain runs from your cloak onto the flagstones.";
+  function testGeminiVoice(voiceName, dirOverride) {
+    if (!_geminiKey()) {
+      if (typeof showToast === "function") showToast("Add a Gemini API key first (Language Model…)");
+      return;
+    }
+    var v = _geminiVoiceKnown(voiceName) ? voiceName : geminiNarratorVoice();
+    // A test press is an explicit "try it now", so it clears any open degrade window rather than
+    // silently doing nothing for up to 60s after an earlier failure.
+    _geminiTtsErr = ""; _geminiTtsErrAt = 0;
+    stop();
+    _queue.push({ text: GEMINI_TEST_LINE, gemini: true, voiceId: "", forceVoice: v,
+                  dir: (typeof dirOverride === "string" && dirOverride) ? dirOverride : "" });
+    _drain();
+  }
   // #9 (user 2026-07-21): when a character's assigned voice CHANGES, free the old one's OPFS slot —
   // but ONLY if nothing else still uses it. `_voiceAssignedTo` scans every character sheet AND the
   // narrator, so a voice shared by another party member (or the narrator) is protected automatically;
@@ -3637,7 +3664,10 @@ var TTS = (function() {
       +   "</div>"
       +   "<div id='tts-gem-cfg' style='margin-top:10px;" + (geminiTtsEnabled() ? "" : "display:none;") + "'>"
       +     "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Narrator voice</label>"
-      +     "<select id='tts-gem-narr' style='" + smInpStyle + "'>" + _geminiVoiceOptions(geminiNarratorVoice()) + "</select>"
+      +     "<div style='display:flex;gap:6px;align-items:flex-start;'>"
+      +       "<select id='tts-gem-narr' style='" + smInpStyle + "flex:1;'>" + _geminiVoiceOptions(geminiNarratorVoice()) + "</select>"
+      +       "<button id='tts-gem-test' style='padding:6px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
+      +     "</div>"
       +     "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Delivery direction</label>"
       +     "<textarea id='tts-gem-dir' rows='3' style='" + smInpStyle + "resize:vertical;'>" + escHtml(geminiDirection()) + "</textarea>"
       +     "<div style='font-size:11px;color:var(--t2);line-height:1.5;'>"
@@ -3749,6 +3779,14 @@ var TTS = (function() {
     }
     var gemNarr = document.getElementById("tts-gem-narr");
     if (gemNarr) gemNarr.addEventListener("change", function() { store.set(GEMINI_NARRATOR_K, this.value); });
+    var gemTest = document.getElementById("tts-gem-test");
+    if (gemTest) gemTest.addEventListener("click", function() {
+      var sel = document.getElementById("tts-gem-narr");
+      var dir = document.getElementById("tts-gem-dir");
+      // Read both from the DOM, not the store: the point of Test is hearing what is on screen,
+      // including a direction the user has typed but not yet blurred out of.
+      testGeminiVoice(sel ? sel.value : "", dir ? dir.value : "");
+    });
     var gemDir = document.getElementById("tts-gem-dir");
     if (gemDir) gemDir.addEventListener("change", function() { store.set(GEMINI_DIR_K, this.value || ""); });
     var gemReset = document.getElementById("tts-gem-reset");
@@ -3881,7 +3919,9 @@ var TTS = (function() {
                pcm: _pcm16ToAudioBuffer, ladder: function() { return TTS_LADDER.slice(); },
                keys: { on: GEMINI_TTS_K, dir: GEMINI_DIR_K, narr: GEMINI_NARRATOR_K },
                degradeState: function() { return { err: _geminiTtsErr, at: _geminiTtsErrAt }; },
-               resetDegrade: function() { _geminiTtsErr = ""; _geminiTtsErrAt = 0; } },
+               resetDegrade: function() { _geminiTtsErr = ""; _geminiTtsErrAt = 0; },
+               testLine: GEMINI_TEST_LINE },
+    testGeminiVoice: testGeminiVoice,   // #41: audition one Gemini voice (settings-modal ▶ Test)
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit, unitGap: unitGap,
                  pauses: function() { return { comma: PAUSE_COMMA, clause: PAUSE_COMMA_CLAUSE, fullstop: PAUSE_FULLSTOP, paragraph: PAUSE_PARAGRAPH }; } },
     // #90: server-tier internals, exported ONLY for the headless engine tests (same contract as
