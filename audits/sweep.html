@@ -1,0 +1,132 @@
+<title>The Korrag Menu</title>
+<style>
+:root{
+  --bg:#f7f1e6; --ink:#2b2620; --dim:#8a7f6d; --line:#e3d8c4; --panel:#fdf9f0;
+  --acc:#b8935a; --acc-ink:#8a6a38;
+  --pass:#5a7a4d; --pass-bg:#eef0e2;
+  --fail:#a04a38; --fail-bg:#f5e6e0;
+  --warn:#a0783c; --warn-bg:#f4ecda;
+  --mono:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+    --acc:#c9a568; --acc-ink:#c9a568;
+    --pass:#8fae7c; --pass-bg:#232a1e;
+    --fail:#c97b66; --fail-bg:#31211c;
+    --warn:#c79a55; --warn-bg:#2c2517;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+  --acc:#c9a568; --acc-ink:#c9a568;
+  --pass:#8fae7c; --pass-bg:#232a1e;
+  --fail:#c97b66; --fail-bg:#31211c;
+  --warn:#c79a55; --warn-bg:#2c2517;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Georgia,'Iowan Old Style','Times New Roman',serif}
+.wrap{max-width:min(96vw,1700px);margin:0 auto;padding:48px 24px 80px}
+header{border-bottom:2px solid var(--acc);padding-bottom:22px;margin-bottom:26px;max-width:1080px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-ink);margin:0 0 12px}
+h1{font-size:30px;line-height:1.2;margin:0 0 10px;font-weight:700;text-wrap:balance}
+.standfirst{font-size:16px;font-style:italic;color:var(--dim);margin:0;max-width:70ch}
+h2{font-size:19px;margin:40px 0 4px}
+h2 + .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+p{margin:0 0 14px;max-width:75ch}
+a{color:var(--acc-ink)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:12px;padding:2px 8px;border:1px solid;white-space:nowrap}
+.chip.pass{color:var(--pass);border-color:var(--pass);background:var(--pass-bg)}
+.chip.fail{color:var(--fail);border-color:var(--fail);background:var(--fail-bg)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.tablewrap{overflow-x:auto;margin:16px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.45;min-width:900px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--acc);position:sticky;top:0;background:var(--panel)}
+tbody th{font-weight:700;font-size:13.5px;white-space:nowrap;position:sticky;left:0;background:var(--panel);z-index:1}
+thead th:first-child{position:sticky;left:0;z-index:2}
+td .n{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+td .sub{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+blockquote{margin:18px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);font-style:italic;color:var(--ink);max-width:75ch}
+blockquote .who{display:block;font-family:var(--mono);font-size:11px;font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:8px}
+.defs{max-width:1080px;border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--panel);border-radius:4px;padding:14px 18px;margin:18px 0;font-size:14px}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 22px}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Traffic and Dragons &middot; the shipping model menu, benchmarked &middot; August 14&ndash;16, 2026</p>
+  <h1>The Korrag Menu</h1>
+  <p class="standfirst">The four models a player can now choose, each measured on the same 50-turn standard campaign. The elimination rounds live in <em>The Korrag Variations</em> and <em>The Korrag Matrix</em>; this page is the survivors only.</p>
+</header>
+
+<p>The menu was pruned on 2026-08-16 to models performing at or above Sonnet&nbsp;5&rsquo;s class. All four survivors hold both halves of the GM contract &mdash; faithful state tags <em>and</em> a story that obeys them. What separates them now is voice, speed, cost, and temperament.</p>
+
+<h2>The menu</h2>
+<p class="kicker">4 models &middot; 50 committed turns each &middot; identical blueprint, character, and Howard voice brief</p>
+<div class="tablewrap"><table>
+<thead><tr>
+  <th>Axis</th>
+  <th>Sonnet 5 <span style="font-weight:400">(default)</span></th><th>Opus 5</th><th>Gemini 3.7 Flash</th><th>GPT-5.6 Sol</th>
+</tr></thead>
+<tbody>
+<tr><th>Tag discipline</th>
+  <td><span class="chip pass">0/50 zero-tag</span></td>
+  <td><span class="chip pass">0/50 zero-tag</span><span class="sub">richest lifecycle use of the study: 15&times; FUTURE_EVENT_RESOLVED, 42&times; XP, 2 quests driven to active</span></td>
+  <td><span class="chip pass">0/50 zero-tag</span></td>
+  <td><span class="chip pass">3/50</span></td></tr>
+<tr><th>Narrative continuity</th>
+  <td><span class="chip pass">best premise retention</span><span class="sub">caravan 20/50 turns, t1&ndash;t50</span></td>
+  <td><span class="chip pass">deepest structure</span><span class="sub">premise 19&times; t1&ndash;t31 then deliberately evolved; 10 chapters; 3-quest web</span></td>
+  <td><span class="chip pass">connected</span><span class="sub">premise evolves into the pit conspiracy, t8&ndash;t48</span></td>
+  <td><span class="chip pass">connected</span><span class="sub">token&rarr;pits&rarr;cistern chain</span></td></tr>
+<tr><th>Drift avoidance</th>
+  <td><span class="chip pass">clean + corrective</span><span class="sub">&ldquo;Theron is dead, and stays dead&rdquo;</span></td>
+  <td><span class="chip pass">clean, exemplary</span><span class="sub">the dead man&rsquo;s falchion stays looted, remembered, and in-hand 30 turns later</span></td>
+  <td><span class="chip warn">one divergence</span><span class="sub">a death tag led its prose by 4 turns, self-resolved</span></td>
+  <td><span class="chip pass">clean</span></td></tr>
+<tr><th>Dead-actor test</th>
+  <td><span class="chip pass">clean + pushback</span></td>
+  <td><span class="chip pass">clean + literary</span><span class="sub">every post-death mention is corpse, memory, or inherited steel</span></td>
+  <td><span class="chip warn">premature tag</span></td>
+  <td><span class="chip pass">clean</span></td></tr>
+<tr><th>Howard voice</th>
+  <td><span class="chip pass">strong</span></td>
+  <td><span class="chip pass">strongest of study</span><span class="sub">&ldquo;The thorn stand is a bad friend but it is the only one on this stretch&rdquo;</span></td>
+  <td><span class="chip pass">strong</span></td>
+  <td><span class="chip warn">terse tactical</span></td></tr>
+<tr><th>Memory extraction</th>
+  <td><span class="chip pass">6/6</span></td><td><span class="chip pass">10/10 &mdash; most chapters filed</span></td><td><span class="chip pass">5/5</span></td><td><span class="chip pass">3/3</span></td></tr>
+<tr><th>Progression exercised</th>
+  <td><span class="n">L2 &middot; 525 XP</span></td>
+  <td><span class="n">L3 &middot; 1205 XP &middot; Eldritch Knight</span><span class="sub">only arm to cross the archetype gate &mdash; level-up machinery exercised live (pick made by the owner; the harness cannot yet choose)</span></td>
+  <td><span class="n">L2 &middot; 400 XP</span></td>
+  <td><span class="n">L2 &middot; 430 XP</span></td></tr>
+<tr><th>Speed (median/turn)</th>
+  <td><span class="n">7s</span></td><td><span class="n">17s (p90 38s)</span></td><td><span class="n">~15s</span></td><td><span class="n">~34s</span></td></tr>
+<tr><th>Cost, 50 turns</th>
+  <td><span class="n">$2.64 actual</span></td>
+  <td><span class="n">&asymp;$8&ndash;9 est</span><span class="sub">UNVERIFIED pricing (no MODEL_PRICING entry; est. at Opus-4-8 rates); drained the account mid-run</span></td>
+  <td><span class="n">~$0.55 est</span></td>
+  <td><span class="n">~$2&ndash;2.50 est</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>Temperaments</h2>
+<p class="kicker">What each survivor is FOR</p>
+<p><strong>Sonnet&nbsp;5 — the default, and the right one.</strong> Fastest by a factor of two, cleanest corrective instincts, best premise retention, mid-band price. The reference experience.</p>
+<p><strong>Opus&nbsp;5 — the storyteller&rsquo;s tier.</strong> Everything Sonnet does plus depth nobody else showed: the only arm to reach level&nbsp;3 and the archetype gate, twice the XP flow, a three-quest web, ten filed chapters, resolved future-events, and prose that treats a looted falchion as a thirty-turn memory. It costs roughly 3&times; Sonnet and needs its price verified &mdash; a premium tier in the literal sense.</p>
+<blockquote>Kadrun Zethran&rsquo;s hand was on this grip six hours ago. He shouted the odds on your life for three winters and now his blade rides your hip.<span class="who">opus-5, turn 42 &mdash; drift avoidance as storytelling</span></blockquote>
+<p><strong>Gemini 3.7 Flash — the budget seat.</strong> A fifth of Sonnet&rsquo;s price, strong voice, one self-healing blemish on record. The economy option that doesn&rsquo;t feel like one.</p>
+<p><strong>GPT-5.6 Sol — mechanically rich, stylistically flat.</strong> Holds everything, sings nothing. Kept for players who bring their OpenAI account; not the recommendation.</p>
+
+<div class="defs">
+<strong>Bring-up debts this benchmark paid:</strong> opus-5&rsquo;s adaptive thinking initially made every response parse as empty (fixed v1.642 &mdash; thinking disabled across the Claude-5 family, parser hardened); gpt-5.x rejects <span class="n">max_tokens</span> (fixed v1.640); and the opus arm ran the account dry mid-run &mdash; the credit-exhaustion path failed loud and correct in the app, and the harness&rsquo;s auto-retry self-resumed the run on top-up. Open follow-ups: MODEL_PRICING entries for all three non-Anthropic-priced menu models, and #29&rsquo;s missing callGM timeout.
+</div>
+
+<footer>
+  <span>Traffic and Dragons &middot; engine v1.642</span>
+  <span>menu benchmarked 2026-08-16 &middot; study total &asymp; $23</span>
+  <span>companions: The Korrag Variations &middot; The Korrag Matrix</span>
+</footer>
+</div>
