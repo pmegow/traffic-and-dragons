@@ -19,10 +19,15 @@ rc |= sabotage.prove({
       mustFail: "results deliver strictly IN ORDER",
       find: "      ready:  function() { return s.results[s.taken] !== undefined; },",
       replace: "      ready:  function() { for (var k in s.results) return true; return false; }," },
-    { label: "halt stops nothing — a skipped read keeps synthesizing and billing",
-      mustFail: "halt() stops the pump",
-      find: "      while (!s.halted && (s.started - s.taken) < depth",
-      replace: "      while ((s.started - s.taken) < depth" },
+    /* NOTE: pump()'s own `!s.halted` clause has NO sabotage case ON PURPOSE — it is unreachable
+       belt-and-suspenders (take() and landed() both guard halt first, and started-taken stays
+       saturated at depth once takes stop), so no test can be made to see it. The first run of
+       this suite proved that as a MISSED clause; the reachable halt teeth are take()'s refusal,
+       pinned below. */
+    { label: "halt's take-guard removed — a skipped read hands out audio anyway (the billing/skip path's real teeth)",
+      mustFail: "take() after halt refuses",
+      find: "      take:   function() { if (s.halted) return { fail: \"halted\" }; var r = s.results[s.taken];",
+      replace: "      take:   function() { var r = s.results[s.taken];" },
     { label: "fast-start cap dropped — the cold open pays a full-size group's non-streaming synthesis again",
       mustFail: "the FIRST group is capped small",
       find: "      var cap = groups.length ? GEMINI_TTS_MAX_GROUP_CH : GEMINI_TTS_FAST_START_CH;",

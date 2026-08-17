@@ -7505,12 +7505,14 @@ function runEngineTests(R){
     if(a.b64!=="r0"||b.b64!=="r1"||d.b64!=="r2") return "delivery order broke: "+[a.b64,b.b64,d.b64].join(",");
     return true;
   });
-  t("#41b conveyor: halt() stops the pump and take() after halt starts nothing (the skip/abort path)",function(){
+  t("#41b conveyor: halt() stops the pump and take() after halt refuses instead of handing out audio (the skip/abort path)",function(){
     var startedIx=[];
     var c=GEM.conveyor(10,2,function(ix){startedIx.push(ix);});
     c.pump();c.landed(0,{b64:"r0"});
     c.halt();
-    c.take();c.pump();
+    var r=c.take();
+    if(!r||!r.fail) return "take() after halt handed out real audio ("+JSON.stringify(r)+") — a skipped read would keep playing";
+    c.pump();
     if(startedIx.length!==2) return "halted conveyor still started work: "+startedIx.join(",");
     return c.halted()?true:"halted() not reporting";
   });
