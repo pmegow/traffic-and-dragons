@@ -7533,6 +7533,25 @@ function runEngineTests(R){
     if(!(first>small)) return "first call gets no cold-path allowance";
     return true;
   });
+  // #41c (owner field capture, first conveyor listen): an 11-group turn hit the rolling
+  // per-minute quota at group 7 and the 1.2s blip-retry gave up into a mid-read degrade. A quota
+  // window needs PATIENCE, and the conveyor's own scheduled runway is what affords it.
+  t("#41c the 429 backoff is a quota-window schedule, not a blip retry",function(){
+    var b=GEM.backoff429();
+    if(b.length<3) return "only "+b.length+" quota retries — one rolling window can outlast them";
+    var total=0,i;for(i=0;i<b.length;i++){total+=b[i];if(i&&b[i]<b[i-1])return "backoff not non-decreasing: "+b.join(",");}
+    if(b[0]<3000) return "first quota wait "+b[0]+"ms — that is a blip retry wearing a quota label";
+    if(total<45000) return "whole schedule waits only "+total+"ms — a 60s rolling window outlasts it and the degrade class returns";
+    return true;
+  });
+  t("#41c Google's own retryDelay is honored when the 429 body carries RetryInfo",function(){
+    var j={error:{details:[{"@type":"type.googleapis.com/google.rpc.RetryInfo",retryDelay:"27s"}]}};
+    if(GEM.retryDelayMs(j)!==27000) return "27s parsed as "+GEM.retryDelayMs(j);
+    if(GEM.retryDelayMs({error:{details:[{"@type":"type.googleapis.com/google.rpc.RetryInfo",retryDelay:"3.5s"}]}})!==3500) return "fractional seconds mangled";
+    if(GEM.retryDelayMs({error:{details:[{"@type":"other"}]}})!==0) return "absent RetryInfo did not fall back to 0";
+    if(GEM.retryDelayMs(null)!==0) return "null body did not fall back to 0";
+    return true;
+  });
   _gemClean();
 
   section("TTS engine selection (#41 Phase 4)");

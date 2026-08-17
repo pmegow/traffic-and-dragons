@@ -35,7 +35,15 @@ rc |= sabotage.prove({
     { label: "flat deadline restored — full-size groups are guaranteed losers again (the mid-read degrade class)",
       mustFail: "timeout scales with group length",
       find: "    return GEMINI_TTS_TIMEOUT_BASE_MS + Math.round((chars || 0) * GEMINI_TTS_TIMEOUT_PER_CH_MS)\n         + (isFirst ? GEMINI_TTS_TIMEOUT_COLD_MS : 0);",
-      replace: "    return 25000 + (isFirst ? GEMINI_TTS_TIMEOUT_COLD_MS : 0);" }
+      replace: "    return 25000 + (isFirst ? GEMINI_TTS_TIMEOUT_COLD_MS : 0);" },
+    { label: "#41c quota backoff flattened to a blip retry — the owner's group-7/11 mid-read degrade returns",
+      mustFail: "quota-window schedule, not a blip retry",
+      find: "  var GEMINI_TTS_429_BACKOFF_MS = [5000, 15000, 30000];",
+      replace: "  var GEMINI_TTS_429_BACKOFF_MS = [1200];" },
+    { label: "#41c RetryInfo parser gutted — Google says exactly how long to wait and we stop listening",
+      mustFail: "Google's own retryDelay is honored",
+      find: "          var m = String(d.retryDelay).match(/^([\\d.]+)s$/);\n          if (m) return Math.round(parseFloat(m[1]) * 1000);",
+      replace: "          if (d.retryDelay) return 0;" }
   ]
 });
 

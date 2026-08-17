@@ -303,6 +303,27 @@ var TTS = (function() {
     return GEMINI_TTS_TIMEOUT_BASE_MS + Math.round((chars || 0) * GEMINI_TTS_TIMEOUT_PER_CH_MS)
          + (isFirst ? GEMINI_TTS_TIMEOUT_COLD_MS : 0);
   }
+  // #41c (owner field capture, first conveyor listen): a LONG turn (11 groups) filled the rolling
+  // per-minute token quota around group 7 — 429 — and the 1.2s single retry tuned for transient
+  // blips gave up into a mid-read degrade. A quota window is not a blip: the right response is to
+  // WAIT, and the conveyor itself created the slack to wait in (minutes of scheduled runway).
+  // 429s now retry on a patient schedule, honoring the retryDelay Google actually returns
+  // (google.rpc.RetryInfo in the 429 body) when present. 503 and transient errors keep the old
+  // single quick retry — load-shedding and blips are not quota windows.
+  var GEMINI_TTS_429_BACKOFF_MS = [5000, 15000, 30000];
+  function _geminiRetryDelayMs(j) {
+    try {
+      var det = j && j.error && j.error.details;
+      if (det) for (var i = 0; i < det.length; i++) {
+        var d = det[i];
+        if (d && /RetryInfo$/.test(String(d["@type"] || "")) && d.retryDelay) {
+          var m = String(d.retryDelay).match(/^([\d.]+)s$/);
+          if (m) return Math.round(parseFloat(m[1]) * 1000);
+        }
+      }
+    } catch (e) {}
+    return 0;
+  }
   // The owner's first-listen verdict was that the voices OVERACT. Style is the only control surface
   // Google exposes (no pitch/rate/tone parameters, no cloning), so the fix lives entirely in this
   // string — and it deliberately describes the READING, not a character, because "speak as <a hard
@@ -2371,13 +2392,15 @@ var TTS = (function() {
   async function _geminiFetchGroup(g, isFirst, key, direction, regCtrl) {
     var b64 = "", rate = 24000, failReason = "";
     var uTimeoutMs = _geminiTimeoutMs(g.text.length, isFirst);
-    for (var attempt = 0; attempt < 2 && !b64; attempt++) {
-      if (attempt) await new Promise(function(res) { setTimeout(res, 1200); });
-      var tid = null;
+    var quotaTries = 0, quickTried = false, lastCtrl = null, timedOut = false;
+    for (;;) {
+      var tid = null, is429 = false, retryHint = 0;
+      timedOut = false;
       try {
         var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+        lastCtrl = ctrl;
         if (ctrl && regCtrl) regCtrl(ctrl);
-        if (ctrl) tid = setTimeout(function() { ctrl.abort(); }, uTimeoutMs);
+        if (ctrl) tid = setTimeout(function() { timedOut = true; ctrl.abort(); }, uTimeoutMs);
         var body = { contents: [ { parts: [ { text: direction + "\n\n" + g.text } ] } ],
                      generationConfig: { responseModalities: ["AUDIO"],
                        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: g.voice } } } } };
@@ -2390,7 +2413,8 @@ var TTS = (function() {
         var j = await res.json();
         if (!res.ok) {
           failReason = "HTTP " + res.status + ((j && j.error && j.error.status) ? (" " + j.error.status) : "");
-          if ((res.status === 429 || res.status === 503) && attempt === 0) { failReason = ""; continue; }
+          is429 = (res.status === 429);
+          if (is429) retryHint = _geminiRetryDelayMs(j);
         } else {
           var part = j && j.candidates && j.candidates[0] && j.candidates[0].content &&
                      j.candidates[0].content.parts && j.candidates[0].content.parts[0];
@@ -2406,9 +2430,25 @@ var TTS = (function() {
         }
       } catch (e) {
         if (tid) clearTimeout(tid);
-        failReason = (e && e.name === "AbortError") ? ("timeout/abort after " + uTimeoutMs + "ms")
+        failReason = (e && e.name === "AbortError") ? (timedOut ? ("timeout after " + uTimeoutMs + "ms") : "aborted by skip")
                                                     : ((e && e.message) || "network error");
       }
+      if (b64) break;
+      // A skip aborts the REGISTERED controller — that flag is the only thing telling this loop
+      // the read is dead (our own deadline timer identifies itself via timedOut, so it never
+      // masquerades as a skip). Without the check, a 30s quota wait would outlive the skip,
+      // mint a fresh controller, and bill a synthesis nobody will hear.
+      if (lastCtrl && lastCtrl.signal && lastCtrl.signal.aborted && !timedOut) { failReason = "aborted by skip"; break; }
+      if (is429 && quotaTries < GEMINI_TTS_429_BACKOFF_MS.length) {
+        var wait = retryHint || GEMINI_TTS_429_BACKOFF_MS[quotaTries];
+        quotaTries++;
+        console.warn("[tts gemini] quota window (429) — waiting " + Math.round(wait / 1000) + "s before retry " + quotaTries + "/" + GEMINI_TTS_429_BACKOFF_MS.length + " (scheduled runway absorbs the wait)");
+        await new Promise(function(res) { setTimeout(res, wait); });
+        if (lastCtrl && lastCtrl.signal && lastCtrl.signal.aborted) { failReason = "aborted by skip"; break; }
+        continue;
+      }
+      if (!quickTried && !is429) { quickTried = true; await new Promise(function(res) { setTimeout(res, 1200); }); continue; }
+      break;
     }
     return b64 ? { b64: b64, rate: rate } : { fail: failReason || "no audio" };
   }
@@ -4024,6 +4064,8 @@ var TTS = (function() {
                narrator: geminiNarratorVoice, defaultDirection: GEMINI_DEFAULT_DIRECTION,
                conveyor: _geminiConveyor, timeoutMs: _geminiTimeoutMs,           // #41b
                fastStartCh: GEMINI_TTS_FAST_START_CH, prefetch: GEMINI_TTS_PREFETCH,
+               retryDelayMs: _geminiRetryDelayMs,                                 // #41c
+               backoff429: function() { return GEMINI_TTS_429_BACKOFF_MS.slice(); },
                pcm: _pcm16ToAudioBuffer, ladder: function() { return TTS_LADDER.slice(); },
                keys: { on: GEMINI_TTS_K, dir: GEMINI_DIR_K, narr: GEMINI_NARRATOR_K },
                degradeState: function() { return { err: _geminiTtsErr, at: _geminiTtsErrAt }; },
