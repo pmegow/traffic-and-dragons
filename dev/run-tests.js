@@ -1116,8 +1116,30 @@ try {
     process.exit(1);
   }
   // ④ The ladder order itself: server on top, native the floor.
-  if (_ttsS.indexOf('var TTS_LADDER = ["server", "piper", "native"]') < 0) {
-    console.error("SERVER TTS CONTRACT: TTS_LADDER is no longer server → piper → native — the tier order is the ratified #90 design (server first for connected players, native the always-available floor).");
+  // Ladder order. Amended at #41 (v1.646) to admit the Gemini tier ABOVE server. The clause is
+  // stated as invariants rather than one literal string so a future tier doesn't force a rewrite,
+  // and it is STRICTER than the old literal: it now also pins that the paid tier cannot sink below
+  // the free ones, which is what makes a degrade actually degrade.
+  var _ladM = _ttsS.match(/var TTS_LADDER = \[([^\]]*)\]/);
+  if (!_ladM) {
+    console.error("SERVER TTS CONTRACT: TTS_LADDER not found — the runtime degradation ladder is the #90 design's spine.");
+    process.exit(1);
+  }
+  var _lad = _ladM[1].replace(/["'\s]/g, "").split(",");
+  if (_lad[_lad.length - 1] !== "native") {
+    console.error("SERVER TTS CONTRACT: native is no longer the LAST rung of TTS_LADDER — native's available() is the only unconditional true, so the ladder walk would run off the end. Got: " + _lad.join(" → "));
+    process.exit(1);
+  }
+  if (_lad.indexOf("server") < 0 || _lad.indexOf("piper") < 0) {
+    console.error("SERVER TTS CONTRACT: TTS_LADDER lost the server or piper tier — the ratified #90 design keeps server for connected players and local Piper as the offline floor. Got: " + _lad.join(" → "));
+    process.exit(1);
+  }
+  if (_lad.indexOf("server") >= _lad.indexOf("piper")) {
+    console.error("SERVER TTS CONTRACT: server must sit ABOVE piper (server first for connected players — the B9 close). Got: " + _lad.join(" → "));
+    process.exit(1);
+  }
+  if (_lad.indexOf("gemini") >= 0 && _lad.indexOf("gemini") >= _lad.indexOf("server")) {
+    console.error("SERVER TTS CONTRACT: the paid Gemini tier must sit ABOVE the free tiers, so a failure degrades toward free rather than toward spend. Got: " + _lad.join(" → "));
     process.exit(1);
   }
   // ⑤ v1.436 (field lesson): ▶ Test auditions through the server tier when it's up — a local

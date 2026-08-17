@@ -177,7 +177,7 @@ var TTS = (function() {
   // engine-tested. Native survives ONLY as the automatic fallback target (the runtime ladder in
   // speak() + the iOS-audio-suspend path call TTS_PROVIDERS.native directly, NOT via getEngine),
   // so a device where neither the server nor Piper can run still speaks.
-  function getEngine() { return _serverTtsOk() ? "server" : "piper"; }
+  function getEngine() { return _geminiTtsOk() ? "gemini" : (_serverTtsOk() ? "server" : "piper"); }
 
   // ── Server TTS tier (#90 M1, v1.435 — the B9 architectural close) ────────────────────────────
   // Synthesis moved OFF the phone: POST /api/tts on the tnd-tts Fly app (server repo, tts/) runs
@@ -256,6 +256,209 @@ var TTS = (function() {
     } catch (e) {}
   }
 
+  // ── Gemini TTS tier (#41, first pass) ────────────────────────────────────────────────────────
+  // Google's TTS models, reached DIRECTLY from the client on the player's own gemini key. Research
+  // + measurements: DOC/Research/DOC_gemini_tts_feasibility.html.
+  //
+  // WHY THIS TIER IS OPT-IN AND DEFAULT OFF: every other tier is free at the margin (Piper is local,
+  // the server tier is our own Fly box). This one bills per call against the PLAYER's key, so it
+  // must never switch itself on. Measured ≈$1.75 per 50 turns of narration at typical prose volume.
+  //
+  // MEASURED (2026-08-16, gemini-3.1-flash-tts-preview):
+  //   • 2.412 audio tokens per character — the ONLY conversion worth keeping. The widely published
+  //     "25 tokens/sec" figure (Google's own worked example included) measured 32.0 here.
+  //   • time to first audio 840ms streaming / ~2.5s median per non-streaming call.
+  //   • The ceiling is a ROLLING PER-MINUTE QUOTA, not a parallelism cap — 8 simultaneous requests
+  //     returned 8/8 × HTTP 200, so an earlier "429 at concurrency ≥4" reading was wrong (the
+  //     retry loop had swallowed the status codes). Two distinct failures exist and must not be
+  //     conflated: 429 RESOURCE_EXHAUSTED is our quota, 503 UNAVAILABLE is Google shedding load.
+  //     This loop is still sequential — not to dodge a concurrency cap, but because playback is
+  //     inherently serial and the backpressure below already paces synthesis to the audio timeline,
+  //     which keeps the sustained call rate low without any extra machinery.
+  //   • Grouping consecutive same-voice units cut a real 5-speaker scene from 42 calls to 17,
+  //     which is the difference between viable and not — and it reads better, because a run of
+  //     narration is spoken as one breath instead of eight disconnected fragments.
+  var GEMINI_TTS_MODEL  = "gemini-3.1-flash-tts-preview";  // 3.1+ ONLY: streaming starts at 3.1, and
+                                                           // the 2.5 models cannot stream at all.
+  var GEMINI_TTS_K      = "tnd_tts_gemini_v1";      // opt-in pref (device-level). Absent = OFF.
+  var GEMINI_DIR_K      = "tnd_tts_gemini_dir_v1";  // user-editable delivery direction
+  var GEMINI_TTS_TIMEOUT_MS       = 25000;
+  var GEMINI_TTS_TIMEOUT_FIRST_MS = 35000;   // first call also pays any cold-path cost
+  var GEMINI_TTS_RETRY_MS         = 60000;   // after a degrade, reads stay local this long
+  var GEMINI_TTS_MAX_GROUP_CH     = 900;     // keep one call comfortably inside the 32k session cap
+  // The owner's first-listen verdict was that the voices OVERACT. Style is the only control surface
+  // Google exposes (no pitch/rate/tone parameters, no cloning), so the fix lives entirely in this
+  // string — and it deliberately describes the READING, not a character, because "speak as <a hard
+  // northern warrior>" is exactly what produced the overacting.
+  var GEMINI_DEFAULT_DIRECTION =
+    "Read the following aloud as an audiobook narrator. Understated and even, unhurried, no theatrical emphasis. " +
+    "Do not perform the characters; let the prose carry it. Keep quoted dialogue only lightly coloured.";
+  function geminiDirection() { var d = store.get(GEMINI_DIR_K); return (typeof d === "string" && d) ? d : GEMINI_DEFAULT_DIRECTION; }
+
+  // >>> GEMINI VOICE BANK — all 30 prebuilt voices, with the characteristic Google documents.
+  // ⚠ `g` (gender) is NOT documented by Google — the docs describe voices only by characteristic
+  // ("Warm", "Gravelly"). These are best-effort and are the one thing here most likely to need a
+  // human ear; they are DATA, so fixing one is a one-line edit, never an architecture change.
+  // `calm:true` marks the low-affect end — the subdued default bench the owner asked for.
+  var GEMINI_VOICES = [
+    { id: "Schedar",       g: "M", note: "Even",          calm: true },
+    { id: "Charon",        g: "M", note: "Informative",   calm: true },
+    { id: "Rasalgethi",    g: "M", note: "Informative",   calm: true },
+    { id: "Iapetus",       g: "M", note: "Clear",         calm: true },
+    { id: "Algieba",       g: "M", note: "Smooth",        calm: true },
+    { id: "Umbriel",       g: "M", note: "Easy-going",    calm: true },
+    { id: "Algenib",       g: "M", note: "Gravelly",      calm: true },
+    { id: "Alnilam",       g: "M", note: "Firm",          calm: true },
+    { id: "Orus",          g: "M", note: "Firm",          calm: true },
+    { id: "Enceladus",     g: "M", note: "Breathy",       calm: true },
+    { id: "Zubenelgenubi", g: "M", note: "Casual",        calm: true },
+    { id: "Sadaltager",    g: "M", note: "Knowledgeable", calm: true },
+    { id: "Achird",        g: "M", note: "Friendly",      calm: false },
+    { id: "Puck",          g: "M", note: "Upbeat",        calm: false },
+    { id: "Fenrir",        g: "M", note: "Excitable",     calm: false },
+    { id: "Sadachbia",     g: "M", note: "Lively",        calm: false },
+    { id: "Vindemiatrix",  g: "F", note: "Gentle",        calm: true },
+    { id: "Achernar",      g: "F", note: "Soft",          calm: true },
+    { id: "Erinome",       g: "F", note: "Clear",         calm: true },
+    { id: "Despina",       g: "F", note: "Smooth",        calm: true },
+    { id: "Sulafat",       g: "F", note: "Warm",          calm: true },
+    { id: "Callirrhoe",    g: "F", note: "Easy-going",    calm: true },
+    { id: "Gacrux",        g: "F", note: "Mature",        calm: true },
+    { id: "Kore",          g: "F", note: "Firm",          calm: true },
+    { id: "Aoede",         g: "F", note: "Breezy",        calm: false },
+    { id: "Autonoe",       g: "F", note: "Bright",        calm: false },
+    { id: "Zephyr",        g: "F", note: "Bright",        calm: false },
+    { id: "Leda",          g: "F", note: "Youthful",      calm: false },
+    { id: "Laomedeia",     g: "F", note: "Upbeat",        calm: false },
+    { id: "Pulcherrima",   g: "F", note: "Forward",       calm: false }
+  ];
+  // <<< GEMINI VOICE BANK
+  var GEMINI_NARRATOR_K = "tnd_tts_gemini_narr_v1";
+  var GEMINI_NARRATOR_DEFAULT = "Schedar";   // Even — the subdued end, per the owner's first-listen note
+  function geminiNarratorVoice() {
+    var want = store.get(GEMINI_NARRATOR_K) || "";
+    return _geminiVoiceKnown(want) ? want : GEMINI_NARRATOR_DEFAULT;
+  }
+  function _geminiVoiceKnown(id) {
+    for (var i = 0; i < GEMINI_VOICES.length; i++) { if (GEMINI_VOICES[i].id === id) return true; }
+    return false;
+  }
+  // Deterministic, gender-matched Piper-voice → Gemini-voice mapping. The cast (#174) binds NPCs to
+  // PIPER speaker ids, which mean nothing to Google; rather than make the player re-cast everyone
+  // for a tier they may not keep, we DERIVE a stable Gemini voice from the id they already have.
+  // Gender comes from the star bench's own `g` field, so a cast female NPC gets a female voice.
+  // Stability matters more than cleverness here: the same NPC must get the same voice every read,
+  // so the hash is over the id string and nothing else (no ordering, no time, no roster position).
+  function _geminiVoiceFor(voiceId) {
+    if (!voiceId) return geminiNarratorVoice();
+    if (_geminiVoiceKnown(voiceId)) return voiceId;   // already a Gemini voice — pass through
+    var g = "", i, list;
+    try {
+      list = starsList();
+      for (i = 0; i < list.length; i++) { if (list[i].id === voiceId) { g = list[i].g || ""; break; } }
+    } catch (e) {}
+    if (!g) {   // unstarred composite — fall back to the shipped bench, which carries the same ids
+      for (i = 0; i < DEFAULT_SPEAKER_STARS.length; i++) {
+        if (DEFAULT_SPEAKER_STARS[i].id === voiceId) { g = DEFAULT_SPEAKER_STARS[i].g || ""; break; }
+      }
+    }
+    var pool = [];
+    for (i = 0; i < GEMINI_VOICES.length; i++) {
+      if (!GEMINI_VOICES[i].calm) continue;                    // subdued bench only, by default
+      if (g && GEMINI_VOICES[i].g !== g) continue;
+      pool.push(GEMINI_VOICES[i].id);
+    }
+    if (!pool.length) return geminiNarratorVoice();
+    var h = 0;
+    for (i = 0; i < voiceId.length; i++) { h = ((h * 31) + voiceId.charCodeAt(i)) >>> 0; }
+    var pick = pool[h % pool.length];
+    // Never hand a speaking NPC the narrator's own voice if another option exists — two different
+    // people sharing one voice is the single most confusing failure in a multi-actor scene.
+    if (pick === geminiNarratorVoice() && pool.length > 1) pick = pool[(h + 1) % pool.length];
+    return pick;
+  }
+
+  var _geminiTtsErr = "", _geminiTtsErrAt = 0, _geminiTtsToasted = false;
+  function geminiTtsEnabled() { return store.get(GEMINI_TTS_K) === "1"; }
+  function _geminiKey() {
+    try {
+      if (typeof providerKeys !== "undefined" && providerKeys && providerKeys.gemini) return providerKeys.gemini;
+    } catch (e) {}
+    return "";
+  }
+  function _geminiTtsOk() {
+    if (!geminiTtsEnabled()) return false;
+    if (!_geminiKey()) return false;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+    if (_geminiTtsErr) {
+      if (Date.now() - _geminiTtsErrAt < GEMINI_TTS_RETRY_MS) return false;
+      _geminiTtsErr = ""; _geminiTtsErrAt = 0;
+    }
+    return true;
+  }
+  function _geminiTtsDegrade(reason) {
+    _geminiTtsErr = String(reason || "Gemini TTS failed");
+    _geminiTtsErrAt = Date.now();
+    console.warn("[tts gemini] degraded — " + _geminiTtsErr + " (local ladder for " + (GEMINI_TTS_RETRY_MS / 1000) + "s)");
+    if (!_geminiTtsToasted) {
+      _geminiTtsToasted = true;
+      if (typeof showToast === "function") showToast("Gemini voice unavailable — using the local voice");
+    }
+  }
+  // Raw PCM16 → AudioBuffer. Gemini returns headerless L16 (mimeType carries the rate), so the
+  // WAV parser used by the server tier does not apply — there is no RIFF header to skip.
+  function _pcm16ToAudioBuffer(bytes, rate, ctx) {
+    if (!bytes || bytes.length < 2) return null;
+    var n = bytes.length >> 1;
+    var buf = ctx.createBuffer(1, n, rate);
+    var ch = buf.getChannelData(0);
+    for (var i = 0; i < n; i++) {
+      var lo = bytes[i * 2], hi = bytes[i * 2 + 1];
+      var s = (hi << 8) | lo;
+      if (s >= 32768) s -= 65536;
+      ch[i] = s / 32768;
+    }
+    return buf;
+  }
+  // Group CONSECUTIVE units sharing one voice into a single request (42 → 17 on the measured
+  // scene). Bounded by GEMINI_TTS_MAX_GROUP_CH so one call can't approach the session cap; the
+  // group inherits its LAST unit's gap, which is the pause the reader actually hears next.
+  // NOTE the deliberate absence of `voiceId` in the per-unit resolve below. The queue item carries
+  // the narrator's PIPER id (the remainder hand-off needs a real Piper voice to degrade to), but
+  // this tier picks its narrator from its OWN setting — falling back to the item's Piper id here
+  // sent unattributed narration through the hash instead of the chosen narrator voice, so a scene
+  // read with Schedar selected came back in Umbriel. Only CAST units consult the mapping.
+  function _geminiGroupUnits(units, voiceId, voices) {
+    var groups = [], cur = null;
+    for (var i = 0; i < units.length; i++) {
+      var v = _geminiVoiceFor((voices && voices[i]) || "");
+      var t = units[i].text || "";
+      if (cur && cur.voice === v && (cur.text.length + t.length + 1) <= GEMINI_TTS_MAX_GROUP_CH) {
+        cur.text += " " + t; cur.last = units[i];
+      } else {
+        if (cur) groups.push(cur);
+        cur = { voice: v, text: t, last: units[i] };
+      }
+    }
+    if (cur) groups.push(cur);
+    return groups;
+  }
+  // Narrator dropdown. Calm voices first and labelled, because the subdued end is the point —
+  // the performative half is still selectable, just not the path of least resistance.
+  function _geminiVoiceOptions(sel) {
+    var calm = "", loud = "", i, v, o;
+    for (i = 0; i < GEMINI_VOICES.length; i++) {
+      v = GEMINI_VOICES[i];
+      o = "<option value='" + escHtml(v.id) + "'" + (v.id === sel ? " selected" : "") + ">"
+        + escHtml(v.id + " · " + v.note + " (" + v.g + ")") + "</option>";
+      if (v.calm) calm += o; else loud += o;
+    }
+    return "<optgroup label='Subdued'>" + calm + "</optgroup><optgroup label='More expressive'>" + loud + "</optgroup>";
+  }
+  function _geminiEndpoint() {
+    return "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_TTS_MODEL + ":generateContent";
+  }
+
   // ── TTS_PROVIDERS — the provider table (mirrors the LLM PROVIDERS shape in globals.js) ───────
   // One entry per engine. speak() resolves getEngine() → this table → availability → enqueue(),
   // instead of if(engine===...) branches. Provider-specific quirks (Piper's voiceId resolution)
@@ -287,13 +490,29 @@ var TTS = (function() {
       available: function() { return _serverTtsOk(); },
       enqueue: function(text) { return { text: text, server: true, voiceId: resolvePiperVoice() }; },
       fallbackReason: function() { return _serverTtsErr || "server tier unavailable (not connected)"; }
+    },
+    gemini: {
+      id: "gemini", label: "Gemini (Google cloud voices — #41)",
+      hint: "Google's TTS voices — far better quality than Piper, and the only tier that can act a line. Bills per use against YOUR Gemini key (~$1.75 per 50 turns of narration), so it is off until you turn it on. Degrades to the server tier, then local Piper, then native.",
+      available: function() { return _geminiTtsOk(); },
+      // voiceId stays the PIPER id the cast already binds — _speakGemini maps it per unit, so a
+      // player who turns this tier off keeps the exact cast they had.
+      enqueue: function(text) { return { text: text, gemini: true, voiceId: resolvePiperVoice() }; },
+      fallbackReason: function() {
+        if (!geminiTtsEnabled()) return "Gemini voice is off";
+        if (!_geminiKey()) return "no Gemini API key on file";
+        return _geminiTtsErr || "Gemini tier unavailable";
+      }
     }
   };
 
   // #90: the runtime ladder, top tier first. speak() walks DOWN from getEngine()'s resolution to
   // the first available tier; _speakServer hands a failed read's remainder one rung down the same
   // ladder mid-read. Native is the floor (its available() is always true, so the walk terminates).
-  var TTS_LADDER = ["server", "piper", "native"];
+  // #41: gemini sits ABOVE server. It is opt-in and default OFF, so this reorder changes nothing
+  // for anyone who has not turned it on — available() is false and the walk starts at server
+  // exactly as before.
+  var TTS_LADDER = ["gemini", "server", "piper", "native"];
 
   // ── Piper voice LRU (#66) — cap resident voice models, evict oldest-stamped on overflow ────────
   function _piperLruLoad() {
@@ -1302,6 +1521,7 @@ var TTS = (function() {
     _curItem = item;   // v1.438: retained so a doomed-ctx rebuild can requeue the interrupted item
     _curNative = !!item.native;
     if (item.native) _speakNative(item.text);
+    else if (item.gemini) _speakGemini(item.text, item.voiceId, item.voices);
     else if (item.server) _speakServer(item.text, item.voiceId, item.voices);
     else if (item.piper) _speakPiper(item.text, item.voiceId, item.voices);
     // #9 sweep: the third branch (the removed cloud provider) is gone. Every item a
@@ -2073,6 +2293,161 @@ var TTS = (function() {
     }
     if (activeSrcs === 0) {
       if (handedOff) _drain();   // nothing scheduled by us — go straight to the remainder item
+      else onAllDone();
+    }
+  }
+
+  // ── #41: the Gemini read loop ────────────────────────────────────────────────────────────────
+  // Structurally _speakServer with three differences, each forced by a measurement:
+  //   ① units are GROUPED by consecutive voice before any request (42 calls → 17 on the measured
+  //      5-speaker scene) — without this the per-call latency makes a long turn slower than the
+  //      audio it produces, and the call volume walks straight into the rate limiter;
+  //   ② the response is JSON carrying base64 headerless PCM, not a WAV body;
+  //   ③ requests are STRICTLY SEQUENTIAL and 429 is treated as backpressure rather than failure —
+  //      concurrency ≥4 reliably produced 429 RESOURCE_EXHAUSTED in the probe.
+  // Everything else — epoch guard after every await, backpressure, remainder hand-off down the
+  // ladder, pause/skip semantics — is deliberately identical to the server tier.
+  async function _speakGemini(text, voiceId, voices) {
+    var myEpoch = ++_piperEpoch;
+
+    var ctx = _ensureCtx();
+    if (!ctx) { console.warn("[tts gemini] AudioContext unavailable — line falls back to native"); _curNative = true; _speakNative(text); return; }
+    var ctxOk = await _ctxRunning(ctx);
+    if (_piperEpoch !== myEpoch) return;
+    if (!ctxOk) { _ctxBlockedLoud("Gemini TTS"); _curNative = true; _speakNative(text); return; }
+    primeAudioSession();
+    _armCtxWatch("Gemini TTS");
+    _armPosState(ctx);
+
+    var units = splitSentences(text, null, true);   // same prep as the other cloud tier
+    if (!units.length) { _drain(); return; }
+    var groups = _geminiGroupUnits(units, voiceId, voices);
+
+    _sources = [];
+    var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
+    var loopDone   = false;
+    var activeSrcs = 0;
+    var anyOk      = false;
+    var handedOff  = false;
+    var key        = _geminiKey();
+    var direction  = geminiDirection();
+
+    function onAllDone() { _sources = []; _nextStart = 0; _drain(); }
+
+    for (var i = 0; i < groups.length; i++) {
+      if (_piperEpoch !== myEpoch) return;
+      while (_piperEpoch === myEpoch && (nextStart - ctx.currentTime) > PIPER_MAX_AHEAD_SEC) {
+        await new Promise(function(res) { setTimeout(res, 250); });
+      }
+      if (_piperEpoch !== myEpoch) return;
+
+      var g = groups[i];
+      var uTimeoutMs = (i === 0) ? GEMINI_TTS_TIMEOUT_FIRST_MS : GEMINI_TTS_TIMEOUT_MS;
+      var b64 = "", rate = 24000, failReason = "";
+
+      // One retry on 429/503 ONLY. A rate limit means "you are going too fast", not "this is
+      // broken" — but a second refusal means the local ladder will serve the player better than
+      // a stalling crawl, which is the same judgement the server tier makes.
+      for (var attempt = 0; attempt < 2 && !b64; attempt++) {
+        if (attempt) {
+          await new Promise(function(res) { setTimeout(res, 1200); });
+          if (_piperEpoch !== myEpoch) return;
+        }
+        var tid = null;
+        try {
+          var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+          if (ctrl) tid = setTimeout(function() { ctrl.abort(); }, uTimeoutMs);
+          var body = { contents: [ { parts: [ { text: direction + "\n\n" + g.text } ] } ],
+                       generationConfig: { responseModalities: ["AUDIO"],
+                         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: g.voice } } } } };
+          var opts = { method: "POST",
+                       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+                       body: JSON.stringify(body) };
+          if (ctrl) opts.signal = ctrl.signal;
+          var res = await fetch(_geminiEndpoint(), opts);
+          if (tid) clearTimeout(tid);
+          if (_piperEpoch !== myEpoch) return;
+          var j = await res.json();
+          if (_piperEpoch !== myEpoch) return;
+          if (!res.ok) {
+            failReason = "HTTP " + res.status + ((j && j.error && j.error.status) ? (" " + j.error.status) : "");
+            if ((res.status === 429 || res.status === 503) && attempt === 0) { failReason = ""; continue; }
+          } else {
+            var part = j && j.candidates && j.candidates[0] && j.candidates[0].content &&
+                       j.candidates[0].content.parts && j.candidates[0].content.parts[0];
+            var inl = part && (part.inlineData || part.inline_data);
+            if (inl && inl.data) {
+              b64 = inl.data;
+              var mt = inl.mimeType || inl.mime_type || "";
+              var m = mt.match(/rate=(\d+)/);
+              if (m) rate = parseInt(m[1], 10) || 24000;
+            } else {
+              failReason = "response carried no audio";
+            }
+          }
+        } catch (e) {
+          if (tid) clearTimeout(tid);
+          if (_piperEpoch !== myEpoch) return;
+          failReason = (e && e.name === "AbortError") ? ("timeout after " + uTimeoutMs + "ms")
+                                                      : ((e && e.message) || "network error");
+        }
+      }
+
+      if (!b64) {
+        // Hand the WHOLE remainder down the ladder, exactly like the server tier. The remainder is
+        // rebuilt from the GROUPS (not the units) so nothing is dropped or spoken twice, and it
+        // carries the original Piper voiceId — the tier below speaks Piper ids, not Gemini names.
+        var rem = "";
+        for (var k = i; k < groups.length; k++) rem += (rem ? " " : "") + groups[k].text;
+        if (rem) _queue.unshift({ text: rem, piper: true, voiceId: voiceBaseId(voiceId) });
+        handedOff = true;
+        _geminiTtsDegrade("group " + (i + 1) + "/" + groups.length + ": " + (failReason || "no audio"));
+        break;
+      }
+
+      var buf;
+      try {
+        var bin = atob(b64), n = bin.length, bytes = new Uint8Array(n);
+        for (var q = 0; q < n; q++) bytes[q] = bin.charCodeAt(q);
+        buf = _pcm16ToAudioBuffer(bytes, rate, ctx);
+        if (_piperEpoch !== myEpoch) return;
+        if (!buf) { console.warn("[tts gemini] PCM decode produced nothing on group " + (i + 1) + " — skipping"); continue; }
+      } catch (e1) {
+        console.warn("[tts gemini] decode failed on group " + (i + 1) + "/" + groups.length + ", skipping:", e1 && e1.message);
+        continue;
+      }
+
+      anyOk = true;
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      var startAt = Math.max(nextStart, ctx.currentTime + 0.03);
+      src.start(startAt);
+      _ctxSynths++;
+      nextStart  = startAt + buf.duration + unitGap(g.last);
+      _nextStart = nextStart;
+
+      activeSrcs++;
+      _sources.push(src);
+      src.onended = (function(mySrc) { return function() {
+        activeSrcs--;
+        try { mySrc.disconnect(); } catch (e) {}
+        try { mySrc.buffer = null; } catch (e) {}
+        var ix = _sources.indexOf(mySrc); if (ix >= 0) _sources.splice(ix, 1);
+        if (loopDone && activeSrcs === 0 && _piperEpoch === myEpoch) onAllDone();
+      }; })(src);
+    }
+
+    loopDone = true;
+    if (_piperEpoch !== myEpoch) return;
+    if (!anyOk && !handedOff) {
+      console.warn("[tts gemini] no group produced audio and nothing was handed off — falling back to native for this line");
+      _curNative = true;
+      _speakNative(text);
+      return;
+    }
+    if (activeSrcs === 0) {
+      if (handedOff) _drain();
       else onAllDone();
     }
   }
@@ -3248,6 +3623,32 @@ var TTS = (function() {
       +   "<div id='tts-audio-diag' style='font-size:11px;color:var(--t2);font-family:var(--font-mono,monospace);'></div>"
       +   "<div id='tts-server-line' style='font-size:11px;color:var(--t2);margin-top:4px;'></div>"   /* #90: server-tier status */
       + "</div>"
+      // ── #41: Gemini cloud voices. OPT-IN and default OFF — this is the only tier that spends
+      // the player's money, so the cost is stated on the control itself, not buried in a doc.
+      + "<div style='margin-bottom:18px;padding:10px 12px;border:1px solid var(--brd);border-radius:6px;'>"
+      +   "<label style='display:flex;align-items:center;gap:8px;cursor:pointer;'>"
+      +     "<input id='tts-gem-on' type='checkbox' " + (geminiTtsEnabled() ? "checked" : "") + " style='accent-color:var(--acc);'/>"
+      +     "<span style='font-size:13px;color:var(--t0);font-weight:bold;'>Gemini cloud voices</span>"
+      +   "</label>"
+      +   "<div style='font-size:11px;color:var(--t2);margin-top:5px;line-height:1.5;'>"
+      +     "Much better quality than the local voice, and the only engine that can act a line."
+      +     "<br/><b>Bills your Gemini key</b> &mdash; measured at about $1.75 per 50 turns of narration."
+      +     (_geminiKey() ? "" : "<br/><span style='color:var(--warn,#b8935a);'>No Gemini key on file &mdash; add one in Language Model&hellip; first.</span>")
+      +   "</div>"
+      +   "<div id='tts-gem-cfg' style='margin-top:10px;" + (geminiTtsEnabled() ? "" : "display:none;") + "'>"
+      +     "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Narrator voice</label>"
+      +     "<select id='tts-gem-narr' style='" + smInpStyle + "'>" + _geminiVoiceOptions(geminiNarratorVoice()) + "</select>"
+      +     "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Delivery direction</label>"
+      +     "<textarea id='tts-gem-dir' rows='3' style='" + smInpStyle + "resize:vertical;'>" + escHtml(geminiDirection()) + "</textarea>"
+      +     "<div style='font-size:11px;color:var(--t2);line-height:1.5;'>"
+      +       "Style is the <i>only</i> control Google exposes &mdash; there is no pitch or rate knob. "
+      +       "Describe the <b>reading</b> (\"understated\", \"no theatrical emphasis\"), not the character: "
+      +       "naming a personality is what makes it overact. "
+      +       "<a href='#' id='tts-gem-reset' style='color:var(--acc);'>Reset to default</a>"
+      +     "</div>"
+      +     "<div style='font-size:11px;color:var(--t2);margin-top:6px;'>Character voices are matched automatically from your cast, keeping each speaker's gender.</div>"
+      +   "</div>"
+      + "</div>"
       // ── Piper panel ──
       + "<div id='tts-panel-piper' style='display:block;'>"
       +   "<div style='margin-bottom:20px;'>"
@@ -3329,6 +3730,33 @@ var TTS = (function() {
         if (rv) rv.textContent = parseFloat(this.value).toFixed(2) + "×";
       });
     }
+    // #41: Gemini tier controls. All three write through immediately (same live-write semantics as
+    // the rate slider) — the next synth call reads the store, so nothing needs a Save round trip.
+    var gemOn = document.getElementById("tts-gem-on");
+    if (gemOn) {
+      gemOn.addEventListener("change", function() {
+        var on = !!this.checked;
+        if (on && !_geminiKey()) {
+          this.checked = false;
+          if (typeof showToast === "function") showToast("Add a Gemini API key first (Language Model…)");
+          return;
+        }
+        store.set(GEMINI_TTS_K, on ? "1" : "0");
+        if (on) { _geminiTtsErr = ""; _geminiTtsErrAt = 0; }   // opting in clears any stale degrade window
+        var cfg = document.getElementById("tts-gem-cfg");
+        if (cfg) cfg.style.display = on ? "" : "none";
+      });
+    }
+    var gemNarr = document.getElementById("tts-gem-narr");
+    if (gemNarr) gemNarr.addEventListener("change", function() { store.set(GEMINI_NARRATOR_K, this.value); });
+    var gemDir = document.getElementById("tts-gem-dir");
+    if (gemDir) gemDir.addEventListener("change", function() { store.set(GEMINI_DIR_K, this.value || ""); });
+    var gemReset = document.getElementById("tts-gem-reset");
+    if (gemReset) gemReset.addEventListener("click", function(ev) {
+      ev.preventDefault();
+      store.set(GEMINI_DIR_K, GEMINI_DEFAULT_DIRECTION);
+      var d = document.getElementById("tts-gem-dir"); if (d) d.value = GEMINI_DEFAULT_DIRECTION;
+    });
     // #9: engine-radio wiring removed (no radios). Piper is the engine; the fallback voice is below.
 
     // Native voices may not be ready on modal open (esp. iOS) — repopulate when they load.
@@ -3445,6 +3873,15 @@ var TTS = (function() {
     autoCastVoiceId:   autoCastVoiceId,
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
+    // #41: Gemini tier internals, exported ONLY for the headless engine tests (same contract as
+    // _textPrep and the #90 server internals below). No production caller reads this.
+    _gemini: { voices: GEMINI_VOICES, voiceFor: _geminiVoiceFor, group: _geminiGroupUnits,
+               enabled: geminiTtsEnabled, ok: _geminiTtsOk, direction: geminiDirection,
+               narrator: geminiNarratorVoice, defaultDirection: GEMINI_DEFAULT_DIRECTION,
+               pcm: _pcm16ToAudioBuffer, ladder: function() { return TTS_LADDER.slice(); },
+               keys: { on: GEMINI_TTS_K, dir: GEMINI_DIR_K, narr: GEMINI_NARRATOR_K },
+               degradeState: function() { return { err: _geminiTtsErr, at: _geminiTtsErrAt }; },
+               resetDegrade: function() { _geminiTtsErr = ""; _geminiTtsErrAt = 0; } },
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit, unitGap: unitGap,
                  pauses: function() { return { comma: PAUSE_COMMA, clause: PAUSE_COMMA_CLAUSE, fullstop: PAUSE_FULLSTOP, paragraph: PAUSE_PARAGRAPH }; } },
     // #90: server-tier internals, exported ONLY for the headless engine tests (same contract as

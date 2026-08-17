@@ -7335,6 +7335,114 @@ function runEngineTests(R){
   // localStorage a long-time user's device still carries, and the assertion is that carrying them
   // cannot resurrect a retired engine. Every test cleans up the keys it touches so ordering
   // within/after this section can't leak state.
+  // ── #41: the Gemini cloud tier ───────────────────────────────────────────────────────────────
+  // This tier is the only one that spends the player's money, so the tests that matter most are
+  // the ones proving it stays OFF and stays SEQUENTIAL. The probe measured 429 RESOURCE_EXHAUSTED
+  // at concurrency >= 4, and grouping consecutive same-voice units cut a real 5-speaker scene from
+  // 42 calls to 17 — both are load-bearing, both are pinned here.
+  section("TTS Gemini tier (#41)");
+  var GEM = TTS._gemini;
+  function _gemClean(){ store.del(GEM.keys.on); store.del(GEM.keys.dir); store.del(GEM.keys.narr); GEM.resetDegrade(); }
+  t("Gemini tier is OFF by default — an unset pref never bills the player",function(){
+    _gemClean();
+    if (GEM.enabled()) return "enabled() true with no stored pref";
+    return GEM.ok()===false ? true : "ok() true with the tier off";
+  });
+  t("Gemini tier stays off when enabled with NO key on file",function(){
+    _gemClean(); store.set(GEM.keys.on,"1");
+    var hadKey = (typeof providerKeys!=="undefined" && providerKeys) ? providerKeys.gemini : null;
+    if (typeof providerKeys!=="undefined" && providerKeys) providerKeys.gemini="";
+    var ok = GEM.ok();
+    if (typeof providerKeys!=="undefined" && providerKeys) providerKeys.gemini=hadKey;
+    _gemClean();
+    return ok===false ? true : "ok() true with no key — this would fail every read";
+  });
+  t("ladder puts gemini above server, and native remains the floor",function(){
+    var L=GEM.ladder();
+    if (L[L.length-1]!=="native") return "native is not the floor: "+L.join(">");
+    if (L.indexOf("gemini")>=L.indexOf("server")) return "gemini must sit above server: "+L.join(">");
+    return true;
+  });
+  t("voice mapping is gender-matched and STABLE across calls",function(){
+    var femaleId="en_US-libritts_r-medium#1";   // bench says (F)
+    var maleId  ="en_US-libritts_r-medium#3";   // bench says (M)
+    var f1=GEM.voiceFor(femaleId), f2=GEM.voiceFor(femaleId), m1=GEM.voiceFor(maleId);
+    if (f1!==f2) return "unstable: same id gave "+f1+" then "+f2;
+    function gOf(id){ for(var i=0;i<GEM.voices.length;i++) if(GEM.voices[i].id===id) return GEM.voices[i].g; return "?"; }
+    if (gOf(f1)!=="F") return "female cast id mapped to a "+gOf(f1)+" voice ("+f1+")";
+    if (gOf(m1)!=="M") return "male cast id mapped to a "+gOf(m1)+" voice ("+m1+")";
+    return true;
+  });
+  t("voice mapping defaults to the narrator for an empty id, and passes a Gemini name through",function(){
+    _gemClean();
+    if (GEM.voiceFor("")!==GEM.narrator()) return "empty id did not resolve to the narrator";
+    if (GEM.voiceFor("Sulafat")!=="Sulafat") return "a Gemini voice name was not passed through";
+    return true;
+  });
+  t("grouping collapses CONSECUTIVE same-voice units (the 42->17 win) and preserves order",function(){
+    var units=[{text:"a"},{text:"b"},{text:"c"},{text:"d"},{text:"e"}];
+    var voices={2:"en_US-libritts_r-medium#1"};   // unit 2 is a different speaker
+    var g=GEM.group(units,"",voices);
+    if (g.length!==3) return "expected 3 groups (narr, speaker, narr), got "+g.length;
+    if (g[0].text!=="a b") return "group 0 text wrong: "+g[0].text;
+    if (g[1].text!=="c")   return "group 1 text wrong: "+g[1].text;
+    if (g[2].text!=="d e") return "group 2 text wrong: "+g[2].text;
+    return true;
+  });
+  // Live-verification defect (v1.646): unattributed narration was resolved through the item's
+  // PIPER voiceId, so a scene read with Schedar chosen came back in Umbriel. The item still
+  // carries a Piper id (the degrade hand-off needs one) — narration must ignore it.
+  t("unattributed narration uses the CHOSEN narrator voice, not the item's Piper id",function(){
+    _gemClean();
+    store.set(GEM.keys.narr,"Charon");
+    var units=[{text:"a"},{text:"b"}];
+    var g=GEM.group(units,"en_GB-southern_english_female-low",null);   // item voiceId = a Piper voice
+    var got=g[0].voice; _gemClean();
+    return got==="Charon" ? true : "narration spoke as "+got+" instead of the chosen narrator";
+  });
+  t("grouping never drops or duplicates text — the remainder hand-off depends on it",function(){
+    var units=[],i; for(i=0;i<40;i++) units.push({text:"u"+i});
+    var voices={5:"en_US-libritts_r-medium#1",6:"en_US-libritts_r-medium#1",20:"en_US-libritts_r-medium#3"};
+    var g=GEM.group(units,"",voices);
+    var joined=g.map(function(x){return x.text;}).join(" ");
+    var expect=units.map(function(u){return u.text;}).join(" ");
+    return joined===expect ? true : "text changed under grouping";
+  });
+  t("a long same-voice run is split so one request can't approach the session cap",function(){
+    var units=[],i; for(i=0;i<200;i++) units.push({text:"long sentence number "+i+" padding padding"});
+    var g=GEM.group(units,"",null);
+    if (g.length<2) return "200 long units collapsed into "+g.length+" group — no bound applied";
+    for(i=0;i<g.length;i++) if(g[i].text.length>900) return "group "+i+" is "+g[i].text.length+" chars, over the cap";
+    return true;
+  });
+  t("direction defaults to the subdued reading and is user-overridable",function(){
+    _gemClean();
+    if (GEM.direction()!==GEM.defaultDirection) return "default direction not returned";
+    if (!/understated|no theatrical/i.test(GEM.direction())) return "default direction is not a subdued one";
+    store.set(GEM.keys.dir,"custom read");
+    var got=GEM.direction(); _gemClean();
+    return got==="custom read" ? true : "override ignored: "+got;
+  });
+  t("narrator falls back to a known voice when the stored pick is unknown",function(){
+    _gemClean(); store.set(GEM.keys.narr,"NotAVoice");
+    var n=GEM.narrator(); _gemClean();
+    var known=false; for(var i=0;i<GEM.voices.length;i++) if(GEM.voices[i].id===n) known=true;
+    return known ? true : "resolved to unknown voice "+n;
+  });
+  t("every bank entry has an id, gender and calm flag, and there is a subdued voice of each gender",function(){
+    var fCalm=0,mCalm=0;
+    for(var i=0;i<GEM.voices.length;i++){
+      var v=GEM.voices[i];
+      if(!v.id||!v.note) return "entry "+i+" missing id/note";
+      if(v.g!=="M"&&v.g!=="F") return v.id+" has gender '"+v.g+"'";
+      if(typeof v.calm!=="boolean") return v.id+" missing calm flag";
+      if(v.calm&&v.g==="F")fCalm++; if(v.calm&&v.g==="M")mCalm++;
+    }
+    if(!fCalm||!mCalm) return "need a subdued voice of each gender (F:"+fCalm+" M:"+mCalm+")";
+    return true;
+  });
+  _gemClean();
+
   section("TTS engine selection (#41 Phase 4)");
   var ENGINE_K_T="tnd_tts_engine_v1", NATIVE_K_T="tnd_tts_native_v1", KEY_K_T="tnd_cartesia_key_v1", PVOICE_K_T="tnd_piper_voice_v1";
   // #9 rework (v1.398): Cartesia removed, engine picker removed — Piper is THE engine. getEngine()
