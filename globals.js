@@ -120,7 +120,7 @@ var PROVIDERS={
     endpoint:"https://api.anthropic.com/v1/messages",
     defaultModel:MDL,
     upgradeModel:"claude-sonnet-5", // escalation target must never sit below (or cost more than) the default — moved with MDL 2026-08-15
-    models:["claude-opus-4-8","claude-sonnet-5","claude-sonnet-4-6","claude-haiku-4-5-20251001"],
+    models:["claude-opus-5","claude-sonnet-5"], // pruned to the >=Sonnet-5 menu (owner ruling 2026-08-16, from the #22 sweep); claude-opus-5 ID live-verified 2026-08-16 — ⚠ opus-5 has NOT had its money turn (adaptive-thinking behavior + cost unmeasured; the sonnet-5 thinking guard below deliberately does not cover it)
     headers:function(key){return {"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};},
     // {stable, volatile} → two system blocks with a cache_control breakpoint after the stable
     // one: the stable prefix re-reads at 0.1x input price on every turn (writes at 1.25x, 5min
@@ -153,9 +153,9 @@ var PROVIDERS={
   openai:{
     id:"openai", label:"ChatGPT (OpenAI)", keyHint:"sk-...",
     endpoint:"https://api.openai.com/v1/chat/completions",
-    defaultModel:"gpt-4o",
-    upgradeModel:"gpt-4o",
-    models:["gpt-5.6-sol","gpt-4o","gpt-4o-mini","gpt-4.1"], // gpt-5.6-sol added for the #22 round-2 tier-matched sweep (2026-08-15) — ID VERIFIED against the live /v1/models list (the bare "gpt-5.6" guess does not exist; siblings luna/terra do); defaults stay on gpt-4o pending a green run
+    defaultModel:"gpt-5.6-sol",
+    upgradeModel:"gpt-5.6-sol",
+    models:["gpt-5.6-sol"], // pruned to the >=Sonnet-5 menu (owner ruling 2026-08-16): gpt-4o/4o-mini/4.1 removed — gpt-4o FAILED the sweep contract (15/50 zero-tag, frozen sheet); gpt-5.6-sol held it (round-2 arm 2)
     // OpenAI carries the system prompt as the first message, uses Bearer auth,
     // and returns choices[0].message.content. max_tokens works for gpt-4o; gpt-5.x REJECTS it
     // with HTTP 400 and demands max_completion_tokens (found live 2026-08-15, the gpt-5.6-sol
@@ -167,29 +167,15 @@ var PROVIDERS={
     parseFinish:OPENAI_FINISH,
     reinforce:TAG_REINFORCE
   },
-  grok:{
-    // xAI is OpenAI-compatible — same body/response shape, different endpoint + key.
-    id:"grok", label:"Grok (xAI)", keyHint:"xai-...",
-    endpoint:"https://api.x.ai/v1/chat/completions",
-    defaultModel:"grok-4.3", // current xAI flagship (June 2026); old grok-2-*/grok-beta IDs are retired and 400
-    upgradeModel:"grok-4.3",
-    models:["grok-4.6","grok-4.5","grok-4.3","grok-4","grok-3","grok-3-mini","grok-code-fast-1"], // 4.6/4.5 added for the #22 round-2 tier-matched sweep (2026-08-15); IDs unverified until a live call
-    headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
-    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
-    parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
-    parseUsage:OPENAI_USAGE,
-    parseFinish:OPENAI_FINISH,
-    reinforce:TAG_REINFORCE
-  },
   gemini:{
     // Google's schema differs: system in systemInstruction, messages in contents[]
     // (role "model" not "assistant"), reply at candidates[0].content.parts[0].text,
     // and the MODEL NAME is in the URL — so endpoint is a function(model).
     id:"gemini", label:"Gemini (Google)", keyHint:"AIza...",
     endpoint:function(model){return "https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent";},
-    defaultModel:"gemini-3.5-flash", // current stable flagship (June 2026); gemini-1.5-*/2.0-flash are retired and 404
-    upgradeModel:"gemini-2.5-pro",
-    models:["gemini-3.7-flash","gemini-3.5-flash","gemini-2.5-pro","gemini-2.5-flash","gemini-2.5-flash-lite"], // 3.7-flash added for the #22 round-2 tier-matched sweep (2026-08-15; artificialanalysis index ~56 ≈ Sonnet-5 class); ID unverified until a live call
+    defaultModel:"gemini-3.7-flash", // pruned to the >=Sonnet-5 menu (owner ruling 2026-08-16): 3.7-flash held the sweep contract (round-2 arm 1, index ~56); 3.5-flash FAILED story coherence and the 2.5 line sits below the tier floor
+    upgradeModel:"gemini-3.7-flash",
+    models:["gemini-3.7-flash"],
     headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
     buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
     parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
@@ -197,26 +183,10 @@ var PROVIDERS={
     parseFinish:function(data){var c=data.candidates&&data.candidates[0];return (c&&c.finishReason==="MAX_TOKENS")?"MAX_TOKENS":null;},
     reinforce:TAG_REINFORCE,
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
-  },
-  ollama:{
-    // Local OpenAI-compatible server. NOTE: http://localhost is blocked as mixed
-    // content from an https origin (Netlify) and unreachable from file://; usable
-    // only when the game is served from localhost. Exploration tier.
-    id:"ollama", label:"Ollama (local)", keyHint:"(none needed)",
-    endpoint:"http://localhost:11434/v1/chat/completions",
-    defaultModel:"llama3.1:70b",
-    upgradeModel:"llama3.1:70b",
-    models:["llama3.1:70b","qwen2.5:72b","mixtral:8x22b"],
-    headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+(key||"ollama")};},
-    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
-    parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
-    parseUsage:OPENAI_USAGE,
-    parseFinish:OPENAI_FINISH,
-    reinforce:TAG_REINFORCE
   }
 };
 var carMode=false;
-var APP_VERSION="v1.640";
+var APP_VERSION="v1.641";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

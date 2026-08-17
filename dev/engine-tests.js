@@ -11335,8 +11335,6 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(PROVIDERS.anthropic.parseFinish({stop_reason:"end_turn"}))return "anthropic end_turn false-positived";
     if(!PROVIDERS.openai.parseFinish({choices:[{finish_reason:"length"}]}))return "openai length missed";
     if(PROVIDERS.openai.parseFinish({choices:[{finish_reason:"stop"}]}))return "openai stop false-positived";
-    if(!PROVIDERS.grok.parseFinish({choices:[{finish_reason:"length"}]}))return "grok length missed";
-    if(!PROVIDERS.ollama.parseFinish({choices:[{finish_reason:"length"}]}))return "ollama length missed";
     if(!PROVIDERS.gemini.parseFinish({candidates:[{finishReason:"MAX_TOKENS"}]}))return "gemini MAX_TOKENS missed";
     if(PROVIDERS.gemini.parseFinish({candidates:[{finishReason:"STOP"}]}))return "gemini STOP false-positived";
     return PROVIDERS.anthropic.parseFinish({})?"empty payload must not report truncation":true;
