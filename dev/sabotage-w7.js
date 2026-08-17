@@ -106,8 +106,11 @@ rc|=sabotage.prove({
   cases:[
     {label:"NPC alias registration strands staged relationship decisions on the old name",
     mustFail:"W7 alias registration rekeys an already-staged bond decision so later ",
-      find:"relationshipRekeyEntity(alCanon,alAlias);R.muts.push(\"Alias: \"+alAlias+\" -> \"+alCanon);",
-      replace:"R.muts.push(\"Alias: \"+alAlias+\" -> \"+alCanon);"},
+      /* find re-pointed 2026-08-17 (#194 bycatch): #173's guestbookRekeyName insertion had split
+         the original two-call find string, silently no-op'ing this case — pre-existing rot the
+         stale-find audit caught while re-pointing the guestbook suite. */
+      find:"relationshipRekeyEntity(alCanon,alAlias);if(typeof guestbookRekeyName===\"function\")",
+      replace:"if(typeof guestbookRekeyName===\"function\")"},
     {label:"NPC merge discards outgoing relationships when both records already have sheets",
     mustFail:"W7 NPC merge preserves outgoing relationship rows from both populated ",
       find:"if(_mgDupN.charSheet&&_mgCanN.charSheet)relationshipMergeSheets(_mgCanN.charSheet,_mgDupN.charSheet,mgCanon,mgDupe);else if(_mgDupN.charSheet&&!_mgCanN.charSheet)_mgCanN.charSheet=_mgDupN.charSheet;",

@@ -814,6 +814,50 @@ function buildCanonContradictionNudge(){
   worldState.canonContraNudged[q.name]=worldState.turn;
   return "[ENGINE NOTE — CANON CONTRADICTION (not a player action): the roster records "+q.name+" as DEAD"+(q.deadTurn?" (t"+q.deadTurn+")":"")+", but stored knowledge asserts: \""+q.line+"\". These cannot both be current. If the death IS current canon, retire the stale claim with [NPC_SUPERSEDE:"+q.name+"|"+q.line.slice(0,80)+"|<what is true now>]. If "+q.name+" is genuinely alive through an explicit in-story revival, emit [NPC:"+q.name+"|resurrected|relation]. If both were true in sequence (an earlier report later overtaken), supersede the stale wording so it stops re-injecting. Never acknowledge this check in prose.]";
 }
+/* #194 L3: THE VALVE's note half — the fork-shaped one-shot that replaced the handle-ceremony
+   ask for a refused NAMED death (the t1903 quarantine-loop killer, owner ruling ② 2026-08-17).
+   Both branches are pre-composed tags the GM copies; silence stays the safe path (the engine
+   never mints a death from an unanswered note). Capped per subject (DEATH_EVIDENCE_NOTES), then
+   the standing conflict machinery (3-turn cadence → stale shelf) owns the dispute as before.
+   Fires BEFORE buildIdentityConflictNudge in NOTE_BUILDERS and defers that nudge for the same
+   subject this turn — one ask per refusal, never two. */
+function buildDeathEvidenceNudge(){
+  if(!worldState||worldState.combat)return"";
+  var q=worldState.deathEvidencePing;if(!q)return"";delete worldState.deathEvidencePing;
+  if(!worldState.deathEvidenceNudged)worldState.deathEvidenceNudged={};
+  var rec=worldState.deathEvidenceNudged[q.name]||(worldState.deathEvidenceNudged[q.name]={count:0,turn:0});
+  if(rec.count>=DEATH_EVIDENCE_NOTES)return"";
+  rec.count++;rec.turn=worldState.turn;
+  var ic=worldState.identityConflicts||[],i;
+  for(i=0;i<ic.length;i++)if(!ic[i].resolved&&ic[i].subject===q.name)ic[i].lastFired=worldState.turn;
+  return "[ENGINE NOTE — DEATH NOT ON RECORD (not a player action): you narrated "+q.name+"'s death, but the engine has no record of them on screen, so the death and its co-emitted rewards were withheld. Decide from the STORY — two honest exits: (1) if "+q.name+" IS physically in the scene, put them on the record now — give them a line tagged [SAY:"+q.name+"] or answer a cast ask with [SCENE_CAST:] — then re-emit the death and every caused objective/reward inside one CANON_TXN with a NEW stable claim id on the NEXT response. (2) if this death happened OFF-SCREEN — reported, discovered, second-hand — emit [NPC_DEATH_REPORTED:"+q.name+"|how the party learned of it] in THIS response and the engine commits it honestly as a reported death (owed rewards then ride a new CANON_TXN). Never re-state the death bare from momentum.]";
+}
+/* #194 L4: the ENGINE-TIMED cast ask (ruling ④) — the GM never decides WHEN (the [SCENE_REF:]
+   0-of-1,837 lesson: meta-conditional triggers starve). One builder owns ask + escalation: a
+   node change or CAST_REFRESH_TURNS at one node arms the ask; [SCENE_CAST:] (incl. :none — the
+   sentinel that makes NON-ANSWER measurable) satisfies it at the derivation seam; an ignored ask
+   escalates ONCE to a consequence-naming compliance nudge (the H4 lever that took [SAY:] 0→39/40),
+   then waits for the next trigger. Combat-silent without consuming. */
+function buildSceneCastNote(){
+  if(!worldState||worldState.combat)return"";
+  if(!worldState.world||!worldState.world.location)return"";
+  var node=(typeof currentNodeKey==="function")?currentNodeKey():worldState.world.location;
+  if(typeof locResolve==="function")node=locResolve(node);
+  var label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(node):node;
+  var ask="[ENGINE NOTE — SCENE CAST (not a player action): the record does not say who is physically present at "+label+". Emit ONE [SCENE_CAST:Name, Name] line naming every character standing in the scene you are about to narrate — the people who could be spoken to or struck this instant. Do not carry names forward from the last scene out of habit, and never include someone merely discussed, expected, or remembered. If the party is alone, emit [SCENE_CAST:none]. Never acknowledge this check in prose.]";
+  var ca=worldState.castAsk;
+  if(!ca){worldState.castAsk={node:node,seedTurn:worldState.turn};return"";}/* first sight of a campaign SEEDS the baseline silently — the common turn stays byte-empty (B5 contract); the ask waits for a real trigger (node change / refresh) */
+  var asked=ca.askedTurn!=null?ca.askedTurn:-1,answered=ca.lastAnswerTurn!=null?ca.lastAnswerTurn:-1;
+  if(asked>answered&&worldState.turn>asked&&!ca.complied){
+    ca.complied=true;
+    return "[ENGINE NOTE — SCENE CAST NOT ANSWERED (not a player action): the engine asked who is physically present and no [SCENE_CAST:] line came back, so it recorded only who spoke — anyone silent went unrecorded and the record now shows them absent. Emit ONE [SCENE_CAST:Name, Name] line now, or [SCENE_CAST:none] if the party is alone. Never acknowledge this check in prose.]";
+  }
+  if(ca.node!==node||worldState.turn-Math.max(asked,answered,ca.seedTurn!=null?ca.seedTurn:-1)>=CAST_REFRESH_TURNS){
+    worldState.castAsk={node:node,askedTurn:worldState.turn};/* a fresh ask resets the escalation latch */
+    return ask;
+  }
+  return"";
+}
 function buildIdentityConflictNudge(){
   if(!worldState||worldState.combat)return"";
   /* #171⑤: the overflow latch was written and read nowhere — consume it here, loudly, once. With
@@ -1051,7 +1095,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deityDriftNudged","futureResolveHints","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","futureResolveHints","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -1073,7 +1117,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

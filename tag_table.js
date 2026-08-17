@@ -27,7 +27,7 @@
 // UA1 validation era, and it remains the calling convention.
 
 // ── Strip registry (derives cleanTxt's _CT_TAGS/_CT_BARE — order preserved from the originals) ──
-var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","ITEM_DEF","MANA","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","RELATIONSHIP_BOND","RELATIONSHIP_BOND_REMOVED","RELATIONSHIP_DYNAMIC","RELATIONSHIP_DYNAMIC_REMOVED","RELATIONSHIP_PAIR_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","LOCATION_RESIDENT","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_SPELL_USED","COMPANION_MANA","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_RELATIONSHIP_BOND","COMPANION_RELATIONSHIP_BOND_REMOVED","COMPANION_RELATIONSHIP_DYNAMIC","COMPANION_RELATIONSHIP_DYNAMIC_REMOVED","COMPANION_RELATIONSHIP_PAIR_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON","ALIAS","MERGE"];/* #168 W7: explicit relationship axes coexist with compatibility-only legacy tags; all remain invisible to prose. */
+var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","ITEM_DEF","MANA","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","RELATIONSHIP_BOND","RELATIONSHIP_BOND_REMOVED","RELATIONSHIP_DYNAMIC","RELATIONSHIP_DYNAMIC_REMOVED","RELATIONSHIP_PAIR_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","LOCATION_RESIDENT","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_SPELL_USED","COMPANION_MANA","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_RELATIONSHIP_BOND","COMPANION_RELATIONSHIP_BOND_REMOVED","COMPANION_RELATIONSHIP_DYNAMIC","COMPANION_RELATIONSHIP_DYNAMIC_REMOVED","COMPANION_RELATIONSHIP_PAIR_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON","ALIAS","MERGE","SCENE_CAST","NPC_DEATH_REPORTED"];/* #168 W7: explicit relationship axes coexist with compatibility-only legacy tags; all remain invisible to prose. #194: SCENE_CAST + NPC_DEATH_REPORTED join the vocabulary. */
 var TAG_STRIP_BARE=["ENEMY_SURRENDERS","ENEMY_SLAIN","SUBLOCATION_LEAVE"];/* bare ENEMY_SLAIN is UNSUPPORTED (warn, no-op) but must still strip — an unstripped bare tag leaks to the story */
 // Stripped/known names that DELIBERATELY have no applyMuts handler — each with its reason.
 // DICE: display-only, rendered by diceTxt. ACTIONS: legacy pre-v1.110 format, replay-only.
@@ -40,7 +40,12 @@ var TAG_STRIP_BARE=["ENEMY_SURRENDERS","ENEMY_SLAIN","SUBLOCATION_LEAVE"];/* bar
    It must still share the parser's strip registry or the repair instruction would leak to prose. */
 TAG_STRIP_NAMES.splice(7,0,"NPC_DEATH_RETRACTED");
 TAG_STRIP_NAMES=["SCENE_REF","SCENE_NOT","SCENE_REVEAL","SCENE_DEATH","CANON_TXN_BEGIN","CANON_TXN_END"].concat(TAG_STRIP_NAMES);
-var TAG_NO_HANDLER=["DICE","ACTIONS","RETCON","SAY","CANON_TXN_BEGIN","CANON_TXN_END"];
+// SCENE_CAST (#194): parse-less ON PURPOSE — cast presence commits at the POST-HANDLER seam
+// (derivePresenceFromResponse, identity.js) beside the guestbook arrival drain, because the
+// attendance snapshot must see same-response [LOCATION:]/[PARTY_SPLIT:]/fold state SETTLED
+// (amendment ③ — a positional handler would stamp against unsettled state). SAY's presence
+// half (#194) commits at that same seam for the same reason; its TTS half stays at narration time.
+var TAG_NO_HANDLER=["DICE","ACTIONS","RETCON","SAY","CANON_TXN_BEGIN","CANON_TXN_END","SCENE_CAST"];
 function buildCtTags(){return new RegExp("\\[("+TAG_STRIP_NAMES.join("|")+"):[^\\]]+\\]","g");}
 function buildCtBare(){return new RegExp("\\[("+TAG_STRIP_BARE.join("|")+")\\]","g");}
 
@@ -112,11 +117,13 @@ var TAG_DOC_LINES=[
 "[LANGUAGE:name|fluent] or [LANGUAGE:name|broken] -- when character learns or improves a language\n",
 "[STORY_BEAT:one sentence] -- major narrative milestone; use sparingly for truly significant moments only. Concrete triggers, one beat per such moment: a companion joins or leaves the party, an oath or bargain is struck, a major revelation lands, first blood is drawn in a significant conflict, a quest completes\n",
 "[CORE_MEMORY:subject|one sentence] -- a PERMANENT defining moment filed onto every present party member's sheet and kept in front of you forever. Use RARELY -- only for moments that must never be forgotten: a wedding, a sworn vow, a betrayal, a life-changing revelation. The engine already auto-files near-death, party joins/leaves, deaths, and weighty bond changes -- never duplicate those. subject = the character the moment is about; name BOTH parties in the sentence so it reads true on every sheet\n",
-"[SAY:Character Name] -- VOICE ATTRIBUTION: place immediately BEFORE every line of spoken dialogue, naming its speaker, e.g. [SAY:Frizwick]\"Don't jinx it,\" Frizwick mutters. Tag EVERY quoted line -- including the player character's own lines (use their character NAME, never 'you'). Tag EACH NEW PARAGRAPH of a continuing speech too -- a paragraph-opening quote always takes a fresh tag; an untagged one falls to the narrator. Use the speaker's exact registered name; omit the tag only for unnamed incidental speakers. The tag is invisible to the player and tells the narrator engine which voice performs the line -- an untagged line is read in the narrator's voice.\n",
+"[SAY:Character Name] -- VOICE ATTRIBUTION: place immediately BEFORE every line of spoken dialogue, naming its speaker, e.g. [SAY:Frizwick]\"Don't jinx it,\" Frizwick mutters. Tag EVERY quoted line -- including the player character's own lines (use their character NAME, never 'you'). Tag EACH NEW PARAGRAPH of a continuing speech too -- a paragraph-opening quote always takes a fresh tag; an untagged one falls to the narrator. Use the speaker's exact registered name; omit the tag only for unnamed incidental speakers. The tag is invisible to the player and tells the narrator engine which voice performs the line -- an untagged line is read in the narrator's voice. A tagged speaker is understood to be PHYSICALLY PRESENT in the scene you are narrating -- if a voice is remote or unreal (a letter read aloud, a sending, a scrying, a remembered line, a dream), do not tag it; render it in the narrator's voice.\n",
 "[ARC_COMPLETE:arc title] -- emit when the current arc's objective is fulfilled; advances to the next arc\n",
 "[ARC_CONTINUE:arc title|why it remains open] -- the OTHER answer to an ARC DRIFT CHECK: the arc is genuinely unfinished. Records your reason and resets the check timer. Every drift check must be answered with this or [ARC_COMPLETE:] -- never left unanswered\n",
 "[ACT_COMPLETE:act title] -- emit when the act's turning point occurs; advances to the next act\n",
 "COMPANION SHEET TAGS — use these (not the player tags) when the event affects a named party member, not the player:\n",
+"[SCENE_CAST:Name, Name] -- WHO IS PHYSICALLY HERE: the characters standing in the scene you are narrating, close enough to be spoken to or struck this instant. Emit ONE such line when the engine asks (it asks at scene changes); name every present character and nobody else -- someone the party is talking ABOUT, expecting, or remembering is NOT in the cast. If the party is alone, emit [SCENE_CAST:none].\n",
+"[NPC_DEATH_REPORTED:name|source] -- a death the party did NOT witness: learned from testimony, a discovered body, or news from elsewhere. Commits the death honestly as REPORTED second-hand canon (no eyewitness claim). Use it when you narrate an off-screen death; never for a death the party watches happen -- that one is [NPC:name|dead|relation], inside its CANON_TXN when rewards ride with it.\n",
 "[COMPANION_HP:Name|+/-N] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item] [COMPANION_XP:Name|N]\n",
 "[COMPANION_CONDITION:Name|condName|duration|cause] [COMPANION_CONDITION_REMOVED:Name|condName]\n",
 "[COMPANION_RELATIONSHIP_BOND:Name|entity|durable bond] [COMPANION_RELATIONSHIP_BOND_REMOVED:Name|entity] [COMPANION_RELATIONSHIP_DYNAMIC:Name|entity|current dynamic] [COMPANION_RELATIONSHIP_DYNAMIC_REMOVED:Name|entity] [COMPANION_RELATIONSHIP_PAIR_REMOVED:Name|entity]. The legacy COMPANION_RELATIONSHIP forms are compatibility-only and queue an explicit axis decision.\n",
@@ -421,7 +428,7 @@ var TAG_TABLE=[
      "easy, approving") kept it only because nobody had re-tagged them in ~50 turns.
      attitude is now SUMMARIZER-OWNED: the tag writes mood to npc.status and relation to npc.rel,
      and touches attitude never. Seeds empty, not from npRel (same reason). */
-  if(!memory.npcs[npName])memory.npcs[npName]={attitude:"",knowledge:[],events:[],aliases:[]};if(_npN&&_npN.dead&&!memory.npcs[npName].dead)memory.npcs[npName].dead=_npN.dead;/* B3: mirror the stamp */if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=R.feGet();if(npPron)memory.npcs[npName].pronouns=npPron;if(!_npWasDead)mapNpcLocation(npName);/* B3: a re-mention must not drag a dead NPC's last-seen node to the party's location — the dead don't travel */R.muts.push("NPC: "+npName);}}},
+  if(!memory.npcs[npName])memory.npcs[npName]={attitude:"",knowledge:[],events:[],aliases:[]};if(_npN&&_npN.dead&&!memory.npcs[npName].dead)memory.npcs[npName].dead=_npN.dead;/* B3: mirror the stamp */if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=R.feGet();if(npPron)memory.npcs[npName].pronouns=npPron;if(!_npWasDead)npcRegisterMention(npName);/* #194: REGISTRATION ONLY — a mention can never teleport a character. Presence is derived at the post-handler seam from [SAY:]/combat/arrival/[SCENE_CAST:] writers (derivePresenceFromResponse). B3 gate kept: the dead aren't even display-associated by a re-mention */R.muts.push("NPC: "+npName);}}},
 /* #173: explicit residency — the guestbook's second, independent axis. resident:true means
    "routinely based here" (an innkeeper at their inn), NEVER "physically present now"; the
    record carries NO fabricated visit turn (the owner rejected any turn-sentinel encoding).
@@ -433,6 +440,37 @@ var TAG_TABLE=[
   if(!lrKey){if(typeof console!=="undefined")console.warn("[guestbook] LOCATION_RESIDENT:"+lrName+" dropped — no current location");continue;}
   if(typeof guestbookSetResident==="function"&&guestbookSetResident(lrKey,lrName,lrOn))R.muts.push(lrOn?("Resident here: "+lrName):("No longer based here: "+lrName));
   else if(typeof console!=="undefined")console.warn("[guestbook] LOCATION_RESIDENT:"+lrName+" not applied at '"+lrKey+"' — node unfiled or no such record");
+}}},
+/* #194 L3 (owner ruling ② 2026-08-17): the HONEST OFF-SCREEN DEATH. W2's structured-evidence
+   gate is right to refuse an unwitnessed on-screen death claim — but the t1903 incident proved
+   the refusal loop's cost (divergent canon, nine conflict records, an 18-turn toast loop,
+   stranded rewards) exceeds a wrongly-accepted off-screen death's. This tag is the exit the loop
+   never had: it commits the death AS REPORTED — second-hand canon, npc.deathReported stamped, no
+   eyewitness claim — so refusal terminates in a decision instead of forever. Deliberately exempt
+   from scene-evidence gating (that gate proves EYEWITNESS claims; this tag makes none). Creates
+   a never-registered victim (the t1837 Vess class had no path to record its own murder victim).
+   Emit OUTSIDE canon envelopes; owed rewards ride a NEW envelope afterwards via the
+   dead-in-canon closing-bookkeeping path. */
+{t:"NPC_DEATH_REPORTED",apply:function(text,R){var rdTags=text.match(/\[NPC_DEATH_REPORTED:([^|\]]+)(?:\|([^\]]*))?\]/g)||[],rdi;for(rdi=0;rdi<rdTags.length;rdi++){
+  var rdm=rdTags[rdi].match(/\[NPC_DEATH_REPORTED:([^|\]]+)(?:\|([^\]]*))?\]/);if(!rdm)continue;
+  var rdRaw=rdm[1].trim(),rdSrc=(rdm[2]||"").trim()||"unspecified report";
+  var rdName=resolveNpcName(rdRaw);
+  if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(rdName)){if(typeof console!=="undefined")console.warn("[tags] NPC_DEATH_REPORTED for the PLAYER refused — player death is not roster canon");R.muts.push("Reported death refused (player): "+rdRaw);continue;}
+  var rdN=wsNpcByName(rdName);
+  if(!rdN){worldState.npcs.push({name:rdName,status:"",statusTurn:0,rel:"unknown",pronouns:null,met:R.turn,partyMember:false,portrait:null,aliases:[]});rdN=worldState.npcs[worldState.npcs.length-1];R.muts.push("Registered from death report: "+rdName);/* status seeds EMPTY so the stamp branch below runs — a "dead" seed reads as already-canon to npcIsDead's legacy-status fallback and the dead FLAG never lands */}
+  if(npcIsDead(rdN)){if(!rdN.deathReported)rdN.deathReported={turn:R.turn,source:rdSrc};R.muts.push(rdName+": death already canon (report noted)");}
+  else{
+    rdN.dead=R.turn;if(!npcDeadStatus(rdN.status))rdN.status="dead";rdN.statusTurn=R.turn;
+    rdN.deathReported={turn:R.turn,source:rdSrc};
+    R.muts.push(rdName+": dead AS REPORTED (t"+R.turn+" — "+rdSrc+")");
+    if(typeof showToast==="function")showToast("† "+rdName+" — death recorded as reported (not witnessed)");
+  }
+  if(!memory.npcs[rdName])memory.npcs[rdName]={attitude:"",knowledge:[],events:[],aliases:[]};
+  if(!memory.npcs[rdName].dead)memory.npcs[rdName].dead=rdN.dead;
+  if(!memory.npcs[rdName].firstEncounter)memory.npcs[rdName].firstEncounter=R.feGet();
+  if(typeof fileNpcEvent==="function")fileNpcEvent(rdName,"Death reported, not witnessed: "+rdSrc,R.turn);
+  if(typeof _w2ResolveConflicts==="function")_w2ResolveConflicts(rdName,null);/* the report answers the very question the dispute asked */
+  if(worldState.deathEvidencePing&&worldState.deathEvidencePing.name===rdName)delete worldState.deathEvidencePing;
 }}},
 /* Owner-operated canon repair, intentionally NOT prompt-documented. Death permanence remains the
    default: a first pass accepts only an already-filed corpse, an already-filed NPC memory, a
@@ -853,7 +891,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(!psN||!psN.partyMember||!psN.charSheet){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — not a party member with a character sheet");continue;}
   if(npcIsDead(psN)){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — they are dead");continue;}/* B3: flag, not status regex */
   if(/^rejoin$/i.test(psArg)){
-    if(psN.charSheet.splitLoc){delete psN.charSheet.splitLoc;if(memory.npcs[psName]){memory.npcs[psName].lastSeenAt=currentNodeKey();memory.npcs[psName].lastSeenTurn=R.turn;/* #175bR: every lastSeenAt write is turn-stamped */}if(typeof guestbookStamp==="function")guestbookStamp(currentNodeKey(),psName,R.turn);/* #173: rejoining IS arriving where the party stands */R.muts.push(psName+" rejoins the party");if(typeof showToast==="function")showToast("⇠ "+psName+" rejoins the party");/* #189: transitions are LOUD — the muts line alone was invisible at the moment it mattered */}
+    if(psN.charSheet.splitLoc){delete psN.charSheet.splitLoc;if(memory.npcs[psName]){memory.npcs[psName].lastSeenAt=currentNodeKey();memory.npcs[psName].lastSeenTurn=R.turn;memory.npcs[psName].lastSeenSrc="arrive";/* #175bR: every lastSeenAt write is turn-stamped; #194: and sourced */}if(typeof guestbookStamp==="function")guestbookStamp(currentNodeKey(),psName,R.turn,"arrive");/* #173: rejoining IS arriving where the party stands (#194: sourced) */R.muts.push(psName+" rejoins the party");if(typeof showToast==="function")showToast("⇠ "+psName+" rejoins the party");/* #189: transitions are LOUD — the muts line alone was invisible at the moment it mattered */}
     else if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"|rejoin] ignored — they are not split");
     continue;}
   var psPrev=pcEffectiveLoc(psN.charSheet).location;
@@ -874,13 +912,13 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(!memory.map.nodes[psArg])memory.map.nodes[psArg]={firstVisit:R.turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
   if(psPrev&&psPrev!==psArg){var psEx=false,psEi;for(psEi=0;psEi<memory.map.edges.length;psEi++){var psE=memory.map.edges[psEi];if((psE.from===psPrev&&psE.to===psArg)||(psE.from===psArg&&psE.to===psPrev)){psEx=true;break;}}if(!psEx)memory.map.edges.push({from:psPrev,to:psArg,turn:R.turn});}
   if(memory.map.nodes[psArg].npcs.indexOf(psName)<0)memory.map.nodes[psArg].npcs.push(psName);
-  if(memory.npcs[psName]){memory.npcs[psName].lastSeenAt=(psSub?psArg+"|"+psSub:psArg);memory.npcs[psName].lastSeenTurn=R.turn;/* #175bR */}
+  if(memory.npcs[psName]){memory.npcs[psName].lastSeenAt=(psSub?psArg+"|"+psSub:psArg);memory.npcs[psName].lastSeenTurn=R.turn;memory.npcs[psName].lastSeenSrc="arrive";/* #175bR; #194 sourced */}
   /* #173: the split member's own arrival is recorded evidence — this handler is the ONE writer
      with settled knowledge of where they went (brief A). World node always (just ensured above);
      the child only if it already exists — a split does not mint child nodes. */
   if(typeof guestbookStamp==="function"){
-    guestbookStamp(psArg,psName,R.turn);
-    if(psSub){var _gbSk=psArg+"|"+psSub;if(memory.map.nodes[typeof locResolve==="function"?locResolve(_gbSk):_gbSk])guestbookStamp(_gbSk,psName,R.turn);}
+    guestbookStamp(psArg,psName,R.turn,"arrive");
+    if(psSub){var _gbSk=psArg+"|"+psSub;if(memory.map.nodes[typeof locResolve==="function"?locResolve(_gbSk):_gbSk])guestbookStamp(_gbSk,psName,R.turn,"arrive");}
   }
   R.muts.push(psName+" splits off to "+psArg+(psSub?" ("+psSub+")":""));
   if(psToastWorthy&&typeof showToast==="function")showToast("⇢ "+psName+" splits from the party — "+psArg+(psSub?" · "+psSub:""));/* #189 — transition-gated */
@@ -990,7 +1028,7 @@ function applyMutsTable(text,opts){
           continue;
         }
         delete _crm.charSheet.splitLoc;
-        if(memory.npcs[_crm.name]){memory.npcs[_crm.name].lastSeenAt=currentNodeKey();memory.npcs[_crm.name].lastSeenTurn=R.turn;/* #175bR */}
+        if(memory.npcs[_crm.name]){memory.npcs[_crm.name].lastSeenAt=currentNodeKey();memory.npcs[_crm.name].lastSeenTurn=R.turn;memory.npcs[_crm.name].lastSeenSrc="arrive";/* #175bR; #194 sourced */}
         /* #164: the fold's NARRATIVE half — stamp the reunion so buildReunionNote demands the
            story acknowledge it next turn (the silent-materialize class). One stamp per response;
            multiple folds append names. */
@@ -999,7 +1037,7 @@ function applyMutsTable(text,opts){
         R.muts.push(_crm.name+" rejoins the party (the split record pointed at the party's own location)");
         if(typeof showToast==="function")showToast("⇠ "+_crm.name+" rejoins the party");/* #189: the auto-fold is the transition most likely to pass unnoticed */
         if(typeof console!=="undefined")console.warn("[multiplayer] auto-rejoined "+_crm.name+" — splitLoc matched the party's current node exactly (#133b co-location)");
-        if(typeof guestbookStamp==="function")guestbookStamp(currentNodeKey(),_crm.name,R.turn);/* #173: the fold IS an arrival — they are physically here now */
+        if(typeof guestbookStamp==="function")guestbookStamp(currentNodeKey(),_crm.name,R.turn,"arrive");/* #173: the fold IS an arrival — they are physically here now (#194: sourced) */
       }
     }
   }
@@ -1010,6 +1048,12 @@ function applyMutsTable(text,opts){
   // hero + every living UNSPLIT party member at each queued node. Split members' own arrivals
   // are stamped directly by the PARTY_SPLIT handler — the one writer with settled knowledge.
   if(typeof guestbookCommitArrivals==="function")guestbookCommitArrivals();
+  // #194: the DERIVED-PRESENCE pass — same amendment-③ discipline as the arrival drain above:
+  // [SAY:] speakers, combat-named rostered NPCs, and [SCENE_CAST:] members commit presence only
+  // after every split/rejoin/fold has settled, so the #137 guard reads settled records and each
+  // observation lands at the effective node. Tags only, never prose; refuse-and-warn, never
+  // create. This is the recall floor that replaced the [NPC:] mention stamp.
+  if(typeof derivePresenceFromResponse==="function")derivePresenceFromResponse(text,R);
   // #129: deterministic expiry for schedule entries the GM never resolved — runs on every real
   // turn so a rest/TIME_ADVANCE that jumps past SCHEDULE_EXPIRE_MIN retires the entry that same
   // response. Loudness (warn/toast/archive) lives in the sweep; the muts line makes it visible

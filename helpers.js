@@ -1214,6 +1214,14 @@ function healthIndicators(ws){
       if(anom.length<3)anom.push("refused canon claim \""+(r.id||"?")+"\": "+(r.subject&&r.subject!=="-"?r.subject:"(no subject)")+(r.quest?", withholding quest \""+r.quest+"\"":"")+" — t"+(r.quarantinedTurn!=null?r.quarantinedTurn:r.turn)+": "+String(r.reason||"no reason recorded").slice(0,90));
     }else histQ++;
   }
+  // #194/ruling ③ (observation only, by design): legacy-grade authorizations are the fail-open
+  // window — pre-epoch mention-fed evidence that still authorized a death. Monotonically
+  // shrinking (re-witnessed or mood-restamped NPCs leave the grandfathered set) and self-
+  // clearing (committed receipts retire after structured summaries), but while present it is
+  // exactly the evidence a later fail-closed flip would want to see.
+  var legacyN=0;
+  for(i=0;i<ct.length;i++)if(ct[i].status==="committed"&&ct[i].evidenceGrade==="legacy")legacyN++;
+  if(legacyN)anom.push(legacyN+" death authorization"+(legacyN>1?"s":"")+" rode legacy-grade (pre-epoch) evidence — the #194 fail-open window, shrinking as characters are re-witnessed");
   if(ws.summaryFailure&&(ws.summaryFailure.count||0)>=1)anom.push("memory filing failing ("+ws.summaryFailure.count+" strike"+(ws.summaryFailure.count>1?"s":"")+", "+(ws.summaryFailure.kind||"extraction")+": "+String(ws.summaryFailure.reason||"").slice(0,60)+")");
   if(ws.phaseMismatch)anom.push("clock/narration phase mismatch armed (t"+(ws.phaseMismatch.turn||"?")+")");
   var extra=histQ?((anom.length?"; ":"")+histQ+" historical refusal"+(histQ>1?"s":"")+" on record (healed — receipts never retire by contract)"):"";

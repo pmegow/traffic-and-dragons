@@ -4217,7 +4217,10 @@ function runEngineTests(R){
     // v1.632 (#173): +LOCATION_RESIDENT strip entry — source grew exactly 18 chars =
     // "LOCATION_RESIDENT|". An unstripped residency mark would leak bookkeeping into the prose
     // and the transcript — the exact ledger-speak amendment ⑤ forbids.
-    if(__djb2(_CT_TAGS.source)!==1074971438||_CT_TAGS.source.length!==1473)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    // v1.651 (#194): +SCENE_CAST and +NPC_DEATH_REPORTED strip entries — source grew exactly 30
+    // chars = "SCENE_CAST|"(11)+"NPC_DEATH_REPORTED|"(19). Both must strip: a leaked cast line is
+    // ledger-speak in the prose, and a leaked death report reads the bookkeeping aloud in TTS.
+    if(__djb2(_CT_TAGS.source)!==1729314184||_CT_TAGS.source.length!==1503)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -4296,7 +4299,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===745953416&&d.length===23447)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #187④a (v1.618): the RETCON line teaches the turn-addressed second field; re-baselined consciously (the pin's job is to make this paragraph exist). Prior: #168 W7 axes. */
+    return (__djb2(d)===-910182163&&d.length===24491)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #194 (v1.651): three deliberate additions in ONE re-baseline — the [SAY:] line gains the physically-present clause (speech-is-presence, owner ruling ①), and the [SCENE_CAST:] + [NPC_DEATH_REPORTED:] lines join the vocabulary (rulings ④ and ②). Prior: #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -12178,7 +12181,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!p.provisional||p.provisional.of!=="Savah"||p.provisional.turn!==1530)return "provisional stamp wrong: "+JSON.stringify(p.provisional);
     var wsP=wsNpcByName(key);
     if(!wsP)return "no worldState roster entry for the provisional";
-    if(p.lastSeenAt!=="Magnimar")return "provisional lastSeenAt should stamp the CURRENT node (got "+p.lastSeenAt+")";
+    /* #194 re-baseline (deliberate): a provisional is minted by an introduction-shaped [NPC:]
+       write — a MENTION. Mention no longer stamps presence anywhere; the provisional records
+       lastMentioned instead and earns lastSeenAt the way everyone does now (speech/combat/cast). */
+    if(p.lastSeenAt!==undefined)return "a provisional MENTION stamped lastSeenAt (got "+p.lastSeenAt+")";
+    if(p.lastMentioned!==1530)return "the provisional mention was not registered (lastMentioned="+p.lastMentioned+")";
     return true;
   });
   t("provisional immunity: party members, thin records, dead records, and ordinary relations never mint",function(){
@@ -14181,8 +14188,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
      earlier roster write / engagement / recorded co-location) is admitted as a positive binding
      for the NAME path ONLY; every handle-mediated path keeps its original strictness. */
   t("#175b: a named victim with structured presence evidence authorizes a bare death while the ledger is active",function(){
+    /* #194 re-baseline (deliberate): the original fixture rode n.statusTurn=1878 — the mention
+       channel, which the presence split demotes to zero post-epoch (ruling ①/③). The victim's
+       positive binding is now his SPEECH record (the evidence the t1903 tag stream actually held:
+       [SAY:] on 29/29 incident turns). The pre-epoch statusTurn fail-open keeps its own test in
+       the #194 section. */
     makeWorld();r168Npc("Caul");
-    var n=wsNpcByName("Caul");n.introduced=1852;n.statusTurn=1878;
+    var n=wsNpcByName("Caul");n.introduced=1852;
+    worldState.transcript.push({t:1897,r:"gm",x:"Caul speaks.",sp:{n:1,s:{0:"Caul"}}});
     worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?]");/* an active ledger that never bound Caul */
     worldState.turn=1902;
     if(!w2DeathAuthorized("Caul",null))return "structured presence did not authorize the named death";
@@ -14200,8 +14213,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   t("#175b: presence evidence stamped THIS turn cannot authorize its own response's death",function(){
+    /* #194 re-baseline (deliberate): same-turn speech replaces the retired same-turn statusTurn
+       as the strictly-earlier probe — post-epoch roster writes now authorize nothing at ANY age,
+       so the original fixture would pass vacuously. */
     makeWorld();r168Npc("Karg");
-    var n=wsNpcByName("Karg");n.introduced=1902;n.statusTurn=1902;
+    var n=wsNpcByName("Karg");n.introduced=1902;
+    worldState.transcript.push({t:1902,r:"gm",x:"Karg speaks.",sp:{n:1,s:{0:"Karg"}}});
     worldState.turn=1902;applyMuts("[SCENE_REF:onlooker|?]");
     if(w2DeathAuthorized("Karg",null))return "same-turn presence authorized";
     return true;
@@ -14217,8 +14234,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   t("#175b: a transaction whose handle IS the victim's own name commits under structured presence (the t1903 GM shape)",function(){
+    /* #194 re-baseline (deliberate): speech evidence replaces the retired statusTurn limb. */
     makeWorld();r168Npc("Caul");r168Quest("The Shore District Caul","Confirm what Caul is");
-    var n=wsNpcByName("Caul");n.introduced=1852;n.statusTurn=1878;
+    var n=wsNpcByName("Caul");n.introduced=1852;
+    worldState.transcript.push({t:1878,r:"gm",x:"Caul speaks.",sp:{n:1,s:{0:"Caul"}}});
     worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?]");
     worldState.turn=1902;var xp0=worldState.character.xp;
     applyMuts("[CANON_TXN_BEGIN:caul-1|npc-death|Caul|caul|The Shore District Caul][SCENE_DEATH:caul][NPC:Caul|dead|enemy][XP:1200][CANON_TXN_END:caul-1]");
@@ -14271,7 +14290,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
 
   t("#175bR: a same-response scene binding to a different NPC quarantines the envelope instead of killing the wrong corpse",function(){
     makeWorld();r168Npc("Caul");r168Npc("Wex");
-    var n=wsNpcByName("Caul");n.introduced=60;n.statusTurn=70;
+    var n=wsNpcByName("Caul");n.introduced=60;/* #194 re-baseline: the subject must AUTHORIZE at preflight (speech, not the retired statusTurn) or the executor pin this test exists to exercise is never reached — the sabotage batch caught exactly that hollowing (MISSED clause) */
+    worldState.transcript.push({t:95,r:"gm",x:"Caul speaks.",sp:{n:1,s:{0:"Caul"}}});
     worldState.turn=90;applyMuts("[SCENE_REF:onlooker|?]");
     worldState.turn=100;var xp0=worldState.character.xp;
     applyMuts("[SCENE_REF:caul|Wex][CANON_TXN_BEGIN:wex-1|npc-death|Caul|caul|-][SCENE_DEATH:caul][XP:400][CANON_TXN_END:wex-1]");
@@ -14297,7 +14317,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();r168Npc("Karg");r175Node("Ashfen");
     var n=wsNpcByName("Karg");n.introduced=1900;
     worldState.turn=1901;applyMuts("[SCENE_REF:onlooker|?]");
-    worldState.turn=1902;mapNpcLocation("Karg");
+    worldState.turn=1902;npcRecordPresence("Karg","say");/* #194: the presence writer replaced mapNpcLocation */
     if(w2DeathAuthorized("Karg",null))return "a same-turn lastSeenAt/guestbook stamp authorized its own turn's death";
     return true;
   });
@@ -14306,7 +14326,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();r168Npc("Karg");r175Node("Ashfen");
     var n=wsNpcByName("Karg");n.introduced=10;
     worldState.turn=80;applyMuts("[SCENE_REF:onlooker|?]");
-    worldState.turn=100;mapNpcLocation("Karg");
+    worldState.turn=100;npcRecordPresence("Karg","say");/* #194: the presence writer replaced mapNpcLocation */
     if(w2DeathAuthorized("Karg","-",90))return "evidence stamped at t100 authorized a summary death cited at t90";
     return true;
   });
@@ -14335,7 +14355,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=1880;applyMuts("[SCENE_REF:onlooker|?]");
     applyMuts("[NPC:Caul|dead|enemy]");/* no evidence yet — refused, mints the standing conflict */
     if(!(worldState.identityConflicts&&worldState.identityConflicts.length))return "fixture: the refusal did not mint a conflict";
-    var n=wsNpcByName("Caul");n.introduced=1852;n.statusTurn=1878;
+    var n=wsNpcByName("Caul");n.introduced=1852;/* #194 re-baseline: speech evidence, not the retired statusTurn limb */
+    worldState.transcript.push({t:1897,r:"gm",x:"Caul speaks.",sp:{n:1,s:{0:"Caul"}}});
     worldState.turn=1902;applyMuts("[NPC:Caul|dead|enemy]");
     if(!npcIsDead(wsNpcByName("Caul")))return "fixture: the evidenced death did not commit";
     var open=(worldState.identityConflicts||[]).filter(function(c){return !c.resolved&&c.subject==="Caul";});
@@ -14344,10 +14365,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
 
   t("#175bR: combat-close death propagation resolves the subject's standing identity conflict",function(){
     makeWorld();r168Npc("Caul");
-    var n=wsNpcByName("Caul");n.introduced=1852;n.statusTurn=1878;
-    worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?]");
+    var n=wsNpcByName("Caul");n.introduced=1852;/* #194 re-baseline: the fight ITSELF is the evidence now — the real flow derives combat presence from the COMBAT_START response, which is exactly what the fixture's hand-built combat object used to skip */
+    worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?][COMBAT_START:Caul|20|12|+3|1d8|grim]");
     worldState.identityConflicts=[{subject:"Caul",handle:"-",reason:"named death has no prior positive scene binding",turn:1880,lastTurn:1880,attempts:0,resolved:false}];
-    worldState.combat={round:2,engaged:"Caul",foes:[{name:"Caul",hp:0,maxHp:20,ac:12,atk:3,dmg:"1d8",morale:"grim",down:"slain"}]};
+    worldState.combat.engaged="Caul";worldState.combat.foes[0].hp=0;worldState.combat.foes[0].down="slain";worldState.combat.round=2;
     worldState.turn=1902;applyMuts("[COMBAT_END:defeated]");
     if(!npcIsDead(wsNpcByName("Caul")))return "fixture: combat close did not propagate the death";
     var open=(worldState.identityConflicts||[]).filter(function(c){return !c.resolved&&c.subject==="Caul";});
@@ -14389,6 +14410,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#175bR: a worldState-only roster row authorizes identically through the bare-name and self-naming-handle paths",function(){
     makeWorld();
     worldState.npcs.push({name:"Vasska",status:"wary",statusTurn:70,rel:"enemy",met:60,partyMember:false,aliases:[],introduced:60});
+    worldState.transcript.push({t:80,r:"gm",x:"Vasska speaks.",sp:{n:1,s:{0:"Vasska"}}});/* #194 re-baseline: speech evidence — the statusTurn above is post-epoch and rightly authorizes nothing */
     worldState.turn=90;applyMuts("[SCENE_REF:onlooker|?]");
     worldState.turn=100;
     if(!w2DeathAuthorized("Vasska",null))return "fixture: the bare-name path refused a ws-only row with evidence";
@@ -14735,20 +14757,27 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(gb["Ameiko"].turns.length)return "resident-only record fabricated a visit turn: "+JSON.stringify(gb["Ameiko"].turns);
     applyMuts("[LOCATION_RESIDENT:Ameiko|false]");
     if(gb["Ameiko"])return "cleared resident-only record should be dropped entirely";
-    /* a resident who ALSO genuinely visited keeps the turns when residency clears */
-    applyMuts("[NPC:Ameiko|welcoming|ally]");
+    /* a resident who ALSO genuinely visited keeps the turns when residency clears.
+       #194 re-baseline (deliberate): the visit was fixture'd via the [NPC:] mention stamp,
+       which no longer exists — she earns it the real way now, by speaking in the scene. */
+    applyMuts("[NPC:Ameiko|welcoming|ally][SAY:Ameiko]\"Welcome back to the Dragon.\"");
     applyMuts("[LOCATION_RESIDENT:Ameiko]");
     applyMuts("[LOCATION_RESIDENT:Ameiko|false]");
     gb=(memory.map.nodes["Sandpoint"]||{}).guestbook||{};
     if(!gb["Ameiko"]||gb["Ameiko"].turns.indexOf(8)<0)return "clearing residency destroyed real visit turns";
     return gb["Ameiko"].resident===false?true:"resident flag not cleared";
   });
-  t("[NPC:] contemporaneous write records that NPC here; a SPLIT party member's remote mention is NOT stamped at the camera node",function(){
+  t("[NPC:] writes record NO presence at all — mention is registration, never attendance (#194 overrules the #173 recorded-evidence boundary)",function(){
+    /* #194 re-baseline (deliberate, owner-ruled): the original #173 contract accepted a
+       contemporaneous [NPC:] write as recorded attendance ("a remote mention CAN mis-stamp").
+       Measured at t1903 that acceptance made 37 of 39 living NPCs killable by bare name and the
+       guestbook's whole future prospectively false — the split closes the channel structurally. */
     gbParty();worldState.turn=9;
     applyMuts("[LOCATION:Sandpoint]");
     applyMuts("[NPC:Bosk|wary|neutral]");
     var gb=(memory.map.nodes["Sandpoint"]||{}).guestbook||{};
-    if(!gb["Bosk"]||gb["Bosk"].turns.indexOf(9)<0)return "contemporaneous NPC write not recorded";
+    if(gb["Bosk"])return "a mention still stamps the guestbook (the teleport channel survived the split)";
+    if(!memory.npcs["Bosk"]||memory.npcs["Bosk"].lastMentioned!==9)return "the mention was not registered as a mention (lastMentioned)";
     worldState.turn=10;
     applyMuts("[PARTY_SPLIT:Frizwick|Riverford]");
     worldState.turn=11;
@@ -14886,6 +14915,348 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var who=["Tess","Frizwick","Morwen","Daeris"],i;
     for(i=0;i<who.length;i++){if(!gb[who[i]]||gb[who[i]].turns.indexOf(0)<0)return who[i]+" not seeded at the start node";}
     return true;
+  });
+
+  section("#194 — the presence split: a mention can never teleport; presence is DERIVED; the gate regrades in the same commit");
+  /* Design of record: DOC/Research/presence_panel_2026-08-17.md (ten-angle panel + Fable synthesis,
+     all four owner rulings stamped 2026-08-17). Layers 0-3+5 are ONE commit by constraint —
+     statusTurn was the gate's only live limb in the field (lastSeenTurn 0/69 on t1903), so the
+     split without the regrade+valve re-opens the t1903 quarantine loop. */
+  function p194Node(key){memory.map.nodes[key]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};}
+  function p194World(){makeWorld();worldState.world.location="Ashfen";worldState.world.sublocation=null;p194Node("Ashfen");}
+  function p194Speech(name,turn){worldState.transcript.push({t:turn,r:"gm",x:name+" speaks.",sp:{n:1,s:{0:name}}});}
+
+  t("#194 L0: a bare [NPC:] mention REGISTERS (display association + lastMentioned) but records NO presence",function(){
+    p194World();r168Npc("Vess");
+    worldState.turn=50;applyMuts("[NPC:Vess|wary|neutral]");
+    var gb=(memory.map.nodes["Ashfen"]||{}).guestbook||{};
+    if(gb["Vess"])return "a mention stamped the guestbook (the teleport channel #194 exists to close)";
+    if(memory.npcs["Vess"].lastSeenAt!==undefined)return "a mention wrote lastSeenAt: "+memory.npcs["Vess"].lastSeenAt;
+    if(memory.npcs["Vess"].lastSeenTurn!==undefined)return "a mention wrote lastSeenTurn";
+    if(memory.npcs["Vess"].lastMentioned!==50)return "registration did not record lastMentioned: "+memory.npcs["Vess"].lastMentioned;
+    return memory.map.nodes["Ashfen"].npcs.indexOf("Vess")>=0?true:"the display-only association was lost with the split";
+  });
+
+  t("#194 L0: npcRecordPresence is the ONE presence writer — lastSeenAt/lastSeenTurn/lastSeenSrc + sourced guestbook; the #137 split guard covers it",function(){
+    p194World();r168Npc("Kesk");
+    worldState.turn=60;
+    if(npcRecordPresence("Kesk","say")!==true)return "presence write refused for a plain rostered NPC";
+    var m=memory.npcs["Kesk"],gb=(memory.map.nodes["Ashfen"]||{}).guestbook||{};
+    if(m.lastSeenAt!=="Ashfen"||m.lastSeenTurn!==60||m.lastSeenSrc!=="say")return "lastSeen fields wrong: "+JSON.stringify([m.lastSeenAt,m.lastSeenTurn,m.lastSeenSrc]);
+    if(!gb["Kesk"]||gb["Kesk"].turns.indexOf(60)<0)return "guestbook not stamped";
+    if(!gb["Kesk"].by||gb["Kesk"].by[60]!=="say")return "guestbook stamp carries no source: "+JSON.stringify(gb["Kesk"].by);
+    r168Npc("Splitter");var sn=wsNpcByName("Splitter");sn.partyMember=true;sn.charSheet={name:"Splitter",splitLoc:{location:"The Docks"}};
+    if(npcRecordPresence("Splitter","say")!==false)return "a split member's presence write was accepted at the camera node";
+    return gb["Splitter"]?"a split member reached the guestbook through the presence writer":true;
+  });
+
+  t("#194 L1: a committed [SAY:] from a rostered living speaker derives presence at the settled node (guestbook by=say + frame.observed)",function(){
+    p194World();r168Npc("Kesk");
+    worldState.turn=60;applyMuts("[SCENE_REF:onlooker|?]");/* the ledger is active, as buildSysPrompt makes it on every real turn — derivation itself never mints it */
+    worldState.turn=61;applyMuts("[SAY:Kesk]\"Hold the line,\" Kesk growls.");
+    var gb=(memory.map.nodes["Ashfen"]||{}).guestbook||{};
+    if(!gb["Kesk"]||gb["Kesk"].turns.indexOf(61)<0)return "speech did not stamp the guestbook";
+    if(!gb["Kesk"].by||gb["Kesk"].by[61]!=="say")return "speech stamp not sourced: "+JSON.stringify(gb["Kesk"].by);
+    if(memory.npcs["Kesk"].lastSeenTurn!==61)return "speech did not stamp lastSeenTurn";
+    var ob=(worldState.sceneRefs&&worldState.sceneRefs.active.observed)||[],hit=null,i;
+    for(i=0;i<ob.length;i++)if(ob[i].entity==="Kesk")hit=ob[i];
+    return hit&&hit.channel==="say"?true:"no observed[] entry for the speaker: "+JSON.stringify(ob);
+  });
+
+  t("#194 L1: derivation refuses the player, the dead, a split member, and an unrostered name — never creates",function(){
+    p194World();r168Npc("Kesk");r168Npc("Ghost");r168Npc("Away");
+    wsNpcByName("Ghost").dead=10;
+    var aw=wsNpcByName("Away");aw.partyMember=true;aw.charSheet={name:"Away",splitLoc:{location:"The Docks"}};
+    worldState.turn=62;
+    applyMuts("[SAY:Tess]\"On me.\" [SAY:Ghost]\"…\" [SAY:Away]\"(sending)\" [SAY:Nobody Realname]\"?\" [SAY:Kesk]\"Aye.\"");
+    var gb=(memory.map.nodes["Ashfen"]||{}).guestbook||{};
+    if(!gb["Kesk"]||gb["Kesk"].turns.indexOf(62)<0)return "the rostered living speaker was not stamped (positive control)";
+    if(gb["Tess"]&&gb["Tess"].by&&gb["Tess"].by[62]==="say")return "the PLAYER was stamped through the SAY channel";
+    if(gb["Ghost"])return "a dead speaker was stamped (the dead don't travel)";
+    if(gb["Away"])return "a split member's remote line stamped the camera node";
+    if(gb["Nobody Realname"]||wsNpcByName("Nobody Realname")||memory.npcs["Nobody Realname"])return "an unrostered speaker was created or stamped";
+    return true;
+  });
+
+  t("#194 L1: combat tags naming a ROSTERED NPC derive combat presence; generic foes derive nothing",function(){
+    p194World();r168Npc("Kesk");
+    worldState.turn=62;applyMuts("[SCENE_REF:onlooker|?]");/* active ledger */
+    worldState.turn=63;applyMuts("[COMBAT_START:Kesk|20|12|+2|1d6|steady][COMBAT_START:Bandit|8|10|+1|1d4|cowardly]");
+    var gb=(memory.map.nodes["Ashfen"]||{}).guestbook||{};
+    if(!gb["Kesk"]||gb["Kesk"].by[63]!=="combat")return "rostered foe not stamped with combat source: "+JSON.stringify(gb["Kesk"]);
+    if(gb["Bandit"]||memory.npcs["Bandit"])return "a generic foe was stamped or created";
+    var ob=(worldState.sceneRefs&&worldState.sceneRefs.active.observed)||[],i,hit=null;
+    for(i=0;i<ob.length;i++)if(ob[i].entity==="Kesk")hit=ob[i];
+    return hit&&hit.channel==="combat"?true:"no combat observed[] entry: "+JSON.stringify(ob);
+  });
+
+  t("#194 L1: observed[] is evictable LRU under PRESENCE_OBSERVED_CAP and can NEVER arm the W2 overflow latch",function(){
+    p194World();
+    worldState.turn=69;applyMuts("[SCENE_REF:onlooker|?]");/* active ledger */
+    var i,names=[];
+    for(i=0;i<PRESENCE_OBSERVED_CAP+2;i++){var nm="Guest"+i;r168Npc(nm);names.push(nm);}
+    for(i=0;i<names.length;i++){worldState.turn=70+i;applyMuts("[SAY:"+names[i]+"]\"…\"");}
+    var s=worldState.sceneRefs;
+    if(!s||!s.active.observed)return "no observed list";
+    if(s.active.observed.length>PRESENCE_OBSERVED_CAP)return "observed[] exceeded its cap: "+s.active.observed.length;
+    if(s.overflow)return "derived presence armed the W2 overflow latch — the fail-closed freeze the evictable list exists to prevent";
+    var have={},j;for(j=0;j<s.active.observed.length;j++)have[s.active.observed[j].entity]=1;
+    if(have["Guest0"])return "LRU evicted the wrong end (oldest survived)";
+    return have["Guest"+(names.length-1)]?true:"newest observed entry missing";
+  });
+
+  t("#194 L1: same-response derived presence cannot authorize that response's death — and DOES authorize it one turn later",function(){
+    p194World();r168Npc("Kesk");
+    var n=wsNpcByName("Kesk");n.introduced=40;
+    worldState.turn=80;applyMuts("[SCENE_REF:onlooker|?]");/* active ledger */
+    worldState.turn=81;applyMuts("[SAY:Kesk]\"You dare—\" [NPC:Kesk|dead|enemy]");
+    if(npcIsDead(wsNpcByName("Kesk")))return "same-response speech authorized its own response's death (strictly-earlier broken)";
+    worldState.turn=82;applyMuts("[NPC:Kesk|dead|enemy]");
+    return npcIsDead(wsNpcByName("Kesk"))?true:"prior-turn derived speech evidence did not authorize the death (the refusal loop re-opens)";
+  });
+
+  t("#194 L2: transcript speech inside SPEECH_EVIDENCE_TURNS authorizes a bare named death and is CITED as speech",function(){
+    p194World();r168Npc("Caul");
+    var n=wsNpcByName("Caul");n.introduced=1852;
+    p194Speech("Caul",1897);
+    worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=1902;
+    var ev=w2NamedPresenceEvidence("Caul");
+    if(!ev)return "speech in the window did not authorize";
+    if(String(ev).indexOf("speech")<0)return "evidence does not cite speech: "+ev;
+    applyMuts("[NPC:Caul|dead|enemy]");
+    return npcIsDead(wsNpcByName("Caul"))?true:"the bare named death was still refused";
+  });
+
+  t("#194 L2: speech outside the window, or not strictly earlier than the claim, does not authorize",function(){
+    p194World();r168Npc("Old Voice");r168Npc("Fresh Voice");
+    wsNpcByName("Old Voice").introduced=50;wsNpcByName("Fresh Voice").introduced=50;
+    p194Speech("Old Voice",100);p194Speech("Fresh Voice",295);
+    worldState.turn=300;
+    if(!w2NamedPresenceEvidence("Fresh Voice"))return "in-window speech did not authorize (positive control)";
+    if(w2NamedPresenceEvidence("Old Voice"))return "speech "+(300-100)+" turns old authorized a death (window not bounded)";
+    if(w2NamedPresenceEvidence("Fresh Voice",295))return "speech AT the cited sourceTurn authorized (not strictly earlier)";
+    return w2NamedPresenceEvidence("Fresh Voice",296)?true:"speech strictly before the cited sourceTurn was refused";
+  });
+
+  t("#194 L2: post-epoch statusTurn authorizes NOTHING; pre-epoch statusTurn grandfathers with a legacy-grade citation (ruling ③)",function(){
+    p194World();r168Npc("PostEpoch");r168Npc("PreEpoch");
+    worldState.presenceEpoch=1000;worldState.presenceVer=1;
+    var a=wsNpcByName("PostEpoch");a.introduced=900;a.statusTurn=1500;
+    var b=wsNpcByName("PreEpoch");b.introduced=800;b.statusTurn=900;
+    worldState.turn=1600;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=1601;
+    if(w2NamedPresenceEvidence("PostEpoch"))return "a post-epoch roster write authorized a death — the mention channel is still live";
+    var ev=w2NamedPresenceEvidence("PreEpoch");
+    if(!ev)return "pre-epoch evidence was refused — fail-open (ruling ③) broken, mature saves would hit a refusal wave";
+    return /legacy/i.test(String(ev))?true:"grandfathered evidence is not labeled legacy-grade: "+ev;
+  });
+
+  t("#194 L2: the remote-mention attack refuses even on a grandfathered row — a fresh mood write re-stamps statusTurn post-epoch",function(){
+    p194World();r168Npc("Foxglove");
+    worldState.presenceEpoch=1000;worldState.presenceVer=1;
+    var n=wsNpcByName("Foxglove");n.introduced=800;n.statusTurn=900;
+    worldState.turn=1500;applyMuts("[SCENE_REF:onlooker|?][NPC:Foxglove|scheming|enemy]");
+    worldState.turn=1501;
+    if(w2NamedPresenceEvidence("Foxglove"))return "the mention-then-kill attack still authorizes: "+w2NamedPresenceEvidence("Foxglove");
+    applyMuts("[NPC:Foxglove|dead|enemy]");
+    return npcIsDead(wsNpcByName("Foxglove"))?"the remote-mention kill landed":true;
+  });
+
+  t("#194 L2: a living unsplit party member is grade-A presence; a split one is not",function(){
+    p194World();r168Npc("Bryn");
+    var n=wsNpcByName("Bryn");n.introduced=10;n.partyMember=true;n.charSheet={name:"Bryn",cls:"Rogue",level:3,hp:10,maxHp:10,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    worldState.turn=90;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=91;
+    if(!w2NamedPresenceEvidence("Bryn"))return "a living unsplit party member was refused (they are by definition on screen)";
+    n.charSheet.splitLoc={location:"The Docks"};
+    return w2NamedPresenceEvidence("Bryn")?"a SPLIT party member still authorized as present":true;
+  });
+
+  t("#194 L2: cast-sourced presence is playtest-gated — it never authorizes alone (ruling ④'s gate-lean clause)",function(){
+    p194World();r168Npc("Quiet");
+    var n=wsNpcByName("Quiet");n.introduced=10;
+    worldState.presenceEpoch=0;worldState.presenceVer=1;
+    worldState.turn=99;applyMuts("[SCENE_REF:onlooker|?]");/* active ledger */
+    worldState.turn=100;applyMuts("[SCENE_CAST:Quiet]");/* the REAL cast path: observed channel + guestbook by + lastSeenSrc all land as "cast" */
+    if(!memory.npcs["Quiet"]||memory.npcs["Quiet"].lastSeenSrc!=="cast")return "fixture: the cast answer did not record presence";
+    worldState.turn=102;
+    if(w2NamedPresenceEvidence("Quiet"))return "cast-sourced evidence authorized before the playtest validated the channel: "+w2NamedPresenceEvidence("Quiet");
+    worldState.turn=103;if(!npcRecordPresence("Quiet","say"))return "fixture: say presence write failed";
+    worldState.turn=104;
+    return w2NamedPresenceEvidence("Quiet")?true:"a say-sourced record no longer authorizes (over-broad cast exclusion)";
+  });
+
+  t("#194 L2: an envelope authorized on legacy-grade evidence carries evidenceGrade on its receipt; a witnessed pass does not",function(){
+    p194World();r168Npc("Legacy Man");r168Quest("Old Debts","Settle it");
+    worldState.presenceEpoch=1000;worldState.presenceVer=1;
+    var n=wsNpcByName("Legacy Man");n.introduced=800;n.statusTurn=900;
+    worldState.turn=1600;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=1601;
+    applyMuts("[CANON_TXN_BEGIN:leg-1|npc-death|Legacy Man|Legacy Man|-][SCENE_DEATH:Legacy Man][XP:100][CANON_TXN_END:leg-1]");
+    var r=null,i;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="leg-1")r=worldState.canonTxns[i];
+    if(!r||r.status!=="committed")return "legacy-authorized envelope did not commit: "+(r?r.status+" / "+r.reason:"none");
+    if(r.evidenceGrade!=="legacy")return "committed receipt does not carry the legacy grade (ruling ③'s receipts-for-a-later-reversal contract): "+JSON.stringify(r.evidenceGrade);
+    r168Npc("Witnessed Man");var w=wsNpcByName("Witnessed Man");w.introduced=800;
+    p194Speech("Witnessed Man",1598);
+    worldState.turn=1602;
+    applyMuts("[CANON_TXN_BEGIN:wit-1|npc-death|Witnessed Man|Witnessed Man|-][SCENE_DEATH:Witnessed Man][XP:100][CANON_TXN_END:wit-1]");
+    var r2=null;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="wit-1")r2=worldState.canonTxns[i];
+    if(!r2||r2.status!=="committed")return "witnessed envelope did not commit: "+(r2?r2.status+" / "+r2.reason:"none");
+    return r2.evidenceGrade===undefined?true:"a witnessed pass was stamped "+JSON.stringify(r2.evidenceGrade);
+  });
+
+  t("#194 L3: a refused named death arms the valve — the fork note teaches [SAY:] and [NPC_DEATH_REPORTED:], and defers the conflict nudge that turn",function(){
+    p194World();r168Npc("Caul");
+    var n=wsNpcByName("Caul");n.introduced=40;
+    worldState.turn=80;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=81;applyMuts("[NPC:Caul|dead|enemy]");
+    if(npcIsDead(wsNpcByName("Caul")))return "fixture: the death was not refused";
+    if(!worldState.deathEvidencePing||worldState.deathEvidencePing.name!=="Caul")return "the refusal did not arm the valve ping: "+JSON.stringify(worldState.deathEvidencePing);
+    var note=buildDeathEvidenceNudge();
+    if(!note)return "the fork note did not fire";
+    if(note.indexOf("[NPC_DEATH_REPORTED:Caul")<0)return "the note does not teach the reported-death exit";
+    if(note.indexOf("[SAY:Caul]")<0)return "the note does not teach the speech exit";
+    return buildIdentityConflictNudge()===""?true:"the handle-ceremony conflict nudge fired in the same turn as the fork note (double-ask)";
+  });
+
+  t("#194 L3: [NPC_DEATH_REPORTED:] commits an off-screen death — dead in both stores, deathReported stamped, the standing conflict resolved",function(){
+    p194World();r168Npc("Caul");
+    var n=wsNpcByName("Caul");n.introduced=40;
+    worldState.turn=80;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=81;applyMuts("[NPC:Caul|dead|enemy]");
+    if(npcIsDead(wsNpcByName("Caul")))return "fixture: the death was not refused";
+    if(!(worldState.identityConflicts||[]).length)return "fixture: no standing conflict";
+    worldState.turn=82;applyMuts("[NPC_DEATH_REPORTED:Caul|the network silenced him in the cells]");
+    if(!npcIsDead(wsNpcByName("Caul")))return "the reported death did not stamp the roster";
+    if(!memory.npcs["Caul"].dead)return "the reported death did not reach the memory tier";
+    var dr=wsNpcByName("Caul").deathReported;
+    if(!dr||dr.turn!==82||String(dr.source).indexOf("network")<0)return "deathReported not stamped: "+JSON.stringify(dr);
+    if((worldState.identityConflicts||[]).some(function(c){return c.subject==="Caul"&&!c.resolved;}))return "the standing conflict survived the reported death";
+    var out=cleanTxt("Word arrives. [NPC_DEATH_REPORTED:Caul|testimony] The cells are silent.");
+    if(out.indexOf("[NPC_DEATH_REPORTED")>=0)return "tag leaked to display";
+    return buildStateTagsDoc().indexOf("[NPC_DEATH_REPORTED:")>=0?true:"doc line missing — the GM has no vocabulary for the honest off-screen category";
+  });
+
+  t("#194 L3: a reported death for a NEVER-REGISTERED victim creates the record dead (the t1837 Vess-class escape)",function(){
+    p194World();
+    worldState.turn=90;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=91;applyMuts("[NPC_DEATH_REPORTED:Magistrate Coraline Vess|found dead before the party ever met her]");
+    var n=wsNpcByName("Magistrate Coraline Vess");
+    if(!n)return "the reported death did not register the victim";
+    if(!npcIsDead(n))return "the created record is not dead";
+    return memory.npcs["Magistrate Coraline Vess"]&&memory.npcs["Magistrate Coraline Vess"].dead?true:"memory tier record missing or alive";
+  });
+
+  t("#194 L3: the t1903 loop closes end-to-end — refused envelope → reported death → NEW-id envelope commits and pays",function(){
+    p194World();r168Npc("Caul");r168Quest("The Shore District Caul","Confirm what Caul is");
+    var n=wsNpcByName("Caul");n.introduced=40;
+    worldState.turn=80;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=81;var xp0=worldState.character.xp;
+    applyMuts("[CANON_TXN_BEGIN:caul-a|npc-death|Caul|caul|The Shore District Caul][SCENE_DEATH:caul][NPC:Caul|dead|enemy][XP:1200][CANON_TXN_END:caul-a]");
+    var r=null,i;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="caul-a")r=worldState.canonTxns[i];
+    if(!r||r.status!=="quarantined")return "fixture: the evidence-less envelope was not quarantined";
+    worldState.turn=82;applyMuts("[NPC_DEATH_REPORTED:Caul|the network silenced him]");
+    if(!npcIsDead(wsNpcByName("Caul")))return "the reported death did not commit";
+    worldState.turn=83;
+    applyMuts("[CANON_TXN_BEGIN:caul-b|npc-death|Caul|caul|The Shore District Caul][SCENE_DEATH:caul][NPC:Caul|dead|enemy][XP:1200][CANON_TXN_END:caul-b]");
+    var r2=null;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="caul-b")r2=worldState.canonTxns[i];
+    if(!r2||r2.status!=="committed")return "the closing envelope did not commit over the reported death: "+(r2?r2.status+" / "+r2.reason:"none");
+    if(worldState.character.xp!==xp0+1200)return "the payout did not land";
+    return (worldState.identityConflicts||[]).length?"conflicts survived the closed loop":true;
+  });
+
+  t("#194 L4: [SCENE_CAST:] records cast-sourced presence for rostered names and skips the rest; [SCENE_CAST:none] answers without stamping",function(){
+    p194World();r168Npc("Kesk");r168Npc("Ghost");wsNpcByName("Ghost").dead=5;
+    worldState.turn=110;applyMuts("[SCENE_CAST:Kesk, Ghost, Total Stranger]");
+    var gb=(memory.map.nodes["Ashfen"]||{}).guestbook||{};
+    if(!gb["Kesk"]||gb["Kesk"].by[110]!=="cast")return "rostered cast member not stamped with cast source: "+JSON.stringify(gb["Kesk"]);
+    if(gb["Ghost"])return "a dead cast name was stamped";
+    if(gb["Total Stranger"]||wsNpcByName("Total Stranger"))return "an unrostered cast name was created or stamped";
+    if(!worldState.castAsk||worldState.castAsk.lastAnswerTurn!==110)return "the cast answer was not recorded: "+JSON.stringify(worldState.castAsk);
+    worldState.turn=111;applyMuts("[SCENE_CAST:none]");
+    if(worldState.castAsk.lastAnswerTurn!==111)return "[SCENE_CAST:none] did not count as an answer";
+    var names=Object.keys(gb),i;
+    for(i=0;i<names.length;i++)if(gb[names[i]].turns.indexOf(111)>=0)return "[SCENE_CAST:none] stamped someone";
+    return true;
+  });
+
+  t("#194 L4: the engine times the cast ask — a node change arms it, an answer satisfies it, an ignored ask escalates ONCE to the compliance nudge",function(){
+    p194World();r168Npc("Kesk");
+    worldState.turn=120;
+    if(buildSceneCastNote())return "a virgin campaign was asked immediately — the first sight must SEED silently (the B5 byte-empty common-turn contract)";
+    if(!worldState.castAsk||worldState.castAsk.seedTurn!==120)return "the silent seed was not recorded: "+JSON.stringify(worldState.castAsk);
+    worldState.turn=120+CAST_REFRESH_TURNS;
+    var note=buildSceneCastNote();
+    if(!note||note.indexOf("[SCENE_CAST:")<0)return "the refresh interval did not arm the ask (the 57-turn-tagless-dungeon case)";
+    if(buildSceneCastNote())return "the ask re-fired immediately (no latch)";
+    worldState.turn=133;applyMuts("[SCENE_CAST:Kesk]");/* answered at t133 */
+    worldState.turn=134;
+    if(buildSceneCastNote())return "an answered ask still nudges";
+    p194Node("Bleakmoor");worldState.turn=135;applyMuts("[LOCATION:Bleakmoor]");
+    worldState.turn=136;
+    var ask2=buildSceneCastNote();
+    if(!ask2||ask2.indexOf("[SCENE_CAST:")<0)return "a node change did not re-arm the ask";
+    worldState.turn=137;/* GM ignores it */
+    var comp=buildSceneCastNote();
+    if(!comp)return "an ignored ask produced no compliance nudge";
+    if(comp===ask2)return "the compliance nudge is just the ask again (non-answer is not being measured)";
+    worldState.turn=138;
+    if(buildSceneCastNote())return "the compliance nudge re-fired (escalate ONCE, then wait for the next trigger)";
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5,ac:10,atk:1,dmg:"1d4",morale:"steady"}]};
+    p194Node("Grim Hall");worldState.world.location="Grim Hall";
+    return buildSceneCastNote()===""?true:"the ask fired during combat (must be combat-silent)";
+  });
+
+  t("#194 L4: SCENE_CAST strips from display, rides the STATE TAGS doc, and rides TAG_REINFORCE for non-Claude providers",function(){
+    var out=cleanTxt("The door opens. [SCENE_CAST:Kesk, Vess] Cold air follows.");
+    if(out.indexOf("[SCENE_CAST")>=0)return "tag leaked to display";
+    if(out.indexOf("The door opens.")<0||out.indexOf("Cold air follows.")<0)return "surrounding prose damaged";
+    if(buildStateTagsDoc().indexOf("[SCENE_CAST:")<0)return "doc line missing";
+    return TAG_REINFORCE.indexOf("SCENE_CAST")>=0?true:"TAG_REINFORCE does not carry SCENE_CAST (the gpt-5.6-sol starvation channel)";
+  });
+
+  t("#194 L5: migrateWorldState stamps presenceEpoch ONCE (idempotent) and the old-client tripwire advances it with a warning",function(){
+    p194World();
+    delete worldState.presenceEpoch;delete worldState.presenceVer;
+    worldState.turn=500;
+    migrateWorldState();
+    if(worldState.presenceEpoch!==500||worldState.presenceVer!==1)return "epoch not stamped at the migration turn: "+JSON.stringify([worldState.presenceEpoch,worldState.presenceVer]);
+    worldState.turn=520;migrateWorldState();
+    if(worldState.presenceEpoch!==500)return "epoch moved on re-migration (must be idempotent)";
+    delete worldState.presenceVer;worldState.turn=560;/* an old client wrote to the blob */
+    migrateWorldState();
+    if(worldState.presenceEpoch!==560)return "the old-client tripwire did not advance the epoch (mention-grade stamps would grade witnessed): epoch="+worldState.presenceEpoch;
+    return worldState.presenceVer===1?true:"tripwire did not restore presenceVer";
+  });
+
+  t("#194 L5: healMemory heals rec.by junk; guestbook folds preserve sources and the cap fold drops a folded turn's source with it",function(){
+    p194World();
+    memory.map.nodes["X"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],
+      guestbook:{"A":{turns:[3,4],resident:false,by:{"3":"say","4":7,"9":"say"}},"B":{turns:[5],resident:false,by:"junk"}}};
+    healMemory();
+    var gb=memory.map.nodes["X"].guestbook;
+    if(gb["A"].by[3]!=="say")return "a valid source was lost in the heal";
+    if(gb["A"].by[4]!==undefined)return "a non-string source survived the heal";
+    if(gb["A"].by[9]!==undefined)return "a source for a turn not on record survived the heal";
+    if(gb["B"].by!==undefined)return "a junk by-map survived the heal";
+    var dst={turns:[10],resident:false,by:{"10":"arrive"}},src={turns:[11],resident:false,by:{"11":"say"}};
+    guestbookFoldRecords(dst,src);
+    if(dst.by[10]!=="arrive"||dst.by[11]!=="say")return "fold lost sources: "+JSON.stringify(dst.by);
+    var rec={turns:[],resident:false,by:{}},i;
+    for(i=1;i<=GB_TURN_CAP+2;i++){rec.turns.push(i);rec.by[i]="say";}
+    _gbCapFold(rec);
+    if(rec.by[1]!==undefined||rec.by[2]!==undefined)return "a folded turn kept its source entry (unbounded by-map)";
+    return rec.by[GB_TURN_CAP+2]==="say"?true:"a kept turn lost its source in the cap fold";
+  });
+
+  t("#194 L5: legacy-grade committed receipts surface in the drift-health standing anomalies as observation",function(){
+    p194World();
+    worldState.canonTxns=[{id:"leg-9",claim:"npc-death",subject:"Old Man",evidence:"-",quest:"-",status:"committed",operations:[],turn:50,committedTurn:50,evidenceGrade:"legacy"}];
+    var h=healthIndicators(worldState),i,an=null;
+    for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")an=h.items[i];
+    if(!an)return "no anomaly indicator";
+    return /legacy/i.test(String(an.detail))?true:"legacy-grade authorization invisible to the health readout: "+an.detail;
   });
 
 }

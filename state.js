@@ -431,6 +431,26 @@ function migrateWorldState(){
   // this choice — the audit treats empty as due immediately, so they refresh in the first window.
   if(worldState.npcs){var _msi;for(_msi=0;_msi<worldState.npcs.length;_msi++){var _msn=worldState.npcs[_msi];
     if(_msn&&_msn.statusTurn===undefined){_msn.statusTurn=_msn.status?(worldState.turn||0):0;_mig=true;}}}
+  /* #194: the presence epoch — the WHOLE migration is one scalar. NOTE the contrast with the
+     v1.381 backfill above: that stamp FABRICATED a per-record turn (12 of 49 NPCs collide at
+     t867 on the live save); presence records nothing per-record — it records where the old
+     world ended. Evidence grade is DERIVED from turn-vs-epoch at read time (identity.js), so
+     zero records are rewritten, the migration is idempotent and fold-safe, and flipping legacy
+     fail-open (ruling ③, TENTATIVE) to fail-closed later is a one-clause change at the gate. */
+  if(typeof worldState.presenceEpoch!=="number"){
+    worldState.presenceEpoch=(typeof worldState.turn==="number")?worldState.turn:0;
+    worldState.presenceVer=1;_mig=true;
+    if(typeof console!=="undefined")console.info("[presence] #194 epoch set at t"+worldState.presenceEpoch+" — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (fail-open, receipt-stamped, monotonically shrinking)");
+  }else if(worldState.presenceVer===undefined&&(worldState.turn||0)>worldState.presenceEpoch){
+    /* Old-client tripwire: a blob that lost its version marker while play advanced may carry
+       mention-grade stamps at turns > epoch, which turn-derived grading would mis-label
+       witnessed. Advancing the epoch re-labels that whole stretch legacy — the conservative
+       (fail-open) direction. This re-labels; it cannot repair. Honest limit. */
+    if(typeof console!=="undefined")console.warn("[presence] #194 epoch advanced t"+worldState.presenceEpoch+" → t"+worldState.turn+" — presenceVer was missing with play beyond the epoch (old-client writes presumed; the stretch is re-graded legacy)");
+    worldState.presenceEpoch=worldState.turn;worldState.presenceVer=1;_mig=true;
+  }
+  if(typeof worldState.presenceEpoch==="number"&&(worldState.turn||0)<worldState.presenceEpoch&&typeof console!=="undefined")
+    console.warn("[presence] #194 worldState.turn ("+worldState.turn+") is BEHIND the presence epoch ("+worldState.presenceEpoch+") — a rolled-back or hand-edited turn counter silently promotes legacy records to witnessed grade; verify this save");
   /* #168 W7: descriptor → {bond,dynamic} is a lossless schema migration owned by the one
      relationship adapter. identity.js loads after this file but before loadState runs. */
   if(typeof relationshipMigrateWorld==="function"){
@@ -502,6 +522,15 @@ function healMemory(){
         if(Array.isArray(_gbR.turns)){for(_gbx=0;_gbx<_gbR.turns.length;_gbx++){var _gbV=_gbR.turns[_gbx];if(typeof _gbV==="number"&&isFinite(_gbV)&&!_gbSeen[_gbV]){_gbSeen[_gbV]=1;_gbT.push(_gbV);}}}
         _gbT.sort(function(a,b){return a-b;});
         _gbR.turns=_gbT;_gbR.resident=!!_gbR.resident;
+        /* #194: source-provenance heal — rec.by must be an object of turn→string where every
+           turn is actually on record; anything else drops (a junk by-map would poison the
+           gate's source checks). Bounded by GB_TURN_CAP via the same cap fold below. */
+        if(_gbR.by!==undefined){
+          if(!_gbR.by||typeof _gbR.by!=="object"||Array.isArray(_gbR.by)){console.warn("[guestbook] heal: junk source map for '"+_gbNm+"' at "+_gbk[_gbi]+" dropped");delete _gbR.by;}
+          else{var _gbBk=Object.keys(_gbR.by),_gbbi;for(_gbbi=0;_gbbi<_gbBk.length;_gbbi++){var _gbBt=Number(_gbBk[_gbbi]);
+            if(typeof _gbR.by[_gbBk[_gbbi]]!=="string"||!isFinite(_gbBt)||_gbT.indexOf(_gbBt)<0)delete _gbR.by[_gbBk[_gbbi]];}
+            if(!Object.keys(_gbR.by).length)delete _gbR.by;}
+        }
         if(_gbR.agg&&!(typeof _gbR.agg.first==="number"&&typeof _gbR.agg.last==="number"&&typeof _gbR.agg.count==="number"&&_gbR.agg.count>0)){console.warn("[guestbook] heal: malformed/degenerate aggregate for '"+_gbNm+"' at "+_gbk[_gbi]+" dropped (exact turns kept)");delete _gbR.agg;}
         if(typeof _gbCapFold==="function")_gbCapFold(_gbR);
         if(!_gbR.turns.length&&!_gbR.agg&&!_gbR.resident){console.warn("[guestbook] heal: empty record for '"+_gbNm+"' at "+_gbk[_gbi]+" dropped");delete _gbn.guestbook[_gbNm];}

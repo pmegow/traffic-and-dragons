@@ -279,28 +279,48 @@ function autoTakeLocationItem(itemName){
   var node=memory.map.nodes[key];if(!node)return;
   var i;for(i=0;i<node.items.length;i++){if(node.items[i].name.toLowerCase()===itemName.toLowerCase()&&!node.items[i].taken){node.items[i].taken=true;return;}}
 }
-function mapNpcLocation(name){
+/* ═══ #194: the presence split — mapNpcLocation is DELETED, its two conflated jobs separated ═══
+   A mention must never teleport a character (owner fixed point 1, ruled 2026-08-17): measured at
+   t1903, the mention channel had made 37 of 39 living NPCs killable by bare name — statusTurn/
+   lastSeenAt/guestbook were all mention-fed. The [NPC:] handler now calls ONLY the register half;
+   presence is DERIVED from writers the GM already operates truthfully for its own reasons
+   ([SAY:] 88-95% of live responses, combat tags, party arrivals, [SCENE_CAST:]) via
+   derivePresenceFromResponse (identity.js) at the post-handler seam. No heuristic, no timer —
+   the teleport is impossible by construction. Design of record:
+   DOC/Research/presence_panel_2026-08-17.md. */
+function npcRegisterMention(name){
+  /* Registration half: everything true of a DISCUSSED character — display association for the
+     map viewer / repair census (amendment ⑦: nothing authoritative reads node.npcs) plus a
+     lastMentioned turn scalar. Deliberately NOTHING place-shaped on the character record: a
+     mention carries no location fact. */
   if(!memory.map||!worldState||!worldState.world)return;
   name=resolveNpcName(name);
   var key=currentNodeKey();/* UA9 */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
+  if(memory.npcs[name])memory.npcs[name].lastMentioned=(typeof worldState.turn==="number")?worldState.turn:0;
   if(!memory.map.nodes[key])return;
-  /* #173 (amendment ⑦): node.npcs is DISPLAY-ONLY "ever associated" from here on — a timeless,
-     additive name set kept for the map viewer and repair census. Nothing authoritative may read
-     it; per-visit attendance lives in node.guestbook below. */
   var npcs=memory.map.nodes[key].npcs;if(npcs.indexOf(name)<0)npcs.push(name);
-  // #173: a contemporaneous [NPC:] write is recorded attendance ("recorded-evidence boundary" —
-  // a remote mention CAN mis-stamp, accepted in the ratified design) — EXCEPT a split party
-  // member: their thread is provably elsewhere (#137 membership ≠ presence), so the mention is
-  // remote by construction and must not become false eyewitness history at the camera node.
-  // #175bR: the split exclusion covers lastSeenAt too (it previously guarded only the guestbook —
-  // the two halves of this function disagreed about the same remoteness fact), and every
-  // lastSeenAt write stamps lastSeenTurn beside it so the W2 co-location evidence limb can honor
-  // the strictly-earlier contract (an unstamped node key authorized same-turn deaths).
+}
+function npcRecordPresence(name,src){
+  /* THE one presence writer for non-party characters: lastSeenAt + lastSeenTurn + lastSeenSrc +
+     a SOURCED guestbook stamp. Sources: "say" | "combat" | "cast" | "arrive". The #137 split
+     guard covers every derived channel in one place — a split member speaking via sending or
+     taking remote damage must not become false eyewitness history at the camera node. Every
+     lastSeenAt write stays turn-stamped (#175bR strictly-earlier contract). "cast" is recorded
+     but playtest-gated OUT of death-gate authorization (ruling ④) — see npc presence limbs in
+     w2NamedPresenceEvidence (identity.js). */
+  if(!memory.map||!worldState||!worldState.world)return false;
+  name=resolveNpcName(name);
+  var key=currentNodeKey();/* UA9 */
+  if(typeof locResolve==="function")key=locResolve(key);/* #156B */
+  if(!memory.map.nodes[key])return false;
   var _gbWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;
-  if(_gbWs&&_gbWs.partyMember&&_gbWs.charSheet&&_gbWs.charSheet.splitLoc&&_gbWs.charSheet.splitLoc.location)return;
-  if(memory.npcs[name]){memory.npcs[name].lastSeenAt=key;memory.npcs[name].lastSeenTurn=(typeof worldState.turn==="number")?worldState.turn:0;}
-  guestbookStamp(key,name,(typeof worldState.turn==="number")?worldState.turn:0);
+  if(_gbWs&&_gbWs.partyMember&&_gbWs.charSheet&&_gbWs.charSheet.splitLoc&&_gbWs.charSheet.splitLoc.location)return false;/* #137 membership ≠ presence */
+  var npcs=memory.map.nodes[key].npcs;if(npcs.indexOf(name)<0)npcs.push(name);
+  var turn=(typeof worldState.turn==="number")?worldState.turn:0;
+  if(memory.npcs[name]){memory.npcs[name].lastSeenAt=key;memory.npcs[name].lastSeenTurn=turn;memory.npcs[name].lastSeenSrc=src||"arrive";}
+  guestbookStamp(key,name,turn,src||"arrive");
+  return true;
 }
 
 // ═══ #173: the location guestbook — per-character visit provenance ═══════════════════════════
@@ -329,9 +349,10 @@ function _gbCapFold(rec){/* amendment ①: overflow folds the OLDEST exact turns
     if(old<rec.agg.first)rec.agg.first=old;
     if(old>rec.agg.last)rec.agg.last=old;
     rec.agg.count++;
+    if(rec.by)delete rec.by[old];/* #194: a folded turn's source folds away with it — rec.by stays bounded by GB_TURN_CAP by construction */
   }
 }
-function guestbookStamp(nodeKey,name,turn){
+function guestbookStamp(nodeKey,name,turn,src){
   if(!memory||!memory.map||!memory.map.nodes)return false;
   if(typeof locResolve==="function")nodeKey=locResolve(nodeKey);
   var node=memory.map.nodes[nodeKey];
@@ -339,10 +360,14 @@ function guestbookStamp(nodeKey,name,turn){
   if(typeof turn!=="number"||!isFinite(turn))return false;
   name=resolveNpcName(name);
   var rec=guestbookRecordEnsure(node,name);
-  if(rec.turns.indexOf(turn)>=0)return false;      /* same-turn dedupe */
+  if(rec.turns.indexOf(turn)>=0)return false;      /* same-turn dedupe — the FIRST writer's source stands */
   if(rec.agg&&turn<=rec.agg.last)return false;     /* already inside the folded region — cannot re-verify an individual folded turn */
   rec.turns.push(turn);
   rec.turns.sort(function(a,b){return a-b;});
+  /* #194: per-turn source provenance ("say"/"combat"/"cast"/"arrive"). Pre-#194 turns have no
+     entry — turn-vs-presenceEpoch grading covers them (appendix 8: grade is DERIVED, never
+     stored per legacy record). */
+  if(src){if(!rec.by)rec.by={};rec.by[turn]=String(src);}
   _gbCapFold(rec);
   return true;
 }
@@ -365,6 +390,10 @@ function guestbookFoldRecords(dst,src){
   var i,st=(src&&src.turns)||[];
   for(i=0;i<st.length;i++){if(dst.turns.indexOf(st[i])<0)dst.turns.push(st[i]);}
   dst.turns.sort(function(a,b){return a-b;});
+  /* #194: source provenance folds with its turn, grade-preserving — a fold can never PROMOTE a
+     record (grade derives from the turn value, which travels; a sourceless legacy turn stays
+     sourceless). Existing dst sources win on collision (same-turn dedupe parity). */
+  if(src&&src.by){if(!dst.by)dst.by={};for(i in src.by)if(dst.turns.indexOf(Number(i))>=0&&dst.by[i]===undefined)dst.by[i]=src.by[i];}
   if(src&&src.agg){
     if(!dst.agg)dst.agg={first:src.agg.first,last:src.agg.last,count:src.agg.count};
     else{dst.agg.first=Math.min(dst.agg.first,src.agg.first);dst.agg.last=Math.max(dst.agg.last,src.agg.last);dst.agg.count+=src.agg.count;}
@@ -406,7 +435,7 @@ function _gbPresentPartyNames(){/* the hero + every living party member NOT spli
 }
 function _gbStampParty(nodeKey,turn){
   var who=_gbPresentPartyNames(),i;
-  for(i=0;i<who.length;i++)guestbookStamp(nodeKey,who[i],turn);
+  for(i=0;i<who.length;i++)guestbookStamp(nodeKey,who[i],turn,"arrive");/* #194: arrivals are the truthful writers they always were — now sourced */
 }
 function guestbookNoteArrival(nodeKey,turn){
   if(_gbDeferArrivals){_gbPendingArrivals.push({key:nodeKey,turn:turn});return;}

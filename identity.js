@@ -715,7 +715,7 @@ function buildProvisionalNudge(){
 // handles let observed anonymous people exist without being substituted for a known NPC.
 function _w2Copy(v){return JSON.parse(JSON.stringify(v));}
 function _sceneRefNode(){if(typeof currentNodeKey==="function")return locResolve(currentNodeKey());return worldState&&worldState.world?String(worldState.world.location||""):"";}
-function _sceneRefFresh(node,serial){return {scene:serial,node:node,startTurn:worldState.turn,actors:[],negatives:[],acknowledged:false};}
+function _sceneRefFresh(node,serial){return {scene:serial,node:node,startTurn:worldState.turn,actors:[],negatives:[],observed:[],acknowledged:false};}/* #194: observed[] = ENGINE-DERIVED presence beside the GM-authored actors[] — evictable, re-derivable, never latch-arming */
 function sceneRefsEnsure(){
   if(!worldState)return null;
   var node=_sceneRefNode(),s=worldState.sceneRefs;
@@ -750,6 +750,118 @@ function _sceneRefExplicitNegative(frame,handle,entity){
   return null;
 }
 function _sceneRefOverflow(kind){var s=sceneRefsEnsure();if(!s.overflow)s.overflow={kind:kind,turn:worldState.turn,node:s.active.node,scene:s.active.scene};if(typeof console!=="undefined")console.warn("[identity] scene evidence overflow ("+kind+") - accepted evidence preserved; irreversible identity writes fail closed");}
+/* ═══ #194: DERIVED PRESENCE — the engine authors the scene record the GM won't ═══════════════
+   presenceObserve is the one entry for every derived channel ("say"/"combat"/"cast"). It refuses
+   the player, the dead, split members, and unresolvable names LOUDLY and creates nothing; a
+   accepted observation lands in BOTH stores through npcRecordPresence (memory.js — lastSeen* +
+   sourced guestbook) and in the active frame's observed[] list. observed[] is EVICTABLE (LRU,
+   PRESENCE_OBSERVED_CAP) and must NEVER call _sceneRefOverflow — it is engine-derived and
+   re-derivable from the next response's tags, unlike the GM-authored actors[] whose overflow
+   deliberately freezes irreversible writes. Design: presence_panel_2026-08-17.md, layers 0-1. */
+function presenceObserve(name,channel){
+  var raw=String(name||"").trim();if(!raw||!worldState)return false;
+  var canon=resolveNpcName(raw);
+  var n=(typeof wsNpcByName==="function")?wsNpcByName(canon):null;
+  var m=(typeof memory!=="undefined"&&memory&&memory.npcs)?memory.npcs[canon]:null;
+  if(!n&&!m){if(typeof console!=="undefined")console.info("[presence] '"+raw+"' ("+channel+") is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)");return false;}
+  if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(canon))return false;/* the PC is not an NPC */
+  if((n&&typeof npcIsDead==="function"&&npcIsDead(n))||(m&&m.dead))return false;/* B3: the dead don't travel */
+  if(n&&n.partyMember&&n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location)return false;/* #137: a split member's remote line/blow is not presence at the camera node */
+  npcRecordPresence(canon,channel);/* the record half (lastSeen* + sourced guestbook) — may legitimately land nowhere when the current location was never FILED (the tagless-dungeon case); the frame observation below must survive that, or derived evidence dies exactly where location tags starve */
+  /* Frame half: NEVER mints worldState.sceneRefs — activating the ledger changes w2DeathAuthorized's
+     whole regime (its absence is the legacy-trusted bypass), and "every campaign becomes gated by a
+     side effect of derivation" is exactly the unruled semantics change appendix 4 flagged. The
+     sanctioned activator stays buildSysPrompt (every real gameplay turn); where the ledger does not
+     exist there is no gate needing this evidence. */
+  var s=worldState.sceneRefs?sceneRefsEnsure():null;if(!s)return true;
+  var f=s.active;if(!f.observed)f.observed=[];/* pre-#194 frames */
+  var t=worldState.turn,i,hit=null;
+  for(i=0;i<f.observed.length;i++)if(f.observed[i].entity===canon){hit=f.observed[i];break;}
+  if(hit){hit.lastTurn=t;hit.turns=(hit.turns||1)+1;}
+  else{
+    if(f.observed.length>=PRESENCE_OBSERVED_CAP){/* LRU evict — NEVER the overflow latch */
+      var old=0;for(i=1;i<f.observed.length;i++)if(f.observed[i].lastTurn<f.observed[old].lastTurn)old=i;
+      f.observed.splice(old,1);
+    }
+    f.observed.push({entity:canon,channel:channel,firstTurn:t,lastTurn:t,turns:1});
+  }
+  return true;
+}
+/* The one derivation pass, called at applyMutsTable's POST-HANDLER seam (amendment ③ discipline:
+   same-response [LOCATION:]/[PARTY_SPLIT:]/rejoin/#133b-fold state has settled, so each observed
+   character lands at their EFFECTIVE node and the split guard reads settled records). Parses
+   TAGS only, never prose. Envelope bodies never reach here with presence tags — the W2 partition
+   ejects them to the ordinary stream first. */
+function derivePresenceFromResponse(text,R){
+  if(!worldState)return;
+  text=String(text||"");
+  var recorded={},labels=[],m,i;
+  function take(nm,ch){
+    var key=String(nm||"").trim();if(!key)return;
+    var canon=resolveNpcName(key);
+    if(recorded[canon])return;
+    if(presenceObserve(key,ch)){recorded[canon]=ch;labels.push(canon+" ("+ch+")");}
+  }
+  var re=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g;
+  while((m=re.exec(text)))take(m[1],"say");
+  re=/\[(?:COMBAT_START|ENEMY_SLAIN|ENEMY_SURRENDERS):([^|\]]+)[|\]]/g;
+  while((m=re.exec(text)))take(m[1],"combat");
+  re=/\[ENEMY_HP:([^|\]]+)\|/g;
+  while((m=re.exec(text)))take(m[1],"combat");
+  re=/\[SCENE_CAST:([^\]]*)\]/g;
+  var castSeen=false;
+  while((m=re.exec(text))){
+    castSeen=true;
+    var payload=m[1].trim();
+    if(!/^none$/i.test(payload)){var parts=payload.split(/[|,]/);for(i=0;i<parts.length;i++)take(parts[i],"cast");}
+  }
+  if(castSeen){/* [SCENE_CAST:none] included — the sentinel makes NON-ANSWER measurable (layer 4) */
+    if(!worldState.castAsk)worldState.castAsk={};
+    worldState.castAsk.lastAnswerTurn=(R&&R.turn!=null)?R.turn:worldState.turn;
+    worldState.castAsk.node=(typeof currentNodeKey==="function")?((typeof locResolve==="function")?locResolve(currentNodeKey()):currentNodeKey()):null;
+  }
+  if(labels.length&&R&&R.muts)R.muts.push("Present: "+labels.join(", "));
+}
+/* #194: the death gate's speech limb — transcript speaker maps (entry.sp) the engine wrote
+   itself at narration time. This is NOT a prose scan and NOT RAG: the maps are structured,
+   deterministic, turn-stamped, and ride the state blob/.tnd/sync. Bounded tail, memoized per
+   (turn, transcript length); the window is claim-relative so summary-cited turns replay
+   identically. */
+var _spFactsMemo=null;
+function _speechFactNear(canon,lim){
+  if(!worldState||!worldState.transcript||!worldState.transcript.length)return null;
+  var tr=worldState.transcript,now=(typeof worldState.turn==="number")?worldState.turn:0;
+  var floor=now-(SPEECH_EVIDENCE_TURNS+80);/* covers summary-cited lims across the extraction window */
+  if(!_spFactsMemo||_spFactsMemo.turn!==now||_spFactsMemo.len!==tr.length){
+    var map={},i,e,k;
+    for(i=tr.length-1;i>=0;i--){e=tr[i];if(!e)continue;
+      if(typeof e.t==="number"&&e.t<floor)break;
+      if(e.r!=="gm"||!e.sp||!e.sp.s)continue;
+      var seen={};for(k in e.sp.s){var nm=String(e.sp.s[k]).trim();if(!nm||seen[nm])continue;seen[nm]=1;(map[nm]=map[nm]||[]).push(e.t);}
+    }
+    _spFactsMemo={turn:now,len:tr.length,map:map};
+  }
+  var best=null,count=0,nm2;
+  for(nm2 in _spFactsMemo.map){
+    if(resolveNpcName(nm2)!==canon)continue;/* merge-orphan bridge: speaker names re-resolve at read (§8b pattern) */
+    var ts=_spFactsMemo.map[nm2],j;
+    for(j=0;j<ts.length;j++){var t=ts[j];if(t<lim&&t>=lim-SPEECH_EVIDENCE_TURNS){count++;if(best==null||t>best)best=t;}}
+  }
+  return best!=null?{turn:best,count:count}:null;
+}
+function _observedFact(canon,lim){
+  var fs=_sceneRefFrames(),i,j;
+  for(i=0;i<fs.length;i++){var ob=(fs[i]&&fs[i].observed)||[];
+    for(j=0;j<ob.length;j++){var o=ob[j];
+      if(o.channel==="cast")continue;/* ruling ④: cast is playtest-gated out of authorization until a 50-turn run measures its compliance — promotion is this one clause */
+      if(o.firstTurn<lim&&resolveNpcName(o.entity)===canon)return o;
+    }}
+  return null;
+}
+/* #194: the grade of the LAST authorization returned by w2NamedPresenceEvidence — "witnessed" or
+   "legacy" (pre-epoch, ruling ③'s fail-open). Read by w2PrepareResponse to receipt-stamp legacy
+   passes (the evidence a later fail-closed reversal would need). Reset per gate call. */
+var _w2EvidenceGrade="witnessed";
 function sceneRefBind(handle,entity,R){
   var s=sceneRefsEnsure(),h=String(handle||"").trim(),raw=String(entity||"").trim();if(!h||s.overflow)return false;
   var a=_sceneRefActor(h),canon=(raw==="?"||raw==="-"||!raw)?null:resolveNpcName(raw);
@@ -811,6 +923,7 @@ function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);
     return false;}
   hit.actor.present=false;hit.actor.died=worldState.turn;if(hit.actor.entity)return _w2StampDead(hit.actor.entity,worldState.turn,R);if(R)R.muts.push("Anonymous scene actor "+hit.actor.handle+" died");return true;}
 function w2DeathAuthorized(name,handle,sourceTurn){
+  _w2EvidenceGrade="witnessed";/* #194: a pass that never reaches the graded gate (handle/actor paths) is witnessed by definition */
   if(!worldState||!worldState.sceneRefs)return true;
   var s=sceneRefsEnsure(),canon=(name&&name!=="-")?resolveNpcName(name):null,hit,i,fs;if(s.overflow)return false;
   if(handle&&handle!=="-"){hit=_sceneRefActor(handle,sourceTurn);
@@ -855,17 +968,35 @@ function w2NamedPresenceEvidence(name,sourceTurn){
   var fs=_sceneRefFrames(),i,k;
   for(i=0;i<fs.length;i++){var ng=fs[i].negatives||[];
     for(k=0;k<ng.length;k++)if(ng[k].entity===canon&&ng[k].mode==="explicit"&&!ng[k].resolved)return null;}
-  // Gate 3 — one turn-stamped presence fact, strongest first. #175bR: the co-location limb is
-  // turn-stamped like the others (lastSeenTurn rides beside every lastSeenAt write) — an unstamped
-  // legacy lastSeenAt no longer authorizes on its own and falls through to guestbook/statusTurn,
-  // because "strictly earlier than the claim" was the ruled contract for EVERY limb and a bare
-  // node key cannot honor it (the review's brief B: a same-turn mapNpcLocation stamp authorized
-  // its own response's death, and summary claims accepted evidence newer than their sourceTurn).
+  // Gate 3 — GRADED, turn-stamped presence facts (#194, panel-designed, owner-ruled 2026-08-17).
+  // WITNESSED limbs first (party / speech / observed / truthful-writer records) so a witnessed
+  // fact always wins the citation; the LEGACY clauses (pre-presenceEpoch stamps — the mention-fed
+  // era) grandfather fail-open per ruling ③ (TENTATIVE: flipping to fail-closed, or adding a
+  // fade, is deleting/editing those clauses ONLY — keep it that way), receipt-stamped via
+  // _w2EvidenceGrade and surfaced in the #17 drift-health readout. Post-epoch statusTurn — the
+  // mention channel that made 37 of 39 living t1903 NPCs killable by bare name — authorizes
+  // NOTHING. Every limb keeps the strictly-earlier contract (fact turn < lim), and "cast"-sourced
+  // records are excluded until the ruling-④ playtest validates the channel.
+  _w2EvidenceGrade="witnessed";
+  var epoch=(typeof worldState.presenceEpoch==="number")?worldState.presenceEpoch:0;
+  if(n&&n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n))&&!(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location))return "living party member at the player's side";
+  var spf=_speechFactNear(canon,lim);
+  if(spf)return "on screen: speech at t"+spf.turn+(spf.count>1?" (+"+(spf.count-1)+" more)":"");
+  var obf=_observedFact(canon,lim);
+  if(obf)return "observed on screen ("+obf.channel+") at t"+obf.firstTurn;
   var node=(typeof currentNodeKey==="function")?currentNodeKey():null;
-  if(node&&m&&m.lastSeenAt&&m.lastSeenTurn!=null&&Number(m.lastSeenTurn)<lim&&typeof locSame==="function"&&locSame(m.lastSeenAt,node))return "recorded at the party's current location (t"+m.lastSeenTurn+")";
-  var gb=_w2NodeGuestbookTurn(node,canon);
-  if(gb!=null&&gb<lim)return "guestbook visit recorded at t"+gb;
-  if(n&&n.statusTurn>0&&Number(n.statusTurn)<lim)return "roster write at t"+n.statusTurn;
+  if(node&&m&&m.lastSeenAt&&m.lastSeenTurn!=null&&Number(m.lastSeenTurn)<lim&&typeof locSame==="function"&&locSame(m.lastSeenAt,node)&&m.lastSeenSrc!=="cast"){
+    if(Number(m.lastSeenTurn)>=epoch)return "recorded at the party's current location (t"+m.lastSeenTurn+")";
+    _w2EvidenceGrade="legacy";return "recorded at the party's current location (t"+m.lastSeenTurn+", legacy-grade pre-epoch)";
+  }
+  var gb=_w2NodeGuestbookTurn(node,canon,lim);
+  if(gb){
+    if(gb.turn>=epoch)return "guestbook visit recorded at t"+gb.turn;
+    _w2EvidenceGrade="legacy";return "guestbook visit recorded at t"+gb.turn+" (legacy-grade pre-epoch)";
+  }
+  if(n&&n.statusTurn>0&&Number(n.statusTurn)<lim&&Number(n.statusTurn)<epoch){
+    _w2EvidenceGrade="legacy";return "roster write at t"+n.statusTurn+" (legacy-grade, pre-epoch)";
+  }
   return null;
 }
 /* #175b: does this handle name a ROSTERED character rather than describe an anonymous one?
@@ -885,14 +1016,32 @@ function _w2HandleNamesSubject(handle,subject){
   if(subject&&canon!==subject)return null;
   return canon;
 }
-function _w2NodeGuestbookTurn(node,canon){
+function _w2NodeGuestbookTurn(node,canon,lim){
+  /* #194: returns {turn} for the best pre-lim visit turn, skipping cast-sourced stamps (ruling
+     ④'s playtest gate). Aggregate-folded turns (pre-cap history, overwhelmingly pre-epoch) keep
+     their fallback — their grade derives from the turn value like everything else. */
   if(!node||!memory||!memory.map||!memory.map.nodes)return null;
   var rec=memory.map.nodes[node]||memory.map.nodes[(typeof locResolve==="function")?locResolve(node):node];
   var gb=rec&&rec.guestbook&&rec.guestbook[canon];if(!gb)return null;
   var ts=gb.turns||[],best=null,i;
-  for(i=0;i<ts.length;i++)if(best==null||ts[i]>best)best=ts[i];
-  if(best==null&&gb.agg&&gb.agg.last!=null)best=gb.agg.last;
-  return best;
+  for(i=0;i<ts.length;i++){
+    if(lim!=null&&ts[i]>=lim)continue;
+    if(gb.by&&gb.by[ts[i]]==="cast")continue;
+    if(best==null||ts[i]>best)best=ts[i];
+  }
+  if(best==null&&gb.agg&&gb.agg.last!=null&&(lim==null||gb.agg.last<lim))best=gb.agg.last;
+  return best!=null?{turn:best}:null;
+}
+/* #194 L3: THE VALVE — a refused named death must terminate in a decision, never loop. Arms the
+   one-record fork-note ping (buildDeathEvidenceNudge, api.js): "if they are here, put them on
+   the record ([SAY:]/[SCENE_CAST:]) and re-emit; if the death happened elsewhere, emit
+   [NPC_DEATH_REPORTED:]". Capped per subject at DEATH_EVIDENCE_NOTES deliveries, after which the
+   standing conflict machinery (nudge → stale shelf) owns the dispute as before. */
+function _w2ArmDeathValve(name){
+  if(!worldState||!name)return;
+  var rec=worldState.deathEvidenceNudged&&worldState.deathEvidenceNudged[name];
+  if(rec&&rec.count>=DEATH_EVIDENCE_NOTES)return;
+  worldState.deathEvidencePing={name:name,turn:worldState.turn};
 }
 function _w2Conflict(subject,handle,reason){
   if(!worldState)return null;if(!worldState.identityConflicts)worldState.identityConflicts=[];var s=String(subject||"unknown"),h=String(handle||"-"),i,c;
@@ -926,6 +1075,7 @@ function _w2OpFingerprint(tag){
 function _w2OpTokens(ops){var counts={},out=[],i,fp;for(i=0;i<(ops||[]).length;i++){fp=_w2OpFingerprint(ops[i]);counts[fp]=(counts[fp]||0)+1;out.push(fp+"#"+counts[fp]);}return out;}
 function _w2TxnReceipt(m,status,reason,ops,tokens){
   if(!worldState.canonTxns)worldState.canonTxns=[];var r=_w2TxnFind(m.id),wasQuarantined=!!(r&&r.status==="quarantined"),i;if(!r){if(worldState.canonTxns.length>=CANON_TXN_CAP){worldState.canonTxnOverflow={turn:worldState.turn,id:m.id};if(typeof console!=="undefined")console.warn("[identity] canon transaction receipt cap reached - new claim refused fail-closed");return null;}r={id:m.id,claim:m.claim,subject:m.subject,evidence:m.evidence,quest:m.quest,status:status,operations:[],turn:worldState.turn,reason:reason||""};if(m.ejected&&m.ejected.length)r.ejected=m.ejected.slice();worldState.canonTxns.push(r);}
+  if(m.evidenceGrade&&!r.evidenceGrade)r.evidenceGrade=m.evidenceGrade;/* #194/ruling ③: legacy-grade authorization is receipted — the evidence a later fail-closed flip would need; surfaced in #17 drift health */
   if(status==="quarantined"){if(r.status==="committed"){r.lastAttemptReason=reason||"";r.lastAttemptTurn=worldState.turn;if(typeof console!=="undefined")console.warn("[identity] refused re-attempt recorded on COMMITTED receipt "+r.id+" — committed receipts never demote (#171②)");}else{r.status="quarantined";if(!wasQuarantined){r.reason=reason||r.reason;r.quarantinedTurn=worldState.turn;}else{r.lastAttemptReason=reason||"";r.lastAttemptTurn=worldState.turn;r.attempts=(r.attempts||1)+1;}}}else if(r.status!=="quarantined"){r.status="committed";r.reason="";r.committedTurn=worldState.turn;}
   var ts=tokens||_w2OpTokens(ops);for(i=0;i<ts.length;i++)if(r.operations.indexOf(ts[i])<0)r.operations.push(ts[i]);return r;
 }
@@ -1013,7 +1163,7 @@ function w2PrepareResponse(text){
     if(p.length!==5||!meta.id||m[3].trim()!==meta.id)reason="malformed or mismatched transaction envelope";else if(meta.claim!=="npc-death"&&meta.claim!=="quest-outcome")reason="unsupported canon claim type";else if(prior&&prior.status==="quarantined")reason="claim id was already quarantined";else if(prior&&!_w2TxnMetaSame(prior,meta))reason="claim id was reused with different metadata";
     var _part=null;
     if(!reason){_part=_w2TxnPartition(meta,ops);if(_part.reason)reason=_part.reason;else{ops=_part.gov;if(_part.eject.length){ordinary+="\n"+_part.eject.join("");meta.ejected=_part.eject.map(_w2TagName);if(typeof console!=="undefined")console.warn("[identity] "+_part.eject.length+" incidental tag(s) ejected from canon claim "+meta.id+" and applied as ordinary tags: "+meta.ejected.join(", ")+" (#175 — one stray tag must never void a death and its rewards)");}}}
-    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&deathHandle!==meta.evidence)reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence))reason=(worldState.sceneRefs&&worldState.sceneRefs.overflow)?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"scene evidence does not bind the claimed victim";}
+    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&deathHandle!==meta.evidence)reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence)){var _veOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);reason=_veOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"scene evidence does not bind the claimed victim";if(!_veOv&&meta.subject&&meta.subject!=="-")_w2ArmDeathValve(resolveNpcName(meta.subject));/* #194 L3: an evidence-lack refusal arms the fork note; a capacity refusal must not (its cure is a summary, not ceremony) */}else if(_w2EvidenceGrade==="legacy")meta.evidenceGrade="legacy";/* #194/ruling ③: legacy fail-open passes are receipt-stamped so a later reversal has its evidence */}
     if(!reason&&meta.claim==="quest-outcome"&&!_w2QuestExists(meta.quest))reason="quest outcome names no active accepted quest";
     if(!reason&&!prior&&meta.claim==="npc-death"&&meta.quest!=="-"&&!_w2QuestExists(meta.quest))reason="death outcome names no active accepted quest";
     /* #175: the "operation touches an unresolved identity conflict" refusal is DELETED. It blocked
@@ -1029,7 +1179,7 @@ function w2PrepareResponse(text){
   }
   if(/\[CANON_TXN_(?:BEGIN|END):/.test(ordinary)){/* #171①: the whole-response fail-closed strip stays, but it is no longer silent, receipt-less, or id-reusable */var _orph=ordinary.match(/\[CANON_TXN_(?:BEGIN|END):[^\]|]+/g)||[],_oi;for(_oi=0;_oi<_orph.length;_oi++){var _oid=_orph[_oi].replace(/^\[CANON_TXN_(?:BEGIN|END):/,"").trim();if(_oid&&!_w2TxnFind(_oid))w2TxnQuarantine({id:_oid,claim:"npc-death",subject:"-",evidence:"-",quest:"-"},"unmatched transaction marker",[]);}_w2RefuseLog(_w2CollectStripped(ordinary,[/\[XP:[^\]]+\]/g,/\[GOLD:[^\]]+\]/g,/\[ITEM_GAINED:[^\]]+\]/g,/\[QUEST(?:_STEP)?:[^\]]+\]/g,/\[SCENE_DEATH:[^\]]+\]/g,/\[NPC:[^\]]+\]/g]));ordinary=ordinary.replace(/\[CANON_TXN_(?:BEGIN|END):[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary).replace(/\[QUEST(?:_STEP)?:[^\]]+\]/g,"").replace(/\[SCENE_DEATH:[^\]]+\]/g,"").replace(/\[NPC:[^\]]+\]/g,"");if(typeof console!=="undefined")console.warn("[identity] unmatched canon transaction marker - identity/quest/reward operations refused");if(typeof showToast==="function")showToast("⚠ Malformed canon envelope — its identity/quest/reward tags were withheld");}
   var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);_w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
-  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){_w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");/* #175bR: name the ACTUAL cause — under the overflow latch the refusal is capacity, not evidence, and the old text sent the GM chasing scene ceremony that could not help */_w2Conflict(nm,"-",(worldState.sceneRefs&&worldState.sceneRefs.overflow)?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"named death has no prior positive scene binding");refusedVictim=refusedVictim||nm;}}
+  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){_w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");/* #175bR: name the ACTUAL cause — under the overflow latch the refusal is capacity, not evidence, and the old text sent the GM chasing scene ceremony that could not help */var _bdOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);_w2Conflict(nm,"-",_bdOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"named death has no prior positive scene binding");if(!_bdOv)_w2ArmDeathValve(nm);/* #194 L3 */refusedVictim=refusedVictim||nm;}}
   /* #168R1 (entry-13 review), rescoped by #175: a death REFUSED in THIS response still de-authorizes
      its co-emitted quest/reward consequences — that protection is unchanged and pinned. What is GONE
      is the standing-conflict reach: the old gate substring-matched every unresolved conflict's

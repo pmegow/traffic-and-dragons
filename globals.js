@@ -6,6 +6,10 @@ var CANON_TXN_CAP=24;           // #168 W2: bounded idempotency/quarantine recei
 var CANON_TXN_RETIRE_TURNS=12;  // #168R3: committed receipts older than this retire on structured-summary success (quarantined receipts NEVER retire — poisoning is a contract); without retirement the cap permanently killed envelopes at receipt 24.
 var IDENTITY_CONFLICT_CAP=8;    // #168 W2: unresolved referential conflicts surfaced back to the GM.
 var IDENTITY_CONFLICT_STALE_ATTEMPTS=5;
+var PRESENCE_OBSERVED_CAP=16;   // #194: derived actors per scene frame (frame.observed[]). EVICTABLE — engine-derived and re-derivable from the tag stream, so LRU eviction is safe and it must NEVER arm the W2 overflow latch (auto-derivation in a busy tavern would otherwise freeze every irreversible identity write).
+var SPEECH_EVIDENCE_TURNS=60;   // #194: how far back the death gate's speech limb reads transcript speaker maps (entry.sp), relative to the claim turn. Tuned on the live t1903 save: 60 reproduces the panel's witnessed census exactly (37 → 9 = party + Caul + the four characters actually in scene); the mention channel it replaces authorized ~1,000-turn-stale NPCs.
+var DEATH_EVIDENCE_NOTES=2;     // #194 L3: fork-note deliveries per refused-death subject before the valve hands the dispute back to the standing conflict machinery (which shelves at IDENTITY_CONFLICT_STALE_ATTEMPTS).
+var CAST_REFRESH_TURNS=12;      // #194 L4: turns at one node before the engine re-asks for a [SCENE_CAST:] (the 57-turn-tagless-dungeon case — location tags alone starve the ask trigger).
 var CANON_CONTRA_COOLDOWN=25;
 var COMMITMENT_PING_MAX_AGE=10;
 var RECURRING_NAME_COOLDOWN=30;    // P7: turns between registration nudges for the same unregistered name
@@ -78,7 +82,7 @@ var CONSUMABLE_NUDGE_COOLDOWN=6; // #60: after a consumable check fires for an i
 // tag contract from the base prompt; other models treat the tags as optional and narrate
 // changes without emitting them, silently desyncing the sheet. callGM() appends this for
 // gameplay turns only (not summarize). Per-provider tuning the abstraction exists for.
-var TAG_REINFORCE="\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these brackets, NOT your prose ===\nEvery mechanical change you narrate MUST include its state tag in the SAME response, or the engine will not apply it and the player's sheet silently desyncs. If the prose says it happened, the tag MUST be present.\n- Money changes hands -> [GOLD:-5] or [GOLD:+10] (signed integer only)\n- Damage or healing -> [HP:-8] or [HP:+5]\n- Item bought / found / given / taken / lost -> [ITEM_GAINED:name] or [ITEM_LOST:name]\n- A named NPC appears or is interacted with -> [NPC:name|status|relation]\n- Travel to a new place -> [LOCATION:name]\n- XP earned -> [XP:25]\n- Quest offered / accepted / advanced / finished -> [QUEST:title|offered|desc] / [QUEST:title|active] / [QUEST_STEP:title|objective|true] / [QUEST:title|completed]\n- An NPC joins / leaves the party -> [PARTY_MEMBER:name|true] / [PARTY_MEMBER:name|false]\n- Campaign arc completed -> [ARC_COMPLETE:arc title]; act's turning point reached -> [ACT_COMPLETE:act title]\n- Do NOT end your response with suggested actions, a 'You could...' line, or an [ACTIONS:] tag — action suggestions are generated separately by the engine.\nExample: paying 5 gold for a room MUST contain [GOLD:-5]. Never narrate spending or earning gold without the matching [GOLD:] tag. Tags are invisible to the player; emit them inline, never announce them.\n";
+var TAG_REINFORCE="\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these brackets, NOT your prose ===\nEvery mechanical change you narrate MUST include its state tag in the SAME response, or the engine will not apply it and the player's sheet silently desyncs. If the prose says it happened, the tag MUST be present.\n- Money changes hands -> [GOLD:-5] or [GOLD:+10] (signed integer only)\n- Damage or healing -> [HP:-8] or [HP:+5]\n- Item bought / found / given / taken / lost -> [ITEM_GAINED:name] or [ITEM_LOST:name]\n- A named NPC appears or is interacted with -> [NPC:name|status|relation]\n- Travel to a new place -> [LOCATION:name]\n- XP earned -> [XP:25]\n- Quest offered / accepted / advanced / finished -> [QUEST:title|offered|desc] / [QUEST:title|active] / [QUEST_STEP:title|objective|true] / [QUEST:title|completed]\n- An NPC joins / leaves the party -> [PARTY_MEMBER:name|true] / [PARTY_MEMBER:name|false]\n- Campaign arc completed -> [ARC_COMPLETE:arc title]; act's turning point reached -> [ACT_COMPLETE:act title]\n- A character speaks -> [SAY:Name] before the quoted line; when the engine asks who is physically present -> answer with one [SCENE_CAST:Name, Name] line ([SCENE_CAST:none] if the party is alone)\n- Do NOT end your response with suggested actions, a 'You could...' line, or an [ACTIONS:] tag — action suggestions are generated separately by the engine.\nExample: paying 5 gold for a room MUST contain [GOLD:-5]. Never narrate spending or earning gold without the matching [GOLD:] tag. Tags are invisible to the player; emit them inline, never announce them.\n";
 // UA28: weak-model (Haiku) nudges. Haiku HONORS the tag contract (0 turn errors across the
 // 150-turn AUDIT_HAIKU window) — its failure is UNDER-EMISSION of exactly two tag families:
 // HP recovery (H1 — the sheet sat at 0 HP for 31% of turns after healing was narrated) and
@@ -195,7 +199,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.650";
+var APP_VERSION="v1.651";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
