@@ -120,7 +120,7 @@ var PROVIDERS={
     endpoint:"https://api.anthropic.com/v1/messages",
     defaultModel:MDL,
     upgradeModel:"claude-sonnet-5", // escalation target must never sit below (or cost more than) the default — moved with MDL 2026-08-15
-    models:["claude-opus-5","claude-sonnet-5"], // pruned to the >=Sonnet-5 menu (owner ruling 2026-08-16, from the #22 sweep); claude-opus-5 ID live-verified 2026-08-16 — ⚠ opus-5 has NOT had its money turn (adaptive-thinking behavior + cost unmeasured; the sonnet-5 thinking guard below deliberately does not cover it)
+    models:["claude-sonnet-5"], // the >=Sonnet-5 menu (owner rulings 2026-08-16). claude-opus-5 was benchmarked (money turn: stellar — deepest structure of the #22 study) and then UNLISTED the same day on economics: ~$8-9/50 turns ≈ 3x sonnet-5 at unverified opus-4-8 rates ("doesn't make economic sense at the moment"). Restoring it is this one line; the Claude-5 thinking guard below already covers it.
     headers:function(key){return {"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};},
     // {stable, volatile} → two system blocks with a cache_control breakpoint after the stable
     // one: the stable prefix re-reads at 0.1x input price on every turn (writes at 1.25x, 5min
@@ -187,7 +187,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.642";
+var APP_VERSION="v1.643";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
