@@ -15,7 +15,15 @@ fs.mkdirSync(dev);
 fs.copyFileSync(source, path.join(dev, "file-forensics.js"));
 
 function git(args) {
-  const r = cp.spawnSync("git", args, { cwd: scratch, encoding: "utf8" });
+  // Repo-location env inherited from a caller (git exports GIT_DIR/GIT_INDEX_FILE into hook
+  // environments; pathspec commits export them ABSOLUTE) must never reach fixture git — on
+  // 2026-08-15 this exact helper's 'git config user.name' ran under a leaked GIT_DIR during a
+  // failed pre-commit and wrote the FIXTURE IDENTITY into the main repo's config: 39 commits
+  // over two days were misattributed to 'Forensics Fixture' before the 2026-08-16 audit caught
+  // it. Same class as TODO #27; the pre-commit identity gate is the tripwire, this is the cure.
+  const env = Object.assign({}, process.env);
+  ["GIT_DIR","GIT_WORK_TREE","GIT_INDEX_FILE","GIT_COMMON_DIR","GIT_OBJECT_DIRECTORY","GIT_ALTERNATE_OBJECT_DIRECTORIES","GIT_PREFIX"].forEach(k => delete env[k]);
+  const r = cp.spawnSync("git", args, { cwd: scratch, encoding: "utf8", env });
   if (r.status !== 0) throw new Error((r.stderr || r.stdout || "git failed").trim());
 }
 

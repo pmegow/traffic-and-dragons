@@ -8,6 +8,17 @@ node "$(git rev-parse --show-toplevel)/dev/check-hook-parity.js" || {
   echo "Commit blocked: installed .git/hooks/pre-commit differs from the tracked dev/pre-commit gate. Reinstall it first." >&2
   exit 1
 }
+# Identity tripwire (2026-08-16): a leaked fixture 'git config user.*' once misattributed 39
+# real commits to 'Forensics Fixture <forensics@example.invalid>'. Any fixture-looking identity
+# blocks the commit until git config user.name/user.email are restored.
+ci_name="$(git config user.name)"; ci_email="$(git config user.email)"
+case "$ci_name|$ci_email" in
+  *[Ff]ixture*|*.invalid|*example.invalid*)
+    echo "Commit blocked: git identity looks like a TEST FIXTURE ($ci_name <$ci_email>)." >&2
+    echo "A fixture config write leaked into the real repo (the #27 env-leak class)." >&2
+    echo "Restore it:  git config user.name pmegow ; git config user.email pmegow@gmail.com" >&2
+    exit 1;;
+esac
 node "$(git rev-parse --show-toplevel)/dev/lint-todo.js" --git-aware --staged || {
   echo "" >&2
   echo "Commit blocked: TODO.md integrity failed — table shape or moved-row bytes differ from HEAD (findings above)." >&2
