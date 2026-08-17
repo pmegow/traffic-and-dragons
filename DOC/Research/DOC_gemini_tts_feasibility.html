@@ -157,18 +157,36 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 <tr><th>Audio produced</th><td><span class="n">94.1 s</span></td><td>From 1,433 chars &rarr; 15.2 chars/s at these voices</td></tr>
 <tr><th>Cost</th><td><span class="n win">$0.061</span></td><td>3,019 audio tokens + 689 text input tokens</td></tr>
 <tr><th>Per-call latency</th><td><span class="n">~2.5 s median</span></td><td>17 calls &asymp; 42 s of synthesis for 94 s of audio &mdash; still ~2.2&times; faster than realtime, so pipelining stays ahead of playback</td></tr>
-<tr><th>Failures at concurrency 3</th><td><span class="n bad">3 of 17</span></td><td>The real operational risk &mdash; see below</td></tr>
+<tr><th>Failures at concurrency 3</th><td><span class="n warn">3 of 17</span></td><td>Cleared on sequential retry. Cause was <em>not</em> established at the time &mdash; see the corrected quota section</td></tr>
 </tbody>
 </table>
 </div>
 
 <p><strong>Economically, multi-actor is free.</strong> Audio tokens bill by duration, and the duration of a scene does not change because six voices spoke it instead of one. The only additional cost is the per-call style direction re-sent with each group &mdash; 689 input tokens across 17 calls, which at $1/1M is <span class="n">$0.0007</span>. Rounding error. <em>A fully cast scene costs the same as a monotone one.</em></p>
 
-<p><strong>Operationally, rate limits are the constraint, not cost.</strong> Running the 17 groups at concurrency 3 produced <strong>3 failures</strong> that only cleared on sequential retry with backoff. This is the preview-tier rate limit predicted in the risks section, now observed. It is manageable &mdash; playback is naturally paced, so synthesis only needs to stay one or two units ahead, and the existing ladder already degrades to Piper on failure &mdash; but a naive "fire all units at once" implementation will fail in the field. Piper never had this constraint because it runs locally.</p>
+<p><strong>Operationally the constraint is sustained rate, not concurrency</strong> &mdash; see the quota section below, which corrects an earlier reading of these 3 failures. Playback is naturally self-pacing and the existing ladder already degrades to Piper on failure, so the shape is manageable; Piper never had the constraint at all because it runs locally.</p>
 
 <div class="defs">
   <p><strong>Unverified:</strong> the voice bank is documented by <em>characteristic</em> ("Warm", "Clear", "Gravelly"), never by gender. The gender-matched cast used here is assigned from commonly-reported voice genders and needs a human ear to confirm before it becomes a shipped mapping.</p>
 </div>
+
+<h2>Quota and the free tier</h2>
+<p class="kicker">probed &middot; and it corrects an earlier claim on this page</p>
+
+<div class="defs">
+  <p><strong>The free tier is moot for this project.</strong> The key in use reports <span class="n">serviceTier: "standard"</span> &mdash; billing is linked, so it sits on a paid tier, not the free one. Free-tier RPM/TPM/RPD figures are <em>not published</em> in the API docs at all; Google routes them to the per-account AI Studio rate-limit dashboard, which is login-gated and cannot be read from here. Tiers are set by spend history: Free &rarr; Tier 1 (billing linked) &rarr; Tier 2 ($100 + 3 days) &rarr; Tier 3 ($1,000 + 30 days).</p>
+</div>
+
+<p><strong>Correction to the multi-actor section above.</strong> That section attributed the 3 failed calls to preview-tier rate limits. That was an over-reading: the retry loop discarded the status codes, so the cause was never actually established. Probing deliberately produced both failure modes, and they are different problems:</p>
+
+<ul>
+  <li><span class="chip fail">429</span> <strong>RESOURCE_EXHAUSTED</strong> &mdash; <em>"You exceeded your current quota, please check your plan and billing details."</em> A genuine quota ceiling, hit only after sustained heavy calling across several minutes.</li>
+  <li><span class="chip warn">503</span> <strong>UNAVAILABLE</strong> &mdash; <em>"This model is currently experiencing high demand."</em> Google-side capacity shedding, unrelated to our usage, and the same thing that paced the 50-turn GM run for 50 minutes.</li>
+</ul>
+
+<p><strong>Concurrency itself is not the problem.</strong> A worst-case probe of <strong>8 simultaneous</strong> TTS requests returned <span class="n win">8/8 &times; HTTP 200</span>, 2.8&ndash;7.3 s each. Three paced sequential calls also returned 3/3 at ~3 s. The 429s appeared only after minutes of sustained bursting, which points at a rolling per-minute quota rather than a parallelism cap.</p>
+
+<p><strong>And real play is far gentler than any of these probes.</strong> A cast turn is ~17 calls, but its audio plays for ~90 s, and the next turn only arrives after the player reads, thinks and responds. Synthesis need only stay a unit or two ahead of playback, so the sustained rate in practice is on the order of <strong>ten-odd calls per minute</strong> &mdash; an order of magnitude below what these probes were doing when they tripped the quota. The honest summary: <em>bursty probing found a real ceiling; normal play should not approach it, and the ladder covers the case where it does.</em></p>
 
 <h2>Can the voices be tweaked?</h2>
 <p class="kicker">no &mdash; and that makes the direction string load-bearing</p>
