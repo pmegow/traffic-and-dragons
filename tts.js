@@ -282,10 +282,27 @@ var TTS = (function() {
                                                            // the 2.5 models cannot stream at all.
   var GEMINI_TTS_K      = "tnd_tts_gemini_v1";      // opt-in pref (device-level). Absent = OFF.
   var GEMINI_DIR_K      = "tnd_tts_gemini_dir_v1";  // user-editable delivery direction
-  var GEMINI_TTS_TIMEOUT_MS       = 25000;
-  var GEMINI_TTS_TIMEOUT_FIRST_MS = 35000;   // first call also pays any cold-path cost
+  // #41b: the flat 25s timeout was BELOW the expected synthesis time of a full 900-char group
+  // (measured ~30ms/char at ~2.5x-realtime generation ≈ 27s), so the biggest groups were
+  // guaranteed losers — the owner heard them as mid-read degrades. The deadline now scales with
+  // what was actually requested; the first call keeps an extra cold-path allowance.
+  var GEMINI_TTS_TIMEOUT_BASE_MS   = 12000;
+  var GEMINI_TTS_TIMEOUT_PER_CH_MS = 45;     // ~1.5x the measured ~30ms/char synthesis rate
+  var GEMINI_TTS_TIMEOUT_COLD_MS   = 10000;
   var GEMINI_TTS_RETRY_MS         = 60000;   // after a degrade, reads stay local this long
   var GEMINI_TTS_MAX_GROUP_CH     = 900;     // keep one call comfortably inside the 32k session cap
+  var GEMINI_TTS_FAST_START_CH    = 220;     // #41b: FIRST-group cap — non-streaming returns nothing until the
+                                             // whole group is synthesized, so the cold open is gated on group 1's
+                                             // size; a small opener puts the first sound at ~2-3s instead of ~27s
+  var GEMINI_TTS_PREFETCH         = 3;       // #41b: conveyor depth — in-flight + landed-unplayed groups held at
+                                             // once. The probe's corrected reading (8 simultaneous requests, 8/8
+                                             // HTTP 200) makes prefetch safe; 3 keeps the burst far inside the
+                                             // rolling per-minute quota, bounds skip-waste to ~a cent, and bounds
+                                             // held base64 to ~3 groups however long backpressure stalls
+  function _geminiTimeoutMs(chars, isFirst) {
+    return GEMINI_TTS_TIMEOUT_BASE_MS + Math.round((chars || 0) * GEMINI_TTS_TIMEOUT_PER_CH_MS)
+         + (isFirst ? GEMINI_TTS_TIMEOUT_COLD_MS : 0);
+  }
   // The owner's first-listen verdict was that the voices OVERACT. Style is the only control surface
   // Google exposes (no pitch/rate/tone parameters, no cloning), so the fix lives entirely in this
   // string — and it deliberately describes the READING, not a character, because "speak as <a hard
@@ -435,7 +452,11 @@ var TTS = (function() {
     for (var i = 0; i < units.length; i++) {
       var v = forceVoice || _geminiVoiceFor((voices && voices[i]) || "");
       var t = units[i].text || "";
-      if (cur && cur.voice === v && (cur.text.length + t.length + 1) <= GEMINI_TTS_MAX_GROUP_CH) {
+      // #41b fast start: while building the FIRST group, the accumulation cap is small — the cold
+      // open is gated on group 1's whole non-streaming synthesis, so a big opener means many
+      // seconds of silence before the first sound. Later groups keep the big cap (call count).
+      var cap = groups.length ? GEMINI_TTS_MAX_GROUP_CH : GEMINI_TTS_FAST_START_CH;
+      if (cur && cur.voice === v && (cur.text.length + t.length + 1) <= cap) {
         cur.text += " " + t; cur.last = units[i];
       } else {
         if (cur) groups.push(cur);
@@ -444,6 +465,36 @@ var TTS = (function() {
     }
     if (cur) groups.push(cur);
     return groups;
+  }
+  // #41b: the CONVEYOR core — promise-free bookkeeping for "synthesize ahead, play in order",
+  // drivable synchronously by the headless tests (the runner has no async support, and ordering
+  // bugs live exactly here). startFn(ix) begins synthesis for group ix; the glue calls
+  // landed(ix, result) when it resolves. THE MEMORY BOUND IS THE PUMP CONDITION:
+  // started - taken < depth bounds in-flight AND landed-unplayed together, so a long
+  // backpressure stall can never accumulate the whole turn's audio as held base64 (the same
+  // class PIPER_MAX_AHEAD_SEC guards on the decoded side — the v1.320 iOS tab-kill lesson).
+  function _geminiConveyor(count, depth, startFn) {
+    var s = { started: 0, taken: 0, results: {}, halted: false, waiter: null };
+    function wake() { if (s.waiter) { var w = s.waiter; s.waiter = null; w(); } }
+    function pump() {
+      while (!s.halted && (s.started - s.taken) < depth && s.started < count) { s.started++; startFn(s.started - 1); }
+    }
+    return {
+      pump: pump,
+      landed: function(ix, result) {
+        if (s.halted) return;
+        s.results[ix] = result || { fail: "no result" };
+        if (s.results[s.taken] !== undefined) wake();
+      },
+      ready:  function() { return s.results[s.taken] !== undefined; },
+      take:   function() { if (s.halted) return { fail: "halted" }; var r = s.results[s.taken]; delete s.results[s.taken]; s.taken++; pump(); return r; },
+      halt:   function() { s.halted = true; wake(); },
+      halted: function() { return s.halted; },
+      waitReady: function() {   // production glue only — the sync-drivable surface above is the tested contract
+        if (this.ready() || s.halted) return Promise.resolve();
+        return new Promise(function(res) { s.waiter = res; });
+      }
+    };
   }
   // Narrator dropdown. Calm voices first and labelled, because the subdued end is the point —
   // the performative half is still selectable, just not the path of least resistance.
@@ -2305,10 +2356,62 @@ var TTS = (function() {
   //      5-speaker scene) — without this the per-call latency makes a long turn slower than the
   //      audio it produces, and the call volume walks straight into the rate limiter;
   //   ② the response is JSON carrying base64 headerless PCM, not a WAV body;
-  //   ③ requests are STRICTLY SEQUENTIAL and 429 is treated as backpressure rather than failure —
-  //      concurrency ≥4 reliably produced 429 RESOURCE_EXHAUSTED in the probe.
+  //   ③ #41b: synthesis rides the CONVEYOR — up to GEMINI_TTS_PREFETCH groups in flight
+  //      concurrently, played strictly in order. The v1.646 loop was sequential on a since-
+  //      RETRACTED "429 at concurrency ≥4" reading (the corrected probe: 8/8 × HTTP 200 —
+  //      the ceiling is a rolling per-minute quota); sequential meant every voice change paid a
+  //      full network round-trip IN the seam, which the owner heard as mid-paragraph stalls
+  //      landing exactly on narrator→character handoffs. 429/503 still retries once per group.
   // Everything else — epoch guard after every await, backpressure, remainder hand-off down the
   // ladder, pause/skip semantics — is deliberately identical to the server tier.
+  //
+  // One group's synthesis: 2 attempts (429/503 backoff once), length-scaled deadline, abort
+  // registered with the caller so a skip can cancel in-flight spend. Resolves {b64, rate} or
+  // {fail: reason} — NEVER rejects (the conveyor glue treats a rejection as a fail anyway).
+  async function _geminiFetchGroup(g, isFirst, key, direction, regCtrl) {
+    var b64 = "", rate = 24000, failReason = "";
+    var uTimeoutMs = _geminiTimeoutMs(g.text.length, isFirst);
+    for (var attempt = 0; attempt < 2 && !b64; attempt++) {
+      if (attempt) await new Promise(function(res) { setTimeout(res, 1200); });
+      var tid = null;
+      try {
+        var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+        if (ctrl && regCtrl) regCtrl(ctrl);
+        if (ctrl) tid = setTimeout(function() { ctrl.abort(); }, uTimeoutMs);
+        var body = { contents: [ { parts: [ { text: direction + "\n\n" + g.text } ] } ],
+                     generationConfig: { responseModalities: ["AUDIO"],
+                       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: g.voice } } } } };
+        var opts = { method: "POST",
+                     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+                     body: JSON.stringify(body) };
+        if (ctrl) opts.signal = ctrl.signal;
+        var res = await fetch(_geminiEndpoint(), opts);
+        if (tid) clearTimeout(tid);
+        var j = await res.json();
+        if (!res.ok) {
+          failReason = "HTTP " + res.status + ((j && j.error && j.error.status) ? (" " + j.error.status) : "");
+          if ((res.status === 429 || res.status === 503) && attempt === 0) { failReason = ""; continue; }
+        } else {
+          var part = j && j.candidates && j.candidates[0] && j.candidates[0].content &&
+                     j.candidates[0].content.parts && j.candidates[0].content.parts[0];
+          var inl = part && (part.inlineData || part.inline_data);
+          if (inl && inl.data) {
+            b64 = inl.data;
+            var mt = inl.mimeType || inl.mime_type || "";
+            var m = mt.match(/rate=(\d+)/);
+            if (m) rate = parseInt(m[1], 10) || 24000;
+          } else {
+            failReason = "response carried no audio";
+          }
+        }
+      } catch (e) {
+        if (tid) clearTimeout(tid);
+        failReason = (e && e.name === "AbortError") ? ("timeout/abort after " + uTimeoutMs + "ms")
+                                                    : ((e && e.message) || "network error");
+      }
+    }
+    return b64 ? { b64: b64, rate: rate } : { fail: failReason || "no audio" };
+  }
   async function _speakGemini(text, voiceId, voices, forceVoice, dirOverride) {
     var myEpoch = ++_piperEpoch;
 
@@ -2336,83 +2439,57 @@ var TTS = (function() {
 
     function onAllDone() { _sources = []; _nextStart = 0; _auditionPhase("idle"); _drain(); }
 
+    // #41b: the conveyor. Fetch glue starts synthesis when the pump says so; each result lands
+    // back into the conveyor, which releases them to this loop strictly IN ORDER. A voice change
+    // no longer pays its round-trip in the seam — the character line was requested while the
+    // narrator was still mid-paragraph. abortAll() cancels in-flight spend on skip/failure
+    // (billing is per generated token; waste is bounded by the conveyor depth).
+    var ctrls = {};
+    var conv = _geminiConveyor(groups.length, GEMINI_TTS_PREFETCH, function(ix) {
+      _geminiFetchGroup(groups[ix], ix === 0, key, direction, function(c) { ctrls[ix] = c; })
+        .then(function(r)  { delete ctrls[ix]; conv.landed(ix, r); },
+              function(e)  { delete ctrls[ix]; conv.landed(ix, { fail: (e && e.message) || "synth rejected" }); });
+    });
+    function abortAll() {
+      conv.halt();
+      for (var cIx in ctrls) { try { ctrls[cIx].abort(); } catch (eA) {} }
+      ctrls = {};
+    }
+    conv.pump();
+
     for (var i = 0; i < groups.length; i++) {
-      if (_piperEpoch !== myEpoch) return;
+      if (_piperEpoch !== myEpoch) { abortAll(); return; }
       while (_piperEpoch === myEpoch && (nextStart - ctx.currentTime) > PIPER_MAX_AHEAD_SEC) {
         await new Promise(function(res) { setTimeout(res, 250); });
       }
-      if (_piperEpoch !== myEpoch) return;
+      if (_piperEpoch !== myEpoch) { abortAll(); return; }
 
       var g = groups[i];
-      var uTimeoutMs = (i === 0) ? GEMINI_TTS_TIMEOUT_FIRST_MS : GEMINI_TTS_TIMEOUT_MS;
-      var b64 = "", rate = 24000, failReason = "";
+      while (_piperEpoch === myEpoch && !conv.ready() && !conv.halted()) await conv.waitReady();
+      if (_piperEpoch !== myEpoch) { abortAll(); return; }
+      var got = conv.take();
 
-      // One retry on 429/503 ONLY. A rate limit means "you are going too fast", not "this is
-      // broken" — but a second refusal means the local ladder will serve the player better than
-      // a stalling crawl, which is the same judgement the server tier makes.
-      for (var attempt = 0; attempt < 2 && !b64; attempt++) {
-        if (attempt) {
-          await new Promise(function(res) { setTimeout(res, 1200); });
-          if (_piperEpoch !== myEpoch) return;
-        }
-        var tid = null;
-        try {
-          var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-          if (ctrl) tid = setTimeout(function() { ctrl.abort(); }, uTimeoutMs);
-          var body = { contents: [ { parts: [ { text: direction + "\n\n" + g.text } ] } ],
-                       generationConfig: { responseModalities: ["AUDIO"],
-                         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: g.voice } } } } };
-          var opts = { method: "POST",
-                       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-                       body: JSON.stringify(body) };
-          if (ctrl) opts.signal = ctrl.signal;
-          var res = await fetch(_geminiEndpoint(), opts);
-          if (tid) clearTimeout(tid);
-          if (_piperEpoch !== myEpoch) return;
-          var j = await res.json();
-          if (_piperEpoch !== myEpoch) return;
-          if (!res.ok) {
-            failReason = "HTTP " + res.status + ((j && j.error && j.error.status) ? (" " + j.error.status) : "");
-            if ((res.status === 429 || res.status === 503) && attempt === 0) { failReason = ""; continue; }
-          } else {
-            var part = j && j.candidates && j.candidates[0] && j.candidates[0].content &&
-                       j.candidates[0].content.parts && j.candidates[0].content.parts[0];
-            var inl = part && (part.inlineData || part.inline_data);
-            if (inl && inl.data) {
-              b64 = inl.data;
-              var mt = inl.mimeType || inl.mime_type || "";
-              var m = mt.match(/rate=(\d+)/);
-              if (m) rate = parseInt(m[1], 10) || 24000;
-            } else {
-              failReason = "response carried no audio";
-            }
-          }
-        } catch (e) {
-          if (tid) clearTimeout(tid);
-          if (_piperEpoch !== myEpoch) return;
-          failReason = (e && e.name === "AbortError") ? ("timeout after " + uTimeoutMs + "ms")
-                                                      : ((e && e.message) || "network error");
-        }
-      }
-
-      if (!b64) {
+      if (!got || got.fail) {
         // Hand the WHOLE remainder down the ladder, exactly like the server tier. The remainder is
         // rebuilt from the GROUPS (not the units) so nothing is dropped or spoken twice, and it
         // carries the original Piper voiceId — the tier below speaks Piper ids, not Gemini names.
+        // Later conveyor results (in flight or already landed) are discarded with the abort —
+        // bounded prepaid tokens, the price of prefetch.
         var rem = "";
         for (var k = i; k < groups.length; k++) rem += (rem ? " " : "") + groups[k].text;
         if (rem) _queue.unshift({ text: rem, piper: true, voiceId: voiceBaseId(voiceId) });
         handedOff = true;
-        _geminiTtsDegrade("group " + (i + 1) + "/" + groups.length + ": " + (failReason || "no audio"));
+        _geminiTtsDegrade("group " + (i + 1) + "/" + groups.length + ": " + ((got && got.fail) || "no audio"));
+        abortAll();
         break;
       }
 
       var buf;
       try {
-        var bin = atob(b64), n = bin.length, bytes = new Uint8Array(n);
+        var bin = atob(got.b64), n = bin.length, bytes = new Uint8Array(n);
         for (var q = 0; q < n; q++) bytes[q] = bin.charCodeAt(q);
-        buf = _pcm16ToAudioBuffer(bytes, rate, ctx);
-        if (_piperEpoch !== myEpoch) return;
+        buf = _pcm16ToAudioBuffer(bytes, got.rate, ctx);
+        if (_piperEpoch !== myEpoch) { abortAll(); return; }
         if (!buf) { console.warn("[tts gemini] PCM decode produced nothing on group " + (i + 1) + " — skipping"); continue; }
       } catch (e1) {
         console.warn("[tts gemini] decode failed on group " + (i + 1) + "/" + groups.length + ", skipping:", e1 && e1.message);
@@ -3945,6 +4022,8 @@ var TTS = (function() {
     _gemini: { voices: GEMINI_VOICES, voiceFor: _geminiVoiceFor, group: _geminiGroupUnits,
                enabled: geminiTtsEnabled, ok: _geminiTtsOk, direction: geminiDirection,
                narrator: geminiNarratorVoice, defaultDirection: GEMINI_DEFAULT_DIRECTION,
+               conveyor: _geminiConveyor, timeoutMs: _geminiTimeoutMs,           // #41b
+               fastStartCh: GEMINI_TTS_FAST_START_CH, prefetch: GEMINI_TTS_PREFETCH,
                pcm: _pcm16ToAudioBuffer, ladder: function() { return TTS_LADDER.slice(); },
                keys: { on: GEMINI_TTS_K, dir: GEMINI_DIR_K, narr: GEMINI_NARRATOR_K },
                degradeState: function() { return { err: _geminiTtsErr, at: _geminiTtsErrAt }; },

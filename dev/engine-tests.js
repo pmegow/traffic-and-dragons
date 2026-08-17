@@ -7340,9 +7340,11 @@ function runEngineTests(R){
   // within/after this section can't leak state.
   // ── #41: the Gemini cloud tier ───────────────────────────────────────────────────────────────
   // This tier is the only one that spends the player's money, so the tests that matter most are
-  // the ones proving it stays OFF and stays SEQUENTIAL. The probe measured 429 RESOURCE_EXHAUSTED
-  // at concurrency >= 4, and grouping consecutive same-voice units cut a real 5-speaker scene from
-  // 42 calls to 17 — both are load-bearing, both are pinned here.
+  // the ones proving it stays OFF by default and stays BOUNDED. (#41b re-baseline: this header
+  // used to pin "stays SEQUENTIAL" on a since-RETRACTED "429 at concurrency ≥4" reading — the
+  // corrected probe ran 8 simultaneous requests to 8/8 × HTTP 200; the ceiling is a rolling
+  // per-minute quota. The bound that matters is the conveyor's depth, pinned below.) Grouping
+  // consecutive same-voice units cut a real 5-speaker scene from 42 calls to 17 — still pinned.
   section("TTS Gemini tier (#41)");
   var GEM = TTS._gemini;
   function _gemClean(){ store.del(GEM.keys.on); store.del(GEM.keys.dir); store.del(GEM.keys.narr); GEM.resetDegrade(); }
@@ -7468,6 +7470,65 @@ function runEngineTests(R){
       if(v.calm&&v.g==="F")fCalm++; if(v.calm&&v.g==="M")mCalm++;
     }
     if(!fCalm||!mCalm) return "need a subdued voice of each gender (F:"+fCalm+" M:"+mCalm+")";
+    return true;
+  });
+
+  // ── #41b: the synthesis CONVEYOR ─────────────────────────────────────────────────────────────
+  // The v1.646 loop was strictly sequential, so every voice change was a fresh network round-trip
+  // paid IN the seam — the owner heard the stall land exactly on narrator→character handoffs.
+  // The probe's corrected measurement (8 simultaneous requests, 8/8 HTTP 200 — the ceiling is a
+  // rolling per-minute quota, not a concurrency cap) makes prefetch safe. The conveyor core is a
+  // promise-free state machine (the runner is synchronous), driven here exactly as the fetch glue
+  // drives it live. Depth bounds IN-FLIGHT + LANDED-UNTAKEN together — that is the memory bound:
+  // a backpressure stall must never let the whole turn's audio pile up as landed base64.
+  t("#41b conveyor: depth bounds in-flight + ready together; landing alone frees NOTHING, taking frees the slot",function(){
+    var startedIx=[];
+    var c=GEM.conveyor(10,3,function(ix){startedIx.push(ix);});
+    c.pump();
+    if(startedIx.join(",")!=="0,1,2") return "pump started "+startedIx.join(",")+" — depth 3 should start exactly 0,1,2";
+    c.landed(0,{b64:"r0"});c.landed(1,{b64:"r1"});
+    if(startedIx.length!==3) return "landing started new work without a take — landed-but-unplayed audio is unbounded ("+startedIx.join(",")+")";
+    c.take();
+    if(startedIx.join(",")!=="0,1,2,3") return "taking did not free a slot: "+startedIx.join(",");
+    c.take();
+    if(startedIx.join(",")!=="0,1,2,3,4") return "second take did not free a slot: "+startedIx.join(",");
+    return true;
+  });
+  t("#41b conveyor: results deliver strictly IN ORDER however they land — the seam the owner heard is closed by construction",function(){
+    var c=GEM.conveyor(3,3,function(){});
+    c.pump();
+    c.landed(1,{b64:"r1"});c.landed(2,{b64:"r2"});
+    if(c.ready()) return "ready() true while group 0 is still in flight — out-of-order delivery";
+    c.landed(0,{b64:"r0"});
+    if(!c.ready()) return "ready() false with group 0 landed";
+    var a=c.take(),b=c.take(),d=c.take();
+    if(a.b64!=="r0"||b.b64!=="r1"||d.b64!=="r2") return "delivery order broke: "+[a.b64,b.b64,d.b64].join(",");
+    return true;
+  });
+  t("#41b conveyor: halt() stops the pump and take() after halt starts nothing (the skip/abort path)",function(){
+    var startedIx=[];
+    var c=GEM.conveyor(10,2,function(ix){startedIx.push(ix);});
+    c.pump();c.landed(0,{b64:"r0"});
+    c.halt();
+    c.take();c.pump();
+    if(startedIx.length!==2) return "halted conveyor still started work: "+startedIx.join(",");
+    return c.halted()?true:"halted() not reporting";
+  });
+  t("#41b fast start: the FIRST group is capped small so the opening sound lands fast; later groups keep the big cap",function(){
+    var units=[],i;for(i=0;i<30;i++)units.push({text:"a sentence of moderate length to accumulate characters quickly here"});
+    var g=GEM.group(units,"",null);
+    if(g[0].text.length>GEM.fastStartCh) return "first group is "+g[0].text.length+" chars — the cold open pays full non-streaming latency";
+    var big=false;for(i=1;i<g.length;i++)if(g[i].text.length>GEM.fastStartCh)big=true;
+    if(!big) return "no later group exceeds the fast-start cap — the cap leaked past group 1 and calls tripled";
+    var joined=g.map(function(x){return x.text;}).join(" ");
+    var expect=units.map(function(u){return u.text;}).join(" ");
+    return joined===expect?true:"text changed under fast-start grouping";
+  });
+  t("#41b timeout scales with group length — a full-size group can never be GUARANTEED to lose against a flat deadline",function(){
+    var small=GEM.timeoutMs(120,false),big=GEM.timeoutMs(900,false),first=GEM.timeoutMs(120,true);
+    if(!(big>small)) return "timeout not length-scaled: 900ch="+big+" vs 120ch="+small;
+    if(big<40000) return "900-char allowance "+big+"ms — measured synthesis is ~27s (30ms/char at 2.5x realtime), this re-ships the mid-read timeout class";
+    if(!(first>small)) return "first call gets no cold-path allowance";
     return true;
   });
   _gemClean();
