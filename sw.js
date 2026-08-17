@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260817k";
+var CACHE = "tnd-v3-20260817l";
 // Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todos_completed/todo_TTS_piper.md Phase 2).
 // Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
 // frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
@@ -49,10 +49,33 @@ var APP_SHELL = [
   "/icon-512.png"
 ];
 
+// #195③ (2026-08-17, the dead piper iframe on pages.dev): Cloudflare Pages 308-redirects
+// "/x.html" to "/x" (pretty URLs). cache.addAll FOLLOWS that redirect and stores the response
+// with redirected:true — and a response flagged redirected may NOT be served to a NAVIGATION
+// request (navigations carry redirect mode "manual"), so the piper-host IFRAME died with
+// "a redirected response was used for a request whose redirect mode is not 'follow'", the host
+// never signalled ready, and every read fell back to the in-page engine (B9 memory ratchet —
+// the containment the iframe exists for). Top-level satellite pages never hit this because the
+// network-first path preserves the request's own redirect mode (opaqueredirect → the browser
+// follows it itself). The fix is to never STORE a redirected-flagged response: copy the body
+// into a clean Response first. Applied at precache and at every runtime cache.put.
+function cleanRedirect(response){
+  if(!response || !response.redirected) return Promise.resolve(response);
+  return response.blob().then(function(body){
+    return new Response(body, {status: response.status, statusText: response.statusText, headers: response.headers});
+  });
+}
 self.addEventListener("install", function(e){
   e.waitUntil(
     caches.open(CACHE).then(function(cache){
-      return cache.addAll(APP_SHELL);
+      // Per-URL fetch + clean + put. Failure semantics match cache.addAll: ANY missing shell
+      // asset rejects the whole install loudly — a silent partial shell is the worse outcome.
+      return Promise.all(APP_SHELL.map(function(u){
+        return fetch(u).then(function(r){
+          if(!r || !r.ok) throw new Error("precache " + u + " -> HTTP " + (r && r.status));
+          return cleanRedirect(r);
+        }).then(function(clean){ return cache.put(u, clean); });
+      }));
     })
   );
   self.skipWaiting();
@@ -103,7 +126,7 @@ self.addEventListener("fetch", function(e){
         // OK response: cache a clone (restores offline support) and serve it fresh.
         if(response && response.ok && response.type === "basic"){
           var clone = response.clone();
-          caches.open(CACHE).then(function(cache){ cache.put(e.request, clone); });
+          caches.open(CACHE).then(function(cache){ cleanRedirect(clone).then(function(c){ cache.put(e.request, c); }); });/* #195③ */
           return response;
         }
         // Non-OK (502/404/…): prefer a good cached copy over showing the error; else return the error.
@@ -151,7 +174,7 @@ self.addEventListener("fetch", function(e){
       return fetch(e.request).then(function(response){
         if(response && response.status === 200 && response.type === "basic"){
           var clone = response.clone();
-          caches.open(CACHE).then(function(cache){ cache.put(e.request, clone); });
+          caches.open(CACHE).then(function(cache){ cleanRedirect(clone).then(function(c){ cache.put(e.request, c); }); });/* #195③ */
         }
         return response;
       });
