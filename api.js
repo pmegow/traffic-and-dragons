@@ -1996,7 +1996,7 @@ function usageCost(u,model){
 }
 // Accumulate one response's usage onto worldState.usage (total + per-kind bucket).
 // Not persisted here — every calling flow saves shortly after (saveAll/saveCore).
-function recordUsage(u,kind,model){
+function recordUsage(u,kind,model,retries){/* retries: #29 — absorbed transient auto-retries on this call (optional; only callGM passes it) */
   if(!worldState)return;
   if(!worldState.usage)worldState.usage=blankUsage();
   var t=worldState.usage;
@@ -2013,9 +2013,13 @@ function recordUsage(u,kind,model){
   if(kind==="turn"){
     try{
       if(!worldState.healthLog)worldState.healthLog=[];
-      worldState.healthLog.push({t:worldState.turn||0,in:u.in||0,cr:u.cacheRead||0,
+      var _he={t:worldState.turn||0,in:u.in||0,cr:u.cacheRead||0,
         rag:(typeof ragRetrieve!=="undefined"&&ragRetrieve._lastServed!==null)?(ragRetrieve._lastServed?1:0):null,
-        prov:(typeof activeProvider!=="undefined")?activeProvider:null});
+        prov:(typeof activeProvider!=="undefined")?activeProvider:null};
+      // #29: absorbed transient retries are stamped, not hidden — the transport indicator
+      // (healthIndicators ⑥) reads rt so a degrading provider is visible before it fails loud.
+      if(retries)_he.rt=retries;
+      worldState.healthLog.push(_he);
       if(worldState.healthLog.length>HEALTH_LOG_CAP)worldState.healthLog=worldState.healthLog.slice(worldState.healthLog.length-HEALTH_LOG_CAP);
     }catch(_hle){if(typeof console!=="undefined")console.warn("[health] ring write failed:",_hle&&_hle.message);}
   }
@@ -2088,6 +2092,39 @@ function providerHttpError(prov,status,message){
   }
   return new Error("HTTP "+status+(message?": "+message:""));
 }
+// ── #29: callGM transport resilience — a per-attempt deadline + bounded transient retry ──
+// Field evidence (the grok-4.6 t25 freeze): one request neither resolved nor rejected during a
+// 503 storm, busy stayed true forever, and the B16 failure machinery (toast/Retry/pending-action)
+// never engaged because it only runs when the fetch SETTLES. And every transient 503/429 blip
+// reached a live player as a scary failed turn although the sweep harness proved they self-heal
+// on one retry. Both halves live HERE, at the one boundary every GM call passes through.
+//
+// What must NEVER retry (each is a double-generation or loud-contract hazard):
+//   • a deadline abort — the abandoned request may still complete AND BILL server-side;
+//   • a network reject — request state is ambiguous, same double-bill risk;
+//   • a B15 credit refusal — OpenAI bills these as HTTP 429, so isCreditExhausted runs BEFORE
+//     the retry decision or the billing toast arrives seconds and two burned calls late;
+//   • any non-transient status — a deterministic provider error stays loud on try one
+//     (500 is deliberately absent from the transient set for the same reason).
+var CALLGM_TIMEOUT_MS=240000;  /* per attempt — generous ON PURPOSE (frontier reasoning models legitimately run 120s+); this is hang recovery, not latency policing */
+var CALLGM_RETRY_MAX=2;        /* transient auto-retries beyond the first attempt */
+var CALLGM_RETRY_BASE_MS=2000; /* backoff 2s→4s, plus 0–20% proportional jitter */
+var CALLGM_TRANSIENT_STATUS={429:1,502:1,503:1,504:1,529:1};/* 503/529 provider overload, 429 rate-limit (post-B15-check), 502/504 gateway blips */
+function _sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+async function _fetchTextDeadline(url,fopts,ms){
+  // One attempt = headers AND body-read under ONE deadline — a stalled body hangs busy exactly
+  // like stalled headers. The controller is a per-call local, so the abort closure can never
+  // fire into a later attempt (the classic hoisted-var-in-loop hazard). No AbortController
+  // (old engines, bare test hosts) degrades to today's no-deadline behavior rather than breaking.
+  var ac=(typeof AbortController!=="undefined")?new AbortController():null;
+  if(ac)fopts.signal=ac.signal;
+  var tm=ac?setTimeout(function(){ac.abort();},ms):null;
+  try{
+    var r=await fetch(url,fopts);
+    var raw=await r.text();
+    return {ok:r.ok,status:r.status,raw:raw};
+  }finally{if(tm)clearTimeout(tm);}
+}
 async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // opts.noHistory: send only this message, not the whole sessionLog — for utility calls
   // (action suggestions) where history is irrelevant and just burns tokens (audit #17).
@@ -2114,21 +2151,54 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   var _tok=maxTok||1500;/* 1000→1500 (v1.540, user call): the cap is runaway insurance, not a style lever — the model never sees it, and at 1000 it was scissoring legitimate long prose turns mid-tag (the #132 field toast). #132's crumb frequency is the tuning gauge */if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
   var body=prov.buildBody(msgs,sys,_tok,model);
   var url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint; // Gemini embeds the model in the URL
-  var res;try{res=await fetch(url,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)});}catch(e){throw new Error("Network: "+e.message);}
-  var raw;try{raw=await res.text();}catch(e){throw new Error("Read error");}
+  var _kind=(opts&&opts.kind)||(sysOverride?"other":"turn");
+  // #29 transport loop. The payload is serialized ONCE — a retried request is byte-identical,
+  // so provider-side prompt caches see the same prefix on every attempt.
+  var _payload=JSON.stringify(body);
+  var res,raw,_retries=0;
+  for(;;){
+    var _rr;
+    try{_rr=await _fetchTextDeadline(url,{method:"POST",headers:prov.headers(key),body:_payload},CALLGM_TIMEOUT_MS);}
+    catch(e){
+      // Our own deadline fired: LOUD and TERMINAL (see the never-retry block above the constants).
+      // The message must never look auth-shaped — _attachGMErrorUI (game.js) would swap the
+      // Retry button for a paste-a-new-key box, the wrong remedy; an engine test pins that.
+      if(e&&e.name==="AbortError")throw new Error("No response from "+(prov.label||prov.id)+" after "+Math.round(CALLGM_TIMEOUT_MS/60000)+" minutes — the request was abandoned so the turn can recover. Retry when ready.");
+      throw new Error("Network: "+e.message);
+    }
+    res=_rr;raw=_rr.raw;
+    if(!res.ok&&CALLGM_TRANSIENT_STATUS[res.status]&&_retries<CALLGM_RETRY_MAX){
+      var _tm="";try{var _td=JSON.parse(raw);_tm=(_td.error&&_td.error.message)||(typeof _td.error==="string"?_td.error:"")||_td.message||_td.msg||"";}catch(e2){_tm=raw.slice(0,200);}
+      // B15 FIRST: a credit refusal rides transient-looking statuses (OpenAI: 429) but is never
+      // transient — it keeps its loud contract (one toast + prefixed Error) on the FIRST failure.
+      if(isCreditExhausted(prov,res.status,_tm))throw providerHttpError(prov,res.status,_tm);
+      _retries++;
+      var _wait=CALLGM_RETRY_BASE_MS*Math.pow(2,_retries-1)+Math.floor(Math.random()*(CALLGM_RETRY_BASE_MS/5));
+      console.warn("[transport] "+prov.id+" HTTP "+res.status+" (transient) — auto-retry "+_retries+"/"+CALLGM_RETRY_MAX+" in "+_wait+"ms (#29)");
+      try{if(typeof erCrumb==="function")erCrumb("transport-retry",{p:prov.id,s:res.status,n:_retries,k:_kind});}catch(e3){}
+      // One toast per CALL, gameplay turns only — the player is actively waiting there; a
+      // background suggestion/summarize retry toasting "overloaded" against an already-rendered
+      // story would read as a phantom failure.
+      if(_retries===1&&_kind==="turn"&&typeof showToast==="function")showToast("⏳ "+(prov.label||prov.id)+" is overloaded — retrying…");
+      await _sleep(_wait);
+      continue;
+    }
+    break;
+  }
   // Both non-ok paths route through providerHttpError (B15) — the unparseable-body one too, since
   // a gateway/HTML error page carrying the billing text must be recognised just the same.
   var data;try{data=JSON.parse(raw);}catch(e){throw providerHttpError(prov,res.status,raw.slice(0,200));}
   if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw providerHttpError(prov,res.status,_em);}
   // Record usage BEFORE parseResponse — an empty-content response still billed input tokens.
-  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,(opts&&opts.kind)||(sysOverride?"other":"turn"),model);}catch(e){console.warn("[usage] telemetry parse failed — this call is uncounted (pricing dataset undercounts, TODO #30):",e.message);}}
+  // _retries rides along so absorbed transients reach the #17 ring (visible, never hidden).
+  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,_kind,model,_retries);}catch(e){console.warn("[usage] telemetry parse failed — this call is uncounted (pricing dataset undercounts, TODO #30):",e.message);}}
   // #132: length-cap truncation is LOUD — a cut response may have been mid-tag, and that tag's
   // mutation is lost (handlers only match complete tags; cleanTxt drops the ragged fragment from
   // display). The transcript/sessionLog keep the raw truth; this is the only warning channel.
   if(prov.parseFinish){try{var _fin=prov.parseFinish(data);if(_fin){
-    console.warn("[truncation] "+prov.id+" response cut at the output-token cap (finish: "+_fin+", kind: "+((opts&&opts.kind)||(sysOverride?"other":"turn"))+") — any tag being emitted at the cut is LOST (#132)");
+    console.warn("[truncation] "+prov.id+" response cut at the output-token cap (finish: "+_fin+", kind: "+_kind+") — any tag being emitted at the cut is LOST (#132)");
     if(typeof showToast==="function")showToast("⚠ Response hit the length limit — its tail was cut");
-    if(typeof erCrumb==="function")erCrumb("turn-truncated",{p:prov.id,f:_fin,k:(opts&&opts.kind)||(sysOverride?"other":"turn")});
+    if(typeof erCrumb==="function")erCrumb("turn-truncated",{p:prov.id,f:_fin,k:_kind});
   }}catch(e3){}}
   return prov.parseResponse(data);
 }

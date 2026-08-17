@@ -14678,6 +14678,34 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     }
     return true;
   });
+  t("healthIndicators: absorbed transport retries (#29 rt stamps) surface as the transport indicator — na young, ok clean, warn at 3, bad at 8",function(){
+    makeWorld();var i,h,tp;
+    function find(){h=healthIndicators(worldState);tp=null;for(i=0;i<h.items.length;i++)if(h.items[i].id==="transport")tp=h.items[i];return tp;}
+    worldState.healthLog=[{t:1,in:100,cr:0,rag:null,prov:"anthropic"}];
+    if(!find())return "no transport indicator pushed";
+    if(tp.level!=="na")return "under 3 recorded calls must be na, got "+tp.level;
+    worldState.healthLog=[];for(i=0;i<10;i++)worldState.healthLog.push({t:i,in:100,cr:0,rag:null,prov:"anthropic"});
+    find();if(tp.level!=="ok")return "a clean window must be ok, got "+tp.level;
+    if(tp.hint)return "ok must carry no hint";
+    for(i=0;i<3;i++)worldState.healthLog[i].rt=1;
+    find();if(tp.level!=="warn")return "3 retried calls in the window must warn, got "+tp.level;
+    if(!tp.hint)return "warn carries a plain-language hint by the 2026-08-14 ruling";
+    if(tp.detail.indexOf("3 of")!==0)return "detail must name the count, got: "+tp.detail;
+    for(i=3;i<8;i++)worldState.healthLog[i].rt=2;
+    find();if(tp.level!=="bad")return "8 retried calls in the window must go red, got "+tp.level;
+    return tp.detail.indexOf("13 absorbed")>=0?true:"detail must carry the absorbed total (3×1+5×2=13), got: "+tp.detail;
+  });
+  t("#29 transport constants: the transient set is EXACTLY {429,502,503,504,529} — 500 stays loud, and the knobs hold their ratified band",function(){
+    // A status added here silently widens what the engine hides from the player; a status
+    // removed reverts a self-healing blip into a scary failed turn. Either way this test asks.
+    if(typeof CALLGM_TRANSIENT_STATUS!=="object")return "CALLGM_TRANSIENT_STATUS missing";
+    var ks=Object.keys(CALLGM_TRANSIENT_STATUS).sort().join(",");
+    if(ks!=="429,502,503,504,529")return "transient set drifted: "+ks;
+    if(CALLGM_TRANSIENT_STATUS[500])return "500 must NOT be transient — a deterministic provider error stays loud on try one";
+    if(CALLGM_RETRY_MAX!==2)return "retry cap drifted: "+CALLGM_RETRY_MAX;
+    if(!(CALLGM_TIMEOUT_MS>=180000&&CALLGM_TIMEOUT_MS<=240000))return "deadline left the ratified 180–240s band: "+CALLGM_TIMEOUT_MS;
+    return CALLGM_RETRY_BASE_MS>=1000&&CALLGM_RETRY_BASE_MS<=5000?true:"backoff base left the short-backoff intent: "+CALLGM_RETRY_BASE_MS;
+  });
 
   // ═══ #173: the location guestbook — per-character visit provenance ═══
   // Owner-ratified shape (2026-08-12) + the seven pinned Fable amendments (2026-08-14):

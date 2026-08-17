@@ -1227,6 +1227,15 @@ function healthIndicators(ws){
   var extra=histQ?((anom.length?"; ":"")+histQ+" historical refusal"+(histQ>1?"s":"")+" on record (healed — receipts never retire by contract)"):"";
   push("anomaly","Standing anomalies",(activeQ||unresolved)?"bad":(anom.length?"warn":"ok"),
     anom.length||extra?(anom.join("; ")+extra):"none");
+  // ⑥ transport (#29) — absorbed transient auto-retries, stamped rt into the ring by recordUsage.
+  // Retries the player never saw are exactly the class this readout exists for: a provider
+  // degrading QUIETLY (each call still succeeds, just late) before it starts failing loud.
+  // Surfacing them here is the deal that made absorbing transients honest (no-silent-failures).
+  var rtCalls=0,rtTotal=0;
+  for(i=0;i<hl.length;i++)if(hl[i].rt){rtCalls++;rtTotal+=hl[i].rt;}
+  if(hl.length<3)push("transport","Provider transport","na","not enough calls recorded");
+  else push("transport","Provider transport",rtCalls>=8?"bad":(rtCalls>=3?"warn":"ok"),
+    rtCalls?rtCalls+" of the last "+hl.length+" recorded turns needed transient retries ("+rtTotal+" absorbed) — the provider is load-shedding":"no absorbed transient retries in the recent window");
   // Plain-language action hints (owner ruling 2026-08-14: every WATCH/PROBLEM carries a
   // <25-word "what this means / what to do" line — the raw detail is accurate but useless
   // to a player). The word cap is CONTRACT, enforced by an engine test, not by discipline.
@@ -1239,7 +1248,9 @@ function healthIndicators(ws){
           warn:"The story may be moving without the sheet updating. Open the Sheet and tap ⟳ Sync to re-audit."},
     quest:{warn:"The engine is nudging the GM to review or close it — if it lingers a few turns, ask about it in-story."},
     anomaly:{bad:"A canon claim (often a death or its rewards) was refused and withheld. If the story owes you something, submit a report.",
-             warn:"Self-correcting state (memory retries or a clock check) — no action needed unless it persists; then submit a report."}
+             warn:"Self-correcting state (memory retries or a clock check) — no action needed unless it persists; then submit a report."},
+    transport:{bad:"Heavy provider load-shedding — most turns need retries. Consider switching model for this session; report if it continues.",
+               warn:"The AI provider is shedding load — turns retry and feel slower. Usually clears on its own; report if it lasts all session."}
   };
   for(i=0;i<items.length;i++){var hh=HINTS[items[i].id];if(hh&&hh[items[i].level])items[i].hint=hh[items[i].level];}
   var rank={ok:0,warn:1,bad:2},worst="ok",any=false;
