@@ -170,6 +170,26 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
   <p><strong>Unverified:</strong> the voice bank is documented by <em>characteristic</em> ("Warm", "Clear", "Gravelly"), never by gender. The gender-matched cast used here is assigned from commonly-reported voice genders and needs a human ear to confirm before it becomes a shipped mapping.</p>
 </div>
 
+<h2>Can the voices be tweaked?</h2>
+<p class="kicker">no &mdash; and that makes the direction string load-bearing</p>
+
+<p><strong>The bank is fixed.</strong> No cloning, no fine-tuning, no custom voices, and <em>no parameters at all</em> &mdash; there is no pitch, speaking-rate, or tone knob. Google's own words: TTS "is <em>controllable</em>, meaning you can use natural language to structure interactions and guide the <em>style</em>, <em>accent</em>, <em>pace</em>, and <em>tone</em> of the audio." Prompting is not <em>a</em> control surface, it is <strong>the only one</strong>.</p>
+
+<p>That has a direct consequence for the first demo: <strong>the overacting was the prompt's fault, not the bank's.</strong> Directions of the form <em>"Speak as Ammut, a hard northern warrior"</em> ask the model to <em>act a character</em>, and it obliges enthusiastically. Two levers pull it back:</p>
+
+<ul>
+  <li><strong>Damping language in the direction.</strong> Frame it as reading rather than performing &mdash; audiobook narrator, understated, no theatrical emphasis, let the words carry it, keep the delivery flat and let the prose do the work. Describe the <em>reading</em>, not the character's personality.</li>
+  <li><strong>Low-affect voices.</strong> The bank's own characteristics predict theatricality. <span class="n">Schedar</span> (Even), <span class="n">Charon</span> (Informative), <span class="n">Rasalgethi</span> (Informative), <span class="n">Iapetus</span> (Clear), <span class="n">Algieba</span> (Smooth), <span class="n">Umbriel</span> (Easy-going), <span class="n">Achernar</span> (Soft) and <span class="n">Vindemiatrix</span> (Gentle) sit at the restrained end. <span class="n">Fenrir</span> (Excitable), <span class="n">Puck</span> (Upbeat), <span class="n">Sadachbia</span> (Lively) and <span class="n">Pulcherrima</span> (Forward) sit at the performative end &mdash; the first demo used Pulcherrima for the narrator precisely because a snappier read was asked for, which pushed the same direction further.</li>
+</ul>
+
+<p><strong>So the effective pool is much larger than 30.</strong> The addressable space is <em>voice &times; direction</em>, and the same voice under "clipped and wary" versus "warm and unhurried" reads as a different character. Thirty is shallow as a list of names and quite deep as a set of starting points.</p>
+
+<div class="defs">
+  <p><strong>Design implication for casting (#174).</strong> A cast entry cannot be just a <span class="n">voiceId</span> the way it is for Piper. It needs to carry a <strong>direction string</strong> alongside the voice &mdash; that pair is the character's actual voice. A per-scene or per-mood direction override is the natural extension, and it is what would let a tense scene be read differently from a tavern scene without recasting anyone.</p>
+</div>
+
+<p><strong>If 30 is genuinely not enough</strong>, the escape hatch is a different product, not a bigger list: Google Cloud TTS <strong>Chirp 3 Instant Custom Voice</strong> clones a voice from roughly 10 seconds of audio. It is a separate API from the Gemini one costed here, access is <em>allow-listed</em> (sales contact required) for safety reasons, and it carries consent obligations around whose voice is being cloned. Worth knowing it exists; not worth designing around until the prompt-and-bank route is proven insufficient.</p>
+
 <h2>The decision this actually forces</h2>
 <p class="kicker">the swap that pays for itself</p>
 
