@@ -107,19 +107,23 @@ nodes — counting weak facts launders them; the fix is typing the record, not t
 and the migration knife-edge (grandfather-as-eyewitness launders history; hard-demote starves —
 hence the epoch + fail-open + valve triple).
 
-### Requires owner ruling (the four genuine forks)
+### Owner rulings (2026-08-17 — all four resolved)
 
 1. **Speech is presence:** `[SAY:]` becomes canon-bearing (a TTS-validated tag acquires a state
-   handler; voice-attribution changes would then touch canon). Recommended: YES.
+   handler; voice-attribution changes would then touch canon). Recommended YES — **RULED: AGREED.**
 2. **The reported-death category:** `[NPC_DEATH_REPORTED:]` + the fork-note valve lets an
    off-screen death commit honestly instead of quarantining forever. The biggest doctrinal
-   change — W2 stops treating every unproven death as refusable-forever. Recommended: YES
-   (the t1903 loop's measured cost exceeded a wrongly-accepted off-screen death's).
+   change — W2 stops treating every unproven death as refusable-forever. Recommended YES
+   (the t1903 loop's measured cost exceeded a wrongly-accepted off-screen death's) —
+   **RULED: AGREED.**
 3. **Legacy fail-open:** grandfathered pre-epoch `statusTurn` evidence keeps authorizing until
-   the NPC is re-witnessed (the alternative is a refusal wave on mature saves). Recommended:
-   YES, with receipts + health-readout visibility, no fade window.
+   the NPC is re-witnessed (the alternative is a refusal wave on mature saves). Recommended
+   YES, with receipts + health-readout visibility, no fade window — **RULED: TENTATIVE
+   AGREEMENT ("try it for now, can change later") — build it revisit-able: the epoch derivation
+   already makes flipping to fail-closed (or adding a fade) a one-clause change; keep it that
+   way and keep the legacy-grade receipts so a later reversal has its evidence.**
 4. **`[SCENE_CAST:]` ships** as Layer 4, playtest-gated before the death gate leans on it.
-   Recommended: YES.
+   Recommended YES — **RULED: AGREED.**
 
 ### Residual floor (accepted, no design escapes it)
 
