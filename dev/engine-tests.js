@@ -1581,6 +1581,22 @@ function runEngineTests(R){
     var g=PROVIDERS.gemini.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V"},100,"gemini-3.5-flash");
     return g.systemInstruction.parts[0].text==="SV"?true:"gemini: "+JSON.stringify(g.systemInstruction);
   });
+  // #22 (owner ruling 2026-08-16): gemini runs at thinkingLevel "low" on EVERY call kind. The
+  // 50-turn low arm (corpus v1644) held both contract halves — 0/50 zero-tag turns, dead-actor
+  // scan clean, all 4 death tags same-turn as the prose kill — while cutting billable output
+  // ~35% (0 thought tokens vs a median 275/call) and per-call latency ~2x. Pinned because the
+  // failure mode is SILENT: drop this line and the only symptom is a quietly bigger bill.
+  // "minimal" is NOT a legal substitute — this model rejects it with HTTP 400.
+  t("#22 gemini buildBody pins thinkingLevel 'low' on every call kind",function(){
+    var kinds=[[{stable:"S",volatile:"V"},1000],["plain override",2000],[{stable:"S",volatile:"V"},200]];
+    for(var i=0;i<kinds.length;i++){
+      var b=PROVIDERS.gemini.buildBody([{role:"user",content:"hi"}],kinds[i][0],kinds[i][1],"gemini-3.7-flash");
+      var tc=b.generationConfig&&b.generationConfig.thinkingConfig;
+      if(!tc)return "call kind "+i+": no thinkingConfig — the low-thinking ruling regressed";
+      if(tc.thinkingLevel!=="low")return "call kind "+i+": thinkingLevel is '"+tc.thinkingLevel+"', expected 'low'";
+    }
+    return true;
+  });
 
   // ── #52: skills bible — mechanics ladder + per-skill canon ──────────────────
   section("skills bible (#52)");

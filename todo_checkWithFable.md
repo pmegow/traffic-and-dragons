@@ -37,6 +37,40 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 16 — Gemini pinned to thinkingLevel "low" on every call kind (#22, v1.645; Opus, owner-ruled)
+
+**Filed:** 2026-08-16. **Tracker:** TODO #22. **Commit:** the v1.645 promotion.
+**Evidence:** corpus `dev/corpus_playtest_v1644_gemini37low.json` (50 turns, standard Korrag
+campaign), save + memento in `testRuns/modelTests/` (gitignored).
+
+**Why this is here, not in the Off-Fable log.** It is not a safe-changes-map shape. The change is
+one line of `PROVIDERS.gemini.buildBody`, but what it alters is how much the GM model *reasons
+before answering* — and canon obedience is precisely what the anti-drift stack protects. The
+sweep already proved tag syntax and canon obedience are separable capabilities (3.5-flash held
+the first and failed the second), so a knob on the reasoning budget is drift-adjacent by
+construction. Per the decree, ambiguous defaults to Fable; the owner ruled the adoption, so it
+shipped, and this is the standing non-Fable log entry.
+
+**What was measured.** `thinkingLevel:"low"` accepted; `"minimal"` rejected by this model with
+HTTP 400 ("Thinking level MINIMAL is not supported"), so low is the floor. 50/50 turns, run-scoped
+in-page patch (no repo edit until this promotion). Both contract halves held: 0/50 zero-tag turns,
+39 distinct tags (vs 36 thinking-on), 366 total (vs 274), 0 unknown (census derived from
+tag_table.js); dead-actor scan clean across 4 deaths, and all 4 death tags landed the same turn as
+the prose kill — the thinking-ON sibling is the arm with the premature-tag blemish (t42 tag / t46
+prose), not this one. Premise retention >= baseline. Paired A/B on one identical 17,305-token live
+gameplay prompt: thinking-ON median 275 thought + 178 visible (~453 billable) @ 4.9s (n=5);
+LOW 0 thought + 296 visible (296 billable) @ 2.5s (n=2). Owner read the compiled memento and
+judged it good — the prose half of the verdict, consistent with 727 chars/turn vs 647.
+
+**What a reviewer should probe first.** (1) The A/B's thinking-on side is n=5 against n=2 — a 503
+load-shedding storm ate samples; re-measure if the cost claim is load-bearing for pricing.
+(2) The config now rides EVERY call kind including `summarize()` — the run filed 6 chapters across
+5 summarize calls with clean JSON, but extraction quality under low reasoning deserves a harder
+look than one campaign. (3) One campaign, one tone, one voice, one seed — the #22 field-validation
+width caveat applies to this arm exactly as it does to the others. (4) The guard is a pinned engine
+test (`#22 gemini buildBody pins thinkingLevel 'low'`), verified red before the change; it pins the
+value but cannot detect the model silently reinterpreting "low".
+
 ### 15 — Per-character location-visit provenance gap (#173; Codex investigation, no code shipped)
 
 **Filed:** 2026-08-12. **Tracker:** TODO #173. **Artifact:** the owner's live t1728 save,

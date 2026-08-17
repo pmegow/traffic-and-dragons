@@ -178,7 +178,15 @@ var PROVIDERS={
     upgradeModel:"gemini-3.7-flash",
     models:["gemini-3.7-flash"],
     headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
-    buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
+    // thinkingLevel "low" on EVERY call kind (owner ruling 2026-08-16, #22): 3.7-flash thinks
+    // MANDATORILY and bills it as output. The 50-turn low arm (corpus v1644, standard Korrag
+    // campaign) held BOTH contract halves — 0/50 zero-tag turns, dead-actor scan clean, all 4
+    // death tags same-turn as the prose kill (the thinking-ON sibling had the premature-tag
+    // blemish, not this one) — while a paired A/B on one identical 17,305-token gameplay prompt
+    // measured 0 thought tokens vs a median 275/call, ~35% less billable output, ~2x faster,
+    // and MORE narration (thinking-on spends its budget deliberating instead of writing).
+    // ⚠ "minimal" is NOT a legal tightening — this model rejects it with HTTP 400.
+    buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={thinkingConfig:{thinkingLevel:"low"}};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
     parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
     parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:(u.candidatesTokenCount||0)+(u.thoughtsTokenCount||0),cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};}, // thoughtsTokenCount folded into out (probe 2026-08-16: gemini-3.7-flash thinks MANDATORILY — 745 thought tokens per 51 output on a trivial call, billed as output, previously invisible to the meter)
     parseFinish:function(data){var c=data.candidates&&data.candidates[0];return (c&&c.finishReason==="MAX_TOKENS")?"MAX_TOKENS":null;},
@@ -187,7 +195,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.644";
+var APP_VERSION="v1.645";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
