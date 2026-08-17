@@ -146,6 +146,10 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 .msg.render-out{background:var(--bg1);border:1px solid var(--acc);color:var(--t1);font-size:12px;line-height:1.6;position:relative}
 .copy-btn{position:absolute;top:8px;right:8px;font-size:10px;padding:3px 8px;border:1px solid var(--brd2);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;font-family:var(--font)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* #41: the Gemini ▶ Test button while a voice is being fetched. Cloud synthesis leaves a 2-3s
+   silent gap before the first sample plays, which reads as a dead button; the pulse says the
+   request is in flight. Cleared the moment audio is actually scheduled — see _auditionPhase. */
+.tts-testing{animation:pulse 1s ease-in-out infinite;border-color:var(--acc)!important;color:var(--acc)!important}
 @keyframes xp-pulse{0%{color:var(--t2)}40%{color:var(--acc);font-weight:bold}100%{color:var(--t2)}}
 .xp-pulse{animation:xp-pulse 0.8s ease-out;}
 ::-webkit-scrollbar{width:6px;height:6px}

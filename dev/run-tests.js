@@ -1142,6 +1142,29 @@ try {
     console.error("SERVER TTS CONTRACT: the paid Gemini tier must sit ABOVE the free tiers, so a failure degrades toward free rather than toward spend. Got: " + _lad.join(" → "));
     process.exit(1);
   }
+  // #41 (v1.648): the ▶ Test pulse. Two clauses no headless test can reach, because the audition
+  // path runs through the queue and a real AudioContext.
+  //   ⓐ ORDER: testGeminiVoice must arm its phase callback AFTER its own stop() call. stop() signals
+  //     "idle" to cancel a previous audition, so arming first has stop() immediately clear the brand
+  //     new callback and the button never pulses at all — a silent, plausible-looking failure.
+  //   ⓑ stop() must signal idle, or a modal closed mid-fetch leaves the button pulsing forever.
+  var _tgS = _ncS((_ttsS.match(/function testGeminiVoice\([\s\S]*?\n  \}\n/) || [""])[0]);
+  if (_tgS) {
+    var _iStop = _tgS.indexOf("stop()"), _iArm = _tgS.indexOf("_auditionCb =");
+    if (_iStop < 0 || _iArm < 0) {
+      console.error("GEMINI TTS CONTRACT: testGeminiVoice no longer both stops the previous read and arms the audition callback — the ▶ Test pulse depends on both.");
+      process.exit(1);
+    }
+    if (_iArm < _iStop) {
+      console.error("GEMINI TTS CONTRACT: testGeminiVoice arms its phase callback BEFORE stop() — stop() signals idle, so it will clear the callback that was just set and the ▶ Test button will never pulse (v1.648).");
+      process.exit(1);
+    }
+  }
+  var _stopS = _ncS((_ttsS.match(/function stop\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  if (_stopS && _stopS.indexOf("_auditionPhase") < 0) {
+    console.error("GEMINI TTS CONTRACT: stop() no longer clears the audition phase — a settings modal closed mid-fetch leaves the ▶ Test button pulsing forever (v1.648).");
+    process.exit(1);
+  }
   // ⑤ v1.436 (field lesson): ▶ Test auditions through the server tier when it's up — a local
   //    Test on a server-tier page boots the wasm engine and spends governor budget for nothing.
   var _tvS = _ncS((_ttsS.match(/function testVoice\([\s\S]*?\n  \}\n/) || [""])[0]);

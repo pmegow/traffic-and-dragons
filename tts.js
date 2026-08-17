@@ -2313,16 +2313,16 @@ var TTS = (function() {
     var myEpoch = ++_piperEpoch;
 
     var ctx = _ensureCtx();
-    if (!ctx) { console.warn("[tts gemini] AudioContext unavailable — line falls back to native"); _curNative = true; _speakNative(text); return; }
+    if (!ctx) { console.warn("[tts gemini] AudioContext unavailable — line falls back to native"); _auditionPhase("idle"); _curNative = true; _speakNative(text); return; }
     var ctxOk = await _ctxRunning(ctx);
     if (_piperEpoch !== myEpoch) return;
-    if (!ctxOk) { _ctxBlockedLoud("Gemini TTS"); _curNative = true; _speakNative(text); return; }
+    if (!ctxOk) { _ctxBlockedLoud("Gemini TTS"); _auditionPhase("idle"); _curNative = true; _speakNative(text); return; }
     primeAudioSession();
     _armCtxWatch("Gemini TTS");
     _armPosState(ctx);
 
     var units = splitSentences(text, null, true);   // same prep as the other cloud tier
-    if (!units.length) { _drain(); return; }
+    if (!units.length) { _auditionPhase("idle"); _drain(); return; }
     var groups = _geminiGroupUnits(units, voiceId, voices, forceVoice);
 
     _sources = [];
@@ -2334,7 +2334,7 @@ var TTS = (function() {
     var key        = _geminiKey();
     var direction  = (typeof dirOverride === "string" && dirOverride) ? dirOverride : geminiDirection();
 
-    function onAllDone() { _sources = []; _nextStart = 0; _drain(); }
+    function onAllDone() { _sources = []; _nextStart = 0; _auditionPhase("idle"); _drain(); }
 
     for (var i = 0; i < groups.length; i++) {
       if (_piperEpoch !== myEpoch) return;
@@ -2419,6 +2419,7 @@ var TTS = (function() {
         continue;
       }
 
+      if (!anyOk) _auditionPhase("playing");   // FIRST scheduled audio — the pulse has done its job
       anyOk = true;
       var src = ctx.createBufferSource();
       src.buffer = buf;
@@ -2444,12 +2445,13 @@ var TTS = (function() {
     if (_piperEpoch !== myEpoch) return;
     if (!anyOk && !handedOff) {
       console.warn("[tts gemini] no group produced audio and nothing was handed off — falling back to native for this line");
+      _auditionPhase("idle");
       _curNative = true;
       _speakNative(text);
       return;
     }
     if (activeSrcs === 0) {
-      if (handedOff) _drain();
+      if (handedOff) { _auditionPhase("idle"); _drain(); }
       else onAllDone();
     }
   }
@@ -3004,6 +3006,10 @@ var TTS = (function() {
     _playing = false;
     _paused  = false;
     _showBar(false);
+    // #41: a stop mid-fetch (modal closed, Stop pressed, a second Test press) leaves the audition's
+    // in-flight loop to return stale, so its own idle signal never fires — clear it from here or
+    // the ▶ Test button pulses forever.
+    _auditionPhase("idle");
   }
 
   // Breadcrumb (v1.324): a crash-killed tab can't log, so _speakPiper journals per-unit progress to
@@ -3577,7 +3583,17 @@ var TTS = (function() {
   var GEMINI_TEST_LINE = "The lamps gutter as the door swings wide, and the hall falls quiet. " +
                          "\"You are late,\" she says, not looking up from the map. " +
                          "Rain runs from your cloak onto the flagstones.";
-  function testGeminiVoice(voiceName, dirOverride) {
+  // Audition progress signal. The pulse must be driven by the REAL milestone — the moment a buffer
+  // source is actually scheduled — not by a timer, or it would keep pulsing through a failure and
+  // lie about what is happening. "idle" fires on completion, hand-off, and native fallback alike,
+  // so there is no path that leaves the button stuck pulsing.
+  var _auditionCb = null;
+  function _auditionPhase(p) {
+    var cb = _auditionCb;
+    if (p === "idle") _auditionCb = null;
+    if (typeof cb === "function") { try { cb(p); } catch (e) {} }
+  }
+  function testGeminiVoice(voiceName, dirOverride, onPhase) {
     if (!_geminiKey()) {
       if (typeof showToast === "function") showToast("Add a Gemini API key first (Language Model…)");
       return;
@@ -3586,7 +3602,12 @@ var TTS = (function() {
     // A test press is an explicit "try it now", so it clears any open degrade window rather than
     // silently doing nothing for up to 60s after an earlier failure.
     _geminiTtsErr = ""; _geminiTtsErrAt = 0;
+    // ORDER IS LOAD-BEARING: stop() signals "idle" to cancel any previous audition's pulse, so the
+    // new callback must be armed AFTER it — arming first would have stop() immediately clear it and
+    // the button would never pulse at all.
     stop();
+    _auditionCb = (typeof onPhase === "function") ? onPhase : null;
+    _auditionPhase("loading");
     _queue.push({ text: GEMINI_TEST_LINE, gemini: true, voiceId: "", forceVoice: v,
                   dir: (typeof dirOverride === "string" && dirOverride) ? dirOverride : "" });
     _drain();
@@ -3783,9 +3804,17 @@ var TTS = (function() {
     if (gemTest) gemTest.addEventListener("click", function() {
       var sel = document.getElementById("tts-gem-narr");
       var dir = document.getElementById("tts-gem-dir");
+      var btn = this;
       // Read both from the DOM, not the store: the point of Test is hearing what is on screen,
       // including a direction the user has typed but not yet blurred out of.
-      testGeminiVoice(sel ? sel.value : "", dir ? dir.value : "");
+      testGeminiVoice(sel ? sel.value : "", dir ? dir.value : "", function(phase) {
+        // Cloud synthesis is silent for ~2-3s before the first sample plays; without this the
+        // button looks dead. Driven by the real milestone, so it stops the instant audio is
+        // scheduled — and every failure path signals idle too, so it can't stick.
+        if (!btn) return;
+        if (phase === "loading") { btn.classList.add("tts-testing"); btn.innerHTML = "&#9654; …"; }
+        else { btn.classList.remove("tts-testing"); btn.innerHTML = "&#9654; Test"; }
+      });
     });
     var gemDir = document.getElementById("tts-gem-dir");
     if (gemDir) gemDir.addEventListener("change", function() { store.set(GEMINI_DIR_K, this.value || ""); });
@@ -3920,7 +3949,8 @@ var TTS = (function() {
                keys: { on: GEMINI_TTS_K, dir: GEMINI_DIR_K, narr: GEMINI_NARRATOR_K },
                degradeState: function() { return { err: _geminiTtsErr, at: _geminiTtsErrAt }; },
                resetDegrade: function() { _geminiTtsErr = ""; _geminiTtsErrAt = 0; },
-               testLine: GEMINI_TEST_LINE },
+               testLine: GEMINI_TEST_LINE,
+               phase: _auditionPhase, setPhaseCb: function(fn) { _auditionCb = fn; } },
     testGeminiVoice: testGeminiVoice,   // #41: audition one Gemini voice (settings-modal ▶ Test)
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit, unitGap: unitGap,
                  pauses: function() { return { comma: PAUSE_COMMA, clause: PAUSE_COMMA_CLAUSE, fullstop: PAUSE_FULLSTOP, paragraph: PAUSE_PARAGRAPH }; } },

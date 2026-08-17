@@ -7410,6 +7410,17 @@ function runEngineTests(R){
     _gemClean();
     return bad.length===0 ? true : "forceVoice ignored — got "+g.map(function(x){return x.voice;}).join(",");
   });
+  // The pulse's whole job is honesty about an in-flight request, so the failure that matters is a
+  // button left pulsing forever. stop() must clear it, and — the trap hit while building this —
+  // testGeminiVoice must arm its callback AFTER its own stop() call, or the pulse never starts.
+  t("audition phase signal delivers to the button and clears itself on idle",function(){
+    var seen=[];
+    GEM.setPhaseCb(function(p){seen.push(p);});
+    GEM.phase("loading"); GEM.phase("playing"); GEM.phase("idle");
+    GEM.phase("loading");   // after idle the cb is released — a stale button must not be re-driven
+    if(seen.join(",")!=="loading,playing,idle") return "signal sequence wrong: "+seen.join(",");
+    return true;
+  });
   t("audition sample line carries narration AND quoted speech — where overacting shows",function(){
     var L=GEM.testLine||"";
     if (L.length<40) return "test line too short to judge delivery";
