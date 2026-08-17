@@ -1,0 +1,172 @@
+<title>Gemini TTS Feasibility</title>
+<style>
+:root{
+  --bg:#f7f1e6; --ink:#2b2620; --dim:#8a7f6d; --line:#e3d8c4; --panel:#fdf9f0;
+  --acc:#b8935a; --acc-ink:#8a6a38;
+  --pass:#5a7a4d; --pass-bg:#eef0e2;
+  --fail:#a04a38; --fail-bg:#f5e6e0;
+  --warn:#a0783c; --warn-bg:#f4ecda;
+  --mono:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+    --acc:#c9a568; --acc-ink:#c9a568;
+    --pass:#8fae7c; --pass-bg:#232a1e;
+    --fail:#c97b66; --fail-bg:#31211c;
+    --warn:#c79a55; --warn-bg:#2c2517;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+  --acc:#c9a568; --acc-ink:#c9a568;
+  --pass:#8fae7c; --pass-bg:#232a1e;
+  --fail:#c97b66; --fail-bg:#31211c;
+  --warn:#c79a55; --warn-bg:#2c2517;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Georgia,'Iowan Old Style','Times New Roman',serif}
+.wrap{max-width:min(96vw,1500px);margin:0 auto;padding:48px 24px 80px}
+header{border-bottom:2px solid var(--acc);padding-bottom:22px;margin-bottom:26px;max-width:1080px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-ink);margin:0 0 12px}
+h1{font-size:30px;line-height:1.2;margin:0 0 10px;font-weight:700;text-wrap:balance}
+.standfirst{font-size:16px;font-style:italic;color:var(--dim);margin:0;max-width:70ch}
+h2{font-size:19px;margin:40px 0 4px}
+h2 + .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+p{margin:0 0 14px;max-width:75ch}
+a{color:var(--acc-ink)}
+li{max-width:72ch;margin-bottom:7px}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:12px;padding:2px 8px;border:1px solid;white-space:nowrap}
+.chip.pass{color:var(--pass);border-color:var(--pass);background:var(--pass-bg)}
+.chip.fail{color:var(--fail);border-color:var(--fail);background:var(--fail-bg)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.tablewrap{overflow-x:auto;margin:16px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.45;min-width:760px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--acc);background:var(--panel)}
+tbody th{font-weight:700;font-size:13.5px;white-space:nowrap;background:var(--panel)}
+td .n,.n{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+td .sub,.sub{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+.defs{max-width:1080px;border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--panel);border-radius:4px;padding:14px 18px;margin:18px 0;font-size:14px}
+.defs p:last-child{margin-bottom:0}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 22px}
+.win{color:var(--pass);font-weight:700}
+.bad{color:var(--fail);font-weight:700}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Traffic and Dragons &middot; TTS provider research &middot; August 16, 2026</p>
+  <h1>Gemini TTS &mdash; feasibility</h1>
+  <p class="standfirst">Can the savings from a cheaper GM model pay for a premium voice? Costed against our own measured prose volume, not vendor examples. Research only &mdash; no code was written.</p>
+</header>
+
+<p>Commissioned off one observation: opus-5 costs 16&ndash;18&times; gemini-3.7-flash-low per 50 turns and is not 16&ndash;18&times; better, so the difference could buy something else. This page tests whether "something else" can be Gemini's TTS.</p>
+
+<div class="defs">
+  <p><strong>Bottom line.</strong> <span class="chip pass">viable</span> The arithmetic works, and better than expected: moving the <em>default</em> from sonnet-5 to gemini-3.7-flash-low frees <span class="n">$2.14</span> per 50 turns, and premium Gemini voice on that same run costs <span class="n">$1.21</span>. The voiced experience lands <strong><span class="n">$0.93 cheaper than today's silent-tier default</span></strong>.</p>
+  <p>Two caveats decide whether it ships: Car Mode needs <strong>streaming</strong>, which exists only on the <span class="n">3.1</span> model at the <em>higher</em> $20/1M rate; and all three TTS models are <strong>preview</strong>, with restrictive rate limits and no stability promise.</p>
+</div>
+
+<h2>What Gemini TTS actually is</h2>
+<p class="kicker">verified against Google's own docs, not blog aggregators</p>
+
+<ul>
+  <li><strong>Three models:</strong> <span class="n">gemini-3.1-flash-tts-preview</span>, <span class="n">gemini-2.5-flash-preview-tts</span>, <span class="n">gemini-2.5-pro-preview-tts</span>. All are <em>preview</em>: "may change before becoming stable and have more restrictive rate limits."</li>
+  <li><strong>Streaming: 3.1 and later only.</strong> "Streaming is supported for Text-to-Speech (TTS) models starting with version 3.1." This is the single most decision-relevant fact on the page &mdash; see Car Mode below.</li>
+  <li><strong>30 prebuilt named voices</strong> (Kore, Puck, Zephyr, Enceladus&hellip;), each with a described character &mdash; Bright, Upbeat, Breathy.</li>
+  <li><strong>Multi-speaker up to 2</strong> per call, via <span class="n">multi_speaker_voice_config</span>.</li>
+  <li><strong>Natural-language style control.</strong> "Say in a spooky whisper", per-speaker emotional direction, and inline modifiers like <span class="n">[whispers]</span> / <span class="n">[laughs]</span>.</li>
+  <li><strong>32k token context per TTS session</strong>; automatic input-language detection across a wide language set.</li>
+</ul>
+
+<p>The style control is the genuinely interesting part for this product, and it is not a gimmick here: we already have a validated voice-attribution layer (<strong>#96 <span class="n">[SAY:]</span></strong>, field-confirmed by the owner) that knows which character is speaking. Feeding that layer's output into per-utterance emotional direction is the natural next move, and no other tier we have can do it &mdash; Piper renders a flat read.</p>
+
+<h2>Pricing, verified</h2>
+<p class="kicker">paid tier, per 1M tokens</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Model</th><th>Text in</th><th>Audio out</th><th>Batch out</th><th>Streaming</th><th>Free tier</th></tr></thead>
+<tbody>
+<tr><th>gemini-3.1-flash-tts-preview</th><td><span class="n">$1.00</span></td><td><span class="n">$20.00</span></td><td><span class="n">$10.00</span></td><td><span class="chip pass">yes</span></td><td>yes</td></tr>
+<tr><th>gemini-2.5-flash-preview-tts</th><td><span class="n">$0.50</span></td><td><span class="n">$10.00</span></td><td><span class="n">$5.00</span></td><td><span class="chip fail">no</span></td><td>yes</td></tr>
+<tr><th>gemini-2.5-pro-preview-tts</th><td><span class="n">$1.00</span></td><td><span class="n">$20.00</span></td><td><span class="n">$10.00</span></td><td><span class="chip fail">no</span></td><td>no</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>Billing is by audio duration, not by character:</strong> audio output bills at <strong>25 tokens per second</strong> of synthesized speech. (Cross-checked against a worked example: a 60-second clip = 1,500 tokens = $0.03 at $20/1M.) That is a meaningful difference from Cartesia's per-character model &mdash; the pain documented in #12/#41 &mdash; but it does <em>not</em> make prose length free. Characters drive duration, so length still multiplies the bill, just one step removed.</p>
+
+<h2>The cost model</h2>
+<p class="kicker">our measured chars/turn &middot; 50-turn campaign &middot; not vendor examples</p>
+
+<p>Each arm's character count is the real average from its committed corpus. Speech rate is assumed at <strong>15 chars/second</strong> (~150 wpm); sensitivity is shown below and this is the one number that should be measured before anything is committed.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Arm</th><th>Chars / 50 turns</th><th>Audio</th><th>TTS @ $10/1M<br><span class="sub">2.5-flash, no streaming</span></th><th>TTS @ $20/1M<br><span class="sub">3.1-flash, streaming</span></th><th>GM cost</th><th>Total (3.1)</th></tr></thead>
+<tbody>
+<tr><th>gpt-5.6-sol</th><td><span class="n">17,550</span></td><td><span class="n">20 min</span></td><td><span class="n">$0.29</span></td><td><span class="n">$0.58</span></td><td><span class="n">~$2.25</span></td><td><span class="n">$2.83</span></td></tr>
+<tr><th>gemini-3.7 (low)</th><td><span class="n">36,350</span></td><td><span class="n">40 min</span></td><td><span class="n">$0.61</span></td><td><span class="n">$1.21</span></td><td><span class="n">~$0.50</span></td><td><span class="n win">$1.71</span></td></tr>
+<tr><th>claude-sonnet-5</th><td><span class="n">47,550</span></td><td><span class="n">53 min</span></td><td><span class="n">$0.79</span></td><td><span class="n">$1.58</span></td><td><span class="n">$2.64</span></td><td><span class="n">$4.22</span></td></tr>
+<tr><th>claude-opus-5</th><td><span class="n">77,200</span></td><td><span class="n">86 min</span></td><td><span class="n">$1.29</span></td><td><span class="n">$2.57</span></td><td><span class="n">~$8.50</span></td><td><span class="n bad">$11.07</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>Speech-rate sensitivity</strong> (gemini-low at $20/1M): 13 chars/s &rarr; <span class="n">$1.40</span> &middot; 15 chars/s &rarr; <span class="n">$1.21</span> &middot; 17 chars/s &rarr; <span class="n">$1.07</span>. A &plusmn;13% error in the assumption moves the answer by &plusmn;$0.17 per 50 turns, which does not change any conclusion here.</p>
+
+<h2>The decision this actually forces</h2>
+<p class="kicker">the swap that pays for itself</p>
+
+<p>opus-5's savings were already banked when it was unlisted at v1.643, so "spend the opus savings" is not quite the live trade. The live trade is the <em>default</em>:</p>
+
+<div class="defs">
+  <p><strong>Today:</strong> sonnet-5 default, silent tier (self-hosted Piper, ~$0 marginal) = <span class="n">$2.64</span> / 50 turns.</p>
+  <p><strong>Proposed:</strong> gemini-3.7-flash-low default + Gemini 3.1 streaming voice = <span class="n">$0.50 + $1.21 = $1.71</span> / 50 turns.</p>
+  <p><strong>Net: <span class="win">$0.93 cheaper</span>, with a dramatically better voice added rather than removed.</strong></p>
+</div>
+
+<p>The honest counterweight: today's TTS marginal cost is approximately <em>zero</em>, because we self-host Piper. This introduces a real per-use COGS line where none existed. The trade is only favourable because the GM-side saving is larger than the voice-side cost &mdash; it is not free money, it is a good exchange rate.</p>
+
+<p>And note the second-order effect, which is the same one the owner identified for Car Mode usability: <strong>prose length is now a cost multiplier on both sides of a turn.</strong> opus-5's 1,544 chars/turn costs 2.1&times; gemini-low's to speak and ~17&times; to generate. Terser prose is cheaper twice and easier to follow while driving. Three independent arguments now point the same way.</p>
+
+<h2>Architecture &mdash; smaller than expected</h2>
+<p class="kicker">this may need no client change at all</p>
+
+<p>The obvious shape is a fourth <span class="n">TTS_PROVIDERS</span> entry. That is probably the <em>wrong</em> one. The <strong>server tier already exists and already proxies</strong>: the client POSTs <span class="n">/api/tts</span> to the <span class="n">tnd-tts</span> Fly app, which today runs Piper daemons server-side. Swapping <em>that backend</em> to Gemini means:</p>
+
+<ul>
+  <li>The client ladder stays byte-identical &mdash; <span class="n">server &rarr; piper &rarr; native</span>, unchanged.</li>
+  <li>The whole degradation story is inherited free: the 60s retry memo, per-item downgrade-to-native, the once-per-session degrade toast.</li>
+  <li><strong>Piper remains the $0 offline floor</strong>, exactly as the #90/#41 design requires. This is additive, never a replacement.</li>
+  <li>Zero exposure to the client-side drift surface. The change lives in the server repo (<span class="n">tts/</span>), deployed with <span class="n">flyctl</span>.</li>
+</ul>
+
+<p>The 2-speaker cap is a non-issue for the same reason: our queue already synthesizes <em>per unit</em> with a per-unit <span class="n">voiceId</span> (the <span class="n">voices</span> map), so each utterance is a single-speaker call carrying its own cast voice. The real work is a curated <strong>voice bank</strong> mapping the 30 prebuilt Gemini voices into the #174 casting flow (sheet gender &rarr; pronouns &rarr; starred bench). That is data, not architecture.</p>
+
+<h2>Risks and open unknowns</h2>
+<p class="kicker">what would have to be settled first</p>
+
+<ul>
+  <li><span class="chip warn">blocker-ish</span> <strong>Preview status.</strong> All three models are preview, with "more restrictive rate limits" and no stability guarantee. This project has already been bitten by retired Gemini IDs returning 404. A shipped tier on a preview model needs the ladder as a genuine safety net, plus acceptance that it can break on Google's schedule.</li>
+  <li><span class="chip warn">measure</span> <strong>Time to first audio.</strong> Unmeasured, and Car Mode is the demanding case. Our current server chain already hit 10.17s cold, which is why <span class="n">SERVER_TTS_TIMEOUT_FIRST_MS</span> is 15s. Streaming should help materially, but "should" is not a measurement.</li>
+  <li><span class="chip warn">measure</span> <strong>The 15 chars/sec assumption</strong> &mdash; one real synthesis of a known passage settles it and firms every dollar above.</li>
+  <li><span class="chip fail">decided elsewhere</span> <strong>Who pays.</strong> On a player's own key this repeats precisely the objection that killed LiveKit &mdash; per-use cost riding the player's key. It only makes sense server-proxied under the subscription model (BYOK-elimination ruling, 2026-08-16), which is also the architecture recommended above.</li>
+  <li><span class="chip warn">probe</span> <strong>Free tier.</strong> 3.1-flash and 2.5-flash both list a free tier. Its limits are unstated here and worth probing &mdash; it may cover development and early play entirely.</li>
+  <li><strong>Rate limits vs burst shape.</strong> A game turn produces a burst of short units, not one long clip. Preview rate limits are per-minute; the queue may need pacing that Piper never required.</li>
+</ul>
+
+<h2>Recommended next step</h2>
+<p class="kicker">no code was written for this page</p>
+
+<p>The cheapest decisive experiment is a <strong>one-off synthesis probe against the real thing</strong>: take a genuine 700-character narration turn from the low-thinking corpus, synthesize it on <span class="n">gemini-3.1-flash-tts-preview</span> with a cast voice and one <span class="n">[SAY:]</span>-style emotional direction, and measure three numbers &mdash; time to first audio, actual audio duration (settling chars/sec), and billed audio tokens. That converts every estimate on this page into a measurement for a few cents, and it also answers the question no spreadsheet can: <em>does it sound good enough to be worth a new COGS line?</em></p>
+
+<footer>
+  <span>Traffic and Dragons &middot; engine v1.645</span>
+  <span>Costs from committed corpora (v1640/v1642/v1644)</span>
+  <span>Pricing verified at ai.google.dev, August 16 2026</span>
+  <span>Research only &mdash; no code</span>
+</footer>
+</div>
