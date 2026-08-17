@@ -7564,6 +7564,20 @@ function runEngineTests(R){
     if(GEM.quotaWaitMs(0,b.length)!==-1) return "the schedule never runs out — a read could wait forever";
     return true;
   });
+  // #41e (owner field report + proposed fix): a SHORT opening group with a voice change next
+  // starts and immediately hangs — group 2 isn't synthesized when group 1's 3 seconds run out.
+  // The first schedule holds until the seam is covered, conditionally and bounded.
+  t("#41e prime-the-pump: a short opener with an uncovered seam HOLDS; seam-covered, long-lead, single-group, and hold-cap all release",function(){
+    function fake(sec){ return { b64: new Array(Math.round(sec*2*24000/0.75)+1).join("A"), rate:24000 }; }
+    if(GEM.primeReady([fake(3)],1,0)!==true) return "a single-group read held (no seam to protect)";
+    if(GEM.primeReady([fake(3)],4,0)!==false) return "a 3s opener with an uncovered voice-change seam started anyway — the owner's hang verbatim";
+    if(GEM.primeReady([fake(3),fake(9)],4,0)!==true) return "seam covered (group 2 landed) but still holding";
+    if(GEM.primeReady([fake(GEM.minLeadSec+1)],4,0)!==true) return "a long opener held despite carrying the lead runway alone";
+    if(GEM.primeReady([fake(3)],4,8001)!==true) return "the hold never capped — a monster group 2 delays the open forever";
+    if(GEM.primeReady([],4,0)!==false) return "an empty prefix reported ready";
+    var d=GEM.b64Sec(fake(6));
+    return (d>5.5&&d<6.5)?true:"b64 duration math off: "+d;
+  });
   t("#41d a quota hint EXTENDS the degrade window (capped) and reset clears it — a closed quota is not re-probed every 60s",function(){
     GEM.resetDegrade();
     GEM.degrade("quota exhausted — Google asks for 1986s",1986000);

@@ -51,7 +51,15 @@ rc |= sabotage.prove({
     { label: "#41d degrade-window extension dropped — a closed quota gets a probe request burned against it every 60s",
       mustFail: "quota hint EXTENDS the degrade window",
       find: "    _geminiTtsErrFor = Math.min(Math.max(forMs || GEMINI_TTS_RETRY_MS, GEMINI_TTS_RETRY_MS), GEMINI_TTS_DEGRADE_CAP_MS);",
-      replace: "    _geminiTtsErrFor = GEMINI_TTS_RETRY_MS;" }
+      replace: "    _geminiTtsErrFor = GEMINI_TTS_RETRY_MS;" },
+    { label: "#41e prime hold gutted — the short-opener voice-change hang returns exactly as the owner heard it",
+      mustFail: "a short opener with an uncovered seam HOLDS",
+      find: "    if (totalGroups < 2) return true;                      // no seam to protect",
+      replace: "    if (totalGroups < 99) return true;                      // no seam to protect" },
+    { label: "#41e lead-runway release broken — a long opener that covers the seam alone still holds the full cap",
+      mustFail: "a long opener held despite carrying the lead runway alone",
+      find: "    if (_geminiB64Sec(prefix[0]) >= GEMINI_TTS_MIN_LEAD_SEC) return true;",
+      replace: "" }
   ]
 });
 

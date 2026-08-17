@@ -326,6 +326,27 @@ var TTS = (function() {
     if (tries < GEMINI_TTS_429_BACKOFF_MS.length) return GEMINI_TTS_429_BACKOFF_MS[tries];
     return -1;
   }
+  // #41e "prime the pump" (owner field report: a SHORT first group — one quick quote — with a
+  // voice change on the next sentence starts and almost immediately hangs: group 2's synthesis
+  // is nowhere near done when group 1's 3 seconds run out). The first schedule now HOLDS until
+  // the opening seam is covered: group 2 landed, OR the contiguous landed audio already carries
+  // GEMINI_TTS_MIN_LEAD_SEC of runway, OR the hold has cost GEMINI_TTS_PRIME_MAX_MS (a monster
+  // group 2 must delay the open by a bounded amount, never indefinitely). Owner-proposed shape,
+  // conditional rather than flat: the common case (small group 2 lands 1-2s later) barely holds.
+  var GEMINI_TTS_MIN_LEAD_SEC = 8;
+  var GEMINI_TTS_PRIME_MAX_MS = 8000;
+  function _geminiB64Sec(r) {   // duration of a landed result WITHOUT decoding: base64 → PCM16 bytes → seconds
+    if (!r || !r.b64) return 0;
+    return (r.b64.length * 0.75) / 2 / (r.rate || 24000);
+  }
+  // Pure decision over the CONTIGUOUS landed prefix (index 0 upward): may playback start?
+  function _geminiPrimeReady(prefix, totalGroups, heldMs) {
+    if (totalGroups < 2) return true;                      // no seam to protect
+    if (!prefix || !prefix.length) return false;           // nothing to schedule yet
+    if (prefix.length >= 2) return true;                   // the opening seam itself is covered
+    if (_geminiB64Sec(prefix[0]) >= GEMINI_TTS_MIN_LEAD_SEC) return true;
+    return heldMs >= GEMINI_TTS_PRIME_MAX_MS;              // bounded hold — never forever
+  }
   // Abort-interruptible sleep: a skip mid-wait resolves immediately instead of letting a 30s
   // quota wait outlive the read (the #41c check ran only AFTER the full wait).
   function _geminiWait(ms, signal) {
@@ -534,6 +555,7 @@ var TTS = (function() {
         if (s.results[s.taken] !== undefined) wake();
       },
       ready:  function() { return s.results[s.taken] !== undefined; },
+      peek:   function(ix) { return s.results[ix]; },   // #41e: non-consuming — the prime hold reads the landed prefix through this
       take:   function() { if (s.halted) return { fail: "halted" }; var r = s.results[s.taken]; delete s.results[s.taken]; s.taken++; pump(); return r; },
       halt:   function() { s.halted = true; wake(); },
       halted: function() { return s.halted; },
@@ -2542,6 +2564,23 @@ var TTS = (function() {
       var g = groups[i];
       while (_piperEpoch === myEpoch && !conv.ready() && !conv.halted()) await conv.waitReady();
       if (_piperEpoch !== myEpoch) { abortAll(); return; }
+      if (i === 0) {
+        // #41e prime the pump: group 1 has landed, but if it is short and a voice change follows,
+        // scheduling it now buys 3 seconds of audio and a hang at the first seam. Hold (bounded,
+        // poll — landings for indexes past `taken` don't wake waitReady) until the seam is covered.
+        var primeT0 = Date.now();
+        for (;;) {
+          if (_piperEpoch !== myEpoch) { abortAll(); return; }
+          if (conv.halted()) break;
+          var first = conv.peek(0);
+          if (first && first.fail) break;   // a failed opener goes straight to the hand-off — holding it 8s serves nobody
+          var prefix = [], pj;
+          for (pj = 0; pj < groups.length; pj++) { var pr = conv.peek(pj); if (!pr || pr.fail) break; prefix.push(pr); }
+          if (_geminiPrimeReady(prefix, groups.length, Date.now() - primeT0)) break;
+          await new Promise(function(res) { setTimeout(res, 200); });
+        }
+        if (_piperEpoch !== myEpoch) { abortAll(); return; }
+      }
       var got = conv.take();
 
       if (!got || got.fail) {
@@ -4103,6 +4142,7 @@ var TTS = (function() {
                backoff429: function() { return GEMINI_TTS_429_BACKOFF_MS.slice(); },
                quotaWaitMs: _geminiQuotaWaitMs, hintCapMs: GEMINI_TTS_429_HINT_CAP_MS,  // #41d
                degrade: _geminiTtsDegrade,
+               primeReady: _geminiPrimeReady, b64Sec: _geminiB64Sec, minLeadSec: GEMINI_TTS_MIN_LEAD_SEC,  // #41e
                pcm: _pcm16ToAudioBuffer, ladder: function() { return TTS_LADDER.slice(); },
                keys: { on: GEMINI_TTS_K, dir: GEMINI_DIR_K, narr: GEMINI_NARRATOR_K },
                degradeState: function() { return { err: _geminiTtsErr, at: _geminiTtsErrAt, forMs: _geminiTtsErrFor }; },
