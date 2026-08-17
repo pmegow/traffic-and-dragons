@@ -14173,6 +14173,80 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return w2DeathAuthorized("Barlow","cloaked",95)?"summary-retired sealed evidence still authorizes":true;
   });
 
+  /* #175b — the t1903 Caul class. A NAMED victim the engine has already established on screen has
+     no referential ambiguity for a scene handle to resolve: handles exist for ANONYMOUS actors.
+     Refusing those deaths cost the t1903 campaign two quarantined transactions (1400+1200 XP, 600
+     gold, a quest completion) while the GM narrated the death anyway — canon and state diverged in
+     the direction the whole W2 layer exists to prevent. Structured presence (introduction + an
+     earlier roster write / engagement / recorded co-location) is admitted as a positive binding
+     for the NAME path ONLY; every handle-mediated path keeps its original strictness. */
+  t("#175b: a named victim with structured presence evidence authorizes a bare death while the ledger is active",function(){
+    makeWorld();r168Npc("Caul");
+    var n=wsNpcByName("Caul");n.introduced=1852;n.statusTurn=1878;
+    worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?]");/* an active ledger that never bound Caul */
+    worldState.turn=1902;
+    if(!w2DeathAuthorized("Caul",null))return "structured presence did not authorize the named death";
+    applyMuts("[NPC:Caul|dead|enemy]");
+    return npcIsDead(wsNpcByName("Caul"))?true:"the bare named death was still refused";
+  });
+
+  t("#175b: a named victim with NO structured presence is still refused",function(){
+    makeWorld();r168Npc("Thessaly");/* rostered but never introduced, no earlier roster write */
+    worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=1902;
+    if(w2DeathAuthorized("Thessaly",null))return "a name with no presence evidence authorized";
+    applyMuts("[NPC:Thessaly|dead|enemy]");
+    return npcIsDead(wsNpcByName("Thessaly"))?"an unproven named death committed":true;
+  });
+
+  t("#175b: presence evidence stamped THIS turn cannot authorize its own response's death",function(){
+    makeWorld();r168Npc("Karg");
+    var n=wsNpcByName("Karg");n.introduced=1902;n.statusTurn=1902;
+    worldState.turn=1902;applyMuts("[SCENE_REF:onlooker|?]");
+    if(w2DeathAuthorized("Karg",null))return "same-turn presence authorized";
+    return true;
+  });
+
+  t("#175b: the handle path keeps its original strictness — an explicit negative still refuses an introduced, rostered victim",function(){
+    makeWorld();r168Npc("Mokmurian");
+    var n=wsNpcByName("Mokmurian");n.introduced=1600;n.statusTurn=1640;
+    worldState.turn=1647;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=1648;
+    if(w2DeathAuthorized("Mokmurian","scholar"))return "the t1667 disidentified-handle death authorized";
+    return true;
+  });
+
+  t("#175b: a transaction whose handle IS the victim's own name commits under structured presence (the t1903 GM shape)",function(){
+    makeWorld();r168Npc("Caul");r168Quest("The Shore District Caul","Confirm what Caul is");
+    var n=wsNpcByName("Caul");n.introduced=1852;n.statusTurn=1878;
+    worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=1902;var xp0=worldState.character.xp;
+    applyMuts("[CANON_TXN_BEGIN:caul-1|npc-death|Caul|caul|The Shore District Caul][SCENE_DEATH:caul][NPC:Caul|dead|enemy][XP:1200][CANON_TXN_END:caul-1]");
+    var r=null,i;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="caul-1")r=worldState.canonTxns[i];
+    if(!r||r.status!=="committed")return "receipt: "+(r?r.status+" / "+r.reason:"none");
+    if(!npcIsDead(wsNpcByName("Caul")))return "the committed transaction did not stamp the death";
+    return worldState.character.xp===xp0+1200?true:"the envelope's XP did not land";
+  });
+
+  t("#175b: a self-naming handle still refuses when the story explicitly disidentified that entity",function(){
+    makeWorld();r168Npc("Mokmurian");
+    var n=wsNpcByName("Mokmurian");n.introduced=1600;n.statusTurn=1640;
+    worldState.turn=1647;applyMuts("[SCENE_REF:seeming|?][SCENE_NOT:seeming|Mokmurian|explicit]");
+    worldState.turn=1648;
+    if(w2DeathAuthorized("Mokmurian","Mokmurian"))return "an explicit on-screen disidentification was overridden by roster paperwork";
+    applyMuts("[NPC:Mokmurian|dead|enemy]");
+    return npcIsDead(wsNpcByName("Mokmurian"))?"the disidentified victim was stamped dead":true;
+  });
+
+  t("#175b: an anonymous handle naming nobody on the roster keeps the original strict path",function(){
+    makeWorld();r168Npc("Ilma");
+    var n=wsNpcByName("Ilma");n.introduced=10;n.statusTurn=12;
+    worldState.turn=40;applyMuts("[SCENE_REF:bystander|?]");
+    worldState.turn=41;
+    if(w2DeathAuthorized("Ilma","hooded stranger"))return "an unbound anonymous handle authorized a death";
+    return true;
+  });
+
   t("R8d: the bond-change queue cap refuses the over-cap change loudly without mutating the bond (vs REL_BOND_CHANGE_CAP)",function(){
     makeWorld();var i,R={muts:[]};worldState.turn=10;
     worldState.character.relationships=[];

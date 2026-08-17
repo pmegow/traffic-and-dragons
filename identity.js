@@ -776,12 +776,85 @@ function _w2StampDead(name,turn,R){
   var canon=resolveNpcName(name),n=(typeof wsNpcByName==="function")?wsNpcByName(canon):null,m=memory.npcs&&memory.npcs[canon];if(!n&&!m)return false;
   if(n){n.dead=turn;if(!npcDeadStatus(n.status))n.status="dead";n.statusTurn=turn;}if(m)m.dead=turn;_w2ResolveConflicts(canon,null);if(R)R.muts.push(canon+": dead (t"+turn+")");return true;
 }
-function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);if(!hit){_w2Conflict("unknown",handle,"death names no observed handle");return false;}hit.actor.present=false;hit.actor.died=worldState.turn;if(hit.actor.entity)return _w2StampDead(hit.actor.entity,worldState.turn,R);if(R)R.muts.push("Anonymous scene actor "+hit.actor.handle+" died");return true;}
+function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);
+  if(!hit){
+    /* #175b: same self-naming rule as w2DeathAuthorized, at the executor. The authorization gate
+       and the write must agree about what a handle IS, or an authorized death fails on execution. */
+    var sn=_w2HandleNamesSubject(handle,null);
+    if(sn&&w2NamedPresenceEvidence(sn))return _w2StampDead(sn,worldState.turn,R);
+    _w2Conflict("unknown",handle,"death names no observed handle");return false;}hit.actor.present=false;hit.actor.died=worldState.turn;if(hit.actor.entity)return _w2StampDead(hit.actor.entity,worldState.turn,R);if(R)R.muts.push("Anonymous scene actor "+hit.actor.handle+" died");return true;}
 function w2DeathAuthorized(name,handle,sourceTurn){
   if(!worldState||!worldState.sceneRefs)return true;
   var s=sceneRefsEnsure(),canon=(name&&name!=="-")?resolveNpcName(name):null,hit,i,fs;if(s.overflow)return false;
-  if(handle&&handle!=="-"){hit=_sceneRefActor(handle,sourceTurn);if(!hit)return false;if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;/* #168R6 (entry-13 review): the summary path passes an explicit sourceTurn — same-turn evidence must refuse exactly like the tag path, else a summary can cite the very response that armed it */if(sourceTurn==null&&(hit.actor.sourceTurn>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;if(!canon)return true;if(hit.actor.entity!==canon)return false;if(_sceneRefExplicitNegative(hit.frame,hit.actor.handle,canon)&&!hit.actor.revealed)return false;return true;}
-  if(!canon)return false;fs=_sceneRefFrames();for(i=0;i<fs.length;i++){var j,as=fs[i].actors||[];for(j=0;j<as.length;j++)if(as[j].sourceTurn<worldState.turn&&(!as[j].revealed||as[j].revealTurn<worldState.turn)&&as[j].entity===canon&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon))return true;}return false;
+  if(handle&&handle!=="-"){hit=_sceneRefActor(handle,sourceTurn);
+    /* #175b: a "handle" that IS the victim's own name is not an anonymous descriptor — it resolves
+       to nobody because it never needed resolving. This is the shape the t1903 GM actually emitted
+       ([CANON_TXN_BEGIN:...|Caul|caul|...] with [SCENE_DEATH:caul]), so without this the fix would
+       have covered only the bare-tag path and the quarantine loop would have continued in play. */
+    if(!hit)return _w2HandleNamesSubject(handle,canon)?!!w2NamedPresenceEvidence(canon,sourceTurn):false;if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;/* #168R6 (entry-13 review): the summary path passes an explicit sourceTurn — same-turn evidence must refuse exactly like the tag path, else a summary can cite the very response that armed it */if(sourceTurn==null&&(hit.actor.sourceTurn>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;if(!canon)return true;if(hit.actor.entity!==canon)return false;if(_sceneRefExplicitNegative(hit.frame,hit.actor.handle,canon)&&!hit.actor.revealed)return false;return true;}
+  if(!canon)return false;fs=_sceneRefFrames();for(i=0;i<fs.length;i++){var j,as=fs[i].actors||[];for(j=0;j<as.length;j++)if(as[j].sourceTurn<worldState.turn&&(!as[j].revealed||as[j].revealTurn<worldState.turn)&&as[j].entity===canon&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon))return true;}
+  return !!w2NamedPresenceEvidence(canon,sourceTurn);
+}
+/* #175b — STRUCTURED PRESENCE, the NAME path's second source of positive binding (owner ruling
+   2026-08-17, from the t1903 Caul incident). A scene handle exists to answer "WHICH NPC is the
+   hooded stranger": it resolves ANONYMITY. When the claim names a character the engine has already
+   established on screen, there is no anonymity to resolve, and demanding a handle asks the GM for
+   ceremony it does not reliably perform — in t1903 it emitted [SCENE_REVEAL:] four times with
+   handles it had never registered, minting a fresh conflict record each time while two death
+   transactions stayed quarantined and the prose said the victim was dead. State and canon diverged
+   in exactly the direction W2 exists to prevent, so the gate was producing the harm it guards.
+   Admitted evidence is STRUCTURED and TURN-STAMPED only — never a transcript scan and never RAG:
+   authority must be deterministic and replayable, and prose overlap cannot tell "X was here" from
+   "someone said X's name" (the t1903 review). Handle-mediated paths are untouched. */
+function w2NamedPresenceEvidence(name,sourceTurn){
+  if(!worldState)return null;
+  var canon=resolveNpcName(String(name||"").trim());if(!canon)return null;
+  var n=(typeof wsNpcByName==="function")?wsNpcByName(canon):null,m=memory&&memory.npcs&&memory.npcs[canon];
+  if(!n&&!m)return null;
+  // Evidence must pre-date the claim itself: a summary cites the turn the death happened, and a
+  // fact stamped by that same response can no more authorize it here than scene evidence can.
+  var lim=(sourceTurn!=null&&Number(sourceTurn)<worldState.turn)?Number(sourceTurn):worldState.turn;
+  // Gate 1 — INTRODUCTION (#143's axis, same vocabulary): the story has actually said this name.
+  // A blueprint-seeded dossier (no introduction, no first encounter, no sighting) is precisely
+  // what this excludes — its GM-eyes-only roster row must never become a corpse.
+  var intro=(n&&n.introduced&&Number(n.introduced)<lim)||(m&&(m.firstEncounter||m.lastSeenAt));
+  if(!intro)return null;
+  // Gate 2 — an EXPLICIT on-screen disidentification outranks every structured fact below: if the
+  // story said "the one you are looking at is NOT X", a bare named death must not slip past on
+  // roster paperwork (the t1667 scholar/Mokmurian shape, arriving without its handle).
+  var fs=_sceneRefFrames(),i,k;
+  for(i=0;i<fs.length;i++){var ng=fs[i].negatives||[];
+    for(k=0;k<ng.length;k++)if(ng[k].entity===canon&&ng[k].mode==="explicit"&&!ng[k].resolved)return null;}
+  // Gate 3 — one turn-stamped presence fact, strongest first.
+  var node=(typeof currentNodeKey==="function")?currentNodeKey():null;
+  if(node&&m&&m.lastSeenAt&&typeof locSame==="function"&&locSame(m.lastSeenAt,node))return "recorded at the party's current location";
+  var gb=_w2NodeGuestbookTurn(node,canon);
+  if(gb!=null&&gb<lim)return "guestbook visit recorded at t"+gb;
+  if(n&&n.statusTurn>0&&Number(n.statusTurn)<lim)return "roster write at t"+n.statusTurn;
+  return null;
+}
+/* #175b: does this handle name a ROSTERED character rather than describe an anonymous one?
+   resolveNpcName carries the campaign's own alias + distinctive-token vocabulary, so "caul",
+   "Caul", and "the wreck of Caul" all land on the roster row while "scholar" (nobody's name)
+   stays anonymous and keeps the strict path. Returns the canonical name, or null.
+   With `subject` given, the handle must name THAT victim — a handle naming someone else is a
+   genuine referential conflict and must keep refusing. */
+function _w2HandleNamesSubject(handle,subject){
+  var h=String(handle||"").trim();if(!h||h==="-")return null;
+  var canon=resolveNpcName(h);
+  if(!canon||canon===h&&!(memory&&memory.npcs&&memory.npcs[h]))return null;/* resolved to nothing on the roster */
+  if(!(memory&&memory.npcs&&memory.npcs[canon])&&!((typeof wsNpcByName==="function")&&wsNpcByName(canon)))return null;
+  if(subject&&canon!==subject)return null;
+  return canon;
+}
+function _w2NodeGuestbookTurn(node,canon){
+  if(!node||!memory||!memory.map||!memory.map.nodes)return null;
+  var rec=memory.map.nodes[node]||memory.map.nodes[(typeof locResolve==="function")?locResolve(node):node];
+  var gb=rec&&rec.guestbook&&rec.guestbook[canon];if(!gb)return null;
+  var ts=gb.turns||[],best=null,i;
+  for(i=0;i<ts.length;i++)if(best==null||ts[i]>best)best=ts[i];
+  if(best==null&&gb.agg&&gb.agg.last!=null)best=gb.agg.last;
+  return best;
 }
 function _w2Conflict(subject,handle,reason){
   if(!worldState)return null;if(!worldState.identityConflicts)worldState.identityConflicts=[];var s=String(subject||"unknown"),h=String(handle||"-"),i,c;
