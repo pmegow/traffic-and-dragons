@@ -141,6 +141,35 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-fa
 
 <p><strong>Voice.</strong> Two samples were produced for the same passage &mdash; <span class="n">Algenib</span> (Gravelly) and <span class="n">Gacrux</span> (Mature) &mdash; specifically to judge whether the model changes register for Sylvie's quoted whisper. That is the capability Piper structurally cannot provide, and it is the part no spreadsheet can settle.</p>
 
+<h2>Multi-actor scenes</h2>
+<p class="kicker">the owner's question &middot; probed on a real 5-speaker scene</p>
+
+<p><strong>Yes &mdash; but not the way the API advertises.</strong> The <span class="n">multi_speaker_voice_config</span> object caps at <strong>two</strong> speakers, which is useless for a party scene. The path that works is the one this codebase already uses for Piper: <em>synthesize per unit, each with its own voice</em>, via the existing <span class="n">voices</span> map. No new architecture &mdash; the stored <span class="n">sp</span> speaker map written by the #96 <span class="n">[SAY:]</span> layer already carries exactly the data needed.</p>
+
+<p><strong>Probe:</strong> Runelords <span class="n">t1774</span> &mdash; 5 speakers (Ammut, Morwen, Frizwick, Daeris, Wyla Ashvane) plus narrator, 1,433 speakable characters. The real <span class="n">splitSentences</span> comma-split produced 42 units, matching the stored <span class="n">sp.n</span> exactly.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Measurement</th><th>Result</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><th>Units &rarr; calls</th><td><span class="n">42 &rarr; 17</span></td><td>Grouping <em>consecutive same-speaker</em> units more than halves the round trips &mdash; and improves prosody, since a run of narration is spoken as one breath instead of 8 disconnected fragments</td></tr>
+<tr><th>Distinct voices</th><td><span class="n">6</span></td><td>No cap encountered. Voice count is bounded by the 30-voice bank, not the API</td></tr>
+<tr><th>Audio produced</th><td><span class="n">94.1 s</span></td><td>From 1,433 chars &rarr; 15.2 chars/s at these voices</td></tr>
+<tr><th>Cost</th><td><span class="n win">$0.061</span></td><td>3,019 audio tokens + 689 text input tokens</td></tr>
+<tr><th>Per-call latency</th><td><span class="n">~2.5 s median</span></td><td>17 calls &asymp; 42 s of synthesis for 94 s of audio &mdash; still ~2.2&times; faster than realtime, so pipelining stays ahead of playback</td></tr>
+<tr><th>Failures at concurrency 3</th><td><span class="n bad">3 of 17</span></td><td>The real operational risk &mdash; see below</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>Economically, multi-actor is free.</strong> Audio tokens bill by duration, and the duration of a scene does not change because six voices spoke it instead of one. The only additional cost is the per-call style direction re-sent with each group &mdash; 689 input tokens across 17 calls, which at $1/1M is <span class="n">$0.0007</span>. Rounding error. <em>A fully cast scene costs the same as a monotone one.</em></p>
+
+<p><strong>Operationally, rate limits are the constraint, not cost.</strong> Running the 17 groups at concurrency 3 produced <strong>3 failures</strong> that only cleared on sequential retry with backoff. This is the preview-tier rate limit predicted in the risks section, now observed. It is manageable &mdash; playback is naturally paced, so synthesis only needs to stay one or two units ahead, and the existing ladder already degrades to Piper on failure &mdash; but a naive "fire all units at once" implementation will fail in the field. Piper never had this constraint because it runs locally.</p>
+
+<div class="defs">
+  <p><strong>Unverified:</strong> the voice bank is documented by <em>characteristic</em> ("Warm", "Clear", "Gravelly"), never by gender. The gender-matched cast used here is assigned from commonly-reported voice genders and needs a human ear to confirm before it becomes a shipped mapping.</p>
+</div>
+
 <h2>The decision this actually forces</h2>
 <p class="kicker">the swap that pays for itself</p>
 
