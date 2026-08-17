@@ -843,7 +843,11 @@ function buildIdentityConflictNudge(){
      the bookkeeping (re-assertion of an established death authorizes), incidental tags outside. */
   if(known&&typeof _w2SubjectDeadInCanon==="function"&&_w2SubjectDeadInCanon(c.subject))
     return "[ENGINE NOTE - IDENTITY CONSEQUENCE QUARANTINED (not a player action): a canon claim for \""+c.subject+"\" was refused because "+c.reason+". "+c.subject+"'s death is ALREADY canon — do not re-narrate or un-narrate it. To close its bookkeeping, emit one CANON_TXN with a NEW stable claim id containing ONLY the death re-assertion and its quest/objective/reward tags; combat, time, and every other tag must sit OUTSIDE the envelope markers. If nothing remains owed, leave state unchanged.]";
-  return "[ENGINE NOTE - IDENTITY CONSEQUENCE QUARANTINED (not a player action): an irreversible write for "+(known?'"'+c.subject+'"':"an unknown actor")+(handle?' using scene handle "'+c.handle+'"':"")+" was refused because "+c.reason+". Do not re-state the death, objective, or rewards from momentum. If an on-screen reveal genuinely establishes the handle's identity, emit "+(handle&&known?"[SCENE_REVEAL:"+c.handle+"|"+c.subject+"] now; put the death and every caused objective/reward inside one CANON_TXN with a NEW stable claim id on the NEXT response":"the appropriate SCENE_REF/SCENE_REVEAL evidence first, then wait one response before any consequence")+". Keep combat, time, and all other unrelated tags OUTSIDE the envelope markers. If the actor was not "+(known?c.subject:"a known NPC")+", leave that NPC alive and continue with the corrected fiction.]";
+  /* #175bR: the two branches ask for DIFFERENT ceremonies. A record with a handle asks for the
+     reveal of THAT handle. A record without one must not mention revealing at all — the GM cannot
+     reveal a handle that was never registered, and every invented handle minted a fresh conflict
+     (the t1903 factory). Registration ([SCENE_REF:]) is the ceremony that actually works there. */
+  return "[ENGINE NOTE - IDENTITY CONSEQUENCE QUARANTINED (not a player action): an irreversible write for "+(known?'"'+c.subject+'"':"an unknown actor")+(handle?' using scene handle "'+c.handle+'"':"")+" was refused because "+c.reason+". Do not re-state the death, objective, or rewards from momentum. "+(handle&&known?"If an on-screen reveal genuinely establishes the handle's identity, emit [SCENE_REVEAL:"+c.handle+"|"+c.subject+"] now; put the death and every caused objective/reward inside one CANON_TXN with a NEW stable claim id on the NEXT response":"If the actor is genuinely on screen, register them first — emit [SCENE_REF:a short new handle|"+(known?c.subject:"the actor's true name")+"] now — then put the death and every caused objective/reward inside one CANON_TXN with a NEW stable claim id on the NEXT response")+". Keep combat, time, and all other unrelated tags OUTSIDE the envelope markers. If the actor was not "+(known?c.subject:"a known NPC")+", leave that NPC alive and continue with the corrected fiction.]";
 }
 function buildPhaseMismatchNudge(){
   if(!worldState||worldState.combat)return"";
@@ -1859,7 +1863,11 @@ function applyMuts(text){
     if(!_w2t.body)continue;/* exact replay: receipt already owns every operation */
     var _w2Ws=worldState,_w2Mem=memory,_w2Bumps=(typeof _levelBumpsOwed!=="undefined")?_levelBumpsOwed:0,_w2Unlocks=(typeof _spellUnlocksOwed!=="undefined")?_w2Copy(_spellUnlocksOwed):[];
     worldState=_w2Copy(_w2Ws);memory=_w2Copy(_w2Mem);
+    /* #175bR: pin the executor to this envelope's subject for the duration of its body — the
+       SCENE_DEATH handler must never stamp a different NPC than the claim names (identity.js). */
+    if(typeof _w2TxnSubjectNow!=="undefined")_w2TxnSubjectNow=_w2t.meta.subject;
     var _w2Stage=null,_w2r;try{_w2Stage=_w2StageEffects(function(){return applyMutsTable(_w2t.body,{deferCommit:true});});_w2r=_w2Stage.result;}catch(_w2e){_w2r={muts:[],errors:["transaction stage: "+((_w2e&&_w2e.message)||_w2e)]};}
+    if(typeof _w2TxnSubjectNow!=="undefined")_w2TxnSubjectNow=null;
     if(_w2r.errors.length){
       worldState=_w2Ws;memory=_w2Mem;
       if(typeof _levelBumpsOwed!=="undefined")_levelBumpsOwed=_w2Bumps;

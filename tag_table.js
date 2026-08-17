@@ -156,6 +156,7 @@ function propagateSlainFoes(R){
     }
     w.dead=R.turn;w.status="slain";
     if(memory.npcs[cn]&&!memory.npcs[cn].dead)memory.npcs[cn].dead=R.turn;
+    if(typeof _w2ResolveConflicts==="function")_w2ResolveConflicts(cn,null);/* #175bR: same heal as the direct [NPC:|dead] write */
     R.muts.push(w.name+": dead (combat, t"+R.turn+")");
     if(typeof console!=="undefined")console.warn("[combat] slain foe "+w.name+" is a registered NPC — DECEASED stamped (B3)");
   }
@@ -404,7 +405,11 @@ var TAG_TABLE=[
   if(_npN){if(npRel)_npN.rel=npRel;if(npPron)_npN.pronouns=npPron;
     /* npcDeadStatus internally rejects resurrection phrasing ("raised from the dead" contains a
        death word) — so this stamp can never re-kill what the resurrection branch just cleared */
-    if(npStatus&&!_npN.dead&&npcDeadStatus(npStatus)){_npN.dead=R.turn;R.muts.push(npName+": dead (t"+R.turn+")");}}
+    if(npStatus&&!_npN.dead&&npcDeadStatus(npStatus)){_npN.dead=R.turn;R.muts.push(npName+": dead (t"+R.turn+")");
+      /* #175bR: an AUTHORIZED death answers the very question its standing conflict asked — without
+         this heal the record survived its own resolution and re-toasted every 18 turns forever
+         (only _w2StampDead and the committed-envelope site healed; this direct write did not). */
+      if(typeof _w2ResolveConflicts==="function")_w2ResolveConflicts(npName,null);}}
   /* v1.372 — THE contamination fix. This line used to read:
          if(npRel)memory.npcs[npName].attitude=npRel;
      i.e. EVERY [NPC:] tag carrying a relation overwrote memory.npcs[].attitude with the RELATION.
@@ -471,7 +476,7 @@ var TAG_TABLE=[
   for(drj=0;drj<drEvents.length;drj++){drEvent=drEvents[drj];if(!drDeathClaim(drEvent)||drDeathTurn&&typeof drEvent.turn==="number"&&drEvent.turn<drDeathTurn)drKeptEvents.push(drEvent);}
   drMemory.events=drKeptEvents;
   for(drKey in drNodes){drList=drNodes[drKey].npcs;if(!drList)continue;for(drj=drList.length-1;drj>=0;drj--){if(drList[drj]===drName)drList.splice(drj,1);}}
-  if(!drNode.npcs)drNode.npcs=[];drNode.npcs.push(drName);drMemory.lastSeenAt=drLoc;
+  if(!drNode.npcs)drNode.npcs=[];drNode.npcs.push(drName);drMemory.lastSeenAt=drLoc;drMemory.lastSeenTurn=R.turn;/* #175bR */
   var drCorrection="Death attribution corrected: "+drReason+". "+drName+" remains alive at "+drLoc+".";
   if(drMemory.knowledge.indexOf(drCorrection)<0){drMemory.knowledge.push(drCorrection);while(drMemory.knowledge.length>12)drArchive.npcKnowledge.push({npc:drName,fact:drMemory.knowledge.shift(),turn:R.turn});}
   fileLore("Death correction - "+drName+": "+drReason+". Last known at "+drLoc+".");
@@ -848,7 +853,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(!psN||!psN.partyMember||!psN.charSheet){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — not a party member with a character sheet");continue;}
   if(npcIsDead(psN)){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — they are dead");continue;}/* B3: flag, not status regex */
   if(/^rejoin$/i.test(psArg)){
-    if(psN.charSheet.splitLoc){delete psN.charSheet.splitLoc;if(memory.npcs[psName])memory.npcs[psName].lastSeenAt=currentNodeKey();if(typeof guestbookStamp==="function")guestbookStamp(currentNodeKey(),psName,R.turn);/* #173: rejoining IS arriving where the party stands */R.muts.push(psName+" rejoins the party");if(typeof showToast==="function")showToast("⇠ "+psName+" rejoins the party");/* #189: transitions are LOUD — the muts line alone was invisible at the moment it mattered */}
+    if(psN.charSheet.splitLoc){delete psN.charSheet.splitLoc;if(memory.npcs[psName]){memory.npcs[psName].lastSeenAt=currentNodeKey();memory.npcs[psName].lastSeenTurn=R.turn;/* #175bR: every lastSeenAt write is turn-stamped */}if(typeof guestbookStamp==="function")guestbookStamp(currentNodeKey(),psName,R.turn);/* #173: rejoining IS arriving where the party stands */R.muts.push(psName+" rejoins the party");if(typeof showToast==="function")showToast("⇠ "+psName+" rejoins the party");/* #189: transitions are LOUD — the muts line alone was invisible at the moment it mattered */}
     else if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"|rejoin] ignored — they are not split");
     continue;}
   var psPrev=pcEffectiveLoc(psN.charSheet).location;
@@ -869,7 +874,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(!memory.map.nodes[psArg])memory.map.nodes[psArg]={firstVisit:R.turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
   if(psPrev&&psPrev!==psArg){var psEx=false,psEi;for(psEi=0;psEi<memory.map.edges.length;psEi++){var psE=memory.map.edges[psEi];if((psE.from===psPrev&&psE.to===psArg)||(psE.from===psArg&&psE.to===psPrev)){psEx=true;break;}}if(!psEx)memory.map.edges.push({from:psPrev,to:psArg,turn:R.turn});}
   if(memory.map.nodes[psArg].npcs.indexOf(psName)<0)memory.map.nodes[psArg].npcs.push(psName);
-  if(memory.npcs[psName])memory.npcs[psName].lastSeenAt=(psSub?psArg+"|"+psSub:psArg);
+  if(memory.npcs[psName]){memory.npcs[psName].lastSeenAt=(psSub?psArg+"|"+psSub:psArg);memory.npcs[psName].lastSeenTurn=R.turn;/* #175bR */}
   /* #173: the split member's own arrival is recorded evidence — this handler is the ONE writer
      with settled knowledge of where they went (brief A). World node always (just ensured above);
      the child only if it already exists — a split does not mint child nodes. */
@@ -985,7 +990,7 @@ function applyMutsTable(text,opts){
           continue;
         }
         delete _crm.charSheet.splitLoc;
-        if(memory.npcs[_crm.name])memory.npcs[_crm.name].lastSeenAt=currentNodeKey();
+        if(memory.npcs[_crm.name]){memory.npcs[_crm.name].lastSeenAt=currentNodeKey();memory.npcs[_crm.name].lastSeenTurn=R.turn;/* #175bR */}
         /* #164: the fold's NARRATIVE half — stamp the reunion so buildReunionNote demands the
            story acknowledge it next turn (the silent-materialize class). One stamp per response;
            multiple folds append names. */

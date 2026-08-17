@@ -14247,6 +14247,154 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  /* #175bR — entry-17 Fable review hardening. Six evidence briefs proved the executor could stamp
+     a DIFFERENT NPC than the envelope subject (the Vex shape), that the lastSeenAt evidence limb
+     carried no turn comparison at all (violating the ruled strictly-earlier contract), and that
+     the conflict queue's hygiene leaked (heal asymmetry, latch misattribution, the no-handle
+     nudge's record factory). Each test below was written failing against v1.649. */
+  function r175Node(key){
+    memory.map.nodes[key]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[]};
+  }
+
+  t("#175bR: an already-dead subject's envelope cannot stamp a DIFFERENT NPC via its evidence handle (the Vex shape)",function(){
+    makeWorld();r168Npc("Caul");r168Npc("Caulder Vex");
+    var caul=wsNpcByName("Caul");caul.dead=55;caul.status="dead";memory.npcs["Caul"].dead=55;
+    var vex=wsNpcByName("Caulder Vex");vex.introduced=60;vex.statusTurn=70;
+    worldState.turn=90;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=100;var xp0=worldState.character.xp;
+    applyMuts("[CANON_TXN_BEGIN:vex-1|npc-death|Caul|Vex|-][SCENE_DEATH:Vex][XP:500][CANON_TXN_END:vex-1]");
+    if(npcIsDead(wsNpcByName("Caulder Vex")))return "the evidence handle's fuzzy resolution killed Caulder Vex instead of the (already dead) subject";
+    var r=null,i;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="vex-1")r=worldState.canonTxns[i];
+    if(!r||r.status!=="committed")return "the already-canon death's closing envelope no longer commits: "+(r?r.status+" / "+r.reason:"none");
+    return worldState.character.xp===xp0+500?true:"the closing envelope's payout did not land";
+  });
+
+  t("#175bR: a same-response scene binding to a different NPC quarantines the envelope instead of killing the wrong corpse",function(){
+    makeWorld();r168Npc("Caul");r168Npc("Wex");
+    var n=wsNpcByName("Caul");n.introduced=60;n.statusTurn=70;
+    worldState.turn=90;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=100;var xp0=worldState.character.xp;
+    applyMuts("[SCENE_REF:caul|Wex][CANON_TXN_BEGIN:wex-1|npc-death|Caul|caul|-][SCENE_DEATH:caul][XP:400][CANON_TXN_END:wex-1]");
+    if(npcIsDead(wsNpcByName("Wex")))return "the executor stamped Wex — the subject was Caul";
+    var r=null,i;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="wex-1")r=worldState.canonTxns[i];
+    if(r&&r.status==="committed")return "the contradictory envelope committed";
+    return worldState.character.xp===xp0?true:"the quarantined envelope still paid XP";
+  });
+
+  t("#175bR: a same-response explicit disidentification quarantines the envelope instead of paying rewards with no corpse",function(){
+    makeWorld();r168Npc("Caul");
+    var n=wsNpcByName("Caul");n.introduced=60;n.statusTurn=70;
+    worldState.turn=90;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=100;var xp0=worldState.character.xp;
+    applyMuts("[SCENE_NOT:caul|Caul|explicit][CANON_TXN_BEGIN:not-1|npc-death|Caul|caul|-][SCENE_DEATH:caul][XP:1200][CANON_TXN_END:not-1]");
+    var r=null,i;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="not-1")r=worldState.canonTxns[i];
+    if(r&&r.status==="committed")return "rewards committed while the same response's explicit negative left no corpse";
+    if(worldState.character.xp!==xp0)return "the refused envelope still paid XP";
+    return npcIsDead(wsNpcByName("Caul"))?"the disidentified subject was stamped dead":true;
+  });
+
+  t("#175bR: a lastSeenAt stamp written THIS turn cannot authorize its own turn's death",function(){
+    makeWorld();r168Npc("Karg");r175Node("Ashfen");
+    var n=wsNpcByName("Karg");n.introduced=1900;
+    worldState.turn=1901;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=1902;mapNpcLocation("Karg");
+    if(w2DeathAuthorized("Karg",null))return "a same-turn lastSeenAt/guestbook stamp authorized its own turn's death";
+    return true;
+  });
+
+  t("#175bR: the summary path refuses presence evidence stamped after its cited sourceTurn",function(){
+    makeWorld();r168Npc("Karg");r175Node("Ashfen");
+    var n=wsNpcByName("Karg");n.introduced=10;
+    worldState.turn=80;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=100;mapNpcLocation("Karg");
+    if(w2DeathAuthorized("Karg","-",90))return "evidence stamped at t100 authorized a summary death cited at t90";
+    return true;
+  });
+
+  t("#175bR: a remote [NPC:] mention of a split party member does not move their lastSeenAt to the camera node",function(){
+    makeWorld();r168Npc("Morwen");r175Node("Ashfen");
+    var n=wsNpcByName("Morwen");n.partyMember=true;n.charSheet={name:"Morwen",splitLoc:{location:"The Docks"}};
+    memory.npcs["Morwen"].lastSeenAt="The Docks";
+    worldState.turn=100;applyMuts("[NPC:Morwen|steady|companion]");
+    if(memory.npcs["Morwen"].lastSeenAt!=="The Docks")return "a remote mention dragged a split member's lastSeenAt to the camera node ("+memory.npcs["Morwen"].lastSeenAt+")";
+    var gb=memory.map.nodes["Ashfen"].guestbook;
+    return gb&&gb["Morwen"]?"a remote mention stamped a split member's guestbook":true;
+  });
+
+  t("#175bR: a scene binding newer than the summary's cited sourceTurn cannot authorize the name path",function(){
+    makeWorld();r168Npc("Ilma");
+    var n=wsNpcByName("Ilma");n.introduced=10;n.statusTurn=95;
+    worldState.turn=99;applyMuts("[SCENE_REF:cloaked|Ilma]");
+    worldState.turn=100;
+    if(w2DeathAuthorized("Ilma","-",90))return "a t99 scene binding authorized a summary death cited at t90";
+    return true;
+  });
+
+  t("#175bR: an authorized bare named death resolves the subject's standing identity conflict",function(){
+    makeWorld();r168Npc("Caul");
+    worldState.turn=1880;applyMuts("[SCENE_REF:onlooker|?]");
+    applyMuts("[NPC:Caul|dead|enemy]");/* no evidence yet — refused, mints the standing conflict */
+    if(!(worldState.identityConflicts&&worldState.identityConflicts.length))return "fixture: the refusal did not mint a conflict";
+    var n=wsNpcByName("Caul");n.introduced=1852;n.statusTurn=1878;
+    worldState.turn=1902;applyMuts("[NPC:Caul|dead|enemy]");
+    if(!npcIsDead(wsNpcByName("Caul")))return "fixture: the evidenced death did not commit";
+    var open=(worldState.identityConflicts||[]).filter(function(c){return !c.resolved&&c.subject==="Caul";});
+    return open.length?"the committed death left its own conflict standing ("+open.length+" open)":true;
+  });
+
+  t("#175bR: combat-close death propagation resolves the subject's standing identity conflict",function(){
+    makeWorld();r168Npc("Caul");
+    var n=wsNpcByName("Caul");n.introduced=1852;n.statusTurn=1878;
+    worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.identityConflicts=[{subject:"Caul",handle:"-",reason:"named death has no prior positive scene binding",turn:1880,lastTurn:1880,attempts:0,resolved:false}];
+    worldState.combat={round:2,engaged:"Caul",foes:[{name:"Caul",hp:0,maxHp:20,ac:12,atk:3,dmg:"1d8",morale:"grim",down:"slain"}]};
+    worldState.turn=1902;applyMuts("[COMBAT_END:defeated]");
+    if(!npcIsDead(wsNpcByName("Caul")))return "fixture: combat close did not propagate the death";
+    var open=(worldState.identityConflicts||[]).filter(function(c){return !c.resolved&&c.subject==="Caul";});
+    return open.length?"the propagated death left its own conflict standing":true;
+  });
+
+  t("#175bR: a named-death refusal under the scene-evidence overflow latch records the latch as the reason",function(){
+    makeWorld();r168Npc("Caul");
+    var n=wsNpcByName("Caul");n.introduced=1852;n.statusTurn=1878;
+    worldState.turn=1900;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.sceneRefs.overflow={kind:"actors",turn:1901,node:"Ashfen",scene:null};
+    worldState.turn=1902;applyMuts("[NPC:Caul|dead|enemy]");
+    if(npcIsDead(wsNpcByName("Caul")))return "a death committed under the overflow latch";
+    var c=(worldState.identityConflicts||[])[0];
+    if(!c)return "the latched refusal minted no conflict record";
+    return String(c.reason).indexOf("overflow")>=0?true:"the latched refusal misattributed its cause: \""+c.reason+"\"";
+  });
+
+  t("#175bR: following the no-handle nudge advice cannot mint a second conflict record for the same subject",function(){
+    makeWorld();r168Npc("Caul");
+    worldState.turn=100;applyMuts("[SCENE_REF:onlooker|?]");
+    applyMuts("[NPC:Caul|dead|enemy]");/* refused — mints {Caul,-} */
+    if(!(worldState.identityConflicts&&worldState.identityConflicts.length===1))return "fixture: expected exactly one standing conflict";
+    applyMuts("[SCENE_REVEAL:the wreck of caul|Caul]");/* the GM inventing a handle, as the advice reads */
+    var q=worldState.identityConflicts||[];
+    return q.length===1?true:"the invented-handle reveal minted a second record ("+q.length+" total — the t1903 factory)";
+  });
+
+  t("#175bR: the no-handle quarantine advice instructs scene REGISTRATION, not a reveal of a handle that does not exist",function(){
+    makeWorld();r168Npc("Thessaly");
+    worldState.turn=100;applyMuts("[SCENE_REF:onlooker|?]");
+    applyMuts("[NPC:Thessaly|dead|enemy]");/* refused — mints the no-handle record */
+    var note=buildIdentityConflictNudge();
+    if(!note)return "fixture: the nudge did not fire";
+    if(note.indexOf("[SCENE_REF:")<0)return "the no-handle advice does not name the registration ceremony the GM can actually perform";
+    return note.indexOf("SCENE_REVEAL")<0?true:"the no-handle advice still frames the fix as revealing a handle that does not exist";
+  });
+
+  t("#175bR: a worldState-only roster row authorizes identically through the bare-name and self-naming-handle paths",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Vasska",status:"wary",statusTurn:70,rel:"enemy",met:60,partyMember:false,aliases:[],introduced:60});
+    worldState.turn=90;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=100;
+    if(!w2DeathAuthorized("Vasska",null))return "fixture: the bare-name path refused a ws-only row with evidence";
+    return w2DeathAuthorized("Vasska","Vasska")?true:"the self-naming-handle path refuses the same ws-only NPC the bare-name path authorizes";
+  });
+
   t("R8d: the bond-change queue cap refuses the over-cap change loudly without mutating the bond (vs REL_BOND_CHANGE_CAP)",function(){
     makeWorld();var i,R={muts:[]};worldState.turn=10;
     worldState.character.relationships=[];

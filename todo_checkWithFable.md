@@ -37,53 +37,6 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
-### 17 — #175b: structured presence admitted as a positive death binding (v1.649; Opus, owner-ruled)
-
-**Filed:** 2026-08-17. **Tracker:** none (owner declined a TODO row). **Evidence:**
-`testRuns/Rise_of_the_Runelords__t1903.tnd` (the incident save) and its `_REPAIRED` sibling;
-repro/repair tool `dev/repair-t1903-caul.js`.
-
-**Why this is here.** It LOOSENS a canon gate on the drift surface — the highest-stakes shape of
-change in the W2 layer. Owner ruled the design from the field evidence; this is the standing
-non-Fable record.
-
-**The field failure.** t1903, 4 unresolved identity conflicts all for "Caul", 2 quarantined
-npc-death transactions (`caul-gutterlane-001` XP 1400 + 600g; `caul-death-001` XP 1200 + quest
-completion). `worldState.sceneRefs` held ZERO actors and the tagLog showed **0 `[SCENE_REF:]` in
-40 responses** against 4 `[SCENE_REVEAL:]` — the GM used the reveal half of the protocol without
-ever registering a handle. Three of the four conflict records were minted BY the quarantine
-nudge's own advice (`[SCENE_REVEAL:the wreck of Caul|Caul]`), one carrying an improvised
-two-descriptions handle. Meanwhile `buildIdentityConflictNudge`'s #175 stale cap toasted its
-shelving repeatedly: each record re-arms at identity.js `_w2Conflict` on the next refusal, so a
-sustained refusal produces one shelve toast every ~18 turns per record, forever (measured).
-
-**The change.** `w2NamedPresenceEvidence(name,sourceTurn)` (identity.js) admits STRUCTURED,
-TURN-STAMPED evidence as a positive binding for the NAME path: gate 1 introduction (#143's axis),
-gate 2 an unresolved explicit `[SCENE_NOT:]` naming the entity refuses outright, gate 3 one of —
-recorded co-location (`lastSeenAt` = current node), a guestbook visit turn, or a roster write
-(`statusTurn`) — each strictly earlier than the claim (and earlier than `sourceTurn` when the
-summary path supplies one). `_w2HandleNamesSubject` extends the same ruling to a handle that IS
-the victim's name (the shape the GM actually emitted), at BOTH the authorization gate and the
-`sceneRefDeath` executor so the two cannot disagree. RAG was considered and rejected: read-side
-only, non-deterministic across turns, and unable to distinguish presence from mention.
-
-**Verification.** 1457 engine assertions green (7 new; the primary one written failing first and
-confirmed failing). `dev/replay-w2-incident.js` on the real t1667 export still quarantines
-(Mokmurian alive, objective open, XP delta 0). `replay-w6-summary.js` green. `sabotage-w2.js` and
-`sabotage-identity.js` re-run after the handle extension. The repair rode the shipping executors
-end to end on the real save: evidence "roster write at t1878", 4 conflicts → 0, quest archived
-completed, XP +1200, gold unchanged.
-
-**What a reviewer should probe first.** (1) The `statusTurn` limb is the weakest evidence — an
-`[NPC:]` write can be a REMOTE mention, so a far-off introduced NPC can now be killed by a bare
-named tag; the explicit-negative gate is the only thing standing in front of that. Is that the
-right trade, or should the limb require co-location too? (2) `resolveNpcName`'s distinctive-token
-consolidation makes "the wreck of Caul" self-naming — desirable here, but it is fuzzy matching
-inside a canon gate. (3) The re-arm reset (`c.attempts=0` at identity.js `_w2Conflict`) is
-UNCHANGED and still makes the #175 shelve non-terminal; it is mostly moot once deaths authorize,
-but the loop is still reachable. (4) The nudge still instructs `[SCENE_REVEAL:]` when it holds no
-handle — the conflict-minting behaviour above — also UNCHANGED.
-
 ### 16 — Gemini pinned to thinkingLevel "low" on every call kind (#22, v1.645; Opus, owner-ruled)
 
 **Filed:** 2026-08-16. **Tracker:** TODO #22. **Commit:** the v1.645 promotion.
@@ -188,6 +141,7 @@ zero 2026-07-27 and again 2026-07-30.
 
 | # | Subject | Reviewed | Verdict |
 |---|---|---|---|
+| 17 | #175b structured presence as a positive death binding (v1.649) — six-brief delegated-evidence review | 2026-08-17 | Design AFFIRMED (owner-ruled; t1903 repair reproducible), implementation violated its own strictly-earlier contract — 7 confirmed defect groups fixed v1.650 failing-test-first: the unpinned executor's silent WRONG-VICTIM kill (a "Caul" envelope with handle "Vex" stamped Caulder Vex dead), the turn-blind lastSeenAt limb, the split-guard half-coverage, the frame-scan sourceTurn ignore, the heal asymmetry, the t1903 nine-record nudge factory + latch misattribution, and the ws-only handle/name disagreement; +13 tests (each red on v1.649) + 5 sabotage clauses; 7 residues accepted with rationale; descriptor fuzziness filed as TODO #193 |
 | 15 | Per-character location-visit provenance gap (#173; Codex investigation) | 2026-08-14 | CLOSED outside the queue — guestbook adjudication (`6850d99`) authorized the build with seven pinned amendments; shipped v1.632–v1.633 + map-viewer panel; entry archived 2026-08-17 |
 | 13 | Sol W1–7 drift-hardening handoff (v1.601) — six-brief delegated-evidence review, self-adjudicated on Fable | 2026-08-12 | 8 confirmed boundary defects fixed v1.602 failing-test-first — two resurrected origin incidents (stripped-tag reward leak; array-typed t1644 W6 bypass) plus receipt-cap permadeath, same-turn/quarantined-txn citations, latched-frame drop, over-length bond orphan, merge self-edges, eras import drop; +13 tests, +8 sabotage clauses (W2 15/15, W7 27/27), 3 tautological clauses repaired, counts corrected; follow-ups #169–#171 |
 | 12 | Project-wide drift-risk audit against Runelords t1549 (Sol) | 2026-08-08 | CLOSED outside the queue — all four findings shipped as #144A/#145/#146/#147 (v1.564–v1.567) + #144B (v1.572), rulings recorded (`9a7bd6d`); entry archived 2026-08-17 |

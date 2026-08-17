@@ -1252,3 +1252,173 @@ authoritative.
 drift-surface decree, only a Fable session may adjudicate these choices or modify
 `memory.js`/`api.js`/`tag_table.js`. No implementation verdict has been issued and no game code has
 changed.
+
+---
+
+## Entry 17 — #175b structured presence admitted as a positive death binding (reviewed 2026-08-17, fixes v1.650)
+
+**Reviewed by Fable 2026-08-17 (same-day review of the v1.649 ship). VERDICT: the owner-ruled
+DESIGN stands — structured presence for named deaths is the right call, and the t1903 repair it
+enabled is exactly reproducible — but the IMPLEMENTATION violated the ruling's own
+strictly-earlier contract on its strongest evidence limb, and the #175b executor fallback opened
+a silent WRONG-VICTIM kill path. 7 confirmed defect groups fixed failing-test-first as v1.650
+(13 new tests, each observed red on v1.649 with the evidence's predicted message; 5 new sabotage
+clauses); 7 residues accepted with rationale; 1 design residue filed as TODO #193.** Evidence:
+six parallel Opus briefs (A writers / B turn-strictness / C gate-executor / D fuzziness /
+E residues / F verification-claims); verdicts and fixes by Fable. Suite 1470 green; t1667 replay
+still quarantines; the t1903 repair dry-run reproduces the shipped result byte-for-byte under the
+fixes.
+
+**Confirmed defects fixed (v1.650, each red-first):**
+
+1. **Executor unpinned from the envelope subject — the wrong-victim class (briefs D + C,
+   severity 1).** `sceneRefDeath`'s #175b fallback called `_w2HandleNamesSubject(handle, null)`,
+   so on the `_w2SubjectDeadInCanon` bypass (where the gate never runs) the handle's own fuzzy
+   resolution chose the corpse: a "Caul" envelope with evidence handle "Vex" COMMITTED and stamped
+   Caulder Vex dead — silent, no conflict, no toast (pre-#175b: nobody died). Two same-response
+   shapes hit the hit-branch cousin: `[SCENE_REF:caul|Wex]` + envelope killed Wex with rewards;
+   `[SCENE_NOT:caul|Caul|explicit]` + envelope committed rewards over no corpse ("anonymous actor
+   died"). FIX: `_w2TxnSubjectNow` threaded per-body from `applyMuts`; the executor pins every
+   stamp to the resolved subject — an already-dead subject's closing envelope treats its death op
+   as ceremonial (never stamps anyone, payout preserved — the t1742 flow), and a bound-actor or
+   fallback mismatch fails the handler, rolling the envelope back.
+2. **The co-location evidence limb had no turn comparison at all (brief B).** `lastSeenAt` is a
+   bare node key; the ruled contract ("each strictly earlier than the claim and than any
+   sourceTurn") was unenforceable on the limb listed FIRST. Proven: a `mapNpcLocation` stamp at
+   the current turn authorized its own turn's death; summary claims accepted evidence stamped ten
+   turns after their cited sourceTurn; gate 1's `firstEncounter||lastSeenAt` disjunct plus gate 3(a)
+   collapse onto fields written by ONE `[NPC:]` tag. FIX: `lastSeenTurn` stamped beside every
+   `lastSeenAt` write (mapNpcLocation, split rejoin/destination, #133b fold, death retraction);
+   the limb requires it strictly earlier than `lim`; unstamped legacy keys fall through to the
+   guestbook/statusTurn limbs (fail-closed). This also closes the two-applyMuts-per-turn edge
+   (brief A's P2) without touching gate 1.
+3. **`mapNpcLocation`'s split-member exclusion guarded only the guestbook (brief A).** The same
+   function's two halves disagreed about the same remoteness fact: a remote mention of a split
+   party member — "remote by construction" per the #173 comment — still moved `lastSeenAt` to the
+   camera node and thereby minted death-authorizing co-location evidence. FIX: the exclusion now
+   covers both writes.
+4. **The name-path frame scan ignored a summary's cited sourceTurn (brief B, pre-existing #168
+   defect fixed in-area).** A scene binding recorded at t99 vouched for a summary death cited at
+   t90. FIX: the scan derives the same `lim` as the evidence limbs.
+5. **Heal asymmetry — a resolved dispute kept toasting forever (brief E).** The very path #175b
+   newly authorizes (bare `[NPC:|dead]`) and combat-close propagation stamped `dead` without
+   `_w2ResolveConflicts`, so a GM answering the nudge correctly WITHOUT an envelope kept the
+   18-turn shelve loop alive indefinitely. FIX: both direct-write sites resolve the subject's
+   standing conflict.
+6. **The no-handle nudge was a conflict-record factory (brief E, the t1903 minting class
+   reproduced: one refused death → 9 records → silent cap overflow in 24 turns).** The advice
+   named a reveal of a handle that does not exist, and every handle the GM invented minted a fresh
+   record via `sceneRefReveal`'s refusal. FIX: the no-handle branch teaches `[SCENE_REF:]`
+   REGISTRATION (the ceremony brief E proved works — partially delivering TODO #190's ⓒ), and the
+   reveal-names-no-handle refusal re-keys to `(subject,"-")` so retries re-arm the ONE standing
+   record. Also: refusals under the scene-evidence overflow latch now name the latch — the stored
+   reason previously claimed missing evidence while evidence was present (brief E row 6).
+7. **Dead code made ws-only roster rows invisible to the handle path (brief C).** `_w2HandleNamesSubject`'s
+   both-stores fallback was unreachable, so the same NPC's death authorized via bare name but
+   quarantined via self-naming handle. FIX: the wsNpcByName clause is now reachable; both paths
+   agree.
+
+**Affirmed (evidence-backed):** gate ②'s explicit `[SCENE_NOT:]` refusal works at every probed
+seam; the guestbook limb is strictly turn-compared including the agg fallback; `[LOCATION_RESIDENT:]`
+mints no visit turn; a blueprint dossier row cannot authorize a death (the exclusion is one
+`[NPC:]` tag deep — noted, accepted); preflight-before-handlers blocks single-response
+self-authorization; the #168R6 same-turn handle refusals are intact; the t1667 replay still
+quarantines with the exact three-way result; all 7 shipped #175b tests are discriminating (brief
+F's four targeted mutations turned each red — though tests 4 and 7 guard pre-existing paths, so 5
+of 7 exercise the new gates); sabotage-w2 44/44 and sabotage-identity 22/22 with byte-identical
+restoration confirmed by an independent git authority; the t1903 repair tool is
+double-application-safe (hard refusal re-run against the repaired save), rides the shipping
+executors, and re-emits the committed `_REPAIRED.tnd` byte-identically.
+
+**Accepted residues (rationale recorded, not fixed):**
+- **Remote-mention presence feed (t+1).** One `[NPC:]` tag naming a never-on-screen character
+  redundantly feeds all three evidence limbs, and the response's own prose asserting remoteness
+  becomes the `firstEncounter` introduction evidence; the death authorizes NEXT turn. This is the
+  owner-ruled trade (#173 q5 "accepted recorded-evidence boundary" + the entry-17 ruling admitting
+  the roster-write limb); v1.650 closes the same-turn edges only. Surfaced to the owner in the
+  review report — reopening it is an owner call, not a review defect.
+- **Descriptor fuzziness in the handle operand** → TODO #193 (design-first). The envelope path is
+  neutralized by the subject pin; the bare-tag upsert authority predates #175b.
+- **Gate-stricter-than-executor on the name-null shape** (envelope subject "-" with a self-naming
+  handle): the seams evaluate different names, but the only producing caller runs the gate first
+  and fail-closes; unreachable end-to-end.
+- **A re-emitted COMMITTED claim id re-kills a resurrected subject with no gate** — victim-correct
+  after the pin, multiplicity-by-design; file a row if field evidence ever shows it.
+- **The 18-turn shelve loop for legitimately fail-closed refusals** stands (the re-arm exists for
+  genuinely new incidents; TODO #190 ⓓ holds the design question). The measured period is exactly
+  `(IDENTITY_CONFLICT_STALE_ATTEMPTS+1) × 3` with the cooldown a hardcoded literal at api.js —
+  left as-is to avoid churn.
+- **Evidence-shaped advice on non-evidence refusal reasons** (a quest-name error gets scene
+  advice): unhelpful, not harmful; candidate for a reason-tailored nudge if it recurs in the field.
+- **Failing-first provenance is unverifiable from a single commit** (brief F): the primary v1.649
+  test IS discriminating (proven by mutation), but commit structure cannot prove authoring order.
+  Recorded as a process observation, not a defect. The v1.649 repair claim also understated scope:
+  the #178 XP mirror moved three companion sheets +1200 alongside the player — engine-correct,
+  claim incomplete.
+
+**Receipts (phase 4).** Six briefs, all Opus, launched in one message; wall clock ≈ 13 min
+(bounded by brief F), ~1.07M subagent tokens, 204 delegate tool calls:
+
+| Brief | Tokens | Tools | Wall | Findings fed |
+|---|---|---|---|---|
+| A writers | 213,595 | 29 | 7.6m | fixes 2–3; remote-mention reachability; P1/P2 same-response mechanics |
+| B turn-strictness | 163,454 | 33 | 6.7m | fixes 2, 4; the lastSeenAt/gate-1 no-comparison tables |
+| C gate/executor | 181,294 | 37 | 9.3m | fix 1 (same-response shapes), fix 7; t1667 re-verify; residues 3–4 |
+| D fuzziness | 183,078 | 32 | 7.9m | fix 1 (the Vex counterfactual); TODO #193; pre/post-#175b seam table |
+| E residues | 175,107 | 33 | 7.4m | fixes 5–6; the 18-turn derivation; the 9-record factory measurement |
+| F verification | 149,754 | 40 | 13.0m | claims audit; M1–M4 test-discrimination proof; repair reproducibility |
+
+Delegate quality: excellent across all six — honest UNDETERMINED labeling, declared scope growth,
+runtime probes over code-reading, zero verdict-issuing; briefs C and D converged independently on
+the wrong-victim class from opposite ends, which is the redundancy the fan-out pays for. Brief F's
+isolation discipline (scratch repo + git-init baseline as an independent restoration authority)
+should be the template. One process note for the next run: brief A's early probe scripts were
+overwritten by sibling agents in the shared scratchpad — briefs should be told to use per-brief
+subdirectories.
+
+**Original entry as filed:**
+
+**Filed:** 2026-08-17. **Tracker:** none (owner declined a TODO row). **Evidence:**
+`testRuns/Rise_of_the_Runelords__t1903.tnd` (the incident save) and its `_REPAIRED` sibling;
+repro/repair tool `dev/repair-t1903-caul.js`.
+
+**Why this is here.** It LOOSENS a canon gate on the drift surface — the highest-stakes shape of
+change in the W2 layer. Owner ruled the design from the field evidence; this is the standing
+non-Fable record.
+
+**The field failure.** t1903, 4 unresolved identity conflicts all for "Caul", 2 quarantined
+npc-death transactions (`caul-gutterlane-001` XP 1400 + 600g; `caul-death-001` XP 1200 + quest
+completion). `worldState.sceneRefs` held ZERO actors and the tagLog showed **0 `[SCENE_REF:]` in
+40 responses** against 4 `[SCENE_REVEAL:]` — the GM used the reveal half of the protocol without
+ever registering a handle. Three of the four conflict records were minted BY the quarantine
+nudge's own advice (`[SCENE_REVEAL:the wreck of Caul|Caul]`), one carrying an improvised
+two-descriptions handle. Meanwhile `buildIdentityConflictNudge`'s #175 stale cap toasted its
+shelving repeatedly: each record re-arms at identity.js `_w2Conflict` on the next refusal, so a
+sustained refusal produces one shelve toast every ~18 turns per record, forever (measured).
+
+**The change.** `w2NamedPresenceEvidence(name,sourceTurn)` (identity.js) admits STRUCTURED,
+TURN-STAMPED evidence as a positive binding for the NAME path: gate 1 introduction (#143's axis),
+gate 2 an unresolved explicit `[SCENE_NOT:]` naming the entity refuses outright, gate 3 one of —
+recorded co-location (`lastSeenAt` = current node), a guestbook visit turn, or a roster write
+(`statusTurn`) — each strictly earlier than the claim (and earlier than `sourceTurn` when the
+summary path supplies one). `_w2HandleNamesSubject` extends the same ruling to a handle that IS
+the victim's name (the shape the GM actually emitted), at BOTH the authorization gate and the
+`sceneRefDeath` executor so the two cannot disagree. RAG was considered and rejected: read-side
+only, non-deterministic across turns, and unable to distinguish presence from mention.
+
+**Verification.** 1457 engine assertions green (7 new; the primary one written failing first and
+confirmed failing). `dev/replay-w2-incident.js` on the real t1667 export still quarantines
+(Mokmurian alive, objective open, XP delta 0). `replay-w6-summary.js` green. `sabotage-w2.js` and
+`sabotage-identity.js` re-run after the handle extension. The repair rode the shipping executors
+end to end on the real save: evidence "roster write at t1878", 4 conflicts → 0, quest archived
+completed, XP +1200, gold unchanged.
+
+**What a reviewer should probe first.** (1) The `statusTurn` limb is the weakest evidence — an
+`[NPC:]` write can be a REMOTE mention, so a far-off introduced NPC can now be killed by a bare
+named tag; the explicit-negative gate is the only thing standing in front of that. Is that the
+right trade, or should the limb require co-location too? (2) `resolveNpcName`'s distinctive-token
+consolidation makes "the wreck of Caul" self-naming — desirable here, but it is fuzzy matching
+inside a canon gate. (3) The re-arm reset (`c.attempts=0` at identity.js `_w2Conflict`) is
+UNCHANGED and still makes the #175 shelve non-terminal; it is mostly moot once deaths authorize,
+but the loop is still reachable. (4) The nudge still instructs `[SCENE_REVEAL:]` when it holds no
+handle — the conflict-minting behaviour above — also UNCHANGED.

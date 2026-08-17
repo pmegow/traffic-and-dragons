@@ -289,14 +289,18 @@ function mapNpcLocation(name){
      additive name set kept for the map viewer and repair census. Nothing authoritative may read
      it; per-visit attendance lives in node.guestbook below. */
   var npcs=memory.map.nodes[key].npcs;if(npcs.indexOf(name)<0)npcs.push(name);
-  if(memory.npcs[name])memory.npcs[name].lastSeenAt=key;
   // #173: a contemporaneous [NPC:] write is recorded attendance ("recorded-evidence boundary" —
   // a remote mention CAN mis-stamp, accepted in the ratified design) — EXCEPT a split party
   // member: their thread is provably elsewhere (#137 membership ≠ presence), so the mention is
   // remote by construction and must not become false eyewitness history at the camera node.
+  // #175bR: the split exclusion covers lastSeenAt too (it previously guarded only the guestbook —
+  // the two halves of this function disagreed about the same remoteness fact), and every
+  // lastSeenAt write stamps lastSeenTurn beside it so the W2 co-location evidence limb can honor
+  // the strictly-earlier contract (an unstamped node key authorized same-turn deaths).
   var _gbWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;
-  if(!(_gbWs&&_gbWs.partyMember&&_gbWs.charSheet&&_gbWs.charSheet.splitLoc&&_gbWs.charSheet.splitLoc.location))
-    guestbookStamp(key,name,(typeof worldState.turn==="number")?worldState.turn:0);
+  if(_gbWs&&_gbWs.partyMember&&_gbWs.charSheet&&_gbWs.charSheet.splitLoc&&_gbWs.charSheet.splitLoc.location)return;
+  if(memory.npcs[name]){memory.npcs[name].lastSeenAt=key;memory.npcs[name].lastSeenTurn=(typeof worldState.turn==="number")?worldState.turn:0;}
+  guestbookStamp(key,name,(typeof worldState.turn==="number")?worldState.turn:0);
 }
 
 // ═══ #173: the location guestbook — per-character visit provenance ═══════════════════════════

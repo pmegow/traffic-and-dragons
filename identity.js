@@ -766,7 +766,10 @@ function sceneRefExclude(handle,entity,mode,R){
 }
 function sceneRefReveal(handle,entity,R){
   var s=sceneRefsEnsure(),hit=_sceneRefActor(handle),canon=resolveNpcName(String(entity||"").trim()),i;
-  if(!hit||hit.frame!==s.active||!canon){_w2Conflict(canon||"unknown",handle,"reveal names no active observed handle");return false;}
+  if(!hit||hit.frame!==s.active||!canon){/* #175bR: keyed on (subject,"-") so a GM inventing a fresh
+       handle each retry re-arms the ONE standing record instead of minting a new one per attempt —
+       the t1903 factory measured 9 records and a cap overflow from a single refused death. */
+    _w2Conflict(canon||"unknown","-","reveal names no active observed handle (attempted: "+String(handle||"")+")");return false;}
   if(hit.actor.entity&&hit.actor.entity!==canon){_w2Conflict(canon,handle,"reveal conflicts with established binding to "+hit.actor.entity);return false;}
   hit.actor.entity=canon;hit.actor.revealed=true;hit.actor.revealTurn=worldState.turn;
   for(i=0;i<s.active.negatives.length;i++)if(s.active.negatives[i].handle===hit.actor.handle&&s.active.negatives[i].entity===canon)s.active.negatives[i].resolved=true;
@@ -776,13 +779,37 @@ function _w2StampDead(name,turn,R){
   var canon=resolveNpcName(name),n=(typeof wsNpcByName==="function")?wsNpcByName(canon):null,m=memory.npcs&&memory.npcs[canon];if(!n&&!m)return false;
   if(n){n.dead=turn;if(!npcDeadStatus(n.status))n.status="dead";n.statusTurn=turn;}if(m)m.dead=turn;_w2ResolveConflicts(canon,null);if(R)R.muts.push(canon+": dead (t"+turn+")");return true;
 }
+/* #175bR (entry-17 review): the transaction subject, threaded to the executor for the duration of
+   one envelope body's application (set/cleared in applyMuts, api.js). The executor is PINNED to it:
+   without the pin the handle's own fuzzy resolution chose the corpse — a "Caul" envelope with
+   evidence handle "Vex" stamped Caulder Vex dead on the _w2SubjectDeadInCanon bypass, and a
+   same-response scene tag could rebind the handle between preflight and execution. */
+var _w2TxnSubjectNow=null;
 function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);
+  var subj=(_w2TxnSubjectNow&&_w2TxnSubjectNow!=="-")?resolveNpcName(String(_w2TxnSubjectNow).trim()):null;
+  if(subj&&_w2SubjectDeadInCanon(subj)){
+    /* #175: an already-canon death's envelope is closing bookkeeping — the death op is ceremonial.
+       It must never stamp ANYONE (the subject is already dead; anyone else is the wrong corpse).
+       The payout half of the envelope still applies (the t1742 flow). */
+    if(R)R.muts.push(subj+": death already canon (closing envelope)");
+    return true;}
   if(!hit){
     /* #175b: same self-naming rule as w2DeathAuthorized, at the executor. The authorization gate
        and the write must agree about what a handle IS, or an authorized death fails on execution. */
-    var sn=_w2HandleNamesSubject(handle,null);
+    var sn=_w2HandleNamesSubject(handle,subj);
     if(sn&&w2NamedPresenceEvidence(sn))return _w2StampDead(sn,worldState.turn,R);
-    _w2Conflict("unknown",handle,"death names no observed handle");return false;}hit.actor.present=false;hit.actor.died=worldState.turn;if(hit.actor.entity)return _w2StampDead(hit.actor.entity,worldState.turn,R);if(R)R.muts.push("Anonymous scene actor "+hit.actor.handle+" died");return true;}
+    _w2Conflict(subj||"unknown",handle,"death names no observed handle");
+    if(subj&&R&&R.errors)R.errors.push("SCENE_DEATH: handle does not resolve to the transaction subject");
+    return false;}
+  if(subj&&hit.actor.entity!==subj){
+    /* #175bR: the bound scene actor is not the envelope's victim — a same-response [SCENE_REF:]/
+       [SCENE_NOT:] changed the handle's meaning after the preflight authorized. Failing the handler
+       rolls the whole envelope back (api.js) instead of killing the wrong corpse or paying rewards
+       over no corpse. */
+    _w2Conflict(subj,String(handle||""),hit.actor.entity?("scene handle rebound to "+hit.actor.entity+" in the same response"):"scene handle lost its subject binding before execution");
+    if(R&&R.errors)R.errors.push("SCENE_DEATH: the bound scene actor is not the transaction subject");
+    return false;}
+  hit.actor.present=false;hit.actor.died=worldState.turn;if(hit.actor.entity)return _w2StampDead(hit.actor.entity,worldState.turn,R);if(R)R.muts.push("Anonymous scene actor "+hit.actor.handle+" died");return true;}
 function w2DeathAuthorized(name,handle,sourceTurn){
   if(!worldState||!worldState.sceneRefs)return true;
   var s=sceneRefsEnsure(),canon=(name&&name!=="-")?resolveNpcName(name):null,hit,i,fs;if(s.overflow)return false;
@@ -792,7 +819,10 @@ function w2DeathAuthorized(name,handle,sourceTurn){
        ([CANON_TXN_BEGIN:...|Caul|caul|...] with [SCENE_DEATH:caul]), so without this the fix would
        have covered only the bare-tag path and the quarantine loop would have continued in play. */
     if(!hit)return _w2HandleNamesSubject(handle,canon)?!!w2NamedPresenceEvidence(canon,sourceTurn):false;if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;/* #168R6 (entry-13 review): the summary path passes an explicit sourceTurn — same-turn evidence must refuse exactly like the tag path, else a summary can cite the very response that armed it */if(sourceTurn==null&&(hit.actor.sourceTurn>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;if(!canon)return true;if(hit.actor.entity!==canon)return false;if(_sceneRefExplicitNegative(hit.frame,hit.actor.handle,canon)&&!hit.actor.revealed)return false;return true;}
-  if(!canon)return false;fs=_sceneRefFrames();for(i=0;i<fs.length;i++){var j,as=fs[i].actors||[];for(j=0;j<as.length;j++)if(as[j].sourceTurn<worldState.turn&&(!as[j].revealed||as[j].revealTurn<worldState.turn)&&as[j].entity===canon&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon))return true;}
+  if(!canon)return false;/* #175bR: the frame scan honors a summary's cited sourceTurn exactly like
+     the evidence limbs — a binding recorded AFTER the cited death turn cannot vouch for it. */
+  var _nmLim=(sourceTurn!=null&&Number(sourceTurn)<worldState.turn)?Number(sourceTurn):worldState.turn;
+  fs=_sceneRefFrames();for(i=0;i<fs.length;i++){var j,as=fs[i].actors||[];for(j=0;j<as.length;j++)if(as[j].sourceTurn<_nmLim&&(!as[j].revealed||as[j].revealTurn<_nmLim)&&as[j].entity===canon&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon))return true;}
   return !!w2NamedPresenceEvidence(canon,sourceTurn);
 }
 /* #175b — STRUCTURED PRESENCE, the NAME path's second source of positive binding (owner ruling
@@ -825,9 +855,14 @@ function w2NamedPresenceEvidence(name,sourceTurn){
   var fs=_sceneRefFrames(),i,k;
   for(i=0;i<fs.length;i++){var ng=fs[i].negatives||[];
     for(k=0;k<ng.length;k++)if(ng[k].entity===canon&&ng[k].mode==="explicit"&&!ng[k].resolved)return null;}
-  // Gate 3 — one turn-stamped presence fact, strongest first.
+  // Gate 3 — one turn-stamped presence fact, strongest first. #175bR: the co-location limb is
+  // turn-stamped like the others (lastSeenTurn rides beside every lastSeenAt write) — an unstamped
+  // legacy lastSeenAt no longer authorizes on its own and falls through to guestbook/statusTurn,
+  // because "strictly earlier than the claim" was the ruled contract for EVERY limb and a bare
+  // node key cannot honor it (the review's brief B: a same-turn mapNpcLocation stamp authorized
+  // its own response's death, and summary claims accepted evidence newer than their sourceTurn).
   var node=(typeof currentNodeKey==="function")?currentNodeKey():null;
-  if(node&&m&&m.lastSeenAt&&typeof locSame==="function"&&locSame(m.lastSeenAt,node))return "recorded at the party's current location";
+  if(node&&m&&m.lastSeenAt&&m.lastSeenTurn!=null&&Number(m.lastSeenTurn)<lim&&typeof locSame==="function"&&locSame(m.lastSeenAt,node))return "recorded at the party's current location (t"+m.lastSeenTurn+")";
   var gb=_w2NodeGuestbookTurn(node,canon);
   if(gb!=null&&gb<lim)return "guestbook visit recorded at t"+gb;
   if(n&&n.statusTurn>0&&Number(n.statusTurn)<lim)return "roster write at t"+n.statusTurn;
@@ -842,7 +877,10 @@ function w2NamedPresenceEvidence(name,sourceTurn){
 function _w2HandleNamesSubject(handle,subject){
   var h=String(handle||"").trim();if(!h||h==="-")return null;
   var canon=resolveNpcName(h);
-  if(!canon||canon===h&&!(memory&&memory.npcs&&memory.npcs[h]))return null;/* resolved to nothing on the roster */
+  /* #175bR: a name that lives only in worldState.npcs (no memory row) is still a rostered
+     character — without the wsNpcByName clause here the both-stores check below was dead code and
+     the handle path refused the very NPC the bare-name path authorized. */
+  if(!canon||canon===h&&!(memory&&memory.npcs&&memory.npcs[h])&&!((typeof wsNpcByName==="function")&&wsNpcByName(h)))return null;/* resolved to nothing on the roster */
   if(!(memory&&memory.npcs&&memory.npcs[canon])&&!((typeof wsNpcByName==="function")&&wsNpcByName(canon)))return null;
   if(subject&&canon!==subject)return null;
   return canon;
@@ -975,7 +1013,7 @@ function w2PrepareResponse(text){
     if(p.length!==5||!meta.id||m[3].trim()!==meta.id)reason="malformed or mismatched transaction envelope";else if(meta.claim!=="npc-death"&&meta.claim!=="quest-outcome")reason="unsupported canon claim type";else if(prior&&prior.status==="quarantined")reason="claim id was already quarantined";else if(prior&&!_w2TxnMetaSame(prior,meta))reason="claim id was reused with different metadata";
     var _part=null;
     if(!reason){_part=_w2TxnPartition(meta,ops);if(_part.reason)reason=_part.reason;else{ops=_part.gov;if(_part.eject.length){ordinary+="\n"+_part.eject.join("");meta.ejected=_part.eject.map(_w2TagName);if(typeof console!=="undefined")console.warn("[identity] "+_part.eject.length+" incidental tag(s) ejected from canon claim "+meta.id+" and applied as ordinary tags: "+meta.ejected.join(", ")+" (#175 — one stray tag must never void a death and its rewards)");}}}
-    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&deathHandle!==meta.evidence)reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence))reason="scene evidence does not bind the claimed victim";}
+    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&deathHandle!==meta.evidence)reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence))reason=(worldState.sceneRefs&&worldState.sceneRefs.overflow)?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"scene evidence does not bind the claimed victim";}
     if(!reason&&meta.claim==="quest-outcome"&&!_w2QuestExists(meta.quest))reason="quest outcome names no active accepted quest";
     if(!reason&&!prior&&meta.claim==="npc-death"&&meta.quest!=="-"&&!_w2QuestExists(meta.quest))reason="death outcome names no active accepted quest";
     /* #175: the "operation touches an unresolved identity conflict" refusal is DELETED. It blocked
@@ -991,7 +1029,7 @@ function w2PrepareResponse(text){
   }
   if(/\[CANON_TXN_(?:BEGIN|END):/.test(ordinary)){/* #171①: the whole-response fail-closed strip stays, but it is no longer silent, receipt-less, or id-reusable */var _orph=ordinary.match(/\[CANON_TXN_(?:BEGIN|END):[^\]|]+/g)||[],_oi;for(_oi=0;_oi<_orph.length;_oi++){var _oid=_orph[_oi].replace(/^\[CANON_TXN_(?:BEGIN|END):/,"").trim();if(_oid&&!_w2TxnFind(_oid))w2TxnQuarantine({id:_oid,claim:"npc-death",subject:"-",evidence:"-",quest:"-"},"unmatched transaction marker",[]);}_w2RefuseLog(_w2CollectStripped(ordinary,[/\[XP:[^\]]+\]/g,/\[GOLD:[^\]]+\]/g,/\[ITEM_GAINED:[^\]]+\]/g,/\[QUEST(?:_STEP)?:[^\]]+\]/g,/\[SCENE_DEATH:[^\]]+\]/g,/\[NPC:[^\]]+\]/g]));ordinary=ordinary.replace(/\[CANON_TXN_(?:BEGIN|END):[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary).replace(/\[QUEST(?:_STEP)?:[^\]]+\]/g,"").replace(/\[SCENE_DEATH:[^\]]+\]/g,"").replace(/\[NPC:[^\]]+\]/g,"");if(typeof console!=="undefined")console.warn("[identity] unmatched canon transaction marker - identity/quest/reward operations refused");if(typeof showToast==="function")showToast("⚠ Malformed canon envelope — its identity/quest/reward tags were withheld");}
   var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);_w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
-  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){_w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");_w2Conflict(nm,"-","named death has no prior positive scene binding");refusedVictim=refusedVictim||nm;}}
+  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){_w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");/* #175bR: name the ACTUAL cause — under the overflow latch the refusal is capacity, not evidence, and the old text sent the GM chasing scene ceremony that could not help */_w2Conflict(nm,"-",(worldState.sceneRefs&&worldState.sceneRefs.overflow)?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"named death has no prior positive scene binding");refusedVictim=refusedVictim||nm;}}
   /* #168R1 (entry-13 review), rescoped by #175: a death REFUSED in THIS response still de-authorizes
      its co-emitted quest/reward consequences — that protection is unchanged and pinned. What is GONE
      is the standing-conflict reach: the old gate substring-matched every unresolved conflict's
