@@ -1,0 +1,219 @@
+<title>The Korrag Reckoning</title>
+<style>
+:root{
+  --bg:#f7f1e6; --ink:#2b2620; --dim:#8a7f6d; --line:#e3d8c4; --panel:#fdf9f0;
+  --acc:#b8935a; --acc-ink:#8a6a38;
+  --pass:#5a7a4d; --pass-bg:#eef0e2;
+  --fail:#a04a38; --fail-bg:#f5e6e0;
+  --warn:#a0783c; --warn-bg:#f4ecda;
+  --mono:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+    --acc:#c9a568; --acc-ink:#c9a568;
+    --pass:#8fae7c; --pass-bg:#232a1e;
+    --fail:#c97b66; --fail-bg:#31211c;
+    --warn:#c79a55; --warn-bg:#2c2517;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+  --acc:#c9a568; --acc-ink:#c9a568;
+  --pass:#8fae7c; --pass-bg:#232a1e;
+  --fail:#c97b66; --fail-bg:#31211c;
+  --warn:#c79a55; --warn-bg:#2c2517;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Georgia,'Iowan Old Style','Times New Roman',serif}
+.wrap{max-width:min(96vw,1700px);margin:0 auto;padding:48px 24px 80px}
+header{border-bottom:2px solid var(--acc);padding-bottom:22px;margin-bottom:26px;max-width:1080px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-ink);margin:0 0 12px}
+h1{font-size:30px;line-height:1.2;margin:0 0 10px;font-weight:700;text-wrap:balance}
+.standfirst{font-size:16px;font-style:italic;color:var(--dim);margin:0;max-width:70ch}
+h2{font-size:19px;margin:40px 0 4px}
+h2 + .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+p{margin:0 0 14px;max-width:75ch}
+a{color:var(--acc-ink)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:12px;padding:2px 8px;border:1px solid;white-space:nowrap}
+.chip.pass{color:var(--pass);border-color:var(--pass);background:var(--pass-bg)}
+.chip.fail{color:var(--fail);border-color:var(--fail);background:var(--fail-bg)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.tablewrap{overflow-x:auto;margin:16px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.45;min-width:900px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--acc);position:sticky;top:0;background:var(--panel)}
+tbody th{font-weight:700;font-size:13.5px;white-space:nowrap;position:sticky;left:0;background:var(--panel);z-index:1}
+thead th:first-child{position:sticky;left:0;z-index:2}
+td .n{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+td .sub{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+blockquote{margin:18px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);font-style:italic;color:var(--ink);max-width:75ch}
+blockquote .who{display:block;font-family:var(--mono);font-size:11px;font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:8px}
+.defs{max-width:1080px;border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--panel);border-radius:4px;padding:14px 18px;margin:18px 0;font-size:14px}
+.defs p:last-child{margin-bottom:0}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 22px}
+.win{color:var(--pass);font-weight:700}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Traffic and Dragons &middot; five arms, one campaign &middot; August 15&ndash;16, 2026</p>
+  <h1>The Korrag Reckoning</h1>
+  <p class="standfirst">Five arms head to head on the same 50-turn standard campaign: both Gemini reasoning budgets, both Claude tiers, and the ChatGPT model. Built entirely from corpora already on disk &mdash; no new money was spent to make this page.</p>
+</header>
+
+<p>This page answers one question the <a href="sweep.html">Korrag Menu</a> could not: <strong>how much of a model's quality comes from the model, and how much from how hard it is allowed to think?</strong> The Gemini pair below is the same model at two reasoning budgets, which turns an untested assumption into a measurement.</p>
+
+<div class="defs">
+  <p><strong>The two contract halves.</strong> Every arm is judged on both, because the sweep already proved they are <em>separable</em> capabilities &mdash; gemini-3.5-flash held tag syntax perfectly while its prose resurrected the dead.</p>
+  <p><strong>① Tag fidelity</strong> &mdash; does the engine's hidden state vocabulary land? Measured as zero-tag turns, distinct/total tags, and unknown tags. <strong>② Canon obedience</strong> &mdash; does the prose respect the state it was handed? Measured as the dead-actor scan, death-tag timing, and premise retention.</p>
+</div>
+
+<h2>The bottom line</h2>
+<p class="kicker">what the five arms actually say</p>
+
+<p><strong>All five arms hold both contract halves.</strong> The capability threshold established by the sweep is real and every model here clears it. What separates them is not correctness but <em>character</em>: how much prose they write, how densely they tag, how fast they answer, and what they cost.</p>
+
+<p><strong>The reasoning budget turned out to be nearly free.</strong> Dropping gemini-3.7-flash from mandatory thinking to <span class="n">thinkingLevel:"low"</span> cost nothing measurable on either contract half &mdash; and the low arm is the one <em>without</em> the premature death-tag blemish. It also got faster, cheaper, and <em>wordier</em>, because thinking-on was spending its output budget deliberating instead of narrating. This was adopted in v1.645.</p>
+
+<p><strong>The premium tier buys structure, not correctness.</strong> opus-5 is the only arm to reach level 3 and the archetype gate, files 53 distinct tags against everyone else's 32&ndash;39, and writes 1,544 characters a turn &mdash; more than four times gpt-5.6-sol. It is also roughly three times sonnet-5's cost, which is why it stays unlisted.</p>
+
+<h2>The scoreboard</h2>
+<p class="kicker">50 turns each &middot; identical Korrag seed &middot; identical blueprint</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr>
+  <th>Arm</th><th>Contract ①<br>tags</th><th>Contract ②<br>canon</th><th>Tag profile</th>
+  <th>Prose</th><th>Speed<br>median s/turn</th><th>Output<br>tok/turn-call</th><th>Cost<br>50 turns</th><th>Depth reached</th>
+</tr></thead>
+<tbody>
+<tr>
+  <th>gemini-3.7-flash<br><span class="sub">thinking ON</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag</span></td>
+  <td><span class="chip warn">hold, 1 blemish</span><span class="sub">dead-actor clean; Knox tagged dead t42, prose killed him t46</span></td>
+  <td><span class="n">36 distinct &middot; 274 total</span><span class="sub">0 unknown</span></td>
+  <td><span class="n">647 ch</span></td>
+  <td><span class="n">~15</span><span class="sub">recorded&dagger;</span></td>
+  <td><span class="n">212 <em>visible</em></span><span class="sub">+ ~275 hidden thought&Dagger;</span></td>
+  <td><span class="n">~$0.50</span><span class="sub">unpriced est.</span></td>
+  <td>L2 &middot; 12 NPCs &middot; 3 quests</td>
+</tr>
+<tr>
+  <th>gemini-3.7-flash<br><span class="sub">thinking LOW &mdash; shipped v1.645</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean; all 4 death tags same-turn as the prose kill</span></td>
+  <td><span class="n">39 distinct &middot; 366 total</span><span class="sub">0 unknown</span></td>
+  <td><span class="n">727 ch</span></td>
+  <td><span class="n">8.2</span><span class="sub">measured, clean turns</span></td>
+  <td><span class="n win">251 &mdash; all of it visible</span><span class="sub">0 thought tokens, 93/93 calls</span></td>
+  <td><span class="n">~$0.50</span><span class="sub">~35% less billable than ON</span></td>
+  <td>L2 &middot; 14 NPCs &middot; 4 quests</td>
+</tr>
+<tr>
+  <th>claude-sonnet-5<br><span class="sub">menu default</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean, with in-prose pushback</span></td>
+  <td><span class="n">32 distinct &middot; 212 total</span><span class="sub">0 unknown &mdash; leanest tagger</span></td>
+  <td><span class="n">951 ch</span></td>
+  <td><span class="n win">7.2</span><span class="sub">fastest arm</span></td>
+  <td><span class="n">398</span></td>
+  <td><span class="n">$2.64</span><span class="sub">actual, priced</span></td>
+  <td>L2 &middot; 9 NPCs &middot; 1 quest</td>
+</tr>
+<tr>
+  <th>claude-opus-5<br><span class="sub">benchmarked, unlisted</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor record literary &mdash; a looted falchion stays remembered 30 turns</span></td>
+  <td><span class="n win">53 distinct &middot; 522 total</span><span class="sub">0 unknown &mdash; richest vocabulary</span></td>
+  <td><span class="n win">1,544 ch</span></td>
+  <td><span class="n">17.0</span></td>
+  <td><span class="n">743</span></td>
+  <td><span class="n">~$8&ndash;9</span><span class="sub">est. at unverified opus-4-8 rates</span></td>
+  <td><span class="win">L3 + archetype gate</span> &middot; 10 NPCs &middot; 3 quests</td>
+</tr>
+<tr>
+  <th>gpt-5.6-sol<br><span class="sub">menu</span></th>
+  <td><span class="chip warn">hold, 3 gaps</span><span class="sub">3/50 zero-tag turns</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean</span></td>
+  <td><span class="n">38 distinct &middot; 335 total</span><span class="sub">0 unknown</span></td>
+  <td><span class="n">351 ch</span><span class="sub">terse &mdash; least prose of the five</span></td>
+  <td><span class="n">~34</span><span class="sub">recorded&dagger;</span></td>
+  <td><span class="n">649</span></td>
+  <td><span class="n">~$2&ndash;2.50</span><span class="sub">unpriced est.</span></td>
+  <td>L2 &middot; 13 NPCs &middot; 2 quests</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p style="font-size:13px;color:var(--dim);max-width:75ch">
+&dagger; Two arms predate the committed-turn driver's per-turn timestamps, so their medians are the values recorded at run time rather than recomputed from the corpus. &Dagger; The thinking-on arm's hidden thought tokens were <em>invisible to the meter it ran under</em> &mdash; see the metering note below.
+</p>
+
+<h2>The reasoning-budget finding</h2>
+<p class="kicker">the one axis this page adds</p>
+
+<p>gemini-3.7-flash thinks <em>mandatorily</em> and bills the thinking as output. Until v1.644 the meter could not see it, so the cost was real but invisible. Because the two Gemini arms ran under different meters, their saved totals are not comparable &mdash; the lever had to be measured directly, with paired calls on <strong>one identical 17,305-token live gameplay prompt</strong>:</p>
+
+<div class="tablewrap">
+<table style="min-width:640px">
+<thead><tr><th>Reasoning budget</th><th>Thought tokens</th><th>Visible output</th><th>Billable output</th><th>Latency</th></tr></thead>
+<tbody>
+<tr><th>thinking ON <span class="sub">n=5</span></th><td><span class="n">275</span> median</td><td><span class="n">178</span></td><td><span class="n">~453</span></td><td><span class="n">4.9 s</span></td></tr>
+<tr><th>thinking LOW <span class="sub">n=2</span></th><td><span class="n win">0</span></td><td><span class="n">296</span></td><td><span class="n win">296</span></td><td><span class="n win">2.5 s</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The counter-intuitive column is <em>visible output</em>: the low arm writes <strong>more</strong> prose. Thinking-on was spending roughly 275 tokens per call deliberating and then narrating less. Across the full runs the same pattern holds at the story level &mdash; 727 characters a turn against 647.</p>
+
+<p>And the quality did not pay for it. The low arm matched or beat its thinking-on sibling on every measured axis, including the one that matters most: <strong>the premature death-tag blemish belongs to the thinking-ON arm, not the low one.</strong> Premise retention was also better &mdash; the campaign's central "soul-forge" thread appears in 9 turns of the low run against a single turn of the thinking-on run.</p>
+
+<blockquote>
+  reads pretty great. I actually really like it
+  <span class="who">Owner field verdict on the low arm's memento, 2026-08-16</span>
+</blockquote>
+
+<h2>Voice, side by side</h2>
+<p class="kicker">same Howard directive &middot; same campaign &middot; first sword-stroke of each run</p>
+
+<p>All five ran the Robert E. Howard prose voice. The directive asks for concrete verbs of motion and violence, one vivid image per sentence, relentlessly propulsive.</p>
+
+<blockquote>Steel rasps against scabbard as your longsword clears leather in a blinding arc of tempered iron. You sidestep the wild slash and drive the heavy point deep beneath his rusted breastplate&hellip;<span class="who">gemini-3.7-flash &middot; thinking on</span></blockquote>
+
+<blockquote>Your longsword cuts a savage arc through the freezing night, shearing clean through the iron plates of Aldric's pauldron and biting deep into the meat of his shoulder.<span class="who">gemini-3.7-flash &middot; thinking low</span></blockquote>
+
+<blockquote>Steel hisses free of the scabbard, and you close the distance at a wary crouch, sword low, eyes cutting the scene apart piece by piece.<span class="who">claude-sonnet-5</span></blockquote>
+
+<blockquote>The blade comes free with a rasp that cuts the wind, and then you are running. Ash sprays under your boots. The trail drops and the wreck rises to meet you&hellip;<span class="who">claude-opus-5</span></blockquote>
+
+<blockquote>The net snaps through empty air as you hurl yourself beneath its weighted rim. You surge from the ash and crash into Aldric Saltborn, your longsword biting through his leather guard&hellip;<span class="who">gpt-5.6-sol</span></blockquote>
+
+<p>The two Gemini arms are stylistically indistinguishable &mdash; further evidence the reasoning budget is not buying voice. sonnet-5 and opus-5 both push toward their own house rhythm (sonnet's appraising crouch, opus's staccato momentum) rather than pure pastiche, matching the owner's earlier live judgment that Gemini's Howard reads more like Howard. gpt-5.6-sol carries the vocabulary in a clipped tactical cadence.</p>
+
+<h2>What this page does not establish</h2>
+<p class="kicker">the honest limits</p>
+
+<div class="defs">
+  <p><strong>Different engine versions.</strong> The arms ran between v1.638 and v1.644. Prompt content, nudges, and guards moved between those builds. This is a comparison of arms as they were run, not a controlled same-build experiment.</p>
+  <p><strong>The metering asterisk.</strong> v1.644 folded Gemini's <span class="n">thoughtsTokenCount</span> into output. Arms before it under-report Gemini output. The paired A/B exists precisely because the saved totals could not settle it &mdash; and its thinking-on side is n=5 against n=2, because a Google 503 load-shedding storm ate samples.</p>
+  <p><strong>Three of five costs are estimates.</strong> <span class="n">MODEL_PRICING</span> carries Claude entries only. sonnet-5's $2.64 is priced and verified; opus-5, gpt-5.6-sol and both Gemini figures are estimates awaiting real pricing entries.</p>
+  <p><strong>One campaign, one tone, one voice, one seed.</strong> The standing #22 field-validation width caveat applies to every arm here equally. A model that suits Howard sword-and-sorcery has not thereby been shown to suit political intrigue.</p>
+  <p><strong>Depth reached is not purely merit.</strong> opus-5's level 3 required a human to pick the archetype mid-run &mdash; the harness cannot yet answer that modal. Progression depth partly reflects how combat-heavy each random action walk happened to be.</p>
+</div>
+
+<h2>Where this leaves the menu</h2>
+<p class="kicker">no ruling implied</p>
+
+<p>Nothing here argues for changing the shipping menu, and <a href="sweep.html">The Korrag Menu</a> is untouched &mdash; it remains owner-ruled. What this page adds is that <strong>the cheapest seat on that menu just got measurably cheaper and faster at no cost to either contract half</strong>, and that the reasoning-budget knob is now a known, tested dimension rather than an assumption.</p>
+
+<p>The open follow-ups are unchanged from the sweep: real <span class="n">MODEL_PRICING</span> entries for opus-5, gpt-5.6-sol and gemini-3.7-flash; the <span class="n">callGM</span> fetch timeout (#29); and a harness modal-handler so a run can cross the archetype gate unattended.</p>
+
+<footer>
+  <span>Traffic and Dragons &middot; engine v1.645</span>
+  <span>Corpora: v1638, v1640 &times;2, v1642, v1644</span>
+  <span>Tag census derived from tag_table.js</span>
+  <span>Built from committed corpora &mdash; no new API spend</span>
+</footer>
+</div>
