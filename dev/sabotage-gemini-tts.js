@@ -69,7 +69,9 @@ rc |= sabotage.prove({
       find: "          _geminiModelClose(model, retryHint);\n          continue;",
       replace: "          return { fail: \"quota exhausted\", degradeMs: Math.min(retryHint, GEMINI_TTS_DEGRADE_CAP_MS) };" },
     { label: "#41f memo stamp gutted — every later group burns a probe request against a quota Google already said is closed",
-      mustFail: "the closed bucket is never probed",
+      /* the engine suite's pure modelClose test catches this BEFORE the standalone no-probe
+         battery runs — attribute to the first deterministic catcher */
+      mustFail: "modelClose honors Google's hint",
       find: "    if ((_geminiModelClosedUntil[model] || 0) < until) _geminiModelClosedUntil[model] = until;   // never shrink an open window",
       replace: "    if (false && (_geminiModelClosedUntil[model] || 0) < until) _geminiModelClosedUntil[model] = until;   // never shrink an open window" }
   ]
