@@ -7592,6 +7592,57 @@ function runEngineTests(R){
     GEM.resetDegrade();
     return GEM.degradeState().forMs===0?true:"reset left a stale window";
   });
+  // #41f: the in-family MODEL LADDER — Gemini free-tier quota buckets are per-model, so a closed
+  // 3.1 bucket (#41d's 33-minute capture) usually leaves gemini-2.5-flash-preview-tts open. Both
+  // models speak the SAME 30 prebuilt voices (Google documents one shared list), so a fall keeps
+  // the whole cast; only when EVERY rung is closed does the engine degrade to the local ladder.
+  // (Behavior over a scripted fetch lives in dev/tests-41f-gemini-model-ladder.js.)
+  t("#41f the ladder is 3.1-first with the 2.5 quota-relief rung behind it",function(){
+    var m=GEM.models();
+    if(m.length!==2) return "ladder has "+m.length+" rungs — expected primary + quota-relief";
+    if(!/^gemini-3\.1-flash-tts/.test(m[0])) return "primary rung is "+m[0]+" — 3.1 must lead (streaming, when it ships, starts there)";
+    if(m[1]!=="gemini-2.5-flash-preview-tts") return "relief rung is "+m[1]+" — the per-model-bucket rationale names 2.5 flash";
+    return true;
+  });
+  t("#41f modelPick walks past closed buckets and returns nothing when the ladder runs out",function(){
+    var m=GEM.models(),now=1000000,closed={};
+    if(GEM.modelPick(closed,now)!==m[0]) return "an open ladder did not pick the primary";
+    closed[m[0]]=now+60000;
+    if(GEM.modelPick(closed,now)!==m[1]) return "a closed primary did not fall to the relief rung";
+    if(GEM.modelPick(closed,now+60000)!==m[0]) return "an EXPIRED closure still blocked the primary — buckets must self-reopen";
+    closed[m[1]]=now+120000;
+    if(GEM.modelPick(closed,now)!==null) return "an all-closed ladder still picked a model — the engine degrade would never fire";
+    return true;
+  });
+  t("#41f modelClose honors Google's hint (clamped 60s–10min) and never shrinks an open window",function(){
+    var m=GEM.models();
+    GEM.modelReset();
+    GEM.modelClose(m[0],1986000);                       // the #41d 33-minute hint
+    var until=GEM.modelState()[m[0]],left=until-Date.now();
+    if(!(left>590000&&left<=600000)) return "a 33-minute hint was not capped to the 10-min window: "+left+"ms";
+    GEM.modelClose(m[0],0);                             // a later no-hint closure must not SHRINK it
+    if(GEM.modelState()[m[0]]!==until) return "a later short closure shrank an open window";
+    GEM.modelReset();
+    GEM.modelClose(m[0],0);                             // backoff-exhausted (no hint) → the 60s floor
+    left=GEM.modelState()[m[0]]-Date.now();
+    if(!(left>55000&&left<=60000)) return "a no-hint closure missed the 60s floor: "+left+"ms";
+    GEM.modelReset();
+    return true;
+  });
+  t("#41f when every bucket is closed, the reopen distance is the EARLIEST bucket — that is the degrade window's honest size",function(){
+    var m=GEM.models(),now=5000000,closed={};
+    closed[m[0]]=now+300000;closed[m[1]]=now+120000;
+    var d=GEM.modelsReopenMs(closed,now);
+    if(d!==120000) return "reopen distance "+d+"ms — the window should end when the FIRST bucket reopens, not the last";
+    closed[m[1]]=now-1;                                  // one already expired → worth probing now
+    if(GEM.modelsReopenMs(closed,now)!==0) return "an expired bucket did not zero the reopen distance";
+    return true;
+  });
+  t("#41f the ▶ Test press clears the per-model memo (the try-it-now contract)",function(){
+    var src=String(TTS.testGeminiVoice);
+    return src.indexOf("_geminiModelClosedUntil")>=0?true:
+      "testGeminiVoice never touches the per-model memo — after a quota closure, an explicit ▶ Test would silently keep synthesizing on the backup rung for up to 10 minutes";
+  });
   _gemClean();
 
   section("TTS engine selection (#41 Phase 4)");

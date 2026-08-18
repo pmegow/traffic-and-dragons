@@ -59,7 +59,19 @@ rc |= sabotage.prove({
     { label: "#41e lead-runway release broken — a long opener that covers the seam alone still holds the full cap",
       mustFail: "a long opener held despite carrying the lead runway alone",
       find: "    if (_geminiB64Sec(prefix[0]) >= GEMINI_TTS_MIN_LEAD_SEC) return true;",
-      replace: "" }
+      replace: "" },
+    { label: "#41f relief rung deleted — a closed 3.1 quota degrades the whole tier to Piper again (the pre-ladder behavior)",
+      mustFail: "3.1-first with the 2.5 quota-relief rung",
+      find: "  var GEMINI_TTS_MODELS = [\n    \"gemini-3.1-flash-tts-preview\",\n    \"gemini-2.5-flash-preview-tts\"\n  ];",
+      replace: "  var GEMINI_TTS_MODELS = [\n    \"gemini-3.1-flash-tts-preview\"\n  ];" },
+    { label: "#41f the fall removed — a closed-quota 429 fails the read instead of retrying the SAME group on the open rung",
+      mustFail: "falls the SAME group to the 2.5 rung",
+      find: "          _geminiModelClose(model, retryHint);\n          continue;",
+      replace: "          return { fail: \"quota exhausted\", degradeMs: Math.min(retryHint, GEMINI_TTS_DEGRADE_CAP_MS) };" },
+    { label: "#41f memo stamp gutted — every later group burns a probe request against a quota Google already said is closed",
+      mustFail: "the closed bucket is never probed",
+      find: "    if ((_geminiModelClosedUntil[model] || 0) < until) _geminiModelClosedUntil[model] = until;   // never shrink an open window",
+      replace: "    if (false && (_geminiModelClosedUntil[model] || 0) < until) _geminiModelClosedUntil[model] = until;   // never shrink an open window" }
   ]
 });
 

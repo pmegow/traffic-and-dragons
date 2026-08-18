@@ -278,8 +278,17 @@ var TTS = (function() {
   //   • Grouping consecutive same-voice units cut a real 5-speaker scene from 42 calls to 17,
   //     which is the difference between viable and not — and it reads better, because a run of
   //     narration is spoken as one breath instead of eight disconnected fragments.
-  var GEMINI_TTS_MODEL  = "gemini-3.1-flash-tts-preview";  // 3.1+ ONLY: streaming starts at 3.1, and
-                                                           // the 2.5 models cannot stream at all.
+  // #41f: the MODEL LADDER — rung 0 is primary, later rungs are QUOTA relief. Gemini free-tier
+  // quota buckets are PER-MODEL, so the #41d 33-minute closure on 3.1 usually leaves 2.5's
+  // bucket open — and Google documents ONE shared 30-voice list across all TTS models, so a
+  // fall keeps the entire cast (narrator pref + the #174 NPC stable picks) with zero remapping.
+  // 2.5 is also half the paid price ($10 vs $20 per 1M audio tokens). ⚠ streaming (the
+  // deliberate later step) starts at 3.1 — the 2.5 rung can never stream; when streaming ships
+  // it applies to rung 0 only, and a quota fall drops back to whole-group synthesis.
+  var GEMINI_TTS_MODELS = [
+    "gemini-3.1-flash-tts-preview",
+    "gemini-2.5-flash-preview-tts"
+  ];
   var GEMINI_TTS_K      = "tnd_tts_gemini_v1";      // opt-in pref (device-level). Absent = OFF.
   var GEMINI_DIR_K      = "tnd_tts_gemini_dir_v1";  // user-editable delivery direction
   // #41b: the flat 25s timeout was BELOW the expected synthesis time of a full 900-char group
@@ -490,6 +499,45 @@ var TTS = (function() {
       if (typeof showToast === "function") showToast("Gemini voice unavailable — using the local voice");
     }
   }
+  // #41f: the per-model quota memo — modelId → epoch ms the bucket is presumed closed until.
+  // A closed-quota 429 (hint over the cap, or the patient backoff exhausted) closes ONE model's
+  // bucket; the fetch loop falls to the next rung, and later fetches skip the closed bucket
+  // without burning a probe request against a quota Google already said is closed. Entries
+  // self-expire by timestamp; ▶ Test and the opt-in toggle clear the memo outright (the same
+  // try-it-now contract as the engine degrade window).
+  var _geminiModelClosedUntil = {};
+  var _geminiFellToasted = false;
+  function _geminiModelPick(closedMap, now) {   // pure: the first rung whose bucket isn't closed
+    for (var i = 0; i < GEMINI_TTS_MODELS.length; i++) {
+      var m = GEMINI_TTS_MODELS[i];
+      if (!closedMap[m] || closedMap[m] <= now) return m;
+    }
+    return null;
+  }
+  function _geminiModelsReopenMs(closedMap, now) {   // pure: ms until the EARLIEST bucket reopens
+    var best = -1;
+    for (var i = 0; i < GEMINI_TTS_MODELS.length; i++) {
+      var left = (closedMap[GEMINI_TTS_MODELS[i]] || 0) - now;
+      if (left < 0) left = 0;
+      if (best < 0 || left < best) best = left;
+    }
+    return best < 0 ? 0 : best;
+  }
+  function _geminiModelClose(model, hintMs) {
+    var forMs = Math.min(Math.max(hintMs || GEMINI_TTS_RETRY_MS, GEMINI_TTS_RETRY_MS), GEMINI_TTS_DEGRADE_CAP_MS);
+    var until = Date.now() + forMs;
+    if ((_geminiModelClosedUntil[model] || 0) < until) _geminiModelClosedUntil[model] = until;   // never shrink an open window
+    console.warn("[tts gemini] quota closed on " + model + " for " + Math.round(forMs / 1000) + "s"
+      + (hintMs ? " (Google asked for " + Math.round(hintMs / 1000) + "s)" : " (backoff schedule exhausted)"));
+    if (typeof erCrumb === "function") erCrumb("tts-gemini-model-closed", model + " " + Math.round(forMs / 1000) + "s");
+  }
+  // Announced only on a backup-rung SUCCESS (toasting "continuing" over a rung that also failed
+  // would be a lie about a read that is about to degrade anyway), and latched once per session.
+  function _geminiFellNote(model) {
+    if (model === GEMINI_TTS_MODELS[0] || _geminiFellToasted) return;
+    _geminiFellToasted = true;
+    if (typeof showToast === "function") showToast("Gemini voice quota reached — continuing on the backup Gemini model");
+  }
   // Raw PCM16 → AudioBuffer. Gemini returns headerless L16 (mimeType carries the rate), so the
   // WAV parser used by the server tier does not apply — there is no RIFF header to skip.
   function _pcm16ToAudioBuffer(bytes, rate, ctx) {
@@ -577,8 +625,8 @@ var TTS = (function() {
     }
     return "<optgroup label='Subdued'>" + calm + "</optgroup><optgroup label='More expressive'>" + loud + "</optgroup>";
   }
-  function _geminiEndpoint() {
-    return "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_TTS_MODEL + ":generateContent";
+  function _geminiEndpoint(model) {
+    return "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
   }
 
   // ── TTS_PROVIDERS — the provider table (mirrors the LLM PROVIDERS shape in globals.js) ───────
@@ -2441,7 +2489,19 @@ var TTS = (function() {
     var b64 = "", rate = 24000, failReason = "";
     var uTimeoutMs = _geminiTimeoutMs(g.text.length, isFirst);
     var quotaTries = 0, quickTried = false, lastCtrl = null, timedOut = false;
+    var curModel = null;
     for (;;) {
+      // #41f: resolve the rung fresh each attempt — a mid-read closure (this group's own 429,
+      // or a CONCURRENT conveyor group's) routes the next attempt to the first open bucket
+      // instead of a dead one. Only a ladder with no open rung fails the group.
+      var model = _geminiModelPick(_geminiModelClosedUntil, Date.now());
+      if (!model) {
+        var reopen = _geminiModelsReopenMs(_geminiModelClosedUntil, Date.now());
+        failReason = "quota closed on every Gemini TTS model — next bucket reopens in " + Math.round(reopen / 1000) + "s";
+        return { fail: failReason, degradeMs: Math.min(reopen || GEMINI_TTS_RETRY_MS, GEMINI_TTS_DEGRADE_CAP_MS) };
+      }
+      if (curModel !== null && model !== curModel) quotaTries = 0;   // each rung gets its own patience
+      curModel = model;
       var tid = null, is429 = false, retryHint = 0;
       timedOut = false;
       try {
@@ -2456,7 +2516,7 @@ var TTS = (function() {
                      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
                      body: JSON.stringify(body) };
         if (ctrl) opts.signal = ctrl.signal;
-        var res = await fetch(_geminiEndpoint(), opts);
+        var res = await fetch(_geminiEndpoint(model), opts);
         if (tid) clearTimeout(tid);
         var j = await res.json();
         if (!res.ok) {
@@ -2481,7 +2541,7 @@ var TTS = (function() {
         failReason = (e && e.name === "AbortError") ? (timedOut ? ("timeout after " + uTimeoutMs + "ms") : "aborted by skip")
                                                     : ((e && e.message) || "network error");
       }
-      if (b64) break;
+      if (b64) { _geminiFellNote(model); break; }
       // A skip aborts the REGISTERED controller — that flag is the only thing telling this loop
       // the read is dead (our own deadline timer identifies itself via timedOut, so it never
       // masquerades as a skip). Without the check, a 30s quota wait would outlive the skip,
@@ -2490,16 +2550,15 @@ var TTS = (function() {
       if (is429) {
         var wait = _geminiQuotaWaitMs(retryHint, quotaTries);
         if (wait < 0) {
-          // #41d: the quota is closed beyond this read's patience. Say so with Google's own
-          // number, and let the degrade window honor it (capped) instead of the flat 60s.
-          if (retryHint > GEMINI_TTS_429_HINT_CAP_MS) {
-            failReason = "quota exhausted — Google asks for " + Math.round(retryHint / 1000) + "s";
-            return { fail: failReason, degradeMs: Math.min(retryHint, GEMINI_TTS_DEGRADE_CAP_MS) };
-          }
-          break;
+          // #41d/#41f: THIS model's quota is closed beyond a live read's patience (an over-cap
+          // hint, or the patient schedule exhausted). Close its bucket — honoring Google's own
+          // number, capped — and fall to the next rung at the loop top. The engine-level
+          // degrade fires only when the whole ladder is closed (the pick-null return above).
+          _geminiModelClose(model, retryHint);
+          continue;
         }
         quotaTries++;
-        console.warn("[tts gemini] quota window (429) — waiting " + Math.round(wait / 1000) + "s before retry " + quotaTries + "/" + GEMINI_TTS_429_BACKOFF_MS.length + " (scheduled runway absorbs the wait)");
+        console.warn("[tts gemini] quota window (429) on " + model + " — waiting " + Math.round(wait / 1000) + "s before retry " + quotaTries + "/" + GEMINI_TTS_429_BACKOFF_MS.length + " (scheduled runway absorbs the wait)");
         await _geminiWait(wait, lastCtrl && lastCtrl.signal);
         if (lastCtrl && lastCtrl.signal && lastCtrl.signal.aborted) { failReason = "aborted by skip"; break; }
         continue;
@@ -3791,8 +3850,10 @@ var TTS = (function() {
     }
     var v = _geminiVoiceKnown(voiceName) ? voiceName : geminiNarratorVoice();
     // A test press is an explicit "try it now", so it clears any open degrade window rather than
-    // silently doing nothing for up to 60s after an earlier failure.
+    // silently doing nothing for up to 60s after an earlier failure — and the #41f per-model
+    // memo with it, so the test genuinely probes the primary rung, not the backup.
     _geminiTtsErr = ""; _geminiTtsErrAt = 0;
+    _geminiModelClosedUntil = {};
     // ORDER IS LOAD-BEARING: stop() signals "idle" to cancel any previous audition's pulse, so the
     // new callback must be armed AFTER it — arming first would have stop() immediately clear it and
     // the button would never pulse at all.
@@ -3984,7 +4045,7 @@ var TTS = (function() {
           return;
         }
         store.set(GEMINI_TTS_K, on ? "1" : "0");
-        if (on) { _geminiTtsErr = ""; _geminiTtsErrAt = 0; }   // opting in clears any stale degrade window
+        if (on) { _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiModelClosedUntil = {}; }   // opting in clears any stale degrade window + the #41f model memo
         var cfg = document.getElementById("tts-gem-cfg");
         if (cfg) cfg.style.display = on ? "" : "none";
       });
@@ -4142,6 +4203,13 @@ var TTS = (function() {
                backoff429: function() { return GEMINI_TTS_429_BACKOFF_MS.slice(); },
                quotaWaitMs: _geminiQuotaWaitMs, hintCapMs: GEMINI_TTS_429_HINT_CAP_MS,  // #41d
                degrade: _geminiTtsDegrade,
+               // #41f: the in-family model ladder + per-model quota memo
+               models: function() { return GEMINI_TTS_MODELS.slice(); },
+               modelPick: _geminiModelPick, modelClose: _geminiModelClose,
+               modelsReopenMs: _geminiModelsReopenMs,
+               modelState: function() { return Object.assign({}, _geminiModelClosedUntil); },
+               modelReset: function() { _geminiModelClosedUntil = {}; _geminiFellToasted = false; },
+               fetchGroup: _geminiFetchGroup,
                primeReady: _geminiPrimeReady, b64Sec: _geminiB64Sec, minLeadSec: GEMINI_TTS_MIN_LEAD_SEC,  // #41e
                pcm: _pcm16ToAudioBuffer, ladder: function() { return TTS_LADDER.slice(); },
                keys: { on: GEMINI_TTS_K, dir: GEMINI_DIR_K, narr: GEMINI_NARRATOR_K },
