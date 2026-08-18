@@ -32,6 +32,31 @@ var SPECS = [
     replace: 'function csInitials(name){return(name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,1)||"?";}',
     mustFail: "normal two-word name",
     label: "dedupA detects a regressed initials cap"
+  },
+  // #29b fallback-rung clauses: field deleted, attribution inverted, self-fall guard dropped.
+  {
+    suite: "tests-29-callgm-transport.js",
+    file: "globals.js",
+    find: '    fallbackModel:"gemini-3.6-flash",',
+    replace: '',
+    mustFail: "prov.fallbackModel",
+    label: "#29b detects a deleted fallbackModel field (storms would fail loud with no rung)"
+  },
+  {
+    suite: "tests-29-callgm-transport.js",
+    file: "api.js",
+    find: '        if(!sysOverride)_lastTurnModel=model; // #45: the transcript m: stamp must credit the model that actually wrote the turn',
+    replace: '        if(sysOverride)_lastTurnModel=model; // #45: the transcript m: stamp must credit the model that actually wrote the turn',
+    mustFail: "_lastTurnModel",
+    label: "#29b detects an inverted #45 attribution stamp (fallback turns credited to the primary)"
+  },
+  {
+    suite: "tests-29-callgm-transport.js",
+    file: "api.js",
+    find: '      if(!_fellBack&&prov.fallbackModel&&model!==prov.fallbackModel){',
+    replace: '      if(!_fellBack&&prov.fallbackModel){',
+    mustFail: "no self-fall",
+    label: "#29b detects a dropped self-fall guard (a call already on the fallback would burn a 4th attempt on itself)"
   }
 ];
 
@@ -96,4 +121,4 @@ if (failed) {
   console.error("STANDALONE SUITE SABOTAGE: " + failed + " failure(s)");
   process.exit(1);
 }
-console.log("ALL GREEN — 3/3 standalone suite regressions caught and disposable targets restored");
+console.log("ALL GREEN — " + SPECS.length + "/" + SPECS.length + " standalone suite regressions caught and disposable targets restored");

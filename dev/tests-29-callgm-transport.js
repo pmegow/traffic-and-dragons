@@ -65,6 +65,9 @@ function respond(status, okFlag, body) {
 function anthropicOk(text) {
   return respond(200, true, JSON.stringify({ content: [{ type: "text", text: text || "Hello" }], stop_reason: "end_turn", usage: { input_tokens: 100, output_tokens: 10 } }));
 }
+function geminiOk(text) {
+  return respond(200, true, JSON.stringify({ candidates: [{ content: { parts: [{ text: text || "Hello" }] }, finishReason: "STOP" }], usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 10 } }));
+}
 function httpErr(status, body) { return respond(status, false, body); }
 function rejectWith(msg) { return function () { return Promise.reject(new Error(msg)); }; }
 function hang() { // resolves NEVER; rejects AbortError only when the caller's deadline fires
@@ -222,6 +225,122 @@ tAsync("a request that answers WITHIN the deadline is untouched by it", function
   return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
     if (r.sentinel || !r.ok) return "an ordinary fast call failed under the deadline machinery";
     return r.v === "prompt reply" ? true : "wrong response: " + r.v;
+  });
+});
+
+section("#29b transport — the in-family fallback rung (the gemini 503-storm class)");
+
+var GEMINI_503 = '{"error":{"message":"The model is overloaded. Please try again later."}}';
+
+tAsync("a storm that exhausts the primary falls ONCE to prov.fallbackModel and the turn SUCCEEDS", function () {
+  reset("gemini"); fastKnobs();
+  script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503));
+  script.push(geminiOk("Through the storm"));
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel) return "callGM never settled";
+    if (!r.ok) return "turn still failed: " + r.e.message;
+    if (r.v !== "Through the storm") return "wrong response: " + r.v;
+    if (calls.length !== 4) return "expected 4 fetches (1 + " + CALLGM_RETRY_MAX + " retries on primary, 1 rung), got " + calls.length;
+    if (calls[2].url.indexOf("gemini-3.7-flash") < 0) return "primary attempts left gemini-3.7-flash: " + calls[2].url;
+    if (calls[3].url.indexOf("gemini-3.6-flash") < 0) return "rung attempt did not target gemini-3.6-flash: " + calls[3].url;
+    // Gemini's model rides ONLY in the URL — the rebuilt payload must stay byte-identical.
+    return calls[0].opts.body === calls[3].opts.body ? true : "rung payload drifted from the primary's body";
+  });
+});
+tAsync("the rung is PER-CALL — the very next call probes the primary again (voice continuity, never sticky)", function () {
+  reset("gemini"); fastKnobs();
+  script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503));
+  script.push(geminiOk("fell"));
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel || !r.ok) return "the falling call did not succeed";
+    calls.length = 0; script.push(geminiOk("back on the primary"));
+    return raceCall(["hi again", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r2) {
+      if (r2.sentinel || !r2.ok) return "the follow-up call failed";
+      if (calls.length !== 1) return "follow-up took " + calls.length + " fetches";
+      return calls[0].url.indexOf("gemini-3.7-flash") >= 0 ? true : "a memo stuck — the next call started on " + calls[0].url;
+    });
+  });
+});
+tAsync("a rung that ALSO fails stays bounded — exactly one rung attempt, then the loud old error shape", function () {
+  reset("gemini"); fastKnobs();
+  script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503));
+  script.push(httpErr(503, GEMINI_503)); script.push(geminiOk()); // the Ok must never be consumed
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel) return "callGM never settled";
+    if (r.ok) return "should have failed after the rung failed too";
+    if (calls.length !== 4) return "expected 4 fetches (rung tried once, never retried), got " + calls.length;
+    return r.e.message === "HTTP 503: The model is overloaded. Please try again later." ? true : "error shape drifted: " + r.e.message;
+  });
+});
+tAsync("no self-fall: a call already ON the fallback model never re-enters the rung", function () {
+  reset("gemini"); fastKnobs();
+  script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503));
+  script.push(geminiOk()); // must never be consumed
+  return raceCall(["hi", "SYS", 60, "gemini-3.6-flash", { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel) return "callGM never settled";
+    if (r.ok) return "should have failed — the rung has nowhere to fall";
+    return calls.length === 3 ? true : "expected 3 fetches (no self-fall), got " + calls.length;
+  });
+});
+tAsync("#45 attribution: a gameplay-turn fall re-stamps _lastTurnModel to the model that actually wrote the turn", function () {
+  reset("gemini"); fastKnobs();
+  // A real gameplay turn (no sysOverride) — buildSysPrompt stubbed like showToast is, so the
+  // battery's minimal worldState never has to satisfy the full prompt builder.
+  var _origBSP = buildSysPrompt; buildSysPrompt = function () { return { stable: "S", volatile: "V" }; };
+  script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503));
+  script.push(geminiOk());
+  return raceCall(["hi", null, 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    buildSysPrompt = _origBSP;
+    if (r.sentinel || !r.ok) return "gameplay call did not succeed" + (r.e ? ": " + r.e.message : "");
+    return _lastTurnModel === "gemini-3.6-flash" ? true : "_lastTurnModel=" + _lastTurnModel + " — the transcript would credit the primary for a turn the fallback wrote";
+  });
+});
+tAsync("a sysOverride (utility) fall never touches _lastTurnModel — attribution is gameplay-only", function () {
+  reset("gemini"); fastKnobs();
+  _lastTurnModel = "SENTINEL";
+  script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503));
+  script.push(geminiOk());
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "actions" }]).then(function (r) {
+    if (r.sentinel || !r.ok) return "utility call did not succeed";
+    return _lastTurnModel === "SENTINEL" ? true : "a utility call clobbered _lastTurnModel: " + _lastTurnModel;
+  });
+});
+tAsync("the fall is LOUD on gameplay turns (second toast names the fallback) and silent for background kinds", function () {
+  reset("gemini"); fastKnobs();
+  script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503));
+  script.push(geminiOk());
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel || !r.ok) return "turn call did not succeed";
+    if (toasts.length !== 2) return "expected retry toast + fall toast, got " + toasts.length + ": " + JSON.stringify(toasts);
+    if (toasts[1].indexOf("gemini-3.6-flash") < 0) return "the fall toast does not name the fallback model: " + toasts[1];
+    toasts.length = 0; calls.length = 0;
+    script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503));
+    script.push(geminiOk());
+    return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "actions" }]).then(function (r2) {
+      if (r2.sentinel || !r2.ok) return "actions call did not succeed";
+      return toasts.length === 0 ? true : "a background (actions) fall toasted at the player: " + JSON.stringify(toasts);
+    });
+  });
+});
+tAsync("a credit-shaped 429 on the rung's provider is terminal BEFORE any retry or fall (B15 outranks #29b)", function () {
+  reset("gemini"); fastKnobs();
+  script.push(httpErr(429, '{"error":{"message":"You exceeded your current quota, please check your plan and billing details."}}'));
+  script.push(geminiOk()); // must never be consumed
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel) return "callGM never settled";
+    if (r.ok) return "a billing refusal fell to a second model — that would bill a second refusal";
+    if (calls.length !== 1) return "a credit refusal was retried/fallen " + (calls.length - 1) + " time(s)";
+    return r.e.message.indexOf("API credit exhausted — ") === 0 ? true : "credit contract lost: " + r.e.message;
+  });
+});
+tAsync("a deadline abort NEVER reaches the rung (the abandoned request may still bill server-side)", function () {
+  reset("gemini"); fastKnobs();
+  script.push(hang());
+  script.push(geminiOk()); // must never be consumed
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel) return "callGM never settled";
+    if (r.ok) return "a hung request cannot succeed";
+    return calls.length === 1 ? true : "a timeout was retried or fallen — double-generation hazard";
   });
 });
 

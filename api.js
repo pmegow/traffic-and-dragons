@@ -2106,6 +2106,10 @@ function providerHttpError(prov,status,message){
 //     the retry decision or the billing toast arrives seconds and two burned calls late;
 //   • any non-transient status — a deterministic provider error stays loud on try one
 //     (500 is deliberately absent from the transient set for the same reason).
+//
+// #29b (v1.660): a provider may carry `fallbackModel` — an in-family rung tried ONCE per call
+// after the primary's retries exhaust on a transient status (the gemini 503 storms). Per-call
+// only, loud, attributed; see the rung comment in the loop and the gemini entry in globals.js.
 var CALLGM_TIMEOUT_MS=240000;  /* per attempt — generous ON PURPOSE (frontier reasoning models legitimately run 120s+); this is hang recovery, not latency policing */
 var CALLGM_RETRY_MAX=2;        /* transient auto-retries beyond the first attempt */
 var CALLGM_RETRY_BASE_MS=2000; /* backoff 2s→4s, plus 0–20% proportional jitter */
@@ -2155,7 +2159,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // #29 transport loop. The payload is serialized ONCE — a retried request is byte-identical,
   // so provider-side prompt caches see the same prefix on every attempt.
   var _payload=JSON.stringify(body);
-  var res,raw,_retries=0;
+  var res,raw,_retries=0,_fellBack=false;
   for(;;){
     var _rr;
     try{_rr=await _fetchTextDeadline(url,{method:"POST",headers:prov.headers(key),body:_payload},CALLGM_TIMEOUT_MS);}
@@ -2167,21 +2171,49 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
       throw new Error("Network: "+e.message);
     }
     res=_rr;raw=_rr.raw;
-    if(!res.ok&&CALLGM_TRANSIENT_STATUS[res.status]&&_retries<CALLGM_RETRY_MAX){
+    if(!res.ok&&CALLGM_TRANSIENT_STATUS[res.status]){
       var _tm="";try{var _td=JSON.parse(raw);_tm=(_td.error&&_td.error.message)||(typeof _td.error==="string"?_td.error:"")||_td.message||_td.msg||"";}catch(e2){_tm=raw.slice(0,200);}
       // B15 FIRST: a credit refusal rides transient-looking statuses (OpenAI: 429) but is never
-      // transient — it keeps its loud contract (one toast + prefixed Error) on the FIRST failure.
+      // transient — it keeps its loud contract (one toast + prefixed Error) on the FIRST failure,
+      // and it must never reach the fallback rung either: an exhausted account is not a storm,
+      // and a second model on the same key would just bill a second refusal.
       if(isCreditExhausted(prov,res.status,_tm))throw providerHttpError(prov,res.status,_tm);
-      _retries++;
-      var _wait=CALLGM_RETRY_BASE_MS*Math.pow(2,_retries-1)+Math.floor(Math.random()*(CALLGM_RETRY_BASE_MS/5));
-      console.warn("[transport] "+prov.id+" HTTP "+res.status+" (transient) — auto-retry "+_retries+"/"+CALLGM_RETRY_MAX+" in "+_wait+"ms (#29)");
-      try{if(typeof erCrumb==="function")erCrumb("transport-retry",{p:prov.id,s:res.status,n:_retries,k:_kind});}catch(e3){}
-      // One toast per CALL, gameplay turns only — the player is actively waiting there; a
-      // background suggestion/summarize retry toasting "overloaded" against an already-rendered
-      // story would read as a phantom failure.
-      if(_retries===1&&_kind==="turn"&&typeof showToast==="function")showToast("⏳ "+(prov.label||prov.id)+" is overloaded — retrying…");
-      await _sleep(_wait);
-      continue;
+      if(_retries<CALLGM_RETRY_MAX){
+        _retries++;
+        var _wait=CALLGM_RETRY_BASE_MS*Math.pow(2,_retries-1)+Math.floor(Math.random()*(CALLGM_RETRY_BASE_MS/5));
+        console.warn("[transport] "+prov.id+" HTTP "+res.status+" (transient) — auto-retry "+_retries+"/"+CALLGM_RETRY_MAX+" in "+_wait+"ms (#29)");
+        try{if(typeof erCrumb==="function")erCrumb("transport-retry",{p:prov.id,s:res.status,n:_retries,k:_kind});}catch(e3){}
+        // One toast per CALL, gameplay turns only — the player is actively waiting there; a
+        // background suggestion/summarize retry toasting "overloaded" against an already-rendered
+        // story would read as a phantom failure.
+        if(_retries===1&&_kind==="turn"&&typeof showToast==="function")showToast("⏳ "+(prov.label||prov.id)+" is overloaded — retrying…");
+        await _sleep(_wait);
+        continue;
+      }
+      // #29b: primary retries exhausted mid-storm — ONE in-family fallback rung, declared as DATA
+      // on the provider entry (prov.fallbackModel; no provider conditionals here — the PROVIDERS
+      // idiom). PER-CALL by owner ruling 2026-08-17: voice continuity outranks recovery speed, so
+      // there is no memo and no sticky state — the very next call starts back on the chosen model
+      // (a storm probe costs two fast rejections + ~6s backoff, fine at turn cadence). The body is
+      // REBUILT for the fallback model (for Gemini the model rides only in the URL, so the payload
+      // stays byte-identical anyway); `sys` keeps the PRIMARY's resolved reinforce — recomputing it
+      // would double-append onto the mutated stable half (moot for Gemini: TAG_REINFORCE is
+      // model-constant). No extra backoff: the 2s+4s spent getting here was the backoff, and storm
+      // statuses return fast. If the rung fails too, the ordinary loud contract below fires.
+      if(!_fellBack&&prov.fallbackModel&&model!==prov.fallbackModel){
+        _fellBack=true;
+        var _primary=model;
+        model=prov.fallbackModel;
+        body=prov.buildBody(msgs,sys,_tok,model);
+        _payload=JSON.stringify(body);
+        url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint;
+        if(!sysOverride)_lastTurnModel=model; // #45: the transcript m: stamp must credit the model that actually wrote the turn
+        console.warn("[transport] "+prov.id+" HTTP "+res.status+" after "+_retries+" retries — falling back "+_primary+" → "+model+" for THIS call only (#29b)");
+        try{if(typeof erCrumb==="function")erCrumb("transport-fallback",{p:prov.id,s:res.status,m:model,k:_kind});}catch(e4){}
+        // The voice changing hands is never silent (drift policy): gameplay turns toast the fall.
+        if(_kind==="turn"&&typeof showToast==="function")showToast("⚠ "+_primary+" is overloaded — this turn falls back to "+model);
+        continue;
+      }
     }
     break;
   }

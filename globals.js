@@ -181,6 +181,15 @@ var PROVIDERS={
     defaultModel:"gemini-3.7-flash", // pruned to the >=Sonnet-5 menu (owner ruling 2026-08-16): 3.7-flash held the sweep contract (round-2 arm 1, index ~56); 3.5-flash FAILED story coherence and the 2.5 line sits below the tier floor
     upgradeModel:"gemini-3.7-flash",
     models:["gemini-3.7-flash"],
+    // #29b in-family overload rung (owner ruling 2026-08-18, the 503 storms): when the primary
+    // exhausts its transient retries, the SAME call re-attempts ONCE on this model. PER-CALL
+    // only, never sticky — the next call starts back on the chosen model, because voice
+    // continuity outranks recovery speed (owner ruling 2026-08-17). Deliberately NOT in models[]:
+    // the picker menu stays sweep-validated (>=Sonnet-5 ruling 2026-08-16); this is emergency
+    // degrade, one LOUD visible turn at a time (toast + the #45 m: transcript stamp), not a
+    // listing. 3.6-flash is UNSWEPT for canon obedience — accepted because the alternative is a
+    // dead turn, the anti-drift injections bind any model, and every fall is attributable.
+    fallbackModel:"gemini-3.6-flash",
     headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
     // thinkingLevel "low" on EVERY call kind (owner ruling 2026-08-16, #22): 3.7-flash thinks
     // MANDATORILY and bills it as output. The 50-turn low arm (corpus v1644, standard Korrag
@@ -199,7 +208,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.659";
+var APP_VERSION="v1.660";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
