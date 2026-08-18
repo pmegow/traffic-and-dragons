@@ -1210,8 +1210,20 @@ function healthIndicators(ws){
     if(r.status!=="quarantined")continue;
     var lastAct=r.lastAttemptTurn!=null?r.lastAttemptTurn:(r.quarantinedTurn!=null?r.quarantinedTurn:r.turn||0);
     var active=(turnNow-lastAct)<=CANON_TXN_RETIRE_TURNS||openSubjects[r.subject];
-    if(active){activeQ++;
+    // 2026-08-17 (the Xanesha field question "should I just ignore this?"): a recent refusal whose
+    // own recovery already RAN — dispute resolved AND a later claim for the same subject committed —
+    // must not keep shouting PROBLEM/"withholding"/"submit a report". The refusal stays visible
+    // (recent news, and the receipt is poisoned forever by contract) but reads as what it is: a
+    // refusal the machinery already answered. Detection is receipts-only, same as everything here.
+    var healedLater=false,hj;
+    if(active&&!openSubjects[r.subject]&&r.subject&&r.subject!=="-"){
+      for(hj=0;hj<ct.length;hj++){var hr=ct[hj];
+        if(hr.status==="committed"&&hr.subject===r.subject&&(hr.committedTurn!=null?hr.committedTurn:hr.turn||0)>=(r.quarantinedTurn!=null?r.quarantinedTurn:r.turn||0)){healedLater=true;break;}}
+    }
+    if(active&&!healedLater){activeQ++;
       if(anom.length<3)anom.push("refused canon claim \""+(r.id||"?")+"\": "+(r.subject&&r.subject!=="-"?r.subject:"(no subject)")+(r.quest?", withholding quest \""+r.quest+"\"":"")+" — t"+(r.quarantinedTurn!=null?r.quarantinedTurn:r.turn)+": "+String(r.reason||"no reason recorded").slice(0,90));
+    }else if(active){
+      if(anom.length<3)anom.push("refused canon claim \""+(r.id||"?")+"\" ("+r.subject+", t"+(r.quarantinedTurn!=null?r.quarantinedTurn:r.turn)+") — RESOLVED: a later claim for "+r.subject+" committed"+(r.quest?"; verify \""+r.quest+"\" paid out in the journal":""));
     }else histQ++;
   }
   // #194/ruling ③ (observation only, by design): legacy-grade authorizations are the fail-open

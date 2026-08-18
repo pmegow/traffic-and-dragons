@@ -15400,6 +15400,23 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return rec.by[GB_TURN_CAP+2]==="say"?true:"a kept turn lost its source in the cap fold";
   });
 
+  t("#17: a recent refusal whose recovery already ran reads RESOLVED at warn — the modal must not demand a report for a self-healed incident (the Xanesha field question)",function(){
+    p194World();worldState.turn=1921;
+    worldState.canonTxns=[
+      {id:"tx_x_death",claim:"npc-death",subject:"Xanesha",evidence:"lamia",quest:"The Shadow Clock Stalker",status:"quarantined",operations:[],turn:1919,quarantinedTurn:1919,reason:"scene evidence does not bind the claimed victim"},
+      {id:"tx_x_death2",claim:"npc-death",subject:"Xanesha",evidence:"-",quest:"The Shadow Clock Stalker",status:"committed",operations:[],turn:1920,committedTurn:1920}
+    ];
+    var h=healthIndicators(worldState),an=null,i;
+    for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")an=h.items[i];
+    if(!an)return "no anomaly indicator";
+    if(an.level==="bad")return "a self-healed refusal still reports PROBLEM: "+an.detail;
+    if(!/RESOLVED/i.test(an.detail))return "the healed refusal is not labeled resolved: "+an.detail;
+    if(/withholding/i.test(an.detail))return "the healed refusal still claims to be withholding: "+an.detail;
+    worldState.canonTxns.pop();/* no later commit → the refusal is genuinely live */
+    var h2=healthIndicators(worldState),an2=null;
+    for(i=0;i<h2.items.length;i++)if(h2.items[i].id==="anomaly")an2=h2.items[i];
+    return (an2&&an2.level==="bad"&&/withholding/i.test(an2.detail))?true:"a genuinely-live refusal lost its PROBLEM standing: "+(an2&&an2.level+" / "+an2.detail);
+  });
   t("#194 L5: legacy-grade committed receipts surface in the drift-health standing anomalies as observation",function(){
     p194World();
     worldState.canonTxns=[{id:"leg-9",claim:"npc-death",subject:"Old Man",evidence:"-",quest:"-",status:"committed",operations:[],turn:50,committedTurn:50,evidenceGrade:"legacy"}];
