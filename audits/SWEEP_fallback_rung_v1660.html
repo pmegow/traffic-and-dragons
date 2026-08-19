@@ -1,0 +1,190 @@
+<title>The Fallback Rung</title>
+<style>
+:root{
+  --bg:#f7f1e6; --ink:#2b2620; --dim:#8a7f6d; --line:#e3d8c4; --panel:#fdf9f0;
+  --acc:#b8935a; --acc-ink:#8a6a38;
+  --pass:#5a7a4d; --pass-bg:#eef0e2;
+  --fail:#a04a38; --fail-bg:#f5e6e0;
+  --warn:#a0783c; --warn-bg:#f4ecda;
+  --mono:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+    --acc:#c9a568; --acc-ink:#c9a568;
+    --pass:#8fae7c; --pass-bg:#232a1e;
+    --fail:#c97b66; --fail-bg:#31211c;
+    --warn:#c79a55; --warn-bg:#2c2517;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+  --acc:#c9a568; --acc-ink:#c9a568;
+  --pass:#8fae7c; --pass-bg:#232a1e;
+  --fail:#c97b66; --fail-bg:#31211c;
+  --warn:#c79a55; --warn-bg:#2c2517;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Georgia,'Iowan Old Style','Times New Roman',serif}
+.wrap{max-width:min(96vw,1700px);margin:0 auto;padding:48px 24px 80px}
+header{border-bottom:2px solid var(--acc);padding-bottom:22px;margin-bottom:26px;max-width:1080px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-ink);margin:0 0 12px}
+h1{font-size:30px;line-height:1.2;margin:0 0 10px;font-weight:700;text-wrap:balance}
+.standfirst{font-size:16px;font-style:italic;color:var(--dim);margin:0;max-width:70ch}
+h2{font-size:19px;margin:40px 0 4px}
+h2 + .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+p{margin:0 0 14px;max-width:75ch}
+a{color:var(--acc-ink)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:12px;padding:2px 8px;border:1px solid;white-space:nowrap}
+.chip.pass{color:var(--pass);border-color:var(--pass);background:var(--pass-bg)}
+.chip.fail{color:var(--fail);border-color:var(--fail);background:var(--fail-bg)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.tablewrap{overflow-x:auto;margin:16px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.45;min-width:900px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--acc);position:sticky;top:0;background:var(--panel)}
+tbody th{font-weight:700;font-size:13.5px;white-space:nowrap;position:sticky;left:0;background:var(--panel);z-index:1}
+thead th:first-child{position:sticky;left:0;z-index:2}
+td .n{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+td .sub{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+blockquote{margin:18px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);font-style:italic;color:var(--ink);max-width:75ch}
+blockquote .who{display:block;font-family:var(--mono);font-size:11px;font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:8px}
+.defs{max-width:1080px;border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--panel);border-radius:4px;padding:14px 18px;margin:18px 0;font-size:14px}
+.defs p:last-child{margin-bottom:0}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 22px}
+.win{color:var(--pass);font-weight:700}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Traffic and Dragons &middot; the #29b certification run &middot; August 18, 2026</p>
+  <h1>The Fallback Rung</h1>
+  <p class="standfirst">gemini-3.6-flash ran the full 50-turn standard campaign to certify its seat as the #29b in-family overload fallback &mdash; judged against gemini-3.7-flash (thinking low, the shipped config) and claude-sonnet-5 on one shared yardstick.</p>
+</header>
+
+<p>v1.660 shipped the in-family fallback rung: when gemini-3.7-flash exhausts its transient retries in a 503 storm, the same call re-attempts once on <span class="n">gemini-3.6-flash</span>. The rung shipped with an honest asterisk &mdash; 3.6-flash was <em>unswept for canon obedience</em>, accepted only because a degraded turn beats a dead one. This run removes the asterisk. One 50-turn arm on the standard Korrag campaign (same blueprint, same seed, Howard voice), and a report card against the two models a fallback turn would actually be standing in for.</p>
+
+<div class="defs">
+  <p><strong>One yardstick, three arms.</strong> Every number below was recomputed from the committed corpora by <span class="n">dev/sweep-arm-metrics.js</span> (tag census derived from the loaded <span class="n">tag_table.js</span>, never a hand list). The script reproduces the five-arms report's published sonnet-5 and 3.7-low figures exactly, so cross-arm numbers here are one computation, not three methodologies. Thread nouns come from the blueprint premise: Valerius, the Chained King, Ashenveil.</p>
+</div>
+
+<h2>The bottom line</h2>
+<p class="kicker">certified for the rung &mdash; not for the menu</p>
+
+<p><strong>gemini-3.6-flash holds both contract halves.</strong> Zero zero-tag turns of 50, a clean dead-actor record, all three death tags emitted in the same response as their prose kill, no resurrections, and the premise pursued to the end of the run. A storm that lands a turn on the rung gets a real GM turn, in the same voice family, at the identical per-token price &mdash; not a coin-flip.</p>
+
+<p><strong>It is measurably a step below 3.7-flash, in exactly the ways a fallback can afford.</strong> It invented a tag (<span class="n">[POWER_STRIKE]</span> &times;2 &mdash; Korrag's Warrior ability name promoted to tag syntax; display-stripped by the unknown-tag catch-all, zero state effect). Its prose carries a small-grammar-slip class the 3.7 arm didn't show (&ldquo;you lung forward&rdquo;, &ldquo;a iron lantern&rdquo;). And its quest engagement is the thinnest of the three: one quest completed at t4, the main-line quest offered at t8 and never activated in 42 remaining turns, 240 XP and still level 1 at t50. None of this loses canon; all of it argues the menu stays exactly as ruled.</p>
+
+<p><strong>The run also field-exercised the #29 transport stack on its own arm:</strong> 10 of 40 healthLog turn calls absorbed transient retries, two driver back-offs recovered unaided, and the run completed 50/50 with no human intervention.</p>
+
+<h2>The scoreboard</h2>
+<p class="kicker">50 turns each &middot; identical Korrag seed &middot; identical blueprint &middot; one metrics script</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr>
+  <th>Arm</th><th>Contract ①<br>tags</th><th>Contract ②<br>canon</th><th>Tag profile</th>
+  <th>Prose</th><th>Speed<br>clean median s/turn</th><th>Output<br>tok/turn-call</th><th>Cost<br>50 turns</th><th>Depth reached</th>
+</tr></thead>
+<tbody>
+<tr>
+  <th>gemini-3.6-flash<br><span class="sub">the #29b rung &middot; this run, v1.660</span></th>
+  <td><span class="chip warn">hold, 1 blemish</span><span class="sub">0/50 zero-tag; invented [POWER_STRIKE] &times;2 (stripped, no state effect)</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean &mdash; 6 Cadoc mentions all corpse/artifact; 3/3 death tags same-turn as the prose kill</span></td>
+  <td><span class="n">35 distinct &middot; 237 total</span><span class="sub">1 unknown name</span></td>
+  <td><span class="n">608 ch</span><span class="sub">leanest; ~6&ndash;8 grammar slips</span></td>
+  <td><span class="n">5.9</span><span class="sub">45 clean gaps</span></td>
+  <td><span class="n win">194 &mdash; all visible</span><span class="sub">0 thought tokens</span></td>
+  <td><span class="n">$1.30</span><span class="sub">measured, real rates</span></td>
+  <td>L1 (240 XP) &middot; 13 NPCs &middot; 1 quest done + 1 never activated</td>
+</tr>
+<tr>
+  <th>gemini-3.7-flash<br><span class="sub">thinking LOW &mdash; shipped default</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean; all 4 death tags same-turn as the prose kill</span></td>
+  <td><span class="n win">39 distinct &middot; 366 total</span><span class="sub">0 unknown</span></td>
+  <td><span class="n">727 ch</span></td>
+  <td><span class="n win">4.6</span><span class="sub">only 9 clean gaps &mdash; storm run&dagger;</span></td>
+  <td><span class="n">251 &mdash; all visible</span><span class="sub">0 thought tokens</span></td>
+  <td><span class="n">~$1.2&ndash;1.3</span><span class="sub">est. at now-real rates&Dagger;</span></td>
+  <td>L2 &middot; 14 NPCs &middot; 4 quests</td>
+</tr>
+<tr>
+  <th>claude-sonnet-5<br><span class="sub">menu default</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean (8 candidates, all corpse/memory), with in-prose pushback</span></td>
+  <td><span class="n">32 distinct &middot; 212 total</span><span class="sub">leanest tagger</span></td>
+  <td><span class="n win">951 ch</span></td>
+  <td><span class="n">7.2</span><span class="sub">49 clean gaps</span></td>
+  <td><span class="n">398</span></td>
+  <td><span class="n">$2.64</span><span class="sub">actual, priced</span></td>
+  <td>L2 &middot; 9 NPCs &middot; 1 quest</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p style="font-size:13px;color:var(--dim);max-width:75ch">
+&dagger; The 3.7-low corpus rode a Google load-shed storm (56 back-off entries), leaving only 9 storm-free gaps to measure &mdash; its 4.6 s is a small-n figure; the five-arms report recorded 8.2 s at run time. &Dagger; MODEL_PRICING gained real Gemini rates in v1.661 ($0.75/$3.75 per MTok, verified 2026-08-18): <strong>3.6-flash and 3.7-flash are identically priced</strong>, so a fallback turn costs the same as the turn it replaces. The 3.6 figure is measured from the run's recorded token counts; the 3.7 figure re-estimates its comparable token profile at the same rates (its corpus predates usage snapshots). Cached input is priced at the full input rate in both (documented upper bound).
+</p>
+
+<h2>Canon under the microscope</h2>
+<p class="kicker">the checks that killed gemini-3.5-flash</p>
+
+<p><strong>The dead stay dead &mdash; and stay useful.</strong> Cadoc dies on turn 4. The mechanical scan flags six later mentions; every one is a corpse, a memory, or an artifact: looting the chains &ldquo;near Cadoc's frozen fingers&rdquo; (t7), rolling &ldquo;Cadoc's heavy corpse&rdquo; (t8), a scavenger reading his captured iron as proof &ldquo;you broke his crew&rdquo; (t23), and a smashed lantern &ldquo;stamped with the same horned skull seal you saw on Cadoc's parchment&rdquo; (t35). That is the literary pattern the opus-5 row was praised for &mdash; a death that keeps paying narrative interest &mdash; not the resurrection class that disqualified 3.5-flash.</p>
+
+<p><strong>Contradictory player actions bend the story, not the canon.</strong> The random-action walk fed the GM stale and out-of-order suggestions all run, and the recoveries were consistently correct: a thrust at an already-slain beast becomes corpse confirmation (t34); a &ldquo;parry&rdquo; against a foe who yielded last turn becomes menace over a cowering prisoner (t42); walking away and then choosing &ldquo;unlock the cage&rdquo; walks Korrag honestly back up the mountain &mdash; and charges the clock 45 minutes for it (t44). One genuine slip survived the read: the cage key is retrieved twice, once at t43 and again at t44.</p>
+
+<p><strong>Premise retention:</strong> Valerius carries 13 of 50 turns (3.7-low: 14; sonnet-5: 8), Ashenveil 5, and the ritual thread surfaces at t9 (&ldquo;the master's grand ritual demands strong marrow&rdquo;) and closes the run at t48 (&ldquo;Valerius drains us to feed the grand ritual beneath the city&rdquo;). The Chained King is never named &mdash; true of every arm ever run on this campaign, so it reads as a late-act reveal the runs don't reach, not an arm defect.</p>
+
+<h2>Voice, side by side</h2>
+<p class="kicker">same Howard directive &middot; first sword-stroke of each run</p>
+
+<blockquote>Steel shrieks from its scabbard as you lung forward, driving the Northland broadsword straight for the slave-driver's throat. Cadoc catches the blade on his heavy hilt with a shuddering crash, but your brute force sweeps his guard aside and bites deep into his collarbone.<span class="who">gemini-3.6-flash &mdash; typo preserved: the grammar-slip class is real</span></blockquote>
+
+<blockquote>Your longsword cuts a savage arc through the freezing night, shearing clean through the iron plates of Aldric's pauldron and biting deep into the meat of his shoulder.<span class="who">gemini-3.7-flash &middot; thinking low</span></blockquote>
+
+<blockquote>Steel hisses free of the scabbard, and you close the distance at a wary crouch, sword low, eyes cutting the scene apart piece by piece.<span class="who">claude-sonnet-5</span></blockquote>
+
+<p>The 3.6 arm speaks recognizable Howard &mdash; concrete violence, weather as antagonist, short brutal dialogue &mdash; and holds the register across all 50 turns. Two texture notes against its sibling: a lexical narrowing (&ldquo;iron&rdquo; carries collar, key, lantern, pot, brazier, and staff within a dozen turns) and the small-grammar-slip class quoted above, roughly six to eight instances across the run. A player would read a single fallback turn without noticing; a full campaign on 3.6 would read rougher than 3.7.</p>
+
+<h2>The blemish ledger</h2>
+<p class="kicker">every negative, on the record</p>
+
+<div class="tablewrap">
+<table style="min-width:640px">
+<thead><tr><th>Finding</th><th>Severity</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><th>Invented tag</th><td><span class="chip warn">minor</span></td><td><span class="n">[POWER_STRIKE]</span> emitted bare at t32 and t33 &mdash; the Warrior ability's name promoted to tag syntax. Display-stripped by cleanTxt's unknown-tag catch-all, console-warned, zero state effect. Neither comparison arm invented tags.</td></tr>
+<tr><th>Quest lifecycle thin</th><td><span class="chip warn">minor</span></td><td>&ldquo;The Slave-Master's Ring&rdquo; offered t8, never activated in 42 turns while the prose actively pursued its content &mdash; the #191 objectives-are-outcomes class. 2 quest-bearing responses vs 3.7-low's 15+22 QUEST/QUEST_STEP tags.</td></tr>
+<tr><th>XP under-award</th><td><span class="chip warn">minor</span></td><td>240 XP over 50 turns (4 XP tags); still level 1 where both comparison arms reached L2. Combat kills paid; exploration and roleplay mostly didn't.</td></tr>
+<tr><th>Grammar slips</th><td><span class="chip warn">minor</span></td><td>~6&ndash;8 article/tense slips (&ldquo;you lung forward&rdquo;, &ldquo;a iron lantern&rdquo;, &ldquo;biles red saliva&rdquo;, one third-person-past drift). Cosmetic; absent from the 3.7-low sample.</td></tr>
+<tr><th>Continuity slip</th><td><span class="chip warn">minor</span></td><td>The cage key is taken twice (t43, t44). Single instance in the full-story read; no state consequence (the key was never a sheet item &mdash; itself a soft tag gap).</td></tr>
+<tr><th>Untagged consumption</th><td><span class="chip pass">note</span></td><td>Rations shared three times, tagged <span class="n">[ITEM_LOST:]</span> once (t26); the later shares narrate food the sheet never held. No desync &mdash; nothing on the sheet to drift.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>What this page does not establish</h2>
+<p class="kicker">the honest limits</p>
+
+<div class="defs">
+  <p><strong>Different engine versions.</strong> sonnet-5 ran on v1.640, 3.7-low on v1.644, this arm on v1.660 &mdash; prompt nudges and guards moved between builds. Same-build re-runs remain unowned.</p>
+  <p><strong>One campaign, one tone, one voice, one seed</strong> &mdash; the standing #22 width caveat. A fallback certified on Howard sword-and-sorcery has not been shown to suit political intrigue.</p>
+  <p><strong>Depth is partly the random walk.</strong> The action picker fed this run an unusually social midgame (three consecutive ration-sharing turns); quest and XP thinness is confounded with that walk, though the 42-turn unactivated quest stands regardless.</p>
+  <p><strong>The rung path itself was not storm-tested here.</strong> This run certifies the model; the rung's mechanics (fall, re-stamp, per-call return) are pinned by the 19-assertion #29 battery and its 6-clause mutation proof, not by this corpus.</p>
+</div>
+
+<h2>Where this leaves the rung</h2>
+<p class="kicker">ruling unchanged, asterisk removed</p>
+
+<p><strong>Certified.</strong> The v1.660 fallback ships as ruled &mdash; per-call, loud, attributed &mdash; and its landing spot is now a known quantity: same price, same voice family, both contract halves held, with degradation modes (leaner prose, thinner quest bookkeeping, occasional grammar slip) that are visible texture, not canon damage. The menu stays exactly as owner-ruled on 2026-08-16: 3.6-flash is a rung, not a listing.</p>
+
+<footer>
+  <span>Traffic and Dragons &middot; engine v1.660 (run) / v1.661 (report)</span>
+  <span>New corpus: dev/corpus_playtest_v1660_gemini36.json (+ endstate)</span>
+  <span>Comparators: v1644 gemini37low &middot; v1640 sonnet5</span>
+  <span>Metrics: dev/sweep-arm-metrics.js &middot; census from tag_table.js</span>
+  <span>Run cost: $1.30 &middot; 2 back-offs &middot; 0 human interventions</span>
+</footer>
+</div>

@@ -112,7 +112,17 @@ var MODEL_PRICING={
   // not the full 33% the rate card suggests (see TODO #30 row).
   "claude-sonnet-5":  {in:2.00, out:10.00, cacheWrite:2.50, cacheRead:0.20},
   "claude-sonnet-4-6":{in:3.00, out:15.00, cacheWrite:3.75, cacheRead:0.30},
-  "claude-haiku-4-5": {in:1.00, out:5.00,  cacheWrite:1.25, cacheRead:0.10}
+  "claude-haiku-4-5": {in:1.00, out:5.00,  cacheWrite:1.25, cacheRead:0.10},
+  // Gemini rates verified 2026-08-18 (ai.google.dev/gemini-api/docs/pricing): $0.75/$3.75
+  // holds through Dec 31 2026, then DOUBLES to $1.50/$7.50 on Jan 1 2027 — revisit then.
+  // Both flash models are identically priced (which is why the #29b fallback rung is
+  // cost-neutral). ⚠ cacheRead is deliberately 0: Gemini's promptTokenCount INCLUDES cached
+  // tokens (unlike Anthropic's input_tokens), so pricing them again would double-count —
+  // cached reads therefore bill at the FULL input rate here, a documented UPPER bound, never
+  // an undercount (the #30 failure class). `out` already includes thinking tokens (parseUsage
+  // folds thoughtsTokenCount into out, matching Google's billing).
+  "gemini-3.7-flash": {in:0.75, out:3.75, cacheWrite:0, cacheRead:0},
+  "gemini-3.6-flash": {in:0.75, out:3.75, cacheWrite:0, cacheRead:0}
 };
 // buildSysPrompt returns {stable, volatile} for gameplay turns (TODO #11 prompt caching);
 // sysOverride callers pass a plain string. Non-Anthropic adapters flatten via sysJoin;
@@ -187,8 +197,9 @@ var PROVIDERS={
     // continuity outranks recovery speed (owner ruling 2026-08-17). Deliberately NOT in models[]:
     // the picker menu stays sweep-validated (>=Sonnet-5 ruling 2026-08-16); this is emergency
     // degrade, one LOUD visible turn at a time (toast + the #45 m: transcript stamp), not a
-    // listing. 3.6-flash is UNSWEPT for canon obedience — accepted because the alternative is a
-    // dead turn, the anti-drift injections bind any model, and every fall is attributable.
+    // listing. Sweep-CERTIFIED 2026-08-18 (audits/SWEEP_fallback_rung_v1660.html): both contract
+    // halves hold over the 50-turn standard campaign — degradations are texture (leaner prose,
+    // thinner quest bookkeeping, grammar slips), never canon damage; identical per-token price.
     fallbackModel:"gemini-3.6-flash",
     headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
     // thinkingLevel "low" on EVERY call kind (owner ruling 2026-08-16, #22): 3.7-flash thinks
@@ -208,7 +219,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.660";
+var APP_VERSION="v1.661";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
