@@ -185,6 +185,14 @@ var PROVIDERS={
     // bring-up) — model-conditional so the validated gpt-4o path stays byte-identical.
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
     buildBody:function(msgs,sys,maxTok,model){var b={model:model,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};if(/^gpt-5/.test(model))b.max_completion_tokens=maxTok;else b.max_tokens=maxTok;return b;},
+    // #29b OpenAI storm rung (owner ruling 2026-08-18, after the ladder sweep): a sol storm
+    // re-attempts ONCE on luna — per-call, never sticky, loud, attributed (see the gemini entry's
+    // rung comment; identical machinery). Unlike Gemini, the model rides IN THE BODY here, so the
+    // rung's generic rebuild path re-serializes the payload with the fallback id (battery-pinned).
+    // Sweep evidence for the seat: SWEEP_luna_arm_v1661 (engine-guarded canon — acceptable at the
+    // rung bar, a fallback turn beats a dead one) + SWEEP_gpt_ladder_v1662 (the family scoreboard).
+    // NOT in models[] — the picker menu stays sweep-validated (>=Sonnet-5 ruling 2026-08-16).
+    fallbackModel:"gpt-5.6-luna",
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
     parseUsage:OPENAI_USAGE,
     parseFinish:OPENAI_FINISH,
@@ -227,7 +235,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.663";
+var APP_VERSION="v1.664";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

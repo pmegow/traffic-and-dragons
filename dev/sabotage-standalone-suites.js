@@ -57,6 +57,14 @@ var SPECS = [
     replace: '      if(!_fellBack&&prov.fallbackModel){',
     mustFail: "no self-fall",
     label: "#29b detects a dropped self-fall guard (a call already on the fallback would burn a 4th attempt on itself)"
+  },
+  {
+    suite: "tests-29-callgm-transport.js",
+    file: "globals.js",
+    find: '    fallbackModel:"gpt-5.6-luna",',
+    replace: '',
+    mustFail: "the OpenAI rung REBUILDS the body",
+    label: "#29b detects a deleted OpenAI fallbackModel (sol storms would fail loud with no luna rung)"
   }
 ];
 

@@ -68,6 +68,9 @@ function anthropicOk(text) {
 function geminiOk(text) {
   return respond(200, true, JSON.stringify({ candidates: [{ content: { parts: [{ text: text || "Hello" }] }, finishReason: "STOP" }], usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 10 } }));
 }
+function openaiOk(text) {
+  return respond(200, true, JSON.stringify({ choices: [{ message: { content: text || "Hello" }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 10 } }));
+}
 function httpErr(status, body) { return respond(status, false, body); }
 function rejectWith(msg) { return function () { return Promise.reject(new Error(msg)); }; }
 function hang() { // resolves NEVER; rejects AbortError only when the caller's deadline fires
@@ -331,6 +334,23 @@ tAsync("a credit-shaped 429 on the rung's provider is terminal BEFORE any retry 
     if (r.ok) return "a billing refusal fell to a second model — that would bill a second refusal";
     if (calls.length !== 1) return "a credit refusal was retried/fallen " + (calls.length - 1) + " time(s)";
     return r.e.message.indexOf("API credit exhausted — ") === 0 ? true : "credit contract lost: " + r.e.message;
+  });
+});
+tAsync("the OpenAI rung REBUILDS the body for the fallback model — sol falls to luna with the model field and gpt-5* token param intact", function () {
+  reset("openai"); fastKnobs();
+  var b = '{"error":{"message":"The server is overloaded."}}';
+  script.push(httpErr(503, b)); script.push(httpErr(503, b)); script.push(httpErr(503, b));
+  script.push(openaiOk("Luna answers"));
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel) return "callGM never settled";
+    if (!r.ok) return "turn still failed: " + r.e.message;
+    if (r.v !== "Luna answers") return "wrong response: " + r.v;
+    if (calls.length !== 4) return "expected 4 fetches, got " + calls.length;
+    var first = JSON.parse(calls[0].opts.body), last = JSON.parse(calls[3].opts.body);
+    if (first.model !== "gpt-5.6-sol") return "primary body model drifted: " + first.model;
+    if (last.model !== "gpt-5.6-luna") return "rung body still carries the primary — for OpenAI the model rides IN THE BODY and must be rebuilt: " + last.model;
+    if (!("max_completion_tokens" in last)) return "rebuilt body lost max_completion_tokens — gpt-5* rejects max_tokens and the rung would 400";
+    return true;
   });
 });
 tAsync("a deadline abort NEVER reaches the rung (the abandoned request may still bill server-side)", function () {
