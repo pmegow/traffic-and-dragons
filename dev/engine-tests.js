@@ -1597,6 +1597,37 @@ function runEngineTests(R){
     }
     return true;
   });
+  // #198 (owner ruling 2026-08-20, live probe on the t2004 prompt): gpt-5.x reasoning bills
+  // against max_completion_tokens — at the implicit medium a combat turn spent 1034 of its
+  // tokens reasoning (variance 218–1034 on one prompt) and the 200-token suggestion call came
+  // back EMPTY with all 200 tokens reasoning. 'low' held every tag discipline and answered
+  // the SCENE_CAST ask medium ignored; 'minimal' is REJECTED by gpt-5.6 (menu none…max).
+  // Chat-completions acceptance of reasoning_effort:"low" probe-verified live 2026-08-20.
+  t("#198 openai buildBody pins reasoning_effort 'low' on gpt-5.x; the gpt-4o path stays byte-identical",function(){
+    var b5=PROVIDERS.openai.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V"},100,"gpt-5.6-sol");
+    if(b5.reasoning_effort!=="low")return "gpt-5.x missing reasoning_effort 'low': "+JSON.stringify(b5.reasoning_effort);
+    if(b5.max_completion_tokens!==100||("max_tokens" in b5))return "gpt-5.x token param drifted";
+    var bl=PROVIDERS.openai.buildBody([],"plain",50,"gpt-5.6-luna");
+    if(bl.reasoning_effort!=="low")return "the #29b luna rung must inherit the effort pin";
+    var b4=PROVIDERS.openai.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V"},100,"gpt-4o");
+    if("reasoning_effort" in b4)return "gpt-4o got reasoning_effort — non-reasoning models reject the param";
+    return b4.max_tokens===100?true:"gpt-4o max_tokens path drifted";
+  });
+  t("#198 openai tokScale 4 — reasoning shares the completion budget, so the runaway cap needs headroom (turns 6000, actions 800)",function(){
+    return PROVIDERS.openai.tokScale===4?true:"openai tokScale is "+PROVIDERS.openai.tokScale+" — the 200-token actions call is all-reasoning-empty without headroom";
+  });
+  t("#198 empty-string model responses THROW in every provider's parseResponse (the silent empty-turn commit, field t2002)",function(){
+    var fx=[["openai",{choices:[{message:{content:""}}]}],
+            ["gemini",{candidates:[{content:{parts:[{text:"  "}]}}]}],
+            ["anthropic",{content:[{type:"text",text:""}]}]],i;
+    for(i=0;i<fx.length;i++){
+      try{PROVIDERS[fx[i][0]].parseResponse(fx[i][1]);return fx[i][0]+" returned an empty response instead of throwing — the turn would commit empty";}
+      catch(e){if(!/empty/i.test(e.message))return fx[i][0]+" threw the wrong error: "+e.message;}
+    }
+    if(PROVIDERS.openai.parseResponse({choices:[{message:{content:"ok"}}]})!=="ok")return "openai real content broken";
+    if(PROVIDERS.gemini.parseResponse({candidates:[{content:{parts:[{text:"ok"}]}}]})!=="ok")return "gemini real content broken";
+    return PROVIDERS.anthropic.parseResponse({content:[{type:"thinking"},{type:"text",text:"ok"}]})==="ok"?true:"anthropic thinking-then-text content broken";
+  });
 
   // ── #52: skills bible — mechanics ladder + per-skill canon ──────────────────
   section("skills bible (#52)");

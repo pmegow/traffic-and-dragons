@@ -1892,6 +1892,15 @@ async function rerollLast(){
         if(_rrRefusal)e.rf=1;else if(e.rf)delete e.rf;/* #197: the mark follows the CURRENT text — set on a rerolled-in refusal, cleared when real narration replaces one */
         if(typeof ragEntitiesFromRaw==="function")e.e=ragEntitiesFromRaw(resp); // keep the #27 entity index honest too
       });
+    }else{
+      /* #198ⓒ: the turn being re-rolled never logged narration (the last entry is the PLAYER
+         line — the pre-#198 empty-commit shape, field t2002: the replaced sonnet-5 reroll
+         reached display and sessionLog but the transcript permanently lacks the turn). PUSH
+         the replacement instead of skipping, through the same seam as a normal commit, so the
+         story-compiler record carries what the player actually read. The #198 parseResponse
+         throw makes new empty commits impossible; this covers the reroll of any turn already
+         in that state. */
+      logTranscript("gm",clean.trim(),resp,undefined,{refusal:_rrRefusal});
     }
     if(!_rrRefusal&&typeof personDriftDetect==="function")personDriftDetect(clean,false);/* #172: a reroll REPLACES the canonical narration, so its PERSON is what the campaign now carries — judge the replacement, exactly as the phase watcher does; #197: refusals are meta-voice, never judged */
     if(!_rrRefusal&&typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: rerolls REPLACE canonical narration but apply NO tags at all ("no muts" above) — so a replacement that asserts a phase has no same-response tag heal, and the nudge is the only channel. Detect on the replacement CLEAN prose. */

@@ -161,7 +161,7 @@ var PROVIDERS={
       else body.system=[{type:"text",text:sys.stable,cache_control:{type:"ephemeral"}},{type:"text",text:sys.volatile}];
       return body;
     },
-    parseResponse:function(data){var i;if(data.content)for(i=0;i<data.content.length;i++){if(data.content[i]&&data.content[i].type!=="thinking"&&typeof data.content[i].text==="string")return data.content[i].text;}throw new Error("Empty response");}, // tolerant of thinking-bearing responses: first non-thinking text block wins (the opus-5 lesson)
+    parseResponse:function(data){var i;if(data.content)for(i=0;i<data.content.length;i++){if(data.content[i]&&data.content[i].type!=="thinking"&&typeof data.content[i].text==="string"&&data.content[i].text.trim())return data.content[i].text;}throw new Error("Empty response");}, // tolerant of thinking-bearing responses: first NON-EMPTY non-thinking text block wins (the opus-5 lesson; #198 adds the trim — ""/whitespace blocks fall through to the loud throw instead of committing an empty turn)
     parseFinish:function(data){return data.stop_reason==="max_tokens"?"max_tokens":null;},
     // Anthropic: input_tokens EXCLUDES cached tokens (a turn's real input = in + cacheRead).
     // Prompt caching is LIVE (#11, v1.151) — healthy play shows cacheRead >> in on turn calls.
@@ -183,8 +183,21 @@ var PROVIDERS={
     // and returns choices[0].message.content. max_tokens works for gpt-4o; gpt-5.x REJECTS it
     // with HTTP 400 and demands max_completion_tokens (found live 2026-08-15, the gpt-5.6-sol
     // bring-up) — model-conditional so the validated gpt-4o path stays byte-identical.
+    // #198 reasoning_effort "low" on every gpt-5.x call (owner ruling 2026-08-20, live probe on
+    // the real 33k-token t2004 prompt): gpt-5.x reasoning bills against max_completion_tokens —
+    // at the implicit medium a combat turn spent 1034 tokens reasoning (variance 218–1034 on ONE
+    // prompt; the field's empty t2002 narration is the high-side draw under the old 1500 cap),
+    // and the 200-token suggestion call returned EMPTY with all 200 tokens reasoning, every call.
+    // 'low' (probe: ~131 tokens) held every tag discipline and answered the [SCENE_CAST:] ask
+    // medium ignored — the engine already does the bookkeeping thinking, and medium's most
+    // ambitious product was a same-response-evidence death envelope the W2 gate refuses.
+    // ⚠ 'minimal' is NOT legal here — gpt-5.6 rejects it with HTTP 400 (menu: none…max);
+    // chat-completions acceptance of "low" probe-verified live 2026-08-20. The #29b luna rung
+    // inherits the pin through this same conditional. Certification follow-up: 50-turn Korrag
+    // sweep re-run at low (the shipped config differs from the round-2 certified arm).
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
-    buildBody:function(msgs,sys,maxTok,model){var b={model:model,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};if(/^gpt-5/.test(model))b.max_completion_tokens=maxTok;else b.max_tokens=maxTok;return b;},
+    buildBody:function(msgs,sys,maxTok,model){var b={model:model,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};if(/^gpt-5/.test(model)){b.max_completion_tokens=maxTok;b.reasoning_effort="low";}else b.max_tokens=maxTok;return b;},
+    tokScale:4, // #198: reasoning shares the completion budget, so the runaway-insurance cap needs headroom (turns 6000, actions 800, summarize 8000) — the gemini E89 pattern; gpt bills only what it uses
     // #29b OpenAI storm rung (owner ruling 2026-08-18, after the ladder sweep): a sol storm
     // re-attempts ONCE on luna — per-call, never sticky, loud, attributed (see the gemini entry's
     // rung comment; identical machinery). Unlike Gemini, the model rides IN THE BODY here, so the
@@ -193,7 +206,7 @@ var PROVIDERS={
     // rung bar, a fallback turn beats a dead one) + SWEEP_gpt_ladder_v1662 (the family scoreboard).
     // NOT in models[] — the picker menu stays sweep-validated (>=Sonnet-5 ruling 2026-08-16).
     fallbackModel:"gpt-5.6-luna",
-    parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
+    parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string"||!data.choices[0].message.content.trim())throw new Error("Empty response");return data.choices[0].message.content;}, // #198: ""/whitespace THROWS — reasoning exhausting the budget returned content:"" and the turn committed EMPTY (field t2002); loud beats silent
     parseUsage:OPENAI_USAGE,
     parseFinish:OPENAI_FINISH,
     reinforce:TAG_REINFORCE
@@ -227,7 +240,7 @@ var PROVIDERS={
     // and MORE narration (thinking-on spends its budget deliberating instead of writing).
     // ⚠ "minimal" is NOT a legal tightening — this model rejects it with HTTP 400.
     buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={thinkingConfig:{thinkingLevel:"low"}};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
-    parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
+    parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string"||!data.candidates[0].content.parts[0].text.trim())throw new Error("Empty response");return data.candidates[0].content.parts[0].text;}, // #198: ""/whitespace THROWS (the empty-turn commit class, field t2002)
     parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:(u.candidatesTokenCount||0)+(u.thoughtsTokenCount||0),cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};}, // thoughtsTokenCount folded into out (probe 2026-08-16: gemini-3.7-flash thinks MANDATORILY — 745 thought tokens per 51 output on a trivial call, billed as output, previously invisible to the meter)
     parseFinish:function(data){var c=data.candidates&&data.candidates[0];return (c&&c.finishReason==="MAX_TOKENS")?"MAX_TOKENS":null;},
     reinforce:TAG_REINFORCE,
@@ -235,7 +248,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.665";
+var APP_VERSION="v1.666";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
