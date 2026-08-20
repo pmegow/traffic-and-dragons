@@ -11642,6 +11642,54 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return NOTE_LATCH_FIELDS.indexOf("hpZero")>=0?true:"hpZero not in NOTE_LATCH_FIELDS — a dead provider call would burn the fired note (#151)";
   });
 
+  // ── #199 — the off-stage-principals nudge (the GPT-ladder unnamed-Valerius finding) ─────────
+  section("#199 — off-stage principals");
+  t("#199 principal staging: both limbs fire after the threshold, staging/registration clears each, cooldown and the 2-ask cap hold, combat is silent",function(){
+    makeWorld();
+    worldState.turn=30;delete worldState.principalNudged;
+    worldState.skeleton={premise:"He serves his old master, Valerius, in the pits. The reach of Valerius grows daily, helped by Tess and by Tess again.",
+      acts:[{title:"Act 1: The Iron Collar",goal:"Survive being dragged back. Survive the pits.",turningPoint:"",arcs:[],status:"active"}]};
+    worldState.npcs.push({name:"Morwen Ulvane",status:"",statusTurn:0,rel:"ally",met:0,pronouns:"she/her"});
+    memory.npcs["Morwen Ulvane"]={attitude:"",knowledge:["seeded"],events:[]};
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:5,maxHp:5,ac:10,atk:1,dmg:"1d4",morale:"steady"}]};
+    if(buildPrincipalStageNudge()!=="")return "fired during combat";
+    worldState.combat=null;
+    var n=buildPrincipalStageNudge();
+    if(n.indexOf("Valerius")<0)return "premise limb missed Valerius: "+n.slice(0,140);
+    if(n.indexOf("Morwen Ulvane")<0)return "bench limb missed the untouched seeded NPC: "+n.slice(0,140);
+    if(n.indexOf("Survive")>=0)return "sentence-start act-goal verb leaked in as a principal";
+    if(n.indexOf("Tess")>=0)return "the player character's own name leaked in as a principal";
+    if(buildPrincipalStageNudge()!=="")return "no cooldown — fires every turn";
+    worldState.npcs[worldState.npcs.length-1].introduced=31;   // Morwen staged
+    worldState.turn=61;
+    var n2=buildPrincipalStageNudge();
+    if(n2.indexOf("Morwen")>=0)return "a staged bench NPC was still nudged";
+    if(n2.indexOf("Valerius")<0)return "cooldown window did not re-ask for the still-missing principal";
+    memory.npcs["Valerius"]={attitude:"",knowledge:[],events:[]};  // Valerius registered
+    worldState.turn=92;
+    if(buildPrincipalStageNudge()!=="")return "fired after every principal was staged/registered";
+    delete memory.npcs["Valerius"];worldState.turn=123;
+    return buildPrincipalStageNudge()===""?true:"the 2-ask cap did not hold — an owner's silence must stand as a ruling";
+  });
+  t("#199 fixture pin: the standard model-test blueprint yields Valerius (and no location/player/verb noise) through applyBlueprint",function(){
+    if(typeof __fsForTests==="undefined")return true; /* browser run (test.html) — fixture pins are node CI's job */
+    makeWorld();
+    var bp=JSON.parse(__fsForTests.readFileSync(__rootForTests+"/samples/modeltestcampaign.blueprint","utf8"));
+    applyBlueprint(bp);
+    worldState.character.name="Korrag"; /* the standard campaign plays AS the premise's protagonist; a custom-named player on this blueprint accepts one benign GM-decides note */
+    worldState.world.region="The Blighted Reach";worldState.turn=30;delete worldState.principalNudged;
+    var prem=_principalNamesFromSkeleton();
+    if(prem.indexOf("Valerius")<0)return "Valerius not extracted from the real blueprint: "+JSON.stringify(prem);
+    if(prem.indexOf("Blighted")>=0||prem.indexOf("Ashenveil")>=0||prem.indexOf("Heart")>=0)return "location/title-chain words leaked: "+JSON.stringify(prem);
+    if(prem.indexOf("Korrag")>=0)return "the premise's player name leaked: "+JSON.stringify(prem);
+    var n=buildPrincipalStageNudge();
+    return (n.indexOf("Valerius")>=0)?true:"the real-blueprint nudge did not name Valerius: "+n.slice(0,140);
+  });
+  t("#199 registry + latch: buildPrincipalStageNudge rides NOTE_BUILDERS and principalNudged is a declared latch field",function(){
+    if(NOTE_BUILDERS.indexOf(buildPrincipalStageNudge)<0)return "builder missing from NOTE_BUILDERS";
+    return NOTE_LATCH_FIELDS.indexOf("principalNudged")>=0?true:"principalNudged not in NOTE_LATCH_FIELDS (#151)";
+  });
+
   // ── #142 — the reconciler's dawn-crossing skip-and-demand (the t1524 19-hour jump) ──────────
   section("#142 — clock reconcile cap");
   t("#142 the t1524 shape skips: dawn-crossing + >6h keeps the label, rolls nothing, arms the demand; same-day and small crossings still reconcile",function(){

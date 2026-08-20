@@ -16,7 +16,7 @@ rc|=sabotage.prove({file:"game.js",command:["node",["dev/run-tests.js"]],cases:[
    replace:"var hasLoc=/\\[(?:LOCATION|SUBLOCATION)/i.test(raw),cue;"}
 ]});
 
-rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],cases:[
+rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],also:["globals.js"],cases:[/* #199: the builders' constants live in globals.js — the working copy must ride or a pre-commit proof loads a constants-less engine and misattributes */
   {label:"#196 persistence threshold deleted — the 0-HP note fires on the first zero turn",
     mustFail:"#196 0-HP observer: counts through combat but fires only outside it",
    find:"  if(dur<HP_ZERO_NOTE_TURNS)return\"\";",replace:""},
@@ -30,7 +30,21 @@ rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],cases:[
    replace:"if(!c||c.hp!==0){return\"\";}"},
   {label:"#196 builder dropped from the registry — the note can never reach a request",
     mustFail:"#196 registry + latch: buildHpZeroNudge rides NOTE_BUILDERS",
-   find:"buildConditionAudit,buildHpZeroNudge,",replace:"buildConditionAudit,"}
+   find:"buildConditionAudit,buildHpZeroNudge,",replace:"buildConditionAudit,"},
+  {label:"#199 mid-clause pre-token filter removed — title chains mint phantom principals",
+    mustFail:"#199 fixture pin: the standard model-test blueprint yields Valerius",
+   find:"    if(!/^[a-z]+,?$/.test(m[1]))continue;",replace:""},
+  {label:"#199 premise limb disabled — the campaign's Valerius goes unwatched",
+    mustFail:"#199 principal staging: both limbs fire after the threshold",
+   find:"    if(!onRoster&&!(typeof memory!==\"undefined\"&&memory&&memory.npcs&&memory.npcs[canon]))missing.push(nm);",
+   replace:"    if(false)missing.push(nm);"},
+  {label:"#199 ask cap removed — an owner's silence never becomes a ruling",
+    mustFail:"#199 principal staging: both limbs fire after the threshold",
+   find:"if(rec&&(rec.n>=PRINCIPAL_NUDGE_MAX||t-rec.t<PRINCIPAL_NUDGE_COOLDOWN))continue;",
+   replace:"if(rec&&(t-rec.t<PRINCIPAL_NUDGE_COOLDOWN))continue;"},
+  {label:"#199 builder dropped from the registry — the note can never reach a request",
+    mustFail:"#199 registry + latch: buildPrincipalStageNudge rides NOTE_BUILDERS",
+   find:"buildArcStagingNudge,buildPrincipalStageNudge,",replace:"buildArcStagingNudge,"}
 ]});
 
 rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js"]],cases:[

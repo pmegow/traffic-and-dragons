@@ -501,6 +501,80 @@ function buildHpZeroNudge(){
   z.notedTurn=worldState.turn;
   return"[ENGINE NOTE — PLAYER AT ZERO HP (not a player action): "+(c.name||"the player")+" has been at 0 of "+c.maxHp+" HP for "+dur+" turns, and the story keeps treating them as hale. Zero HP is death's door, not a scratch. THIS response, resolve it in the fiction: let the wounds finally drop them (collapse, capture, a rescue), bring aid or healing into the scene and emit the matching [HP:+N], or give them a real rest ([REST:long], with the [HP:+N] the recovery earns). If the fiction truly justifies them still standing, show that cost visibly — do not narrate another turn of vigorous action over a 0 HP sheet.]";
 }
+// #199 (v1.667): the off-stage-principals nudge — the GPT-ladder sweeps' shared finding: both
+// OpenAI arms tracked the skeleton's STRUCTURE (their quests were the blueprint's own arc titles)
+// while dropping its PROPER NOUNS — Valerius unnamed across 100 combined turns, the eight seeded
+// bench NPCs replaced by invented casts — and nothing anywhere escalated. Two limbs, both
+// deterministic: ① seeded bench records untouched by play (the #143 introduction signal family);
+// ② premise principals extracted from the skeleton's OWN authored text (capitalized names
+// occurring >=2x MID-CLAUSE — an occurrence counts only when the preceding non-space char is a
+// lowercase letter or comma, which drops sentence-start verbs like "Survive"/"Uncover" that act
+// goals open with) that were never registered at all. GM-decides, capped per principal — two
+// ignored asks read as a deliberate off-screen ruling and the name is never raised again.
+function _principalNamesFromSkeleton(){
+  var sk=worldState.skeleton;if(!sk)return [];
+  var parts=[sk.premise||""],i,j;
+  var acts=sk.acts||[];
+  for(i=0;i<acts.length;i++){var a=acts[i];parts.push(a.title||"",a.goal||"",a.turningPoint||"");
+    var arcs=a.arcs||[];for(j=0;j<arcs.length;j++)parts.push(arcs[j].title||"",arcs[j].goal||"",arcs[j].turningPoint||"");}
+  var s=parts.join(" ");
+  /* An occurrence counts only when the whole PRECEDING WORD is lowercase (optionally comma-
+     tipped): "master, Valerius" and "of Valerius's" qualify; sentence/goal openers ("Survive
+     being…") don't, and neither does a capitalized neighbor — which drops title chains ("The
+     Heart of Blight") and counts only the FIRST word of a multi-word proper name. lastIndex is
+     rewound past the pre-token so chained capitalized words can serve as the next pre-token. */
+  var counts={},m,re=/([A-Za-z]+,?)\s+([A-Z][a-z]{3,}(?:'s)?)/g;
+  while((m=re.exec(s))){
+    re.lastIndex=m.index+m[1].length+1;
+    if(!/^[a-z]+,?$/.test(m[1]))continue;
+    var w=m[2].replace(/'s$/,"");
+    counts[w]=(counts[w]||0)+1;
+  }
+  var ex={};
+  function exWords(str){var ws=String(str||"").split(/[^A-Za-z]+/),k;for(k=0;k<ws.length;k++)if(ws[k])ex[ws[k]]=1;}
+  exWords(worldState.character&&worldState.character.name);
+  var ros=worldState.npcs||[];for(i=0;i<ros.length;i++)exWords(ros[i].name);
+  exWords(worldState.world&&worldState.world.location);
+  exWords(worldState.world&&worldState.world.region);
+  if(typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes){var nk;for(nk in memory.map.nodes)exWords(nk);}
+  var out=[],k2;
+  for(k2 in counts)if(counts[k2]>=2&&!ex[k2])out.push(k2);
+  return out.sort();
+}
+function buildPrincipalStageNudge(){
+  if(worldState.combat)return"";
+  if(!worldState.skeleton)return"";
+  var t=worldState.turn||0;
+  if(t<PRINCIPAL_STAGE_TURNS)return"";
+  var latch=worldState.principalNudged||{};
+  var missing=[],i;
+  var ros=worldState.npcs||[];
+  // limb ② FIRST: premise principals never registered at all — the campaign's central names
+  // (its Valerius) must never lose the note's 4-name cap to a full bench of minor seeded NPCs.
+  var prem=_principalNamesFromSkeleton(),j;
+  for(j=0;j<prem.length;j++){var nm=prem[j];
+    var canon=(typeof resolveNpcName==="function")?resolveNpcName(nm):nm;
+    var onRoster=false,k;for(k=0;k<ros.length;k++)if(ros[k].name===canon){onRoster=true;break;}
+    if(!onRoster&&!(typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[canon]))missing.push(nm);
+  }
+  // limb ①: the seeded bench — roster records play never touched (the #143 signal family)
+  for(i=0;i<ros.length;i++){var n=ros[i];
+    if(n.partyMember||n.dead||n.introduced||n.met>0)continue;
+    if(n.status||(n.statusTurn||0)>0)continue; /* any play-time status write = staged */
+    var mem=(typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[n.name])||{};
+    if(mem.firstEncounter||mem.lastSeenAt||mem.lastMentioned)continue;
+    missing.push(n.name);
+  }
+  if(!missing.length)return"";
+  var due=[],rec;
+  for(i=0;i<missing.length&&due.length<4;i++){rec=latch[missing[i]];
+    if(rec&&(rec.n>=PRINCIPAL_NUDGE_MAX||t-rec.t<PRINCIPAL_NUDGE_COOLDOWN))continue;
+    due.push(missing[i]);}
+  if(!due.length)return"";
+  if(!worldState.principalNudged)worldState.principalNudged={};
+  for(i=0;i<due.length;i++){rec=worldState.principalNudged[due[i]]||{n:0,t:0};rec.n++;rec.t=t;worldState.principalNudged[due[i]]=rec;}
+  return"[ENGINE NOTE — CAMPAIGN PRINCIPALS OFF-STAGE (not a player action): this campaign's authored cast includes "+due.join(", ")+" — none of these has appeared on the record after "+t+" turns. The blueprint's named characters are canon: work them on stage, into rumor, or into consequence BY NAME as the story allows, or keep them deliberately off-screen for now — but never silently replace them with invented substitutes. If one has already appeared in the story, register them with [NPC:name|status|relation] in THIS response.]";
+}
 // #142: the reconcile-skip heal note — the demand half of skip-and-demand (Direction-1 of the
 // adversarial review: skip-and-warn would turn the forgotten-rest morning-after into a stuck
 // clock; this note bounds that failure to one turn). One shot, 2-turn shelf.
@@ -1113,7 +1187,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -1135,7 +1209,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

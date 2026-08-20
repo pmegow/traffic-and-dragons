@@ -1503,6 +1503,10 @@ if (escHtml('<img src=x onerror="alert(1)">&\'"') !== "&lt;img src=x onerror=&qu
   process.exit(1);
 }
 var geval=eval; // indirect eval → global scope (same loader convention as load-engine.js)
+/* #199: `require` is module-scoped and invisible to indirect-eval'd tests, so a fixture-reading
+   test gets fs through this handle instead. test.html never defines it — browser runs of such
+   tests must guard on typeof and skip, keeping node CI the gate for fixture pins. */
+global.__fsForTests=fs;global.__rootForTests=path.join(__dirname,"..");
 geval(fs.readFileSync(path.join(__dirname,"loc-repair-core.js"),"utf8"));/* #156B: the location repair census/apply core — engine-visible for the identity battery (drives the SHIPPING executors) */
 geval(fs.readFileSync(path.join(__dirname,"engine-tests.js"),"utf8"));
 
