@@ -1591,6 +1591,11 @@ function isBookkeepingResponse(raw,clean,dice){
 function commitGmTurn(resp,opts){
   var o=opts||{};
   if(typeof clearPendingAction==="function")clearPendingAction();/* #14: a committed turn supersedes any persisted failed action */
+  /* #197: an IN-BAND model refusal ("I cannot continue generating content for this scene…" —
+     field t1985) is judged on the CLEAN text before any mutation. A refusal turn still commits
+     (the player saw it; re-roll needs the transcript pair) but as NON-CANON: no tag application,
+     rf-marked for retrieval exclusion, delivered note latches restored, loudly toasted. */
+  var _refusal=(typeof detectModelRefusal==="function")&&detectModelRefusal(cleanTxt(resp));
   if(!o.isOpening){
     worldState.turn++;
     if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
@@ -1601,12 +1606,25 @@ function commitGmTurn(resp,opts){
   var _rlPre=relationshipSnapshot();/* #61: pre-state for relationship stamps + downgrade/audit triggers */
   var _clkPre=(typeof clockNow==="function")?clockNow():null;/* #105b: pre-state for the per-turn time receipt */
   var _invPre=inventorySnapshot();/* #107: pre-state for the "what did I actually collect" toast */
+  if(_refusal){
+    /* Owner ruling 2026-08-20: refused narration is not tag-accessible. The parser never runs;
+       tagLogRefusal records the withheld tag names in the provenance ring so the zero-tag turn
+       is attributable (#137 — absence must never be ambiguous). Delivered engine notes were
+       never acted on, so their one-shot latches are un-burned (the #151 principle — same reason
+       a dead provider call restores them; the snapshot rides in via sendAction's opts). */
+    if(typeof tagLogRefusal==="function")tagLogRefusal(resp);
+    if(o.latchSnap&&typeof restoreNoteLatches==="function")restoreNoteLatches(o.latchSnap);
+    console.warn("[refusal] the model declined to narrate (turn "+worldState.turn+") — committed as NON-CANON: embedded tags withheld, retrieval-excluded (#197)");
+    if(typeof showToast==="function")showToast("⚠ The model declined this scene — re-roll or rephrase",6000);
+    if(typeof erCrumb==="function")erCrumb("turn-refused",{t:worldState.turn,ch:String(resp||"").length});
+  }else{
   applyMuts(resp);
   /* #149: a FIRED aftermath nudge is consumed by the turn that commits — whether the GM filed
      a [LOCATION_STATE:] or stayed silent, the one shot is spent. A pending stamped by THIS
      response's own combat close has no .fired flag and survives to fire next turn; a failed
      provider call never reaches here, so the shot survives transport loss. */
   if(worldState.pendingLocState&&worldState.pendingLocState.fired)delete worldState.pendingLocState;
+  }
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
   detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts */
   toastInventoryGains(_invPre);/* #107: say what reached the sheet — silence means the tag never fired */
@@ -1615,13 +1633,13 @@ function commitGmTurn(resp,opts){
     // a narrated stay-behind with NO [PARTY_SPLIT:] in the same response arms a one-shot ping
     // for buildStayBehindNudge. Only non-split members are scanned — an already-recorded split
     // needs no nudge, and a response that carries ANY [PARTY_SPLIT:] is handling its own splits.
-    if(typeof detectStayBehind==="function"&&String(resp).indexOf("[PARTY_SPLIT:")<0){
+    if(!_refusal&&typeof detectStayBehind==="function"&&String(resp).indexOf("[PARTY_SPLIT:")<0){/* #197: a refusal is not narration — no presence inference from it */
       var _sbNames=livingPartyCompanions().filter(function(n){return !(n.charSheet&&n.charSheet.splitLoc);}).map(function(n){return n.name;});
       var _sbHit=detectStayBehind(resp,_sbNames);
       if(!_sbHit&&typeof detectPartyAbsenceCorrection==="function")_sbHit=detectPartyAbsenceCorrection(o.playerTxt,_sbNames);
       if(_sbHit)worldState.presencePing={name:_sbHit,turn:worldState.turn};
     }
-    detectGhostConsumables(o.playerTxt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags) */
+    if(!_refusal)detectGhostConsumables(o.playerTxt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags); #197: refusals excluded too */
     if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name,_lp=worldState.pendingLegacy;
       if(_lp.introduced||resp.indexOf(_lcn)>=0){if(!_lp.introduced){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);_lp.introduced=true;}if(relationshipAdoptPortableProposals(_lp,_lcn))worldState.pendingLegacy=null;}// introduced relationship conflicts transfer losslessly before the transient cameo record retires
       else if((worldState.turn-_lp.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
@@ -1637,7 +1655,7 @@ function commitGmTurn(resp,opts){
   }
   if(typeof erCrumb==="function")erCrumb("turn","t"+worldState.turn+" "+String(resp||"").length+"ch");
   var clean=cleanTxt(resp),dice=diceTxt(resp),_bookkeeping=isBookkeepingResponse(resp,clean,dice);
-  if(!o.isOpening&&typeof observeDriftAxes==="function")observeDriftAxes(resp,clean);
+  if(!o.isOpening&&!_refusal&&typeof observeDriftAxes==="function")observeDriftAxes(resp,clean);/* #197: refusal text is meta-voice, not narration — no drift-axis candidates from it */
   // UA6: persist HISTORY before any display step. applyMuts' trailing saveAll already
   // persisted the mutated state, so a throw in addMsg/TTS used to strand a saved state
   // whose sessionLog/transcript lacked this GM turn — next prompt desynced from state,
@@ -1646,9 +1664,9 @@ function commitGmTurn(resp,opts){
   /* #105b: the time receipt. Read the clock AFTER every mutation (TIME_ADVANCE, and the [REST:long]
      dawn roll that restSpells owns) so the stamp is what the clock ACTUALLY did this turn, not what
      the tag claimed. A zero here is real signal — it means the GM billed the turn no time at all. */
-  if(typeof personDriftDetect==="function")personDriftDetect(clean,_bookkeeping);/* #172: narrative-person watcher — CLEAN text (tag payloads carry no prose person), post-applyMuts, beside the phase watcher for the same reason: sheet-sync and Table Talk never reach commitGmTurn, so only real narration is judged */
-  if(typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: phase-mismatch watcher — post-applyMuts (the parser tail already reconciled any [TIME:], so agreement self-silences by band math), CLEAN text only (raw would match the tags' own words). Openings included; sheet-sync and TT never pass through commitGmTurn, so non-story text is never scanned. */
-  logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre),{bookkeeping:_bookkeeping});
+  if(!_refusal&&typeof personDriftDetect==="function")personDriftDetect(clean,_bookkeeping);/* #172: narrative-person watcher — CLEAN text (tag payloads carry no prose person), post-applyMuts, beside the phase watcher for the same reason: sheet-sync and Table Talk never reach commitGmTurn, so only real narration is judged; #197: a refusal is first-person meta by nature and must not count as drift */
+  if(!_refusal&&typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: phase-mismatch watcher — post-applyMuts (the parser tail already reconciled any [TIME:], so agreement self-silences by band math), CLEAN text only (raw would match the tags' own words). Openings included; sheet-sync and TT never pass through commitGmTurn, so non-story text is never scanned; #197: refusal text asserts no phase */
+  logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre),{bookkeeping:_bookkeeping,refusal:_refusal});
   var _slUser={role:"user",content:o.userMsg},_slGm={role:"assistant",content:resp};
   if(_bookkeeping){_slUser.bk=1;_slGm.bk=1;}
   sessionLog.push(_slUser,_slGm);
@@ -1810,7 +1828,7 @@ async function sendAction(override,opts){
     else{
       // The whole commit sequence lives in commitGmTurn (audit 07-16 #5) — shared with
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
-      commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
+      commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
     }
     syncUI();
   }catch(e){th.remove();
@@ -1857,6 +1875,10 @@ async function rerollLast(){
     th.remove();
     sessionLog.push({role:"user",content:prevU.content},{role:"assistant",content:resp});
     var clean=cleanTxt(resp),dice=diceTxt(resp);
+    /* #197: the replacement is judged like any narration — a rerolled-in refusal must not become
+       servable canon (rf set below), and a real narration replacing a refusal clears the mark. */
+    var _rrRefusal=(typeof detectModelRefusal==="function")&&detectModelRefusal(clean);
+    if(_rrRefusal&&typeof showToast==="function")showToast("⚠ The model declined this scene — re-roll or rephrase",6000);
     // Keep the transcript honest: the re-rolled scene replaces the discarded one, so the
     // story-compiler record matches what the player actually read (audit #9).
     if(worldState.transcript&&worldState.transcript.length&&worldState.transcript[worldState.transcript.length-1].r==="gm"){
@@ -1867,11 +1889,12 @@ async function rerollLast(){
       // was invented for.
       mutateTranscriptEntry(worldState.transcript,worldState.transcript.length-1,function(e){
         e.x=clean.trim();
+        if(_rrRefusal)e.rf=1;else if(e.rf)delete e.rf;/* #197: the mark follows the CURRENT text — set on a rerolled-in refusal, cleared when real narration replaces one */
         if(typeof ragEntitiesFromRaw==="function")e.e=ragEntitiesFromRaw(resp); // keep the #27 entity index honest too
       });
     }
-    if(typeof personDriftDetect==="function")personDriftDetect(clean,false);/* #172: a reroll REPLACES the canonical narration, so its PERSON is what the campaign now carries — judge the replacement, exactly as the phase watcher does */
-    if(typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: rerolls REPLACE canonical narration but apply NO tags at all ("no muts" above) — so a replacement that asserts a phase has no same-response tag heal, and the nudge is the only channel. Detect on the replacement CLEAN prose. */
+    if(!_rrRefusal&&typeof personDriftDetect==="function")personDriftDetect(clean,false);/* #172: a reroll REPLACES the canonical narration, so its PERSON is what the campaign now carries — judge the replacement, exactly as the phase watcher does; #197: refusals are meta-voice, never judged */
+    if(!_rrRefusal&&typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: rerolls REPLACE canonical narration but apply NO tags at all ("no muts" above) — so a replacement that asserts a phase has no same-response tag heal, and the nudge is the only channel. Detect on the replacement CLEAN prose. */
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
     /* #106b: a re-roll re-narrates the SAME turn and never re-runs applyMuts, so the moment is

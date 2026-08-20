@@ -2002,6 +2002,47 @@ function __mpBareTagScan(text){
   console.warn("[multiplayer] "+hits.length+" bare mutation tag(s) in a multi-PC round — applied to "+hero+" ("+hits.join(", ")+"). If any were meant for another PC, the GM should have used COMPANION_* tags; correct via Sync.");
   if(typeof showToast==="function")showToast("⚠ "+hits.length+" bare tag"+(hits.length>1?"s":"")+" → "+hero+" (multi-PC round). Wrong sheet? Fix via Sync.",5000);
 }
+// ── #197 — model content-refusal detector (field t1985, the Magnimar bathhouse) ──────────────
+// A provider model can decline a scene IN BAND: the HTTP call succeeds and bills, and the
+// "narration" is the model's own meta-voice refusal ("I cannot continue generating content for
+// this scene…" — gemini-3.7-flash, live save t2004). Committed untreated, that text became story
+// canon: RAG could serve it as a past-scene excerpt, and any tags emitted around the refusal
+// would mutate state the narration never earned. Owner ruling 2026-08-20: refused narration must
+// not be tag-accessible — commitGmTurn commits a detected refusal as NON-CANON (tags withheld,
+// transcript entry rf-marked so retrieval never serves it, note latches restored, loud toast).
+// Detection is deliberately NARROW — a false positive would withhold a legitimate turn's tags,
+// which is worse than missing a refusal (a miss is just the pre-#197 status quo):
+//   ① anchored at the very start of the CLEAN text (refusals open the response; quoted dialogue
+//      opens with a quote mark and can never match the anchor),
+//   ② the refusal verb must be followed within 100 chars by a meta object (content/scene/
+//      request/policy…) — "I cannot continue down the tunnel" stays narration,
+//   ③ whole-response only: a real refusal is short (field sample: 234 chars) — past
+//      REFUSAL_MAX_CHARS the text is narrative prose whatever its opening sentence.
+// Deliberately OUTSIDE the NOTE_BUILDERS census regions: tagLogRefusal writes worldState.tagLog,
+// which is provenance, not a request-compose latch — restoring it on a failed turn would ERASE
+// the record (#151's census would otherwise demand it be declared a latch).
+var REFUSAL_MAX_CHARS=700;
+var REFUSAL_OPEN_RE=/^(?:I\s+(?:cannot|can['’]t|am\s+unable\s+to|am\s+not\s+able\s+to|will\s+not|won['’]t)\s+(?:be\s+able\s+to\s+)?(?:continue|generate|write|create|provide|narrate|depict|describe|assist|help|engage|comply)|I\s+apologi[sz]e|I['’]m\s+(?:sorry|unable|not\s+able)|As\s+an\s+AI\b)/i;
+var REFUSAL_META_RE=/(content|scene|material|request|stor(?:y|ies)|topic|narrat|generat|describ|depict|explicit|sexual|graphic|polic|guideline|assist|comply|continu)/i;
+function detectModelRefusal(clean){
+  var s=String(clean||"").trim();
+  if(!s||s.length>REFUSAL_MAX_CHARS)return false;
+  var m=s.match(REFUSAL_OPEN_RE);
+  if(!m)return false;
+  return REFUSAL_META_RE.test(s.slice(m[0].length,m[0].length+100));
+}
+// The refusal turn's provenance-ring entry (#137 discipline: absence must never be ambiguous).
+// applyMuts never runs for a refusal, so its ring write never happens — this records WHY the
+// turn shows zero applied tags, and names every embedded tag that was deliberately withheld.
+function tagLogRefusal(text){
+  try{
+    var names=[],seen={},hits=String(text||"").match(/\[([A-Z][A-Z_]{1,}):/g)||[],i;
+    for(i=0;i<hits.length;i++){var n=hits[i].slice(1,-1);if(!seen[n]){seen[n]=1;names.push(n);}}
+    if(!worldState.tagLog)worldState.tagLog=[];
+    worldState.tagLog.push({t:worldState.turn,tags:[],m:["MODEL REFUSAL (#197) — narration declined, committed as non-canon; "+(names.length?names.length+" embedded tag(s) NOT applied: "+names.join(", "):"no embedded tags")],rf:1});
+    if(worldState.tagLog.length>TAG_LOG_CAP)worldState.tagLog=worldState.tagLog.slice(worldState.tagLog.length-TAG_LOG_CAP);
+  }catch(e){if(typeof console!=="undefined")console.warn("[refusal] provenance ring write failed:",e&&e.message);}
+}
 // ── Usage/cost telemetry (TODO #21) ───────────────────────────────────────────
 // Estimated $ for one response's usage, priced from MODEL_PRICING (globals.js) by
 // model-ID prefix. Unknown models (custom overrides, non-Anthropic) return 0.

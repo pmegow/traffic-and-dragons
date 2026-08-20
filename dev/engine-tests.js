@@ -9224,6 +9224,89 @@ function runEngineTests(R){
     addMsg=function(){return __stubEl();};
     return got&&got===el&&got._isNar===true?true:"did not return the narrator addMsg element";
   });
+
+  // ═══ #197 — model content-refusal: a refused narration commits as NON-CANON ═══
+  // Field origin: t1985 (the Magnimar bathhouse) — gemini-3.7-flash answered a scene with its own
+  // meta-voice refusal; the engine committed it as story canon. Owner ruling 2026-08-20: refused
+  // narration must not be tag-accessible — no state mutation, no retrieval service.
+  section("#197 — model content-refusal (non-canon commit)");
+
+  t("#197 detector: the verbatim t1985 gemini refusal is detected",function(){
+    return detectModelRefusal("I cannot continue generating content for this scene. If you would like to advance the narrative toward planning for the Kodar Mountains, collecting the cold-warded bracelets, or other story events, let me know how you wish to proceed.")===true
+      ?true:"the exact field refusal was not detected";
+  });
+  t("#197 detector: openai- and claude-shaped refusals are detected",function(){
+    if(!detectModelRefusal("I'm sorry, but I can't continue with that request."))return "openai shape missed";
+    if(!detectModelRefusal("I apologize, but I can't write explicit sexual content involving these characters."))return "claude shape missed";
+    return detectModelRefusal("I won't be able to continue this scene as requested.")?true:"'won't be able to' shape missed";
+  });
+  t("#197 detector: dialogue, in-fiction inability, over-length prose, and plain narration all pass as narration",function(){
+    if(detectModelRefusal("“I cannot continue this hunt,” Morwen says, sheathing her blade."))return "quoted dialogue false-positived";
+    if(detectModelRefusal("I cannot continue down the tunnel; the ceiling has collapsed and the dark swallows the passage ahead."))return "in-fiction inability false-positived (the meta-object gate is gone)";
+    var long="I cannot continue generating content for this scene.";var i;for(i=0;i<30;i++)long+=" The rain hammers the tiles and the gutters run black.";
+    if(detectModelRefusal(long))return "over-length prose false-positived (the whole-response cap is gone)";
+    return detectModelRefusal("You cross the bridge under a hard rain.")?"second-person narration false-positived":true;
+  });
+
+  t("#197 commit: a refusal turn is non-canon — embedded tags NOT applied, transcript rf-marked, ring records the withheld names, toast fires",function(){
+    makeWorld();__toasts.length=0;worldState.tagLog=[];
+    var raw="[HP:-5] [GOLD:+10]\nI cannot continue generating content for this scene. If you would like to advance the narrative toward other story events, let me know how you wish to proceed.";
+    commitGmTurn(raw,{userMsg:"u",playerTxt:"p"});
+    if(worldState.character.hp!==14)return "HP tag applied on a refusal turn: "+worldState.character.hp;
+    if(worldState.character.gold!==25)return "GOLD tag applied on a refusal turn: "+worldState.character.gold;
+    if(worldState.turn!==6)return "turn did not advance (the exchange still happened): "+worldState.turn;
+    var tl=worldState.transcript,last=tl[tl.length-1];
+    if(!last||last.r!=="gm")return "gm transcript entry missing";
+    if(last.rf!==1)return "refusal entry not rf-marked";
+    if(last.x.indexOf("cannot continue")<0)return "refusal text lost from the transcript: "+last.x.slice(0,80);
+    var ring=worldState.tagLog[worldState.tagLog.length-1];
+    if(!ring||ring.rf!==1)return "provenance ring has no rf refusal entry: "+JSON.stringify(ring);
+    if(ring.tags.length!==0)return "ring claims tags were applied: "+JSON.stringify(ring.tags);
+    if(String(ring.m.join(" ")).indexOf("HP")<0||String(ring.m.join(" ")).indexOf("GOLD")<0)return "withheld tag names absent from the ring: "+JSON.stringify(ring.m);
+    if(sessionLog[1].content!==raw)return "sessionLog must keep the RAW response";
+    return __toasts.join(" | ").indexOf("declined")>=0?true:"no declined toast: "+JSON.stringify(__toasts);
+  });
+  t("#197 commit control: a normal narration turn is untouched by the detector",function(){
+    makeWorld();__toasts.length=0;
+    commitGmTurn("You shoulder the door open and stumble into the rain. [HP:-5]",{userMsg:"u",playerTxt:"p"});
+    if(worldState.character.hp!==9)return "control turn's tag did not apply: hp="+worldState.character.hp;
+    var last=worldState.transcript[worldState.transcript.length-1];
+    if(last.rf)return "control turn falsely rf-marked";
+    return __toasts.join(" ").indexOf("declined")<0?true:"control turn toasted a refusal";
+  });
+  t("#197 commit: a refusal restores the delivered note latches (the #151 principle — the GM never acted on them)",function(){
+    makeWorld();
+    var snap=snapshotNoteLatches();
+    worldState.deityDriftNudged=77;/* what a NOTE_BUILDERS entry stamps while composing the request */
+    commitGmTurn("I cannot continue generating content for this scene. Please redirect the story and I will proceed.",{userMsg:"u",playerTxt:"p",latchSnap:snap});
+    if(Object.prototype.hasOwnProperty.call(worldState,"deityDriftNudged"))return "refusal burned the delivered nudge latch (deityDriftNudged survived as "+worldState.deityDriftNudged+")";
+    var snap2=snapshotNoteLatches();
+    worldState.deityDriftNudged=79;
+    commitGmTurn("The road unwinds before you toward the ford.",{userMsg:"u2",playerTxt:"p2",latchSnap:snap2});
+    return worldState.deityDriftNudged===79?true:"a NORMAL commit reverted a legitimately-consumed latch: "+worldState.deityDriftNudged;
+  });
+  t("#197 commit: a refusal never arms the person-drift watcher despite first-person meta prose",function(){
+    makeWorld();worldState.personDrift=null;
+    commitGmTurn("I cannot continue generating content for this scene. Tess's request involves explicit material I am not able to depict. Tess remains at the bathhouse while this scene stays closed; choose another direction for Tess and the story resumes from there.",{userMsg:"u",playerTxt:"p"});
+    return worldState.personDrift?("refusal text armed the person-drift watcher: "+JSON.stringify(worldState.personDrift)):true;
+  });
+  t("#197 RAG: an rf-marked refusal turn is never served as a past-scene excerpt",function(){
+    makeWorld();worldState.turn=40;memory.npcs["Bram"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"y"}];
+    worldState.transcript=[/* ≥6 entries — ragRetrieve refuses younger transcripts; this exact fixture SERVES the refusal when rf is not consulted (probe-verified pre-fix) */
+      {t:2,r:"player",x:"I press Bram about the ledger heist"},
+      {t:3,r:"gm",x:"I cannot continue generating content about Bram's ledger heist for this scene.",e:{n:["Bram"],l:"Ashfen",q:[]},rf:1},
+      {t:10,r:"gm",x:"An uneventful morning on the docks.",e:{n:[],l:"Ashfen",q:[]}},
+      {t:12,r:"gm",x:"Gulls wheel over the harbor.",e:{n:[],l:"Ashfen",q:[]}},
+      {t:14,r:"gm",x:"The tide slips out again.",e:{n:[],l:"Ashfen",q:[]}},
+      {t:39,r:"gm",x:"filler",e:{n:[],l:"Ashfen",q:[]}}
+    ];
+    worldState.ragMemory=true;
+    var b=ragRetrieve("I ask Bram about the ledger heist");
+    worldState.ragMemory=false;sessionLog=[];
+    return b.indexOf("cannot continue")<0?true:"the rf-marked refusal was served as episodic truth: "+b.slice(0,140);
+  });
+
     TTS=_TTS;generateActions=_gA;processPendingCompanionSheets=_pP;addMsg=_aM;saveAll=_sA;
   })();
 

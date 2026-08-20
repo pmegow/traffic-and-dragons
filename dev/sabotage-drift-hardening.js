@@ -6,7 +6,7 @@ var sabotage=require("./sabotage.js"),rc=0;
 rc|=sabotage.prove({file:"game.js",command:["node",["dev/run-tests.js"]],cases:[
   {label:"commit hook removed — missing-axis observers never see real turns",
     mustFail:"W4 wiring: committed GM turns arm the observer and the shared engine-n",
-   find:"  if(!o.isOpening&&typeof observeDriftAxes===\"function\")observeDriftAxes(resp,clean);",replace:""},
+   find:"  if(!o.isOpening&&!_refusal&&typeof observeDriftAxes===\"function\")observeDriftAxes(resp,clean);/* #197: refusal text is meta-voice, not narration — no drift-axis candidates from it */",replace:""},
   {label:"reference rejection narrowed — 'toward Jorgenfist' arms location filing",
     mustFail:"W4 location filing: exact Jorgenfist entry survives eight untagged tur",
    find:"toward|towards|remembering|recalling",replace:"remembering|recalling"},
