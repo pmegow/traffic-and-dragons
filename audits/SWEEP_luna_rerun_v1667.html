@@ -1,0 +1,169 @@
+<title>Luna, Nudged</title>
+<style>
+:root{
+  --bg:#f7f1e6; --ink:#2b2620; --dim:#8a7f6d; --line:#e3d8c4; --panel:#fdf9f0;
+  --acc:#b8935a; --acc-ink:#8a6a38;
+  --pass:#5a7a4d; --pass-bg:#eef0e2;
+  --fail:#a04a38; --fail-bg:#f5e6e0;
+  --warn:#a0783c; --warn-bg:#f4ecda;
+  --mono:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+    --acc:#c9a568; --acc-ink:#c9a568;
+    --pass:#8fae7c; --pass-bg:#232a1e;
+    --fail:#c97b66; --fail-bg:#31211c;
+    --warn:#c79a55; --warn-bg:#2c2517;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+  --acc:#c9a568; --acc-ink:#c9a568;
+  --pass:#8fae7c; --pass-bg:#232a1e;
+  --fail:#c97b66; --fail-bg:#31211c;
+  --warn:#c79a55; --warn-bg:#2c2517;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Georgia,'Iowan Old Style','Times New Roman',serif}
+.wrap{max-width:min(96vw,1700px);margin:0 auto;padding:48px 24px 80px}
+header{border-bottom:2px solid var(--acc);padding-bottom:22px;margin-bottom:26px;max-width:1080px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-ink);margin:0 0 12px}
+h1{font-size:30px;line-height:1.2;margin:0 0 10px;font-weight:700;text-wrap:balance}
+.standfirst{font-size:16px;font-style:italic;color:var(--dim);margin:0;max-width:70ch}
+h2{font-size:19px;margin:40px 0 4px}
+h2 + .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+p{margin:0 0 14px;max-width:75ch}
+a{color:var(--acc-ink)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:12px;padding:2px 8px;border:1px solid;white-space:nowrap}
+.chip.pass{color:var(--pass);border-color:var(--pass);background:var(--pass-bg)}
+.chip.fail{color:var(--fail);border-color:var(--fail);background:var(--fail-bg)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.tablewrap{overflow-x:auto;margin:16px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.45;min-width:900px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--acc);position:sticky;top:0;background:var(--panel)}
+tbody th{font-weight:700;font-size:13.5px;white-space:nowrap;position:sticky;left:0;background:var(--panel);z-index:1}
+thead th:first-child{position:sticky;left:0;z-index:2}
+td .n{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+td .sub{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+blockquote{margin:18px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);font-style:italic;color:var(--ink);max-width:75ch}
+blockquote .who{display:block;font-family:var(--mono);font-size:11px;font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:8px}
+.defs{max-width:1080px;border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--panel);border-radius:4px;padding:14px 18px;margin:18px 0;font-size:14px}
+.defs p:last-child{margin-bottom:0}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 22px}
+.win{color:var(--pass);font-weight:700}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Traffic and Dragons &middot; the first run under both new observers &middot; August 20, 2026</p>
+  <h1>Luna, Nudged</h1>
+  <p class="standfirst">gpt-5.6-luna re-ran the 50-turn standard campaign on v1.667 &mdash; the first arm ever played under the #196 0-HP observer and the #199 off-stage-principals nudge &mdash; judged against its own v1661 baseline, gemini-3.7-flash, and claude-sonnet-5.</p>
+</header>
+
+<p>The question this run answers: <strong>can prompt-channel engineering move a budget-tier model's known failure modes?</strong> Both sweeps that exposed luna's flaws also produced engine responses to them; this is those responses' first live contact with the model that motivated them.</p>
+
+<h2>The bottom line</h2>
+<p class="kicker">the nudge worked, the gate held again, the seat is unchanged</p>
+
+<p><strong>#199 fired at t25&ndash;26 and luna answered every branch of it.</strong> The nudge named Valerius and six bench NPCs; within the run's back half, Valerius entered the story by name as off-screen power (&ldquo;Valerius keeps them beyond the ash road&rdquo; &mdash; the note's into-rumor exit, verbatim), bench NPC Kadrun Zethran was staged as the mid-boss and killed through <strong>luna's first-ever LEGAL death envelope</strong> (committed, quest-valid, rewards paid once), and Act 1's arcs completed under their authored titles &mdash; with Act 2's arcs offered on schedule. Against its own baseline, everything measurable moved: 44 distinct tags against 37, a third more prose, 375 XP and level 2 against 225/L1, five quests archived against four, and the deepest skeleton progression of any budget-tier arm.</p>
+
+<p><strong>The false-death habit survives &mdash; and so does the wall it runs into.</strong> Luna registered turn 1's slaver mob as a single NPC (&ldquo;Slaver assault&rdquo;), killed one member, and then spent the run re-emitting death envelopes for the collective: two quarantined (&ldquo;scene evidence does not bind the claimed victim&rdquo;, then a stale quest reference), six total attempts on the poisoned ID. No canon damage &mdash; but every re-attempt re-toasts at the player, which matches the owner's same-day field report of frequent refusal toasts in live play across models. That surfacing-fatigue is now <a href="../TODO.md">TODO #200</a>: dedupe the toast per envelope/subject, never the gate.</p>
+
+<p><strong>#196 was not exercised</strong> &mdash; the walk never sat at exactly 0 HP. What the run showed instead is that this luna handled wounds diegetically on its own: a collapse beat at 1/23 (&ldquo;darkness takes you&rdquo;), field dressing by an NPC, Constitution checks to keep moving. Better behavior, honestly not attributable to an observer that never fired.</p>
+
+<h2>The scoreboard</h2>
+<p class="kicker">50 turns each &middot; identical Korrag seed &middot; identical blueprint &middot; one metrics script</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr>
+  <th>Arm</th><th>Contract ①<br>tags</th><th>Contract ②<br>canon</th><th>Tag profile</th>
+  <th>Prose</th><th>Speed<br>clean median s/turn</th><th>Cost<br>50 turns</th><th>Depth reached</th>
+</tr></thead>
+<tbody>
+<tr>
+  <th>gpt-5.6-luna<br><span class="sub">RE-RUN &middot; v1.667, both observers live</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown; 2 tag-only echo turns (t13/t15)</span></td>
+  <td><span class="chip warn">held — gate + nudge</span><span class="sub">1 LEGAL death envelope committed (Kadrun); 2 quarantined for the mob-as-NPC, 6 re-attempts; #199 answered: Valerius named, arcs completed as authored</span></td>
+  <td><span class="n win">44 distinct &middot; 440 total</span><span class="sub">richest luna profile</span></td>
+  <td><span class="n">439 ch</span></td>
+  <td><span class="n">6.5</span><span class="sub">47 clean gaps; 24/40 calls absorbed retries&dagger;</span></td>
+  <td><span class="n win">&le;$0.35</span></td>
+  <td><span class="win">L2 (375 XP)</span> &middot; 5 quests archived + 1 active + Act 2 offered</td>
+</tr>
+<tr>
+  <th>gpt-5.6-luna<br><span class="sub">baseline &middot; v1.661, pre-observers</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown</span></td>
+  <td><span class="chip warn">held BY THE ENGINE</span><span class="sub">1 false-death envelope quarantined ×2 attempts; 0-HP blindness t18&rarr;t50; Valerius never named</span></td>
+  <td><span class="n">37 distinct &middot; 323 total</span></td>
+  <td><span class="n">327 ch</span></td>
+  <td><span class="n">6.5</span><span class="sub">47 clean gaps</span></td>
+  <td><span class="n">&le;$0.36</span></td>
+  <td>L1 (225 XP) &middot; 4 quests + 1 active</td>
+</tr>
+<tr>
+  <th>gemini-3.7-flash<br><span class="sub">thinking LOW &mdash; shipped default</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">all 4 death tags same-turn as the kill; Valerius carried 14 turns unprompted</span></td>
+  <td><span class="n">39 distinct &middot; 366 total</span></td>
+  <td><span class="n win">727 ch</span></td>
+  <td><span class="n win">4.6</span><span class="sub">9 clean gaps — storm run&dagger;</span></td>
+  <td><span class="n">~$1.2&ndash;1.3</span></td>
+  <td>L2 &middot; 14 NPCs &middot; 4 quests</td>
+</tr>
+<tr>
+  <th>claude-sonnet-5<br><span class="sub">menu default</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean, with in-prose pushback</span></td>
+  <td><span class="n">32 distinct &middot; 212 total</span><span class="sub">leanest tagger</span></td>
+  <td><span class="n win">951 ch</span></td>
+  <td><span class="n">7.2</span><span class="sub">49 clean gaps</span></td>
+  <td><span class="n">$2.64</span><span class="sub">exact</span></td>
+  <td>L2 &middot; 9 NPCs &middot; 1 quest</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p style="font-size:13px;color:var(--dim);max-width:75ch">
+&dagger; Both storm annotations are the #29 transport machinery at work: the re-run rode an OpenAI load-shed night (24 of 40 turn calls carried absorbed retries, one driver back-off, zero failed turns); the 3.7-low corpus predates its own storm's timestamps. Costs: sonnet-5 exact; others price recorded tokens at real rate cards with cached input at the full rate (upper bounds).
+</p>
+
+<h2>The #199 receipts</h2>
+<p class="kicker">a nudge, then measurable movement</p>
+
+<p>The engine's latch shows the ask: seven principals nudged across turns 25&ndash;26 (Valerius plus six untouched bench NPCs), one ask each, inside the note's cap. What followed on the record:</p>
+
+<blockquote>Ash spills from a torn brand on its chain, bearing the same hooked sign stamped into the black iron key. &ldquo;The camps feed it. <strong>Valerius</strong> keeps them beyond the ash road.&rdquo;<span class="who">gpt-5.6-luna, t44 &mdash; the antagonist enters by name, as rumor: the note's own taxonomy</span></blockquote>
+
+<p>Kadrun Zethran &mdash; a bench NPC neither prior OpenAI arm touched &mdash; carried the run's central fight and died at t34 inside a canon transaction the W2 gate <em>committed</em>: valid quest reference (&ldquo;The Price of Freedom&rdquo;, active at the time), scene evidence in order, rewards paid exactly once. In two prior luna death envelopes the gate had to refuse; this one it accepted. The model can meet the evidence bar when the arcs it is citing are the ones it actually played. Baseline honesty: one narration in fifty is not a staged antagonist, and five of seven nudged principals stayed off-stage inside their 2-ask allowance. The nudge moved the needle; it did not rebuild the model.</p>
+
+<h2>The recurring class, and the toast problem</h2>
+<p class="kicker">owner field report, same day: &ldquo;I get a lot of these, independent of LLM&rdquo;</p>
+
+<p>Luna's one genuine misbehavior this run is instructive: it registered the opening slaver mob as a single NPC (&ldquo;Slaver assault&rdquo;), killed one member in prose, and then kept trying to canonize the collective's death &mdash; two envelopes quarantined on two different grounds, six total attempts against the poisoned ID. The gates did exactly their job. But each refused re-attempt surfaces another toast, and the owner's screenshots from live play (a different campaign, a different model) show the same pattern: <em>refusal surfacing scales with model stubbornness, not with player-relevant information.</em> Filed as <strong>TODO #200</strong>: first refusal toasts, repeats of the same envelope/subject go console-only — presentation dedupe only, the gates untouched.</p>
+
+<h2>What this page does not establish</h2>
+<p class="kicker">the honest limits</p>
+
+<div class="defs">
+  <p><strong>#196 remains field-untested.</strong> The walk never reached 0 HP; the observer never fired. The improved wound-handling belongs to luna and the walk, not to the note.</p>
+  <p><strong>One nudged run is not a controlled experiment.</strong> The v1661→v1667 delta bundles the two observers with whatever run-to-run variance a random walk carries. The Valerius/Kadrun/arc chain is strongly nudge-shaped (all of it follows t25&ndash;26), but a replication would firm it.</p>
+  <p><strong>The engine moved between baselines</strong> (v1.661 → v1.667) and the standing one-seed/one-voice caveat applies to all four arms.</p>
+</div>
+
+<h2>Where this leaves the seat</h2>
+<p class="kicker">no ruling implied</p>
+
+<p>Luna remains what the owner ruled it: the OpenAI storm rung &mdash; and this run makes the rung <em>better</em>: under the current engine, a fallback turn arrives with richer tags, more prose, and an antagonist who exists. It is still not a menu candidate on this evidence: the mob-as-NPC judgment error and the five never-staged principals are the same family of flaws the ladder documented, merely better-contained. What this run genuinely establishes is bigger than luna: <strong>the engine's note channel measurably steers budget-tier models</strong> &mdash; the same mechanism that already carries quest escalation and condition audits closed part of a model-capability gap. That is the anti-drift thesis working in its hardest weight class.</p>
+
+<footer>
+  <span>Traffic and Dragons &middot; engine v1.667 (run + report)</span>
+  <span>New corpus: dev/corpus_playtest_v1667_gptluna2.json (+ endstate incl. nudge latches)</span>
+  <span>Comparators: v1661 gptluna &middot; v1644 gemini37low &middot; v1640 sonnet5</span>
+  <span>Metrics: dev/sweep-arm-metrics.js &middot; census from tag_table.js</span>
+  <span>Run: &le;$0.35 &middot; 1 back-off &middot; 24/40 retried calls absorbed &middot; 0 human interventions</span>
+</footer>
+</div>
