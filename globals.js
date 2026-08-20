@@ -122,7 +122,13 @@ var MODEL_PRICING={
   // an undercount (the #30 failure class). `out` already includes thinking tokens (parseUsage
   // folds thoughtsTokenCount into out, matching Google's billing).
   "gemini-3.7-flash": {in:0.75, out:3.75, cacheWrite:0, cacheRead:0},
-  "gemini-3.6-flash": {in:0.75, out:3.75, cacheWrite:0, cacheRead:0}
+  "gemini-3.6-flash": {in:0.75, out:3.75, cacheWrite:0, cacheRead:0},
+  // OpenAI rates verified 2026-08-18 (post the July 30 2026 adjustment: sol standard $5/$30;
+  // luna cut 80% to $0.20/$1.20). Same cacheRead:0 caveat as the Gemini entries — the OpenAI
+  // usage shape's prompt_tokens INCLUDES cached tokens (CLAUDE.md §5), so cached reads bill at
+  // the full input rate here: a documented UPPER bound, never an undercount (#30 class).
+  "gpt-5.6-sol":  {in:5.00, out:30.00, cacheWrite:0, cacheRead:0},
+  "gpt-5.6-luna": {in:0.20, out:1.20,  cacheWrite:0, cacheRead:0}
 };
 // buildSysPrompt returns {stable, volatile} for gameplay turns (TODO #11 prompt caching);
 // sysOverride callers pass a plain string. Non-Anthropic adapters flatten via sysJoin;
@@ -219,7 +225,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.661";
+var APP_VERSION="v1.662";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

@@ -1,0 +1,207 @@
+<title>The Luna Arm</title>
+<style>
+:root{
+  --bg:#f7f1e6; --ink:#2b2620; --dim:#8a7f6d; --line:#e3d8c4; --panel:#fdf9f0;
+  --acc:#b8935a; --acc-ink:#8a6a38;
+  --pass:#5a7a4d; --pass-bg:#eef0e2;
+  --fail:#a04a38; --fail-bg:#f5e6e0;
+  --warn:#a0783c; --warn-bg:#f4ecda;
+  --mono:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+    --acc:#c9a568; --acc-ink:#c9a568;
+    --pass:#8fae7c; --pass-bg:#232a1e;
+    --fail:#c97b66; --fail-bg:#31211c;
+    --warn:#c79a55; --warn-bg:#2c2517;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+  --acc:#c9a568; --acc-ink:#c9a568;
+  --pass:#8fae7c; --pass-bg:#232a1e;
+  --fail:#c97b66; --fail-bg:#31211c;
+  --warn:#c79a55; --warn-bg:#2c2517;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Georgia,'Iowan Old Style','Times New Roman',serif}
+.wrap{max-width:min(96vw,1700px);margin:0 auto;padding:48px 24px 80px}
+header{border-bottom:2px solid var(--acc);padding-bottom:22px;margin-bottom:26px;max-width:1080px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-ink);margin:0 0 12px}
+h1{font-size:30px;line-height:1.2;margin:0 0 10px;font-weight:700;text-wrap:balance}
+.standfirst{font-size:16px;font-style:italic;color:var(--dim);margin:0;max-width:70ch}
+h2{font-size:19px;margin:40px 0 4px}
+h2 + .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+p{margin:0 0 14px;max-width:75ch}
+a{color:var(--acc-ink)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:12px;padding:2px 8px;border:1px solid;white-space:nowrap}
+.chip.pass{color:var(--pass);border-color:var(--pass);background:var(--pass-bg)}
+.chip.fail{color:var(--fail);border-color:var(--fail);background:var(--fail-bg)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.tablewrap{overflow-x:auto;margin:16px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.45;min-width:900px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--acc);position:sticky;top:0;background:var(--panel)}
+tbody th{font-weight:700;font-size:13.5px;white-space:nowrap;position:sticky;left:0;background:var(--panel);z-index:1}
+thead th:first-child{position:sticky;left:0;z-index:2}
+td .n{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+td .sub{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+blockquote{margin:18px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);font-style:italic;color:var(--ink);max-width:75ch}
+blockquote .who{display:block;font-family:var(--mono);font-size:11px;font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:8px}
+.defs{max-width:1080px;border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--panel);border-radius:4px;padding:14px 18px;margin:18px 0;font-size:14px}
+.defs p:last-child{margin-bottom:0}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 22px}
+.win{color:var(--pass);font-weight:700}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Traffic and Dragons &middot; the budget-tier question &middot; August 18, 2026</p>
+  <h1>The Luna Arm</h1>
+  <p class="standfirst">gpt-5.6-luna &mdash; OpenAI's 25&times;-cheaper tier, fresh off an 80% price cut &mdash; ran the 50-turn standard campaign. Five arms on the scoreboard: both OpenAI models, both Gemini Flash models, and claude-sonnet-5.</p>
+</header>
+
+<p>Owner-commissioned arm, run at v1.661 on the standard Korrag campaign (same blueprint control, same seed, Howard voice). The question: what does the cheapest frontier seat actually buy &mdash; and what does it break? The answer turned out to be less about luna and more about the engine: <strong>this is the run where the anti-drift stack caught a model falsifying a death, live, and refused it.</strong></p>
+
+<div class="defs">
+  <p><strong>One yardstick, five arms.</strong> Every number was recomputed from the committed corpora by <span class="n">dev/sweep-arm-metrics.js</span> (tag census derived from the loaded <span class="n">tag_table.js</span>). The script reproduces the five-arms report's published figures for every prior arm before touching the new one. Thread nouns from the blueprint premise: Valerius, the Chained King, Ashenveil.</p>
+</div>
+
+<h2>The bottom line</h2>
+<p class="kicker">what $0.36 buys</p>
+
+<p><strong>luna's tag discipline is the best of any non-Claude arm</strong> &mdash; 0/50 zero-tag turns (its big sibling sol has 3), zero unknown tags, and the most diligent uptake of the modern vocabulary on record: 17 answered <span class="n">[SCENE_CAST:]</span> requests, systematic pronoun and condition hygiene, and the only correct field use of <span class="n">[RETCON:]</span> any arm has ever produced. Its quest throughput is also the best of the five &mdash; four quests driven to archive plus one active, with objectives tracked and closed.</p>
+
+<p><strong>But its canon judgment failed twice, and the second failure needed the engine to stop it.</strong> A mis-addressed damage tag killed its own monster (self-repaired next turn, honestly, via <span class="n">[RETCON:]</span>). Then at t44 it emitted a full death envelope &mdash; <span class="n">[NPC:Darvak Vareth|dead]</span>, quest completion, XP and gold &mdash; for a foe its own prose only ever describes as <em>collapsing wounded</em>, replaying rewards for a quest that had already been completed and paid 22 turns earlier. The W2 transaction preflight quarantined the whole envelope (&ldquo;death outcome names no active accepted quest&rdquo;), the roster kept Darvak alive and <span class="n">wounded,hostile</span> &mdash; and luna's subsequent prose agreed with the engine, not with its own tags: t45&ndash;48 show a wounded, snarling, first-aid-receiving Darvak. Luna re-emitted the envelope later; the poisoned ID held it again.</p>
+
+<p><strong>Verdict: not menu-grade, engine-guarded.</strong> Nothing in this run damaged canon &mdash; but on two occasions that is the engine's achievement, not the model's. Under the standing &ge;Sonnet-5 menu ruling, a model whose deaths need refusing does not get a listing, whatever it costs. No ruling implied; the evidence is here.</p>
+
+<h2>The scoreboard</h2>
+<p class="kicker">50 turns each &middot; identical Korrag seed &middot; identical blueprint &middot; one metrics script</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr>
+  <th>Arm</th><th>Contract ①<br>tags</th><th>Contract ②<br>canon</th><th>Tag profile</th>
+  <th>Prose</th><th>Speed<br>clean median s/turn</th><th>Output<br>tok/turn-call</th><th>Cost<br>50 turns</th><th>Depth reached</th>
+</tr></thead>
+<tbody>
+<tr>
+  <th>gpt-5.6-luna<br><span class="sub">this run, v1.661</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown; best modern-vocabulary uptake (17 SCENE_CAST answers, only correct [RETCON:] on record)</span></td>
+  <td><span class="chip warn">held BY THE ENGINE</span><span class="sub">1 false-death envelope QUARANTINED (t44 — prose says &ldquo;collapses&rdquo;, tags said dead + re-paid a t22 quest; re-emission also held); 1 mis-addressed ENEMY_HP killed its own foe (RETCON self-repair); 0-HP blindness t18&rarr;t50</span></td>
+  <td><span class="n">37 distinct &middot; 323 total</span><span class="sub">0 unknown</span></td>
+  <td><span class="n">327 ch</span><span class="sub">tersest of five; grammar clean</span></td>
+  <td><span class="n">6.5</span><span class="sub">47 clean gaps</span></td>
+  <td><span class="n">477</span></td>
+  <td><span class="n win">$0.36</span><span class="sub">measured, real rates</span></td>
+  <td>L1 (225 XP) &middot; 10 NPCs &middot; <span class="win">4 quests archived + 1 active</span></td>
+</tr>
+<tr>
+  <th>gpt-5.6-sol<br><span class="sub">menu</span></th>
+  <td><span class="chip warn">hold, 3 gaps</span><span class="sub">3/50 zero-tag turns</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean (4 candidates, all corpse/memory)</span></td>
+  <td><span class="n">38 distinct &middot; 335 total</span><span class="sub">0 unknown</span></td>
+  <td><span class="n">351 ch</span></td>
+  <td><span class="n">~34</span><span class="sub">recorded&dagger;</span></td>
+  <td><span class="n">649</span></td>
+  <td><span class="n">~$2&ndash;2.50</span><span class="sub">run est.; rate card now $5/$30&Dagger;</span></td>
+  <td>L2 &middot; 13 NPCs &middot; 2 quests</td>
+</tr>
+<tr>
+  <th>gemini-3.7-flash<br><span class="sub">thinking LOW &mdash; shipped default</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">all 4 death tags same-turn as the prose kill</span></td>
+  <td><span class="n win">39 distinct &middot; 366 total</span><span class="sub">0 unknown</span></td>
+  <td><span class="n">727 ch</span></td>
+  <td><span class="n win">4.6</span><span class="sub">9 clean gaps &mdash; storm run&dagger;</span></td>
+  <td><span class="n">251</span></td>
+  <td><span class="n">~$1.2&ndash;1.3</span><span class="sub">est. at real rates</span></td>
+  <td>L2 &middot; 14 NPCs &middot; 4 quests</td>
+</tr>
+<tr>
+  <th>gemini-3.6-flash<br><span class="sub">the #29b fallback rung</span></th>
+  <td><span class="chip warn">hold, 1 blemish</span><span class="sub">0/50 zero-tag; invented [POWER_STRIKE] &times;2 (stripped)</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean; 3/3 death tags same-turn</span></td>
+  <td><span class="n">35 distinct &middot; 237 total</span><span class="sub">1 unknown name</span></td>
+  <td><span class="n">608 ch</span><span class="sub">~7 grammar slips</span></td>
+  <td><span class="n">5.9</span><span class="sub">45 clean gaps</span></td>
+  <td><span class="n">194</span></td>
+  <td><span class="n">$1.30</span><span class="sub">measured</span></td>
+  <td>L1 (240 XP) &middot; 13 NPCs &middot; 1 quest + 1 unactivated</td>
+</tr>
+<tr>
+  <th>claude-sonnet-5<br><span class="sub">menu default</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean, with in-prose pushback</span></td>
+  <td><span class="n">32 distinct &middot; 212 total</span><span class="sub">leanest tagger</span></td>
+  <td><span class="n win">951 ch</span></td>
+  <td><span class="n">7.2</span><span class="sub">49 clean gaps</span></td>
+  <td><span class="n">398</span></td>
+  <td><span class="n">$2.64</span><span class="sub">actual, priced</span></td>
+  <td>L2 &middot; 9 NPCs &middot; 1 quest</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p style="font-size:13px;color:var(--dim);max-width:75ch">
+&dagger; sol's corpus predates per-turn timestamps (its ~34 s is the run-time recording); the 3.7-low run rode a load-shed storm, leaving 9 clean gaps. &Dagger; MODEL_PRICING carries real rates for all five arms as of v1.662 (Gemini pair $0.75/$3.75; luna $0.20/$1.20; sol $5/$30; sonnet-5 $2/$10 per MTok). Measured costs price the run's recorded token counts; estimates re-price comparable token profiles where a run predates usage snapshots. Cached input is priced at the full input rate for the Gemini/OpenAI entries (their usage shapes fold cached tokens into the input count &mdash; documented upper bound).
+</p>
+
+<h2>The night the engine said no</h2>
+<p class="kicker">the w2 stack's second field validation this week</p>
+
+<p>At turn 22, Korrag broke through Darvak Vareth's road blockade; the engine archived the quest &ldquo;Escape Darvak Vareth&rdquo; as completed and banked its rewards (50 XP, 10 gold). At turn 44, mid-melee, luna wrote this prose:</p>
+
+<blockquote>Behind you, Darvak Vareth's wounded arm gives way, and he collapses before his knife clears its sheath.<span class="who">gpt-5.6-luna, t44 &mdash; a collapse, not a kill</span></blockquote>
+
+<p>&hellip;and attached a full canon transaction to it: <span class="n">[SCENE_DEATH:]</span>, <span class="n">[NPC:Darvak Vareth|dead|enemy]</span>, the <em>already-completed</em> quest re-completed, the already-paid rewards re-emitted. Three shipped defenses converged: the envelope preflight found the death's quest reference stale (&ldquo;death outcome names no active accepted quest&rdquo;), quarantined the entire transaction &mdash; death, quest replay, and double-pay refused as one unit &mdash; and left Darvak's roster record exactly what the prose said: <span class="n">wounded,hostile</span>. When luna re-emitted the envelope a few turns later, the poisoned transaction ID held it again (<span class="n">attempts: 2</span>). The most telling detail: luna's own subsequent narration sided with the engine over its own tags &mdash; turns 45&ndash;48 show Darvak snarling, terrified, and being bandaged. The refused death was the <em>correct</em> reading of the story.</p>
+
+<p>Together with the 3.6-flash certification's clean pass, this makes two live field validations of the transaction machinery in one week &mdash; one by absence (a model that never tried), one by fire.</p>
+
+<h2>The 0-HP blindness</h2>
+<p class="kicker">the run's real canon-obedience failure</p>
+
+<p>Darvak's spear took Korrag to 0/14 HP at turn 18 &mdash; and he stayed at exactly zero for the remaining 32 turns while sprinting (four successful Sprinting checks), wrestling a dwarf into submission, applying first aid, and descending into a fresh monster fight at t50. The prose does track injury impressionistically (the buckling leg, &ldquo;the world narrows to cold stone&rdquo;), and it never contradicts a specific injected fact. But the character sheet said <span class="n">HP: 0/14</span> on every one of those 32 prompts, and luna never once processed it: no <span class="n">[HP:+]</span> recovery, no rest, no crisis. Every other arm's random walk left HP positive, so this check has no comparison row &mdash; but ignoring an injected sheet value for 32 consecutive turns is the same failure family as a desynced inventory, and it belongs on the record. (It also exposes an engine gap: nothing nudges the GM when a 0-HP player keeps adventuring &mdash; filed as a TODO row alongside this report.)</p>
+
+<h2>Premise: dropped by name, kept by theme</h2>
+<p class="kicker">where the noun-count metric needs a human</p>
+
+<p>The mechanical thread scan reads 0/0/0 &mdash; <strong>Valerius is never named in 50 responses</strong> (every other arm names him; 3.6-flash carried him through 13 turns), Ashenveil surfaces only in tags, the Chained King never by name. Yet the story luna invented is unmistakably the blueprint's story wearing different clothes: the slavers die spitting &ldquo;Cage&rdquo;, the brand inside Theron's collar reads <em>&ldquo;The King is bound&rdquo;</em>, the cage-marked token opens a violet vault under the road, and the one live quest is &ldquo;The Gilded Cage&rdquo;. That is an oblique, iconography-first pickup of the premise &mdash; genuinely atmospheric, and genuinely a problem: a campaign whose named principals never appear cannot pay off the blueprint's acts. Sub-verdict: thematic retention, nominal dropout &mdash; unique among the five arms.</p>
+
+<h2>Voice, side by side</h2>
+<p class="kicker">same Howard directive &middot; first sword-stroke of each run</p>
+
+<blockquote>You drive the longsword through the smoke. Steel tears Theron's shoulder and hurls him against the wagon's blazing side, but the scarred slaver keeps his feet, blood black upon his mail.<span class="who">gpt-5.6-luna &mdash; clipped, clean, concrete</span></blockquote>
+
+<blockquote>The net snaps through empty air as you hurl yourself beneath its weighted rim. You surge from the ash and crash into Aldric Saltborn, your longsword biting through his leather guard&hellip;<span class="who">gpt-5.6-sol</span></blockquote>
+
+<blockquote>Steel hisses free of the scabbard, and you close the distance at a wary crouch, sword low, eyes cutting the scene apart piece by piece.<span class="who">claude-sonnet-5</span></blockquote>
+
+<p>Luna reads like sol compressed further: the same clipped tactical cadence at 327 characters a turn &mdash; the tersest arm on record, roughly a third of sonnet-5's prose volume. Grammar is clean (unlike 3.6-flash's slip class), sentences land hard, and the Howard vocabulary is present but rationed. For Car Mode listening the brevity is arguably a feature; for a reader it is thin gruel next to the Gemini arms. One canon-obedience gem deserves its own line: fed the stale suggested action &ldquo;Raise my shield&rdquo;, luna answered <em>&ldquo;You find no shield at your side&rdquo;</em> &mdash; Korrag's sheet carries none. Sheet-aware pushback of that precision previously appeared only in the Claude arms.</p>
+
+<h2>What this page does not establish</h2>
+<p class="kicker">the honest limits</p>
+
+<div class="defs">
+  <p><strong>Different engine versions.</strong> sol ran on v1.640, 3.7-low on v1.644, 3.6 on v1.660, luna on v1.661. The W2 quarantine that stars in this report did not exist in its current form for the oldest arms &mdash; whether sol would have tripped it is unknowable from these corpora.</p>
+  <p><strong>One campaign, one tone, one voice, one seed</strong> &mdash; the standing #22 width caveat, applied equally to all five.</p>
+  <p><strong>Depth is partly the random walk.</strong> Luna's walk was combat-dense (20 combat rounds, two boss-grade fights); its L1 finish shares the XP-under-award pattern with 3.6-flash but is confounded with the walk.</p>
+  <p><strong>The 0-HP finding has no comparison rows.</strong> No other arm's walk drove HP to zero, so &ldquo;every other arm handles 0 HP better&rdquo; cannot be claimed &mdash; only that luna demonstrably failed to.</p>
+</div>
+
+<h2>Where this leaves the menu</h2>
+<p class="kicker">no ruling implied</p>
+
+<p>The menu stands as owner-ruled. On this evidence, luna is a remarkable price-performance artifact &mdash; the cheapest arm ever run, the best tag discipline outside Claude, the best quest throughput of all five &mdash; that twice needed the engine to protect canon from its own claims, once via quarantine and once via its own <span class="n">[RETCON:]</span> cleanup. The &ge;Sonnet-5 bar asks whether the prose can be trusted with the state it is handed; this run answers: only with the engine's hand on its shoulder. sol's seat is unaffected; luna earns no seat &mdash; and the engine earns the week's second field citation.</p>
+
+<footer>
+  <span>Traffic and Dragons &middot; engine v1.661 (run) / v1.662 (report)</span>
+  <span>New corpus: dev/corpus_playtest_v1661_gptluna.json (+ endstate)</span>
+  <span>Comparators: v1640 gpt56sol &middot; v1644 gemini37low &middot; v1660 gemini36 &middot; v1640 sonnet5</span>
+  <span>Metrics: dev/sweep-arm-metrics.js &middot; census from tag_table.js</span>
+  <span>Run cost: $0.36 &middot; 1 back-off &middot; 0 human interventions</span>
+</footer>
+</div>
