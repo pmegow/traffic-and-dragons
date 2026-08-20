@@ -1,0 +1,219 @@
+<title>The GPT Ladder</title>
+<style>
+:root{
+  --bg:#f7f1e6; --ink:#2b2620; --dim:#8a7f6d; --line:#e3d8c4; --panel:#fdf9f0;
+  --acc:#b8935a; --acc-ink:#8a6a38;
+  --pass:#5a7a4d; --pass-bg:#eef0e2;
+  --fail:#a04a38; --fail-bg:#f5e6e0;
+  --warn:#a0783c; --warn-bg:#f4ecda;
+  --mono:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+    --acc:#c9a568; --acc-ink:#c9a568;
+    --pass:#8fae7c; --pass-bg:#232a1e;
+    --fail:#c97b66; --fail-bg:#31211c;
+    --warn:#c79a55; --warn-bg:#2c2517;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1815; --ink:#e8e0d2; --dim:#9a8f7d; --line:#3a332a; --panel:#241f1a;
+  --acc:#c9a568; --acc-ink:#c9a568;
+  --pass:#8fae7c; --pass-bg:#232a1e;
+  --fail:#c97b66; --fail-bg:#31211c;
+  --warn:#c79a55; --warn-bg:#2c2517;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Georgia,'Iowan Old Style','Times New Roman',serif}
+.wrap{max-width:min(96vw,1700px);margin:0 auto;padding:48px 24px 80px}
+header{border-bottom:2px solid var(--acc);padding-bottom:22px;margin-bottom:26px;max-width:1080px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-ink);margin:0 0 12px}
+h1{font-size:30px;line-height:1.2;margin:0 0 10px;font-weight:700;text-wrap:balance}
+.standfirst{font-size:16px;font-style:italic;color:var(--dim);margin:0;max-width:70ch}
+h2{font-size:19px;margin:40px 0 4px}
+h2 + .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+p{margin:0 0 14px;max-width:75ch}
+a{color:var(--acc-ink)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:12px;padding:2px 8px;border:1px solid;white-space:nowrap}
+.chip.pass{color:var(--pass);border-color:var(--pass);background:var(--pass-bg)}
+.chip.fail{color:var(--fail);border-color:var(--fail);background:var(--fail-bg)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.tablewrap{overflow-x:auto;margin:16px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.45;min-width:900px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--acc);position:sticky;top:0;background:var(--panel)}
+tbody th{font-weight:700;font-size:13.5px;white-space:nowrap;position:sticky;left:0;background:var(--panel);z-index:1}
+thead th:first-child{position:sticky;left:0;z-index:2}
+td .n{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+td .sub{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+blockquote{margin:18px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);font-style:italic;color:var(--ink);max-width:75ch}
+blockquote .who{display:block;font-family:var(--mono);font-size:11px;font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:8px}
+.defs{max-width:1080px;border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--panel);border-radius:4px;padding:14px 18px;margin:18px 0;font-size:14px}
+.defs p:last-child{margin-bottom:0}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 22px}
+.win{color:var(--pass);font-weight:700}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Traffic and Dragons &middot; the OpenAI ladder, complete &middot; August 18, 2026</p>
+  <h1>The GPT Ladder</h1>
+  <p class="standfirst">gpt-5.6-terra closes the OpenAI ladder: sol, terra, and luna have now each run the 50-turn standard campaign. Six arms on one scoreboard &mdash; the three GPTs, claude-sonnet-5, and both Gemini Flash models.</p>
+</header>
+
+<p>Owner-commissioned: run the untested middle rung and compare the whole ladder. Terra was the interesting seat &mdash; the direct price-peer of the menu default ($2/$12 against sonnet-5's $2/$10) and the one whose result couldn't be predicted from its neighbors. The run itself was the cleanest on record: 50/50 turns, zero driver errors, zero transport blips.</p>
+
+<div class="defs">
+  <p><strong>One yardstick, six arms.</strong> Every number recomputed from the committed corpora by <span class="n">dev/sweep-arm-metrics.js</span> (tag census derived from the loaded <span class="n">tag_table.js</span>); the script reproduces every previously published arm figure before touching a new one. Thread nouns from the blueprint premise: Valerius, the Chained King, Ashenveil.</p>
+</div>
+
+<h2>The bottom line</h2>
+<p class="kicker">the ladder is complete, and the menu doesn't move</p>
+
+<p><strong>Terra holds both contract halves cleanly</strong> &mdash; 0/50 zero-tag (better than its bigger sibling), zero unknown tags, a clean dead-actor record, and the single best piece of canon obedience any arm has produced: it took the player's 0-HP collapse seriously and <em>built the blueprint's Act 1 out of it</em> (below). Its blemishes are texture: one tag-only response with no new prose (t15), terse 382-character turns, thin XP flow.</p>
+
+<p><strong>But the rate card decides the seat.</strong> Terra's measured cost upper bound is <strong>$3.43 &mdash; already above sonnet-5's exact $2.64</strong> &mdash; for a third of the prose, one level less depth, and no capability sonnet lacks. Even granting unrecorded prefix-cache discounts, terra lands at best <em>comparable</em> in price while writing less and progressing less. sol, re-priced at its real $5/$30 rates, projects to $8&ndash;9 a run at list &mdash; opus-class money for 3-zero-tag-turn discipline. The OpenAI ladder's genuine contribution to this engine is luna: not as a listing, but as the storm rung the owner has now ruled it to be.</p>
+
+<h2>The scoreboard</h2>
+<p class="kicker">50 turns each &middot; identical Korrag seed &middot; identical blueprint &middot; one metrics script</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr>
+  <th>Arm</th><th>Contract ①<br>tags</th><th>Contract ②<br>canon</th><th>Tag profile</th>
+  <th>Prose</th><th>Speed<br>clean median s/turn</th><th>Cost<br>50 turns</th><th>Depth reached</th>
+</tr></thead>
+<tbody>
+<tr>
+  <th>gpt-5.6-terra<br><span class="sub">this run, v1.662</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown; 1 tag-only response (t15, no new prose)</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean; the 0-HP collapse played DIEGETICALLY for 16 turns — the best zero-handling on record</span></td>
+  <td><span class="n">38 distinct &middot; 263 total</span></td>
+  <td><span class="n">382 ch</span></td>
+  <td><span class="n">7.1</span><span class="sub">49 clean gaps</span></td>
+  <td><span class="n">&le;$3.43</span><span class="sub">upper bound &gt; sonnet's exact bill</span></td>
+  <td>L1 (100 XP) &middot; 13 NPCs &middot; 2 quests + 3 active</td>
+</tr>
+<tr>
+  <th>gpt-5.6-sol<br><span class="sub">menu</span></th>
+  <td><span class="chip warn">hold, 3 gaps</span><span class="sub">3/50 zero-tag turns</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean</span></td>
+  <td><span class="n">38 distinct &middot; 335 total</span></td>
+  <td><span class="n">351 ch</span></td>
+  <td><span class="n">~34</span><span class="sub">recorded&dagger;</span></td>
+  <td><span class="n">~$8&ndash;9 at list</span><span class="sub">real $5/$30 rates&Dagger;</span></td>
+  <td>L2 &middot; 13 NPCs &middot; 2 quests</td>
+</tr>
+<tr>
+  <th>gpt-5.6-luna<br><span class="sub">the new OpenAI storm rung</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; best modern-vocabulary uptake</span></td>
+  <td><span class="chip warn">held BY THE ENGINE</span><span class="sub">1 false-death envelope quarantined; 0-HP blindness t18&rarr;t50</span></td>
+  <td><span class="n">37 distinct &middot; 323 total</span></td>
+  <td><span class="n">327 ch</span></td>
+  <td><span class="n">6.5</span><span class="sub">47 clean gaps</span></td>
+  <td><span class="n win">&le;$0.36</span></td>
+  <td>L1 &middot; 10 NPCs &middot; <span class="win">4 quests + 1 active</span></td>
+</tr>
+<tr>
+  <th>claude-sonnet-5<br><span class="sub">menu default</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">dead-actor clean, with in-prose pushback</span></td>
+  <td><span class="n">32 distinct &middot; 212 total</span><span class="sub">leanest tagger</span></td>
+  <td><span class="n win">951 ch</span></td>
+  <td><span class="n">7.2</span><span class="sub">49 clean gaps</span></td>
+  <td><span class="n">$2.64</span><span class="sub">exact (Anthropic meters cache)</span></td>
+  <td>L2 &middot; 9 NPCs &middot; 1 quest</td>
+</tr>
+<tr>
+  <th>gemini-3.7-flash<br><span class="sub">thinking LOW &mdash; shipped default</span></th>
+  <td><span class="chip pass">hold</span><span class="sub">0/50 zero-tag; 0 unknown</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">all 4 death tags same-turn as the kill</span></td>
+  <td><span class="n win">39 distinct &middot; 366 total</span></td>
+  <td><span class="n">727 ch</span></td>
+  <td><span class="n win">4.6</span><span class="sub">9 clean gaps &mdash; storm run&dagger;</span></td>
+  <td><span class="n">~$1.2&ndash;1.3</span></td>
+  <td>L2 &middot; 14 NPCs &middot; 4 quests</td>
+</tr>
+<tr>
+  <th>gemini-3.6-flash<br><span class="sub">the gemini storm rung</span></th>
+  <td><span class="chip warn">hold, 1 blemish</span><span class="sub">invented [POWER_STRIKE] &times;2 (stripped)</span></td>
+  <td><span class="chip pass">hold, clean</span><span class="sub">3/3 death tags same-turn</span></td>
+  <td><span class="n">35 distinct &middot; 237 total</span></td>
+  <td><span class="n">608 ch</span></td>
+  <td><span class="n">5.9</span><span class="sub">45 clean gaps</span></td>
+  <td><span class="n">$1.30</span></td>
+  <td>L1 &middot; 13 NPCs &middot; 1 quest + 1 unactivated</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p style="font-size:13px;color:var(--dim);max-width:75ch">
+&dagger; sol's corpus predates per-turn timestamps; the 3.7-low run rode a load-shed storm, leaving 9 clean gaps. &Dagger; Costs: sonnet-5 is exact (Anthropic's usage separates cached reads); the Gemini and OpenAI figures price recorded token counts at the real rate cards with cached input billed at the FULL input rate &mdash; a documented upper bound, since both providers fold cached tokens into their input counts. sol predates usage snapshots entirely: its $8&ndash;9 re-prices a comparable token profile at list; its true bill with prefix-cache discounts is unknowable from that corpus (the five-arms report's ~$2&ndash;2.50 guess predates the real rate card).
+</p>
+
+<h2>A tale of two zeroes</h2>
+<p class="kicker">why #196 shipped between these two runs</p>
+
+<p>Both OpenAI arms drove Korrag to exactly 0 HP mid-run &mdash; the only two arms ever to do so &mdash; and they answered it in opposite ways.</p>
+
+<p><strong>luna ignored the zero for 32 turns:</strong> sprints, grapples, first aid administered <em>by</em> the dying man, a fresh boss fight at the end &mdash; vigor narrated over a 0/14 sheet the prompt restated every turn.</p>
+
+<p><strong>terra made the zero the story.</strong> From the cudgel blow at t29: <em>&ldquo;Your sword-arm falters. The market stones rise beneath your cheek&rdquo;</em> &mdash; and then sixteen consecutive player actions honestly REFUSED in fiction (&ldquo;the command dies in the red dark before it reaches your foot&rdquo;, &ldquo;Blood loss has made your body a wrecked fortress&rdquo;) while the slavers drag the helpless Northlander through the blue lanterns, hood him, shackle him beside the arena pit &mdash; which is to say: terra staged the blueprint's Act 1 (&ldquo;dragged back into the world of the fighting pits&rdquo;, the Gilded Cage) <em>out of the mechanical collapse</em>, then let Korrag claw back by inches to a chain-tearing cliffhanger at t50. It is the best canon obedience any arm has shown, and the sharpest possible contrast inside one model family.</p>
+
+<p>The engine's answer to the luna half shipped as <strong>#196 (v1.663)</strong> between the two runs: a combat-silent observer that notes a persisting 0-HP sheet after 3 turns and offers the GM exactly the three honest exits &mdash; collapse, aid, or rest. Terra is the proof the note's collapse branch is playable at the highest level; luna is the proof weaker models need it spelled out. (Neither run had the observer; terra ran on v1.662 by design, so the six arms stay engine-comparable.)</p>
+
+<h2>The unnamed master</h2>
+<p class="kicker">a real GPT-5.6 family trait, measured</p>
+
+<p>The thread-noun scan reads near-zero for both terra and luna: <strong>Valerius is never named in either run's 50 responses</strong> (every Gemini and Claude arm names him), and the Chained King never surfaces. But the quest logs tell the other half: both models' quests are the blueprint's own Act 1 arc titles &mdash; &ldquo;An Unwanted Reunion&rdquo;, &ldquo;The Gilded Cage&rdquo; &mdash; tracked, objectived, and (in luna's case) closed. Terra even keeps the antagonist present as a felt absence: <em>&ldquo;The master wants you breathing, Korrag. There is a collar waiting, and a pit that remembers your name.&rdquo;</em> The family pattern: <strong>faithful to the skeleton's structure, allergic to its proper nouns</strong> &mdash; both invent fresh local casts (Dorian Nighthollow, Helvik Stonegall, Thorvik Mordrath; Darvak Vareth) while the blueprint's eight named NPCs sit unused. A campaign can survive that for 50 turns; it cannot pay off a three-act blueprint whose principals never appear. It is the family's real disqualifier from menu duty, ahead of any price argument.</p>
+
+<h2>Voice, side by side</h2>
+<p class="kicker">same Howard directive &middot; first sword-stroke of each GPT</p>
+
+<blockquote>You crash through the ash with your longsword thrust before you, and Dorian barely twists aside before steel bites beneath his ribs.<span class="who">gpt-5.6-terra</span></blockquote>
+
+<blockquote>You drive the longsword through the smoke. Steel tears Theron's shoulder and hurls him against the wagon's blazing side, but the scarred slaver keeps his feet, blood black upon his mail.<span class="who">gpt-5.6-luna</span></blockquote>
+
+<blockquote>The net snaps through empty air as you hurl yourself beneath its weighted rim. You surge from the ash and crash into Aldric Saltborn, your longsword biting through his leather guard&hellip;<span class="who">gpt-5.6-sol</span></blockquote>
+
+<p>The three GPTs share one voice at three compressions &mdash; clipped, tactical, clean-grammared, rationed. Terra's combat is the crunchiest of all six arms (attack + damage + enemy rolls + a Constitution save; 26 combat rounds), and its dialogue has real bite. None of the three approaches the Gemini arms' Howard lushness or sonnet-5's appraising rhythm; all three are half or less of sonnet's prose volume. For Car Mode brevity that is defensible; as the campaign's narrator it reads thin.</p>
+
+<h2>The blemish ledger</h2>
+<p class="kicker">terra's negatives, on the record</p>
+
+<div class="tablewrap">
+<table style="min-width:640px">
+<thead><tr><th>Finding</th><th>Severity</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><th>Tag-only response</th><td><span class="chip warn">minor</span></td><td>t15's response carried an <span class="n">[ITEM_KEPT:]</span> and no new prose — the player's examine action got a blank beat (the harness re-picked it at t17, which answered properly). Single instance.</td></tr>
+<tr><th>XP starvation</th><td><span class="chip warn">minor</span></td><td>100 XP over 50 turns — the leanest award flow of the six arms; L1 at t50. Shares the under-award pattern of the other budget-tier arms; confounded with a walk that spent its back half captured.</td></tr>
+<tr><th>Principals unnamed</th><td><span class="chip warn">minor</span></td><td>Valerius appears only as &ldquo;the master&rdquo;; the blueprint's named NPC bench goes unused in favor of an invented cast — the family trait above.</td></tr>
+<tr><th>Time compression</th><td><span class="chip pass">note</span></td><td>993 clock minutes over 50 turns (~16.5h) — dense but internally consistent; all TIME_ADVANCE beats present (49/50).</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>What this page does not establish</h2>
+<p class="kicker">the honest limits</p>
+
+<div class="defs">
+  <p><strong>Different engine versions</strong> (v1.640&ndash;v1.662) and <strong>one campaign, one tone, one voice, one seed</strong> &mdash; the standing caveats, applied to all six arms equally.</p>
+  <p><strong>Cost comparability is asymmetric.</strong> Only Anthropic's meter separates cached reads, so only sonnet-5's bill is exact; every other figure is an upper bound or a re-estimate. The claim &ldquo;terra costs more than sonnet&rdquo; is therefore an upper-bound claim; the claim &ldquo;terra is not meaningfully cheaper&rdquo; is safe.</p>
+  <p><strong>Depth is partly the walk.</strong> Terra's second half was played in shackles by its own (excellent) choice; XP and level comparisons carry that confound.</p>
+</div>
+
+<h2>Where this leaves the menu</h2>
+<p class="kicker">no ruling implied</p>
+
+<p>The ladder is now fully measured, and the menu stands. sonnet-5 strictly dominates terra for this engine's use (more prose, more depth, exact-metered cost at or below terra's bound); sol prices itself out at list; luna's seat is the storm rung the owner has ruled &mdash; the per-call #29b fallback for the OpenAI provider, where its engine-guarded canon record is acceptable because a fallback turn beats a dead one and the guards ship in production. The Gemini pair remains what the certification left it: 3.7-low the default seat, 3.6 its rung.</p>
+
+<footer>
+  <span>Traffic and Dragons &middot; engine v1.662 (run) / v1.663 (report)</span>
+  <span>New corpus: dev/corpus_playtest_v1662_gptterra.json (+ endstate)</span>
+  <span>Comparators: v1640 gpt56sol &middot; v1661 gptluna &middot; v1640 sonnet5 &middot; v1644 gemini37low &middot; v1660 gemini36</span>
+  <span>Metrics: dev/sweep-arm-metrics.js &middot; census from tag_table.js</span>
+  <span>Terra run: &le;$3.43 &middot; 0 errors &middot; 0 transport blips &middot; 0 human interventions</span>
+</footer>
+</div>
