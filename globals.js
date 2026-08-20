@@ -61,6 +61,8 @@ var TAG_LOG_CAP=40;
 var HEALTH_LOG_CAP=40; // #17 drift-health ring (worldState.healthLog): ONE observational {t,in,cr,rag,prov} per gameplay-turn call, written only by recordUsage, read only by healthIndicators (helpers.js) — never by any prompt or parser path
 var RETCON_PIN_SHELF=15;    // #147 (drift pass order 4): turns a CORRECTION IN FORCE pin survives un-filed before it archives LOUDLY — bounded so a stuck pin can never become permanent prompt noise (the one-shot-shelf discipline); a completed summarize extraction archives it earlier
 var DEITY_DRIFT_COOLDOWN=25;
+var HP_ZERO_NOTE_TURNS=3;    /* #196: turns the player must sit at exactly 0 HP before the observer fires (combat excluded from firing, not from counting) */
+var HP_ZERO_NOTE_COOLDOWN=5; /* #196: turns between re-fires while the zero persists — one note per ask, pressure without spam (the PROVISIONAL_NUDGE_COOLDOWN rhythm) */
 var RECONCILE_SKIP_MIN=360; // #142: a clock reconcile that crosses DAWN and exceeds this is presumed a mislabel (skip-and-demand), never a timeskip — one word cost 19h at t1524 // #140③: at most one deity-drift nudge per character per this many turns — a god's displeasure is an arc, not a nag          // #137 provenance ring: recent per-response tag names + mutation labels kept ON THE SAVE (worldState.tagLog) so the next field forensics can decide emitted-then-purged vs never-emitted — the fork the t1467 investigation could not close
 var LOC_DESC_NUDGE_COOLDOWN=10; // #134 (t1431 multiplying-beds): while the party's current node has NO [LOCATION_DESC:] on file, buildLocationDescNudge re-demands one this often — re-fire, not one-shot (the #29 rot lesson); a filed description ends it permanently
 var PROVISIONAL_CAP=4;          // #156 Phase A: max OUTSTANDING provisional npc records (the create-distinct collision outcome). Beyond it a suspect write degrades LOUDLY to today's direct-write behavior — the guard may never be worse than the status quo it replaces (runaway-model bound, the pendingItemDefs precedent)
@@ -225,7 +227,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.662";
+var APP_VERSION="v1.663";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

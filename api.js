@@ -483,6 +483,24 @@ function buildDeityDriftNudge(){
   worldState.deityDriftNudged[hit.who]=worldState.turn;
   return"[ENGINE NOTE — DEITY DRIFT (not a player action): "+hit.who+" now walks "+hit.al+", while their deity "+hit.deity+" favors "+hit.favors.join(" / ")+". Decide from the story whether the god has noticed: an omen, a cooling in granted power, a pointed dream — or no reaction YET if the story hasn't earned one. Never silently revoke abilities; if the rift ever becomes canon, show it in the fiction first.]";
 }
+// #196 (v1.663): the 0-HP observer — the gpt-5.6-luna sweep arm ran Korrag at 0/14 HP from t18
+// to t50 (sprints, grapples, a fresh boss fight) and nothing anywhere escalated: the sheet said
+// HP: 0/14 on 32 consecutive prompts and the GM never processed the zero. W4 observer doctrine:
+// one candidate record per axis (worldState.hpZero={since,notedTurn}), combat-aware (a live fight
+// is the GM's own dramatic beat — the SINCE stamp still accrues so post-combat duration is
+// honest), one-shot with a cooldown re-fire while ignored, GM-decides — the note never mutates
+// state, and healing (hp>0) clears the record entirely.
+function buildHpZeroNudge(){
+  var c=worldState.character;
+  if(!c||c.hp!==0){if(worldState.hpZero)delete worldState.hpZero;return"";}
+  if(!worldState.hpZero)worldState.hpZero={since:worldState.turn};
+  if(worldState.combat)return"";
+  var z=worldState.hpZero,dur=worldState.turn-z.since;
+  if(dur<HP_ZERO_NOTE_TURNS)return"";
+  if(z.notedTurn!=null&&worldState.turn-z.notedTurn<HP_ZERO_NOTE_COOLDOWN)return"";
+  z.notedTurn=worldState.turn;
+  return"[ENGINE NOTE — PLAYER AT ZERO HP (not a player action): "+(c.name||"the player")+" has been at 0 of "+c.maxHp+" HP for "+dur+" turns, and the story keeps treating them as hale. Zero HP is death's door, not a scratch. THIS response, resolve it in the fiction: let the wounds finally drop them (collapse, capture, a rescue), bring aid or healing into the scene and emit the matching [HP:+N], or give them a real rest ([REST:long], with the [HP:+N] the recovery earns). If the fiction truly justifies them still standing, show that cost visibly — do not narrate another turn of vigorous action over a 0 HP sheet.]";
+}
 // #142: the reconcile-skip heal note — the demand half of skip-and-demand (Direction-1 of the
 // adversarial review: skip-and-warn would turn the forgotten-rest morning-after into a stuck
 // clock; this note bounds that failure to one turn). One shot, 2-turn shelf.
@@ -1095,7 +1113,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","futureResolveHints","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -1117,7 +1135,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

@@ -54,6 +54,7 @@ function proveScratch(opts) {
     }
     copyWorking(opts.file);
     copyWorking("dev/run-tests.js");
+    copyWorking("dev/engine-tests.js"); /* #196 find: the clone held the COMMITTED suite, so a clause whose catching test was authored in the same (uncommitted) change was structurally unprovable pre-commit — every new #196 mutation reported MISSED against the old tests. The working suite must ride with the working runner. */
     if (opts.command && opts.command[1] && opts.command[1][0]) copyWorking(opts.command[1][0]);
     return prove({
       file: path.join(scratch, opts.file),

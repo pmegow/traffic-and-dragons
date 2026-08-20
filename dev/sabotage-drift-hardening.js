@@ -16,6 +16,23 @@ rc|=sabotage.prove({file:"game.js",command:["node",["dev/run-tests.js"]],cases:[
    replace:"var hasLoc=/\\[(?:LOCATION|SUBLOCATION)/i.test(raw),cue;"}
 ]});
 
+rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],cases:[
+  {label:"#196 persistence threshold deleted — the 0-HP note fires on the first zero turn",
+    mustFail:"#196 0-HP observer: counts through combat but fires only outside it",
+   find:"  if(dur<HP_ZERO_NOTE_TURNS)return\"\";",replace:""},
+  {label:"#196 combat silence removed — the note interrupts a live fight",
+    mustFail:"#196 0-HP observer: counts through combat but fires only outside it",
+   find:"  if(!worldState.hpZero)worldState.hpZero={since:worldState.turn};\n  if(worldState.combat)return\"\";",
+   replace:"  if(!worldState.hpZero)worldState.hpZero={since:worldState.turn};"},
+  {label:"#196 heal-clear removed — a stale since stamp survives recovery",
+    mustFail:"#196 0-HP observer: counts through combat but fires only outside it",
+   find:"if(!c||c.hp!==0){if(worldState.hpZero)delete worldState.hpZero;return\"\";}",
+   replace:"if(!c||c.hp!==0){return\"\";}"},
+  {label:"#196 builder dropped from the registry — the note can never reach a request",
+    mustFail:"#196 registry + latch: buildHpZeroNudge rides NOTE_BUILDERS",
+   find:"buildConditionAudit,buildHpZeroNudge,",replace:"buildConditionAudit,"}
+]});
+
 rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js"]],cases:[
   {label:"strict duration promotion disabled — five days falls back to turn ageing",
     mustFail:"W4 clock-aware future events promote strict durations, including legac",

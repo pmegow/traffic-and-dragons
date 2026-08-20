@@ -11489,6 +11489,36 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return buildDeityDriftNudge()===""?true:"fired for a non-divine class";
   });
 
+  // ── #196 — the 0-HP observer (the luna arm's 32-turn zero-HP action hero) ──────────────────
+  section("#196 — 0-HP observer");
+  t("#196 0-HP observer: counts through combat but fires only outside it, after 3 turns at zero, with a cooldown re-fire; healing clears the record",function(){
+    makeWorld();
+    var c=worldState.character;
+    c.hp=0;c.maxHp=14;worldState.turn=20;delete worldState.hpZero;
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:5,maxHp:5,ac:10,atk:1,dmg:"1d4",morale:"steady"}]};
+    if(buildHpZeroNudge()!=="")return "fired during combat — a live fight is the GM's own beat";
+    if(!worldState.hpZero||worldState.hpZero.since!==20)return "combat turn did not stamp the since record — post-combat duration would restart after every fight";
+    worldState.combat=null;
+    if(buildHpZeroNudge()!=="")return "fired before the persistence threshold";
+    worldState.turn=23;
+    var n=buildHpZeroNudge();
+    if(n.indexOf("ZERO HP")<0||n.indexOf("[HP:+N]")<0||n.indexOf("3 turns")<0)return "note missing/incomplete: "+n.slice(0,140);
+    worldState.turn=24;
+    if(buildHpZeroNudge()!=="")return "no cooldown — fires every turn";
+    worldState.turn=28;
+    if(buildHpZeroNudge()==="")return "did not re-fire after the cooldown while still at zero";
+    c.hp=5;
+    if(buildHpZeroNudge()!=="")return "fired at positive HP";
+    if(worldState.hpZero)return "record not cleared on healing — the next zero would inherit a stale since stamp";
+    c.hp=0;worldState.turn=40;
+    if(buildHpZeroNudge()!=="")return "fired immediately on a fresh zero — persistence must be re-earned";
+    return worldState.hpZero&&worldState.hpZero.since===40?true:"fresh zero did not restamp since";
+  });
+  t("#196 registry + latch: buildHpZeroNudge rides NOTE_BUILDERS and hpZero is a declared latch field",function(){
+    if(NOTE_BUILDERS.indexOf(buildHpZeroNudge)<0)return "builder missing from NOTE_BUILDERS — the note can never reach a request";
+    return NOTE_LATCH_FIELDS.indexOf("hpZero")>=0?true:"hpZero not in NOTE_LATCH_FIELDS — a dead provider call would burn the fired note (#151)";
+  });
+
   // ── #142 — the reconciler's dawn-crossing skip-and-demand (the t1524 19-hour jump) ──────────
   section("#142 — clock reconcile cap");
   t("#142 the t1524 shape skips: dawn-crossing + >6h keeps the label, rolls nothing, arms the demand; same-day and small crossings still reconcile",function(){
