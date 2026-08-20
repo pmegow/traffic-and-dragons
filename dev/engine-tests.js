@@ -11590,6 +11590,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(buildHpZeroNudge()!=="")return "no cooldown — fires every turn";
     worldState.turn=28;
     if(buildHpZeroNudge()==="")return "did not re-fire after the cooldown while still at zero";
+    /* Combat probe at LONG-STANDING zero — dur 14 ≥ threshold and the cooldown has elapsed, so
+       the combat clause is the ONLY thing keeping the note silent here. The original probe above
+       (fresh stamp, dur=0) is shadowed by the persistence threshold: the 2026-08-20 sabotage
+       re-run proved deleting the combat check passed this test unchanged (a hollow clause). */
+    worldState.turn=34;
+    worldState.combat={round:2,engaged:null,foes:[{name:"X",hp:5,maxHp:5,ac:10,atk:1,dmg:"1d4",morale:"steady"}]};
+    if(buildHpZeroNudge()!=="")return "fired during combat at long-standing zero — the combat-silence clause is gone";
+    worldState.combat=null;
+    if(buildHpZeroNudge()==="")return "silent after combat ended at long-standing zero — the pending ask was lost";
     c.hp=5;
     if(buildHpZeroNudge()!=="")return "fired at positive HP";
     if(worldState.hpZero)return "record not cleared on healing — the next zero would inherit a stale since stamp";
