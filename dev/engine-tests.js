@@ -3858,6 +3858,52 @@ function runEngineTests(R){
     return NOTE_LATCH_FIELDS.indexOf("dupItemPending")>=0?true:"pending record not latch-protected";
   });
 
+  // ── #190ⓓⓔ the Caul loop's terminal teeth ──────────────────────────────────────────────────
+  section("#190 shelved-dispute re-arm cap + summary strike deferral");
+  t("#190ⓓ: an IDENTICAL retry never re-arms a shelved dispute",function(){
+    makeWorld();worldState.turn=60;
+    worldState.identityConflicts=[{subject:"Caul",handle:"-",reason:"summary death lacks matching scene-handle evidence",lastReason:"summary death lacks matching scene-handle evidence",turn:40,lastTurn:55,attempts:5,resolved:false,stale:true}];
+    _w2Conflict("Caul","-","summary death lacks matching scene-handle evidence");
+    var c=worldState.identityConflicts[0];
+    return c.stale===true?true:"identical retry re-armed the shelf (the forever-loop)";
+  });
+  t("#190ⓓ: a genuinely NEW presentation (different reason) re-arms, once, and the cap is final",function(){
+    makeWorld();worldState.turn=60;
+    worldState.identityConflicts=[{subject:"Caul",handle:"-",reason:"summary death lacks matching scene-handle evidence",lastReason:"summary death lacks matching scene-handle evidence",turn:40,lastTurn:55,attempts:5,resolved:false,stale:true}];
+    _w2Conflict("Caul","-","named death has no prior positive scene binding");
+    var c=worldState.identityConflicts[0];
+    if(c.stale)return "a different refusal reason failed to re-arm";
+    if(c.rearms!==1)return "re-arm not counted ("+c.rearms+")";
+    c.stale=true;c.attempts=5;c.rearms=IDENTITY_CONFLICT_REARM_CAP;
+    _w2Conflict("Caul","-","yet another distinct reason");
+    return worldState.identityConflicts[0].stale===true?true:"the re-arm cap did not hold — shelving never terminates";
+  });
+  t("#190ⓔ: a summary death citing a subject with an OPEN tag-lane conflict throws DEFERRED",function(){
+    makeWorld();worldState.turn=60;
+    worldState.sceneRefs={active:{scene:1,node:"X",startTurn:50,actors:[],negatives:[]},sealed:[]};
+    worldState.npcs.push({name:"Caul",status:"prisoner",rel:"hostile",met:1});
+    worldState.identityConflicts=[{subject:"Caul",handle:"-",reason:"named death has no prior positive scene binding",lastReason:"named death has no prior positive scene binding",turn:40,lastTurn:58,attempts:2,resolved:false}];
+    try{w2ValidateSummary({npcDeaths:[{name:"Caul",handle:"prisoner",sourceTurn:55}]});return "validation unexpectedly passed";}
+    catch(e){if(!e.w2Identity)return "wrong error class";return e.w2Defer===true?true:"open tag-lane conflict did not defer the strike (the lane race)";}
+  });
+  t("#190ⓔ: without a pre-existing conflict the same failure STRIKES (pin — deferral is not a loophole)",function(){
+    makeWorld();worldState.turn=60;
+    worldState.sceneRefs={active:{scene:1,node:"X",startTurn:50,actors:[],negatives:[]},sealed:[]};
+    worldState.npcs.push({name:"Caul",status:"prisoner",rel:"hostile",met:1});
+    try{w2ValidateSummary({npcDeaths:[{name:"Caul",handle:"prisoner",sourceTurn:55}]});return "validation unexpectedly passed";}
+    catch(e){return e.w2Defer?"deferred with no open conflict — every failure would defer forever":true;}
+  });
+  t("#190ⓔ: summaryFailureBump does not count a deferred failure; a plain one still counts (pin)",function(){
+    makeWorld();worldState.turn=60;
+    delete worldState.summaryFailure;
+    var e1=new Error("x");e1.w2Identity=true;e1.w2Defer=true;e1.subject="Caul";
+    var n1=summaryFailureBump(e1);
+    if(n1!==0||worldState.summaryFailure)return "deferred failure advanced the strike count ("+n1+")";
+    var e2=new Error("y");e2.w2Identity=true;e2.subject="Caul";
+    var n2=summaryFailureBump(e2);
+    return n2===1?true:"plain identity failure no longer strikes ("+n2+")";
+  });
+
   // ── #207① the hour shapes the world (the 2:36 AM bathhouse) ────────────────────────────────
   section("#207 hour-shapes-the-world rule");
   t("#207①: the DEFAULT_RULES carry the hour rule, colored-not-gated",function(){

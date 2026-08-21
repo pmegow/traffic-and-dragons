@@ -1156,7 +1156,17 @@ function _w2ArmDeathValve(name,regrant){
 }
 function _w2Conflict(subject,handle,reason){
   if(!worldState)return null;if(!worldState.identityConflicts)worldState.identityConflicts=[];var s=String(subject||"unknown"),h=String(handle||"-"),i,c;
-  for(i=0;i<worldState.identityConflicts.length;i++){c=worldState.identityConflicts[i];if(!c.resolved&&c.subject===s&&w2HandleKey(c.handle)===w2HandleKey(h)){c.lastTurn=worldState.turn;c.lastReason=reason||c.lastReason;/* #171③: c.reason keeps the FIRST, actionable cause — retries must not overwrite it with the circular id-reuse line. #201: spelling-drifted handles land on ONE record */if(c.stale){c.stale=false;c.attempts=0;/* #175: a fresh quarantine re-arms a shelved dispute */}return c;}}
+  for(i=0;i<worldState.identityConflicts.length;i++){c=worldState.identityConflicts[i];if(!c.resolved&&c.subject===s&&w2HandleKey(c.handle)===w2HandleKey(h)){var _priorReason=c.lastReason||c.reason||"";c.lastTurn=worldState.turn;c.lastReason=reason||c.lastReason;/* #171③: c.reason keeps the FIRST, actionable cause — retries must not overwrite it with the circular id-reuse line. #201: spelling-drifted handles land on ONE record */
+    if(c.stale){/* #190ⓓ (the Caul forever-loop): #175's unconditional re-arm made shelving non-terminal —
+       the GM's identical retry was indistinguishable from a new incident, so 5 more deliveries and
+       another shelve toast, forever. Re-arm ONLY a genuinely new presentation (different refusal
+       reason), at most IDENTITY_CONFLICT_REARM_CAP times; past either bar the shelf is FINAL —
+       the #17 standing-anomalies panel keeps the dispute visible, and the built-in escapes
+       (canon-dead short-circuit, the SCENE_REF two-step, [NPC_DEATH_REPORTED:]) all remain open. */
+      var _newPresentation=(reason||"")!==_priorReason&&(reason||"")!==(c.reason||"");
+      if(_newPresentation&&(c.rearms||0)<IDENTITY_CONFLICT_REARM_CAP){c.stale=false;c.attempts=0;c.rearms=(c.rearms||0)+1;}
+      else if(typeof console!=="undefined")console.warn("[identity] shelved dispute for "+s+" NOT re-armed ("+(_newPresentation?"re-arm cap reached":"identical retry")+") — shelf stands until the dispute actually resolves (#190d)");
+    }return c;}}
   if(worldState.identityConflicts.filter(function(x){return !x.stale;}).length>=IDENTITY_CONFLICT_CAP){worldState.identityConflictOverflow={turn:worldState.turn,subject:s};if(typeof console!=="undefined")console.warn("[identity] conflict cap reached - existing conflicts preserved; new conflict remains fail-closed");return null;}
   /* #200: toast fatigue — surfacing scales with model stubbornness, not information. The FIRST
      conflict for a subject toasts; further records for the SAME subject (fresh handles, retries)
@@ -1454,7 +1464,20 @@ function w2ValidateSummary(extracted){
   var legacyTrusted=!worldState.sceneRefs;sceneRefsEnsure();var ds=Array.isArray(extracted.npcDeaths)?extracted.npcDeaths:[],valid={},i,reason="",subject="",handle="-";
   for(i=0;i<ds.length;i++){var d=ds[i],name=(d&&typeof d==="object")?String(d.name||""):String(d||""),ws=name&&typeof wsNpcByName==="function"?wsNpcByName(resolveNpcName(name)):null,mem=name&&memory.npcs&&memory.npcs[resolveNpcName(name)];if(!name)continue;name=resolveNpcName(name);subject=name;handle=(d&&typeof d==="object")?String(d.handle||""):"-";if((ws&&ws.dead)||(mem&&mem.dead)){valid[name]=true;continue;}if((!d||typeof d!=="object")&&!legacyTrusted)reason="uncited legacy npcDeaths entry cannot mint a new corpse";else if(!d||typeof d!=="object")valid[name]=true;else if(d.sourceTurn==null||!isFinite(Number(d.sourceTurn)))reason="summary death lacks a source turn";else if(!handle||!w2DeathAuthorized(name,handle,Number(d.sourceTurn)))reason="summary death lacks matching scene-handle evidence";else if(d.canonTxnId&&typeof _w2TxnFind==="function"&&(function(){var _ctr=_w2TxnFind(String(d.canonTxnId));if(_ctr&&_ctr.status==="quarantined")return true;if(!_ctr&&typeof console!=="undefined")console.warn("[identity] summary death cites unknown transaction id "+d.canonTxnId+" - ignored, handle evidence governs (#168R6b)");return false;})())reason="summary death cites a quarantined transaction";else valid[name]=true;if(reason)break;}
   if(!reason&&extracted.chapterSummary){var names=Object.keys(memory.npcs||{}),j;for(j=0;j<names.length;j++){var cn=resolveNpcName(names[j]),cw=typeof wsNpcByName==="function"?wsNpcByName(cn):null;if((cw&&cw.dead)||memory.npcs[cn].dead||valid[cn])continue;if(_w2ChapterDeath(cn,extracted.chapterSummary)){subject=cn;reason="death-like chapter claim has no cited npcDeaths evidence";break;}}}
-  if(reason){_w2Conflict(subject,handle,reason);var e=new Error("W2 referential integrity: "+subject+" - "+reason);e.w2Identity=true;e.subject=subject;e.handle=handle;throw e;}return true;
+  if(reason){
+    /* #190ⓔ (the lane race): the extractor truthfully reports prose the GAMEPLAY lane has not yet
+       healed — summarize retries every action while the corrective nudge reaches the GM only every
+       ≥3 turns, so the summary lane reliably struck out (3 → window quarantined, no extraction
+       filed) before the tag lane could act. A failure whose subject ALREADY has an open, non-stale
+       tag-lane conflict is unresolvable by the extractor and must DEFER (skip the strike), not
+       STRIKE. Checked BEFORE the mint below (the mint itself would create the record). Once the
+       tag-lane conflict resolves or shelves stale, deferral ends and the 3-strike quarantine
+       remains the terminal escape — deferral delays the clock, never disables it. */
+    var _preOpen=false,_po;var _pq=worldState.identityConflicts||[];
+    for(_po=0;_po<_pq.length;_po++)if(!_pq[_po].resolved&&!_pq[_po].stale&&_pq[_po].subject===subject){_preOpen=true;break;}
+    _w2Conflict(subject,handle,reason);var e=new Error("W2 referential integrity: "+subject+" - "+reason);e.w2Identity=true;e.subject=subject;e.handle=handle;
+    if(_preOpen){e.w2Defer=true;if(typeof console!=="undefined")console.warn("[identity] summary validation failure for "+subject+" DEFERRED — an open tag-lane conflict owns this dispute; no strike counted (#190e)");}
+    throw e;}return true;
 }
 function buildSceneRefBlock(){
   var s=sceneRefsEnsure(),f=s.active,lines=[],i;if(!f.actors.length&&!f.negatives.length&&!s.sealed.length&&!s.overflow)return"";

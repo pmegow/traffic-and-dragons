@@ -1677,6 +1677,10 @@ function buildExtractPrompt(chapterDesc,pend,sessRaw,sessStripped,identityTable)
 var _sumFails=0; // runtime mirror of worldState.summaryFailure.count; persisted state is authoritative across reloads
 function summaryFailureBump(e){
   var old=worldState&&worldState.summaryFailure,prior=old&&typeof old.count==="number"?old.count:0,isIdentity=!!(e&&(e.summaryIdentity||e.w2Identity)),msg="unknown";try{msg=(e&&e.message!=null)?String(e.message):String(e);}catch(_sfb){}
+  /* #190ⓔ: a DEFERRED identity failure (subject owned by an open tag-lane conflict) never advances
+     the strike count — the log is kept and summarize retries naturally; the #17 panel already
+     shows the owning conflict. Strikes resume the moment the conflict resolves or shelves stale. */
+  if(e&&e.w2Defer){if(typeof console!=="undefined")console.warn("[memory] summary failure deferred, strike count stays "+prior+" of 3 (#190e)");return prior;}
   if(!worldState)return Math.min(3,prior+1);
   worldState.summaryFailure={count:Math.min(3,prior+1),firstTurn:old&&old.firstTurn!=null?old.firstTurn:worldState.turn,lastTurn:worldState.turn,kind:isIdentity?"identity-validation":"extraction",reason:msg.slice(0,400),subject:e&&e.subject?String(e.subject).slice(0,120):"",identityValidation:!!(isIdentity||(old&&old.identityValidation))};
   return worldState.summaryFailure.count;

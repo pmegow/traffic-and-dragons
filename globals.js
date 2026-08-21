@@ -6,6 +6,7 @@ var CANON_TXN_CAP=24;           // #168 W2: bounded idempotency/quarantine recei
 var CANON_TXN_RETIRE_TURNS=12;  // #168R3: committed receipts older than this retire on structured-summary success (quarantined receipts NEVER retire — poisoning is a contract); without retirement the cap permanently killed envelopes at receipt 24.
 var IDENTITY_CONFLICT_CAP=8;    // #168 W2: unresolved referential conflicts surfaced back to the GM.
 var IDENTITY_CONFLICT_STALE_ATTEMPTS=5;
+var IDENTITY_CONFLICT_REARM_CAP=2;/* #190ⓓ: a shelved dispute re-arms at most this many times, and only on a NEW refusal reason — an identical retry is the loop itself */
 var PRESENCE_OBSERVED_CAP=16;   // #194: derived actors per scene frame (frame.observed[]). EVICTABLE — engine-derived and re-derivable from the tag stream, so LRU eviction is safe and it must NEVER arm the W2 overflow latch (auto-derivation in a busy tavern would otherwise freeze every irreversible identity write).
 var SPEECH_EVIDENCE_TURNS=60;   // #194: how far back the death gate's speech limb reads transcript speaker maps (entry.sp), relative to the claim turn. Tuned on the live t1903 save: 60 reproduces the panel's witnessed census exactly (37 → 9 = party + Caul + the four characters actually in scene); the mention channel it replaces authorized ~1,000-turn-stale NPCs.
 var DEATH_EVIDENCE_NOTES=2;     // #194 L3: fork-note deliveries per refused-death subject before the valve hands the dispute back to the standing conflict machinery (which shelves at IDENTITY_CONFLICT_STALE_ATTEMPTS).
@@ -257,7 +258,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.683";
+var APP_VERSION="v1.684";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
