@@ -739,14 +739,20 @@ function sceneRefsEvidence(){var s=sceneRefsEnsure();return {actors:s.active.act
 function sceneRefsSummarySuccess(){var s=sceneRefsEnsure();if(!s)return;if(s.sealed.length)s.sealed=[];s.active.acknowledged=true;if(s.overflow&&s.overflow.scene!==s.active.scene)s.overflow=null;}
 function sceneRefsSummaryFailure(){/* Typed evidence survives every retry and degraded fallback. */}
 function _sceneRefFrames(){var s=worldState&&worldState.sceneRefs;if(!s)return[];var fs=[s.active].concat((s.sealed||[]).slice().reverse());if(s.overflow&&s.overflow.frame&&fs.indexOf(s.overflow.frame)<0)fs.push(s.overflow.frame);if(s.overflow&&s.overflow.frames)for(var _ofi=0;_ofi<s.overflow.frames.length;_ofi++)if(fs.indexOf(s.overflow.frames[_ofi])<0)fs.push(s.overflow.frames[_ofi]);/* #168R9: buffered frames stay readable evidence */return fs;}
+/* #201 (v1.669): THE handle canonicalizer — the t2032 Third Watcher deadlock was a one-character
+   spelling drift ("bronze_masked_runner" cited against the registered "bronze-masked runner"):
+   four envelopes refused, the reveal dead, the quest locked, though every substantive requirement
+   was met. A handle's separators and case are RENDERING, never identity — every comparison goes
+   through this key; stored handles keep their as-emitted display form. */
+function w2HandleKey(h){return String(h||"").toLowerCase().replace(/[-_\s]+/g," ").trim();}
 function _sceneRefActor(handle,sourceTurn){
-  var fs=_sceneRefFrames(),i,j,h=String(handle||"").toLowerCase();
-  for(i=0;i<fs.length;i++){var a=(fs[i]&&fs[i].actors)||[];for(j=0;j<a.length;j++)if(String(a[j].handle).toLowerCase()===h&&(sourceTurn==null||a[j].sourceTurn===sourceTurn))return {actor:a[j],frame:fs[i]};}
+  var fs=_sceneRefFrames(),i,j,h=w2HandleKey(handle);
+  for(i=0;i<fs.length;i++){var a=(fs[i]&&fs[i].actors)||[];for(j=0;j<a.length;j++)if(w2HandleKey(a[j].handle)===h&&(sourceTurn==null||a[j].sourceTurn===sourceTurn))return {actor:a[j],frame:fs[i]};}
   return null;
 }
 function _sceneRefExplicitNegative(frame,handle,entity){
-  var ns=(frame&&frame.negatives)||[],h=String(handle||"").toLowerCase(),e=String(entity||"").toLowerCase(),i;
-  for(i=0;i<ns.length;i++)if(!ns[i].resolved&&ns[i].mode==="explicit"&&String(ns[i].handle).toLowerCase()===h&&String(ns[i].entity).toLowerCase()===e)return ns[i];
+  var ns=(frame&&frame.negatives)||[],h=w2HandleKey(handle),e=String(entity||"").toLowerCase(),i;
+  for(i=0;i<ns.length;i++)if(!ns[i].resolved&&ns[i].mode==="explicit"&&w2HandleKey(ns[i].handle)===h&&String(ns[i].entity).toLowerCase()===e)return ns[i];
   return null;
 }
 function _sceneRefOverflow(kind){var s=sceneRefsEnsure();if(!s.overflow)s.overflow={kind:kind,turn:worldState.turn,node:s.active.node,scene:s.active.scene};if(typeof console!=="undefined")console.warn("[identity] scene evidence overflow ("+kind+") - accepted evidence preserved; irreversible identity writes fail closed");}
@@ -872,7 +878,7 @@ function sceneRefBind(handle,entity,R){
 function sceneRefExclude(handle,entity,mode,R){
   var s=sceneRefsEnsure(),h=String(handle||"").trim(),canon=resolveNpcName(String(entity||"").trim()),m=String(mode||"").toLowerCase()==="inference"?"inference":"explicit",i;if(!h||!canon||s.overflow)return false;
   var found=_sceneRefActor(h);if(!found||found.frame!==s.active)sceneRefBind(h,"?",R);
-  for(i=0;i<s.active.negatives.length;i++)if(s.active.negatives[i].handle===h&&s.active.negatives[i].entity===canon&&s.active.negatives[i].mode===m)return true;
+  for(i=0;i<s.active.negatives.length;i++)if(w2HandleKey(s.active.negatives[i].handle)===w2HandleKey(h)&&s.active.negatives[i].entity===canon&&s.active.negatives[i].mode===m)return true;/* #201: spelling-drifted duplicates collapse */
   if(s.active.negatives.length>=SCENE_REF_NEGATIVE_CAP){_sceneRefOverflow("negatives");return false;}
   s.active.negatives.push({handle:h,entity:canon,mode:m,sourceTurn:worldState.turn,resolved:false});if(R)R.muts.push("Scene ref: "+h+" "+(m==="explicit"?"is not ":"may not be ")+canon);return true;
 }
@@ -881,10 +887,16 @@ function sceneRefReveal(handle,entity,R){
   if(!hit||hit.frame!==s.active||!canon){/* #175bR: keyed on (subject,"-") so a GM inventing a fresh
        handle each retry re-arms the ONE standing record instead of minting a new one per attempt —
        the t1903 factory measured 9 records and a cap overflow from a single refused death. */
-    _w2Conflict(canon||"unknown","-","reveal names no active observed handle (attempted: "+String(handle||"")+")");return false;}
+    _w2Conflict(canon||"unknown","-","reveal names no active observed handle (attempted: "+String(handle||"")+")");
+    /* #201: a FAILED reveal is new information — the taught ceremony provably cannot work here, so
+       the fork note (the two reachable exits) earns ONE more delivery even if its cap was spent.
+       Bounded: each re-grant requires an actual failed reveal, and the conflict stale-shelf still
+       caps the whole dispute at IDENTITY_CONFLICT_STALE_ATTEMPTS. */
+    if(canon)_w2ArmDeathValve(canon,true);
+    return false;}
   if(hit.actor.entity&&hit.actor.entity!==canon){_w2Conflict(canon,handle,"reveal conflicts with established binding to "+hit.actor.entity);return false;}
   hit.actor.entity=canon;hit.actor.revealed=true;hit.actor.revealTurn=worldState.turn;
-  for(i=0;i<s.active.negatives.length;i++)if(s.active.negatives[i].handle===hit.actor.handle&&s.active.negatives[i].entity===canon)s.active.negatives[i].resolved=true;
+  for(i=0;i<s.active.negatives.length;i++)if(w2HandleKey(s.active.negatives[i].handle)===w2HandleKey(hit.actor.handle)&&s.active.negatives[i].entity===canon)s.active.negatives[i].resolved=true;/* #201 */
   _w2ResolveConflicts(canon,hit.actor.handle);if(R)R.muts.push("Scene reveal: "+hit.actor.handle+" -> "+canon);return true;
 }
 function _w2StampDead(name,turn,R){
@@ -1007,13 +1019,21 @@ function w2NamedPresenceEvidence(name,sourceTurn){
    genuine referential conflict and must keep refusing. */
 function _w2HandleNamesSubject(handle,subject){
   var h=String(handle||"").trim();if(!h||h==="-")return null;
+  var canon=_whnsResolve(h);
+  /* #201: separator drift on the SELF-NAMING path — "Golvak_Stonegall" must name Golvak
+     Stonegall. Case is preserved (resolveNpcName's own contract); only separators normalize. */
+  if(!canon){var h2=h.replace(/[-_]+/g," ").replace(/\s+/g," ").trim();if(h2!==h)canon=_whnsResolve(h2);if(canon)h=h2;}
+  if(!canon)return null;
+  if(subject&&canon!==subject)return null;
+  return canon;
+}
+function _whnsResolve(h){
   var canon=resolveNpcName(h);
   /* #175bR: a name that lives only in worldState.npcs (no memory row) is still a rostered
      character — without the wsNpcByName clause here the both-stores check below was dead code and
      the handle path refused the very NPC the bare-name path authorized. */
   if(!canon||canon===h&&!(memory&&memory.npcs&&memory.npcs[h])&&!((typeof wsNpcByName==="function")&&wsNpcByName(h)))return null;/* resolved to nothing on the roster */
   if(!(memory&&memory.npcs&&memory.npcs[canon])&&!((typeof wsNpcByName==="function")&&wsNpcByName(canon)))return null;
-  if(subject&&canon!==subject)return null;
   return canon;
 }
 function _w2NodeGuestbookTurn(node,canon,lim){
@@ -1037,19 +1057,26 @@ function _w2NodeGuestbookTurn(node,canon,lim){
    the record ([SAY:]/[SCENE_CAST:]) and re-emit; if the death happened elsewhere, emit
    [NPC_DEATH_REPORTED:]". Capped per subject at DEATH_EVIDENCE_NOTES deliveries, after which the
    standing conflict machinery (nudge → stale shelf) owns the dispute as before. */
-function _w2ArmDeathValve(name){
+function _w2ArmDeathValve(name,regrant){
   if(!worldState||!name)return;
   var rec=worldState.deathEvidenceNudged&&worldState.deathEvidenceNudged[name];
-  if(rec&&rec.count>=DEATH_EVIDENCE_NOTES)return;
+  if(rec&&rec.count>=DEATH_EVIDENCE_NOTES){
+    if(!regrant)return;
+    rec.count=DEATH_EVIDENCE_NOTES-1;/* #201: a failed reveal re-grants exactly ONE delivery */
+  }
   worldState.deathEvidencePing={name:name,turn:worldState.turn};
 }
 function _w2Conflict(subject,handle,reason){
   if(!worldState)return null;if(!worldState.identityConflicts)worldState.identityConflicts=[];var s=String(subject||"unknown"),h=String(handle||"-"),i,c;
-  for(i=0;i<worldState.identityConflicts.length;i++){c=worldState.identityConflicts[i];if(!c.resolved&&c.subject===s&&c.handle===h){c.lastTurn=worldState.turn;c.lastReason=reason||c.lastReason;/* #171③: c.reason keeps the FIRST, actionable cause — retries must not overwrite it with the circular id-reuse line */if(c.stale){c.stale=false;c.attempts=0;/* #175: a fresh quarantine re-arms a shelved dispute */}return c;}}
+  for(i=0;i<worldState.identityConflicts.length;i++){c=worldState.identityConflicts[i];if(!c.resolved&&c.subject===s&&w2HandleKey(c.handle)===w2HandleKey(h)){c.lastTurn=worldState.turn;c.lastReason=reason||c.lastReason;/* #171③: c.reason keeps the FIRST, actionable cause — retries must not overwrite it with the circular id-reuse line. #201: spelling-drifted handles land on ONE record */if(c.stale){c.stale=false;c.attempts=0;/* #175: a fresh quarantine re-arms a shelved dispute */}return c;}}
   if(worldState.identityConflicts.filter(function(x){return !x.stale;}).length>=IDENTITY_CONFLICT_CAP){worldState.identityConflictOverflow={turn:worldState.turn,subject:s};if(typeof console!=="undefined")console.warn("[identity] conflict cap reached - existing conflicts preserved; new conflict remains fail-closed");return null;}
-  c={subject:s,handle:h,reason:reason||"identity evidence missing",turn:worldState.turn,lastTurn:worldState.turn,attempts:0,resolved:false};worldState.identityConflicts.push(c);if(typeof console!=="undefined")console.warn("[identity] irreversible write QUARANTINED for "+s+" (handle "+h+"): "+c.reason);if(typeof showToast==="function")showToast("Identity conflict: "+s+" was not changed");return c;
+  /* #200: toast fatigue — surfacing scales with model stubbornness, not information. The FIRST
+     conflict for a subject toasts; further records for the SAME subject (fresh handles, retries)
+     go console-only. The #17 standing-anomalies panel remains the durable surface. */
+  var _seen=false;for(i=0;i<worldState.identityConflicts.length;i++)if(worldState.identityConflicts[i].subject===s){_seen=true;break;}
+  c={subject:s,handle:h,reason:reason||"identity evidence missing",turn:worldState.turn,lastTurn:worldState.turn,attempts:0,resolved:false};worldState.identityConflicts.push(c);if(typeof console!=="undefined")console.warn("[identity] irreversible write QUARANTINED for "+s+" (handle "+h+"): "+c.reason);if(!_seen&&typeof showToast==="function")showToast("Identity conflict: "+s+" was not changed");return c;
 }
-function _w2ResolveConflicts(subject,handle){var q=worldState&&worldState.identityConflicts,i;if(!q)return;for(i=0;i<q.length;i++)if(q[i].subject===subject&&(!handle||q[i].handle===handle))q[i].resolved=true;worldState.identityConflicts=q.filter(function(c){return !c.resolved;});if(!worldState.identityConflicts.length)delete worldState.identityConflicts;}
+function _w2ResolveConflicts(subject,handle){var q=worldState&&worldState.identityConflicts,i;if(!q)return;for(i=0;i<q.length;i++)if(q[i].subject===subject&&(!handle||w2HandleKey(q[i].handle)===w2HandleKey(handle)))q[i].resolved=true;/* #201: a reveal under either spelling clears the record */worldState.identityConflicts=q.filter(function(c){return !c.resolved;});if(!worldState.identityConflicts.length)delete worldState.identityConflicts;}
 /* (#175: w2TextTouchesConflict — the substring-over-whole-response conflict scan — is DELETED.
    Its two call sites were the permanent name-keyed blackout: it refused new envelopes whose body
    named a conflicted subject (making the nudge's own re-emit advice unfollowable) and stripped
@@ -1065,7 +1092,7 @@ function _w2OpFingerprint(tag){
   var name=_w2TagName(tag),m,p;
   if(name==="XP"){m=tag.match(/^\[XP:\s*\+?(\d+)/);if(m)return"XP:"+parseInt(m[1],10);}
   if(name==="GOLD"){m=tag.match(/^\[GOLD:\s*([+-]?\d+)/);if(m)return"GOLD:"+parseInt(m[1],10);}
-  if(name==="SCENE_DEATH"){m=tag.match(/^\[SCENE_DEATH:([^\]]+)/);if(m)return"SCENE_DEATH:"+_w2Compact(m[1]);}
+  if(name==="SCENE_DEATH"){m=tag.match(/^\[SCENE_DEATH:([^\]]+)/);if(m)return"SCENE_DEATH:"+_w2Compact(w2HandleKey(m[1]));}/* #201: a respelled replay is the SAME operation */
   if(name==="NPC"){m=tag.match(/^\[NPC:([^|\]]+)\|([^|\]]*)(?:\|([^|\]]*))?/);if(m)return"NPC:"+_w2Compact(resolveNpcName(m[1].trim()))+"|"+_w2Compact(m[2])+"|"+_w2Compact(m[3]);}
   if(name==="QUEST_STEP"){m=tag.match(/^\[QUEST_STEP:([^|\]]+)\|([^|\]]+)\|?([^\]]*)/);if(m)return"QUEST_STEP:"+_w2Compact(m[1])+"|"+_w2Compact(m[2])+"|"+(/^(true|done|1|yes|x)$/i.test(String(m[3]||"").trim())?"true":"false");}
   if(name==="QUEST"){m=tag.match(/^\[QUEST:([^|\]]+)\|([^|\]]*)(?:\|([^\]]*))?/);if(m)return"QUEST:"+_w2Compact(m[1])+"|"+_w2Compact(m[2])+"|"+_w2Compact(m[3]);}
@@ -1092,7 +1119,17 @@ function w2TxnSummaryRetire(){
   if(keep.length<worldState.canonTxns.length)worldState.canonTxns=keep;
   if(worldState.canonTxnOverflow&&worldState.canonTxns.length<CANON_TXN_CAP){delete worldState.canonTxnOverflow;if(typeof console!=="undefined")console.warn("[identity] canon receipt capacity recovered after structured summary (#168R3)");}
 }
-function w2TxnQuarantine(meta,reason,ops,tokens){if(meta.subject&&meta.subject!=="-")_w2Conflict(meta.subject,meta.evidence,reason);else if(typeof console!=="undefined")console.warn("[identity] canon transaction "+(meta.id||"?")+" QUARANTINED: "+reason);if(typeof showToast==="function")showToast("⚠ Canon claim "+(meta.id||"?")+" refused — its quest/reward tags were withheld ("+reason+")");/* #175: a refusal must be player-visible the moment it happens, not 40 turns later via broken fiction */return _w2TxnReceipt(meta,"quarantined",reason,ops,tokens);}
+function w2TxnQuarantine(meta,reason,ops,tokens){
+  /* #200: the FIRST refusal for a claim/subject is player-visible the moment it happens (#175);
+     a poisoned-id replay or the Nth fresh envelope for the SAME disputed subject is model
+     stubbornness, not information — those go console-only. The #17 panel stays the durable surface. */
+  var _priorRct=(typeof _w2TxnFind==="function")&&meta.id?_w2TxnFind(meta.id):null;
+  var _subjSeen=false,_qi,_qc=worldState&&worldState.identityConflicts||[];
+  if(meta.subject&&meta.subject!=="-")for(_qi=0;_qi<_qc.length;_qi++)if(_qc[_qi].subject===resolveNpcName(meta.subject)||_qc[_qi].subject===meta.subject){_subjSeen=true;break;}
+  if(meta.subject&&meta.subject!=="-")_w2Conflict(meta.subject,meta.evidence,reason);else if(typeof console!=="undefined")console.warn("[identity] canon transaction "+(meta.id||"?")+" QUARANTINED: "+reason);
+  if(_priorRct||_subjSeen){if(typeof console!=="undefined")console.warn("[identity] canon claim "+(meta.id||"?")+" refused again ("+reason+") — toast suppressed, repeat of a standing dispute (#200)");}
+  else if(typeof showToast==="function")showToast("⚠ Canon claim "+(meta.id||"?")+" refused — its quest/reward tags were withheld ("+reason+")");
+  return _w2TxnReceipt(meta,"quarantined",reason,ops,tokens);}
 function _w2Tags(text){return String(text||"").match(/\[[A-Z][A-Z_]{1,}:[^\]]+\]/g)||[];}
 function _w2TagName(tag){var m=tag.match(/^\[([A-Z][A-Z_]{1,}):/);return m?m[1]:"";}
 function _w2DeathStatusTag(tag){var m=tag.match(/^\[NPC:([^|\]]+)\|([^|\]]*)/);return m&&npcDeadStatus(m[2])?m:null;}
@@ -1126,7 +1163,7 @@ function _w2TxnPartition(meta,ops){
     name=_w2TagName(ops[i]);
     if(!allowed[name]){eject.push(ops[i]);continue;}
     if(name==="NPC"){m=_w2DeathStatusTag(ops[i]);if(!m){eject.push(ops[i]);continue;}if(resolveNpcName(m[1].trim())!==resolveNpcName(meta.subject))return{reason:"death operation names a different NPC than the transaction subject"};}
-    if(name==="SCENE_DEATH"){m=ops[i].match(/^\[SCENE_DEATH:([^\]]+)\]/);if(!m||m[1].trim()!==meta.evidence)return{reason:"death operation names a different scene handle"};}
+    if(name==="SCENE_DEATH"){m=ops[i].match(/^\[SCENE_DEATH:([^\]]+)\]/);if(!m||w2HandleKey(m[1])!==w2HandleKey(meta.evidence))return{reason:"death operation names a different scene handle"};}/* #201: separator/case drift is rendering, not identity */
     if(name==="QUEST"||name==="QUEST_STEP"){m=ops[i].match(name==="QUEST"?/^\[QUEST:([^|\]]+)/:/^\[QUEST_STEP:([^|\]]+)/);title=m?m[1].trim():"";if(meta.quest==="-"||_w2Compact(title)!==_w2Compact(meta.quest)){eject.push(ops[i]);continue;}}
     gov.push(ops[i]);
   }
@@ -1163,7 +1200,7 @@ function w2PrepareResponse(text){
     if(p.length!==5||!meta.id||m[3].trim()!==meta.id)reason="malformed or mismatched transaction envelope";else if(meta.claim!=="npc-death"&&meta.claim!=="quest-outcome")reason="unsupported canon claim type";else if(prior&&prior.status==="quarantined")reason="claim id was already quarantined";else if(prior&&!_w2TxnMetaSame(prior,meta))reason="claim id was reused with different metadata";
     var _part=null;
     if(!reason){_part=_w2TxnPartition(meta,ops);if(_part.reason)reason=_part.reason;else{ops=_part.gov;if(_part.eject.length){ordinary+="\n"+_part.eject.join("");meta.ejected=_part.eject.map(_w2TagName);if(typeof console!=="undefined")console.warn("[identity] "+_part.eject.length+" incidental tag(s) ejected from canon claim "+meta.id+" and applied as ordinary tags: "+meta.ejected.join(", ")+" (#175 — one stray tag must never void a death and its rewards)");}}}
-    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&deathHandle!==meta.evidence)reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence)){var _veOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);reason=_veOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"scene evidence does not bind the claimed victim";if(!_veOv&&meta.subject&&meta.subject!=="-")_w2ArmDeathValve(resolveNpcName(meta.subject));/* #194 L3: an evidence-lack refusal arms the fork note; a capacity refusal must not (its cure is a summary, not ceremony) */}else if(_w2EvidenceGrade==="legacy")meta.evidenceGrade="legacy";/* #194/ruling ③: legacy fail-open passes are receipt-stamped so a later reversal has its evidence */}
+    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&w2HandleKey(deathHandle)!==w2HandleKey(meta.evidence))reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence)){var _veOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);reason=_veOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"scene evidence does not bind the claimed victim";if(!_veOv&&meta.subject&&meta.subject!=="-")_w2ArmDeathValve(resolveNpcName(meta.subject));/* #194 L3: an evidence-lack refusal arms the fork note; a capacity refusal must not (its cure is a summary, not ceremony) */}else if(_w2EvidenceGrade==="legacy")meta.evidenceGrade="legacy";/* #194/ruling ③: legacy fail-open passes are receipt-stamped so a later reversal has its evidence */}
     if(!reason&&meta.claim==="quest-outcome"&&!_w2QuestExists(meta.quest))reason="quest outcome names no active accepted quest";
     if(!reason&&!prior&&meta.claim==="npc-death"&&meta.quest!=="-"&&!_w2QuestExists(meta.quest))reason="death outcome names no active accepted quest";
     /* #175: the "operation touches an unresolved identity conflict" refusal is DELETED. It blocked

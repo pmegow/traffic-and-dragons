@@ -44,7 +44,11 @@ rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],also:["g
    replace:"if(rec&&(t-rec.t<PRINCIPAL_NUDGE_COOLDOWN))continue;"},
   {label:"#199 builder dropped from the registry — the note can never reach a request",
     mustFail:"#199 registry + latch: buildPrincipalStageNudge rides NOTE_BUILDERS",
-   find:"buildArcStagingNudge,buildPrincipalStageNudge,",replace:"buildArcStagingNudge,"}
+   find:"buildArcStagingNudge,buildPrincipalStageNudge,",replace:"buildArcStagingNudge,"},
+  {label:"#201 nudge reachability check removed — the dead-handle reveal is taught again",
+    mustFail:"#201 the conflict nudge teaches only REACHABLE ceremonies",
+   find:"var liveHandle=handle&&typeof _sceneRefActor===\"function\"&&!!_sceneRefActor(c.handle);",
+   replace:"var liveHandle=true;"}
 ]});
 
 rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js"]],cases:[
@@ -57,6 +61,20 @@ rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js"]],cases
 ]});
 
 rc|=sabotage.prove({file:"identity.js",command:["node",["dev/run-tests.js"]],cases:[
+  {label:"#201 handle separator unification removed — the t2032 spelling deadlock returns",
+    mustFail:"#201 the t2032 shape: an underscore citation binds the hyphen-registered",
+   find:"function w2HandleKey(h){return String(h||\"\").toLowerCase().replace(/[-_\\s]+/g,\" \").trim();}",
+   replace:"function w2HandleKey(h){return String(h||\"\").toLowerCase().replace(/\\s+/g,\" \").trim();}"},
+  {label:"#201 conflict collapse removed — every respelled retry mints (and toasts) a fresh record",
+    mustFail:"#201 conflict records collapse across spellings",
+   find:"if(!c.resolved&&c.subject===s&&w2HandleKey(c.handle)===w2HandleKey(h))",
+   replace:"if(!c.resolved&&c.subject===s&&c.handle===h)"},
+  {label:"#200 quarantine toast dedupe removed — a poisoned-id replay re-toasts every attempt",
+    mustFail:"#201/#200 a poisoned-id replay quarantines again but does NOT re-toast",
+   find:"if(_priorRct||_subjSeen){",replace:"if(false){"},
+  {label:"#201 valve re-grant removed — a failed reveal leaves the fork note capped forever",
+    mustFail:"#201 a failed reveal re-grants ONE fork-note delivery",
+   find:"    if(!regrant)return;",replace:"    return;"},
   {label:"child match removed — LOCATION mints a world twin of a known sublocation",
     mustFail:"W5 world/sub-location twin is refused loudly without minting a node or",
    find:"if(locSame(k,target)||locDisplayLeaf(k).toLowerCase()===leaf)return {requested:raw,child:k,parent:current,leaf:locDisplayLeaf(k)};",

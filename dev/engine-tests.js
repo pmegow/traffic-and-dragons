@@ -11690,6 +11690,93 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return NOTE_LATCH_FIELDS.indexOf("principalNudged")>=0?true:"principalNudged not in NOTE_LATCH_FIELDS (#151)";
   });
 
+  // ── #201 — handle spelling is rendering, not identity (the t2032 Third Watcher deadlock) ────
+  section("#201 — handle normalization");
+  function golvakWorld(){
+    makeWorld();worldState.turn=100;delete worldState.sceneRefs;delete worldState.identityConflicts;delete worldState.canonTxns;delete worldState.deathEvidenceNudged;delete worldState.deathEvidencePing;
+    worldState.npcs.push({name:"Golvak Stonegall",status:"cornered",statusTurn:99,rel:"enemy",met:99,introduced:99,pronouns:"he/him"});
+    memory.npcs["Golvak Stonegall"]={attitude:"",knowledge:[],events:[]};
+    sceneRefsEnsure();
+    sceneRefBind("bronze-masked runner","Golvak Stonegall",null);
+  }
+  t("#201 the t2032 shape: an underscore citation binds the hyphen-registered handle — resolver, death gate, and full envelope all cross the drift",function(){
+    golvakWorld();
+    if(!_sceneRefActor("bronze_masked_runner"))return "underscore citation missed the hyphen registration";
+    if(!_sceneRefActor("Bronze-Masked  Runner"))return "case/double-separator drift missed";
+    worldState.turn=101;
+    if(!w2DeathAuthorized("Golvak Stonegall","bronze_masked_runner"))return "death gate refused the spelling-drifted handle — the t2032 deadlock lives";
+    worldState.turn=102;
+    applyMuts("[CANON_TXN_BEGIN:g-d-1|npc-death|Golvak Stonegall|bronze_masked_runner|-][SCENE_DEATH:bronze-masked runner][NPC:Golvak Stonegall|dead|enemy][XP:400][CANON_TXN_END:g-d-1]");
+    var n=wsNpcByName("Golvak Stonegall");
+    if(!npcIsDead(n))return "the cross-spelled envelope did not commit — victim still alive";
+    var rct=null,i;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="g-d-1")rct=worldState.canonTxns[i];
+    if(!rct||rct.status!=="committed")return "no committed receipt (intra-envelope handle compare still exact-string): "+JSON.stringify(rct);
+    return worldState.character.xp===400?true:"envelope rewards did not land";
+  });
+  t("#201 conflict records collapse across spellings, and (#200) only a subject's FIRST conflict toasts",function(){
+    makeWorld();delete worldState.identityConflicts;
+    var caught=[],_st=showToast;showToast=function(m){caught.push(String(m));};
+    try{
+      _w2Conflict("Xeno","some_handle","first reason");
+      _w2Conflict("Xeno","some-handle","retry reason");
+      var q=worldState.identityConflicts||[];
+      if(q.length!==1)return "spelling-drifted retries minted "+q.length+" records — the toast-per-record spam class";
+      if(q[0].reason!=="first reason")return "the first actionable cause was overwritten";
+      var t1=caught.length;
+      _w2Conflict("Xeno","totally fresh handle","third reason");
+      if((worldState.identityConflicts||[]).length!==2)return "a genuinely new handle should file a second record";
+      if(caught.length!==t1)return "a repeat-subject record toasted — #200 dedupe lost";
+      return t1===1?true:"expected exactly 1 toast for the first conflict, got "+t1;
+    }finally{showToast=_st;}
+  });
+  t("#201/#200 a poisoned-id replay quarantines again but does NOT re-toast",function(){
+    makeWorld();delete worldState.identityConflicts;delete worldState.canonTxns;
+    var caught=[],_st=showToast;showToast=function(m){caught.push(String(m));};
+    try{
+      w2TxnQuarantine({id:"px-1",claim:"npc-death",subject:"Yara",evidence:"h",quest:"-"},"scene evidence does not bind the claimed victim",[]);
+      var t1=caught.length;
+      w2TxnQuarantine({id:"px-1",claim:"npc-death",subject:"Yara",evidence:"h",quest:"-"},"scene evidence does not bind the claimed victim",[]);
+      w2TxnQuarantine({id:"px-2",claim:"npc-death",subject:"Yara",evidence:"h2",quest:"-"},"scene evidence does not bind the claimed victim",[]);
+      if(caught.length!==t1)return "replay/repeat-subject refusals re-toasted ("+caught.length+" vs "+t1+") — the Golvak spam class";
+      return t1>=1?true:"the FIRST refusal must stay player-visible (#175)";
+    }finally{showToast=_st;}
+  });
+  t("#201 the conflict nudge teaches only REACHABLE ceremonies: dead handle + witnessed name → own-name envelope; dead handle + no evidence → NPC_DEATH_REPORTED; live handle → the reveal",function(){
+    makeWorld();worldState.turn=200;delete worldState.sceneRefs;delete worldState.identityConflicts;
+    // subject with witnessed evidence: a living, introduced party member
+    worldState.npcs.push({name:"Serah Vane",status:"ally",statusTurn:150,rel:"companion",met:150,introduced:150,partyMember:true,charSheet:{name:"Serah Vane",hp:10,maxHp:10}});
+    memory.npcs["Serah Vane"]={attitude:"",knowledge:[],events:[]};
+    _w2Conflict("Serah Vane","ghost_handle","scene evidence does not bind the claimed victim");
+    var n=buildIdentityConflictNudge();
+    if(n.indexOf("SCENE_REVEAL")>=0)return "taught the reveal of a handle that resolves to nothing — the t2032 trap";
+    if(n.indexOf("OWN name")<0&&n.indexOf("BOTH the subject and the scene handle")<0)return "witnessed subject did not get the own-name road: "+n.slice(0,180);
+    // no-evidence subject → the reported valve
+    delete worldState.identityConflicts;
+    worldState.npcs.push({name:"Far Stranger",status:"",statusTurn:0,rel:"enemy",met:0,pronouns:"they/them"});
+    memory.npcs["Far Stranger"]={attitude:"",knowledge:[],events:[]};
+    _w2Conflict("Far Stranger","other_ghost","scene evidence does not bind the claimed victim");
+    worldState.turn=204;
+    var n2=buildIdentityConflictNudge();
+    if(n2.indexOf("NPC_DEATH_REPORTED")<0)return "evidence-less subject did not get the reported valve: "+n2.slice(0,180);
+    // live handle → the reveal stays the right ceremony
+    delete worldState.identityConflicts;sceneRefsEnsure();sceneRefBind("masked brute","?",null);
+    _w2Conflict("Far Stranger","masked brute","reveal conflicts with established binding");
+    worldState.turn=208;
+    var n3=buildIdentityConflictNudge();
+    return n3.indexOf("SCENE_REVEAL:masked brute")>=0?true:"a LIVE handle should still teach the reveal: "+n3.slice(0,180);
+  });
+  t("#201 a failed reveal re-grants ONE fork-note delivery past the cap",function(){
+    makeWorld();worldState.turn=300;delete worldState.sceneRefs;delete worldState.identityConflicts;sceneRefsEnsure();
+    worldState.npcs.push({name:"Korrik",status:"foe",statusTurn:290,rel:"enemy",met:290,introduced:290,pronouns:"he/him"});
+    memory.npcs["Korrik"]={attitude:"",knowledge:[],events:[]};
+    worldState.deathEvidenceNudged={"Korrik":{count:DEATH_EVIDENCE_NOTES,turn:290}};
+    delete worldState.deathEvidencePing;
+    if(sceneRefReveal("never_registered","Korrik",null))return "the reveal of an unregistered handle must fail";
+    if(!worldState.deathEvidencePing)return "failed reveal did not re-arm the fork note";
+    var note=buildDeathEvidenceNudge();
+    return note.indexOf("NPC_DEATH_REPORTED")>=0?true:"the re-granted fork note did not deliver: "+note.slice(0,120);
+  });
+
   // ── #142 — the reconciler's dawn-crossing skip-and-demand (the t1524 19-hour jump) ──────────
   section("#142 — clock reconcile cap");
   t("#142 the t1524 shape skips: dawn-crossing + >6h keeps the label, rolls nothing, arms the demand; same-day and small crossings still reconcile",function(){
