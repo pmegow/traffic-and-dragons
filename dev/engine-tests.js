@@ -3896,6 +3896,69 @@ function runEngineTests(R){
     return sl&&sl.location==="Sandpoint"&&sl.sublocation==="The Rusty Dragon"?true:"3-field form damaged: "+JSON.stringify(sl);
   });
 
+  // ── #192 engine consumption: custom classes + curated availability ──────────────────────────
+  section("#192 blueprint class roster — engine consumption");
+  function tinkFixture(){return {name:"Tinkerer",desc:"Gadgets and grit.",hd:8,prime:"INT",statPriority:["INT","DEX","CON","WIS","STR","CHA"],gear:"wrench, tool satchel",abilities:[{nm:"Jury-Rig",ds:"Improvise a device from scraps."}],features:[{lvl:2,nm:"Overclock",ds:"Push a device past its limits."},{lvl:5,nm:"Field Armory",ds:"Kit the whole party."}]};}
+  t("#192: a worldState custom class resolves through the classDef family in bible shape",function(){
+    makeWorld();
+    worldState.customClasses=[tinkFixture()];
+    var d=classDef("Tinkerer");
+    if(!d)return "custom class did not resolve";
+    if(d.hd!==8||d.prime!=="INT")return "chassis not carried: "+JSON.stringify({hd:d.hd,prime:d.prime});
+    if(!d.custom)return "custom def not marked custom";
+    var f=classFeaturesAt("Tinkerer",2);
+    if(!f.length||f[0].nm!=="Overclock")return "level rows not mapped: "+JSON.stringify(f);
+    if(archFeaturesAt("Tinkerer",null,3).length)return "phantom archetype rows";
+    return CLASS_BIBLE["Tinkerer"]===undefined?true:"the overlay leaked into the bible";
+  });
+  t("#192: the classDefs memo invalidates when the custom source changes",function(){
+    makeWorld();
+    worldState.customClasses=[tinkFixture()];
+    if(!classDef("Tinkerer"))return "did not resolve while live";
+    delete worldState.customClasses;
+    return classDef("Tinkerer")===null?true:"stale memo kept serving a removed custom class";
+  });
+  t("#192: pendingBlueprint customs resolve during creation, before worldState carries them",function(){
+    makeWorld();
+    delete worldState.customClasses;
+    pendingBlueprint={customClasses:[tinkFixture()]};
+    var hit=!!classDef("Tinkerer");
+    pendingBlueprint=null;
+    var gone=classDef("Tinkerer")===null;
+    return hit&&gone?true:(hit?"did not release after pendingBlueprint cleared":"pendingBlueprint customs invisible to the wizard");
+  });
+  t("#192: classAvailable honors the curated roster and is unrestricted when absent",function(){
+    makeWorld();
+    worldState.customClasses=[tinkFixture()];
+    worldState.availableClasses=["Warrior","Tinkerer"];
+    if(!classAvailable("Warrior"))return "listed base class refused";
+    if(classAvailable("Rogue"))return "unlisted class allowed";
+    if(!classAvailable("Tinkerer"))return "listed custom class refused";
+    delete worldState.availableClasses;
+    return classAvailable("Rogue")?true:"absence must mean no restriction";
+  });
+  t("#192: applyBlueprint persists customs + availability into worldState as copies",function(){
+    makeWorld();
+    var bp={customClasses:[tinkFixture()],availableClasses:["Warrior","Tinkerer"]};
+    applyBlueprint(bp);
+    if(!worldState.customClasses||worldState.customClasses[0].name!=="Tinkerer")return "customs not persisted";
+    if(!worldState.availableClasses||worldState.availableClasses.length!==2)return "availability not persisted";
+    bp.customClasses[0].name="Mutated";bp.availableClasses.push("Rogue");
+    return worldState.customClasses[0].name==="Tinkerer"&&worldState.availableClasses.length===2?true:"persisted by reference, not copy — a reused bp object would corrupt canon";
+  });
+  t("#192: a custom-class character levels through the standard curve and gains its named rows; L3 never opens the archetype modal",function(){
+    makeWorld();
+    worldState.customClasses=[tinkFixture()];
+    var c=worldState.character;c.cls="Tinkerer";c.level=1;c.xp=0;c.hp=10;c.maxHp=10;c.stats={STR:10,DEX:10,CON:10,INT:16,WIS:10,CHA:10};c.abilities=[];c.archetype=null;
+    var savedArch=showArchetypeModal,archCalled=false;showArchetypeModal=function(){archCalled=true;};
+    c.xp=classXpLevels()[3]!=null?classXpLevels()[3]:900;checkLevelUp();
+    showArchetypeModal=savedArch;
+    if(c.level<3)return "did not level to 3 (xp "+c.xp+", level "+c.level+")";
+    var has=function(nm){for(var i=0;i<c.abilities.length;i++)if(c.abilities[i].nm===nm)return true;return false;};
+    if(!has("Overclock"))return "the L2 custom row was not granted";
+    return archCalled?"the archetype modal opened for an archetype-less class (the soft-lock)":true;
+  });
+
   // ── #189ⓐ player-declared stay-behind observer (the t1827 "You two get some sleep" gap) ─────
   section("#189ⓐ player-input stay-behind");
   t("#189ⓐ: the exact t1827 input fires (nameless subgroup directive)",function(){

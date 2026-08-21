@@ -57,7 +57,7 @@ function closeLineagePopup(){var pop=document.getElementById("lineage-popup");if
 function hideAncDetail(){var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail"),fw=document.getElementById("flex-wrap");if(gw)gw.style.display="block";if(det)det.style.display="none";if(fw)fw.style.display="none";buildAncGrid();}
 function buildFlexPick(){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a||a.fc===0)return;var lim=a.fc,lbl=document.getElementById("flex-lbl");if(lbl)lbl.textContent="Choose "+lim+" stat"+(lim>1?"s":"")+" for +1 ("+cs.fp.length+"/"+lim+"):";var fg=document.getElementById("flex-grid");if(!fg)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],isSel=cs.fp.indexOf(s)>=0,isFull=!isSel&&cs.fp.length>=lim;h+='<div class="fp'+(isSel?" sel":"")+(isFull?" dis":"")+'" onclick="pickFlex(\''+s+'\')">'+s+'</div>';}fg.innerHTML=h;}
 function pickFlex(s){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a)return;var idx=cs.fp.indexOf(s);if(idx>=0)cs.fp.splice(idx,1);else if(cs.fp.length<a.fc)cs.fp.push(s);buildFlexPick();buildStatGrid();}
-function buildClsGrid(){var el=document.getElementById("cls-grid");if(!el)return;var h="",i,defs=classDefs();/* #72 C6 ① */for(i=0;i<defs.length;i++){var c=defs[i];h+='<div class="sc'+(cs.cls===c.id?" sel":"")+'" onclick="pickCls('+i+')"><div class="nm">'+c.id+'</div><div class="sb">'+c.desc+'</div><div class="sb">d'+c.hd+' HP &middot; '+c.prime+'</div></div>';}el.innerHTML=h;}
+function buildClsGrid(){var el=document.getElementById("cls-grid");if(!el)return;var h="",i,defs=classDefs();/* #72 C6 ① */var esc=typeof escHtml==="function"?escHtml:function(s){return s;};/* #192: custom class text is FILE-AUTHORED data — never raw into innerHTML (#22) */for(i=0;i<defs.length;i++){var c=defs[i];if(typeof classAvailable==="function"&&!classAvailable(c.id))continue;/* #192: the curated roster hides unlisted classes; onclick keeps the ORIGINAL classDefs index */h+='<div class="sc'+(cs.cls===c.id?" sel":"")+'" onclick="pickCls('+i+')"><div class="nm">'+esc(c.id)+'</div><div class="sb">'+esc(c.desc)+'</div><div class="sb">d'+c.hd+' HP &middot; '+esc(c.prime)+'</div></div>';}el.innerHTML=h;}
 function pickCls(idx){var def=classDefs()[idx];/* #72 C6 ① */cs.cls=def.id;
   // Re-map already-rolled stats onto the new class's STAT_PRIORITY (audit E57) — keeps the rolled
   // numbers (no re-roll fishing) but re-prioritizes them, so switching class after rolling can't
@@ -337,6 +337,16 @@ function confirmChar(){
 }
 function showCreationArchetype(){
   var c=pendingChar;if(!c)return;var archs=(classDef(c.cls)||{}).archetypes||[];/* C6 ② */
+  /* #192: an archetype-less custom class has no L3 milestone — skip straight to the bump/spell/
+     start continuation (the same chain pickCreationArch runs) instead of rendering an
+     un-closeable empty chooser. */
+  if(!archs.length){
+    var _naB=0,_naI;for(_naI=0;_naI<STAT_BUMP_LEVELS.length;_naI++){if(STAT_BUMP_LEVELS[_naI]<=c.level)_naB++;}
+    if(_naB>0){pendingBumps=_naB;currentBump=1;showCreationStatBump();}
+    else if(buildPendingSpellPool(c)){showCreationSpellPick();}
+    else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);}
+    return;
+  }
   document.getElementById("char-screen").style.display="none";
   var wrap=document.createElement("div");wrap.id="creation-arch";wrap.style.cssText="max-width:700px;margin:0 auto;padding:24px 20px;";
   var ch="",i;for(i=0;i<archs.length;i++){ch+="<div class='sc' id='arch-card-"+i+"' onclick='selectCreationArch("+i+")' style='text-align:left;padding:16px 18px;margin-bottom:10px;'><div class='nm' style='margin-bottom:6px;'>"+archs[i].nm+"</div><div style='font-size:12px;color:var(--t1);line-height:1.6;'>"+archs[i].desc+"</div></div>";}

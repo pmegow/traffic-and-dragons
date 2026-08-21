@@ -815,7 +815,7 @@ function checkLevelUp(){
   for(i=0;i<newFeatures.length;i++)addMsg("narrator","<p><em>"+newFeatures[i]+"</em></p>");
   if(newFeatures.length)updateAbPanel(true);
   _levelBumpsOwed+=bumpsOwed;
-  if(oldLvl<3&&newLvl>=3&&!c.archetype)showArchetypeModal(); // archetype first; pickArchetype then drains the bump queue
+  if(oldLvl<3&&newLvl>=3&&!c.archetype&&((classDef(c.cls)||{}).archetypes||[]).length)showArchetypeModal(); // archetype first; pickArchetype then drains the bump queue. #192: an archetype-less custom class skips the milestone — an empty wireClose:false modal would soft-lock the game
   else maybeShowLevelBump();
 }
 // Show the next owed stat-bump modal, if any. Called after the archetype pick and after each
@@ -2204,6 +2204,11 @@ function splitNpcStatBlock(text){
   return {bio:bio,stats:stats};
 }
 function applyBlueprint(bp){
+  /* #192: persist the class roster into worldState as COPIES (a reused bp object must never be
+     able to mutate canon later); the classDefs overlay + classAvailable read these from here on,
+     and both ride the sync blob like any worldState field. Absent = unrestricted / no customs. */
+  if(bp.customClasses&&bp.customClasses.length)worldState.customClasses=JSON.parse(JSON.stringify(bp.customClasses));
+  if(bp.availableClasses&&bp.availableClasses.length)worldState.availableClasses=bp.availableClasses.slice();
   // Skeleton — stamp act/arc status
   if(bp.acts&&bp.acts.length){
     var skel={premise:bp.premise||"",acts:bp.acts},i,j;

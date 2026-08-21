@@ -374,11 +374,50 @@ function getFin(){
 // — hd/prime/castStat/statPriority and XP 1-10 are pinned to the legacy values as
 // FROZEN LITERALS in the invariant test; new content applies only at the NEXT
 // level-up (Ammut at L10 sees the new world at L11 — no retroactive grants).
-var _classDefsArr=null;
+var _classDefsArr=null,_classDefsCustomSrc=null;
+/* #192: adapt a blueprint custom class (designer-validated shape) into the BIBLE class shape,
+   so every downstream reader — wizard grid, confirmChar chassis, checkLevelUp rows — consumes it
+   through the same accessors with zero per-shape branching. Ability-chassis only by design:
+   no archetypes, no spellTiers (the spell machinery's absence paths already handle non-casters). */
+function _customClassToDef(cc){
+  var levels={},i,f;
+  for(i=0;i<(cc.features||[]).length;i++){f=cc.features[i];
+    if(!levels[f.lvl])levels[f.lvl]={features:[]};
+    levels[f.lvl].features.push({nm:f.nm,ds:f.ds});}
+  return {id:cc.name,nm:cc.name,desc:cc.desc||"",hd:cc.hd,prime:cc.prime,
+    statPriority:(cc.statPriority||[]).slice(),gear:cc.gear||"",
+    abilities:(cc.abilities||[]).slice(),skillSeeds:(cc.skillSeeds||[]).slice(),
+    levels:levels,archetypes:[],custom:true};
+}
+/* The custom source: the ACTIVE campaign's persisted list first, the wizard-time pending
+   blueprint second (creation runs before applyBlueprint persists — the handoff is seamless
+   because startGame nulls pendingBlueprint only after persisting). */
+function _activeCustomClasses(){
+  if(typeof worldState!=="undefined"&&worldState&&worldState.customClasses&&worldState.customClasses.length)return worldState.customClasses;
+  if(typeof pendingBlueprint!=="undefined"&&pendingBlueprint&&pendingBlueprint.customClasses&&pendingBlueprint.customClasses.length)return pendingBlueprint.customClasses;
+  return null;
+}
 function classDefs(){
-  if(_classDefsArr)return _classDefsArr;
+  /* #192: the memo keys on the custom SOURCE REFERENCE — a campaign switch, blueprint load, or
+     removal changes it and rebuilds; the common no-customs path stays one identity check. */
+  var src=_activeCustomClasses();
+  if(_classDefsArr&&_classDefsCustomSrc===src)return _classDefsArr;
   _classDefsArr=[];var k;for(k in CLASS_BIBLE)_classDefsArr.push(CLASS_BIBLE[k]);
+  if(src){var ci;for(ci=0;ci<src.length;ci++)_classDefsArr.push(_customClassToDef(src[ci]));}
+  _classDefsCustomSrc=src;
   return _classDefsArr;
+}
+/* #192: the curated-availability gate — absent restriction = no restriction (the schema's own
+   rule: never expand to a full list). Matches id or display name, case-insensitive. */
+function classAvailable(idOrNm){
+  var av=(typeof worldState!=="undefined"&&worldState&&worldState.availableClasses)||
+         (typeof pendingBlueprint!=="undefined"&&pendingBlueprint&&pendingBlueprint.availableClasses)||null;
+  if(!av||!av.length)return true;
+  var n=String(idOrNm||"").toLowerCase(),i;
+  for(i=0;i<av.length;i++){if(String(av[i]).toLowerCase()===n)return true;}
+  var d=classDef(idOrNm);
+  if(d){for(i=0;i<av.length;i++){var a=String(av[i]).toLowerCase();if(a===String(d.id).toLowerCase()||a===String(d.nm).toLowerCase())return true;}}
+  return false;
 }
 function classDef(id){
   var L=classDefs(),i;
