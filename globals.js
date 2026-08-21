@@ -181,7 +181,7 @@ var PROVIDERS={
     endpoint:"https://api.openai.com/v1/chat/completions",
     defaultModel:"gpt-5.6-sol",
     upgradeModel:"gpt-5.6-sol",
-    models:["gpt-5.6-sol"], // pruned to the >=Sonnet-5 menu (owner ruling 2026-08-16): gpt-4o/4o-mini/4.1 removed — gpt-4o FAILED the sweep contract (15/50 zero-tag, frozen sheet); gpt-5.6-sol held it (round-2 arm 2)
+    models:["gpt-5.6-sol","gpt-5.6-luna"], // pruned to the >=Sonnet-5 menu (owner ruling 2026-08-16): gpt-4o/4o-mini/4.1 removed — gpt-4o FAILED the sweep contract (15/50 zero-tag, frozen sheet); gpt-5.6-sol held it (round-2 arm 2). LUNA LISTED by owner ruling 2026-08-20 — amends the ≥Sonnet-5-only bar and the v1667 re-run report's seat-unchanged conclusion: the budget tier at $0.20/$1.20 (25x under sol), measured UP across the board under the current engine (SWEEP_luna_rerun_v1667.html: 44 distinct tags vs 37, a third more prose, 375 XP/L2, five quests archived, first LEGAL death envelope, deepest budget-tier skeleton progression). Known blemish, documented not hidden: the false-death habit on collective NPCs persists — contained by the W2 gate (quarantines, zero canon damage, but re-attempt toasts). Also remains sol's #29b storm rung; luna selected simply has no rung below it.
     // OpenAI carries the system prompt as the first message, uses Bearer auth,
     // and returns choices[0].message.content. max_tokens works for gpt-4o; gpt-5.x REJECTS it
     // with HTTP 400 and demands max_completion_tokens (found live 2026-08-15, the gpt-5.6-sol
@@ -196,8 +196,9 @@ var PROVIDERS={
     // ambitious product was a same-response-evidence death envelope the W2 gate refuses.
     // ⚠ 'minimal' is NOT legal here — gpt-5.6 rejects it with HTTP 400 (menu: none…max);
     // chat-completions acceptance of "low" probe-verified live 2026-08-20. The #29b luna rung
-    // inherits the pin through this same conditional. Certification follow-up: 50-turn Korrag
-    // sweep re-run at low (the shipped config differs from the round-2 certified arm).
+    // inherits the pin through this same conditional. Certification: owner-settled 2026-08-20 —
+    // the v1662 GPT-ladder sweep stands for the family; a dedicated sol-at-low re-run is waived
+    // (#17's zero-tag indicator is the field watch).
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
     buildBody:function(msgs,sys,maxTok,model){var b={model:model,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};if(/^gpt-5/.test(model)){b.max_completion_tokens=maxTok;b.reasoning_effort="low";}else b.max_tokens=maxTok;return b;},
     tokScale:4, // #198: reasoning shares the completion budget, so the runaway-insurance cap needs headroom (turns 6000, actions 800, summarize 8000) — the gemini E89 pattern; gpt bills only what it uses
@@ -207,7 +208,8 @@ var PROVIDERS={
     // rung's generic rebuild path re-serializes the payload with the fallback id (battery-pinned).
     // Sweep evidence for the seat: SWEEP_luna_arm_v1661 (engine-guarded canon — acceptable at the
     // rung bar, a fallback turn beats a dead one) + SWEEP_gpt_ladder_v1662 (the family scoreboard).
-    // NOT in models[] — the picker menu stays sweep-validated (>=Sonnet-5 ruling 2026-08-16).
+    // Since 2026-08-20 luna is ALSO a listing (see models[] above) — the rung survives unchanged
+    // for sol players; a player who SELECTS luna has no rung below it (model===fallbackModel).
     fallbackModel:"gpt-5.6-luna",
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string"||!data.choices[0].message.content.trim())throw new Error("Empty response");return data.choices[0].message.content;}, // #198: ""/whitespace THROWS — reasoning exhausting the budget returned content:"" and the turn committed EMPTY (field t2002); loud beats silent
     parseUsage:OPENAI_USAGE,
@@ -251,7 +253,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.667";
+var APP_VERSION="v1.668";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
