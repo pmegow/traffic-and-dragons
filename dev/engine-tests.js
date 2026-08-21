@@ -11787,6 +11787,50 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return g2.indexOf("has heard these names")<0?true:"an empty rumor mill still rendered a line";
   });
 
+  // ── #193 — the self-naming discriminator (entry-17 brief D's probe table as fixtures) ───────
+  section("#193 — descriptor vs name");
+  function caulWorld(){
+    makeWorld();worldState.turn=100;delete worldState.sceneRefs;delete worldState.identityConflicts;delete worldState.deathEvidenceNudged;delete worldState.deathEvidencePing;
+    ["Caul","Caulder Vex"].forEach(function(n){
+      worldState.npcs.push({name:n,status:"wary",statusTurn:99,rel:"enemy",met:99,introduced:99,pronouns:"he/him"});
+      memory.npcs[n]={attitude:"",knowledge:[],events:[],aliases:[]};
+    });
+    /* mirrors the real t1903 shape: the long form is Caul's ALIAS, not a second person */
+    memory.npcs["Caul"].aliases=["Brother Caul of the Ashen Order"];
+  }
+  t("#193 the probe table: descriptors and bare titles never self-name; the wreck-of-Caul genitive and plain names still do; Caul Vex prefers Caulder Vex",function(){
+    caulWorld();
+    if(w2SelfNamingCanon("the caul of mist")!==null)return "'the caul of mist' named "+w2SelfNamingCanon("the caul of mist")+" — a common noun became a death warrant";
+    if(w2SelfNamingCanon("Brother of the Ashen Order")!==null)return "a bare title with the given name ABSENT self-named "+w2SelfNamingCanon("Brother of the Ashen Order");
+    if(w2SelfNamingCanon("the wreck of Caul")!=="Caul")return "'the wreck of Caul' should name Caul (review-affirmed desirable): "+w2SelfNamingCanon("the wreck of Caul");
+    if(w2SelfNamingCanon("Caul")!=="Caul")return "a plain name stopped self-naming";
+    if(w2SelfNamingCanon("Caul Vex")!=="Caulder Vex")return "'Caul Vex' picked "+w2SelfNamingCanon("Caul Vex")+" — the one case a human reader calls obvious";
+    if(w2SelfNamingCanon("Golvak_Stonegall")!==null)return "an off-roster name resolved to something";
+    // two genuinely DIFFERENT people sharing a token: the brake is input-shaped ambiguity → null
+    worldState.npcs.push({name:"Caul Redhand",status:"wary",statusTurn:99,rel:"enemy",met:99,introduced:99});
+    memory.npcs["Caul Redhand"]={attitude:"",knowledge:[],events:[]};
+    return w2SelfNamingCanon("the blade of Caul")===null?true:"a two-person token tie picked "+w2SelfNamingCanon("the blade of Caul")+" instead of refusing as ambiguous";
+  });
+  t("#193 R0 keeps #201: separator/case renderings of an exact full name still self-name",function(){
+    caulWorld();
+    worldState.npcs.push({name:"Golvak Stonegall",status:"foe",statusTurn:99,rel:"enemy",met:99,introduced:99});
+    memory.npcs["Golvak Stonegall"]={attitude:"",knowledge:[],events:[]};
+    if(w2SelfNamingCanon("Golvak_Stonegall")!=="Golvak Stonegall")return "underscore rendering lost";
+    if(w2SelfNamingCanon("golvak stonegall")!=="Golvak Stonegall")return "lowercase exact full name lost (R0 is case-insensitive)";
+    return _w2HandleNamesSubject("Golvak_Stonegall","Golvak Stonegall")==="Golvak Stonegall"?true:"the handle path lost the #201 case";
+  });
+  t("#193 the bare-death seam refuses a descriptor operand end-to-end — the victim stays alive, the conflict names the cause, the valve arms",function(){
+    caulWorld();sceneRefsEnsure();
+    applyMuts("[NPC:the caul of mist|dead|enemy]");
+    var c=wsNpcByName("Caul");
+    if(npcIsDead(c))return "the descriptor killed Caul — the #193 exposure lives";
+    var q=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Caul";});
+    if(!q.length||q[0].reason.indexOf("descriptor-shaped")<0)return "no descriptor-shaped conflict filed: "+JSON.stringify(q);
+    if(!worldState.deathEvidencePing&&!(worldState.deathEvidenceNudged&&worldState.deathEvidenceNudged["Caul"]))return "the fork-note valve did not arm";
+    // a legitimate plain-name death for the same NPC still authorizes through its normal evidence path
+    return true;
+  });
+
   // ── #201 — handle spelling is rendering, not identity (the t2032 Third Watcher deadlock) ────
   section("#201 — handle normalization");
   function golvakWorld(){

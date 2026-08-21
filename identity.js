@@ -1049,23 +1049,79 @@ function w2NamedPresenceEvidence(name,sourceTurn){
    stays anonymous and keeps the strict path. Returns the canonical name, or null.
    With `subject` given, the handle must name THAT victim — a handle naming someone else is a
    genuine referential conflict and must keep refusing. */
+/* ═══ #193 (v1.672): the self-naming DISCRIMINATOR — a descriptor is not a name ═══════════════
+   The death seams' "does this operand NAME a character?" check rode resolveNpcName's token-subset
+   consolidation, which cannot tell a name from a common noun or title (entry-17 brief D probes:
+   "the caul of mist" → Caul; "Brother of the Ashen Order" → Brother Caul; "Caul Vex" → Caul
+   rather than Caulder Vex). This discriminator serves ONLY the irreversible death paths — the
+   [NPC:] consolidation itself (which heals "Morwen"/"Morwen Zethran" forks) is untouched.
+   Rules, adjudicated against the probe table:
+   R0  exact token-set equality (case-insensitive, separator-normalized) → accept. Plain names,
+       #201's Golvak_Stonegall, and every ordinary death stay exactly as before.
+   RA  a PARTIAL match requires ≥1 DISTINCTIVE candidate token (the W2_TITLE_STOPSET removed)
+       present in the raw operand AND capitalized there — "the wreck of Caul" accepts (review-
+       affirmed desirable), "the caul of mist" rejects (common noun), "Brother of the Ashen
+       Order" rejects (the given name is absent).
+   RB  multiple survivors score by coverage of the raw's capitalized tokens with ≥4-char prefix
+       credit — "Caul Vex" scores Caulder Vex (1 exact + 0.5 prefix) over Caul (1); a TIE is
+       ambiguity and returns null (the brake is INPUT-shaped now, not roster-shaped).
+   Known residual (documented, accepted): RA leans on the GM's case fidelity — an all-title-case
+   descriptor ("The Caul Of Mist") would pass RA; the probes came from real GM output, which
+   cases common nouns naturally. Callers must REFUSE on null/mismatch, never redirect — the
+   entry-17 wrong-victim lesson. */
+var W2_TITLE_STOPSET={brother:1,sister:1,father:1,mother:1,lord:1,lady:1,sir:1,dame:1,master:1,mistress:1,captain:1,sheriff:1,king:1,queen:1,prince:1,princess:1,elder:1,saint:1,the:1,of:1,order:1,guild:1,house:1};
+function _w2RawTokens(s){var out=[],m,re=/[A-Za-z]+/g,str=String(s||"");while((m=re.exec(str)))out.push({t:m[0].toLowerCase(),cap:/[A-Z]/.test(m[0].charAt(0))});return out;}
+function w2SelfNamingCanon(raw){
+  var rt=_w2RawTokens(raw);if(!rt.length)return null;
+  var rset={},i;for(i=0;i<rt.length;i++)rset[rt[i].t]=rt[i].cap||rset[rt[i].t]||false;
+  var names={},k;
+  if(worldState&&worldState.npcs)for(i=0;i<worldState.npcs.length;i++)names[worldState.npcs[i].name]=1;
+  if(typeof memory!=="undefined"&&memory&&memory.npcs)for(k in memory.npcs){names[k]=1;
+    var _al=memory.npcs[k].aliases;if(_al)for(i=0;i<_al.length;i++)names[_al[i]]=1;/* #193: long-form aliases are candidates too — they resolve to their canonical, and the tie-forgiveness clause treats an alias and its owner as ONE claim */}
+  var best=null,bestScore=0,tied=false;
+  for(k in names){
+    var ct=_w2RawTokens(k),cset={},j;for(j=0;j<ct.length;j++)cset[ct[j].t]=1;
+    /* R0: exact set equality */
+    var exact=ct.length===rt.length;
+    if(exact){for(j=0;j<ct.length;j++)if(!(ct[j].t in rset)){exact=false;break;}}
+    if(exact)return resolveNpcName(k);
+    /* RA: a distinctive PERSONAL token, present AND capitalized in the raw. Distinctive tokens
+       come from the candidate's personal-name SEGMENT — everything before the first genitive
+       'of' ("Brother Caul | of the Ashen Order" → {caul}); a stopset alone cannot know that
+       'Ashen' names the order rather than the person, but the structure can. A candidate whose
+       pre-'of' segment yields nothing (e.g. "The Collector") falls back to its full token set. */
+    var seg=[],hitOf=false;
+    for(j=0;j<ct.length;j++){if(ct[j].t==="of"){hitOf=true;break;}seg.push(ct[j]);}
+    var pool=[];
+    for(j=0;j<seg.length;j++)if(!W2_TITLE_STOPSET[seg[j].t])pool.push(seg[j].t);
+    if(!pool.length){for(j=0;j<ct.length;j++)if(!W2_TITLE_STOPSET[ct[j].t])pool.push(ct[j].t);}
+    /* RA is PRESENCE-only; capitalization is enforced in exactly ONE place — RB's scoring over
+       the raw's capitalized tokens (single point of truth, else the property is doubly encoded
+       and no single mutation can prove either copy — the first #193 battery caught exactly that). */
+    var distinctiveHit=false;
+    for(j=0;j<pool.length;j++)if(pool[j] in rset){distinctiveHit=true;break;}
+    if(!distinctiveHit)continue;
+    /* RB: score = coverage of the raw's CAPITALIZED tokens (exact 1, >=4-char prefix 0.5) */
+    var score=0;
+    for(i=0;i<rt.length;i++){if(!rt[i].cap)continue;
+      if(rt[i].t in cset){score+=1;continue;}
+      for(j=0;j<ct.length;j++)if(rt[i].t.length>=4&&ct[j].t.indexOf(rt[i].t)===0){score+=0.5;break;}}
+    if(score<=0)continue;
+    if(score>bestScore){best=k;bestScore=score;tied=false;}
+    else if(score===bestScore&&resolveNpcName(k)!==resolveNpcName(best))tied=true;
+  }
+  if(!best||tied)return null;
+  return resolveNpcName(best);
+}
 function _w2HandleNamesSubject(handle,subject){
   var h=String(handle||"").trim();if(!h||h==="-")return null;
-  var canon=_whnsResolve(h);
-  /* #201: separator drift on the SELF-NAMING path — "Golvak_Stonegall" must name Golvak
-     Stonegall. Case is preserved (resolveNpcName's own contract); only separators normalize. */
-  if(!canon){var h2=h.replace(/[-_]+/g," ").replace(/\s+/g," ").trim();if(h2!==h)canon=_whnsResolve(h2);if(canon)h=h2;}
+  /* #193 (v1.672): the discriminator replaces the fuzzy _whnsResolve chain on this path — its R0
+     exact-set rule subsumes #201's separator retry (Golvak_Stonegall tokenizes identically), and
+     its RA/RB rules stop descriptors and titles from self-naming a rostered victim. Only roster/
+     memory names can be returned, so the old both-stores existence check is structural now. */
+  var canon=(typeof w2SelfNamingCanon==="function")?w2SelfNamingCanon(h):null;
   if(!canon)return null;
   if(subject&&canon!==subject)return null;
-  return canon;
-}
-function _whnsResolve(h){
-  var canon=resolveNpcName(h);
-  /* #175bR: a name that lives only in worldState.npcs (no memory row) is still a rostered
-     character — without the wsNpcByName clause here the both-stores check below was dead code and
-     the handle path refused the very NPC the bare-name path authorized. */
-  if(!canon||canon===h&&!(memory&&memory.npcs&&memory.npcs[h])&&!((typeof wsNpcByName==="function")&&wsNpcByName(h)))return null;/* resolved to nothing on the roster */
-  if(!(memory&&memory.npcs&&memory.npcs[canon])&&!((typeof wsNpcByName==="function")&&wsNpcByName(canon)))return null;
   return canon;
 }
 function _w2NodeGuestbookTurn(node,canon,lim){
@@ -1248,7 +1304,16 @@ function w2PrepareResponse(text){
   }
   if(/\[CANON_TXN_(?:BEGIN|END):/.test(ordinary)){/* #171①: the whole-response fail-closed strip stays, but it is no longer silent, receipt-less, or id-reusable */var _orph=ordinary.match(/\[CANON_TXN_(?:BEGIN|END):[^\]|]+/g)||[],_oi;for(_oi=0;_oi<_orph.length;_oi++){var _oid=_orph[_oi].replace(/^\[CANON_TXN_(?:BEGIN|END):/,"").trim();if(_oid&&!_w2TxnFind(_oid))w2TxnQuarantine({id:_oid,claim:"npc-death",subject:"-",evidence:"-",quest:"-"},"unmatched transaction marker",[]);}_w2RefuseLog(_w2CollectStripped(ordinary,[/\[XP:[^\]]+\]/g,/\[GOLD:[^\]]+\]/g,/\[ITEM_GAINED:[^\]]+\]/g,/\[QUEST(?:_STEP)?:[^\]]+\]/g,/\[SCENE_DEATH:[^\]]+\]/g,/\[NPC:[^\]]+\]/g]));ordinary=ordinary.replace(/\[CANON_TXN_(?:BEGIN|END):[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary).replace(/\[QUEST(?:_STEP)?:[^\]]+\]/g,"").replace(/\[SCENE_DEATH:[^\]]+\]/g,"").replace(/\[NPC:[^\]]+\]/g,"");if(typeof console!=="undefined")console.warn("[identity] unmatched canon transaction marker - identity/quest/reward operations refused");if(typeof showToast==="function")showToast("⚠ Malformed canon envelope — its identity/quest/reward tags were withheld");}
   var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);_w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
-  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){_w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");/* #175bR: name the ACTUAL cause — under the overflow latch the refusal is capacity, not evidence, and the old text sent the GM chasing scene ceremony that could not help */var _bdOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);_w2Conflict(nm,"-",_bdOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"named death has no prior positive scene binding");if(!_bdOv)_w2ArmDeathValve(nm);/* #194 L3 */refusedVictim=refusedVictim||nm;}}
+  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;
+    /* #193 (v1.672): the operand must NAME the victim before the death gate even evaluates —
+       "the caul of mist" fuzzy-resolves to Caul via the consolidation, but a common noun or a
+       bare title is not a death warrant. Disagreement REFUSES, never redirects (a discriminator
+       that picked a different victim than the consolidation is the entry-17 wrong-victim shape). */
+    if(worldState.sceneRefs&&!npcIsDead(ws)&&typeof w2SelfNamingCanon==="function"&&w2SelfNamingCanon(dm[1].trim())!==nm){
+      _w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");
+      _w2Conflict(nm,"-","death operand is descriptor-shaped or ambiguous — it does not NAME the victim");
+      _w2ArmDeathValve(nm);refusedVictim=refusedVictim||nm;continue;}
+    if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){_w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");/* #175bR: name the ACTUAL cause — under the overflow latch the refusal is capacity, not evidence, and the old text sent the GM chasing scene ceremony that could not help */var _bdOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);_w2Conflict(nm,"-",_bdOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"named death has no prior positive scene binding");if(!_bdOv)_w2ArmDeathValve(nm);/* #194 L3 */refusedVictim=refusedVictim||nm;}}
   /* #168R1 (entry-13 review), rescoped by #175: a death REFUSED in THIS response still de-authorizes
      its co-emitted quest/reward consequences — that protection is unchanged and pinned. What is GONE
      is the standing-conflict reach: the old gate substring-matched every unresolved conflict's
