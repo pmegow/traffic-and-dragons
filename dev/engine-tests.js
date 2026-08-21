@@ -3703,8 +3703,43 @@ function runEngineTests(R){
     makeWorld();
     worldState.questLog=[{title:"Clear the mine",status:"active",desc:"",objectives:[{text:"a",done:true},{text:"b",done:true}]}];
     var b=buildQuestBlock();
-    var expect="    ⚑ ALL OBJECTIVES COMPLETE — if this quest is truly finished, emit [QUEST:Clear the mine|completed] now, together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if work remains, add the next objective via [QUEST_STEP:Clear the mine|objective].\n";
+    var expect="    ⚑ ALL OBJECTIVES COMPLETE — if this quest is truly finished — the CHECKED objectives include its END CONDITION (the outcome its description promises), not merely errands or preparation — emit [QUEST:Clear the mine|completed] now, together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if the real goal is not yet on the list, add it via [QUEST_STEP:Clear the mine|end condition] instead of completing.\n";
     return b.indexOf(expect)>=0?true:"the proven close-teeth text drifted";
+  });
+  // ── #205 the end-condition checkbox rule (t2101: "The Pinnacle of Avarice" completed off a
+  // bracelet errand — the quest's actual goal lived only in the desc, so all-objectives-complete
+  // was literally true and every completion channel pushed the GM to close the final-act quest).
+  // Every channel that can push toward completion must carry the same caveat, or the strongest
+  // channel (the engine-note lane outranks mid-prompt lines) re-creates the failure.
+  t("#205: the all-objectives-done instruction demands the END CONDITION among checked objectives",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Clear the mine",status:"active",desc:"",objectives:[{text:"a",done:true}]}];
+    var b=buildQuestBlock();
+    if(b.indexOf("END CONDITION")<0)return "close instruction carries no end-condition caveat";
+    return b.indexOf("instead of completing")>=0?true:"no add-the-goal alternative offered";
+  });
+  t("#205: the zero-objective line asks for the END CONDITION first",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Vague errand",status:"active",desc:"",objectives:[]}];
+    return buildQuestBlock().indexOf("END CONDITION")>=0?true:"zero-objective nudge does not lead with the end condition";
+  });
+  t("#205: buildQuestEscalation carries the end-condition caveat",function(){
+    makeWorld();worldState.turn=20;
+    worldState.questLog=[{title:"Stuck",status:"active",objectives:[{text:"a",done:true}],allDoneSince:10}];
+    var n=buildQuestEscalation();
+    if(!n)return "escalation did not fire";
+    return n.indexOf("end condition")>=0?true:"escalation note pushes completion without the end-condition check";
+  });
+  t("#205: buildQuestObjectiveNudge asks for the end condition as the first objective",function(){
+    makeWorld();worldState.turn=20;
+    worldState.questLog=[{title:"Empty",status:"active",objectives:[],noObjSince:10}];
+    var n=buildQuestObjectiveNudge();
+    if(!n)return "objective nudge did not fire";
+    return n.indexOf("end condition")>=0?true:"nudge does not lead with the end condition";
+  });
+  t("#205: the QUESTS rule (stable half) binds the end condition at activation",function(){
+    var joined=DEFAULT_RULES.join("\n");
+    return joined.indexOf("END CONDITION")>=0?true:"DEFAULT_RULES carries no end-condition clause";
   });
 
   // ── GM-compliance teeth (audit P3/P14) ────────────────────────────────────────

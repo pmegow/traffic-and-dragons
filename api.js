@@ -294,10 +294,12 @@ function buildQuestBlock(){
   var out="";
   if(active.length){out+="ACTIVE QUESTS (authoritative — steer toward these; advance objectives via [QUEST_STEP:title|objective|done]):\n";
     out+="Objectives are OUTCOMES, not rituals: if an objective's outcome has been achieved or made irrelevant by ANY means — accident, excess, a different plan than written — mark it [QUEST_STEP:title|objective|true] in that same response.\n";/* #191ⓐ */for(i=0;i<active.length;i++){var aq=active[i];out+="• "+aq.title+(aq.desc?" — "+aq.desc:"")+"\n";var allDone=false,hasObj=!!(aq.objectives&&aq.objectives.length);if(hasObj){allDone=true;var oj;for(oj=0;oj<aq.objectives.length;oj++){out+="    ["+(aq.objectives[oj].done?"x":" ")+"] "+aq.objectives[oj].text+"\n";if(!aq.objectives[oj].done)allDone=false;}}
-    if(allDone)out+="    ⚑ ALL OBJECTIVES COMPLETE — if this quest is truly finished, emit [QUEST:"+aq.title+"|completed] now, together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if work remains, add the next objective via [QUEST_STEP:"+aq.title+"|objective].\n";
+    /* #205 (t2101 Pinnacle of Avarice): completion demands the END CONDITION be a CHECKED box —
+       a sub-errand list at 100% must grow the goal objective, never close the quest over it. */
+    if(allDone)out+="    ⚑ ALL OBJECTIVES COMPLETE — if this quest is truly finished — the CHECKED objectives include its END CONDITION (the outcome its description promises), not merely errands or preparation — emit [QUEST:"+aq.title+"|completed] now, together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if the real goal is not yet on the list, add it via [QUEST_STEP:"+aq.title+"|end condition] instead of completing.\n";
     // UA30-b: an active quest with NO objectives can never trip the all-complete teeth above,
     // so it floats forever, invisible to the finish line. Nudge the GM to file trackable steps.
-    else if(!hasObj)out+="    ⚑ NO OBJECTIVES FILED — break this quest into 1–3 concrete objectives now via [QUEST_STEP:"+aq.title+"|objective] so progress can be tracked and the quest can complete.\n";}}
+    else if(!hasObj)out+="    ⚑ NO OBJECTIVES FILED — file this quest's END CONDITION (the outcome that finishes it, per its description) as the FIRST objective via [QUEST_STEP:"+aq.title+"|objective], then up to 2 current sub-tasks, so progress can be tracked and the quest can complete.\n";}}
   if(offered.length){out+="OFFERED QUESTS (awaiting player acceptance — do NOT treat as active or advance objectives):\n";for(i=0;i<offered.length;i++){out+="• "+offered[i].title+(offered[i].desc?" — "+offered[i].desc:"")+"\n";}}
   if(!out)out="QUESTS: none active.\n";
   return out+crisisLine+"\n";
@@ -341,7 +343,9 @@ function buildQuestEscalation(){
     if(n>=QUEST_ESCALATE_TURNS&&n>stale){stale=n;pick=q;}
   }
   if(!pick)return"";
-  return"[ENGINE NOTE: Quest '"+pick.title+"' has had all objectives complete for "+stale+" turns. In THIS response either emit [QUEST:"+pick.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]), or add the next objective via [QUEST_STEP:"+pick.title+"|<objective>].]";
+  /* #205: this note outranks the mid-prompt line, so it carries the same end-condition caveat —
+     without it the stronger channel re-creates the t2101 errand-closes-the-quest failure. */
+  return"[ENGINE NOTE: Quest '"+pick.title+"' has had all objectives complete for "+stale+" turns. In THIS response either emit [QUEST:"+pick.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]) — but ONLY if the checked objectives include the quest's end condition, not merely errands — or add the missing objective (the end condition first) via [QUEST_STEP:"+pick.title+"|<objective>].]";
 }
 // #129: the inverse gap — an ACTIVE quest with NO objectives at all gives the player no checklist
 // and the #20 completion teeth nothing to detect. Reads the noObjSince stamp written by
@@ -358,7 +362,7 @@ function buildQuestObjectiveNudge(){
     if(n>=QUEST_OBJECTIVE_NUDGE_TURNS&&n>stale){stale=n;pick=q;}
   }
   if(!pick)return"";
-  return"[ENGINE NOTE: Quest '"+pick.title+"' has been active for "+stale+" turns with NO recorded objectives — the player has no checklist. In THIS response emit [QUEST_STEP:"+pick.title+"|<first concrete objective>] from the leads the story has already established; add further steps as they become concrete.]";
+  return"[ENGINE NOTE: Quest '"+pick.title+"' has been active for "+stale+" turns with NO recorded objectives — the player has no checklist. In THIS response emit [QUEST_STEP:"+pick.title+"|<its end condition — the outcome that finishes the quest>] first, then further concrete steps from the leads the story has already established.]";
 }
 // #191ⓑ (owner-designed 2026-08-14): letter-of-the-law objectives — a quest satisfied IN SPIRIT
 // by other means never gets its boxes checked (Sugar War: the safe was cracked on a whim while
