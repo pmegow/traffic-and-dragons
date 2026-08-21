@@ -1268,6 +1268,25 @@ function _w2SubjectDeadInCanon(subject){
   var mm=(typeof memory!=="undefined"&&memory&&memory.npcs)?memory.npcs[nm]:null;
   return !!((ws&&typeof npcIsDead==="function"&&npcIsDead(ws))||(mm&&mm.dead));
 }
+/* #204 (the t2049 Face-Stealer four-toast turn): a stray bare death whose REAL operation already
+   SUCCEEDED — a committed npc-death receipt from THIS response (same evidence handle or same
+   subject), or a subject the response's own combat close / earlier canon already stamped dead —
+   is DUPLICATE HYGIENE, not a dispute. It strips with a console line only: no toast, no conflict
+   record (which would only self-resolve instantly), and it must never arm the co-emission
+   withhold. An OLD committed receipt never launders a fresh stray — this-turn receipts only. */
+function _w2StrayDeathIsDuplicate(subject,handle){
+  var subj=subject;
+  if(!subj){var sn=resolveNpcName(String(handle||"").trim());var sw=(typeof wsNpcByName==="function")?wsNpcByName(sn):null;if(sw)subj=sn;}
+  if(subj&&_w2SubjectDeadInCanon(subj))return true;
+  var hk=w2HandleKey(handle),a=worldState&&worldState.canonTxns||[],i,r;
+  for(i=0;i<a.length;i++){r=a[i];
+    if(r.status!=="committed"||r.claim!=="npc-death")continue;
+    if((r.committedTurn!=null?r.committedTurn:r.turn)!==worldState.turn)continue;
+    if(r.evidence&&r.evidence!=="-"&&w2HandleKey(r.evidence)===hk)return true;
+    if(subj&&r.subject&&r.subject!=="-"&&resolveNpcName(r.subject)===subj)return true;
+  }
+  return false;
+}
 /* #175: the quests whose payout is under an OPEN dispute — unresolved, non-stale conflicts whose
    subject owns a quarantined receipt naming a quest. Used to scope the ordinary-stream strip to
    exactly the disputed titles instead of blacking out every response that says the subject's name. */
@@ -1303,7 +1322,11 @@ function w2PrepareResponse(text){
     if(!planned[meta.id])planned[meta.id]={id:meta.id,claim:meta.claim,subject:meta.subject,evidence:meta.evidence,quest:meta.quest,status:"planned",operations:seen};else planned[meta.id].operations=seen;txns.push({meta:meta,body:fresh.join(""),ops:fresh,tokens:freshTokens,valid:true});
   }
   if(/\[CANON_TXN_(?:BEGIN|END):/.test(ordinary)){/* #171①: the whole-response fail-closed strip stays, but it is no longer silent, receipt-less, or id-reusable */var _orph=ordinary.match(/\[CANON_TXN_(?:BEGIN|END):[^\]|]+/g)||[],_oi;for(_oi=0;_oi<_orph.length;_oi++){var _oid=_orph[_oi].replace(/^\[CANON_TXN_(?:BEGIN|END):/,"").trim();if(_oid&&!_w2TxnFind(_oid))w2TxnQuarantine({id:_oid,claim:"npc-death",subject:"-",evidence:"-",quest:"-"},"unmatched transaction marker",[]);}_w2RefuseLog(_w2CollectStripped(ordinary,[/\[XP:[^\]]+\]/g,/\[GOLD:[^\]]+\]/g,/\[ITEM_GAINED:[^\]]+\]/g,/\[QUEST(?:_STEP)?:[^\]]+\]/g,/\[SCENE_DEATH:[^\]]+\]/g,/\[NPC:[^\]]+\]/g]));ordinary=ordinary.replace(/\[CANON_TXN_(?:BEGIN|END):[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary).replace(/\[QUEST(?:_STEP)?:[^\]]+\]/g,"").replace(/\[SCENE_DEATH:[^\]]+\]/g,"").replace(/\[NPC:[^\]]+\]/g,"");if(typeof console!=="undefined")console.warn("[identity] unmatched canon transaction marker - identity/quest/reward operations refused");if(typeof showToast==="function")showToast("⚠ Malformed canon envelope — its identity/quest/reward tags were withheld");}
-  var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);_w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
+  var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);
+    /* #204: a stray echo of an operation that already SUCCEEDED (committed envelope this response,
+       or subject already dead in canon) strips silently — no toast, no conflict, no withhold arm. */
+    if(_w2StrayDeathIsDuplicate(ba&&ba.actor.entity?ba.actor.entity:null,bh)){_w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");if(typeof console!=="undefined")console.warn("[identity] stray [SCENE_DEATH:"+bh+"] duplicates an operation that already succeeded — stripped as hygiene, no dispute (#204)");continue;}
+    _w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
   var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;
     /* #193 (v1.672): the operand must NAME the victim before the death gate even evaluates —
        "the caul of mist" fuzzy-resolves to Caul via the consolidation, but a common noun or a

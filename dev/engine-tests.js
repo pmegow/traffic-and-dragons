@@ -3858,6 +3858,45 @@ function runEngineTests(R){
     return NOTE_LATCH_FIELDS.indexOf("dupItemPending")>=0?true:"pending record not latch-protected";
   });
 
+  // ── #204 stray duplicates of SUCCEEDED operations are hygiene, not disputes (t2049) ────────
+  section("#204 duplicate-refusal hygiene");
+  t("#204: a bare SCENE_DEATH whose envelope already committed THIS response is stripped without a conflict, and co-emitted quest tags survive",function(){
+    makeWorld();
+    worldState.turn=50;
+    worldState.sceneRefs={active:{frames:[]},sealed:[]};
+    worldState.questLog=[{title:"The Mask",status:"active",desc:"",objectives:[{text:"End the Face-Stealer",done:true}]}];
+    worldState.canonTxns=[{id:"fs-1",claim:"npc-death",subject:"Face-Stealer",evidence:"stolen-face",quest:"The Mask",status:"committed",operations:[],turn:50,committedTurn:50}];
+    applyMuts("[SCENE_DEATH:stolen-face][QUEST:The Mask|completed][XP:400]");
+    if(worldState.identityConflicts&&worldState.identityConflicts.length)return "conflict minted for a duplicate stray";
+    if(worldState.questLog.length)return "quest completion withheld off the duplicate stray";
+    return worldState.character.xp===400?true:"co-emitted XP withheld ("+worldState.character.xp+")";
+  });
+  t("#204: a bare SCENE_DEATH naming a subject already dead in canon is hygiene, not a dispute",function(){
+    makeWorld();
+    worldState.turn=50;
+    worldState.sceneRefs={active:{frames:[]},sealed:[]};
+    worldState.npcs.push({name:"Golvak",status:"slain",rel:"enemy",met:1,dead:49});
+    applyMuts("[SCENE_DEATH:Golvak]");
+    return worldState.identityConflicts&&worldState.identityConflicts.length?"conflict minted for an already-canon death":true;
+  });
+  t("#204: a GENUINE stray (no receipt, subject alive) still refuses, mints the conflict, and withholds co-emitted completions (regression pin)",function(){
+    makeWorld();
+    worldState.turn=50;
+    worldState.sceneRefs={active:{frames:[]},sealed:[]};
+    worldState.questLog=[{title:"The Mask",status:"active",desc:"",objectives:[{text:"a",done:true}]}];
+    applyMuts("[SCENE_DEATH:masked-stranger][QUEST:The Mask|completed]");
+    if(!worldState.identityConflicts||!worldState.identityConflicts.length)return "genuine stray no longer refused";
+    return worldState.questLog.length===1?true:"withhold protection lost — the quest completed off a refused death";
+  });
+  t("#204: a committed receipt from an EARLIER turn does not launder a fresh stray",function(){
+    makeWorld();
+    worldState.turn=50;
+    worldState.sceneRefs={active:{frames:[]},sealed:[]};
+    worldState.canonTxns=[{id:"fs-0",claim:"npc-death",subject:"Face-Stealer",evidence:"stolen-face",quest:"-",status:"committed",operations:[],turn:40,committedTurn:40}];
+    applyMuts("[SCENE_DEATH:stolen-face]");
+    return worldState.identityConflicts&&worldState.identityConflicts.length?true:"an old receipt suppressed a fresh stray's refusal";
+  });
+
   // ── GM-compliance teeth (audit P3/P14) ────────────────────────────────────────
   section("GM-compliance teeth (P3/P14)");
   t("allDoneSince stamps when objectives complete, stays sticky, clears on a new objective",function(){
