@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260821g";
+var CACHE = "tnd-v3-20260821h";
 // Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todos_completed/todo_TTS_piper.md Phase 2).
 // Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
 // frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
@@ -118,9 +118,9 @@ self.addEventListener("fetch", function(e){
   // Covers ALL satellites (audit 07-16 #22): designer, todo-viewer, bible_study, piper_test,
   // test.html (anchored on the preceding "/" so e.g. "protest.html" can't match), the
   // npc-merge-studio, bug_tracker (#71), author_voice_lab (#104), speaker_browser + its libritts_speakers.json (#95),
-  // and everything under /DOC/. Tested against
+  // story_compiler (#5), and everything under /DOC/. Tested against
   // e.request.url (the FULL URL), hence the path-fragment style.
-  if(/blueprint-designer|todo-viewer|bible_study|bible_editor|piper_test|npc-merge-studio|bug_tracker|author_voice_lab|voice_picker|recall_gate|map_viewer|map_cleanup|speaker_browser|libritts_speakers|vctk_speakers|timeline_day1|\/test\.html(?:$|[?#])|\/DOC\//.test(e.request.url)){/* class_bible left this regex at C6-② (2026-08-03): it precaches with the app shell now — keeping it network-first too would re-download it every load (the Netlify bandwidth class) */
+  if(/blueprint-designer|todo-viewer|bible_study|bible_editor|piper_test|npc-merge-studio|bug_tracker|author_voice_lab|voice_picker|recall_gate|map_viewer|map_cleanup|story_compiler|speaker_browser|libritts_speakers|vctk_speakers|timeline_day1|\/test\.html(?:$|[?#])|\/DOC\//.test(e.request.url)){/* class_bible left this regex at C6-② (2026-08-03): it precaches with the app shell now — keeping it network-first too would re-download it every load (the Netlify bandwidth class) */
     e.respondWith(
       fetch(e.request).then(function(response){
         // OK response: cache a clone (restores offline support) and serve it fresh.

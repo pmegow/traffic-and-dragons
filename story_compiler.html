@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Traffic and Dragons — Story Compiler</title>
+<!-- ─── STORY COMPILER SATELLITE (TODO #5, v1 — stage 1 of the keepsake pipeline) ────────────
+     Compiles a campaign into a readable, self-contained HTML book: the VERBATIM told story,
+     segmented into chapters by the memory tier's own chapter boundaries.
+
+     THE RATIFIED DECISIONS THIS BUILD IMPLEMENTS (TODO.md row #5, 2026-06-15 / 2026-07-09):
+       ① The keepsake is woven from VERBATIM PROSE, never re-inflated summaries.
+          worldState.transcript is the FLESH (the real GM prose + the player's own actions);
+          memory.chapters + storyBeats + keyDecisions are the SKELETON (arc shape and pacing —
+          they say where a chapter starts and what it was about, they never replace the prose).
+       ② Standalone HTML output first. PDF is browser print (a print stylesheet ships inside
+          the exported file), not a generator.
+       ③ The export keeps its block structure MACHINE-READABLE: every player action is a
+          <div class="act">, every GM passage a <div class="gm">, every chapter a
+          <section class="chapter">, each carrying data-turn. Downstream passes (fold player
+          actions, 2nd→3rd person novelization) parse the SAVED FILE back into (action,
+          narration) pairs — flattening this to undifferentiated prose would break all of them.
+       ④ Person/tense conversion is a LATER opt-in pass. v1 compiles the immersive
+          second-person story exactly as it was told.
+
+     Data sources, in precedence order (the map_viewer pattern):
+       1. window.__storyTest.load(data)  — test seam (the no-untestable-surface rule)
+       2. file import (.tnd export or raw {worldState,memory} JSON) — picker or drag/drop
+       3. same-origin localStorage (tnd_core_v10 + tnd_mem_v10) — the LIVE campaign
+          (transcript arrives in its {__lz} compressed form there; compress.js inflates it)
+
+     READ-ONLY by construction: this page never writes localStorage (the map_viewer /
+     recall_gate discipline). The only thing it produces is a downloaded file.
+     Like all satellites it must ride sw.js's network-first allowlist (the bug_tracker
+     stale-pin lesson) — done in the same commit that created this file. -->
+<style>
+  :root{--bg:#0a0a0c;--bg2:#121214;--bg3:#1b1a1c;--bg4:#232124;--brd:#29272b;--brd2:#3a3537;--acc:#b8935a;--acc2:#ddb978;--t0:#eee7db;--t1:#b9b0a0;--t2:#777064;--bad:#b86b6b;--good:#80aa70;--r:8px;--font:'Segoe UI',system-ui,sans-serif}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--t1);font-family:var(--font);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  #bar{display:flex;align-items:center;gap:18px;min-height:58px;padding:9px 18px;background:linear-gradient(180deg,#171619 0%,var(--bg2) 100%);border-bottom:1px solid var(--brd);box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:2}
+  #brand{display:flex;align-items:center;gap:11px;flex:0 0 auto}
+  #brandmark{width:31px;height:31px;border:1px solid #4b402f;position:relative;transform:rotate(45deg);background:#19150f;box-shadow:inset 0 0 0 5px #121214}
+  #brandmark:after{content:"";position:absolute;inset:9px;background:var(--acc);border-radius:50%}
+  #bar h1{font-size:15px;color:var(--t0);font-weight:650;letter-spacing:.3px;line-height:1.1}
+  #bar .muted{display:block;color:var(--acc);font-size:9px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;margin-top:4px}
+  #src{min-width:0;flex:1;font-size:11px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:1px solid var(--brd);padding-left:18px}
+  #src.live{color:var(--good)}
+  #src.err{color:var(--bad)}
+  #tools{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+  button,label.btn{background:var(--bg3);color:var(--t1);border:1px solid var(--brd2);border-radius:6px;padding:7px 11px;font-size:11px;cursor:pointer;font-family:var(--font);transition:border-color .16s,background .16s,color .16s}
+  button:hover,label.btn:hover{border-color:#725d3e;background:var(--bg4);color:var(--t0)}
+  button:disabled{opacity:.45;cursor:default;border-color:var(--brd)}
+  button.primary{border-color:var(--acc);color:var(--acc2)}
+  button:focus-visible,label.btn:focus-within{outline:2px solid var(--acc);outline-offset:2px}
+  #wrap{flex:1;display:flex;min-height:0}
+  #side{width:330px;flex:0 0 330px;border-right:1px solid var(--brd);background:linear-gradient(180deg,#171619 0%,var(--bg2) 150px);overflow-y:auto;padding:18px 18px 28px;scrollbar-color:#4c4742 transparent;scrollbar-width:thin}
+  #side h2{font-size:9px;color:var(--acc);font-weight:650;text-transform:uppercase;letter-spacing:1.7px;margin:0 0 9px}
+  #side .sec{margin-bottom:22px}
+  #side label.opt{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;color:var(--t1);margin-bottom:8px;cursor:pointer}
+  #side label.opt input{margin-top:2px;accent-color:var(--acc)}
+  #side label.opt small{display:block;color:var(--t2);font-size:10.5px;line-height:1.4}
+  #side select{background:var(--bg3);color:var(--t1);border:1px solid var(--brd2);border-radius:5px;padding:5px 8px;font-size:11px;font-family:var(--font)}
+  #stats{font-size:12px;line-height:1.65}
+  #stats .row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #201f22;padding:3px 0}
+  #stats .row span:first-child{color:var(--t2)}
+  #stats .row span:last-child{color:var(--t0);font-variant-numeric:tabular-nums}
+  #stats .note{color:var(--t2);font-size:10.5px;line-height:1.5;margin-top:8px}
+  #stats .warnrow span:last-child{color:var(--acc2)}
+  #stage{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;background:var(--bg)}
+  #progress{min-height:34px;display:flex;align-items:center;gap:12px;padding:8px 18px;border-bottom:1px solid var(--brd);font-size:11.5px;color:var(--t2);background:var(--bg2)}
+  #progress .bar{flex:1;height:4px;background:#201f22;border-radius:3px;overflow:hidden;max-width:320px}
+  #progress .bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .12s linear}
+  #preview{flex:1;border:0;width:100%;background:#f7f1e6}
+  /* Opaque on purpose: it covers the (paper-coloured) preview frame until a book exists. */
+  #empty{position:absolute;inset:34px 0 0 0;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--t2);font-size:13px;text-align:center;padding:0 40px}
+  #empty div:first-child{font-size:17px;color:var(--t0)}
+  #empty div:last-child{max-width:520px;line-height:1.6}
+  #drop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,13,13,.85);color:var(--acc);font-size:16px;border:2px dashed var(--acc);z-index:5;pointer-events:none}
+  @media(max-width:900px){
+    #bar{gap:11px;padding:9px 12px;flex-wrap:wrap}
+    #src{order:3;flex-basis:100%;border-left:0;padding:0 0 2px 42px}
+    #wrap{flex-direction:column}
+    #side{width:100%;flex:0 0 auto;border-right:0;border-bottom:1px solid var(--brd)}
+    #stage{min-height:55vh}
+  }
+</style>
+</head>
+<body>
+<div id="bar">
+  <div id="brand"><div id="brandmark" aria-hidden="true"></div><h1>Story Compiler <span class="muted">Keepsake · read-only</span></h1></div>
+  <span id="src">no campaign loaded</span>
+  <div id="tools">
+    <label class="btn">📂 Import save<input type="file" id="file" accept=".tnd,.json" style="display:none"></label>
+    <button id="live">🗄 Load live campaign</button>
+    <button id="compile" class="primary" disabled>📖 Compile</button>
+    <button id="export" disabled>⬇ Export .html</button>
+  </div>
+</div>
+<div id="wrap">
+  <aside id="side" aria-label="Compile options">
+    <div class="sec">
+      <h2>Book</h2>
+      <label class="opt"><input type="checkbox" id="opt-epigraph" checked><span>Chapter epigraphs<small>The chapter's own summary, set in italics under the heading.</small></span></label>
+      <label class="opt"><input type="checkbox" id="opt-beats" checked><span>Beats &amp; decisions<small>Story beats and key decisions that fall inside a chapter, listed at its opening.</small></span></label>
+      <label class="opt"><input type="checkbox" id="opt-portrait" checked><span>Portrait on the title page<small>Embedded from the save — adds weight to the file, nothing to fetch.</small></span></label>
+      <label class="opt"><input type="checkbox" id="opt-turns" checked><span>Turn markers<small>A faint turn number above each exchange.</small></span></label>
+    </div>
+    <div class="sec">
+      <h2>Preview</h2>
+      <label class="opt"><span>Chapters shown here
+        <small>The export always contains every chapter — this only bounds the preview pane.</small></span></label>
+      <select id="opt-preview">
+        <option value="3" selected>first 3 chapters</option>
+        <option value="10">first 10 chapters</option>
+        <option value="1">first chapter only</option>
+        <option value="0">everything (slow on long campaigns)</option>
+      </select>
+    </div>
+    <div class="sec">
+      <h2>This campaign</h2>
+      <div id="stats"><div class="note">Load a save, or open this page on the same origin as a played campaign.</div></div>
+    </div>
+  </aside>
+  <div id="stage">
+    <div id="progress"><span id="ptext">idle</span><span class="bar"><i id="pbar"></i></span></div>
+    <iframe id="preview" title="Compiled story preview"></iframe>
+    <div id="drop">drop a .tnd export anywhere</div>
+    <div id="empty">
+      <div>No campaign data found in this browser's storage.</div>
+      <div>Open this page on the same origin as a played campaign, drop a <b>.tnd</b> export here, or use 📂 Import save. Nothing on this page is ever written back — the compiler only reads.</div>
+    </div>
+  </div>
+</div>
+
+<!-- compress.js: the live localStorage worldState carries its transcript in the {__lz} form
+     (state.js serializeWorldState). Without LZ the live path can only report the compressed
+     shape honestly and refuse — it never silently compiles an empty book. -->
+<script src="compress.js"></script>
+<script>
+(function(){
+  "use strict";
+  var SC_VERSION = "story-compiler v1.0";
+
+  function $(id){return (typeof document!=="undefined"&&document.getElementById)?document.getElementById(id):null;}
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  var _warned=0;
+  function warn(msg){
+    // Loud but bounded: a malformed transcript must never flood the console into uselessness,
+    // and must never throw — the totals below are reported in the UI either way.
+    if(_warned<25&&typeof console!=="undefined"&&console.warn)console.warn("[story] "+msg);
+    _warned++;
+    if(_warned===25&&typeof console!=="undefined"&&console.warn)console.warn("[story] further per-entry warnings suppressed");
+  }
+  function num(n){var s=String(n);return s.replace(/\B(?=(\d{3})+(?!\d))/g,",");}
+  // Realm-safe array test. `instanceof Array` is false for an array that crossed a realm
+  // boundary (an injected seam fixture, an iframe/opener hand-off) — and this page's whole
+  // job is to read data handed to it from elsewhere, so a wrong answer here reads a healthy
+  // transcript as "unknown shape".
+  function isArr(v){return Object.prototype.toString.call(v)==="[object Array]";}
+
+  // ── state ────────────────────────────────────────────────────────────────────
+  var CUR=null;      // {ws, mem, label, live}
+  var MODEL=null;    // the compiled model (see buildModel)
+  var DOCHTML=null;  // the finished export document
+  var BUSY=false;
+
+  // ── options ──────────────────────────────────────────────────────────────────
+  function readOpts(){
+    function ck(id,dflt){var el=$(id);return el?!!el.checked:dflt;}
+    var pv=$("opt-preview");
+    return {
+      epigraph:ck("opt-epigraph",true),
+      beats:ck("opt-beats",true),
+      portrait:ck("opt-portrait",true),
+      turns:ck("opt-turns",true),
+      previewChapters:pv?parseInt(pv.value,10):3
+    };
+  }
+
+  // ── data loading ─────────────────────────────────────────────────────────────
+  // The live worldState's transcript is {__lz:"…"} (compressed at the localStorage boundary
+  // ONLY — in-memory it is always a plain array). Mirror state.js's tolerance: plain array
+  // passes through, compressed inflates, anything else is named out loud.
+  function inflateTranscript(ws){
+    if(!ws)return {ok:true,note:""};
+    var tr=ws.transcript;
+    if(tr==null){ws.transcript=[];return {ok:true,note:"no transcript in this save"};}
+    if(isArr(tr))return {ok:true,note:""};
+    if(tr.__lz){
+      if(typeof LZ==="undefined"||!LZ.decompressFromUTF16)
+        return {ok:false,note:"transcript is LZ-compressed but compress.js did not load"};
+      try{
+        var out=JSON.parse(LZ.decompressFromUTF16(tr.__lz));
+        if(!isArr(out))return {ok:false,note:"decompressed transcript is not an array"};
+        ws.transcript=out;
+        return {ok:true,note:"transcript inflated from the compressed store"};
+      }catch(e){return {ok:false,note:"transcript decompress failed: "+e.message};}
+    }
+    return {ok:false,note:"transcript has an unknown shape ("+(typeof tr)+")"};
+  }
+
+  function normalize(data,label,live){
+    if(!data||typeof data!=="object"){setSrc("that source carried no campaign data",true);return false;}
+    var ws=data.worldState||data.ws||null;
+    var mem=data.memory||data.mem||null;
+    if(!ws){setSrc("no worldState in that source ("+label+")",true);return false;}
+    var inf=inflateTranscript(ws);
+    if(!inf.ok){setSrc(inf.note+" ("+label+")",true);return false;}
+    if(!(ws.transcript&&ws.transcript.length)){setSrc("that campaign has no recorded story yet ("+label+")",true);return false;}
+    CUR={ws:ws,mem:mem||{},label:label,live:!!live};
+    MODEL=null;DOCHTML=null;
+    var el=$("empty");if(el)el.style.display="none";
+    setSrc(label+" — "+num(ws.transcript.length)+" passages, turn "+((ws.turn!=null)?ws.turn:"?")
+      +(inf.note?" · "+inf.note:""),false,!!live);
+    enable("compile",true);enable("export",false);
+    renderStats(null);
+    return true;
+  }
+  function setSrc(txt,isErr,isLive){var el=$("src");if(!el)return;el.textContent=txt;el.className=isErr?"err":(isLive?"live":"");}
+  function enable(id,on){var el=$(id);if(el)el.disabled=!on;}
+
+  // READ-ONLY: getItem only. Nothing on this page ever writes localStorage.
+  // `loud` separates the two callers: the BOOT probe is quiet (opened from file:// there is
+  // no reachable storage at all — that is the normal case, not a fault, and shouting it at
+  // boot buries the real one), while the 🗄 button always explains itself.
+  function tryLocalStorage(loud){
+    try{
+      if(typeof localStorage==="undefined"){if(loud)setSrc("this browser exposes no localStorage here",true);return false;}
+      var c=localStorage.getItem("tnd_core_v10");
+      if(!c){if(loud)setSrc("no campaign in this browser's storage",true);return false;}
+      var m=localStorage.getItem("tnd_mem_v10");
+      var ws=JSON.parse(c),mem=null;
+      try{mem=m?JSON.parse(m):null;}catch(e2){mem=null;warn("live memory store did not parse — compiling without chapter boundaries");}
+      return normalize({worldState:ws,memory:mem},"live campaign"+(ws&&ws.campName?" · "+ws.campName:""),true);
+    }catch(e){
+      // A file:// page cannot reach localStorage at all — that throw is the environment, not
+      // a broken save. Loud when the player asked; a console line when it was only the probe.
+      if(loud)setSrc("localStorage is not reachable here: "+e.message,true);
+      else warn("no reachable localStorage at boot ("+e.message+") — import a .tnd instead");
+      return false;
+    }
+  }
+  function loadFile(f){
+    if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      try{normalize(JSON.parse(r.result),"import · "+f.name,false);}
+      catch(e){setSrc("could not parse "+f.name+": "+e.message,true);}
+    };
+    r.onerror=function(){setSrc("could not read "+f.name,true);};
+    r.readAsText(f);
+  }
+
+  // ── the skeleton: chapter boundaries ─────────────────────────────────────────
+  // memory.chapters holds only the last 10; everything older lives in
+  // memory.archive.chapters (fileChapter → memArchive), oldest first. Each record is
+  // {turn, summary} where `turn` is the turn the summary was FILED at — i.e. the END of the
+  // stretch it covers. Chapter k therefore covers (chapters[k-1].turn, chapters[k].turn].
+  function collectChapters(mem){
+    var raw=[],out=[],i;
+    if(mem&&mem.archive&&isArr(mem.archive.chapters))raw=raw.concat(mem.archive.chapters);
+    if(mem&&isArr(mem.chapters))raw=raw.concat(mem.chapters);
+    for(i=0;i<raw.length;i++){
+      var c=raw[i];
+      if(!c||typeof c!=="object"){warn("chapter record "+i+" is not an object — skipped");continue;}
+      var t=(typeof c.turn==="number"&&isFinite(c.turn))?c.turn:parseInt(c.turn,10);
+      if(!isFinite(t)){warn("chapter record "+i+" has no usable turn — skipped");continue;}
+      var s=(typeof c.summary==="string")?c.summary:"";
+      if(!s)warn("chapter at turn "+t+" carries no summary — heading only");
+      out.push({turn:t,summary:s});
+    }
+    // Defensive only: filed chapters are monotonic by construction. A non-monotonic record
+    // must not scramble the book, so sort by turn while preserving filing order for ties.
+    for(i=0;i<out.length;i++)out[i]._i=i;
+    out.sort(function(a,b){return (a.turn-b.turn)||(a._i-b._i);});
+    for(i=0;i<out.length;i++)delete out[i]._i;
+    return out;
+  }
+
+  // A chapter's heading: the first sentence of its summary, trimmed to a title's length.
+  function chapterTitle(summary){
+    var s=String(summary||"").replace(/\s+/g," ").trim();
+    if(!s)return "";
+    var m=s.match(/^[\s\S]*?[.!?](?=\s|$)/);
+    var first=(m?m[0]:s).replace(/[.!?]+$/,"").trim();
+    if(first.length>64){
+      var cut=first.slice(0,64),sp=cut.lastIndexOf(" ");
+      first=(sp>28?cut.slice(0,sp):cut)+"…";
+    }
+    return first;
+  }
+
+  // Beats and decisions that fall inside a chapter's turn window — decoration only, and
+  // silently absent when the save has none.
+  function collectMarks(ws,mem){
+    var out=[],i,c=(ws&&ws.character)||{};
+    function push(turn,kind,text){
+      var t=(typeof turn==="number"&&isFinite(turn))?turn:parseInt(turn,10);
+      if(!isFinite(t))return;
+      if(!text)return;
+      out.push({turn:t,kind:kind,text:String(text)});
+    }
+    var sb=isArr(c.storyBeats)?c.storyBeats:[];
+    for(i=0;i<sb.length;i++)if(sb[i])push(sb[i].turn,"beat",sb[i].text);
+    var kd=[];
+    if(mem&&mem.archive&&isArr(mem.archive.decisions))kd=kd.concat(mem.archive.decisions);
+    if(mem&&isArr(mem.keyDecisions))kd=kd.concat(mem.keyDecisions);
+    for(i=0;i<kd.length;i++)if(kd[i])push(kd[i].turn,"decision",kd[i].desc||kd[i].text);
+    out.sort(function(a,b){return a.turn-b.turn;});
+    return out;
+  }
+
+  // ── the flesh: verbatim transcript → chapters ────────────────────────────────
+  // Entries the player never saw, or that the engine has since disowned, are skipped and
+  // COUNTED — never dropped silently:
+  //   bk — bookkeeping turns (silent engine instructions; the reload replay filters these too)
+  //   rf — #197 model refusals (non-canon meta-voice, not story)
+  //   rc — #187 retconned prose (a later turn corrected it; printing it contradicts the book)
+  function skipReason(e){
+    if(!e||typeof e!=="object")return "malformed";
+    if(e.bk)return "bookkeeping";
+    if(e.rf)return "refusal";
+    if(e.rc)return "retconned";
+    // A MISSING text field is a broken record (malformed); a present-but-blank one is an
+    // empty passage. Two different stories about the save — don't collapse them into one.
+    if(typeof e.x!=="string")return "malformed";
+    if(e.r!=="player"&&e.r!=="gm")return "malformed";
+    if(!e.x.trim())return "empty";
+    return null;
+  }
+
+  function buildModel(cur,opts){
+    opts=opts||{};
+    var ws=cur.ws||{},mem=cur.mem||{},c=ws.character||{};
+    var tr=isArr(ws.transcript)?ws.transcript:[];
+    var chaps=collectChapters(mem);
+    var marks=collectMarks(ws,mem);
+    var skipped={malformed:0,bookkeeping:0,refusal:0,retconned:0,empty:0},skipTotal=0;
+    var chapters=[],i,ci=0;
+
+    function newChapter(idx,rec){
+      return {
+        index:idx,
+        turn:rec?rec.turn:null,
+        summary:rec?rec.summary:"",
+        title:rec?chapterTitle(rec.summary):"",
+        turnStart:null,turnEnd:null,
+        entries:[],marks:[]
+      };
+    }
+    for(i=0;i<chaps.length;i++)chapters.push(newChapter(i+1,chaps[i]));
+    // The tail: everything played since the last filed summary (or the whole story when the
+    // campaign has never summarized). Always present, never titled from a summary it lacks.
+    var tail=newChapter(chapters.length+1,null);
+    tail.tail=true;
+    chapters.push(tail);
+
+    var lastTurn=0,players=0,gms=0;
+    for(i=0;i<tr.length;i++){
+      var e=tr[i];
+      var why=skipReason(e);
+      if(why){skipped[why]++;skipTotal++;if(why==="malformed")warn("transcript entry "+i+" is malformed — skipped");continue;}
+      var t=(typeof e.t==="number"&&isFinite(e.t))?e.t:lastTurn;
+      lastTurn=t;
+      while(ci<chapters.length-1&&t>chapters[ci].turn)ci++;
+      var ch=chapters[ci];
+      ch.entries.push({turn:t,role:e.r,text:e.x});
+      if(ch.turnStart===null||t<ch.turnStart)ch.turnStart=t;
+      if(ch.turnEnd===null||t>ch.turnEnd)ch.turnEnd=t;
+      if(e.r==="player")players++;else gms++;
+    }
+    // Empty chapters (a summary filed over a stretch whose prose is gone — an imported or
+    // repaired save) are dropped from the book but reported.
+    var kept=[],dropped=0;
+    for(i=0;i<chapters.length;i++){
+      if(chapters[i].entries.length)kept.push(chapters[i]);
+      else dropped++;
+    }
+    // Marks land in the chapter whose window contains their turn.
+    for(i=0;i<marks.length;i++){
+      var mk=marks[i],k,target=null;
+      for(k=0;k<kept.length;k++){
+        if(kept[k].turnStart!==null&&mk.turn>=kept[k].turnStart&&mk.turn<=kept[k].turnEnd){target=kept[k];break;}
+      }
+      if(target)target.marks.push(mk);
+    }
+    for(i=0;i<kept.length;i++)kept[i].index=i+1;
+
+    var first=kept.length?kept[0].turnStart:0;
+    var last=kept.length?kept[kept.length-1].turnEnd:0;
+    return {
+      title:ws.campName||c.name||"A Chronicle",
+      character:{
+        name:c.name||"Unknown",
+        line:((c.subraceNm?c.subraceNm+" ":"")+(c.ancestry||"")+" "+(c.cls||"")).replace(/\s+/g," ").trim()
+             +(c.level?", Level "+c.level:""),
+        portrait:(typeof c.portrait==="string"&&c.portrait.indexOf("data:")===0)?c.portrait:null
+      },
+      turnFirst:first,turnLast:last,
+      chapters:kept,
+      stats:{
+        entries:tr.length,used:players+gms,players:players,gms:gms,
+        chapters:kept.length,chapterRecords:chaps.length,emptyChapters:dropped,
+        marks:marks.length,skipped:skipped,skipTotal:skipTotal
+      },
+      sourceLabel:cur.label||""
+    };
+  }
+
+  // ── render ───────────────────────────────────────────────────────────────────
+  // Machine-readable by contract (decision ③): .act / .gm / .chapter and data-turn are the
+  // handles every downstream pass parses. Change them and the fold/person passes go blind.
+  function renderChapter(ch,opts){
+    opts=opts||{};
+    var out=[],i;
+    out.push("<section class=\"chapter\" data-chapter=\""+ch.index+"\""
+      +" data-turn-start=\""+(ch.turnStart==null?"":ch.turnStart)+"\""
+      +" data-turn-end=\""+(ch.turnEnd==null?"":ch.turnEnd)+"\">");
+    var head="Chapter "+ch.index;
+    out.push("<h2 class=\"chapter-title\"><span class=\"cnum\">"+esc(head)+"</span>"
+      +(ch.title?"<span class=\"cname\">"+esc(ch.title)+"</span>":(ch.tail?"<span class=\"cname\">The story so far</span>":""))+"</h2>");
+    if(ch.turnStart!=null)
+      out.push("<div class=\"crange\">Turns "+ch.turnStart+"&ndash;"+ch.turnEnd+"</div>");
+    if(opts.epigraph&&ch.summary)
+      out.push("<div class=\"epigraph\">"+esc(ch.summary)+"</div>");
+    if(opts.beats&&ch.marks.length){
+      var mk=["<ul class=\"marks\">"];
+      for(i=0;i<ch.marks.length;i++)
+        mk.push("<li class=\"mark "+ch.marks[i].kind+"\" data-turn=\""+ch.marks[i].turn+"\">"+esc(ch.marks[i].text)+"</li>");
+      mk.push("</ul>");
+      out.push(mk.join(""));
+    }
+    var lastTurn=null;
+    for(i=0;i<ch.entries.length;i++){
+      var e=ch.entries[i];
+      if(opts.turns&&e.turn!==lastTurn){out.push("<div class=\"turn\">Turn "+esc(String(e.turn))+"</div>");lastTurn=e.turn;}
+      if(e.role==="player"){
+        out.push("<div class=\"act\" data-turn=\""+e.turn+"\">"+esc(e.text)+"</div>");
+      }else{
+        var paras=String(e.text).split(/\n{2,}|\n/),pj=[],k;
+        for(k=0;k<paras.length;k++)if(paras[k].trim())pj.push("<p>"+esc(paras[k].trim())+"</p>");
+        out.push("<div class=\"gm\" data-turn=\""+e.turn+"\">"+(pj.length?pj.join(""):"<p>"+esc(e.text)+"</p>")+"</div>");
+      }
+    }
+    out.push("</section>");
+    return out.join("");
+  }
+
+  function bookCss(){
+    return ":root{--paper:#f7f1e6;--ink:#2b2620;--dim:#8a7f6d;--acc:#b8935a;--rule:#e3d8c4;--quiet:#5c5140}"
+      +"@media (prefers-color-scheme:dark){:root{--paper:#141310;--ink:#ded4c2;--dim:#8d8371;--acc:#c6a06a;--rule:#2c2822;--quiet:#a99d88}}"
+      +"*{box-sizing:border-box}html,body{margin:0}"
+      +"body{background:var(--paper);color:var(--ink);font:17px/1.72 Georgia,'Iowan Old Style','Times New Roman',serif}"
+      +".wrap{max-width:720px;margin:0 auto;padding:56px 24px 96px}"
+      +".cover{text-align:center;border-bottom:2px solid var(--acc);padding-bottom:30px;margin-bottom:14px}"
+      +".cover img{width:150px;height:200px;object-fit:cover;border:1px solid var(--rule);border-radius:3px;margin-bottom:20px;display:inline-block}"
+      +".cover h1{font-size:33px;line-height:1.2;margin:0 0 12px;font-weight:700;letter-spacing:-.01em}"
+      +".cover .who{font-size:15px;color:var(--dim);font-style:italic;margin:0 0 14px}"
+      +".cover .meta{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.18em;line-height:2}"
+      +".chapter{margin-top:56px}"
+      +".chapter-title{font-size:13px;margin:0 0 4px;font-weight:400;line-height:1.5}"
+      +".chapter-title .cnum{display:block;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc)}"
+      +".chapter-title .cname{display:block;font-size:24px;line-height:1.3;color:var(--ink);font-weight:700;margin-top:5px}"
+      +".crange{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:16px}"
+      +".epigraph{font-style:italic;color:var(--quiet);font-size:15px;line-height:1.66;border-left:2px solid var(--acc);padding:2px 0 2px 16px;margin:0 0 20px}"
+      +".marks{list-style:none;padding:0;margin:0 0 22px;font-size:12.5px;line-height:1.6;color:var(--dim)}"
+      +".marks .mark{padding-left:18px;position:relative;margin-bottom:4px}"
+      +".marks .mark:before{content:'\\2726';position:absolute;left:0;color:var(--acc)}"
+      +".marks .mark.decision:before{content:'\\2696'}"
+      +".turn{text-align:center;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.24em;margin:30px 0 12px;opacity:.75}"
+      +".gm p{margin:0 0 16px}"
+      +".act{margin:20px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);color:var(--quiet);font-style:italic}"
+      +".act:before{content:'\\276F   ';color:var(--acc);font-style:normal}"
+      +".colophon{margin-top:70px;padding-top:18px;border-top:1px solid var(--rule);text-align:center;font-size:11.5px;line-height:1.8;color:var(--dim)}"
+      // Print = the PDF story for v1: white paper, black ink, a chapter starts a page.
+      +"@media print{"
+      +"body{background:#fff;color:#111;font-size:11.5pt}"
+      +".wrap{max-width:none;padding:0}"
+      +".cover{page-break-after:always;padding-top:22%}"
+      +".chapter{page-break-before:always;margin-top:0}"
+      +".chapter-title .cname{font-size:19pt}"
+      +".epigraph,.act{border-left-color:#999}"
+      +".turn{opacity:.6}"
+      +".gm p{orphans:2;widows:2}"
+      +"@page{margin:22mm 20mm}"
+      +"}";
+  }
+
+  function renderCover(model,opts){
+    var s=model.stats,out=[];
+    out.push("<header class=\"cover\">");
+    if(opts.portrait&&model.character.portrait)
+      out.push("<img alt=\""+esc(model.character.name)+"\" src=\""+esc(model.character.portrait)+"\">");
+    out.push("<h1>"+esc(model.title)+"</h1>");
+    out.push("<div class=\"who\">"+esc(model.character.name)+(model.character.line?" &mdash; "+esc(model.character.line):"")+"</div>");
+    out.push("<div class=\"meta\">Turns "+model.turnFirst+"&ndash;"+model.turnLast
+      +" &middot; "+s.chapters+" chapter"+(s.chapters===1?"":"s")
+      +" &middot; "+num(s.used)+" passages</div>");
+    out.push("</header>");
+    return out.join("");
+  }
+
+  function renderColophon(model,opts){
+    var s=model.stats,when="",bits=[];
+    try{when=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});}catch(e){}
+    bits.push("Compiled from "+num(s.used)+" verbatim passages across "+s.chapters+" chapter"+(s.chapters===1?"":"s"));
+    if(s.skipTotal){
+      var parts=[],k;
+      for(k in s.skipped)if(s.skipped[k])parts.push(s.skipped[k]+" "+k);
+      bits.push(s.skipTotal+" passage"+(s.skipTotal===1?"":"s")+" left out ("+parts.join(", ")+")");
+    }
+    if(when)bits.push(when);
+    bits.push("Traffic and Dragons &middot; "+SC_VERSION);
+    return "<div class=\"colophon\">"+bits.join("<br>")+"</div>";
+  }
+
+  function buildDoc(model,chapterHtml,opts,partial){
+    opts=opts||{};
+    var head="<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+      +"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+      +"<meta name=\"generator\" content=\""+esc(SC_VERSION)+"\">"
+      +"<title>"+esc(model.title)+" &mdash; a Traffic and Dragons chronicle</title>"
+      +"<style>"+bookCss()+"</style></head>"
+      // data-tnd-story marks this file as a compiled chronicle for the later fold/person passes.
+      +"<body data-tnd-story=\"1\" data-turn-first=\""+model.turnFirst+"\" data-turn-last=\""+model.turnLast+"\">"
+      +"<div class=\"wrap\">";
+    var body=chapterHtml.join("");
+    if(!body)body="<p style=\"text-align:center;color:var(--dim)\">No narrative recorded yet.</p>";
+    var tailNote=partial?"<div class=\"colophon\">Preview only &mdash; "+chapterHtml.length+" of "+model.chapters.length+" chapters shown. The exported file contains every one.</div>":renderColophon(model,opts);
+    return head+renderCover(model,opts)+"<main>"+body+"</main>"+tailNote+"</div></body></html>";
+  }
+
+  // Sync compile — the whole book in one pass, array-joined (never string +=). Used by the
+  // seam and by the export; the UI drives the same per-chapter renderer in slices so a
+  // 4000-passage campaign can show progress instead of freezing.
+  function compileSync(opts){
+    if(!CUR)return null;
+    opts=opts||readOpts();
+    MODEL=buildModel(CUR,opts);
+    var html=[],i;
+    for(i=0;i<MODEL.chapters.length;i++)html.push(renderChapter(MODEL.chapters[i],opts));
+    DOCHTML=buildDoc(MODEL,html,opts,false);
+    return {model:MODEL,chapterHtml:html,doc:DOCHTML};
+  }
+
+  // ── UI ───────────────────────────────────────────────────────────────────────
+  function progress(txt,pct){
+    var t=$("ptext");if(t)t.textContent=txt;
+    var b=$("pbar");if(b)b.style.width=(pct==null?0:Math.max(0,Math.min(100,pct)))+"%";
+  }
+  function renderStats(model){
+    var el=$("stats");if(!el)return;
+    if(!model){
+      var ws=CUR?CUR.ws:null;
+      el.innerHTML=ws?("<div class='row'><span>Campaign</span><span>"+esc(ws.campName||"—")+"</span></div>"
+        +"<div class='row'><span>Passages on file</span><span>"+num((ws.transcript||[]).length)+"</span></div>"
+        +"<div class='note'>Press <b>📖 Compile</b> to weave the book.</div>")
+        :"<div class='note'>Load a save, or open this page on the same origin as a played campaign.</div>";
+      return;
+    }
+    var s=model.stats,rows=[];
+    rows.push(["Chapters",num(s.chapters)+(s.emptyChapters?" (+"+s.emptyChapters+" empty)":"")]);
+    rows.push(["Passages",num(s.used)]);
+    rows.push(["Player actions",num(s.players)]);
+    rows.push(["GM passages",num(s.gms)]);
+    rows.push(["Turns",model.turnFirst+"–"+model.turnLast]);
+    rows.push(["Beats &amp; decisions",num(s.marks)]);
+    var h="",i;
+    for(i=0;i<rows.length;i++)h+="<div class='row'><span>"+rows[i][0]+"</span><span>"+rows[i][1]+"</span></div>";
+    if(s.skipTotal){
+      var parts=[],k;
+      for(k in s.skipped)if(s.skipped[k])parts.push(s.skipped[k]+" "+k);
+      h+="<div class='row warnrow'><span>Left out</span><span>"+num(s.skipTotal)+"</span></div>";
+      h+="<div class='note'>"+esc(parts.join(", "))+" — passages the player never saw, or that a later turn corrected. They stay in the save; the book just doesn't print them.</div>";
+    }
+    el.innerHTML=h;
+  }
+  function paintPreview(model,chapterHtml,opts){
+    var fr=$("preview");if(!fr)return;
+    var lim=opts.previewChapters;
+    var slice=(lim&&lim>0)?chapterHtml.slice(0,lim):chapterHtml;
+    var partial=slice.length<chapterHtml.length;
+    var html=buildDoc(model,slice,opts,partial);
+    try{
+      var d=fr.contentDocument||(fr.contentWindow&&fr.contentWindow.document);
+      if(d){d.open();d.write(html);d.close();}
+    }catch(e){warn("preview could not render: "+e.message);}
+  }
+  function compileUI(){
+    if(!CUR||BUSY)return;
+    BUSY=true;enable("compile",false);enable("export",false);
+    var opts=readOpts(),t0=(new Date()).getTime();
+    progress("Reading the transcript…",2);
+    // Yield once so the progress line paints before the (synchronous) model build.
+    setTimeout(function(){
+      MODEL=buildModel(CUR,opts);
+      var chapters=MODEL.chapters,html=[],i=0;
+      function slice(){
+        var end=Math.min(chapters.length,i+8),n;
+        for(n=i;n<end;n++)html.push(renderChapter(chapters[n],opts));
+        i=end;
+        progress("Weaving chapter "+i+" of "+chapters.length+"…",chapters.length?(i/chapters.length)*96:96);
+        if(i<chapters.length){setTimeout(slice,0);return;}
+        DOCHTML=buildDoc(MODEL,html,opts,false);
+        renderStats(MODEL);
+        paintPreview(MODEL,html,opts);
+        var ms=(new Date()).getTime()-t0;
+        progress("Compiled "+num(MODEL.stats.chapters)+" chapters · "+num(MODEL.stats.used)+" passages · "+ms+" ms",100);
+        BUSY=false;enable("compile",true);enable("export",true);
+      }
+      if(!chapters.length){
+        DOCHTML=buildDoc(MODEL,[],opts,false);renderStats(MODEL);paintPreview(MODEL,[],opts);
+        progress("Nothing to compile — this campaign has no printable passages.",100);
+        BUSY=false;enable("compile",true);enable("export",true);return;
+      }
+      slice();
+    },0);
+  }
+  function safeName(s){return String(s||"story").replace(/[^A-Za-z0-9._-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,80)||"story";}
+  function exportDoc(){
+    if(!DOCHTML||!MODEL)return;
+    var fname=safeName(MODEL.title)+"__"+safeName(MODEL.character.name)+"_t"+MODEL.turnLast+"_story.html";
+    try{
+      var blob=new Blob([DOCHTML],{type:"text/html"});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement("a");
+      a.href=url;a.download=fname;
+      document.body.appendChild(a);a.click();
+      setTimeout(function(){try{document.body.removeChild(a);}catch(e){}URL.revokeObjectURL(url);},400);
+      progress("Exported "+fname+" ("+num(Math.round(DOCHTML.length/1024))+" KB)",100);
+    }catch(e){progress("Export failed: "+e.message,100);warn("export failed: "+e.message);}
+  }
+
+  // ── test seam (the no-untestable-surface rule) ───────────────────────────────
+  // Everything the page's own buttons do, drivable headlessly: inject a campaign, compile,
+  // read the model, read the finished document.
+  window.__storyTest={
+    load:function(d,label){return normalize(d,label||"seam",false);},
+    loadLive:function(){return tryLocalStorage();},
+    compile:function(o){return compileSync(o||readOpts());},
+    model:function(){return MODEL;},
+    doc:function(){return DOCHTML;},
+    renderChapter:renderChapter,
+    buildModel:function(o){return CUR?buildModel(CUR,o||readOpts()):null;},
+    chapterTitle:chapterTitle,
+    version:SC_VERSION,
+    _warnCount:function(){return _warned;}
+  };
+
+  // ── wiring ───────────────────────────────────────────────────────────────────
+  var f=$("file");
+  if(f&&f.addEventListener)f.addEventListener("change",function(){if(this.files&&this.files[0])loadFile(this.files[0]);});
+  var lv=$("live");if(lv&&lv.addEventListener)lv.addEventListener("click",function(){tryLocalStorage(true);});
+  var cb=$("compile");if(cb&&cb.addEventListener)cb.addEventListener("click",compileUI);
+  var xb=$("export");if(xb&&xb.addEventListener)xb.addEventListener("click",exportDoc);
+  var stage=$("stage");
+  if(stage&&stage.addEventListener){
+    stage.addEventListener("dragover",function(ev){ev.preventDefault();var d=$("drop");if(d)d.style.display="flex";});
+    stage.addEventListener("dragleave",function(){var d=$("drop");if(d)d.style.display="none";});
+    stage.addEventListener("drop",function(ev){ev.preventDefault();var d=$("drop");if(d)d.style.display="none";
+      if(ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0])loadFile(ev.dataTransfer.files[0]);});
+  }
+  var i,ids=["opt-epigraph","opt-beats","opt-portrait","opt-turns","opt-preview"];
+  for(i=0;i<ids.length;i++){
+    var oe=$(ids[i]);
+    if(oe&&oe.addEventListener)oe.addEventListener("change",function(){if(MODEL&&!BUSY)compileUI();});
+  }
+  // Boot: the live campaign if this page sits on the same origin as one. Silent when absent —
+  // the empty-state panel already explains the other two routes.
+  tryLocalStorage(false);
+})();
+</script>
+</body>
+</html>
