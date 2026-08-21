@@ -418,6 +418,14 @@ function clockPhaseAssertion(text){
            the old pattern allowed only an optional "the". Clause punctuation still severs
            government ("an hour before, at dawn," keeps its assertion). */
         if(/\bbefore\b[^.!?;,]{0,32}$/i.test(sent.slice(Math.max(0,st-40),st)))continue;
+        /* #195④ (field 2026-08-17, 1:17pm): "the permanent twilight of the Underbridge" is a
+           PLACE's standing darkness, not a scene-time assertion — it armed the reconcile nudge
+           mid-afternoon. Two reject contexts: a standing-condition adjective immediately before
+           the cue (permanent twilight, eternal night), and attribute-of-place government after
+           it — the CAPITAL letter is the discriminator ("twilight of the Underbridge" rejects;
+           "the dusk of the second day" keeps its assertion). */
+        if(/\b(?:permanent(?:ly)?|perpetual|eternal|endless|everlasting|unending|constant)\s+$/i.test(sent.slice(Math.max(0,st-16),st)))continue;
+        if(/^\s+of\s+(?:the\s+)?[A-Z]/.test(sent.slice(en,en+24)))continue;
         for(j=0;j<claimed.length;j++){if(st<claimed[j].en&&en>claimed[j].st){ov=true;break;}}
         if(!ov)claimed.push({st:st,en:en,idx:i,label:pm[0]});
       }

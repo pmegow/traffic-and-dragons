@@ -38,11 +38,14 @@ rc |= sabotage.prove({
   file: "game.js",
   command: ["node", ["dev/run-tests.js"]],
   cases: [
+    /* #195 bycatch (2026-08-21): both find-targets rotted at #197/v1.665 when the hooks gained
+       the !_refusal / !_rrRefusal guards — the clauses reported NOT APPLIED (untested guards)
+       until re-pinned to the shipped lines. */
     { label: "commitGmTurn hook removed — untagged phases go unnoticed on the story path",
-      find: "  if(typeof clockPhaseDetect===\"function\")clockPhaseDetect(clean);/* #158: phase-mismatch watcher",
+      find: "  if(!_refusal&&typeof clockPhaseDetect===\"function\")clockPhaseDetect(clean);/* #158: phase-mismatch watcher",
       replace: "  /* hook excised — #158: phase-mismatch watcher" },
     { label: "rerollLast hook removed — replacement narration escapes detection",
-      find: "    if(typeof clockPhaseDetect===\"function\")clockPhaseDetect(clean);/* #158: rerolls REPLACE",
+      find: "    if(!_rrRefusal&&typeof clockPhaseDetect===\"function\")clockPhaseDetect(clean);/* #158: rerolls REPLACE",
       replace: "    /* hook excised — #158: rerolls REPLACE" }
   ]
 });

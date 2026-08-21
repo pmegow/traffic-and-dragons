@@ -13575,6 +13575,16 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     delete worldState.phaseMismatch;
     return worldState;
   }
+  t("#195④: a PLACE's standing darkness is not a time assertion (the Underbridge class)",function(){
+    makeClockWorld(800);
+    if(clockPhaseAssertion("The permanent twilight of the Underbridge pressed close around them."))return "'permanent twilight of the Underbridge' read as scene time — the 1:17pm false alarm";
+    if(clockPhaseAssertion("Eternal night reigned in the sealed vault."))return "'eternal night' (standing condition) read as scene time";
+    if(clockPhaseAssertion("The twilight of the Underbridge swallowed the stair."))return "'twilight of the <Place>' (attribute-of-place) read as scene time";
+    var p=clockPhaseAssertion("Twilight settled over the market stalls.");
+    if(!p||!/twilight/i.test(p.label))return "plain twilight assertion lost (precision fix overreached)";
+    var q=clockPhaseAssertion("The dusk of the second day settled over the camp.");
+    return q&&/dusk/i.test(q.label)?true:"'dusk of the second day' (lowercase of-phrase) must keep its assertion";
+  });
   t("prose forms are \\b-anchored derivations of TIME_PHASES — embedded words never match, specificity survives",function(){
     makeClockWorld(310);
     if(clockPhaseAssertion("You reach the Morningstar Inn and stable the horses."))return "'Morningstar' matched morning — the label regexes leaked unanchored into prose";

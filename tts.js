@@ -245,15 +245,31 @@ var TTS = (function() {
   // Fire-and-forget health probe: wakes the auto-stopped Fly machine so the first read's unit 0
   // doesn't pay the cold boot, and refreshes the availability memo LOUDLY if the server is gone.
   // Wired where prewarmPiper is wired (toggle-on + boot), whenever the server tier is selected.
-  function prewarmServer() {
+  // #195② (field 2026-08-17, "availability re-check failed" while the server was healthy): the
+  // old single 8s deadline DEGRADED the tier when the machine it had just woken took longer than
+  // 8s to boot — the probe defeated its own purpose on exactly the cold machine it exists for.
+  // An ABORT (deadline) now gets ONE patient retry on a cold-boot budget — the first fetch
+  // already started the machine, so the retry lands on a booting box; only the retry's failure
+  // degrades. Non-abort failures (DNS, refused, HTTP status) are real answers and degrade
+  // immediately as before. opts {probeMs, coldMs} is the test seam; production callers pass none.
+  function prewarmServer(opts) {
     if (!_serverTtsOk()) return;
+    var probeMs = (opts && opts.probeMs) || 8000, coldMs = (opts && opts.coldMs) || 30000;
+    _probeServerHealth(probeMs, function(err, wasAbort) {
+      if (!err) return;
+      if (!wasAbort) { _serverTtsDegrade(err); return; }
+      _probeServerHealth(coldMs, function(err2) { if (err2) _serverTtsDegrade(err2 + " (after cold-boot retry)"); });
+    });
+  }
+  function _probeServerHealth(ms, cb) {
     try {
       var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-      var tid = ctrl ? setTimeout(function() { ctrl.abort(); }, 8000) : null;
+      var aborted = false;
+      var tid = ctrl ? setTimeout(function() { aborted = true; ctrl.abort(); }, ms) : null;
       fetch(_ttsServerUrl() + "/health", ctrl ? { signal: ctrl.signal } : {})
-        .then(function(r) { if (tid) clearTimeout(tid); if (!r.ok) _serverTtsDegrade("health check HTTP " + r.status); })
-        .catch(function(e) { if (tid) clearTimeout(tid); _serverTtsDegrade("health check failed: " + ((e && e.message) || e)); });
-    } catch (e) {}
+        .then(function(r) { if (tid) clearTimeout(tid); cb(r.ok ? null : "health check HTTP " + r.status, false); })
+        .catch(function(e) { if (tid) clearTimeout(tid); cb("health check failed: " + ((e && e.message) || e), aborted); });
+    } catch (e) { cb("health check failed: " + ((e && e.message) || e), false); }
   }
 
   // ── Gemini TTS tier (#41, first pass) ────────────────────────────────────────────────────────

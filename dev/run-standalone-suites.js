@@ -13,6 +13,7 @@ var SUITES = [
   "dev/tests-dedup-a.js",
   "dev/tests-160-portrait-builder.js",
   "dev/tests-5-story-compiler.js",
+  "dev/tests-195-server-probe.js",
   "dev/tests-verification-enforcement.js",
   "dev/tests-sabotage-meta.js",
   "dev/tests-file-forensics.js",
