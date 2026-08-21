@@ -2402,6 +2402,9 @@ function buildSceneRenderRequest(c,party,w){
        on CONCRETE craft vocabulary. Owner report t2084: four full-length figures standing in a
        row despite the old directive. Per-character pose clauses + hard variety constraints +
        one named camera/motion sentence are the working levers. */
+    /* Owner directive (t2084 follow-up): comic-book COMPOSITION/POSING vocabulary — scoped away
+       from the art style on purpose, so renders gain splash-page energy without going cel-shaded. */
+    +"Comic-book splash-panel composition and posing: dramatic foreshortening, exaggerated action angles, bodies cutting across the frame on diagonals — while the ART STYLE below stays painterly, never cel-shaded or inked. "
     +"POSE every character by what they are doing in the scene right now — give each a specific mid-action body position (mid-swing, lunging, bracing, twisting to look, hauling, diving); NO two characters in the same stance, at least one seen from behind or in profile, at least one large in the foreground partially cropped by the frame; never a static front-facing line-up or posed group portrait. "
     +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
     +"End with ONE camera-and-motion sentence naming a specific angle and framing (low-angle close shot, over-the-shoulder, dutch tilt, worm's-eye) plus a motion cue (blade streaking, sparks flying, cloth and hair in motion). "

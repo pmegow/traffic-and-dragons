@@ -4720,6 +4720,8 @@ function runEngineTests(R){
     if(rp.indexOf("ONE full sentence")<0)return "no per-character description floor: "+rp.slice(rp.length-300);
     /* t2084 dynamism upgrade: concrete pose-variety constraints + a named camera/motion sentence —
        abstract "dynamic poses" rendered as a four-in-a-row tableau in the field. */
+    if(rp.indexOf("Comic-book splash-panel composition and posing")<0)return "the owner's comic-book composition directive missing";
+    if(rp.indexOf("never cel-shaded")<0)return "the style scoping is gone — comic COMPOSITION must not flip the painterly art style";
     if(rp.indexOf("NO two characters in the same stance")<0)return "pose-variety constraint missing";
     if(rp.indexOf("partially cropped by the frame")<0)return "foreground-crop depth directive missing";
     if(rp.indexOf("camera-and-motion sentence")<0)return "the named camera/motion spec missing";
