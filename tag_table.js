@@ -894,6 +894,13 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
    instruments and stay untouched (F2). Dead/unknown/non-party names are loud no-ops. */
 {t:"PARTY_SPLIT",apply:function(text,R){var psTags=text.match(/\[PARTY_SPLIT:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var psi;for(psi=0;psi<psTags.length;psi++){var psm=psTags[psi].match(/\[PARTY_SPLIT:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!psm)continue;
   var psName=resolveNpcName(psm[1].trim()),psArg=locResolve(normalizeEndpointPair(psm[2].trim())),psSub=psm[3]?psm[3].trim():null;/* #156: split destinations get the same route-name canonicalization as [LOCATION:]; #156B: and identity resolution */
+  /* #189ⓒ (t2095-2097, the camera-omission split): the GM writes interiors PARENTHETICALLY into
+     the location field — "Magnimar (Wyla Ashvane's shop)" — which reads as a distinct name-born
+     key, so buildSplitAudit's same-world waiver never saw the target IS the party's own city and
+     the misuse aged out unaudited. Normalize at the write boundary when the OUTER name resolves
+     to a KNOWN WORLD node and no explicit sublocation was given — an identity split, not a timer
+     (the 2026-08-09 lesson). Unknown outers stay untouched: never guess. */
+  if(!psSub){var psPar=psArg.match(/^(.+?)\s*\(([^()]+)\)\s*$/);if(psPar){var psOuter=locResolve(normalizeEndpointPair(psPar[1].trim()));var psONode=(typeof memory!=="undefined"&&memory.map&&memory.map.nodes)?memory.map.nodes[psOuter]:null;if(psONode&&!psONode.parent){if(typeof console!=="undefined")console.info("[multiplayer] split target '"+psm[2].trim()+"' normalized to "+psOuter+" | "+psPar[2].trim()+" (#189c)");psArg=psOuter;psSub=psPar[2].trim();}}}
   if(worldState.character&&psName===worldState.character.name){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — the hero IS the primary thread (bare [LOCATION:] moves them)");continue;}
   var psN=wsNpcByName(psName);
   if(!psN||!psN.partyMember||!psN.charSheet){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — not a party member with a character sheet");continue;}

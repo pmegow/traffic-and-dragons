@@ -3858,6 +3858,44 @@ function runEngineTests(R){
     return NOTE_LATCH_FIELDS.indexOf("dupItemPending")>=0?true:"pending record not latch-protected";
   });
 
+  // ── #189ⓒ the camera-omission split — parenthetical interiors normalize at the write boundary ─
+  section("#189ⓒ same-place split normalization");
+  function makeSplitWorld(){
+    makeWorld();
+    worldState.world.location="Magnimar";worldState.world.sublocation=null;worldState.turn=30;
+    if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+    memory.map.nodes["Magnimar"]={firstVisit:1,visits:5,description:null,parent:null,npcs:[],items:[]};
+    worldState.npcs.push({name:"Morwen",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Morwen",cls:"Rogue",level:2,hp:10,maxHp:10,xp:0,stats:{},abilities:[],inventory:[],spells:[],conditions:[]}});
+  }
+  t("#189ⓒ: a parenthetical interior in the split target normalizes to location|sublocation when the outer is a KNOWN world node",function(){
+    makeSplitWorld();
+    applyMuts("[PARTY_SPLIT:Morwen|Magnimar (Wyla Ashvane's shop)]");
+    var sl=worldState.npcs[worldState.npcs.length-1].charSheet.splitLoc;
+    if(!sl)return "split not recorded";
+    if(sl.location!=="Magnimar")return "outer not normalized: "+sl.location;
+    return sl.sublocation==="Wyla Ashvane's shop"?true:"interior not captured as sublocation: "+sl.sublocation;
+  });
+  t("#189ⓒ: the normalized shape makes the split-audit's same-world waiver fire immediately (the t2097 catch)",function(){
+    makeSplitWorld();
+    applyMuts("[PARTY_SPLIT:Morwen|Magnimar (Wyla Ashvane's shop)]");
+    worldState.turn=31;worldState.combat=null;
+    var n=buildSplitAudit();
+    return n&&n.indexOf("Morwen")>=0?true:"audit did not fire on a fresh same-world split (waiver missed): "+JSON.stringify(n&&n.slice(0,80));
+  });
+  t("#189ⓒ: an UNKNOWN outer name is never guessed apart",function(){
+    makeSplitWorld();
+    applyMuts("[PARTY_SPLIT:Morwen|The Gilded Cage (upper floor)]");
+    var sl=worldState.npcs[worldState.npcs.length-1].charSheet.splitLoc;
+    if(!sl)return "split not recorded";
+    return sl.location==="The Gilded Cage (upper floor)"&&!sl.sublocation?true:"unknown outer was split apart: "+JSON.stringify(sl);
+  });
+  t("#189ⓒ: the explicit 3-field form is untouched by the normalizer",function(){
+    makeSplitWorld();
+    applyMuts("[PARTY_SPLIT:Morwen|Sandpoint|The Rusty Dragon]");
+    var sl=worldState.npcs[worldState.npcs.length-1].charSheet.splitLoc;
+    return sl&&sl.location==="Sandpoint"&&sl.sublocation==="The Rusty Dragon"?true:"3-field form damaged: "+JSON.stringify(sl);
+  });
+
   // ── #190ⓓⓔ the Caul loop's terminal teeth ──────────────────────────────────────────────────
   section("#190 shelved-dispute re-arm cap + summary strike deferral");
   t("#190ⓓ: an IDENTICAL retry never re-arms a shelved dispute",function(){
