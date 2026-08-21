@@ -293,10 +293,14 @@ function buildQuestBlock(){
   for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(q.status==="active")active.push(q);else if(q.status==="offered")offered.push(q);}
   var out="";
   if(active.length){out+="ACTIVE QUESTS (authoritative — steer toward these; advance objectives via [QUEST_STEP:title|objective|done]):\n";
-    out+="Objectives are OUTCOMES, not rituals: if an objective's outcome has been achieved or made irrelevant by ANY means — accident, excess, a different plan than written — mark it [QUEST_STEP:title|objective|true] in that same response.\n";/* #191ⓐ */for(i=0;i<active.length;i++){var aq=active[i];out+="• "+aq.title+(aq.desc?" — "+aq.desc:"")+"\n";var allDone=false,hasObj=!!(aq.objectives&&aq.objectives.length);if(hasObj){allDone=true;var oj;for(oj=0;oj<aq.objectives.length;oj++){out+="    ["+(aq.objectives[oj].done?"x":" ")+"] "+aq.objectives[oj].text+"\n";if(!aq.objectives[oj].done)allDone=false;}}
+    out+="Objectives are OUTCOMES, not rituals: if an objective's outcome has been achieved or made irrelevant by ANY means — accident, excess, a different plan than written — mark it [QUEST_STEP:title|objective|true] in that same response.\n";/* #191ⓐ */for(i=0;i<active.length;i++){var aq=active[i];out+="• "+aq.title+(aq.desc?" — "+aq.desc:"")+"\n";var hasObj=!!(aq.objectives&&aq.objectives.length);
+    /* #205b: OPTIONAL objectives (side errands like the bracelets) never block completion —
+       the finish line is computed over REQUIRED objectives only, and an all-optional list is
+       NOT vacuously complete (a well-formed quest carries its end condition as a required box). */
+    var allDone=false,allLiterally=true,hasReq=false;if(hasObj){allDone=true;var oj;for(oj=0;oj<aq.objectives.length;oj++){var ob=aq.objectives[oj];out+="    ["+(ob.done?"x":" ")+"] "+ob.text+(ob.optional?" (optional)":"")+"\n";if(!ob.done)allLiterally=false;if(!ob.optional){hasReq=true;if(!ob.done)allDone=false;}}if(!hasReq)allDone=false;}
     /* #205 (t2101 Pinnacle of Avarice): completion demands the END CONDITION be a CHECKED box —
        a sub-errand list at 100% must grow the goal objective, never close the quest over it. */
-    if(allDone)out+="    ⚑ ALL OBJECTIVES COMPLETE — if this quest is truly finished — the CHECKED objectives include its END CONDITION (the outcome its description promises), not merely errands or preparation — emit [QUEST:"+aq.title+"|completed] now, together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if the real goal is not yet on the list, add it via [QUEST_STEP:"+aq.title+"|end condition] instead of completing.\n";
+    if(allDone)out+="    ⚑ "+(allLiterally?"ALL OBJECTIVES COMPLETE":"ALL REQUIRED OBJECTIVES COMPLETE (open optional objectives never block completion)")+" — if this quest is truly finished — the CHECKED objectives include its END CONDITION (the outcome its description promises), not merely errands or preparation — emit [QUEST:"+aq.title+"|completed] now, together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if the real goal is not yet on the list, add it via [QUEST_STEP:"+aq.title+"|end condition] instead of completing.\n";
     // UA30-b: an active quest with NO objectives can never trip the all-complete teeth above,
     // so it floats forever, invisible to the finish line. Nudge the GM to file trackable steps.
     else if(!hasObj)out+="    ⚑ NO OBJECTIVES FILED — file this quest's END CONDITION (the outcome that finishes it, per its description) as the FIRST objective via [QUEST_STEP:"+aq.title+"|objective], then up to 2 current sub-tasks, so progress can be tracked and the quest can complete.\n";}}
@@ -314,7 +318,9 @@ function stampQuestCompletion(){
   for(i=0;i<worldState.questLog.length;i++){
     var q=worldState.questLog[i];
     var all=q.status==="active"&&!!(q.objectives&&q.objectives.length);
-    if(all){for(j=0;j<q.objectives.length;j++){if(!q.objectives[j].done){all=false;break;}}}
+    /* #205b: the stamp mirrors buildQuestBlock — REQUIRED objectives only, and an all-optional
+       list never counts as complete (no required box = no finish line to have crossed). */
+    if(all){var hasReq=false;for(j=0;j<q.objectives.length;j++){if(!q.objectives[j].optional){hasReq=true;if(!q.objectives[j].done){all=false;break;}}}if(!hasReq)all=false;}
     if(all){if(q.allDoneSince==null)q.allDoneSince=worldState.turn;}
     else if(q.allDoneSince!=null)delete q.allDoneSince;
     // #129 zero-objective stamp: an ACTIVE quest with no checklist leaves the player nothing to
@@ -345,7 +351,7 @@ function buildQuestEscalation(){
   if(!pick)return"";
   /* #205: this note outranks the mid-prompt line, so it carries the same end-condition caveat —
      without it the stronger channel re-creates the t2101 errand-closes-the-quest failure. */
-  return"[ENGINE NOTE: Quest '"+pick.title+"' has had all objectives complete for "+stale+" turns. In THIS response either emit [QUEST:"+pick.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]) — but ONLY if the checked objectives include the quest's end condition, not merely errands — or add the missing objective (the end condition first) via [QUEST_STEP:"+pick.title+"|<objective>].]";
+  return"[ENGINE NOTE: Quest '"+pick.title+"' has had every required objective complete for "+stale+" turns. In THIS response either emit [QUEST:"+pick.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]) — but ONLY if the checked objectives include the quest's end condition, not merely errands — or add the missing objective (the end condition first) via [QUEST_STEP:"+pick.title+"|<objective>].]";
 }
 // #129: the inverse gap — an ACTIVE quest with NO objectives at all gives the player no checklist
 // and the #20 completion teeth nothing to detect. Reads the noObjSince stamp written by

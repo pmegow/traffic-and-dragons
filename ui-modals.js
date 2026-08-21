@@ -437,7 +437,7 @@ function showItemDefConfirmModal(){
 // ── Quest journal ─────────────────────────────────────────────────────────────
 function showQuestModal(){
   var ql=(worldState&&worldState.questLog)||[];
-  function objList(q){if(!q.objectives||!q.objectives.length)return"";var h="<div style='margin-top:6px;'>",oj;for(oj=0;oj<q.objectives.length;oj++){var o=q.objectives[oj];h+="<div style='font-size:12px;color:"+(o.done?"var(--t2)":"var(--t1)")+";margin:2px 0;'>"+(o.done?"☑":"☐")+" "+escHtml(o.text)+"</div>";}return h+"</div>";}
+  function objList(q){if(!q.objectives||!q.objectives.length)return"";var h="<div style='margin-top:6px;'>",oj;for(oj=0;oj<q.objectives.length;oj++){var o=q.objectives[oj];h+="<div style='font-size:12px;color:"+(o.done?"var(--t2)":"var(--t1)")+";margin:2px 0;'>"+(o.done?"☑":"☐")+" "+escHtml(o.text)+(o.optional?" <span style='color:var(--t2);'>(optional)</span>":"")+"</div>";}return h+"</div>";}
   var offeredHtml="",activeHtml="",i;
   for(i=0;i<ql.length;i++){var q=ql[i];
     if(q.status==="offered"){

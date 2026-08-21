@@ -3741,6 +3741,56 @@ function runEngineTests(R){
     var joined=DEFAULT_RULES.join("\n");
     return joined.indexOf("END CONDITION")>=0?true:"DEFAULT_RULES carries no end-condition clause";
   });
+  // ── #205b OPTIONAL objectives (owner refinement 2026-08-21): a side errand (the bracelets)
+  // marked optional never blocks completion — the end condition alone drives the finish line.
+  t("#205b: [QUEST_STEP:|objective|optional] files an undone OPTIONAL objective",function(){
+    makeWorld();
+    applyMuts("[QUEST:Hunt|active|kill the wolf][QUEST_STEP:Hunt|Buy silver arrows|optional]");
+    var o=worldState.questLog[0].objectives[0];
+    if(o.done!==false)return "optional-only third field must not read as done";
+    return o.optional===true?true:"optional flag not stored";
+  });
+  t("#205b: 4-field form |true|optional sets both done and optional",function(){
+    makeWorld();
+    applyMuts("[QUEST:Hunt|active|kill the wolf][QUEST_STEP:Hunt|Buy silver arrows|true|optional]");
+    var o=worldState.questLog[0].objectives[0];
+    return o.done===true&&o.optional===true?true:"done+optional combo not parsed ("+JSON.stringify(o)+")";
+  });
+  t("#205b: a flagless re-emission preserves optional; |required clears it",function(){
+    makeWorld();
+    applyMuts("[QUEST:Hunt|active|kill the wolf][QUEST_STEP:Hunt|Buy silver arrows|optional]");
+    applyMuts("[QUEST_STEP:Hunt|Buy silver arrows|true]");
+    var o=worldState.questLog[0].objectives[0];
+    if(o.optional!==true)return "check-off stripped the optional flag";
+    applyMuts("[QUEST_STEP:Hunt|Buy silver arrows|true|required]");
+    return worldState.questLog[0].objectives[0].optional?"|required did not clear the flag":true;
+  });
+  t("#205b: open optional objectives never block the close instruction; the label says REQUIRED",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Hunt",status:"active",desc:"",objectives:[
+      {text:"Kill the wolf",done:true},{text:"Buy silver arrows",done:false,optional:true}]}];
+    var b=buildQuestBlock();
+    if(b.indexOf("ALL REQUIRED OBJECTIVES COMPLETE")<0)return "close instruction blocked by an open optional objective";
+    return b.indexOf("(optional)")>=0?true:"optional objective not labeled in the block";
+  });
+  t("#205b: an all-optional objective list is NOT treated as complete",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Hunt",status:"active",desc:"",objectives:[{text:"Buy silver arrows",done:false,optional:true}]}];
+    return buildQuestBlock().indexOf("OBJECTIVES COMPLETE")<0?true:"vacuous close nudge on an all-optional quest";
+  });
+  t("#205b: allDoneSince stamps over REQUIRED objectives only, never on an all-optional list",function(){
+    makeWorld();worldState.turn=10;
+    worldState.questLog=[{title:"Hunt",status:"active",objectives:[
+      {text:"Kill the wolf",done:true},{text:"Buy silver arrows",done:false,optional:true}]}];
+    stampQuestCompletion();
+    if(worldState.questLog[0].allDoneSince!==10)return "did not stamp with only an optional objective open";
+    worldState.questLog=[{title:"Vague",status:"active",objectives:[{text:"a",done:false,optional:true}]}];
+    stampQuestCompletion();
+    return worldState.questLog[0].allDoneSince==null?true:"stamped an all-optional quest";
+  });
+  t("#205b: the QUESTS rule teaches the optional marker",function(){
+    return DEFAULT_RULES.join("\n").indexOf("optional")>=0?true:"DEFAULT_RULES never mentions optional objectives";
+  });
 
   // ── GM-compliance teeth (audit P3/P14) ────────────────────────────────────────
   section("GM-compliance teeth (P3/P14)");
