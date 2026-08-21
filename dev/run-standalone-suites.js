@@ -11,6 +11,7 @@ var SUITES = [
   "dev/tests-29-callgm-transport.js",
   "dev/tests-41f-gemini-model-ladder.js",
   "dev/tests-dedup-a.js",
+  "dev/tests-160-portrait-builder.js",
   "dev/tests-verification-enforcement.js",
   "dev/tests-sabotage-meta.js",
   "dev/tests-file-forensics.js",

@@ -112,6 +112,59 @@ async function generatePortraitImage(prompt,refSrc){
   if(!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
   return falData.images[0].url;
 }
+// ── #160: THE shared portrait prompt-writer builder ──────────────────────────
+// ONE procedure serving all three portrait-generation surfaces — wizard step 5
+// (ftRenderPortrait, char-creation.js), the modal's text-to-image path, and the
+// modal's img2img path — which had drifted into three hand-built twins (the
+// wizard's prompt-writer knew LESS about the character than the modal's, and the
+// img2img style line had shortened). Load-order note: char-creation.js loads
+// BEFORE this file, but the wizard only CALLS this on user action long after all
+// scripts have loaded — call-time resolution makes the cross-file call safe, the
+// same UA21 ② argument as generatePortraitImage above.
+// char: the SUBJECT character — the player, a companion (showPortraitModal's
+//       subject seam), or the wizard's in-progress `cs`. Passed as a parameter ON
+//       PURPOSE: this builder must NEVER close over worldState.character (the
+//       modal serves companions). Ancestry may arrive as an ANCS id (wizard `cs`)
+//       or a display name (finished sheets store `anc.nm`) — resolved HERE, the
+//       one place: an id match wins, anything else passes through as
+//       already-a-name (ids are lowercase, display names are not — no collision).
+// opts: {details, img2img} — details = the modal's player-override text (the
+//       wizard has no such input); img2img = the likeness-from-reference
+//       instruction instead of the from-scratch one.
+// Returns {promptReq, sys} — promptReq goes to callGM with sys as sysOverride.
+// The style line is unified on the RICHER ①/② form; the img2img copy's shorter
+// "Dark fantasy painterly style…" carried no comment claiming likeness value —
+// judged drift, not design (TODO #160).
+// #11③ DIVERGENCE PRESERVED: the portrait paths default an UNSET gender to
+// "androgynous" (every other image site defaults unset to "male") — expressed via
+// the explicit 2nd arg, deliberately NOT unified. The wizard cannot reach the
+// unset case (step 2's Next commits the gender select before step 5 exists), so
+// folding it onto the modal's fallback changes no reachable wizard behavior.
+function buildPortraitPromptRequest(char,opts){
+  var details=opts&&opts.details?opts.details:"";
+  var img2img=!!(opts&&opts.img2img);
+  var gw=genderWord(char.gender,"androgynous");/* #11③ (local renamed so it can't shadow the helper) */
+  var anc=char.ancestry,ai;
+  for(ai=0;ai<ANCS.length;ai++){if(ANCS[ai].id===anc){anc=ANCS[ai].nm;break;}}
+  var d=char.name||"A character";
+  if(char.age||anc||char.cls)d+=", a "+gw+(char.age?" "+char.age:"")+(anc?" "+anc:"")+(char.cls?" "+char.cls:"")+(char.archetypeNm?" ["+char.archetypeNm+"]":"");
+  if(char.appear)d+=", "+char.appear;
+  if(char.mark)d+=", "+char.mark;
+  if(char.inventory&&char.inventory.length)d+=". Visible wardrobe/gear: "+char.inventory.join(", ");
+  var ov=details?"Player overrides — apply these exactly and let them supersede any conflicting character description: "+details+". ":"";
+  var style="Style: dark fantasy portrait, upper body, detailed face, dramatic chiaroscuro lighting, painterly. 2-3 sentences. Output ONLY the prompt, no commentary, no tags.";
+  var promptReq=img2img
+    ?"Write an image generation prompt to update a fantasy character portrait using a reference photo. "
+      +"Maintain the person's likeness from the reference but render them as: "+d+". "
+      +ov+style
+    :"Write a detailed image generation prompt for a fantasy character portrait. "
+      +ov
+      +"Base character description (use where not overridden): "+d+". "
+      +"Spell out hair, eyes, skin tone, clothing, and visible gear explicitly. "
+      +style;
+  return {promptReq:promptReq,
+    sys:"You are a portrait image prompt writer for a dark fantasy RPG. Output ONLY the image prompt. No narration, no game tags."};
+}
 async function showPortraitModal(refreshFn,opts){
   // opts = {getPortrait, setPortrait, getOffset, setOffset, subject} — defaults to player character
   var getPort=opts&&opts.getPortrait?opts.getPortrait:function(){return worldState.character.portrait;};
@@ -140,21 +193,11 @@ async function showPortraitModal(refreshFn,opts){
     if(typeof showCharSheet==="function"&&document.getElementById("cs-modal"))showCharSheet();
   };
   var _pmDirty=false;   // only repaint if something actually changed — a look-and-leave close must not reset the sheet's scroll
-  /* #11③ DIVERGENCE PRESERVED: this portrait path defaults an UNSET gender to "androgynous"
-     (every other image site defaults unset to "male") — expressed via the explicit 2nd arg,
-     deliberately NOT unified. Local renamed so it can't shadow the helper. */
-  var gw=genderWord(c.gender,"androgynous");
+  /* #160: the character description + prompt request are built by the shared
+     buildPortraitPromptRequest (top of this file) — the #11③ unset-gender→"androgynous"
+     divergence now lives THERE, still preserved. */
   var pmRefSrc=getPort()||null;
   var hasPortrait=!!(getPort());
-
-  function buildCharDesc(){
-    var d=c.name;
-    if(c.age||c.ancestry||c.cls)d+=", a "+gw+(c.age?" "+c.age:"")+(c.ancestry?" "+c.ancestry:"")+(c.cls?" "+c.cls:"")+(c.archetypeNm?" ["+c.archetypeNm+"]":"");
-    if(c.appear)d+=", "+c.appear;
-    if(c.mark)d+=", "+c.mark;
-    if(c.inventory&&c.inventory.length)d+=". Visible wardrobe/gear: "+c.inventory.join(", ");
-    return d;
-  }
 
   var IS="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:10px;box-sizing:border-box;";
   var BA="display:block;width:100%;padding:10px 14px;font-size:13px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:left;box-sizing:border-box;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;";
@@ -302,21 +345,11 @@ async function showPortraitModal(refreshFn,opts){
     if(!falKey){status.innerHTML="<span style='font-size:12px;color:var(--red);'>No fal.ai key — add one via File → fal.ai image key…</span>";return;}
     if(isImg2Img&&!pmRefSrc){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Select a reference image first.</span>";return;}
     if(busy){status.innerHTML="<span style='font-size:12px;color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
-    var charDesc=buildCharDesc();
-    var promptReq=isImg2Img
-      ?"Write an image generation prompt to update a fantasy character portrait using a reference photo. "
-        +"Maintain the person's likeness from the reference but render them as: "+charDesc+". "
-        +(details?"Player overrides — apply these exactly and let them supersede any conflicting character description: "+details+". ":"")
-        +"Dark fantasy painterly style, dramatic lighting, upper body portrait. 2-3 sentences. Output ONLY the prompt."
-      :"Write a detailed image generation prompt for a fantasy character portrait. "
-        +(details?"Player overrides — apply these exactly and let them supersede any conflicting character description: "+details+". ":"")
-        +"Base character description (use where not overridden): "+charDesc+". "
-        +"Spell out hair, eyes, skin tone, clothing, and visible gear explicitly. "
-        +"Style: dark fantasy portrait, upper body, detailed face, dramatic chiaroscuro lighting, painterly. 2-3 sentences. Output ONLY the prompt, no commentary, no tags.";
+    var req=buildPortraitPromptRequest(c,{details:details,img2img:isImg2Img});/* #160: THE shared prompt builder (takes the modal's subject — player or companion) */
     status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Writing portrait prompt…</span>";
     busy=true;
     try{
-      var prompt=await callGM(promptReq,"You are a portrait image prompt writer for a dark fantasy RPG. Output ONLY the image prompt. No narration, no game tags.",600);
+      var prompt=await callGM(req.promptReq,req.sys,600);
       status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Generating portrait…</span>";
       showResult(await generatePortraitImage(prompt,isImg2Img?pmRefSrc:null),isImg2Img,prompt);/* UA21 ②: shared fetch */
     }catch(err){

@@ -115,21 +115,17 @@ async function ftRenderPortrait(){
   var status=document.getElementById("ft-portrait-status");
   if(!falKey){status.innerHTML="<span style='color:var(--red);'>No fal.ai key — add one via File &#9656; fal.ai image key…</span>";return;}
   if(busy){status.innerHTML="<span style='color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
-  var gw=genderWord(cs.gender);/* #11③: shared mapping (local renamed — the old `var genderWord` would shadow the helper) */
-  var d=cs.name||"A character";
-  var anc=cs.ancestry?ANCS.filter(function(a){return a.id===cs.ancestry;})[0]:null;
-  if(anc)d+=", a "+gw+" "+(cs.age||"")+(" "+anc.nm)+(cs.cls?" "+cs.cls:"");
-  else d+=", a "+gw+(cs.age?" "+cs.age:"")+(cs.cls?" "+cs.cls:"");
+  // #160: prompt construction lives in the ONE shared builder beside generatePortraitImage
+  // (ui-portrait.js — loads AFTER this file, but this runs on user action long after all
+  // scripts have loaded; call-time resolution, the same UA21 ② argument as the fetch below).
+  // cs rides through with the live appearance field folded in; cs.ancestry stays the ANCS
+  // id — the builder resolves it to the display name in its one lookup.
   var ap=document.getElementById("char-appear");
-  if(ap&&ap.value.trim())d+=", "+ap.value.trim();
-  var promptReq="Write a detailed image generation prompt for a fantasy character portrait. "
-    +"Base character description: "+d+". "
-    +"Spell out hair, eyes, skin tone, clothing, and visible gear explicitly. "
-    +"Style: dark fantasy portrait, upper body, detailed face, dramatic chiaroscuro lighting, painterly. 2-3 sentences. Output ONLY the prompt, no commentary, no tags.";
+  var req=buildPortraitPromptRequest(Object.assign({},cs,{appear:ap&&ap.value.trim()?ap.value.trim():""}),{});
   status.innerHTML="<span style='color:var(--t2);font-style:italic;'>Writing portrait prompt…</span>";
   busy=true;
   try{
-    var prompt=await callGM(promptReq,"You are a portrait image prompt writer for a dark fantasy RPG. Output ONLY the image prompt. No narration, no game tags.",600);
+    var prompt=await callGM(req.promptReq,req.sys,600);
     status.innerHTML="<span style='color:var(--t2);font-style:italic;'>Generating portrait…</span>";
     // UA21 ②: shared fal.ai fetch lives in ui-portrait.js — which loads AFTER this file in
     // index.html, but ftRenderPortrait only runs on user action (wizard step 5) long after
