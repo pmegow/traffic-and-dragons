@@ -1,0 +1,27 @@
+# AUDIT — 50-turn sonnet-5 playtest (lane F, v1.689)
+
+**Run:** 50/50 turns, 0 harness errors · model claude-sonnet-5 (anthropic default) · standard model-comparison campaign (`samples/modeltestcampaign.blueprint`, Korrag template, Howard voice) · cost **$2.75** (turn bucket $1.43 @ 9,966 in/call avg; actions $1.14; summarize $0.19; cacheRead 1.66M — caching healthy) · corpus `dev/corpus_playtest_v1689_sonnet5.json` · save `testRuns/modelTestCampaign_sonnet5.tnd` (gitignored) · commissioned as lane F of the 2026-08-21 lane sweep, doubling as the measurement run for the #194 ruling-④ cast gate, #194 layer-6 priming judgment, #141 scene-check watch, #51/#48 obedience, and first live contact for v1.678–v1.689's new machinery.
+
+**Verdict: the strongest run on record for this engine version — zero invariant breaks, zero unknown tags, a coherent single-arc story in a consistent Howard voice, and the entire v1.68x drift stack held under live fire.** The two headline results are field validations: ① the extractor cited an unevidenced "Slaver Raider" death **six times** and the #190ⓔ deferral kept the summary lane striking-free (summaryFailure null, quarantines empty, all 7 chapters filed) while #190ⓓ's terminal shelf ended the dispute without re-arm churn — on v1.650 this exact shape was the 18-turn Caul toast loop with a quarantined memory window; ② the Chained Warden's death tags were double-emitted across t32/t33 and the envelope idempotency + #204 hygiene absorbed the replay with zero conflicts and zero player-facing noise. The one genuine miss: **#205's creation-time end-condition rule was ignored at both quest creations** — the deterministic backstops healed both within a few turns, so the outcome was correct, but the rule alone does not move sonnet-5 at creation time.
+
+| Check | Result |
+|---|---|
+| Invariants (HP bounds, XP monotonic, combat lifecycle, foes shape) | ✅ zero breaks; three clean 5-turn combat windows, each opened and closed |
+| Summarize cycling | ✅ 11 fires; sessionTokens peaked 4,351 and dropped each time; tail retained |
+| Unknown-tag census (derived from tag_table.js) | ✅ **zero** unknown tags across 40 distinct tag names, 50 responses |
+| Tag fidelity — narrated effects vs tags | ✅ the one gold change (+40 quest payout, t15) tagged; no narrated payment lacked a tag (honest caveat: a fight-heavy wilderness arc offered almost no commerce surface); items, XP, conditions, skill successes all tagged |
+| Dead-actor scan (the gemini failure class) | ✅ 0 post-death mentions of any dead actor |
+| Thread-dropout | ✅ the "chain" spine spans t1–t50 (34 turns); caravan/slaver threads retire naturally when their quest completes t15 |
+| Compiled-story coherence read | ✅ one continuous arc (ambush → interrogation → token → journey → Warden battle → pit descent → the King's chains); no resurrections, no unexplained jumps. Bonus: at t22 the GM absorbed a stale harness action in-fiction ("you have already left the crossroads behind") instead of teleporting — player-actions-are-intent working |
+| Prose voice (Howard), early/mid/late | ✅ holding — "longsword screaming free of its sheath" (t2), "chainmail settling around your shoulders like an old promise" (t25), "refusing the pit's pull" (t48); no drift toward generic |
+| **#190ⓓⓔ first live contact** | ✅ **VALIDATED** — 6 unevidenced summary citations of "Slaver Raider": no strikes, no quarantined window, 7/7 chapters filed; conflict shelved stale at t21 and STAYED shelved through t50 |
+| **#204 / W2 idempotency live** | ✅ Warden death double-emitted t32+t33; absorbed with zero conflicts, zero toasts |
+| **#205 creation-time compliance** | ❌ **0/2** — both `[QUEST:…\|active\|desc]` creations (t1, t21) arrived with NO same-response end-condition `[QUEST_STEP:]` despite the v1.678 stable rule; the #129 zero-objective nudge + step activity healed both (final state correct: the live quest carries its goal objective). The rule alone does not move sonnet-5 at creation |
+| #194 ruling-④ cast gate | ◐ small-n positive: 4 `[SCENE_CAST:]` emissions over 4 nodes (3 honest `none`); the one recorded ask (t40) answered next turn. **n=1 answered ask is not promotion evidence — the gate stays; keep logging** |
+| #194 layer-6 priming risk | ✅ 0 projection-phrase leaks into narration (the panel's corpus-judge instruction is satisfied for this run: priming NOT observed) |
+| #141 scene-check watch | ◐ corpus carries no console telemetry; observable proxy clean (0 errors, no phantom-entity actions surfaced). Watch continues in live play |
+| #51/#48 obedience | ✅ on available evidence (quest gold paid once at the right band; no ghost consumables; limited exposure — commerce-light arc) |
+| #207① hour rule | — no test surface (wilderness/dungeon arc, no establishments); no signal either way |
+| Pacing | ◐ 50 turns spanned one in-game day (6 PM → 10:17 PM +, clock 977 min) — coherent for a continuous forced-march arc, but on the slow end; consistent with #106's scene-pricing in constant-action scenes. Not actionable on one run |
+
+**Graduates to TODO.md:** a field-watch amendment on #205 (creation-time non-compliance on sonnet-5; escalation candidate if it repeats = a one-shot engine note at zero-objective quest creation, the #20 channel lesson) and the #194 cast-gate evidence line (gate stays). **Stays on the play checklist:** #141 scene-check console watch, #207① hour-rule signal, a commerce-heavy scenario for a real #51 spend-side test.
