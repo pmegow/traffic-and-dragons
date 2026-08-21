@@ -2397,9 +2397,15 @@ function buildSceneRenderRequest(c,party,w){
     +"Spell out each character's gender, hair colour, eye colour, skin tone, clothing and visible gear explicitly — never omit or change a character's stated gender. "
     +"Scene: "+w.location+", "+w.region+", "+worldTimeDisplay()+", "+w.weather+". "
     +(hasParty?"All "+(compDescs.length+1)+" party members must be present and individually recognizable in the scene. ":"")
-    +"Depict a candid, dynamic moment — characters in varied, natural poses (moving, turning, gesturing, mid-action), interacting with the environment and one another from a cinematic camera angle; NOT a static, front-facing line-up or posed group portrait. "
+    +"Freeze the scene's CURRENT action at its most dramatic instant — mid-motion, never the calm after it. "
+    /* Abstract dynamism ("natural, dynamic poses") renders as a polite tableau — image models act
+       on CONCRETE craft vocabulary. Owner report t2084: four full-length figures standing in a
+       row despite the old directive. Per-character pose clauses + hard variety constraints +
+       one named camera/motion sentence are the working levers. */
+    +"POSE every character by what they are doing in the scene right now — give each a specific mid-action body position (mid-swing, lunging, bracing, twisting to look, hauling, diving); NO two characters in the same stance, at least one seen from behind or in profile, at least one large in the foreground partially cropped by the frame; never a static front-facing line-up or posed group portrait. "
     +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
-    +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then 1-2 sentences for scene and action":"2-3 sentences")+". Output ONLY the prompt, no game tags.";
+    +"End with ONE camera-and-motion sentence naming a specific angle and framing (low-angle close shot, over-the-shoulder, dutch tilt, worm's-eye) plus a motion cue (blade streaking, sparks flying, cloth and hair in motion). "
+    +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then that character's pose clause, then 1-2 sentences for the environment":"3-4 sentences including the protagonist's specific mid-action pose")+". Output ONLY the prompt, no game tags.";
 }
 // #165: portrait-seed selection as DATA — a model's img2img entry declares multiSeed (Nano, Grok)
 // and gets the companions' portraits; single-reference APIs (Flux family, Qwen) get the player
@@ -2540,7 +2546,7 @@ async function doRender(){
         // likeness-only so everyone re-stages dynamically. Scene-render only; portrait paths stay posed.
         // #166: and NAME each numbered reference — three anonymous refs against four described
         // characters made Grok guess, and Daeris's likeness averaged away.
-        if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness and costume ONLY — do NOT copy their frontal, posed headshot framing; re-stage every figure in a natural, dynamic pose within the scene."+buildSeedLegend(sc.names,sc.omitted);
+        if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness, colouring and costume ONLY — do NOT copy their frontal, posed headshot framing or stance; re-stage every figure in a NEW mid-action pose fitting the scene, no two figures in the same stance, at least one angled away from the camera."+buildSeedLegend(sc.names,sc.omitted);
         var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
         var falRes=await fetch("https://fal.run/"+falEndpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(falBody)});
         if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */

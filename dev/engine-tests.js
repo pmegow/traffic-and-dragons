@@ -4717,14 +4717,20 @@ function runEngineTests(R){
     if(rp.indexOf("Frizwick, a female")<0||rp.indexOf("Morwen, a female")<0)return "companion gender words missing";
     if(!/gender/i.test(rp.split("Scene:")[0]))return "no explicit gender demand in the header before Scene:";/* #168R10: the old `!X===false&&…` pair was contradictory — it could never fire */
     if(rp.toLowerCase().indexOf("gender")<0)return "the spell-out instruction must demand gender explicitly (compression dropped it)";
-    if(rp.indexOf("3-4 sentences")>=0)return "the party sentence cap survived — caps force character triage (the STYLE-cap lesson)";
-    return rp.indexOf("ONE full sentence")>=0?true:"no per-character description floor: "+rp.slice(rp.length-300);
+    if(rp.indexOf("ONE full sentence")<0)return "no per-character description floor: "+rp.slice(rp.length-300);
+    /* t2084 dynamism upgrade: concrete pose-variety constraints + a named camera/motion sentence —
+       abstract "dynamic poses" rendered as a four-in-a-row tableau in the field. */
+    if(rp.indexOf("NO two characters in the same stance")<0)return "pose-variety constraint missing";
+    if(rp.indexOf("partially cropped by the frame")<0)return "foreground-crop depth directive missing";
+    if(rp.indexOf("camera-and-motion sentence")<0)return "the named camera/motion spec missing";
+    return rp.indexOf("pose clause")>=0?true:"per-character pose clause not demanded in the output shape";
   });
-  t("#165: solo render request keeps its shape — 2-3 sentences, protagonist described",function(){
+  t("#165: solo render request keeps its shape — protagonist described, with a mid-action pose demanded",function(){
     var c={name:"Ammut",gender:"M",age:"35",ancestry:"Human",cls:"Necromancer",appear:"scarred",mark:""};
     var rp=buildSceneRenderRequest(c,[],{location:"X",region:"Y",time:"dawn",weather:"mist"});
     if(rp.indexOf("Ammut, a male")<0)return "protagonist description missing";
-    return rp.indexOf("2-3 sentences")>=0?true:"solo budget changed unexpectedly";
+    if(rp.indexOf("3-4 sentences")<0)return "solo budget changed unexpectedly";
+    return rp.indexOf("mid-action pose")>=0?true:"solo request lost the pose demand";
   });
   t("#165/#166: seed collection is a TABLE property carrying NAMES — multiSeed models gather the party, maxSeeds caps at collection, single-ref models stay player-only",function(){
     var c={name:"Ammut",portrait:"data:img/player"};
