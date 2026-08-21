@@ -15,7 +15,9 @@ rc|=sabotage.prove({file:"game.js",command:["node",["dev/run-tests.js"]],cases:[
    find:"var hasLoc=/\\[(?:LOCATION|SUBLOCATION):[^\\]]+\\]|\\[SUBLOCATION_LEAVE\\]/i.test(raw),cue;",
    replace:"var hasLoc=/\\[(?:LOCATION|SUBLOCATION)/i.test(raw),cue;"},
   {label:"#28 commit-time player write removed — turns commit with no player half",
-    mustFail:"#28 the pair commits together",
+    /* the #76 source contract (run-tests startup) reds FIRST — it pins the write's existence
+       inside commitGmTurn before the engine tests ever run; attribute to the actual catcher */
+    mustFail:"the player transcript write lives inside commitGmTurn",
    find:"  if(o.logPlayer&&o.playerTxt!=null&&!o.isOpening)logTranscript(\"player\",o.playerTxt);",
    replace:""},
   {label:"#28 logPlayer isTT guard dropped — Table Talk questions would reach the story record",
