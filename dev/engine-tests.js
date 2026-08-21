@@ -4725,6 +4725,7 @@ function runEngineTests(R){
     if(rp.indexOf("NO two characters in the same stance")<0)return "pose-variety constraint missing";
     if(rp.indexOf("partially cropped by the frame")<0)return "foreground-crop depth directive missing";
     if(rp.indexOf("camera-and-motion sentence")<0)return "the named camera/motion spec missing";
+    if(rp.indexOf("FOCAL POINT")<0||rp.indexOf("gaze")<0)return "the eye-line convergence directive missing (owner: characters must look AT the scene's focus)";
     return rp.indexOf("pose clause")>=0?true:"per-character pose clause not demanded in the output shape";
   });
   t("#165: solo render request keeps its shape — protagonist described, with a mid-action pose demanded",function(){
