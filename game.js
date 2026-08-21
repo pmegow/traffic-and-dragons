@@ -1596,6 +1596,14 @@ function commitGmTurn(resp,opts){
      (the player saw it; re-roll needs the transcript pair) but as NON-CANON: no tag application,
      rf-marked for retrieval exclusion, delivered note latches restored, loudly toasted. */
   var _refusal=(typeof detectModelRefusal==="function")&&detectModelRefusal(cleanTxt(resp));
+  /* #28 (v1.670): the player's line enters the PERMANENT record only when its answer commits —
+     logged HERE, before turn++ so the pair keeps its historical stamps (player@N, gm@N+1). A
+     failed call now leaves NO orphan (the gpt-4o 44×429 memento class: runs of unanswered player
+     lines): the old pre-call write in sendAction and its same-text dedup guard are DELETED —
+     in-flight recovery is #14 pending-action's job, never the story record's. Refusal turns
+     still log the pair (#197: the player saw it; re-roll needs it). Silent sends and Table Talk
+     never pass logPlayer, and the opening has no player half. */
+  if(o.logPlayer&&o.playerTxt!=null&&!o.isOpening)logTranscript("player",o.playerTxt);
   if(!o.isOpening){
     worldState.turn++;
     if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
@@ -1782,11 +1790,10 @@ async function sendAction(override,opts){
   // applyMuts'd, turn advanced. TT keeps its retry payload in the catch closure instead (#76).
   busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;if(!isTT)lastAction=txt;
   if(!(opts&&opts.silent)&&!_mpResolve)addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+escHtml(txt):escHtml(txt));/* escape player input into the DOM (audit E11); a resolved round already displayed its per-PC lines */
-  // Skip the transcript write on a retry of the same action — the failed attempt already
-  // logged it, and a duplicate player line corrupts the story-compiler record (audit #9).
-  var _tl=worldState.transcript;
-  var _isRetryDup=!!(_tl&&_tl.length&&_tl[_tl.length-1].r==="player"&&_tl[_tl.length-1].x===String(txt).trim());
-  if(!isTT&&!(opts&&opts.silent)&&!_isRetryDup)logTranscript("player",txt);
+  // #28 (v1.670): the player transcript write moved INTO commitGmTurn (logPlayer below) — an
+  // action reaches the permanent record only once its answer commits, so failed calls can no
+  // longer strand orphan player lines. The same-text retry dedup guard that lived here is dead
+  // with it: nothing is written before the call, so there is nothing to deduplicate.
   var th=addMsg("thinking","The world turns...");
   var _committed=false; // true once applyMuts has mutated state — a Retry after that would double-apply (audit E82)
   // B16 turn-lifecycle stamps. Nothing recorded when the request LEFT, how long it was in flight,
@@ -1805,9 +1812,10 @@ async function sendAction(override,opts){
     // P3 quest escalation: when an active quest has sat all-objectives-done for
     // QUEST_ESCALATE_TURNS+ turns (see buildQuestEscalation, api.js), prepend a bracketed
     // engine note to the OUTGOING API message. apiTxt is what callGM sends and what
-    // sessionLog stores (sessionLog IS the API history); the displayed chat line and the
-    // worldState.transcript player entry above already captured the clean txt, and
-    // lastAction/retry keep the clean txt too, so the note never reaches the player.
+    // sessionLog stores (sessionLog IS the API history); the displayed chat line already
+    // captured the clean txt, the transcript player entry captures it at COMMIT time (#28,
+    // commitGmTurn's logPlayer), and lastAction/retry keep the clean txt too, so the note
+    // never reaches the player.
     var apiTxt=txt;
     if(!isTT&&!(opts&&opts.silent)){var _latchSnap=snapshotNoteLatches();/* #151: capture BEFORE the builders stamp/consume — the catch restores when the turn dies pre-commit */var _en=buildEngineNotes();if(_en)apiTxt=_en+"\n\n"+txt;}/* v1.255: the engine-notes registry (quest escalation + condition audit; adding a check = a NOTE_BUILDERS entry) */
     _tSent=Date.now();_hid0=(typeof document!=="undefined"&&document.hidden)?1:0;
@@ -1828,7 +1836,7 @@ async function sendAction(override,opts){
     else{
       // The whole commit sequence lives in commitGmTurn (audit 07-16 #5) — shared with
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
-      commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
+      commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
     }
     syncUI();
   }catch(e){th.remove();

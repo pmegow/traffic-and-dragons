@@ -1199,7 +1199,12 @@ try {
   var _ttFail = [];
   function _ttReq(name, cond) { if (!cond) _ttFail.push(name); }
   _ttReq("lastAction guarded by !isTT (else Retry replays a TT question as a story turn)", /if\(!isTT\)lastAction=txt;/.test(_game));
-  _ttReq("transcript write guarded by !isTT", /if\(!isTT&&!\(opts&&opts\.silent\)&&!_isRetryDup\)logTranscript/.test(_game));
+  /* #28 (v1.670): the player transcript write moved INTO commitGmTurn (commit-time logging — no
+     pre-call write can orphan). The isolation got STRONGER — TT structurally never reaches
+     commitGmTurn — but the flag that authorizes the write still travels from sendAction and MUST
+     keep its !isTT guard, and the write itself must stay inside commitGmTurn behind that flag. */
+  _ttReq("transcript logPlayer flag guarded by !isTT (commit-time write, #28)", /logPlayer:\(!isTT&&!\(opts&&opts\.silent\)\)/.test(_game));
+  _ttReq("the player transcript write lives inside commitGmTurn behind o.logPlayer (#28)", /if\(o\.logPlayer&&o\.playerTxt!=null&&!o\.isOpening\)logTranscript\("player"/.test(_game));
   _ttReq("summarize guarded by !isTT", /if\(!isTT&&sessionTokens\(\)>=SUMMARIZE_AT\)/.test(_game));
   _ttReq("engine notes guarded by !isTT", /if\(!isTT&&!\(opts&&opts\.silent\)\)\{var _latchSnap=snapshotNoteLatches\(\);[^\n]*var _en=buildEngineNotes/.test(_game));/* #151 widened the pinned line: the latch snapshot sits INSIDE the same !isTT gate (TT/silent paths neither build notes nor snapshot), so the isolation intent is unchanged */
   _ttReq("multi-PC queue bypassed for TT", /if\(!isTT&&!\(opts&&opts\.silent\)&&!\(opts&&opts\.mpBypass\)/.test(_game));

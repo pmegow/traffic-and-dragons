@@ -9118,6 +9118,43 @@ function runEngineTests(R){
 
   section("commitGmTurn (audit 07-16 #5)");
 
+  t("#28 the pair commits together: logPlayer writes player@N then gm@N+1 — and only at commit, so a failed call strands nothing",function(){
+    makeWorld();worldState.turn=41;
+    var before=worldState.transcript.length;
+    commitGmTurn("The wolf falls at your feet. [XP:5]",{userMsg:"api text with engine notes",playerTxt:"I strike the wolf",logPlayer:true});
+    var tl=worldState.transcript;
+    if(tl.length!==before+2)return "expected exactly the pair, got +"+(tl.length-before);
+    if(tl[before].r!=="player"||tl[before].x!=="I strike the wolf")return "player half wrong: "+JSON.stringify(tl[before]);
+    if(tl[before].t!==41)return "player stamp drifted: t"+tl[before].t+" (must be the pre-increment turn — RAG pairs on adjacency)";
+    if(tl[before+1].r!=="gm"||tl[before+1].t!==42)return "gm half wrong: "+JSON.stringify({r:tl[before+1].r,t:tl[before+1].t});
+    return true;
+  });
+  t("#28 silent sends and the opening write NO player line (logPlayer absent / isOpening)",function(){
+    makeWorld();worldState.turn=10;
+    commitGmTurn("The ally falls in beside you. [NPC:Daeris|calm|companion]",{userMsg:"u",playerTxt:"silent intro directive"});
+    var tl=worldState.transcript;
+    if(tl.filter(function(e){return e.r==="player";}).length)return "a silent send stranded a player line";
+    commitGmTurn("The road opens. [LOCATION:Greyford]",{userMsg:"intro",playerTxt:"never",logPlayer:true,isOpening:true});
+    return worldState.transcript.filter(function(e){return e.r==="player";}).length===0?true:"the opening logged a player half it does not have";
+  });
+  t("#28 a refusal commit still logs the pair (the player saw it; re-roll needs it) with the gm half rf-marked",function(){
+    makeWorld();worldState.turn=20;
+    commitGmTurn("I cannot continue generating content for this scene.",{userMsg:"u",playerTxt:"press onward",logPlayer:true});
+    var tl=worldState.transcript;
+    if(tl.length!==2)return "expected the pair, got "+tl.length;
+    if(tl[0].r!=="player"||tl[0].x!=="press onward")return "refusal turn lost its player half";
+    return tl[1].r==="gm"&&tl[1].rf===1?true:"gm half not rf-marked: "+JSON.stringify(tl[1]);
+  });
+  t("#28 source contract: the ONLY player transcript write in game.js lives inside commitGmTurn — no pre-call write can strand an orphan",function(){
+    if(typeof __fsForTests==="undefined")return true; /* browser run — node CI owns source pins */
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    var hits=src.split('logTranscript("player"').length-1;
+    if(hits!==1)return hits+" player transcript writes in game.js — exactly one (commit-time) is the #28 contract";
+    var fnStart=src.indexOf("function commitGmTurn"),fnEnd=src.indexOf("\nfunction ",fnStart+10);
+    var body=src.slice(fnStart,fnEnd>0?fnEnd:src.length);
+    return body.indexOf('logTranscript("player"')>=0?true:"the one write is OUTSIDE commitGmTurn — a pre-call write orphans on failure";
+  });
+
   t("(a) UA6 on the opening path: addMsg THROWS, yet transcript + sessionLog already carry the turn",function(){
     makeWorld();
     addMsg=function(type){if(type==="narrator")throw new Error("display exploded");return __stubEl();};

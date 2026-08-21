@@ -13,7 +13,15 @@ rc|=sabotage.prove({file:"game.js",command:["node",["dev/run-tests.js"]],cases:[
   {label:"location tag identity loosened — LOCATION_DESC falsely suppresses the filing watch",
     mustFail:"W4 location filing: exact Jorgenfist entry survives eight untagged tur",
    find:"var hasLoc=/\\[(?:LOCATION|SUBLOCATION):[^\\]]+\\]|\\[SUBLOCATION_LEAVE\\]/i.test(raw),cue;",
-   replace:"var hasLoc=/\\[(?:LOCATION|SUBLOCATION)/i.test(raw),cue;"}
+   replace:"var hasLoc=/\\[(?:LOCATION|SUBLOCATION)/i.test(raw),cue;"},
+  {label:"#28 commit-time player write removed — turns commit with no player half",
+    mustFail:"#28 the pair commits together",
+   find:"  if(o.logPlayer&&o.playerTxt!=null&&!o.isOpening)logTranscript(\"player\",o.playerTxt);",
+   replace:""},
+  {label:"#28 logPlayer isTT guard dropped — Table Talk questions would reach the story record",
+    mustFail:"transcript logPlayer flag guarded by !isTT",
+   find:"logPlayer:(!isTT&&!(opts&&opts.silent))",
+   replace:"logPlayer:true"}
 ]});
 
 rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],also:["globals.js"],cases:[/* #199: the builders' constants live in globals.js — the working copy must ride or a pre-commit proof loads a constants-less engine and misattributes */
