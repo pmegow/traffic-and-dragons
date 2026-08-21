@@ -63,6 +63,10 @@ var RETCON_PIN_SHELF=15;    // #147 (drift pass order 4): turns a CORRECTION IN 
 var DEITY_DRIFT_COOLDOWN=25;
 var HP_ZERO_NOTE_TURNS=3;    /* #196: turns the player must sit at exactly 0 HP before the observer fires (combat excluded from firing, not from counting) */
 var HP_ZERO_NOTE_COOLDOWN=5; /* #196: turns between re-fires while the zero persists — one note per ask, pressure without spam (the PROVISIONAL_NUDGE_COOLDOWN rhythm) */
+var NODE_MENTION_CAP=8;      /* #194 L6: names a node's rumor mill retains — LRU at write time (a re-mention moves to newest); bounded per the standing monotonic-resources rule */
+var NODE_MENTION_WINDOW=120; /* #194 L6: turns a heard name stays CURRENT rumor at render time — older mentions keep their record but stop injecting */
+var PRESENCE_FRESH_TURNS=12; /* #194 L6: last-placed age band — within this many turns projects as "recently" */
+var PRESENCE_AGED_TURNS=60;  /* #194 L6: within this = "a while back"; beyond = "long ago" */
 var PRINCIPAL_STAGE_TURNS=25;    /* #199: campaign turns before never-staged authored principals draw the off-stage note (the GPT-ladder finding: 100 combined turns, Valerius never named, the seeded bench replaced by inventions) */
 var PRINCIPAL_NUDGE_COOLDOWN=30; /* #199: turns between re-asks (the RECURRING_NAME cadence) */
 var PRINCIPAL_NUDGE_MAX=2;       /* #199: asks per principal, then the silence stands as a ruling — never ask again (the P7 pattern) */
@@ -253,7 +257,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.670";
+var APP_VERSION="v1.671";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

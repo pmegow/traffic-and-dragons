@@ -67,7 +67,10 @@ rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js"]],cases
    find:"if(strict>0&&typeof scheduleAdd===\"function\"){",replace:"if(false&&typeof scheduleAdd===\"function\"){"},
   {label:"outcome gate removed — merely discussing a future event marks it complete",
     mustFail:"W4 future-event resolve assist requires both token overlap and an outc",
-   find:"FUTURE_OUTCOME_RE.test(s)&&futureResolveOverlap(s,f.what)",replace:"futureResolveOverlap(s,f.what)"}
+   find:"FUTURE_OUTCOME_RE.test(s)&&futureResolveOverlap(s,f.what)",replace:"futureResolveOverlap(s,f.what)"},
+  {label:"#194L6 rumor-mill cap dropped — a node's mention list accumulates forever",
+    mustFail:"#194L6 node rumor texture",
+   find:"  if(mn.length>NODE_MENTION_CAP)mn.splice(0,mn.length-NODE_MENTION_CAP);",replace:""}
 ]});
 
 rc|=sabotage.prove({file:"identity.js",command:["node",["dev/run-tests.js"]],cases:[
@@ -85,6 +88,10 @@ rc|=sabotage.prove({file:"identity.js",command:["node",["dev/run-tests.js"]],cas
   {label:"#201 valve re-grant removed — a failed reveal leaves the fork note capped forever",
     mustFail:"#201 a failed reveal re-grants ONE fork-note delivery",
    find:"    if(!regrant)return;",replace:"    return;"},
+  {label:"#194L6 tier misgrade — an undated assertion wears a fresh sighting's clothes again",
+    mustFail:"#194L6 tier derivation",
+   find:"    return{tier:\"legacy\",at:m.lastSeenAt};",
+   replace:"    return{tier:\"witnessed\",at:m.lastSeenAt,turn:epoch};"},
   {label:"child match removed — LOCATION mints a world twin of a known sublocation",
     mustFail:"W5 world/sub-location twin is refused loudly without minting a node or",
    find:"if(locSame(k,target)||locDisplayLeaf(k).toLowerCase()===leaf)return {requested:raw,child:k,parent:current,leaf:locDisplayLeaf(k)};",
@@ -112,7 +119,11 @@ rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],cases:[
    find:"p.push(c);worldState.consumablePending=p;",replace:"p.push(c);"},
   {label:"clock shortfall replaced by the original price — partial elapsed time is double-billed",
     mustFail:"W4 travel pricing asks only for the clock shortfall; an honest two-day",
-   find:"[TIME_ADVANCE:\"+q.shortfall+\"m]",replace:"[TIME_ADVANCE:\"+(q.shortfall+q.elapsed)+\"m]"}
+   find:"[TIME_ADVANCE:\"+q.shortfall+\"m]",replace:"[TIME_ADVANCE:\"+(q.shortfall+q.elapsed)+\"m]"},
+  {label:"#194L6 the not-a-visit clause deleted — rumor texture starts placing people in scenes",
+    mustFail:"#194L6 node rumor texture",
+   find:" — hearing a name here is not a visit, and places no one in the scene.\");",
+   replace:"\");"}
 ]});
 
 /* #187④a: the turn-addressed [RETCON:what|turn] extension. */

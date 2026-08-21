@@ -56,9 +56,25 @@ function buildGeoBlock(){
   var partyHere={},phN;
   for(i=0;i<worldState.npcs.length;i++){phN=worldState.npcs[i];
     if(phN.partyMember&&!npcIsDead(phN)&&!(phN.charSheet&&phN.charSheet.splitLoc&&phN.charSheet.splitLoc.location))partyHere[phN.name]=1;}
-  var npcLocs=[],nNames=Object.keys(memory.npcs);
-  for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];if(nm.lastSeenAt&&!nm.dead&&!partyHere[nNames[i]]&&!locSame(nm.lastSeenAt,wKey)&&!(subKey&&locSame(nm.lastSeenAt,subKey)))npcLocs.push(nNames[i]+" → "+locResolve(nm.lastSeenAt));}/* #156B: a stamp under the current node's merged alias is HERE, not elsewhere; displays serve the canonical name */
-  if(npcLocs.length)lines.push("NPCs elsewhere: "+npcLocs.join(", "));
+  /* #194 L6 (v1.671): the uniform "Name → Place" arrow rendered a fresh sighting and an undated
+     mention-era assertion identically — projection now carries the evidence grade in its voice
+     via the PRESENCE_TIERS registry (identity.js). Exclusions unchanged: the dead (B3), present
+     party (B21), and the current node (#156B: merged-alias stamps are HERE). */
+  var npcLocs=[],legacyLocs=[],nNames=Object.keys(memory.npcs);
+  /* memory voice includes the PLACE: a pipe key ("Sandpoint|Rusty Dragon") is storage, not
+     speech — spoken form is "Rusty Dragon in Sandpoint". Keys are two-tier by construction. */
+  function locSpoken(k){var r=locResolve(k),p=r.indexOf("|");return p<0?r:r.slice(p+1)+" in "+r.slice(0,p);}
+  for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];
+    if(nm.dead||partyHere[nNames[i]])continue;
+    var _pt=(typeof presenceTier==="function")?presenceTier(nNames[i]):(nm.lastSeenAt?{tier:"legacy",at:nm.lastSeenAt}:null);
+    if(!_pt||!_pt.at)continue;/* spokenOf projects only through the node rumor texture below */
+    if(locSame(_pt.at,wKey)||(subKey&&locSame(_pt.at,subKey)))continue;
+    var _rAt=locSpoken(_pt.at);
+    if(_pt.tier==="witnessed")npcLocs.push(PRESENCE_TIERS.witnessed.render(nNames[i],_rAt,presenceAgeBand((worldState.turn||0)-_pt.turn)));
+    else legacyLocs.push(PRESENCE_TIERS.legacy.render(nNames[i],_rAt));
+  }
+  if(npcLocs.length)lines.push("Elsewhere, by sighting: "+npcLocs.join(" "));
+  if(legacyLocs.length)lines.push("Elsewhere, by old word only (rumor-grade, may be stale): "+legacyLocs.join(" "));
   // #173: per-character visit provenance — who this place remembers. Serves the current world
   // node (and the current sub-location when inside one). Reads as MEMORY, never bookkeeping
   // (amendment ⑤); negatives are RECORD-based (amendment ②): an unrecorded character is UNKNOWN
@@ -94,6 +110,18 @@ function buildGeoBlock(){
   }
   gbAttendanceLines(wNode,w.location);
   if(subNode)gbAttendanceLines(subNode,w.sublocation);
+  /* #194 L6: the node rumor texture — heard names as a fact about the PLACE, window-aged at
+     render, party names filtered (they are standing right there; their name being "heard" is
+     noise), and the not-a-visit clause is the load-bearing honesty. */
+  function nodeRumorLine(node,label){
+    if(!node||!node.mentions||!node.mentions.length)return;
+    var _t=worldState.turn||0;
+    var cur=node.mentions.filter(function(m){return m&&m.n&&(_t-(m.t||0))<=NODE_MENTION_WINDOW&&!partyHere[m.n];});
+    if(!cur.length)return;
+    lines.push(label+" has heard these names lately: "+cur.map(function(m){return m.n;}).join(", ")+" — hearing a name here is not a visit, and places no one in the scene.");
+  }
+  nodeRumorLine(wNode,w.location);
+  if(subNode)nodeRumorLine(subNode,w.sublocation);
   // TODO #1 P5 (D11, F4 "Hard A"): split party members' threads inject EVERY turn while any
   // split exists — the GM must never forget an absent thread (the #53 canon-starve lesson,
   // applied to geography). No splits = this whole section is absent, byte-identical geo.

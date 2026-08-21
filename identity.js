@@ -764,6 +764,38 @@ function _sceneRefOverflow(kind){var s=sceneRefsEnsure();if(!s.overflow)s.overfl
    PRESENCE_OBSERVED_CAP) and must NEVER call _sceneRefOverflow — it is engine-derived and
    re-derivable from the next response's tags, unlike the GM-authored actors[] whose overflow
    deliberately freezes irreversible writes. Design: presence_panel_2026-08-17.md, layers 0-1. */
+/* ═══ #194 Layer 6 (v1.671): PROJECTION HONESTY — the tier registry ═══════════════════════════
+   The prompt's presence claims must carry their evidence grade in their VOICE: a fresh witnessed
+   sighting, an old undated assertion, and mere rumor are three different facts, and the old
+   uniform "Name → Place" arrow rendered them identically (48/69 live records were undated
+   assertions wearing a sighting's clothes). Four tiers, memory voice, never ledger voice:
+   - witnessed:  post-epoch turn-stamped lastSeen — "was last seen at X (recently/…)"
+   - legacy:     lastSeenAt with no post-epoch stamp — "is said to be at X — old word"
+   - spokenOf:   mention-only records — project ONLY through the node rumor texture, never a place claim
+   - based-here: the resident flag — OWNED by #173's guestbook line, never re-rendered here
+   Tiers grade PROJECTION only; the death gate's authorization grading (#194 gate 3) is separate
+   and stricter, by design. */
+var PRESENCE_TIERS={
+  witnessed:{render:function(name,at,ageBand){return name+" was last seen at "+at+" ("+ageBand+").";}},
+  legacy:{render:function(name,at){return name+" is said to be at "+at+" — old word, not a fresh sighting.";}},
+  spokenOf:{render:function(){return null;}},
+  resident:{render:function(){return null;}}
+};
+function presenceAgeBand(turnsAgo){
+  if(turnsAgo<=PRESENCE_FRESH_TURNS)return"recently";
+  if(turnsAgo<=PRESENCE_AGED_TURNS)return"a while back";
+  return"long ago";
+}
+function presenceTier(name){
+  var m=(typeof memory!=="undefined"&&memory&&memory.npcs)?memory.npcs[name]:null;if(!m)return null;
+  var epoch=(worldState&&typeof worldState.presenceEpoch==="number")?worldState.presenceEpoch:0;
+  if(m.lastSeenAt){
+    if(typeof m.lastSeenTurn==="number"&&m.lastSeenTurn>=epoch)return{tier:"witnessed",at:m.lastSeenAt,turn:m.lastSeenTurn};
+    return{tier:"legacy",at:m.lastSeenAt};
+  }
+  if(m.lastMentioned!=null)return{tier:"spokenOf"};
+  return null;
+}
 function presenceObserve(name,channel){
   var raw=String(name||"").trim();if(!raw||!worldState)return false;
   var canon=resolveNpcName(raw);

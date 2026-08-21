@@ -300,6 +300,17 @@ function npcRegisterMention(name){
   if(memory.npcs[name])memory.npcs[name].lastMentioned=(typeof worldState.turn==="number")?worldState.turn:0;
   if(!memory.map.nodes[key])return;
   var npcs=memory.map.nodes[key].npcs;if(npcs.indexOf(name)<0)npcs.push(name);
+  /* #194 L6: the node's rumor mill — a heard name is a real fact about a PLACE ("this place has
+     heard of X") even though it is nothing place-shaped about the CHARACTER. LRU-capped at write
+     (a re-mention refreshes to newest); the render window (NODE_MENTION_WINDOW) ages entries out
+     of the prompt without deleting the record. Projection carries the not-a-visit clause; the
+     priming risk (does injecting heard names make the GM stage them?) is corpus-judged post-ship
+     per the panel's own instruction. */
+  var mn=memory.map.nodes[key].mentions;if(!mn)mn=memory.map.nodes[key].mentions=[];
+  var mt=(typeof worldState.turn==="number")?worldState.turn:0,mi;
+  for(mi=mn.length-1;mi>=0;mi--)if(mn[mi]&&mn[mi].n===name)mn.splice(mi,1);
+  mn.push({n:name,t:mt});
+  if(mn.length>NODE_MENTION_CAP)mn.splice(0,mn.length-NODE_MENTION_CAP);
 }
 function npcRecordPresence(name,src){
   /* THE one presence writer for non-party characters: lastSeenAt + lastSeenTurn + lastSeenSrc +

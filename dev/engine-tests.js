@@ -11136,12 +11136,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     memory.npcs["Old Salt"]={attitude:"neutral",knowledge:[],events:[],aliases:[],lastSeenAt:"Fogscar Sea Cave"};
     applyMuts("[LOCATION:Magnimar]");
     var g=buildGeoBlock();
-    if(g.indexOf("Frizwick → Fogscar Sea Cave")>=0)return "present party member served as elsewhere: "+g;
-    if(g.indexOf("Old Salt → Fogscar Sea Cave")<0)return "non-party NPC lost their elsewhere line";
+    /* #194 L6 re-baseline (v1.671, deliberate frozen-assertion change): the arrow form is dead —
+       undated lastSeenAt renders in the LEGACY tier voice. The B21 exclusion semantics are
+       unchanged and still the thing under test. */
+    if(/Elsewhere[^\n]*Frizwick/.test(g))return "present party member served as elsewhere: "+g;
+    if(g.indexOf("Old Salt is said to be at Fogscar Sea Cave")<0)return "non-party NPC lost their elsewhere line";
     cs.splitLoc={location:"The Docks",sublocation:null};   // split directly (handler gating tested elsewhere)
     memory.npcs["Frizwick"].lastSeenAt="The Docks";
     var g2=buildGeoBlock();
-    return g2.indexOf("Frizwick → The Docks")>=0?true:"split member's elsewhere line lost — the exclusion must respect splitLoc";
+    return g2.indexOf("Frizwick is said to be at The Docks")>=0?true:"split member's elsewhere line lost — the exclusion must respect splitLoc";
   });
 
   // ── #133 — split-audit teeth (stale splitLoc poisons strict geography indefinitely) ─────────
@@ -11725,6 +11728,63 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#199 registry + latch: buildPrincipalStageNudge rides NOTE_BUILDERS and principalNudged is a declared latch field",function(){
     if(NOTE_BUILDERS.indexOf(buildPrincipalStageNudge)<0)return "builder missing from NOTE_BUILDERS";
     return NOTE_LATCH_FIELDS.indexOf("principalNudged")>=0?true:"principalNudged not in NOTE_LATCH_FIELDS (#151)";
+  });
+
+  // ── #194 Layer 6 — projection honesty (the presence-tier registry + node rumor texture) ─────
+  section("#194 L6 — projection honesty");
+  t("#194L6 tier derivation: post-epoch stamp = witnessed; undated/pre-epoch lastSeenAt = legacy; mention-only = spokenOf; unknown = null",function(){
+    makeWorld();worldState.turn=200;worldState.presenceEpoch=100;
+    memory.npcs["Fresh"]={lastSeenAt:"Greyford",lastSeenTurn:150};
+    memory.npcs["Stale"]={lastSeenAt:"Greyford",lastSeenTurn:50};
+    memory.npcs["Undated"]={lastSeenAt:"Greyford"};
+    memory.npcs["Rumored"]={lastMentioned:180};
+    var a=presenceTier("Fresh"),b=presenceTier("Stale"),c=presenceTier("Undated"),d=presenceTier("Rumored");
+    if(!a||a.tier!=="witnessed"||a.turn!==150)return "post-epoch stamp misgraded: "+JSON.stringify(a);
+    if(!b||b.tier!=="legacy")return "pre-epoch stamp misgraded (the mention-era channel wearing a sighting's clothes): "+JSON.stringify(b);
+    if(!c||c.tier!=="legacy")return "undated assertion misgraded: "+JSON.stringify(c);
+    if(!d||d.tier!=="spokenOf")return "mention-only record misgraded: "+JSON.stringify(d);
+    return presenceTier("Nobody")===null?true:"unknown name did not return null";
+  });
+  t("#194L6 age bands + geo rendering: witnessed carries its band, legacy reads as old word, spokenOf never makes a place claim, the arrow form is dead",function(){
+    makeWorld();worldState.turn=200;worldState.presenceEpoch=100;
+    memory.map={nodes:{"Ashfen":{firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[]},"Greyford":{firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[]}},edges:[],lastArrivalFrom:null};
+    memory.npcs["Fresh"]={lastSeenAt:"Greyford",lastSeenTurn:195};
+    memory.npcs["Aged"]={lastSeenAt:"Greyford",lastSeenTurn:160};
+    memory.npcs["Ancient"]={lastSeenAt:"Greyford",lastSeenTurn:105};
+    memory.npcs["Undated"]={lastSeenAt:"Greyford"};
+    memory.npcs["Rumored"]={lastMentioned:190};
+    memory.map.nodes["Greyford|The Gilt Cup"]={firstVisit:1,visits:1,description:null,parent:"Greyford",npcs:[],items:[]};
+    memory.npcs["Tucked"]={lastSeenAt:"Greyford|The Gilt Cup",lastSeenTurn:196};
+    var g=buildGeoBlock();
+    if(g.indexOf("Tucked was last seen at The Gilt Cup in Greyford (recently)")<0)return "pipe key leaked into memory voice: "+g.slice(0,400);
+    if(g.indexOf("Fresh was last seen at Greyford (recently)")<0)return "fresh sighting lost its band: "+g.slice(0,300);
+    if(g.indexOf("Aged was last seen at Greyford (a while back)")<0)return "aged band wrong";
+    if(g.indexOf("Ancient was last seen at Greyford (long ago)")<0)return "ancient band wrong";
+    if(g.indexOf("Undated is said to be at Greyford — old word, not a fresh sighting")<0)return "legacy voice missing";
+    if(g.indexOf("Rumored")>=0)return "a mention-only record made a place claim";
+    return g.indexOf(" → ")<0?true:"the uniform arrow form survived — grades render identically again";
+  });
+  t("#194L6 node rumor texture: LRU cap + re-mention refresh at write, window-aging + party filter + the not-a-visit clause at render, empty renders nothing",function(){
+    makeWorld();worldState.turn=50;
+    memory.map={nodes:{"Ashfen":{firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[]}},edges:[],lastArrivalFrom:null};
+    var i;for(i=0;i<10;i++){memory.npcs["R"+i]={attitude:"",knowledge:[],events:[]};npcRegisterMention("R"+i);}
+    var mn=memory.map.nodes["Ashfen"].mentions;
+    if(mn.length!==NODE_MENTION_CAP)return "cap failed: "+mn.length;
+    if(mn[0].n!=="R2"||mn[mn.length-1].n!=="R9")return "LRU order wrong: "+JSON.stringify(mn.map(function(m){return m.n;}));
+    worldState.turn=60;npcRegisterMention("R2");
+    if(mn[mn.length-1].n!=="R2"||mn.length!==NODE_MENTION_CAP)return "re-mention did not refresh to newest";
+    memory.npcs["Oldster"]={attitude:"",knowledge:[],events:[]};
+    mn.unshift({n:"Oldster",t:0});mn.splice(NODE_MENTION_CAP);/* an aged-out mention beyond the window */
+    worldState.turn=130;/* 130-0 > NODE_MENTION_WINDOW ages Oldster out; the t50-60 mentions stay current */
+    worldState.npcs.push({name:"R9",status:"ally",rel:"companion",partyMember:true});
+    var g=buildGeoBlock();
+    if(g.indexOf("has heard these names lately")<0)return "rumor line missing";
+    if(g.indexOf("hearing a name here is not a visit")<0)return "the not-a-visit clause is the load-bearing honesty — missing";
+    if(g.indexOf("Oldster")>=0)return "a mention outside NODE_MENTION_WINDOW still injected";
+    if(/lately:[^\n]*R9/.test(g))return "a present party member's name rendered as rumor noise";
+    memory.map.nodes["Ashfen"].mentions=[];
+    var g2=buildGeoBlock();
+    return g2.indexOf("has heard these names")<0?true:"an empty rumor mill still rendered a line";
   });
 
   // ── #201 — handle spelling is rendering, not identity (the t2032 Third Watcher deadlock) ────

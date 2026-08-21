@@ -55,6 +55,12 @@ function proveScratch(opts) {
     copyWorking(opts.file);
     copyWorking("dev/run-tests.js");
     copyWorking("dev/engine-tests.js"); /* #196 find: the clone held the COMMITTED suite, so a clause whose catching test was authored in the same (uncommitted) change was structurally unprovable pre-commit — every new #196 mutation reported MISSED against the old tests. The working suite must ride with the working runner. */
+    /* #194L6 (the class fix; #196/#197 were slices of it): the suite loads EVERY engine-manifest
+       file, so ANY working-vs-HEAD skew in ANY of them reds a clone's baseline and poisons every
+       clause's attribution (the #28 battery: 0/9 on a block whose clone mixed working tests with
+       pre-commit game.js). The whole manifest's working set rides in; `also:` survives for
+       non-manifest co-changes (satellites, ui shards). */
+    try{require("./engine-manifest.js").forEach(function(en){copyWorking(en.file);});}catch(eM){}
     (opts.also || []).forEach(copyWorking); /* #197: the #196 fix's multi-FILE sibling — a feature spanning several engine files is only provable pre-commit if the WORKING copy of every co-changed file rides into the clone, else each clause "fails" on the absent feature and misattributes as caught */
     if (opts.command && opts.command[1] && opts.command[1][0]) copyWorking(opts.command[1][0]);
     return prove({
