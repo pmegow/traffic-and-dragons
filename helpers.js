@@ -244,6 +244,93 @@ function detectStayBehind(text,partyNames){
   }
   return null;
 }
+/* #189ⓐ (t1827: "You two get some sleep, Friz and I can deliver it"): the split machinery is
+   edge-triggered by GM tags, so a re-departure declared in the PLAYER'S OWN INPUT had no engine
+   path — the roster read everyone present and the GM later confabulated from it (Morwen's hand
+   on a sword she doesn't carry). The player-input twin of detectStayBehind: narrow, rejection-
+   first (the #158 precision discipline), name-or-subgroup anchored. Returns {names:[...]} —
+   names may be EMPTY for a nameless subgroup directive ("you two"), the GM resolves who — or
+   null. Quotes are NOT a rejection here: player input IS first-person intent, and dialogue
+   aimed at companions is exactly the signal. */
+function detectPlayerStayBehind(text,partyNames){
+  var t=String(text||"");if(!t)return null;
+  var clauses=t.match(/[^.!?;\n]+[.!?;]*/g)||[],i;
+  var STAY=/\b(?:stay(?:s)?(?:\s+behind|\s+here|\s+put)?|wait(?:s)?(?:\s+here|\s+behind)?|remain(?:s)?|rest(?:s)?(?:\s+up)?|sleep(?:s)?|get\s+some\s+(?:sleep|rest)|hang\s+back|turn\s+in)\b/i;
+  for(i=0;i<clauses.length;i++){
+    var c=clauses[i];
+    if(/\?\s*$/.test(c))continue;                                                        /* questions propose, not direct */
+    if(/\b(?:don['’]?t|do\s+not|no\s+one|nobody|won['’]?t|can['’]?t|never)\b/i.test(c))continue;  /* negation */
+    var sm=c.match(STAY);
+    if(sm){
+      var pre=c.slice(0,sm.index),post=c.slice(sm.index+sm[0].length,sm.index+sm[0].length+24);
+      if(/^\s*(?:close|beside|with\s+(?:me|us))/i.test(post))continue;                   /* "stay close / with me" = accompany */
+      if(/\b(?:I(?:['’]ll)?|we(?:['’]ll|['’]re)?(?:\s+all)?|let['’]s(?:\s+all)?|us)\s*$/i.test(pre))continue; /* player-self or whole-party rest — no split */
+      if(/\b(?:you\s+two|you\s+both|you\s+three|the\s+rest\s+of\s+you|everyone\s+else)\b[^,]*$/i.test(pre))return {names:[]};
+      if(partyNames&&partyNames.length&&typeof _partyNameHits==="function"){
+        var hits=_partyNameHits(pre,partyNames),uniq={},names=[],j;
+        for(j=0;j<hits.length;j++){if(!uniq[hits[j].name]){uniq[hits[j].name]=1;names.push(hits[j].name);}}
+        if(names.length)return {names:names};
+      }
+      continue;
+    }
+    /* exclusive continuation: "<Name> and I can/will <motion>" — the complement stays, nameless
+       from the engine's seat. Party >1 required (someone must exist to stay). */
+    if(partyNames&&partyNames.length>1&&typeof _partyNameHits==="function"){
+      var em=c.match(/\b(?:just\s+|only\s+)?(\S[^,]{0,30}?)\s+and\s+I\b\s*(?:can|will|['’]ll|shall|should|am\s+going\s+to|are\s+going\s+to)?\s*(?:go|head|take|deliver|bring|carry|walk|ride|run|slip|sneak|scout|visit|return|handle|make|set\s+out|do)\b/i);
+      if(em&&_partyNameHits(em[1],partyNames).length===1)return {names:[]};
+    }
+  }
+  return null;
+}
+/* #189ⓑ (t1833: "Morwen's hand rests near Cleaver's hilt out of old habit" — Cleaver lives ONLY
+   on Ammut's sheet and Morwen carries no sword): prose item-owner binding had no guard anywhere.
+   Narrow committed-prose scan: a DISTINCTIVE item (capitalized-as-stored base name owned by
+   exactly ONE party sheet) attributed to a DIFFERENT party member, by direct genitive
+   ("Morwen's Cleaver") or possession-by-handling ("Morwen's hand ... Cleaver"). Rejection-first:
+   quoted sentences skip (characters may misspeak), a sentence that also names the true owner's
+   genitive skips (attribution is present — a hand brushing Ammut's Cleaver is fine), lowercase
+   gear and shared items never index. Case-SENSITIVE item match ("cleaver" the noun never fires).
+   Returns {wrong, item, owner} or null. Never rewrites — the nudge is GM-decides. */
+function detectItemMisattribution(text){
+  var t=String(text||"");if(!t||typeof worldState==="undefined"||!worldState||!worldState.character)return null;
+  var reEsc=function(s){return String(s).replace(/[.*+?^$\{\}()|[\]\\]/g,"\\$&");};
+  var sheets=[{name:worldState.character.name||"",inv:worldState.character.inventory||[]}],i,j,k;
+  var comps=(typeof partyCompanionsWithSheets==="function")?partyCompanionsWithSheets():[];
+  for(i=0;i<comps.length;i++)sheets.push({name:comps[i].name,inv:(comps[i].charSheet&&comps[i].charSheet.inventory)||[]});
+  if(sheets.length<2)return null;
+  for(i=0;i<sheets.length;i++){var fn=String(sheets[i].name).split(/\s+/)[0];sheets[i].forms=fn&&fn!==sheets[i].name?[sheets[i].name,fn]:[sheets[i].name];}
+  var owners={};
+  for(i=0;i<sheets.length;i++)for(j=0;j<sheets[i].inv.length;j++){
+    var base=(typeof _invBase==="function")?_invBase(sheets[i].inv[j]):String(sheets[i].inv[j]);
+    if(!/^[A-Z]/.test(base))continue;
+    if(!owners[base])owners[base]=[];
+    if(owners[base].indexOf(sheets[i].name)<0)owners[base].push(sheets[i].name);
+  }
+  var sents=t.match(/[^.!?\n]+[.!?]*/g)||[];
+  for(i=0;i<sents.length;i++){
+    var s=sents[i];
+    if(/["“”]/.test(s))continue;
+    for(var item in owners){
+      if(owners[item].length!==1||s.indexOf(item)<0)continue;
+      var owner=owners[item][0],ownerSheet=null;
+      for(j=0;j<sheets.length;j++)if(sheets[j].name===owner)ownerSheet=sheets[j];
+      var ownerNamed=false;
+      for(k=0;k<ownerSheet.forms.length;k++)if(new RegExp("\\b"+reEsc(ownerSheet.forms[k])+"['’]s\\b").test(s)){ownerNamed=true;break;}
+      if(ownerNamed)continue;
+      var itemEsc=reEsc(item);
+      for(j=0;j<sheets.length;j++){
+        if(sheets[j].name===owner)continue;
+        for(k=0;k<sheets[j].forms.length;k++){
+          var wEsc=reEsc(sheets[j].forms[k]);
+          if(new RegExp("\\b"+wEsc+"['’]s\\s+(?:\\w+\\s+){0,2}?"+itemEsc).test(s)||
+             new RegExp("\\b"+wEsc+"['’]s\\s+(?:hands?|fingers?|grip|palm|fist)\\b[^.!?]{0,40}?"+itemEsc).test(s))
+            return {wrong:sheets[j].name,item:item,owner:owner};
+        }
+      }
+    }
+  }
+  return null;
+}
 function detectPartyAbsenceCorrection(text,partyNames){
   var t=String(text||"");if(!/^\s*(?:GM|OOC)\s*:/i.test(t)||!partyNames||!partyNames.length)return null;
   var hits=_partyNameHits(t,partyNames),i,h,tail;

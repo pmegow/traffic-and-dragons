@@ -3896,6 +3896,89 @@ function runEngineTests(R){
     return sl&&sl.location==="Sandpoint"&&sl.sublocation==="The Rusty Dragon"?true:"3-field form damaged: "+JSON.stringify(sl);
   });
 
+  // ── #189ⓐ player-declared stay-behind observer (the t1827 "You two get some sleep" gap) ─────
+  section("#189ⓐ player-input stay-behind");
+  t("#189ⓐ: the exact t1827 input fires (nameless subgroup directive)",function(){
+    var h=detectPlayerStayBehind("You two get some sleep, Friz and I can deliver it.",["Morwen","Daeris","Frizwick"]);
+    return h?true:"the motivating field sentence does not fire";
+  });
+  t("#189ⓐ: a named stay directive returns the names",function(){
+    var h=detectPlayerStayBehind("Morwen, stay here and watch the door.",["Morwen","Daeris"]);
+    if(!h||!h.names||h.names.indexOf("Morwen")<0)return "named directive missed: "+JSON.stringify(h);
+    var h2=detectPlayerStayBehind("Daeris and Morwen wait here while I scout ahead.",["Morwen","Daeris"]);
+    return h2&&h2.names&&h2.names.length===2?true:"two-name directive missed: "+JSON.stringify(h2);
+  });
+  t("#189ⓐ: rejection battery — questions, negations, accompany-forms, whole-party rest, player-self",function(){
+    var pn=["Morwen","Daeris"];
+    if(detectPlayerStayBehind("Should you two stay here?",pn))return "question fired";
+    if(detectPlayerStayBehind("Don't stay here, come with us.",pn))return "negation fired";
+    if(detectPlayerStayBehind("Morwen stays close to me the whole way.",pn))return "accompany-form fired";
+    if(detectPlayerStayBehind("We all get some sleep at the inn.",pn))return "whole-party rest fired";
+    if(detectPlayerStayBehind("I'll stay behind the pillar and watch.",pn))return "player-self stay fired";
+    return true;
+  });
+  t("#189ⓐ: commitGmTurn arms playerSplitPing from the PLAYER's input when the GM response has no [PARTY_SPLIT:]",function(){
+    makeWorld();worldState.turn=30;
+    worldState.npcs.push({name:"Morwen",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Morwen",cls:"Rogue",level:2,hp:10,maxHp:10,xp:0,stats:{},abilities:[],inventory:[],spells:[],conditions:[]}});
+    commitGmTurn("The corridor stretches ahead. [TIME_ADVANCE:10m]",{userMsg:"x",playerTxt:"Morwen, stay here and rest. I'll check the corridor."});
+    if(!worldState.playerSplitPing)return "ping not armed";
+    if((worldState.playerSplitPing.names||[]).indexOf("Morwen")<0)return "ping lost the name";
+    delete worldState.playerSplitPing;
+    commitGmTurn("She nods and settles by the door. [PARTY_SPLIT:Morwen|Sandpoint]",{userMsg:"x",playerTxt:"Morwen, stay here and rest."});
+    return worldState.playerSplitPing?"armed despite the GM recording the split itself":true;
+  });
+  t("#189ⓐ: buildPlayerSplitNudge fires once, names the member, and expires on the 2-turn shelf",function(){
+    makeWorld();worldState.turn=30;
+    worldState.playerSplitPing={names:["Morwen"],turn:30};
+    var n=buildPlayerSplitNudge();
+    if(!n||n.indexOf("Morwen")<0)return "nudge missing or nameless: "+JSON.stringify(n&&n.slice(0,60));
+    if(buildPlayerSplitNudge()!=="")return "not consumed on fire";
+    worldState.playerSplitPing={names:[],turn:20};
+    return buildPlayerSplitNudge()===""?true:"stale ping did not expire";
+  });
+  t("#189ⓐ: playerSplitPing rides NOTE_LATCH_FIELDS",function(){
+    return NOTE_LATCH_FIELDS.indexOf("playerSplitPing")>=0?true:"ping not latch-protected";
+  });
+
+  // ── #189ⓑ item-owner misattribution — "Morwen's hand near Cleaver's hilt" (t1833) ───────────
+  section("#189ⓑ item misattribution observer");
+  function makeItemWorld(){
+    makeWorld();worldState.turn=30;
+    worldState.character.name="Ammut";
+    worldState.character.inventory=["Cleaver","Torch","rope"];
+    worldState.npcs.push({name:"Morwen Zethran",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Morwen Zethran",cls:"Rogue",level:2,hp:10,maxHp:10,xp:0,stats:{},abilities:[],inventory:["Throwing knives","Torch"],spells:[],conditions:[]}});
+  }
+  t("#189ⓑ: the exact t1833 handling shape fires — wrong holder, item, and true owner named",function(){
+    makeItemWorld();
+    var h=detectItemMisattribution("Morwen's hand rests near Cleaver's hilt out of old habit.");
+    if(!h)return "the motivating field sentence does not fire";
+    if(h.item!=="Cleaver")return "wrong item: "+h.item;
+    if(!/Morwen/.test(h.wrong))return "wrong holder missed: "+h.wrong;
+    return h.owner==="Ammut"?true:"true owner missed: "+h.owner;
+  });
+  t("#189ⓑ: a direct genitive fires; the true owner's genitive never does",function(){
+    makeItemWorld();
+    if(!detectItemMisattribution("Morwen's Cleaver gleams in the lamplight."))return "direct genitive missed";
+    return detectItemMisattribution("Ammut's Cleaver hangs at his belt.")?"fired on the true owner's own item":true;
+  });
+  t("#189ⓑ: precision battery — shared items, lowercase gear, quoted speech, owner named in-sentence",function(){
+    makeItemWorld();
+    if(detectItemMisattribution("Morwen's Torch sputters."))return "non-unique item fired (both carry Torch)";
+    if(detectItemMisattribution("Morwen's rope uncoils."))return "lowercase mundane gear fired";
+    if(detectItemMisattribution("\"Take Morwen's Cleaver,\" she says."))return "quoted speech fired";
+    return detectItemMisattribution("Morwen's hand brushes Ammut's Cleaver as she passes it over.")?"fired although the true owner is named in the same sentence":true;
+  });
+  t("#189ⓑ: commitGmTurn arms itemMisPing; the nudge fires once naming all three parties and is consumed",function(){
+    makeItemWorld();
+    commitGmTurn("Morwen's hand rests near Cleaver's hilt out of old habit. [TIME_ADVANCE:5m]",{userMsg:"x",playerTxt:"We march."});
+    if(!worldState.itemMisPing)return "ping not armed";
+    worldState.combat=null;
+    var n=buildItemMisNudge();
+    if(!n||n.indexOf("Cleaver")<0||n.indexOf("Ammut")<0||!/Morwen/.test(n))return "nudge incomplete: "+JSON.stringify(n&&n.slice(0,80));
+    if(buildItemMisNudge()!=="")return "not consumed on fire";
+    return NOTE_LATCH_FIELDS.indexOf("itemMisPing")>=0?true:"ping not latch-protected";
+  });
+
   // ── #190ⓓⓔ the Caul loop's terminal teeth ──────────────────────────────────────────────────
   section("#190 shelved-dispute re-arm cap + summary strike deferral");
   t("#190ⓓ: an IDENTICAL retry never re-arms a shelved dispute",function(){

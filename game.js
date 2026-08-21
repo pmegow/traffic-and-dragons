@@ -1646,6 +1646,14 @@ function commitGmTurn(resp,opts){
       var _sbHit=detectStayBehind(resp,_sbNames);
       if(!_sbHit&&typeof detectPartyAbsenceCorrection==="function")_sbHit=detectPartyAbsenceCorrection(o.playerTxt,_sbNames);
       if(_sbHit)worldState.presencePing={name:_sbHit,turn:worldState.turn};
+      /* #189ⓐ: the PLAYER-INPUT twin — a departure declared in the player's own words
+         ("You two get some sleep") that neither the GM's tags nor its prose recorded. Its own
+         ping/builder because the wording differs (player-declared vs narrated) and names may
+         be absent (a nameless subgroup directive — the GM resolves who). */
+      if(!_sbHit&&typeof detectPlayerStayBehind==="function"){
+        var _psbHit=detectPlayerStayBehind(o.playerTxt,_sbNames);
+        if(_psbHit)worldState.playerSplitPing={names:_psbHit.names||[],turn:worldState.turn};
+      }
     }
     if(!_refusal)detectGhostConsumables(o.playerTxt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags); #197: refusals excluded too */
     if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name,_lp=worldState.pendingLegacy;
@@ -1674,6 +1682,12 @@ function commitGmTurn(resp,opts){
      the tag claimed. A zero here is real signal — it means the GM billed the turn no time at all. */
   if(!_refusal&&typeof personDriftDetect==="function")personDriftDetect(clean,_bookkeeping);/* #172: narrative-person watcher — CLEAN text (tag payloads carry no prose person), post-applyMuts, beside the phase watcher for the same reason: sheet-sync and Table Talk never reach commitGmTurn, so only real narration is judged; #197: a refusal is first-person meta by nature and must not count as drift */
   if(!_refusal&&typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: phase-mismatch watcher — post-applyMuts (the parser tail already reconciled any [TIME:], so agreement self-silences by band math), CLEAN text only (raw would match the tags' own words). Openings included; sheet-sync and TT never pass through commitGmTurn, so non-story text is never scanned; #197: refusal text asserts no phase */
+  /* #189ⓑ: item-owner binding watcher — CLEAN committed prose only, refusals excluded, one
+     standing record (first wins until delivered, so a multi-turn scene can't re-arm mid-nudge). */
+  if(!_refusal&&!worldState.itemMisPing&&typeof detectItemMisattribution==="function"){
+    var _imHit=detectItemMisattribution(clean);
+    if(_imHit)worldState.itemMisPing={wrong:_imHit.wrong,item:_imHit.item,owner:_imHit.owner,turn:worldState.turn};
+  }
   logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre),{bookkeeping:_bookkeeping,refusal:_refusal});
   var _slUser={role:"user",content:o.userMsg},_slGm={role:"assistant",content:resp};
   if(_bookkeeping){_slUser.bk=1;_slGm.bk=1;}
