@@ -1073,6 +1073,20 @@ function buildLocationTwinNudge(){
 // path stays the sole parser. One item per turn (note pressure); unanswered checks persist per
 // owner/item and re-fire on the cooldown at most three times, while ITEM_LOST/ITEM_KEPT resolves
 // them. Silent mid-combat WITHOUT consuming (spends happen in combat; the check keeps until the dust settles).
+// #176: the duplicate-grant warning's GM-facing half — one-shot GM-decides note (the #60
+// consumable-nudge shape) teaching the three honest exits: undo the stack, rename, or keep.
+// Combat-silent; the pending record is the latch (rides NOTE_LATCH_FIELDS so a failed turn
+// restores the undelivered note); consumed on delivery.
+function buildDupItemNudge(){
+  if(!worldState||worldState.combat)return"";
+  var d=worldState.dupItemPending;
+  if(!d)return"";
+  delete worldState.dupItemPending;
+  var whose=d.owner?d.owner+"'s":"the player's";
+  var lost=d.owner?"COMPANION_ITEM_LOST:"+d.owner+"|":"ITEM_LOST:";
+  var ren=d.owner?"COMPANION_ITEM_RENAMED:"+d.owner+"|":"ITEM_RENAMED:";
+  return "[ENGINE NOTE — DUPLICATE ITEM GRANT (not a player action): the last response granted '"+d.item+"' but "+whose+" sheet already carried it, so the grant STACKED. If that was the SAME item re-described — not a second copy — emit ["+lost+d.item+"] now to undo the stack; if the fiction renamed or evolved the item, also emit ["+ren+d.item+"|<new name>] so the sheet follows the story. If it is genuinely a second copy, emit nothing — the stack is correct.]";
+}
 function buildConsumableNudge(){
   if(!worldState||worldState.combat)return"";
   var q=worldState.consumableChecks,c=null,i,p=worldState.consumablePending||[];
@@ -1236,7 +1250,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -1258,7 +1272,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
@@ -1941,9 +1955,34 @@ function duplicateItemGrantWarning(inv,name,incoming,owner,R,raw){
   for(i=0;i<losses.length;i++){var lm=owner?losses[i].match(/\[COMPANION_ITEM_LOST:([^|\]]+)\|([^\]]+)\]/):losses[i].match(/\[ITEM_LOST:([^\]]+)\]/);if(lm&&(!owner||String(lm[1]).trim()===owner)&&itemBaseName(owner?lm[2]:lm[1])===key)return false;}
   for(i=0;i<(inv||[]).length;i++)if(_invCount(inv[i])===1&&itemBaseName(inv[i])===key){
     var who=owner?owner+"'s ":"player ",msg="DUPLICATE ITEM: "+who+"sheet already had uncounted '"+_invBase(inv[i])+"'; grant stacked, verify acquisition/rename";
-    if(typeof console!=="undefined")console.warn("[items] "+msg);if(R&&R.muts)R.muts.push(msg);return true;
+    if(typeof console!=="undefined")console.warn("[items] "+msg);if(R&&R.muts)R.muts.push(msg);
+    /* #176: the warning above lives only in console+muts — invisible to the GM, so the rename
+       path it asks for was never taken (the Cleaver class). Stamp ONE pending record (latest
+       wins, the W4 one-record-per-axis discipline) for buildDupItemNudge to deliver. */
+    if(typeof worldState!=="undefined"&&worldState)worldState.dupItemPending={owner:owner||null,item:_invBase(inv[i]),turn:worldState.turn||0};
+    return true;
   }
   return false;
+}
+// #176: relabel a carried item IN PLACE — the engine path a fiction-side rename never had.
+// Stack count and list position survive; unknown item and name-collision both refuse LOUDLY
+// (muts + console). A collision is refused because two entries silently becoming one is
+// [ITEM_LOST:]'s job — a relabel must never destroy a stack.
+function renameInventoryItem(inv,oldName,newName,R,who){
+  var key=_invNorm(oldName),nk=_invNorm(newName),i,hit=-1,label=who?who+": ":"";
+  for(i=0;i<(inv||[]).length;i++){if(_invNorm(inv[i])===key){hit=i;break;}}
+  if(hit<0){for(i=0;i<(inv||[]).length;i++){if(itemBaseName(inv[i])===itemBaseName(oldName)){hit=i;break;}}}
+  if(hit<0){
+    var m1="RENAME refused: no '"+oldName+"' on the "+(who||"player")+" sheet";
+    if(typeof console!=="undefined")console.warn("[items] "+m1);if(R&&R.muts)R.muts.push(label+m1);return false;
+  }
+  for(i=0;i<inv.length;i++){if(i!==hit&&_invNorm(inv[i])===nk){
+    var m2="RENAME refused: '"+newName+"' already on the sheet — if the two are one item, emit [ITEM_LOST:"+oldName+"] instead";
+    if(typeof console!=="undefined")console.warn("[items] "+m2);if(R&&R.muts)R.muts.push(label+m2);return false;
+  }}
+  var c=_invCount(inv[hit]);inv[hit]=newName+(c>1?" x"+c:"");
+  if(R&&R.muts)R.muts.push(label+oldName+" → "+newName);
+  return true;
 }
 function _clearConsumablePending(who,name){
   if(!worldState||!worldState.consumablePending)return;var key=(who||"")+"|"+_invNorm(name);

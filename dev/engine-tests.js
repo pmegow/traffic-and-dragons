@@ -3792,6 +3792,72 @@ function runEngineTests(R){
     return DEFAULT_RULES.join("\n").indexOf("optional")>=0?true:"DEFAULT_RULES never mentions optional objectives";
   });
 
+  // ── #176 fiction-named items: [ITEM_RENAMED:] + the duplicate-grant GM nudge ──────────────
+  section("#176 item rename + duplicate-grant nudge");
+  t("#176: [ITEM_RENAMED:old|new] relabels in place, keeping position and stack count",function(){
+    makeWorld();
+    worldState.character.inventory=["Torch","Cleaver","Rope x3"];
+    applyMuts("[ITEM_RENAMED:Cleaver|Voice of the Forge]");
+    if(worldState.character.inventory[1]!=="Voice of the Forge")return "rename missed: "+JSON.stringify(worldState.character.inventory);
+    applyMuts("[ITEM_RENAMED:Rope|Silverline]");
+    return worldState.character.inventory[2]==="Silverline x3"?true:"stack count lost: "+worldState.character.inventory[2];
+  });
+  t("#176: renaming an item not on the sheet refuses loudly with zero mutation",function(){
+    makeWorld();
+    worldState.character.inventory=["Torch"];
+    var R=applyMutsTable("[ITEM_RENAMED:Ghost Blade|Void Blade]");
+    if(worldState.character.inventory.length!==1||worldState.character.inventory[0]!=="Torch")return "inventory mutated";
+    return /RENAME refused/.test((R&&R.muts||[]).join(" "))?true:"refusal not surfaced in the muts line";
+  });
+  t("#176: renaming ONTO an existing different entry refuses — a relabel is never a merge",function(){
+    makeWorld();
+    worldState.character.inventory=["Cleaver","Voice of the Forge"];
+    var R=applyMutsTable("[ITEM_RENAMED:Cleaver|Voice of the Forge]");
+    if(worldState.character.inventory.join("|")!=="Cleaver|Voice of the Forge")return "entries changed: "+JSON.stringify(worldState.character.inventory);
+    return /RENAME refused/.test((R&&R.muts||[]).join(" "))?true:"collision refusal not surfaced";
+  });
+  t("#176: [COMPANION_ITEM_RENAMED:] renames the companion's item, never the player's",function(){
+    makeWorld();
+    worldState.character.inventory=["Cleaver"];
+    worldState.npcs.push({name:"Morwen",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Morwen",cls:"Rogue",level:2,hp:10,maxHp:10,xp:0,stats:{},abilities:[],inventory:["Cleaver"],spells:[],conditions:[]}});
+    applyMuts("[COMPANION_ITEM_RENAMED:Morwen|Cleaver|Whisperfang]");
+    if(worldState.npcs[worldState.npcs.length-1].charSheet.inventory[0]!=="Whisperfang")return "companion item not renamed";
+    return worldState.character.inventory[0]==="Cleaver"?true:"player item mutated by the companion tag";
+  });
+  t("#176: cleanTxt strips both rename forms",function(){
+    var s=cleanTxt("A [ITEM_RENAMED:Cleaver|Whisperfang] B [COMPANION_ITEM_RENAMED:Morwen|Cleaver|Whisperfang] C");
+    return s.indexOf("[")<0?true:"tag leaked to prose: "+s;
+  });
+  t("#176: the STATE TAGS doc teaches the rename pair",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("[ITEM_RENAMED:")<0)return "player form missing from the doc";
+    return d.indexOf("[COMPANION_ITEM_RENAMED:")>=0?true:"companion form missing from the doc";
+  });
+  t("#176: a duplicate single grant stamps dupItemPending; the nudge fires once, combat-silent, teaching both exits",function(){
+    makeWorld();
+    worldState.character.inventory=["Cleaver"];
+    applyMuts("[ITEM_GAINED:Cleaver]");
+    if(!worldState.dupItemPending)return "duplicate grant did not stamp the pending record";
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5}]};
+    if(buildDupItemNudge()!=="")return "nudge fired mid-combat";
+    worldState.combat=null;
+    var n=buildDupItemNudge();
+    if(n.indexOf("[ITEM_RENAMED:Cleaver|")<0)return "nudge does not teach the rename exit";
+    if(n.indexOf("[ITEM_LOST:Cleaver]")<0)return "nudge does not teach the undo-the-stack exit";
+    return buildDupItemNudge()===""?true:"nudge not consumed on delivery";
+  });
+  t("#176: a companion duplicate grant arms the nudge with COMPANION_ forms",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Morwen",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Morwen",cls:"Rogue",level:2,hp:10,maxHp:10,xp:0,stats:{},abilities:[],inventory:["Cleaver"],spells:[],conditions:[]}});
+    applyMuts("[COMPANION_ITEM_GAINED:Morwen|Cleaver]");
+    var n=buildDupItemNudge();
+    if(n.indexOf("[COMPANION_ITEM_RENAMED:Morwen|Cleaver|")<0)return "companion rename form missing: "+n;
+    return n.indexOf("[COMPANION_ITEM_LOST:Morwen|Cleaver]")>=0?true:"companion undo form missing";
+  });
+  t("#176: dupItemPending rides NOTE_LATCH_FIELDS (survives a failed turn)",function(){
+    return NOTE_LATCH_FIELDS.indexOf("dupItemPending")>=0?true:"pending record not latch-protected";
+  });
+
   // ── GM-compliance teeth (audit P3/P14) ────────────────────────────────────────
   section("GM-compliance teeth (P3/P14)");
   t("allDoneSince stamps when objectives complete, stays sticky, clears on a new objective",function(){
@@ -4336,7 +4402,10 @@ function runEngineTests(R){
     // v1.651 (#194): +SCENE_CAST and +NPC_DEATH_REPORTED strip entries — source grew exactly 30
     // chars = "SCENE_CAST|"(11)+"NPC_DEATH_REPORTED|"(19). Both must strip: a leaked cast line is
     // ledger-speak in the prose, and a leaked death report reads the bookkeeping aloud in TTS.
-    if(__djb2(_CT_TAGS.source)!==1729314184||_CT_TAGS.source.length!==1503)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    // v1.680 (#176): +ITEM_RENAMED and +COMPANION_ITEM_RENAMED strip entries — source grew
+    // exactly 36 chars = "ITEM_RENAMED|"(13)+"COMPANION_ITEM_RENAMED|"(23). An unstripped rename
+    // would read the relabel ceremony aloud in the prose and pollute the transcript.
+    if(__djb2(_CT_TAGS.source)!==1257601911||_CT_TAGS.source.length!==1539)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -4415,7 +4484,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-910182163&&d.length===24491)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #194 (v1.651): three deliberate additions in ONE re-baseline — the [SAY:] line gains the physically-present clause (speech-is-presence, owner ruling ①), and the [SCENE_CAST:] + [NPC_DEATH_REPORTED:] lines join the vocabulary (rulings ④ and ②). Prior: #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===-594829305&&d.length===24844)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.680 (#176): the [ITEM_RENAMED:]/[COMPANION_ITEM_RENAMED:] doc line joins the item cluster (+353 chars) — the rename path the duplicate-grant nudge teaches must exist in the GM's vocabulary. Prior: #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
