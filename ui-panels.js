@@ -395,7 +395,7 @@ function updateCombat(){
     for(fi=0;fi<ordered.length&&fi<4;fi++){var f=ordered[fi];
       if(!f.down&&f.hp>0){
         var pct=Math.max(0,Math.round((f.hp/(f.maxHp||f.hp||1))*100));
-        h+="<div class='crow'><span class='cname en'"+(cm.engaged===f.name?" title='engaged'":"")+">"+(cm.engaged===f.name?"◆ ":"")+escHtml(f.name)+"</span><div class='hbw'><div class='hb eb' style='width:"+pct+"%'></div></div><span class='hpt'>"+f.hp+"/"+f.maxHp+"</span>"+(f.morale?"<span class='mbdg'>"+escHtml(f.morale)+"</span>":"")+"</div>";
+        h+="<div class='crow'><span class='cname en' title='"+escHtml(f.name)+(cm.engaged===f.name?" — engaged":"")+"'>"+(cm.engaged===f.name?"◆ ":"")+escHtml(f.name)+"</span><div class='hbw'><div class='hb eb' style='width:"+pct+"%'></div></div><span class='hpt'>"+f.hp+"/"+f.maxHp+"</span>"+(f.morale?"<span class='mbdg'>"+escHtml(f.morale)+"</span>":"")+"</div>";
         if(!sbFoe&&f.stats&&cm.engaged===f.name)sbFoe=f;
       }else{
         h+="<div class='crow' style='opacity:.45'><span class='cname en' style='text-decoration:line-through'>"+escHtml(f.name)+"</span><span class='hpt' style='width:auto'>"+escHtml(f.down||"slain")+"</span></div>";
