@@ -3858,6 +3858,14 @@ function runEngineTests(R){
     return NOTE_LATCH_FIELDS.indexOf("dupItemPending")>=0?true:"pending record not latch-protected";
   });
 
+  // ── #207① the hour shapes the world (the 2:36 AM bathhouse) ────────────────────────────────
+  section("#207 hour-shapes-the-world rule");
+  t("#207①: the DEFAULT_RULES carry the hour rule, colored-not-gated",function(){
+    var joined=DEFAULT_RULES.join("\n");
+    if(joined.indexOf("THE HOUR SHAPES THE WORLD")<0)return "hour rule missing from DEFAULT_RULES";
+    return /rather than forbidding/.test(joined)?true:"the colors-not-forbids clause is missing — the rule would hard-gate night service";
+  });
+
   // ── #204 stray duplicates of SUCCEEDED operations are hygiene, not disputes (t2049) ────────
   section("#204 duplicate-refusal hygiene");
   t("#204: a bare SCENE_DEATH whose envelope already committed THIS response is stripped without a conflict, and co-emitted quest tags survive",function(){
