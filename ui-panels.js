@@ -392,6 +392,25 @@ function updateCombat(){
     var foes=cm.foes||[],living=[],downs=[],fi;
     for(fi=0;fi<foes.length;fi++){if(!foes[fi].down&&foes[fi].hp>0)living.push(foes[fi]);else downs.push(foes[fi]);}
     var ordered=living.concat(downs),h="",sbFoe=null;
+    /* Shared name-column width so every HP bar starts at the SAME x (owner report, t2075: the
+       per-row flex widths from the v1.673 truncation fix left each bar's left edge where its own
+       name happened to end). Measure the longest VISIBLE name with the real computed font via a
+       scratch .cname (width:auto), clamp to [80px, 45% of the panel], publish as --cnw; the CSS
+       width:var(--cnw) puts every row — foes, downed, and the player — on one column edge, with
+       ellipsis still guarding names past the cap. */
+    var _cp=document.getElementById("cpanel");
+    if(_cp){
+      var _ms=document.createElement("span");_ms.className="cname";
+      _ms.style.cssText="position:absolute;visibility:hidden;width:auto;max-width:none;";
+      _cp.appendChild(_ms);
+      var _mw=80,_mn=[],_mi;
+      for(_mi=0;_mi<ordered.length&&_mi<4;_mi++)_mn.push((cm.engaged===ordered[_mi].name?"◆ ":"")+ordered[_mi].name);
+      _mn.push((pc&&pc.name)||"You");
+      for(_mi=0;_mi<_mn.length;_mi++){_ms.textContent=_mn[_mi];var _w=_ms.offsetWidth;if(_w>_mw)_mw=_w;}
+      _cp.removeChild(_ms);
+      var _cap=Math.floor(_cp.clientWidth*0.45)||_mw;
+      _cp.style.setProperty("--cnw",Math.min(_mw+2,_cap)+"px");/* +2: breathing room so the widest name never kisses its own ellipsis */
+    }
     for(fi=0;fi<ordered.length&&fi<4;fi++){var f=ordered[fi];
       if(!f.down&&f.hp>0){
         var pct=Math.max(0,Math.round((f.hp/(f.maxHp||f.hp||1))*100));
