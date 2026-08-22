@@ -2456,6 +2456,12 @@ function buildSceneRenderRequest(c,party,w){
     /* #209d: implied motion orients a body more reliably than static facing words (convergent
        practice — 'walking away toward the gate' is the community's rear-view idiom of choice). */
     +"Prefer MOTION VERBS aimed at the named focal point over static facing words — 'striding toward the X', 'driving up the X', 'leaning into the X' — a body in motion toward a target is oriented by construction. "
+    /* #209e (the adversarially-verified gaze deep-research, 2026-08-21): gaze is a RELATION
+       clause — the weakest measured instruction class (~1-in-5 fail at the top end) — and the
+       only single-prompt mitigation is dual-channel redundancy (TextGaze: head and eyes are
+       separately-describable axes). And the booru ontology's trap transfers: 'eye contact' is
+       trained as MUTUAL gaze — in a group scene it turns characters toward EACH OTHER. */
+    +"Write gaze in TWO CHANNELS per character — head and eyes as separate statements ('head turned toward the X, eyes fixed on the X'): stating both is the working mitigation for the least-obeyed instruction class. Never write 'eye contact' when characters should watch the focal point — it means MUTUAL gaze and turns them toward each other; reserve it for a deliberate two-character beat. "
     +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
     +"End with ONE camera-and-motion sentence naming a specific angle and framing (low-angle close shot, over-the-shoulder, dutch tilt, worm's-eye) plus a motion cue (blade streaking, sparks flying, cloth and hair in motion). "
     +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then that character's pose clause, then 1-2 sentences for the environment":"3-4 sentences including the protagonist's specific mid-action pose")+". Output ONLY the prompt, no game tags.";

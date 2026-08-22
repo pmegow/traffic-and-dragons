@@ -5191,6 +5191,10 @@ function runEngineTests(R){
     if(rp.indexOf("CANDID")<0||rp.indexOf("unaware of being observed")<0)return "the positive candid framing is missing (#209d)";
     if(rp.indexOf("never a negation")<0)return "the writer is no longer taught the never-negate rule (#209d)";
     if(rp.indexOf("MOTION VERBS")<0||rp.indexOf("oriented by construction")<0)return "the motion-verb preference is missing (#209d)";
+    /* #209e: the verified gaze levers — dual-channel head/eye statements, and the eye-contact
+       mutual-gaze trap taught to the writer. */
+    if(rp.indexOf("TWO CHANNELS")<0||rp.indexOf("head turned toward the X, eyes fixed on the X")<0)return "the dual-channel gaze mitigation is missing (#209e)";
+    if(rp.indexOf("MUTUAL gaze")<0)return "the eye-contact trap is no longer taught (#209e — 'eye contact' turns a group toward each other)";
     return rp.indexOf("pose clause")>=0?true:"per-character pose clause not demanded in the output shape";
   });
   t("#165: solo render request keeps its shape — protagonist described, with a mid-action pose demanded",function(){
