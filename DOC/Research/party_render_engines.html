@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Party Render Engines — the 2026-08-21 five-way</title>
+<style>
+:root{--bg:#111010;--bg2:#181818;--brd:#2a2a2a;--brd2:#3a3a3a;--acc:#b8935a;--t0:#e8e0d4;--t1:#c9c0b2;--t2:#8d8577;--grn:#7aa86a;--red:#c06055;--amb:#c9a24d;}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--t1);font:15px/1.65 Georgia,serif;margin:0;padding:32px 18px 80px;}
+main{max-width:1060px;margin:0 auto;}
+h1{color:var(--acc);font-size:26px;letter-spacing:.02em;margin:0 0 4px;}
+h2{color:var(--t0);font-size:19px;margin:44px 0 10px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
+h3{color:var(--acc);font-size:15px;margin:22px 0 6px;}
+.sub{color:var(--t2);font-size:13px;margin-bottom:26px;}
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:14px 0;}
+th{color:var(--acc);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid var(--brd2);padding:6px 10px;}
+td{border-bottom:1px solid var(--brd);padding:7px 10px;vertical-align:top;}
+.wrap{overflow-x:auto;}
+.lean{display:inline-block;border-radius:12px;padding:2px 10px;font:bold 11.5px/1.6 Consolas,monospace;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.45);border:1px solid;}
+.lean.a{background:#182215;border-color:var(--grn);}
+.lean.b{background:#221d10;border-color:var(--amb);}
+.lean.c{background:#221312;border-color:var(--red);}
+.card{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:16px 18px;margin:18px 0;}
+.card img{width:100%;max-width:100%;border-radius:6px;border:1px solid var(--brd2);display:block;margin:10px 0 12px;}
+.k{color:var(--t0);}
+.m{font-family:Consolas,monospace;font-size:12.5px;color:var(--t2);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:820px){.grid2{grid-template-columns:1fr;}}
+li{margin:5px 0;}
+a{color:var(--acc);}
+.note{background:var(--bg2);border-left:3px solid var(--acc);padding:10px 14px;font-size:13.5px;margin:14px 0;}
+</style>
+</head>
+<body><main>
+
+<h1>Party Render Engines</h1>
+<div class="sub">Five engines · one fixed prompt · the live t2112 scene (the Storval Stairs, four-member party) · rendered 2026-08-21 on the owner's fal key (total cost ≈ $0.23) · research: 6 parallel web sweeps over fal catalog pages, compositional benchmarks, and practitioner evidence · companion evidence: the same-day field A/B/C/D that filed TODO #208.</div>
+
+<div class="note"><span class="k">The question:</span> which engines can render <em>exactly four described characters</em> — correct count, correct attribute binding (the redhead gets the red hair, the cleric gets the glow), usable pose adherence — in one dynamic composition? The test prompt is the app's own prompt-writer output for the party's real scene, verbatim, plus the house style suffix. Same text every arm; differences below are pure model behavior.</div>
+
+<h2>Results at a glance</h2>
+<div class="wrap"><table>
+<tr><th>Engine</th><th>Endpoint (fal)</th><th>Count</th><th>Binding</th><th>Verdict</th><th>Price/img</th><th>Latency</th></tr>
+<tr><td class="k">Nano Banana 2</td><td class="m">fal-ai/nano-banana-2</td><td>4/4</td><td>Perfect — incl. the bracelet and Morwen's frame-edge crop</td><td><span class="lean a">Champion</span></td><td>$0.08</td><td>13s</td></tr>
+<tr><td class="k">gpt-image-2 (medium)</td><td class="m">openai/gpt-image-2</td><td>4/4</td><td>Correct; minor hair drift on Daeris + Morwen</td><td><span class="lean a">Strong</span></td><td>≈$0.04–0.10</td><td>40s</td></tr>
+<tr><td class="k">Grok Imagine (text-only)</td><td class="m">xai/grok-imagine-image</td><td>4/4</td><td>Correct — the glow, the skin tones, the positions</td><td><span class="lean a">Budget star</span></td><td>$0.02</td><td>8s</td></tr>
+<tr><td class="k">FLUX.2</td><td class="m">fal-ai/flux-2</td><td>5/4</td><td>Clean binding, but Morwen painted twice</td><td><span class="lean b">Dup risk</span></td><td>≈$0.03–0.05</td><td>4s</td></tr>
+<tr><td class="k">Seedream 4.5</td><td class="m">fal-ai/bytedance/seedream/v4.5/text-to-image</td><td>3/4</td><td>Morwen dropped; Daeris's glow + symbol migrated onto Frizwick</td><td><span class="lean c">Mixing-heavy</span></td><td>$0.04</td><td>29s</td></tr>
+</table></div>
+
+<div class="note"><span class="k">The #208 diagnostic, confirmed by experiment:</span> Grok duplicated both seeded companions and dropped the described-only member in the morning's field render (multiSeed references active) — yet composes the same party <em>flawlessly</em> from text alone. Grok's group-scene failure is <strong>reference-driven, not compositional</strong>. Remedy ② therefore generalizes: for party scenes, go text-only on every engine except Nano Banana, whose references demonstrably survive group composition (the morning's 4/4 field render ran multiSeed).</div>
+
+<h2>The renders</h2>
+
+<div class="card"><h3>Nano Banana 2 — 4/4 <span class="lean a">A</span></h3>
+<img src="party_render_2026-08-21/nano_banana_2.jpg" alt="Nano Banana 2 render">
+<p>Every contract clause honored: Ammut's crouch-and-brace with the cold-warded bracelet on the wrist, Frizwick twisted back over her shoulder mid-stride, Daeris planted wide with the raised glowing arm and holy symbol, Morwen in profile <em>partially cropped at the frame's edge</em> — the one direction most models ignore entirely. Painterly, on-palette, composition reads as one event.</p></div>
+
+<div class="card"><h3>gpt-image-2 (medium) — 4/4 <span class="lean a">A−</span></h3>
+<img src="party_render_2026-08-21/gpt_image_2.png" alt="gpt-image-2 render">
+<p>Exact count, dramatic low-angle dutch tilt, strong likeness separation. Deductions: Daeris's "short tightly curled" hair rendered longer, Morwen's pulled-back hair rendered loose — attribute drift, not misbinding. The slowest arm at 40s. Note the arena-#1 config is literally this (medium quality).</p></div>
+
+<div class="card"><h3>Grok Imagine, text-only — 4/4 <span class="lean a">A−</span></h3>
+<img src="party_render_2026-08-21/grok_imagine.jpg" alt="Grok Imagine text-only render">
+<p>Correct count and clean binding at <strong>a quarter of Nano's price</strong> and 8 seconds. This arm is the experiment that settles #208: the same engine that duplicated seeded faces in the morning's field render composes the party correctly when references are withheld. Slightly more photoreal-hybrid finish than the house painterly target.</p></div>
+
+<div class="card"><h3>FLUX.2 — 5/4 <span class="lean b">B−</span></h3>
+<img src="party_render_2026-08-21/flux_2.png" alt="FLUX.2 render">
+<p>The fastest arm (4s) and the binding is genuinely clean — the glow, the cleric kit, and the skin tones all land on the right people — but Morwen appears twice (once loose-haired, once pulled-back: the model rendered both readings of her description). Best open-weight showing, consistent with its T2I-CoReBench position (83.4 MI, best open binder).</p></div>
+
+<div class="card"><h3>Seedream 4.5 — 3/4 <span class="lean c">C</span></h3>
+<img src="party_render_2026-08-21/seedream_4_5.jpg" alt="Seedream 4.5 render">
+<p>Individually gorgeous figures, collectively wrong: Morwen is gone, and Daeris's raised-glowing-hand + holy symbol migrated onto <em>Frizwick</em> while Daeris herself (right edge) lost her cleric kit. This is the exact "mixing-heavy" signature MultiBind measured (58.6% face-binding success, worst of the closed models) — faces preserved, attributes attached to the wrong subjects. Its top-tier <em>described-attribute</em> benchmark scores did not survive contact with a four-character scene.</p></div>
+
+<h2>What the research says (6 sweeps, 2026-08-21)</h2>
+
+<h3>Directly measured composition (T2I-CoReBench MI/MA — closest published analog to party scenes)</h3>
+<div class="wrap"><table>
+<tr><th>Model</th><th>Multiple Instances</th><th>Multiple Attributes</th></tr>
+<tr><td>Nano Banana 2</td><td class="k">92.6</td><td>85.1</td></tr>
+<tr><td>Seedream 4.5</td><td>92.0</td><td class="k">87.1</td></tr>
+<tr><td>Nano Banana Pro</td><td>91.9</td><td>85.5</td></tr>
+<tr><td>GPT-Image-1.5</td><td>87.0</td><td>83.4</td></tr>
+<tr><td>FLUX.2-dev</td><td>83.4</td><td>72.7</td></tr>
+<tr><td>Qwen-Image-2512</td><td>79.6</td><td>65.6</td></tr>
+<tr><td>HiDream-I1</td><td>62.0</td><td>42.9</td></tr>
+</table></div>
+<p class="m">Benchmarks measure ~25 generic objects, not 4 named characters — which is why Seedream can top MA on paper and still fuse a party in practice: the failure our test exposes is reference/identity <em>attachment</em>, a dimension only the MultiBind study measures (Nano family 84% ≈ GPT-Image 82% ≫ Seedream 59% &gt; Qwen-edit 44%). Our five-way agrees with MultiBind, not with CoReBench.</p>
+
+<h3>The rest, compressed</h3>
+<ul>
+<li><span class="k">Arenas (proxy, aesthetic-heavy):</span> gpt-image-2 #1 everywhere (+242 Elo T2I); Grok Imagine 2.0 #3; Nano 2 top-7; Seedream 5.0-pro and Qwen 3.0-pro exist but weren't fal-verified in time.</li>
+<li><span class="k">Vendor contracts:</span> Google is the only vendor with a numbered multi-character claim ("identity for up to 5 people"), independently reproduced by practitioners (a 5-character restaurant scene; a correct 4-person count). Every other "multi-reference consistency" claim (FLUX.2's 10 refs, Seedream's 10, Grok's 5) ships without numbers.</li>
+<li><span class="k">Practitioner convergence:</span> gpt-image duplicates faces when asked for specific counts (community-documented); Ideogram reviews say "avoid multi-person"; Midjourney still takes ONE character reference and wants stitched sheets; the entire regional-prompting tool ecosystem exists because base diffusion models blur two described people together.</li>
+<li><span class="k">Dead ends:</span> Imagen 4 — delisted from fal (all endpoints 404). Reve 2.x (layout-first, promising) — not on fal. Kling O3 claims "flawless consistency" ($0.028, 10 refs, @ImageN addressing) but has zero independent group-scene evidence — a candidate for a future probe, not a pick.</li>
+</ul>
+
+<h2>The best five for party scenes</h2>
+<ol>
+<li><span class="k">Nano Banana 2</span> — the only engine that passed with references AND text; the vendor 5-character contract is real. Keep as the party default.</li>
+<li><span class="k">gpt-image-2 (medium)</span> — 4/4 with minor drift; the strongest challenger. Integration note: fal-standard <span class="m">image_size:"landscape_4_3"</span>, quality tiers, ~40s.</li>
+<li><span class="k">Grok Imagine, text-only</span> — 4/4 at $0.02/8s; the price-performance pick <em>once #208 remedy ② withholds references for party scenes</em>.</li>
+<li><span class="k">FLUX.2</span> — cleanest binding of the non-passers, fastest arm, open-weight; needs the exact-count clause (its one failure was a duplicate, not a misbind).</li>
+<li><span class="k">Seedream 4.5</span> — carried by benchmarks and price, not by this test; usable for solo/duo shots, not the party.</li>
+</ol>
+
+<h2>What this means for RENDER_MODELS (#208)</h2>
+<ul>
+<li><span class="k">Remedy ② upgraded:</span> the party-scene seed policy should cover Grok too — <em>party scenes render text-only on every engine except Nano Banana 2</em> (single-seed models drop the solo portrait; Grok drops its multiSeed refs). Nano keeps references — proven twice today.</li>
+<li><span class="k">Remedy ①</span> (exact-count legend clause) still worth shipping for the cases where refs stay on.</li>
+<li><span class="k">Listing candidates:</span> gpt-image-2 and FLUX.2 are one-entry adds to the PROVIDERS-style RENDER_MODELS table if wanted; Grok is already listed and becomes party-viable via ②.</li>
+</ul>
+
+<p class="m">Artifacts: renders in DOC/Research/party_render_2026-08-21/ · field evidence TODO #208 · research: two catalog sweeps (endpoints/pricing verified on primary fal pages 2026-08-21, incl. the prefix trap — newest partner models drop the fal-ai/ prefix), one benchmark sweep (T2I-CoReBench, GenEval 2, MultiBind, UniGenBench++, CogCanvas, MIBE), one vendor-evidence sweep, one practitioner sweep. Total experiment cost ≈ $0.23 + research API time.</p>
+
+</main></body>
+</html>
