@@ -5098,17 +5098,19 @@ function runEngineTests(R){
 
   section("img2imgStrength (#42)");
   function __rm(id){var i;for(i=0;i<RENDER_MODELS.length;i++){if(RENDER_MODELS[i].id===id)return RENDER_MODELS[i];}return null;}
+  /* #208a: fixtures re-pointed from the dropped Flux entries to Qwen (the one remaining
+     strength-knob model) — the MECHANISM under test (default vs override vs no-knob) is unchanged. */
   t("model default when no override",function(){
     renderStrength={};
-    return eq(img2imgStrength(__rm("fal-ai/flux/dev")),0.6);
+    return eq(img2imgStrength(__rm("fal-ai/qwen-image-2512")),0.9);
   });
   t("per-model user override wins",function(){
-    renderStrength={"fal-ai/flux/dev":0.35};
-    var r=eq(img2imgStrength(__rm("fal-ai/flux/dev")),0.35);
+    renderStrength={"fal-ai/qwen-image-2512":0.35};
+    var r=eq(img2imgStrength(__rm("fal-ai/qwen-image-2512")),0.35);
     renderStrength={};return r;
   });
-  t("override on one model doesn't leak to another",function(){
-    renderStrength={"fal-ai/flux/dev":0.35};
+  t("override keyed to another model doesn't leak",function(){
+    renderStrength={"some-departed-model":0.35};
     var r=eq(img2imgStrength(__rm("fal-ai/qwen-image-2512")),0.9);
     renderStrength={};return r;
   });
@@ -5117,8 +5119,22 @@ function runEngineTests(R){
     return eq(img2imgStrength(__rm("fal-ai/nano-banana-2")),null);
   });
   t("strength flows into the img2img request body",function(){
-    var b=__rm("fal-ai/flux/dev").img2img.body("a scene","data:img",0.45);
+    var b=__rm("fal-ai/qwen-image-2512").img2img.body("a scene","data:img",0.45);
     return eq(b.strength,0.45);
+  });
+
+  section("#208a Flux dropped from the render menu");
+  t("#208a: no Flux entry survives in RENDER_MODELS (owner call 2026-08-21 — consistently sub-par for scenes)",function(){
+    var i;for(i=0;i<RENDER_MODELS.length;i++){if(/flux/i.test(RENDER_MODELS[i].id))return "Flux entry still listed: "+RENDER_MODELS[i].id;}
+    return true;
+  });
+  t("#208a: the shipped default render model is Nano Banana 2 (the five-way champion)",function(){
+    return renderModel==="fal-ai/nano-banana-2"||eq(renderModel,"fal-ai/nano-banana-2");
+  });
+  t("#208a: a stored departed model id falls back to the default; a valid stored id is honored",function(){
+    if(resolveRenderModel("fal-ai/flux/dev")!==renderModel)return "departed id did not fall back (dangling render model = broken doRender on load)";
+    if(resolveRenderModel("fal-ai/qwen-image-2512")!=="fal-ai/qwen-image-2512")return "valid stored id refused";
+    return resolveRenderModel(null)===renderModel?true:"empty store must yield the default";
   });
 
   section("party render — multi-image seeding");
@@ -5177,10 +5193,8 @@ function runEngineTests(R){
     if(grok.urls.length!==3)return "Grok collects to its DECLARED maxSeeds (3) — the legend must match what is actually sent: "+JSON.stringify(grok.urls);
     if(grok.names.join(",")!=="Ammut,Frizwick,Daeris")return "Grok names wrong: "+grok.names.join(",");
     if(grok.omitted.join(",")!=="Morwen")return "the over-cap member must be reported as omitted (described-only): "+JSON.stringify(grok.omitted);
-    var flux=collectRenderSeeds(__rm("fal-ai/flux/dev"),c,party);
-    if(flux.urls.length!==1||flux.urls[0]!=="data:img/player")return "single-ref Flux must stay player-only: "+JSON.stringify(flux.urls);
-    var hq=collectRenderSeeds(__rm("fal-ai/flux-lora"),c,party);
-    return hq.urls.length===1?true:"Flux HQ is single-ref too: "+JSON.stringify(hq.urls);
+    var single=collectRenderSeeds(__rm("fal-ai/qwen-image-2512"),c,party);/* #208a: single-ref fixture re-pointed from the dropped Flux to Qwen */
+    return single.urls.length===1&&single.urls[0]==="data:img/player"?true:"single-ref model must stay player-only: "+JSON.stringify(single.urls);
   });
   t("#166: the reference legend names every numbered image and marks unseeded members described-only — Grok guessed at unlabeled refs and Daeris's face averaged away",function(){
     var legend=buildSeedLegend(["Ammut","Frizwick","Daeris"],["Morwen"]);
@@ -5194,8 +5208,7 @@ function runEngineTests(R){
   t("#165: multiSeed is declared on the Nano and Grok img2img entries — never an id check at a call site",function(){
     if(!__rm("fal-ai/nano-banana-2").img2img.multiSeed)return "Nano img2img must declare multiSeed";
     if(!__rm("xai/grok-imagine-image").img2img.multiSeed)return "Grok img2img must declare multiSeed";
-    if(__rm("fal-ai/flux/dev").img2img.multiSeed)return "Flux Dev must NOT declare multiSeed (single-ref API)";
-    return !__rm("fal-ai/flux-lora").img2img.multiSeed?true:"Flux HQ must NOT declare multiSeed";
+    return !__rm("fal-ai/qwen-image-2512").img2img.multiSeed?true:"Qwen must NOT declare multiSeed (single-ref API)";/* #208a: Flux pins died with the entries */
   });
 
   // ── #163b: falErrorMsg — fal failures must name the failing field ──────────
@@ -5221,34 +5234,8 @@ function runEngineTests(R){
   // The user's same-prompt grid showed the empty flux-lora endpoint consistently beats
   // flux/dev (full unaccelerated serving vs the accelerated variant). The validated config
   // carries NO loras key — its ABSENCE is the contract until a real trained style exists.
-  t("#163: Flux HQ t2i body matches the A/B-validated sandbox config — and carries NO loras key",function(){
-    var m=__rm("fal-ai/flux-lora");
-    if(!m)return "model not in RENDER_MODELS";
-    if(m.label!=="Flux [Dev] HQ")return "label wrong: "+m.label;
-    var b=m.body("a scene");
-    if(b.prompt!=="a scene")return "prompt missing";
-    if(b.image_size!=="landscape_4_3")return "image_size wrong (portrait override keys on this field): "+b.image_size;
-    if(b.num_inference_steps!==28||b.guidance_scale!==3.5)return "quality config drifted: steps "+b.num_inference_steps+" cfg "+b.guidance_scale;
-    if("loras" in b)return "a loras key crept in — the A/B'd config has NONE (see the entry comment)";
-    return b.num_images===1?true:"num_images wrong";
-  });
-  t("#163: Flux HQ img2img — singular image_url collapses array seeds to the player, strength flows, NO loras key",function(){
-    var m=__rm("fal-ai/flux-lora");
-    var b=m.img2img.body("scene",["data:player","data:c1"],0.45);
-    if("loras" in b)return "a loras key crept into the img2img body";
-    if(b.image_url!=="data:player")return "array seed did not collapse to the player: "+b.image_url;
-    if(b.strength!==0.45)return "strength did not flow: "+b.strength;
-    var lone=m.img2img.body("scene","data:solo",0.6);
-    return lone.image_url==="data:solo"?true:"lone URL mangled: "+lone.image_url;
-  });
-  t("#163: Flux HQ strength default 0.6 (project-tuned, matches its Flux sibling) with the #42 override machinery",function(){
-    renderStrength={};
-    if(img2imgStrength(__rm("fal-ai/flux-lora"))!==0.6)return "default wrong: "+img2imgStrength(__rm("fal-ai/flux-lora"));
-    renderStrength={"fal-ai/flux-lora":0.3};
-    var r=img2imgStrength(__rm("fal-ai/flux-lora"))===0.3;
-    renderStrength={};
-    return r?true:"user override did not win";
-  });
+  /* #208a: the three #163 Flux-HQ pins died with the entries (owner call 2026-08-21); the entry
+     shapes + A/B history live in git at v1.689 for any future FLUX.2-era re-listing. */
 
   // ── #162: Grok Imagine (xai/grok-imagine-image) ──
   t("#162: Grok Imagine t2i body — prompt, 4:3, lowercase '1k', one image; aspect_ratio present for the portrait 3:4 override",function(){
@@ -5277,16 +5264,12 @@ function runEngineTests(R){
     var b=__rm("fal-ai/nano-banana-2").img2img.body("scene","data:solo");
     return Array.isArray(b.image_urls)&&b.image_urls.length===1&&b.image_urls[0]==="data:solo";
   });
-  t("Flux img2img collapses an array seed to the first (player only — Nano-only multi-image)",function(){
-    var b=__rm("fal-ai/flux/dev").img2img.body("scene",["data:player","data:comp"],0.6);
-    return eq(b.image_url,"data:player");
-  });
   t("Qwen img2img collapses an array seed to the first",function(){
     var b=__rm("fal-ai/qwen-image-2512").img2img.body("scene",["data:player","data:comp"],0.9);
     return eq(b.image_url,"data:player");
   });
-  t("Flux img2img still accepts a bare string (backward compat)",function(){
-    var b=__rm("fal-ai/flux/dev").img2img.body("scene","data:img",0.5);
+  t("Qwen img2img still accepts a bare string (backward compat)",function(){/* #208a: re-pointed from the dropped Flux */
+    var b=__rm("fal-ai/qwen-image-2512").img2img.body("scene","data:img",0.5);
     return eq(b.image_url,"data:img");
   });
   t("livingPartyCompanions returns only partyMember + charSheet + alive",function(){

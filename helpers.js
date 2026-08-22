@@ -52,6 +52,16 @@ function img2imgStrength(cfg){
 // portrait paths). withImgStyle() applies it at the fal.run boundary rather than baking it into the
 // GM prompt-writer instruction, so the string lands verbatim regardless of what the model writes.
 // Dedup-safe: the "Edit Prompt → Regenerate" path passes a prompt that already carries the suffix.
+/* #208a (owner call 2026-08-21, the Flux drop): a stored render-model id that no longer exists in
+   RENDER_MODELS must fall back to the shipped default LOUDLY — a dangling id would break doRender
+   on the next click (the loadProviderSettings pruning precedent). */
+function resolveRenderModel(storedId){
+  if(storedId){
+    var i;for(i=0;i<RENDER_MODELS.length;i++){if(RENDER_MODELS[i].id===storedId)return storedId;}
+    if(typeof console!=="undefined")console.warn("[render] stored model '"+storedId+"' is no longer offered — falling back to "+renderModel);
+  }
+  return renderModel;
+}
 var IMG_STYLE_SUFFIX="Dark fantasy concept art, painterly realism, cinematic composition, dramatic volumetric lighting, warm firelight and cool shadow contrast, ultra-detailed leather and cloth textures, realistic skin pores and fabric weave, rich atmospheric depth, high-end RPG key art, fantasy illustration, moody color grading, sharp focus, intricate craftsmanship, epic yet grounded realism, 8k detail.";
 function withImgStyle(p){p=p||"";if(p.indexOf(IMG_STYLE_SUFFIX)>=0)return p;return p.replace(/\s+$/,"")+" "+IMG_STYLE_SUFFIX;}
 // AUDIT_FABLE_07_16 #15③: THE initials derivation for every avatar/monogram — moved verbatim

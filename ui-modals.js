@@ -111,7 +111,7 @@ function showSyncModal(){
 }
 function loadFalKey(){var fk=store.get(FAL_KEY_K);if(fk){falKey=fk;var fi=document.getElementById("fal-input");if(fi)fi.value=fk;}}
 function loadRenderModel(){
-  var m=store.get(RENDER_MDL_K);if(m)renderModel=m;
+  renderModel=resolveRenderModel(store.get(RENDER_MDL_K));/* #208a: departed ids (the dropped Flux pair) fall back to the default instead of dangling */
   try{var s=store.get(RENDER_STR_K);if(s)renderStrength=JSON.parse(s)||{};}catch(e){renderStrength={};}
 }
 function showRenderOptionsModal(){

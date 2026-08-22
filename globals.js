@@ -258,7 +258,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.689";
+var APP_VERSION="v1.690";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -273,24 +273,12 @@ var RENDER_MODELS=[
   // img2img.strength is the model's DEFAULT — the effective value goes through img2imgStrength()
   // (helpers.js, #42), which lets a per-model user override from Render Options win. Models whose
   // edit-style API has no strength knob (nano-banana) simply omit the field; the slider hides.
-  {id:"fal-ai/flux/dev",       label:"Flux [Dev]",
-   body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,num_images:1};},
-   // imgUrl may be a single data-URL OR an array of them (party render). Single-image denoise: takes
-   // the first seed only (the player) — multi-portrait party seeding is Nano-only by design.
-   img2img:{endpoint:"fal-ai/flux/dev/image-to-image",strength:0.6,
-            body:function(p,imgUrl,s){return {prompt:p,image_url:(Array.isArray(imgUrl)?imgUrl[0]:imgUrl),strength:s,num_inference_steps:28,num_images:1};}}},
-  {id:"fal-ai/flux-lora",      label:"Flux [Dev] HQ",
-   // #163 outcome: the id the user supplied was a sandbox REQUEST id — no trained LoRA exists —
-   // but the user's same-prompt A/B grid (2026-08-10, 3× flux/dev vs schnell vs flux-lora)
-   // showed this endpoint WITHOUT any adapter consistently beats fal-ai/flux/dev, corroborated
-   // by ~2× inference time (5.8-7.3s vs 1.6-4.4s) and $0.035 vs $0.025 at identical steps:
-   // the LoRA host serves the full unaccelerated model, flux/dev an accelerated variant.
-   // Same weights, better sampling — kept under an honest label. `loras` is deliberately
-   // ABSENT (the A/B-validated config, absence test-pinned); a real trained style later
-   // re-adds the v1.589 entry shape (loras:[{path:<weights URL>,scale:1}] in BOTH bodies).
-   body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,guidance_scale:3.5,num_images:1};},
-   img2img:{endpoint:"fal-ai/flux-lora/image-to-image",strength:0.6,
-            body:function(p,imgUrl,s){return {prompt:p,image_url:(Array.isArray(imgUrl)?imgUrl[0]:imgUrl),strength:s,num_inference_steps:28,guidance_scale:3.5,num_images:1};}}},
+  // #208a (owner call 2026-08-21): BOTH Flux entries (flux/dev + the flux-lora "HQ" host) are
+  // DROPPED — consistently sub-par: solo-portrait img2img collapsed every party scene to one
+  // figure, and the five-way controlled test (DOC/Research/party_render_engines.html) confirmed
+  // the class. The #163 A/B history and the entry shapes live in git (v1.689) if a FLUX.2-era
+  // entry ever earns a seat. Stored prefs pointing at the departed ids fall back safely through
+  // resolveRenderModel (helpers.js).
   {id:"fal-ai/nano-banana-2",  label:"Nano Banana 2",
    body:function(p){return {prompt:p,aspect_ratio:"4:3",resolution:"1K",num_images:1};},
    // Edit API composites MULTIPLE reference images — image_urls accepts the whole party portrait set
@@ -324,7 +312,7 @@ var RENDER_MODELS=[
             // Single-image denoise: array seed collapses to the first (player) — Nano-only multi-image.
             body:function(p,imgUrl,s){return {prompt:p,image_url:(Array.isArray(imgUrl)?imgUrl[0]:imgUrl),strength:s,num_inference_steps:30,guidance_scale:4,num_images:1};}}}
 ];
-var renderModel="fal-ai/flux/dev";
+var renderModel="fal-ai/nano-banana-2";/* #208a: the five-way champion is the shipped default */
 var renderStrength={}; // per-model img2img strength overrides {modelId:0.2-0.95} (#42); persisted under RENDER_STR_K
 // (UA1 closed v1.261: TAG_SHADOW / TAG_AUTHORITY deleted with the legacy parser — the tag table
 // is the only parser; rollback of the deletion itself is `git revert`, not a flag.)
