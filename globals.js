@@ -258,7 +258,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.695";
+var APP_VERSION="v1.696";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -287,9 +287,21 @@ var RENDER_MODELS=[
    // entries that declare it (a table property, never an id check at the call site).
    img2img:{endpoint:"fal-ai/nano-banana-2/edit",multiSeed:true,
             body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl:[imgUrl]),aspect_ratio:"4:3",resolution:"1K",num_images:1};}}},
+  /* #210 (owner request 2026-08-21): GPT Image 2 — arena #1 on every image board; quality
+     "medium" IS the config that tops the boards and runs ~4x cheaper than high (~$0.04-0.10 vs
+     $0.15-0.40/img). t2i defaults to landscape_4_3; stated anyway so portraitRenderBody (which
+     keys on the image_size FIELD) can flip portraits to portrait_4_3. Edit is an edit-style
+     multiSeed compositor (image_urls, no documented cap, no strength knob). 4/4 on the five-way
+     with minor hair drift; slowest arm (~40s at medium). Schema probe-verified 2026-08-21. */
+  {id:"openai/gpt-image-2",   label:"GPT Image 2",
+   body:function(p){return {prompt:p,image_size:"landscape_4_3",quality:"medium",num_images:1};},
+   img2img:{endpoint:"openai/gpt-image-2/edit",multiSeed:true,
+            body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl:[imgUrl]),quality:"medium",num_images:1};}}},
   {id:"xai/grok-imagine-image",label:"Grok Imagine",
    // fal schema (verified 2026-08-10): lowercase "1k", aspect_ratio enum includes 4:3 AND the
    // portrait override's 3:4. Response is the standard fal images[].url shape.
+   // #210 (2026-08-21): Grok Imagine 2.0 exists at the vendor (arena #3 T2I) but is NOT on fal —
+   // both plausible ids 404-probed live — so v1 remains the latest fal-callable version.
    body:function(p){return {prompt:p,aspect_ratio:"4:3",resolution:"1k",num_images:1};},
    // Edit API composites reference images like Nano (image_urls, plural) but caps at THREE
    // references — PARTY_MAX is 4, so a full-party render seeds the player + first two
@@ -304,6 +316,16 @@ var RENDER_MODELS=[
    // as soft when references dominate. Nano honors 4:3; use it when the frame matters.
    img2img:{endpoint:"xai/grok-imagine-image/edit",multiSeed:true,maxSeeds:3,
             body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl.slice(0,3):[imgUrl]),aspect_ratio:"4:3",resolution:"1k",num_images:1};}}},
+  /* #210: Seedream 5 Pro — the latest Seedream on fal (NOTE: the newest partner models drop the
+     fal-ai/ prefix — the prefixed id 404s). $0.0675/img ≤1536², $0.135 to 2048²; edit takes up
+     to 10 refs (first input free, +$0.0045/additional). Schema probe-verified 2026-08-21: both
+     endpoints take image_size presets incl. landscape_4_3/portrait_4_3 (portrait-override
+     compatible). Known five-way caveat rides its 4.5 sibling: mixing-heavy on group scenes —
+     listed at the owner's request; the #209 levers + text-only party policy are the mitigations. */
+  {id:"bytedance/seedream/v5/pro/text-to-image",label:"Seedream 5 Pro",
+   body:function(p){return {prompt:p,image_size:"landscape_4_3",num_images:1};},
+   img2img:{endpoint:"bytedance/seedream/v5/pro/edit",multiSeed:true,
+            body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl:[imgUrl]),image_size:"landscape_4_3",num_images:1};}}},
   {id:"fal-ai/qwen-image-2512",label:"Qwen Image 2512",
    body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,guidance_scale:4,num_images:1};},
    img2img:{endpoint:"fal-ai/qwen-image-edit/image-to-image",strength:0.9,

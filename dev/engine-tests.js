@@ -5123,6 +5123,53 @@ function runEngineTests(R){
     return eq(b.strength,0.45);
   });
 
+  section("#210 render menu refresh — latest GPT / Grok / Nano / Seedream");
+  t("#210: the menu roster is exactly the five verified entries, Nano first (default family order)",function(){
+    var ids=RENDER_MODELS.map(function(m){return m.id;}).join("|");
+    return ids==="fal-ai/nano-banana-2|openai/gpt-image-2|xai/grok-imagine-image|bytedance/seedream/v5/pro/text-to-image|fal-ai/qwen-image-2512"?true:"roster drifted: "+ids;
+  });
+  t("#210: GPT Image 2 t2i body — landscape_4_3 + quality medium (the arena-#1 config, ~4x cheaper than high)",function(){
+    var m=__rm("openai/gpt-image-2");
+    if(!m)return "not listed";
+    var b=m.body("a scene");
+    if(b.image_size!=="landscape_4_3")return "image_size wrong (the portrait override keys on this field): "+b.image_size;
+    if(b.quality!=="medium")return "quality must be medium: "+b.quality;
+    return b.prompt==="a scene"&&b.num_images===1?true:"body shape wrong";
+  });
+  t("#210: GPT Image 2 edit is a multiSeed compositor — whole array, lone URL wrapped, no strength knob",function(){
+    var m=__rm("openai/gpt-image-2");
+    if(!m.img2img.multiSeed)return "multiSeed not declared";
+    var b=m.img2img.body("scene",["data:p1","data:p2","data:p3","data:p4"]);
+    if(!Array.isArray(b.image_urls)||b.image_urls.length!==4)return "party seeds not carried: "+JSON.stringify(b.image_urls);
+    var lone=m.img2img.body("scene","data:solo");
+    if(!Array.isArray(lone.image_urls)||lone.image_urls[0]!=="data:solo")return "lone URL not wrapped";
+    return img2imgStrength(m)===null?true:"edit-style API must have no strength knob";
+  });
+  t("#210: Seedream 5 Pro t2i body uses the image_size FIELD (probe-verified presets; the portrait override keys on that field name)",function(){
+    var m=__rm("bytedance/seedream/v5/pro/text-to-image");
+    if(!m)return "not listed";
+    var b=m.body("a scene");
+    if(b.image_size!=="landscape_4_3")return "image_size wrong: "+b.image_size;
+    /* portraitRenderBody (ui-portrait.js, outside the engine manifest) flips image_size→portrait_4_3
+       when the field EXISTS — field presence is the engine-testable half of that contract. */
+    return ("image_size" in b)&&b.prompt==="a scene"?true:"body shape wrong";
+  });
+  t("#210: Seedream 5 Pro edit is multiSeed (10-ref API; party of 4 never sliced)",function(){
+    var m=__rm("bytedance/seedream/v5/pro/text-to-image");
+    if(!m.img2img.multiSeed)return "multiSeed not declared";
+    if(m.img2img.endpoint!=="bytedance/seedream/v5/pro/edit")return "edit endpoint wrong: "+m.img2img.endpoint;
+    var b=m.img2img.body("scene",["data:p1","data:p2"]);
+    return Array.isArray(b.image_urls)&&b.image_urls.length===2?true:"seed array not carried";
+  });
+  t("#210: the new multiSeed entries gather the WHOLE party in collectRenderSeeds (names aligned for the legend)",function(){
+    var c={name:"Ammut",portrait:"data:img/player"};
+    var party=mk165Party();
+    var g2=collectRenderSeeds(__rm("openai/gpt-image-2"),c,party);
+    if(g2.urls.length!==4||g2.names.length!==4)return "gpt-image-2 must gather player + 3 companions: "+JSON.stringify(g2.names);
+    var s5=collectRenderSeeds(__rm("bytedance/seedream/v5/pro/text-to-image"),c,party);
+    return s5.urls.length===4&&s5.omitted.length===0?true:"Seedream 5 must gather the whole party: "+JSON.stringify(s5);
+  });
+
   section("#208a Flux dropped from the render menu");
   t("#208a: no Flux entry survives in RENDER_MODELS (owner call 2026-08-21 — consistently sub-par for scenes)",function(){
     var i;for(i=0;i<RENDER_MODELS.length;i++){if(/flux/i.test(RENDER_MODELS[i].id))return "Flux entry still listed: "+RENDER_MODELS[i].id;}
