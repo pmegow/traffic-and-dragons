@@ -2428,7 +2428,12 @@ function buildSceneRenderRequest(c,party,w){
     /* Owner follow-up: scattered gazes read as separate figures sharing a canvas — converging
        eye-lines are what bind a composition into ONE event. The writer must NAME the focal point
        and aim every gaze at it; the one sanctioned exception must still serve the same scene. */
-    +"EYE-LINES: name the scene's single FOCAL POINT — the threat, the discovery, the speaker — and aim every character's gaze, face and body orientation at it; nobody looks at the camera or into empty space. "
+    /* #209d (practitioner synthesis, 2026-08-21): the old "nobody looks at the camera" clause was
+       the most-converged FAILURE phrasing in the research — a negation (which every model family
+       ignores) that also injects the token "camera" (which invites the very thing it forbids;
+       the Grok arm's protagonist glared straight into the lens). Positive candid framing is the
+       working replacement, and the directive now teaches the never-negate rule to the writer. */
+    +"EYE-LINES: name the scene's single FOCAL POINT — the threat, the discovery, the speaker — and aim every character's gaze, face and body orientation at it. Every figure is CANDID — absorbed in the scene, unaware of being observed. Write orientation POSITIVELY: never a negation ('not looking at the camera' both fails as a negation and summons the camera). "
     /* #209 (the five-way field read, 2026-08-21): gaze WORDS are the weakest lever image models
        have — three of four written gazes aimed at the stairs and the renders still scattered.
        Two working levers: an ANCHORED facing phrase closing every pose clause (concrete craft
@@ -2448,6 +2453,9 @@ function buildSceneRenderRequest(c,party,w){
        mints a SECOND concept (the five-way's own prompt said staircase/stairs/stairway/steps/
        terraces and scattered). One name, repeated verbatim, binds every clause to one target. */
     +"NAME THE FOCAL POINT ONCE and repeat that EXACT name in every character's facing phrase — never a pronoun ('it', 'them'), never a synonym (staircase does not become steps or terraces): one repeated name is what binds all four clauses to one target. "
+    /* #209d: implied motion orients a body more reliably than static facing words (convergent
+       practice — 'walking away toward the gate' is the community's rear-view idiom of choice). */
+    +"Prefer MOTION VERBS aimed at the named focal point over static facing words — 'striding toward the X', 'driving up the X', 'leaning into the X' — a body in motion toward a target is oriented by construction. "
     +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
     +"End with ONE camera-and-motion sentence naming a specific angle and framing (low-angle close shot, over-the-shoulder, dutch tilt, worm's-eye) plus a motion cue (blade streaking, sparks flying, cloth and hair in motion). "
     +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then that character's pose clause, then 1-2 sentences for the environment":"3-4 sentences including the protagonist's specific mid-action pose")+". Output ONLY the prompt, no game tags.";

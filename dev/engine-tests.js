@@ -5185,6 +5185,12 @@ function runEngineTests(R){
     /* #209c: anchor-noun consistency — one name, repeated verbatim, never pronouns or synonyms
        (the encoder-mechanics lever; the five-way's own prompt mixed five stair synonyms). */
     if(rp.indexOf("NAME THE FOCAL POINT ONCE")<0||rp.indexOf("never a synonym")<0)return "the anchor-noun consistency demand is missing (#209c)";
+    /* #209d: the negation purge + the two practitioner levers. The old 'nobody looks at the
+       camera' was the research's most-converged failure phrasing — its ABSENCE is the pin. */
+    if(/nobody looks at the camera/.test(rp))return "the negation clause returned — it fails as a negation AND summons the camera (#209d)";
+    if(rp.indexOf("CANDID")<0||rp.indexOf("unaware of being observed")<0)return "the positive candid framing is missing (#209d)";
+    if(rp.indexOf("never a negation")<0)return "the writer is no longer taught the never-negate rule (#209d)";
+    if(rp.indexOf("MOTION VERBS")<0||rp.indexOf("oriented by construction")<0)return "the motion-verb preference is missing (#209d)";
     return rp.indexOf("pose clause")>=0?true:"per-character pose clause not demanded in the output shape";
   });
   t("#165: solo render request keeps its shape — protagonist described, with a mid-action pose demanded",function(){
