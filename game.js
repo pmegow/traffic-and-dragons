@@ -2436,6 +2436,13 @@ function buildSceneRenderRequest(c,party,w){
        obey torso lines far more reliably than pupils. The one-exception allowance survives but
        the exception's BODY still squares to the focal point. */
     +"END every character's pose clause with an explicit facing phrase that NAMES the focal point ('eyes locked on the stair-summit', 'squared toward the breach') — never an unanchored gaze. BODY ORIENTATION IS THE FLOOR: even where a head turns away, the torso and stance still angle toward the focal point, and the clause says so. At most one character may look elsewhere, and only with a stated reason that serves the same scene (guarding a flank, spotting a second danger) — that character's body still points at the focal point. "
+    /* #209b (A/B-validated on the live scene, 2026-08-21 — nano_v2_viewangle vs the control):
+       the two levers that actually moved the render were STAGING GEOMETRY (focal point deeper in
+       frame than every figure) and CAMERA-RELATIVE VIEW ANGLES per character — view-angle
+       vocabulary ('three-quarter rear view') steers bodies where gaze words never did; the
+       previously-astray cleric converged completely once 'seen from behind at the flank'
+       replaced 'her gaze fixed upward'. The formation-vector arm helped torsos but not gazes. */
+    +"STAGE THE GEOMETRY IN ONE OPENING SENTENCE before any character: the focal point sits DEEPER IN FRAME than every figure, with the camera low behind or beside the group ('the X rises deep in the frame beyond every figure; the camera sits low behind the party'), so that orientation follows from staging. Then give each character a CAMERA-RELATIVE VIEW ANGLE inside their pose clause — 'seen in three-quarter rear view', 'seen from behind at the flank', 'in full profile facing the X' — view-angle words steer bodies far more reliably than gaze words. "
     +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
     +"End with ONE camera-and-motion sentence naming a specific angle and framing (low-angle close shot, over-the-shoulder, dutch tilt, worm's-eye) plus a motion cue (blade streaking, sparks flying, cloth and hair in motion). "
     +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then that character's pose clause, then 1-2 sentences for the environment":"3-4 sentences including the protagonist's specific mid-action pose")+". Output ONLY the prompt, no game tags.";

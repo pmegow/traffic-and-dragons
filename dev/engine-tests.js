@@ -5179,6 +5179,9 @@ function runEngineTests(R){
     if(rp.indexOf("facing phrase")<0||rp.indexOf("NAMES the focal point")<0)return "the anchored facing-phrase demand is missing (#209)";
     if(rp.indexOf("BODY ORIENTATION IS THE FLOOR")<0)return "the body-orientation floor is missing (#209 — models obey torsos, not pupils)";
     if(rp.indexOf("body still points at the focal point")<0)return "the exception's body must still square to the focus (#209)";
+    /* #209b: the two A/B-validated levers — staging geometry + camera-relative view angles. */
+    if(rp.indexOf("DEEPER IN FRAME")<0)return "the staging-geometry invariant is missing (#209b — the focal point deeper in frame than every figure)";
+    if(rp.indexOf("CAMERA-RELATIVE VIEW ANGLE")<0||rp.indexOf("three-quarter rear view")<0)return "the view-angle vocabulary demand is missing (#209b — the lever that actually converged the A/B)";
     return rp.indexOf("pose clause")>=0?true:"per-character pose clause not demanded in the output shape";
   });
   t("#165: solo render request keeps its shape — protagonist described, with a mid-action pose demanded",function(){

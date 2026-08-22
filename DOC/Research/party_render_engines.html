@@ -89,6 +89,18 @@ a{color:var(--acc);}
 <img src="party_render_2026-08-21/seedream_4_5.jpg" alt="Seedream 4.5 render">
 <p>Individually gorgeous figures, collectively wrong: Morwen is gone, and Daeris's raised-glowing-hand + holy symbol migrated onto <em>Frizwick</em> while Daeris herself (right edge) lost her cleric kit. This is the exact "mixing-heavy" signature MultiBind measured (58.6% face-binding success, worst of the closed models) — faces preserved, attributes attached to the wrong subjects. Its top-tier <em>described-attribute</em> benchmark scores did not survive contact with a four-character scene.</p></div>
 
+<h2>The body-orientation A/B (same day, Nano, $0.16)</h2>
+<p>The owner's directive: figure out what reinforces body positioning toward the scene focus. Two candidate structures rendered against the control (Nano's first render above, where Daeris gazed at nothing):</p>
+<div class="grid2">
+<div class="card"><h3>V2 — staging geometry + camera-relative view angles <span class="lean a">Winner</span></h3>
+<img src="party_render_2026-08-21/nano_v2_viewangle.jpg" alt="Nano V2 view-angle render">
+<p>One opening sentence puts the stairs <em>deeper in frame than every figure</em> with the camera low behind the party; each pose clause carries a view angle ("seen in three-quarter rear view", "seen from behind at the flank"). Result: the whole frame reads as one climb — <strong>Daeris, previously astray, converges completely</strong> (seen from behind, glowing arm silhouetted against the stairs, face in profile up the steps); Frizwick's torso stays squared up-stairs while her authored rear-glance survives. View-angle words steered bodies where gaze words never did.</p></div>
+<div class="card"><h3>V3 — formation-vector opener, original poses <span class="lean b">Partial</span></h3>
+<img src="party_render_2026-08-21/nano_v3_formation.jpg" alt="Nano V3 formation render">
+<p>"The four form a single wedge of motion aimed up the Storval Stairs — every torso, hip line, and lead foot points toward the steps." Bodies improve (the wedge reads), but gazes still wander — Daeris's face ends up toward the viewer, Morwen studies the party instead of the carvings. Collective-orientation language moves torsos, not eyes.</p></div>
+</div>
+<div class="note"><span class="k">Shipped v1.692:</span> the prompt-writer directive now teaches the two validated levers — the staging-geometry invariant (<em>the focal point sits DEEPER IN FRAME than every figure</em>, an invariant that also covers speaker-facing scenes: party between camera and focus always aims bodies inward) and per-character CAMERA-RELATIVE VIEW ANGLES — on top of v1.691's facing-phrase and body-floor demands.</div>
+
 <h2>What the research says (6 sweeps, 2026-08-21)</h2>
 
 <h3>Directly measured composition (T2I-CoReBench MI/MA — closest published analog to party scenes)</h3>
