@@ -1304,7 +1304,12 @@ var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStale
 // legitimate fictional consequences (the condition audit's "let it visibly shape the narration"
 // — the limp shows, the checking doesn't). Only appended when a note fired: an empty notes block
 // stays byte-empty (engine-tested — the common turn must not grow a phantom preamble).
-var ENGINE_NOTES_PROTOCOL="[ENGINE NOTES PROTOCOL: the bracketed notes above are engine bookkeeping, not part of the story. Respond to them ONLY by emitting the state tags they call for, or by silently leaving state unchanged. The narrative must read as if the notes do not exist — never acknowledge a note, a tag, or the act of checking in the story text. Their fictional CONSEQUENCES may still shape the scene: a kept wound may limp, an expended vial is simply gone. ONE EXCEPTION: a note that explicitly identifies itself as a PROSE or NARRATION directive is not bookkeeping — apply it to the writing of this response as instructed.]";
+/* #211 (the B5/#60b class, third instance — "Daeris is with the party, unchanged; nothing to
+   correct there" opening live narrations): "silently leaving state unchanged" is a PROHIBITION,
+   not a channel, and with thinking disabled the no-change decision leaks into prose because it
+   has nowhere else to go (#60b proved a silence clause alone cannot fix this — the fix is a tag
+   the decision can land in). [NO_CHANGE] is that channel for EVERY audit-style note at once. */
+var ENGINE_NOTES_PROTOCOL="[ENGINE NOTES PROTOCOL: the bracketed notes above are engine bookkeeping, not part of the story. Respond to them ONLY by emitting the state tags they call for. If a note's honest answer is 'checked — nothing to change', emit [NO_CHANGE] (or [NO_CHANGE:what you verified]) as your acknowledgment instead of saying so: the tag is never shown, while a prose line like 'X is with the party, unchanged' pollutes the story permanently. The narrative must read as if the notes do not exist — never acknowledge a note, a tag, or the act of checking in the story text. Their fictional CONSEQUENCES may still shape the scene: a kept wound may limp, an expended vial is simply gone. ONE EXCEPTION: a note that explicitly identifies itself as a PROSE or NARRATION directive is not bookkeeping — apply it to the writing of this response as instructed.]";
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}

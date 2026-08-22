@@ -4682,8 +4682,10 @@ function runEngineTests(R){
     // v1.680 (#176): +ITEM_RENAMED and +COMPANION_ITEM_RENAMED strip entries — source grew
     // exactly 36 chars = "ITEM_RENAMED|"(13)+"COMPANION_ITEM_RENAMED|"(23). An unstripped rename
     // would read the relabel ceremony aloud in the prose and pollute the transcript.
-    if(__djb2(_CT_TAGS.source)!==1257601911||_CT_TAGS.source.length!==1539)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
-    return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
+    // v1.697 (#211): +NO_CHANGE in BOTH registries (+10 chars payload form; bare form joins
+    // _CT_BARE) — the audit-ack channel must strip everywhere or the ack IS the leak it cures.
+    if(__djb2(_CT_TAGS.source)!==-480237931||_CT_TAGS.source.length!==1549)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
     var d=buildStateTagsDoc();
@@ -5121,6 +5123,25 @@ function runEngineTests(R){
   t("strength flows into the img2img request body",function(){
     var b=__rm("fal-ai/qwen-image-2512").img2img.body("a scene","data:img",0.45);
     return eq(b.strength,0.45);
+  });
+
+  section("#211 the [NO_CHANGE] acknowledgment channel (the B5/#60b class, third instance)");
+  t("#211: cleanTxt strips both [NO_CHANGE] forms — the ack must never reach the story/transcript/TTS",function(){
+    var s=cleanTxt("[NO_CHANGE] Camp comes apart fast. [NO_CHANGE:bonds verified, roster accurate] The wind bites.");
+    if(s.indexOf("NO_CHANGE")>=0)return "ack tag leaked to prose: "+s;
+    return s.indexOf("Camp comes apart fast.")>=0&&s.indexOf("The wind bites.")>=0?true:"prose damaged by the strip: "+s;
+  });
+  t("#211: [NO_CHANGE] is deliberately parse-less — zero mutation, no unknown-tag warn",function(){
+    makeWorld();
+    var g=worldState.character.gold,h=worldState.character.hp;
+    var R=applyMutsTable("[NO_CHANGE:presence and bonds verified]");
+    if((R.muts||[]).length)return "the ack mutated something: "+JSON.stringify(R.muts);
+    if(worldState.character.gold!==g||worldState.character.hp!==h)return "state changed";
+    return TAG_NO_HANDLER.indexOf("NO_CHANGE")>=0?true:"NO_CHANGE missing from TAG_NO_HANDLER — the unknown-tag scan would warn on every honest ack";
+  });
+  t("#211: the ENGINE NOTES PROTOCOL teaches the channel — the leak class ('X unchanged, nothing to correct' in prose) is named",function(){
+    if(ENGINE_NOTES_PROTOCOL.indexOf("[NO_CHANGE")<0)return "the protocol does not offer the ack channel — the no-change decision still has nowhere to go (the B5 mechanism)";
+    return /pollutes the story|never say so in prose|instead of saying so/i.test(ENGINE_NOTES_PROTOCOL)?true:"the prose-leak prohibition is not tied to the channel";
   });
 
   section("#210 render menu refresh — latest GPT / Grok / Nano / Seedream");
