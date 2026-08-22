@@ -2428,7 +2428,14 @@ function buildSceneRenderRequest(c,party,w){
     /* Owner follow-up: scattered gazes read as separate figures sharing a canvas — converging
        eye-lines are what bind a composition into ONE event. The writer must NAME the focal point
        and aim every gaze at it; the one sanctioned exception must still serve the same scene. */
-    +"EYE-LINES: name the scene's single FOCAL POINT — the threat, the discovery, the speaker — and aim every character's gaze, face and body orientation at it; nobody looks at the camera or into empty space. At most one character may look elsewhere, and only with a stated reason that serves the same scene (guarding a flank, spotting a second danger). "
+    +"EYE-LINES: name the scene's single FOCAL POINT — the threat, the discovery, the speaker — and aim every character's gaze, face and body orientation at it; nobody looks at the camera or into empty space. "
+    /* #209 (the five-way field read, 2026-08-21): gaze WORDS are the weakest lever image models
+       have — three of four written gazes aimed at the stairs and the renders still scattered.
+       Two working levers: an ANCHORED facing phrase closing every pose clause (concrete craft
+       vocabulary, the t2084 lesson again), and BODY ORIENTATION as the enforceable floor — models
+       obey torso lines far more reliably than pupils. The one-exception allowance survives but
+       the exception's BODY still squares to the focal point. */
+    +"END every character's pose clause with an explicit facing phrase that NAMES the focal point ('eyes locked on the stair-summit', 'squared toward the breach') — never an unanchored gaze. BODY ORIENTATION IS THE FLOOR: even where a head turns away, the torso and stance still angle toward the focal point, and the clause says so. At most one character may look elsewhere, and only with a stated reason that serves the same scene (guarding a flank, spotting a second danger) — that character's body still points at the focal point. "
     +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
     +"End with ONE camera-and-motion sentence naming a specific angle and framing (low-angle close shot, over-the-shoulder, dutch tilt, worm's-eye) plus a motion cue (blade streaking, sparks flying, cloth and hair in motion). "
     +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then that character's pose clause, then 1-2 sentences for the environment":"3-4 sentences including the protagonist's specific mid-action pose")+". Output ONLY the prompt, no game tags.";

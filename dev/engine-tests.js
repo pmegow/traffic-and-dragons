@@ -5173,6 +5173,12 @@ function runEngineTests(R){
     if(rp.indexOf("partially cropped by the frame")<0)return "foreground-crop depth directive missing";
     if(rp.indexOf("camera-and-motion sentence")<0)return "the named camera/motion spec missing";
     if(rp.indexOf("FOCAL POINT")<0||rp.indexOf("gaze")<0)return "the eye-line convergence directive missing (owner: characters must look AT the scene's focus)";
+    /* #209: the five-way field read — gaze words alone scattered; the anchored facing phrase and
+       the body-orientation floor are the working levers, and the sanctioned exception's body
+       still points at the focus. */
+    if(rp.indexOf("facing phrase")<0||rp.indexOf("NAMES the focal point")<0)return "the anchored facing-phrase demand is missing (#209)";
+    if(rp.indexOf("BODY ORIENTATION IS THE FLOOR")<0)return "the body-orientation floor is missing (#209 — models obey torsos, not pupils)";
+    if(rp.indexOf("body still points at the focal point")<0)return "the exception's body must still square to the focus (#209)";
     return rp.indexOf("pose clause")>=0?true:"per-character pose clause not demanded in the output shape";
   });
   t("#165: solo render request keeps its shape — protagonist described, with a mid-action pose demanded",function(){
