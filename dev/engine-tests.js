@@ -5182,6 +5182,9 @@ function runEngineTests(R){
     /* #209b: the two A/B-validated levers — staging geometry + camera-relative view angles. */
     if(rp.indexOf("DEEPER IN FRAME")<0)return "the staging-geometry invariant is missing (#209b — the focal point deeper in frame than every figure)";
     if(rp.indexOf("CAMERA-RELATIVE VIEW ANGLE")<0||rp.indexOf("three-quarter rear view")<0)return "the view-angle vocabulary demand is missing (#209b — the lever that actually converged the A/B)";
+    /* #209c: anchor-noun consistency — one name, repeated verbatim, never pronouns or synonyms
+       (the encoder-mechanics lever; the five-way's own prompt mixed five stair synonyms). */
+    if(rp.indexOf("NAME THE FOCAL POINT ONCE")<0||rp.indexOf("never a synonym")<0)return "the anchor-noun consistency demand is missing (#209c)";
     return rp.indexOf("pose clause")>=0?true:"per-character pose clause not demanded in the output shape";
   });
   t("#165: solo render request keeps its shape — protagonist described, with a mid-action pose demanded",function(){
@@ -5211,6 +5214,9 @@ function runEngineTests(R){
     if(legend.indexOf("Reference image 2 is Frizwick")<0||legend.indexOf("Reference image 3 is Daeris")<0)return "companion refs not named: "+legend;
     if(legend.toLowerCase().indexOf("exactly")<0)return "the match-exactly demand is the point";
     if(legend.indexOf("Morwen")<0)return "unseeded member must be declared described-only (or the model hunts for a fourth ref): "+legend;
+    /* #209c: references carry pose signal (vendor-documented) — the legend must reassign them
+       to identity ONLY or four front-facing portraits out-vote the scene's staging. */
+    if(legend.indexOf("ONLY")<0||legend.indexOf("WRITTEN description")<0)return "the identity-only reassignment is missing — reference portraits' poses out-vote the staging (#209c): "+legend;
     var solo=buildSeedLegend(["Ammut"],[]);
     return solo.indexOf("Reference image 1 is Ammut")>=0?true:"single-seed legend missing: "+solo;
   });

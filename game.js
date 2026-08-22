@@ -2443,6 +2443,11 @@ function buildSceneRenderRequest(c,party,w){
        previously-astray cleric converged completely once 'seen from behind at the flank'
        replaced 'her gaze fixed upward'. The formation-vector arm helped torsos but not gazes. */
     +"STAGE THE GEOMETRY IN ONE OPENING SENTENCE before any character: the focal point sits DEEPER IN FRAME than every figure, with the camera low behind or beside the group ('the X rises deep in the frame beyond every figure; the camera sits low behind the party'), so that orientation follows from staging. Then give each character a CAMERA-RELATIVE VIEW ANGLE inside their pose clause — 'seen in three-quarter rear view', 'seen from behind at the flank', 'in full profile facing the X' — view-angle words steer bodies far more reliably than gaze words. "
+    /* #209c (research synthesis, 2026-08-21): text encoders concentrate a concept in one or two
+       tokens and propagate poorly across mentions — a pronoun binds to nothing and a synonym
+       mints a SECOND concept (the five-way's own prompt said staircase/stairs/stairway/steps/
+       terraces and scattered). One name, repeated verbatim, binds every clause to one target. */
+    +"NAME THE FOCAL POINT ONCE and repeat that EXACT name in every character's facing phrase — never a pronoun ('it', 'them'), never a synonym (staircase does not become steps or terraces): one repeated name is what binds all four clauses to one target. "
     +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
     +"End with ONE camera-and-motion sentence naming a specific angle and framing (low-angle close shot, over-the-shoulder, dutch tilt, worm's-eye) plus a motion cue (blade streaking, sparks flying, cloth and hair in motion). "
     +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then that character's pose clause, then 1-2 sentences for the environment":"3-4 sentences including the protagonist's specific mid-action pose")+". Output ONLY the prompt, no game tags.";
@@ -2474,6 +2479,10 @@ function buildSeedLegend(names,omitted){
   var parts=[],i;
   for(i=0;i<names.length;i++)parts.push("Reference image "+(i+1)+" is "+names[i]);
   var s=" "+parts.join("; ")+" — match each named character's face, colouring and build to their numbered reference EXACTLY.";
+  /* #209c (vendor-documented: Gemini-family references carry POSE/composition signal, not just
+     identity — four front-facing bust portraits are four "face the camera" votes against the
+     scene's staging). Reassign the references to identity ONLY; orientation stays with the text. */
+  s+=" Use the reference images for face, colouring and build ONLY — every figure's pose, body orientation and gaze follow the WRITTEN description, never the reference portrait's pose.";
   if(omitted&&omitted.length)s+=" "+omitted.join(", ")+" has no reference image — paint them strictly from their written description.";
   return s;
 }

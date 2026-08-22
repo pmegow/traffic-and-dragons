@@ -101,6 +101,17 @@ a{color:var(--acc);}
 </div>
 <div class="note"><span class="k">Shipped v1.692:</span> the prompt-writer directive now teaches the two validated levers — the staging-geometry invariant (<em>the focal point sits DEEPER IN FRAME than every figure</em>, an invariant that also covers speaker-facing scenes: party between camera and focus always aims bodies inward) and per-character CAMERA-RELATIVE VIEW ANGLES — on top of v1.691's facing-phrase and body-floor demands.</div>
 
+<h2>Orientation levers — the research synthesis (2026-08-21)</h2>
+<p>Ranked by evidence strength; shipped state noted per lever:</p>
+<ol>
+<li><span class="k">Per-figure direct orientation clauses beat scene-level directives</span> — benchmark-grade (GenSpace: models prefer object-centric descriptions; collective rules read as mood words — exactly our V3 result). <span class="lean a">Shipped</span> (the pose-clause design + v1.691 facing phrases).</li>
+<li><span class="k">Staging geometry + camera-relative view angles</span> — A/B-validated here (V2); camera vocabulary is vendor-documented first-class control in the Gemini image family. <span class="lean a">Shipped v1.692</span>.</li>
+<li><span class="k">Anchor-noun consistency</span> — mechanism papers (text encoders concentrate a concept in 1–2 tokens; pronouns bind to nothing, synonyms mint a second concept) + convergent practice. Corroborating embarrassment: the five-way's own prompt said staircase/stairs/stairway/steps/terraces. <span class="lean a">Shipped v1.693</span> — one name, repeated verbatim, in every facing phrase.</li>
+<li><span class="k">Reference-pose leakage neutralization</span> — vendor-documented (Gemini-family references guide pose/composition, not just identity; competing refs get AVERAGED): four front-facing bust portraits are four "face the camera" votes. <span class="lean a">Shipped v1.693</span> — the seed legend reassigns references to identity ONLY.</li>
+<li><span class="k">Front-loading the composition statement</span> — required for FLUX/Seedream/Grok (vendor-documented positional bias; CLIP-encoder first-mention bias is paper-grade), harmless for Nano/gpt-image (LLM encoders read everything; labeled segments matter more). <span class="lean a">Shipped v1.692</span> (the opening geometry sentence).</li>
+</ol>
+<p class="m">The honest ceiling (GenSpace): ALL current models remain weak at viewpoint/orientation reasoning — egocentric-only, side-view confusion, left/right reversal under object-perspective phrasing. Prompt structure narrows the gap; it cannot close it. gpt-image-2 with Thinking is the measured leader for strict staging obedience; Nano is the best identity-keeper at 4 portrait-seeded characters (documented 5-character cap). A separate deep-research pass on GAZE-specific vocabulary (incl. the booru-tag ecosystem's trained-in gaze labels) is in flight and lands here when verified.</p>
+
 <h2>What the research says (6 sweeps, 2026-08-21)</h2>
 
 <h3>Directly measured composition (T2I-CoReBench MI/MA — closest published analog to party scenes)</h3>
