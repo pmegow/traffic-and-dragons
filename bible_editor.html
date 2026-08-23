@@ -642,6 +642,21 @@ function serializeItemBible(bible) {
   }
   // <<< BIB PICKER
 
+  // >>> BIB FILTER
+  // Free text searches only the spell's name/effect. Category checkboxes are an inclusive-OR
+  // filter; no selected category means "all", so opening the browser never starts empty.
+  function bibPickVisible(blob, entryCats, query, selectedCats) {
+    var q = String(query || "").toLowerCase().replace(/^\s+|\s+$/g, "");
+    var cats = entryCats || [], selected = selectedCats || [], i, j, categoryMatch = false;
+    if (q && String(blob || "").toLowerCase().indexOf(q) < 0) return false;
+    if (!selected.length) return true;
+    for (i = 0; i < selected.length; i++) {
+      for (j = 0; j < cats.length; j++) if (selected[i] === cats[j]) categoryMatch = true;
+    }
+    return categoryMatch;
+  }
+  // <<< BIB FILTER
+
   var ARCH_ROLE = {
     "3":  "IDENTITY — the signature thing that makes this archetype itself (and T1 spells, for the caster archetypes)",
     "6":  "REFINEMENT — deepen the L3 identity: a second application, a resource, a real upgrade",
@@ -1325,8 +1340,8 @@ function serializeItemBible(bible) {
     };
   }
   // "+ from bible" picker: checkbox list of every unused capability-bible SPELL of the
-  // list's tier (plus pending ● additions), live name/text filter, add-selected. Names
-  // land in house title case (the keys are lowercase by design).
+  // list's tier (plus pending ● additions), live name/effect + category filters, add-selected.
+  // Names land in house title case (the keys are lowercase by design).
   function bibPicker(path, tier) {
     var t = target(path + ".0");
     if (!t) return;
@@ -1341,10 +1356,14 @@ function serializeItemBible(bible) {
       $("m-close").onclick = closeModal;
       return;
     }
-    h += "<input type='text' id='bp-filter' style='width:100%;margin-bottom:8px' placeholder='filter by name / effect / tradition'>";
+    h += "<input type='text' id='bp-filter' style='width:100%;margin-bottom:8px' placeholder='filter by name / effect'>" +
+      "<div class='row' style='align-items:flex-start;margin-bottom:8px'><span class='lbl'>category</span><span>" +
+      CAP_CATEGORIES.map(function (cat) {
+        return "<label style='display:inline-block;margin:0 12px 5px 0;white-space:nowrap'><input type='checkbox' class='bp-cat' value='" + cat + "'> " + cat + "</label>";
+      }).join("") + "</span></div>";
     cands.forEach(function (c, i) {
       var cats = (c.entry.category || []).join(", ");
-      h += "<label class='bp-row' style='display:flex;gap:8px;align-items:baseline;padding:3px 0;cursor:pointer' data-blob='" + esc((c.key + " " + cats + " " + (c.entry.effect || "")).toLowerCase()) + "'>" +
+      h += "<label class='bp-row' style='display:flex;gap:8px;align-items:baseline;padding:3px 0;cursor:pointer' data-blob='" + esc((c.key + " " + (c.entry.effect || "")).toLowerCase()) + "' data-cats='" + esc((c.entry.category || []).join(",")) + "'>" +
         "<input type='checkbox' class='bp-pick' value='" + esc(c.key) + "'>" +
         "<span><b>" + esc(titleCaseName(c.key)) + "</b> <span class='muted'>(" + esc(cats) + ")</span><br><span class='muted'>" + esc(String(c.entry.effect || "").slice(0, 140)) + "</span></span></label>";
     });
@@ -1352,10 +1371,18 @@ function serializeItemBible(bible) {
     $("modal-box").innerHTML = h;
     $("modal").style.display = "flex";
     $("m-close").onclick = closeModal;
-    $("bp-filter").oninput = function () {
-      var q = this.value.toLowerCase(), rows = $("modal-box").querySelectorAll(".bp-row"), i;
-      for (i = 0; i < rows.length; i++) rows[i].style.display = rows[i].getAttribute("data-blob").indexOf(q) < 0 ? "none" : "flex";
-    };
+    function refreshBibFilters() {
+      var q = $("bp-filter").value;
+      var selected = [].map.call($("modal-box").querySelectorAll(".bp-cat:checked"), function (c) { return c.value; });
+      var rows = $("modal-box").querySelectorAll(".bp-row"), i, cats;
+      for (i = 0; i < rows.length; i++) {
+        cats = rows[i].getAttribute("data-cats");
+        rows[i].style.display = bibPickVisible(rows[i].getAttribute("data-blob"), cats ? cats.split(",") : [], q, selected) ? "flex" : "none";
+      }
+    }
+    $("bp-filter").oninput = refreshBibFilters;
+    var bpCats = $("modal-box").querySelectorAll(".bp-cat"), bci;
+    for (bci = 0; bci < bpCats.length; bci++) bpCats[bci].onchange = refreshBibFilters;
     $("bp-add").onclick = function () {
       var picks = [].map.call($("modal-box").querySelectorAll(".bp-pick:checked"), function (c) { return titleCaseName(c.value); });
       if (picks.length) { picks.forEach(function (nm) { t.arr.push(nm); }); markDirty(); }

@@ -617,6 +617,33 @@ try {
   if (!/data-bibpick/.test(_bePage.slice(_bePage.indexOf("function chipList"), _bePage.indexOf("function renderClass"))))
     _failBE("chipList no longer renders the + from bible button");
 
+  // Category filtering is separate from the free-text name/effect search. With no category
+  // selected every candidate stays visible; multiple selected categories use inclusive OR.
+  var _bpfM = _bePage.match(/\/\/ >>> BIB FILTER[\s\S]*?\/\/ <<< BIB FILTER/);
+  if (!_bpfM) _failBE("the BIB FILTER markers are gone from bible_editor.html");
+  var _bpVisible = new Function(_bpfM[0] + "\nreturn bibPickVisible;")();
+  var _bpfCase = function (label, blob, cats, query, selected, want) {
+    var got = _bpVisible(blob, cats, query, selected);
+    if (got !== want) _failBE("bib filter: " + label + " — got " + got + ", want " + want);
+  };
+  _bpfCase("no filters shows every candidate", "fire bolt d8 fire", ["arcane"], "", [], true);
+  _bpfCase("name search matches", "fire bolt d8 fire", ["arcane"], "FIRE BOLT", [], true);
+  _bpfCase("effect search matches", "fire bolt d8 fire", ["arcane"], "d8 fire", [], true);
+  _bpfCase("tradition is not part of free text anymore", "fire bolt d8 fire", ["arcane"], "arcane", [], false);
+  _bpfCase("matching category shows the spell", "fire bolt d8 fire", ["arcane"], "", ["arcane"], true);
+  _bpfCase("nonmatching category hides the spell", "fire bolt d8 fire", ["arcane"], "", ["divine"], false);
+  _bpfCase("multiple category filters are inclusive OR", "fire bolt d8 fire", ["arcane"], "", ["divine", "arcane"], true);
+  _bpfCase("multi-category spell matches either category", "light steady illumination", ["arcane", "divine"], "", ["divine"], true);
+  var _bibPickerSrc = _bePage.slice(_bePage.indexOf("function bibPicker"), _bePage.indexOf("function showCard"));
+  if (_bibPickerSrc.indexOf("placeholder='filter by name / effect'") < 0 || _bibPickerSrc.indexOf("filter by name / effect / tradition") >= 0)
+    _failBE("bib filter: text placeholder still advertises tradition instead of name / effect only");
+  if (_bibPickerSrc.indexOf("CAP_CATEGORIES.map") < 0 || _bibPickerSrc.indexOf("class='bp-cat'") < 0 || _bibPickerSrc.indexOf("bibPickVisible(") < 0)
+    _failBE("bib filter: category checkboxes are not rendered and wired through bibPickVisible");
+  if (_bibPickerSrc.indexOf('(c.key + " " + (c.entry.effect || "")).toLowerCase()') < 0)
+    _failBE("bib filter: free-text row blob includes category/tradition again");
+  if (_bibPickerSrc.indexOf("bpCats[bci].onchange = refreshBibFilters") < 0)
+    _failBE("bib filter: category checkbox changes no longer refresh the candidate rows");
+
   // ── FEAT MOVE CONTRACT (v1.511) ──────────────────────────────────────────────────────
   // Drag-to-reorder feature rows (user request 2026-08-01): the array mutation under the ⋮⋮
   // grips is a pure marker-extracted function. The same-array move is the classic off-by-one —
