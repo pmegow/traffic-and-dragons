@@ -644,6 +644,37 @@ try {
   if (_bibPickerSrc.indexOf("bpCats[bci].onchange = refreshBibFilters") < 0)
     _failBE("bib filter: category checkbox changes no longer refresh the candidate rows");
 
+  // The capability editor and class spell browser hold two in-memory representations of
+  // capability_bible.js. Opening/reloading/saving the capability document must replace the
+  // page snapshot, and every spell-browser open must refresh that dependency from disk first.
+  var _capsM = _bePage.match(/\/\/ >>> CAP SNAPSHOT[\s\S]*?\/\/ <<< CAP SNAPSHOT/);
+  if (!_capsM) _failBE("the CAP SNAPSHOT markers are gone from bible_editor.html");
+  var _syncCaps = new Function(_capsM[0] + "\nreturn capSnapshotSync;")();
+  var _staleCaps = {
+    "obsolete": { kind: "ability", tier: 0 },
+    "speak with animals": { kind: "ability", tier: 0 }
+  };
+  var _freshSpeak = { kind: "spell", tier: 2, category: ["primal"] };
+  var _sameCaps = _syncCaps(_staleCaps, [
+    { key: "speak with animals", obj: _freshSpeak },
+    { key: "moonbeam", obj: { kind: "spell", tier: 2 } }
+  ]);
+  if (_sameCaps !== _staleCaps || _staleCaps.obsolete || _staleCaps["speak with animals"] !== _freshSpeak || !_staleCaps.moonbeam)
+    _failBE("cap snapshot: replacement did not remove stale keys and install the fresh parsed entries in place");
+  var _loadTextSrc = _bePage.slice(_bePage.indexOf("function loadFromText"), _bePage.indexOf("function openBible"));
+  if (_loadTextSrc.indexOf("capSnapshotSync(CAPABILITY_BIBLE, data.entries)") < 0)
+    _failBE("cap snapshot: opening or reloading capability_bible.js no longer refreshes the page snapshot");
+  var _saveBibleSrc = _bePage.slice(_bePage.indexOf("function serverSaveBible"), _bePage.indexOf("function note"));
+  if (_saveBibleSrc.indexOf("capSnapshotSync(CAPABILITY_BIBLE, CUR.data.entries)") < 0)
+    _failBE("cap snapshot: a successful capability-bible save no longer refreshes the page snapshot");
+  var _depSrc = _bePage.slice(_bePage.indexOf("function refreshCapabilityDependency"), _bePage.indexOf("function showBibPicker"));
+  if (_depSrc.indexOf('fetch(BIBLE_SRV + "/bible")') < 0 || _depSrc.indexOf("capSnapshotSync(CAPABILITY_BIBLE, st.entries)") < 0 || _depSrc.indexOf("console.warn") < 0)
+    _failBE("cap snapshot: the spell browser no longer refreshes its dependency loudly from the helper");
+  if (_bibPickerSrc.indexOf("refreshCapabilityDependency(function ()") < 0 || _bibPickerSrc.indexOf("showBibPicker(path, tier)") < 0)
+    _failBE("cap snapshot: the spell browser can build candidates before its dependency refresh completes");
+  if (_bePage.indexOf("↻ Reload current file") < 0)
+    _failBE("cap snapshot: Reload from disk still obscures that it reloads only the current file");
+
   // ── FEAT MOVE CONTRACT (v1.511) ──────────────────────────────────────────────────────
   // Drag-to-reorder feature rows (user request 2026-08-01): the array mutation under the ⋮⋮
   // grips is a pure marker-extracted function. The same-array move is the classic off-by-one —

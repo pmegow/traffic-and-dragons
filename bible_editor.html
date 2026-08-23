@@ -100,7 +100,7 @@ for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');}
   <h1>Bible Editor <span class="muted">dev tool</span> <span class="editor-version" id="editor-version"></span></h1>
   <button class="primary" id="open">📂 Open bible…</button>
   <button class="primary" id="save" disabled>💾 Save project file</button>
-  <button id="reload">↻ Reload from disk</button>
+  <button id="reload">↻ Reload current file</button>
   <button id="clr-adds" style="display:none">⌫ Clear merged (<span id="clrn">0</span>)</button>
   <span id="draftnote"></span>
   <span id="prog"></span>
@@ -400,10 +400,22 @@ function serializeItemBible(bible) {
     return true;
   }
 
+  // >>> CAP SNAPSHOT
+  // Replace in place because class-editor call sites hold the page-load CAPABILITY_BIBLE object.
+  // The parsed editable document is separate so untouched source entries can remain byte-identical.
+  function capSnapshotSync(target, entries) {
+    var k, i;
+    for (k in target) if (Object.prototype.hasOwnProperty.call(target, k)) delete target[k];
+    for (i = 0; i < (entries || []).length; i++) target[entries[i].key] = entries[i].obj;
+    return target;
+  }
+  // <<< CAP SNAPSHOT
+
   function loadFromText(src, handle, name) {
     var t = typeOf(src);
     if (!t) throw new Error("not a recognised bible — expected CLASS_BIBLE or CAPABILITY_BIBLE");
     var data = BIBLE_TYPES[t].parse(src);
+    if (t === "capability" && typeof CAPABILITY_BIBLE !== "undefined") capSnapshotSync(CAPABILITY_BIBLE, data.entries);
     CUR = { typeId: t, data: data, handle: handle || null, name: name || "(unsaved)", dirty: false };
     activeCls = (t === "class") ? Object.keys(data.bible)[0] : null;
     capFilter = "";
@@ -512,6 +524,7 @@ function serializeItemBible(bible) {
           return "done";
         }
         CUR.dirty = false;
+        if (CUR.typeId === "capability" && typeof CAPABILITY_BIBLE !== "undefined") capSnapshotSync(CAPABILITY_BIBLE, CUR.data.entries);
         if (_saveT) { clearTimeout(_saveT); _saveT = null; }   // cancel the debounce BEFORE clearing — the phantom-draft rule
         try { localStorage.removeItem(DRAFT_K); } catch (e) {}
         note("✓ saved " + CUR.name + " to the local project (validated by install-bible)");
@@ -1342,7 +1355,25 @@ function serializeItemBible(bible) {
   // "+ from bible" picker: checkbox list of every unused capability-bible SPELL of the
   // list's tier (plus pending ● additions), live name/effect + category filters, add-selected.
   // Names land in house title case (the keys are lowercase by design).
+  function refreshCapabilityDependency(onDone) {
+    if (!writerOriginOK(window.location)) { onDone(); return; }
+    fetch(BIBLE_SRV + "/bible").then(function (r) { return r.json(); }).then(function (g) {
+      if (!g.ok) throw new Error(g.output || "helper could not read capability_bible.js");
+      if (!BIBLE_TYPES["capability"].detect(g.text)) throw new Error("capability_bible.js has no CAPABILITY_BIBLE block");
+      var st = BIBLE_TYPES["capability"].parse(g.text);
+      capSnapshotSync(CAPABILITY_BIBLE, st.entries);
+      onDone();
+    })["catch"](function (e) {
+      var m = (e && e.message) || "unknown refresh failure";
+      note("✗ Spell browser could not refresh capability_bible.js — " + m);
+      console.warn("[bible] capability dependency refresh failed:", m);
+      alert("The spell browser was not opened because capability_bible.js could not be refreshed:\n\n" + m);
+    });
+  }
   function bibPicker(path, tier) {
+    refreshCapabilityDependency(function () { showBibPicker(path, tier); });
+  }
+  function showBibPicker(path, tier) {
     var t = target(path + ".0");
     if (!t) return;
     var cands = bibPickCandidates(tier, t.arr, typeof CAPABILITY_BIBLE !== "undefined" ? CAPABILITY_BIBLE : {}, ADD);
