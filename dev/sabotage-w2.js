@@ -147,8 +147,8 @@ rc|=sabotage.prove({
     {
         "label": "the standing-conflict strip goes prose-keyed again — the name-substring blackout returns",
         "mustFail": "#175⑤",
-        "find": ".test(payload))return true;",
-        "replace": ".test(ordinary))return true;"
+        "find": ".test(payload)){if(!_dqConflict)",
+        "replace": ".test(ordinary)){if(!_dqConflict)"
     },
     {
         "label": "mismatched-subject death ops get ejected instead of refusing (wrong-corpse writes launder through)",
@@ -396,6 +396,63 @@ rc|=sabotage.prove({
         "replace": "  rec.turn=worldState.turn;"
     }
 ]
+});
+
+/* #213 (v1.698): the withhold toasts ship to players, so "why" and "is it coming back" are
+   contract, not copy. Each mutation below is a plausible refactor that would silently send the
+   player back to "an unresolved identity dispute" or, worse, lie about the reward. */
+rc|=sabotage.prove({
+  file:"identity.js",
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
+  cases:[
+    {label:"the refused death stops carrying its cause to the toast (#213)",
+      mustFail:"#213 a death-refusal withhold names the victim and the plain-language",
+      find:"refusedReason=_bdR;",
+      replace:""},
+    {label:"the withheld reward is no longer stamped on the conflict record (#213)",
+      mustFail:"#213 a withheld reward is itemised on the toast and stamped on the co",
+      find:"_w2StampWithheld(refusedConflict,_waTok);",
+      replace:""},
+    {label:"the withheld ledger loses its bound and grows with every re-refusal (#213)",
+      mustFail:"#213 a withheld reward is itemised on the toast and stamped on the co",
+      find:"if(c.withheld.indexOf(t)<0&&c.withheld.length<W2_WITHHELD_CAP)c.withheld.push(t);",
+      replace:"c.withheld.push(t);"},
+    {label:"reward tokens are collected AFTER the strip, so the receipt is always empty (#213)",
+      mustFail:"#213 a withheld reward is itemised on the toast and stamped on the co",
+      find:"var _waTok=_w2CollectStripped(ordinary,W2_REWARD_RES);",
+      replace:"var _waTok=[];"},
+    {label:"the standing dispute stops resolving to the record that holds its reason (#213)",
+      mustFail:"#213 a completion withheld under a standing dispute names the quest A",
+      find:"_dqConflict=_liveConflict(rs[z].subject);if(_dqConflict)break;",
+      replace:"break;"},
+    {label:"every refusal collapses to the generic fallback (#213)",
+      mustFail:"#213 every shipped refusal reason has player copy: none falls through",
+      find:"for(i=0;i<W2_REFUSAL_COPY.length;i++)if(W2_REFUSAL_COPY[i].match.test(s))return W2_REFUSAL_COPY[i].copy;",
+      replace:""},
+    {label:"unmasking and unwitnessed-death copy merge, losing the distinction (#213)",
+      mustFail:"#213 the copy table discriminates: causes a player would act on diffe",
+      find:"   copy:\"the GM unmasked a face nobody in the scene was wearing\"},",
+      replace:"   copy:\"the GM killed someone the scene never showed was there\"},"},
+    {label:"an unknown reward token is shown to the player raw (#213)",
+      mustFail:"#213 withheld-reward tokens render as player amounts, and an unknown ",
+      find:"    else if((m=t.match(/^\\[ITEM_GAINED:\\s*([^\\]|]+)/i)))out.push(m[1].trim());",
+      replace:"    else out.push(t);"}
+  ]
+});
+
+rc|=sabotage.prove({
+  file:"api.js",
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
+  cases:[
+    {label:"shelving a dispute stops telling the player the reward is gone (#213)",
+      mustFail:"#213 shelving a dispute that cost the player a reward says so; one th",
+      find:"      var _shLost=(typeof w2WithheldSummary===\"function\")?w2WithheldSummary(c.withheld):\"\";",
+      replace:"      var _shLost=\"\";"},
+    {label:"a dispute that cost nothing invents a loss anyway (#213)",
+      mustFail:"#213 shelving a dispute that cost the player a reward says so; one th",
+      find:"      showToast(_shLost",
+      replace:"      showToast(_shLost||\"1 XP\""}
+  ]
 });
 
 process.exit(rc?1:0);

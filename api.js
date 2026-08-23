@@ -1029,7 +1029,15 @@ function buildIdentityConflictNudge(){
   if(c.attempts>IDENTITY_CONFLICT_STALE_ATTEMPTS){
     c.stale=true;
     if(typeof console!=="undefined")console.warn("[identity] conflict for "+c.subject+" shelved STALE after "+(c.attempts-1)+" unanswered deliveries — it no longer nudges or withholds; a new quarantine re-arms it (#175)");
-    if(typeof showToast==="function")showToast("Identity conflict for "+c.subject+" shelved after "+(c.attempts-1)+" attempts");
+    /* #213: shelving is the moment the withhold becomes PERMANENT — nothing replays a stripped
+       reward, so this is the player’s only notice that it is gone. Say the loss only when one
+       was actually stamped; a dispute that cost nothing must never invent one. */
+    if(typeof showToast==="function"){
+      var _shLost=(typeof w2WithheldSummary==="function")?w2WithheldSummary(c.withheld):"";
+      showToast(_shLost
+        ? ("⚠ The "+c.subject+" mix-up could not be settled, so the withheld reward ("+_shLost+") will not arrive. Award it by hand with the Sync button if it was earned.")
+        : ("The "+c.subject+" mix-up was set aside after "+(c.attempts-1)+" unanswered attempts."),8000);
+    }
     return"";
   }
   var known=c.subject&&c.subject!=="unknown"&&c.subject!=="-",handle=c.handle&&c.handle!=="-";

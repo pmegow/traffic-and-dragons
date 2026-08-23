@@ -37,6 +37,51 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 18 — W2 withhold toasts now carry the refusal reason and an honest status (#213, v1.698; Opus, owner-ruled)
+
+**Filed:** 2026-08-22. **Tracker:** TODO #213. **Touched:** `identity.js` (`w2PrepareResponse`
+withhold sites, new display helpers), `api.js` (`buildIdentityConflictNudge` shelve notice),
+`globals.js` (`W2_WITHHELD_CAP`).
+
+**Why this is here.** It sits on the drift surface by location — the two edits are inside
+`w2PrepareResponse`, the function that decides which tags survive to `applyMuts` — so the decree
+says Fable regardless of how display-shaped the intent was. It shipped on Opus under the standing
+"Fable budget exhausted, document it here" rule, after an owner ruling on scope.
+
+**What the reviewer should test hardest, in order:**
+
+1. **Did a display change alter what commits?** The claim is that it did not: the only new writes
+   are `c.withheld` (a bounded array on an existing conflict record) and the reason/record locals
+   threaded to the toast. But site A now calls `_w2CollectStripped` and `_w2RefuseLog` where it
+   previously called neither, and `_w2RefuseLog` feeds `w2RefusedThisResponse()`. **I did not
+   fully trace every consumer of `_w2RefusedNow`** — I reasoned that adding the reward tokens
+   there makes site A match site B's long-standing behaviour (provenance parity), and the suite
+   stayed green, but "green plus a plausible story" is exactly what this queue exists to catch.
+2. **`W2_REWARD_RES` is now module-level shared regex objects with the `/g` flag.** `String.match`
+   with a global regex ignores `lastIndex`, so reuse is safe as written — but if any future caller
+   reaches for `.exec()` or `.test()` on these, the shared `lastIndex` becomes a state bug across
+   responses. Worth a judgement on whether the sharing is worth that trap.
+3. **The reason→copy table is ordered, and order is load-bearing** (the unmasking clause must be
+   tested before the broader no-binding clause). One test pins the discrimination; a reviewer
+   should decide whether ordered-regex dispatch is the right shape here at all, versus giving each
+   refusal an explicit code at its call site (rejected during the build as ~10 call sites of churn
+   plus the transaction-preflight reasons that arrive as variables, not literals).
+4. **The honest-status claim itself.** The shelve notice tells the player the reward "will not
+   arrive". That is true as far as I traced it — nothing replays a stripped reward — but it is an
+   assertion about the *absence* of a mechanism, which is the harder thing to verify. If some path
+   does re-pay, the new toast is now confidently wrong at the player.
+
+**Verification done:** 8 engine tests, each confirmed red on v1.697 before the fix (suite 1605 →
+1610 green); 10 new `dev/sabotage-w2.js` mutation clauses; a new REFUSAL COPY CONTRACT source
+guard in `dev/run-tests.js` which caught two uncovered reasons my own enumeration had missed.
+**Not done:** no live-play spot check (these paths need a model to misbehave to fire), and no
+diff-replay over the playtest corpora — the corpora do not contain a refused-death-with-reward
+response, so a byte-identical result would have proved nothing about the changed lines.
+
+**Known residue, filed in the row, not fixed:** the withheld reward is still never recovered. The
+toast is now honest about the loss instead of repairing it; actual payout-on-resolution is a new
+canon write path and was deliberately left for its own design pass.
+
 ### 16 — Gemini pinned to thinkingLevel "low" on every call kind (#22, v1.645; Opus, owner-ruled)
 
 **Filed:** 2026-08-16. **Tracker:** TODO #22. **Commit:** the v1.645 promotion.

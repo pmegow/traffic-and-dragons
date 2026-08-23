@@ -100,6 +100,44 @@ try {
   process.exit(1);
 }
 
+// ── REFUSAL COPY CONTRACT (#213, v1.698) ────────────────────────────
+// The two W2 withhold toasts ship to PLAYERS (owner ruling 2026-08-22) and must say why in
+// language a player owns. A SOURCE CONTRACT because the failure is silent: add a refusal reason
+// in identity.js, forget its player sentence, and the toast quietly degrades to the generic
+// fallback with nothing red anywhere. This asserts the registry and the code still agree.
+try {
+  var _rcSrc = require("fs").readFileSync(require("path").join(__dirname, "..", "identity.js"), "utf8");
+  var _rcListM = _rcSrc.match(/var W2_REFUSAL_REASONS=\[([\s\S]*?)\n\];/);
+  if (!_rcListM) {
+    console.error("REFUSAL COPY CONTRACT: W2_REFUSAL_REASONS is gone from identity.js \u2014 the shipped-reason registry the coverage guard reads no longer exists (#213).");
+    process.exitCode = 1;
+  } else {
+    var _rcListed = (_rcListM[1].match(/"((?:[^"\\]|\\.)*)"/g) || []).map(function (x) { return x.slice(1, -1); });
+    // Scan by reason SHAPE rather than by parsing _w2Conflict's argument list: the reasons reach
+    // the conflict record through several hops (inline literal, ternary, a variable threaded out
+    // of the transaction preflight), so call-site parsing both misses real ones and mis-captures
+    // ternary fragments. The refusal vocabulary is stable and narrow, which makes the prefix scan
+    // the honest instrument here.
+    var _rcShape = /^(death |named death |summary death |scene |registered combat |reveal |claim id |operation touches |quest outcome |canon transaction |unmatched |malformed |new npc-death |uncited |identity evidence |the scene-evidence )/;
+    var _rcAll = (_rcSrc.match(/"((?:[^"\\\n]|\\.){18,})"/g) || []).map(function (x) { return x.slice(1, -1); });
+    var _rcMissing = _rcAll.filter(function (r) {
+      if (!_rcShape.test(r)) return false;
+      return !_rcListed.some(function (k) { return r.indexOf(k) === 0 || k.indexOf(r) === 0; });
+    });
+    if (_rcMissing.length) {
+      console.error("REFUSAL COPY CONTRACT: identity.js refuses with reason(s) the shipped registry does not carry, so no player sentence exists for them and the withhold toast degrades to the generic fallback (#213): " + _rcMissing.join(" | "));
+      process.exitCode = 1;
+    }
+    if (_rcListed.length < 20) {
+      console.error("REFUSAL COPY CONTRACT: the shipped-reason registry shrank to " + _rcListed.length + " entries \u2014 reasons deleted from the registry rather than from the code is how coverage goes quietly missing (#213).");
+      process.exitCode = 1;
+    }
+  }
+} catch (e) {
+  console.error("REFUSAL COPY CONTRACT: could not verify identity.js \u2014 " + (e && e.message));
+  process.exitCode = 1;
+}
+
 // ── TRANSCRIPT MUTATION SEAM CONTRACT (#177, v1.615) ─────────────────────────────────────
 // Entry-4 ★: the compression memo keys on (array ref, length, last-entry ref, last-entry .x),
 // so an in-place field edit on an OLD transcript entry is invisible to it — a mutation site

@@ -14791,6 +14791,120 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return clean==="Visible."?true:"W2 tags leaked into prose: "+clean;
   });
 
+  // ── #213: a refusal the player can act on ───────────────────────────
+  // The withhold toasts ship to players (owner ruling 2026-08-22) because they signal a bug the
+  // player is suffering — XP/gold they watched narrated, denied. They therefore have to say WHY
+  // in language a player owns, and tell the TRUTH about whether the reward can still arrive.
+  function __w2Toasts(fn){
+    var got=[],prev=(typeof showToast==="function")?showToast:null;
+    showToast=function(m){got.push(String(m));};
+    try{fn();}finally{if(prev)showToast=prev;else showToast=function(){};}
+    return got.join(" ‖ ");
+  }
+  var __W2_JARGON=/scene binding|observed handle|canon transaction|identity dispute|axis adapter|quarantin|latch|CANON_TXN|SCENE_REF/i;
+
+  t("#213 every shipped refusal reason has player copy: none falls through to the fallback, none leaks engine jargon",function(){
+    if(typeof w2RefusalCopy!=="function")return "w2RefusalCopy is not defined";
+    if(!W2_REFUSAL_REASONS||!W2_REFUSAL_REASONS.length)return "the shipped-reason registry is missing";
+    var i,c,uncovered=[],jargon=[];
+    for(i=0;i<W2_REFUSAL_REASONS.length;i++){
+      c=w2RefusalCopy(W2_REFUSAL_REASONS[i]);
+      if(c===W2_REFUSAL_FALLBACK)uncovered.push(W2_REFUSAL_REASONS[i]);
+      if(__W2_JARGON.test(c))jargon.push(c);
+    }
+    if(uncovered.length)return "shipped reasons with no player copy: "+uncovered.join(" | ");
+    if(jargon.length)return "player copy leaks engine jargon: "+jargon.join(" | ");
+    var fb=w2RefusalCopy("some reason nobody wrote copy for yet");
+    if(fb!==W2_REFUSAL_FALLBACK)return "an unmapped reason did not reach the fallback: "+fb;
+    return !__W2_JARGON.test(fb)?true:"the fallback itself leaks engine jargon: "+fb;
+  });
+
+  t("#213 the copy table discriminates: causes a player would act on differently never collapse into one sentence",function(){
+    var distinct=[
+      "named death has no prior positive scene binding",
+      "the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs",
+      "death operand is descriptor-shaped or ambiguous — it does not NAME the victim",
+      "scene handle already binds to Vex",
+      "scene death was emitted outside a canon transaction",
+      "death outcome names no active accepted quest",
+      "reveal names no active observed handle (attempted: bronze-masked runner)"
+    ],seen={},i,c;
+    for(i=0;i<distinct.length;i++){
+      c=w2RefusalCopy(distinct[i]);
+      if(seen[c])return "two causes needing different player action collapsed to one sentence: "+c;
+      seen[c]=true;
+    }
+    return true;
+  });
+
+  t("#213 withheld-reward tokens render as player amounts, and an unknown token is dropped rather than shown raw",function(){
+    if(w2WithheldSummary([])!=="")return "an empty ledger produced text";
+    var out=w2WithheldSummary(["[XP:600]","[GOLD:+100]","[ITEM_GAINED:Giantbane]"]);
+    if(out!=="600 XP, 100 gold, Giantbane")return "reward rendering wrong: "+out;
+    var mixed=w2WithheldSummary(["[XP:250]","[NONSENSE:x]","[GOLD:-5 gp]"]);
+    if(/NONSENSE/.test(mixed))return "an unknown token leaked to the player: "+mixed;
+    return mixed==="250 XP, -5 gold"?true:"tolerant gold/xp parse regressed: "+mixed;
+  });
+
+  t("#213 a death-refusal withhold names the victim and the plain-language reason instead of 'a death was refused'",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;
+    var out=__w2Toasts(function(){applyMuts("[NPC:Mokmurian|dead|enemy][QUEST:The Giants of Jorgenfist|completed][XP:600][GOLD:+100]");});
+    if(worldState.character.xp!==0||worldState.character.gold!==25)return "fixture broke: the reward was not withheld";
+    if(out.indexOf("Mokmurian")<0)return "the withhold toast never names the victim: "+out;
+    if(out.indexOf(W2_REFUSAL_FALLBACK)>=0)return "the withhold toast fell through to the generic fallback instead of naming the cause: "+out;
+    if(!/never showed was there/i.test(out))return "the withhold toast carries the wrong player-language reason: "+out;
+    if(__W2_JARGON.test(out))return "the withhold toast leaks engine jargon at the player: "+out;
+    return true;
+  });
+
+  t("#213 a withheld reward is itemised on the toast and stamped on the conflict record, bounded and deduped",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;
+    var out=__w2Toasts(function(){applyMuts("[NPC:Mokmurian|dead|enemy][QUEST:The Giants of Jorgenfist|completed][XP:600][GOLD:+100][ITEM_GAINED:Giantbane]");});
+    if(out.indexOf("600")<0||!/gold/i.test(out)||out.indexOf("Giantbane")<0)return "the toast does not say what was withheld: "+out;
+    var c=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Mokmurian";})[0];
+    if(!c)return "no conflict record was opened";
+    if(!c.withheld||!c.withheld.length)return "the withheld reward was not stamped on the conflict record";
+    var before=c.withheld.length,i;
+    worldState.turn=72;applyMuts("[NPC:Mokmurian|dead|enemy][QUEST:The Giants of Jorgenfist|completed][XP:600][GOLD:+100][ITEM_GAINED:Giantbane]");
+    if(c.withheld.length!==before)return "an identical re-refusal duplicated the withheld ledger: "+JSON.stringify(c.withheld);
+    for(i=0;i<40;i++){worldState.turn=73+i;applyMuts("[NPC:Mokmurian|dead|enemy][QUEST:The Giants of Jorgenfist|completed][XP:"+(i+1)+"]");}
+    return c.withheld.length<=W2_WITHHELD_CAP?true:"the withheld ledger is unbounded: "+c.withheld.length;
+  });
+
+  t("#213 a completion withheld under a standing dispute names the quest AND why, not just 'an identity dispute'",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;applyMuts(w2Txn("mok-1","npc-death","Mokmurian","scholar","The Giants of Jorgenfist","[SCENE_DEATH:scholar][XP:600]"));
+    worldState.turn=80;
+    var out=__w2Toasts(function(){applyMuts("[QUEST:The Giants of Jorgenfist|completed][XP:600][GOLD:+50]");});
+    if(worldState.character.xp!==0)return "fixture broke: the disputed completion paid out";
+    if(out.indexOf("Giants of Jorgenfist")<0)return "the toast never names the withheld quest: "+out;
+    if(out.indexOf(W2_REFUSAL_FALLBACK)>=0)return "the completion withhold fell through to the generic fallback — it never resolved the dispute record that holds the reason: "+out;
+    if(!/never showed was there/i.test(out))return "the completion withhold carries the wrong player-language reason: "+out;
+    if(__W2_JARGON.test(out))return "the completion withhold leaks engine jargon: "+out;
+    return true;
+  });
+
+  t("#213 shelving a dispute that cost the player a reward says so; one that cost nothing never claims a loss",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;applyMuts("[NPC:Mokmurian|dead|enemy][QUEST:The Giants of Jorgenfist|completed][XP:600]");
+    var c=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Mokmurian";})[0];
+    if(!c||!c.withheld||!c.withheld.length)return "fixture broke: nothing was stamped as withheld";
+    c.attempts=IDENTITY_CONFLICT_STALE_ATTEMPTS+1;
+    var lost=__w2Toasts(function(){buildIdentityConflictNudge();});
+    if(!/will not arrive|never arrive|lost/i.test(lost))return "shelving a costly dispute did not tell the player the reward is gone: "+lost;
+    if(lost.indexOf("600")<0)return "the loss notice does not say what was lost: "+lost;
+    makeWorld();worldState.turn=90;
+    worldState.identityConflicts=[{subject:"Vex",handle:"-",reason:"named death has no prior positive scene binding",turn:90,lastTurn:90,attempts:IDENTITY_CONFLICT_STALE_ATTEMPTS+1,resolved:false}];
+    var quiet=__w2Toasts(function(){buildIdentityConflictNudge();});
+    return !/will not arrive|never arrive|lost/i.test(quiet)?true:"a dispute that withheld nothing invented a loss: "+quiet;
+  });
+
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
   section("#168 W6 — summary identity validation");
   function __w6World(){

@@ -1239,6 +1239,110 @@ function _w2StripRewards(text){return text.replace(/\[XP:[^\]]+\]/g,"").replace(
    them — the repair had to refuse to invent numbers the engine itself had thrown away. Reset per
    w2PrepareResponse call (= per response); read once by the tagLog writer. */
 var _w2RefusedNow=[];
+/* ── #213: the refusal the player can act on ─────────────────────────────────────
+   Owner ruling 2026-08-22: the two withhold toasts SHIP — they signal a bug the player is
+   actively suffering (XP/gold they watched narrated, then denied). Every refusal already knew
+   why; the reason rode into worldState.identityConflicts and the console and stopped there, so
+   the player got "an unresolved identity dispute" and no way to read it.
+
+   ONE ordered table turns an engine reason into a player sentence. The technical string is
+   untouched on the record, in the console, and in the GM nudge — this is a DISPLAY layer, never
+   an input to a parser or a prompt. A reason with no entry degrades to a plain fallback rather
+   than leaking internals, and the REFUSAL COPY CONTRACT (dev/run-tests.js) fails the build when a
+   shipped reason has no copy, so "add a refusal" and "add its player sentence" land together. */
+/* Every refusal reason that can reach a player-facing withhold, listed BESIDE the copy table
+   on purpose: adding a refusal means adding its line here, and the REFUSAL COPY CONTRACT
+   (dev/run-tests.js) fails the build when a listed reason falls through to the generic
+   fallback or when identity.js passes _w2Conflict a reason this list does not carry. */
+var W2_REFUSAL_REASONS=[
+  "named death has no prior positive scene binding",
+  "registered combat foe lacks a prior positive scene binding",
+  "death names no observed handle",
+  "scene evidence does not bind the claimed victim",
+  "summary death lacks matching scene-handle evidence",
+  "the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs",
+  "death operand is descriptor-shaped or ambiguous — it does not NAME the victim",
+  "scene handle already binds to ",
+  "scene handle rebound to ",
+  "scene handle lost its subject binding before execution",
+  "reveal conflicts with established binding to ",
+  "death operation names a different NPC than the transaction subject",
+  "death operation names a different scene handle",
+  "reveal names no active observed handle (attempted: ",
+  "scene death was emitted outside a canon transaction",
+  "unmatched transaction marker",
+  "malformed or mismatched transaction envelope",
+  "new npc-death claim carries no death operation",
+  "canon transaction receipt capacity is exhausted",
+  "claim id was already quarantined",
+  "claim id was reused with different metadata",
+  "operation touches an unresolved identity conflict",
+  "summary death cites a quarantined transaction",
+  "summary death lacks a source turn",
+  "uncited legacy npcDeaths entry cannot mint a new corpse",
+  "death-like chapter claim has no cited npcDeaths evidence",
+  "death outcome names no active accepted quest",
+  "quest outcome must not claim an NPC identity",
+  "identity evidence missing"
+];
+var W2_REFUSAL_FALLBACK="the GM's account of that scene did not add up";
+var W2_REFUSAL_COPY=[
+  {match:/overflow latch|fail closed until a structured summary/i,
+   copy:"the engine ran out of room to keep track of who was on screen"},
+  {match:/receipt capacity is exhausted/i,
+   copy:"the engine ran out of room to record this scene's changes"},
+  {match:/descriptor-shaped|does not NAME the victim/i,
+   copy:"the GM never said plainly who died"},
+  /* Order matters below: "names no ACTIVE observed handle" is an unmasking, not a missing
+     witness, so it has to be tested before the broader no-binding clause. */
+  {match:/names no active observed handle|reveal conflicts with established binding/i,
+   copy:"the GM unmasked a face nobody in the scene was wearing"},
+  {match:/prior positive scene binding|does not bind the claimed victim|names no observed handle|lacks matching scene-handle evidence/i,
+   copy:"the GM killed someone the scene never showed was there"},
+  {match:/already binds to|rebound to|lost its subject binding|names a different NPC than the transaction subject|names a different scene handle|is not the transaction subject/i,
+   copy:"the GM used one name for two different characters"},
+  {match:/lacks a source turn|cannot mint a new corpse|no cited npcDeaths evidence/i,
+   copy:"the recap claimed a death the scene itself never recorded"},
+  {match:/already quarantined|touches an unresolved identity conflict|cites a quarantined transaction/i,
+   copy:"an earlier mix-up about this character was never sorted out"},
+  {match:/names no active accepted quest/i,
+   copy:"the reward was tied to a quest you never took on"},
+  {match:/must not claim an NPC identity/i,
+   copy:"the GM tangled a quest result up with a character's fate"},
+  {match:/outside a canon transaction|unmatched transaction marker|mismatched transaction envelope|carries no death operation|handler failed|reused with different metadata/i,
+   copy:"the GM's record of that death was malformed"},
+  {match:/identity evidence missing/i,
+   copy:"the GM gave no sign of who this actually was"}
+];
+var W2_REWARD_RES=[/\[XP:[^\]]+\]/g,/\[GOLD:[^\]]+\]/g,/\[ITEM_GAINED:[^\]]+\]/g];
+function w2RefusalCopy(reason){
+  var s=String(reason||""),i;
+  for(i=0;i<W2_REFUSAL_COPY.length;i++)if(W2_REFUSAL_COPY[i].match.test(s))return W2_REFUSAL_COPY[i].copy;
+  return W2_REFUSAL_FALLBACK;
+}
+/* Pure: raw withheld tag tokens → one player-readable phrase ("600 XP, 100 gold, Giantbane"). */
+function w2WithheldSummary(list){
+  if(!list||!list.length)return "";
+  var out=[],i,m,t;
+  for(i=0;i<list.length;i++){
+    t=String(list[i]);
+    if((m=t.match(/^\[XP:\s*\+?(-?\d+)/i)))out.push(m[1]+" XP");
+    else if((m=t.match(/^\[GOLD:\s*\+?(-?\d+)/i)))out.push(m[1]+" gold");
+    else if((m=t.match(/^\[ITEM_GAINED:\s*([^\]|]+)/i)))out.push(m[1].trim());
+  }
+  return out.join(", ");
+}
+/* The receipt of what a dispute COST. Additive, bounded, deduped — the honest-status half:
+   without it the shelve notice could not tell "this cost you 600 XP" from "this cost nothing",
+   and guessing either way is a lie in one direction. */
+function _w2StampWithheld(c,tokens){
+  if(!c||!tokens||!tokens.length)return;
+  if(!c.withheld)c.withheld=[];
+  var i;for(i=0;i<tokens.length;i++){
+    var t=String(tokens[i]);
+    if(c.withheld.indexOf(t)<0&&c.withheld.length<W2_WITHHELD_CAP)c.withheld.push(t);
+  }
+}
 function _w2RefuseLog(tags){if(!tags)return;if(typeof tags==="string")tags=[tags];var i;for(i=0;i<tags.length;i++)if(tags[i])_w2RefusedNow.push(String(tags[i]));}
 function w2RefusedThisResponse(){return _w2RefusedNow;}
 function _w2CollectStripped(text,res){var out=[],i,m;for(i=0;i<res.length;i++){m=text.match(res[i]);if(m)out=out.concat(m);}return out;}
@@ -1332,11 +1436,11 @@ function w2PrepareResponse(text){
     if(!planned[meta.id])planned[meta.id]={id:meta.id,claim:meta.claim,subject:meta.subject,evidence:meta.evidence,quest:meta.quest,status:"planned",operations:seen};else planned[meta.id].operations=seen;txns.push({meta:meta,body:fresh.join(""),ops:fresh,tokens:freshTokens,valid:true});
   }
   if(/\[CANON_TXN_(?:BEGIN|END):/.test(ordinary)){/* #171①: the whole-response fail-closed strip stays, but it is no longer silent, receipt-less, or id-reusable */var _orph=ordinary.match(/\[CANON_TXN_(?:BEGIN|END):[^\]|]+/g)||[],_oi;for(_oi=0;_oi<_orph.length;_oi++){var _oid=_orph[_oi].replace(/^\[CANON_TXN_(?:BEGIN|END):/,"").trim();if(_oid&&!_w2TxnFind(_oid))w2TxnQuarantine({id:_oid,claim:"npc-death",subject:"-",evidence:"-",quest:"-"},"unmatched transaction marker",[]);}_w2RefuseLog(_w2CollectStripped(ordinary,[/\[XP:[^\]]+\]/g,/\[GOLD:[^\]]+\]/g,/\[ITEM_GAINED:[^\]]+\]/g,/\[QUEST(?:_STEP)?:[^\]]+\]/g,/\[SCENE_DEATH:[^\]]+\]/g,/\[NPC:[^\]]+\]/g]));ordinary=ordinary.replace(/\[CANON_TXN_(?:BEGIN|END):[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary).replace(/\[QUEST(?:_STEP)?:[^\]]+\]/g,"").replace(/\[SCENE_DEATH:[^\]]+\]/g,"").replace(/\[NPC:[^\]]+\]/g,"");if(typeof console!=="undefined")console.warn("[identity] unmatched canon transaction marker - identity/quest/reward operations refused");if(typeof showToast==="function")showToast("⚠ Malformed canon envelope — its identity/quest/reward tags were withheld");}
-  var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);
+  var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null,refusedReason="",refusedConflict=null;/* #213: the victim alone could not explain itself — carry the CAUSE and its record to the withhold toast */for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);
     /* #204: a stray echo of an operation that already SUCCEEDED (committed envelope this response,
        or subject already dead in canon) strips silently — no toast, no conflict, no withhold arm. */
     if(_w2StrayDeathIsDuplicate(ba&&ba.actor.entity?ba.actor.entity:null,bh)){_w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");if(typeof console!=="undefined")console.warn("[identity] stray [SCENE_DEATH:"+bh+"] duplicates an operation that already succeeded — stripped as hygiene, no dispute (#204)");continue;}
-    _w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
+    _w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");var _bdC=_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");if(!refusedVictim){refusedReason="scene death was emitted outside a canon transaction";refusedConflict=_bdC;}refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
   var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;
     /* #193 (v1.672): the operand must NAME the victim before the death gate even evaluates —
        "the caul of mist" fuzzy-resolves to Caul via the consolidation, but a common noun or a
@@ -1344,9 +1448,10 @@ function w2PrepareResponse(text){
        that picked a different victim than the consolidation is the entry-17 wrong-victim shape). */
     if(worldState.sceneRefs&&!npcIsDead(ws)&&typeof w2SelfNamingCanon==="function"&&w2SelfNamingCanon(dm[1].trim())!==nm){
       _w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");
-      _w2Conflict(nm,"-","death operand is descriptor-shaped or ambiguous — it does not NAME the victim");
+      var _dsC=_w2Conflict(nm,"-","death operand is descriptor-shaped or ambiguous — it does not NAME the victim");
+      if(!refusedVictim){refusedReason="death operand is descriptor-shaped or ambiguous — it does not NAME the victim";refusedConflict=_dsC;}
       _w2ArmDeathValve(nm);refusedVictim=refusedVictim||nm;continue;}
-    if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){_w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");/* #175bR: name the ACTUAL cause — under the overflow latch the refusal is capacity, not evidence, and the old text sent the GM chasing scene ceremony that could not help */var _bdOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);_w2Conflict(nm,"-",_bdOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"named death has no prior positive scene binding");if(!_bdOv)_w2ArmDeathValve(nm);/* #194 L3 */refusedVictim=refusedVictim||nm;}}
+    if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){_w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");/* #175bR: name the ACTUAL cause — under the overflow latch the refusal is capacity, not evidence, and the old text sent the GM chasing scene ceremony that could not help */var _bdOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow),_bdR=_bdOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs":"named death has no prior positive scene binding",_bdC2=_w2Conflict(nm,"-",_bdR);if(!refusedVictim){refusedReason=_bdR;refusedConflict=_bdC2;}if(!_bdOv)_w2ArmDeathValve(nm);/* #194 L3 */refusedVictim=refusedVictim||nm;}}
   /* #168R1 (entry-13 review), rescoped by #175: a death REFUSED in THIS response still de-authorizes
      its co-emitted quest/reward consequences — that protection is unchanged and pinned. What is GONE
      is the standing-conflict reach: the old gate substring-matched every unresolved conflict's
@@ -1355,7 +1460,14 @@ function w2PrepareResponse(text){
      Jorgenfist) plus 400 XP and 200 gp because the prose said "Mokmurian". A standing dispute now
      strips ONLY the disputed quest's own completion tags (looked up via the quarantined receipt),
      and rewards flow. */
-  if(refusedVictim&&(/\[QUEST_STEP:[^\]]+\|(?:true|done|1|yes|x)\]/i.test(ordinary)||/\[QUEST:[^|\]]+\|(?:completed?|done|finished|failed)/i.test(ordinary))){ordinary=ordinary.replace(/\[QUEST_STEP:[^\]]+\]/g,"").replace(/\[QUEST:[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary);if(typeof console!=="undefined")console.warn("[identity] quest/reward consequence refused - response carries a just-refused victim "+refusedVictim);if(typeof showToast==="function")showToast("⚠ Quest/reward tags withheld — a death in this response was refused");}
+  if(refusedVictim&&(/\[QUEST_STEP:[^\]]+\|(?:true|done|1|yes|x)\]/i.test(ordinary)||/\[QUEST:[^|\]]+\|(?:completed?|done|finished|failed)/i.test(ordinary))){/* #213: collect BEFORE the strip — these tokens are the player-facing receipt of what the
+       refusal cost, and _w2StripRewards makes them unrecoverable. */
+    var _waTok=_w2CollectStripped(ordinary,W2_REWARD_RES);
+    ordinary=ordinary.replace(/\[QUEST_STEP:[^\]]+\]/g,"").replace(/\[QUEST:[^\]]+\]/g,"");
+    _w2RefuseLog(_waTok);ordinary=_w2StripRewards(ordinary);
+    _w2StampWithheld(refusedConflict,_waTok);var _waSum=w2WithheldSummary(_waTok);
+    if(typeof console!=="undefined")console.warn("[identity] quest/reward consequence refused - response carries a just-refused victim "+refusedVictim+" ("+(refusedReason||"cause unrecorded")+")");
+    if(typeof showToast==="function")showToast("⚠ "+(_waSum?_waSum+" withheld":"Reward withheld")+" — "+w2RefusalCopy(refusedReason)+" ("+refusedVictim+"). Asking the GM to put it right.",8000);}
   else{
     /* Standing disputes key on the TAG PAYLOAD, never the prose: a completion tag whose own text
        names a disputed subject (or whose title matches a quarantined receipt's quest) is withheld,
@@ -1368,18 +1480,27 @@ function w2PrepareResponse(text){
     for(_ci=0;_ci<(worldState.identityConflicts||[]).length;_ci++){var _cc=worldState.identityConflicts[_ci];if(!_cc.resolved&&!_cc.stale&&_cc.subject&&_cc.subject!=="unknown")_dSubs.push(_cc.subject);}
     if(_dq.length||_dSubs.length){
       var _dqStripped=[];
+      /* #213: remember WHICH dispute struck, so the toast can name its cause instead of the
+         category. Both limbs resolve to a live conflict record — the receipt limb through the
+         quarantined receipt’s subject — which is where the reason has always been stored. */
+      var _dqConflict=null;
+      var _liveConflict=function(subject){var z,cs=worldState.identityConflicts||[];for(z=0;z<cs.length;z++)if(!cs[z].resolved&&!cs[z].stale&&cs[z].subject===subject)return cs[z];return null;};
       var _payloadDisputed=function(payload,title){
-        if(_dq.indexOf(_w2Compact(title))>=0)return true;
-        var k;for(k=0;k<_dSubs.length;k++)if(new RegExp("\\b"+_dSubs[k].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(payload))return true;
+        if(_dq.indexOf(_w2Compact(title))>=0){
+          if(!_dqConflict){var rs=worldState.canonTxns||[],z;for(z=0;z<rs.length;z++)if(rs[z].status==="quarantined"&&rs[z].quest&&_w2Compact(rs[z].quest)===_w2Compact(title)){_dqConflict=_liveConflict(rs[z].subject);if(_dqConflict)break;}}
+          return true;}
+        var k;for(k=0;k<_dSubs.length;k++)if(new RegExp("\\b"+_dSubs[k].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(payload)){if(!_dqConflict)_dqConflict=_liveConflict(_dSubs[k]);return true;}
         return false;
       };
       ordinary=ordinary.replace(/\[QUEST:([^|\]]+)\|(completed?|done|finished|failed)[^\]]*\]/gi,function(full,title){if(_payloadDisputed(full,title)){_dqStripped.push(title);_w2RefuseLog(full);return"";}return full;});
       ordinary=ordinary.replace(/\[QUEST_STEP:([^|\]]+)\|[^\]]*\|\s*(?:true|done|1|yes|x)\s*\]/gi,function(full,title){if(_payloadDisputed(full,title)){_dqStripped.push(title);_w2RefuseLog(full);return"";}return full;});
       if(_dqStripped.length){
-        _w2RefuseLog(_w2CollectStripped(ordinary,[/\[XP:[^\]]+\]/g,/\[GOLD:[^\]]+\]/g,/\[ITEM_GAINED:[^\]]+\]/g]));
+        var _wbTok=_w2CollectStripped(ordinary,W2_REWARD_RES);
+        _w2RefuseLog(_wbTok);
         ordinary=_w2StripRewards(ordinary);
-        if(typeof console!=="undefined")console.warn("[identity] completion + co-emitted rewards withheld for disputed quest(s): "+_dqStripped.join(", ")+" — a valid CANON_TXN re-emission resolves the dispute and pays out (#175)");
-        if(typeof showToast==="function")showToast("⚠ Completion withheld — "+_dqStripped[0]+" is under an unresolved identity dispute");
+        _w2StampWithheld(_dqConflict,_wbTok);var _wbSum=w2WithheldSummary(_wbTok);
+        if(typeof console!=="undefined")console.warn("[identity] completion + co-emitted rewards withheld for disputed quest(s): "+_dqStripped.join(", ")+" — "+((_dqConflict&&_dqConflict.reason)||"cause unrecorded")+" — a valid CANON_TXN re-emission resolves the dispute and pays out (#175)");
+        if(typeof showToast==="function")showToast("⚠ “"+_dqStripped[0]+"” not credited"+(_wbSum?" ("+_wbSum+")":"")+" — "+w2RefusalCopy(_dqConflict&&_dqConflict.reason)+". Asking the GM to put it right.",8000);
       }
     }
   }
