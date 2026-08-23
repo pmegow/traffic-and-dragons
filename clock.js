@@ -225,6 +225,22 @@ function scheduleAdd(label,whenStr){
   for(i=0;i<c.schedule.length;i++){
     if(String(c.schedule[i].label||"").toLowerCase()===key){c.schedule[i].dueMin=due;return c.schedule[i];}
   }
+  /* #217 (the triple-booked bracelet deadline, live t2097): the GM re-states one errand in fresh
+     words and exact-match let every phrasing through — three deadlines for one collection, all
+     injected into UPCOMING, and the contradiction reached the fiction. fileFutureEvent got this
+     tooth as #29①; this is the SAME fingerprint (feNearDup — #150 extracted it so schedule code
+     shares thresholds, not a rival heuristic). Fold = the exact-match semantics: keep the
+     original label (stable identity), adopt the NEWEST deadline (the GM's latest statement of
+     the deal is the freshest information — last-write-wins, exactly what an exact match does). */
+  if(typeof feNearDup==="function"){
+    for(i=0;i<c.schedule.length;i++){
+      if(feNearDup(lbl,c.schedule[i].label)){
+        c.schedule[i].dueMin=due;
+        if(typeof console!=="undefined")console.info("[clock] #217: \""+lbl.slice(0,60)+"\" near-duplicates scheduled \""+String(c.schedule[i].label).slice(0,60)+"\" — deadline refreshed, no twin filed");
+        return c.schedule[i];
+      }
+    }
+  }
   var ev={id:"sch"+(c.schedule.length+1)+"_"+due,label:lbl,dueMin:due,born:c.min};
   c.schedule.push(ev);
   // #150 (drift pass order 6): PROMOTION — the same anticipated fact used to live in BOTH stores
@@ -354,6 +370,69 @@ function clockReconcilePhase(label){
     return 0;
   }
   return clockAdvance(delta);
+}
+
+// ── #217: the load sweep for schedules that pre-date the write-time fold ────────────────
+// Collapses near-duplicate entries an EXISTING save already carries (the live t2097 triple).
+// Sort by born DESC, greedily keep the first of each fingerprint group, fold older twins into
+// their kept sibling — freshest-born wins by construction (the latest statement of the deal;
+// on the live save that is the three-day entry the fiction at t2087 was actually arguing about).
+// The #146 never-auto-heal rule guards the SCALAR and its anchors; this removes redundant ROWS
+// with complete pre-images archived to clock.repairs — reversible by construction. Never
+// touches c.min. Idempotent: a clean schedule is a no-op and mints no repair record.
+function scheduleDedupSweep(){
+  var c=(typeof worldState!=="undefined"&&worldState&&worldState.clock)||null;
+  if(!c||!c.schedule||c.schedule.length<2||typeof feNearDup!=="function")return 0;
+  var sorted=c.schedule.slice().sort(function(a,b){return (b.born||0)-(a.born||0);});
+  var kept=[],removed=[],i,j;
+  for(i=0;i<sorted.length;i++){
+    var hit=false;
+    for(j=0;j<kept.length;j++){
+      if(feNearDup(sorted[i].label,kept[j].label)){removed.push({id:sorted[i].id,label:sorted[i].label,dueMin:sorted[i].dueMin,born:sorted[i].born,foldedInto:kept[j].id});hit=true;break;}
+    }
+    if(!hit)kept.push(sorted[i]);
+  }
+  if(!removed.length)return 0;
+  // Preserve the surviving entries' ORIGINAL relative order (kept was built newest-first).
+  c.schedule=c.schedule.filter(function(e){var k;for(k=0;k<removed.length;k++)if(removed[k].id===e.id)return false;return true;});
+  if(!c.repairs)c.repairs=[];
+  c.repairs.push({id:"217-schedule-dedupe",removed:removed,t:(typeof worldState!=="undefined"&&worldState&&worldState.turn)||0});
+  if(typeof console!=="undefined")console.warn("[clock] #217: collapsed "+removed.length+" near-duplicate schedule entr"+(removed.length===1?"y":"ies")+" into "+(kept.length)+" (pre-images in clock.repairs): "+removed.map(function(r){return "\""+String(r.label).slice(0,50)+"\"";}).join(", "));
+  return removed.length;
+}
+
+// ── #216: [TIME_CHECK:] — the read-before-write declaration ─────────────────────────────
+// Field origin (t2175, 2026-08-22): sonnet-5 narrated sundown and camped the party in full dark
+// while the clock read 11:57 AM. #158's recognizer — precision-tuned on the 328-turn audit — was
+// blind to nightfall rendered as pure imagery, and widening its grammar would trade the false
+// alarms that audit exists to prevent. The fix is upstream of recognition entirely: the GM opens
+// every response by DECLARING the phase as a structured tag (the #141 forced-checking-space
+// shape — committing to a phase before writing prose anchors the prose), and the engine's
+// detection becomes a deterministic band comparison. READ-ONLY BY CONSTRUCTION: this never moves
+// the clock — [TIME:] reconciles and [TIME_ADVANCE:] charges; a declaration that could advance
+// time would let the GM teleport the clock by assertion, the exact back door #73 closed.
+function clockPhaseIndex(label){
+  if(!label)return -1;
+  var i;for(i=0;i<TIME_PHASES.length;i++)if(TIME_PHASES[i].re.test(label))return i;
+  return -1;
+}
+// The [TIME_CHECK:] core — compare the declared phase against the CURRENT clock (the handler's
+// table position, before TIME_ADVANCE/REST, makes "current" mean the pre-advance clock the GM
+// actually read in its prompt). Off-band ≥ PHASE_MISMATCH_MIN arms the same one-shot GM-decides
+// record #158 uses — one latch, one nudge, one vocabulary; a structured declaration is simply a
+// higher-confidence assertion than any prose scan. Unmappable text warns loudly and arms nothing.
+function clockCheckDeclared(label){
+  if(typeof worldState==="undefined"||!worldState)return null;
+  var idx=clockPhaseIndex(label);
+  if(idx<0){
+    if(typeof console!=="undefined")console.warn("[clock] #216: [TIME_CHECK:"+label+"] names no known phase — declaration ignored (labels: dawn, morning, midmorning, midday, afternoon, dusk, evening, night, midnight, late night)");
+    return null;
+  }
+  var d=clockPhaseBandDist(idx);
+  if(d<PHASE_MISMATCH_MIN)return null;
+  worldState.phaseMismatch={idx:idx,label:String(label).toLowerCase().replace(/\s+/g," "),turn:(worldState.turn||0),stamp:(typeof clockStamp==="function"?clockStamp():"")};
+  if(typeof console!=="undefined")console.warn("[clock] #216: GM declared '"+label+"' but the clock reads "+worldState.phaseMismatch.stamp+" ("+Math.round(d/60)+"h off-band) — GM-decides reconcile nudge armed");
+  return worldState.phaseMismatch;
 }
 
 // ── #158: the phase-mismatch detector (Sol-amended spec, adjudicated 2026-08-09) ────────────

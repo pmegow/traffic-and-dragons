@@ -367,6 +367,9 @@ function migrateWorldState(){
      sanctioned fix is an idempotent clockRepair() transaction. typeof-guarded because clock.js
      loads after state.js, but migrate runs at init — long after every script is in. */
   if(typeof clockTimelineAnomalies==="function"){var _caL=clockTimelineAnomalies(worldState.clock),_caI;for(_caI=0;_caI<_caL.length;_caI++){console.warn("[clock] TIMELINE ANOMALY (#146, not auto-healed): "+_caL[_caI]+" — repair/migration defect; adjudicate from the transcript ck stamps, then apply ONE clockRepair()");}if(_caL.length&&typeof showToast==="function")showToast("⏱ Campaign-clock anomaly detected — see console (#146)");}
+  /* #217: collapse near-duplicate schedule entries a pre-fold save carries (rows only, pre-images
+     archived — the #146 rule protects the scalar/anchors and this touches neither). */
+  if(typeof scheduleDedupSweep==="function"&&scheduleDedupSweep()>0)_mig=true;
   // UA26 multi-foe combat (v1.264): wrap a flat legacy in-flight combat object into the foes[]
   // shape. Idempotent — .foes presence short-circuits, so a re-run can never double-wrap.
   if(worldState.combat&&!worldState.combat.foes){var _oc=worldState.combat;worldState.combat={round:_oc.round||1,engaged:null,foes:[_oc]};_mig=true;}

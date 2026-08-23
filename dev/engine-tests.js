@@ -4684,7 +4684,7 @@ function runEngineTests(R){
     // would read the relabel ceremony aloud in the prose and pollute the transcript.
     // v1.697 (#211): +NO_CHANGE in BOTH registries (+10 chars payload form; bare form joins
     // _CT_BARE) — the audit-ack channel must strip everywhere or the ack IS the leak it cures.
-    if(__djb2(_CT_TAGS.source)!==-480237931||_CT_TAGS.source.length!==1549)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==1838751325||_CT_TAGS.source.length!==1560)return "_CT_TAGS diverged from the frozen literal";/* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -4763,7 +4763,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-594829305&&d.length===24844)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.680 (#176): the [ITEM_RENAMED:]/[COMPANION_ITEM_RENAMED:] doc line joins the item cluster (+353 chars) — the rename path the duplicate-grant nudge teaches must exist in the GM's vocabulary. Prior: #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===746209589&&d.length===25426)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.700 (#216): the [TIME_CHECK:] doc line joins the clock family (+582 chars) — the read-before-write declaration; first tag of every response, read-only by contract. Prior: v1.680 (#176) [ITEM_RENAMED:]/[COMPANION_ITEM_RENAMED:] (+353 chars) — the rename path the duplicate-grant nudge teaches must exist in the GM's vocabulary. Prior: #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -13903,6 +13903,131 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // recognizes a HIGH-CONFIDENCE current-phase assertion in committed narration (one vocabulary:
   // \b-anchored prose forms DERIVED from TIME_PHASES), compares against the post-applyMuts clock
   // by BAND distance, and arms the one-shot GM-decides nudge. Never auto-advances.
+  section("#217 schedule near-duplicate dedupe — the triple-booked bracelet deadline");
+  // Field origin (the live t2097 save, 2026-08-22): the clock carried THREE deadlines for one
+  // errand — "Return to Wyla Ashvane's shop to collect the four cold-warded bracelets" (7.4d),
+  // "Collect the completed ember-rune warding bracelets" (6.8d), "...finish tempering ... in
+  // three days" (2.9d) — all three injected into UPCOMING every turn, and the contradiction
+  // reached the fiction (Wyla arguing six days at t2087 while an entry said three).
+  // fileFutureEvent got this exact tooth as #29①; scheduleAdd never did. Same fingerprint
+  // (feNearDup — #150 extracted it precisely so schedule code could share thresholds).
+  var __WYLA=[
+    "Return to Wyla Ashvane's shop to collect the four cold-warded bracelets",
+    "Collect the completed ember-rune warding bracelets from Wyla Ashvane",
+    "Wyla Ashvane will finish tempering and quenching the four mountain warding bracelets in three days, assisted by Daeris's forge-warding and the party's labor."
+  ];
+  t("#217 a re-phrased deadline REFRESHES the existing entry instead of filing a twin (last-write-wins, the exact-match semantics)",function(){
+    makeWorld();worldState.clock={min:24750,schedule:[]};
+    scheduleAdd(__WYLA[0],"10d");
+    var _i=console.info;console.info=function(){};
+    try{scheduleAdd(__WYLA[1],"6d");}finally{console.info=_i;}
+    var sch=worldState.clock.schedule;
+    if(sch.length!==1)return "a re-phrased deadline filed a twin: "+sch.length+" entries";
+    if(sch[0].label!==__WYLA[0])return "the fold rewrote the original label: "+sch[0].label;
+    return sch[0].dueMin===24750+6*1440?true:"the fold did not adopt the newest deadline: "+sch[0].dueMin;
+  });
+  t("#217 genuinely different business still files separately (the Hemlock threshold)",function(){
+    makeWorld();worldState.clock={min:0,schedule:[]};
+    scheduleAdd("Meet Wyla at the shop","2d");
+    scheduleAdd("Ambush the caravan on the north road","3d");
+    return worldState.clock.schedule.length===2?true:"different business was folded: "+JSON.stringify(worldState.clock.schedule.map(function(e){return e.label;}));
+  });
+  t("#217 the load sweep collapses the live triple to the freshest-born entry, archives the removed pair, and is idempotent",function(){
+    makeWorld();
+    worldState.clock={min:28511,schedule:[
+      {id:"sch1_39150",label:__WYLA[0],dueMin:39150,born:24750},
+      {id:"sch2_38325",label:__WYLA[1],dueMin:38325,born:25365},
+      {id:"sch3_32666",label:__WYLA[2],dueMin:32666,born:28346}
+    ]};
+    var _w=console.warn,_i=console.info;console.warn=function(){};console.info=function(){};
+    try{scheduleDedupSweep();}finally{console.warn=_w;console.info=_i;}
+    var sch=worldState.clock.schedule;
+    if(sch.length!==1)return "sweep left "+sch.length+" entries";
+    if(sch[0].id!=="sch3_32666")return "sweep kept the wrong entry (want freshest-born): "+sch[0].id;
+    var reps=(worldState.clock.repairs||[]).filter(function(r){return r.id==="217-schedule-dedupe";});
+    if(!reps.length)return "removed entries were not archived to clock.repairs";
+    if(!reps[0].removed||reps[0].removed.length!==2)return "the archive does not carry both removed entries: "+JSON.stringify(reps[0]);
+    console.warn=function(){};console.info=function(){};
+    try{scheduleDedupSweep();}finally{console.warn=_w;console.info=_i;}
+    if(worldState.clock.schedule.length!==1)return "re-run mutated a clean schedule";
+    return (worldState.clock.repairs||[]).filter(function(r){return r.id==="217-schedule-dedupe";}).length===1?true:"re-run minted a second repair record";
+  });
+  t("#217 the sweep never touches distinct deadlines and never moves the clock scalar",function(){
+    makeWorld();
+    worldState.clock={min:5000,schedule:[
+      {id:"a",label:"Meet Wyla at the shop",dueMin:6000,born:4000},
+      {id:"b",label:"Ambush the caravan on the north road",dueMin:7000,born:4500}
+    ]};
+    scheduleDedupSweep();
+    if(worldState.clock.schedule.length!==2)return "distinct deadlines were folded";
+    return worldState.clock.min===5000?true:"the sweep moved the clock scalar";
+  });
+
+  section("#216 [TIME_CHECK:] — the read-before-write clock declaration");
+  // Field origin (t2175, 2026-08-22): sonnet-5 narrated sundown and camped the party in full
+  // dark while the clock read 11:57 AM — and #158's prose recognizer, precision-tuned, was
+  // blind to nightfall rendered as pure imagery ("day bleeding out of the sky"). The fix is
+  // the #141 forced-checking-space shape: the GM DECLARES the phase as a structured tag before
+  // writing prose, and detection becomes a deterministic band comparison instead of prose
+  // recognition. THE TAG IS READ-ONLY BY CONSTRUCTION — it never moves the clock; a GM that
+  // believes time has passed charges it with [TIME_ADVANCE:] or declares [TIME:].
+  function makeTcWorld(offMin){
+    makeWorld();
+    worldState.clock={min:offMin,schedule:[]};
+    delete worldState.phaseMismatch;
+    return worldState;
+  }
+  t("#216 an in-band declaration is silent: no mismatch armed, clock untouched",function(){
+    makeTcWorld(357); // 11:57 AM elapsed-of-day
+    applyMuts("[TIME_CHECK:midday]");
+    if(worldState.phaseMismatch)return "an accurate declaration armed a mismatch";
+    return worldState.clock.min===357?true:"the check moved the clock: "+worldState.clock.min;
+  });
+  t("#216 the t2175 shape: [TIME_CHECK:sundown] against a midday clock arms the GM-decides mismatch and moves NOTHING",function(){
+    makeTcWorld(357);
+    applyMuts("[TIME_CHECK:sundown]");
+    var q=worldState.phaseMismatch;
+    if(!q)return "the sundown-at-midday declaration armed nothing — the exact field failure sails through";
+    if(!/dusk|sunset|sundown|twilight/i.test(q.label||""))return "armed label wrong: "+JSON.stringify(q);
+    if(worldState.clock.min!==357)return "READ-ONLY VIOLATED — the check advanced the clock to "+worldState.clock.min;
+    var n=buildPhaseMismatchNudge();
+    return n&&n.indexOf("[TIME:")>=0?true:"the armed mismatch did not produce the reconcile nudge: "+n;
+  });
+  t("#216 the declaration is judged against the PRE-advance clock — the clock the GM actually read",function(){
+    makeTcWorld(357);
+    applyMuts("[TIME_CHECK:midday][TIME_ADVANCE:8h]");
+    if(worldState.phaseMismatch)return "a truthful opening declaration was judged against the post-advance clock";
+    return worldState.clock.min===357+480?true:"TIME_ADVANCE lost beside the check: "+worldState.clock.min;
+  });
+  t("#216 an adjacent-band declaration under the mismatch threshold stays silent (no noisy detector)",function(){
+    makeTcWorld(700); // 5:40 PM elapsed-of-day — dusk band starts at 750, 50m of slop
+    applyMuts("[TIME_CHECK:dusk]");
+    return worldState.phaseMismatch?"a 50-minute slop armed the 4-hour detector":true;
+  });
+  t("#216 an unmappable label warns loudly and arms nothing",function(){
+    makeTcWorld(357);
+    var warned=0,_w=console.warn;console.warn=function(){warned++;};
+    try{applyMuts("[TIME_CHECK:the storm-dark hour]");}finally{console.warn=_w;}
+    if(worldState.phaseMismatch)return "free text armed a mismatch";
+    if(!warned)return "an unmappable declaration was silently dropped";
+    return worldState.clock.min===357?true:"clock moved on garbage input";
+  });
+  t("#216 the doc teaches the tag, every canonical label it lists resolves in TIME_PHASES, and the tag strips clean",function(){
+    var d=buildStateTagsDoc();
+    var m=d.match(/\[TIME_CHECK:[^\]]*\][^(]*\(labels: ([^)]*)\)/);
+    if(!m)return "the [TIME_CHECK:] doc line (with its labels clause) is missing from the GM contract";
+    var labels=m[1].split(", "),i,j;
+    if(labels.length<8)return "labels clause suspiciously short: "+m[1];
+    for(i=0;i<labels.length;i++){
+      var hit=false;
+      for(j=0;j<TIME_PHASES.length;j++)if(TIME_PHASES[j].re.test(labels[i])){hit=true;break;}
+      if(!hit)return "doc lists a label TIME_PHASES cannot resolve: "+labels[i];
+    }
+    if(d.indexOf("never moves the clock")<0&&d.indexOf("never advances the clock")<0)return "the doc does not pin the read-only contract — the [TIME:] confusion is one edit away";
+    var clean=cleanTxt("The morning is cold. [TIME_CHECK:morning] Frost rimes the stones.");
+    return clean.indexOf("TIME_CHECK")<0?true:"the tag leaked to the player: "+clean;
+  });
+
   section("clock phase-mismatch detector (#158)");
   function makeClockWorld(offMin){
     makeIdWorld();

@@ -60,4 +60,45 @@ rc |= sabotage.prove({
   ]
 });
 
+/* #216 (v1.700): the [TIME_CHECK:] read-before-write declaration. Single-line finds only —
+   multi-line find strings never match CRLF working copies (the 2026-08-22 newline-rot finding). */
+rc |= sabotage.prove({
+  file: "clock.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "TIME_CHECK gains a clock write — declaration becomes teleportation (#216)",
+      mustFail: "#216 the t2175 shape: [TIME_CHECK:sundown] against a midday clock arms",
+      find: "  var d=clockPhaseBandDist(idx);",
+      replace: "  var d=clockPhaseBandDist(idx);clockAdvance(d);" },
+    { label: "the off-band arm dies — sundown-at-midday sails through again (#216)",
+      mustFail: "#216 the t2175 shape: [TIME_CHECK:sundown] against a midday clock arms",
+      find: "  if(d<PHASE_MISMATCH_MIN)return null;",
+      replace: "  return null;" },
+    { label: "the band gate dies — every accurate declaration false-alarms (#216)",
+      mustFail: "#216 an in-band declaration is silent: no mismatch armed, clock untouc",
+      find: "  if(d<PHASE_MISMATCH_MIN)return null;",
+      replace: "  if(false)return null;" }
+  ]
+});
+
+/* #217 (v1.700): schedule near-duplicate dedupe. Single-line finds only. */
+rc |= sabotage.prove({
+  file: "clock.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "the write-time fold dies — re-phrased deadlines file twins again (#217)",
+      mustFail: "#217 a re-phrased deadline REFRESHES the existing entry instead of fil",
+      find: "      if(feNearDup(lbl,c.schedule[i].label)){",
+      replace: "      if(false){" },
+    { label: "the sweep keeps oldest instead of freshest-born — the stale seven-day deal wins (#217)",
+      mustFail: "#217 the load sweep collapses the live triple to the freshest-born ent",
+      find: "  var sorted=c.schedule.slice().sort(function(a,b){return (b.born||0)-(a.born||0);});",
+      replace: "  var sorted=c.schedule.slice().sort(function(a,b){return (a.born||0)-(b.born||0);});" },
+    { label: "the sweep stops archiving pre-images — removals become unrecoverable (#217)",
+      mustFail: "#217 the load sweep collapses the live triple to the freshest-born ent",
+      find: "  c.repairs.push({id:\"217-schedule-dedupe\",removed:removed,t:(typeof worldState!==\"undefined\"&&worldState&&worldState.turn)||0});",
+      replace: "" }
+  ]
+});
+
 process.exit(rc ? 1 : 0);
