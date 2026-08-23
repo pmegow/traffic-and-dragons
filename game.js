@@ -1695,7 +1695,7 @@ function commitGmTurn(resp,opts){
   saveAll();
   if(_bookkeeping){
     processPendingCompanionSheets();
-    if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();
+    if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();if(worldState.pendingRewardClaims&&worldState.pendingRewardClaims.length&&typeof showRewardClaimModal==="function")showRewardClaimModal();/* #215: an unanswered claim survives the tab closing */
     return null;
   }
   var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
@@ -1704,7 +1704,7 @@ function commitGmTurn(resp,opts){
   processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
   /* #81: [ITEM_DEF:] proposals queued by this turn go to the player NOW — the confirm modal is
      the only path from proposal to canon (accept writes the overlay; decline drops loudly). */
-  if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();
+  if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();if(worldState.pendingRewardClaims&&worldState.pendingRewardClaims.length&&typeof showRewardClaimModal==="function")showRewardClaimModal();/* #215: an unanswered claim survives the tab closing */
   return narEl;
 }
 // TODO #1 P3 (D4): mid-round suggestion refresh — strip the previous sub-turn's buttons off the

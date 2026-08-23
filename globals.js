@@ -7,6 +7,12 @@ var CANON_TXN_RETIRE_TURNS=12;  // #168R3: committed receipts older than this re
 var IDENTITY_CONFLICT_CAP=8;    // #168 W2: unresolved referential conflicts surfaced back to the GM.
 var IDENTITY_CONFLICT_STALE_ATTEMPTS=5;
 var IDENTITY_CONFLICT_REARM_CAP=2;/* #190ⓓ: a shelved dispute re-arms at most this many times, and only on a NEW refusal reason — an identical retry is the loop itself */
+var COMBAT_STALE_TURNS=2;      /* #214②: turns an OPEN encounter may go without a single combat tag before the
+                                  engine asks for the missing outcome. Deliberately short — combat is high tempo,
+                                  and the failure this catches (narration ends the fight, no tag follows) shows up
+                                  on the very next turn. */
+var REWARD_CLAIM_CAP=3;        /* #215: unanswered reward claims held at once. Small on purpose \u2014 a claim is a
+                                  modal the player must answer, and a stack of them is its own immersion break. */
 var W2_WITHHELD_CAP=12;        /* #213: reward tokens itemised on one conflict record. Bounded because a stubborn model re-refuses the same claim every turn — the ledger is a player-facing receipt of what a dispute cost, not an accumulating log. */
 var PRESENCE_OBSERVED_CAP=16;   // #194: derived actors per scene frame (frame.observed[]). EVICTABLE — engine-derived and re-derivable from the tag stream, so LRU eviction is safe and it must NEVER arm the W2 overflow latch (auto-derivation in a busy tavern would otherwise freeze every irreversible identity write).
 var SPEECH_EVIDENCE_TURNS=60;   // #194: how far back the death gate's speech limb reads transcript speaker maps (entry.sp), relative to the claim turn. Tuned on the live t1903 save: 60 reproduces the panel's witnessed census exactly (37 → 9 = party + Caul + the four characters actually in scene); the mention channel it replaces authorized ~1,000-turn-stale NPCs.
@@ -259,7 +265,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.698";
+var APP_VERSION="v1.699";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

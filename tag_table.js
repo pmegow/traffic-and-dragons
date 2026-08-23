@@ -677,7 +677,24 @@ combatAttrEntry("COMBAT_VULN","vuln"),
 // them closes as "surrender" (≡ truce), otherwise victory (MULTI_ENEMY_COMBAT §2).
 {t:"COMBAT_END",nc:1,apply:function(text,R){
   var ce=text.match(/\[COMBAT_END:([^\]]+)\]/);
-  if(ce){propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
+  if(ce){
+    /* #214① (field 2026-08-22, the Grey-Hided Skulker): the outcome word is a STRUCTURED
+       assertion that the fight is over. A victory-shaped close that leaves foes standing in
+       the tracker is the narration/stat desync — the prose said "the last of them goes down"
+       while Skulker C sat at 8/32. Resolve the survivors HERE, before propagateSlainFoes, so
+       a rostered foe’s death still routes through the same scene-evidence gate as any other
+       named death; a generic rolled foe simply zeroes. Non-victory outcomes resolve NOTHING —
+       fled/truce/disengaged/defeat mean the foe stopped fighting, not that it died. */
+    if(worldState.combat&&/^(victor|won|win|slain|kill|rout|triumph)/i.test(ce[1].trim())){
+      var _ceLive=combatLivingFoes(),_cl;
+      for(_cl=0;_cl<_ceLive.length;_cl++){_ceLive[_cl].hp=0;_ceLive[_cl].down="slain";
+        R.muts.push(_ceLive[_cl].name+" slain (still standing at victory — resolved to the narration)");}
+      if(_ceLive.length){
+        if(typeof console!=="undefined")console.warn("[combat] COMBAT_END:"+ce[1].trim()+" closed with "+_ceLive.length+" foe(s) still standing \u2014 resolved as slain; the narration outranks an untagged hp bar (#214)");
+        if(typeof showToast==="function")showToast("\u2694 "+(_ceLive.length===1?_ceLive[0].name+" was":_ceLive.length+" foes were")+" still standing at victory \u2014 resolved as slain");
+      }
+    }
+    propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
   if(!worldState.combat)return;
   var f=worldState.combat.foes,i,anyUp=false,surr=false,names=[];
   for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0){anyUp=true;break;}
@@ -1077,6 +1094,10 @@ function applyMutsTable(text,opts){
   // observation lands at the effective node. Tags only, never prose; refuse-and-warn, never
   // create. This is the recall floor that replaced the [NPC:] mention stamp.
   if(typeof derivePresenceFromResponse==="function")derivePresenceFromResponse(text,R);
+  // #214②: stamp combat-tag ACTIVITY on the open encounter. One place, measuring exactly what
+  // buildCombatStaleNudge asks about — did the GM tag this fight at all — rather than a prose
+  // scan for "the fight is over", which is the non-deterministic instrument #175b rejected.
+  if(worldState.combat&&/\[(?:COMBAT_START|COMBAT_ROUND|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|ENEMY_HP|ENEMY_SLAIN|ENEMY_SURRENDERS):/.test(text))worldState.combat.lastTouch=R.turn;
   // #129: deterministic expiry for schedule entries the GM never resolved — runs on every real
   // turn so a rest/TIME_ADVANCE that jumps past SCHEDULE_EXPIRE_MIN retires the entry that same
   // response. Loudness (warn/toast/archive) lives in the sweep; the muts line makes it visible

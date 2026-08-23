@@ -371,7 +371,7 @@ function initState(saved){
     }
     /* #81: unanswered item-canon proposals ride the save — resurface them on boot so closing
        the tab can never silently strand a proposal (the confirm modal is the only path to canon). */
-    if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();
+    if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();if(worldState.pendingRewardClaims&&worldState.pendingRewardClaims.length&&typeof showRewardClaimModal==="function")showRewardClaimModal();/* #215: an unanswered claim survives the tab closing */
     // #30: bring back the campaign folder (a plain var until now, so every reload silently
     // dropped it), THEN re-attach any saved renders to the turns they belong to. Ordered and
     // chained — restoreSavedRenders needs the handle. Both fail soft: no folder, no permission,

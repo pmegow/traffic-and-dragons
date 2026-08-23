@@ -370,6 +370,50 @@ function showProseModal(){
   });
 }
 // ── #81: item-canon confirm — the ONLY path from an [ITEM_DEF:] proposal to canon ────────────
+// #215: the reward-claim modal. Thin veneer over rewardClaimAccept/rewardClaimDecline
+// (helpers.js — the pure, engine-tested writers). Shown when a dispute shelves owing the player
+// a reward, and re-surfaced on boot/campaign load like the item-def queue, so a claim can never
+// be lost by closing the tab. The DOUBT IS STATED: this reward was withheld because the GM's
+// account of the scene did not hold up, so it may not have been earned. The player rules.
+function showRewardClaimModal(){
+  var pend=(worldState&&worldState.pendingRewardClaims)||[];
+  if(!pend.length)return;
+  function rowsHtml(){
+    var h="",i;
+    for(i=0;i<pend.length;i++){var p=pend[i];
+      var sum=(typeof w2WithheldSummary==="function")?w2WithheldSummary(p.tokens):p.tokens.join(", ");
+      var why=(typeof w2RefusalCopy==="function")?w2RefusalCopy(p.reason):p.reason;
+      h+="<div style='border:1px solid var(--brd2);border-radius:var(--r);padding:12px;margin-bottom:10px;background:var(--bg2);'>"
+        +"<div style='font-size:14px;color:var(--acc);font-weight:bold;'>"+escHtml(sum||"(nothing recorded)")+"</div>"
+        +"<div style='font-size:11.5px;color:var(--t1);margin:6px 0 3px;'>Held back around <b>"+escHtml(p.subject)+"</b> on turn "+escHtml(String(p.turn))+".</div>"
+        +"<div style='font-size:11px;color:var(--t2);margin:0 0 10px;'>Why it was held: "+escHtml(why)+".</div>"
+        +"<div style='display:flex;gap:8px;'>"
+        +"<button class='rc-acc' data-id='"+escHtml(p.id)+"' style='flex:1;padding:8px;font-size:12px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Award it</button>"
+        +"<button class='rc-dec' data-id='"+escHtml(p.id)+"' style='flex:1;padding:8px;font-size:12px;font-family:var(--font);background:none;color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Let it go</button>"
+        +"</div></div>";}
+    return h;
+  }
+  var modal=modalShell("rewardclaim-modal",
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>\u2726 A reward is waiting on your call</span><button id='rc-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;line-height:1.5;'>The engine held these back because the GM\u2019s account of the scene didn\u2019t hold up, and the GM never sorted it out. They may still be yours \u2014 or they may have been paid for something that never happened. Your call. Closing this keeps them waiting.</p>"
+    +"<div id='rc-rows'>"+rowsHtml()+"</div>",
+    {align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:420,boxExtra:"margin-top:40px;",closeId:"rc-x",outside:true});
+  function wire(){
+    Array.prototype.forEach.call(modal.querySelectorAll(".rc-acc"),function(b){b.addEventListener("click",function(){
+      rewardClaimAccept(this.getAttribute("data-id"));
+      pend=(worldState&&worldState.pendingRewardClaims)||[];
+      if(!pend.length){modal.remove();if(typeof syncUI==="function")syncUI();return;}
+      document.getElementById("rc-rows").innerHTML=rowsHtml();wire();
+    });});
+    Array.prototype.forEach.call(modal.querySelectorAll(".rc-dec"),function(b){b.addEventListener("click",function(){
+      if(rewardClaimDecline(this.getAttribute("data-id")))showToast("Left as it stands.");
+      pend=(worldState&&worldState.pendingRewardClaims)||[];
+      if(!pend.length){modal.remove();return;}
+      document.getElementById("rc-rows").innerHTML=rowsHtml();wire();
+    });});
+  }
+  wire();
+}
 // Thin veneer over itemDefAccept/itemDefDecline (helpers.js — the pure, engine-tested writers).
 // Lists every pending proposal with its full fixed-attribute definition; Accept writes the
 // write-once overlay entry, Decline drops it loudly. Re-renders in place until the queue is

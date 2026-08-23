@@ -37,6 +37,44 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 19 — Combat narration/tracker reconcile + the reward-claim modal (#214/#215, v1.699; Opus, owner-ruled)
+
+**Filed:** 2026-08-22. **Tracker:** TODO #214, #215. **Touched:** `tag_table.js` (COMBAT_END,
+post-handler seam), `api.js` (`buildCombatStaleNudge`, NOTE_BUILDERS/latch registry, the shelve
+site), `helpers.js` (rewardClaim writers), `ui-modals.js`, `game.js`/`ui-boot.js` (resurface),
+`globals.js`.
+
+**Why this is here.** Combat write paths plus a new NOTE_BUILDERS entry plus a new payout path.
+Owner-ruled in the moment; shipped on Opus under the standing budget rule.
+
+**What the reviewer should test hardest, in order:**
+
+1. **#214① changes the meaning of an existing tag.** `[COMBAT_END:victory]` over living foes used
+   to discard them; it now kills them. Three pre-existing tests already exercised that shape and
+   silently changed behaviour without breaking — I added a death-gate test proving a rostered foe
+   is still refused, but a reviewer should decide whether the victory-word regex
+   (`/^(victor|won|win|slain|kill|rout|triumph)/i`) is the right boundary, and what a GM writing
+   an unlisted outcome word should get. Today an unrecognised word silently resolves nothing.
+2. **Is `propagateSlainFoes` really gated for every foe shape?** My safety test covers one case
+   (rostered, no scene evidence). I did NOT enumerate foe shapes — aliased names, a pooled
+   "Goblin pack" entry that matches a roster name, a foe whose name collides with a party member.
+3. **#214② fires DURING combat**, unlike every sibling note, all of which are combat-silent by
+   deliberate design. That inversion is intentional and argued in the row, but it is exactly the
+   kind of "one exception to a house rule" worth a second opinion — mid-fight note volume was
+   part of what #211 was about.
+4. **#215 pays out through `applyMuts`.** Reusing the one path is right, but it means a claim
+   accepted while a NEW dispute is live could be re-stripped. I made the award measured so it
+   fails loudly rather than lying — the failure mode is a claim that closes unpaid and toasts.
+   A reviewer should decide whether closing it is correct or whether it should re-queue.
+5. **Player-gated payout is a canon write the engine previously refused.** The owner ruled it;
+   the modal states the doubt. Worth confirming the framing does not read as the engine
+   endorsing an unearned reward.
+
+**Verification:** 11 engine tests, each confirmed red first (1615 → 1621 green); 8 sabotage
+clauses; #215's award/decline/re-render loop driven in a real browser against a seeded state.
+**Not done:** no live playtest — both paths need a model to misbehave to fire; no diff-replay (the
+corpora contain no victory-close-over-living-foes response, so byte-identical would prove nothing).
+
 ### 18 — W2 withhold toasts now carry the refusal reason and an honest status (#213, v1.698; Opus, owner-ruled)
 
 **Filed:** 2026-08-22. **Tracker:** TODO #213. **Touched:** `identity.js` (`w2PrepareResponse`

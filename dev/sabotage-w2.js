@@ -446,12 +446,66 @@ rc|=sabotage.prove({
   cases:[
     {label:"shelving a dispute stops telling the player the reward is gone (#213)",
       mustFail:"#213 shelving a dispute that cost the player a reward says so; one th",
-      find:"      var _shLost=(typeof w2WithheldSummary===\"function\")?w2WithheldSummary(c.withheld):\"\";",
-      replace:"      var _shLost=\"\";"},
+      find:"    var _shLost=(typeof w2WithheldSummary===\"function\")?w2WithheldSummary(c.withheld):\"\";",
+      replace:"    var _shLost=\"\";"},
     {label:"a dispute that cost nothing invents a loss anyway (#213)",
       mustFail:"#213 shelving a dispute that cost the player a reward says so; one th",
-      find:"      showToast(_shLost",
-      replace:"      showToast(_shLost||\"1 XP\""}
+      find:"showToast(_shLost",
+      replace:"showToast(_shLost||\"1 XP\""}
+  ]
+});
+
+/* #214/#215 (v1.699): the narration/tracker desync and the reward claim that replaced the loss. */
+rc|=sabotage.prove({
+  file:"tag_table.js",
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
+  cases:[
+    {label:"a victory close goes back to discarding foes that are still standing (#214)",
+      mustFail:"#214\u2460 a victory close marks the living foe slain in the encounter record",
+      find:"if(worldState.combat&&/^(victor|won|win|slain|kill|rout|triumph)/i.test(ce[1].trim())){",
+      replace:"if(false){"},
+    {label:"the outcome word stops being checked, so a rout and a retreat kill alike (#214)",
+      mustFail:"#214\u2460 a non-victory close never invents deaths: fled/truce/disengaged",
+      find:"/^(victor|won|win|slain|kill|rout|triumph)/i.test(ce[1].trim())",
+      replace:"true"},
+    {label:"combat-tag activity stops being stamped, so a live fight gets nagged (#214)",
+      mustFail:"#214\u2461 combat-tag activity keeps the note silent",
+      find:"worldState.combat.lastTouch=R.turn;",
+      replace:";"}
+  ]
+});
+
+rc|=sabotage.prove({
+  file:"api.js",
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
+  cases:[
+    {label:"the combat-stale note loses its cooldown and nags every turn (#214)",
+      mustFail:"#214\u2461 the note does not repeat every turn",
+      find:"  if(ping!=null&&worldState.turn-ping<COMBAT_STALE_TURNS)return\"\";",
+      replace:""},
+    {label:"a shelved dispute stops queueing the reward claim (#215)",
+      mustFail:"#215 a shelved dispute that cost the player a reward queues a claim",
+      find:"if(_shLost&&typeof rewardClaimQueue===\"function\")rewardClaimQueue(c.subject,c.withheld,c.reason);",
+      replace:""}
+  ]
+});
+
+rc|=sabotage.prove({
+  file:"helpers.js",
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
+  cases:[
+    {label:"a payout that moves no state reports success anyway (#215)",
+      mustFail:"#215 a payout that silently changes nothing is caught and reported",
+      find:"  if(after.xp===before.xp&&after.gold===before.gold&&after.inv===before.inv){",
+      replace:"  if(false){"},
+    {label:"declining a claim pays it out anyway (#215)",
+      mustFail:"#215 declining drops the claim without paying",
+      find:"function rewardClaimDecline(id){",
+      replace:"function rewardClaimDecline(id){return rewardClaimAccept(id);"},
+    {label:"the claim queue loses its bound (#215)",
+      mustFail:"#215 declining drops the claim without paying",
+      find:"  if(q.length>=REWARD_CLAIM_CAP){",
+      replace:"  if(false){"}
   ]
 });
 

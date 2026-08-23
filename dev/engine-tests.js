@@ -6707,6 +6707,82 @@ function runEngineTests(R){
     if(f[1].stats)return "stats leaked onto Grukk (the old last-added bug)";
     return f[0].stats&&f[0].stats.STR===15?true:"stats missed the re-emitted foe";
   });
+  // ── #214: the narration/tracker desync — prose kills a foe the tracker still shows up ──
+  // Field (2026-08-22, the Grey-Hided Skulker): the narration closed the fight — "the last of the
+  // grey things finally goes down" — with Skulker C standing at 8/32 and no combat tag emitted at
+  // all. Two deterministic levers, no prose scan anywhere: an outcome word that says the fight is
+  // over resolves the survivors, and an untouched open encounter asks.
+
+  t("#214① a victory close marks the living foe slain in the encounter record before the tracker is dropped",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Grukk|-10]");
+    var seen=null,_w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    var _pf=propagateSlainFoes;
+    propagateSlainFoes=function(R){seen=combatLivingFoes().length;return _pf.apply(this,arguments);};
+    try{applyMuts("[COMBAT_END:victory]");}finally{propagateSlainFoes=_pf;console.warn=_w;if(_t)showToast=_t;}
+    return seen===0?true:"propagateSlainFoes ran with "+seen+" foe(s) still living — a narrated victory left them unresolved";
+  });
+
+  t("#214① a non-victory close never invents deaths: fled/truce/disengaged leave the survivors unslain",function(){
+    var words=["fled","truce","disengaged","defeat"],i;
+    for(i=0;i<words.length;i++){
+      __twoFoes();
+      var slain=0,_pf=propagateSlainFoes,_w=console.warn;console.warn=function(){};
+      propagateSlainFoes=function(R){var lf=(worldState.combat&&worldState.combat.foes)||[],k;for(k=0;k<lf.length;k++)if(lf[k].down==="slain")slain++;return _pf.apply(this,arguments);};
+      try{applyMuts("[COMBAT_END:"+words[i]+"]");}finally{propagateSlainFoes=_pf;console.warn=_w;}
+      if(slain)return "[COMBAT_END:"+words[i]+"] killed "+slain+" foe(s) that merely stopped fighting";
+    }
+    return true;
+  });
+
+  t("#214① the victory resolution is NOT a licence to kill named NPCs: a rostered foe still faces the death gate",function(){
+    makeWorld();worldState.world.location="Jorgenfist";
+    worldState.npcs.push({name:"Mokmurian",status:"",statusTurn:0,rel:"enemy",met:1,partyMember:false,aliases:[]});
+    memory.npcs.Mokmurian={attitude:"",knowledge:[],events:[],aliases:[]};
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;applyMuts("[COMBAT_START:Mokmurian|20|14|+4|d10|high]");
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    try{applyMuts("[COMBAT_END:victory]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(npcIsDead(wsNpcByName("Mokmurian")))return "an outcome word killed a rostered NPC the scene never bound — the #214 resolution bypassed the death gate";
+    return worldState.combat===null?true:"the encounter did not close";
+  });
+
+  t("#214② an open encounter with no combat tags for COMBAT_STALE_TURNS asks for the missing outcome, naming the foe and its HP",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Grukk|-10]");
+    worldState.turn=(worldState.turn||1)+COMBAT_STALE_TURNS+1;
+    var n=buildCombatStaleNudge();
+    if(!n)return "no note fired for an untouched open encounter";
+    if(n.indexOf("Kresh")<0)return "the note does not name the living foe: "+n;
+    if(n.indexOf("12")<0)return "the note does not carry the foe's HP: "+n;
+    if(n.indexOf("[COMBAT_END:")<0||n.indexOf("[ENEMY_SLAIN:")<0)return "the note does not teach the two honest exits: "+n;
+    return true;
+  });
+
+  t("#214② combat-tag activity keeps the note silent — it asks about SILENCE, never about a live fight",function(){
+    __twoFoes();
+    worldState.turn=(worldState.turn||1)+COMBAT_STALE_TURNS+1;
+    applyMuts("[ENEMY_HP:Kresh|-1]");
+    if(buildCombatStaleNudge())return "the note fired on a turn the GM actively tagged combat";
+    worldState.turn+=1;
+    if(buildCombatStaleNudge())return "the note fired one turn after live combat tags";
+    return true;
+  });
+
+  t("#214② the note does not repeat every turn, and a dead provider turn does not eat it",function(){
+    __twoFoes();
+    worldState.turn=(worldState.turn||1)+COMBAT_STALE_TURNS+1;
+    if(!buildCombatStaleNudge())return "fixture broke: first delivery did not fire";
+    worldState.turn+=1;
+    if(buildCombatStaleNudge())return "the note re-fired on the very next turn — no cooldown";
+    __twoFoes();
+    worldState.turn=(worldState.turn||1)+COMBAT_STALE_TURNS+1;
+    var snap=snapshotNoteLatches();
+    if(!buildCombatStaleNudge())return "fixture broke: latch delivery did not fire";
+    restoreNoteLatches(snap);
+    return buildCombatStaleNudge()?true:"a failed provider turn ate the combat-stale note (#151)";
+  });
+
   t("migrateWorldState wraps a flat legacy combat object; idempotent on re-run",function(){
     makeWorld();
     worldState.combat={name:"Old Wolf",hp:7,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:3};
@@ -14896,13 +14972,86 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var c=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Mokmurian";})[0];
     if(!c||!c.withheld||!c.withheld.length)return "fixture broke: nothing was stamped as withheld";
     c.attempts=IDENTITY_CONFLICT_STALE_ATTEMPTS+1;
+    /* #215 re-baseline (owner ruling 2026-08-22): the reward is no longer LOST at shelve time —
+       it becomes a claim the player rules on. The contract that survives unchanged is the one
+       that matters: a costly shelve must SAY what it cost, and a costless one must invent nothing. */
     var lost=__w2Toasts(function(){buildIdentityConflictNudge();});
-    if(!/will not arrive|never arrive|lost/i.test(lost))return "shelving a costly dispute did not tell the player the reward is gone: "+lost;
+    if(!/waiting on your call/i.test(lost))return "shelving a costly dispute did not surface the withheld reward to the player: "+lost;
     if(lost.indexOf("600")<0)return "the loss notice does not say what was lost: "+lost;
     makeWorld();worldState.turn=90;
     worldState.identityConflicts=[{subject:"Vex",handle:"-",reason:"named death has no prior positive scene binding",turn:90,lastTurn:90,attempts:IDENTITY_CONFLICT_STALE_ATTEMPTS+1,resolved:false}];
     var quiet=__w2Toasts(function(){buildIdentityConflictNudge();});
-    return !/will not arrive|never arrive|lost/i.test(quiet)?true:"a dispute that withheld nothing invented a loss: "+quiet;
+    return !/waiting on your call/i.test(quiet)?true:"a dispute that withheld nothing invented a claim: "+quiet;
+  });
+
+  // ── #215: the withheld reward becomes a player decision, not a loss ──────────
+  // Owner ruling 2026-08-22: pointing the player at the Sync modal is an immersion break.
+  // A shelved dispute now QUEUES a claim and asks. The reward was withheld because the GM's
+  // account did not add up, so the honest framing is a decision with the doubt stated —
+  // never a silent loss, and never a silent payout either.
+
+  t("#215 a shelved dispute that cost the player a reward queues a claim carrying the tokens and the cause",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;applyMuts("[NPC:Mokmurian|dead|enemy][QUEST:The Giants of Jorgenfist|completed][XP:600][GOLD:+100]");
+    var c=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Mokmurian";})[0];
+    if(!c||!c.withheld||!c.withheld.length)return "fixture broke: nothing was stamped as withheld";
+    c.attempts=IDENTITY_CONFLICT_STALE_ATTEMPTS+1;
+    var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    try{buildIdentityConflictNudge();}finally{if(_t)showToast=_t;}
+    var q=(worldState.pendingRewardClaims||[]);
+    if(q.length!==1)return "expected one queued claim, got "+q.length;
+    if(q[0].subject!=="Mokmurian")return "the claim does not name its subject: "+JSON.stringify(q[0]);
+    if(!q[0].tokens||!q[0].tokens.length)return "the claim carries no reward tokens";
+    return q[0].reason?true:"the claim does not carry the cause the player needs to judge it";
+  });
+
+  t("#215 a shelved dispute that cost nothing queues no claim",function(){
+    makeWorld();worldState.turn=90;
+    worldState.identityConflicts=[{subject:"Vex",handle:"-",reason:"named death has no prior positive scene binding",turn:90,lastTurn:90,attempts:IDENTITY_CONFLICT_STALE_ATTEMPTS+1,resolved:false}];
+    var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    try{buildIdentityConflictNudge();}finally{if(_t)showToast=_t;}
+    return !(worldState.pendingRewardClaims||[]).length?true:"a costless dispute invented a claim";
+  });
+
+  t("#215 accepting a claim actually pays it out — xp, gold and item all land, and the queue drains",function(){
+    makeWorld();
+    var xp0=worldState.character.xp,g0=worldState.character.gold,inv0=worldState.character.inventory.length;
+    rewardClaimQueue("Mokmurian",["[XP:600]","[GOLD:+100]","[ITEM_GAINED:Giantbane]"],"named death has no prior positive scene binding");
+    var q=worldState.pendingRewardClaims;
+    if(!q||q.length!==1)return "queue did not accept the claim";
+    var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    var ok;try{ok=rewardClaimAccept(q[0].id);}finally{if(_t)showToast=_t;}
+    if(!ok)return "accept reported failure";
+    if(worldState.character.xp!==xp0+600)return "xp not awarded: "+worldState.character.xp;
+    if(worldState.character.gold!==g0+100)return "gold not awarded: "+worldState.character.gold;
+    if(worldState.character.inventory.length!==inv0+1)return "item not awarded";
+    return !(worldState.pendingRewardClaims||[]).length?true:"the claim stayed queued after payout";
+  });
+
+  t("#215 a payout that silently changes nothing is caught and reported, never reported as awarded",function(){
+    makeWorld();
+    rewardClaimQueue("Mokmurian",["[NOT_A_REWARD:x]"],"malformed or mismatched transaction envelope");
+    var q=worldState.pendingRewardClaims,warned=0,_w=console.warn;
+    console.warn=function(){warned++;};
+    var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    var ok;try{ok=rewardClaimAccept(q[0].id);}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(ok)return "a payout that moved nothing reported success";
+    return warned?true:"the dead payout was silent — no warning surfaced";
+  });
+
+  t("#215 declining drops the claim without paying, and the queue is bounded",function(){
+    makeWorld();
+    var xp0=worldState.character.xp;
+    rewardClaimQueue("Mokmurian",["[XP:600]"],"reason");
+    var q=worldState.pendingRewardClaims;
+    var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    try{rewardClaimDecline(q[0].id);}finally{if(_t)showToast=_t;}
+    if(worldState.character.xp!==xp0)return "decline paid out anyway";
+    if((worldState.pendingRewardClaims||[]).length)return "decline left the claim queued";
+    var i,_w2=console.warn;console.warn=function(){};
+    try{for(i=0;i<REWARD_CLAIM_CAP+3;i++)rewardClaimQueue("Subject "+i,["[XP:"+(i+1)+"]"],"reason");}finally{console.warn=_w2;}
+    return worldState.pendingRewardClaims.length<=REWARD_CLAIM_CAP?true:"the claim queue is unbounded: "+worldState.pendingRewardClaims.length;
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────

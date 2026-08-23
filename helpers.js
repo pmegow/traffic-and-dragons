@@ -924,6 +924,63 @@ function groupInventory(inv){
 // Pure state ops (no DOM) so the confirm modal stays a thin veneer and the flow is engine-
 // testable. Accept = write-once overlay entry (an existing key refuses — the SPELL_DEF rule);
 // decline = dropped LOUDLY. Both remove the pending record; both return true only on action.
+/* \u2500\u2500 #215: the withheld reward becomes a player decision \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+   Owner ruling 2026-08-22: telling the player to open Sync is an immersion break. When a dispute
+   shelves, #213 already knows exactly what the withhold cost; this turns that receipt into a
+   question. The doubt is stated honestly in the modal \u2014 the reward was held because the GM's
+   account did not add up, so it may not have been earned \u2014 and the player rules.
+
+   The payout deliberately runs the ORIGINAL reward tags back through applyMuts rather than
+   re-implementing xp/gold/inventory writes: one path, so level-ups and clamping behave exactly as
+   they would have. Because that path could in principle strip them again, the award is MEASURED
+   \u2014 a claim that moves nothing fails loudly instead of reporting a payout that never happened. */
+function rewardClaimQueue(subject,tokens,reason){
+  if(typeof worldState==="undefined"||!worldState)return null;
+  if(!tokens||!tokens.length)return null;
+  if(!worldState.pendingRewardClaims)worldState.pendingRewardClaims=[];
+  var q=worldState.pendingRewardClaims,i;
+  for(i=0;i<q.length;i++)if(q[i].subject===subject&&q[i].tokens.join("")===tokens.join(""))return q[i];
+  if(q.length>=REWARD_CLAIM_CAP){
+    if(typeof console!=="undefined")console.warn("[reward] claim queue full ("+REWARD_CLAIM_CAP+") \u2014 the claim for "+subject+" was dropped; answer the pending ones to make room (#215)");
+    return null;
+  }
+  var rec={id:"rc"+worldState.turn+"-"+q.length+"-"+String(subject).replace(/[^A-Za-z0-9]/g,"").slice(0,12),
+           subject:String(subject||"?"),tokens:tokens.slice(),reason:String(reason||""),turn:worldState.turn};
+  q.push(rec);
+  if(typeof console!=="undefined")console.warn("[reward] claim QUEUED for "+rec.subject+": "+rec.tokens.join(" ")+" ("+rec.reason+")");
+  if(typeof saveAll==="function")saveAll();
+  return rec;
+}
+function _rewardClaimTake(id){
+  if(typeof worldState==="undefined"||!worldState||!worldState.pendingRewardClaims)return null;
+  var q=worldState.pendingRewardClaims,i;
+  for(i=0;i<q.length;i++)if(q[i].id===id){var rec=q[i];q.splice(i,1);if(!q.length)delete worldState.pendingRewardClaims;return rec;}
+  return null;
+}
+function rewardClaimAccept(id){
+  var rec=_rewardClaimTake(id);
+  if(!rec)return false;
+  var c=worldState.character||{},before={xp:c.xp,gold:c.gold,inv:(c.inventory||[]).length};
+  if(typeof applyMuts==="function")applyMuts(rec.tokens.join(""));
+  var after={xp:c.xp,gold:c.gold,inv:(c.inventory||[]).length};
+  if(after.xp===before.xp&&after.gold===before.gold&&after.inv===before.inv){
+    if(typeof console!=="undefined")console.warn("[reward] claim for "+rec.subject+" AWARDED NOTHING \u2014 the tags moved no state ("+rec.tokens.join(" ")+"); the claim is closed but the player was not paid (#215)");
+    if(typeof showToast==="function")showToast("\u26a0 That reward could not be awarded \u2014 nothing changed. See the console.",8000);
+    if(typeof saveAll==="function")saveAll();
+    return false;
+  }
+  if(typeof console!=="undefined")console.info("[reward] claim for "+rec.subject+" AWARDED: "+rec.tokens.join(" "));
+  if(typeof showToast==="function")showToast("\u2726 Awarded"+((typeof w2WithheldSummary==="function"&&w2WithheldSummary(rec.tokens))?": "+w2WithheldSummary(rec.tokens):""));
+  if(typeof saveAll==="function")saveAll();
+  return true;
+}
+function rewardClaimDecline(id){
+  var rec=_rewardClaimTake(id);
+  if(!rec)return false;
+  if(typeof console!=="undefined")console.info("[reward] claim for "+rec.subject+" DECLINED by the player: "+rec.tokens.join(" "));
+  if(typeof saveAll==="function")saveAll();
+  return true;
+}
 function itemDefAccept(key){
   if(typeof worldState==="undefined"||!worldState||!worldState.pendingItemDefs)return false;
   var i,p=null;
