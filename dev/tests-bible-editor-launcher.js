@@ -96,14 +96,21 @@ function listeningPid(port) {
   const launchPath = path.join(__dirname, "launch-bible-editor.js");
   const editorPath = path.join(ROOT, "bible_editor.html");
   const versionPath = path.join(__dirname, "bible-editor-version.js");
-  let editorVersion = null;
+  const helperVersionPath = path.join(__dirname, "bible-helper-version.js");
+  let editorVersion = null, helperVersion = null;
   verdict(fs.existsSync(cmdPath), "project-root Bible Editor.cmd exists");
   verdict(fs.existsSync(launchPath), "launcher implementation exists in dev/");
   verdict(fs.existsSync(versionPath), "shared Bible Editor version registry exists");
+  verdict(fs.existsSync(helperVersionPath), "independent Bible helper protocol version registry exists");
   if (fs.existsSync(versionPath)) {
     delete require.cache[require.resolve(versionPath)];
     editorVersion = require(versionPath);
     verdict(/^\d+\.\d+\.\d+$/.test(editorVersion), "Bible Editor version has a visible semver shape");
+  }
+  if (fs.existsSync(helperVersionPath)) {
+    delete require.cache[require.resolve(helperVersionPath)];
+    helperVersion = require(helperVersionPath);
+    verdict(/^\d+\.\d+\.\d+$/.test(helperVersion), "Bible helper protocol version has a visible semver shape");
   }
   if (fs.existsSync(editorPath)) {
     const editorSrc = fs.readFileSync(editorPath, "utf8");
@@ -142,8 +149,9 @@ function listeningPid(port) {
     verdict(editorSrc.indexOf('id="editor-version"') >= 0 &&
         editorSrc.indexOf('dev/bible-editor-version.js') >= 0,
       "Bible Editor renders the shared version in its header");
-    verdict(editorSrc.indexOf('X-Bible-Editor-Version') >= 0,
-      "Bible Editor sends its version on every install request");
+    verdict(editorSrc.indexOf('dev/bible-helper-version.js') >= 0 &&
+        editorSrc.indexOf('X-Bible-Helper-Version') >= 0,
+      "Bible Editor sends the independent helper protocol version on every install request");
     const writerStatus = editorSrc.slice(editorSrc.indexOf("function srvPill"),
       editorSrc.indexOf("function fileLine"));
     verdict(writerStatus.indexOf("online") < 0 && writerStatus.indexOf("offline") < 0 &&
@@ -164,9 +172,15 @@ function listeningPid(port) {
     verdict(src.indexOf('var PORT = process.env.BIBLE_PORT') >= 0 &&
         src.indexOf('"http://127.0.0.1:" + PORT + "/bible_editor.html"') >= 0,
       "launcher opens the server-hosted editor");
-    verdict(src.indexOf('require("./bible-editor-version.js")') >= 0 &&
-        src.indexOf("j.version === EDITOR_VERSION") >= 0,
-      "launcher refuses a stale helper version");
+    verdict(src.indexOf('require("./bible-helper-version.js")') >= 0 &&
+        src.indexOf("j.helperVersion === HELPER_VERSION") >= 0 &&
+        src.indexOf("stopVerifiedStaleHelper") >= 0,
+      "launcher replaces a verified stale helper by protocol version, not UI version");
+    verdict(src.indexOf("listeningPid") >= 0 && src.indexOf("processExecutable") >= 0 &&
+        src.indexOf("found.root") >= 0 && src.indexOf("found.pid") >= 0 &&
+        src.indexOf("function verifyLegacyCheckout") >= 0 &&
+        src.indexOf("verifyLegacyCheckout(next)") >= 0,
+      "launcher verifies port PID, checkout ownership, and Node executable before termination");
   }
 
   const child = cp.spawn(process.execPath, [path.join(__dirname, "bible-server.js")], {
@@ -181,7 +195,8 @@ function listeningPid(port) {
     verdict(health.status === 200 && /\"ok\":true/.test(health.body), "launcher server health route is live");
     let healthJson = {};
     try { healthJson = JSON.parse(health.body); } catch (ignore) {}
-    verdict(healthJson.version === editorVersion, "helper reports the shared Bible Editor version");
+    verdict(healthJson.version === editorVersion, "helper reports the visible Bible Editor version");
+    verdict(healthJson.helperVersion === helperVersion, "helper reports its independent protocol version");
     const editor = await get(port, "/bible_editor.html");
     verdict(editor.status === 200 && /<title>Bible Editor/.test(editor.body),
       "launcher server serves bible_editor.html", "status=" + editor.status);
@@ -191,12 +206,15 @@ function listeningPid(port) {
     const versionAsset = await get(port, "/dev/bible-editor-version.js?fresh=fixture");
     verdict(versionAsset.status === 200 && /module\.exports/.test(versionAsset.body),
       "launcher server serves the shared version registry", "status=" + versionAsset.status);
+    const helperVersionAsset = await get(port, "/dev/bible-helper-version.js?fresh=fixture");
+    verdict(helperVersionAsset.status === 200 && /module\.exports/.test(helperVersionAsset.body),
+      "launcher server serves the helper protocol version registry", "status=" + helperVersionAsset.status);
     const mismatch = await post(port, "/install", {
       "Content-Type": "text/plain",
       "Origin": "http://127.0.0.1:" + port,
-      "X-Bible-Editor-Version": "0.0.0"
+      "X-Bible-Helper-Version": "0.0.0"
     }, "synthetic mismatch — must be refused before parsing");
-    verdict(mismatch.status === 409 && /version/i.test(mismatch.body),
+    verdict(mismatch.status === 409 && /protocol/i.test(mismatch.body),
       "helper refuses a stale served editor before reading its upload", "status=" + mismatch.status);
     const refused = await get(port, "/../CLAUDE.md");
     verdict(refused.status === 404, "launcher server refuses non-editor files", "status=" + refused.status);
@@ -204,6 +222,97 @@ function listeningPid(port) {
     verdict(false, "launcher server starts on a disposable port", e.message);
   } finally {
     child.kill();
+  }
+
+  if (process.platform === "win32" && helperVersion) {
+    const uiOnlyPort = await freePort();
+    const uiOnlyPidFile = path.join(os.tmpdir(), "tnd-bible-ui-only-" + process.pid + ".pid");
+    const uiOnlyHelper = cp.spawn(process.execPath, [path.join(__dirname, "bible-server.js")], {
+      cwd: ROOT,
+      env: Object.assign({}, process.env, { BIBLE_PORT: String(uiOnlyPort), BIBLE_EDITOR_VERSION_OVERRIDE: "0.0.0" }),
+      stdio: ["ignore", "pipe", "pipe"], windowsHide: true
+    });
+    try {
+      await waitForPort(uiOnlyHelper);
+      try { fs.unlinkSync(uiOnlyPidFile); } catch (ignore) {}
+      const reused = await runLauncher(uiOnlyPort, uiOnlyPidFile);
+      let reusedHealth = null;
+      try { reusedHealth = JSON.parse((await get(uiOnlyPort, "/health")).body); } catch (ignore) {}
+      verdict(reused.code === 0 && reusedHealth && reusedHealth.version === "0.0.0" &&
+          reusedHealth.pid === uiOnlyHelper.pid && !fs.existsSync(uiOnlyPidFile),
+        "launcher reuses a compatible helper across UI-only version changes", reused.output.trim());
+    } catch (e) {
+      verdict(false, "launcher reuses a compatible helper across UI-only version changes", e.message);
+    } finally {
+      try { process.kill(uiOnlyHelper.pid); } catch (ignore) {}
+      try { fs.unlinkSync(uiOnlyPidFile); } catch (ignore) {}
+    }
+
+    const legacyPort = await freePort();
+    const legacyPidFile = path.join(os.tmpdir(), "tnd-bible-legacy-replace-" + process.pid + ".pid");
+    const legacy = cp.spawn(process.execPath, [path.join(__dirname, "bible-server.js")], {
+      cwd: ROOT,
+      env: Object.assign({}, process.env, { BIBLE_PORT: String(legacyPort), BIBLE_LEGACY_HEALTH_OVERRIDE: "1" }),
+      stdio: ["ignore", "pipe", "pipe"], windowsHide: true
+    });
+    let legacyReplacementPid = null;
+    try {
+      await waitForPort(legacy);
+      try { fs.unlinkSync(legacyPidFile); } catch (ignore) {}
+      const migrated = await runLauncher(legacyPort, legacyPidFile);
+      let migratedHealth = null;
+      try { migratedHealth = JSON.parse((await get(legacyPort, "/health")).body); } catch (ignore) {}
+      legacyReplacementPid = fs.existsSync(legacyPidFile) ? Number(fs.readFileSync(legacyPidFile, "utf8")) : null;
+      verdict(migrated.code === 0 && /retired stale helper protocol vlegacy/i.test(migrated.output) &&
+          migratedHealth && migratedHealth.helperVersion === helperVersion && legacyReplacementPid !== legacy.pid,
+        "launcher safely migrates a verified pre-protocol helper", migrated.output.trim());
+    } catch (e) {
+      verdict(false, "launcher safely migrates a verified pre-protocol helper", e.message);
+    } finally {
+      if (legacyReplacementPid) { try { process.kill(legacyReplacementPid); } catch (ignore) {} }
+      try { process.kill(legacy.pid); } catch (ignore) {}
+      try { fs.unlinkSync(legacyPidFile); } catch (ignore) {}
+    }
+
+    const stalePort = await freePort();
+    const stalePidFile = path.join(os.tmpdir(), "tnd-bible-stale-replace-" + process.pid + ".pid");
+    const stale = cp.spawn(process.execPath, [path.join(__dirname, "bible-server.js")], {
+      cwd: ROOT,
+      env: Object.assign({}, process.env, { BIBLE_PORT: String(stalePort), BIBLE_HELPER_VERSION_OVERRIDE: "0.0.0" }),
+      stdio: ["ignore", "pipe", "pipe"], windowsHide: true
+    });
+    let replacementPid = null;
+    try {
+      await waitForPort(stale);
+      try { fs.unlinkSync(stalePidFile); } catch (ignore) {}
+      const replaced = await runLauncher(stalePort, stalePidFile);
+      let replacementHealth = null;
+      try { replacementHealth = JSON.parse((await get(stalePort, "/health")).body); } catch (ignore) {}
+      replacementPid = fs.existsSync(stalePidFile) ? Number(fs.readFileSync(stalePidFile, "utf8")) : null;
+      verdict(replaced.code === 0 && /retired stale helper/i.test(replaced.output) &&
+          replacementHealth && replacementHealth.helperVersion === helperVersion && replacementPid !== stale.pid,
+        "launcher automatically replaces a verified stale helper", replaced.output.trim());
+    } catch (e) {
+      verdict(false, "launcher automatically replaces a verified stale helper", e.message);
+    } finally {
+      if (replacementPid) { try { process.kill(replacementPid); } catch (ignore) {} }
+      try { process.kill(stale.pid); } catch (ignore) {}
+      try { fs.unlinkSync(stalePidFile); } catch (ignore) {}
+    }
+
+    const impostorPort = await freePort();
+    const impostor = http.createServer((req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, server: "bible-server", helperVersion: "0.0.0" }));
+    });
+    await new Promise((resolve, reject) => { impostor.on("error", reject); impostor.listen(impostorPort, "127.0.0.1", resolve); });
+    try {
+      const refused = await runLauncher(impostorPort, path.join(os.tmpdir(), "tnd-bible-impostor-" + process.pid + ".pid"));
+      verdict(refused.code !== 0 && /refused to stop/i.test(refused.output) && impostor.listening,
+        "launcher refuses to terminate a health-signature impostor", refused.output.trim());
+    } finally {
+      await new Promise(resolve => impostor.close(resolve));
+    }
   }
 
   const launchPort = await freePort();

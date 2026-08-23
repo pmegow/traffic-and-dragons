@@ -27,7 +27,8 @@ var path = require("path");
 var os = require("os");
 var crypto = require("crypto");
 var execFile = require("child_process").execFile;
-var EDITOR_VERSION = require("./bible-editor-version.js");
+var EDITOR_VERSION = process.env.BIBLE_EDITOR_VERSION_OVERRIDE || require("./bible-editor-version.js");
+var HELPER_VERSION = process.env.BIBLE_HELPER_VERSION_OVERRIDE || require("./bible-helper-version.js");
 
 var ROOT = path.join(__dirname, "..");
 var PORT = process.env.BIBLE_PORT === undefined ? 7373 : Number(process.env.BIBLE_PORT);
@@ -37,6 +38,7 @@ var EDITOR_ASSETS = {
   "/": "bible_editor.html",
   "/bible_editor.html": "bible_editor.html",
   "/dev/bible-editor-version.js": "dev/bible-editor-version.js",
+  "/dev/bible-helper-version.js": "dev/bible-helper-version.js",
   "/data.js": "data.js",
   "/capability_bible.js": "capability_bible.js",
   "/item_bible.js": "item_bible.js",
@@ -47,7 +49,7 @@ var MIME = { ".html": "text/html", ".js": "text/javascript" };
 var CORS = {
   "Access-Control-Allow-Origin": "*",          // the pages run from file:// (Origin: null)
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Bible-Token, X-Bible-Editor-Version"
+  "Access-Control-Allow-Headers": "Content-Type, X-Bible-Token, X-Bible-Helper-Version"
 };
 
 function serveEditorAsset(req, res) {
@@ -76,8 +78,12 @@ var server = http.createServer(function (req, res) {
 
   if (req.method === "GET" && req.url === "/health") {
     // cheap liveness probe for the editor's status pill — never reads a file
-    send(200, { ok: true, server: "bible-server", version: EDITOR_VERSION,
-      auth: "origin-allowlist (token only for legacy file:// tools)" });
+    if (process.env.BIBLE_LEGACY_HEALTH_OVERRIDE === "1")
+      send(200, { ok: true, server: "bible-server", version: EDITOR_VERSION });
+    else
+      send(200, { ok: true, server: "bible-server", version: EDITOR_VERSION, helperVersion: HELPER_VERSION,
+        pid: process.pid, root: ROOT,
+        auth: "origin-allowlist (token only for legacy file:// tools)" });
     return;
   }
 
@@ -93,11 +99,11 @@ var server = http.createServer(function (req, res) {
     var origin = req.headers["origin"];
     var servedOrigin = !!origin && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
     var localOrigin = !origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-    if (servedOrigin && req.headers["x-bible-editor-version"] !== EDITOR_VERSION) {
-      console.warn("[install] " + new Date().toLocaleTimeString() + " REFUSED — editor/helper version mismatch");
-      send(409, { ok: false, output: "Bible Editor version mismatch: helper v" + EDITOR_VERSION +
-        ", page v" + (req.headers["x-bible-editor-version"] || "unversioned") +
-        ". Close this tab and reopen Bible Editor.cmd." });
+    if (servedOrigin && req.headers["x-bible-helper-version"] !== HELPER_VERSION) {
+      console.warn("[install] " + new Date().toLocaleTimeString() + " REFUSED — helper protocol mismatch");
+      send(409, { ok: false, output: "Bible Editor helper protocol mismatch: helper v" + HELPER_VERSION +
+        ", page expects v" + (req.headers["x-bible-helper-version"] || "legacy") +
+        ". Reopen Bible Editor.cmd." });
       return;
     }
     if (!localOrigin && req.headers["x-bible-token"] !== TOKEN) {

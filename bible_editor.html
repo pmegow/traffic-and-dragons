@@ -91,7 +91,7 @@ textarea{width:100%;resize:vertical;}
      the SW but their SUBRESOURCES are not, and Chrome caches file:// scripts too; a unique
      query per open defeats both. Editors open rarely — the extra fetch is noise. -->
 <script>
-(function(){var q="?fresh="+Date.now(),fs=["dev/bible-editor-version.js","data.js","capability_bible.js","item_bible.js","helpers.js","class_bible.js"],i;
+(function(){var q="?fresh="+Date.now(),fs=["dev/bible-editor-version.js","dev/bible-helper-version.js","data.js","capability_bible.js","item_bible.js","helpers.js","class_bible.js"],i;
 for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');})();
 </script>
 </head>
@@ -342,7 +342,7 @@ function serializeItemBible(bible) {
     if (!projectWriteReady()) return Promise.reject(new Error("Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit."));
     return fetch(BIBLE_SRV + "/install", {
       method: "POST", headers: { "Content-Type": "text/plain",
-        "X-Bible-Editor-Version": BIBLE_EDITOR_VERSION }, body: body
+        "X-Bible-Helper-Version": BIBLE_HELPER_VERSION }, body: body
     });
   }
 
@@ -682,9 +682,9 @@ function serializeItemBible(bible) {
   // The editor has one save route. This status says whether its local project writer is ready,
   // and re-checks every 20s so a stopped helper cannot masquerade as a usable Save button.
   var _srvUp = null;   // null = unknown, true/false once probed
-  var _srvVersion = null;
+  var _srvHelperVersion = null;
   function projectWriteReady() {
-    return writerOriginOK(window.location) && _srvUp === true && _srvVersion === BIBLE_EDITOR_VERSION;
+    return writerOriginOK(window.location) && _srvUp === true && _srvHelperVersion === BIBLE_HELPER_VERSION;
   }
   function syncWriterControls() {
     var ready = projectWriteReady(), ids = ["save", "m-save", "m-edit"], i, b;
@@ -697,17 +697,17 @@ function serializeItemBible(bible) {
   }
   function probeServer() {
     if (!writerOriginOK(window.location)) {
-      _srvUp = false; _srvVersion = null; fileLine(); return;
+      _srvUp = false; _srvHelperVersion = null; fileLine(); return;
     }
     fetch(BIBLE_SRV + "/health").then(function (r) { return r.json(); })
-      .then(function (j) { _srvUp = !!(j && j.ok); _srvVersion = j && j.version || null; fileLine(); })
-      ["catch"](function () { _srvUp = false; _srvVersion = null; fileLine(); });
+      .then(function (j) { _srvUp = !!(j && j.ok); _srvHelperVersion = j && j.helperVersion || null; fileLine(); })
+      ["catch"](function () { _srvUp = false; _srvHelperVersion = null; fileLine(); });
   }
   setInterval(probeServer, 20000); probeServer();
   function srvPill() {
-    if (_srvUp === true && _srvVersion !== BIBLE_EDITOR_VERSION)
-      return " · <span style='color:var(--bad)'>● version mismatch — editor v" + esc(BIBLE_EDITOR_VERSION) +
-        ", helper v" + esc(_srvVersion || "unversioned") + "; close this tab and reopen Bible Editor.cmd</span>";
+    if (_srvUp === true && _srvHelperVersion !== BIBLE_HELPER_VERSION)
+      return " · <span style='color:var(--bad)'>● helper protocol mismatch — page needs v" + esc(BIBLE_HELPER_VERSION) +
+        ", helper has v" + esc(_srvHelperVersion || "legacy") + "; reopen Bible Editor.cmd</span>";
     if (projectWriteReady()) return " · <span style='color:var(--good,#7aa86a)'>● local project writer ready — saves update this checkout</span>";
     if (_srvUp === false) return " · <span style='color:var(--bad);font-weight:700' title='local project writer unavailable'>Editor in READ ONLY MODE. Launch via Bible Editor.cmd to edit.</span>";
     return "";

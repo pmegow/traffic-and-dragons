@@ -14,6 +14,7 @@ const WORKING_FILES = [
   "bible_editor.html",
   "dev/bible-server.js",
   "dev/bible-editor-version.js",
+  "dev/bible-helper-version.js",
   "dev/launch-bible-editor.js",
   "dev/tests-bible-editor-launcher.js"
 ];
@@ -43,8 +44,15 @@ const cases = [
     label: "shared version loses its visible semver shape",
     file: "dev/bible-editor-version.js",
     mustFail: "Bible Editor version has a visible semver shape",
-    find: 'var BIBLE_EDITOR_VERSION = "1.1.2";',
+    find: 'var BIBLE_EDITOR_VERSION = "1.1.6";',
     replace: 'var BIBLE_EDITOR_VERSION = "unknown";'
+  },
+  {
+    label: "helper protocol version loses its visible semver shape",
+    file: "dev/bible-helper-version.js",
+    mustFail: "Bible helper protocol version has a visible semver shape",
+    find: 'var BIBLE_HELPER_VERSION = "1.0.0";',
+    replace: 'var BIBLE_HELPER_VERSION = "unknown";'
   },
   {
     label: "file pages trust a healthy helper as write authority",
@@ -61,32 +69,53 @@ const cases = [
     replace: ""
   },
   {
-    label: "editor stops identifying its version on writes",
+    label: "editor stops identifying its helper protocol on writes",
     file: "bible_editor.html",
-    mustFail: "Bible Editor sends its version on every install request",
-    find: '"X-Bible-Editor-Version": BIBLE_EDITOR_VERSION',
-    replace: '"X-Removed-Version": BIBLE_EDITOR_VERSION'
+    mustFail: "Bible Editor sends the independent helper protocol version on every install request",
+    find: '"X-Bible-Helper-Version": BIBLE_HELPER_VERSION',
+    replace: '"X-Removed-Version": BIBLE_HELPER_VERSION'
   },
   {
-    label: "helper stops reporting its version",
+    label: "helper stops reporting its protocol version",
     file: "dev/bible-server.js",
-    mustFail: "helper reports the shared Bible Editor version",
-    find: 'version: EDITOR_VERSION,',
-    replace: 'version: "unknown",'
+    mustFail: "helper reports its independent protocol version",
+    find: 'helperVersion: HELPER_VERSION,',
+    replace: 'helperVersion: "unknown",'
   },
   {
     label: "helper accepts a stale served editor",
     file: "dev/bible-server.js",
     mustFail: "helper refuses a stale served editor before reading its upload",
-    find: 'if (servedOrigin && req.headers["x-bible-editor-version"] !== EDITOR_VERSION) {',
+    find: 'if (servedOrigin && req.headers["x-bible-helper-version"] !== HELPER_VERSION) {',
     replace: 'if (false) {'
   },
   {
     label: "launcher reuses a stale helper",
     file: "dev/launch-bible-editor.js",
-    mustFail: "launcher refuses a stale helper version",
-    find: 'j.version === EDITOR_VERSION',
+    mustFail: "launcher replaces a verified stale helper by protocol version, not UI version",
+    find: 'j.helperVersion === HELPER_VERSION',
     replace: 'true'
+  },
+  {
+    label: "launcher ties compatibility back to the UI version",
+    file: "dev/launch-bible-editor.js",
+    mustFail: "launcher replaces a verified stale helper by protocol version, not UI version",
+    find: 'var HELPER_VERSION = require("./bible-helper-version.js");',
+    replace: 'var HELPER_VERSION = require("./bible-editor-version.js");'
+  },
+  {
+    label: "launcher loses checkout-root ownership verification",
+    file: "dev/launch-bible-editor.js",
+    mustFail: "launcher verifies port PID, checkout ownership, and Node executable before termination",
+    find: "!found.root || path.resolve(found.root)",
+    replace: "!found.checkout || path.resolve(found.checkout)"
+  },
+  {
+    label: "launcher loses legacy checkout ownership verification",
+    file: "dev/launch-bible-editor.js",
+    mustFail: "launcher verifies port PID, checkout ownership, and Node executable before termination",
+    find: "function verifyLegacyCheckout(done) {",
+    replace: "function removedLegacyCheckoutVerification(done) {"
   },
   {
     label: "online/offline mode language returns",
@@ -164,6 +193,13 @@ const cases = [
     mustFail: "launcher server serves editor dependencies",
     find: '  "/capability_bible.js": "capability_bible.js",\n',
     replace: ""
+  },
+  {
+    label: "server drops the helper protocol registry",
+    file: "dev/bible-server.js",
+    mustFail: "launcher server serves the helper protocol version registry",
+    find: '  "/dev/bible-helper-version.js": "dev/bible-helper-version.js",\n',
+    replace: ""
   }
 ];
 
@@ -174,6 +210,22 @@ function copyWorking(scratch) {
     fs.mkdirSync(path.dirname(to), { recursive: true });
     fs.copyFileSync(path.join(ROOT, rel), to);
   });
+}
+
+// Mutating lifecycle receipts can intentionally strand a disposable helper. Before deleting the
+// clone, stop only listeners whose signed health response names this exact scratch root.
+function stopScratchHelpers(scratchRoot) {
+  if (process.platform !== "win32") return;
+  const ps = path.join(process.env.SystemRoot || "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+  const quotedRoot = scratchRoot.replace(/'/g, "''");
+  const script = "$target=[IO.Path]::GetFullPath('" + quotedRoot + "');" +
+    "$listeners=netstat -ano | Select-String '^\\s*TCP\\s+127\\.0\\.0\\.1:(\\d+)\\s+0\\.0\\.0\\.0:0\\s+LISTENING\\s+(\\d+)\\s*$';" +
+    "foreach($line in $listeners){$port=[int]$line.Matches[0].Groups[1].Value;$pidValue=[int]$line.Matches[0].Groups[2].Value;" +
+    "try{$health=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$port+'/health') -TimeoutSec 1;" +
+    "if($health.server -eq 'bible-server' -and -not [string]::IsNullOrWhiteSpace([string]$health.root) -and " +
+    "[IO.Path]::GetFullPath([string]$health.root).Equals($target,[StringComparison]::OrdinalIgnoreCase)){Stop-Process -Id $pidValue -Force}}catch{}};exit 0";
+  const stopped = cp.spawnSync(ps, ["-NoProfile", "-NonInteractive", "-Command", script], { encoding: "utf8" });
+  if (stopped.status !== 0) throw new Error("could not stop disposable scratch helpers: " + combined(stopped));
 }
 
 var scratch = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-bible-launcher-sabotage-"));
@@ -210,7 +262,8 @@ try {
     }
   });
 } finally {
-  fs.rmSync(scratch, { recursive: true, force: true });
+  stopScratchHelpers(scratch);
+  fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
 }
 
 if (failed) {

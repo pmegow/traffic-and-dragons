@@ -30,6 +30,7 @@ clean, this log graduates away. Anything that outgrew a line belongs under Pendi
 - unversioned · 2026-08-23 — Bible Editor v1.1.3 makes Martial mutually exclusive with arcane/divine/primal/necromantic in both checkbox directions, with validator backstop, failing-first contract, and 4/4 mutation proof (thin satellite DOM shell over a tested pure rule + additive dev coverage)
 - unversioned · 2026-08-23 — Bible Editor v1.1.4 adds inclusive-OR category filters to the spell browser and limits free text to name/effect, with failing-first contract and 5/5 mutation proof (thin satellite DOM shell over a tested pure rule + additive dev coverage)
 - unversioned · 2026-08-23 — Bible Editor v1.1.5 keeps the capability dependency coherent across open/reload/save and refreshes it before every class spell-browser candidate build, with loud refresh failure, failing-first contract, and 6/6 mutation proof (thin satellite DOM shell over a tested pure rule + additive dev coverage)
+- unversioned · 2026-08-23 — Bible Editor v1.1.6 separates the visible UI revision from helper protocol v1.0.0, reuses compatible detached writers, and auto-replaces true stale helpers only after PID/executable/checkout ownership proof; 37/37 lifecycle fixtures + 26/26 mutation proof (satellite UI + additive dev tooling/coverage)
 
 **How to review:** `/fable-review <entry>` (validated workflow — see `.claude/skills/fable-review`).
 When Fable is satisfied (or files follow-ups), move the entry's full record to
