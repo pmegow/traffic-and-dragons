@@ -475,7 +475,7 @@ Both menus share the same underlying functions. `updateServerUI()`, `loadAdultMo
 
 **File naming:** `buildFilename(type)` — format `[campName]_[charName]_t[turn].[ext]`. `worldState.campName` is set once at campaign creation and never changes.
 
-(There is no auto-export narrative — `worldState.transcript` is the complete cross-device narrative record and the memento/story compiler #5 reads from it.)
+(There is no auto-export narrative — `worldState.transcript` is the complete cross-device narrative record and the memento/story compiler #219 reads from it.)
 
 ### 16. Campaign management
 

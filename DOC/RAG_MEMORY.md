@@ -227,7 +227,7 @@ past ~turn 50).
 - **Table Talk as lore oracle** — "what do I know about the Runelords?" answered from actual
   play history instead of compressed chapters.
 - **Future-event resurfacing** — returning to a location retrieves its unresolved threads.
-- **Shared infra with the Story Compiler (#5)** — "skeleton selects transcript stretches" IS
+- **Shared infra with the Story Compiler (#219)** — "skeleton selects transcript stretches" IS
   a retrieval problem; build the retrieval layer once, both features use it.
 - **Future spice:** legacy characters (5% cross-campaign cameo) retrieving *shared scenes*
   from their original campaign — a returning PC who quotes what you actually said to them
