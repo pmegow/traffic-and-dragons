@@ -154,7 +154,7 @@
 
 <script>
 var _sections = [];
-var TODO_VIEWER_VERSION = "v0.2";  // bump on every todo-viewer change (satellite versioning,
+var TODO_VIEWER_VERSION = "v0.3";  // bump on every todo-viewer change (satellite versioning,
                                    // the BP_DESIGNER_VERSION precedent — this page is NOT in
                                    // the SW app shell, so APP_VERSION/CACHE stay put for it)
 var _tasks = [];
@@ -505,10 +505,23 @@ function tierBadge(t) {
   var key = t.toUpperCase().replace(/[^A-Z]/g, "");
   return "<span class='tier tier-" + key + "'>" + t + "</span>";
 }
+// The ROW-LEVEL mark is the only one that matters, and it may only be a checkmark when the WHOLE
+// row is finished (owner call 2026-08-23). The old rule matched a ✅ anywhere, so a check on a
+// SUB-PART flagged the row complete — #208 (Flux dropped, ship-vs-file call still open), #207 (①
+// shipped, ② design-first) and #192 (authoring half, REMAINING TAIL) all read as ready-to-archive.
+// The status dot is the deliberate human triage, so it outranks any ✅ buried in the prose.
+var DOT_UNDONE = "○", DOT_PARTIAL = "◒";
+function rowDot(t) { var m = /[◒○]/.exec(t.status || ""); return m ? m[0] : ""; }
+function stripDot(s) { return String(s || "").replace(/[◒○]\s*/, "").trim(); }
 function isDone(t) {
+  if (rowDot(t)) return false;   // an explicit ○/◒ says the row is NOT finished, whatever it contains
   return /✅/.test(t.task) || /✅/.test(t.status) || /\bDone\b/.test(t.status);
 }
 function isReadyToTest(t) {
+  // An explicit dot decides BOTH ways. Without this, the prose fallback below promoted a row the
+  // human had marked ○ just because its body mentioned a ready-to-test plan (#77's design sketch).
+  var d = rowDot(t);
+  if (d) return d === DOT_PARTIAL;
   return !isDone(t) && /ready.to.test/i.test(t.status);
 }
 function isLow(t) {
@@ -558,7 +571,7 @@ function renderTaskTable(sec) {
     var rowCls = done ? "done" : rtt ? "rtt" : "";
     var checkCls = done ? "check-btn" : rtt ? "check-btn rtt" : "check-btn undone";
     var checkSym = done ? "&#10003;" : rtt ? "&#9679;" : "&#9711;";
-    var checkTitle = done ? "Mark undone" : rtt ? "Mark done" : "Mark ready to test";
+    var checkTitle = done ? "Mark not started" : rtt ? "Mark complete" : "Mark partially built";
     var editing = (i === _editIdx);
     var expanded = !!t._expanded;
     var rows = Math.max(2, Math.ceil(t.task.length / 72));
@@ -750,16 +763,19 @@ function saveEditTask(idx) {
   _editIdx = -1;
   renderPage();
 }
+// Cycles ○ not started → ◒ partially built → ✅ complete → ○. The dot is the state, so every
+// branch has to move it: leaving one behind would make isDone() refuse and the click look dead.
 function toggleDone(idx) {
-  var t = _tasks[idx];
-  if (isDone(t)) {
-    t.status = t.status.replace(/✅\s*/g, "").replace(/^Done\s*[-—]\s*/i, "").replace(/^Done\s*$/i, "").trim();
-    t.task   = t.task.replace(/✅\s*/g, "").trim();
-  } else if (isReadyToTest(t)) {
-    var rest = t.status.replace(/ready\s+to\s+test\s*[-—]?\s*/i, "").trim();
+  var t = _tasks[idx], rest = stripDot(t.status);
+  if (isDone(t)) {                       // complete → not started
+    rest = rest.replace(/✅\s*/g, "").replace(/^Done\s*[-—]\s*/i, "").replace(/^Done\s*$/i, "").trim();
+    t.task = t.task.replace(/✅\s*/g, "").trim();
+    t.status = (DOT_UNDONE + " " + rest).trim();
+  } else if (isReadyToTest(t)) {         // partially built → complete (the dot goes, the check lands)
+    rest = rest.replace(/ready\s+to\s+test\s*[-—]?\s*/i, "").trim();
     t.status = rest ? "✅ Done — " + rest : "✅ Done";
-  } else {
-    t.status = t.status.trim() ? "Ready to test — " + t.status.trim() : "Ready to test";
+  } else {                               // not started → partially built
+    t.status = (DOT_PARTIAL + " " + rest).trim();
   }
   renderPage();
 }
