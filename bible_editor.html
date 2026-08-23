@@ -897,6 +897,26 @@ function serializeItemBible(bible) {
     return out.sort();
   }
 
+  // >>> CAP CATEGORY EXCLUSION
+  // Martial and the four caster traditions are mutually exclusive. Racial is orthogonal: an
+  // innate martial technique or an innate spell may still carry that provenance category.
+  function capCategorySelection(current, changed, checked) {
+    var magic = { arcane: 1, divine: 1, primal: 1, necromantic: 1 };
+    var order = ["arcane", "divine", "primal", "necromantic", "martial", "racial"];
+    var chosen = {}, out = [], i;
+    for (i = 0; i < current.length; i++) chosen[current[i]] = 1;
+    if (checked) chosen[changed] = 1;
+    else delete chosen[changed];
+    if (checked && changed === "martial") {
+      for (i = 0; i < order.length; i++) if (magic[order[i]]) delete chosen[order[i]];
+    } else if (checked && magic[changed]) {
+      delete chosen.martial;
+    }
+    for (i = 0; i < order.length; i++) if (chosen[order[i]]) out.push(order[i]);
+    return out;
+  }
+  // <<< CAP CATEGORY EXCLUSION
+
   // shared attribute form — used by the capability view AND the class view's define flow
   // >>> CAP VALIDATOR
   // Schema validation for a capability entry. The define form used to accept anything, and four
@@ -909,6 +929,8 @@ function serializeItemBible(bible) {
     var errors = [], warns = [];
     var cats = o.category || [];
     if (!cats.length) errors.push("Pick at least one category — an entry with none can never be drawn by a rolled enemy caster.");
+    if (cats.indexOf("martial") >= 0 && (cats.indexOf("arcane") >= 0 || cats.indexOf("divine") >= 0 || cats.indexOf("primal") >= 0 || cats.indexOf("necromantic") >= 0))
+      errors.push("martial cannot be combined with arcane/divine/primal/necromantic. Pick martial, or one or more magic traditions.");
     if (o.isMagical && cats.length === 1 && cats[0] === "martial")
       errors.push("magical + martial only is contradictory: martial means no caster tradition draws it. Pick arcane/divine/primal/necromantic, or set magical=false.");
     if (!o.effect || !String(o.effect).trim())
@@ -973,6 +995,16 @@ function serializeItemBible(bible) {
     $("cap-cost").onchange = function () {
       $("cap-cost-custom").style.display = (this.value === "custom…") ? "" : "none";
       if (this.value === "custom…") $("cap-cost-custom").focus();
+    };
+    var capCatBoxes = $("modal-box").querySelectorAll(".capcat"), ci;
+    for (ci = 0; ci < capCatBoxes.length; ci++) capCatBoxes[ci].onchange = function () {
+      var selected = [].map.call($("modal-box").querySelectorAll(".capcat:checked"), function (c) { return c.value; });
+      var keep = capCategorySelection(selected, this.value, this.checked), keepSet = {}, i;
+      for (i = 0; i < keep.length; i++) keepSet[keep[i]] = 1;
+      for (i = 0; i < capCatBoxes.length; i++) {
+        capCatBoxes[i].checked = !!keepSet[capCatBoxes[i].value];
+        capCatBoxes[i].parentNode.style.color = capCatBoxes[i].checked ? "var(--acc)" : "var(--t1)";
+      }
     };
     $("m-close").onclick = closeModal;
     $("m-save").onclick = function () {

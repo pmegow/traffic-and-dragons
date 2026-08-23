@@ -27,6 +27,7 @@ clean, this log graduates away. Anything that outgrew a line belongs under Pendi
 - unversioned · 2026-08-15 — Bible Editor v1.1.0 made project-file saving the only workflow: no Save As/download/file-handle writes, loud draft-preserving writer failure, success closes Add form, and launcher lifecycle is exercised; 24/24 fixtures + 17/17 launcher sabotage + 27/27 remaining sabotage + disposable add/update/failure browser run (satellite UI + additive dev tooling/coverage)
 - unversioned · 2026-08-15 — Bible Editor v1.1.1 gives the unavailable-writer state the explicit READ ONLY / launch-via-cmd instruction; 25/25 fixtures + 18/18 sabotage + rendered disabled-Save check (satellite UI + additive dev coverage)
 - unversioned · 2026-08-15 — Bible Editor v1.1.2 makes write readiness origin-aware: file:// stays read-only even with a healthy helper, Save/Add/Update disable, and capability writes refuse before fetch; 28/28 fixtures + 21/21 launcher sabotage + 27/27 remaining sabotage + disposable disabled-control render (satellite UI + additive dev coverage)
+- unversioned · 2026-08-23 — Bible Editor v1.1.3 makes Martial mutually exclusive with arcane/divine/primal/necromantic in both checkbox directions, with validator backstop, failing-first contract, and 4/4 mutation proof (thin satellite DOM shell over a tested pure rule + additive dev coverage)
 
 **How to review:** `/fable-review <entry>` (validated workflow — see `.claude/skills/fable-review`).
 When Fable is satisfied (or files follow-ups), move the entry's full record to

@@ -553,7 +553,7 @@ try {
   _vCase("no category is rejected", "power strike", { category: [] }, true);
   _vCase("magical + martial-only is rejected", "power strike", { isMagical: true }, true);
   _vCase("magical + a real tradition passes", "power strike", { isMagical: true, category: ["arcane"] }, false);
-  _vCase("magical + martial AND arcane passes (a spellblade is both)", "power strike", { isMagical: true, category: ["martial", "arcane"] }, false);
+  _vCase("martial + a magic tradition is rejected", "power strike", { isMagical: true, category: ["martial", "arcane"] }, true);
   _vCase("empty effect is rejected", "power strike", { effect: "   " }, true);
   _vCase("a capitalized key warns", "Power Strike", {}, false, true);
   _vCase("cost N/A warns", "power strike", { cost: "N/A" }, false, true);
@@ -564,6 +564,26 @@ try {
     _failBE("cap validator: the real 'Fog Bank' draft entry (magical+martial) was not caught");
   if (!_capIssues("Poisoner", _okEntry({ cost: "N/A", effect: "Creates potent poisons from common ingredients." })).warns.length)
     _failBE("cap validator: the real 'Poisoner' draft entry (capital key, cost N/A) raised nothing");
+
+  // The category form has two mutually-exclusive groups: martial versus the four caster
+  // traditions. Pin the pure selection rule in both directions, including the neutral racial
+  // category and multi-tradition spells, then separately pin that capForm actually wires it.
+  var _catM = _bePage.match(/\/\/ >>> CAP CATEGORY EXCLUSION[\s\S]*?\/\/ <<< CAP CATEGORY EXCLUSION/);
+  if (!_catM) _failBE("the CAP CATEGORY EXCLUSION markers are gone from bible_editor.html");
+  var _capCategorySelection = new Function(_catM[0] + "\nreturn capCategorySelection;")();
+  var _catCase = function (label, current, changed, checked, want) {
+    var got = _capCategorySelection(current, changed, checked);
+    if (JSON.stringify(got) !== JSON.stringify(want))
+      _failBE("cap category exclusion: " + label + " — got " + JSON.stringify(got) + ", want " + JSON.stringify(want));
+  };
+  _catCase("checking arcane clears martial", ["martial"], "arcane", true, ["arcane"]);
+  _catCase("checking martial clears every magic tradition but preserves racial", ["arcane", "divine", "primal", "necromantic", "racial"], "martial", true, ["martial", "racial"]);
+  _catCase("magic traditions may coexist", ["arcane"], "divine", true, ["arcane", "divine"]);
+  _catCase("racial may coexist with martial", ["martial"], "racial", true, ["martial", "racial"]);
+  _catCase("unchecking a category does not disturb the others", ["arcane", "divine"], "arcane", false, ["divine"]);
+  var _capFormSrc = _bePage.slice(_bePage.indexOf("function capForm"), _bePage.indexOf("function closeModal"));
+  if (_capFormSrc.indexOf('querySelectorAll(".capcat")') < 0 || _capFormSrc.indexOf("capCategorySelection(") < 0 || _capFormSrc.indexOf(".onchange = function") < 0)
+    _failBE("capForm no longer wires category checkbox changes through capCategorySelection");
 
   // ── BIB PICKER CONTRACT (v1.507) ─────────────────────────────────────────────────────
   // The "+ from bible" tier picker (user request 2026-07-31): its candidate builder is a
