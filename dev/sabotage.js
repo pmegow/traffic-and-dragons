@@ -128,8 +128,19 @@ function prove(opts) {
 
       if (c.find instanceof RegExp) after = before.replace(c.find, c.replace);
       else {
-        var at = before.indexOf(c.find);
-        after = at < 0 ? before : before.slice(0, at) + c.replace + before.slice(at + c.find.length);
+        // Newline-rot fix (2026-08-22): source files are CRLF on disk while clauses are authored
+        // with LF escapes -- an exact indexOf could NEVER match a multi-line find (39 clauses
+        // across 14 files were candidates; 5 confirmed NOT APPLIED, two on drift-surface guards).
+        // Normalize the CLAUSE to the file, never the file: restoration is byte-identity, and the
+        // replacement lands in the same convention so a mutation cannot mint bare-LF islands.
+        var cFind = String(c.find), cRepl = String(c.replace);
+        if (before.indexOf(cFind) < 0 && cFind.indexOf("\n") >= 0) {
+          var crlfFile = before.indexOf("\r\n") >= 0;
+          var nlNorm = function (x) { return x.replace(/\r\n/g, "\n").replace(/\n/g, crlfFile ? "\r\n" : "\n"); };
+          if (before.indexOf(nlNorm(cFind)) >= 0) { cFind = nlNorm(cFind); cRepl = nlNorm(cRepl); }
+        }
+        var at = before.indexOf(cFind);
+        after = at < 0 ? before : before.slice(0, at) + cRepl + before.slice(at + cFind.length);
       }
 
       // ── the load-bearing check ──────────────────────────────────────────────

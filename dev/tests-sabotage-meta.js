@@ -37,6 +37,37 @@ try {
     if (result.status === 0 || out(result).indexOf("NOT APPLIED") < 0) return "verdict/status wrong: " + out(result);
     return intact() ? "" : "target bytes changed";
   });
+  test("an LF-authored multi-line find matches a CRLF target (the 2026-08-22 newline rot)", function () {
+    // The rot: source files are CRLF on disk, clauses are authored with LF escapes in their find
+    // strings, and exact indexOf can never match. 39 clauses across 14 files were candidates and
+    // 5 confirmed NOT APPLIED, two of them drift-surface guards proving nothing. The harness must
+    // normalize the CLAUSE to the file, never the file (restoration is byte-identity).
+    fs.writeFileSync(target, "LINE-A\r\nLINE-B\r\nLINE-C\r\n", "utf8");
+    var result = runChild("crlf-find", prelude() +
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e","process.exit(0)"]],cases:[{label:"crlf fixture",find:"LINE-A\\nLINE-B",replace:"LINE-A"}]}));');
+    // The command always greens, so a matched find must reach the applied path and verdict MISSED
+    // (mutation applied, nothing went red) — never the NOT-APPLIED path.
+    if (out(result).indexOf("NOT APPLIED") >= 0) return "the LF find never matched the CRLF file: " + out(result);
+    if (out(result).indexOf("MISSED") < 0) return "expected the applied-but-green MISSED verdict: " + out(result);
+    if (fs.readFileSync(target, "utf8") !== "LINE-A\r\nLINE-B\r\nLINE-C\r\n") return "target not restored byte-identically";
+    return "";
+  });
+  test("the normalized replacement lands in the target's own convention — no bare-LF islands in a CRLF file", function () {
+    fs.writeFileSync(target, "KEEP\r\nCUT-1\r\nCUT-2\r\nTAIL\r\n", "utf8");
+    // The probe command greens only if the mutated file contains a bare-LF line; mustFail pins it,
+    // so a caught verdict proves the multi-line REPLACEMENT was written CRLF, then restored.
+    var probeSrc = "var fs=require(" + JSON.stringify("fs") + ");var s=fs.readFileSync(" + JSON.stringify(target) + "," + JSON.stringify("utf8") + ");" +
+      "if(!/PATCHED/.test(s)){console.error(" + JSON.stringify("MUTATION ABSENT") + ");process.exit(1)}" +
+      "if(/[^\\r]\\n|^\\n/.test(s)){console.error(" + JSON.stringify("LF ISLAND") + ");process.exit(1)}" +
+      "console.error(" + JSON.stringify("CLEAN CRLF MUTATION") + ");process.exit(1);";
+    var result = runChild("crlf-replace", prelude() +
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e",' + JSON.stringify(probeSrc) + ']],cases:[{label:"replace convention",find:"CUT-1\\nCUT-2",replace:"CUT-1\\nPATCHED",mustFail:"CLEAN CRLF MUTATION"}]}));');
+    if (out(result).indexOf("NOT APPLIED") >= 0) return "find failed to match the CRLF file: " + out(result);
+    if (out(result).indexOf("MUTATION ABSENT") >= 0) return "the replacement never landed: " + out(result);
+    if (out(result).indexOf("LF ISLAND") >= 0) return "the replacement minted bare-LF lines into a CRLF file: " + out(result);
+    if (out(result).indexOf("caught") < 0) return "expected a caught verdict via the probe: " + out(result);
+    return fs.readFileSync(target, "utf8") === "KEEP\r\nCUT-1\r\nCUT-2\r\nTAIL\r\n" ? "" : "target not restored";
+  });
   test("MISATTRIBUTED rejects an unrelated red and restores bytes", function () {
     reset();
     var result = runChild("misattributed", prelude() +
@@ -45,6 +76,11 @@ try {
     return intact() ? "" : "target bytes changed";
   });
   test("repo-relative mutations stay inside a disposable clone", function () {
+    // proveScratch clones the repo, so this case needs one. The standalone-sabotage battery
+    // re-runs this whole suite inside a SYNTHETIC tree (no .git) to prove the newline
+    // normalizer; there the scratch case skips LOUDLY — CI's normal pass still runs it
+    // from the real repo, so the coverage never actually lapses.
+    if (!fs.existsSync(path.join(path.dirname(SABOTAGE), "..", ".git"))) { console.log("SKIP scratch-isolation — not a git repo (synthetic-tree run); covered by the real-repo pass"); return ""; }
     var real = path.join(path.dirname(SABOTAGE), "tests-sabotage-meta.js");
     var before = fs.readFileSync(real);
     var result = runChild("scratch-isolation", prelude() +

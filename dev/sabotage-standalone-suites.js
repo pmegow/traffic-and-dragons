@@ -33,6 +33,16 @@ var SPECS = [
     mustFail: "normal two-word name",
     label: "dedupA detects a regressed initials cap"
   },
+  // Newline-rot normalizer (2026-08-22): delete the CRLF fold and the meta suite must red —
+  // otherwise the fix that revived 5 dead drift-surface clauses is itself unguarded.
+  {
+    suite: "tests-sabotage-meta.js",
+    file: "dev/sabotage.js",
+    find: "          if (before.indexOf(nlNorm(cFind)) >= 0) { cFind = nlNorm(cFind); cRepl = nlNorm(cRepl); }",
+    replace: "",
+    mustFail: "LF-authored multi-line find matches a CRLF target",
+    label: "meta suite detects a dead newline normalizer"
+  },
   // #29b fallback-rung clauses: field deleted, attribution inverted, self-fall guard dropped.
   {
     suite: "tests-29-callgm-transport.js",
@@ -79,6 +89,7 @@ var failed = 0;
 try {
   fs.mkdirSync(path.join(tmp, "dev"));
   copy(path.join(__dirname, "engine-manifest.js"), path.join(tmp, "dev", "engine-manifest.js"));
+  copy(path.join(__dirname, "sabotage.js"), path.join(tmp, "dev", "sabotage.js")); // the meta suite requires it; also the newline-normalizer clause's mutation target
   for (var i = 0; i < SPECS.length; i++) copy(path.join(__dirname, SPECS[i].suite), path.join(tmp, "dev", SPECS[i].suite));
   for (var m = 0; m < MANIFEST.length; m++) copy(path.join(ROOT, MANIFEST[m].file), path.join(tmp, MANIFEST[m].file));
   // C13's duplicate-literal assertion scans every UI shard; dedupA loads ui-browsers.js.
