@@ -5247,6 +5247,11 @@ function runEngineTests(R){
     if(rp.indexOf("facing phrase")<0||rp.indexOf("NAMES the focal point")<0)return "the anchored facing-phrase demand is missing (#209)";
     if(rp.indexOf("BODY ORIENTATION IS THE FLOOR")<0)return "the body-orientation floor is missing (#209 — models obey torsos, not pupils)";
     if(rp.indexOf("body still points at the focal point")<0)return "the exception's body must still square to the focus (#209)";
+    /* #209f (owner art direction 2026-08-22, the Storval Stairs Nano render): the ONE successful
+       figure had her face completely hidden — visible faces are not a requirement, and choosing
+       view angles to guarantee them fights the very orientation the block demands. */
+    if(rp.indexOf("FACES ARE OPTIONAL")<0||rp.indexOf("face completely hidden")<0)return "the faces-optional licence is missing (#209f — the strongest orientation read may hide the face entirely)";
+    if(rp.indexOf("hair, silhouette, build, and gear")<0)return "the hidden-face identity carriers are missing (#209f — without them the reference legend biases the writer toward showing every face)";
     /* #209b: the two A/B-validated levers — staging geometry + camera-relative view angles. */
     if(rp.indexOf("DEEPER IN FRAME")<0)return "the staging-geometry invariant is missing (#209b — the focal point deeper in frame than every figure)";
     if(rp.indexOf("CAMERA-RELATIVE VIEW ANGLE")<0||rp.indexOf("three-quarter rear view")<0)return "the view-angle vocabulary demand is missing (#209b — the lever that actually converged the A/B)";

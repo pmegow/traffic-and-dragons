@@ -2441,6 +2441,12 @@ function buildSceneRenderRequest(c,party,w){
        obey torso lines far more reliably than pupils. The one-exception allowance survives but
        the exception's BODY still squares to the focal point. */
     +"END every character's pose clause with an explicit facing phrase that NAMES the focal point ('eyes locked on the stair-summit', 'squared toward the breach') — never an unanchored gaze. BODY ORIENTATION IS THE FLOOR: even where a head turns away, the torso and stance still angle toward the focal point, and the clause says so. At most one character may look elsewhere, and only with a stated reason that serves the same scene (guarding a flank, spotting a second danger) — that character's body still points at the focal point. "
+    /* #209f (owner art direction 2026-08-22, the Storval Stairs render): of four figures the ONE
+       that read correctly was seen fully from behind — face completely hidden. A visible face is
+       not a goal, and the multiSeed reference legend quietly biases the writer toward showing
+       every face so the likeness "lands"; this licence releases that. Positive phrasing per the
+       #209d never-negate rule — it licenses the strong choice rather than forbidding faces. */
+    +"FACES ARE OPTIONAL: a character seen fully from behind — face completely hidden — is often the STRONGEST orientation read in the frame; identity still carries through hair, silhouette, build, and gear, so a referenced likeness may keep its face hidden. Choose each character's view angle for the scene's geometry and the focal point, never to guarantee a visible face. "
     /* #209b (A/B-validated on the live scene, 2026-08-21 — nano_v2_viewangle vs the control):
        the two levers that actually moved the render were STAGING GEOMETRY (focal point deeper in
        frame than every figure) and CAMERA-RELATIVE VIEW ANGLES per character — view-angle

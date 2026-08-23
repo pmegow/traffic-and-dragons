@@ -60,8 +60,8 @@ rc |= sabotage.prove({
   command: ["node", ["dev/run-tests.js"]],
   cases: [
     { label: "provisionalNudged dropped from NOTE_LATCH_FIELDS (the suggestion call eats the nudge)", mustFail:"NOTE_LATCH_FIELDS carries provisionalNudged",
-      find: "\"presencePing\",\"provisionalNudged\",\"reciprocityNudged\"",
-      replace: "\"presencePing\",\"reciprocityNudged\"" }
+      find: "\"presencePing\",\"principalNudged\",\"provisionalNudged\"",/* #218 stale-target repair: principalNudged grew between the old anchors */
+      replace: "\"presencePing\",\"principalNudged\"" }
   ]
 });
 

@@ -18,9 +18,9 @@ var cases = [
   { file: "tts.js", label: "mid-read remainder handoff", mustFail: "mid-read remainder handoff",
     find: "_queue.unshift({ text: _remText, piper: true",
     replace: "_queue.push({ text: _remText, piper: true" },
-  { file: "tts.js", label: "server-piper-native ladder order", mustFail: "TTS_LADDER is no longer",
-    find: 'var TTS_LADDER = ["server", "piper", "native"]',
-    replace: 'var TTS_LADDER = ["piper", "server", "native"]' },
+  { file: "tts.js", label: "native falls off the ladder's end (the only unconditional rung)", mustFail: "no longer the LAST rung",/* #218 stale-target repair: the ladder gained gemini (#41) and the contract error was reworded — the old server/piper swap would not even red today */
+    find: 'var TTS_LADDER = ["gemini", "server", "piper", "native"]',
+    replace: 'var TTS_LADDER = ["gemini", "server", "native", "piper"]' },
   { file: "tts.js", label: "voice audition stays on server tier", mustFail: "testVoice no longer auditions",
     find: "_queue.push({ text: TTS_TEST_LINE, server: true, voiceId: v });",
     replace: "_queue.push({ text: TTS_TEST_LINE, piper: true, voiceId: v });" },
