@@ -1668,6 +1668,7 @@ function commitGmTurn(resp,opts){
        narrates in second person. A GM that complies on turn 1 retires it a turn EARLIER than the old
        counter did; one that never complies keeps being asked. */
     if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
+    if(worldState.recentAbandon){worldState.recentAbandon=worldState.recentAbandon.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentAbandon.length)worldState.recentAbandon=null;}/* #229: same 2-turn shelf as recentlyLeft */
   }
   if(typeof erCrumb==="function")erCrumb("turn","t"+worldState.turn+" "+String(resp||"").length+"ch");
   var clean=cleanTxt(resp),dice=diceTxt(resp),_bookkeeping=isBookkeepingResponse(resp,clean,dice);
@@ -2736,6 +2737,48 @@ function buildSheetSyncPrompt(companions){
     +"Do NOT emit XP, HP, or GOLD tags — those are tracked turn-by-turn. "
     +"Only emit tags for things that have actually changed or are genuinely missing. "
     +"If nothing needs updating, reply with a single period only.";
+}
+// #229 (owner request 2026-08-24): the Suggest-completion review prompt — PURE and engine-tested
+// (the buildSheetSyncPrompt precedent). Enumerates ONE quest with per-objective checked state so
+// the GM judges strictly against committed story; the response routes through applyMuts (the one
+// parser — [QUEST_STEP:]/[QUEST:completed]/reward tags land exactly like any turn's), and the
+// surviving prose is the explanation the decisions modal renders. Returns null for a title that
+// is not a live ACTIVE quest.
+function buildQuestSuggestPrompt(title){
+  if(!worldState||!worldState.questLog)return null;
+  var q=null,i;for(i=0;i<worldState.questLog.length;i++){if(worldState.questLog[i].title===title&&worldState.questLog[i].status==="active"){q=worldState.questLog[i];break;}}
+  if(!q)return null;
+  var objLines="";var oj;var obs=q.objectives||[];
+  for(oj=0;oj<obs.length;oj++){objLines+="  ["+(obs[oj].done?"x":" ")+"] "+obs[oj].text+(obs[oj].optional?" (optional)":"")+"\n";}
+  if(!objLines)objLines="  (no objectives recorded)\n";
+  return "[GM QUEST COMPLETION REVIEW — internal, not a player action] Review the quest \""+q.title+"\""+(q.desc?" — "+q.desc:"")+"\n"
+    +"Objectives as recorded:\n"+objLines
+    +"Judge STRICTLY from events that have ALREADY happened in the story — never invent, assume, or advance anything. "
+    +"For each UNCHECKED objective whose outcome the story has already achieved or made irrelevant, emit [QUEST_STEP:"+q.title+"|<objective text verbatim>|true]. "
+    +"If every required objective is (or becomes) checked AND the quest's own end condition — the outcome its description promises — has genuinely occurred on-screen, emit [QUEST:"+q.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); otherwise do NOT complete it. "
+    +"Then, as plain prose, briefly explain each decision — one short sentence per objective, including why anything was LEFT unchecked. If nothing qualifies, emit no tags and explain why not.";
+}
+// The async caller (syncCharSheet pattern): busy-gated, escalated model (a sloppy review WRITES
+// wrong quest state), applyMuts on the result, then the decisions modal. UI-side rendering
+// (showQuestDecisionsModal) lives in ui-modals.js.
+async function suggestQuestCompletion(title){
+  if(busy||!worldState)return;
+  var auditMsg=buildQuestSuggestPrompt(title);
+  if(!auditMsg){if(typeof showToast==="function")showToast("Quest not found or not active: "+title);return;}
+  busy=true;
+  if(typeof showToast==="function")showToast("Reviewing quest: "+title+"…");
+  try{
+    var resp=await callGM(auditMsg,null,700,upgradeModelFor(),{kind:"sync"});
+    var R=applyMuts(resp);/* the one parser — reopen guards, #205b, reward parsing all apply */
+    saveAll();if(typeof syncUI==="function")syncUI();
+    var explanation=cleanTxt(resp);
+    var changed=(R&&R.muts)?R.muts.slice():[];
+    if(typeof showQuestDecisionsModal==="function")showQuestDecisionsModal(title,changed,explanation);
+    else if(typeof showToast==="function")showToast(changed.length?("Review applied: "+changed.join("; ")):"Review: no changes.");
+  }catch(e){
+    if(typeof showToast==="function")showToast("Quest review failed: "+(e.message||"unknown error"));
+  }
+  busy=false;
 }
 // Pure inventory diff for the loud correction trail (engine-tested): human-readable lines for
 // items added/removed between two snapshots. Order-insensitive, count-aware.

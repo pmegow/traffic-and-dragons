@@ -312,6 +312,28 @@ function archiveQuest(title,status){
     }
   }
 }
+// #229 (owner request 2026-08-24): the Abandon-quest state op — the player kills a steering
+// attractor (field origin: the t2324 bell quest — an uncompletable ACTIVE quest steered 50 of
+// the last 120 turns). ACTIVE quests only (an offered quest's drop is declineQuest); archives
+// as "abandoned" through the archiveQuest shape and arms the 2-turn recentAbandon note
+// (recentSwitch pattern) so the GM is told the drop was deliberate. The UA42 reopen guard's
+// abandoned clause (tag_table.js) is the permanent half: never re-creatable |active, only
+// |offered — the world may re-raise the goal, the player stays the gate. UI shell (confirm
+// modal + button) lives in ui-modals.js; this function owns every state write.
+function abandonQuestState(title){
+  if(!worldState||!worldState.questLog)return false;
+  var i;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];
+    if(q.title===title&&q.status==="active"){
+      if(!memory.quests)memory.quests={};
+      memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"abandoned",turn:worldState.turn||0};
+      worldState.questLog.splice(i,1);
+      if(!worldState.recentAbandon)worldState.recentAbandon=[];
+      worldState.recentAbandon.push({title:q.title,turn:worldState.turn||0});
+      return true;
+    }
+  }
+  return false;
+}
 // Authoritative active+offered quest block re-injected every turn — the anti-drift anchor.
 // #20 quest-lifecycle teeth (v1.172): the t198 corpus check showed the lifecycle going silent in
 // mature campaigns — 0 [QUEST:] emissions in the indexed window, and quests sitting at 4/4 and 3/3
@@ -1660,6 +1682,12 @@ function buildSysPrompt(){
   // Transient departure marker — set by the "Part ways" button; auto-cleared in sendAction after ~2 turns.
   var leftBlock="";
   if(worldState.recentlyLeft&&worldState.recentlyLeft.length){var _ln=worldState.recentlyLeft.map(function(x){return x.name;}).join(", ");leftBlock="*** PARTY DEPARTURE ***\n"+_ln+" has LEFT the party and is no longer travelling with the player. Do not narrate them as present in the current scene or acting alongside the party; the conversation history above may still show them present, but they have gone. They remain part of the world and may reappear later as an ordinary NPC if the story brings them back.\n\n";}
+  // #229: transient abandoned-quest marker — set by the journal's Abandon button; auto-cleared
+  // in commitGmTurn after ~2 turns. Without it the "active crises ARE quests" nudge re-registers
+  // the dropped goal on the very next turn (the reopen guard blocks |active permanently; this
+  // block stops the immediate |offered re-raise AND explains the disappearance).
+  var abandonBlock="";
+  if(worldState.recentAbandon&&worldState.recentAbandon.length){var _abn=worldState.recentAbandon.map(function(x){return x.title;}).join(", ");abandonBlock="*** QUEST ABANDONED BY THE PLAYER ***\nThe player has deliberately DROPPED the quest: "+_abn+". Do not re-register it, do not steer toward it, and do not have NPCs press it — the party has walked away from this goal. The fiction may acknowledge the walking-away naturally if it comes up. If the world genuinely re-raises the matter much later, it may return only as a fresh [QUEST:title|offered] for the player to accept or refuse.\n\n";}
   // TODO #1 D12 follow-up (user field report 2026-07-18): leaving multiplayer needs the same
   // history-momentum antidote as a control switch — after the last co-PC demotes, the sessionLog
   // is full of the GM's OWN third-person narration and one role line can't outweigh it (the
@@ -1695,7 +1723,7 @@ function buildSysPrompt(){
     +buildStateTagsDoc()
     +buildNamingClause()/* #156: the identity-discipline clause — campaign-constant by construction (assembled from IDENTITY_DOMAINS namingRules + fixed literals), so it is cache-safe in the stable half; engine-tested for call-stability */
     +buildDeepTimeBlock();/* #227: the world age ladder — written once at campaign start and never mutated in play, so it is cache-safe in the stable half; ""-clean for every campaign without a ladder, which keeps legacy saves byte-identical */
-  var volatile_=identity+switchBlock+mpEndBlock+leftBlock
+  var volatile_=identity+switchBlock+mpEndBlock+abandonBlock+leftBlock
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
     +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"

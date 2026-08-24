@@ -492,9 +492,16 @@ function showQuestModal(){
         +"<button class='qa' data-qacc='"+escHtml(q.title)+"' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Accept</button>"
         +"<button class='qa' data-qdec='"+escHtml(q.title)+"'>Decline</button></div></div>";
     }else if(q.status==="active"){
+      // #229: two per-quest actions (owner request 2026-08-24). Suggest completion = a GM review
+      // call (suggestQuestCompletion, game.js) that checks achieved objectives off and explains
+      // itself in a decisions modal; Abandon = confirm → abandonQuestState (api.js). Active
+      // quests only — offered quests keep Accept/Decline, and neither action means anything there.
       activeHtml+="<div style='border-bottom:1px solid var(--brd);padding:10px 0;'>"
         +"<div style='font-size:14px;color:var(--t0);'>"+escHtml(q.title)+"</div>"
-        +(q.desc?"<div style='font-size:12px;color:var(--t2);margin-top:3px;'>"+escHtml(q.desc)+"</div>":"")+objList(q)+"</div>";
+        +(q.desc?"<div style='font-size:12px;color:var(--t2);margin-top:3px;'>"+escHtml(q.desc)+"</div>":"")+objList(q)
+        +"<div style='display:flex;gap:8px;margin-top:10px;'>"
+        +"<button class='qa' data-qsug='"+escHtml(q.title)+"' title='Ask the GM to review this quest against the story so far: objectives already achieved get checked off, and if the end condition has truly happened the quest completes with its rewards. Shows the reasoning afterward.'>Suggest completion</button>"
+        +"<button class='qa' data-qaband='"+escHtml(q.title)+"' title='Drop this quest deliberately: it moves to History as abandoned and the GM stops steering toward it. It can only ever return as a fresh offer. Asks for confirmation.'>Abandon quest</button></div></div>";
     }
   }
   var arch=(memory&&memory.quests)?Object.keys(memory.quests).map(function(k){return memory.quests[k];}):[];
@@ -521,6 +528,45 @@ function showQuestModal(){
   // wrong quest — declineQuest could even archive a still-active quest.
   Array.prototype.forEach.call(modal.querySelectorAll("[data-qacc]"),function(b){b.addEventListener("click",function(){acceptQuest(b.getAttribute("data-qacc"));});});
   Array.prototype.forEach.call(modal.querySelectorAll("[data-qdec]"),function(b){b.addEventListener("click",function(){declineQuest(b.getAttribute("data-qdec"));});});
+  // #229 — wired by TITLE like the pair above (audit E24: applyMuts can splice while open).
+  Array.prototype.forEach.call(modal.querySelectorAll("[data-qsug]"),function(b){b.addEventListener("click",function(){
+    if(typeof busy!=="undefined"&&busy){if(typeof showToast==="function")showToast("The GM is busy — try again in a moment.");return;}
+    modal.remove();suggestQuestCompletion(b.getAttribute("data-qsug"));
+  });});
+  Array.prototype.forEach.call(modal.querySelectorAll("[data-qaband]"),function(b){b.addEventListener("click",function(){_confirmAbandonQuest(b.getAttribute("data-qaband"));});});
+}
+// #229: the Abandon confirmation (state op = abandonQuestState, api.js — this is only the shell).
+function _confirmAbandonQuest(title){
+  var m=modalShell("quest-abandon-confirm",
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:10px;'>Abandon quest?</div>"
+    +"<div style='font-size:13px;color:var(--t1);margin-bottom:6px;'>"+escHtml(title)+"</div>"
+    +"<div style='font-size:12px;color:var(--t2);margin-bottom:14px;'>The quest moves to History as abandoned and the GM stops steering toward it. It can only ever come back as a fresh offer for you to accept or refuse.</div>"
+    +"<div style='display:flex;gap:8px;justify-content:flex-end;'>"
+    +"<button class='qa' id='qab-no'>Cancel</button>"
+    +"<button class='qa' id='qab-yes' style='background:var(--red);color:#fff;border:none;font-weight:bold;'>Abandon</button></div>",
+    {z:320,maxWidth:380,closeId:"qab-no",outside:true});
+  var yes=document.getElementById("qab-yes");
+  if(yes)yes.addEventListener("click",function(){
+    m.remove();
+    if(abandonQuestState(title)){saveAll();if(typeof syncUI==="function")syncUI();if(typeof showToast==="function")showToast("Quest abandoned: "+title);}
+    else if(typeof showToast==="function")showToast("Could not abandon — quest not found or not active.");
+    showQuestModal();
+  });
+}
+// #229: the decisions modal — what the completion review changed, and the GM's reasoning.
+// Rendered from applyMuts' muts lines (ground truth of what actually happened) + cleanTxt prose.
+function showQuestDecisionsModal(title,changed,explanation){
+  var chHtml=changed&&changed.length
+    ?changed.map(function(c){return "<div style='font-size:12px;color:var(--grn);margin:2px 0;'>• "+escHtml(c)+"</div>";}).join("")
+    :"<div style='font-size:12px;color:var(--t2);font-style:italic;'>No state changes — nothing new qualified.</div>";
+  modalShell("quest-decisions-modal",
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>Completion review — "+escHtml(title)+"</span><button id='qdm-x' style='background:none;border:none;color:var(--t2);font-size:22px;cursor:pointer;'>&#215;</button></div>"
+    +"<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);margin-bottom:6px;'>Changes applied</div>"+chHtml
+    +(explanation?"<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);margin:12px 0 6px;'>The GM's reasoning</div><div style='font-size:12px;color:var(--t1);white-space:pre-wrap;'>"+escHtml(explanation)+"</div>":"")
+    +"<div style='display:flex;justify-content:flex-end;margin-top:14px;'><button class='qa' id='qdm-back'>Back to journal</button></div>",
+    {z:320,maxWidth:440,closeId:"qdm-x",outside:true,overlayExtra:"overflow-y:auto;",align:"flex-start",boxExtra:"margin-top:40px;"});
+  var back=document.getElementById("qdm-back");
+  if(back)back.addEventListener("click",function(){var ex=document.getElementById("quest-decisions-modal");if(ex)ex.remove();showQuestModal();});
 }
 // Resolve by title + offered status (audit E24) so a shifted index can't accept/decline the wrong quest.
 function acceptQuest(title){

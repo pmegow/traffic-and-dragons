@@ -5690,6 +5690,82 @@ function runEngineTests(R){
     applyMuts("[QUEST:Ongoing|completed]");
     return memory.quests["Ongoing"]&&memory.quests["Ongoing"].status==="completed"&&worldState.questLog.length===0?true:"live upsert broken";
   });
+  // ── #229 — quest journal: Abandon + Suggest completion (owner request 2026-08-24) ──────────
+  // Two per-quest journal buttons. Abandon = the player kills a steering attractor (field
+  // origin: the t2324 bell quest — an uncompletable active quest steered 50 of 120 turns).
+  // The state op lives in api.js (engine-testable; ui-modals is just the confirm shell), the
+  // archive gets status "abandoned", and TWO teeth stop the GM undoing it: a 2-turn volatile
+  // note (recentSwitch pattern), and the UA42 reopen guard extended — an abandoned title can
+  // NEVER be re-created |active (the "active crises ARE quests" nudge would do exactly that),
+  // but MAY return |offered: the world can re-raise it, the player stays the gate.
+  t("#229: abandonQuestState — active quest archives as 'abandoned', leaves the log, arms the 2-turn note",function(){
+    makeWorld();worldState.turn=50;
+    applyMuts("[QUEST:The Bell Below|active|Find what tolls.][QUEST_STEP:The Bell Below|Find the source|optional]");
+    if(abandonQuestState("The Bell Below")!==true)return "abandon refused a live active quest";
+    if(worldState.questLog.length)return "quest still in the live log";
+    var a=memory.quests["The Bell Below"];
+    if(!a||a.status!=="abandoned")return "archive missing or wrong status: "+JSON.stringify(a);
+    if(!a.objectives||!a.objectives.length||a.desc!=="Find what tolls.")return "archive lost desc/objectives (History would render bare)";
+    if(a.turn!==50)return "archive not turn-stamped";
+    var ra=worldState.recentAbandon;
+    if(!ra||!ra.length||ra[0].title!=="The Bell Below"||ra[0].turn!==50)return "recentAbandon note not armed: "+JSON.stringify(ra);
+    return true;
+  });
+  t("#229: abandonQuestState refuses non-active and unknown titles — offered quests keep their own Decline path",function(){
+    makeWorld();worldState.turn=50;
+    applyMuts("[QUEST:Rumor Job|offered|Somebody's problem.]");
+    if(abandonQuestState("Rumor Job")!==false)return "abandoned an OFFERED quest — that is declineQuest's job";
+    if(worldState.questLog.length!==1)return "offered quest damaged";
+    if(abandonQuestState("Never Existed")!==false)return "unknown title did not refuse";
+    return worldState.recentAbandon?"refusal still armed the note":true;
+  });
+  t("#229: the volatile QUEST ABANDONED block renders while the note stands and contributes nothing when clear",function(){
+    makeWorld();worldState.turn=50;
+    var base=buildSysPrompt();
+    if(base.volatile.indexOf("QUEST ABANDONED")>=0)return "block rendered with no note armed";
+    worldState.recentAbandon=[{title:"The Bell Below",turn:50}];
+    var p=buildSysPrompt();
+    if(p.volatile.indexOf("QUEST ABANDONED")<0||p.volatile.indexOf("The Bell Below")<0)return "armed note did not render";
+    if(/re-?register/i.test(p.volatile)===false)return "block missing the do-not-re-register instruction";
+    if(p.stable!==base.stable)return "STABLE HALF CHANGED — cache kill";
+    return true;
+  });
+  t("#229: commitGmTurn expires the note on the 2-turn shelf (the recentSwitch pattern)",function(){
+    makeWorld();worldState.turn=52;
+    worldState.recentAbandon=[{title:"The Bell Below",turn:50}];
+    commitGmTurn("The road north is quiet. [TIME_ADVANCE:10m]",{userMsg:"x",playerTxt:"march on"});
+    if(worldState.recentAbandon)return "note survived past its shelf: "+JSON.stringify(worldState.recentAbandon);
+    worldState.recentAbandon=[{title:"Fresh Drop",turn:worldState.turn}];
+    commitGmTurn("Onward. [TIME_ADVANCE:5m]",{userMsg:"x",playerTxt:"go"});
+    return worldState.recentAbandon?true:"a fresh note was cleared early";
+  });
+  t("#229: reopen guard — an abandoned title cannot be re-created |active, but |offered may return",function(){
+    makeWorld();worldState.turn=50;
+    applyMuts("[QUEST:The Bell Below|active|Find what tolls.]");
+    abandonQuestState("The Bell Below");
+    var R=applyMuts("[QUEST:The Bell Below|active]");
+    if(worldState.questLog.length)return "abandoned quest force-re-activated — the button undoes itself";
+    if(!/abandoned/i.test(R.muts.join(" ")))return "block left no visible muts line: "+R.muts.join("; ");
+    applyMuts("[QUEST:The Bell Below|offered|The tolling resumes.]");
+    var live=worldState.questLog.filter(function(q){return q.title==="The Bell Below";});
+    if(live.length!==1||live[0].status!=="offered")return "the world may re-RAISE an abandoned goal as an offer — blocked";
+    return true;
+  });
+  t("#229: buildQuestSuggestPrompt — quest + per-objective state enumerated, tags instructed, story-advance forbidden",function(){
+    makeWorld();worldState.turn=50;
+    applyMuts("[QUEST:The Long Hunt|active|Bring back the beast's head.][QUEST_STEP:The Long Hunt|Track the beast|true][QUEST_STEP:The Long Hunt|Slay the beast][QUEST_STEP:The Long Hunt|Sell the pelt|optional]");
+    var m=buildQuestSuggestPrompt("The Long Hunt");
+    if(!m)return "no prompt for a live active quest";
+    if(m.indexOf("The Long Hunt")<0||m.indexOf("Bring back the beast's head.")<0)return "quest identity/desc missing";
+    if(m.indexOf("[x] Track the beast")<0||m.indexOf("[ ] Slay the beast")<0)return "objective states not enumerated";
+    if(m.indexOf("Sell the pelt (optional)")<0)return "optional flag not surfaced";
+    if(m.indexOf("[QUEST_STEP:The Long Hunt|")<0)return "QUEST_STEP instruction missing the exact title";
+    if(m.indexOf("[QUEST:The Long Hunt|completed]")<0)return "completion instruction missing";
+    if(!/never invent|never advance/i.test(m))return "missing the no-story-advance guard";
+    if(!/explain/i.test(m))return "missing the explanation ask (the decisions modal renders it)";
+    return buildQuestSuggestPrompt("No Such Quest")===null?true:"unknown title must return null";
+  });
+
   t("an unarchived new title still creates normally (guard must not overmatch)",function(){
     makeWorld();
     applyMuts("[QUEST:Old One|completed]");// creates then archives in one pass

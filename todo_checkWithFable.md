@@ -41,6 +41,38 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 21 — Quest journal buttons: Suggest completion + Abandon (#229, v1.708; Opus, owner-requested)
+
+**Filed:** 2026-08-24. **Tracker:** TODO #229. **Touched:** `api.js` (`abandonQuestState`, the
+volatile abandonBlock), `tag_table.js` (QUEST reopen guard — one added clause), `game.js`
+(`buildQuestSuggestPrompt`, `suggestQuestCompletion`, the 2-turn clear), `ui-modals.js` (buttons,
+confirm modal, decisions modal).
+
+**Why this is here.** A new prompt-injection block in buildSysPrompt's volatile half, a reopen-guard
+clause in the QUEST handler, and a new GM call whose response mutates quest state through applyMuts.
+Owner-requested mid-session; shipped on Opus under the standing budget rule.
+
+**What the reviewer should test hardest, in order:**
+
+1. **The suggest call's blast radius.** Its response goes through the FULL applyMuts — any tag the
+   model emits lands, not just QUEST_STEP/QUEST/rewards. syncCharSheet has the same shape and that
+   precedent is why I did not build a filtered parser, but a quest-review prompt that hallucinates
+   an [NPC:|dead] would be worse than one that hallucinates an inventory line. Decide whether the
+   review response should be restricted to a quest-tag whitelist before applyMuts.
+2. **"abandoned" is a NEW archive status.** Everything that reads memory.quests statuses should be
+   swept: Table Talk answers, the history modal (handled), the #17 quest indicator (counts
+   complete-but-uncredited — abandoned quests are archived so they leave that census naturally),
+   and the reopen guard's completed/failed clause (untouched). I checked the renderer and guard;
+   a reviewer should grep for status equality tests I missed.
+3. **The 2-turn abandonBlock vs the reopen guard's permanence.** The block also tells the GM not to
+   |offered re-raise immediately; the guard permanently blocks only non-offered. After the block
+   expires, an immediate |offered re-raise is legal by design (owner's gate is the player). If the
+   field shows the GM re-offering on turn 3 every time, the shelf may need to be longer for this
+   marker than for recentlyLeft.
+4. **Busy-flag discipline in suggestQuestCompletion** — set true before the await, false in both
+   paths, same as syncCharSheet; and the decisions modal falls back to a toast if ui-modals is
+   absent (headless). Verify no path leaves busy stuck on a thrown callGM.
+
 ### 20 — The split re-affirm loop (#228, v1.707; Opus, owner-ruled)
 
 **Filed:** 2026-08-24. **Tracker:** TODO #228. **Touched:** `tag_table.js` (the `[PARTY_SPLIT:]`

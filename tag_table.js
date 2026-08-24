@@ -547,6 +547,13 @@ var TAG_TABLE=[
   // above (memory.quests is keyed by original-case title — no direct key hit).
   if(qIdx<0&&memory.quests){var _ak=Object.keys(memory.quests),_ai,_arch=null;
     for(_ai=0;_ai<_ak.length;_ai++){if(_ak[_ai].toLowerCase()===qTitle.toLowerCase()){_arch=memory.quests[_ak[_ai]];break;}}
+    /* #229: an ABANDONED title is blocked from re-creation in any non-offered status — the
+       "active crises ARE quests" channel would otherwise force-reactivate the very goal the
+       player just dropped. |offered stays legal: the world may re-raise it, the player decides. */
+    if(_arch&&_arch.status==="abandoned"&&qStat!=="offered"){
+      console.warn("[quest] blocked re-creation of abandoned quest '"+qTitle+"' as "+qStat+" — the player dropped it; only a fresh |offered may bring it back");
+      R.muts.push("Quest '"+qTitle+"' was abandoned by the player — not re-registered (re-offer with [QUEST:"+qTitle+"|offered] only if the fiction re-raises it)");
+      continue;}
     if(_arch&&(_arch.status==="completed"||_arch.status==="failed")){
       console.warn("[quest] blocked re-creation of archived quest '"+qTitle+"' ("+_arch.status+") — a follow-up needs a NEW title");
       R.muts.push("Quest '"+qTitle+"' already "+_arch.status+" — not reopened");
