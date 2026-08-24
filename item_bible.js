@@ -1112,6 +1112,19 @@ var ITEM_BIBLE = {
     "effect": "N/A",
     "uses": "N/A",
     "value": "N/A"
+  },
+  "karzoug's greed-signet ring": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [
+      "greed signet ring",
+      "greed-signet ring"
+    ],
+    "effect": "UNIQUE — Karzoug's own signet. A spellcasting focus keyed to the Thassilonian school of Greed itself, not merely illusion and enchantment in general: worn, the bearer's charms land harder, lies hold longer, and conjured convictions become things their victims do not want to stop believing. Not cursed — no attunement cost, no hidden clause; it simply works the moment it slides on, built for a man who never once imagined anyone saying no.",
+    "uses": "at-will (while worn)",
+    "value": "beyond price — a Runelord's personal signet"
   }
 };
 // <<< ITEM BIBLE DATA

@@ -3659,6 +3659,40 @@ function runEngineTests(R){
   });
   // ── 11d. #81 — item bible: TYPE canon, player-confirmed proposals, injection ─
   section("#81 item bible");
+  // ── #230 — player-initiated "Define item" (owner request 2026-08-24: the Cleaver/greed-ring
+  // class — an item's nature lives only in old prose, so the GM misremembers it; the fix is the
+  // EXISTING [ITEM_DEF:]→confirm→ITEM CANON pipeline, entered from a button instead of waiting
+  // for the GM to volunteer). The pure prompt builder is the tested seam (buildSheetSyncPrompt
+  // precedent); the async caller reuses the #229 review-call shape.
+  t("#230: buildItemDefinePrompt — carried canon-less item gets a story-grounded single-def ask",function(){
+    makeWorld();
+    worldState.character.inventory.push("Cleaver (Thassilonian runeforged blade, three characters, origin unknown)");
+    var m=buildItemDefinePrompt("Cleaver (Thassilonian runeforged blade, three characters, origin unknown)");
+    if(!m)return "no prompt for a carried canon-less item";
+    if(m.indexOf("Cleaver (Thassilonian runeforged blade, three characters, origin unknown)")<0)return "full provenance line missing (the GM needs the exact item)";
+    if(m.indexOf("[ITEM_DEF:cleaver|")<0)return "instruction must pin the BASE-NAME key the pipeline files under";
+    if(m.indexOf("category=")<0||m.indexOf("effect=")<0)return "field format not taught";
+    if(!/never invent|only what the story/i.test(m))return "missing the story-grounded guard";
+    if(!/exactly one|a single \[ITEM_DEF/i.test(m))return "must demand ONE definition (cap-5 queue, runaway guard)";
+    return true;
+  });
+  t("#230: buildItemDefinePrompt refuses already-canon, pending, and uncarried items",function(){
+    makeWorld();
+    worldState.character.inventory.push("Alchemist's fire x5");/* static-bible canon */
+    if(buildItemDefinePrompt("Alchemist's fire x5")!==null)return "already-canon item must refuse (write-once — a def would be ignored)";
+    worldState.character.inventory.push("Mystery orb");
+    worldState.pendingItemDefs=[{key:"mystery orb",name:"Mystery orb",entry:{category:"tool",effect:"?",uses:"N/A",value:"N/A"},turn:1}];
+    if(buildItemDefinePrompt("Mystery orb")!==null)return "pending item must refuse (the confirm modal is the next step, not another call)";
+    worldState.pendingItemDefs=[];
+    if(buildItemDefinePrompt("Not Carried Anywhere")!==null)return "uncarried item must refuse";
+    return true;
+  });
+  t("#230: a companion-carried item resolves too — the def is TYPE canon, not ownership",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Bram",status:"ally",partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:2,hp:10,maxHp:10,stats:{},abilities:[],spells:[],conditions:[],inventory:["Umbral warblade — hums near ghosts, origin unknown"]}});
+    var m=buildItemDefinePrompt("Umbral warblade — hums near ghosts, origin unknown");
+    return m&&m.indexOf("[ITEM_DEF:umbral warblade|")>=0?true:"companion inventory not searched: "+(m?"(prompt built wrong)":"(refused)");
+  });
   t("itemBaseName: real save provenance strings all strip to the TYPE key",function(){
     var cases=[
       ["Alchemist's fire x5","alchemist's fire"],

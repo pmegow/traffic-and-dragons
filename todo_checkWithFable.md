@@ -42,6 +42,21 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 22 — Define item: player-initiated item canon (#230, v1.710; Opus, owner-requested)
+
+**Filed:** 2026-08-24. **Tracker:** TODO #230. **Touched:** `game.js` (`buildItemDefinePrompt`,
+`defineItemFromStory`), `ui-sheets.js` (the 📖 row button), `item_bible.js` (one static entry —
+Karzoug's greed-signet ring, owner-worded canon).
+
+**Why this is here.** Shares entry 21's exact review-call shape and therefore its open question:
+the response runs the FULL applyMuts, so a hallucinated non-ITEM_DEF tag would land. If entry
+21's adjudication decides a tag whitelist for review calls, this caller joins it — one decision,
+two sites (syncCharSheet is the third precedent, pre-dating both). Beyond that: the button gates
+on `itemLookup` misses, so a classification-only entry (effect N/A) suppresses Define — decide
+whether that is right (such an entry organizes but never injects, so the GM can still drift on
+the item's nature; arguably Define should offer for effect-N/A non-mundane entries too, but
+write-once means the def could then never land without an editor flow).
+
 ### 21 — Quest journal buttons: Suggest completion + Abandon (#229, v1.708; Opus, owner-requested)
 
 **Filed:** 2026-08-24. **Tracker:** TODO #229. **Touched:** `api.js` (`abandonQuestState`, the

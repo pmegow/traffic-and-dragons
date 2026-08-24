@@ -2765,6 +2765,63 @@ function buildQuestSuggestPrompt(title){
     +"If every required objective is (or becomes) checked AND the quest's own end condition — the outcome its description promises — has genuinely occurred on-screen, emit [QUEST:"+q.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); otherwise do NOT complete it. "
     +"Then, as plain prose, briefly explain each decision — one short sentence per objective, including why anything was LEFT unchecked. If nothing qualifies, emit no tags and explain why not.";
 }
+// #230 (owner request 2026-08-24, the Cleaver/greed-ring class): player-initiated "Define item" —
+// an item's nature narrated in old prose is exactly what the GM later misremembers (t2316:
+// "Cleaver was forged to bind" when the CURVED RUNEBLADE binds). The fix is the EXISTING
+// [ITEM_DEF:] → player-confirm → ITEM CANON pipeline (#81 — injected authoritatively every turn),
+// entered from a sheet button instead of waiting for the GM to volunteer a def. PURE builder
+// (the buildSheetSyncPrompt precedent); returns null when the ask is meaningless: item already
+// canon (write-once — the handler would ignore the def), already pending (the confirm modal is
+// the next step, not another call), or carried by nobody.
+function buildItemDefinePrompt(rawItem){
+  if(!worldState||!worldState.character)return null;
+  var key=typeof itemBaseName==="function"?itemBaseName(rawItem):"";
+  if(!key)return null;
+  if(typeof itemLookup==="function"&&itemLookup(rawItem))return null;/* already canon (base or overlay) */
+  var pend=worldState.pendingItemDefs||[],pi;
+  for(pi=0;pi<pend.length;pi++)if(pend[pi].key===key)return null;/* awaiting confirmation already */
+  var carried=(worldState.character.inventory||[]).indexOf(rawItem)>=0;
+  if(!carried&&typeof livingPartyCompanions==="function"){var _pc=livingPartyCompanions(),ci;
+    for(ci=0;ci<_pc.length&&!carried;ci++){if(_pc[ci].charSheet&&(_pc[ci].charSheet.inventory||[]).indexOf(rawItem)>=0)carried=true;}}
+  if(!carried)return null;/* the def is TYPE canon, but the entry point is a carried item's row */
+  return "[GM ITEM CANON REVIEW — internal, not a player action] The carried item \""+rawItem+"\" has no entry in ITEM CANON. "
+    +"Review what the story has ALREADY ESTABLISHED about it — how it was found, what it visibly did, what identification or use revealed — and capture that as canon. "
+    +"Emit exactly one [ITEM_DEF:"+key+"|category=...|effect=...|uses=...|value=...] (category one of weapon/armor/consumable/tool/quest/treasure/mundane; '=' per field, '|' between fields; effect free of '|' and ']'; \"N/A\" where truly inapplicable; TYPE definition only — never instance state like charges left or provenance). "
+    +"Ground every word in committed story: never invent powers, numbers, or lore the narrative has not shown. If the story has established nothing mechanical yet, emit NO tag and say so in one sentence. "
+    +"After the tag, one short sentence naming which scene(s) the definition comes from.";
+}
+// #230 async caller — the #229 review-call shape: busy-gated, escalated model, response through
+// the ONE parser (the ITEM_DEF handler queues the proposal; cap/dedupe/write-once all apply),
+// then the EXISTING #81 confirm modal is surfaced — the player stays the gate.
+async function defineItemFromStory(rawItem,ev){
+  if(ev&&ev.stopPropagation)ev.stopPropagation();
+  if(busy||!worldState)return;
+  var key=typeof itemBaseName==="function"?itemBaseName(rawItem):"";
+  // Already awaiting confirmation? Skip the call — just reopen the confirm modal (free).
+  var pend=worldState.pendingItemDefs||[],pi;
+  for(pi=0;pi<pend.length;pi++)if(pend[pi].key===key){var _cs0=document.getElementById("cs-modal");if(_cs0)_cs0.remove();if(typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();return;}
+  var auditMsg=buildItemDefinePrompt(rawItem);
+  if(!auditMsg){if(typeof showToast==="function")showToast("Already canon (or not carried): "+rawItem);return;}
+  busy=true;
+  if(typeof showToast==="function")showToast("📖 Consulting the story about: "+rawItem+"…");
+  try{
+    var resp=await callGM(auditMsg,null,500,upgradeModelFor(),{kind:"sync"});
+    applyMuts(resp);
+    saveAll();
+    var landed=false;pend=worldState.pendingItemDefs||[];
+    for(pi=0;pi<pend.length;pi++)if(pend[pi].key===key)landed=true;
+    if(landed){
+      var _cs=document.getElementById("cs-modal");if(_cs)_cs.remove();/* the confirm modal must not fight the sheet for the screen */
+      if(typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();
+    }else{
+      var why=cleanTxt(resp).trim();
+      if(typeof showToast==="function")showToast("No canon proposed"+(why?" — "+(why.length>140?why.slice(0,140)+"…":why):" (the story has established nothing mechanical yet)"),6000);
+    }
+  }catch(e){
+    if(typeof showToast==="function")showToast("Item review failed: "+(e.message||"unknown error"));
+  }
+  busy=false;
+}
 // The async caller (syncCharSheet pattern): busy-gated, escalated model (a sloppy review WRITES
 // wrong quest state), applyMuts on the result, then the decisions modal. UI-side rendering
 // (showQuestDecisionsModal) lives in ui-modals.js.
