@@ -1127,6 +1127,53 @@ function buildLocationTwinNudge(){
 // consumable-nudge shape) teaching the three honest exits: undo the stack, rename, or keep.
 // Combat-silent; the pending record is the latch (rides NOTE_LATCH_FIELDS so a failed turn
 // restores the undelivered note); consumed on delivery.
+/* #223 (field 2026-08-23, the Giant's Bane incident): the ROOT cause. A mechanics-bearing item
+   entered the pack and nothing ever asked what it does — there are nudges for duplicate items,
+   misattributed items and ghost consumables, but none for "carried, and the bible gives it no
+   effect". So the GM adlibbed a paralytic, Table Talk could only say "not an engine-stored
+   fact", and the player was sent to Sync, which cannot define an item.
+
+   The ask fires at ACQUISITION, not from an inventory census. A census asks about everything a
+   mature pack accumulated years ago, breaks the B5 byte-empty-common-turn contract on the first
+   turn of every campaign, and asks at the moment the GM knows LEAST about the item. The grant is
+   exactly when the GM knows what it just handed over.
+
+   Two shapes qualify and both are silent today: no bible entry at all, and a classification-only
+   entry (#157 — effect "N/A" outside mundane/treasure sorts the item in the inventory UI and
+   injects nothing, which is precisely why "vial of giant's bane" felt tracked and was not).
+   The engine NEVER mints item canon: [ITEM_DEF:] is a PROPOSAL the player confirms (#81). */
+function _itemDefCandidate(rawName){
+  if(typeof worldState==="undefined"||!worldState)return;
+  if(typeof itemBaseName!=="function"||typeof itemLookup!=="function")return;
+  var key=itemBaseName(rawName);
+  if(!key||_undefLooksMundane(key))return;
+  var e=itemLookup(rawName);
+  if(e&&(e.category==="mundane"||e.category==="treasure"))return;
+  if(e&&e.effect&&e.effect!=="N/A")return;              /* already canon */
+  var pend=worldState.pendingItemDefs||[],i;
+  for(i=0;i<pend.length;i++)if(pend[i].key===key)return;/* a proposal already awaits the player */
+  worldState.itemDefCandidate={key:key,turn:worldState.turn||0};
+}
+/* Unknown items are the common case (every improvised noun the GM writes), so the ask skips
+   anything that reads as plain gear. Deliberately a small, boring list — a false NEGATIVE costs
+   one unasked question; a false POSITIVE nags about a bedroll. */
+/* The (?:e?s)? tail is load-bearing: \bration\b cannot match "rations", and most of this list
+   arrives plural in play (rations, torches, coins, notes) — the singular-only form let every
+   plural straight through and nagged the GM about camping gear. */
+var _UNDEF_MUNDANE_RE=/\b(bedroll|blanket|torch|ration|rope|sack|pouch|waterskin|flask|tinder|candle|chalk|coin|gold|silver|copper|clothes|cloak|boot|pack|bag|crate|barrel|note|letter|map|book|journal)(?:e?s)?\b/i;
+function _undefLooksMundane(key){return _UNDEF_MUNDANE_RE.test(String(key||""));}
+function buildUndefinedItemNudge(){
+  if(!worldState||worldState.combat)return"";
+  var cand=worldState.itemDefCandidate;
+  if(!cand||!cand.key)return"";
+  delete worldState.itemDefCandidate;
+  return "[ENGINE NOTE — UNDEFINED ITEM (not a player action): the party just acquired \""+cand.key+"\" and the item "
+    +"bible records no effect for it, so neither you nor the engine has canon for what it does — anything you narrate "
+    +"about its properties is invention the record cannot keep. If it is mechanically meaningful, propose its definition "
+    +"now with [ITEM_DEF:"+cand.key+"|category|effect|uses|value] (categories: weapon/armor/consumable/tool/quest/"
+    +"treasure/mundane); the PLAYER confirms it before anything becomes canon, so propose rather than assert. If it is "
+    +"ordinary gear with no mechanics, leave it alone and do not mention this.]";
+}
 function buildDupItemNudge(){
   if(!worldState||worldState.combat)return"";
   var d=worldState.dupItemPending;
@@ -1300,7 +1347,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -1322,7 +1369,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildCombatStaleNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

@@ -103,6 +103,44 @@ function ttMatchedCapabilities(question){
   return out;
 }
 
+// ── #222① Items: the capability block's missing twin (field 2026-08-23, Giant's Bane) ────
+// TT could quote a spell's exact numbers and knew nothing about carried gear — the item bible
+// (#81) was simply never wired in, though the GAME prompt injects buildItemBibleBlock() and TT
+// deliberately reuses the game's pure readers everywhere else. Same shape as capabilities:
+// what the player CARRIES, with full canon for what the bible defines. The difference that
+// matters is the UNDEFINED line — a carried item with no entry is stated as untracked rather
+// than omitted, because silence is what let the GM adlib the paralytic in the first place.
+function ttItemBlock(question){
+  var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||null;
+  if(!c||!c.inventory||!c.inventory.length)return "";
+  if(typeof itemLookup!=="function"||typeof itemBaseName!=="function")return "";
+  var defined=[],undef=[],seen={},i;
+  for(i=0;i<c.inventory.length;i++){
+    var raw=c.inventory[i];if(!raw)continue;
+    var key=itemBaseName(raw);if(!key||seen[key])continue;seen[key]=1;
+    var e=itemLookup(raw);
+    /* The Giant's Bane shape: an entry can exist for CLASSIFICATION ONLY (#157 — effect "N/A"
+       outside mundane/treasure files it in the right inventory section and injects nothing).
+       buildItemBibleBlock skips exactly these, so the GM has no canon for them either — which is
+       how a carried item can feel tracked and still be pure adlib. Same rule here: a
+       classification-only entry is NOT mechanics, and TT must not quote "effect: N/A" as canon. */
+    if(e&&e.effect!=="N/A"&&e.category!=="mundane"&&e.category!=="treasure")defined.push({k:key,e:e});
+    else undef.push(key);
+  }
+  if(!defined.length&&!undef.length)return "";
+  var s2="ITEM BIBLE — the gear "+(c.name||"the player")+" is carrying.\n";
+  if(defined.length){
+    s2+="DEFINED (authoritative — quote these exactly):\n";
+    for(i=0;i<defined.length;i++)s2+=(typeof itemBibleLine==="function"?itemBibleLine(defined[i].k,defined[i].e):("- "+defined[i].k))+"\n";
+  }
+  if(undef.length){
+    s2+="NO MECHANICS ON RECORD — carried, but the item bible defines no effect for these (either no entry at all,\n"
+      +"or a classification-only entry). Their properties are NOT engine-stored and the GM has no canon for them either;\n"
+      +"say so plainly if asked, and do not invent mechanics for them:\n- "+undef.join("\n- ")+"\n";
+  }
+  return s2;
+}
+
 function ttCapabilityBlock(question){
   var names=ttCapabilityNames();
   if(!names.length)return "";
@@ -218,9 +256,18 @@ function buildTableTalkPrompt(question){
     +"- No small talk, no pleasantries, no offers to continue the adventure, no 'shall we?'.");
 
   p.push("YOU CANNOT WRITE STATE HERE. State tags emitted in Table Talk are discarded by the engine — "
-    +"they are not parsed and nothing is listening. Do not emit any [TAG:...]. If something genuinely "
-    +"needs to change on the sheet, tell the player to use the Sync button or raise it on their next "
-    +"story turn. Do not pretend to have recorded anything.");
+    +"they are not parsed and nothing is listening. Do not emit any [TAG:...]. Do not pretend to have "
+    +"recorded anything.");
+
+  /* #222② (field 2026-08-23): TT sent the player to Sync to give an item a PROPERTY. Sync edits
+     hp/gold/xp/inventory strings and cannot do that — a confident wrong remedy, which this mode
+     exists to prevent. Route each kind of change to the surface that can actually perform it. */
+  p.push("WHERE A CHANGE ACTUALLY BELONGS — route the player correctly, never to a surface that cannot do the job:\n"
+    +"- A NUMBER already on the sheet (hp, gold, xp, level, an inventory line, location, weather): the Sync button edits those directly.\n"
+    +"- MECHANICS FOR AN ITEM (what a potion does, how many uses, a property like 'paralytic'): Sync CANNOT do this. "
+    +"It becomes canon only when the GM emits [ITEM_DEF:name|category|effect|uses|value] on a STORY turn and the player CONFIRMS it "
+    +"in the prompt that follows — player-confirmed, write-once. Tell the player to raise it on their next story turn so the GM can propose it.\n"
+    +"- Anything about the STORY (a correction, a retcon, a re-roll): a story turn, not here. You cannot re-roll or re-narrate from Table Talk.");
 
   p.push("NEVER INFER — THIS IS THE MOST IMPORTANT RULE:\n"
     +"Answer ONLY from the facts given below. If the engine does not store something, say plainly that "
@@ -234,6 +281,7 @@ function buildTableTalkPrompt(question){
 
   var app=ttMenuOutline();if(app)p.push(app);
   var caps=ttCapabilityBlock(question);if(caps)p.push(caps);
+  var itm=ttItemBlock(question);if(itm)p.push(itm);/* #222①: carried-gear canon, the capability block's twin */
   var st=ttStateBlock();if(st)p.push(st);
   var rec=ttRecallBlock(question);if(rec)p.push("CAMPAIGN MEMORY\n"+rec);
   var hist=ttHistoryBlock();if(hist)p.push(hist);

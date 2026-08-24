@@ -13968,6 +13968,114 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return worldState.clock.min===5000?true:"the sweep moved the clock scalar";
   });
 
+  section("#223 the undefined-item nudge — nothing ever asked what Giant's Bane does");
+  // Root cause of the field incident: a mechanics-bearing item entered the pack and NOTHING
+  // asked for its canon. There are nudges for duplicate items, misattributed items and ghost
+  // consumables — none for "you are carrying something with mechanics and no definition". So
+  // the GM adlibbed, because the engine never established the fact for it to read. The nudge
+  // asks for one [ITEM_DEF:] proposal, which the PLAYER then confirms (#81) — the engine never
+  // mints item canon on its own.
+  function __undefWorld(){
+    makeWorld();
+    worldState.combat=null;delete worldState.itemDefCandidate;
+    worldState.character.inventory=[];
+    return worldState;
+  }
+  t("#223 ACQUIRING a mechanics-bearing item with no canon arms the nudge, naming it and the [ITEM_DEF:] shape",function(){
+    __undefWorld();
+    applyMuts("[ITEM_GAINED:Vial of giant's bane]");
+    var n=buildUndefinedItemNudge();
+    if(!n)return "nothing fired for a carried item the bible gives no effect for";
+    if(n.indexOf("giant's bane")<0)return "the note does not name the item: "+n;
+    if(n.indexOf("[ITEM_DEF:")<0)return "the note does not teach the tag that actually creates canon: "+n;
+    if(!/confirm/i.test(n))return "the note omits that the player confirms — it would promise canon the GM cannot write alone";
+    return true;
+  });
+  t("#223 an item the bible fully defines never triggers it",function(){
+    __undefWorld();
+    var k=null,kk;
+    for(kk in ITEM_BIBLE){var e=ITEM_BIBLE[kk];if(e.effect&&e.effect!=="N/A"&&e.category!=="mundane"&&e.category!=="treasure"){k=kk;break;}}
+    if(!k)return "fixture broke: no fully-defined item in the bible";
+    applyMuts("[ITEM_GAINED:"+k+"]");
+    return buildUndefinedItemNudge()===""?true:"a defined item still asked for a definition";
+  });
+  t("#223 mundane gear is never nagged about — rope and rations are not mechanics",function(){
+    __undefWorld();
+    applyMuts("[ITEM_GAINED:Bedroll][ITEM_GAINED:Torch][ITEM_GAINED:Rations]");
+    return buildUndefinedItemNudge()===""?true:"the nudge asked the GM to define camping gear";
+  });
+  t("#223 combat-silent, one-shot, and restored when a provider turn dies (#151)",function(){
+    __undefWorld();
+    worldState.combat={round:1,foes:[]};
+    applyMuts("[ITEM_GAINED:Vial of giant's bane]");
+    if(buildUndefinedItemNudge()!=="")return "it fired mid-combat";
+    if(!worldState.itemDefCandidate)return "combat consumed the candidate";
+    worldState.combat=null;
+    var snap=snapshotNoteLatches();
+    if(!buildUndefinedItemNudge())return "fixture broke: it did not fire out of combat";
+    if(buildUndefinedItemNudge()!=="")return "it re-fired immediately — no one-shot latch";
+    restoreNoteLatches(snap);
+    return buildUndefinedItemNudge()!==""?true:"a dead provider turn ate the note (#151)";
+  });
+  t("#223 the latch key is declared in NOTE_LATCH_FIELDS, so the census cannot rot",function(){
+    return NOTE_LATCH_FIELDS.indexOf("itemDefCandidate")>=0?true:"itemDefCandidate is not in NOTE_LATCH_FIELDS — a failed turn would burn the ask silently";
+  });
+
+  section("#222 Table Talk knows items (the Giant's Bane incident, field 2026-08-23)");
+  // The owner asked Table Talk to treat "giant's bane is a paralytic" as canon. TT refused
+  // correctly (it cannot write state) but then MISDIRECTED: "use Sync state if the sheet needs
+  // updating" — Sync edits hp/gold/xp/inventory STRINGS and cannot attach a property to an item.
+  // The real path is [ITEM_DEF:] on a story turn → the player-confirm modal → worldState.itemBible.
+  // Measured on the live t2097 save: the item bible block was absent from the TT prompt entirely,
+  // while the capability bible got a full name index + per-question canon. Same data class,
+  // opposite treatment. TT's own prime directive calls a confident wrong answer the worst
+  // possible outcome here, and this was one.
+  function __ttWorld(){
+    makeWorld();
+    worldState.campName="Probe";worldState.turn=2097;
+    worldState.character.inventory=["Vial of giant's bane x3","Rope (50 ft)"];
+    return worldState;
+  }
+  t("#222① the TT prompt carries an ITEM index, the way it already carries the capability index",function(){
+    __ttWorld();
+    var p=buildTableTalkPrompt("what do I have in my pack?");
+    if(p.indexOf("RULES — CAPABILITY BIBLE")<0)return "fixture broke: the capability index is missing too";
+    if(p.indexOf("ITEM BIBLE")<0)return "TT still has no item-canon block — it can quote a spell's numbers and nothing about carried gear";
+    return true;
+  });
+  t("#222① a carried item the bible DEFINES comes back with its canon, quotable exactly",function(){
+    __ttWorld();
+    var k=null,kk;
+    for(kk in ITEM_BIBLE){k=kk;break;}
+    if(!k)return "fixture broke: ITEM_BIBLE is empty";
+    worldState.character.inventory=[k];
+    var p=buildTableTalkPrompt("tell me about my "+k);
+    if(p.indexOf(itemBibleLine(k,itemLookup(k)))<0)return "the defined item's full canon line is not in the prompt for a question naming it";
+    return true;
+  });
+  t("#222① a CLASSIFICATION-ONLY entry is reported as having no mechanics, never quoted as canon (the actual Giant's Bane shape)",function(){
+    __ttWorld();
+    // The field case: "vial of giant's bane" HAS a bible entry, but effect "N/A" — it sorts the
+    // item into the right inventory section and injects nothing, so buildItemBibleBlock skips it
+    // and the GM has no canon either. TT must report that, not print "effect: N/A" as a fact.
+    var e=itemLookup("Vial of giant's bane x3");
+    if(!e)return "fixture broke: the bible entry this test is about is gone";
+    if(e.effect!=="N/A")return "fixture broke: the entry now HAS an effect — repoint this test at another classification-only item";
+    var p=buildTableTalkPrompt("what is giant's bane?");
+    var i=p.indexOf("ITEM BIBLE"),seg=i<0?"":p.slice(i,i+1600);
+    if(!/giant's bane/i.test(seg))return "the carried item is invisible in the item block entirely";
+    if(/giant's bane[^\n]*effect: N\/A/i.test(seg))return "TT quotes 'effect: N/A' as if it were canon — the useless-but-authoritative-sounding answer";
+    if(!/NO MECHANICS ON RECORD[\s\S]*giant's bane/i.test(seg))return "the classification-only item is not listed under the no-mechanics heading: "+seg.slice(0,260);
+    return true;
+  });
+  t("#222② TT teaches the [ITEM_DEF:] route and never points at Sync for an item PROPERTY",function(){
+    __ttWorld();
+    var p=buildTableTalkPrompt("giant's bane is a paralytic, add that to canon");
+    if(p.indexOf("[ITEM_DEF:")<0)return "TT is not taught the one path that actually makes item canon (#81)";
+    if(!/confirm/i.test(p.slice(p.indexOf("[ITEM_DEF:")-400,p.indexOf("[ITEM_DEF:")+400)))return "the [ITEM_DEF:] guidance omits that the PLAYER confirms it — TT would promise canon the GM cannot write alone";
+    return true;
+  });
+
   section("#216 [TIME_CHECK:] — the read-before-write clock declaration");
   // Field origin (t2175, 2026-08-22): sonnet-5 narrated sundown and camped the party in full
   // dark while the clock read 11:57 AM — and #158's prose recognizer, precision-tuned, was
