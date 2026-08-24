@@ -41,6 +41,37 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 20 — The split re-affirm loop (#228, v1.707; Opus, owner-ruled)
+
+**Filed:** 2026-08-24. **Tracker:** TODO #228. **Touched:** `tag_table.js` (the `[PARTY_SPLIT:]`
+handler only).
+
+**Why this is here.** An `applyMuts` write path, and it changes what a tag DOES on a re-emit.
+Owner-ruled live from a field save; shipped on Opus under the standing budget rule.
+
+**What the reviewer should test hardest, in order:**
+
+1. **The `_freshSplits` grant inside the no-op is load-bearing and easy to "clean up".** It looks
+   redundant sitting in a branch that otherwise does nothing. It is not: without it the #133b
+   co-location fold dissolves a same-node stay-behind on the very next response, which is exactly
+   the case owner ruling ⓑ protects. The sabotage clause pins it, but a reviewer should confirm
+   the interaction is right rather than merely tested.
+2. **`splitLoc.turn` now freezes at the original split turn for a re-affirmed split.** #133
+   documented the re-affirm as "resets the clock", and one existing test asserts exactly that —
+   it still passes only because its fixture is the LEGACY unstamped shape, which deliberately
+   falls through. That is a genuine near-miss: the old contract line and the new behaviour
+   disagree, and the test that should have caught it did not, for an incidental reason. Decide
+   whether the #133 comment and the audit note's "re-affirming resets this check" wording should
+   be corrected (I left both alone as prompt-surface risk not worth taking mid-fix).
+3. **The residue is the actual trigger.** `buildSplitAudit`'s same-world waiver (api.js:514–515)
+   fires every turn for ANY split inside the party's own world node. #228 makes that cheap rather
+   than harmful. Whether the waiver should itself be age-gated once a sublocation is present is an
+   open design question I did not take.
+4. **Presence evidence now ages where it used to refresh.** A re-affirmed split no longer re-stamps
+   `lastSeenTurn`/`lastSeenSrc`. I believe that is strictly more honest under #194 gate ③ (nobody
+   re-witnessed them), but it does mean a long stay-behind's evidence can age out of
+   `SPEECH_EVIDENCE_TURNS`-adjacent windows. Worth a second opinion on the death-gate interaction.
+
 ### 19 — Combat narration/tracker reconcile + the reward-claim modal (#214/#215, v1.699; Opus, owner-ruled)
 
 **Filed:** 2026-08-22. **Tracker:** TODO #214, #215. **Touched:** `tag_table.js` (COMBAT_END,

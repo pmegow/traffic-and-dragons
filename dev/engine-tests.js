@@ -12019,6 +12019,61 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return cs.splitLoc.turn===100?true:"re-affirm should re-stamp the split turn: "+JSON.stringify(cs.splitLoc);
   });
 
+  // ── #228 — the re-affirm LOOP: an identical re-affirm must be a NO-OP ────────────────────
+  // Field case (t2320-2324, the live Ammut save): the player said "you three stay here, I'll
+  // scout it out". The split target was the party's OWN node (Xin-Shalast|Eastern Ruins), so
+  // buildSplitAudit's same-world waiver made the audit DUE every turn; the note told the GM to
+  // re-affirm; the re-affirm re-MINTED splitLoc, destroying the .audited cooldown — so the audit
+  // fired again next turn. A closed loop with the engine on BOTH ends, running 5 turns and
+  // counting, each pass stamping a fresh guestbook "arrival" at a place nobody moved to
+  // (Frizwick's cap filled with re-affirm noise; 34 real visits folded into the agg) and
+  // re-witnessing #194 presence evidence for characters standing still.
+  // Owner ruling 2026-08-24 (C): a repeat PARTY_SPLIT for an already-split member is a no-op.
+  // Owner ruling (B) constrains the fix: a same-node split is LEGITIMATE ("stay here" must not
+  // break), so _freshSplits is still granted — only the re-STAMPS are suppressed.
+  t("#228: an identical re-affirm is a NO-OP — split turn, audited cooldown, guestbook and lastSeen all survive", function(){
+    var cs=mkSplitParty();
+    memory.map.nodes["The Docks"]={firstVisit:100,visits:0,description:null,parent:null,npcs:[],items:[]};
+    applyMuts("[PARTY_SPLIT:Frizwick|The Docks]");
+    if(!cs.splitLoc||cs.splitLoc.turn!==100)return "precondition: split not stamped";
+    cs.splitLoc.audited=100;                       // the audit fired and stamped its cooldown
+    var gb0=((memory.map.nodes["The Docks"].guestbook||{})["Frizwick"]||{}).turns||[];
+    var gbLen0=gb0.length;
+    worldState.turn=101;
+    applyMuts("[PARTY_SPLIT:Frizwick|The Docks]");  // the re-affirm the audit asked for
+    if(cs.splitLoc.turn!==100)return "re-affirm re-minted the split turn (the loop): "+JSON.stringify(cs.splitLoc);
+    if(cs.splitLoc.audited!==100)return "re-affirm destroyed the audited cooldown — the audit will nag every turn";
+    var gb1=((memory.map.nodes["The Docks"].guestbook||{})["Frizwick"]||{}).turns||[];
+    if(gb1.length!==gbLen0||gb1.indexOf(101)>=0)return "re-affirm stamped a phantom guestbook arrival: "+JSON.stringify(gb1);
+    if(memory.npcs["Frizwick"].lastSeenTurn!==100)return "re-affirm re-witnessed #194 presence evidence for someone who did not move: "+memory.npcs["Frizwick"].lastSeenTurn;
+    var tl=worldState.tagLog&&worldState.tagLog.length?worldState.tagLog[worldState.tagLog.length-1]:null;
+    if(tl&&(tl.tags||[]).join(" ").indexOf("PARTY_SPLIT")>=0&&/splits off/.test((tl.m||[]).join(" ")))return "re-affirm logged a phantom mutation line";
+    return true;
+  });
+  t("#228: ruling B preserved — a re-affirmed same-node split is NOT dissolved by the #133b fold (\"stay here\" keeps working)", function(){
+    var cs=mkSplitParty();
+    applyMuts("[LOCATION:The Crypt]");
+    applyMuts("[PARTY_SPLIT:Frizwick|The Crypt]");   // "you stay here, I'll scout" — same node, legitimate
+    if(!cs.splitLoc)return "precondition: same-node split refused (ruling B says it must be allowed)";
+    worldState.turn=101;
+    applyMuts("[PARTY_SPLIT:Frizwick|The Crypt]");   // re-affirm; must still buy #135 grace
+    return cs.splitLoc?true:"the re-affirm no-op dropped _freshSplits — #133b dissolved the stay-behind";
+  });
+  t("#228: a re-affirm that CHANGES the record still writes — added sublocation, moved location, legacy unstamped", function(){
+    var cs=mkSplitParty();
+    applyMuts("[PARTY_SPLIT:Frizwick|Sandpoint]");
+    worldState.turn=101;
+    applyMuts("[PARTY_SPLIT:Frizwick|Sandpoint|The Rusty Dragon]");  // the audit explicitly asks for this
+    if(!cs.splitLoc||cs.splitLoc.sublocation!=="The Rusty Dragon"||cs.splitLoc.turn!==101)return "added sublocation must write: "+JSON.stringify(cs.splitLoc);
+    worldState.turn=102;
+    applyMuts("[PARTY_SPLIT:Frizwick|Magnimar]");                     // a real move
+    if(!cs.splitLoc||cs.splitLoc.location!=="Magnimar"||cs.splitLoc.turn!==102)return "moved split must write: "+JSON.stringify(cs.splitLoc);
+    cs.splitLoc={location:"Magnimar",sublocation:null};               // the LEGACY unstamped shape (audits forever)
+    worldState.turn=103;
+    applyMuts("[PARTY_SPLIT:Frizwick|Magnimar]");
+    return cs.splitLoc.turn===103?true:"a legacy unstamped split must still be stampable by re-affirm, or it audits forever: "+JSON.stringify(cs.splitLoc);
+  });
+
   // ── #133b — co-location: exact match auto-rejoins, world-only match audits immediately ──────
   // The church scenario (user, 2026-08-04): Morwen splits to the church; the party arrives 20
   // turns later; on reunion the record could lag up to SPLIT_AUDIT_TURNS behind the story.

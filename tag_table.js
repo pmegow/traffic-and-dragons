@@ -948,6 +948,25 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var psPrev=pcEffectiveLoc(psN.charSheet).location;
   var psWas=psN.charSheet.splitLoc;/* #189b transition gate: the GM legally RE-AFFIRMS a split every turn (refreshing the audit clock) — only the not-split→split edge or a changed away-location is toast-worthy news (t1835-1837 field: a toast per re-affirm) */
   var psToastWorthy=!psWas||psWas.location!==psArg||(psWas.sublocation||null)!==(psSub||null);
+  /* #228 (t2320-t2324, the live re-affirm loop; owner ruling 2026-08-24 ⓒ): an identical
+     re-affirm of an ALREADY-STAMPED split is a NO-OP. buildSplitAudit's same-world waiver makes
+     a split inside the party's OWN world node due every turn; its note asks the GM to re-affirm;
+     the re-mint below destroyed .audited, so the audit fired again next turn — a closed loop with
+     the engine on BOTH ends. Each pass also stamped a phantom guestbook "arrival" at a place
+     nobody moved to (filling GB_TURN_CAP with re-affirm noise and folding real visits into the
+     agg) and re-witnessed #194 presence evidence for characters standing still.
+     Only the re-STAMPS are suppressed — _freshSplits is still granted, because a same-node split
+     is LEGITIMATE (owner ruling ⓑ: "you three stay here, I'll scout ahead" must not be dissolved
+     by the #133b fold on the very next response). An UNSTAMPED legacy record deliberately falls
+     through and gets stamped: refusing it would leave the #133 legacy shape auditing forever
+     with no way to become fresh. A changed location OR sublocation is a real move and also falls
+     through — the audit note explicitly asks the GM to ADD a sublocation it previously omitted. */
+  if(psWas&&psWas.turn!=null&&!psToastWorthy){
+    if(!R._freshSplits)R._freshSplits={};
+    R._freshSplits[psName]=1;/* ruling B: the stay-behind keeps its #133b grace */
+    if(typeof console!=="undefined")console.info("[multiplayer] [PARTY_SPLIT:"+psName+"] re-affirmed unchanged at "+psArg+(psSub?" ("+psSub+")":"")+" — no-op (#228): split turn "+psWas.turn+" and the audit cooldown stand");
+    continue;
+  }
   /* #133: stamp the split's turn at write — buildSplitAudit ages from it (a re-affirming re-emit
      lands here too, minting a fresh object: new turn, audited-stamp gone — the reset IS the write).
      Legacy splits without .turn read as infinitely old, so stale pre-#133 splits audit immediately. */
