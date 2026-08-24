@@ -630,6 +630,16 @@ var RAG_MAX=3;         // excerpts per turn
 var RAG_BIGRAM_W=2;    // #188: per-bigram IDF multiplier (bigrams are rarer than words — weight them like the strong signal they are)
 var RAG_BIGRAM_CAP=10; // #188: cap on the summed bigram bonus — sits OUTSIDE the single-word 8-cap on purpose (a phrase match must be able to beat ensemble entity weight)
 var RAG_BIGRAM_QUALIFY=6; // #188: a bigram score at/above this OPENS the sc>0 gate on its own (df-bounded: a rare phrase can only qualify the few entries that contain it)
+/* #224 (the Giant's Bane rank-loss, field 2026-08-23): the same three dials for single RARE
+   words. The alchemist's definition of giant's bane ranked 81st of 999 for the question that
+   quoted it — "paralytic" (df 4 of ~2000, IDF ~6) was worth at most 8 capped while scene
+   adjacency accumulated uncapped to 20-28. #188 built this exact lane for phrases; words under
+   the SAME 1% df ceiling now compete outside the 8-cap too. QUALIFY sits stricter than the
+   bigram bar on purpose: a lone word is inherently less specific than a phrase, so opening the
+   sc>0 gate alone demands a rarer word (IDF*W ≥ 8 → df roughly ≤ N/55, ~2× under the ceiling). */
+var RAG_RARE_W=2;       // #224: per-word IDF multiplier for under-ceiling words (the bigram weight, deliberately)
+var RAG_RARE_CAP=10;    // #224: cap on the summed rare-word bonus — OUTSIDE the single-word 8-cap, like RAG_BIGRAM_CAP
+var RAG_RARE_QUALIFY=8; // #224: a rare-word score at/above this opens the sc>0 gate on its own
 // Known-NPC scan list (lowercased, with aliases AND distinctive name tokens). Full-key
 // substring matching alone missed every honorific-keyed NPC — prose says "Hemlock", the
 // key is "Sheriff Belor Hemlock", no match, entity invisible to the index (the t164
@@ -980,11 +990,19 @@ function _ragRetrieveScore(inputText){
     var blex=0,bMaxDf=Math.max(3,Math.ceil(N*0.01));/* a phrase in >1% of entries identifies nothing — "last time" lifted unrelated scenes to 19-21 in the first field run */
     for(j=0;j<bigrams.length;j++){if(elig[i].bhits[j]&&bdf[j]<=bMaxDf)blex+=Math.log((N+1)/(bdf[j]+1));}
     blex=Math.min(RAG_BIGRAM_CAP,blex*RAG_BIGRAM_W);
+    /* #224: the rare-WORD lane — words under the SAME 1% ceiling bigrams use score outside the
+       8-cap, so near-decisive IDF ("paralytic", df 4) can no longer be flattened to less than
+       standing-near-the-right-people. Rare words still also count inside the capped lane below —
+       the bigram lane tolerates the same constituent overlap, and the capped lane is saturated in
+       exactly the cases this lane exists for. */
+    var rlex=0;
+    for(j=0;j<terms.length;j++){if(elig[i].hits[j]&&df[j]<=bMaxDf)rlex+=Math.log((N+1)/(df[j]+1));}
+    rlex=Math.min(RAG_RARE_CAP,rlex*RAG_RARE_W);
     if(sc>0){
       var lex=0;
       for(j=0;j<terms.length;j++){if(elig[i].hits[j])lex+=Math.log((N+1)/(df[j]+1));}
-      sc+=Math.min(8,lex*1.5)+blex;
-    }else if(blex>=RAG_BIGRAM_QUALIFY){sc=blex;}
+      sc+=Math.min(8,lex*1.5)+blex+rlex;
+    }else if(blex>=RAG_BIGRAM_QUALIFY||rlex>=RAG_RARE_QUALIFY){sc=blex+rlex;}
     if(sc>0)cands.push({i:elig[i].i,t:en.t,sc:sc});
   }
   if(!cands.length)return "";

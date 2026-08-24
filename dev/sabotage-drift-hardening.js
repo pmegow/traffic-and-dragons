@@ -149,14 +149,30 @@ rc|=sabotage.prove({file:"state.js",command:["node",["dev/run-tests.js","RAG epi
    find:"if(_rpTm){",replace:"if(false){"}
 ]});
 
-/* #188: the bigram qualification lane (the wine-cellar confabulation fix). */
+/* #188: the bigram qualification lane (the wine-cellar confabulation fix).
+   #224 re-anchored the first clause: the qualify branch is now shared with the rare-word lane,
+   and killing the WHOLE branch is the honest mutation — a blex-only kill would be rescued by
+   rlex qualifying the same fixture (its two rare words clear the word bar on their own). */
 rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js","RAG episodic"]],cases:[
-  {label:"the bigram qualification lane dies — directed memory questions go blind again (#188)",
+  {label:"the qualification branch dies — directed memory questions go blind again (#188/#224)",
     mustFail:"#188: a rare input PHRASE qualifies and serves its scene",
-   find:"}else if(blex>=RAG_BIGRAM_QUALIFY){sc=blex;}",replace:"}else if(false){sc=blex;}"},
+   find:"}else if(blex>=RAG_BIGRAM_QUALIFY||rlex>=RAG_RARE_QUALIFY){sc=blex+rlex;}",replace:"}else if(false){sc=blex+rlex;}"},
   {label:"the bigram df ceiling dies — common phrases lift unrelated scenes again (#188)",
     mustFail:"#188: a phrase carried by more than 1% of entries identifies nothing",
    find:"if(elig[i].bhits[j]&&bdf[j]<=bMaxDf)",replace:"if(elig[i].bhits[j])"}
+]});
+
+/* #224: the rare-WORD lane (the Giant's Bane rank-loss fix). */
+rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js","RAG episodic"]],cases:[
+  {label:"the rare-word lane's compete half dies — the answer scene loses to entity noise again (#224)",
+    mustFail:"#224: a rare input WORD lifts the answer-bearing scene past rich enti",
+   find:"sc+=Math.min(8,lex*1.5)+blex+rlex;",replace:"sc+=Math.min(8,lex*1.5)+blex;"},
+  {label:"the word lane's df ceiling dies — common-ish words qualify unrelated scenes (#224)",
+    mustFail:"#224: a word carried by more than 1% of entries identifies nothing",
+   find:"if(elig[i].hits[j]&&df[j]<=bMaxDf)rlex+=",replace:"if(elig[i].hits[j])rlex+="},
+  {label:"the single-word 8-cap dies — medium-df word piles swamp entity ranking (#224)",
+    mustFail:"#224: the single-word 8-cap survives",
+   find:"sc+=Math.min(8,lex*1.5)+blex+rlex;",replace:"sc+=lex*1.5+blex+rlex;"}
 ]});
 
 process.exit(rc?1:0);

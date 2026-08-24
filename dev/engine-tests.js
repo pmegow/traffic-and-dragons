@@ -2849,6 +2849,84 @@ function runEngineTests(R){
     var out=ragRetrieve("What about the grey lantern by the door?");
     return out.indexOf("grey lantern")<0?true:"a df-5 phrase above the 1% ceiling qualified scenes — the ceiling is gone";
   });
+  // ── #224: the rare-WORD lane (the Giant's Bane rank-loss, field 2026-08-23) ──
+  t("#224: a rare input WORD lifts the answer-bearing scene past rich entity noise — the 8-cap no longer discards near-decisive IDF",function(){
+    // Field case (t2097): "what is giant's bane?" — the alchemist DEFINES it at t1552, and that
+    // entry ranked 81st of 999 (score 11 vs a top-3 cutoff of ~20). Mechanism: the lexical bonus
+    // is hard-capped at 8 while entity/location/quest overlap accumulates uncapped to 20-28, so
+    // "paralytic" (df 4 of ~2000, IDF ~6) was worth less than standing near the right people.
+    // #188 fixed this exact shape for PHRASES; single rare words never got a lane.
+    // Fixture archaeology — THREE versions went vacuous-green before this one, each teaching a
+    // constraint: ① two shared rare words form a PHRASE (#188's pairing is gap-tolerant across a
+    // short word) and the bigram lane serves the scene — share exactly ONE rare word; ② thin
+    // noise loses to the capped lane already — mature-campaign noise is RICH; ③ built to the
+    // measured weight table (input-named 3, scene 2, loc 2): six scene NPCs, two of them named
+    // in the input, puts noise at ~16 while the answer's loc+capped-lex tops out at ~9 — the
+    // true in-gate rank-loss shape, not a gate block.
+    makeWorld();sessionLog.length=0;delete worldState.ragMemory;/* the shared fixture ships RAG OFF */
+    var crew=["Vekka","Ostog","Palia","Drenn","Sarn","Ilba"],ci;
+    for(ci=0;ci<crew.length;ci++){
+      worldState.npcs.push({name:crew[ci],status:"",rel:"ally",met:1,partyMember:false,aliases:[]});
+      memory.npcs[crew[ci]]={attitude:"ally",knowledge:[],events:[],aliases:[],lastSeenAt:"Gate Ward"};
+    }
+    worldState.world.location="Gate Ward";/* stamped into every entry's e.l at write time */
+    var noiseTags="[NPC:Vekka|watchful|ally][NPC:Ostog|gruff|ally][NPC:Palia|tired|ally][NPC:Drenn|bored|ally][NPC:Sarn|alert|ally][NPC:Ilba|calm|ally]";
+    var i;for(i=1;i<=200;i++){worldState.turn=i;
+      logTranscript("player","filler step "+i);
+      logTranscript("gm",i===4?"The apothecary taps the vial: a distilled venom that stiffens whatever it touches.":"Vekka, Ostog, Palia, Drenn, Sarn and Ilba argue at the gate about the watch rotation, entry "+i+".",i===4?undefined:noiseTags);
+    }
+    worldState.turn=220;
+    ragRetrieve._memo=null;
+    var out=ragRetrieve("Ask Vekka and Ostog about the venom");
+    return out.indexOf("stiffens whatever it touches")>=0?true:"the rare-word scene lost to entity noise again (rank-loss regression): "+JSON.stringify(out.slice(0,90));
+  });
+  t("#224: a word carried by more than 1% of entries identifies nothing — the df ceiling holds for the word lane",function(){
+    // Sized so ceiling-removal actually BITES (the #188 vacuous-fixture lesson, caught at design
+    // time here): N=400, df=6 — the ceiling (max(3, 1%·N)=4) excludes the word, while unbounded
+    // it would score IDF·W = ln(401/7)·2 ≈ 8.1 ≥ the qualify bar and serve its scenes. At the
+    // first draft's N=200/df=5 the unbounded score was 7.0 < 8 — the mutation could never red.
+    makeWorld();sessionLog.length=0;delete worldState.ragMemory;
+    var i;for(i=1;i<=400;i++){worldState.turn=i;
+      logTranscript("player","filler step "+i);
+      logTranscript("gm",(i%66===0)?"The mule spits at the fence post again, entry "+i+".":"Nothing of note happens in this entry, number "+i+", quiet hours only.");
+    }
+    worldState.turn=420;worldState.world.location="Somewhere Else";
+    ragRetrieve._memo=null;
+    var out=ragRetrieve("Whatever happened to that mule?");
+    return out.indexOf("mule")<0?true:"a df-6 word above the 1% ceiling qualified scenes — the word lane's ceiling is gone";
+  });
+  t("#224: the single-word 8-cap survives — a pile of medium-rare words cannot swamp entity ranking",function(){
+    // The cap the new lane bypasses is itself load-bearing and was never pinned. Constructed so
+    // removal DISPLACES: entry A (three input-named NPCs ×3 + location 2 = 11) beats the six
+    // B-entries (location 2 + capped lex 8 = 10) while the cap holds; uncapped, each B's five
+    // df-6 words score ~30 lexically and the Bs fill every excerpt slot. df 6 sits over the rare
+    // ceiling (max(3, 1%·400) = 4) and the input's noun-run bigrams share the same df, so neither
+    // rare lane can see those words — only the capped lane under test. A carries none of them.
+    // (First draft gave the Bs a scene NPC too and forgot every entry inherits the +2 location
+    // bonus — B hit 12 > A's 11 with the cap intact. Margins here are computed, not vibes.)
+    makeWorld();sessionLog.length=0;delete worldState.ragMemory;
+    var crew=["Vekka","Ostog","Palia"],ci;
+    for(ci=0;ci<crew.length;ci++){
+      worldState.npcs.push({name:crew[ci],status:"",rel:"ally",met:1,partyMember:false,aliases:[]});
+      memory.npcs[crew[ci]]={attitude:"ally",knowledge:[],events:[],aliases:[],lastSeenAt:"Gate Ward"};
+    }
+    worldState.world.location="Gate Ward";/* every entry inherits e.l → +2; the margin below accounts for it */
+    var i;for(i=1;i<=400;i++){worldState.turn=i;
+      logTranscript("player","filler step "+i);
+      var body,tags;
+      if(i===4){body="Vekka, Ostog and Palia crowd the gatehouse table, arguing over the day's orders.";tags="[NPC:Vekka|sharp|ally][NPC:Ostog|gruff|ally][NPC:Palia|tired|ally]";}
+      else if(i>=340&&i%10===0){body="Someone stacks the lantern rope bucket ledger hammer by the wall again, entry "+i+".";tags=undefined;}
+      else{body="Nothing of note happens in this entry, number "+i+", quiet hours only.";tags=undefined;}
+      logTranscript("gm",body,tags);
+    }
+    worldState.turn=420;
+    ragRetrieve._memo=null;
+    var out=ragRetrieve("I ask Vekka, Ostog and Palia about the lantern rope bucket ledger hammer");
+    if(out.indexOf("crowd the gatehouse table")<0)return "the entity-anchored scene was displaced — the 8-cap is gone or mis-sized: "+JSON.stringify(out.slice(0,90));
+    return true;
+  });
+
+
   // ── #105b: the clock keeps its receipt ────────────────────────────────────
   // Per-turn elapsed time was computed and thrown away (applyMuts built a "Time +Xm" muts line
   // that no call site captured), so the ONLY record was the running total clock.min. That made
