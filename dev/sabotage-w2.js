@@ -509,4 +509,40 @@ rc|=sabotage.prove({
   ]
 });
 
+/* #225 (v1.705): the orphan-combat channel (the Bronze Bell Warden ghost fight) + the v1.700
+   TIME_CHECK nc slip. Single-line finds only. */
+rc|=sabotage.prove({
+  file:"tag_table.js",
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
+  cases:[
+    {label:"orphan combat tags stop being collected — the ghost fight goes console-only again (#225)",
+      mustFail:"#225 orphan combat tags arm the record and toast ONCE",
+      find:"if(!R._orphanNc)R._orphanNc=[];if(R._orphanNc.indexOf(TAG_TABLE[i].t)<0)R._orphanNc.push(TAG_TABLE[i].t);",
+      replace:""},
+    {label:"a COMBAT_END over a null tracker records a false victory again (#225)",
+      mustFail:"#225 COMBAT_END over a null tracker records no false outcome",
+      find:"  if(ce&&!worldState.combat){",
+      replace:"  if(false){"},
+    {label:"TIME_CHECK regains combat scoping — every peaceful turn trips the UA27 counter (#216fix)",
+      mustFail:"#216fix TIME_CHECK is NOT combat-scoped",
+      find:"{t:\"TIME_CHECK\",apply:function(text,R){",
+      replace:"{t:\"TIME_CHECK\",nc:1,apply:function(text,R){"}
+  ]
+});
+
+rc|=sabotage.prove({
+  file:"api.js",
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
+  cases:[
+    {label:"the orphan-combat note stops delivering — the recovery path dies (#225)",
+      mustFail:"#225 the nudge teaches the [COMBAT_START:] re-open",
+      find:"  if(!q||q.delivered)return\"\";",
+      replace:"  return\"\";if(!q||q.delivered)return\"\";"},
+    {label:"the moot check dies — the note nags a fight the GM already re-opened (#225)",
+      mustFail:"#225 the nudge teaches the [COMBAT_START:] re-open",
+      find:"  if(worldState.combat){delete worldState.orphanCombat;return\"\";}",
+      replace:""}
+  ]
+});
+
 process.exit(rc?1:0);

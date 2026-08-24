@@ -14154,6 +14154,79 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#225 orphan combat tags — the four-turn ghost fight (field t2228-2231, 2026-08-23)");
+  // The Bronze Bell Warden: [COMBAT_END:fled] closed the fight at t2227, the story re-engaged
+  // the warden at t2228, and for FOUR turns every combat tag (ENEMY_HP, COMBAT_ROUND,
+  // ENEMY_SLAIN, a second COMBAT_END) hit the null tracker and no-opped with only a console
+  // warn — invisible in play, the #16 mobile class. The GM narrated an HP bar that existed
+  // nowhere, the player asked Table Talk "how is it not dead at 0 hp", and TT answered
+  // CORRECTLY that no state exists — its honesty exposed the gap. The engine's job: make the
+  // orphan loud (toast) and recoverable (a note teaching the [COMBAT_START:] re-open).
+  function __orphanWorld(){
+    makeWorld();worldState.combat=null;
+    delete worldState.orphanCombat;
+    return worldState;
+  }
+  t("#225 orphan combat tags arm the record and toast ONCE, naming the ghost fight",function(){
+    __orphanWorld();
+    var toasts=[],_t=(typeof showToast==="function")?showToast:null;showToast=function(m){toasts.push(String(m));};
+    var _w=console.warn;console.warn=function(){};
+    try{
+      applyMuts("[COMBAT_ROUND:2][ENEMY_HP:Bronze Bell Warden|-9][DICE:attack|24|success]");
+      applyMuts("[COMBAT_ROUND:3][ENEMY_HP:Bronze Bell Warden|-11]");
+    }finally{console.warn=_w;if(_t)showToast=_t;else showToast=function(){};}
+    var q=worldState.orphanCombat;
+    if(!q)return "no orphan record armed — the ghost fight stays console-only";
+    if(!q.tags||q.tags.indexOf("ENEMY_HP")<0)return "the record does not carry the orphaned tag names: "+JSON.stringify(q);
+    var hits=toasts.filter(function(x){return /tracker|encounter|not.*recorded|closed/i.test(x);});
+    if(!hits.length)return "no player-visible toast — the no-op stayed silent in play: "+JSON.stringify(toasts);
+    if(hits.length>1)return "the toast repeated per response — one loud notice per gap, not a nag: "+hits.length;
+    return true;
+  });
+  t("#225 the nudge teaches the [COMBAT_START:] re-open, one-shot, #151-restorable, and moot once combat is open again",function(){
+    __orphanWorld();
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    try{applyMuts("[ENEMY_HP:Bronze Bell Warden|-9]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    var n=buildOrphanCombatNudge();
+    if(!n)return "nothing delivered for an armed orphan record";
+    if(n.indexOf("[COMBAT_START:")<0)return "the note does not teach the re-open: "+n;
+    if(n.indexOf("applied NOTHING")<0&&!/no.*(effect|record)/i.test(n))return "the note does not say the tags no-opped: "+n;
+    if(buildOrphanCombatNudge()!=="")return "the note re-fired immediately — no one-shot latch";
+    __orphanWorld();
+    var _w2=console.warn;console.warn=function(){};var _t2=(typeof showToast==="function")?showToast:null;if(_t2)showToast=function(){};
+    try{applyMuts("[ENEMY_HP:Bronze Bell Warden|-9]");}finally{console.warn=_w2;if(_t2)showToast=_t2;}
+    var snap=snapshotNoteLatches();
+    if(!buildOrphanCombatNudge())return "fixture broke: second arm did not deliver";
+    restoreNoteLatches(snap);
+    if(!buildOrphanCombatNudge())return "a dead provider turn ate the note (#151)";
+    __orphanWorld();
+    var _w3=console.warn;console.warn=function(){};var _t3=(typeof showToast==="function")?showToast:null;if(_t3)showToast=function(){};
+    try{applyMuts("[ENEMY_HP:Bronze Bell Warden|-9]");applyMuts("[COMBAT_START:Bronze Bell Warden|14|15|+4|d10|high]");}finally{console.warn=_w3;if(_t3)showToast=_t3;}
+    return buildOrphanCombatNudge()===""?true:"the GM already re-opened the fight and the note still nagged";
+  });
+  t("#225 COMBAT_END over a null tracker records no false outcome and arms no aftermath",function(){
+    __orphanWorld();delete worldState.pendingLocState;
+    var _w=console.warn;console.warn=function(){};var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    var r;try{r=applyMuts("[COMBAT_END:victory][XP:150]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    var muts=(r&&r.muts)||[];
+    for(var i=0;i<muts.length;i++)if(/^Combat:/.test(muts[i]))return "a victory was recorded over a fight that was never open: "+muts[i];
+    if(worldState.pendingLocState)return "the #149 aftermath nudge armed for a combat that never existed";
+    return worldState.character.xp===150?true:"the XP beside the orphan close was lost: "+worldState.character.xp;
+  });
+  t("#225 orphanCombat is in NOTE_LATCH_FIELDS",function(){
+    return NOTE_LATCH_FIELDS.indexOf("orphanCombat")>=0?true:"orphanCombat missing from the latch census — a failed turn would burn the ask";
+  });
+  t("#216fix TIME_CHECK is NOT combat-scoped — an out-of-combat declaration must not trip the UA27 counter",function(){
+    // Shipped bug (v1.700, found during the #225 investigation): TIME_CHECK carried nc:1, so the
+    // EVERY-response declaration #216 demands incremented __tagNoCombatWarns and console-warned
+    // on every peaceful turn — tripwire pollution that made the UA27 counter meaningless.
+    makeWorld();worldState.combat=null;
+    var before=__tagNoCombatWarns;
+    var _w=console.warn;console.warn=function(){};
+    try{applyMuts("[TIME_CHECK:morning]");}finally{console.warn=_w;}
+    return __tagNoCombatWarns===before?true:"TIME_CHECK outside combat bumped the UA27 no-combat counter (+"+(__tagNoCombatWarns-before)+")";
+  });
+
   section("#216 [TIME_CHECK:] — the read-before-write clock declaration");
   // Field origin (t2175, 2026-08-22): sonnet-5 narrated sundown and camped the party in full
   // dark while the clock read 11:57 AM — and #158's prose recognizer, precision-tuned, was

@@ -384,6 +384,22 @@ function buildQuestObjectiveNudge(){
    combat tag at all, leaving a foe standing at 8/32 in the tracker. Deliberately NOT combat-silent
    like its siblings — this is the one note whose whole subject is an open encounter. It asks about
    SILENCE (no combat tag for COMBAT_STALE_TURNS), which is engine-observed structure, never prose. */
+/* #225 (field t2228-2231, the Bronze Bell Warden ghost fight): the INVERSE of #214② below.
+   That one asks when an OPEN encounter goes untagged; this one asks when combat-action tags
+   arrive with NO encounter — [COMBAT_END:fled] closed the fight, the story re-engaged the foe,
+   and four turns of ENEMY_HP/ENEMY_SLAIN/COMBAT_END no-opped console-only while the GM narrated
+   an hp bar that existed nowhere. Table Talk, asked "how is it not dead at 0 hp", correctly
+   answered that no state exists — TT's honesty exposed the gap; this is the engine's half.
+   Deliberately NOT combat-silent (the #214② precedent): its subject IS the missing encounter.
+   Moot-aware: if combat is open again at delivery time, the GM already fixed it — clear silently. */
+function buildOrphanCombatNudge(){
+  if(!worldState)return"";
+  var q=worldState.orphanCombat;
+  if(!q||q.delivered)return"";
+  if(worldState.combat){delete worldState.orphanCombat;return"";}
+  q.delivered=true;
+  return "[ENGINE NOTE — COMBAT TAGS WITHOUT AN ENCOUNTER (not a player action): your recent combat tags ("+q.tags.join(", ")+") arrived after the encounter was CLOSED and applied NOTHING — no damage, no kill, no round was recorded. If the fight resumed after the close, RE-OPEN it now with [COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] using the foe's remaining hp as its pool, then re-assert the outcome ([ENEMY_HP:]/[ENEMY_SLAIN:]) so the record catches up. If the fight is genuinely over, narrate freely and emit no combat tags.]";
+}
 function buildCombatStaleNudge(){
   if(!worldState||!worldState.combat)return"";
   var live=(typeof combatLivingFoes==="function")?combatLivingFoes():[];
@@ -1347,7 +1363,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -1369,7 +1385,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

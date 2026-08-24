@@ -299,7 +299,7 @@ var TAG_TABLE=[
 /* #216: read-only — compares, never moves. MUST precede TIME/TIME_ADVANCE/REST in table order:
    the declaration describes the scene's OPENING, i.e. the clock the GM read in its prompt,
    so it is judged before any of this response's own advances land. */
-{t:"TIME_CHECK",nc:1,apply:function(text,R){var tcTag=text.match(/\[TIME_CHECK:([^\]]+)\]/);if(tcTag&&typeof clockCheckDeclared==="function")clockCheckDeclared(tcTag[1].trim());}},
+{t:"TIME_CHECK",apply:function(text,R){/* NOT nc — shipped with nc:1 by mistake (v1.700), which made the every-response declaration trip the UA27 no-combat warn on every peaceful turn */var tcTag=text.match(/\[TIME_CHECK:([^\]]+)\]/);if(tcTag&&typeof clockCheckDeclared==="function")clockCheckDeclared(tcTag[1].trim());}},
 {t:"TIME",apply:function(text,R){var timeTag=text.match(/\[TIME:([^\]]+)\]/);if(timeTag){worldState.world.time=timeTag[1].trim();R.timeText=timeTag[1].trim();/* #131: the tail reconciles the clock to this AFTER TIME_ADVANCE/REST land */R.muts.push("Time: "+timeTag[1].trim());}}},
 {t:"WEATHER",apply:function(text,R){var wxTag=text.match(/\[WEATHER:([^\]]+)\]/);if(wxTag){worldState.world.weather=wxTag[1].trim();R.muts.push("Weather: "+wxTag[1].trim());}}},
 // ── #73 campaign clock ──────────────────────────────────────────────────────────────────────
@@ -682,6 +682,14 @@ combatAttrEntry("COMBAT_VULN","vuln"),
 // them closes as "surrender" (≡ truce), otherwise victory (MULTI_ENEMY_COMBAT §2).
 {t:"COMBAT_END",nc:1,apply:function(text,R){
   var ce=text.match(/\[COMBAT_END:([^\]]+)\]/);
+  if(ce&&!worldState.combat){
+    /* #225 (field t2231, the Bronze Bell Warden): a COMBAT_END over a null tracker used to push
+       "Combat: victory" into muts and arm the #149 aftermath nudge — a false outcome recorded
+       over a fight that was never open (the ghost close at the end of four orphaned turns). The
+       tag is absorbed (stripped like everything else); the UA27 warn + the #225 orphan channel
+       below carry the loudness. Same-response rewards ([XP:] beside the close) still land —
+       they are their own handlers. */
+    return;}
   if(ce){
     /* #214① (field 2026-08-22, the Grey-Hided Skulker): the outcome word is a STRUCTURED
        assertion that the fight is over. A victory-shaped close that leaves foes standing in
@@ -1033,7 +1041,7 @@ function applyMutsTable(text,opts){
       // never block (the entry still runs — its own guards keep it a no-op). Checked per entry
       // IN ORDER, so a same-response COMBAT_START has already opened the fight by the time its
       // companion tags are checked.
-      if(TAG_TABLE[i].nc&&!worldState.combat&&text.indexOf("["+TAG_TABLE[i].t+":")>=0){__tagNoCombatWarns++;console.warn("[tags] "+TAG_TABLE[i].t+" arrived with NO active combat — no-op (premature [COMBAT_END:] earlier? the v1.224 C1 class / UA27)");}
+      if(TAG_TABLE[i].nc&&!worldState.combat&&text.indexOf("["+TAG_TABLE[i].t+":")>=0){__tagNoCombatWarns++;if(!R._orphanNc)R._orphanNc=[];if(R._orphanNc.indexOf(TAG_TABLE[i].t)<0)R._orphanNc.push(TAG_TABLE[i].t);/* #225: collected per response, settled at the post-handler seam */console.warn("[tags] "+TAG_TABLE[i].t+" arrived with NO active combat — no-op (premature [COMBAT_END:] earlier? the v1.224 C1 class / UA27)");}
       TAG_TABLE[i].apply(text,R);
     }
     catch(e){R.errors.push(TAG_TABLE[i].t+": "+(e&&e.message));console.warn("[tags] table handler "+TAG_TABLE[i].t+" threw:",e&&e.message);}
@@ -1099,6 +1107,23 @@ function applyMutsTable(text,opts){
   // observation lands at the effective node. Tags only, never prose; refuse-and-warn, never
   // create. This is the recall floor that replaced the [NPC:] mention stamp.
   if(typeof derivePresenceFromResponse==="function")derivePresenceFromResponse(text,R);
+  // #225: the orphan-combat settle. Combat-scoped tags no-opped against a null tracker this
+  // response (collected at the UA27 warn site above) and combat is STILL closed after every
+  // handler ran — a same-response [COMBAT_START:] would have opened it before its companions
+  // were checked (table order) and nothing would be collected. The field shape (t2228-2231,
+  // the Bronze Bell Warden): [COMBAT_END:fled], then FOUR turns of ghost fight, every blow a
+  // console-only no-op while the GM narrated an hp bar that existed nowhere. One toast per gap
+  // (not per response — a stubborn model re-orphans every turn), and the note builder delivers
+  // the recovery next turn.
+  if(R._orphanNc&&R._orphanNc.length&&!worldState.combat){
+    var _ocPrior=worldState.orphanCombat;
+    if(_ocPrior&&!_ocPrior.delivered){var _oi;for(_oi=0;_oi<R._orphanNc.length;_oi++)if(_ocPrior.tags.indexOf(R._orphanNc[_oi])<0)_ocPrior.tags.push(R._orphanNc[_oi]);_ocPrior.turn=R.turn;}
+    else{
+      worldState.orphanCombat={turn:R.turn,tags:R._orphanNc.slice()};
+      if(typeof showToast==="function")showToast("\u2694 The story kept fighting after the tracker closed \u2014 those blows were not recorded. Asking the GM to re-open the encounter.",8000);
+    }
+    R.muts.push("\u26a0 combat tags with no open encounter: "+R._orphanNc.join(", "));
+  }
   // #214②: stamp combat-tag ACTIVITY on the open encounter. One place, measuring exactly what
   // buildCombatStaleNudge asks about — did the GM tag this fight at all — rather than a prose
   // scan for "the fight is over", which is the non-deterministic instrument #175b rejected.
