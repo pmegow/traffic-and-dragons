@@ -788,7 +788,7 @@ function checkLevelUp(){
   if(!worldState)return;var c=worldState.character,newLvl=getLvl(c.xp);if(newLvl<=c.level)return;
   var oldLvl=c.level,i,cls=classDef(c.cls);/* #72 C6 ①: THE class lookup */
   if(!c.abilities)c.abilities=[];
-  var totalHp=0,bumpsOwed=0,newFeatures=[];
+  var totalHp=0,bumpsOwed=0,newFeatures=[],newFeatNames=[];/* owner 2026-08-24: names feed the gain toasts */
   while(c.level<newLvl){
     c.level++;
     var conMod=c.stats&&typeof c.stats.CON==="number"?Math.floor((c.stats.CON-10)/2):0;
@@ -799,7 +799,7 @@ function checkLevelUp(){
     // ({nm,ds}), not the legacy "Lv5" string blobs. No retroactive grants: only the level being
     // crossed RIGHT NOW is read (the C6 invariant — Ammut sees the new world at his next level).
     var _lvFeats=classFeaturesAt(c.cls,c.level).concat(archFeaturesAt(c.cls,c.archetype,c.level)),_lf;
-    for(_lf=0;_lf<_lvFeats.length;_lf++){c.abilities.push({nm:_lvFeats[_lf].nm,ds:_lvFeats[_lf].ds,gained:worldState.turn});newFeatures.push(_lvFeats[_lf].nm+" — "+_lvFeats[_lf].ds);}
+    for(_lf=0;_lf<_lvFeats.length;_lf++){c.abilities.push({nm:_lvFeats[_lf].nm,ds:_lvFeats[_lf].ds,gained:worldState.turn});newFeatures.push(_lvFeats[_lf].nm+" — "+_lvFeats[_lf].ds);newFeatNames.push(_lvFeats[_lf].nm);}
     if(STAT_BUMP_LEVELS.indexOf(c.level)>=0)bumpsOwed++;
   }
   // #72 C2: queue the picks for every tier unlocked by this level change. A fill-phase blank
@@ -813,6 +813,11 @@ function checkLevelUp(){
   if(typeof Sound!=="undefined")Sound.play("click_glass");/* #7: the attention sound fires BEFORE the message so it claims the playIfQuiet window (the toast-level poke must not double up) */
   addMsg("system","Level up! "+oldLvl+" -> "+newLvl+" | HP +"+totalHp+" (now "+c.maxHp+")");
   for(i=0;i<newFeatures.length;i++)addMsg("narrator","<p><em>"+newFeatures[i]+"</em></p>");
+  // Owner request 2026-08-24 ("I had to go into his sheet to see what changed"): the feed lines
+  // above land BEFORE the GM's prose renders and scroll straight out of view — the toast is the
+  // attention channel. Name the character and every gained ability; the feed keeps the full desc.
+  showToast("⬆ "+c.name+" reached level "+newLvl+"!");
+  if(newFeatNames.length)showToast("★ "+c.name+" gained "+(newFeatNames.length>1?"new abilities: ":"a new ability: ")+newFeatNames.join(", "));
   if(newFeatures.length)updateAbPanel(true);
   _levelBumpsOwed+=bumpsOwed;
   if(oldLvl<3&&newLvl>=3&&!c.archetype&&((classDef(c.cls)||{}).archetypes||[]).length)showArchetypeModal(); // archetype first; pickArchetype then drains the bump queue. #192: an archetype-less custom class skips the milestone — an empty wireClose:false modal would soft-lock the game
@@ -878,14 +883,14 @@ function checkCompanionLevelUp(cs){
   if(!cs||typeof cs.xp!=="number")return;
   if(typeof cs.level!=="number"||cs.level<1)cs.level=1;
   var newLvl=getLvl(cs.xp);if(newLvl<=cs.level)return;
-  var oldLvl=cs.level,cls=classDef(cs.cls);/* #72 C6 ①: THE class lookup */
+  var oldLvl=cs.level,cls=classDef(cs.cls),_cFeatNames=[];/* owner 2026-08-24: names feed the gain toast, companion twin of checkLevelUp's */
   while(cs.level<newLvl){
     cs.level++;
     var conMod=cs.stats&&typeof cs.stats.CON==="number"?Math.floor((cs.stats.CON-10)/2):0;
     var hpGain=cls?hpGainPerLevel(cls.hd,conMod):3;/* #11②: shared formula (unknown-class fallback 3 unchanged) */
     cs.maxHp=(cs.maxHp||0)+hpGain;cs.hp=(cs.hp||0)+hpGain;
     var _cFeats=classFeaturesAt(cs.cls,cs.level).concat(archFeaturesAt(cs.cls,cs.archetype,cs.level)),_cf;/* C6 ②: bible rows, companion twin of checkLevelUp */
-    for(_cf=0;_cf<_cFeats.length;_cf++){if(!cs.abilities)cs.abilities=[];cs.abilities.push({nm:_cFeats[_cf].nm,ds:_cFeats[_cf].ds,gained:worldState?worldState.turn:0});}
+    for(_cf=0;_cf<_cFeats.length;_cf++){if(!cs.abilities)cs.abilities=[];cs.abilities.push({nm:_cFeats[_cf].nm,ds:_cFeats[_cf].ds,gained:worldState?worldState.turn:0});_cFeatNames.push(_cFeats[_cf].nm);}
   }
   // #72 C2 companion twin: silent AUTO-PICK — companions level without modals, so each crossed
   // unlock takes the first N bench spells not already known (base-name dedupe). The bench is
@@ -904,8 +909,10 @@ function checkCompanionLevelUp(cs){
     }
   }
   if(_learned.length)addMsg("system",(cs.name||"Companion")+" learns: "+_learned.join(", "));
+  if(_cFeatNames.length)addMsg("system",(cs.name||"Companion")+" gains: "+_cFeatNames.join(", "));/* owner 2026-08-24: gained features had NO visible line at all */
   addMsg("system",(cs.name||"Companion")+" levels up! "+oldLvl+" -> "+newLvl);
   showToast((cs.name||"Companion")+" reached level "+newLvl+"!");
+  if(_cFeatNames.length)showToast("★ "+(cs.name||"Companion")+" gained "+(_cFeatNames.length>1?"new abilities: ":"a new ability: ")+_cFeatNames.join(", "));
 }
 // ── Companion sheet generation (audit P2) ─────────────────────────────────────
 // A narrative-path recruit ([PARTY_MEMBER:name|true] on a GM-invented NPC) used to join with NO

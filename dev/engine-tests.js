@@ -3874,6 +3874,35 @@ function runEngineTests(R){
     if(!has("Action Surge"))return "L2 feature (Action Surge) skipped by the jump";
     return has("Stunning Blow")?true:"L5 feature (Stunning Blow) missing";
   });
+  // ── level-up gain toasts (owner request 2026-08-24: "I had to go into his sheet to see what
+  // changed") — gained abilities went ONLY to story-feed lines that scroll away under the GM's
+  // prose; the player level-up had no toast at all, and companions toasted the level but never
+  // the abilities. The toast channel is the attention channel — name the character, name the gain.
+  t("player level-up toasts the level AND each gained ability by name",function(){
+    makeWorld();
+    __toasts.length=0;
+    applyMuts("Steel sharpens. [XP:6500]");/* 1 → 5: crosses L2 (Action Surge) + L5 (Stunning Blow) */
+    var all=__toasts.join(" ¦ ");
+    if(all.indexOf("reached level 5")<0)return "no level toast: "+all;
+    if(all.indexOf(worldState.character.name)<0)return "toast does not name the character: "+all;
+    if(all.indexOf("Action Surge")<0||all.indexOf("Stunning Blow")<0)return "gained abilities not toasted by name: "+all;
+    __toasts.length=0;
+    worldState.character.xp=14000;checkLevelUp();/* 5 → 6: no Warrior class row at 6 (rows are 2/5/7/9/...), no archetype committed — level toast only */
+    all=__toasts.join(" ¦ ");
+    if(all.indexOf("reached level 6")<0)return "featureless level lost its toast: "+all;
+    return /abilit/i.test(all)?"phantom ability toast on a featureless level: "+all:true;
+  });
+  t("companion level-up toasts gained abilities beside the existing level toast",function(){
+    makeWorld();
+    var cs={name:"Bram",cls:"Warrior",level:1,hp:14,maxHp:14,xp:0,stats:{CON:14},abilities:[],spells:[],inventory:[],conditions:[]};
+    worldState.npcs.push({name:"Bram",status:"ally",rel:"ally",partyMember:true,charSheet:cs});
+    __toasts.length=0;
+    cs.xp=6500;checkCompanionLevelUp(cs);
+    var all=__toasts.join(" ¦ ");
+    if(all.indexOf("Bram reached level 5")<0)return "companion level toast lost: "+all;
+    if(all.indexOf("Action Surge")<0||all.indexOf("Stunning Blow")<0)return "companion gained abilities not toasted: "+all;
+    return all.indexOf("Bram gained")>=0?true:"companion ability toast does not name the companion: "+all;
+  });
   t("quest block: all-objectives-done quest gets the close-or-extend instruction",function(){
     makeWorld();
     worldState.questLog=[

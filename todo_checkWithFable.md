@@ -14,6 +14,7 @@ commits), what it touches, why it's risky or not, supporting docs/tests, and wha
 should probe first. Self-contained enough that a Fable session needs no other context.
 
 ## Off-Fable log
+- 2026-08-24 (v1.709): level-up gain toasts — checkLevelUp/checkCompanionLevelUp now toast the level + each gained ability by name (presentation-only additions over the existing bible-row grants; 2 failing-first tests, suite 1668 green); companion gained-features also get their missing system feed line.
 
 Safe-changes-map work (#21, CLAUDE.md ▸ Dev workflow): ONE line per shipped change —
 `- vX.YYY <commit> — <what> (<shape from the map>)`. Batch-skimmed by Fable; if the skims stay
