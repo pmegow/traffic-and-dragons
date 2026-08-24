@@ -2067,6 +2067,15 @@ function normalizeBlueprint(bp){
   if(!Array.isArray(bp.locations))bp.locations=[];
   if(!Array.isArray(bp.rules))bp.rules=[];
   if(!Array.isArray(bp.creatures))bp.creatures=[]; // v1.176 — campaign bestiary
+  // #227 the deep-time age ladder. ABSENT STAYS ABSENT — same reasoning as availableClasses
+  // below: a blueprint that never declared world ages must not grow an empty field on every
+  // designer save, and absence is exactly what keeps every legacy blueprint's prompt
+  // byte-identical (buildDeepTimeBlock is ""-clean). A ladder that normalizes to nothing
+  // (all rungs nameless) is dropped rather than kept as an empty husk.
+  if("deepTime" in bp){
+    var _dtn=normalizeDeepTime(bp.deepTime);
+    if(_dtn.length)bp.deepTime=_dtn;else delete bp.deepTime;
+  }
   // #192 — campaign class roster (see the block comment above normalizeCustomClass).
   // availableClasses ABSENT means "no restriction" — never expand it to a full list here,
   // or a future base class would be silently excluded by every file that never meant to curate.
@@ -2278,6 +2287,11 @@ function applyBlueprint(bp){
     }
     saveRules();
   }
+  // #227 the deep-time age ladder — WRITE-ONCE at campaign start. There is deliberately no tag
+  // for this, so the only writers are here and the generated skeleton: it rides the CACHED stable
+  // half, and a mid-campaign write would silently kill every prompt-cache hit for the rest of the
+  // campaign. It is also the point of the feature — a ceiling the GM can raise is not a ceiling.
+  if(bp.deepTime&&bp.deepTime.length)worldState.deepTime=normalizeDeepTime(bp.deepTime);
   // Location + region override — blueprint is authoritative; overwrite whatever the wizard set
   if(bp.startingLocation)worldState.world.location=bp.startingLocation;
   if(bp.startingRegion)worldState.world.region=bp.startingRegion;
@@ -2322,9 +2336,11 @@ async function generateSkeleton(statusFn){
     // ✨ Generate builds its acts on the SAME text; the assembled prompt here is byte-identical
     // to the pre-extraction original (flaw/motivation lines splice between head and tail).
     +skelActsSchema(!!_skelDNA)
+    +skelDeepTimeSchema()
     +"}\n\n"
     +"RULES:\n"
     +skelRulesHead(!!_skelDNA)
+    +skelDeepTimeRule()
     +(c.flaw?"- The character's flaw should be a source of tension, not just flavor\n":"")
     +(c.motivation?"- Weave the motivation into the central conflict so pursuing the plot IS pursuing the motivation\n":"- Weave the character's backstory into the central conflict so pursuing the plot IS personal\n")
     +skelRulesTail();
@@ -2348,6 +2364,15 @@ async function generateSkeleton(statusFn){
     if(typeof console!=="undefined")console.warn("[skeleton review] "+(re&&re.message?re.message:re));
   }
   stampSkeletonStatus(skel);
+  // #227 — the freeform half of the age ladder (the #59 two-consumer pattern). A model that
+  // omits or mangles it must NEVER block campaign start: absence is a loud warn and the
+  // campaign simply plays with no ceiling, exactly as every campaign did before this shipped.
+  // The ladder lives on worldState, never inside the story spine, so there is ONE home for it
+  // and buildSkeletonBlock stays untouched.
+  var _dtGen=normalizeDeepTime(skel.deepTime);
+  if(_dtGen.length)worldState.deepTime=_dtGen;
+  else if(typeof console!=="undefined")console.warn("[skeleton] no usable deepTime age ladder generated — campaign starts with no age ceiling (#227)");
+  delete skel.deepTime;
   worldState.skeleton=skel;saveCore();
 }
 async function beginAdventure(){

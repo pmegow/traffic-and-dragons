@@ -961,7 +961,15 @@ try {
     if (at < 0) _failBD(dep + " script tag missing — api.js will abort at NOTE_BUILDERS and callGM never exists (dead LLM features).");
     if (at > _apiAtBD) _failBD(dep + " loads AFTER api.js — NOTE_BUILDERS still evaluates into a ReferenceError.");
   });
-  console.log("[blueprint-designer] contract OK — class roster sections wired, seam present");
+  // ⑦ (#227, v0.38) The World Ages ladder. Field routing MUST go through FIELD_ROOTS (clause ④'s
+  //    lesson) or the breakout editor silently edits nothing, and the add control must exist or
+  //    an author can only get a ladder by hand-editing JSON. The empty-husk delete matters too:
+  //    normalizeBlueprint reads ABSENT as "no ceiling", so a stranded [] would be written into
+  //    every saved blueprint and mean something the author never chose.
+  if (_pageBD.indexOf("dt:") < 0) _failBD("FIELD_ROOTS lost the 'dt:' route — World Ages edits are silently dead.");
+  if (_pageBD.indexOf("adddt") < 0) _failBD("the + Add age control is gone — a ladder could only be authored by hand-editing JSON.");
+  if (_pageBD.indexOf("delete bp.deepTime") < 0) _failBD("removing the last rung no longer drops the field — an empty husk would ship in every saved blueprint.");
+  console.log("[blueprint-designer] contract OK — class roster + World Ages sections wired, seam present");
 } catch (e) { console.error("BLUEPRINT DESIGNER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────

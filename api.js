@@ -241,6 +241,39 @@ function buildRetconPinBlock(){
 // compiles, so every existing save's prompt is byte-identical until then. VOLATILE half only,
 // rendered just above STORY SO FAR: eras are the deep past, chapters the recent past, in one
 // top-down read. Subordinated to current state like every history block (the drift guard).
+// #227 THE DEEP-TIME AGE LADDER — the answer to the antiquity ratchet (field 2026-08-23).
+// NOT to be confused with buildErasBlock() directly below: memory.eras (#148) is the compiled
+// PLAYED story; this is the world's PRE-history, authored once and immutable.
+// The failure it exists for: the GM signals that a new scene matters by making it older than the
+// last, forever, in narration AND in dialogue ("I have waited longer than your kind has had a
+// word for waiting"). Age is the one dial in the fiction with no stop on it — it costs no
+// invention, contradicts nothing already written, and reads as gravitas, so it gets turned every
+// time. The remedy is to close the axis: a fixed list of named rungs, a stated ceiling, and an
+// explicitly offered REPLACEMENT escalation dial, because removing a free dial without supplying
+// another just relocates the laziness.
+// STABLE-half safe: reads only worldState.deepTime, which is written once at campaign start and
+// never mutated in play (there is deliberately no tag for it).
+function buildDeepTimeBlock(){
+  if(typeof worldState==="undefined"||!worldState)return "";
+  var d=normalizeDeepTime(worldState.deepTime);
+  if(!d.length)return "";
+  var ceiling=d[0].name,lines=[],i,r,line;
+  lines.push("DEEP TIME — THE AGE LADDER. This world's history has exactly these ages, oldest first:");
+  for(i=0;i<d.length;i++){
+    r=d[i];
+    line="  "+(i+1)+". "+r.name;
+    if(r.when)line+=" — "+r.when;
+    if(r.note)line+=" ("+r.note+")";
+    if(i===0)line+="   [OLDEST — THE CEILING]";
+    lines.push(line);
+  }
+  lines.push("NOTHING IN THIS WORLD PREDATES "+ceiling+". This ladder is the COMPLETE list of ages: there are no unnamed elder epochs beneath it, and nothing older than the ceiling exists to be referred to.");
+  lines.push("When something old enters the story, put it ON a rung and say which: a thing IS of "+ceiling+", or of a later age named above. Naming the rung is the information. An age word on its own is not, and an intensifier stacked on an age word ('very old', 'impossibly ancient') is not either.");
+  lines.push("NEVER write that anything is older than "+ceiling+", older than the world, older than names or language or memory, from before time, or old beyond reckoning — those ages do not exist here. This binds DIALOGUE exactly as it binds narration: no character boasts of having waited, watched, slept, or endured longer than some other thing is old.");
+  lines.push("Age is NOT how you signal that a scene matters, and a new scene is not more important than the last one because it is older. Escalate with proximity and consequence instead: it is closer, it is awake, it has noticed the party, it wants something, it costs something now.");
+  return lines.join("\n")+"\n\n";
+}
+
 function buildErasBlock(){
   if(typeof memory==="undefined"||!memory||!memory.eras||!memory.eras.length)return "";
   var e=memory.eras,lines=[],i;
@@ -1660,7 +1693,8 @@ function buildSysPrompt(){
     // to the battle-tested hand-written text (frozen by an engine test + a pre/post stable-half
     // capture). Doc wording changes are separate deliberate commits, never bundled with mechanics.
     +buildStateTagsDoc()
-    +buildNamingClause();/* #156: the identity-discipline clause — campaign-constant by construction (assembled from IDENTITY_DOMAINS namingRules + fixed literals), so it is cache-safe in the stable half; engine-tested for call-stability */
+    +buildNamingClause()/* #156: the identity-discipline clause — campaign-constant by construction (assembled from IDENTITY_DOMAINS namingRules + fixed literals), so it is cache-safe in the stable half; engine-tested for call-stability */
+    +buildDeepTimeBlock();/* #227: the world age ladder — written once at campaign start and never mutated in play, so it is cache-safe in the stable half; ""-clean for every campaign without a ladder, which keeps legacy saves byte-identical */
   var volatile_=identity+switchBlock+mpEndBlock+leftBlock
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
@@ -1692,7 +1726,7 @@ function buildSysPrompt(){
     +buildCoreMemoryBlock()
     +buildRetconPinBlock()/* #147: correction-in-force pin — volatile only, ""-clean when no pin lives */
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
-    +"STYLE: "+(_paVc?"Write EVERY sentence of narration in this voice — a reader should recognise the author from rhythm, sentence length, and word choice alone. Commit fully; never blend with a neutral GM voice. VOICE: "+_paVc+(_paProfane?(adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity."):"")+" ":"Write clean, readable prose. ")+"Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Do NOT end your response with suggested actions, a 'You could' line, or an [ACTIONS:] tag — action suggestions are handled separately by the engine. Never show tags in prose. Death is possible."
+    +"STYLE: "+(_paVc?"Write EVERY sentence of narration in this voice — a reader should recognise the author from rhythm, sentence length, and word choice alone. Commit fully; never blend with a neutral GM voice. VOICE: "+_paVc+(_paProfane?(adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity."):"")+" ":"Write clean, readable prose. ")+"Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Do NOT end your response with suggested actions, a 'You could' line, or an [ACTIONS:] tag — action suggestions are handled separately by the engine. Never show tags in prose. NEVER use comparative age as a flourish: no \"older than X\", no \"older than memory / names / language / time\", no character boasting of having waited, watched, slept or endured longer than some other thing is old, and no new scene made to matter by being older than the last. Age is not a measure of importance and an intensifier stacked on an age word is not information — if an age matters, state it plainly once, otherwise say what the thing is and move on. Death is possible."
     /* D12 (supersedes D10, user field ruling 2026-07-18): the third-person override must sit
        AFTER STYLE — end-of-prompt position is what lets it beat the stable role block's
        "second-person" instruction (same position-is-authority mechanic STYLE itself relies on).

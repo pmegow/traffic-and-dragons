@@ -3525,6 +3525,138 @@ function runEngineTests(R){
     return s.volatile.slice(iE,iS).indexOf("override")>=0?true:"subordination framing missing from the ERAS block itself";
   });
 
+
+  // ── 11c-bis. #227 — the deep-time age ladder (the antiquity ratchet) ─────────
+  // Field origin 2026-08-23: the GM signalled that each new scene mattered by making it older
+  // than the last, so age only ever climbed ("older than the oldest of the old things that
+  // predate the concept of old"). Age is the one dial in the fiction with no stop on it. The
+  // remedy turns age into a CLOSED ENUM of named rungs: a thing IS of an era, it never gets to
+  // be "older". Named deepTime, NOT eras — memory.eras (#148) is the compiled PLAYED story.
+  section("#227 deep-time age ladder");
+  t("normalizeDeepTime: coerces, trims, drops nameless rungs, caps count and field lengths",function(){
+    if(normalizeDeepTime(null).length!==0)return "null should normalize to []";
+    if(normalizeDeepTime("Thassilon").length!==0)return "a non-array should normalize to []";
+    var out=normalizeDeepTime([
+      {name:"  Thassilon  ",when:"  fell ten thousand years ago ",note:" the sin-empire "},
+      {name:"",when:"nameless rung must be dropped"},
+      {when:"no name key at all"},
+      {name:"living memory"}
+    ]);
+    if(out.length!==2)return "expected 2 surviving rungs, got "+out.length;
+    if(out[0].name!=="Thassilon")return "name not trimmed: "+JSON.stringify(out[0].name);
+    if(out[0].when!=="fell ten thousand years ago")return "when not trimmed: "+JSON.stringify(out[0].when);
+    if(out[0].note!=="the sin-empire")return "note not trimmed: "+JSON.stringify(out[0].note);
+    if(out[1].when!==""||out[1].note!=="")return "missing fields must become \"\", got "+JSON.stringify(out[1]);
+    // cap the rung count — a 20-rung ladder is not a ladder, and this text is CACHED
+    var many=[],mi;for(mi=0;mi<20;mi++)many.push({name:"Age "+mi});
+    if(normalizeDeepTime(many).length!==DEEP_TIME_RUNGS_CAP)return "rung cap not enforced: "+normalizeDeepTime(many).length;
+    // field-length caps — bounds what semi-trusted blueprint text can put in the CACHED half
+    var longName=normalizeDeepTime([{name:new Array(400).join("x"),when:new Array(400).join("y"),note:new Array(400).join("z")}])[0];
+    if(longName.name.length>DEEP_TIME_NAME_MAX)return "name length cap not enforced: "+longName.name.length;
+    if(longName.when.length>DEEP_TIME_WHEN_MAX)return "when length cap not enforced: "+longName.when.length;
+    if(longName.note.length>DEEP_TIME_NOTE_MAX)return "note length cap not enforced: "+longName.note.length;
+    return true;
+  });
+  t("buildDeepTimeBlock: \"\"-clean with no ladder — the natural off-state for every legacy save",function(){
+    makeWorld();delete worldState.deepTime;
+    if(buildDeepTimeBlock()!=="")return "block not empty with no ladder";
+    worldState.deepTime=[];
+    if(buildDeepTimeBlock()!=="")return "block not empty with an empty ladder";
+    var s=buildSysPrompt();
+    if(s.stable.indexOf("DEEP TIME")>=0)return "DEEP TIME leaked into stable with no ladder";
+    if(s.volatile.indexOf("DEEP TIME")>=0)return "DEEP TIME leaked into volatile with no ladder";
+    return true;
+  });
+  t("deep-time ladder rides the STABLE half, oldest-first, and names the ceiling",function(){
+    makeWorld();
+    worldState.deepTime=[{name:"Thassilon",when:"fell ten thousand years ago",note:"the sin-empire of the Runelords"},
+                         {name:"the Chelish colonial era",when:"a few centuries past",note:""},
+                         {name:"living memory",when:"the last two generations",note:"Sandpoint's founding"}];
+    var s=buildSysPrompt();
+    if(s.stable.indexOf("DEEP TIME")<0)return "ladder missing from the STABLE half";
+    if(s.volatile.indexOf("DEEP TIME")>=0)return "ladder duplicated into the volatile half";
+    var iT=s.stable.indexOf("Thassilon"),iC=s.stable.indexOf("the Chelish colonial era"),iL=s.stable.indexOf("living memory");
+    if(!(iT<iC&&iC<iL))return "rungs not rendered oldest-first";
+    // the ceiling must be named explicitly — a ladder without a stated top is just a list
+    if(s.stable.indexOf("NOTHING IN THIS WORLD PREDATES Thassilon")<0)return "the ceiling is not named after the oldest rung";
+    // the replacement dial: removing the free escalation axis without offering another just relocates it
+    if(s.stable.indexOf("proximity")<0)return "no replacement escalation axis offered";
+    return true;
+  });
+  t("cache invariant holds WITH a ladder: stable byte-identical across per-turn mutations",function(){
+    makeWorld();
+    worldState.deepTime=[{name:"Thassilon",when:"fell ten thousand years ago",note:""}];
+    var a=buildSysPrompt().stable;
+    worldState.turn++;worldState.character.hp-=3;worldState.character.gold+=17;
+    worldState.npcs.push({name:"Newcomer",status:"wary",rel:"stranger"});
+    memory.chapters.push({turn:worldState.turn,summary:"Things happened."});
+    worldState.clock={min:2483,schedule:[]};
+    var b=buildSysPrompt().stable;
+    return a===b?true:"stable changed after volatile mutations (len "+a.length+" vs "+b.length+")";
+  });
+  t("normalizeBlueprint: a deepTime ladder survives import; absence stays absent (never invented)",function(){
+    var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"X",premise:"p",acts:[],
+      deepTime:[{name:"Thassilon",when:"ten thousand years gone"},{name:""}]});
+    if(!bp.deepTime||bp.deepTime.length!==1)return "ladder not normalized on import: "+JSON.stringify(bp.deepTime);
+    if(bp.deepTime[0].name!=="Thassilon")return "rung mangled: "+JSON.stringify(bp.deepTime[0]);
+    var bare=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Y",premise:"p",acts:[]});
+    if("deepTime" in bare)return "absent ladder was invented as an empty field — every saved blueprint would grow it";
+    var emptied=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Z",premise:"p",acts:[],deepTime:[{name:"  "}]});
+    if("deepTime" in emptied)return "a ladder that normalizes to nothing must be dropped, not kept empty";
+    return true;
+  });
+  t("generator: BOTH consumers ask for a deepTime ladder, and the auto-reviewer knows the field exists",function(){
+    var sch=skelDeepTimeSchema(),rule=skelDeepTimeRule();
+    if(sch.indexOf('"deepTime"')<0)return "schema fragment does not name the field";
+    if(sch.indexOf('"name"')<0||sch.indexOf('"when"')<0||sch.indexOf('"note"')<0)return "schema fragment is missing a rung field";
+    if(rule.indexOf("oldest first")<0)return "rule does not demand oldest-first ordering";
+    if(rule.indexOf("Nothing may predate it")<0)return "rule does not state the ceiling";
+    if(rule.indexOf("time before time")<0)return "rule does not forbid the unfalsifiable rungs it exists to prevent";
+    // The skeleton reviewer AUTO-APPLIES its findings with no human curating them, and its
+    // constraint block declares the schema as fixed. If it does not know deepTime is legal it
+    // will file a finding to delete the ladder, and the fix would be applied silently.
+    if(SKELETON_REVIEW_CONSTRAINTS.indexOf("deepTime")<0)return "the auto-applied reviewer would treat the ladder as off-schema and strip it";
+    return true;
+  });
+  t("STYLE carries the anti-comparative-age clause UNGATED — it must protect campaigns with no ladder too",function(){
+    // The field example was NPC DIALOGUE, not scene description: "I have waited longer than your
+    // kind has had a word for waiting." No rung is claimed there, so the ladder alone cannot catch
+    // it — this clause is the half that does, and it has to fire where no ladder was ever authored.
+    makeWorld();delete worldState.deepTime;
+    var s0=buildSysPrompt();
+    if(s0.volatile.indexOf("NEVER use comparative age")<0)return "clause missing with no ladder — freeform campaigns unprotected";
+    if(s0.stable.indexOf("NEVER use comparative age")>=0)return "clause leaked into the cached stable half; STYLE is the voice-authority slot at the END";
+    // it must bind dialogue, which is where the reported failure actually landed
+    if(s0.volatile.indexOf("no character boasting")<0)return "clause does not bind DIALOGUE, only narration";
+    worldState.deepTime=[{name:"Thassilon",when:"gone"}];
+    if(buildSysPrompt().volatile.indexOf("NEVER use comparative age")<0)return "clause vanished once a ladder existed";
+    // STYLE position is load-bearing for voice fidelity (audit #2): the clause must sit inside it
+    var iStyle=s0.volatile.indexOf("STYLE: "),iClause=s0.volatile.indexOf("NEVER use comparative age");
+    return iStyle>=0&&iClause>iStyle?true:"clause is not inside the STYLE block (iStyle "+iStyle+", iClause "+iClause+")";
+  });
+  t("applyBlueprint: an authored ladder actually REACHES worldState, and absence invents nothing",function(){
+    // Added because dev/sabotage-deep-time.js proved nothing covered this line: deleting the
+    // applyBlueprint write outright kept the suite green. normalizeBlueprint tests only proved
+    // the field survived PARSING — the authored ceiling could have been inert in play.
+    makeWorld();delete worldState.deepTime;
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Ladder",premise:"p",acts:[],npcs:[],locations:[],rules:[],
+      deepTime:[{name:"Thassilon",when:"ten thousand years gone",note:""}]}));
+    if(!worldState.deepTime||worldState.deepTime.length!==1)return "ladder never reached worldState: "+JSON.stringify(worldState.deepTime);
+    if(worldState.deepTime[0].name!=="Thassilon")return "wrong rung landed: "+JSON.stringify(worldState.deepTime[0]);
+    if(buildSysPrompt().stable.indexOf("NOTHING IN THIS WORLD PREDATES Thassilon")<0)return "ladder on worldState but not in the prompt";
+    makeWorld();delete worldState.deepTime;
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Bare",premise:"p",acts:[],npcs:[],locations:[],rules:[]}));
+    return worldState.deepTime===undefined?true:"a ceiling was invented for a blueprint that declared none";
+  });
+  t("validateSkeletonStructure still passes with NO deepTime — a missing ladder never blocks campaign start",function(){
+    var skel={premise:"p",acts:[{title:"A",goal:"g",turningPoint:"t",arcs:[{title:"a",objective:"o"}]},
+                                {title:"B",goal:"g",turningPoint:"t",arcs:[{title:"b",objective:"o"}]},
+                                {title:"C",goal:"g",turningPoint:"t",arcs:[{title:"c",objective:"o"}]}]};
+    try{validateSkeletonStructure(skel);}catch(e){return "threw without a ladder: "+e.message;}
+    skel.deepTime=[{name:"Thassilon",when:"gone"}];
+    try{validateSkeletonStructure(skel);}catch(e){return "threw WITH a ladder: "+e.message;}
+    return true;
+  });
   // ── 11d. #81 — item bible: TYPE canon, player-confirmed proposals, injection ─
   section("#81 item bible");
   t("itemBaseName: real save provenance strings all strip to the TYPE key",function(){

@@ -820,6 +820,28 @@ function parseConfirmCommand(text) {
 //   "Iron ring — unmarked x6"                      → "iron ring"          (dash clause + count)
 //   "Collector's ledger - closed-eye cipher, ..."  → "collector's ledger" (spaced hyphen clause)
 // Intra-word hyphens survive ("Trip-wire cord" — the dash cut requires surrounding spaces).
+// ── #227 the deep-time age ladder ───────────────────────────────────────────────
+// The world's history as a CLOSED, ORDERED ENUM of named rungs, oldest first. Written ONCE at
+// campaign start (blueprint field or generated skeleton) and NEVER mutated in play — there is
+// deliberately no tag for it, because a ceiling the GM can raise is not a ceiling, and because
+// this text rides the CACHED stable half where a mid-campaign write would silently kill every
+// prompt-cache hit for the rest of the campaign.
+// Pure and total: any junk shape normalizes to [], which is the natural off-state ("" block).
+function normalizeDeepTime(raw){
+  if(!raw||Object.prototype.toString.call(raw)!=="[object Array]")return [];
+  var out=[],i,r,nm;
+  for(i=0;i<raw.length&&out.length<DEEP_TIME_RUNGS_CAP;i++){
+    r=raw[i];
+    if(!r||typeof r!=="object")continue;
+    nm=String(r.name==null?"":r.name).trim();
+    if(!nm)continue; // a nameless rung cannot be pointed at, so it cannot be a rung
+    out.push({name:nm.slice(0,DEEP_TIME_NAME_MAX),
+              when:String(r.when==null?"":r.when).trim().slice(0,DEEP_TIME_WHEN_MAX),
+              note:String(r.note==null?"":r.note).trim().slice(0,DEEP_TIME_NOTE_MAX)});
+  }
+  return out;
+}
+
 function itemBaseName(nm){
   var s=String(nm||"");
   s=s.replace(/\s+x\d+\s*$/i,"");        // trailing count: "… x6"

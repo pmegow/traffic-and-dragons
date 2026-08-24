@@ -43,6 +43,19 @@ function skelRulesTail(){
     +"- An act may be parallel:true — its arcs can be pursued in any order (sandbox). Use this when the narrative supports it (e.g. investigating multiple leads, visiting locations in any order). Acts 1 and 3 are usually sequential; Act 2 is often parallel.";
 }
 
+// #227 the deep-time age ladder — a SHARED fragment, so the freeform campaign start and the
+// designer's ✨ Generate produce the same closed enum of world ages. Deliberately separate from
+// skelActsSchema: that is the STORY spine, this is world canon, and the reviewer constraint
+// names them separately. Optional by contract — a model that omits it must never block a start.
+function skelDeepTimeSchema(){
+  return ',"deepTime":[{"name":"The oldest age","when":"how long ago it ended, in plain words","note":"one short clause on what it was"},'
+    +'{"name":"a middle age","when":"...","note":"..."},'
+    +'{"name":"living memory","when":"...","note":"..."}]';
+}
+function skelDeepTimeRule(){
+  return "- deepTime is this world's COMPLETE age ladder, oldest first: 3-4 named ages, the first being the OLDEST THING THAT HAS EVER EXISTED here. Nothing may predate it. Every rung must be concrete and nameable (an empire, a cataclysm, a dynasty, a founding) — never \"the time before time\", \"ages beyond counting\", or any age defined only by being older than another. The GM will be held to this ceiling for the whole campaign, so pick an oldest age the story actually needs.\n";
+}
+
 // ── Pure structure helpers (engine-tested) ──────────────────────────────────────
 // Split out of the old generateSkeleton inline checks — behavior identical (throw before any
 // worldState write either way). validate throws; stamp mutates in place and returns the skel.
@@ -73,7 +86,7 @@ function skeletonHasDna(skel){
 // each finding carries exactly ONE fix — an alternatives-bearing fix is worthless here.
 var SKELETON_REVIEW_CONSTRAINTS=
   "CONSTRAINT CHECK — verify EVERY finding against these before you output; violations make the finding worthless:"
-  +"\n1. THE SCHEMA IS FIXED: premise + exactly 3 acts (title/goal/turningPoint/parallel), each with arcs (title/objective/type, optional dnaHint). Never propose new fields, sections, NPC rosters, or stat blocks — every fix is an edit to an EXISTING field."
+  +"\n1. THE SCHEMA IS FIXED: premise + exactly 3 acts (title/goal/turningPoint/parallel), each with arcs (title/objective/type, optional dnaHint), plus an optional deepTime age ladder (name/when/note rungs, oldest first).  Never propose new fields, sections, NPC rosters, or stat blocks — every fix is an edit to an EXISTING field."
   +"\n2. EXACTLY ONE fix per finding — one sentence, self-contained, applyable as written. If 'or', 'alternatively', or 'either' would appear in it, pick the better option yourself instead."
   +"\n3. NO NEW HOLES. Any person, place, faction, or thing a fix introduces must already appear in the skeleton, or the fix must say to establish it in the premise as part of the same edit. A fix that name-drops something undefined is worse than no fix."
   +"\n4. ENGINE CONTRACT — the game runtime ALREADY handles these; do NOT raise findings about them: parallel:true acts (full parallel-play instructions are injected every turn), arc/act rewards, generic arc-type guidance, how content is delivered to the GM, and all stats/dice/HP/XP/leveling/combat mechanics.";
@@ -135,12 +148,13 @@ async function generateBlueprintDraft(opts,model){
     +(withDna?"NARRATIVE DESIGN — shape the three acts and all arcs to reflect these story sensibilities (author's structural DNA, not prose style):\n"+opts.dna+"\n\n":"")
     +"JSON format:\n"
     +'{"name":"Campaign title","tone":"'+(opts.toneId?opts.toneId:"one of: "+opts.toneList)+'","startingLocation":"Where play begins (must appear in locations)","startingRegion":"The wider region","premise":"One paragraph: the central conflict driving the campaign",'
-    +skelActsSchema(withDna)+','
+    +skelActsSchema(withDna)+skelDeepTimeSchema()+','
     +'"npcs":[{"name":"","role":"ally or villain or neutral","pronouns":"e.g. she/her","notes":"2-4 sentences of GM guidance: who they are, what they want, their secret, and when it surfaces"}],'
     +'"locations":[{"name":"","description":"2-4 sentences of canonical description the GM will inject verbatim"}],'
     +'"rules":["optional standing GM directive — omit entries unless the world truly needs one"]}'
     +"\n\nRULES:\n"
     +skelRulesHead(withDna)
+    +skelDeepTimeRule()
     +skelRulesTail()
     +"\n- Seed 4-6 NPCs (allies, villains, and at least one wildcard) and 3-6 locations; startingLocation MUST be one of the locations.\n"
     +"- 0-3 rules, only for standing world directives (magic works differently here, a faction hunts spellcasters) — never mechanics; stats/dice/XP are engine-side.\n"

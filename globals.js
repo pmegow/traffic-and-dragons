@@ -65,6 +65,18 @@ var REL_AUDIT_TURNS=40;          // #61: at most one relationship audit per this
 var CONSUMABLE_RE=/\b(potion|elixir|draught|tonic|salve|poultice|scroll|charge|bomb|grenade|flask|vial|phial|dose|ration|torch|dust|powder|oil)s?\b/i; // #60: item base-names that read as per-use consumables even without an " xN" stack (a counted stack qualifies regardless). Deliberately EXCLUDES arrow/bolt — ammo is caught by the xN path when stacked, and per-shot nagging of unstacked ammo would be noise
 var SPLIT_AUDIT_TURNS=10;   // #133 (t1431/B21 stale-split finding): a charSheet.splitLoc older than this (or LEGACY-unstamped — infinitely old, the #46 precedent) gets the buildSplitAudit neutral-fork note (rejoin or re-affirm); doubles as the per-member re-fire cooldown. Only [PARTY_SPLIT:] tags resolve it — the record never commands the story
 var PRESENCE_AUDIT_TURNS=12; // #137 (t1467 phantom-presence finding): every N turns the PRESENCE CHECK note asks the GM to confirm each WITH-party member is physically in the scene or emit [PARTY_SPLIT:] — the inverse of buildSplitAudit (which can only police records that EXIST). Deterministic: catches the Morwen class the stay-behind verb-watcher cannot
+// #227 the deep-time age ladder — the campaign's world-history rungs, oldest first, and the
+// answer to the antiquity ratchet (the GM signalling that a new scene matters by making it
+// OLDER than the last, forever). Age is the one dial in the fiction with no stop on it, so the
+// ladder turns it into a CLOSED ENUM: a thing IS of a rung, it never gets to be "older".
+// NAMED deepTime, NEVER "eras" — memory.eras (#148) is the compiled PLAYED story, a different
+// concept entirely, and the collision would be permanent.
+// These caps are load-bearing twice over: a 20-rung ladder is not a ladder, and this text is
+// CACHED prompt (stable half) fed from a semi-trusted campaign file, so its size must be bounded.
+var DEEP_TIME_RUNGS_CAP=6;
+var DEEP_TIME_NAME_MAX=60;
+var DEEP_TIME_WHEN_MAX=90;
+var DEEP_TIME_NOTE_MAX=160;
 var TAG_LOG_CAP=40;
 var HEALTH_LOG_CAP=40; // #17 drift-health ring (worldState.healthLog): ONE observational {t,in,cr,rag,prov} per gameplay-turn call, written only by recordUsage, read only by healthIndicators (helpers.js) — never by any prompt or parser path
 var RETCON_PIN_SHELF=15;    // #147 (drift pass order 4): turns a CORRECTION IN FORCE pin survives un-filed before it archives LOUDLY — bounded so a stuck pin can never become permanent prompt noise (the one-shot-shelf discipline); a completed summarize extraction archives it earlier
@@ -265,7 +277,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.705";
+var APP_VERSION="v1.706";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

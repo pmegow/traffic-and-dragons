@@ -306,5 +306,22 @@
         "note": "Rewrote third rule to provide mechanical and narrative guidance for presenting Thassilonian rune magic: specified corruption mechanics (obsession, theft-urges, judgment-clouding), sacrifice requirements (blood, sanity, soul-debt), visible scarring, and the Sihedron's omnipresent hungry watching."
       }
     ]
-  }
+  },
+  "deepTime": [
+    {
+      "name": "Thassilon",
+      "when": "fell ten thousand years ago",
+      "note": "the sin-empire of the seven Runelords, whose monuments still stand"
+    },
+    {
+      "name": "the Chelish colonial era",
+      "when": "the last few centuries",
+      "note": "Korvosa founded and the empire's reach pushed into Varisia"
+    },
+    {
+      "name": "living memory",
+      "when": "the last two generations",
+      "note": "Sandpoint's founding and the Late Unpleasantness"
+    }
+  ]
 }

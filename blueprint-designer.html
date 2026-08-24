@@ -124,7 +124,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.37";
+var BP_DESIGNER_VERSION="v0.38";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -418,6 +418,25 @@ function render(){
   }
   h+="</div>";
   // Rules
+  // #227 the deep-time age ladder — world canon, oldest first, rung 1 is the hard ceiling.
+  // Deliberately NOT built on cardHead(): that helper's collapse-flag lookup is a hardcoded
+  // tsec chain that falls through to bp.locations[i], so a new section routed through it would
+  // read another list's flag. A rung is three short fields; collapsing it buys nothing.
+  var _dt=bp.deepTime||[];
+  h+="<div class='sect'>"+secH("dt","World Ages — the age ladder ("+_dt.length+")");
+  if(secOpen.dt!==false){
+  h+="<div class='empty' style='margin-bottom:8px;'>Oldest first. Rung 1 is the CEILING: nothing in this world may predate it, and the GM is held to that all campaign. Leave this empty to impose no ceiling at all.</div>";
+  for(i=0;i<_dt.length;i++){
+    var D=_dt[i];
+    h+="<div class='card'><div class='cardhead'><span class='cardlbl'>"+(i+1)+". "+esc(D.name||"(unnamed age)")+(i===0?" &mdash; CEILING":"")+"</span>"+movBtns("dt",i,0)+"</div>"
+      +"<div class='grid2'>"+fld("Name *",txt("dt",i,0,"name",D.name,"e.g. Thassilon"))
+      +fld("When",txt("dt",i,0,"when",D.when,"e.g. fell ten thousand years ago"))+"</div>"
+      +fld("Note",txt("dt",i,0,"note",D.note,"one short clause: what it was"))
+      +"</div>";
+  }
+  h+="<button class='addbtn' data-op='adddt' data-i='0' data-j='0'>+ Add age</button>";
+  }
+  h+="</div>";
   h+="<div class='sect'>"+secH("rules","Custom Narrative Rules ("+bp.rules.length+")");
   if(secOpen.rules!==false){
   if(!bp.rules.length)h+="<div class='empty'>None — the default rules still apply.</div>";
@@ -481,6 +500,7 @@ var FIELD_ROOTS={
   npc:function(i,j){return bp.npcs[i];},
   creature:function(i,j){return bp.creatures[i];},
   loc:function(i,j){return bp.locations[i];},
+  dt:function(i,j){return bp.deepTime&&bp.deepTime[i];},                              // #227 age ladder
   cclass:function(i,j){return bp.customClasses[i];},                                  // #192
   cabil:function(i,j){return bp.customClasses[i]&&bp.customClasses[i].abilities[j];}, // #192 starting-ability rows
   cfeat:function(i,j){return bp.customClasses[i]&&bp.customClasses[i].features[j];},  // #192 level-feature rows
@@ -575,6 +595,12 @@ document.addEventListener("click",function(e){
   else if(op==="delcfeat")bp.customClasses[i].features.splice(j,1);
   else if(op==="upcfeat")move(bp.customClasses[i].features,j,-1);
   else if(op==="downcfeat")move(bp.customClasses[i].features,j,1);
+  else if(op==="adddt"){if(!bp.deepTime)bp.deepTime=[];bp.deepTime.push({name:"",when:"",note:""});}
+  // Drop the field entirely when the last rung goes — normalizeBlueprint treats ABSENT as
+  // "no ceiling", and an empty husk would be written into every saved file for no reason.
+  else if(op==="deldt"){if(bp.deepTime){bp.deepTime.splice(i,1);if(!bp.deepTime.length)delete bp.deepTime;}}
+  else if(op==="updt"){if(bp.deepTime)move(bp.deepTime,i,-1);}
+  else if(op==="downdt"){if(bp.deepTime)move(bp.deepTime,i,1);}
   else if(op==="addrule")bp.rules.push("");
   else if(op==="delrule")bp.rules.splice(i,1);
   else if(op==="uprule")move(bp.rules,i,-1);
