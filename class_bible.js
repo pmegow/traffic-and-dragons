@@ -1552,7 +1552,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "The Walking Tempest",
-                "ds": "Once per day, stop pretending to be a person: become the storm outright for a scene — a moving column of wind, frost, and lightning that armies cannot hold and arrows cannot find.  \"Chain lighting\" and \"Thunder Wave\" auto cast, all attacks are enhanced with triple strength \"Booming Blade\"."
+                "ds": "Once per day, stop pretending to be a person: become the storm outright for a scene — a moving column of wind, frost, and lightning that armies cannot hold and arrows cannot find.  \"Chain Lightning\" and \"Thunder Wave\" auto cast, all attacks are enhanced with triple strength \"Booming Blade\"."
               }
             ]
           }
