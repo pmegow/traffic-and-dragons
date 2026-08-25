@@ -43,6 +43,37 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 23 — The arc wall: emergent thread scoping (#231, v1.714; Opus, owner-ruled)
+
+**Filed:** 2026-08-24. **Tracker:** TODO #231. **Touched:** `helpers.js` (`skeletonArcTitles`,
+`questIsEmergent`, `currentArcTitle`), `tag_table.js` (QUEST creation stamp, ARC_COMPLETE sweep),
+`api.js` (`buildArcWallNudge`, NOTE_BUILDERS + NOTE_LATCH_FIELDS), `globals.js`.
+
+**Why this is here.** Quest lifecycle teeth + an applyMuts write path that DELETES live quests +
+a new prompt channel. The destructive half is what wants the hardest look: no prior engine path
+archives a quest the player never touched.
+
+**What the reviewer should test hardest, in order:**
+
+1. **The sweep is the first engine path that destroys player-visible state on a schedule.** I made
+   it narrow three ways (spine-titled never stamped, unstamped immune, parallel acts stamp
+   nothing) and each is sabotage-pinned, but a reviewer should hunt for a fourth hole — especially
+   a quest whose title later CHANGES, or an arc whose title is edited by a repair tool: the stamp
+   is a title string, so a renamed arc orphans its progeny into permanent immunity (fails safe,
+   but silently). Consider whether the stamp should be an arc index or id instead.
+2. **`abandoned` now has two authors** (#229's player button and this sweep) and they are
+   indistinguishable in the archive. If the History UI or a future Table Talk answer needs to say
+   "you dropped this" vs "the story moved on", it cannot. A `by` field may be wanted.
+3. **The warning's runway may be wrong.** ARC_WALL_WARN_LEAD=15 fires relative to
+   ARC_TURN_BUDGET, but the #23 pacing nudge only fires when the arc is ALREADY over budget — so
+   a fast arc completes with no warning at all, and its threads die unannounced. That is arguably
+   correct (short arc, short leash) but it was not a deliberate design choice, it fell out of the
+   arithmetic. Decide.
+4. **Interaction with `[ARC_CONTINUE:]`.** An arc the GM legitimately keeps open never triggers
+   the wall, so a thread can still outlive its nominal budget indefinitely as long as the GM keeps
+   re-affirming the arc. #127's escalation is the only brake. Whether that is a loophole worth
+   closing is a judgement I did not make.
+
 ### 22 — Define item: player-initiated item canon (#230, v1.710; Opus, owner-requested)
 
 **Filed:** 2026-08-24. **Tracker:** TODO #230. **Touched:** `game.js` (`buildItemDefinePrompt`,

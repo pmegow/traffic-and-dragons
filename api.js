@@ -1411,6 +1411,28 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including EACH NEW PARAGRAPH of a continuing speech, and the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
+// #231 (the arc wall): RUNWAY, not a reprieve. The wall falls when the arc completes either way;
+// this note gives the GM ARC_WALL_WARN_LEAD turns of notice so it can land its own side threads in
+// fiction instead of having them archived out from under the story. Names the arc and every thread
+// that will die with it. Combat-silent (the sibling-note house rule) and cooldown-latched per arc.
+function buildArcWallNudge(){
+  if(!worldState||worldState.combat)return"";
+  if(typeof currentArcTitle!=="function")return"";
+  var arcT=currentArcTitle();if(!arcT)return"";
+  var sk=worldState.skeleton,i,j,arc=null;
+  for(i=0;i<sk.acts.length&&!arc;i++){if(sk.acts[i].status!=="active")continue;
+    for(j=0;j<sk.acts[i].arcs.length;j++){if(sk.acts[i].arcs[j].title===arcT){arc=sk.acts[i].arcs[j];break;}}}
+  if(!arc||arc.startTurn==null)return"";
+  if((worldState.turn-arc.startTurn)<(ARC_TURN_BUDGET-ARC_WALL_WARN_LEAD))return"";
+  var doomed=[],ql=worldState.questLog||[];
+  for(i=0;i<ql.length;i++){if(ql[i].bornArc&&String(ql[i].bornArc).toLowerCase()===String(arcT).toLowerCase()&&(ql[i].status==="active"||ql[i].status==="offered"))doomed.push(ql[i].title);}
+  if(!doomed.length)return"";
+  if(!worldState.arcWallWarned)worldState.arcWallWarned={};
+  var last=worldState.arcWallWarned[arcT];
+  if(last!=null&&(worldState.turn-last)<ARC_WALL_WARN_LEAD)return"";
+  worldState.arcWallWarned[arcT]=worldState.turn;
+  return "[ENGINE NOTE — ARC WALL APPROACHING (not a player action): the arc \""+arcT+"\" is nearing its end, and these side threads began inside it: "+doomed.join(", ")+". They are SUBORDINATE to the arc — when it completes they are closed automatically, whatever state they are in. If any of them matters, resolve it NOW in the fiction and emit [QUEST:<title>|completed] with its rewards; if it does not, let it go and stop giving it scenes. Do NOT open further side threads inside this arc. The main story outranks them all.]";
+}
 // #151 (drift pass order 7): the LATCH REGISTRY — every top-level worldState key a NOTE_BUILDERS
 // entry stamps or consumes while COMPOSING a request. sendAction snapshots these before
 // buildEngineNotes and restores them when the turn dies before commitGmTurn: a dead provider
@@ -1418,7 +1440,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -1440,7 +1462,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

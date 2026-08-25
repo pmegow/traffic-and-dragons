@@ -63,6 +63,7 @@ var MOOD_AUDIT_TURNS=12;    // v1.381: a party member's recorded MOOD older than
 var MOOD_AUDIT_COOLDOWN=12; // v1.381: at most one mood audit per this many turns. Frequency is the real lever on churn — every audit invites re-emission, and re-emission is where vocabulary leaks enter, so a fast audit would keep rolling the corruption dice on characters that were fine.
 var REL_AUDIT_TURNS=40;          // #61: at most one relationship audit per this many turns (buildRelationshipAudit, api.js) — bonds shift on a ~100-turn scale in the wild (t455/t472 Runelords), so 40 re-grounds without nagging; a party join/leave pulls the audit forward via worldState.relAuditDue
 var CONSUMABLE_RE=/\b(potion|elixir|draught|tonic|salve|poultice|scroll|charge|bomb|grenade|flask|vial|phial|dose|ration|torch|dust|powder|oil)s?\b/i; // #60: item base-names that read as per-use consumables even without an " xN" stack (a counted stack qualifies regardless). Deliberately EXCLUDES arrow/bolt — ammo is caught by the xN path when stacked, and per-shot nagging of unstacked ammo would be noise
+var ARC_WALL_WARN_LEAD=15;  // #231 (the closed-eye sprawl, owner ruling 2026-08-24 — HARD WALL): turns before an arc's ARC_TURN_BUDGET expires that buildArcWallNudge starts naming the emergent threads that will be closed with it. Runway, not a reprieve: the wall falls either way, but the GM gets told in time to land them in fiction. Doubles as the note's re-fire cooldown.
 var SPLIT_AUDIT_TURNS=10;   // #133 (t1431/B21 stale-split finding): a charSheet.splitLoc older than this (or LEGACY-unstamped — infinitely old, the #46 precedent) gets the buildSplitAudit neutral-fork note (rejoin or re-affirm); doubles as the per-member re-fire cooldown. Only [PARTY_SPLIT:] tags resolve it — the record never commands the story
 var PRESENCE_AUDIT_TURNS=12; // #137 (t1467 phantom-presence finding): every N turns the PRESENCE CHECK note asks the GM to confirm each WITH-party member is physically in the scene or emit [PARTY_SPLIT:] — the inverse of buildSplitAudit (which can only police records that EXIST). Deterministic: catches the Morwen class the stay-behind verb-watcher cannot
 // #227 the deep-time age ladder — the campaign's world-history rungs, oldest first, and the
@@ -277,7 +278,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.713";
+var APP_VERSION="v1.714";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

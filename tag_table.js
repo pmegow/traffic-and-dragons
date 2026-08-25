@@ -579,7 +579,7 @@ var TAG_TABLE=[
           if(typeof showToast==="function")showToast("⚠ "+qTitle+": "+_any.join(", ")+" arrived with a blocked re-completion (original close paid "+(_orig.join(", ")||"nothing")+") — check the sheet; Sync can correct");}}
       continue;}}
   if(qIdx>=0){worldState.questLog[qIdx].lastTouch=R.turn;delete worldState.questLog[qIdx].staleNudged;}/* #191ⓑ: any QUEST tag naming a live row is a touch — resets the staleness clock and re-arms the review latch (re-emitting [QUEST:title|active] is the documented zero-vocabulary ack) */
-  if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn,lastTouch:R.turn});if(qStat==="offered"){if(typeof Sound!=="undefined")Sound.play("click_glass");/* TODO #7: side-effect only — never touches parse/mutation flow. BEFORE the toast so it claims the playIfQuiet window and the toast-level poke steps aside */if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
+  if(qIdx<0){var _qNew={title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn,lastTouch:R.turn};/* #231 the arc wall: stamp the arc that bore this thread. EMERGENT quests only (a spine-titled quest belongs to the authored story), and only when the parent is unambiguous — an unstamped quest is permanently immune, which is the fail-safe every legacy save relies on. */if(typeof questIsEmergent==="function"&&questIsEmergent(qTitle)&&typeof currentArcTitle==="function"){var _qArc=currentArcTitle();if(_qArc)_qNew.bornArc=_qArc;}worldState.questLog.push(_qNew);if(qStat==="offered"){if(typeof Sound!=="undefined")Sound.play("click_glass");/* TODO #7: side-effect only — never touches parse/mutation flow. BEFORE the toast so it claims the playIfQuiet window and the toast-level poke steps aside */if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
   if(qStat==="completed"||qStat==="failed"){
     // UA42: player-visible closure — the toast names the same-response rewards so a close never
     // again passes in silence (two Playtest-2 completions had ZERO feedback). Positive gold only:
@@ -884,6 +884,30 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
         if(_act.arcs[_sj].title.toLowerCase()!==_ad.toLowerCase())continue;/* #136① RULING (oversight, not design): the title is validated for SEQUENTIAL acts too — the old parallel-only guard let a hallucinated/misspelled title close the running arc silently (Sol's probe closed "True Arc" via "Totally Wrong"), while the strict sibling ARC_CONTINUE proves the intended discipline. The #127 escalation machinery re-demands the fork if the arc is genuinely finished under another name. */
         _act.arcs[_sj].status="completed";_matched=true;
         R.muts.push("Arc complete: "+_act.arcs[_sj].title);
+        /* #231 THE ARC WALL (owner ruling 2026-08-24, hard wall — no promotion path). Field
+           evidence: the closed-eye thread reached 18 quests (1.8x the entire 10-arc spine) and
+           spanned 63% of the campaign because it outlived its parent arc by ~1000 turns across
+           ~8 arc boundaries, unnoticed. An emergent thread now dies with the arc that bore it:
+           live progeny archive as "abandoned" — the #229 status, so the reopen guard blocks a
+           force-reactivation while a fresh [QUEST:|offered] may still bring it back if the story
+           genuinely re-raises it. Only STAMPED EMERGENT quests are ever touched. */
+        var _wallArc=_act.arcs[_sj].title,_wk,_walled=[];
+        for(_wk=worldState.questLog.length-1;_wk>=0;_wk--){
+          var _wq=worldState.questLog[_wk];
+          if(!_wq.bornArc||String(_wq.bornArc).toLowerCase()!==String(_wallArc).toLowerCase())continue;
+          if(_wq.status!=="active"&&_wq.status!=="offered")continue;
+          if(!memory.quests)memory.quests={};
+          memory.quests[_wq.title]={title:_wq.title,desc:_wq.desc||"",objectives:_wq.objectives||[],status:"abandoned",turn:R.turn};
+          worldState.questLog.splice(_wk,1);
+          _walled.push(_wq.title);
+        }
+        if(_walled.length){
+          _walled.reverse();
+          R.muts.push("Arc wall: "+_walled.length+" side thread"+(_walled.length>1?"s":"")+" closed with the arc — "+_walled.join(", "));
+          if(typeof showToast==="function")showToast("⧉ "+_walled.length+" side thread"+(_walled.length>1?"s":"")+" closed with the arc");
+          if(typeof addMsg==="function")addMsg("system","Closed with the arc: "+_walled.join(", ")+" — side threads do not outlive the arc that began them.");
+          if(typeof console!=="undefined")console.warn("[quest] #231 arc wall — \""+_wallArc+"\" closed, sweeping its emergent progeny: "+_walled.join(", "));
+        }
         if(!_act.parallel&&_sj+1<_act.arcs.length){_act.arcs[_sj+1].status="active";_act.arcs[_sj+1].startTurn=worldState.turn;/* #23 per-arc pacing clock starts now */R.muts.push("New arc: "+_act.arcs[_sj+1].title);}
         break;
       }

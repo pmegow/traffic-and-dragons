@@ -6214,6 +6214,104 @@ function runEngineTests(R){
   });
 
   // ── UA31: arc↔quest coupling nudge (the AUDIT_PLAYTHRU desync) ───────────────
+  // ── #231 — the ARC WALL: emergent threads are scoped to the arc that bore them ────────────
+  // Owner ruling 2026-08-24 (HARD WALL, no promotion path), from the finished Runelords campaign:
+  // one emergent thread (closed-eye/Spire) grew to 18 quests — 1.8x the ENTIRE authored spine of
+  // 10 arcs — and spanned 1,458 of 2,324 turns (63% of the campaign). It began legitimately inside
+  // Act 1's "The Skinsaw Man" arc and then OUTLIVED its parent by ~1000 turns across ~8 arc
+  // boundaries with nothing ever asking whether it should still exist. Owner: "by the end of that
+  // campaign I just wanted it over, and that is the OPPOSITE of how a player should feel near the
+  // end." The giants thread (7 quests) was fine precisely BECAUSE it died with its arc.
+  // Wall: a quest born under an arc is stamped with it; when that arc completes, live progeny are
+  // archived "abandoned" (the #229 status — reopen guard blocks |active, permits a fresh |offered).
+  // Fail-safe by construction: only STAMPED, EMERGENT quests are ever swept.
+  section("#231 — the arc wall (emergent thread scoping)");
+  function __wallWorld(){
+    makeWorld();worldState.turn=40;
+    worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[
+      {title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20},
+      {title:"The Fort and the Dam",objective:"o",status:"pending"}
+    ]}]};
+    worldState.questLog=[];
+  }
+  t("#231: an emergent quest is stamped with the arc that bore it; a SPINE-titled quest never is",function(){
+    __wallWorld();
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.]");
+    var q=worldState.questLog[0];
+    if(q.bornArc!=="The Skinsaw Man")return "emergent quest not stamped with its parent arc: "+JSON.stringify(q.bornArc);
+    applyMuts("[QUEST:The Skinsaw Man|active|The authored arc's own quest.]");
+    var sp=worldState.questLog.filter(function(x){return x.title==="The Skinsaw Man";})[0];
+    return sp.bornArc===undefined?true:"a spine-titled quest was stamped and would be swept by its own arc: "+JSON.stringify(sp.bornArc);
+  });
+  t("#231: THE WALL — completing an arc archives its live emergent progeny as abandoned, loudly",function(){
+    __wallWorld();
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.]");
+    applyMuts("[QUEST:A Rumor In Town|offered|Someone's problem.]");
+    if(worldState.questLog.length!==2)return "precondition: two emergent quests expected";
+    var R=applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    if(worldState.questLog.length!==0)return "progeny survived the wall: "+JSON.stringify(worldState.questLog.map(function(q){return q.title;}));
+    if(!memory.quests["The Sugar War"]||memory.quests["The Sugar War"].status!=="abandoned")return "active progeny not archived abandoned";
+    if(!memory.quests["A Rumor In Town"]||memory.quests["A Rumor In Town"].status!=="abandoned")return "OFFERED progeny survived — an untaken hook is the purest sprawl";
+    if(memory.quests["The Sugar War"].desc!=="Rob the sweetshop.")return "archive lost desc (History renders bare)";
+    return /closed with the arc|arc wall/i.test(R.muts.join(" "))?true:"the wall left no visible muts line: "+R.muts.join("; ");
+  });
+  t("#231: an OFFERED thread is swept too — an untaken hook is the purest sprawl",function(){
+    __wallWorld();
+    applyMuts("[QUEST:A Rumor In Town|offered|Someone's problem.]");
+    if(worldState.questLog.length!==1)return "precondition: the offered quest did not register";
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    if(worldState.questLog.length!==0)return "the offered hook outlived its arc";
+    return memory.quests["A Rumor In Town"]&&memory.quests["A Rumor In Town"].status==="abandoned"?true:"offered hook not archived abandoned";
+  });
+  t("#231: a PARALLEL act stamps NOTHING — an ambiguous parent would sweep innocents",function(){
+    __wallWorld();
+    var act=worldState.skeleton.acts[0];
+    act.parallel=true;act.arcs[1].status="active";/* two arcs live at once — which one bore the quest? */
+    applyMuts("[QUEST:Ambiguous Child|active|Born under two arcs at once.]");
+    var q=worldState.questLog.filter(function(x){return x.title==="Ambiguous Child";})[0];
+    if(q.bornArc!==undefined)return "a parallel act guessed a parent: "+JSON.stringify(q.bornArc)+" — completing EITHER arc would sweep this quest";
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    return worldState.questLog.filter(function(x){return x.title==="Ambiguous Child";}).length===1?true:"the unstamped parallel-act quest was swept anyway";
+  });
+  t("#231: the wall is NARROW — another arc's progeny, unstamped legacy quests, and spine quests all survive",function(){
+    __wallWorld();
+    applyMuts("[QUEST:Mine To Keep|active|Born under this arc.]");
+    worldState.questLog.push({title:"Legacy Quest",status:"active",desc:"pre-#231 save",objectives:[],started:1,lastTouch:1});
+    worldState.questLog.push({title:"Other Arc Kid",status:"active",desc:"",objectives:[],started:1,lastTouch:1,bornArc:"Some Other Arc"});
+    worldState.questLog.push({title:"The Skinsaw Man",status:"active",desc:"the spine quest",objectives:[],started:1,lastTouch:1});
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    var live=worldState.questLog.map(function(q){return q.title;});
+    if(live.indexOf("Mine To Keep")>=0)return "the arc's own progeny survived the wall";
+    if(live.indexOf("Legacy Quest")<0)return "an UNSTAMPED legacy quest was swept — its parent is unknowable, it must be immune";
+    if(live.indexOf("Other Arc Kid")<0)return "another arc's progeny was swept";
+    if(live.indexOf("The Skinsaw Man")<0)return "the spine quest sharing the arc's title was swept by its own arc completing";
+    return true;
+  });
+  t("#231: a walled quest cannot be force-reactivated, but the world may re-offer it (#229 reopen guard)",function(){
+    __wallWorld();
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.]");
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    applyMuts("[QUEST:The Sugar War|active]");
+    if(worldState.questLog.length)return "a walled thread was force-reactivated — the wall undoes itself";
+    applyMuts("[QUEST:The Sugar War|offered|It comes back around.]");
+    var live=worldState.questLog.filter(function(q){return q.title==="The Sugar War";});
+    return live.length===1&&live[0].status==="offered"?true:"the world may re-RAISE a walled thread as an offer — blocked";
+  });
+  t("#231: buildArcWallNudge warns BEFORE the wall — names the doomed threads, silent when there are none",function(){
+    __wallWorld();
+    worldState.turn=20+ARC_TURN_BUDGET-ARC_WALL_WARN_LEAD;/* exactly at the lead edge */
+    if(buildArcWallNudge()!=="")return "warned with no live progeny";
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.]");
+    var n=buildArcWallNudge();
+    if(n.indexOf("The Sugar War")<0)return "warning does not name the doomed thread: "+n;
+    if(n.indexOf("The Skinsaw Man")<0)return "warning does not name the arc that will close it: "+n;
+    if(n.indexOf("ENGINE NOTE")<0)return "not marked an engine note";
+    if(buildArcWallNudge()!=="")return "no cooldown — would warn every turn";
+    worldState.turn=15;/* early in the arc, far from the wall */
+    delete worldState.arcWallWarned;
+    return buildArcWallNudge()===""?true:"warned while the arc still has plenty of runway";
+  });
+
   section("arc↔quest coupling (UA31)");
   function __arcQuestWorld(){
     makeWorld();worldState.turn=40;

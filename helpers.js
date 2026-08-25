@@ -350,6 +350,34 @@ function detectPartyAbsenceCorrection(text,partyNames){
   }
   return null;
 }
+// #231 (the arc wall): the two pure predicates the wall rests on. A quest is EMERGENT when its
+// title matches no arc in the skeleton — any act, any status: a spine-titled quest belongs to the
+// authored story and must never be swept by its own arc completing. skeletonArcTitles() is the
+// single source both the stamp and the sweep read, so they can never disagree about what "spine"
+// means (the two-surfaces-drift class).
+function skeletonArcTitles(){
+  var out={},sk=(typeof worldState!=="undefined"&&worldState&&worldState.skeleton)||null,i,j;
+  if(!sk||!sk.acts)return out;
+  for(i=0;i<sk.acts.length;i++){var arcs=sk.acts[i].arcs||[];for(j=0;j<arcs.length;j++){if(arcs[j].title)out[String(arcs[j].title).toLowerCase()]=1;}}
+  return out;
+}
+function questIsEmergent(title){
+  if(!title)return false;
+  return !skeletonArcTitles()[String(title).toLowerCase()];
+}
+// The arc a quest born RIGHT NOW belongs to: the single active arc of the single active act.
+// Returns null under ambiguity (no skeleton, no active act, or a PARALLEL act with several arcs
+// live) — an unstamped quest is immune to the wall, and guessing a parent would sweep innocents.
+function currentArcTitle(){
+  var sk=(typeof worldState!=="undefined"&&worldState&&worldState.skeleton)||null,i,j;
+  if(!sk||!sk.acts)return null;
+  var act=null;
+  for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){act=sk.acts[i];break;}}
+  if(!act||!act.arcs)return null;
+  var live=[];
+  for(j=0;j<act.arcs.length;j++){if(act.arcs[j].status==="active")live.push(act.arcs[j]);}
+  return live.length===1?live[0].title:null;
+}
 function partyCompanionsWithSheets(includeDead){
   var out=[],ns=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[],i;
   for(i=0;i<ns.length;i++){var n=ns[i];if(n&&n.partyMember&&n.charSheet&&(includeDead||!npcIsDead(n)))out.push(n);}
