@@ -730,7 +730,8 @@ var CLASS_BIBLE = {
         "Greater Invisibility",
         "Banishment",
         "Polymorph",
-        "Archmage Hand"
+        "Archmage Hand",
+        "Stolen Voice"
       ],
       "5": [
         "Cone of Cold",
@@ -1329,8 +1330,8 @@ var CLASS_BIBLE = {
       "2": {
         "features": [
           {
-            "nm": "Danger Sense",
-            "ds": "advantage on DEX saves vs visible effects."
+            "nm": "Gathering Rage",
+            "ds": "Each attack after the first increases damage done by 10%"
           }
         ]
       },
@@ -1456,7 +1457,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "Blood Price",
-                "ds": "Wounds feed the fury: every time you're hurt while raging, your next attack hits +2 harder. They can stop you or they can hurt you — not both."
+                "ds": "taking damage increases the damage you cause by an additional 10% on top of \"Gathering Rage\" bonus."
               }
             ]
           },
@@ -1480,7 +1481,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "Rage Undying",
-                "ds": "Frenzy no longer ends while enemies stand and costs no exhaustion after — and the first time each day you'd drop mid-frenzy, you stand back up at 1 HP, angrier."
+                "ds": "Frenzy no longer ends while enemies stand and costs no exhaustion after — and the first time each day you'd drop mid-frenzy, you stand back up at 1 HP, with a 100% damage bonus."
               }
             ]
           },
@@ -1496,7 +1497,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "The Last Red Day",
-                "ds": "Once, declare the Last Red Day: until the battle ends you cannot die, cannot tire, and cannot be stopped by anything smaller than the battle itself. When it ends you sleep for a week — win or lose."
+                "ds": "Once per campaign, declare the Last Red Day: until the battle ends you cannot die, cannot tire, and cannot be stopped by anything smaller than the battle itself. When it ends you sleep for a week — win or lose."
               }
             ]
           }
@@ -1551,7 +1552,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "The Walking Tempest",
-                "ds": "Once per day, stop pretending to be a person: become the storm outright for a scene — a moving column of wind, frost, and lightning that armies cannot hold and arrows cannot find."
+                "ds": "Once per day, stop pretending to be a person: become the storm outright for a scene — a moving column of wind, frost, and lightning that armies cannot hold and arrows cannot find.  \"Chain lighting\" and \"Thunder Wave\" auto cast, all attacks are enhanced with triple strength \"Booming Blade\"."
               }
             ]
           }
@@ -1903,45 +1904,50 @@ var CLASS_BIBLE = {
         "Bless",
         "Guiding Bolt",
         "Shield of Faith",
-        "Command",
-        "Sanctuary",
         "Detect Magic"
       ],
       "2": [
         "Spiritual Weapon",
-        "Hold Person",
         "Lesser Restoration",
         "Augury",
-        "Zone of Truth"
+        "Zone of Truth",
+        "Command"
       ],
       "3": [
         "Spirit Guardians",
         "Revivify",
-        "Dispel Magic"
+        "Dispel Magic",
+        "Aura of Vitality",
+        "Devil's Trap",
+        "Hold Person",
+        "Holy Ground"
       ],
       "4": [
         "Divination",
         "Death Ward",
         "Guardian of Faith",
-        "Freedom of Movement"
+        "Freedom of Movement",
+        "Holy Ground"
       ],
       "5": [
         "Flame Strike",
         "Mass Cure Wounds",
         "Greater Restoration",
-        "Resurrection"
+        "Resurrection",
+        "Penance"
       ],
       "6": [
         "Heal",
-        "Blade Barrier",
-        "Heroes' Feast"
+        "Heroes' Feast",
+        "Damn"
       ],
       "cantrips": [
         "Sacred Flame",
         "Guidance",
         "Spare the Dying",
         "Thaumaturgy",
-        "Succor"
+        "Succor",
+        "Sanctuary"
       ]
     },
     "levels": {
@@ -2204,8 +2210,8 @@ var CLASS_BIBLE = {
         "ds": "Secret language of druids. Leave hidden messages in nature."
       },
       {
-        "nm": "Speak with Animals",
-        "ds": "Communicate with beasts. They share what they have sensed."
+        "nm": "Identify Plants and Animals",
+        "ds": "Accurately identify plants and animals including alchemical uses (plants) and abilities / behavior (animals)"
       }
     ],
     "skillSeeds": [
@@ -2225,40 +2231,47 @@ var CLASS_BIBLE = {
         "Entangle",
         "Healing Word",
         "Thunderwave",
-        "Faerie Fire"
+        "Faerie Fire",
+        "The Wild Run"
       ],
       "2": [
         "Moonbeam",
         "Barkskin",
-        "Pass Without Trace"
+        "Pass Without Trace",
+        "Wall of Thorns",
+        "Control Water"
       ],
       "3": [
         "Call Lightning",
         "Conjure Animals",
-        "Plant Growth"
+        "Plant Growth",
+        "Venomous Undergrowth"
       ],
       "4": [
         "Blight",
         "Dominate Beast",
-        "Control Water",
-        "Giant Insect"
+        "Giant Insect",
+        "Flash Flood"
       ],
       "5": [
         "Insect Plague",
         "Tree Stride",
         "Wall of Stone",
-        "Awaken"
+        "Awaken",
+        "Wall of Thorns"
       ],
       "6": [
         "Sunbeam",
-        "Wall of Thorns",
-        "Wind Walk"
+        "Wind Walk",
+        "Earthquake",
+        "Star Fall"
       ],
       "cantrips": [
         "Produce Flame",
         "Shillelagh",
         "Druidcraft",
-        "Thorn Whip"
+        "Thorn Whip",
+        "Quills"
       ]
     },
     "levels": {
@@ -2281,8 +2294,8 @@ var CLASS_BIBLE = {
       "7": {
         "features": [
           {
-            "nm": "Timeless Body",
-            "ds": "age at 1/10 normal rate."
+            "nm": "Poison Immunity",
+            "ds": "natural poisons / venoms have no effect."
           }
         ]
       },
@@ -2329,55 +2342,55 @@ var CLASS_BIBLE = {
     },
     "archetypes": [
       {
-        "id": "land",
-        "nm": "Circle of the Land",
-        "desc": "Ancient magic of terrain. Bonus spells by terrain type. Natural Recovery of spell slots.",
+        "id": "stars",
+        "nm": "Circle of Stars",
+        "desc": "The night sky as armory and oracle. Wear constellations, read omens, call starlight down as a weapon.",
         "levels": {
           "3": {
             "features": [
               {
-                "nm": "Homeground",
-                "ds": "Choose your land — forest, desert, mountain, swamp, or coast. On it you are unmistakable: regain one spent cast per scene, and its creatures treat you as an elder of their own."
+                "nm": "Wear the Sky",
+                "ds": "Star-charts live under your skin: each night choose a constellation to wear — the Archer (bolts of starlight, 1d8 radiant, 60ft, no mana), the Chalice (your healing spells splash 1d6 to a second ally within reach), or the Serpent (you shed dim starlight, and foes who strike you from beside it take 1d6 radiant back). The chosen stars glimmer through your skin while you work."
               }
             ]
           },
           "6": {
             "features": [
               {
-                "nm": "The Land Provides",
-                "ds": "Your land feeds, hides, and heals your own: foraging always succeeds, camps are never found unless you wish it, and natural rest heals double."
+                "nm": "Read the Night",
+                "ds": "The sky briefs you: once per scene, ask the stars one question about what is coming and receive a true sign. Any ally you share the sign with carries its light — +2 on the one roll it warned them about."
               }
             ]
           },
           "10": {
             "features": [
               {
-                "nm": "Read the Ley",
-                "ds": "You see the lines of power under any terrain — sacred sites, poisoned ground, buried things. Once per day, borrow a ley line: one spell cast at full strength, free."
+                "nm": "The Falling Star",
+                "ds": "Once per day, call a piece of the sky down: 4d10 radiant in a 10ft ring and every foe inside knocked from their feet. The crater glows until dawn, and nothing inside its light can hide from you — not behind stone, spell, or skin."
               }
             ]
           },
           "14": {
             "features": [
               {
-                "nm": "All Ground Is Homeground",
-                "ds": "Every natural terrain now counts as your land, and hostile magic that would blight soil, water, or growing things simply fails within your sight."
+                "nm": "Half Made of Night",
+                "ds": "Starlight thins you: blades and arrows dim as they land (resistance to nonmagical weapons), you no longer need sleep or breath — you keep watch the way the stars do — and moonlight and starlight bear your weight as solid ground."
               }
             ]
           },
           "18": {
             "features": [
               {
-                "nm": "The Land Remembers",
-                "ds": "Wake the memory of a place for a scene: the drowned village rises walkable, the razed forest stands ghost-green, and what happened there plays out for every eye you choose."
+                "nm": "The Moving Heavens",
+                "ds": "The constellations answer mid-fight: wear two at once and swap either each round. The sky over your battles is always the sky YOU need — dark for your rogues, bright for your archers, starless and silent for your escape."
               }
             ]
           },
           "20": {
             "features": [
               {
-                "nm": "Keeper of the Green",
-                "ds": "One region — a forest, a valley, a coastline — takes you as its keeper: it prospers or withers on your word, warns you of every intrusion, and no power younger than the hills can claim it while you live."
+                "nm": "The Sky Entire",
+                "ds": "Once per day, bring the sky down to arm's reach for a scene: the field becomes open heaven — your party walks on air that holds, falls simply refuse to happen, every foe stands lit by prosecutor starlight (no hiding, no feints, no borrowed faces), and one star of your choosing keeps an old promise: the first ally who would die that scene, instead, does not."
               }
             ]
           }
@@ -2439,55 +2452,55 @@ var CLASS_BIBLE = {
         }
       },
       {
-        "id": "spores",
-        "nm": "Circle of Spores",
-        "desc": "Halo of Spores necrotic damage. Symbiotic Entity -- enhanced Wild Shape for combat.",
+        "id": "flame",
+        "nm": "Circle of Flame",
+        "desc": "Wildfire in service of renewal: flame that chooses what it burns, heals what it loves, and leaves the land greener than it found it.",
         "levels": {
           "3": {
             "features": [
               {
-                "nm": "The Quiet Bloom",
-                "ds": "Your spores ride every breath within 10ft: foes you choose take 1d6 necrotic each round they linger, and you feel every living and dead thing your cloud touches."
+                "nm": "Kindled Heart",
+                "ds": "A mote of living wildfire rides with you: hurl it each round (1d8 fire, 30ft, no mana), and it never touches what you love — your fire cannot harm an ally unless you will it."
               }
             ]
           },
           "6": {
             "features": [
               {
-                "nm": "Rot into Life",
-                "ds": "Death feeds the circle: when a creature dies inside your bloom, choose — take its vigor as your own (temporary HP), or let its corpse serve until scene's end as a spore-walker."
+                "nm": "Cleansing Burn",
+                "ds": "Your flames read intent: allies standing in fire you made take no harm and knit closed instead (1d6 HP each round), and your fire ignores resistance — the wild flame is older than any ward built against it."
               }
             ]
           },
           "10": {
             "features": [
               {
-                "nm": "Gardener of Corpses",
-                "ds": "Your spore-walkers persist and multiply — up to three at once — and each bursts when destroyed (2d8 necrotic cloud). Waste nothing; the circle doesn't."
+                "nm": "Flamestep",
+                "ds": "Step into any fire you can see and out of any other: a candle is a door, a burning village is a hall of doors. Once per scene, arrive as a burst — 2d8 fire around your exit, allies excepted, as always."
               }
             ]
           },
           "14": {
             "features": [
               {
-                "nm": "Flesh Is a Season",
-                "ds": "Decay keeps your calendar now: rot stone, wood, and iron with a touch, hold a corpse or harvest fresh indefinitely — and your own green-riddled body no longer bleeds, sickens, or takes poison."
+                "nm": "The Green Ash",
+                "ds": "Ground your fire has touched is yours for a season: it regrows overnight — greener, taller, wilder — and while you stand on land you have burned and reborn, your casts cost one less mana (minimum 1) and fire cannot harm you at all."
               }
             ]
           },
           "18": {
             "features": [
               {
-                "nm": "The Patient Kingdom",
-                "ds": "Everything fungal within a mile is your eyes and hands: word crosses the forest floor in minutes, and ground you claim becomes a slow trap — spoiled stores, sapped strength, dread with no visible source."
+                "nm": "Firestorm Shepherd",
+                "ds": "Once per day, whistle up a wildfire the size of a hill and walk it like a hound: it moves where you point, spares every living thing you name, and where it has passed, flowers open by morning. Armies break before it; forests thank you after."
               }
             ]
           },
           "20": {
             "features": [
               {
-                "nm": "All Things Return",
-                "ds": "Once — only once — when anything dies within your bloom, friend, foe, or you, refuse the death: it is composted, and the creature stands back up whole. The circle takes a year of your life as tithe, and a ring of pale mushrooms marks the spot forever."
+                "nm": "The First Fire",
+                "ds": "Once — only once — when something ends before your eyes — a life, a forest, a town — you may set the First Fire in the wound: the dead thing burns for a single heartbeat and stands back up new-grown and whole. The fire keeps your warmth as its tithe: ever after, flames bow away from you, and you will never be warm again."
               }
             ]
           }
