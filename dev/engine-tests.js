@@ -5998,6 +5998,31 @@ function runEngineTests(R){
     applyMuts("[QUEST:Ongoing|completed]");
     return memory.quests["Ongoing"]&&memory.quests["Ongoing"].status==="completed"&&worldState.questLog.length===0?true:"live upsert broken";
   });
+  // ── joint f19 — quest-journal mutations cannot race an in-flight GM turn ───────────────
+  // ui-modals.js is deliberately a thin DOM shell, so this contract reads the shipped source:
+  // the failure condition is authorization of any journal write while global `busy` is true.
+  section("quest journal busy gate (joint f19)");
+  t("joint f19: the shared gate checks busy and gives the quiet wait-for-the-turn toast",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
+    if(!/function _questJournalBusy\(\)\{if\(typeof busy!=="undefined"&&busy\)\{if\(typeof showToast==="function"\)showToast\("Wait for the GM's turn to finish\."\);return true;\}return false;\}/.test(src))return "shared gate or quiet toast missing";
+    return true;
+  });
+  t("joint f19: Accept, Decline, and Abandon all refuse through the shared gate before mutation",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
+    var names=["_confirmAbandonQuest","acceptQuest","declineQuest"],i;
+    for(i=0;i<names.length;i++){
+      var re=new RegExp("function "+names[i]+"\\([^)]*\\)\\{\\s*if\\(_questJournalBusy\\(\\)\\)return;");
+      if(!re.test(src))return names[i]+" can still mutate while busy";
+    }
+    return true;
+  });
+  t("joint f19: Suggest completion uses the same journal gate instead of a divergent copy",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
+    return /\[data-qsug\][\s\S]{0,300}if\(_questJournalBusy\(\)\)return;/.test(src)?true:"Suggest completion does not share the journal gate";
+  });
   // ── #229 — quest journal: Abandon + Suggest completion (owner request 2026-08-24) ──────────
   // Two per-quest journal buttons. Abandon = the player kills a steering attractor (field
   // origin: the t2324 bell quest — an uncompletable active quest steered 50 of 120 turns).

@@ -479,6 +479,7 @@ function showItemDefConfirmModal(){
   wire();
 }
 // ── Quest journal ─────────────────────────────────────────────────────────────
+function _questJournalBusy(){if(typeof busy!=="undefined"&&busy){if(typeof showToast==="function")showToast("Wait for the GM's turn to finish.");return true;}return false;}
 function showQuestModal(){
   var ql=(worldState&&worldState.questLog)||[];
   function objList(q){if(!q.objectives||!q.objectives.length)return"";var h="<div style='margin-top:6px;'>",oj;for(oj=0;oj<q.objectives.length;oj++){var o=q.objectives[oj];h+="<div style='font-size:12px;color:"+(o.done?"var(--t2)":"var(--t1)")+";margin:2px 0;'>"+(o.done?"☑":"☐")+" "+escHtml(o.text)+(o.optional?" <span style='color:var(--t2);'>(optional)</span>":"")+"</div>";}return h+"</div>";}
@@ -536,13 +537,14 @@ function showQuestModal(){
   Array.prototype.forEach.call(modal.querySelectorAll("[data-qdec]"),function(b){b.addEventListener("click",function(){declineQuest(b.getAttribute("data-qdec"));});});
   // #229 — wired by TITLE like the pair above (audit E24: applyMuts can splice while open).
   Array.prototype.forEach.call(modal.querySelectorAll("[data-qsug]"),function(b){b.addEventListener("click",function(){
-    if(typeof busy!=="undefined"&&busy){if(typeof showToast==="function")showToast("The GM is busy — try again in a moment.");return;}
+    if(_questJournalBusy())return;
     modal.remove();suggestQuestCompletion(b.getAttribute("data-qsug"));
   });});
   Array.prototype.forEach.call(modal.querySelectorAll("[data-qaband]"),function(b){b.addEventListener("click",function(){_confirmAbandonQuest(b.getAttribute("data-qaband"));});});
 }
 // #229: the Abandon confirmation (state op = abandonQuestState, api.js — this is only the shell).
 function _confirmAbandonQuest(title){
+  if(_questJournalBusy())return;
   var m=modalShell("quest-abandon-confirm",
     "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:10px;'>Abandon quest?</div>"
     +"<div style='font-size:13px;color:var(--t1);margin-bottom:6px;'>"+escHtml(title)+"</div>"
@@ -553,6 +555,7 @@ function _confirmAbandonQuest(title){
     {z:320,maxWidth:380,closeId:"qab-no",outside:true});
   var yes=document.getElementById("qab-yes");
   if(yes)yes.addEventListener("click",function(){
+    if(_questJournalBusy())return;
     m.remove();
     if(abandonQuestState(title)){saveAll();if(typeof syncUI==="function")syncUI();if(typeof showToast==="function")showToast("Quest abandoned: "+title);}
     else if(typeof showToast==="function")showToast("Could not abandon — quest not found or not active.");
@@ -576,11 +579,13 @@ function showQuestDecisionsModal(title,changed,explanation){
 }
 // Resolve by title + offered status (audit E24) so a shifted index can't accept/decline the wrong quest.
 function acceptQuest(title){
+  if(_questJournalBusy())return;
   if(!worldState||!worldState.questLog)return;
   var i;for(i=0;i<worldState.questLog.length;i++){if(worldState.questLog[i].title===title&&worldState.questLog[i].status==="offered"){worldState.questLog[i].status="active";saveAll();syncUI();if(typeof showToast==="function")showToast("Quest accepted: "+title);break;}}
   showQuestModal();
 }
 function declineQuest(title){
+  if(_questJournalBusy())return;
   if(!worldState||!worldState.questLog)return;
   var i;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(q.title===title&&q.status==="offered"){if(!memory.quests)memory.quests={};memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"declined",turn:worldState.turn||0};worldState.questLog.splice(i,1);saveAll();syncUI();if(typeof showToast==="function")showToast("Quest declined: "+title);break;}}
   showQuestModal();

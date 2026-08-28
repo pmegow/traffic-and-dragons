@@ -1,6 +1,6 @@
 // sabotage-229-quest-journal.js — mutation proof for the #229 quest-journal teeth.
 //
-// Three guards, each with a dedicated failing-first engine test; each clause below must make
+// The journal guards each have a dedicated failing-first engine/source test; each clause below must make
 // dev/run-tests.js FAIL, and a mutation that changes no bytes is itself a hard failure.
 // ① the reopen guard's abandoned clause (tag_table.js) — without it the "active crises ARE
 //    quests" channel force-reactivates the very goal the player just dropped;
@@ -10,6 +10,33 @@
 // Usage: node dev/sabotage-229-quest-journal.js
 var sabotage = require("./sabotage.js");
 var rc = 0;
+
+rc |= sabotage.prove({
+  file: "ui-modals.js",
+  command: ["node", ["dev/run-tests.js", "quest journal busy gate"]],
+  cases: [
+    { label: "joint f19: the shared journal gate stops checking the in-flight turn latch",
+      mustFail: "shared gate or quiet toast missing",
+      find: 'function _questJournalBusy(){if(typeof busy!=="undefined"&&busy){',
+      replace: 'function _questJournalBusy(){if(false){' },
+    { label: "joint f19: Accept bypasses the journal gate and can race the committing response",
+      mustFail: "acceptQuest can still mutate while busy",
+      find: 'function acceptQuest(title){\n  if(_questJournalBusy())return;',
+      replace: 'function acceptQuest(title){' },
+    { label: "joint f19: Decline bypasses the journal gate and can race the committing response",
+      mustFail: "declineQuest can still mutate while busy",
+      find: 'function declineQuest(title){\n  if(_questJournalBusy())return;',
+      replace: 'function declineQuest(title){' },
+    { label: "joint f19: Abandon opens its mutation confirmation during an in-flight turn",
+      mustFail: "_confirmAbandonQuest can still mutate while busy",
+      find: 'function _confirmAbandonQuest(title){\n  if(_questJournalBusy())return;',
+      replace: 'function _confirmAbandonQuest(title){' },
+    { label: "joint f19: Suggest completion drifts back to a separate authorization path",
+      mustFail: "Suggest completion does not share the journal gate",
+      find: '    if(_questJournalBusy())return;\n    modal.remove();suggestQuestCompletion',
+      replace: '    modal.remove();suggestQuestCompletion' }
+  ]
+});
 
 rc |= sabotage.prove({
   file: "tag_table.js",
