@@ -16670,6 +16670,72 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return worldState.pendingRewardClaims.length<=REWARD_CLAIM_CAP?true:"the claim queue is unbounded: "+worldState.pendingRewardClaims.length;
   });
 
+  // ── #273 (Fable f29, joint review 2026-08-27): the measured-award guard counted ENTRIES ──────
+  // addInventoryItem STACKS in place, so a claimed item the player already carries rewrites the
+  // line to "Name x2" and never pushes: the length-only measure read a payout that LANDED as
+  // "nothing changed", told the player so, and closed the claim anyway — inviting a manual
+  // re-grant that double-pays. The same measure could only ever attest that SOMETHING moved, so a
+  // mixed claim passed on the xp delta alone while its item silently failed.
+  section("#273 — the measured-award guard counts, not lengths");
+  /* showToast is reassigned by an earlier scope's stub, so these capture it locally rather than
+     reading the outer __toasts ring — what the PLAYER is told is half of what is under test. */
+  function _rc273(id,shim){
+    var said=[],warned=[],_t=showToast,_w=console.warn,_am=applyMuts,ok;
+    showToast=function(m){said.push(String(m));};console.warn=function(m){warned.push(String(m));};
+    if(shim)applyMuts=shim(_am);
+    try{ok=rewardClaimAccept(id);}finally{showToast=_t;console.warn=_w;applyMuts=_am;}
+    return {ok:ok,said:said.join(" | "),warned:warned.join(" | ")};
+  }
+  function _rc273Count(inv,name){var i,n=0;for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===_invNorm(name))n+=_invCount(inv[i]);return n;}
+
+  t("#273 a claimed item the player ALREADY carries is reported AWARDED, and the stack count bumps",function(){
+    makeWorld();
+    worldState.character.inventory=["Longsword","Healing Potion"];
+    var len0=worldState.character.inventory.length;
+    rewardClaimQueue("Mokmurian",["[ITEM_GAINED:Healing Potion]"],"named death has no prior positive scene binding");
+    var q=worldState.pendingRewardClaims;
+    if(!q||q.length!==1)return "fixture broke: the claim did not queue";
+    var r=_rc273(q[0].id),inv=worldState.character.inventory;
+    if(inv.length!==len0)return "fixture broke: the grant pushed a new line instead of stacking — "+JSON.stringify(inv);
+    if(_rc273Count(inv,"Healing Potion")!==2)return "the grant did not land at all: "+JSON.stringify(inv);
+    return r.ok?true:"a payout that LANDED reported failure — the honesty guard lying in the feature built for honesty: "+r.said;
+  });
+
+  t("#273 the measure is count-EXACT: a quantity grant onto an existing stack must move the count by the full amount",function(){
+    makeWorld();
+    worldState.character.inventory=["Rope"];
+    rewardClaimQueue("Mokmurian",["[ITEM_GAINED:Rope x3]"],"reason");
+    var r=_rc273(worldState.pendingRewardClaims[0].id),inv=worldState.character.inventory;
+    if(_rc273Count(inv,"Rope")!==4)return "the quantity grant did not stack to 4: "+JSON.stringify(inv);
+    if(!r.ok)return "a full-quantity payout reported failure: "+r.said;
+    // …and a SHORT landing is a shortfall the player is told about, never a full award.
+    makeWorld();
+    worldState.character.inventory=["Rope"];
+    rewardClaimQueue("Mokmurian",["[ITEM_GAINED:Rope x3]"],"reason");
+    var r2=_rc273(worldState.pendingRewardClaims[0].id,function(real){
+      return function(txt){return real(String(txt).replace(/Rope x3/,"Rope"));};
+    });
+    if(_rc273Count(worldState.character.inventory,"Rope")!==2)return "fixture broke: the short grant did not land one";
+    if(r2.ok)return "a SHORT quantity landing was reported as a full award — the measure is not count-exact";
+    return /Rope/.test(r2.said)?true:"the shortfall did not name the item: "+r2.said;
+  });
+
+  t("#273 a MIXED claim whose item is silently re-stripped reports a PARTIAL naming that token — never a full award on the xp delta alone",function(){
+    makeWorld();
+    var xp0=worldState.character.xp;
+    rewardClaimQueue("Mokmurian",["[XP:600]","[ITEM_GAINED:Giantbane]"],"named death has no prior positive scene binding");
+    /* The exact hazard the guard exists for (helpers.js #215 header): the payout runs the ORIGINAL
+       tokens back through applyMuts, and that path could in principle strip them again. */
+    var r=_rc273(worldState.pendingRewardClaims[0].id,function(real){
+      return function(txt){return real(String(txt).replace(/\[ITEM_GAINED:[^\]]+\]/g,""));};
+    });
+    if(worldState.character.xp!==xp0+600)return "fixture broke: the xp half did not land";
+    if(r.ok)return "a PARTIAL payout reported a full award — the guard attested only that something moved";
+    if(!/Giantbane/.test(r.warned))return "the console did not name the token that failed: "+r.warned;
+    if(!/Giantbane/.test(r.said))return "the player was not told which part is missing: "+r.said;
+    return !(worldState.pendingRewardClaims||[]).length?true:"the partial claim was re-queued — close-on-fail is the shipped semantics";
+  });
+
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
   // ── #263 (JP0-13, joint review 2026-08-27; Fable f41, verified ×2): the summary-lane W2 strike
   // deferral used to defer to its OWN minted conflict — stretching the documented 3-strike ladder

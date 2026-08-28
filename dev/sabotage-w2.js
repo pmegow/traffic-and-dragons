@@ -486,7 +486,11 @@ rc|=sabotage.prove({
     {label:"a shelved dispute stops queueing the reward claim (#215)",
       mustFail:"#215 a shelved dispute that cost the player a reward queues a claim",
       find:"if(_shLost&&typeof rewardClaimQueue===\"function\"&&rewardClaimQueue(c.subject,c.withheld,c.reason)){",/* #262 made the queue call the ledger-clearing conditional */
-      replace:"if(false){"}
+      replace:"if(false){"},
+    {label:"inventoryCountOf stops summing the \"xN\" suffix — the count-aware read becomes a line count again (#273)",
+      mustFail:"#273 a claimed item the player ALREADY carries is reported AWARDED",
+      find:"  for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===t)n+=_invCount(inv[i]);",
+      replace:"  for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===t)n+=1;"}
   ]
 });
 
@@ -494,10 +498,28 @@ rc|=sabotage.prove({
   file:"helpers.js",
   command:["node",["dev/run-tests.js"]],skip:FOCUSED,
   cases:[
+    /* #273 re-pinned the shipped line (the sheet-shape compare became a per-token shortfall list);
+       the clause's job is unchanged — a payout that moves nothing must never report success. */
     {label:"a payout that moves no state reports success anyway (#215)",
       mustFail:"#215 a payout that silently changes nothing is caught and reported",
-      find:"  if(after.xp===before.xp&&after.gold===before.gold&&after.inv===before.inv){",
+      find:"  if(missed.length){",
       replace:"  if(false){"},
+    {label:"the item measure reverts to inventory LENGTH — a stacked grant reads as 'nothing changed' again (#273)",
+      mustFail:"#273 a claimed item the player ALREADY carries is reported AWARDED",
+      find:"  if(g.kind===\"item\")return (typeof inventoryCountOf===\"function\")?inventoryCountOf(c.inventory,g.key):null;",
+      replace:"  if(g.kind===\"item\")return (c.inventory||[]).length;"},
+    {label:"a PARTIAL landing reports a full award again — one moving field vouches for every token (#273)",
+      mustFail:"#273 a MIXED claim whose item is silently re-stripped reports a PARTIAL",
+      find:"  if(missed.length){",
+      replace:"  if(missed.length&&!landed.length){"},
+    {label:"the shortfall stops naming the tokens that failed — the player is told 'partly' and nothing else (#273)",
+      mustFail:"#273 a MIXED claim whose item is silently re-stripped reports a PARTIAL",
+      find:"\" Missing: \"+phrase+\". See the console.\",8000)",
+      replace:"\" See the console.\",8000)"},
+    {label:"the measure loosens from count-exact to merely-moved — a short quantity landing pays as full (#273)",
+      mustFail:"#273 the measure is count-EXACT",
+      find:"var moved=(g.before!==null&&after!==null&&g.expect!==0&&(after-g.before)===g.expect);",
+      replace:"var moved=(g.before!==null&&after!==null&&(after-g.before)!==0);"},
     {label:"declining a claim pays it out anyway (#215)",
       mustFail:"#215 declining drops the claim without paying",
       find:"function rewardClaimDecline(id){",

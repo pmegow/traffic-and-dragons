@@ -1036,15 +1036,45 @@ function _rewardClaimTake(id){
   for(i=0;i<q.length;i++)if(q[i].id===id){var rec=q[i];q.splice(i,1);if(!q.length)delete worldState.pendingRewardClaims;return rec;}
   return null;
 }
+/* #273: read the ONE value a reward group must move. null = this engine cannot measure the group
+   (an unknown token, or api.js absent) \u2014 reported as unverified, NEVER assumed landed. */
+function _rewardTargetRead(g,c){
+  if(!g||!c)return null;
+  if(g.kind==="xp")return Number(c.xp)||0;
+  if(g.kind==="gold")return Number(c.gold)||0;
+  if(g.kind==="item")return (typeof inventoryCountOf==="function")?inventoryCountOf(c.inventory,g.key):null;
+  return null;
+}
 function rewardClaimAccept(id){
   var rec=_rewardClaimTake(id);
   if(!rec)return false;
-  var c=worldState.character||{},before={xp:c.xp,gold:c.gold,inv:(c.inventory||[]).length};
+  var c=worldState.character||{},i,j,g;
+  /* #273 (Fable f29): measure PER TOKEN, not by sheet shape. The old before/after compared
+     {xp, gold, inventory.LENGTH} \u2014 but a claimed item already carried stacks the existing line
+     ("Name" \u2192 "Name x2") without changing the length, so a payout that landed was reported as
+     "nothing changed"; and any single moving field vouched for every token, so a mixed claim
+     passed on its xp delta while its item silently failed. Every token now names the target it
+     must move and by how much (rewardAwardTargets, api.js), and only an EXACT match on every
+     group is an award. Close-on-fail semantics are unchanged: the record was taken above, and a
+     partial is reported as a partial rather than re-queued. */
+  var groups=(typeof rewardAwardTargets==="function")?rewardAwardTargets(rec.tokens):[];
+  if(!groups.length&&typeof console!=="undefined"&&typeof rewardAwardTargets!=="function")
+    console.error("[reward] rewardAwardTargets is unavailable \u2014 this payout cannot be verified and will be reported as unawarded (#273)");
+  for(i=0;i<groups.length;i++)groups[i].before=_rewardTargetRead(groups[i],c);
   if(typeof applyMuts==="function")applyMuts(rec.tokens.join(""));
-  var after={xp:c.xp,gold:c.gold,inv:(c.inventory||[]).length};
-  if(after.xp===before.xp&&after.gold===before.gold&&after.inv===before.inv){
-    if(typeof console!=="undefined")console.warn("[reward] claim for "+rec.subject+" AWARDED NOTHING \u2014 the tags moved no state ("+rec.tokens.join(" ")+"); the claim is closed but the player was not paid (#215)");
-    if(typeof showToast==="function")showToast("\u26a0 That reward could not be awarded \u2014 nothing changed. See the console.",8000);
+  var cAfter=(worldState&&worldState.character)||c,landed=[],missed=[];
+  for(i=0;i<groups.length;i++){
+    g=groups[i];
+    var after=_rewardTargetRead(g,cAfter);
+    var moved=(g.before!==null&&after!==null&&g.expect!==0&&(after-g.before)===g.expect);
+    for(j=0;j<g.tokens.length;j++)(moved?landed:missed).push(g.tokens[j]);
+  }
+  if(!groups.length)missed=rec.tokens.slice();
+  if(missed.length){
+    var nothing=!landed.length;
+    var phrase=(typeof w2WithheldSummary==="function"&&w2WithheldSummary(missed))||missed.join(" ");
+    if(typeof console!=="undefined")console.warn("[reward] claim for "+rec.subject+(nothing?" AWARDED NOTHING":" only PARTLY awarded")+" \u2014 these tokens did not move their target: "+missed.join(" ")+(landed.length?(" (landed: "+landed.join(" ")+")"):"")+"; the claim is closed and the player was "+(nothing?"not paid":"paid only in part")+" (#215/#273)");
+    if(typeof showToast==="function")showToast("\u26a0 "+(nothing?"That reward could not be awarded \u2014 nothing changed.":"Only part of that reward landed.")+" Missing: "+phrase+". See the console.",8000);
     if(typeof saveAll==="function")saveAll();
     return false;
   }

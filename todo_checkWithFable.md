@@ -51,6 +51,57 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 30 — Measured-award guard counts, not lengths (#273, v1.731; Opus lane D, brief-mandated design)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #273 (Fable f29, verified). **Touched:** `helpers.js`
+(`rewardClaimAccept` + a new `_rewardTargetRead`), `api.js` (`inventoryCountOf`,
+`rewardAwardTargets`, beside the inventory helpers), `dev/engine-tests.js`, `dev/sabotage-w2.js`.
+
+**Mechanism.** `rewardClaimAccept` measured a payout as `{xp, gold, inventory.LENGTH}` before vs
+after. `addInventoryItem` STACKS in place — a claimed item the player already carries is rewritten
+to `"Name x2"` and never pushed — so an item-only claim that PAID CORRECTLY read as "nothing
+moved": console said AWARDED NOTHING, the modal toasted "that reward could not be awarded", and
+the record had already been spliced out by `_rewardClaimTake`, so the claim closed anyway and the
+player was invited to re-grant through Sync (a double pay). The verifier's added nuance is the
+same defect's other face: a sheet-shape compare can only ever attest that SOMETHING moved, so a
+MIXED claim (XP + item) passed on the xp delta alone while its item silently failed.
+
+**What shipped.** Measurement is PER TOKEN. `rewardAwardTargets(tokens)` (api.js — it lives there
+because the stacking identity `_invNorm` and the `xN` suffix `_invCount`/`_qtyParse` are api.js's
+rules) maps each token to the one target it must move and by how much: `[XP:]` → `character.xp`,
+`[GOLD:]` → gold, `[ITEM_GAINED:name]` → `inventoryCountOf(inventory, name)`, the count-aware read
+that sums the suffix. Tokens sharing a target form ONE group with a summed expectation, so two
+`[ITEM_GAINED:Rope]` must move the count by 2. A group lands only on an EXACT match
+(`after − before === expect`); anything else — including a short quantity landing — is a
+shortfall. Only an all-groups-land claim reports awarded. A partial names the failing tokens on
+BOTH channels (console lists the raw tokens and what did land; the toast says "Only part of that
+reward landed. Missing: <player-language phrase>" via `w2WithheldSummary`) and returns false. The
+claim still CLOSES on failure — the shipped `_rewardClaimTake`-first semantics are deliberately
+unchanged here (re-queue is a separate design question, recorded as #276 ③ residue).
+
+**Deliberate strictness worth a reviewer's eye.** A token this table cannot measure is reported
+UNVERIFIED, never assumed landed. That keeps the existing `[NOT_A_REWARD:x]` assertion honest and
+means a NEW reward tag added to `W2_REWARD_RES` (identity.js) without a measurement arm here will
+be loudly reported as unawarded rather than silently riding another token's delta. The coupling is
+stated in the api.js header comment. Second point: exact-match would flag a `[GOLD:-N]` clamped at
+zero as a shortfall — correct-by-design (that IS a shortfall the player should hear about), and
+unreachable from the rewards ledger, which only ever carries positive grants.
+
+**Verification.** 4 engine assertions, all RED first on v1.730 (stacking claim reported "nothing
+changed"; quantity grant onto an existing stack likewise; short-quantity landing reported as full;
+mixed claim reported a full award on the xp delta). The two existing #215 regressions — all tokens
+land, genuine nothing-moved — stayed green throughout. `dev/sabotage-w2.js` +5 clauses (length
+revert; `inventoryCountOf` stops summing the suffix; partial reported as full; the toast stops
+naming the missing tokens; exactness loosened to merely-moved), all `caught`, battery 33/33, files
+restored byte-identical. The pre-existing `#215 payout-moves-nothing` clause was RE-PINNED (its
+find target was the deleted sheet-shape compare) — same label, same `mustFail`, same intent, and
+the applicability gate is 568/568 green. Full suite 1762 assertions green.
+
+**Probe first.** Whether the UNVERIFIED-by-default rule is the right call for a future reward tag,
+and whether the closed-on-partial semantics should become a re-queue now that a partial is
+distinguishable from a total failure (Fable f29's remedy suggested re-queue; the brief pinned
+close-on-fail, so this is deliberately unresolved rather than overlooked).
+
 ### 29 — The victory close's positional exemption (#258, v1.724; Opus lane A, brief-mandated design)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #254 (JP0-6 / Fable f26). **Touched:** `tag_table.js`
