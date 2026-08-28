@@ -142,6 +142,14 @@ try {
       console.error("REFUSAL COPY CONTRACT: the shipped-reason registry shrank to " + _rcReport.registry.length + " entries \u2014 reasons deleted from the registry rather than from the code is how coverage goes quietly missing (#213).");
       process.exitCode = 1;
     }
+    /* #275 merge (Lane E's clause exposed this): the census COMPUTES the unmapped-reason list and
+       this contract never read it \u2014 a brand-new refusal reason with no player copy sailed through,
+       the exact silent degrade #213 exists to catch. */
+    if (_rcReport.missing && _rcReport.missing.length) {
+      console.error("REFUSAL COPY CONTRACT: identity.js refuses with reason(s) the shipped registry does not carry \u2014 " + _rcReport.missing.join(" | ") + " (#213: add the reason to W2_REFUSAL_REASONS and its player sentence to W2_REFUSAL_COPY).");
+      process.exitCode = 1;
+    }
+    if (!process.exitCode) console.log("[#213] refusal-copy census OK \u2014 " + _rcReport.registry.length + " registry rows, " + _rcReport.reasons.length + " shipped reasons, 0 unmapped");
   }
 } catch (e) {
   console.error("REFUSAL COPY CONTRACT: could not verify identity.js/api.js \u2014 " + (e && e.message));
