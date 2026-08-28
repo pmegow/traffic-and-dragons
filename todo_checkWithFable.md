@@ -50,7 +50,7 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
-### 26 — memory.archive key registry (JP0-5 / TODO #255, v1.722; Opus lane B)
+### 26 — memory.archive key registry (JP0-5 / TODO #255, v1.723; Opus lane B)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #253. **Source:** Joint_Review_2026_08_27.html ▸ JP0-5
 (Sol P0-03, Fable-verified: writer at `tag_table.js:517-518`, key absent from the
@@ -99,7 +99,7 @@ reason each loss shipped green — is replaced by registry derivation plus a ban
 `mm.archive.<key>` in ui-files.js. Sabotage `dev/sabotage-jp0-5-archive-registry.js` 10/10 caught
 across state.js / memory.js / ui-files.js, byte-identical restore. Full suite 1703 green.
 
-### 25 — Corrupt recall-store rescue (JP0-4 / TODO #254, v1.722; Opus lane B)
+### 25 — Corrupt recall-store rescue (JP0-4 / TODO #254, v1.723; Opus lane B)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #252. **Source:** Joint_Review_2026_08_27.html ▸ JP0-4
 (Sol P0-03's sibling row Sol P0-02, Fable-verified this session at `state.js:476-478`).
