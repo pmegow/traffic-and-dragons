@@ -3756,6 +3756,23 @@ function runEngineTests(R){
     var m=buildItemDefinePrompt("Umbral warblade — hums near ghosts, origin unknown");
     return m&&m.indexOf("[ITEM_DEF:umbral warblade|")>=0?true:"companion inventory not searched: "+(m?"(prompt built wrong)":"(refused)");
   });
+  t("joint f20: the define caller recognizes a real proposal for its requested base-name key",function(){
+    if(!_itemDefProposalFor("Grounded. [ITEM_DEF:Cleaver|category=weapon|effect=Binds.|uses=N/A|value=N/A]", "cleaver"))return "matching proposal was not recognized";
+    if(!_itemDefProposalFor("[ITEM_DEF:Cleaver (old runeblade)|category=weapon|effect=Binds.|uses=N/A|value=N/A]", "cleaver"))return "provenance-bearing proposal did not normalize to its base key";
+    if(_itemDefProposalFor("[ITEM_DEF:Other blade|category=weapon|effect=Binds.|uses=N/A|value=N/A]", "cleaver"))return "another item's proposal matched";
+    if(_itemDefProposalFor("No tag; the story established nothing mechanical.", "cleaver"))return "plain prose matched as a proposal";
+    return true;
+  });
+  t("joint f20: a pre-parse full queue plus a matching dropped proposal gets the truthful queue-full toast",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    var at=src.indexOf("async function defineItemFromStory"),end=src.indexOf("async function suggestQuestCompletion",at);
+    var body=src.slice(at,end);
+    var capAt=body.indexOf("var queueWasFull=pend.length>=5;"),applyAt=body.indexOf("applyMuts(resp)");
+    if(capAt<0||applyAt<0||capAt>applyAt)return "queue-full state is not captured before the handler can drop the proposal";
+    if(body.indexOf("else if(queueWasFull&&_itemDefProposalFor(resp,key))")<0)return "landed=false does not distinguish the at-cap proposal drop";
+    return body.indexOf('showToast("canon was proposed but the confirm queue is full — answer the pending item proposals first.",6000)')>=0?true:"truthful queue-full toast missing";
+  });
   t("itemBaseName: real save provenance strings all strip to the TYPE key",function(){
     var cases=[
       ["Alchemist's fire x5","alchemist's fire"],

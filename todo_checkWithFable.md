@@ -14,6 +14,7 @@ commits), what it touches, why it's risky or not, supporting docs/tests, and wha
 should probe first. Self-contained enough that a Fable session needs no other context.
 
 ## Off-Fable log
+- 2026-08-28 (v1.731): Define-item now distinguishes a real matching `[ITEM_DEF:]` dropped against the already-full confirm queue from a genuine no-proposal response and gives the actionable queue-full toast (joint f20; 2 failing-first assertions; sabotage 4/4). Messaging-only caller change; cap and parser untouched.
 - 2026-08-28 (v1.730): Quest-journal Accept, Decline, Abandon, and Suggest actions share a quiet in-flight-turn busy gate; Abandon rechecks at confirmation (joint f19; failing-first shell contract; sabotage 5/5). Thin DOM authorization shell only; no quest state op, prompt, parser, or lifecycle code changed.
 - 2026-08-28 (v1.722): Scoped joint-review doc/data parity shipped: state.js now names compressed cloud snapshots, both satellite seams are recorded paid, queue entry 14 retains only its two live field watches, and `Stolen voice` is arcane-only with a martial-menu purity census (Fable f77/f80/f82; failing-first; sabotage 1/1). No quest-schema/lifecycle contract text changed.
 - 2026-08-28 (v1.721): #17 Drift health gained opt-in, observation-only UTF-8 bytes/counts for seven world/memory growth slices; the hot status-dot path does no serialization and nothing thresholds, trims, compacts, or reaches a prompt/parser (Sol P2-03; failing-first pure probe + UI contract; sabotage 6/6). Thin DOM shell over pure telemetry.

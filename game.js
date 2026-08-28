@@ -2791,6 +2791,14 @@ function buildItemDefinePrompt(rawItem){
     +"Ground every word in committed story: never invent powers, numbers, or lore the narrative has not shown. If the story has established nothing mechanical yet, emit NO tag and say so in one sentence. "
     +"After the tag, one short sentence naming which scene(s) the definition comes from.";
 }
+function _itemDefProposalFor(resp,key){
+  var re=/\[ITEM_DEF:([^\]|]+)\|[^\]]*\]/g,m;
+  while((m=re.exec(String(resp||"")))){
+    var proposed=typeof itemBaseName==="function"?itemBaseName(m[1]):String(m[1]).replace(/^\s+|\s+$/g,"").toLowerCase();
+    if(proposed===key)return true;
+  }
+  return false;
+}
 // #230 async caller — the #229 review-call shape: busy-gated, escalated model, response through
 // the ONE parser (the ITEM_DEF handler queues the proposal; cap/dedupe/write-once all apply),
 // then the EXISTING #81 confirm modal is surfaced — the player stays the gate.
@@ -2801,6 +2809,7 @@ async function defineItemFromStory(rawItem,ev){
   // Already awaiting confirmation? Skip the call — just reopen the confirm modal (free).
   var pend=worldState.pendingItemDefs||[],pi;
   for(pi=0;pi<pend.length;pi++)if(pend[pi].key===key){var _cs0=document.getElementById("cs-modal");if(_cs0)_cs0.remove();if(typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();return;}
+  var queueWasFull=pend.length>=5;
   var auditMsg=buildItemDefinePrompt(rawItem);
   if(!auditMsg){if(typeof showToast==="function")showToast("Already canon (or not carried): "+rawItem);return;}
   busy=true;
@@ -2814,6 +2823,8 @@ async function defineItemFromStory(rawItem,ev){
     if(landed){
       var _cs=document.getElementById("cs-modal");if(_cs)_cs.remove();/* the confirm modal must not fight the sheet for the screen */
       if(typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();
+    }else if(queueWasFull&&_itemDefProposalFor(resp,key)){
+      if(typeof showToast==="function")showToast("canon was proposed but the confirm queue is full — answer the pending item proposals first.",6000);
     }else{
       var why=cleanTxt(resp).trim();
       if(typeof showToast==="function")showToast("No canon proposed"+(why?" — "+(why.length>140?why.slice(0,140)+"…":why):" (the story has established nothing mechanical yet)"),6000);
