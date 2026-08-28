@@ -1461,6 +1461,23 @@ try {
   console.log("[bug-tracker] contract OK — report fields stay inert and browser seam is present");
 } catch (e) { console.error("BUG TRACKER CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── #17 / P2-03 GROWTH TELEMETRY CONTRACT ──────────────────────────────────────────────
+// Byte measurement is deliberately modal-only: putting it on updateHealthDot's hot path would
+// JSON-stringify the mature transcript/memory repeatedly just to paint a tiny status marker.
+try {
+  var _fsGT = require("fs"), _pathGT = require("path");
+  var _hmGT = _fsGT.readFileSync(_pathGT.join(__dirname, "..", "ui-modals.js"), "utf8");
+  if (_hmGT.indexOf('healthIndicators(worldState,(typeof memory!=="undefined"?memory:null),true)') < 0) {
+    console.error("GROWTH TELEMETRY CONTRACT: the #17 modal no longer opts into pure world+memory byte measurement.");
+    process.exit(1);
+  }
+  if (_hmGT.indexOf("growth=h.growth||[]") < 0 || _hmGT.indexOf("UTF-8 JSON bytes") < 0 ||
+      _hmGT.indexOf("gr.count.toLocaleString()") < 0 || _hmGT.indexOf("growthSize(gr.bytes)") < 0) {
+    console.error("GROWTH TELEMETRY CONTRACT: the #17 modal no longer renders the measured per-store bytes/counts truthfully.");
+    process.exit(1);
+  }
+} catch (eGT) { console.error("GROWTH TELEMETRY CONTRACT CHECK FAILED: " + (eGT && eGT.message)); process.exit(1); }
+
 // ── BIBLE-SERVER WRITE-AUTH CONTRACT (v1.521, ChatGPT review 2026-08-01) ─────────────────
 // dev/bible-server.js binds loopback, but ANY webpage open while it runs can POST to
 // localhost, and install-bible validates shape, not author intent — so /install requires a

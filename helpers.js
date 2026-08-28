@@ -1379,10 +1379,49 @@ function priorBeatBoundary(beats,currentTurn){
 // (showHealthModal, ui-modals.js) are thin DOM shells over this function (the csSheetSections
 // one-renderer rule). Levels: "ok" | "warn" | "bad" | "na" (not enough data / not applicable).
 // Every threshold below targets a MEASURED failure class, named inline.
-function healthIndicators(ws){
+// P2-03: expensive byte measurement is opt-in so the tiny membar dot never JSON-stringifies a
+// mature save on every syncUI. The modal passes `withGrowth=true`; logical slices deliberately
+// overlap (this is diagnosis, not accounting) and nothing here trims, compacts, or writes.
+function healthGrowthTelemetry(ws,mem){
+  var stores=[];
+  function bytes(v){
+    var s;try{s=JSON.stringify(v);}catch(e){return null;}
+    if(s===undefined)return 0;
+    var n=0,i,c;
+    for(i=0;i<s.length;i++){
+      c=s.charCodeAt(i);
+      if(c<=127)n++;
+      else if(c<=2047)n+=2;
+      else if(c>=55296&&c<=56319&&i+1<s.length&&s.charCodeAt(i+1)>=56320&&s.charCodeAt(i+1)<=57343){n+=4;i++;}
+      else n+=3;
+    }
+    return n;
+  }
+  function add(id,label,value,count,unit){stores.push({id:id,label:label,bytes:bytes(value),count:count,unit:unit});}
+  ws=ws||{};
+  var tr=Array.isArray(ws.transcript)?ws.transcript:[],ql=Array.isArray(ws.questLog)?ws.questLog:[],roster=Array.isArray(ws.npcs)?ws.npcs:[];
+  add("transcript","Sacred transcript",tr,tr.length,"entries");
+  add("quest-log","Live quest journal",ql,ql.length,"quests");
+  add("roster","World NPC roster",roster,roster.length,"NPCs");
+  if(mem){
+    var mn=mem.npcs&&typeof mem.npcs==="object"?mem.npcs:{};
+    var mq=mem.quests&&typeof mem.quests==="object"?mem.quests:{};
+    var map=mem.map&&typeof mem.map==="object"?mem.map:{};
+    var nodes=map.nodes&&typeof map.nodes==="object"?map.nodes:{};
+    var arch=mem.archive&&typeof mem.archive==="object"?mem.archive:{};
+    var archCount=0,ak=Object.keys(arch),i,v;
+    for(i=0;i<ak.length;i++){v=arch[ak[i]];if(Array.isArray(v))archCount+=v.length;else if(v&&typeof v==="object")archCount+=Object.keys(v).length;else if(v!=null)archCount++;}
+    add("npc-memory","Remembered NPCs",mn,Object.keys(mn).length,"NPCs");
+    add("quest-history","Quest history",mq,Object.keys(mq).length,"quests");
+    add("map","Location map",map,Object.keys(nodes).length,"nodes");
+    add("archive","Memory archive",arch,archCount,"records");
+  }
+  return stores;
+}
+function healthIndicators(ws,mem,withGrowth){
   var items=[],i,j;
   function push(id,label,level,detail){items.push({id:id,label:label,level:level,detail:detail});}
-  if(!ws)return {overall:"na",items:items};
+  if(!ws)return {overall:"na",items:items,growth:withGrowth?[]:undefined};
   var hl=ws.healthLog||[],tl=ws.tagLog||[];
   // ① RAG serve rate — a mature campaign whose retrieval serves NOTHING for a full window is
   // the wine-cellar-confabulation precondition (#188): the GM answers memory asks from vibes.
@@ -1510,5 +1549,7 @@ function healthIndicators(ws){
   for(i=0;i<items.length;i++){var hh=HINTS[items[i].id];if(hh&&hh[items[i].level])items[i].hint=hh[items[i].level];}
   var rank={ok:0,warn:1,bad:2},worst="ok",any=false;
   for(i=0;i<items.length;i++){var lv=items[i].level;if(lv==="na")continue;any=true;if(rank[lv]>rank[worst])worst=lv;}
-  return {overall:any?worst:"na",items:items};
+  var out={overall:any?worst:"na",items:items};
+  if(withGrowth)out.growth=healthGrowthTelemetry(ws,mem);
+  return out;
 }

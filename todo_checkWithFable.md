@@ -14,6 +14,7 @@ commits), what it touches, why it's risky or not, supporting docs/tests, and wha
 should probe first. Self-contained enough that a Fable session needs no other context.
 
 ## Off-Fable log
+- 2026-08-28 (v1.721): #17 Drift health gained opt-in, observation-only UTF-8 bytes/counts for seven world/memory growth slices; the hot status-dot path does no serialization and nothing thresholds, trims, compacts, or reaches a prompt/parser (Sol P2-03; failing-first pure probe + UI contract; sabotage 6/6). Thin DOM shell over pure telemetry.
 - 2026-08-28 (dev-only): CI now dry-checks all 488 retained sabotage targets, read-only compares four replay corpora to committed end-state baselines, and retains #92 sync-compression (3/3) plus #144A archive-carry (7/7) batteries; two misattributed broad archive scans were narrowed to their actual write sites (f73/f74/f79; wiring sabotage 10/10). Additive verification tooling only.
 - 2026-08-28 (dev-only): `bug_tracker.html` gained `window.__bugTrackerTest`; its own run-tests contract bans executable-HTML sinks and pins filed/feed/findings text through the shared `textContent` boundary (f75; sabotage 6/6). Satellite seam + additive security coverage only.
 - 2026-08-28 (v1.718): browser-file failures now release restored-render URLs, separate picker cancellation from real selection/permission errors, and report a failed persistent folder clear honestly; service-worker runtime writes and Piper revision GC are event-owned and loud on cache failure (9 probes; sabotage 10/10). Browser I/O only.

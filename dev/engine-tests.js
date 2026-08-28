@@ -16984,6 +16984,29 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="quest")q=h.items[i];
     return q.level==="ok"?true:"quest with open objectives should be ok";
   });
+  t("healthIndicators: opt-in growth telemetry reports UTF-8 bytes and counts per logical store without writing or burdening the dot path",function(){
+    makeWorld();
+    worldState.transcript=[{r:"gm",x:"café 🙂"},{r:"u",x:"go"}];
+    worldState.questLog=[{title:"Live",status:"active",objectives:[]}];
+    worldState.npcs=[{name:"A"},{name:"B"}];
+    memory=blankMemory();
+    memory.npcs={A:{knowledge:["one"]},B:{knowledge:[]}};
+    memory.quests={Done:{title:"Done",status:"completed"}};
+    memory.map={nodes:{Town:{description:"Here"},Road:{}},edges:[{a:"Town",b:"Road"}]};
+    memory.archive={lore:["old"],decisions:[{turn:1,desc:"choice"}],chapters:["c1","c2"]};
+    var beforeWs=JSON.stringify(worldState),beforeMem=JSON.stringify(memory);
+    var h=healthIndicators(worldState,memory,true),g=h.growth||[],by={},i;
+    for(i=0;i<g.length;i++)by[g[i].id]=g[i];
+    var ids=["transcript","quest-log","roster","npc-memory","quest-history","map","archive"];
+    for(i=0;i<ids.length;i++)if(!by[ids[i]])return "missing growth store "+ids[i]+": "+JSON.stringify(g);
+    if(by.transcript.count!==2||by["quest-log"].count!==1||by.roster.count!==2)return "world counts wrong: "+JSON.stringify(g);
+    if(by["npc-memory"].count!==2||by["quest-history"].count!==1||by.map.count!==2||by.archive.count!==4)return "memory counts wrong: "+JSON.stringify(g);
+    var enc=encodeURIComponent(JSON.stringify(worldState.transcript)),expected=enc.replace(/%[0-9A-F]{2}/gi,"x").length;
+    if(by.transcript.bytes!==expected)return "transcript byte count is not UTF-8: "+by.transcript.bytes+" vs "+expected;
+    if(healthIndicators(worldState,memory).growth!==undefined)return "hot dot path computed opt-in growth telemetry";
+    if(JSON.stringify(worldState)!==beforeWs||JSON.stringify(memory)!==beforeMem)return "telemetry mutated its inputs";
+    return true;
+  });
   // ═══ #189 hardening: split/rejoin transitions are LOUD (owner ruling 2026-08-14) ═══
   // The #133c away-marker already shows standing state; the TRANSITIONS were muts-line-only,
   // which is why an untagged presence fix was invisible at the moment it mattered.

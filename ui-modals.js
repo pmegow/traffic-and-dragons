@@ -699,7 +699,7 @@ function _bugReportModal(shot){
 function showHealthModal(){
   closeAllMenus();
   var old=document.getElementById("health-modal");if(old)old.remove();
-  var h=(typeof healthIndicators==="function"&&worldState)?healthIndicators(worldState):{overall:"na",items:[]};
+  var h=(typeof healthIndicators==="function"&&worldState)?healthIndicators(worldState,(typeof memory!=="undefined"?memory:null),true):{overall:"na",items:[],growth:[]};
   function col(lv){return lv==="bad"?"var(--red)":lv==="warn"?"var(--acc)":lv==="ok"?"var(--grn)":"var(--t2)";}
   function word(lv){return lv==="bad"?"PROBLEM":lv==="warn"?"WATCH":lv==="ok"?"HEALTHY":"N/A";}
   var m=document.createElement("div");m.id="health-modal";
@@ -713,10 +713,20 @@ function showHealthModal(){
       +(it.hint?"<div style='font-size:11px;color:var(--t1);margin-top:3px;'>&#8594; "+escHtml(it.hint)+"</div>":"")
       +"</div></div>";
   }
+  var growthRows="",growth=h.growth||[];
+  function growthSize(n){if(n==null)return "measurement unavailable";if(n<1024)return n+" B";if(n<1048576)return (n/1024).toFixed(1)+" KB";return (n/1048576).toFixed(2)+" MB";}
+  for(i=0;i<growth.length;i++){var gr=growth[i],grUnit=gr.count===1?gr.unit.replace(/s$/i,""):gr.unit;
+    growthRows+="<div style='display:flex;justify-content:space-between;gap:10px;padding:4px 2px;font-size:11px;color:var(--t2);'>"
+      +"<span>"+escHtml(gr.label)+" — "+gr.count.toLocaleString()+" "+escHtml(grUnit)+"</span>"
+      +"<span style='white-space:nowrap;color:var(--t1);'>"+growthSize(gr.bytes)+"</span></div>";
+  }
   m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:460px;width:100%;max-height:85vh;overflow-y:auto;padding:16px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'><b style='color:var(--t0);'>Drift health</b><span id='hm-close' style='cursor:pointer;color:var(--t2);font-size:18px;padding:0 4px;'>&times;</span></div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:8px;'>Leading indicators computed from this save's own rings — green means the anti-drift stack looks alive, not that the story is good. Overall: <span style='color:"+col(h.overall)+";font-weight:bold;'>"+word(h.overall)+"</span></div>"
-    +rows
+      +rows
+      +"<div style='font-size:12px;color:var(--t0);margin-top:12px;padding-top:9px;border-top:1px solid var(--brd);'>Growth telemetry</div>"
+      +"<div style='font-size:10px;color:var(--t2);margin:2px 0 5px;'>Observation only · UTF-8 JSON bytes · logical slices overlap · nothing is trimmed or compacted.</div>"
+      +growthRows
     +"<div style='display:flex;gap:8px;margin-top:12px;justify-content:flex-end;'>"
     +"<button id='hm-report' style='padding:7px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>&#9888; Submit report</button>"
     +"<button id='hm-ok' style='padding:7px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Close</button></div></div>";
@@ -726,8 +736,9 @@ function showHealthModal(){
   document.getElementById("hm-ok").onclick=function(){m.remove();};
   document.getElementById("hm-report").onclick=function(){
     var btn=this;btn.disabled=true;btn.textContent="Sending…";
-    var lines=["HEALTH REPORT (user-initiated from the drift-health modal)","Overall: "+h.overall],j;
-    for(j=0;j<h.items.length;j++)lines.push(h.items[j].id+" ["+h.items[j].level+"]: "+h.items[j].detail);
+      var lines=["HEALTH REPORT (user-initiated from the drift-health modal)","Overall: "+h.overall],j;
+      for(j=0;j<h.items.length;j++)lines.push(h.items[j].id+" ["+h.items[j].level+"]: "+h.items[j].detail);
+      for(j=0;j<(h.growth||[]).length;j++)lines.push("growth "+h.growth[j].id+": "+h.growth[j].bytes+" UTF-8 bytes / "+h.growth[j].count+" "+h.growth[j].unit);
     if(typeof sendUserReport!=="function"){showToast("Bug reporting unavailable");btn.disabled=false;btn.innerHTML="&#9888; Submit report";return;}
     sendUserReport(lines.join("\n"),null,function(ok,err){
       if(ok){showToast("Health report sent ✓");m.remove();}
