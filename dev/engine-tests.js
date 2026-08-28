@@ -7476,6 +7476,61 @@ function runEngineTests(R){
     return worldState.combat===null?true:"the encounter did not close";
   });
 
+  // ── #254 — a victory close may not kill a foe the SAME response introduced after it ───────
+  // JP0-6 / Fable f26. Handlers run in TABLE order, so COMBAT_START (line ~604) appends the new
+  // foe to the DYING encounter before COMBAT_END (line ~690) ever runs — and #214①'s victory
+  // branch then read combatLivingFoes() with no idea the newcomer arrived AFTER the close in the
+  // response text. "You cut down the last bandit — suddenly the bodyguard draws steel" therefore
+  // stamped the bodyguard slain, and if he was a rostered NPC on a save whose sceneRefs ledger was
+  // never activated the death gate authorizes unconditionally, so a known character died without
+  // a blow landing. Separately, the fresh encounter was destroyed UNCONDITIONALLY (combat=null)
+  // even when the gate refused. The fix is POSITIONAL, the same mechanism COMBAT_STATS/IMMUNE/
+  // RESIST/VULN already bind by: a foe whose [COMBAT_START:] sits at a greater string index than
+  // the [COMBAT_END:] is not part of the encounter being closed.
+  // HONEST LIMIT (f26 verifier): a new foe whose COMBAT_START textually PRECEDES the close is NOT
+  // protected — that order is genuinely ambiguous with the legitimate start-slay-close shape
+  // (test 15587), so this fixes the natural close-first emission and is not exhaustive.
+  t("#254: a foe introduced AFTER the close tag survives it, and carries the encounter forward",function(){
+    __twoFoes();
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    var R;try{R=applyMuts("[COMBAT_END:victory][COMBAT_START:Bodyguard|30|15|+5|1d8|steady]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(!worldState.combat)return "the encounter closed over a foe the same response had just introduced — the new fight is gone";
+    var f=worldState.combat.foes,bg=null,i;
+    for(i=0;i<f.length;i++)if(f[i].name==="Bodyguard")bg=f[i];
+    if(!bg)return "the newborn foe is not in the carried encounter: "+JSON.stringify(f.map(function(x){return x.name;}));
+    if(bg.down||bg.hp!==30)return "the newborn foe was resolved by the OLD fight's victory: "+JSON.stringify([bg.hp,bg.down]);
+    for(i=0;i<f.length;i++)if(f[i].name==="Kresh"||f[i].name==="Grukk")return "the closed fight's foes were carried into the new encounter: "+f[i].name;
+    var line=R.muts.join(" | ");
+    return /Kresh slain|Grukk slain/.test(line)?true:"the closing fight's standing foes were not resolved at all: "+line;
+  });
+  t("#254: a foe introduced BEFORE the close tag IS resolved by it (the legitimate start-slay-close shape is untouched)",function(){
+    __twoFoes();
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    try{applyMuts("[COMBAT_START:Bodyguard|30|15|+5|1d8|steady][COMBAT_END:victory]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    return worldState.combat===null?true:"an encounter opened BEFORE the close survived it — the exemption is not positional";
+  });
+  t("#254: interleaved — the foe before the close dies with it, the foe after it fights on alone",function(){
+    __twoFoes();
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    var R;try{R=applyMuts("[COMBAT_START:Doomed|8|11|+1|d4|low][COMBAT_END:victory][COMBAT_START:Latecomer|22|14|+3|d8|steady]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(!worldState.combat)return "the encounter closed over the post-close foe";
+    var names=worldState.combat.foes.map(function(x){return x.name;});
+    if(names.length!==1||names[0]!=="Latecomer")return "the carried encounter is wrong: "+JSON.stringify(names);
+    return /Doomed slain/.test(R.muts.join(" | "))?true:"the pre-close newcomer escaped the victory it was standing in: "+R.muts.join(" | ");
+  });
+  t("#254: a ROSTERED foe introduced after the close never reaches the death gate at all",function(){
+    /* sceneRefs deliberately NOT activated — on such a save w2DeathAuthorized returns true
+       unconditionally (f26 verifier), so ONLY the positional exemption can save him. */
+    makeWorld();worldState.world.location="Jorgenfist";worldState.turn=71;
+    worldState.npcs.push({name:"Mokmurian",status:"",statusTurn:0,rel:"enemy",met:1,partyMember:false,aliases:[]});
+    memory.npcs.Mokmurian={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[COMBAT_START:Stone Giant|18|14|+4|d10|high]");
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    try{applyMuts("[COMBAT_END:victory][COMBAT_START:Mokmurian|20|14|+4|d10|high]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(npcIsDead(wsNpcByName("Mokmurian")))return "a rostered NPC was stamped durably dead by the PREVIOUS fight's victory, without a blow landing";
+    if(memory.npcs.Mokmurian&&memory.npcs.Mokmurian.dead)return "the memory tier recorded the phantom death";
+    return worldState.combat&&worldState.combat.foes.length===1&&worldState.combat.foes[0].name==="Mokmurian"?true:"the new fight did not survive: "+JSON.stringify(worldState.combat&&worldState.combat.foes.map(function(x){return x.name;}));
+  });
   t("#214② an open encounter with no combat tags for COMBAT_STALE_TURNS asks for the missing outcome, naming the foe and its HP",function(){
     __twoFoes();
     applyMuts("[ENEMY_HP:Grukk|-10]");

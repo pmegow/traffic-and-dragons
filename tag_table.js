@@ -711,8 +711,35 @@ combatAttrEntry("COMBAT_VULN","vuln"),
        a rostered foe’s death still routes through the same scene-evidence gate as any other
        named death; a generic rolled foe simply zeroes. Non-victory outcomes resolve NOTHING —
        fled/truce/disengaged/defeat mean the foe stopped fighting, not that it died. */
+    /* #254 (JP0-6, Fable f26; joint review 2026-08-27) — WHICH foes is this close about?
+       Handlers run in TABLE order, so COMBAT_START has ALREADY appended any same-response
+       newcomer to the DYING encounter before this handler runs; handler order therefore cannot
+       answer the question, and #214① below read the whole living list. The answer is POSITIONAL —
+       the identical mechanism the COMBAT_STATS/IMMUNE/RESIST/VULN tags already bind by
+       (combatStartPositions → combatAttrFoe): a foe whose [COMBAT_START:] sits at a GREATER
+       string index than the [COMBAT_END:] arrived after the fight closed and is not part of it.
+       "You cut down the last bandit — suddenly the bodyguard draws steel" used to stamp the
+       bodyguard slain, and on a save whose sceneRefs ledger was never activated w2DeathAuthorized
+       authorizes unconditionally — so a rostered character died with no blow landed. Those foes
+       are exempt from the victory resolution AND they CARRY THE TRACKER below: the loss of the
+       fresh fight used to be unconditional, happening even when the death gate refused.
+       HONEST LIMIT (f26 verifier): a newcomer whose COMBAT_START textually PRECEDES the close is
+       NOT protected — that order is ambiguous with the legitimate start-slay-close emission.
+       Known narrow gap: a duplicate COMBAT_START after the close naming an ALREADY-living foe
+       exempts that foe; the emission is already anomalous (the dup guard warns) and the outcome
+       is the conservative one — no invented death. */
+    var _ceKeep=[],_ceRest=[];
+    if(worldState.combat){
+      var _ceIdx=text.indexOf(ce[0]),_ceStarts=R.combatStarts(),_ceAfter={},_cq;
+      for(_cq=0;_cq<_ceStarts.length;_cq++){if(_ceStarts[_cq].idx>_ceIdx)_ceAfter[String(_ceStarts[_cq].name||"").toLowerCase()]=1;}
+      var _ceStanding=combatLivingFoes(),_cs2;
+      for(_cs2=0;_cs2<_ceStanding.length;_cs2++){
+        if(_ceAfter[String(_ceStanding[_cs2].name||"").toLowerCase()])_ceKeep.push(_ceStanding[_cs2]);
+        else _ceRest.push(_ceStanding[_cs2]);
+      }
+    }
     if(worldState.combat&&/^(victor|won|win|slain|kill|rout|triumph)/i.test(ce[1].trim())){
-      var _ceLive=combatLivingFoes(),_cl;
+      var _ceLive=_ceRest,_cl;
       for(_cl=0;_cl<_ceLive.length;_cl++){_ceLive[_cl].hp=0;_ceLive[_cl].down="slain";
         R.muts.push(_ceLive[_cl].name+" slain (still standing at victory — resolved to the narration)");}
       if(_ceLive.length){
@@ -720,7 +747,18 @@ combatAttrEntry("COMBAT_VULN","vuln"),
         if(typeof showToast==="function")showToast("\u2694 "+(_ceLive.length===1?_ceLive[0].name+" was":_ceLive.length+" foes were")+" still standing at victory \u2014 resolved as slain");
       }
     }
-    propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
+    propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */
+    R.muts.push("Combat: "+ce[1].trim());
+    if(_ceKeep.length){
+      /* #254: the closed fight is over and its corpses go with it; the post-close arrivals become
+         a NEW encounter at the node the party stands on now. The #149 aftermath anchor above
+         still points at the OLD fight's node — that is deliberate, the damage happened there. */
+      var _ceNm=[],_cn;for(_cn=0;_cn<_ceKeep.length;_cn++)_ceNm.push(_ceKeep[_cn].name);
+      worldState.combat={round:1,engaged:null,foes:_ceKeep,node:(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null)};
+      R.muts.push("Combat continues: "+_ceNm.join(", ")+" (entered after the close — not part of it)");
+      if(typeof console!=="undefined")console.warn("[combat] COMBAT_END:"+ce[1].trim()+" closed the old fight, but "+_ceNm.join(", ")+" entered AFTER the close tag — exempt from its resolution and carried into a new encounter (#254)");
+    }else worldState.combat=null;
+    return;}
   if(!worldState.combat)return;
   var f=worldState.combat.foes,i,anyUp=false,surr=false,names=[];
   for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0){anyUp=true;break;}

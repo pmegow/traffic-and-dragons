@@ -47,6 +47,51 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 28 — The victory close's positional exemption (#254, v1.721; Opus lane A, brief-mandated design)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #254 (JP0-6 / Fable f26). **Touched:** `tag_table.js`
+(the `COMBAT_END` handler only), `dev/engine-tests.js`, `dev/sabotage-w2.js`.
+
+**What shipped.** `COMBAT_END` now computes the closing tag's string index and splits the living
+foes in two: those whose `[COMBAT_START:]` sits at a GREATER index arrived after the fight closed
+and are not part of it. They are exempt from #214①'s victory resolution, and they carry the
+tracker forward as a new encounter (round 1, engaged null, anchored at the current node) instead
+of dying with the old fight. The closed fight's own corpses stay with it. The #149 aftermath
+anchor still points at the OLD encounter's node — deliberate, that is where the damage happened.
+
+**Verification.** 4 engine assertions, 3 RED first (post-close survivor + carry-over; interleaved
+multi-foe; a rostered newcomer never reaching the death gate on a save with an unactivated
+`sceneRefs`, which is the strongest shape because there the gate authorizes unconditionally). The
+fourth — start-then-close — was green before and after by design: it pins that the legitimate
+start-slay-close emission (test 15587's shape) is untouched. Every existing #214 assertion green.
+`dev/sabotage-w2.js` +3 clauses in its existing tag_table/COMBAT_END block, all proven, battery
+clean.
+
+**What the reviewer should probe:**
+
+1. **I extended the carry-over to NON-victory closes.** The brief mandated the exemption for
+   victory resolution; the split itself is outcome-independent (a foe introduced after the close
+   is not in the closing encounter regardless of the outcome word), and Fable f26's remedy is
+   written about *discarding* ("instead of discarding them with the close, rebuild
+   worldState.combat around the surviving fresh foes"). So `[COMBAT_END:fled][COMBAT_START:X]`
+   now keeps X in an open encounter where it previously discarded it to the #225 orphan channel.
+   That is a real behavior change beyond the literal victory case — **confirm or restrict.**
+2. **Known narrow gap, deliberately left.** A duplicate `[COMBAT_START:]` after the close naming
+   an ALREADY-living foe exempts that (old) foe, because the split keys on the tag's position and
+   the foe's name, not on which foe object this response actually created. I chose the smaller
+   diff over threading a per-response newborn map through the COMBAT_START handler; the emission
+   is doubly anomalous (the dup guard already warns) and the outcome is the conservative one — no
+   invented death. If you want exactness, the fix is a `R.freshFoeIdx` map written at append time.
+3. **The f26 honest limit stands.** A newcomer whose `COMBAT_START` textually PRECEDES the close
+   is still unprotected — that order is genuinely ambiguous with the legitimate start-slay-close
+   shape, so an index check alone cannot separate them. Documented in code and in the test header.
+4. **The #225 ghost line is now slightly odder.** With no prior combat, `[COMBAT_END:victory]
+   [COMBAT_START:X]` reaches this handler with a tracker that exists (COMBAT_START made it), so
+   the `ce&&!worldState.combat` #225 early return does not fire and a `Combat: victory` muts line
+   is pushed while a fight is open. Pre-existing (it fired before too, and additionally destroyed
+   X); worth deciding whether #225's absorb should also cover "the tracker was null before this
+   response".
+
 ### 27 — SPELL_DEF may not shadow curated spell canon (#253, v1.720; Opus lane A, owner-ruled)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #253 (JP0-8 / Fable f51). **Touched:**
