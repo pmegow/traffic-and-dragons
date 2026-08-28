@@ -4418,7 +4418,11 @@ function runEngineTests(R){
     delete worldState.summaryFailure;
     var e1=new Error("x");e1.w2Identity=true;e1.w2Defer=true;e1.subject="Caul";
     var n1=summaryFailureBump(e1);
-    if(n1!==0||worldState.summaryFailure)return "deferred failure advanced the strike count ("+n1+")";
+    if(n1!==0)return "deferred failure advanced the strike count ("+n1+")";
+    /* #263 contract update (equal-or-stronger): a deferred failure now RECORDS its owner (so the
+       gate can skip billed attempts) but still counts NO strike — count stays 0. */
+    if(worldState.summaryFailure&&worldState.summaryFailure.count!==0)return "deferred failure struck via the #263 stamp: "+JSON.stringify(worldState.summaryFailure);
+    if(!worldState.summaryFailure||worldState.summaryFailure.deferSubject!=="Caul")return "the deferral did not record its owning subject (#263)";
     var e2=new Error("y");e2.w2Identity=true;e2.subject="Caul";
     var n2=summaryFailureBump(e2);
     return n2===1?true:"plain identity failure no longer strikes ("+n2+")";
@@ -16642,6 +16646,53 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
+  // ── #263 (JP0-13, joint review 2026-08-27; Fable f41, verified ×2): the summary-lane W2 strike
+  // deferral used to defer to its OWN minted conflict — stretching the documented 3-strike ladder
+  // into a ~15-20-turn stall that billed a full failing extraction call and printed a failure
+  // message EVERY turn, then quarantined the whole stretch. The deferral intent (#190ⓔ: give the
+  // GM time to heal the owning dispute) stands; the fix stops PAYING for it: while the owning
+  // conflict lives, summarize() skips the call silently, capped at SUMMARY_DEFER_TURNS.
+  section("#263 — the summary stall stops billing (defer without paying)");
+  t("#263: a deferred failure stamps the owning subject so the next attempt can be skipped",function(){
+    makeWorld();worldState.turn=100;
+    var e=new Error("x");e.w2Identity=true;e.w2Defer=true;e.subject="Vex";
+    summaryFailureBump(e);
+    var sf=worldState.summaryFailure;
+    return sf&&sf.deferSubject==="Vex"&&sf.deferSince===100?true:"the defer was not recorded: "+JSON.stringify(sf);
+  });
+  t("#263: while the owning conflict lives, the gate says SKIP",function(){
+    makeWorld();worldState.turn=103;
+    worldState.identityConflicts=[{subject:"Vex",handle:"h",reason:"x",turn:100,attempts:1}];
+    worldState.summaryFailure={count:1,firstTurn:100,lastTurn:100,kind:"identity-validation",reason:"x",subject:"Vex",identityValidation:true,deferSubject:"Vex",deferSince:100};
+    return summarizeShouldDefer()?true:"the gate did not skip while the owning conflict lives";
+  });
+  t("#263: a resolved or shelved conflict ends the deferral — the attempt resumes and the stamp clears",function(){
+    makeWorld();worldState.turn=104;
+    worldState.identityConflicts=[{subject:"Vex",handle:"h",reason:"x",turn:100,attempts:9,stale:true}];
+    worldState.summaryFailure={count:1,firstTurn:100,lastTurn:100,kind:"identity-validation",reason:"x",subject:"Vex",identityValidation:true,deferSubject:"Vex",deferSince:100};
+    if(summarizeShouldDefer())return "the gate kept skipping after the conflict shelved";
+    return worldState.summaryFailure.deferSubject?"the spent defer stamp was not cleared: "+JSON.stringify(worldState.summaryFailure):true;
+  });
+  t("#263: the cap ends the deferral even under a still-live conflict — the terminal ladder cannot be disabled",function(){
+    makeWorld();worldState.turn=100+SUMMARY_DEFER_TURNS;
+    worldState.identityConflicts=[{subject:"Vex",handle:"h",reason:"x",turn:100,attempts:1}];
+    worldState.summaryFailure={count:1,firstTurn:100,lastTurn:100,kind:"identity-validation",reason:"x",subject:"Vex",identityValidation:true,deferSubject:"Vex",deferSince:100};
+    return summarizeShouldDefer()?"the deferral outlived its cap — the stall is unbounded again":true;
+  });
+  t("#263: a deferring summarize() makes NO billed call and prints NO failure line",function(){
+    makeWorld();worldState.turn=103;
+    worldState.identityConflicts=[{subject:"Vex",handle:"h",reason:"x",turn:100,attempts:1}];
+    worldState.summaryFailure={count:1,firstTurn:100,lastTurn:100,kind:"identity-validation",reason:"x",subject:"Vex",identityValidation:true,deferSubject:"Vex",deferSince:100};
+    var big="";var i;for(i=0;i<400;i++)big+="words and more words for the token estimate ";
+    sessionLog.length=0;sessionLog.push({role:"user",content:big},{role:"assistant",content:big},{role:"user",content:big},{role:"assistant",content:big});
+    delete worldState.sessKept;
+    var _cg=callGM,_called=0;callGM=function(){_called++;return Promise.resolve("{}");};
+    var _am=addMsg,_msgs=[];addMsg=function(k,t2){_msgs.push(String(t2));};
+    try{summarize();}finally{callGM=_cg;addMsg=_am;}
+    if(_called)return "the deferred attempt still billed an extraction call";
+    return _msgs.length?"the deferred attempt still printed at the player: "+JSON.stringify(_msgs):true;
+  });
+
   // ── #262 — the ENVELOPE LIFECYCLE closes (JP0-9 + Fable f21/f22/f56, joint review 2026-08-27).
   // Three seams the #213/#215 work did not reach: ① rewards refused INSIDE a canon envelope — the
   // very channel every GM nudge teaches — never reached the withheld ledger, so the shelve read

@@ -631,4 +631,25 @@ rc |= sabotage.prove({
   ]
 });
 
+rc |= sabotage.prove({
+  file: "memory.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#263: the defer gate dies — every deferred turn bills a doomed extraction call again",
+      mustFail: "makes NO billed call",
+      find: "  if(summarizeShouldDefer()){",
+      replace: "  if(false){" },
+
+    { label: "#263: the defer stamp dies — the gate has no owner to check and never skips",
+      mustFail: "stamps the owning subject",
+      find: "      if(!worldState.summaryFailure.deferSubject){worldState.summaryFailure.deferSubject=e.subject?String(e.subject).slice(0,120):\"?\";worldState.summaryFailure.deferSince=worldState.turn;}}",
+      replace: "      }" },
+
+    { label: "#263: the cap dies — a live conflict can silence extraction forever, disabling the terminal ladder",
+      mustFail: "cap ends the deferral",
+      find: "  var capped=(worldState.turn-(sf.deferSince||0))>=SUMMARY_DEFER_TURNS;",
+      replace: "  var capped=false;" }
+  ]
+});
+
 process.exit(rc?1:0);

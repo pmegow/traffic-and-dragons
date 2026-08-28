@@ -1698,7 +1698,13 @@ function summaryFailureBump(e){
   /* #190ⓔ: a DEFERRED identity failure (subject owned by an open tag-lane conflict) never advances
      the strike count — the log is kept and summarize retries naturally; the #17 panel already
      shows the owning conflict. Strikes resume the moment the conflict resolves or shelves stale. */
-  if(e&&e.w2Defer){if(typeof console!=="undefined")console.warn("[memory] summary failure deferred, strike count stays "+prior+" of 3 (#190e)");return prior;}
+  if(e&&e.w2Defer){if(typeof console!=="undefined")console.warn("[memory] summary failure deferred, strike count stays "+prior+" of 3 (#190e)");
+    /* #263 (JP0-13/f41): record WHO owns the deferral so the next attempts can be skipped instead
+       of billed. The old shape re-sent the whole growing window as a doomed extraction call and
+       printed a failure line EVERY turn for the deferral's whole life (~15-20 turns to stale). */
+    if(worldState){if(!worldState.summaryFailure)worldState.summaryFailure={count:prior,firstTurn:worldState.turn,lastTurn:worldState.turn,kind:"identity-validation",reason:"deferred",subject:e.subject?String(e.subject).slice(0,120):"",identityValidation:true};
+      if(!worldState.summaryFailure.deferSubject){worldState.summaryFailure.deferSubject=e.subject?String(e.subject).slice(0,120):"?";worldState.summaryFailure.deferSince=worldState.turn;}}
+    return prior;}
   if(!worldState)return Math.min(3,prior+1);
   worldState.summaryFailure={count:Math.min(3,prior+1),firstTurn:old&&old.firstTurn!=null?old.firstTurn:worldState.turn,lastTurn:worldState.turn,kind:isIdentity?"identity-validation":"extraction",reason:msg.slice(0,400),subject:e&&e.subject?String(e.subject).slice(0,120):"",identityValidation:!!(isIdentity||(old&&old.identityValidation))};
   return worldState.summaryFailure.count;
@@ -1709,8 +1715,27 @@ function summaryIdentityQuarantine(e,rawBits,attempts){
   a.push({turn:(worldState&&worldState.turn)||0,kind:e&&e.summaryIdentity?"summary-validation":"referential-validation",subject:e&&e.subject?String(e.subject).slice(0,120):"",reason:msg.slice(0,400),attempts:attempts||3,raw:(rawBits||[]).join(" ... ").slice(0,900)});
   while(a.length>SUMMARY_IDENTITY_QUARANTINE_CAP){var _ev=a.shift();if(typeof console!=="undefined")console.warn("[identity] oldest identity quarantine EVICTED (t"+(_ev&&_ev.turn)+", "+((_ev&&_ev.subject)||"-")+") — the archive is at its cap of "+SUMMARY_IDENTITY_QUARANTINE_CAP+" (P3: eviction is never silent)");}return a[a.length-1];
 }
+/* #263 (JP0-13/f41): the defer gate. While a deferred summary failure's owning tag-lane conflict
+   is still LIVE (open, non-stale), another extraction attempt is unresolvable by construction —
+   the #190ⓔ deferral already refuses to strike, so attempting it just bills a doomed call and
+   prints a failure line at the player, every turn, for the conflict's whole life. Skip quietly.
+   The deferral cannot disable the terminal ladder: a resolved/shelved conflict OR the
+   SUMMARY_DEFER_TURNS cap ends it (the stamp clears, the next attempt runs, strikes resume). */
+function summarizeShouldDefer(){
+  if(typeof worldState==="undefined"||!worldState||!worldState.summaryFailure)return false;
+  var sf=worldState.summaryFailure;
+  if(!sf.deferSubject)return false;
+  var live=false,q=worldState.identityConflicts||[],i;
+  for(i=0;i<q.length;i++)if(!q[i].resolved&&!q[i].stale&&q[i].subject===sf.deferSubject){live=true;break;}
+  var capped=(worldState.turn-(sf.deferSince||0))>=SUMMARY_DEFER_TURNS;
+  if(live&&!capped)return true;
+  if(typeof console!=="undefined")console.info("[memory] #263: summary deferral for "+sf.deferSubject+" ended ("+(live?"cap reached":"conflict resolved or shelved")+") — extraction attempts resume");
+  delete sf.deferSubject;delete sf.deferSince;
+  return false;
+}
 async function summarize(){
   if(sessionTokens()<SUMMARIZE_AT)return;
+  if(summarizeShouldDefer()){if(typeof console!=="undefined")console.info("[memory] #263: extraction attempt skipped — the "+worldState.summaryFailure.deferSubject+" dispute owns this window; no call billed, no strike counted");return;}
   addMsg("system","Filing memories...");
   try{
     var _sumVc="";var _sumPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:"";if(_sumPaId&&typeof AUTHORS!=="undefined"){var _spi;for(_spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_sumPaId&&AUTHORS[_spi].vc){_sumVc=AUTHORS[_spi].vc;break;}}}
