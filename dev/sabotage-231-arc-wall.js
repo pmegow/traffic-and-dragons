@@ -16,7 +16,7 @@ var rc = 0;
 rc |= sabotage.prove({
   file: "tag_table.js",
   command: ["node", ["dev/run-tests.js"]],
-  also: ["ui-modals.js"], /* #235: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
+  also: ["ui-modals.js"], /* #256: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
   cases: [
     { label: "the sweep never runs — threads outlive their arc again (the 18-quest hydra returns)",
       mustFail: "THE WALL",
@@ -38,18 +38,18 @@ rc |= sabotage.prove({
       find: 'status:"abandoned",turn:R.turn,by:"wall"',
       replace: 'status:"declined",turn:R.turn,by:"wall"' },
 
-    // ── #235 — WHO abandoned it (JP0-3 part A) ────────────────────────────────────────
-    { label: "#235: the wall stops signing its own sweeps — a wall-closed thread is indistinguishable from a player drop again",
+    // ── #256 — WHO abandoned it (JP0-3 part A) ────────────────────────────────────────
+    { label: "#256: the wall stops signing its own sweeps — a wall-closed thread is indistinguishable from a player drop again",
       mustFail: "claims no author",
       find: 'turn:R.turn,by:"wall",wasOffered:_wq.status==="offered"',
       replace: 'turn:R.turn' },
 
-    { label: "#235: the never-accepted hook loses wasOffered — a lapsed opportunity reads as a thread the player took and quit",
+    { label: "#256: the never-accepted hook loses wasOffered — a lapsed opportunity reads as a thread the player took and quit",
       mustFail: "indistinguishable from an accepted thread",
       find: 'wasOffered:_wq.status==="offered"',
       replace: 'wasOffered:false' },
 
-    { label: "#235: the reopen guard goes back to hardcoding player agency for BOTH authors",
+    { label: "#256: the reopen guard goes back to hardcoding player agency for BOTH authors",
       mustFail: "calls a wall sweep the player's drop",
       find: 'R.muts.push("Quest \'"+qTitle+"\' "+_aw.phrase+" — not re-registered',
       replace: 'R.muts.push("Quest \'"+qTitle+"\' was abandoned by the player — not re-registered' },
@@ -95,7 +95,7 @@ rc |= sabotage.prove({
 rc |= sabotage.prove({
   file: "api.js",
   command: ["node", ["dev/run-tests.js"]],
-  also: ["ui-modals.js"], /* #235: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
+  also: ["ui-modals.js"], /* #256: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
   cases: [
     { label: "#234: the volatile CLOSED WITH THEIR ARC block never renders — the armed note reaches no prompt",
       mustFail: "armed sweep did not render",
@@ -107,7 +107,7 @@ rc |= sabotage.prove({
 rc |= sabotage.prove({
   file: "game.js",
   command: ["node", ["dev/run-tests.js"]],
-  also: ["ui-modals.js"], /* #235: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
+  also: ["ui-modals.js"], /* #256: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
   cases: [
     { label: "#234: the 2-turn shelf never clears — the wall note nags forever",
       mustFail: "note survived past its shelf",
@@ -119,19 +119,19 @@ rc |= sabotage.prove({
 rc |= sabotage.prove({
   file: "helpers.js",
   command: ["node", ["dev/run-tests.js"]],
-  also: ["ui-modals.js"], /* #235: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
+  also: ["ui-modals.js"], /* #256: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
   cases: [
     { label: "currentArcTitle guesses under ambiguity — a parallel act's quests get a fabricated parent",
       mustFail: "a parallel act guessed a parent",
       find: "  return live.length===1?live[0].title:null;",
       replace: "  return live.length?live[0].title:null;" },
 
-    { label: "#235: a LEGACY record (no by) is reported as a player drop — the exact lie the field can never correct",
+    { label: "#256: a LEGACY record (no by) is reported as a player drop — the exact lie the field can never correct",
       mustFail: "given an author it never had",
       find: '  return {origin:"unknown",label:"abandoned",phrase:"was abandoned"};',
       replace: '  return {origin:"player",label:"abandoned by you",phrase:"was abandoned by you"};' },
 
-    { label: "#235: the lapsed-offer reading collapses into the wall reading — a third semantic hides under one label again",
+    { label: "#256: the lapsed-offer reading collapses into the wall reading — a third semantic hides under one label again",
       mustFail: "lapsed-offer label wrong",
       find: '{origin:"lapsed",label:"opportunity lapsed",phrase:"lapsed with the arc that raised it"}',
       replace: '{origin:"wall",label:"closed with the arc",phrase:"closed with the arc that began it"}' }
@@ -141,7 +141,7 @@ rc |= sabotage.prove({
 rc |= sabotage.prove({
   file: "api.js",
   command: ["node", ["dev/run-tests.js"]],
-  also: ["ui-modals.js"], /* #235: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
+  also: ["ui-modals.js"], /* #256: the History-label contract reads this ui shard; it is not in the engine manifest, so the working copy must ride into the clone or every clause misattributes */
   cases: [
     { label: "the pre-wall warning never fires — threads die with no notice to land them",
       mustFail: "warns BEFORE the wall",
@@ -153,7 +153,7 @@ rc |= sabotage.prove({
       find: "  if(last!=null&&(worldState.turn-last)<ARC_WALL_WARN_LEAD)return\"\";",
       replace: "" },
 
-    { label: "#235: the player's own Abandon stops signing its record — the deliberate drop becomes anonymous",
+    { label: "#256: the player's own Abandon stops signing its record — the deliberate drop becomes anonymous",
       mustFail: "player abandon left no author stamp",
       find: 'status:"abandoned",turn:worldState.turn||0,by:"player"',
       replace: 'status:"abandoned",turn:worldState.turn||0' }
