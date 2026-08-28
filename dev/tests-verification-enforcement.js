@@ -116,11 +116,11 @@ try {
   test("CI/pre-commit topology rejects removal of every required enforcement step", function () {
     if (!fs.existsSync(ENFORCE)) return "check-enforcement.js is missing";
     var guard = require(ENFORCE);
-    var workflow = "- uses: actions/checkout@v4\n- uses: actions/setup-node@v4\n  with:\n    node-version: 22\n- run: node dev/run-tests.js\n- run: node dev/sabotage-w2.js --focused\n";
+    var workflow = "- uses: actions/checkout@v4\n- uses: actions/setup-node@v4\n  with:\n    node-version: 22\n- run: node dev/run-tests.js\n- run: node dev/check-sabotage-applicability.js\n- run: node dev/diff-replay.js dev/corpus_playtest_v1238.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1258.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1271.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1276.json --check\n- run: node dev/sabotage-w2.js --focused\n";
     var hook = "node dev/check-hook-parity.js\nnode dev/lint-todo.js --git-aware --staged\nnode dev/tests-todo-hygiene.js\nnode dev/check-shell-markers.js\nnode dev/run-tests.js\n";
     if (guard.workflowProblems(workflow).length) return "good workflow rejected: " + guard.workflowProblems(workflow).join("; ");
     if (guard.preCommitProblems(hook).length) return "good hook rejected: " + guard.preCommitProblems(hook).join("; ");
-    var workflowNeedles = ["actions/checkout@v4", "actions/setup-node@v4", "node-version: 22", "node dev/run-tests.js", "node dev/sabotage-w2.js --focused"];
+    var workflowNeedles = ["actions/checkout@v4", "actions/setup-node@v4", "node-version: 22", "node dev/run-tests.js", "node dev/check-sabotage-applicability.js", "node dev/diff-replay.js dev/corpus_playtest_v1238.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1258.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1271.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1276.json --check", "node dev/sabotage-w2.js --focused"];
     for (var i = 0; i < workflowNeedles.length; i++) if (!guard.workflowProblems(workflow.replace(workflowNeedles[i], "REMOVED")).length) return "workflow removal passed: " + workflowNeedles[i];
     var hookNeedles = ["node dev/check-hook-parity.js", "--git-aware --staged", "node dev/tests-todo-hygiene.js", "node dev/check-shell-markers.js", "node dev/run-tests.js"];
     for (var j = 0; j < hookNeedles.length; j++) if (!guard.preCommitProblems(hook.replace(hookNeedles[j], "REMOVED")).length) return "hook removal passed: " + hookNeedles[j];

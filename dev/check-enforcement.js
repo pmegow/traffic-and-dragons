@@ -20,6 +20,11 @@ function workflowProblems(source) {
     { label: "actions/setup-node@v4", pattern: /actions\/setup-node@v4/ },
     { label: "Node 22", pattern: /node-version:\s*["']?22["']?/ },
     { label: "node dev/run-tests.js", pattern: /run:\s*node dev\/run-tests\.js(?:\s|$)/ },
+    { label: "node dev/check-sabotage-applicability.js", pattern: /run:\s*node dev\/check-sabotage-applicability\.js(?:\s|$)/ },
+    { label: "v1238 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1238\.json --check(?:\s|$)/ },
+    { label: "v1258 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1258\.json --check(?:\s|$)/ },
+    { label: "v1271 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1271\.json --check(?:\s|$)/ },
+    { label: "v1276 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1276\.json --check(?:\s|$)/ },
     { label: "node dev/sabotage-w2.js --focused", pattern: /run:\s*node dev\/sabotage-w2\.js\s+--focused(?:\s|$)/ }
   ], "engine-tests.yml");
 }

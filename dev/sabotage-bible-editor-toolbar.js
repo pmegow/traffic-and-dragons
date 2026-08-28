@@ -7,7 +7,7 @@
 var sabotage = require("./sabotage.js");
 
 var page = "bible_editor.html";
-var saveButton = '  <button class="primary" id="save" disabled>💾 Save (overwrite)</button>';
+var saveButton = '  <button class="primary" id="save" disabled>💾 Save project file</button>';
 
 process.exit(sabotage.prove({
   file: page,

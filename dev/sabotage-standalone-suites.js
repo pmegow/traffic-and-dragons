@@ -78,6 +78,10 @@ var SPECS = [
   }
 ];
 
+if (process.env.TND_SABOTAGE_APPLICABILITY_ONLY === "1") {
+  module.exports = SPECS;
+} else {
+
 function copy(from, to) { fs.copyFileSync(from, to); }
 function runSuite(tmp, suite) {
   return cp.spawnSync(process.execPath, [path.join(tmp, "dev", suite)], { cwd: tmp, encoding: "utf8" });
@@ -141,3 +145,4 @@ if (failed) {
   process.exit(1);
 }
 console.log("ALL GREEN — " + SPECS.length + "/" + SPECS.length + " standalone suite regressions caught and disposable targets restored");
+}

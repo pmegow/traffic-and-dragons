@@ -18,6 +18,16 @@ jobs:
           node-version: 22
       - name: Run engine suite + source contracts
         run: node dev/run-tests.js
+      - name: Verify every retained sabotage target still applies
+        run: node dev/check-sabotage-applicability.js
+      - name: Replay v1238 against its committed end state
+        run: node dev/diff-replay.js dev/corpus_playtest_v1238.json --check
+      - name: Replay v1258 against its committed end state
+        run: node dev/diff-replay.js dev/corpus_playtest_v1258.json --check
+      - name: Replay v1271 against its committed end state
+        run: node dev/diff-replay.js dev/corpus_playtest_v1271.json --check
+      - name: Replay v1276 against its committed end state
+        run: node dev/diff-replay.js dev/corpus_playtest_v1276.json --check
       # #170 + owner ruling 2026-08-13: CI proves the drift guards, not just the tests. The focused
       # battery mutates each guarded branch and requires the NAMED test to fail (mustFail
       # attribution — an unrelated red is MISATTRIBUTED, not a pass). ~9s locally. The

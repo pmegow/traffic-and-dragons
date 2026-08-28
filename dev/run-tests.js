@@ -303,9 +303,15 @@ try {
     if (_memAC.slice(Math.max(0, _mAC.index - 80), _mAC.index).indexOf("npcKnowledge.push") < 0) _bareAC++;
   }
   if (_bareAC) _failAC(_bareAC + " bare knowledge.shift() in memory.js — an eviction path shed to the void again");
-  if (_memAC.indexOf("npcEvents.push") < 0) _failAC("fileNpcEvent no longer archives evicted events");
+  if (_memAC.indexOf("memArchive().npcKnowledge.push({npc:sfName,fact:sfNpc.knowledge.shift(),turn:worldState.turn})") < 0)
+    _failAC("supersession replacement no longer archives its shifted NPC fact");
+  if (_memAC.indexOf("memArchive().npcKnowledge.push({npc:nuName,fact:_kg.shift(),turn:worldState.turn})") < 0)
+    _failAC("summary knowledge filing no longer archives its shifted NPC fact");
+  if (_memAC.indexOf("memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn})") < 0)
+    _failAC("fileNpcEvent no longer archives evicted events");
   var _ttAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "tag_table.js"), "utf8");
-  if (_ttAC.indexOf("npcKnowledge.push") < 0) _failAC("the NPC_MERGE truncation no longer archives its overflow");
+  if (_ttAC.indexOf("memArchive().npcKnowledge.push({npc:mgCanon,fact:mgOv[mgOvi],turn:worldState.turn})") < 0)
+    _failAC("the NPC_MERGE truncation no longer archives its overflow");
   // #144B: the extractor schema must keep teaching the durable/scene kind — losing it reverts
   // every new fact to the untyped stale-posture class.
   if (_memAC.indexOf("scene facts are filed as dated history") < 0) _failAC("the extraction schema no longer teaches the durable/scene kind (#144B)");

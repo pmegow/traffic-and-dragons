@@ -6,7 +6,8 @@
 // verification kit); anything unexplained is a defect.
 // History: this file was the UA1 dual-parser parity replayer (shadow v1.241 → cutover v1.258);
 // the legacy parser it diffed against was deleted at v1.261 after the soak finished clean.
-// Usage: node dev/diff-replay.js <corpus.json>
+// Normal generation is an explicit maintainer action; CI uses --check and never rewrites its
+// oracle. Usage: node dev/diff-replay.js <corpus.json> [--check]
 var fs = require("fs"), path = require("path");
 var root = path.join(__dirname, "..");
 // Full canonical engine load (dev/load-engine.js, AUDIT_FABLE_07_16_2026 #18). The old
@@ -27,7 +28,9 @@ checkLegacyCharacter=function(){}; // random — stubbed for a deterministic rep
 if(typeof storageAdapter==="undefined")storageAdapter={syncToServer:function(){},syncNow:function(){}};
 
 var corpusPath = process.argv[2] || "dev/corpus_playtest_v1238.json";
-var corpus = JSON.parse(fs.readFileSync(path.join(root, corpusPath), "utf8"));
+var corpusFile = path.resolve(root, corpusPath);
+var checkOnly = process.argv.indexOf("--check") >= 0;
+var corpus = JSON.parse(fs.readFileSync(corpusFile, "utf8"));
 
 // Vex Marrowlight's exact start state (the corpus campaign's turn-0 shape), built on the
 // shared fixture (#19). The `character` override REPLACES the base character WHOLESALE
@@ -68,7 +71,24 @@ console.log("end-state sanity: hp " + worldState.character.hp + "/" + worldState
   + " | xp " + worldState.character.xp + " | quests archived " + Object.keys(memory.quests || {}).length
   + " | npcs " + worldState.npcs.length + " | spells " + worldState.character.spells.map(function(s){return s.nm.split(" (")[0]+":"+(s.used?"USED":"ok");}).join(", "));
 // End-state serialization — the byte-identity evidence for cross-version comparisons (item 0 ⑥).
-fs.writeFileSync(path.join(root, corpusPath + ".endstate.json"),
-  JSON.stringify({ ws: worldState, mem: memory }), "utf8");
+var endStateFile = corpusFile + ".endstate.json";
+var endState = JSON.stringify({ ws: worldState, mem: memory });
+if (checkOnly) {
+  if (!fs.existsSync(endStateFile)) {
+    console.error("ENDSTATE DRIFT — committed baseline is missing: " + endStateFile);
+    process.exit(1);
+  }
+  var expectedEndState = fs.readFileSync(endStateFile, "utf8");
+  if (expectedEndState !== endState) {
+    var firstDiff = 0, lim = Math.min(expectedEndState.length, endState.length);
+    while (firstDiff < lim && expectedEndState.charAt(firstDiff) === endState.charAt(firstDiff)) firstDiff++;
+    console.error("ENDSTATE DRIFT — " + corpusPath + " differs from its committed baseline at byte " + firstDiff +
+      " (expected " + expectedEndState.length + " bytes, replayed " + endState.length + "). Regenerate only with an intentional, reviewed state-diff change.");
+    process.exit(1);
+  }
+  console.log("end state matches committed baseline -> " + corpusPath + ".endstate.json");
+  process.exit(errTurns.length === 0 ? 0 : 1);
+}
+fs.writeFileSync(endStateFile, endState, "utf8");
 console.log("end state -> " + corpusPath + ".endstate.json");
 process.exit(errTurns.length === 0 ? 0 : 1);

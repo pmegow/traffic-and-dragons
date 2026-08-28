@@ -32,3 +32,7 @@ momentos/
 # Bug-triage endpoint secret (/bugs sync) — the GAS doGet shared secret never enters the repo
 .claude/bugs.local.json
 dev/*.endstate.json
+!dev/corpus_playtest_v1238.json.endstate.json
+!dev/corpus_playtest_v1258.json.endstate.json
+!dev/corpus_playtest_v1271.json.endstate.json
+!dev/corpus_playtest_v1276.json.endstate.json

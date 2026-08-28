@@ -203,6 +203,10 @@ const cases = [
   }
 ];
 
+if (process.env.TND_SABOTAGE_APPLICABILITY_ONLY === "1") {
+  module.exports = cases;
+} else {
+
 function combined(run) { return String(run.stdout || "") + String(run.stderr || ""); }
 function copyWorking(scratch) {
   WORKING_FILES.forEach(function (rel) {
@@ -273,3 +277,4 @@ if (failed) {
 }
 console.log("ALL GREEN — " + cases.length + "/" + cases.length +
   " Bible editor launcher clauses mutation-proven");
+}

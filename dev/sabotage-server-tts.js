@@ -29,6 +29,10 @@ var cases = [
     replace: 'if(typeof TTS!=="undefined"&&false)TTS.prewarmServer();' }
 ];
 
+if (process.env.TND_SABOTAGE_APPLICABILITY_ONLY === "1") {
+  module.exports = cases;
+} else {
+
 function output(run) { return String(run.stdout || "") + String(run.stderr || ""); }
 var failed = 0;
 try {
@@ -59,3 +63,4 @@ try {
 
 if (failed) { console.error("SERVER TTS SABOTAGE: " + failed + " failure(s)"); process.exit(1); }
 console.log("ALL GREEN — 6/6 SERVER TTS clauses mutation-proven");
+}
