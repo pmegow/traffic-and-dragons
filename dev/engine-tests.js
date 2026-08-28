@@ -16897,6 +16897,52 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
+  // ── #268 — decorated victory words stop reproducing the pre-#214 discard (Fable f27, verified).
+  // The anchored /^(victor|won|...)/ missed "pyrrhic victory" / "the battle is won" — living foes
+  // silently discarded, the exact narration/tracker desync #214 closed. Recognition is now
+  // defeat-exclusion FIRST (a mixed "defeat — the warden kills the party" can never read as a
+  // win), victory-markers ANYWHERE second, and the genuinely unrecognized outcome over living
+  // foes is LOUD instead of a silent discard.
+  section("#268 — decorated victory recognition + the loud unrecognized outcome");
+  function __vicWorld(){
+    makeWorld();worldState.turn=30;
+    worldState.combat={round:2,engaged:null,foes:[{name:"Bandit",hp:6,maxHp:10,ac:12,atk:2,dmg:"1d6",morale:"shaky"}],node:"X"};
+  }
+  t("#268: 'pyrrhic victory' resolves the standing foe to the narration",function(){
+    __vicWorld();var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("[COMBAT_END:pyrrhic victory]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(worldState.combat!==null)return "combat left open";
+    return (R&&R.muts||[]).some(function(m){return m.indexOf("resolved to the narration")>=0;})?true:"the standing foe was silently discarded, not resolved: "+JSON.stringify(R&&R.muts);
+  });
+  t("#268: 'the battle is won' and 'decisive victory' both resolve (the decorated class)",function(){
+    __vicWorld();var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    var _w=console.warn;console.warn=function(){};var r1,r2;
+    try{r1=applyMuts("[COMBAT_END:the battle is won]");__vicWorld();r2=applyMuts("[COMBAT_END:decisive victory]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    var ok1=(r1&&r1.muts||[]).some(function(m){return m.indexOf("resolved to the narration")>=0;});
+    var ok2=(r2&&r2.muts||[]).some(function(m){return m.indexOf("resolved to the narration")>=0;});
+    return ok1&&ok2?true:"a decorated victory was silently discarded: won="+ok1+" decisive="+ok2;
+  });
+  t("#268: a mixed defeat-led outcome NEVER reads as a win — 'defeat — the warden kills the party' resolves nothing",function(){
+    __vicWorld();var _w=console.warn;console.warn=function(){};var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    var R;try{R=applyMuts("[COMBAT_END:defeat — the warden kills the party]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    return (R&&R.muts||[]).some(function(m){return m.indexOf("resolved to the narration")>=0;})?"a defeat with a fatal verb was executed as a victory":true;
+  });
+  t("#268: fled/truce still resolve nothing (pin)",function(){
+    __vicWorld();var _w=console.warn;console.warn=function(){};var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    var R;try{R=applyMuts("[COMBAT_END:fled]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    return (R&&R.muts||[]).some(function(m){return m.indexOf("resolved to the narration")>=0;})?"a fled close executed the foes":true;
+  });
+  t("#268: an UNRECOGNIZED outcome over living foes is loud — named, counted, and taught the re-assert path",function(){
+    __vicWorld();var _w=console.warn,_warned=[];console.warn=function(m){_warned.push(String(m));};
+    var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    var R;try{R=applyMuts("[COMBAT_END:stalemate broken]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    var line=(R&&R.muts||[]).filter(function(m){return m.indexOf("stalemate broken")>=0&&m.indexOf("⚠")>=0;})[0];
+    if(!line)return "the unrecognized outcome discarded a living foe silently: "+JSON.stringify(R&&R.muts);
+    if(line.indexOf("Bandit")<0&&!/1/.test(line))return "the loud line does not count the discarded foes: "+line;
+    return _warned.some(function(m){return m.indexOf("stalemate")>=0;})?true:"no console warn for the unrecognized outcome";
+  });
+
   // ── #267 — abandonment leaves a memory; an abandoned ARC quest cannot starve the spine
   // (Fable f15+f16, joint review 2026-08-27). Two turns after Abandon, no memory tier said the
   // drop was deliberate — chapters/RAG/futureEvents/schedule kept serving the pursuit as live

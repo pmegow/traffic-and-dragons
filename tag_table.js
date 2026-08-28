@@ -811,7 +811,24 @@ combatAttrEntry("COMBAT_VULN","vuln"),
         else _ceRest.push(_ceStanding[_cs2]);
       }
     }
-    if(worldState.combat&&/^(victor|won|win|slain|kill|rout|triumph)/i.test(ce[1].trim())){
+    /* #268 (Fable f27): recognition is DEFEAT-EXCLUSION FIRST, victory-markers-ANYWHERE second.
+       The old anchored /^(victor|won|...)/ missed every decorated form — "pyrrhic victory",
+       "decisive victory", "the battle is won" — silently reproducing the pre-#214 discard. The
+       exclusion runs first so a mixed outcome ("defeat — the warden kills the party") can never
+       read as a win off its fatal verb; a genuinely unrecognized word over LIVING foes is LOUD
+       (the else-branch below) instead of a silent discard — it can under-resolve, never falsely kill. */
+    var _ceOut=ce[1].trim();
+    var _ceDefeatLed=/(defeat|\blost\b|\bloss\b|the party (falls|fell|dies|died|is slain|was slain|is wiped|breaks)|you (die|died|fall|fell|are slain|were slain)|tpk|fled|flee|escape|retreat|withdraw|disengag|truce|parley|stand-?off|spared|surrender|captur)/i.test(_ceOut);
+    var _ceVictory=!_ceDefeatLed&&/(victor|triumph|\bw[oi]n\b|\bwins\b|rout|slain|slaughter|kill|\bdead\b|destroy|crush|annihilat|vanquish|put down)/i.test(_ceOut);
+    if(worldState.combat&&!_ceVictory&&!_ceDefeatLed&&_ceRest.length){
+      /* the unrecognized-outcome fork: foes are DISCARDED (pre-#214 semantics, never falsely
+         killed) but no longer silently — both channels hear it, the recovery vocabulary taught. */
+      var _ceUn=[],_cu;for(_cu=0;_cu<_ceRest.length;_cu++)_ceUn.push(_ceRest[_cu].name);
+      if(typeof console!=="undefined")console.warn("[combat] COMBAT_END outcome '"+_ceOut+"' not recognized as victory or defeat — "+_ceUn.join(", ")+" discarded UNresolved (if they died, re-assert with [ENEMY_SLAIN:name] before the close) (#268)");
+      R.muts.push("⚠ outcome '"+_ceOut+"' not recognized — "+_ceUn.join(", ")+" left the fight unresolved (not slain)");
+      if(typeof showToast==="function")showToast("⚠ Combat closed on an unrecognized outcome ('"+_ceOut+"') with "+_ceUn.length+" foe(s) unresolved");
+    }
+    if(worldState.combat&&_ceVictory){
       var _ceLive=_ceRest,_cl;
       for(_cl=0;_cl<_ceLive.length;_cl++){_ceLive[_cl].hp=0;_ceLive[_cl].down="slain";
         R.muts.push(_ceLive[_cl].name+" slain (still standing at victory — resolved to the narration)");}
