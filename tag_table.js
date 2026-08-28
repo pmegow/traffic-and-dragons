@@ -255,6 +255,22 @@ function manaPayCast(caster,sp,who,R){
     console.warn("[tags] SPELL_USED: "+(who||"player ")+sp.nm+" costs "+cost+" but only "+cur+" mana remained — the GM narrated a cast the pool cannot pay (only a Necromancer may overdraw)");
   }
 }
+/* #266 (Fable f53, joint review 2026-08-27): THE near-miss detector. Six handlers shared one
+   shape — a loose outer match (or a strict outer that simply never fired) with a strict inner
+   match — and an operand missing the exact expected form fell between them with ZERO warn:
+   parsed as a known tag name (so __tagUnknownScan is blind), mutating nothing, telling no one.
+   [SCENE_NOT:] is the sharp case: a dropped W2 NEGATIVE quietly weakens the death gate. ONE
+   helper, called at each handler's head with the tag's strict shape: every occurrence of the
+   name that fails the strict form warns AND pushes a ⚠ muts line naming the expected shape.
+   Well-formed tags never match here — the pin test holds all six silent on correct input. */
+function __tagNearMiss(text,R,name,strictSrc,shape){
+  var all=String(text||"").match(new RegExp("\\["+name+":[^\\]]*\\]","g"))||[],i,strict=new RegExp(strictSrc);
+  for(i=0;i<all.length;i++){
+    if(strict.test(all[i]))continue;
+    if(typeof console!=="undefined")console.warn("[tags] "+name+" operand near-miss — dropped, nothing mutated: "+all[i]+" (expected "+shape+") (#266)");
+    R.muts.push("⚠ ["+name+":] malformed — dropped (expected "+shape+")");
+  }
+}
 var TAG_TABLE=[
 {t:"HP",apply:function(text,R){var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];if(!hpTags.length)return;
   // UA8: a save that escaped migration can carry non-finite hp/maxHp — the clamp math below
@@ -304,7 +320,7 @@ var TAG_TABLE=[
 {t:"SUBLOCATION",apply:function(text,R){var sloctag=text.match(/\[SUBLOCATION:([^\]]+)\]/);if(sloctag){worldState.world.sublocation=sloctag[1].trim();fileSubLocation(sloctag[1].trim(),R.turn);R.muts.push("Sub: "+sloctag[1].trim());}}},
 {t:"SUBLOCATION_LEAVE",apply:function(text,R){if(/\[SUBLOCATION_LEAVE\]/.test(text)){worldState.world.sublocation=null;R.muts.push("Left sub-location");}}},
 {t:"SCENE_REF",apply:function(text,R){var ts=text.match(/\[SCENE_REF:([^|\]]+)\|([^\]]+)\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[SCENE_REF:([^|\]]+)\|([^\]]+)\]/);if(m)sceneRefBind(m[1].trim(),m[2].trim(),R);}}},
-{t:"SCENE_NOT",apply:function(text,R){var ts=text.match(/\[SCENE_NOT:([^|\]]+)\|([^|\]]+)\|(explicit|inference)\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[SCENE_NOT:([^|\]]+)\|([^|\]]+)\|(explicit|inference)\]/);if(m)sceneRefExclude(m[1].trim(),m[2].trim(),m[3].trim(),R);}}},
+{t:"SCENE_NOT",apply:function(text,R){__tagNearMiss(text,R,"SCENE_NOT","^\\[SCENE_NOT:[^|\\]]+\\|[^|\\]]+\\|(explicit|inference)\\]$","[SCENE_NOT:handle|Entity|explicit-or-inference] — a dropped negative weakens the death gate");var ts=text.match(/\[SCENE_NOT:([^|\]]+)\|([^|\]]+)\|(explicit|inference)\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[SCENE_NOT:([^|\]]+)\|([^|\]]+)\|(explicit|inference)\]/);if(m)sceneRefExclude(m[1].trim(),m[2].trim(),m[3].trim(),R);}}},
 {t:"SCENE_REVEAL",apply:function(text,R){var ts=text.match(/\[SCENE_REVEAL:([^|\]]+)\|([^\]]+)\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[SCENE_REVEAL:([^|\]]+)\|([^\]]+)\]/);if(m)sceneRefReveal(m[1].trim(),m[2].trim(),R);}}},
 {t:"SCENE_DEATH",apply:function(text,R){var ts=text.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[SCENE_DEATH:([^\]]+)\]/);if(m)sceneRefDeath(m[1].trim(),R);}}},
 /* #216: read-only — compares, never moves. MUST precede TIME/TIME_ADVANCE/REST in table order:
@@ -335,12 +351,12 @@ var TAG_TABLE=[
   if(added>0)R.muts.push("Time +"+added+"m ("+clockFmt()+")"+(capped?" ⚠ clamped to 30d — check the tag":""));}},
 // [SCHEDULE:label|when] stores an ABSOLUTE due-time (now+when); the countdown is COMPUTED every
 // turn by buildClockBlock, never stored — the anti-hallucination heart of #73.
-{t:"SCHEDULE",apply:function(text,R){var ss=text.match(/\[SCHEDULE:([^\]]+)\]/g)||[],i;for(i=0;i<ss.length;i++){var m=ss[i].match(/\[SCHEDULE:([^|\]]+)\|([^\]]+)\]/);if(!m)continue;var ev=scheduleAdd(m[1],m[2]);if(ev){var _sf=scheduleAdd._lastFold;if(_sf&&_sf.from&&String(_sf.from).toLowerCase()!==String(ev.label).toLowerCase())R.muts.push("Schedule folded: \""+_sf.from+"\" is the existing deadline \""+ev.label+"\" ("+fmtGap(ev.dueMin-clockNow())+")");/* #235: the old line paired the KEPT label with the NEW countdown and hid the fold entirely */else R.muts.push("Scheduled: "+ev.label+" ("+fmtGap(ev.dueMin-clockNow())+")");}}}},
+{t:"SCHEDULE",apply:function(text,R){__tagNearMiss(text,R,"SCHEDULE","^\\[SCHEDULE:[^|\\]]+\\|[^\\]]+\\]$","[SCHEDULE:what|when] — a deadline needs its when half");var ss=text.match(/\[SCHEDULE:([^\]]+)\]/g)||[],i;for(i=0;i<ss.length;i++){var m=ss[i].match(/\[SCHEDULE:([^|\]]+)\|([^\]]+)\]/);if(!m)continue;var ev=scheduleAdd(m[1],m[2]);if(ev){var _sf=scheduleAdd._lastFold;if(_sf&&_sf.from&&String(_sf.from).toLowerCase()!==String(ev.label).toLowerCase())R.muts.push("Schedule folded: \""+_sf.from+"\" is the existing deadline \""+ev.label+"\" ("+fmtGap(ev.dueMin-clockNow())+")");/* #235: the old line paired the KEPT label with the NEW countdown and hid the fold entirely */else R.muts.push("Scheduled: "+ev.label+" ("+fmtGap(ev.dueMin-clockNow())+")");}}}},
 {t:"SCHEDULE_RESOLVED",apply:function(text,R){var ss=text.match(/\[SCHEDULE_RESOLVED:([^\]]+)\]/g)||[],i;for(i=0;i<ss.length;i++){var m=ss[i].match(/\[SCHEDULE_RESOLVED:([^\]]+)\]/);if(m&&scheduleRemove(m[1]))R.muts.push("Event resolved: "+m[1].trim());}}},
 {t:"SCHEDULE_CANCEL",apply:function(text,R){var ss=text.match(/\[SCHEDULE_CANCEL:([^\]]+)\]/g)||[],i;for(i=0;i<ss.length;i++){var m=ss[i].match(/\[SCHEDULE_CANCEL:([^\]]+)\]/);if(m&&scheduleRemove(m[1]))R.muts.push("Event cancelled: "+m[1].trim());}}},
 {t:"LOCATION_DESC",apply:function(text,R){var ldesc=text.match(/\[LOCATION_DESC:([^\]]+)\]/);if(ldesc)fileLocationDesc(ldesc[1]);}},
 {t:"LOCATION_SIZE",apply:function(text,R){var lsize=text.match(/\[LOCATION_SIZE:([^|]+)\|([^\]]+)\]/);if(lsize){var lsKey=currentNodeKey();/* UA9 */if(memory.map&&memory.map.nodes[lsKey]){memory.map.nodes[lsKey].size=lsize[1].trim();memory.map.nodes[lsKey].travelMins=parseInt(lsize[2])||null;}}}},
-{t:"LOCATION_ITEM",apply:function(text,R){var locItms=text.match(/\[LOCATION_ITEM:([^|]+)\|(placed|taken)\]/g)||[];var lii;for(lii=0;lii<locItms.length;lii++){var lip=locItms[lii].match(/\[LOCATION_ITEM:([^|]+)\|(placed|taken)\]/);if(!lip)continue;fileLocationItem(lip[1].trim(),lip[2],R.turn);R.muts.push(lip[2]==="placed"?"Left: "+lip[1].trim():"Taken: "+lip[1].trim());}}},
+{t:"LOCATION_ITEM",apply:function(text,R){__tagNearMiss(text,R,"LOCATION_ITEM","^\\[LOCATION_ITEM:[^|\\]]+\\|(placed|taken)\\]$","[LOCATION_ITEM:name|placed-or-taken]");var locItms=text.match(/\[LOCATION_ITEM:([^|]+)\|(placed|taken)\]/g)||[];var lii;for(lii=0;lii<locItms.length;lii++){var lip=locItms[lii].match(/\[LOCATION_ITEM:([^|]+)\|(placed|taken)\]/);if(!lip)continue;fileLocationItem(lip[1].trim(),lip[2],R.turn);R.muts.push(lip[2]==="placed"?"Left: "+lip[1].trim():"Taken: "+lip[1].trim());}}},
 // #105 (B17): the durable state-change record — a place the party materially changed must never
 // again be served as intact. Append-only via fileLocationState (memory.js; the write-once
 // description is untouched); read back by buildGeoBlock (current node, beside the frozen
@@ -659,6 +675,16 @@ var TAG_TABLE=[
   for(csi=0;csi<csTags.length;csi++){
     var cs2=csTags[csi].match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|([^\]]+)\]/);if(!cs2)continue;
     var foe={name:cs2[1].trim(),hp:parseInt(cs2[2]),maxHp:parseInt(cs2[2]),ac:parseInt(cs2[3]),atk:parseInt(cs2[4]),dmg:cs2[5].trim(),morale:cs2[6].trim()};
+    /* #266 (Fable f30): a living PARTY MEMBER entering the ENEMY tracker is the moment ordinary
+       damage tags become able to stamp a companion durably dead against a healthy sheet — and it
+       was silent. Warn-only by design: a betrayal scene is legal fiction; the anomaly just may
+       not pass unremarked. */
+    var _pmFoe=(typeof findCompanionChar==="function")?findCompanionChar(foe.name):null;
+    if(_pmFoe||(worldState.character&&worldState.character.name&&foe.name.toLowerCase()===worldState.character.name.toLowerCase())){
+      if(typeof console!=="undefined")console.warn("[combat] COMBAT_START names a living PARTY MEMBER: '"+foe.name+"' is entering the ENEMY tracker — damage tags can now kill them on the roster (betrayal scene, or ally/enemy confusion?) (#266)");
+      R.muts.push("⚠ "+foe.name+" — a party member — has entered the ENEMY tracker");
+      if(typeof showToast==="function")showToast("⚠ "+foe.name+" (party member) entered the enemy tracker");
+    }
     if(!worldState.combat){worldState.combat={round:1,engaged:null,foes:[foe],node:(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null)};/* #149: where the fight STARTED — the aftermath nudge anchors here, so a close+move response can never file battlefield damage onto the destination (the mis-anchor hazard); #156B: anchored canonical */R.muts.push("Combat: "+foe.name);continue;}
     var dup=null,di,fl=worldState.combat.foes;
     for(di=0;di<fl.length;di++){if(fl[di].name.toLowerCase()===foe.name.toLowerCase()&&!fl[di].down&&fl[di].hp>0){dup=fl[di];break;}}
@@ -903,16 +929,16 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
 {t:"REST",apply:function(text,R){if(/\[REST:\s*long\b[^\]]*\]/i.test(text)&&typeof restSpells==="function"){var _slept=restSpells();/* #89: restSpells owns the dawn roll — one site, both paths (button + tag) */R.muts.push("Rest: spell slots restored"+(_slept?"; slept until dawn (+"+_slept+"m, "+clockFmt()+")":""));}}},
 {t:"LORE",apply:function(text,R){var lores=text.match(/\[LORE:([^\]]+)\]/g)||[];for(var li=0;li<lores.length;li++){var lp=lores[li].match(/\[LORE:([^\]]+)\]/);if(lp)fileLore(lp[1]);}}},
 {t:"DECISION",apply:function(text,R){var decs=text.match(/\[DECISION:([^\]]+)\]/g)||[];for(var di=0;di<decs.length;di++){var dp=decs[di].match(/\[DECISION:([^\]]+)\]/);if(dp)fileDecision(R.turn,dp[1]);}}},
-{t:"FUTURE_EVENT",apply:function(text,R){var fes=text.match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/g)||[];for(var fi=0;fi<fes.length;fi++){var fp=fes[fi].match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/);if(fp)fileFutureEvent(fp[2],"",fp[1],R.turn);}}},
+{t:"FUTURE_EVENT",apply:function(text,R){__tagNearMiss(text,R,"FUTURE_EVENT","^\\[FUTURE_EVENT:[^|\\]]+\\|[^\\]]+\\]$","[FUTURE_EVENT:what|when]");var fes=text.match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/g)||[];for(var fi=0;fi<fes.length;fi++){var fp=fes[fi].match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/);if(fp)fileFutureEvent(fp[2],"",fp[1],R.turn);}}},
 {t:"FUTURE_EVENT_RESOLVED",apply:function(text,R){var fres=text.match(/\[FUTURE_EVENT_RESOLVED:([^\]]+)\]/g)||[];var fri;for(fri=0;fri<fres.length;fri++){var frp=fres[fri].match(/\[FUTURE_EVENT_RESOLVED:([^\]]+)\]/);if(frp)resolveFutureEvent(frp[1]);}}},
-{t:"NPC_NOTE",apply:function(text,R){var nns=text.match(/\[NPC_NOTE:([^|\]]+)\|([^\]]+)\]/g)||[];for(var nni=0;nni<nns.length;nni++){var nnp=nns[nni].match(/\[NPC_NOTE:([^|\]]+)\|([^\]]+)\]/);if(nnp)fileNpcEvent(nnp[1],nnp[2],R.turn);}}},
+{t:"NPC_NOTE",apply:function(text,R){__tagNearMiss(text,R,"NPC_NOTE","^\\[NPC_NOTE:[^|\\]]+\\|[^\\]]+\\]$","[NPC_NOTE:name|note]");var nns=text.match(/\[NPC_NOTE:([^|\]]+)\|([^\]]+)\]/g)||[];for(var nni=0;nni<nns.length;nni++){var nnp=nns[nni].match(/\[NPC_NOTE:([^|\]]+)\|([^\]]+)\]/);if(nnp)fileNpcEvent(nnp[1],nnp[2],R.turn);}}},
 {t:"NPC_FORGET",apply:function(text,R){var forgets=text.match(/\[NPC_FORGET:([^|\]]+)\|([^\]]+)\]/g)||[];var fgi;for(fgi=0;fgi<forgets.length;fgi++){var fgp=forgets[fgi].match(/\[NPC_FORGET:([^|\]]+)\|([^\]]+)\]/);if(!fgp)continue;var fgName=resolveNpcName(fgp[1].trim()),fgWhat=fgp[2].trim().toLowerCase();var fgNpc=memory.npcs[fgName];if(!fgNpc)continue;var fgRem=0;if(fgNpc.knowledge){var fgkb=fgNpc.knowledge.length;fgNpc.knowledge=fgNpc.knowledge.filter(function(k){if(String(k).toLowerCase().indexOf(fgWhat)<0)return true;memArchive().npcForgotten.push({npc:fgName,fact:String(k),turn:worldState.turn,cause:fgp[2].trim()});return false;});fgRem+=fgkb-fgNpc.knowledge.length;}if(fgNpc.events){var fgeb=fgNpc.events.length;fgNpc.events=fgNpc.events.filter(function(e){var _fgN=String(e&&e.note!==undefined?e.note:e);if(_fgN.toLowerCase().indexOf(fgWhat)<0)return true;memArchive().npcForgotten.push({npc:fgName,fact:_fgN,turn:worldState.turn,cause:fgp[2].trim()});return false;});fgRem+=fgeb-fgNpc.events.length;}/* #136④ RULING: Oubliate keeps its BREADTH (everything matching is the spell's contract — narrowing would change a shipped ability); the fix is the tombstone. npcForgotten is never injected anywhere, so the fiction still forgets; the operator can recover. */R.muts.push(fgName+" forgets: "+fgp[2].trim()+(fgRem?" ("+fgRem+")":""));}}},
 // #57 leg B: turn-time supersession — commits a reveal THE TURN it lands instead of waiting for
 // the next summarize window. knowledge[] ONLY (events are turn-stamped history, true at their
 // time — scrubbing history is NPC_FORGET/Oubliate's domain); retired lines ARCHIVE, never vanish
 // (the P12 discipline). The new fact records even when nothing matched — the reveal is canon
 // whether or not the hedge ever made it to file (a no-match scrub warns for attribution).
-{t:"NPC_SUPERSEDE",apply:function(text,R){var sups=text.match(/\[NPC_SUPERSEDE:([^|\]]+)\|([^|]+)\|([^\]]+)\]/g)||[];var spi;for(spi=0;spi<sups.length;spi++){var spp=sups[spi].match(/\[NPC_SUPERSEDE:([^|\]]+)\|([^|]+)\|([^\]]+)\]/);if(!spp)continue;var spName=resolveNpcName(spp[1].trim()),spOld=spp[2].trim(),spNew=spp[3].trim();if(!spOld||!spNew)continue;
+{t:"NPC_SUPERSEDE",apply:function(text,R){__tagNearMiss(text,R,"NPC_SUPERSEDE","^\\[NPC_SUPERSEDE:[^|\\]]*\\S[^|\\]]*\\|[^|\\]]*\\S[^|\\]]*\\|[^|\\]]*\\S[^|\\]]*\\]$","[NPC_SUPERSEDE:name|outdated|truth] — three non-blank fields");var sups=text.match(/\[NPC_SUPERSEDE:([^|\]]+)\|([^|]+)\|([^\]]+)\]/g)||[];var spi;for(spi=0;spi<sups.length;spi++){var spp=sups[spi].match(/\[NPC_SUPERSEDE:([^|\]]+)\|([^|]+)\|([^\]]+)\]/);if(!spp)continue;var spName=resolveNpcName(spp[1].trim()),spOld=spp[2].trim(),spNew=spp[3].trim();if(!spOld||!spNew)continue;
   if(!memory.npcs[spName])memory.npcs[spName]={attitude:"unknown",knowledge:[],events:[],aliases:[]};
   var spNpc=memory.npcs[spName],spLow=spOld.toLowerCase(),spRet=[];
   if(spNpc.knowledge){spNpc.knowledge=spNpc.knowledge.filter(function(k){if(String(k).toLowerCase().indexOf(spLow)>=0){spRet.push(k);return false;}return true;});}
@@ -1240,7 +1266,7 @@ function applyMutsTable(text,opts){
       // never block (the entry still runs — its own guards keep it a no-op). Checked per entry
       // IN ORDER, so a same-response COMBAT_START has already opened the fight by the time its
       // companion tags are checked.
-      if(TAG_TABLE[i].nc&&!worldState.combat&&text.indexOf("["+TAG_TABLE[i].t+":")>=0){__tagNoCombatWarns++;if(!R._orphanNc)R._orphanNc=[];if(R._orphanNc.indexOf(TAG_TABLE[i].t)<0)R._orphanNc.push(TAG_TABLE[i].t);/* #225: collected per response, settled at the post-handler seam */console.warn("[tags] "+TAG_TABLE[i].t+" arrived with NO active combat — no-op (premature [COMBAT_END:] earlier? the v1.224 C1 class / UA27)");}
+      if(TAG_TABLE[i].nc&&!worldState.combat&&(text.indexOf("["+TAG_TABLE[i].t+":")>=0||text.indexOf("["+TAG_TABLE[i].t+"]")>=0)){/* #266/f55: bare forms ([ENEMY_SURRENDERS] — the GM-taught mass surrender) used to slip both tripwires */__tagNoCombatWarns++;if(!R._orphanNc)R._orphanNc=[];if(R._orphanNc.indexOf(TAG_TABLE[i].t)<0)R._orphanNc.push(TAG_TABLE[i].t);/* #225: collected per response, settled at the post-handler seam */console.warn("[tags] "+TAG_TABLE[i].t+" arrived with NO active combat — no-op (premature [COMBAT_END:] earlier? the v1.224 C1 class / UA27)");}
       TAG_TABLE[i].apply(text,R);
     }
     catch(e){R.errors.push(TAG_TABLE[i].t+": "+(e&&e.message));console.warn("[tags] table handler "+TAG_TABLE[i].t+" threw:",e&&e.message);}

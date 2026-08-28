@@ -16897,6 +16897,69 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
+  // ── #266 — the silent-drop class in tag_table (Fable f53+f55+f30, joint review 2026-08-27).
+  // Six handlers shared one shape: a loose outer match (or none) with a strict inner match, and a
+  // near-miss operand fell between them with ZERO warn — including [SCENE_NOT:], a W2 NEGATIVE
+  // whose loss quietly weakens the death gate. One helper (__tagNearMiss) now scans every
+  // occurrence of the tag name against its strict shape and shouts on the gap. Plus: the UA27/#225
+  // orphan collector matched colon-forms only, so a bare [ENEMY_SURRENDERS] against a closed
+  // tracker was invisible to the ghost-fight machinery; and a [COMBAT_START:] naming a living
+  // party member entered the enemy tracker without a word.
+  section("#266 — the silent-drop class (near-miss operands, bare orphans, companions in the tracker)");
+  t("#266: a two-field [SCENE_NOT:] — the W2 negative — is loud, not invisible",function(){
+    makeWorld();worldState.turn=30;
+    var _w=console.warn,_warned=[];console.warn=function(m){_warned.push(String(m));};
+    var R;try{R=applyMuts("[SCENE_NOT:hooded figure|Mokmurian]");}finally{console.warn=_w;}
+    if(!_warned.some(function(m){return m.indexOf("SCENE_NOT")>=0;}))return "no console warn for the malformed negative";
+    var line=(R&&R.muts?R.muts:[]).filter(function(m){return m.indexOf("SCENE_NOT")>=0;})[0];
+    return line?true:"no player-visible line for the dropped W2 negative: "+JSON.stringify(R&&R.muts);
+  });
+  t("#266: a [SCHEDULE:] with no deadline half is loud",function(){
+    makeWorld();worldState.turn=30;
+    var _w=console.warn,_warned=[];console.warn=function(m){_warned.push(String(m));};
+    var R;try{R=applyMuts("[SCHEDULE:pay the ferryman]");}finally{console.warn=_w;}
+    return (R&&R.muts||[]).some(function(m){return m.indexOf("SCHEDULE")>=0;})?true:"the deadline-less schedule dropped silently";
+  });
+  t("#266: a pipe-less [FUTURE_EVENT:] and a bad-verb [LOCATION_ITEM:] are loud",function(){
+    makeWorld();worldState.turn=30;
+    var _w=console.warn;console.warn=function(){};
+    var R1,R2;try{R1=applyMuts("[FUTURE_EVENT:the storm comes]");R2=applyMuts("[LOCATION_ITEM:rope|left]");}finally{console.warn=_w;}
+    if(!(R1&&R1.muts||[]).some(function(m){return m.indexOf("FUTURE_EVENT")>=0;}))return "the pipe-less future event dropped silently";
+    return (R2&&R2.muts||[]).some(function(m){return m.indexOf("LOCATION_ITEM")>=0;})?true:"the bad-verb location item dropped silently";
+  });
+  t("#266: an [NPC_SUPERSEDE:] with an empty field is loud",function(){
+    makeWorld();worldState.turn=30;
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("[NPC_SUPERSEDE:Ameiko| |the truth]");}finally{console.warn=_w;}
+    return (R&&R.muts||[]).some(function(m){return m.indexOf("NPC_SUPERSEDE")>=0;})?true:"the empty-field supersede dropped silently";
+  });
+  t("#266: correct forms of all six tags stay ⚠-silent (pin)",function(){
+    makeWorld();worldState.turn=30;worldState.world.location="Sandpoint";
+    applyMuts("[NPC:Ameiko|friendly|ally]");
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("[SCENE_REF:barkeep|?][SCENE_NOT:barkeep|Ameiko|explicit][SCHEDULE:pay the ferryman|2d][FUTURE_EVENT:the storm comes|in three days][LOCATION_ITEM:rope|placed][NPC_NOTE:Ameiko|hid the ledger][NPC_SUPERSEDE:Ameiko|thinks the ledger is lost|knows it was hidden]");}finally{console.warn=_w;}
+    var bad=(R&&R.muts||[]).filter(function(m){return m.indexOf("⚠")===0&&/SCENE_NOT|SCHEDULE|FUTURE_EVENT|LOCATION_ITEM|NPC_NOTE|NPC_SUPERSEDE/.test(m);});
+    return bad.length?"a well-formed tag was flagged as malformed: "+JSON.stringify(bad):true;
+  });
+  t("#266: a BARE [ENEMY_SURRENDERS] against a closed tracker reaches the orphan machinery",function(){
+    makeWorld();worldState.turn=30;worldState.combat=null;
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("The bandits throw down their arms. [ENEMY_SURRENDERS]");}finally{console.warn=_w;}
+    var line=(R&&R.muts||[]).filter(function(m){return m.indexOf("no open encounter")>=0;})[0];
+    if(!line)return "the bare mass-surrender stayed invisible to the ghost-fight machinery: "+JSON.stringify(R&&R.muts);
+    return line.indexOf("ENEMY_SURRENDERS")>=0?true:"the orphan line does not name the tag: "+line;
+  });
+  t("#266: a [COMBAT_START:] naming a LIVING party member is loud at registration — and still adds (warn-only)",function(){
+    makeWorld();worldState.turn=30;
+    worldState.npcs=[{name:"Daeris",status:"steady",partyMember:true,charSheet:{name:"Daeris",cls:"Ranger",hp:20,maxHp:20,stats:{},inventory:[],abilities:[],spells:[],level:3,xp:0}}];
+    var _w=console.warn,_warned=[];console.warn=function(m){_warned.push(String(m));};
+    var _t=(typeof showToast==="function")?showToast:null;var _toasts=[];if(_t)showToast=function(m){_toasts.push(String(m));};
+    var R;try{R=applyMuts("[COMBAT_START:Daeris|20|14|+4|1d8|steady]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(!worldState.combat||!worldState.combat.foes.length)return "the warn became a refusal — the GM's betrayal scene is broken";
+    if(!_warned.some(function(m){return m.indexOf("PARTY MEMBER")>=0||m.indexOf("party member")>=0;}))return "no console warn for the companion entering the enemy tracker";
+    return (R&&R.muts||[]).some(function(m){return m.indexOf("Daeris")>=0&&m.indexOf("⚠")>=0;})?true:"no player-visible line for the companion-as-foe anomaly: "+JSON.stringify(R&&R.muts);
+  });
+
   // ── #265 — quest-family P1 remainder (Fable f1+f52+f11, joint review 2026-08-27).
   // ① a newborn quest offered in the SAME response as [ARC_COMPLETE:] was stamped with the DYING
   // arc (table order: QUEST precedes ARC_COMPLETE) and archived at birth by the wall sweep;
