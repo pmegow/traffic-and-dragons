@@ -6825,6 +6825,70 @@ function runEngineTests(R){
     return q&&q.status==="active"?true:"the legitimate next-response accept was blocked: "+(q?q.status:"no row");
   });
 
+  // ── #260 (JP0-7, joint review 2026-08-27; Fable f50, verified ×2): the early LOCATION
+  // combat-clear destroyed same-response kill/victory tags. Handlers run in TABLE order, and
+  // [LOCATION:] precedes every combat handler — so "the blade falls, the warlord dies, you ride
+  // for Greyford [ENEMY_SLAIN:Warlord][LOCATION:Greyford]" wiped the tracker BEFORE the killing
+  // blow was read: the kill fell on a null tracker (UA27 orphan), the death never propagated,
+  // and the #225 nudge then asked the GM to RE-OPEN the finished fight. The clear now DEFERS
+  // when the response carries outcome tags for the open fight (COMBAT_END/ENEMY_HP/ENEMY_SLAIN/
+  // ENEMY_SURRENDERS): the tags apply first, and a post-handler seam clear handles the no-close
+  // case — sparing foes a same-response [COMBAT_START:] introduced (the #258 pattern).
+  section("#260 — the LOCATION combat-clear defers to same-response outcome tags");
+  function __moveFight(){
+    makeWorld();worldState.turn=30;
+    worldState.combat={round:2,engaged:"Warlord",foes:[{name:"Warlord",hp:20,maxHp:20,ac:14,atk:3,dmg:"1d8",morale:"steady"}]};
+  }
+  t("#260: a same-response kill + victory close survives the move — no orphan, fight closed by its OWN tags",function(){
+    __moveFight();
+    var r=applyMuts("[ENEMY_HP:Warlord|-20][COMBAT_END:victory][LOCATION:Greyford]");
+    if(worldState.combat)return "combat still open: "+JSON.stringify(worldState.combat.foes);
+    var m=(r&&r.muts?r.muts:[]).join(" | ");
+    if(m.indexOf("left the area")>=0)return "the stale-clear fired over a properly closed fight: "+m;
+    return m.indexOf("victory")>=0?true:"the close was not the COMBAT_END's own: "+m;
+  });
+  t("#260: a same-response [ENEMY_SLAIN:] lands before the move wipes the tracker",function(){
+    __moveFight();
+    var r=applyMuts("[ENEMY_SLAIN:Warlord][LOCATION:Greyford]");
+    if(worldState.combat)return "tracker leaked into the new location: "+JSON.stringify(worldState.combat);
+    var m=(r&&r.muts?r.muts:[]).join(" | ");
+    return m.indexOf("no open encounter")<0?true:"the kill fell on a null tracker: "+m;
+  });
+  t("#260: partial damage applies, THEN the deferred clear fires loudly (no close landed)",function(){
+    __moveFight();
+    var r=applyMuts("[ENEMY_HP:Warlord|-5][LOCATION:Greyford]");
+    if(worldState.combat)return "combat not cleared after the move";
+    var m=(r&&r.muts?r.muts:[]).join(" | ");
+    if(m.indexOf("no open encounter")>=0)return "the damage fell on a null tracker: "+m;
+    if(m.indexOf("left the area")<0)return "the deferred clear was silent: "+m;
+    return true;
+  });
+  t("#260: a bare move with no combat tags clears immediately and loudly (regression pin)",function(){
+    __moveFight();
+    var r=applyMuts("[LOCATION:Greyford]");
+    if(worldState.combat)return "combat not cleared";
+    return (r&&r.muts?r.muts:[]).join(" ").indexOf("left the area")>=0?true:"lost the loud clear";
+  });
+  t("#260: move + fresh COMBAT_START keeps only the NEW fight (regression pin)",function(){
+    __moveFight();
+    applyMuts("[LOCATION:Greyford][COMBAT_START:Bandit|10|12|2|1d6|shaky]");
+    if(!worldState.combat)return "the fresh fight was cleared";
+    var names=worldState.combat.foes.map(function(f){return f.name;});
+    return names.length===1&&names[0]==="Bandit"?true:"old foes leaked into the new fight: "+names.join(", ");
+  });
+  t("#260: kill the old fight AND open a new one across a move — the kill lands, only the newcomer survives",function(){
+    __moveFight();
+    worldState.npcs.push({name:"Warlord",status:"hostile",rel:"enemy",met:1,partyMember:false,aliases:[]});
+    /* no sceneRefs ledger on this save — w2DeathAuthorized authorizes unconditionally, so the
+       propagate is the observable: pre-#260 the -20 fell on the NEW tracker (name miss) and the
+       rostered foe was never stamped dead */
+    applyMuts("[ENEMY_HP:Warlord|-20][LOCATION:Greyford][COMBAT_START:Bandit|10|12|2|1d6|shaky]");
+    if(!worldState.combat)return "the fresh fight was cleared";
+    var names=worldState.combat.foes.map(function(f){return f.name;});
+    if(!(names.length===1&&names[0]==="Bandit"))return "wrong tracker after the split: "+names.join(", ");
+    return npcIsDead(wsNpcByName("Warlord"))?true:"the kill missed the old fight entirely — the rostered Warlord carries no death stamp";
+  });
+
   section("arc↔quest coupling (UA31)");
   function __arcQuestWorld(){
     makeWorld();worldState.turn=40;

@@ -285,11 +285,22 @@ var TAG_TABLE=[
   // (no stale-warn, no muts line) when the same response opens a fresh fight, since the new
   // COMBAT_START immediately rebuilds the tracker (preserves v1.216's observable behavior).
   if(worldState.combat&&_lname!==_prevLoc){
+    /* #260 (JP0-7, Fable f50 verified ×2): handlers run in TABLE order and [LOCATION:] precedes
+       every combat handler — so this clear used to wipe the tracker BEFORE a same-response
+       killing blow or victory close was read: the kill fell on a null tracker (UA27 orphan),
+       never propagated, and the #225 nudge then asked the GM to RE-OPEN the finished fight.
+       When the response carries OUTCOME tags for the open fight, the clear DEFERS to the
+       post-handler seam: the tags apply first; if no close landed, the seam clears with the
+       same loud message, sparing foes a same-response [COMBAT_START:] introduced (#258's
+       pattern). A response with no outcome tags keeps the original immediate clear. */
+    if(/\[(COMBAT_END:|ENEMY_HP[:\]]|ENEMY_SLAIN[:\]]|ENEMY_SURRENDERS[:\]])/.test(text)){
+      R._deferCombatClear={to:_lname};
+    }else{
     var _freshFight=/\[COMBAT_START:/.test(text);
     var _staleFoe=(worldState.combat.foes||[]).map(function(f){return f.name;}).join(", ")||"?";
     propagateSlainFoes(R);/* B3: foes already slain before the party moved on still get their durable stamp */
     worldState.combat=null;
-    if(!_freshFight){R.muts.push("Combat ended (left the area)");if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_staleFoe+") on move to "+_lname+" — GM emitted no [COMBAT_END:]");}}}}},
+    if(!_freshFight){R.muts.push("Combat ended (left the area)");if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_staleFoe+") on move to "+_lname+" — GM emitted no [COMBAT_END:]");}}}}}},
 {t:"SUBLOCATION",apply:function(text,R){var sloctag=text.match(/\[SUBLOCATION:([^\]]+)\]/);if(sloctag){worldState.world.sublocation=sloctag[1].trim();fileSubLocation(sloctag[1].trim(),R.turn);R.muts.push("Sub: "+sloctag[1].trim());}}},
 {t:"SUBLOCATION_LEAVE",apply:function(text,R){if(/\[SUBLOCATION_LEAVE\]/.test(text)){worldState.world.sublocation=null;R.muts.push("Left sub-location");}}},
 {t:"SCENE_REF",apply:function(text,R){var ts=text.match(/\[SCENE_REF:([^|\]]+)\|([^\]]+)\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[SCENE_REF:([^|\]]+)\|([^\]]+)\]/);if(m)sceneRefBind(m[1].trim(),m[2].trim(),R);}}},
@@ -1269,6 +1280,31 @@ function applyMutsTable(text,opts){
         if(typeof console!=="undefined")console.warn("[multiplayer] auto-rejoined "+_crm.name+" — splitLoc matched the party's current node exactly (#133b co-location)");
         if(typeof guestbookStamp==="function")guestbookStamp(currentNodeKey(),_crm.name,R.turn,"arrive");/* #173: the fold IS an arrival — they are physically here now (#194: sourced) */
       }
+    }
+  }
+  // #260: the DEFERRED location combat-clear settles. The [LOCATION:] handler held its clear so
+  // this response's outcome tags could reach the fight they describe (table order made that
+  // impossible in-handler). If a close already landed (COMBAT_END, or all-foes-down auto-close),
+  // there is nothing left to do; otherwise the fight ends the way the original clear ended it —
+  // loudly — sparing any foe a same-response [COMBAT_START:] introduced (they are the NEW fight,
+  // the #258 pattern; their tracker survives the old fight's teardown).
+  if(R._deferCombatClear&&worldState.combat){
+    var _dcStarts=R.combatStarts(),_dcNew={},_dcq;
+    for(_dcq=0;_dcq<_dcStarts.length;_dcq++)_dcNew[String(_dcStarts[_dcq].name||"").toLowerCase()]=1;
+    var _dcKeep=[],_dcRest=[],_dcf,_dcFoes=worldState.combat.foes||[];
+    for(_dcf=0;_dcf<_dcFoes.length;_dcf++){
+      if(_dcNew[String(_dcFoes[_dcf].name||"").toLowerCase()])_dcKeep.push(_dcFoes[_dcf]);
+      else _dcRest.push(_dcFoes[_dcf]);
+    }
+    var _dcStale=_dcRest.map(function(f){return f.name;}).join(", ")||"?";
+    worldState.combat.foes=_dcRest;
+    propagateSlainFoes(R);/* B3: the old fight's slain still get their durable stamp */
+    if(_dcKeep.length){
+      worldState.combat={round:1,engaged:null,foes:_dcKeep,node:(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null)};
+    }else{
+      worldState.combat=null;
+      R.muts.push("Combat ended (left the area)");
+      if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_dcStale+") on move to "+R._deferCombatClear.to+" — GM emitted no [COMBAT_END:] (#260 deferred)");
     }
   }
   // #173: the guestbook arrival commit — THE post-handler attendance seam (pinned amendment ③).

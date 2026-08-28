@@ -562,4 +562,25 @@ rc|=sabotage.prove({
   ]
 });
 
+rc |= sabotage.prove({
+  file: "tag_table.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#260: the defer condition dies — the LOCATION clear wipes the tracker before same-response outcome tags again",
+      mustFail: "survives the move",
+      find: '      R._deferCombatClear={to:_lname};',
+      replace: '      worldState.combat=null;' },
+
+    { label: "#260: the seam settle is dropped — a deferred fight leaks open into the new location forever",
+      mustFail: "partial damage applies, THEN",
+      find: '  if(R._deferCombatClear&&worldState.combat){',
+      replace: '  if(false){' },
+
+    { label: "#260: newcomer-sparing dies — the deferred clear tears down the fresh fight with the old one",
+      mustFail: "only the newcomer survives",
+      find: '    if(_dcKeep.length){',
+      replace: '    if(false){' }
+  ]
+});
+
 process.exit(rc?1:0);
