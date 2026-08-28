@@ -98,10 +98,11 @@ rc|=sabotage.prove({file:"state.js",command:focused,cases:[
     replace:"_sumFails=0;"}
 ]});
 
-rc|=sabotage.prove({file:"ui-files.js",command:focused,cases:[
+rc|=sabotage.prove({file:"state.js",command:["node",["dev/run-tests.js"]],cases:[/* JP0-5 (v1.722): the import rebuild derives from MEMORY_ARCHIVE_KEYS via archiveRebuild; the focused set never reaches it, so this clause runs the full suite */
   {label:"save import drops rejected-summary forensic receipts",
-    find:",identityQuarantines:mm.archive.identityQuarantines||[]",
-    replace:""}
+    mustFail:"a full archive round-trips EVERY shipped category",
+    find:"      if(known[k]){if(Array.isArray(src[k]))out[k]=src[k];}",
+    replace:"      if(known[k]){if(Array.isArray(src[k])&&k!==\"identityQuarantines\")out[k]=src[k];}"}
 ]});
 
 process.exit(rc);

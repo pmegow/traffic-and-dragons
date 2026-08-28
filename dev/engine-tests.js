@@ -4922,6 +4922,82 @@ function runEngineTests(R){
     return true;
   });
 
+  // ── memory.archive key registry (JP0-5 / Sol P0-03) ──────────────────────────
+  // Four separate hand-copied allowlists used to enumerate archive categories, and the .tnd
+  // import one has silently DROPPED a category FOUR times now (attitudeSpec, eras, the #144A
+  // trio, npcDeathCorrections). The second-instance rule says enumerate the class: ONE registry,
+  // and — the part that actually closes it — carry UNKNOWN categories through verbatim, so the
+  // next category costs zero edits at any consumer.
+  //
+  // The category list below is written out DELIBERATELY instead of derived from
+  // MEMORY_ARCHIVE_KEYS: a fixture that reads its expectations off the thing under test cannot
+  // notice the thing under test losing an entry. Adding an archive category means adding it here
+  // too — that is the point.
+  section("memory.archive key registry (JP0-5)");
+  var _jp5Cats=["lore","decisions","chapters","superseded","coreMemories","expiredSchedules",
+    "npcKnowledge","npcEvents","retconPins","locationStates","futureEvents","npcForgotten",
+    "identityMerges","identityQuarantines","relDowngrades","npcDeathCorrections"];
+
+  t("JP0-5: a full archive round-trips EVERY shipped category through the import rebuild — npcDeathCorrections included (the fourth key the hand-copied whitelist dropped)",function(){
+    var src={},i;
+    for(i=0;i<_jp5Cats.length;i++)src[_jp5Cats[i]]=[{marker:_jp5Cats[i]+"-row"}];
+    var out=archiveRebuild(src),lost=[];
+    for(i=0;i<_jp5Cats.length;i++){
+      var row=out[_jp5Cats[i]];
+      if(!Array.isArray(row)||row.length!==1||row[0].marker!==_jp5Cats[i]+"-row")lost.push(_jp5Cats[i]);
+    }
+    return lost.length?("an import destroyed archive categories: "+lost.join(", ")):true;
+  });
+
+  t("JP0-5: an UNKNOWN future archive category is carried through VERBATIM — the carry, not the list, is what closes the class",function(){
+    var future=[{turn:9,what:"a category this build has never heard of"}];
+    var out=archiveRebuild({lore:["keep me"],futureThingV9:future,repairBundles:[{id:"b1"}]});
+    if(out.lore.length!==1||out.lore[0]!=="keep me")return "a known category was damaged while carrying an unknown one";
+    if(out.futureThingV9!==future)return "the unknown category was not carried verbatim: "+JSON.stringify(out.futureThingV9);
+    /* dev repair tools (dev/repair-t1788-bundle.js, dev/rc-mark-repair.js) already write archive
+       categories the engine never declares — carry-unknown is what keeps those in a save. */
+    return (out.repairBundles&&out.repairBundles.length===1)?true:"a dev-tool-written category was dropped: "+JSON.stringify(out.repairBundles);
+  });
+
+  t("JP0-5: a KNOWN category holding a junk value degrades to an empty array, never to canon",function(){
+    var out=archiveRebuild({lore:"not a list",chapters:null,decisions:[{d:1}]});
+    if(!Array.isArray(out.lore)||out.lore.length)return "a string survived into a known category: "+JSON.stringify(out.lore);
+    if(!Array.isArray(out.chapters)||out.chapters.length)return "null survived into a known category: "+JSON.stringify(out.chapters);
+    return (out.decisions.length===1)?true:"a good category was collateral damage";
+  });
+
+  t("JP0-5: archiveRebuild is total — a missing, null, or non-object archive still yields the full blank shape",function(){
+    var shapes=[undefined,null,"","garbage",[1,2,3]],i,j;
+    for(i=0;i<shapes.length;i++){
+      var out=archiveRebuild(shapes[i]);
+      if(!out||typeof out!=="object")return "input "+JSON.stringify(shapes[i])+" produced no archive";
+      for(j=0;j<_jp5Cats.length;j++)if(!Array.isArray(out[_jp5Cats[j]]))return "input "+JSON.stringify(shapes[i])+" left "+_jp5Cats[j]+" unfilled";
+    }
+    return true;
+  });
+
+  t("JP0-5: blankMemory, healMemory and memArchive all agree with the registry — no consumer can drift out of step again",function(){
+    var i,miss=[];
+    var born=blankMemory().archive;
+    for(i=0;i<_jp5Cats.length;i++)if(!Array.isArray(born[_jp5Cats[i]]))miss.push("blankMemory:"+_jp5Cats[i]);
+    makeWorld();memory.archive={};healMemory();
+    for(i=0;i<_jp5Cats.length;i++)if(!Array.isArray(memory.archive[_jp5Cats[i]]))miss.push("healMemory:"+_jp5Cats[i]);
+    makeWorld();delete memory.archive;
+    var arc=memArchive();
+    for(i=0;i<_jp5Cats.length;i++)if(!Array.isArray(arc[_jp5Cats[i]]))miss.push("memArchive:"+_jp5Cats[i]);
+    return miss.length?("categories missing at their consumer: "+miss.join(", ")):true;
+  });
+
+  t("JP0-5: healing an archive NEVER drops what is already there, known or unknown",function(){
+    makeWorld();
+    memory.archive={lore:[{a:1}],someToolWrote:[{b:2}]};
+    healMemory();
+    if(!memory.archive.lore||memory.archive.lore.length!==1)return "an existing known category was reset by the heal";
+    if(!memory.archive.someToolWrote||memory.archive.someToolWrote.length!==1)return "the heal dropped an unknown category: "+JSON.stringify(memory.archive.someToolWrote);
+    memArchive();
+    return (memory.archive.someToolWrote&&memory.archive.someToolWrote.length===1)?true:"memArchive dropped an unknown category";
+  });
+
   // ═══ UA1: tag table — derivations frozen, coverage guards, full-vocabulary battery ═══
   // Since v1.261 (legacy parser deleted) the converted parity battery below IS the vocabulary
   // behavior spec: every end-state assertion was proven byte-identical to the legacy parser
@@ -5302,6 +5378,108 @@ function runEngineTests(R){
     parseWorldState(JSON.stringify({campId:"c_ua3e",transcript:{__lz:"@@bad@@"}}));
     var v=store.get(_rk);store.del(_rk);
     return v==="FIRST"?true:"overwritten: "+v;
+  });
+
+  // ── corrupt recall-store rescue (JP0-4 / Sol P0-02) ───────────────────────────
+  // The E73 per-key isolation is RIGHT and stays exactly as it was (a corrupt side key must never
+  // discard a good worldState). What was wrong is that both catch arms were SILENT and destroyed
+  // the evidence: sessionLog became [] and memory became blankMemory() with no warning, and the
+  // very next save persisted the blank over the only recoverable copy. Same rescue shape as UA3
+  // above — stash the original bytes, shout, THEN degrade so the campaign still loads.
+  section("corrupt recall-store rescue (JP0-4)");
+  function _jp4rk(tier,camp){return STORE_RESCUE_K+tier+"_"+camp;}
+  function _jp4toastSaid(re){var i;for(i=0;i<__toasts.length;i++)if(re.test(__toasts[i]))return true;return false;}
+  function _jp4clean(camp,prevId){store.del(WSK);store.del(SLK);store.del(MEM_KEY);store.del(_jp4rk("sess",camp));store.del(_jp4rk("mem",camp));setActiveCampId(prevId);}
+
+  t("JP0-4: a corrupt session-log store preserves the exact bytes under a per-campaign rescue key, names the tier loudly, and still loads a playable campaign",function(){
+    var prevId=getActiveCampId(),camp="c_jp4a";
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(_jp4rk("sess",camp));
+    var GARBAGE='[{"role":"user","content":"half a mess';
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,GARBAGE);store.set(MEM_KEY,JSON.stringify(memory));
+    __toasts.length=0;
+    var ok=loadState(),kept=store.get(_jp4rk("sess",camp)),log=sessionLog,ws=worldState,said=_jp4toastSaid(/session log/i);
+    _jp4clean(camp,prevId);
+    if(!ok)return "the campaign refused to load — the E73 per-key isolation was lost";
+    if(!ws||!ws.character||ws.character.name!=="Tess")return "a good worldState was discarded over a corrupt side key";
+    if(!(log instanceof Array)||log.length)return "sessionLog did not degrade to an empty array";
+    if(kept!==GARBAGE)return "the rescue blob is not byte-identical to the corrupt original: "+JSON.stringify(kept);
+    return said?true:"no toast named the degraded tier: "+JSON.stringify(__toasts);
+  });
+
+  t("JP0-4: a corrupt long-term-memory store preserves the exact bytes, names ITS tier, and leaves the campaign playable",function(){
+    var prevId=getActiveCampId(),camp="c_jp4b";
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(_jp4rk("mem",camp));
+    var GARBAGE='{"npcs":{"Ameiko":{"attitude":"war';
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,"[]");store.set(MEM_KEY,GARBAGE);
+    __toasts.length=0;
+    var ok=loadState(),kept=store.get(_jp4rk("mem",camp)),mem=memory,ws=worldState,said=_jp4toastSaid(/long-term memory/i);
+    _jp4clean(camp,prevId);
+    if(!ok)return "the campaign refused to load — the E73 per-key isolation was lost";
+    if(!ws||!ws.character||ws.character.name!=="Tess")return "a good worldState was discarded over a corrupt memory key";
+    if(!mem||!mem.npcs||typeof mem.npcs!=="object")return "memory did not degrade to a usable blank";
+    if(kept!==GARBAGE)return "the rescue blob is not byte-identical to the corrupt original: "+JSON.stringify(kept);
+    return said?true:"no toast named the degraded tier: "+JSON.stringify(__toasts);
+  });
+
+  t("JP0-4: two corrupt stores in one load rescue INDEPENDENTLY — one slot per store, neither overwrites the other",function(){
+    var prevId=getActiveCampId(),camp="c_jp4c";
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(_jp4rk("sess",camp));store.del(_jp4rk("mem",camp));
+    var SG="[{not a log",MG="{not a memory";
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,SG);store.set(MEM_KEY,MG);
+    __toasts.length=0;
+    var ok=loadState(),ks=store.get(_jp4rk("sess",camp)),km=store.get(_jp4rk("mem",camp));
+    _jp4clean(camp,prevId);
+    if(!ok)return "the campaign refused to load with two corrupt side keys";
+    if(ks!==SG)return "session-log rescue wrong: "+JSON.stringify(ks);
+    return km===MG?true:"memory rescue wrong (the two tiers share a slot): "+JSON.stringify(km);
+  });
+
+  t("JP0-4: ONE rescue slot per store per campaign — a NEWER corruption overwrites the older bytes (unlike UA3, these stores are replaced wholesale, so newest = most complete)",function(){
+    var prevId=getActiveCampId(),camp="c_jp4d",rk=_jp4rk("sess",camp);
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(rk);
+    store.set(WSK,JSON.stringify(worldState));store.set(MEM_KEY,JSON.stringify(memory));
+    store.set(SLK,"OLD-CORRUPT");loadState();
+    var first=store.get(rk);
+    store.set(SLK,"NEW-CORRUPT-AND-LONGER");loadState();
+    var second=store.get(rk);
+    _jp4clean(camp,prevId);
+    if(first!=="OLD-CORRUPT")return "first rescue not written: "+JSON.stringify(first);
+    return second==="NEW-CORRUPT-AND-LONGER"?true:"a newer corruption did not replace the older rescue: "+JSON.stringify(second);
+  });
+
+  t("JP0-4: rescues are PER CAMPAIGN — a corruption in one campaign never overwrites another campaign's preserved bytes",function(){
+    var prevId=getActiveCampId(),ca="c_jp4f",cb="c_jp4g";
+    makeWorld();worldState.campId=ca;setActiveCampId(ca);
+    store.del(_jp4rk("sess",ca));store.del(_jp4rk("sess",cb));
+    store.set(WSK,JSON.stringify(worldState));store.set(MEM_KEY,JSON.stringify(memory));
+    store.set(SLK,"CORRUPT-A");loadState();
+    setActiveCampId(cb);
+    store.set(SLK,"CORRUPT-B");loadState();
+    var a=store.get(_jp4rk("sess",ca)),b=store.get(_jp4rk("sess",cb));
+    store.del(_jp4rk("sess",ca));store.del(_jp4rk("sess",cb));_jp4clean(ca,prevId);
+    if(a!=="CORRUPT-A")return "campaign A's rescue was clobbered by campaign B's corruption: "+JSON.stringify(a);
+    return b==="CORRUPT-B"?true:"campaign B got no rescue of its own: "+JSON.stringify(b);
+  });
+
+  t("JP0-4: the rescue survives the save cycle that follows the degraded load AND every later healthy load — nothing sweeps it (recovery is a deliberately later flow)",function(){
+    var prevId=getActiveCampId(),camp="c_jp4e",rk=_jp4rk("mem",camp);
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(rk);
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,"[]");store.set(MEM_KEY,"{corrupt");
+    loadState();
+    if(store.get(rk)!=="{corrupt"){var bad=store.get(rk);_jp4clean(camp,prevId);return "rescue not written: "+JSON.stringify(bad);}
+    /* exactly what saveCore()+saveMem() write — the suite stubs those, so drive the store directly */
+    store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));store.set(MEM_KEY,JSON.stringify(memory));
+    var afterSave=store.get(rk);
+    loadState();/* now a fully healthy load */
+    var afterHealthy=store.get(rk);
+    _jp4clean(camp,prevId);
+    if(afterSave!=="{corrupt")return "a save pass destroyed the rescue: "+JSON.stringify(afterSave);
+    return afterHealthy==="{corrupt"?true:"a healthy load silently discarded the rescue: "+JSON.stringify(afterHealthy);
   });
 
   section("cast-state on the sheet (playtest-F1 v1.239, re-meant by mana #110 v1.508)");
@@ -15247,13 +15425,16 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(memory.lore.join("|").indexOf("deceptive proxy")<0)return "correction truth was not filed as durable lore";
     makeWorld();worldState.npcs.push({name:"Alive One",status:"steady",rel:"ally",partyMember:false});memory.npcs["Alive One"]={attitude:"",knowledge:[],events:[],aliases:[]};
     applyMuts("[NPC_DEATH_RETRACTED:Alive One|bad correction|Nowhere Invented]");
-    if(memory.archive.npcDeathCorrections!==undefined)return "non-death/unknown-node correction archived state";
+    /* JP0-5 shape adaptation: the registry now BIRTHS every archive category as [], so "no row
+       was written" is length 0, not an absent key. Same strength — a single archived row still
+       fails this — and it no longer passes merely because memArchive was never reached. */
+    if((memory.archive.npcDeathCorrections||[]).length!==0)return "non-death/unknown-node correction archived state";
     makeWorld();worldState.world.location="Ashfen";
     worldState.npcs.push({name:"Dead Here",status:"dead",statusTurn:4,rel:"enemy",dead:4,partyMember:false});
     memory.npcs["Dead Here"]={attitude:"",knowledge:[],events:[],aliases:[],dead:4,lastSeenAt:"Ashfen"};
     memory.map.nodes.Ashfen={firstVisit:1,visits:1,description:"",parent:null,npcs:["Dead Here"],items:[]};
     applyMuts("[NPC_DEATH_RETRACTED:Dead Here|unsafe local correction|Ashfen]");
-    return npcIsDead(wsNpcByName("Dead Here"))&&memory.archive.npcDeathCorrections===undefined?true:"same-node correction was not refused without archive";
+    return npcIsDead(wsNpcByName("Dead Here"))&&(memory.archive.npcDeathCorrections||[]).length===0?true:"same-node correction was not refused without archive";
   });
 
   t("owner repair completion replay requires its prior receipt and the unchanged repaired node, then clears memory without duplicating the decision",function(){

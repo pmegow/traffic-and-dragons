@@ -287,15 +287,38 @@ try {
   var _fsAC = require("fs"), _pathAC = require("path");
   var _failAC = function (msg) { console.error("#144A ARCHIVE CARRY CONTRACT: " + msg); process.exit(1); };
   var _ufAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "ui-files.js"), "utf8");
-  // ① the import whitelist carries the FULL archive — the pre-#144A rebuild silently dropped
-  //   superseded/coreMemories/expiredSchedules on every import (Sol's find, drift audit).
-  var _keysAC = ["lore", "decisions", "chapters", "superseded", "coreMemories", "expiredSchedules", "npcKnowledge", "npcEvents", "retconPins", "locationStates", "futureEvents", "npcForgotten", "identityMerges", "identityQuarantines"];/* #168 W6: rejected-summary receipts and merge pre-images must survive .tnd round-trips */
-  var _archAC = (_ufAC.match(/archive:mm\.archive\?\{[^}]*\}/) || [""])[0];
-  if (!_archAC) _failAC("the import's archive rebuild expression is gone from ui-files.js");
-  for (var _kAC = 0; _kAC < _keysAC.length; _kAC++) {
-    if (_archAC.indexOf(_keysAC[_kAC] + ":mm.archive." + _keysAC[_kAC]) < 0)
-      _failAC("import whitelist no longer carries archive." + _keysAC[_kAC] + " — a .tnd import silently destroys it");
+  // ① the import carries the FULL archive — and does so BY REGISTRY, never by hand-copied key
+  //   list. This clause used to repeat the whitelist verbatim, which is exactly why the loss
+  //   shipped green four times (the test and the code drifted together). JP0-5: the import must
+  //   route through archiveRebuild, ui-files.js must hold NO archive key list of its own, and the
+  //   registry in state.js must still cover every category (round-trip behavior, unknown-key
+  //   carry and per-consumer agreement are proven by the engine suite's "memory.archive key
+  //   registry (JP0-5)" section).
+  if (!/archive:archiveRebuild\(mm\.archive\)/.test(_ufAC))
+    _failAC("the .tnd import no longer rebuilds its archive through archiveRebuild — a hand-rolled rebuild is how this key list dropped a category four separate times");
+  if (/mm\.archive\.[A-Za-z_$]/.test(_ufAC))
+    _failAC("ui-files.js enumerates archive categories by hand again (mm.archive.<key>) — the registry in state.js is the only list");
+  var _stAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "state.js"), "utf8");
+  var _regAC = (_stAC.match(/var MEMORY_ARCHIVE_KEYS=(\[[^\]]*\]);/) || [])[1];
+  if (!_regAC) _failAC("MEMORY_ARCHIVE_KEYS is gone from state.js — there is no registry to derive from");
+  var _keysAC = JSON.parse(_regAC);
+  var _needAC = ["lore", "decisions", "chapters", "superseded", "coreMemories", "expiredSchedules", "npcKnowledge", "npcEvents", "retconPins", "locationStates", "futureEvents", "npcForgotten", "identityMerges", "identityQuarantines", "relDowngrades", "npcDeathCorrections"];/* every category a shipped writer produces; #168 W6 receipts + merge pre-images + the #169 death-retraction pre-images all live in here */
+  for (var _kAC = 0; _kAC < _needAC.length; _kAC++) {
+    if (_keysAC.indexOf(_needAC[_kAC]) < 0)
+      _failAC("MEMORY_ARCHIVE_KEYS dropped archive." + _needAC[_kAC] + " — it loses its blank-shape default and its array guard (carry-unknown still saves the DATA, which is the point of the carry)");
   }
+  // ② every consumer derives from the registry — a site that re-grows its own list is the class.
+  if (!/archive:blankArchive\(\)/.test(_stAC)) _failAC("blankMemory no longer builds its archive from the registry");
+  if (!/memory\.archive=archiveHeal\(memory\.archive\)/.test(_stAC)) _failAC("healMemory no longer heals its archive through the registry");
+  var _mmAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "memory.js"), "utf8");
+  if (!/function memArchive\(\)\{memory\.archive=archiveHeal\(memory\.archive\);/.test(_mmAC))
+    _failAC("memArchive no longer lazy-inits through the registry — it had its own drifted list before JP0-5");
+  // ③ the carry is the actual class-closer: archiveRebuild must pass unregistered categories
+  //   through rather than filtering to the known set.
+  var _arAC = (_stAC.match(/function archiveRebuild\([\s\S]*?\n\}/) || [""])[0];
+  if (!_arAC) _failAC("archiveRebuild is gone from state.js");
+  if (_arAC.indexOf("else out[k]=src[k];") < 0)
+    _failAC("archiveRebuild no longer carries UNKNOWN archive categories through — that carry, not the key list, is what closes this defect class");
   // ② no bare knowledge.shift() — every shrink must feed memArchive().npcKnowledge.
   var _memAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "memory.js"), "utf8");
   var _shAC = /knowledge\.shift\(\)/g, _mAC, _bareAC = 0;
@@ -316,6 +339,44 @@ try {
   // every new fact to the untyped stale-posture class.
   if (_memAC.indexOf("scene facts are filed as dated history") < 0) _failAC("the extraction schema no longer teaches the durable/scene kind (#144B)");
 } catch (eAC) { console.error("#144A ARCHIVE CARRY CONTRACT: " + (eAC && eAC.message)); process.exit(1); }
+
+// ── JP0-4 CORRUPT-STORE RESCUE CONTRACT (joint review 2026-08-27, Sol P0-02) ─────────────
+// A corrupt sessionLog/memory key used to become []/blankMemory() SILENTLY, and the next save
+// persisted the blank over the only recoverable bytes. The engine suite proves the rescue
+// behavior; these clauses pin the two things it structurally cannot see — that both degrade
+// paths still route through the rescue, and that no shipped file ever deletes a rescue key
+// (the recovery flow that legitimately clears one does not exist yet: when it lands, this
+// clause is the deliberate speed bump that makes the deletion a decision, not a drive-by).
+try {
+  var _fsSR = require("fs"), _pathSR = require("path");
+  var _failSR = function (msg) { console.error("JP0-4 CORRUPT-STORE RESCUE CONTRACT: " + msg); process.exit(1); };
+  var _ROOTSR = _pathSR.join(__dirname, "..");
+  var _stSR = _fsSR.readFileSync(_pathSR.join(_ROOTSR, "state.js"), "utf8");
+  // ① both loadState catch arms preserve before they degrade — a bare `sessionLog=[]` /
+  //    `memory=blankMemory()` catch is exactly the defect this row closed.
+  if (!/catch\(e\)\{rescueCorruptStore\("sess",sl,e\);sessionLog=\[\];\}/.test(_stSR))
+    _failSR("the sessionLog catch arm no longer rescues before degrading — a corrupt session log is silently blanked again");
+  if (!/catch\(e\)\{rescueCorruptStore\("mem",mm,e\);memory=blankMemory\(\);\}/.test(_stSR))
+    _failSR("the memory catch arm no longer rescues before degrading — a corrupt long-term memory is silently blanked again");
+  // ② the degrade is LOUD on both channels, and the toast names the tier (a generic "load
+  //    failed" leaves the player unable to tell which half of their recall went missing).
+  var _rcSR = (_stSR.match(/function rescueCorruptStore\([\s\S]*?\n\}/) || [""])[0];
+  if (!_rcSR) _failSR("rescueCorruptStore is gone from state.js");
+  if (!/if\(typeof console!=="undefined"\)console\.error\(/.test(_rcSR))
+    _failSR("rescueCorruptStore no longer console.errors behind the node guard — the degrade went silent on the developer channel");
+  if (!/if\(typeof showToast==="function"\)showToast\(/.test(_rcSR))
+    _failSR("rescueCorruptStore no longer raises a typeof-guarded toast — the degrade went silent on the player channel");
+  if (_rcSR.indexOf("session log") < 0 || _rcSR.indexOf("long-term memory") < 0)
+    _failSR("rescueCorruptStore no longer names the degraded tier — the player cannot tell which recall layer was lost");
+  // ③ nothing in the shipped app deletes a rescue key.
+  var _shipSR = _fsSR.readdirSync(_ROOTSR).filter(function (f) { return /\.js$/.test(f); });
+  if (_shipSR.indexOf("state.js") < 0) _failSR("the shipped-file scan found no state.js — the scan is broken, not the code");
+  for (var _iSR = 0; _iSR < _shipSR.length; _iSR++) {
+    var _srcSR = _fsSR.readFileSync(_pathSR.join(_ROOTSR, _shipSR[_iSR]), "utf8");
+    if (/store\.del\(\s*STORE_RESCUE_K/.test(_srcSR))
+      _failSR(_shipSR[_iSR] + " deletes a store-rescue key — the preserved bytes are the ONLY copy until a recovery flow ships");
+  }
+} catch (eSR) { console.error("JP0-4 CORRUPT-STORE RESCUE CONTRACT: " + (eSR && eSR.message)); process.exit(1); }
 
 // ── #151 LATCH REGISTRY CONTRACT (drift pass order 7, 2026-08-08) ────────────────────────
 // Every worldState key the NOTE_BUILDERS region writes must be declared in NOTE_LATCH_FIELDS,

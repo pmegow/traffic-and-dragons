@@ -2,20 +2,20 @@
 var sabotage = require("./sabotage.js"), rc = 0;
 
 rc |= sabotage.prove({
-  file: "ui-files.js",
+  file: "state.js",/* JP0-5 (v1.722): the import rebuild moved from the ui-files.js hand-copied whitelist into archiveRebuild — the clauses now mutate the registry path itself */
   command: ["node", ["dev/run-tests.js"]],
   cases: [
     {
       label: ".tnd import drops archived NPC knowledge",
-      mustFail: "import whitelist no longer carries archive.npcKnowledge",
-      find: "npcKnowledge:mm.archive.npcKnowledge||[]",
-      replace: "npcKnowledge:[]"
+      mustFail: "a full archive round-trips EVERY shipped category",
+      find: "      if(known[k]){if(Array.isArray(src[k]))out[k]=src[k];}",
+      replace: "      if(known[k]){if(Array.isArray(src[k])&&k!==\"npcKnowledge\")out[k]=src[k];}"
     },
     {
       label: ".tnd import drops archived NPC events",
-      mustFail: "import whitelist no longer carries archive.npcEvents",
-      find: "npcEvents:mm.archive.npcEvents||[]",
-      replace: "npcEvents:[]"
+      mustFail: "a full archive round-trips EVERY shipped category",
+      find: "      if(known[k]){if(Array.isArray(src[k]))out[k]=src[k];}",
+      replace: "      if(known[k]){if(Array.isArray(src[k])&&k!==\"npcEvents\")out[k]=src[k];}"
     }
   ]
 });

@@ -1,4 +1,4 @@
-var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
+var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var STORE_RESCUE_K="tnd_store_rescue_v1_";/* + tier + "_" + campId (JP0-4) — see rescueCorruptStore */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
 var _m={};      // in-memory fallback for keys localStorage can't persist (privacy mode OR quota)
 var _mKeys={};  // keys whose authoritative value lives in _m — get() must prefer it over a stale disk copy
 var store={
@@ -21,7 +21,50 @@ var sessionLog=[];
 /* attitudeSpec:2 at birth (v1.439, F7 — brief D): a memory born WITHOUT the marker re-fires the
    v1.383 one-time clear on its first loadState and wipes CORRECT new-spec dispositions. New
    campaigns are born ON the current spec — there is nothing to heal. */
-function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],eras:[],nameIdx:0,attitudeSpec:2,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[],coreMemories:[],identityQuarantines:[]}};}/* eras: #148 Phase 2 — compiled era summaries above chapters; legacy saves self-heal via memEras() *//* archive: P12 eviction compaction — storage-only, never injected. coreMemories: #40 over-cap evictions (UA14: archive's consumers are the story compiler #5 + future RAG phases, NOT Core Memory itself) */
+/* JP0-5 (joint review 2026-08-27, Sol P0-03) — THE memory.archive category registry.
+   FOUR separate hand-copied allowlists used to enumerate these categories (blankMemory and
+   healMemory here, memArchive in memory.js, the .tnd import rebuild in ui-files.js), and the
+   import one has now silently DESTROYED a category four times: attitudeSpec, eras, the #144A trio
+   (superseded/coreMemories/expiredSchedules), and npcDeathCorrections — the death-retraction
+   pre-images written at tag_table.js. Measured at the fix: it was also dropping relDowngrades,
+   and healMemory/memArchive had each drifted their own way. The second-instance rule says
+   enumerate the class, so: ONE list, four derived consumers.
+   The list is NOT the class-closer, though — `archiveRebuild` CARRYING UNKNOWN CATEGORIES
+   THROUGH VERBATIM is. A category this build has never heard of (a future engine key, or one of
+   the dev repair tools' own: retconRepairs, repairBundles) survives a .tnd round-trip with zero
+   edits here. Registering a category only buys the empty-array default and the array type-guard;
+   forgetting to register one can no longer destroy anyone's data.
+   archive contents are storage-only — never prompt-injected (P12 eviction compaction; the
+   consumers are the story compiler #5 + future RAG phases, NOT the live tiers). */
+var MEMORY_ARCHIVE_KEYS=["lore","decisions","chapters","superseded","coreMemories","expiredSchedules","npcKnowledge","npcEvents","retconPins","locationStates","futureEvents","npcForgotten","identityMerges","identityQuarantines","relDowngrades","npcDeathCorrections"];
+function blankArchive(){var a={},i;for(i=0;i<MEMORY_ARCHIVE_KEYS.length;i++)a[MEMORY_ARCHIVE_KEYS[i]]=[];return a;}
+/* Rebuild memory.archive from an UNTRUSTED source blob (the .tnd import). Registered categories
+   default to [] and are array-guarded (a junk value must never become canon); unregistered ones
+   are carried VERBATIM — dropping a category because this build does not know it IS the defect. */
+function archiveRebuild(src){
+  var out=blankArchive(),known={},k,i;
+  for(i=0;i<MEMORY_ARCHIVE_KEYS.length;i++)known[MEMORY_ARCHIVE_KEYS[i]]=1;
+  if(src&&typeof src==="object"&&!(src instanceof Array)){
+    for(k in src){
+      if(!Object.prototype.hasOwnProperty.call(src,k))continue;
+      if(known[k]){if(Array.isArray(src[k]))out[k]=src[k];}
+      else out[k]=src[k];/* unknown category: carry, never guess, never drop */
+    }
+  }
+  return out;
+}
+/* Fill any missing registered category IN PLACE (the heal/lazy-init path). Adds only — it never
+   drops or reshapes what is already there, registered or not. */
+function archiveHeal(arc){
+  var i,k;
+  if(!arc||typeof arc!=="object"||arc instanceof Array){
+    if(arc!==undefined&&arc!==null&&typeof console!=="undefined")console.warn("[memory] archive was not an object ("+((arc instanceof Array)?"array":typeof arc)+") — replaced with an empty archive (JP0-5)");
+    arc=blankArchive();
+  }
+  for(i=0;i<MEMORY_ARCHIVE_KEYS.length;i++){k=MEMORY_ARCHIVE_KEYS[i];if(!arc[k])arc[k]=[];}
+  return arc;
+}
+function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],eras:[],nameIdx:0,attitudeSpec:2,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:blankArchive()};}/* eras: #148 Phase 2 — compiled era summaries above chapters; legacy saves self-heal via memEras() */
 var memory=blankMemory();
 // Usage/cost telemetry (TODO #21) — per-campaign accumulator on worldState.usage.
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
@@ -464,6 +507,30 @@ function migrateWorldState(){
   }
   return _mig;
 }
+/* JP0-4 (joint review 2026-08-27, Sol P0-02) — NO SILENT FAILURES at the recall-store boundary.
+   loadState parses each side key in its OWN try/catch (E73: a corrupt memory/session key must
+   never discard a good worldState — that isolation is right and is untouched here), but both
+   catch arms were SILENT and destroyed the evidence: sessionLog became [], memory became
+   blankMemory(), the player saw a healthy-looking campaign, and the very next save persisted the
+   blank over whatever was recoverable. This mirrors the UA3 transcript rescue above: stash the
+   original bytes under a bounded per-campaign key, shout on BOTH channels, THEN degrade so the
+   campaign still loads.
+   ONE slot per tier per campaign, and a newer corruption OVERWRITES — the opposite of UA3 on
+   purpose: a rescued transcript is PREPENDED to whatever survived, so there the oldest blob holds
+   the longest record, whereas these two stores are replaced wholesale, so the newest corrupt bytes
+   are the most complete picture of what was lost.
+   Deliberately NO recovery UI in this pass (that flow is Fable's design): rescue + loud degrade is
+   the whole deliverable, and nothing in the app ever deletes these keys — a later recovery flow
+   is the only thing that should. */
+function rescueCorruptStore(tier,raw,err){
+  var label=(tier==="sess")?"session log":(tier==="mem")?"long-term memory":tier;
+  var rk=STORE_RESCUE_K+tier+"_"+((typeof getActiveCampId==="function"&&getActiveCampId())||"default");
+  var kept=false;
+  if(typeof raw==="string"&&raw.length){try{store.set(rk,raw);kept=store.get(rk)===raw;}catch(e2){kept=false;}}
+  if(typeof console!=="undefined")console.error("[save] the "+label+" store could not be parsed — "+(kept?("the unreadable original is preserved under "+rk):"the unreadable original could NOT be preserved")+"; this campaign loads with an EMPTY "+label,err);
+  if(typeof showToast==="function")showToast("⚠ Your "+label+" could not be read"+(kept?" — a backup of the unreadable data was kept.":" and could NOT be backed up.")+" The campaign is loading without it.");
+  return kept;
+}
 function loadState(){
   var ws,sl,mm;try{ws=store.get(WSK);sl=store.get(SLK);mm=store.get(MEM_KEY);}catch(e){return false;}
   // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every
@@ -473,9 +540,9 @@ function loadState(){
   // good worldState (the old single try returned false with worldState still assigned, so the wizard
   // then overwrote the intact campaign). SLK is parsed BEFORE the migrate/saveCore (audit E36) so a
   // migrate-save persists the loaded log, not the stale global.
-  try{sessionLog=sl?JSON.parse(sl):[];}catch(e){sessionLog=[];}
+  try{sessionLog=sl?JSON.parse(sl):[];}catch(e){rescueCorruptStore("sess",sl,e);sessionLog=[];}/* JP0-4: preserve + shout before degrading */
   try{if(ws){worldState=parseWorldState(ws);restoreTranscriptRescue();/* UA3: BEFORE any migrate-save — preserve the rescued transcript. */if(typeof _sumFails!=="undefined")_sumFails=worldState.summaryFailure&&typeof worldState.summaryFailure.count==="number"?worldState.summaryFailure.count:0;}}catch(e){worldState=null;return false;}
-  try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){memory=blankMemory();}
+  try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){rescueCorruptStore("mem",mm,e);memory=blankMemory();}/* JP0-4: covers a heal throw on VALID json too — the bytes are still the only copy */
   /* #168 W7: relationship entity migration needs THIS campaign's alias table. Parsing/healing
      memory first prevents the previously active campaign from re-keying the incoming save. */
   try{if(worldState&&migrateWorldState())saveCore();}catch(e){worldState=null;return false;}
@@ -496,18 +563,7 @@ function healMemory(){
   if(!memory.npcGraph.factions)memory.npcGraph.factions={};
   if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
   if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};
-  if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};/* P12: pre-archive saves */
-  if(!memory.archive.lore)memory.archive.lore=[];
-  if(!memory.archive.decisions)memory.archive.decisions=[];
-  if(!memory.archive.chapters)memory.archive.chapters=[];
-  if(!memory.archive.coreMemories)memory.archive.coreMemories=[];/* #40 */
-  if(!memory.archive.identityQuarantines)memory.archive.identityQuarantines=[];/* #168 W6: exhausted validation receipts survive save/import */
-  if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];/* #144A */
-  if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A */
-  if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */
-  if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */
-  if(!memory.archive.futureEvents)memory.archive.futureEvents=[];/* #150 */
-  if(!memory.archive.npcForgotten)memory.archive.npcForgotten=[];/* #136④ */
+  memory.archive=archiveHeal(memory.archive);/* JP0-5: was eleven hand-copied lines that had drifted five categories behind the registry (P12 pre-archive saves still heal here) */
   // #149: junk-note sweep — the live save carried a literal "none" stateNote on Sandpoint (a
   // no-op that occupies a capped slot and reads as canon). Idempotent; each drop logs.
   if(memory.map&&memory.map.nodes){var _jnk=Object.keys(memory.map.nodes),_jni;for(_jni=0;_jni<_jnk.length;_jni++){var _jnn=memory.map.nodes[_jnk[_jni]];if(_jnn&&Array.isArray(_jnn.stateNotes)&&_jnn.stateNotes.length){var _jnb=_jnn.stateNotes.length;_jnn.stateNotes=_jnn.stateNotes.filter(function(sn){return sn&&String(sn.n||"").trim()&&!/^none[.!]?$/i.test(String(sn.n).trim());});if(_jnn.stateNotes.length<_jnb)console.info("[map] #149: dropped "+(_jnb-_jnn.stateNotes.length)+" junk stateNote(s) on "+_jnk[_jni]);}}}

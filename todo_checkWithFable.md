@@ -49,6 +49,93 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 26 — memory.archive key registry (JP0-5 / TODO #255, v1.722; Opus lane B)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #253. **Source:** Joint_Review_2026_08_27.html ▸ JP0-5
+(Sol P0-03, Fable-verified: writer at `tag_table.js:517-518`, key absent from the
+`ui-files.js:477` whitelist). **Touched:** `state.js` (`MEMORY_ARCHIVE_KEYS`, `blankArchive`,
+`archiveRebuild`, `archiveHeal`, `blankMemory`, `healMemory`), `memory.js` (`memArchive`),
+`ui-files.js` (`importSave`), `dev/engine-tests.js` (new section + two shape adaptations),
+`dev/run-tests.js` (#144A clause ① rewritten to derive from the registry),
+`dev/sabotage-jp0-5-archive-registry.js` (new), CLAUDE.md §3.
+
+**Why this is here.** Memory-tier plumbing on the drift surface, and it changes the birth shape of
+`memory.archive` for every new campaign.
+
+**What the reviewer should test hardest, in order:**
+
+1. **Carry-unknown is a policy call, not just a mechanism.** I made `archiveRebuild` pass any
+   unregistered key through verbatim, of any type. That is what closes the class (and it is
+   already load-bearing: `dev/rc-mark-repair.js` and `dev/repair-t1788-bundle.js` write
+   `retconRepairs`/`repairBundles` that the engine never declares). The cost is that a malformed
+   or hostile `.tnd` can now plant arbitrary keys under `memory.archive`. Nothing reads the
+   archive into a prompt today (storage-only by design), which is why I judged the trade safe —
+   a reviewer should confirm that "never injected" invariant still holds everywhere before
+   accepting it.
+2. **Two existing assertions changed shape.** The `NPC_DEATH_RETRACTED` refusal tests asserted
+   `memory.archive.npcDeathCorrections === undefined` to mean "nothing was archived"; the registry
+   births every category as `[]`, so they now assert length 0. I believe that is equal-or-stronger
+   (a single archived row still fails, and it no longer passes merely because `memArchive` was
+   never reached) — but it IS an edit to a shipped assertion and should be eyeballed.
+3. **`blankMemory().archive` grew from 5 keys to 16.** Sync blob and `.tnd` grow by ~250 bytes.
+   No test pinned the old shape and `dev/diff-replay.js` has no committed endstate fixtures, so
+   nothing byte-frozen moved — worth a second look anyway.
+4. **`archiveHeal` replaces a non-object archive loudly** rather than attaching keys to it (the
+   old `memArchive` would have decorated an array). Loss is inconceivable-shaped rather than
+   impossible; the console.warn is the honesty.
+5. **Registry completeness is asserted against an explicit list in two places** (the engine
+   fixture's `_jp5Cats` and the contract's `_needAC`) on purpose — a guard that reads its
+   expectations off the registry cannot notice the registry losing an entry. Adding a category
+   means editing those two lists too; a reviewer may prefer a source-scan census instead. I
+   considered scanning shipped files for `archive.<key>` writes and rejected it: the real writer
+   for `relDowngrades` goes through a local alias (`_ar`) and `npcDeathCorrections` through
+   `drArchive`, so the scan would have been silently incomplete — worse than an explicit list.
+
+**Verification.** 6 assertions written first; the RED reproduced the shipped defect exactly
+(import destroying `relDowngrades` + `npcDeathCorrections`, unknown keys dropped, `healMemory`
+five categories behind, `memArchive` four). The #144A contract's own duplicate allowlist — the
+reason each loss shipped green — is replaced by registry derivation plus a ban on any
+`mm.archive.<key>` in ui-files.js. Sabotage `dev/sabotage-jp0-5-archive-registry.js` 10/10 caught
+across state.js / memory.js / ui-files.js, byte-identical restore. Full suite 1703 green.
+
+### 25 — Corrupt recall-store rescue (JP0-4 / TODO #254, v1.722; Opus lane B)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #252. **Source:** Joint_Review_2026_08_27.html ▸ JP0-4
+(Sol P0-03's sibling row Sol P0-02, Fable-verified this session at `state.js:476-478`).
+**Touched:** `state.js` (`STORE_RESCUE_K`, `rescueCorruptStore`, both `loadState` catch arms),
+`dev/engine-tests.js` (new section "corrupt recall-store rescue (JP0-4)"), `dev/run-tests.js`
+(JP0-4 CORRUPT-STORE RESCUE CONTRACT), `dev/sabotage-jp0-4-store-rescue.js` (new), CLAUDE.md §3.
+
+**Why this is here.** It is a memory-tier boundary on the drift surface: the two catch arms that
+decide what a campaign remembers after a bad parse. The change is deliberately small — it adds a
+preserve-and-shout step in front of the existing degrade and touches no parse, prompt, or write
+path — but the failure mode it guards is total-tier loss.
+
+**What the reviewer should test hardest, in order:**
+
+1. **The rescue write is inside the failure path.** `store.set` can itself throw (quota) or fall
+   back to the in-memory `_m` map (privacy mode). I treat `store.get(rk)===raw` as "kept" and say
+   so in the messages, which is honest for THIS session but a `_m`-only rescue does not survive a
+   reload. A reviewer may want that distinction surfaced to the player rather than folded into
+   "a backup was kept".
+2. **Newest-wins vs UA3's oldest-wins.** I ruled these opposite on purpose (UA3 prepends its
+   rescue to survivors, so the oldest blob is the longest record; these stores are replaced
+   wholesale, so the newest corrupt bytes are the most complete picture). If a corruption is
+   *repeating* — the same bad write every load — newest-wins is harmless; if a first corruption is
+   followed by a second, smaller one, the larger earlier blob is lost. Worth a second opinion.
+3. **The memory catch arm also fires when `healMemory()` throws on VALID json.** I kept that inside
+   the rescue (the bytes are still the only copy and the load is still degraded), but it means a
+   heal bug now writes a rescue and a scary toast for a save that was not actually corrupt.
+4. **Scope held deliberately:** no recovery UI, no auto-restore, no rescue for the `worldState`
+   key (that arm returns false and refuses the load — loud already, not silent). The run-tests
+   clause banning `store.del(STORE_RESCUE_K…)` in any shipped file is the speed bump for whoever
+   builds the recovery flow.
+
+**Verification.** 6 assertions, each confirmed RED before implementation (byte-identity of the
+preserved blob, per-tier isolation, per-campaign isolation, newest-wins, tier-naming toast,
+survival across a save cycle and later healthy loads). Source contract pins both catch arms, both
+loud channels, the tier naming, and the no-sweep rule. Sabotage `dev/sabotage-jp0-4-store-rescue.js`
+12/12 caught, byte-identical restore. Full suite 1697 green.
 ### 24 — The size-bounded page-hide flush + unsynced-turn marker (#253 / JP0-11, v1.720; Opus, Fable-delegated)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #252. **Source:** joint review JP0-11 ← Fable f68 (verified ×2,

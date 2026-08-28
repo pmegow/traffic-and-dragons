@@ -95,8 +95,8 @@ rc|=sabotage.prove({
   cases:[
     {label:"campaign load migrates relationships through the previously active alias table",
     mustFail:"W7 loadState migrates relationship identities against the incoming cam",
-      find:"  try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){memory=blankMemory();}\n",
-      replace:""}
+      find:"  try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){rescueCorruptStore(\"mem\",mm,e);memory=blankMemory();}/* JP0-4: covers a heal throw on VALID json too — the bytes are still the only copy */\n",
+      replace:"  try{if(mm){JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){rescueCorruptStore(\"mem\",mm,e);memory=blankMemory();}\n"}
   ]
 });
 
