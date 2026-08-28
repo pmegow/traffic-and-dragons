@@ -47,6 +47,51 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 24 — The size-bounded page-hide flush + unsynced-turn marker (#252 / JP0-11, v1.719; Opus, Fable-delegated)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #252. **Source:** joint review JP0-11 ← Fable f68 (verified ×2,
+both corrections honoured: a portrait-bearing character crosses 64 KiB from ~turn 1, and the loss is
+silent only when the second device advances PAST the local turn — otherwise it lands in the loud CAS
+409 path). **Touched:** `storage-adapter.js` (beacon branch of `_syncNow`, its new optional `done`
+completion, `load()` split into `load` + `_reconcileFromServer`, the new marker helpers), `CLAUDE.md`
+§16 (the false guarantee line — a sanctioned doc correction), `dev/engine-tests.js`,
+`dev/tests-jp011-flush-dirty.js` (new), `dev/run-standalone-suites.js`,
+`dev/sabotage-jp011-flush-dirty.js` (new).
+
+**Why this is here.** Transport, not the drift surface — but it decides whether a turn's canon ever
+reaches the cloud, and the failure it fixes was invisible. Three things want the hardest look:
+
+1. **`load()` now defers the reconcile behind a push.** The deferral is bounded by the existing 20s
+   `_tFetch` deadline and the reconcile runs on every completion path (success, HTTP error, network
+   reject, CAS pause, and every early return inside `_syncNow` — each now calls `done`). A missed
+   `done` would strand a campaign offline for the session, so that enumeration is the load-bearing
+   part; a sabotage clause pins it (`_fin(null)` removed → "the reconcile never ran").
+2. **The marker is cleared ONLY by a confirmed 2xx of our own payload at a turn ≥ the marked one.**
+   Deliberately NOT by the 409 self-heal's `_syncOk(serverTurn)` — that acks the *server's* turn,
+   which is no proof our turns landed; the heal's retry does the clearing on its own 200.
+3. **The gate measures BYTES, not characters.** `payload.length` (what the #67 telemetry uses as a
+   size proxy) systematically under-reports the compressed `{__lz}` transcript, which is exactly
+   where the payload is heaviest — a char-count gate would still let over-cap bodies through.
+   `TextEncoder` with a char-count fallback (a lower bound, never an over-report).
+
+**Deliberately NOT done** (per the delegating brief): no chunking, no sync-protocol redesign, no
+plain-fetch fallback on `visibilitychange(hidden)` (Fable f68's own first suggestion), and no
+server-side "turn N is unsynced" marker. Those remain open design questions if the marker proves
+insufficient in the field.
+
+**Verification.** 14 failing-first assertions (RED confirmed before implementation): 5 synchronous in
+`dev/engine-tests.js` (byte-vs-char gate, no-request-on-oversize, loudness, small-payload keepalive
+regression, bounded marker map) and 9 in the new standalone suite (it drives `load()`, which replaces
+the live globals wholesale and cannot share the shared fixture): flush→marker, alt-tab beacon clear,
+older-ack-never-clears-newer-marker, push-strictly-before-reconcile, confirmed-clear + one toast,
+failed push keeps marker + stays loud + reconcile still runs, CAS conflict stays loud + keeps marker,
+and unmarked boot unchanged. Mutation proof `dev/sabotage-jp011-flush-dirty.js` 10/10, byte-identical
+restore (its `also:` carries the new standalone suite and the runner list into the scratch clone —
+without that every boot-push clause would read MISSED).
+
+**Probe first:** the `done` enumeration in `_syncNow` (any path that can return without calling it),
+and whether deferring the reconcile behind a 20s push deadline is acceptable on a cold Fly host.
+
 ### 23 — The arc wall: emergent thread scoping (#231, v1.714; Opus, owner-ruled)
 
 **Filed:** 2026-08-24. **Tracker:** TODO #231. **Touched:** `helpers.js` (`skeletonArcTitles`,

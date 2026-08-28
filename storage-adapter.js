@@ -25,6 +25,89 @@ var storageAdapter = (function() {
   var _popup               = null;
   var _popupCb             = null;
   var _syncSizeWarned      = false;  // #67: warn once per page session, not once per oversized POST
+  var _bootPushToast       = false;  // JP0-11: one "final turns synced" toast per page load
+
+  // ── JP0-11 (Fable f68): the page-hide flush is SIZE-BOUNDED ──────────────────────────────
+  // The unload / page-hide flush rides fetch(keepalive:true) because a plain fetch is abandoned
+  // on unload (audit E34). The Fetch spec caps the TOTAL in-flight keepalive request BODY at
+  // 64 KiB; over that the browser rejects the request outright — and that rejection landed in the
+  // beacon path's swallowing .catch, so nothing surfaced: no console line, no badge, no toast.
+  // The documented "closing/backgrounding can't drop the final turn" guarantee was therefore dead
+  // for MOST saves, not merely mature ones — the PC's base64 portrait rides INLINE by design (see
+  // _stripNpcPortraits), and a 40-100KB data URL clears 64 KiB on its own from roughly turn 1.
+  //
+  // The fix does NOT attempt the doomed request and does NOT chunk. Over the margin the flush
+  // marks this campaign DIRTY — the TURN NUMBER only; the state itself is already on disk — and
+  // the next load() for that campaign PUSHES before it will consider adopting any server copy.
+  // The CAS turn guard is untouched: it still arbitrates a genuine two-device conflict (loudly);
+  // this only guarantees the local final turns are on the table when it does.
+  var FLUSH_KEEPALIVE_MAX = 56 * 1024;          // BYTES — the safety margin under the spec's 64 KiB
+  var SYNC_DIRTY_K        = "tnd_sync_dirty_v1";
+  var SYNC_DIRTY_CAP      = 8;                  // campaigns tracked at once (monotonic-resources rule)
+
+  // The keepalive cap is measured in BYTES; payload.length is a CHARACTER count. The compressed
+  // transcript (#92, {__lz} UTF-16 code units) encodes to up to 3 UTF-8 bytes per character, so
+  // the char count is a systematic UNDER-estimate exactly where the payload is heaviest — using it
+  // as the gate would let genuinely-over-cap bodies through. TextEncoder gives the true number;
+  // without it we fall back to the char count, which is a lower bound (never an over-report).
+  function _payloadBytes(s) {
+    s = s || "";
+    try { if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(s).length; } catch (e) {}
+    return s.length;
+  }
+  // Pure gate (exposed for the engine tests): is this payload too big to flush on keepalive?
+  function flushTooBigForKeepalive(payload) { return _payloadBytes(payload) > FLUSH_KEEPALIVE_MAX; }
+
+  // ONE campaign-key resolver for both ends of the marker's life — the flush writes it and a later
+  // boot reads it, and a disagreement between the two would strand the marker forever (the flush
+  // happens with the campaign active; so does the boot).
+  function _dirtyKey(explicit) {
+    if (explicit) return explicit;
+    var a = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
+    var b = (typeof worldState !== "undefined" && worldState) ? worldState.campId : null;
+    return a || b || "default";
+  }
+  // The marker lives in the `store` wrapper, NOT raw localStorage: store keeps the value in memory
+  // when the disk write fails, so a quota-stressed device still remembers the unsynced turn for the
+  // rest of the session (the same reasoning as syncSizeWarnOnce).
+  function _dirtyRead() {
+    try {
+      var raw = (typeof store !== "undefined") ? store.get(SYNC_DIRTY_K) : null;
+      var o = raw ? JSON.parse(raw) : null;
+      return (o && typeof o === "object" && Object.prototype.toString.call(o) !== "[object Array]") ? o : {};
+    } catch (e) { return {}; }
+  }
+  function _dirtyWrite(map) {
+    try { if (typeof store !== "undefined") store.set(SYNC_DIRTY_K, JSON.stringify(map)); }
+    catch (e) { console.warn("[storage] could not persist the unsynced-flush marker (" + (e && e.message) + ") — the final turns stay local until the next successful sync"); }
+  }
+  function markFlushDirty(campId, turn) {
+    var id = _dirtyKey(campId), map = _dirtyRead(), keys = Object.keys(map);
+    if (!(id in map) && keys.length >= SYNC_DIRTY_CAP) {
+      console.warn("[storage] unsynced-flush markers full (" + SYNC_DIRTY_CAP + ") — dropping the oldest, campaign '" + keys[0] + "' (turn " + map[keys[0]] + "); its final turns upload on its next ordinary sync instead");
+      delete map[keys[0]];
+    }
+    map[id] = turn;
+    _dirtyWrite(map);
+  }
+  function flushDirtyTurn(campId) {
+    var map = _dirtyRead(), v = map[_dirtyKey(campId)];
+    return (typeof v === "number") ? v : null;
+  }
+  function clearFlushDirty(campId) {
+    var id = _dirtyKey(campId), map = _dirtyRead();
+    if (!(id in map)) return;
+    delete map[id];
+    if (Object.keys(map).length) _dirtyWrite(map);
+    else { try { if (typeof store !== "undefined") store.del(SYNC_DIRTY_K); } catch (e) {} }
+  }
+  // Clear the marker ONLY on a confirmed 2xx push of OUR OWN payload. A 409 self-heal acks the
+  // SERVER's turn, which is no proof our turns landed — the retry it fires clears it on its 200.
+  function _flushAcked(turnAt) {
+    var t = flushDirtyTurn();
+    if (t == null) return;
+    if (typeof turnAt === "number" && turnAt >= t) clearFlushDirty();
+  }
 
   // ── Auto-connect on page load ───────────────────────────────────────────
   // If a saved server URL + token exist in localStorage, restore server mode.
@@ -409,10 +492,15 @@ var storageAdapter = (function() {
     });
   }
 
-  function _syncNow(beacon, healedRetry) {
-    if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
-    if (_conflict) return; // CAS 409 landed — never POST over a newer device; reload/switch clears via resetSyncState
-    if (_syncing && !beacon) { _pendingSync = true; return; }
+  // `done` (optional, non-beacon only) fires ONCE when this push has settled — cb(null) on a
+  // confirmed 2xx, cb(reason) otherwise. JP0-11's boot push is its only caller: it must know
+  // whether the marked turns actually reached the server before the reconcile may adopt.
+  function _syncNow(beacon, healedRetry, done) {
+    var _doneCb = (typeof done === "function") ? done : null;
+    function _fin(err) { var f = _doneCb; _doneCb = null; if (f) f(err || null); }
+    if (!_serverUrl || typeof worldState === "undefined" || !worldState) { _fin("not connected"); return; }
+    if (_conflict) { _fin("sync paused — another device is ahead"); return; } // CAS 409 landed — never POST over a newer device; reload/switch clears via resetSyncState
+    if (_syncing && !beacon) { _pendingSync = true; _fin("a sync was already in flight"); return; }
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
     if (!beacon) { _syncing = true; _pendingSync = false; }
     var turnAt   = worldState.turn || 0; // the turn this payload carries — ACKed on 2xx
@@ -458,6 +546,17 @@ var storageAdapter = (function() {
       }
     }
     if (beacon) {
+      // JP0-11: over the keepalive body cap the request is not merely likely to fail — the browser
+      // refuses it outright. Attempting it buys nothing and hides the loss, so SKIP it and mark the
+      // campaign instead; load() pushes the marked turns at the next launch before any adopt.
+      if (flushTooBigForKeepalive(payload)) {
+        markFlushDirty(campId, turnAt);
+        console.warn("[storage] page-hide flush SKIPPED — payload is " + Math.round(_payloadBytes(payload) / 1024) +
+          " KB, over the " + Math.round(FLUSH_KEEPALIVE_MAX / 1024) + " KB keepalive body limit (browsers reject it). Turn " +
+          turnAt + " is saved on this device and marked to upload at the next launch.");
+        _updateSyncUI();
+        return;
+      }
       // Keepalive POST — no _syncing bookkeeping, no retry (the page may be going away). But DO
       // ack the response when the page survives (alt-tab usually does): an un-acked beacon that
       // created the campaign's first server row made the NEXT regular POST lose the CAS race
@@ -466,7 +565,7 @@ var storageAdapter = (function() {
       try {
         fetch(_serverUrl + "/api/state", { method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+_token }, body:payload, keepalive:true })
           .then(function(r){
-            if (r.ok) _syncOk(turnAt);
+            if (r.ok) { _syncOk(turnAt); _flushAcked(turnAt); /* JP0-11: an under-cap beacon that DID land clears any standing marker */ }
             else if (r.status === 409) r.json().then(function(d){
               var st = d && d.serverTurn;
               if (resolveCas409(st, worldState ? (worldState.turn||0) : 0, false) === "heal") { _syncOk(st); console.warn("[storage] beacon 409 self-healed: server turn " + st + " ≤ local — acked, next regular sync proceeds."); }
@@ -487,24 +586,30 @@ var storageAdapter = (function() {
           var st = d && d.serverTurn;
           if (resolveCas409(st, worldState ? (worldState.turn||0) : 0, !!healedRetry) === "heal") {
             // Our own (or an older) write — ack the server's turn and retry ONCE with the proof.
+            // The retry OWNS the completion: it, not this attempt, decides whether the turns landed.
             _syncOk(st);
             console.warn("[storage] sync 409 self-healed: server turn " + st + " ≤ local turn " + (worldState ? (worldState.turn||0) : 0) + " — acked and retrying once.");
-            _syncNow(false, true);
-          } else _onConflict(st);
-        }).catch(function(){ _onConflict(null); });
+            var _pass = _doneCb; _doneCb = null;
+            _syncNow(false, true, _pass);
+          } else { _onConflict(st); _fin("another device is ahead (server turn " + st + ")"); }
+        }).catch(function(){ _onConflict(null); _fin("conflict — the 409 body was unreadable"); });
       }
-      else if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); }
+      else if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); _fin("server returned " + r.status); }
       else {
         _syncOk(turnAt);
+        _flushAcked(turnAt);   // JP0-11: the ONLY thing that clears an unsynced-flush marker
         if (_portraitDirty || !_portraitSyncedOnce) {
           _portraitSyncedOnce = true;
           syncPortrait(campId);
         }
+        _fin(null);
       }
       if (_pendingSync) _syncNow();
     }).catch(function(e) {
       _syncing = false;
-      _onSyncFail(e && e.name === "AbortError" ? "timed out after " + (SYNC_TIMEOUT_MS / 1000) + "s" : ((e && e.message) || "network error"), 0);
+      var _msg = e && e.name === "AbortError" ? "timed out after " + (SYNC_TIMEOUT_MS / 1000) + "s" : ((e && e.message) || "network error");
+      _onSyncFail(_msg, 0);
+      _fin(_msg);
       if (_pendingSync) _syncNow();
     });
   }
@@ -605,6 +710,25 @@ var storageAdapter = (function() {
     // Paint from local cache instantly, then reconcile with server.
     cb(localOk);
 
+    // JP0-11: a page-hide flush too big for keepalive left this campaign's final turns local-only.
+    // OFFER THEM FIRST — _reconcileFromServer can adopt a newer server copy WHOLESALE, and adopting
+    // over turns the server never saw is exactly the silent loss the marker exists to close. The CAS
+    // guard still decides who wins; this only puts our turns into the argument. The reconcile runs
+    // either way (a failed push must never wedge the campaign offline) — it is only DEFERRED.
+    var _dirtyAt = flushDirtyTurn();
+    if (_dirtyAt == null) { _reconcileFromServer(localOk); return; }
+    console.warn("[storage] unsynced final turns from a previous session (turn " + _dirtyAt + ", page-hide flush was over the keepalive limit) — pushing before any server adopt.");
+    _syncNow(false, false, function(err) {
+      if (err) console.warn("[storage] the unsynced-turn push FAILED (" + err + ") — the marker stays set and retries at the next launch.");
+      else if (!_bootPushToast) {
+        _bootPushToast = true;
+        if (typeof showToast === "function") showToast("&#9729; Last session's final turns synced now");
+      }
+      _reconcileFromServer(localOk);
+    });
+  }
+
+  function _reconcileFromServer(localOk) {
     // Timed (audit E76): the reconcile GET had no timeout and its failure was only console.warn'd —
     // a dead host or expired token left the user silently reading stale local state while believing
     // they were synced. _tFetch bounds it; the catch surfaces the failure through the sync badge.
@@ -918,6 +1042,9 @@ var storageAdapter = (function() {
     syncSpeakerStars:      syncSpeakerStars,     // #95.5: star-bench cloud adopt/seed
     authHeader:            authHeader,           // #90: Authorization header for the tnd-tts app (the header, never the raw token)
     syncSizeWarnOnce:      syncSizeWarnOnce,     // v1.441: exposed for the engine tests (once-per-campaign sentinel gate)
+    flushTooBigForKeepalive: flushTooBigForKeepalive, // JP0-11: the pure size gate (exposed for the engine tests)
+    flushDirtyTurn:        flushDirtyTurn,       // JP0-11: the unsynced-flush marker — read
+    clearFlushDirty:       clearFlushDirty,      // JP0-11: the unsynced-flush marker — clear (tests + campaign teardown)
     whoAmI:                whoAmI,
     getCampaignState:      getCampaignState,
     pushCampaignState:     pushCampaignState,
