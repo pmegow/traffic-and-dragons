@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sol Review — recall, drift, quest sprawl, and efficiency</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0e0f10;
+  --panel: #17191b;
+  --panel-2: #1d2023;
+  --line: #33373b;
+  --text: #e7e2d9;
+  --muted: #aaa69e;
+  --amber: #d2a85d;
+  --red: #e0796d;
+  --orange: #dda45d;
+  --green: #78b98a;
+  --blue: #7cadd1;
+  --code: #f0c987;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1100px; margin: 0 auto; padding: 38px 24px 80px; }
+h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 600; }
+h1 { color: var(--amber); font-size: clamp(1.8rem, 4vw, 2.7rem); line-height: 1.1; margin: 0 0 8px; }
+h2 { color: var(--amber); font-size: 1.45rem; margin: 48px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 0; }
+p { margin: 8px 0 12px; }
+a { color: var(--blue); }
+code {
+  color: var(--code);
+  background: #111315;
+  padding: .08em .35em;
+  border: 1px solid #2c2a25;
+  border-radius: 3px;
+  font: .88em ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.meta { color: var(--muted); margin-bottom: 26px; }
+.callout {
+  background: linear-gradient(135deg, #211d17, var(--panel));
+  border: 1px solid #735b35;
+  border-left: 5px solid var(--amber);
+  padding: 18px 20px;
+  margin: 22px 0;
+}
+.callout strong { color: #f0c987; }
+.posture {
+  background: #171b1e;
+  border: 1px solid #3c4b55;
+  border-left: 5px solid var(--blue);
+  padding: 14px 18px;
+  margin: 18px 0;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0 24px;
+}
+.metric { background: var(--panel); border: 1px solid var(--line); padding: 13px 14px; }
+.metric b { display: block; color: var(--amber); font: 700 1.35rem ui-monospace, Consolas, monospace; }
+.metric span { color: var(--muted); font-size: .84rem; }
+.todo-list { display: grid; gap: 12px; }
+.todo {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left-width: 5px;
+}
+.todo.p0 { border-left-color: var(--red); }
+.todo.p1 { border-left-color: var(--orange); }
+.todo.p2 { border-left-color: var(--blue); }
+.todo.done { border-left-color: var(--green); background: #151b17; }
+.todo input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--green); }
+.task-meta { color: var(--muted); font-size: .82rem; margin: 3px 0 8px; font-family: ui-monospace, Consolas, monospace; }
+.why, .accept { margin: 7px 0 0; }
+.accept { color: #cbc6bd; }
+.label { color: var(--muted); font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .08em; }
+.evidence { color: var(--muted); font-size: .88rem; margin-top: 8px; }
+.risk { color: var(--red); }
+.watch { color: var(--orange); }
+.sound { color: var(--green); }
+table { width: 100%; border-collapse: collapse; margin: 12px 0 22px; font-size: .91rem; }
+th, td { border: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: top; }
+th { color: var(--amber); background: #171614; font-weight: 600; }
+tbody tr:nth-child(even) { background: #131517; }
+ul { padding-left: 21px; }
+li { margin: 5px 0; }
+.toc { columns: 2; padding-left: 20px; }
+.small { font-size: .86rem; color: var(--muted); }
+.foot { margin-top: 48px; border-top: 1px solid var(--line); padding-top: 15px; color: var(--muted); font-size: .82rem; }
+@media (max-width: 780px) {
+  main { padding: 24px 14px 60px; }
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toc { columns: 1; }
+  table { display: block; overflow-x: auto; }
+}
+@media print {
+  :root { color-scheme: light; --bg:#fff; --panel:#fff; --panel-2:#fff; --line:#bbb; --text:#111; --muted:#555; --code:#714b12; }
+  main { max-width: none; padding: 0; }
+  .todo, .callout, .posture, .metric { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>Sol Review: recall, drift, quest sprawl, and efficiency</h1>
+  <div class="meta">Evidence review of <code>v1.714</code> at <code>03fdfeeb</code> · run 2026-08-27 · requested filename retained verbatim as <code>Sol_Review_2025_08_27.html</code></div>
+
+  <div class="callout">
+    <strong>Bottom line:</strong> the game is going in the right direction. Its strongest systems treat recall as durable state, keep volatile campaign truth out of cached prompt bytes, retrieve old scenes on demand, preserve the sacred transcript, and make many failures loud. The arc wall also targets the right measured cause of quest sprawl: emergent side threads surviving beyond the arc that created them. But the implementation is not yet a closed lifecycle. <code>ACT_COMPLETE</code> can bypass the wall and strand a child forever, unstamped or renamed quests can escape it, and the wall bounds neither within-arc spawning nor indefinite continuation. Keep the direction; harden the lifecycle before declaring quest sprawl solved.
+  </div>
+
+  <div class="posture">
+    <strong>Review posture:</strong> this is a Sol evidence report and prioritized todo list, not a formal Fable verdict. The repository’s drift-surface workflow reserves final adjudication and implementation of parser, prompt, memory, and state changes for Fable. Every drift-surface item below is therefore marked as a review candidate with an executable acceptance condition.
+  </div>
+
+  <div class="summary-grid">
+    <div class="metric"><b>1,898</b><span>automated assertions green: 1,678 engine + 220 standalone</span></div>
+    <div class="metric"><b>2,097</b><span>turns in the mature-save performance and size fixture</span></div>
+    <div class="metric"><b>126k</b><span>characters in that save’s assembled system prompt</span></div>
+    <div class="metric"><b>1.24 s</b><span>cold synchronous transcript serialization on that save</span></div>
+  </div>
+
+  <h2 id="contents">Todo map</h2>
+  <ol class="toc">
+    <li><a href="#p0">P0 — protect canon and close quest bypasses</a></li>
+    <li><a href="#p1">P1 — recall completeness and runtime reliability</a></li>
+    <li><a href="#p2">P2 — efficiency, observability, and documentation</a></li>
+    <li><a href="#keep">Checked — defenses to keep</a></li>
+    <li><a href="#quest">Quest-sprawl deep dive</a></li>
+    <li><a href="#recall">Recall/drift evidence</a></li>
+    <li><a href="#efficiency">Efficiency/resource evidence</a></li>
+    <li><a href="#verification">Verification and limits</a></li>
+  </ol>
+
+  <h2 id="p0">P0 — protect canon and close quest bypasses</h2>
+  <div class="todo-list">
+    <article class="todo p0">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P0-01 · Make act completion atomic with its child arcs</h3>
+        <div class="task-meta">FABLE REVIEW REQUIRED · tag_table.js:876-955 · engine-tests</div>
+        <p class="why"><span class="label">Why</span> <code>[ACT_COMPLETE:Totally Wrong]</code> closes the first active act because the handler ignores its operand. It leaves that act’s arc active, opens the next act, and performs no arc-wall sweep. The abandoned child can never be swept later because <code>ARC_COMPLETE</code> searches active acts only. A non-final <code>ARC_COMPLETE</code> + <code>ACT_COMPLETE</code> response also leaves the newly activated old-act arc alive inside a completed act.</p>
+        <p class="accept"><span class="label">Accept when</span> wrong/malformed act titles mutate nothing and warn loudly; an act cannot complete with a live child arc unless the transition explicitly resolves that arc and its stamped descendants; no completed act contains an active arc; valid final co-emission remains safe; non-final co-emission is mutation-tested.</p>
+        <p class="evidence">Direct runtime repro; <code>tag_table.js:938-955</code>. This is the highest-confidence quest-wall bypass.</p>
+      </div>
+    </article>
+
+    <article class="todo p0">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P0-02 · Never replace corrupt recall stores with blank state silently</h3>
+        <div class="task-meta">FABLE REVIEW REQUIRED · state.js:467-478</div>
+        <p class="why"><span class="label">Why</span> corrupt <code>sessionLog</code> JSON becomes <code>[]</code>, and corrupt memory JSON becomes <code>blankMemory()</code>, without warning or rescue. Transcript inflation already follows the correct pattern: retain the original, warn the player, and expose recovery. These two paths can erase the layers that make accurate recall work while making the campaign appear healthy.</p>
+        <p class="accept"><span class="label">Accept when</span> malformed stored JSON is reproduced first; the original bytes are preserved in a bounded rescue record/export; load fails loudly or enters an explicit degraded state; no blank replacement is persisted until the player chooses recovery.</p>
+        <p class="evidence">Code-path audit contrasted with transcript rescue at <code>state.js:101-147</code>.</p>
+      </div>
+    </article>
+
+    <article class="todo p0">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P0-03 · Preserve NPC death-correction receipts across <code>.tnd</code> import</h3>
+        <div class="task-meta">FABLE REVIEW REQUIRED · ui-files.js:449-480 · import contract</div>
+        <p class="why"><span class="label">Why</span> death retraction stores reversible canon in <code>memory.archive.npcDeathCorrections</code>, but the import archive whitelist omits that key. Export/import can silently discard the preimage needed by later correction logic. The “full archive” test repeats the same stale static allowlist, so the loss ships green.</p>
+        <p class="accept"><span class="label">Accept when</span> a failing round-trip fixture proves the key is lost; current and future archive categories round-trip through one schema/registry rather than copied allowlists; an unknown category is preserved or rejected loudly; the repaired fixture is byte/meaning equivalent.</p>
+        <p class="evidence"><code>tag_table.js:503-518</code>, <code>ui-files.js:449-480</code>, <code>dev/run-tests.js:281-298</code>.</p>
+      </div>
+    </article>
+
+    <article class="todo p0">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P0-04 · Validate the quest state machine and protect archived identity</h3>
+        <div class="task-meta">FABLE REVIEW REQUIRED · tag_table.js:542-599 · pending Fable entry 21</div>
+        <p class="why"><span class="label">Why</span> arbitrary status text such as <code>paused</code> is accepted into the live store, then vanishes from every active/offered prompt reader. A declined title can be resurrected because the reopen guard covers abandoned/completed/failed but not declined; a later archive overwrites the title-keyed history row. That is silent quest-canon loss, not merely UI polish.</p>
+        <p class="accept"><span class="label">Accept when</span> all writers dispatch through one explicit status-transition table; invalid status is rejected loudly; declined/reoffered semantics are owner-decided and history-preserving; every stored live status is visible to prompt, health, UI, export, and Table Talk readers; sabotage proves the rejection and history cases.</p>
+        <p class="evidence">Runtime probes reproduced invisible <code>paused</code> and declined resurrection. Current transitions span parser and journal UI.</p>
+      </div>
+    </article>
+
+    <article class="todo p0">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P0-05 · Adjudicate the pending drift-surface queue before calling the pass complete</h3>
+        <div class="task-meta">PROCESS GATE · todo_checkWithFable.md entries 14, 16, 18-23</div>
+        <p class="why"><span class="label">Why</span> the current queue still includes the arc wall, quest journal, recall, transport, and other drift-sensitive changes. This review found material defects adjacent to entries 21 and 23. Green tests establish current expectations; they do not substitute for the repository’s required adversarial verdict.</p>
+        <p class="accept"><span class="label">Accept when</span> Fable has adjudicated every pending entry, recorded confirmed/rejected/inconclusive claims, added failing-first tests for confirmed defects, run named sabotage clauses, and updated the queue receipts.</p>
+      </div>
+    </article>
+  </div>
+
+  <h2 id="p1">P1 — recall completeness and runtime reliability</h2>
+  <div class="todo-list">
+    <article class="todo p1">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P1-01 · Make long-tail facts visible to at least one recall lane</h3>
+        <div class="task-meta">FABLE REVIEW REQUIRED · memory.js:1027-1033, 1722-1785</div>
+        <p class="why"><span class="label">Why</span> a runtime probe ranked the correct old turn, but the fact lived beyond the 700-character GM excerpt and was trimmed out. The same fact was beyond the summarizer’s 500-character player / 4,000-character assistant heads, so neither RAG rendering nor durable filing exposed it. The full transcript retained the truth but both active recall lanes hid it.</p>
+        <p class="accept"><span class="label">Accept when</span> a failing fixture places the only distinguishing fact at each current boundary; at least one injected lane returns it within a bounded budget; controls prove ordinary excerpts and cache keys remain stable; retrieval metrics report selected-but-trimmed hits.</p>
+      </div>
+    </article>
+
+    <article class="todo p1">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P1-02 · Make active-NPC detail activation case-insensitive and identity-aware</h3>
+        <div class="task-meta">FABLE REVIEW REQUIRED · api.js:1665-1668</div>
+        <p class="why"><span class="label">Why</span> hot NPC memory checks use case-sensitive <code>recent.indexOf(name/alias)</code>. Lowercase or case-varied mentions can fail to inject durable details even though RAG name detection already handles case.</p>
+        <p class="accept"><span class="label">Accept when</span> canonical name, alias, case variants, and safe word boundaries activate the same NPC; partial-name false positives remain rejected; the implementation reuses the identity resolver rather than adding a second recognizer.</p>
+      </div>
+    </article>
+
+    <article class="todo p1">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P1-03 · Replace display-title quest parentage with durable identity and provenance</h3>
+        <div class="task-meta">FABLE REVIEW REQUIRED · helpers.js:353-379 · tag_table.js:548-582, 887-910</div>
+        <p class="why"><span class="label">Why</span> both quest identity and <code>bornArc</code> parentage are title strings. Renaming an arc or rephrasing a quest creates orphans/duplicates. Wall closure is stored as generic <code>abandoned</code>; the reopen message then falsely says the player dropped it. Archive projection also discards <code>bornArc</code>.</p>
+        <p class="accept"><span class="label">Accept when</span> quests and arcs have migration-safe stable identities (or an equally strong reconciliation design); display renames preserve linkage; archive rows retain parent and closure author/reason; player abandonment and arc closure render differently; import/migration/sync round-trips are tested.</p>
+      </div>
+    </article>
+
+    <article class="todo p1">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P1-04 · Close unstamped quest escape routes</h3>
+        <div class="task-meta">FABLE REVIEW REQUIRED · quest/arc lifecycle</div>
+        <p class="why"><span class="label">Why</span> after the last arc closes but before an act transition, a reoffered quest is accepted with no active parent and remains immune forever because acceptance/updates never backfill <code>bornArc</code>. Two-live parallel acts also deliberately omit a stamp, while a parallel act with one remaining arc unexpectedly stamps. Legacy and spine-titled quests are immune too.</p>
+        <p class="accept"><span class="label">Accept when</span> every allowed exemption is explicit and documented; no-active-parent creation either waits, attaches to an explicit scope, or is rejected loudly; acceptance can safely backfill eligible legacy offers; parallel semantics are decided by <code>act.parallel</code>, not an accidental live-count side effect.</p>
+      </div>
+    </article>
+
+    <article class="todo p1">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P1-05 · Measure and govern within-arc quest hydra growth</h3>
+        <div class="task-meta">DESIGN + FIELD TELEMETRY · #231 follow-through</div>
+        <p class="why"><span class="label">Why</span> the wall bounds intended cross-arc lifetime only. A probe created 120 stamped live quests in one arc, producing a 36,084-character quest block; one quest accepted 80 objectives. <code>ARC_CONTINUE</code> can keep an arc and all descendants alive indefinitely. Rephrased titles remain independent.</p>
+        <p class="accept"><span class="label">Accept when</span> a post-v1.714 field campaign records per-arc peak live/offered counts, creations, age, continuations, prompt bytes, and semantic-near-duplicate rate; the owner then chooses a soft nudge, hierarchy, or hard bound from evidence. Do not trim canon merely to improve a metric.</p>
+      </div>
+    </article>
+
+    <article class="todo p1">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P1-06 · Certify late-game model behavior on a frozen mature fixture</h3>
+        <div class="task-meta">OPEN TODO #226 · provider/model validation</div>
+        <p class="why"><span class="label">Why</span> fresh 50-turn sweeps do not represent a 2,000-turn prompt. Prior late-game evidence showed prose shrinking and voice/mechanics drift even while engine contracts stayed green. The t2097 prompt is about 126k characters before user input, making this a separate product surface.</p>
+        <p class="accept"><span class="label">Accept when</span> a sanitized frozen mature save drives a fixed 20-turn scenario across the supported model ladder; prose length, canon recall, mechanics, tag compliance, latency, and cache behavior are compared to an accepted baseline; failures are stored as replayable artifacts.</p>
+      </div>
+    </article>
+
+    <article class="todo p1">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P1-07 · Give TTS/STT full-operation deadlines and generation ownership</h3>
+        <div class="task-meta">NORMAL FILES · tts.js:2400-2558 · stt.js:438-660</div>
+        <p class="why"><span class="label">Why</span> TTS clears its abort timer after response headers, before <code>json()</code>/<code>arrayBuffer()</code>; a mocked stalled body stayed pending after the accelerated deadline with <code>controller.aborted=false</code>. STT upload has no deadline. Multiple uploads share mutable <code>_baseText</code>, so an older completion can overwrite or auto-send a later recording.</p>
+        <p class="accept"><span class="label">Accept when</span> timers cover header and body consumption; timeout aborts release playing/busy state and drain or preserve the queue explicitly; STT results carry a recording generation and stale generations cannot write or send; stalled-body and out-of-order probes fail first, then pass.</p>
+      </div>
+    </article>
+
+    <article class="todo p1">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P1-08 · Make reroll rollback transactional</h3>
+        <div class="task-meta">NORMAL FILE · game.js:1901-1952</div>
+        <p class="why"><span class="label">Why</span> reroll replaces the session pair and transcript before display/TTS/save. A later synchronous throw enters catch and pushes the originals without undoing the replacement, creating doubled session history and a mismatched transcript. Main turns have a committed latch; reroll does not.</p>
+        <p class="accept"><span class="label">Accept when</span> a forced failure after each mutation boundary leaves transcript, sessionLog, story DOM, speaker map, and persisted state exactly at the pre-reroll snapshot; success commits once; retry cannot double-apply.</p>
+      </div>
+    </article>
+  </div>
+
+  <h2 id="p2">P2 — efficiency, observability, and documentation</h2>
+  <div class="todo-list">
+    <article class="todo p2">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P2-01 · Collapse each committed turn to one UI commit and one final save</h3>
+        <div class="task-meta">CROSS-SURFACE DESIGN · api.js:2283-2347 · game.js:1699-1703, 1858-1863</div>
+        <p class="why"><span class="label">Why</span> <code>applyMuts()</code> calls <code>syncUI(); saveAll()</code>; <code>commitGmTurn()</code> appends logs and saves again; <code>sendAction()</code> syncs UI again. Speaker stamping can add a third save and late suggestions a fourth. On the mature t2097 save, a cold synchronous transcript serialization measured 1,243.991 ms; the memo hit was 2.883 ms.</p>
+        <p class="accept"><span class="label">Accept when</span> one turn transaction owns mutations, transcript/session append, speaker map, UI render, persistence, and cloud scheduling; failure does not persist a partial turn; exact state equivalence is tested; real mature-save main-thread time is measured before/after. Preserve the transcript—move or deduplicate work, never trim it.</p>
+      </div>
+    </article>
+
+    <article class="todo p2">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P2-02 · Repair the two committed performance benches</h3>
+        <div class="task-meta">DEV TOOLING · dev/bench-lz-memo.js · dev/bench-rag-memo.js</div>
+        <p class="why"><span class="label">Why</span> both benches currently abort with <code>ENGINE LOAD FAILED in api.js: buildProvisionalNudge is not defined</code>. They copied a stale engine file list instead of using the canonical loader. The RAG bench’s “BEFORE = git HEAD” is also no longer a pre-memo control.</p>
+        <p class="accept"><span class="label">Accept when</span> both use <code>dev/load-engine.js</code> or its manifest; a loader-order test prevents drift; benchmark labels describe real current/control paths; a deliberate regression makes a threshold fail.</p>
+      </div>
+    </article>
+
+    <article class="todo p2">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P2-03 · Add archive/snapshot growth thresholds without deleting canon</h3>
+        <div class="task-meta">OPEN TODO #65 PHASE 2 · telemetry first</div>
+        <p class="why"><span class="label">Why</span> the t2097 save held 536,367 bytes of memory archive, 47 archived quests, 81 remembered NPCs, and 91 map nodes. Most trusted-tier archives, quest history, campaign slots, the sacred transcript, NPC roster, and story beats are intentionally unbounded. That may be correct, but it needs observable budgets and field evidence.</p>
+        <p class="accept"><span class="label">Accept when</span> health reports per-store bytes/count/growth rate and save/export/sync latency; warning thresholds are grounded in mature saves and device limits; any compaction proves semantic equivalence and preserves raw recoverability.</p>
+      </div>
+    </article>
+
+    <article class="todo p2">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P2-04 · Put archived quest history into Table Talk recall</h3>
+        <div class="task-meta">FABLE REVIEW REQUIRED · table-talk.js:161-210 · memory.js:1157-1201</div>
+        <p class="why"><span class="label">Why</span> Table Talk receives the live quest block plus memory TOC/RAG, but the TOC has no structured <code>memory.quests</code> reader. Questions about completed/failed/declined/arc-closed quests therefore rely on lexical transcript luck rather than the durable quest ledger.</p>
+        <p class="accept"><span class="label">Accept when</span> a bounded, recent/relevant archived-quest digest is available to Table Talk; active story prompt budgets remain unchanged; probes retrieve each terminal status and closure provenance.</p>
+      </div>
+    </article>
+
+    <article class="todo p2">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P2-05 · Finish drift-critical mutation coverage</h3>
+        <div class="task-meta">VERIFICATION · sabotage census residue</div>
+        <p class="why"><span class="label">Why</span> the current 1,898 assertions are healthy, and #231/#229 sabotage clauses are genuinely attributed. Remaining crown-jewel surfaces still need named mutation proofs: stable-byte purity, Table Talk isolation, transcript write/compression/rescue, summarize tail/extractor behavior, sync eviction/reconcile, and drift-health observers.</p>
+        <p class="accept"><span class="label">Accept when</span> every clause names a real test section and a <code>mustFail</code> substring; each mutation produces the intended red rather than an unrelated failure; byte restoration and clean-tree checks run after every case.</p>
+      </div>
+    </article>
+
+    <article class="todo p2">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P2-06 · Repair authoritative documentation and misleading diagnostics</h3>
+        <div class="task-meta">DOCS + DIAGNOSTICS · CLAUDE.md quest schema · state.js:45-46 · tag_table.js:1197-1204</div>
+        <p class="why"><span class="label">Why</span> authoritative quest docs omit <code>bornArc</code>, <code>lastTouch</code>, abandonment, player actions, and the wall. A state comment still says server sync uses plain transcript although cloud sync compresses it. Unknown-tag scan says “not stripped,” while <code>cleanTxt</code> does strip it. In a drift-defense system, stale operator truth is an engineering defect.</p>
+        <p class="accept"><span class="label">Accept when</span> CLAUDE’s schema/lifecycle and all comments match code; diagnostics distinguish “not parsed” from “removed before display”; a small doc/contract test ties the quest schema and sync representation to their sources of truth.</p>
+      </div>
+    </article>
+
+    <article class="todo p2">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P2-07 · Harden low-frequency browser I/O failures</h3>
+        <div class="task-meta">NORMAL FILES · ui-files.js · sw.js</div>
+        <p class="why"><span class="label">Why</span> restored-render object URLs revoke only on success; folder-picker and clear-folder failures are swallowed; service-worker cache writes/GC are fire-and-forget and may be terminated. These are lower canon risks than P0/P1, but they violate the no-silent-failure rule and accumulate reliability debt.</p>
+        <p class="accept"><span class="label">Accept when</span> object URLs revoke on load or error; user cancellation is distinguished from filesystem failure; real failures warn/toast with reason; cache population/GC lifetime is held by <code>waitUntil</code> or an equivalent owned promise; browser probes cover error paths.</p>
+      </div>
+    </article>
+
+    <article class="todo p2">
+      <input type="checkbox" disabled aria-label="Open task">
+      <div>
+        <h3>P2-08 · Field-test concurrency and late providers</h3>
+        <div class="task-meta">LIVE VALIDATION · two-device sync · mobile/phone soak</div>
+        <p class="why"><span class="label">Why</span> code review found no main-turn double-commit gap and cloud push/pull shape is coherent, but no two-device live sync, slow body stream, service-worker termination, OPFS pressure, or phone TTS soak ran. Read-side campaign adoption remains last-writer-wins until server authority exists.</p>
+        <p class="accept"><span class="label">Accept when</span> a scripted two-device conflict matrix, stalled/partial provider streams, long TTS queue, OPFS eviction, and service-worker restart are run on supported browsers; losses and user-visible errors are recorded; server-authority priority is decided from actual conflicts.</p>
+      </div>
+    </article>
+  </div>
+
+  <h2 id="keep">Checked — defenses to keep</h2>
+  <div class="todo-list">
+    <article class="todo done"><input type="checkbox" checked disabled aria-label="Verified"><div><h3>Keep the single tag registry and strip contract</h3><p>103 handlers and 110 stripped names were censused; no handler-without-strip or accepted-but-visible leak was found. Unknown tags warn and are removed from player prose. The focused tag coverage/derivation suite passed.</p></div></article>
+    <article class="todo done"><input type="checkbox" checked disabled aria-label="Verified"><div><h3>Keep the stable/volatile prompt split and STYLE authority order</h3><p>A fixed-world probe held stable bytes identical while turn, sheet, quest, and session mutations changed volatile bytes. STYLE remains after identity/recall content, with only the documented multiplayer/person override following it. The 10 focused cache-split assertions passed.</p></div></article>
+    <article class="todo done"><input type="checkbox" checked disabled aria-label="Verified"><div><h3>Keep the two-lane RAG design and one-entry memo</h3><p>Rare-word retrieval and an old alias after merge both returned the correct origin scene. On t2097, ten cold queries took 3.1–18.1 ms and memo hits 0.079–0.138 ms with identical output. RAG is not the present performance bottleneck.</p></div></article>
+    <article class="todo done"><input type="checkbox" checked disabled aria-label="Verified"><div><h3>Keep the sacred transcript and byte-identical compression memo</h3><p>The transcript remains append-only in memory/export and compressed only at storage/wire boundaries. The memo changes cost, not bytes. The 9 focused transcript-LZ assertions passed. The fix target is synchronous work placement, never transcript deletion.</p></div></article>
+    <article class="todo done"><input type="checkbox" checked disabled aria-label="Verified"><div><h3>Keep health/provenance rings and loud wall output</h3><p>Tag and health logs are bounded at 40; refused operations have bounded verbatim receipts with sentinels. Arc-wall closure produces mutation, toast, system message, and console output. These make field failures attributable.</p></div></article>
+    <article class="todo done"><input type="checkbox" checked disabled aria-label="Verified"><div><h3>Keep recent monotonic-resource fixes</h3><p>Story DOM caps, voice-model LRU/delete, sync compression/telemetry, listener cleanup, NPC live-fact bounds, campaign render-pointer cap, and Piper realm recycling are present. Do not reopen them without field evidence.</p></div></article>
+  </div>
+
+  <h2 id="quest">Quest-sprawl deep dive</h2>
+  <p><strong class="sound">Direction supported.</strong> The historical failure was not merely “quests take too long.” The measured campaign accumulated emergent side threads whose lifetimes crossed the campaign spine. Stamping a side quest to its creating arc, warning near the wall, and archiving unfinished descendants when that arc closes is a targeted response to that mechanism.</p>
+  <p><strong class="risk">Closure not supported yet.</strong> The wall is conditional on a new quest receiving an exact title-string stamp and a later matching <code>ARC_COMPLETE</code> running while its act is active. That makes the mechanism a useful guard, not a hard lifecycle invariant.</p>
+  <table>
+    <thead><tr><th>Failure condition exercised</th><th>Observed result</th><th>Todo</th></tr></thead>
+    <tbody>
+      <tr><td>Normal active/offered child at arc close</td><td>Both archived loudly as <code>abandoned</code>; next sequential arc activates.</td><td class="sound">Keep</td></tr>
+      <tr><td>Wrong <code>ACT_COMPLETE</code> title</td><td>First active act still closes; old arc and child remain; next act opens.</td><td class="risk">P0-01</td></tr>
+      <tr><td>Later close of the stranded old arc</td><td>Ignored because the old act is no longer active.</td><td class="risk">P0-01</td></tr>
+      <tr><td>Non-final arc + act completion in one response</td><td>Old next arc activates, then its act completes, leaving two active act/arc branches.</td><td class="risk">P0-01</td></tr>
+      <tr><td>Last arc closes; quest reoffered before act transition</td><td>Accepted without <code>bornArc</code>; later acceptance/updates never backfill it.</td><td class="risk">P1-04</td></tr>
+      <tr><td>Arc title renamed after quest birth</td><td>Exact-title mismatch orphans the child.</td><td class="risk">P1-03</td></tr>
+      <tr><td>Parallel act with two live arcs</td><td>No stamp. With one remaining live arc, it does stamp—contrary to broad test wording.</td><td class="watch">P1-04</td></tr>
+      <tr><td>Repeated <code>ARC_CONTINUE</code></td><td>Arc age and descendants remain indefinitely; only drift-check state resets.</td><td class="watch">P1-05</td></tr>
+      <tr><td>120 distinct quests in one arc</td><td>120 accepted; prompt block grew to 36,084 characters. No live/per-arc cap.</td><td class="watch">P1-05</td></tr>
+      <tr><td>80 objectives on one quest</td><td>All accepted; no objective bound.</td><td class="watch">P1-05</td></tr>
+      <tr><td>Completed/failed child</td><td>Preserved in terminal history and not altered by wall.</td><td class="sound">Keep</td></tr>
+      <tr><td>Persistence round trip</td><td><code>bornArc</code> survived local serialize, export/import, cloud compression, and migration.</td><td class="sound">No representation-loss gap</td></tr>
+    </tbody>
+  </table>
+  <p class="small">Historical save counts (pre-v1.714 and therefore not proof of wall effectiveness): t1593 = 25 total retained quests; t1667 = 26; t1728 = 30; t1837 = 35; t2097 = 48. A new post-wall campaign is still the required field test.</p>
+
+  <h2 id="recall">Recall and drift evidence</h2>
+  <table>
+    <thead><tr><th>Layer</th><th>Finding</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr><td>Raw transcript</td><td>Append-only, compressed at storage/wire boundary, export remains plain. Rescue exists for inflate failure.</td><td class="sound">Strong foundation</td></tr>
+      <tr><td>Session + summaries</td><td>Bounded session tail and durable chapters/eras; however head-only extraction can miss a decisive long-tail fact.</td><td class="watch">P1-01</td></tr>
+      <tr><td>RAG</td><td>Rare-word lane and alias bridge passed. Selected long entries can lose the only fact during excerpt trim.</td><td class="watch">P1-01</td></tr>
+      <tr><td>NPC hot detail</td><td>Durable facts are bounded/injected, but recent-name activation is case-sensitive.</td><td class="watch">P1-02</td></tr>
+      <tr><td>Stable prompt cache</td><td>Stable bytes held under volatile mutations; style order preserved.</td><td class="sound">Verified</td></tr>
+      <tr><td>Quest recall</td><td>Live block is authoritative; archived quest history is absent from structured Table Talk recall.</td><td class="watch">P2-04</td></tr>
+      <tr><td>Identity archives</td><td>Scene/quarantine stores have explicit caps and loud eviction; up to 24 quarantined canon receipts never retire and can hold fail-closed capacity.</td><td class="watch">Monitor</td></tr>
+      <tr><td>Load/import</td><td>Silent blank replacement and omitted death-correction archive can erase durable recall/provenance.</td><td class="risk">P0-02 / P0-03</td></tr>
+      <tr><td>Quest description supersession</td><td>Prior field evidence (#190) showed stale quest prose re-injected after later canon correction; title-keyed quest identity remains the residue.</td><td class="watch">Fold into P1-03/Fable review</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="efficiency">Efficiency and resource evidence</h2>
+  <table>
+    <thead><tr><th>Surface</th><th>Measured/observed result</th><th>Conclusion</th></tr></thead>
+    <tbody>
+      <tr><td>Mature save</td><td>5.14 MB file; 4,190 transcript entries; 3.24 MB transcript JSON; 708 KB memory JSON; 536 KB archive.</td><td>Healthy enough to load, but an essential scaling fixture.</td></tr>
+      <tr><td>Prompt assembly</td><td>Stable 44,469 chars + volatile 81,493 = 125,962 chars; ten builds averaged 7.165 ms.</td><td class="sound">CPU assembly is not a current bottleneck; model context quality is P1-06.</td></tr>
+      <tr><td>RAG</td><td>Cold 3.1–18.1 ms, repeat 0.079–0.138 ms, output about 2.2–2.7k chars.</td><td class="sound">Keep current memo and budget.</td></tr>
+      <tr><td>World serialization</td><td>Cold 1,243.991 ms; memo hit 2.883 ms; identical output, 853,328 serialized chars versus 3.54 MB plain world JSON.</td><td class="risk">Main-thread compression is the measured hot spot.</td></tr>
+      <tr><td>Normal turn</td><td>At least two full saves and two whole-panel UI syncs; speaker map and late suggestions can add more saves/posts.</td><td class="watch">P2-01</td></tr>
+      <tr><td>TTS/STT</td><td>TTS body deadline reproduced as ineffective; STT has no deadline and shared result state.</td><td class="risk">P1-07</td></tr>
+      <tr><td>Browser resources</td><td>Story DOM, render pointers, health rings, voice models, and Piper realm bounded. Object-URL error path and renamed permanent cache paths can persist.</td><td class="watch">Mostly sound; P2-07</td></tr>
+      <tr><td>Exports</td><td>Full pretty JSON and narrative HTML are synchronous O(history) work.</td><td class="watch">Measure on mature mobile before redesign.</td></tr>
+      <tr><td>Dev benchmarks</td><td>Both committed benches fail at engine load due to copied stale file lists.</td><td class="watch">P2-02</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="verification">Verification, scope, and limits</h2>
+  <h3>Executed in this review</h3>
+  <ul>
+    <li><code>node dev/run-tests.js</code>: all 13 standalone suites green (220 assertions) and <code>ALL GREEN — 1678 assertions passed (engine tests)</code>.</li>
+    <li>Focused suites: prompt caching split (10), RAG episodic memory (40), tag derivations/coverage (7), sync payload compression (4), #231 arc wall (7), transcript LZ memo (9).</li>
+    <li>#231/#229 sabotage evidence: arc wall and quest journal mutations are attributed and restore files byte-identically.</li>
+    <li>Real-engine quest probes for lifecycle ordering, wrong/malformed act titles, rename, reoffer timing, parallel arcs, continuation, status validation, capacity, and persistence.</li>
+    <li>Real mature-save prompt, store-size, serialization, and RAG measurements at turn 2097.</li>
+    <li>Mocked stalled-body TTS probe, alias/rare-word/long-tail recall probes, stable-byte probe, and tag/strip census.</li>
+  </ul>
+
+  <h3>Not executed; conclusions intentionally limited</h3>
+  <ul>
+    <li>No live-provider 20-turn mature-campaign certification; P1-06 exists for it.</li>
+    <li>No post-v1.714 field campaign long enough to measure the arc wall’s real quest-sprawl effect.</li>
+    <li>No phone/Piper/AudioContext duration soak, OPFS pressure test, two-device sync conflict, filesystem-permission failure, or service-worker termination run.</li>
+    <li>No formal Fable adjudication, failing-test-first implementation, game-code edit, version bump, commit, or push was performed in this review.</li>
+  </ul>
+
+  <h3>Principal source map</h3>
+  <table>
+    <thead><tr><th>Concern</th><th>Primary sources</th></tr></thead>
+    <tbody>
+      <tr><td>Architecture and boundaries</td><td><code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>TODO.md</code>, <code>todo_checkWithFable.md</code></td></tr>
+      <tr><td>Quest lifecycle / wall</td><td><code>helpers.js:353-379</code>, <code>tag_table.js:542-599, 876-955</code>, <code>api.js:302-488, 1414-1434</code>, <code>ui-modals.js:483-580</code></td></tr>
+      <tr><td>Recall / prompt</td><td><code>memory.js</code>, <code>api.js:1631-1802</code>, <code>identity.js</code>, <code>table-talk.js:161-237</code></td></tr>
+      <tr><td>Persistence / sync</td><td><code>state.js</code>, <code>ui-files.js:308-480</code>, <code>storage-adapter.js:373-875</code></td></tr>
+      <tr><td>Async and resource ownership</td><td><code>game.js:444-475, 714-725, 1613-1952</code>, <code>tts.js</code>, <code>stt.js</code>, <code>sw.js</code></td></tr>
+      <tr><td>Verification</td><td><code>dev/run-tests.js</code>, <code>dev/engine-tests.js</code>, <code>dev/sabotage-231-arc-wall.js</code>, prior audits and completed todo records</td></tr>
+    </tbody>
+  </table>
+
+  <div class="foot">
+    Prepared as a read-only Sol review. Repository files were inspected and the report was added; no game behavior was changed. Priority means order of review, not permission to bypass the repository’s read-only and ask-first boundaries.
+  </div>
+</main>
+</body>
+</html>
