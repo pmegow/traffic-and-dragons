@@ -2354,6 +2354,28 @@ var TTS = (function() {
   // unit included) one rung down the ladder via the queue — the governor's own mid-read handoff
   // pattern — and _serverTtsDegrade steers the next SERVER_TTS_RETRY_MS of reads local, so a
   // dead server costs ONE timeout, never a per-unit stall crawl.
+  async function _fetchServerTtsUnit(text, voiceId, timeoutMs) {
+    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var tid = null, timedOut = false;
+    try {
+      if (ctrl) tid = setTimeout(function() { timedOut = true; ctrl.abort(); }, timeoutMs);
+      var opts = { method: "POST", headers: _serverTtsHeaders(),
+                   body: JSON.stringify({ text: text, voiceId: voiceId, rate: getRate() }) };
+      if (ctrl) opts.signal = ctrl.signal;
+      var res = await fetch(_ttsServerUrl() + "/api/tts", opts);
+      if (!res.ok) {
+        var failReason = "HTTP " + res.status;
+        try { var j = await res.json(); if (j && j.error) failReason += " — " + j.error; } catch (e0) {}
+        return { fail: failReason };
+      }
+      return { ab: await res.arrayBuffer() };
+    } catch (e) {
+      return { fail: (e && e.name === "AbortError") ? (timedOut ? ("timeout after " + timeoutMs + "ms") : "request aborted")
+                                                    : ((e && e.message) || "network error") };
+    } finally {
+      if (tid) clearTimeout(tid);
+    }
+  }
   async function _speakServer(text, voiceId, voices) {
     var myEpoch = ++_piperEpoch;
 
@@ -2395,30 +2417,9 @@ var TTS = (function() {
       var u = units[i];
       var uVoice = (voices && voices[i]) || voiceId;   // per-unit speaker map, same ids as local Piper
       var uTimeoutMs = (i === 0) ? SERVER_TTS_TIMEOUT_FIRST_MS : SERVER_TTS_TIMEOUT_MS;
-      var ab = null, failReason = "", tid = null;
-      try {
-        var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-        if (ctrl) tid = setTimeout(function() { ctrl.abort(); }, uTimeoutMs);
-        var opts = { method: "POST", headers: _serverTtsHeaders(),
-                     body: JSON.stringify({ text: u.text, voiceId: uVoice, rate: getRate() }) };
-        if (ctrl) opts.signal = ctrl.signal;
-        var res = await fetch(_ttsServerUrl() + "/api/tts", opts);
-        if (tid) clearTimeout(tid);
-        if (_piperEpoch !== myEpoch) return;
-        if (!res.ok) {
-          failReason = "HTTP " + res.status;
-          try { var j = await res.json(); if (j && j.error) failReason += " — " + j.error; } catch (e0) {}
-          if (_piperEpoch !== myEpoch) return;
-        } else {
-          ab = await res.arrayBuffer();
-          if (_piperEpoch !== myEpoch) return;
-        }
-      } catch (e) {
-        if (tid) clearTimeout(tid);
-        if (_piperEpoch !== myEpoch) return;
-        failReason = (e && e.name === "AbortError") ? ("timeout after " + uTimeoutMs + "ms")
-                                                    : ((e && e.message) || "network error");
-      }
+      var fetched = await _fetchServerTtsUnit(u.text, uVoice, uTimeoutMs);
+      if (_piperEpoch !== myEpoch) return;
+      var ab = fetched.ab || null, failReason = fetched.fail || "";
 
       if (failReason) {
         // Hand the WHOLE remainder (this unit included) down the ladder — already-scheduled
@@ -2533,7 +2534,6 @@ var TTS = (function() {
                      body: JSON.stringify(body) };
         if (ctrl) opts.signal = ctrl.signal;
         var res = await fetch(_geminiEndpoint(model), opts);
-        if (tid) clearTimeout(tid);
         var j = await res.json();
         if (!res.ok) {
           failReason = "HTTP " + res.status + ((j && j.error && j.error.status) ? (" " + j.error.status) : "");
@@ -2553,9 +2553,10 @@ var TTS = (function() {
           }
         }
       } catch (e) {
-        if (tid) clearTimeout(tid);
         failReason = (e && e.name === "AbortError") ? (timedOut ? ("timeout after " + uTimeoutMs + "ms") : "aborted by skip")
                                                     : ((e && e.message) || "network error");
+      } finally {
+        if (tid) clearTimeout(tid);
       }
       if (b64) { _geminiFellNote(model); break; }
       // A skip aborts the REGISTERED controller — that flag is the only thing telling this loop
@@ -4243,7 +4244,8 @@ var TTS = (function() {
       degrade:  function(reason) { _serverTtsDegrade(reason); },
       backdate: function(ms) { _serverTtsErrAt -= ms; },
       reset:    function() { _serverTtsErr = ""; _serverTtsErrAt = 0; _serverTtsToasted = false; },
-      provider: function() { return TTS_PROVIDERS.server; }
+      provider: function() { return TTS_PROVIDERS.server; },
+      fetchUnit: _fetchServerTtsUnit
     },
     // #95: internals exported ONLY for the headless engine tests (same contract as _textPrep).
     // The two *Src() readers exist because the strip/pass-through rules live INSIDE async read
@@ -4255,7 +4257,8 @@ var TTS = (function() {
       piperOptions:    function() { return _buildPiperVoiceOptions(); },
       piperOptionsSrc: function() { return String(_buildPiperVoiceOptions); },
       speakPiperSrc:   function() { return String(_speakPiper); },
-      speakServerSrc:  function() { return String(_speakServer); }
+      speakServerSrc:  function() { return String(_speakServer); },
+      speakGeminiSrc:  function() { return String(_speakGemini); }
     }
   };
 

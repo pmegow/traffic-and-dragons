@@ -411,6 +411,7 @@ var STT = (function() {
   var STT_MAX_RECORD_MS  = 45000; // §4c: hard cap (was 15000) — endpointing below usually stops long before this
   var STT_SILENCE_MS     = 1500;  // §4c: sustained quiet that ends a take, once speech has been heard
   var STT_MIN_RECORD_MS  = 1200;  // §4c: never endpoint before this — a slow starter is not silence
+  var STT_UPLOAD_TIMEOUT_MS = 60000; // full fetch + response body; a headers-only response must not strand voice input
 
   var _cloudRec    = null;  // live MediaRecorder instance
   var _cloudStream = null;  // its MediaStream, so we can stop every track on finish
@@ -418,6 +419,11 @@ var STT = (function() {
   var _cloudMime   = "";
   var _cloudTimer  = null;  // STT_MAX_RECORD_MS auto-stop (the endpointing backstop)
   var _nbToasted   = false; // §4d: narrowband-mic warning shown at most once per page load
+  var _cloudGeneration = 0, _cloudActiveGeneration = 0, _cloudBaseText = "";
+
+  function _cloudBeginGeneration(baseText) {
+    return { generation: ++_cloudGeneration, baseText: String(baseText || "") };
+  }
 
   function _cloudAvailable() {
     return !!(typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia &&
@@ -435,14 +441,25 @@ var STT = (function() {
     var inp = document.getElementById("action-input");
     if (!inp) return;
 
-    _baseText  = inp.value ? (inp.value.replace(/\s+$/, "") + " ") : "";
+    var _cloudToken = _cloudBeginGeneration(inp.value ? (inp.value.replace(/\s+$/, "") + " ") : "");
+    _baseText  = _cloudToken.baseText;
     _gotFinal  = false;
     _cancelled = false;
     _cloudChunks = [];
     _cloudMime   = "";
 
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+      if (_cloudToken.generation !== _cloudGeneration) {
+        try {
+          var _staleTracks = stream.getTracks ? stream.getTracks() : [];
+          for (var _sti = 0; _sti < _staleTracks.length; _sti++) _staleTracks[_sti].stop();
+        } catch(e0) {}
+        console.info("[stt] stale microphone start ignored — a newer recording owns generation " + _cloudGeneration);
+        return;
+      }
       _cloudStream = stream;
+      _cloudActiveGeneration = _cloudToken.generation;
+      _cloudBaseText = _cloudToken.baseText;
       // §4d mic-path telemetry: the findings doc's suspected dominant car factor is the
       // Bluetooth hands-free route (telephone-band capture) — make it VISIBLE in the #16
       // channel instead of inferring it from garbled transcripts. getSettings() is sync+cheap.
@@ -493,6 +510,10 @@ var STT = (function() {
         if (_listening && _cloudRec) stop();
       }, STT_MAX_RECORD_MS);
     }).catch(function(e) {
+      if (_cloudToken.generation !== _cloudGeneration) {
+        console.info("[stt] stale microphone failure ignored — a newer recording owns generation " + _cloudGeneration);
+        return;
+      }
       if (typeof showToast === "function") showToast("Microphone permission denied.");
       if (typeof carNotify === "function") carNotify("warn", "Microphone permission denied"); /* final-pass #32 */
       console.warn("[stt] getUserMedia failed:", e);
@@ -570,6 +591,8 @@ var STT = (function() {
   // so Car Mode's mic indicator turns off the moment recording stops, not after transcription.
   function _cloudFinish() {
     var wasCancelled = _cancelled;
+    var generation = _cloudActiveGeneration;
+    var baseText = _cloudBaseText;
     _cancelled = false;
     _cloudTeardownStream();
     _listening = false;
@@ -578,41 +601,56 @@ var STT = (function() {
     var chunks = _cloudChunks; _cloudChunks = [];
     var mime = _cloudMime; _cloudMime = "";
     _cloudRec = null;
+    _cloudActiveGeneration = 0;
+    _cloudBaseText = "";
 
     if (wasCancelled) return;   // rank 7: cancel = discard, no upload, no send
     if (!chunks.length) return; // nothing captured
 
     var blob = new Blob(chunks, { type: mime || "audio/webm" });
-    _cloudUpload(blob, mime);
+    _cloudUpload(blob, mime, generation, baseText);
   }
 
-  function _cloudUpload(blob, mime) {
+  function _cloudUpload(blob, mime, generation, baseText) {
     var key = (typeof providerKeys !== "undefined" && providerKeys) ? providerKeys.openai : null;
     if (!key) {
       if (typeof showToast === "function") showToast("Voice input needs an OpenAI API key.");
       if (typeof carNotify === "function") carNotify("warn", "Voice input needs an OpenAI API key"); /* final-pass #32 */
       console.warn("[stt] cloud upload skipped: no OpenAI key");
-      return;
+      return Promise.resolve(false);
     }
     if (typeof carNotify === "function") carNotify("info", "Transcribing…");
 
     var ext = (mime && mime.indexOf("mp4") >= 0) ? "mp4" : "webm";
     // §4b: primary model with ONE loud fallback retry — a model-id rot or a 4xx on the newer
     // endpoint must degrade to yesterday's behavior, never to a silently dead mic.
-    _transcribeOnce(blob, ext, key, STT_CLOUD_MODEL)
+    return _transcribeOnce(blob, ext, key, STT_CLOUD_MODEL)
       ["catch"](function(e) {
+        if (generation !== _cloudGeneration) {
+          console.info("[stt] stale transcription failure ignored for generation " + generation + " (current " + _cloudGeneration + ")");
+          return null;
+        }
         console.warn("[stt] " + STT_CLOUD_MODEL + " failed (" + (e && e.message) + ") — retrying with " + STT_CLOUD_FALLBACK);
         if (typeof erCrumb === "function") erCrumb("stt-fallback", { m: STT_CLOUD_MODEL, err: String((e && e.message) || "?").slice(0, 40) });
         return _transcribeOnce(blob, ext, key, STT_CLOUD_FALLBACK);
       })
       .then(function(json) {
-        _cloudFinalize(json && json.text ? String(json.text) : "", json && json.logprobs);
+        if (generation !== _cloudGeneration) {
+          console.info("[stt] stale transcription result ignored for generation " + generation + " (current " + _cloudGeneration + ")");
+          return false;
+        }
+        return _cloudFinalize(json && json.text ? String(json.text) : "", json && json.logprobs, generation, baseText);
       }).catch(function(e) {
+        if (generation !== _cloudGeneration) {
+          console.info("[stt] stale transcription error ignored for generation " + generation + " (current " + _cloudGeneration + ")");
+          return false;
+        }
         if (typeof showToast === "function") showToast("Voice transcription failed.");
         if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + (e && e.message)); /* final-pass #32 */
         console.warn("[stt] cloud transcription failed:", e);
         var el = document.getElementById("action-input");
         if (el) el.focus();
+        return false;
       });
   }
 
@@ -634,19 +672,42 @@ var STT = (function() {
       form.append("response_format", "json");
       form.append("include[]", "logprobs");
     }
-    return fetch("https://api.openai.com/v1/audio/transcriptions", {
+    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var timedOut = false, tid = null;
+    var opts = {
       method: "POST",
       headers: { "Authorization": "Bearer " + key },
       body: form
-    }).then(function(resp) {
+    };
+    if (ctrl) opts.signal = ctrl.signal;
+    var network = fetch("https://api.openai.com/v1/audio/transcriptions", opts).then(function(resp) {
       if (!resp.ok) throw new Error("HTTP " + resp.status + " (" + model + ")");
       return resp.json();
+    });
+    var deadline = new Promise(function(resolve, reject) {
+      tid = setTimeout(function() {
+        timedOut = true;
+        if (ctrl) ctrl.abort();
+        reject(new Error("timeout after " + STT_UPLOAD_TIMEOUT_MS + "ms (" + model + ")"));
+      }, STT_UPLOAD_TIMEOUT_MS);
+    });
+    return Promise.race([network, deadline]).then(function(json) {
+      if (tid) clearTimeout(tid);
+      return json;
+    }, function(e) {
+      if (tid) clearTimeout(tid);
+      if (timedOut || (e && e.name === "AbortError")) throw new Error("timeout after " + STT_UPLOAD_TIMEOUT_MS + "ms (" + model + ")");
+      throw e;
     });
   }
 
   // Same finalization contract as native onresult/onend: name-correction, write into the
   // field, mark _gotFinal, then the shared send policy (rank 5 busy-park + rank 8 gate).
-  function _cloudFinalize(rawText, logprobs) {
+  function _cloudFinalize(rawText, logprobs, generation, baseText) {
+    if (generation !== _cloudGeneration) {
+      console.info("[stt] stale finalization ignored for generation " + generation + " (current " + _cloudGeneration + ")");
+      return false;
+    }
     var el = document.getElementById("action-input");
     var text = rawText || "";
     _resetUtterance();   // #77 Layer 0 — this upload is its own confidence/correction record
@@ -656,8 +717,10 @@ var STT = (function() {
       if (roster.length && typeof sttCorrectNames === "function") text = sttCorrectNames(text, roster, _utterCorr);
       _gotFinal = true;
     }
+    _baseText = String(baseText || "");
     if (el) el.value = (_baseText + text).replace(/^\s+/, "");
     _applySendPolicy();
+    return true;
   }
 
   // ── Public API ───────────────────────────────────────────────────────────────
@@ -678,7 +741,14 @@ var STT = (function() {
     setAutoSend:   setAutoSend,
     isAutoListen:  isAutoListen,
     setAutoListen: setAutoListen,
-    loadSettings:  loadSettings
+    loadSettings:  loadSettings,
+    _cloudTest: {
+      begin: _cloudBeginGeneration,
+      upload: _cloudUpload,
+      transcribeOnce: _transcribeOnce,
+      generation: function() { return _cloudGeneration; },
+      timeoutMs: STT_UPLOAD_TIMEOUT_MS
+    }
   };
 
 })();

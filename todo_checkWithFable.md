@@ -14,6 +14,7 @@ commits), what it touches, why it's risky or not, supporting docs/tests, and wha
 should probe first. Self-contained enough that a Fable session needs no other context.
 
 ## Off-Fable log
+- 2026-08-28 (v1.716): TTS deadlines now own response bodies and preserve/drain timeout remainders explicitly; STT uploads have full-response deadlines and generation-owned base text so stale recordings cannot write or send (5 failing-first assertions; retained sabotage 6/6). Transport ownership only; no prompt, parser, memory, or transcript-integrity path changed.
 - 2026-08-24 (v1.711): Druid archetype swap — Circle of the Land → Circle of Stars, Circle of Spores → Circle of Flame (owner-ruled: Spores' decay collided with the Necromancer's Entropist; its L14 rot-stone-wood-iron was the Entropist's literal signature). 12 new level rows written to the house voice, no spell-list references (coverage guard N/A), canonical-form edit, suite 1671 green. Registry-entry content per the safe-changes map.
 - 2026-08-24 (v1.709): level-up gain toasts — checkLevelUp/checkCompanionLevelUp now toast the level + each gained ability by name (presentation-only additions over the existing bible-row grants; 2 failing-first tests, suite 1668 green); companion gained-features also get their missing system feed line.
 

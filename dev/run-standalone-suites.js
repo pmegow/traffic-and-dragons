@@ -10,6 +10,8 @@ var SUITES = [
   "dev/tests-c13-adapter.js",
   "dev/tests-29-callgm-transport.js",
   "dev/tests-41f-gemini-model-ladder.js",
+  "dev/tests-233-tts-body-deadlines.js",
+  "dev/tests-234-stt-upload-generation.js",
   "dev/tests-dedup-a.js",
   "dev/tests-160-portrait-builder.js",
   "dev/tests-5-story-compiler.js",
