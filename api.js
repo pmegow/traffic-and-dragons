@@ -1710,6 +1710,12 @@ function buildSysPrompt(){
   // block stops the immediate |offered re-raise AND explains the disappearance).
   var abandonBlock="";
   if(worldState.recentAbandon&&worldState.recentAbandon.length){var _abn=worldState.recentAbandon.map(function(x){return x.title;}).join(", ");abandonBlock="*** QUEST ABANDONED BY THE PLAYER ***\nThe player has deliberately DROPPED the quest: "+_abn+". Do not re-register it, do not steer toward it, and do not have NPCs press it — the party has walked away from this goal. The fiction may acknowledge the walking-away naturally if it comes up. If the world genuinely re-raises the matter much later, it may return only as a fresh [QUEST:title|offered] for the player to accept or refuse.\n\n";}
+  // #234 (JP0-2, joint review 2026-08-27): the wall's POST-SWEEP channel. Deliberately NOT the
+  // #229 wording — these threads were closed by the ARC, not dropped by the player, and
+  // "abandoned by the player" here would steer the GM to narrate a walking-away that never
+  // happened. Same 2-turn shelf as recentAbandon, cleared in commitGmTurn.
+  var wallSweepBlock="";
+  if(worldState.recentWallSweep&&worldState.recentWallSweep.length){var _wsL=worldState.recentWallSweep.map(function(x){return '"'+x.titles.join('", "')+'" (with the arc "'+x.arc+'")';}).join("; ");wallSweepBlock="*** SIDE THREADS CLOSED WITH THEIR ARC ***\nThese quests ended because the arc that bore them completed: "+_wsL+". The player did NOT drop them — the story simply moved past them. Do not re-register them as active (that write is refused) and do not keep narrating them as live goals. If a beat offers itself, give one a line of closure in the fiction; if the world genuinely re-raises one much later, it may return only as a fresh [QUEST:title|offered] for the player to accept or refuse.\n\n";}
   // TODO #1 D12 follow-up (user field report 2026-07-18): leaving multiplayer needs the same
   // history-momentum antidote as a control switch — after the last co-PC demotes, the sessionLog
   // is full of the GM's OWN third-person narration and one role line can't outweigh it (the
@@ -1745,7 +1751,7 @@ function buildSysPrompt(){
     +buildStateTagsDoc()
     +buildNamingClause()/* #156: the identity-discipline clause — campaign-constant by construction (assembled from IDENTITY_DOMAINS namingRules + fixed literals), so it is cache-safe in the stable half; engine-tested for call-stability */
     +buildDeepTimeBlock();/* #227: the world age ladder — written once at campaign start and never mutated in play, so it is cache-safe in the stable half; ""-clean for every campaign without a ladder, which keeps legacy saves byte-identical */
-  var volatile_=identity+switchBlock+mpEndBlock+abandonBlock+leftBlock
+  var volatile_=identity+switchBlock+mpEndBlock+abandonBlock+wallSweepBlock+leftBlock
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
     +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"

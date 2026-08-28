@@ -1676,6 +1676,7 @@ function commitGmTurn(resp,opts){
        counter did; one that never complies keeps being asked. */
     if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
     if(worldState.recentAbandon){worldState.recentAbandon=worldState.recentAbandon.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentAbandon.length)worldState.recentAbandon=null;}/* #229: same 2-turn shelf as recentlyLeft */
+    if(worldState.recentWallSweep){worldState.recentWallSweep=worldState.recentWallSweep.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentWallSweep.length)worldState.recentWallSweep=null;}/* #234: the wall's post-sweep note rides the same shelf */
   }
   if(typeof erCrumb==="function")erCrumb("turn","t"+worldState.turn+" "+String(resp||"").length+"ch");
   var clean=cleanTxt(resp),dice=diceTxt(resp),_bookkeeping=isBookkeepingResponse(resp,clean,dice);

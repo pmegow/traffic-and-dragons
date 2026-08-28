@@ -66,7 +66,34 @@ rc |= sabotage.prove({
     { label: "#233: sequential advancement resurrects completed arcs again (the unconditional _sj+1 write)",
       mustFail: "RESURRECTS",
       find: '        if(!_act.parallel){for(var _nk=_sj+1;_nk<_act.arcs.length;_nk++){if(_act.arcs[_nk].status!=="pending")continue;',
-      replace: '        if(!_act.parallel){for(var _nk=_sj+1;_nk<_act.arcs.length;_nk++){' }
+      replace: '        if(!_act.parallel){for(var _nk=_sj+1;_nk<_act.arcs.length;_nk++){' },
+
+    { label: "#234: the sweep stops arming the post-sweep note — the GM is never told the threads closed",
+      mustFail: "sweep armed nothing",
+      find: '          worldState.recentWallSweep.push({arc:_wallArc,titles:_walled.slice(0,8),turn:R.turn});',
+      replace: '' }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "api.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#234: the volatile CLOSED WITH THEIR ARC block never renders — the armed note reaches no prompt",
+      mustFail: "armed sweep did not render",
+      find: '  if(worldState.recentWallSweep&&worldState.recentWallSweep.length){',
+      replace: '  if(false){' }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "game.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#234: the 2-turn shelf never clears — the wall note nags forever",
+      mustFail: "note survived past its shelf",
+      find: '    if(worldState.recentWallSweep){worldState.recentWallSweep=worldState.recentWallSweep.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentWallSweep.length)worldState.recentWallSweep=null;}/* #234: the wall\'s post-sweep note rides the same shelf */',
+      replace: '' }
   ]
 });
 

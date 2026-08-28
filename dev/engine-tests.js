@@ -6412,6 +6412,51 @@ function runEngineTests(R){
     return closes===1?true:"arc close recorded "+closes+" times";
   });
 
+  // ── #234 — the wall's POST-SWEEP channel (JP0-2, joint review 2026-08-27) ─────────────
+  // Without it the "active crises ARE quests" line demands re-registration of the threads the
+  // wall just closed, the blocked |active re-creation is silent to the GM, and the story keeps
+  // running on untracked quests — the green-indicators blindness #231 exists to end. NOT the
+  // #229 wording: these were closed by the ARC, not dropped by the player.
+  section("#234 — the wall's post-sweep channel");
+  t("#234: the sweep arms recentWallSweep with the arc and every walled title",function(){
+    __wallWorld();
+    applyMuts("[QUEST:The Sugar War|active|x.][QUEST:The Bell Below|offered|y.]");
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    var w=worldState.recentWallSweep;
+    if(!w||!w.length)return "sweep armed nothing";
+    if(w[0].arc!=="The Skinsaw Man")return "arc not recorded: "+JSON.stringify(w[0]);
+    return w[0].titles.indexOf("The Sugar War")>=0&&w[0].titles.indexOf("The Bell Below")>=0?true:
+      "walled titles not recorded: "+JSON.stringify(w[0].titles);
+  });
+  t("#234: a close that sweeps NOTHING arms nothing",function(){
+    __wallWorld();
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    return worldState.recentWallSweep?"armed with no swept progeny: "+JSON.stringify(worldState.recentWallSweep):true;
+  });
+  t("#234: the volatile block names the threads, the arc, and the honest exits — and never says the player dropped them",function(){
+    makeWorld();worldState.turn=50;
+    var base=buildSysPrompt();
+    if(base.volatile.indexOf("CLOSED WITH THEIR ARC")>=0)return "block rendered with no sweep armed";
+    worldState.recentWallSweep=[{arc:"The Skinsaw Man",titles:["The Sugar War"],turn:50}];
+    var p=buildSysPrompt();
+    if(p.volatile.indexOf("CLOSED WITH THEIR ARC")<0||p.volatile.indexOf("The Sugar War")<0||p.volatile.indexOf("The Skinsaw Man")<0)return "armed sweep did not render";
+    if(p.volatile.indexOf("did NOT drop")<0)return "block missing the not-the-player's-doing clause";
+    if(/\[QUEST:title\|offered\]/.test(p.volatile)===false)return "block missing the |offered return path";
+    var _wsIdx=p.volatile.indexOf("CLOSED WITH THEIR ARC");
+    if(/DROPPED the quest/.test(p.volatile.slice(_wsIdx,_wsIdx+900)))return "the wall block borrowed the #229 player-abandon wording";
+    if(p.stable!==base.stable)return "STABLE HALF CHANGED — cache kill";
+    return true;
+  });
+  t("#234: commitGmTurn expires the sweep note on the 2-turn shelf, keeps a fresh one",function(){
+    makeWorld();worldState.turn=52;
+    worldState.recentWallSweep=[{arc:"A",titles:["Old Thread"],turn:50}];
+    commitGmTurn("The road is quiet. [TIME_ADVANCE:10m]",{userMsg:"x",playerTxt:"march"});
+    if(worldState.recentWallSweep)return "note survived past its shelf: "+JSON.stringify(worldState.recentWallSweep);
+    worldState.recentWallSweep=[{arc:"B",titles:["Fresh Thread"],turn:worldState.turn}];
+    commitGmTurn("Onward. [TIME_ADVANCE:5m]",{userMsg:"x",playerTxt:"go"});
+    return worldState.recentWallSweep?true:"a fresh note was cleared early";
+  });
+
   section("arc↔quest coupling (UA31)");
   function __arcQuestWorld(){
     makeWorld();worldState.turn=40;

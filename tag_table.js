@@ -922,6 +922,8 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
         }
         if(_walled.length){
           _walled.reverse();
+          if(!worldState.recentWallSweep)worldState.recentWallSweep=[];/* #234: arm the post-sweep channel — the crisis line otherwise demands re-registration of the very threads the wall just closed, and the blocked |active re-creation is silent to the GM */
+          worldState.recentWallSweep.push({arc:_wallArc,titles:_walled.slice(0,8),turn:R.turn});
           R.muts.push("Arc wall: "+_walled.length+" side thread"+(_walled.length>1?"s":"")+" closed with the arc — "+_walled.join(", "));
           if(typeof showToast==="function")showToast("⧉ "+_walled.length+" side thread"+(_walled.length>1?"s":"")+" closed with the arc");
           if(typeof addMsg==="function")addMsg("system","Closed with the arc: "+_walled.join(", ")+" — side threads do not outlive the arc that began them.");
