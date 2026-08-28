@@ -132,4 +132,30 @@ rc |= sabotage.prove({
   ]
 });
 
+rc |= sabotage.prove({
+  file: "api.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#267: the abandon decision-record dies — no memory tier ever hears the drop was deliberate",
+      mustFail: "durable decision",
+      find: "      if(typeof fileDecision===\"function\")fileDecision(worldState.turn||0,\"The player deliberately ABANDONED the quest '\"+q.title+\"' ",
+      replace: "      if(false)fileDecision(worldState.turn||0,\"The player deliberately ABANDONED the quest '\"+q.title+\"' " },
+
+    { label: "#267: the pending-event sweep dies — the abandoned goal keeps serving as a live anticipated event",
+      mustFail: "near-dup future event resolved",
+      find: "      if(memory&&Array.isArray(memory.futureEvents)&&typeof feNearDup===\"function\"){",
+      replace: "      if(false){" },
+
+    { label: "#267: the deadline sweep dies — the abandoned goal keeps counting down as authoritative canon",
+      mustFail: "near-dup deadline retired",
+      find: "      if(worldState.clock&&Array.isArray(worldState.clock.schedule)&&typeof scheduleNearDup===\"function\"){",
+      replace: "      if(false){" },
+
+    { label: "#267: the abandoned-arc drift limb dies — the spine goes back to nudge-starved",
+      mustFail: "ABANDONED now gets the drift check",
+      find: "      if(mqAband){",
+      replace: "      if(false){" }
+  ]
+});
+
 process.exit(rc ? 1 : 0);

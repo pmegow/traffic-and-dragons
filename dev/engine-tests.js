@@ -16897,6 +16897,68 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
+  // ── #267 — abandonment leaves a memory; an abandoned ARC quest cannot starve the spine
+  // (Fable f15+f16, joint review 2026-08-27). Two turns after Abandon, no memory tier said the
+  // drop was deliberate — chapters/RAG/futureEvents/schedule kept serving the pursuit as live
+  // (the confabulation setup) — and abandoning the quest that tracks a spine arc left that arc
+  // nudge-starved: the drift check was completed-only blind.
+  section("#267 — abandonment memory + the abandoned-arc drift limb");
+  t("#267: abandoning files a durable decision the memory tiers can serve",function(){
+    makeWorld();worldState.turn=50;
+    worldState.questLog=[{title:"The Bell Below",status:"active",desc:"d",objectives:[],started:40,lastTouch:45}];
+    abandonQuestState("The Bell Below");
+    var hit=(memory.keyDecisions||[]).filter(function(d){return String(d.desc||"").indexOf("The Bell Below")>=0;});
+    if(!hit.length)return "no durable record of the deliberate drop reached memory";
+    return /abandon/i.test(hit[0].desc)?true:"the record does not say it was an abandonment: "+hit[0].desc;
+  });
+  t("#267: abandoning sweeps the goal's satellites — near-dup future event resolved, near-dup deadline retired, strangers untouched",function(){
+    makeWorld();worldState.turn=50;worldState.clock={min:1000,schedule:[
+      {id:"a",label:"Descend to the Bell Below and silence it",dueMin:3000,born:900},
+      {id:"b",label:"Meet the ferryman at dawn",dueMin:2000,born:900}
+    ]};
+    memory.futureEvents=[
+      {when:"soon",who:"",what:"The Bell Below tolls again unless silenced",setTurn:40,resolved:false},
+      {when:"soon",who:"",what:"The caravan arrives from Magnimar",setTurn:41,resolved:false}
+    ];
+    worldState.questLog=[{title:"The Bell Below",status:"active",desc:"Silence the bell below the chapel.",objectives:[],started:40,lastTouch:45}];
+    var _c=console.info;console.info=function(){};var _w=console.warn;console.warn=function(){};
+    try{abandonQuestState("The Bell Below");}finally{console.info=_c;console.warn=_w;}
+    if(!memory.futureEvents[0].resolved)return "the quest's own pending event still serves as live";
+    if(memory.futureEvents[1].resolved)return "a stranger future event was swept";
+    var labels=worldState.clock.schedule.map(function(e){return e.label;});
+    if(labels.some(function(l){return l.indexOf("Bell Below")>=0;}))return "the quest's own deadline still counts down as canon: "+JSON.stringify(labels);
+    return labels.indexOf("Meet the ferryman at dawn")>=0?true:"a stranger deadline was retired";
+  });
+  t("#267: an ACTIVE arc whose tracking quest was ABANDONED now gets the drift check — with honest wording and the three exits",function(){
+    makeWorld();worldState.turn=100;
+    worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[{title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20}]}]};
+    memory.quests["The Skinsaw Man"]={title:"The Skinsaw Man",desc:"",objectives:[],status:"abandoned",turn:90,by:"player"};
+    var n=buildArcDriftNudge();
+    if(!n)return "the abandoned-arc limb never fired — the spine stays nudge-starved";
+    if(!/abandon/i.test(n))return "the check does not say the quest was abandoned: "+n;
+    if(n.indexOf("ARC_COMPLETE")<0||n.indexOf("offered")<0||n.indexOf("ARC_CONTINUE")<0)return "the check does not teach all three exits: "+n;
+    return true;
+  });
+  t("#267: the abandoned limb escalates like the completed one, and a LIVE tracking quest still silences both",function(){
+    makeWorld();worldState.turn=100;
+    worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[{title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20}]}]};
+    memory.quests["The Skinsaw Man"]={title:"The Skinsaw Man",desc:"",objectives:[],status:"abandoned",turn:90,by:"player"};
+    var n1=buildArcDriftNudge();if(!n1)return "check 1 never fired";
+    worldState.turn+=ARC_DRIFT_RECHECK;var n2=buildArcDriftNudge();if(!n2)return "check 2 never re-fired";
+    worldState.turn+=ARC_DRIFT_RECHECK;var n3=buildArcDriftNudge();
+    if(!n3||n3.indexOf("FINAL")<0)return "the third check did not escalate to the forced fork: "+String(n3).slice(0,120);
+    worldState.questLog=[{title:"A fresh approach",status:"active",desc:"",objectives:[],started:100,lastTouch:100}];
+    worldState.questLog[0].title="The Skinsaw Man";
+    return buildArcDriftNudge()===""?true:"a live tracking quest did not silence the abandoned limb";
+  });
+  t("#267: the completed-quest drift limb is unchanged (pin)",function(){
+    makeWorld();worldState.turn=100;
+    worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[{title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20}]}]};
+    memory.quests["The Skinsaw Man"]={title:"The Skinsaw Man",desc:"",objectives:[],status:"completed",turn:90,paid:{xp:100,gold:0}};
+    var n=buildArcDriftNudge();
+    return n&&n.indexOf("already been completed")>=0?true:"the completed limb changed: "+String(n).slice(0,120);
+  });
+
   // ── #266 — the silent-drop class in tag_table (Fable f53+f55+f30, joint review 2026-08-27).
   // Six handlers shared one shape: a loose outer match (or none) with a strict inner match, and a
   // near-miss operand fell between them with ZERO warn — including [SCENE_NOT:], a W2 NEGATIVE

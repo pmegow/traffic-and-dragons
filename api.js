@@ -332,6 +332,27 @@ function abandonQuestState(title){
       worldState.questLog.splice(i,1);
       if(!worldState.recentAbandon)worldState.recentAbandon=[];
       worldState.recentAbandon.push({title:q.title,turn:worldState.turn||0});
+      /* #267 (Fable f15): the drop must LEAVE A MEMORY. Two turns after the shelf expired, no
+         memory tier said the abandonment happened — chapters, RAG, futureEvents and the schedule
+         all kept serving the pursuit as live, the exact confabulation setup the stack exists to
+         prevent. ① a durable keyDecision (rides memoryTOC's RECENT DECISIONS + the archive);
+         ② the goal's own satellites are swept HONESTLY: near-dup pending events resolve, near-dup
+         deadlines retire — the schedule-authority comparator (#235), never substring, so
+         strangers are untouched. Loud per satellite. */
+      if(typeof fileDecision==="function")fileDecision(worldState.turn||0,"The player deliberately ABANDONED the quest '"+q.title+"' — do not steer back toward it; it may return only as a fresh offer.");
+      var _abFp=q.title+" "+(q.desc||""),_abi;
+      if(memory&&Array.isArray(memory.futureEvents)&&typeof feNearDup==="function"){
+        for(_abi=0;_abi<memory.futureEvents.length;_abi++){var _abf=memory.futureEvents[_abi];
+          if(_abf&&!_abf.resolved&&(feNearDup(_abf.what,q.title)||feNearDup(_abf.what,_abFp))){_abf.resolved=true;_abf.resolvedTurn=worldState.turn||0;_abf.resolvedBy="abandon";
+            if(typeof console!=="undefined")console.info("[quest] #267: pending event \""+String(_abf.what).slice(0,60)+"\" resolved — its quest was abandoned");}}
+      }
+      if(worldState.clock&&Array.isArray(worldState.clock.schedule)&&typeof scheduleNearDup==="function"){
+        for(_abi=worldState.clock.schedule.length-1;_abi>=0;_abi--){var _abs=worldState.clock.schedule[_abi];
+          if(_abs&&(scheduleNearDup(_abs.label,q.title)||scheduleNearDup(_abs.label,_abFp))){
+            worldState.clock.schedule.splice(_abi,1);
+            if(typeof console!=="undefined")console.info("[quest] #267: deadline \""+String(_abs.label).slice(0,60)+"\" retired — its quest was abandoned");
+            if(typeof addMsg==="function")addMsg("system","Deadline retired with the abandoned quest: "+_abs.label);}}
+      }
       return true;
     }
   }
@@ -880,7 +901,28 @@ function buildArcDriftNudge(){
       if(live)continue;
       // the arc's first matching COMPLETED archived quest (failed/declined don't imply the arc is done)
       var mq=null;for(qk=0;qk<qkeys.length;qk++){var aq=memory.quests[qkeys[qk]];if(aq&&aq.status==="completed"&&arcTitleMatch(arc.title,aq.title||qkeys[qk])){mq=aq.title||qkeys[qk];break;}}
-      if(!mq)continue;
+      /* #267 (Fable f16): the ABANDONED limb. Abandoning the quest that tracked a spine arc left
+         the arc with ZERO engine pressure — this check was completed-only blind, and the staging
+         nudge saw the archived record as already-tracked — so the act sat nudge-starved until the
+         ARC_TURN_BUDGET pacing line. An abandoned/declined tracking quest now drives the SAME
+         escalation machinery with honest wording and a third exit: the world may re-offer a fresh
+         approach ([QUEST:|offered] — the player stays the gate, per the #229 design). */
+      var mqAband=null,mqAbandRec=null;
+      if(!mq){for(qk=0;qk<qkeys.length;qk++){var aq2=memory.quests[qkeys[qk]];if(aq2&&(aq2.status==="abandoned"||aq2.status==="declined")&&arcTitleMatch(arc.title,aq2.title||qkeys[qk])){mqAband=aq2.title||qkeys[qk];mqAbandRec=aq2;break;}}}
+      if(!mq&&!mqAband)continue;
+      if(mqAband){
+        var keyA=arc.title+"|"+mqAband,recA=worldState.arcDriftNudged&&worldState.arcDriftNudged[keyA];
+        if(typeof recA==="number")recA={t:recA,n:1};
+        if(recA&&(worldState.turn-recA.t)<ARC_DRIFT_RECHECK)continue;
+        if(!worldState.arcDriftNudged)worldState.arcDriftNudged={};
+        var nthA=(recA?recA.n:0)+1;
+        worldState.arcDriftNudged[keyA]={t:worldState.turn,n:nthA};
+        var _awA=(typeof questArchiveWording==="function")?questArchiveWording(mqAbandRec):{phrase:"was "+mqAbandRec.status};
+        if(nthA>=3){
+          return "[ENGINE NOTE — ARC DRIFT CHECK, FINAL (check #"+nthA+", not a player action): the arc '"+arc.title+"' is still active, but its tracking quest '"+mqAband+"' "+_awA.phrase+", and two previous checks went unanswered. You MUST answer IN THIS RESPONSE with exactly one of: [ARC_COMPLETE:"+arc.title+"] (this act's story should move on), or [ARC_CONTINUE:"+arc.title+"|one line naming the concrete work that remains]. A fresh approach may also be offered later as [QUEST:new title|offered] — the player rules on it.]";
+        }
+        return "[ENGINE NOTE — ARC DRIFT CHECK (not a player action): the arc '"+arc.title+"' is still active, but its tracking quest '"+mqAband+"' "+_awA.phrase+". The spine still needs an answer: emit [ARC_COMPLETE:"+arc.title+"] if this act's story should move on without it; or offer a FRESH approach to the arc's goal as [QUEST:new title|offered] (the player rules on it — never re-register the dropped quest itself); or answer [ARC_CONTINUE:"+arc.title+"|why] if the arc legitimately continues another way. (Repeats about every "+ARC_DRIFT_RECHECK+" turns; after two unanswered checks it becomes a required choice.)]";
+      }
       var key=arc.title+"|"+mq,rec=worldState.arcDriftNudged&&worldState.arcDriftNudged[key];
       if(typeof rec==="number")rec={t:rec,n:1};/* pre-#127 stamp was a bare lastTurn number = one check already sent */
       if(rec&&(worldState.turn-rec.t)<ARC_DRIFT_RECHECK)continue;/* still inside the recheck window */
