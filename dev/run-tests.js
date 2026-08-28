@@ -337,20 +337,37 @@ try {
   if (!_arAC) _failAC("archiveRebuild is gone from state.js");
   if (_arAC.indexOf("else out[k]=src[k];") < 0)
     _failAC("archiveRebuild no longer carries UNKNOWN archive categories through — that carry, not the key list, is what closes this defect class");
-  // ② no bare knowledge.shift() — every shrink must feed memArchive().npcKnowledge.
+  // ② no bare knowledge.shift() — every shrink must feed memArchive().npcKnowledge. #269 widened
+  //   the scan to tag_table.js: the NPC_SUPERSEDE handler's cap shift was the one knowledge write
+  //   still shedding to the void (it predated #144A and the scan never looked there).
   var _memAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "memory.js"), "utf8");
-  var _shAC = /knowledge\.shift\(\)/g, _mAC, _bareAC = 0;
-  while ((_mAC = _shAC.exec(_memAC))) {
-    if (_memAC.slice(Math.max(0, _mAC.index - 80), _mAC.index).indexOf("npcKnowledge.push") < 0) _bareAC++;
+  var _ttAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "tag_table.js"), "utf8");
+  var _srcsAC = [["memory.js", _memAC], ["tag_table.js", _ttAC]], _siAC;
+  for (_siAC = 0; _siAC < _srcsAC.length; _siAC++) {
+    var _shAC = /knowledge\.shift\(\)/g, _mAC, _bareAC = 0, _bodyAC = _srcsAC[_siAC][1];
+    while ((_mAC = _shAC.exec(_bodyAC))) {
+      if (_bodyAC.slice(Math.max(0, _mAC.index - 80), _mAC.index).indexOf("npcKnowledge.push") < 0) _bareAC++;
+    }
+    if (_bareAC) _failAC(_bareAC + " bare knowledge.shift() in " + _srcsAC[_siAC][0] + " — an eviction path shed to the void again");
   }
-  if (_bareAC) _failAC(_bareAC + " bare knowledge.shift() in memory.js — an eviction path shed to the void again");
-  if (_memAC.indexOf("memArchive().npcKnowledge.push({npc:sfName,fact:sfNpc.knowledge.shift(),turn:worldState.turn})") < 0)
-    _failAC("supersession replacement no longer archives its shifted NPC fact");
-  if (_memAC.indexOf("memArchive().npcKnowledge.push({npc:nuName,fact:_kg.shift(),turn:worldState.turn})") < 0)
-    _failAC("summary knowledge filing no longer archives its shifted NPC fact");
+  // #269①: ALL knowledge filing routes through fileNpcKnowledge — the three exact-indexOf sites
+  //   (summary extract, summary supersede, the NPC_SUPERSEDE tag) each grew their own dedupe and
+  //   drifted; the helper owns exact-dup, the near-dup fold (loser ARCHIVED with foldedInto),
+  //   and the #144A cap eviction. Supersession sites must pass preferNew=true — richer-wins
+  //   there would let a verbose stale claim beat the reveal that retires it.
+  if (!/function fileNpcKnowledge\(/.test(_memAC))
+    _failAC("fileNpcKnowledge is gone from memory.js — the one knowledge-filing path (#269)");
+  var _fnkAC = (_memAC.match(/function fileNpcKnowledge\([\s\S]*?\n\}/) || [""])[0];
+  if (_fnkAC.indexOf("foldedInto:") < 0)
+    _failAC("fileNpcKnowledge's fold no longer archives the losing fact with its winner named (#269) — a wrong fold on distinct facts becomes unrecoverable");
+  if (_memAC.indexOf("fileNpcKnowledge(sfName,newFact,worldState.turn,true)") < 0)
+    _failAC("summary supersession no longer files through fileNpcKnowledge in preferNew mode (#269/#144A)");
+  if (_memAC.indexOf("fileNpcKnowledge(nuName,_kgFact,worldState.turn,false)") < 0)
+    _failAC("summary knowledge filing no longer routes through fileNpcKnowledge (#269/#144A)");
+  if (_ttAC.indexOf("fileNpcKnowledge(spName,spNew,R.turn,true)") < 0)
+    _failAC("the NPC_SUPERSEDE handler no longer files through fileNpcKnowledge in preferNew mode (#269) — its old cap shift went to the VOID");
   if (_memAC.indexOf("memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn})") < 0)
     _failAC("fileNpcEvent no longer archives evicted events");
-  var _ttAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "tag_table.js"), "utf8");
   if (_ttAC.indexOf("memArchive().npcKnowledge.push({npc:mgCanon,fact:mgOv[mgOvi],turn:worldState.turn})") < 0)
     _failAC("the NPC_MERGE truncation no longer archives its overflow");
   // #144B: the extractor schema must keep teaching the durable/scene kind — losing it reverts

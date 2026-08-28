@@ -4894,10 +4894,12 @@ function runEngineTests(R){
   });
   t("fileLore eviction compacts into memory.archive.lore, not the void (P12)",function(){
     makeWorld();
-    for(var i=0;i<31;i++)fileLore("lore fact "+i);
+    /* #269⑤: fixture facts must be genuinely DISTINCT — "lore fact N" shares the [lore,fact]
+       fingerprint and would now near-dup fold instead of exercising the cap path */
+    for(var i=0;i<31;i++)fileLore("distinct topic"+i+" detail"+i);
     if(memory.lore.length!==30)return "live cap broken: "+memory.lore.length;
     if(memory.archive.lore.length!==1)return "evicted lore not archived: "+memory.archive.lore.length;
-    return eq(memory.archive.lore[0],"lore fact 0","oldest should archive first:");
+    return eq(memory.archive.lore[0],"distinct topic0 detail0","oldest should archive first:");
   });
   t("fileDecision eviction compacts into memory.archive.decisions (P12)",function(){
     makeWorld();
@@ -16949,6 +16951,131 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var line=(R&&R.muts||[]).filter(function(m){return m.indexOf("resolved")>=0||m.indexOf("Resolved")>=0;})[0];
     if(!line)return "no resolve muts line";
     return /2/.test(line)&&line.indexOf("ball")>=0?true:"the line hides the second casualty: "+line;
+  });
+
+  // ── #269 — memory-hygiene family (Fable f37+f38+f39+f42+f43, joint review 2026-08-27).
+  // ① NPC knowledge deduped byte-exact only, so paraphrase twins accumulated and each cap-12
+  // admission evicted an older UNIQUE fact into a never-injected archive (t2097: one route-mapping
+  // fact served four ways across two NPCs; Morwen 31 archived facts of eviction churn). ② The NPC
+  // GRAPH folded stale legacy link edges beside authoritative W7 bonds as rival claims every turn
+  // (the #61 re-injected-contradiction class — and the ENGINE seeds the "companions" edge itself
+  // at startGame/companion-import/PC-swap). ③ MEMORY DIRECTORY printed raw pipe-form storage keys,
+  // teaching the GM the exact key syntax the identity layer exists to keep out of play. ④ the
+  // fileFutureEvent near-dup fold silently swallowed distinct threads sharing an NPC+place token.
+  // ⑤ lore was exact-match-only with a zero-read-path archive. Folds are now LOUD and ARCHIVED
+  // with their winner named. The #235 strict comparator was REJECTED for ④: the pinned 7-Shalelu
+  // fixtures are exactly the class it stops catching (shared=2 + scaffold extras on both sides) —
+  // visibility over tightening, per the f42 verifier.
+  section("#269 — memory hygiene: knowledge/lore/futureEvent folds, graph precedence, TOC keys");
+  t("#269①: a paraphrase-twin knowledge fact FOLDS — richer text wins, loser archives with its winner named, loudly",function(){
+    makeWorld();worldState.turn=60;
+    memory.npcs["Daeris"]={attitude:"",knowledge:["The high mountain route beyond the Storval Stairs has been mapped."],events:[],aliases:[]};
+    var _i=console.info,_logs=[];console.info=function(m){_logs.push(String(m));};
+    try{applySummaryExtract({npcUpdates:[{name:"Daeris",knowledgeGained:"Completed the cartographic work mapping the high mountain route beyond the Storval Stairs."}]});}
+    finally{console.info=_i;}
+    var kg=memory.npcs["Daeris"].knowledge;
+    if(kg.length!==1)return "paraphrase twin filed beside the original: "+JSON.stringify(kg);
+    if(kg[0].indexOf("cartographic")<0)return "richer text did not win the fold: "+kg[0];
+    var a=(memory.archive.npcKnowledge||[]).filter(function(r){return r.npc==="Daeris";});
+    if(a.length!==1||String(a[0].fact).indexOf("has been mapped")<0)return "folded loser not archived: "+JSON.stringify(a);
+    if(!a[0].foldedInto||String(a[0].foldedInto).indexOf("cartographic")<0)return "archive row does not name its winner: "+JSON.stringify(a[0]);
+    return _logs.some(function(m){return m.indexOf("fold")>=0;})?true:"the fold was silent";
+  });
+  t("#269①: same NPC, different business survives the knowledge fold (the Hemlock pin)",function(){
+    makeWorld();worldState.turn=60;
+    memory.npcs["Hemlock"]={attitude:"",knowledge:["Confronted the party over the broadsheet accusations."],events:[],aliases:[]};
+    applySummaryExtract({npcUpdates:[{name:"Hemlock",knowledgeGained:"Calculates in secret using the seven-sin taxonomy."}]});
+    return memory.npcs["Hemlock"].knowledge.length===2?true:"distinct facts folded: "+JSON.stringify(memory.npcs["Hemlock"].knowledge);
+  });
+  t("#269①: supersession's NEW fact beats a near-dup stale survivor — new-wins, never richer-wins",function(){
+    makeWorld();worldState.turn=60;
+    memory.npcs["Marla"]={attitude:"",knowledge:["rumored to be loyal","Marla remains steadfastly loyal to the merchant guild council despite everything."],events:[],aliases:[]};
+    var _w=console.warn,_i=console.info;console.warn=function(){};console.info=function(){};
+    try{applySummaryExtract({supersededFacts:[{name:"Marla",old:"rumored to be loyal","new":"Marla betrayed the merchant guild council."}]});}
+    finally{console.warn=_w;console.info=_i;}
+    var kg=memory.npcs["Marla"].knowledge;
+    if(kg.length!==1)return "the stale near-dup survived beside the superseding truth: "+JSON.stringify(kg);
+    if(kg[0].indexOf("betrayed")<0)return "richer-wins kept the STALE fact over the superseding truth: "+kg[0];
+    var a=(memory.archive.npcKnowledge||[]).filter(function(r){return r.npc==="Marla"&&String(r.fact).indexOf("steadfastly")>=0;});
+    return a.length===1?true:"the displaced stale fact was not archived: "+JSON.stringify(memory.archive.npcKnowledge);
+  });
+  t("#269①: NPC_SUPERSEDE at cap-12 archives its evicted fact — the void shift closes",function(){
+    makeWorld();worldState.turn=60;
+    memory.npcs["Bram"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    for(var i=0;i<12;i++)memory.npcs["Bram"].knowledge.push("distinct topic"+i+" detail"+i);
+    var _w=console.warn;console.warn=function(){};
+    try{applyMuts("[NPC_SUPERSEDE:Bram|no such hedge on file|An entirely fresh revelation regarding the vault beneath the chapel]");}
+    finally{console.warn=_w;}
+    if(memory.npcs["Bram"].knowledge.length!==12)return "cap broken: "+memory.npcs["Bram"].knowledge.length;
+    if(memory.npcs["Bram"].knowledge.indexOf("An entirely fresh revelation regarding the vault beneath the chapel")<0)return "new fact not recorded";
+    var a=(memory.archive.npcKnowledge||[]).filter(function(r){return r.npc==="Bram"&&r.fact==="distinct topic0 detail0";});
+    return a.length===1?true:"the tag-path eviction still sheds to the void: "+JSON.stringify(memory.archive.npcKnowledge);
+  });
+  t("#269②: a live W7 bond suppresses the legacy player link edge — one claim per pair in the graph",function(){
+    makeWorld();worldState.turn=60;
+    memory.npcs["Morwen"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    npcLinkUpsert("Tess","Morwen","companions");
+    worldState.character.relationships=[{entity:"Morwen",bond:"Wife",bondTurn:50,dynamic:""}];
+    var g=buildNpcGraph();
+    if(g.indexOf("Morwen(Wife)")<0)return "bond row missing from the graph: "+g;
+    if(g.indexOf("Morwen(companions)")>=0)return "stale legacy edge still serves beside the bond: "+g;
+    return g.indexOf("Tess(companions)")<0?true:"the reverse edge still serves on the NPC row: "+g;
+  });
+  t("#269②: a bond-less entity keeps its legacy edge; NPC↔NPC edges are untouched (pin)",function(){
+    makeWorld();worldState.turn=60;
+    npcLinkUpsert("Tess","Frizwick","companions");
+    npcLinkUpsert("Morwen","Daeris","sisters-in-arms");
+    var g=buildNpcGraph();
+    if(g.indexOf("Frizwick(companions)")<0)return "bond-less player edge was over-suppressed: "+g;
+    return g.indexOf("Daeris(sisters-in-arms)")>=0?true:"NPC-to-NPC edge lost: "+g;
+  });
+  t("#269③: MEMORY DIRECTORY serves no raw storage key — pipe paths render ' — ', entries join '; ', resolved twins dedupe",function(){
+    makeWorld();worldState.turn=60;
+    memory.locations["Sandpoint"]={};memory.locations["Sandpoint|Rusty Dragon"]={};
+    memory.locations["Residential Quarter, Sandpoint"]={};
+    memory.locations["Fogscar Twin Tunnel"]={};
+    memory.map={nodes:{
+      "Sandpoint":{firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[]},
+      "Sandpoint|Rusty Dragon":{firstVisit:2,visits:2,description:null,parent:"Sandpoint",npcs:[],items:[]},
+      "Residential Quarter, Sandpoint":{firstVisit:3,visits:1,description:null,parent:null,npcs:[],items:[]}
+    },edges:[],lastArrivalFrom:null,identity:{entries:{"Fogscar Twin Tunnel":{mergedInto:"Sandpoint|Rusty Dragon"}}}};
+    var toc=memoryTOC();
+    var vis=toc.split("\n").filter(function(l){return l.indexOf("VISITED: ")===0;})[0]||"";
+    if(!vis)return "VISITED line missing: "+toc;
+    if(vis.indexOf("|")>=0)return "raw pipe key served to the GM: "+vis;
+    if(vis.indexOf("Fogscar Twin Tunnel")>=0)return "tombstoned key still served under its dead name: "+vis;
+    if(vis.indexOf("Sandpoint — Rusty Dragon")<0)return "pipe path not rendered as a path: "+vis;
+    if(vis.indexOf("; ")<0)return "comma-bearing names still ride a comma-joined list: "+vis;
+    var hits=vis.split("Rusty Dragon").length-1;
+    return hits===1?true:"resolved twin rendered twice: "+vis;
+  });
+  t("#269④: the pending-event fold is LOUD and archives the swallowed text with its absorber named",function(){
+    makeWorld();worldState.turn=30;
+    var _i=console.info,_logs=[];console.info=function(m){_logs.push(String(m));};
+    try{
+      fileFutureEvent("soon","","Rescue Ameiko from the Glassworks",10);
+      fileFutureEvent("soon","","Investigate the Glassworks tunnels with Ameiko",20);
+    }finally{console.info=_i;}
+    if(memory.futureEvents.length!==1)return "fold behavior changed — the comparator is PINNED (visibility, not tightening): "+memory.futureEvents.length;
+    if(memory.futureEvents[0].what!=="Rescue Ameiko from the Glassworks")return "the original text no longer wins the fold";
+    var a=(memory.archive.futureEvents||[]).filter(function(r){return r.foldedInto;});
+    if(a.length!==1||String(a[0].what).indexOf("tunnels")<0)return "swallowed thread not archived: "+JSON.stringify(memory.archive.futureEvents);
+    if(String(a[0].foldedInto).indexOf("Rescue Ameiko")<0)return "archive row does not name its absorber: "+JSON.stringify(a[0]);
+    return _logs.some(function(m){return m.indexOf("fold")>=0&&m.indexOf("tunnels")>=0;})?true:"the fold stayed silent";
+  });
+  t("#269⑤: lore paraphrase twins fold — richer wins loudly, loser archives with its winner; distinct lore survives",function(){
+    makeWorld();worldState.turn=30;
+    var _i=console.info,_logs=[];console.info=function(m){_logs.push(String(m));};
+    try{
+      fileLore("The northern route through the Kodar Mountains has been mapped.");
+      fileLore("Daeris and Morwen successfully completed mapping the northern route through the Kodar Mountains.");
+      fileLore("The barrow beneath the chapel predates the town.");
+    }finally{console.info=_i;}
+    if(memory.lore.length!==2)return "twin filed beside the original (or distinct lore folded): "+JSON.stringify(memory.lore);
+    if(memory.lore[0].indexOf("successfully")<0)return "richer lore did not win (or fold lost freshness order): "+JSON.stringify(memory.lore);
+    var a=(memory.archive.lore||[]).filter(function(r){return r&&r.foldedInto;});
+    if(a.length!==1||String(a[0].fact).indexOf("has been mapped")<0)return "folded lore not archived with its winner: "+JSON.stringify(memory.archive.lore);
+    return _logs.some(function(m){return m.indexOf("lore fold")>=0;})?true:"the lore fold was silent";
   });
 
   // ── #268 — decorated victory words stop reproducing the pre-#214 discard (Fable f27, verified).

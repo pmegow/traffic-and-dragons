@@ -25,16 +25,24 @@ rc |= sabotage.prove({
   command: ["node", ["dev/run-tests.js"]],
   cases: [
     {
-      label: "supersession replacement sheds old knowledge to the void",
+      /* #269 re-point: the three filing sites now route through fileNpcKnowledge — the void
+         shed is now the HELPER's cap eviction losing its archive */
+      label: "the shared knowledge helper's cap eviction sheds to the void",
       mustFail: "bare knowledge.shift() in memory.js",
-      find: "memArchive().npcKnowledge.push({npc:sfName,fact:sfNpc.knowledge.shift(),turn:worldState.turn})",
-      replace: "sfNpc.knowledge.shift()"
+      find: "while(n.knowledge.length>12)memArchive().npcKnowledge.push({npc:name,fact:n.knowledge.shift(),turn:turn});",
+      replace: "while(n.knowledge.length>12)n.knowledge.shift();"
     },
     {
-      label: "summary knowledge filing sheds old knowledge to the void",
-      mustFail: "summary knowledge filing no longer archives its shifted NPC fact",
-      find: "memArchive().npcKnowledge.push({npc:nuName,fact:_kg.shift(),turn:worldState.turn})",
-      replace: "_kg.shift()"
+      label: "supersession stops filing through the shared knowledge helper",
+      mustFail: "summary supersession no longer files through fileNpcKnowledge",
+      find: "fileNpcKnowledge(sfName,newFact,worldState.turn,true);",
+      replace: "if(sfNpc.knowledge.indexOf(newFact)<0)sfNpc.knowledge.push(newFact);"
+    },
+    {
+      label: "summary knowledge filing stops routing through the shared helper",
+      mustFail: "summary knowledge filing no longer routes through fileNpcKnowledge",
+      find: "else if(_kgFact){fileNpcKnowledge(nuName,_kgFact,worldState.turn,false);",
+      replace: "else if(_kgFact){if(memory.npcs[nuName].knowledge.indexOf(_kgFact)<0)memory.npcs[nuName].knowledge.push(_kgFact);"
     },
     {
       label: "NPC event overflow stops entering the archive",

@@ -192,6 +192,38 @@ function getNameSuggestions(count,peek){
   return result;
 }
 function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8){var _evD=memory.npcs[name].events.splice(0,memory.npcs[name].events.length-8),_evi;for(_evi=0;_evi<_evD.length;_evi++)memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn});}/* multi-shrink like the old slice(-8) so an NPC_MERGE overfill converges (audit E50); evicted events archive, never the void (#144A) */}
+// #269① (f37): THE one knowledge-filing path — the three exact-indexOf sites (summary extract,
+// summary supersede, the NPC_SUPERSEDE tag) each deduped byte-exact only, so the extractor's
+// fresh-worded re-statements accumulated as paraphrase twins and every cap-12 admission evicted
+// an older UNIQUE fact into the never-injected archive (t2097: eleven NPCs at cap, Morwen 31
+// archived facts of churn). A near-dup now FOLDS via the shared feNearDup fingerprint: the
+// richer text wins and moves to the tail (freshest — memoryNpcDetail sheds from the head), the
+// loser is ARCHIVED with its winner named (a wrong fold on genuinely-distinct facts is therefore
+// recoverable, unlike the eviction it replaces), and the fold is loud. preferNew=true is the
+// SUPERSESSION mode: the new fact is an explicit truth assertion and always wins — richer-wins
+// there would let a verbose stale claim beat the very reveal that retires it.
+function fileNpcKnowledge(name,fact,turn,preferNew){
+  name=resolveNpcName(name);
+  var f=String(fact==null?"":fact);if(!f)return false;
+  if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};
+  var n=memory.npcs[name];if(!n.knowledge)n.knowledge=[];
+  if(n.knowledge.indexOf(f)>=0)return true;/* exact re-statement: already on file */
+  var i;
+  for(i=0;i<n.knowledge.length;i++){
+    var ex=String(n.knowledge[i]);
+    if(feNearDup(f,ex)){
+      var win=preferNew?f:(f.length>ex.length?f:ex),lose=(win===f)?ex:f;
+      n.knowledge.splice(i,1);
+      memArchive().npcKnowledge.push({npc:name,fact:lose,turn:turn,foldedInto:win.slice(0,200)});
+      n.knowledge.push(win);
+      if(typeof console!=="undefined")console.info("[memory] knowledge fold on "+name+": \""+lose.slice(0,80)+"\" ⇒ kept "+(preferNew?"superseding":"richer")+" \""+win.slice(0,80)+"\" (loser archived)");
+      return true;
+    }
+  }
+  n.knowledge.push(f);
+  while(n.knowledge.length>12)memArchive().npcKnowledge.push({npc:name,fact:n.knowledge.shift(),turn:turn});/* #144A: evict to archive, never the void */
+  return true;
+}
 function fileLocation(loc,note,turn){
   if(typeof locResolve==="function")loc=locResolve(loc);/* #156B: a merged/aliased name lands on the canonical node — a tombstoned key must never re-mint (guarded: identity.js loads later; some dev tools load memory.js alone) */
   // Legacy locations index
@@ -498,7 +530,30 @@ function clampNpcMood(s){
 // bound prompt size; strings are cheap in the sync blob). Future retrieval features (Core Memory
 // #40, RAG) can mine the archive.
 function memArchive(){memory.archive=archiveHeal(memory.archive);return memory.archive;}/* JP0-5: was its own hand-copied category list (four behind the registry, incl. coreMemories and npcDeathCorrections); MEMORY_ARCHIVE_KEYS (state.js) is the one source now */
-function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());}
+// #269⑤ (f43): the extractor re-discovers known lore in fresh words every window (the exact
+// class field-proven for futureEvents — the t198 seven-Shalelu save) because memoryTOC restates
+// the freshest lore to the GM every turn and the extraction call is noHistory. Exact-match let
+// every rewording through, and at cap-30 each twin evicted a genuinely old, DISTINCT entry into
+// an archive with zero retrieval paths. Near-dup now folds: richer text wins and moves to the
+// tail (freshest — the diet path keeps the most-recent-8), the loser archives WITH its winner
+// named ({fact,foldedInto,turn} — cap evictions stay plain strings), loudly.
+function fileLore(fact){
+  fact=String(fact==null?"":fact);if(!fact)return;
+  if(memory.lore.indexOf(fact)>=0)return;
+  var i;
+  for(i=0;i<memory.lore.length;i++){
+    if(feNearDup(fact,memory.lore[i])){
+      var _exL=String(memory.lore[i]);
+      var _win=fact.length>_exL.length?fact:_exL,_lose=(_win===fact)?_exL:fact;
+      memory.lore.splice(i,1);memory.lore.push(_win);
+      memArchive().lore.push({fact:_lose,foldedInto:_win.slice(0,200),turn:(typeof worldState!=="undefined"&&worldState&&worldState.turn)||0});
+      if(typeof console!=="undefined")console.info("[memory] lore fold: \""+_lose.slice(0,80)+"\" ⇒ kept richer \""+_win.slice(0,80)+"\" (loser archived)");
+      return;
+    }
+  }
+  memory.lore.push(fact);
+  if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());
+}
 function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memArchive().decisions.push(memory.keyDecisions.shift());}
 // Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),
 // and memoryTOC injected ALL unresolved ones into every prompt (a save reached 469). Now: dedupe by
@@ -584,6 +639,15 @@ function fileFutureEvent(when,who,what,setTurn){
     var ex=memory.futureEvents[i];
     if(ex.resolved)continue;
     if(feNearDup(what,ex.what)){/* #150: same thresholds, now via the shared fingerprint */
+      /* #269④ (f42): the fold is LOUD and the swallowed text is ARCHIVED — a genuinely distinct
+         thread sharing an NPC+place token can land here (traced: "Rescue Ameiko from the
+         Glassworks" absorbs "Investigate the Glassworks tunnels with Ameiko"), and until now it
+         died with zero trace on the extractor path. The #235 strict comparator was REJECTED for
+         this seam: the pinned 7-Shalelu fixtures are exactly the class it stops catching
+         (shared=2 + scaffold extras on both sides) — visibility over tightening (f42 verifier).
+         The existing entry's TEXT keeps winning (pinned) and its age still refreshes. */
+      memArchive().futureEvents.push({when:when,who:who||"",what:what,setTurn:setTurn,foldedInto:String(ex.what).slice(0,200)});
+      if(typeof console!=="undefined")console.info("[memory] pending-event fold: \""+what.slice(0,80)+"\" absorbed by existing \""+String(ex.what).slice(0,80)+"\" (archived — if these were distinct threads, re-state the lost one in fresh words)");
       if(typeof setTurn==="number")ex.setTurn=setTurn;
       return;
     }
@@ -1169,15 +1233,26 @@ function memoryTOC(){
   // the GM the party had already been to end-game sites (familiarity/spoiler drift). Split
   // on the map node's visit count; entries with NO node data are legacy saves — keep them
   // VISITED so old campaigns don't change behavior. Intentional change to BOTH rag paths.
+  // #269③ (f39): keys are STORAGE, never names. The raw key list served literal pipe keys as if
+  // they were location names (t2097: three of them) — and the stable-half NAMING clause ("the
+  // same name IS the same entity") makes a served key an invitation to re-emit it. Resolve each
+  // key through the identity overlay (deduping resolved twins — alias-repair residue included),
+  // render pipe paths with the " — " convention (the buildChangedLocationsBlock precedent, ALL
+  // segments), honor a repair-set display name for the leaf, and join with "; " so a
+  // comma-bearing name ("Residential Quarter, Sandpoint") survives as one entry.
   var lk=Object.keys(memory.locations);
   if(lk.length){
-    var _vis=[],_known=[],_vk;
+    var _vis=[],_known=[],_locSeen={},_vk;
     for(_vk=0;_vk<lk.length;_vk++){
-      var _vn=memory.map&&memory.map.nodes?memory.map.nodes[lk[_vk]]:null;
-      if(_vn&&!(_vn.visits>0))_known.push(lk[_vk]);else _vis.push(lk[_vk]);
+      var _lkR=(typeof locResolve==="function")?locResolve(lk[_vk]):lk[_vk];
+      if(_locSeen[_lkR])continue;_locSeen[_lkR]=1;
+      var _vn=memory.map&&memory.map.nodes?memory.map.nodes[_lkR]:null;
+      var _lkP=_lkR.lastIndexOf("|"),_lkLeaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(_lkR):(_lkP<0?_lkR:_lkR.slice(_lkP+1));
+      var _lkD=_lkP<0?_lkLeaf:_lkR.slice(0,_lkP).split("|").join(" — ")+" — "+_lkLeaf;
+      if(_vn&&!(_vn.visits>0))_known.push(_lkD);else _vis.push(_lkD);
     }
-    if(_vis.length)lines.push("VISITED: "+_vis.join(", "));
-    if(_known.length)lines.push("KNOWN OF (not yet visited): "+_known.join(", "));
+    if(_vis.length)lines.push("VISITED: "+_vis.join("; "));
+    if(_known.length)lines.push("KNOWN OF (not yet visited): "+_known.join("; "));
   }
   var fe=memory.futureEvents.filter(function(e){return !e.resolved;}).slice(-8);
   if(fe.length){var fs=[];for(i=0;i<fe.length;i++)fs.push(fe[i].what+" ("+fe[i].when+")");lines.push("PENDING EVENTS: "+fs.join("; "));}
@@ -1218,13 +1293,21 @@ function buildNpcGraph(){
   // Build adjacency: node → [{other, rel, turn}]
   var adj={};
   function addAdj(from,to,rel,turn){if(!adj[from])adj[from]=[];adj[from].push({other:to,rel:rel,turn:turn});}
+  // #269② (f38): the W7 bond is THE authoritative player↔NPC claim; a legacy [NPC_LINK:] edge
+  // for a pair that has a live bond is SUPPRESSED from the projection (both directions — the
+  // edge store keeps its row untouched). Serving both re-created the #61 re-injected-
+  // contradiction class ("Morwen(companions)" beside "Morwen(Wife)" every turn, t2097) — and the
+  // rival claim is usually ENGINE-seeded: startGame, companion import, and PC swap each plant a
+  // "companions" edge with no path to retire it. Display-side precedence, no data change.
+  var rels=relationshipRows(worldState.character,null),bonded={},ri;
+  for(ri=0;ri<rels.length;ri++){if(rels[ri].bond)bonded[rels[ri].entity]=1;}
   for(var i=0;i<edges.length;i++){
+    if((edges[i].a===player&&bonded[edges[i].b])||(edges[i].b===player&&bonded[edges[i].a]))continue;
     addAdj(edges[i].a,edges[i].b,edges[i].rel,edges[i].turn);
     addAdj(edges[i].b,edges[i].a,edges[i].rel,edges[i].turn);
   }
   // Player→NPC from character.relationships
-  var rels=relationshipRows(worldState.character,null);
-  for(var ri=0;ri<rels.length;ri++){
+  for(ri=0;ri<rels.length;ri++){
     if(rels[ri].bond)addAdj(player,rels[ri].entity,rels[ri].bond,rels[ri].bondTurn||0);
   }
   var nodes=Object.keys(adj);
@@ -1582,7 +1665,7 @@ function applySummaryExtract(extracted,identityTable){
     var retired=sfNpc.knowledge.splice(sfIdx,1)[0];
     memArchive().superseded.push({npc:sfName,fact:retired,turn:worldState.turn,replacedBy:String(sf["new"])});
     var newFact=String(sf["new"]);
-    if(sfNpc.knowledge.indexOf(newFact)<0){sfNpc.knowledge.push(newFact);while(sfNpc.knowledge.length>12)memArchive().npcKnowledge.push({npc:sfName,fact:sfNpc.knowledge.shift(),turn:worldState.turn});/* #144A */}
+    fileNpcKnowledge(sfName,newFact,worldState.turn,true);/* #269①: preferNew — the superseding fact beats any near-dup stale survivor; #144A archiving lives in the helper */
     stats.superseded++;if(stats.supersededNames.indexOf(sfName)<0)stats.supersededNames.push(sfName);
     if(typeof console!=="undefined")console.warn("[memory] superseded fact on "+sfName+": \""+String(retired).slice(0,80)+"\" → \""+newFact.slice(0,80)+"\"");
   }}
@@ -1619,7 +1702,7 @@ function applySummaryExtract(extracted,identityTable){
   // iterate per-character, filing junk lore/decisions or mass-deleting pending events.
   // Route extractor names through resolveNpcName — the extractor freely returns variants
   // ("Morwen (Ammut's wife)"), which forked NPCs exactly the way the v1.143 tag fix prevents (audit #6).
-  if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(memoryNpcIsPlayer(nuName)){if(typeof console!=="undefined")console.warn("[memory] npcUpdates rejected the player identity '"+nuName+"' — player canon stays on the character sheet");continue;}if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=clampNpcMood(nu.attitude);if(nu.knowledgeGained){var _kgV=nu.knowledgeGained,_kgFact=null,_kgScene=false;if(typeof _kgV==="object"&&_kgV&&_kgV.fact){_kgFact=String(_kgV.fact);_kgScene=String(_kgV.kind||"").toLowerCase()==="scene";}else if(typeof _kgV==="string")_kgFact=_kgV;/* #144B: the extractor now TYPES facts — durable (standing truth) vs scene (true only in the moment); unknown kind defaults durable, the safe side now that evictions archive (#144A). The legacy string shape stays byte-compatible. */if(_kgFact&&_kgScene){fileNpcEvent(nuName,_kgFact,worldState.turn);/* scene facts are dated history, never standing Knows — the t1549 stale-posture class (Sol R1) */}else if(_kgFact){var _kg=memory.npcs[nuName].knowledge;if(_kg.indexOf(_kgFact)<0){_kg.push(_kgFact);while(_kg.length>12)memArchive().npcKnowledge.push({npc:nuName,fact:_kg.shift(),turn:worldState.turn});/* #144A: evict to archive, never the void */}}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
+  if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(memoryNpcIsPlayer(nuName)){if(typeof console!=="undefined")console.warn("[memory] npcUpdates rejected the player identity '"+nuName+"' — player canon stays on the character sheet");continue;}if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=clampNpcMood(nu.attitude);if(nu.knowledgeGained){var _kgV=nu.knowledgeGained,_kgFact=null,_kgScene=false;if(typeof _kgV==="object"&&_kgV&&_kgV.fact){_kgFact=String(_kgV.fact);_kgScene=String(_kgV.kind||"").toLowerCase()==="scene";}else if(typeof _kgV==="string")_kgFact=_kgV;/* #144B: the extractor now TYPES facts — durable (standing truth) vs scene (true only in the moment); unknown kind defaults durable, the safe side now that evictions archive (#144A). The legacy string shape stays byte-compatible. */if(_kgFact&&_kgScene){fileNpcEvent(nuName,_kgFact,worldState.turn);/* scene facts are dated history, never standing Knows — the t1549 stale-posture class (Sol R1) */}else if(_kgFact){fileNpcKnowledge(nuName,_kgFact,worldState.turn,false);/* #269①: near-dup folds (richer wins, loser archived) instead of twinning; #144A archiving lives in the helper */}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
   if(Array.isArray(extracted.loreDiscovered)){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
   if(Array.isArray(extracted.decisionsMade)){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
   // #128: the deterministic variant scan runs every summarize — after npcUpdates above, so keys
