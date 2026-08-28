@@ -109,7 +109,7 @@ function _ensureFolderPerm(){
     if(p!=="granted")return false;
     _campFolderHandle=h;_campFolderPending=null;updateCampFolderUI();
     return true;
-  }).catch(function(){return false;});
+  }).catch(function(e){return _folderPickerFailure(e,"permission");});
 }
 
 // ── #30: image saving that reaches the right place per platform ──────────────────────────────
@@ -218,8 +218,14 @@ function _attachRestoredRender(file,ptr){
   img.setAttribute("data-f",ptr.f);
   img.alt="Saved render, turn "+ptr.t;
   img.style.cssText="display:block;max-width:100%;border-radius:8px;margin-top:10px;";
-  img.src=URL.createObjectURL(file);
-  img.onload=function(){setTimeout(function(){URL.revokeObjectURL(img.src);},0);};
+  var objectUrl=URL.createObjectURL(file),objectUrlReleased=false;
+  function releaseObjectUrl(){if(objectUrlReleased)return;objectUrlReleased=true;URL.revokeObjectURL(objectUrl);}
+  img.src=objectUrl;
+  img.onload=function(){setTimeout(releaseObjectUrl,0);};
+  img.onerror=function(){
+    console.warn("[files] restored render could not be displayed — object URL released: "+ptr.f);
+    releaseObjectUrl();
+  };
   frame.appendChild(img);
   return true;
 }
@@ -235,23 +241,35 @@ function _openCampaignSubfolder(rootHandle,campName){
     return sub;
   });
 }
+function _folderPickerFailure(e,action){
+  if(e&&e.name==="AbortError"){
+    console.info("[files] campaign folder picker cancelled during "+action);
+    return false;
+  }
+  var reason=(e&&e.message)||String(e||"unknown filesystem error");
+  console.warn("[files] campaign folder "+action+" failed:",reason);
+  showToast("Campaign folder "+action+" failed: "+reason);
+  return false;
+}
 function setCampaignFolder(){
-  if(!window.showDirectoryPicker){showToast("Folder picker not supported in this browser.");return;}
+  if(!window.showDirectoryPicker){showToast("Folder picker not supported in this browser.");return Promise.resolve(false);}
   var campName=(worldState&&worldState.campName)||"Campaign";
-  window.showDirectoryPicker({mode:"readwrite"}).then(function(root){
+  return window.showDirectoryPicker({mode:"readwrite"}).then(function(root){
     return _openCampaignSubfolder(root,campName);
   }).then(function(sub){
     showToast("📁 Folder ready: "+sub.name+"/");
-  }).catch(function(){});
+    return true;
+  }).catch(function(e){return _folderPickerFailure(e,"selection");});
 }
 function initCampaignFolderForGame(){
-  if(!window.showDirectoryPicker)return;
+  if(!window.showDirectoryPicker)return Promise.resolve(false);
   var campName=(worldState&&worldState.campName)||"Campaign";
-  window.showDirectoryPicker({mode:"readwrite"}).then(function(root){
+  return window.showDirectoryPicker({mode:"readwrite"}).then(function(root){
     return _openCampaignSubfolder(root,campName);
   }).then(function(sub){
     showToast("📁 Saving to "+sub.name+"/");
-  }).catch(function(){});
+    return true;
+  }).catch(function(e){return _folderPickerFailure(e,"initialization");});
 }
 function _collectDirEntries(dirHandle){
   var entries=[];var iter=dirHandle.values();
@@ -297,9 +315,16 @@ function clearCampaignFolder(){
   _campFolderHandle=null;_campRootHandle=null;_campFolderPending=null;
   // #30: forget the PERSISTED handle too — otherwise "cleared" would silently un-clear itself on
   // the next reload, which is exactly the kind of lie the persistence was added to remove.
-  _idbSet(FS_IDB_KEY,null).catch(function(){});
   updateCampFolderUI();
-  showToast("Campaign folder cleared.");
+  return _idbSet(FS_IDB_KEY,null).then(function(){
+    showToast("Campaign folder cleared.");
+    return true;
+  }).catch(function(e){
+    var reason=(e&&e.message)||String(e||"unknown IndexedDB error");
+    console.warn("[files] campaign folder cleared for this tab, but its persisted handle could not be removed:",reason);
+    showToast("Folder cleared for this tab, but reload may restore it: "+reason);
+    return false;
+  });
 }
 function updateCampFolderUI(){
   eachMenuEl("set-folder",function(btn){btn.style.display=_campFolderHandle?"none":"block";});/* #15⑤ */

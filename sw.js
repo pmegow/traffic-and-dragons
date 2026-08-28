@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260828c";
+var CACHE = "tnd-v3-20260828d";
 // Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todos_completed/todo_TTS_piper.md Phase 2).
 // Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
 // frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
@@ -65,6 +65,11 @@ function cleanRedirect(response){
     return new Response(body, {status: response.status, statusText: response.statusText, headers: response.headers});
   });
 }
+function holdRuntimeIo(event,promise,label){
+  event.waitUntil(Promise.resolve(promise).catch(function(e){
+    console.warn("[sw] "+label+" failed:",(e&&e.message)||String(e||"unknown cache error"));
+  }));
+}
 self.addEventListener("install", function(e){
   e.waitUntil(
     caches.open(CACHE).then(function(cache){
@@ -126,7 +131,9 @@ self.addEventListener("fetch", function(e){
         // OK response: cache a clone (restores offline support) and serve it fresh.
         if(response && response.ok && response.type === "basic"){
           var clone = response.clone();
-          caches.open(CACHE).then(function(cache){ cleanRedirect(clone).then(function(c){ cache.put(e.request, c); }); });/* #195③ */
+          holdRuntimeIo(e,caches.open(CACHE).then(function(cache){
+            return cleanRedirect(clone).then(function(c){return cache.put(e.request,c);});
+          }),"network-first cache write for "+e.request.url);/* #195③ */
           return response;
         }
         // Non-OK (502/404/…): prefer a good cached copy over showing the error; else return the error.
@@ -145,22 +152,24 @@ self.addEventListener("fetch", function(e){
         return fetch(e.request).then(function(response){
           if(response && response.status === 200 && response.type === "basic"){
             var clone = response.clone();
-            caches.open(PIPER_CACHE).then(function(cache){
-              cache.put(e.request, clone).then(function(){
+            holdRuntimeIo(e,caches.open(PIPER_CACHE).then(function(cache){
+              return cache.put(e.request,clone).then(function(){
                 // GC superseded revs (piper-audit #15, v1.341): a cache MISS here means a NEW
                 // ?tnd= rev of this file just landed — older entries for the SAME pathname with a
                 // different query are dead weight forever (this cache is purge-exempt by design).
                 // Drop them now. Safe: exactly one rev of each file is live per deploy, and a
                 // still-running old tab already holds its module in memory.
                 var fresh = new URL(e.request.url);
-                cache.keys().then(function(reqs){
+                return cache.keys().then(function(reqs){
+                  var deletes=[];
                   reqs.forEach(function(req){
                     var u = new URL(req.url);
-                    if(u.pathname === fresh.pathname && u.search !== fresh.search) cache.delete(req);
+                    if(u.pathname === fresh.pathname && u.search !== fresh.search) deletes.push(cache.delete(req));
                   });
+                  return Promise.all(deletes);
                 });
               });
-            });
+            }),"Piper cache write/GC for "+e.request.url);
           }
           return response;
         });
@@ -174,7 +183,9 @@ self.addEventListener("fetch", function(e){
       return fetch(e.request).then(function(response){
         if(response && response.status === 200 && response.type === "basic"){
           var clone = response.clone();
-          caches.open(CACHE).then(function(cache){ cleanRedirect(clone).then(function(c){ cache.put(e.request, c); }); });/* #195③ */
+          holdRuntimeIo(e,caches.open(CACHE).then(function(cache){
+            return cleanRedirect(clone).then(function(c){return cache.put(e.request,c);});
+          }),"runtime cache write for "+e.request.url);/* #195③ */
         }
         return response;
       });
