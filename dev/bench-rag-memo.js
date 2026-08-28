@@ -1,22 +1,17 @@
-// _bench_A2.js — before/after bench for the A2/A3 memoizations (AUDIT_FABLE_07_16 #2 + #3).
+// bench-rag-memo.js — current/control bench for the RAG wrapper memos.
 // DEV TOOL, not loaded by index.html and not wired into run-tests.js.
-//   node dev/_bench_A2.js
-// Loads the real engine (run-tests.js's loader), builds a synthetic mature campaign
+//   node dev/bench-rag-memo.js
+// Loads the canonical engine, builds a synthetic mature campaign
 // (120 memory.npcs entries with multi-token names + aliases, 1,500-entry transcript, all GM
 // entries pre-stamped with .e so neither pass pays the one-time lazy backfill), then times:
 //   (a) 5× ragKnownNames  — the ~5 rebuilds a turn used to pay
 //   (b) 2× ragRetrieve    — the main-build + suggestion-build pair
-// BEFORE = the committed pre-memo memory.js (git show HEAD:memory.js evaled over the engine);
-// AFTER  = the working-tree memory.js with the memos. Same fixture, same process.
-var fs=require("fs");
-var path=require("path");
-var cp=require("child_process");
-var root=path.join(__dirname,"..");
-var files=["globals.js","compress.js","data.js","capability_bible.js","helpers.js","state.js","storage-adapter.js","memory.js","tag_table.js","api.js","campaign_generator.js","game.js","tts.js"];
-var geval=eval;
-for(var i=0;i<files.length;i++){
-  try{geval(fs.readFileSync(path.join(root,files[i]),"utf8"));}
-  catch(e){console.error("ENGINE LOAD FAILED in "+files[i]+": "+e.message);process.exit(1);}
+// CONTROL resets each wrapper memo before every call; CURRENT leaves both wrappers live.
+var engine=require("./load-engine.js");
+var loaded=engine.loadEngine();
+if(loaded.join("|")!==engine.FILES.join("|")){
+  console.error("BENCH LOAD FAILED: canonical engine load was partial or reordered");
+  process.exit(1);
 }
 addMsg=function(){return{appendChild:function(){},style:{},remove:function(){}};};
 showToast=function(){};syncUI=function(){};saveAll=function(){};saveCore=function(){};saveMem=function(){};
@@ -53,16 +48,21 @@ function buildFixture(){
 }
 var INPUT="I ask Sheriff Cavren Fenwick about the ledger and the broadsheet";
 function ms(){var h=process.hrtime();return h[0]*1000+h[1]/1e6;}
-function bench(label){
+function bench(label,resetEach){
   buildFixture();
   // (a) 5× ragKnownNames — one turn's worth of rebuilds
   var t0=ms(),i;
-  for(i=0;i<5;i++)ragKnownNames();
+  for(i=0;i<5;i++){
+    if(resetEach)ragKnownNames._memo=null;
+    ragKnownNames();
+  }
   var tNames=ms()-t0;
   // (b) 2× ragRetrieve — main prompt build + suggestion build
+  if(resetEach)ragRetrieve._memo=null;
   t0=ms();
   var r1=ragRetrieve(INPUT);
   var t1st=ms()-t0;
+  if(resetEach)ragRetrieve._memo=null;
   t0=ms();
   var r2=ragRetrieve(INPUT);
   var t2nd=ms()-t0;
@@ -73,16 +73,14 @@ function bench(label){
 // warm up the JIT on the fixture builder + engine paths once, unmeasured
 buildFixture();ragKnownNames();ragRetrieve(INPUT);
 
-console.log("── BEFORE (git HEAD memory.js, pre-memo) ──");
-geval(cp.execSync("git show HEAD:memory.js",{cwd:root,encoding:"utf8"}));
-var b1=bench("before run 1"),b2=bench("before run 2"),b3=bench("before run 3");
+console.log("── CONTROL (wrapper memos reset every call) ──");
+var c1=bench("control run 1",true),c2=bench("control run 2",true),c3=bench("control run 3",true);
 
-console.log("── AFTER (working-tree memory.js, memoized) ──");
-geval(fs.readFileSync(path.join(root,"memory.js"),"utf8"));
-var a1=bench("after  run 1"),a2=bench("after  run 2"),a3=bench("after  run 3");
+console.log("── CURRENT (wrapper memos live) ──");
+var m1=bench("current run 1",false),m2=bench("current run 2",false),m3=bench("current run 3",false);
 
 function med(a,b,c){var s=[a,b,c].sort(function(x,y){return x-y;});return s[1];}
 console.log("── medians ──");
-console.log("5x ragKnownNames: before "+med(b1.names,b2.names,b3.names).toFixed(2)+" ms → after "+med(a1.names,a2.names,a3.names).toFixed(2)+" ms");
-console.log("ragRetrieve 1st (cold): before "+med(b1.r1,b2.r1,b3.r1).toFixed(2)+" ms → after "+med(a1.r1,a2.r1,a3.r1).toFixed(2)+" ms");
-console.log("ragRetrieve 2nd (repeat): before "+med(b1.r2,b2.r2,b3.r2).toFixed(2)+" ms → after "+med(a1.r2,a2.r2,a3.r2).toFixed(2)+" ms");
+console.log("5x ragKnownNames: control "+med(c1.names,c2.names,c3.names).toFixed(2)+" ms → current "+med(m1.names,m2.names,m3.names).toFixed(2)+" ms");
+console.log("ragRetrieve 1st (cold): control "+med(c1.r1,c2.r1,c3.r1).toFixed(2)+" ms → current "+med(m1.r1,m2.r1,m3.r1).toFixed(2)+" ms");
+console.log("ragRetrieve 2nd (repeat): control "+med(c1.r2,c2.r2,c3.r2).toFixed(2)+" ms → current "+med(m1.r2,m2.r2,m3.r2).toFixed(2)+" ms");

@@ -1508,6 +1508,33 @@ try {
   }
 } catch (e) { console.error("ENGINE MANIFEST CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── PERFORMANCE BENCH LOADER CONTRACT (Sol review P2-02, 2026-08-28) ─────────
+// A benchmark that hand-copies engine order can fail before measuring anything while the real
+// suite stays green. Both committed benches must take the complete order from load-engine.js,
+// and their comparison labels must describe the controls they actually execute today.
+try {
+  var _benchSpecsM = [
+    { file: "dev/bench-lz-memo.js", control: "CONTROL (memo reset every call)", current: "CURRENT (memo live)" },
+    { file: "dev/bench-rag-memo.js", control: "CONTROL (wrapper memos reset every call)", current: "CURRENT (wrapper memos live)" }
+  ];
+  for (var _biM = 0; _biM < _benchSpecsM.length; _biM++) {
+    var _bsM = _benchSpecsM[_biM];
+    var _benchM = _fsM.readFileSync(_pathM.join(_rootM, _bsM.file), "utf8");
+    var _benchCodeM = _benchM.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    if (!/require\(["']\.\/load-engine\.js["']\)/.test(_benchCodeM) ||
+        !/\.loadEngine\(\)/.test(_benchCodeM) || !/\.FILES/.test(_benchCodeM) ||
+        /var\s+files\s*=\s*\[/.test(_benchCodeM)) {
+      console.error("BENCH LOADER CONTRACT: " + _bsM.file + " must derive the COMPLETE engine order from dev/load-engine.js; copied or partial file lists silently rot.");
+      process.exit(1);
+    }
+    if (_benchCodeM.indexOf(_bsM.control) < 0 || _benchCodeM.indexOf(_bsM.current) < 0 ||
+        /git show HEAD:memory\.js|BEFORE \(|AFTER\s+\(/.test(_benchCodeM)) {
+      console.error("BENCH LABEL CONTRACT: " + _bsM.file + " must name the current control and memo-live paths honestly; HEAD is not a pre-memo baseline.");
+      process.exit(1);
+    }
+  }
+} catch (e) { console.error("PERFORMANCE BENCH CONTRACT FAILED: " + e.message); process.exit(1); }
+
 // ── #14 PENDING ACTION CONTRACT (v1.530, B16 residual) ───────────────────────────────────
 // The helpers are engine-tested; these pin the WIRING the DOM path owns — each clause is a
 // coupling the B16 record explicitly warned about, so a drop is a regression by name.
