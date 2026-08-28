@@ -25,6 +25,7 @@ var rc = 0;
 
 rc |= sabotage.prove({
   file: "state.js",
+  also: ["ui-files.js"],/* not in the engine manifest, so the scratch clone would otherwise mix working state.js with the COMMITTED import rebuild (the #196/#197 skew class) */
   command: ["node", ["dev/run-tests.js"]],
   cases: [
     // ── shape clauses (caught by the source contract) ──────────────────────────────
@@ -90,6 +91,7 @@ rc |= sabotage.prove({
 // future cleanup path deleting the only copy, so the guard has to fire from anywhere in the shell.
 rc |= sabotage.prove({
   file: "game.js",
+  also: ["ui-files.js"],
   command: ["node", ["dev/run-tests.js"]],
   cases: [
     { label: "a shell path starts deleting rescue keys — the preserved bytes vanish before any recovery flow exists",

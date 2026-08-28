@@ -287,15 +287,38 @@ try {
   var _fsAC = require("fs"), _pathAC = require("path");
   var _failAC = function (msg) { console.error("#144A ARCHIVE CARRY CONTRACT: " + msg); process.exit(1); };
   var _ufAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "ui-files.js"), "utf8");
-  // ① the import whitelist carries the FULL archive — the pre-#144A rebuild silently dropped
-  //   superseded/coreMemories/expiredSchedules on every import (Sol's find, drift audit).
-  var _keysAC = ["lore", "decisions", "chapters", "superseded", "coreMemories", "expiredSchedules", "npcKnowledge", "npcEvents", "retconPins", "locationStates", "futureEvents", "npcForgotten", "identityMerges", "identityQuarantines"];/* #168 W6: rejected-summary receipts and merge pre-images must survive .tnd round-trips */
-  var _archAC = (_ufAC.match(/archive:mm\.archive\?\{[^}]*\}/) || [""])[0];
-  if (!_archAC) _failAC("the import's archive rebuild expression is gone from ui-files.js");
-  for (var _kAC = 0; _kAC < _keysAC.length; _kAC++) {
-    if (_archAC.indexOf(_keysAC[_kAC] + ":mm.archive." + _keysAC[_kAC]) < 0)
-      _failAC("import whitelist no longer carries archive." + _keysAC[_kAC] + " — a .tnd import silently destroys it");
+  // ① the import carries the FULL archive — and does so BY REGISTRY, never by hand-copied key
+  //   list. This clause used to repeat the whitelist verbatim, which is exactly why the loss
+  //   shipped green four times (the test and the code drifted together). JP0-5: the import must
+  //   route through archiveRebuild, ui-files.js must hold NO archive key list of its own, and the
+  //   registry in state.js must still cover every category (round-trip behavior, unknown-key
+  //   carry and per-consumer agreement are proven by the engine suite's "memory.archive key
+  //   registry (JP0-5)" section).
+  if (!/archive:archiveRebuild\(mm\.archive\)/.test(_ufAC))
+    _failAC("the .tnd import no longer rebuilds its archive through archiveRebuild — a hand-rolled rebuild is how this key list dropped a category four separate times");
+  if (/mm\.archive\.[A-Za-z_$]/.test(_ufAC))
+    _failAC("ui-files.js enumerates archive categories by hand again (mm.archive.<key>) — the registry in state.js is the only list");
+  var _stAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "state.js"), "utf8");
+  var _regAC = (_stAC.match(/var MEMORY_ARCHIVE_KEYS=(\[[^\]]*\]);/) || [])[1];
+  if (!_regAC) _failAC("MEMORY_ARCHIVE_KEYS is gone from state.js — there is no registry to derive from");
+  var _keysAC = JSON.parse(_regAC);
+  var _needAC = ["lore", "decisions", "chapters", "superseded", "coreMemories", "expiredSchedules", "npcKnowledge", "npcEvents", "retconPins", "locationStates", "futureEvents", "npcForgotten", "identityMerges", "identityQuarantines", "relDowngrades", "npcDeathCorrections"];/* every category a shipped writer produces; #168 W6 receipts + merge pre-images + the #169 death-retraction pre-images all live in here */
+  for (var _kAC = 0; _kAC < _needAC.length; _kAC++) {
+    if (_keysAC.indexOf(_needAC[_kAC]) < 0)
+      _failAC("MEMORY_ARCHIVE_KEYS dropped archive." + _needAC[_kAC] + " — it loses its blank-shape default and its array guard (carry-unknown still saves the DATA, which is the point of the carry)");
   }
+  // ② every consumer derives from the registry — a site that re-grows its own list is the class.
+  if (!/archive:blankArchive\(\)/.test(_stAC)) _failAC("blankMemory no longer builds its archive from the registry");
+  if (!/memory\.archive=archiveHeal\(memory\.archive\)/.test(_stAC)) _failAC("healMemory no longer heals its archive through the registry");
+  var _mmAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "memory.js"), "utf8");
+  if (!/function memArchive\(\)\{memory\.archive=archiveHeal\(memory\.archive\);/.test(_mmAC))
+    _failAC("memArchive no longer lazy-inits through the registry — it had its own drifted list before JP0-5");
+  // ③ the carry is the actual class-closer: archiveRebuild must pass unregistered categories
+  //   through rather than filtering to the known set.
+  var _arAC = (_stAC.match(/function archiveRebuild\([\s\S]*?\n\}/) || [""])[0];
+  if (!_arAC) _failAC("archiveRebuild is gone from state.js");
+  if (_arAC.indexOf("else out[k]=src[k];") < 0)
+    _failAC("archiveRebuild no longer carries UNKNOWN archive categories through — that carry, not the key list, is what closes this defect class");
   // ② no bare knowledge.shift() — every shrink must feed memArchive().npcKnowledge.
   var _memAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "memory.js"), "utf8");
   var _shAC = /knowledge\.shift\(\)/g, _mAC, _bareAC = 0;

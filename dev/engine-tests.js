@@ -4922,6 +4922,82 @@ function runEngineTests(R){
     return true;
   });
 
+  // ── memory.archive key registry (JP0-5 / Sol P0-03) ──────────────────────────
+  // Four separate hand-copied allowlists used to enumerate archive categories, and the .tnd
+  // import one has silently DROPPED a category FOUR times now (attitudeSpec, eras, the #144A
+  // trio, npcDeathCorrections). The second-instance rule says enumerate the class: ONE registry,
+  // and — the part that actually closes it — carry UNKNOWN categories through verbatim, so the
+  // next category costs zero edits at any consumer.
+  //
+  // The category list below is written out DELIBERATELY instead of derived from
+  // MEMORY_ARCHIVE_KEYS: a fixture that reads its expectations off the thing under test cannot
+  // notice the thing under test losing an entry. Adding an archive category means adding it here
+  // too — that is the point.
+  section("memory.archive key registry (JP0-5)");
+  var _jp5Cats=["lore","decisions","chapters","superseded","coreMemories","expiredSchedules",
+    "npcKnowledge","npcEvents","retconPins","locationStates","futureEvents","npcForgotten",
+    "identityMerges","identityQuarantines","relDowngrades","npcDeathCorrections"];
+
+  t("JP0-5: a full archive round-trips EVERY shipped category through the import rebuild — npcDeathCorrections included (the fourth key the hand-copied whitelist dropped)",function(){
+    var src={},i;
+    for(i=0;i<_jp5Cats.length;i++)src[_jp5Cats[i]]=[{marker:_jp5Cats[i]+"-row"}];
+    var out=archiveRebuild(src),lost=[];
+    for(i=0;i<_jp5Cats.length;i++){
+      var row=out[_jp5Cats[i]];
+      if(!Array.isArray(row)||row.length!==1||row[0].marker!==_jp5Cats[i]+"-row")lost.push(_jp5Cats[i]);
+    }
+    return lost.length?("an import destroyed archive categories: "+lost.join(", ")):true;
+  });
+
+  t("JP0-5: an UNKNOWN future archive category is carried through VERBATIM — the carry, not the list, is what closes the class",function(){
+    var future=[{turn:9,what:"a category this build has never heard of"}];
+    var out=archiveRebuild({lore:["keep me"],futureThingV9:future,repairBundles:[{id:"b1"}]});
+    if(out.lore.length!==1||out.lore[0]!=="keep me")return "a known category was damaged while carrying an unknown one";
+    if(out.futureThingV9!==future)return "the unknown category was not carried verbatim: "+JSON.stringify(out.futureThingV9);
+    /* dev repair tools (dev/repair-t1788-bundle.js, dev/rc-mark-repair.js) already write archive
+       categories the engine never declares — carry-unknown is what keeps those in a save. */
+    return (out.repairBundles&&out.repairBundles.length===1)?true:"a dev-tool-written category was dropped: "+JSON.stringify(out.repairBundles);
+  });
+
+  t("JP0-5: a KNOWN category holding a junk value degrades to an empty array, never to canon",function(){
+    var out=archiveRebuild({lore:"not a list",chapters:null,decisions:[{d:1}]});
+    if(!Array.isArray(out.lore)||out.lore.length)return "a string survived into a known category: "+JSON.stringify(out.lore);
+    if(!Array.isArray(out.chapters)||out.chapters.length)return "null survived into a known category: "+JSON.stringify(out.chapters);
+    return (out.decisions.length===1)?true:"a good category was collateral damage";
+  });
+
+  t("JP0-5: archiveRebuild is total — a missing, null, or non-object archive still yields the full blank shape",function(){
+    var shapes=[undefined,null,"","garbage",[1,2,3]],i,j;
+    for(i=0;i<shapes.length;i++){
+      var out=archiveRebuild(shapes[i]);
+      if(!out||typeof out!=="object")return "input "+JSON.stringify(shapes[i])+" produced no archive";
+      for(j=0;j<_jp5Cats.length;j++)if(!Array.isArray(out[_jp5Cats[j]]))return "input "+JSON.stringify(shapes[i])+" left "+_jp5Cats[j]+" unfilled";
+    }
+    return true;
+  });
+
+  t("JP0-5: blankMemory, healMemory and memArchive all agree with the registry — no consumer can drift out of step again",function(){
+    var i,miss=[];
+    var born=blankMemory().archive;
+    for(i=0;i<_jp5Cats.length;i++)if(!Array.isArray(born[_jp5Cats[i]]))miss.push("blankMemory:"+_jp5Cats[i]);
+    makeWorld();memory.archive={};healMemory();
+    for(i=0;i<_jp5Cats.length;i++)if(!Array.isArray(memory.archive[_jp5Cats[i]]))miss.push("healMemory:"+_jp5Cats[i]);
+    makeWorld();delete memory.archive;
+    var arc=memArchive();
+    for(i=0;i<_jp5Cats.length;i++)if(!Array.isArray(arc[_jp5Cats[i]]))miss.push("memArchive:"+_jp5Cats[i]);
+    return miss.length?("categories missing at their consumer: "+miss.join(", ")):true;
+  });
+
+  t("JP0-5: healing an archive NEVER drops what is already there, known or unknown",function(){
+    makeWorld();
+    memory.archive={lore:[{a:1}],someToolWrote:[{b:2}]};
+    healMemory();
+    if(!memory.archive.lore||memory.archive.lore.length!==1)return "an existing known category was reset by the heal";
+    if(!memory.archive.someToolWrote||memory.archive.someToolWrote.length!==1)return "the heal dropped an unknown category: "+JSON.stringify(memory.archive.someToolWrote);
+    memArchive();
+    return (memory.archive.someToolWrote&&memory.archive.someToolWrote.length===1)?true:"memArchive dropped an unknown category";
+  });
+
   // ═══ UA1: tag table — derivations frozen, coverage guards, full-vocabulary battery ═══
   // Since v1.261 (legacy parser deleted) the converted parity battery below IS the vocabulary
   // behavior spec: every end-state assertion was proven byte-identical to the legacy parser
@@ -15237,13 +15313,16 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(memory.lore.join("|").indexOf("deceptive proxy")<0)return "correction truth was not filed as durable lore";
     makeWorld();worldState.npcs.push({name:"Alive One",status:"steady",rel:"ally",partyMember:false});memory.npcs["Alive One"]={attitude:"",knowledge:[],events:[],aliases:[]};
     applyMuts("[NPC_DEATH_RETRACTED:Alive One|bad correction|Nowhere Invented]");
-    if(memory.archive.npcDeathCorrections!==undefined)return "non-death/unknown-node correction archived state";
+    /* JP0-5 shape adaptation: the registry now BIRTHS every archive category as [], so "no row
+       was written" is length 0, not an absent key. Same strength — a single archived row still
+       fails this — and it no longer passes merely because memArchive was never reached. */
+    if((memory.archive.npcDeathCorrections||[]).length!==0)return "non-death/unknown-node correction archived state";
     makeWorld();worldState.world.location="Ashfen";
     worldState.npcs.push({name:"Dead Here",status:"dead",statusTurn:4,rel:"enemy",dead:4,partyMember:false});
     memory.npcs["Dead Here"]={attitude:"",knowledge:[],events:[],aliases:[],dead:4,lastSeenAt:"Ashfen"};
     memory.map.nodes.Ashfen={firstVisit:1,visits:1,description:"",parent:null,npcs:["Dead Here"],items:[]};
     applyMuts("[NPC_DEATH_RETRACTED:Dead Here|unsafe local correction|Ashfen]");
-    return npcIsDead(wsNpcByName("Dead Here"))&&memory.archive.npcDeathCorrections===undefined?true:"same-node correction was not refused without archive";
+    return npcIsDead(wsNpcByName("Dead Here"))&&(memory.archive.npcDeathCorrections||[]).length===0?true:"same-node correction was not refused without archive";
   });
 
   t("owner repair completion replay requires its prior receipt and the unchanged repaired node, then clears memory without duplicating the decision",function(){
