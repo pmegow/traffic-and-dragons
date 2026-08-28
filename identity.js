@@ -1174,7 +1174,15 @@ function _w2Conflict(subject,handle,reason){
   var _seen=false;for(i=0;i<worldState.identityConflicts.length;i++)if(worldState.identityConflicts[i].subject===s){_seen=true;break;}
   c={subject:s,handle:h,reason:reason||"identity evidence missing",turn:worldState.turn,lastTurn:worldState.turn,attempts:0,resolved:false};worldState.identityConflicts.push(c);if(typeof console!=="undefined")console.warn("[identity] irreversible write QUARANTINED for "+s+" (handle "+h+"): "+c.reason);if(!_seen&&typeof showToast==="function")showToast("Identity conflict: "+s+" was not changed");return c;
 }
-function _w2ResolveConflicts(subject,handle){var q=worldState&&worldState.identityConflicts,i;if(!q)return;for(i=0;i<q.length;i++)if(q[i].subject===subject&&(!handle||w2HandleKey(q[i].handle)===w2HandleKey(handle)))q[i].resolved=true;/* #201: a reveal under either spelling clears the record */worldState.identityConflicts=q.filter(function(c){return !c.resolved;});if(!worldState.identityConflicts.length)delete worldState.identityConflicts;}
+function _w2ResolveConflicts(subject,handle){var q=worldState&&worldState.identityConflicts,i;if(!q)return;for(i=0;i<q.length;i++)if(q[i].subject===subject&&(!handle||w2HandleKey(q[i].handle)===w2HandleKey(handle)))q[i].resolved=true;/* #201: a reveal under either spelling clears the record */worldState.identityConflicts=q.filter(function(c){return !c.resolved;});if(!worldState.identityConflicts.length)delete worldState.identityConflicts;
+  /* #262 (JP0-9/f22 path 1): a resolved dispute means the SETTLEMENT pays — the GM's committed
+     envelope or [NPC_DEATH_REPORTED:] carries the rewards. A pending #215 claim for the same
+     subject left standing would pay them a second time from the modal. Withdraw it, loudly. */
+  if(worldState&&worldState.pendingRewardClaims){var _rwQ=worldState.pendingRewardClaims,_rwi;
+    for(_rwi=_rwQ.length-1;_rwi>=0;_rwi--){if(_rwQ[_rwi].subject===subject){var _rwRec=_rwQ.splice(_rwi,1)[0];
+      if(typeof console!=="undefined")console.warn("[reward] pending claim for "+subject+" WITHDRAWN — the dispute resolved, so the settlement pays these rewards ("+_rwRec.tokens.join(" ")+") (#262)");
+      if(typeof showToast==="function")showToast("The "+subject+" reward question settled itself — the pending claim was withdrawn.");}}
+    if(!_rwQ.length)delete worldState.pendingRewardClaims;}}
 /* (#175: w2TextTouchesConflict — the substring-over-whole-response conflict scan — is DELETED.
    Its two call sites were the permanent name-keyed blackout: it refused new envelopes whose body
    named a conflicted subject (making the nudge's own re-emit advice unfollowable) and stripped
@@ -1212,8 +1220,28 @@ function w2TxnSummaryRetire(){
      frees capacity and clears the overflow latch, so the envelope mechanism survives a campaign's whole
      life instead of dying permanently at receipt 24. */
   if(!worldState||!worldState.canonTxns)return;
-  var keep=[],i,r,horizon=worldState.turn-CANON_TXN_RETIRE_TURNS;
-  for(i=0;i<worldState.canonTxns.length;i++){r=worldState.canonTxns[i];if(r.status==="quarantined"||(r.committedTurn!=null?r.committedTurn:r.turn)>=horizon)keep.push(r);}
+  var keep=[],i,r,horizon=worldState.turn-CANON_TXN_RETIRE_TURNS,qHorizon=worldState.turn-2*CANON_TXN_RETIRE_TURNS;
+  /* #262 (JP0-9/f56): quarantined receipts used to hold their slot FOREVER — and the healing flow
+     itself fed the saturation (the nudge teaches "re-emit with a NEW id"; every failed
+     re-emission minted another permanent quarantine). At 24 lifetime quarantines the whole
+     death/reward envelope mechanism died for the rest of the campaign, defeating the very fix R3
+     shipped for the committed side. Retirement uses R3's own argument at DOUBLE the horizon: a
+     poisoned-id replay can only come from context the model still sees, and 2× the retire window
+     behind a successful structured summary is beyond it. Only a receipt whose subject's dispute
+     is over (no live, non-stale conflict) retires, and it moves to the archive — forensics kept,
+     reversible by construction — never the void. A replayed id after retirement mints a FRESH
+     quarantine (loud), which is strictly better than the channel being dead. */
+  var _qc=worldState.identityConflicts||[];
+  function _qLive(subj){var j;for(j=0;j<_qc.length;j++)if(_qc[j].subject===subj&&!_qc[j].resolved&&!_qc[j].stale)return true;return false;}
+  for(i=0;i<worldState.canonTxns.length;i++){r=worldState.canonTxns[i];
+    if(r.status==="quarantined"){
+      var _qLast=(r.lastAttemptTurn!=null?r.lastAttemptTurn:(r.quarantinedTurn!=null?r.quarantinedTurn:r.turn));
+      if(_qLast<qHorizon&&!_qLive(r.subject)){
+        if(typeof memArchive==="function")memArchive().quarantinedReceipts.push(r);
+        if(typeof console!=="undefined")console.warn("[identity] quarantined receipt "+r.id+" ("+r.subject+") retired to the archive — dispute settled, last activity t"+_qLast+" is beyond 2x the retire horizon (#262)");
+        continue;}
+      keep.push(r);continue;}
+    if((r.committedTurn!=null?r.committedTurn:r.turn)>=horizon)keep.push(r);}
   if(keep.length<worldState.canonTxns.length)worldState.canonTxns=keep;
   if(worldState.canonTxnOverflow&&worldState.canonTxns.length<CANON_TXN_CAP){delete worldState.canonTxnOverflow;if(typeof console!=="undefined")console.warn("[identity] canon receipt capacity recovered after structured summary (#168R3)");}
 }
@@ -1224,9 +1252,16 @@ function w2TxnQuarantine(meta,reason,ops,tokens){
   var _priorRct=(typeof _w2TxnFind==="function")&&meta.id?_w2TxnFind(meta.id):null;
   var _subjSeen=false,_qi,_qc=worldState&&worldState.identityConflicts||[];
   if(meta.subject&&meta.subject!=="-")for(_qi=0;_qi<_qc.length;_qi++)if(_qc[_qi].subject===resolveNpcName(meta.subject)||_qc[_qi].subject===meta.subject){_subjSeen=true;break;}
-  if(meta.subject&&meta.subject!=="-")_w2Conflict(meta.subject,meta.evidence,reason);else if(typeof console!=="undefined")console.warn("[identity] canon transaction "+(meta.id||"?")+" QUARANTINED: "+reason);
+  if(meta.subject&&meta.subject!=="-"){var _qConf=_w2Conflict(meta.subject,meta.evidence,reason);
+    /* #262 (JP0-9/f21): the envelope was the ONE refusal channel whose rewards never reached the
+       withheld ledger — the very channel every GM nudge teaches. An envelope-borne dispute then
+       shelved as "cost nothing" and queued no #215 claim. Stamp the ops' reward tokens exactly
+       as the two ordinary-stream sites do; resolution stays safe (the settling re-emission pays,
+       and #262's resolve-withdraw drops any queued claim). */
+    if(_qConf&&ops&&ops.length){var _qTok=_w2CollectStripped(ops.join(""),W2_REWARD_RES);if(_qTok.length)_w2StampWithheld(_qConf,_qTok);}
+  }else if(typeof console!=="undefined")console.warn("[identity] canon transaction "+(meta.id||"?")+" QUARANTINED: "+reason);
   if(_priorRct||_subjSeen){if(typeof console!=="undefined")console.warn("[identity] canon claim "+(meta.id||"?")+" refused again ("+reason+") — toast suppressed, repeat of a standing dispute (#200)");}
-  else if(typeof showToast==="function")showToast("⚠ Canon claim "+(meta.id||"?")+" refused — its quest/reward tags were withheld ("+reason+")");
+  else if(typeof showToast==="function")showToast("⚠ Canon claim "+(meta.id||"?")+" refused — its quest/reward tags were withheld ("+((typeof w2RefusalCopy==="function"&&w2RefusalCopy(reason))||reason)+")");/* #262/f21: the other two withhold toasts already speak player language; this one leaked the raw engine reason */
   return _w2TxnReceipt(meta,"quarantined",reason,ops,tokens);}
 function _w2Tags(text){return String(text||"").match(/\[[A-Z][A-Z_]{1,}:[^\]]+\]/g)||[];}
 function _w2TagName(tag){var m=tag.match(/^\[([A-Z][A-Z_]{1,}):/);return m?m[1]:"";}

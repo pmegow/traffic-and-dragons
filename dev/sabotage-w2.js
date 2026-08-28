@@ -485,8 +485,8 @@ rc|=sabotage.prove({
       replace:""},
     {label:"a shelved dispute stops queueing the reward claim (#215)",
       mustFail:"#215 a shelved dispute that cost the player a reward queues a claim",
-      find:"if(_shLost&&typeof rewardClaimQueue===\"function\")rewardClaimQueue(c.subject,c.withheld,c.reason);",
-      replace:""}
+      find:"if(_shLost&&typeof rewardClaimQueue===\"function\"&&rewardClaimQueue(c.subject,c.withheld,c.reason)){",/* #262 made the queue call the ledger-clearing conditional */
+      replace:"if(false){"}
   ]
 });
 
@@ -580,6 +580,54 @@ rc |= sabotage.prove({
       mustFail: "only the newcomer survives",
       find: '    if(_dcKeep.length){',
       replace: '    if(false){' }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "identity.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#262: the envelope withheld-stamp dies — the taught channel goes back to costless shelves",
+      mustFail: "ENVELOPE-refused reward reaches the withheld ledger",
+      find: "    if(_qConf&&ops&&ops.length){var _qTok=_w2CollectStripped(ops.join(\"\"),W2_REWARD_RES);if(_qTok.length)_w2StampWithheld(_qConf,_qTok);}",
+      replace: "" },
+
+    { label: "#262: resolve-withdraw dies — a settled dispute leaves its claim payable beside the settlement",
+      mustFail: "WITHDRAWS its pending claim",
+      find: "  if(worldState&&worldState.pendingRewardClaims){var _rwQ=worldState.pendingRewardClaims,_rwi;",
+      replace: "  if(false){var _rwQ=worldState.pendingRewardClaims,_rwi;" },
+
+    { label: "#262: quarantine retirement dies — 24 stale quarantines kill the envelope mechanism forever again",
+      mustFail: "SATURATION RECOVERY",
+      find: "      if(_qLast<qHorizon&&!_qLive(r.subject)){",
+      replace: "      if(false){" },
+
+    { label: "#262: the retirement guard dies — a receipt with a LIVE dispute retires out from under it",
+      mustFail: "never retires",
+      find: "  function _qLive(subj){var j;for(j=0;j<_qc.length;j++)if(_qc[j].subject===subj&&!_qc[j].resolved&&!_qc[j].stale)return true;return false;}",
+      replace: "  function _qLive(subj){return false;}" }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "helpers.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#262: superset replacement dies — a re-armed dispute queues a second payable copy of the same reward",
+      mustFail: "superset re-shelve REPLACES",
+      find: "    if(_sub){var _old=q.splice(i,1)[0];",
+      replace: "    if(false){var _old=q.splice(i,1)[0];" }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "api.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#262: the shelve stops spending the ledger — the claimed tokens stay re-queueable on re-arm",
+      mustFail: "moves the ledger INTO the claim",
+      find: "      c.withheldClaimed=(c.withheldClaimed||[]).concat(c.withheld);c.withheld=[];",
+      replace: "" }
   ]
 });
 

@@ -16642,6 +16642,105 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
+  // ── #262 — the ENVELOPE LIFECYCLE closes (JP0-9 + Fable f21/f22/f56, joint review 2026-08-27).
+  // Three seams the #213/#215 work did not reach: ① rewards refused INSIDE a canon envelope — the
+  // very channel every GM nudge teaches — never reached the withheld ledger, so the shelve read
+  // "cost nothing" and queued no claim; ② the claim queue had no interlock with dispute
+  // resolution or ledger re-arm (two traced double-payout paths); ③ quarantined receipts never
+  // retired and counted against CANON_TXN_CAP=24 forever — at 24 lifetime quarantines the
+  // death/reward envelope mechanism died for the rest of the campaign.
+  section("#262 — the envelope lifecycle (withheld ledger, claim interlock, receipt retirement)");
+  t("#262: an ENVELOPE-refused reward reaches the withheld ledger — the taught channel is no longer the invisible one",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;applyMuts(w2Txn("mok-e1","npc-death","Mokmurian","scholar","The Giants of Jorgenfist","[SCENE_DEATH:scholar][XP:600][GOLD:+100]"));
+    var c=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Mokmurian";})[0];
+    if(!c)return "no conflict record was opened for the refused envelope";
+    if(!c.withheld||!c.withheld.length)return "the envelope's rewards never reached the withheld ledger";
+    var s=c.withheld.join(" ");
+    return s.indexOf("600")>=0&&s.indexOf("100")>=0?true:"the ledger misses the envelope's amounts: "+s;
+  });
+  t("#262: an envelope-only dispute SHELVES with the cost named and a claim queued",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;applyMuts(w2Txn("mok-e2","npc-death","Mokmurian","scholar","The Giants of Jorgenfist","[SCENE_DEATH:scholar][XP:600]"));
+    var c=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Mokmurian";})[0];
+    if(!c)return "no conflict record";
+    c.attempts=IDENTITY_CONFLICT_STALE_ATTEMPTS+1;
+    var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    try{buildIdentityConflictNudge();}finally{if(_t)showToast=_t;}
+    var q=(worldState.pendingRewardClaims||[]);
+    return q.length===1&&q[0].subject==="Mokmurian"?true:"the envelope-only shelve queued no claim: "+JSON.stringify(q);
+  });
+  t("#262: the envelope quarantine toast speaks player language, not the engine reason",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;
+    var out=__w2Toasts(function(){applyMuts(w2Txn("mok-e3","npc-death","Mokmurian","scholar","The Giants of Jorgenfist","[SCENE_DEATH:scholar][XP:600]"));});
+    if(!out)return "no quarantine toast fired";
+    return __W2_JARGON.test(out)?"the quarantine toast leaks engine jargon at the player: "+out:true;
+  });
+  t("#262: a superset re-shelve REPLACES the pending claim instead of queueing a second payable copy",function(){
+    makeWorld();
+    rewardClaimQueue("Mokmurian",["[XP:600]"],"named death has no prior positive scene binding");
+    rewardClaimQueue("Mokmurian",["[XP:600]","[GOLD:+100]"],"named death has no prior positive scene binding");
+    var q=worldState.pendingRewardClaims||[];
+    if(q.length!==1)return "the superset claim queued BESIDE the subset — accepting both pays twice: "+q.length+" claims";
+    return q[0].tokens.length===2?true:"the surviving claim is not the superset: "+JSON.stringify(q[0].tokens);
+  });
+  t("#262: shelving moves the ledger INTO the claim — a later re-arm cannot re-queue the same tokens",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;applyMuts("[NPC:Mokmurian|dead|enemy][QUEST:The Giants of Jorgenfist|completed][XP:600][GOLD:+100]");
+    var c=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Mokmurian";})[0];
+    if(!c||!c.withheld||!c.withheld.length)return "fixture broke: nothing withheld";
+    c.attempts=IDENTITY_CONFLICT_STALE_ATTEMPTS+1;
+    var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    try{buildIdentityConflictNudge();}finally{if(_t)showToast=_t;}
+    if(!(worldState.pendingRewardClaims||[]).length)return "fixture broke: no claim queued";
+    return (c.withheld&&c.withheld.length)?"the ledger still holds the claimed tokens — a re-armed dispute would queue them again: "+JSON.stringify(c.withheld):true;
+  });
+  t("#262: resolving a dispute WITHDRAWS its pending claim — the settlement pays, not the modal too",function(){
+    makeWorld();worldState.turn=80;
+    worldState.identityConflicts=[{subject:"Mokmurian",handle:"scholar",reason:"scene evidence does not bind the claimed victim",turn:79,attempts:1}];
+    rewardClaimQueue("Mokmurian",["[XP:600]"],"scene evidence does not bind the claimed victim");
+    if(!(worldState.pendingRewardClaims||[]).length)return "fixture broke: no claim";
+    var _t=(typeof showToast==="function")?showToast:null;if(_t)showToast=function(){};
+    try{_w2ResolveConflicts("Mokmurian",null);}finally{if(_t)showToast=_t;}
+    return (worldState.pendingRewardClaims||[]).length?"the resolved dispute left its claim payable — the settling envelope AND the modal both pay":true;
+  });
+  t("#262: a quarantined receipt whose dispute is settled retires to the archive after the 2x horizon",function(){
+    makeWorld();worldState.turn=200;
+    worldState.canonTxns=[{id:"old-q",claim:"npc-death",subject:"Vex",evidence:"h",quest:"-",status:"quarantined",operations:["XP:600#1"],turn:100,quarantinedTurn:100,reason:"x"}];
+    w2TxnSummaryRetire();
+    if(!(memory.archive&&memory.archive.quarantinedReceipts&&memory.archive.quarantinedReceipts.length===1))return "the settled old receipt was not archived: "+JSON.stringify(memory.archive&&memory.archive.quarantinedReceipts);
+    return worldState.canonTxns.length===0?true:"the receipt still holds a live slot: "+worldState.canonTxns.length;
+  });
+  t("#262: a quarantined receipt with a LIVE dispute — or recent attempts — never retires",function(){
+    makeWorld();worldState.turn=200;
+    worldState.identityConflicts=[{subject:"Vex",handle:"h",reason:"x",turn:198,attempts:1}];
+    worldState.canonTxns=[
+      {id:"live-q",claim:"npc-death",subject:"Vex",evidence:"h",quest:"-",status:"quarantined",operations:[],turn:100,quarantinedTurn:100,reason:"x"},
+      {id:"fresh-q",claim:"npc-death",subject:"Nix",evidence:"h2",quest:"-",status:"quarantined",operations:[],turn:196,quarantinedTurn:196,reason:"y"}
+    ];
+    w2TxnSummaryRetire();
+    return worldState.canonTxns.length===2?true:"a protected quarantined receipt retired: "+worldState.canonTxns.length+" left";
+  });
+  t("#262: SATURATION RECOVERY — 24 stale quarantines no longer kill the envelope mechanism forever",function(){
+    makeWorld();worldState.turn=300;worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.canonTxns=[];var i;
+    for(i=0;i<CANON_TXN_CAP;i++)worldState.canonTxns.push({id:"dead-"+i,claim:"npc-death",subject:"Ghost"+i,evidence:"h"+i,quest:"-",status:"quarantined",operations:[],turn:50,quarantinedTurn:50,reason:"x"});
+    worldState.canonTxnOverflow={turn:299,id:"dead-23"};
+    w2TxnSummaryRetire();
+    if(worldState.canonTxnOverflow)return "the overflow latch survived retirement";
+    if(worldState.canonTxns.length!==0)return "stale quarantines still hold "+worldState.canonTxns.length+" slots";
+    applyMuts("[SCENE_REF:scholar|?]");
+    worldState.turn=301;applyMuts("[SCENE_REF:scholar|Mokmurian]");
+    worldState.turn=302;applyMuts(w2Txn("fresh-1","npc-death","Mokmurian","scholar","The Giants of Jorgenfist","[SCENE_DEATH:scholar][XP:600]"));
+    var r=(worldState.canonTxns||[]).filter(function(x){return x.id==="fresh-1";})[0];
+    return r&&r.status==="committed"?true:"a fresh envelope still refuses after recovery: "+JSON.stringify(r||worldState.canonTxns.length);
+  });
+
   section("#168 W6 — summary identity validation");
   function __w6World(){
     makeWorld();worldState.turn=1644;worldState.character.name="Ammut";worldState.character.gender="M";worldState.character.aliases=["The Ash Walker"];

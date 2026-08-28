@@ -1129,7 +1129,12 @@ function buildIdentityConflictNudge(){
        debug surface for it. Queue the withheld reward as a CLAIM and ask; Sync was an
        immersion break, and a silent loss was worse. */
     var _shLost=(typeof w2WithheldSummary==="function")?w2WithheldSummary(c.withheld):"";
-    if(_shLost&&typeof rewardClaimQueue==="function")rewardClaimQueue(c.subject,c.withheld,c.reason);
+    if(_shLost&&typeof rewardClaimQueue==="function"&&rewardClaimQueue(c.subject,c.withheld,c.reason)){
+      /* #262 (JP0-9/f22): the ledger's tokens now live in the claim — leaving them on the record
+         too meant a re-armed dispute's SECOND shelve queued them again (the superset dup).
+         Provenance moves to withheldClaimed; the ledger is spent. */
+      c.withheldClaimed=(c.withheldClaimed||[]).concat(c.withheld);c.withheld=[];
+    }
     if(typeof showToast==="function")showToast(_shLost
       ? ("\u2726 The "+c.subject+" mix-up could not be settled \u2014 "+_shLost+" is waiting on your call.")
       : ("The "+c.subject+" mix-up was set aside after "+(c.attempts-1)+" unanswered attempts."),8000);

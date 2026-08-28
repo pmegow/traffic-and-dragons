@@ -1009,6 +1009,16 @@ function rewardClaimQueue(subject,tokens,reason){
   if(!worldState.pendingRewardClaims)worldState.pendingRewardClaims=[];
   var q=worldState.pendingRewardClaims,i;
   for(i=0;i<q.length;i++)if(q[i].subject===subject&&q[i].tokens.join("")===tokens.join(""))return q[i];
+  /* #262 (JP0-9/f22 path 2): the exact-match dedupe above let a SUPERSET claim queue BESIDE its
+     subset — a re-armed dispute's second shelve carried T1∪T2 next to the standing T1, and
+     accepting both paid T1 twice. A same-subject claim whose tokens are contained in the new
+     set is REPLACED (the superset supersedes it); a disjoint same-subject claim still queues —
+     genuinely separate incidents stay separately payable. */
+  for(i=q.length-1;i>=0;i--){
+    if(q[i].subject!==subject)continue;
+    var _sub=true,_sj;for(_sj=0;_sj<q[i].tokens.length;_sj++){if(tokens.indexOf(q[i].tokens[_sj])<0){_sub=false;break;}}
+    if(_sub){var _old=q.splice(i,1)[0];if(typeof console!=="undefined")console.warn("[reward] claim for "+subject+" REPLACED by a superset ("+_old.tokens.join(" ")+" ⊆ "+tokens.join(" ")+") — one payable claim, never two (#262)");}
+  }
   if(q.length>=REWARD_CLAIM_CAP){
     if(typeof console!=="undefined")console.warn("[reward] claim queue full ("+REWARD_CLAIM_CAP+") \u2014 the claim for "+subject+" was dropped; answer the pending ones to make room (#215)");
     return null;

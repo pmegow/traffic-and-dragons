@@ -36,7 +36,7 @@ var sessionLog=[];
    forgetting to register one can no longer destroy anyone's data.
    archive contents are storage-only — never prompt-injected (P12 eviction compaction; the
    consumers are the story compiler #5 + future RAG phases, NOT the live tiers). */
-var MEMORY_ARCHIVE_KEYS=["lore","decisions","chapters","superseded","coreMemories","expiredSchedules","npcKnowledge","npcEvents","retconPins","locationStates","futureEvents","npcForgotten","identityMerges","identityQuarantines","relDowngrades","npcDeathCorrections"];
+var MEMORY_ARCHIVE_KEYS=["lore","decisions","chapters","superseded","coreMemories","expiredSchedules","npcKnowledge","npcEvents","retconPins","locationStates","futureEvents","npcForgotten","identityMerges","identityQuarantines","relDowngrades","npcDeathCorrections","quarantinedReceipts"];/* #262: retired quarantined canon receipts (f56) — the registry makes this one line, everywhere */
 function blankArchive(){var a={},i;for(i=0;i<MEMORY_ARCHIVE_KEYS.length;i++)a[MEMORY_ARCHIVE_KEYS[i]]=[];return a;}
 /* Rebuild memory.archive from an UNTRUSTED source blob (the .tnd import). Registered categories
    default to [] and are array-guarded (a junk value must never become canon); unregistered ones

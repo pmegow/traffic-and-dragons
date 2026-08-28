@@ -33,8 +33,8 @@ rc |= sabotage.prove({
 
     { label: "the registry drops npcDeathCorrections — the death-retraction pre-images lose their blank-shape default (the carry still saves the DATA, which is the design)",
       mustFail: "MEMORY_ARCHIVE_KEYS dropped archive.npcDeathCorrections",
-      find: '"identityQuarantines","relDowngrades","npcDeathCorrections"];',
-      replace: '"identityQuarantines","relDowngrades"];' },
+      find: '"identityQuarantines","relDowngrades","npcDeathCorrections","quarantinedReceipts"];',/* #262 appended quarantinedReceipts to the registry */
+      replace: '"identityQuarantines","relDowngrades","quarantinedReceipts"];' },
 
     { label: "known categories stop being array-guarded — a junk import value becomes archive canon",
       mustFail: "a string survived into a known category",
