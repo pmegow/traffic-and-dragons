@@ -85,9 +85,9 @@ function loadProviderSettings(){
 // Transcript compression (Known issue #3, v1.227): the append-only transcript is the dominant,
 // ever-growing part of a mature save (54% of a t308 blob). We store it LZ-compressed INSIDE the
 // localStorage blob — worldState.transcript -> {__lz:"..."} — halving the on-disk core (626K->283K chars
-// on t308). The in-memory state, .tnd exports, and the server sync all keep the plain array; only the
-// localStorage boundary compresses. parseWorldState is TOLERANT: it inflates a compressed transcript OR
-// passes a plain array straight through (server blob / .tnd import / legacy pre-v1.227 saves). Degrades
+// on t308). In-memory state and .tnd exports keep the plain array; localStorage and cloud-sync snapshots
+// both store transcript as {__lz:"..."}. parseWorldState is TOLERANT: it inflates that form OR passes a
+// plain array straight through (.tnd import / legacy pre-v1.227 saves). Degrades
 // safely to plain JSON if compress.js (LZ) didn't load.
 // Audit 07-16 #1: memoize the compressed-transcript blob. saveAll() runs 3+×/turn (end of
 // applyMutsTable, sendAction, generateActions) and each call re-LZ'd the WHOLE append-only
