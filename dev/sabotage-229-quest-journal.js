@@ -100,4 +100,36 @@ rc |= sabotage.prove({
   ]
 });
 
+rc |= sabotage.prove({
+  file: "api.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#264: the whitelist filter dies — a review-call hallucination mutates anything again",
+      mustFail: "whitelisted call applies quest tags and strips",
+      find: "  if(opts&&opts.allow&&opts.allow.length){",
+      replace: "  if(false){" },
+
+    { label: "#264: ring provenance dies — a stripped tag leaves no forensic trace on the save",
+      mustFail: "provenance-ring stripped list",
+      find: "    if(_rvStripped&&_rvStripped.length)_tlEntry.stripped=_rvStripped.slice(0,10);",
+      replace: "" }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "game.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#264: the suggest site drops the whitelist — the utility click can fire the arc-wall sweep again",
+      mustFail: "suggestQuestCompletion no longer passes",
+      find: "    var R=applyMuts(resp,{allow:REVIEW_CALL_TAGS});",
+      replace: "    var R=applyMuts(resp);" },
+
+    { label: "#264: the define site drops the whitelist — a Define hallucination teleports the party again",
+      mustFail: "defineItemFromStory no longer passes",
+      find: "    applyMuts(resp,{allow:REVIEW_CALL_TAGS});",
+      replace: "    applyMuts(resp);" }
+  ]
+});
+
 process.exit(rc ? 1 : 0);

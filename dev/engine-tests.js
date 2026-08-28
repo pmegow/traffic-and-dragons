@@ -3768,7 +3768,7 @@ function runEngineTests(R){
     var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
     var at=src.indexOf("async function defineItemFromStory"),end=src.indexOf("async function suggestQuestCompletion",at);
     var body=src.slice(at,end);
-    var capAt=body.indexOf("var queueWasFull=pend.length>=5;"),applyAt=body.indexOf("applyMuts(resp)");
+    var capAt=body.indexOf("var queueWasFull=pend.length>=5;"),applyAt=body.indexOf("applyMuts(resp");/* #264 widened the call to applyMuts(resp,{allow:...}) — the needle matches the call prefix; the ORDER check is unchanged */
     if(capAt<0||applyAt<0||capAt>applyAt)return "queue-full state is not captured before the handler can drop the proposal";
     if(body.indexOf("else if(queueWasFull&&_itemDefProposalFor(resp,key))")<0)return "landed=false does not distinguish the at-cap proposal drop";
     return body.indexOf('showToast("canon was proposed but the confirm queue is full — answer the pending item proposals first.",6000)')>=0?true:"truthful queue-full toast missing";
@@ -16723,6 +16723,57 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
+  // ── #264 — the review-call tag whitelist (owner ruling 2026-08-28; Fable f14+f2, verified).
+  // Suggest-completion and Define-item run their responses through the FULL 57-handler parser
+  // while their reused prompt actively solicits out-of-scope tags — a hallucinated [LOCATION:]
+  // teleports the party, and a utility click could fire the #231 arc-wall sweep via a
+  // hallucinated [ARC_COMPLETE:]. applyMuts(text,{allow:[...]}) strips every non-whitelisted tag
+  // BEFORE W2/parse (a stripped death must never mint a conflict), loudly, with ring provenance.
+  // syncCharSheet keeps its full vocabulary by explicit ruling — broad correction is its job.
+  section("#264 — the review-call tag whitelist");
+  t("#264: a whitelisted call applies quest tags and strips a hallucinated death and party move",function(){
+    makeWorld();worldState.turn=30;var loc0=worldState.world.location;
+    applyMuts("[QUEST:The Errand|active|Fetch the thing.][NPC:Bob the Grocer|dead|enemy][LOCATION:Elsewhere]",{allow:REVIEW_CALL_TAGS});
+    var q=worldState.questLog.filter(function(x){return x.title==="The Errand";});
+    if(q.length!==1)return "the ALLOWED quest tag did not apply";
+    if((worldState.npcs||[]).some(function(n){return n.name==="Bob the Grocer";}))return "the stripped [NPC:] still wrote the roster";
+    return worldState.world.location===loc0?true:"the stripped [LOCATION:] still moved the party";
+  });
+  t("#264: a hallucinated [ARC_COMPLETE:] from a review call cannot fire the arc-wall sweep (f2)",function(){
+    makeWorld();worldState.turn=40;
+    worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[{title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20}]}]};
+    applyMuts("[QUEST:The Sugar War|active|x.]");
+    applyMuts("[QUEST:The Sugar War|completed][XP:100][ARC_COMPLETE:The Skinsaw Man]",{allow:REVIEW_CALL_TAGS});
+    if(worldState.skeleton.acts[0].arcs[0].status!=="active")return "a review call closed the arc";
+    return true;
+  });
+  t("#264: a stripped death never reaches W2 — no conflict minted, no receipt, no withhold",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;
+    applyMuts("[NPC:Mokmurian|dead|enemy][QUEST:The Giants of Jorgenfist|completed][XP:600]",{allow:REVIEW_CALL_TAGS});
+    if((worldState.identityConflicts||[]).length)return "the stripped death minted an identity conflict: "+JSON.stringify(worldState.identityConflicts);
+    var mok=(typeof wsNpcByName==="function")?wsNpcByName("Mokmurian"):null;
+    if(mok&&mok.dead)return "the stripped death stamped the roster";
+    return worldState.character.xp===600?true:"the ALLOWED reward did not land: "+worldState.character.xp;
+  });
+  t("#264: the strip is loud and on the record — muts line + provenance-ring stripped list",function(){
+    makeWorld();worldState.turn=30;
+    var R=applyMuts("[QUEST:The Errand|offered|d.][NPC:Ghost|dead|x][WEATHER:storm]",{allow:REVIEW_CALL_TAGS});
+    var line=(R&&R.muts?R.muts:[]).filter(function(m){return m.indexOf("whitelist")>=0||m.indexOf("out-of-scope")>=0;})[0];
+    if(!line)return "no player-visible strip line: "+JSON.stringify(R&&R.muts);
+    if(line.indexOf("NPC")<0||line.indexOf("WEATHER")<0)return "the strip line does not name the stripped tags: "+line;
+    var e=(worldState.tagLog||[])[worldState.tagLog.length-1];
+    if(!e||!e.stripped||e.stripped.indexOf("NPC")<0)return "the provenance ring does not carry the stripped names: "+JSON.stringify(e);
+    return true;
+  });
+  t("#264: a plain applyMuts call is byte-identically unrestricted (regression)",function(){
+    makeWorld();worldState.turn=30;
+    applyMuts("[NPC:Bob the Grocer|friendly|ally][WEATHER:storm]");
+    if(!(worldState.npcs||[]).some(function(n){return n.name==="Bob the Grocer";}))return "an unrestricted call lost its NPC write";
+    return worldState.world.weather==="storm"?true:"an unrestricted call lost its weather write";
+  });
+
   // ── #263 (JP0-13, joint review 2026-08-27; Fable f41, verified ×2): the summary-lane W2 strike
   // deferral used to defer to its OWN minted conflict — stretching the documented 3-strike ladder
   // into a ~15-20-turn stall that billed a full failing extraction call and printed a failure

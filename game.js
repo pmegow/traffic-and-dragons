@@ -2816,7 +2816,7 @@ async function defineItemFromStory(rawItem,ev){
   if(typeof showToast==="function")showToast("📖 Consulting the story about: "+rawItem+"…");
   try{
     var resp=await callGM(auditMsg,null,500,upgradeModelFor(),{kind:"sync"});
-    applyMuts(resp);
+    applyMuts(resp,{allow:REVIEW_CALL_TAGS});/* #264: a Define hallucination must not move the party or touch canon outside the item class */
     saveAll();
     var landed=false;pend=worldState.pendingItemDefs||[];
     for(pi=0;pi<pend.length;pi++)if(pend[pi].key===key)landed=true;
@@ -2845,7 +2845,7 @@ async function suggestQuestCompletion(title){
   if(typeof showToast==="function")showToast("Reviewing quest: "+title+"…");
   try{
     var resp=await callGM(auditMsg,null,700,upgradeModelFor(),{kind:"sync"});
-    var R=applyMuts(resp);/* the one parser — reopen guards, #205b, reward parsing all apply */
+    var R=applyMuts(resp,{allow:REVIEW_CALL_TAGS});/* the one parser — reopen guards, #205b, reward parsing all apply; #264: quest/item/reward whitelist, everything else strips loudly */
     saveAll();if(typeof syncUI==="function")syncUI();
     var explanation=cleanTxt(resp);
     var changed=(R&&R.muts)?R.muts.slice():[];

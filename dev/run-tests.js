@@ -100,6 +100,28 @@ try {
   process.exit(1);
 }
 
+// ── #264 REVIEW-CALL WHITELIST CONTRACT (owner ruling 2026-08-28) ────────────────────────
+// The two review-call sites MUST pass the whitelist and syncCharSheet MUST NOT — a future edit
+// that drops the opts (or "helpfully" adds them to sheet sync) silently reopens the full
+// 57-handler blast radius (or breaks sheet correction). Source contract because the failure is
+// a one-argument deletion nothing behavioural exercises without a live model hallucinating.
+try {
+  var _rwFs = require("fs"), _rwPath = require("path");
+  var _rwGame = _rwFs.readFileSync(_rwPath.join(__dirname, "..", "game.js"), "utf8");
+  var _rwFail = [];
+  var _rwDefine = _rwGame.slice(_rwGame.indexOf("async function defineItemFromStory"), _rwGame.indexOf("async function suggestQuestCompletion"));
+  var _rwSuggest = _rwGame.slice(_rwGame.indexOf("async function suggestQuestCompletion"), _rwGame.indexOf("function invDiffLines"));
+  var _rwSync = _rwGame.slice(_rwGame.indexOf("async function syncCharSheet"));
+  if (_rwDefine.indexOf("applyMuts(resp,{allow:REVIEW_CALL_TAGS})") < 0) _rwFail.push("defineItemFromStory no longer passes {allow:REVIEW_CALL_TAGS} — a Define hallucination can mutate anything again");
+  if (_rwSuggest.indexOf("applyMuts(resp,{allow:REVIEW_CALL_TAGS})") < 0) _rwFail.push("suggestQuestCompletion no longer passes {allow:REVIEW_CALL_TAGS} — a review click can fire the arc-wall sweep again");
+  if (_rwSync.indexOf("allow:REVIEW_CALL_TAGS") >= 0) _rwFail.push("syncCharSheet gained the whitelist — broad correction is its explicit job (owner ruling 2026-08-28)");
+  if (_rwFail.length) {
+    console.error("REVIEW-CALL WHITELIST CONTRACT BROKEN (#264):");
+    _rwFail.forEach(function (m) { console.error("  - " + m); });
+    process.exitCode = 1;
+  } else console.log("[#264] review-call whitelist contract OK — both review sites gated, sheet sync ungated");
+} catch (_rwE) { console.error("REVIEW-CALL WHITELIST CONTRACT could not run: " + (_rwE && _rwE.message)); process.exitCode = 1; }
+
 // ── REFUSAL COPY CONTRACT (#213, v1.698) ────────────────────────────
 // The two W2 withhold toasts ship to PLAYERS (owner ruling 2026-08-22) and must say why in
 // language a player owns. A SOURCE CONTRACT because the failure is silent: add a refusal reason
@@ -1837,4 +1859,4 @@ if(filter){
 }else{
   console.log("ALL GREEN — "+pass+" assertions passed (engine tests)");
 }
-process.exit(0);
+process.exit(process.exitCode||0);/* #264 class fix: the hard exit(0) WIPED process.exitCode, so every contract that failed via exitCode=1 (the #213 refusal-copy guard, the #279 census, this file's own catch arms) was vacuous on the green-suite path — red output, green exit. All five setters are now effective. */

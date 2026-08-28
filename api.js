@@ -2294,9 +2294,28 @@ function _w2StageEffects(run){
   if(thrown)throw thrown;
   return {result:result,replay:function(){for(var j=0;j<effects.length;j++){try{effects[j].fn.apply(effects[j].ctx,effects[j].args);}catch(e){if(typeof console!=="undefined")console.warn("[identity] committed transaction side effect failed:",e&&e.message);}}}};
 }
-function applyMuts(text){
+function applyMuts(text,opts){
+  /* #264 (owner ruling 2026-08-28, Fable f14+f2): the review-call whitelist. Suggest-completion
+     and Define-item reuse the full gameplay prompt — which actively solicits out-of-scope tags —
+     and their responses run through this one parser, so a hallucinated [LOCATION:] teleported the
+     party and a hallucinated [ARC_COMPLETE:] could fire the #231 wall sweep from a utility click.
+     opts.allow strips every non-whitelisted tag BEFORE W2 preparation (a stripped death must
+     never mint a conflict or a receipt), loudly, with ring provenance. Plain applyMuts(text) is
+     byte-identically unrestricted; syncCharSheet keeps the full vocabulary by explicit ruling. */
+  var _rvStripped=null;
+  if(opts&&opts.allow&&opts.allow.length){
+    var _rvAllow={},_rvi;for(_rvi=0;_rvi<opts.allow.length;_rvi++)_rvAllow[opts.allow[_rvi]]=1;
+    _rvStripped=[];
+    text=String(text||"").replace(/\[([A-Z][A-Z_]{1,})(?::[^\]]*)?\]/g,function(_rvM,_rvNm){
+      if(_rvAllow[_rvNm])return _rvM;
+      if(_rvStripped.indexOf(_rvNm)<0)_rvStripped.push(_rvNm);
+      return "";
+    });
+    if(_rvStripped.length&&typeof console!=="undefined")console.warn("[tags] #264 review-call whitelist stripped "+_rvStripped.length+" out-of-scope tag name(s): "+_rvStripped.join(", ")+" (allowed: "+opts.allow.join(", ")+")");
+  }
   var _w2Plan=(typeof w2PrepareResponse==="function")?w2PrepareResponse(text):{ordinary:text,txns:[]};
   var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true}):{muts:[],turn:worldState.turn,text:_w2Plan.ordinary,errors:[]},_w2i;
+  if(_rvStripped&&_rvStripped.length)R.muts.push("⚠ review-call whitelist: out-of-scope tags stripped — "+_rvStripped.join(", "));/* #264: loud at the player, not just the console */
   for(_w2i=0;_w2i<_w2Plan.txns.length;_w2i++){
     var _w2t=_w2Plan.txns[_w2i];
     if(!_w2t.valid){R.muts.push("Canon claim "+(_w2t.meta.id||"?")+" quarantined");continue;}
@@ -2351,6 +2370,7 @@ function applyMuts(text){
     var _tlM=(R.muts||[]).slice(0,10);
     if((R.muts||[]).length>10)_tlM.push("+"+((R.muts||[]).length-10)+" more");
     var _tlEntry={t:R.turn,tags:_tlNames,m:_tlM};
+    if(_rvStripped&&_rvStripped.length)_tlEntry.stripped=_rvStripped.slice(0,10);/* #264: whitelist strips ride the ring — emitted-then-stripped stays decidable */
     var _tlRef=(typeof w2RefusedThisResponse==="function")?w2RefusedThisResponse():[];
     if(_tlRef.length){_tlEntry.refused=_tlRef.slice(0,6);if(_tlRef.length>6)_tlEntry.refused.push("+"+(_tlRef.length-6)+" more");}
     worldState.tagLog.push(_tlEntry);
