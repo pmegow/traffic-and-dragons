@@ -362,6 +362,15 @@ function load(){
   });
 }
 
+// Browser-test seam: keep the untrusted parsers/renderers directly drivable without a live feed.
+window.__bugTrackerTest={
+  el:el,
+  parseBugs:parseBugs,
+  renderBug:renderBug,
+  renderFeedReport:renderFeedReport,
+  render:render
+};
+
 document.getElementById("btn-reload").onclick=load;
 document.getElementById("btn-secret").onclick=function(){
   var cur=feedSecret();

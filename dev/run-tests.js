@@ -1415,6 +1415,46 @@ try {
   }
 } catch (e) { console.error("INJECTION SINK CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── BUG TRACKER SATELLITE CONTRACT (Fable f75, 2026-08-27) ─────────────────────────────
+// The webhook feed and DOC/BUGS.md bodies are attacker-controlled text rendered on the same
+// origin that holds provider keys. This satellite is HTML, so the .js-only generic scan above
+// cannot see it; its own contract bans executable-HTML sinks altogether and pins the textContent
+// funnel that every report field uses. Deliberately NOT a .message-specific pattern: this page's
+// untrusted surface includes report/detail/meta/findings/actions and future feed fields.
+try {
+  var _fsBT = require("fs"), _pathBT = require("path");
+  var _pageBT = _fsBT.readFileSync(_pathBT.join(__dirname, "..", "bug_tracker.html"), "utf8");
+  var _scriptMatchBT = _pageBT.match(/<script>([\s\S]*?)<\/script>/);
+  if (!_scriptMatchBT) throw new Error("script block not found — update the satellite contract for the new shape");
+  var _codeBT = _scriptMatchBT[1].replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  var _htmlSinkBT = /\.(?:innerHTML|outerHTML)\s*=|insertAdjacentHTML\s*\(|document\.write(?:ln)?\s*\(/;
+  if (_htmlSinkBT.test(_codeBT)) {
+    console.error("BUG TRACKER INJECTION CONTRACT: executable-HTML sink found — report-derived text must stay in textContent/createTextNode on this satellite.");
+    process.exit(1);
+  }
+  var _elBT = _codeBT.slice(_codeBT.indexOf("function el("), _codeBT.indexOf("function copyText("));
+  if (!_elBT || !/e\.textContent\s*=\s*text/.test(_elBT)) {
+    console.error("BUG TRACKER INJECTION CONTRACT: el() lost its textContent assignment — every report-derived field routes through this inert-text boundary.");
+    process.exit(1);
+  }
+  [
+    'el("pre","report",b.report)',
+    'el("pre","report",body)',
+    'el("div","sectext",text)'
+  ].forEach(function(sink) {
+    if (_codeBT.indexOf(sink) < 0) {
+      console.error("BUG TRACKER INJECTION CONTRACT: report-derived text no longer reaches the pinned inert sink: " + sink);
+      process.exit(1);
+    }
+  });
+  if (_codeBT.indexOf("window.__bugTrackerTest") < 0 ||
+      !/window\.__bugTrackerTest\s*=\s*\{[\s\S]*?parseBugs\s*:\s*parseBugs[\s\S]*?renderBug\s*:\s*renderBug[\s\S]*?renderFeedReport\s*:\s*renderFeedReport/.test(_codeBT)) {
+    console.error("BUG TRACKER CONTRACT: window.__bugTrackerTest must expose parseBugs, renderBug, and renderFeedReport so the untrusted render paths stay browser-drivable.");
+    process.exit(1);
+  }
+  console.log("[bug-tracker] contract OK — report fields stay inert and browser seam is present");
+} catch (e) { console.error("BUG TRACKER CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
+
 // ── BIBLE-SERVER WRITE-AUTH CONTRACT (v1.521, ChatGPT review 2026-08-01) ─────────────────
 // dev/bible-server.js binds loopback, but ANY webpage open while it runs can POST to
 // localhost, and install-bible validates shape, not author intent — so /install requires a
