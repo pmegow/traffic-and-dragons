@@ -51,6 +51,75 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 30 — Retained proofs for the unproven contract tier (#275 / Fable f74; Opus lane E, dev-only)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #275. **Touched:** `dev/sabotage-contract-tier.js` (new,
+the only file changed — no game source, no version bump; the harness restored every mutated file
+byte-identical and `git status` was clean after each run).
+
+**What shipped.** A fresh census of all 34 source contracts in `dev/run-tests.js` against every
+retained `dev/sabotage-*.js` clause (43 batteries / 563 clauses, cross-referenced by matching each
+clause's `mustFail` back to the run-tests.js line that emits it), committed as the new battery's
+header comment so the next audit does not redo it. Result: **13 proven, 21 unproven.** The battery
+then closes **20 of the 21 with 79 clauses**, every one caught and attributed by `mustFail` to its
+own contract's failure text: the 13 previously unproven `_ttReq` clauses of #76 TABLE TALK
+ISOLATION first, then the prompt/parser-adjacent tier (#172 narration person, #177 transcript seam,
+#151 latch registry, #158 phase wiring, INJECTION SINK incl. the escHtml behavioural half, ENGINE
+MANIFEST, #14 pending action, #113 STT, #77 confirm gate, VOICE LAB, BIBLE-SERVER WRITE-AUTH), and
+the pre-rule TTS tier last (VENDOR PATCH preamble, VOICE-DELETION v1.419, AUDIO RECOVERY v1.421,
+RESPAWN v1.424, PLAYBACK RECYCLE v1.430, UNLOAD STAMP v1.432, GOVERNOR v1.434, STARS PORTABILITY +
+DEFAULT BENCH). The battery is picked up by `dev/check-sabotage-applicability.js` automatically
+(it globs `dev/sabotage-*.js`): the scan now reports **644/644 clauses applicable across 44
+batteries**, up from 563/43, with no wiring edit needed.
+
+**f74's census is superseded in two places** (both favourable, both re-verified here): #92 SYNC
+COMPRESSION and #144A ARCHIVE CARRY have been proven since f74 was written (`sabotage-252-*`), and
+the TABLE TALK contract carries 15 `_ttReq` clauses with 2 proven, exactly as f74's own verifier
+corrected.
+
+**⚠ THE FINDING — one contract is INERT and I did not repair it.** The **REFUSAL COPY CONTRACT
+(#213, run-tests.js:103-139)** reports through `process.exitCode = 1` — its four sites are the
+only `process.exitCode` uses in the file — and `run-tests.js:1852` ends with an unconditional
+`process.exit(0)`, which discards `process.exitCode`. Measured, not inferred: renaming
+`W2_REFUSAL_REASONS` in `identity.js` makes the contract print
+`REFUSAL COPY CONTRACT: W2_REFUSAL_REASONS is gone from identity.js …` and `node dev/run-tests.js`
+still **exits 0**. So a drift-surface guard — the shipped-refusal vocabulary in `identity.js` must
+keep player copy in the registry, or the W2 withhold toast silently degrades to the generic
+fallback — cannot fail CI or the pre-commit hook, and has not been able to since #213 shipped at
+v1.698. Per the #275 brief a vacuous/inert contract is *recorded for Fable, never repaired in
+place*, so the two identity.js clauses sit `skip:true` in the battery with the reason in a comment;
+the applicability scan still keeps their find targets fresh, and un-skipping is one line the moment
+the four `process.exitCode = 1` become `process.exit(1)`.
+
+**What the reviewer should decide / probe:**
+
+1. **The #213 repair.** Four `process.exitCode = 1` → `process.exit(1)`, then drop `skip:true`.
+   It is one character each and it makes a currently-green build red if the registry ever drifts —
+   which is a real, if welcome, gate change on a drift-surface contract. Fable's call.
+2. **The gate is filtered: `node dev/run-tests.js repairModelJson`.** Source contracts run at the
+   top of run-tests.js unconditionally, before and independent of the section filter, so a filtered
+   run exercises all 34 of them in 198ms instead of 11s — and it removes the engine suite as a
+   rival source of red, which is what makes each `mustFail` an honest attribution. run-tests.js
+   sanctions the shape at :1836 and `sabotage-253-growth-telemetry.js` already uses it. If the
+   `repairModelJson` section is ever renamed every clause reddens loudly (`FILTER … matched 0
+   sections`) rather than passing silently. **Confirm the filtered gate is acceptable for a
+   contract-tier battery**, or say the word and I will re-point `GATE` at the full suite (the
+   verdicts are identical; it costs ~15 min of CI-free local wall clock).
+3. **Residue, deliberately not done in this lane:** `dev/sabotage-blueprint-classes.js` carries 9
+   clauses with **no `mustFail` on any of them** — an exit-status-only verdict cannot tell a real
+   catch from an unrelated red (the #170 lesson), so BLUEPRINT DESIGNER is "proven" more weakly
+   than the census line suggests. Adding pins there is an edit to an existing battery, so it is
+   filed here rather than done silently.
+4. **Not proven, by design:** TRANSCRIPT SEAM clause ① is an inline self-sabotage fixture
+   (run-tests.js:153) that proves its own non-vacuity every build — the pattern f74 asks the other
+   absence-pattern clauses to adopt. Mutating it would mean mutating the harness, not a guarded
+   source file.
+5. **The three clauses that needed a second draft are the finding in miniature** and are annotated
+   inline: a rename whose replacement still CONTAINS the scanned literal
+   (`tndRecycleSessionGONE`, `_stuckCtxRETIRED`) leaves an `indexOf` guard completely undisturbed,
+   and one `_voiceAssignedTo` call site turned out to sit outside the censused function slice.
+   Each reported MISSED/MISATTRIBUTED first — which is the harness doing exactly its job.
+
 ### 29 — The victory close's positional exemption (#258, v1.724; Opus lane A, brief-mandated design)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #254 (JP0-6 / Fable f26). **Touched:** `tag_table.js`
