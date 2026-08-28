@@ -551,8 +551,14 @@ var TAG_TABLE=[
        "active crises ARE quests" channel would otherwise force-reactivate the very goal the
        player just dropped. |offered stays legal: the world may re-raise it, the player decides. */
     if(_arch&&_arch.status==="abandoned"&&qStat!=="offered"){
-      console.warn("[quest] blocked re-creation of abandoned quest '"+qTitle+"' as "+qStat+" — the player dropped it; only a fresh |offered may bring it back");
-      R.muts.push("Quest '"+qTitle+"' was abandoned by the player — not re-registered (re-offer with [QUEST:"+qTitle+"|offered] only if the fiction re-raises it)");
+      /* #235: the refusal must name the ACTUAL author. This wording hardcoded "the player dropped
+         it" for BOTH authors — a false statement of player agency for every wall sweep, carried
+         into the console, the provenance ring, the turn's system message and the #229 decisions
+         modal. questArchiveWording (helpers.js) is the one renderer; a legacy record with no
+         `by` reads neutrally rather than inventing an author it never recorded. */
+      var _aw=questArchiveWording(_arch);
+      console.warn("[quest] blocked re-creation of abandoned quest '"+qTitle+"' as "+qStat+" — it "+_aw.phrase+"; only a fresh |offered may bring it back");
+      R.muts.push("Quest '"+qTitle+"' "+_aw.phrase+" — not re-registered (re-offer with [QUEST:"+qTitle+"|offered] only if the fiction re-raises it)");
       continue;}
     if(_arch&&(_arch.status==="completed"||_arch.status==="failed")){
       console.warn("[quest] blocked re-creation of archived quest '"+qTitle+"' ("+_arch.status+") — a follow-up needs a NEW title");
@@ -705,8 +711,35 @@ combatAttrEntry("COMBAT_VULN","vuln"),
        a rostered foe’s death still routes through the same scene-evidence gate as any other
        named death; a generic rolled foe simply zeroes. Non-victory outcomes resolve NOTHING —
        fled/truce/disengaged/defeat mean the foe stopped fighting, not that it died. */
+    /* #254 (JP0-6, Fable f26; joint review 2026-08-27) — WHICH foes is this close about?
+       Handlers run in TABLE order, so COMBAT_START has ALREADY appended any same-response
+       newcomer to the DYING encounter before this handler runs; handler order therefore cannot
+       answer the question, and #214① below read the whole living list. The answer is POSITIONAL —
+       the identical mechanism the COMBAT_STATS/IMMUNE/RESIST/VULN tags already bind by
+       (combatStartPositions → combatAttrFoe): a foe whose [COMBAT_START:] sits at a GREATER
+       string index than the [COMBAT_END:] arrived after the fight closed and is not part of it.
+       "You cut down the last bandit — suddenly the bodyguard draws steel" used to stamp the
+       bodyguard slain, and on a save whose sceneRefs ledger was never activated w2DeathAuthorized
+       authorizes unconditionally — so a rostered character died with no blow landed. Those foes
+       are exempt from the victory resolution AND they CARRY THE TRACKER below: the loss of the
+       fresh fight used to be unconditional, happening even when the death gate refused.
+       HONEST LIMIT (f26 verifier): a newcomer whose COMBAT_START textually PRECEDES the close is
+       NOT protected — that order is ambiguous with the legitimate start-slay-close emission.
+       Known narrow gap: a duplicate COMBAT_START after the close naming an ALREADY-living foe
+       exempts that foe; the emission is already anomalous (the dup guard warns) and the outcome
+       is the conservative one — no invented death. */
+    var _ceKeep=[],_ceRest=[];
+    if(worldState.combat){
+      var _ceIdx=text.indexOf(ce[0]),_ceStarts=R.combatStarts(),_ceAfter={},_cq;
+      for(_cq=0;_cq<_ceStarts.length;_cq++){if(_ceStarts[_cq].idx>_ceIdx)_ceAfter[String(_ceStarts[_cq].name||"").toLowerCase()]=1;}
+      var _ceStanding=combatLivingFoes(),_cs2;
+      for(_cs2=0;_cs2<_ceStanding.length;_cs2++){
+        if(_ceAfter[String(_ceStanding[_cs2].name||"").toLowerCase()])_ceKeep.push(_ceStanding[_cs2]);
+        else _ceRest.push(_ceStanding[_cs2]);
+      }
+    }
     if(worldState.combat&&/^(victor|won|win|slain|kill|rout|triumph)/i.test(ce[1].trim())){
-      var _ceLive=combatLivingFoes(),_cl;
+      var _ceLive=_ceRest,_cl;
       for(_cl=0;_cl<_ceLive.length;_cl++){_ceLive[_cl].hp=0;_ceLive[_cl].down="slain";
         R.muts.push(_ceLive[_cl].name+" slain (still standing at victory — resolved to the narration)");}
       if(_ceLive.length){
@@ -714,7 +747,18 @@ combatAttrEntry("COMBAT_VULN","vuln"),
         if(typeof showToast==="function")showToast("\u2694 "+(_ceLive.length===1?_ceLive[0].name+" was":_ceLive.length+" foes were")+" still standing at victory \u2014 resolved as slain");
       }
     }
-    propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
+    propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */
+    R.muts.push("Combat: "+ce[1].trim());
+    if(_ceKeep.length){
+      /* #254: the closed fight is over and its corpses go with it; the post-close arrivals become
+         a NEW encounter at the node the party stands on now. The #149 aftermath anchor above
+         still points at the OLD fight's node — that is deliberate, the damage happened there. */
+      var _ceNm=[],_cn;for(_cn=0;_cn<_ceKeep.length;_cn++)_ceNm.push(_ceKeep[_cn].name);
+      worldState.combat={round:1,engaged:null,foes:_ceKeep,node:(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null)};
+      R.muts.push("Combat continues: "+_ceNm.join(", ")+" (entered after the close — not part of it)");
+      if(typeof console!=="undefined")console.warn("[combat] COMBAT_END:"+ce[1].trim()+" closed the old fight, but "+_ceNm.join(", ")+" entered AFTER the close tag — exempt from its resolution and carried into a new encounter (#254)");
+    }else worldState.combat=null;
+    return;}
   if(!worldState.combat)return;
   var f=worldState.combat.foes,i,anyUp=false,surr=false,names=[];
   for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0){anyUp=true;break;}
@@ -770,6 +814,18 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var sdParts=sdm[1].split("|"),sdName=(sdParts[0]||"").trim();if(!sdName||typeof capBaseName!=="function")continue;
   var sdKey=capBaseName(sdName);if(!worldState.capabilityBible)worldState.capabilityBible={};
   if(worldState.capabilityBible[sdKey]){if(typeof console!=="undefined")console.warn("[tags] SPELL_DEF: '"+sdName+"' already defined — write-once, redefinition ignored (#136③)");continue;}
+  /* #253 (JP0-8, Fable f51; owner ruling 2026-08-28): a name the STATIC bible already carries is
+     not a correction, it is a permanent SHADOW. capabilityLookup gives the overlay precedence, so
+     one hallucinated [SPELL_DEF:Fireball|tier=1|…] rewrote the injected canon, the card, the
+     viewer AND the mana price (manaSpellCost→manaMax) forever, behind a muts line that read like
+     an ordinary definition. The doc line already forbade it and canonizeCompanionSpellDefs
+     (game.js) already refused on-catalog names at its one call site — only the handler disagreed.
+     Emergent (off-catalog) spells keep the overlay-wins write-once flow untouched; pre-existing
+     shadows are left as written (no migration — historical canon stands). */
+  if(typeof capIsBaseCatalog==="function"&&capIsBaseCatalog(sdName)){
+    if(typeof console!=="undefined")console.warn("[tags] SPELL_DEF: '"+sdName+"' is already curated in the capability bible — REFUSED, curated canon is not redefinable in play (#253); invent a distinct name for a genuinely new working");
+    R.muts.push("⚠ Spell canon NOT redefined: "+sdName+" is already curated — the official entry stands");
+    continue;}
   var sdEntry={kind:"spell",tier:0,cost:"at-will",isMagical:true,category:[],range:"",targets:"",duration:"",effect:""},sdp;
   for(sdp=1;sdp<sdParts.length;sdp++){var kv=sdParts[sdp].split("=");if(kv.length<2)continue;var kk=kv[0].trim().toLowerCase(),vv=kv.slice(1).join("=").trim();
     if(kk==="range")sdEntry.range=vv;else if(kk==="targets"||kk==="target")sdEntry.targets=vv;else if(kk==="duration")sdEntry.duration=vv;else if(kk==="effect")sdEntry.effect=vv;else if(kk==="cost")sdEntry.cost=vv;else if(kk==="tier"){var _sdT=parseInt(vv);if(isNaN(_sdT)&&typeof console!=="undefined")console.warn("[tags] SPELL_DEF: unparseable tier '"+vv+"' on "+sdName+" — defaulting to 0 (#136③)");sdEntry.tier=isNaN(_sdT)?0:_sdT;}else if(kk==="save")sdEntry.save=vv;else if(kk==="dice")sdEntry.dice=vv;else if(kk==="category")sdEntry.category=vv.split(",").map(function(x){return x.trim().toLowerCase();}).filter(Boolean);else if(kk==="magical")sdEntry.isMagical=/^\s*(y|t|1|true)/i.test(vv);}
@@ -916,7 +972,10 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
           if(!_wq.bornArc||String(_wq.bornArc).toLowerCase()!==String(_wallArc).toLowerCase())continue;
           if(_wq.status!=="active"&&_wq.status!=="offered")continue;
           if(!memory.quests)memory.quests={};
-          memory.quests[_wq.title]={title:_wq.title,desc:_wq.desc||"",objectives:_wq.objectives||[],status:"abandoned",turn:R.turn};
+          /* #235: by:"wall" — the wall is the author, not the player. wasOffered marks the third
+             semantic that used to hide under the same label: a hook the player never accepted,
+             which lapsed rather than being dropped. Read by questArchiveWording (helpers.js). */
+          memory.quests[_wq.title]={title:_wq.title,desc:_wq.desc||"",objectives:_wq.objectives||[],status:"abandoned",turn:R.turn,by:"wall",wasOffered:_wq.status==="offered"};
           worldState.questLog.splice(_wk,1);
           _walled.push(_wq.title);
         }

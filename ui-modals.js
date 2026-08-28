@@ -510,9 +510,15 @@ function showQuestModal(){
   // "WTH, how?" when History shows only a title; the checklist IS the how). archiveQuest has
   // always kept desc/objectives; older or declined records may lack either — degrade to the
   // old title-only line inside the summary, never break.
+  // #235: "abandoned" has three authors (player drop / arc wall / a never-accepted hook lapsing
+  // with its arc) and the bare status rendered all three identically — beside an Abandon button
+  // whose own tooltip teaches that abandoned means the PLAYER's deliberate drop. The label comes
+  // from the one pure renderer (questArchiveWording, helpers.js); a legacy record with no `by`
+  // still reads the old neutral "abandoned".
   var histHtml="";for(i=0;i<arch.length;i++){var aq=arch[i];var clr=aq.status==="completed"?"var(--grn)":aq.status==="failed"?"var(--red)":"var(--t2)";var sym=aq.status==="completed"?"✓":aq.status==="failed"?"✗":"—";
+    var qLbl=aq.status==="abandoned"?questArchiveWording(aq).label:aq.status;
     histHtml+="<details style='padding:3px 0;'>"
-      +"<summary style='cursor:pointer;font-size:12px;color:var(--t2);'><span style='color:"+clr+";'>"+sym+"</span> "+escHtml(aq.title)+" <span style='font-size:10px;'>("+escHtml(aq.status)+(aq.turn?" · t"+aq.turn:"")+")</span></summary>"
+      +"<summary style='cursor:pointer;font-size:12px;color:var(--t2);'><span style='color:"+clr+";'>"+sym+"</span> "+escHtml(aq.title)+" <span style='font-size:10px;'>("+escHtml(qLbl)+(aq.turn?" · t"+aq.turn:"")+")</span></summary>"
       +(aq.desc?"<div style='font-size:12px;color:var(--t2);margin:4px 0 0 16px;'>"+escHtml(aq.desc)+"</div>":"")
       +"<div style='margin-left:16px;'>"+objList(aq)+"</div>"
       +"</details>";}

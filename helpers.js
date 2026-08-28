@@ -378,6 +378,25 @@ function currentArcTitle(){
   for(j=0;j<act.arcs.length;j++){if(act.arcs[j].status==="active")live.push(act.arcs[j]);}
   return live.length===1?live[0].title:null;
 }
+// #235 (JP0-3 part A; Fable f3 + f12; owner rulings 2026-08-28) — WHO abandoned it.
+// "abandoned" has three authors and one status: the player's own Abandon button (#229 →
+// abandonQuestState stamps by:"player"), the #231 arc wall closing a live thread with its parent
+// arc (by:"wall"), and that same sweep archiving an OFFERED hook the player never accepted
+// (by:"wall" + wasOffered:true — a third semantic that used to hide under the same label).
+// This is THE renderer for every reader: the reopen guard's warn + muts line (which is what the
+// #229 decisions modal shows), and the Quest Journal's History line. A record with NO `by` is
+// LEGACY — pre-#235 saves cannot know their own author, so they render neutrally and must never
+// be read as a player drop. Pure: no state, no DOM.
+function questArchiveWording(rec){
+  var by=(rec&&rec.by)||"";
+  if(by==="wall"){
+    return (rec&&rec.wasOffered)
+      ? {origin:"lapsed",label:"opportunity lapsed",phrase:"lapsed with the arc that raised it"}
+      : {origin:"wall",label:"closed with the arc",phrase:"closed with the arc that began it"};
+  }
+  if(by==="player")return {origin:"player",label:"abandoned by you",phrase:"was abandoned by you"};
+  return {origin:"unknown",label:"abandoned",phrase:"was abandoned"};
+}
 function partyCompanionsWithSheets(includeDead){
   var out=[],ns=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[],i;
   for(i=0;i<ns.length;i++){var n=ns[i];if(n&&n.partyMember&&n.charSheet&&(includeDead||!npcIsDead(n)))out.push(n);}

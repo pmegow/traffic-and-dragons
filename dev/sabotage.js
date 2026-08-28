@@ -62,6 +62,7 @@ function proveScratch(opts) {
        non-manifest co-changes (satellites, ui shards). */
     try{require("./engine-manifest.js").forEach(function(en){copyWorking(en.file);});}catch(eM){}
     copyWorking("ui-files.js"); /* JP0-5 (v1.722, the #194L6 class again): the suite's archive-registry source contract readFileSync's ui-files.js, so a clone without it reds EVERY battery's baseline with an unrelated failure and poisons attribution — non-manifest files the suite scans BY SOURCE must ride in as standard, not per-battery `also:` */
+    copyWorking("ui-modals.js"); /* #256 (v1.724, same class): the by-field History-label source contract reads ui-modals.js */
     (opts.also || []).forEach(copyWorking); /* #197: the #196 fix's multi-FILE sibling — a feature spanning several engine files is only provable pre-commit if the WORKING copy of every co-changed file rides into the clone, else each clause "fails" on the absent feature and misattributes as caught */
     if (opts.command && opts.command[1] && opts.command[1][0]) copyWorking(opts.command[1][0]);
     return prove({

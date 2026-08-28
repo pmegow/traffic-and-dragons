@@ -526,7 +526,24 @@ rc|=sabotage.prove({
     {label:"TIME_CHECK regains combat scoping — every peaceful turn trips the UA27 counter (#216fix)",
       mustFail:"#216fix TIME_CHECK is NOT combat-scoped",
       find:"{t:\"TIME_CHECK\",apply:function(text,R){",
-      replace:"{t:\"TIME_CHECK\",nc:1,apply:function(text,R){"}
+      replace:"{t:\"TIME_CHECK\",nc:1,apply:function(text,R){"},
+    /* #254 (JP0-6, Fable f26): a foe whose COMBAT_START sits AFTER the COMBAT_END in the response
+       text is not part of the encounter being closed. Both halves are load-bearing — the victory
+       exemption (a rostered newcomer would otherwise be stamped durably dead by the previous
+       fight's outcome, unconditionally on a save whose sceneRefs was never activated) and the
+       carry-over (the fresh fight used to be destroyed even when the death gate refused). */
+    {label:"#254: the positional split is dropped — the previous fight's victory kills a foe the same response just introduced",
+      mustFail:"a rostered NPC was stamped durably dead by the PREVIOUS fight's victory",
+      find:"        if(_ceAfter[String(_ceStanding[_cs2].name||\"\").toLowerCase()])_ceKeep.push(_ceStanding[_cs2]);",
+      replace:"        if(false)_ceKeep.push(_ceStanding[_cs2]);"},
+    {label:"#254: the index comparison inverts — the foes that fought and fell are spared and the newcomer dies",
+      mustFail:"the carried encounter is wrong",
+      find:"if(_ceStarts[_cq].idx>_ceIdx)",
+      replace:"if(_ceStarts[_cq].idx<_ceIdx)"},
+    {label:"#254: the exempt foes are computed but discarded — the new fight still dies with the old one",
+      mustFail:"the new fight is gone",
+      find:"    }else worldState.combat=null;",
+      replace:"    }\n    worldState.combat=null;"}
   ]
 });
 

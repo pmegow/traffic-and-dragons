@@ -325,7 +325,10 @@ function abandonQuestState(title){
   var i;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];
     if(q.title===title&&q.status==="active"){
       if(!memory.quests)memory.quests={};
-      memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"abandoned",turn:worldState.turn||0};
+      /* #235: by:"player" — the archive's author. The #231 wall writes the SAME status with
+         by:"wall", and every reader renders through questArchiveWording (helpers.js), so a
+         wall sweep can never again be reported to anyone as the player walking away. */
+      memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"abandoned",turn:worldState.turn||0,by:"player"};
       worldState.questLog.splice(i,1);
       if(!worldState.recentAbandon)worldState.recentAbandon=[];
       worldState.recentAbandon.push({title:q.title,turn:worldState.turn||0});

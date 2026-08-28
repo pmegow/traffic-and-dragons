@@ -265,6 +265,41 @@ function runEngineTests(R){
   t("spell canon lands in the VOLATILE half, never the cached stable half",function(){makeWorld();worldState.character.spells=[{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];var s=buildSysPrompt();var MARK="CANONICAL SPELL RULES (authoritative";/* block header, distinct from the SPELL_DEF instruction that names the block */if(s.stable.indexOf(MARK)>=0)return "spell canon block leaked into stable — kills the cache";return s.volatile.indexOf(MARK)>=0?true:"canon missing from volatile";});
   t("[SPELL_DEF:] files a GM-invented spell into the overlay; lookup returns it",function(){makeWorld();applyMuts("[SPELL_DEF:Frost Lance|range=60ft|targets=1 creature|duration=instantaneous|effect=a lance of ice; DEX save or 2d8 cold and slowed|cost=slot|tier=1|magical=yes]");var e=capabilityLookup("Frost Lance");return e&&e.range==="60ft"&&e.cost==="slot"&&e.tier===1&&e.isMagical===true&&/lance of ice/.test(e.effect)?true:"bad overlay entry: "+JSON.stringify(e);});
   t("[SPELL_DEF:] is write-once — a second definition does not overwrite",function(){makeWorld();applyMuts("[SPELL_DEF:Frost Lance|range=60ft|effect=original]");applyMuts("[SPELL_DEF:Frost Lance|range=1 mile|effect=drifted]");var e=capabilityLookup("Frost Lance");return e&&e.range==="60ft"?true:"write-once failed, got range "+(e&&e.range);});
+  // ── #253 — SPELL_DEF may not shadow curated canon (JP0-8, Fable f51; owner ruling 2026-08-28) ──
+  // The handler's write-once check consulted ONLY the emergent overlay, so one hallucinated
+  // [SPELL_DEF:Fireball|…] permanently replaced the curated entry EVERYWHERE — the per-turn
+  // injection, the card, the viewer, and manaSpellCost/manaMax (a tier=1 redefinition of a tier-3
+  // spell silently repriced the whole pool) — with a muts line that read like a normal definition.
+  // Write-once meant no in-play correction existed. The doc line already forbade redefining a
+  // listed spell and the companion-sheet caller (canonizeCompanionSpellDefs) already refused
+  // on-catalog names; only the handler disagreed. Emergent spells keep the overlay-wins design.
+  t("#253: [SPELL_DEF:] naming a CURATED base spell refuses — no overlay write, loudly",function(){
+    makeWorld();worldState.capabilityBible={};
+    var warned="",_w=console.warn;console.warn=function(m){warned+=String(m)+" ";};
+    var R;try{R=applyMuts("[SPELL_DEF:Fireball|range=1 mile|tier=1|cost=at-will|effect=a hallucinated rewrite of curated canon]");}finally{console.warn=_w;}
+    if(worldState.capabilityBible[capBaseName("Fireball")])return "the static base entry was shadowed — curated canon is overwritable again";
+    var e=capabilityLookup("Fireball");
+    if(!e||e.tier!==3||e.range!=="150ft")return "curated Fireball canon changed: "+JSON.stringify([e&&e.tier,e&&e.range]);
+    if(!/already curated|curated canon/i.test(warned))return "the refusal was silent in the console: "+warned;
+    var line=R.muts.join(" | ");
+    if(/Spell canon defined/.test(line))return "the muts line still reports a normal definition: "+line;
+    return /⚠/.test(line)&&/Fireball/.test(line)?true:"no ⚠ muts line naming the refused spell: "+line;
+  });
+  t("#253: the refusal keys on the STATIC catalog, not the overlay — an emergent spell still defines",function(){
+    makeWorld();worldState.capabilityBible={};
+    applyMuts("[SPELL_DEF:Marsh Light|range=60ft|targets=one point|effect=A bobbing witch-light|cost=at-will|tier=0|magical=yes]");
+    var e=capabilityLookup("Marsh Light");
+    if(!e||e.range!=="60ft")return "an off-catalog emergent spell was refused — the write-once flow is broken: "+JSON.stringify(e);
+    return CAPABILITY_BIBLE[capBaseName("Marsh Light")]?"fixture is on-catalog — pick a name the base bible does not carry":true;
+  });
+  t("#253: an overlay entry that ALREADY shadows a base entry is left alone — no migration, historical canon stands",function(){
+    makeWorld();
+    worldState.capabilityBible={"fireball":{kind:"spell",tier:1,cost:"at-will",isMagical:true,category:["arcane"],range:"1 mile",targets:"x",duration:"y",save:"N/A",dice:"N/A",effect:"a pre-existing shadow from an older save"}};
+    var _w=console.warn;console.warn=function(){};
+    try{applyMuts("[SPELL_DEF:Fireball|range=2 miles|effect=drift]");}finally{console.warn=_w;}
+    var e=capabilityLookup("Fireball");
+    return e&&e.range==="1 mile"?true:"a pre-existing overlay was rewritten or removed: "+JSON.stringify(e&&e.range);
+  });
   t("[SPELL_DEF:] magical=no sets isMagical false",function(){makeWorld();applyMuts("[SPELL_DEF:Mundane Trick|effect=sleight of hand|magical=no]");var e=capabilityLookup("Mundane Trick");return e&&e.isMagical===false?true:"isMagical not false: "+JSON.stringify(e);});
   t("cleanTxt strips [SPELL_DEF:] from displayed prose",function(){return eq(cleanTxt("You weave a new working, and the air chills. [SPELL_DEF:Frost Lance|range=60ft|effect=ice]"),"You weave a new working, and the air chills.");});
   t("capability_bible: martial ability resolves and is isMagical:false",function(){var e=capabilityLookup("Power Strike");return e&&e.kind==="ability"&&e.isMagical===false?true:"bad: "+JSON.stringify(e);});
@@ -6636,6 +6671,103 @@ function runEngineTests(R){
     return worldState.recentWallSweep?true:"a fresh note was cleared early";
   });
 
+  // ── #235 — WHO abandoned it (JP0-3 part A, joint review 2026-08-27; Fable f3 + f12) ───────
+  // "abandoned" had three indistinguishable authors under one label: the player's own Abandon
+  // button (#229), the #231 arc wall sweeping a live thread, and the same sweep archiving an
+  // OFFERED hook the player never accepted. Every reader then told the same lie — the reopen
+  // guard's warn and muts line hardcoded "the player dropped it" for a wall sweep, and the Quest
+  // Journal's History rendered all three as a bare "(abandoned)" beside an Abandon button whose
+  // own tooltip teaches that abandoned means the player's deliberate drop. Owner rulings
+  // 2026-08-28: ONE "abandoned" status plus a `by` field; a wall-swept quest must NEVER read as
+  // player-dropped. A record with no `by` is LEGACY and renders neutrally — never as a drop.
+  section("#235 — the abandoned quest's author (by field)");
+  t("#235: abandonQuestState stamps by:\"player\" — the deliberate drop is on the record",function(){
+    makeWorld();worldState.turn=30;
+    worldState.questLog=[{title:"The Bell Below",status:"active",desc:"d",objectives:[],started:1}];
+    if(!abandonQuestState("The Bell Below"))return "precondition: the abandon did not take";
+    var rec=memory.quests["The Bell Below"];
+    if(!rec||rec.status!=="abandoned")return "not archived abandoned";
+    return rec.by==="player"?true:"player abandon left no author stamp: "+JSON.stringify(rec.by);
+  });
+  t("#235: the wall stamps by:\"wall\", and an OFFERED progeny also carries wasOffered",function(){
+    __wallWorld();
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.][QUEST:A Rumor In Town|offered|Someone's problem.]");
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    var a=memory.quests["The Sugar War"],o=memory.quests["A Rumor In Town"];
+    if(!a||!o)return "precondition: the wall did not archive both threads";
+    if(a.by!=="wall")return "the wall's archive record claims no author: "+JSON.stringify(a.by);
+    if(a.wasOffered)return "an ACTIVE thread was marked wasOffered — the player HAD accepted it";
+    if(o.by!=="wall")return "the swept offer claims no author: "+JSON.stringify(o.by);
+    return o.wasOffered===true?true:"the never-accepted hook is indistinguishable from an accepted thread: "+JSON.stringify(o.wasOffered);
+  });
+  t("#235: questArchiveWording is THE renderer — three honest readings plus a neutral legacy one",function(){
+    var pl=questArchiveWording({status:"abandoned",by:"player"});
+    var wl=questArchiveWording({status:"abandoned",by:"wall"});
+    var lp=questArchiveWording({status:"abandoned",by:"wall",wasOffered:true});
+    var lg=questArchiveWording({status:"abandoned"});
+    if(pl.label!=="abandoned by you")return "player label wrong: "+pl.label;
+    if(wl.label!=="closed with the arc")return "wall label wrong: "+wl.label;
+    if(lp.label!=="opportunity lapsed")return "lapsed-offer label wrong: "+lp.label;
+    if(lg.label!=="abandoned")return "legacy label is not neutral: "+lg.label;
+    if(/you|player/i.test(wl.label+" "+wl.phrase))return "a wall sweep reads as the player's doing: "+wl.phrase;
+    if(/you|player/i.test(lp.label+" "+lp.phrase))return "a lapsed offer reads as the player's doing: "+lp.phrase;
+    if(/you|player/i.test(lg.label+" "+lg.phrase))return "a LEGACY record reads as a player drop: "+lg.phrase;
+    if(!/you/i.test(pl.phrase))return "the player's own drop is not attributed to them: "+pl.phrase;
+    return true;
+  });
+  t("#235: the reopen guard tells the truth about a WALL-swept title — never 'the player dropped it'",function(){
+    __wallWorld();
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.]");
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    var warned="",_w=console.warn;console.warn=function(m){warned+=String(m)+" ";};
+    var R;try{R=applyMuts("[QUEST:The Sugar War|active]");}finally{console.warn=_w;}
+    var line=R.muts.join(" | ");
+    if(worldState.questLog.length)return "precondition: the guard did not block the re-creation";
+    if(/by the player|player dropped|by you/i.test(line))return "the muts line calls a wall sweep the player's drop: "+line;
+    if(/by the player|player dropped|by you/i.test(warned))return "the console warn calls a wall sweep the player's drop: "+warned;
+    if(line.indexOf("closed with the arc")<0)return "the muts line does not name the real author: "+line;
+    return warned.indexOf("closed with the arc")>=0?true:"the console warn does not name the real author: "+warned;
+  });
+  t("#235: the reopen guard still attributes the PLAYER's own drop to the player",function(){
+    makeWorld();worldState.turn=30;
+    worldState.questLog=[{title:"The Bell Below",status:"active",desc:"d",objectives:[],started:1}];
+    abandonQuestState("The Bell Below");
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("[QUEST:The Bell Below|active]");}finally{console.warn=_w;}
+    var line=R.muts.join(" | ");
+    if(worldState.questLog.length)return "precondition: the guard did not block the re-creation";
+    return /by you/i.test(line)?true:"the player's own drop lost its attribution: "+line;
+  });
+  t("#235: a LEGACY abandoned record (no by) renders neutrally — it is never read as a player drop",function(){
+    makeWorld();worldState.turn=30;
+    memory.quests={"Old Thread":{title:"Old Thread",desc:"",objectives:[],status:"abandoned",turn:9}};
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("[QUEST:Old Thread|active]");}finally{console.warn=_w;}
+    var line=R.muts.join(" | ");
+    if(worldState.questLog.length)return "precondition: the guard did not block the re-creation";
+    if(/by you|by the player|closed with the arc/i.test(line))return "a legacy record was given an author it never had: "+line;
+    return line.indexOf("was abandoned")>=0?true:"the legacy refusal says nothing useful: "+line;
+  });
+  t("#235: by/wasOffered survive the save round-trip (JSON + healMemory) — the JP0-5 drop class",function(){
+    /* written through the REAL writers, not hand-built records — a round-trip pin over a fixture
+       would stay green even if the writers never stamped anything. */
+    __wallWorld();
+    worldState.questLog.push({title:"Dropped",status:"active",desc:"",objectives:[],started:1});
+    abandonQuestState("Dropped");
+    applyMuts("[QUEST:Walled|active|x.][QUEST:Lapsed|offered|y.]");
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    var mm=JSON.parse(JSON.stringify(memory));
+    /* the .tnd import's own memory rebuild carries quests WHOLESALE (ui-files.js) — pinned as a
+       source clause in run-tests.js; here we exercise the engine half it hands the object to. */
+    memory={attitudeSpec:mm.attitudeSpec,npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:mm.lore||[],keyDecisions:mm.keyDecisions||[],futureEvents:mm.futureEvents||[],chapters:mm.chapters||[],eras:mm.eras||[],map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph,archive:mm.archive};
+    healMemory();
+    var d=memory.quests.Dropped,w=memory.quests.Walled,l=memory.quests.Lapsed;
+    if(!d||d.by!=="player")return "player provenance lost on round-trip: "+JSON.stringify(d);
+    if(!w||w.by!=="wall")return "wall provenance lost on round-trip: "+JSON.stringify(w);
+    if(!l||l.by!=="wall"||l.wasOffered!==true)return "the lapsed-offer flag lost on round-trip: "+JSON.stringify(l);
+    return true;
+  });
+
   section("arc↔quest coupling (UA31)");
   function __arcQuestWorld(){
     makeWorld();worldState.turn=40;
@@ -7523,6 +7655,61 @@ function runEngineTests(R){
     return worldState.combat===null?true:"the encounter did not close";
   });
 
+  // ── #254 — a victory close may not kill a foe the SAME response introduced after it ───────
+  // JP0-6 / Fable f26. Handlers run in TABLE order, so COMBAT_START (line ~604) appends the new
+  // foe to the DYING encounter before COMBAT_END (line ~690) ever runs — and #214①'s victory
+  // branch then read combatLivingFoes() with no idea the newcomer arrived AFTER the close in the
+  // response text. "You cut down the last bandit — suddenly the bodyguard draws steel" therefore
+  // stamped the bodyguard slain, and if he was a rostered NPC on a save whose sceneRefs ledger was
+  // never activated the death gate authorizes unconditionally, so a known character died without
+  // a blow landing. Separately, the fresh encounter was destroyed UNCONDITIONALLY (combat=null)
+  // even when the gate refused. The fix is POSITIONAL, the same mechanism COMBAT_STATS/IMMUNE/
+  // RESIST/VULN already bind by: a foe whose [COMBAT_START:] sits at a greater string index than
+  // the [COMBAT_END:] is not part of the encounter being closed.
+  // HONEST LIMIT (f26 verifier): a new foe whose COMBAT_START textually PRECEDES the close is NOT
+  // protected — that order is genuinely ambiguous with the legitimate start-slay-close shape
+  // (test 15587), so this fixes the natural close-first emission and is not exhaustive.
+  t("#254: a foe introduced AFTER the close tag survives it, and carries the encounter forward",function(){
+    __twoFoes();
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    var R;try{R=applyMuts("[COMBAT_END:victory][COMBAT_START:Bodyguard|30|15|+5|1d8|steady]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(!worldState.combat)return "the encounter closed over a foe the same response had just introduced — the new fight is gone";
+    var f=worldState.combat.foes,bg=null,i;
+    for(i=0;i<f.length;i++)if(f[i].name==="Bodyguard")bg=f[i];
+    if(!bg)return "the newborn foe is not in the carried encounter: "+JSON.stringify(f.map(function(x){return x.name;}));
+    if(bg.down||bg.hp!==30)return "the newborn foe was resolved by the OLD fight's victory: "+JSON.stringify([bg.hp,bg.down]);
+    for(i=0;i<f.length;i++)if(f[i].name==="Kresh"||f[i].name==="Grukk")return "the closed fight's foes were carried into the new encounter: "+f[i].name;
+    var line=R.muts.join(" | ");
+    return /Kresh slain|Grukk slain/.test(line)?true:"the closing fight's standing foes were not resolved at all: "+line;
+  });
+  t("#254: a foe introduced BEFORE the close tag IS resolved by it (the legitimate start-slay-close shape is untouched)",function(){
+    __twoFoes();
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    try{applyMuts("[COMBAT_START:Bodyguard|30|15|+5|1d8|steady][COMBAT_END:victory]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    return worldState.combat===null?true:"an encounter opened BEFORE the close survived it — the exemption is not positional";
+  });
+  t("#254: interleaved — the foe before the close dies with it, the foe after it fights on alone",function(){
+    __twoFoes();
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    var R;try{R=applyMuts("[COMBAT_START:Doomed|8|11|+1|d4|low][COMBAT_END:victory][COMBAT_START:Latecomer|22|14|+3|d8|steady]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(!worldState.combat)return "the encounter closed over the post-close foe";
+    var names=worldState.combat.foes.map(function(x){return x.name;});
+    if(names.length!==1||names[0]!=="Latecomer")return "the carried encounter is wrong: "+JSON.stringify(names);
+    return /Doomed slain/.test(R.muts.join(" | "))?true:"the pre-close newcomer escaped the victory it was standing in: "+R.muts.join(" | ");
+  });
+  t("#254: a ROSTERED foe introduced after the close never reaches the death gate at all",function(){
+    /* sceneRefs deliberately NOT activated — on such a save w2DeathAuthorized returns true
+       unconditionally (f26 verifier), so ONLY the positional exemption can save him. */
+    makeWorld();worldState.world.location="Jorgenfist";worldState.turn=71;
+    worldState.npcs.push({name:"Mokmurian",status:"",statusTurn:0,rel:"enemy",met:1,partyMember:false,aliases:[]});
+    memory.npcs.Mokmurian={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[COMBAT_START:Stone Giant|18|14|+4|d10|high]");
+    var _w=console.warn,_t=(typeof showToast==="function")?showToast:null;console.warn=function(){};if(_t)showToast=function(){};
+    try{applyMuts("[COMBAT_END:victory][COMBAT_START:Mokmurian|20|14|+4|d10|high]");}finally{console.warn=_w;if(_t)showToast=_t;}
+    if(npcIsDead(wsNpcByName("Mokmurian")))return "a rostered NPC was stamped durably dead by the PREVIOUS fight's victory, without a blow landing";
+    if(memory.npcs.Mokmurian&&memory.npcs.Mokmurian.dead)return "the memory tier recorded the phantom death";
+    return worldState.combat&&worldState.combat.foes.length===1&&worldState.combat.foes[0].name==="Mokmurian"?true:"the new fight did not survive: "+JSON.stringify(worldState.combat&&worldState.combat.foes.map(function(x){return x.name;}));
+  });
   t("#214② an open encounter with no combat tags for COMBAT_STALE_TURNS asks for the missing outcome, naming the foe and its HP",function(){
     __twoFoes();
     applyMuts("[ENEMY_HP:Grukk|-10]");

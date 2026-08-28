@@ -338,6 +338,17 @@ try {
   // #144B: the extractor schema must keep teaching the durable/scene kind — losing it reverts
   // every new fact to the untyped stale-posture class.
   if (_memAC.indexOf("scene facts are filed as dated history") < 0) _failAC("the extraction schema no longer teaches the durable/scene kind (#144B)");
+  // ③ #235: the quest archive rides WHOLESALE. by/wasOffered are additive provenance fields on
+  //   memory.quests records; a field-by-field rebuild here would drop them on every .tnd import —
+  //   the exact class this contract exists for (attitudeSpec, eras, the #144A trio, the death
+  //   corrections). The engine half of the round-trip is engine-tested; this pins the DOM surface.
+  if (_ufAC.indexOf("quests:mm.quests||{}") < 0)
+    _failAC("the .tnd import no longer carries memory.quests wholesale — #235 by/wasOffered provenance would be dropped on every round-trip");
+  // ④ #235: the Quest Journal's History label routes through the one pure renderer, so a
+  //   wall-swept thread can never render as the player's own drop.
+  var _umAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "ui-modals.js"), "utf8");
+  if (_umAC.indexOf("questArchiveWording(aq).label") < 0)
+    _failAC("the Quest Journal History line no longer renders abandoned records through questArchiveWording (#235) — all three authors read as one lie again");
 } catch (eAC) { console.error("#144A ARCHIVE CARRY CONTRACT: " + (eAC && eAC.message)); process.exit(1); }
 
 // ── JP0-4 CORRUPT-STORE RESCUE CONTRACT (joint review 2026-08-27, Sol P0-02) ─────────────

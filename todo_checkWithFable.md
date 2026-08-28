@@ -50,6 +50,134 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 29 — The victory close's positional exemption (#258, v1.724; Opus lane A, brief-mandated design)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #254 (JP0-6 / Fable f26). **Touched:** `tag_table.js`
+(the `COMBAT_END` handler only), `dev/engine-tests.js`, `dev/sabotage-w2.js`.
+
+**What shipped.** `COMBAT_END` now computes the closing tag's string index and splits the living
+foes in two: those whose `[COMBAT_START:]` sits at a GREATER index arrived after the fight closed
+and are not part of it. They are exempt from #214①'s victory resolution, and they carry the
+tracker forward as a new encounter (round 1, engaged null, anchored at the current node) instead
+of dying with the old fight. The closed fight's own corpses stay with it. The #149 aftermath
+anchor still points at the OLD encounter's node — deliberate, that is where the damage happened.
+
+**Verification.** 4 engine assertions, 3 RED first (post-close survivor + carry-over; interleaved
+multi-foe; a rostered newcomer never reaching the death gate on a save with an unactivated
+`sceneRefs`, which is the strongest shape because there the gate authorizes unconditionally). The
+fourth — start-then-close — was green before and after by design: it pins that the legitimate
+start-slay-close emission (test 15587's shape) is untouched. Every existing #214 assertion green.
+`dev/sabotage-w2.js` +3 clauses in its existing tag_table/COMBAT_END block, all proven, battery
+clean.
+
+**What the reviewer should probe:**
+
+1. **I extended the carry-over to NON-victory closes.** The brief mandated the exemption for
+   victory resolution; the split itself is outcome-independent (a foe introduced after the close
+   is not in the closing encounter regardless of the outcome word), and Fable f26's remedy is
+   written about *discarding* ("instead of discarding them with the close, rebuild
+   worldState.combat around the surviving fresh foes"). So `[COMBAT_END:fled][COMBAT_START:X]`
+   now keeps X in an open encounter where it previously discarded it to the #225 orphan channel.
+   That is a real behavior change beyond the literal victory case — **confirm or restrict.**
+2. **Known narrow gap, deliberately left.** A duplicate `[COMBAT_START:]` after the close naming
+   an ALREADY-living foe exempts that (old) foe, because the split keys on the tag's position and
+   the foe's name, not on which foe object this response actually created. I chose the smaller
+   diff over threading a per-response newborn map through the COMBAT_START handler; the emission
+   is doubly anomalous (the dup guard already warns) and the outcome is the conservative one — no
+   invented death. If you want exactness, the fix is a `R.freshFoeIdx` map written at append time.
+3. **The f26 honest limit stands.** A newcomer whose `COMBAT_START` textually PRECEDES the close
+   is still unprotected — that order is genuinely ambiguous with the legitimate start-slay-close
+   shape, so an index check alone cannot separate them. Documented in code and in the test header.
+4. **The #225 ghost line is now slightly odder.** With no prior combat, `[COMBAT_END:victory]
+   [COMBAT_START:X]` reaches this handler with a tracker that exists (COMBAT_START made it), so
+   the `ce&&!worldState.combat` #225 early return does not fire and a `Combat: victory` muts line
+   is pushed while a fight is open. Pre-existing (it fired before too, and additionally destroyed
+   X); worth deciding whether #225's absorb should also cover "the tracker was null before this
+   response".
+
+### 28 — SPELL_DEF may not shadow curated spell canon (#257, v1.724; Opus lane A, owner-ruled)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #253 (JP0-8 / Fable f51). **Touched:**
+`capability_bible.js` (`capIsBaseCatalog` — new predicate beside `capabilityLookup`),
+`tag_table.js` (the SPELL_DEF handler's new on-catalog refusal), `game.js` (cross-reference
+comment at `canonizeCompanionSpellDefs`), `dev/engine-tests.js`,
+`dev/sabotage-drift-hardening.js`.
+
+**What shipped.** The handler's write-once check consulted only `worldState.capabilityBible`, so
+a `[SPELL_DEF:]` naming a curated base entry filed a permanent shadow that `capabilityLookup`
+then preferred everywhere — including `manaSpellCost`/`manaMax`, so a tier=1 redefinition of a
+tier-3 spell silently repriced the whole pool. Now an on-catalog name is REFUSED: loud console
+warn, a `⚠ Spell canon NOT redefined:` muts line, zero writes. Off-catalog spells keep the
+overlay-wins write-once flow byte-for-byte. Per the owner ruling, overlay entries that already
+shadow a base entry are left as-is — no migration, historical canon stands (pinned by a test).
+
+**Verification.** 3 engine assertions; the refusal one was RED first, and the other two are
+deliberate green regression pins (the emergent path and the no-migration path must NOT change —
+a red there would mean I broke something, not that a defect existed). 4 new sabotage clauses in
+`dev/sabotage-drift-hardening.js`, all proven, whole battery green.
+
+**What the reviewer should probe:**
+
+1. **Two predicates, deliberately different widths.** `capIsBaseCatalog` is the STATIC half;
+   `canonizeCompanionSpellDefs` keeps `capabilityLookup` (base ∪ overlay) because at its call
+   site the union is the right question. I documented the asymmetry at both sites rather than
+   forcing one shared predicate. Confirm that reading, or collapse them.
+2. **The `capability_bible.js` addition sits below the data block.** The BIBLE EDITOR CONTRACT
+   round-trip carries `prefix` and `suffix` verbatim, and the suite is green, so an editor save
+   is still a no-op — but the file is machine-touched by a satellite and now holds one more
+   hand-written function. Worth one look.
+3. **`ABILITY`-shaped entries are covered too.** The bible holds abilities under the same keys,
+   so `[SPELL_DEF:Power Strike|…]` is now refused as well. That follows the unified-bible design
+   (`kind` is cosmetic) and I believe it is right, but it was not explicitly ruled.
+4. **No repair path for the shadows already in the field.** The refusal is forward-only. If a
+   live save carries a bad shadow, the only exit remains an operator console
+   `delete worldState.capabilityBible[key]` (Fable f51's own verifier note). If the owner wants a
+   player-facing repair, that is a separate design.
+
+### 27 — WHO abandoned it: the quest archive's `by` field (#256, v1.724; Opus lane A, owner-ruled)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #252 (JP0-3 part A). **Touched:** `helpers.js`
+(`questArchiveWording` — new pure renderer), `api.js` (`abandonQuestState` stamps `by:"player"`),
+`tag_table.js` (the #231 wall archive write stamps `by:"wall"` + `wasOffered`; the QUEST reopen
+guard's warn + muts line now render through the helper), `ui-modals.js` (Quest Journal History
+label), `dev/run-tests.js` (#144A contract clauses ③ and ④), `dev/engine-tests.js`,
+`dev/sabotage-231-arc-wall.js`.
+
+**What shipped.** Three authors, one status. `abandonQuestState` and the arc wall now sign their
+archive records; the wall additionally marks a swept OFFERED hook `wasOffered:true` (owner's
+"opportunity lapsed" reading — a hook the player never accepted was the third semantic hiding
+under the same label). `questArchiveWording(rec)` is the ONE renderer for every reader, returning
+`{origin,label,phrase}`: "abandoned by you" / "closed with the arc" / "opportunity lapsed", and
+"abandoned" for a LEGACY record with no `by` — which must never be read as a player drop. The
+reopen guard's hardcoded "the player dropped it" (false for every wall sweep, and surfaced in the
+console, the provenance ring, the turn's system message and the #229 decisions modal) is gone.
+
+**Verification.** 7 failing-first engine assertions (all confirmed RED before implementation;
+1691→1698 green). Sabotage `dev/sabotage-231-arc-wall.js` extended 16→22 clauses, 22/22 proven
+byte-identical. The pre-existing clause quoting the wall's archive write was re-pointed in the
+same commit (Fable f3's own verifier warning). Every prove block gained `also:["ui-modals.js"]` —
+the new History-label source clause reads a ui shard that is NOT in the engine manifest, so
+without it the clone's baseline reds and every clause misattributes (this actually happened on
+the first run: 0/9 misattributed).
+
+**What the reviewer should probe:**
+
+1. **The History modal is a DOM shell I could not drive.** `ui-modals.js` has no test seam, so the
+   three renderings are proven only at the pure helper plus a source clause pinning that the
+   modal calls `questArchiveWording(aq).label`. A reviewer should eyeball the live journal once —
+   the label sits inside the collapsed `<summary>` beside the turn stamp.
+2. **`wasOffered` is written as a boolean on every wall record** (`false` for active threads), so
+   a save now carries an explicit `false` where nothing existed. It is falsy everywhere it is
+   read, but if a future reader does `"wasOffered" in rec` it will see a difference between wall
+   records and player records. Decide whether the field should be omitted when false.
+3. **Only "abandoned" got provenance.** `declined`, `completed` and `failed` archives still carry
+   no author, and `archiveQuest` (the completed/failed writer) is untouched. If the wider JP0-3
+   bundle (status validation, the declined reopen hole, archive-overwrite protection) lands later,
+   it should decide whether `by` generalizes to every archive write or stays abandoned-only.
+4. **No migration.** Pre-v1.719 abandoned records stay authorless forever and render neutrally.
+   That is the deliberate honest choice (the author is genuinely unknowable), but it means the
+   #231 field watch cannot count wall sweeps that happened before this commit — Fable f12's
+   measurement gate only opens from here forward.
 ### 26 — memory.archive key registry (JP0-5 / TODO #255, v1.723; Opus lane B)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #253. **Source:** Joint_Review_2026_08_27.html ▸ JP0-5
