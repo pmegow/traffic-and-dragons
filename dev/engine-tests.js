@@ -6457,6 +6457,103 @@ function runEngineTests(R){
     return worldState.recentWallSweep?true:"a fresh note was cleared early";
   });
 
+  // ── #235 — WHO abandoned it (JP0-3 part A, joint review 2026-08-27; Fable f3 + f12) ───────
+  // "abandoned" had three indistinguishable authors under one label: the player's own Abandon
+  // button (#229), the #231 arc wall sweeping a live thread, and the same sweep archiving an
+  // OFFERED hook the player never accepted. Every reader then told the same lie — the reopen
+  // guard's warn and muts line hardcoded "the player dropped it" for a wall sweep, and the Quest
+  // Journal's History rendered all three as a bare "(abandoned)" beside an Abandon button whose
+  // own tooltip teaches that abandoned means the player's deliberate drop. Owner rulings
+  // 2026-08-28: ONE "abandoned" status plus a `by` field; a wall-swept quest must NEVER read as
+  // player-dropped. A record with no `by` is LEGACY and renders neutrally — never as a drop.
+  section("#235 — the abandoned quest's author (by field)");
+  t("#235: abandonQuestState stamps by:\"player\" — the deliberate drop is on the record",function(){
+    makeWorld();worldState.turn=30;
+    worldState.questLog=[{title:"The Bell Below",status:"active",desc:"d",objectives:[],started:1}];
+    if(!abandonQuestState("The Bell Below"))return "precondition: the abandon did not take";
+    var rec=memory.quests["The Bell Below"];
+    if(!rec||rec.status!=="abandoned")return "not archived abandoned";
+    return rec.by==="player"?true:"player abandon left no author stamp: "+JSON.stringify(rec.by);
+  });
+  t("#235: the wall stamps by:\"wall\", and an OFFERED progeny also carries wasOffered",function(){
+    __wallWorld();
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.][QUEST:A Rumor In Town|offered|Someone's problem.]");
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    var a=memory.quests["The Sugar War"],o=memory.quests["A Rumor In Town"];
+    if(!a||!o)return "precondition: the wall did not archive both threads";
+    if(a.by!=="wall")return "the wall's archive record claims no author: "+JSON.stringify(a.by);
+    if(a.wasOffered)return "an ACTIVE thread was marked wasOffered — the player HAD accepted it";
+    if(o.by!=="wall")return "the swept offer claims no author: "+JSON.stringify(o.by);
+    return o.wasOffered===true?true:"the never-accepted hook is indistinguishable from an accepted thread: "+JSON.stringify(o.wasOffered);
+  });
+  t("#235: questArchiveWording is THE renderer — three honest readings plus a neutral legacy one",function(){
+    var pl=questArchiveWording({status:"abandoned",by:"player"});
+    var wl=questArchiveWording({status:"abandoned",by:"wall"});
+    var lp=questArchiveWording({status:"abandoned",by:"wall",wasOffered:true});
+    var lg=questArchiveWording({status:"abandoned"});
+    if(pl.label!=="abandoned by you")return "player label wrong: "+pl.label;
+    if(wl.label!=="closed with the arc")return "wall label wrong: "+wl.label;
+    if(lp.label!=="opportunity lapsed")return "lapsed-offer label wrong: "+lp.label;
+    if(lg.label!=="abandoned")return "legacy label is not neutral: "+lg.label;
+    if(/you|player/i.test(wl.label+" "+wl.phrase))return "a wall sweep reads as the player's doing: "+wl.phrase;
+    if(/you|player/i.test(lp.label+" "+lp.phrase))return "a lapsed offer reads as the player's doing: "+lp.phrase;
+    if(/you|player/i.test(lg.label+" "+lg.phrase))return "a LEGACY record reads as a player drop: "+lg.phrase;
+    if(!/you/i.test(pl.phrase))return "the player's own drop is not attributed to them: "+pl.phrase;
+    return true;
+  });
+  t("#235: the reopen guard tells the truth about a WALL-swept title — never 'the player dropped it'",function(){
+    __wallWorld();
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.]");
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    var warned="",_w=console.warn;console.warn=function(m){warned+=String(m)+" ";};
+    var R;try{R=applyMuts("[QUEST:The Sugar War|active]");}finally{console.warn=_w;}
+    var line=R.muts.join(" | ");
+    if(worldState.questLog.length)return "precondition: the guard did not block the re-creation";
+    if(/by the player|player dropped|by you/i.test(line))return "the muts line calls a wall sweep the player's drop: "+line;
+    if(/by the player|player dropped|by you/i.test(warned))return "the console warn calls a wall sweep the player's drop: "+warned;
+    if(line.indexOf("closed with the arc")<0)return "the muts line does not name the real author: "+line;
+    return warned.indexOf("closed with the arc")>=0?true:"the console warn does not name the real author: "+warned;
+  });
+  t("#235: the reopen guard still attributes the PLAYER's own drop to the player",function(){
+    makeWorld();worldState.turn=30;
+    worldState.questLog=[{title:"The Bell Below",status:"active",desc:"d",objectives:[],started:1}];
+    abandonQuestState("The Bell Below");
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("[QUEST:The Bell Below|active]");}finally{console.warn=_w;}
+    var line=R.muts.join(" | ");
+    if(worldState.questLog.length)return "precondition: the guard did not block the re-creation";
+    return /by you/i.test(line)?true:"the player's own drop lost its attribution: "+line;
+  });
+  t("#235: a LEGACY abandoned record (no by) renders neutrally — it is never read as a player drop",function(){
+    makeWorld();worldState.turn=30;
+    memory.quests={"Old Thread":{title:"Old Thread",desc:"",objectives:[],status:"abandoned",turn:9}};
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("[QUEST:Old Thread|active]");}finally{console.warn=_w;}
+    var line=R.muts.join(" | ");
+    if(worldState.questLog.length)return "precondition: the guard did not block the re-creation";
+    if(/by you|by the player|closed with the arc/i.test(line))return "a legacy record was given an author it never had: "+line;
+    return line.indexOf("was abandoned")>=0?true:"the legacy refusal says nothing useful: "+line;
+  });
+  t("#235: by/wasOffered survive the save round-trip (JSON + healMemory) — the JP0-5 drop class",function(){
+    /* written through the REAL writers, not hand-built records — a round-trip pin over a fixture
+       would stay green even if the writers never stamped anything. */
+    __wallWorld();
+    worldState.questLog.push({title:"Dropped",status:"active",desc:"",objectives:[],started:1});
+    abandonQuestState("Dropped");
+    applyMuts("[QUEST:Walled|active|x.][QUEST:Lapsed|offered|y.]");
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    var mm=JSON.parse(JSON.stringify(memory));
+    /* the .tnd import's own memory rebuild carries quests WHOLESALE (ui-files.js) — pinned as a
+       source clause in run-tests.js; here we exercise the engine half it hands the object to. */
+    memory={attitudeSpec:mm.attitudeSpec,npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:mm.lore||[],keyDecisions:mm.keyDecisions||[],futureEvents:mm.futureEvents||[],chapters:mm.chapters||[],eras:mm.eras||[],map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph,archive:mm.archive};
+    healMemory();
+    var d=memory.quests.Dropped,w=memory.quests.Walled,l=memory.quests.Lapsed;
+    if(!d||d.by!=="player")return "player provenance lost on round-trip: "+JSON.stringify(d);
+    if(!w||w.by!=="wall")return "wall provenance lost on round-trip: "+JSON.stringify(w);
+    if(!l||l.by!=="wall"||l.wasOffered!==true)return "the lapsed-offer flag lost on round-trip: "+JSON.stringify(l);
+    return true;
+  });
+
   section("arc↔quest coupling (UA31)");
   function __arcQuestWorld(){
     makeWorld();worldState.turn=40;

@@ -551,8 +551,14 @@ var TAG_TABLE=[
        "active crises ARE quests" channel would otherwise force-reactivate the very goal the
        player just dropped. |offered stays legal: the world may re-raise it, the player decides. */
     if(_arch&&_arch.status==="abandoned"&&qStat!=="offered"){
-      console.warn("[quest] blocked re-creation of abandoned quest '"+qTitle+"' as "+qStat+" — the player dropped it; only a fresh |offered may bring it back");
-      R.muts.push("Quest '"+qTitle+"' was abandoned by the player — not re-registered (re-offer with [QUEST:"+qTitle+"|offered] only if the fiction re-raises it)");
+      /* #235: the refusal must name the ACTUAL author. This wording hardcoded "the player dropped
+         it" for BOTH authors — a false statement of player agency for every wall sweep, carried
+         into the console, the provenance ring, the turn's system message and the #229 decisions
+         modal. questArchiveWording (helpers.js) is the one renderer; a legacy record with no
+         `by` reads neutrally rather than inventing an author it never recorded. */
+      var _aw=questArchiveWording(_arch);
+      console.warn("[quest] blocked re-creation of abandoned quest '"+qTitle+"' as "+qStat+" — it "+_aw.phrase+"; only a fresh |offered may bring it back");
+      R.muts.push("Quest '"+qTitle+"' "+_aw.phrase+" — not re-registered (re-offer with [QUEST:"+qTitle+"|offered] only if the fiction re-raises it)");
       continue;}
     if(_arch&&(_arch.status==="completed"||_arch.status==="failed")){
       console.warn("[quest] blocked re-creation of archived quest '"+qTitle+"' ("+_arch.status+") — a follow-up needs a NEW title");
@@ -916,7 +922,10 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
           if(!_wq.bornArc||String(_wq.bornArc).toLowerCase()!==String(_wallArc).toLowerCase())continue;
           if(_wq.status!=="active"&&_wq.status!=="offered")continue;
           if(!memory.quests)memory.quests={};
-          memory.quests[_wq.title]={title:_wq.title,desc:_wq.desc||"",objectives:_wq.objectives||[],status:"abandoned",turn:R.turn};
+          /* #235: by:"wall" — the wall is the author, not the player. wasOffered marks the third
+             semantic that used to hide under the same label: a hook the player never accepted,
+             which lapsed rather than being dropped. Read by questArchiveWording (helpers.js). */
+          memory.quests[_wq.title]={title:_wq.title,desc:_wq.desc||"",objectives:_wq.objectives||[],status:"abandoned",turn:R.turn,by:"wall",wasOffered:_wq.status==="offered"};
           worldState.questLog.splice(_wk,1);
           _walled.push(_wq.title);
         }

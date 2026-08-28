@@ -47,6 +47,51 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 26 — WHO abandoned it: the quest archive's `by` field (#252, v1.719; Opus lane A, owner-ruled)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #252 (JP0-3 part A). **Touched:** `helpers.js`
+(`questArchiveWording` — new pure renderer), `api.js` (`abandonQuestState` stamps `by:"player"`),
+`tag_table.js` (the #231 wall archive write stamps `by:"wall"` + `wasOffered`; the QUEST reopen
+guard's warn + muts line now render through the helper), `ui-modals.js` (Quest Journal History
+label), `dev/run-tests.js` (#144A contract clauses ③ and ④), `dev/engine-tests.js`,
+`dev/sabotage-231-arc-wall.js`.
+
+**What shipped.** Three authors, one status. `abandonQuestState` and the arc wall now sign their
+archive records; the wall additionally marks a swept OFFERED hook `wasOffered:true` (owner's
+"opportunity lapsed" reading — a hook the player never accepted was the third semantic hiding
+under the same label). `questArchiveWording(rec)` is the ONE renderer for every reader, returning
+`{origin,label,phrase}`: "abandoned by you" / "closed with the arc" / "opportunity lapsed", and
+"abandoned" for a LEGACY record with no `by` — which must never be read as a player drop. The
+reopen guard's hardcoded "the player dropped it" (false for every wall sweep, and surfaced in the
+console, the provenance ring, the turn's system message and the #229 decisions modal) is gone.
+
+**Verification.** 7 failing-first engine assertions (all confirmed RED before implementation;
+1691→1698 green). Sabotage `dev/sabotage-231-arc-wall.js` extended 16→22 clauses, 22/22 proven
+byte-identical. The pre-existing clause quoting the wall's archive write was re-pointed in the
+same commit (Fable f3's own verifier warning). Every prove block gained `also:["ui-modals.js"]` —
+the new History-label source clause reads a ui shard that is NOT in the engine manifest, so
+without it the clone's baseline reds and every clause misattributes (this actually happened on
+the first run: 0/9 misattributed).
+
+**What the reviewer should probe:**
+
+1. **The History modal is a DOM shell I could not drive.** `ui-modals.js` has no test seam, so the
+   three renderings are proven only at the pure helper plus a source clause pinning that the
+   modal calls `questArchiveWording(aq).label`. A reviewer should eyeball the live journal once —
+   the label sits inside the collapsed `<summary>` beside the turn stamp.
+2. **`wasOffered` is written as a boolean on every wall record** (`false` for active threads), so
+   a save now carries an explicit `false` where nothing existed. It is falsy everywhere it is
+   read, but if a future reader does `"wasOffered" in rec` it will see a difference between wall
+   records and player records. Decide whether the field should be omitted when false.
+3. **Only "abandoned" got provenance.** `declined`, `completed` and `failed` archives still carry
+   no author, and `archiveQuest` (the completed/failed writer) is untouched. If the wider JP0-3
+   bundle (status validation, the declined reopen hole, archive-overwrite protection) lands later,
+   it should decide whether `by` generalizes to every archive write or stays abandoned-only.
+4. **No migration.** Pre-v1.719 abandoned records stay authorless forever and render neutrally.
+   That is the deliberate honest choice (the author is genuinely unknowable), but it means the
+   #231 field watch cannot count wall sweeps that happened before this commit — Fable f12's
+   measurement gate only opens from here forward.
+
 ### 23 — The arc wall: emergent thread scoping (#231, v1.714; Opus, owner-ruled)
 
 **Filed:** 2026-08-24. **Tracker:** TODO #231. **Touched:** `helpers.js` (`skeletonArcTitles`,
