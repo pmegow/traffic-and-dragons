@@ -539,7 +539,22 @@ var TAG_TABLE=[
   if(typeof console!=="undefined")console.warn("[npc] death attribution "+(drCompletionReplay?"cleanup resumed":"retracted")+" for "+drName+" - pre-image archived; alive at "+drLoc);
 }}},
 {t:"XP",apply:function(text,R){var xpTags=text.match(/\[XP:\s*\+?(\d+)[^\]]*\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:\s*\+?(\d+)[^\]]*\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);R.muts.push("+"+xpm[1]+" XP");checkLevelUp();R._xpMirror(parseInt(xpm[1]));}}},
-{t:"QUEST",apply:function(text,R){/* #175 side-find: the optional desc group required 1+ chars, so [QUEST:title|completed|] — trailing pipe, empty desc, a natural model shape — silently no-opped: no warn, no mutation, quest left active forever */var quests=text.match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";if(qStat==="complete"||qStat==="done"||qStat==="finished")qStat="completed";else if(qStat==="abandoned"||qStat==="dropped")qStat="failed";else if(qStat==="accepted")qStat="active";else if(qStat==="declined")qStat="failed";var qIdx=-1,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title.toLowerCase()===qTitle.toLowerCase()){qIdx=qj;break;}}
+{t:"QUEST",apply:function(text,R){/* #175 side-find: the optional desc group required 1+ chars, so [QUEST:title|completed|] — trailing pipe, empty desc, a natural model shape — silently no-opped: no warn, no mutation, quest left active forever */var quests=text.match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";if(qStat==="complete"||qStat==="done"||qStat==="finished")qStat="completed";else if(qStat==="abandoned"||qStat==="dropped")qStat="failed";else if(qStat==="accepted")qStat="active";
+  /* #259 (JP0-3b, owner ruling 2026-08-28): |declined is the PLAYER's journal decision, not GM
+     vocabulary — the pre-#229 normalization silently filed it as FAILED (wrong archive class,
+     wrong History label, and it let the GM close a quest the player never touched). */
+  if(qStat==="declined"){
+    if(typeof console!=="undefined")console.warn("[quest] [QUEST:"+qTitle+"|declined] refused — declining is the player's call (the quest journal's Decline button); the GM narrates, the player decides (#259)");
+    R.muts.push("⚠ Quest '"+qTitle+"': |declined is the player's journal decision — status not applied");
+    continue;}
+  /* #259: the status WHITELIST. An improvised status ("paused", "ongoing") used to enter the live
+     store raw and become a ZOMBIE row — invisible to every active/offered prompt reader, the #191
+     staleness tooth, the completion tooth, and the #17 indicator, forever. Sol's runtime repro. */
+  if(qStat!=="offered"&&qStat!=="active"&&qStat!=="completed"&&qStat!=="failed"){
+    if(typeof console!=="undefined")console.warn("[quest] [QUEST:"+qTitle+"|"+qStat+"] refused — unknown status; the vocabulary is offered/active/completed/failed (#259)");
+    R.muts.push("⚠ Quest '"+qTitle+"': unknown status '"+qStat+"' not applied — use offered/active/completed/failed");
+    continue;}
+  var _qReoffer=false,qIdx=-1,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title.toLowerCase()===qTitle.toLowerCase()){qIdx=qj;break;}}
   // UA42/F3: a title already ARCHIVED as completed/failed must not silently resurrect via a
   // bare upsert (Playtest 2: 'Chapel in the Mud' completed t7, re-created by [QUEST:x|active]
   // at t9 and t60 — archived AND live at once, rewards payable twice). Loud skip — a genuine
@@ -550,7 +565,7 @@ var TAG_TABLE=[
     /* #229: an ABANDONED title is blocked from re-creation in any non-offered status — the
        "active crises ARE quests" channel would otherwise force-reactivate the very goal the
        player just dropped. |offered stays legal: the world may re-raise it, the player decides. */
-    if(_arch&&_arch.status==="abandoned"&&qStat!=="offered"){
+    if(_arch&&(_arch.status==="abandoned"||_arch.status==="declined")&&qStat!=="offered"){/* #259 (ruling 2026-08-28): a DECLINED title joins the guard — the player said no; only a fresh |offered may re-raise it */
       /* #235: the refusal must name the ACTUAL author. This wording hardcoded "the player dropped
          it" for BOTH authors — a false statement of player agency for every wall sweep, carried
          into the console, the provenance ring, the turn's system message and the #229 decisions
@@ -560,6 +575,7 @@ var TAG_TABLE=[
       console.warn("[quest] blocked re-creation of abandoned quest '"+qTitle+"' as "+qStat+" — it "+_aw.phrase+"; only a fresh |offered may bring it back");
       R.muts.push("Quest '"+qTitle+"' "+_aw.phrase+" — not re-registered (re-offer with [QUEST:"+qTitle+"|offered] only if the fiction re-raises it)");
       continue;}
+    if(_arch&&(_arch.status==="abandoned"||_arch.status==="declined")&&qStat==="offered")_qReoffer=true;/* #259: the legal return path — stamped so a same-response |active cannot ride it */
     if(_arch&&(_arch.status==="completed"||_arch.status==="failed")){
       console.warn("[quest] blocked re-creation of archived quest '"+qTitle+"' ("+_arch.status+") — a follow-up needs a NEW title");
       R.muts.push("Quest '"+qTitle+"' already "+_arch.status+" — not reopened");
@@ -584,8 +600,17 @@ var TAG_TABLE=[
           console.warn("[quest] blocked re-creation of '"+qTitle+"' arrived with rewards ("+_any.join(", ")+"; original close paid "+(_orig.join(", ")||"nothing")+") — possible re-pay with different amounts");
           if(typeof showToast==="function")showToast("⚠ "+qTitle+": "+_any.join(", ")+" arrived with a blocked re-completion (original close paid "+(_orig.join(", ")||"nothing")+") — check the sheet; Sync can correct");}}
       continue;}}
-  if(qIdx>=0){worldState.questLog[qIdx].lastTouch=R.turn;delete worldState.questLog[qIdx].staleNudged;}/* #191ⓑ: any QUEST tag naming a live row is a touch — resets the staleness clock and re-arms the review latch (re-emitting [QUEST:title|active] is the documented zero-vocabulary ack) */
-  if(qIdx<0){var _qNew={title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn,lastTouch:R.turn};/* #231 the arc wall: stamp the arc that bore this thread. EMERGENT quests only (a spine-titled quest belongs to the authored story), and only when the parent is unambiguous — an unstamped quest is permanently immune, which is the fail-safe every legacy save relies on. */if(typeof questIsEmergent==="function"&&questIsEmergent(qTitle)&&typeof currentArcTitle==="function"){var _qArc=currentArcTitle();if(_qArc)_qNew.bornArc=_qArc;}worldState.questLog.push(_qNew);if(qStat==="offered"){if(typeof Sound!=="undefined")Sound.play("click_glass");/* TODO #7: side-effect only — never touches parse/mutation flow. BEFORE the toast so it claims the playIfQuiet window and the toast-level poke steps aside */if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
+  if(qIdx>=0){worldState.questLog[qIdx].lastTouch=R.turn;delete worldState.questLog[qIdx].staleNudged;
+    /* #259: the reopen guard's TEETH. The guard blocks re-CREATION only; once a permitted |offered
+       re-created the row, a second tag in the SAME response hit the ordinary upsert and flipped it
+       live — a two-tag [QUEST:x|offered][QUEST:x|active] pair defeated the player gate in one
+       response (Fable f17, verifier-confirmed). Same-response activation of a re-offered dropped
+       title is definitionally not player consent; the next response's |active stays legal. */
+    if(qStat==="active"&&worldState.questLog[qIdx].reofferedTurn===R.turn){
+      if(typeof console!=="undefined")console.warn("[quest] [QUEST:"+qTitle+"|active] refused — this title was re-offered THIS response after the player dropped it; activation needs the player's accept (a later response) (#259)");
+      R.muts.push("⚠ Quest '"+qTitle+"' re-offered just now — activation waits for the player");
+      continue;}}/* #191ⓑ: any QUEST tag naming a live row is a touch — resets the staleness clock and re-arms the review latch (re-emitting [QUEST:title|active] is the documented zero-vocabulary ack) */
+  if(qIdx<0){var _qNew={title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn,lastTouch:R.turn};/* #231 the arc wall: stamp the arc that bore this thread. EMERGENT quests only (a spine-titled quest belongs to the authored story), and only when the parent is unambiguous — an unstamped quest is permanently immune, which is the fail-safe every legacy save relies on. */if(typeof questIsEmergent==="function"&&questIsEmergent(qTitle)&&typeof currentArcTitle==="function"){var _qArc=currentArcTitle();if(_qArc)_qNew.bornArc=_qArc;}if(_qReoffer)_qNew.reofferedTurn=R.turn;/* #259 */worldState.questLog.push(_qNew);if(qStat==="offered"){if(typeof Sound!=="undefined")Sound.play("click_glass");/* TODO #7: side-effect only — never touches parse/mutation flow. BEFORE the toast so it claims the playIfQuiet window and the toast-level poke steps aside */if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
   if(qStat==="completed"||qStat==="failed"){
     // UA42: player-visible closure — the toast names the same-response rewards so a close never
     // again passes in silence (two Playtest-2 completions had ZERO feedback). Positive gold only:

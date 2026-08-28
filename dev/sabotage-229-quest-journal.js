@@ -17,12 +17,33 @@ rc |= sabotage.prove({
   cases: [
     { label: "abandoned reopen clause removed — the GM can force-reactivate a player-dropped quest",
       mustFail: "abandoned title cannot be re-created",
-      find: 'if(_arch&&_arch.status==="abandoned"&&qStat!=="offered"){',
+      find: 'if(_arch&&(_arch.status==="abandoned"||_arch.status==="declined")&&qStat!=="offered"){',/* #259 widened the clause to declined (ruling 2026-08-28) */
       replace: 'if(false){' },
     { label: "the offered exemption widened away — an abandoned goal could never legally return",
       mustFail: "|offered may return",
-      find: 'if(_arch&&_arch.status==="abandoned"&&qStat!=="offered"){',
-      replace: 'if(_arch&&_arch.status==="abandoned"){' }
+      find: 'if(_arch&&(_arch.status==="abandoned"||_arch.status==="declined")&&qStat!=="offered"){',
+      replace: 'if(_arch&&(_arch.status==="abandoned"||_arch.status==="declined")){' },
+
+    // ── #259 — the quest state machine (JP0-3b, rulings 2026-08-28) ──────────────
+    { label: "#259: the status whitelist dies — improvised statuses mint zombie rows again",
+      mustFail: "creates NO zombie row",
+      find: '  if(qStat!=="offered"&&qStat!=="active"&&qStat!=="completed"&&qStat!=="failed"){',
+      replace: '  if(false){' },
+
+    { label: "#259: |declined quietly becomes FAILED again — the GM closes a quest the player never touched",
+      mustFail: "no longer silently becomes FAILED",
+      find: '  if(qStat==="declined"){',
+      replace: '  if(qStat==="declined"){qStat="failed";}if(false){' },
+
+    { label: "#259: the guard narrows back to abandoned-only — a DECLINED title force-reactivates",
+      mustFail: "DECLINED title cannot return as active",
+      find: 'if(_arch&&(_arch.status==="abandoned"||_arch.status==="declined")&&qStat!=="offered"){',
+      replace: 'if(_arch&&_arch.status==="abandoned"&&qStat!=="offered"){' },
+
+    { label: "#259: the reoffer teeth are pulled — a same-response offered+active pair defeats the player gate",
+      mustFail: "NOT player consent",
+      find: '    if(qStat==="active"&&worldState.questLog[qIdx].reofferedTurn===R.turn){',
+      replace: '    if(false){' }
   ]
 });
 

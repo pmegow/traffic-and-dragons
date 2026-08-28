@@ -6768,6 +6768,63 @@ function runEngineTests(R){
     return true;
   });
 
+  // ── #259 (JP0-3b, joint review 2026-08-27; owner rulings 2026-08-28): the quest state machine
+  // closes. ① an improvised status ("paused", "ongoing") used to enter the live store raw and
+  // become a ZOMBIE row — invisible to buildQuestBlock (active/offered readers), the staleness
+  // tooth, the completion tooth, and the #17 indicator, forever (Sol's runtime repro). ② the
+  // pre-#229 normalization mapped |declined to FAILED — wrong archive class, and declined is the
+  // PLAYER's journal decision, not GM vocabulary. ③ ruling 2: a DECLINED title joins the reopen
+  // guard — return only via a fresh |offered. ④ the guard's teeth: a same-response
+  // |offered→|active pair is not player consent and no longer reactivates a dropped title.
+  section("#259 — the quest state machine (status whitelist + declined guard)");
+  t("#259: an improvised status creates NO zombie row and refuses loudly",function(){
+    makeWorld();
+    var r=applyMuts("[QUEST:The Bell Below|paused|Wait for the tide.]");
+    if(worldState.questLog.length)return "a zombie row entered the live store: "+JSON.stringify(worldState.questLog);
+    var line=(r&&r.muts?r.muts:[]).filter(function(m){return m.indexOf("status")>=0||m.indexOf("⚠")>=0;})[0];
+    return line?true:"the refusal is silent: "+JSON.stringify(r&&r.muts);
+  });
+  t("#259: an improvised status on an EXISTING row mutates nothing",function(){
+    makeWorld();
+    applyMuts("[QUEST:The Bell Below|active|Ring it.]");
+    applyMuts("[QUEST:The Bell Below|ongoing]");
+    return worldState.questLog[0].status==="active"?true:"the row took an invalid status: "+worldState.questLog[0].status;
+  });
+  t("#259: |declined is refused as GM vocabulary — it no longer silently becomes FAILED",function(){
+    makeWorld();
+    applyMuts("[QUEST:The Bell Below|active|Ring it.]");
+    var r=applyMuts("[QUEST:The Bell Below|declined]");
+    if(worldState.questLog.length&&worldState.questLog[0].status!=="active")return "declined mutated the row: "+worldState.questLog[0].status;
+    if(memory.quests["The Bell Below"])return "declined archived the quest as "+memory.quests["The Bell Below"].status;
+    var line=(r&&r.muts?r.muts:[]).join(" ");
+    return line.indexOf("journal")>=0||line.indexOf("player")>=0?true:"the refusal does not teach the player gate: "+line;
+  });
+  t("#259: a DECLINED title cannot return as active — only a fresh |offered may bring it back (ruling 2026-08-28)",function(){
+    makeWorld();
+    memory.quests["The Bell Below"]={title:"The Bell Below",desc:"",objectives:[],status:"declined",turn:30};
+    applyMuts("[QUEST:The Bell Below|active|Back again.]");
+    if(worldState.questLog.length)return "a declined title was force-reactivated: "+JSON.stringify(worldState.questLog.map(function(q){return q.status;}));
+    applyMuts("[QUEST:The Bell Below|offered|The matter resurfaces.]");
+    var live=worldState.questLog.filter(function(q){return q.title==="The Bell Below";});
+    return live.length===1&&live[0].status==="offered"?true:"the legal |offered return was blocked";
+  });
+  t("#259: the guard has teeth — a same-response |offered→|active pair is NOT player consent",function(){
+    makeWorld();
+    memory.quests["The Bell Below"]={title:"The Bell Below",desc:"",objectives:[],status:"abandoned",turn:30,by:"player"};
+    applyMuts("[QUEST:The Bell Below|offered|It returns.][QUEST:The Bell Below|active]");
+    var q=worldState.questLog.filter(function(x){return x.title==="The Bell Below";})[0];
+    return q&&q.status==="offered"?true:"the two-tag pair defeated the player gate: "+(q?q.status:"no row");
+  });
+  t("#259: a LATER response's |active after the re-offer stays legal (the real accept path)",function(){
+    makeWorld();worldState.turn=50;
+    memory.quests["The Bell Below"]={title:"The Bell Below",desc:"",objectives:[],status:"declined",turn:30};
+    applyMuts("[QUEST:The Bell Below|offered|It returns.]");
+    worldState.turn=51;
+    applyMuts("[QUEST:The Bell Below|active]");
+    var q=worldState.questLog.filter(function(x){return x.title==="The Bell Below";})[0];
+    return q&&q.status==="active"?true:"the legitimate next-response accept was blocked: "+(q?q.status:"no row");
+  });
+
   section("arc↔quest coupling (UA31)");
   function __arcQuestWorld(){
     makeWorld();worldState.turn=40;
