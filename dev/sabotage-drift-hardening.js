@@ -126,7 +126,30 @@ rc|=sabotage.prove({file:"tag_table.js",command:["node",["dev/run-tests.js"]],ca
    find:"drCompletionReplay=!drRecordedDead&&drPrior&&drAtTarget",replace:"drCompletionReplay=!drRecordedDead&&drPrior"},
   {label:"completion residue gate removed - a clean replay grows the archive forever",
     mustFail:"owner repair completion replay requires its prior receipt and the unch",
-   find:"&&drAtTarget&&drNeedsCleanup",replace:"&&drAtTarget"}
+   find:"&&drAtTarget&&drNeedsCleanup",replace:"&&drAtTarget"},
+  /* #253 (JP0-8): the SPELL_DEF on-catalog refusal. Injected canon + the mana price both read
+     capabilityLookup, so a shadow of a curated entry is a silent, permanent drift write. */
+  {label:"#253: the on-catalog refusal is dropped — one hallucinated tag permanently rewrites curated spell canon and its mana price",
+    mustFail:"curated canon is overwritable again",
+   find:"  if(typeof capIsBaseCatalog===\"function\"&&capIsBaseCatalog(sdName)){",
+   replace:"  if(false){"},
+  {label:"#253: the refusal goes silent in the mutation trail — the player and the log see nothing said no",
+    mustFail:"no ⚠ muts line naming the refused spell",
+   find:"    R.muts.push(\"⚠ Spell canon NOT redefined: \"+sdName+\" is already curated — the official entry stands\");",
+   replace:""}
+]});
+
+/* #253 (JP0-8, Fable f51): the predicate itself — too wide refuses every emergent spell, too
+   narrow lets the shadow back in. Both directions are pinned by their own engine assertion. */
+rc|=sabotage.prove({file:"capability_bible.js",command:["node",["dev/run-tests.js"]],cases:[
+  {label:"#253: capIsBaseCatalog never matches — the handler's guard is decorative and the shadow returns",
+    mustFail:"curated canon is overwritable again",
+   find:"  return !!(key&&typeof CAPABILITY_BIBLE!==\"undefined\"&&CAPABILITY_BIBLE[key]);",
+   replace:"  return false;"},
+  {label:"#253: capIsBaseCatalog matches everything — genuinely emergent spells can no longer be defined at all",
+    mustFail:"an off-catalog emergent spell was refused",
+   find:"  return !!(key&&typeof CAPABILITY_BIBLE!==\"undefined\"&&CAPABILITY_BIBLE[key]);",
+   replace:"  return !!key;"}
 ]});
 
 rc|=sabotage.prove({file:"api.js",command:["node",["dev/run-tests.js"]],cases:[

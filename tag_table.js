@@ -776,6 +776,18 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var sdParts=sdm[1].split("|"),sdName=(sdParts[0]||"").trim();if(!sdName||typeof capBaseName!=="function")continue;
   var sdKey=capBaseName(sdName);if(!worldState.capabilityBible)worldState.capabilityBible={};
   if(worldState.capabilityBible[sdKey]){if(typeof console!=="undefined")console.warn("[tags] SPELL_DEF: '"+sdName+"' already defined — write-once, redefinition ignored (#136③)");continue;}
+  /* #253 (JP0-8, Fable f51; owner ruling 2026-08-28): a name the STATIC bible already carries is
+     not a correction, it is a permanent SHADOW. capabilityLookup gives the overlay precedence, so
+     one hallucinated [SPELL_DEF:Fireball|tier=1|…] rewrote the injected canon, the card, the
+     viewer AND the mana price (manaSpellCost→manaMax) forever, behind a muts line that read like
+     an ordinary definition. The doc line already forbade it and canonizeCompanionSpellDefs
+     (game.js) already refused on-catalog names at its one call site — only the handler disagreed.
+     Emergent (off-catalog) spells keep the overlay-wins write-once flow untouched; pre-existing
+     shadows are left as written (no migration — historical canon stands). */
+  if(typeof capIsBaseCatalog==="function"&&capIsBaseCatalog(sdName)){
+    if(typeof console!=="undefined")console.warn("[tags] SPELL_DEF: '"+sdName+"' is already curated in the capability bible — REFUSED, curated canon is not redefinable in play (#253); invent a distinct name for a genuinely new working");
+    R.muts.push("⚠ Spell canon NOT redefined: "+sdName+" is already curated — the official entry stands");
+    continue;}
   var sdEntry={kind:"spell",tier:0,cost:"at-will",isMagical:true,category:[],range:"",targets:"",duration:"",effect:""},sdp;
   for(sdp=1;sdp<sdParts.length;sdp++){var kv=sdParts[sdp].split("=");if(kv.length<2)continue;var kk=kv[0].trim().toLowerCase(),vv=kv.slice(1).join("=").trim();
     if(kk==="range")sdEntry.range=vv;else if(kk==="targets"||kk==="target")sdEntry.targets=vv;else if(kk==="duration")sdEntry.duration=vv;else if(kk==="effect")sdEntry.effect=vv;else if(kk==="cost")sdEntry.cost=vv;else if(kk==="tier"){var _sdT=parseInt(vv);if(isNaN(_sdT)&&typeof console!=="undefined")console.warn("[tags] SPELL_DEF: unparseable tier '"+vv+"' on "+sdName+" — defaulting to 0 (#136③)");sdEntry.tier=isNaN(_sdT)?0:_sdT;}else if(kk==="save")sdEntry.save=vv;else if(kk==="dice")sdEntry.dice=vv;else if(kk==="category")sdEntry.category=vv.split(",").map(function(x){return x.trim().toLowerCase();}).filter(Boolean);else if(kk==="magical")sdEntry.isMagical=/^\s*(y|t|1|true)/i.test(vv);}

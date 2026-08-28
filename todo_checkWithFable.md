@@ -47,6 +47,45 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 27 — SPELL_DEF may not shadow curated spell canon (#253, v1.720; Opus lane A, owner-ruled)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #253 (JP0-8 / Fable f51). **Touched:**
+`capability_bible.js` (`capIsBaseCatalog` — new predicate beside `capabilityLookup`),
+`tag_table.js` (the SPELL_DEF handler's new on-catalog refusal), `game.js` (cross-reference
+comment at `canonizeCompanionSpellDefs`), `dev/engine-tests.js`,
+`dev/sabotage-drift-hardening.js`.
+
+**What shipped.** The handler's write-once check consulted only `worldState.capabilityBible`, so
+a `[SPELL_DEF:]` naming a curated base entry filed a permanent shadow that `capabilityLookup`
+then preferred everywhere — including `manaSpellCost`/`manaMax`, so a tier=1 redefinition of a
+tier-3 spell silently repriced the whole pool. Now an on-catalog name is REFUSED: loud console
+warn, a `⚠ Spell canon NOT redefined:` muts line, zero writes. Off-catalog spells keep the
+overlay-wins write-once flow byte-for-byte. Per the owner ruling, overlay entries that already
+shadow a base entry are left as-is — no migration, historical canon stands (pinned by a test).
+
+**Verification.** 3 engine assertions; the refusal one was RED first, and the other two are
+deliberate green regression pins (the emergent path and the no-migration path must NOT change —
+a red there would mean I broke something, not that a defect existed). 4 new sabotage clauses in
+`dev/sabotage-drift-hardening.js`, all proven, whole battery green.
+
+**What the reviewer should probe:**
+
+1. **Two predicates, deliberately different widths.** `capIsBaseCatalog` is the STATIC half;
+   `canonizeCompanionSpellDefs` keeps `capabilityLookup` (base ∪ overlay) because at its call
+   site the union is the right question. I documented the asymmetry at both sites rather than
+   forcing one shared predicate. Confirm that reading, or collapse them.
+2. **The `capability_bible.js` addition sits below the data block.** The BIBLE EDITOR CONTRACT
+   round-trip carries `prefix` and `suffix` verbatim, and the suite is green, so an editor save
+   is still a no-op — but the file is machine-touched by a satellite and now holds one more
+   hand-written function. Worth one look.
+3. **`ABILITY`-shaped entries are covered too.** The bible holds abilities under the same keys,
+   so `[SPELL_DEF:Power Strike|…]` is now refused as well. That follows the unified-bible design
+   (`kind` is cosmetic) and I believe it is right, but it was not explicitly ruled.
+4. **No repair path for the shadows already in the field.** The refusal is forward-only. If a
+   live save carries a bad shadow, the only exit remains an operator console
+   `delete worldState.capabilityBible[key]` (Fable f51's own verifier note). If the owner wants a
+   player-facing repair, that is a separate design.
+
 ### 26 — WHO abandoned it: the quest archive's `by` field (#252, v1.719; Opus lane A, owner-ruled)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #252 (JP0-3 part A). **Touched:** `helpers.js`

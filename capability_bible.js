@@ -465,6 +465,20 @@ function capabilityLookup(nm){
   return (typeof CAPABILITY_BIBLE!=="undefined"&&CAPABILITY_BIBLE[key])||null;
 }
 
+// #253 (JP0-8, Fable f51; owner ruling 2026-08-28) — is this name already CURATED canon?
+// Deliberately the STATIC base only: the overlay is the emergent tier and has its own write-once
+// guard. The comment above frames overlay-wins as authoritative, and it stays that way for
+// genuinely emergent capabilities — but a [SPELL_DEF:] naming a name the base bible already
+// carries is not a correction, it is a shadow: it silently rewrote the injected canon, the card,
+// the viewer, and the mana price (manaSpellCost/manaMax read capabilityLookup), permanently,
+// with no in-play way back. THE one predicate for that question — used by the [SPELL_DEF:]
+// handler; the companion-sheet caller (canonizeCompanionSpellDefs, game.js) reaches the same
+// verdict through capabilityLookup, which covers base AND overlay at its one call site.
+function capIsBaseCatalog(nm){
+  var key=capBaseName(nm);
+  return !!(key&&typeof CAPABILITY_BIBLE!=="undefined"&&CAPABILITY_BIBLE[key]);
+}
+
 // capabilitiesByCategory(cat) — every capability tagged with a tradition (arcane|divine|primal|
 // necromantic|martial), across the emergent overlay + static base. This is the gate for limiting a
 // rolled enemy caster's menu (e.g. an enemy cleric → the "divine" list). Returns [{name, entry}]

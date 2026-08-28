@@ -265,6 +265,41 @@ function runEngineTests(R){
   t("spell canon lands in the VOLATILE half, never the cached stable half",function(){makeWorld();worldState.character.spells=[{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];var s=buildSysPrompt();var MARK="CANONICAL SPELL RULES (authoritative";/* block header, distinct from the SPELL_DEF instruction that names the block */if(s.stable.indexOf(MARK)>=0)return "spell canon block leaked into stable — kills the cache";return s.volatile.indexOf(MARK)>=0?true:"canon missing from volatile";});
   t("[SPELL_DEF:] files a GM-invented spell into the overlay; lookup returns it",function(){makeWorld();applyMuts("[SPELL_DEF:Frost Lance|range=60ft|targets=1 creature|duration=instantaneous|effect=a lance of ice; DEX save or 2d8 cold and slowed|cost=slot|tier=1|magical=yes]");var e=capabilityLookup("Frost Lance");return e&&e.range==="60ft"&&e.cost==="slot"&&e.tier===1&&e.isMagical===true&&/lance of ice/.test(e.effect)?true:"bad overlay entry: "+JSON.stringify(e);});
   t("[SPELL_DEF:] is write-once — a second definition does not overwrite",function(){makeWorld();applyMuts("[SPELL_DEF:Frost Lance|range=60ft|effect=original]");applyMuts("[SPELL_DEF:Frost Lance|range=1 mile|effect=drifted]");var e=capabilityLookup("Frost Lance");return e&&e.range==="60ft"?true:"write-once failed, got range "+(e&&e.range);});
+  // ── #253 — SPELL_DEF may not shadow curated canon (JP0-8, Fable f51; owner ruling 2026-08-28) ──
+  // The handler's write-once check consulted ONLY the emergent overlay, so one hallucinated
+  // [SPELL_DEF:Fireball|…] permanently replaced the curated entry EVERYWHERE — the per-turn
+  // injection, the card, the viewer, and manaSpellCost/manaMax (a tier=1 redefinition of a tier-3
+  // spell silently repriced the whole pool) — with a muts line that read like a normal definition.
+  // Write-once meant no in-play correction existed. The doc line already forbade redefining a
+  // listed spell and the companion-sheet caller (canonizeCompanionSpellDefs) already refused
+  // on-catalog names; only the handler disagreed. Emergent spells keep the overlay-wins design.
+  t("#253: [SPELL_DEF:] naming a CURATED base spell refuses — no overlay write, loudly",function(){
+    makeWorld();worldState.capabilityBible={};
+    var warned="",_w=console.warn;console.warn=function(m){warned+=String(m)+" ";};
+    var R;try{R=applyMuts("[SPELL_DEF:Fireball|range=1 mile|tier=1|cost=at-will|effect=a hallucinated rewrite of curated canon]");}finally{console.warn=_w;}
+    if(worldState.capabilityBible[capBaseName("Fireball")])return "the static base entry was shadowed — curated canon is overwritable again";
+    var e=capabilityLookup("Fireball");
+    if(!e||e.tier!==3||e.range!=="150ft")return "curated Fireball canon changed: "+JSON.stringify([e&&e.tier,e&&e.range]);
+    if(!/already curated|curated canon/i.test(warned))return "the refusal was silent in the console: "+warned;
+    var line=R.muts.join(" | ");
+    if(/Spell canon defined/.test(line))return "the muts line still reports a normal definition: "+line;
+    return /⚠/.test(line)&&/Fireball/.test(line)?true:"no ⚠ muts line naming the refused spell: "+line;
+  });
+  t("#253: the refusal keys on the STATIC catalog, not the overlay — an emergent spell still defines",function(){
+    makeWorld();worldState.capabilityBible={};
+    applyMuts("[SPELL_DEF:Marsh Light|range=60ft|targets=one point|effect=A bobbing witch-light|cost=at-will|tier=0|magical=yes]");
+    var e=capabilityLookup("Marsh Light");
+    if(!e||e.range!=="60ft")return "an off-catalog emergent spell was refused — the write-once flow is broken: "+JSON.stringify(e);
+    return CAPABILITY_BIBLE[capBaseName("Marsh Light")]?"fixture is on-catalog — pick a name the base bible does not carry":true;
+  });
+  t("#253: an overlay entry that ALREADY shadows a base entry is left alone — no migration, historical canon stands",function(){
+    makeWorld();
+    worldState.capabilityBible={"fireball":{kind:"spell",tier:1,cost:"at-will",isMagical:true,category:["arcane"],range:"1 mile",targets:"x",duration:"y",save:"N/A",dice:"N/A",effect:"a pre-existing shadow from an older save"}};
+    var _w=console.warn;console.warn=function(){};
+    try{applyMuts("[SPELL_DEF:Fireball|range=2 miles|effect=drift]");}finally{console.warn=_w;}
+    var e=capabilityLookup("Fireball");
+    return e&&e.range==="1 mile"?true:"a pre-existing overlay was rewritten or removed: "+JSON.stringify(e&&e.range);
+  });
   t("[SPELL_DEF:] magical=no sets isMagical false",function(){makeWorld();applyMuts("[SPELL_DEF:Mundane Trick|effect=sleight of hand|magical=no]");var e=capabilityLookup("Mundane Trick");return e&&e.isMagical===false?true:"isMagical not false: "+JSON.stringify(e);});
   t("cleanTxt strips [SPELL_DEF:] from displayed prose",function(){return eq(cleanTxt("You weave a new working, and the air chills. [SPELL_DEF:Frost Lance|range=60ft|effect=ice]"),"You weave a new working, and the air chills.");});
   t("capability_bible: martial ability resolves and is isMagical:false",function(){var e=capabilityLookup("Power Strike");return e&&e.kind==="ability"&&e.isMagical===false?true:"bad: "+JSON.stringify(e);});

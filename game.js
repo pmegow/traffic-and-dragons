@@ -1027,7 +1027,7 @@ function canonizeCompanionSpellDefs(resp,cls,npcName){
   var tags=[],i;
   for(i=0;i<raw.spells.length;i++){var sp=raw.spells[i];
     if(!sp||typeof sp.nm!=="string")continue;
-    if(typeof capabilityLookup==="function"&&capabilityLookup(sp.nm))continue;/* on-catalog or already-overlaid — base canon wins */
+    if(typeof capabilityLookup==="function"&&capabilityLookup(sp.nm))continue;/* on-catalog or already-overlaid — base canon wins. #253: the SPELL_DEF handler now reaches the SAME verdict itself (capIsBaseCatalog for the static half, its own write-once check for the overlay half), so this filter is a redundant-but-harmless second line: it saves building tags that would only be refused. Keep the two predicates in agreement — this one is deliberately the union, capIsBaseCatalog deliberately the static half. */
     var tg=spellDefTag(sp,cls);if(tg)tags.push(tg);}
   if(tags.length){applyMuts(tags.join(""));console.warn("[companion sheet] "+npcName+": canonized "+tags.length+" off-catalog spell def(s) via SPELL_DEF (#48③)");}
   return tags.length;
