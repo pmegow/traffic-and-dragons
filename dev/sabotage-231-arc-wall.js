@@ -33,8 +33,10 @@ rc |= sabotage.prove({
       find: '          if(_wq.status!=="active"&&_wq.status!=="offered")continue;',
       replace: '          if(_wq.status!=="active")continue;' },
 
-    { label: "walled threads archive as declined, not abandoned — the #229 reopen guard stops protecting them",
-      mustFail: "cannot be force-reactivated",
+    { label: "walled threads archive as declined, not abandoned — the wrong archive class",
+      /* #265 re-point: since #259 a DECLINED title also blocks |active, so the old force-reactivation
+         test survives this mutation — the honest pin is the archive-status assertion itself. */
+      mustFail: "archives its live emergent progeny as abandoned",
       find: 'status:"abandoned",turn:R.turn,by:"wall"',
       replace: 'status:"declined",turn:R.turn,by:"wall"' },
 
@@ -55,9 +57,16 @@ rc |= sabotage.prove({
       replace: 'R.muts.push("Quest \'"+qTitle+"\' was abandoned by the player — not re-registered' },
 
     { label: "the emergent test is dropped at stamp time — a SPINE quest gets stamped and its own arc sweeps it",
+      /* #265 re-point: stamping moved to the post-handler seam (deferred past arc transitions);
+         the emergent test now lives there — dropping it stamps a spine quest exactly as before. */
       mustFail: "an emergent quest is stamped",
-      find: 'if(typeof questIsEmergent==="function"&&questIsEmergent(qTitle)&&typeof currentArcTitle==="function")',
-      replace: 'if(typeof currentArcTitle==="function")' },
+      find: 'if(typeof questIsEmergent==="function"&&questIsEmergent(qTitle)){if(!R._newQuests)R._newQuests=[];R._newQuests.push(qTitle);}',
+      replace: 'if(typeof questIsEmergent==="function"){if(!R._newQuests)R._newQuests=[];R._newQuests.push(qTitle);}' },
+
+    { label: "#265: the deferred stamp regresses to the dying arc — the seam reads the pre-close arc again",
+      mustFail: "SAME response as the arc close survives",
+      find: '  if(R._newQuests&&R._newQuests.length&&typeof questIsEmergent==="function"&&typeof currentArcTitle==="function"){',
+      replace: '  if(false){' },
 
     // ── #233 — the act door (JP0-1, joint review 2026-08-27) ──────────────────────────
     { label: "#233: ACT_COMPLETE stops validating its operand — a hallucinated act name closes the running act again",

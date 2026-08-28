@@ -16897,6 +16897,94 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
+  // ── #265 — quest-family P1 remainder (Fable f1+f52+f11, joint review 2026-08-27).
+  // ① a newborn quest offered in the SAME response as [ARC_COMPLETE:] was stamped with the DYING
+  // arc (table order: QUEST precedes ARC_COMPLETE) and archived at birth by the wall sweep;
+  // stamping now defers to the post-handler seam, after every arc transition settles.
+  // ② [QUEST_STEP:] naming an unknown/mis-titled quest dropped with zero warn — the checklist the
+  // completion machinery depends on silently never filled. ③ a guard-permitted re-offer of a
+  // walled/abandoned quest started with an EMPTY objective list while the archive held the old
+  // checklist — the anti-drift anchor wiped exactly for the long threads the wall touches.
+  section("#265 — quest-family remainder (newborn stamp, silent step, resurrection rehydration)");
+  t("#265①: a quest offered in the SAME response as the arc close survives — and belongs to the NEXT arc",function(){
+    makeWorld();worldState.turn=60;
+    worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[
+      {title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20},
+      {title:"The Fort and the Dam",objective:"o",status:"pending"}
+    ]}]};
+    applyMuts("[QUEST:New Hook|offered|The next thread.][ARC_COMPLETE:The Skinsaw Man]");
+    var q=worldState.questLog.filter(function(x){return x.title==="New Hook";})[0];
+    if(!q)return "the newborn was stamped with the dying arc and killed at birth";
+    return q.bornArc==="The Fort and the Dam"?true:"the newborn belongs to the wrong arc: "+JSON.stringify(q.bornArc);
+  });
+  t("#265①: a newborn at an act boundary with NO successor arc stays UNSTAMPED — immune, never guessed",function(){
+    makeWorld();worldState.turn=60;
+    worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[
+      {title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20}
+    ]}]};
+    applyMuts("[QUEST:Loose End|offered|d.][ARC_COMPLETE:The Skinsaw Man]");
+    var q=worldState.questLog.filter(function(x){return x.title==="Loose End";})[0];
+    if(!q)return "the boundary newborn was swept";
+    return q.bornArc===undefined?true:"ambiguity was guessed instead of immune: "+JSON.stringify(q.bornArc);
+  });
+  t("#265①: ordinary stamping is unchanged when no arc closes (regression pin)",function(){
+    makeWorld();worldState.turn=40;
+    worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[
+      {title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20}
+    ]}]};
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.]");
+    var q=worldState.questLog[0];
+    return q.bornArc==="The Skinsaw Man"?true:"plain-turn stamping broke: "+JSON.stringify(q.bornArc);
+  });
+  t("#265②: a QUEST_STEP naming an unknown quest is LOUD — warn + a player-visible line",function(){
+    makeWorld();worldState.turn=30;
+    applyMuts("[QUEST:The Real Quest|active|d.]");
+    var _w=console.warn,_warned=[];console.warn=function(m){_warned.push(String(m));};
+    var R;try{R=applyMuts("[QUEST_STEP:The Reel Quest|Find the mill|true]");}finally{console.warn=_w;}
+    if(!_warned.some(function(m){return m.indexOf("Reel Quest")>=0;}))return "no console warn for the mis-titled step";
+    var line=(R&&R.muts?R.muts:[]).filter(function(m){return m.indexOf("Reel Quest")>=0;})[0];
+    if(!line)return "no player-visible line for the dropped objective: "+JSON.stringify(R&&R.muts);
+    var real=worldState.questLog[0];
+    return !(real.objectives||[]).length?true:"the step landed on the wrong quest";
+  });
+  t("#265②: a step against an ARCHIVED quest says so honestly — not the mis-title accusation",function(){
+    makeWorld();worldState.turn=30;
+    memory.quests["Closed Business"]={title:"Closed Business",desc:"",objectives:[],status:"completed",turn:20,paid:{xp:100,gold:0}};
+    var R=applyMuts("[QUEST_STEP:Closed Business|Late addendum|true]");
+    var line=(R&&R.muts?R.muts:[]).filter(function(m){return m.indexOf("Closed Business")>=0;})[0];
+    if(!line)return "no player-visible line for the archived-step drop";
+    if(line.indexOf("completed")<0)return "the line does not say WHY (archived status): "+line;
+    return line.indexOf("mis-title")<0?true:"an archived step was accused of a mis-title";
+  });
+  t("#265②: the offered-skip stays a silent deliberate gate (pin — v1.144)",function(){
+    makeWorld();worldState.turn=30;
+    applyMuts("[QUEST:Held Offer|offered|d.]");
+    var _w=console.warn,_warned=[];console.warn=function(m){_warned.push(String(m));};
+    try{applyMuts("[QUEST_STEP:Held Offer|Early objective|false]");}finally{console.warn=_w;}
+    var q=worldState.questLog[0];
+    if((q.objectives||[]).length)return "an offered quest accepted an objective";
+    return !_warned.some(function(m){return m.indexOf("Held Offer")>=0;})?true:"the deliberate offered-skip became a warn";
+  });
+  t("#265③: a guard-permitted re-offer REHYDRATES the archived checklist, done-flags included",function(){
+    makeWorld();worldState.turn=50;
+    memory.quests["The Sugar War"]={title:"The Sugar War",desc:"Rob the sweetshop.",objectives:[{text:"Case the shop",done:true},{text:"Crack the safe",done:false}],status:"abandoned",turn:40,by:"wall"};
+    applyMuts("[QUEST:The Sugar War|offered]");
+    var q=worldState.questLog.filter(function(x){return x.title==="The Sugar War";})[0];
+    if(!q)return "the re-offer was blocked";
+    if(!q.objectives||q.objectives.length!==2)return "the archived checklist did not rehydrate: "+JSON.stringify(q.objectives);
+    if(q.objectives[0].done!==true||q.objectives[1].done!==false)return "done-flags lost in rehydration: "+JSON.stringify(q.objectives);
+    return q.desc==="Rob the sweetshop."?true:"the archived desc did not carry: "+JSON.stringify(q.desc);
+  });
+  t("#265③: a fresh offer with its own desc keeps the GM's new desc; declined records rehydrate too",function(){
+    makeWorld();worldState.turn=50;
+    memory.quests["Old Errand"]={title:"Old Errand",desc:"Old wording.",objectives:[{text:"Step one",done:false}],status:"declined",turn:30};
+    applyMuts("[QUEST:Old Errand|offered|Fresh wording from the re-raise.]");
+    var q=worldState.questLog.filter(function(x){return x.title==="Old Errand";})[0];
+    if(!q)return "the declined re-offer was blocked";
+    if(q.desc!=="Fresh wording from the re-raise.")return "the GM's fresh desc was overwritten: "+q.desc;
+    return q.objectives&&q.objectives.length===1?true:"declined checklist did not rehydrate: "+JSON.stringify(q.objectives);
+  });
+
   // ── #264 — the review-call tag whitelist (owner ruling 2026-08-28; Fable f14+f2, verified).
   // Suggest-completion and Define-item run their responses through the FULL 57-handler parser
   // while their reused prompt actively solicits out-of-scope tags — a hallucinated [LOCATION:]

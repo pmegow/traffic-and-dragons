@@ -621,7 +621,15 @@ var TAG_TABLE=[
       if(typeof console!=="undefined")console.warn("[quest] [QUEST:"+qTitle+"|active] refused — this title was re-offered THIS response after the player dropped it; activation needs the player's accept (a later response) (#259)");
       R.muts.push("⚠ Quest '"+qTitle+"' re-offered just now — activation waits for the player");
       continue;}}/* #191ⓑ: any QUEST tag naming a live row is a touch — resets the staleness clock and re-arms the review latch (re-emitting [QUEST:title|active] is the documented zero-vocabulary ack) */
-  if(qIdx<0){var _qNew={title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn,lastTouch:R.turn};/* #231 the arc wall: stamp the arc that bore this thread. EMERGENT quests only (a spine-titled quest belongs to the authored story), and only when the parent is unambiguous — an unstamped quest is permanently immune, which is the fail-safe every legacy save relies on. */if(typeof questIsEmergent==="function"&&questIsEmergent(qTitle)&&typeof currentArcTitle==="function"){var _qArc=currentArcTitle();if(_qArc)_qNew.bornArc=_qArc;}if(_qReoffer)_qNew.reofferedTurn=R.turn;/* #259 */worldState.questLog.push(_qNew);if(qStat==="offered"){if(typeof Sound!=="undefined")Sound.play("click_glass");/* TODO #7: side-effect only — never touches parse/mutation flow. BEFORE the toast so it claims the playIfQuiet window and the toast-level poke steps aside */if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
+  if(qIdx<0){var _qNew={title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn,lastTouch:R.turn};/* #231 the arc wall: the bornArc stamp is DEFERRED to the post-handler seam (#265① — QUEST runs before ARC_COMPLETE in table order, so an inline stamp bound a same-response newborn to the DYING arc and the wall archived it at birth; the seam stamps after every arc transition settles, and the wall's own sweep runs before the seam, so an unstamped newborn is immune to THIS response's sweep by construction). EMERGENT quests only; ambiguity stays unstamped — immune, never guessed. */if(typeof questIsEmergent==="function"&&questIsEmergent(qTitle)){if(!R._newQuests)R._newQuests=[];R._newQuests.push(qTitle);}if(_qReoffer){_qNew.reofferedTurn=R.turn;/* #259 */
+    /* #265③ (Fable f11): a guard-permitted return of an archived abandoned/declined thread starts
+       from its OWN checklist, not a blank one — the archive held the objectives (done-flags and
+       all) while the live row restarted from narrative memory, the exact drift class the
+       authoritative quest block exists to prevent. The GM's fresh desc wins; the archived desc
+       only fills a blank. */
+    if(_arch&&(_arch.objectives||[]).length){var _rhi;_qNew.objectives=[];for(_rhi=0;_rhi<_arch.objectives.length;_rhi++){var _rho=_arch.objectives[_rhi],_rhc={text:_rho.text,done:!!_rho.done};if(_rho.optional)_rhc.optional=true;_qNew.objectives.push(_rhc);}R.muts.push("Quest '"+qTitle+"' returns with its checklist ("+_qNew.objectives.length+" objectives restored)");}
+    if(!qDesc&&_arch&&_arch.desc)_qNew.desc=_arch.desc;}
+  worldState.questLog.push(_qNew);if(qStat==="offered"){if(typeof Sound!=="undefined")Sound.play("click_glass");/* TODO #7: side-effect only — never touches parse/mutation flow. BEFORE the toast so it claims the playIfQuiet window and the toast-level poke steps aside */if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
   if(qStat==="completed"||qStat==="failed"){
     // UA42: player-visible closure — the toast names the same-response rewards so a close never
     // again passes in silence (two Playtest-2 completions had ZERO feedback). Positive gold only:
@@ -638,7 +646,10 @@ var TAG_TABLE=[
 {t:"QUEST_STEP",apply:function(text,R){var qsteps=text.match(/\[QUEST_STEP:([^|\]]+)\|([^|\]]+)\|?([^\]]*)\]/g)||[];var qsi;for(qsi=0;qsi<qsteps.length;qsi++){var qsp=qsteps[qsi].match(/\[QUEST_STEP:([^|\]]+)\|([^|\]]+)\|?([^\]]*)\]/);if(!qsp)continue;var qsTitle=qsp[1].trim(),qsObj=qsp[2].trim();/* #205b: the tail is a token list — done vocab and an optional/required flag may ride the third
    and fourth fields in either order ([...|optional], [...|true|optional], [...|false|required]).
    A flagless re-emission leaves optionality alone (checking a box must not strip the flag). */
-   var qsToks=(qsp[3]||"").split("|"),qsDone=false,qsOpt=null,qti;for(qti=0;qti<qsToks.length;qti++){var qtv=qsToks[qti].trim();if(/^(true|done|1|yes|x)$/i.test(qtv))qsDone=true;else if(/^optional$/i.test(qtv))qsOpt=true;else if(/^required$/i.test(qtv))qsOpt=false;}var qsq=null,qk;for(qk=0;qk<worldState.questLog.length;qk++){if(worldState.questLog[qk].title.toLowerCase()===qsTitle.toLowerCase()){qsq=worldState.questLog[qk];break;}}if(!qsq)continue;qsq.lastTouch=R.turn;delete qsq.staleNudged;/* #191ⓑ: objective activity is a touch */if(qsq.status==="offered")continue;if(!qsq.objectives)qsq.objectives=[];var ofound=false,oj2;for(oj2=0;oj2<qsq.objectives.length;oj2++){if(qsq.objectives[oj2].text.toLowerCase()===qsObj.toLowerCase()){qsq.objectives[oj2].done=qsDone;if(qsOpt===true)qsq.objectives[oj2].optional=true;else if(qsOpt===false)delete qsq.objectives[oj2].optional;ofound=true;break;}}if(!ofound){var qsNew={text:qsObj,done:qsDone};if(qsOpt===true)qsNew.optional=true;qsq.objectives.push(qsNew);}R.muts.push(qsTitle+(qsDone?" ✓ ":" + ")+qsObj+(qsOpt===true?" (optional)":""));}}},
+   var qsToks=(qsp[3]||"").split("|"),qsDone=false,qsOpt=null,qti;for(qti=0;qti<qsToks.length;qti++){var qtv=qsToks[qti].trim();if(/^(true|done|1|yes|x)$/i.test(qtv))qsDone=true;else if(/^optional$/i.test(qtv))qsOpt=true;else if(/^required$/i.test(qtv))qsOpt=false;}var qsq=null,qk;for(qk=0;qk<worldState.questLog.length;qk++){if(worldState.questLog[qk].title.toLowerCase()===qsTitle.toLowerCase()){qsq=worldState.questLog[qk];break;}}if(!qsq){var _qsArch=(memory&&memory.quests)?memory.quests[qsTitle]:null;if(!_qsArch&&memory&&memory.quests){var _qsk;for(_qsk in memory.quests){if(_qsk.toLowerCase()===qsTitle.toLowerCase()){_qsArch=memory.quests[_qsk];break;}}}
+   if(_qsArch){if(typeof console!=="undefined")console.warn("[quest] QUEST_STEP on archived quest '"+qsTitle+"' ("+_qsArch.status+") — objective '"+qsObj+"' not recorded; closed quests do not gain objectives (#265②)");R.muts.push("⚠ '"+qsTitle+"' is already "+_qsArch.status+" — objective not recorded");}
+   else{if(typeof console!=="undefined")console.warn("[quest] QUEST_STEP names no known quest: '"+qsTitle+"' — objective '"+qsObj+"' dropped (mis-title? the ACTIVE block's titles are authoritative) (#265②)");R.muts.push("⚠ Objective dropped — no quest titled '"+qsTitle+"'");}
+   continue;}/* #265② (Fable f52): the silent fall-through starved the checklist the completion machinery reads; the adjacent offered-skip below stays a SILENT deliberate gate (pinned, v1.144) */qsq.lastTouch=R.turn;delete qsq.staleNudged;/* #191ⓑ: objective activity is a touch */if(qsq.status==="offered")continue;if(!qsq.objectives)qsq.objectives=[];var ofound=false,oj2;for(oj2=0;oj2<qsq.objectives.length;oj2++){if(qsq.objectives[oj2].text.toLowerCase()===qsObj.toLowerCase()){qsq.objectives[oj2].done=qsDone;if(qsOpt===true)qsq.objectives[oj2].optional=true;else if(qsOpt===false)delete qsq.objectives[oj2].optional;ofound=true;break;}}if(!ofound){var qsNew={text:qsObj,done:qsDone};if(qsOpt===true)qsNew.optional=true;qsq.objectives.push(qsNew);}R.muts.push(qsTitle+(qsDone?" ✓ ":" + ")+qsObj+(qsOpt===true?" (optional)":""));}}},
 // UA26: multi-match g-loop (legacy matched only the FIRST tag — the H2 class: 18/150 Haiku turns
 // emitted a second COMBAT_START during a fight and it was silently lost). No combat → start the
 // encounter; combat active → ADD a foe; duplicate living name → re-emission, ignored + warn;
@@ -1305,6 +1316,20 @@ function applyMutsTable(text,opts){
       worldState.combat=null;
       R.muts.push("Combat ended (left the area)");
       if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_dcStale+") on move to "+R._deferCombatClear.to+" — GM emitted no [COMBAT_END:] (#260 deferred)");
+    }
+  }
+  // #265① (Fable f1): the DEFERRED bornArc stamp — after every ARC_COMPLETE/ACT_COMPLETE has
+  // settled, a quest born this response is stamped with the arc that NOW stands. Same-response
+  // "close the arc, offer the sequel" — a natural transition beat — used to bind the sequel to
+  // the corpse. Re-checked emergent here (cheap, and the spine set is transition-independent);
+  // ambiguity (parallel act, act boundary with no successor) stays unstamped = immune.
+  if(R._newQuests&&R._newQuests.length&&typeof questIsEmergent==="function"&&typeof currentArcTitle==="function"){
+    var _nqArc=currentArcTitle(),_nqi,_nqj;
+    if(_nqArc)for(_nqi=0;_nqi<R._newQuests.length;_nqi++){
+      for(_nqj=0;_nqj<worldState.questLog.length;_nqj++){
+        var _nqRow=worldState.questLog[_nqj];
+        if(_nqRow.title===R._newQuests[_nqi]&&!_nqRow.bornArc){_nqRow.bornArc=_nqArc;break;}/* the emergent gate lives at QUEUE time — one gate, not two half-gates a mutation can slip between */
+      }
     }
   }
   // #173: the guestbook arrival commit — THE post-handler attendance seam (pinned amendment ③).
