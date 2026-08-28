@@ -88,8 +88,23 @@ rc |= sabotage.prove({
   cases: [
     { label: "the write-time fold dies — re-phrased deadlines file twins again (#217)",
       mustFail: "#217 a re-phrased deadline REFRESHES the existing entry instead of fil",
-      find: "      if(feNearDup(lbl,c.schedule[i].label)){",
+      find: "      if(scheduleNearDup(lbl,c.schedule[i].label)){",
       replace: "      if(false){" },
+
+    { label: "#235: the write path falls back to the loose futureEvents fingerprint — innkeeper/ferryman fold again",
+      mustFail: "distinct deadlines sharing two ordinary tokens file SEPARATELY",
+      find: "      if(scheduleNearDup(lbl,c.schedule[i].label)){",
+      replace: "      if(feNearDup(lbl,c.schedule[i].label)){" },
+
+    { label: "#235: the sweep falls back to the loose fingerprint — the load sweep folds distinct deadlines",
+      mustFail: "the load sweep also refuses the two-token false fold",
+      find: "      if(scheduleNearDup(sorted[i].label,kept[j].label)){",
+      replace: "      if(feNearDup(sorted[i].label,kept[j].label)){" },
+
+    { label: "#235: the subset clause is dropped — plain restatements at two shared tokens file twins",
+      mustFail: "a strict-subset restatement still folds",
+      find: "  return shared>=3||(shared>=2&&(aEx===0||bEx===0));",
+      replace: "  return shared>=3;" },
     { label: "the sweep keeps oldest instead of freshest-born — the stale seven-day deal wins (#217)",
       mustFail: "#217 the load sweep collapses the live triple to the freshest-born ent",
       find: "  var sorted=c.schedule.slice().sort(function(a,b){return (b.born||0)-(a.born||0);});",
@@ -98,6 +113,17 @@ rc |= sabotage.prove({
       mustFail: "#217 the load sweep collapses the live triple to the freshest-born ent",
       find: "  c.repairs.push({id:\"217-schedule-dedupe\",removed:removed,t:(typeof worldState!==\"undefined\"&&worldState&&worldState.turn)||0});",
       replace: "" }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "tag_table.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#235: the fold-honesty muts line dies — a fold silently pairs the kept label with the new countdown again",
+      mustFail: "muts line is honest about a fold",
+      find: "var _sf=scheduleAdd._lastFold;if(_sf&&_sf.from&&String(_sf.from).toLowerCase()!==String(ev.label).toLowerCase())",
+      replace: "var _sf=null;if(_sf)" }
   ]
 });
 

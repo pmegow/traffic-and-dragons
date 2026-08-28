@@ -14615,6 +14615,54 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return worldState.clock.min===5000?true:"the sweep moved the clock scalar";
   });
 
+  // ── #235 (JP0-10, joint review 2026-08-27): the schedule store's fold was too loose for its
+  // authority level — feNearDup's floor (2 shared stemmed tokens covering half the smaller
+  // fingerprint) silently merged DISTINCT deadlines sharing two ordinary words ("meet the
+  // innkeeper at dawn" / "meet the ferryman at dawn"): one countdown corrupted and served as
+  // canon every turn, the other errand untrackable while the kept entry lived. The schedule
+  // comparator now demands shared>=3 OR a strict token subset; the Wyla bracelet rephrasings
+  // (#217's field fixtures, 4-5 shared tokens) still fold. The fold is also HONEST at the muts
+  // line now — it names both labels instead of pairing the kept label with the new countdown.
+  section("#235 — schedule fold precision (the innkeeper/ferryman class)");
+  t("#235: distinct deadlines sharing two ordinary tokens file SEPARATELY",function(){
+    makeWorld();worldState.clock={min:0,schedule:[]};
+    scheduleAdd("Meet the innkeeper at dawn","1d");
+    var _i=console.info;console.info=function(){};
+    try{scheduleAdd("Meet the ferryman at dawn","2d");}finally{console.info=_i;}
+    var sch=worldState.clock.schedule;
+    if(sch.length!==2)return "two different errands were folded into one deadline: "+JSON.stringify(sch.map(function(e){return e.label;}));
+    return sch[0].dueMin===1440&&sch[1].dueMin===2880?true:"countdowns crossed: "+JSON.stringify(sch.map(function(e){return e.dueMin;}));
+  });
+  t("#235: the load sweep also refuses the two-token false fold",function(){
+    makeWorld();
+    worldState.clock={min:100,schedule:[
+      {id:"a",label:"Meet the innkeeper at dawn",dueMin:1540,born:50},
+      {id:"b",label:"Meet the ferryman at dawn",dueMin:2980,born:60}
+    ]};
+    var _w=console.warn,_i=console.info;console.warn=function(){};console.info=function(){};
+    try{scheduleDedupSweep();}finally{console.warn=_w;console.info=_i;}
+    return worldState.clock.schedule.length===2?true:"the sweep folded distinct deadlines";
+  });
+  t("#235: a strict-subset restatement still folds at two shared tokens",function(){
+    makeWorld();worldState.clock={min:0,schedule:[]};
+    scheduleAdd("Meet the innkeeper at dawn","1d");
+    var _i=console.info;console.info=function(){};
+    try{scheduleAdd("Meet the innkeeper","2d");}finally{console.info=_i;}
+    var sch=worldState.clock.schedule;
+    return sch.length===1&&sch[0].dueMin===2880?true:"a subset restatement stopped folding: "+JSON.stringify(sch.map(function(e){return e.label;}));
+  });
+  t("#235: the SCHEDULE muts line is honest about a fold — it names BOTH labels",function(){
+    makeWorld();worldState.clock={min:0,schedule:[]};
+    scheduleAdd("Return to Wyla Ashvane's shop to collect the four cold-warded bracelets","10d");
+    var _i=console.info;console.info=function(){};var r;
+    try{r=applyMuts("[SCHEDULE:Collect the completed ember-rune warding bracelets from Wyla Ashvane|6d]");}finally{console.info=_i;}
+    if(worldState.clock.schedule.length!==1)return "the Wyla rephrasing stopped folding: "+worldState.clock.schedule.length;
+    var line=(r&&r.muts?r.muts:[]).filter(function(m){return m.indexOf("Schedule")>=0||m.indexOf("Scheduled")>=0;})[0];
+    if(!line)return "no schedule muts line: "+JSON.stringify(r&&r.muts);
+    if(line.indexOf("ember-rune")<0)return "the fold hides the incoming label: "+line;
+    return line.indexOf("cold-warded")>=0?true:"the fold does not name the kept deadline: "+line;
+  });
+
   section("#223 the undefined-item nudge — nothing ever asked what Giant's Bane does");
   // Root cause of the field incident: a mechanics-bearing item entered the pack and NOTHING
   // asked for its canon. There are nudges for duplicate items, misattributed items and ghost

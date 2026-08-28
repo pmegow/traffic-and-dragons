@@ -216,7 +216,24 @@ function fmtGap(gapMin){
 // ── Scheduler ─────────────────────────────────────────────────────────────────────────────
 // A scheduled event stores an ABSOLUTE dueMin. Duplicate label (case-insensitive) refreshes the
 // due-time in place rather than twinning (the #29 futureEvents dedup lesson).
+// #235 (JP0-10, joint review): the SCHEDULE-authority comparator. feNearDup's floor (2 shared
+// stemmed tokens covering half the smaller fingerprint) is right for fuzzy futureEvents but too
+// loose for a store whose countdowns are served as authoritative canon every turn — "meet the
+// innkeeper at dawn" / "meet the ferryman at dawn" share exactly {meet, dawn} and were silently
+// merged: one countdown corrupted, the other errand untrackable while the kept entry lived.
+// A schedule fold demands shared>=3 significant tokens, OR shared==2 where one label's tokens
+// are a strict SUBSET of the other's (a plain restatement). The #217 Wyla bracelet field
+// fixtures share 4-5 tokens and keep folding — pinned by both test families.
+function scheduleNearDup(a,b){
+  if(typeof feNearDup!=="function"||typeof feTokens!=="function")return false;
+  if(!feNearDup(a,b))return false;
+  var at=feTokens(a),bt=feTokens(b),shared=0,aEx=0,bEx=0,i;
+  for(i=0;i<at.length;i++){if(bt.indexOf(at[i])>=0)shared++;else aEx++;}
+  for(i=0;i<bt.length;i++){if(at.indexOf(bt[i])<0)bEx++;}
+  return shared>=3||(shared>=2&&(aEx===0||bEx===0));
+}
 function scheduleAdd(label,whenStr){
+  scheduleAdd._lastFold=null;/* #235: per-call fold hint for the SCHEDULE handler's honest muts line */
   var c=clockEnsure();if(!c)return null;
   var lbl=String(label==null?"":label).trim();if(!lbl)return null;
   var mins=parseDuration(whenStr);if(mins<1)mins=1;            // "in <1 min" is meaningless; floor at 1
@@ -234,8 +251,9 @@ function scheduleAdd(label,whenStr){
      the deal is the freshest information — last-write-wins, exactly what an exact match does). */
   if(typeof feNearDup==="function"){
     for(i=0;i<c.schedule.length;i++){
-      if(feNearDup(lbl,c.schedule[i].label)){
+      if(scheduleNearDup(lbl,c.schedule[i].label)){/* #235: schedule-authority comparator, not the raw futureEvents fingerprint */
         c.schedule[i].dueMin=due;
+        scheduleAdd._lastFold={from:lbl,into:c.schedule[i].label};
         if(typeof console!=="undefined")console.info("[clock] #217: \""+lbl.slice(0,60)+"\" near-duplicates scheduled \""+String(c.schedule[i].label).slice(0,60)+"\" — deadline refreshed, no twin filed");
         return c.schedule[i];
       }
@@ -388,7 +406,7 @@ function scheduleDedupSweep(){
   for(i=0;i<sorted.length;i++){
     var hit=false;
     for(j=0;j<kept.length;j++){
-      if(feNearDup(sorted[i].label,kept[j].label)){removed.push({id:sorted[i].id,label:sorted[i].label,dueMin:sorted[i].dueMin,born:sorted[i].born,foldedInto:kept[j].id});hit=true;break;}
+      if(scheduleNearDup(sorted[i].label,kept[j].label)){removed.push({id:sorted[i].id,label:sorted[i].label,dueMin:sorted[i].dueMin,born:sorted[i].born,foldedInto:kept[j].id});hit=true;break;}/* #235: same schedule-authority comparator as the write path */
     }
     if(!hit)kept.push(sorted[i]);
   }
