@@ -16512,6 +16512,41 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   }
   var __W2_JARGON=/scene binding|observed handle|canon transaction|identity dispute|axis adapter|quarantin|latch|CANON_TXN|SCENE_REF/i;
 
+  section("refusal copy coverage (joint f24/f76)");
+  t("joint f24: the three off-registry refusal reasons each render dedicated player copy",function(){
+    var cases=[
+      ["unsupported canon claim type","the GM used a kind of story update the game does not understand"],
+      ["transaction handler failed: NPC handler threw","the game could not apply one of the GM's story updates"],
+      ["transaction receipt could not be persisted","the game could not save the GM's story update"]
+    ],i,got;
+    for(i=0;i<cases.length;i++){
+      got=w2RefusalCopy(cases[i][0]);
+      if(got===W2_REFUSAL_FALLBACK)return "fallback for: "+cases[i][0];
+      if(got!==cases[i][1])return "wrong copy for "+cases[i][0]+": "+got;
+    }
+    return true;
+  });
+  t("joint f24: the engine's three technical refusal literals stay byte-unchanged",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var id=__fsForTests.readFileSync(__rootForTests+"/identity.js","utf8");
+    var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
+    if(id.indexOf('reason="unsupported canon claim type"')<0)return "unsupported-claim engine reason changed";
+    if(api.indexOf('"transaction handler failed: "+_w2r.errors.join')<0)return "handler-failure engine reason changed";
+    return api.indexOf('"transaction receipt could not be persisted"')>=0?true:"receipt-persistence engine reason changed";
+  });
+  t("joint f76: the census covers identity + api and flags a synthetic novel-prefix reason",function(){
+    if(typeof __refusalCopyCensusForTests==="undefined"||typeof __fsForTests==="undefined")return true;
+    var id=__fsForTests.readFileSync(__rootForTests+"/identity.js","utf8");
+    var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
+    var real=__refusalCopyCensusForTests.census(id,api);
+    if(real.missing.length)return "real uncovered refusal reasons: "+real.missing.join(" | ");
+    var expected=["unsupported canon claim type","transaction handler failed: ","transaction receipt could not be persisted","death-like chapter claim has no cited npcDeaths evidence"],i;
+    for(i=0;i<expected.length;i++)if(real.reasons.indexOf(expected[i])<0)return "census did not discover shipped reason: "+expected[i];
+    var planted=id+'\nfunction __refusalFixture(){var reason="the envelope subject is unbound";}\n';
+    var fake=__refusalCopyCensusForTests.census(planted,api);
+    return fake.missing.indexOf("the envelope subject is unbound")>=0?true:"novel-prefix planted reason escaped the census";
+  });
+
   t("#213 every shipped refusal reason has player copy: none falls through to the fallback, none leaks engine jargon",function(){
     if(typeof w2RefusalCopy!=="function")return "w2RefusalCopy is not defined";
     if(!W2_REFUSAL_REASONS||!W2_REFUSAL_REASONS.length)return "the shipped-reason registry is missing";

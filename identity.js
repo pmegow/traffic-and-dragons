@@ -1307,6 +1307,9 @@ var W2_REFUSAL_REASONS=[
   "scene death was emitted outside a canon transaction",
   "unmatched transaction marker",
   "malformed or mismatched transaction envelope",
+  "unsupported canon claim type",
+  "transaction handler failed: ",
+  "transaction receipt could not be persisted",
   "new npc-death claim carries no death operation",
   "canon transaction receipt capacity is exhausted",
   "claim id was already quarantined",
@@ -1317,6 +1320,7 @@ var W2_REFUSAL_REASONS=[
   "uncited legacy npcDeaths entry cannot mint a new corpse",
   "death-like chapter claim has no cited npcDeaths evidence",
   "death outcome names no active accepted quest",
+  "quest outcome names no active accepted quest",
   "quest outcome must not claim an NPC identity",
   "identity evidence missing"
 ];
@@ -1344,7 +1348,13 @@ var W2_REFUSAL_COPY=[
    copy:"the reward was tied to a quest you never took on"},
   {match:/must not claim an NPC identity/i,
    copy:"the GM tangled a quest result up with a character's fate"},
-  {match:/outside a canon transaction|unmatched transaction marker|mismatched transaction envelope|carries no death operation|handler failed|reused with different metadata/i,
+  {match:/unsupported canon claim type/i,
+   copy:"the GM used a kind of story update the game does not understand"},
+  {match:/transaction handler failed/i,
+   copy:"the game could not apply one of the GM's story updates"},
+  {match:/transaction receipt could not be persisted/i,
+   copy:"the game could not save the GM's story update"},
+  {match:/outside a canon transaction|unmatched transaction marker|mismatched transaction envelope|carries no death operation|reused with different metadata/i,
    copy:"the GM's record of that death was malformed"},
   {match:/identity evidence missing/i,
    copy:"the GM gave no sign of who this actually was"}
