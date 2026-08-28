@@ -14,6 +14,7 @@ commits), what it touches, why it's risky or not, supporting docs/tests, and wha
 should probe first. Self-contained enough that a Fable session needs no other context.
 
 ## Off-Fable log
+- 2026-08-28 (v1.722): Scoped joint-review doc/data parity shipped: state.js now names compressed cloud snapshots, both satellite seams are recorded paid, queue entry 14 retains only its two live field watches, and `Stolen voice` is arcane-only with a martial-menu purity census (Fable f77/f80/f82; failing-first; sabotage 1/1). No quest-schema/lifecycle contract text changed.
 - 2026-08-28 (v1.721): #17 Drift health gained opt-in, observation-only UTF-8 bytes/counts for seven world/memory growth slices; the hot status-dot path does no serialization and nothing thresholds, trims, compacts, or reaches a prompt/parser (Sol P2-03; failing-first pure probe + UI contract; sabotage 6/6). Thin DOM shell over pure telemetry.
 - 2026-08-28 (dev-only): CI now dry-checks all 488 retained sabotage targets, read-only compares four replay corpora to committed end-state baselines, and retains #92 sync-compression (3/3) plus #144A archive-carry (7/7) batteries; two misattributed broad archive scans were narrowed to their actual write sites (f73/f74/f79; wiring sabotage 10/10). Additive verification tooling only.
 - 2026-08-28 (dev-only): `bug_tracker.html` gained `window.__bugTrackerTest`; its own run-tests contract bans executable-HTML sinks and pins filed/feed/findings text through the shared `textContent` boundary (f75; sabotage 6/6). Satellite seam + additive security coverage only.
@@ -320,66 +321,25 @@ width caveat applies to this arm exactly as it does to the others. (4) The guard
 test (`#22 gemini buildBody pins thinkingLevel 'low'`), verified red before the change; it pins the
 value but cannot detect the model silently reinterpreting "low".
 
-### 14 — TTS splitter cross-assignment (#93) and narration stuck in third person (#172), both drift-surface (Opus)
+### 14 — Two residual field watches from #93/#172 (Opus)
 
-**Filed:** 2026-08-12. **Shipped:** v1.603 → v1.604 (#93, commits `43363ea`, `caa2a92`) and
-v1.605 (#172, commit `8a19360`). **Trackers:** TODO #93, TODO #172.
+**Filed:** 2026-08-12. **Adjudicated:** Fable f80, 2026-08-27. **Shipped roots:** v1.603–v1.604
+(#93, `43363ea` / `caa2a92`) and v1.605 (#172, `8a19360`). **Trackers:** TODO #93, TODO #172.
 
-Two drift-surface changes in one session, filed together because they touch the same week's
-lesson from opposite ends.
+The inherited-voice/parity questions and `paragraphGaps` probe in the former entry are retired:
+Fable's P4a/P4b passes (`4faeb09`, v1.610; `d0c510e`, v1.611) replaced those mechanisms and carry
+their own evidence. Do not spend a new review on the retired shapes. Two live residuals remain:
 
-**#93 — `splitSentences` / `deriveSpeakerMapFromTags`.** An unbalanced quote inverted the
-dialogue/narration labels for the rest of a paragraph, and since the v1.451 deterministic deriver
-that is audible: narration took the `[SAY:]` segment's CHARACTER voice. Also fixed the quote-blind
-key match (probe W1 — a real field instance corrected in t1667: Frizwick's `"There,"` was being
-spoken in Daeris's voice) and the punctuation-only audio blip. **v1.603 shipped a regression** —
-the quoted-run mask was built from RAW text while the units come from CLEAN, so a tag alone on its
-own line could hand a tagged line to the WRONG character. Caught by an adversarial review pass,
-reproduced by hand against v1.602, and corrected in v1.604 (role-based fault detection, tag
-stripping, a straddling-break seam, flattened units consuming the cursor, voice-aware folds).
+1. **TTS splitter internals, `tts.js:913-981` — accepted residue / field trigger.** `quoteFault`, the
+   `_cutOff` fork, and flattening are unchanged since v1.604. In particular, truncated speech whose
+   cap lands on a period still flattens after its first closed quote. The shipped choice is backed by
+   the 23,858-paragraph census and 18-mutation battery; reopen only if voice misattribution returns.
+2. **The unconditional single-player person tail, `api.js:1807` — field watch cleared so far.** The
+   terse post-STYLE line has stayed quiet through the owner's play from t1723 to past t2175. Reopen
+   only if third-person drift recurs or the line is heard degrading the chosen prose voice.
 
-**#172 — `buildSysPrompt` post-STYLE slot + a new engine note.** Field report: the campaign was
-narrating in third person. Two causes: the multiplayer-exit correction was retired by a TURN
-COUNTER (proven from the hot-seat `Name:` prefixes in the transcript — multiplayer ran t809–816,
-the GM never complied, the counter fired, third person ran to t829), and ordinary single-player
-carried NO end-of-prompt person directive at all while the prose voice held that slot
-(`howard` campaigns measure 2.7–5.3% second person vs 98–100% for `abercrombie`; this campaign's
-`proseAuthor` is `howard`). Now compliance-boxed, with a short unconditional person line, a
-cause-agnostic drift detector on the engine-note channel, and a visible multi-PC chip.
-
-**Why it is risky.** #93 touches the speaker-map producer and the splitter that persisted `sp.n`
-maps key on. #172 touches `buildSysPrompt`'s volatile tail, `NOTE_BUILDERS`, `NOTE_LATCH_FIELDS`,
-and adds a new per-response observer in `commitGmTurn` — the prompt channel the project has
-already lost to twice (D12 rounds 1–2).
-
-**Supporting evidence.** #93: corpus diff over 3,902 real GM documents (junk units 164→26, B14c
-straddlers 1→0, zero narration→dialogue promotions); 18-mutation sabotage battery, each mutation in
-its own process (these helpers are file-scope globals — in-process comparison silently
-contaminates, a trap that bit both me and one review agent). #172: predicate measured over 10,043
-judged responses with a ZERO false-positive rate, the hero-name-in-narration clause being what takes
-it from 34% to 0; 9-mutation sabotage battery in an isolated tree; a NARRATION-PERSON source
-contract that fails the build if the turn counter ever returns; live browser verification at v1.605.
-The post-ship t1723 export supplies the missing field repro: its affected turns are stamped
-v1.594–v1.604 despite the export occurring after the v1.605 commit, and show a single-player Howard
-campaign slipping at t1697, then carrying zero second-person narration from t1699 through t1723.
-The save has no `mpEnded` latch or companion `isPC`; its retained user messages contain no narration
-directive. This is direct RC-B evidence from the pre-v1.605 browser session, not a recurrence under
-the fix.
-Suite: 1348 green.
-
-**What a reviewer should probe first.**
-1. **#172's baseline person line is unconditional** — it now appears in every single-player prompt.
-   Confirm it cannot compete with the prose voice (it is deliberately terse) and that no author's
-   voice is degraded by it. This is the one change with no measured before/after on live prose.
-2. **#93's `_cutOff` fork, deliberately left open:** truncated speech whose cap lands on a period
-   still flattens after its first closed quote. Widening the exemption to any trailing fault in a
-   final paragraph zeroes the corpus label changes but retires the protection for most GM dialogue.
-3. **The `paragraphGaps` detector defects** (findings 9/10/11/15/16 of the #93 review) — identical
-   on v1.602 and v1.605, so #93 neither caused nor worsens them, but `buildSayComplianceNudge` fires
-   on responses whose speaker map is 100% correct. Deliberately NOT folded into a regression fix;
-   they want their own row.
-4. Whether `personDrift` belongs in `NOTE_LATCH_FIELDS` (it was added) — the #151 contract passed,
-   but the semantics of restoring a drift run after a dead provider turn deserve a second opinion.
+No dedicated code pass is warranted without either field trigger. #197's refusal guards changed the
+former `personDrift` latch context; that superseded question is not a third live residual.
 
 ---
 
