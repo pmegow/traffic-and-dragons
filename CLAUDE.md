@@ -184,6 +184,8 @@ Three live objects, all persisted to `localStorage` via the `store` wrapper:
 
 Campaign list metadata stored in `tnd_camps_v1` — array of lightweight campaign entries used by the campaign picker.
 
+**Corrupt-store rescue (JP0-4, v1.719):** `loadState` parses each side key in its own try/catch (E73 — a corrupt session/memory key must NEVER discard a good worldState), and each catch now routes through **`rescueCorruptStore(tier,raw,err)`** before degrading: the unreadable bytes are preserved VERBATIM under `STORE_RESCUE_K + tier + "_" + campId` (one slot per store per campaign; a newer corruption OVERWRITES — the opposite of UA3, where the rescue is *prepended* to survivors so the oldest blob holds the longest record, whereas these stores are replaced wholesale), the degrade shouts on both channels naming the tier ("session log" / "long-term memory"), and only then does the store fall back to `[]`/`blankMemory()` so the campaign still loads. **No recovery UI ships in this pass by design** — nothing in the app deletes a rescue key (pinned by the JP0-4 CORRUPT-STORE RESCUE CONTRACT in run-tests.js), so the preserved bytes stay the only copy until a recovery flow is designed.
+
 ### 4. v10 Character schema
 
 ```javascript

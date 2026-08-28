@@ -1,4 +1,4 @@
-var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
+var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var STORE_RESCUE_K="tnd_store_rescue_v1_";/* + tier + "_" + campId (JP0-4) — see rescueCorruptStore */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
 var _m={};      // in-memory fallback for keys localStorage can't persist (privacy mode OR quota)
 var _mKeys={};  // keys whose authoritative value lives in _m — get() must prefer it over a stale disk copy
 var store={
@@ -464,6 +464,30 @@ function migrateWorldState(){
   }
   return _mig;
 }
+/* JP0-4 (joint review 2026-08-27, Sol P0-02) — NO SILENT FAILURES at the recall-store boundary.
+   loadState parses each side key in its OWN try/catch (E73: a corrupt memory/session key must
+   never discard a good worldState — that isolation is right and is untouched here), but both
+   catch arms were SILENT and destroyed the evidence: sessionLog became [], memory became
+   blankMemory(), the player saw a healthy-looking campaign, and the very next save persisted the
+   blank over whatever was recoverable. This mirrors the UA3 transcript rescue above: stash the
+   original bytes under a bounded per-campaign key, shout on BOTH channels, THEN degrade so the
+   campaign still loads.
+   ONE slot per tier per campaign, and a newer corruption OVERWRITES — the opposite of UA3 on
+   purpose: a rescued transcript is PREPENDED to whatever survived, so there the oldest blob holds
+   the longest record, whereas these two stores are replaced wholesale, so the newest corrupt bytes
+   are the most complete picture of what was lost.
+   Deliberately NO recovery UI in this pass (that flow is Fable's design): rescue + loud degrade is
+   the whole deliverable, and nothing in the app ever deletes these keys — a later recovery flow
+   is the only thing that should. */
+function rescueCorruptStore(tier,raw,err){
+  var label=(tier==="sess")?"session log":(tier==="mem")?"long-term memory":tier;
+  var rk=STORE_RESCUE_K+tier+"_"+((typeof getActiveCampId==="function"&&getActiveCampId())||"default");
+  var kept=false;
+  if(typeof raw==="string"&&raw.length){try{store.set(rk,raw);kept=store.get(rk)===raw;}catch(e2){kept=false;}}
+  if(typeof console!=="undefined")console.error("[save] the "+label+" store could not be parsed — "+(kept?("the unreadable original is preserved under "+rk):"the unreadable original could NOT be preserved")+"; this campaign loads with an EMPTY "+label,err);
+  if(typeof showToast==="function")showToast("⚠ Your "+label+" could not be read"+(kept?" — a backup of the unreadable data was kept.":" and could NOT be backed up.")+" The campaign is loading without it.");
+  return kept;
+}
 function loadState(){
   var ws,sl,mm;try{ws=store.get(WSK);sl=store.get(SLK);mm=store.get(MEM_KEY);}catch(e){return false;}
   // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every
@@ -473,9 +497,9 @@ function loadState(){
   // good worldState (the old single try returned false with worldState still assigned, so the wizard
   // then overwrote the intact campaign). SLK is parsed BEFORE the migrate/saveCore (audit E36) so a
   // migrate-save persists the loaded log, not the stale global.
-  try{sessionLog=sl?JSON.parse(sl):[];}catch(e){sessionLog=[];}
+  try{sessionLog=sl?JSON.parse(sl):[];}catch(e){rescueCorruptStore("sess",sl,e);sessionLog=[];}/* JP0-4: preserve + shout before degrading */
   try{if(ws){worldState=parseWorldState(ws);restoreTranscriptRescue();/* UA3: BEFORE any migrate-save — preserve the rescued transcript. */if(typeof _sumFails!=="undefined")_sumFails=worldState.summaryFailure&&typeof worldState.summaryFailure.count==="number"?worldState.summaryFailure.count:0;}}catch(e){worldState=null;return false;}
-  try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){memory=blankMemory();}
+  try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){rescueCorruptStore("mem",mm,e);memory=blankMemory();}/* JP0-4: covers a heal throw on VALID json too — the bytes are still the only copy */
   /* #168 W7: relationship entity migration needs THIS campaign's alias table. Parsing/healing
      memory first prevents the previously active campaign from re-keying the incoming save. */
   try{if(worldState&&migrateWorldState())saveCore();}catch(e){worldState=null;return false;}

@@ -5304,6 +5304,108 @@ function runEngineTests(R){
     return v==="FIRST"?true:"overwritten: "+v;
   });
 
+  // ── corrupt recall-store rescue (JP0-4 / Sol P0-02) ───────────────────────────
+  // The E73 per-key isolation is RIGHT and stays exactly as it was (a corrupt side key must never
+  // discard a good worldState). What was wrong is that both catch arms were SILENT and destroyed
+  // the evidence: sessionLog became [] and memory became blankMemory() with no warning, and the
+  // very next save persisted the blank over the only recoverable copy. Same rescue shape as UA3
+  // above — stash the original bytes, shout, THEN degrade so the campaign still loads.
+  section("corrupt recall-store rescue (JP0-4)");
+  function _jp4rk(tier,camp){return STORE_RESCUE_K+tier+"_"+camp;}
+  function _jp4toastSaid(re){var i;for(i=0;i<__toasts.length;i++)if(re.test(__toasts[i]))return true;return false;}
+  function _jp4clean(camp,prevId){store.del(WSK);store.del(SLK);store.del(MEM_KEY);store.del(_jp4rk("sess",camp));store.del(_jp4rk("mem",camp));setActiveCampId(prevId);}
+
+  t("JP0-4: a corrupt session-log store preserves the exact bytes under a per-campaign rescue key, names the tier loudly, and still loads a playable campaign",function(){
+    var prevId=getActiveCampId(),camp="c_jp4a";
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(_jp4rk("sess",camp));
+    var GARBAGE='[{"role":"user","content":"half a mess';
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,GARBAGE);store.set(MEM_KEY,JSON.stringify(memory));
+    __toasts.length=0;
+    var ok=loadState(),kept=store.get(_jp4rk("sess",camp)),log=sessionLog,ws=worldState,said=_jp4toastSaid(/session log/i);
+    _jp4clean(camp,prevId);
+    if(!ok)return "the campaign refused to load — the E73 per-key isolation was lost";
+    if(!ws||!ws.character||ws.character.name!=="Tess")return "a good worldState was discarded over a corrupt side key";
+    if(!(log instanceof Array)||log.length)return "sessionLog did not degrade to an empty array";
+    if(kept!==GARBAGE)return "the rescue blob is not byte-identical to the corrupt original: "+JSON.stringify(kept);
+    return said?true:"no toast named the degraded tier: "+JSON.stringify(__toasts);
+  });
+
+  t("JP0-4: a corrupt long-term-memory store preserves the exact bytes, names ITS tier, and leaves the campaign playable",function(){
+    var prevId=getActiveCampId(),camp="c_jp4b";
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(_jp4rk("mem",camp));
+    var GARBAGE='{"npcs":{"Ameiko":{"attitude":"war';
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,"[]");store.set(MEM_KEY,GARBAGE);
+    __toasts.length=0;
+    var ok=loadState(),kept=store.get(_jp4rk("mem",camp)),mem=memory,ws=worldState,said=_jp4toastSaid(/long-term memory/i);
+    _jp4clean(camp,prevId);
+    if(!ok)return "the campaign refused to load — the E73 per-key isolation was lost";
+    if(!ws||!ws.character||ws.character.name!=="Tess")return "a good worldState was discarded over a corrupt memory key";
+    if(!mem||!mem.npcs||typeof mem.npcs!=="object")return "memory did not degrade to a usable blank";
+    if(kept!==GARBAGE)return "the rescue blob is not byte-identical to the corrupt original: "+JSON.stringify(kept);
+    return said?true:"no toast named the degraded tier: "+JSON.stringify(__toasts);
+  });
+
+  t("JP0-4: two corrupt stores in one load rescue INDEPENDENTLY — one slot per store, neither overwrites the other",function(){
+    var prevId=getActiveCampId(),camp="c_jp4c";
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(_jp4rk("sess",camp));store.del(_jp4rk("mem",camp));
+    var SG="[{not a log",MG="{not a memory";
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,SG);store.set(MEM_KEY,MG);
+    __toasts.length=0;
+    var ok=loadState(),ks=store.get(_jp4rk("sess",camp)),km=store.get(_jp4rk("mem",camp));
+    _jp4clean(camp,prevId);
+    if(!ok)return "the campaign refused to load with two corrupt side keys";
+    if(ks!==SG)return "session-log rescue wrong: "+JSON.stringify(ks);
+    return km===MG?true:"memory rescue wrong (the two tiers share a slot): "+JSON.stringify(km);
+  });
+
+  t("JP0-4: ONE rescue slot per store per campaign — a NEWER corruption overwrites the older bytes (unlike UA3, these stores are replaced wholesale, so newest = most complete)",function(){
+    var prevId=getActiveCampId(),camp="c_jp4d",rk=_jp4rk("sess",camp);
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(rk);
+    store.set(WSK,JSON.stringify(worldState));store.set(MEM_KEY,JSON.stringify(memory));
+    store.set(SLK,"OLD-CORRUPT");loadState();
+    var first=store.get(rk);
+    store.set(SLK,"NEW-CORRUPT-AND-LONGER");loadState();
+    var second=store.get(rk);
+    _jp4clean(camp,prevId);
+    if(first!=="OLD-CORRUPT")return "first rescue not written: "+JSON.stringify(first);
+    return second==="NEW-CORRUPT-AND-LONGER"?true:"a newer corruption did not replace the older rescue: "+JSON.stringify(second);
+  });
+
+  t("JP0-4: rescues are PER CAMPAIGN — a corruption in one campaign never overwrites another campaign's preserved bytes",function(){
+    var prevId=getActiveCampId(),ca="c_jp4f",cb="c_jp4g";
+    makeWorld();worldState.campId=ca;setActiveCampId(ca);
+    store.del(_jp4rk("sess",ca));store.del(_jp4rk("sess",cb));
+    store.set(WSK,JSON.stringify(worldState));store.set(MEM_KEY,JSON.stringify(memory));
+    store.set(SLK,"CORRUPT-A");loadState();
+    setActiveCampId(cb);
+    store.set(SLK,"CORRUPT-B");loadState();
+    var a=store.get(_jp4rk("sess",ca)),b=store.get(_jp4rk("sess",cb));
+    store.del(_jp4rk("sess",ca));store.del(_jp4rk("sess",cb));_jp4clean(ca,prevId);
+    if(a!=="CORRUPT-A")return "campaign A's rescue was clobbered by campaign B's corruption: "+JSON.stringify(a);
+    return b==="CORRUPT-B"?true:"campaign B got no rescue of its own: "+JSON.stringify(b);
+  });
+
+  t("JP0-4: the rescue survives the save cycle that follows the degraded load AND every later healthy load — nothing sweeps it (recovery is a deliberately later flow)",function(){
+    var prevId=getActiveCampId(),camp="c_jp4e",rk=_jp4rk("mem",camp);
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(rk);
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,"[]");store.set(MEM_KEY,"{corrupt");
+    loadState();
+    if(store.get(rk)!=="{corrupt"){var bad=store.get(rk);_jp4clean(camp,prevId);return "rescue not written: "+JSON.stringify(bad);}
+    /* exactly what saveCore()+saveMem() write — the suite stubs those, so drive the store directly */
+    store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));store.set(MEM_KEY,JSON.stringify(memory));
+    var afterSave=store.get(rk);
+    loadState();/* now a fully healthy load */
+    var afterHealthy=store.get(rk);
+    _jp4clean(camp,prevId);
+    if(afterSave!=="{corrupt")return "a save pass destroyed the rescue: "+JSON.stringify(afterSave);
+    return afterHealthy==="{corrupt"?true:"a healthy load silently discarded the rescue: "+JSON.stringify(afterHealthy);
+  });
+
   section("cast-state on the sheet (playtest-F1 v1.239, re-meant by mana #110 v1.508)");
   // Playtest-F1's lesson survives the economy change: unavailability must be STATED in the
   // blocks the GM consults, never implied by omission. Under mana the statements are the

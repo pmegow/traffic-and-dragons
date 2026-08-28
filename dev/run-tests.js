@@ -311,6 +311,44 @@ try {
   if (_memAC.indexOf("scene facts are filed as dated history") < 0) _failAC("the extraction schema no longer teaches the durable/scene kind (#144B)");
 } catch (eAC) { console.error("#144A ARCHIVE CARRY CONTRACT: " + (eAC && eAC.message)); process.exit(1); }
 
+// ── JP0-4 CORRUPT-STORE RESCUE CONTRACT (joint review 2026-08-27, Sol P0-02) ─────────────
+// A corrupt sessionLog/memory key used to become []/blankMemory() SILENTLY, and the next save
+// persisted the blank over the only recoverable bytes. The engine suite proves the rescue
+// behavior; these clauses pin the two things it structurally cannot see — that both degrade
+// paths still route through the rescue, and that no shipped file ever deletes a rescue key
+// (the recovery flow that legitimately clears one does not exist yet: when it lands, this
+// clause is the deliberate speed bump that makes the deletion a decision, not a drive-by).
+try {
+  var _fsSR = require("fs"), _pathSR = require("path");
+  var _failSR = function (msg) { console.error("JP0-4 CORRUPT-STORE RESCUE CONTRACT: " + msg); process.exit(1); };
+  var _ROOTSR = _pathSR.join(__dirname, "..");
+  var _stSR = _fsSR.readFileSync(_pathSR.join(_ROOTSR, "state.js"), "utf8");
+  // ① both loadState catch arms preserve before they degrade — a bare `sessionLog=[]` /
+  //    `memory=blankMemory()` catch is exactly the defect this row closed.
+  if (!/catch\(e\)\{rescueCorruptStore\("sess",sl,e\);sessionLog=\[\];\}/.test(_stSR))
+    _failSR("the sessionLog catch arm no longer rescues before degrading — a corrupt session log is silently blanked again");
+  if (!/catch\(e\)\{rescueCorruptStore\("mem",mm,e\);memory=blankMemory\(\);\}/.test(_stSR))
+    _failSR("the memory catch arm no longer rescues before degrading — a corrupt long-term memory is silently blanked again");
+  // ② the degrade is LOUD on both channels, and the toast names the tier (a generic "load
+  //    failed" leaves the player unable to tell which half of their recall went missing).
+  var _rcSR = (_stSR.match(/function rescueCorruptStore\([\s\S]*?\n\}/) || [""])[0];
+  if (!_rcSR) _failSR("rescueCorruptStore is gone from state.js");
+  if (!/if\(typeof console!=="undefined"\)console\.error\(/.test(_rcSR))
+    _failSR("rescueCorruptStore no longer console.errors behind the node guard — the degrade went silent on the developer channel");
+  if (!/if\(typeof showToast==="function"\)showToast\(/.test(_rcSR))
+    _failSR("rescueCorruptStore no longer raises a typeof-guarded toast — the degrade went silent on the player channel");
+  if (_rcSR.indexOf("session log") < 0 || _rcSR.indexOf("long-term memory") < 0)
+    _failSR("rescueCorruptStore no longer names the degraded tier — the player cannot tell which recall layer was lost");
+  // ③ nothing in the shipped app deletes a rescue key.
+  var _shipSR = _fsSR.readdirSync(_ROOTSR).filter(function (f) { return /\.js$/.test(f); });
+  if (_shipSR.indexOf("state.js") < 0) _failSR("the shipped-file scan found no state.js — the scan is broken, not the code");
+  for (var _iSR = 0; _iSR < _shipSR.length; _iSR++) {
+    var _srcSR = _fsSR.readFileSync(_pathSR.join(_ROOTSR, _shipSR[_iSR]), "utf8");
+    if (/store\.del\(\s*STORE_RESCUE_K/.test(_srcSR))
+      _failSR(_shipSR[_iSR] + " deletes a store-rescue key — the preserved bytes are the ONLY copy until a recovery flow ships");
+  }
+} catch (eSR) { console.error("JP0-4 CORRUPT-STORE RESCUE CONTRACT: " + (eSR && eSR.message)); process.exit(1); }
+
 // ── #151 LATCH REGISTRY CONTRACT (drift pass order 7, 2026-08-08) ────────────────────────
 // Every worldState key the NOTE_BUILDERS region writes must be declared in NOTE_LATCH_FIELDS,
 // or a failed turn silently burns that builder's latch (the class this pass closed). The census

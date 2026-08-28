@@ -47,6 +47,45 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 24 — Corrupt recall-store rescue (JP0-4 / TODO #252, v1.719; Opus lane B)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #252. **Source:** Joint_Review_2026_08_27.html ▸ JP0-4
+(Sol P0-03's sibling row Sol P0-02, Fable-verified this session at `state.js:476-478`).
+**Touched:** `state.js` (`STORE_RESCUE_K`, `rescueCorruptStore`, both `loadState` catch arms),
+`dev/engine-tests.js` (new section "corrupt recall-store rescue (JP0-4)"), `dev/run-tests.js`
+(JP0-4 CORRUPT-STORE RESCUE CONTRACT), `dev/sabotage-jp0-4-store-rescue.js` (new), CLAUDE.md §3.
+
+**Why this is here.** It is a memory-tier boundary on the drift surface: the two catch arms that
+decide what a campaign remembers after a bad parse. The change is deliberately small — it adds a
+preserve-and-shout step in front of the existing degrade and touches no parse, prompt, or write
+path — but the failure mode it guards is total-tier loss.
+
+**What the reviewer should test hardest, in order:**
+
+1. **The rescue write is inside the failure path.** `store.set` can itself throw (quota) or fall
+   back to the in-memory `_m` map (privacy mode). I treat `store.get(rk)===raw` as "kept" and say
+   so in the messages, which is honest for THIS session but a `_m`-only rescue does not survive a
+   reload. A reviewer may want that distinction surfaced to the player rather than folded into
+   "a backup was kept".
+2. **Newest-wins vs UA3's oldest-wins.** I ruled these opposite on purpose (UA3 prepends its
+   rescue to survivors, so the oldest blob is the longest record; these stores are replaced
+   wholesale, so the newest corrupt bytes are the most complete picture). If a corruption is
+   *repeating* — the same bad write every load — newest-wins is harmless; if a first corruption is
+   followed by a second, smaller one, the larger earlier blob is lost. Worth a second opinion.
+3. **The memory catch arm also fires when `healMemory()` throws on VALID json.** I kept that inside
+   the rescue (the bytes are still the only copy and the load is still degraded), but it means a
+   heal bug now writes a rescue and a scary toast for a save that was not actually corrupt.
+4. **Scope held deliberately:** no recovery UI, no auto-restore, no rescue for the `worldState`
+   key (that arm returns false and refuses the load — loud already, not silent). The run-tests
+   clause banning `store.del(STORE_RESCUE_K…)` in any shipped file is the speed bump for whoever
+   builds the recovery flow.
+
+**Verification.** 6 assertions, each confirmed RED before implementation (byte-identity of the
+preserved blob, per-tier isolation, per-campaign isolation, newest-wins, tier-naming toast,
+survival across a save cycle and later healthy loads). Source contract pins both catch arms, both
+loud channels, the tier naming, and the no-sweep rule. Sabotage `dev/sabotage-jp0-4-store-rescue.js`
+12/12 caught, byte-identical restore. Full suite 1697 green.
+
 ### 23 — The arc wall: emergent thread scoping (#231, v1.714; Opus, owner-ruled)
 
 **Filed:** 2026-08-24. **Tracker:** TODO #231. **Touched:** `helpers.js` (`skeletonArcTitles`,
