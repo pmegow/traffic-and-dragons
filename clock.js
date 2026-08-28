@@ -38,13 +38,57 @@ var MIN_PER_HOUR=60, MIN_PER_DAY=1440;
 // apply; is a loud-warn cap wanted?"). Verdict: yes — clamp LOUDLY (warn + muts note).
 var CLOCK_MAX_RESPONSE_ADVANCE=30*MIN_PER_DAY;
 
+/* ── #274 (Fable f63, joint review 2026-08-27) — a poisoned scalar must not cost the timeline ──
+   clockEnsure below and migrateWorldState (state.js) both replaced the WHOLE clock object the
+   moment clock.min stopped being a usable number: timeline position, EVERY scheduled deadline,
+   and the #146 repair receipts, with no warning and no archive. Losing the receipts is the
+   sharper half — it disarms the double-fire protection itself, so a repeated repair id would
+   re-apply on any device after the reset, which is the exact class #146 exists to stop.
+   Entry vectors are a bad console clockRepair delta (`c.min+='19h'` CONCATENATES to the string
+   "882019h" — the typeof limb) and a mangled blob carrying a numeric NaN (the isNaN limb).
+   Same shape as the JP0-4 store rescue (state.js rescueCorruptStore): preserve the unreadable
+   original under a bounded per-campaign key, shout on BOTH channels, THEN rebuild. ONE slot per
+   campaign, and a newer corruption OVERWRITES — a clock is replaced wholesale, so the newest
+   corrupt object is the most complete picture of what was lost (the opposite of UA3's transcript
+   rescue, where survivors are prepended and the OLDEST blob holds the longest record).
+   Only the SCALAR was poisoned, so schedule[] and repairs[] are CARRIED whenever they are still
+   arrays — losing every deadline because min became a string IS the defect. Junk halves rebuild
+   empty and the message says which. This never heals the scalar (the #146 rule: the anchors are
+   adjudication evidence; the one sanctioned correction is an idempotent clockRepair), and nothing
+   in the app deletes a rescue key. */
+function clockRescueCorrupt(bad){
+  var isArr=function(x){return Object.prototype.toString.call(x)==="[object Array]";};
+  var keepSched=(bad&&isArr(bad.schedule))?bad.schedule:null;
+  var keepRep=(bad&&isArr(bad.repairs))?bad.repairs:null;
+  var raw=null;
+  /* JSON turns NaN/Infinity into null and NaN is one of the two poisons this exists for, so a
+     non-finite number is snapshotted as its own text: the preserved bytes must show WHAT the
+     scalar was, never a lossy null. */
+  try{raw=JSON.stringify(bad,function(k,v){return (typeof v==="number"&&!isFinite(v))?("__nonfinite:"+String(v)):v;});}catch(e){raw=null;}
+  if(raw==null){try{raw=String(bad);}catch(e2){raw=null;}}
+  var rk=CLOCK_RESCUE_K+((typeof getActiveCampId==="function"&&getActiveCampId())||"default"),kept=false;
+  if(typeof store!=="undefined"&&store&&typeof raw==="string"&&raw.length){
+    try{store.set(rk,raw);kept=store.get(rk)===raw;}catch(e3){kept=false;}
+  }
+  var gone=[];
+  if(!keepSched)gone.push("scheduled deadlines");
+  if(!keepRep)gone.push("#146 repair receipts");
+  var lost=gone.join(" and ");
+  if(typeof console!=="undefined")console.error("[clock] the campaign clock could not be read — clock.min was \""+String(bad&&bad.min)+"\" ("+(typeof (bad&&bad.min))+"); "+(kept?("the unreadable clock is preserved under "+rk):"the unreadable clock could NOT be preserved")+". The timeline is reset to Day 1"+(lost?(" and the "+lost+" were unreadable too and are LOST"):", but every deadline and repair receipt was intact and is CARRIED FORWARD")+" (#274)");
+  if(typeof showToast==="function")showToast("⚠ Your campaign clock could not be read — the date was reset to Day 1"+(lost?(", and your "+lost.replace("#146 repair receipts","repair history")+" were lost."):", but your deadlines were kept.")+(kept?" A backup of the unreadable clock was kept.":" It could NOT be backed up."),9000);
+  var out={min:0,schedule:keepSched||[]};
+  if(keepRep)out.repairs=keepRep;
+  return out;
+}
 // Lazily ensure the clock exists (migrateWorldState also adds it; this guards direct callers and
 // any pre-migration path). Never throws, never mutates time.
+// #274: ABSENT is not CORRUPT — a legacy/new save with no clock still mints one silently; only a
+// clock that is PRESENT and unreadable goes through the rescue.
 function clockEnsure(){
   if(typeof worldState==="undefined"||!worldState)return null;
-  if(!worldState.clock||typeof worldState.clock.min!=="number"||isNaN(worldState.clock.min)){
-    worldState.clock={min:0,schedule:[]};
-  }
+  var c=worldState.clock;
+  if(!c)worldState.clock={min:0,schedule:[]};
+  else if(typeof c.min!=="number"||isNaN(c.min))worldState.clock=clockRescueCorrupt(c);
   if(!worldState.clock.schedule)worldState.clock.schedule=[];
   return worldState.clock;
 }

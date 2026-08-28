@@ -1,4 +1,4 @@
-var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var STORE_RESCUE_K="tnd_store_rescue_v1_";/* + tier + "_" + campId (JP0-4) — see rescueCorruptStore */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
+var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var STORE_RESCUE_K="tnd_store_rescue_v1_";/* + tier + "_" + campId (JP0-4) — see rescueCorruptStore */var CLOCK_RESCUE_K="tnd_clock_rescue_v1_";/* + campId (#274) — see clockRescueCorrupt (clock.js) */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
 var _m={};      // in-memory fallback for keys localStorage can't persist (privacy mode OR quota)
 var _mKeys={};  // keys whose authoritative value lives in _m — get() must prefer it over a stale disk copy
 var store={
@@ -402,7 +402,18 @@ function migrateWorldState(){
      an old save simply starts its clock at load (min 0, labelled Day 1 since the v1.498 1-based
      relabel), and buildClockBlock renders nothing until
      time is advanced or something is scheduled, so the prompt stays byte-clean for untouched saves. */
-  if(!worldState.clock||typeof worldState.clock.min!=="number"||isNaN(worldState.clock.min)){worldState.clock={min:0,schedule:[]};_mig=true;}
+  /* #274 (Fable f63): ABSENT is not CORRUPT. A save with no clock mints one silently as before;
+     a clock that is PRESENT but whose scalar is unreadable goes through clockRescueCorrupt —
+     preserved, shouted, and rebuilt carrying whatever schedule/repairs survived. Wiping the
+     receipts also disarmed #146's own double-fire protection, so the silent reset was the worse
+     failure of the two. typeof-guarded because clock.js loads after state.js; if it is somehow
+     absent the reset still shouts rather than going quiet again. */
+  if(!worldState.clock){worldState.clock={min:0,schedule:[]};_mig=true;}
+  else if(typeof worldState.clock.min!=="number"||isNaN(worldState.clock.min)){
+    if(typeof clockRescueCorrupt==="function")worldState.clock=clockRescueCorrupt(worldState.clock);
+    else{if(typeof console!=="undefined")console.error("[clock] clockRescueCorrupt unavailable — a corrupt campaign clock was reset WITHOUT preserving its deadlines or #146 receipts (#274)");worldState.clock={min:0,schedule:[]};}
+    _mig=true;
+  }
   if(!worldState.clock.schedule){worldState.clock.schedule=[];_mig=true;}
   /* #146: timeline invariant diagnostics — WARN on every load while an impossible chronology
      stands (schedule born after now / due before born — the double-repair class the t1549 save

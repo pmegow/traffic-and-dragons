@@ -12804,6 +12804,114 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #274 (Fable f63, joint review 2026-08-27): a poisoned scalar must not cost the timeline ──
+  // clockEnsure and migrateWorldState both replaced the WHOLE clock object when clock.min was not
+  // a usable number — discarding every scheduled deadline AND the #146 repair receipts, silently.
+  // Losing the receipts also disarms the double-fire protection itself: a repeated repair id
+  // re-applies on any device after the reset. Entry vectors are a bad console clockRepair delta
+  // (c.min+='19h' concatenates to the STRING "882019h" — the typeof limb) and a mangled blob
+  // carrying a numeric NaN (the isNaN limb); both wiped identically.
+  section("#274 — clock corruption rescue");
+  function _ck274(fn){
+    var said=[],errs=[],_t=showToast,_e=console.error,out;
+    showToast=function(m){said.push(String(m));};console.error=function(m){errs.push(String(m));};
+    try{out=fn();}finally{showToast=_t;console.error=_e;}
+    return {out:out,said:said.join(" | "),errs:errs.join(" | ")};
+  }
+  function _ck274Fixture(camp,bad){
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(CLOCK_RESCUE_K+camp);
+    worldState.clock=bad;
+  }
+
+  t("#274 a STRING clock.min (the c.min+='19h' repair) preserves the corrupt clock, shouts on both channels, and carries the intact schedule and repair receipts into the rebuild",function(){
+    var prevId=getActiveCampId(),camp="c_274a",rk=CLOCK_RESCUE_K+camp;
+    var bad={min:"882019h",schedule:[{label:"Winter solstice",dueMin:20000,born:100}],repairs:[{id:"142-interim",before:8820,after:7660,t:1525}]};
+    _ck274Fixture(camp,bad);
+    var r=_ck274(function(){return clockEnsure();}),c=r.out,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0)return "the poisoned scalar was not rebuilt at 0: "+JSON.stringify(c&&c.min);
+    if(!kept||String(kept).indexOf("882019h")<0)return "the corrupt clock was not preserved: "+JSON.stringify(kept);
+    if(!c.schedule||c.schedule.length!==1||c.schedule[0].label!=="Winter solstice")return "every deadline died with the poisoned scalar: "+JSON.stringify(c.schedule);
+    if(!c.repairs||c.repairs.length!==1||c.repairs[0].id!=="142-interim")return "the #146 receipts died — a repeated repair id would re-apply on any device: "+JSON.stringify(c.repairs);
+    if(!r.errs)return "the wipe stayed silent on the developer channel";
+    if(!r.said)return "the wipe stayed silent on the player channel";
+    return !/lost/i.test(r.said)?true:"the message claimed a loss that did not happen — the schedule and receipts were carried: "+r.said;
+  });
+
+  t("#274 a numeric-NaN clock.min rescues on the same path — the second wipe limb is covered, and NaN survives the snapshot",function(){
+    var prevId=getActiveCampId(),camp="c_274b",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,{min:NaN,schedule:[{label:"Messenger arrives",dueMin:400,born:10}],repairs:[]});
+    var r=_ck274(function(){return clockEnsure();}),c=r.out,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0)return "the NaN scalar was not rebuilt at 0: "+JSON.stringify(c&&c.min);
+    if(!kept)return "no rescue was written for a NaN scalar";
+    if(String(kept).indexOf("NaN")<0)return "the snapshot lost the poisoned value (JSON turns NaN into null): "+JSON.stringify(kept);
+    if(!c.schedule||c.schedule.length!==1)return "the deadline died with the NaN scalar: "+JSON.stringify(c.schedule);
+    return r.said?true:"the NaN wipe stayed silent at the player";
+  });
+
+  t("#274 junk schedule/repairs rebuild EMPTY and the message says so — never a quiet 'your deadlines were kept'",function(){
+    var prevId=getActiveCampId(),camp="c_274c",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,{min:"x",schedule:"not an array",repairs:7});
+    var r=_ck274(function(){return clockEnsure();}),c=r.out;
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0)return "not rebuilt: "+JSON.stringify(c&&c.min);
+    if(!(c.schedule instanceof Array)||c.schedule.length)return "junk schedule was carried through: "+JSON.stringify(c.schedule);
+    if(c.repairs)return "junk repairs were carried through: "+JSON.stringify(c.repairs);
+    if(!/lost/i.test(r.said)||/deadlines were kept/i.test(r.said))return "the player was told deadlines survived when they did not: "+r.said;
+    return /LOST/.test(r.errs)?true:"the console did not say the deadlines were lost: "+r.errs;
+  });
+
+  t("#274 a healthy clock is never rescued — no backup slot, no toast, no rebuild on the happy path",function(){
+    var prevId=getActiveCampId(),camp="c_274d",rk=CLOCK_RESCUE_K+camp;
+    var good={min:4321,schedule:[{label:"A",dueMin:9000,born:1}],repairs:[]};
+    _ck274Fixture(camp,good);
+    var r=_ck274(function(){return clockEnsure();}),c=r.out,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(c!==good)return "a healthy clock object was replaced";
+    if(c.min!==4321)return "a healthy scalar moved: "+c.min;
+    if(kept)return "a healthy clock wrote a rescue slot: "+JSON.stringify(kept);
+    if(r.said)return "a healthy clock toasted a corruption warning: "+r.said;
+    return r.errs?"a healthy clock shouted on the developer channel: "+r.errs:true;
+  });
+
+  t("#274 an ABSENT clock still mints silently — a legacy save's first load is not a corruption report",function(){
+    var prevId=getActiveCampId(),camp="c_274e",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,null);
+    delete worldState.clock;
+    var r=_ck274(function(){return clockEnsure();}),c=r.out,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0||!(c.schedule instanceof Array))return "a fresh clock was not minted: "+JSON.stringify(c);
+    if(kept)return "an absent clock wrote a rescue slot: "+JSON.stringify(kept);
+    return r.said?"an absent clock alarmed the player on an ordinary load: "+r.said:true;
+  });
+
+  t("#274 the load-time migrate path rescues too — the second wipe site is not left silent",function(){
+    var prevId=getActiveCampId(),camp="c_274f",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,{min:"882019h",schedule:[{label:"Tide turns",dueMin:900,born:20}],repairs:[{id:"146-a",before:1,after:2,t:3}]});
+    var r=_ck274(function(){return migrateWorldState();}),c=worldState.clock,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0)return "migrate did not rebuild the poisoned scalar: "+JSON.stringify(c&&c.min);
+    if(!kept||String(kept).indexOf("882019h")<0)return "migrate wiped without preserving: "+JSON.stringify(kept);
+    if(!c.schedule||c.schedule.length!==1||c.schedule[0].label!=="Tide turns")return "migrate destroyed the intact schedule: "+JSON.stringify(c.schedule);
+    if(!c.repairs||c.repairs.length!==1)return "migrate destroyed the #146 receipts: "+JSON.stringify(c.repairs);
+    return r.said?true:"the migrate-path wipe stayed silent at the player";
+  });
+
+  t("#274 ONE rescue slot per campaign — a newer corruption OVERWRITES (these clocks are replaced wholesale)",function(){
+    var prevId=getActiveCampId(),camp="c_274g",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,{min:"OLD-POISON",schedule:[],repairs:[]});
+    _ck274(function(){return clockEnsure();});
+    var first=store.get(rk);
+    worldState.clock={min:"NEW-POISON",schedule:[],repairs:[]};
+    _ck274(function(){return clockEnsure();});
+    var second=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!first||String(first).indexOf("OLD-POISON")<0)return "the first corruption was not preserved: "+JSON.stringify(first);
+    return String(second).indexOf("NEW-POISON")>=0?true:"the newer corruption did not take the slot: "+JSON.stringify(second);
+  });
+
   // ── #129 — schedule escalate-then-expire teeth + zero-objective quest nudge ─────────────────
   // Field case (ChatGPT gameplay review of the t1385 Runelords save, confirmed on the t1265
   // export): "Tide turns against the return route" came due at clock minute 357 and was still

@@ -51,6 +51,66 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 31 — Clock corruption rescue (#274, v1.732; Opus lane D, brief-mandated design)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #274 (Fable f63, verified). **Touched:** `clock.js` (new
+`clockRescueCorrupt` + the `clockEnsure` guard), `state.js` (the `CLOCK_RESCUE_K` constant and the
+`migrateWorldState` clock guard), `dev/engine-tests.js`, `dev/sabotage-274-clock-rescue.js` (new).
+
+**Mechanism.** Both wipe sites — `clockEnsure` and `migrateWorldState` — ran the same test,
+`!clock || typeof clock.min!=="number" || isNaN(clock.min)`, and on a hit replaced the WHOLE clock
+object with `{min:0,schedule:[]}`. Silently. That discarded the timeline position, every scheduled
+deadline, and `clock.repairs`. The receipts are the sharper loss: they ARE #146's double-fire
+protection, so after a reset a repeated repair id re-applies on any device — the exact class #146
+was built to stop. Per the verifier: `c.min+='19h'` concatenates to the STRING `"882019h"` (the
+typeof limb) and a mangled blob carries a numeric NaN (the isNaN limb); both wiped identically.
+The trigger stays speculative (JSON round-trips preserve numbers), so the realistic vectors are a
+bad console `clockRepair` delta or a hand-mangled blob — but the blast radius is total.
+
+**What shipped.** The JP0-4 rescue shape (`state.js rescueCorruptStore`), applied to the clock:
+① preserve the unreadable clock verbatim under `CLOCK_RESCUE_K + campId` — ONE slot per campaign,
+newest overwrites (a clock is replaced wholesale, so the newest corrupt object is the most complete
+picture; the deliberate opposite of UA3's prepend-survivors rule). ② shout on BOTH channels naming
+the poisoned value and its type. ③ only THEN rebuild — CARRYING `schedule[]` and `repairs[]`
+whenever they are still arrays, because only the scalar was poisoned and losing every deadline
+because `min` became a string is the defect, not the fix. Junk halves rebuild empty and both
+messages say WHICH was lost rather than the reassuring default. Nothing heals the scalar (#146's
+rule holds: the anchors are adjudication evidence, `clockRepair` is the one sanctioned correction),
+and nothing in the app deletes a rescue key.
+
+**Two design points worth a reviewer's eye.** ① **ABSENT is now distinct from CORRUPT.** A save
+with no `clock` at all still mints one silently — that is an ordinary legacy load, and routing it
+through the rescue would alarm the player and write a junk backup on every pre-#73 save's first
+open. Fable f63's own remedy asked for exactly this split. ② **Non-finite scalars are snapshotted
+as text** (`__nonfinite:NaN`) via a `JSON.stringify` replacer, because plain JSON turns NaN into
+`null` — and NaN is one of the two poisons the rescue exists for, so a lossy snapshot would hide
+what the scalar actually was. Both are sabotage-pinned.
+
+**Not shipped, deliberately (brief scope).** Fable f63's second remedy — coerce/validate `delta`
+in `clockRepair` (`Number()` + `isFinite`, refuse otherwise) — closes the *entry* vector rather
+than the *loss*, and the brief scoped this row to the rescue. It remains open and is cheap; it
+belongs beside #146's other refusals.
+
+**Verification.** 7 engine assertions. 5 RED first on v1.731 (string min: nothing preserved;
+NaN min: no rescue written; junk halves: the player told deadlines survived when they did not; the
+migrate site: wiped without preserving; one-slot-newest-wins: nothing preserved). The other 2 —
+healthy clock untouched, absent clock mints silently — were green before and after BY DESIGN: they
+pin that the happy paths did not move, and each is proven by its own sabotage clause instead.
+`dev/sabotage-274-clock-rescue.js` (new, auto-discovered by the applicability gate): 10 clauses —
+preserve dropped, schedule carry dropped, repair-receipt carry dropped, player channel silenced,
+developer channel silenced, the loss stops being named, the non-finite snapshot reverts to lossy
+JSON, ABSENT collapses into CORRUPT, the corruption test dropped so every load rescues, and the
+migrate site reverting to the wholesale wipe — all `caught`, both files restored byte-identical.
+Applicability 578/578 across 44 batteries. `dev/sabotage-jp0-4-store-rescue.js` (12/12) and
+`dev/sabotage-phase.js` (20/20) re-run clean, since both touch the files I edited. Full suite 1769
+assertions green.
+
+**CLAUDE.md follow-up for the merge (covers #273 too).** I did not edit CLAUDE.md — it was not in
+either brief's file list, and its contract sections for drift-surface systems are Fable's. Three
+lines want adding at merge: the `clock.js` row should note the #274 rescue beside #146; §3's
+storage-key paragraph should list `CLOCK_RESCUE_K` beside `STORE_RESCUE_K`; and §7's reward-claim
+material should note that #215's measured award is per-token as of #273.
+
 ### 30 — Measured-award guard counts, not lengths (#273, v1.731; Opus lane D, brief-mandated design)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #273 (Fable f29, verified). **Touched:** `helpers.js`
