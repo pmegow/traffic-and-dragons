@@ -16897,6 +16897,60 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────
+  // ── #270 — clock precision family (Fable f62+f64+f65+f66, joint review 2026-08-27).
+  // ① the band distance tolerated BACKWARD adjacency across the dawn seam, so night/late-night
+  // assertions were invisible from 6:00–9:58am — the exact t2175 class two hours earlier;
+  // ② #142 had zero post-band grace: 31 minutes of slop armed the cross-dawn demand note whose
+  // first taught fix is a full night's sleep; ③ the #158 recognizer asserted possessive
+  // genitive metaphors ("the dusk of her years"); ④ SCHEDULE_RESOLVED's substring match could
+  // retire several deadlines while the muts line admitted one (matching itself is owner-accepted
+  // and PINNED — only the honesty of the count changes).
+  section("#270 — clock precision (dawn-seam distance, post-band grace, genitive reject, honest resolve count)");
+  t("#270①: a night assertion at 8am ARMS the mismatch — yesterday's phase is not adjacency",function(){
+    makeWorld();worldState.turn=30;worldState.clock={min:120,schedule:[]};/* 8:00am wall */
+    var _w=console.warn;console.warn=function(){};
+    try{clockPhaseDetect("Night has fallen over the camp, thick and moonless.");}finally{console.warn=_w;}
+    return worldState.phaseMismatch?true:"the 6:00-9:58am blind window survives — the t2175 class two hours earlier";
+  });
+  t("#270①: the night-owl dawn anticipation stays tolerated (pin — forward across the seam is legal)",function(){
+    makeWorld();worldState.turn=30;worldState.clock={min:1430,schedule:[]};/* 5:50am wall, 10m to dawn */
+    var _w=console.warn;console.warn=function(){};
+    try{clockPhaseDetect("The first light of dawn edges the shutters.");}finally{console.warn=_w;}
+    return worldState.phaseMismatch?"the near-dawn anticipation false-alarmed":true;
+  });
+  t("#270②: 31 minutes of post-band slop reconciles to SILENCE — no cross-dawn demand, no roll",function(){
+    makeWorld();worldState.turn=30;worldState.clock={min:451,schedule:[]};/* noon band [330,420) ended 31m ago */
+    var _i=console.info;console.info=function(){};var _w=console.warn;console.warn=function(){};
+    var rolled;try{rolled=clockReconcilePhase("noon");}finally{console.info=_i;console.warn=_w;}
+    if(worldState.reconcileSkip)return "31 minutes of slop armed the heavyweight demand note";
+    return rolled===0&&worldState.clock.min===451?true:"the grace path moved the clock: +"+rolled;
+  });
+  t("#270②: 130 minutes past band close still demands (pin — the grace is narrow)",function(){
+    makeWorld();worldState.turn=30;worldState.clock={min:550,schedule:[]};/* noon band ended 130m ago */
+    var _w=console.warn;console.warn=function(){};
+    var rolled;try{rolled=clockReconcilePhase("noon");}finally{console.warn=_w;}
+    if(rolled!==0)return "a genuine cross-dawn mislabel rolled the clock";
+    return worldState.reconcileSkip?true:"the skip-and-demand died past the grace window";
+  });
+  t("#270③: 'the dusk of her years' no longer asserts a time of day",function(){
+    makeWorld();worldState.turn=30;worldState.clock={min:120,schedule:[]};
+    var _w=console.warn;console.warn=function(){};
+    try{clockPhaseDetect("The dusk of her years weighed on the priestess as she spoke.");}finally{console.warn=_w;}
+    return worldState.phaseMismatch?"a possessive genitive metaphor moved the mismatch machinery":true;
+  });
+  t("#270④: resolving a short label that matches TWO deadlines says so — count and casualties named",function(){
+    makeWorld();worldState.turn=30;
+    worldState.clock={min:1000,schedule:[
+      {id:"a",label:"The Duke's ball",dueMin:3000,born:900},
+      {id:"b",label:"Duel with the duke's champion",dueMin:4000,born:950}
+    ]};
+    var R=applyMuts("[SCHEDULE_RESOLVED:duke]");
+    if(worldState.clock.schedule.length)return "fixture broke: the substring match behavior changed (it is PINNED)";
+    var line=(R&&R.muts||[]).filter(function(m){return m.indexOf("resolved")>=0||m.indexOf("Resolved")>=0;})[0];
+    if(!line)return "no resolve muts line";
+    return /2/.test(line)&&line.indexOf("ball")>=0?true:"the line hides the second casualty: "+line;
+  });
+
   // ── #268 — decorated victory words stop reproducing the pre-#214 discard (Fable f27, verified).
   // The anchored /^(victor|won|...)/ missed "pyrrhic victory" / "the battle is won" — living foes
   // silently discarded, the exact narration/tracker desync #214 closed. Recognition is now

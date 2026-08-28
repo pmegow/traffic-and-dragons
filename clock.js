@@ -323,10 +323,11 @@ function scheduleAdd(label,whenStr){
 // Remove a scheduled event by label (case-insensitive substring — the GM rarely re-types a long
 // label verbatim). Returns the count removed. Used by both RESOLVED and CANCEL.
 function scheduleRemove(label){
+  scheduleRemove._lastRemoved=[];/* #270 (f66): per-call casualty list — the substring matching is owner-accepted and PINNED; only the HONESTY of the count changes (the muts line used to admit one retirement while several landed) */
   var c=clockEnsure();if(!c)return 0;
   var key=String(label==null?"":label).toLowerCase().trim();if(!key)return 0;
   var before=c.schedule.length;
-  c.schedule=c.schedule.filter(function(e){return String(e.label||"").toLowerCase().indexOf(key)<0;});
+  c.schedule=c.schedule.filter(function(e){var hit=String(e.label||"").toLowerCase().indexOf(key)>=0;if(hit)scheduleRemove._lastRemoved.push(String(e.label||""));return !hit;});
   return before-c.schedule.length;
 }
 
@@ -426,6 +427,15 @@ function clockReconcilePhase(label){
      so a genuine forgotten-rest morning-after is corrected next turn instead of sticking. Honest
      same-day skips (a day fishing until dusk) and small dawn-approaches (the night-owl 1am→dawn)
      reconcile exactly as before. */
+  /* #270 (Fable f64): a narrow post-band GRACE before the demand. "Noon" declared 31 minutes
+     after the noon band closed is narrative slop, not a mislabel — and the demand note's first
+     taught fix is [REST:long], inviting a compliant GM to turn half an hour of slop into a jump
+     to next dawn. Within the grace: keep the text as color, roll nothing, demand nothing, one
+     console line. The pinned #142 skip case sits 130m past band close — far outside it. */
+  if(ph.tgt<off&&(off-ph.b1)>=0&&(off-ph.b1)<RECONCILE_GRACE_MIN){
+    if(typeof console!=="undefined")console.info("[clock] '"+label+"' ended "+(off-ph.b1)+"m ago — within the "+RECONCILE_GRACE_MIN+"m post-band grace; kept as narrative color, no roll, no demand (#270)");
+    return 0;
+  }
   if(ph.tgt<off&&delta>RECONCILE_SKIP_MIN){
     worldState.reconcileSkip={label:label,delta:delta,turn:worldState.turn||0};
     if(typeof console!=="undefined")console.warn("[clock] reconcile SKIPPED — '"+label+"' is "+Math.round(delta/60)+"h ahead ACROSS dawn (phase already passed today); mislabel presumed. Real skips need [REST:long] or [TIME_ADVANCE:] (#142)");
@@ -519,7 +529,7 @@ var TIME_PHASES_PROSE=(function(){
   for(i=0;i<TIME_PHASES.length;i++)out.push(new RegExp("\\b(?:"+TIME_PHASES[i].re.source+")\\b","gi"));
   return out;
 })();
-var _PHASE_REJECT_RE=/(?:\bwill\b|'ll\b|\bshall\b|\bwould\b|\bcould\b|\bshould\b|\bgoing to\b|\bplan(?:s|ned|ning)?\b|\bintend\w*\b|\bhope\w*\b|\bexpect\w*\b|\bmeant to\b|\btomorrow\b|\bnext\b|\bby the time\b|\bback by\b|\bif\b|\bunless\b|\bwhen\b|\bonce\b|\buntil\b|\btill\b|\bsince\b|\bearlier\b|\byesterday\b|\blast night\b|\bago\b|\bthat (?:morning|evening|night|afternoon|dawn|dusk)\b|\bnot\b|\bnever\b|\bno longer\b|\bhardly\b|\bbarely\b|\blike\b|\bas if\b|\bas though\b|\bcolou?r of\b|\bshade of\b|\bdream\w*\b|\bvision\w*\b|\bmemor(?:y|ies)\b|\bremember\w*\b|\brecall\w*\b|\bimagin\w*\b|\bflashback\w*\b|\bsay(?:s|ing)?\b|\bsaid\b|\bask(?:s|ed|ing)?\b|\brepl(?:y|ies|ied)\b|\bmutter\w*\b|\bwhisper\w*\b|\bmurmur\w*\b|\banswer\w*\b)/i;/* #158 corpus hardenings: "back by <phase>" is a return plan (t1413); a speech verb in the sentence means the phase was SPOKEN, not narrated (t1412) */
+var _PHASE_REJECT_RE=/(?:\bwill\b|'ll\b|\bshall\b|\bwould\b|\bcould\b|\bshould\b|\bgoing to\b|\bplan(?:s|ned|ning)?\b|\bintend\w*\b|\bhope\w*\b|\bexpect\w*\b|\bmeant to\b|\btomorrow\b|\bnext\b|\bby the time\b|\bback by\b|\bif\b|\bunless\b|\bwhen\b|\bonce\b|\buntil\b|\btill\b|\bsince\b|\bearlier\b|\byesterday\b|\blast night\b|\bago\b|\bthat (?:morning|evening|night|afternoon|dawn|dusk)\b|\bnot\b|\bnever\b|\bno longer\b|\bhardly\b|\bbarely\b|\blike\b|\bas if\b|\bas though\b|\bcolou?r of\b|\bshade of\b|\bdream\w*\b|\bvision\w*\b|\bmemor(?:y|ies)\b|\bremember\w*\b|\brecall\w*\b|\bimagin\w*\b|\bflashback\w*\b|\bsay(?:s|ing)?\b|\bsaid\b|\bask(?:s|ed|ing)?\b|\brepl(?:y|ies|ied)\b|\bmutter\w*\b|\bwhisper\w*\b|\bmurmur\w*\b|\banswer\w*\b|\b(?:dawn|morning|noon|midday|afternoon|dusk|evening|night|midnight)\s+of\s+(?:my|your|his|her|its|our|their)\b)/i;/* #158 corpus hardenings: "back by <phase>" is a return plan (t1413); a speech verb in the sentence means the phase was SPOKEN, not narrated (t1412) */
 function clockPhaseAssertion(text){
   var s=String(text||"");
   if(!s)return null;
@@ -588,7 +598,13 @@ function clockPhaseBandDist(idx){
   var off=c.min%MIN_PER_DAY;
   if(off>=ph.b0&&off<ph.b1)return 0;
   var fwd=(ph.b0-off+MIN_PER_DAY)%MIN_PER_DAY;
-  var back=(off-(ph.b1-1)+MIN_PER_DAY)%MIN_PER_DAY;
+  /* #270 (Fable f62): the BACKWARD leg never wraps the dawn seam. Days run dawn-to-dawn (#89 —
+     offset 0 IS dawn), so a phase reachable backward only by crossing offset 0 is YESTERDAY'S
+     phase — that is the mismatch class itself, not adjacency. The old circular min tolerated
+     "night" from 6:00–9:58am (night's band ends at the seam), the exact t2175 blind window two
+     hours earlier. The FORWARD wrap stays legal: "dawn" declared minutes before dawn is the
+     night-owl anticipation #142 explicitly protects. */
+  var back=(off>=ph.b1)?(off-(ph.b1-1)):MIN_PER_DAY;
   return Math.min(fwd,back);
 }
 // The commit-seam entry point — called by commitGmTurn (after applyMuts, so the parser tail has

@@ -109,6 +109,21 @@ rc |= sabotage.prove({
       mustFail: "#217 the load sweep collapses the live triple to the freshest-born ent",
       find: "  var sorted=c.schedule.slice().sort(function(a,b){return (b.born||0)-(a.born||0);});",
       replace: "  var sorted=c.schedule.slice().sort(function(a,b){return (a.born||0)-(b.born||0);});" },
+    { label: "#270: the dawn-seam rule dies — night at 8am is adjacency again (the t2175 blind window)",
+      mustFail: "night assertion at 8am ARMS",
+      find: "  var back=(off>=ph.b1)?(off-(ph.b1-1)):MIN_PER_DAY;",
+      replace: "  var back=(off-(ph.b1-1)+MIN_PER_DAY)%MIN_PER_DAY;" },
+
+    { label: "#270: the post-band grace dies — 31 minutes of slop arms the sleep-teaching demand note again",
+      mustFail: "post-band slop reconciles to SILENCE",
+      find: "  if(ph.tgt<off&&(off-ph.b1)>=0&&(off-ph.b1)<RECONCILE_GRACE_MIN){",
+      replace: "  if(false){" },
+
+    { label: "#270: the possessive-genitive reject dies — 'the dusk of her years' moves the mismatch machinery again",
+      mustFail: "no longer asserts a time of day",
+      find: "|\\b(?:dawn|morning|noon|midday|afternoon|dusk|evening|night|midnight)\\s+of\\s+(?:my|your|his|her|its|our|their)\\b)/i;",
+      replace: ")/i;" },
+
     { label: "the sweep stops archiving pre-images — removals become unrecoverable (#217)",
       mustFail: "#217 the load sweep collapses the live triple to the freshest-born ent",
       find: "  c.repairs.push({id:\"217-schedule-dedupe\",removed:removed,t:(typeof worldState!==\"undefined\"&&worldState&&worldState.turn)||0});",
@@ -123,7 +138,12 @@ rc |= sabotage.prove({
     { label: "#235: the fold-honesty muts line dies — a fold silently pairs the kept label with the new countdown again",
       mustFail: "muts line is honest about a fold",
       find: "var _sf=scheduleAdd._lastFold;if(_sf&&_sf.from&&String(_sf.from).toLowerCase()!==String(ev.label).toLowerCase())",
-      replace: "var _sf=null;if(_sf)" }
+      replace: "var _sf=null;if(_sf)" },
+
+    { label: "#270: the resolve-count honesty dies — a multi-deadline substring retirement admits to one again",
+      mustFail: "matches TWO deadlines says so",
+      find: "var _srN=scheduleRemove(m[1]);if(_srN===1)R.muts.push(\"Event resolved: \"+m[1].trim());else if(_srN>1){",
+      replace: "var _srN=scheduleRemove(m[1]);if(_srN>=1)R.muts.push(\"Event resolved: \"+m[1].trim());else if(false){" }
   ]
 });
 
