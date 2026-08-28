@@ -273,7 +273,9 @@ function wireButtons(){
     area.addEventListener("contextmenu",function(e){if(e.target&&e.target.closest&&e.target.closest(".qa"))e.preventDefault();});
   })();
   // Flush the debounced server sync on exit/background so the 1.5s window can't drop the last
-  // turn (best-effort — same fetch guarantees as before, minus the window).
+  // turn (best-effort — same fetch guarantees as before, minus the window). JP0-11: the flush is
+  // SIZE-BOUNDED — over the 64 KiB keepalive body cap the adapter marks the campaign instead of
+  // attempting a request the browser will reject, and pushes it at the next launch (CLAUDE.md §16).
   window.addEventListener("beforeunload",function(){snapshotActiveCamp();if(typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow(true);/* keepalive flush — plain fetch is abandoned on unload (E34) */});
   document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden"&&typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow(true);/* page-hide can precede unload on mobile — keepalive (E34) */});
   // Start panel collapsed on mobile so first tap expands (not collapses)

@@ -10868,6 +10868,70 @@ t("payload is byte-identical to the pre-B9 ui.js inline construction", function 
     makeWorld();/* the no-leak test replaced the live globals with sentinels — normalize */
   })();
 
+  // ── JP0-11 (Fable f68): the page-hide flush is SIZE-BOUNDED — synchronous half ──
+  //    The unload/page-hide flush rides fetch(keepalive:true); the Fetch spec caps total
+  //    in-flight keepalive request BODIES at 64 KiB and browsers reject anything larger —
+  //    into a .catch that swallowed it. The PC portrait rides INLINE by design, so a
+  //    portrait-bearing character clears the cap from roughly turn 1: the documented
+  //    "closing/backgrounding can't drop the final turn" guarantee was silently dead.
+  //    (The boot-push lifecycle needs load()'s wholesale global rewrite and therefore lives
+  //     in dev/tests-jp011-flush-dirty.js, run by dev/run-standalone-suites.js.)
+  (function(){
+    var G=(typeof global!=="undefined")?global:window;
+    var _realFetch=G.fetch,_realWarn=console.warn;
+    var calls=[],warns=[];
+    G.fetch=function(url,opts){calls.push({url:url,opts:opts||{}});return Promise.reject(new TypeError("Failed to fetch"));};
+    console.warn=function(){warns.push(Array.prototype.slice.call(arguments).join(" "));};
+    storageAdapter.setServer("https://unit.test","TOK_JP11");
+    var _keepCamp=getActiveCampId();
+    function flushWorld(campId,turn,portraitKB){
+      worldState={turn:turn,campId:campId,character:{name:"PC",portrait:portraitKB?("data:image/jpeg;base64,"+new Array(portraitKB*1024).join("A")):null},npcs:[],transcript:[]};
+      sessionLog=[];memory={};
+      setActiveCampId(campId);
+      storageAdapter.resetSyncState();
+      storageAdapter.clearFlushDirty(campId);
+      calls.length=0;warns.length=0;
+    }
+section("JP0-11 — page-hide flush size gate");
+t("the gate measures BYTES, not characters (the compressed transcript is multi-byte)",function(){
+  if(storageAdapter.flushTooBigForKeepalive(new Array(1001).join("x")))return "1KB of ASCII read as over the cap";
+  // 30k characters — comfortably under any character-count cap — but 90KB of UTF-8.
+  return storageAdapter.flushTooBigForKeepalive(new Array(30001).join("一"))?true:"90KB of multi-byte text passed the gate as 30k 'characters' — the char-count proxy IS the defect";
+});
+t("an oversized flush fires NO request — the browser rejects it and the rejection was swallowed",function(){
+  flushWorld("camp_jp11_a",412,80);
+  storageAdapter.syncNow(true);
+  if(calls.length!==0)return "the doomed keepalive request was attempted anyway ("+calls.length+" call(s))";
+  return eq(storageAdapter.flushDirtyTurn("camp_jp11_a"),412,"unsynced-turn marker");
+});
+t("the skip is LOUD — a console line names the flush and the deferred turn",function(){
+  var hit=warns.filter(function(w){return /page-hide flush/i.test(w)&&/412/.test(w);});
+  return hit.length?true:"the skipped flush logged nothing: "+JSON.stringify(warns);
+});
+t("a small payload still rides the keepalive path, unmarked (no behaviour change under the cap)",function(){
+  flushWorld("camp_jp11_b",7,0);
+  storageAdapter.syncNow(true);
+  if(calls.length!==1)return "expected exactly one request, got "+calls.length;
+  if(calls[0].opts.keepalive!==true)return "keepalive:true lost from the small-payload flush";
+  if(calls[0].opts.method!=="POST")return "method "+calls[0].opts.method;
+  return storageAdapter.flushDirtyTurn("camp_jp11_b")==null?true:"a small flush marked the campaign dirty";
+});
+t("the marker is campaign-scoped and BOUNDED (monotonic-resources: a device can't grow the key forever)",function(){
+  var i,ids=[],live=0;
+  for(i=0;i<10;i++){ids.push("camp_jp11_cap"+i);flushWorld(ids[i],100+i,80);storageAdapter.syncNow(true);}
+  for(i=0;i<ids.length;i++){if(storageAdapter.flushDirtyTurn(ids[i])!=null)live++;}
+  var newest=storageAdapter.flushDirtyTurn(ids[9]);
+  for(i=0;i<ids.length;i++)storageAdapter.clearFlushDirty(ids[i]);
+  if(live>8)return "marker map grew to "+live+" entries — unbounded";
+  return eq(newest,109,"the newest campaign's marker must survive the fold");
+});
+    storageAdapter.setServer(null,null);
+    setActiveCampId(_keepCamp);
+    console.warn=_realWarn;
+    G.fetch=_realFetch;
+    makeWorld();
+  })();
+
 
   // ── Group B wave 2 (AUDIT_FABLE_07_16 #6/#7/#11) — folded from the agent fragment ──
   (function(){
