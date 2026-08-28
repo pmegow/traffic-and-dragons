@@ -12821,6 +12821,114 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #274 (Fable f63, joint review 2026-08-27): a poisoned scalar must not cost the timeline ──
+  // clockEnsure and migrateWorldState both replaced the WHOLE clock object when clock.min was not
+  // a usable number — discarding every scheduled deadline AND the #146 repair receipts, silently.
+  // Losing the receipts also disarms the double-fire protection itself: a repeated repair id
+  // re-applies on any device after the reset. Entry vectors are a bad console clockRepair delta
+  // (c.min+='19h' concatenates to the STRING "882019h" — the typeof limb) and a mangled blob
+  // carrying a numeric NaN (the isNaN limb); both wiped identically.
+  section("#274 — clock corruption rescue");
+  function _ck274(fn){
+    var said=[],errs=[],_t=showToast,_e=console.error,out;
+    showToast=function(m){said.push(String(m));};console.error=function(m){errs.push(String(m));};
+    try{out=fn();}finally{showToast=_t;console.error=_e;}
+    return {out:out,said:said.join(" | "),errs:errs.join(" | ")};
+  }
+  function _ck274Fixture(camp,bad){
+    makeWorld();worldState.campId=camp;setActiveCampId(camp);
+    store.del(CLOCK_RESCUE_K+camp);
+    worldState.clock=bad;
+  }
+
+  t("#274 a STRING clock.min (the c.min+='19h' repair) preserves the corrupt clock, shouts on both channels, and carries the intact schedule and repair receipts into the rebuild",function(){
+    var prevId=getActiveCampId(),camp="c_274a",rk=CLOCK_RESCUE_K+camp;
+    var bad={min:"882019h",schedule:[{label:"Winter solstice",dueMin:20000,born:100}],repairs:[{id:"142-interim",before:8820,after:7660,t:1525}]};
+    _ck274Fixture(camp,bad);
+    var r=_ck274(function(){return clockEnsure();}),c=r.out,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0)return "the poisoned scalar was not rebuilt at 0: "+JSON.stringify(c&&c.min);
+    if(!kept||String(kept).indexOf("882019h")<0)return "the corrupt clock was not preserved: "+JSON.stringify(kept);
+    if(!c.schedule||c.schedule.length!==1||c.schedule[0].label!=="Winter solstice")return "every deadline died with the poisoned scalar: "+JSON.stringify(c.schedule);
+    if(!c.repairs||c.repairs.length!==1||c.repairs[0].id!=="142-interim")return "the #146 receipts died — a repeated repair id would re-apply on any device: "+JSON.stringify(c.repairs);
+    if(!r.errs)return "the wipe stayed silent on the developer channel";
+    if(!r.said)return "the wipe stayed silent on the player channel";
+    return !/lost/i.test(r.said)?true:"the message claimed a loss that did not happen — the schedule and receipts were carried: "+r.said;
+  });
+
+  t("#274 a numeric-NaN clock.min rescues on the same path — the second wipe limb is covered, and NaN survives the snapshot",function(){
+    var prevId=getActiveCampId(),camp="c_274b",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,{min:NaN,schedule:[{label:"Messenger arrives",dueMin:400,born:10}],repairs:[]});
+    var r=_ck274(function(){return clockEnsure();}),c=r.out,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0)return "the NaN scalar was not rebuilt at 0: "+JSON.stringify(c&&c.min);
+    if(!kept)return "no rescue was written for a NaN scalar";
+    if(String(kept).indexOf("NaN")<0)return "the snapshot lost the poisoned value (JSON turns NaN into null): "+JSON.stringify(kept);
+    if(!c.schedule||c.schedule.length!==1)return "the deadline died with the NaN scalar: "+JSON.stringify(c.schedule);
+    return r.said?true:"the NaN wipe stayed silent at the player";
+  });
+
+  t("#274 junk schedule/repairs rebuild EMPTY and the message says so — never a quiet 'your deadlines were kept'",function(){
+    var prevId=getActiveCampId(),camp="c_274c",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,{min:"x",schedule:"not an array",repairs:7});
+    var r=_ck274(function(){return clockEnsure();}),c=r.out;
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0)return "not rebuilt: "+JSON.stringify(c&&c.min);
+    if(!(c.schedule instanceof Array)||c.schedule.length)return "junk schedule was carried through: "+JSON.stringify(c.schedule);
+    if(c.repairs)return "junk repairs were carried through: "+JSON.stringify(c.repairs);
+    if(!/lost/i.test(r.said)||/deadlines were kept/i.test(r.said))return "the player was told deadlines survived when they did not: "+r.said;
+    return /LOST/.test(r.errs)?true:"the console did not say the deadlines were lost: "+r.errs;
+  });
+
+  t("#274 a healthy clock is never rescued — no backup slot, no toast, no rebuild on the happy path",function(){
+    var prevId=getActiveCampId(),camp="c_274d",rk=CLOCK_RESCUE_K+camp;
+    var good={min:4321,schedule:[{label:"A",dueMin:9000,born:1}],repairs:[]};
+    _ck274Fixture(camp,good);
+    var r=_ck274(function(){return clockEnsure();}),c=r.out,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(c!==good)return "a healthy clock object was replaced";
+    if(c.min!==4321)return "a healthy scalar moved: "+c.min;
+    if(kept)return "a healthy clock wrote a rescue slot: "+JSON.stringify(kept);
+    if(r.said)return "a healthy clock toasted a corruption warning: "+r.said;
+    return r.errs?"a healthy clock shouted on the developer channel: "+r.errs:true;
+  });
+
+  t("#274 an ABSENT clock still mints silently — a legacy save's first load is not a corruption report",function(){
+    var prevId=getActiveCampId(),camp="c_274e",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,null);
+    delete worldState.clock;
+    var r=_ck274(function(){return clockEnsure();}),c=r.out,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0||!(c.schedule instanceof Array))return "a fresh clock was not minted: "+JSON.stringify(c);
+    if(kept)return "an absent clock wrote a rescue slot: "+JSON.stringify(kept);
+    return r.said?"an absent clock alarmed the player on an ordinary load: "+r.said:true;
+  });
+
+  t("#274 the load-time migrate path rescues too — the second wipe site is not left silent",function(){
+    var prevId=getActiveCampId(),camp="c_274f",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,{min:"882019h",schedule:[{label:"Tide turns",dueMin:900,born:20}],repairs:[{id:"146-a",before:1,after:2,t:3}]});
+    var r=_ck274(function(){return migrateWorldState();}),c=worldState.clock,kept=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!c||c.min!==0)return "migrate did not rebuild the poisoned scalar: "+JSON.stringify(c&&c.min);
+    if(!kept||String(kept).indexOf("882019h")<0)return "migrate wiped without preserving: "+JSON.stringify(kept);
+    if(!c.schedule||c.schedule.length!==1||c.schedule[0].label!=="Tide turns")return "migrate destroyed the intact schedule: "+JSON.stringify(c.schedule);
+    if(!c.repairs||c.repairs.length!==1)return "migrate destroyed the #146 receipts: "+JSON.stringify(c.repairs);
+    return r.said?true:"the migrate-path wipe stayed silent at the player";
+  });
+
+  t("#274 ONE rescue slot per campaign — a newer corruption OVERWRITES (these clocks are replaced wholesale)",function(){
+    var prevId=getActiveCampId(),camp="c_274g",rk=CLOCK_RESCUE_K+camp;
+    _ck274Fixture(camp,{min:"OLD-POISON",schedule:[],repairs:[]});
+    _ck274(function(){return clockEnsure();});
+    var first=store.get(rk);
+    worldState.clock={min:"NEW-POISON",schedule:[],repairs:[]};
+    _ck274(function(){return clockEnsure();});
+    var second=store.get(rk);
+    store.del(rk);setActiveCampId(prevId);
+    if(!first||String(first).indexOf("OLD-POISON")<0)return "the first corruption was not preserved: "+JSON.stringify(first);
+    return String(second).indexOf("NEW-POISON")>=0?true:"the newer corruption did not take the slot: "+JSON.stringify(second);
+  });
+
   // ── #129 — schedule escalate-then-expire teeth + zero-objective quest nudge ─────────────────
   // Field case (ChatGPT gameplay review of the t1385 Runelords save, confirmed on the t1265
   // export): "Tide turns against the return route" came due at clock minute 357 and was still
@@ -16720,6 +16828,72 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var i,_w2=console.warn;console.warn=function(){};
     try{for(i=0;i<REWARD_CLAIM_CAP+3;i++)rewardClaimQueue("Subject "+i,["[XP:"+(i+1)+"]"],"reason");}finally{console.warn=_w2;}
     return worldState.pendingRewardClaims.length<=REWARD_CLAIM_CAP?true:"the claim queue is unbounded: "+worldState.pendingRewardClaims.length;
+  });
+
+  // ── #273 (Fable f29, joint review 2026-08-27): the measured-award guard counted ENTRIES ──────
+  // addInventoryItem STACKS in place, so a claimed item the player already carries rewrites the
+  // line to "Name x2" and never pushes: the length-only measure read a payout that LANDED as
+  // "nothing changed", told the player so, and closed the claim anyway — inviting a manual
+  // re-grant that double-pays. The same measure could only ever attest that SOMETHING moved, so a
+  // mixed claim passed on the xp delta alone while its item silently failed.
+  section("#273 — the measured-award guard counts, not lengths");
+  /* showToast is reassigned by an earlier scope's stub, so these capture it locally rather than
+     reading the outer __toasts ring — what the PLAYER is told is half of what is under test. */
+  function _rc273(id,shim){
+    var said=[],warned=[],_t=showToast,_w=console.warn,_am=applyMuts,ok;
+    showToast=function(m){said.push(String(m));};console.warn=function(m){warned.push(String(m));};
+    if(shim)applyMuts=shim(_am);
+    try{ok=rewardClaimAccept(id);}finally{showToast=_t;console.warn=_w;applyMuts=_am;}
+    return {ok:ok,said:said.join(" | "),warned:warned.join(" | ")};
+  }
+  function _rc273Count(inv,name){var i,n=0;for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===_invNorm(name))n+=_invCount(inv[i]);return n;}
+
+  t("#273 a claimed item the player ALREADY carries is reported AWARDED, and the stack count bumps",function(){
+    makeWorld();
+    worldState.character.inventory=["Longsword","Healing Potion"];
+    var len0=worldState.character.inventory.length;
+    rewardClaimQueue("Mokmurian",["[ITEM_GAINED:Healing Potion]"],"named death has no prior positive scene binding");
+    var q=worldState.pendingRewardClaims;
+    if(!q||q.length!==1)return "fixture broke: the claim did not queue";
+    var r=_rc273(q[0].id),inv=worldState.character.inventory;
+    if(inv.length!==len0)return "fixture broke: the grant pushed a new line instead of stacking — "+JSON.stringify(inv);
+    if(_rc273Count(inv,"Healing Potion")!==2)return "the grant did not land at all: "+JSON.stringify(inv);
+    return r.ok?true:"a payout that LANDED reported failure — the honesty guard lying in the feature built for honesty: "+r.said;
+  });
+
+  t("#273 the measure is count-EXACT: a quantity grant onto an existing stack must move the count by the full amount",function(){
+    makeWorld();
+    worldState.character.inventory=["Rope"];
+    rewardClaimQueue("Mokmurian",["[ITEM_GAINED:Rope x3]"],"reason");
+    var r=_rc273(worldState.pendingRewardClaims[0].id),inv=worldState.character.inventory;
+    if(_rc273Count(inv,"Rope")!==4)return "the quantity grant did not stack to 4: "+JSON.stringify(inv);
+    if(!r.ok)return "a full-quantity payout reported failure: "+r.said;
+    // …and a SHORT landing is a shortfall the player is told about, never a full award.
+    makeWorld();
+    worldState.character.inventory=["Rope"];
+    rewardClaimQueue("Mokmurian",["[ITEM_GAINED:Rope x3]"],"reason");
+    var r2=_rc273(worldState.pendingRewardClaims[0].id,function(real){
+      return function(txt){return real(String(txt).replace(/Rope x3/,"Rope"));};
+    });
+    if(_rc273Count(worldState.character.inventory,"Rope")!==2)return "fixture broke: the short grant did not land one";
+    if(r2.ok)return "a SHORT quantity landing was reported as a full award — the measure is not count-exact";
+    return /Rope/.test(r2.said)?true:"the shortfall did not name the item: "+r2.said;
+  });
+
+  t("#273 a MIXED claim whose item is silently re-stripped reports a PARTIAL naming that token — never a full award on the xp delta alone",function(){
+    makeWorld();
+    var xp0=worldState.character.xp;
+    rewardClaimQueue("Mokmurian",["[XP:600]","[ITEM_GAINED:Giantbane]"],"named death has no prior positive scene binding");
+    /* The exact hazard the guard exists for (helpers.js #215 header): the payout runs the ORIGINAL
+       tokens back through applyMuts, and that path could in principle strip them again. */
+    var r=_rc273(worldState.pendingRewardClaims[0].id,function(real){
+      return function(txt){return real(String(txt).replace(/\[ITEM_GAINED:[^\]]+\]/g,""));};
+    });
+    if(worldState.character.xp!==xp0+600)return "fixture broke: the xp half did not land";
+    if(r.ok)return "a PARTIAL payout reported a full award — the guard attested only that something moved";
+    if(!/Giantbane/.test(r.warned))return "the console did not name the token that failed: "+r.warned;
+    if(!/Giantbane/.test(r.said))return "the player was not told which part is missing: "+r.said;
+    return !(worldState.pendingRewardClaims||[]).length?true:"the partial claim was re-queued — close-on-fail is the shipped semantics";
   });
 
   // ── #168 W6: atomic summary identity validation ─────────────────────────────

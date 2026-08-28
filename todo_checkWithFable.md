@@ -53,6 +53,116 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 33 — Clock corruption rescue (#274, v1.734; Opus lane D, brief-mandated design)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #274 (Fable f63, verified). **Touched:** `clock.js` (new
+`clockRescueCorrupt` + the `clockEnsure` guard), `state.js` (the `CLOCK_RESCUE_K` constant and the
+`migrateWorldState` clock guard), `dev/engine-tests.js`, `dev/sabotage-274-clock-rescue.js` (new).
+
+**Mechanism.** Both wipe sites — `clockEnsure` and `migrateWorldState` — ran the same test,
+`!clock || typeof clock.min!=="number" || isNaN(clock.min)`, and on a hit replaced the WHOLE clock
+object with `{min:0,schedule:[]}`. Silently. That discarded the timeline position, every scheduled
+deadline, and `clock.repairs`. The receipts are the sharper loss: they ARE #146's double-fire
+protection, so after a reset a repeated repair id re-applies on any device — the exact class #146
+was built to stop. Per the verifier: `c.min+='19h'` concatenates to the STRING `"882019h"` (the
+typeof limb) and a mangled blob carries a numeric NaN (the isNaN limb); both wiped identically.
+The trigger stays speculative (JSON round-trips preserve numbers), so the realistic vectors are a
+bad console `clockRepair` delta or a hand-mangled blob — but the blast radius is total.
+
+**What shipped.** The JP0-4 rescue shape (`state.js rescueCorruptStore`), applied to the clock:
+① preserve the unreadable clock verbatim under `CLOCK_RESCUE_K + campId` — ONE slot per campaign,
+newest overwrites (a clock is replaced wholesale, so the newest corrupt object is the most complete
+picture; the deliberate opposite of UA3's prepend-survivors rule). ② shout on BOTH channels naming
+the poisoned value and its type. ③ only THEN rebuild — CARRYING `schedule[]` and `repairs[]`
+whenever they are still arrays, because only the scalar was poisoned and losing every deadline
+because `min` became a string is the defect, not the fix. Junk halves rebuild empty and both
+messages say WHICH was lost rather than the reassuring default. Nothing heals the scalar (#146's
+rule holds: the anchors are adjudication evidence, `clockRepair` is the one sanctioned correction),
+and nothing in the app deletes a rescue key.
+
+**Two design points worth a reviewer's eye.** ① **ABSENT is now distinct from CORRUPT.** A save
+with no `clock` at all still mints one silently — that is an ordinary legacy load, and routing it
+through the rescue would alarm the player and write a junk backup on every pre-#73 save's first
+open. Fable f63's own remedy asked for exactly this split. ② **Non-finite scalars are snapshotted
+as text** (`__nonfinite:NaN`) via a `JSON.stringify` replacer, because plain JSON turns NaN into
+`null` — and NaN is one of the two poisons the rescue exists for, so a lossy snapshot would hide
+what the scalar actually was. Both are sabotage-pinned.
+
+**Not shipped, deliberately (brief scope).** Fable f63's second remedy — coerce/validate `delta`
+in `clockRepair` (`Number()` + `isFinite`, refuse otherwise) — closes the *entry* vector rather
+than the *loss*, and the brief scoped this row to the rescue. It remains open and is cheap; it
+belongs beside #146's other refusals.
+
+**Verification.** 7 engine assertions. 5 RED first on v1.731 (string min: nothing preserved;
+NaN min: no rescue written; junk halves: the player told deadlines survived when they did not; the
+migrate site: wiped without preserving; one-slot-newest-wins: nothing preserved). The other 2 —
+healthy clock untouched, absent clock mints silently — were green before and after BY DESIGN: they
+pin that the happy paths did not move, and each is proven by its own sabotage clause instead.
+`dev/sabotage-274-clock-rescue.js` (new, auto-discovered by the applicability gate): 10 clauses —
+preserve dropped, schedule carry dropped, repair-receipt carry dropped, player channel silenced,
+developer channel silenced, the loss stops being named, the non-finite snapshot reverts to lossy
+JSON, ABSENT collapses into CORRUPT, the corruption test dropped so every load rescues, and the
+migrate site reverting to the wholesale wipe — all `caught`, both files restored byte-identical.
+Applicability 578/578 across 44 batteries. `dev/sabotage-jp0-4-store-rescue.js` (12/12) and
+`dev/sabotage-phase.js` (20/20) re-run clean, since both touch the files I edited. Full suite 1769
+assertions green.
+
+**CLAUDE.md follow-up for the merge (covers #273 too).** I did not edit CLAUDE.md — it was not in
+either brief's file list, and its contract sections for drift-surface systems are Fable's. Three
+lines want adding at merge: the `clock.js` row should note the #274 rescue beside #146; §3's
+storage-key paragraph should list `CLOCK_RESCUE_K` beside `STORE_RESCUE_K`; and §7's reward-claim
+material should note that #215's measured award is per-token as of #273.
+
+### 32 — Measured-award guard counts, not lengths (#273, v1.734; Opus lane D, brief-mandated design)
+
+**Filed:** 2026-08-28. **Tracker:** TODO #273 (Fable f29, verified). **Touched:** `helpers.js`
+(`rewardClaimAccept` + a new `_rewardTargetRead`), `api.js` (`inventoryCountOf`,
+`rewardAwardTargets`, beside the inventory helpers), `dev/engine-tests.js`, `dev/sabotage-w2.js`.
+
+**Mechanism.** `rewardClaimAccept` measured a payout as `{xp, gold, inventory.LENGTH}` before vs
+after. `addInventoryItem` STACKS in place — a claimed item the player already carries is rewritten
+to `"Name x2"` and never pushed — so an item-only claim that PAID CORRECTLY read as "nothing
+moved": console said AWARDED NOTHING, the modal toasted "that reward could not be awarded", and
+the record had already been spliced out by `_rewardClaimTake`, so the claim closed anyway and the
+player was invited to re-grant through Sync (a double pay). The verifier's added nuance is the
+same defect's other face: a sheet-shape compare can only ever attest that SOMETHING moved, so a
+MIXED claim (XP + item) passed on the xp delta alone while its item silently failed.
+
+**What shipped.** Measurement is PER TOKEN. `rewardAwardTargets(tokens)` (api.js — it lives there
+because the stacking identity `_invNorm` and the `xN` suffix `_invCount`/`_qtyParse` are api.js's
+rules) maps each token to the one target it must move and by how much: `[XP:]` → `character.xp`,
+`[GOLD:]` → gold, `[ITEM_GAINED:name]` → `inventoryCountOf(inventory, name)`, the count-aware read
+that sums the suffix. Tokens sharing a target form ONE group with a summed expectation, so two
+`[ITEM_GAINED:Rope]` must move the count by 2. A group lands only on an EXACT match
+(`after − before === expect`); anything else — including a short quantity landing — is a
+shortfall. Only an all-groups-land claim reports awarded. A partial names the failing tokens on
+BOTH channels (console lists the raw tokens and what did land; the toast says "Only part of that
+reward landed. Missing: <player-language phrase>" via `w2WithheldSummary`) and returns false. The
+claim still CLOSES on failure — the shipped `_rewardClaimTake`-first semantics are deliberately
+unchanged here (re-queue is a separate design question, recorded as #276 ③ residue).
+
+**Deliberate strictness worth a reviewer's eye.** A token this table cannot measure is reported
+UNVERIFIED, never assumed landed. That keeps the existing `[NOT_A_REWARD:x]` assertion honest and
+means a NEW reward tag added to `W2_REWARD_RES` (identity.js) without a measurement arm here will
+be loudly reported as unawarded rather than silently riding another token's delta. The coupling is
+stated in the api.js header comment. Second point: exact-match would flag a `[GOLD:-N]` clamped at
+zero as a shortfall — correct-by-design (that IS a shortfall the player should hear about), and
+unreachable from the rewards ledger, which only ever carries positive grants.
+
+**Verification.** 4 engine assertions, all RED first on v1.730 (stacking claim reported "nothing
+changed"; quantity grant onto an existing stack likewise; short-quantity landing reported as full;
+mixed claim reported a full award on the xp delta). The two existing #215 regressions — all tokens
+land, genuine nothing-moved — stayed green throughout. `dev/sabotage-w2.js` +5 clauses (length
+revert; `inventoryCountOf` stops summing the suffix; partial reported as full; the toast stops
+naming the missing tokens; exactness loosened to merely-moved), all `caught`, battery 33/33, files
+restored byte-identical. The pre-existing `#215 payout-moves-nothing` clause was RE-PINNED (its
+find target was the deleted sheet-shape compare) — same label, same `mustFail`, same intent, and
+the applicability gate is 568/568 green. Full suite 1762 assertions green.
+
+**Probe first.** Whether the UNVERIFIED-by-default rule is the right call for a future reward tag,
+and whether the closed-on-partial semantics should become a re-queue now that a partial is
+distinguishable from a total failure (Fable f29's remedy suggested re-queue; the brief pinned
+close-on-fail, so this is deliberately unresolved rather than overlooked).
 ### 31 — Retained proofs for the unproven contract tier (#275 / Fable f74; Opus lane E, dev-only, merged as entry 31)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #275. **Touched:** `dev/sabotage-contract-tier.js` (new,

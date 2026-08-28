@@ -2165,6 +2165,40 @@ function addInventoryItem(inv,name){var t=_invNorm(name),i;
   for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){inv[i]=_invBase(inv[i])+" x"+(_invCount(inv[i])+1);return;}}
   inv.push(name);
 }
+/* ── #273 (Fable f29, joint review 2026-08-27) — a reward token declares the target it must move ──
+   The #215 measured-award guard compared inventory LENGTH, but addInventoryItem STACKS IN PLACE
+   (the rewrite directly above): a claimed item the player already carries becomes "Name x2" and
+   never pushes, so a payout that LANDED measured as "nothing changed" — the modal told the player
+   the reward could not be awarded, closed the claim anyway, and invited a manual re-grant that
+   pays twice. Length was also the wrong SHAPE: it could attest only that SOMETHING moved, so a
+   mixed claim passed on its xp delta while its item silently failed.
+   Both live HERE because the stacking identity (_invNorm) and the "xN" suffix (_invCount /
+   _qtyParse) are api.js's rules — helpers.js only orchestrates the before/after read.
+   ⚠ The token grammar below must stay in step with W2_REWARD_RES (identity.js), the ledger that
+   fills a claim, and each arm's amount grammar mirrors that tag's own handler in tag_table.js. A
+   token this table cannot measure is reported UNVERIFIED by rewardClaimAccept and never assumed
+   landed, so a new reward tag can never silently ride another token's delta. */
+function inventoryCountOf(inv,name){
+  var t=_invNorm(name),n=0,i;
+  for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===t)n+=_invCount(inv[i]);
+  return n;
+}
+function rewardAwardTargets(tokens){
+  var out=[],idx={},i,m,q,kind,key,expect,gk,tk;
+  for(i=0;i<(tokens||[]).length;i++){
+    tk=String(tokens[i]==null?"":tokens[i]);
+    kind="unknown";key=tk;expect=0;
+    if((m=tk.match(/\[XP:\s*\+?(\d+)/i))){kind="xp";key="xp";expect=parseInt(m[1],10);}
+    else if((m=tk.match(/\[GOLD:\s*([+-]?\d+)/i))){kind="gold";key="gold";expect=parseInt(m[1],10);}
+    else if((m=tk.match(/\[ITEM_GAINED:([^\]]+)\]/i))){q=_qtyParse(m[1]);kind="item";key=q.base;expect=q.n;}
+    /* Tokens sharing one target are ONE group with a summed expectation — two [ITEM_GAINED:Rope]
+       must move the count by 2, not merely "move it". */
+    gk=kind+"|"+(kind==="item"?_invNorm(key):String(key).toLowerCase());
+    if(idx[gk]===undefined){idx[gk]=out.length;out.push({kind:kind,key:key,expect:0,tokens:[]});}
+    out[idx[gk]].expect+=expect;out[idx[gk]].tokens.push(tk);
+  }
+  return out;
+}
 function duplicateItemGrantWarning(inv,name,incoming,owner,R,raw){
   if(incoming!==1)return false;
   var key=itemBaseName(name),i,lossRe,losses=String(raw||"").match(owner?/\[COMPANION_ITEM_LOST:[^|\]]+\|[^\]]+\]/g:/\[ITEM_LOST:[^\]]+\]/g)||[];
