@@ -182,7 +182,15 @@ rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js","RAG ep
    find:"}else if(blex>=RAG_BIGRAM_QUALIFY||rlex>=RAG_RARE_QUALIFY){sc=blex+rlex;}",replace:"}else if(false){sc=blex+rlex;}"},
   {label:"the bigram df ceiling dies — common phrases lift unrelated scenes again (#188)",
     mustFail:"#188: a phrase carried by more than 1% of entries identifies nothing",
-   find:"if(elig[i].bhits[j]&&bdf[j]<=bMaxDf)",replace:"if(elig[i].bhits[j])"}
+   find:"if(elig[i].bhits[j]&&bdf[j]<=bMaxDf)",replace:"if(elig[i].bhits[j])"},
+  {label:"#261: the term pool shrinks back to first-come 8 — verbose questions starve the rare-word lane again",
+    mustFail:"VERBOSE question no longer starves",
+   find:"if(w.length>=4&&!RAG_STOP[w]&&!seen[w]){seen[w]=1;out.push(w);if(out.length>=20)break;}",
+   replace:"if(w.length>=4&&!RAG_STOP[w]&&!seen[w]){seen[w]=1;out.push(w);if(out.length>=8)break;}"},
+  {label:"#261: the bigram pool shrinks back to first-come 6 — the identifying phrase in a verbose question is discarded",
+    mustFail:"collection stays bounded",
+   find:"if(!seen[bg]){seen[bg]=1;out.push(bg);if(out.length>=12)break;}",
+   replace:"if(!seen[bg]){seen[bg]=1;out.push(bg);}"}
 ]});
 
 /* #224: the rare-WORD lane (the Giant's Bane rank-loss fix). */

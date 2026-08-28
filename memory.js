@@ -805,7 +805,7 @@ function ragQueryTerms(inputText){
   var words=String(inputText||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/);
   for(i=0;i<words.length;i++){
     var w=words[i];
-    if(w.length>=4&&!RAG_STOP[w]&&!seen[w]){seen[w]=1;out.push(w);if(out.length>=8)break;}
+    if(w.length>=4&&!RAG_STOP[w]&&!seen[w]){seen[w]=1;out.push(w);if(out.length>=20)break;}/* #261 (JP0-12, Fable f47): collection was FIRST-COME with a break at 8 — a verbose lead-in burned every slot on ordinary words before the rare identifying term arrived, and the #188/#224 IDF lanes never saw the very signal they were built to rank. Scoring is rarity-ranked already, so the fix is a wider candidate pool; 20 is runaway insurance (each candidate costs one indexOf per eligible entry in pass 1), and typical inputs stay under the old 8 — their behavior is byte-identical. */
   }
   return out;
 }
@@ -827,7 +827,7 @@ function ragQueryBigrams(inputText){
   for(i=1;i<kept.length;i++){
     if(kept[i].pos-kept[i-1].pos>2)continue; // allow one short word between ("wine in cellar"), never a gap
     var bg=kept[i-1].w+" "+kept[i].w;
-    if(!seen[bg]){seen[bg]=1;out.push(bg);if(out.length>=6)break;}
+    if(!seen[bg]){seen[bg]=1;out.push(bg);if(out.length>=12)break;}/* #261: same first-come starvation as the word cap — the identifying phrase in a verbose question arrived after slot 6; the df ceiling already keeps common pairs inert */
   }
   return out;
 }

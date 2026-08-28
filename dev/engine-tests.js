@@ -2916,6 +2916,33 @@ function runEngineTests(R){
     var out=ragRetrieve("Ask Vekka and Ostog about the venom");
     return out.indexOf("stiffens whatever it touches")>=0?true:"the rare-word scene lost to entity noise again (rank-loss regression): "+JSON.stringify(out.slice(0,90));
   });
+  t("#261: a VERBOSE question no longer starves the rare-signal lanes — the identifying word survives collection (JP0-12, Fable f47 verified ×2)",function(){
+    // The #188/#224 lanes rank by IDF — but collection was FIRST-COME with a hard break at 8
+    // words / 6 bigrams, so a verbose lead-in burned every slot on ordinary words before the
+    // rare identifying term arrived, and the lanes built to catch exactly this confabulation
+    // class never saw their signal. Same fixture family as #224; the input is the verbose shape.
+    makeWorld();sessionLog.length=0;delete worldState.ragMemory;
+    var crew=["Vekka","Ostog","Palia","Drenn","Sarn","Ilba"],ci;
+    for(ci=0;ci<crew.length;ci++){
+      worldState.npcs.push({name:crew[ci],status:"",rel:"ally",met:1,partyMember:false,aliases:[]});
+      memory.npcs[crew[ci]]={attitude:"ally",knowledge:[],events:[],aliases:[],lastSeenAt:"Gate Ward"};
+    }
+    worldState.world.location="Gate Ward";
+    var noiseTags="[NPC:Vekka|watchful|ally][NPC:Ostog|gruff|ally][NPC:Palia|tired|ally][NPC:Drenn|bored|ally][NPC:Sarn|alert|ally][NPC:Ilba|calm|ally]";
+    var i;for(i=1;i<=200;i++){worldState.turn=i;
+      logTranscript("player","filler step "+i);
+      logTranscript("gm",i===4?"The apothecary taps the vial: a distilled venom that stiffens whatever it touches.":"Vekka, Ostog, Palia, Drenn, Sarn and Ilba argue at the gate about the watch rotation, entry "+i+".",i===4?undefined:noiseTags);
+    }
+    worldState.turn=220;
+    ragRetrieve._memo=null;
+    var out=ragRetrieve("Carefully consider absolutely everything remarkable, significant, memorable, unusual, important, interesting; then explain: which substance was the distilled venom?");
+    return out.indexOf("stiffens whatever it touches")>=0?true:"the verbose lead-in starved the rare word out of collection again: "+JSON.stringify(out.slice(0,90));
+  });
+  t("#261: collection stays bounded — a runaway input cannot inflate the per-entry scan without limit",function(){
+    var long="";var i;for(i=0;i<60;i++)long+="wordnumber"+i+" ";
+    if(ragQueryTerms(long).length>20)return "term collection unbounded: "+ragQueryTerms(long).length;
+    return ragQueryBigrams(long).length<=12?true:"bigram collection unbounded: "+ragQueryBigrams(long).length;
+  });
   t("#224: a word carried by more than 1% of entries identifies nothing — the df ceiling holds for the word lane",function(){
     // Sized so ceiling-removal actually BITES (the #188 vacuous-fixture lesson, caught at design
     // time here): N=400, df=6 — the ceiling (max(3, 1%·N)=4) excludes the word, while unbounded
