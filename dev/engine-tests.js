@@ -5036,7 +5036,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===746209589&&d.length===25426)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.700 (#216): the [TIME_CHECK:] doc line joins the clock family (+582 chars) — the read-before-write declaration; first tag of every response, read-only by contract. Prior: v1.680 (#176) [ITEM_RENAMED:]/[COMPANION_ITEM_RENAMED:] (+353 chars) — the rename path the duplicate-grant nudge teaches must exist in the GM's vocabulary. Prior: #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===-1535023557&&d.length===25553)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -6310,6 +6310,106 @@ function runEngineTests(R){
     worldState.turn=15;/* early in the arc, far from the wall */
     delete worldState.arcWallWarned;
     return buildArcWallNudge()===""?true:"warned while the arc still has plenty of runway";
+  });
+
+  // ── #233 — the ACT DOOR (JP0-1, joint review 2026-08-27): ACT_COMPLETE was an open exit from
+  // the #231 wall — it IGNORED its operand (Sol's repro: "[ACT_COMPLETE:Totally Wrong]" closed the
+  // first active act), closed acts over still-ACTIVE arcs (stranding their stamped progeny in
+  // permanent immunity — ARC_COMPLETE searches active acts only), and ARC_COMPLETE's first-match
+  // parse let a parallel act closing two arcs in one response sweep only one. Owner ruling
+  // 2026-08-28: parallel acts stay IMMUNE (no act-level stamping) — so the door itself must hold.
+  section("#233 — the act door (ACT_COMPLETE validation + live-arc refusal + multi-arc close)");
+  function __actDoorWorld(par){
+    makeWorld();worldState.turn=60;
+    worldState.skeleton={premise:"p",acts:[
+      {title:"Act 1",goal:"g",status:"active",parallel:!!par,arcs:par?[
+        {title:"Left Path",objective:"o",status:"active",startTurn:20},
+        {title:"Right Path",objective:"o",status:"active",startTurn:20}
+      ]:[
+        {title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20},
+        {title:"The Fort and the Dam",objective:"o",status:"pending"}
+      ]},
+      {title:"Act 2",goal:"g2",status:"pending",arcs:[{title:"Later Arc",objective:"o",status:"pending"}]}
+    ]};
+    worldState.questLog=[];
+  }
+  t("#233: a wrong act title mutates NOTHING — the operand is validated like #136①'s arcs",function(){
+    __actDoorWorld();
+    worldState.skeleton.acts[0].arcs[0].status="completed";
+    applyMuts("[ACT_COMPLETE:Totally Wrong]");
+    var sk=worldState.skeleton;
+    return sk.acts[0].status==="active"&&sk.acts[1].status==="pending"?true:
+      "a hallucinated title closed the act: act1="+sk.acts[0].status+" act2="+sk.acts[1].status;
+  });
+  t("#233: a correct-title close over a still-ACTIVE arc is REFUSED — no completed act may contain a live arc",function(){
+    __actDoorWorld();
+    applyMuts("[QUEST:The Sugar War|active|Rob the sweetshop.]");
+    applyMuts("[ACT_COMPLETE:Act 1]");
+    var sk=worldState.skeleton;
+    if(sk.acts[0].status!=="active")return "the act closed over a live arc — its progeny are now orphaned";
+    if(sk.acts[0].arcs[0].status!=="active")return "the live arc was mutated by the refusal";
+    return worldState.questLog.length===1?true:"the refusal touched the quest log";
+  });
+  t("#233: the refusal is LOUD — a muts line names the live arc and the ceremony",function(){
+    __actDoorWorld();
+    var r=applyMuts("[ACT_COMPLETE:Act 1]");
+    var line=(r&&r.muts?r.muts:[]).filter(function(m){return m.indexOf("Act close refused")>=0;})[0];
+    if(!line)return "no player-visible refusal line: "+JSON.stringify(r&&r.muts);
+    if(line.indexOf("The Skinsaw Man")<0)return "refusal does not name the live arc: "+line;
+    return line.indexOf("ARC_COMPLETE")>=0?true:"refusal does not teach the arc ceremony: "+line;
+  });
+  t("#233: act title match is case-insensitive; a valid close still advances (regression pin)",function(){
+    __actDoorWorld();
+    worldState.skeleton.acts[0].arcs[0].status="completed";
+    applyMuts("[ACT_COMPLETE:act 1]");
+    var sk=worldState.skeleton;
+    return sk.acts[0].status==="completed"&&sk.acts[1].status==="active"?true:
+      "case-varied valid close failed: act1="+sk.acts[0].status+" act2="+sk.acts[1].status;
+  });
+  t("#233: same-response final [ARC_COMPLETE:]+[ACT_COMPLETE:] stays legal (the valid co-emission, battery D's shape)",function(){
+    __actDoorWorld();
+    worldState.skeleton.acts[0].arcs[1].status="completed";/* only Skinsaw live */
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man][ACT_COMPLETE:Act 1]");
+    var sk=worldState.skeleton;
+    return sk.acts[0].status==="completed"&&sk.acts[1].status==="active"?true:
+      "table-ordered arc-then-act close broke: act1="+sk.acts[0].status+" act2="+sk.acts[1].status;
+  });
+  t("#233: a PARALLEL act closing two arcs in one response closes BOTH and sweeps each arc's progeny",function(){
+    __actDoorWorld(true);
+    applyMuts("[QUEST:Left Errand|active|x.]");/* born under ambiguity — unstamped, immune (ruling 2026-08-28) */
+    worldState.questLog[0].bornArc="Left Path";/* hand-stamp both to isolate the SWEEP from the stamp rule */
+    applyMuts("[QUEST:Right Errand|active|y.]");
+    worldState.questLog[1].bornArc="Right Path";
+    applyMuts("[ARC_COMPLETE:Left Path][ARC_COMPLETE:Right Path]");
+    var sk=worldState.skeleton;
+    if(sk.acts[0].arcs[0].status!=="completed")return "first arc did not close";
+    if(sk.acts[0].arcs[1].status!=="completed")return "second tag was swallowed by the first-match parse";
+    if(worldState.questLog.length)return "progeny survived a closed arc: "+JSON.stringify(worldState.questLog.map(function(q){return q.title;}));
+    var l=memory.quests["Left Errand"],rr=memory.quests["Right Errand"];
+    return l&&l.status==="abandoned"&&rr&&rr.status==="abandoned"?true:"both sweeps did not archive";
+  });
+  t("#233: a sequential CHAIN-close is refused — tag 2 cannot close the arc tag 1 just activated",function(){
+    __actDoorWorld();
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man][ARC_COMPLETE:The Fort and the Dam]");
+    var arcs=worldState.skeleton.acts[0].arcs;
+    if(arcs[0].status!=="completed")return "first close failed";
+    return arcs[1].status==="active"?true:"the freshly-activated arc was chain-closed in the same response: "+arcs[1].status;
+  });
+  t("#233: closing the last live arc never RESURRECTS an already-completed later arc",function(){
+    __actDoorWorld();
+    worldState.skeleton.acts[0].arcs[1].status="completed";/* Fort already done, out of order */
+    applyMuts("[ARC_COMPLETE:The Skinsaw Man]");
+    var arcs=worldState.skeleton.acts[0].arcs;
+    return arcs[1].status==="completed"?true:"a completed arc was re-activated by a sibling's close: "+arcs[1].status;
+  });
+  t("#233: a duplicated ARC_COMPLETE title closes once — no double sweep, no double advance",function(){
+    __actDoorWorld();
+    applyMuts("[QUEST:The Sugar War|active|x.]");
+    var r=applyMuts("[ARC_COMPLETE:The Skinsaw Man][ARC_COMPLETE:The Skinsaw Man]");
+    var arcs=worldState.skeleton.acts[0].arcs;
+    if(arcs[1].status!=="active")return "duplicate did not leave exactly the next arc active: "+arcs[1].status;
+    var closes=(r&&r.muts?r.muts:[]).filter(function(m){return m.indexOf("Arc complete: The Skinsaw Man")>=0;}).length;
+    return closes===1?true:"arc close recorded "+closes+" times";
   });
 
   section("arc↔quest coupling (UA31)");

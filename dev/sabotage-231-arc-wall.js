@@ -40,7 +40,33 @@ rc |= sabotage.prove({
     { label: "the emergent test is dropped at stamp time — a SPINE quest gets stamped and its own arc sweeps it",
       mustFail: "an emergent quest is stamped",
       find: 'if(typeof questIsEmergent==="function"&&questIsEmergent(qTitle)&&typeof currentArcTitle==="function")',
-      replace: 'if(typeof currentArcTitle==="function")' }
+      replace: 'if(typeof currentArcTitle==="function")' },
+
+    // ── #233 — the act door (JP0-1, joint review 2026-08-27) ──────────────────────────
+    { label: "#233: ACT_COMPLETE stops validating its operand — a hallucinated act name closes the running act again",
+      mustFail: "a wrong act title mutates NOTHING",
+      find: '      if(_cAct.title&&_cAct.title.toLowerCase()!==_at.toLowerCase()){',
+      replace: '      if(false){' },
+
+    { label: "#233: the live-arc refusal is dropped — an act closes over an active arc, orphaning its stamped progeny forever",
+      mustFail: "REFUSED",
+      find: '      if(_live.length){',
+      replace: '      if(false){' },
+
+    { label: "#233: the chain-close guard is dropped — tag 2 closes the arc tag 1 just activated, same response",
+      mustFail: "chain-close",
+      find: '    if(!_pre[_adk]){',
+      replace: '    if(false){' },
+
+    { label: "#233: the g-loop degrades to first-match — a parallel act closing two arcs sweeps only one",
+      mustFail: "PARALLEL act closing two arcs",
+      find: '    for(_ti=0;_ti<arcTags.length;_ti++){',
+      replace: '    for(_ti=0;_ti<Math.min(1,arcTags.length);_ti++){' },
+
+    { label: "#233: sequential advancement resurrects completed arcs again (the unconditional _sj+1 write)",
+      mustFail: "RESURRECTS",
+      find: '        if(!_act.parallel){for(var _nk=_sj+1;_nk<_act.arcs.length;_nk++){if(_act.arcs[_nk].status!=="pending")continue;',
+      replace: '        if(!_act.parallel){for(var _nk=_sj+1;_nk<_act.arcs.length;_nk++){' }
   ]
 });
 

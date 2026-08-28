@@ -128,7 +128,7 @@ var TAG_DOC_LINES=[
 "[SAY:Character Name] -- VOICE ATTRIBUTION: place immediately BEFORE every line of spoken dialogue, naming its speaker, e.g. [SAY:Frizwick]\"Don't jinx it,\" Frizwick mutters. Tag EVERY quoted line -- including the player character's own lines (use their character NAME, never 'you'). Tag EACH NEW PARAGRAPH of a continuing speech too -- a paragraph-opening quote always takes a fresh tag; an untagged one falls to the narrator. Use the speaker's exact registered name; omit the tag only for unnamed incidental speakers. The tag is invisible to the player and tells the narrator engine which voice performs the line -- an untagged line is read in the narrator's voice. A tagged speaker is understood to be PHYSICALLY PRESENT in the scene you are narrating -- if a voice is remote or unreal (a letter read aloud, a sending, a scrying, a remembered line, a dream), do not tag it; render it in the narrator's voice.\n",
 "[ARC_COMPLETE:arc title] -- emit when the current arc's objective is fulfilled; advances to the next arc\n",
 "[ARC_CONTINUE:arc title|why it remains open] -- the OTHER answer to an ARC DRIFT CHECK: the arc is genuinely unfinished. Records your reason and resets the check timer. Every drift check must be answered with this or [ARC_COMPLETE:] -- never left unanswered\n",
-"[ACT_COMPLETE:act title] -- emit when the act's turning point occurs; advances to the next act\n",
+"[ACT_COMPLETE:act title] -- emit when the act's turning point occurs; advances to the next act. The title must MATCH the active act, and every arc in it must be closed first ([ARC_COMPLETE:] may land in the same response)\n",
 "COMPANION SHEET TAGS — use these (not the player tags) when the event affects a named party member, not the player:\n",
 "[SCENE_CAST:Name, Name] -- WHO IS PHYSICALLY HERE: the characters standing in the scene you are narrating, close enough to be spoken to or struck this instant. Emit ONE such line when the engine asks (it asks at scene changes); name every present character and nobody else -- someone the party is talking ABOUT, expecting, or remembering is NOT in the cast. If the party is alone, emit [SCENE_CAST:none].\n",
 "[NPC_DEATH_REPORTED:name|source] -- a death the party did NOT witness: learned from testimony, a discovered body, or news from elsewhere. Commits the death honestly as REPORTED second-hand canon (no eyewitness claim). Use it when you narrate an off-screen death; never for a death the party watches happen -- that one is [NPC:name|dead|relation], inside its CANON_TXN when rewards ride with it.\n",
@@ -873,9 +873,28 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(cmTxt.length>200){var cmCut=cmTxt.lastIndexOf(" ",199);if(cmCut<80)cmCut=199;var cmFull=cmTxt;cmTxt=cmTxt.slice(0,cmCut).replace(/[,;:\s]+$/,"")+"…";if(typeof console!=="undefined")console.warn("[core-memory] GM moment clamped to one-sentence length: \""+cmFull.slice(0,60)+"…\"");}
   if(fileCoreMemory("gm",cmWho,cmTxt))R.muts.push("★ Defining moment ("+cmWho+")");
   else if(typeof console!=="undefined")console.warn("[core-memory] GM moment for "+cmWho+" not filed (duplicate this turn, or no character loaded)");}}},
-{t:"ARC_COMPLETE",apply:function(text,R){var arcDone=text.match(/\[ARC_COMPLETE:([^\]]+)\]/);
-  if(arcDone&&worldState.skeleton){
-    var _sk=worldState.skeleton,_ad=arcDone[1].trim(),_si,_sj,_any=false;
+{t:"ARC_COMPLETE",apply:function(text,R){var arcTags=text.match(/\[ARC_COMPLETE:([^\]]+)\]/g)||[];
+  if(arcTags.length&&worldState.skeleton){
+    var _sk=worldState.skeleton,_si,_sj,_ti;
+    /* #233: snapshot the arcs ACTIVE before ANY close in this response. A title outside this set is
+       either a #136① miss (never active) or a CHAIN-close — naming the arc an earlier tag in this
+       same response just activated — and both refuse loudly. Distinct titles that WERE live all
+       close (the old first-match parse silently swallowed a parallel act's second sweep). */
+    var _pre={};
+    for(_si=0;_si<_sk.acts.length;_si++){if(_sk.acts[_si].status!=="active")continue;var _pa=_sk.acts[_si].arcs||[];for(_sj=0;_sj<_pa.length;_sj++){if(_pa[_sj].status==="active"&&_pa[_sj].title)_pre[_pa[_sj].title.toLowerCase()]=1;}}
+    var _seen={};
+    for(_ti=0;_ti<arcTags.length;_ti++){
+    var _atm=arcTags[_ti].match(/\[ARC_COMPLETE:([^\]]+)\]/);if(!_atm)continue;
+    var _ad=_atm[1].trim(),_adk=_ad.toLowerCase(),_any=false;
+    if(_seen[_adk])continue;/* #233: a duplicated title closes once — no double sweep, no double advance */
+    _seen[_adk]=1;
+    if(!_pre[_adk]){
+      var _nowLive=false;
+      for(_si=0;_si<_sk.acts.length;_si++){if(_sk.acts[_si].status!=="active")continue;var _ca=_sk.acts[_si].arcs||[];for(_sj=0;_sj<_ca.length;_sj++){if(_ca[_sj].status==="active"&&_ca[_sj].title&&_ca[_sj].title.toLowerCase()===_adk)_nowLive=true;}}
+      if(typeof console!=="undefined")console.warn(_nowLive
+        ?"[tags] ARC_COMPLETE: \""+_ad+"\" was activated by an earlier tag in this SAME response — chain-close refused (#233); close it in a later response if its story is truly done"
+        :"[tags] ARC_COMPLETE: \""+_ad+"\" matches no ACTIVE arc — ignored, nothing closed (#136①)");
+      continue;}
     for(_si=0;_si<_sk.acts.length;_si++){
       if(_sk.acts[_si].status!=="active")continue;
       var _act=_sk.acts[_si],_matched=false;
@@ -908,12 +927,13 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
           if(typeof addMsg==="function")addMsg("system","Closed with the arc: "+_walled.join(", ")+" — side threads do not outlive the arc that began them.");
           if(typeof console!=="undefined")console.warn("[quest] #231 arc wall — \""+_wallArc+"\" closed, sweeping its emergent progeny: "+_walled.join(", "));
         }
-        if(!_act.parallel&&_sj+1<_act.arcs.length){_act.arcs[_sj+1].status="active";_act.arcs[_sj+1].startTurn=worldState.turn;/* #23 per-arc pacing clock starts now */R.muts.push("New arc: "+_act.arcs[_sj+1].title);}
+        if(!_act.parallel){for(var _nk=_sj+1;_nk<_act.arcs.length;_nk++){if(_act.arcs[_nk].status!=="pending")continue;/* #233: only a PENDING arc activates — the old unconditional _sj+1 write RESURRECTED an already-completed arc, which now also wedges the act door */_act.arcs[_nk].status="active";_act.arcs[_nk].startTurn=worldState.turn;/* #23 per-arc pacing clock starts now */R.muts.push("New arc: "+_act.arcs[_nk].title);break;}}
         break;
       }
       if(_matched){_any=true;break;}
     }
     if(!_any&&typeof console!=="undefined")console.warn("[tags] ARC_COMPLETE: \""+_ad+"\" matches no ACTIVE arc — ignored, nothing closed (#136①)");
+    }
   }}},
 {t:"ARC_CONTINUE",apply:function(text,R){var arcCont=text.match(/\[ARC_CONTINUE:([^\]|]+)(?:\|([^\]]*))?\]/);
   // #127: the GM's explicit "this arc is legitimately still open" answer to an ARC DRIFT CHECK.
@@ -937,12 +957,33 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   }}},
 {t:"ACT_COMPLETE",apply:function(text,R){var actDone=text.match(/\[ACT_COMPLETE:([^\]]+)\]/);
   if(actDone&&worldState.skeleton){
-    var _sk2=worldState.skeleton,_si2;
+    var _sk2=worldState.skeleton,_si2,_at=actDone[1].trim();
     for(_si2=0;_si2<_sk2.acts.length;_si2++){
       if(_sk2.acts[_si2].status!=="active")continue;
-      _sk2.acts[_si2].status="completed";
-      _sk2.acts[_si2].completedTurn=worldState.turn;/* #148 Phase 2: era boundaries prefer act completions — additive stamp, nothing else reads it before eraNextSources */
-      R.muts.push("Act complete: "+_sk2.acts[_si2].title);
+      var _cAct=_sk2.acts[_si2];
+      /* #233 ① the operand is VALIDATED (#136① parity): this handler used to ignore its title
+         entirely, so a hallucinated act name closed the running act silently (Sol's joint-review
+         probe: "[ACT_COMPLETE:Totally Wrong]"). A titled act demands a case-insensitive match; a
+         title-less act (malformed skeleton) closes with a warn rather than wedging progression. */
+      if(_cAct.title&&_cAct.title.toLowerCase()!==_at.toLowerCase()){
+        if(typeof console!=="undefined")console.warn("[tags] ACT_COMPLETE: \""+_at+"\" does not match the ACTIVE act \""+_cAct.title+"\" — ignored, nothing closed (#233)");
+        break;}
+      if(!_cAct.title&&typeof console!=="undefined")console.warn("[tags] ACT_COMPLETE: the active act has no title — closing on \""+_at+"\" unverified (#233 fail-open)");
+      /* #233 ② no completed act may ever contain a live arc — the open door that orphaned #231
+         progeny (ARC_COMPLETE searches ACTIVE acts only, so a stranded arc could never sweep and
+         its stamped side threads became permanently immune — the exact sprawl the wall kills).
+         The close REFUSES until every arc resolves; [ARC_COMPLETE:] runs BEFORE this handler in
+         table order, so the valid same-response arc-then-act close (battery D) still lands. */
+      var _live=[],_lj,_larcs=_cAct.arcs||[];
+      for(_lj=0;_lj<_larcs.length;_lj++){if(_larcs[_lj].status==="active")_live.push(_larcs[_lj].title);}
+      if(_live.length){
+        R.muts.push("⚠ Act close refused: \""+(_cAct.title||_at)+"\" still has "+(_live.length>1?"live arcs":"a live arc")+" — "+_live.join(", ")+". Close each with [ARC_COMPLETE:title] first; if an arc is legitimately still running, the act has not reached its turning point yet ([ARC_CONTINUE:title]).");
+        if(typeof showToast==="function")showToast("⚠ Act close refused — live arc: "+_live.join(", "));
+        if(typeof console!=="undefined")console.warn("[tags] ACT_COMPLETE refused over live arc(s): "+_live.join(", ")+" (#233)");
+        break;}
+      _cAct.status="completed";
+      _cAct.completedTurn=worldState.turn;/* #148 Phase 2: era boundaries prefer act completions — additive stamp, nothing else reads it before eraNextSources */
+      R.muts.push("Act complete: "+_cAct.title);
       if(_si2+1<_sk2.acts.length){
         _sk2.acts[_si2+1].status="active";
         worldState.actStartTurn=worldState.turn;
