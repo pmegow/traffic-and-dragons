@@ -53,6 +53,44 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 30 — f31 widening exposes an existing nested quest latch outside the dev-only brief
+
+**Filed:** 2026-08-28. **Source:** joint-review tranche item 3 / Fable f31. **Status:** stopped
+before implementation under the brief's `api.js`/`clock.js` ask-first boundary.
+
+**Question.** Should `buildQuestStaleNudge`'s `questLog[].staleNudged` stamp join the #151
+failure rollback, and if so should it receive a purpose-built per-quest snapshot (the narrow
+shape) or should `questLog` become a top-level `NOTE_LATCH_FIELDS` entry (the broad shape)?
+
+**Why the dev-only census cannot honestly ship first.** A failing-first transitive prototype
+walks every function reachable from `NOTE_BUILDERS`, including cross-file helpers and local
+aliases. It correctly catches Fable f31's `buildIdentityConflictNudge` → `rewardClaimQueue` →
+`worldState.pendingRewardClaims` route and the alias fixture the old regex missed. Against the
+shipped tree it also finds:
+
+1. `buildQuestStaleNudge` aliases a row from `worldState.questLog`, then writes
+   `pick.staleNudged=worldState.turn` (`api.js`, current `buildQuestStaleNudge`). The snapshot is
+   taken before `buildEngineNotes`, but `snapshotNoteLatches` restores only top-level
+   `NOTE_LATCH_FIELDS` plus companion `splitLoc.audited`; `questLog` is absent. A provider error
+   therefore consumes the quest-review note for `QUEST_STALE_TURNS` without a committed turn.
+2. `buildScheduleEscalation` reaches `scheduleDue` → `clockEnsure`, whose only write here is lazy
+   missing/malformed-clock repair. That looks like a defensible explicit census exemption:
+   restoring corruption after a failed request would undo an invariant repair, not un-burn a
+   delivered note.
+3. `pendingRewardClaims` also looks defensibly exempt for the reason f31 already adjudicated:
+   the player-visible shelve decision precedes the request, and subject+tokens dedupe prevents a
+   duplicate claim. The exemption should carry that rationale as checked text.
+
+**Why I stopped.** Declaring `questLog` exempt would make the widened guard green by blessing the
+very transport-loss class #151 promises to prevent. Restoring it requires runtime work in
+`api.js`, which item 3 explicitly did not authorize and the tranche says to stop and file here
+if discovered. No runtime or contract change has been committed for item 3.
+
+**Reviewer decision requested.** Prefer the narrow per-quest snapshot unless review establishes
+that another compose-time quest-row mutation must roll back atomically. Then authorize item 3 to
+land the runtime restoration and widened dev census together; or explicitly rule the stamp's
+non-restoration intentional and supply the rationale the exemption contract should pin.
+
 ### 29 — The victory close's positional exemption (#258, v1.724; Opus lane A, brief-mandated design)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #254 (JP0-6 / Fable f26). **Touched:** `tag_table.js`
