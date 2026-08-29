@@ -147,8 +147,18 @@ rc |= sabotage.prove({
 
     { label: "a broken segment inflates PARTIALLY — a story with a silent hole instead of a loud rescue (#272 D2)",
       mustFail: "a broken segment inflated PARTIALLY",
-      find: "      for(i=0;i<c.segs.length;i++){arr=_lzToArray(c.segs[i]);if(!arr)return null;parts=parts.concat(arr);}",
-      replace: "      for(i=0;i<c.segs.length;i++){arr=_lzToArray(c.segs[i]);if(!arr)continue;parts=parts.concat(arr);}" }
+      find: "      for(i=0;i<c.segs.length;i++){arr=_blobArr(c.segs[i]);if(!arr)return null;parts=parts.concat(arr);}",
+      replace: "      for(i=0;i<c.segs.length;i++){arr=_blobArr(c.segs[i]);if(!arr)continue;parts=parts.concat(arr);}" },
+
+    { label: "the v2 packed-segment inflater is dropped — the next wire flip's blobs become unreadable (#280)",
+      mustFail: "the v2 packed-segment form did not inflate",
+      find: "      var _packed=(c.v===2&&c.enc===\"b64\");",
+      replace: "      var _packed=false;" },
+
+    { label: "the shipped wire form reverts to the whole-transcript path — the O(campaign) POST pass returns (#280)",
+      mustFail: "no longer routes through compressWorldStateSnapshotChunked",
+      find: "  if(WIRE_TRANSCRIPT_FORM===\"lzc\")return compressWorldStateSnapshotChunked(ws);",
+      replace: "" }
   ]
 });
 

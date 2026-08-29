@@ -189,16 +189,23 @@ serializeWorldState.invalidateTranscriptMemo=function(tr,i){
     }
   }
 };
-// #272 D3: THE one wire-form producer for BOTH POST /api/state paths (_syncNow and
-// pushCampaignState — the B9 one-map rule). WIRE_TRANSCRIPT_FORM gates the Phase-C flip:
-// "lz" ships today's {__lz} form; "lzb64" repacks the SAME memoized stream as 6-bit ASCII
-// (~0.85x plain-JSON wire bytes vs the 1.33x INFLATION {__lz} pays as UTF-8 — f69). The flip is
-// a LATER release by the inflater-first rule: every deployed client must carry the {__lzb64}
-// inflater for a full cycle before any producer emits it on the wire — a stale device pulling a
-// form it cannot read would rescue-and-empty its story view. Repack failure degrades loudly to
-// the {__lz} form (never blocks the POST).
-var WIRE_TRANSCRIPT_FORM="lz";
+// #272 D3 / #280: THE one wire-form producer for BOTH POST /api/state paths (_syncNow and
+// pushCampaignState — the B9 one-map rule). WIRE_TRANSCRIPT_FORM gates each release-gated flip
+// under the inflater-first rule (every deployed client carries a form's inflater for a full
+// cycle before any producer emits it — a stale device pulling a form it cannot read would
+// rescue-and-empty its story view):
+//   "lz"    — the original whole-transcript {__lz} (v1.742 and earlier);
+//   "lzb64" — the whole stream repacked 6-bit ASCII (inflater shipped v1.742; never produced —
+//             superseded by the chunked flip below, kept as a valid selectable form);
+//   "lzc"   — THE SHIPPED FORM (#280, owner-confirmed fleet on v1.744): the SAME chunked
+//             snapshot the disk stores, sharing the segment cache — the POST build pays ZERO
+//             LZ passes, retiring the last O(campaign) compression per turn (~1.1s at t2097).
+//             Young transcripts fall back to plain {__lz} inside the chunked producer.
+// Remainder: v2/enc:"b64" PACKED segments (−15% wire bytes, measured 1571→1336KB at t2097) —
+// its inflater ships with this flip; producing it is the next cycle's one-line flag change.
+var WIRE_TRANSCRIPT_FORM="lzc";
 function wireWorldStateSnapshot(ws){
+  if(WIRE_TRANSCRIPT_FORM==="lzc")return compressWorldStateSnapshotChunked(ws);
   var snap=compressWorldStateSnapshot(ws);
   if(WIRE_TRANSCRIPT_FORM==="lzb64"&&snap.transcript&&typeof snap.transcript.__lz==="string"&&typeof LZ!=="undefined"&&LZ.packWire){
     var _packed=null;try{_packed=LZ.packWire(snap.transcript.__lz);}catch(e){_packed=null;}
@@ -226,10 +233,15 @@ function inflateTranscriptField(t){
       return _u?_lzToArray(_u):null;
     }
     if(t.__lzc&&typeof t.__lzc==="object"){
-      var c=t.__lzc,parts=[],i,arr;
+      var c=t.__lzc,parts=[],i,arr,blob;
       if(!Array.isArray(c.segs))return null;
-      for(i=0;i<c.segs.length;i++){arr=_lzToArray(c.segs[i]);if(!arr)return null;parts=parts.concat(arr);}
-      if(c.tail){arr=_lzToArray(c.tail);if(!arr)return null;parts=parts.concat(arr);}
+      /* #280: v2/enc:"b64" carries each segment packWire'd (6-bit ASCII — the wire-bytes
+         remainder); unpack per blob before the LZ inflate. v1 blobs are raw compressToUTF16. */
+      var _packed=(c.v===2&&c.enc==="b64");
+      if(_packed&&(typeof LZ==="undefined"||!LZ.unpackWire))return null;
+      var _blobArr=function(b){if(_packed){b=LZ.unpackWire(b);if(b==null)return null;}return _lzToArray(b);};
+      for(i=0;i<c.segs.length;i++){arr=_blobArr(c.segs[i]);if(!arr)return null;parts=parts.concat(arr);}
+      if(c.tail){arr=_blobArr(c.tail);if(!arr)return null;parts=parts.concat(arr);}
       return parts;
     }
   }catch(e){}

@@ -17206,11 +17206,31 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var back=parseWorldState(ser);
     return back.transcript[10].rc===1?true:"the mutated entry's rc mark was not persisted";
   });
-  t("#272 D2: the WIRE keeps the whole {__lz} form at the shipped flag — Phase C is a deliberate later flip (pin)",function(){
+  t("#280: the WIRE ships the chunked form on a mature save — sharing the disk cache, ZERO extra LZ passes at POST time",function(){
     makeWorld();worldState.turn=600;
     for(var i=0;i<600;i++)worldState.transcript.push({t:i,r:"gm",x:"entry "+i});
+    serializeWorldState();/* the turn's disk save primes the segment cache */
+    var c0=serializeWorldState._compressions;
     var w=wireWorldStateSnapshot(worldState);
-    return (w.transcript&&typeof w.transcript.__lz==="string")?true:"the wire form changed without the Phase-C flip: "+Object.keys(w.transcript||{}).join(",");
+    if(!(w.transcript&&w.transcript.__lzc))return "the wire still ships the whole-transcript form — the last O(campaign) LZ pass per turn survives: "+Object.keys(w.transcript||{}).join(",");
+    if(serializeWorldState._compressions!==c0)return "the POST build paid "+(serializeWorldState._compressions-c0)+" fresh LZ passes — the wire is not sharing the disk cache";
+    var back=parseWorldState(JSON.stringify(w));
+    return JSON.stringify(back.transcript)===JSON.stringify(worldState.transcript)?true:"the chunked wire form did not round-trip";
+  });
+  t("#280: a young transcript keeps the plain {__lz} wire form (pin — the chunked fallback)",function(){
+    makeWorld();worldState.turn=10;
+    worldState.transcript=[{t:9,r:"gm",x:"a young scene"}];
+    var w=wireWorldStateSnapshot(worldState);
+    return (w.transcript&&typeof w.transcript.__lz==="string")?true:"a young save's wire form changed: "+Object.keys(w.transcript||{}).join(",");
+  });
+  t("#280: the v2 packed-segment {__lzc} form inflates byte-identically (inflater ships one cycle before its producer)",function(){
+    var arr=[{t:1,r:"player",x:"hello"},{t:2,r:"gm",x:"The innkeeper waves."},{t:3,r:"gm",x:"Rain begins to fall."}];
+    var json=JSON.stringify(arr);
+    var v2={ver:10,turn:3,transcript:{__lzc:{v:2,enc:"b64",seg:2,
+      segs:[LZ.packWire(LZ.compressToUTF16(JSON.stringify(arr.slice(0,2))))],
+      tail:LZ.packWire(LZ.compressToUTF16(JSON.stringify(arr.slice(2))))}}};
+    var out=parseWorldState(JSON.stringify(v2));
+    return JSON.stringify(out.transcript)===json?true:"the v2 packed-segment form did not inflate: "+JSON.stringify(out.transcript).slice(0,80);
   });
   t("#272 D2: a young transcript (under one segment) keeps the plain {__lz} disk form (pin)",function(){
     makeWorld();worldState.turn=10;

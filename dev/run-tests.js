@@ -1109,16 +1109,26 @@ try {
     process.exit(1);
   }
   var _stSC = _ncSC(_fsSC.readFileSync(_pathSC.join(__dirname, "..", "state.js"), "utf8"));
-  if (!/function wireWorldStateSnapshot\(ws\)\{\s*var snap=compressWorldStateSnapshot\(ws\);/.test(_stSC)) {
-    console.error("SYNC COMPRESSION CONTRACT: wireWorldStateSnapshot no longer derives from compressWorldStateSnapshot — the wire lost the #92 compression (or grew a second producer).");
+  // #280: the shipped wire form routes through the CHUNKED producer (sharing the disk segment
+  // cache — the POST build pays zero LZ passes), and the chunked producer itself falls back to
+  // compressWorldStateSnapshot below one segment — so the #92 compressed-wire guarantee holds at
+  // every transcript size through one derivation chain, never a second producer.
+  if (!/function wireWorldStateSnapshot\(ws\)\{\s*if\(WIRE_TRANSCRIPT_FORM==="lzc"\)return compressWorldStateSnapshotChunked\(ws\);/.test(_stSC)) {
+    console.error("SYNC COMPRESSION CONTRACT: the shipped wire form no longer routes through compressWorldStateSnapshotChunked (#280) — the POST build pays the O(campaign) LZ pass again (or the wire grew a second producer).");
     process.exit(1);
   }
-  // #272 D3: the Phase-C flip is a DELIBERATE contract edit — the shipped flag stays "lz" until
-  // every deployed client has carried the {__lzb64}/{__lzc} inflaters for a full release cycle
-  // (inflater-first rule; a stale device pulling an unreadable form rescue-and-empties its story
-  // view). Flipping this value and this clause land in the same commit, by design.
-  if (!/var WIRE_TRANSCRIPT_FORM="lz";/.test(_stSC)) {
-    console.error("SYNC COMPRESSION CONTRACT: WIRE_TRANSCRIPT_FORM left \"lz\" outside the Phase-C flip commit — the inflater-first release gate was skipped (#272 D3).");
+  if (!/return compressWorldStateSnapshot\(ws\);\s*var tr=ws\.transcript/.test(_stSC)) {
+    console.error("SYNC COMPRESSION CONTRACT: compressWorldStateSnapshotChunked no longer falls back to compressWorldStateSnapshot — a young/LZ-less save loses the #92 compressed wire.");
+    process.exit(1);
+  }
+  // #272 D3 / #280: every wire-form flip is a DELIBERATE contract edit under the inflater-first
+  // rule — the flag changes only when every deployed client has carried the target form's
+  // inflater for a full release cycle (a stale device pulling an unreadable form rescue-and-
+  // empties its story view). "lzc" shipped at #280 (owner confirmed both devices on v1.744);
+  // the NEXT legal value is the v2/enc:"b64" packed-segment form, whose inflater shipped with
+  // the #280 flip — flag change and this clause land in the same commit, by design.
+  if (!/var WIRE_TRANSCRIPT_FORM="lzc";/.test(_stSC)) {
+    console.error("SYNC COMPRESSION CONTRACT: WIRE_TRANSCRIPT_FORM is not \"lzc\" — a wire-form change outside a deliberate #280-style flip commit skips the inflater-first release gate.");
     process.exit(1);
   }
   // #272 D3: the reconcile must REFUSE an unreadable transcript form before the destructive
