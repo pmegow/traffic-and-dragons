@@ -47,7 +47,7 @@ rc |= sabotage.prove({
       find: "if(!npcIsProvisional(mgDupe)&&memory.npcs[mgCanon].aliases.indexOf(mgDupe)<0)memory.npcs[mgCanon].aliases.push(mgDupe);",
       replace: "if(memory.npcs[mgCanon].aliases.indexOf(mgDupe)<0)memory.npcs[mgCanon].aliases.push(mgDupe);" },
     { label: "merges stop archiving pre-images (irreversible again)", mustFail:"every [NPC_MERGE:] archives the duplicate's complete pre-image to memo",
-      find: "memArchive().identityMerges.push({domain:\"npc\",canonical:mgCanon,duplicate:mgDupe,turn:R.turn,records:{mem:JSON.parse(JSON.stringify(memory.npcs[mgDupe])),ws:_imWs?JSON.parse(JSON.stringify(_imWs)):null}});",
+      find: "memArchive().identityMerges.push({domain:\"npc\",canonical:mgCanon,duplicate:mgDupe,turn:R.turn,records:{mem:memory.npcs[mgDupe]?JSON.parse(JSON.stringify(memory.npcs[mgDupe])):null,ws:_mgPreImageWs(_imWs)}});",
       replace: "" },
     { label: "the NPC handler bypasses the collision boundary (pre-#156 direct resolve)", mustFail:"PROVISIONAL RECORD (the Savah class ends here): an introduction-shaped",
       find: "var npName=npcUpsertTarget(_npRaw,(np[3]||\"\").trim(),R);",

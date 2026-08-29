@@ -2370,6 +2370,47 @@ function _w2StageEffects(run){
   if(thrown)throw thrown;
   return {result:result,replay:function(){for(var j=0;j<effects.length;j++){try{effects[j].fn.apply(effects[j].ctx,effects[j].args);}catch(e){if(typeof console!=="undefined")console.warn("[identity] committed transaction side effect failed:",e&&e.message);}}}};
 }
+/* #272 D4 (f58): the envelope clone DETACHES what the governed tag set provably never writes —
+   the multi-MB transcript and every inline base64 portrait — and shares them by reference
+   between the clone and the saved original. The old full JSON round-trip stringify+parsed the
+   whole campaign per envelope at exactly the kill-turn moment (doubled for two envelopes), for
+   data the envelope path only ever READS (_speechFactNear). Shared strings are safe by
+   construction (immutable — a rogue write could only swap the clone's reference); the shared
+   ARRAY is guarded by the append tripwire in the envelope loop below, which fails the envelope
+   and truncates the array back rather than trusting a comment. The live ws is never mutated
+   here — the portrait pops work on shallow copies. */
+function _w2CopyWorldStateDetached(ws){
+  var shallow={},k;
+  for(k in ws){if(Object.prototype.hasOwnProperty.call(ws,k)&&k!=="transcript")shallow[k]=ws[k];}
+  var pcP=null;
+  if(shallow.character&&typeof shallow.character.portrait==="string"&&shallow.character.portrait){
+    pcP=shallow.character.portrait;
+    shallow.character=Object.assign({},shallow.character,{portrait:null});
+  }
+  var pops=[];
+  if(shallow.npcs&&shallow.npcs.length){
+    var list=shallow.npcs.slice(),i,n,changed=false;
+    for(i=0;i<list.length;i++){n=list[i];if(!n)continue;
+      var np=(typeof n.portrait==="string"&&n.portrait)?n.portrait:null;
+      var cp=(n.charSheet&&typeof n.charSheet.portrait==="string"&&n.charSheet.portrait)?n.charSheet.portrait:null;
+      if(np||cp){
+        var n2=Object.assign({},n);
+        if(np)n2.portrait=null;
+        if(cp)n2.charSheet=Object.assign({},n.charSheet,{portrait:null});
+        list[i]=n2;pops.push({i:i,np:np,cp:cp});changed=true;
+      }
+    }
+    if(changed)shallow.npcs=list;
+  }
+  var clone=_w2Copy(shallow);
+  if(ws.transcript!==undefined)clone.transcript=ws.transcript;/* SHARED — the one true array */
+  if(pcP)clone.character.portrait=pcP;
+  for(var j=0;j<pops.length;j++){var p=pops[j];
+    if(p.np)clone.npcs[p.i].portrait=p.np;
+    if(p.cp&&clone.npcs[p.i].charSheet)clone.npcs[p.i].charSheet.portrait=p.cp;
+  }
+  return clone;
+}
 function applyMuts(text,opts){
   /* #264 (owner ruling 2026-08-28, Fable f14+f2): the review-call whitelist. Suggest-completion
      and Define-item reuse the full gameplay prompt — which actively solicits out-of-scope tags —
@@ -2397,12 +2438,23 @@ function applyMuts(text,opts){
     if(!_w2t.valid){R.muts.push("Canon claim "+(_w2t.meta.id||"?")+" quarantined");continue;}
     if(!_w2t.body)continue;/* exact replay: receipt already owns every operation */
     var _w2Ws=worldState,_w2Mem=memory,_w2Bumps=(typeof _levelBumpsOwed!=="undefined")?_levelBumpsOwed:0,_w2Unlocks=(typeof _spellUnlocksOwed!=="undefined")?_w2Copy(_spellUnlocksOwed):[];
-    worldState=_w2Copy(_w2Ws);memory=_w2Copy(_w2Mem);
+    var _w2TrShared=_w2Ws.transcript,_w2TrLen=_w2TrShared?_w2TrShared.length:0;/* #272 D4: the tripwire baseline */
+    worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem);
     /* #175bR: pin the executor to this envelope's subject for the duration of its body — the
        SCENE_DEATH handler must never stamp a different NPC than the claim names (identity.js). */
     if(typeof _w2TxnSubjectNow!=="undefined")_w2TxnSubjectNow=_w2t.meta.subject;
     var _w2Stage=null,_w2r;try{_w2Stage=_w2StageEffects(function(){return applyMutsTable(_w2t.body,{deferCommit:true});});_w2r=_w2Stage.result;}catch(_w2e){_w2r={muts:[],errors:["transaction stage: "+((_w2e&&_w2e.message)||_w2e)]};}
     if(typeof _w2TxnSubjectNow!=="undefined")_w2TxnSubjectNow=null;
+    /* #272 D4 tripwire: the clone SHARES the story transcript (see _w2CopyWorldStateDetached) —
+       an envelope handler that appended to it or swapped it just violated "the governed tag set
+       never writes the transcript", and because the array is shared the append also mutated the
+       ORIGINAL. Truncate the shared array back to its baseline (restoring pre-envelope state
+       exactly) and fail the envelope loudly through the ordinary rollback/quarantine path. */
+    if(_w2TrShared&&(worldState.transcript!==_w2TrShared||_w2TrShared.length!==_w2TrLen)){
+      if(_w2TrShared.length!==_w2TrLen)_w2TrShared.length=_w2TrLen;
+      if(!_w2r.errors)_w2r.errors=[];
+      _w2r.errors.push("transaction touched the story transcript — the governed tag set must never write it (#272 D4)");
+    }
     if(_w2r.errors.length){
       worldState=_w2Ws;memory=_w2Mem;
       if(typeof _levelBumpsOwed!=="undefined")_levelBumpsOwed=_w2Bumps;

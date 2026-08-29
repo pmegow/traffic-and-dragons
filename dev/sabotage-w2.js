@@ -77,7 +77,7 @@ rc|=sabotage.prove({
   cases:[
     {label:"transaction handlers mutate the authoritative state instead of a clone",
     mustFail:"W2 state application is atomic when a transaction handler throws after",
-      find:"    worldState=_w2Copy(_w2Ws);memory=_w2Copy(_w2Mem);",
+      find:"    worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem);",
       replace:"    worldState=_w2Ws;memory=_w2Mem;"},
     {label:"rolled-back quest success toasts escape the staged side-effect buffer",
     mustFail:"W2 state application is atomic when a transaction handler throws after",

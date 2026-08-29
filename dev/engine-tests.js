@@ -17093,6 +17093,75 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var back=parseWorldState(JSON.stringify(b));
     return JSON.stringify(back.transcript)===JSON.stringify(worldState.transcript)?true:"the flipped wire form did not round-trip";
   });
+  // — commit 2: D4 envelope clone detach + D5 merge pre-image portrait policy (rulings R3) —
+  t("#272 D4: a canon envelope clones WITHOUT the transcript or portraits — shared, value-preserved through commit",function(){
+    makeWorld();worldState.turn=50;sceneRefsEnsure();
+    worldState.questLog=[{title:"The Hunt",status:"active",desc:"",objectives:[],started:40}];
+    worldState.transcript=[{t:49,r:"gm",x:"An earlier scene."}];
+    var bigP="data:image/jpeg;base64,"+new Array(600).join("Q");
+    worldState.character.portrait=bigP;
+    worldState.npcs.push({name:"Rook",status:"ally",rel:"ally",met:1,partyMember:true,charSheet:{name:"Rook",portrait:bigP,cls:"Warrior",level:1,xp:0,hp:10,maxHp:10,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10}}});
+    var trRef=worldState.transcript;
+    var _wc=_w2Copy,_cloneSawHeavy=null;
+    _w2Copy=function(v){
+      if(v&&v.character&&Array.isArray(v.npcs)){/* the worldState-shaped clone input */
+        var s=JSON.stringify(v);
+        _cloneSawHeavy=(s.indexOf("earlier scene")>=0||s.indexOf("base64")>=0);
+      }
+      return _wc(v);
+    };
+    var R;try{R=applyMuts("[CANON_TXN_BEGIN:q9|quest-outcome|-|-|The Hunt][QUEST:The Hunt|completed][XP:50][CANON_TXN_END:q9]");}finally{_w2Copy=_wc;}
+    var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="q9";})[0];
+    if(!tx||tx.status!=="committed")return "fixture broke: envelope did not commit: "+(tx?tx.status+" / "+tx.reason:"no receipt");
+    if(_cloneSawHeavy===null)return "fixture broke: the worldState clone was never observed";
+    if(_cloneSawHeavy)return "the envelope clone still round-trips the transcript/portraits (f58)";
+    if(worldState.transcript!==trRef)return "the committed clone does not SHARE the one true transcript array";
+    if(worldState.character.portrait!==bigP)return "the PC portrait did not survive the detached commit";
+    var rook=worldState.npcs.filter(function(n){return n.name==="Rook";})[0];
+    return rook&&rook.charSheet&&rook.charSheet.portrait===bigP?true:"a companion portrait did not survive the detached commit";
+  });
+  t("#272 D4: a handler that APPENDS to the shared transcript fails the envelope — truncated back, quarantined, loud",function(){
+    makeWorld();worldState.turn=50;sceneRefsEnsure();
+    worldState.questLog=[{title:"The Hunt",status:"active",desc:"",objectives:[],started:40}];
+    worldState.transcript=[{t:49,r:"gm",x:"An earlier scene."}];
+    var trRef=worldState.transcript,preLen=trRef.length,preGold=worldState.character.gold;
+    var _se=_w2StageEffects;
+    _w2StageEffects=function(fn){worldState.transcript.push({t:50,r:"gm",x:"ROGUE APPEND"});return _se(fn);};
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("[CANON_TXN_BEGIN:q8|quest-outcome|-|-|The Hunt][QUEST:The Hunt|completed][GOLD:+100][CANON_TXN_END:q8]");}
+    finally{_w2StageEffects=_se;console.warn=_w;}
+    var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="q8";})[0];
+    if(!tx||tx.status!=="quarantined")return "the rogue append did not fail the envelope: "+(tx?tx.status:"no receipt");
+    if(trRef.length!==preLen)return "the shared array kept the rogue entry: "+trRef.length;
+    if(worldState.transcript!==trRef)return "rollback lost the one true transcript array";
+    return worldState.character.gold===preGold?true:"the failed envelope's GOLD landed anyway";
+  });
+  t("#272 D5: merge pre-images carry an honest portrait marker, never the image bytes",function(){
+    makeWorld();worldState.turn=50;
+    var bigP="data:image/jpeg;base64,"+new Array(600).join("R");
+    memory.npcs["Old Rook"]={attitude:"wary",knowledge:["a fact"],events:[],aliases:[]};
+    worldState.npcs.push({name:"Old Rook",status:"ally",rel:"ally",met:1,partyMember:false,portrait:bigP,charSheet:{name:"Old Rook",portrait:bigP}});
+    memory.npcs["Rook"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[NPC_MERGE:Rook|Old Rook]");
+    var im=memory.archive.identityMerges;
+    if(!im||!im.length)return "no pre-image archived";
+    var e=im[im.length-1],ws=e.records.ws;
+    if(!ws)return "ws pre-image missing";
+    if(JSON.stringify(e).indexOf("base64")>=0)return "portrait bytes still embedded in the archive (f44)";
+    if(!ws.portrait||ws.portrait.portraitOmitted!==true||typeof ws.portrait.bytes!=="number")return "no honest portrait marker: "+JSON.stringify(ws.portrait);
+    return ws.charSheet&&ws.charSheet.portrait&&ws.charSheet.portrait.portraitOmitted===true?true:"charSheet portrait not markered: "+JSON.stringify(ws.charSheet&&ws.charSheet.portrait);
+  });
+  t("#272 D5: a worldState-only duplicate still archives its pre-image (the f44b gap)",function(){
+    makeWorld();worldState.turn=50;
+    worldState.npcs.push({name:"Ghost Entry",status:"ally",rel:"ally",met:1,partyMember:false,portrait:null});
+    memory.npcs["Rook"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[NPC_MERGE:Rook|Ghost Entry]");
+    var im=memory.archive.identityMerges;
+    if(!im||!im.length)return "a ws-only duplicate folded with NO pre-image — irreversible (f44b)";
+    var e=im[im.length-1];
+    if(e.records.mem!==null)return "mem pre-image should be null for a ws-only dupe: "+JSON.stringify(e.records.mem);
+    return e.records.ws&&e.records.ws.name==="Ghost Entry"?true:"ws pre-image missing: "+JSON.stringify(e.records);
+  });
 
   // ── #271 — identity/session residue quartet (Fable f57+f34+f48+f23, joint review 2026-08-27).
   // ① locResolve/_spFactsMemo memos survived whole-state replacement (campaign switch, .tnd

@@ -24,7 +24,43 @@ rc |= sabotage.prove({
     { label: "applyMuts ignores deferSave — the turn pays a second save/LZ pass again (#272 D1)",
       mustFail: "saveAll calls — the design says exactly ONE",
       find: "  syncUI();if(!(opts&&opts.deferSave))saveAll();",
-      replace: "  syncUI();saveAll();" }
+      replace: "  syncUI();saveAll();" },
+
+    { label: "the envelope clone reverts to the full JSON round-trip — the tripwire itself catches it (every envelope's transcript is now a foreign array) (#272 D4)",
+      mustFail: "transaction touched the story transcript",
+      find: "    worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem);",
+      replace: "    worldState=_w2Copy(_w2Ws);memory=_w2Copy(_w2Mem);" },
+
+    { label: "the transcript append tripwire is disarmed — a rogue handler write commits silently (#272 D4)",
+      mustFail: "the rogue append did not fail the envelope",
+      find: "    if(_w2TrShared&&(worldState.transcript!==_w2TrShared||_w2TrShared.length!==_w2TrLen)){",
+      replace: "    if(false){" },
+
+    { label: "the tripwire stops truncating — the rogue entry stays on the one true array (#272 D4)",
+      mustFail: "the shared array kept the rogue entry",
+      find: "      if(_w2TrShared.length!==_w2TrLen)_w2TrShared.length=_w2TrLen;",
+      replace: "" },
+
+    { label: "the detached PC portrait is not reattached — a commit silently drops the image (#272 D4)",
+      mustFail: "the PC portrait did not survive the detached commit",
+      find: "  if(pcP)clone.character.portrait=pcP;",
+      replace: "  if(false)clone.character.portrait=pcP;" }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "tag_table.js",
+  command: CMD,
+  cases: [
+    { label: "the pre-image portrait strip is dropped — image bytes embed in the archive forever again (#272 D5)",
+      mustFail: "portrait bytes still embedded in the archive",
+      find: "  if(typeof c.portrait===\"string\"&&c.portrait.length>256)c.portrait={portraitOmitted:true,bytes:c.portrait.length};",
+      replace: "" },
+
+    { label: "the f44b hoist reverts — a worldState-only duplicate folds with no pre-image (#272 D5)",
+      mustFail: "a ws-only duplicate folded with NO pre-image",
+      find: "var _imWs=wsNpcByName(mgDupe);if(memory.npcs[mgDupe]||_imWs){",
+      replace: "var _imWs=wsNpcByName(mgDupe);if(memory.npcs[mgDupe]){" }
   ]
 });
 
