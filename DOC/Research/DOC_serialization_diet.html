@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traffic &amp; Dragons — The Serialization Diet (#272)</title>
+<style>
+:root{--bg:#0d0d0c;--panel:#151412;--panel2:#1c1915;--line:#3b3329;--text:#d8d0c4;--muted:#9d9385;--amber:#d8a45f;--red:#e17a71;--orange:#e4a861;--green:#88b07a;--blue:#7ca8c8;--white:#f2ece2}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0 auto;max-width:1160px;padding:34px 28px 90px;background:var(--bg);color:var(--text);font:15px/1.62 Georgia,serif}h1,h2,h3,h4{color:var(--white);line-height:1.22}h1{margin:0;color:var(--amber);font-size:2em}h2{margin:42px 0 14px;padding-bottom:7px;border-bottom:1px solid var(--line);font-size:1.3em;color:var(--amber)}h3{margin:25px 0 9px;font-size:1.05em}h4{margin:16px 0 7px;font-size:.96em}.sub{color:var(--muted);margin:5px 0 24px}.card{margin:15px 0;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.verdict{border-color:var(--amber);background:linear-gradient(135deg,#1c1710,#151412)}.callout{padding:11px 14px;border-left:3px solid var(--blue);background:#11181d}.warn{border-left-color:var(--orange);background:#201810}.danger{border-left-color:var(--red);background:#211312}.good{border-left-color:var(--green);background:#121a11}.eyebrow{font:700 11px/1.3 ui-monospace,Consolas,monospace;letter-spacing:1.1px;text-transform:uppercase;color:var(--amber)}.muted{color:var(--muted)}.bad{color:var(--red)}.ok{color:var(--green)}code,pre{font:12px/1.5 ui-monospace,Consolas,monospace}code{padding:1px 5px;border-radius:4px;background:#211c16;color:#e2b574}pre{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:#090909;color:#cfc7bb}table{width:100%;border-collapse:collapse;margin:13px 0;font-size:.91em}th,td{padding:8px 10px;border:1px solid var(--line);text-align:left;vertical-align:top}th{background:#1a1713;color:var(--amber);font:700 12px/1.35 ui-monospace,Consolas,monospace}ul,ol{padding-left:22px}li{margin:6px 0}.toc a,a{color:#d9ad73;text-decoration:none}.toc a:hover,a:hover{text-decoration:underline}.mono{font-family:ui-monospace,Consolas,monospace}.small{font-size:.87em}
+</style>
+</head>
+<body>
+<h1>The Serialization Diet</h1>
+<p class="sub">TODO #272 — design pass (code follows owner rulings) · Fable f70 + f58 + f69 + f44, all verified · 2026-08-28 · Fable 5</p>
+
+<div class="card verdict">
+<span class="eyebrow">The problem in one paragraph</span>
+<p>Every gameplay turn re-serializes the whole campaign roughly six times (four <code>saveAll</code> bursts + two POST payload stringifies), LZ-compresses the full ever-growing transcript up to three times, and uploads the full state twice. A canon-envelope turn additionally JSON-round-trips the ENTIRE worldState — transcript and base64 portraits included — per envelope. The #92 wire form, a genuine localStorage win, <b>inflates network bytes ~1.33×</b> versus plain JSON (compressToUTF16 output is ~3 bytes/char as UTF-8), and its size telemetry under-counts real bytes ~3×. NPC-merge pre-images embed base64 portraits into the uncompressed memory blob forever. All of it is O(campaign) per turn, doubling every ~2000 turns. <b>Constraint above all: the transcript is SACRED — never trimmed, capped, or restructured in content (owner decree 2026-07-17). Everything below changes how bytes are <i>encoded and moved</i>, never what the record says.</b></p>
+</div>
+
+<h2 id="bill">1 · The per-turn bill today (verified mechanism)</h2>
+<table>
+<tr><th>#</th><th>What runs (dialogue turn, mature campaign)</th><th>Cost class</th></tr>
+<tr><td>1</td><td><code>commitGmTurn</code> appends the player entry, then <code>applyMuts</code> ends in its trailing <code>saveAll</code> (api.js) — the transcript length changed, so the LZ memo misses → <b>LZ pass 1</b> + full stringify + localStorage write + sync debounce armed</td><td>O(campaign)</td></tr>
+<tr><td>2</td><td><code>logTranscript("gm")</code> changes length again; the commit-time <code>saveAll</code> → <b>LZ pass 2</b> + full stringify/write</td><td>O(campaign)</td></tr>
+<tr><td>3</td><td><code>narrateWithSpeakers</code> stamps <code>.sp</code> (memo explicitly invalidated) and calls its own <code>saveAll</code> (fires on 88–95% of live responses) → <b>LZ pass 3</b> + full stringify/write; the 1.5s-debounced POST then gets a memo hit but ships the <b>full payload (POST #1)</b></td><td>O(campaign)</td></tr>
+<tr><td>4</td><td><code>generateActions</code> lands seconds later (after its own API call) and calls <code>saveAll</code> → memo hit, but the debounce re-arms → <b>full-payload POST #2</b></td><td>O(campaign) wire</td></tr>
+<tr><td>5</td><td>Per valid canon envelope: <code>worldState=_w2Copy(worldState)</code> — <code>JSON.parse(JSON.stringify())</code> of the multi-MB transcript + inline portraits the governed tag set can never write (the only envelope-path transcript access is the read-only <code>_speechFactNear</code>)</td><td>O(campaign) ×2/envelope</td></tr>
+<tr><td>6</td><td>Each POST ships the transcript as <code>{__lz}</code> UTF-16: ~2.2:1 char compression × ~2.94 UTF-8 bytes/char ≈ <b>1.33× the bytes of plain JSON</b>, upload and download alike (the Fly/Hono server serves uncompressed; verifier-confirmed). The 2M-char sentinel measures chars → fires at ~5.9MB real bytes</td><td>wire, every POST</td></tr>
+<tr><td>7</td><td><code>[NPC_MERGE:]</code> pre-images archive the full ws record incl. <code>portrait</code>/<code>charSheet.portrait</code> (~20–60KB each) into <code>memory.archive.identityMerges</code> — unbounded by design, stored as plain JSON (no LZ boundary), riding every save and sync forever</td><td>per merge, permanent</td></tr>
+</table>
+<p class="small muted">Corrected counts per the f70 verifier: 4 saveAll (not 3 — narrateWithSpeakers' own was missed), ~6 full-state serializations/turn, 3 LZ passes on dialogue turns (2 without a speaker map). The "~1s jank on a mid-range phone" figure is an estimate; the mechanisms and the O(campaign) growth are certain.</p>
+
+<h2 id="constraints">2 · Constraints the design must not break</h2>
+<ul>
+<li><b>Sacred transcript</b> — content untouched, always the plain array in memory; only the storage/wire <i>encoding</i> may change. <code>.tnd</code> exports keep the plain array.</li>
+<li><b>UA6 ordering</b> — mutated state + history persist BEFORE any display step; a display throw must leave a consistent save that replays from the transcript.</li>
+<li><b>Tolerant inflation, forever</b> — <code>parseWorldState</code>/<code>inflateWorldStateSnapshot</code> accept every form ever shipped (plain array, <code>{__lz}</code>, plus anything added here). Inflaters ship at least one release BEFORE their producer emits on the wire (the cross-device skew rule — an old client must never pull a blob it cannot read; the UA3 rescue is the backstop, not the plan).</li>
+<li><b>JP0-11</b> — the page-hide flush is synchronous and byte-capped (56KB); any wire encoding must have a sync path.</li>
+<li><b>Cross-device preference</b> — mobile and desktop stay in sync as much as possible; deferrals must be flush-covered.</li>
+<li><b>No deps, ES5</b> — everything hand-rolled or already vendored; <code>CompressionStream</code> is the one platform API considered (and only as an optional later layer).</li>
+<li><b>Drift decree</b> — <code>serializeWorldState</code>/transcript integrity is core drift surface: failing-test-first, byte-round-trip tests mandatory, sabotage-proven.</li>
+</ul>
+
+<h2 id="d1">3 · D1 — one save, one LZ pass, one POST per turn (f70 lever a)</h2>
+<div class="card">
+<p><b>Reorder <code>commitGmTurn</code> so every transcript mutation of the turn lands before ONE save.</b></p>
+<ol>
+<li><code>applyMuts(resp, {deferSave:true})</code> — a new option on <code>applyMuts</code> itself (the f70 verifier's correction: the existing <code>deferCommit</code> at the applyMutsTable layer is already in use and cannot be reused) that skips the trailing <code>saveAll</code>. Passed ONLY by <code>commitGmTurn</code>; every other caller (syncCharSheet, review calls, imports) keeps today's immediate save.</li>
+<li>Split <code>narrateWithSpeakers</code> into a synchronous <b>derive+stamp</b> half (speaker map, <code>.sp</code> stamp, auto-cast voice pinning — all worldState writes) and a <b>speak</b> half. commitGmTurn calls derive+stamp BEFORE its save; the standalone <code>saveAll</code> inside narrateWithSpeakers goes away (single-caller function).</li>
+<li>The ONE <code>saveAll()</code> then runs at the current commit-save site — still before <code>addMsg</code>/TTS, so UA6's persist-before-display ordering is intact and stronger: state and history now save <i>atomically together</i>.</li>
+<li><code>generateActions</code>' save becomes <b>local-only</b> (saveCore+saveMem, no sync arm) — see ruling R4. The actions still persist locally for reload; they reach the server on the next turn's POST or any page-hide flush.</li>
+</ol>
+<p><b>Net:</b> 3 LZ passes → 1; ~4 full stringify+setItem bursts → 1; 2 POSTs → 1. No format change, no skew risk, ships alone.</p>
+<div class="callout warn"><b>Accepted risk:</b> a throw between <code>applyMuts</code> and the single save loses that turn's state to the last save — but the transcript pair is equally unsaved, so state and history stay CONSISTENT (strictly better than the UA6 failure class, where state saved and history didn't). The #14 pending-action recovery re-offers the turn.</div>
+</div>
+
+<h2 id="d2">4 · D2 — chunked transcript compression (f70 lever b): O(segment), not O(campaign)</h2>
+<div class="card">
+<p><b>Freeze the past; only compress the tail.</b> The transcript is append-only except for four known mutation classes; exploit that.</p>
+<pre>transcript → {__lzc:{v:1, seg:SEG, segs:["&lt;lz&gt;", "&lt;lz&gt;", …], tail:"&lt;lz&gt;"}}
+SEG = 256 entries per frozen segment (~140KB raw ≈ ~60KB compressed at mature-entry sizes)
+segs[i] = LZ.compressToUTF16(JSON.stringify(entries slice i·SEG … (i+1)·SEG))
+tail    = the remaining &lt; SEG entries, recompressed per save (bounded work)</pre>
+<p><b>Per-save cost becomes O(SEG)</b> — the tail — plus a cache lookup per frozen segment. Segment blobs cache on the existing WeakMap beside today's memo, keyed by the transcript array + segment index.</p>
+<h4>The four mutation classes, each with its invalidation story</h4>
+<table>
+<tr><th>Mutation</th><th>Where it lands</th><th>Handling</th></tr>
+<tr><td><code>.sp</code> stamp / <code>rerollLast</code> (.x/.e)</td><td>last entry</td><td>tail — recompressed every save anyway</td></tr>
+<tr><td>ragRetrieve lazy <code>.e</code> backfill</td><td>old entries, idempotent</td><td>ACCEPTED stale (the existing memo ruling: backfill recomputes after any reload; nothing is lost) — segments do NOT invalidate for it</td></tr>
+<tr><td>turn-addressed <code>[RETCON:…|N]</code> rc-marks (#187④a)</td><td>arbitrary old entries</td><td><code>mutateTranscriptEntry</code>'s existing invalidation trap learns segments: drop the ONE segment containing the mutated index; it recompresses on the next save</td></tr>
+<tr><td>UA3 rescue prepend / .tnd import</td><td>whole-array replacement</td><td>new array reference → all caches miss → full rebuild once (correct)</td></tr>
+</table>
+<h4>Rescue path (UA3) extension</h4>
+<p>If ANY segment fails to inflate, preserve the whole <code>{__lzc}</code> object verbatim under the existing per-campaign rescue key, start empty, shout — same semantics as today; <code>restoreTranscriptRescue</code> learns the form. Never partially inflate: a story record with a silent hole is worse than a loud rescue.</p>
+<h4>Skew-safe rollout (the inflater-first rule)</h4>
+<ol>
+<li><b>Phase A (with D1):</b> ship the <code>{__lzc}</code> INFLATER everywhere — producer nowhere. Zero behavior change.</li>
+<li><b>Phase B (next release):</b> produce <code>{__lzc}</code> for <b>localStorage only</b> (device-local, same-build read/write — skew-free). The WIRE keeps <code>{__lz}</code>, derived from the same memoized whole (one pass, only when the debounce actually fires).</li>
+<li><b>Phase C (release after):</b> flip the wire to <code>{__lzc}</code> — every deployed client has carried the inflater for a full cycle. Server stores the blob opaquely; no server change.</li>
+</ol>
+<div class="callout"><b>Non-goal:</b> delta sync (uploading only changed segments) — needs server-side merge semantics and a new endpoint contract; the POST stays whole-blob. Segments make the CPU O(SEG); the wire stays O(campaign) per POST but there is now exactly one POST (D1) in the cheaper encoding (D3).</div>
+</div>
+
+<h2 id="d3">5 · D3 — the wire re-encode (f69): stop paying 1.33× to "compress"</h2>
+<div class="card">
+<table>
+<tr><th>Option</th><th>Wire bytes vs plain JSON</th><th>Properties</th></tr>
+<tr><td><b>A — 6-bit ASCII repack</b> <code>{__lzb64}</code> <span class="ok">(recommended)</span></td><td>~0.85× (vs 1.33× today ≈ <b>−36%</b>)</td><td>Pure bit-repack of the SAME LZ bit-stream (no re-compression — O(n) shifts off the cached blob); synchronous, so the JP0-11 keepalive flush uses it too, and byte-count ≈ char-count makes the telemetry honest for free. ASCII survives every JSON/HTTP boundary.</td></tr>
+<tr><td>B — <code>CompressionStream('gzip')</code> <code>{__gz}</code></td><td>~0.25×</td><td>Async only — fine for the debounced POST, unusable in the sync flush (would need A as its flush fallback anyway); adds a second code path and a platform-API dependency. Deliberate LATER layer, only on measured need.</td></tr>
+<tr><td>C — telemetry fix only</td><td>1.33× stays</td><td>Honest numbers, no diet.</td></tr>
+</table>
+<p><b>Recommendation: A now, B never until measured.</b> Implementation: <code>lzPackWire(utf16)</code>/<code>lzUnpackWire(ascii)</code> in compress.js (the 15-bit-per-code-unit stream repacked 6 bits/char); the sync payload builder emits <code>{__lzb64}</code> (or per-segment inside <code>{__lzc}</code> at Phase C); the tolerant inflater accepts it alongside every older form. localStorage keeps <code>{__lz}</code> — UTF-16 packing is the right shape for the UTF-16 quota, that win is real and stays.</p>
+<p><b>Also in this commit:</b> the 2M-char sentinel switches to real bytes via <code>TextEncoder</code> (JP0-11 already measures this way — reuse it); the stale comments claiming "server sync keeps the plain array" (compress.js header, state.js §comment) are corrected — both named by the f69 verifier.</p>
+</div>
+
+<h2 id="d4">6 · D4 — envelope clone scope-cut (f58)</h2>
+<div class="card">
+<p><b>Detach what the envelope can provably never write; share it by reference.</b></p>
+<ul>
+<li>Before <code>_w2Copy(worldState)</code>: pop <code>worldState.transcript</code> off, clone, reattach the SAME array to both the clone and the saved original. Reads (<code>_speechFactNear</code>) see it; commit and rollback both keep the one true array.</li>
+<li><b>Fail-closed guard:</b> after the envelope's handlers run, assert the shared array's length (and tail reference) is unchanged — a handler that appended treats the envelope as FAILED and rolls back loudly. This converts "provably never writes" from a comment into a tripwire.</li>
+<li>Portraits (<code>character.portrait</code>, <code>npcs[i].portrait</code>, <code>npcs[i].charSheet.portrait</code>): same detach mechanism, one <code>W2_CLONE_DETACH</code> walk — safe even in theory because a string is immutable (a hostile write could only swap the clone's reference, never corrupt the original). Ship together with the transcript detach.</li>
+<li>The <code>memory</code> clone is already the light half (f58 verifier) — untouched.</li>
+</ul>
+<p><b>Net:</b> kill-turn envelope cost drops from O(campaign) to O(state-minus-story); two-envelope responses stop doubling it.</p>
+</div>
+
+<h2 id="d5">7 · D5 — merge pre-image portrait policy (f44)</h2>
+<div class="card">
+<p>In the <code>[NPC_MERGE:]</code> pre-image clone, replace <code>portrait</code> and <code>charSheet.portrait</code> with <code>{portraitOmitted:true, bytes:N}</code>. One merge stops costing 100–1000× every other archive entry, forever, in the one blob with no LZ boundary.</p>
+<div class="callout warn"><b>The un-merge tradeoff, stated plainly (f44 verifier):</b> when BOTH canonical and duplicate carry distinct portraits, the duplicate's image is NOT copied forward (the handler keeps the canonical's own) — so after this change an un-merge restores every fact, alias, event, and relationship, but that duplicate's <i>image</i> is gone for good. Recommendation: accept — portraits are regenerable art, not canon; the alternative (a separate capped portrait side-store for pre-images) buys little for real complexity.</div>
+<ul>
+<li><b>f44(b) closes in the same commit:</b> a worldState-only duplicate currently folds with NO ws pre-image archived at all (the push sits inside the <code>if(memory.npcs[mgDupe])</code> branch) — archive the ws pre-image regardless.</li>
+<li><b>No migration</b> of existing archived pre-images (the #257 precedent: historical archives stand; the class stops growing). A dev census line in <code>dev/item-bible-coverage.js</code>-style tooling can report how many bytes legacy pre-images hold, for a later owner call.</li>
+</ul>
+</div>
+
+<h2 id="rulings">8 · Owner rulings needed before code</h2>
+<table>
+<tr><th>#</th><th>Fork</th><th>Recommendation</th></tr>
+<tr><td>R1</td><td><b>D2 scope</b> — stop at D1 (one O(campaign) pass/turn, growth unfixed) or ship chunked <code>{__lzc}</code> through the phased A→B→C rollout?</td><td>Ship D2 phased — it is the only change that stops the doubling-every-2000-turns curve; the inflater-first sequencing removes the skew hazard, and the sacred-transcript risk is contained by byte-round-trip tests on real saves.</td></tr>
+<tr><td>R2</td><td><b>D3 wire form</b> — 6-bit repack now / CompressionStream / telemetry-only?</td><td>6-bit repack (option A): sync, flush-safe, −36% wire, honest telemetry as a side effect.</td></tr>
+<tr><td>R3</td><td><b>D5 portrait loss</b> — accept that a dual-portrait un-merge loses the duplicate's image?</td><td>Accept; state it in the archive marker itself.</td></tr>
+<tr><td>R4</td><td><b>Actions POST</b> — make <code>generateActions</code>' save local-only, deferring the second full-state POST to the next turn/flush? Mid-session, another device's pull would show the previous turn's suggestions.</td><td>Yes — the flush covers the device-handoff case; a one-turn-stale suggestion row on a second device mid-session is cosmetic.</td></tr>
+</table>
+
+<h2 id="build">9 · Build &amp; verification plan (post-rulings)</h2>
+<ol>
+<li><b>Commit 1 (D1 + D3 + inflaters):</b> failing-first tests — LZ-pass counter (<code>serializeWorldState._compressions</code>) asserts exactly ONE pass across a full simulated commitGmTurn; POST-count via a stubbed adapter asserts one arm; <code>{__lzb64}</code> and <code>{__lzc}</code> inflaters round-trip byte-identical on a REAL mature save fixture (testRuns corpus); sentinel byte-accuracy test. Sabotage: defer flag dropped → pass count red; repack decoder dropped → inflate red; UA6 order inverted → ordering pin red.</li>
+<li><b>Commit 2 (D4 + D5):</b> failing-first — clone shares transcript by reference, rollback leaves it byte-identical, the append tripwire fails the envelope; merge pre-image carries no <code>data:</code> URL (regex over the archived JSON), ws-only dupes archive a pre-image. Sabotage both.</li>
+<li><b>Commit 3 (D2 Phase B), next release (Phase C):</b> segment round-trip vs the plain array byte-identical on real saves; turn-addressed RETCON invalidates exactly one segment; UA3 rescue drill on a corrupted segment; a <code>--check</code> replay over the v1238 corpus proving end-state identity.</li>
+<li><b>Field watch:</b> Usage modal sync bytes before/after on the live t2xxx campaign; the #17 cache-trend indicator unaffected (none of this touches prompts).</li>
+</ol>
+
+<p class="small muted">Sources: Fable_Review_2025_08_27.html rows f70/f58/f69/f44 (mechanisms + verifier corrections, all confirmed) · state.js (memo, #92 snapshot builder, UA3 rescue) · game.js commitGmTurn/narrateWithSpeakers/generateActions · api.js applyMuts tail + _w2Copy sites · storage-adapter.js debounce/POST/sentinel · tag_table.js NPC_MERGE · owner decrees: sacred transcript (2026-07-17), cross-device sync preference (2026-07-26).</p>
+</body>
+</html>
