@@ -16953,6 +16953,147 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return /2/.test(line)&&line.indexOf("ball")>=0?true:"the line hides the second casualty: "+line;
   });
 
+  // ── #272 — the serialization diet, commit 1: D1 one save/LZ/POST per turn + D3 wire forms
+  // (Fable f70+f58+f69+f44; design DOC/Research/DOC_serialization_diet.html; owner rulings
+  // R1-R4 all as recommended, 2026-08-28). Every dialogue turn paid THREE full-transcript LZ
+  // passes + ~4 full-state saves + 2 full-state POSTs; the {__lz} wire form INFLATES network
+  // bytes ~1.33x vs plain JSON and its sentinel counted chars (~3x under). Commit 1 collapses
+  // the turn to ONE save/one LZ pass/one POST, ships the {__lzb64}/{__lzc} INFLATERS with the
+  // producer flag OFF (inflater-first rule — every deployed client must read a form for a full
+  // cycle before any producer emits it on the wire), and makes the sentinel byte-honest.
+  section("#272 — serialization diet: one save per turn, wire forms, honest sentinel");
+  t("#272 D1: a committed dialogue turn pays ONE save and ONE LZ pass — and the later debounced POST build is a memo HIT",function(){
+    return __withWorkingStorage(function(){
+      makeWorld();worldState.turn=10;worldState.ragMemory=false;
+      worldState.transcript=[{t:9,r:"gm",x:"An earlier scene."}];
+      /* a functional saveAll for the duration — the suite no-ops the global save bindings */
+      var _sa=saveAll,_n=0,_c0;
+      try{__withRealSaves(function(){
+        saveAll=function(){_n++;saveCore();saveMem();};
+        serializeWorldState();/* prime the memo so the turn's own passes are what we count */
+        _c0=serializeWorldState._compressions;
+        commitGmTurn("[SAY:Bram] “Well met,” Bram says warmly. [GOLD:+2][TIME_ADVANCE:5m]",{userMsg:"greet Bram",playerTxt:"I greet Bram",logPlayer:true});
+      });}finally{saveAll=_sa;}
+      if(_n!==1)return "the turn paid "+_n+" saveAll calls — the design says exactly ONE";
+      var _passes=serializeWorldState._compressions-_c0;
+      if(_passes!==1)return "the turn paid "+_passes+" LZ passes — the design says exactly ONE";
+      serializeWorldState();/* the debounced POST payload build, seconds later */
+      return serializeWorldState._compressions===_c0+1?true:"the post-commit payload build MISSED the memo — a mutation landed after the save";
+    });
+  });
+  t("#272 D1: plain applyMuts still saves immediately (pin — only the commit path defers)",function(){
+    makeWorld();worldState.turn=10;
+    var _sa=saveAll,_n=0;saveAll=function(){_n++;};
+    try{applyMuts("[GOLD:+1]");}finally{saveAll=_sa;}
+    return _n===1?true:"applyMuts without deferSave paid "+_n+" saves (want 1)";
+  });
+  /* Node-only working localStorage for the persistence tests below — the suite's void stubs
+     elsewhere make store.set a silent no-op, so reading persistence back needs a real map (the
+     1405-pattern: save, install, restore). In the browser the real localStorage serves. */
+  function __withWorkingStorage(fn){
+    if(typeof global==="undefined")return fn();
+    var had=("localStorage" in global),real=had?global.localStorage:undefined;
+    global.localStorage={_d:{},getItem:function(k){return Object.prototype.hasOwnProperty.call(this._d,k)?this._d[k]:null;},setItem:function(k,v){this._d[k]=String(v);},removeItem:function(k){delete this._d[k];}};
+    try{return fn();}finally{if(had)global.localStorage=real;else delete global.localStorage;}
+  }
+  /* The harness ALSO no-ops saveCore/saveMem globally (lines ~24/10848/11139) — restore the real
+     state.js bodies for a test that must observe actual persistence. */
+  function __withRealSaves(fn){
+    var _sc=saveCore,_sm=saveMem;
+    saveCore=function(){store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));};
+    saveMem=function(){store.set(MEM_KEY,JSON.stringify(memory));};
+    try{return fn();}finally{saveCore=_sc;saveMem=_sm;}
+  }
+  t("#272 D1: saveLocal persists without touching the cloud adapter",function(){
+    return __withWorkingStorage(function(){
+      makeWorld();worldState.turn=10;
+      var _sync=0,_hadSA=typeof storageAdapter!=="undefined"?storageAdapter:undefined;
+      storageAdapter={syncToServer:function(){_sync++;}};
+      try{
+        if(typeof saveLocal!=="function")return "saveLocal does not exist";
+        var _r=__withRealSaves(function(){
+          saveLocal();
+          if(_sync!==0)return "saveLocal armed the cloud debounce ("+_sync+")";
+          if(!store.get(WSK))return "saveLocal did not persist the core";
+          if(!store.get(MEM_KEY))return "saveLocal did not persist memory";
+          return true;
+        });
+        if(_r!==true)return _r;
+      }finally{if(_hadSA===undefined){try{delete storageAdapter;}catch(e){storageAdapter=undefined;}}else storageAdapter=_hadSA;}
+      return true;
+    });
+  });
+  t("#272 D1/UA6: a display throw leaves state AND history persisted, consistent, atomically",function(){
+    return __withWorkingStorage(function(){
+      makeWorld();worldState.turn=10;
+      var _sa=saveAll,_saved=false;
+      var _am=addMsg;addMsg=function(kind){if(kind==="narrator")throw new Error("display exploded");return _am.apply(null,arguments);};
+      var threw=null;
+      try{__withRealSaves(function(){
+        saveAll=function(){_saved=true;saveCore();saveMem();};/* functional for the duration — the suite no-ops the global bindings */
+        commitGmTurn("The road bends east. [TIME_ADVANCE:5m]",{userMsg:"walk",playerTxt:"I walk on",logPlayer:true});
+      });}catch(e){threw=e;}
+      finally{addMsg=_am;saveAll=_sa;}
+      if(!threw)return "fixture broke: the display stub did not throw";
+      if(!_saved)return "the turn threw BEFORE any save ran: "+threw.message;
+      var ws2=parseWorldState(store.get(WSK));
+      var tail=ws2.transcript[ws2.transcript.length-1];
+      if(!tail||tail.r!=="gm"||tail.x.indexOf("road bends east")<0)return "the GM turn was not persisted before display";
+      var sl2=JSON.parse(store.get(SLK));
+      return sl2.length>=2&&sl2[sl2.length-1].content.indexOf("road bends east")>=0?true:"sessionLog pair not persisted before display";
+    });
+  });
+  t("#272 D1: bookkeeping turns still stamp no speaker map (pin)",function(){
+    makeWorld();worldState.turn=10;
+    commitGmTurn("[GOLD:+5]",{userMsg:"sync",playerTxt:null});
+    var tail=worldState.transcript[worldState.transcript.length-1];
+    return tail&&!tail.sp?true:"a bookkeeping turn grew a speaker map: "+JSON.stringify(tail&&tail.sp);
+  });
+  t("#272 D3: packWire/unpackWire round-trip the 15-bit stream byte-identically, in pure ASCII",function(){
+    var src=JSON.stringify([{t:1,r:"gm",x:"Bram presses the vermilion charm into your hand — “keep it hidden.”"},{t:2,r:"player",x:"I pocket it"}]);
+    if(typeof LZ.packWire!=="function"||typeof LZ.unpackWire!=="function")return "LZ.packWire/unpackWire missing";
+    var lz=LZ.compressToUTF16(src);
+    var packed=LZ.packWire(lz);
+    for(var i=0;i<packed.length;i++){if(packed.charCodeAt(i)>127)return "packed form is not pure ASCII at index "+i;}
+    var back=LZ.unpackWire(packed);
+    if(back!==lz)return "unpack did not reproduce the 15-bit stream byte-identically";
+    return LZ.decompressFromUTF16(back)===src?true:"decompression of the unpacked stream diverged";
+  });
+  t("#272 D3: the {__lzb64} and {__lzc} snapshot forms inflate byte-identically (Phase A — inflaters before any producer)",function(){
+    var arr=[{t:1,r:"player",x:"hello"},{t:2,r:"gm",x:"The innkeeper waves."},{t:3,r:"gm",x:"Rain begins."}];
+    var json=JSON.stringify(arr);
+    var b64={ver:10,turn:3,transcript:{__lzb64:LZ.packWire(LZ.compressToUTF16(json))}};
+    var out1=parseWorldState(JSON.stringify(b64));
+    if(JSON.stringify(out1.transcript)!==json)return "{__lzb64} did not inflate byte-identically";
+    var lzc={ver:10,turn:3,transcript:{__lzc:{v:1,seg:2,segs:[LZ.compressToUTF16(JSON.stringify(arr.slice(0,2)))],tail:LZ.compressToUTF16(JSON.stringify(arr.slice(2)))}}};
+    var out2=parseWorldState(JSON.stringify(lzc));
+    return JSON.stringify(out2.transcript)===json?true:"{__lzc} did not inflate byte-identically";
+  });
+  t("#272 D3: an UNRECOGNIZED transcript form takes the loud rescue path — never a silent poison passthrough",function(){
+    return __withWorkingStorage(function(){
+      var _ce=console.error,_errs=[];console.error=function(m){_errs.push(String(m));};
+      var out;
+      try{out=parseWorldState(JSON.stringify({ver:10,campId:"c272x",turn:3,transcript:{__lzfuture:"???"}}));}
+      finally{console.error=_ce;}
+      if(!(out.transcript instanceof Array)||out.transcript.length!==0)return "unknown form passed through poisoned: "+JSON.stringify(out.transcript).slice(0,60);
+      if(!store.get(TRANSCRIPT_RESCUE_K+"c272x"))return "the unreadable form was not preserved under the rescue key";
+      store.del(TRANSCRIPT_RESCUE_K+"c272x");
+      return _errs.some(function(m){return m.indexOf("transcript")>=0;})?true:"the rescue was silent";
+    });
+  });
+  t("#272 D3: wireWorldStateSnapshot ships {__lz} at the shipped flag; the Phase-C flip emits a round-trippable {__lzb64} (pre-tested)",function(){
+    makeWorld();worldState.turn=5;
+    worldState.transcript=[{t:5,r:"gm",x:"A wire-form test scene."}];
+    if(typeof wireWorldStateSnapshot!=="function")return "wireWorldStateSnapshot missing";
+    var a=wireWorldStateSnapshot(worldState);
+    if(!a.transcript||typeof a.transcript.__lz!=="string")return "shipped flag no longer emits the {__lz} wire form";
+    var _f=WIRE_TRANSCRIPT_FORM;WIRE_TRANSCRIPT_FORM="lzb64";
+    var b;try{b=wireWorldStateSnapshot(worldState);}finally{WIRE_TRANSCRIPT_FORM=_f;}
+    if(!b.transcript||typeof b.transcript.__lzb64!=="string")return "the flipped flag did not emit {__lzb64}";
+    var back=parseWorldState(JSON.stringify(b));
+    return JSON.stringify(back.transcript)===JSON.stringify(worldState.transcript)?true:"the flipped wire form did not round-trip";
+  });
+
   // ── #271 — identity/session residue quartet (Fable f57+f34+f48+f23, joint review 2026-08-27).
   // ① locResolve/_spFactsMemo memos survived whole-state replacement (campaign switch, .tnd
   // import, server reconcile) — one campaign's location canon could serve another's reads, and a

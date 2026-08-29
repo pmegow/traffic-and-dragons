@@ -514,7 +514,7 @@ var storageAdapter = (function() {
       // for real at t1130; the transcript was the payload. _stripNpcPortraits keeps the
       // transcript array by reference, so the compression memo is SHARED with saveCore — one
       // LZ pass per turn serves both boundaries. Degrade (no LZ) = today's plain payload.
-      worldState:    compressWorldStateSnapshot(wsStripped),
+      worldState:    wireWorldStateSnapshot(wsStripped),/* #272 D3: THE wire-form seam (both POST paths); at the shipped flag this IS compressWorldStateSnapshot */
       sessionLog:    sessionLog,
       memory:        memory,
       campaignId:    campId,
@@ -524,12 +524,13 @@ var storageAdapter = (function() {
       // clobber it. -1 = never seen server state — also correctly refused against existing data.
       baseTurn:      _lastAckTurn
     });
-    // #67 sync payload telemetry: .length on the JSON string is a byte-count proxy (fine for the
-    // "is this campaign getting heavy" signal it's used for). Mutate worldState.usage only — never
+    // #67/#272 D3 sync payload telemetry: REAL UTF-8 bytes via _payloadBytes (TextEncoder — the
+    // JP0-11 measurer). The old .length char count under-reported the {__lz} portion ~3x, so the
+    // 2MB sentinel fired at ~5.9MB actual wire bytes (f69). Mutate worldState.usage only — never
     // saveAll/saveCore here, or the save would re-enter syncToServer from inside a sync. The
     // mutation rides along on whatever save happens next.
     if (worldState.usage) {
-      var _syncPayloadBytes = payload.length;
+      var _syncPayloadBytes = _payloadBytes(payload);
       worldState.usage.syncBytes     = (worldState.usage.syncBytes || 0) + _syncPayloadBytes;
       worldState.usage.syncPosts     = (worldState.usage.syncPosts || 0) + 1;
       worldState.usage.lastSyncBytes = _syncPayloadBytes;
@@ -739,6 +740,19 @@ var storageAdapter = (function() {
       return r.json();
     }).then(function(data) {
       if (!data || !data.worldState) {
+        syncCampaignList(null);
+        return;
+      }
+      // #272 D3: REFUSE to adopt a transcript form this build cannot read (a NEWER client wrote
+      // it — the wire-form flip is release-gated, but a stale device one navigation behind can
+      // still pull ahead-of-it data). The old path rescued-and-EMPTIED the story view, and this
+      // device's next push could then adopt-race an empty transcript over the server's good copy.
+      // The server copy is safe where it lives; keep local state and defer — the SW update lands
+      // on the next navigation. Pure attempt, no rescue write.
+      var _srvTr = data.worldState.transcript;
+      if (_srvTr && !(_srvTr instanceof Array) && typeof inflateTranscriptField === "function" && inflateTranscriptField(_srvTr) === null) {
+        console.error("[storage] reconcile REFUSED — the server blob's transcript is in a form this build cannot read (newer client?). Keeping local state; reload this device to update.");
+        if (typeof showToast === "function") showToast("&#9729; Cloud copy was written by a newer app version &mdash; reload to update, then sync resumes");
         syncCampaignList(null);
         return;
       }
@@ -985,7 +999,7 @@ var storageAdapter = (function() {
   // owns that — the server row doesn't exist yet, so there is nothing to guard against).
   function pushCampaignState(campId, parts, cb) {
     _apiJson("/api/state", "POST", {
-      worldState:    compressWorldStateSnapshot(_stripNpcPortraits(parts.worldState)),/* #92: same wire form as _syncNow */
+      worldState:    wireWorldStateSnapshot(_stripNpcPortraits(parts.worldState)),/* #92/#272 D3: same wire form as _syncNow — the B9 one-map rule */
       sessionLog:    parts.sessionLog,
       memory:        parts.memory,
       campaignId:    campId,

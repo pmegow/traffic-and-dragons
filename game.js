@@ -467,11 +467,12 @@ async function generateActions(msgEl){
        data-action stays the bare action (the queue line re-attaches the name at submit). */
     var _mpPfx=(typeof playerCount==="function"&&playerCount()>1&&activePlayer()&&activePlayer().name)?activePlayer().name+": ":"";
     for(i=0;i<3&&i<acts.length;i++){var a=punctuateAction(acts[i].trim());btns[i].textContent=_mpPfx+a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}/* #88: punctuated so a tapped suggestion reads as a real sentence and gets a clean TTS pause boundary */
-    // saveAll (not saveCore): this async call finishes AFTER the turn's debounced sync fires,
-    // so a local-only save left the server blob holding the PREVIOUS turn's buttons — device B
-    // rendered stale actions while the text matched. saveAll re-arms the debounce with the
-    // fresh lastActions (one cheap extra POST at most).
-    worldState.lastActions=acts.slice(0,3);saveAll();
+    // #272 D1 (R4, owner-ruled 2026-08-28): saveLocal, NOT saveAll — the old re-armed debounce
+    // shipped a SECOND full-state POST per turn for three suggestion strings ("one cheap extra
+    // POST" was the full multi-MB payload, f70). The suggestions persist locally for reload and
+    // reach the server on the next turn's POST or any page-hide flush (the device-handoff case);
+    // a second device pulling MID-session may render the previous turn's buttons — cosmetic.
+    worldState.lastActions=acts.slice(0,3);saveLocal();
   }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);if(typeof reportError==="function")reportError("actions",e.message,(e&&e.stack)||"");_cleanup();}
 }
 // ── #96: dialogue attribution via [SAY:] tags — deterministic, no second model call ──────────
@@ -706,23 +707,38 @@ function pinAutoCastVoices(sp){
   }
   return pinned;
 }
-// Narration entry point for a committed turn. Attribution derives SYNCHRONOUSLY from the
-// response's own [SAY:] tags (#96) — nothing waits on a network call anymore, and derivation is
-// free, so the map is stamped even while MUTED (the old post-pass skipped muted turns to save a
-// model call, which left their replays voiceless forever; that limitation is gone). Every
-// failure path is "narrate flat": a throw here must never cost the read itself.
-function narrateWithSpeakers(clean,raw,narEl,entry,trOwn){
-  if(typeof TTS==="undefined")return;
+// Attribution derives SYNCHRONOUSLY from the response's own [SAY:] tags (#96) — nothing waits on
+// a network call, and derivation is free, so the map is stamped even while MUTED (the old
+// post-pass skipped muted turns to save a model call, which left their replays voiceless
+// forever). Every failure path is "narrate flat": a throw here must never cost the read itself.
+// #272 D1 split the old narrateWithSpeakers in two: the SYNC half below does derivation + every
+// worldState write (the .sp stamp, auto-cast voice pinning) with NO save and NO audio, so
+// commitGmTurn can run it BEFORE its single commit save — the old post-save stamp invalidated
+// the compression memo and forced a second full-transcript LZ pass on 88-95% of live turns (f70).
+function deriveAndStampSpeakers(clean,raw,entry,trOwn){
+  if(typeof TTS==="undefined")return null;
   var sp=null;
   try{sp=deriveSpeakerMapFromTags(raw,clean);}catch(e){console.warn("[speakers] tag derivation failed — narrating in one voice:",e&&e.message);}
-  if(sp){
-    stampTranscriptSpeakers(entry,sp,trOwn);/* #177: the OWNING array rides with the entry */
-    if(narEl)narEl._sp=sp;   // the per-message replay button reads this at click time
-    try{pinAutoCastVoices(sp);}catch(e2){console.warn("[speakers] voice pinning failed (read unaffected):",e2&&e2.message);}
-    saveAll();
-  }
+  if(!sp)return null;
+  stampTranscriptSpeakers(entry,sp,trOwn);/* #177: the OWNING array rides with the entry */
+  try{pinAutoCastVoices(sp);}catch(e2){console.warn("[speakers] voice pinning failed (read unaffected):",e2&&e2.message);}
+  return sp;
+}
+// #272 D1: the AUDIO half — zero state writes.
+function speakNarration(clean,sp){
+  if(typeof TTS==="undefined")return;
   if(!TTS.isOn()&&!(typeof carMode!=="undefined"&&carMode))return;   // muted: map kept, no read
   TTS.speakResponse(clean,sp?speakerVoiceMap(sp,clean):null);
+}
+// Narration entry point for a NON-commit caller (rerollLast) — derive+stamp, persist, speak.
+// commitGmTurn no longer routes through here: it calls the halves itself around its single save.
+function narrateWithSpeakers(clean,raw,narEl,entry,trOwn){
+  var sp=deriveAndStampSpeakers(clean,raw,entry,trOwn);
+  if(sp){
+    if(narEl)narEl._sp=sp;   // the per-message replay button reads this at click time
+    saveAll();
+  }
+  speakNarration(clean,sp);
 }
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
@@ -1633,7 +1649,7 @@ function commitGmTurn(resp,opts){
     if(typeof showToast==="function")showToast("⚠ The model declined this scene — re-roll or rephrase",6000);
     if(typeof erCrumb==="function")erCrumb("turn-refused",{t:worldState.turn,ch:String(resp||"").length});
   }else{
-  applyMuts(resp);
+  applyMuts(resp,{deferSave:true});/* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
   /* #149: a FIRED aftermath nudge is consumed by the turn that commits — whether the GM filed
      a [LOCATION_STATE:] or stayed silent, the one shot is spent. A pending stamped by THIS
      response's own combat close has no .fired flag and survives to fire next turn; a failed
@@ -1701,6 +1717,12 @@ function commitGmTurn(resp,opts){
   var _slUser={role:"user",content:o.userMsg},_slGm={role:"assistant",content:resp};
   if(_bookkeeping){_slUser.bk=1;_slGm.bk=1;}
   sessionLog.push(_slUser,_slGm);
+  /* #272 D1: the speaker map derives and stamps BEFORE the single commit save, so the turn's
+     state, history, AND .sp attribution persist atomically in ONE LZ pass — the old post-save
+     stamp invalidated the compression memo and forced a third full-transcript pass (f70).
+     Bookkeeping turns never stamped speakers (narrateWithSpeakers ran after their early return)
+     and still don't. */
+  var _spMap=_bookkeeping?null:deriveAndStampSpeakers(clean,resp,worldState.transcript[worldState.transcript.length-1],worldState.transcript);
   saveAll();
   if(_bookkeeping){
     processPendingCompanionSheets();
@@ -1708,7 +1730,8 @@ function commitGmTurn(resp,opts){
     return null;
   }
   var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
-  narrateWithSpeakers(clean,resp,narEl,worldState.transcript[worldState.transcript.length-1],worldState.transcript);/* #96: map derives from the response's own [SAY:] tags; #177: entry + its owning array captured together */
+  if(_spMap&&narEl)narEl._sp=_spMap;   // the per-message replay button reads this at click time
+  speakNarration(clean,_spMap);/* #96: map derived from the response's own [SAY:] tags; #177: entry + owning array were captured together at the stamp */
   generateActions(narEl);
   processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
   /* #81: [ITEM_DEF:] proposals queued by this turn go to the player NOW — the confirm modal is

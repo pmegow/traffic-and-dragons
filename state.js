@@ -136,17 +136,65 @@ function serializeWorldState(ws){
 }
 serializeWorldState._compressions=0; // test/diagnostic hook: counts ACTUAL LZ passes (memo hits don't increment)
 serializeWorldState.invalidateTranscriptMemo=function(tr){if(_trLzMemo&&tr)_trLzMemo["delete"](tr);};
+// #272 D3: THE one wire-form producer for BOTH POST /api/state paths (_syncNow and
+// pushCampaignState — the B9 one-map rule). WIRE_TRANSCRIPT_FORM gates the Phase-C flip:
+// "lz" ships today's {__lz} form; "lzb64" repacks the SAME memoized stream as 6-bit ASCII
+// (~0.85x plain-JSON wire bytes vs the 1.33x INFLATION {__lz} pays as UTF-8 — f69). The flip is
+// a LATER release by the inflater-first rule: every deployed client must carry the {__lzb64}
+// inflater for a full cycle before any producer emits it on the wire — a stale device pulling a
+// form it cannot read would rescue-and-empty its story view. Repack failure degrades loudly to
+// the {__lz} form (never blocks the POST).
+var WIRE_TRANSCRIPT_FORM="lz";
+function wireWorldStateSnapshot(ws){
+  var snap=compressWorldStateSnapshot(ws);
+  if(WIRE_TRANSCRIPT_FORM==="lzb64"&&snap.transcript&&typeof snap.transcript.__lz==="string"&&typeof LZ!=="undefined"&&LZ.packWire){
+    var _packed=null;try{_packed=LZ.packWire(snap.transcript.__lz);}catch(e){_packed=null;}
+    if(_packed){var w={},k;for(k in snap){if(Object.prototype.hasOwnProperty.call(snap,k))w[k]=snap[k];}w.transcript={__lzb64:_packed};return w;}
+    if(typeof console!=="undefined")console.warn("[save] wire repack failed — shipping the {__lz} form for this POST");
+  }
+  return snap;
+}
+// #272 D3: pure inflate ATTEMPT for every transcript form ever shipped — plain array, {__lz}
+// (#92), {__lzb64} (wire repack), {__lzc} (chunked segments, produced from Phase B). Returns the
+// plain array or null; NO side effects, NO rescue writes — the reconcile uses it to REFUSE
+// adopting a blob this build cannot read (the server copy stays where it is), and
+// inflateWorldStateSnapshot routes its rescue path through the same attempt.
+function _lzToArray(blob){
+  if(typeof LZ==="undefined"||!LZ.decompressFromUTF16)return null;
+  try{var a=JSON.parse(LZ.decompressFromUTF16(blob));return (a instanceof Array)?a:null;}catch(e){return null;}
+}
+function inflateTranscriptField(t){
+  if(t instanceof Array)return t;
+  if(!t||typeof t!=="object")return null;
+  try{
+    if(typeof t.__lz==="string")return _lzToArray(t.__lz);
+    if(typeof t.__lzb64==="string"){
+      var _u=(typeof LZ!=="undefined"&&LZ.unpackWire)?LZ.unpackWire(t.__lzb64):null;
+      return _u?_lzToArray(_u):null;
+    }
+    if(t.__lzc&&typeof t.__lzc==="object"){
+      var c=t.__lzc,parts=[],i,arr;
+      if(!Array.isArray(c.segs))return null;
+      for(i=0;i<c.segs.length;i++){arr=_lzToArray(c.segs[i]);if(!arr)return null;parts=parts.concat(arr);}
+      if(c.tail){arr=_lzToArray(c.tail);if(!arr)return null;parts=parts.concat(arr);}
+      return parts;
+    }
+  }catch(e){}
+  return null;
+}
 // #92: the object-form inflater — the SAME tolerance parseWorldState has always applied to
 // strings, exposed for consumers that receive an already-PARSED blob. The one that matters:
 // the server reconcile ADOPT (storage-adapter), which consumed the pulled blob raw and would
 // otherwise poison live state with a {__lz} transcript ({__lz}.push throws mid-turn). A plain
 // array passes through untouched; inflate failure takes the UA3 rescue path below.
 function inflateWorldStateSnapshot(o){
-  if(o&&o.transcript&&!(o.transcript instanceof Array)&&o.transcript.__lz){
-    var _lzBlob=o.transcript.__lz,_ok=false;
-    if(typeof LZ!=="undefined"&&LZ.decompressFromUTF16){
-      try{var _inf=JSON.parse(LZ.decompressFromUTF16(_lzBlob));if(_inf instanceof Array){o.transcript=_inf;_ok=true;}}catch(e){}
-    }
+  if(o&&o.transcript&&!(o.transcript instanceof Array)){
+    /* #272 D3: one tolerant attempt for EVERY shipped form ({__lz}/{__lzb64}/{__lzc}); an
+       UNRECOGNIZED object form now takes the same loud rescue path instead of passing through
+       poisoned ({__lzfuture}.push would have thrown mid-turn — the exact hazard UA3 names). */
+    var _lzBlob=(typeof o.transcript.__lz==="string")?o.transcript.__lz:JSON.stringify(o.transcript),_ok=false;
+    var _inf=inflateTranscriptField(o.transcript);
+    if(_inf){o.transcript=_inf;_ok=true;}
     if(!_ok){
       // NO-SILENT-FAILURES (UA3): the verbatim story record could not be read — compress.js absent
       // (script-order/SW-cache skew) or a corrupt blob. Two hazards: an un-inflated {__lz} object
@@ -177,7 +225,14 @@ function restoreTranscriptRescue(){
   if(!lz)return false;
   if(typeof LZ==="undefined"||!LZ.decompressFromUTF16)return false; // still unhealthy — keep the rescue
   try{
-    var old=JSON.parse(LZ.decompressFromUTF16(lz));
+    /* #272 D3: a rescue may now hold a JSON object form ({__lzb64}/{__lzc}/unknown-at-rescue-time)
+       beside the legacy bare {__lz} blob. Blob-first (most rescues are legacy; a blob that
+       coincidentally parses as JSON is effectively impossible), then the object route. */
+    var old=null;
+    try{old=JSON.parse(LZ.decompressFromUTF16(lz));}catch(eB){old=null;}
+    if(!(old instanceof Array)&&typeof inflateTranscriptField==="function"){
+      try{var _ro=JSON.parse(lz);old=inflateTranscriptField(_ro);}catch(eJ){}
+    }
     if(!(old instanceof Array))throw new Error("rescue is not an array");
     if(!worldState.transcript)worldState.transcript=[];
     var cur=worldState.transcript,cut=old.length,i;
@@ -194,7 +249,14 @@ function saveMem(){try{store.set(MEM_KEY,JSON.stringify(memory));}catch(e){if(ty
 // #2 (quota): snapshotActiveCamp() removed from saveAll — it duplicated the ENTIRE active state (incl. portraits)
 // into tnd_camp_<id>_* on every turn, redundant with tnd_core_v10. The active campaign is still snapshotted on
 // switch-away, beforeunload, and campaign ops — the moments the snapshot is actually read. ~halves the per-turn write.
-function saveAll(){saveCore();saveMem();updateCampMeta();if(typeof storageAdapter!=="undefined")storageAdapter.syncToServer();}
+/* #272 D1 (R4): everything but the cloud arm. generateActions' late save lands seconds after the
+   turn's debounced POST fired, and re-arming the debounce shipped a SECOND full-state POST per
+   turn for three suggestion strings. It saves locally now; the suggestions reach the server on
+   the next turn's POST or any page-hide flush (syncNow on beforeunload/visibilitychange — the
+   device-handoff case). A second device pulling MID-session may show the previous turn's
+   suggestion buttons: cosmetic, accepted by ruling. */
+function saveLocal(){saveCore();saveMem();updateCampMeta();}
+function saveAll(){saveLocal();if(typeof storageAdapter!=="undefined")storageAdapter.syncToServer();}
 // #12 — append-only campaign transcript: the verbatim prose record for the story compiler (#11) + cross-device
 // completeness. Lives in worldState (rides in the sync blob). Written from the turn sources (sendAction/beginAdventure),
 // NOT addMsg — addMsg re-fires when the last turns are re-rendered on reload, which would double-count.

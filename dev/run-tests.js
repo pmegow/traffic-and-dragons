@@ -1100,12 +1100,54 @@ try {
     console.error("SYNC COMPRESSION CONTRACT: the reconcile adopt no longer inflates the pulled blob — a compressed wire poisons live state (#92, the adopt-hop lesson).");
     process.exit(1);
   }
-  var _cwsCount = (_saN.match(/worldState:\s*compressWorldStateSnapshot\(/g) || []).length;
+  // #272 D3: both POST paths route through wireWorldStateSnapshot (the ONE wire-form seam —
+  // the B9 one-map rule), which itself derives from compressWorldStateSnapshot in state.js, so
+  // the #92 compressed-wire guarantee is unchanged and the Phase-C form flip has one producer.
+  var _cwsCount = (_saN.match(/worldState:\s*wireWorldStateSnapshot\(/g) || []).length;
   if (_cwsCount < 2) {
-    console.error("SYNC COMPRESSION CONTRACT: only " + _cwsCount + " of the 2 POST paths (_syncNow payload + pushCampaignState) route worldState through compressWorldStateSnapshot — the 2MB plain-payload class returns (#92).");
+    console.error("SYNC COMPRESSION CONTRACT: only " + _cwsCount + " of the 2 POST paths (_syncNow payload + pushCampaignState) route worldState through wireWorldStateSnapshot — the 2MB plain-payload class returns (#92/#272).");
+    process.exit(1);
+  }
+  var _stSC = _ncSC(_fsSC.readFileSync(_pathSC.join(__dirname, "..", "state.js"), "utf8"));
+  if (!/function wireWorldStateSnapshot\(ws\)\{\s*var snap=compressWorldStateSnapshot\(ws\);/.test(_stSC)) {
+    console.error("SYNC COMPRESSION CONTRACT: wireWorldStateSnapshot no longer derives from compressWorldStateSnapshot — the wire lost the #92 compression (or grew a second producer).");
+    process.exit(1);
+  }
+  // #272 D3: the Phase-C flip is a DELIBERATE contract edit — the shipped flag stays "lz" until
+  // every deployed client has carried the {__lzb64}/{__lzc} inflaters for a full release cycle
+  // (inflater-first rule; a stale device pulling an unreadable form rescue-and-empties its story
+  // view). Flipping this value and this clause land in the same commit, by design.
+  if (!/var WIRE_TRANSCRIPT_FORM="lz";/.test(_stSC)) {
+    console.error("SYNC COMPRESSION CONTRACT: WIRE_TRANSCRIPT_FORM left \"lz\" outside the Phase-C flip commit — the inflater-first release gate was skipped (#272 D3).");
+    process.exit(1);
+  }
+  // #272 D3: the reconcile must REFUSE an unreadable transcript form before the destructive
+  // inflate — the rescue-and-empty adopt could push an empty story record over the server copy.
+  if (!/inflateTranscriptField\(_srvTr\)\s*===\s*null/.test(_saN)) {
+    console.error("SYNC COMPRESSION CONTRACT: the reconcile no longer refuses an unreadable transcript form before adopting (#272 D3) — a stale client can empty the story and race it upward.");
+    process.exit(1);
+  }
+  // #272 D3: the payload sentinel measures REAL UTF-8 bytes — the char count under-reported the
+  // {__lz} portion ~3x, so the 2MB warning fired at ~5.9MB actual wire bytes (f69).
+  if (_saN.indexOf("var _syncPayloadBytes = _payloadBytes(payload);") < 0) {
+    console.error("SYNC COMPRESSION CONTRACT: the payload sentinel no longer measures real bytes (#272 D3) — the 2MB warning under-fires ~3x on {__lz}-heavy payloads again.");
     process.exit(1);
   }
 } catch (e) { console.error("SYNC COMPRESSION CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
+// ── #272 D1 ONE-POST CONTRACT (serialization diet, owner ruling R4 2026-08-28) ───────────
+// generateActions lands seconds after the turn's debounced POST fired; a saveAll there re-armed
+// the debounce and shipped a SECOND full multi-MB POST per turn for three suggestion strings.
+// The engine suite proves the D1 one-save flow; this pins the one surface it cannot reach
+// (generateActions is async behind a live callGM).
+try {
+  var _fsOP = require("fs"), _pathOP = require("path");
+  var _gmOP = _fsOP.readFileSync(_pathOP.join(__dirname, "..", "game.js"), "utf8");
+  if (_gmOP.indexOf("worldState.lastActions=acts.slice(0,3);saveLocal();") < 0) {
+    console.error("#272 ONE-POST CONTRACT: generateActions no longer saves local-only — the second full-state POST per turn returns (R4).");
+    process.exit(1);
+  }
+} catch (eOP) { console.error("#272 ONE-POST CONTRACT CHECK FAILED: " + (eOP && eOP.message)); process.exit(1); }
 
 // ── AUDIO RECOVERY CONTRACT (v1.421, B10) ────────────────────────────────────────────────
 // iOS does not hand an interrupted AudioContext back: resume() rejects on it forever, and

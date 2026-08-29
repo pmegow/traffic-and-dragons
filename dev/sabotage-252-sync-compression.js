@@ -12,16 +12,23 @@ process.exit(sabotage.prove({
       replace: "data.worldState = data.worldState;"
     },
     {
+      /* #272 re-point: both POST paths now route through the ONE wire-form seam */
       label: "normal turn sync returns to a plain worldState payload",
       mustFail: "of the 2 POST paths (_syncNow payload + pushCampaignState)",
-      find: "worldState:    compressWorldStateSnapshot(wsStripped),",
+      find: "worldState:    wireWorldStateSnapshot(wsStripped),",
       replace: "worldState:    wsStripped,"
     },
     {
       label: "first campaign upload returns to a plain worldState payload",
       mustFail: "of the 2 POST paths (_syncNow payload + pushCampaignState)",
-      find: "worldState:    compressWorldStateSnapshot(_stripNpcPortraits(parts.worldState)),",
+      find: "worldState:    wireWorldStateSnapshot(_stripNpcPortraits(parts.worldState)),",
       replace: "worldState:    _stripNpcPortraits(parts.worldState),"
+    },
+    {
+      label: "the reconcile stops refusing an unreadable transcript form before adopting (#272 D3)",
+      mustFail: "no longer refuses an unreadable transcript form",
+      find: "if (_srvTr && !(_srvTr instanceof Array) && typeof inflateTranscriptField === \"function\" && inflateTranscriptField(_srvTr) === null) {",
+      replace: "if (false) {"
     }
   ]
 }));
