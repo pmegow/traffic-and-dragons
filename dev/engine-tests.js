@@ -16953,6 +16953,89 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return /2/.test(line)&&line.indexOf("ball")>=0?true:"the line hides the second casualty: "+line;
   });
 
+  // ── #271 — identity/session residue quartet (Fable f57+f34+f48+f23, joint review 2026-08-27).
+  // ① locResolve/_spFactsMemo memos survived whole-state replacement (campaign switch, .tnd
+  // import, server reconcile) — one campaign's location canon could serve another's reads, and a
+  // same-turn+same-length transcript coincidence could serve stale speech evidence to the death
+  // gate. Invalidation is now by CONTENT IDENTITY (the memoized object reference), which covers
+  // every replacement seam including future ones — no per-seam bump to forget. ② the #228 split
+  // re-affirm comparator was raw-string on both operands, so a case/article variant re-affirm
+  // re-took the full write path: split record re-minted (audit due again), phantom #194
+  // witnessed-grade arrival evidence, phantom guestbook stamps — once per wording FLIP. ③ the
+  // RAG skip window's +1 left GM turn T−P in neither verbatim channel for several player turns.
+  // ④ W2 site A stripped QUEST/QUEST_STEP without verbatim provenance — the ring showed the tag
+  // NAMES (raw-scan) but not which title/status was purged, while site B and the orphan site
+  // both log theirs.
+  section("#271 — memo identity, split re-affirm comparator, RAG boundary turn, site A provenance");
+  t("#271①: the locResolve memo dies with its identity table — a campaign switch cannot serve foreign canon",function(){
+    makeWorld();
+    memory.map={nodes:{},edges:[],lastArrivalFrom:null,identity:{entries:{"Old Well":{mergedInto:"New Well"}}}};
+    if(locResolve("Old Well")!=="New Well")return "fixture broke: resolution through the overlay failed";
+    memory=blankMemory();/* whole-state replacement — campaign switch/.tnd import/reconcile; NO repair executor runs, so no gen bump */
+    memory.map={nodes:{},edges:[],lastArrivalFrom:null,identity:{entries:{}}};
+    return locResolve("Old Well")==="Old Well"?true:"campaign A's merge served inside campaign B: "+locResolve("Old Well");
+  });
+  t("#271①: the speech-fact memo dies with its transcript — a turn+length coincidence cannot serve stale speech evidence",function(){
+    makeWorld();_spFactsMemo=null;
+    worldState.turn=8;
+    worldState.transcript=[{t:5,r:"gm",x:"“Hold the line,” Caul says.",sp:{s:{"0":"Caul"}}}];
+    var a=_speechFactNear("Caul",8);
+    if(!a||a.turn!==5)return "fixture broke: speech evidence not found on the first campaign";
+    worldState.transcript=[{t:5,r:"gm",x:"another campaign entirely, nobody speaks"}];/* same turn, same length — the f57 coincidence */
+    var b=_speechFactNear("Caul",8);
+    return b===null?true:"stale speech evidence served across a transcript replacement: "+JSON.stringify(b);
+  });
+  t("#271②: a case/article-variant split re-affirm is a NO-OP — no re-mint, no phantom evidence; a real move still writes",function(){
+    makeWorld();worldState.turn=40;
+    worldState.npcs.push({name:"Daeris",status:"ally",rel:"ally",met:1,partyMember:true,charSheet:{name:"Daeris",splitLoc:{location:"Sandpoint",sublocation:"The Rusty Dragon",turn:30}}});
+    memory.npcs["Daeris"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    var _ci=console.info;console.info=function(){};
+    try{applyMuts("[PARTY_SPLIT:Daeris|sandpoint|rusty dragon]");}finally{console.info=_ci;}
+    var sl=worldState.npcs[0].charSheet.splitLoc;
+    if(sl.turn!==30)return "re-mint: a case variant destroyed the split record (audit due again)";
+    if(sl.sublocation!=="The Rusty Dragon")return "stored display changed: "+sl.sublocation;
+    if(memory.npcs["Daeris"].lastSeenTurn===40)return "phantom witnessed-grade arrival evidence re-stamped (#194)";
+    if(memory.map&&memory.map.nodes&&memory.map.nodes["Sandpoint"])return "the write path still ran (node minted) on a variant re-affirm";
+    applyMuts("[PARTY_SPLIT:Daeris|Sandpoint|Cathedral]");
+    sl=worldState.npcs[0].charSheet.splitLoc;
+    return sl.turn===40&&sl.sublocation==="Cathedral"?true:"a REAL move stopped writing: "+JSON.stringify(sl);
+  });
+  t("#271③: the turn just behind the sessionLog tail is RAG-eligible — the one-turn verbatim hole closes",function(){
+    makeWorld();ragRetrieve._memo=null;
+    worldState.ragMemory=true;worldState.turn=40;
+    memory.npcs["Bram"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    sessionLog=[{role:"user",content:"a"},{role:"assistant",content:"b"},{role:"user",content:"c"},{role:"assistant",content:"d"},{role:"user",content:"e"},{role:"assistant",content:"f"}];/* 3 pairs → live window covers t38-40; t37 is the boundary turn */
+    worldState.transcript=[
+      {t:30,r:"gm",x:"filler one",e:{n:[],l:"Ashfen",q:[]}},
+      {t:33,r:"gm",x:"filler two",e:{n:[],l:"Ashfen",q:[]}},
+      {t:36,r:"player",x:"I ask Bram about the charm"},
+      {t:37,r:"gm",x:"Bram presses the vermilion charm into your hand.",e:{n:["Bram"],l:"Ashfen",q:[]}},
+      {t:38,r:"gm",x:"later filler",e:{n:[],l:"Ashfen",q:[]}},
+      {t:39,r:"gm",x:"later filler b",e:{n:[],l:"Ashfen",q:[]}},
+      {t:40,r:"gm",x:"later filler c",e:{n:[],l:"Ashfen",q:[]}}
+    ];
+    var out=ragRetrieve("I ask Bram about the vermilion charm");
+    worldState.ragMemory=false;sessionLog=[];
+    return out.indexOf("vermilion")>=0?true:"the boundary turn stayed invisible to both verbatim channels: "+out.slice(0,150);
+  });
+  t("#271④: site A logs the purged QUEST/QUEST_STEP payload verbatim — the ring shows WHICH completion the refusal cost",function(){
+    makeWorld();sceneRefsEnsure();w2Npc("Canon","ally");
+    var _w=console.warn;console.warn=function(){};
+    var R;try{R=applyMuts("The blade falls. [NPC:Canon|dead|foe][QUEST:The Hunt|completed][XP:100]");}finally{console.warn=_w;}
+    var e=worldState.tagLog[worldState.tagLog.length-1];
+    if(!e||!e.refused)return "no refused provenance on the ring at all: "+JSON.stringify(e);
+    if(!e.refused.some(function(x){return x.indexOf("[XP:100]")>=0;}))return "fixture broke: the reward token no longer rides the ring: "+JSON.stringify(e.refused);
+    return e.refused.some(function(x){return x==="[QUEST:The Hunt|completed]";})?true:"the purged completion is not on the ring verbatim: "+JSON.stringify(e.refused);
+  });
+  t("#271④: the orphan-marker site's quest collection is pinned — an unmatched envelope's completion rides the ring",function(){
+    makeWorld();sceneRefsEnsure();
+    var _w=console.warn;console.warn=function(){};
+    try{applyMuts("[CANON_TXN_BEGIN:zz9]Prose. [QUEST:Foo|completed][XP:50]");}finally{console.warn=_w;}
+    var e=worldState.tagLog[worldState.tagLog.length-1];
+    if(!e||!e.refused)return "no refused provenance on the ring: "+JSON.stringify(e);
+    return e.refused.some(function(x){return x==="[QUEST:Foo|completed]";})?true:"the orphan site's quest collection regressed: "+JSON.stringify(e.refused);
+  });
+
   // ── #269 — memory-hygiene family (Fable f37+f38+f39+f42+f43, joint review 2026-08-27).
   // ① NPC knowledge deduped byte-exact only, so paraphrase twins accumulated and each cap-12
   // admission evicted an older UNIQUE fact into a never-injected archive (t2097: one route-mapping

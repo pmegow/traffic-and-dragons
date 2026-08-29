@@ -100,12 +100,17 @@ function _locEntriesEnsure(){
 // Resolution memo: the table only changes on repair operations (rare), so resolution is a hash
 // hit in steady state. _locResGen bumps on every identity write; the memo resets on the next
 // resolve (bounded by distinct queried names per generation — monotonic-resources pass).
-var _locResGen=0,_locResMemo=Object.create(null),_locResMemoGen=-1;
+// #271① (f57): the memo ALSO dies when the entries OBJECT is replaced wholesale — campaign
+// switch, .tnd import, and the server reconcile swap memory without any executor running, and a
+// gen-only memo kept serving campaign A's canon inside campaign B. Content-identity invalidation
+// covers every replacement seam, including future ones — no per-seam bump to forget. The
+// retained reference is ONE object, replaced on the next resolve (monores: bounded).
+var _locResGen=0,_locResMemo=Object.create(null),_locResMemoGen=-1,_locResMemoObj=null;
 function locResolve(name){
   if(name==null||name==="")return name;
   var entries=_locEntries();
   if(!entries)return name;
-  if(_locResMemoGen!==_locResGen){_locResMemo=Object.create(null);_locResMemoGen=_locResGen;}
+  if(_locResMemoGen!==_locResGen||_locResMemoObj!==entries){_locResMemo=Object.create(null);_locResMemoGen=_locResGen;_locResMemoObj=entries;}
   var hit=_locResMemo[name];
   if(hit!==undefined)return hit;
   var cur=String(name),seen={},guard=0;
@@ -870,14 +875,14 @@ function _speechFactNear(canon,lim){
   if(!worldState||!worldState.transcript||!worldState.transcript.length)return null;
   var tr=worldState.transcript,now=(typeof worldState.turn==="number")?worldState.turn:0;
   var floor=now-(SPEECH_EVIDENCE_TURNS+80);/* covers summary-cited lims across the extraction window */
-  if(!_spFactsMemo||_spFactsMemo.turn!==now||_spFactsMemo.len!==tr.length){
+  if(!_spFactsMemo||_spFactsMemo.turn!==now||_spFactsMemo.len!==tr.length||_spFactsMemo.tr!==tr){/* #271① (f57): the transcript ARRAY reference is part of the key — a campaign switch at a coincidental same turn+length must not serve stale speech evidence to the death gate */
     var map={},i,e,k;
     for(i=tr.length-1;i>=0;i--){e=tr[i];if(!e)continue;
       if(typeof e.t==="number"&&e.t<floor)break;
       if(e.r!=="gm"||!e.sp||!e.sp.s)continue;
       var seen={};for(k in e.sp.s){var nm=String(e.sp.s[k]).trim();if(!nm||seen[nm])continue;seen[nm]=1;(map[nm]=map[nm]||[]).push(e.t);}
     }
-    _spFactsMemo={turn:now,len:tr.length,map:map};
+    _spFactsMemo={turn:now,len:tr.length,tr:tr,map:map};
   }
   var best=null,count=0,nm2;
   for(nm2 in _spFactsMemo.map){
@@ -1508,8 +1513,14 @@ function w2PrepareResponse(text){
   if(refusedVictim&&(/\[QUEST_STEP:[^\]]+\|(?:true|done|1|yes|x)\]/i.test(ordinary)||/\[QUEST:[^|\]]+\|(?:completed?|done|finished|failed)/i.test(ordinary))){/* #213: collect BEFORE the strip — these tokens are the player-facing receipt of what the
        refusal cost, and _w2StripRewards makes them unrecoverable. */
     var _waTok=_w2CollectStripped(ordinary,W2_REWARD_RES);
+    /* #271④ (f23): the purged QUEST/QUEST_STEP payload rides the ring VERBATIM — site B and the
+       orphan site both log theirs, and site A's strip destroyed the very payload the P2 contract
+       promises (the ring showed the tag NAME from the raw scan but not which title/status died).
+       Quest tokens go to provenance ONLY, never the withheld ledger — the #215 claim machinery
+       re-awards rewards, not quest credit. */
+    var _waQTok=_w2CollectStripped(ordinary,[/\[QUEST_STEP:[^\]]+\]/g,/\[QUEST:[^\]]+\]/g]);
     ordinary=ordinary.replace(/\[QUEST_STEP:[^\]]+\]/g,"").replace(/\[QUEST:[^\]]+\]/g,"");
-    _w2RefuseLog(_waTok);ordinary=_w2StripRewards(ordinary);
+    _w2RefuseLog(_waQTok);_w2RefuseLog(_waTok);ordinary=_w2StripRewards(ordinary);
     _w2StampWithheld(refusedConflict,_waTok);var _waSum=w2WithheldSummary(_waTok);
     if(typeof console!=="undefined")console.warn("[identity] quest/reward consequence refused - response carries a just-refused victim "+refusedVictim+" ("+(refusedReason||"cause unrecorded")+")");
     if(typeof showToast==="function")showToast("⚠ "+(_waSum?_waSum+" withheld":"Reward withheld")+" — "+w2RefusalCopy(refusedReason)+" ("+refusedVictim+"). Asking the GM to put it right.",8000);}

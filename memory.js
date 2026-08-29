@@ -995,7 +995,11 @@ function _ragRetrieveScore(inputText){
   // turns and left a DEAD ZONE 3–10 turns back: too old for sessionLog, too recent for
   // retrieval (the t165 Frizwick-quiz failure). Floor of 2 (the current exchange is always
   // in context); grows with sessionLog depth in young campaigns where the log runs long.
-  var skipN=Math.max(2,Math.ceil(((typeof sessionLog!=="undefined"&&sessionLog)?sessionLog.length:0)/2)+1);
+  // #271③ (f48): NO +1 — pairs↔turns are 1:1 (bk pairs included: they consumed a turn++ too),
+  // so P pairs cover t=T−P+1..T and the cut must sit at exactly T−P. The +1 left GM turn T−P
+  // in NEITHER verbatim channel, and because each new turn advances T and P together, the same
+  // boundary turn stayed invisible until the second-next summarize.
+  var skipN=Math.max(2,Math.ceil(((typeof sessionLog!=="undefined"&&sessionLog)?sessionLog.length:0)/2));
   var cutT=worldState.turn-skipN;
   var cands=[],names=null,i,j;
   // Pass 1: backfill missing indexes + per-term document frequency over eligible entries.

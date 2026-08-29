@@ -188,9 +188,11 @@ the documented residual. 4 new engine tests (90 total).
 — false in mature campaigns (summarize fires every ~2 turns, TODO #28), leaving turns ~3–10
 back in NEITHER the live context NOR retrieval. The GM "checked the record" by reading the
 [T157] chapter/decision stamp from the TOC and glossing — confident paraphrase, wrong quote.
-**Fix: the skip window is now DYNAMIC** — `skipN = max(2, ceil(sessionLog.length/2)+1)`,
+**Fix: the skip window is now DYNAMIC** — `skipN = max(2, ceil(sessionLog.length/2))`,
 i.e. skip exactly what the conversation actually covers. Verified: the t155–157 band becomes
-eligible and the quiz serves the correct scene cluster (t155+t156).
+eligible and the quiz serves the correct scene cluster (t155+t156). (#271③, v1.741: the
+original formula carried a `+1` that left GM turn T−P in NEITHER verbatim channel — pairs↔turns
+are 1:1, so P pairs cover t=T−P+1..T and the cut sits at exactly T−P.)
 
 **Known frontier (documented, not chased):** single-turn QUOTE precision. The ranker reliably
 finds the right 2–3-turn scene CLUSTER; whether the specific turn holding the money quote

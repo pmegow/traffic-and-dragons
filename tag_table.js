@@ -1169,7 +1169,14 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     continue;}
   var psPrev=pcEffectiveLoc(psN.charSheet).location;
   var psWas=psN.charSheet.splitLoc;/* #189b transition gate: the GM legally RE-AFFIRMS a split every turn (refreshing the audit clock) — only the not-split→split edge or a changed away-location is toast-worthy news (t1835-1837 field: a toast per re-affirm) */
-  var psToastWorthy=!psWas||psWas.location!==psArg||(psWas.sublocation||null)!==(psSub||null);
+  /* #271② (f34): sameness is NORMALIZED, never raw-string — the w2HandleKey discipline (#201) at
+     this boundary. locResolve is exact-string/case-sensitive, so "rusty dragon" vs "The Rusty
+     Dragon" (or "the docks" vs "The Docks" on the LOCATION operand) used to defeat the #228
+     no-op and re-take the full write path: split record re-minted (audit due again next turn),
+     phantom #194 witnessed-grade arrival evidence, phantom guestbook stamps — on EVERY wording
+     flip. The stored display stays as-emitted at the first real write. */
+  var psNameKey=function(v){return String(v==null?"":v).toLowerCase().replace(/[-_\s]+/g," ").trim().replace(/^(?:the|a|an)\s+/,"");};
+  var psToastWorthy=!psWas||psNameKey(psWas.location)!==psNameKey(psArg)||psNameKey(psWas.sublocation)!==psNameKey(psSub);
   /* #228 (t2320-t2324, the live re-affirm loop; owner ruling 2026-08-24 ⓒ): an identical
      re-affirm of an ALREADY-STAMPED split is a NO-OP. buildSplitAudit's same-world waiver makes
      a split inside the party's OWN world node due every turn; its note asks the GM to re-affirm;
