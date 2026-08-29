@@ -17163,6 +17163,79 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return e.records.ws&&e.records.ws.name==="Ghost Entry"?true:"ws pre-image missing: "+JSON.stringify(e.records);
   });
 
+  // — commit 3: D2 Phase B — chunked {__lzc} for the DISK boundary (frozen segments + live
+  // tail, O(segment) per save); the WIRE keeps whole-{__lz} until the Phase-C flip —
+  t("#272 D2: a mature transcript serializes as {__lzc} — frozen segments + live tail, byte-identical round trip",function(){
+    makeWorld();worldState.turn=600;
+    for(var i=0;i<600;i++)worldState.transcript.push({t:i,r:(i%2?"gm":"player"),x:"Turn "+i+" prose with some variety "+(i*7)});
+    var ser=serializeWorldState();
+    var o=JSON.parse(ser);
+    if(!o.transcript||!o.transcript.__lzc)return "the disk boundary still ships the whole-transcript form: "+Object.keys(o.transcript||{}).join(",");
+    var c=o.transcript.__lzc;
+    if(c.seg!==TRANSCRIPT_SEG||!Array.isArray(c.segs)||c.segs.length!==Math.floor(600/TRANSCRIPT_SEG))return "segment shape wrong: "+JSON.stringify({seg:c.seg,segs:c.segs&&c.segs.length});
+    var back=parseWorldState(ser);
+    return JSON.stringify(back.transcript)===JSON.stringify(worldState.transcript)?true:"chunked round trip diverged";
+  });
+  t("#272 D2: per-save cost is O(tail) — an unchanged save pays 0 LZ passes, an append pays 1 and never touches the frozen past",function(){
+    makeWorld();worldState.turn=600;
+    for(var i=0;i<600;i++)worldState.transcript.push({t:i,r:"gm",x:"entry "+i});
+    var o1=JSON.parse(serializeWorldState());/* prime: segments + tail all compressed */
+    if(!o1.transcript.__lzc)return "the disk boundary is not chunked — a 1-pass count would just be the whole-transcript pass";
+    var c0=serializeWorldState._compressions;
+    serializeWorldState();
+    if(serializeWorldState._compressions!==c0)return "an unchanged save recompressed something";
+    worldState.transcript.push({t:600,r:"gm",x:"fresh entry"});
+    var o2=JSON.parse(serializeWorldState());
+    var d=serializeWorldState._compressions-c0;
+    if(d!==1)return "an append recompressed "+d+" blobs (want 1 — the tail alone)";
+    return o2.transcript.__lzc.segs[0]===o1.transcript.__lzc.segs[0]?true:"the frozen past was recompressed on an append";
+  });
+  t("#272 D2: an old-entry mutation (the turn-addressed RETCON class) invalidates exactly its containing segment",function(){
+    makeWorld();worldState.turn=600;
+    for(var i=0;i<600;i++)worldState.transcript.push({t:i,r:"gm",x:"entry "+i});
+    var o1=JSON.parse(serializeWorldState());
+    if(!o1.transcript.__lzc)return "the disk boundary is not chunked";
+    var c0=serializeWorldState._compressions;
+    mutateTranscriptEntry(worldState.transcript,10,function(e){e.rc=1;});/* entry 10 → segment 0 */
+    var ser=serializeWorldState();
+    var d=serializeWorldState._compressions-c0;
+    if(d!==1)return "segment-precise invalidation failed: "+d+" recompressions (want 1 — segment 0 alone)";
+    var o2=JSON.parse(ser);
+    if(o2.transcript.__lzc.segs[0]===o1.transcript.__lzc.segs[0])return "segment 0 was NOT rebuilt — the rc mark is lost in a stale blob (the entry-4 ★ class)";
+    if(o2.transcript.__lzc.segs[1]!==o1.transcript.__lzc.segs[1])return "an untouched segment was rebuilt too — invalidation is not segment-precise";
+    var back=parseWorldState(ser);
+    return back.transcript[10].rc===1?true:"the mutated entry's rc mark was not persisted";
+  });
+  t("#272 D2: the WIRE keeps the whole {__lz} form at the shipped flag — Phase C is a deliberate later flip (pin)",function(){
+    makeWorld();worldState.turn=600;
+    for(var i=0;i<600;i++)worldState.transcript.push({t:i,r:"gm",x:"entry "+i});
+    var w=wireWorldStateSnapshot(worldState);
+    return (w.transcript&&typeof w.transcript.__lz==="string")?true:"the wire form changed without the Phase-C flip: "+Object.keys(w.transcript||{}).join(",");
+  });
+  t("#272 D2: a young transcript (under one segment) keeps the plain {__lz} disk form (pin)",function(){
+    makeWorld();worldState.turn=10;
+    worldState.transcript=[{t:9,r:"gm",x:"a young scene"}];
+    var o=JSON.parse(serializeWorldState());
+    return o.transcript&&typeof o.transcript.__lz==="string"?true:"a young save chunked: "+Object.keys(o.transcript||{}).join(",");
+  });
+  t("#272 D2: a corrupted segment takes the WHOLE-form rescue — never a partial story",function(){
+    return __withWorkingStorage(function(){
+      makeWorld();worldState.turn=600;worldState.campId="c272lzc";
+      for(var i=0;i<600;i++)worldState.transcript.push({t:i,r:"gm",x:"entry "+i});
+      var ser=serializeWorldState();
+      var o=JSON.parse(ser);
+      if(!o.transcript.__lzc)return "fixture broke: the mature save did not chunk";
+      o.transcript.__lzc.segs[0]="CORRUPT";
+      var _ce=console.error;console.error=function(){};
+      var out;try{out=parseWorldState(JSON.stringify(o));}finally{console.error=_ce;}
+      if(!(out.transcript instanceof Array)||out.transcript.length!==0)return "a broken segment inflated PARTIALLY: "+(out.transcript&&out.transcript.length);
+      var rk=TRANSCRIPT_RESCUE_K+"c272lzc";
+      if(!store.get(rk))return "the unreadable chunked form was not preserved under the rescue key";
+      store.del(rk);
+      return true;
+    });
+  });
+
   // ── #271 — identity/session residue quartet (Fable f57+f34+f48+f23, joint review 2026-08-27).
   // ① locResolve/_spFactsMemo memos survived whole-state replacement (campaign switch, .tnd
   // import, server reconcile) — one campaign's location canon could serve another's reads, and a

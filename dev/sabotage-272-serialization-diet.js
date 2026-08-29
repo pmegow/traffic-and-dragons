@@ -117,6 +117,42 @@ rc |= sabotage.prove({
 });
 
 rc |= sabotage.prove({
+  file: "state.js",
+  command: CMD,
+  cases: [
+    { label: "chunking is disabled — every save pays the whole-transcript LZ pass again (#272 D2)",
+      mustFail: "the disk boundary still ships the whole-transcript form",
+      find: "  if(!(ws&&ws.transcript&&ws.transcript.length>=TRANSCRIPT_SEG&&_trSegMemo&&typeof LZ!==\"undefined\"&&LZ.compressToUTF16))return compressWorldStateSnapshot(ws);",
+      replace: "  if(true)return compressWorldStateSnapshot(ws);" },
+
+    { label: "the segment cache is never consulted — the frozen past recompresses every save (#272 D2)",
+      mustFail: "an unchanged save recompressed something",
+      find: "    if(cache.blobs[i]==null){",
+      replace: "    if(true){" },
+
+    { label: "the tail memo dies — every save recompresses the tail even unchanged (#272 D2)",
+      mustFail: "an unchanged save recompressed something",
+      find: "  if(cache.tail&&cache.tail.len===len&&cache.tail.lastRef===last&&cache.tail.lastX===last.x){tailLz=cache.tail.lz;}",
+      replace: "  if(false){tailLz=cache.tail.lz;}" },
+
+    { label: "old-entry invalidation ignores the index — a stale frozen segment persists the pre-mutation bytes (the entry-4 ★ class) (#272 D2)",
+      mustFail: "segment 0 was NOT rebuilt",
+      find: "        if(i<c.blobs.length*TRANSCRIPT_SEG)c.blobs[Math.floor(i/TRANSCRIPT_SEG)]=null;\n        else c.tail=null;",
+      replace: "        c.tail=null;" },
+
+    { label: "mutateTranscriptEntry stops passing the index — every old-entry edit rebuilds the whole frozen past (#272 D2)",
+      mustFail: "segment-precise invalidation failed",
+      find: "serializeWorldState.invalidateTranscriptMemo(tr,i);/* #272 D2: the index makes the invalidation segment-precise */",
+      replace: "serializeWorldState.invalidateTranscriptMemo(tr);" },
+
+    { label: "a broken segment inflates PARTIALLY — a story with a silent hole instead of a loud rescue (#272 D2)",
+      mustFail: "a broken segment inflated PARTIALLY",
+      find: "      for(i=0;i<c.segs.length;i++){arr=_lzToArray(c.segs[i]);if(!arr)return null;parts=parts.concat(arr);}",
+      replace: "      for(i=0;i<c.segs.length;i++){arr=_lzToArray(c.segs[i]);if(!arr)continue;parts=parts.concat(arr);}" }
+  ]
+});
+
+rc |= sabotage.prove({
   file: "compress.js",
   command: CMD,
   cases: [

@@ -130,12 +130,65 @@ function compressWorldStateSnapshot(ws){
   snap.transcript={__lz:lz};
   return snap;
 }
+// #272 D2 Phase B (f70 lever b, ruling R1): the DISK boundary chunks a mature transcript —
+// frozen segments of TRANSCRIPT_SEG entries, each compressed ONCE and cached, plus a live tail
+// recompressed per save. Per-save cost becomes O(segment) instead of O(campaign) — the
+// whole-transcript form doubled its cost every ~2000 turns, forever. The four transcript
+// mutation classes each have an invalidation story: appends land in the tail; the .sp stamp /
+// rerollLast touch the LAST entry (tail); a turn-addressed [RETCON:] routes through
+// mutateTranscriptEntry, which passes the index so exactly ONE segment rebuilds; ragRetrieve's
+// lazy .e backfill is ACCEPTED stale per the standing audit ruling (recomputes after any
+// reload). A transcript under one segment keeps the plain {__lz} form byte-identically — and so
+// does the WIRE at every size until the Phase-C flip (wireWorldStateSnapshot above the memo).
+var TRANSCRIPT_SEG=256;
+var _trSegMemo=(typeof WeakMap!=="undefined")?new WeakMap():null;
+function compressWorldStateSnapshotChunked(ws){
+  if(!(ws&&ws.transcript&&ws.transcript.length>=TRANSCRIPT_SEG&&_trSegMemo&&typeof LZ!=="undefined"&&LZ.compressToUTF16))return compressWorldStateSnapshot(ws);
+  var tr=ws.transcript,len=tr.length,segCount=Math.floor(len/TRANSCRIPT_SEG),i;
+  var cache=_trSegMemo.get(tr);
+  if(!cache){cache={blobs:[],tail:null};_trSegMemo.set(tr,cache);}
+  var segs=[];
+  for(i=0;i<segCount;i++){
+    if(cache.blobs[i]==null){
+      cache.blobs[i]=LZ.compressToUTF16(JSON.stringify(tr.slice(i*TRANSCRIPT_SEG,(i+1)*TRANSCRIPT_SEG)));
+      serializeWorldState._compressions++;
+    }
+    segs.push(cache.blobs[i]);
+  }
+  var last=tr[len-1],tailLz;
+  if(cache.tail&&cache.tail.len===len&&cache.tail.lastRef===last&&cache.tail.lastX===last.x){tailLz=cache.tail.lz;}
+  else{
+    tailLz=LZ.compressToUTF16(JSON.stringify(tr.slice(segCount*TRANSCRIPT_SEG)));
+    serializeWorldState._compressions++;
+    cache.tail={len:len,lastRef:last,lastX:last.x,lz:tailLz};
+  }
+  var snap={},k;for(k in ws){if(Object.prototype.hasOwnProperty.call(ws,k))snap[k]=ws[k];}
+  snap.transcript={__lzc:{v:1,seg:TRANSCRIPT_SEG,segs:segs,tail:tailLz}};
+  return snap;
+}
 function serializeWorldState(ws){
   ws=(ws===undefined)?worldState:ws;
-  return JSON.stringify(compressWorldStateSnapshot(ws));
+  return JSON.stringify(compressWorldStateSnapshotChunked(ws));
 }
 serializeWorldState._compressions=0; // test/diagnostic hook: counts ACTUAL LZ passes (memo hits don't increment)
-serializeWorldState.invalidateTranscriptMemo=function(tr){if(_trLzMemo&&tr)_trLzMemo["delete"](tr);};
+// #272 D2: the optional index makes invalidation SEGMENT-PRECISE — mutateTranscriptEntry passes
+// it, so a turn-addressed RETCON rebuilds one segment, not the whole frozen past. No index =
+// full clear (rerollLast's belt-and-suspenders call, the stamp fallback) — correctness first:
+// a tail-only clear on an unknown-index mutation would persist a stale segment (the entry-4 ★
+// class this seam exists to kill).
+serializeWorldState.invalidateTranscriptMemo=function(tr,i){
+  if(!tr)return;
+  if(_trLzMemo)_trLzMemo["delete"](tr);
+  if(_trSegMemo){
+    var c=_trSegMemo.get(tr);
+    if(c){
+      if(typeof i==="number"&&i>=0){
+        if(i<c.blobs.length*TRANSCRIPT_SEG)c.blobs[Math.floor(i/TRANSCRIPT_SEG)]=null;
+        else c.tail=null;
+      }else _trSegMemo["delete"](tr);
+    }
+  }
+};
 // #272 D3: THE one wire-form producer for BOTH POST /api/state paths (_syncNow and
 // pushCampaignState — the B9 one-map rule). WIRE_TRANSCRIPT_FORM gates the Phase-C flip:
 // "lz" ships today's {__lz} form; "lzb64" repacks the SAME memoized stream as 6-bit ASCII
@@ -325,7 +378,7 @@ function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeepi
 function mutateTranscriptEntry(tr,i,fn){
   if(!tr||!tr.length||i<0||i>=tr.length||typeof fn!=="function")return false;
   fn(tr[i]);
-  if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(tr);
+  if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(tr,i);/* #272 D2: the index makes the invalidation segment-precise */
   return true;
 }
 // #9: stamp the speaker map onto a GM entry AFTER logTranscript wrote it. Additive field,
