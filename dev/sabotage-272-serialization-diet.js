@@ -16,13 +16,18 @@
 var sabotage = require("./sabotage.js");
 var rc = 0;
 var CMD = ["node", ["dev/run-tests.js"]];
+/* #194L6 class: pre-commit, the scratch clone holds the COMMITTED twins of everything not in
+   the copy whitelist — this battery itself (whose committed labels the clone's applicability
+   scan would flag stale against the working engine), the #280b standalone, and the suite list
+   that runs it. The working set must ride in or every game.js clause misattributes. */
+var ALSO = ["dev/sabotage-272-serialization-diet.js", "dev/tests-280b-actions-sync.js", "dev/run-standalone-suites.js"];
 
 rc |= sabotage.prove({
   file: "api.js",
   command: CMD,
   cases: [
     { label: "applyMuts ignores deferSave — the turn pays a second save/LZ pass again (#272 D1)",
-      mustFail: "saveAll calls — the design says exactly ONE",
+      mustFail: "cloud-arming saveAll calls",
       find: "  syncUI();if(!(opts&&opts.deferSave))saveAll();",
       replace: "  syncUI();saveAll();" },
 
@@ -67,26 +72,37 @@ rc |= sabotage.prove({
 rc |= sabotage.prove({
   file: "game.js",
   command: CMD,
+  also: ALSO,
   cases: [
     { label: "commitGmTurn stops deferring applyMuts' save (#272 D1)",
-      mustFail: "saveAll calls — the design says exactly ONE",
+      mustFail: "cloud-arming saveAll calls",
       find: "  applyMuts(resp,{deferSave:true});",
       replace: "  applyMuts(resp);" },
 
-    { label: "the speaker stamp moves back AFTER the commit save — the debounced POST re-compresses the whole transcript (#272 D1)",
+    { label: "a stamp lands AFTER the commit persist — the suggestion-completion POST re-compresses the whole transcript (#272 D1)",
       mustFail: "MISSED the memo",
-      find: "  var _spMap=_bookkeeping?null:deriveAndStampSpeakers(clean,resp,worldState.transcript[worldState.transcript.length-1],worldState.transcript);\n  saveAll();",
-      replace: "  saveAll();\n  var _spMap=_bookkeeping?null:deriveAndStampSpeakers(clean,resp,worldState.transcript[worldState.transcript.length-1],worldState.transcript);" },
+      find: "  if(_spMap&&narEl)narEl._sp=_spMap;   // the per-message replay button reads this at click time",
+      replace: "  _spMap=_bookkeeping?null:deriveAndStampSpeakers(clean,resp,worldState.transcript[worldState.transcript.length-1],worldState.transcript);\n  if(_spMap&&narEl)narEl._sp=_spMap;   // the per-message replay button reads this at click time" },
 
-    { label: "the commit save disappears — display runs against unpersisted state (UA6) (#272 D1)",
-      mustFail: "the turn threw BEFORE any save ran",
-      find: "  var _spMap=_bookkeeping?null:deriveAndStampSpeakers(clean,resp,worldState.transcript[worldState.transcript.length-1],worldState.transcript);\n  saveAll();",
-      replace: "  var _spMap=_bookkeeping?null:deriveAndStampSpeakers(clean,resp,worldState.transcript[worldState.transcript.length-1],worldState.transcript);" },
+    { label: "the commit persist disappears — the ONE-POST contract's ordering pin catches it (#272 D1/#280b)",
+      mustFail: "no longer persists local-only before display",
+      find: "  saveLocal();\n  var narEl=addMsg(\"narrator\"",
+      replace: "  var narEl=addMsg(\"narrator\"" },
 
-    { label: "generateActions re-arms the cloud debounce — the second full-state POST returns (R4) (#272 D1)",
-      mustFail: "generateActions no longer saves local-only",
-      find: "    worldState.lastActions=acts.slice(0,3);saveLocal();",
-      replace: "    worldState.lastActions=acts.slice(0,3);saveAll();" }
+    { label: "the narration commit reverts to saveAll — the ordering pin catches the two-POST regression (#280b)",
+      mustFail: "no longer persists local-only before display",
+      find: "  saveLocal();\n  var narEl=addMsg(\"narrator\"",
+      replace: "  saveAll();\n  var narEl=addMsg(\"narrator\"" },
+
+    { label: "generateActions loses its completion sync — the server strands on the E26 null, the second device renders no buttons (#280b)",
+      mustFail: "generateActions lost its completion sync",
+      find: "  finally{saveAll();}/* #280b",
+      replace: "  finally{}/* #280b-neutered" },
+
+    { label: "the E26 clear is dropped — a failed suggestion call re-attaches last turn's buttons on reload (#280b)",
+      mustFail: "the E26 clear was lost",
+      find: "  worldState.lastActions=null; // clear now (audit E26) — if this call fails, reload won't re-attach the PREVIOUS turn's buttons to the newest narration",
+      replace: "  ; // E26 clear neutered" }
   ]
 });
 

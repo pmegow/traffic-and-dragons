@@ -467,13 +467,9 @@ async function generateActions(msgEl){
        data-action stays the bare action (the queue line re-attaches the name at submit). */
     var _mpPfx=(typeof playerCount==="function"&&playerCount()>1&&activePlayer()&&activePlayer().name)?activePlayer().name+": ":"";
     for(i=0;i<3&&i<acts.length;i++){var a=punctuateAction(acts[i].trim());btns[i].textContent=_mpPfx+a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}/* #88: punctuated so a tapped suggestion reads as a real sentence and gets a clean TTS pause boundary */
-    // #272 D1 (R4, owner-ruled 2026-08-28): saveLocal, NOT saveAll — the old re-armed debounce
-    // shipped a SECOND full-state POST per turn for three suggestion strings ("one cheap extra
-    // POST" was the full multi-MB payload, f70). The suggestions persist locally for reload and
-    // reach the server on the next turn's POST or any page-hide flush (the device-handoff case);
-    // a second device pulling MID-session may render the previous turn's buttons — cosmetic.
-    worldState.lastActions=acts.slice(0,3);saveLocal();
+    worldState.lastActions=acts.slice(0,3);
   }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);if(typeof reportError==="function")reportError("actions",e.message,(e&&e.stack)||"");_cleanup();}
+  finally{saveAll();}/* #280b: the turn's ONE cloud sync — EVERY exit (fresh buttons, the empty result, the failure's honest E26 null, the stale race) converges the server to the truth. R4's local-only save here left the E26 null on the wire while the fresh buttons stayed stranded on this device (the JP0-11 cap skips the mature-save flush), so the other device rendered the newest narration buttonless — the 2026-08-29 field report. One POST per turn, unchanged: the commit no longer arms one. */
 }
 // ── #96: dialogue attribution via [SAY:] tags — deterministic, no second model call ──────────
 // The GM names each line's speaker AT AUTHORING TIME with [SAY:Name] placed just before the
@@ -1723,12 +1719,19 @@ function commitGmTurn(resp,opts){
      Bookkeeping turns never stamped speakers (narrateWithSpeakers ran after their early return)
      and still don't. */
   var _spMap=_bookkeeping?null:deriveAndStampSpeakers(clean,resp,worldState.transcript[worldState.transcript.length-1],worldState.transcript);
-  saveAll();
   if(_bookkeeping){
+    saveAll();/* bookkeeping turns never reach generateActions — the commit is their one sync */
     processPendingCompanionSheets();
     if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();if(worldState.pendingRewardClaims&&worldState.pendingRewardClaims.length&&typeof showRewardClaimModal==="function")showRewardClaimModal();/* #215: an unanswered claim survives the tab closing */
     return null;
   }
+  /* #280b (field 2026-08-29): the narration commit persists LOCALLY; the turn's ONE cloud sync
+     moves to generateActions' completion. The commit-time POST fired at +1.5s — inside the
+     suggestion call's async window, AFTER its E26 lastActions clear — so the server blob carried
+     null buttons, the JP0-11 size cap skips the page-hide flush on any mature save, and the
+     second device rendered the newest narration buttonless. UA6 unchanged: state+history+speakers
+     still persist here, before any display step. */
+  saveLocal();
   var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
   if(_spMap&&narEl)narEl._sp=_spMap;   // the per-message replay button reads this at click time
   speakNarration(clean,_spMap);/* #96: map derived from the response's own [SAY:] tags; #177: entry + owning array were captured together at the stamp */

@@ -10923,18 +10923,17 @@ function runEngineTests(R){
     return true;
   });
 
-  t("(b) normal path ordering: logTranscript → sessionLog.push → saveAll ALL before narrator addMsg",function(){
+  t("(b) normal path ordering: logTranscript → sessionLog.push → the local persist ALL before narrator addMsg",function(){
     makeWorld();
     var order=[],logAtAddMsg=-1;
-    var _realLT=logTranscript;
+    var _realLT=logTranscript,_sl=saveLocal;
     logTranscript=function(){order.push("logTranscript:"+arguments[0]);return _realLT.apply(null,arguments);};
-    saveAll=function(){order.push("saveAll");};
+    saveAll=function(){order.push("persist");};
+    if(typeof saveLocal==="function")saveLocal=function(){order.push("persist");};/* #280b: the narration commit persists via saveLocal (the cloud arm moved to suggestion completion) — the UA6 guarantee is PERSIST-before-display, whichever function carries it */
     addMsg=function(type){if(type==="narrator"){order.push("addMsg:narrator");logAtAddMsg=sessionLog.length;}return __stubEl();};
     commitGmTurn("You swing and connect. [XP:10]",{userMsg:"I attack the wolf",playerTxt:"I attack the wolf"});
-    logTranscript=_realLT;saveAll=function(){};addMsg=function(){return __stubEl();};
-    // NOTE: applyMuts has its own trailing saveAll (state persist), which correctly precedes
-    // logTranscript — the HISTORY persist is the LAST saveAll before display, hence lastIndexOf.
-    var iLT=order.indexOf("logTranscript:gm"),iSV=order.lastIndexOf("saveAll"),iAM=order.indexOf("addMsg:narrator");
+    logTranscript=_realLT;saveAll=function(){};saveLocal=_sl;addMsg=function(){return __stubEl();};
+    var iLT=order.indexOf("logTranscript:gm"),iSV=order.lastIndexOf("persist"),iAM=order.indexOf("addMsg:narrator");
     if(iLT<0||iSV<0||iAM<0)return "step missing: "+order.join(" → ");
     if(!(iLT<iSV&&iSV<iAM))return "persist-before-display violated: "+order.join(" → ");
     return logAtAddMsg===2?true:"sessionLog had "+logAtAddMsg+" entries when narrator rendered (want 2)";
@@ -16962,23 +16961,36 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // producer flag OFF (inflater-first rule — every deployed client must read a form for a full
   // cycle before any producer emits it on the wire), and makes the sentinel byte-honest.
   section("#272 — serialization diet: one save per turn, wire forms, honest sentinel");
-  t("#272 D1: a committed dialogue turn pays ONE save and ONE LZ pass — and the later debounced POST build is a memo HIT",function(){
+  t("#272 D1: a committed dialogue turn pays ONE local save and ONE LZ pass — the cloud arm belongs to suggestion completion (#280b)",function(){
     return __withWorkingStorage(function(){
       makeWorld();worldState.turn=10;worldState.ragMemory=false;
       worldState.transcript=[{t:9,r:"gm",x:"An earlier scene."}];
-      /* a functional saveAll for the duration — the suite no-ops the global save bindings */
-      var _sa=saveAll,_n=0,_c0;
+      /* functional saves for the duration — the suite no-ops the global save bindings */
+      var _sa=saveAll,_sl=saveLocal,_nA=0,_nL=0,_c0;
       try{__withRealSaves(function(){
-        saveAll=function(){_n++;saveCore();saveMem();};
+        saveAll=function(){_nA++;saveCore();saveMem();};
+        if(typeof saveLocal==="function")saveLocal=function(){_nL++;saveCore();saveMem();};
         serializeWorldState();/* prime the memo so the turn's own passes are what we count */
         _c0=serializeWorldState._compressions;
         commitGmTurn("[SAY:Bram] “Well met,” Bram says warmly. [GOLD:+2][TIME_ADVANCE:5m]",{userMsg:"greet Bram",playerTxt:"I greet Bram",logPlayer:true});
-      });}finally{saveAll=_sa;}
-      if(_n!==1)return "the turn paid "+_n+" saveAll calls — the design says exactly ONE";
+      });}finally{saveAll=_sa;saveLocal=_sl;}
+      if(_nA!==0)return "the commit path paid "+_nA+" cloud-arming saveAll calls — the turn's ONE sync belongs to suggestion completion (#280b)";
+      if(_nL!==1)return "the turn paid "+_nL+" saveLocal calls — the design says exactly ONE";
       var _passes=serializeWorldState._compressions-_c0;
       if(_passes!==1)return "the turn paid "+_passes+" LZ passes — the design says exactly ONE";
-      serializeWorldState();/* the debounced POST payload build, seconds later */
+      serializeWorldState();/* the suggestion-completion POST payload build, seconds later */
       return serializeWorldState._compressions===_c0+1?true:"the post-commit payload build MISSED the memo — a mutation landed after the save";
+    });
+  });
+  t("#272 D1: a BOOKKEEPING turn keeps its commit-time cloud arm (pin — it never reaches generateActions)",function(){
+    return __withWorkingStorage(function(){
+      makeWorld();worldState.turn=10;
+      var _sa=saveAll,_nA=0;
+      try{__withRealSaves(function(){
+        saveAll=function(){_nA++;saveCore();saveMem();};
+        commitGmTurn("[GOLD:+5]",{userMsg:"sync",playerTxt:null});
+      });}finally{saveAll=_sa;}
+      return _nA===1?true:"a bookkeeping turn paid "+_nA+" saveAll calls (want 1 — nothing later would sync it)";
     });
   });
   t("#272 D1: plain applyMuts still saves immediately (pin — only the commit path defers)",function(){
@@ -17026,14 +17038,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#272 D1/UA6: a display throw leaves state AND history persisted, consistent, atomically",function(){
     return __withWorkingStorage(function(){
       makeWorld();worldState.turn=10;
-      var _sa=saveAll,_saved=false;
+      var _sa=saveAll,_sl=saveLocal,_saved=false;
       var _am=addMsg;addMsg=function(kind){if(kind==="narrator")throw new Error("display exploded");return _am.apply(null,arguments);};
       var threw=null;
       try{__withRealSaves(function(){
         saveAll=function(){_saved=true;saveCore();saveMem();};/* functional for the duration — the suite no-ops the global bindings */
+        if(typeof saveLocal==="function")saveLocal=function(){_saved=true;saveCore();saveMem();};/* #280b: the narration commit persists via saveLocal */
         commitGmTurn("The road bends east. [TIME_ADVANCE:5m]",{userMsg:"walk",playerTxt:"I walk on",logPlayer:true});
       });}catch(e){threw=e;}
-      finally{addMsg=_am;saveAll=_sa;}
+      finally{addMsg=_am;saveAll=_sa;saveLocal=_sl;}
       if(!threw)return "fixture broke: the display stub did not throw";
       if(!_saved)return "the turn threw BEFORE any save ran: "+threw.message;
       var ws2=parseWorldState(store.get(WSK));

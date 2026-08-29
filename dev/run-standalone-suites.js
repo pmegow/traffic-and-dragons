@@ -18,6 +18,7 @@ var SUITES = [
   "dev/tests-160-portrait-builder.js",
   "dev/tests-5-story-compiler.js",
   "dev/tests-195-server-probe.js",
+  "dev/tests-280b-actions-sync.js",
   "dev/tests-252-retained-proof-wiring.js",
   "dev/tests-verification-enforcement.js",
   "dev/tests-sabotage-meta.js",

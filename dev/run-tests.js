@@ -1145,16 +1145,23 @@ try {
   }
 } catch (e) { console.error("SYNC COMPRESSION CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
-// ── #272 D1 ONE-POST CONTRACT (serialization diet, owner ruling R4 2026-08-28) ───────────
-// generateActions lands seconds after the turn's debounced POST fired; a saveAll there re-armed
-// the debounce and shipped a SECOND full multi-MB POST per turn for three suggestion strings.
-// The engine suite proves the D1 one-save flow; this pins the one surface it cannot reach
-// (generateActions is async behind a live callGM).
+// ── #272 D1 / #280b ONE-POST CONTRACT (R4 2026-08-28, amended by the 2026-08-29 field report) ──
+// One full-state POST per dialogue turn — and it is the SUGGESTION-COMPLETION one, because
+// generateActions nulls lastActions at its start (E26) and the commit-time POST fired inside
+// that async window: the server carried null buttons and the JP0-11 size cap skips the
+// mature-save flush, so the second device rendered the newest narration buttonless. The
+// completion sync (a finally — EVERY exit) converges the server to the truth; the narration
+// commit persists locally only. The #280b standalone proves the behavior; these pin the two
+// source seams the engine suite cannot both reach in one place.
 try {
   var _fsOP = require("fs"), _pathOP = require("path");
   var _gmOP = _fsOP.readFileSync(_pathOP.join(__dirname, "..", "game.js"), "utf8");
-  if (_gmOP.indexOf("worldState.lastActions=acts.slice(0,3);saveLocal();") < 0) {
-    console.error("#272 ONE-POST CONTRACT: generateActions no longer saves local-only — the second full-state POST per turn returns (R4).");
+  if (_gmOP.indexOf("finally{saveAll();}/* #280b") < 0) {
+    console.error("#272/#280b ONE-POST CONTRACT: generateActions lost its completion sync — the server strands on the E26 null and the second device renders no buttons again.");
+    process.exit(1);
+  }
+  if (_gmOP.indexOf("saveLocal();\n  var narEl=addMsg(\"narrator\"") < 0) {
+    console.error("#272/#280b ONE-POST CONTRACT: the narration commit no longer persists local-only before display — either UA6 ordering broke or the second full-state POST per turn returned.");
     process.exit(1);
   }
 } catch (eOP) { console.error("#272 ONE-POST CONTRACT CHECK FAILED: " + (eOP && eOP.message)); process.exit(1); }
