@@ -13118,7 +13118,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn+=SPLIT_AUDIT_TURNS;
     return buildSplitAudit()===""?true:"rejoined member must never be audited";
   });
-  t("re-affirming resets the clock; multiple aged splits land in ONE note; wired into buildEngineNotes", function(){
+  t("legacy unstamped split: re-affirm HEALS the stamp; a stamped identical re-affirm FREEZES it (#228); multiple aged splits ride ONE note", function(){
+    /* f32 (joint review, cleaned 2026-08-29): this test's old title — "re-affirming resets the
+       clock" — asserted the SUPERSEDED pre-#228 contract and passed only because the fixture
+       below is deliberately legacy-UNSTAMPED (no .turn), riding the heal path. The current
+       contract: a legacy record's re-affirm stamps .turn once (the heal); an identical re-affirm
+       of a STAMPED split is a no-op that preserves .turn (the #228 battery below pins the full
+       no-op surface — audited cooldown, guestbook, lastSeen). */
     var cs=mkSplitParty();
     var cs2={name:"Daeris",cls:"Cleric",level:9,hp:50,maxHp:50,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
     worldState.npcs.push({name:"Daeris",partyMember:true,isPC:true,status:"ally",charSheet:cs2});
@@ -13127,11 +13133,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     cs2.splitLoc={location:"Sandpoint",sublocation:null};
     var n=buildEngineNotes();
     if(n.indexOf("Frizwick")<0||n.indexOf("Daeris")<0)return "both aged splits should ride one audit: "+n.slice(0,300);
-    applyMuts("[PARTY_SPLIT:Frizwick|Sandpoint Coast - Sea Cave]");  // re-affirm — same place, fresh stamp
+    applyMuts("[PARTY_SPLIT:Frizwick|Sandpoint Coast - Sea Cave]");  // legacy heal — stamps .turn at the current turn
+    if(cs.splitLoc.turn!==100)return "legacy re-affirm should HEAL the missing split stamp: "+JSON.stringify(cs.splitLoc);
     worldState.turn+=SPLIT_AUDIT_TURNS;
-    var n2=buildSplitAudit();
-    if(n2.indexOf("Frizwick")>=0&&worldState.turn-cs.splitLoc.turn<SPLIT_AUDIT_TURNS)return "re-affirm did not reset the clock";
-    return cs.splitLoc.turn===100?true:"re-affirm should re-stamp the split turn: "+JSON.stringify(cs.splitLoc);
+    applyMuts("[PARTY_SPLIT:Frizwick|Sandpoint Coast - Sea Cave]");  // identical re-affirm of the now-STAMPED split
+    return cs.splitLoc.turn===100?true:"#228: an identical re-affirm of a stamped split must FREEZE .turn, not re-stamp it: "+JSON.stringify(cs.splitLoc);
   });
 
   // ── #228 — the re-affirm LOOP: an identical re-affirm must be a NO-OP ────────────────────

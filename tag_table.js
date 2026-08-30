@@ -1212,9 +1212,11 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     if(typeof console!=="undefined")console.info("[multiplayer] [PARTY_SPLIT:"+psName+"] re-affirmed unchanged at "+psArg+(psSub?" ("+psSub+")":"")+" — no-op (#228): split turn "+psWas.turn+" and the audit cooldown stand");
     continue;
   }
-  /* #133: stamp the split's turn at write — buildSplitAudit ages from it (a re-affirming re-emit
-     lands here too, minting a fresh object: new turn, audited-stamp gone — the reset IS the write).
-     Legacy splits without .turn read as infinitely old, so stale pre-#133 splits audit immediately. */
+  /* #133: stamp the split's turn at write — buildSplitAudit ages from it. #228 (f32 comment
+     repair 2026-08-29): only a CHANGED or legacy-unstamped split reaches this line — the
+     identical re-affirm no-ops above, preserving turn + .audited ("the reset IS the write" was
+     the superseded pre-#228 contract). Legacy splits without .turn read as infinitely old, so
+     stale pre-#133 splits audit immediately and their first re-affirm heals the stamp here. */
   psN.charSheet.splitLoc={location:psArg,sublocation:psSub,turn:R.turn};
   /* #135: mark the split as written THIS response — the #133b co-location sweep grants it one
      response of grace. The natural stay-behind order is "Daeris stays at the inn" now, the

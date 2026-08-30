@@ -1422,3 +1422,68 @@ inside a canon gate. (3) The re-arm reset (`c.attempts=0` at identity.js `_w2Con
 UNCHANGED and still makes the #175 shelve non-terminal; it is mostly moot once deaths authorize,
 but the loop is still reachable. (4) The nudge still instructs `[SCENE_REVEAL:]` when it holds no
 handle — the conflict-minting behaviour above — also UNCHANGED.
+
+---
+
+## Entry 16 — Gemini pinned to thinkingLevel "low" on every call kind (archived 2026-08-29)
+
+**Cleared via joint-review finding f81 (queue-triage, verified confirmed) during the #282
+coverage mop-up — batch-cleared with two watches rather than a dedicated review pass.**
+
+**Why it cleared without a dedicated pass (f81's mechanism, verified against the live repo):**
+the change is one generationConfig line in `PROVIDERS.gemini.buildBody`, applied uniformly to
+every call kind, and its pinned guard (`#22 gemini buildBody pins thinkingLevel 'low'`,
+dev/engine-tests.js) is green in the current suite. Probe item 4's "cannot detect silent
+reinterpretation" is partially mitigated by `parseUsage` folding `thoughtsTokenCount` into `out`
+— a model that resumed thinking would show in the Usage meter's turn bucket. Probe item 2
+(summarize under low reasoning) is backstopped deterministically by W6/W2 validation before any
+memory write plus the #17 standing-anomalies surfacing of summary-failure strikes — SCOPED per
+the verifier: that catches structural/identity contradictions and unparseable extractions, not
+semantically thin-but-valid summaries; the silent-quality residue stays watched at TODO #276⑤
+(f46). The #29b fallback rung (`gemini-3.6-flash`) receives the identical body (gemini embeds
+the model in the URL, not the body), and its certification sweep
+(audits/SWEEP_fallback_rung_v1660.html, 2026-08-18) postdates the v1.645 pin — "certified under
+the shipped config" rests on the sound code-path inference that v1.660's buildBody could not
+have sent anything else.
+
+**Two recorded watches:**
+1. Re-measure the thinking-on vs low cost A/B (currently n=5 vs n=2 — a 503 load-shedding storm
+   ate samples) only when server-side subscription pricing makes the number load-bearing.
+2. Any future gemini model-id change must re-verify "low" is accepted — "minimal" 400s on
+   3.7-flash, and the pinned engine test cannot see an HTTP rejection.
+
+**Original filing (verbatim, as removed from the queue 2026-08-29):**
+
+### 16 — Gemini pinned to thinkingLevel "low" on every call kind (#22, v1.645; Opus, owner-ruled)
+
+**Filed:** 2026-08-16. **Tracker:** TODO #22. **Commit:** the v1.645 promotion.
+**Evidence:** corpus `dev/corpus_playtest_v1644_gemini37low.json` (50 turns, standard Korrag
+campaign), save + memento in `testRuns/modelTests/` (gitignored).
+
+**Why this is here, not in the Off-Fable log.** It is not a safe-changes-map shape. The change is
+one line of `PROVIDERS.gemini.buildBody`, but what it alters is how much the GM model *reasons
+before answering* — and canon obedience is precisely what the anti-drift stack protects. The
+sweep already proved tag syntax and canon obedience are separable capabilities (3.5-flash held
+the first and failed the second), so a knob on the reasoning budget is drift-adjacent by
+construction. Per the decree, ambiguous defaults to Fable; the owner ruled the adoption, so it
+shipped, and this is the standing non-Fable log entry.
+
+**What was measured.** `thinkingLevel:"low"` accepted; `"minimal"` rejected by this model with
+HTTP 400 ("Thinking level MINIMAL is not supported"), so low is the floor. 50/50 turns, run-scoped
+in-page patch (no repo edit until this promotion). Both contract halves held: 0/50 zero-tag turns,
+39 distinct tags (vs 36 thinking-on), 366 total (vs 274), 0 unknown (census derived from
+tag_table.js); dead-actor scan clean across 4 deaths, and all 4 death tags landed the same turn as
+the prose kill — the thinking-ON sibling is the arm with the premature-tag blemish (t42 tag / t46
+prose), not this one. Premise retention >= baseline. Paired A/B on one identical 17,305-token live
+gameplay prompt: thinking-ON median 275 thought + 178 visible (~453 billable) @ 4.9s (n=5);
+LOW 0 thought + 296 visible (296 billable) @ 2.5s (n=2). Owner read the compiled memento and
+judged it good — the prose half of the verdict, consistent with 727 chars/turn vs 647.
+
+**What a reviewer should probe first.** (1) The A/B's thinking-on side is n=5 against n=2 — a 503
+load-shedding storm ate samples; re-measure if the cost claim is load-bearing for pricing.
+(2) The config now rides EVERY call kind including `summarize()` — the run filed 6 chapters across
+5 summarize calls with clean JSON, but extraction quality under low reasoning deserves a harder
+look than one campaign. (3) One campaign, one tone, one voice, one seed — the #22 field-validation
+width caveat applies to this arm exactly as it does to the others. (4) The guard is a pinned engine
+test (`#22 gemini buildBody pins thinkingLevel 'low'`), verified red before the change; it pins the
+value but cannot detect the model silently reinterpreting "low".

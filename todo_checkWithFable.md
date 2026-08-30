@@ -863,40 +863,6 @@ response, so a byte-identical result would have proved nothing about the changed
 toast is now honest about the loss instead of repairing it; actual payout-on-resolution is a new
 canon write path and was deliberately left for its own design pass.
 
-### 16 — Gemini pinned to thinkingLevel "low" on every call kind (#22, v1.645; Opus, owner-ruled)
-
-**Filed:** 2026-08-16. **Tracker:** TODO #22. **Commit:** the v1.645 promotion.
-**Evidence:** corpus `dev/corpus_playtest_v1644_gemini37low.json` (50 turns, standard Korrag
-campaign), save + memento in `testRuns/modelTests/` (gitignored).
-
-**Why this is here, not in the Off-Fable log.** It is not a safe-changes-map shape. The change is
-one line of `PROVIDERS.gemini.buildBody`, but what it alters is how much the GM model *reasons
-before answering* — and canon obedience is precisely what the anti-drift stack protects. The
-sweep already proved tag syntax and canon obedience are separable capabilities (3.5-flash held
-the first and failed the second), so a knob on the reasoning budget is drift-adjacent by
-construction. Per the decree, ambiguous defaults to Fable; the owner ruled the adoption, so it
-shipped, and this is the standing non-Fable log entry.
-
-**What was measured.** `thinkingLevel:"low"` accepted; `"minimal"` rejected by this model with
-HTTP 400 ("Thinking level MINIMAL is not supported"), so low is the floor. 50/50 turns, run-scoped
-in-page patch (no repo edit until this promotion). Both contract halves held: 0/50 zero-tag turns,
-39 distinct tags (vs 36 thinking-on), 366 total (vs 274), 0 unknown (census derived from
-tag_table.js); dead-actor scan clean across 4 deaths, and all 4 death tags landed the same turn as
-the prose kill — the thinking-ON sibling is the arm with the premature-tag blemish (t42 tag / t46
-prose), not this one. Premise retention >= baseline. Paired A/B on one identical 17,305-token live
-gameplay prompt: thinking-ON median 275 thought + 178 visible (~453 billable) @ 4.9s (n=5);
-LOW 0 thought + 296 visible (296 billable) @ 2.5s (n=2). Owner read the compiled memento and
-judged it good — the prose half of the verdict, consistent with 727 chars/turn vs 647.
-
-**What a reviewer should probe first.** (1) The A/B's thinking-on side is n=5 against n=2 — a 503
-load-shedding storm ate samples; re-measure if the cost claim is load-bearing for pricing.
-(2) The config now rides EVERY call kind including `summarize()` — the run filed 6 chapters across
-5 summarize calls with clean JSON, but extraction quality under low reasoning deserves a harder
-look than one campaign. (3) One campaign, one tone, one voice, one seed — the #22 field-validation
-width caveat applies to this arm exactly as it does to the others. (4) The guard is a pinned engine
-test (`#22 gemini buildBody pins thinkingLevel 'low'`), verified red before the change; it pins the
-value but cannot detect the model silently reinterpreting "low".
-
 ### 14 — Two residual field watches from #93/#172 (Opus)
 
 **Filed:** 2026-08-12. **Adjudicated:** Fable f80, 2026-08-27. **Shipped roots:** v1.603–v1.604
@@ -927,6 +893,7 @@ zero 2026-07-27 and again 2026-07-30.
 | # | Subject | Reviewed | Verdict |
 |---|---|---|---|
 | 17 | #175b structured presence as a positive death binding (v1.649) — six-brief delegated-evidence review | 2026-08-17 | Design AFFIRMED (owner-ruled; t1903 repair reproducible), implementation violated its own strictly-earlier contract — 7 confirmed defect groups fixed v1.650 failing-test-first: the unpinned executor's silent WRONG-VICTIM kill (a "Caul" envelope with handle "Vex" stamped Caulder Vex dead), the turn-blind lastSeenAt limb, the split-guard half-coverage, the frame-scan sourceTurn ignore, the heal asymmetry, the t1903 nine-record nudge factory + latch misattribution, and the ws-only handle/name disagreement; +13 tests (each red on v1.649) + 5 sabotage clauses; 7 residues accepted with rationale; descriptor fuzziness filed as TODO #193 |
+| 16 | Gemini pinned to thinkingLevel "low" on every call kind (#22, v1.645; Opus, owner-ruled) | 2026-08-29 | CLEARED via joint-review f81 (verified confirmed) — the pinned buildBody guard is green; the "silent reinterpretation" blind spot is partially covered by parseUsage folding thoughtsTokenCount into the Usage meter; summarize-under-low-reasoning is backstopped by W6/W2 validation + the #17 summary-failure anomalies (scoped: structural contradictions, not thin-but-valid summaries — the silent-quality watch stays at #276⑤/f46); the #29b fallback rung (gemini-3.6-flash) was sweep-certified with the pin already shipped (identical body — gemini embeds the model in the URL). Two watches recorded in the archived entry: (a) re-measure the thinking-on vs low A/B (n=5 vs n=2) only when server-side subscription pricing makes the number load-bearing; (b) any gemini model-id change must re-verify "low" is accepted — "minimal" 400s on 3.7-flash and the pin test cannot see an HTTP rejection. |
 | 15 | Per-character location-visit provenance gap (#173; Codex investigation) | 2026-08-14 | CLOSED outside the queue — guestbook adjudication (`6850d99`) authorized the build with seven pinned amendments; shipped v1.632–v1.633 + map-viewer panel; entry archived 2026-08-17 |
 | 13 | Sol W1–7 drift-hardening handoff (v1.601) — six-brief delegated-evidence review, self-adjudicated on Fable | 2026-08-12 | 8 confirmed boundary defects fixed v1.602 failing-test-first — two resurrected origin incidents (stripped-tag reward leak; array-typed t1644 W6 bypass) plus receipt-cap permadeath, same-turn/quarantined-txn citations, latched-frame drop, over-length bond orphan, merge self-edges, eras import drop; +13 tests, +8 sabotage clauses (W2 15/15, W7 27/27), 3 tautological clauses repaired, counts corrected; follow-ups #169–#171 |
 | 12 | Project-wide drift-risk audit against Runelords t1549 (Sol) | 2026-08-08 | CLOSED outside the queue — all four findings shipped as #144A/#145/#146/#147 (v1.564–v1.567) + #144B (v1.572), rulings recorded (`9a7bd6d`); entry archived 2026-08-17 |

@@ -544,7 +544,10 @@ function buildLocationDescNudge(){
 // a NEUTRAL fork: rejoin or re-affirm, story decides. The B21 lesson is load-bearing in the
 // wording: the record must never command the narrative ("do not narrate them as absent merely
 // because this record says so"). Audited-stamp on fire (the buildConditionAudit precedent);
-// re-affirming re-emits [PARTY_SPLIT:] which mints a fresh stamped splitLoc — the reset is the write.
+// #228 (f32 comment repair 2026-08-29): an IDENTICAL re-affirm is a NO-OP — split turn and the
+// .audited cooldown SURVIVE (the audited stamp set at note-fire time is the cooldown); only a
+// REAL change (location/sublocation) mints a fresh splitLoc, and a legacy unstamped record heals.
+// The old "the reset is the write" claim is the superseded pre-#228 contract — never restore it.
 function buildSplitAudit(){
   if(!worldState||worldState.combat)return"";
   if(typeof partySplitMembers!=="function")return"";
@@ -556,7 +559,12 @@ function buildSplitAudit(){
        the live Daeris/Morwen shape) waives the age gate: near-certain staleness, but a
        granularity gap the engine can't resolve alone (she may truly be elsewhere in the city),
        so it goes to the GM immediately rather than auto-rejoining. Exact node matches never
-       reach here — the applyMuts tail folds those back deterministically. */
+       reach here — the applyMuts tail folds those back deterministically. #189c DELIBERATELY
+       extends the waiver's reliance to SUBLOCATION-BEARING same-world splits: the write boundary
+       normalizes "Magnimar (Wyla's shop)" to location+sublocation precisely so this waiver audits
+       it IMMEDIATELY (the t2097 camera-omission split, contract-pinned) — apparent precision can
+       be confabulated cover for forgetting a companion, so shape alone never skips the ask
+       (joint-review f33's !sublocation gate was REFUTED 2026-08-29: it would revert that catch). */
     var sameWorld=locSame(sl.location,worldState.world.location);/* #156B */
     if(age<SPLIT_AUDIT_TURNS&&!sameWorld)continue;
     if(sl.audited!=null&&worldState.turn-sl.audited<SPLIT_AUDIT_TURNS)continue;
