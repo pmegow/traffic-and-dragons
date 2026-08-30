@@ -94,6 +94,11 @@ var SUGGESTION_MODE_BLOCK="\n\n=== SUGGESTION MODE — THIS CALL ONLY ===\n"
  +"Suggest only people, places, and facts the story has already surfaced on screen. The campaign outline's unrevealed names and plans are SPOILERS — never put one in a suggestion, no matter what the background material says about them.\n"
  +"Ignore the STYLE directive for this call. FIRST take stock: list who and what is ACTUALLY present in the scene right now — the people, creatures, and objects the narration has placed there. Then write the 3 actions, each referencing ONLY entities from that list or plain surroundings. A person or thing the narration has not placed in the scene (a driver, a guard, a shopkeep) does not exist — never aim an action at one.\n"
  +"Output ONLY one valid JSON object, no prose, no markdown, no backticks: {\"present\":\"one line listing who and what is in the scene\",\"actions\":[\"...\",\"...\",\"...\"]} — exactly 3 actions, each under 10 words.";/* #141: the present field IS the checking space t833 proved the instant-JSON call lacks — the driverless-cart phantom (field 2026-08-07) */
+// #283 (Sol brief 35②): the ask half of the suggestion call, ONE constant so the user message can
+// never again fight the mode block over the output shape — it used to demand "a JSON array of 3
+// strings" (the HIGHEST-authority channel) against the block's {present, actions} object, the
+// tolerant parser hid the conflict, and the #141 forced checking space silently vanished.
+var SUGGESTION_ASK="Suggest exactly 3 short actions the player could take next. FIRST take stock of who and what is actually present, then write the actions. Output ONLY one valid JSON object: {\"present\":\"one line listing who and what is in the scene\",\"actions\":[\"...\",\"...\",\"...\"]} — exactly 3 actions, each under 10 words, no prose, no markdown, no backticks.";
 // t833 (2026-07-18) — the recurring Message-cantrip class (t355 cross-town range → t580 unlocated
 // target → t833 casting while INVISIBLE + an invented back exit). The un-starve (v1.288) put every
 // fact and fence in the prompt, and the reconstruction of the t833 call verified all of it present
@@ -251,17 +256,24 @@ function buildSceneManifest(){
     var rls=ls?locResolve(ls):"",rLoc=locResolve(loc),rNode=locResolve(nodeKey);
     if(rls&&(rls===rNode||rls===rLoc||rls.indexOf(rLoc+"|")===0))addNpc(n.name);
   }
-  // Presence by narration: an NPC the GM just wrote into the scene is present even if the map
-  // stamp lags a turn (the forensic's one manifest upgrade).
-  var tr=worldState.transcript;
-  if(tr instanceof Array&&tr.length){
-    var lastGm=null;
-    for(i=tr.length-1;i>=0;i--){if(tr[i]&&tr[i].r!=="player"){lastGm=tr[i];break;}}
-    if(lastGm&&lastGm.x){
-      for(i=0;i<npcs.length;i++){
-        if(npcs[i].dead)continue;
-        if(new RegExp("\\b"+suggestionNameAlt(npcs[i].name)+"\\b","i").test(lastGm.x))addNpc(npcs[i].name);
-      }
+  // #283 (Sol brief 35①): presence by STRUCTURED observation only — the active scene frame's
+  // observed[] list (#194: [SAY:] speakers, combat-named rostered NPCs, [SCENE_CAST:] members,
+  // all split-guarded at the post-handler seam). The old pass scanned the last GM entry's PROSE
+  // for living roster names with NO polarity judgment and no sourced-presence consultation, so
+  // "Ameiko remains in Sandpoint, miles away" authorized Ameiko and disabled the local-cap and
+  // absent-direct-address rules for that button set — the exact mention-to-presence inference
+  // #194 made impossible in the canonical writers, alive in the UI authorization seam. The
+  // frame-node guard keeps a stale frame (party moved this response, frame not yet rotated)
+  // from authorizing the OLD scene's cast at the new node. Residual trade, accepted: a rostered
+  // NPC narrated into the scene with zero tags is no longer authorized until they speak/fight/
+  // are cast — rule ④ then rejects direct address, and the manifest fallback substitutes.
+  var _frame=worldState.sceneRefs&&worldState.sceneRefs.active;
+  if(_frame&&_frame.observed instanceof Array&&typeof locResolve==="function"
+     &&_frame.node!=null&&locResolve(String(_frame.node))===locResolve(nodeKey)){
+    for(i=0;i<_frame.observed.length;i++){
+      var _ob=_frame.observed[i]&&_frame.observed[i].entity;if(!_ob)continue;
+      var _obNm=(typeof resolveNpcName==="function")?resolveNpcName(_ob):_ob;
+      for(var _oj=0;_oj<npcs.length;_oj++){if(npcs[_oj].name===_obNm&&!npcs[_oj].dead){addNpc(npcs[_oj].name);break;}}
     }
   }
   // B24: world-map edges are connectivity at WORLD-NODE grain only. Inside a sub-location the
@@ -458,7 +470,7 @@ async function generateActions(msgEl){
     // stays true — the window IS the history, at a bounded cost. Runs on the ACTIVE model (null
     // override): caches are model-scoped, an escalated model would pay full freight. See the
     // block comment above the suggestion helpers for the whole incident history.
-    var resp=await callGM("RECENT SCENES (oldest first — the LAST one is the current moment):\n"+suggestionHistoryPairs()+"\n\nSuggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words.",buildSuggestionSys(prevActs),200,null,{noHistory:true,kind:"actions"});
+    var resp=await callGM("RECENT SCENES (oldest first — the LAST one is the current moment):\n"+suggestionHistoryPairs()+"\n\n"+SUGGESTION_ASK,buildSuggestionSys(prevActs),200,null,{noHistory:true,kind:"actions"});/* #283②: SUGGESTION_ASK matches the mode block's object demand — the user channel no longer erases the #141 checking space */
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var acts=parseSuggestionArray(resp);
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */

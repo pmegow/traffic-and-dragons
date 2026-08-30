@@ -7505,7 +7505,7 @@ function runEngineTests(R){
     memory.map={nodes:{},edges:[{from:"Lost Coast Road",to:"Magnimar",turn:1},{from:"Sandpoint",to:"Lost Coast Road",turn:1}],lastArrivalFrom:null};
     worldState.transcript=[{r:"gm",x:"Mist coils over the road. Morwen squints at the signpost while Frizwick shakes rain from his hat.",t:5}];
   }
-  t("manifest: party + narration-present NPCs in, off-scene roster NPC out, exits from map edges, caps carry bible range",function(){
+  t("manifest: unsplit party in, off-scene roster NPC out, exits from map edges, caps carry bible range (#283: prose narration authorizes nothing)",function(){
     __gateWorld();
     var man=buildSceneManifest();
     if(man.npcs.indexOf("Morwen Zethran")<0||man.npcs.indexOf("Frizwick")<0)return "party members missing: "+JSON.stringify(man.npcs);
@@ -7519,6 +7519,39 @@ function runEngineTests(R){
     var bad=validateSuggestion("Send Message to Ameiko checking Sandpoint's quiet",buildSceneManifest());
     if(!bad)return "the exact 2026-08-02 button passed validation";
     return bad.rule==="local-cap-remote-target"?true:"wrong rule: "+bad.rule;
+  });
+  t("#283 (brief 35①): a NEGATIVE mention cannot authorize presence — 'remains in Sandpoint, miles away' keeps Ameiko out of the manifest",function(){
+    /* The old 'presence by narration' pass scanned the last GM entry's PROSE for living roster
+       names with no polarity judgment and no #194 sourced-presence consultation — the exact
+       mention-to-presence inference #194 made impossible in the canonical writers, alive in the
+       UI authorization seam: one remote mention disabled rules ① and ④ for that button set. */
+    __gateWorld();
+    worldState.transcript.push({r:"gm",x:"Ameiko Kaijitsu remains in Sandpoint, miles away, tending the Rusty Dragon.",t:6});
+    var man=buildSceneManifest();
+    if(man.npcs.indexOf("Ameiko Kaijitsu")>=0)return "a remote NEGATIVE mention authorized Ameiko as present — the #194 door is open in the suggestion seam";
+    var bad=validateSuggestion("Send Message to Ameiko checking Sandpoint's quiet",man);
+    return bad&&bad.rule==="local-cap-remote-target"?true:"the mention disabled the local-cap rule: "+JSON.stringify(bad);
+  });
+  t("#283: the active frame's observed[] channel (#194 sourced presence) authorizes; a STALE frame from another node does not",function(){
+    __gateWorld();
+    /* observed[] = engine-derived presence ([SAY:]/combat/[SCENE_CAST:], split-guarded at the
+       post-handler seam) — the structured replacement for the prose scan. */
+    worldState.sceneRefs={serial:1,sealed:[],active:{scene:1,node:currentNodeKey(),startTurn:5,actors:[],negatives:[],observed:[{entity:"Ameiko Kaijitsu",channel:"say",firstTurn:5,lastTurn:5,turns:1}],acknowledged:false}};
+    var man=buildSceneManifest();
+    if(man.npcs.indexOf("Ameiko Kaijitsu")<0)return "an observed [SAY:] speaker was not authorized — the structured channel is not consulted";
+    worldState.sceneRefs.active.node="Sandpoint";/* frame left over from another scene */
+    var man2=buildSceneManifest();
+    return man2.npcs.indexOf("Ameiko Kaijitsu")<0?true:"a STALE frame's observed[] authorized presence at a different node";
+  });
+  t("#283 (brief 35②): the suggestion ask message demands the #141 scene-check OBJECT — never the bare 3-string array that erased the checking space",function(){
+    /* The user message (the highest-authority channel) said 'Output ONLY a JSON array of 3
+       strings' while SUGGESTION_MODE_BLOCK demanded the {present, actions} object; the tolerant
+       parser hid the conflict and the forced checking space silently vanished. */
+    if(typeof SUGGESTION_ASK!=="string")return "SUGGESTION_ASK constant missing (the testable seam for the ask message)";
+    if(SUGGESTION_ASK.indexOf("\"present\"")<0)return "ask message does not demand the present field";
+    if(SUGGESTION_ASK.indexOf("\"actions\"")<0)return "ask message does not demand the actions field";
+    if(/JSON array of 3 strings/i.test(SUGGESTION_ASK))return "ask message still demands the bare array — the mode block loses the format fight";
+    return /JSON object/.test(SUGGESTION_ASK)?true:"ask message does not name the object shape";
   });
   t("mentioning an off-scene NPC WITHOUT invoking a capability passes (asking Morwen about Ameiko is legal fiction)",function(){
     __gateWorld();
