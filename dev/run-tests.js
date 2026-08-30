@@ -1904,6 +1904,14 @@ var filterRaw=process.argv[2]||"";
 var filter=filterRaw.toLowerCase();
 var pass=0,fails=[];
 var curSection="",sectionOn=!filter,matchedSections=0;
+var _frozenGolden=require("./frozen-golden.js");
+function _frozenFailureDetail(name){
+  if(name==="derived cleanTxt strip regex is byte-identical to the frozen literal")
+    return _frozenGolden.failureDiff(__dirname+"/..","dev/golden/tag-table-strip.golden",_CT_TAGS.source);
+  if(name==="derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)")
+    return _frozenGolden.failureDiff(__dirname+"/..","dev/golden/tag-table-doc.golden",buildStateTagsDoc());
+  return "";
+}
 runEngineTests({
   section:function(name){
     curSection=name;
@@ -1916,7 +1924,7 @@ runEngineTests({
     try{
       var r=fn();
       if(r===true||r===undefined)pass++;
-      else fails.push(label+" — "+r);
+      else fails.push(label+" — "+r+_frozenFailureDetail(name));
     }catch(e){fails.push(label+" — threw: "+e.message);}
   }
 });

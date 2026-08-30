@@ -21,6 +21,7 @@ var SUITES = [
   "dev/tests-280b-actions-sync.js",
   "dev/tests-252-retained-proof-wiring.js",
   "dev/tests-latch-census.js",
+  "dev/tests-frozen-golden.js",
   "dev/tests-verification-enforcement.js",
   "dev/tests-sabotage-meta.js",
   "dev/tests-file-forensics.js",
