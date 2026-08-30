@@ -2454,7 +2454,7 @@ function applyMuts(text,opts){
     var _w2t=_w2Plan.txns[_w2i];
     if(!_w2t.valid){R.muts.push("Canon claim "+(_w2t.meta.id||"?")+" quarantined");continue;}
     if(!_w2t.body)continue;/* exact replay: receipt already owns every operation */
-    var _w2Ws=worldState,_w2Mem=memory,_w2Bumps=(typeof _levelBumpsOwed!=="undefined")?_levelBumpsOwed:0,_w2Unlocks=(typeof _spellUnlocksOwed!=="undefined")?_w2Copy(_spellUnlocksOwed):[];
+    var _w2Ws=worldState,_w2Mem=memory;/* #284: the owed level-up queues live ON worldState now, so the clone-and-replace below rolls them back with everything else — the old module-var snapshot is retired */
     var _w2TrShared=_w2Ws.transcript,_w2TrLen=_w2TrShared?_w2TrShared.length:0;/* #272 D4: the tripwire baseline */
     worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem);
     /* #175bR: pin the executor to this envelope's subject for the duration of its body — the
@@ -2474,16 +2474,12 @@ function applyMuts(text,opts){
     }
     if(_w2r.errors.length){
       worldState=_w2Ws;memory=_w2Mem;
-      if(typeof _levelBumpsOwed!=="undefined")_levelBumpsOwed=_w2Bumps;
-      if(typeof _spellUnlocksOwed!=="undefined")_spellUnlocksOwed=_w2Unlocks;
       w2TxnQuarantine(_w2t.meta,"transaction handler failed: "+_w2r.errors.join("; "),_w2t.ops,_w2t.tokens);
       R.errors=R.errors.concat(_w2r.errors);R.muts.push("Canon claim "+_w2t.meta.id+" rolled back and quarantined");
       continue;
     }
     if(!w2TxnCommit(_w2t.meta,_w2t.ops,_w2t.tokens)){
       worldState=_w2Ws;memory=_w2Mem;
-      if(typeof _levelBumpsOwed!=="undefined")_levelBumpsOwed=_w2Bumps;
-      if(typeof _spellUnlocksOwed!=="undefined")_spellUnlocksOwed=_w2Unlocks;
       w2TxnQuarantine(_w2t.meta,"transaction receipt could not be persisted",_w2t.ops,_w2t.tokens);
       R.errors.push("CANON_TXN: receipt persistence failed");R.muts.push("Canon claim "+_w2t.meta.id+" rolled back and quarantined");
       continue;

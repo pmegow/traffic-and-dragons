@@ -803,11 +803,45 @@ function checkLegacyCharacter(){
 // TOP level's feature, and fired at most one modal — so a 1→10 jump skipped Lv2-9 features,
 // most HP, and the archetype. Loop per level like checkCompanionLevelUp already does, then
 // queue the modals owed across the whole span (archetype first, then each stat bump).
-var _levelBumpsOwed=0; // stat bumps owed from a multi-level jump; drained by sbConfirm
-// #72 C2: tier-unlock spell picks owed — [{tier,count,pool,source}], drained by spuConfirm after
-// the bump queue empties (archetype modal → stat bumps → spell picks, the creation-flow order).
-// Page-lifetime like _levelBumpsOwed; the sendAction guard re-surfaces both on the next turn.
-var _spellUnlocksOwed=[];
+// #284 (Sol brief 36): owed level-up choices are SAVE STATE — worldState.levelUpOwed, keyed by the
+// character they belong to: {"<name>":{bumps:N,spells:[{tier,count,pool,source}]}}. The old
+// module-variable queues were page-lifetime: checkLevelUp committed the LEVEL durably, then a
+// reload (or device handoff) before the forced modals completed cleared the queues, and the same
+// XP could never rebuild them (newLvl <= c.level returns immediately) — earned archetype/stat/
+// spell picks stranded forever. Keying by character also closes two latent leaks the module vars
+// carried: a campaign switch and a mid-owe PC swap both offered one character's picks to another.
+// Absent = nothing owed. HONEST LIMIT: pre-#284 stranded bumps/picks are NOT reconstructed — the
+// schema has no creation-stat baseline and pre-C2 saves never got picks at all, so inventing owed
+// records could double-grant; the archetype, which IS deterministic, self-heals via
+// levelUpArchetypeDue. Drained by sbConfirm/spuConfirm in the creation-flow order
+// (archetype modal → stat bumps → spell picks); re-surfaced by resurfaceLevelUpOwed at boot and
+// by the sendAction guard before the next turn.
+function _luOwed(){
+  if(!worldState.levelUpOwed)worldState.levelUpOwed={};
+  var nm=(worldState.character&&worldState.character.name)||"?";
+  if(!worldState.levelUpOwed[nm])worldState.levelUpOwed[nm]={bumps:0,spells:[]};
+  return worldState.levelUpOwed[nm];
+}
+// #284: deterministic archetype reconstruction — a level-3+ player character with no committed
+// archetype (and a class that HAS archetypes) is owed the milestone, whatever stranded it: the
+// wizard forces the pick at creation for L3+ starts and checkLevelUp forces it at the 3-crossing,
+// so a null archetype at L3+ is always a defect state. pickArchetype's catch-up grant (rows
+// 3..current, deduped, + the archetype tier schedule) makes the late ask COMPLETE. #192
+// archetype-less custom classes stay exempt (an empty wireClose:false modal would soft-lock).
+function levelUpArchetypeDue(){
+  var c=worldState&&worldState.character;
+  return !!(c&&c.level>=3&&!c.archetype&&((classDef(c.cls)||{}).archetypes||[]).length);
+}
+// #284: the one re-surface seam — boot (ui-boot init, the #81 pendingItemDefs precedent) and the
+// sendAction guard both call this. Creation-flow order; returns whether a milestone was opened.
+function resurfaceLevelUpOwed(){
+  if(typeof document==="undefined"||!worldState||!worldState.character)return false;
+  if(levelUpArchetypeDue()){if(!document.getElementById("arch-modal"))showArchetypeModal();return true;}
+  var lo=_luOwed();
+  if(lo.bumps>0){if(!document.getElementById("sb-modal"))showStatBumpModal();return true;}
+  if(lo.spells.length){maybeShowSpellUnlock();return true;}
+  return false;
+}
 function checkLevelUp(){
   if(!worldState)return;var c=worldState.character,newLvl=getLvl(c.xp);if(newLvl<=c.level)return;
   var oldLvl=c.level,i,cls=classDef(c.cls);/* #72 C6 ①: THE class lookup */
@@ -831,7 +865,7 @@ function checkLevelUp(){
   var _unl=spellUnlocksCrossed(c.cls,c.archetype,oldLvl,newLvl),_ui2;
   for(_ui2=0;_ui2<_unl.length;_ui2++){
     if(!_unl[_ui2].pool.length){console.info("[levelup] spell tier "+_unl[_ui2].tier+" unlocked at L"+_unl[_ui2].level+" but its bench is a fill-phase blank — no picks to offer (see class_bible)");continue;}
-    _spellUnlocksOwed.push({tier:_unl[_ui2].tier,count:SPELL_UNLOCK_PICKS[String(_unl[_ui2].tier)]||1,pool:_unl[_ui2].pool.slice(),source:_unl[_ui2].source});
+    _luOwed().spells.push({tier:_unl[_ui2].tier,count:SPELL_UNLOCK_PICKS[String(_unl[_ui2].tier)]||1,pool:_unl[_ui2].pool.slice(),source:_unl[_ui2].source});/* #284: durable */
     addMsg("system","✨ Spell tier "+_unl[_ui2].tier+" unlocked — choose "+(SPELL_UNLOCK_PICKS[String(_unl[_ui2].tier)]||1)+" new spell"+((SPELL_UNLOCK_PICKS[String(_unl[_ui2].tier)]||1)>1?"s":"")+".");
   }
   if(typeof Sound!=="undefined")Sound.play("click_glass");/* #7: the attention sound fires BEFORE the message so it claims the playIfQuiet window (the toast-level poke must not double up) */
@@ -843,18 +877,19 @@ function checkLevelUp(){
   showToast("⬆ "+c.name+" reached level "+newLvl+"!");
   if(newFeatNames.length)showToast("★ "+c.name+" gained "+(newFeatNames.length>1?"new abilities: ":"a new ability: ")+newFeatNames.join(", "));
   if(newFeatures.length)updateAbPanel(true);
-  _levelBumpsOwed+=bumpsOwed;
+  _luOwed().bumps+=bumpsOwed;/* #284: durable */
   if(oldLvl<3&&newLvl>=3&&!c.archetype&&((classDef(c.cls)||{}).archetypes||[]).length)showArchetypeModal(); // archetype first; pickArchetype then drains the bump queue. #192: an archetype-less custom class skips the milestone — an empty wireClose:false modal would soft-lock the game
   else maybeShowLevelBump();
 }
 // Show the next owed stat-bump modal, if any. Called after the archetype pick and after each
 // bump confirm so a jump that crosses both level 4 and 8 presents both, one at a time.
-function maybeShowLevelBump(){if(_levelBumpsOwed>0){showStatBumpModal();return;}maybeShowSpellUnlock();/* #72 C2: spell picks after the bump queue drains */}
+function maybeShowLevelBump(){if(_luOwed().bumps>0){showStatBumpModal();return;}maybeShowSpellUnlock();/* #72 C2: spell picks after the bump queue drains */}
 function maybeShowSpellUnlock(){
-  if(!_spellUnlocksOwed.length)return;
-  if(typeof document==="undefined")return;/* headless: the queue survives; the picker is a DOM surface */
+  var _lo=_luOwed();
+  if(!_lo.spells.length)return;
+  if(typeof document==="undefined")return;/* headless: the queue survives (in the SAVE, #284); the picker is a DOM surface */
   if(document.getElementById("spu-modal"))return;
-  showSpellUnlockModal(_spellUnlocksOwed[0]);
+  showSpellUnlockModal(_lo.spells[0]);
 }
 // #72 C2: the tier-unlock picker — the creation picker's rhythm (bench list + bible one-liners,
 // pick exactly N) as a milestone modal in the stat-bump house style. Forced choice: no ×, no
@@ -866,7 +901,7 @@ function showSpellUnlockModal(unl){
   var pool=[];for(i=0;i<unl.pool.length;i++){if(!have[capBaseName(unl.pool[i])])pool.push(unl.pool[i]);}
   if(!pool.length){/* everything on the bench already known (GM grants, prior picks) — nothing to offer */
     console.info("[levelup] tier "+unl.tier+" unlock: the whole bench is already known — pick skipped");
-    _spellUnlocksOwed.shift();maybeShowSpellUnlock();return;
+    _luOwed().spells.shift();saveAll();maybeShowSpellUnlock();return;
   }
   var need=Math.min(unl.count,pool.length);
   window._spuPicks=[];window._spuNeed=need;window._spuTier=unl.tier;
@@ -897,7 +932,7 @@ function spuConfirm(){
   var m=document.getElementById("spu-modal");if(m)m.remove();
   addMsg("system","Learned: "+picks.join(", ")+" (tier "+window._spuTier+")");
   if(typeof Sound!=="undefined")Sound.play("chime");
-  _spellUnlocksOwed.shift();
+  _luOwed().spells.shift();/* #284: the drain persists via the saveAll below */
   initSpells();syncUI();saveAll();
   maybeShowSpellUnlock();/* drain the next queued unlock (a multi-level jump can owe several) */
 }
@@ -1135,7 +1170,7 @@ function pickArchetype(idx){
   var _apUnl=spellUnlocksCrossed(c.cls,arch.id,2,c.level),_apu;
   for(_apu=0;_apu<_apUnl.length;_apu++){
     if(_apUnl[_apu].source!=="arch"||!_apUnl[_apu].pool.length)continue;
-    _spellUnlocksOwed.push({tier:_apUnl[_apu].tier,count:SPELL_UNLOCK_PICKS[String(_apUnl[_apu].tier)]||1,pool:_apUnl[_apu].pool.slice(),source:"arch"});
+    _luOwed().spells.push({tier:_apUnl[_apu].tier,count:SPELL_UNLOCK_PICKS[String(_apUnl[_apu].tier)]||1,pool:_apUnl[_apu].pool.slice(),source:"arch"});/* #284: durable */
   }
   var m=document.getElementById("arch-modal");if(m)m.remove();addMsg("system","Archetype: "+arch.nm);updateAbPanel(true);initSpells();syncUI();saveAll();
   maybeShowLevelBump(); // a jump that crossed both 3 and 4/8 owes a stat bump next (E1)
@@ -1159,7 +1194,7 @@ function sbPick(s,v,btn){
   picks.push({s:s,v:v});_sbPicks=picks;document.getElementById("sb-warn").textContent="";btn.style.borderColor="var(--acc)";btn.style.color="var(--acc)";document.getElementById("sb-cur-"+s).textContent=c.stats[s]+v;document.getElementById("sb-cur-"+s).style.color="var(--acc)";
 }
 function sbBack(){var m=document.getElementById("sb-modal");if(m)m.remove();}
-function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("sb-warn").textContent="Must spend +2.";return;}var c=worldState.character;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var m=document.getElementById("sb-modal");if(m)m.remove();addMsg("system","Stats: "+picks.map(function(p){return p.s+"+"+p.v;}).join(", "));if(_levelBumpsOwed>0)_levelBumpsOwed--;syncUI();saveAll();maybeShowLevelBump();/* drain the multi-level bump queue (E1) */}
+function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("sb-warn").textContent="Must spend +2.";return;}var c=worldState.character;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var m=document.getElementById("sb-modal");if(m)m.remove();addMsg("system","Stats: "+picks.map(function(p){return p.s+"+"+p.v;}).join(", "));var _lo=_luOwed();if(_lo.bumps>0)_lo.bumps--;/* #284: the drain persists via the saveAll */syncUI();saveAll();maybeShowLevelBump();/* drain the multi-level bump queue (E1) */}
 // A plain tap POPULATES the input (editable) so the player can tweak/combine before sending.
 // Ctrl/Cmd-click (desktop) or a long-press (mobile, handled in wireButtons) EXECUTES immediately.
 function sendSuggestedAction(btn,ev){
@@ -1813,8 +1848,10 @@ async function sendAction(override,opts){
   if(typeof TTS!=="undefined"&&typeof TTS.prewarmServer==="function")TTS.prewarmServer();
   // Re-present a stat bump the player backed out of (audit E64) — it's an earned reward, not
   // something to forfeit; showing it again before the turn makes "Back" a defer, not a loss.
-  if(typeof _levelBumpsOwed!=="undefined"&&_levelBumpsOwed>0&&!(opts&&opts.silent)&&!document.getElementById("sb-modal")){maybeShowLevelBump();return;}
-  if(typeof _spellUnlocksOwed!=="undefined"&&_spellUnlocksOwed.length>0&&!(opts&&opts.silent)&&!document.getElementById("spu-modal")){maybeShowSpellUnlock();return;}/* #72 C2: owed tier picks block the next turn the same way owed bumps do */
+  /* #284: ONE re-surface seam for every owed milestone — durable queues (worldState.levelUpOwed)
+     + the deterministic archetype reconstruction, in creation-flow order. Blocks the turn until
+     the earned choices are made, and now survives reload/device handoff (the brief-36 strand). */
+  if(!(opts&&opts.silent)&&typeof resurfaceLevelUpOwed==="function"&&!document.getElementById("sb-modal")&&!document.getElementById("spu-modal")&&!document.getElementById("arch-modal")&&resurfaceLevelUpOwed())return;
   // opts.ttRetry forces the Table Talk path regardless of the current tab — a failed TT question
   // must retry AS Table Talk even if the player switched to Story while it was in flight (#76).
   var isTT=(opts&&opts.ttRetry)?true:(activeChatTab==="tabletalk");

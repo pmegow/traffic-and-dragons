@@ -7325,27 +7325,83 @@ function runEngineTests(R){
   });
   t("checkLevelUp queues the player's unlock picks (pool-bearing tiers only) with SPELL_UNLOCK_PICKS counts",function(){
     makeWorld();
-    _spellUnlocksOwed.length=0;
     var c=worldState.character;c.cls="Cleric";c.level=4;c.xp=2700;c.abilities=[];c.spells=[{nm:"Sacred Flame",lvl:0,used:false}];
     c.xp=6500;checkLevelUp();
     if(c.level!==5)return "level "+c.level;
-    if(_spellUnlocksOwed.length!==1)return "owed "+_spellUnlocksOwed.length+" unlocks";
-    var o=_spellUnlocksOwed[0];
+    var _lo=_luOwed();/* #284: the queue is SAVE STATE now — worldState.levelUpOwed, keyed by character */
+    if(_lo.spells.length!==1)return "owed "+_lo.spells.length+" unlocks";
+    var o=_lo.spells[0];
     if(o.tier!==2||o.count!==SPELL_UNLOCK_PICKS[2])return "queued wrong: "+JSON.stringify({tier:o.tier,count:o.count});
-    _spellUnlocksOwed.length=0;
     return true;
   });
   t("an unlock whose bench is a fill-phase blank is SKIPPED loudly, never queued (the EK T3 case)",function(){
     makeWorld();
-    _spellUnlocksOwed.length=0;
     var infos=[];var _ci=console.info;console.info=function(m){infos.push(String(m));};
     try{
       var c=worldState.character;c.cls="Warrior";c.archetype="eldritchknight";c.level=13;c.xp=120000;c.abilities=[];
       c.xp=140000;checkLevelUp();
     }finally{console.info=_ci;}
     if(worldState.character.level!==14)return "level "+worldState.character.level;
-    if(_spellUnlocksOwed.length!==0)return "blank bench queued a pick";
+    if(_luOwed().spells.length!==0)return "blank bench queued a pick";
     return infos.join(" ").indexOf("fill-phase")>=0?true:"skip was silent";
+  });
+  t("#284 (brief 36): owed level-up choices are SAVE STATE — they survive the serialize/parse reload boundary",function(){
+    /* The strand: _levelBumpsOwed/_spellUnlocksOwed were module variables; checkLevelUp committed
+       the LEVEL durably, then a reload before the forced modals completed cleared the queues, and
+       the same XP could never rebuild them (newLvl <= c.level returns immediately). */
+    makeWorld();
+    var c=worldState.character;c.cls="Cleric";c.level=3;c.xp=900;c.abilities=[];c.spells=[{nm:"Sacred Flame",lvl:0,used:false}];
+    c.xp=6500;checkLevelUp();/* 3→5: crosses the L4 stat bump AND the T2 unlock */
+    if(c.level!==5)return "level "+c.level;
+    var rec=worldState.levelUpOwed&&worldState.levelUpOwed[c.name];
+    if(!rec)return "owed choices not homed on worldState — a reload strands them";
+    if(rec.bumps!==1)return "bump owed not recorded: "+JSON.stringify(rec);
+    if(rec.spells.length!==1||rec.spells[0].tier!==2)return "spell pick not recorded: "+JSON.stringify(rec.spells);
+    var back=parseWorldState(serializeWorldState(worldState));/* the reload boundary */
+    var rec2=back.levelUpOwed&&back.levelUpOwed[c.name];
+    if(!rec2||rec2.bumps!==1||!rec2.spells||rec2.spells.length!==1)return "owed choices did not survive the save round-trip: "+JSON.stringify(rec2);
+    if(typeof _levelBumpsOwed!=="undefined"||typeof _spellUnlocksOwed!=="undefined")return "page-lifetime twin queues still exist — they WILL drift from the durable record";
+    return true;
+  });
+  t("#284: owed records are keyed by CHARACTER — a PC swap cannot offer one character's earned picks to another",function(){
+    makeWorld();
+    var c=worldState.character;c.cls="Cleric";c.level=3;c.xp=900;c.abilities=[];c.spells=[];
+    c.xp=6500;checkLevelUp();
+    if(_luOwed().bumps!==1)return "precondition: no bump owed";
+    var swapped={name:"Bram the Second",cls:"Warrior",level:5,xp:6500,hp:40,maxHp:40,stats:{},abilities:[],spells:[],inventory:[],conditions:[],archetype:"champion"};
+    worldState.character=swapped;
+    if(_luOwed().bumps!==0||_luOwed().spells.length!==0)return "another character inherited the owed picks";
+    worldState.character=c;
+    return _luOwed().bumps===1?true:"the original character's owed picks were lost by the swap";
+  });
+  t("#284: levelUpArchetypeDue — the deterministic archetype reconstruction (self-heals stranded and legacy saves)",function(){
+    makeWorld();
+    var c=worldState.character;c.cls="Warrior";c.level=5;c.archetype=null;c.archetypeNm=null;
+    if(typeof levelUpArchetypeDue!=="function")return "levelUpArchetypeDue missing";
+    if(!levelUpArchetypeDue())return "a level-5 archetype-less Warrior is owed the milestone — whatever stranded it";
+    c.archetype="champion";
+    if(levelUpArchetypeDue())return "a committed archetype must not re-ask";
+    c.archetype=null;c.level=2;
+    if(levelUpArchetypeDue())return "level 2 is below the milestone";
+    c.level=5;c.cls="Chronomancer of the Ninth Gate";/* #192: an archetype-less custom class must skip */
+    return levelUpArchetypeDue()?"an archetype-less custom class would soft-lock on an empty modal":true;
+  });
+  t("#284: resurfaceLevelUpOwed re-opens the owed milestone in creation-flow order — archetype, then bumps, then spell picks",function(){
+    makeWorld();
+    if(typeof resurfaceLevelUpOwed!=="function")return "resurfaceLevelUpOwed missing (the boot/send re-surface seam)";
+    var c=worldState.character;c.cls="Warrior";c.level=5;c.archetype=null;
+    _luOwed().bumps=1;
+    var calls=[],_pa=showArchetypeModal,_pb=showStatBumpModal,_pd=(typeof document==="undefined")?undefined:document;
+    document={getElementById:function(){return null;}};
+    showArchetypeModal=function(){calls.push("arch");};
+    showStatBumpModal=function(){calls.push("bump");};
+    try{
+      if(!resurfaceLevelUpOwed())return "nothing resurfaced with an archetype AND a bump owed";
+      c.archetype="champion";
+      resurfaceLevelUpOwed();
+    }finally{showArchetypeModal=_pa;showStatBumpModal=_pb;document=_pd;}
+    if(calls[0]!=="arch")return "archetype must resurface FIRST (the creation-flow order): "+JSON.stringify(calls);
+    return calls[1]==="bump"?true:"the owed bump did not resurface after the archetype committed: "+JSON.stringify(calls);
   });
   t("companion twin AUTO-PICKS from the bench at an unlock: count honored, dedupe by base name, mana pool grows",function(){
     makeWorld();
@@ -14332,17 +14388,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   function __b16Fail(o){
     o=o||{};
     makeWorld();__erReset("https://example.test/hook");_erCrumbs.length=0;
-    var prevCall=callGM,prevBusy=busy,prevTab=activeChatTab,prevBumps=_levelBumpsOwed;
+    var prevCall=callGM,prevBusy=busy,prevTab=activeChatTab;
     var m=__b16Mount();
     if(o.typed)m.input.value=o.typed;
     callGM=function(){throw new Error(o.err||"Network: Load failed");};
-    busy=false;_levelBumpsOwed=0;activeChatTab="narrative";
+    busy=false;delete worldState.levelUpOwed;activeChatTab="narrative";/* #284: the owed queue is save state; makeWorld gave this test a fresh worldState */
     try{
       var p=sendAction(o.txt||"I draw my sword",o.opts);
       if(p&&typeof p.catch==="function")p.catch(function(){});
     }finally{
       var val=m.input.value;m.unmount();
-      callGM=prevCall;busy=prevBusy;activeChatTab=prevTab;_levelBumpsOwed=prevBumps;
+      callGM=prevCall;busy=prevBusy;activeChatTab=prevTab;
     }
     return {input:val,report:__erSent[0]||null,crumbs:_erCrumbs.slice(0)};
   }
