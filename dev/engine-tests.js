@@ -16556,6 +16556,50 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  t("#286 (f59): a structured summary under a SAME-SCENE overflow latch recovers capacity — and the latch re-arms on the next over-cap event",function(){
+    /* f59 (joint review; owner ruling 2026-08-29): the same-scene actors/negatives latch was
+       stamped with the ACTIVE scene serial, and sceneRefsSummarySuccess cleared overflow only for
+       a DIFFERENT scene — so a big-cast scene that never moved was unclearable by the very summary
+       every refusal message prescribed. The ruling: a successful structured summary honestly
+       recovers capacity (the extraction covered the frame's evidence — the same argument the
+       sealed-frame clear already accepts); the frame stays at cap, so the next over-cap event
+       re-latches. Fail-closed UNDER the latch (pre-summary) is pinned by the #168R7 clause above. */
+    makeWorld();worldState.world.location="Ashfen";w2Npc("Mokmurian");worldState.turn=140;
+    applyMuts("[SCENE_REF:mok|Mokmurian]");/* the victim binds BEFORE the crowd arrives */
+    var tags="",i;for(i=0;i<10;i++)tags+="[SCENE_REF:crowd"+i+"|?]";applyMuts(tags);/* 11th registration overflows */
+    if(!sceneRefsEvidence().overflow)return "precondition: same-scene actor overflow did not latch";
+    worldState.turn=141;applyMuts("[NPC:Mokmurian|dead|enemy]");
+    if(npcIsDead(wsNpcByName("Mokmurian")))return "precondition: death committed under the armed latch";
+    sceneRefsSummarySuccess();/* the applySummaryExtract success seam (memory.js) */
+    if(sceneRefsEvidence().overflow)return "same-scene latch survived a successful structured summary — the refusal copy's prescription stays a lie (f59)";
+    worldState.turn=142;applyMuts("[NPC:Mokmurian|dead|enemy]");
+    if(!npcIsDead(wsNpcByName("Mokmurian")))return "bound actor's death still refused after the summary recovered capacity";
+    if(sceneRefBind("late-arrival","?"))return "over-cap frame accepted a new registration after the clear";
+    return sceneRefsEvidence().overflow?true:"the next over-cap event did not re-arm the latch";
+  });
+
+  t("#286 (f59): the capacity refusal and the prompt block teach ALL the real exits — summary, scene move, [NPC_DEATH_REPORTED:]",function(){
+    /* Before this, the refusal reason and the EVIDENCE CAPACITY WARNING both prescribed ONLY the
+       structured summary (which could not even clear a same-scene latch), and the capacity path
+       deliberately suppresses the [NPC_DEATH_REPORTED:] fork note — so the misleading line was
+       the GM's only guidance. Ruled (c): the copy names every honest exit. */
+    makeWorld();worldState.world.location="Ashfen";w2Npc("Mokmurian");worldState.turn=150;
+    var tags="",i;for(i=0;i<11;i++)tags+="[SCENE_REF:actor"+i+"|?]";applyMuts(tags);
+    applyMuts("[NPC:Mokmurian|dead|enemy]");
+    var cs=worldState.identityConflicts||[],c=null;
+    for(i=0;i<cs.length;i++){if(/overflow latch/.test(cs[i].reason||""))c=cs[i];}
+    if(!c)return "precondition: no capacity-refusal conflict queued";
+    if(!/structured summary/.test(c.reason))return "reason lost the summary exit: "+c.reason;
+    if(!/scene moves|location or sublocation/i.test(c.reason))return "reason does not teach the scene-move exit: "+c.reason;
+    if(c.reason.indexOf("NPC_DEATH_REPORTED")<0)return "reason does not teach the off-screen exit: "+c.reason;
+    var blk=buildSceneRefBlock();
+    var warn=(blk.split("\n").filter(function(l){return l.indexOf("EVIDENCE CAPACITY WARNING")>=0;})[0])||"";
+    if(!warn)return "prompt block lost the capacity warning line";
+    if(!/structured summary/.test(warn))return "warning lost the summary exit: "+warn;
+    if(!/location or sublocation|scene moves/i.test(warn))return "warning does not teach the scene-move exit: "+warn;
+    return warn.indexOf("NPC_DEATH_REPORTED")>=0?true:"warning does not teach the off-screen exit: "+warn;
+  });
+
   t("W2 a reveal cannot silently overwrite a different established scene binding",function(){
     makeWorld();worldState.world.location="Ashfen";w2Npc("Mokmurian");w2Npc("Rinn Toldrath");worldState.turn=135;applyMuts("[SCENE_REF:robed|Rinn Toldrath]");
     worldState.turn=136;applyMuts("[SCENE_REVEAL:robed|Mokmurian]");var hit=_sceneRefActor("robed");

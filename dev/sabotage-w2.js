@@ -683,4 +683,25 @@ rc |= sabotage.prove({
   ]
 });
 
+rc |= sabotage.prove({
+  file: "identity.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "#286: the summary clear regresses to scene-guarded — a same-scene latch is unclearable again and the refusal copy lies",
+      mustFail: "#286 (f59): a structured summary under a SAME-SCENE overflow latch",
+      find: "s.active.acknowledged=true;if(s.overflow)s.overflow=null;",
+      replace: "s.active.acknowledged=true;if(s.overflow&&s.overflow.scene!==s.active.scene)s.overflow=null;" },
+
+    { label: "#286: the capacity warning loses its exits — the prompt block prescribes only the summary again",
+      mustFail: "#286 (f59): the capacity refusal and the prompt block teach ALL the real exits",
+      find: "if(s.overflow)lines.push(\"EVIDENCE CAPACITY WARNING: \"+s.overflow.kind+\" overflowed; do not emit irreversible identity consequences yet. The exits (#286): a structured summary recovers capacity; the scene moves on (a location or sublocation change starts a fresh frame); an off-screen death may be declared via [NPC_DEATH_REPORTED:name|source].\");",
+      replace: "if(s.overflow)lines.push(\"EVIDENCE CAPACITY WARNING: \"+s.overflow.kind+\" overflowed; do not emit irreversible identity consequences until a structured summary covers the preserved evidence.\");" },
+
+    { label: "#286: the direct-death refusal reason loses its exits — the GM is taught only the summary at the site it actually hits",
+      mustFail: "#286 (f59): the capacity refusal and the prompt block teach ALL the real exits",
+      find: "_bdR=_bdOv?\"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs (it recovers capacity), the scene moves (a location or sublocation change), or the death is filed off-screen via [NPC_DEATH_REPORTED:]\"",
+      replace: "_bdR=_bdOv?\"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs\"" }
+  ]
+});
+
 process.exit(rc?1:0);
