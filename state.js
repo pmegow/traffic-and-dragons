@@ -1,4 +1,4 @@
-var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var STORE_RESCUE_K="tnd_store_rescue_v1_";/* + tier + "_" + campId (JP0-4) — see rescueCorruptStore */var CLOCK_RESCUE_K="tnd_clock_rescue_v1_";/* + campId (#274) — see clockRescueCorrupt (clock.js) */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
+var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var STORE_RESCUE_K="tnd_store_rescue_v1_";/* + tier + "_" + campId (JP0-4) — see rescueCorruptStore */var CLOCK_RESCUE_K="tnd_clock_rescue_v1_";/* + campId (#274) — see clockRescueCorrupt (clock.js) */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var GMROUTE_K="tnd_gmroute_v1";/* "auto"|"byok" — account-mode GM routing (§3 gateway) */var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
 var _m={};      // in-memory fallback for keys localStorage can't persist (privacy mode OR quota)
 var _mKeys={};  // keys whose authoritative value lives in _m — get() must prefer it over a stale disk copy
 var store={
@@ -81,6 +81,7 @@ function loadProviderSettings(){
   var legacy=store.get(AKK);if(legacy&&!providerKeys.anthropic)providerKeys.anthropic=legacy;
   if(providerKeys[activeProvider])apiKey=providerKeys[activeProvider];
   var upg=store.get(UPGRADE_K);allowModelUpgrade=(upg===null||upg===undefined)?true:upg==="true";
+  var gr=store.get(GMROUTE_K);if(gr==="byok"||gr==="auto")gmRouting=gr;
 }
 // Transcript compression (Known issue #3, v1.227): the append-only transcript is the dominant,
 // ever-growing part of a mature save (54% of a t308 blob). We store it LZ-compressed INSIDE the

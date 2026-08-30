@@ -372,7 +372,20 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <!-- Menu contents rendered at boot by buildFileMenus() (ui.js) - ONE spec, three mounts. -->
     </div>
   </div>
-  <div class="api-box"><h1>TRAFFIC AND DRAGONS</h1><p>A sword &amp; sorcery RPG.<br>Enter your Anthropic API key to begin.<br><span style="font-size:11px;color:#555;">Stored locally. Sent only to api.anthropic.com.</span></p><input type="password" id="api-input" placeholder="sk-ant-..." autocomplete="one-time-code"/><button class="btn-p" id="api-btn">Enter the world</button><p class="api-warn" id="api-warn"></p><div style="margin-top:20px;border-top:1px solid var(--brd);padding-top:16px;"><p style="font-size:12px;color:var(--t2);margin-bottom:6px;text-align:left;">fal.ai key <span style="opacity:0.6;">(optional — enables scene image generation)</span></p><input type="password" id="fal-input" placeholder="fal_key_..." autocomplete="one-time-code"/><p style="font-size:11px;color:var(--t2);text-align:left;margin-top:4px;">Get a free key at <span style="color:var(--acc);">fal.ai</span>. Stored locally.</p></div></div></div>
+  <div class="api-box"><h1>TRAFFIC AND DRAGONS</h1><p>A sword &amp; sorcery RPG.</p>
+    <div id="api-signin-sec"><p style="font-size:13px;color:var(--t1);margin-bottom:12px;">Sign in to play — your campaigns follow you across devices.</p>
+      <button class="btn-p" id="api-signin-github" style="width:100%;margin-bottom:8px;">Sign in with GitHub</button>
+      <button class="btn-p" id="api-signin-google" style="width:100%;">Sign in with Google</button>
+    </div>
+    <p class="api-warn" id="api-warn"></p>
+    <div style="margin-top:20px;border-top:1px solid var(--brd);padding-top:12px;">
+      <button id="api-byok-toggle" style="background:none;border:none;color:var(--t2);font-size:12px;font-family:var(--font);cursor:pointer;padding:0;">I have my own API keys &#9662;</button>
+      <div id="api-byok-sec" style="display:none;margin-top:12px;">
+        <p style="font-size:12px;color:var(--t2);margin-bottom:6px;text-align:left;">Anthropic API key <span style="font-size:11px;color:#555;">(stored locally, sent only to api.anthropic.com)</span></p>
+        <input type="password" id="api-input" placeholder="sk-ant-..." autocomplete="one-time-code"/><button class="btn-p" id="api-btn">Enter the world</button>
+        <div style="margin-top:16px;border-top:1px solid var(--brd);padding-top:12px;"><p style="font-size:12px;color:var(--t2);margin-bottom:6px;text-align:left;">fal.ai key <span style="opacity:0.6;">(optional — enables scene image generation)</span></p><input type="password" id="fal-input" placeholder="fal_key_..." autocomplete="one-time-code"/><p style="font-size:11px;color:var(--t2);text-align:left;margin-top:4px;">Get a free key at <span style="color:var(--acc);">fal.ai</span>. Stored locally.</p></div>
+      </div>
+    </div></div></div>
 <div id="char-screen">
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px;position:relative;">
     <button class="ib" id="cs-file-btn" title="Load a saved campaign or import a character">File &#9660;</button>

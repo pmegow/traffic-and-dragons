@@ -2694,6 +2694,43 @@ function providerHttpError(prov,status,message){
   }
   return new Error("HTTP "+status+(message?": "+message:""));
 }
+// ── Account-mode transport seam (SERVER_ARCHITECTURE §3 gateway, v1.753) ──────────────────
+// In account mode the SAME sweep-validated vendor body goes to the operator's gateway
+// (POST /api/llm/:provider/:model) with the session token; the server attaches its own vendor
+// key and forwards the raw text BYTE-VERBATIM. Prompt caching, the transient-retry loop, the
+// #29b fallback rung, and every provider parse behave identically because both the request
+// body and the vendor's response travel unmodified — ONLY the URL and auth headers change,
+// resolved here and nowhere else. (The ratified §9 sketch said "a server provider entry in
+// PROVIDERS"; by build time the three adapters were sweep-pinned — body shapes, cache blocks,
+// reasoning pins, rungs — so wrapping them in a fourth adapter would either duplicate all
+// three shapes or flatten the model menu. A transport seam preserves everything.)
+function gmViaServer(){
+  if(typeof gmRouting!=="undefined"&&gmRouting==="byok")return false;
+  if(typeof storageAdapter==="undefined"||!storageAdapter.isServerMode())return false;
+  if(typeof serverAccount!=="undefined"&&serverAccount)return !!serverAccount.entitled;
+  // Account not yet fetched this session: ride the gateway ONLY when the player has no own
+  // key to fall back on — a BYOK player who connected just for cloud sync keeps their path.
+  return !(providerKeys[activeProvider]||apiKey);
+}
+function gmTransport(prov,model,key,kind){
+  if(gmViaServer()){
+    var h={"Content-Type":"application/json","X-TND-Kind":kind};
+    var a=storageAdapter.authHeader();for(var k in a)h[k]=a[k];
+    return {server:true,url:storageAdapter.getServerUrl()+"/api/llm/"+prov.id+"/"+encodeURIComponent(model),headers:h};
+  }
+  return {server:false,url:typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint,headers:prov.headers(key)};/* Gemini embeds the model in the URL */
+}
+// Gateway 402 (entitlement) / 401 (session) refusals are ACCOUNT states, never provider
+// errors — each gets the honest §4.3 message ("your story is safe" is true: turns stop, data
+// never does). Messages must never look auth-shaped (no "key"/"401" tokens) or
+// _attachGMErrorUI would offer the paste-a-key box — the wrong remedy for a subscription state.
+function gmServerRefusalMessage(status,payload){
+  if(status===401)return "Your server sign-in has expired — use File ▸ Connect to server, then retry.";
+  var r=payload&&payload.reason;
+  if(r==="out_of_turns")return "You've used all "+(payload&&payload.cap?payload.cap:"your")+" turns for this 30-day window — your story is safe, and turns free up as older ones age out.";
+  if(r==="lapsed")return "Your subscription has lapsed — your story is safe. Renew access to continue playing.";
+  return "This account has no active subscription yet — ask the operator for access, or switch to your own provider credentials (File ▸ Admin ▸ Language Model).";
+}
 // ── #29: callGM transport resilience — a per-attempt deadline + bounded transient retry ──
 // Field evidence (the grok-4.6 t25 freeze): one request neither resolved nor rejected during a
 // 503 storm, busy stayed true forever, and the B16 failure machinery (toast/Retry/pending-action)
@@ -2756,15 +2793,15 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   if(!sysOverride&&sys&&typeof sys!=="string")_checkStablePurity(sys.stable);
   var _tok=maxTok||1500;/* 1000→1500 (v1.540, user call): the cap is runaway insurance, not a style lever — the model never sees it, and at 1000 it was scissoring legitimate long prose turns mid-tag (the #132 field toast). #132's crumb frequency is the tuning gauge */if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
   var body=prov.buildBody(msgs,sys,_tok,model);
-  var url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint; // Gemini embeds the model in the URL
   var _kind=(opts&&opts.kind)||(sysOverride?"other":"turn");
+  var _tp=gmTransport(prov,model,key,_kind);var url=_tp.url; // account mode rides the gateway; BYOK resolves the vendor endpoint exactly as before
   // #29 transport loop. The payload is serialized ONCE — a retried request is byte-identical,
   // so provider-side prompt caches see the same prefix on every attempt.
   var _payload=JSON.stringify(body);
   var res,raw,_retries=0,_fellBack=false;
   for(;;){
     var _rr;
-    try{_rr=await _fetchTextDeadline(url,{method:"POST",headers:prov.headers(key),body:_payload},CALLGM_TIMEOUT_MS);}
+    try{_rr=await _fetchTextDeadline(url,{method:"POST",headers:_tp.headers,body:_payload},CALLGM_TIMEOUT_MS);}
     catch(e){
       // Our own deadline fired: LOUD and TERMINAL (see the never-retry block above the constants).
       // The message must never look auth-shaped — _attachGMErrorUI (game.js) would swap the
@@ -2808,7 +2845,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
         model=prov.fallbackModel;
         body=prov.buildBody(msgs,sys,_tok,model);
         _payload=JSON.stringify(body);
-        url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint;
+        _tp=gmTransport(prov,model,key,_kind);url=_tp.url; // the rung rides the same transport (gateway or vendor) as the primary
         if(!sysOverride)_lastTurnModel=model; // #45: the transcript m: stamp must credit the model that actually wrote the turn
         console.warn("[transport] "+prov.id+" HTTP "+res.status+" after "+_retries+" retries — falling back "+_primary+" → "+model+" for THIS call only (#29b)");
         try{if(typeof erCrumb==="function")erCrumb("transport-fallback",{p:prov.id,s:res.status,m:model,k:_kind});}catch(e4){}
@@ -2818,6 +2855,15 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
       }
     }
     break;
+  }
+  // Gateway account refusals (server mode only): loud, specific, terminal — never retried,
+  // never shaped like a vendor/auth failure. The cached account refreshes so the UI catches up.
+  if(_tp.server&&(res.status===402||res.status===401)){
+    var _sp=null;try{_sp=JSON.parse(raw);}catch(e8){}
+    var _sm=gmServerRefusalMessage(res.status,_sp);
+    if(typeof showToast==="function")showToast("⚠ "+_sm);
+    try{if(typeof storageAdapter!=="undefined"&&storageAdapter.fetchAccount)storageAdapter.fetchAccount(null);}catch(e9){}
+    throw new Error(_sm);
   }
   // Both non-ok paths route through providerHttpError (B15) — the unparseable-body one too, since
   // a gateway/HTML error page carrying the billing text must be recognised just the same.

@@ -364,6 +364,150 @@ tAsync("a deadline abort NEVER reaches the rung (the abandoned request may still
   });
 });
 
+// ── §3 gateway: the account-mode transport seam (v1.753) ─────────────────────
+// gmTransport swaps ONLY url + auth headers; the vendor-shaped body must be byte-identical
+// either way (the prompt-cache guarantee the whole gateway design rests on), and gateway
+// account refusals (402/401) must be terminal, unretried, and never auth-shaped.
+section("§3 server routing seam");
+
+var AUTH_SHAPE_RE = /invalid.{0,10}key|api.{0,6}key|authentication_error|401|permission_denied/i; // _attachGMErrorUI's exact gate
+function serverOn(acct) {
+  storageAdapter.setServer("https://tnd.test", "tok-SESSION");
+  serverAccount = (acct === undefined) ? { entitled: true, tier: "beta" } : acct;
+  gmRouting = "auto";
+}
+function serverOff() {
+  storageAdapter.setServer(null, null);
+  serverAccount = null;
+  gmRouting = "auto";
+}
+
+tAsync("entitled account routes to the gateway: URL, Bearer + kind headers, NO vendor key", function () {
+  reset(); fastKnobs(); serverOn();
+  script.push(anthropicOk("Via the gateway"));
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    serverOff();
+    if (r.sentinel || !r.ok) return "call did not succeed: " + (r.e && r.e.message);
+    var c = calls[0];
+    if (c.url !== "https://tnd.test/api/llm/anthropic/claude-sonnet-5") return "wrong gateway URL: " + c.url;
+    var h = c.opts.headers || {};
+    if (h["Authorization"] !== "Bearer tok-SESSION") return "session Bearer header missing";
+    if (h["X-TND-Kind"] !== "turn") return "X-TND-Kind header missing";
+    return ("x-api-key" in h) ? "vendor key leaked into a gateway request" : true;
+  });
+});
+tAsync("the request BODY is byte-identical between BYOK and gateway routing (prompt-cache safety)", function () {
+  reset(); fastKnobs();
+  script.push(anthropicOk());
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r1) {
+    if (r1.sentinel || !r1.ok) return "BYOK call failed";
+    var byokBody = calls[0].opts.body;
+    calls.length = 0; script.push(anthropicOk()); serverOn();
+    return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r2) {
+      serverOff();
+      if (r2.sentinel || !r2.ok) return "gateway call failed";
+      return calls[0].opts.body === byokBody ? true : "body differs between routes — the gateway would re-key every provider prompt cache";
+    });
+  });
+});
+tAsync("gmRouting 'byok' forces the vendor path even while entitled", function () {
+  reset(); fastKnobs(); serverOn(); gmRouting = "byok";
+  script.push(anthropicOk());
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    serverOff();
+    if (r.sentinel || !r.ok) return "call did not succeed";
+    return calls[0].url.indexOf("api.anthropic.com") >= 0 ? true : "byok opt-out ignored: " + calls[0].url;
+  });
+});
+tAsync("known-unentitled account falls back to the vendor path (a sync-only BYOK player keeps their keys)", function () {
+  reset(); fastKnobs(); serverOn({ entitled: false, reason: "none" });
+  script.push(anthropicOk());
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    serverOff();
+    if (r.sentinel || !r.ok) return "call did not succeed";
+    return calls[0].url.indexOf("api.anthropic.com") >= 0 ? true : "unentitled account was routed to the gateway: " + calls[0].url;
+  });
+});
+tAsync("account unknown yet: own key wins; keyless rides the gateway", function () {
+  reset(); fastKnobs(); serverOn(null); // connected, account not fetched
+  script.push(anthropicOk());
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel || !r.ok) return "keyed call did not succeed";
+    if (calls[0].url.indexOf("api.anthropic.com") < 0) return "own-key player pre-fetch was routed to the gateway";
+    calls.length = 0; providerKeys = {}; apiKey = ""; script.push(anthropicOk());
+    return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r2) {
+      serverOff();
+      if (r2.sentinel || !r2.ok) return "keyless call did not succeed";
+      return calls[0].url.indexOf("https://tnd.test/api/llm/") === 0 ? true : "keyless connected player did not ride the gateway: " + calls[0].url;
+    });
+  });
+});
+tAsync("gateway 402 is terminal, unretried, toasted, and NEVER auth-shaped", function () {
+  reset(); fastKnobs(); serverOn();
+  script.push(httpErr(402, '{"error":"subscription","reason":"out_of_turns","used":250,"cap":250}'));
+  script.push(anthropicOk()); // must never be consumed
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    serverOff();
+    if (r.sentinel) return "callGM never settled";
+    if (r.ok) return "a 402 cannot succeed";
+    // The refusal path fires a fetchAccount refresh (also recorded by the stub) — count LLM calls only.
+    var llm = calls.filter(function (c) { return c.url.indexOf("/api/llm/") >= 0; });
+    if (llm.length !== 1) return "a 402 was retried (" + llm.length + " LLM fetches) — account states are not storms";
+    if (r.e.message.indexOf("250") < 0) return "out-of-turns message lost the cap: " + r.e.message;
+    if (AUTH_SHAPE_RE.test(r.e.message)) return "402 message is auth-shaped — _attachGMErrorUI would offer the paste-a-key box: " + r.e.message;
+    return toasts.length >= 1 ? true : "no toast for the subscription refusal (silent failure)";
+  });
+});
+tAsync("gateway 402 lapsed/none get their own honest messages", function () {
+  reset(); fastKnobs(); serverOn();
+  script.push(httpErr(402, '{"error":"subscription","reason":"lapsed"}'));
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.ok || r.sentinel) return "lapsed call must fail";
+    if (!/lapsed/i.test(r.e.message) || !/story is safe/i.test(r.e.message)) return "lapsed message drifted: " + r.e.message;
+    calls.length = 0; script.push(httpErr(402, '{"error":"subscription","reason":"none"}'));
+    return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r2) {
+      serverOff();
+      if (r2.ok || r2.sentinel) return "no-subscription call must fail";
+      if (!/no active subscription/i.test(r2.e.message)) return "none message drifted: " + r2.e.message;
+      return AUTH_SHAPE_RE.test(r2.e.message) ? "none message is auth-shaped: " + r2.e.message : true;
+    });
+  });
+});
+tAsync("gateway 401 (expired session) is terminal and never auth-shaped (no paste-a-key box)", function () {
+  reset(); fastKnobs(); serverOn();
+  script.push(httpErr(401, '{"error":"Not logged in"}'));
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    serverOff();
+    if (r.sentinel) return "callGM never settled";
+    if (r.ok) return "a 401 cannot succeed";
+    if (calls.filter(function (c) { return c.url.indexOf("/api/llm/") >= 0; }).length !== 1) return "a 401 was retried";
+    if (AUTH_SHAPE_RE.test(r.e.message)) return "401 message is auth-shaped — the paste-a-key box is the wrong remedy in account mode: " + r.e.message;
+    return /sign-in|connect/i.test(r.e.message) ? true : "message does not point at re-connecting: " + r.e.message;
+  });
+});
+tAsync("vendor 401 in BYOK mode still reaches the auth-shaped path (the paste-a-key box is CORRECT there)", function () {
+  reset(); fastKnobs(); serverOff();
+  script.push(httpErr(401, '{"error":{"type":"authentication_error","message":"invalid x-api-key"}}'));
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    if (r.sentinel) return "callGM never settled";
+    if (r.ok) return "a 401 cannot succeed";
+    return AUTH_SHAPE_RE.test(r.e.message) ? true : "BYOK vendor 401 lost its auth shape — the paste-a-key remedy disappears: " + r.e.message;
+  });
+});
+tAsync("the #29b rung rides the gateway too: fallback URL is /api/llm/openai/gpt-5.6-luna", function () {
+  reset("openai"); fastKnobs(); serverOn();
+  script.push(httpErr(503, "{}")); script.push(httpErr(503, "{}")); script.push(httpErr(503, "{}"));
+  script.push(openaiOk("Luna answers"));
+  return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    serverOff();
+    if (r.sentinel) return "callGM never settled";
+    if (!r.ok) return "rung call failed: " + r.e.message;
+    var last = calls[calls.length - 1];
+    if (last.url !== "https://tnd.test/api/llm/openai/gpt-5.6-luna") return "rung left the gateway: " + last.url;
+    return JSON.parse(last.opts.body).model === "gpt-5.6-luna" ? true : "rebuilt body model did not follow the rung";
+  });
+});
+
 // ── report ───────────────────────────────────────────────────────────────────
 chain.then(function () {
   if (fails.length) {

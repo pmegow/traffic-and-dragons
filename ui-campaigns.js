@@ -31,10 +31,11 @@ function clearCacheAndReload(){
   }else{location.reload(true);}
 }
 
-function connectToServer(){
+function connectToServer(provider){
   storageAdapter.loginWithServer(TND_SERVER_URL,function(err,info){
     if(err){showToast(typeof err==="string"?err:"Server login failed.");return;}// surface the real reason (audit E75)
     updateServerUI();
+    storageAdapter.fetchAccount(null);/* §3 gateway: refresh entitlement so gmViaServer routes correctly */
     showToast("&#9729; Connected as "+info.username);
     snapshotActiveCamp();
     // Fetch the server list FIRST, then push only LOCAL-ONLY campaigns (audit E33). The old blind
@@ -49,7 +50,28 @@ function connectToServer(){
       function onPushed(){if(--remaining<=0)showCampaignPicker();}
       for(var i=0;i<meta.length;i++){campCloudPushSilent(meta[i].id,onPushed);}
     });
-  });
+  },provider);
+}
+
+// §3 accounts: the first-run screen's sign-in path. Unlike connectToServer (an in-game menu
+// action), this transitions the boot screen: on success the api-screen hides and the app
+// boots; the campaign picker opens only when the account actually has campaigns to pick.
+// An unentitled sign-in is honest, not blocking — the account works for sync/libraries,
+// and the first GM turn explains the subscription state loudly (the §4.3 402 message).
+function signInFromApiScreen(provider){
+  storageAdapter.loginWithServer(TND_SERVER_URL,function(err,info){
+    if(err){var w=document.getElementById("api-warn");if(w)w.textContent=typeof err==="string"?err:"Sign-in failed.";return;}
+    updateServerUI();
+    storageAdapter.fetchAccount(function(aerr,acct){
+      if(!aerr&&acct&&acct.entitled===false)showToast("Signed in as "+info.username+" — no subscription on this account yet.");
+      else showToast("&#9729; Signed in as "+info.username);
+    });
+    var scr=document.getElementById("api-screen");if(scr)scr.style.display="none";
+    init();
+    storageAdapter.syncCampaignList(function(result){
+      if(result&&getCampMeta().length)showCampaignPicker();
+    });
+  },provider);
 }
 function campCloudPushSilent(id,cb){
   if(!storageAdapter.isServerMode()){if(cb)cb(false);return;}

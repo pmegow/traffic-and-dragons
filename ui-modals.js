@@ -270,6 +270,73 @@ function showUsageModal(){
     modal.remove();showUsageModal();
   });
 }
+// ── Account modal (§3 gateway — the subscription front end, v1.753) ────────────
+// Thin DOM shell over GET /api/account (serverAccount cache + a fresh fetch on open).
+// Shows who you are, what your subscription allows, how many turns you've used, and the
+// GM-routing preference (auto = ride the game server when entitled; byok = always your
+// own keys). Sign-out lives here beside the identity it ends.
+function showAccountModal(){
+  closeAllMenus();
+  var connected=typeof storageAdapter!=="undefined"&&storageAdapter.isServerMode();
+  var modal=modalShell("account-modal",
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>&#128100; Account</span><button id='ac-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<div id='ac-body' style='font-size:13px;color:var(--t1);line-height:1.7;'></div>",
+    {maxWidth:420,closeId:"ac-x",outside:true});
+  var body=document.getElementById("ac-body");
+  function line(label,val){return "<div><span style='color:var(--t2);'>"+label+":</span> "+val+"</div>";}
+  function renderRouting(){
+    var byok=typeof gmRouting!=="undefined"&&gmRouting==="byok";
+    return "<div style='margin-top:14px;border-top:1px solid var(--brd);padding-top:10px;'>"
+      +"<label style='display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;'><input type='checkbox' id='ac-byok' "+(byok?"checked":"")+" style='accent-color:var(--acc);width:13px;height:13px;cursor:pointer;'/> Always use my own API keys (skip the game server)</label>"
+      +"</div>";
+  }
+  function wireRouting(){
+    var cb=document.getElementById("ac-byok");
+    if(cb)cb.addEventListener("change",function(){
+      gmRouting=this.checked?"byok":"auto";
+      store.set(GMROUTE_K,gmRouting);
+      showToast(this.checked?"GM turns now use your own keys.":"GM turns ride the game server when your account allows it.");
+    });
+  }
+  if(!connected){
+    body.innerHTML="<p style='margin-bottom:12px;'>Not signed in. Sign in to sync campaigns across devices and play on the game server's subscription.</p>"
+      +"<button class='btn-p' id='ac-gh' style='width:100%;margin-bottom:8px;'>Sign in with GitHub</button>"
+      +"<button class='btn-p' id='ac-gg' style='width:100%;'>Sign in with Google</button>"
+      +renderRouting();
+    wireRouting();
+    var gh=document.getElementById("ac-gh");if(gh)gh.addEventListener("click",function(){modal.remove();connectToServer("github");});
+    var gg=document.getElementById("ac-gg");if(gg)gg.addEventListener("click",function(){modal.remove();connectToServer("google");});
+    return;
+  }
+  function render(a){
+    var h="";
+    h+=line("Signed in as","<b>"+(a.username||"?")+"</b>");
+    if(a.entitled){
+      h+=line("Subscription","<b style='color:var(--grn)'>"+(a.tierLabel||a.tier)+"</b> ("+a.status+")");
+      h+=line("Turns used","<b>"+a.turnsUsed+"</b> of "+a.turnsCap+" in the last 30 days");
+      if(a.periodEnd)h+=line("Access through",new Date(a.periodEnd).toLocaleDateString());
+    }else{
+      var why=a.reason==="lapsed"?"subscription lapsed — your story is safe; renew to keep playing":"no subscription on this account yet";
+      h+=line("Subscription","<span style='color:var(--acc)'>"+why+"</span>");
+    }
+    h+=renderRouting();
+    h+="<button id='ac-signout' style='width:100%;margin-top:14px;padding:9px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Sign out</button>";
+    body.innerHTML=h;
+    wireRouting();
+    var so=document.getElementById("ac-signout");
+    if(so)so.addEventListener("click",function(){modal.remove();disconnectFromServer();});
+  }
+  body.innerHTML="<p style='color:var(--t2);'>Loading account&hellip;</p>";
+  storageAdapter.fetchAccount(function(err,a){
+    if(err){
+      // Serve the cached readout if one exists; otherwise say what failed (no silent failures).
+      if(typeof serverAccount!=="undefined"&&serverAccount)render(serverAccount);
+      else body.innerHTML="<p style='color:var(--dng);'>Could not reach the server ("+err+"). Your local game is unaffected.</p>";
+      return;
+    }
+    render(a);
+  });
+}
 // ── RAG episodic memory toggle (#27 Phase 1 — RAG_MEMORY.md) ───────────────────
 // Per-campaign flag on worldState.ragMemory (rides the sync blob, read live each turn —
 // the proseAuthor pattern). Modal is built fresh on open so it always reads live state.

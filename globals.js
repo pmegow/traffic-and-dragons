@@ -281,9 +281,17 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.752";
+var APP_VERSION="v1.753";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
+// ── Account-mode GM routing (SERVER_ARCHITECTURE §3, the subscription front end) ──
+// gmRouting: "auto" (default — ride the operator's gateway whenever signed in AND entitled;
+// BYOK otherwise) | "byok" (explicit opt-out: always call vendors directly on own keys).
+// serverAccount is the cached GET /api/account readout ({entitled, tier, turnsUsed, ...}),
+// written only by storageAdapter.fetchAccount — null means "not yet known this session".
+// The routing decision itself is gmViaServer() (api.js); these are just its state.
+var gmRouting="auto";
+var serverAccount=null;
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
 // Per-turn model attribution (#45): the model id callGM resolved for the LAST GAMEPLAY call
 // (sysOverride calls — summarize/actions/skeleton/TT — never touch it). logTranscript stamps it

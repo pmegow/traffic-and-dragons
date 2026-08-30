@@ -45,6 +45,7 @@ function buildFileMenus(){
       h+=btn(null,"Sync state",0,{dim:true})+btn(null,"World state",0,{dim:true})+btn(null,"Render prompt",0,{dim:true})+sep();
     }
     h+=btn(p+"campaigns","&#128193; Campaigns&hellip;",0,{color:"var(--acc)",extra:"font-weight:bold;"});
+    h+=btn(p+"account","&#128100; Account&hellip;",0);/* §3 gateway: subscription status, turn allowance, GM routing, sign out */
     h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
     h+=sep();
     var sl=(g?btn(p+"export","Save Game (local)",0):btn(null,"Save Game (local)",0,{dim:true}))
@@ -103,6 +104,10 @@ function wireButtons(){
   buildFileMenus(); // all three File menus render from ONE spec before any wiring binds to them
   document.getElementById("api-btn").addEventListener("click",submitKey);
   document.getElementById("api-input").addEventListener("keydown",function(e){if(e.key==="Enter")submitKey();});
+  // §3 accounts: the first-run screen leads with sign-in; BYOK folds behind a disclosure.
+  var _gh=document.getElementById("api-signin-github");if(_gh)_gh.addEventListener("click",function(){signInFromApiScreen("github");});
+  var _gg=document.getElementById("api-signin-google");if(_gg)_gg.addEventListener("click",function(){signInFromApiScreen("google");});
+  var _bt=document.getElementById("api-byok-toggle");if(_bt)_bt.addEventListener("click",function(){var s=document.getElementById("api-byok-sec");var open=s.style.display==="none";s.style.display=open?"block":"none";_bt.innerHTML="I have my own API keys "+(open?"&#9652;":"&#9662;");});
   document.getElementById("tone-next").addEventListener("click",function(){if(cs.tone==="custom"){var t=document.getElementById("tone-ct");if(!t||!t.value.trim()){document.getElementById("s1-warn").textContent="Describe your custom tone.";return;}}document.getElementById("s1-warn").textContent="";goStep(2);});
   document.getElementById("id-back").addEventListener("click",function(){goStep(1);});
   document.getElementById("anc-back-detail").addEventListener("click",hideAncDetail);
@@ -153,7 +158,7 @@ function wireButtons(){
     // Toggle button
     if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);var opening=mu.style.display!=="block";if(opening)resetFileSubmenus(mu);mu.style.display=opening?"block":"none";});}
     // Items that close the menu then call a function
-    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["bugreport",showBugReportModal],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
+    [["campaigns",showCampaignPicker],["account",showAccountModal],["blueprints",showBlueprintBrowser],["bugreport",showBugReportModal],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)
@@ -405,4 +410,9 @@ function initState(saved){
   }
 }
 function init(){initSettings();storageAdapter.load(initState);}
-window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();loadProviderSettings();var k=providerKeys[activeProvider];if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});
+window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();loadProviderSettings();var k=providerKeys[activeProvider];if(k)apiKey=k;
+  // §3 accounts: a signed-in session enters WITHOUT a key — the gateway serves GM turns, and an
+  // unentitled account hits the loud 402 message in-game (never a silent dead end). storageAdapter
+  // auto-connected + kicked off fetchAccount at script load, so gmViaServer resolves by first turn.
+  var _srv=(typeof storageAdapter!=="undefined")&&storageAdapter.isServerMode();
+  if(k||_srv){document.getElementById("api-screen").style.display="none";init();}});

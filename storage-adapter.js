@@ -120,6 +120,7 @@ var storageAdapter = (function() {
         _serverUrl = url;
         _token     = tok;
         syncSpeakerStars(null);   // #95.5: fire-and-forget bench adopt on boot (function is hoisted)
+        fetchAccount(null);       // §3 gateway: populate serverAccount so gmViaServer can route
       }
     } catch(e) {}
   }
@@ -146,9 +147,11 @@ var storageAdapter = (function() {
 
   // ── GitHub OAuth popup login ────────────────────────────────────────────
 
-  function loginWithServer(serverUrl, onSuccess) {
+  function loginWithServer(serverUrl, onSuccess, provider) {
     if (_popup && !_popup.closed) { _popup.focus(); return; }
 
+    // provider: "github" (default) | "google" — same ticket flow, different first door (§5.2).
+    var _authPath = provider === "google" ? "/auth/google" : "/auth/github";
     serverUrl = serverUrl.replace(/\/$/, "");
     _popupCb  = onSuccess || null;
     // Origin to accept postMessage auth from (audit E7) — the /auth/done page is served from the
@@ -160,7 +163,7 @@ var storageAdapter = (function() {
     var left = Math.round(screen.width  / 2 - w / 2);
     var top  = Math.round(screen.height / 2 - h / 2);
     _popup = window.open(
-      serverUrl + "/auth/github",
+      serverUrl + _authPath,
       "tnd-auth",
       "width=" + w + ",height=" + h + ",left=" + left + ",top=" + top
     );
@@ -989,6 +992,17 @@ var storageAdapter = (function() {
   function authHeader() { return _token ? { "Authorization": "Bearer " + _token } : {}; }
 
   function whoAmI(cb)                { _apiJson("/auth/me", "GET", null, cb); }
+
+  // §3 gateway: the account readout (tier, entitlement, turn allowance). Writes the
+  // `serverAccount` global — the ONE cache gmViaServer() (api.js) and the account UI read;
+  // null stays "unknown" so routing can distinguish not-yet-fetched from known-unentitled.
+  function fetchAccount(cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    _apiJson("/api/account", "GET", null, function(err, data) {
+      if (!err && data && typeof serverAccount !== "undefined") serverAccount = data;
+      if (cb) cb(err, data);
+    });
+  }
   function getCampaignState(campId, cb) { _apiJson("/api/campaigns/" + encodeURIComponent(campId), "GET", null, cb); }
 
   // parts = {worldState, sessionLog, memory} — the EXPLICIT blob to ship; never reads the
@@ -1060,6 +1074,7 @@ var storageAdapter = (function() {
     flushDirtyTurn:        flushDirtyTurn,       // JP0-11: the unsynced-flush marker — read
     clearFlushDirty:       clearFlushDirty,      // JP0-11: the unsynced-flush marker — clear (tests + campaign teardown)
     whoAmI:                whoAmI,
+    fetchAccount:          fetchAccount,         // §3 gateway: account/entitlement readout → serverAccount global
     getCampaignState:      getCampaignState,
     pushCampaignState:     pushCampaignState,
     putCampaignPortrait:   putCampaignPortrait,
