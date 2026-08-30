@@ -425,31 +425,29 @@ try {
 } catch (eSR) { console.error("JP0-4 CORRUPT-STORE RESCUE CONTRACT: " + (eSR && eSR.message)); process.exit(1); }
 
 // ── #151 LATCH REGISTRY CONTRACT (drift pass order 7, 2026-08-08) ────────────────────────
-// Every worldState key the NOTE_BUILDERS region writes must be declared in NOTE_LATCH_FIELDS,
-// or a failed turn silently burns that builder's latch (the class this pass closed). The census
-// re-runs the same write-scan on every build — a NEW builder stamping an undeclared key fails
-// here, so the registry cannot rot. Also pins the sendAction wiring the DOM-free harness
-// exercises only piecewise.
+// Every worldState key a NOTE_BUILDER or its transitive helper writes must be declared in
+// NOTE_LATCH_FIELDS, narrowly restored, or carry an owner-scoped reviewed exemption. Otherwise
+// a failed turn silently burns that builder's latch (the class this pass closed). Also pins the
+// sendAction wiring the DOM-free harness exercises only piecewise.
 try {
   var _fsLR = require("fs"), _pathLR = require("path");
   var _failLR = function (msg) { console.error("#151 LATCH REGISTRY CONTRACT: " + msg); process.exit(1); };
   var _apiLR = _fsLR.readFileSync(_pathLR.join(__dirname, "..", "api.js"), "utf8");
-  // TWO builder regions: the #147/#149/#150 builders live before buildCoreMemoryBlock, the
-  // original registry cluster before NOTE_BUILDERS. The first sabotage run proved a one-region
-  // census misses the new cluster entirely (the write landed, nothing tripped) — census both.
-  var _b0 = _apiLR.indexOf("function buildQuestEscalation"), _b1 = _apiLR.indexOf("var NOTE_BUILDERS=");
-  var _c0 = _apiLR.indexOf("function buildExpiredThreadNudge"), _c1 = _apiLR.indexOf("function buildCoreMemoryBlock");
-  if (_b0 < 0 || _b1 < 0 || _b1 <= _b0 || _c0 < 0 || _c1 < 0 || _c1 <= _c0) _failLR("builder-region anchors moved — re-point the census");
-  var _segLR = _apiLR.slice(_b0, _b1) + "\n" + _apiLR.slice(_c0, _c1);
-  var _declM = _segLR.match(/var NOTE_LATCH_FIELDS=\[([^\]]*)\]/);
-  if (!_declM) _failLR("NOTE_LATCH_FIELDS is gone from the builder region");
-  var _decl = {}; _declM[1].split(",").forEach(function (k) { k = k.replace(/["'\s]/g, ""); if (k) _decl[k] = 1; });
-  var _wLR = {}, _mLR, _reLR = /worldState\.([A-Za-z_$][A-Za-z0-9_$]*)\s*=[^=]/g;
-  while ((_mLR = _reLR.exec(_segLR))) _wLR[_mLR[1]] = 1;
-  var _rdLR = /delete worldState\.([A-Za-z_$][A-Za-z0-9_$]*)/g;
-  while ((_mLR = _rdLR.exec(_segLR))) _wLR[_mLR[1]] = 1;
-  var _undecl = Object.keys(_wLR).filter(function (k) { return !_decl[k]; });
-  if (_undecl.length) _failLR("builder region writes UNDECLARED worldState key(s): " + _undecl.join(", ") + " — add them to NOTE_LATCH_FIELDS or a failed turn burns that latch");
+  var _lcLR = require("./latch-census.js"), _sourcesLR = {}, _filesLR = _lcLR.NOTE_LATCH_CENSUS_FILES;
+  for (var _iLR = 0; _iLR < _filesLR.length; _iLR++)
+    _sourcesLR[_filesLR[_iLR]] = _fsLR.readFileSync(_pathLR.join(__dirname, "..", _filesLR[_iLR]), "utf8");
+  var _resultLR = _lcLR.censusSources(_sourcesLR);
+  if (!_resultLR.builders.length) _failLR("NOTE_BUILDERS parsed as empty — the transitive census is not running");
+  if (_resultLR.missing.length) _failLR("transitive NOTE_BUILDERS writes UNDECLARED worldState key(s): " + _resultLR.missing.join(", ") + " — declare, narrowly restore, or seek a reviewed owner-scoped exemption");
+  if (_resultLR.rationaleFailures.length) _failLR("ruled exemption rationale/owner failed: " + _resultLR.rationaleFailures.join("; "));
+  if (!_resultLR.writeOwners.pendingRewardClaims || _resultLR.writeOwners.pendingRewardClaims.indexOf("rewardClaimQueue") < 0)
+    _failLR("buildIdentityConflictNudge -> rewardClaimQueue -> pendingRewardClaims is outside the transitive census");
+  if (!_resultLR.writeOwners.clock || _resultLR.writeOwners.clock.indexOf("clockEnsure") < 0)
+    _failLR("buildScheduleEscalation -> scheduleDue -> clockEnsure -> clock is outside the transitive census");
+  if (_resultLR.exempt.clock !== "invariant-repair — restoring corruption after a failed request would undo a repair, not un-burn a note")
+    _failLR("clockEnsure lazy repair exemption lacks its entry-30 rationale verbatim");
+  if (_resultLR.exempt.pendingRewardClaims !== "f31: the player-visible shelve decision precedes the request; subject+tokens dedupe prevents a duplicate claim")
+    _failLR("pendingRewardClaims exemption lacks its entry-30 rationale verbatim");
   var _gmLR = _fsLR.readFileSync(_pathLR.join(__dirname, "..", "game.js"), "utf8");
   var _snapAt = _gmLR.indexOf("snapshotNoteLatches()"), _notesAt = _gmLR.indexOf("buildEngineNotes()");
   if (_snapAt < 0 || _notesAt < 0 || _snapAt > _notesAt) _failLR("sendAction no longer snapshots BEFORE buildEngineNotes");
