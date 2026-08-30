@@ -2707,9 +2707,14 @@ function providerHttpError(prov,status,message){
 function gmViaServer(){
   if(typeof gmRouting!=="undefined"&&gmRouting==="byok")return false;
   if(typeof storageAdapter==="undefined"||!storageAdapter.isServerMode())return false;
-  if(typeof serverAccount!=="undefined"&&serverAccount)return !!serverAccount.entitled;
-  // Account not yet fetched this session: ride the gateway ONLY when the player has no own
-  // key to fall back on — a BYOK player who connected just for cloud sync keeps their path.
+  if(typeof serverAccount!=="undefined"&&serverAccount&&serverAccount.entitled)return true;
+  // Unentitled OR not-yet-fetched: an own key wins (a BYOK player who connected just for
+  // cloud sync keeps their path), but a KEYLESS player always rides the gateway — the server
+  // then refuses with the honest §4.3 402 ("no subscription yet"). The v1.753 version sent
+  // known-unentitled keyless players to the vendor with an empty key instead: Anthropic's
+  // raw "x-api-key header is required" 401 + the paste-a-key box — the wrong remedy shown
+  // to exactly the player who needs the subscription message (found live 2026-08-30, the
+  // owner's first fresh-Google-account test).
   return !(providerKeys[activeProvider]||apiKey);
 }
 function gmTransport(prov,model,key,kind){

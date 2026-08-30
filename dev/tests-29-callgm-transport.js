@@ -419,13 +419,24 @@ tAsync("gmRouting 'byok' forces the vendor path even while entitled", function (
     return calls[0].url.indexOf("api.anthropic.com") >= 0 ? true : "byok opt-out ignored: " + calls[0].url;
   });
 });
-tAsync("known-unentitled account falls back to the vendor path (a sync-only BYOK player keeps their keys)", function () {
+tAsync("known-unentitled: own key wins; KEYLESS rides the gateway for the honest 402 (the fresh-Google-account 401 bug, v1.754)", function () {
   reset(); fastKnobs(); serverOn({ entitled: false, reason: "none" });
   script.push(anthropicOk());
   return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
-    serverOff();
-    if (r.sentinel || !r.ok) return "call did not succeed";
-    return calls[0].url.indexOf("api.anthropic.com") >= 0 ? true : "unentitled account was routed to the gateway: " + calls[0].url;
+    if (r.sentinel || !r.ok) return "keyed call did not succeed";
+    if (calls[0].url.indexOf("api.anthropic.com") < 0) return "unentitled account WITH keys was routed to the gateway: " + calls[0].url;
+    // The v1.753 regression: unentitled + keyless went to the vendor with an EMPTY key —
+    // Anthropic's raw 401 + the paste-a-key box, shown to exactly the player who needed
+    // the "no subscription yet" message. Keyless must ride the gateway instead.
+    calls.length = 0; providerKeys = {}; apiKey = "";
+    script.push(httpErr(402, '{"error":"subscription","reason":"none"}'));
+    return raceCall(["hi", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r2) {
+      serverOff();
+      if (r2.sentinel) return "keyless call never settled";
+      if (r2.ok) return "keyless unentitled call cannot succeed";
+      if (calls[0].url.indexOf("https://tnd.test/api/llm/") !== 0) return "keyless unentitled player did not ride the gateway (would 401 at the vendor): " + calls[0].url;
+      return /no active subscription/i.test(r2.e.message) ? true : "keyless refusal lost the honest message: " + r2.e.message;
+    });
   });
 });
 tAsync("account unknown yet: own key wins; keyless rides the gateway", function () {
