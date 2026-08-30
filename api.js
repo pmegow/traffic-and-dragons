@@ -1489,16 +1489,21 @@ function buildArcWallNudge(){
 // call must not eat an audit (Sol R6 — a due split audit burned its stamp with no delivery).
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
-// The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
+// TWO nested latches ride beside the flat list: charSheet.splitLoc.audited (buildSplitAudit,
+// per companion) and questLog[].staleNudged (buildQuestStaleNudge — entry-30 ruling 2026-08-29:
+// the NARROW title-keyed snapshot, never questLog wholesale in the flat registry, which would
+// silently revert any future mid-flight quest write and deep-copy the whole log per turn).
 var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
-  var snap={t:{},split:[]},i;
+  var snap={t:{},split:[],quests:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
     if(Object.prototype.hasOwnProperty.call(worldState,k)){var sv=JSON.stringify(worldState[k]);snap.t[k]=(sv===undefined)?"null":sv;}
     else snap.t[k]="__ABSENT__";
   }
   var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];
   for(i=0;i<party.length;i++){var cs=party[i].charSheet;if(cs&&cs.splitLoc)snap.split.push({name:party[i].name,audited:cs.splitLoc.audited});}
+  var ql=worldState.questLog||[];
+  for(i=0;i<ql.length;i++){if(ql[i])snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged});}
   return snap;
 }
 function restoreNoteLatches(snap){
@@ -1511,6 +1516,10 @@ function restoreNoteLatches(snap){
   for(i=0;i<snap.split.length;i++){var rec=snap.split[i];
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
+  var ql2=worldState.questLog||[];
+  for(i=0;i<(snap.quests||[]).length;i++){var qr=snap.quests[i];
+    for(j=0;j<ql2.length;j++){if(ql2[j]&&ql2[j].title===qr.title){
+      if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;}}}
 }
 var NOTE_BUILDERS=[buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,

@@ -103,6 +103,7 @@ rc |= sabotage.prove({
 rc |= sabotage.prove({
   file: "api.js",
   command: ["node", ["dev/run-tests.js"]],
+  also: ["dev/sabotage-229-quest-journal.js"],/* #194L6: this battery's working copy rides into the scratch clone so the clone's applicability scan sees the same clause list */
   cases: [
     { label: "#264: the whitelist filter dies — a review-call hallucination mutates anything again",
       mustFail: "whitelisted call applies quest tags and strips",
@@ -112,7 +113,17 @@ rc |= sabotage.prove({
     { label: "#264: ring provenance dies — a stripped tag leaves no forensic trace on the save",
       mustFail: "provenance-ring stripped list",
       find: "    if(_rvStripped&&_rvStripped.length)_tlEntry.stripped=_rvStripped.slice(0,10);",
-      replace: "" }
+      replace: "" },
+
+    { label: "#277-3: the quest-stale capture dies — the contract's census pin catches it (entry 30)",
+      mustFail: "no longer captures questLog[].staleNudged",
+      find: "  for(i=0;i<ql.length;i++){if(ql[i])snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged});}",
+      replace: "" },
+
+    { label: "#277-3: the quest-stale restore is behaviorally dead — a transport loss burns the review note again (entry 30)",
+      mustFail: "the review note burned with no delivery",
+      find: "  var ql2=worldState.questLog||[];",
+      replace: "  var ql2=[];" }
   ]
 });
 

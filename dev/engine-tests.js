@@ -17352,6 +17352,35 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return e.refused.some(function(x){return x==="[QUEST:Foo|completed]";})?true:"the orphan site's quest collection regressed: "+JSON.stringify(e.refused);
   });
 
+  // ── #277-3 / Fable-queue entry 30 (ruled 2026-08-29): the quest-stale stamp joins the #151
+  // transport-loss rollback. buildQuestStaleNudge writes questLog[].staleNudged at note-COMPOSE
+  // time, but snapshotNoteLatches restored only the flat NOTE_LATCH_FIELDS plus the one nested
+  // companion latch — so a dead provider call burned the quest review note for QUEST_STALE_TURNS
+  // with no delivery (Sol's widened-census finding; the exact class #151 promises to prevent).
+  // Ruling: the NARROW per-quest snapshot (title-keyed), not questLog in the flat registry —
+  // wholesale restore would silently revert any future mid-flight quest write and pays a
+  // per-turn deep copy for three stamps.
+  section("#277-3 — the quest-stale stamp survives transport loss (#151)");
+  t("#277-3: a dead provider turn restores questLog[].staleNudged — the review note re-fires",function(){
+    makeWorld();worldState.turn=100;
+    worldState.questLog=[{title:"The Long Watch",status:"active",desc:"",objectives:[],started:10,lastTouch:10}];
+    var snap=snapshotNoteLatches();
+    var note=buildQuestStaleNudge();
+    if(!note)return "fixture broke: the stale nudge did not fire";
+    if(worldState.questLog[0].staleNudged!==100)return "fixture broke: no compose-time stamp";
+    restoreNoteLatches(snap);
+    if(worldState.questLog[0].staleNudged!=null)return "the transport-loss rollback left the stamp — the review note burned with no delivery (entry 30)";
+    return buildQuestStaleNudge()?true:"the nudge cannot re-fire after the restore";
+  });
+  t("#277-3: a stamp that predates the snapshot is PRESERVED by the restore (pin — restore means restore, not clear)",function(){
+    makeWorld();worldState.turn=100;
+    worldState.questLog=[{title:"The Long Watch",status:"active",desc:"",objectives:[],started:10,lastTouch:10,staleNudged:95}];
+    var snap=snapshotNoteLatches();
+    worldState.questLog[0].staleNudged=100;/* a later compose overwrote it */
+    restoreNoteLatches(snap);
+    return worldState.questLog[0].staleNudged===95?true:"the pre-existing stamp was not restored: "+worldState.questLog[0].staleNudged;
+  });
+
   // ── #269 — memory-hygiene family (Fable f37+f38+f39+f42+f43, joint review 2026-08-27).
   // ① NPC knowledge deduped byte-exact only, so paraphrase twins accumulated and each cap-12
   // admission evicted an older UNIQUE fact into a never-injected archive (t2097: one route-mapping

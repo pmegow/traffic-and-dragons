@@ -454,6 +454,13 @@ try {
   var _snapAt = _gmLR.indexOf("snapshotNoteLatches()"), _notesAt = _gmLR.indexOf("buildEngineNotes()");
   if (_snapAt < 0 || _notesAt < 0 || _snapAt > _notesAt) _failLR("sendAction no longer snapshots BEFORE buildEngineNotes");
   if (!/if\(!_committed&&typeof _latchSnap!=="undefined"&&_latchSnap[^\n]*restoreNoteLatches\(_latchSnap\)/.test(_gmLR)) _failLR("the pre-commit failure path no longer restores the latches");
+  // #277-3 / entry-30 (2026-08-29): the census scans TOP-LEVEL writes only, so the nested
+  // questLog[].staleNudged stamp lived outside it — pin the narrow title-keyed pair the way the
+  // companion splitLoc.audited nested latch is pinned by the engine tests.
+  if (_apiLR.indexOf("snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged})") < 0)
+    _failLR("snapshotNoteLatches no longer captures questLog[].staleNudged — a dead provider call burns the quest review note for QUEST_STALE_TURNS (entry 30)");
+  if (_apiLR.indexOf("if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;") < 0)
+    _failLR("restoreNoteLatches no longer restores questLog[].staleNudged title-keyed (entry 30)");
 } catch (eLR) { console.error("#151 LATCH REGISTRY CONTRACT: " + (eLR && eLR.message)); process.exit(1); }
 
 // ── STARS PORTABILITY CONTRACT (#95.5/#95.8 — cloud-backed since v1.450) ─────────────────

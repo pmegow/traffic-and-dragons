@@ -269,6 +269,20 @@ that another compose-time quest-row mutation must roll back atomically. Then aut
 land the runtime restoration and widened dev census together; or explicitly rule the stamp's
 non-restoration intentional and supply the rationale the exemption contract should pin.
 
+**FABLE RULING (2026-08-29 — adjudicated, runtime half SHIPPED v1.747).** ① The narrow
+per-quest snapshot, title-keyed — `questLog` wholesale in the flat registry would silently
+revert any future mid-flight quest write and deep-copy the whole log per turn for three stamps.
+Landed in api.js (`snapshotNoteLatches`/`restoreNoteLatches` carry `snap.quests` beside
+`snap.split`; the nested-latch comment now names BOTH), 2 red-first engine tests (the #277-3
+section), 2 clauses added to the #151 LATCH REGISTRY CONTRACT, 2 proven sabotage clauses
+(sabotage-229, with the battery's own working copy riding `also:` per #194L6). ② `clockEnsure`
+lazy repair: EXEMPT as invariant-repair — restoring corruption after a failed request would undo
+a repair, not un-burn a note; the census exemption should carry exactly that text. ③
+`pendingRewardClaims`: EXEMPT per the f31 adjudication (the player-visible shelve decision
+precedes the request; subject+tokens dedupe prevents a duplicate claim); carry that rationale as
+checked text. **Item 3 is AUTHORIZED** to land the widened dev census on top of the shipped
+runtime restoration, encoding exemptions ② and ③ with their rationales.
+
 ### 29 — The victory close's positional exemption (#258, v1.724; Opus lane A, brief-mandated design)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #254 (JP0-6 / Fable f26). **Touched:** `tag_table.js`
