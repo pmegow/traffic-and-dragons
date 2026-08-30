@@ -1487,3 +1487,163 @@ look than one campaign. (3) One campaign, one tone, one voice, one seed — the 
 width caveat applies to this arm exactly as it does to the others. (4) The guard is a pinned engine
 test (`#22 gemini buildBody pins thinkingLevel 'low'`), verified red before the change; it pins the
 value but cannot detect the model silently reinterpreting "low".
+
+---
+
+## Entries 34–36 — the Sol tranche-2 evidence briefs, adjudicated (2026-08-30)
+
+Three read-only evidence briefs filed 2026-08-29 from the joint review's completeness gaps
+(g7/g1/g2, via TODO #277 item 7), all adjudicated on Fable 2026-08-30:
+
+**36 (level-up path, gap g2) → TODO #284, shipped v1.752.** The confirmed persistence hole is
+closed. The adjudication SPLIT the "reconstruct looks strictly better" leaning: bump/spell queues
+are NOT deterministically reconstructible (no creation-stat baseline; pre-C2 saves never received
+picks, so invented owed records could double-grant) and became durable save fields keyed by
+character (worldState.levelUpOwed); the archetype IS deterministic and self-heals via
+levelUpArchetypeDue + pickArchetype's existing catch-up grant. One re-surface seam
+(resurfaceLevelUpOwed, creation-flow order) rides boot and the sendAction guard. The W2 envelope
+rollback's module-var snapshot retired. Residual: the brief's 1→20 live sweep stays open as a
+playtest item.
+
+**35 (affordance gate, gap g1) → TODO #283, shipped v1.751.** Both findings confirmed and fixed:
+the manifest's polarity-blind prose scan deleted in favor of structured presence (unsplit party +
+#194-sourced lastSeenAt + the active frame's observed[] with a frame-node guard), and
+SUGGESTION_ASK reconciles the call's user message to the mode block's #141 {present, actions}
+object so the checking space survives the format fight.
+
+**34 (STT auto-send, gap g7) → no engine change.** The direct presence/registration concern is
+REFUTED by code trace: player text never runs applyMuts, corrected names cannot call
+npcRegisterMention/npcRecordPresence, and RAG is read-side only — the honest statement is
+"input-side retrieval/prompt steer, no canon write". The null-native-confidence + one-tame-
+correction auto-send route is explicit #77 policy and stands until a field wrong-substitution
+report (the corrected text is visible in the player's own message bubble; Car Mode owns the spoken
+confirm loop for the suspicious class). The genuinely missing behavioral battery — driving
+corrected final chunks through _applySendPolicy into sendAction for native and cloud, with the
+brief's probe matrix — is filed as TODO #287 (test-only, safe-changes legal).
+
+**Original filings (verbatim, as removed from the queue 2026-08-30):**
+
+### 36 — Level-up path: strong spot coverage, but owed choices are page-lifetime only (read-only evidence brief; Fable gap g2)
+
+**Filed:** 2026-08-29. **Source:** `Fable_Review_2025_08_27.html` completeness gap g2 / TODO
+#277 item 7. **Touched:** this evidence entry only — `game.js`, `tag_table.js`, `class_bible.js`,
+and the tests below were read, never edited.
+
+**Verified mechanism.** `[XP:]` calls `checkLevelUp()` inside the tag-table handler and then mirrors
+the same award to every living party companion; `[COMPANION_XP:]` is a second, additive writer that
+calls `checkCompanionLevelUp()` on the named sheet. Both level functions loop one level at a time,
+grant HP and the exact class/archetype bible rows crossed, and collect every crossed spell tier.
+The player path queues archetype → every owed stat bump → every owed spell pick; companions take the
+first unknown bible spells automatically. A single large award therefore has the right implementation
+shape for 1→N progression, rather than granting only the destination row.
+
+**Coverage already present — the original gap is review coverage, not zero tests.** The current
+engine suite pins the 1→5 single-award HP/feature loop, 4→6 class+archetype rows, 10→11 access above
+the old cap, companion row parity, the 1..20 XP curve, full/half/third-caster tier schedules,
+multi-unlock collection, player owed-pick counts, loud blank-bench skipping, companion auto-pick
+dedupe/mana growth, shared-XP mirroring, same-response mirror+bonus addition, and an object-replacement
+adversary proving each award lands once. The v1.709 toast tests also name every granted feature.
+What is absent is the requested end-to-end 1→20 sweep and any behavioral execution of
+`showSpellUnlockModal` / `spuConfirm`; headless setup stubs the archetype modal and only inspects the
+spell queue.
+
+**Confirmed persistence hole for Fable to adjudicate.** `_levelBumpsOwed` and
+`_spellUnlocksOwed` are module variables, not save fields. `checkLevelUp()` commits `character.level`
+before presenting the forced choices; `sendAction()` re-surfaces queues only while that page is still
+alive. Reload after the level/state save but before completing a modal clears both queues, and the
+same XP cannot reconstruct them because `newLvl <= c.level` returns immediately. The archetype choice
+has the same one-shot shape: only crossing old&lt;3→new≥3 calls `showArchetypeModal`, and no boot or
+send guard reopens it for a level≥3 character whose archetype is still null. Thus “owed choices
+resurface before the next turn” is true in-page but not across reload/device handoff; earned stat,
+archetype, and spell choices can be stranded after the level itself is durable.
+
+**Probe first.** In a disposable saved world, drive player and companion 1→20 through the real XP
+tags and compare every granted row/unlock to the bible. Separately reload at each forced modal
+(archetype, stat bump, spell pick), then attempt the next turn: the review should decide whether owed
+choices become durable records or are deterministically reconstructed from level, abilities, stats,
+and known spells. Include one large `[XP:]` crossing multiple stat and spell milestones plus a
+same-response `[COMPANION_XP:]` bonus.
+
+### 35 — Affordance gate: rejection rules are tested; two scene-check seams remain suspect (read-only evidence brief; Fable gap g1)
+
+**Filed:** 2026-08-29. **Source:** `Fable_Review_2025_08_27.html` completeness gap g1 / TODO
+#277 item 7. **Touched:** this evidence entry only — `game.js`, `memory.js`, and the tests below were
+read, never edited.
+
+**Verified mechanism.** `generateActions()` parses the model payload, then every rendered candidate
+runs through `applySuggestionGate()`. `buildSceneManifest()` derives living local targets, immediate
+exits, and the active sheet's capabilities; `validateSuggestion()` rejects a local capability aimed
+off-scene, an unowned spell, direct interaction with a dead NPC, direct address of an absent NPC,
+leading remote travel while sublocated, and a roster name never introduced to the story. Every
+rejection is loud and receives a manifest-built fallback which is itself revalidated; an axiomatic
+generic action is the terminal floor.
+
+**Coverage already present — substantially stronger than g1 implied.** The engine suite exercises
+each requested failure input, including the exact cross-town Message and sealed-stairwell field
+cases, dead-vs-mention precision, unowned Fireball, split-party absence under #137, the #143
+zero-introduction dossier, fallback revalidation/termination, combat exit suppression, remote-range
+exemption, and location-alias resolution after #156. The #141 object parser accepts fenced/wrapped
+`{present,actions}`, rejects an object without actions, logs the present line, and preserves legacy
+array tolerance. The residual risk is therefore in what authorizes `man.npcs`, not an untested list
+of rejection arms.
+
+**Finding 1 — a mention still authorizes presence at this seam.** `buildSceneManifest()` scans the
+latest GM transcript entry and adds any living roster name it contains, without judging assertion
+polarity or using #194's sourced presence facts. “Ameiko remains in Sandpoint, miles away” therefore
+puts Ameiko in `man.npcs` and disables both the local-cap-remote-target and absent-direct-address
+rules for that button set. That is the exact mention→presence inference #194 made impossible in the
+canonical presence writers, reintroduced locally in the UI authorization manifest. Existing tests
+cover a genuinely present name in narration, but no negative/remote mention.
+
+**Finding 2 — the forced scene-check instruction contradicts the call's user message.** The
+volatile `SUGGESTION_MODE_BLOCK` demands the #141 object, but `generateActions()` simultaneously asks
+for “ONLY a JSON array of 3 strings.” The tolerant parser means an obedient array succeeds and the
+deterministic gate still runs, but the `present` checking space and its telemetry disappear. Current
+tests exercise the parser and system block separately; none pins the assembled call against this
+object-vs-array conflict.
+
+**Probe first.** Reproduce the negative-mention sentence above and assert the remote NPC remains
+unauthorized; then capture the actual suggestion request/response shape to see which conflicting
+format instruction wins. Keep the existing adversarial rejection matrix, but add explicit
+#194-sourced presence positives (`SAY`/combat/arrival/cast as ruled) and negative prose mentions.
+Fable should decide whether the manifest consumes the structured presence frame rather than doing
+another prose scan; any remedy is in the protected runtime surface and is intentionally not attempted
+here.
+
+### 34 — STT auto-send: canonical-input steering is real; direct presence mutation is not (read-only evidence brief; Fable gap g7)
+
+**Filed:** 2026-08-29. **Source:** `Fable_Review_2025_08_27.html` completeness gap g7 / TODO
+#277 item 7. **Touched:** this evidence entry only — `stt.js`, `helpers.js`, `game.js`, `memory.js`,
+and the tests below were read, never edited.
+
+**Verified mechanism.** Native final chunks and cloud transcripts both run through
+`sttCorrectNames()` before the corrected text reaches `#action-input`; `_applySendPolicy()` then uses
+that corrected value. With desktop auto-send or Car Mode enabled, a non-suspicious utterance calls
+`sendAction` without another human glance. The committed player string becomes the turn's player
+transcript entry and `lastAction`; RAG gives NPCs named in that input weight 3, above ordinary
+scene-presence weight 2, and also scores the input's lexical terms. A false roster correction is
+therefore a durable input-side retrieval/prompt steer even though it is not GM-authored canon.
+
+**The original presence/registration concern is narrowed, not confirmed.** Player text never runs
+through `applyMuts`; `[NPC:]` registration and #194 presence derive from the GM response's sanctioned
+writers. A corrected name in player input cannot directly call `npcRegisterMention` or
+`npcRecordPresence`, and RAG is read-side only. It can still influence the next GM response and the
+player-input watchers (`detectPlayerStayBehind`, consumable checks), so the safe statement is “no
+direct presence/registration write,” not “no downstream state effect.”
+
+**Existing guards and the live hole.** Pure tests cover the known mangle pairs, a common-word safety
+set, ambiguity, punctuation, correction collection, low confidence, far corrections, the
+`there is`→Daeris bigram, multiple corrections, unknown capitalized names, confirm vocabulary, and
+the log ring. The source contract pins pending-confirm ordering above Car commands, cloud logprobs,
+and confirmed use of stored pending text. But the suite never behaviorally drives a corrected final
+chunk through `_applySendPolicy` into `sendAction`. By explicit policy, null native confidence never
+flags and one “tame” correction stays silent; that combination is an allowed auto-send route for a
+plausible but wrong roster substitution. Desktop auto-send parks suspicious text visually, whereas
+Car Mode owns the spoken yes/no loop; both share the same suspicion thresholds.
+
+**Probe first.** Load `stt.js` with a fake recognizer/input/send boundary and prove the full route for
+native and cloud: corrected text, suspicion verdict, confirmation ordering, and the exact string
+handed to `sendAction`. Include campaign-specific near-homophones (the g7 “a mica”→Ameiko shape),
+null confidence + one low-score correction, a correction naming a split/remote party member, and a
+spoken “no” while Car Mode is busy. Assert no direct registration/presence write, then assert the
+expected RAG query entity and any player-input watcher that arms.

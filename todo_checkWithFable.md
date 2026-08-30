@@ -56,131 +56,6 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
-### 36 — Level-up path: strong spot coverage, but owed choices are page-lifetime only (read-only evidence brief; Fable gap g2)
-
-**Filed:** 2026-08-29. **Source:** `Fable_Review_2025_08_27.html` completeness gap g2 / TODO
-#277 item 7. **Touched:** this evidence entry only — `game.js`, `tag_table.js`, `class_bible.js`,
-and the tests below were read, never edited.
-
-**Verified mechanism.** `[XP:]` calls `checkLevelUp()` inside the tag-table handler and then mirrors
-the same award to every living party companion; `[COMPANION_XP:]` is a second, additive writer that
-calls `checkCompanionLevelUp()` on the named sheet. Both level functions loop one level at a time,
-grant HP and the exact class/archetype bible rows crossed, and collect every crossed spell tier.
-The player path queues archetype → every owed stat bump → every owed spell pick; companions take the
-first unknown bible spells automatically. A single large award therefore has the right implementation
-shape for 1→N progression, rather than granting only the destination row.
-
-**Coverage already present — the original gap is review coverage, not zero tests.** The current
-engine suite pins the 1→5 single-award HP/feature loop, 4→6 class+archetype rows, 10→11 access above
-the old cap, companion row parity, the 1..20 XP curve, full/half/third-caster tier schedules,
-multi-unlock collection, player owed-pick counts, loud blank-bench skipping, companion auto-pick
-dedupe/mana growth, shared-XP mirroring, same-response mirror+bonus addition, and an object-replacement
-adversary proving each award lands once. The v1.709 toast tests also name every granted feature.
-What is absent is the requested end-to-end 1→20 sweep and any behavioral execution of
-`showSpellUnlockModal` / `spuConfirm`; headless setup stubs the archetype modal and only inspects the
-spell queue.
-
-**Confirmed persistence hole for Fable to adjudicate.** `_levelBumpsOwed` and
-`_spellUnlocksOwed` are module variables, not save fields. `checkLevelUp()` commits `character.level`
-before presenting the forced choices; `sendAction()` re-surfaces queues only while that page is still
-alive. Reload after the level/state save but before completing a modal clears both queues, and the
-same XP cannot reconstruct them because `newLvl <= c.level` returns immediately. The archetype choice
-has the same one-shot shape: only crossing old&lt;3→new≥3 calls `showArchetypeModal`, and no boot or
-send guard reopens it for a level≥3 character whose archetype is still null. Thus “owed choices
-resurface before the next turn” is true in-page but not across reload/device handoff; earned stat,
-archetype, and spell choices can be stranded after the level itself is durable.
-
-**Probe first.** In a disposable saved world, drive player and companion 1→20 through the real XP
-tags and compare every granted row/unlock to the bible. Separately reload at each forced modal
-(archetype, stat bump, spell pick), then attempt the next turn: the review should decide whether owed
-choices become durable records or are deterministically reconstructed from level, abilities, stats,
-and known spells. Include one large `[XP:]` crossing multiple stat and spell milestones plus a
-same-response `[COMPANION_XP:]` bonus.
-
-### 35 — Affordance gate: rejection rules are tested; two scene-check seams remain suspect (read-only evidence brief; Fable gap g1)
-
-**Filed:** 2026-08-29. **Source:** `Fable_Review_2025_08_27.html` completeness gap g1 / TODO
-#277 item 7. **Touched:** this evidence entry only — `game.js`, `memory.js`, and the tests below were
-read, never edited.
-
-**Verified mechanism.** `generateActions()` parses the model payload, then every rendered candidate
-runs through `applySuggestionGate()`. `buildSceneManifest()` derives living local targets, immediate
-exits, and the active sheet's capabilities; `validateSuggestion()` rejects a local capability aimed
-off-scene, an unowned spell, direct interaction with a dead NPC, direct address of an absent NPC,
-leading remote travel while sublocated, and a roster name never introduced to the story. Every
-rejection is loud and receives a manifest-built fallback which is itself revalidated; an axiomatic
-generic action is the terminal floor.
-
-**Coverage already present — substantially stronger than g1 implied.** The engine suite exercises
-each requested failure input, including the exact cross-town Message and sealed-stairwell field
-cases, dead-vs-mention precision, unowned Fireball, split-party absence under #137, the #143
-zero-introduction dossier, fallback revalidation/termination, combat exit suppression, remote-range
-exemption, and location-alias resolution after #156. The #141 object parser accepts fenced/wrapped
-`{present,actions}`, rejects an object without actions, logs the present line, and preserves legacy
-array tolerance. The residual risk is therefore in what authorizes `man.npcs`, not an untested list
-of rejection arms.
-
-**Finding 1 — a mention still authorizes presence at this seam.** `buildSceneManifest()` scans the
-latest GM transcript entry and adds any living roster name it contains, without judging assertion
-polarity or using #194's sourced presence facts. “Ameiko remains in Sandpoint, miles away” therefore
-puts Ameiko in `man.npcs` and disables both the local-cap-remote-target and absent-direct-address
-rules for that button set. That is the exact mention→presence inference #194 made impossible in the
-canonical presence writers, reintroduced locally in the UI authorization manifest. Existing tests
-cover a genuinely present name in narration, but no negative/remote mention.
-
-**Finding 2 — the forced scene-check instruction contradicts the call's user message.** The
-volatile `SUGGESTION_MODE_BLOCK` demands the #141 object, but `generateActions()` simultaneously asks
-for “ONLY a JSON array of 3 strings.” The tolerant parser means an obedient array succeeds and the
-deterministic gate still runs, but the `present` checking space and its telemetry disappear. Current
-tests exercise the parser and system block separately; none pins the assembled call against this
-object-vs-array conflict.
-
-**Probe first.** Reproduce the negative-mention sentence above and assert the remote NPC remains
-unauthorized; then capture the actual suggestion request/response shape to see which conflicting
-format instruction wins. Keep the existing adversarial rejection matrix, but add explicit
-#194-sourced presence positives (`SAY`/combat/arrival/cast as ruled) and negative prose mentions.
-Fable should decide whether the manifest consumes the structured presence frame rather than doing
-another prose scan; any remedy is in the protected runtime surface and is intentionally not attempted
-here.
-
-### 34 — STT auto-send: canonical-input steering is real; direct presence mutation is not (read-only evidence brief; Fable gap g7)
-
-**Filed:** 2026-08-29. **Source:** `Fable_Review_2025_08_27.html` completeness gap g7 / TODO
-#277 item 7. **Touched:** this evidence entry only — `stt.js`, `helpers.js`, `game.js`, `memory.js`,
-and the tests below were read, never edited.
-
-**Verified mechanism.** Native final chunks and cloud transcripts both run through
-`sttCorrectNames()` before the corrected text reaches `#action-input`; `_applySendPolicy()` then uses
-that corrected value. With desktop auto-send or Car Mode enabled, a non-suspicious utterance calls
-`sendAction` without another human glance. The committed player string becomes the turn's player
-transcript entry and `lastAction`; RAG gives NPCs named in that input weight 3, above ordinary
-scene-presence weight 2, and also scores the input's lexical terms. A false roster correction is
-therefore a durable input-side retrieval/prompt steer even though it is not GM-authored canon.
-
-**The original presence/registration concern is narrowed, not confirmed.** Player text never runs
-through `applyMuts`; `[NPC:]` registration and #194 presence derive from the GM response's sanctioned
-writers. A corrected name in player input cannot directly call `npcRegisterMention` or
-`npcRecordPresence`, and RAG is read-side only. It can still influence the next GM response and the
-player-input watchers (`detectPlayerStayBehind`, consumable checks), so the safe statement is “no
-direct presence/registration write,” not “no downstream state effect.”
-
-**Existing guards and the live hole.** Pure tests cover the known mangle pairs, a common-word safety
-set, ambiguity, punctuation, correction collection, low confidence, far corrections, the
-`there is`→Daeris bigram, multiple corrections, unknown capitalized names, confirm vocabulary, and
-the log ring. The source contract pins pending-confirm ordering above Car commands, cloud logprobs,
-and confirmed use of stored pending text. But the suite never behaviorally drives a corrected final
-chunk through `_applySendPolicy` into `sendAction`. By explicit policy, null native confidence never
-flags and one “tame” correction stays silent; that combination is an allowed auto-send route for a
-plausible but wrong roster substitution. Desktop auto-send parks suspicious text visually, whereas
-Car Mode owns the spoken yes/no loop; both share the same suspicion thresholds.
-
-**Probe first.** Load `stt.js` with a fake recognizer/input/send boundary and prove the full route for
-native and cloud: corrected text, suspicion verdict, confirmation ordering, and the exact string
-handed to `sendAction`. Include campaign-specific near-homophones (the g7 “a mica”→Ameiko shape),
-null confidence + one low-score correction, a correction naming a split/remote party member, and a
-spoken “no” while Car Mode is busy. Assert no direct registration/presence write, then assert the
-expected RAG query entity and any player-input watcher that arms.
-
 ### 33 — Clock corruption rescue (#274, v1.734; Opus lane D, brief-mandated design)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #274 (Fable f63, verified). **Touched:** `clock.js` (new
@@ -892,6 +767,9 @@ zero 2026-07-27 and again 2026-07-30.
 
 | # | Subject | Reviewed | Verdict |
 |---|---|---|---|
+| 36 | Level-up path evidence brief (Sol, gap g2) | 2026-08-30 | ADJUDICATED → **#284 shipped v1.752**: the confirmed persistence hole is closed — owed bump/spell queues became durable save fields keyed by character (`worldState.levelUpOwed`; reconstruction rejected for those halves — no creation-stat baseline, pre-C2 double-grant risk), the archetype strand self-heals via deterministic `levelUpArchetypeDue`, one re-surface seam rides boot + the sendAction guard, and the W2 envelope rollback simplified (queues now roll back with the worldState clone). 4 failing-first tests + 4 sabotage clauses. Residual: the brief's 1→20 live sweep stays open as a playtest item |
+| 35 | Affordance-gate evidence brief (Sol, gap g1) | 2026-08-30 | ADJUDICATED → **#283 shipped v1.751**: finding 1 confirmed and fixed — the manifest's polarity-blind prose scan is DELETED; presence = unsplit party + #194-sourced lastSeenAt + the active frame's observed[] (frame-node guarded); the negative-mention case now leaves the rejection rules armed. Finding 2 confirmed and fixed — `SUGGESTION_ASK` reconciles the user message to the mode block's #141 {present, actions} object. 3 failing-first tests + 1 retitle + 4 sabotage clauses incl. resurrecting the prose scan |
+| 34 | STT auto-send evidence brief (Sol, gap g7) | 2026-08-30 | ADJUDICATED, no engine change: the direct presence/registration concern is REFUTED by code trace (player text never runs applyMuts; RAG is read-side) — the honest statement is "input-side retrieval/prompt steer, no canon write". The null-confidence + one-tame-correction auto-send route is EXPLICIT #77 policy and stands until a field wrong-substitution report (the corrected text is visible in the player's own bubble). The genuinely missing piece — a behavioral battery driving corrected chunks through `_applySendPolicy` into `sendAction` — filed as TODO #287 (test-only) |
 | 17 | #175b structured presence as a positive death binding (v1.649) — six-brief delegated-evidence review | 2026-08-17 | Design AFFIRMED (owner-ruled; t1903 repair reproducible), implementation violated its own strictly-earlier contract — 7 confirmed defect groups fixed v1.650 failing-test-first: the unpinned executor's silent WRONG-VICTIM kill (a "Caul" envelope with handle "Vex" stamped Caulder Vex dead), the turn-blind lastSeenAt limb, the split-guard half-coverage, the frame-scan sourceTurn ignore, the heal asymmetry, the t1903 nine-record nudge factory + latch misattribution, and the ws-only handle/name disagreement; +13 tests (each red on v1.649) + 5 sabotage clauses; 7 residues accepted with rationale; descriptor fuzziness filed as TODO #193 |
 | 16 | Gemini pinned to thinkingLevel "low" on every call kind (#22, v1.645; Opus, owner-ruled) | 2026-08-29 | CLEARED via joint-review f81 (verified confirmed) — the pinned buildBody guard is green; the "silent reinterpretation" blind spot is partially covered by parseUsage folding thoughtsTokenCount into the Usage meter; summarize-under-low-reasoning is backstopped by W6/W2 validation + the #17 summary-failure anomalies (scoped: structural contradictions, not thin-but-valid summaries — the silent-quality watch stays at #276⑤/f46); the #29b fallback rung (gemini-3.6-flash) was sweep-certified with the pin already shipped (identical body — gemini embeds the model in the URL). Two watches recorded in the archived entry: (a) re-measure the thinking-on vs low A/B (n=5 vs n=2) only when server-side subscription pricing makes the number load-bearing; (b) any gemini model-id change must re-verify "low" is accepted — "minimal" 400s on 3.7-flash and the pin test cannot see an HTTP rejection. |
 | 15 | Per-character location-visit provenance gap (#173; Codex investigation) | 2026-08-14 | CLOSED outside the queue — guestbook adjudication (`6850d99`) authorized the build with seven pinned amendments; shipped v1.632–v1.633 + map-viewer panel; entry archived 2026-08-17 |
