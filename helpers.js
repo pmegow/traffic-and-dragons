@@ -967,6 +967,34 @@ function itemLookup(nm){
   if(typeof worldState!=="undefined"&&worldState&&worldState.itemBible&&worldState.itemBible[canon])return worldState.itemBible[canon];
   return (typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[canon])||null;
 }
+// #285 (joint review f18): THE Define-eligibility gate — the ONE predicate the sheet button and
+// buildItemDefinePrompt both call, so the surfaces can never disagree. Eligible when the item has
+// no canon at all (the original #230 case), OR when it resolves BY ITS OWN KEY to a curated BASE
+// entry that is classification-only (effect "N/A" outside mundane/treasure — such an entry
+// organizes and tooltips but NEVER injects via buildItemBibleBlock, so the GM still re-derives the
+// item's nature from its name every turn: the Cleaver drift class). The ITEM_DEF handler's
+// write-once check tests only the worldState.itemBible OVERLAY, so a player-confirmed def lands
+// and correctly shadows the base (#157 precedence). An existing OVERLAY entry — even a
+// classification-only one — stays ineligible: there write-once is REAL and a paid review call
+// could never land. Alias-resolved entries stay ineligible: the proposal would land under the
+// alias's own key and split resolution from the curated canon key.
+function itemDefEligible(rawItem){
+  if(typeof itemBaseName!=="function"||typeof itemLookup!=="function")return false;
+  var key=itemBaseName(rawItem);
+  if(!key)return false;
+  var hit=itemLookup(rawItem);
+  if(!hit)return true;
+  if(typeof worldState!=="undefined"&&worldState&&worldState.itemBible&&worldState.itemBible[key])return false;
+  if(typeof ITEM_BIBLE==="undefined"||ITEM_BIBLE[key]!==hit)return false;/* overlay- or alias-resolved */
+  return hit.effect==="N/A"&&hit.category!=="mundane"&&hit.category!=="treasure";
+}
+// #285: the confirm modal's shadow notice — non-empty when accepting the keyed proposal would
+// REPLACE a curated base entry wholesale (multi-category listings and curated value/uses are
+// superseded unless the proposal repeats them — the no-silent-failures line the player sees).
+function itemDefShadowNote(key){
+  if(typeof ITEM_BIBLE==="undefined"||!key||!ITEM_BIBLE[key])return"";
+  return "Accepting replaces the existing organize-only catalog entry for this item ("+ITEM_BIBLE[key].category+") — the new definition becomes the whole entry.";
+}
 // ── #157: THE shared inventory view model (Sol §5) — one pure grouping fn, two renderers ───
 // Returns non-empty category groups in registry order (+ Unclassified last), each row carrying
 // its ORIGINAL array index so a visually regrouped Drop still removes the right stored row.

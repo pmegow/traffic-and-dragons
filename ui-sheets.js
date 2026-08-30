@@ -174,11 +174,13 @@ function csSheetSections(c,invOwner,portable){
       for(_ri=0;_ri<_grp.rows.length;_ri++){
         var _row=_grp.rows[_ri];
         var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+_row.sourceIndex+'" onclick="dropInvItem(this.dataset.own,this.dataset.idx,event)" title="Drop this item" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=\'var(--t2)\'">&#10005;</button>':"";
-        // #230: 📖 Define — live sheets only, canon-less items only (itemLookup miss = no ITEM
-        // CANON line = the GM re-derives from the name each turn, the Cleaver class). Sends the
-        // RAW provenance line; defineItemFromStory (game.js) runs the story-grounded review and
-        // the existing #81 confirm modal keeps the player as the gate.
-        var _defBtn=(_canDrop&&typeof itemLookup==="function"&&!itemLookup(_row.raw))?'<button class="inv-def" data-raw="'+escHtml(_row.raw)+'" onclick="defineItemFromStory(this.dataset.raw,event)" title="Define this item: the GM reviews the story for what is already established about it and proposes canon — you confirm before it binds. Canonized items are re-injected every turn, so their nature can no longer drift." style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--acc)\'" onmouseout="this.style.color=\'var(--t2)\'">&#128214;</button>':"";
+        // #230: 📖 Define — live sheets only; #285 (f18) widened the gate from bare itemLookup
+        // misses to the shared itemDefEligible predicate (helpers.js): canon-less items AND
+        // classification-only curated BASE entries qualify — both leave the GM re-deriving the
+        // item's nature from its name each turn (the Cleaver class). Sends the RAW provenance
+        // line; defineItemFromStory (game.js) runs the story-grounded review and the existing
+        // #81 confirm modal keeps the player as the gate.
+        var _defBtn=(_canDrop&&typeof itemDefEligible==="function"&&itemDefEligible(_row.raw))?'<button class="inv-def" data-raw="'+escHtml(_row.raw)+'" onclick="defineItemFromStory(this.dataset.raw,event)" title="Define this item: the GM reviews the story for what is already established about it and proposes canon — you confirm before it binds. Canonized items are re-injected every turn, so their nature can no longer drift." style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--acc)\'" onmouseout="this.style.color=\'var(--t2)\'">&#128214;</button>':"";
         invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span>'+invItemHtml(_row.raw)+'</span><span style="display:flex;gap:2px;flex-shrink:0;">'+_defBtn+_dropBtn+'</span></div>';
       }
     }

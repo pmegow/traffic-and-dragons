@@ -3756,6 +3756,47 @@ function runEngineTests(R){
     var m=buildItemDefinePrompt("Umbral warblade — hums near ghosts, origin unknown");
     return m&&m.indexOf("[ITEM_DEF:umbral warblade|")>=0?true:"companion inventory not searched: "+(m?"(prompt built wrong)":"(refused)");
   });
+  t("#285 (f18): a classification-only BASE entry is Define-eligible — the organize-only canon never injects, so the nature still drifts",function(){
+    /* Joint review f18 (verified + verifier-refined): the old gate keyed on ANY itemLookup hit,
+       citing a write-once blocker that does not exist for base entries — the ITEM_DEF handler's
+       write-once check tests only the worldState.itemBible OVERLAY, and itemLookup gives the
+       overlay precedence, so a player-confirmed Define lands and correctly shadows the base. */
+    makeWorld();
+    worldState.character.inventory.push("Vial of contact paralytic");/* curated base: consumable, effect N/A — organizes but never injects */
+    if(typeof itemDefEligible!=="function")return "itemDefEligible predicate missing (the ONE gate both surfaces share)";
+    if(!itemDefEligible("Vial of contact paralytic"))return "classification-only base entry not eligible — its nature drifts forever with no in-game fix";
+    var m=buildItemDefinePrompt("Vial of contact paralytic");
+    if(!m)return "prompt refused a Define over an organize-only base entry (the f18 wrong premise)";
+    if(m.indexOf("[ITEM_DEF:vial of contact paralytic|")<0)return "instruction must pin the base-name key";
+    if(!/organize-only|no mechanics/i.test(m))return "prompt should tell the GM this shadows an organize-only entry: "+m.slice(0,160);
+    if(!/consumable/.test(m))return "prompt should carry the curated category so the accepted overlay preserves it";
+    return true;
+  });
+  t("#285 (f18): effect-bearing base and ANY overlay entry stay Define-ineligible; alias-resolved entries refuse too",function(){
+    makeWorld();
+    /* effect-bearing base: write-once is moot — the def would add nothing the injection lacks */
+    worldState.character.inventory.push("Alchemist's fire x5");
+    if(itemDefEligible("Alchemist's fire x5"))return "effect-bearing base entry wrongly eligible";
+    /* classification-only OVERLAY: the verifier's third case — write-once IS real here, and the
+       widened button would burn a paid review call that can never land */
+    worldState.itemBible={"mystery tool":{category:"tool",effect:"N/A",uses:"N/A",value:"N/A"}};
+    worldState.character.inventory.push("Mystery tool");
+    if(itemDefEligible("Mystery tool"))return "classification-only OVERLAY entry wrongly eligible — its write-once refusal is real";
+    if(buildItemDefinePrompt("Mystery tool")!==null)return "prompt built for an overlay entry that can never accept a def";
+    /* alias-resolved: the proposal would land under the alias's own key and split resolution
+       from the curated canon key — conservative refusal */
+    worldState.itemBible["true relic"]={category:"quest",effect:"N/A",uses:"N/A",value:"N/A",aliases:["old relic name"]};
+    worldState.character.inventory.push("Old relic name");
+    if(itemDefEligible("Old relic name"))return "alias-resolved entry wrongly eligible — the def would land under the alias key";
+    return true;
+  });
+  t("#285 (f18): itemDefShadowNote — the confirm modal names the shadow, silent for genuinely new canon",function(){
+    makeWorld();
+    if(typeof itemDefShadowNote!=="function")return "itemDefShadowNote helper missing";
+    var n=itemDefShadowNote("vial of contact paralytic");
+    if(!n||!/organize-only|replaces/i.test(n))return "no shadow notice for a curated base entry being replaced: "+JSON.stringify(n);
+    return itemDefShadowNote("never heard of it")===""?true:"notice rendered for an item with no curated entry";
+  });
   t("joint f20: the define caller recognizes a real proposal for its requested base-name key",function(){
     if(!_itemDefProposalFor("Grounded. [ITEM_DEF:Cleaver|category=weapon|effect=Binds.|uses=N/A|value=N/A]", "cleaver"))return "matching proposal was not recognized";
     if(!_itemDefProposalFor("[ITEM_DEF:Cleaver (old runeblade)|category=weapon|effect=Binds.|uses=N/A|value=N/A]", "cleaver"))return "provenance-bearing proposal did not normalize to its base key";

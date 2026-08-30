@@ -433,9 +433,11 @@ function showItemDefConfirmModal(){
       var cats="";
       for(ci=0;ci<INVENTORY_CATEGORY_REGISTRY.length;ci++){var _c=INVENTORY_CATEGORY_REGISTRY[ci],_prim=_c.id===p.entry.category;
         cats+="<label style='font-size:10.5px;color:var(--t1);margin-right:9px;white-space:nowrap;'><input type='checkbox' class='idf-cat' data-key='"+escHtml(p.key)+"' value='"+_c.id+"'"+(_sel[_c.id]||_prim?" checked":"")+(_prim?" disabled":"")+" style='vertical-align:middle;margin-right:3px;'>"+escHtml(_c.label)+"</label>";}
+      var _shadow=(typeof itemDefShadowNote==="function")?itemDefShadowNote(p.key):"";/* #285: replacing a curated organize-only entry is said out loud, never silent */
       h+="<div style='border:1px solid var(--brd2);border-radius:var(--r);padding:12px;margin-bottom:10px;background:var(--bg2);'>"
         +"<div style='font-size:13px;color:var(--t0);font-weight:bold;'>"+escHtml(p.name)+"</div>"
         +"<div style='font-size:11px;color:var(--t2);margin:4px 0 8px;'>"+escHtml(p.entry.category)+" · effect: "+escHtml(p.entry.effect)+" · uses: "+escHtml(p.entry.uses)+" · value: "+escHtml(p.entry.value)+"</div>"
+        +(_shadow?"<div style='font-size:10.5px;color:var(--acc);margin:0 0 8px;'>⚠ "+escHtml(_shadow)+"</div>":"")
         +"<div style='margin:0 0 9px;line-height:1.9;'><span style='font-size:10px;color:var(--t2);letter-spacing:.5px;text-transform:uppercase;margin-right:8px;'>Files under</span>"+cats+"</div>"
         +"<div style='display:flex;gap:8px;'>"
         +"<button class='idf-acc' data-key='"+escHtml(p.key)+"' style='flex:1;padding:8px;font-size:12px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Accept as canon</button>"

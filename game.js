@@ -2804,14 +2804,22 @@ function buildItemDefinePrompt(rawItem){
   if(!worldState||!worldState.character)return null;
   var key=typeof itemBaseName==="function"?itemBaseName(rawItem):"";
   if(!key)return null;
-  if(typeof itemLookup==="function"&&itemLookup(rawItem))return null;/* already canon (base or overlay) */
+  /* #285 (f18): the gate is the SHARED itemDefEligible predicate — canon-less items AND
+     classification-only curated BASE entries (organize-only, never inject, nature still drifts)
+     are eligible; overlay/alias/effect-bearing entries refuse as before. */
+  if(typeof itemDefEligible==="function"){if(!itemDefEligible(rawItem))return null;}
+  else if(typeof itemLookup==="function"&&itemLookup(rawItem))return null;/* satellite fallback: old gate */
   var pend=worldState.pendingItemDefs||[],pi;
   for(pi=0;pi<pend.length;pi++)if(pend[pi].key===key)return null;/* awaiting confirmation already */
   var carried=(worldState.character.inventory||[]).indexOf(rawItem)>=0;
   if(!carried&&typeof livingPartyCompanions==="function"){var _pc=livingPartyCompanions(),ci;
     for(ci=0;ci<_pc.length&&!carried;ci++){if(_pc[ci].charSheet&&(_pc[ci].charSheet.inventory||[]).indexOf(rawItem)>=0)carried=true;}}
   if(!carried)return null;/* the def is TYPE canon, but the entry point is a carried item's row */
-  return "[GM ITEM CANON REVIEW — internal, not a player action] The carried item \""+rawItem+"\" has no entry in ITEM CANON. "
+  var _shadowBase=(typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[key])||null;/* #285: eligibility already proved it classification-only when present */
+  var _opening=_shadowBase
+    ?"The carried item \""+rawItem+"\" has only an organize-only catalog entry (no mechanics — it never reaches ITEM CANON injection). The curated entry classifies it as \""+_shadowBase.category+"\" with value "+_shadowBase.value+"; keep those unless the story contradicts them — your definition REPLACES that entry wholesale once the player accepts. "
+    :"The carried item \""+rawItem+"\" has no entry in ITEM CANON. ";
+  return "[GM ITEM CANON REVIEW — internal, not a player action] "+_opening
     +"Review what the story has ALREADY ESTABLISHED about it — how it was found, what it visibly did, what identification or use revealed — and capture that as canon. "
     +"Emit exactly one [ITEM_DEF:"+key+"|category=...|effect=...|uses=...|value=...] (category one of weapon/armor/consumable/tool/quest/treasure/mundane; '=' per field, '|' between fields; effect free of '|' and ']'; \"N/A\" where truly inapplicable; TYPE definition only — never instance state like charges left or provenance). "
     +"Ground every word in committed story: never invent powers, numbers, or lore the narrative has not shown. If the story has established nothing mechanical yet, emit NO tag and say so in one sentence. "
