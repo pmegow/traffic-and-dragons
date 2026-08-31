@@ -519,6 +519,43 @@ tAsync("the #29b rung rides the gateway too: fallback URL is /api/llm/openai/gpt
   });
 });
 
+// ── §3.7 rider: the fal.ai render seam (v1.755) ──────────────────────────────
+section("§3.7 fal render seam");
+
+tAsync("own fal key wins: direct to fal.run with the Key scheme", function () {
+  reset(); serverOn(); falKey = "fk-TEST";
+  script.push(respond(200, true, "{}"));
+  return falFetch("fal-ai/nano-banana-2", { prompt: "x" }).then(function () {
+    falKey = ""; serverOff();
+    var c = calls[0];
+    if (c.url !== "https://fal.run/fal-ai/nano-banana-2") return "wrong URL: " + c.url;
+    return c.opts.headers["Authorization"] === "Key fk-TEST" ? true : "own fal key not attached";
+  });
+});
+tAsync("keyless + entitled rides /api/render with the session Bearer (operator eats the cost)", function () {
+  reset(); serverOn(); falKey = "";
+  script.push(respond(200, true, "{}"));
+  return falFetch("fal-ai/nano-banana-2/edit", { prompt: "x", image_urls: ["d"] }).then(function () {
+    serverOff();
+    var c = calls[0];
+    if (c.url !== "https://tnd.test/api/render/fal-ai/nano-banana-2/edit") return "did not ride the server: " + c.url;
+    if (c.opts.headers["Authorization"] !== "Bearer tok-SESSION") return "session Bearer missing";
+    return JSON.parse(c.opts.body).prompt === "x" ? true : "body did not travel";
+  });
+});
+t("keyless + unentitled: falAvailable() is false (render UI gates off, no doomed vendor call)", function () {
+  reset(); serverOn({ entitled: false, reason: "none" }); falKey = "";
+  var r = falAvailable();
+  serverOff();
+  return r === false ? true : "falAvailable claimed availability with no key and no entitlement";
+});
+t("gmRouting 'byok' + keyless: server render declined too (the opt-out is total)", function () {
+  reset(); serverOn(); falKey = ""; gmRouting = "byok";
+  var r = falAvailable();
+  serverOff();
+  return r === false ? true : "byok opt-out ignored by the fal seam";
+});
+
 // ── report ───────────────────────────────────────────────────────────────────
 chain.then(function () {
   if (fails.length) {

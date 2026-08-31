@@ -98,14 +98,10 @@ function compressPortrait(dataUrl,cb){
 async function generatePortraitImage(prompt,refSrc){
   var falRes,mdlCfg=RENDER_MODELS[0],mi,stPrompt=withImgStyle(prompt);
   if(refSrc){
-    falRes=await fetch("https://fal.run/fal-ai/flux/dev/image-to-image",{method:"POST",
-      headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-      body:JSON.stringify({image_url:refSrc,prompt:stPrompt,strength:0.75,num_inference_steps:28,num_images:1})});
+    falRes=await falFetch("fal-ai/flux/dev/image-to-image",{image_url:refSrc,prompt:stPrompt,strength:0.75,num_inference_steps:28,num_images:1});
   }else{
     for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
-    falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
-      headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-      body:JSON.stringify(portraitRenderBody(mdlCfg,stPrompt))});
+    falRes=await falFetch(mdlCfg.id,portraitRenderBody(mdlCfg,stPrompt));
   }
   if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */
   var falData=await falRes.json();
@@ -342,7 +338,7 @@ async function showPortraitModal(refreshFn,opts){
   // ── Shared: generate / img2img ───────────────────────────────────────────
   async function runGenerate(isImg2Img,details){
     var status=document.getElementById("pm-status");
-    if(!falKey){status.innerHTML="<span style='font-size:12px;color:var(--red);'>No fal.ai key — add one via File → fal.ai image key…</span>";return;}
+    if(!falAvailable()){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Sign in, or add a fal.ai key via File → Render Options…</span>";return;}
     if(isImg2Img&&!pmRefSrc){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Select a reference image first.</span>";return;}
     if(busy){status.innerHTML="<span style='font-size:12px;color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
     var req=buildPortraitPromptRequest(c,{details:details,img2img:isImg2Img});/* #160: THE shared prompt builder (takes the modal's subject — player or companion) */
@@ -362,7 +358,7 @@ async function showPortraitModal(refreshFn,opts){
   // ever differed; both now ride generatePortraitImage, UA21 ②) ───────────
   async function runGenerateWithPrompt(isImg2Img,prompt){
     var status=document.getElementById("pm-status");
-    if(!falKey||!prompt)return;
+    if(!falAvailable()||!prompt)return;
     if(isImg2Img&&!pmRefSrc){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Select a reference image first.</span>";return;}
     if(busy){status.innerHTML="<span style='font-size:12px;color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
     status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Generating portrait…</span>";

@@ -113,7 +113,7 @@ function refreshFtPortrait(){
 }
 async function ftRenderPortrait(){
   var status=document.getElementById("ft-portrait-status");
-  if(!falKey){status.innerHTML="<span style='color:var(--red);'>No fal.ai key — add one via File &#9656; fal.ai image key…</span>";return;}
+  if(!falAvailable()){status.innerHTML="<span style='color:var(--red);'>Sign in, or add a fal.ai key via File &#9656; Render Options…</span>";return;}
   if(busy){status.innerHTML="<span style='color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
   // #160: prompt construction lives in the ONE shared builder beside generatePortraitImage
   // (ui-portrait.js — loads AFTER this file, but this runs on user action long after all

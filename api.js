@@ -2725,6 +2725,25 @@ function gmTransport(prov,model,key,kind){
   }
   return {server:false,url:typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint,headers:prov.headers(key)};/* Gemini embeds the model in the URL */
 }
+// ── fal.ai transport seam (§3.7 rider #1, v1.755 — owner ruling 2026-08-30: eat render costs) ──
+// Same design as gmTransport: an own fal key wins (BYOK unchanged — the operator only eats
+// keyless testers); a keyless entitled sign-in rides POST /api/render/<endpoint> where the
+// server attaches ITS fal key, meters the image, and enforces the daily cap. Bodies travel
+// verbatim both ways, so every RENDER_MODELS entry works identically on either route.
+function falViaServer(){
+  if(falKey)return false;
+  if(typeof gmRouting!=="undefined"&&gmRouting==="byok")return false;
+  if(typeof storageAdapter==="undefined"||!storageAdapter.isServerMode())return false;
+  return !!(typeof serverAccount!=="undefined"&&serverAccount&&serverAccount.entitled);
+}
+function falAvailable(){return !!falKey||falViaServer();}
+function falFetch(endpoint,body){
+  if(falViaServer()){
+    var h={"Content-Type":"application/json"};var a=storageAdapter.authHeader();for(var k in a)h[k]=a[k];
+    return fetch(storageAdapter.getServerUrl()+"/api/render/"+endpoint,{method:"POST",headers:h,body:JSON.stringify(body)});
+  }
+  return fetch("https://fal.run/"+endpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(body)});
+}
 // Gateway 402 (entitlement) / 401 (session) refusals are ACCOUNT states, never provider
 // errors — each gets the honest §4.3 message ("your story is safe" is true: turns stop, data
 // never does). Messages must never look auth-shaped (no "key"/"401" tokens) or

@@ -2664,12 +2664,10 @@ async function doRender(){
     var enhanceBtn=mkBtn("✨ Enhance","Cinematic relight & regrade of this image");
     enhanceBtn.addEventListener("click",function(){
       if(!imageUrl){showToast("Image not ready yet.");return;}
-      if(!falKey){showToast("Set a fal.ai key first.");return;}
+      if(!falAvailable()){showToast("Sign in or set a fal.ai key first.");return;}
       enhanceBtn.textContent="Enhancing…";enhanceBtn.disabled=true;
       var ep=withImgStyle(resp)+" "+ENHANCE_DIRECTIVE;
-      fetch("https://fal.run/fal-ai/flux/dev/image-to-image",{method:"POST",
-        headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-        body:JSON.stringify({prompt:ep,image_url:imageUrl,strength:ENHANCE_STRENGTH,num_inference_steps:28,num_images:1})})
+      falFetch("fal-ai/flux/dev/image-to-image",{prompt:ep,image_url:imageUrl,strength:ENHANCE_STRENGTH,num_inference_steps:28,num_images:1})
         .then(function(r){if(!r.ok)return r.text().catch(function(){return "";}).then(function(t){throw new Error(falErrorMsg(r.status,t));});return r.json();})/* #163b */
         .then(function(d){
           if(!(d.images&&d.images[0]&&d.images[0].url))throw new Error("No image returned.");
@@ -2700,7 +2698,7 @@ async function doRender(){
     toolbar.appendChild(saveBtn);toolbar.appendChild(enhanceBtn);toolbar.appendChild(portraitBtn);toolbar.appendChild(promptBtn);toolbar.appendChild(closeBtn);
     div.appendChild(toolbar);
 
-    if(falKey){
+    if(falAvailable()){
       var imgStatus=document.createElement("div");
       imgStatus.style.cssText="font-size:12px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;";
       imgStatus.textContent="Generating image…";
@@ -2726,7 +2724,7 @@ async function doRender(){
         // characters made Grok guess, and Daeris's likeness averaged away.
         if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness, colouring and costume ONLY — do NOT copy their frontal, posed headshot framing or stance; re-stage every figure in a NEW mid-action pose fitting the scene, no two figures in the same stance, at least one angled away from the camera."+buildSeedLegend(sc.names,sc.omitted);
         var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
-        var falRes=await fetch("https://fal.run/"+falEndpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(falBody)});
+        var falRes=await falFetch(falEndpoint,falBody);/* §3.7: own key direct, or the server's key via /api/render */
         if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */
         var falData=await falRes.json();
         if(falData.images&&falData.images[0]&&falData.images[0].url){
@@ -2743,7 +2741,7 @@ async function doRender(){
       promptBtn.style.borderColor="var(--acc)";promptBtn.style.color="var(--acc)";
       var hint=document.createElement("div");
       hint.style.cssText="font-size:11px;color:var(--t2);font-style:italic;margin-top:2px;";
-      hint.textContent="Set a fal.ai key (File → fal.ai image key…) to generate images.";
+      hint.textContent="Sign in (File → Account…) or set a fal.ai key (File → Render Options…) to generate images.";
       div.appendChild(hint);
     }
   }catch(e){if(th.parentNode)th.remove();addMsg("system","Render failed: "+e.message);}

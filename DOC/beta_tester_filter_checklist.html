@@ -53,7 +53,7 @@ var SECTIONS=[
 {title:"Topbar & core play (game screen)",note:"Always-visible buttons around the story.",items:[
  {id:"tb-sheet",n:"Sheet",d:"Opens the character sheet modal",s:"beta"},
  {id:"tb-sync",n:"Sync (state editor modal)",d:"Direct hand-editing of HP/gold/XP/level/location/inventory — a debug/cheat surface",s:"dev"},
- {id:"tb-render",n:"Render",d:"Scene image via fal.ai — requires the PLAYER's own fal key (not proxied yet, §3.7)",s:"dev"},
+ {id:"tb-render",n:"Render",d:"Scene image — served on the operator's fal key for signed-in players (v1.755); own fal key optional",s:"beta"},
  {id:"tb-rest",n:"Rest",d:"Long rest: restores spells/mana",s:"beta"},
  {id:"tb-retry",n:"Retry",d:"Re-sends the last failed action",s:"beta"},
  {id:"tb-reroll",n:"Re-roll",d:"Regenerates the last narration (no state change) — burns a metered turn call",s:"beta"},
@@ -64,7 +64,7 @@ var SECTIONS=[
 {title:"File menu — top level",note:"",items:[
  {id:"fm-syncmob",n:"Sync state (mobile-only row)",d:"Same state editor as the Sync button",s:"dev"},
  {id:"fm-statemob",n:"World state (mobile-only row)",d:"Opens the sidebar on mobile",s:"beta"},
- {id:"fm-rendermob",n:"Render prompt (mobile-only row)",d:"Render trigger on mobile — fal-key gated",s:"dev"},
+ {id:"fm-rendermob",n:"Render prompt (mobile-only row)",d:"Render trigger on mobile — operator-served when signed in (v1.755)",s:"beta"},
  {id:"fm-campaigns",n:"📁 Campaigns…",d:"Campaign picker (adjudicate its buttons below)",s:"beta"},
  {id:"fm-account",n:"👤 Account…",d:"Tier, turns, routing pref, sign out",s:"beta"},
  {id:"fm-carmode",n:"🚗 Car Mode",d:"Voice-driven play overlay",s:"beta"},
@@ -92,7 +92,7 @@ var SECTIONS=[
  {id:"ad-adult",n:"18+ Adult content",d:"Adult-mode toggle — product decision, not just UI",s:"beta"},
  {id:"ad-llm",n:"🧠 Language Model…",d:"BYOK provider keys + model picker — the BYOK-era surface",s:"dev"},
  {id:"ad-usage",n:"📊 Usage & cost…",d:"Token/cost/cache internals",s:"dev"},
- {id:"ad-render",n:"🖼 Render Options…",d:"fal key + render model + strength slider",s:"dev"},
+ {id:"ad-render",n:"🖼 Render Options…",d:"Render model + strength slider; fal key field is optional now (operator serves signed-in players, v1.755)",s:"beta"},
  {id:"ad-fontlg",n:"Large text",d:"Accessibility toggle",s:"beta"},
  {id:"ad-autosend",n:"🎤 Auto-send voice input",d:"STT behavior toggle",s:"beta"},
  {id:"ad-autolisten",n:"🚗 Auto-listen after narration",d:"Car Mode behavior toggle",s:"beta"},
@@ -105,7 +105,7 @@ var SECTIONS=[
 {title:"Character sheet modal",note:"",items:[
  {id:"cs-sync",n:"⟳ Sync sheet",d:"GM audit call to repair sheet drift — burns a metered call",s:"beta"},
  {id:"cs-export",n:"Export Character (header)",d:"Same as the drawer item",s:"beta"},
- {id:"cs-portrait",n:"Portrait edit (pan/zoom/upload/generate)",d:"Portrait modal — generate paths need the fal key",s:"beta"}
+ {id:"cs-portrait",n:"Portrait edit (pan/zoom/upload/generate)",d:"Portrait modal — generate paths operator-served when signed in (v1.755)",s:"beta"}
 ]},
 {title:"NPC sheet modal",note:"",items:[
  {id:"npc-partways",n:"Part ways",d:"Removes a companion from the party (kept as NPC)",s:"beta"},
