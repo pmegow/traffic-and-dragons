@@ -60,7 +60,7 @@ function tAsync(name, fn) {
 var calls = [];   // [{url, opts}]
 var script = [];  // responders consumed in order; empty → default 200
 function respond(status, okFlag, body) {
-  return function () { return Promise.resolve({ ok: okFlag, status: status, text: function () { return Promise.resolve(body); } }); };
+  return function () { return Promise.resolve({ ok: okFlag, status: status, text: function () { return Promise.resolve(body); }, json: function () { return Promise.resolve(JSON.parse(body)); } }); };
 }
 function anthropicOk(text) {
   return respond(200, true, JSON.stringify({ content: [{ type: "text", text: text || "Hello" }], stop_reason: "end_turn", usage: { input_tokens: 100, output_tokens: 10 } }));
@@ -554,6 +554,54 @@ t("gmRouting 'byok' + keyless: server render declined too (the opt-out is total)
   var r = falAvailable();
   serverOff();
   return r === false ? true : "byok opt-out ignored by the fal seam";
+});
+
+// ── #293: the queue render lane ──────────────────────────────────────────────
+section("#293 queue render lane");
+
+function jsonResp(obj) { return respond(200, true, JSON.stringify(obj)); }
+var JOB = { request_id: "req-9", status_url: "https://queue.fal.run/bytedance/seedream/v5/pro/requests/req-9/status", response_url: "https://queue.fal.run/bytedance/seedream/v5/pro/requests/req-9" };
+
+tAsync("server mode: submit → poll (queued → rendering → done) → result, with REAL status surfaced", function () {
+  reset(); serverOn(); falKey = ""; QUEUE_POLL_MS = 1; QUEUE_RENDER_MAX_MS = 5000;
+  script.push(jsonResp(JOB));                                        // submit
+  script.push(jsonResp({ status: "IN_QUEUE", queue_position: 2 }));  // poll 1
+  script.push(jsonResp({ status: "IN_PROGRESS" }));                  // poll 2
+  script.push(jsonResp({ status: "COMPLETED" }));                    // poll 3
+  script.push(jsonResp({ images: [{ url: "https://fal.media/img.jpg" }] })); // result
+  var statuses = [];
+  return falQueueRender("bytedance/seedream/v5/pro/edit", { prompt: "x" }, function (s) { statuses.push(s); }).then(function (data) {
+    serverOff();
+    if (calls[0].url !== "https://tnd.test/api/render-queue/submit/bytedance/seedream/v5/pro/edit") return "submit did not ride the server: " + calls[0].url;
+    if (calls[0].opts.headers["Authorization"] !== "Bearer tok-SESSION") return "submit lost the session Bearer";
+    if (JSON.parse(calls[1].opts.body).url !== JOB.status_url) return "poll did not carry the status_url";
+    if (calls[1].url !== "https://tnd.test/api/render-queue/poll") return "poll did not ride the server: " + calls[1].url;
+    if (statuses.indexOf("queued (#3)") < 0) return "queue position never surfaced: " + JSON.stringify(statuses);
+    if (statuses.indexOf("rendering") < 0) return "in-progress never surfaced: " + JSON.stringify(statuses);
+    if (JSON.parse(calls[4].opts.body).url !== JOB.response_url) return "result fetch did not use the response_url";
+    return (data.images && data.images[0].url === "https://fal.media/img.jpg") ? true : "result JSON not returned";
+  });
+});
+tAsync("BYOK mode: submit goes direct to queue.fal.run with the player's Key", function () {
+  reset(); serverOff(); falKey = "fk-TEST"; QUEUE_POLL_MS = 1; QUEUE_RENDER_MAX_MS = 5000;
+  script.push(jsonResp(JOB));
+  script.push(jsonResp({ status: "COMPLETED" }));
+  script.push(jsonResp({ images: [{ url: "u" }] }));
+  return falQueueRender("bytedance/seedream/v5/pro/edit", { prompt: "x" }).then(function () {
+    falKey = "";
+    if (calls[0].url !== "https://queue.fal.run/bytedance/seedream/v5/pro/edit") return "wrong submit URL: " + calls[0].url;
+    if (calls[0].opts.headers["Authorization"] !== "Key fk-TEST") return "own key not attached";
+    return calls[1].url === JOB.status_url ? true : "BYOK poll did not GET the status_url directly: " + calls[1].url;
+  });
+});
+tAsync("a job that never completes gives up LOUDLY at QUEUE_RENDER_MAX_MS (no silent forever)", function () {
+  reset(); serverOn(); falKey = ""; QUEUE_POLL_MS = 1; QUEUE_RENDER_MAX_MS = 30;
+  script.push(jsonResp(JOB));
+  for (var i = 0; i < 200; i++) script.push(jsonResp({ status: "IN_QUEUE", queue_position: 0 }));
+  return falQueueRender("bytedance/seedream/v5/pro/edit", { prompt: "x" }).then(
+    function () { serverOff(); return "an eternal queue cannot succeed"; },
+    function (e) { serverOff(); return /gave up/i.test(e.message) ? true : "wrong give-up message: " + e.message; }
+  );
 });
 
 // ── report ───────────────────────────────────────────────────────────────────

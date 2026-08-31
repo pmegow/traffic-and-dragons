@@ -2734,9 +2734,17 @@ async function doRender(){
           if(!imgStatus.isConnected){clearInterval(_rTick);return;}
           imgStatus.textContent=_rTickBase+" "+Math.round((Date.now()-_rTick0)/1000)+"s";
         },1000);
-        var falRes=await falFetch(falEndpoint,falBody);/* §3.7: own key direct, or the server's key via /api/render */
-        if(!falRes.ok){clearInterval(_rTick);throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));}/* #163b: surface fal's own complaint */
-        var falData=await falRes.json();
+        var falData;
+        if(mdlCfg.slow){
+          // #293: slow engines ride the queue lane — the status callback rewrites the ticker's
+          // base text with REAL state (queue position / rendering); elapsed seconds keep ticking.
+          var _rBase0=_rTickBase;
+          falData=await falQueueRender(falEndpoint,falBody,function(st){_rTickBase=_rBase0+" — "+st;});
+        }else{
+          var falRes=await falFetch(falEndpoint,falBody);/* §3.7: own key direct, or the server's key via /api/render */
+          if(!falRes.ok){clearInterval(_rTick);throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));}/* #163b: surface fal's own complaint */
+          falData=await falRes.json();
+        }
         clearInterval(_rTick);
         if(falData.images&&falData.images[0]&&falData.images[0].url){
           imageUrl=falData.images[0].url;

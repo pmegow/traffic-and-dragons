@@ -281,7 +281,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.756";
+var APP_VERSION="v1.757";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 // ── Account-mode GM routing (SERVER_ARCHITECTURE §3, the subscription front end) ──
@@ -354,6 +354,7 @@ var RENDER_MODELS=[
      compatible). Known five-way caveat rides its 4.5 sibling: mixing-heavy on group scenes —
      listed at the owner's request; the #209 levers + text-only party policy are the mitigations. */
   {id:"bytedance/seedream/v5/pro/text-to-image",label:"Seedream 5 Pro",
+   slow:true, // #293: a 4-ref party edit ran >120s live (2026-08-31) — scene renders ride the fal QUEUE lane (falQueueRender) instead of the sync window
    body:function(p){return {prompt:p,image_size:"landscape_4_3",num_images:1};},
    img2img:{endpoint:"bytedance/seedream/v5/pro/edit",multiSeed:true,
             body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl:[imgUrl]),image_size:"landscape_4_3",num_images:1};}}},

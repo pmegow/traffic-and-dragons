@@ -2744,6 +2744,42 @@ function falFetch(endpoint,body){
   }
   return fetch("https://fal.run/"+endpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(body)});
 }
+// ── #293: the QUEUE lane for slow engines (RENDER_MODELS entries declaring slow:true) ──
+// fal's queue API: submit returns a job handle immediately, then short status polls — no
+// long-held connection, so Fly's ~60s proxy idle cutoff (which silently ate every >60s sync
+// render) never applies, and onStatus gets REAL state (queue position / rendering) for the
+// player's status line. Same own-key-vs-server routing as falFetch; resolves to the parsed
+// result JSON (the same {images:[...]} shape the sync path parses) or throws loudly.
+var QUEUE_RENDER_MAX_MS=300000; /* give up after 5 min in the queue — loud, never a silent forever */
+var QUEUE_POLL_MS=2500;         /* vars by contract: the battery shrinks them to run in ms */
+function _falQueueHeaders(){var h={"Content-Type":"application/json"};var a=storageAdapter.authHeader();for(var k in a)h[k]=a[k];return h;}
+async function _falQueueGet(url){
+  var r;
+  if(falViaServer())r=await fetch(storageAdapter.getServerUrl()+"/api/render-queue/poll",{method:"POST",headers:_falQueueHeaders(),body:JSON.stringify({url:url})});
+  else r=await fetch(url,{headers:{"Authorization":"Key "+falKey}});
+  if(!r.ok)throw new Error(falErrorMsg(r.status,await r.text().catch(function(){return "";})));
+  return r.json();
+}
+async function falQueueRender(endpoint,body,onStatus){
+  var sub;
+  if(falViaServer())sub=await fetch(storageAdapter.getServerUrl()+"/api/render-queue/submit/"+endpoint,{method:"POST",headers:_falQueueHeaders(),body:JSON.stringify(body)});
+  else sub=await fetch("https://queue.fal.run/"+endpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!sub.ok)throw new Error(falErrorMsg(sub.status,await sub.text().catch(function(){return "";})));
+  var job=await sub.json();
+  if(!job||!job.status_url||!job.response_url)throw new Error("The image queue returned no job handle.");
+  var t0=Date.now();
+  for(;;){
+    if(Date.now()-t0>QUEUE_RENDER_MAX_MS)throw new Error("Render gave up after "+Math.round(QUEUE_RENDER_MAX_MS/60000)+" minutes in the queue.");
+    await _sleep(QUEUE_POLL_MS);
+    var st=await _falQueueGet(job.status_url);
+    if(st&&st.status==="COMPLETED")break;
+    if(typeof onStatus==="function"){
+      if(st&&st.status==="IN_PROGRESS")onStatus("rendering");
+      else onStatus("queued"+(st&&typeof st.queue_position==="number"?" (#"+(st.queue_position+1)+")":""));
+    }
+  }
+  return _falQueueGet(job.response_url);
+}
 // Gateway 402 (entitlement) / 401 (session) refusals are ACCOUNT states, never provider
 // errors — each gets the honest §4.3 message ("your story is safe" is true: turns stop, data
 // never does). Messages must never look auth-shaped (no "key"/"401" tokens) or
