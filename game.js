@@ -2724,9 +2724,20 @@ async function doRender(){
         // characters made Grok guess, and Daeris's likeness averaged away.
         if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness, colouring and costume ONLY — do NOT copy their frontal, posed headshot framing or stance; re-stage every figure in a NEW mid-action pose fitting the scene, no two figures in the same stance, at least one angled away from the camera."+buildSeedLegend(sc.names,sc.omitted);
         var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
+        // Elapsed-seconds heartbeat (owner call 2026-08-31, the Seedream hang): a frozen status
+        // line reads as broken long before it reads as slow — a ticking counter is what tells
+        // the player the app is alive. Cleared EXPLICITLY before any terminal text is written
+        // (the interval would otherwise overwrite the error a second later); the success path's
+        // imgStatus.remove() is covered by the isConnected self-stop.
+        var _rTick0=Date.now(),_rTickBase=imgStatus.textContent;
+        var _rTick=setInterval(function(){
+          if(!imgStatus.isConnected){clearInterval(_rTick);return;}
+          imgStatus.textContent=_rTickBase+" "+Math.round((Date.now()-_rTick0)/1000)+"s";
+        },1000);
         var falRes=await falFetch(falEndpoint,falBody);/* §3.7: own key direct, or the server's key via /api/render */
-        if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */
+        if(!falRes.ok){clearInterval(_rTick);throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));}/* #163b: surface fal's own complaint */
         var falData=await falRes.json();
+        clearInterval(_rTick);
         if(falData.images&&falData.images[0]&&falData.images[0].url){
           imageUrl=falData.images[0].url;
           imgStatus.remove();
@@ -2734,7 +2745,7 @@ async function doRender(){
           img.style.cssText="width:100%;border-radius:4px;display:block;";
           img.alt="Scene illustration";div.appendChild(img);sceneImg=img;
         }else{imgStatus.textContent="No image returned.";}
-      }catch(fe){imgStatus.textContent="Image error: "+fe.message;}
+      }catch(fe){if(typeof _rTick!=="undefined")clearInterval(_rTick);imgStatus.textContent="Image error: "+fe.message;}
     }else{
       // No fal key — show the prompt text and a hint
       promptShown=true;promptDiv.style.display="block";
