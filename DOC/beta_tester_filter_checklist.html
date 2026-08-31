@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beta Tester Filter Checklist</title>
+<style>
+  :root{--bg:#141414;--bg1:#1c1c1c;--bg2:#242424;--brd:#333;--acc:#b8935a;--t0:#e8e2d6;--t1:#b9b2a4;--t2:#7d776c;--grn:#7aa86a;--dng:#c05b4d;--r:6px;--font:Georgia,'Times New Roman',serif;--mono:Consolas,Menlo,monospace;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--t1);font-family:var(--font);line-height:1.55;padding:36px 16px 90px;}
+  main{max-width:860px;margin:0 auto;}
+  h1{color:var(--acc);font-size:24px;margin-bottom:4px;}
+  .sub{color:var(--t2);font-size:13px;margin-bottom:8px;}
+  #progress{position:sticky;top:0;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--brd);margin-bottom:14px;z-index:5;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  #pbar{flex:1;min-width:180px;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;}
+  #pfill{height:100%;background:var(--acc);width:0;transition:width .2s;}
+  #ptext{font-size:12px;color:var(--t2);font-family:var(--mono);white-space:nowrap;}
+  button.act{padding:7px 14px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);cursor:pointer;}
+  button.act:hover{border-color:var(--acc);color:var(--acc);}
+  h2{color:var(--t0);font-size:16px;margin:28px 0 4px;padding-top:14px;border-top:1px solid var(--brd);}
+  .secnote{font-size:12.5px;color:var(--t2);margin-bottom:8px;}
+  .row{display:flex;align-items:flex-start;gap:10px;padding:7px 8px;border-bottom:1px solid var(--bg2);border-radius:4px;}
+  .row:hover{background:var(--bg1);}
+  .rmain{flex:1;min-width:0;}
+  .rname{color:var(--t0);font-size:14px;}
+  .rdesc{color:var(--t2);font-size:12px;}
+  .sug{font-size:10px;font-family:var(--mono);letter-spacing:.05em;color:var(--t2);white-space:nowrap;padding-top:4px;}
+  .picks{display:flex;gap:4px;padding-top:2px;}
+  .pick{font-family:var(--mono);font-size:11px;padding:3px 10px;border:1px solid var(--brd);border-radius:12px;background:none;color:var(--t2);cursor:pointer;white-space:nowrap;}
+  .pick.beta.on{border-color:var(--grn);color:var(--grn);background:rgba(122,168,106,.12);}
+  .pick.dev.on{border-color:var(--dng);color:var(--dng);background:rgba(192,91,77,.12);}
+  .note{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:var(--r);padding:10px 14px;margin:12px 0;font-size:13px;}
+</style>
+</head>
+<body>
+<main>
+<h1>&#9878; Beta Tester Filter Checklist</h1>
+<p class="sub">TODO #289 adjudication aid &middot; every exposed menu item, button, and page &middot; generated 2026-08-30 from the buildFileMenus spec + UI surfaces &middot; decisions save in this browser; <b>Copy rulings</b> exports them for the build</p>
+<div class="note"><b>Ground rule (from the #289 row):</b> hiding an item from beta testers is <i>decluttering, not security</i> — all JS ships to every browser. Anything that must truly be off-limits needs a server-side gate. This checklist decides what beta testers <b>see</b>.</div>
+
+<div id="progress">
+  <div id="pbar"><div id="pfill"></div></div>
+  <span id="ptext"></span>
+  <button class="act" id="accept-sug">Accept all suggestions</button>
+  <button class="act" id="copy-btn">&#128203; Copy rulings</button>
+  <button class="act" id="reset-btn">Reset</button>
+</div>
+
+<div id="list"></div>
+
+<script>
+var SECTIONS=[
+{title:"Topbar & core play (game screen)",note:"Always-visible buttons around the story.",items:[
+ {id:"tb-sheet",n:"Sheet",d:"Opens the character sheet modal",s:"beta"},
+ {id:"tb-sync",n:"Sync (state editor modal)",d:"Direct hand-editing of HP/gold/XP/level/location/inventory — a debug/cheat surface",s:"dev"},
+ {id:"tb-render",n:"Render",d:"Scene image via fal.ai — requires the PLAYER's own fal key (not proxied yet, §3.7)",s:"dev"},
+ {id:"tb-rest",n:"Rest",d:"Long rest: restores spells/mana",s:"beta"},
+ {id:"tb-retry",n:"Retry",d:"Re-sends the last failed action",s:"beta"},
+ {id:"tb-reroll",n:"Re-roll",d:"Regenerates the last narration (no state change) — burns a metered turn call",s:"beta"},
+ {id:"tb-state",n:"World state sidebar",d:"Slide-out panel: location, quests, NPCs",s:"beta"},
+ {id:"tb-tabs",n:"Story / Table Talk tabs",d:"Table Talk = out-of-character help agent (metered calls)",s:"beta"},
+ {id:"tb-file",n:"File ▾ menu",d:"The menu itself (contents adjudicated below)",s:"beta"}
+]},
+{title:"File menu — top level",note:"",items:[
+ {id:"fm-syncmob",n:"Sync state (mobile-only row)",d:"Same state editor as the Sync button",s:"dev"},
+ {id:"fm-statemob",n:"World state (mobile-only row)",d:"Opens the sidebar on mobile",s:"beta"},
+ {id:"fm-rendermob",n:"Render prompt (mobile-only row)",d:"Render trigger on mobile — fal-key gated",s:"dev"},
+ {id:"fm-campaigns",n:"📁 Campaigns…",d:"Campaign picker (adjudicate its buttons below)",s:"beta"},
+ {id:"fm-account",n:"👤 Account…",d:"Tier, turns, routing pref, sign out",s:"beta"},
+ {id:"fm-carmode",n:"🚗 Car Mode",d:"Voice-driven play overlay",s:"beta"},
+ {id:"fm-saveload",n:"💾 Save / Load ▶ drawer",d:"Container (items below)",s:"beta"},
+ {id:"fm-bplib",n:"☁ Blueprint Library…",d:"Account-scoped cloud blueprint store",s:"beta"},
+ {id:"fm-bugreport",n:"⚠ Report bug…",d:"The #16b report modal — the tester feedback channel",s:"beta"},
+ {id:"fm-admin",n:"⚙ Admin ▶ drawer",d:"Container (items below) — could hide wholesale for beta",s:"dev"},
+ {id:"fm-clearcache",n:"⟳ Clear cache & reload",d:"Harmless recovery action (SW cache wipe)",s:"beta"},
+ {id:"fm-newgame",n:"New Game",d:"Wipes to a fresh campaign (their own data only)",s:"beta"}
+]},
+{title:"Save / Load drawer",note:"",items:[
+ {id:"sl-save",n:"Save Game (local)",d:"Exports the .tnd save file",s:"beta"},
+ {id:"sl-load",n:"Load Game (local)",d:"Imports a .tnd save file",s:"beta"},
+ {id:"sl-expchar",n:"Export Character",d:".char file download / save-to-library",s:"beta"},
+ {id:"sl-impchar",n:"Import Character",d:"File / library / campaign-browser import",s:"beta"},
+ {id:"sl-expbp",n:"Export as Blueprint",d:"Distills the campaign into a reusable blueprint",s:"beta"},
+ {id:"sl-expnarr",n:"📜 Export Narrative",d:"Downloads the story text",s:"beta"}
+]},
+{title:"Admin drawer",note:"Today's grab-bag of settings + dev tools — the main declutter target.",items:[
+ {id:"ad-voice",n:"🔊 Voice Settings…",d:"TTS engine prefs, voices, Gemini TTS opt-in (bills the player's own gemini key)",s:"beta"},
+ {id:"ad-sounds",n:"♪ UI sounds + Sounds… audition",d:"Earcon toggle and audition modal",s:"beta"},
+ {id:"ad-narropts",n:"📖 Narrative options ▶ drawer",d:"Container (3 items below)",s:"beta"},
+ {id:"ad-rules",n:"Narrative rules",d:"Player-authored custom GM rules (prompt-injected)",s:"beta"},
+ {id:"ad-prose",n:"✍ Prose inspiration…",d:"Prose-voice picker",s:"beta"},
+ {id:"ad-adult",n:"18+ Adult content",d:"Adult-mode toggle — product decision, not just UI",s:"beta"},
+ {id:"ad-llm",n:"🧠 Language Model…",d:"BYOK provider keys + model picker — the BYOK-era surface",s:"dev"},
+ {id:"ad-usage",n:"📊 Usage & cost…",d:"Token/cost/cache internals",s:"dev"},
+ {id:"ad-render",n:"🖼 Render Options…",d:"fal key + render model + strength slider",s:"dev"},
+ {id:"ad-fontlg",n:"Large text",d:"Accessibility toggle",s:"beta"},
+ {id:"ad-autosend",n:"🎤 Auto-send voice input",d:"STT behavior toggle",s:"beta"},
+ {id:"ad-autolisten",n:"🚗 Auto-listen after narration",d:"Car Mode behavior toggle",s:"beta"},
+ {id:"ad-sttconfirm",n:"🛡 Confirm unclear voice input",d:"#77 confirm gate toggle",s:"beta"},
+ {id:"ad-legacy",n:"☠ Legacy characters as NPCs + % chance",d:"Retired PCs cameo as NPCs",s:"beta"},
+ {id:"ad-folder",n:"📁 Set campaign folder… / clear",d:"Local auto-export folder (File System Access)",s:"dev"},
+ {id:"ad-server",n:"☁ Connect / Disconnect server",d:"Manual server session control (Account modal covers sign-out)",s:"beta"},
+ {id:"ad-clearcache2",n:"⟳ Clear cache & reload (drawer copy)",d:"Duplicate of the top-level action",s:"beta"}
+]},
+{title:"Character sheet modal",note:"",items:[
+ {id:"cs-sync",n:"⟳ Sync sheet",d:"GM audit call to repair sheet drift — burns a metered call",s:"beta"},
+ {id:"cs-export",n:"Export Character (header)",d:"Same as the drawer item",s:"beta"},
+ {id:"cs-portrait",n:"Portrait edit (pan/zoom/upload/generate)",d:"Portrait modal — generate paths need the fal key",s:"beta"}
+]},
+{title:"NPC sheet modal",note:"",items:[
+ {id:"npc-partways",n:"Part ways",d:"Removes a companion from the party (kept as NPC)",s:"beta"},
+ {id:"npc-playas",n:"Play as this character",d:"Mid-game PC swap",s:"beta"},
+ {id:"npc-libupdate",n:"⟳ Update from library",d:"Pulls identity fields from the character library",s:"beta"},
+ {id:"npc-gensheet",n:"Generate NPC sheet",d:"Builds a full companion sheet — burns a metered call",s:"beta"}
+]},
+{title:"Campaign picker & quest journal",note:"",items:[
+ {id:"cp-crud",n:"Campaign load / rename / delete / new",d:"Their own campaigns only",s:"beta"},
+ {id:"cp-cloud",n:"Cloud push / pull / Remove local",d:"Per-campaign sync controls",s:"beta"},
+ {id:"qj-accept",n:"Quest journal Accept / Decline",d:"The player quest gate",s:"beta"}
+]},
+{title:"Account modal",note:"",items:[
+ {id:"ac-byok",n:"'Always use my own API keys' checkbox",d:"BYOK routing opt-out — meaningless for keyless testers",s:"dev"},
+ {id:"ac-signout",n:"Sign out",d:"Ends the server session",s:"beta"}
+]},
+{title:"Satellite pages (URL-reachable, not in menus)",note:"Testers can find these by URL regardless — a 'dev' ruling here means future URL/tier gating or simply accepting the obscurity. Read-only pages are #290's home-page material.",items:[
+ {id:"sat-biblestudy",n:"bible_study.html",d:"READ-ONLY spell/ability/class/skill viewer — #290 wants this player-facing",s:"beta"},
+ {id:"sat-mapviewer",n:"map_viewer.html",d:"READ-ONLY location-graph viewer of their own save",s:"beta"},
+ {id:"sat-designer",n:"blueprint-designer.html",d:"Full campaign authoring tool (#290: needs a storage scheme before player-facing)",s:"dev"},
+ {id:"sat-bibleeditor",n:"bible_editor.html",d:"MUTABLE bible authoring — dev-only by standing design",s:"dev"},
+ {id:"sat-mapcleanup",n:"map_cleanup.html",d:"MUTABLE location repair tool",s:"dev"},
+ {id:"sat-bugtracker",n:"bug_tracker.html",d:"Bug triage pipeline (feed secret lives operator-side)",s:"dev"},
+ {id:"sat-voicelab",n:"author_voice_lab.html / speaker_browser / piper_test / recall_gate / test.html",d:"Dev test harnesses",s:"dev"},
+ {id:"sat-docs",n:"/DOC/ pages",d:"Design docs, runbooks, this checklist",s:"dev"}
+]}
+];
+
+var KEY="tnd_beta_checklist_v1";
+var state={};
+try{state=JSON.parse(localStorage.getItem(KEY))||{};}catch(e){state={};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function total(){var n=0;SECTIONS.forEach(function(s){n+=s.items.length;});return n;}
+function decided(){var n=0;for(var k in state)if(state[k])n++;return n;}
+function render(){
+  var list=document.getElementById("list");list.innerHTML="";
+  SECTIONS.forEach(function(sec){
+    var h=document.createElement("h2");h.textContent=sec.title;list.appendChild(h);
+    if(sec.note){var sn=document.createElement("div");sn.className="secnote";sn.textContent=sec.note;list.appendChild(sn);}
+    sec.items.forEach(function(it){
+      var row=document.createElement("div");row.className="row";
+      var main=document.createElement("div");main.className="rmain";
+      var nm=document.createElement("div");nm.className="rname";nm.textContent=it.n;
+      var ds=document.createElement("div");ds.className="rdesc";ds.textContent=it.d;
+      main.appendChild(nm);main.appendChild(ds);row.appendChild(main);
+      var sug=document.createElement("span");sug.className="sug";sug.textContent="suggested: "+(it.s==="beta"?"BETA":"DEV");row.appendChild(sug);
+      var picks=document.createElement("div");picks.className="picks";
+      [["beta","Beta"],["dev","Dev-only"]].forEach(function(p){
+        var b=document.createElement("button");b.className="pick "+p[0]+(state[it.id]===p[0]?" on":"");b.textContent=p[1];
+        b.onclick=function(){state[it.id]=(state[it.id]===p[0])?null:p[0];save();render();};
+        picks.appendChild(b);
+      });
+      row.appendChild(picks);list.appendChild(row);
+    });
+  });
+  var d=decided(),t=total();
+  document.getElementById("pfill").style.width=Math.round(100*d/t)+"%";
+  document.getElementById("ptext").textContent=d+" / "+t+" decided";
+}
+document.getElementById("accept-sug").onclick=function(){
+  SECTIONS.forEach(function(sec){sec.items.forEach(function(it){if(!state[it.id])state[it.id]=it.s;});});
+  save();render();
+};
+document.getElementById("reset-btn").onclick=function(){
+  if(!confirm("Clear every decision?"))return;
+  state={};save();render();
+};
+document.getElementById("copy-btn").onclick=function(){
+  var out="# Beta tester filter rulings ("+new Date().toISOString().slice(0,10)+")\n\n";
+  SECTIONS.forEach(function(sec){
+    out+="## "+sec.title+"\n";
+    sec.items.forEach(function(it){
+      var v=state[it.id]||"UNDECIDED";
+      out+="- ["+(v==="beta"?"BETA":v==="dev"?"DEV-ONLY":"UNDECIDED")+"] "+it.n+(v!==it.s&&v!=="UNDECIDED"?" (overrides suggestion: "+it.s+")":"")+"\n";
+    });
+    out+="\n";
+  });
+  var done=false;
+  try{navigator.clipboard.writeText(out).then(function(){alert("Rulings copied as markdown — paste into the #289 session.");});done=true;}catch(e){}
+  if(!done){var ta=document.createElement("textarea");ta.value=out;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();alert("Rulings copied.");}
+};
+render();
+</script>
+</main>
+</body>
+</html>
