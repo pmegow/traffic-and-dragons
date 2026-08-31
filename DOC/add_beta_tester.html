@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Adding a Beta Tester — Operator Runbook</title>
+<style>
+  :root{--bg:#141414;--bg1:#1c1c1c;--bg2:#242424;--brd:#333;--acc:#b8935a;--t0:#e8e2d6;--t1:#b9b2a4;--t2:#7d776c;--grn:#7aa86a;--dng:#c05b4d;--r:6px;--font:Georgia,'Times New Roman',serif;--mono:Consolas,Menlo,monospace;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--t1);font-family:var(--font);line-height:1.65;padding:40px 18px 80px;}
+  main{max-width:760px;margin:0 auto;}
+  h1{color:var(--acc);font-size:26px;margin-bottom:6px;}
+  .sub{color:var(--t2);font-size:13px;margin-bottom:30px;}
+  h2{color:var(--t0);font-size:17px;margin:34px 0 10px;padding-top:18px;border-top:1px solid var(--brd);}
+  h2 .n{display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;border:1px solid var(--acc);border-radius:50%;color:var(--acc);font-size:14px;margin-right:10px;}
+  p{margin:8px 0;}
+  b{color:var(--t0);}
+  code{font-family:var(--mono);font-size:12.5px;color:var(--acc);background:var(--bg2);padding:1px 5px;border-radius:3px;}
+  pre{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:var(--r);padding:12px 14px;margin:10px 0;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.5;color:var(--t0);white-space:pre-wrap;word-break:break-all;}
+  .note{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);padding:10px 14px;margin:12px 0;font-size:13.5px;}
+  .note b:first-child{color:var(--acc);}
+  .warn{border-left:3px solid var(--dng);}
+  .ok{border-left:3px solid var(--grn);}
+  table{border-collapse:collapse;margin:12px 0;width:100%;}
+  th{color:var(--t2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:6px 10px;border-bottom:1px solid var(--brd);}
+  td{padding:7px 10px;border-bottom:1px solid var(--bg2);font-size:13.5px;}
+  td:first-child{color:var(--t0);}
+  ul{margin:8px 0 8px 22px;}
+  li{margin:4px 0;}
+  .kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--brd);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--bg2);color:var(--t0);}
+</style>
+</head>
+<body>
+<main>
+<h1>&#9876; Adding a Beta Tester</h1>
+<p class="sub">Operator runbook &middot; manual-entitlement era (TODO #288) &middot; written 2026-08-30 &middot; all of this becomes buttons when the #292 operator console ships</p>
+
+<div class="note ok"><b>One-time setup — already done.</b> Server deployed with the LLM gateway &middot; provider keys set as Fly secrets &middot; you (<code>gh_24553571</code>) are admin &middot; GitHub and Google sign-in both live. Nothing here needs repeating per tester.</div>
+
+<h2><span class="n">1</span>Send the invite</h2>
+<p>Send the tester the game link and one sentence of instructions:</p>
+<pre>https://traffic-and-dragons.pages.dev</pre>
+<p><i>&ldquo;Open it and hit <b>Sign in with GitHub</b> or <b>Sign in with Google</b> &mdash; then tell me you're in.&rdquo;</i></p>
+<p>Signing in is all it takes to create their account. They don't need an API key, and there's nothing to install.</p>
+
+<div class="note warn"><b>Google-only caveat:</b> if the Google consent screen was left in <b>Testing</b> mode (never published), a Google sign-in only works for emails you've added under <i>Google Cloud Console &rarr; Google Auth Platform &rarr; Audience &rarr; Test users</i>. GitHub sign-ins are unaffected either way. If unsure, have them use GitHub, or publish the consent screen.</div>
+
+<h2><span class="n">2</span>Wait for their signal</h2>
+<p>Until you grant a tier, any turn they try refuses with a friendly message: <i>&ldquo;This account has no active subscription yet &mdash; ask the operator for access&hellip;&rdquo;</i> &mdash; so they'll come tell you. (You'll usually also get an incidental #16 error-report email carrying that same message.)</p>
+
+<h2><span class="n">3</span>Get your admin token</h2>
+<p>In <b>your own</b> signed-in game window (desktop, the GitHub account):</p>
+<ul>
+  <li>Press <span class="kbd">F12</span> &rarr; <b>Application</b> tab &rarr; <b>Local Storage</b> &rarr; the game's origin</li>
+  <li>Copy the value of <code>tnd_server_tok_v1</code> (a UUID)</li>
+</ul>
+<p>It stays valid while you keep playing (30-day sliding expiry), so the same token usually works for weeks.</p>
+
+<h2><span class="n">4</span>Find them on the roster</h2>
+<p>PowerShell &mdash; paste your token into the first line, then run:</p>
+<pre>$tok = "PASTE-YOUR-TOKEN"; Invoke-RestMethod -Uri "https://traffic-and-dragons-server.fly.dev/api/admin/users" -Headers @{Authorization="Bearer $tok"}</pre>
+<p>The newest account with an empty <code>tier</code> is your tester. Copy their <code>userId</code> &mdash; it looks like <code>gh_12345678</code> (GitHub) or <code>g_1163603&hellip;</code> (Google).</p>
+
+<h2><span class="n">5</span>Grant the tier</h2>
+<pre>$tok = "PASTE-YOUR-TOKEN"; Invoke-RestMethod -Method Post -Uri "https://traffic-and-dragons-server.fly.dev/api/admin/subscription" -Headers @{Authorization="Bearer $tok"} -ContentType "application/json" -Body '{"userId":"PASTE-THEIR-USERID","tier":"tester","days":90}'</pre>
+<p>Expected reply: <code>ok: True</code> with the tier and an end date. <code>days</code> counts from today; re-running the command later extends from the new date.</p>
+<table>
+  <tr><th>Tier</th><th>Turns / rolling 30 days</th><th>Meant for</th></tr>
+  <tr><td>tester</td><td>300 (&asymp;2&ndash;3 sessions a week)</td><td>invited beta testers</td></tr>
+  <tr><td>beta</td><td>2000</td><td>you</td></tr>
+</table>
+
+<h2><span class="n">6</span>Tell them to reload</h2>
+<p>A hard refresh (<span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">R</span>) and their next turn plays normally &mdash; served on the server's keys, metered against their allowance. They can check their own standing any time under <b>File &rarr; Account</b> (tier, turns used, access-through date).</p>
+
+<h2>Afterwards: managing a tester</h2>
+<table>
+  <tr><th>Task</th><th>How</th></tr>
+  <tr><td>Check usage</td><td>The roster command (step 4) &mdash; <code>turnsUsed30d</code> per account</td></tr>
+  <tr><td>Extend access</td><td>Re-run the grant (step 5); <code>days</code> restarts from today</td></tr>
+  <tr><td>Upgrade / downgrade</td><td>Re-run the grant with a different <code>tier</code></td></tr>
+  <tr><td>Revoke</td><td>The grant command with <code>"tier":"none"</code> &mdash; their data stays; turns stop</td></tr>
+</table>
+
+<div class="note"><b>When they hit the 300-turn ceiling:</b> the game tells them plainly (<i>&ldquo;your story is safe, turns free up as older ones age out&rdquo;</i>) and you'll get the incidental #16 email. The window is rolling &mdash; turns older than 30 days stop counting automatically, so there's nothing to reset.</div>
+
+<div class="note"><b>Their data is theirs, forever</b> (ratified lapse policy): campaigns, characters, and libraries keep syncing and exporting even with no tier &mdash; only GM turns are gated.</div>
+
+</main>
+</body>
+</html>
