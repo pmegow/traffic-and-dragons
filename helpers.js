@@ -1186,6 +1186,31 @@ function bibleCardHTML(name,e){
     +'<div style="font-size:13px;color:var(--t1,#ccc);line-height:1.55;">'+escHtml(e.effect||"")+'</div>'
     +'</div>';
 }
+// itemCardHTML (#295) — bibleCardHTML's ITEM sibling: the ONE pure renderer for the inventory
+// click-card. The raw carried string is the title (instance truth — counts and provenance stay
+// visible); the itemLookup entry supplies TYPE canon. Canon-less items render HONESTLY — no
+// guessed fields; the carried string's own inline "—" description, when present, is shown as
+// what the sheet already says, and the card points at the 📖 Define path instead of inventing.
+function itemCardHTML(raw,e){
+  var chip="display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:10px;margin-right:6px;";
+  var title='<div style="font-size:17px;font-weight:bold;color:var(--t0,#f0f0f0);margin-bottom:8px;">'+escHtml(String(raw||""))+'</div>';
+  if(!e){
+    var m=String(raw||"").match(/[—–]\s*(.+)$/);
+    return '<div style="padding:22px 24px;">'+title
+      +'<div style="font-size:13px;color:var(--t2,#999);line-height:1.55;">No canon recorded for this item yet.'+(m?'':' Its story lives in play — the &#128214; Define button on the character sheet can pin it down.')+'</div>'
+      +(m?'<div style="font-size:13px;color:var(--t1,#ccc);line-height:1.55;margin-top:10px;">'+escHtml(m[1])+'</div>':'')
+      +'</div>';
+  }
+  var badges='<span style="'+chip+'background:rgba(184,147,90,.22);color:var(--acc,#b8935a);">'+escHtml(e.category||"")+'</span>';
+  if(e.inventoryCategories&&e.inventoryCategories.length&&e.inventoryCategories[0]!==e.category)badges+='<span style="'+chip+'background:var(--bg3,#2a2a2a);color:var(--t2,#999);">'+escHtml(e.inventoryCategories[0])+'</span>';
+  function row(k,v){return '<tr><td style="padding:3px 10px 3px 0;color:var(--t2,#999);white-space:nowrap;vertical-align:top;">'+k+'</td><td style="padding:3px 0;color:var(--t1,#ddd);">'+escHtml(v||"N/A")+'</td></tr>';}
+  var rows=row("Uses",e.uses)+row("Value",e.value);
+  return '<div style="padding:22px 24px;">'+title
+    +'<div style="margin-bottom:14px;">'+badges+'</div>'
+    +'<table style="border-collapse:collapse;font-size:12px;margin-bottom:14px;">'+rows+'</table>'
+    +'<div style="font-size:13px;color:var(--t1,#ccc);line-height:1.55;">'+(e.effect&&e.effect!=="N/A"?escHtml(e.effect):'<span style="color:var(--t2,#999);">Classification only — no effect canon recorded yet.</span>')+'</div>'
+    +'</div>';
+}
 // skillCardHTML (#52) — the shared skill-card renderer, bibleCardHTML's sibling. Pure:
 // SKILLS row (data.js — stats/category live there) + SKILLS_BIBLE entry in, HTML out.
 // Used by bible_study.html's Skills section; available to any future in-game click-card.

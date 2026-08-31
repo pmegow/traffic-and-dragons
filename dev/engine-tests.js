@@ -3863,6 +3863,20 @@ function runEngineTests(R){
     var g=itemLookup("Nonexistent Gizmo");
     return g&&g.category==="mundane"?true:"overlay-only stub stopped resolving";
   });
+  t("#295: itemCardHTML — canon renders effect/uses/value + category; classification-only and canon-less states stay HONEST; raw strings escape",function(){
+    var e={category:"consumable",effect:"Burns bright.",uses:"single use",value:"20 gp",inventoryCategories:["consumable"]};
+    var h=itemCardHTML("Alchemist's fire x5",e);
+    if(h.indexOf("Alchemist&#39;s fire x5")<0&&h.indexOf("Alchemist's fire x5")<0)return "raw instance string (with count) not shown as title";
+    if(h.indexOf("Burns bright.")<0||h.indexOf("single use")<0||h.indexOf("20 gp")<0||h.indexOf("consumable")<0)return "canon fields missing from the card";
+    var c=itemCardHTML("Odd trinket",{category:"tool",effect:"N/A",uses:"N/A",value:"N/A"});
+    if(c.indexOf("Classification only")<0)return "classification-only entry not labeled honestly";
+    if(c.indexOf("N/A")<0)return "fixed rows dropped on a classification-only entry";
+    var n=itemCardHTML("Brass ring — unmarked, worn on cord",null);
+    if(n.indexOf("No canon recorded")<0)return "canon-less card invented content instead of saying so";
+    if(n.indexOf("unmarked, worn on cord")<0)return "the carried string's own inline description was not surfaced";
+    var x=itemCardHTML("<script>alert(1)</script>",null);
+    return x.indexOf("<script>")<0?true:"raw string not escaped — an item name could inject HTML";
+  });
   t("[ITEM_DEF:] is a PROPOSAL — queued for the player, never written to the overlay directly",function(){
     makeWorld();
     var r=applyMuts("The alchemist explains her smoke bomb. [ITEM_DEF:Smoke Bomb|category=consumable|effect=Fills a 10-ft cube with thick smoke for a minute|uses=single use|value=25 gp]");

@@ -181,7 +181,9 @@ function csSheetSections(c,invOwner,portable){
         // line; defineItemFromStory (game.js) runs the story-grounded review and the existing
         // #81 confirm modal keeps the player as the gate.
         var _defBtn=(_canDrop&&typeof itemDefEligible==="function"&&itemDefEligible(_row.raw))?'<button class="inv-def" data-raw="'+escHtml(_row.raw)+'" onclick="defineItemFromStory(this.dataset.raw,event)" title="Define this item: the GM reviews the story for what is already established about it and proposes canon — you confirm before it binds. Canonized items are re-injected every turn, so their nature can no longer drift." style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--acc)\'" onmouseout="this.style.color=\'var(--t2)\'">&#128214;</button>':"";
-        invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span>'+invItemHtml(_row.raw)+'</span><span style="display:flex;gap:2px;flex-shrink:0;">'+_defBtn+_dropBtn+'</span></div>';
+        /* #295: the item text opens the click-card; the Define/Drop buttons sit in their own
+           flex span, so their clicks never bubble into the card. */
+        invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span data-item="'+escHtml(_row.raw)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;">'+invItemHtml(_row.raw)+'</span><span style="display:flex;gap:2px;flex-shrink:0;">'+_defBtn+_dropBtn+'</span></div>';
       }
     }
     invHtml='<div class="cs-list">'+invRows+"</div>";}
@@ -206,6 +208,15 @@ function showCapabilityCard(name){
   modalShell("cap-card-modal",
     bibleCardHTML(name,e)+"<button id='cap-card-x' style='position:absolute;top:6px;right:10px;background:none;border:none;color:var(--t2);font-size:24px;line-height:1;cursor:pointer;'>&times;</button>",
     {z:400,bg:".9",boxCss:"background:var(--modal-bg,#181818);border:1px solid var(--acc);border-radius:12px;max-width:420px;width:100%;position:relative;",closeId:"cap-card-x",outside:true});
+}
+// #295: the inventory click-card — showCapabilityCard's item twin, rendering via the shared
+// pure itemCardHTML (helpers.js) from the SAME itemLookup canon the tooltip and the GM's
+// per-turn injection read (one data source, three surfaces).
+function showItemCard(raw){
+  var e=(typeof itemLookup==="function")?itemLookup(raw):null;
+  modalShell("item-card-modal",
+    itemCardHTML(raw,e)+"<button id='item-card-x' style='position:absolute;top:6px;right:10px;background:none;border:none;color:var(--t2);font-size:24px;line-height:1;cursor:pointer;'>&times;</button>",
+    {z:400,bg:".9",boxCss:"background:var(--modal-bg,#181818);border:1px solid var(--acc);border-radius:12px;max-width:420px;width:100%;position:relative;",closeId:"item-card-x",outside:true});
 }
 function csWireToggles(modal){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}}
 

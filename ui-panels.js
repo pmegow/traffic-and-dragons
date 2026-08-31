@@ -261,7 +261,9 @@ function updateInvPanel(){
     if(!open)continue;
     for(j=0;j<grp.rows.length;j++){
       var row=grp.rows[j],eq=(grp.id==="weapon"||grp.id==="armor");
-      h+='<div class="ii has-tip'+(eq?' eq':'')+'" title="'+escHtml(itemTip(row.raw)+_invTipCats(row,grp.id))+'">'+invItemHtml(row.raw)+'</div>';
+      /* #295: every item row opens the item-bible click-card (showItemCard, ui-sheets) — same
+         canon as the hover tooltip, readable on touch where title-tooltips need a long-press. */
+      h+='<div class="ii has-tip'+(eq?' eq':'')+'" data-item="'+escHtml(row.raw)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.raw)+_invTipCats(row,grp.id))+'">'+invItemHtml(row.raw)+'</div>';
     }
   }
   document.getElementById("inv-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">Empty</div>';
