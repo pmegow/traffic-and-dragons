@@ -957,15 +957,32 @@ function _itemAliasIndex(){
 // never raw model output) wins over the static base, so an accepted correction is
 // authoritative. #157: an exact-alias hop runs only after BOTH exact-key probes miss — canonical
 // resolution, never a UI-only second classifier (Sol §4).
+// #294 (field 2026-08-31, the t2412 Karzoug's-ring defect): decide what one key SERVES when
+// both stores hold it. An effect-bearing overlay wins WHOLESALE (#157 precedence, unchanged).
+// But a CLASSIFICATION-ONLY overlay stub (effect "N/A") must not shadow real base canon —
+// that shape left the ring permanently descriptionless (no tooltip, no injection, and #285
+// rightly refuses Define on overlay entries, so there was no player exit either). Canon
+// fields fall through to the base; the overlay keeps its display classification.
+function _itemServe(ov,base){
+  if(ov&&base&&ov.effect==="N/A"&&base.effect&&base.effect!=="N/A"){
+    var m={},k;
+    for(k in base)m[k]=base[k];
+    if(ov.category)m.category=ov.category;
+    if(ov.inventoryCategories)m.inventoryCategories=ov.inventoryCategories;
+    return m;
+  }
+  return ov||base||null;
+}
 function itemLookup(nm){
   var key=itemBaseName(nm);
   if(!key)return null;
-  if(typeof worldState!=="undefined"&&worldState&&worldState.itemBible&&worldState.itemBible[key])return worldState.itemBible[key];
-  if(typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[key])return ITEM_BIBLE[key];
+  var ovs=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)||null;
+  var bib=(typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE)||null;
+  var hit=_itemServe(ovs&&ovs[key],bib&&bib[key]);
+  if(hit)return hit;
   var canon=_itemAliasIndex()[key];
   if(!canon)return null;
-  if(typeof worldState!=="undefined"&&worldState&&worldState.itemBible&&worldState.itemBible[canon])return worldState.itemBible[canon];
-  return (typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[canon])||null;
+  return _itemServe(ovs&&ovs[canon],bib&&bib[canon]);
 }
 // #285 (joint review f18): THE Define-eligibility gate — the ONE predicate the sheet button and
 // buildItemDefinePrompt both call, so the surfaces can never disagree. Eligible when the item has

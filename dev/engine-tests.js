@@ -3839,6 +3839,30 @@ function runEngineTests(R){
     var o=itemLookup("Alchemist's fire");
     return o&&o.effect==="OVERRIDDEN"?true:"overlay did not win over the base";
   });
+  t("#294: a classification-only OVERLAY stub cannot SHADOW effect-bearing base canon (the t2412 Karzoug's-ring field defect)",function(){
+    /* Field 2026-08-31: the ring's campaign overlay held an early organize-only stub
+       (effect "N/A"), the curated base gained rich canon later (v1.710), and overlay-wins-
+       wholesale served the stub — no tooltip, no injection, and #285 correctly refuses
+       Define on overlay entries, so the item was STUCK descriptionless. The fix: canon
+       fields (effect/uses/value/aliases) fall through to the base when the overlay is
+       classification-only; the overlay keeps its display classification. */
+    makeWorld();
+    var base=ITEM_BIBLE["alchemist's fire"];
+    worldState.itemBible={"alchemist's fire":{category:"tool",effect:"N/A",uses:"N/A",value:"N/A",inventoryCategories:["tool"]}};
+    var m=itemLookup("Alchemist's fire");
+    if(!m)return "lookup missed";
+    if(m.effect==="N/A")return "stub still shadows the base canon";
+    if(m.effect!==base.effect||m.uses!==base.uses||m.value!==base.value)return "base canon fields not served";
+    if(m.category!=="tool")return "overlay's display classification lost";
+    if(!m.inventoryCategories||m.inventoryCategories[0]!=="tool")return "overlay's inventoryCategories lost";
+    // The #157 precedence pin survives: an effect-BEARING overlay still wins wholesale.
+    worldState.itemBible={"alchemist's fire":{category:"consumable",effect:"OVERRIDDEN",uses:"x",value:"y"}};
+    if(itemLookup("Alchemist's fire").effect!=="OVERRIDDEN")return "real overlay lost precedence";
+    // Both-stubs stays overlay (mundane/treasure classification-only remains legal as-is).
+    worldState.itemBible={"nonexistent gizmo":{category:"mundane",effect:"N/A",uses:"N/A",value:"N/A"}};
+    var g=itemLookup("Nonexistent Gizmo");
+    return g&&g.category==="mundane"?true:"overlay-only stub stopped resolving";
+  });
   t("[ITEM_DEF:] is a PROPOSAL — queued for the player, never written to the overlay directly",function(){
     makeWorld();
     var r=applyMuts("The alchemist explains her smoke bomb. [ITEM_DEF:Smoke Bomb|category=consumable|effect=Fills a 10-ft cube with thick smoke for a minute|uses=single use|value=25 gp]");
