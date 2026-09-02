@@ -965,7 +965,14 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(worldState.pendingItemDefs.length>=5){if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: proposal queue full (5) — '"+idName+"' dropped (runaway-model guard, #81)");continue;}
   var idEntry={category:"tool",effect:"N/A",uses:"N/A",value:"N/A"},idp;
   var ID_CATS={weapon:1,armor:1,consumable:1,tool:1,quest:1,treasure:1,mundane:1};
-  for(idp=1;idp<idParts.length;idp++){var idkv=idParts[idp].split("=");if(idkv.length<2)continue;var idk=idkv[0].trim().toLowerCase(),idv=idkv.slice(1).join("=").trim();
+  /* #298 (playtest v1767): the engine note taught the POSITIONAL form [ITEM_DEF:name|category|effect|uses|value]
+     while this parser read only key=value pairs — every positional part was skipped SILENTLY and the player
+     was asked to accept an empty "tool / N/A" definition (three were accepted as canon in the run). Both
+     grammars are legal now: a part without "=" is read by position (category, effect, uses, value). */
+  var idPos=["category","effect","uses","value"],idPosN=0;
+  for(idp=1;idp<idParts.length;idp++){var idkv=idParts[idp].split("=");var idk,idv;
+    if(idkv.length<2){if(idPosN>=idPos.length){if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: extra positional field '"+idParts[idp].trim()+"' on '"+idName+"' ignored (#298)");continue;}idk=idPos[idPosN++];idv=idParts[idp].trim();}
+    else{idk=idkv[0].trim().toLowerCase();idv=idkv.slice(1).join("=").trim();}
     if(idk==="category"){var idc=idv.toLowerCase();if(ID_CATS[idc])idEntry.category=idc;else if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: unknown category '"+idv+"' on '"+idName+"' — defaulted to tool (#81)");}
     else if(idk==="effect"||idk==="uses"||idk==="value"){if(idv)idEntry[idk]=idv;}
     else if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: field '"+idk+"' on '"+idName+"' ignored — instance state never enters a TYPE definition (#81)");}

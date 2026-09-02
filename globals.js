@@ -281,7 +281,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.768";
+var APP_VERSION="v1.769";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 var HOME_PENDING_BP_K="tnd_pending_bp_v1";

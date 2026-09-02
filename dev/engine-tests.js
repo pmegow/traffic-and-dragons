@@ -7472,6 +7472,21 @@ function runEngineTests(R){
     if(_luOwed().spells.length!==0)return "blank bench queued a pick";
     return infos.join(" ").indexOf("fill-phase")>=0?true:"skip was silent";
   });
+  t("#298: a POSITIONAL [ITEM_DEF:] (the form the engine note taught) fills category/effect/uses/value — it used to queue an empty tool/N-A proposal (playtest v1767 t14)",function(){
+    makeWorld();worldState.pendingItemDefs=[];worldState.itemBible={};worldState.turn=14;
+    applyMuts("[ITEM_DEF:Sealed letter bearing the chained crown sigil|quest|A cracked-wax missive addressing an unmarked shipment bound for the fighting pits|single use|0 gp]");
+    var p=worldState.pendingItemDefs[0];
+    if(!p)return "no proposal queued";
+    if(p.entry.category!=="quest")return "positional category lost: "+p.entry.category;
+    if(!/cracked-wax missive/.test(p.entry.effect))return "positional effect lost: "+p.entry.effect;
+    if(p.entry.uses!=="single use"||p.entry.value!=="0 gp")return "positional uses/value lost: "+JSON.stringify(p.entry);
+    worldState.pendingItemDefs=[];
+    applyMuts("[ITEM_DEF:Vial of giant's bane|category=consumable|effect=Poison for giants|uses=1|value=25 gp]");
+    var q=worldState.pendingItemDefs[0];
+    if(!q||q.entry.category!=="consumable"||q.entry.effect!=="Poison for giants")return "the key=value grammar broke: "+JSON.stringify(q&&q.entry);
+    var n=(function(){worldState.combat=null;worldState.itemDefCandidate={key:"odd trinket",turn:14};delete worldState.itemDefAsked;return buildUndefinedItemNudge();})();
+    return /category=/.test(n)?true:"the engine note still teaches a grammar the parser reads by position only — teach the documented key=value form: "+n.slice(0,200);
+  });
   t("#297: a DERIVATIVE foe name never routes to the foe it derives from — [ENEMY_SLAIN:Nolan Grimtide's raider] leaves Nolan standing (playtest v1767 t8)",function(){
     makeWorld();worldState.combat=null;
     applyMuts("[COMBAT_START:Nolan Grimtide|20|13|4|1d8|steady][COMBAT_START:Slaver Raider|8|11|2|1d6|low]");

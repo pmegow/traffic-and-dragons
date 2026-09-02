@@ -309,7 +309,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[COMBAT_END:outcome]` | Close the whole encounter (all-foes-down auto-closes even without it) |
 | `[ABILITY_GAINED:Name\|Desc]` | Append to `character.abilities` (deduplicated) |
 | `[ALIGNMENT:law+1]` / `[ALIGNMENT:good-1]` | Shift the axes (−3..3), recompute the label (#139 seed-from-label; #140 label flips file defining moments + deity-drift nudges) |
-| `[ITEM_DEF:name\|…]` | #81 PROPOSAL — queues a player confirm (cap 5, dedupe); Accept = write-once `worldState.itemBible` |
+| `[ITEM_DEF:name\|…]` | #81 PROPOSAL — queues a player confirm (cap 5, dedupe); Accept = write-once `worldState.itemBible`. **#298 (v1.769): both grammars parse — `key=value` parts AND the positional `category\|effect\|uses\|value` order** (the engine note used to teach positional while the parser read only key=value, so empty definitions reached the confirm modal) |
 | `[SPELL_USED:name]` | #110 mana spend via `manaPayCast`; racial 1/day keeps the hard `used` gate; a Necromancer overdraws as blood-HP, engine-deducted |
 | `[MANA:±N\|cause]` / `[COMPANION_MANA:Name\|±N\|cause]` | #138 EXTERNAL mana effects only — never cast costs (pairing with a cast double-charges); loud no-op on a manaless target |
 | `[LORE:fact]` / `[DECISION:desc]` | Append to `memory.lore` / `memory.keyDecisions` (cap 30 each) |

@@ -1308,7 +1308,7 @@ function buildUndefinedItemNudge(){
   return "[ENGINE NOTE — UNDEFINED ITEM (not a player action): the party just acquired \""+cand.key+"\" and the item "
     +"bible records no effect for it, so neither you nor the engine has canon for what it does — anything you narrate "
     +"about its properties is invention the record cannot keep. If it is mechanically meaningful, propose its definition "
-    +"now with [ITEM_DEF:"+cand.key+"|category|effect|uses|value] (categories: weapon/armor/consumable/tool/quest/"
+    +"now with [ITEM_DEF:"+cand.key+"|category=…|effect=…|uses=…|value=…] (categories: weapon/armor/consumable/tool/quest/"
     +"treasure/mundane); the PLAYER confirms it before anything becomes canon, so propose rather than assert. If it is "
     +"ordinary gear with no mechanics, leave it alone and do not mention this.]";
 }
