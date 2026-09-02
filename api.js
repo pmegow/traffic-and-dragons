@@ -1275,27 +1275,36 @@ function _itemDefCandidate(rawName){
   if(typeof worldState==="undefined"||!worldState)return;
   if(typeof itemBaseName!=="function"||typeof itemLookup!=="function")return;
   var key=itemBaseName(rawName);
-  if(!key||_undefLooksMundane(key))return;
+  if(!key)return;
+  /* #294 Part B (owner ruling 2026-08-31: "ALL items need a description"): the old mundane-word
+     skip list is GONE — a bedroll asks like a relic does, and the note's own last sentence lets
+     the GM decline plain gear. The one structural exemption: a carried string that already
+     carries its inline "—" description ("Torch — burns an hour") has described itself. */
+  if(/\s[—–-]\s/.test(String(rawName||"")))return;
   var e=itemLookup(rawName);
   if(e&&(e.category==="mundane"||e.category==="treasure"))return;
-  if(e&&e.effect&&e.effect!=="N/A")return;              /* already canon */
+  if(e&&e.effect&&e.effect!=="N/A")return;              /* already canon (Part A serves base canon through a classification-only overlay) */
   var pend=worldState.pendingItemDefs||[],i;
   for(i=0;i<pend.length;i++)if(pend[i].key===key)return;/* a proposal already awaits the player */
+  if(worldState.itemDefAsked&&worldState.itemDefAsked[key]!=null)return;/* #294B: asked ONCE per item per campaign — the latch is stamped when the note is delivered */
   worldState.itemDefCandidate={key:key,turn:worldState.turn||0};
 }
-/* Unknown items are the common case (every improvised noun the GM writes), so the ask skips
-   anything that reads as plain gear. Deliberately a small, boring list — a false NEGATIVE costs
-   one unasked question; a false POSITIVE nags about a bedroll. */
-/* The (?:e?s)? tail is load-bearing: \bration\b cannot match "rations", and most of this list
-   arrives plural in play (rations, torches, coins, notes) — the singular-only form let every
-   plural straight through and nagged the GM about camping gear. */
-var _UNDEF_MUNDANE_RE=/\b(bedroll|blanket|torch|ration|rope|sack|pouch|waterskin|flask|tinder|candle|chalk|coin|gold|silver|copper|clothes|cloak|boot|pack|bag|crate|barrel|note|letter|map|book|journal)(?:e?s)?\b/i;
-function _undefLooksMundane(key){return _UNDEF_MUNDANE_RE.test(String(key||""));}
+/* #294B: the per-item asked latch. Stamped at DELIVERY (not at arming) so a dead provider turn
+   restores both the candidate and the latch through NOTE_LATCH_FIELDS (#151). Bounded at
+   ITEM_DEF_ASKED_CAP keys, oldest turn evicted — a long campaign's gear churn cannot grow it. */
+var ITEM_DEF_ASKED_CAP=60;
+function _itemDefMarkAsked(key,turn){
+  if(!worldState.itemDefAsked)worldState.itemDefAsked={};
+  var a=worldState.itemDefAsked;a[key]=turn;
+  var ks=Object.keys(a);
+  while(ks.length>ITEM_DEF_ASKED_CAP){var old=ks[0],i;for(i=1;i<ks.length;i++)if(a[ks[i]]<a[old])old=ks[i];delete a[old];ks=Object.keys(a);}
+}
 function buildUndefinedItemNudge(){
   if(!worldState||worldState.combat)return"";
   var cand=worldState.itemDefCandidate;
   if(!cand||!cand.key)return"";
   delete worldState.itemDefCandidate;
+  _itemDefMarkAsked(cand.key,worldState.turn||0);
   return "[ENGINE NOTE — UNDEFINED ITEM (not a player action): the party just acquired \""+cand.key+"\" and the item "
     +"bible records no effect for it, so neither you nor the engine has canon for what it does — anything you narrate "
     +"about its properties is invention the record cannot keep. If it is mechanically meaningful, propose its definition "
@@ -1501,7 +1510,7 @@ function buildArcWallNudge(){
 // per companion) and questLog[].staleNudged (buildQuestStaleNudge — entry-30 ruling 2026-08-29:
 // the NARROW title-keyed snapshot, never questLog wholesale in the flat registry, which would
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[],quests:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];

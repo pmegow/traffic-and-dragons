@@ -945,7 +945,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var idm=itemDefs[idi].match(/\[ITEM_DEF:([^\]]+)\]/);if(!idm)continue;
   var idParts=idm[1].split("|"),idName=(idParts[0]||"").trim();if(!idName||typeof itemBaseName!=="function")continue;
   var idKey=itemBaseName(idName);if(!idKey)continue;
-  if(worldState.itemBible&&worldState.itemBible[idKey]){if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: '"+idName+"' already in the accepted overlay — write-once, redefinition ignored (#81)");continue;}
+  if(typeof itemDefOverlayReplaceable==="function"?!itemDefOverlayReplaceable(idKey):(worldState.itemBible&&worldState.itemBible[idKey])){if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: '"+idName+"' already in the accepted overlay — write-once, redefinition ignored (#81)");continue;}
   if(!worldState.pendingItemDefs)worldState.pendingItemDefs=[];
   var idDup=false,idq;for(idq=0;idq<worldState.pendingItemDefs.length;idq++){if(worldState.pendingItemDefs[idq].key===idKey){idDup=true;break;}}
   if(idDup){if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: '"+idName+"' already awaiting player confirmation — duplicate proposal dropped (#81)");continue;}

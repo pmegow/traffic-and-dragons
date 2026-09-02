@@ -3772,23 +3772,45 @@ function runEngineTests(R){
     if(!/consumable/.test(m))return "prompt should carry the curated category so the accepted overlay preserves it";
     return true;
   });
-  t("#285 (f18): effect-bearing base and ANY overlay entry stay Define-ineligible; alias-resolved entries refuse too",function(){
+  t("#285 (f18): effect-bearing base and effect-bearing overlay entries stay Define-ineligible; alias-resolved entries refuse too",function(){
     makeWorld();
     /* effect-bearing base: write-once is moot — the def would add nothing the injection lacks */
     worldState.character.inventory.push("Alchemist's fire x5");
     if(itemDefEligible("Alchemist's fire x5"))return "effect-bearing base entry wrongly eligible";
-    /* classification-only OVERLAY: the verifier's third case — write-once IS real here, and the
-       widened button would burn a paid review call that can never land */
-    worldState.itemBible={"mystery tool":{category:"tool",effect:"N/A",uses:"N/A",value:"N/A"}};
+    /* effect-bearing OVERLAY: real canon, sealed (write-once per real canon — #294B) */
+    worldState.itemBible={"mystery tool":{category:"tool",effect:"Opens any mundane lock",uses:"N/A",value:"N/A"}};
     worldState.character.inventory.push("Mystery tool");
-    if(itemDefEligible("Mystery tool"))return "classification-only OVERLAY entry wrongly eligible — its write-once refusal is real";
-    if(buildItemDefinePrompt("Mystery tool")!==null)return "prompt built for an overlay entry that can never accept a def";
+    if(itemDefEligible("Mystery tool"))return "effect-bearing OVERLAY entry wrongly eligible — its write-once refusal is real";
+    if(buildItemDefinePrompt("Mystery tool")!==null)return "prompt built for a sealed overlay entry";
     /* alias-resolved: the proposal would land under the alias's own key and split resolution
        from the curated canon key — conservative refusal */
     worldState.itemBible["true relic"]={category:"quest",effect:"N/A",uses:"N/A",value:"N/A",aliases:["old relic name"]};
     worldState.character.inventory.push("Old relic name");
     if(itemDefEligible("Old relic name"))return "alias-resolved entry wrongly eligible — the def would land under the alias key";
     return true;
+  });
+  t("#294B ②: a classification-only overlay with NO base canon is Define-eligible and REPLACEABLE (Karzoug's cracked crown); over a base it is not (Part A serves the base)",function(){
+    makeWorld();
+    worldState.itemBible={"karzoug's cracked crown":{category:"quest",effect:"N/A",uses:"N/A",value:"N/A",inventoryCategories:["quest"]}};
+    worldState.character.inventory.push("Karzoug's cracked crown");
+    if(!itemDefEligible("Karzoug's cracked crown"))return "a base-less classification-only overlay is still a dead end — no Define, no proposal, no exit";
+    if(!buildItemDefinePrompt("Karzoug's cracked crown"))return "the Define prompt refused the crown";
+    /* the GM's proposal is ACCEPTED as a proposal (the handler used to refuse any overlay key) */
+    worldState.pendingItemDefs=[];worldState.turn=5;
+    applyMuts("[ITEM_DEF:Karzoug's cracked crown|category=quest|effect=Whispers the location of the nearest rune well once per day|uses=1/day|value=priceless]");
+    if(!worldState.pendingItemDefs.length||worldState.pendingItemDefs[0].key!=="karzoug's cracked crown")return "the proposal was refused by the write-once check: "+JSON.stringify(worldState.pendingItemDefs);
+    if(!itemDefAccept("karzoug's cracked crown"))return "accept refused the replacement";
+    var e=worldState.itemBible["karzoug's cracked crown"];
+    if(!/rune well/.test(e.effect))return "the accepted entry did not replace the stub: "+JSON.stringify(e);
+    if(!e.inventoryCategories||e.inventoryCategories[0]!=="quest")return "the stub's display classification (#157) was lost on replacement";
+    /* now it IS real canon — sealed again */
+    if(itemDefEligible("Karzoug's cracked crown"))return "an effect-bearing overlay became eligible again";
+    applyMuts("[ITEM_DEF:Karzoug's cracked crown|category=quest|effect=Something else]");
+    if(worldState.pendingItemDefs.length)return "a proposal over real overlay canon was queued — write-once broken";
+    /* classification-only overlay OVER a base: Part A serves the base, nothing to define */
+    worldState.itemBible={"alchemist's fire":{category:"tool",effect:"N/A",uses:"N/A",value:"N/A"}};
+    worldState.character.inventory.push("Alchemist's fire");
+    return itemDefEligible("Alchemist's fire")?"a classification-only overlay over a base became eligible — Part A already serves the base canon":true;
   });
   t("#285 (f18): itemDefShadowNote — the confirm modal names the shadow, silent for genuinely new canon",function(){
     makeWorld();
@@ -15637,10 +15659,34 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[ITEM_GAINED:"+k+"]");
     return buildUndefinedItemNudge()===""?true:"a defined item still asked for a definition";
   });
-  t("#223 mundane gear is never nagged about — rope and rations are not mechanics",function(){
+  t("#294B ① (owner: ALL items need a description): plain gear asks too — the old mundane skip-list is gone; an inline \"—\" description exempts itself",function(){
     __undefWorld();
-    applyMuts("[ITEM_GAINED:Bedroll][ITEM_GAINED:Torch][ITEM_GAINED:Rations]");
-    return buildUndefinedItemNudge()===""?true:"the nudge asked the GM to define camping gear";
+    applyMuts("[ITEM_GAINED:Bedroll]");
+    var n=buildUndefinedItemNudge();
+    if(!n||n.indexOf("bedroll")<0)return "a bedroll no longer asks — the mundane skip-list is back: "+JSON.stringify(n);
+    __undefWorld();
+    applyMuts("[ITEM_GAINED:Torch — burns for an hour, one per night]");
+    return buildUndefinedItemNudge()===""?true:"an item carrying its own inline description was asked about anyway";
+  });
+  t("#294B ①: asked ONCE per item per campaign — a re-gained key never re-arms; the latch is stamped at delivery, restored with the candidate on a dead turn, and bounded",function(){
+    __undefWorld();delete worldState.itemDefAsked;
+    applyMuts("[ITEM_GAINED:Vial of giant's bane]");
+    if(!buildUndefinedItemNudge())return "fixture: first ask did not fire";
+    if(!worldState.itemDefAsked||worldState.itemDefAsked["vial of giant's bane"]==null)return "delivery did not stamp the asked latch";
+    applyMuts("[ITEM_LOST:Vial of giant's bane][ITEM_GAINED:Vial of giant's bane]");
+    if(worldState.itemDefCandidate)return "a re-gained key re-armed the candidate — the GM would be nagged every time it changes hands";
+    if(buildUndefinedItemNudge()!=="")return "the second ask fired";
+    /* dead-turn restore: the latch rides NOTE_LATCH_FIELDS beside the candidate */
+    if(NOTE_LATCH_FIELDS.indexOf("itemDefAsked")<0)return "itemDefAsked is not in NOTE_LATCH_FIELDS — a dead turn would leave the item asked-but-never-delivered";
+    delete worldState.itemDefAsked;applyMuts("[ITEM_GAINED:Runed knucklebone]");
+    var snap=snapshotNoteLatches();buildUndefinedItemNudge();restoreNoteLatches(snap);
+    if(worldState.itemDefAsked&&worldState.itemDefAsked["runed knucklebone"]!=null)return "a dead provider turn kept the asked stamp (#151) — the note is lost forever";
+    if(!buildUndefinedItemNudge())return "the restored candidate did not re-deliver";
+    /* bound */
+    var i;worldState.itemDefAsked={};for(i=0;i<ITEM_DEF_ASKED_CAP+5;i++)_itemDefMarkAsked("k"+i,i);
+    var ks=Object.keys(worldState.itemDefAsked);
+    if(ks.length!==ITEM_DEF_ASKED_CAP)return "asked map unbounded: "+ks.length;
+    return worldState.itemDefAsked["k0"]==null&&worldState.itemDefAsked["k"+(ITEM_DEF_ASKED_CAP+4)]!=null?true:"eviction did not drop the oldest";
   });
   t("#223 combat-silent, one-shot, and restored when a provider turn dies (#151)",function(){
     __undefWorld();

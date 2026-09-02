@@ -18,15 +18,15 @@ rc|=sabotage.prove({
       find:"  return hit.effect===\"N/A\"&&hit.category!==\"mundane\"&&hit.category!==\"treasure\";",
       replace:"  return false;" },
 
-    { label:"#285: the overlay refusal dies — a paid review call can be burned on a def that write-once will never let land",
-      mustFail:"#285 (f18): effect-bearing base and ANY overlay entry stay Define-ineligible",
-      find:"  if(typeof worldState!==\"undefined\"&&worldState&&worldState.itemBible&&worldState.itemBible[key])return false;\n  if(typeof ITEM_BIBLE===\"undefined\"||ITEM_BIBLE[key]!==hit)return false;/* overlay- or alias-resolved */",
-      replace:"  if(typeof ITEM_BIBLE===\"undefined\")return false;" },
+    { label:"#285/#294B: the effect-bearing overlay refusal dies — a paid review call can be burned on a def that write-once (per real canon) will never let land",
+      mustFail:"#285 (f18): effect-bearing base and effect-bearing overlay entries stay Define-ineligible",
+      find:"    if(ov.effect&&ov.effect!==\"N/A\")return false;\n    if(base)return false;",
+      replace:"    if(false)return false;\n    if(base)return false;" },
 
     { label:"#285: the alias guard dies — a def could land under the alias's own key and split resolution from the curated canon key",
-      mustFail:"#285 (f18): effect-bearing base and ANY overlay entry stay Define-ineligible",
-      find:"  if(typeof ITEM_BIBLE===\"undefined\"||ITEM_BIBLE[key]!==hit)return false;/* overlay- or alias-resolved */",
-      replace:"  if(typeof ITEM_BIBLE===\"undefined\")return false;" },
+      mustFail:"#285 (f18): effect-bearing base and effect-bearing overlay entries stay Define-ineligible",
+      find:"  if(!base||base!==hit)return false;/* alias-resolved */",
+      replace:"  if(!base)return false;" },
 
     { label:"#285: the shadow note goes silent — replacing a curated entry becomes invisible to the player (no-silent-failures)",
       mustFail:"#285 (f18): itemDefShadowNote",

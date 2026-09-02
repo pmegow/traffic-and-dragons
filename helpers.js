@@ -1001,9 +1001,28 @@ function itemDefEligible(rawItem){
   if(!key)return false;
   var hit=itemLookup(rawItem);
   if(!hit)return true;
-  if(typeof worldState!=="undefined"&&worldState&&worldState.itemBible&&worldState.itemBible[key])return false;
-  if(typeof ITEM_BIBLE==="undefined"||ITEM_BIBLE[key]!==hit)return false;/* overlay- or alias-resolved */
+  var ov=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)?worldState.itemBible[key]:null;
+  var base=(typeof ITEM_BIBLE!=="undefined")?ITEM_BIBLE[key]:null;
+  if(ov){
+    /* #294 Part B ②: write-once is write-once-per-REAL-canon. An effect-bearing overlay is real
+       canon and stays sealed; a classification-only overlay over a BASE is served through to the
+       base by _itemServe (Part A) so there is nothing to define; a classification-only overlay
+       with NO base (Karzoug's cracked crown at t2412) was a dead end — Define-eligible now, and
+       itemDefAccept / the ITEM_DEF handler let an accepted proposal replace it. */
+    if(ov.effect&&ov.effect!=="N/A")return false;
+    if(base)return false;
+    return ov.category!=="mundane"&&ov.category!=="treasure";
+  }
+  if(!base||base!==hit)return false;/* alias-resolved */
   return hit.effect==="N/A"&&hit.category!=="mundane"&&hit.category!=="treasure";
+}
+/* #294B: may an accepted [ITEM_DEF:] proposal land on this key? Shared by itemDefAccept and the
+   ITEM_DEF tag handler so the two boundaries cannot disagree: only an EFFECT-BEARING overlay is
+   sealed (write-once per real canon); a classification-only overlay is replaceable. */
+function itemDefOverlayReplaceable(key){
+  var ov=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)?worldState.itemBible[key]:null;
+  if(!ov)return true;
+  return !(ov.effect&&ov.effect!=="N/A");
 }
 // #285: the confirm modal's shadow notice — non-empty when accepting the keyed proposal would
 // REPLACE a curated base entry wholesale (multi-category listings and curated value/uses are
@@ -1142,7 +1161,13 @@ function itemDefAccept(key){
   if(!p)return false;
   worldState.pendingItemDefs.splice(i,1);
   if(!worldState.itemBible)worldState.itemBible={};
-  if(worldState.itemBible[key]){if(typeof console!=="undefined")console.warn("[items] accept refused — '"+key+"' already canon (write-once, #81)");return false;}
+  if(!itemDefOverlayReplaceable(key)){if(typeof console!=="undefined")console.warn("[items] accept refused — '"+key+"' already canon (write-once, #81)");return false;}
+  var prior=worldState.itemBible[key];
+  if(prior){/* #294B ②: replacing a classification-only overlay — its DISPLAY fields (#157) survive unless the proposal carries its own */
+    if(prior.inventoryCategories&&!p.entry.inventoryCategories)p.entry.inventoryCategories=prior.inventoryCategories;
+    if(prior.aliases&&!p.entry.aliases)p.entry.aliases=prior.aliases;
+    if(typeof console!=="undefined")console.info("[items] classification-only overlay for '"+key+"' replaced by the accepted proposal (#294B)");
+  }
   worldState.itemBible[key]=p.entry;
   if(typeof console!=="undefined")console.info("[items] item canon ACCEPTED: "+p.name+" ("+p.entry.category+")");
   if(typeof saveAll==="function")saveAll();
