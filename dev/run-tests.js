@@ -1130,6 +1130,30 @@ try {
   console.log("[#290] home page contract OK — read-only surface, shared handoff key, " + _hpCat.length + " curated original(s)");
 } catch (e) { console.error("HOME PAGE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── CHARACTER EDITOR CONTRACT (#62, v1.767) ──────────────────────────────────
+// character_editor.html edits a PORTABLE sheet and never a campaign: no state writers, no
+// game.js / ui-*.js; the .char wrapper is the game's own; class/spell/skill references resolve
+// through the loaded bibles; every field lives in the FIELDS/LISTS registries; seam present.
+try {
+  var _ceFs = require("fs"), _cePath = require("path");
+  var _ceFail = function (msg) { console.error("CHARACTER EDITOR CONTRACT: " + msg); process.exit(1); };
+  var _ce = _ceFs.readFileSync(_cePath.join(__dirname, "..", "character_editor.html"), "utf8");
+  if (_ce.indexOf("window.__ceTest") < 0) _ceFail("the test seam is gone — satellites with logic must stay drivable.");
+  if (/loadState\(|saveCore\(|saveAll\(/.test(_ce)) _ceFail("the editor touches the game's state writers — it edits a portable sheet, never a campaign.");
+  if (/<script src="game\.js">|<script src="ui-/.test(_ce)) _ceFail("the editor must not load game.js or any ui-*.js.");
+  ["capability_bible.js", "class_bible.js", "skills_bible.js", "item_bible.js", "helpers.js"].forEach(function (f) {
+    if (_ce.indexOf('<script src="' + f + '">') < 0) _ceFail(f + " is not loaded — class/spell/skill/item references would not resolve.");
+  });
+  if (_ce.indexOf('{ver:10,type:"character",character:ch}') < 0) _ceFail("the .char wrapper drifted from the game's own {ver:10,type:\"character\",character}.");
+  if (_ce.indexOf("var FIELDS=") < 0 || _ce.indexOf("var LISTS=") < 0) _ceFail("the FIELDS/LISTS registries are gone — fields would be hand-built forms again.");
+  ["abilities", "spells", "inventory", "languages", "conditions", "relationships", "saveModifiers", "storyBeats", "coreMemories"].forEach(function (k) {
+    if (!(new RegExp('\\{k:"' + k + '",title:')).test(_ce)) _ceFail("v10 list field '" + k + "' has no LISTS entry — unreachable in the editor.");
+  });
+  var _ceSw = _ceFs.readFileSync(_cePath.join(__dirname, "..", "sw.js"), "utf8");
+  if (_ceSw.indexOf("character_editor") < 0) _ceFail("sw.js network-first allowlist lacks character_editor — the SW would pin it stale.");
+  console.log("[#62] character editor contract OK — portable-sheet surface, wrapper pinned, 9 list fields registered");
+} catch (e) { console.error("CHARACTER EDITOR CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── MENU TIER CONTRACT (#289, v1.764) ────────────────────────────────────────
 // The Dev-vs-Beta split is ONE class in the menu spec + ONE toggle. Every operator row must carry
 // the flag (a missing flag silently shows a beta tester an operator surface), the toggle must

@@ -65,6 +65,7 @@ a.link:hover{text-decoration:underline;}
     <div class="grid">
       <div class="card"><h3>Continue or start a campaign</h3><p>Your saved campaigns follow your account. Start fresh, or pick a blueprint below and the character wizard opens with it loaded.</p><div class="acts"><button class="b p" id="go-play">Open the game</button></div></div>
       <div class="card"><h3>Blueprint Designer</h3><p>Author a campaign of your own — premise, acts and arcs, seed NPCs and places. Saves to your account library; the AI can draft and review it for you.</p><div class="acts"><button class="b" id="go-designer">Open the designer</button></div></div>
+      <div class="card"><h3>Character Editor</h3><p>Build or revise a character outside any campaign — every field of the sheet, portrait included. Saves a .char file or straight to your account library.</p><div class="acts"><button class="b" id="go-editor">Open the editor</button></div></div>
       <div class="card"><h3>Reference</h3><p>Every spell, ability, class ladder, skill and item the game knows, exactly as the game master reads them.</p><div class="acts"><a class="link" href="bible_study.html">Capability, class, skill &amp; item bibles →</a></div></div>
     </div>
   </section>
@@ -161,6 +162,7 @@ a.link:hover{text-decoration:underline;}
   }
   $("go-play").addEventListener("click",function(){location.href="index.html";});
   $("go-designer").addEventListener("click",function(){location.href="blueprint-designer.html";});
+  $("go-editor").addEventListener("click",function(){location.href="character_editor.html";});
   renderWho();loadCatalog();loadLibrary();
 
   // Test seam — drives the page headlessly / in the preview pane (satellite testability rule).

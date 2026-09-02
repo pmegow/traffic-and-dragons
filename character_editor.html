@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Character Editor — Traffic and Dragons</title>
+<!--
+  character_editor.html — the STANDALONE character editor (TODO #62, owner ruling 2026-09-01:
+  "everything editable — it is your authoring tool, no cheat-guard"). A satellite page (open
+  directly; network-first in sw.js; NOT in the SW app shell): create or edit a v10 character
+  outside any running campaign, load/save .char files and the account character library.
+
+  Contracts (CHARACTER EDITOR CONTRACT, dev/run-tests.js):
+   · never touches live campaign state — no loadState/saveCore/saveAll, no game.js, no ui-*.js;
+     the only localStorage key it writes is its own draft slot (CE_DRAFT_K);
+   · the .char wrapper is the game's own ({ver:10,type:"character",character}) — files round-trip
+     with File ▸ Import Character byte-for-byte in meaning;
+   · every v10 field is reachable through ONE field registry (FIELDS) + ONE list registry
+     (LISTS) — adding a field is one entry, never a hand-built form;
+   · the three bibles load so class/spell/skill references resolve (classDef, capabilityLookup,
+     SKILLS) — the editor warns on names the game would not recognize, it never blocks;
+   · test seam window.__ceTest (satellite testability rule 2026-07-29).
+-->
+<style>
+:root{--font:Georgia,serif;--font-mono:monospace;--bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--bg3:#242730;--brd:#2c2f3a;--brd2:#3c4050;--t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;--acc:#9ab0c8;--on-acc:#000;--gold:#c8a84a;--dng:#c04040;--warn:#d8a04a;--grn:#3a7a5a;--r:6px;--rl:10px;}
+*{box-sizing:border-box;}
+html,body{margin:0;background:var(--bg0);color:var(--t0);font-family:var(--font);font-size:14px;}
+#top{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;background:var(--bg1);border-bottom:1px solid var(--brd);}
+#top h1{margin:0 12px 0 0;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--t1);}
+#top .ver{font-size:11px;color:var(--t2);margin-right:auto;}
+button.b{font-family:var(--font);font-size:12.5px;padding:6px 12px;border-radius:var(--r);border:1px solid var(--brd2);background:var(--bg2);color:var(--t0);cursor:pointer;}
+button.b.p{background:var(--acc);color:var(--on-acc);border-color:var(--acc);}
+button.b.d{color:var(--dng);}
+button.b:disabled{opacity:.4;cursor:default;}
+label.file{font-size:12.5px;padding:6px 12px;border-radius:var(--r);border:1px solid var(--brd2);background:var(--bg2);cursor:pointer;}
+label.file input{display:none;}
+#status{width:100%;font-size:12px;color:var(--t1);min-height:16px;}
+#status.err{color:var(--dng);} #status.ok{color:#84c795;} #status.warn{color:var(--warn);}
+main{max-width:1100px;margin:0 auto;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:820px){main{grid-template-columns:1fr;}}
+section{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--rl);padding:12px 14px;}
+section.wide{grid-column:1/-1;}
+section h2{margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);display:flex;justify-content:space-between;align-items:center;}
+section h2 .derived{font-size:11px;letter-spacing:0;text-transform:none;color:var(--t1);}
+.row{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;margin:5px 0;}
+.row label{font-size:12px;color:var(--t1);}
+input[type=text],input[type=number],select,textarea{width:100%;font-family:var(--font);font-size:13px;color:var(--t0);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);padding:5px 8px;}
+textarea{min-height:64px;resize:vertical;}
+input.bad{border-color:var(--dng);} input.warnf{border-color:var(--warn);}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.stat{text-align:center;} .stat label{display:block;font-size:11px;color:var(--t2);letter-spacing:.08em;} .stat .mod{font-size:11px;color:var(--t1);}
+table.list{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.list th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);text-align:left;padding:2px 4px;font-weight:normal;}
+table.list td{padding:2px 4px;vertical-align:top;}
+table.list td input,table.list td select{padding:3px 6px;font-size:12.5px;}
+table.list td.x{width:24px;} table.list td.x button{border:none;background:none;color:var(--t2);cursor:pointer;font-size:14px;}
+table.list td.x button:hover{color:var(--dng);}
+.add{margin-top:6px;}
+.hint{font-size:11px;color:var(--t2);margin-top:4px;}
+.skills{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:4px 12px;}
+.skill{display:grid;grid-template-columns:1fr 54px 64px;gap:6px;align-items:center;font-size:12px;color:var(--t1);}
+.skill .lvl{font-size:11px;color:var(--t2);}
+#portrait-wrap{display:flex;gap:12px;align-items:flex-start;}
+#portrait-box{width:150px;height:200px;border:1px solid var(--brd2);border-radius:var(--r);background:var(--bg2);overflow:hidden;position:relative;flex:none;}
+#portrait-box img{width:100%;height:100%;object-fit:cover;display:block;}
+#portrait-box .none{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:12px;}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:20;}
+#modal .box{background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:520px;width:92%;max-height:80vh;overflow:auto;padding:16px;}
+#modal .item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px;}
+#modal .item .m{color:var(--t2);font-size:11.5px;}
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>Character Editor</h1><span class="ver" id="ver"></span>
+  <button class="b" id="b-new">New</button>
+  <label class="file">Load .char<input type="file" id="f-load" accept=".char,.json"/></label>
+  <button class="b" id="b-lib">Load from library…</button>
+  <button class="b p" id="b-save">Save .char</button>
+  <button class="b" id="b-libsave">Save to library</button>
+  <div id="status"></div>
+</div>
+<main id="main"></main>
+<div id="modal"><div class="box" id="modal-box"></div></div>
+
+<!-- Engine DATA + helpers only. No game.js, no ui-*.js: this page edits a portable sheet, never a campaign. -->
+<script src="globals.js"></script>
+<script src="data.js"></script>
+<script src="capability_bible.js"></script>
+<script src="class_bible.js"></script>
+<script src="skills_bible.js"></script>
+<script src="item_bible.js"></script>
+<script src="helpers.js"></script>
+<script src="state.js"></script>
+<script src="storage-adapter.js"></script>
+<script>
+(function(){
+  var CE_VERSION="v0.1", CE_DRAFT_K="tnd_ce_draft_v1";
+  var ch=null, dirty=false, _draftT=null;
+  function $(id){return document.getElementById(id);}
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  function setStatus(msg,cls){var el=$("status");el.textContent=msg||"";el.className=cls||"";}
+  function signedIn(){return typeof storageAdapter!=="undefined"&&storageAdapter.isServerMode();}
+  var STAT_IDS=["str","dex","con","int","wis","cha"];
+
+  // ── the blank v10 sheet ────────────────────────────────────────────────────
+  function blankChar(){
+    var c={name:"",gender:"M",age:"",appear:"",mark:"",backstory:"",ancestry:"human",subrace:"",subraceNm:"",heritageVariant:"",
+      cls:"Warrior",stats:{str:10,dex:10,con:10,int:10,wis:10,cha:10},hp:10,maxHp:10,gold:10,inventory:[],level:1,xp:0,
+      abilities:[],spells:[],mana:undefined,archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,
+      deity:"",trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:(typeof initSkills==="function")?initSkills():{},
+      conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],coreMemories:[],partyMember:true};
+    delete c.mana;return c;
+  }
+  // Every import path in the game defaults these — mirror it so an old .char edits cleanly.
+  function healChar(c){
+    if(!c.skills)c.skills=(typeof initSkills==="function")?initSkills():{};
+    if(typeof initSkills==="function"){var base=initSkills(),k;for(k in base)if(c.skills[k]==null)c.skills[k]=0;}
+    ["inventory","abilities","spells","languages","conditions","relationships","saveModifiers","storyBeats","coreMemories"].forEach(function(k){if(!Array.isArray(c[k]))c[k]=[];});
+    if(!c.stats)c.stats={};STAT_IDS.forEach(function(s){if(typeof c.stats[s]!=="number")c.stats[s]=10;});
+    if(c.portrait===undefined)c.portrait=null;
+    if(typeof migrateCharClassNames==="function")migrateCharClassNames(c);
+    if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(c);
+    if(typeof migrateSpellDisplayNames==="function")migrateSpellDisplayNames(c);
+    if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(c,"@editor:"+(c.name||"character"),{portable:true});
+    return c;
+  }
+
+  // ── the field registry — ONE table renders every scalar field ──────────────
+  var ALIGN_LABELS=["Lawful Good","Neutral Good","Chaotic Good","Lawful Neutral","True Neutral","Chaotic Neutral","Lawful Evil","Neutral Evil","Chaotic Evil"];
+  function classOpts(){var out=[];try{classDefs().forEach(function(d){out.push({v:d.id,l:d.nm||d.id});});}catch(e){}return out;}
+  function ancOpts(){var out=[],i;for(i=0;i<ANCS.length;i++)out.push({v:ANCS[i].id,l:ANCS[i].nm||ANCS[i].name||ANCS[i].id});return out;}
+  function archOpts(){var out=[{v:"",l:"(none)"}];try{var d=classDef(ch.cls);if(d&&d.archetypes)d.archetypes.forEach(function(a){out.push({v:a.id,l:a.nm});});}catch(e){}return out;}
+  var FIELDS={
+    identity:[
+      {k:"name",l:"Name",t:"text",req:true},
+      {k:"gender",l:"Gender",t:"select",opts:[{v:"M",l:"Male"},{v:"F",l:"Female"},{v:"NB",l:"Non-binary"}]},
+      {k:"age",l:"Age",t:"text"},
+      {k:"ancestry",l:"Ancestry",t:"select",opts:ancOpts},
+      {k:"subrace",l:"Subrace id",t:"text"},{k:"subraceNm",l:"Subrace name",t:"text"},{k:"heritageVariant",l:"Heritage variant",t:"text"},
+      {k:"appear",l:"Appearance",t:"textarea"},{k:"mark",l:"Distinguishing mark",t:"text"},{k:"backstory",l:"Backstory",t:"textarea"},
+      {k:"trait",l:"Trait",t:"text"},{k:"flaw",l:"Flaw",t:"text"},{k:"motivation",l:"Motivation",t:"text"},{k:"deity",l:"Deity",t:"text"}
+    ],
+    build:[
+      {k:"cls",l:"Class",t:"select",opts:classOpts,onchange:function(){ch.archetype="";ch.archetypeNm="";}},
+      {k:"archetype",l:"Archetype",t:"select",opts:archOpts,onchange:function(v){var d=classDef(ch.cls),i;ch.archetypeNm="";if(d&&d.archetypes)for(i=0;i<d.archetypes.length;i++)if(d.archetypes[i].id===v)ch.archetypeNm=d.archetypes[i].nm;}},
+      {k:"level",l:"Level",t:"num",min:1,max:20},{k:"xp",l:"XP",t:"num",min:0},
+      {k:"hp",l:"HP",t:"num",min:0},{k:"maxHp",l:"Max HP",t:"num",min:1},{k:"gold",l:"Gold",t:"num",min:0},
+      {k:"mana",l:"Mana (blank = full)",t:"num",min:0,opt:true},
+      {k:"statedAlignment",l:"Stated alignment",t:"select",opts:ALIGN_LABELS.map(function(a){return {v:a,l:a};})},
+      {k:"actualAlignment",l:"Actual alignment",t:"select",opts:ALIGN_LABELS.map(function(a){return {v:a,l:a};}),onchange:function(v){if(typeof alignSeedAxes==="function"){var ax=alignSeedAxes(v);if(ax){ch.alignLaw=ax.law!=null?ax.law:ax[0];ch.alignGood=ax.good!=null?ax.good:ax[1];}}}},
+      {k:"alignLaw",l:"Law axis (−3..3)",t:"num",min:-3,max:3},{k:"alignGood",l:"Good axis (−3..3)",t:"num",min:-3,max:3},
+      {k:"partyMember",l:"Party member",t:"bool"}
+    ]
+  };
+  // ── the list registry — ONE table renders every array field ────────────────
+  var LISTS=[
+    {k:"abilities",title:"Abilities",cols:[{k:"nm",l:"Name",w:"34%"},{k:"ds",l:"Effect"}],blank:function(){return {nm:"",ds:""};},check:function(r){return r.nm&&!capabilityLookup(r.nm)?"not in the capability bible — the GM gets only your text":"";}},
+    {k:"spells",title:"Spells",cols:[{k:"nm",l:"Name",w:"40%"},{k:"lvl",l:"Tier",t:"num",w:"64px"},{k:"used",l:"Used",t:"bool",w:"54px"},{k:"racial",l:"Racial",t:"bool",w:"60px"}],blank:function(){return {nm:"",lvl:1,used:false};},check:function(r){return r.nm&&!capabilityLookup(r.nm)?"not in the capability bible — no canon will inject":"";}},
+    {k:"inventory",title:"Inventory",scalar:true,cols:[{k:"$",l:"Item (\"Name — note\" keeps a description; \"x3\" a count)"}],blank:function(){return "";},check:function(s){var e=itemLookup(s);return s&&!e?"no item-bible entry (fine — the GM defines it in play)":"";}},
+    {k:"languages",title:"Languages",cols:[{k:"name",l:"Language",w:"60%"},{k:"broken",l:"Broken",t:"bool",w:"70px"}],blank:function(){return {name:"",broken:false};}},
+    {k:"conditions",title:"Conditions",cols:[{k:"name",l:"Condition",w:"60%"},{k:"duration",l:"Duration"}],blank:function(){return {name:"",duration:""};}},
+    {k:"relationships",title:"Relationships",cols:[{k:"entity",l:"Who",w:"30%"},{k:"bond",l:"Bond (durable)"},{k:"dynamic",l:"Dynamic (current)"}],blank:function(){return {entity:"",bond:"",dynamic:""};},hint:"W7 axes: bond is the durable fact (kin, oath, enmity); dynamic is today's posture. Turn stamps are set by the game."},
+    {k:"saveModifiers",title:"Save modifiers",cols:[{k:"source",l:"Source",w:"40%"},{k:"type",l:"Save",w:"30%"},{k:"amount",l:"Amount",t:"num",w:"70px"}],blank:function(){return {source:"",type:"",amount:1};}},
+    {k:"storyBeats",title:"Story beats",cols:[{k:"text",l:"Beat"},{k:"turn",l:"Turn",t:"num",w:"70px"}],blank:function(){return {text:"",turn:0};}},
+    {k:"coreMemories",title:"Defining moments",cols:[{k:"text",l:"Moment"},{k:"kind",l:"Kind",w:"90px"},{k:"who",l:"Who",w:"110px"},{k:"camp",l:"Campaign",w:"110px"},{k:"turn",l:"Turn",t:"num",w:"64px"}],blank:function(){return {text:"",turn:0,kind:"authored",who:"",camp:""};},hint:"Portable across campaigns (#63): a foreign campaign stamp renders as an earlier adventure."}
+  ];
+
+  // ── rendering ──────────────────────────────────────────────────────────────
+  function optsOf(f){return typeof f.opts==="function"?f.opts():f.opts;}
+  function fieldHtml(f){
+    var v=ch[f.k],id="f-"+f.k,h="<div class='row'><label for='"+id+"'>"+esc(f.l)+(f.req?" *":"")+"</label>";
+    if(f.t==="select"){h+="<select id='"+id+"' data-k='"+f.k+"'>";optsOf(f).forEach(function(o){h+="<option value='"+esc(o.v)+"'"+(String(v)===String(o.v)?" selected":"")+">"+esc(o.l)+"</option>";});h+="</select>";}
+    else if(f.t==="textarea")h+="<textarea id='"+id+"' data-k='"+f.k+"'>"+esc(v)+"</textarea>";
+    else if(f.t==="bool")h+="<input type='checkbox' id='"+id+"' data-k='"+f.k+"'"+(v?" checked":"")+"/>";
+    else if(f.t==="num")h+="<input type='number' id='"+id+"' data-k='"+f.k+"' value='"+(v==null?"":esc(v))+"'"+(f.min!=null?" min='"+f.min+"'":"")+(f.max!=null?" max='"+f.max+"'":"")+"/>";
+    else h+="<input type='text' id='"+id+"' data-k='"+f.k+"' value='"+esc(v)+"'/>";
+    return h+"</div>";
+  }
+  function statsHtml(){
+    var h="<div class='stats'>";STAT_IDS.forEach(function(s){var v=ch.stats[s];h+="<div class='stat'><label>"+s.toUpperCase()+"</label><input type='number' data-stat='"+s+"' value='"+v+"' min='1' max='30'/><div class='mod'>"+(typeof smod==="function"?(smod(v)>=0?"+":"")+smod(v):"")+"</div></div>";});
+    return h+"</div>";
+  }
+  function listHtml(L){
+    var rows=ch[L.k]||[],h="<table class='list'><tr>";L.cols.forEach(function(c){h+="<th style='width:"+(c.w||"auto")+"'>"+esc(c.l)+"</th>";});h+="<th></th></tr>";
+    rows.forEach(function(r,i){
+      var warn=L.check?L.check(r):"";
+      h+="<tr>";L.cols.forEach(function(c){var v=L.scalar?r:r[c.k];
+        if(c.t==="bool")h+="<td><input type='checkbox' data-list='"+L.k+"' data-i='"+i+"' data-c='"+c.k+"'"+(v?" checked":"")+"/></td>";
+        else if(c.t==="num")h+="<td><input type='number' data-list='"+L.k+"' data-i='"+i+"' data-c='"+c.k+"' value='"+(v==null?"":esc(v))+"'/></td>";
+        else h+="<td><input type='text' class='"+(warn?"warnf":"")+"' title='"+esc(warn)+"' data-list='"+L.k+"' data-i='"+i+"' data-c='"+c.k+"' value='"+esc(v)+"'/></td>";});
+      h+="<td class='x'><button data-del='"+L.k+"' data-i='"+i+"' title='Remove'>×</button></td></tr>";});
+    h+="</table><button class='b add' data-add='"+L.k+"'>+ Add</button>"+(L.hint?"<div class='hint'>"+esc(L.hint)+"</div>":"");
+    return h;
+  }
+  function skillsHtml(){
+    var h="<div class='skills'>";SKILLS.forEach(function(s){var n=ch.skills[s.id]||0,lv=typeof skillLevel==="function"?skillLevel(n):0;h+="<div class='skill'><span>"+esc(s.label)+"</span><input type='number' min='0' data-skill='"+esc(s.id)+"' value='"+n+"'/><span class='lvl'>"+esc(SKILL_LEVELS[lv]||"")+"</span></div>";});
+    return h+"</div><div class='hint'>Numbers are cumulative successes; the level derives from SKILL_THRESHOLDS.</div>";
+  }
+  function derived(){
+    var out=[];try{var d=classDef(ch.cls);if(!d)out.push("class '"+ch.cls+"' is not in the class bible");}catch(e){}
+    if(typeof alignLabel==="function")out.push("axes read as "+alignLabel(ch.alignLaw||0,ch.alignGood||0));
+    if(typeof manaMax==="function"){try{var mm=manaMax(ch);if(mm)out.push("mana max "+mm);}catch(e){}}
+    if(typeof getLvl==="function"){try{var xl=getLvl(ch.xp||0);if(xl!==ch.level)out.push("XP "+ch.xp+" reads as level "+xl+" (level is stored as "+ch.level+")");}catch(e){}}
+    return out.join(" · ");
+  }
+  function render(){
+    var m=$("main"),h="";
+    h+="<section><h2>Identity</h2>"+FIELDS.identity.map(fieldHtml).join("")+"</section>";
+    h+="<section><h2>Build <span class='derived'>"+esc(derived())+"</span></h2>"+FIELDS.build.map(fieldHtml).join("")+"<h2 style='margin-top:12px'>Attributes</h2>"+statsHtml()+"</section>";
+    h+="<section class='wide'><h2>Portrait</h2><div id='portrait-wrap'><div id='portrait-box'>"+(ch.portrait?"<img src='"+ch.portrait+"' alt='portrait'/>":"<div class='none'>no portrait</div>")+"</div><div><label class='file'>Upload image<input type='file' id='f-portrait' accept='image/*'/></label> <button class='b' id='b-portrait-clear'"+(ch.portrait?"":" disabled")+">Remove</button><div class='hint'>Stored at max 400×600 JPEG like the game does; pan/zoom framing is set in-game.</div></div></div></section>";
+    LISTS.forEach(function(L){h+="<section"+(L.k==="inventory"||L.k==="relationships"||L.k==="coreMemories"?" class='wide'":"")+"><h2>"+esc(L.title)+"</h2>"+listHtml(L)+"</section>";});
+    h+="<section class='wide'><h2>Skills</h2>"+skillsHtml()+"</section>";
+    m.innerHTML=h;
+    $("ver").textContent=CE_VERSION+(typeof APP_VERSION!=="undefined"?" · engine "+APP_VERSION:"");
+    $("b-libsave").disabled=!signedIn();$("b-lib").disabled=!signedIn();
+    wire();
+  }
+  function markDirty(){dirty=true;saveDraft();}
+  function wire(){
+    var m=$("main");
+    m.querySelectorAll("[data-k]").forEach(function(el){
+      var k=el.getAttribute("data-k"),f=null;FIELDS.identity.concat(FIELDS.build).forEach(function(x){if(x.k===k)f=x;});
+      el.addEventListener("change",function(){
+        var v=el.type==="checkbox"?el.checked:el.value;
+        if(f.t==="num"){if(v===""&&f.opt){delete ch[k];}else{v=Number(v);if(isNaN(v))v=0;if(f.min!=null&&v<f.min)v=f.min;if(f.max!=null&&v>f.max)v=f.max;ch[k]=v;}}
+        else ch[k]=v;
+        if(f.onchange)f.onchange(v);
+        markDirty();if(f.t==="select"||f.t==="num")render();
+      });
+    });
+    m.querySelectorAll("[data-stat]").forEach(function(el){el.addEventListener("change",function(){var v=Number(el.value)||10;ch.stats[el.getAttribute("data-stat")]=Math.max(1,Math.min(30,v));markDirty();render();});});
+    m.querySelectorAll("[data-skill]").forEach(function(el){el.addEventListener("change",function(){ch.skills[el.getAttribute("data-skill")]=Math.max(0,Number(el.value)||0);markDirty();render();});});
+    m.querySelectorAll("[data-list]").forEach(function(el){el.addEventListener("change",function(){
+      var L=LISTS.filter(function(x){return x.k===el.getAttribute("data-list");})[0],i=Number(el.getAttribute("data-i")),c=el.getAttribute("data-c"),col=L.cols.filter(function(x){return x.k===c;})[0];
+      var v=el.type==="checkbox"?el.checked:(col.t==="num"?Number(el.value)||0:el.value);
+      if(L.scalar)ch[L.k][i]=v;else ch[L.k][i][c]=v;markDirty();if(L.check)render();
+    });});
+    m.querySelectorAll("[data-del]").forEach(function(el){el.addEventListener("click",function(){ch[el.getAttribute("data-del")].splice(Number(el.getAttribute("data-i")),1);markDirty();render();});});
+    m.querySelectorAll("[data-add]").forEach(function(el){el.addEventListener("click",function(){var L=LISTS.filter(function(x){return x.k===el.getAttribute("data-add");})[0];ch[L.k].push(L.blank());markDirty();render();});});
+    var fp=$("f-portrait");if(fp)fp.addEventListener("change",function(ev){var file=ev.target.files[0];if(!file)return;var rd=new FileReader();rd.onload=function(re){compress(re.target.result,function(url){ch.portrait=url;markDirty();render();setStatus("Portrait set.","ok");});};rd.readAsDataURL(file);});
+    var pc=$("b-portrait-clear");if(pc)pc.addEventListener("click",function(){ch.portrait=null;markDirty();render();});
+  }
+  // The game's compressPortrait contract (ui-portrait.js): max 400×600, JPEG 0.8 — re-implemented
+  // here because that file is a UI module this page must not load.
+  function compress(dataUrl,cb){var img=new Image();img.onload=function(){var w=img.width,h=img.height,s=Math.min(1,400/w,600/h);var cv=document.createElement("canvas");cv.width=Math.round(w*s);cv.height=Math.round(h*s);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);cb(cv.toDataURL("image/jpeg",0.8));};img.onerror=function(){setStatus("Could not read that image.","err");};img.src=dataUrl;}
+
+  // ── validation (warns, never blocks — the owner's ruling: no cheat-guard) ──
+  function validate(){
+    var errs=[],warns=[];
+    if(!ch.name||!ch.name.trim())errs.push("Name is required.");
+    STAT_IDS.forEach(function(s){var v=ch.stats[s];if(typeof v!=="number"||v<1||v>30)errs.push(s.toUpperCase()+" must be 1–30.");});
+    if(ch.level<1||ch.level>20)errs.push("Level must be 1–20.");
+    if(ch.hp>ch.maxHp)warns.push("HP exceeds Max HP.");
+    try{if(!classDef(ch.cls))warns.push("Class '"+ch.cls+"' is not in the class bible — the game will not know its ladder.");}catch(e){}
+    (ch.spells||[]).forEach(function(s){if(s.nm&&!capabilityLookup(s.nm))warns.push("Spell '"+s.nm+"' is not in the capability bible.");});
+    return {errors:errs,warnings:warns};
+  }
+
+  // ── load / save ────────────────────────────────────────────────────────────
+  function loadObject(obj,src){
+    var c=obj&&obj.character?obj.character:obj;
+    if(!c||typeof c!=="object"||!("name" in c)){setStatus("Not a character file (no character.name).","err");return false;}
+    ch=healChar(JSON.parse(JSON.stringify(c)));dirty=false;render();setStatus("Loaded "+(ch.name||"character")+(src?" from "+src:""),"ok");return true;
+  }
+  function out(){return {ver:10,type:"character",character:ch};}
+  function saveFile(){
+    var v=validate();if(v.errors.length){setStatus("Can't save — "+v.errors.join(" "),"err");return;}
+    var data=JSON.stringify(out(),null,2),blob=new Blob([data],{type:"application/json"});
+    var fname=String(ch.name||"character").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+"_character.char";
+    var url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
+    dirty=false;setStatus("Saved "+fname+(v.warnings.length?" — "+v.warnings.join(" "):""),v.warnings.length?"warn":"ok");
+  }
+  function saveLibrary(){
+    if(!signedIn()){setStatus("Not signed in — sign in from the game, then reload this page.","err");return;}
+    var v=validate();if(v.errors.length){setStatus("Can't save — "+v.errors.join(" "),"err");return;}
+    setStatus("Saving to library…","");
+    storageAdapter.saveCharacterToLibrary(ch,function(err){if(err){setStatus("Library save failed: "+err,"err");return;}dirty=false;setStatus("Saved “"+ch.name+"” to your library (same name overwrites).","ok");});
+  }
+  function openLibrary(){
+    if(!signedIn()){setStatus("Not signed in — sign in from the game, then reload this page.","err");return;}
+    var box=$("modal-box");box.innerHTML="<b>Character library</b><div class='hint'>Loading…</div>";$("modal").style.display="flex";
+    storageAdapter.listCharacterLibrary(function(err,list){
+      if(err){box.innerHTML="<b>Character library</b><div class='hint err'>"+esc(err)+"</div><button class='b' id='m-close'>Close</button>";$("m-close").addEventListener("click",closeModal);return;}
+      var h="<b>Character library</b>";if(!list||!list.length)h+="<div class='hint'>Empty.</div>";
+      (list||[]).forEach(function(it,i){h+="<div class='item'><span>"+esc(it.name)+" <span class='m'>L"+esc(it.level)+" "+esc(it.cls)+" · "+esc(it.ancestry)+"</span></span><button class='b' data-pick='"+i+"'>Load</button></div>";});
+      h+="<div style='margin-top:10px'><button class='b' id='m-close'>Close</button></div>";box.innerHTML=h;
+      box.querySelectorAll("[data-pick]").forEach(function(b){b.addEventListener("click",function(){var it=list[Number(b.getAttribute("data-pick"))];closeModal();if(dirty&&!confirm("Discard unsaved changes?"))return;loadObject(it.character,"library");});});
+      $("m-close").addEventListener("click",closeModal);
+    });
+  }
+  function closeModal(){$("modal").style.display="none";}
+  function saveDraft(){if(_draftT)clearTimeout(_draftT);_draftT=setTimeout(function(){_draftT=null;try{localStorage.setItem(CE_DRAFT_K,JSON.stringify({ch:ch,dirty:dirty,at:Date.now()}));}catch(e){}},400);}
+
+  $("b-new").addEventListener("click",function(){if(dirty&&!confirm("Discard unsaved changes?"))return;ch=blankChar();dirty=false;try{localStorage.removeItem(CE_DRAFT_K);}catch(e){}render();setStatus("New character","");});
+  $("f-load").addEventListener("change",function(ev){var file=ev.target.files[0];if(!file)return;if(dirty&&!confirm("Discard unsaved changes?")){ev.target.value="";return;}var rd=new FileReader();rd.onload=function(re){try{loadObject(JSON.parse(re.target.result),file.name);}catch(e){setStatus("Failed to read file: "+e.message,"err");}};rd.readAsText(file);ev.target.value="";});
+  $("b-save").addEventListener("click",saveFile);
+  $("b-libsave").addEventListener("click",saveLibrary);
+  $("b-lib").addEventListener("click",openLibrary);
+  $("modal").addEventListener("click",function(ev){if(ev.target===$("modal"))closeModal();});
+  window.addEventListener("beforeunload",function(e){if(dirty){e.preventDefault();e.returnValue="";}});
+
+  // Boot: restore the working draft, else a blank sheet.
+  var d=null;try{d=JSON.parse(localStorage.getItem(CE_DRAFT_K)||"null");}catch(e){}
+  if(d&&d.ch){ch=healChar(d.ch);dirty=!!d.dirty;render();setStatus((ch.name||"Untitled")+" — restored from draft"+(dirty?" (unsaved changes)":""),"");}
+  else{ch=blankChar();render();}
+
+  window.__ceTest={get:function(){return ch;},load:function(o){return loadObject(o,"test");},out:out,validate:validate,blank:blankChar,heal:healChar,rerender:render,fields:FIELDS,lists:LISTS,draftKey:CE_DRAFT_K};
+})();
+</script>
+</body>
+</html>
