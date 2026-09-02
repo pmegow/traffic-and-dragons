@@ -253,6 +253,12 @@ function runEngineTests(R){
     if(c.spells[0].used!==true)return "existing spell's used flag was disturbed";
     return c.spells[1].nm==="Ray of Frost"?true:"new grant wrong: "+c.spells[1].nm;
   });
+  t("#289: menuTierHidesDev — unsigned keeps everything; a signed-in payload hides unless the server says isAdmin:true",function(){
+    if(menuTierHidesDev(null)!==false)return "not signed in must hide nothing (local dev)";
+    if(menuTierHidesDev({isAdmin:true})!==false)return "an operator lost the Dev rows";
+    if(menuTierHidesDev({isAdmin:false})!==true)return "a beta tester sees operator rows";
+    return menuTierHidesDev({username:"old-server"})===true?true:"a payload without the field must read as non-admin (the safe direction for a tester's screen)";
+  });
   t("#221: CAPABILITY_RENAMES migrates saved spell AND ability names on the player and every companion sheet — base-name match, suffix kept, strangers untouched, table empty by default",function(){
     if(typeof CAPABILITY_RENAMES==="undefined"||!Array.isArray(CAPABILITY_RENAMES))return "CAPABILITY_RENAMES table missing from data.js";
     if(CAPABILITY_RENAMES.length)return "the shipped table must be EMPTY until a rename ships (transitional by construction): "+JSON.stringify(CAPABILITY_RENAMES);

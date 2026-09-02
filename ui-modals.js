@@ -311,6 +311,7 @@ function showAccountModal(){
   function render(a){
     var h="";
     h+=line("Signed in as","<b>"+(a.username||"?")+"</b>");
+    h+=line("Menus",a.isAdmin?"<b style='color:var(--acc)'>Operator</b> — full Dev menus":"Player — operator rows hidden (#289)");
     if(a.entitled){
       h+=line("Subscription","<b style='color:var(--grn)'>"+(a.tierLabel||a.tier)+"</b> ("+a.status+")");
       h+=line("Turns used","<b>"+a.turnsUsed+"</b> of "+a.turnsCap+" in the last 30 days");

@@ -1098,8 +1098,34 @@ try {
   if (/Can't save/.test(_saveBD) || /if\s*\(err\)\s*\{[^}]*return;/.test(_saveBD)) _failBD("Save refuses an incomplete blueprint again — multi-sitting authoring is broken (completeness is a PUBLISH gate).");
   if (_saveBD.indexOf("not publish-ready") < 0) _failBD("the save status no longer names unreadiness — a half-finished save would read as done (silent-failure class).");
   if (_pubBD.indexOf("designerValidate()") < 0 || !/Can't publish/.test(_pubBD)) _failBD("Publish lost its validation gate — an incomplete blueprint can reach the cloud library, which startGame consumes unvalidated (E19 crash class).");
-  console.log("[blueprint-designer] contract OK — class roster + World Ages sections wired, seam present, save-free/publish-gated");
+  // ⑨ (v0.40) The LLM gate consults the gateway route: a signed-in keyless player must not be
+  //    refused before gmViaServer() is asked (the #44 starter-set build hit exactly this wall).
+  if (!/gmViaServer\(\)/.test(_pageBD.slice(_pageBD.indexOf("function llmReady"), _pageBD.indexOf("function llmChoices")))) _failBD("llmReady no longer consults gmViaServer() — signed-in keyless players are refused every LLM feature.");
+  console.log("[blueprint-designer] contract OK — class roster + World Ages sections wired, seam present, save-free/publish-gated, gateway-aware");
 } catch (e) { console.error("BLUEPRINT DESIGNER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
+// ── MENU TIER CONTRACT (#289, v1.764) ────────────────────────────────────────
+// The Dev-vs-Beta split is ONE class in the menu spec + ONE toggle. Every operator row must carry
+// the flag (a missing flag silently shows a beta tester an operator surface), the toggle must
+// re-run when the account lands (menus are built before /api/account answers), and the decision
+// must stay the pure helper (menuTierHidesDev) so it remains engine-testable.
+try {
+  var _mtFs = require("fs"), _mtPath = require("path");
+  var _mtFail = function (msg) { console.error("MENU TIER CONTRACT: " + msg); process.exit(1); };
+  var _mtBoot = _mtFs.readFileSync(_mtPath.join(__dirname, "..", "ui-boot.js"), "utf8");
+  var _mtSpec = _mtBoot.slice(_mtBoot.indexOf("function buildFileMenus"), _mtBoot.indexOf("function wireButtons"));
+  ["llm", "usage", "set-folder", "clear-folder", "server-connect", "server-disconnect", "clearcache\""].forEach(function (id) {
+    var re = new RegExp("btn\\(p\\+\"" + id.replace(/"/g, "") + "\"[^\n]*fm-dev-only");
+    if (!re.test(_mtSpec)) _mtFail("operator row '" + id.replace(/"/g, "") + "' is not marked fm-dev-only — a beta tester would see it.");
+  });
+  if (_mtSpec.indexOf("<div class='fm-dev-only'>") < 0 || _mtSpec.indexOf("legacy-cb") < 0) _mtFail("the Legacy-characters block lost its fm-dev-only wrapper.");
+  if (_mtSpec.indexOf("applyMenuTier()") < 0) _mtFail("buildFileMenus no longer applies the tier after building.");
+  var _mtSa = _mtFs.readFileSync(_mtPath.join(__dirname, "..", "storage-adapter.js"), "utf8");
+  if (!/serverAccount = data;[^\n]*\n[^\n]*applyMenuTier\(\)/.test(_mtSa)) _mtFail("fetchAccount no longer re-applies the tier when the account lands — menus built before the answer keep the wrong tier.");
+  var _mtShell = _mtFs.readFileSync(_mtPath.join(__dirname, "..", "ui-shell.js"), "utf8");
+  if (_mtShell.indexOf("menuTierHidesDev(acct)") < 0) _mtFail("applyMenuTier no longer decides through the pure menuTierHidesDev helper.");
+  console.log("[#289] menu tier contract OK — 7 operator rows flagged, toggle re-applied on account load");
+} catch (e) { console.error("MENU TIER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────
 // The wire format is the disk format ({__lz} transcript), and the reconcile ADOPT used to

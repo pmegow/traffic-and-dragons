@@ -71,27 +71,34 @@ function buildFileMenus(){
         +"<button id='"+p+"sound-test' title='Audition every UI sound' style='font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;padding:2px 8px;'>&#9834; Sounds&hellip;</button>"/* was a chime-only Test button — replaced by the audition modal (a one-sound test could not serve judging the set) */
       +"</div>"
       +drawer(p+"narropts",p+"narroptsmenu","&#128214; Narrative options",0,null,narr)
-      +btn(p+"llm","🧠 Language Model&hellip;",0)
-      +btn(p+"usage","📊 Usage &amp; cost&hellip;",0)
+      // #289 (owner ruling 2026-09-01): fm-dev-only rows are the OPERATOR's — applyMenuTier
+      // (ui-shell.js) hides them for a signed-in non-admin (serverAccount.isAdmin, derived
+      // server-side from ADMIN_USER_IDS). Local/unsigned dev keeps everything. This is UX, not
+      // security: every real gate stays on the server. Marking a row = one flag in this spec.
+      +btn(p+"llm","🧠 Language Model&hellip;",0,{cls:"fm-dev-only"})
+      +btn(p+"usage","📊 Usage &amp; cost&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"fal-key","🖼 Render Options&hellip;",0)
       +chk(p+"font-lg","Large text",0)
       +chk(p+"autosend","&#127908; Auto-send voice input",0)
       +chk(p+"autolisten","&#128663; Auto-listen after narration",0)
       +chk(p+"sttconfirm","&#128737; Confirm unclear voice input",0)/* #77 Layer-2 gate — default ON */
+      +"<div class='fm-dev-only'>"
       +chk(p+"legacy-cb","&#9760; Legacy characters as NPCs",0)
       +"<div style='display:flex;align-items:center;gap:6px;padding:2px 14px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
+      +"</div>"
       +sep(true)
-      +btn(p+"set-folder","📁 Set campaign folder&hellip;",0)
-      +btn(p+"clear-folder","📁 &times;",0,{hidden:true,color:"var(--acc)",extra:"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"})
-      +btn(p+"server-connect","☁ Connect to server",0)
-      +btn(p+"server-disconnect","☁ Disconnect (<span id='"+p+"server-user'></span>)",0,{hidden:true})
-      +btn(p+"clearcache","⟳ Clear cache &amp; reload",0,{color:"var(--t2)"});
+      +btn(p+"set-folder","📁 Set campaign folder&hellip;",0,{cls:"fm-dev-only"})
+      +btn(p+"clear-folder","📁 &times;",0,{hidden:true,cls:"fm-dev-only",color:"var(--acc)",extra:"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"})
+      +btn(p+"server-connect","☁ Connect to server",0,{cls:"fm-dev-only"})
+      +btn(p+"server-disconnect","☁ Disconnect (<span id='"+p+"server-user'></span>)",0,{hidden:true,cls:"fm-dev-only"})
+      +btn(p+"clearcache","⟳ Clear cache &amp; reload",0,{color:"var(--t2)",cls:"fm-dev-only"});
     h+=drawer(p+"devmode",p+"devmenu","⚙ Admin",0,"var(--t2)",dm);
     h+=btn(p+"clearcache-top","⟳ Clear cache &amp; reload",0,{color:"var(--t2)"});
     h+=sep();
     h+=g?btn(p+"newgame","New Game",0,{color:"var(--dng)",hovBg:"var(--dng-faint)"}):btn(null,"New Game",0,{dim:true,color:"var(--dng)"});
     el.innerHTML=h;
   });
+  if(typeof applyMenuTier==="function")applyMenuTier();/* #289: a cached serverAccount (autoConnect) may already know the tier */
 }
 // Close every flyout/drawer in a menu and reset its arrows — called when a File menu
 // OPENS, so a flyout left open last time doesn't pop back as a floating panel.

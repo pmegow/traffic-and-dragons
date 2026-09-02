@@ -7,6 +7,7 @@ var TND_SERVER_URL = "https://traffic-and-dragons-server.fly.dev";
 
 function updateServerUI(){
   var connected=storageAdapter.isServerMode();
+  if(typeof applyMenuTier==="function")applyMenuTier();/* #289: a disconnect restores the operator rows for local play */
   eachMenuEl("server-connect",function(el){el.style.display=connected?"none":"block";});/* #15⑤ */
   eachMenuEl("server-disconnect",function(el){el.style.display=connected?"block":"none";});
   if(connected){

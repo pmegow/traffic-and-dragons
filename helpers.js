@@ -995,6 +995,14 @@ function itemLookup(nm){
 // classification-only one — stays ineligible: there write-once is REAL and a paid review call
 // could never land. Alias-resolved entries stay ineligible: the proposal would land under the
 // alias's own key and split resolution from the curated canon key.
+/* #289: does this account payload hide the operator's Dev-only menu rows? Pure — the DOM shell is
+   applyMenuTier (ui-shell.js). null = not signed in (local dev keeps everything); a signed-in
+   payload hides unless the server says isAdmin:true (a server predating the field reads as a
+   non-admin, which is the safe direction for a beta tester's screen). */
+function menuTierHidesDev(acct){
+  if(!acct)return false;
+  return acct.isAdmin!==true;
+}
 function itemDefEligible(rawItem){
   if(typeof itemBaseName!=="function"||typeof itemLookup!=="function")return false;
   var key=itemBaseName(rawItem);

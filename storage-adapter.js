@@ -1000,6 +1000,7 @@ var storageAdapter = (function() {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
     _apiJson("/api/account", "GET", null, function(err, data) {
       if (!err && data && typeof serverAccount !== "undefined") serverAccount = data;
+      if (!err && data && typeof applyMenuTier === "function") applyMenuTier(); // #289: the menus were built before the tier was known
       if (cb) cb(err, data);
     });
   }

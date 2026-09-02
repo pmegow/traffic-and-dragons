@@ -125,7 +125,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.39";
+var BP_DESIGNER_VERSION="v0.40";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -710,7 +710,9 @@ window.addEventListener("beforeunload",function(e){if(dirty){e.preventDefault();
 // settings (loadProviderSettings at boot, same-origin localStorage).
 function llmReady(){
   if(typeof callGM!=="function"){setStatus("Engine API layer not loaded.","err");return false;}
-  if(!(providerKeys[activeProvider]||apiKey)){setStatus("No API key — open the game, set one (Dev Mode ▸ 🧠 Language Model…), then reload this page.","err");return false;}
+  // #290/#44 (2026-09-01): a signed-in player has NO key by design — the LLM rides the gateway
+  // (gmViaServer, api.js) exactly as gameplay does; only a keyless, unsigned page is refused.
+  if(!(providerKeys[activeProvider]||apiKey||(typeof gmViaServer==="function"&&gmViaServer()))){setStatus("No API key and not signed in — sign in from the game (or set a key under Dev Mode ▸ 🧠 Language Model…), then reload this page.","err");return false;}
   return true;
 }
 // ── LLM picker (v0.32) ─────────────────────────────────────────────────────────
@@ -722,10 +724,10 @@ function llmReady(){
 // never writes the game's state keys).
 var LLM_PICK_K="bpd_llm_v1";
 function llmChoices(){
-  var out=[],ids=Object.keys(PROVIDERS),i,j;
+  var out=[],ids=Object.keys(PROVIDERS),i,j,_viaServer=(typeof gmViaServer==="function"&&gmViaServer());
   for(i=0;i<ids.length;i++){
     var id=ids[i],p=PROVIDERS[id];
-    if(!(providerKeys[id]||(id==="anthropic"&&apiKey)))continue; // same key test as llmReady
+    if(!(providerKeys[id]||(id==="anthropic"&&apiKey)||_viaServer))continue; // same key test as llmReady; the gateway serves every listed provider
     // The app's per-provider model override leads (it may be a custom id not in models[]).
     var seen={},ms=[].concat(providerModels[id]?[providerModels[id]]:[],p.models||[]);
     for(j=0;j<ms.length;j++){if(!seen[ms[j]]){seen[ms[j]]=1;out.push({provider:id,label:p.label||id,model:ms[j]});}}

@@ -12,6 +12,18 @@
 // Calls fn(el) only for elements that exist — every routed walk already tolerated gaps.
 var FM_ID_PREFIXES=["fm-","cs-fm-","api-fm-"];
 var MENU_ID_PREFIXES=["","cs-","api-"];
+/* #289: Dev-vs-Beta menu tier. ONE stylesheet rule hides every `.fm-dev-only` row for a signed-in
+   non-admin — a rule with !important wins over the inline display:block/none the spec and
+   updateServerUI write, so the folder/connect toggles keep their own logic underneath. The
+   decision is the pure menuTierHidesDev (helpers.js); local/unsigned dev hides nothing. */
+function applyMenuTier(){
+  var acct=(typeof serverAccount!=="undefined")?serverAccount:null;
+  var signed=(typeof storageAdapter!=="undefined")&&storageAdapter.isServerMode();
+  var hide=signed&&typeof menuTierHidesDev==="function"&&menuTierHidesDev(acct);
+  var el=document.getElementById("fm-tier-css");
+  if(hide&&!el){el=document.createElement("style");el.id="fm-tier-css";el.textContent=".fm-dev-only{display:none!important}";document.head.appendChild(el);}
+  else if(!hide&&el)el.parentNode.removeChild(el);
+}
 function eachMenuEl(idSuffix,fn,prefixes){
   (prefixes||FM_ID_PREFIXES).forEach(function(p){var el=document.getElementById(p+idSuffix);if(el)fn(el);});
 }
