@@ -1087,7 +1087,18 @@ try {
   if (_pageBD.indexOf("dt:") < 0) _failBD("FIELD_ROOTS lost the 'dt:' route — World Ages edits are silently dead.");
   if (_pageBD.indexOf("adddt") < 0) _failBD("the + Add age control is gone — a ladder could only be authored by hand-editing JSON.");
   if (_pageBD.indexOf("delete bp.deepTime") < 0) _failBD("removing the last rung no longer drops the field — an empty husk would ship in every saved blueprint.");
-  console.log("[blueprint-designer] contract OK — class roster + World Ages sections wired, seam present");
+  // ⑧ (v0.39, owner call 2026-09-01) Save never blocks; Publish still gates. A blueprint is
+  //    authored over several sittings, so an incomplete one MUST be savable to a file — every
+  //    file consumer re-validates on open. The cloud library does NOT (game.js E19: startGame
+  //    consumes library blueprints without validateBlueprint), so Publish is the one gate that
+  //    keeps a half-built skeleton out of it. The save status must still name unreadiness.
+  var _saveBD = _pageBD.slice(_pageBD.indexOf('getElementById("btn-save").addEventListener'), _pageBD.indexOf('beforeunload'));
+  var _pubBD = _pageBD.slice(_pageBD.indexOf('getElementById("btn-publish").addEventListener'), _pageBD.indexOf('function closeLibModal'));
+  if (_saveBD.length < 50 || _pubBD.length < 50) _failBD("could not locate the Save/Publish handlers — the page shape changed; update this contract.");
+  if (/Can't save/.test(_saveBD) || /if\s*\(err\)\s*\{[^}]*return;/.test(_saveBD)) _failBD("Save refuses an incomplete blueprint again — multi-sitting authoring is broken (completeness is a PUBLISH gate).");
+  if (_saveBD.indexOf("not publish-ready") < 0) _failBD("the save status no longer names unreadiness — a half-finished save would read as done (silent-failure class).");
+  if (_pubBD.indexOf("designerValidate()") < 0 || !/Can't publish/.test(_pubBD)) _failBD("Publish lost its validation gate — an incomplete blueprint can reach the cloud library, which startGame consumes unvalidated (E19 crash class).");
+  console.log("[blueprint-designer] contract OK — class roster + World Ages sections wired, seam present, save-free/publish-gated");
 } catch (e) { console.error("BLUEPRINT DESIGNER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────

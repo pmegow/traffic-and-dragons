@@ -19,7 +19,7 @@
 <style>
 /* Architectural-blueprint theme (2026-07-05, user request): cyanotype blues, light linework,
    graph-paper grid. Designer-only — the game keeps its amber identity. */
-:root{--bg0:#0a1d33;--bg1:#0e2542;--bg2:#132e50;--bg3:#1a3a63;--brd:#27476e;--brd2:#3a5d8a;--t0:#eaf3fc;--t1:#b9d0e6;--t2:#7595b8;--acc:#8fc1e8;--dng:#e08a8a;--grn:#84c795;--r:6px;--font:"Segoe UI",system-ui,sans-serif;}
+:root{--bg0:#0a1d33;--bg1:#0e2542;--bg2:#132e50;--bg3:#1a3a63;--brd:#27476e;--brd2:#3a5d8a;--t0:#eaf3fc;--t1:#b9d0e6;--t2:#7595b8;--acc:#8fc1e8;--dng:#e08a8a;--grn:#84c795;--wrn:#e0b86a;--r:6px;--font:"Segoe UI",system-ui,sans-serif;}
 *{box-sizing:border-box;}
 body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font-size:14px;
   background-image:linear-gradient(rgba(143,193,232,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(143,193,232,.10) 1px,transparent 1px),linear-gradient(rgba(143,193,232,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(143,193,232,.045) 1px,transparent 1px);
@@ -37,6 +37,7 @@ body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font
 #statusline{width:100%;font-size:11px;min-height:15px;color:var(--t2);}
 #statusline.err{color:var(--dng);}
 #statusline.ok{color:var(--grn);}
+#statusline.warn{color:var(--wrn);}
 main{max-width:880px;margin:0 auto;padding:18px 18px 80px;}
 .sect{background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:16px;margin-bottom:16px;}
 .sect h2{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:0;cursor:pointer;user-select:none;}
@@ -124,7 +125,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.38";
+var BP_DESIGNER_VERSION="v0.39";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -687,14 +688,19 @@ function designerValidate(){
   if(!bp.acts.length)return "Blueprint needs at least one act.";
   return validateBlueprint(bp); // engine validation: act/arc titles, goals, objectives
 }
+// Save NEVER blocks (v0.39, owner call 2026-09-01): a blueprint is authored over several
+// sittings, and the one-slot localStorage draft is per-browser. Completeness is a PUBLISH
+// gate — the cloud library feeds startGame without re-validating (game.js E19), so only
+// Publish may admit a blueprint there; a saved FILE is re-validated by every consumer that
+// opens it (the wizard import refuses, the designer Load reopens with issues named). The
+// status line still reports readiness honestly — a half-finished save is never called done.
 document.getElementById("btn-save").addEventListener("click",function(){
   var err=designerValidate();
-  if(err){setStatus("Can't save — "+err,"err");return;}
   var data=JSON.stringify(fileOut(),null,2); // stripView + designerVersion stamp
   var blob=new Blob([data],{type:"application/json"});
   var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".blueprint";
   var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
-  dirty=false;setStatus("Saved "+fname,"ok");
+  dirty=false;setStatus(err?("Saved "+fname+" — not publish-ready: "+err):("Saved "+fname+" — publish-ready"),err?"warn":"ok");
 });
 window.addEventListener("beforeunload",function(e){if(dirty){e.preventDefault();e.returnValue="";}});
 
