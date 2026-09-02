@@ -176,10 +176,23 @@ function propagateSlainFoes(R){
     if(typeof console!=="undefined")console.warn("[combat] slain foe "+w.name+" is a registered NPC — DECEASED stamped (B3)");
   }
 }
+function _foeQueryNames(q,fn){
+  var at=q.indexOf(fn);if(at<0||!fn)return false;
+  var before=at>0?q.charAt(at-1):" ",after=q.charAt(at+fn.length);
+  if(/[a-z0-9]/.test(before)||/[a-z0-9]/.test(after))return false;/* word boundaries: "thenolan" / "grimtidex" are not him */
+  if(after==="'"||after==="\u2019")return false;/* the possessive: "nolan grimtide's raider" is someone else */
+  return true;
+}
 function combatFoeByName(nm){
   var f=(worldState.combat&&worldState.combat.foes)||[],i,t=String(nm||"").toLowerCase().trim();
   for(i=0;i<f.length;i++){if(f[i].name.toLowerCase()===t)return f[i];}
-  var hits=[];for(i=0;i<f.length;i++){var fn=f[i].name.toLowerCase();if(fn.indexOf(t)>=0||t.indexOf(fn)>=0)hits.push(f[i]);}
+  /* #297 (playtest v1767, t8): reverse containment ("the query contains a foe's name") used to accept
+     "Nolan Grimtide's raider" as Nolan Grimtide — a POSSESSIVE DERIVATIVE (X's something) slew the
+     boss, emptied the encounter, and propagated a false death to the roster that the story then had to
+     absorb. A possessive right after the foe's name names a DIFFERENT creature and refuses (loud
+     not-found, no mutation); epithets and descriptors ("Kresh the Tall", "the wounded Nolan Grimtide")
+     still route, and the name must sit on word boundaries either way. */
+  var hits=[];for(i=0;i<f.length;i++){var fn=f[i].name.toLowerCase();if(fn.indexOf(t)>=0||_foeQueryNames(t,fn))hits.push(f[i]);}
   if(hits.length>1&&typeof console!=="undefined")console.warn("[combat] '"+nm+"' is ambiguous — containment matches "+hits.length+" foes ("+hits.map(function(x){return x.name;}).join(", ")+"); using the first (#136②; the mutation still lands per the ratified always-lands ruling — the bare-tag path already warned on exactly this shape)");
   if(hits.length)return hits[0];
   return null;

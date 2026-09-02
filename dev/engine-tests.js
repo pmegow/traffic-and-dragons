@@ -7472,6 +7472,24 @@ function runEngineTests(R){
     if(_luOwed().spells.length!==0)return "blank bench queued a pick";
     return infos.join(" ").indexOf("fill-phase")>=0?true:"skip was silent";
   });
+  t("#297: a DERIVATIVE foe name never routes to the foe it derives from — [ENEMY_SLAIN:Nolan Grimtide's raider] leaves Nolan standing (playtest v1767 t8)",function(){
+    makeWorld();worldState.combat=null;
+    applyMuts("[COMBAT_START:Nolan Grimtide|20|13|4|1d8|steady][COMBAT_START:Slaver Raider|8|11|2|1d6|low]");
+    var warns=[];var _cw=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ENEMY_SLAIN:Nolan Grimtide's raider]");}finally{console.warn=_cw;}
+    var foes=worldState.combat&&worldState.combat.foes||[];
+    var nolan=foes.filter(function(f){return f.name==="Nolan Grimtide";})[0];
+    if(!worldState.combat||!nolan)return "the encounter closed — the boss was slain by his raider's possessive name";
+    if(nolan.down||nolan.hp<=0)return "Nolan was slain by a tag naming a DIFFERENT creature";
+    if(!warns.join(" ").match(/ENEMY_SLAIN target not found/))return "the refusal was silent";
+    /* the legitimate shapes still route */
+    applyMuts("[ENEMY_HP:Nolan|-5]");if(nolan.hp!==15)return "a leading-substring alias ('Nolan') stopped routing: "+nolan.hp;
+    applyMuts("[ENEMY_HP:the wounded Nolan Grimtide|-5]");if(nolan.hp!==10)return "a leading-descriptor query ('the wounded Nolan Grimtide') stopped routing: "+nolan.hp;
+    applyMuts("[ENEMY_HP:Nolan Grimtide the Brander|-2]");if(nolan.hp!==8)return "an EPITHET after the name ('Nolan Grimtide the Brander') stopped routing — only the possessive is a different creature: "+nolan.hp;
+    applyMuts("[ENEMY_HP:Nolan Grimtide’s hound|-2]");if(nolan.hp!==8)return "a curly-apostrophe possessive routed to the boss";
+    applyMuts("[ENEMY_SLAIN:Slaver Raider]");
+    return foes[1].down==="slain"&&!nolan.down?true:"exact routing broke";
+  });
   t("#72 ③ (v1.766): the Eldritch Knight T3/T4 benches are filled — reaching L14 QUEUES a T3 pick instead of skipping (the fill-phase blank is closed)",function(){
     makeWorld();
     var c=worldState.character;c.cls="Warrior";c.archetype="eldritchknight";c.level=13;c.xp=120000;c.abilities=[];c.spells=[];
