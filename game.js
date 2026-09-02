@@ -785,6 +785,7 @@ function checkLegacyCharacter(){
   if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no eligible character in the Character Library (need a saved library character that isn't the current PC or already met; requires server connection).");return;}
   var pick=candidates[Math.floor(Math.random()*candidates.length)];
   migrateCharClassNames(pick);/* #100: server-library entries may predate the Berserker→Primal rename — heal before the cls string reaches the GM prompt */
+  if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(pick);/* #221 */
   relationshipMigrateSheet(pick,"@legacy:"+pick.name,{portable:true});
   // Capture the FULL identity so the legacy NPC is portrayed consistently — same person, gender,
   // relationships and gear as in their own tale (fixes #18: Ammut forgot his wives + got mis-gendered).

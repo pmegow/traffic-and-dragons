@@ -253,6 +253,28 @@ function runEngineTests(R){
     if(c.spells[0].used!==true)return "existing spell's used flag was disturbed";
     return c.spells[1].nm==="Ray of Frost"?true:"new grant wrong: "+c.spells[1].nm;
   });
+  t("#221: CAPABILITY_RENAMES migrates saved spell AND ability names on the player and every companion sheet — base-name match, suffix kept, strangers untouched, table empty by default",function(){
+    if(typeof CAPABILITY_RENAMES==="undefined"||!Array.isArray(CAPABILITY_RENAMES))return "CAPABILITY_RENAMES table missing from data.js";
+    if(CAPABILITY_RENAMES.length)return "the shipped table must be EMPTY until a rename ships (transitional by construction): "+JSON.stringify(CAPABILITY_RENAMES);
+    makeWorld();
+    worldState.character.spells=[{nm:"Misty Step",lvl:2,used:false},{nm:"Fire Bolt",lvl:0,used:true}];
+    worldState.character.abilities=[{nm:"misty step (1/day)",ds:"racial"}];
+    worldState.npcs.push({name:"Sable",status:"ally",partyMember:true,charSheet:{name:"Sable",cls:"Sorcerer",spells:[{nm:"Misty Step",lvl:2,used:true}],abilities:[]}});
+    CAPABILITY_RENAMES.push({from:"Misty Step",to:"Blink Step"});
+    try{
+      var moved=migrateWorldState();
+      var c=worldState.character;
+      if(c.spells[0].nm!=="Blink Step")return "player spell not renamed: "+c.spells[0].nm;
+      if(c.spells[0].used!==false||c.spells[0].lvl!==2)return "rename disturbed the entry's other fields";
+      if(c.spells[1].nm!=="Fire Bolt")return "a stranger was touched: "+c.spells[1].nm;
+      if(c.abilities[0].nm!=="Blink Step (1/day)")return "ability rename must keep the suffix: "+c.abilities[0].nm;
+      var cs=worldState.npcs[worldState.npcs.length-1].charSheet;
+      if(cs.spells[0].nm!=="Blink Step"||cs.spells[0].used!==true)return "companion sheet not migrated: "+JSON.stringify(cs.spells[0]);
+      if(!moved)return "migrateWorldState did not report the move";
+      if(migrateCapabilityRenames(c))return "a second pass must be a no-op (idempotent)";
+      return true;
+    }finally{CAPABILITY_RENAMES.pop();}
+  });
   t("lookup resolves a full SPELLS display string to its canonical entry",function(){var e=capabilityLookup("Fire Bolt (d10 fire, 120ft)");return e&&e.range==="120ft"&&e.tier===0?true:"got "+JSON.stringify(e);});
   t("lookup is case-insensitive on the bare name",function(){var e=capabilityLookup("MESSAGE");return e&&e.range==="120ft"?true:"message not resolved: "+JSON.stringify(e);});
   t("Message canon pins the range (the drift case)",function(){var e=capabilityLookup("message");return e&&e.range==="120ft"&&/does not reach beyond 120ft/i.test(e.effect)?true:"drift guard missing: "+JSON.stringify(e&&e.effect);});

@@ -332,6 +332,7 @@ function showCharacterBrowser(initialMode){
 // ── Character import preview modal ───────────────────────────────────────────
 function showCharImportPreview(char, onAccept, onCancel){
   migrateCharClassNames(char);/* #100: .char files + library entries may predate the Berserker→Primal rename; every import path funnels through this preview, so heal here once */
+  if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(char);/* #221: a portable sheet may carry a renamed capability's old name */
   migrateSpellDisplayNames(char);/* same funnel: spell labels that drifted from the capability-bible canon (v1.478 Fire Bolt d10→d8) */
   var initials=csInitials(char.name);/* #15③: canonical — this copy lacked the w[0] guard and rendered "undefined" on double-space names (sanctioned fix) */
   var portrait=char.portrait?"<img src='"+char.portrait+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;

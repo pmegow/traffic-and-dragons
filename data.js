@@ -230,3 +230,22 @@ var NAMES={
   other:["Void","Ash","Scar","Bale","Brand","Cinder","Pyre","Ember","Hex","Flint","Wraith","Grim","Blight","Haze","Crave","Iron","Dusk","Knox","Spite","Lash","Gloom","Mire","Vane","Null","Rack","Onyx","Brood","Pitch","Pall","Quell","Scorn","Ruin","Naught","Soot","Bane","Thorn","Murk","Vex","Shard","Cairn","Dread","Dirge","Lorn","Fell","Gloam","Ghast","Bleak","Smear","Murk","Brand"],
   surnames:["Mirefoot","Stonegall","Keldrun","Wyndfall","Ravenmoor","Flinthallow","Orvaine","Tharwick","Aldenmoor","Grimtide","Saltborn","Harrowfield","Dreadveil","Lorrath","Brackstone","Vareth","Nighthollow","Ulvane","Jornwick","Crestfall","Mordrath","Islevane","Tideborn","Pallwick","Lochvane","Halvorn","Ravenwick","Edenmire","Narwick","Greystone","Quelrath","Farrenholt","Oakhallow","Ironside","Keldmoor","Emberveil","Valdrath","Zethran","Perdrath","Ashvane","Yarwick","Coldwater","Quellvane","Duskmantle","Urnvale","Zaldmoor","Whitlock","Blackthorn","Xandrel","Yornwick"]
 };
+
+// ─── CAPABILITY RENAMES (#221) — the TRANSITIONAL migration table ────────────────────────────
+// Every entry is one atomic capability rename performed by dev/rename-capability.js, recorded
+// display-cased exactly as the tool was invoked: {from:"Old Name", to:"New Name"}.
+//
+// WHY IT EXISTS: renaming a spell/ability rewrites the DATA files (capability_bible key, the
+// class_bible spell arrays and feature names, the SPELLS/ARCH_SPELLS creation pools, and the
+// ANCS racial_caps references) — but a player's SAVED character carries the old display string
+// on character.spells[].nm / character.abilities[].nm (and every companion charSheet), where no
+// data-file edit can reach it. The ENGINE half of #221 (not yet wired — this table ships empty
+// and inert until it is) has migrateWorldState consume these entries on load and rewrite those
+// saved names, so a renamed capability keeps resolving through capabilityLookup instead of
+// silently becoming a bare word with no mechanics.
+//
+// APPEND-ONLY while renames are live. It is a MIGRATION table, not canon: it is PURGED at
+// release (a Clear-for-Release concern) once no live save can predate the renames — leaving it
+// in forever would make an old name resolve to a new one for eternity, and a future capability
+// that legitimately reuses a retired name would be silently hijacked by its own history.
+var CAPABILITY_RENAMES=[];

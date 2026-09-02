@@ -451,6 +451,25 @@ function migrateSpellDisplayNames(c){
   if(hit)console.info("[migrate] #101: spell labels stripped to bible bare names on "+(c.name||"character"));
   return hit;
 }
+/* #221: the capability RENAME walker (v1.763). dev/rename-capability.js rewrites the data files
+   atomically and appends {from,to} to data.js CAPABILITY_RENAMES; a saved character still carries
+   the OLD display string on spells[].nm / abilities[].nm, where no data-file edit can reach it, and
+   a dangling name fails SILENTLY (capabilityLookup null → the spell stops injecting its canon and
+   [SPELL_USED:] stops billing mana). Same shape as the #101 walker: base-name match via capBaseName,
+   any "(…)" suffix preserved, transitional by construction (the table is purged at release). */
+function migrateCapabilityRenames(c){
+  if(!c||typeof CAPABILITY_RENAMES==="undefined"||!CAPABILITY_RENAMES.length||typeof capBaseName!=="function")return false;
+  var hit=false,lists=[c.spells,c.abilities],li,i,r;
+  for(li=0;li<lists.length;li++){var L=lists[li];if(!L)continue;
+    for(i=0;i<L.length;i++){var e=L[i];if(!e||!e.nm)continue;
+      for(r=0;r<CAPABILITY_RENAMES.length;r++){var rn=CAPABILITY_RENAMES[r];if(!rn||!rn.from||!rn.to)continue;
+        if(capBaseName(e.nm)!==capBaseName(rn.from))continue;
+        var sfx=e.nm.indexOf("(")>0?" "+e.nm.slice(e.nm.indexOf("(")).trim():"";
+        var nn=rn.to+sfx;if(nn===e.nm)break;
+        console.info("[migrate] #221 capability rename on "+(c.name||"character")+": \""+e.nm+"\" → \""+nn+"\"");
+        e.nm=nn;hit=true;break;}}}
+  return hit;
+}
 function migrateCharClassNames(c){
   if(!c)return false;var hit=false;
   if(CLASS_RENAMES[c.cls]){console.info("[migrate] #100 class rename: "+(c.name||"character")+" "+c.cls+" → "+CLASS_RENAMES[c.cls]);c.cls=CLASS_RENAMES[c.cls];hit=true;}
@@ -465,7 +484,8 @@ function migrateWorldState(){
      companions keep working). Both are display-half heals; the injected canon was never wrong. */
   if(migrateCharClassNames(c))_mig=true;
   if(migrateSpellDisplayNames(c))_mig=true;
-  if(worldState.npcs){var _cri,_crs;for(_cri=0;_cri<worldState.npcs.length;_cri++){_crs=worldState.npcs[_cri]&&worldState.npcs[_cri].charSheet;if(!_crs)continue;if(migrateCharClassNames(_crs))_mig=true;if(migrateSpellDisplayNames(_crs))_mig=true;}}
+  if(migrateCapabilityRenames(c))_mig=true;/* #221 */
+  if(worldState.npcs){var _cri,_crs;for(_cri=0;_cri<worldState.npcs.length;_cri++){_crs=worldState.npcs[_cri]&&worldState.npcs[_cri].charSheet;if(!_crs)continue;if(migrateCharClassNames(_crs))_mig=true;if(migrateSpellDisplayNames(_crs))_mig=true;if(migrateCapabilityRenames(_crs))_mig=true;}}
   /* #139: alignment axes must AGREE with the displayed label. Creation used to seed 0,0 under a
      non-neutral label, and model-generated companion sheets carry labels with NO axes at all —
      either way the first [ALIGNMENT:] shift recomputed the label from coordinates that never
