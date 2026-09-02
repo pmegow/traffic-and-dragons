@@ -5798,13 +5798,19 @@ function runEngineTests(R){
     var b=m.img2img.body("scene",["data:p1","data:p2"]);
     return Array.isArray(b.image_urls)&&b.image_urls.length===2?true:"seed array not carried";
   });
-  t("#210: the new multiSeed entries gather the WHOLE party in collectRenderSeeds (names aligned for the legend)",function(){
+  t("#210 → #208 ②: the multiSeed compositors (GPT Image 2, Seedream 5) render a PARTY scene text-only and still seed the player for a SOLO scene",function(){
+    /* Superseded pin: until v1.761 these entries gathered the whole party. The five-way test
+       (party_render_engines.html) certified Nano ALONE as a party compositor — Seedream dropped a
+       member and migrated a glow; GPT drifted hair — so the ruling routes every non-Nano party
+       scene through text-to-image. multiSeed stays declared (solo scenes, future promotion). */
     var c={name:"Ammut",portrait:"data:img/player"};
     var party=mk165Party();
     var g2=collectRenderSeeds(__rm("openai/gpt-image-2"),c,party);
-    if(g2.urls.length!==4||g2.names.length!==4)return "gpt-image-2 must gather player + 3 companions: "+JSON.stringify(g2.names);
+    if(!g2.textOnly||g2.urls.length!==0)return "gpt-image-2 must render a party scene text-only: "+JSON.stringify(g2);
     var s5=collectRenderSeeds(__rm("bytedance/seedream/v5/pro/text-to-image"),c,party);
-    return s5.urls.length===4&&s5.omitted.length===0?true:"Seedream 5 must gather the whole party: "+JSON.stringify(s5);
+    if(!s5.textOnly||s5.urls.length!==0)return "Seedream 5 must render a party scene text-only: "+JSON.stringify(s5);
+    var g2s=collectRenderSeeds(__rm("openai/gpt-image-2"),c,[]);
+    return g2s.urls.length===1&&g2s.names[0]==="Ammut"?true:"a solo scene must still seed the player on a compositor: "+JSON.stringify(g2s);
   });
 
   section("#208a Flux dropped from the render menu");
@@ -5900,12 +5906,42 @@ function runEngineTests(R){
     if(nano.urls.length!==4||nano.urls[0]!=="data:img/player")return "Nano must gather player + all 3 companions: "+JSON.stringify(nano.urls);
     if(nano.names.join(",")!=="Ammut,Frizwick,Daeris,Morwen")return "names must align with urls: "+nano.names.join(",");
     if(nano.omitted.length!==0)return "Nano omits nobody";
+    /* #208 ② (v1.761): Grok's party scene is text-only now (its compositor painted seeded faces
+       twice); maxSeeds stays as defensive collection data — exercised here through a synthetic
+       partyRefs entry so the cap-and-omit contract keeps a live pin should Grok ever be promoted. */
     var grok=collectRenderSeeds(__rm("xai/grok-imagine-image"),c,party);
-    if(grok.urls.length!==3)return "Grok collects to its DECLARED maxSeeds (3) — the legend must match what is actually sent: "+JSON.stringify(grok.urls);
-    if(grok.names.join(",")!=="Ammut,Frizwick,Daeris")return "Grok names wrong: "+grok.names.join(",");
-    if(grok.omitted.join(",")!=="Morwen")return "the over-cap member must be reported as omitted (described-only): "+JSON.stringify(grok.omitted);
+    if(!grok.textOnly||grok.urls.length!==0)return "Grok must render a party scene text-only: "+JSON.stringify(grok.urls);
+    var capped=collectRenderSeeds({img2img:{multiSeed:true,maxSeeds:3,partyRefs:true}},c,party);
+    if(capped.urls.length!==3)return "a partyRefs entry collects to its DECLARED maxSeeds (3) — the legend must match what is actually sent: "+JSON.stringify(capped.urls);
+    if(capped.names.join(",")!=="Ammut,Frizwick,Daeris")return "capped names wrong: "+capped.names.join(",");
+    if(capped.omitted.join(",")!=="Morwen")return "the over-cap member must be reported as omitted (described-only): "+JSON.stringify(capped.omitted);
     var single=collectRenderSeeds(__rm("fal-ai/qwen-image-2512"),c,party);/* #208a: single-ref fixture re-pointed from the dropped Flux to Qwen */
-    return single.urls.length===1&&single.urls[0]==="data:img/player"?true:"single-ref model must stay player-only: "+JSON.stringify(single.urls);
+    if(!single.textOnly||single.urls.length!==0)return "a single-ref model must render a PARTY scene text-only (#208 ②): "+JSON.stringify(single.urls);
+    var solo=collectRenderSeeds(__rm("fal-ai/qwen-image-2512"),c,[]);
+    return solo.urls.length===1&&solo.urls[0]==="data:img/player"?true:"a single-ref model must still seed the player for a SOLO scene: "+JSON.stringify(solo.urls);
+  });
+  t("#208 ②: party scenes seed references on Nano Banana 2 ONLY — Grok's compositor goes text-only for a party, keeps its seed for a solo scene",function(){
+    var c={name:"Ammut",portrait:"data:img/player"};
+    var party=[{name:"Frizwick",portrait:"data:img/f"},{name:"Daeris",portrait:"data:img/d"}];
+    var nano=collectRenderSeeds(__rm("fal-ai/nano-banana-2"),c,party);
+    if(nano.textOnly||nano.urls.length!==3)return "Nano must keep the party's references: "+JSON.stringify(nano);
+    var grok=collectRenderSeeds(__rm("xai/grok-imagine-image"),c,party);
+    if(!grok.textOnly||grok.urls.length!==0||grok.names.length!==0)return "Grok must render a party scene text-only (it painted seeded faces twice and dropped the described-only member): "+JSON.stringify(grok);
+    var grokSolo=collectRenderSeeds(__rm("xai/grok-imagine-image"),c,[]);
+    if(grokSolo.textOnly||grokSolo.urls.length!==1)return "Grok must still seed the player for a solo scene: "+JSON.stringify(grokSolo);
+    var gpt=collectRenderSeeds(__rm("openai/gpt-image-2"),c,party);
+    if(!gpt.textOnly)return "GPT Image 2 (multiSeed, no partyRefs) must go text-only for a party: "+JSON.stringify(gpt);
+    var i,others=0;for(i=0;i<RENDER_MODELS.length;i++)if(RENDER_MODELS[i].img2img&&RENDER_MODELS[i].img2img.partyRefs&&RENDER_MODELS[i].id!=="fal-ai/nano-banana-2")others++;
+    return others===0?true:"partyRefs is declared on an engine other than Nano — the five-way test certified Nano alone";
+  });
+  t("#208 ①: the reference legend states the EXACT body count — one body per named character, described-only names still appear",function(){
+    var legend=buildSeedLegend(["Ammut","Frizwick","Daeris"],["Morwen"]);
+    if(legend.indexOf("EXACTLY 4 people")<0)return "exact count missing (3 refs + 1 described-only = 4): "+legend;
+    if(!/one body per named character/.test(legend)||!/never the same face twice/.test(legend))return "the one-body-per-face rule is the point: "+legend;
+    if(!/described-only names must still appear/.test(legend))return "the described-only member must be demanded, not just declared: "+legend;
+    var solo=buildSeedLegend(["Ammut"],[]);
+    if(solo.indexOf("EXACTLY 1 person")<0)return "solo count wrong: "+solo;
+    return solo.indexOf("described-only")<0?true:"no described-only clause when nobody is omitted: "+solo;
   });
   t("#166: the reference legend names every numbered image and marks unseeded members described-only — Grok guessed at unlabeled refs and Daeris's face averaged away",function(){
     var legend=buildSeedLegend(["Ammut","Frizwick","Daeris"],["Morwen"]);

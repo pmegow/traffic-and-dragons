@@ -281,7 +281,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.760";
+var APP_VERSION="v1.761";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 // ── Account-mode GM routing (SERVER_ARCHITECTURE §3, the subscription front end) ──
@@ -316,7 +316,12 @@ var RENDER_MODELS=[
    // (player first) for a group render; a lone data-URL is wrapped so single-subject renders still work.
    // #165: multiSeed marks a compositor img2img — doRender gathers COMPANION portraits only for
    // entries that declare it (a table property, never an id check at the call site).
-   img2img:{endpoint:"fal-ai/nano-banana-2/edit",multiSeed:true,
+   // #208 ② (owner ruling 2026-09-01): partyRefs marks the ONE engine that composes a party
+   // from reference portraits (the five-way test: 4/4, one body each). Every other entry
+   // renders a party scene TEXT-ONLY — collectRenderSeeds returns no seeds when party size > 1
+   // and this flag is absent (single-ref models repaint the solo portrait; Grok duplicated its
+   // seeded faces and dropped the described-only member). Table data, never an id check.
+   img2img:{endpoint:"fal-ai/nano-banana-2/edit",multiSeed:true,partyRefs:true,
             body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl:[imgUrl]),aspect_ratio:"4:3",resolution:"1K",num_images:1};}}},
   /* #210 (owner request 2026-08-21): GPT Image 2 — arena #1 on every image board; quality
      "medium" IS the config that tops the boards and runs ~4x cheaper than high (~$0.04-0.10 vs

@@ -2591,6 +2591,12 @@ function buildSceneRenderRequest(c,party,w){
 // portrait-less members land in `omitted` and are declared described-only.
 function collectRenderSeeds(mdlCfg,character,party){
   var urls=[],names=[],omitted=[],pj;
+  /* #208 ② (owner ruling 2026-09-01): a PARTY scene seeds references only on an engine that
+     declares img2img.partyRefs (Nano Banana 2 — the five-way champion). Everywhere else the
+     party renders text-only: a single-reference model's solo-portrait seed collapses the
+     party to one figure, and Grok's compositor painted its seeded faces twice while dropping
+     the described-only member. Solo scenes (no companions) keep every engine's own seeding. */
+  if(party&&party.length&&!(mdlCfg&&mdlCfg.img2img&&mdlCfg.img2img.partyRefs))return {urls:[],names:[],omitted:[],textOnly:true};
   if(character.portrait){urls.push(character.portrait);names.push(character.name||"the protagonist");}
   var multi=!!(mdlCfg&&mdlCfg.img2img&&mdlCfg.img2img.multiSeed);
   var cap=(multi&&mdlCfg.img2img.maxSeeds)?mdlCfg.img2img.maxSeeds:Infinity;
@@ -2613,6 +2619,10 @@ function buildSeedLegend(names,omitted){
      scene's staging). Reassign the references to identity ONLY; orientation stays with the text. */
   s+=" Use the reference images for face, colouring and build ONLY — every figure's pose, body orientation and gaze follow the WRITTEN description, never the reference portrait's pose.";
   if(omitted&&omitted.length)s+=" "+omitted.join(", ")+" has no reference image — paint them strictly from their written description.";
+  /* #208 ①: the exact-count clause — a reference mints a body AND its description mints a body
+     unless the prompt says one-body-per-face outright (Grok painted both seeded companions twice). */
+  var total=names.length+((omitted&&omitted.length)||0);
+  s+=" The scene contains EXACTLY "+total+" "+(total===1?"person":"people")+": one body per named character, never the same face twice"+(omitted&&omitted.length?"; described-only names must still appear":"")+".";
   return s;
 }
 async function doRender(){
@@ -2714,7 +2724,8 @@ async function doRender(){
         /* #165: say the truth about what seeded — "portrait-seeded" alone read as "everyone's
            portrait" and the player reasonably expected companion likeness from a single-ref model.
            #166: an over-cap member is named as described-only right in the status. */
-        if(usingI2I)imgStatus.textContent=(isMulti&&seeds.length>1)?("Generating party scene ("+seeds.length+" portraits seeded"+(sc.omitted.length?" — "+sc.omitted.join(", ")+" by description":"")+")…"):("Generating scene (player portrait seeded"+(party.length?" — this engine takes ONE reference; Nano Banana 2 / Grok Imagine seed the party":"")+")…");
+        if(usingI2I)imgStatus.textContent=(isMulti&&seeds.length>1)?("Generating party scene ("+seeds.length+" portraits seeded"+(sc.omitted.length?" — "+sc.omitted.join(", ")+" by description":"")+")…"):("Generating scene (player portrait seeded)…");
+        else if(sc.textOnly)imgStatus.textContent="Generating party scene (text-only on "+mdlCfg.label+" — only Nano Banana 2 composes a party from portraits)…";/* #208 ②: say why no portrait seeded */
         var falEndpoint=usingI2I?mdlCfg.img2img.endpoint:mdlCfg.id;
         var falPrompt=withImgStyle(resp);
         // Edit/compositor models (Nano, Grok) cling to the reference portraits' posed, front-facing
