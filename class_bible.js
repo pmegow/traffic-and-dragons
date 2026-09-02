@@ -254,10 +254,22 @@ var CLASS_BIBLE = {
           ],
           "2": [
             "Misty Step",
-            "Mirror Image"
+            "Mirror Image",
+            "Scorching Ray",
+            "Arcane Lock"
           ],
-          "3": [],
-          "4": [],
+          "3": [
+            "Counterspell",
+            "Dispel Magic",
+            "Fireball",
+            "Diamond Skin"
+          ],
+          "4": [
+            "Wall of Fire",
+            "Ice Storm",
+            "Banishment",
+            "Greater Invisibility"
+          ],
           "cantrips": [
             "Fire Bolt",
             "Booming Blade"
@@ -1010,8 +1022,8 @@ var CLASS_BIBLE = {
     ],
     "abilities": [
       {
-        "nm": "Hunter's Mark",
-        "ds": "Mark a target. +d4 damage and advantage on tracking."
+        "nm": "Favored Quarry",
+        "ds": "Study a creature for a breath and it is your quarry: you read its trail, its wounds, and its next move, and your first strike against it each scene lands where it hurts."
       },
       {
         "nm": "Trackless Step",
@@ -1079,7 +1091,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Land's Stride",
-            "ds": "no difficult terrain penalty."
+            "ds": "Brush, bog, scree and snow cost you nothing: you move through wild ground at full pace where others crawl, and thorns and briars part rather than tear."
           }
         ]
       },
@@ -1087,7 +1099,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Hide in Plain Sight",
-            "ds": "+10 Stealth camouflage."
+            "ds": "Given a minute and anything to work with — mud, leaf, ash, shadow — you become part of the ground: until you move, anyone searching for you looks straight through you."
           }
         ]
       },
@@ -1128,7 +1140,7 @@ var CLASS_BIBLE = {
       {
         "id": "hunter",
         "nm": "Hunter",
-        "desc": "Colossus Slayer on wounded targets. Giant Killer reaction. Defensive multiattack.",
+        "desc": "The bigger they are: wounded and oversized prey fall to your first strike, you read any beast at a glance, and one kill carries into the next.",
         "levels": {
           "3": {
             "features": [
@@ -1238,7 +1250,7 @@ var CLASS_BIBLE = {
       {
         "id": "gloomstalker",
         "nm": "Gloom Stalker",
-        "desc": "Invisible in magical darkness. Extra attack on first round. Dread Ambusher.",
+        "desc": "Terror from the dark: you see in any darkness, step shadow to shadow, and the camp you hit at night never raises an alarm.",
         "levels": {
           "3": {
             "features": [
@@ -1592,7 +1604,8 @@ var CLASS_BIBLE = {
     ],
     "skillSeeds": [
       "Persuasion",
-      "Insight"
+      "Insight",
+      "Lore"
     ],
     "spellTiers": {
       "2": 7,
@@ -1609,12 +1622,14 @@ var CLASS_BIBLE = {
       "2": [
         "Aid",
         "Magic Weapon",
-        "Find Steed"
+        "Find Steed",
+        "Zone of Truth"
       ],
       "3": [
         "Revivify",
         "Dispel Magic",
-        "Aura of Vitality"
+        "Aura of Vitality",
+        "Spirit Guardians"
       ],
       "4": [
         "Banishment",
@@ -1693,7 +1708,7 @@ var CLASS_BIBLE = {
       {
         "id": "vengeance",
         "nm": "Oath of Vengeance",
-        "desc": "Hunter of the wicked. Vow of Enmity for advantage. Relentless pursuit. Banishment.",
+        "desc": "Hunter of the wicked: name your enemy before witnesses and nothing shields them — not distance, not flight, not their own power.",
         "levels": {
           "3": {
             "features": [
@@ -1748,7 +1763,7 @@ var CLASS_BIBLE = {
       {
         "id": "devotion",
         "nm": "Oath of Devotion",
-        "desc": "Sacred Weapon -- add CHA to attacks. Holy Nimbus aura. Purity of spirit.",
+        "desc": "The oath others lean on: your word cannot break, your body takes the blow meant for the weak, and where you stand becomes holy ground.",
         "levels": {
           "3": {
             "features": [
@@ -1803,7 +1818,7 @@ var CLASS_BIBLE = {
       {
         "id": "ancients",
         "nm": "Oath of Ancients",
-        "desc": "Nature's warrior. Aura of Warding vs spells. Undying Sentinel at 0 HP.",
+        "desc": "Sworn to the life older than the gods: the wild takes your side, rot slides off you, and the first time each day you would fall, the green does not let go.",
         "levels": {
           "3": {
             "features": [

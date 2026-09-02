@@ -7458,16 +7458,30 @@ function runEngineTests(R){
     if(o.tier!==2||o.count!==SPELL_UNLOCK_PICKS[2])return "queued wrong: "+JSON.stringify({tier:o.tier,count:o.count});
     return true;
   });
-  t("an unlock whose bench is a fill-phase blank is SKIPPED loudly, never queued (the EK T3 case)",function(){
+  t("an unlock whose bench is a fill-phase blank is SKIPPED loudly, never queued (synthetic blank — the EK T3 bench was filled at v1.766)",function(){
     makeWorld();
+    var ek=null,i;for(i=0;i<CLASS_BIBLE.Warrior.archetypes.length;i++)if(CLASS_BIBLE.Warrior.archetypes[i].id==="eldritchknight")ek=CLASS_BIBLE.Warrior.archetypes[i];
+    if(!ek||!ek.spells["3"].length)return "fixture: the EK T3 bench should be FILLED now (v1.766) — this test blanks it synthetically";
+    var keep=ek.spells["3"];ek.spells["3"]=[];
     var infos=[];var _ci=console.info;console.info=function(m){infos.push(String(m));};
     try{
       var c=worldState.character;c.cls="Warrior";c.archetype="eldritchknight";c.level=13;c.xp=120000;c.abilities=[];
       c.xp=140000;checkLevelUp();
-    }finally{console.info=_ci;}
+    }finally{console.info=_ci;ek.spells["3"]=keep;}
     if(worldState.character.level!==14)return "level "+worldState.character.level;
     if(_luOwed().spells.length!==0)return "blank bench queued a pick";
     return infos.join(" ").indexOf("fill-phase")>=0?true:"skip was silent";
+  });
+  t("#72 ③ (v1.766): the Eldritch Knight T3/T4 benches are filled — reaching L14 QUEUES a T3 pick instead of skipping (the fill-phase blank is closed)",function(){
+    makeWorld();
+    var c=worldState.character;c.cls="Warrior";c.archetype="eldritchknight";c.level=13;c.xp=120000;c.abilities=[];c.spells=[];
+    c.xp=140000;checkLevelUp();
+    if(worldState.character.level!==14)return "level "+worldState.character.level;
+    var owed=_luOwed().spells;
+    if(!owed.length)return "no T3 pick queued — the bench is still blank";
+    var ek=null,i;for(i=0;i<CLASS_BIBLE.Warrior.archetypes.length;i++)if(CLASS_BIBLE.Warrior.archetypes[i].id==="eldritchknight")ek=CLASS_BIBLE.Warrior.archetypes[i];
+    var t;for(t in ek.spells){var j;for(j=0;j<ek.spells[t].length;j++)if(!capabilityLookup(ek.spells[t][j]))return "EK bench name does not resolve: "+ek.spells[t][j];}
+    return ek.spells["3"].length>=4&&ek.spells["4"].length>=4?true:"benches thinner than four: T3 "+ek.spells["3"].length+" T4 "+ek.spells["4"].length;
   });
   t("#284 (brief 36): owed level-up choices are SAVE STATE — they survive the serialize/parse reload boundary",function(){
     /* The strand: _levelBumpsOwed/_spellUnlocksOwed were module variables; checkLevelUp committed
