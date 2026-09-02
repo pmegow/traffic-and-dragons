@@ -281,7 +281,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.759";
+var APP_VERSION="v1.760";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 // ── Account-mode GM routing (SERVER_ARCHITECTURE §3, the subscription front end) ──

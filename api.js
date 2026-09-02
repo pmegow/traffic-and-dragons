@@ -1146,7 +1146,7 @@ function buildSceneCastNote(){
     return "[ENGINE NOTE — SCENE CAST NOT ANSWERED (not a player action): the engine asked who is physically present and no [SCENE_CAST:] line came back, so it recorded only who spoke — anyone silent went unrecorded and the record now shows them absent. Emit ONE [SCENE_CAST:Name, Name] line now, or [SCENE_CAST:none] if the party is alone. Never acknowledge this check in prose.]";
   }
   if(ca.node!==node||worldState.turn-Math.max(asked,answered,ca.seedTurn!=null?ca.seedTurn:-1)>=CAST_REFRESH_TURNS){
-    worldState.castAsk={node:node,askedTurn:worldState.turn};/* a fresh ask resets the escalation latch */
+    worldState.castAsk={node:node,askedTurn:worldState.turn,asked:(ca.asked||0)+1,answered:ca.answered||0,volunteered:ca.volunteered||0,none:ca.none||0};/* a fresh ask resets the escalation latch; the #194 ① census counters ride through */
     return ask;
   }
   return"";

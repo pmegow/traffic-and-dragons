@@ -19606,7 +19606,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return w2NamedPresenceEvidence("Fresh Voice",296)?true:"speech strictly before the cited sourceTurn was refused";
   });
 
-  t("#194 L2: post-epoch statusTurn authorizes NOTHING; pre-epoch statusTurn grandfathers with a legacy-grade citation (ruling ③)",function(){
+  t("#194 L2: post-epoch statusTurn authorizes NOTHING; pre-epoch statusTurn is REFUSED too (ruling ③ flipped fail-closed, v1.760)",function(){
     p194World();r168Npc("PostEpoch");r168Npc("PreEpoch");
     worldState.presenceEpoch=1000;worldState.presenceVer=1;
     var a=wsNpcByName("PostEpoch");a.introduced=900;a.statusTurn=1500;
@@ -19615,8 +19615,24 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=1601;
     if(w2NamedPresenceEvidence("PostEpoch"))return "a post-epoch roster write authorized a death — the mention channel is still live";
     var ev=w2NamedPresenceEvidence("PreEpoch");
-    if(!ev)return "pre-epoch evidence was refused — fail-open (ruling ③) broken, mature saves would hit a refusal wave";
-    return /legacy/i.test(String(ev))?true:"grandfathered evidence is not labeled legacy-grade: "+ev;
+    return ev?"pre-epoch evidence is REFUSED since v1.760 — the grandfather clause is back: "+ev:true;
+  });
+  t("#194 ③ flip: pre-epoch lastSeen and guestbook stamps are REFUSED; the same stamps post-epoch still authorize (the witnessed limbs are untouched)",function(){
+    p194World();r168Npc("Sightline");
+    worldState.presenceEpoch=1000;worldState.presenceVer=1;
+    var n=wsNpcByName("Sightline");n.introduced=800;
+    var node=currentNodeKey();
+    memory.npcs["Sightline"]=memory.npcs["Sightline"]||{name:"Sightline",knowledge:[],events:[]};
+    memory.npcs["Sightline"].lastSeenAt=node;memory.npcs["Sightline"].lastSeenTurn=900;memory.npcs["Sightline"].lastSeenSrc="say";
+    if(!memory.map.nodes[node])memory.map.nodes[node]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[]};
+    memory.map.nodes[node].guestbook={"Sightline":{turns:[900],resident:false}};
+    worldState.turn=1600;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=1601;
+    var ev=w2NamedPresenceEvidence("Sightline");
+    if(ev)return "pre-epoch lastSeen/guestbook authorized: "+ev;
+    memory.npcs["Sightline"].lastSeenTurn=1200;memory.map.nodes[node].guestbook["Sightline"].turns=[1200];
+    ev=w2NamedPresenceEvidence("Sightline");
+    return ev?true:"a post-epoch lastSeen/guestbook record no longer authorizes — the flip over-reached";
   });
 
   t("#194 L2: the remote-mention attack refuses even on a grandfathered row — a fresh mood write re-stamps statusTurn post-epoch",function(){
@@ -19654,16 +19670,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return w2NamedPresenceEvidence("Quiet")?true:"a say-sourced record no longer authorizes (over-broad cast exclusion)";
   });
 
-  t("#194 L2: an envelope authorized on legacy-grade evidence carries evidenceGrade on its receipt; a witnessed pass does not",function(){
+  t("#194 ①: the cast ask-vs-answer census — asks count at the builder, answers/none/volunteered at the seam, and all survive the fresh-ask reset",function(){
+    p194World();r168Npc("Quiet");wsNpcByName("Quiet").introduced=10;
+    worldState.presenceEpoch=0;worldState.presenceVer=1;worldState.turn=20;
+    delete worldState.castAsk;
+    if(buildSceneCastNote()!=="")return "first sight must seed silently";
+    worldState.turn=21;worldState.world.location="Elsewhere";fileLocation("Elsewhere");
+    var ask=buildSceneCastNote();
+    if(!/SCENE CAST/.test(ask))return "node change did not ask: "+JSON.stringify(ask);
+    if(worldState.castAsk.asked!==1)return "asked counter not 1: "+JSON.stringify(worldState.castAsk);
+    worldState.turn=22;applyMuts("[SCENE_CAST:Quiet]");
+    var ca=worldState.castAsk;
+    if(ca.answered!==1||(ca.volunteered||0)!==0||(ca.none||0)!==0)return "answer to an outstanding ask miscounted: "+JSON.stringify(ca);
+    worldState.turn=23;applyMuts("[SCENE_CAST:none]");
+    ca=worldState.castAsk;
+    if(ca.volunteered!==1||ca.none!==1||ca.answered!==1)return "an unasked :none line must count as volunteered+none: "+JSON.stringify(ca);
+    worldState.turn=23+CAST_REFRESH_TURNS+1;
+    var ask2=buildSceneCastNote();
+    if(!/SCENE CAST/.test(ask2))return "refresh did not re-ask";
+    ca=worldState.castAsk;
+    return (ca.asked===2&&ca.answered===1&&ca.volunteered===1&&ca.none===1)?true:"counters did not survive the fresh-ask reset: "+JSON.stringify(ca);
+  });
+
+  t("#194 ③ flip: an envelope resting on pre-epoch evidence alone is REFUSED (no legacy receipt can be minted any more); a witnessed pass commits unstamped",function(){
     p194World();r168Npc("Legacy Man");r168Quest("Old Debts","Settle it");
     worldState.presenceEpoch=1000;worldState.presenceVer=1;
     var n=wsNpcByName("Legacy Man");n.introduced=800;n.statusTurn=900;
     worldState.turn=1600;applyMuts("[SCENE_REF:onlooker|?]");
-    worldState.turn=1601;
+    worldState.turn=1601;var xp0=worldState.character.xp;
     applyMuts("[CANON_TXN_BEGIN:leg-1|npc-death|Legacy Man|Legacy Man|-][SCENE_DEATH:Legacy Man][XP:100][CANON_TXN_END:leg-1]");
     var r=null,i;for(i=0;i<(worldState.canonTxns||[]).length;i++)if(worldState.canonTxns[i].id==="leg-1")r=worldState.canonTxns[i];
-    if(!r||r.status!=="committed")return "legacy-authorized envelope did not commit: "+(r?r.status+" / "+r.reason:"none");
-    if(r.evidenceGrade!=="legacy")return "committed receipt does not carry the legacy grade (ruling ③'s receipts-for-a-later-reversal contract): "+JSON.stringify(r.evidenceGrade);
+    if(r&&r.status==="committed")return "an envelope on pre-epoch-only evidence COMMITTED — the fail-open grandfather clause is back";
+    if(npcIsDead(wsNpcByName("Legacy Man")))return "the pre-epoch-only death landed";
+    if(worldState.character.xp!==xp0)return "the refused envelope still paid XP";
     r168Npc("Witnessed Man");var w=wsNpcByName("Witnessed Man");w.introduced=800;
     p194Speech("Witnessed Man",1598);
     worldState.turn=1602;

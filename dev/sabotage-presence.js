@@ -30,10 +30,22 @@ rc |= sabotage.prove({
   file: "identity.js",
   command: ["node", ["dev/run-tests.js"]],
   cases: [
-    { label: "post-epoch statusTurn limb restored — the mention channel authorizes deaths again (layer 2's core regrade undone)",
+    { label: "a statusTurn limb restored — the mention channel authorizes deaths again (layer 2's core regrade undone)",
       mustFail: "post-epoch statusTurn authorizes NOTHING",
-      find: "  if(n&&n.statusTurn>0&&Number(n.statusTurn)<lim&&Number(n.statusTurn)<epoch){",
-      replace: "  if(n&&n.statusTurn>0&&Number(n.statusTurn)<lim){" },
+      find: "  return null;/* pre-epoch lastSeen/guestbook/statusTurn: REFUSED (fail-closed since v1.760) */",
+      replace: "  if(n&&n.statusTurn>0&&Number(n.statusTurn)<lim)return \"roster write at t\"+n.statusTurn;return null;" },
+    { label: "the lastSeen limb loses its epoch floor — pre-epoch mention-fed stamps authorize deaths again (ruling ③'s flip undone)",
+      mustFail: "pre-epoch lastSeen and guestbook stamps are REFUSED",
+      find: "Number(m.lastSeenTurn)<lim&&Number(m.lastSeenTurn)>=epoch&&",
+      replace: "Number(m.lastSeenTurn)<lim&&" },
+    { label: "the guestbook limb loses its epoch floor",
+      mustFail: "pre-epoch lastSeen and guestbook stamps are REFUSED",
+      find: "  if(gb&&gb.turn>=epoch)return \"guestbook visit recorded at t\"+gb.turn;",
+      replace: "  if(gb)return \"guestbook visit recorded at t\"+gb.turn;" },
+    { label: "the cast census stops counting answers — cast-limb promotion loses its measurement",
+      mustFail: "the cast ask-vs-answer census",
+      find: "_ca.answered=(_ca.answered||0)+1;else _ca.volunteered=(_ca.volunteered||0)+1;",
+      replace: "_ca.answered=(_ca.answered||0)+0;else _ca.volunteered=(_ca.volunteered||0)+1;" },
     { label: "strictly-earlier dropped from the speech limb — speech AT the claim turn becomes its own authorization",
       mustFail: "not strictly earlier than the claim",
       find: "for(j=0;j<ts.length;j++){var t=ts[j];if(t<lim&&t>=lim-SPEECH_EVIDENCE_TURNS){count++;if(best==null||t>best)best=t;}}",
@@ -50,10 +62,10 @@ rc |= sabotage.prove({
       mustFail: "refused named death arms the valve",
       find: "if(!_bdOv)_w2ArmDeathValve(nm);/* #194 L3 */",
       replace: "" },
-    { label: "legacy passes stop receipting their grade — ruling ③'s later-reversal evidence silently vanishes",
-      mustFail: "carries evidenceGrade on its receipt",
-      find: "else if(_w2EvidenceGrade===\"legacy\")meta.evidenceGrade=\"legacy\";",
-      replace: "else if(false)meta.evidenceGrade=\"legacy\";" }
+    { label: "an envelope on pre-epoch-only evidence commits again — the receipt path re-admits the grandfather clause",
+      mustFail: "resting on pre-epoch evidence alone is REFUSED",
+      find: "  var gb=_w2NodeGuestbookTurn(node,canon,lim);",
+      replace: "  if(n&&n.statusTurn>0&&Number(n.statusTurn)<lim)return \"roster write\";var gb=_w2NodeGuestbookTurn(node,canon,lim);" }
   ]
 });
 
@@ -76,7 +88,7 @@ rc |= sabotage.prove({
   file: "state.js",
   command: ["node", ["dev/run-tests.js"]],
   cases: [
-    { label: "the epoch migration removed — legacy grading has no anchor and every mention-fed stamp grades witnessed",
+    { label: "the epoch migration removed — with no anchor every pre-epoch mention-fed stamp reads as post-epoch and authorizes",
       mustFail: "migrateWorldState stamps presenceEpoch ONCE",
       find: "  if(typeof worldState.presenceEpoch!==\"number\"){\n    worldState.presenceEpoch=(typeof worldState.turn===\"number\")?worldState.turn:0;\n    worldState.presenceVer=1;_mig=true;",
       replace: "  if(false){" }
@@ -98,7 +110,7 @@ rc |= sabotage.prove({
   file: "helpers.js",
   command: ["node", ["dev/run-tests.js"]],
   cases: [
-    { label: "legacy-grade receipts vanish from drift health — the fail-open window becomes invisible (ruling ③'s visibility half)",
+    { label: "historical legacy-grade receipts vanish from drift health — the closed fail-open window loses its record",
       mustFail: "legacy-grade committed receipts surface in the drift-health",
       find: "  if(legacyN)anom.push(legacyN+\" death authorization\"",
       replace: "  if(false)anom.push(legacyN+\" death authorization\"" }

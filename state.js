@@ -620,12 +620,13 @@ function migrateWorldState(){
      v1.381 backfill above: that stamp FABRICATED a per-record turn (12 of 49 NPCs collide at
      t867 on the live save); presence records nothing per-record — it records where the old
      world ended. Evidence grade is DERIVED from turn-vs-epoch at read time (identity.js), so
-     zero records are rewritten, the migration is idempotent and fold-safe, and flipping legacy
-     fail-open (ruling ③, TENTATIVE) to fail-closed later is a one-clause change at the gate. */
+     zero records are rewritten, the migration is idempotent and fold-safe. Ruling ③'s tentative
+     fail-open grandfathering was flipped to FAIL-CLOSED at v1.760 (2026-09-01): a pre-epoch stamp
+     authorizes no death; re-witnessing is the way back in. */
   if(typeof worldState.presenceEpoch!=="number"){
     worldState.presenceEpoch=(typeof worldState.turn==="number")?worldState.turn:0;
     worldState.presenceVer=1;_mig=true;
-    if(typeof console!=="undefined")console.info("[presence] #194 epoch set at t"+worldState.presenceEpoch+" — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (fail-open, receipt-stamped, monotonically shrinking)");
+    if(typeof console!=="undefined")console.info("[presence] #194 epoch set at t"+worldState.presenceEpoch+" — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)");
   }else if(worldState.presenceVer===undefined&&(worldState.turn||0)>worldState.presenceEpoch){
     /* Old-client tripwire: a blob that lost its version marker while play advanced may carry
        mention-grade stamps at turns > epoch, which turn-derived grading would mis-label

@@ -6,7 +6,7 @@
 //   ② Caul authorizes on his SPEECH record (the evidence the t1903 tag stream held all along);
 //   ③ the remote-mention attack — mention a far-away NPC, kill them next turn — REFUSES in the
 //     SHIPPING config (a fresh mood write re-stamps statusTurn post-epoch);
-//   ④ the shipping legacy fail-open (ruling ③) is present, bounded, and reported honestly;
+//   ④ the shipping config is FAIL-CLOSED (ruling ③ flipped v1.760): zero legacy-grade citations;
 //   ⑤ dev/repair-t1903-caul.js's authorization precondition still holds.
 // Usage: node dev/replay-t1903-presence.js testRuns/Rise_of_the_Runelords__t1903.tnd
 var fs=require("fs"),path=require("path"),engine=require("./load-engine.js");
@@ -50,18 +50,21 @@ var caulW=witnessed.filter(function(l){return l.indexOf("Caul —")===0;});
 if(!caulW.length)fail("Caul is not in the witnessed census");
 if(caulW[0].indexOf("speech")<0)fail("Caul's citation is not his speech record: "+caulW[0]);
 
-// ② shipping census: legacy fail-open (ruling ③) grandfathers pre-epoch stamps, receipted+visible.
+// ② shipping census: FAIL-CLOSED since v1.760 (ruling ③ flipped) — pre-epoch stamps authorize nothing,
+//    so the shipping census must equal the witnessed census and carry zero legacy-grade citations.
 worldState.presenceEpoch=shipEpoch;
 var shipping=census(),legacy=shipping.filter(function(l){return /legacy/i.test(l);});
-console.log("\nSHIPPING census (fail-open): "+shipping.length+" killable ("+legacy.length+" on legacy-grade pre-epoch evidence — the accepted, monotonically-shrinking regression window)");
+console.log("\nSHIPPING census (fail-closed): "+shipping.length+" killable, "+legacy.length+" legacy-grade");
+if(legacy.length)fail("legacy-grade citations survived the fail-closed flip: "+legacy.join(" | "));
+if(shipping.length!==witnessed.length)fail("shipping census ("+shipping.length+") != witnessed census ("+witnessed.length+") — something authorizes on pre-epoch evidence");
 
-// ③ the remote-mention attack, in the shipping config
+// ③ the remote-mention attack, in the shipping config: pick a living non-party NPC with NO
+//    authorization at all (the pre-epoch-only population) and prove a fresh mention cannot buy one.
 var target=null,i;
 for(i=0;i<worldState.npcs.length;i++){var n=worldState.npcs[i];
-  if(n&&!npcIsDead(n)&&/legacy/i.test(String(w2NamedPresenceEvidence(n.name)||"")))
-    if(!n.partyMember){target=n;break;}
+  if(n&&!npcIsDead(n)&&!n.partyMember&&!w2NamedPresenceEvidence(n.name)&&n.statusTurn>0&&n.statusTurn<shipEpoch){target=n;break;}
 }
-if(!target)fail("no legacy-grandfathered remote NPC to attack with");
+if(!target)fail("no pre-epoch-only remote NPC to attack with");
 console.log("\nremote-mention attack target: "+target.name+" (currently authorized: "+w2NamedPresenceEvidence(target.name)+")");
 worldState.turn++;applyMuts("[NPC:"+target.name+"|scheming|enemy]");
 worldState.turn++;
@@ -77,4 +80,4 @@ console.log("attack REFUSED — mention re-stamped statusTurn post-epoch; valve 
 var ev=w2NamedPresenceEvidence("Caul",1902);
 if(!ev)fail("repair-t1903-caul's precondition broke: w2NamedPresenceEvidence('Caul',1902) is null");
 console.log("\nrepair precondition: w2NamedPresenceEvidence('Caul',1902) = \""+ev+"\"");
-console.log("\n#194 ACCEPTANCE REPLAY GREEN — witnessed "+witnessed.length+"/"+living+" (was 37/"+living+" on the statusTurn limb), Caul on speech, remote-mention refused, legacy window "+legacy.length+" and shrinking");
+console.log("\n#194 ACCEPTANCE REPLAY GREEN — witnessed "+witnessed.length+"/"+living+" (was 37/"+living+" on the statusTurn limb), Caul on speech, remote-mention refused, legacy window CLOSED (0 legacy-grade citations under fail-closed)");

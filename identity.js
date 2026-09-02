@@ -859,15 +859,21 @@ function derivePresenceFromResponse(text,R){
   re=/\[ENEMY_HP:([^|\]]+)\|/g;
   while((m=re.exec(text)))take(m[1],"combat");
   re=/\[SCENE_CAST:([^\]]*)\]/g;
-  var castSeen=false;
+  var castSeen=false,castNone=false;
   while((m=re.exec(text))){
     castSeen=true;
     var payload=m[1].trim();
-    if(!/^none$/i.test(payload)){var parts=payload.split(/[|,]/);for(i=0;i<parts.length;i++)take(parts[i],"cast");}
+    if(/^none$/i.test(payload))castNone=true;else{var parts=payload.split(/[|,]/);for(i=0;i<parts.length;i++)take(parts[i],"cast");}
   }
   if(castSeen){/* [SCENE_CAST:none] included — the sentinel makes NON-ANSWER measurable (layer 4) */
     if(!worldState.castAsk)worldState.castAsk={};
-    worldState.castAsk.lastAnswerTurn=(R&&R.turn!=null)?R.turn:worldState.turn;
+    var _ca=worldState.castAsk,_at=(R&&R.turn!=null)?R.turn:worldState.turn;
+    /* #194 ①: the ask-vs-answer census for cast-limb promotion (ruling ④) — cumulative per campaign,
+       carried across the builder's fresh-ask reset. `answered` counts only replies to an OUTSTANDING
+       ask (askedTurn newer than the last answer); `volunteered` counts unasked lines; `none` the sentinel. */
+    if(_ca.askedTurn!=null&&(_ca.lastAnswerTurn==null||_ca.askedTurn>_ca.lastAnswerTurn))_ca.answered=(_ca.answered||0)+1;else _ca.volunteered=(_ca.volunteered||0)+1;
+    if(castNone)_ca.none=(_ca.none||0)+1;
+    _ca.lastAnswerTurn=_at;
     worldState.castAsk.node=(typeof currentNodeKey==="function")?((typeof locResolve==="function")?locResolve(currentNodeKey()):currentNodeKey()):null;
   }
   if(labels.length&&R&&R.muts)R.muts.push("Present: "+labels.join(", "));
@@ -908,10 +914,6 @@ function _observedFact(canon,lim){
     }}
   return null;
 }
-/* #194: the grade of the LAST authorization returned by w2NamedPresenceEvidence — "witnessed" or
-   "legacy" (pre-epoch, ruling ③'s fail-open). Read by w2PrepareResponse to receipt-stamp legacy
-   passes (the evidence a later fail-closed reversal would need). Reset per gate call. */
-var _w2EvidenceGrade="witnessed";
 function sceneRefBind(handle,entity,R){
   var s=sceneRefsEnsure(),h=String(handle||"").trim(),raw=String(entity||"").trim();if(!h||s.overflow)return false;
   var a=_sceneRefActor(h),canon=(raw==="?"||raw==="-"||!raw)?null:resolveNpcName(raw);
@@ -979,7 +981,6 @@ function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);
     return false;}
   hit.actor.present=false;hit.actor.died=worldState.turn;if(hit.actor.entity)return _w2StampDead(hit.actor.entity,worldState.turn,R);if(R)R.muts.push("Anonymous scene actor "+hit.actor.handle+" died");return true;}
 function w2DeathAuthorized(name,handle,sourceTurn){
-  _w2EvidenceGrade="witnessed";/* #194: a pass that never reaches the graded gate (handle/actor paths) is witnessed by definition */
   if(!worldState||!worldState.sceneRefs)return true;
   var s=sceneRefsEnsure(),canon=(name&&name!=="-")?resolveNpcName(name):null,hit,i,fs;if(s.overflow)return false;
   if(handle&&handle!=="-"){hit=_sceneRefActor(handle,sourceTurn);
@@ -1024,16 +1025,16 @@ function w2NamedPresenceEvidence(name,sourceTurn){
   var fs=_sceneRefFrames(),i,k;
   for(i=0;i<fs.length;i++){var ng=fs[i].negatives||[];
     for(k=0;k<ng.length;k++)if(ng[k].entity===canon&&ng[k].mode==="explicit"&&!ng[k].resolved)return null;}
-  // Gate 3 — GRADED, turn-stamped presence facts (#194, panel-designed, owner-ruled 2026-08-17).
+  // Gate 3 — turn-stamped presence facts (#194, panel-designed, owner-ruled 2026-08-17).
   // WITNESSED limbs first (party / speech / observed / truthful-writer records) so a witnessed
-  // fact always wins the citation; the LEGACY clauses (pre-presenceEpoch stamps — the mention-fed
-  // era) grandfather fail-open per ruling ③ (TENTATIVE: flipping to fail-closed, or adding a
-  // fade, is deleting/editing those clauses ONLY — keep it that way), receipt-stamped via
-  // _w2EvidenceGrade and surfaced in the #17 drift-health readout. Post-epoch statusTurn — the
-  // mention channel that made 37 of 39 living t1903 NPCs killable by bare name — authorizes
-  // NOTHING. Every limb keeps the strictly-earlier contract (fact turn < lim), and "cast"-sourced
-  // records are excluded until the ruling-④ playtest validates the channel.
-  _w2EvidenceGrade="witnessed";
+  // fact always wins the citation. Pre-presenceEpoch stamps (the mention-fed era) authorize
+  // NOTHING: ruling ③'s tentative fail-open grandfather clause was FLIPPED to fail-closed on
+  // 2026-09-01 (v1.760) — measured at the flip, ZERO canon receipts had ever leaned on it, so the
+  // cost was nil; re-witnessing (speech / cast / a post-epoch record) is the only way back in.
+  // Post-epoch statusTurn — the mention channel that made 37 of 39 living t1903 NPCs killable by
+  // bare name — likewise authorizes NOTHING. Every limb keeps the strictly-earlier contract (fact
+  // turn < lim), and "cast"-sourced records are excluded until the ruling-④ playtest validates
+  // the channel (ask-vs-answer counters ride worldState.castAsk for that measurement).
   var epoch=(typeof worldState.presenceEpoch==="number")?worldState.presenceEpoch:0;
   if(n&&n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n))&&!(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location))return "living party member at the player's side";
   var spf=_speechFactNear(canon,lim);
@@ -1041,19 +1042,10 @@ function w2NamedPresenceEvidence(name,sourceTurn){
   var obf=_observedFact(canon,lim);
   if(obf)return "observed on screen ("+obf.channel+") at t"+obf.firstTurn;
   var node=(typeof currentNodeKey==="function")?currentNodeKey():null;
-  if(node&&m&&m.lastSeenAt&&m.lastSeenTurn!=null&&Number(m.lastSeenTurn)<lim&&typeof locSame==="function"&&locSame(m.lastSeenAt,node)&&m.lastSeenSrc!=="cast"){
-    if(Number(m.lastSeenTurn)>=epoch)return "recorded at the party's current location (t"+m.lastSeenTurn+")";
-    _w2EvidenceGrade="legacy";return "recorded at the party's current location (t"+m.lastSeenTurn+", legacy-grade pre-epoch)";
-  }
+  if(node&&m&&m.lastSeenAt&&m.lastSeenTurn!=null&&Number(m.lastSeenTurn)<lim&&Number(m.lastSeenTurn)>=epoch&&typeof locSame==="function"&&locSame(m.lastSeenAt,node)&&m.lastSeenSrc!=="cast")return "recorded at the party's current location (t"+m.lastSeenTurn+")";
   var gb=_w2NodeGuestbookTurn(node,canon,lim);
-  if(gb){
-    if(gb.turn>=epoch)return "guestbook visit recorded at t"+gb.turn;
-    _w2EvidenceGrade="legacy";return "guestbook visit recorded at t"+gb.turn+" (legacy-grade pre-epoch)";
-  }
-  if(n&&n.statusTurn>0&&Number(n.statusTurn)<lim&&Number(n.statusTurn)<epoch){
-    _w2EvidenceGrade="legacy";return "roster write at t"+n.statusTurn+" (legacy-grade, pre-epoch)";
-  }
-  return null;
+  if(gb&&gb.turn>=epoch)return "guestbook visit recorded at t"+gb.turn;
+  return null;/* pre-epoch lastSeen/guestbook/statusTurn: REFUSED (fail-closed since v1.760) */
 }
 /* #175b: does this handle name a ROSTERED character rather than describe an anonymous one?
    resolveNpcName carries the campaign's own alias + distinctive-token vocabulary, so "caul",
@@ -1220,7 +1212,6 @@ function _w2OpFingerprint(tag){
 function _w2OpTokens(ops){var counts={},out=[],i,fp;for(i=0;i<(ops||[]).length;i++){fp=_w2OpFingerprint(ops[i]);counts[fp]=(counts[fp]||0)+1;out.push(fp+"#"+counts[fp]);}return out;}
 function _w2TxnReceipt(m,status,reason,ops,tokens){
   if(!worldState.canonTxns)worldState.canonTxns=[];var r=_w2TxnFind(m.id),wasQuarantined=!!(r&&r.status==="quarantined"),i;if(!r){if(worldState.canonTxns.length>=CANON_TXN_CAP){worldState.canonTxnOverflow={turn:worldState.turn,id:m.id};if(typeof console!=="undefined")console.warn("[identity] canon transaction receipt cap reached - new claim refused fail-closed");return null;}r={id:m.id,claim:m.claim,subject:m.subject,evidence:m.evidence,quest:m.quest,status:status,operations:[],turn:worldState.turn,reason:reason||""};if(m.ejected&&m.ejected.length)r.ejected=m.ejected.slice();worldState.canonTxns.push(r);}
-  if(m.evidenceGrade&&!r.evidenceGrade)r.evidenceGrade=m.evidenceGrade;/* #194/ruling ③: legacy-grade authorization is receipted — the evidence a later fail-closed flip would need; surfaced in #17 drift health */
   if(status==="quarantined"){if(r.status==="committed"){r.lastAttemptReason=reason||"";r.lastAttemptTurn=worldState.turn;if(typeof console!=="undefined")console.warn("[identity] refused re-attempt recorded on COMMITTED receipt "+r.id+" — committed receipts never demote (#171②)");}else{r.status="quarantined";if(!wasQuarantined){r.reason=reason||r.reason;r.quarantinedTurn=worldState.turn;}else{r.lastAttemptReason=reason||"";r.lastAttemptTurn=worldState.turn;r.attempts=(r.attempts||1)+1;}}}else if(r.status!=="quarantined"){r.status="committed";r.reason="";r.committedTurn=worldState.turn;}
   var ts=tokens||_w2OpTokens(ops);for(i=0;i<ts.length;i++)if(r.operations.indexOf(ts[i])<0)r.operations.push(ts[i]);return r;
 }
@@ -1478,7 +1469,7 @@ function w2PrepareResponse(text){
     if(p.length!==5||!meta.id||m[3].trim()!==meta.id)reason="malformed or mismatched transaction envelope";else if(meta.claim!=="npc-death"&&meta.claim!=="quest-outcome")reason="unsupported canon claim type";else if(prior&&prior.status==="quarantined")reason="claim id was already quarantined";else if(prior&&!_w2TxnMetaSame(prior,meta))reason="claim id was reused with different metadata";
     var _part=null;
     if(!reason){_part=_w2TxnPartition(meta,ops);if(_part.reason)reason=_part.reason;else{ops=_part.gov;if(_part.eject.length){ordinary+="\n"+_part.eject.join("");meta.ejected=_part.eject.map(_w2TagName);if(typeof console!=="undefined")console.warn("[identity] "+_part.eject.length+" incidental tag(s) ejected from canon claim "+meta.id+" and applied as ordinary tags: "+meta.ejected.join(", ")+" (#175 — one stray tag must never void a death and its rewards)");}}}
-    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&w2HandleKey(deathHandle)!==w2HandleKey(meta.evidence))reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence)){var _veOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);reason=_veOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs (it recovers capacity), the scene moves (a location or sublocation change), or the death is filed off-screen via [NPC_DEATH_REPORTED:]":"scene evidence does not bind the claimed victim";if(!_veOv&&meta.subject&&meta.subject!=="-")_w2ArmDeathValve(resolveNpcName(meta.subject));/* #194 L3: an evidence-lack refusal arms the fork note; a capacity refusal must not (its cure is a summary, not ceremony) */}else if(_w2EvidenceGrade==="legacy")meta.evidenceGrade="legacy";/* #194/ruling ③: legacy fail-open passes are receipt-stamped so a later reversal has its evidence */}
+    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&w2HandleKey(deathHandle)!==w2HandleKey(meta.evidence))reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence)){var _veOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);reason=_veOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs (it recovers capacity), the scene moves (a location or sublocation change), or the death is filed off-screen via [NPC_DEATH_REPORTED:]":"scene evidence does not bind the claimed victim";if(!_veOv&&meta.subject&&meta.subject!=="-")_w2ArmDeathValve(resolveNpcName(meta.subject));/* #194 L3: an evidence-lack refusal arms the fork note; a capacity refusal must not (its cure is a summary, not ceremony) */}}
     if(!reason&&meta.claim==="quest-outcome"&&!_w2QuestExists(meta.quest))reason="quest outcome names no active accepted quest";
     if(!reason&&!prior&&meta.claim==="npc-death"&&meta.quest!=="-"&&!_w2QuestExists(meta.quest))reason="death outcome names no active accepted quest";
     /* #175: the "operation touches an unresolved identity conflict" refusal is DELETED. It blocked

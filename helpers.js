@@ -1644,7 +1644,7 @@ function healthIndicators(ws,mem,withGrowth){
   // exactly the evidence a later fail-closed flip would want to see.
   var legacyN=0;
   for(i=0;i<ct.length;i++)if(ct[i].status==="committed"&&ct[i].evidenceGrade==="legacy")legacyN++;
-  if(legacyN)anom.push(legacyN+" death authorization"+(legacyN>1?"s":"")+" rode legacy-grade (pre-epoch) evidence — the #194 fail-open window, shrinking as characters are re-witnessed");
+  if(legacyN)anom.push(legacyN+" death authorization"+(legacyN>1?"s":"")+" rode legacy-grade (pre-epoch) evidence — receipted under the #194 fail-open window, closed at v1.760 (historical)");
   if(ws.summaryFailure&&(ws.summaryFailure.count||0)>=1)anom.push("memory filing failing ("+ws.summaryFailure.count+" strike"+(ws.summaryFailure.count>1?"s":"")+", "+(ws.summaryFailure.kind||"extraction")+": "+String(ws.summaryFailure.reason||"").slice(0,60)+")");
   if(ws.phaseMismatch)anom.push("clock/narration phase mismatch armed (t"+(ws.phaseMismatch.turn||"?")+")");
   var extra=histQ?((anom.length?"; ":"")+histQ+" historical refusal"+(histQ>1?"s":"")+" on record (healed — receipts never retire by contract)"):"";
