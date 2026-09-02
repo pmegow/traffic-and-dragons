@@ -1,0 +1,169 @@
+{
+  "name": "The Last Lantern-Seed",
+  "tone": "high",
+  "startingLocation": "Windrest Hollow",
+  "startingRegion": "The Silverspan Vale, beneath the dying star-road called the Aurelith Course",
+  "premise": "Long ago the elves raised the Aurelith Course, a bridge of living starlight strung between the kingdoms of the world, and seeded its length with lantern-trees whose blossoms kept the dark at bay. Now the lanterns are failing one by one, and where their light gutters out, the Hollow Ones — cold, patient things that were never born and do not speak — step through into the world. The party has recovered the last living lantern-seed, a single unopened blossom that can relight the Course if carried to the great trunk-spire at its heart, but every league of the road that goes dark makes the crossing harder, and something old and starving is already unmaking the road from the far end to keep the seed from ever arriving.",
+  "acts": [
+    {
+      "title": "Act One: The Seed Wakes",
+      "goal": "Learn what the lantern-seed is, why it woke now, and reach the nearest living waypoint of the star-road before the dark reaches Windrest Hollow.",
+      "turningPoint": "The waypoint spire at Larkenfall goes dark while the party is inside it, and a Hollow One walks through in front of them — proof the enemy is not merely spreading, it is hunting the seed specifically.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Gardener's Warning",
+          "objective": "Investigate why the seed bloomed in the care of the hermit gardener of Windrest Hollow, and learn the basic lore of the Aurelith Course from her.",
+          "type": "investigation"
+        },
+        {
+          "title": "Road to Larkenfall",
+          "objective": "Travel the failing lower reach of the star-road to reach the waypoint spire, navigating a stretch where the light is already thin.",
+          "type": "exploration"
+        },
+        {
+          "title": "The Thing in the Spire",
+          "objective": "Survive the first encounter with a Hollow One and escape Larkenfall as its spire dies.",
+          "type": "combat"
+        }
+      ]
+    },
+    {
+      "title": "Act Two: The Kingdoms Under One Dying Sky",
+      "goal": "Gather the three things the seed needs to bloom fully — a light to wake it, a hand to plant it, and a road cleared to carry it — while rival powers argue over who should control the last lantern.",
+      "turningPoint": "The party learns that the Hollow Ones are being deliberately guided by something wearing a familiar, trusted face — a betrayal that forces every alliance built this act to be tested at once.",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Court of Two Crowns",
+          "objective": "Win the aid, or at least the neutrality, of the rival monarchs of the Silverspan Vale, who each want the seed planted in their own domain instead of at the road's true heart.",
+          "type": "social"
+        },
+        {
+          "title": "The Deep Archive",
+          "objective": "Recover the lost elven rite needed to make the seed take root at the trunk-spire, hidden in a sunken archive that predates the Vale's current kingdoms.",
+          "type": "investigation"
+        },
+        {
+          "title": "The Starving Ground",
+          "objective": "Clear a Hollow One nesting-ground that has swallowed a whole stretch of the star-road, so the seed's eventual procession can pass.",
+          "type": "combat"
+        },
+        {
+          "title": "The Watcher's Trail",
+          "objective": "Track rumors of a figure seen near every site where the road has gone dark, before realizing the trail leads to someone the party already trusts.",
+          "type": "exploration"
+        }
+      ]
+    },
+    {
+      "title": "Act Three: The Trunk-Spire",
+      "goal": "Carry the lantern-seed to the trunk-spire at the heart of the Aurelith Course and relight the star-road before it is severed forever.",
+      "turningPoint": "The final planting of the seed and the closing of the breach the Hollow Ones have been pouring through — the road either wakes or goes dark for good.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Procession",
+          "objective": "Escort the seed across the last, most unraveled stretch of the star-road as the betrayer moves to stop it directly.",
+          "type": "combat"
+        },
+        {
+          "title": "The Planting",
+          "objective": "Perform the rite at the trunk-spire and choose how the road, and the kingdoms bound to it, will be remade.",
+          "type": "social"
+        }
+      ]
+    }
+  ],
+  "deepTime": [
+    {
+      "name": "The Rootfall",
+      "when": "beyond the oldest elven records, some four thousand years past",
+      "note": "the first elven star-singers grew the seed-trees that would one day become the Aurelith Course, coaxing light itself to take root"
+    },
+    {
+      "name": "The Raising of the Aurelith Course",
+      "when": "roughly a thousand years ago",
+      "note": "the star-road was fully grown and strung between the kingdoms, and the elven star-wardens who tended it founded the order that maintained it for centuries"
+    },
+    {
+      "name": "The Warden's Silence",
+      "when": "three hundred years ago",
+      "note": "the last star-wardens vanished or died without successors, and the kingdoms of the Vale rose to fill the governance the wardens left behind, no longer understanding what they had inherited"
+    },
+    {
+      "name": "The Dimming",
+      "when": "within the last two years, living memory",
+      "note": "lanterns along the star-road began failing one by one and the Hollow Ones started walking through, culminating in the awakening of the last living seed"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Maren Duskwillow",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "The hermit gardener of Windrest Hollow, an old woman descended from a minor line of star-wardens who kept fragments of the old lore alive without fully understanding them. She wants the seed protected above all else, having tended its dormant husk for thirty years waiting for it to wake. Her secret is that she once had a partner-warden, lost to a Hollow One decades ago, and she recognizes the betrayer's borrowed face immediately when it surfaces in Act Two but says nothing at first, frozen by old grief."
+    },
+    {
+      "name": "Queen Isolde Farrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "notes": "Ruler of the river-kingdom of Aldenmere, pragmatic and untrusting of elven relics, she wants the seed planted within her own borders to secure her crown's legacy rather than risk it on a journey to the trunk-spire. She can become a powerful ally if persuaded the road's restoration benefits everyone, or a dangerous obstacle if cornered. Her secret is that her court keeps a captured, dormant Hollow One in a sealed vault for study, which surfaces as a crisis if the party ever needs Aldenmere's help directly."
+    },
+    {
+      "name": "King Thessaly Vane",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "notes": "Ruler of the highland-kingdom of Cindermoor, a former soldier who wants the seed used as a weapon-beacon to burn out Hollow Ones rather than to restore the whole star-road, which he sees as sentimental elven nostalgia. He can be won over if shown that only full relighting stops the incursions permanently. His secret is that he has already lost a border garrison to a Hollow One breach he has hidden from his own people to avoid panic."
+    },
+    {
+      "name": "Corwin Ashgrave",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "The betrayer, a star-warden's descendant and old friend to Maren Duskwillow, who survived a Hollow One encounter decades ago by making a bargain with what he found on the other side of the dark. He now guides Hollow Ones to the road's weak points, believing the star-road was always a mistake sealing something better left to enter — that mortals fear the Hollow Ones only because they don't understand what they offer. His true face is rarely seen; he moves through the story as a trusted advisor or guide figure before the revelation in Act Two, and afterward as an open, sorrowful enemy who still believes he is right."
+    },
+    {
+      "name": "Pell",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "A wandering road-singer, one of the last people who still walks the Aurelith Course for a living, trading songs and news between the darkening waypoints. Pell wants nothing more than to keep singing the road's old names before they're forgotten, and knows scraps of true star-warden lore mixed with unreliable folk tale. Their secret is that they've already seen the trunk-spire up close and are quietly terrified of it, having witnessed something there they've never told anyone — which surfaces if the party asks them to guide the final procession in Act Three."
+    }
+  ],
+  "locations": [
+    {
+      "name": "Windrest Hollow",
+      "description": "A quiet dell at the low end of the Aurelith Course, where the star-road touches the ground in a tangle of pale roots and pooled light. Maren Duskwillow's garden grows here in defiance of the surrounding dark, ringed by dead lantern-trees that once marked the road's beginning. The air still smells faintly of starlight when the wind comes down off the road above."
+    },
+    {
+      "name": "Larkenfall Spire",
+      "description": "The nearest waypoint spire along the star-road, a slender elven tower grown rather than built, its interior lit by a single great lantern-blossom at its crown. Rope-bridges of woven light once connected it to the road proper; most have already frayed to nothing. It stands at the edge of the first stretch of true dark."
+    },
+    {
+      "name": "Aldenmere",
+      "description": "A river-kingdom of canal-cities and grey stone bridges, ruled from a palace built into a cliff overlooking the confluence of three rivers. Its people are practical and wary of elven relics, having inherited stewardship of a stretch of the star-road they only half understand. A sealed vault beneath the palace holds Queen Isolde's most dangerous secret."
+    },
+    {
+      "name": "Cindermoor",
+      "description": "A highland kingdom of terraced fortresses and beacon-towers built into volcanic stone, ruled by King Thessaly Vane from a hall warmed by captive firelight. Its people are soldiers first, and its border garrisons watch the darkening edges of the star-road with growing dread. Smoke from watch-beacons is visible for miles."
+    },
+    {
+      "name": "The Sunken Archive",
+      "description": "A drowned elven library beneath the Vale's oldest lake, reachable only through a stair that floods and drains with the tides of some old, forgotten rhythm. Its shelves are carved from the same pale material as the star-road itself, and its deepest chamber holds the last complete rite for waking a lantern-seed. The water here glows faintly, as if remembering light it no longer has."
+    },
+    {
+      "name": "The Trunk-Spire",
+      "description": "The vast central spire at the heart of the Aurelith Course, where all the star-road's branches once met and drew their light from a single ancient root. Half its crown has already gone dark, and a widening breach at its base pulses with the cold, wrong light of the Hollow Ones' side. It is the only place the last seed can be planted to relight the whole road."
+    }
+  ],
+  "rules": [
+    "The Hollow Ones never speak and cannot be reasoned with directly; any dialogue or bargain with them in play is a trick, a memory, or Corwin Ashgrave speaking through the breach.",
+    "Light is a resource, not scenery: fires, lanterns, and the seed itself can visibly gutter, brighten, or fail in response to events, and the GM should track and narrate this throughout."
+  ],
+  "format": "tnd-blueprint-v1",
+  "author": "",
+  "proseAuthor": "",
+  "narratorVoice": "",
+  "creatures": [],
+  "customClasses": [],
+  "designerVersion": "v0.40"
+}

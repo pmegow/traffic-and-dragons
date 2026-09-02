@@ -1104,6 +1104,32 @@ try {
   console.log("[blueprint-designer] contract OK — class roster + World Ages sections wired, seam present, save-free/publish-gated, gateway-aware");
 } catch (e) { console.error("BLUEPRINT DESIGNER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── HOME PAGE CONTRACT (#290, v1.765) ────────────────────────────────────────
+// home.html is a READ surface: it may write ONE key (the blueprint handoff) and nothing else;
+// the shelf is a curated catalog of ORIGINAL blueprints (licensed fixtures are release blockers);
+// the handoff name is shared through globals.js so the wizard and the page cannot drift apart.
+try {
+  var _hpFs = require("fs"), _hpPath = require("path");
+  var _hpFail = function (msg) { console.error("HOME PAGE CONTRACT: " + msg); process.exit(1); };
+  var _hp = _hpFs.readFileSync(_hpPath.join(__dirname, "..", "home.html"), "utf8");
+  if (_hp.indexOf("window.__homeTest") < 0) _hpFail("the test seam is gone — satellites with logic must stay drivable.");
+  if (/loadState\(|saveCore\(|saveAll\(/.test(_hp)) _hpFail("home.html touches the game's state writers — it is a read surface.");
+  if (!/<script src="globals\.js">/.test(_hp) || _hp.indexOf("HOME_PENDING_BP_K") < 0) _hpFail("the handoff key must come from globals.js (HOME_PENDING_BP_K), never a local literal.");
+  if (/<script src="game\.js">|<script src="ui-/.test(_hp)) _hpFail("home.html must not load game.js or any ui-*.js — it reads, it never plays.");
+  var _hpSw = _hpFs.readFileSync(_hpPath.join(__dirname, "..", "sw.js"), "utf8");
+  if (_hpSw.indexOf("home\\.html") < 0) _hpFail("sw.js network-first allowlist lacks home.html — the SW would pin it stale.");
+  var _hpCat = JSON.parse(_hpFs.readFileSync(_hpPath.join(__dirname, "..", "samples", "catalog.json"), "utf8"));
+  if (!Array.isArray(_hpCat) || !_hpCat.length) _hpFail("samples/catalog.json is empty or not a list.");
+  _hpCat.forEach(function (c) {
+    if (!c.name || !c.file) _hpFail("catalog entry lacks name/file: " + JSON.stringify(c));
+    if (/runelords|planescape|annihilation|modeltestcampaign/i.test(c.file)) _hpFail("catalog lists a licensed-IP or test fixture: " + c.file);
+    if (!_hpFs.existsSync(_hpPath.join(__dirname, "..", "samples", c.file))) _hpFail("catalog entry file missing: " + c.file);
+  });
+  var _hpUb = _hpFs.readFileSync(_hpPath.join(__dirname, "..", "ui-browsers.js"), "utf8");
+  if (_hpUb.indexOf("function consumeHomeBlueprint") < 0 || _hpUb.indexOf("_applyBlueprint(rec.bp)") < 0) _hpFail("consumeHomeBlueprint must route through _applyBlueprint (the wizard's one choke point).");
+  console.log("[#290] home page contract OK — read-only surface, shared handoff key, " + _hpCat.length + " curated original(s)");
+} catch (e) { console.error("HOME PAGE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── MENU TIER CONTRACT (#289, v1.764) ────────────────────────────────────────
 // The Dev-vs-Beta split is ONE class in the menu spec + ONE toggle. Every operator row must carry
 // the flag (a missing flag silently shows a beta tester an operator surface), the toggle must

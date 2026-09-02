@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Traffic and Dragons — Home</title>
+<!--
+  home.html — the player's HOME PAGE (TODO #290, owner ruling 2026-09-01: "account library + curated
+  shelf"). A satellite page (open directly; network-first in sw.js; NOT in the SW app shell) that
+  gives players read-only access to the bibles, the Blueprint Designer, a CURATED shelf of the
+  original blueprints shipped in the repo, and their own account blueprint library.
+
+  Contracts (HOME PAGE CONTRACT, dev/run-tests.js):
+   · never writes the game's state keys (no loadState/saveCore here) — the ONLY key it writes is
+     HOME_PENDING_BP_K (globals.js), the one-shot blueprint handoff the wizard consumes at boot;
+   · the curated shelf is samples/catalog.json — ORIGINAL blueprints only (the licensed-IP fixtures
+     in samples/ are Clear-for-Release items and never appear here); user-to-user sharing does NOT
+     exist by design (the prompt-injection ruling: Architecture ▸ "Community blueprint sharing");
+   · test seam window.__homeTest (satellite testability rule 2026-07-29).
+-->
+<style>
+:root{
+  --font:Georgia,serif;--font-mono:monospace;
+  --bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--bg3:#242730;--brd:#2c2f3a;--brd2:#3c4050;
+  --t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;--acc:#9ab0c8;--on-acc:#000;--acc-bg:#141c24;
+  --gold:#c8a84a;--dng:#c04040;--warn:#d8a04a;--grn:#3a7a5a;--r:6px;--rl:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;background:var(--bg0);color:var(--t0);font-family:var(--font);font-size:15px;min-height:100%;}
+a{color:var(--acc);}
+header{padding:28px 24px 12px;max-width:1040px;margin:0 auto;}
+header h1{margin:0;font-size:26px;letter-spacing:.14em;text-transform:uppercase;color:var(--t0);}
+header .tag{color:var(--t1);margin:6px 0 0;}
+#who{font-size:12.5px;color:var(--t2);margin-top:10px;}
+#who b{color:var(--t1);font-weight:normal;}
+main{max-width:1040px;margin:0 auto;padding:8px 24px 48px;}
+section{margin-top:28px;}
+section h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin:0 0 10px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
+.sub{color:var(--t1);font-size:13px;margin:0 0 12px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.card{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-height:120px;}
+.card h3{margin:0;font-size:16px;color:var(--t0);font-weight:normal;}
+.card .meta{font-size:12px;color:var(--t2);}
+.card p{margin:0;font-size:13px;color:var(--t1);line-height:1.45;flex:1;}
+.card .acts{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
+button.b{font-family:var(--font);font-size:12.5px;padding:6px 12px;border-radius:var(--r);border:1px solid var(--brd2);background:var(--bg2);color:var(--t0);cursor:pointer;}
+button.b.p{background:var(--acc);color:var(--on-acc);border-color:var(--acc);}
+button.b:hover{border-color:var(--acc);}
+a.link{display:inline-block;font-size:13px;color:var(--acc);text-decoration:none;}
+a.link:hover{text-decoration:underline;}
+.empty{color:var(--t2);font-size:13px;font-style:italic;}
+.err{color:var(--dng);}
+#status{position:fixed;left:0;right:0;bottom:0;padding:8px 24px;font-size:12px;color:var(--t1);background:var(--bg1);border-top:1px solid var(--brd);display:none;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Traffic and Dragons</h1>
+  <p class="tag">A sword &amp; sorcery RPG narrated by an AI game master.</p>
+  <div id="who">…</div>
+</header>
+<main>
+  <section id="play">
+    <h2>Play</h2>
+    <div class="grid">
+      <div class="card"><h3>Continue or start a campaign</h3><p>Your saved campaigns follow your account. Start fresh, or pick a blueprint below and the character wizard opens with it loaded.</p><div class="acts"><button class="b p" id="go-play">Open the game</button></div></div>
+      <div class="card"><h3>Blueprint Designer</h3><p>Author a campaign of your own — premise, acts and arcs, seed NPCs and places. Saves to your account library; the AI can draft and review it for you.</p><div class="acts"><button class="b" id="go-designer">Open the designer</button></div></div>
+      <div class="card"><h3>Reference</h3><p>Every spell, ability, class ladder, skill and item the game knows, exactly as the game master reads them.</p><div class="acts"><a class="link" href="bible_study.html">Capability, class, skill &amp; item bibles →</a></div></div>
+    </div>
+  </section>
+  <section id="shelf">
+    <h2>Curated blueprints</h2>
+    <p class="sub">Original campaigns shipped with the game. Play one as written, or open it in the designer and make it yours.</p>
+    <div class="grid" id="shelf-grid"><div class="empty">Loading…</div></div>
+  </section>
+  <section id="mine">
+    <h2>My blueprint library</h2>
+    <p class="sub" id="mine-sub">Blueprints you have published from the designer live on your account.</p>
+    <div class="grid" id="mine-grid"><div class="empty">Sign in from the game to see your library.</div></div>
+  </section>
+</main>
+<div id="status"></div>
+
+<!-- Engine data only — NO game.js and NO ui-*.js: this page reads, it never plays. The handoff
+     key name comes from globals.js so the wizard and this page can never disagree about it. -->
+<script src="globals.js"></script>
+<script src="data.js"></script>
+<script src="helpers.js"></script>
+<script src="state.js"></script>
+<script src="storage-adapter.js"></script>
+<script>
+(function(){
+  var catalog=[],library=[];
+  function $(id){return document.getElementById(id);}
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  function status(msg,err){var el=$("status");el.textContent=msg||"";el.style.display=msg?"block":"none";el.className=err?"err":"";if(!err&&msg)setTimeout(function(){if(el.textContent===msg)el.style.display="none";},4000);}
+  function toneName(id){var i;for(i=0;i<TONES.length;i++)if(TONES[i].id===id)return TONES[i].nm||TONES[i].label||id;return id||"";}
+  function signedIn(){return typeof storageAdapter!=="undefined"&&storageAdapter.isServerMode();}
+
+  // THE handoff: one key, consumed by the wizard at boot (ui-boot initState / newGame). We store the
+  // whole blueprint so the game needs no second fetch and no origin assumptions.
+  function handoff(bp){
+    try{localStorage.setItem(HOME_PENDING_BP_K,JSON.stringify({bp:bp,at:Date.now()}));}
+    catch(e){status("Could not hand the blueprint to the game (storage full?) — open the game and use Load blueprint instead.",true);return;}
+    location.href="index.html";
+  }
+  // Open in designer: the designer restores its own draft slot on boot (bpd_draft_v1 — its key,
+  // documented at blueprint-designer.html ▸ Draft persistence). We seed that slot, clean.
+  function openInDesigner(bp){
+    try{localStorage.setItem("bpd_draft_v1",JSON.stringify({bp:bp,dirty:false,at:Date.now()}));}
+    catch(e){status("Could not pass the blueprint to the designer (storage full?).",true);return;}
+    location.href="blueprint-designer.html";
+  }
+  function card(bp,meta,fromLibrary){
+    var acts=(bp.acts||[]).length,npcs=(bp.npcs||[]).length,locs=(bp.locations||[]).length;
+    var h="<div class='card'><h3>"+esc(bp.name||meta.name||"Untitled")+"</h3>";
+    h+="<div class='meta'>"+esc(toneName(bp.tone))+(acts?" · "+acts+" act"+(acts>1?"s":""):"")+(npcs?" · "+npcs+" NPCs":"")+(locs?" · "+locs+" places":"")+(meta.author?" · by "+esc(meta.author):"")+"</div>";
+    var prem=String(bp.premise||meta.blurb||"");if(prem.length>240)prem=prem.slice(0,237)+"…";
+    h+="<p>"+esc(prem)+"</p>";
+    h+="<div class='acts'><button class='b p' data-act='play'>Play</button><button class='b' data-act='design'>Open in designer</button></div></div>";
+    var el=document.createElement("div");el.innerHTML=h;el=el.firstChild;
+    el.querySelector("[data-act=play]").addEventListener("click",function(){handoff(bp);});
+    el.querySelector("[data-act=design]").addEventListener("click",function(){openInDesigner(bp);});
+    return el;
+  }
+  function renderShelf(){
+    var g=$("shelf-grid");g.innerHTML="";
+    if(!catalog.length){g.innerHTML="<div class='empty'>No curated blueprints yet.</div>";return;}
+    catalog.forEach(function(c){if(c.bp)g.appendChild(card(c.bp,c,false));else{var d=document.createElement("div");d.className="card";d.innerHTML="<h3>"+esc(c.name)+"</h3><p class='err'>"+esc(c.error||"could not load")+"</p>";g.appendChild(d);}});
+  }
+  function renderLibrary(){
+    var g=$("mine-grid");g.innerHTML="";
+    if(!signedIn()){g.innerHTML="<div class='empty'>Sign in from the game to see your library.</div>";return;}
+    if(!library.length){g.innerHTML="<div class='empty'>Your library is empty — publish a blueprint from the designer to start it.</div>";return;}
+    library.forEach(function(it){var bp=it.blueprint||{};g.appendChild(card(bp,{name:it.name},true));});
+  }
+  function loadCatalog(cb){
+    // samples/catalog.json lists ONLY original blueprints (licensed-IP fixtures never ship here).
+    fetch("samples/catalog.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(list){
+      var pending=list.length;catalog=list.map(function(x){return {name:x.name,file:x.file,author:x.author||"",blurb:x.blurb||"",bp:null,error:null};});
+      if(!pending){renderShelf();if(cb)cb();return;}
+      catalog.forEach(function(c){
+        fetch("samples/"+c.file,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+          .then(function(bp){c.bp=bp;}).catch(function(e){c.error=String(e&&e.message||e);console.error("[home] catalog entry failed: "+c.file,e);})
+          .then(function(){pending--;if(!pending){renderShelf();if(cb)cb();}});
+      });
+    }).catch(function(e){catalog=[];$("shelf-grid").innerHTML="<div class='empty err'>Curated shelf unavailable: "+esc(e&&e.message||e)+"</div>";console.error("[home] catalog load failed",e);if(cb)cb();});
+  }
+  function loadLibrary(cb){
+    if(!signedIn()){renderLibrary();if(cb)cb();return;}
+    storageAdapter.listBlueprintLibrary(function(err,list){
+      if(err){library=[];$("mine-grid").innerHTML="<div class='empty err'>Library unavailable: "+esc(err)+(String(err).indexOf("401")>=0?" — session expired; sign in again from the game.":"")+"</div>";console.error("[home] library load failed",err);if(cb)cb();return;}
+      library=list||[];renderLibrary();if(cb)cb();
+    });
+  }
+  function renderWho(){
+    var w=$("who");
+    if(!signedIn()){w.innerHTML="Not signed in — <a href='index.html'>sign in from the game</a> to see your library and play on your account.";return;}
+    w.innerHTML="Signed in.";
+    storageAdapter.fetchAccount(function(err,a){if(err||!a)return;w.innerHTML="Signed in as <b>"+esc(a.username||"?")+"</b>"+(a.entitled?" · "+esc(a.tierLabel||a.tier)+" ("+esc(a.turnsUsed)+" of "+esc(a.turnsCap)+" turns this month)":" · no active subscription");});
+  }
+  $("go-play").addEventListener("click",function(){location.href="index.html";});
+  $("go-designer").addEventListener("click",function(){location.href="blueprint-designer.html";});
+  renderWho();loadCatalog();loadLibrary();
+
+  // Test seam — drives the page headlessly / in the preview pane (satellite testability rule).
+  window.__homeTest={
+    setCatalog:function(list){catalog=list;renderShelf();},
+    setLibrary:function(list){library=list;renderLibrary();},
+    catalog:function(){return catalog;},
+    handoffKey:HOME_PENDING_BP_K,
+    handoff:handoff,openInDesigner:openInDesigner,
+    reload:function(cb){loadCatalog(function(){loadLibrary(cb);});}
+  };
+})();
+</script>
+</body>
+</html>

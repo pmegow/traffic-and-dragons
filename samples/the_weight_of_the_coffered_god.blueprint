@@ -1,0 +1,166 @@
+{
+  "name": "The Weight of the Coffered God",
+  "tone": "swords",
+  "startingLocation": "Kalgra's Rest",
+  "startingRegion": "The Ash Flats, a sun-cracked salt waste ringed by dead river canyons",
+  "premise": "A mercenary company called the Red Ledger is hired to escort a sealed iron-and-salt reliquary across the Ash Flats to the vault-city of Two Thrones, but the job is a lie built on three truths: the warlord Hask Vane wants the reliquary to legitimize his conquest, the Cinder Chorus cult wants it opened to free what sleeps inside, and the thing inside — a bound entity called the Coffered God — wants out badly enough to bargain with anyone carrying the key. The company must decide whether they are guards, thieves, or unwitting midwives to a god's rebirth, all while crossing a hundred miles of salt where water is currency and shade is a weapon.",
+  "acts": [
+    {
+      "title": "Act One: The Contract",
+      "goal": "Establish the escort job, the company's dynamics, and the first proof that the reliquary is not what it seems",
+      "turningPoint": "The reliquary cracks during an ambush, and something inside speaks a name only the company's employer should know",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Hiring at Kalgra's Rest",
+          "objective": "Meet the employer, negotiate terms, and learn the official story of the job",
+          "type": "social"
+        },
+        {
+          "title": "First Miles",
+          "objective": "Escort the reliquary out of the salt town and survive the Flats' first test — heat, thirst, and terrain",
+          "type": "exploration"
+        },
+        {
+          "title": "Blood on the Salt",
+          "objective": "Repel an ambush by Hask Vane's outriders and discover the reliquary is being hunted, not just delivered",
+          "type": "combat"
+        }
+      ]
+    },
+    {
+      "title": "Act Two: Three Roads Across the Flats",
+      "goal": "Navigate the rival factions converging on the reliquary while the company fractures over what to do with it",
+      "turningPoint": "The Cinder Chorus performs a rite that partially wakes the Coffered God, and it begins speaking directly to members of the company in dreams and cracks of the box",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Warlord's Shadow",
+          "objective": "Deal with Hask Vane's forces, either through combat, sabotage, or a dangerous parley",
+          "type": "combat"
+        },
+        {
+          "title": "The Cinder Chorus",
+          "objective": "Investigate the cult's presence among the company's own hired hands and the salt-town refugees trailing the caravan",
+          "type": "investigation"
+        },
+        {
+          "title": "The Dry Oracle",
+          "objective": "Seek out a reclusive salt-witch who may know how the reliquary was sealed and what breaking it will cost",
+          "type": "exploration"
+        },
+        {
+          "title": "Cracks in the Ledger",
+          "objective": "Manage the company's internal loyalties as members are tempted, bribed, or seduced by promises from the god in the box",
+          "type": "social"
+        }
+      ]
+    },
+    {
+      "title": "Act Three: The Vault of Two Thrones",
+      "goal": "Reach the vault-city, decide the reliquary's fate, and survive the collision of all three hunters at the gates",
+      "turningPoint": "The final choice: reseal the Coffered God, deliver it to whichever faction the company has thrown in with, or break it open themselves",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Gates of Two Thrones",
+          "objective": "Fight or negotiate past the converged forces of Hask Vane and the Cinder Chorus at the vault-city's threshold",
+          "type": "combat"
+        },
+        {
+          "title": "What the God Offers",
+          "objective": "Confront the Coffered God directly and settle what becomes of it and the company",
+          "type": "social"
+        }
+      ]
+    }
+  ],
+  "deepTime": [
+    {
+      "name": "The Salt Kingdoms",
+      "when": "over a thousand years ago",
+      "note": "a league of river-cities that drank an inland sea dry through irrigation and vanished when the water did"
+    },
+    {
+      "name": "The Binding Wars",
+      "when": "roughly four centuries ago",
+      "note": "a generation of sorcerer-kings fought entities they'd summoned and lost, ending with the great sealing rites that built things like the reliquary"
+    },
+    {
+      "name": "The Fall of the Ember Court",
+      "when": "about sixty years ago",
+      "note": "the last unified power to hold the Ash Flats collapsed into the warring salt-baronies that exist now"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Consul Ysbet Marrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "notes": "The employer who hired the Red Ledger, a vault-city magistrate of Two Thrones who claims the reliquary is an ancestral relic due for reburial. Her secret is that she stole it from a rival consul's tomb and needs it delivered quietly before the theft is discovered. She surfaces as untrustworthy the moment the company asks pointed questions about what's actually inside."
+    },
+    {
+      "name": "Hask Vane",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "A warlord who unified three salt-baronies through brutal, efficient conquest and wants the reliquary because he believes it holds the bones of a Salt Kingdom king whose blessing would make his rule unquestionable. He doesn't know what's really inside and would be horrified to learn it; this ignorance can be turned into leverage. He is ruthless but not stupid, and respects competence enough to occasionally offer the company a better deal than their current employer."
+    },
+    {
+      "name": "Sister Ash-Tongue",
+      "role": "villain",
+      "pronouns": "they/them",
+      "notes": "The voice of the Cinder Chorus, a cult that believes the Coffered God's freedom will burn away the dead weight of the old kingdoms and let something truer grow. They are a former vault-city archivist who read the sealing texts and became a convert rather than a scholar. Their secret is that they've already bound themselves partially to the God through a small ritual scar, and it is slowly consuming their will — this surfaces as erratic, contradictory behavior as the campaign progresses."
+    },
+    {
+      "name": "Corr Dessa",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "The Red Ledger's second-in-command, a veteran blade who has served three companies and buried two of them. He wants nothing more than to finish this job clean and retire to buy land far from salt and sorcery. His secret is that he's dying of a wasting sickness he's hidden from the company, which makes him increasingly willing to take suicidal risks as the campaign goes on."
+    },
+    {
+      "name": "The Coffered God",
+      "role": "wildcard",
+      "pronouns": "it/its",
+      "notes": "The entity sealed in the reliquary, bound during the Binding Wars for reasons its own captors barely understood. It speaks in fragments through cracks, dreams, and borrowed mouths, offering different things to different people — power, truth, freedom, revenge — and none of its offers are outright lies, which is what makes it dangerous. Its true nature (whether it is a god, a demon, a mad sorcerer-king's bound spirit, or something else) is never fully confirmed, and the GM should let players' theories shape how it manifests."
+    },
+    {
+      "name": "Ren Sallow",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "A salt-witch hired as the company's guide, whose magic lets her read weather and water in the Flats at a cost paid in her own memories. She knows fragments of the old sealing rites from a teacher she can no longer fully remember. She is quietly terrified of the reliquary and will try to steer the company away from opening it, but her fading memory makes her an unreliable narrator of her own warnings."
+    }
+  ],
+  "locations": [
+    {
+      "name": "Kalgra's Rest",
+      "description": "A salt-crusted waystation town built around a brackish well, where caravans provision before the long crossing. Wooden buildings lean against each other for shade, their walls scored white with mineral bloom, and the air tastes of brine and tar. It is the last place with a proper market before the Ash Flats swallow the road."
+    },
+    {
+      "name": "The Ash Flats",
+      "description": "A vast dead seabed of cracked white salt stretching to a shimmering horizon, broken by dry river canyons and the bleached ribs of things too large to have died recently. Heat rises in visible sheets, and sound carries strangely far in the flat silence. Travelers say the Flats remember every drop of water ever taken from them and charge interest."
+    },
+    {
+      "name": "The Sunken Canyons",
+      "description": "Deep, dry river gorges cutting through the Flats, their walls striped with old waterlines like tree rings. Ancient stone stairs and half-buried causeways from the drowned Salt Kingdoms still cling to the canyon walls, and pockets of shade and hidden cisterns make them both a refuge and an ambush ground."
+    },
+    {
+      "name": "Ren Sallow's Cistern-House",
+      "description": "A half-collapsed cistern temple from the Salt Kingdoms era, repurposed by the salt-witch Ren Sallow as a home and workshop. Carved reliefs of drowned figures line the walls above the dry basin where she sleeps, and the air inside is cooler and stranger than it has any right to be, thick with the smell of old water that hasn't existed in a thousand years."
+    },
+    {
+      "name": "Two Thrones",
+      "description": "A vault-city built into and atop the ruins of a Salt Kingdom capital, named for the twin fortified mesas that anchor it on either side of a dry riverbed. Its lower levels are catacombs and reliquary-vaults carved by older hands, and its upper city is a tangle of consular houses, salt-markets, and the barony's remaining soldiery, all uneasy under Hask Vane's approaching shadow."
+    }
+  ],
+  "rules": [
+    "Sorcery in this world always extracts a cost paid in the caster's body, memory, or years — there is no free casting, and the GM should make that cost concrete and immediate whenever magic is used.",
+    "The Coffered God may never lie outright, but every truth it offers is incomplete or double-edged; the GM should always give its bargains a real, honored upside alongside the hidden cost."
+  ],
+  "format": "tnd-blueprint-v1",
+  "author": "",
+  "proseAuthor": "",
+  "narratorVoice": "",
+  "creatures": [],
+  "customClasses": [],
+  "designerVersion": "v0.40"
+}

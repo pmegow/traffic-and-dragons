@@ -1,0 +1,165 @@
+{
+  "name": "The Riverlight Masquerade (one-evening taster)",
+  "tone": "politic",
+  "startingLocation": "The Lantern Terrace",
+  "startingRegion": "The Silted Reaches, a confederation of river-lords who control trade along the Marrowfen River",
+  "premise": "River-Lord Ossvane has called a masquerade to celebrate a treaty binding the five river-holds against upstream tariffs that have starved them for a decade. But a forged copy of that treaty has entered the manor tonight, hidden among five masked guests, meant to be swapped for the real one at the midnight toast so that whoever holds it can claim a false signature and seize a rival's water rights. The party has one evening to move through gossip, dances, and locked studies to learn who carries the forgery before the toast makes the lie permanent.",
+  "acts": [
+    {
+      "title": "Act One: The Masks Arrive",
+      "goal": "Establish the manor, the guests, and the stakes of the treaty before the party realizes a forgery is already inside the walls.",
+      "turningPoint": "A guest is found dead in the East Wing library, clutching a torn scrap of parchment bearing a false seal — proof the forgery is real and already in motion.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Arrival and Introductions",
+          "objective": "Move through the receiving line and first dances to meet the five masked guests and River-Lord Ossvane, gathering first impressions and rumors.",
+          "type": "social"
+        },
+        {
+          "title": "The Scrap of Parchment",
+          "objective": "Investigate the body in the East Wing library and the torn seal fragment to confirm a forgery exists somewhere in the manor.",
+          "type": "investigation"
+        }
+      ]
+    },
+    {
+      "title": "Act Two: Behind the Masks",
+      "goal": "Narrow the five suspects down by chasing leads through the manor's rooms, alliances, and secrets before midnight arrives.",
+      "turningPoint": "The party corners the forger's contact, who reveals the forgery isn't meant to replace the treaty at all — it's meant to be found, framing an innocent guest so the true culprit walks free during the chaos.",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Gaming Room Wager",
+          "objective": "Draw out two suspicious guests over cards and drink, using social pressure and observation to catch a slip in their story.",
+          "type": "social"
+        },
+        {
+          "title": "The Steward's Ledgers",
+          "objective": "Search the counting-house off the courtyard for financial records proving which guest recently paid a forger's price.",
+          "type": "investigation"
+        },
+        {
+          "title": "The Locked Conservatory",
+          "objective": "Slip past the night guard patrolling the glass conservatory to search a suspect's coat left behind during the dancing.",
+          "type": "exploration"
+        },
+        {
+          "title": "The Cornered Contact",
+          "objective": "Track down and confront the nervous go-between passing messages between guests before they vanish into the gardens.",
+          "type": "combat"
+        }
+      ]
+    },
+    {
+      "title": "Act Three: The Midnight Toast",
+      "goal": "Reveal the true culprit before Ossvane raises the toast and the false treaty is publicly sealed as truth.",
+      "turningPoint": "The party exposes the real forger in front of all five river-holds, forcing a choice: expose the treaty as compromised before witnesses, or let the toast proceed and quietly deal with the consequences after.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Grand Hall Reveal",
+          "objective": "Confront the true culprit publicly or privately before the toast, using gathered evidence to force a confession or surrender.",
+          "type": "social"
+        },
+        {
+          "title": "The Toast",
+          "objective": "Resolve the fate of the treaty and the manor as the clock strikes midnight, determined by what was uncovered and how it's used.",
+          "type": "investigation"
+        }
+      ]
+    }
+  ],
+  "deepTime": [
+    {
+      "name": "The Marrowfen Dominion",
+      "when": "over six centuries ago",
+      "note": "a single river-spanning kingdom that dammed and tamed the Marrowfen before collapsing into warring holds"
+    },
+    {
+      "name": "The Century of Nine Weirs",
+      "when": "roughly two hundred years ago",
+      "note": "the era when nine river-lords fought over dam rights until only five holds survived, each claiming a stretch of the Marrowfen"
+    },
+    {
+      "name": "The Tariff Years",
+      "when": "the last decade",
+      "note": "living memory of upstream tolls imposed by outside merchant-crowns, which the treaty being signed tonight was drafted to end"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "River-Lord Ossvane",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "notes": "Host of the masquerade and the man whose signature the real treaty bears. He wants the toast to succeed publicly no matter what, because his hold's survival depends on the tariff relief it brings. His secret is that he already suspects a forgery exists but is choosing to stay willfully blind rather than delay the ceremony, and this surfaces if the party brings him direct evidence before midnight."
+    },
+    {
+      "name": "Lady Threnna Voss",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "A sharp-eyed river-hold delegate who arrived suspicious of the whole affair and quietly aids whichever guest asks the right questions. She wants the treaty to be genuine because her hold has the least power and needs the alliance most. Her secret is that she paid a scribe months ago to draft a private copy of the treaty for her own protection, which looks damning but is unrelated to the real forgery — this surfaces if she's accused too early."
+    },
+    {
+      "name": "Master Devrin Sallowmere",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "A merchant-financier attending as a guest of River-Lord Ossvane, outwardly charming and generous with wine. He wants a rival hold discredited so his own trade routes gain a monopoly upstream. His secret, surfacing only when the go-between is cornered, is that he commissioned the forgery and planted evidence to frame an innocent guest, intending to be the one who 'discovers' the forgery and looks heroic."
+    },
+    {
+      "name": "Guest-Lord Petrell Sae",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "The guest framed by planted evidence, a nervous minor hold-lord already deep in debt. They want simply to survive the evening without their debts becoming public knowledge. Their secret, surfacing when the counting-house ledgers are found, is that their debt is owed to Devrin Sallowmere himself, which is why they were chosen as the perfect scapegoat."
+    },
+    {
+      "name": "The Masked Forger",
+      "role": "wildcard",
+      "pronouns": "she/her",
+      "notes": "A guest attending under a false identity, the actual scribe who produced the forged treaty for payment and now wants out of the whole scheme before she's caught. She wants coin and a clean escape more than she wants either side to win. Her secret, surfacing if the party corners her directly rather than following the ledger trail, is that she kept the real treaty's original wax seal, which can prove the forgery instantly if recovered."
+    },
+    {
+      "name": "Steward Halven Brix",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "Ossvane's long-serving steward who manages the counting-house and knows every guest's finances. He wants the night to pass without scandal touching his master's name. His secret is that he already noticed the ledger discrepancy days ago but stayed silent out of loyalty, and he surfaces as an ally the moment the party asks the right question about recent payments."
+    }
+  ],
+  "locations": [
+    {
+      "name": "The Lantern Terrace",
+      "description": "A wide stone terrace strung with paper lanterns overlooking the black water of the Marrowfen, where the receiving line greets arriving guests. Music drifts out from the Grand Hall behind glass doors, and the river below carries the smell of reeds and woodsmoke. This is where masks are first exchanged and names first whispered."
+    },
+    {
+      "name": "The Grand Hall",
+      "description": "The manor's central ballroom, floored in pale river-stone and ringed with a gallery where musicians play. Long tables groan under food from all five holds, a display of unity as much as hospitality. At midnight, Ossvane will stand on the raised dais here to make the toast that seals the treaty."
+    },
+    {
+      "name": "The East Wing Library",
+      "description": "A narrow room lined with ledgers and river-charts, usually locked but left open tonight for guests seeking quiet. Cold air comes through a cracked window overlooking the servants' path below. It smells of old paper and, tonight, of something worse."
+    },
+    {
+      "name": "The Counting-House",
+      "description": "A low stone building across the courtyard where Steward Brix keeps the manor's ledgers and strongboxes, its door bearing River-Lord Ossvane's seal. Candlelight through its single window suggests someone works late even during the festivities. Rows of locked cabinets hold years of trade records."
+    },
+    {
+      "name": "The Glass Conservatory",
+      "description": "A humid room of ferns and citrus trees under a vaulted glass ceiling, connected to the Grand Hall by a curtained archway. Guests slip in here to escape the noise, leaving coats and masks draped over wicker chairs. A single lantern-boy patrols it slowly, more asleep than watchful."
+    },
+    {
+      "name": "The Water-Gate Gardens",
+      "description": "Terraced gardens descending toward the manor's private dock, where reeds grow thick around a stone water-gate controlling the millrace. Shadows pool between hedge walls even with torches lit, making it the favored spot for messages passed hand to hand. The river's current is loud enough here to cover a quiet conversation."
+    }
+  ],
+  "rules": [
+    "This is a single self-contained evening: all major revelations and consequences must resolve before or at the midnight toast, with no plot threads requiring a future session.",
+    "No guest may be proven guilty by accusation alone — every reveal must trace back to a specific clue the party discovered in one of the five arcs."
+  ],
+  "format": "tnd-blueprint-v1",
+  "author": "",
+  "proseAuthor": "",
+  "narratorVoice": "",
+  "creatures": [],
+  "customClasses": [],
+  "designerVersion": "v0.40"
+}

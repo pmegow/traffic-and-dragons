@@ -1,0 +1,170 @@
+{
+  "name": "The Almanac of Owed Names",
+  "tone": "horror",
+  "startingLocation": "The Tallow Registry",
+  "startingRegion": "The Bellmere Coast, a fog-locked stretch of drowned fishing villages",
+  "premise": "In the harbor town of Bellmere Hollow, the dead are recorded twice a year in a ledger called the Almanac, and every autumn the town holds the Setting, a formal dinner where empty chairs are laid for those the census says are still 'owed a return.' The party arrives as deputized assistants to the traveling census-taker, tasked with the mundane cruelty of counting the living and the dead alike, only to discover that the Almanac is not a record but a contract, and something in the fog has been quietly changing the names on it. As the party investigates who is owed and to whom, they must decide whether to honor a debt that predates the town itself or break a bargain that has kept something worse than death outside the harbor.",
+  "acts": [
+    {
+      "title": "Act I: The Counting",
+      "goal": "Complete the autumn census and learn that Bellmere Hollow's dead are not resting where they were buried",
+      "turningPoint": "The party discovers a fresh entry in the Almanac written in the hand of someone who has been dead for eleven years — and that night, an empty chair at the Setting is occupied",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Taking the Count",
+          "objective": "Travel house to house recording the living, uncovering the town's rehearsed unease about the coming Setting",
+          "type": "social"
+        },
+        {
+          "title": "The Ledger's Weight",
+          "objective": "Investigate the Tallow Registry's archives to understand how the Almanac has been kept for generations",
+          "type": "investigation"
+        },
+        {
+          "title": "A Chair Too Many",
+          "objective": "Attend or witness preparations for the Setting and identify which household is quietly dreading it",
+          "type": "investigation"
+        }
+      ]
+    },
+    {
+      "title": "Act II: What Is Owed",
+      "goal": "Uncover the origin of the Setting bargain, identify who or what is altering the Almanac, and decide which factions in Bellmere Hollow to trust",
+      "turningPoint": "The party learns the bargain was never with the dead at all, but with something that has been letting the town believe its dead walk so it can keep walking among them unnoticed",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Widow's Confession",
+          "objective": "Earn the trust of a woman who has hidden the truth of her husband's 'return' for a decade",
+          "type": "social"
+        },
+        {
+          "title": "The Drowned Registry",
+          "objective": "Explore the flooded lower archive beneath the Registry where older, contradictory Almanacs are stored",
+          "type": "exploration"
+        },
+        {
+          "title": "The Hollow Watch",
+          "objective": "Confront or negotiate with the fishermen's guild that has been quietly disposing of bodies that don't stay buried",
+          "type": "combat"
+        },
+        {
+          "title": "Who Keeps the Fog",
+          "objective": "Trace the fog's unnatural persistence to a source and learn it has a will and a hunger",
+          "type": "investigation"
+        }
+      ]
+    },
+    {
+      "title": "Act III: The Last Setting",
+      "goal": "Stop or renegotiate the bargain before the coming Setting dinner allows the impostor guest to claim its full due",
+      "turningPoint": "The climactic Setting dinner, where the party must expose, destroy, or strike a new bargain with the thing wearing the town's grief as a place setting",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Setting the Table",
+          "objective": "Prepare the town, gather allies, and decide what truth (if any) to tell the living guests",
+          "type": "social"
+        },
+        {
+          "title": "The Uninvited Guest",
+          "objective": "Confront the entity that has been impersonating the returned dead at the head of the table",
+          "type": "combat"
+        }
+      ]
+    }
+  ],
+  "deepTime": [
+    {
+      "name": "The Tideward Compact",
+      "when": "over six hundred years ago",
+      "note": "a coastal alliance of fishing clans who bargained with something in the deep fog to keep the harbor from flooding, sealing the first Almanac as its written proof"
+    },
+    {
+      "name": "The Hollowing",
+      "when": "roughly two hundred years ago",
+      "note": "a plague year when half the town drowned in a single storm tide, after which the survivors began the tradition of the autumn Setting to formally 'invite back' the drowned to the table"
+    },
+    {
+      "name": "The Quiet Decade",
+      "when": "ending eleven years ago",
+      "note": "a period when the Almanac's entries stopped matching burial records, though no one in living memory admitted noticing until now"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Corentin Vasse",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "The census-taker who recruited the party, a meticulous, quietly frightened man who has kept this route for fifteen years without ever attending a Setting himself. He wants the count finished cleanly and refuses to explain why he always leaves town before the dinner. His secret: he lost his own daughter to a 'return' that wasn't her, and he has been falsifying entries for years to keep her name off the Almanac. This surfaces if the party finds his private ledger in Act II."
+    },
+    {
+      "name": "Mireille Ancoux",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "A widow who has lived for a decade with something that looks and speaks like her drowned husband. She wants someone to tell her, plainly, whether she's mad or complicit. Her secret is that she has been feeding the impostor small kindnesses — stories, meals, secrets about the town — believing it keeps her husband's 'better half' alive somewhere inside it. This surfaces during the Widow's Confession arc."
+    },
+    {
+      "name": "Alderman Perce Nadault",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "The town's presiding official, warm and paternal in public, who oversees the Setting each year with practiced solemnity. He wants the bargain maintained at any cost because his own long life has been quietly extended by it. His secret: he is over ninety years old and has 'renewed' himself through the Compact three times, each renewal requiring a fresh name added to the debt. This surfaces in Act III when the party checks his birth record against the oldest Almanac."
+    },
+    {
+      "name": "Hesper Coll",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "Keeper of the drowned lower archive, an eccentric records-clerk who lives beneath the Registry and speaks to the older Almanacs like old friends. They want to be believed more than they want to be safe, having tried and failed for years to warn the Aldermen. Their secret: they altered one page themselves once, out of pity, and have never forgiven themselves; this surfaces if the party gains their trust in the Drowned Registry arc."
+    },
+    {
+      "name": "The Guest",
+      "role": "villain",
+      "pronouns": "it/it, but answers to whatever name is offered",
+      "notes": "The true monster: an entity bound to Bellmere Hollow by the Tideward Compact, which does not raise the dead so much as borrow their shape from grief freely offered to it. It wants names, offered willingly, spoken aloud at a set table, because a name given at the Setting is a name it may wear. Its secret, revealed only at the climax, is that it does not remember being anything else, and may in fact believe itself to be the town's dead, layered a hundred deep."
+    },
+    {
+      "name": "Wick Talmadge",
+      "role": "wildcard",
+      "pronouns": "he/him",
+      "notes": "A boy of about twelve who was 'set an extra place' at last year's dinner and has been strange ever since — quieter, colder-handed, prone to reciting names of the long-dead he never met. He wants to be normal again, or doesn't know he isn't anymore. Whether he is an early, incomplete Guest, a warning sign, or something the party can still save is left open for the table to discover."
+    }
+  ],
+  "locations": [
+    {
+      "name": "The Tallow Registry",
+      "description": "A narrow stone building near the harbor where Bellmere Hollow's births, deaths, and Almanac entries have been recorded for centuries. Its upper floor smells of lamp oil and old paper; its lower floor, sealed for decades, floods at high tide and is rumored to hold older ledgers no one currently living has read. The party is given rooms here as visiting census assistants."
+    },
+    {
+      "name": "Bellmere Hollow",
+      "description": "A fishing town wedged between black cliffs and a harbor that never fully clears of fog, its houses built close and shuttered tight against sea-damp and unspoken things. Lanterns are kept lit year-round on windowsills facing the water, a custom no one can explain except to say it is 'for whoever's coming back.' Streets are quiet in a way that feels rehearsed rather than peaceful."
+    },
+    {
+      "name": "The Setting Hall",
+      "description": "A long timber hall at the town's center, used only once a year for the autumn Setting dinner, its walls lined with framed names of the dead going back generations. The table is always laid with more settings than there are living guests, and the extra chairs are never counted aloud by anyone who has to sit near them."
+    },
+    {
+      "name": "The Drowned Registry",
+      "description": "The flooded sub-level beneath the Tallow Registry, reachable by a service stair the current Alderman insists is structurally unsound. Waterlogged shelves hold older Almanacs whose entries contradict the current one in small, unsettling ways — names added, names moved, names that repeat across centuries under different faces."
+    },
+    {
+      "name": "The Ancoux House",
+      "description": "A narrow harborside home kept unnaturally tidy, where a place is still set for a man who drowned ten years ago and yet sits at supper most evenings. The windows are always fogged from the inside, regardless of weather, and the front room smells faintly of low tide even at high noon."
+    },
+    {
+      "name": "The Fogline",
+      "description": "The invisible boundary a half-mile out from Bellmere Hollow's harbor where the fog never lifts, thins, or blows away regardless of wind or season. Fishermen who cross it report losing time, hearing their own names called from the water, or, rarely, not returning as quite themselves."
+    }
+  ],
+  "rules": [
+    "The dead in Bellmere Hollow do not rise from graves; they arrive as guests, wearing memory and grief as a shape, and can only enter a home or hall if a name is spoken aloud in invitation.",
+    "The fog beyond the Fogline cannot be dispelled by any means the party discovers — it can only be avoided, bargained with, or, at great cost, fed."
+  ],
+  "format": "tnd-blueprint-v1",
+  "author": "",
+  "proseAuthor": "",
+  "narratorVoice": "",
+  "creatures": [],
+  "customClasses": [],
+  "designerVersion": "v0.40"
+}

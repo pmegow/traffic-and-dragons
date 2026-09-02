@@ -13,6 +13,21 @@ function _applyBlueprint(bp){
   showToast("Blueprint loaded: "+bp.name);
   goStep(2);
 }
+/* #290: consume the home page's handoff (HOME_PENDING_BP_K) — called when the wizard is about to
+   show (initState with no save; newGame after the reset). Stale (>1h) or malformed payloads are
+   dropped LOUDLY; a valid one goes through _applyBlueprint like every other path. One-shot. */
+function consumeHomeBlueprint(){
+  var raw=null;try{raw=localStorage.getItem(HOME_PENDING_BP_K);}catch(e){}
+  if(!raw)return false;
+  try{localStorage.removeItem(HOME_PENDING_BP_K);}catch(e){}
+  var rec=null;try{rec=JSON.parse(raw);}catch(e){}
+  if(!rec||!rec.bp||typeof rec.bp!=="object"){console.warn("[home] pending blueprint payload unreadable — dropped");showToast("The blueprint from the home page could not be read.");return false;}
+  if(rec.at&&Date.now()-rec.at>3600*1000){console.warn("[home] pending blueprint is stale (>1h) — dropped");return false;}
+  var err=validateBlueprint(rec.bp);
+  if(err){console.warn("[home] pending blueprint refused: "+err);showToast("Blueprint refused: "+err);return false;}
+  _applyBlueprint(rec.bp);
+  return true;
+}
 function clearBlueprint(){
   pendingBlueprint=null;
   var banner=document.getElementById("blueprint-banner");if(banner)banner.style.display="none";

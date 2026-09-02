@@ -3024,5 +3024,6 @@ function newGame(){
     pendingCompanions=[];
     document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
     showChar();
+    if(typeof consumeHomeBlueprint==="function")consumeHomeBlueprint();/* #290 */
   });
 }

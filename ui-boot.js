@@ -46,6 +46,7 @@ function buildFileMenus(){
     }
     h+=btn(p+"campaigns","&#128193; Campaigns&hellip;",0,{color:"var(--acc)",extra:"font-weight:bold;"});
     h+=btn(p+"account","&#128100; Account&hellip;",0);/* §3 gateway: subscription status, turn allowance, GM routing, sign out */
+    h+=btn(p+"home","&#127968; Home",0);/* #290: bibles, designer, curated shelf, the account library */
     h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
     h+=sep();
     var sl=(g?btn(p+"export","Save Game (local)",0):btn(null,"Save Game (local)",0,{dim:true}))
@@ -169,7 +170,7 @@ function wireButtons(){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)
-    [["clearcache",clearCacheAndReload],["clearcache-top",clearCacheAndReload]].forEach(function(it){
+    [["clearcache",clearCacheAndReload],["clearcache-top",clearCacheAndReload],["home",function(){location.href="home.html";}]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",it[1]);
     });
     // Change handlers
@@ -414,6 +415,7 @@ function initState(saved){
     }catch(e){store.del("tnd_carmode_v1");}
   }else{
     showChar();
+    if(typeof consumeHomeBlueprint==="function")consumeHomeBlueprint();/* #290: a blueprint picked on the home page */
   }
 }
 function init(){initSettings();storageAdapter.load(initState);}
