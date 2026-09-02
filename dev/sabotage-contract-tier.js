@@ -59,15 +59,11 @@
 //     #14 PENDING ACTION (4) · #113 STT UPGRADES (6) · #77 CONFIRM GATE (3) ·
 //     #76 TABLE TALK ISOLATION (13 — every previously unproven _ttReq clause)
 //
-//   ⚠ FINDING — INERT CONTRACT, NOT REPAIRED HERE (1)
-//     REFUSAL COPY CONTRACT (#213, run-tests.js:103-139) reports through `process.exitCode = 1`
-//     (its four sites are the only ones in the file), and run-tests.js:1852 ends with an
-//     unconditional `process.exit(0)` that DISCARDS process.exitCode. Measured: rename
-//     W2_REFUSAL_REASONS in identity.js → the contract prints its failure and `node
-//     dev/run-tests.js` exits 0. So a drift-surface guard over the shipped-refusal vocabulary
-//     cannot fail CI or the pre-commit hook. Its two clauses sit skip-flagged below (the
-//     applicability scan still keeps their find targets fresh); the one-character repair is
-//     Fable's call, not this lane's — see todo_checkWithFable.md ▸ "#275 retained proofs".
+//   REFUSAL COPY CONTRACT (#213) — LIVE (2)
+//     Recorded at authoring as INERT: the contract reported through `process.exitCode = 1`
+//     and run-tests.js ended with an unconditional `process.exit(0)` that discarded it. #264
+//     (v1.733) repaired the tail to `process.exit(process.exitCode||0)`, the two clauses were
+//     un-skipped at the Fable merge, and #275 closed on 2026-09-01 with that residue verified.
 //
 //   DELIBERATELY NOT PROVEN HERE (recorded, not skipped)
 //     TRANSCRIPT SEAM clause ①, the "scan regex catches its own violation fixture" self-check:
@@ -286,20 +282,12 @@ rc |= sabotage.prove({
   ]
 });
 
-/* ═══ identity.js — REFUSAL COPY CONTRACT (#213, run-tests.js:103) ══════════════════════════
-   ⚠ SKIPPED, AND THE REASON IS THE FINDING (#275, 2026-08-28). Both clauses below MUTATE BYTES
-   and both make the contract PRINT its failure — and `node dev/run-tests.js` still exits 0.
-   run-tests.js:103-139 is the ONLY contract in the file that reports with `process.exitCode = 1`
-   (four sites) instead of `process.exit(1)`, and run-tests.js:1852 ends with an unconditional
-   `process.exit(0)`, which discards process.exitCode. So the #213 contract is non-blocking: CI
-   and the pre-commit hook both go green while the shipped-refusal-vocabulary ↔ player-copy
-   registry guard shouts into a log nobody fails on. Measured, not inferred (rename
-   W2_REFUSAL_REASONS → the message prints, status 0).
-   This is a drift-surface guard, so the one-character fix is NOT this lane's to make: per the
-   #275 brief a vacuous/inert contract is recorded for Fable, never repaired in place. The
-   clauses stay here, skip-flagged, because dev/check-sabotage-applicability.js still collects
-   and freshness-checks their find targets — the day `process.exitCode` becomes `process.exit(1)`
-   the proof is one `skip` line away. */
+/* ═══ identity.js — REFUSAL COPY CONTRACT (#213) ═══════════════════════════════════════════════════════════════
+   History (#275, 2026-08-28): both clauses shipped skip-flagged because the contract was INERT —
+   it reported via `process.exitCode = 1` and run-tests.js discarded that with a hard `process.exit(0)`
+   (measured: rename W2_REFUSAL_REASONS → the message printed, status 0). A drift-surface guard
+   is never repaired in a proof lane, so the finding went to Fable. #264 (v1.733) fixed the tail to
+   `process.exit(process.exitCode||0)` and the clauses were un-skipped; both are live proofs now. */
 rc |= sabotage.prove({
   file: "identity.js",
   /* un-skipped at the Fable merge: #264 (v1.733) repaired the gate — run-tests' tail is now
