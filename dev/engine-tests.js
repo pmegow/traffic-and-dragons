@@ -15665,8 +15665,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var n=buildUndefinedItemNudge();
     if(!n||n.indexOf("bedroll")<0)return "a bedroll no longer asks — the mundane skip-list is back: "+JSON.stringify(n);
     __undefWorld();
-    applyMuts("[ITEM_GAINED:Torch — burns for an hour, one per night]");
-    return buildUndefinedItemNudge()===""?true:"an item carrying its own inline description was asked about anyway";
+    applyMuts("[ITEM_GAINED:Runed knucklebone — hums faintly near ley lines]");
+    if(buildUndefinedItemNudge()!=="")return "an item carrying its own inline description was asked about anyway";
+    __undefWorld();
+    applyMuts("[ITEM_GAINED:Runed knucklebone]");
+    return buildUndefinedItemNudge()!==""?true:"fixture: the same item WITHOUT a description must ask (otherwise the exemption assertion proves nothing)";
   });
   t("#294B ①: asked ONCE per item per campaign — a re-gained key never re-arms; the latch is stamped at delivery, restored with the candidate on a dead turn, and bounded",function(){
     __undefWorld();delete worldState.itemDefAsked;
