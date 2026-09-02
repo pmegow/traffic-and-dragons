@@ -1,8 +1,8 @@
 [
   {
     "id": "playtest",
-    "due": "2026-08-28",
+    "due": "2026-09-15",
     "every_days": 14,
-    "note": "Playtest-harness run due (#22) — owner green-lights; coordinating session advances due on completion"
+    "note": "Playtest-harness run due (#22) — owner green-lights; last run 2026-09-01 (audits/AUDIT_playtest_v1767_sonnet5.md); coordinating session advances due on completion"
   }
 ]

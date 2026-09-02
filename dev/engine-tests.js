@@ -7502,6 +7502,8 @@ function runEngineTests(R){
     applyMuts("[ENEMY_HP:the wounded Nolan Grimtide|-5]");if(nolan.hp!==10)return "a leading-descriptor query ('the wounded Nolan Grimtide') stopped routing: "+nolan.hp;
     applyMuts("[ENEMY_HP:Nolan Grimtide the Brander|-2]");if(nolan.hp!==8)return "an EPITHET after the name ('Nolan Grimtide the Brander') stopped routing — only the possessive is a different creature: "+nolan.hp;
     applyMuts("[ENEMY_HP:Nolan Grimtide’s hound|-2]");if(nolan.hp!==8)return "a curly-apostrophe possessive routed to the boss";
+    applyMuts("[ENEMY_HP:Nolan Grimtidex|-2]");if(nolan.hp!==8)return "a name glued inside another word ('Nolan Grimtidex') routed to the boss — the word-boundary check is gone";
+    applyMuts("[ENEMY_HP:thenolan grimtide|-2]");if(nolan.hp!==8)return "a name glued after other letters routed to the boss";
     applyMuts("[ENEMY_SLAIN:Slaver Raider]");
     return foes[1].down==="slain"&&!nolan.down?true:"exact routing broke";
   });
