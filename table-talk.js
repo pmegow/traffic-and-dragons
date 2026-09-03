@@ -74,11 +74,17 @@ function ttMenuOutline(){
   return "APP — FILE MENU (what the player can actually click, read live from the rendered menu):\n"
     +lines.join("\n")
     +"\nThe File menu is the ▾ button in the top bar. Items shown dimmed are unavailable on the current screen."
-    +"\nThis list is the ONLY app knowledge you have. It covers menu-reachable features; if a question is about"
-    +"\nsomething outside this menu (tabs, the input row, sheet interactions), say you do not have that documented"
-    +"\nrather than guessing at the UI.";
+    +"\nThis list plus the APP FAQ is the ONLY app knowledge you have. If a question is about something"
+    +"\nneither covers, say you do not have that documented rather than guessing at the UI.";
 }
 
+// #307: the authored APP FAQ (TABLE_TALK_FAQ, data.js) — answers for what the menu outline cannot reach.
+function ttFaqBlock(){
+  if(typeof TABLE_TALK_FAQ==="undefined"||!TABLE_TALK_FAQ.length)return "";
+  var out=["\nAPP FAQ (authored by the game's maker — answer these plainly, in your own words, never beyond them):"],i;
+  for(i=0;i<TABLE_TALK_FAQ.length;i++)out.push("Q: "+TABLE_TALK_FAQ[i].q+"\nA: "+TABLE_TALK_FAQ[i].a);
+  return out.join("\n");
+}
 // ── Rules: full name index always, full canon only for what the question names ────────────
 // User call 2026-07-20 after costing the alternative: injecting all 169 entries every call is
 // ~15k tokens (~$0.045/question), paid even on questions that have nothing to do with rules.
@@ -247,6 +253,7 @@ function buildTableTalkPrompt(question){
     +"between moments of play. You are a help desk right now, not a narrator.");
   p.push("VOICE: plain first person, as yourself, the GM. Same voice whether the question is about the "
     +"world, the rules, or the app itself. Never the second-person story voice.");
+  var _faq=ttFaqBlock();if(_faq)p.push(_faq.trim());/* #307: authored app answers, present with or without a rendered menu */
 
   p.push("ABSOLUTE PROHIBITIONS:\n"
     +"- ZERO narrative prose. No scene-setting, no description, no atmosphere, no story advancement.\n"

@@ -477,6 +477,24 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #307 the first five minutes ──────────────────────────────────────────────
+  t("#307 quick start: quickStartPayloadValid refuses stale, headless, classless or blueprint-less payloads and accepts a real hero + a valid blueprint",function(){
+    var bp={format:"tnd-blueprint-v1",name:"Taster",tone:"swords",premise:"A masquerade.",acts:[]};
+    var hero={name:"Brannoc Tarn",cls:"Warrior",stats:{STR:16,DEX:12,CON:15,INT:9,WIS:11,CHA:10},hp:14,maxHp:14};
+    if(quickStartPayloadValid(null)!=="payload unreadable")return "null";
+    if(!/stale/.test(quickStartPayloadValid({char:hero,bp:bp,at:Date.now()-2*3600*1000})||""))return "stale not refused";
+    if(!/name or class/.test(quickStartPayloadValid({char:{name:"x"},bp:bp,at:Date.now()})||""))return "classless not refused";
+    if(!/unknown/.test(quickStartPayloadValid({char:{name:"x",cls:"Bard"},bp:bp,at:Date.now()})||""))return "unknown class not refused";
+    if(!/blueprint missing/.test(quickStartPayloadValid({char:hero,at:Date.now()})||""))return "no blueprint not refused";
+    return quickStartPayloadValid({char:hero,bp:bp,at:Date.now()})===null?true:"valid payload refused: "+quickStartPayloadValid({char:hero,bp:bp,at:Date.now()});
+  });
+  t("#307 Table Talk carries the authored APP FAQ and no longer tells the GM the menu outline is its only knowledge",function(){
+    makeWorld();var pr=buildTableTalkPrompt("how do I rest?");
+    if(pr.indexOf("APP FAQ")<0)return "FAQ block missing";
+    if(pr.indexOf("What happens when I die?")<0)return "the death answer is missing";
+    if(TABLE_TALK_FAQ.length<8)return "FAQ too thin";
+    return pr.indexOf("This list is the ONLY app knowledge you have")<0?true:"the old exclusivity line survived";
+  });
   // ── #311 prompt diet ─────────────────────────────────────────────────────────
   t("#311 ① engine-only tag tier: tags whose only legitimate emission answers an engine note leave the standing STATE TAGS doc but stay parsed and stripped",function(){
     var d=buildStateTagsDoc(),i;

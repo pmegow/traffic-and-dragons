@@ -1140,6 +1140,11 @@ try {
     if (!_hpFs.existsSync(_hpPath.join(__dirname, "..", "samples", c.file))) _hpFail("catalog entry file missing: " + c.file);
   });
   var _hpUb = _hpFs.readFileSync(_hpPath.join(__dirname, "..", "ui-browsers.js"), "utf8");
+  if (_hp.indexOf("HOME_PENDING_QS_K") < 0 || _hp.indexOf("samples/characters/catalog.json") < 0) _hpFail("the quick start must hand off through HOME_PENDING_QS_K (globals.js) and read the pre-made heroes from samples/characters/catalog.json (#307).");
+  var _hpHeroes = JSON.parse(_fsBE.readFileSync(_pathBE.join(__dirname, "..", "samples", "characters", "catalog.json"), "utf8"));
+  if (!Array.isArray(_hpHeroes) || _hpHeroes.length < 3) _hpFail("the quick start needs three pre-made heroes (#307) — catalog has " + (_hpHeroes && _hpHeroes.length));
+  _hpHeroes.forEach(function (h) { var _w = JSON.parse(_fsBE.readFileSync(_pathBE.join(__dirname, "..", "samples", "characters", h.file), "utf8")); if (!_w || _w.type !== "character" || !_w.character || !_w.character.name || !_w.character.cls) _hpFail("hero " + h.file + " is not a .char wrapper with a named, classed sheet"); });
+  if (_hpUb.indexOf("function consumeHomeQuickStart") < 0 || _hpUb.indexOf("startGame(char,tone.nm,tone.vc") < 0) _hpFail("consumeHomeQuickStart must start the campaign through startGame (#307).");
   if (_hpUb.indexOf("function consumeHomeBlueprint") < 0 || _hpUb.indexOf("_applyBlueprint(rec.bp)") < 0) _hpFail("consumeHomeBlueprint must route through _applyBlueprint (the wizard's one choke point).");
   console.log("[#290] home page contract OK — read-only surface, shared handoff key, " + _hpCat.length + " curated original(s)");
 } catch (e) { console.error("HOME PAGE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }

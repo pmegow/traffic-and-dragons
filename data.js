@@ -249,3 +249,20 @@ var NAMES={
 // in forever would make an old name resolve to a new one for eternity, and a future capability
 // that legitimately reuses a retired name would be silently hijacked by its own history.
 var CAPABILITY_RENAMES=[];
+
+// #307 — the authored APP FAQ Table Talk may answer from (plain facts about the interface; the live File-menu
+// outline covers the menu, this covers everything the menu does not reach). Keep each answer to one or two
+// sentences; a wrong confident answer here is the failure this mode exists to prevent.
+var TABLE_TALK_FAQ=[
+  {q:"How do I act?",a:"Type what you do in the box at the bottom in plain words and press Send. Tap a suggested action to drop it into the box and edit it; hold a suggestion (or Ctrl-click) to send it as it is."},
+  {q:"What is the dashed fourth button?",a:"The game's own suggestion, built from your sheet: rest when you are hurt, use an item you carry, accept an offered quest, buy something for sale here, or a reckless wildcard."},
+  {q:"What is Table Talk?",a:"This tab. Questions to the Game Master out of character — rules, recaps, how the app works. Nothing said here happens in the story."},
+  {q:"How do I rest, and what is a camp?",a:"The Rest button (or resting in the story) heals the party to full, restores spells, moves the clock to dawn and makes CAMP — the place you return to if you die. An act's end is a camp too."},
+  {q:"What happens when I die?",a:"At 0 HP you are down, not dead: struggle or yield, and the story resolves it within two turns. A true death brings Death, who walks you back to your last camp — you may ask one question on the way. Three returns per campaign; the fourth death ends the story with a written ending."},
+  {q:"Where are quests?",a:"The sidebar's quest journal: accept or decline offers, track objectives, read finished quests. Nothing is forced on you."},
+  {q:"Where is my character sheet?",a:"The Sheet button in the top bar (or the File menu on a phone): health, gold, inventory, spells, skills, relationships, defining moments. It updates itself as you play."},
+  {q:"Does it remember?",a:"Yes. People, places, promises and lore are filed into long-term memory and served back to the Game Master every turn; the world stays consistent across sessions."},
+  {q:"Where is my game saved?",a:"On this device, and — when you are signed in — on your account, so it follows you between devices. The last camp is saved separately so a death can return you to it."},
+  {q:"What is Car Mode?",a:"A hands-free mode in the File menu: the story is read aloud, you speak your actions, and the numbered options are spoken so you can answer by number."},
+  {q:"How do I report a problem?",a:"File ▸ ⚠ Report bug on the game screen. The form says exactly what it sends and to whom; you can leave out the screenshot."}
+];

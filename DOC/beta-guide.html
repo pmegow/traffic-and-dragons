@@ -74,18 +74,16 @@
 
 <h2><span class="stepnum">1</span>What this is</h2>
 <p>Traffic and Dragons is a sword &amp; sorcery role-playing game that runs entirely in your browser. You create a character, and an AI Game Master narrates a living adventure around you — tracking your health, gold, inventory, quests, and the people you meet, across sessions. There's nothing to install and no account <em>for the game itself</em>; the one thing you must bring is an <b>Anthropic API key</b>, which is what powers the Game Master's brain.</p>
-<div class="tip"><span class="ico">🗝</span><b>Why a key?</b> During the beta you "bring your own" AI. The key is yours, the usage is billed to you directly by Anthropic (pennies per turn — details below), and the game never sees or stores it anywhere except your own device.</div>
+<div class="tip"><span class="ico">🗝</span><b>Why sign in?</b> During the beta the game runs on the operator's model account: you sign in with Google or GitHub, the operator pays for the turns, and your campaigns follow your account between devices. There is no key to buy and nothing to paste. (Operators can still run on their own provider credentials from File ▸ Settings.)</div>
 
-<h2><span class="stepnum">2</span>Create your Anthropic account &amp; API key <em style="font-size:14px;color:var(--red);">(required)</em></h2>
+<h2><span class="stepnum">2</span>Sign in <em style="font-size:14px;color:var(--red);">(required)</em></h2>
 <ol>
-  <li>Go to <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> and click <b>Sign up</b>. You can use an email address or a Google account.</li>
-  <li>Verify your email if asked, and complete the short onboarding.</li>
-  <li><b>Add credits:</b> open <b>Settings → Billing</b> (or the "Get API access" prompt) and purchase credits. The minimum (usually <b>$5</b>) is plenty to start.</li>
-  <li><b>Create your key:</b> go to <b>Settings → API Keys → Create Key</b>. Name it anything (e.g. <code>traffic-and-dragons</code>) and click create.</li>
-  <li><b>Copy the key immediately</b> — it starts with <code>sk-ant-</code> and is shown only once. Paste it somewhere safe (a password manager is ideal). If you lose it, no drama: just delete it and create a new one.</li>
+  <li>Open the game (link in step 4) and press <b>Sign in</b>. Google or GitHub — whichever you already have.</li>
+  <li>Approve the sign-in in the popup. That is the whole account: no email to verify, no credits to buy.</li>
+  <li>The operator grants each tester a monthly allowance of turns. File ▸ Account shows how many you have used.</li>
 </ol>
-<div class="tip money"><span class="ico">💰</span><b>What does it cost?</b> A typical game turn costs a few cents. A $5 credit purchase generally covers many hours of play. You can watch your exact usage anytime in the game under <b>File ▾ → Admin → Usage &amp; cost</b>, and Anthropic's console shows your remaining balance.</div>
-<div class="tip warn"><span class="ico">⚠</span><b>Keep the key private.</b> Anyone who has it can spend your credits. Don't share screenshots of it, and don't paste it anywhere except the game's key screen.</div>
+<div class="tip money"><span class="ico">💰</span><b>What does it cost you?</b> Nothing during the beta. The operator's account pays for every turn; the allowance keeps that honest. If the game ever says your account has no active subscription, ask the operator — your story is safe and waiting.</div>
+<div class="tip warn"><span class="ico">⚠</span><b>What the operator can see.</b> When you play signed in, every prompt the game sends to the model passes through the operator's server, so the operator can read your prompts to run the game. Bug reports say exactly what they send before you send them.</div>
 
 <h2><span class="stepnum">3</span>Optional accounts — nice, not necessary</h2>
 <p>The game works fully with just the Anthropic key. These add extras — you can skip all of them today and add them later:</p>
@@ -117,15 +115,13 @@
   <b>Nothing to sign up for.</b> Tap the 🔈 speaker button in the game and it reads the story aloud using your device's built-in voice. (A premium voice service can be plugged in under File ▾ → Voice Settings, but the built-in voice needs no account.)
 </div>
 
-<h2><span class="stepnum">4</span>Open the game &amp; enter your key</h2>
-<div class="urlbox">🌐 <b>https://traffic-and-dragons.pages.dev</b><br><span style="font-size:12px;color:var(--t2);">(TODO: confirm final URL before publishing this guide)</span></div>
+<h2><span class="stepnum">4</span>Open the game</h2>
+<div class="urlbox">🌐 <b>https://traffic-and-dragons.pages.dev</b></div>
 <ol>
   <li>Open the link above in <b>Chrome</b> (Android/desktop) or <b>Safari</b> (iPhone/iPad). Other modern browsers work too.</li>
-  <li>You'll land on the key screen. Paste your <code>sk-ant-...</code> key into the big box.</li>
-  <li>Optionally paste your fal.ai key in the second box.</li>
-  <li>Press <b>Enter the world</b>.</li>
+  <li>Press <b>Sign in</b> and approve the popup.</li>
+  <li><b>Fastest way in:</b> open the <b>Home</b> page (File ▸ 🏠 Home), pick one of the three pre-made heroes and a story, and press <b>Play</b>. The Game Master opens your first scene. The character wizard is the custom path — it is there when you want a hero of your own.</li>
 </ol>
-<p>Your keys are stored only in your browser on that device — never on our servers. You'll need to paste the key once per device you play on.</p>
 
 <h2><span class="stepnum">5</span>Put it on your home screen</h2>
 <p>The game is a proper web app — installed to your home screen it opens fullscreen with its own icon, like any native app.</p>
@@ -171,7 +167,8 @@
   <li><b>Sheet</b> (top bar) shows your full character — health, gold, inventory, spells, skills, relationships. It updates itself as you play.</li>
   <li><b>Quests</b> arrive as ⚑ opportunities. Open the quest journal from the sidebar to accept, decline, and track objectives. Nothing is forced on you.</li>
   <li><b>Table Talk</b> (tab next to Story) lets you talk to the Game Master <em>out of character</em> — ask rules questions, request a recap, or nudge the tone, without your character saying a word.</li>
-  <li><b>Rest</b> (top bar) recovers your spent spells when the story allows a breather.</li>
+  <li><b>Rest</b> (top bar) heals the party, recovers spent spells, moves the clock to dawn and makes <b>camp</b> — the place you return to if you die.</li>
+  <li><b>Dying.</b> At 0 HP you are down, not dead: struggle or yield, and the story resolves it. A true death brings Death, who walks you back to your last camp — ask one question on the way. Three returns per campaign; the fourth death ends the story with a written ending.</li>
   <li><b>It remembers.</b> People you meet, places you visit, promises you make — the game files them into long-term memory and the world stays consistent across sessions. Just close the app when you're done; you'll resume exactly where you left off.</li>
 </ul>
 <div class="tip"><span class="ico">🎭</span><b>Play it like improv, not like a menu.</b> The best sessions come from trying things no button suggests — bribe the guard, adopt the wolf, burn the letter unread. The Game Master keeps up.</div>

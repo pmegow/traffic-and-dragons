@@ -2536,6 +2536,7 @@ async function beginAdventure(){
     // sessionLog/state now persist BEFORE the opening scene renders, so a display throw can no
     // longer strand a saved state that lacks the opening narration. isOpening: no turn++.
     commitGmTurn(resp,{userMsg:intro,isOpening:true,onMutated:function(){_openingCommitted=true;/* E82 latch for the opening (user ruling 2026-07-16) */}});
+    if(typeof showFirstTurnOverlay==="function")showFirstTurnOverlay();/* #307: four sentences, once per device, after the first scene is on screen */
     syncUI();
     _promptCampaignFolder();
   }catch(e){th.remove();
@@ -3228,6 +3229,7 @@ function newGame(){
     pendingCompanions=[];
     document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
     showChar();
+    if(typeof consumeHomeQuickStart==="function"&&consumeHomeQuickStart())return;/* #307 */
     if(typeof consumeHomeBlueprint==="function")consumeHomeBlueprint();/* #290 */
   });
 }

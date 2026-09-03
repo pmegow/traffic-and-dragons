@@ -28,6 +28,31 @@ function consumeHomeBlueprint(){
   _applyBlueprint(rec.bp);
   return true;
 }
+/* #307: the QUICK START handoff — a pre-made hero + a curated blueprint from the home page. Validated by the
+   pure quickStartPayloadValid, then started DIRECTLY (the import flow's own start sequence, no setup modal:
+   the blueprint supplies tone, starting location and voice). One-shot; stale or malformed payloads drop LOUDLY. */
+function consumeHomeQuickStart(){
+  var raw=null;try{raw=localStorage.getItem(HOME_PENDING_QS_K);}catch(e){}
+  if(!raw)return false;
+  try{localStorage.removeItem(HOME_PENDING_QS_K);}catch(e){}
+  var rec=null;try{rec=JSON.parse(raw);}catch(e){}
+  var bad=quickStartPayloadValid(rec);
+  if(bad){console.warn("[home] quick start dropped — "+bad);showToast("Quick start could not begin: "+bad);return false;}
+  var bp=normalizeBlueprint(rec.bp),char=rec.char,tone=null,ti;
+  for(ti=0;ti<TONES.length;ti++)if(TONES[ti].id===bp.tone)tone=TONES[ti];
+  tone=tone||TONES.filter(function(t){return t.id==="swords";})[0]||TONES[0];
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}
+  if(worldState&&!snapshotActiveCamp())return false;/* B4: never wipe the only local copy of a live campaign */
+  store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+  var nid=newCampaignId();setActiveCampId(nid);
+  worldState=null;sessionLog=[];memory=blankMemory();
+  var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");if(sn)sn.innerHTML="";if(st)st.innerHTML="";
+  pendingBlueprint=bp;/* startGame applies it — skeleton, seeded NPCs and places, rules */
+  char._campName=bp.name||char.name;char._startLoc=bp.startingLocation||"The Crossroads of Ashenveil";
+  if(bp.proseAuthor)startGame(char,tone.nm,tone.vc,bp.proseAuthor);else startGame(char,tone.nm,tone.vc);
+  showToast("Quick start: "+char.name+" in "+(bp.name||"the story"));
+  return true;
+}
 function clearBlueprint(){
   pendingBlueprint=null;
   var banner=document.getElementById("blueprint-banner");if(banner)banner.style.display="none";

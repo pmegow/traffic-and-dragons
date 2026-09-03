@@ -327,9 +327,12 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.778";
+var APP_VERSION="v1.779";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
+// #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
+// consumeHomeQuickStart (ui-browsers.js) which starts the campaign directly (the wizard is the custom path).
+var HOME_PENDING_QS_K="tnd_pending_qs_v1";
 var HOME_PENDING_BP_K="tnd_pending_bp_v1";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}

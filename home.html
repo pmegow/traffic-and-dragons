@@ -60,6 +60,17 @@ a.link:hover{text-decoration:underline;}
   <div id="who">…</div>
 </header>
 <main>
+  <section id="quick">
+    <h2>Quick start</h2>
+    <p class="sub">Pick a hero, pick a story, play. Three clicks and the Game Master opens your first scene — the wizard below is the custom path.</p>
+    <div class="grid" id="hero-grid"><div class="empty">Loading heroes…</div></div>
+    <div class="acts" style="margin-top:10px;align-items:center;flex-wrap:wrap;gap:8px;">
+      <label style="font-size:12px;color:var(--t2);">Story:</label>
+      <select id="qs-story" style="font-family:var(--font);font-size:13px;padding:6px 8px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:6px;min-width:220px;"></select>
+      <button class="b p" id="qs-go" disabled>Play</button>
+      <span id="qs-hint" style="font-size:11px;color:var(--t2);">Pick a hero first.</span>
+    </div>
+  </section>
   <section id="play">
     <h2>Play</h2>
     <div class="grid">
@@ -124,6 +135,34 @@ a.link:hover{text-decoration:underline;}
     el.querySelector("[data-act=design]").addEventListener("click",function(){openInDesigner(bp);});
     return el;
   }
+  // #307 QUICK START — a pre-made hero (samples/characters) + a curated story, handed to the game in ONE
+  // key (HOME_PENDING_QS_K, globals.js) and consumed at boot by consumeHomeQuickStart, which starts the
+  // campaign directly. Read-only here, like everything on this page.
+  var heroes=[],qsHero=null;
+  function heroCard(h){
+    var el=document.createElement("div");el.className="card";el.setAttribute("data-hero",h.file);
+    el.innerHTML="<h3>"+esc(h.name)+"</h3><div class='meta'>"+esc((h.ancestry||"")+" "+(h.cls||""))+"</div><p>"+esc(h.blurb||"")+"</p><div class='acts'><button class='b' data-act='pick'>Choose</button></div>";
+    el.querySelector("[data-act=pick]").addEventListener("click",function(){qsHero=h;renderHeroes();qsUpdate();});
+    if(qsHero&&qsHero.file===h.file){el.style.borderColor="var(--acc)";el.querySelector("[data-act=pick]").textContent="Chosen";}
+    return el;
+  }
+  function renderHeroes(){var g=$("hero-grid");g.innerHTML="";if(!heroes.length){g.innerHTML="<div class='empty'>No pre-made heroes yet.</div>";return;}heroes.forEach(function(h){g.appendChild(heroCard(h));});}
+  function qsUpdate(){var sel=$("qs-story");var ok=!!(qsHero&&qsHero.char&&sel.value);$("qs-go").disabled=!ok;$("qs-hint").textContent=ok?"Ready — "+qsHero.name+" in "+sel.options[sel.selectedIndex].textContent:(qsHero?"Pick a story.":"Pick a hero first.");}
+  function qsStories(){var sel=$("qs-story");sel.innerHTML="";catalog.forEach(function(c,i){if(!c.bp)return;var o=document.createElement("option");o.value=String(i);o.textContent=c.name;sel.appendChild(o);});
+    var taster=-1;catalog.forEach(function(c,i){if(c.bp&&/taster/i.test(c.name)&&taster<0)taster=i;});if(taster>=0)sel.value=String(taster);qsUpdate();}
+  function loadHeroes(){
+    fetch("samples/characters/catalog.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(list){
+      heroes=list.map(function(x){return {name:x.name,file:x.file,cls:x.cls,ancestry:x.ancestry,blurb:x.blurb,char:null};});var pending=heroes.length;if(!pending){renderHeroes();return;}
+      heroes.forEach(function(h){fetch("samples/characters/"+h.file,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(w){h.char=(w&&w.character)||null;}).catch(function(e){h.blurb="(could not load: "+String(e&&e.message||e)+")";console.error("[home] hero failed: "+h.file,e);}).then(function(){pending--;if(!pending)renderHeroes();});});
+    }).catch(function(e){heroes=[];$("hero-grid").innerHTML="<div class='empty err'>Heroes unavailable: "+esc(e&&e.message||e)+"</div>";console.error("[home] hero catalog failed",e);});
+  }
+  function quickStart(){
+    var sel=$("qs-story"),c=catalog[parseInt(sel.value,10)];if(!qsHero||!qsHero.char||!c||!c.bp){status("Pick a hero and a story first.",true);return;}
+    try{localStorage.setItem(HOME_PENDING_QS_K,JSON.stringify({char:qsHero.char,bp:c.bp,at:Date.now()}));}
+    catch(e){status("Could not hand the quick start to the game (storage full?) — open the game and use the wizard instead.",true);return;}
+    location.href="index.html";
+  }
+  $("qs-go").addEventListener("click",quickStart);$("qs-story").addEventListener("change",qsUpdate);
   function renderShelf(){
     var g=$("shelf-grid");g.innerHTML="";
     if(!catalog.length){g.innerHTML="<div class='empty'>No curated blueprints yet.</div>";return;}
@@ -163,7 +202,7 @@ a.link:hover{text-decoration:underline;}
   $("go-play").addEventListener("click",function(){location.href="index.html";});
   $("go-designer").addEventListener("click",function(){location.href="blueprint-designer.html";});
   $("go-editor").addEventListener("click",function(){location.href="character_editor.html";});
-  renderWho();loadCatalog();loadLibrary();
+  renderWho();loadCatalog(qsStories);loadLibrary();loadHeroes();
 
   // Test seam — drives the page headlessly / in the preview pane (satellite testability rule).
   window.__homeTest={
@@ -171,6 +210,10 @@ a.link:hover{text-decoration:underline;}
     setLibrary:function(list){library=list;renderLibrary();},
     catalog:function(){return catalog;},
     handoffKey:HOME_PENDING_BP_K,
+    quickStartKey:HOME_PENDING_QS_K,
+    setHeroes:function(list){heroes=list;renderHeroes();qsUpdate();},
+    pickHero:function(file){qsHero=heroes.filter(function(h){return h.file===file;})[0]||null;renderHeroes();qsUpdate();},
+    quickStart:quickStart,
     handoff:handoff,openInDesigner:openInDesigner,
     reload:function(cb){loadCatalog(function(){loadLibrary(cb);});}
   };

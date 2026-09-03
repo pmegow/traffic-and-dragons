@@ -788,6 +788,20 @@ function _bugReportModal(shot){
 // files the indicator snapshot through the #16b sendUserReport path so a bad reading becomes
 // a bug report in one tap.
 // #300 — the respawn and the end. Plain modals: the facts, then play on.
+// #307 — the first-turn overlay: four sentences, once per device (tnd_firstturn_seen_v1), never in Car Mode.
+function showFirstTurnOverlay(){
+  try{if(localStorage.getItem("tnd_firstturn_seen_v1"))return;}catch(e){}
+  if(typeof carMode!=="undefined"&&carMode)return;
+  var old=document.getElementById("firstturn-modal");if(old)old.remove();
+  var m=document.createElement("div");m.id="firstturn-modal";
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:290;display:flex;align-items:flex-end;justify-content:center;padding:16px;";
+  m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:520px;width:100%;padding:18px 20px;font-family:var(--font);color:var(--t0);'>"
+    +"<div style='font-size:15px;margin-bottom:8px;'>How to play</div>"
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.55;'>Type what you do in the box, in plain words, or tap a suggestion to edit it. Hold a suggestion (or Ctrl-click) to send it as it is. The dashed button is the game's own idea — rest, use a thing, take the offer. Table Talk, the other tab, is where you ask the Game Master questions without your character saying a word.</div>"
+    +"<div style='margin-top:14px;text-align:right;'><button id='firstturn-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:#111;border:0;border-radius:6px;cursor:pointer;'>Got it</button></div></div>";
+  document.body.appendChild(m);
+  document.getElementById("firstturn-ok").onclick=function(){m.remove();try{localStorage.setItem("tnd_firstturn_seen_v1","1");}catch(e){}};
+}
 function showRespawnModal(r,cause){
   closeAllMenus();var old=document.getElementById("respawn-modal");if(old)old.remove();
   var m=document.createElement("div");m.id="respawn-modal";

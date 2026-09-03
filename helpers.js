@@ -1749,3 +1749,14 @@ function healthIndicators(ws,mem,withGrowth){
   if(withGrowth)out.growth=healthGrowthTelemetry(ws,mem);
   return out;
 }
+
+// #307: the quick-start payload gate — pure, engine-tested; consumeHomeQuickStart (ui-browsers.js) is its one caller.
+function quickStartPayloadValid(rec){
+  if(!rec||typeof rec!=="object")return "payload unreadable";
+  if(rec.at&&Date.now()-rec.at>3600*1000)return "stale (>1h)";
+  var c=rec.char;if(!c||typeof c!=="object"||!c.name||!c.cls)return "hero sheet missing a name or class";
+  if(typeof classDef==="function"&&!classDef(c.cls))return "hero class '"+c.cls+"' is unknown";
+  if(!rec.bp||typeof rec.bp!=="object")return "blueprint missing";
+  var err=(typeof validateBlueprint==="function")?validateBlueprint(rec.bp):null;
+  return err?("blueprint refused: "+err):null;
+}

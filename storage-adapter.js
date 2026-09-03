@@ -388,7 +388,7 @@ var storageAdapter = (function() {
     if (typeof showToast === "function") {
       if (status === 401 && Date.now() - _last401At > RE401_TOAST_MS) {
         _last401At = Date.now();
-        showToast("&#9729; Session expired &mdash; tap the &#9729; badge (or Dev Mode &#9656; Connect server) to reconnect");
+        showToast("&#9729; Session expired &mdash; tap the &#9729; badge (or File &#9656; Settings &#9656; Connect server) to reconnect");
       } else if (status === 413 && Date.now() - _last413At > RE401_TOAST_MS) {
         _last413At = Date.now();
         showToast("&#9729; Save refused by the server &mdash; " + msg + ". Progress is safe on this device.");

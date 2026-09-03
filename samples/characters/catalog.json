@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Brannoc Tarn",
+    "file": "brannoc_tarn.char",
+    "cls": "Warrior",
+    "ancestry": "Northlander",
+    "blurb": "Twelve years a shield-wall sergeant for a lord who lost his war."
+  },
+  {
+    "name": "Ilse Vex",
+    "file": "ilse_vex.char",
+    "cls": "Rogue",
+    "ancestry": "High Elf",
+    "blurb": "Born to a house that wanted a diplomat and got a thief."
+  },
+  {
+    "name": "Maud Ashcombe",
+    "file": "maud_ashcombe.char",
+    "cls": "Cleric",
+    "ancestry": "Mountain Dwarf",
+    "blurb": "Chaplain to a mining town that flooded in a night."
+  }
+]

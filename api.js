@@ -2996,7 +2996,7 @@ function gmServerRefusalMessage(status,payload){
   var r=payload&&payload.reason;
   if(r==="out_of_turns")return "You've used all "+(payload&&payload.cap?payload.cap:"your")+" turns for this 30-day window — your story is safe, and turns free up as older ones age out.";
   if(r==="lapsed")return "Your subscription has lapsed — your story is safe. Renew access to continue playing.";
-  return "This account has no active subscription yet — ask the operator for access, or switch to your own provider credentials (File ▸ Admin ▸ Language Model).";
+  return "This account has no active subscription yet — ask the operator for access. (Operators can also run on their own provider credentials from File ▸ Settings ▸ Language Model.)";/* #307: the old copy pointed players at a row #289 hides from them */
 }
 // ── #29: callGM transport resilience — a per-attempt deadline + bounded transient retry ──
 // Field evidence (the grok-4.6 t25 freeze): one request neither resolved nor rejected during a

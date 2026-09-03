@@ -93,7 +93,7 @@ function buildFileMenus(){
       +btn(p+"server-connect","☁ Connect to server",0,{cls:"fm-dev-only"})
       +btn(p+"server-disconnect","☁ Disconnect (<span id='"+p+"server-user'></span>)",0,{hidden:true,cls:"fm-dev-only"})
       +btn(p+"clearcache","⟳ Clear cache &amp; reload",0,{color:"var(--t2)",cls:"fm-dev-only"});
-    h+=drawer(p+"devmode",p+"devmenu","⚙ Admin",0,"var(--t2)",dm);
+    h+=drawer(p+"devmode",p+"devmenu","⚙ Settings",0,"var(--t2)",dm);
     h+=btn(p+"clearcache-top","⟳ Clear cache &amp; reload",0,{color:"var(--t2)"});
     h+=sep();
     h+=g?btn(p+"newgame","New Game",0,{color:"var(--dng)",hovBg:"var(--dng-faint)"}):btn(null,"New Game",0,{dim:true,color:"var(--dng)"});
@@ -418,6 +418,7 @@ function initState(saved){
     }catch(e){store.del("tnd_carmode_v1");}
   }else{
     showChar();
+    if(typeof consumeHomeQuickStart==="function"&&consumeHomeQuickStart())return;/* #307: a hero + story picked on the home page — the campaign is already running */
     if(typeof consumeHomeBlueprint==="function")consumeHomeBlueprint();/* #290: a blueprint picked on the home page */
   }
 }
