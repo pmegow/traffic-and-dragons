@@ -90,3 +90,5 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 ```
 
 `worldState` also carries `campId` (string matching `tnd_active_v1`) so the campaign ID survives exports and reimports without creating duplicate campaign slots, `proseAuthor` (per-campaign prose-inspiration voice id — see AUTHORS above), and `tagLog` (#137 — the provenance ring: the last `TAG_LOG_CAP`=40 responses' tag names + mutation labels, riding the save/sync so field forensics can decide emitted-then-purged vs never-emitted).
+
+- **Blueprint NPC `armor` field (#319).** Optional on every seeded NPC: blank/`auto` = derived plot armor from the acts; `none` = never armored; an act number = cannot die until that act opens. `normalizeBlueprint` passes it through untouched; `seedArmor` (helpers.js) normalizes it onto the roster record at campaign start; the designer exposes it as "Plot armor".

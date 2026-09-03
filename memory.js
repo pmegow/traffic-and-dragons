@@ -1736,6 +1736,7 @@ function applySummaryExtract(extracted,identityTable){
     if(memoryNpcIsPlayer(ndName)){if(typeof console!=="undefined")console.warn("[memory] npcDeaths rejected the player identity '"+ndName+"' — player canon never enters memory.npcs");continue;}
     if(!ndWs&&!memory.npcs[ndName]){if(typeof console!=="undefined")console.warn("[memory] npcDeaths: "+ndName+" not on file — ignored");continue;}
     if((ndWs&&ndWs.dead)||(memory.npcs[ndName]&&memory.npcs[ndName].dead))continue;
+    if(typeof plotArmor==="function"&&plotArmor(ndName)){plotArmorRefuse(ndName,null,"summary");continue;}/* #319: a recap cannot kill a load-bearing character either */
     if(ndWs){ndWs.dead=worldState.turn;if(!npcDeadStatus(ndWs.status))ndWs.status="dead";}
     if(memory.npcs[ndName])memory.npcs[ndName].dead=worldState.turn;
     if(typeof console!=="undefined")console.warn("[memory] death filed from summary extraction: "+ndName+" (t"+worldState.turn+") — the GM narrated a death without [NPC:"+ndName+"|dead|...]");

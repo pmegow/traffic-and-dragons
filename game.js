@@ -2408,7 +2408,8 @@ function applyBlueprint(bp){
       /* v1.439 (F2, brief B): role fans into RELATION only. The old line wrote it into status
          (mood) and attitude (disposition) too — recreating in one call the exact contamination
          v1.379-383 separated. Mood/disposition start empty; play fills them. */
-      worldState.npcs.push({name:n.name,status:"",statusTurn:0,rel:n.role||"neutral",met:0,pronouns:n.pronouns||"they/them"});
+      var _seedN={name:n.name,status:"",statusTurn:0,rel:n.role||"neutral",met:0,pronouns:n.pronouns||"they/them"},_seedA=(typeof seedArmor==="function")?seedArmor(n):undefined;if(_seedA!==undefined)_seedN.armor=_seedA;/* #319: the blueprint's plot-armor override rides the roster */
+      worldState.npcs.push(_seedN);
       memory.npcs[n.name]={attitude:"",knowledge:n.notes?[n.notes]:[],events:[],pronouns:n.pronouns||"they/them"};
     }
   }

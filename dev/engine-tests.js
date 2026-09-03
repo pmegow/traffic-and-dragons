@@ -623,6 +623,77 @@ function runEngineTests(R){
     var threw=null;try{w2ValidateSummary({npcDeaths:[{name:"Nobody Slain",sourceTurn:30}],chapterSummary:""});}catch(e){threw=e;}
     return threw?true:"an uncited stranger's death validated";
   });
+  // ── #319 plot armor: load-bearing NPCs cannot die before their arc (owner ruling 2026-09-03: derived with override) ──
+  function __armorWorld(){
+    makeWorld();worldState.turn=25;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];worldState.plotArmor={};delete worldState.plotArmorPing;
+    worldState.skeleton={premise:"Cassivel flies on stolen breath.",acts:[
+      {title:"Ballast and Breath",goal:"Survive the Bilge Wards",status:"active",arcs:[{title:"The Purge Rotation",objective:"Survive the culling",status:"active"}]},
+      {title:"Threads in the Smoke",goal:"Become useful",status:"pending",arcs:[{title:"The Falling Ward",objective:"Hold a district together",status:"pending"}]},
+      {title:"The Weight Below",goal:"Choose a future",status:"pending",arcs:[{title:"Whose Hand Moves You",objective:"Force Ferrin Lyle to admit he manufactured your indenture, then decide whether to kill, expose, or bargain with him",status:"pending"}]}]};
+    worldState.npcs.push({name:"Ambassador Ferrin Lyle",status:"",statusTurn:0,rel:"villain",met:3,pronouns:"he/him",introduced:3});
+    worldState.npcs.push({name:"Overseer Kolm",status:"",statusTurn:0,rel:"villain",met:3,pronouns:"they/them",introduced:3});
+    memory.npcs["Ambassador Ferrin Lyle"]={attitude:"",knowledge:["seed"],events:[],pronouns:"he/him"};memory.npcs["Overseer Kolm"]={attitude:"",knowledge:["seed"],events:[],pronouns:"they/them"};
+  }
+  t("#319 plotArmor derives from the skeleton: an NPC named in a PENDING arc/act is armored until it opens; unnamed NPCs are not; the roster override wins both ways ('none' strips, an act number grants); a spent escape budget drops it",function(){
+    __armorWorld();var L="Ambassador Ferrin Lyle";
+    var a=plotArmor(L);if(!a||a.act!==3||a.arc!=="Whose Hand Moves You")return "Lyle: "+JSON.stringify(a);
+    if(plotArmor("Overseer Kolm"))return "Kolm armored with no arc naming him";
+    if(plotArmor("Nobody"))return "stranger armored";
+    worldState.skeleton.acts[2].arcs[0].status="active";if(plotArmor(L))return "armor survived the arc opening";
+    worldState.skeleton.acts[2].arcs[0].status="pending";
+    wsNpcByName(L).armor="none";if(plotArmor(L))return "override 'none' ignored";delete wsNpcByName(L).armor;
+    wsNpcByName("Overseer Kolm").armor=2;var k=plotArmor("Overseer Kolm");if(!k||k.act!==2)return "override act number ignored: "+JSON.stringify(k);
+    worldState.skeleton.acts[1].status="active";if(plotArmor("Overseer Kolm"))return "act-number armor survived Act 2 opening";worldState.skeleton.acts[1].status="pending";
+    if(seedArmor({armor:"none"})!=="none"||seedArmor({armor:"3"})!==3||seedArmor({armor:"auto"})!==undefined||seedArmor({})!==undefined)return "seedArmor vocabulary";
+    worldState.plotArmor={"Ambassador Ferrin Lyle":{escapes:PLOT_ARMOR_ESCAPES}};if(plotArmor(L))return "spent budget still armors";
+    return true;
+  });
+  t("#319 every death path refuses an armored NPC and stages an exit: [NPC:|dead] status, [NPC_DEATH_REPORTED:], a combat kill (the foe breaks and flees — no ring entry, no stamp), a canon envelope (quarantined with the plot-armor copy, nothing killed), and a summary npcDeaths line — each spends one escape and arms the note",function(){
+    __armorWorld();var L="Ambassador Ferrin Lyle";function rearm(){worldState.plotArmor={};delete worldState.plotArmorPing;}
+    var r=applyMuts("[NPC:"+L+"|dead, throat cut|enemy][XP:40]");
+    if(npcIsDead(wsNpcByName(L)))return "status tag killed an armored NPC";
+    if((worldState.identityConflicts||[]).length)return "a story beat minted an identity conflict";
+    if(!worldState.plotArmorPing||worldState.plotArmorPing.name!==L)return "note not armed";
+    if(!worldState.plotArmor[L]||worldState.plotArmor[L].escapes!==1)return "escape not counted: "+JSON.stringify(worldState.plotArmor);
+    if(npcDeadStatus(wsNpcByName(L).status))return "status still reads dead: "+wsNpcByName(L).status;
+    /* the executor agrees with the gate: driven through the table directly (the replay tools' seam), the status write itself becomes the exit */
+    rearm();r=applyMutsTable("[NPC:"+L+"|dead|enemy]",{});
+    if(npcIsDead(wsNpcByName(L))||wsNpcByName(L).status!=="escaped"||!(r.muts||[]).some(function(m){return /plot armor/i.test(m);}))return "parser path: "+wsNpcByName(L).status+" "+JSON.stringify(r.muts);
+    rearm();applyMuts("[NPC_DEATH_REPORTED:"+L+"|a guard's word]");if(npcIsDead(wsNpcByName(L)))return "reported death killed an armored NPC";if(!worldState.plotArmorPing)return "report: note not armed";
+    /* the only foe going down auto-closes the fight in the same response — judge by the response's muts and the aftermath */
+    rearm();applyMuts("[COMBAT_START:"+L+"|20|14|+4|1d8|low]");r=applyMuts("[ENEMY_SLAIN:"+L+"]");
+    if(!(r.muts||[]).some(function(m){return /breaks and flees/.test(m);})||(r.muts||[]).some(function(m){return /slain/.test(m)&&m.indexOf(L)===0;}))return "combat kill did not convert to flight: "+JSON.stringify(r.muts);
+    if(worldState.combat)return "fight did not close over a fled foe";if(npcIsDead(wsNpcByName(L)))return "combat close stamped an armored NPC";
+    if((worldState.combatSlain||[]).some(function(x){return x.name===L;}))return "armored NPC landed on the slain ring";
+    if(!worldState.plotArmorPing)return "combat: note not armed";
+    rearm();applyMuts("[COMBAT_START:"+L+"|6|14|+4|1d8|low]");r=applyMuts("[ENEMY_HP:"+L+"|-9]");
+    if(!(r.muts||[]).some(function(m){return /breaks and flees/.test(m);}))return "damage to 0 did not convert: "+JSON.stringify(r.muts);
+    if(worldState.combat)applyMuts("[COMBAT_END:victory]");if(npcIsDead(wsNpcByName(L)))return "damage path stamped an armored NPC";
+    rearm();var xp0=worldState.character.xp;applyMuts("[CANON_TXN_BEGIN:lyle_dies|npc-death|"+L+"|-|-][NPC:"+L+"|dead|enemy][XP:50][CANON_TXN_END:lyle_dies]");
+    var tx=(worldState.canonTxns||[]).filter(function(t){return t.id==="lyle_dies";})[0];
+    if(!tx||tx.status!=="quarantined"||!/plot armor/i.test(tx.reason))return "envelope: "+JSON.stringify(tx);
+    if(!/cannot die yet|got away/i.test(w2RefusalCopy(tx.reason)))return "copy: "+w2RefusalCopy(tx.reason);
+    if(npcIsDead(wsNpcByName(L)))return "envelope killed an armored NPC";if(worldState.character.xp!==xp0)return "a refused envelope paid its XP";
+    rearm();worldState.sceneRefs=null;var thrown=null;try{applySummaryExtract({chapterSummary:"Lyle fell.",npcDeaths:[L]},null);}catch(e){thrown=e;}
+    if(thrown)return "summary applier threw: "+(thrown&&thrown.message);
+    if(npcIsDead(wsNpcByName(L)))return "summary killed an armored NPC";if(!worldState.plotArmorPing)return "summary: note not armed";
+    return true;
+  });
+  t("#319 the GM is told up front and after the fact: buildSkeletonBlock lists LOAD-BEARING characters with the arc that frees them; buildPlotArmorNote fires ONCE after a refusal (the exit shapes, the cost) then clears; registered with its latch; the blueprint override survives normalize and the designer exposes it",function(){
+    __armorWorld();
+    var sk=buildSkeletonBlock(),i=sk.indexOf("LOAD-BEARING");if(i<0)return "no LOAD-BEARING line";var seg=sk.slice(i,i+420);
+    if(seg.indexOf("Ambassador Ferrin Lyle")<0||!/Whose Hand Moves You/.test(seg)||/Overseer Kolm/.test(seg)||!/cost/i.test(seg))return "skeleton line: "+seg;
+    if(buildPlotArmorNote()!=="")return "note fired with nothing armed";
+    applyMuts("[NPC:Ambassador Ferrin Lyle|dead|enemy]");
+    var n=buildPlotArmorNote();if(!/PLOT ARMOR/.test(n)||n.indexOf("Ambassador Ferrin Lyle")<0||!/cost/i.test(n)||!/escape 1 of 2/i.test(n))return "note: "+n;
+    if(buildPlotArmorNote()!=="")return "note fired twice";
+    if(!NOTE_SHAPES.buildPlotArmorNote||NOTE_LATCH_FIELDS.indexOf("plotArmorPing")<0||NOTE_BUILDERS.indexOf(buildPlotArmorNote)<0)return "not registered";
+    var bp={format:"tnd-blueprint-v1",name:"X",tone:"swords",premise:"p",acts:[{title:"A",goal:"g",arcs:[{title:"a",objective:"o"}]}],npcs:[{name:"Q",role:"villain",pronouns:"he/him",notes:"n",armor:"none"},{name:"R",role:"villain",notes:"n",armor:"3"}]};
+    normalizeBlueprint(bp);if(bp.npcs[0].armor!=="none"||bp.npcs[1].armor!=="3")return "normalize dropped the override";
+    var src=__fsForTests.readFileSync(__rootForTests+"/blueprint-designer.html","utf8");if(src.indexOf("\"armor\"")<0)return "designer has no armor field";
+    if(__fsForTests.readFileSync(__rootForTests+"/game.js","utf8").indexOf("seedArmor(")<0)return "the seed path does not carry the override onto the roster";
+    return true;
+  });
   // ── #318 a canon envelope around a COMBAT kill is combat canon (Iron Meridian t17, the Tag-Shrike) ──
   t("#318 [CANON_TXN npc-death] on a rostered combat foe slain in the same response COMMITS (no quarantine toast, no identity conflict, fight closes, ring stamped); a foe still standing with no kill in the response, and a stranger, still refuse",function(){
     makeWorld();worldState.turn=17;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];

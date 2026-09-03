@@ -568,7 +568,8 @@ var TAG_TABLE=[
   if(_npN){if(npRel)_npN.rel=npRel;if(npPron)_npN.pronouns=npPron;
     /* npcDeadStatus internally rejects resurrection phrasing ("raised from the dead" contains a
        death word) — so this stamp can never re-kill what the resurrection branch just cleared */
-    if(npStatus&&!_npN.dead&&npcDeadStatus(npStatus)){_npN.dead=R.turn;R.muts.push(npName+": dead (t"+R.turn+")");
+    if(npStatus&&!_npN.dead&&npcDeadStatus(npStatus)&&typeof plotArmor==="function"&&plotArmor(npName)){plotArmorRefuse(npName,R,"status tag");_npN.status="escaped";_npN.statusTurn=R.turn;}/* #319: the death write becomes an exit */
+    else if(npStatus&&!_npN.dead&&npcDeadStatus(npStatus)){_npN.dead=R.turn;R.muts.push(npName+": dead (t"+R.turn+")");
       /* #175bR: an AUTHORIZED death answers the very question its standing conflict asked — without
          this heal the record survived its own resolution and re-toasted every 18 turns forever
          (only _w2StampDead and the committed-envelope site healed; this direct write did not). */
@@ -614,7 +615,8 @@ var TAG_TABLE=[
   if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(rdName)){if(typeof console!=="undefined")console.warn("[tags] NPC_DEATH_REPORTED for the PLAYER refused — player death is not roster canon");R.muts.push("Reported death refused (player): "+rdRaw);continue;}
   var rdN=wsNpcByName(rdName);
   if(!rdN){worldState.npcs.push({name:rdName,status:"",statusTurn:0,rel:"unknown",pronouns:null,met:R.turn,partyMember:false,portrait:null,aliases:[]});rdN=worldState.npcs[worldState.npcs.length-1];R.muts.push("Registered from death report: "+rdName);/* status seeds EMPTY so the stamp branch below runs — a "dead" seed reads as already-canon to npcIsDead's legacy-status fallback and the dead FLAG never lands */}
-  if(npcIsDead(rdN)){if(!rdN.deathReported)rdN.deathReported={turn:R.turn,source:rdSrc};R.muts.push(rdName+": death already canon (report noted)");}
+  if(!npcIsDead(rdN)&&typeof plotArmor==="function"&&plotArmor(rdName)){plotArmorRefuse(rdName,R,"death report");rdN.status="escaped (the report was wrong)";rdN.statusTurn=R.turn;}/* #319 */
+  else if(npcIsDead(rdN)){if(!rdN.deathReported)rdN.deathReported={turn:R.turn,source:rdSrc};R.muts.push(rdName+": death already canon (report noted)");}
   else{
     rdN.dead=R.turn;if(!npcDeadStatus(rdN.status))rdN.status="dead";rdN.statusTurn=R.turn;
     rdN.deathReported={turn:R.turn,source:rdSrc};
@@ -843,7 +845,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     else continue;
     foe.hp=Math.max(0,foe.hp+dv);
     worldState.combat.engaged=foe.name;
-    if(foe.hp<=0){foe.down="slain";worldState.combat.engaged=null;}
+    if(foe.hp<=0){if(typeof plotArmor==="function"&&plotArmor(foe.name)){foe.hp=1;foe.down="fled";plotArmorRefuse(foe.name,R,"combat");R.muts.push(foe.name+" breaks and flees");}else foe.down="slain";worldState.combat.engaged=null;}/* #319 */
   }}},
 // v1.463 (t1188 trafficker ambush): the GM's only way to kill a foe was a damage NUMBER, so a
 // narrated stealth execution emitted honest dice damage (-8 vs 18 hp) and the foe stayed up —
@@ -859,7 +861,8 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     var kfoe=combatFoeByName(km[1]);
     if(!kfoe){console.warn("[combat] ENEMY_SLAIN target not found: "+km[1].trim()+" — no mutation");continue;}
     if(kfoe.down||kfoe.hp<=0)continue;/* already down — re-emission, quiet no-op */
-    kfoe.hp=0;kfoe.down="slain";R.muts.push(kfoe.name+" slain");
+    if(typeof plotArmor==="function"&&plotArmor(kfoe.name)){kfoe.hp=Math.max(1,kfoe.hp);kfoe.down="fled";plotArmorRefuse(kfoe.name,R,"combat");R.muts.push(kfoe.name+" breaks and flees");}/* #319: a load-bearing foe leaves the fight alive */
+    else{kfoe.hp=0;kfoe.down="slain";R.muts.push(kfoe.name+" slain");}
     if(worldState.combat.engaged===kfoe.name)worldState.combat.engaged=null;}
   if(/\[ENEMY_SLAIN\]/.test(text))console.warn("[combat] bare ENEMY_SLAIN unsupported — name the foe ([ENEMY_SLAIN:Name]); no mutation");}},
 // UA2 resolved as IMPLEMENT (user call 2026-07-10): the former phantom becomes a real beat.

@@ -55,6 +55,10 @@ function img2imgStrength(cfg){
 /* #208a (owner call 2026-08-21, the Flux drop): a stored render-model id that no longer exists in
    RENDER_MODELS must fall back to the shipped default LOUDLY — a dangling id would break doRender
    on the next click (the loadProviderSettings pruning precedent). */
+// #319 plot armor (owner ruling 2026-09-03: derived with override). The blueprint's per-NPC `armor`
+// field, normalized: "none" strips derived armor; an act number grants it until that act opens;
+// anything else (blank, "auto") leaves derivation to the skeleton (plotArmor, identity.js). Pure.
+function seedArmor(n){var v=n&&n.armor;if(v==null)return undefined;v=String(v).trim().toLowerCase();if(v==="none"||v==="off"||v==="no")return "none";if(/^\d+$/.test(v)&&Number(v)>0)return Number(v);return undefined;}
 // Where a local save is about to land (owner call 2026-09-03, the missing Iron Meridian save): the
 // modal must say the FOLDER, not just the file. Browsers expose a picked folder's NAME only (never its
 // path) and nothing at all about Downloads, so this is the most a page can truthfully say. Pure.

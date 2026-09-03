@@ -948,6 +948,7 @@ function sceneRefReveal(handle,entity,R){
 }
 function _w2StampDead(name,turn,R){
   var canon=resolveNpcName(name),n=(typeof wsNpcByName==="function")?wsNpcByName(canon):null,m=memory.npcs&&memory.npcs[canon];if(!n&&!m)return false;
+  if(typeof plotArmor==="function"&&plotArmor(canon)){plotArmorRefuse(canon,R,"scene death");if(R&&R.errors&&typeof _w2TxnSubjectNow!=="undefined"&&_w2TxnSubjectNow)R.errors.push("plot armor: "+canon+" cannot die yet");return false;}/* #319: inside an envelope the error rolls the rewards back too */
   if(n){n.dead=turn;if(!npcDeadStatus(n.status))n.status="dead";n.statusTurn=turn;}if(m)m.dead=turn;_w2ResolveConflicts(canon,null);if(R)R.muts.push(canon+": dead (t"+turn+")");return true;
 }
 /* #175bR (entry-17 review): the transaction subject, threaded to the executor for the duration of
@@ -1332,6 +1333,8 @@ var W2_REFUSAL_REASONS=[
 ];
 var W2_REFUSAL_FALLBACK="the GM's account of that scene did not add up";
 var W2_REFUSAL_COPY=[
+  {match:/plot armor/i,/* #319 — first: a refused death of a load-bearing character is a story beat, not a mix-up */
+   copy:"they are load-bearing to the story and cannot die yet \u2014 they got away"},
   {match:/overflow latch|fail closed until a structured summary/i,
    copy:"the engine ran out of room to keep track of who was on screen"},
   {match:/receipt capacity is exhausted/i,
@@ -1472,6 +1475,9 @@ function w2PrepareResponse(text){
     if(p.length!==5||!meta.id||m[3].trim()!==meta.id)reason="malformed or mismatched transaction envelope";else if(meta.claim!=="npc-death"&&meta.claim!=="quest-outcome")reason="unsupported canon claim type";else if(prior&&prior.status==="quarantined")reason="claim id was already quarantined";else if(prior&&!_w2TxnMetaSame(prior,meta))reason="claim id was reused with different metadata";
     var _part=null;
     if(!reason){_part=_w2TxnPartition(meta,ops);if(_part.reason)reason=_part.reason;else{ops=_part.gov;if(_part.eject.length){ordinary+="\n"+_part.eject.join("");meta.ejected=_part.eject.map(_w2TagName);if(typeof console!=="undefined")console.warn("[identity] "+_part.eject.length+" incidental tag(s) ejected from canon claim "+meta.id+" and applied as ordinary tags: "+meta.ejected.join(", ")+" (#175 — one stray tag must never void a death and its rewards)");}}}
+    if(!reason&&meta.claim==="npc-death"&&typeof plotArmor==="function"){/* #319: the load-bearing gate sits BEFORE evidence — a well-evidenced death of an armored NPC is still refused, and the envelope's rewards with it */
+      var _paSubj=(meta.subject&&meta.subject!=="-")?meta.subject:null;if(!_paSubj&&meta.evidence&&meta.evidence!=="-"){var _paHit=_sceneRefActor(meta.evidence);if(_paHit&&_paHit.actor&&_paHit.actor.entity)_paSubj=_paHit.actor.entity;}
+      var _paA=_paSubj?plotArmor(_paSubj):null;if(_paA){reason="plot armor: "+resolveNpcName(_paSubj)+" is load-bearing until Act "+_paA.act+(_paA.arc?" \u201c"+_paA.arc+"\u201d":"")+" and cannot die yet";plotArmorRefuse(_paSubj,null,"canon envelope");}}
     if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&w2HandleKey(deathHandle)!==w2HandleKey(meta.evidence))reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence)&&!_w2CombatFoeMatch(meta.evidence!=="-"?meta.evidence:(deathHandle||meta.subject),text)/* #318: a rostered combat foe the response kills is combat canon — no handle needed */){var _veOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);reason=_veOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs (it recovers capacity), the scene moves (a location or sublocation change), or the death is filed off-screen via [NPC_DEATH_REPORTED:]":"scene evidence does not bind the claimed victim";if(!_veOv&&meta.subject&&meta.subject!=="-")_w2ArmDeathValve(resolveNpcName(meta.subject));/* #194 L3: an evidence-lack refusal arms the fork note; a capacity refusal must not (its cure is a summary, not ceremony) */}}
     if(!reason&&meta.claim==="quest-outcome"&&!_w2QuestExists(meta.quest))reason="quest outcome names no active accepted quest";
     if(!reason&&!prior&&meta.claim==="npc-death"&&meta.quest!=="-"&&!_w2QuestExists(meta.quest))reason="death outcome names no active accepted quest";
@@ -1491,12 +1497,16 @@ function w2PrepareResponse(text){
     /* #204: a stray echo of an operation that already SUCCEEDED (committed envelope this response,
        or subject already dead in canon) strips silently — no toast, no conflict, no withhold arm. */
     if(_w2StrayDeathIsDuplicate(ba&&ba.actor.entity?ba.actor.entity:null,bh)){_w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");if(typeof console!=="undefined")console.warn("[identity] stray [SCENE_DEATH:"+bh+"] duplicates an operation that already succeeded — stripped as hygiene, no dispute (#204)");continue;}
+    if(ba&&ba.actor.entity&&typeof plotArmor==="function"&&plotArmor(ba.actor.entity)){_w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");plotArmorRefuse(ba.actor.entity,null,"scene death");if(!refusedVictim){refusedReason="plot armor: "+ba.actor.entity+" cannot die yet";refusedConflict=null;}refusedVictim=refusedVictim||ba.actor.entity;continue;}/* #319 */
     _w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");var _bdC=_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");if(!refusedVictim){refusedReason="scene death was emitted outside a canon transaction";refusedConflict=_bdC;}refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
   var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;
     /* #193 (v1.672): the operand must NAME the victim before the death gate even evaluates —
        "the caul of mist" fuzzy-resolves to Caul via the consolidation, but a common noun or a
        bare title is not a death warrant. Disagreement REFUSES, never redirects (a discriminator
        that picked a different victim than the consolidation is the entry-17 wrong-victim shape). */
+    if(!npcIsDead(ws)&&typeof plotArmor==="function"&&plotArmor(nm)){/* #319: load-bearing — refused BEFORE evidence, as a story beat (no identity conflict); co-emitted rewards strip below */
+      _w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");plotArmorRefuse(nm,null,"status tag");
+      if(!refusedVictim){refusedReason="plot armor: "+nm+" cannot die yet";refusedConflict=null;}refusedVictim=refusedVictim||nm;continue;}
     if(worldState.sceneRefs&&!npcIsDead(ws)&&typeof w2SelfNamingCanon==="function"&&w2SelfNamingCanon(dm[1].trim())!==nm){
       _w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");
       var _dsC=_w2Conflict(nm,"-","death operand is descriptor-shaped or ambiguous — it does not NAME the victim");
@@ -1659,6 +1669,45 @@ function _w2CombatFoeMatch(name,text){
     if(foes[i].hp<=0||victory)return String(n);
     var j;for(j=0;j<slain.length;j++){var sm=slain[j].match(/\[ENEMY_SLAIN:([^\]]+)\]/);if(sm&&same(sm[1].trim()))return String(n);}}
   return null;
+}
+// #319 PLOT ARMOR (owner ruling 2026-09-03: derived with override). A character the skeleton still
+// needs cannot die yet. DERIVED: an NPC whose name (or surname) appears in the text of an act or arc
+// that has not OPENED (status pending) is armored until it opens — once that arc is active their
+// purpose is being fulfilled and they are fair game (the Iron Meridian save: Lyle is named only in Act
+// Three's "Whose Hand Moves You"; Kolm is named nowhere and the author wrote his fallback). OVERRIDE:
+// the roster's `armor` (the blueprint's NPC field, via seedArmor) — "none" strips; an act number armors
+// until that act opens. BUDGET: every refused death spends one escape (PLOT_ARMOR_ESCAPES); spent, the
+// armor drops and the author's fallback applies. Returns null or {act, arc, escapes, max}.
+function _plotArmorNameIn(text,name){
+  var t=" "+w2HandleKey(text).replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ")+" ",k=w2HandleKey(name).replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim();if(!k)return false;
+  if(t.indexOf(" "+k+" ")>=0)return true;
+  var parts=k.split(" "),last=parts[parts.length-1];
+  return parts.length>1&&last.length>=4&&t.indexOf(" "+last+" ")>=0;
+}
+function plotArmor(name){
+  if(!worldState||!name||name==="-")return null;var canon=resolveNpcName(name),n=(typeof wsNpcByName==="function")?wsNpcByName(canon):null;if(!n||n.partyMember)return null;
+  var max=(typeof PLOT_ARMOR_ESCAPES==="number")?PLOT_ARMOR_ESCAPES:2,used=(worldState.plotArmor&&worldState.plotArmor[canon]&&worldState.plotArmor[canon].escapes)||0;if(used>=max)return null;
+  var ov=(typeof seedArmor==="function")?seedArmor(n):undefined;if(ov==="none")return null;
+  var sk=worldState.skeleton,acts=(sk&&sk.acts)||[],i,j,hit=null;
+  if(typeof ov==="number"){var act=acts[ov-1];if(!act||act.status==="active"||act.status==="completed")return null;return {act:ov,arc:act.title||"",escapes:used,max:max};}
+  var names=[canon].concat(n.aliases||[]);
+  function named(str){var q;for(q=0;q<names.length;q++)if(_plotArmorNameIn(String(str||""),names[q]))return true;return false;}
+  for(i=0;i<acts.length;i++){var a=acts[i];if(!a||a.status==="completed")continue;
+    var arcs=a.arcs||[];for(j=0;j<arcs.length;j++){var r=arcs[j];if(!r||r.status==="active"||r.status==="completed")continue;if(named([r.title,r.objective,r.goal,r.dnaHint,r.turningPoint].join(" ")))hit={act:i+1,arc:r.title||""};}
+    if(!hit&&a.status!=="active"&&named([a.title,a.goal,a.turningPoint].join(" ")))hit={act:i+1,arc:a.title||""};
+  }
+  if(!hit)return null;hit.escapes=used;hit.max=max;return hit;
+}
+// The refusal every death path shares: spends an escape, arms the next-turn note, says so loudly.
+function plotArmorRefuse(name,R,how){
+  var canon=resolveNpcName(name),a=plotArmor(canon);if(!a)return false;
+  if(!worldState.plotArmor)worldState.plotArmor={};var rec=worldState.plotArmor[canon]||{escapes:0};rec.escapes++;rec.turn=worldState.turn;worldState.plotArmor[canon]=rec;
+  worldState.plotArmorPing={name:canon,turn:worldState.turn,act:a.act,arc:a.arc,escapes:rec.escapes,max:a.max,how:how||""};
+  var line=canon+": death refused \u2014 plot armor until Act "+a.act+(a.arc?" \u201c"+a.arc+"\u201d":"")+" (escape "+rec.escapes+" of "+a.max+")";
+  if(R&&R.muts)R.muts.push(line);
+  if(typeof console!=="undefined")console.warn("[identity] #319 "+line+(how?" ["+how+"]":""));
+  if(typeof showToast==="function")showToast("\u26e8 "+canon+" got away \u2014 load-bearing until Act "+a.act+" (escape "+rec.escapes+" of "+a.max+")");
+  return true;
 }
 function _w2CombatSlainMatch(name){
   var ring=worldState&&worldState.combatSlain;if(!ring||!ring.length||!name)return null;

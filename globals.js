@@ -118,6 +118,9 @@ var IMPORT_CAPS={premise:2500,backstory:2500,field:800,rule:400};
 // hearsay, never as truth.
 var WHISPERS_EVERY=15;
 var WHISPERS_CAP=12;
+// #319 plot armor (owner ruling 2026-09-03): a load-bearing NPC gets this many refused deaths (staged
+// escapes) before the armor is spent and the author's fallback carries the story.
+var PLOT_ARMOR_ESCAPES=2;
 var COMBAT_SLAIN_CAP=12;    // #299: the combat-slain ring — every foe slain at a combat close (rostered or not), so a chapter summary citing a rolled foe's death validates as combat canon instead of opening a W2 conflict
 var MONTAGE_AFTER_TURNS=6;  // #308: this many committed turns at one place with no fight and no move → the fourth button offers a MONTAGE (one paragraph, hours advance, land at the next decision)
 var PREVIOUSLY_AFTER_MS=2*60*60*1000; // #308: Car Mode speaks a "previously on" recap when the last turn is older than this
@@ -340,7 +343,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.790";
+var APP_VERSION="v1.791";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
