@@ -315,6 +315,15 @@ var storageAdapter = (function() {
   var _last401At   = 0;   // #7② (#23① sweep): 401 toast repeats every RE401_TOAST_MS while the outage persists — the one-shot latch was missed twice in the field
   var _lastFailStatus = 0; // HTTP status of the most recent sync failure; 401 here makes the badge a tap-to-reconnect
   var RE401_TOAST_MS = 300000;
+  var _last413At   = 0;   // #313: a server quota refusal (413) repeats its own explanation on the same cadence — it never self-heals, so the generic "uploads when the server is back" line would be a lie
+  // #313: turn the server's quota-refusal body into one sentence the player can act on. Pure.
+  function quotaRefusalText(d) {
+    d = d || {};
+    var mb = function(n){ return (Number(n || 0) / 1048576).toFixed(1) + " MB"; };
+    if (d.error === "campaign limit reached") return "campaign limit reached (" + d.campaigns + " of " + d.campaignQuota + ") — delete an old campaign to save a new one";
+    if (d.error === "storage quota exceeded") return "storage quota exceeded (" + mb(d.usedBytes) + " of " + mb(d.quotaBytes) + " used, this save is " + mb(d.incomingBytes) + ") — delete old campaigns, characters or blueprints to free space";
+    return "the server refused the save as too large (" + (d.error || "413") + ")";
+  }
   var _conflict    = null; // CAS 409 (Known issue #5): {serverTurn} — another device is ahead; auto-sync pauses until reload/switch
 
   // Reset the per-campaign sync bookkeeping on a campaign switch (audit E32). These are module
@@ -322,7 +331,7 @@ var storageAdapter = (function() {
   // syncStatus().unsynced pinned at 0 (killing the #24 foreground self-heal), and switching the
   // other way showed a false "N turns unsynced" badge. Called from loadState (init + every switch).
   function resetSyncState() {
-    _lastAckTurn = -1; _failCount = 0; _last401At = 0; _lastFailStatus = 0; _portraitSyncedOnce = false; _conflict = null;
+    _lastAckTurn = -1; _failCount = 0; _last401At = 0; _last413At = 0; _lastFailStatus = 0; _portraitSyncedOnce = false; _conflict = null;
     _updateSyncUI();
   }
   // CAS conflict (Known issue #5): the server refused this write because another device's state
@@ -380,7 +389,10 @@ var storageAdapter = (function() {
       if (status === 401 && Date.now() - _last401At > RE401_TOAST_MS) {
         _last401At = Date.now();
         showToast("&#9729; Session expired &mdash; tap the &#9729; badge (or Dev Mode &#9656; Connect server) to reconnect");
-      } else if (_failCount === 3) {
+      } else if (status === 413 && Date.now() - _last413At > RE401_TOAST_MS) {
+        _last413At = Date.now();
+        showToast("&#9729; Save refused by the server &mdash; " + msg + ". Progress is safe on this device.");
+      } else if (_failCount === 3 && status !== 413) {
         showToast("&#9729; Sync failing &mdash; progress is saved on this device and uploads automatically when the server is back");
       }
     }
@@ -598,6 +610,7 @@ var storageAdapter = (function() {
           } else { _onConflict(st); _fin("another device is ahead (server turn " + st + ")"); }
         }).catch(function(){ _onConflict(null); _fin("conflict — the 409 body was unreadable"); });
       }
+      else if (r.status === 413) { r.json().then(function(d){ _onSyncFail(quotaRefusalText(d), 413); }).catch(function(){ _onSyncFail(quotaRefusalText(null), 413); }); _fin("server refused the save — quota"); }
       else if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); _fin("server returned " + r.status); }
       else {
         _syncOk(turnAt);
@@ -1060,6 +1073,7 @@ var storageAdapter = (function() {
     syncCampaignList:      syncCampaignList,
     mergeCampaignLists:    mergeCampaignLists, // exposed for the engine tests (UA20)
     resolveCas409:         resolveCas409,      // exposed for the engine tests (CAS self-heal)
+    quotaRefusalText:      quotaRefusalText,   // exposed for the engine tests (#313 quota refusal copy)
     reconcileIdentityOk:   reconcileIdentityOk, // exposed for the engine tests (B7 identity guard)
     markPortraitDirty:     markPortraitDirty,
     fillPortraitsFromBlob: fillPortraitsFromBlob, // exposed for the engine tests (v1.170)

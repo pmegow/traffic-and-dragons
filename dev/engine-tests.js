@@ -1419,6 +1419,23 @@ function runEngineTests(R){
   t("another device genuinely ahead → PAUSE (the guard's real target is untouched)",function(){
     return eq(storageAdapter.resolveCas409(99,5,false),"pause");
   });
+  // #313: a server quota refusal (413) is explained in the server's own numbers, never as an
+  // outage that "uploads when the server is back" — a refusal that never heals must not lie.
+  t("#313 quota refusal copy: storage quota → MB used / quota / this save, with the remedy",function(){
+    var s=storageAdapter.quotaRefusalText({error:"storage quota exceeded",usedBytes:262000000,quotaBytes:268435456,incomingBytes:5242880});
+    if(s.indexOf("249.9 MB of 256.0 MB")<0)return "missing used/quota: "+s;
+    if(s.indexOf("this save is 5.0 MB")<0)return "missing incoming: "+s;
+    if(!/delete old campaigns/.test(s))return "missing remedy: "+s;
+    return true;
+  });
+  t("#313 quota refusal copy: campaign cap names the count and the cap",function(){
+    var s=storageAdapter.quotaRefusalText({error:"campaign limit reached",campaigns:40,campaignQuota:40});
+    return s.indexOf("40 of 40")>=0&&/delete an old campaign/.test(s)?true:s;
+  });
+  t("#313 quota refusal copy: an unreadable/unknown 413 body still explains itself, never throws",function(){
+    var a=storageAdapter.quotaRefusalText(null),b=storageAdapter.quotaRefusalText({error:"weird"});
+    return /too large/.test(a)&&/weird/.test(b)?true:a+" | "+b;
+  });
   t("unverifiable serverTurn → PAUSE (never heal blind)",function(){
     if(storageAdapter.resolveCas409(null,5,false)!=="pause")return "null healed";
     return eq(storageAdapter.resolveCas409(undefined,5,false),"pause");
