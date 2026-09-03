@@ -974,6 +974,22 @@ function _itemServe(ov,base){
   return ov||base||null;
 }
 // #303: a bible `value` ("50 gp", "1,200 gp") → number; null for N/A or anything unparseable.
+// #309 (the #297 rule generalised for every name router): does `hay` mention `needle` as a NAME?
+// Word-boundaried, case-insensitive, and a possessive right after the name is a DIFFERENT thing —
+// "Nolan Grimtide's raider" is not Nolan Grimtide. Epithets still match ("Kresh the Tall" ⊃ Kresh).
+function nameContains(hay,needle){
+  var h=String(hay==null?"":hay).toLowerCase(),n=String(needle==null?"":needle).toLowerCase().trim();
+  if(!h||!n)return false;
+  var from=0,i;
+  while((i=h.indexOf(n,from))>=0){
+    var before=i>0?h.charAt(i-1):" ",after=h.charAt(i+n.length);
+    var bOk=!/[a-z0-9]/.test(before),aOk=!after||!/[a-z0-9]/.test(after);
+    var poss=(after==="'"||after==="\u2019")&&/^s?\b/.test(h.slice(i+n.length+1));
+    if(bOk&&aOk&&!poss)return true;
+    from=i+1;
+  }
+  return false;
+}
 function itemValueGp(entry){if(!entry||!entry.value)return null;var m=String(entry.value).replace(/,/g,"").match(/(\d+(?:\.\d+)?)\s*gp/i);return m?parseFloat(m[1]):null;}
 // #303: LOCATION_SIZE text → the wares-cap tier. The GM's vocabulary is physical scale (small /
 // medium / large / vast — measured on the t2097 map); settlement words are folded in as a courtesy.

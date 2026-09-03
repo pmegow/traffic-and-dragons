@@ -477,6 +477,115 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #309 the engine's own behaviour, auditable ──────────────────────────────
+  t("#309 notes ring: buildEngineNotes records what it built; noteLogCommit files {t,n,c} on worldState.noteLog (cap NOTE_LOG_CAP); noteLogDiscard drops a never-delivered build",function(){
+    makeWorld();worldState.turn=12;worldState.locationFilingPing={place:"The Old Mill",turn:11};
+    var txt=buildEngineNotes();if(!txt)return "no note built";
+    var b=lastEngineNotesBuilt();if(!b||b.n.indexOf("buildLocationFilingNudge")<0||b.c<100||b.t!==12)return "pending record wrong: "+JSON.stringify(b);
+    noteLogCommit();
+    if(!worldState.noteLog||worldState.noteLog.length!==1||worldState.noteLog[0].n[0]!=="buildLocationFilingNudge"||worldState.noteLog[0].t!==12)return "ring: "+JSON.stringify(worldState.noteLog);
+    if(lastEngineNotesBuilt())return "pending not consumed by commit";
+    noteLogCommit();if(worldState.noteLog.length!==1)return "an empty commit filed a row";
+    worldState.travelPricePing={destination:"Magnimar",elapsed:5,shortfall:2000,turn:12};buildEngineNotes();noteLogDiscard();
+    if(worldState.noteLog.length!==1||lastEngineNotesBuilt())return "discard leaked a row";
+    var i;for(i=0;i<NOTE_LOG_CAP+5;i++){worldState.turn=20+i;worldState.locationFilingPing={place:"P"+i,turn:19+i};buildEngineNotes();noteLogCommit();}
+    return worldState.noteLog.length===NOTE_LOG_CAP&&worldState.noteLog[NOTE_LOG_CAP-1].t===20+NOTE_LOG_CAP+4?true:"cap: "+worldState.noteLog.length;
+  });
+  t("#309 notes ring is a declared save field the #151 restore never touches, and the refusal path discards instead of filing",function(){
+    if(NOTE_LATCH_FIELDS.indexOf("noteLog")>=0)return "noteLog must not be a latch (a restore would erase history)";
+    makeWorld();worldState.turn=5;worldState.locationFilingPing={place:"X",turn:4};
+    var snap=snapshotNoteLatches();buildEngineNotes();restoreNoteLatches(snap);noteLogDiscard();
+    if(!worldState.locationFilingPing)return "restore did not un-burn the ping";
+    return !worldState.noteLog||!worldState.noteLog.length?true:"a dead turn filed a row";
+  });
+  t("#309 shape registry: every NOTE_BUILDERS entry has a NOTE_SHAPES row with a legal shape, and every latch a row names is declared (NOTE_LATCH_FIELDS, a nested latch, or a ruled exemption)",function(){
+    var i,n,legal=["one-shot-ask","cooldown-reminder","escalation","audit","fork-note","transient"],known={};
+    for(i=0;i<NOTE_LATCH_FIELDS.length;i++)known[NOTE_LATCH_FIELDS[i]]=1;
+    for(i=0;i<NOTE_NESTED_LATCHES.length;i++)known[NOTE_NESTED_LATCHES[i]]=1;
+    known.clock=1;known.pendingRewardClaims=1;/* dev/latch-census.js NOTE_LATCH_EXEMPT */
+    for(i=0;i<NOTE_BUILDERS.length;i++){n=noteBuilderName(NOTE_BUILDERS[i]);var row=NOTE_SHAPES[n];
+      if(!n)return "builder #"+i+" has no name";
+      if(!row)return n+" has no NOTE_SHAPES row";
+      if(legal.indexOf(row.shape)<0)return n+": illegal shape "+row.shape;
+      if(row.combat!=="silent"&&row.combat!=="fires")return n+": combat must be silent|fires";
+      if(!row.latch||!row.latch.length)return n+": latch list empty (use ['none'])";
+      var j;for(j=0;j<row.latch.length;j++)if(row.latch[j]!=="none"&&!known[row.latch[j]])return n+": latch '"+row.latch[j]+"' is undeclared";}
+    return true;
+  });
+  t("#309 shape registry (reverse): every NOTE_LATCH_FIELDS entry is claimed by some builder — retconPin is gone, marketAsk is claimed",function(){
+    var claimed={},k;for(k in NOTE_SHAPES){var r=NOTE_SHAPES[k],j;for(j=0;j<r.latch.length;j++)claimed[r.latch[j]]=1;}
+    var i;for(i=0;i<NOTE_LATCH_FIELDS.length;i++)if(!claimed[NOTE_LATCH_FIELDS[i]])return "latch '"+NOTE_LATCH_FIELDS[i]+"' is declared but no builder claims it";
+    if(NOTE_LATCH_FIELDS.indexOf("retconPin")>=0)return "retconPin still declared";
+    var names={};for(i=0;i<NOTE_BUILDERS.length;i++)names[noteBuilderName(NOTE_BUILDERS[i])]=1;
+    for(k in NOTE_SHAPES)if(!names[k])return "NOTE_SHAPES row '"+k+"' has no builder behind it";
+    return true;
+  });
+  t("#309 shared frames: the six one-shot pings and the five shelf pings emit BYTE-IDENTICAL text to their pre-refactor bodies (fixtures from the catalog)",function(){
+    makeWorld();worldState.turn=50;var out;
+    worldState.locationFilingPing={place:"The Old Mill",turn:49};out=buildLocationFilingNudge();
+    if(out!=="[ENGINE NOTE — LOCATION FILING GAP (not a player action): the story entered or remained inside 'The Old Mill' for several committed turns without a location tag. If this is a new world location, emit [LOCATION:The Old Mill]; if it is an interior of the current world location, emit [SUBLOCATION:The Old Mill]. If neither is true, leave location state unchanged. Never acknowledge this check in prose.]")return "filing: "+out;
+    if(worldState.locationFilingPing!==undefined)return "filing ping not deleted";
+    worldState.travelPricePing={destination:"Magnimar",elapsed:40,shortfall:2840};out=buildTravelPriceNudge();
+    if(out!=="[ENGINE NOTE — TRAVEL TIME GAP (not a player action): the journey to Magnimar was priced in days, but arrival landed after only 40 clock minutes. If the travel really consumed the stated duration, emit [TIME_ADVANCE:2840m] for ONLY the missing shortfall. If the earlier duration was only an estimate, a shortcut occurred, or the route changed, leave the clock unchanged and keep the current fiction. Never auto-correct story text.]")return "travel: "+out;
+    worldState.commitmentPing={text:"fifty gold by the new moon"};out=buildCommitmentNudge();
+    if(out!=="[ENGINE NOTE — DATED COMMITMENT GAP (not a player action): the last scene joined an obligation/payment with a delivery interval ('fifty gold by the new moon') but filed no lifecycle state. If it is a real timed obligation, file ONE appropriate authority now: [SCHEDULE:event|duration], [FUTURE_EVENT:event|when], or [QUEST:title|offered|description]. If it was only talk, negotiation, or a hypothetical, leave state unchanged. Never acknowledge this check in prose.]")return "commitment: "+out;
+    worldState.futureResolveHints=[{what:"the tithe",evidence:"the tithe was paid"},{what:"x",evidence:"y"}];out=buildFutureResolveNudge();
+    if(out!=="[ENGINE NOTE — PENDING EVENT MAY BE RESOLVED (not a player action): the fresh chapter summary appears to contain an outcome for 'the tithe' (evidence: 'the tithe was paid'). If that anticipated event actually finished, emit [FUTURE_EVENT_RESOLVED:the tithe] now. If it was merely mentioned, approached, or remains unfinished, leave it pending.]")return "future: "+out;
+    if(!worldState.futureResolveHints||worldState.futureResolveHints.length!==1)return "queue not shifted";
+    buildFutureResolveNudge();if(worldState.futureResolveHints!==undefined)return "empty queue not deleted";
+    worldState.locationTwinConflicts=[{requested:"The Rusty Flagon",leaf:"The Rusty Flagon",parent:"Sandpoint"}];out=buildLocationTwinNudge();
+    if(out!=="[ENGINE NOTE — LOCATION LEVEL CONFLICT (not a player action): [LOCATION:The Rusty Flagon] was refused because 'The Rusty Flagon' already exists as an interior of Sandpoint; accepting it would mint a duplicate world node and edge. If the party entered that known interior, emit [SUBLOCATION:The Rusty Flagon]. If a genuinely distinct world place was intended, use its unambiguous world-location name.]")return "twin: "+out;
+    worldState.phaseMismatch={label:"dusk",stamp:"Day 3, 11:57",idx:0};var _d=clockPhaseBandDist;clockPhaseBandDist=function(){return PHASE_MISMATCH_MIN;};try{out=buildPhaseMismatchNudge();}finally{clockPhaseBandDist=_d;}
+    if(out!=="[ENGINE NOTE — CLOCK vs NARRATION (not a player action): your last scene described \"dusk\" but the campaign clock reads Day 3, 11:57. If the story is NOW at dusk, emit [TIME:dusk] in this response and the engine will reconcile the clock. If that mention was only a reference (a plan, a memory, a figure of speech), do nothing.]")return "phase: "+out;
+    worldState.phaseMismatch={label:"dusk",stamp:"s",idx:0};clockPhaseBandDist=function(){return 0;};try{out=buildPhaseMismatchNudge();}finally{clockPhaseBandDist=_d;}
+    if(out!==""||worldState.phaseMismatch!==undefined)return "moot phase mismatch not cleared";
+    worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:1,maxHp:1}]};worldState.locationFilingPing={place:"Q",turn:49};
+    if(buildLocationFilingNudge()!==""||!worldState.locationFilingPing)return "one-shot pings must be combat-silent WITHOUT consuming";
+    worldState.combat=null;
+    /* the shelf family */
+    worldState.presencePing={name:"Frizwick",turn:50};out=buildStayBehindNudge();
+    if(out!=="[ENGINE NOTE — SEPARATION UNRECORDED (not a player action): your recent narration described Frizwick staying behind or separating from the party, but no [PARTY_SPLIT:] was recorded — the engine still treats them as present in every scene. If they truly separated, emit [PARTY_SPLIT:Frizwick|Location] (add |Sublocation if known) NOW; if they are actually with the party, emit nothing and keep narrating them present.]")return "stay: "+out;
+    if(worldState.presencePing!==null)return "stay ping should be nulled, not deleted";
+    worldState.presencePing={name:"F",turn:47};if(buildStayBehindNudge()!==""||worldState.presencePing!==null)return "2-turn shelf not honoured";
+    worldState.playerSplitPing={names:[],turn:50};out=buildPlayerSplitNudge();
+    if(out!=="[ENGINE NOTE — PLAYER-DECLARED SEPARATION UNRECORDED (not a player action): the player's own instruction had part of the party staying behind or splitting off, but no [PARTY_SPLIT:] was recorded — the engine still treats everyone as present in every scene. Decide from the STORY: if a subgroup truly separated, emit [PARTY_SPLIT:<Name>|<Location>|<Sublocation>] NOW for EACH member who is elsewhere; if the group actually stayed together, emit nothing and keep narrating them present.]")return "player split: "+out;
+    worldState.reconcileSkip={label:"morning",delta:600,turn:50};out=buildReconcileSkipNudge();
+    if(out!=="[ENGINE NOTE — CLOCK LABEL MISMATCH (not a player action): you declared the time as 'morning', but that phase already passed this day — the clock was NOT advanced (10h would have jumped to tomorrow). Resolve it now: if a night's sleep genuinely passed, emit [REST:long]; if days passed, emit [TIME_ADVANCE:Nd]; if it is actually still the same day, re-declare the correct time of day with [TIME:...]. Never restate elapsed totals yourself — the engine does all arithmetic.]")return "reconcile: "+out;
+    worldState.itemMisPing={item:"the lantern",wrong:"Daeris",owner:"Ammut",turn:50};worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:1,maxHp:1}]};
+    if(buildItemMisNudge()!==""||!worldState.itemMisPing)return "item-mis must be combat-silent without consuming";
+    worldState.combat=null;out=buildItemMisNudge();
+    if(out!=="[ENGINE NOTE — ITEM ATTRIBUTION (not a player action): your narration placed 'the lantern' with Daeris, but the sheets record it ONLY in Ammut's inventory. If Daeris genuinely has it now, record the transfer with the item tags (a loss on Ammut's side and a gain on Daeris's — COMPANION_ forms for party members); if it was a slip of the pen, simply let later narration keep the item with Ammut. Never restate this note in prose.]")return "item-mis: "+out;
+    worldState.pendingReunion={names:["Frizwick","Daeris"],node:"Sandpoint",turn:50};out=buildReunionNote();
+    if(out!=="[ENGINE NOTE — REUNION (not a player action): Frizwick, Daeris rejoined the party this turn — each split thread ended at the party's own location (Sandpoint). The story has NOT yet shown this: acknowledge the reunion in your narration now (a greeting, falling back into step, whatever fits the scene). If the story actually has any of them elsewhere, re-emit [PARTY_SPLIT:<Name>|<Location>|<Sublocation>] instead and they stay split.]")return "reunion: "+out;
+    if(worldState.pendingReunion!==undefined)return "reunion ping should be deleted";
+    worldState.pendingReunion={names:["F"],node:"S",turn:46};if(buildReunionNote()!==""||worldState.pendingReunion!==undefined)return "3-turn shelf not honoured";
+    return true;
+  });
+  t("#309 the condition-audit expiry appointment is a latch the #151 snapshot restores (a dead provider call must not consume it)",function(){
+    makeWorld();worldState.turn=40;worldState.lastConditionAudit=0;
+    worldState.character.conditions=[{name:"Poisoned",duration:"3 turns",turn:35,until:38}];
+    var snap=snapshotNoteLatches();var note=buildConditionAudit();
+    if(!note||worldState.character.conditions[0].until!==undefined)return "fixture: the audit did not fire/consume";
+    restoreNoteLatches(snap);
+    return worldState.character.conditions[0].until===38&&worldState.lastConditionAudit===0?true:"until not restored: "+JSON.stringify(worldState.character.conditions[0]);
+  });
+  t("#309 nameContains: word-boundaried, case-insensitive, and a possessive right after the name is a DIFFERENT thing (the #297 rule for every name router)",function(){
+    if(!nameContains("Kresh the Tall","kresh"))return "epithet failed";
+    if(nameContains("Nolan Grimtide's raider","Nolan Grimtide"))return "possessive derivative matched";
+    if(nameContains("Nolan Grimtide’s raider","Nolan Grimtide"))return "curly possessive matched";
+    if(nameContains("Nolanmoor","Nolan"))return "no word boundary";
+    if(!nameContains("The Nolan","nolan"))return "trailing word failed";
+    if(nameContains("","x")||nameContains("x",""))return "empty handling";
+    return nameContains("Wyla Ashvane","Wyla Ashvane")?true:"exact failed";
+  });
+  t("#309 routing scan: the recurring-name checker no longer treats a possessive derivative in the inventory or a node as the name itself",function(){
+    makeWorld();worldState.character.inventory=["Grimtide's ledger"];
+    if(_recurringKnownName("Grimtide"))return "the ledger's owner-name was read as a known name";
+    worldState.character.inventory=["Cleaver — a runeblade"];
+    if(!_recurringKnownName("Cleaver"))return "a named item should still be known";
+    worldState.npcs.push({name:"Nolan Grimtide",status:"alive",rel:"foe"});
+    return _recurringKnownName("Nolan")?true:"a roster first name should be known";
+  });
   // ── #303 wants & economy ────────────────────────────────────────────────────
   function marketWorld(size){makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation=null;worldState.turn=30;
     memory.map.nodes["Sandpoint"]={firstVisit:5,lastVisit:30,visits:3,description:"A harbour town.",parent:null,npcs:[],items:[],size:size||"medium",travelMins:20};

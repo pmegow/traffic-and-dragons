@@ -55,8 +55,8 @@ rc |= sabotage.prove({
   command: ["node", ["dev/run-tests.js"]],
   cases: [
     { label: "stale-agreement discard removed — a healed clock still gets nagged", mustFail:"buildPhaseMismatchNudge: one-shot with the amended phrasing, combat-si",
-      find: "  if(typeof clockPhaseBandDist===\"function\"&&clockPhaseBandDist(q.idx)<PHASE_MISMATCH_MIN){delete worldState.phaseMismatch;return\"\";}",
-      replace: "" }
+      find: "moot:function(q){return typeof clockPhaseBandDist===\"function\"&&clockPhaseBandDist(q.idx)<PHASE_MISMATCH_MIN;}",
+      replace: "moot:function(q){return false;}" }/* #309: the builder is a oneShotPing frame now — the moot check is the clause's target */
   ]
 });
 

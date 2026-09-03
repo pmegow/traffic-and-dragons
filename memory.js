@@ -1618,16 +1618,16 @@ var CANON_CONTRA_NOW_RE=/\bsurviv\w*\b[\s\S]{0,120}?\b(?:now|remains|continues|s
    or explicit ignore; two ignored nudges retire the name forever. The engine never registers. */
 var RECURRING_NAME_STOP={"Monday":1,"Tuesday":1,"Wednesday":1,"Thursday":1,"Friday":1,"Saturday":1,"Sunday":1,"Aunt":1,"Uncle":1,"Mother":1,"Father":1,"Brother":1,"Sister":1,"Cousin":1,"Lady":1,"Lord":1,"Sir":1,"Master":1,"Mistress":1,"Captain":1,"Sheriff":1,"Justice":1,"Mayor":1,"Another":1,"Something":1,"Anyone":1,"Anything":1,"One":1,"Two":1,"Three":1,"Four":1,"Five":1,"Six":1,"Seven":1,"Eight":1,"Nine":1,"Ten":1,"First":1,"Second":1,"Third":1,"Last":1,"Every":1,"Each":1,"Both":1,"Most":1,"More":1,"Some":1,"All":1,"None":1,"Half":1,"The":1,"A":1,"An":1,"You":1,"Your":1,"He":1,"She":1,"They":1,"It":1,"But":1,"And":1,"Then":1,"Now":1,"Not":1,"No":1,"Yes":1,"If":1,"When":1,"Where":1,"What":1,"Who":1,"Why":1,"How":1,"His":1,"Her":1,"Their":1,"Its":1,"This":1,"That":1,"These":1,"Those":1,"There":1,"Here":1,"Once":1,"Again":1,"Even":1,"Still":1,"Suddenly":1,"Word":1,"Nothing":1,"Nobody":1,"Someone":1,"Everything":1,"Everyone":1,"Inside":1,"Outside":1,"Beyond":1,"Behind":1,"Before":1,"After":1,"Day":1,"Night":1,"Morning":1,"Evening":1,"Dawn":1,"Dusk":1,"North":1,"South":1,"East":1,"West":1,"GM":1,"OK":1};
 function _recurringKnownName(word){
-  var low=word.toLowerCase();
-  if(worldState.character&&String(worldState.character.name||"").toLowerCase().indexOf(low)>=0)return true;
+  var low=word.toLowerCase();/* #309: every containment below is nameContains — word-boundaried, possessive-refusing (the #297 class: "Grimtide's ledger" in the pack is not Grimtide) */
+  if(worldState.character&&nameContains(worldState.character.name,word))return true;
   var i,ns=worldState.npcs||[];
-  for(i=0;i<ns.length;i++){if(String(ns[i].name).toLowerCase().indexOf(low)>=0)return true;var al=(ns[i].aliases||[]).concat((memory.npcs&&memory.npcs[ns[i].name]&&memory.npcs[ns[i].name].aliases)||[]),j;for(j=0;j<al.length;j++)if(String(al[j]).toLowerCase()===low)return true;}
-  var mk;for(mk in (memory.npcs||{}))if(mk.toLowerCase().indexOf(low)>=0)return true;
-  var nodes=(memory.map&&memory.map.nodes)||{};for(mk in nodes){var leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(mk):mk;if(String(leaf).toLowerCase().indexOf(low)>=0||mk.toLowerCase().indexOf(low)>=0)return true;}
-  var fx=(memory.npcGraph&&memory.npcGraph.factions)||{};for(mk in fx)if(mk.toLowerCase().indexOf(low)>=0)return true;
-  var q=(worldState.questLog||[]),qi;for(qi=0;qi<q.length;qi++)if(String(q[qi].title).toLowerCase().indexOf(low)>=0)return true;
+  for(i=0;i<ns.length;i++){if(nameContains(ns[i].name,word))return true;var al=(ns[i].aliases||[]).concat((memory.npcs&&memory.npcs[ns[i].name]&&memory.npcs[ns[i].name].aliases)||[]),j;for(j=0;j<al.length;j++)if(String(al[j]).toLowerCase()===low)return true;}
+  var mk;for(mk in (memory.npcs||{}))if(nameContains(mk,word))return true;
+  var nodes=(memory.map&&memory.map.nodes)||{};for(mk in nodes){var leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(mk):mk;if(nameContains(leaf,word)||nameContains(mk,word))return true;}
+  var fx=(memory.npcGraph&&memory.npcGraph.factions)||{};for(mk in fx)if(nameContains(mk,word))return true;
+  var q=(worldState.questLog||[]),qi;for(qi=0;qi<q.length;qi++)if(nameContains(q[qi].title,word))return true;
   if(typeof capabilityLookup==="function"&&capabilityLookup(word))return true;/* corpus finding: spell names (Message, Silence, Phantasmal Force) recur like characters */
-  var inv=(worldState.character&&worldState.character.inventory)||[],ii;for(ii=0;ii<inv.length;ii++)if(typeof inv[ii]==="string"&&inv[ii].toLowerCase().indexOf(low)>=0)return true;/* corpus finding: a NAMED ITEM (Cleaver) recurs like a character */
+  var inv=(worldState.character&&worldState.character.inventory)||[],ii;for(ii=0;ii<inv.length;ii++)if(typeof inv[ii]==="string"&&nameContains(inv[ii],word))return true;/* corpus finding: a NAMED ITEM (Cleaver) recurs like a character */
   return false;
 }
 function recurringNameScan(){

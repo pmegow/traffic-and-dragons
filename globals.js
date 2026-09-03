@@ -99,6 +99,7 @@ var DEEP_TIME_NAME_MAX=60;
 var DEEP_TIME_WHEN_MAX=90;
 var DEEP_TIME_NOTE_MAX=160;
 var TAG_LOG_CAP=40;
+var NOTE_LOG_CAP=40;    // #309: the engine-notes ring beside tagLog — {t, n:[builder names], c:chars} per DELIVERED gameplay turn, so an audit can say which notes the engine fired and when
 var HEALTH_LOG_CAP=40; // #17 drift-health ring (worldState.healthLog): ONE observational {t,in,cr,rag,prov} per gameplay-turn call, written only by recordUsage, read only by healthIndicators (helpers.js) — never by any prompt or parser path
 var RETCON_PIN_SHELF=15;    // #147 (drift pass order 4): turns a CORRECTION IN FORCE pin survives un-filed before it archives LOUDLY — bounded so a stuck pin can never become permanent prompt noise (the one-shot-shelf discipline); a completed summarize extraction archives it earlier
 var DEITY_DRIFT_COOLDOWN=25;
@@ -299,7 +300,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.772";
+var APP_VERSION="v1.773";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 var HOME_PENDING_BP_K="tnd_pending_bp_v1";

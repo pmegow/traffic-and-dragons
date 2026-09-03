@@ -1701,11 +1701,13 @@ function commitGmTurn(resp,opts){
        a dead provider call restores them; the snapshot rides in via sendAction's opts). */
     if(typeof tagLogRefusal==="function")tagLogRefusal(resp);
     if(o.latchSnap&&typeof restoreNoteLatches==="function")restoreNoteLatches(o.latchSnap);
+    if(typeof noteLogDiscard==="function")noteLogDiscard();/* #309: a note the GM never acted on is not a note the engine fired */
     console.warn("[refusal] the model declined to narrate (turn "+worldState.turn+") — committed as NON-CANON: embedded tags withheld, retrieval-excluded (#197)");
     if(typeof showToast==="function")showToast("⚠ The model declined this scene — re-roll or rephrase",6000);
     if(typeof erCrumb==="function")erCrumb("turn-refused",{t:worldState.turn,ch:String(resp||"").length});
   }else{
   applyMuts(resp,{deferSave:true});/* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
+  if(o.latchSnap&&typeof noteLogCommit==="function")noteLogCommit();else if(typeof noteLogDiscard==="function")noteLogDiscard();/* #309: the notes ring files only DELIVERED gameplay notes (latchSnap rides only on those turns) */
   /* #149: a FIRED aftermath nudge is consumed by the turn that commits — whether the GM filed
      a [LOCATION_STATE:] or stayed silent, the one shot is spent. A pending stamped by THIS
      response's own combat close has no .fired flag and survives to fire next turn; a failed
@@ -1951,7 +1953,7 @@ async function sendAction(override,opts){
     }
     syncUI();
   }catch(e){th.remove();
-    if(!_committed&&typeof _latchSnap!=="undefined"&&_latchSnap&&typeof restoreNoteLatches==="function")restoreNoteLatches(_latchSnap);/* #151: the request never committed — un-burn every audit/nudge latch the builders stamped composing it, so the same audit fires again next turn instead of silently skipping its cooldown window */
+    if(!_committed&&typeof _latchSnap!=="undefined"&&_latchSnap&&typeof restoreNoteLatches==="function"){restoreNoteLatches(_latchSnap);if(typeof noteLogDiscard==="function")noteLogDiscard();}/* #309 *//* #151: the request never committed — un-burn every audit/nudge latch the builders stamped composing it, so the same audit fires again next turn instead of silently skipping its cooldown window */
     var _hid1=(typeof document!=="undefined"&&document.hidden)?1:0;
     if(typeof erCrumb==="function")erCrumb("turn-fail",(_tSent?(Date.now()-_tSent)+"ms":"pre-send")+(_committed?" post":" pre")+" bg"+_hid0+_hid1+" "+String((e&&e.message)||"?").slice(0,28));/* survives a page kill via the crumb ring, unlike the report below */
     // B16: ctx:"turn" alone could not tell a Story turn from a Table Talk question from a silent
