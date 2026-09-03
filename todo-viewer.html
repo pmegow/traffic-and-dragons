@@ -22,6 +22,7 @@
     ul,ol{padding-left:20px;margin-bottom:10px;color:var(--t1);}
     li{margin-bottom:4px;}
     strong{color:var(--t0);}
+    .legend{font-size:11px;color:var(--t2);margin-left:12px;letter-spacing:.02em;}
     .status{font-size:11px;color:var(--t2);overflow-wrap:break-word;word-break:break-word;}
     .status.sdone{color:var(--grn);}
     .status.slow{color:var(--t2);}
@@ -143,6 +144,7 @@
     <div id="drop-zone">
       <p style="margin-bottom:16px;color:var(--t1);">📋 Traffic and Dragons — TODO Viewer</p>
       <button id="load-btn">Open TODO.md</button>
+      <span class="legend" title="Status glyphs (owner rule 2026-09-02)">○ not started · ◐ partially complete · ◉ ready to test · ✅ complete</span>
       <p style="margin-top:16px;font-size:11px;">or drag &amp; drop TODO.md here</p>
     </div>
   </div>
@@ -154,7 +156,7 @@
 
 <script>
 var _sections = [];
-var TODO_VIEWER_VERSION = "v0.3";  // bump on every todo-viewer change (satellite versioning,
+var TODO_VIEWER_VERSION = "v0.4";  // bump on every todo-viewer change (satellite versioning,
                                    // the BP_DESIGNER_VERSION precedent — this page is NOT in
                                    // the SW app shell, so APP_VERSION/CACHE stay put for it)
 var _tasks = [];
@@ -406,6 +408,7 @@ function renderPage() {
     + "<div style='font-size:12px;color:var(--t2);'>" + active.length + " tasks"
     + (completed.length ? " &middot; " + completed.length + " completed" : "")
     + " &mdash; " + active.filter(isDone).length + " ready to archive</div>"
+    + "<div class='legend'>&#9711; not started &middot; &#9680; partially complete &middot; &#9673; ready to test &middot; &#9989; complete</div>"
     + "</div>"
     + "<div class='toolbar-right'>"
     + "<button class='tbtn' onclick='pickFile()'>&#128194; Select TODO&hellip;</button>"
@@ -519,6 +522,7 @@ function isDone(t) {
   if (rowDot(t)) return false;   // an explicit ○/◐/◉ says the row is NOT finished, whatever it contains
   return /✅/.test(t.task) || /✅/.test(t.status) || /\bDone\b/.test(t.status);
 }
+function isPartial(t) { return rowDot(t) === DOT_PARTIAL; }
 function isReadyToTest(t) {
   // An explicit dot decides BOTH ways. Without this, the prose fallback below promoted a row the
   // human had marked ○ just because its body mentioned a ready-to-test plan (#77's design sketch).
@@ -568,12 +572,12 @@ function renderTaskTable(sec) {
   for (var i = 0; i < _tasks.length; i++) {
     if (_tasks[i].sec !== sec.idx || _tasks[i].completed) continue;
     var t = _tasks[i];
-    var done = isDone(t), rtt = isReadyToTest(t), low = isLow(t);
+    var done = isDone(t), rtt = isReadyToTest(t), part = isPartial(t), low = isLow(t);
     var sCls = done ? "status sdone" : low ? "status slow" : "status";
     var rowCls = done ? "done" : rtt ? "rtt" : "";
     var checkCls = done ? "check-btn" : rtt ? "check-btn rtt" : "check-btn undone";
-    var checkSym = done ? "&#10003;" : rtt ? "&#9679;" : "&#9711;";
-    var checkTitle = done ? "Mark not started" : rtt ? "Mark complete" : "Mark partially built";
+    var checkSym = done ? "&#10003;" : rtt ? "&#9673;" : part ? "&#9680;" : "&#9711;";
+    var checkTitle = done ? "Mark not started" : rtt ? "Mark complete" : part ? "Mark ready to test" : "Mark partially complete";
     var editing = (i === _editIdx);
     var expanded = !!t._expanded;
     var rows = Math.max(2, Math.ceil(t.task.length / 72));
@@ -765,7 +769,7 @@ function saveEditTask(idx) {
   _editIdx = -1;
   renderPage();
 }
-// Cycles ○ not started → ◒ partially built → ✅ complete → ○. The dot is the state, so every
+// Cycles ○ not started → ◐ partially complete → ◉ ready to test → ✅ complete → ○. The dot is the state, so every
 // branch has to move it: leaving one behind would make isDone() refuse and the click look dead.
 function toggleDone(idx) {
   var t = _tasks[idx], rest = stripDot(t.status);
@@ -773,10 +777,12 @@ function toggleDone(idx) {
     rest = rest.replace(/✅\s*/g, "").replace(/^Done\s*[-—]\s*/i, "").replace(/^Done\s*$/i, "").trim();
     t.task = t.task.replace(/✅\s*/g, "").trim();
     t.status = (DOT_UNDONE + " " + rest).trim();
-  } else if (isReadyToTest(t)) {         // partially built → complete (the dot goes, the check lands)
+  } else if (isReadyToTest(t)) {         // ready to test → complete (the dot goes, the check lands)
     rest = rest.replace(/ready\s+to\s+test\s*[-—]?\s*/i, "").trim();
     t.status = rest ? "✅ Done — " + rest : "✅ Done";
-  } else {                               // not started → partially built
+  } else if (isPartial(t)) {             // partially complete → ready to test
+    t.status = (DOT_RTT + " " + rest).trim();
+  } else {                               // not started → partially complete
     t.status = (DOT_PARTIAL + " " + rest).trim();
   }
   renderPage();
