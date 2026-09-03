@@ -411,7 +411,7 @@ function exportSave(){
     "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Save Game (local)</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Turn "+worldState.turn+" &nbsp;·&nbsp; "+worldState.world.location+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Saves to</div>"
-    +"<div id='sc-dest' style='font-size:12px;font-family:var(--font-mono);color:"+(dest.kind==="downloads"?"var(--t1)":"var(--acc)")+";margin-bottom:10px;word-break:break-all;'>"+escHtml(dest.text)+"</div>"
+    +"<div id='sc-dest' style='font-size:12px;font-family:var(--font-mono);color:"+(dest.kind==="downloads"?"var(--t1)":"var(--acc)")+";margin-bottom:10px;overflow-wrap:anywhere;'>"+escHtml(dest.text)+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>File</div>"
     +"<input id='sc-fname' type='text' value='"+fname+"' style='width:100%;font-size:12px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:8px 10px;color:var(--t1);box-sizing:border-box;margin-bottom:"+(alreadySaved?"12":"20")+"px;'/>"
     +(alreadySaved?"<div style='font-size:12px;color:var(--acc);margin-bottom:16px;'>&#9888; A file with this name may already exist in "+escHtml(dest.kind==="downloads"?"your Downloads folder":dest.text.replace(/ \(reconnects on Save\)$/,""))+".</div>":"")
