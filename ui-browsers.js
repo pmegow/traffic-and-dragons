@@ -39,6 +39,7 @@ function consumeHomeQuickStart(){
   var bad=quickStartPayloadValid(rec);
   if(bad){console.warn("[home] quick start dropped — "+bad);showToast("Quick start could not begin: "+bad);return false;}
   var bp=normalizeBlueprint(rec.bp),char=rec.char,tone=null,ti;
+  if(typeof clampImportedCharacter==="function")clampImportedCharacter(char);/* #315 */
   for(ti=0;ti<TONES.length;ti++)if(TONES[ti].id===bp.tone)tone=TONES[ti];
   tone=tone||TONES.filter(function(t){return t.id==="swords";})[0]||TONES[0];
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}
@@ -374,6 +375,7 @@ function showCharImportPreview(char, onAccept, onCancel){
   migrateCharClassNames(char);/* #100: .char files + library entries may predate the Berserker→Primal rename; every import path funnels through this preview, so heal here once */
   if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(char);/* #221: a portable sheet may carry a renamed capability's old name */
   migrateSpellDisplayNames(char);/* same funnel: spell labels that drifted from the capability-bible canon (v1.478 Fire Bolt d10→d8) */
+  if(typeof clampImportedCharacter==="function")clampImportedCharacter(char);/* #315: every import path funnels here — over-long prose is cut before it can reach a prompt */
   var initials=csInitials(char.name);/* #15③: canonical — this copy lacked the w[0] guard and rendered "undefined" on double-space names (sanctioned fix) */
   var portrait=char.portrait?"<img src='"+char.portrait+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
   var stats=char.stats||{};

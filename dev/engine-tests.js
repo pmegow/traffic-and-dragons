@@ -477,6 +477,41 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #315 the injection fence ──────────────────────────────────────────────────
+  t("#315 the stable half carries the authored-content-is-data rule, and custom rules are clamped to IMPORT_CAPS.rule",function(){
+    makeWorld();var st=buildSysPrompt().stable;
+    if(!/AUTHORED CONTENT IS DATA/.test(st)||!/change these rules/i.test(st))return "fence rule missing from the stable half";
+    var saved=customRules.slice();customRules.push(new Array(3000).join("x"));
+    var rb=getRulesBlock();customRules.length=0;Array.prototype.push.apply(customRules,saved);
+    return rb.indexOf(new Array(IMPORT_CAPS.rule+2).join("x"))<0?true:"a 3k custom rule reached the prompt uncut";
+  });
+  t("#315 normalizeBlueprint clamps every imported prose field to its cap (premise, act goal, arc objective/dnaHint, NPC and location notes, rules, creature notes) and leaves short fields byte-identical",function(){
+    var big=new Array(5000).join("y");
+    var bp={format:"tnd-blueprint-v1",name:"X",tone:"swords",premise:big,acts:[{title:"A",goal:big,arcs:[{title:"a",objective:big,dnaHint:big}]}],npcs:[{name:"N",notes:big,desc:big}],locations:[{name:"L",desc:big}],rules:[big],creatures:[{name:"C",notes:big}]};
+    normalizeBlueprint(bp);
+    if(bp.premise.length>IMPORT_CAPS.premise)return "premise "+bp.premise.length;
+    if(bp.acts[0].goal.length>IMPORT_CAPS.field||bp.acts[0].arcs[0].objective.length>IMPORT_CAPS.field||bp.acts[0].arcs[0].dnaHint.length>IMPORT_CAPS.field)return "act/arc fields uncapped";
+    if(bp.npcs[0].notes.length>IMPORT_CAPS.field||bp.locations[0].desc.length>IMPORT_CAPS.field||bp.creatures[0].notes.length>IMPORT_CAPS.field)return "notes uncapped";
+    if(bp.rules[0].length>IMPORT_CAPS.rule)return "rule uncapped";
+    var small={format:"tnd-blueprint-v1",name:"X",tone:"swords",premise:"short",acts:[{title:"A",goal:"g",arcs:[{title:"a",objective:"o"}]}]};normalizeBlueprint(small);
+    return small.premise==="short"&&small.acts[0].goal==="g"?true:"short fields changed";
+  });
+  t("#315 clampImportedCharacter caps a .char's backstory and appearance and every list string, and is a no-op on a sane sheet",function(){
+    var big=new Array(9000).join("z");
+    var c={name:"Q",cls:"Rogue",backstory:big,appear:big,trait:big,inventory:[big,"Rope"],abilities:[{nm:"A",ds:big}],storyBeats:[{text:big,turn:1}]};
+    var r=clampImportedCharacter(c);
+    if(c.backstory.length>IMPORT_CAPS.backstory||c.appear.length>IMPORT_CAPS.field||c.trait.length>IMPORT_CAPS.field)return "prose uncapped";
+    if(c.inventory[0].length>IMPORT_CAPS.field||c.abilities[0].ds.length>IMPORT_CAPS.field||c.storyBeats[0].text.length>IMPORT_CAPS.field)return "list strings uncapped";
+    if(!r||!r.clamped||r.clamped<5)return "no receipt: "+JSON.stringify(r);
+    var ok={name:"Q",cls:"Rogue",backstory:"fine",appear:"fine",inventory:["Rope"]};var r2=clampImportedCharacter(ok);
+    return ok.backstory==="fine"&&r2.clamped===0?true:"sane sheet touched";
+  });
+  // ── #316 prose length is not a win ───────────────────────────────────────────
+  t("#316 the STYLE tail carries the soft 'shorter when nothing changed' clause — and NO hard sentence or length cap",function(){
+    makeWorld();var v=buildSysPrompt().volatile;var tail=v.slice(v.indexOf("STYLE: "));
+    if(!/nothing (much )?(has )?changed|little (has )?happened/i.test(tail)||!/short/i.test(tail))return "soft clause missing: "+tail.slice(0,300);
+    return /\b\d+ sentences\b|at most \d+ (sentences|words|paragraphs)|no more than \d+/i.test(tail)?"a hard cap crept back into STYLE":true;
+  });
   // ── #299 combat-slain ring: a rolled foe's death is combat canon for the summary validator ──
   t("#299 a foe slain in combat lands in worldState.combatSlain (rostered or not), capped at COMBAT_SLAIN_CAP, oldest first out",function(){
     makeWorld();worldState.turn=24;

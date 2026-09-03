@@ -1772,3 +1772,17 @@ function carRecapText(){
   var last=ch[ch.length-1];
   return "Previously: "+String(last.summary||"").trim()+(where?" You are at "+where+".":"");
 }
+
+// #315 (review C5): clamp helpers for imported text. Pure; the caps live in IMPORT_CAPS (globals.js).
+function clampStr(v,max){if(typeof v!=="string")return v;var lim=(typeof max==="number"&&max>0)?max:800;return v.length>lim?v.slice(0,lim):v;}
+// Clamp a portable character sheet's prose in place. Returns {clamped:N} so the import surface can say so.
+function clampImportedCharacter(c){
+  if(!c||typeof c!=="object")return {clamped:0};
+  var caps=(typeof IMPORT_CAPS!=="undefined")?IMPORT_CAPS:{backstory:2500,field:800},n=0,i;
+  function one(obj,k,lim){if(typeof obj[k]==="string"&&obj[k].length>lim){obj[k]=obj[k].slice(0,lim);n++;}}
+  one(c,"backstory",caps.backstory);["appear","mark","trait","flaw","motivation","name","deity"].forEach(function(k){one(c,k,caps.field);});
+  ["inventory","languages"].forEach(function(k){if(Array.isArray(c[k]))for(i=0;i<c[k].length;i++){if(typeof c[k][i]==="string"&&c[k][i].length>caps.field){c[k][i]=c[k][i].slice(0,caps.field);n++;}else if(c[k][i]&&typeof c[k][i]==="object")one(c[k][i],"name",caps.field);}});
+  ["abilities","spells","storyBeats","coreMemories","conditions","relationships","saveModifiers"].forEach(function(k){if(Array.isArray(c[k]))for(i=0;i<c[k].length;i++){var it=c[k][i];if(!it||typeof it!=="object")continue;["nm","ds","text","name","bond","dynamic","duration","cause","source"].forEach(function(f){one(it,f,caps.field);});}});
+  if(n&&typeof console!=="undefined")console.warn("[import] "+n+" over-long field(s) on "+(c.name||"the sheet")+" clamped at import (#315)");
+  return {clamped:n};
+}

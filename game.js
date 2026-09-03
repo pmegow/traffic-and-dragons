@@ -2252,6 +2252,16 @@ function normalizeBlueprint(bp){
     }
     bp.availableClasses=_avList; // an authored-empty list survives to validation, which refuses it LOUDLY
   }
+  /* #315 (review C5): every prose field an author can type is capped here, at the ONE choke point every
+     blueprint passes through. Short fields are untouched byte-for-byte (legacy prompts stay identical). */
+  if(typeof clampStr==="function"&&typeof IMPORT_CAPS!=="undefined"){
+    var _cp=IMPORT_CAPS,_ci,_cj;
+    bp.premise=clampStr(bp.premise,_cp.premise);["startingLocation","startingRegion","author","name"].forEach(function(k){bp[k]=clampStr(bp[k],_cp.field);});
+    for(_ci=0;_ci<bp.acts.length;_ci++){var _a=bp.acts[_ai=_ci];if(!_a)continue;["title","goal","dnaHint","desc"].forEach(function(k){_a[k]=clampStr(_a[k],_cp.field);});
+      for(_cj=0;_cj<(_a.arcs||[]).length;_cj++){var _r=_a.arcs[_cj];if(_r)["title","objective","dnaHint","desc"].forEach(function(k){_r[k]=clampStr(_r[k],_cp.field);});}}
+    [bp.npcs,bp.locations,bp.creatures].forEach(function(list){for(var _k=0;_k<list.length;_k++){var _o=list[_k];if(_o&&typeof _o==="object")["name","notes","desc","role","status","relation","sizeNote"].forEach(function(f){_o[f]=clampStr(_o[f],_cp.field);});}});
+    for(_ci=0;_ci<bp.rules.length;_ci++)bp.rules[_ci]=clampStr(bp.rules[_ci],_cp.rule);
+  }
   return bp;
 }
 // ── #192 — blueprint class roster: custom classes + curated availability ───────
