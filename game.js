@@ -2800,10 +2800,10 @@ async function doRender(){
     if(falAvailable()){
       var imgStatus=document.createElement("div");
       imgStatus.style.cssText="font-size:12px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;";
-      imgStatus.textContent="Generating image…";
+      var mdlCfg=RENDER_MODELS[0],mi2;for(mi2=0;mi2<RENDER_MODELS.length;mi2++){if(RENDER_MODELS[mi2].id===renderModel){mdlCfg=RENDER_MODELS[mi2];break;}}
+      imgStatus.textContent=renderStatusText(mdlCfg,null,false,false);/* the model is named from the first frame (owner call 2026-09-03) */
       div.appendChild(imgStatus);
       try{
-        var mdlCfg=RENDER_MODELS[0],mi2;for(mi2=0;mi2<RENDER_MODELS.length;mi2++){if(RENDER_MODELS[mi2].id===renderModel){mdlCfg=RENDER_MODELS[mi2];break;}}
         /* #165: seed selection is table-driven (multiSeed on the img2img entry) — Nano AND Grok
            gather the party now; single-reference models get the player only. */
         var isMulti=!!(mdlCfg.img2img&&mdlCfg.img2img.multiSeed);
@@ -2813,8 +2813,7 @@ async function doRender(){
         /* #165: say the truth about what seeded — "portrait-seeded" alone read as "everyone's
            portrait" and the player reasonably expected companion likeness from a single-ref model.
            #166: an over-cap member is named as described-only right in the status. */
-        if(usingI2I)imgStatus.textContent=(isMulti&&seeds.length>1)?("Generating party scene ("+seeds.length+" portraits seeded"+(sc.omitted.length?" — "+sc.omitted.join(", ")+" by description":"")+")…"):("Generating scene (player portrait seeded)…");
-        else if(sc.textOnly)imgStatus.textContent="Generating party scene (text-only on "+mdlCfg.label+" — only Nano Banana 2 composes a party from portraits)…";/* #208 ②: say why no portrait seeded */
+        imgStatus.textContent=renderStatusText(mdlCfg,sc,isMulti,usingI2I);/* one builder, every seed case names the model (helpers.js) */
         var falEndpoint=usingI2I?mdlCfg.img2img.endpoint:mdlCfg.id;
         var falPrompt=withImgStyle(resp);
         // Edit/compositor models (Nano, Grok) cling to the reference portraits' posed, front-facing

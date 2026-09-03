@@ -55,6 +55,14 @@ function img2imgStrength(cfg){
 /* #208a (owner call 2026-08-21, the Flux drop): a stored render-model id that no longer exists in
    RENDER_MODELS must fall back to the shipped default LOUDLY — a dangling id would break doRender
    on the next click (the loadProviderSettings pruning precedent). */
+// Render status line (owner call 2026-09-03): ALWAYS names the image model, in every seed case.
+// One builder for doRender's three states; the elapsed ticker appends seconds to whatever it returns.
+function renderStatusText(mdlCfg,sc,isMulti,usingI2I){
+  var label=(mdlCfg&&mdlCfg.label)||"the image model",urls=(sc&&sc.urls)||[],om=(sc&&sc.omitted)||[];
+  if(usingI2I)return (isMulti&&urls.length>1)?("Generating party scene on "+label+" ("+urls.length+" portraits seeded"+(om.length?" — "+om.join(", ")+" by description":"")+")…"):("Generating scene on "+label+" (player portrait seeded)…");
+  if(sc&&sc.textOnly)return "Generating party scene on "+label+" (text-only — only Nano Banana 2 composes a party from portraits)…";/* #208 ②: say why no portrait seeded */
+  return "Generating image on "+label+"…";
+}
 function resolveRenderModel(storedId){
   if(storedId){
     var i;for(i=0;i<RENDER_MODELS.length;i++){if(RENDER_MODELS[i].id===storedId)return storedId;}

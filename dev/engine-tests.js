@@ -552,6 +552,19 @@ function runEngineTests(R){
     var ok={name:"Q",cls:"Rogue",backstory:"fine",appear:"fine",inventory:["Rope"]};var r2=clampImportedCharacter(ok);
     return ok.backstory==="fine"&&r2.clamped===0?true:"sane sheet touched";
   });
+  // ── render status names the image model (owner call 2026-09-03) ──────────────
+  t("renderStatusText names the image model in EVERY seed case (plain, player-seeded, party-seeded with a described-only member, text-only) and keeps the seed truth",function(){
+    var m={id:"fal-ai/x",label:"Nano Banana 2"};
+    var a=renderStatusText(m,{urls:[],omitted:[]},false,false),b=renderStatusText(m,{urls:["u"],omitted:[]},false,true),
+        c=renderStatusText(m,{urls:["u","v"],omitted:["Daeris"]},true,true),d=renderStatusText(m,{urls:[],omitted:[],textOnly:true},false,false);
+    var all=[a,b,c,d],i;for(i=0;i<all.length;i++)if(all[i].indexOf("Nano Banana 2")<0)return "model missing from: "+all[i];
+    if(!/^Generating image on Nano Banana 2/.test(a))return "plain: "+a;
+    if(!/player portrait seeded/.test(b))return "player-seeded: "+b;
+    if(!/2 portraits seeded/.test(c)||!/Daeris by description/.test(c))return "party-seeded: "+c;
+    if(!/text-only/.test(d))return "text-only: "+d;
+    if(renderStatusText(null,{urls:[],omitted:[]},false,false).indexOf("the image model")<0)return "no label → no fallback";
+    return __fsForTests.readFileSync(__rootForTests+"/game.js","utf8").indexOf("renderStatusText(")>=0?true:"doRender does not use the builder";
+  });
   // ── #316 prose length is not a win ───────────────────────────────────────────
   t("#316 the STYLE tail carries the soft 'shorter when nothing changed' clause — and NO hard sentence or length cap",function(){
     makeWorld();var v=buildSysPrompt().volatile;var tail=v.slice(v.indexOf("STYLE: "));
