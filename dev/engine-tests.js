@@ -477,6 +477,127 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #300 consequence: downed-not-dead, true death, checkpoints, respawn ─────
+  function downedWorld(){makeWorld();worldState.turn=20;worldState.character.hp=5;worldState.character.maxHp=14;worldState.world.location="Ashfen";
+    memory.map.nodes["Ashfen"]={firstVisit:1,visits:2,description:null,parent:null,npcs:[],items:[]};}
+  t("#300 ① 0 HP arms DOWNED (not dead): the handler clamps as before, worldState.downed is stamped, a mut says so; healing above 0 clears it",function(){
+    downedWorld();var r=applyMuts("The blow lands. [HP:-9]");
+    if(worldState.character.hp!==0)return "hp "+worldState.character.hp;
+    if(!worldState.downed||worldState.downed.since!==20)return "downed not armed: "+JSON.stringify(worldState.downed);
+    if(!(r.muts||[]).some(function(m){return /DOWNED/.test(m);}))return "no mut";
+    applyMuts("[HP:+3]");
+    return worldState.downed?"downed survived healing":true;
+  });
+  t("#300 ① the DOWNED note fires every turn while down, offers only struggle or yield, names who can intervene, and escalates; it is registered in NOTE_SHAPES",function(){
+    downedWorld();applyMuts("[HP:-9]");
+    if(!NOTE_SHAPES.buildDownedNote||NOTE_BUILDERS.indexOf(buildDownedNote)<0)return "not registered";
+    worldState.npcs.push({name:"Daeris",status:"alive",rel:"ally",partyMember:true,charSheet:{name:"Daeris",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{},abilities:[],spells:[],inventory:[],conditions:[]}});
+    var n1=buildDownedNote();
+    if(!/DOWNED/.test(n1)||!/struggle/i.test(n1)||!/yield/i.test(n1)||!/Daeris/.test(n1)||!/DOWNED_RESOLVED/.test(n1))return "first note: "+n1;
+    var n2=buildDownedNote();if(n2==="")return "must re-fire every turn while down";
+    worldState.downed.turns=DOWNED_MAX_TURNS-1;
+    var n3=buildDownedNote();if(!/THIS response/.test(n3))return "no escalation at the last turn: "+n3;
+    var acts=downedChoices();
+    return acts.length===2&&/struggle/i.test(acts[0])&&/yield/i.test(acts[1])?true:"choices: "+JSON.stringify(acts);
+  });
+  t("#300 ① [DOWNED_RESOLVED:rescued|…] ends the downed state, stabilises at 1 HP if the GM forgot the heal, and files the scar as a Defining Moment; captured and intervened likewise",function(){
+    downedWorld();applyMuts("[HP:-9]");
+    var cm0=(worldState.character.coreMemories||[]).length;
+    applyMuts("Daeris drags you clear. [DOWNED_RESOLVED:rescued|Daeris dragged you from the field]");
+    if(worldState.downed)return "still downed";
+    if(worldState.character.hp<1)return "not stabilised: hp "+worldState.character.hp;
+    var cm=worldState.character.coreMemories||[];
+    if(cm.length!==cm0+1||cm[cm.length-1].kind!=="downed"||!/Daeris dragged/.test(cm[cm.length-1].text))return "defining moment: "+JSON.stringify(cm.slice(-1));
+    downedWorld();applyMuts("[HP:-9]");applyMuts("[DOWNED_RESOLVED:captured|the raiders take you in chains]");
+    if(worldState.downed||worldState.character.hp<1)return "captured did not resolve";
+    downedWorld();applyMuts("[HP:-9][DOWNED_RESOLVED:rescued|same-response rescue][HP:+4]");
+    return !worldState.downed&&worldState.character.hp===4?true:"same-response resolve: "+worldState.character.hp+" "+JSON.stringify(worldState.downed);
+  });
+  t("#300 ② true death: [DOWNED_RESOLVED:dead|…] or DOWNED_MAX_TURNS unresolved committed turns arm worldState.deathPending; a resolution before that never does",function(){
+    downedWorld();applyMuts("[HP:-9]");
+    applyMuts("[DOWNED_RESOLVED:dead|the spear finds your heart]");
+    if(!worldState.deathPending||!/spear/.test(worldState.deathPending.cause))return "explicit death not armed: "+JSON.stringify(worldState.deathPending);
+    downedWorld();applyMuts("[HP:-9]");
+    var i;for(i=0;i<DOWNED_MAX_TURNS-1;i++){worldState.turn++;applyMuts("You bleed in the mud.");if(worldState.deathPending)return "died early at unresolved turn "+(i+1);}
+    worldState.turn++;applyMuts("The cold takes you.");
+    return worldState.deathPending&&/no one|bled|unresolved/i.test(worldState.deathPending.cause)?true:"engine death not ruled: "+JSON.stringify(worldState.deathPending);
+  });
+  t("#300 ① Rest heals: a long rest ([REST:long] and the button path) restores the hero and living companions to full; [REST:short] adds one hit die, never past max",function(){
+    downedWorld();worldState.character.hp=3;worldState.character.cls="Warrior";
+    worldState.npcs.push({name:"Daeris",status:"alive",rel:"ally",partyMember:true,charSheet:{name:"Daeris",cls:"Cleric",level:2,hp:2,maxHp:10,stats:{},abilities:[],spells:[],inventory:[],conditions:[]}});
+    applyMuts("You sleep. [REST:long]");
+    if(worldState.character.hp!==14)return "hero hp "+worldState.character.hp;
+    if(worldState.npcs[0].charSheet.hp!==10)return "companion hp "+worldState.npcs[0].charSheet.hp;
+    worldState.character.hp=3;applyMuts("A breather. [REST:short]");
+    var h=worldState.character.hp;if(h<4||h>14)return "short rest hp "+h;
+    worldState.character.hp=14;applyMuts("[REST:short]");
+    return worldState.character.hp===14?true:"short rest overshot: "+worldState.character.hp;
+  });
+  t("#300 ② checkpointCapture: one snapshot (worldState minus the transcript and rings, sessionLog, memory) with turn + reason; the metadata pointer rides worldState.checkpoint; a long rest and an act close QUEUE one (checkpointDue), taken at commit — never mid-parse",function(){
+    downedWorld();worldState.turn=30;sessionLog=[{role:"user",content:"a"},{role:"assistant",content:"b"}];worldState.transcript=[{t:29,r:"gm",x:"old"}];worldState.tagLog=[{t:29,tags:[]}];
+    var snap=checkpointCapture("rest");
+    if(!snap||snap.turn!==30||snap.reason!=="rest"||snap.v!==CHECKPOINT_VER)return "shape: "+JSON.stringify(snap&&{v:snap.v,turn:snap.turn,reason:snap.reason});
+    var ws=JSON.parse(snap.ws);if(ws.transcript!==undefined||ws.tagLog!==undefined)return "transcript/rings must not ride the snapshot";
+    if(JSON.parse(snap.sl).length!==2||!JSON.parse(snap.mem).map)return "sessionLog/memory missing";
+    if(!worldState.checkpoint||worldState.checkpoint.turn!==30)return "pointer: "+JSON.stringify(worldState.checkpoint);
+    delete worldState.checkpointDue;applyMuts("[REST:long]");if(worldState.checkpointDue!=="rest")return "REST:long did not queue: "+worldState.checkpointDue;
+    delete worldState.checkpointDue;worldState.skeleton={premise:"p",acts:[{title:"Act One",status:"active",arcs:[]},{title:"Act Two",status:"pending",arcs:[]}]};
+    applyMuts("[ACT_COMPLETE:Act One]");
+    return /act/i.test(worldState.checkpointDue||"")?true:"ACT_COMPLETE did not queue: "+worldState.checkpointDue;
+  });
+  t("#300 ② checkpointRestore: the turn NEVER rewinds, the dead branch stays in the transcript marked db, sessionLog + memory come back from camp, hp is full, downed/deathPending/combat clear, respawns count, a death Defining Moment lands on the restored sheet, and the waking note is armed",function(){
+    downedWorld();worldState.turn=30;worldState.character.hp=14;memory.lore=["camp lore"];sessionLog=[{role:"user",content:"camp"}];
+    worldState.transcript=[{t:29,r:"gm",x:"at camp"}];
+    var snap=checkpointCapture("rest");
+    worldState.turn=45;worldState.transcript.push({t:40,r:"player",x:"we ride"},{t:41,r:"gm",x:"you die"});memory.lore.push("dead-branch lore");sessionLog.push({role:"assistant",content:"later"});
+    worldState.character.hp=0;worldState.downed={since:44,turns:1};worldState.deathPending={turn:45,cause:"a spear"};worldState.combat={round:2,engaged:null,foes:[{name:"Raider",hp:5,maxHp:5}]};
+    var r=checkpointRestore(snap,{cause:"a spear"});
+    if(!r||r.ok!==true)return "restore refused: "+JSON.stringify(r);
+    if(worldState.turn!==45)return "turn rewound to "+worldState.turn;
+    var tr=worldState.transcript;if(tr.length!==3||tr[0].db||!tr[1].db||!tr[2].db)return "dead branch marking: "+JSON.stringify(tr);
+    if(memory.lore.length!==1||sessionLog.length!==1)return "memory/sessionLog not restored from camp";
+    if(worldState.character.hp!==14||worldState.downed||worldState.deathPending||worldState.combat)return "state not cleared";
+    if(worldState.respawns!==1)return "respawns "+worldState.respawns;
+    var cm=worldState.character.coreMemories||[];if(!cm.length||cm[cm.length-1].kind!=="death"||!/spear/.test(cm[cm.length-1].text))return "death moment: "+JSON.stringify(cm.slice(-1));
+    if(!worldState.respawnNote)return "waking note not armed";
+    var note=buildRespawnNote();if(!/woke|wake/i.test(note)||!/did not happen|never happened/i.test(note))return "note: "+note;
+    return NOTE_SHAPES.buildRespawnNote&&NOTE_LATCH_FIELDS.indexOf("respawnNote")>=0?true:"respawn note not registered";
+  });
+  t("#300 ② RAG never serves a dead-branch entry (db is excluded like rc and rf)",function(){
+    makeWorld();worldState.turn=40;worldState.ragMemory=true;
+    memory.npcs["Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
+    worldState.transcript=[
+      {t:2,r:"player",x:"I ask Hemlock about the broadsheet"},
+      {t:3,r:"gm",x:"Hemlock admits the broadsheet came from the glassworks. DEADBRANCHMARKER",e:{n:["Hemlock"],l:"Ashfen",q:[]}},
+      {t:6,r:"gm",x:"a"},{t:7,r:"gm",x:"b"},{t:8,r:"gm",x:"c"},{t:9,r:"gm",x:"d"}];
+    var served=ragRetrieve("ask Hemlock about the broadsheet");
+    if(served.indexOf("DEADBRANCHMARKER")<0)return "fixture: the entry did not serve while live";
+    worldState.transcript[1].db=1;worldState.turn=41;/* a fresh turn — retrieval memoizes per turn */
+    served=ragRetrieve("ask Hemlock about the broadsheet");
+    worldState.ragMemory=false;
+    return served.indexOf("DEADBRANCHMARKER")<0?true:"a dead-branch entry was served";
+  });
+  t("#300 ② resolvePlayerDeath: three respawns restore the camp; the FOURTH death ends the campaign (worldState.ended) and campaignEnded() gates play; no camp on file = restore refused loudly, never a crash",function(){
+    downedWorld();worldState.turn=10;var snap=checkpointCapture("campaign start");checkpointHold(snap);
+    var deaths=0,i;
+    for(i=0;i<3;i++){worldState.turn+=5;worldState.character.hp=0;worldState.deathPending={turn:worldState.turn,cause:"death "+(i+1)};var r=resolvePlayerDeath();if(!r||r.action!=="respawn")return "death "+(i+1)+": "+JSON.stringify(r);deaths++;if(worldState.ended)return "ended early";}
+    if(worldState.respawns!==3)return "respawns "+worldState.respawns;
+    worldState.turn+=5;worldState.deathPending={turn:worldState.turn,cause:"the fourth"};var r4=resolvePlayerDeath();
+    if(!r4||r4.action!=="ended"||!worldState.ended||!/fourth/.test(worldState.ended.cause))return "fourth death: "+JSON.stringify(r4)+" "+JSON.stringify(worldState.ended);
+    if(!campaignEnded())return "campaignEnded() false";
+    makeWorld();checkpointHold(null);worldState.deathPending={turn:3,cause:"x"};var r0=resolvePlayerDeath();
+    return r0&&r0.action==="no-camp"&&!worldState.ended?true:"no-camp: "+JSON.stringify(r0);
+  });
+  t("#300 multiplayer: a fallen PC companion is parked (dead, party continues) and rejoins with the restored sheet at the next camp",function(){
+    downedWorld();worldState.character.isPC=true;
+    worldState.npcs.push({name:"Bram",status:"alive",rel:"ally",partyMember:true,isPC:true,charSheet:{name:"Bram",cls:"Warrior",level:3,hp:0,maxHp:20,stats:{},abilities:[],spells:[],inventory:["axe"],conditions:[]}});
+    mpFallPC("Bram","a troll");
+    var b=wsNpcByName("Bram");if(!npcIsDead(b))return "not parked as dead";
+    if(!worldState.mpFallen||worldState.mpFallen.length!==1||worldState.mpFallen[0].name!=="Bram")return "not in mpFallen";
+    worldState.turn=25;checkpointCapture("rest");mpRejoinFallen();
+    b=wsNpcByName("Bram");
+    return !npcIsDead(b)&&b.charSheet.hp===20&&b.charSheet.inventory[0]==="axe"&&(!worldState.mpFallen||!worldState.mpFallen.length)?true:"rejoin: "+JSON.stringify({dead:npcIsDead(b),hp:b.charSheet.hp,fallen:worldState.mpFallen});
+  });
   // ── #309 the engine's own behaviour, auditable ──────────────────────────────
   t("#309 notes ring: buildEngineNotes records what it built; noteLogCommit files {t,n,c} on worldState.noteLog (cap NOTE_LOG_CAP); noteLogDiscard drops a never-delivered build",function(){
     makeWorld();worldState.turn=12;worldState.locationFilingPing={place:"The Old Mill",turn:11};
@@ -5562,7 +5683,7 @@ function runEngineTests(R){
     // would read the relabel ceremony aloud in the prose and pollute the transcript.
     // v1.697 (#211): +NO_CHANGE in BOTH registries (+10 chars payload form; bare form joins
     // _CT_BARE) — the audit-ack channel must strip everywhere or the ack IS the leak it cures.
-    if(__djb2(_CT_TAGS.source)!==386031354||_CT_TAGS.source.length!==1573)return "_CT_TAGS diverged from the frozen literal";/* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==429893850||_CT_TAGS.source.length!==1589)return "_CT_TAGS diverged from the frozen literal";/* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -5641,7 +5762,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1868999837&&d.length===26580)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===323408802&&d.length===27177)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never

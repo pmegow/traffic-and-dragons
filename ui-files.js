@@ -54,13 +54,13 @@ function exportToFolder(type,blob,filename){
 // structured-cloneable, so IndexedDB can hold one across sessions. Permission does NOT survive:
 // a restored handle comes back in the "prompt" state and re-granting needs a USER GESTURE, so we
 // restore the handle at boot but only ask for permission inside a click (see _ensureFolderPerm).
-var FS_IDB="tnd_fs_v1", FS_IDB_STORE="handles", FS_IDB_KEY="campFolder";
+var FS_IDB="tnd_fs_v1", FS_IDB_STORE="handles", FS_IDB_KEY="campFolder", CP_IDB_STORE="checkpoints";/* #300: the offline camp copy lives beside the folder handle — IndexedDB, never localStorage */
 var _campFolderPending=null;   // restored but not yet re-permissioned
 function _idbOpen(){
   return new Promise(function(res,rej){
     if(typeof indexedDB==="undefined"||!indexedDB){rej(new Error("no indexedDB"));return;}
-    var rq=indexedDB.open(FS_IDB,1);
-    rq.onupgradeneeded=function(){var db=rq.result;if(!db.objectStoreNames.contains(FS_IDB_STORE))db.createObjectStore(FS_IDB_STORE);};
+    var rq=indexedDB.open(FS_IDB,2);/* #300: v2 adds the checkpoints store */
+    rq.onupgradeneeded=function(){var db=rq.result;if(!db.objectStoreNames.contains(FS_IDB_STORE))db.createObjectStore(FS_IDB_STORE);if(!db.objectStoreNames.contains(CP_IDB_STORE))db.createObjectStore(CP_IDB_STORE);};
     rq.onsuccess=function(){res(rq.result);};
     rq.onerror=function(){rej(rq.error||new Error("indexedDB open failed"));};
   });
@@ -76,6 +76,19 @@ function _idbGet(key){
   return _idbOpen().then(function(db){return new Promise(function(res,rej){
     var tx=db.transaction(FS_IDB_STORE,"readonly");
     var rq=tx.objectStore(FS_IDB_STORE).get(key);
+    rq.onsuccess=function(){res(rq.result||null);};rq.onerror=function(){rej(rq.error);};
+  });});
+}
+// #300: the checkpoint store — one snapshot per campaign id.
+function idbPutCheckpoint(campId,snap){
+  return _idbOpen().then(function(db){return new Promise(function(res,rej){
+    var tx=db.transaction(CP_IDB_STORE,"readwrite");tx.objectStore(CP_IDB_STORE).put(snap,campId);
+    tx.oncomplete=function(){res(true);};tx.onerror=function(){rej(tx.error);};
+  });});
+}
+function idbGetCheckpoint(campId){
+  return _idbOpen().then(function(db){return new Promise(function(res,rej){
+    var tx=db.transaction(CP_IDB_STORE,"readonly");var rq=tx.objectStore(CP_IDB_STORE).get(campId);
     rq.onsuccess=function(){res(rq.result||null);};rq.onerror=function(){rej(rq.error);};
   });});
 }

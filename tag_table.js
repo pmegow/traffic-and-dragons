@@ -27,6 +27,21 @@
 // UA1 validation era, and it remains the calling convention.
 
 // ── Strip registry (derives cleanTxt's _CT_TAGS/_CT_BARE — order preserved from the originals) ──
+// #300 — the post-handler seam of the downed state: every committed response after the one that downed
+// the hero counts as an unresolved turn unless it carried the resolution tag; at DOWNED_MAX_TURNS the
+// engine rules a true death itself (the GM was told, twice). Also parks a multiplayer PC companion whose
+// HP reached 0 — death is personal, the party continues, they rejoin at the next camp (mpRejoinFallen).
+function downedObserve(text,R){
+  if(!worldState)return;
+  var d=worldState.downed;
+  if(d&&!worldState.deathPending&&!/\[DOWNED_RESOLVED:/i.test(text)&&d.since!==R.turn){
+    d.turns=(d.turns||0)+1;
+    if(d.turns>=DOWNED_MAX_TURNS){var here=(worldState.world&&worldState.world.location)||"";
+      worldState.deathPending={turn:R.turn,cause:"bled out unresolved"+(here?" at "+here:"")+((typeof presentCompanions==="function"&&presentCompanions().length)?"":" with no one to intervene")};
+      R.muts.push("☠ DEATH: downed for "+d.turns+" turns with no resolution");}
+  }
+  if(typeof mpFallPC==="function"&&worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var n=worldState.npcs[i];if(n&&n.partyMember&&n.isPC&&n.charSheet&&typeof n.charSheet.hp==="number"&&n.charSheet.hp<=0&&!npcIsDead(n))mpFallPC(n.name,"wounds");}}
+}
 // #302 — THE paymaster. Level is read BEFORE the award (a payout that lifts the level never
 // re-prices itself); the shared mirror carries the milestone to every living companion exactly
 // as a GM [XP:] would (R._xpMirror, #178). Returns the XP paid so a caller can name it.
@@ -51,7 +66,7 @@ function combatBossFoes(){
     if(mh>=ratio*pm||(named&&mh>=pm))out.push(f);}
   return out;
 }
-var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","ITEM_RENAMED","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","ITEM_DEF","MANA","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","RELATIONSHIP_BOND","RELATIONSHIP_BOND_REMOVED","RELATIONSHIP_DYNAMIC","RELATIONSHIP_DYNAMIC_REMOVED","RELATIONSHIP_PAIR_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_CHECK","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","LOCATION_RESIDENT","WARES","WANTED","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_ITEM_RENAMED","COMPANION_SPELL_USED","COMPANION_MANA","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_RELATIONSHIP_BOND","COMPANION_RELATIONSHIP_BOND_REMOVED","COMPANION_RELATIONSHIP_DYNAMIC","COMPANION_RELATIONSHIP_DYNAMIC_REMOVED","COMPANION_RELATIONSHIP_PAIR_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","NO_CHANGE","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON","ALIAS","MERGE","SCENE_CAST","NPC_DEATH_REPORTED"];/* #168 W7: explicit relationship axes coexist with compatibility-only legacy tags; all remain invisible to prose. #194: SCENE_CAST + NPC_DEATH_REPORTED join the vocabulary. */
+var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","ITEM_RENAMED","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","ITEM_DEF","MANA","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","RELATIONSHIP_BOND","RELATIONSHIP_BOND_REMOVED","RELATIONSHIP_DYNAMIC","RELATIONSHIP_DYNAMIC_REMOVED","RELATIONSHIP_PAIR_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_CHECK","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","LOCATION_RESIDENT","WARES","WANTED","DOWNED_RESOLVED","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_ITEM_RENAMED","COMPANION_SPELL_USED","COMPANION_MANA","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_RELATIONSHIP_BOND","COMPANION_RELATIONSHIP_BOND_REMOVED","COMPANION_RELATIONSHIP_DYNAMIC","COMPANION_RELATIONSHIP_DYNAMIC_REMOVED","COMPANION_RELATIONSHIP_PAIR_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","NO_CHANGE","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON","ALIAS","MERGE","SCENE_CAST","NPC_DEATH_REPORTED"];/* #168 W7: explicit relationship axes coexist with compatibility-only legacy tags; all remain invisible to prose. #194: SCENE_CAST + NPC_DEATH_REPORTED join the vocabulary. */
 var TAG_STRIP_BARE=["ENEMY_SURRENDERS","ENEMY_SLAIN","SUBLOCATION_LEAVE","NO_CHANGE"];/* bare ENEMY_SLAIN is UNSUPPORTED (warn, no-op) but must still strip — an unstripped bare tag leaks to the story. #211: bare [NO_CHANGE] is the audit ack's minimal form */
 // Stripped/known names that DELIBERATELY have no applyMuts handler — each with its reason.
 // DICE: display-only, rendered by diceTxt. ACTIONS: legacy pre-v1.110 format, replay-only.
@@ -88,6 +103,7 @@ var TAG_DOC_LINES=[
 "REFERENTIAL INTEGRITY: on first observing any story-significant person, emit [SCENE_REF:short_handle|canonical name] or [SCENE_REF:short_handle|?] when unknown. If the story explicitly establishes that handle is NOT a known NPC, emit [SCENE_NOT:handle|canonical name|explicit]; for an uncertain point-of-view guess use inference instead of explicit. A later on-screen identity reveal emits [SCENE_REVEAL:handle|canonical name]. Never infer that an anonymous actor is a known NPC merely because the player names that NPC.\n",
 "IRREVERSIBLE CONSEQUENCES ARE TRANSACTIONS: a death and every quest/objective/reward consequence caused by it must be enclosed together as [CANON_TXN_BEGIN:stable_id|npc-death|canonical name or -|scene_handle|quest title or -] ... [CANON_TXN_END:stable_id]. Use [SCENE_DEATH:scene_handle] for the observed death. Reuse the SAME stable_id for delayed consequences; exact replay is ignored. Independent quest closure uses claim type quest-outcome, subject/handle '-' and its active quest title. Never place unrelated outcomes in one envelope. Inside the markers put ONLY the death and its quest/objective/reward tags; combat, time, and every other tag belongs OUTSIDE the markers (an out-of-place tag is applied normally, never canonized).\n",
 "[HP:+/-X] [GOLD:+/-X gp -- ALWAYS in gold pieces; 10sp=1gp, 100cp=1gp; convert before tagging] [ITEM_GAINED:name] [ITEM_LOST:name] [LOCATION:name] [XP:N] -- XP:N is FLAVOUR ONLY (a clever or non-violent solution, a discovery, a social win), at most 10x character level per response; quest completions, boss kills and act endings are PAID BY THE ENGINE automatically the moment their tags land -- never add your own [XP:] for those\n",
+"DOWNED (#300): at 0 HP the player is DOWN, not dead -- the engine offers them only struggle or yield. Resolve it within two responses by capture, rescue, or a companion's intervention and mark the outcome [DOWNED_RESOLVED:captured|why] / [DOWNED_RESOLVED:rescued|why] / [DOWNED_RESOLVED:intervened|why], healing with [HP:+N] as the story allows (the engine files the scar as a Defining Moment). Only if the story truly kills them: [DOWNED_RESOLVED:dead|how]. Never narrate a downed hero as hale. Rest heals: [REST:long] restores the party to full and is a CAMP; [REST:short] restores one hit die.\n",
 "ITEM TAG FORMAT: emit the tag once per item with the bare item name -- never bake quantities into the name (no 'Torch x3'); to grant three torches, emit [ITEM_GAINED:Torch] three times.\n",
 "CONSUMABLES ARE SPENT: the moment a consumable is used -- a potion drunk, a charge detonated, ammunition fired, a scroll read -- emit [ITEM_LOST:name] in that SAME response; narrated consumption without the tag leaves a ghost item on the sheet forever\n",
 "TAKING IS TAGGED: whenever the party gains possession of an item -- picked up, retrieved, looted, bought, gifted, handed over -- emit [ITEM_GAINED:name] in that SAME response; a narrated acquisition without the tag never reaches the sheet\n",
@@ -333,7 +349,20 @@ var TAG_TABLE=[
   var hpc=worldState.character;
   if(typeof hpc.maxHp!=="number"||!isFinite(hpc.maxHp)){console.warn("[tags] non-finite maxHp ("+hpc.maxHp+") healed before [HP:] apply (UA8)");hpc.maxHp=(typeof hpc.hp==="number"&&isFinite(hpc.hp)&&hpc.hp>0)?hpc.hp:8;}
   if(typeof hpc.hp!=="number"||!isFinite(hpc.hp)){console.warn("[tags] non-finite hp ("+hpc.hp+") healed before [HP:] apply (UA8)");hpc.hp=hpc.maxHp||8;}
-  var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));R.muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}}},
+  var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));R.muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
+  /* #300: 0 HP is DOWNED, not dead. The engine arms the state here (the one HP write site); the downed
+     note takes the wheel, the seam counts unresolved turns, DOWNED_RESOLVED or a heal above 0 ends it. */
+  var _hc=worldState.character;
+  if(_hc.hp<=0){if(!worldState.downed){worldState.downed={since:R.turn,turns:0};R.muts.push("DOWNED — at death's door");if(typeof showToast==="function")showToast("☠ "+(_hc.name||"You")+" is DOWN — struggle, or yield");if(typeof carNotify==="function")carNotify("downed","You are down. Struggle, or yield?");}}
+  else if(worldState.downed){delete worldState.downed;R.muts.push("Back on your feet");}}},
+/* #300: the GM's resolution of a downed hero — captured / rescued / intervened end it (stabilised at 1 HP if
+   no heal came, the scar filed as a Defining Moment by the engine); dead arms the true-death path. */
+{t:"DOWNED_RESOLVED",apply:function(text,R){var _dm=text.match(/\[DOWNED_RESOLVED:([^|\]]+)(?:\|([^\]]*))?\]/);if(!_dm)return;var _out=_dm[1].trim().toLowerCase(),_why=(_dm[2]||"").trim(),_dc=worldState.character;
+  if(_out==="dead"||_out==="death"||_out==="killed"||_out==="slain"){worldState.deathPending={turn:R.turn,cause:_why||"slain"};R.muts.push("☠ DEATH: "+(_why||"slain"));return;}
+  if(["captured","rescued","intervened","spared","saved"].indexOf(_out)<0){if(typeof console!=="undefined")console.warn("[downed] [DOWNED_RESOLVED:"+_out+"] refused — outcomes are captured|rescued|intervened|dead (#300)");return;}
+  delete worldState.downed;if(_dc.hp<1){_dc.hp=1;R.muts.push("Stabilised at 1 HP");}
+  R.muts.push("Downed resolved: "+_out+(_why?" — "+_why:""));
+  if(typeof fileCoreMemory==="function")fileCoreMemory("downed",_dc.name,_dc.name+" was left for dead"+(worldState.world&&worldState.world.location?" at "+worldState.world.location:"")+" and lived — "+(_why||_out)+".");}},
 {t:"GOLD",apply:function(text,R){var goldTags=text.match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/g)||[];var gli;for(gli=0;gli<goldTags.length;gli++){var glm=goldTags[gli].match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/);if(!glm)continue;var dg=parseInt(glm[1]);worldState.character.gold=Math.max(0,worldState.character.gold+dg);R.muts.push(dg>0?"+"+dg+" gp":dg+" gp");}}},
 {t:"ITEM_GAINED",apply:function(text,R){var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[],igCounts={},igi;for(igi=0;igi<igTags.length;igi++){var ig0=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(ig0){var iq0=_qtyParse(ig0[1]),ik0=itemBaseName(iq0.base);igCounts[ik0]=(igCounts[ik0]||0)+iq0.n;}}for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;var igq=_qtyParse(igm[1]),igqi;duplicateItemGrantWarning(worldState.character.inventory,igq.base,igCounts[itemBaseName(igq.base)],null,R,text);for(igqi=0;igqi<igq.n;igqi++)addInventoryItem(worldState.character.inventory,igq.base);R.muts.push("+"+igq.base+(igq.n>1?" x"+igq.n:""));autoTakeLocationItem(igq.base);_itemDefCandidate(igq.base);}}},
 {t:"ITEM_LOST",apply:function(text,R){var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili;for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilq=_qtyParse(ilm[1]),ilqi,ilHit=0;for(ilqi=0;ilqi<ilq.n;ilqi++){if(removeInventoryItem(worldState.character.inventory,ilq.base))ilHit++;}if(ilHit){R.muts.push("-"+ilq.base+(ilHit>1?" x"+ilHit:""));_clearConsumablePending(null,ilq.base);}else if(typeof console!=="undefined")console.warn("[tags] ITEM_LOST: no inventory entry matches '"+ilq.base+"' — nothing removed, no receipt minted (#136⑤, the live t1530 -none class)");}}},
@@ -1009,7 +1038,8 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   worldState.pendingItemDefs.push({key:idKey,name:idName,entry:idEntry,turn:R.turn});
   R.muts.push("Item canon proposed: "+idName+" (awaiting your confirmation)");
 }}},
-{t:"REST",apply:function(text,R){if(/\[REST:\s*long\b[^\]]*\]/i.test(text)&&typeof restSpells==="function"){var _slept=restSpells();/* #89: restSpells owns the dawn roll — one site, both paths (button + tag) */R.muts.push("Rest: spell slots restored"+(_slept?"; slept until dawn (+"+_slept+"m, "+clockFmt()+")":""));}}},
+{t:"REST",apply:function(text,R){if(/\[REST:\s*long\b[^\]]*\]/i.test(text)&&typeof restSpells==="function"){var _slept=restSpells(true);/* #89: restSpells owns the dawn roll — one site, both paths (button + tag); #300: it heals to full and, from the tag path, QUEUES the camp (taken at commit, never mid-parse) */R.muts.push("Rest: healed to full, spell slots restored"+(_slept?"; slept until dawn (+"+_slept+"m, "+clockFmt()+")":""));worldState.checkpointDue="rest";}
+  else if(/\[REST:\s*short\b[^\]]*\]/i.test(text)&&typeof restShortHeal==="function"){var _sh=restShortHeal();if(_sh)R.muts.push("Short rest: +"+_sh+" HP");}}},
 {t:"LORE",apply:function(text,R){var lores=text.match(/\[LORE:([^\]]+)\]/g)||[];for(var li=0;li<lores.length;li++){var lp=lores[li].match(/\[LORE:([^\]]+)\]/);if(lp)fileLore(lp[1]);}}},
 {t:"DECISION",apply:function(text,R){var decs=text.match(/\[DECISION:([^\]]+)\]/g)||[];for(var di=0;di<decs.length;di++){var dp=decs[di].match(/\[DECISION:([^\]]+)\]/);if(dp)fileDecision(R.turn,dp[1]);}}},
 {t:"FUTURE_EVENT",apply:function(text,R){__tagNearMiss(text,R,"FUTURE_EVENT","^\\[FUTURE_EVENT:[^|\\]]+\\|[^\\]]+\\]$","[FUTURE_EVENT:what|when]");var fes=text.match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/g)||[];for(var fi=0;fi<fes.length;fi++){var fp=fes[fi].match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/);if(fp)fileFutureEvent(fp[2],"",fp[1],R.turn);}}},
@@ -1201,6 +1231,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
       _cAct.completedTurn=worldState.turn;/* #148 Phase 2: era boundaries prefer act completions — additive stamp, nothing else reads it before eraNextSources */
       R.muts.push("Act complete: "+_cAct.title);
       awardMilestoneXp("act",_cAct.title,R);/* #302 */
+      worldState.checkpointDue="act: "+(_cAct.title||"");/* #300: an act close is a camp */
       if(_si2+1<_sk2.acts.length){
         _sk2.acts[_si2+1].status="active";
         worldState.actStartTurn=worldState.turn;
@@ -1463,6 +1494,7 @@ function applyMutsTable(text,opts){
   // observation lands at the effective node. Tags only, never prose; refuse-and-warn, never
   // create. This is the recall floor that replaced the [NPC:] mention stamp.
   if(typeof derivePresenceFromResponse==="function")derivePresenceFromResponse(text,R);
+  downedObserve(text,R);/* #300: unresolved downed turns count here; the engine rules the death at DOWNED_MAX_TURNS; fallen MP companions park */
   // #225: the orphan-combat settle. Combat-scoped tags no-opped against a null tracker this
   // response (collected at the UA27 warn site above) and combat is STILL closed after every
   // handler ran — a same-response [COMBAT_START:] would have opened it before its companions

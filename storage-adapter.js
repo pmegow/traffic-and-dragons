@@ -894,6 +894,20 @@ var storageAdapter = (function() {
   // JSON.stringify'd with Content-Type set; GET requests leave opts.method unset (fetch
   // default — pinned by dev/tests-b9-transport.js). Callers own path encoding
   // (encodeURIComponent on segments) — this takes the finished path.
+  // #300 — the server's ONE checkpoint slot per campaign. A 404 means the campaign row is not on the
+  // server yet (first camp before the first state sync) — the IndexedDB copy carries it until the next.
+  function putCheckpoint(campId, snap) {
+    if (!_serverUrl || !_token || !snap) return;
+    _apiJson("/api/campaigns/" + encodeURIComponent(campId) + "/checkpoint", "PUT", { turn: snap.turn, reason: snap.reason, snapshot: snap }, function (err) {
+      if (err) console.warn("[checkpoint] server slot not written (" + err + ") — the IndexedDB copy stands");
+    });
+  }
+  function getCheckpoint(campId, cb) {
+    _apiJson("/api/campaigns/" + encodeURIComponent(campId) + "/checkpoint", "GET", null, function (err, data) {
+      if (err) { cb(err); return; }
+      cb(null, data && data.snapshot ? data.snapshot : null);
+    });
+  }
   function _apiJson(path, method, bodyObj, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
     var opts = { headers: { "Authorization": "Bearer " + _token } };
@@ -1070,6 +1084,8 @@ var storageAdapter = (function() {
     syncStatus:            syncStatus,
     getServerCampaignTurn: getServerCampaignTurn,
     resetSyncState:        resetSyncState,
+    putCheckpoint:         putCheckpoint,         // #300: the server camp slot
+    getCheckpoint:         getCheckpoint,
     syncCampaignList:      syncCampaignList,
     mergeCampaignLists:    mergeCampaignLists, // exposed for the engine tests (UA20)
     resolveCas409:         resolveCas409,      // exposed for the engine tests (CAS self-heal)

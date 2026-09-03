@@ -99,7 +99,17 @@ var DEEP_TIME_NAME_MAX=60;
 var DEEP_TIME_WHEN_MAX=90;
 var DEEP_TIME_NOTE_MAX=160;
 var TAG_LOG_CAP=40;
-var NOTE_LOG_CAP=40;    // #309: the engine-notes ring beside tagLog — {t, n:[builder names], c:chars} per DELIVERED gameplay turn, so an audit can say which notes the engine fired and when
+var NOTE_LOG_CAP=40;
+// #300 (owner rulings 2026-09-02): CONSEQUENCE. 0 HP is DOWNED, not dead — the engine takes the wheel
+// (struggle or yield), the GM resolves by capture, rescue or a companion's intervention within
+// DOWNED_MAX_TURNS committed turns, or the engine rules a true death. A true death RESPAWNS AT THE LAST
+// CAMP — ONE checkpoint (the Rest button, [REST:long], an act close, the campaign start): snapshot on the
+// server + IndexedDB (never localStorage); the turn counter never rewinds; the dead branch stays in the
+// transcript marked db and RAG never serves it. RESPAWNS_PER_CAMPAIGN deaths are survivable; the next
+// ends the campaign (#301 writes its denouement).
+var DOWNED_MAX_TURNS=3;
+var RESPAWNS_PER_CAMPAIGN=3;
+var CHECKPOINT_VER=1;    // #309: the engine-notes ring beside tagLog — {t, n:[builder names], c:chars} per DELIVERED gameplay turn, so an audit can say which notes the engine fired and when
 var HEALTH_LOG_CAP=40; // #17 drift-health ring (worldState.healthLog): ONE observational {t,in,cr,rag,prov} per gameplay-turn call, written only by recordUsage, read only by healthIndicators (helpers.js) — never by any prompt or parser path
 var RETCON_PIN_SHELF=15;    // #147 (drift pass order 4): turns a CORRECTION IN FORCE pin survives un-filed before it archives LOUDLY — bounded so a stuck pin can never become permanent prompt noise (the one-shot-shelf discipline); a completed summarize extraction archives it earlier
 var DEITY_DRIFT_COOLDOWN=25;
@@ -300,7 +310,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.773";
+var APP_VERSION="v1.774";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 var HOME_PENDING_BP_K="tnd_pending_bp_v1";

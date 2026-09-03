@@ -40,6 +40,7 @@ function startGame(char,toneName,toneVoice,authorId){
   }
   if(typeof guestbookSeedStart==="function")guestbookSeedStart();/* #173: the creation-time party stands at the opening node — turn-0 provenance (runs even when a blueprint pre-seeded the node: the party is there either way) */
   saveAll();showGame();syncUI();initAbilities();initSpells();
+  if(typeof takeCheckpoint==="function")takeCheckpoint("campaign start");/* #300: the campaign start is the first camp — a hero who dies before ever resting has somewhere to wake */
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
   if(typeof initCampaignFolderForGame==="function")initCampaignFolderForGame();
   // Busy-gate the whole startup (audit E22): skeleton generation is async and the game screen is
@@ -454,6 +455,8 @@ function applySuggestionGate(acts){
   return out;
 }
 async function generateActions(msgEl){
+  /* #300: a downed hero gets the engine's two moves — no model call, no token, no invented rescue. */
+  if(worldState&&worldState.downed&&typeof downedChoices==="function"){var _dc=downedChoices();msgEl.insertAdjacentHTML("beforeend",buildActionButtons(_dc));worldState.lastActions=_dc;if(typeof saveAll==="function")saveAll();return;}
   var btnDiv=document.createElement("div");
   btnDiv.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;";
   var btns=[],i;
@@ -1715,6 +1718,8 @@ function commitGmTurn(resp,opts){
   if(worldState.pendingLocState&&worldState.pendingLocState.fired)delete worldState.pendingLocState;
   }
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
+  if(worldState.checkpointDue){var _cpr=worldState.checkpointDue;delete worldState.checkpointDue;if(typeof takeCheckpoint==="function")takeCheckpoint(_cpr);}/* #300: the camp queued by [REST:long] / an act close is taken here, after the response committed */
+  if(worldState.deathPending&&typeof resolvePlayerDeath==="function")resolvePlayerDeath();/* #300: the death narration is in the book; now the consequence */
   detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts */
   toastInventoryGains(_invPre);/* #107: say what reached the sheet — silence means the tag never fired */
   if(!o.isOpening){
@@ -1850,6 +1855,7 @@ function restorePendingAction(){
 }
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("action-input");
+  if(typeof campaignEnded==="function"&&campaignEnded()&&!(opts&&opts.silent)){if(typeof showToast==="function")showToast("This campaign has ended — its story is complete (File ▸ Export Narrative keeps it)");return;}/* #300 */
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
   // B10/v1.421 — repair the audio context HERE, in the send gesture. iOS interrupts the context
   // between turns, when nothing is watching (_armCtxWatch disarms itself while !_playing), so the
@@ -2792,8 +2798,9 @@ async function doRender(){
   }catch(e){if(th.parentNode)th.remove();addMsg("system","Render failed: "+e.message);}
   _rendering=false;
 }
-function restSpells(){
+function restSpells(fromTag){
   if(!worldState)return 0;
+  if(typeof restHealFull==="function")restHealFull();/* #300: a long rest heals the party to full — the one site, both paths */
   // #89 note: the spell-restore is GUARDED per-list rather than gating the whole function — the
   // old early return meant a spell-less character's (a Warrior's) Rest did NOTHING at all, which
   // matters now that resting also moves the clock.
@@ -2812,8 +2819,73 @@ function restSpells(){
   var _slept=(typeof clockSleepRoll==="function")?clockSleepRoll():0;
   if(typeof updateSpPanel==="function")updateSpPanel();/* typeof: the headless engine harness has no panels */
   saveCore();
-  if(typeof showToast==="function")showToast(_slept?("Rested until dawn — "+clockFmt()+". Mana restored."):"Mana restored.");
+  if(typeof showToast==="function")showToast(_slept?("Rested until dawn — "+clockFmt()+". Healed, mana restored."):"Healed, mana restored.");
+  if(!fromTag&&typeof takeCheckpoint==="function")takeCheckpoint("rest");/* #300: the button path takes the camp now; the tag path queued it for commit */
   return _slept;
+}
+// #300 — the camp. Capture (state.js), then persist to BOTH transports: IndexedDB (the offline copy) and
+// the server slot (PUT /api/campaigns/:id/checkpoint). Never localStorage. Fallen multiplayer PCs rejoin here.
+function takeCheckpoint(reason){
+  if(!worldState||campaignEnded())return null;
+  var snap=checkpointCapture(reason);if(!snap)return null;
+  var id=worldState.campId||"local";
+  if(typeof idbPutCheckpoint==="function")idbPutCheckpoint(id,snap).catch(function(e){console.warn("[checkpoint] IndexedDB copy failed:",e&&e.message);});
+  if(typeof storageAdapter!=="undefined"&&storageAdapter.putCheckpoint)storageAdapter.putCheckpoint(id,snap);
+  if(typeof showToast==="function")showToast("⛺ Camp saved — "+(snap.location||"here")+" (turn "+snap.turn+")");
+  if(typeof mpRejoinFallen==="function")mpRejoinFallen();
+  return snap;
+}
+// #300 — after a reload the in-memory camp is gone: refill it from IndexedDB, else the server.
+function restoreCheckpointHolder(){
+  if(!worldState||checkpointHeld())return;
+  var id=worldState.campId||"local";
+  var fromServer=function(){if(typeof storageAdapter!=="undefined"&&storageAdapter.getCheckpoint)storageAdapter.getCheckpoint(id,function(err,snap){if(!err&&snap&&snap.ws){checkpointHold(snap);console.log("[checkpoint] camp restored from the server (turn "+snap.turn+")");}});};
+  if(typeof idbGetCheckpoint==="function")idbGetCheckpoint(id).then(function(snap){if(snap&&snap.ws){checkpointHold(snap);console.log("[checkpoint] camp restored from IndexedDB (turn "+snap.turn+")");}else fromServer();}).catch(fromServer);
+  else fromServer();
+}
+// #300 — a true death resolves here, at commit. Three respawns per campaign; the fourth ends it.
+function resolvePlayerDeath(){
+  var dp=worldState&&worldState.deathPending;if(!dp)return null;
+  var cause=dp.cause||"slain",c=worldState.character;
+  if((worldState.respawns||0)>=RESPAWNS_PER_CAMPAIGN){
+    worldState.ended={turn:worldState.turn,cause:cause,at:Date.now(),deaths:(worldState.respawns||0)+1};
+    delete worldState.deathPending;delete worldState.downed;worldState.combat=null;
+    if(typeof fileCoreMemory==="function"&&c)fileCoreMemory("death",c.name,c.name+" died the final time — "+cause+".");
+    if(typeof saveAll==="function")saveAll();
+    if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(cause);
+    if(typeof carNotify==="function")carNotify("ended","You have died for the last time. This story is complete.");
+    return {action:"ended"};
+  }
+  var snap=checkpointHeld();
+  if(!snap){console.warn("[death] no camp on file — nowhere to wake; the death stands until a camp exists (#300)");if(typeof showToast==="function")showToast("☠ No camp on file — nowhere to wake");return {action:"no-camp"};}
+  var r=checkpointRestore(snap,{cause:cause});
+  if(!r.ok){console.warn("[death] restore failed: "+r.reason);if(typeof showToast==="function")showToast("☠ Could not return to camp: "+r.reason);return {action:"failed",reason:r.reason};}
+  if(typeof saveAll==="function")saveAll();
+  if(typeof rebuildNarrativeFromTranscript==="function"){try{rebuildNarrativeFromTranscript(true);}catch(e){}}
+  if(typeof syncUI==="function"){try{syncUI();}catch(e){}}
+  if(typeof showRespawnModal==="function")showRespawnModal(r,cause);
+  if(typeof carNotify==="function")carNotify("respawn","You died. You wake again at "+r.camp+". Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+".");
+  return {action:"respawn",turn:r.turn,camp:r.camp};
+}
+// #300 multiplayer — death is personal. A fallen PC companion is parked with its sheet; the party
+// continues; at the next camp they rejoin whole.
+function mpFallPC(name,cause){
+  var n=wsNpcByName(name);if(!n||!n.charSheet)return false;
+  if(!worldState.mpFallen)worldState.mpFallen=[];
+  worldState.mpFallen.push({name:n.name,sheet:JSON.parse(JSON.stringify(n.charSheet)),turn:worldState.turn,cause:cause||""});
+  n.dead=worldState.turn;n.status="dead";if(memory.npcs&&memory.npcs[n.name])memory.npcs[n.name].dead=worldState.turn;
+  if(typeof showToast==="function")showToast("☠ "+n.name+" has fallen — they rejoin at the next camp");
+  return true;
+}
+function mpRejoinFallen(){
+  var f=worldState&&worldState.mpFallen;if(!f||!f.length)return 0;var k=0;
+  while(f.length){var rec=f.shift();var n=wsNpcByName(rec.name);if(!n)continue;
+    delete n.dead;n.status="alive";n.charSheet=rec.sheet;n.charSheet.hp=n.charSheet.maxHp;
+    if(memory.npcs&&memory.npcs[n.name])delete memory.npcs[n.name].dead;
+    if(typeof fileCoreMemory==="function")fileCoreMemory("death",n.name,n.name+" fell"+(rec.cause?" to "+rec.cause:"")+" and returned to the party at camp.");k++;}
+  delete worldState.mpFallen;
+  if(k&&typeof showToast==="function")showToast("⛺ "+k+" fallen companion"+(k>1?"s":"")+" rejoin at camp");
+  return k;
 }
 function initAbilities(){
   if(!worldState)return;var c=worldState.character;

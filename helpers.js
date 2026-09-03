@@ -977,6 +977,15 @@ function _itemServe(ov,base){
 // #309 (the #297 rule generalised for every name router): does `hay` mention `needle` as a NAME?
 // Word-boundaried, case-insensitive, and a possessive right after the name is a DIFFERENT thing —
 // "Nolan Grimtide's raider" is not Nolan Grimtide. Epithets still match ("Kresh the Tall" ⊃ Kresh).
+// #300: the companions who can actually intervene — living, in the party, and NOT split away.
+function presentCompanions(){var a=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];return a.filter(function(n){return !(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location);});}
+function campaignEnded(){return !!(typeof worldState!=="undefined"&&worldState&&worldState.ended);}
+// #300: the only two moves a downed hero has — the engine authors these buttons, no model call.
+function downedChoices(){return ["Struggle — fight for consciousness, crawl, cling to life","Yield — let go and trust whoever finds you"];}
+// #300: Rest heals. A long rest restores the hero and every living companion to full (the one heal
+// site for both paths — button and [REST:long]); a short rest rolls ONE hit die + CON, never past max.
+function restHealFull(){var c=worldState&&worldState.character;if(!c)return 0;var n=0;if(typeof c.maxHp==="number"&&c.hp<c.maxHp){c.hp=c.maxHp;n++;}var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],i;for(i=0;i<party.length;i++){var cs=party[i].charSheet;if(cs&&typeof cs.maxHp==="number"&&cs.hp<cs.maxHp){cs.hp=cs.maxHp;n++;}}return n;}
+function restShortHeal(){var c=worldState&&worldState.character;if(!c||typeof c.maxHp!=="number")return 0;if(c.hp>=c.maxHp)return 0;var d=(typeof classDef==="function"&&classDef(c.cls)&&classDef(c.cls).hd)||8;var mod=(typeof smod==="function"&&c.stats)?smod(c.stats.CON||10):0;var n=Math.max(1,Math.floor(Math.random()*d)+1+mod);n=Math.min(n,c.maxHp-c.hp);c.hp+=n;return n;}
 function nameContains(hay,needle){
   var h=String(hay==null?"":hay).toLowerCase(),n=String(needle==null?"":needle).toLowerCase().trim();
   if(!h||!n)return false;

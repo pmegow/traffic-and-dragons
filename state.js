@@ -691,6 +691,53 @@ function rescueCorruptStore(tier,raw,err){
   if(typeof showToast==="function")showToast("⚠ Your "+label+" could not be read"+(kept?" — a backup of the unreadable data was kept.":" and could NOT be backed up.")+" The campaign is loading without it.");
   return kept;
 }
+// #300 — CHECKPOINTS (the last camp). ONE snapshot per campaign: worldState minus the transcript and
+// the observational rings, plus sessionLog and memory, taken at Rest / [REST:long] / an act close / the
+// campaign start. Transport is the caller's (game.js takeCheckpoint → IndexedDB + the server; NEVER
+// localStorage — the quota death class); this module holds the in-memory copy and the pure capture /
+// restore. Restore NEVER rewinds the turn counter (a restored save is newer by turn, so the CAS sync
+// guard needs no special case) and marks every transcript entry after the camp `db` — the dead branch
+// stays in the book, RAG never serves it, the story compiler prints it as the branch that ended.
+var CHECKPOINT_STRIP=["transcript","tagLog","noteLog","usage","healthLog","renders","lastActions","checkpointDue","deathPending","downed","respawnNote","mpFallen"];
+var _checkpointMem=null;
+function checkpointHold(snap){_checkpointMem=snap||null;}
+function checkpointHeld(){return _checkpointMem;}
+function checkpointCapture(reason){
+  if(!worldState)return null;
+  var ws={},k;for(k in worldState){if(!Object.prototype.hasOwnProperty.call(worldState,k))continue;if(CHECKPOINT_STRIP.indexOf(k)>=0)continue;ws[k]=worldState[k];}
+  var snap={v:(typeof CHECKPOINT_VER==="number"?CHECKPOINT_VER:1),turn:worldState.turn||0,reason:String(reason||"camp"),at:Date.now(),campId:worldState.campId||null,
+    location:(worldState.world&&(worldState.world.sublocation||worldState.world.location))||"",
+    ws:JSON.stringify(ws),sl:JSON.stringify(sessionLog||[]),mem:JSON.stringify(memory||{})};
+  worldState.checkpoint={turn:snap.turn,reason:snap.reason,at:snap.at,location:snap.location};
+  _checkpointMem=snap;
+  return snap;
+}
+function checkpointRestore(snap,opts){
+  opts=opts||{};
+  if(!snap||!snap.ws||!worldState)return {ok:false,reason:"no snapshot"};
+  var live=worldState,liveTurn=live.turn||0,ws;
+  try{ws=JSON.parse(snap.ws);}catch(e){return {ok:false,reason:"snapshot unreadable: "+(e&&e.message)};}
+  var tr=live.transcript||[],i;
+  for(i=0;i<tr.length;i++){if(tr[i]&&typeof tr[i].t==="number"&&tr[i].t>snap.turn)tr[i].db=1;}
+  ws.transcript=tr;ws.turn=liveTurn;
+  ws.tagLog=live.tagLog;ws.noteLog=live.noteLog;ws.usage=live.usage;ws.healthLog=live.healthLog;ws.renders=live.renders;
+  ws.campId=live.campId||ws.campId;ws.campName=live.campName||ws.campName;
+  ws.respawns=(live.respawns||0)+1;
+  ws.deaths=(live.deaths||[]).concat([{turn:liveTurn,cause:opts.cause||"",camp:snap.turn}]);
+  ws.checkpoint=live.checkpoint||{turn:snap.turn,reason:snap.reason,at:snap.at,location:snap.location};
+  ws.lastActions=null;ws.combat=null;
+  if(live.mpFallen)ws.mpFallen=live.mpFallen;
+  worldState=ws;
+  try{sessionLog=JSON.parse(snap.sl||"[]");}catch(e){sessionLog=[];}
+  try{memory=JSON.parse(snap.mem||"{}");}catch(e){memory=(typeof blankMemory==="function")?blankMemory():{};}
+  if(typeof healMemory==="function"){try{healMemory();}catch(e){}}
+  var c=worldState.character;
+  if(c){c.hp=c.maxHp;if(typeof manaMax==="function")c.mana=manaMax(c);}
+  var where=snap.location||"camp";
+  if(typeof fileCoreMemory==="function"&&c)fileCoreMemory("death",c.name,c.name+" died"+(opts.cause?" — "+opts.cause:"")+" — and woke again at "+where+" (turn "+liveTurn+"; respawn "+ws.respawns+" of "+RESPAWNS_PER_CAMPAIGN+").");
+  worldState.respawnNote={turn:liveTurn,camp:where,campTurn:snap.turn,cause:opts.cause||"",respawn:ws.respawns};
+  return {ok:true,turn:liveTurn,camp:where,respawn:ws.respawns};
+}
 function loadState(){
   var ws,sl,mm;try{ws=store.get(WSK);sl=store.get(SLK);mm=store.get(MEM_KEY);}catch(e){return false;}
   // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every

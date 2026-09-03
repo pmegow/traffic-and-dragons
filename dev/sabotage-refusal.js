@@ -41,8 +41,8 @@ rc|=sabotage.prove({file:"state.js",command:CMD,also:ALSO,cases:[
 rc|=sabotage.prove({file:"memory.js",command:CMD,also:ALSO,cases:[
   {label:"#197 retrieval exclusion narrowed — rf-marked refusals served as episodic truth again",
     mustFail:"#197 RAG: an rf-marked refusal turn is never served",
-   find:"if(en0.rc||en0.rf)continue;",
-   replace:"if(en0.rc)continue;"}
+   find:"if(en0.rc||en0.rf||en0.db)continue;",
+   replace:"if(en0.rc||en0.db)continue;"}
 ]});
 
 process.exit(rc?1:0);

@@ -777,6 +777,29 @@ function _bugReportModal(shot){
 // Opened by the membar health dot (updateHealthDot, ui-panels.js). The ⚠ Submit report button
 // files the indicator snapshot through the #16b sendUserReport path so a bad reading becomes
 // a bug report in one tap.
+// #300 — the respawn and the end. Plain modals: the facts, then play on.
+function showRespawnModal(r,cause){
+  closeAllMenus();var old=document.getElementById("respawn-modal");if(old)old.remove();
+  var m=document.createElement("div");m.id="respawn-modal";
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
+  m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
+    +"<div style='font-size:20px;margin-bottom:8px;'>☠ You died</div>"
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>"+escHtml(cause||"slain")+".<br><br>You wake again at <b>"+escHtml(r.camp||"camp")+"</b>. Everything since that camp is a road not taken — it stays in the book, but the world never saw it.<br><br>Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+"."+(r.respawn>=RESPAWNS_PER_CAMPAIGN?" <b>The next death is the last.</b>":"")+"</div>"
+    +"<div style='margin-top:16px;text-align:right;'><button id='respawn-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:#111;border:0;border-radius:6px;cursor:pointer;'>Wake</button></div></div>";
+  document.body.appendChild(m);
+  document.getElementById("respawn-ok").onclick=function(){m.remove();};
+}
+function showCampaignEndedModal(cause){
+  closeAllMenus();var old=document.getElementById("ended-modal");if(old)old.remove();
+  var m=document.createElement("div");m.id="ended-modal";
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
+  m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
+    +"<div style='font-size:20px;margin-bottom:8px;'>The story is complete</div>"
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>"+escHtml((worldState&&worldState.character&&worldState.character.name)||"The hero")+" has died for the last time — "+escHtml(cause||"slain")+".<br><br>This campaign is now read-only. File ▸ Export Narrative keeps the whole book, dead branches and all.</div>"
+    +"<div style='margin-top:16px;text-align:right;'><button id='ended-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:#111;border:0;border-radius:6px;cursor:pointer;'>Close</button></div></div>";
+  document.body.appendChild(m);
+  document.getElementById("ended-ok").onclick=function(){m.remove();};
+}
 function showHealthModal(){
   closeAllMenus();
   var old=document.getElementById("health-modal");if(old)old.remove();

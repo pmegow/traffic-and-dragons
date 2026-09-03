@@ -1051,7 +1051,7 @@ function _ragRetrieveScore(inputText){
     if(en0.r!=="gm")continue;
     if(en0.bk)continue; // typed bookkeeping receipts are instrumentation, never episodic evidence
     if(en0.t>cutT)continue;
-    if(en0.rc||en0.rf)continue; // rc: [RETCON:]-marked — superseded or correcting narration; rf: a #197 model-refusal turn — meta-voice, non-canon. Neither is ever episodic truth
+    if(en0.rc||en0.rf||en0.db)continue; // db: #300 dead branch — the turns after the last camp that a death unwrote; never episodic truth. rc: [RETCON:]-marked — superseded or correcting narration; rf: a #197 model-refusal turn — meta-voice, non-canon. Neither is ever episodic truth
     var prev0=i>0&&tr[i-1].r==="player"?String(tr[i-1].x).toLowerCase():"";
     // Meta-exchange filter: a player turn opening with "GM:" is an out-of-character question
     // ABOUT the record (memory quiz, correction), and the response is recall chatter — often
