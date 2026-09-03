@@ -565,6 +565,22 @@ function runEngineTests(R){
     if(renderStatusText(null,{urls:[],omitted:[]},false,false).indexOf("the image model")<0)return "no label → no fallback";
     return __fsForTests.readFileSync(__rootForTests+"/game.js","utf8").indexOf("renderStatusText(")>=0?true:"doRender does not use the builder";
   });
+  // ── abilities panel: actionable abilities click-to-input like spells (owner call 2026-09-03) ──
+  t("capabilityQuickText: a spell reads 'Cast X.', an active ability 'Use X.', a passive (bible cost or an always-on description) is null; ui-panels wires BOTH panels through ONE panelQuickAction",function(){
+    if(capabilityQuickText("Fire Bolt")!=="Cast Fire Bolt.")return "spell: "+capabilityQuickText("Fire Bolt");
+    if(capabilityQuickText("Arcane Bolt")!=="Use Arcane Bolt.")return "active ability: "+capabilityQuickText("Arcane Bolt");
+    if(capabilityQuickText("Darkvision")!==null)return "bible passive should be null: "+capabilityQuickText("Darkvision");
+    if(capabilityQuickText("Rally Cry","Once per rest, shout the line back into order.")!=="Use Rally Cry.")return "GM-authored active: "+capabilityQuickText("Rally Cry","Once per rest");
+    if(capabilityQuickText("Keen Senses","Always on: you notice the small things.")!==null)return "GM-authored always-on should be null";
+    if(capabilityQuickText("Iron Stomach","Passive. Poison rarely takes.")!==null)return "GM-authored 'passive' should be null";
+    if(capabilityQuickText("")!==null)return "empty name should be null";
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");
+    if(src.indexOf("capabilityQuickText(")<0)return "the abilities panel does not consult the builder";
+    if((src.match(/function panelQuickAction\(/g)||[]).length!==1)return "expected exactly one panelQuickAction definition";
+    if(/function spellQuickCast\(/.test(src))return "the duplicated spellQuickCast survived";
+    if((src.match(/panelQuickAction\(this\)/g)||[]).length<2)return "both panels must route clicks through panelQuickAction";
+    return true;
+  });
   // ── #316 prose length is not a win ───────────────────────────────────────────
   t("#316 the STYLE tail carries the soft 'shorter when nothing changed' clause — and NO hard sentence or length cap",function(){
     makeWorld();var v=buildSysPrompt().volatile;var tail=v.slice(v.indexOf("STYLE: "));

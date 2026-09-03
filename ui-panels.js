@@ -270,7 +270,9 @@ function updateInvPanel(){
 }
 function updateAbPanel(hl){
   if(!worldState)return;var abs=activePlayer().abilities||[];/* P2: follows the spotlight PC */document.getElementById("ab-cnt").textContent=abs.length;
-  var h="",i;for(i=0;i<abs.length;i++){h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+'"><span class="an">'+escHtml(abs[i].nm)+'</span><span class="ad">'+escHtml(abs[i].ds)+'</span></div>';}/* GM-authored ability text (audit E11) */
+  var h="",i,q;for(i=0;i<abs.length;i++){
+    q=capabilityQuickText(abs[i].nm,abs[i].ds);/* owner call 2026-09-03: an ACTIVE ability clicks into the input like a spell ("Use X."); passives stay inert */
+    h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+(q?" act":"")+'"'+(q?' data-quick="'+escHtml(q)+'" onclick="panelQuickAction(this)" title="Click to use" style="cursor:pointer;"':'')+'><span class="an">'+escHtml(abs[i].nm)+'</span><span class="ad">'+escHtml(abs[i].ds)+'</span></div>';}/* GM-authored ability text (audit E11) */
   document.getElementById("ab-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">None yet</div>';
 }
 // #8: side-panel spell tooltip — the description pulled from the capability bible (the SAME
@@ -298,13 +300,14 @@ function itemTip(nm){
   if(e)return e.category+(e.effect!=="N/A"?" — "+e.effect:"")+(e.uses!=="N/A"?"\nUses: "+e.uses:"")+(e.value!=="N/A"?"\nValue: "+e.value:"");
   return "no description available for: "+String(nm||"");
 }
-// #80: clicking a side-panel spell appends "Cast <name>." to the input (a quick-cast affordance;
-// the player still edits/sends). Name rides a data attribute (escHtml'd, so apostrophes like
-// "Hunter's Mark" can't break the handler); appends with a space when the box already has text.
-function spellQuickCast(el){
-  var nm=el&&el.getAttribute("data-cast");if(!nm)return;
+// #80: clicking a side-panel spell OR an active ability appends its quick phrase ("Cast X." /
+// "Use X.", built by capabilityQuickText in helpers.js) to the input — an affordance; the player still
+// edits/sends. The phrase rides a data attribute (escHtml'd, so apostrophes like "Hunter's Mark" can't
+// break the handler); appends with a space when the box already has text. Owner call 2026-09-03:
+// abilities join spells here — one handler, two panels (the old spellQuickCast was defined twice).
+function panelQuickAction(el){
+  var add=el&&el.getAttribute("data-quick");if(!add)return;
   var inp=document.getElementById("action-input");if(!inp)return;
-  var add="Cast "+nm+".";
   var cur=String(inp.value||"").replace(/\s+$/,"");
   inp.value=cur?cur+" "+add:add;
   inp.focus();
@@ -339,20 +342,9 @@ function _ensureLongPressTips(){
   document.addEventListener("touchend",function(){_lpClearTimer();_lpHide();},{passive:true});
   document.addEventListener("touchcancel",function(){_lpClearTimer();_lpHide();},{passive:true});
   // Capture-phase: if a long-press just fired, eat the synthetic click so the tap action
-  // (e.g. spellQuickCast) does NOT also run. One-shot — reset so later real taps pass through.
+  // (e.g. panelQuickAction) does NOT also run. One-shot — reset so later real taps pass through.
   document.addEventListener("click",function(e){if(_lpFired){_lpFired=false;e.stopPropagation();e.preventDefault();}},true);
   document.addEventListener("scroll",_lpHide,true);
-}
-// #80: clicking a side-panel spell appends "Cast <name>." to the input (a quick-cast affordance;
-// the player still edits/sends). Name rides a data attribute (escHtml'd, so apostrophes like
-// "Hunter's Mark" can't break the handler); appends with a space when the box already has text.
-function spellQuickCast(el){
-  var nm=el&&el.getAttribute("data-cast");if(!nm)return;
-  var inp=document.getElementById("action-input");if(!inp)return;
-  var add="Cast "+nm+".";
-  var cur=String(inp.value||"").replace(/\s+$/,"");
-  inp.value=cur?cur+" "+add:add;
-  inp.focus();
 }
 function updateSpPanel(){
   if(!worldState)return;
@@ -370,7 +362,7 @@ function updateSpPanel(){
     ds=sp.nm.indexOf("(")>=0?sp.nm.slice(sp.nm.indexOf("(")+1).replace(")",""):"";
     var _tip=spellTip(nm);/* #8 bible description; #83 always non-empty (fallback) */
     var _gated=sp.racial&&sp.used&&sp.lvl>0;/* the 1/day heritage gate — the one per-spell state left */
-    h+="<div class='sp-item has-tip"+(_gated?" used":"")+"' data-cast=\""+escHtml(nm)+"\" onclick=\"spellQuickCast(this)\" title=\""+escHtml(_tip)+"\" style='cursor:pointer;'>";/* #8 tooltip + #80 click-to-cast + #83 long-press */
+    h+="<div class='sp-item has-tip"+(_gated?" used":"")+"' data-quick=\""+escHtml("Cast "+nm+".")+"\" onclick=\"panelQuickAction(this)\" title=\""+escHtml(_tip)+"\" style='cursor:pointer;'>";/* #8 tooltip + #80 click-to-cast + #83 long-press */
     h+="<span class='sp-nm'>["+tag+"] "+escHtml(nm)+"</span>";/* GM-grantable spell names (#22/UA18) */
     if(ds||_gated)h+="<span class='sp-ds'>"+escHtml(ds||"")+(_gated?" -- 1/day, expended":"")+"</span>";
     h+="</div>";

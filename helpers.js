@@ -55,6 +55,17 @@ function img2imgStrength(cfg){
 /* #208a (owner call 2026-08-21, the Flux drop): a stored render-model id that no longer exists in
    RENDER_MODELS must fall back to the shipped default LOUDLY — a dangling id would break doRender
    on the next click (the loadProviderSettings pruning precedent). */
+// Side-panel quick action (owner call 2026-09-03): the phrase a click on a spell or ability drops
+// into the input, or null when the thing is passive and there is nothing to DO. Spells → "Cast X.";
+// active abilities → "Use X.". Passive = the bible says cost:"passive", or (GM-authored, uncanonized)
+// the description calls itself passive / always on. Pure; both panels render through it.
+function capabilityQuickText(nm,ds){
+  nm=String(nm||"").trim();if(!nm)return null;
+  var e=(typeof capabilityLookup==="function")?capabilityLookup(nm):null;
+  if(e){if(/^passive/i.test(String(e.cost||"")))return null;return (e.kind==="spell"?"Cast ":"Use ")+nm+".";}
+  if(/\b(passive|always[- ]on)\b/i.test(String(ds||"")))return null;
+  return "Use "+nm+".";
+}
 // Render status line (owner call 2026-09-03): ALWAYS names the image model, in every seed case.
 // One builder for doRender's three states; the elapsed ticker appends seconds to whatever it returns.
 function renderStatusText(mdlCfg,sc,isMulti,usingI2I){
