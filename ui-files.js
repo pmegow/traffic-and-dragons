@@ -404,12 +404,17 @@ function exportSave(){
   // Check if we've saved this filename before (same turn = likely overwrite)
   var saved=[];try{var sr=localStorage.getItem("tnd_saved_files_v1");if(sr)saved=JSON.parse(sr);}catch(e){}
   var alreadySaved=saved.indexOf(fname)>=0;
+  /* Owner call 2026-09-03 (the missing Iron Meridian save): say WHERE the file goes, not just its name.
+     A folder restored from a previous session is only a name until Save re-arms it (below). */
+  var dest=saveDestination(_campFolderHandle&&_campFolderHandle.name,_campFolderPending&&_campFolderPending.name,!!(typeof window!=="undefined"&&window.showDirectoryPicker),_SUBFOLDERS.save);
   var modal=modalShell("save-confirm-modal",/* #14 */
     "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Save Game (local)</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Turn "+worldState.turn+" &nbsp;·&nbsp; "+worldState.world.location+"</div>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Saves to</div>"
+    +"<div id='sc-dest' style='font-size:12px;font-family:var(--font-mono);color:"+(dest.kind==="downloads"?"var(--t1)":"var(--acc)")+";margin-bottom:10px;word-break:break-all;'>"+escHtml(dest.text)+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>File</div>"
     +"<input id='sc-fname' type='text' value='"+fname+"' style='width:100%;font-size:12px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:8px 10px;color:var(--t1);box-sizing:border-box;margin-bottom:"+(alreadySaved?"12":"20")+"px;'/>"
-    +(alreadySaved?"<div style='font-size:12px;color:var(--acc);margin-bottom:16px;'>&#9888; A file with this name may already exist in your downloads folder.</div>":"")
+    +(alreadySaved?"<div style='font-size:12px;color:var(--acc);margin-bottom:16px;'>&#9888; A file with this name may already exist in "+escHtml(dest.kind==="downloads"?"your Downloads folder":dest.text.replace(/ \(reconnects on Save\)$/,""))+".</div>":"")
     +"<div style='display:flex;gap:10px;'><button id='sc-cancel' style='flex:1;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
     +"<button id='sc-save' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Save</button></div>",
     {maxWidth:400,outside:true});
@@ -423,7 +428,11 @@ function exportSave(){
     if(actualFname===fname)actualFname=buildFilename("save");
     modal.remove();
     var data=JSON.stringify({worldState:worldState,sessionLog:sessionLog,memory:memory},null,2);
-    var blob=new Blob([data],{type:"application/json"});exportToFolder("save",blob,actualFname);
+    var blob=new Blob([data],{type:"application/json"});
+    /* Re-arm a folder restored from a previous session INSIDE this click (the gesture the permission
+       prompt needs) — before this, a post-reload save silently fell to Downloads while the menu still
+       showed the folder's name (the missing Iron Meridian save, 2026-09-03). */
+    _ensureFolderPerm().then(function(){return exportToFolder("save",blob,actualFname);});
     if(saved.indexOf(actualFname)<0)saved.push(actualFname);
     if(saved.length>100)saved=saved.slice(-100);
     try{localStorage.setItem("tnd_saved_files_v1",JSON.stringify(saved));}catch(e){}

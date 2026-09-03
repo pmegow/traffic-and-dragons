@@ -55,6 +55,18 @@ function img2imgStrength(cfg){
 /* #208a (owner call 2026-08-21, the Flux drop): a stored render-model id that no longer exists in
    RENDER_MODELS must fall back to the shipped default LOUDLY — a dangling id would break doRender
    on the next click (the loadProviderSettings pruning precedent). */
+// Where a local save is about to land (owner call 2026-09-03, the missing Iron Meridian save): the
+// modal must say the FOLDER, not just the file. Browsers expose a picked folder's NAME only (never its
+// path) and nothing at all about Downloads, so this is the most a page can truthfully say. Pure.
+//   folderName  — the live campaign folder handle's name, or null
+//   pendingName — a folder restored from IndexedDB but not yet re-permissioned this session, or null
+//   hasPicker   — window.showDirectoryPicker exists (desktop Chromium); false on mobile/Firefox
+function saveDestination(folderName,pendingName,hasPicker,sub){
+  sub=sub||"saves";
+  if(folderName)return {kind:"folder",text:folderName+"/"+sub+"/"};
+  if(pendingName)return {kind:"pending",text:pendingName+"/"+sub+"/ (reconnects on Save)"};
+  return {kind:"downloads",text:"your browser's Downloads folder"+(hasPicker?" — File ▸ Set campaign folder to keep saves with the campaign":"")};
+}
 // Side-panel quick action (owner call 2026-09-03): the phrase a click on a spell or ability drops
 // into the input, or null when the thing is passive and there is nothing to DO. Spells → "Cast X.";
 // active abilities → "Use X.". Passive = the bible says cost:"passive", or (GM-authored, uncanonized)

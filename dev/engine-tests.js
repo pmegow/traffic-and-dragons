@@ -553,6 +553,18 @@ function runEngineTests(R){
     return ok.backstory==="fine"&&r2.clamped===0?true:"sane sheet touched";
   });
   // ── render status names the image model (owner call 2026-09-03) ──────────────
+  // ── the local save modal names WHERE the file goes (owner call 2026-09-03, the missing Iron Meridian save) ──
+  t("saveDestination: live folder → '<folder>/saves/'; restored-but-unarmed folder → the same path flagged 'reconnects on Save'; no folder → the browser's Downloads with the set-folder hint (desktop) or plain Downloads (no picker); exportSave shows it and re-arms the handle before writing",function(){
+    var a=saveDestination("Iron Meridian",null,true,"saves");if(a.kind!=="folder"||a.text!=="Iron Meridian/saves/")return "live: "+JSON.stringify(a);
+    var b=saveDestination(null,"Iron Meridian",true,"saves");if(b.kind!=="pending"||b.text.indexOf("Iron Meridian/saves/")!==0||!/reconnect/i.test(b.text))return "pending: "+JSON.stringify(b);
+    var c=saveDestination(null,null,true,"saves");if(c.kind!=="downloads"||!/Downloads/.test(c.text)||!/Set campaign folder/.test(c.text))return "downloads: "+JSON.stringify(c);
+    var d=saveDestination(null,null,false,"saves");if(d.kind!=="downloads"||!/Downloads/.test(d.text)||/Set campaign folder/.test(d.text))return "no picker: "+JSON.stringify(d);
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-files.js","utf8"),i=src.indexOf("function exportSave("),body=src.slice(i,src.indexOf("function exportBlueprint("));
+    if(body.indexOf("saveDestination(")<0)return "the modal does not name its destination";
+    if(body.indexOf("_ensureFolderPerm()")<0)return "Save does not re-arm a restored folder handle — a post-reload save silently falls to Downloads";
+    if(/downloads folder\./.test(body))return "the 'may already exist' warning still hardcodes the downloads folder";
+    return true;
+  });
   t("renderStatusText names the image model in EVERY seed case (plain, player-seeded, party-seeded with a described-only member, text-only) and keeps the seed truth",function(){
     var m={id:"fal-ai/x",label:"Nano Banana 2"};
     var a=renderStatusText(m,{urls:[],omitted:[]},false,false),b=renderStatusText(m,{urls:["u"],omitted:[]},false,true),
