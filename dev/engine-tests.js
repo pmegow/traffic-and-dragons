@@ -477,6 +477,97 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #301 Death as a character ────────────────────────────────────────────────
+  function escortWorld(){makeWorld();worldState.turn=30;worldState.world.location="Ashfen";worldState.character.hp=14;worldState.character.maxHp=14;
+    memory.map.nodes["Ashfen"]={firstVisit:1,visits:2,description:null,parent:null,npcs:[],items:[]};memory.lore=["The bell was cast in Magnimar."];
+    var snap=checkpointCapture("rest");checkpointHold(snap);worldState.turn=41;worldState.transcript.push({t:40,r:"gm",x:"the road"});}
+  t("#301 the escort begins: resolvePlayerDeath with a camp on file opens the scene (stage arrive, walk n), clears the death state, and the arrival directive states the terms in voice — one question, back or onward — remembering earlier walks; the third says it is the last",function(){
+    escortWorld();worldState.deathPending={turn:41,cause:"a spear"};worldState.downed={since:40,turns:1};worldState.combat={round:1,engaged:null,foes:[{name:"Raider",hp:3,maxHp:3}]};
+    var r=resolvePlayerDeath();
+    if(!r||r.action!=="escort")return "action: "+JSON.stringify(r);
+    var ds=worldState.deathScene;if(!ds||ds.stage!=="arrive"||ds.walk!==1||ds.cause!=="a spear")return "scene: "+JSON.stringify(ds);
+    if(worldState.deathPending||worldState.downed||worldState.combat)return "death state not cleared";
+    var d=deathArrivalDirective();
+    if(!/one question/i.test(d)||!/onward/i.test(d)||!/camp/i.test(d)||!/a spear/.test(d))return "directive: "+d;
+    if(/last/i.test(d)&&!/never|not the last/i.test(d))return "first walk must not say it is the last: "+d;
+    worldState.deaths=[{turn:20,cause:"a fall"},{turn:33,cause:"a fever"}];worldState.respawns=2;worldState.deathScene.walk=3;
+    d=deathArrivalDirective();
+    return /a fall/.test(d)&&/a fever/.test(d)&&/last/i.test(d)?true:"third walk: "+d;
+  });
+  t("#301 the voice block: empty outside the scene (the volatile half is byte-identical); inside it, a DEATH SCENE block with Death's voice and the answer rules sits BEFORE STYLE",function(){
+    escortWorld();
+    if(buildDeathSceneBlock()!=="")return "block leaked outside the scene";
+    var before=buildSysPrompt();
+    worldState.deathPending={turn:41,cause:"a spear"};resolvePlayerDeath();
+    var b=buildDeathSceneBlock();
+    if(!/DEATH SCENE/.test(b)||!/never lies/i.test(b)||!/turning point|skeleton/i.test(b)||!/fate/i.test(b))return "block: "+b;
+    var sp=buildSysPrompt();
+    if(sp.stable!==before.stable)return "the stable half changed";
+    var i=sp.volatile.indexOf("DEATH SCENE"),j=sp.volatile.indexOf("STYLE: ");
+    return i>=0&&j>i?true:"not before STYLE: "+i+" / "+j;
+  });
+  t("#301 the one question: after the arrival commits the stage is question; the DEATH QUESTION note fires once, advances to answer, and teaches [DEATH_ANSWER:] with the refusal rules; it is registered and its latch declared",function(){
+    escortWorld();worldState.deathPending={turn:41,cause:"a spear"};resolvePlayerDeath();
+    deathSceneAdvance("arrive");
+    if(worldState.deathScene.stage!=="question")return "stage "+worldState.deathScene.stage;
+    var n=buildDeathSceneNote();
+    if(!/IS the question|is the question/i.test(n)||!/DEATH_ANSWER/.test(n)||!/canon/i.test(n)||!/refus/i.test(n))return "note: "+n;
+    if(worldState.deathScene.stage!=="answer")return "stage after the note: "+worldState.deathScene.stage;
+    if(buildDeathSceneNote()!=="")return "note fired twice";
+    return NOTE_SHAPES.buildDeathSceneNote&&NOTE_LATCH_FIELDS.indexOf("deathScene")>=0&&NOTE_BUILDERS.indexOf(buildDeathSceneNote)>=0?true:"not registered";
+  });
+  t("#301 [DEATH_ANSWER:text] records the gift and moves to choose; [DEATH_ANSWER:none] is the kind refusal (no gift); the tag is stripped from prose",function(){
+    escortWorld();worldState.deathPending={turn:41,cause:"a spear"};resolvePlayerDeath();deathSceneAdvance("arrive");buildDeathSceneNote();
+    applyMuts("Death considers. [DEATH_ANSWER:The bell's fourth peal wakes the drowned thing beneath the harbour.]");
+    var ds=worldState.deathScene;
+    if(ds.stage!=="choose"||!/fourth peal/.test(ds.answer||""))return JSON.stringify(ds);
+    if(cleanTxt("A. [DEATH_ANSWER:x] B.")!=="A.  B.")return "not stripped";
+    escortWorld();worldState.deathPending={turn:41,cause:"x"};resolvePlayerDeath();deathSceneAdvance("arrive");buildDeathSceneNote();
+    applyMuts("[DEATH_ANSWER:none]");
+    return worldState.deathScene.stage==="choose"&&!worldState.deathScene.answer?true:JSON.stringify(worldState.deathScene);
+  });
+  t("#301 back: the walk ends at camp — restore, then the gift becomes MANDATORY CANON on the restored world (lore + a Defining Moment on the restored sheet + the waking note carries it); the scene clears; the turn never rewinds",function(){
+    escortWorld();worldState.deathPending={turn:41,cause:"a spear"};resolvePlayerDeath();deathSceneAdvance("arrive");buildDeathSceneNote();
+    applyMuts("[DEATH_ANSWER:The bell's fourth peal wakes the drowned thing.]");
+    worldState.turn=44;
+    var r=deathSceneChoose("back");
+    if(!r||r.action!=="respawn")return "choose: "+JSON.stringify(r);
+    if(worldState.turn!==44)return "turn rewound";
+    if(worldState.deathScene)return "scene not cleared";
+    if(!memory.lore.some(function(l){return /fourth peal/.test(l);}))return "gift not filed as lore on the RESTORED memory: "+JSON.stringify(memory.lore);
+    var cm=worldState.character.coreMemories||[];if(!cm.some(function(m){return m.kind==="death-gift"&&/fourth peal/.test(m.text);}))return "gift moment missing: "+JSON.stringify(cm);
+    if(!worldState.respawnNote||!/fourth peal/.test(worldState.respawnNote.gift||""))return "waking note lacks the gift";
+    var note=buildRespawnNote();
+    return /fourth peal/.test(note)&&/Death/.test(note)?true:"note: "+note;
+  });
+  t("#301 onward: the choice asks for confirmation; confirming ends the campaign and owes the denouement; buildDenouementPrompt draws on chapters, eras, the quest archive, Defining Moments and the deaths; fileDenouement writes the last GM entry (den), a final chapter, and the end",function(){
+    escortWorld();worldState.deathPending={turn:41,cause:"a spear"};resolvePlayerDeath();deathSceneAdvance("arrive");buildDeathSceneNote();applyMuts("[DEATH_ANSWER:none]");
+    var r=deathSceneChoose("onward");
+    if(!r||r.action!=="confirm")return "onward should ask first: "+JSON.stringify(r);
+    if(worldState.ended)return "ended before confirmation";
+    memory.chapters=[{turn:10,summary:"They rang the bell."}];memory.eras=[{summary:"The salt years.",from:1,to:9}];memory.quests={"The Bell Below":{status:"completed",desc:"Ring it."}};
+    worldState.character.coreMemories=[{text:"Ammut swore the oath at Ashfen.",turn:5,kind:"vow"}];
+    var r2=deathSceneOnwardConfirm();
+    if(!r2||r2.action!=="ended"||!worldState.ended||!worldState.denouementOwed)return "confirm: "+JSON.stringify(r2)+" "+JSON.stringify(worldState.ended);
+    var pr=buildDenouementPrompt();
+    if(!/rang the bell/.test(pr)||!/salt years/.test(pr)||!/Bell Below/.test(pr)||!/swore the oath/.test(pr)||!/a spear/.test(pr))return "prompt: "+pr.slice(0,600);
+    var n0=worldState.transcript.length;
+    fileDenouement("And so the bell was silent, and the harbour slept.");
+    var last=worldState.transcript[worldState.transcript.length-1];
+    if(worldState.transcript.length!==n0+1||!last.den||last.r!=="gm"||!/harbour slept/.test(last.x))return "transcript: "+JSON.stringify(last);
+    if(!memory.chapters.some(function(c){return /DENOUEMENT/.test(c.summary);}))return "final chapter missing";
+    return !worldState.denouementOwed&&campaignEnded()?true:"owed flag not cleared";
+  });
+  t("#301 the fourth death: no escort, no question — resolvePlayerDeath ends the campaign and owes the denouement",function(){
+    escortWorld();worldState.respawns=3;worldState.deathPending={turn:41,cause:"the fourth"};
+    var r=resolvePlayerDeath();
+    return r&&r.action==="ended"&&worldState.ended&&worldState.denouementOwed&&!worldState.deathScene?true:JSON.stringify(r)+" "+JSON.stringify(worldState.ended);
+  });
+  t("#301 deathChoiceButtons + deathChoiceFromText: the two engine buttons, and typed text resolves to back / onward / neither",function(){
+    var b=deathChoiceButtons();if(b.length!==2||!/back/i.test(b[0])||!/onward/i.test(b[1]))return JSON.stringify(b);
+    if(deathChoiceFromText("Walk back to camp")!=="back"||deathChoiceFromText("I go onward")!=="onward"||deathChoiceFromText("what happens now?")!==null)return "text routing";
+    return true;
+  });
   // ── #300 consequence: downed-not-dead, true death, checkpoints, respawn ─────
   function downedWorld(){makeWorld();worldState.turn=20;worldState.character.hp=5;worldState.character.maxHp=14;worldState.world.location="Ashfen";
     memory.map.nodes["Ashfen"]={firstVisit:1,visits:2,description:null,parent:null,npcs:[],items:[]};}
@@ -580,7 +671,7 @@ function runEngineTests(R){
   t("#300 ② resolvePlayerDeath: three respawns restore the camp; the FOURTH death ends the campaign (worldState.ended) and campaignEnded() gates play; no camp on file = restore refused loudly, never a crash",function(){
     downedWorld();worldState.turn=10;var snap=checkpointCapture("campaign start");checkpointHold(snap);
     var deaths=0,i;
-    for(i=0;i<3;i++){worldState.turn+=5;worldState.character.hp=0;worldState.deathPending={turn:worldState.turn,cause:"death "+(i+1)};var r=resolvePlayerDeath();if(!r||r.action!=="respawn")return "death "+(i+1)+": "+JSON.stringify(r);deaths++;if(worldState.ended)return "ended early";}
+    for(i=0;i<3;i++){worldState.turn+=5;worldState.character.hp=0;worldState.deathPending={turn:worldState.turn,cause:"death "+(i+1)};var r=resolvePlayerDeath();if(!r||r.action!=="escort")return "death "+(i+1)+": "+JSON.stringify(r);/* #301: the escort walk sits between death and camp */var rb=deathSceneChoose("back");if(!rb||rb.action!=="respawn")return "walk back "+(i+1)+": "+JSON.stringify(rb);deaths++;if(worldState.ended)return "ended early";}
     if(worldState.respawns!==3)return "respawns "+worldState.respawns;
     worldState.turn+=5;worldState.deathPending={turn:worldState.turn,cause:"the fourth"};var r4=resolvePlayerDeath();
     if(!r4||r4.action!=="ended"||!worldState.ended||!/fourth/.test(worldState.ended.cause))return "fourth death: "+JSON.stringify(r4)+" "+JSON.stringify(worldState.ended);
@@ -5683,7 +5774,7 @@ function runEngineTests(R){
     // would read the relabel ceremony aloud in the prose and pollute the transcript.
     // v1.697 (#211): +NO_CHANGE in BOTH registries (+10 chars payload form; bare form joins
     // _CT_BARE) — the audit-ack channel must strip everywhere or the ack IS the leak it cures.
-    if(__djb2(_CT_TAGS.source)!==429893850||_CT_TAGS.source.length!==1589)return "_CT_TAGS diverged from the frozen literal";/* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==-423215573||_CT_TAGS.source.length!==1602)return "_CT_TAGS diverged from the frozen literal";/* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){

@@ -981,6 +981,9 @@ function _itemServe(ov,base){
 function presentCompanions(){var a=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];return a.filter(function(n){return !(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location);});}
 function campaignEnded(){return !!(typeof worldState!=="undefined"&&worldState&&worldState.ended);}
 // #300: the only two moves a downed hero has — the engine authors these buttons, no model call.
+// #301: the two moves after Death has answered — engine buttons, no model call; typed text routes to one.
+function deathChoiceButtons(){return ["Walk back to camp with Death","Go onward"];}
+function deathChoiceFromText(t){var s=String(t||"").toLowerCase();if(/\bback\b|\bcamp\b|\breturn\b|\bwake\b/.test(s))return "back";if(/\bonward\b|\bgo on\b|\bforward\b|\bbeyond\b|\bfollow\b/.test(s))return "onward";return null;}
 function downedChoices(){return ["Struggle — fight for consciousness, crawl, cling to life","Yield — let go and trust whoever finds you"];}
 // #300: Rest heals. A long rest restores the hero and every living companion to full (the one heal
 // site for both paths — button and [REST:long]); a short rest rolls ONE hit die + CON, never past max.

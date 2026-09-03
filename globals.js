@@ -109,7 +109,14 @@ var NOTE_LOG_CAP=40;
 // ends the campaign (#301 writes its denouement).
 var DOWNED_MAX_TURNS=3;
 var RESPAWNS_PER_CAMPAIGN=3;
-var CHECKPOINT_VER=1;    // #309: the engine-notes ring beside tagLog — {t, n:[builder names], c:chars} per DELIVERED gameplay turn, so an audit can say which notes the engine fired and when
+var CHECKPOINT_VER=1;
+// #301 (owner design 2026-09-02): DEATH AS A CHARACTER. On a true death Death arrives, states the terms in
+// voice, and walks the player back to the last camp or onward. ONE question per death — the first
+// player turn in the scene IS the question, whatever it says; Death answers from what the world already
+// contains (never an unrevealed turning point, never an NPC's secret before its reveal, fate gets the
+// gentle no), and the answer is MANDATORY CANON carried back through the dead branch. Onward ends the
+// campaign; the fourth death ends it without a walk — the GM writes the DENOUEMENT.
+var DEATH_VOICE="Death is present as a character: courteous, unhurried, exact. Speaks little and plainly; never lies, never mocks, never bargains; has all the time there is. Not the prose voice's narrator — a second presence the narration makes room for.";    // #309: the engine-notes ring beside tagLog — {t, n:[builder names], c:chars} per DELIVERED gameplay turn, so an audit can say which notes the engine fired and when
 var HEALTH_LOG_CAP=40; // #17 drift-health ring (worldState.healthLog): ONE observational {t,in,cr,rag,prov} per gameplay-turn call, written only by recordUsage, read only by healthIndicators (helpers.js) — never by any prompt or parser path
 var RETCON_PIN_SHELF=15;    // #147 (drift pass order 4): turns a CORRECTION IN FORCE pin survives un-filed before it archives LOUDLY — bounded so a stuck pin can never become permanent prompt noise (the one-shot-shelf discipline); a completed summarize extraction archives it earlier
 var DEITY_DRIFT_COOLDOWN=25;
@@ -310,7 +317,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.774";
+var APP_VERSION="v1.775";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 var HOME_PENDING_BP_K="tnd_pending_bp_v1";

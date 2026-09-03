@@ -544,6 +544,23 @@ function buildMarketNote(){
   var cap=waresCapFor(node),label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
   return"[ENGINE NOTE — MARKET (not a player action): "+label+" is a "+node.size+" place and nothing is on record for sale here. If it is a settlement, emit one or two [WARES:item|price|note] lines for what is genuinely sold here (up to "+cap+" over the week; name the seller in the note; price at VALUE, never the party's purse). If nothing is sold here — wilderness, a ruin — emit [WARES:none]. If someone here wants something the party carries, [WANTED:item|offer|by].]\n";
 }
+// #301: the DENOUEMENT — the campaign's closing chapter, asked of the GM when the fourth death lands or the
+// player walks onward. Drawn from what the campaign actually recorded; written in the campaign's voice.
+var DENOUEMENT_SYS="You are the Game Master closing a FINISHED campaign. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. End on the world going on without the hero.";
+function buildDenouementPrompt(){
+  var c=worldState.character,lines=[],i;
+  lines.push("CAMPAIGN: "+(worldState.campName||"")+" — hero "+c.name+", "+c.cls+" level "+c.level+".");
+  var eras=memory.eras||[];if(eras.length){lines.push("ERAS (oldest first):");for(i=0;i<eras.length;i++)lines.push("- "+(eras[i].summary||""));}
+  var ch=memory.chapters||[];if(ch.length){lines.push("CHAPTERS (oldest first):");for(i=0;i<ch.length;i++)lines.push("- t"+ch[i].turn+": "+ch[i].summary);}
+  var qk=Object.keys(memory.quests||{});if(qk.length){lines.push("QUESTS:");for(i=0;i<qk.length;i++){var q=memory.quests[qk[i]];lines.push("- "+qk[i]+" — "+(q.status||"")+(q.desc?": "+q.desc:""));}}
+  var live=worldState.questLog||[];if(live.length){lines.push("UNFINISHED:");for(i=0;i<live.length;i++)lines.push("- "+live[i].title+" ("+live[i].status+")");}
+  var cm=c.coreMemories||[];if(cm.length){lines.push("DEFINING MOMENTS:");for(i=0;i<cm.length;i++)lines.push("- t"+cm[i].turn+": "+cm[i].text);}
+  var d=worldState.deaths||[];if(d.length||worldState.ended){lines.push("DEATHS:");for(i=0;i<d.length;i++)lines.push("- t"+d[i].turn+": "+(d[i].cause||"slain"));if(worldState.ended)lines.push("- t"+worldState.ended.turn+": "+(worldState.ended.cause||"slain")+" — the last.");}
+  var pa=(typeof AUTHORS!=="undefined"&&worldState.proseAuthor)?AUTHORS.filter(function(a){return a.id===worldState.proseAuthor;})[0]:null;
+  if(pa&&pa.vc)lines.push("VOICE: "+pa.vc);
+  lines.push("Write the denouement now.");
+  return lines.join("\n");
+}
 // #300: the DOWNED note — fires EVERY turn while the hero is at 0 HP, combat included (this is the fight),
 // no latch (worldState.downed is state, cleared by the resolution). Names who can intervene; escalates
 // on the last turn before the engine rules the death.
@@ -555,7 +572,25 @@ function buildDownedNote(){
 // #300: the waking note — one shot after a respawn: the camp is the truth, the dead branch never happened.
 function buildRespawnNote(){
   var r=worldState&&worldState.respawnNote;if(!r)return"";delete worldState.respawnNote;
-  return "[ENGINE NOTE — THE PLAYER WOKE AT CAMP (not a player action): "+worldState.character.name+" died ("+(r.cause||"slain")+") and has been carried back to "+r.camp+", as of turn "+r.campTurn+". Everything after that camp DID NOT HAPPEN in this world — the memory blocks above are the truth; never reference the dead branch. Narrate the waking now: the camp, the body whole, the weight of what was lost (respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+"). Never mention the engine or a checkpoint.]";
+  return "[ENGINE NOTE — THE PLAYER WOKE AT CAMP (not a player action): "+worldState.character.name+" died ("+(r.cause||"slain")+") and has been carried back to "+r.camp+", as of turn "+r.campTurn+". Everything after that camp DID NOT HAPPEN in this world — the memory blocks above are the truth; never reference the dead branch. Narrate the waking now: the camp, the body whole, the weight of what was lost (respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+")."+(r.gift?" Death walked them back and answered one question on the way — that answer is now CANON, already filed as lore: \""+r.gift+"\". The player REMEMBERS it; the world must honour it.":"")+" Never mention the engine or a checkpoint.]";
+}
+// #301: the DEATH SCENE block — volatile, "" outside the scene, injected right before STYLE so Death's
+// voice sits above the prose voice. Carries the answer rules the GM must honour.
+function buildDeathSceneBlock(){
+  var ds=worldState&&worldState.deathScene;if(!ds)return"";
+  var c=worldState.character;
+  return "DEATH SCENE (engine-authored, walk "+ds.walk+" of "+RESPAWNS_PER_CAMPAIGN+"): "+c.name+" has died ("+(ds.cause||"slain")+"). "+DEATH_VOICE+" The world is paused; no NPC acts, no clock moves, no tags but the ones the engine asks for. "
+    +(ds.stage==="arrive"?"Death has just arrived to walk "+c.name+" back to the last camp or onward. ":"")
+    +"The player has ONE question on the walk. Death answers only from what this world already contains — filed lore, the map, what NPCs know, the campaign's premise — and NEVER spends the skeleton's unrevealed turning points or an NPC's secret before its reveal (a kind in-character refusal instead). A question about fate gets the gentle no: that chapter is yet to be written. Whatever Death answers becomes CANON the GM must honour ever after. "
+    +(ds.stage==="choose"?"The question is spent. Death waits for the choice: back to camp, or onward. ":"")
+    +"\n\n";
+}
+// #301: the ONE question — fires once, on the first player turn inside the scene, whatever it says.
+// Latch: worldState.deathScene.stage (declared as deathScene; a dead call restores the stage).
+function buildDeathSceneNote(){
+  var ds=worldState&&worldState.deathScene;if(!ds||ds.stage!=="question")return"";
+  ds.stage="answer";ds.askedTurn=worldState.turn;
+  return "[ENGINE NOTE — DEATH'S QUESTION (not a player action): the player's message above IS the question — whatever it says, however it is phrased (asking to save the question for later IS the question, and the answer is no). Death answers ONCE, in voice, from what this world already contains — filed lore, the map, what NPCs know, the premise. NEVER spend an unrevealed turning point of the campaign skeleton or an NPC's secret before its reveal: refuse kindly, in character. A question about the player's own fate gets the gentle no — that chapter of their fate is yet to be written. The answer is MANDATORY CANON: emit [DEATH_ANSWER:one or two sentences of the fact as Death states it] so the engine can carry it back to camp; if Death refuses, emit [DEATH_ANSWER:none]. Then Death offers the choice again: back to camp, or onward. No other tags.]";
 }
 function buildLocationDescNudge(){
   if(!worldState||worldState.combat||typeof memory==="undefined"||!memory||!memory.map)return"";
@@ -1549,7 +1584,7 @@ function buildArcWallNudge(){
 // per companion) and questLog[].staleNudged (buildQuestStaleNudge — entry-30 ruling 2026-08-29:
 // the NARROW title-keyed snapshot, never questLog wholesale in the flat registry, which would
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
-var NOTE_LATCH_FIELDS=["respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
 var NOTE_NESTED_LATCHES=["questLog[].staleNudged","charSheet.splitLoc.audited","conditions[].until","memory.futureEvents[]._asked","sessionLog"];
 function snapshotNoteLatches(){
@@ -1590,7 +1625,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<ql2.length;j++){if(ql2[j]&&ql2[j].title===qr.title){
       if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;}}}
 }
-var NOTE_BUILDERS=[buildDownedNote,buildRespawnNote,/* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildDownedNote,buildRespawnNote,/* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // #309: THE SHAPE REGISTRY (owner ruling 2026-09-03 — one-in-one-out was REJECTED after the
 // 49-builder catalog, audits/RECORD_309_note_builder_catalog.md: builders are six shapes, not
 // fungible units). Every builder declares its shape, the latch fields it burns (declared in
@@ -1600,6 +1635,7 @@ var NOTE_BUILDERS=[buildDownedNote,buildRespawnNote,/* #300: consequence first �
 // Adding a builder = one function + one row. A per-turn delivery cap is decided from the notes ring's
 // data after a playtest, never guessed here.
 var NOTE_SHAPES={
+  buildDeathSceneNote:{shape:"one-shot-ask",latch:["deathScene"],combat:"fires",ack:["DEATH_ANSWER"]},
   buildDownedNote:{shape:"cooldown-reminder",latch:["none"],combat:"fires",ack:["DOWNED_RESOLVED","HP"]},
   buildRespawnNote:{shape:"one-shot-ask",latch:["respawnNote"],combat:"fires",ack:["none"]},
   buildArcWallNudge:{shape:"cooldown-reminder",latch:["arcWallWarned"],combat:"silent",ack:["QUEST"]},
@@ -1989,6 +2025,7 @@ function buildSysPrompt(){
     +cb+erasBlock+hist
     +buildCoreMemoryBlock()
     +buildRetconPinBlock()/* #147: correction-in-force pin — volatile only, ""-clean when no pin lives */
+    +buildDeathSceneBlock()/* #301: Death's voice above the prose voice — "" outside the escort scene */
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
     +"STYLE: "+(_paVc?"Write EVERY sentence of narration in this voice — a reader should recognise the author from rhythm, sentence length, and word choice alone. Commit fully; never blend with a neutral GM voice. VOICE: "+_paVc+(_paProfane?(adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity."):"")+" ":"Write clean, readable prose. ")+"Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Do NOT end your response with suggested actions, a 'You could' line, or an [ACTIONS:] tag — action suggestions are handled separately by the engine. Never show tags in prose. NEVER use comparative age as a flourish: no \"older than X\", no \"older than memory / names / language / time\", no character boasting of having waited, watched, slept or endured longer than some other thing is old, and no new scene made to matter by being older than the last. Age is not a measure of importance and an intensifier stacked on an age word is not information — if an age matters, state it plainly once, otherwise say what the thing is and move on. Death is possible."
     /* D12 (supersedes D10, user field ruling 2026-07-18): the third-person override must sit

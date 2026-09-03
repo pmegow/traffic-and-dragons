@@ -364,7 +364,7 @@
       lastTurn=t;
       while(ci<chapters.length-1&&t>chapters[ci].turn)ci++;
       var ch=chapters[ci];
-      ch.entries.push({turn:t,role:e.r,text:e.x});
+      ch.entries.push({turn:t,role:e.r,text:e.x,db:!!e.db,den:!!e.den});/* #300/#301: the dead branch prints, labelled; the denouement closes the book */
       if(ch.turnStart===null||t<ch.turnStart)ch.turnStart=t;
       if(ch.turnEnd===null||t>ch.turnEnd)ch.turnEnd=t;
       if(e.r==="player")players++;else gms++;
@@ -430,9 +430,11 @@
       mk.push("</ul>");
       out.push(mk.join(""));
     }
-    var lastTurn=null;
+    var lastTurn=null,inDead=false;
     for(i=0;i<ch.entries.length;i++){
       var e=ch.entries[i];
+      if(!!e.db!==inDead){inDead=!!e.db;out.push("<div class=\"branch\">"+(inDead?"— the road not taken —":"— the road resumes —")+"</div>");}/* #300: a death unwrote these turns; they stay in the book, marked */
+      if(e.den)out.push("<div class=\"branch\">— denouement —</div>");/* #301 */
       if(opts.turns&&e.turn!==lastTurn){out.push("<div class=\"turn\">Turn "+esc(String(e.turn))+"</div>");lastTurn=e.turn;}
       if(e.role==="player"){
         out.push("<div class=\"act\" data-turn=\""+e.turn+"\">"+esc(e.text)+"</div>");
@@ -450,6 +452,7 @@
     return ":root{--paper:#f7f1e6;--ink:#2b2620;--dim:#8a7f6d;--acc:#b8935a;--rule:#e3d8c4;--quiet:#5c5140}"
       +"@media (prefers-color-scheme:dark){:root{--paper:#141310;--ink:#ded4c2;--dim:#8d8371;--acc:#c6a06a;--rule:#2c2822;--quiet:#a99d88}}"
       +"*{box-sizing:border-box}html,body{margin:0}"
+      +".branch{margin:18px 0 8px;text-align:center;color:var(--dim);font-style:italic;letter-spacing:.06em}"
       +"body{background:var(--paper);color:var(--ink);font:17px/1.72 Georgia,'Iowan Old Style','Times New Roman',serif}"
       +".wrap{max-width:720px;margin:0 auto;padding:56px 24px 96px}"
       +".cover{text-align:center;border-bottom:2px solid var(--acc);padding-bottom:30px;margin-bottom:14px}"

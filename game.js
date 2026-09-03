@@ -456,6 +456,8 @@ function applySuggestionGate(acts){
 }
 async function generateActions(msgEl){
   /* #300: a downed hero gets the engine's two moves — no model call, no token, no invented rescue. */
+  if(worldState&&worldState.deathScene&&worldState.deathScene.stage==="choose"&&typeof deathChoiceButtons==="function"){var _dcb=deathChoiceButtons();msgEl.insertAdjacentHTML("beforeend",buildActionButtons(_dcb));worldState.lastActions=_dcb;if(typeof saveAll==="function")saveAll();return;}/* #301 */
+  if(worldState&&worldState.deathScene){worldState.lastActions=null;return;}/* #301: no suggestions while Death speaks — the next line is the question */
   if(worldState&&worldState.downed&&typeof downedChoices==="function"){var _dc=downedChoices();msgEl.insertAdjacentHTML("beforeend",buildActionButtons(_dc));worldState.lastActions=_dc;if(typeof saveAll==="function")saveAll();return;}
   var btnDiv=document.createElement("div");
   btnDiv.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;";
@@ -1720,6 +1722,7 @@ function commitGmTurn(resp,opts){
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
   if(worldState.checkpointDue){var _cpr=worldState.checkpointDue;delete worldState.checkpointDue;if(typeof takeCheckpoint==="function")takeCheckpoint(_cpr);}/* #300: the camp queued by [REST:long] / an act close is taken here, after the response committed */
   if(worldState.deathPending&&typeof resolvePlayerDeath==="function")resolvePlayerDeath();/* #300: the death narration is in the book; now the consequence */
+  if(worldState.deathScene&&typeof deathSceneAdvance==="function"){if(worldState.deathScene.stage==="arrive")deathSceneAdvance("arrive");else if(worldState.deathScene.stage==="answer")deathSceneAdvance("answer");}/* #301: the scene's turn boundary */
   detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts */
   toastInventoryGains(_invPre);/* #107: say what reached the sheet — silence means the tag never fired */
   if(!o.isOpening){
@@ -1856,6 +1859,13 @@ function restorePendingAction(){
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("action-input");
   if(typeof campaignEnded==="function"&&campaignEnded()&&!(opts&&opts.silent)){if(typeof showToast==="function")showToast("This campaign has ended — its story is complete (File ▸ Export Narrative keeps it)");return;}/* #300 */
+  /* #301: at the choose stage the two buttons are the whole vocabulary — no model call. */
+  if(worldState.deathScene&&worldState.deathScene.stage==="choose"&&!(opts&&opts.silent)){
+    var _dcTxt=override!==null?override:(inp?inp.value.trim():"");var _dch=deathChoiceFromText(_dcTxt);
+    if(_dch==="back"){if(inp)inp.value="";deathSceneChoose("back");return;}
+    if(_dch==="onward"){if(inp)inp.value="";if(typeof showOnwardConfirmModal==="function")showOnwardConfirmModal();else deathSceneOnwardConfirm();return;}
+    if(typeof showToast==="function")showToast("Death waits. Walk back to camp, or go onward.");return;
+  }
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
   // B10/v1.421 — repair the audio context HERE, in the send gesture. iOS interrupts the context
   // between turns, when nothing is watching (_armCtxWatch disarms itself while !_playing), so the
@@ -2851,21 +2861,96 @@ function resolvePlayerDeath(){
     worldState.ended={turn:worldState.turn,cause:cause,at:Date.now(),deaths:(worldState.respawns||0)+1};
     delete worldState.deathPending;delete worldState.downed;worldState.combat=null;
     if(typeof fileCoreMemory==="function"&&c)fileCoreMemory("death",c.name,c.name+" died the final time — "+cause+".");
+    worldState.denouementOwed=true;/* #301: no escort, no question — the GM writes the campaign's denouement */
     if(typeof saveAll==="function")saveAll();
-    if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(cause);
+    if(typeof document!=="undefined"&&typeof campaignDenouement==="function")setTimeout(campaignDenouement,0);
+    else if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(cause);
     if(typeof carNotify==="function")carNotify("ended","You have died for the last time. This story is complete.");
     return {action:"ended"};
   }
   var snap=checkpointHeld();
   if(!snap){console.warn("[death] no camp on file — nowhere to wake; the death stands until a camp exists (#300)");if(typeof showToast==="function")showToast("☠ No camp on file — nowhere to wake");return {action:"no-camp"};}
+  /* #301: the escort walk sits between the death and the camp. Death arrives (a silent engine send),
+     the player asks their one question, Death answers, the player walks back or onward. */
+  deathSceneBegin(cause);
+  return {action:"escort"};
+}
+function deathSceneBegin(cause){
+  worldState.deathScene={stage:"arrive",cause:cause||"slain",walk:(worldState.respawns||0)+1,startTurn:worldState.turn,answer:null};
+  delete worldState.deathPending;delete worldState.downed;worldState.combat=null;
+  if(typeof saveAll==="function")saveAll();
+  if(typeof carNotify==="function")carNotify("info","Death has come for you.");
+  if(typeof document!=="undefined"&&typeof sendAction==="function")setTimeout(function(){sendAction(deathArrivalDirective(),{silent:true});},0);
+}
+function deathArrivalDirective(){
+  var ds=worldState.deathScene||{},c=worldState.character,d=worldState.deaths||[],i,prior=[];
+  for(i=0;i<d.length;i++)prior.push("t"+d[i].turn+" — "+(d[i].cause||"slain"));
+  var walk=ds.walk||1,last=walk>=RESPAWNS_PER_CAMPAIGN;
+  var cp=worldState.checkpoint||{};
+  return "[ENGINE — DEATH ARRIVES (not a player action): "+c.name+" has just died ("+(ds.cause||"slain")+"). Narrate Death's arrival in the scene as it stands — the body, the quiet, then Death, in the voice described in the DEATH SCENE block. Death states the terms plainly, in voice: it will walk "+c.name+" back to the last camp ("+(cp.location||"the last camp")+") or onward, and on the way "+c.name+" may ask ONE question — one — and Death will answer with what the world already knows. "
+    +(prior.length?"Death remembers the earlier walks ("+prior.join("; ")+") and says so, briefly. ":"This is their first walk together; Death has never walked "+c.name+" before. ")
+    +(last?"This is the LAST walk Death will offer — say so plainly: the next death is the end. ":"This is walk "+walk+" of "+RESPAWNS_PER_CAMPAIGN+"; do not call it the last. ")
+    +"End on Death waiting for the question. No tags, no options, no clock.]";
+}
+// The scene's turn boundary: after the arrival commits the next player line is the question; after the
+// answer commits (the DEATH_ANSWER handler moved the stage to choose) the engine offers the two buttons.
+function deathSceneAdvance(afterStage){
+  var ds=worldState&&worldState.deathScene;if(!ds)return;
+  if(afterStage==="arrive"&&ds.stage==="arrive")ds.stage="question";
+  else if(afterStage==="answer"&&ds.stage==="answer"){ds.stage="choose";if(!ds.answer)ds.answer=null;}
+}
+function deathSceneChoose(choice){
+  var ds=worldState&&worldState.deathScene;if(!ds)return null;
+  if(choice==="onward")return {action:"confirm"};
+  if(choice!=="back")return null;
+  var gift=ds.answer||null,cause=ds.cause||"slain";
+  var snap=checkpointHeld();if(!snap)return {action:"no-camp"};
+  delete worldState.deathScene;
   var r=checkpointRestore(snap,{cause:cause});
-  if(!r.ok){console.warn("[death] restore failed: "+r.reason);if(typeof showToast==="function")showToast("☠ Could not return to camp: "+r.reason);return {action:"failed",reason:r.reason};}
+  if(!r.ok){console.warn("[death] restore failed: "+r.reason);return {action:"failed",reason:r.reason};}
+  if(gift){/* MANDATORY CANON, filed on the RESTORED world — memory came back from camp, so this lands after */
+    if(typeof fileLore==="function")fileLore("Death's answer (walk "+r.respawn+"): "+gift);
+    if(typeof fileCoreMemory==="function")fileCoreMemory("death-gift",worldState.character.name,"On the walk back from death, "+worldState.character.name+" asked one question and Death answered: \""+gift+"\"");
+    if(worldState.respawnNote)worldState.respawnNote.gift=gift;
+  }
   if(typeof saveAll==="function")saveAll();
   if(typeof rebuildNarrativeFromTranscript==="function"){try{rebuildNarrativeFromTranscript(true);}catch(e){}}
   if(typeof syncUI==="function"){try{syncUI();}catch(e){}}
   if(typeof showRespawnModal==="function")showRespawnModal(r,cause);
-  if(typeof carNotify==="function")carNotify("respawn","You died. You wake again at "+r.camp+". Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+".");
+  if(typeof carNotify==="function")carNotify("respawn","You wake again at "+r.camp+". Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+".");
   return {action:"respawn",turn:r.turn,camp:r.camp};
+}
+function deathSceneOnwardConfirm(){
+  var ds=worldState&&worldState.deathScene;var cause=(ds&&ds.cause)||"slain";
+  delete worldState.deathScene;
+  worldState.ended={turn:worldState.turn,cause:cause+" — and walked onward with Death",at:Date.now(),deaths:(worldState.respawns||0)+1,onward:true};
+  worldState.denouementOwed=true;
+  if(typeof fileCoreMemory==="function")fileCoreMemory("death",worldState.character.name,worldState.character.name+" died — "+cause+" — and walked onward with Death.");
+  if(typeof saveAll==="function")saveAll();
+  if(typeof document!=="undefined"&&typeof campaignDenouement==="function")setTimeout(campaignDenouement,0);
+  return {action:"ended"};
+}
+// #301: the denouement — asked of the GM (a plain sysOverride call, no history), filed as the campaign's last
+// GM entry and its final chapter. Owed until it lands: a failed call leaves denouementOwed set and boot retries.
+async function campaignDenouement(){
+  if(!worldState||!worldState.denouementOwed||busy)return;
+  busy=true;
+  try{
+    var text=await callGM(buildDenouementPrompt(),DENOUEMENT_SYS,1500,null,{kind:"other",noHistory:true});
+    fileDenouement(String(text||"").trim());
+    if(typeof addMsg==="function")addMsg("narrator",escHtml(String(text||"").trim()).replace(/\n/g,"<br>"));
+    if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(worldState.ended&&worldState.ended.cause);
+  }catch(e){console.warn("[denouement] not written yet — will retry at next boot:",e&&e.message);if(typeof showToast==="function")showToast("The denouement could not be written yet — it will be tried again next time");}
+  finally{busy=false;}
+}
+function fileDenouement(text){
+  if(!worldState)return;
+  var t=String(text||"").trim();if(!t)return;
+  if(typeof logTranscript==="function")logTranscript("gm",t,t,undefined,{denouement:true});
+  if(memory){if(!memory.chapters)memory.chapters=[];memory.chapters.push({turn:worldState.turn,summary:"DENOUEMENT: "+t.slice(0,600)});}
+  delete worldState.denouementOwed;
+  if(!worldState.ended)worldState.ended={turn:worldState.turn,cause:"the story closed",at:Date.now()};
+  if(typeof saveAll==="function")saveAll();
 }
 // #300 multiplayer — death is personal. A fallen PC companion is parked with its sheet; the party
 // continues; at the next camp they rejoin whole.

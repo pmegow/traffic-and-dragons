@@ -789,6 +789,18 @@ function showRespawnModal(r,cause){
   document.body.appendChild(m);
   document.getElementById("respawn-ok").onclick=function(){m.remove();};
 }
+function showOnwardConfirmModal(){
+  closeAllMenus();var old=document.getElementById("onward-modal");if(old)old.remove();
+  var m=document.createElement("div");m.id="onward-modal";
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
+  m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
+    +"<div style='font-size:20px;margin-bottom:8px;'>Go onward?</div>"
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>Walking onward with Death ENDS this campaign. There is no camp past this point and no way back; the Game Master will write its final chapter. The book stays, dead branches and all.</div>"
+    +"<div style='margin-top:16px;display:flex;gap:8px;justify-content:flex-end;'><button id='onward-no' style='padding:8px 16px;font-family:var(--font);background:var(--bg3);color:var(--t0);border:1px solid var(--brd);border-radius:6px;cursor:pointer;'>Walk back instead</button><button id='onward-yes' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:#111;border:0;border-radius:6px;cursor:pointer;'>Go onward — end the campaign</button></div></div>";
+  document.body.appendChild(m);
+  document.getElementById("onward-no").onclick=function(){m.remove();deathSceneChoose("back");};
+  document.getElementById("onward-yes").onclick=function(){m.remove();deathSceneOnwardConfirm();};
+}
 function showCampaignEndedModal(cause){
   closeAllMenus();var old=document.getElementById("ended-modal");if(old)old.remove();
   var m=document.createElement("div");m.id="ended-modal";

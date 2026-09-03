@@ -387,7 +387,8 @@ function initState(saved){
     /* #81: unanswered item-canon proposals ride the save — resurface them on boot so closing
        the tab can never silently strand a proposal (the confirm modal is the only path to canon). */
     if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();if(worldState.pendingRewardClaims&&worldState.pendingRewardClaims.length&&typeof showRewardClaimModal==="function")showRewardClaimModal();/* #215: an unanswered claim survives the tab closing */
-    if(typeof restoreCheckpointHolder==="function")restoreCheckpointHolder();/* #300: the in-memory camp is gone after a reload — refill from IndexedDB, else the server */
+    if(typeof restoreCheckpointHolder==="function")restoreCheckpointHolder();
+    if(worldState&&worldState.denouementOwed&&typeof campaignDenouement==="function")setTimeout(campaignDenouement,500);/* #301: a denouement the last session could not write *//* #300: the in-memory camp is gone after a reload — refill from IndexedDB, else the server */
     if(worldState&&!worldState.checkpoint&&!campaignEnded()&&typeof takeCheckpoint==="function")takeCheckpoint("upgrade camp");/* #300: a pre-v1.774 campaign gets its first camp where it stands */
     if(typeof resurfaceLevelUpOwed==="function")resurfaceLevelUpOwed();/* #284: owed archetype/stat/spell milestones ride the save — re-open them on boot so a reload can never strand an earned pick */
     // #30: bring back the campaign folder (a plain var until now, so every reload silently
