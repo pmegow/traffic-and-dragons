@@ -891,6 +891,26 @@ function runEngineTests(R){
     if(body.indexOf("archetypeSpellGrant(")<0||/SPELLS\[c\.cls\]\|\|ARCH_SPELLS/.test(body))return "pickArchetype still grants the class list";
     return true;
   });
+  t("#321 the completion review's verdict is STRUCTURED: the prompt asks for DONE:/VERDICT: lines, and questReviewSynthesize turns them into the tags when the model reasoned 'completed' but emitted none (the Descent report, 2026-09-03); NOT YET adds nothing; existing tags are not doubled; the marker lines leave the explanation",function(){
+    makeWorld();worldState.turn=61;var T="The Descent",O="Seize control of the core console and direct the falling city";
+    worldState.questLog=[{title:T,status:"active",desc:"Command the failing city's final descent and decide the fate of Cassivel",objectives:[{text:O,done:false}],started:55}];
+    var pr=buildQuestSuggestPrompt(T);if(!/VERDICT: COMPLETED/.test(pr)||!/VERDICT: NOT YET/.test(pr)||!/DONE: /.test(pr))return "prompt lacks the verdict contract: "+pr.slice(-400);
+    var resp="[TIME_CHECK:night][TIME_ADVANCE:5]\nObjective \""+O+"\" was accomplished when Gazz manned the core levers.\nDONE: "+O+"\nVERDICT: COMPLETED";
+    var r=questReviewSynthesize(resp,T);
+    if(r.text.indexOf("[QUEST_STEP:"+T+"|"+O+"|true]")<0||r.text.indexOf("[QUEST:"+T+"|completed]")<0)return "tags not synthesized: "+r.text;
+    if(/VERDICT:|DONE:/.test(r.text))return "marker lines survived into the explanation";
+    if(!r.synthesized||r.synthesized.length!==2)return "receipt: "+JSON.stringify(r.synthesized);
+    var R=applyMuts(r.text,{allow:REVIEW_CALL_TAGS});
+    var live=worldState.questLog.filter(function(q){return q.status==="active";});
+    if(live.length||!memory.quests[T]||memory.quests[T].status!=="completed")return "the synthesized tags did not complete the quest: "+JSON.stringify(R.muts);
+    /* NOT YET: nothing is added; tags already present are not doubled */
+    worldState.questLog=[{title:T,status:"active",desc:"d",objectives:[{text:O,done:false}],started:55}];delete memory.quests[T];
+    r=questReviewSynthesize("Not finished.\nVERDICT: NOT YET",T);if(/\[QUEST/.test(r.text)||r.synthesized.length)return "NOT YET added tags: "+r.text;
+    r=questReviewSynthesize("[QUEST_STEP:"+T+"|"+O+"|true][QUEST:"+T+"|completed] Done.\nDONE: "+O+"\nVERDICT: COMPLETED",T);
+    if((r.text.match(/\[QUEST:/g)||[]).length!==1||(r.text.match(/\[QUEST_STEP:/g)||[]).length!==1||r.synthesized.length)return "doubled tags: "+r.text;
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("async function suggestQuestCompletion("),body=src.slice(i,src.indexOf("function invDiffLines"));
+    return body.indexOf("questReviewSynthesize(")>=0&&body.indexOf("questReviewSynthesize(")<body.indexOf("applyMuts(resp,{allow:REVIEW_CALL_TAGS})")?true:"the review call does not synthesize before the whitelist parse";
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);

@@ -3118,7 +3118,37 @@ function buildQuestSuggestPrompt(title){
     +"Judge STRICTLY from events that have ALREADY happened in the story — never invent, assume, or advance anything. "
     +"For each UNCHECKED objective whose outcome the story has already achieved or made irrelevant, emit [QUEST_STEP:"+q.title+"|<objective text verbatim>|true]. "
     +"If every required objective is (or becomes) checked AND the quest's own end condition — the outcome its description promises — has genuinely occurred on-screen, emit [QUEST:"+q.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); otherwise do NOT complete it. "
-    +"Then, as plain prose, briefly explain each decision — one short sentence per objective, including why anything was LEFT unchecked. If nothing qualifies, emit no tags and explain why not.";
+    +"Then, as plain prose, briefly explain each decision — one short sentence per objective, including why anything was LEFT unchecked. If nothing qualifies, emit no tags and explain why not. "
+    /* #321 (owner report 2026-09-03, The Descent): the model reasoned "completed" and emitted no tags — the
+       verdict is now STRUCTURED and the engine writes the tags from it (questReviewSynthesize). */
+    +"FINALLY, on their own lines: one line \"DONE: <objective text verbatim>\" for each objective the story has already achieved, then exactly one line \"VERDICT: COMPLETED\" or \"VERDICT: NOT YET\". These lines are required even when you also emitted the tags.";
+}
+// #321: the review's verdict → tags. The model's prose said "formally completed" while the tag lane
+// stayed empty (gemini, The Descent, t60s) — the decision was made and nothing applied. Pure: reads the
+// DONE:/VERDICT: lines, appends the tags they imply when absent ([QUEST_STEP:|true] for a DONE line
+// matching an UNCHECKED objective; [QUEST:title|completed] for VERDICT: COMPLETED), never doubles a tag
+// the model already emitted, and strips the marker lines so the explanation reads as prose. Rewards are
+// deterministic downstream (#302 milestone XP on completion). Returns {text, synthesized:[...]}.
+function _reEsc(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+function questReviewSynthesize(resp,title){
+  var text=String(resp||""),out={text:text,synthesized:[]};if(!worldState||!worldState.questLog)return out;
+  var q=null,i;for(i=0;i<worldState.questLog.length;i++){if(worldState.questLog[i].title===title&&worldState.questLog[i].status==="active"){q=worldState.questLog[i];break;}}
+  if(!q)return out;
+  var lines=text.split(/\r?\n/),keep=[],done=[],verdict=null,m;
+  for(i=0;i<lines.length;i++){var ln=lines[i].trim();
+    if((m=ln.match(/^DONE:\s*(.+)$/i))){done.push(m[1].trim());continue;}
+    if((m=ln.match(/^VERDICT:\s*(COMPLETED|NOT YET|NOT COMPLETED|INCOMPLETE)\b/i))){verdict=/^COMPLETED$/i.test(m[1])?"completed":"not yet";continue;}
+    keep.push(lines[i]);}
+  text=keep.join("\n");
+  var obs=q.objectives||[],j,add=[],tEsc=_reEsc(title);
+  for(i=0;i<done.length;i++){var d=done[i].toLowerCase();
+    for(j=0;j<obs.length;j++){var ot=String(obs[j].text||"");if(obs[j].done||!ot)continue;var ol=ot.toLowerCase();
+      if(ol===d||ol.indexOf(d)>=0||d.indexOf(ol)>=0){
+        if(!new RegExp("\\[QUEST_STEP:"+tEsc+"\\|"+_reEsc(ot)+"\\|(?:true|done|1|yes|x)\\]","i").test(text)){add.push("[QUEST_STEP:"+title+"|"+ot+"|true]");out.synthesized.push("step: "+ot);}
+        break;}}}
+  if(verdict==="completed"&&!new RegExp("\\[QUEST:"+tEsc+"\\|(?:completed?|done|finished)","i").test(text)){add.push("[QUEST:"+title+"|completed]");out.synthesized.push("completed");}
+  if(add.length){text=text.replace(/\s+$/,"")+"\n"+add.join("");if(typeof console!=="undefined")console.warn("[review] #321 verdict synthesized into tags for \""+title+"\": "+out.synthesized.join(", "));}
+  out.text=text;return out;
 }
 // #230 (owner request 2026-08-24, the Cleaver/greed-ring class): player-initiated "Define item" —
 // an item's nature narrated in old prose is exactly what the GM later misremembers (t2316:
@@ -3207,10 +3237,12 @@ async function suggestQuestCompletion(title){
   if(typeof showToast==="function")showToast("Reviewing quest: "+title+"…");
   try{
     var resp=await callGM(auditMsg,null,700,upgradeModelFor(),{kind:"sync"});
+    var _qs=questReviewSynthesize(resp,title);resp=_qs.text;/* #321: the verdict lines become the tags the model forgot */
     var R=applyMuts(resp,{allow:REVIEW_CALL_TAGS});/* the one parser — reopen guards, #205b, reward parsing all apply; #264: quest/item/reward whitelist, everything else strips loudly */
     saveAll();if(typeof syncUI==="function")syncUI();
     var explanation=cleanTxt(resp);
     var changed=(R&&R.muts)?R.muts.slice():[];
+    if(_qs.synthesized.length)changed.push("engine wrote the tags from the GM's verdict: "+_qs.synthesized.join(", "));/* #321: loud, attributable */
     if(typeof showQuestDecisionsModal==="function")showQuestDecisionsModal(title,changed,explanation);
     else if(typeof showToast==="function")showToast(changed.length?("Review applied: "+changed.join("; ")):"Review: no changes.");
   }catch(e){
