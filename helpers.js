@@ -55,6 +55,23 @@ function img2imgStrength(cfg){
 /* #208a (owner call 2026-08-21, the Flux drop): a stored render-model id that no longer exists in
    RENDER_MODELS must fall back to the shipped default LOUDLY — a dangling id would break doRender
    on the next click (the loadProviderSettings pruning precedent). */
+// The quest panel's COMPASS (owner call 2026-09-03: "it's difficult to know what the current arc should
+// be"). Titles ONLY — an arc's objective and an act's goal are the author's spine and routinely state
+// outcomes the player has not discovered. Pure over worldState.skeleton; null when there is nothing
+// to point at (no skeleton, no active act). Between arcs the act still shows.
+function questBearing(){
+  var sk=(typeof worldState!=="undefined"&&worldState&&worldState.skeleton)||null;if(!sk||!sk.acts)return null;
+  var i,j;for(i=0;i<sk.acts.length;i++){var a=sk.acts[i];if(!a||a.status!=="active")continue;
+    var arcs=a.arcs||[],out={actN:i+1,actTitle:String(a.title||""),arcN:null,arcOf:arcs.length,arcTitle:null};
+    for(j=0;j<arcs.length;j++)if(arcs[j]&&arcs[j].status==="active"){out.arcN=j+1;out.arcTitle=String(arcs[j].title||"");break;}
+    return out;}
+  return null;
+}
+function questBearingText(b){
+  if(!b)return "";var s="Act "+b.actN+": "+b.actTitle;
+  if(b.arcN)s+="\nArc "+b.arcN+"/"+b.arcOf+" \u201c"+b.arcTitle+"\u201d";
+  return s;
+}
 // #319 plot armor (owner ruling 2026-09-03: derived with override). The blueprint's per-NPC `armor`
 // field, normalized: "none" strips derived armor; an act number grants it until that act opens;
 // anything else (blank, "auto") leaves derivation to the skeleton (plotArmor, identity.js). Pure.

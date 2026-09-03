@@ -53,6 +53,10 @@ function updateQuestPanel(){
   }
   var listEl=document.getElementById("quest-list");
   if(listEl){
+    /* the compass (owner call 2026-09-03): act + arc titles above the quests — enough of a clue to get
+       things rolling, never the objective. Thin shell over questBearing/questBearingText (helpers.js). */
+    var _bt=(typeof questBearing==="function")?questBearingText(questBearing()):"";
+    var _bh=_bt?"<div class='qp-bearing' onclick='showQuestModal()' title='Where the story stands'>"+escHtml(_bt).replace(/\n/g,"<br>")+"</div>":"";
     if(!h){
       /* #23② (owner request 2026-08-14): completed history lives in showQuestModal's History
          section, but with zero live quests the panel rendered a dead italic line — no clickable
@@ -64,7 +68,7 @@ function updateQuestPanel(){
         h+="<div class='qp-item' onclick='showQuestModal()' title='Open the quest journal'><span class='qp-nm'>✓ Completed quests</span><span class='qp-st'>"+_qc+"</span></div>";
       }
     }
-    listEl.innerHTML=h;
+    listEl.innerHTML=_bh+h;
   }
 }
 function updateHUD(){

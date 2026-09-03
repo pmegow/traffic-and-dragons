@@ -862,6 +862,23 @@ function runEngineTests(R){
     var off=waresOfferedHere(memory.map.nodes["High Spire"],[]);if(off.length!==1||off[0].item!=="Halberd polish")return "note-names-the-place limb: "+JSON.stringify(off);
     var g=buildGeoBlock();return /FOR SALE HERE/.test(g)&&/seller or their shop is in the scene/i.test(g)?true:"geo line does not tell the GM: "+g.slice(g.indexOf("FOR SALE"),g.indexOf("FOR SALE")+260);
   });
+  t("questBearing (owner call 2026-09-03): the quest panel's compass — act number + title, and the active arc's ordinal/count + title (titles only, never the objective); act-only between arcs; null with no skeleton or no active act; the panel renders it above the quests",function(){
+    makeWorld();if(questBearing()!==null)return "no skeleton should be null";
+    worldState.skeleton={premise:"p",acts:[
+      {title:"Ballast and Breath",goal:"secret goal",status:"completed",arcs:[{title:"The Copper Tag",objective:"o",status:"completed"}]},
+      {title:"Threads in the Smoke",goal:"Become useful to competing powers",status:"active",arcs:[{title:"The Undertow's Errand",objective:"Run contraband",status:"active"},{title:"The Guild's Loyal Hand",objective:"o",status:"pending"},{title:"The Silent Engineers",objective:"o",status:"pending"},{title:"The Falling Ward",objective:"o",status:"pending"},{title:"Pass the Douchie",objective:"o",status:"pending"}]},
+      {title:"The Weight Below",goal:"g",status:"pending",arcs:[]}]};
+    var b=questBearing();
+    if(!b||b.actN!==2||b.actTitle!=="Threads in the Smoke"||b.arcN!==1||b.arcOf!==5||b.arcTitle!=="The Undertow's Errand")return "bearing: "+JSON.stringify(b);
+    if(/Run contraband|Become useful/.test(JSON.stringify(b)))return "an objective or goal leaked into the compass";
+    var line=questBearingText(b);if(!/^Act 2: Threads in the Smoke$/m.test(line)||!/Arc 1\/5 “The Undertow's Errand”/.test(line))return "text: "+line;
+    worldState.skeleton.acts[1].arcs[0].status="completed";worldState.skeleton.acts[1].arcs[4].status="active";b=questBearing();if(b.arcN!==5||b.arcTitle!=="Pass the Douchie")return "fifth arc: "+JSON.stringify(b);
+    worldState.skeleton.acts[1].arcs[4].status="completed";b=questBearing();if(!b||b.actN!==2||b.arcN!==null)return "between arcs should be act-only: "+JSON.stringify(b);
+    if(!/^Act 2: Threads in the Smoke$/.test(questBearingText(b)))return "act-only text: "+questBearingText(b);
+    worldState.skeleton.acts[1].status="completed";if(questBearing()!==null)return "no active act should be null";
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),i=src.indexOf("function updateQuestPanel("),body=src.slice(i,src.indexOf("function updateHUD("));
+    return body.indexOf("questBearingText(")>=0&&body.indexOf("qp-bearing")>=0?true:"the quest panel does not render the bearing";
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);
