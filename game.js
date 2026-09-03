@@ -2022,6 +2022,20 @@ async function sendAction(override,opts){
     // again next question). Its context now comes from buildTableTalkPrompt instead, including
     // a TT-only history. kind:"tabletalk" gives it its own Usage-modal bucket.
     var resp=await callGM(apiTxt,sys,null,null,isTT?{noHistory:true,kind:"tabletalk"}:undefined);th.remove();
+    /* #323 (owner call 2026-09-03): a model refusal gets ONE automatic retry with the narrate-the-beat
+       note before anything is shown — the t140 kiss comes back as a kiss, not a policy sentence. The
+       retry's answer is judged by the same detector; a second refusal falls through to the #197
+       non-canon commit exactly as before. The record keeps the ORIGINAL user message (the note is
+       engine ceremony, not the player's words). Table Talk is never retried. */
+    if(!isTT&&typeof detectModelRefusal==="function"&&typeof refusalRetryNote==="function"&&detectModelRefusal(cleanTxt(resp))){
+      var _rrTh=addMsg("thinking","Rephrasing the ask\u2026");
+      try{
+        var _rr2=await callGM(refusalRetryNote()+"\n\n"+apiTxt,sys,null,null,undefined);
+        if(!detectModelRefusal(cleanTxt(_rr2))){resp=_rr2;if(typeof console!=="undefined")console.info("[refusal] #323 the retry narrated the beat");}
+        else if(typeof console!=="undefined")console.warn("[refusal] #323 the retry declined too \u2014 committing the refusal as non-canon (#197)");
+      }catch(_rrE){if(typeof console!=="undefined")console.warn("[refusal] #323 retry call failed: "+(_rrE&&_rrE.message)+" \u2014 committing the original refusal");}
+      if(_rrTh&&_rrTh.remove)_rrTh.remove();
+    }
     if(isTT){
       // #74 ①: the TT pane never ran cleanTxt, unlike the narrative path, so any stray tag
       // rendered verbatim to the player (the [CALENDAR:…] sighting). Strip them here too.

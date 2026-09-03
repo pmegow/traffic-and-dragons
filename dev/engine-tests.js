@@ -12375,6 +12375,18 @@ function runEngineTests(R){
     if(detectModelRefusal("“I cannot participate in your scheme,” Kolm says."))return "quoted dialogue false-positived";
     return true;
   });
+  t("#323 a detected refusal gets ONE automatic retry with the narrate-the-beat note before anything is shown (owner call 2026-09-03): the note is an engine note that keeps the model in the fiction and forbids explicit physical detail; sendAction retries between the GM call and the commit, keeps the original user message for the record, and falls through to the #197 non-canon commit when the retry declines too",function(){
+    var n=refusalRetryNote();
+    if(!/^\[ENGINE NOTE/.test(n)||!/not a player action/.test(n))return "not an engine note: "+n.slice(0,80);
+    if(!/beat/i.test(n)||!/explicit|anatomical/i.test(n)||!/cut away|fade|lamp/i.test(n)||!/never address the player|stay in character/i.test(n))return "note lacks the shape: "+n;
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("async function sendAction("),body=src.slice(i,src.indexOf("function retryLast("));
+    var call=body.indexOf("var resp=await callGM(apiTxt,sys"),retry=body.indexOf("refusalRetryNote()"),commit=body.indexOf("commitGmTurn(resp,{userMsg:apiTxt");
+    if(call<0||retry<0||commit<0)return "wiring missing: call "+call+" retry "+retry+" commit "+commit;
+    if(!(call<retry&&retry<commit))return "the retry must sit between the GM call and the commit";
+    if((body.match(/refusalRetryNote\(\)/g)||[]).length!==1)return "exactly one retry";
+    if(body.slice(retry,commit).indexOf("detectModelRefusal(cleanTxt(_rr2))")<0)return "the retry's answer is not judged by the same detector";
+    return body.slice(call,commit).indexOf("isTT")>=0?true:"Table Talk must not be retried";
+  });
   t("#197 detector: openai- and claude-shaped refusals are detected",function(){
     if(!detectModelRefusal("I'm sorry, but I can't continue with that request."))return "openai shape missed";
     if(!detectModelRefusal("I apologize, but I can't write explicit sexual content involving these characters."))return "claude shape missed";

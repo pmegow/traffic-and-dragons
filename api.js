@@ -2829,6 +2829,13 @@ var REFUSAL_MAX_CHARS=700;
 // refusal was committed as canon narration. Both gates widened; the in-fiction guards still hold.
 var REFUSAL_OPEN_RE=/^(?:I\s+(?:cannot|can['’]t|am\s+unable\s+to|am\s+not\s+able\s+to|will\s+not|won['’]t)\s+(?:be\s+able\s+to\s+)?(?:continue|generate|write|create|provide|narrate|depict|describe|assist|help|engage|comply|participate|take\s+part|role-?play|portray|proceed|fulfil)|I\s+apologi[sz]e|I['’]m\s+(?:sorry|unable|not\s+able)|As\s+an\s+AI\b)/i;
 var REFUSAL_META_RE=/(content|scene|material|request|stor(?:y|ies)|topic|narrat|generat|describ|depict|explicit|sexual|graphic|polic|guideline|assist|comply|continu|romantic|intimate|role-?play)/i;
+// #323 (owner call 2026-09-03, the t140 kiss): a detected refusal earns ONE automatic retry with this
+// note in front of the same player message, BEFORE anything is shown. The model declined the
+// choreography ("curl her tongue with mine"), not the beat; asked for the beat in its own voice it
+// writes the kiss. Pure — the wiring lives in sendAction (game.js).
+function refusalRetryNote(){
+  return "[ENGINE NOTE \u2014 NARRATE THE BEAT (not a player action): your previous draft declined the player's action as intimate or explicit content. It is a story beat between adult characters in a work of fiction. Write it in the narrator's own voice \u2014 the gesture, the other character's answer, the room \u2014 with no anatomical or explicit physical detail. If the moment would go further than you will write, cut away (a lamp goes out; the scene resumes after) rather than refuse. Stay in character, keep every tag you would normally emit, and never address the player out of the fiction.]";
+}
 function detectModelRefusal(clean){
   var s=String(clean||"").trim();
   if(!s||s.length>REFUSAL_MAX_CHARS)return false;

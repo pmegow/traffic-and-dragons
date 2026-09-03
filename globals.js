@@ -343,7 +343,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.797";
+var APP_VERSION="v1.798";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
