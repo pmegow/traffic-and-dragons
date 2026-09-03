@@ -879,6 +879,18 @@ function runEngineTests(R){
     var src=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),i=src.indexOf("function updateQuestPanel("),body=src.slice(i,src.indexOf("function updateHUD("));
     return body.indexOf("questBearingText(")>=0&&body.indexOf("qp-bearing")>=0?true:"the quest panel does not render the bearing";
   });
+  t("#320 the archetype pick grants ONLY the archetype's own bench (third casters), never the class list — a Sorcerer choosing Shadow Magic at L3 keeps exactly the spells they chose (the Iron Meridian Prestidigitation report, 2026-09-03); an Arcane Trickster still gets theirs and keeps a racial spell",function(){
+    makeWorld();var c=worldState.character;c.cls="Sorcerer";c.level=3;c.spells=[{nm:"Fire Bolt",lvl:0,used:false},{nm:"Mage Hand",lvl:0,used:false},{nm:"Thunderwave",lvl:1,used:false},{nm:"Chromatic Orb",lvl:1,used:false}];
+    var added=archetypeSpellGrant(c,"shadow");
+    if(added.length||c.spells.length!==4)return "class bench dumped on the sorcerer: "+JSON.stringify(c.spells.map(function(s){return s.nm;}));
+    c.cls="Rogue";c.spells=[{nm:"Dancing Lights",lvl:0,used:false,racial:true}];added=archetypeSpellGrant(c,"arcanetrickster");
+    var bench=(ARCH_SPELLS.arcanetrickster.cantrips||[]).concat(ARCH_SPELLS.arcanetrickster[1]||[]);
+    if(!added.length||added.some(function(n){return bench.indexOf(n)<0;}))return "arcane trickster grant wrong: "+JSON.stringify(added);
+    if(!c.spells.some(function(s){return s.racial;}))return "the racial spell was lost";
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("function pickArchetype("),body=src.slice(i,i+3000);
+    if(body.indexOf("archetypeSpellGrant(")<0||/SPELLS\[c\.cls\]\|\|ARCH_SPELLS/.test(body))return "pickArchetype still grants the class list";
+    return true;
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);

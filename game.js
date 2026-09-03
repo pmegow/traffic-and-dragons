@@ -1222,6 +1222,19 @@ function showArchetypeModal(){
   modalShell("arch-modal","<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>Level 3 Milestone</div><div style='font-size:18px;color:var(--t0);margin-bottom:18px;'>Choose Archetype</div>"+ch,
     {overlayExtra:"overflow-y:auto;",boxBg:"#181818",maxWidth:480,wireClose:false});
 }
+// #320 (owner report 2026-09-03, the Iron Meridian Gazz): the archetype pick grants the archetype's OWN
+// spell bench — third casters (ARCH_SPELLS: Eldritch Knight, Arcane Trickster) — and NOTHING for a
+// class whose spells are chosen at creation and at the tier unlocks. The audit-E21 line read
+// SPELLS[c.cls]||ARCH_SPELLS[...] so a Sorcerer at L3 had every class cantrip and L1 spell dumped on
+// the sheet with no pick (Prestidigitation, Ray of Frost, Magic Missile, Shield appeared unchosen, and
+// the suggestion gate — correctly — treated them as owned). Racial spells never block the grant (E21
+// kept). Returns the names added; dedupe by base name via grantSpellsFromList (#101).
+function archetypeSpellGrant(c,archId){
+  var src=(typeof ARCH_SPELLS!=="undefined")?ARCH_SPELLS[archId]:null;if(!src||!c)return [];
+  if(!c.spells)c.spells=[];var before=c.spells.length;
+  grantSpellsFromList(c,src.cantrips,0);grantSpellsFromList(c,src[1],1);
+  return c.spells.slice(before).map(function(s){return s.nm;});
+}
 function pickArchetype(idx){
   var c=worldState.character,archs=(classDef(c.cls)||{}).archetypes||[];if(idx>=archs.length)return;var arch=archs[idx];c.archetype=arch.id;c.archetypeNm=arch.nm;
   if(!c.abilities)c.abilities=[];c.abilities.push({nm:arch.nm,ds:arch.desc,gained:worldState.turn});
@@ -1233,7 +1246,7 @@ function pickArchetype(idx){
   // Grant the archetype/class spell list even if the character already owns RACIAL spells (audit E21):
   // the old `!c.spells.length` guard skipped the whole grant for e.g. a Drow Rogue picking Arcane
   // Trickster, leaving them with no AT spells. Append what's missing (dedupe by name).
-  var src=SPELLS[c.cls]||ARCH_SPELLS[arch.id];if(src){grantSpellsFromList(c,src.cantrips,0);grantSpellsFromList(c,src[1],1);}/* #101: base-name dedupe — a legacy label can't double-grant its bare twin */
+  var _apAdded=archetypeSpellGrant(c,arch.id);if(_apAdded.length)addMsg("system","Learned: "+_apAdded.join(", ")+" ("+arch.nm+")");/* #320: the archetype's OWN bench only */
   // #72 C2 (C7 third casters): the archetype's own tier schedule catches up at the pick —
   // normally just T1@3, but a jump that crossed 3-10 before the pick owes T2 as well. Queued
   // like any unlock; the maybeShowLevelBump below drains bumps first, then these.
