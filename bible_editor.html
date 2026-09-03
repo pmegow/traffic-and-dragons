@@ -26,8 +26,9 @@
   Work-in-progress persists to localStorage (tnd_bible_editor_draft_v1) so a closed tab loses
   nothing; the v1 draft shape is migrated on load, never discarded.
 ──────────────────────────────────────────────────────────────────────────────────────────── -->
+<link rel="stylesheet" href="satellite.css">
 <style>
-:root{--bg:#111;--bg2:#181818;--bg3:#1f1f1f;--t0:#ddd;--t1:#aaa;--t2:#777;--acc:#b8935a;--good:#7aa86a;--pend:#5a8ab8;--bad:#b85a5a;--brd:#2a2a2a;}
+  /* #312 ②: tokens come from satellite.css (linked in <head>) — one palette for every satellite; page rules below */
 *{box-sizing:border-box;}
 body{background:var(--bg);color:var(--t0);font:14px/1.5 Georgia,serif;margin:0;}
 #bar{position:sticky;top:0;z-index:5;background:var(--bg2);border-bottom:1px solid var(--brd);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}

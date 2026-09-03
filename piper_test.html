@@ -36,11 +36,9 @@
      Vendored assets now live in-repo at /vendor/piper/ (Phase 2) — any static server rooted at the
      repo root works; the old throwaway /piper_vendor/ spike server is retired.
 -->
+<link rel="stylesheet" href="satellite.css">
 <style>
-  :root{
-    --bg:#141210; --bg2:#1c1917; --bg3:#242019; --ink:#e8e0d2; --dim:#9a8f7c;
-    --acc:#b8935a; --good:#7aa86a; --bad:#e06060; --brd:#3a332a;
-  }
+  /* #312 ②: tokens come from satellite.css (linked in <head>) — one palette for every satellite; page rules below */
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);
     font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;padding:24px;max-width:840px;margin:0 auto;}

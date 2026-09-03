@@ -466,7 +466,7 @@ function updateMemStatus(){if(!worldState)return;var dot=document.getElementById
 // hand the player the 0-based number the rest of the app stopped using.
 var dayPart=(typeof clockStamp==="function")?" | "+clockStamp():
   ((typeof clockDayNumber==="function")?" | Day "+clockDayNumber():"");
-txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+dayPart+" | "+APP_VERSION+(mdl?" | "+mdl:"");updateSyncBadge();updateHealthDot();}
+txt.textContent="Memory ~"+(t>=1000?(t/1000).toFixed(1)+"k":t)+" tokens"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+dayPart+" | "+APP_VERSION+(mdl?" | "+mdl:"");updateSyncBadge();updateHealthDot();}
 // #17 drift-health dot — thin shell over healthIndicators (helpers.js, engine-tested there).
 // Same green/amber/red classes as the token dot beside it; n/a dims. Click opens the modal.
 function updateHealthDot(){
@@ -485,7 +485,7 @@ function updateHealthDot(){
     d.className=h.overall==="warn"?"mdot w":"mdot";
     d.style.cssText="display:inline-block;margin-left:4px;cursor:pointer;"+(h.overall==="na"?"opacity:0.35;":"");
   }
-  d.title="Drift health: "+(h.overall==="na"?"not enough data yet":h.overall)+" — tap for detail";
+  d.title="Story health: "+(h.overall==="na"?"not enough data yet":h.overall)+" — tap for detail";
   if(!d._wired){d._wired=true;d.onclick=function(){if(typeof showHealthModal==="function")showHealthModal();};}
 }
 // Sync failure badge (TODO #24) — red ☁ in the membar whenever the server-ACKed turn lags

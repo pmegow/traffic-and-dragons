@@ -571,7 +571,7 @@ On `init()`, if a saved game is found, `rebuildNarrativeFromTranscript()` (ui-bo
 - **HTML built by string concatenation** — no templating engine.
 - **State versioning via key suffix** — all storage keys end in `_v10` (campaigns in `_v1`).
 - **No front-end dependencies** — CSS and JS entirely self-contained.
-- **CSS variables** for theming — palette in `:root`, amber accent `--acc` (#b8935a) is the visual identity color.
+- **CSS variables** for theming — palette in index.html's `:root`; **satellites link `satellite.css` (#312) and define no tokens of their own** — one palette across the game, the home page, the reference and the editors (the SATELLITE PALETTE CONTRACT in run-tests pins it). Accent `--acc` is the visual identity color.
 - **Modals always created fresh** — remove prior instance by ID before creating new one.
 - **`busy` flag** — global boolean gates all API calls. Always set `busy=false` in both success and error paths.
 - **Scrollbars** — custom styled via `::-webkit-scrollbar` rules: 6px wide, near-black track, dark grey thumb, amber on hover.

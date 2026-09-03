@@ -1118,6 +1118,27 @@ try {
   console.log("[blueprint-designer] contract OK — class roster + World Ages sections wired, seam present, save-free/publish-gated, gateway-aware");
 } catch (e) { console.error("BLUEPRINT DESIGNER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── SATELLITE PALETTE CONTRACT (#312 ②, v1.781) ─────────────────────────────
+// A satellite that links satellite.css defines NO :root tokens of its own (one palette, not
+// three accents across a two-click journey), and every token it uses is defined there.
+try {
+  var _spFs = require("fs"), _spPath = require("path");
+  var _spFail = function (msg) { console.error("SATELLITE PALETTE CONTRACT: " + msg); process.exit(1); };
+  var _spCss = _spFs.readFileSync(_spPath.join(__dirname, "..", "satellite.css"), "utf8");
+  var _spDefined = {}; (_spCss.match(/(--[a-z0-9-]+)\s*:/g) || []).forEach(function (t) { _spDefined[t.replace(/\s*:$/, "")] = 1; });
+  if (_spCss.indexOf("prefers-reduced-motion") < 0 || _spCss.indexOf("pointer:coarse") < 0) _spFail("satellite.css lost the accessibility floor (reduced motion / 44px targets)");
+  var _spLinked = 0;
+  _spFs.readdirSync(_spPath.join(__dirname, "..")).filter(function (f) { return /\.html$/.test(f) && f !== "index.html"; }).forEach(function (f) {
+    var _h = _spFs.readFileSync(_spPath.join(__dirname, "..", f), "utf8");
+    if (_h.indexOf('href="satellite.css"') < 0) return;
+    _spLinked++;
+    if (/\n[ \t]*:root\s*\{[^}]*--[a-z]/.test(_h)) _spFail(f + " links satellite.css AND defines its own :root tokens — the palette forks again");
+    (_h.match(/var\((--[a-z0-9-]+)/g) || []).forEach(function (u) { var t = u.slice(4); if (!_spDefined[t]) _spFail(f + " uses " + t + " which satellite.css does not define"); });
+  });
+  if (_spLinked < 5) _spFail("fewer than five satellites link satellite.css (" + _spLinked + ") — the shared palette is not in use");
+  console.log("[#312] satellite palette contract OK — " + _spLinked + " page(s) on satellite.css, no forked :root tokens");
+} catch (e) { console.error("SATELLITE PALETTE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── HOME PAGE CONTRACT (#290, v1.765) ────────────────────────────────────────
 // home.html is a READ surface: it may write ONE key (the blueprint handoff) and nothing else;
 // the shelf is a curated catalog of ORIGINAL blueprints (licensed fixtures are release blockers);

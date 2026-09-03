@@ -209,6 +209,13 @@ body.font-large #story-narrative p,
 body.font-large #story-tabletalk p { font-size: 18px; line-height: 1.85; }
 body.font-large .qa               { font-size: 15px; }
 body.font-large #action-input        { font-size: 19px; }
+/* #312 ③: Large text covers the CHROME too — top bar, memory bar, menus, tabs, panels, toasts — not only the prose */
+body.font-large #topbar, body.font-large #membar, body.font-large .fm-item, body.font-large .fm-sub, body.font-large #chat-tabs, body.font-large .rpanel, body.font-large .toast, body.font-large #cpanel, body.font-large #sidebar { font-size: 15px; }
+body.font-large #topbar button, body.font-large .rpanel button { font-size: 14px; }
+/* #312 ③: motion is optional; a 44px floor for the suggestion buttons on touch */
+@media (prefers-reduced-motion:reduce){ *,*::before,*::after{ animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+@media (pointer:coarse){ .qa{ min-height:44px; padding:10px 14px; font-size:13px; } }
+:focus-visible{ outline:2px solid var(--acc); outline-offset:2px; }
 body.font-large .msg.narrator     { font-size: 18px; }
 
 /* ── Mobile: sans-serif for legibility ──────────────────────────────────── */

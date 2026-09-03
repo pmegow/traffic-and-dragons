@@ -17,9 +17,9 @@
   innerHTML — because report bodies are untrusted field data (a <script> in a bug report must
   render as text, not run). Keep it that way when editing.
 -->
+<link rel="stylesheet" href="satellite.css">
 <style>
-  :root{--bg:#131313;--card:#181818;--line:#2a2a2a;--ink:#ddd;--dim:#8a8a8a;--acc:#b8935a;
-        --good:#7aa86a;--bad:#c0605c;--info:#6a8fa8;--warn:#b8935a;}
+  /* #312 ②: tokens come from satellite.css (linked in <head>) — one palette for every satellite; page rules below */
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);
        font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}

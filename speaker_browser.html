@@ -42,10 +42,9 @@
   from a number, never guess a name: absent is absent. The accent cell and the accent
   dropdown are gated the same way (HAS_ACCENT): a file with no "a" produces neither.
 -->
+<link rel="stylesheet" href="satellite.css">
 <style>
-  :root{--bg:#121212;--card:#181818;--card2:#1c1c1c;--line:#2c2a26;--ink:#e6e2d8;--dim:#a39a88;
-        --dim2:#6f695e;--acc:#b8935a;--good:#7aa86a;--bad:#c0564a;
-        --mono:Consolas,"SF Mono",Menlo,ui-monospace,monospace;}
+  /* #312 ②: tokens come from satellite.css (linked in <head>) — one palette for every satellite; page rules below */
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);
        font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}

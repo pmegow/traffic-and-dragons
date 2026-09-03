@@ -127,7 +127,7 @@ function showLoadingModal(msg){
 function modalShell(id,innerHtml,opts){
   opts=opts||{};
   var ex=document.getElementById(id);if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id=id;
+  var modal=document.createElement("div");modal.id=id;modal.setAttribute("role","dialog");modal.setAttribute("aria-modal","true");modal.setAttribute("aria-label",id.replace(/-modal$/,"").replace(/-/g," "));/* #312 ③ */
   var overlayHead=opts.bg?("position:fixed;inset:0;background:rgba(0,0,0,"+opts.bg+");"):"position:fixed;inset:0;background:rgba(0,0,0,.88);";
   modal.style.cssText=opts.overlayCss||(overlayHead+"z-index:"+(opts.z||300)+";display:flex;align-items:"+(opts.align||"center")+";justify-content:center;padding:20px;"+(opts.overlayExtra||""));
   var boxCss=opts.boxCss||("background:"+(opts.boxBg||"var(--modal-bg)")+";border:1px solid var(--acc);border-radius:12px;padding:"+(opts.boxPad||"24px")+";max-width:"+(opts.maxWidth||480)+"px;width:100%;"+(opts.boxExtra||""));
@@ -252,7 +252,8 @@ if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=docum
   var vm=(div._sp&&typeof speakerVoiceMap==="function")?speakerVoiceMap(div._sp,text):null;
   requestSpeak(text,vm);
 };div.appendChild(rb);})(opts.replayText);}
-story.appendChild(div);story.scrollTop=story.scrollHeight;trimStoryDom(story);if(isTTMsg&&activeChatTab!=="tabletalk"){var badge=document.getElementById("tab-tt-badge");if(badge)badge.className="tab-badge on";}
+/* #312 ③: a reader scrolled back up keeps their place when narration lands (the panel-collapse path already had this guard); the player's own line and the thinking marker always pin to the end */
+var _wasBottom=storyAtBottom(story)||type==="player"||type==="thinking"||type==="tabletalk";story.appendChild(div);if(_wasBottom)story.scrollTop=story.scrollHeight;trimStoryDom(story);if(isTTMsg&&activeChatTab!=="tabletalk"){var badge=document.getElementById("tab-tt-badge");if(badge)badge.className="tab-badge on";}
 // Bidirectional badge (audit E68 / CLAUDE.md §14): flag the STORY tab when narration arrives while
 // the player is on Table Talk. The narrative tab has no static badge element, so create one lazily.
 if(type==="narrator"&&activeChatTab==="tabletalk"){var tnb=document.getElementById("tab-narrative");if(tnb){var _nb=tnb.querySelector(".tab-narr-badge");if(!_nb){_nb=document.createElement("span");tnb.appendChild(_nb);}_nb.className="tab-badge on tab-narr-badge";}}

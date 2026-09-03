@@ -16,10 +16,11 @@
   (tnd_core/sess/mem) — it reads engine data and emits .blueprint files only.
   ES5 only, string-concat HTML, no dependencies — same conventions as the app.
 -->
+<link rel="stylesheet" href="satellite.css">
 <style>
 /* Architectural-blueprint theme (2026-07-05, user request): cyanotype blues, light linework,
    graph-paper grid. Designer-only — the game keeps its amber identity. */
-:root{--bg0:#0a1d33;--bg1:#0e2542;--bg2:#132e50;--bg3:#1a3a63;--brd:#27476e;--brd2:#3a5d8a;--t0:#eaf3fc;--t1:#b9d0e6;--t2:#7595b8;--acc:#8fc1e8;--dng:#e08a8a;--grn:#84c795;--wrn:#e0b86a;--r:6px;--font:"Segoe UI",system-ui,sans-serif;}
+  /* #312 ②: tokens come from satellite.css (linked in <head>) — one palette for every satellite; page rules below */
 *{box-sizing:border-box;}
 body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font-size:14px;
   background-image:linear-gradient(rgba(143,193,232,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(143,193,232,.10) 1px,transparent 1px),linear-gradient(rgba(143,193,232,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(143,193,232,.045) 1px,transparent 1px);

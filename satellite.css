@@ -1,0 +1,45 @@
+/* satellite.css — the ONE palette for every satellite page (#312 ②, 2026-09-03).
+   Tokens are index.html's, verbatim, so a player crossing from the game to the home page,
+   the reference or the editor sees one accent and one set of surfaces. A satellite links this
+   file and defines NO :root tokens of its own; page-specific rules stay inline below the link.
+   Aliases at the bottom cover the names older satellites grew on their own (--bg, --dim, --sub…)
+   so a conversion is a link plus a deleted :root block, never a rewrite. Reduced motion and
+   the 44px touch floor ride here too — the accessibility floor is shared, not per page. */
+:root{
+  /* typography */
+  --font:Georgia,serif;
+  --font-mono:monospace;
+  /* surfaces */
+  --bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--bg3:#242730;
+  --brd:#2c2f3a;--brd2:#3c4050;
+  --modal-bg:#181818;
+  /* text */
+  --t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;
+  /* accent */
+  --acc:#9ab0c8;--on-acc:#000;--acc-bg:#141c24;
+  /* semantic colours */
+  --gold:#c8a84a;
+  --hp:#e06060;
+  --mana:#4285f4;
+  --dng:#c04040;--on-dng:#fff;--dng-faint:rgba(192,64,64,.08);
+  --warn:#d8a04a;--wrn:#d8a04a;
+  --red:#8b2a2a;--blue:#3a6ab5;--grn:#3a7a5a;--ok:#3a7a5a;--err:#c04040;
+  /* radii */
+  --r:6px;--rl:10px;
+  /* aliases for the names satellites grew on their own */
+  --bg:var(--bg0);--card:var(--bg1);--card2:var(--bg2);--dim:var(--t2);--dim2:var(--t2);--sub:var(--t1);--muted:var(--t2);--quiet:var(--t2);--line:var(--brd);--rule:var(--brd);--panel:var(--bg1);--fg:var(--t0);--ink:var(--t0);--bg4:#2c303b;
+  --good:var(--grn);--bad:var(--dng);--info:var(--blue);--pend:var(--warn);--orange:var(--warn);--acc2:var(--gold);--acc-dim:rgba(154,176,200,.55);--acc-faint:rgba(154,176,200,.12);--mono:var(--font-mono);
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg0);color:var(--t0);font-family:var(--font);font-variant-numeric:lining-nums}
+a{color:var(--acc)}
+/* the shared satellite header: a title, a one-line sub, a row of links back to the game */
+.sat-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--brd);margin-bottom:18px}
+.sat-header h1{font-size:20px;color:var(--acc);margin:0}
+.sat-header .sat-sub{font-size:12px;color:var(--t2)}
+.sat-header nav a{font-size:12px;color:var(--t1);margin-left:12px;text-decoration:none}
+.sat-header nav a:hover{color:var(--acc)}
+/* accessibility floor (#312 ③) */
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media (pointer:coarse){button,.b,.qa,.link,select,input[type=checkbox]{min-height:44px}}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}

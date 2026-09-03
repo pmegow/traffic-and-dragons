@@ -16,8 +16,9 @@
      writes back through saveAll() behind a double confirm.
      Test seam: window.__cleanupTest (the no-untestable-surface rule). NOT in the app shell;
      network-first allowlisted in sw.js (the bug_tracker stale-pin lesson). -->
+<link rel="stylesheet" href="satellite.css">
 <style>
-:root{--bg:#111;--fg:#ddd;--t2:#888;--acc:#b8935a;--good:#7aa86a;--warn:#c8763a;--bad:#b05252;}
+  /* #312 ②: tokens come from satellite.css (linked in <head>) — one palette for every satellite; page rules below */
 body{background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;margin:0;padding:18px;max-width:1100px;margin:0 auto;}
 h1{font-size:18px;color:var(--acc);margin:0 0 2px;}
 .sub{color:var(--t2);font-size:12px;margin-bottom:14px;}

@@ -16,8 +16,9 @@
           on the deployed origin beside the game
      Like all satellites it must ride sw.js's network-first allowlist (the bug_tracker
      stale-pin lesson) — done in the same commit that created this file. -->
+<link rel="stylesheet" href="satellite.css">
 <style>
-  :root{--bg:#0a0a0c;--bg2:#121214;--bg3:#1b1a1c;--bg4:#232124;--brd:#29272b;--brd2:#3a3537;--acc:#b8935a;--acc2:#ddb978;--t0:#eee7db;--t1:#b9b0a0;--t2:#777064;--bad:#b86b6b;--good:#80aa70;--r:8px;--font:'Segoe UI',system-ui,sans-serif}
+  /* #312 ②: tokens come from satellite.css (linked in <head>) — one palette for every satellite; page rules below */
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--t1);font-family:var(--font);height:100vh;display:flex;flex-direction:column;overflow:hidden}
   #bar{display:flex;align-items:center;gap:18px;min-height:58px;padding:9px 18px;background:linear-gradient(180deg,#171619 0%,var(--bg2) 100%);border-bottom:1px solid var(--brd);box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:2}

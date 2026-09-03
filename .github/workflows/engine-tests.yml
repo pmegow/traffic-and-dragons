@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # #312: run-sabotage-diff compares HEAD~1..HEAD
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -30,7 +32,12 @@ jobs:
         run: node dev/diff-replay.js dev/corpus_playtest_v1276.json --check
       # #170 + owner ruling 2026-08-13: CI proves the drift guards, not just the tests. The focused
       # battery mutates each guarded branch and requires the NAMED test to fail (mustFail
-      # attribution — an unrelated red is MISATTRIBUTED, not a pass). ~9s locally. The
+      # attribution — an unrelated red is MISATTRIBUTED, not a pass). ~2 min locally (the "~9s" the
+      # comment used to claim was never re-measured — #312). The
       # full-suite-per-mutation groups stay manual by the same ruling.
       - name: Prove drift guards (focused sabotage battery)
         run: node dev/sabotage-w2.js --focused
+      # #312 ①: a battery whose target file changed in this push runs in this push (the weekly
+      # job proves all 63; this keeps a guard's own edit honest the day it lands).
+      - name: Run the sabotage batteries whose targets this change touched
+        run: node dev/run-sabotage-diff.js
