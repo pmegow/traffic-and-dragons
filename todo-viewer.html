@@ -510,18 +510,20 @@ function tierBadge(t) {
 // SUB-PART flagged the row complete — #208 (Flux dropped, ship-vs-file call still open), #207 (①
 // shipped, ② design-first) and #192 (authoring half, REMAINING TAIL) all read as ready-to-archive.
 // The status dot is the deliberate human triage, so it outranks any ✅ buried in the prose.
-var DOT_UNDONE = "○", DOT_PARTIAL = "◒";
-function rowDot(t) { var m = /[◒○]/.exec(t.status || ""); return m ? m[0] : ""; }
-function stripDot(s) { return String(s || "").replace(/[◒○]\s*/, "").trim(); }
+// Owner rule 2026-09-02: ○ not started · ◐ partially complete · ◉ ready to test · ✅ complete.
+// ◒ is the LEGACY ready-to-test dot (archived rows still carry it) and reads as ◉.
+var DOT_UNDONE = "○", DOT_PARTIAL = "◐", DOT_RTT = "◉", DOT_RTT_LEGACY = "◒";
+function rowDot(t) { var m = /[◒○◐◉]/.exec(t.status || ""); return m ? (m[0] === DOT_RTT_LEGACY ? DOT_RTT : m[0]) : ""; }
+function stripDot(s) { return String(s || "").replace(/[◒○◐◉]\s*/, "").trim(); }
 function isDone(t) {
-  if (rowDot(t)) return false;   // an explicit ○/◒ says the row is NOT finished, whatever it contains
+  if (rowDot(t)) return false;   // an explicit ○/◐/◉ says the row is NOT finished, whatever it contains
   return /✅/.test(t.task) || /✅/.test(t.status) || /\bDone\b/.test(t.status);
 }
 function isReadyToTest(t) {
   // An explicit dot decides BOTH ways. Without this, the prose fallback below promoted a row the
   // human had marked ○ just because its body mentioned a ready-to-test plan (#77's design sketch).
   var d = rowDot(t);
-  if (d) return d === DOT_PARTIAL;
+  if (d) return d === DOT_RTT;
   return !isDone(t) && /ready.to.test/i.test(t.status);
 }
 function isLow(t) {
