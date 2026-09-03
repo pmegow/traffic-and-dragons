@@ -12365,6 +12365,16 @@ function runEngineTests(R){
     return detectModelRefusal("I cannot continue generating content for this scene. If you would like to advance the narrative toward planning for the Kodar Mountains, collecting the cold-warded bracelets, or other story events, let me know how you wish to proceed.")===true
       ?true:"the exact field refusal was not detected";
   });
+  t("#197 detector: the t140 gemini shape — 'I cannot participate in romantic or sexually intimate roleplay' followed by a meta continuation — is detected (owner report 2026-09-03); 'participate'/'take part'/'roleplay'/'portray' verbs and 'romantic'/'intimate'/'roleplay' objects join the gates; in-fiction 'participate' still passes as narration",function(){
+    var field="I cannot participate in romantic or sexually intimate roleplay. Let's focus on the adventure.\nWith the helm locked toward the western horizon, the engines running steady, and the immediate threats aboard Cassivel neutralized, what would you like Gazz to do next?";
+    if(!detectModelRefusal(field))return "the exact t140 refusal was not detected";
+    if(!detectModelRefusal("I can't take part in intimate roleplay between these characters."))return "'take part' shape missed";
+    if(!detectModelRefusal("I won't roleplay a romantic scene here."))return "'roleplay' verb shape missed";
+    if(!detectModelRefusal("I am unable to portray this kind of intimate content."))return "'portray' shape missed";
+    if(detectModelRefusal("I cannot participate in this farce any longer, the captain decides, and turns from the rail."))return "in-fiction 'participate' false-positived";
+    if(detectModelRefusal("“I cannot participate in your scheme,” Kolm says."))return "quoted dialogue false-positived";
+    return true;
+  });
   t("#197 detector: openai- and claude-shaped refusals are detected",function(){
     if(!detectModelRefusal("I'm sorry, but I can't continue with that request."))return "openai shape missed";
     if(!detectModelRefusal("I apologize, but I can't write explicit sexual content involving these characters."))return "claude shape missed";

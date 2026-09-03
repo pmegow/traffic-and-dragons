@@ -2824,8 +2824,11 @@ function __mpBareTagScan(text){
 // which is provenance, not a request-compose latch — restoring it on a failed turn would ERASE
 // the record (#151's census would otherwise demand it be declared a latch).
 var REFUSAL_MAX_CHARS=700;
-var REFUSAL_OPEN_RE=/^(?:I\s+(?:cannot|can['’]t|am\s+unable\s+to|am\s+not\s+able\s+to|will\s+not|won['’]t)\s+(?:be\s+able\s+to\s+)?(?:continue|generate|write|create|provide|narrate|depict|describe|assist|help|engage|comply)|I\s+apologi[sz]e|I['’]m\s+(?:sorry|unable|not\s+able)|As\s+an\s+AI\b)/i;
-var REFUSAL_META_RE=/(content|scene|material|request|stor(?:y|ies)|topic|narrat|generat|describ|depict|explicit|sexual|graphic|polic|guideline|assist|comply|continu)/i;
+// t140 (owner report 2026-09-03): gemini opened with "I cannot participate in romantic or sexually intimate
+// roleplay" — "participate" was not a refusal verb and "romantic"/"roleplay" not meta objects, so the
+// refusal was committed as canon narration. Both gates widened; the in-fiction guards still hold.
+var REFUSAL_OPEN_RE=/^(?:I\s+(?:cannot|can['’]t|am\s+unable\s+to|am\s+not\s+able\s+to|will\s+not|won['’]t)\s+(?:be\s+able\s+to\s+)?(?:continue|generate|write|create|provide|narrate|depict|describe|assist|help|engage|comply|participate|take\s+part|role-?play|portray|proceed|fulfil)|I\s+apologi[sz]e|I['’]m\s+(?:sorry|unable|not\s+able)|As\s+an\s+AI\b)/i;
+var REFUSAL_META_RE=/(content|scene|material|request|stor(?:y|ies)|topic|narrat|generat|describ|depict|explicit|sexual|graphic|polic|guideline|assist|comply|continu|romantic|intimate|role-?play)/i;
 function detectModelRefusal(clean){
   var s=String(clean||"").trim();
   if(!s||s.length>REFUSAL_MAX_CHARS)return false;
