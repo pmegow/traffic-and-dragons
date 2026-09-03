@@ -1,0 +1,21 @@
+# TODO #91 — Server-TTS M2 — Kokoro-82M behind the same endpoint (quality upgrade, benchmark-gated).
+
+*Full record extracted verbatim from TODO.md (Feature backlog, completed row) on 2026-09-01; the tracker row keeps the TLDR and the verdict. Table pipe escapes (`\|`) are unescaped here; `<br>` breaks became paragraphs.*
+
+**Effort:** M · **Tier:** Any (K3 → Fable review)
+
+## Task
+
+**Server-TTS M2 — Kokoro-82M behind the same endpoint (quality upgrade, benchmark-gated).** TLDR: with M1 (server Piper, #90) live, the same `POST /api/tts` can serve Kokoro-82M (Apache-2.0) — markedly better than Piper mediums, ~24-26 English voice packs, voice BLENDING for per-character voices. **📄 SPEC'D 2026-07-24: [DOC/Research/DOC_kokoro.html](DOC/Research/DOC_kokoro.html)** — decisions K1-K6: **K1** runtime = in-process `kokoro-js` in a worker_thread (no daemon protocol, quant ladder fp32→q4; python sidecar only as fallback) · **K2** the voice id IS the engine selector (`kk_` prefix routes; allowlist discipline as M1; blend syntax `kk_mix:` reserved day one, mixer UI deferred to M2.5) · **K3** the real client work: tier-aware voice resolution (`voiceTier`/`narratorVoice(tier)`/`characterVoiceId(char,tier)`) so a server-only `kk_` id can never reach local `predict()`, the ladder handoff converts to the piper narrator, and the snap guard can't eat a kk_ campaign pin — the one drift-adjacent surface (speaker-map resolution), annotate for /fable-review · **K4** the D4 benchmark concretized: `tts/bench-kokoro.mjs` on the LIVE box via fly ssh, 30 real-length units × q8/fp16/fp32, pass = sustained median RTF ≥1× at an ear-checked quant, with the piper daemon as the comparison row · **K5** box sizing decided BY the benchmark (stay 1GB w/ piper LRU 3→2 / 2GB ≈ +$5/mo / performance-1x needs explicit ratification) · **K6** curated en-only catalog via a voice_picker pass, gender-tagged from day one (the #9⑨ lesson). Milestones M2.0 benchmark → M2.1 server → M2.2 client → M2.3 field validation (default flip = user call) → M2.5 blending. **D4 (ratified): ships only after the benchmark passes.** 
+
+
+
+ ⛔ **M2.0 RAN 2026-07-24 — D4 GATE FAILED, Kokoro does NOT ship.** Measured on the live box: at 1GB (the shipped config) the process **OOM-died before its first synthesis** — Kokoro needs ~275MB RSS and the box had ~119MB free with the session's three warm Piper daemons resident. Scaled temporarily to 2GB (K5's candidate tier) it ran, and the SPEED is the disqualifier: **RTF ≈ 2.1 at full burst** (D4 bar is ≤1.0), then a step-change collapse to **RTF 22.65 → 24.67 → 33.68** — one 7-second line took **3m56s**. Mechanism (evidence-backed): ~48s of continuous 100% CPU exhausts the `shared-cpu-1x` **burst balance**, then the machine throttles to baseline; it is a step, not a ramp, and loadavg stayed busy throughout, so it is not memory/GC. Piper never trips it at RTF 0.16. **RAM was a red herring; CPU is the wall** — no RAM tier fixes it, and even the best-case number is **13× Piper's cost per second of audio**. Box restored to 1GB, volume reclaimed, `tts/bench-kokoro.mjs` kept for re-runs. **K1/K2/K3/K6 remain valid and rebuildable** the day the CPU math changes (a faster quantization, a cheaper build, or ratified dedicated-CPU spend). Full record + the confirming burst test: [DOC/Research/DOC_kokoro.html](DOC/Research/DOC_kokoro.html). 
+
+
+
+ ➡ **The benchmark surfaced a better route — see #94:** Piper's own **"high" voices are already in the shipped catalog** (`en_US-libritts-high` is ALREADY on the server volume, plus lessac/ryan/cori-high) — same engine, same daemons, zero architecture change. A high model costs more CPU than a medium (unmeasured) but the headroom is enormous: it could be **6× slower than medium and still clear the D4 bar**, where Kokoro needed to get 2× *faster*. Next step is one cheap measurement: point the same harness at the piper daemon, medium vs high, same 30-unit corpus.
+
+## Status / record
+
+🚫 **CLOSED 2026-07-27 (user ruling): hardware-gated, all avenues exhausted.** The D4 benchmark failed on CPU physics, not code — RTF ≈2.1 best-case then burst-throttle collapse on shared-cpu-1x; no quant/RAM tier fixes it. Investigation complete, K1-K6 remain rebuildable in DOC/Research/DOC_kokoro.html if dedicated-CPU spend is ever ratified. The quality-upgrade thread lives on as #94 (Piper high voices)
