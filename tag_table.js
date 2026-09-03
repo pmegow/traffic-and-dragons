@@ -27,6 +27,30 @@
 // UA1 validation era, and it remains the calling convention.
 
 // ── Strip registry (derives cleanTxt's _CT_TAGS/_CT_BARE — order preserved from the originals) ──
+// #302 — THE paymaster. Level is read BEFORE the award (a payout that lifts the level never
+// re-prices itself); the shared mirror carries the milestone to every living companion exactly
+// as a GM [XP:] would (R._xpMirror, #178). Returns the XP paid so a caller can name it.
+function awardMilestoneXp(kind,label,R){
+  var c=worldState&&worldState.character;
+  if(!c||typeof MILESTONE_XP==="undefined"||!MILESTONE_XP[kind])return 0;
+  var n=MILESTONE_XP[kind]*Math.max(1,c.level||1);
+  c.xp+=n;
+  if(R&&R.muts)R.muts.push("+"+n+" XP ("+kind+" milestone: "+label+")");
+  if(typeof checkLevelUp==="function")checkLevelUp();
+  if(R&&typeof R._xpMirror==="function")R._xpMirror(n);
+  if(typeof showToast==="function")showToast("\u2726 +"+n+" XP \u2014 "+(kind==="quest"?"quest completed":kind==="boss"?"boss defeated":"act completed")+": "+label);
+  return n;
+}
+// #302 — pure over the CLOSING encounter: the slain foes that qualify as bosses. A foe still
+// living (a post-close newcomer, #254) can never qualify — only the dead are counted.
+function combatBossFoes(){
+  var c=worldState&&worldState.character,cb=worldState&&worldState.combat;if(!c||!cb||!cb.foes)return [];
+  var out=[],i,ratio=(typeof BOSS_HP_RATIO==="number")?BOSS_HP_RATIO:1.5,pm=Math.max(1,c.maxHp||1);
+  for(i=0;i<cb.foes.length;i++){var f=cb.foes[i];if(f.down!=="slain")continue;
+    var mh=f.maxHp||0,named=(typeof wsNpcByName==="function")&&!!wsNpcByName(f.name);
+    if(mh>=ratio*pm||(named&&mh>=pm))out.push(f);}
+  return out;
+}
 var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","ITEM_RENAMED","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","ITEM_DEF","MANA","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","RELATIONSHIP_BOND","RELATIONSHIP_BOND_REMOVED","RELATIONSHIP_DYNAMIC","RELATIONSHIP_DYNAMIC_REMOVED","RELATIONSHIP_PAIR_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_CHECK","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","LOCATION_RESIDENT","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_ITEM_RENAMED","COMPANION_SPELL_USED","COMPANION_MANA","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_RELATIONSHIP_BOND","COMPANION_RELATIONSHIP_BOND_REMOVED","COMPANION_RELATIONSHIP_DYNAMIC","COMPANION_RELATIONSHIP_DYNAMIC_REMOVED","COMPANION_RELATIONSHIP_PAIR_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","NO_CHANGE","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON","ALIAS","MERGE","SCENE_CAST","NPC_DEATH_REPORTED"];/* #168 W7: explicit relationship axes coexist with compatibility-only legacy tags; all remain invisible to prose. #194: SCENE_CAST + NPC_DEATH_REPORTED join the vocabulary. */
 var TAG_STRIP_BARE=["ENEMY_SURRENDERS","ENEMY_SLAIN","SUBLOCATION_LEAVE","NO_CHANGE"];/* bare ENEMY_SLAIN is UNSUPPORTED (warn, no-op) but must still strip — an unstripped bare tag leaks to the story. #211: bare [NO_CHANGE] is the audit ack's minimal form */
 // Stripped/known names that DELIBERATELY have no applyMuts handler — each with its reason.
@@ -63,7 +87,7 @@ var TAG_DOC_LINES=[
 "STATE TAGS (use in responses, never shown to player):\n",
 "REFERENTIAL INTEGRITY: on first observing any story-significant person, emit [SCENE_REF:short_handle|canonical name] or [SCENE_REF:short_handle|?] when unknown. If the story explicitly establishes that handle is NOT a known NPC, emit [SCENE_NOT:handle|canonical name|explicit]; for an uncertain point-of-view guess use inference instead of explicit. A later on-screen identity reveal emits [SCENE_REVEAL:handle|canonical name]. Never infer that an anonymous actor is a known NPC merely because the player names that NPC.\n",
 "IRREVERSIBLE CONSEQUENCES ARE TRANSACTIONS: a death and every quest/objective/reward consequence caused by it must be enclosed together as [CANON_TXN_BEGIN:stable_id|npc-death|canonical name or -|scene_handle|quest title or -] ... [CANON_TXN_END:stable_id]. Use [SCENE_DEATH:scene_handle] for the observed death. Reuse the SAME stable_id for delayed consequences; exact replay is ignored. Independent quest closure uses claim type quest-outcome, subject/handle '-' and its active quest title. Never place unrelated outcomes in one envelope. Inside the markers put ONLY the death and its quest/objective/reward tags; combat, time, and every other tag belongs OUTSIDE the markers (an out-of-place tag is applied normally, never canonized).\n",
-"[HP:+/-X] [GOLD:+/-X gp -- ALWAYS in gold pieces; 10sp=1gp, 100cp=1gp; convert before tagging] [ITEM_GAINED:name] [ITEM_LOST:name] [LOCATION:name] [XP:N]\n",
+"[HP:+/-X] [GOLD:+/-X gp -- ALWAYS in gold pieces; 10sp=1gp, 100cp=1gp; convert before tagging] [ITEM_GAINED:name] [ITEM_LOST:name] [LOCATION:name] [XP:N] -- XP:N is FLAVOUR ONLY (a clever or non-violent solution, a discovery, a social win), at most 10x character level per response; quest completions, boss kills and act endings are PAID BY THE ENGINE automatically the moment their tags land -- never add your own [XP:] for those\n",
 "ITEM TAG FORMAT: emit the tag once per item with the bare item name -- never bake quantities into the name (no 'Torch x3'); to grant three torches, emit [ITEM_GAINED:Torch] three times.\n",
 "CONSUMABLES ARE SPENT: the moment a consumable is used -- a potion drunk, a charge detonated, ammunition fired, a scroll read -- emit [ITEM_LOST:name] in that SAME response; narrated consumption without the tag leaves a ghost item on the sheet forever\n",
 "TAKING IS TAGGED: whenever the party gains possession of an item -- picked up, retrieved, looted, bought, gifted, handed over -- emit [ITEM_GAINED:name] in that SAME response; a narrated acquisition without the tag never reaches the sheet\n",
@@ -594,7 +618,7 @@ var TAG_TABLE=[
   R.muts.push((drCompletionReplay?"Death correction completed: ":"Death retracted: ")+drName+" - "+drReason+" (at "+drLoc+")");
   if(typeof console!=="undefined")console.warn("[npc] death attribution "+(drCompletionReplay?"cleanup resumed":"retracted")+" for "+drName+" - pre-image archived; alive at "+drLoc);
 }}},
-{t:"XP",apply:function(text,R){var xpTags=text.match(/\[XP:\s*\+?(\d+)[^\]]*\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:\s*\+?(\d+)[^\]]*\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);R.muts.push("+"+xpm[1]+" XP");checkLevelUp();R._xpMirror(parseInt(xpm[1]));}}},
+{t:"XP",apply:function(text,R){/* #302: the GM's [XP:] is FLAVOUR — summed per response and clamped to GM_XP_CAP_PER_LEVEL × level; quests, bosses and acts are paid by awardMilestoneXp at their own seams. The clamp is loud on both channels, never silent. */var xpTags=text.match(/\[XP:\s*\+?(\d+)[^\]]*\]/g)||[];var xpi,_xpSum=0;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:\s*\+?(\d+)[^\]]*\]/);if(!xpm)continue;_xpSum+=parseInt(xpm[1]);}if(!_xpSum)return;var _xpCap=(typeof GM_XP_CAP_PER_LEVEL==="number"?GM_XP_CAP_PER_LEVEL:10)*Math.max(1,worldState.character.level||1);if(_xpSum>_xpCap){if(typeof console!=="undefined")console.warn("[xp] GM award "+_xpSum+" XP clamped to "+_xpCap+" ("+GM_XP_CAP_PER_LEVEL+"× level; quests, bosses and acts are engine-paid — #302)");R.muts.push("+"+_xpCap+" XP (GM award "+_xpSum+" clamped to "+_xpCap+")");_xpSum=_xpCap;}else R.muts.push("+"+_xpSum+" XP");worldState.character.xp+=_xpSum;checkLevelUp();R._xpMirror(_xpSum);}},
 {t:"QUEST",apply:function(text,R){/* #175 side-find: the optional desc group required 1+ chars, so [QUEST:title|completed|] — trailing pipe, empty desc, a natural model shape — silently no-opped: no warn, no mutation, quest left active forever */var quests=text.match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";if(qStat==="complete"||qStat==="done"||qStat==="finished")qStat="completed";else if(qStat==="abandoned"||qStat==="dropped")qStat="failed";else if(qStat==="accepted")qStat="active";
   /* #259 (JP0-3b, owner ruling 2026-08-28): |declined is the PLAYER's journal decision, not GM
      vocabulary — the pre-#229 normalization silently filed it as FAILED (wrong archive class,
@@ -679,7 +703,8 @@ var TAG_TABLE=[
     // UA42: player-visible closure — the toast names the same-response rewards so a close never
     // again passes in silence (two Playtest-2 completions had ZERO feedback). Positive gold only:
     // a same-response deduction is not a reward.
-    var _rw=[],_rx=text.match(/\[XP:\s*\+?(\d+)/);if(_rx)_rw.push("+"+_rx[1]+" XP");
+    var _rw=[],_ms=(qStat==="completed")?awardMilestoneXp("quest",qTitle,R):0;if(_ms)_rw.push("+"+_ms+" XP");/* #302: the engine pays the completion, level-scaled, before the toast names it */
+    var _rx=text.match(/\[XP:\s*\+?(\d+)/);if(_rx)_rw.push("+"+Math.min(parseInt(_rx[1]),(typeof GM_XP_CAP_PER_LEVEL==="number"?GM_XP_CAP_PER_LEVEL:10)*Math.max(1,worldState.character.level||1))+" XP (GM)");
     var _rg=text.match(/\[GOLD:\s*\+?(\d+)/);if(_rg)_rw.push("+"+_rg[1]+" gp");/* \+?(\d+) cannot match a minus — deductions never read as rewards */
     var _ri=(text.match(/\[ITEM_GAINED:[^\]]+\]/g)||[]).length;if(_ri)_rw.push(_ri+" item"+(_ri>1?"s":""));
     if(typeof showToast==="function")showToast((qStat==="completed"?"✓ Quest completed: ":"✗ Quest failed: ")+qTitle+(_rw.length?" — "+_rw.join(", "):""));
@@ -866,6 +891,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
         if(typeof showToast==="function")showToast("\u2694 "+(_ceLive.length===1?_ceLive[0].name+" was":_ceLive.length+" foes were")+" still standing at victory \u2014 resolved as slain");
       }
     }
+    if(worldState.combat&&_ceVictory){var _bf=combatBossFoes();if(_bf.length)awardMilestoneXp("boss",_bf.map(function(f){return f.name;}).join(", "),R);}/* #302: one boss payday per victory close, however many bosses fell */
     propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */
     R.muts.push("Combat: "+ce[1].trim());
     if(_ceKeep.length){
@@ -1170,6 +1196,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
       _cAct.status="completed";
       _cAct.completedTurn=worldState.turn;/* #148 Phase 2: era boundaries prefer act completions — additive stamp, nothing else reads it before eraNextSources */
       R.muts.push("Act complete: "+_cAct.title);
+      awardMilestoneXp("act",_cAct.title,R);/* #302 */
       if(_si2+1<_sk2.acts.length){
         _sk2.acts[_si2+1].status="active";
         worldState.actStartTurn=worldState.turn;

@@ -21,9 +21,9 @@
 //    prose. Empty features arrays are FILL-PHASE blanks, not errors.
 //  · spellTiers maps tier → unlock level (C2). Empty spell-tier arrays are fill-phase
 //    blanks. Half-caster (Ranger/Paladin) tiers are DRAFT pending the fill phase.
-//  · CLASS_XP_LEVELS 1-10 = the shipped XP_LEVELS verbatim; 11-20 = spec R2 draft numbers.
+//  · CLASS_XP_LEVELS = the #302 crushed curve (owner ruling 2026-09-03): a curve, not a line — L2 100 … L11 30000 … L20 210000. Milestones are engine-paid and level-scaled (MILESTONE_XP, globals.js).
 // >>> CLASS BIBLE DATA
-var CLASS_XP_LEVELS = [0,300,900,2700,6500,14000,23000,34000,48000,64000,85000,100000,120000,140000,165000,195000,225000,265000,305000,355000];
+var CLASS_XP_LEVELS = [0,100,300,900,2000,4000,7000,11000,16000,22000,30000,40000,52000,66000,82000,100000,120000,145000,175000,210000];
 var CLASS_BIBLE = {
   "Warrior": {
     "id": "Warrior",

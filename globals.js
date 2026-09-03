@@ -59,6 +59,14 @@ var WEIGHTY_REL_RE=/\b(?:married|wed(?:s|ded|ding)?|w(?:ife|ives)|husbands?|spou
 var REL_DOWNGRADE_COOLDOWN=3;  // turns between deliveries of the same pending check
 var REL_DOWNGRADE_MAX=3;       // total deliveries before the entry retires unanswered
 var REL_DOWNGRADE_EXPIRE_TURNS=60; // #181: muted-but-unresolved entries archive out of live state this many turns after their last delivery (owner 2026-08-13: "60 sounds reasonable, adjust later if need be"); unmuted entries never expire
+// #302 (owner ruling 2026-09-03): progression is ENGINE-PAID and level-scaled. The GM's own [XP:]
+// is flavour, capped per response; the paymaster is awardMilestoneXp (tag_table.js), fired when
+// the structured milestone lands — a quest close, a boss slain at a victory close, an act close.
+// Expected pace on the crushed curve: two quests for L2, ~four for L4, ~eight for L6, ~thirteen
+// for L10. The owner suspects it will run fast — tune these multipliers, never the curve's shape.
+var MILESTONE_XP={quest:50,boss:100,act:200};   // × character level at the moment of the award
+var GM_XP_CAP_PER_LEVEL=10;                      // the GM's summed [XP:] per response is clamped to this × level (loud in muts)
+var BOSS_HP_RATIO=1.5;                           // a slain foe whose maxHp ≥ this × the player's maxHp is a boss (a rostered NPC foe qualifies at 1.0×)
 var MOOD_AUDIT_TURNS=12;    // v1.381: a party member's recorded MOOD older than this is due for a re-check (buildMoodAudit, api.js). Deliberately far shorter than REL_AUDIT_TURNS below: bonds shift on a ~100-turn scale, mood is scene-scale, and auditing a volatile field on a slow field's clock is what let "watchful, tense" sit pinned on Frizwick for an entire arc. ~12 turns ≈ one play session at the observed rate. An EMPTY mood is eligible immediately — no age wait — since a party member in every scene with no recorded mood is a gap now, not in 12 turns.
 var MOOD_AUDIT_COOLDOWN=12; // v1.381: at most one mood audit per this many turns. Frequency is the real lever on churn — every audit invites re-emission, and re-emission is where vocabulary leaks enter, so a fast audit would keep rolling the corruption dice on characters that were fine.
 var REL_AUDIT_TURNS=40;          // #61: at most one relationship audit per this many turns (buildRelationshipAudit, api.js) — bonds shift on a ~100-turn scale in the wild (t455/t472 Runelords), so 40 re-grounds without nagging; a party join/leave pulls the audit forward via worldState.relAuditDue
@@ -281,7 +289,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.770";
+var APP_VERSION="v1.771";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 var HOME_PENDING_BP_K="tnd_pending_bp_v1";

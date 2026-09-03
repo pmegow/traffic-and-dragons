@@ -30,7 +30,7 @@
 // COVERAGE GUARD (engine-tested): every SKILLS id has an entry here and every key here is a
 // real SKILLS id — a new skill and its bible entry land in the SAME commit.
 
-// The global level ladder. Index = skill level (0–5, matching SKILL_LEVELS). bonus stacks
+// The global level ladder. Index = skill level (0–6, matching SKILL_LEVELS; #302 added Legendary). bonus stacks
 // with the stat modifier on d20 checks; rule is the injected per-level text (the doc builder
 // renders "LevelName: rule" from these, so a rebalance here propagates everywhere).
 var SKILL_LEVEL_MECHANICS=[
@@ -39,7 +39,8 @@ var SKILL_LEVEL_MECHANICS=[
   {bonus:2,rule:"+2; easy (DC 10) routine uses succeed WITHOUT a roll when unhurried"},
   {bonus:3,rule:"+3; easy (DC 10) uses succeed without a roll even under pressure"},
   {bonus:4,rule:"+4; moderate (DC 15) uses also succeed without a roll when unhurried"},
-  {bonus:5,rule:"+5; roll only for hard (DC 20+), contested, or high-stakes attempts"}
+  {bonus:5,rule:"+5; roll only for hard (DC 20+), contested, or high-stakes attempts"},
+  {bonus:6,rule:"+6; hard (DC 20) uses also succeed without a roll when unhurried — roll only for contested, legendary (DC 25+), or high-stakes attempts"}/* #302: Legendary, 100 successes */
 ];
 
 var SKILLS_BIBLE={

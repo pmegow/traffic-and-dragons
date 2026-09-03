@@ -835,7 +835,19 @@ function levelUpArchetypeDue(){
 }
 // #284: the one re-surface seam — boot (ui-boot init, the #81 pendingItemDefs precedent) and the
 // sendAction guard both call this. Creation-flow order; returns whether a milestone was opened.
+// #302 (owner ruling 2026-09-03): NO XP migration. When the curve changes, a character whose
+// banked XP now clears a higher gate simply levels on load — player through checkLevelUp (owed
+// archetype/bump/spell picks queue exactly as in play and resurface right after), companions
+// through their silent auto-level. Idempotent: a second call with no new XP changes nothing.
+function relevelOnLoad(){
+  if(!worldState||!worldState.character)return;
+  var c=worldState.character;
+  if(typeof c.xp==="number"&&typeof getLvl==="function"&&getLvl(c.xp)>(c.level||1))checkLevelUp();
+  var i,ns=worldState.npcs||[];
+  for(i=0;i<ns.length;i++){var n=ns[i];if(!n||!n.partyMember||!n.charSheet)continue;if(typeof npcIsDead==="function"&&npcIsDead(n))continue;checkCompanionLevelUp(n.charSheet);}
+}
 function resurfaceLevelUpOwed(){
+  if(typeof relevelOnLoad==="function")relevelOnLoad();/* #302: the curve applies before any owed pick is surfaced */
   if(typeof document==="undefined"||!worldState||!worldState.character)return false;
   if(levelUpArchetypeDue()){if(!document.getElementById("arch-modal"))showArchetypeModal();return true;}
   var lo=_luOwed();
