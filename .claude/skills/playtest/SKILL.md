@@ -103,3 +103,7 @@ Judges the corpus already on disk (or in localStorage — pull it first, then pe
 `window.__ptLoad()` returns the persisted corpus after a crashed/reopened window (at most the
 single in-flight turn is lost). Dump it to `dev/` and go straight to `/playtest audit`.
 `window.__ptClear()` wipes it — only before a deliberately fresh run, never to tidy up.
+
+## Never-emitted tag census (#311)
+
+After a run, `node dev/tag-census.js [corpus.json …] [save.tnd]` prints WORKING / RARE / NEVER for every documented tag across the corpora (default: every `dev/corpus_*.json`) plus the save's tag-log working set, and flags any engine-only tag (`TAG_DOC_ENGINE_ONLY`) that a note never taught. A tag that stays NEVER across sweeps is a candidate for the engine-only tier or retirement — record the verdict in the audit.

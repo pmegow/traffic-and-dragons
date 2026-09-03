@@ -2187,14 +2187,30 @@ function capBibleLine(nm,e){
 // VOLATILE half only (reads worldState.character.spells live). Bounded by known spells, so cheap.
 // Companion spell canon: buildCompanionSpellBibleBlock below (UA25, v1.263 — closed the v1.224
 // B1(b) gap where charSheet.spells got no re-injection and companions cast from vibes).
+// #311 ②: is this spell LIVE for canon injection? Cast (a tag-log label names it) or named in the clean
+// transcript within SPELL_CANON_WINDOW turns. A young campaign injects everything; the sheet's Spells line
+// always lists everything known, so the GM can name a spell to bring its canon back next turn.
+function spellCanonRelevant(nm){
+  if(!worldState)return true;
+  var win=(typeof SPELL_CANON_WINDOW==="number")?SPELL_CANON_WINDOW:30,turn=worldState.turn||0;
+  if(turn<win)return true;
+  var base=(typeof capBaseName==="function")?capBaseName(nm):String(nm||"").toLowerCase();if(!base)return true;
+  var i,tr=worldState.transcript||[],from=turn-win;
+  for(i=tr.length-1;i>=0;i--){var e=tr[i];if(!e||typeof e.t!=="number"||e.t<from)continue;if(e.r==="gm"&&e.x&&nameContains(e.x,base))return true;}
+  var tl=worldState.tagLog||[];
+  for(i=tl.length-1;i>=0;i--){var l=tl[i];if(!l||typeof l.t!=="number"||l.t<from)continue;var j;for(j=0;j<(l.m||[]).length;j++)if(nameContains(l.m[j],base))return true;}
+  return false;
+}
+function _spellCanonHint(withheld){return withheld?"(Canon is shown for spells cast or named in the last "+SPELL_CANON_WINDOW+" turns; name any other known spell and its rules return next turn.) ":"";}
 function buildSpellBibleBlock(){
   var c=worldState&&worldState.character;
   if(!c||!c.spells||!c.spells.length||typeof capabilityLookup!=="function")return"";
-  var seen={},lines=[],i;
+  var seen={},lines=[],i,_withheld=0;
   for(i=0;i<c.spells.length;i++){
     var sp=c.spells[i];if(!sp||!sp.nm)continue;
     var e=capabilityLookup(sp.nm);if(!e)continue;
     var key=capBaseName(sp.nm);if(seen[key])continue;seen[key]=1;
+    if(!spellCanonRelevant(sp.nm)){_withheld++;continue;}/* #311 ② */
     var nm=String(sp.nm).replace(/\s*\(.*\)/,"").trim();
     // Playtest-F1 (v1.239): availability state must live HERE, in the block the GM provably
     // consults at cast time (the money test showed 8 unprompted range holds from these lines,
@@ -2205,8 +2221,8 @@ function buildSpellBibleBlock(){
     if(sp.lvl>0&&sp.used&&sp.racial)nm="[EXPENDED — 1/day heritage spell already spent; CANNOT be cast again until dawn] "+nm;
     lines.push(capBibleLine(nm,e));
   }
-  if(!lines.length)return"";
-  return "CANONICAL SPELL RULES (authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, honor these over any remembered version when the spell is cast, and REFUSE any cast of a spell marked [EXPENDED]. MANA: a leveled cast costs its Tier from the caster's Mana pool — REFUSE any cast the pool cannot cover; the ONE exception is a Necromancer, who may cast beyond an empty pool at a blood price the engine deducts automatically):\n"+lines.join("\n")+"\n\n";
+  if(!lines.length)return _withheld?"CANONICAL SPELL RULES: "+_spellCanonHint(_withheld)+"\n\n":"";
+  return "CANONICAL SPELL RULES "+_spellCanonHint(_withheld)+"(authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, honor these over any remembered version when the spell is cast, and REFUSE any cast of a spell marked [EXPENDED]. MANA: a leveled cast costs its Tier from the caster's Mana pool — REFUSE any cast the pool cannot cover; the ONE exception is a Necromancer, who may cast beyond an empty pool at a blood price the engine deducts automatically):\n"+lines.join("\n")+"\n\n";
 }
 // UA25: the companion half of the #10 anti-drift injection. ONE canon line per spell across the
 // whole party: bounds are identical for every caster, so spells the player's own block already
@@ -2217,7 +2233,7 @@ function buildCompanionSpellBibleBlock(){
   if(!worldState||!worldState.npcs||!worldState.npcs.length||typeof capabilityLookup!=="function")return"";
   var seen={},i,c=worldState.character;
   if(c&&c.spells){for(i=0;i<c.spells.length;i++){if(c.spells[i]&&c.spells[i].nm)seen[capBaseName(c.spells[i].nm)]=1;}}
-  var lines=[],pj,ps,_sbParty=livingPartyCompanions();/* #6: shared party scan */
+  var lines=[],pj,ps,_sbParty=livingPartyCompanions(),_cwith=0;/* #6: shared party scan */
   for(pj=0;pj<_sbParty.length;pj++){var n=_sbParty[pj];
     if(!n.charSheet.spells)continue;
     for(ps=0;ps<n.charSheet.spells.length;ps++){var sp=n.charSheet.spells[ps];
@@ -2225,9 +2241,10 @@ function buildCompanionSpellBibleBlock(){
       var key=capBaseName(sp.nm);if(seen[key])continue;
       var e=capabilityLookup(sp.nm);if(!e)continue;
       seen[key]=1;
+      if(!spellCanonRelevant(sp.nm)){_cwith++;continue;}/* #311 ② */
       lines.push(capBibleLine(String(sp.nm).replace(/\s*\(.*\)/,"").trim(),e));}}
-  if(!lines.length)return"";
-  return "CANONICAL COMPANION SPELL RULES (authoritative for PARTY MEMBERS' spells — the same fixed-bounds discipline as the player's list above; each companion's expended slots are listed on their party sheet; mark a companion's leveled cast with [COMPANION_SPELL_USED:Name|spell]):\n"+lines.join("\n")+"\n\n";
+  if(!lines.length)return _cwith?"CANONICAL COMPANION SPELL RULES: "+_spellCanonHint(_cwith)+"\n\n":"";
+  return "CANONICAL COMPANION SPELL RULES "+_spellCanonHint(_cwith)+"(authoritative for PARTY MEMBERS' spells — the same fixed-bounds discipline as the player's list above; each companion's expended slots are listed on their party sheet; mark a companion's leveled cast with [COMPANION_SPELL_USED:Name|spell]):\n"+lines.join("\n")+"\n\n";
 }
 // buildAbilityBibleBlock (TODO #10) — the ability half of the anti-drift injection. Re-feeds canon
 // for the player's class abilities every turn via capabilityLookup (which resolves an ability that

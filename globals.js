@@ -107,6 +107,7 @@ var NOTE_LOG_CAP=40;
 // server + IndexedDB (never localStorage); the turn counter never rewinds; the dead branch stays in the
 // transcript marked db and RAG never serves it. RESPAWNS_PER_CAMPAIGN deaths are survivable; the next
 // ends the campaign (#301 writes its denouement).
+var SPELL_CANON_WINDOW=30;  // #311 ②: canonical spell rules inject only for spells cast (tag-log labels) or named (clean transcript) within this many turns; a campaign younger than the window injects all (measured on t2097: player+companion canon 8.6k → 1.8k chars)
 var WILDCARD_EVERY=7;      // #305: every Nth turn the fourth button is the wildcard ("Do something reckless") and the GM is told to reward it
 var DOWNED_MAX_TURNS=3;
 var RESPAWNS_PER_CAMPAIGN=3;
@@ -326,7 +327,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.776";
+var APP_VERSION="v1.777";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 var HOME_PENDING_BP_K="tnd_pending_bp_v1";

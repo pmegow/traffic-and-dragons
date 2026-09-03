@@ -477,6 +477,38 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #311 prompt diet ─────────────────────────────────────────────────────────
+  t("#311 ① engine-only tag tier: tags whose only legitimate emission answers an engine note leave the standing STATE TAGS doc but stay parsed and stripped",function(){
+    var d=buildStateTagsDoc(),i;
+    if(!TAG_DOC_ENGINE_ONLY||TAG_DOC_ENGINE_ONLY.length<4)return "tier list too short: "+JSON.stringify(TAG_DOC_ENGINE_ONLY);
+    for(i=0;i<TAG_DOC_ENGINE_ONLY.length;i++){var t=TAG_DOC_ENGINE_ONLY[i];
+      if(d.indexOf("["+t+":")>=0)return t+" still taught in the standing doc";
+      var inTable=false,j;for(j=0;j<TAG_TABLE.length;j++)if(TAG_TABLE[j].t===t)inTable=true;
+      if(!inTable)return t+" is not a parsed tag — the tier is for ASKED tags, not dead ones";
+      if(cleanTxt("A ["+t+":x|y] B")!=="A  B")return t+" no longer stripped from prose";}
+    /* the spontaneous vocabulary stays: a GM must be able to file these unasked */
+    return d.indexOf("[NPC_FORGET:")>=0&&d.indexOf("[SPELL_DEF:")>=0&&d.indexOf("[RELATIONSHIP_BOND_REMOVED:")>=0&&d.indexOf("[SCHEDULE_CANCEL:")>=0?true:"a spontaneous tag was demoted";
+  });
+  t("#311 ② spell canon by recency: only spells cast (tag-log labels) or named (clean transcript) in the last SPELL_CANON_WINDOW turns inject; a young campaign injects all; the header says what was withheld",function(){
+    makeWorld();var c=worldState.character;c.cls="Sorcerer";
+    c.spells=[{nm:"Fire Bolt",lvl:0,used:false},{nm:"Shield",lvl:1,used:false},{nm:"Charm Person",lvl:1,used:false},{nm:"Mage Hand",lvl:0,used:false}];
+    worldState.turn=10;var b0=buildSpellBibleBlock();
+    if(b0.indexOf("Fire Bolt")<0||b0.indexOf("Shield")<0||b0.indexOf("Charm Person")<0||b0.indexOf("Mage Hand")<0)return "young campaign must inject all: "+b0.slice(0,300);
+    worldState.turn=100;worldState.transcript=[{t:40,r:"gm",x:"Shield flares, long ago."},{t:90,r:"gm",x:"You loose a Fire Bolt across the yard."}];
+    worldState.tagLog=[{t:95,tags:["SPELL_USED"],m:["Cast Charm Person (-1 mana)"]},{t:30,tags:["SPELL_USED"],m:["Cast Mage Hand"]}];
+    var b1=buildSpellBibleBlock();
+    if(b1.indexOf("Fire Bolt")<0)return "named-in-transcript spell withheld";
+    if(b1.indexOf("Charm Person")<0)return "cast-in-tag-log spell withheld";
+    if(b1.indexOf("Shield")>=0||b1.indexOf("Mage Hand")>=0)return "stale spells still injected: "+b1.slice(0,400);
+    if(!/last "?30"? turns|SPELL_CANON_WINDOW|name any other/i.test(b1))return "no withholding hint: "+b1.slice(0,200);
+    /* the sheet line still lists every spell the character KNOWS */
+    var sp=buildSysPrompt().volatile;if(sp.indexOf("Spells: ")<0||sp.indexOf("Mage Hand")<0)return "the sheet's Spells line must still list everything known";
+    /* companions follow the same rule */
+    worldState.npcs.push({name:"Daeris",status:"alive",rel:"ally",partyMember:true,charSheet:{name:"Daeris",cls:"Cleric",level:3,hp:10,maxHp:10,stats:{},abilities:[],spells:[{nm:"Bless",lvl:1,used:false},{nm:"Sacred Flame",lvl:0,used:false}],inventory:[],conditions:[]}});
+    worldState.transcript.push({t:96,r:"gm",x:"Daeris murmurs a Bless over the party."});
+    var cb=buildCompanionSpellBibleBlock();
+    return cb.indexOf("Bless")>=0&&cb.indexOf("Sacred Flame")<0?true:"companion recency: "+cb.slice(0,300);
+  });
   // ── #305 the fourth, engine-authored button ──────────────────────────────────
   t("#305 engineFourthAction: rest when HP is under half (never in combat), else use a carried consumable with a defined effect, else accept an offered quest, else buy when a want is on the table, else the periodic wildcard, else nothing",function(){
     makeWorld();var c=worldState.character;c.hp=14;c.maxHp=14;c.inventory=[];c.gold=0;worldState.questLog=[];worldState.turn=1;
@@ -4895,10 +4927,12 @@ function runEngineTests(R){
     var s=cleanTxt("A [ITEM_RENAMED:Cleaver|Whisperfang] B [COMPANION_ITEM_RENAMED:Morwen|Cleaver|Whisperfang] C");
     return s.indexOf("[")<0?true:"tag leaked to prose: "+s;
   });
-  t("#176: the STATE TAGS doc teaches the rename pair",function(){
-    var d=buildStateTagsDoc();
-    if(d.indexOf("[ITEM_RENAMED:")<0)return "player form missing from the doc";
-    return d.indexOf("[COMPANION_ITEM_RENAMED:")>=0?true:"companion form missing from the doc";
+  t("#176: the rename pair is documented vocabulary — in TAG_DOC_LINES and the ENGINE-ONLY tier (#311 ①: the dup-item note teaches the form when it asks), absent from the standing doc",function(){
+    var full=TAG_DOC_LINES.join(""),d=buildStateTagsDoc();
+    if(full.indexOf("[ITEM_RENAMED:")<0)return "player form missing from TAG_DOC_LINES";
+    if(full.indexOf("[COMPANION_ITEM_RENAMED:")<0)return "companion form missing from TAG_DOC_LINES";
+    if(TAG_DOC_ENGINE_ONLY.indexOf("ITEM_RENAMED")<0||TAG_DOC_ENGINE_ONLY.indexOf("COMPANION_ITEM_RENAMED")<0)return "the rename pair belongs to the engine-only tier";
+    return d.indexOf("[ITEM_RENAMED:")<0?true:"the engine-only line leaked into the standing doc";
   });
   t("#176: a duplicate single grant stamps dupItemPending; the nudge fires once, combat-silent, teaching both exits",function(){
     makeWorld();
@@ -5912,7 +5946,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===323408802&&d.length===27177)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===899790228&&d.length===26022)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -15772,11 +15806,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=9999;var sys2=buildSysPrompt();
     return sys2.stable===sys.stable?true:"stable half stopped being campaign-constant — cache killed";
   });
-  t("generalized tags are documented vocabulary: the STATE TAGS doc carries the [ALIAS:]/[MERGE:] line (parse+strip+docs land together)",function(){
-    var d=buildStateTagsDoc();
-    if(d.indexOf("[ALIAS:domain|canonical|alias]")<0)return "[ALIAS:] doc line missing — a parsed-but-undocumented tag is the UA1 phantom class";
-    if(d.indexOf("[MERGE:domain|canonical|duplicate]")<0)return "[MERGE:] doc line missing";
-    var ni=d.indexOf("npc"),ai=d.indexOf("[ALIAS:domain");/* #168R10: the old ternary returned true on BOTH branches — a clause that could not fail */
+  t("generalized tags are documented vocabulary: the [ALIAS:]/[MERGE:] line exists in TAG_DOC_LINES and sits in the ENGINE-ONLY tier (#311 ①) — parsed, stripped, taught by the identity notes that ask for it, absent from the standing doc",function(){
+    var full=TAG_DOC_LINES.join(""),d=buildStateTagsDoc();
+    if(full.indexOf("[ALIAS:domain|canonical|alias]")<0)return "[ALIAS:] doc line missing from TAG_DOC_LINES — a parsed-but-undocumented tag is the UA1 phantom class";
+    if(full.indexOf("[MERGE:domain|canonical|duplicate]")<0)return "[MERGE:] doc line missing";
+    if(TAG_DOC_ENGINE_ONLY.indexOf("ALIAS")<0||TAG_DOC_ENGINE_ONLY.indexOf("MERGE")<0)return "ALIAS/MERGE are engine-asked — they belong to the engine-only tier";
+    if(d.indexOf("[ALIAS:domain")>=0)return "the engine-only line leaked into the standing doc";
+    var ni=full.indexOf("npc"),ai=full.indexOf("[ALIAS:domain");/* #168R10: the old ternary returned true on BOTH branches — a clause that could not fail */
     return ni>=0&&ai>=0&&ni<ai?true:"the npc domain vocabulary must precede the [ALIAS:] doc line (npc@"+ni+" alias@"+ai+")";
   });
   t("road names canonicalize on an UNORDERED endpoint pair at the map write boundary (the #153 two-roads-one-key class)",function(){

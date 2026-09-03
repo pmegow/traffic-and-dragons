@@ -183,7 +183,20 @@ var TAG_DOC_LINES=[
 "THE MOMENT an NPC agrees to travel with the party — even conditionally or provisionally — you MUST emit [PARTY_MEMBER:name|true] in that same response; never narrate a joining without the tag.\n",
 "XP IS SHARED AUTOMATICALLY: every [XP:N] you award is mirrored by the engine to all party members. Use [COMPANION_XP:Name|N] ONLY for a bonus one companion earns alone — never re-emit a shared award with it.\n\n"
 ];
-function buildStateTagsDoc(){return TAG_DOC_LINES.join("");}
+// #311 ① (owner ruling 2026-09-03, validated on the t2097 save): ENGINE-ONLY tags — those whose only
+// legitimate emission ANSWERS an engine note — leave the standing STATE TAGS doc; the note that asks
+// carries the syntax (contract-pinned in run-tests: every name here appears inside a builder's text).
+// They stay in TAG_TABLE: parsed, stripped, documented at ask time. Measured: 1,187 chars off the cached
+// half — small money, zero attention cost, and the standing vocabulary reads as what the GM may do unasked.
+var TAG_DOC_ENGINE_ONLY=["NPC_SUPERSEDE","NPC_MERGE","ALIAS","MERGE","ITEM_RENAMED","COMPANION_ITEM_RENAMED"];
+function _docLineEngineOnly(line){
+  var m,re=/\[([A-Z][A-Z_]+)(?=[:\]|])/g,names=[];
+  while((m=re.exec(line)))if(names.indexOf(m[1])<0)names.push(m[1]);
+  if(!names.length)return false;
+  var i;for(i=0;i<names.length;i++)if(TAG_DOC_ENGINE_ONLY.indexOf(names[i])<0)return false;
+  return true;
+}
+function buildStateTagsDoc(){var out=[],i;for(i=0;i<TAG_DOC_LINES.length;i++)if(!_docLineEngineOnly(TAG_DOC_LINES[i]))out.push(TAG_DOC_LINES[i]);return out.join("");}
 
 // ── THE TABLE — ordered handler registry. Bodies are 1:1 transcriptions of the applyMuts blocks
 // (only `muts`→R.muts, `turn`→R.turn, `feGet`→R.feGet, `_xpMirror`→R._xpMirror renamed). ──────────

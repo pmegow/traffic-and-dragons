@@ -584,6 +584,20 @@ try {
   if (_bePage.indexOf('id="saveas"') >= 0 || _bePage.indexOf('$("saveas")') >= 0)
     _failBE("toolbar still exposes Save as — Bible Editor has one local project-file save path");
 
+  // ── #311 ① ENGINE-ONLY TAG TIER CONTRACT: every tag demoted from the standing doc must be taught by the
+  // note that asks for it — a demoted tag no builder names would be a phantom (parsed, never emitted).
+  {
+    var _eoTT = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "tag_table.js"), "utf8");
+    var _eoM = _eoTT.match(/var TAG_DOC_ENGINE_ONLY=(\[[^\]]*\]);/);
+    if (!_eoM) _failBE("TAG_DOC_ENGINE_ONLY is gone from tag_table.js");
+    var _eoList = JSON.parse(_eoM[1]);
+    var _eoSrc = ["api.js", "identity.js", "memory.js", "clock.js"].map(function (f) { return _fsBE.readFileSync(_pathBE.join(__dirname, "..", f), "utf8"); }).join("\n");
+    _eoList.forEach(function (t) {
+      if (_eoSrc.indexOf(t + ":") < 0) _failBE("engine-only tag " + t + " is taught by NO engine note — a GM can never learn its syntax (#311 ①)");
+    });
+    console.log("[#311] engine-only tag tier OK — " + _eoList.length + " tag(s), each taught by an engine note");
+  }
+
   // ── ITEM BIBLE half (#81, same discipline): item_bible.js is machine-regenerated wholesale ──
   var _biFile = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "item_bible.js"), "utf8").replace(/\r\n/g, "\n");
   var _serItems = new Function(_serM[0] + "\nreturn serializeItemBible;")();
