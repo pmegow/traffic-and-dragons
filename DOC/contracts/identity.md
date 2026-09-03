@@ -41,3 +41,5 @@ Explicit dynamic writes commit only dynamic. New bonds commit directly; replacin
 ## 21. NPC alias system
 
 `resolveNpcName(name)` in `memory.js` resolves aliases to canonical name before any storage op. All NPC-keyed tags resolve aliases: `NPC`, `NPC_PRONOUN`, `NPC_NOTE`, `PARTY_MEMBER`, `RELATIONSHIP`, `RELATIONSHIP_REMOVED`. NPC list in system prompt shows `Name [aka: alias1, alias2]`.
+
+- **Combat corpses are combat canon (#299 summary path, #318 claim path).** A rolled foe never has a scene handle. `_w2CombatSlainMatch` (summary; retires the ring entry) and `_w2CombatFoeMatch` (canon envelope gate AND the `sceneRefDeath` executor; a peek) accept a death whose victim sits on `worldState.combatSlain`, or stands in the open tracker at 0 HP, or is killed by the same response's `[ENEMY_SLAIN:]`/`[COMBAT_END:victory]`. A foe still standing with no kill in the response refuses as before; the gate and the executor consult the SAME matcher, or an authorized death fails on execution.

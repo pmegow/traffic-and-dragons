@@ -611,6 +611,38 @@ function runEngineTests(R){
     var threw=null;try{w2ValidateSummary({npcDeaths:[{name:"Nobody Slain",sourceTurn:30}],chapterSummary:""});}catch(e){threw=e;}
     return threw?true:"an uncited stranger's death validated";
   });
+  // ── #318 a canon envelope around a COMBAT kill is combat canon (Iron Meridian t17, the Tag-Shrike) ──
+  t("#318 [CANON_TXN npc-death] on a rostered combat foe slain in the same response COMMITS (no quarantine toast, no identity conflict, fight closes, ring stamped); a foe still standing with no kill in the response, and a stranger, still refuse",function(){
+    makeWorld();worldState.turn=17;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];
+    applyMuts("[COMBAT_START:Tag-Shrike|22|14|+5|1d8|high]");
+    var r=applyMuts("The lance punches clean through. [CANON_TXN_BEGIN:shrike_kill_sump|npc-death|-|Tag-Shrike|-][SCENE_DEATH:tag shrike][ENEMY_SLAIN:Tag-Shrike][CANON_TXN_END:shrike_kill_sump]");
+    var tx=(worldState.canonTxns||[]).filter(function(t){return t.id==="shrike_kill_sump";})[0];
+    if(!tx||tx.status!=="committed")return "envelope: "+JSON.stringify(tx);
+    if((r.muts||[]).some(function(m){return /quarantined/i.test(m);}))return "quarantine mut: "+JSON.stringify(r.muts);
+    if((worldState.identityConflicts||[]).length)return "a conflict was minted for a combat corpse: "+JSON.stringify(worldState.identityConflicts);
+    if(worldState.combat)return "the fight did not close";
+    if(!(worldState.combatSlain||[]).some(function(x){return x.name==="Tag-Shrike";}))return "ring not stamped";
+    if(r.errors&&r.errors.length)return "errors: "+r.errors.join("; ");
+    /* a foe still standing, nothing in the response kills it → the old refusal holds */
+    makeWorld();worldState.turn=20;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];
+    applyMuts("[COMBAT_START:Bone Warden|30|15|+5|1d10|high]");
+    applyMuts("[CANON_TXN_BEGIN:warden_dies|npc-death|-|Bone Warden|-][SCENE_DEATH:bone warden][CANON_TXN_END:warden_dies]");
+    tx=(worldState.canonTxns||[]).filter(function(t){return t.id==="warden_dies";})[0];
+    if(!tx||tx.status!=="quarantined"||!/does not bind/.test(tx.reason))return "standing foe: "+JSON.stringify(tx);
+    /* a stranger never in any fight → refuses exactly as before */
+    applyMuts("[CANON_TXN_BEGIN:nobody_dies|npc-death|-|Nobody Slain|-][SCENE_DEATH:nobody slain][CANON_TXN_END:nobody_dies]");
+    tx=(worldState.canonTxns||[]).filter(function(t){return t.id==="nobody_dies";})[0];
+    return tx&&tx.status==="quarantined"?true:"stranger: "+JSON.stringify(tx);
+  });
+  t("#318 the executor agrees with the gate: [SCENE_DEATH:] on a ring-slain foe is ceremonial — a mut, no conflict, no error (the 'gate and executor must agree' rule)",function(){
+    makeWorld();worldState.turn=24;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];
+    applyMuts("[COMBAT_START:Chain-Dragger|18|13|+4|1d8|high]");applyMuts("[ENEMY_SLAIN:Chain-Dragger][COMBAT_END:victory]");
+    var R={muts:[],errors:[],turn:worldState.turn};var ok=sceneRefDeath("chain dragger",R);
+    if(ok!==true)return "returned "+ok;
+    if((worldState.identityConflicts||[]).length)return "conflict minted: "+JSON.stringify(worldState.identityConflicts);
+    if(R.errors.length)return "errors: "+R.errors.join("; ");
+    return R.muts.some(function(m){return /Chain-Dragger/.test(m)&&/combat/i.test(m);})?true:"no mut: "+JSON.stringify(R.muts);
+  });
   t("#25 locResolve's memo cannot serve a stale answer after a DIRECT identity-table write (an entry added without the generation bump)",function(){
     makeGeoWorld();
     if(locResolve("Sandpoint, Varisia")!=="Sandpoint, Varisia")return "fixture: not yet merged";

@@ -141,8 +141,8 @@ rc|=sabotage.prove({
     {
         "label": "already-canon-dead subjects need fresh scene evidence again (re-assertion bookkeeping impossible)",
         "mustFail": "#175②",
-        "find": "else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence))",
-        "replace": "else if(!w2DeathAuthorized(meta.subject,meta.evidence))"
+        "find": "else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence)&&",
+        "replace": "else if(!w2DeathAuthorized(meta.subject,meta.evidence)&&"
     },
     {
         "label": "the standing-conflict strip goes prose-keyed again — the name-substring blackout returns",

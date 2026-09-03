@@ -969,6 +969,8 @@ function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);
        and the write must agree about what a handle IS, or an authorized death fails on execution. */
     var sn=_w2HandleNamesSubject(handle,subj);
     if(sn&&w2NamedPresenceEvidence(sn))return _w2StampDead(sn,worldState.turn,R);
+    var cf=(!subj||subj==="-")?_w2CombatFoeMatch(handle,""):null;/* #318: the gate accepted a combat kill — the death op is ceremonial here (the tracker + ring already hold the corpse) */
+    if(cf){if(R)R.muts.push(cf+": slain in combat (the envelope closes the kill)");return true;}
     _w2Conflict(subj||"unknown",handle,"death names no observed handle");
     if(subj&&R&&R.errors)R.errors.push("SCENE_DEATH: handle does not resolve to the transaction subject");
     return false;}
@@ -1470,7 +1472,7 @@ function w2PrepareResponse(text){
     if(p.length!==5||!meta.id||m[3].trim()!==meta.id)reason="malformed or mismatched transaction envelope";else if(meta.claim!=="npc-death"&&meta.claim!=="quest-outcome")reason="unsupported canon claim type";else if(prior&&prior.status==="quarantined")reason="claim id was already quarantined";else if(prior&&!_w2TxnMetaSame(prior,meta))reason="claim id was reused with different metadata";
     var _part=null;
     if(!reason){_part=_w2TxnPartition(meta,ops);if(_part.reason)reason=_part.reason;else{ops=_part.gov;if(_part.eject.length){ordinary+="\n"+_part.eject.join("");meta.ejected=_part.eject.map(_w2TagName);if(typeof console!=="undefined")console.warn("[identity] "+_part.eject.length+" incidental tag(s) ejected from canon claim "+meta.id+" and applied as ordinary tags: "+meta.ejected.join(", ")+" (#175 — one stray tag must never void a death and its rewards)");}}}
-    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&w2HandleKey(deathHandle)!==w2HandleKey(meta.evidence))reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence)){var _veOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);reason=_veOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs (it recovers capacity), the scene moves (a location or sublocation change), or the death is filed off-screen via [NPC_DEATH_REPORTED:]":"scene evidence does not bind the claimed victim";if(!_veOv&&meta.subject&&meta.subject!=="-")_w2ArmDeathValve(resolveNpcName(meta.subject));/* #194 L3: an evidence-lack refusal arms the fork note; a capacity refusal must not (its cure is a summary, not ceremony) */}}
+    if(!reason&&meta.claim==="npc-death"&&!prior){var hasDeath=false,deathHandle="",j;for(j=0;j<ops.length;j++){var sd=ops[j].match(/^\[SCENE_DEATH:([^\]]+)\]/),nd=_w2DeathStatusTag(ops[j]);if(sd){hasDeath=true;deathHandle=sd[1].trim();}if(nd)hasDeath=true;}if(!hasDeath)reason="new npc-death claim carries no death operation";else if(deathHandle&&w2HandleKey(deathHandle)!==w2HandleKey(meta.evidence))reason="death operation names a different scene handle";else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence)&&!_w2CombatFoeMatch(meta.evidence!=="-"?meta.evidence:(deathHandle||meta.subject),text)/* #318: a rostered combat foe the response kills is combat canon — no handle needed */){var _veOv=!!(worldState.sceneRefs&&worldState.sceneRefs.overflow);reason=_veOv?"the scene-evidence overflow latch is armed — identity writes fail closed until a structured summary runs (it recovers capacity), the scene moves (a location or sublocation change), or the death is filed off-screen via [NPC_DEATH_REPORTED:]":"scene evidence does not bind the claimed victim";if(!_veOv&&meta.subject&&meta.subject!=="-")_w2ArmDeathValve(resolveNpcName(meta.subject));/* #194 L3: an evidence-lack refusal arms the fork note; a capacity refusal must not (its cure is a summary, not ceremony) */}}
     if(!reason&&meta.claim==="quest-outcome"&&!_w2QuestExists(meta.quest))reason="quest outcome names no active accepted quest";
     if(!reason&&!prior&&meta.claim==="npc-death"&&meta.quest!=="-"&&!_w2QuestExists(meta.quest))reason="death outcome names no active accepted quest";
     /* #175: the "operation touches an unresolved identity conflict" refusal is DELETED. It blocked
@@ -1639,6 +1641,25 @@ function validateSummaryExtract(extracted,table){if(typeof w6ValidateSummary==="
 // #299: does the combat record already hold this death? Matches the ring by name containment both
 // ways (the summary says "the Bone Warden", the tracker said "Bone Warden"). A hit is combat canon —
 // the validator accepts it and RETIRES the ring entry (one citation per corpse).
+// #318 (Iron Meridian t17, the Tag-Shrike): the GM enclosed a COMBAT kill in a canon envelope — the
+// prompt rule says every death is a transaction, and the boss was a rolled foe, never an NPC and never
+// a scene handle, so the evidence gate refused it ("does not bind the claimed victim"), the toast said
+// the GM killed someone who was never there, and on commit the executor would have minted an identity
+// conflict for a corpse the dice made. A rostered foe IS the scene's own evidence. This PEEK (the ring
+// entry stays for the summary that cites it) answers for BOTH the gate and the executor — they must
+// agree about what a handle is — and says the foe is dead when: it sits on the combatSlain ring; or it
+// is in the open tracker at 0 HP; or the response itself kills it ([ENEMY_SLAIN:] naming it, or a
+// [COMBAT_END:victory] that will). A foe still standing with no kill in the response refuses as before.
+function _w2CombatFoeMatch(name,text){
+  if(!worldState||!name||name==="-")return null;var k=w2HandleKey(name),i,n;
+  function same(a){var ka=w2HandleKey(a);return !!ka&&(ka===k||(typeof nameContains==="function"&&(nameContains(k,ka)||nameContains(ka,k))));}
+  var ring=worldState.combatSlain||[];for(i=ring.length-1;i>=0;i--){n=ring[i]&&ring[i].name;if(n&&same(n))return String(n);}
+  var foes=(worldState.combat&&worldState.combat.foes)||[],t=String(text||""),slain=t.match(/\[ENEMY_SLAIN:([^\]]+)\]/g)||[],victory=/\[COMBAT_END:victory\]/i.test(t);
+  for(i=0;i<foes.length;i++){n=foes[i]&&foes[i].name;if(!n||!same(n))continue;
+    if(foes[i].hp<=0||victory)return String(n);
+    var j;for(j=0;j<slain.length;j++){var sm=slain[j].match(/\[ENEMY_SLAIN:([^\]]+)\]/);if(sm&&same(sm[1].trim()))return String(n);}}
+  return null;
+}
 function _w2CombatSlainMatch(name){
   var ring=worldState&&worldState.combatSlain;if(!ring||!ring.length||!name)return null;
   var i;for(i=ring.length-1;i>=0;i--){var n=ring[i].name;if(!n)continue;
