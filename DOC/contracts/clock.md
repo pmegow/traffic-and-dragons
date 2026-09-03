@@ -1,0 +1,13 @@
+# The campaign clock
+
+**Read this when** you touch clock.js, TIME/TIME_ADVANCE/TIME_CHECK handling, schedules or phase reconciliation.
+
+Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version stamps and history links inside are the record as written — the contract lines are current unless a newer commit says otherwise.
+
+## Files
+
+### clock.js
+
+Status: ✅ Active (#73)
+
+The CAMPAIGN CLOCK — ONE monotonic scalar `worldState.clock.min`; the day/hour/minute view is DERIVED, never stored. The GM does ZERO arithmetic: it emits duration estimates (`[TIME_ADVANCE:2h]`), the engine does every add and RECOMPUTES every countdown from the anchor (a number the GM never re-states cannot drift). Schedule store (`scheduleAdd`/`scheduleDue`) + `buildClockBlock()` prompt injection; per-response advance cap `CLOCK_MAX_RESPONSE_ADVANCE`. Full spec: DOC/Research/DOC_clock.html. **#158 (v1.584): the phase-mismatch detector** — `clockPhaseAssertion` recognizes a high-confidence current-phase assertion in committed CLEAN prose (the full accept/reject-context grammar lives in clock.js), `clockPhaseBandDist` compares against the post-applyMuts clock by BAND distance (a `[TIME:morning]` tag under dusk narration is a CONTRADICTION and still alerts), ≥`PHASE_MISMATCH_MIN`(240m) arms `worldState.phaseMismatch` → `buildPhaseMismatchNudge` (one-shot GM-decides; NEVER auto-advances). Seams: `commitGmTurn` post-applyMuts + `rerollLast` (rerolls apply NO tags — nudge-only), both contract-pinned; enable gate = the 328-turn t1593 precision audit (`dev/clock-phase-audit.js`); sabotage `dev/sabotage-phase.js` 10/10. **#216 (v1.700): `[TIME_CHECK:]`** — the recognizer's structural blind spot (t2175: nightfall as pure imagery at 11:57 AM) is closed UPSTREAM: the GM declares the opening phase as a structured tag, `clockCheckDeclared` band-compares deterministically and arms the same #158 record; READ-ONLY by contract (never moves the clock — that would be assertion-teleportation), judged pre-advance. **#217 (v1.700): schedule near-dup dedupe** — `scheduleAdd` folds re-phrased deadlines via the shared `feNearDup` fingerprint (the #29① tooth fileFutureEvent always had; last-write-wins like exact-match) and `scheduleDedupSweep` (migration) collapses pre-existing twins keeping the freshest-born, pre-images archived to `clock.repairs` (the #146 rule guards the scalar/anchors; this removes rows, reversibly). **#142 (v1.563): reconcile is skip-and-demand across DAWN** — a `[TIME:]` top-up whose declared phase already passed this engine-day AND >`RECONCILE_SKIP_MIN`(6h) is presumed a mislabel: text kept, roll skipped, `buildReconcileSkipNudge` demands [REST:long]/[TIME_ADVANCE:Nd]/a corrected [TIME:]. Honest same-day skips reconcile as before

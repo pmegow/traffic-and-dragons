@@ -21,11 +21,11 @@ Snapshot age (Fly snapshots are daily, 5-day retention → up to ~24h server-sid
 | Public URL | `https://traffic-and-dragons-server.fly.dev` |
 | Region | `ord` (Chicago) |
 | Volume name | `tnd_data` (mounted by `fly.toml`) |
-| DB | SQLite on the volume (Turso/libSQL) |
+| DB | SQLite on the volume (better-sqlite3, WAL; schema versioned by `PRAGMA user_version` — #313) |
 | Deploy cmd | `flyctl deploy --ha=false` from `traffic-and-dragons-server/` |
 | Health check | `GET /health` — 200 + a real SQLite read (a corrupt/missing volume fails it) |
 
-The server is a **separate, UNtracked repo** (no git) — deploy by `flyctl`, never `git push`.
+The server is its own git repo — `github.com/pmegow/traffic-and-dragons-server` (private), checked out at `C:\Users\hannu\Projects\traffic-and-dragons-server`. Deploy by `flyctl deploy --ha=false`; `git push` keeps the remote and the CI batteries current but deploys nothing.
 
 ---
 

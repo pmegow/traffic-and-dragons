@@ -19,7 +19,7 @@ case "$ci_name|$ci_email" in
     echo "Restore it:  git config user.name pmegow ; git config user.email pmegow@gmail.com" >&2
     exit 1;;
 esac
-node "$(git rev-parse --show-toplevel)/dev/lint-todo.js" --git-aware --staged || {
+node "$(git rev-parse --show-toplevel)/dev/lint-todo.js" --git-aware --staged --cap || {
   echo "" >&2
   echo "Commit blocked: TODO.md integrity failed — table shape or moved-row bytes differ from HEAD (findings above)." >&2
   exit 1

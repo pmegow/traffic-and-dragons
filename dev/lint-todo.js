@@ -42,6 +42,19 @@ function shapeErrors(text) {
   return errs;
 }
 
+// #310: a TODO row is a pointer, not a record — over TODO_ROW_MAX bytes the record belongs in
+// DOC/todos_completed (or audits/) and the row keeps title + TLDR + verdict + link (the #22/#41 precedent).
+var TODO_ROW_MAX = 6144;
+function rowSizeErrors(text, max) {
+  var lim = max || TODO_ROW_MAX, errs = [], lines = text.split("\n"), i;
+  for (i = 0; i < lines.length; i++) {
+    var m = /^\|\s*(\d+)\s*\|/.exec(lines[i]);
+    if (!m) continue;
+    var bytes = Buffer.byteLength(lines[i], "utf8");
+    if (bytes > lim) errs.push("row #" + m[1] + " (line " + (i + 1) + ") is " + bytes + " bytes — over the " + lim + "-byte cap; move the record to DOC/todos_completed and keep title + TLDR + verdict + link");
+  }
+  return errs;
+}
 function headingKey(stack) {
   var out = [];
   for (var i = 1; i < stack.length; i++) if (stack[i]) out.push(stack[i]);
@@ -173,11 +186,12 @@ function readGit(spec) {
 }
 
 function parseArgs(argv) {
-  var opts = { gitAware: true, staged: false, file: DEFAULT_FILE, headFile: "" };
+  var opts = { gitAware: true, staged: false, file: DEFAULT_FILE, headFile: "", cap: false };
   for (var i = 0; i < argv.length; i++) {
     if (argv[i] === "--git-aware") opts.gitAware = true;
     else if (argv[i] === "--shape-only") opts.gitAware = false;
     else if (argv[i] === "--staged") opts.staged = true;
+    else if (argv[i] === "--cap") opts.cap = true; /* #310: enforce TODO_ROW_MAX (the hook passes it; fixture-driven suites do not) */
     else if (argv[i] === "--file" && argv[i + 1]) opts.file = path.resolve(argv[++i]);
     else if (argv[i] === "--head-file" && argv[i + 1]) opts.headFile = path.resolve(argv[++i]);
     else throw new Error("unknown or incomplete argument: " + argv[i]);
@@ -209,6 +223,13 @@ function main() {
     process.exit(1);
   }
 
+  var sizeErrs = opts.cap ? rowSizeErrors(candidateText) : [];
+  if (sizeErrs.length) {
+    console.error("TODO.md ROW SIZE CAP FAILED (" + sizeErrs.length + " row" + (sizeErrs.length > 1 ? "s" : "") + "):");
+    for (var r = 0; r < sizeErrs.length; r++) console.error("  ✗ " + sizeErrs[r]);
+    process.exit(1);
+  }
+
   var moves = { errors: [], reordered: 0, added: 0, deleted: 0 };
   if (opts.gitAware) moves = movedRowErrors(headText, candidateText);
   if (moves.errors.length) {
@@ -224,4 +245,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { shapeErrors: shapeErrors, parseTables: parseTables, movedRowErrors: movedRowErrors, differenceSummary: differenceSummary };
+module.exports = { rowSizeErrors: rowSizeErrors, TODO_ROW_MAX: TODO_ROW_MAX, shapeErrors: shapeErrors, parseTables: parseTables, movedRowErrors: movedRowErrors, differenceSummary: differenceSummary };
