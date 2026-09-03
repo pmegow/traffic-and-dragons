@@ -15,6 +15,7 @@ var SUITES = [
   "dev/tests-234-stt-upload-generation.js",
   "dev/tests-287-stt-autosend.js",
   "dev/tests-221-rename-capability.js",
+  "dev/tests-306-harness-picker.js",
   "dev/tests-250-browser-io.js",
   "dev/tests-dedup-a.js",
   "dev/tests-160-portrait-builder.js",

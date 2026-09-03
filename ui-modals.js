@@ -697,7 +697,14 @@ var BUG_SHOT_PLACEHOLDER="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEA
 // (CORS-blocked fal.media scene renders, 404s, dead hosts) — is absorbed by imagePlaceholder in
 // the toSvg options: the lib swaps failed fetches for the placeholder instead of breaking.
 function _bugShotFilter(node){
-  return !(node&&node.tagName==="IMG"&&!node.getAttribute("src"));
+  if(!node||node.tagName!=="IMG")return true;
+  var src=node.getAttribute("src");
+  if(!src)return false;
+  /* #314: the file's own rule — "no portrait image data" — enforced at the capture. Portraits are the
+     data: URLs on the sheet/HUD/party panels (scene renders are remote fal URLs and stay). */
+  if(/^data:image/i.test(src))return false;
+  if(/portrait|avatar/i.test(node.id||"")||/portrait|avatar/i.test(node.className||""))return false;
+  return true;
 }
 function _bugCapture(cb){
   _loadHtml2Image(function(lib){
@@ -741,6 +748,8 @@ function _bugReportModal(shot){
       ?"<img src='"+shot+"' alt='screenshot' style='display:block;max-width:100%;max-height:120px;border:1px solid var(--brd);border-radius:6px;margin:0 auto 10px;'/>"
       :"<div style='font-size:11px;color:var(--t2);margin-bottom:10px;'>(screenshot unavailable — the report will be text-only)</div>")
     +"<textarea id='bug-text' rows='5' placeholder='What happened? A nonsense suggestion, a hallucination, drift, a broken screen — describe what you saw and what you expected.' style='width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:1px solid var(--brd2);border-radius:6px;color:var(--t0);font-size:13px;font-family:var(--font);resize:vertical;'></textarea>"
+    +(shot?"<label style='display:flex;gap:6px;align-items:center;font-size:11px;color:var(--t1);margin:0 0 8px;cursor:pointer;'><input type='checkbox' id='bug-shot-ok' checked style='margin:0;'/> Include the screenshot</label>":"")
+    +"<div style='font-size:10px;color:var(--t2);margin-top:8px;line-height:1.5;border:1px solid var(--brd);border-radius:6px;padding:6px 8px;'><b>What this sends, and to whom.</b> This report goes to the operator's inbox, by way of a Google Apps Script the operator runs. It contains what you type here, the last ten turns of your story, one raw Game Master response, your character and campaign names, the names of characters in your world, the combat tracker, your browser's user agent, this page's address, and the screenshot above (if you keep it — portraits are stripped). Nothing else: no keys, no tokens. Separately, when you play signed in, every prompt the game sends to the model passes through the operator's server, so the operator can read your prompts to run the game.</div>"/* #314: copy, not code — the disclosure lives here, where the data leaves */
     +"<div style='font-size:10px;color:var(--t2);margin-top:8px;line-height:1.5;'>Attached automatically: the screenshot above, your last 5 exchanges, the suggested actions on screen, and a game-state summary. Mentioning quests, rendering, the model, voice, combat, memory, or sync attaches those settings too. Never sent: API keys or tokens.</div>"
     +"<div id='bug-err' style='display:none;color:var(--hp);font-size:12px;margin-top:8px;'></div>"
     +"<div style='display:flex;gap:8px;justify-content:flex-end;margin-top:12px;'>"
@@ -755,7 +764,8 @@ function _bugReportModal(shot){
     if(!txt){ta.focus();ta.style.borderColor="var(--acc)";return;}
     var btn=document.getElementById("bug-send");
     btn.disabled=true;btn.style.opacity="0.6";btn.textContent="Sending…";
-    sendUserReport(txt,shot,function(ok,err,body){
+    var _shotOk=document.getElementById("bug-shot-ok");
+    sendUserReport(txt,(shot&&(!_shotOk||_shotOk.checked))?shot:null,function(ok,err,body){/* #314: the checkbox is honoured at the send */
       if(ok){
         modal.remove();
         // GAS reports per-half store failures in its response body — a report that "sent" but

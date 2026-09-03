@@ -72,11 +72,35 @@
 // - This file is intentionally NOT referenced by index.html — it's dev-only, pasted into the
 //   console / preview_eval on demand, so it never ships to players or affects APP_VERSION/CACHE.
 // - Actions are picked randomly from the live `.qa` buttons each turn (same as a real player
-//   tapping a suggestion), not scripted — this is what makes it a fair drift test.
+//   tapping a suggestion) UNDER the #306 scripted layer (__ptChoose: the death walk, the downed
+//   choice, rest under a third HP, use a carried consumable when hurt, accept the newest offer
+//   every 8th turn, never repeat the previous action) — the random pick remains the drift test.
 // - Re-running this on an OLD save (pre-v1.137, no skeleton dnaHints) vs. a FRESH campaign is a
 //   good A/B: the fresh campaign is the best case for Remedy A (see DOC/ archived handoffs).
 
-(function(){
+// #306 — the SCRIPTED LAYER over the random picker. The uniform picker never accepted a quest, never
+// rested, never used an item and re-stabbed corpses across 20 corpora (review C10): it measured the
+// floor and could not have seen #300–#303 broken. This layer is PURE and node-testable: given the
+// live buttons and a small state digest it returns the action text and a kind label. Priorities:
+// the death walk (once per run — always BACK, onward would end the run), the downed choice
+// (struggle first, then yield — that IS how a run exercises the escort), rest under a third HP,
+// use a carried canon consumable when hurt, accept the newest offered quest every 8th turn, and
+// never repeat the previous action. Everything else stays the random pick — that is the drift test.
+function __ptChoose(acts, st, prev){
+  acts=acts||[];st=st||{};prev=prev||{};
+  var prevText=prev.text||"",prevKind=prev.kind||"";
+  if(st.deathStage==="choose")return {text:"Walk back to camp with Death",kind:"death-back"};
+  if(st.deathStage)return {text:"Why did the bell ring twice?",kind:"death-question"};
+  if(st.downed)return prevKind==="downed-struggle"?{text:"Yield — let go and trust whoever finds you",kind:"downed-yield"}:{text:"Struggle — fight for consciousness, crawl, cling to life",kind:"downed-struggle"};
+  if(!st.combat&&typeof st.hp==="number"&&typeof st.maxHp==="number"&&st.hp<st.maxHp/3&&prevKind!=="rest")return {text:"I make camp and rest until I am recovered.",kind:"rest"};
+  if(st.consumables&&st.consumables.length&&typeof st.hp==="number"&&st.hp<st.maxHp&&prevKind!=="use")return {text:"I use my "+st.consumables[0]+".",kind:"use"};
+  if(st.offered&&st.offered.length&&st.turn>0&&st.turn%8===0&&prevKind!=="accept")return {text:"I accept the offer: "+st.offered[st.offered.length-1]+".",kind:"accept"};
+  var pool=acts.filter(function(a){return a&&a!==prevText;});
+  if(!pool.length)return {text:acts[0]||"I take stock of my surroundings and press on.",kind:"random"};
+  return {text:pool[Math.floor(Math.random()*pool.length)],kind:"random"};
+}
+if(typeof module!=="undefined"&&module.exports)module.exports={choose:__ptChoose};
+if(typeof window!=="undefined")(function(){
   var PT_KEY="tnd_pt_corpus_v1";
   // DURABILITY (a test run must ALWAYS be auditable — its evidence must survive the tab). The corpus
   // is persisted to localStorage after every turn AND every GM response, and recovered on install, so a
@@ -97,13 +121,20 @@
     window.logTranscript=function(role,text,raw){ try{ if(role==="gm"){ window.__pt.raw.push({turn:(typeof worldState!=="undefined"&&worldState)?worldState.turn:null, raw:String(raw||text)}); persist(); } }catch(e){} return _lt.apply(this,arguments); };
   }
   function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+  // #306: the state digest the scripted layer reads, and the previous pick (kind + text).
+  window.__ptChoose=__ptChoose;window.__ptPrev={text:"",kind:""};
+  function ptState(){var w=(typeof worldState!=="undefined")?worldState:null;if(!w||!w.character)return {};var c=w.character,cons=[],i;
+    if(typeof itemLookup==="function")for(i=0;i<(c.inventory||[]).length;i++){var e=itemLookup(c.inventory[i]);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A")cons.push((typeof _invBase==="function")?_invBase(c.inventory[i]):c.inventory[i]);}
+    var off=[];for(i=0;i<(w.questLog||[]).length;i++)if(w.questLog[i]&&w.questLog[i].status==="offered")off.push(w.questLog[i].title);
+    return {hp:c.hp,maxHp:c.maxHp,combat:!!w.combat,downed:!!w.downed,deathStage:(w.deathScene&&w.deathScene.stage)||null,consumables:cons,offered:off,turn:w.turn||0};}
+  function ptPick(acts){var ch=__ptChoose(acts,ptState(),window.__ptPrev);window.__ptPrev=ch;var t=ch.text;if(ch.kind==="random"&&typeof toFirstPerson==="function")t=toFirstPerson(t);return {text:t,kind:ch.kind};}
   function isBusy(){return typeof busy!=="undefined" && busy;}
   async function waitIdle(maxMs){var start=Date.now();while(isBusy() && Date.now()-start<maxMs) await sleep(300);}
   async function waitForActions(maxMs){
     var start=Date.now();
     while(Date.now()-start<maxMs){
       var btns=document.querySelectorAll("#story-narrative .qa[data-action]");
-      if(btns.length>=1 && !btns[btns.length-1].disabled) return Array.prototype.map.call(btns,function(b){return b.getAttribute("data-action");}).slice(-3);
+      if(btns.length>=1 && !btns[btns.length-1].disabled) return Array.prototype.map.call(btns,function(b){return b.getAttribute("data-action");}).slice(-4);/* #305: the engine's fourth button rides along */
       await sleep(300);
     }
     return [];
@@ -121,12 +152,12 @@
         await waitIdle(90000);
         var before = worldState.turn;
         var acts = await waitForActions(30000);
-        var actionText = acts.length ? ((typeof toFirstPerson==='function') ? toFirstPerson(acts[Math.floor(Math.random()*acts.length)]) : acts[0]) : 'I take stock of my surroundings and press on.';
+        var _pick = ptPick(acts); var actionText = _pick.text;/* #306: the scripted layer over the random pick */
         await sendAction(actionText);
         await waitIdle(90000);
         if(worldState.turn > before){
           var narEls = document.querySelectorAll('#story-narrative .msg.narrator');
-          window.__pt.log.push({ turn: worldState.turn, action: actionText, narration: narEls.length?narEls[narEls.length-1].textContent:'', hp: worldState.character.hp, maxHp: worldState.character.maxHp, gold: worldState.character.gold, xp: worldState.character.xp, combat: worldState.combat?{engaged:worldState.combat.engaged||null,foes:(worldState.combat.foes||[]).map(function(f){return {name:f.name,hp:f.hp,down:f.down||null};})}:null, sessionTokensApprox:(typeof sessionTokens==='function')?sessionTokens():null, t:Date.now() });
+          window.__pt.log.push({ turn: worldState.turn, action: actionText, kind: _pick.kind, narration: narEls.length?narEls[narEls.length-1].textContent:'', hp: worldState.character.hp, maxHp: worldState.character.maxHp, gold: worldState.character.gold, xp: worldState.character.xp, combat: worldState.combat?{engaged:worldState.combat.engaged||null,foes:(worldState.combat.foes||[]).map(function(f){return {name:f.name,hp:f.hp,down:f.down||null};})}:null, sessionTokensApprox:(typeof sessionTokens==='function')?sessionTokens():null, t:Date.now() });
           persist();
         } else {
           window.__pt.errors.push({turn: worldState.turn, message: 'turn did not advance — backing off'});
@@ -142,13 +173,7 @@
       try{
         await waitIdle(90000);
         var acts = await waitForActions(30000);
-        var actionText;
-        if(acts.length){
-          var pick = acts[Math.floor(Math.random()*acts.length)];
-          actionText = (typeof toFirstPerson==="function") ? toFirstPerson(pick) : pick;
-        } else {
-          actionText = "I take stock of my surroundings and press on.";
-        }
+        var _pick2 = ptPick(acts); var actionText = _pick2.text;/* #306: the scripted layer over the random pick */
         await sendAction(actionText);
         await waitIdle(90000);
         var narEls = document.querySelectorAll("#story-narrative .msg.narrator");
