@@ -108,6 +108,8 @@ var NOTE_LOG_CAP=40;
 // transcript marked db and RAG never serves it. RESPAWNS_PER_CAMPAIGN deaths are survivable; the next
 // ends the campaign (#301 writes its denouement).
 var SPELL_CANON_WINDOW=30;  // #311 ②: canonical spell rules inject only for spells cast (tag-log labels) or named (clean transcript) within this many turns; a campaign younger than the window injects all (measured on t2097: player+companion canon 8.6k → 1.8k chars)
+var MONTAGE_AFTER_TURNS=6;  // #308: this many committed turns at one place with no fight and no move → the fourth button offers a MONTAGE (one paragraph, hours advance, land at the next decision)
+var PREVIOUSLY_AFTER_MS=2*60*60*1000; // #308: Car Mode speaks a "previously on" recap when the last turn is older than this
 var WILDCARD_EVERY=7;      // #305: every Nth turn the fourth button is the wildcard ("Do something reckless") and the GM is told to reward it
 var DOWNED_MAX_TURNS=3;
 var RESPAWNS_PER_CAMPAIGN=3;
@@ -327,7 +329,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.779";
+var APP_VERSION="v1.780";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

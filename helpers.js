@@ -828,6 +828,9 @@ function parseCarCommand(text, optionCount) {
   // starts with "repeat", and the more specific phrase has to win
   if (/^(?:repeat|read|say|play)\s+(?:it\s+|that\s+|the\s+)?(?:everything|all|scene|story|narration|again from the start)$/.test(t)
       || /^(?:repeat|read)\s+everything$/.test(t) || /^everything again$/.test(t)) return { kind: "repeatAll" };
+  /* #308 Car Mode bookends: "wrap up" lands the scene at a hook within two turns; "previously" speaks the recap. */
+  if (/^(?:lets |let us )?(?:wrap(?: it)?(?: up)?|stop here|find a stopping point|stopping point|end (?:it|here) for now)$/.test(t)) return { kind: "wrapUp" };
+  if (/^(?:previously|recap|catch me up|where were we|where was i|what happened(?: last time| before)?|remind me)$/.test(t)) return { kind: "recap" };
   if (/^(?:repeat|again|say again|repeat that|say that again|read again|read that again|one more time)$/.test(t)
       || /^(?:what are )?(?:my )?(?:the )?(?:options|choices)(?: again)?$/.test(t)
       || /^repeat (?:the )?(?:options|choices)$/.test(t)) return { kind: "repeat" };
@@ -1759,4 +1762,13 @@ function quickStartPayloadValid(rec){
   if(!rec.bp||typeof rec.bp!=="object")return "blueprint missing";
   var err=(typeof validateBlueprint==="function")?validateBlueprint(rec.bp):null;
   return err?("blueprint refused: "+err):null;
+}
+
+// #308: the spoken "previously on" — the last chapter summary and where the party stands. Pure.
+function carRecapText(){
+  var ch=(typeof memory!=="undefined"&&memory&&memory.chapters)||[];
+  var where=(typeof worldState!=="undefined"&&worldState&&worldState.world)?(worldState.world.sublocation||worldState.world.location||""):"";
+  if(!ch.length)return "No chapters yet — this is the beginning."+(where?" You are at "+where+".":"");
+  var last=ch[ch.length-1];
+  return "Previously: "+String(last.summary||"").trim()+(where?" You are at "+where+".":"");
 }

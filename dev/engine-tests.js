@@ -477,6 +477,44 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #308 montage turns + Car Mode bookends ───────────────────────────────────
+  t("#308 montageDue: MONTAGE_AFTER_TURNS committed turns with no combat, no move and no fight open → due; any combat/move tag in the window, an open fight, or a downed hero → not due",function(){
+    makeWorld();worldState.turn=40;var i;worldState.tagLog=[];
+    for(i=0;i<MONTAGE_AFTER_TURNS;i++)worldState.tagLog.push({t:40-MONTAGE_AFTER_TURNS+i,tags:["SAY","TIME_ADVANCE","SKILL_SUCCESS"],m:[]});
+    if(!montageDue())return "not due after a quiet stretch";
+    worldState.tagLog[2].tags.push("COMBAT_START");if(montageDue())return "due despite a fight in the window";
+    worldState.tagLog[2].tags=["SAY","LOCATION"];if(montageDue())return "due despite a move in the window";
+    worldState.tagLog[2].tags=["SAY"];worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:1,maxHp:1}]};if(montageDue())return "due mid-fight";worldState.combat=null;
+    worldState.downed={since:39,turns:0};if(montageDue())return "due while downed";delete worldState.downed;
+    worldState.tagLog=worldState.tagLog.slice(1);return montageDue()?"due on a window one short":true;
+  });
+  t("#308 the fourth button offers the montage when due (after rest/use/accept/buy, before the wildcard); sending it arms montagePing and buildMontageNote fires once with the compression contract; registered",function(){
+    makeWorld();worldState.turn=WILDCARD_EVERY;var c=worldState.character;c.hp=c.maxHp;c.inventory=[];c.gold=0;worldState.questLog=[];
+    var i;worldState.tagLog=[];for(i=0;i<MONTAGE_AFTER_TURNS;i++)worldState.tagLog.push({t:worldState.turn-MONTAGE_AFTER_TURNS+i,tags:["SAY"],m:[]});
+    var a=engineFourthAction();if(!a||a.kind!=="montage")return "montage should outrank the wildcard: "+JSON.stringify(a);
+    c.hp=1;if(engineFourthAction().kind!=="rest")return "rest must outrank the montage";c.hp=c.maxHp;
+    montageArmIfChosen(a.text);if(!worldState.montagePing)return "not armed";
+    var n=buildMontageNote();
+    if(!/MONTAGE/.test(n)||!/one paragraph/i.test(n)||!/TIME_ADVANCE/.test(n)||!/next (real )?decision/i.test(n)||!/no new/i.test(n))return "note: "+n;
+    if(buildMontageNote()!=="")return "fired twice";
+    montageArmIfChosen("I look around.");if(worldState.montagePing)return "armed on ordinary text";
+    return NOTE_SHAPES.buildMontageNote&&NOTE_LATCH_FIELDS.indexOf("montagePing")>=0?true:"not registered";
+  });
+  t("#308 Car Mode bookends: parseCarCommand hears wrap-up and recap; buildWrapUpNote fires once asking for a hook within two responses; carRecapText speaks the last chapter and the place",function(){
+    var w=parseCarCommand("let's wrap up",3);if(!w||w.kind!=="wrapUp")return "wrap up not heard: "+JSON.stringify(w);
+    if(!parseCarCommand("wrap it up",3)||parseCarCommand("wrap it up",3).kind!=="wrapUp")return "wrap it up";
+    var r=parseCarCommand("what happened last time",3);if(!r||r.kind!=="recap")return "recap not heard: "+JSON.stringify(r);
+    if(!parseCarCommand("previously",3)||parseCarCommand("previously",3).kind!=="recap")return "previously";
+    if(parseCarCommand("second",3).kind!=="pick"&&parseCarCommand("second",3).n!==2)return "ordinary picks broke";
+    makeWorld();worldState.wrapUpPing={turn:worldState.turn};
+    var n=buildWrapUpNote();if(!/WRAP/i.test(n)||!/two responses/i.test(n)||!/stopping point|hook/i.test(n))return "wrap note: "+n;
+    if(buildWrapUpNote()!=="")return "fired twice";
+    if(!NOTE_SHAPES.buildWrapUpNote||NOTE_LATCH_FIELDS.indexOf("wrapUpPing")<0)return "not registered";
+    memory.chapters=[{turn:10,summary:"They rang the bell."},{turn:20,summary:"The harbour burned and the party fled north."}];worldState.world.location="Ashfen";
+    var txt=carRecapText();
+    if(!/Previously/.test(txt)||!/harbour burned/.test(txt)||/rang the bell/.test(txt)||!/Ashfen/.test(txt))return "recap: "+txt;
+    memory.chapters=[];return /no chapters|beginning/i.test(carRecapText())?true:"empty recap: "+carRecapText();
+  });
   // ── #307 the first five minutes ──────────────────────────────────────────────
   t("#307 quick start: quickStartPayloadValid refuses stale, headless, classless or blueprint-less payloads and accepts a real hero + a valid blueprint",function(){
     var bp={format:"tnd-blueprint-v1",name:"Taster",tone:"swords",premise:"A masquerade.",acts:[]};

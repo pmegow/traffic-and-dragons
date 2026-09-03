@@ -169,9 +169,21 @@ function engineFourthAction(){
   if(hurtOrAfflicted&&typeof itemLookup==="function"){for(i=0;i<(c.inventory||[]).length;i++){var it=c.inventory[i],e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A")return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(it):it)+"."};}}
   var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
   if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof nodeWaresLive==="function")?nodeWaresLive(node):[];if(live.length)return {kind:"buy",text:"Buy the "+live[0].item+" ("+live[0].price+")."};}
+  if(montageDue())return {kind:"montage",text:"Skip ahead — a montage to the next real decision."};/* #308 */
   if(typeof WILDCARD_EVERY==="number"&&WILDCARD_EVERY>0&&worldState.turn>0&&worldState.turn%WILDCARD_EVERY===0)return {kind:"wild",text:"Do something reckless."};
   return null;
 }
+// #308 ①: is a MONTAGE due? MONTAGE_AFTER_TURNS committed turns (the tag log) with no combat tag, no
+// move tag, no open fight, no downed hero, no escort — the bellows-pumping stretch the review measured
+// at twenty full-price turns. Pure over the tag log.
+function montageDue(){
+  if(!worldState||worldState.combat||worldState.downed||worldState.deathScene||typeof MONTAGE_AFTER_TURNS!=="number")return false;
+  var tl=worldState.tagLog||[];if(tl.length<MONTAGE_AFTER_TURNS)return false;
+  var i,j,bad=["COMBAT_START","ENEMY_HP","ENEMY_SLAIN","COMBAT_END","COMBAT_ROUND","LOCATION","SUBLOCATION","SUBLOCATION_LEAVE","REST","TIME_ADVANCE_LARGE"];
+  for(i=tl.length-MONTAGE_AFTER_TURNS;i<tl.length;i++){var tags=(tl[i]&&tl[i].tags)||[];for(j=0;j<tags.length;j++)if(bad.indexOf(tags[j])>=0)return false;}
+  return true;
+}
+function montageArmIfChosen(text){if(!worldState)return;if(/\bmontage\b|skip ahead/i.test(String(text||"")))worldState.montagePing={turn:worldState.turn};}
 function recklessArmIfChosen(text){if(!worldState)return;if(/do something reckless/i.test(String(text||"")))worldState.recklessPing={turn:worldState.turn};}
 // The last 3 player/GM exchanges (#304 B; was 5) as labeled pairs (the ragRetrieve excerpt convention), oldest
 // first, GM halves tag-stripped, under a ~6k char budget — five lavish prose turns can't balloon
@@ -1812,6 +1824,7 @@ function commitGmTurn(resp,opts){
     if(_imHit)worldState.itemMisPing={wrong:_imHit.wrong,item:_imHit.item,owner:_imHit.owner,turn:worldState.turn};
   }
   logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre),{bookkeeping:_bookkeeping,refusal:_refusal});
+  worldState.lastTurnAt=Date.now();/* #308: Car Mode's "previously on" keys off how long ago the last turn landed */
   var _slUser={role:"user",content:o.userMsg},_slGm={role:"assistant",content:resp};
   if(_bookkeeping){_slUser.bk=1;_slGm.bk=1;}
   sessionLog.push(_slUser,_slGm);
@@ -1900,6 +1913,7 @@ async function sendAction(override,opts){
   }
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
   if(typeof recklessArmIfChosen==="function"&&!(opts&&opts.silent))recklessArmIfChosen(txt);/* #305: the wildcard's reward note */
+  if(typeof montageArmIfChosen==="function"&&!(opts&&opts.silent))montageArmIfChosen(txt);/* #308: the montage contract */
   // B10/v1.421 — repair the audio context HERE, in the send gesture. iOS interrupts the context
   // between turns, when nothing is watching (_armCtxWatch disarms itself while !_playing), so the
   // next read starts on a dead context and loses its first line to the native voice. This tap is a

@@ -145,6 +145,9 @@ function carVoiceCommand(text) {
   var inp = document.getElementById("action-input");
   if (inp) inp.value = "";
   if (cmd.kind === "repeatAll") { _carDoReplay(); return true; }
+  /* #308 bookends */
+  if (cmd.kind === "wrapUp") { if (worldState) worldState.wrapUpPing = { turn: worldState.turn }; carNotify("info", "Wrapping up — the story will find a stopping point."); if (typeof TTS !== "undefined" && typeof TTS.speak === "function") TTS.speak("Wrapping up. Say your next action and the story will find a stopping point."); return true; }
+  if (cmd.kind === "recap") { _carPreviously(true); return true; }
   if (cmd.kind === "repeat") {
     if (!_carReadOptions()) { carNotify("warn", CAR_STR.noOptionsYet); }
     return true;
@@ -183,6 +186,15 @@ function _carReleaseWakeLock() {
   }
 }
 
+// #308 ②: "previously on" — spoken on resume when the last turn is older than PREVIOUSLY_AFTER_MS, and on
+// demand ("previously", "catch me up"). The text is pure (carRecapText, helpers.js): the last chapter + the place.
+function _carPreviously(force) {
+  if (!worldState || typeof carRecapText !== "function") return;
+  var age = Date.now() - (worldState.lastTurnAt || 0);
+  if (!force && (!worldState.lastTurnAt || age < PREVIOUSLY_AFTER_MS)) return;
+  if (typeof TTS !== "undefined" && typeof TTS.speak === "function") TTS.speak(carRecapText());
+  _carSetStatus("Previously…");
+}
 function showCarMode() {
   if (!worldState || !worldState.character) { showToast("Start a game first."); return; }
   var ov = document.getElementById("car-overlay");
@@ -198,6 +210,7 @@ function showCarMode() {
   _carAcquireWakeLock(); // rank 5
   try { store.set("tnd_carmode_v1", JSON.stringify({on:1,t:Date.now()})); } catch (e) {} // rank 13 — reload survival, expired by ui-boot.js's restore check
   if (typeof TTS !== "undefined") TTS.setOnDone(function() { if (carMode) _carAutoMic(); });
+  _carPreviously(false);/* #308: a driver resuming after hours hears where the story stands before anything else */
   // #2 pre-flight fix (v1.309): follow the REAL listen state instead of guessing it once
   // before STT.start() resolved — the overlay used to freeze on "Listening…" forever after
   // any recognition end/error/timeout (stt.js only knew #mic-btn). Status writes here are
