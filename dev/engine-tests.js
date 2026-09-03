@@ -477,6 +477,46 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #305 the fourth, engine-authored button ──────────────────────────────────
+  t("#305 engineFourthAction: rest when HP is under half (never in combat), else use a carried consumable with a defined effect, else accept an offered quest, else buy when a want is on the table, else the periodic wildcard, else nothing",function(){
+    makeWorld();var c=worldState.character;c.hp=14;c.maxHp=14;c.inventory=[];c.gold=0;worldState.questLog=[];worldState.turn=1;
+    if(engineFourthAction()!==null)return "idle should be null";
+    c.hp=5;var a=engineFourthAction();if(!a||!/rest/i.test(a.text)||a.kind!=="rest")return "rest: "+JSON.stringify(a);
+    worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:2,maxHp:2}]};if(engineFourthAction()&&engineFourthAction().kind==="rest")return "rest offered in combat";worldState.combat=null;
+    c.hp=14;c.inventory=["Healing potion","Rope"];c.hp=9;a=engineFourthAction();if(!a||a.kind!=="use"||!/Healing potion/.test(a.text))return "use: "+JSON.stringify(a);
+    c.hp=14;a=engineFourthAction();if(a&&a.kind==="use")return "a consumable at full health is not the move";
+    c.inventory=[];worldState.questLog=[{title:"The Bell Below",status:"offered",desc:"",objectives:[],started:1}];a=engineFourthAction();if(!a||a.kind!=="accept"||!/Bell Below/.test(a.text))return "accept: "+JSON.stringify(a);
+    worldState.questLog=[];c.gold=30;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",wares:[{item:"Healing salve",price:"8 gp",note:"",t:1,min:(typeof clockNow==="function")?clockNow():0}]};
+    a=engineFourthAction();if(!a||a.kind!=="buy"||!/Healing salve/.test(a.text))return "buy: "+JSON.stringify(a);
+    c.gold=0;a=engineFourthAction();if(a&&a.kind==="buy")return "cannot buy with no coin";
+    memory.map.nodes["Sandpoint"].wares=[];worldState.turn=WILDCARD_EVERY;a=engineFourthAction();if(!a||a.kind!=="wild"||!/reckless/i.test(a.text))return "wildcard: "+JSON.stringify(a);
+    worldState.turn=WILDCARD_EVERY+1;return engineFourthAction()===null?true:"wildcard off-cycle";
+  });
+  t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
+    makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
+    recklessArmIfChosen(a.text);
+    if(!worldState.recklessPing)return "not armed";
+    var n=buildRecklessNote();if(!/reckless/i.test(n)||!/reward|spectacular/i.test(n))return "note: "+n;
+    if(buildRecklessNote()!=="")return "fired twice";
+    recklessArmIfChosen("I look around.");if(worldState.recklessPing)return "armed on ordinary text";
+    return NOTE_SHAPES.buildRecklessNote&&NOTE_LATCH_FIELDS.indexOf("recklessPing")>=0?true:"not registered";
+  });
+  t("#305 steering: SUGGESTION_MODE_BLOCK names buying, resting, using a carried item and accepting an offer as legal kinds",function(){
+    var b=SUGGESTION_MODE_BLOCK;
+    return /buy|purchas|for sale/i.test(b)&&/rest/i.test(b)&&/carried item|use an item|using a/i.test(b)&&/accept/i.test(b)?true:"steering line missing";
+  });
+  t("#305 flavoured fallbacks: the gate's replacements read from state — wounded → bind wounds, coin → count it, a market → look over the wares, a companion → check on them by name",function(){
+    makeWorld();worldState.world.location="Sandpoint";var c=worldState.character;c.hp=4;c.maxHp=14;c.gold=12;
+    worldState.npcs.push({name:"Morwen",status:"alive",rel:"ally",partyMember:true,charSheet:{name:"Morwen",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{},abilities:[],spells:[],inventory:[],conditions:[]}});
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",wares:[{item:"Healing salve",price:"8 gp",note:"",t:1,min:(typeof clockNow==="function")?clockNow():0}]};
+    var man=buildSceneManifest(),got=[],i;
+    for(i=0;i<6;i++){var f=suggestionFallback(man,got);got.push(f);}
+    var all=got.join(" | ");
+    if(!/Bind your wounds/i.test(all))return "wounded flavour missing: "+all;
+    if(!/Count your coin/i.test(all))return "coin flavour missing: "+all;
+    if(!/for sale|wares/i.test(all))return "market flavour missing: "+all;
+    return /Check on Morwen/.test(all)?true:"companion flavour missing: "+all;
+  });
   // ── #301 Death as a character ────────────────────────────────────────────────
   function escortWorld(){makeWorld();worldState.turn=30;worldState.world.location="Ashfen";worldState.character.hp=14;worldState.character.maxHp=14;
     memory.map.nodes["Ashfen"]={firstVisit:1,visits:2,description:null,parent:null,npcs:[],items:[]};memory.lore=["The bell was cast in Magnimar."];
@@ -2154,11 +2194,30 @@ function runEngineTests(R){
     // chars/4 is a rough floor for token count; below 8500 chars the block risks silently not caching
     return s.length>=8500?true:"stable only "+s.length+" chars (~"+Math.round(s.length/4)+" tok) — under the 2048-token cache minimum";
   });
-  t("anthropic buildBody: object sys → two system blocks, breakpoint on the stable one",function(){
+  t("anthropic buildBody (#304 C): object sys → stable AND volatile blocks each carry a breakpoint (the turn writes the volatile, the suggestion call reads it at 0.1×); an `extra` block rides third, uncached",function(){
     var b=PROVIDERS.anthropic.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V"},100,"claude-sonnet-4-6");
     if(!Array.isArray(b.system)||b.system.length!==2)return "system: "+JSON.stringify(b.system);
     if(b.system[0].text!=="S"||!b.system[0].cache_control||b.system[0].cache_control.type!=="ephemeral")return "stable block wrong";
-    return b.system[1].text==="V"&&!b.system[1].cache_control?true:"volatile block wrong";
+    if(b.system[1].text!=="V"||!b.system[1].cache_control||b.system[1].cache_control.type!=="ephemeral")return "volatile block must carry the second breakpoint";
+    var b3=PROVIDERS.anthropic.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V",extra:"X"},100,"claude-sonnet-5");
+    if(!Array.isArray(b3.system)||b3.system.length!==3)return "three blocks expected: "+JSON.stringify(b3.system);
+    if(b3.system[1].text!=="V"||!b3.system[1].cache_control)return "volatile block changed under extra";
+    if(b3.system[2].text!=="X"||b3.system[2].cache_control)return "the extra block must be uncached and last";
+    return sysJoin({stable:"S",volatile:"V",extra:"X"})==="SVX"&&sysJoin({stable:"S",volatile:"V"})==="SV"?true:"sysJoin does not carry extra";
+  });
+  t("#304 C: the suggestion call reuses the TURN's captured volatile byte-for-byte (the mode block rides in `extra`); with nothing captured it regenerates",function(){
+    makeWorld();worldState.turn=12;lastTurnSysClear();
+    var s0=buildSuggestionSys(null);
+    if(s0.extra===undefined||s0.extra.indexOf("SUGGESTION MODE")<0)return "mode block not in extra";
+    if(s0.volatile.indexOf("SUGGESTION MODE")>=0)return "mode block leaked into the volatile block";
+    var turnSys=buildSysPrompt();lastTurnSysCapture(turnSys);
+    worldState.character.hp=1;/* state moved after the turn — the captured volatile must still win */
+    var s1=buildSuggestionSys(null);
+    if(s1.volatile!==turnSys.volatile)return "captured volatile not reused byte-for-byte";
+    if(s1.stable!==turnSys.stable)return "stable diverged";
+    lastTurnSysClear();
+    var s2=buildSuggestionSys(null);
+    return s2.volatile!==turnSys.volatile?true:"after a clear the volatile should regenerate from live state";
   });
   t("anthropic buildBody: string sys (sysOverride) stays a plain system string",function(){
     var b=PROVIDERS.anthropic.buildBody([],"plain override",100,"m");
@@ -3072,15 +3131,15 @@ function runEngineTests(R){
   t("MP-P3 (D4): suggestion POV — multi-PC appends the sub-turn line to VOLATILE only; stable stays byte-identical (cache); single-player unchanged",function(){
     makeWorld();
     var s0=buildSuggestionSys();
-    if(s0.volatile.indexOf("MULTIPLAYER SUB-TURN")>=0)return "single-player suggestion prompt carries the multiplayer POV line";
+    if((s0.volatile+s0.extra).indexOf("MULTIPLAYER SUB-TURN")>=0)return "single-player suggestion prompt carries the multiplayer POV line";
     worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
     setActivePC("Morwen");
     var s1=buildSuggestionSys();
     if(s1.stable!==s0.stable)return "multi-PC POV perturbed the suggestion STABLE half — cache kill";
-    if(s1.volatile.indexOf("MULTIPLAYER SUB-TURN: suggest actions for Morwen")<0)return "POV line missing for the sub-turn PC";
+    if((s1.volatile+s1.extra).indexOf("MULTIPLAYER SUB-TURN: suggest actions for Morwen")<0)return "POV line missing for the sub-turn PC";
     setActivePC(null);
     var s2=buildSuggestionSys();
-    if(s2.volatile.indexOf("suggest actions for "+worldState.character.name)<0)return "hero sub-turn POV line missing";
+    if((s2.volatile+s2.extra).indexOf("suggest actions for "+worldState.character.name)<0)return "hero sub-turn POV line missing";
     return true;
   });
   t("TODO#22: blueprint rules inject as WRAPPED data, not raw prompt text (+ re-apply dedupes)",function(){
@@ -8370,7 +8429,7 @@ function runEngineTests(R){
     __gateWorld();
     worldState.world.sublocation="Backroom";
     var man=buildSceneManifest();
-    var taken=["Head back toward Lost Coast Road.","Talk things over with Morwen Zethran.","Talk things over with Frizwick.","Rest and take stock of the situation.","Study your surroundings carefully."];
+    var taken=["Head back toward Lost Coast Road.","Talk things over with Morwen Zethran.","Talk things over with Frizwick.","Rest and take stock of the situation.","Study your surroundings carefully.","Check on Morwen Zethran.","Check on Frizwick.","Bind your wounds and rest.","Count your coin and think.","Look over what's for sale here."];/* #305 ③: the flavoured candidates are taken too */
     var fb=suggestionFallback(man,taken);
     if(fb!=="Take a moment to consider your next move.")return "floor not reached: "+fb;
     return validateSuggestion(fb,man)===null?true:"the terminal floor does not validate";
@@ -9032,18 +9091,19 @@ function runEngineTests(R){
     providerModels.anthropic=saved;
     return g.stable===s.stable+ANTHROPIC_HAIKU_REINFORCE?true:"reinforce append not mirrored — the suggestion call's stable prefix would mismatch the main turn's on Haiku";
   });
-  t("buildSuggestionSys: SUGGESTION MODE rides the volatile half only, appended AFTER STYLE",function(){
-    makeWorld();
+  t("buildSuggestionSys: SUGGESTION MODE rides the third `extra` block (#304 C) — the volatile is the main turn's BYTE-FOR-BYTE, and the mode block still lands AFTER STYLE in the flattened text",function(){
+    makeWorld();lastTurnSysClear();
     var s=buildSysPrompt(),g=buildSuggestionSys();
     if(g.stable.indexOf("SUGGESTION MODE")>=0)return "mode block leaked into the stable half";
-    if(g.volatile.indexOf(s.volatile)!==0)return "volatile is not the main turn's volatile + suffix";
-    var mi=g.volatile.indexOf("SUGGESTION MODE"),sti=g.volatile.indexOf("STYLE: ");
+    if(g.volatile!==s.volatile)return "volatile is not the main turn's volatile byte-for-byte (the second breakpoint would miss)";
+    if(g.volatile.indexOf("SUGGESTION MODE")>=0)return "mode block leaked into the cached volatile block";
+    var flat=g.volatile+g.extra,mi=flat.indexOf("SUGGESTION MODE"),sti=flat.indexOf("STYLE: ");
     if(mi<0)return "mode block missing";
     return mi>sti?true:"mode block landed BEFORE the STYLE directive (format fight)";
   });
   t("buildSuggestionSys: the proven canon fences survive in the mode block",function(){
     makeWorld();
-    var v=buildSuggestionSys().volatile;
+    var _g=buildSuggestionSys(),v=_g.volatile+_g.extra;
     if(v.indexOf("NEVER invent doors, exits, items, or people")<0)return "scenery fence lost";
     if(v.indexOf("OUT OF RANGE")<0)return "range fence lost";
     return v.indexOf("JSON object")>=0?true:"output-format instruction lost";/* #141: array → {present,actions} object (the scene-check shape) — same guard intent, new format */
@@ -9051,11 +9111,11 @@ function runEngineTests(R){
   t("t833: concealment condition → CONCEALMENT CHECK data line in suggestion volatile; stable untouched",function(){
     makeWorld();
     var s0=buildSuggestionSys();
-    if(s0.volatile.indexOf("CONCEALMENT CHECK")>=0)return "line present with no concealment condition";
+    if((s0.volatile+s0.extra).indexOf("CONCEALMENT CHECK")>=0)return "line present with no concealment condition";
     worldState.character.conditions.push({name:"Invisible",duration:"until attack or cast"});
     var s1=buildSuggestionSys();
-    if(s1.volatile.indexOf("CONCEALMENT CHECK: Tess is currently Invisible (until attack or cast)")<0)return "concealment data line missing: "+s1.volatile.slice(-300);
-    if(s1.volatile.indexOf("Casting ANY spell")<0)return "consequence not spelled out";
+    if(s1.extra.indexOf("CONCEALMENT CHECK: Tess is currently Invisible (until attack or cast)")<0)return "concealment data line missing: "+s1.extra.slice(-300);
+    if(s1.extra.indexOf("Casting ANY spell")<0)return "consequence not spelled out";
     if(s1.stable!==s0.stable)return "concealment line perturbed the STABLE half — cache kill";
     worldState.character.conditions.length=0;
     return true;
@@ -9063,33 +9123,33 @@ function runEngineTests(R){
   t("t833: non-concealment conditions (Poisoned) do NOT fire the concealment line",function(){
     makeWorld();
     worldState.character.conditions.push({name:"Poisoned",duration:"1 hour"});
-    var v=buildSuggestionSys().volatile;
+    var _g2=buildSuggestionSys(),v=_g2.volatile+_g2.extra;
     worldState.character.conditions.length=0;
     return v.indexOf("CONCEALMENT CHECK")<0?true:"fired on a non-concealment condition";
   });
   t("t833: previous button set feeds the anti-fixation line; absent when there is none",function(){
     makeWorld();
     var s0=buildSuggestionSys();
-    if(s0.volatile.indexOf("PREVIOUS SUGGESTIONS")>=0)return "line present with no previous set";
+    if((s0.volatile+s0.extra).indexOf("PREVIOUS SUGGESTIONS")>=0)return "line present with no previous set";
     var s1=buildSuggestionSys(["Use Message to whisper a threat","Stay hidden","Signal Frizwick via Message"]);
-    if(s1.volatile.indexOf("PREVIOUS SUGGESTIONS")<0)return "anti-fixation line missing";
-    if(s1.volatile.indexOf("Use Message to whisper a threat | Stay hidden | Signal Frizwick via Message")<0)return "previous set not carried verbatim";
+    if(s1.extra.indexOf("PREVIOUS SUGGESTIONS")<0)return "anti-fixation line missing";
+    if(s1.extra.indexOf("Use Message to whisper a threat | Stay hidden | Signal Frizwick via Message")<0)return "previous set not carried verbatim";
     if(s1.stable!==s0.stable)return "prev-set line perturbed the STABLE half — cache kill";
     return true;
   });
   t("t833: at-most-one-spell rule rides the mode block",function(){
     makeWorld();
-    return buildSuggestionSys().volatile.indexOf("at most ONE of the 3 suggestions may involve casting a spell")>=0?true:"variety cap missing from mode block";
+    return buildSuggestionSys().extra.indexOf("at most ONE of the 3 suggestions may involve casting a spell")>=0?true:"variety cap missing from mode block";
   });
-  t("suggestionHistoryPairs: last 5 exchanges, labeled, oldest-first, tags stripped",function(){
+  t("suggestionHistoryPairs: last 3 exchanges (#304 B — five → three), labeled, oldest-first, tags stripped",function(){
     makeWorld();sessionLog=[];
     for(var i=1;i<=7;i++){sessionLog.push({role:"user",content:"act "+i});sessionLog.push({role:"assistant",content:"scene "+i+" unfolds. [HP:-1]"});}
     var h=suggestionHistoryPairs();
     sessionLog=[];
-    if(h.indexOf("scene 1 ")>=0||h.indexOf("scene 2 ")>=0)return "older than 5 exchanges leaked in";
-    if(h.indexOf("scene 3 ")<0||h.indexOf("scene 7 ")<0)return "window wrong: "+h.slice(0,200);
+    if(h.indexOf("scene 1 ")>=0||h.indexOf("scene 2 ")>=0||h.indexOf("scene 3 ")>=0||h.indexOf("scene 4 ")>=0)return "older than 3 exchanges leaked in";
+    if(h.indexOf("scene 5 ")<0||h.indexOf("scene 7 ")<0)return "window wrong: "+h.slice(0,200);
     if(h.indexOf("Player: act 7")<0||h.indexOf("GM: scene 7")<0)return "Player:/GM: labels missing";
-    if(h.indexOf("scene 3 ")>h.indexOf("scene 7 "))return "not oldest-first";
+    if(h.indexOf("scene 5 ")>h.indexOf("scene 7 "))return "not oldest-first";
     return h.indexOf("[HP:")<0?true:"tags leaked into the window";
   });
   t("suggestionHistoryPairs: char budget degrades the window but the NEWEST pair always survives",function(){
@@ -9099,7 +9159,7 @@ function runEngineTests(R){
     var h=suggestionHistoryPairs();
     sessionLog=[];
     if(h.indexOf("S5-")<0)return "newest pair lost under budget pressure";
-    return h.indexOf("S1-")<0?true:"budget not enforced (all 5 giant pairs kept)";
+    return h.indexOf("S3-")<0?true:"budget not enforced (all 3 giant pairs kept)";
   });
   t("parseSuggestionArray: plain, fenced, and prose-wrapped arrays parse; garbage throws",function(){
     if(parseSuggestionArray('["a","b","c"]').length!==3)return "plain failed";

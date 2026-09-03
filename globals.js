@@ -107,6 +107,7 @@ var NOTE_LOG_CAP=40;
 // server + IndexedDB (never localStorage); the turn counter never rewinds; the dead branch stays in the
 // transcript marked db and RAG never serves it. RESPAWNS_PER_CAMPAIGN deaths are survivable; the next
 // ends the campaign (#301 writes its denouement).
+var WILDCARD_EVERY=7;      // #305: every Nth turn the fourth button is the wildcard ("Do something reckless") and the GM is told to reward it
 var DOWNED_MAX_TURNS=3;
 var RESPAWNS_PER_CAMPAIGN=3;
 var CHECKPOINT_VER=1;
@@ -202,7 +203,7 @@ var MODEL_PRICING={
 // buildSysPrompt returns {stable, volatile} for gameplay turns (TODO #11 prompt caching);
 // sysOverride callers pass a plain string. Non-Anthropic adapters flatten via sysJoin;
 // the Anthropic adapter keeps the halves separate to place a cache_control breakpoint.
-function sysJoin(sys){return typeof sys==="string"?sys:sys.stable+sys.volatile;}
+function sysJoin(sys){return typeof sys==="string"?sys:sys.stable+sys.volatile+(sys.extra||"");}/* #304 C: a third, uncached `extra` block (the suggestion mode block) flattens last for non-Anthropic providers */
 var PROVIDERS={
   anthropic:{
     id:"anthropic", label:"Claude (Anthropic)", keyHint:"sk-ant-...",
@@ -225,7 +226,15 @@ var PROVIDERS={
       // 4.6-equivalent turn shape; opus-5 accepting {type:"disabled"} was probe-verified live.
       if(/^claude-(sonnet|opus)-5/.test(model))body.thinking={type:"disabled"};
       if(typeof sys==="string")body.system=sys;
-      else body.system=[{type:"text",text:sys.stable,cache_control:{type:"ephemeral"}},{type:"text",text:sys.volatile}];
+      else{
+        /* #304 C (owner ruling 2026-09-02): the VOLATILE block carries a second breakpoint. The turn
+           WRITES it (1.25×); the suggestion call seconds later sends the captured turn volatile
+           byte-for-byte and READS it at 0.1× instead of paying full price — the pair costs ≈1.35× the
+           volatile instead of 2×. Anthropic allows up to four breakpoints; the mode block rides as a
+           third, uncached `extra` block so the prefix match ends exactly at the volatile boundary. */
+        body.system=[{type:"text",text:sys.stable,cache_control:{type:"ephemeral"}},{type:"text",text:sys.volatile,cache_control:{type:"ephemeral"}}];
+        if(sys.extra)body.system.push({type:"text",text:sys.extra});
+      }
       return body;
     },
     parseResponse:function(data){var i;if(data.content)for(i=0;i<data.content.length;i++){if(data.content[i]&&data.content[i].type!=="thinking"&&typeof data.content[i].text==="string"&&data.content[i].text.trim())return data.content[i].text;}throw new Error("Empty response");}, // tolerant of thinking-bearing responses: first NON-EMPTY non-thinking text block wins (the opus-5 lesson; #198 adds the trim — ""/whitespace blocks fall through to the loud throw instead of committing an empty turn)
@@ -317,7 +326,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.775";
+var APP_VERSION="v1.776";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 var HOME_PENDING_BP_K="tnd_pending_bp_v1";

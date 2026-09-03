@@ -92,6 +92,7 @@ var SUGGESTION_MODE_BLOCK="\n\n=== SUGGESTION MODE — THIS CALL ONLY ===\n"
  +"Suggest only actions involving people, objects, and exits explicitly present in the scene or the location description — NEVER invent doors, exits, items, or people the narration has not mentioned.\n"
  +"Never suggest casting a spell or using an ability this character does not have, and never suggest a cast that exceeds a spell's canonical range or targets: a target in another building, street, or district — or anyone not present in the scene or whose current location is unknown — is OUT OF RANGE for a short-range spell.\n"
  +"A spell is a spice, not a default: at most ONE of the 3 suggestions may involve casting a spell or using a named ability — the other two must be mundane actions (move, hide, wait, talk, search, signal by hand).\n"
+ +"Legal kinds you rarely offer and should when the scene supports them: buying or selling (when FOR SALE HERE / WANTED HERE lists something), resting or making camp, using a carried item from the inventory, and accepting an offered quest.\n"
  +"Suggest only people, places, and facts the story has already surfaced on screen. The campaign outline's unrevealed names and plans are SPOILERS — never put one in a suggestion, no matter what the background material says about them.\n"
  +"Ignore the STYLE directive for this call. FIRST take stock: list who and what is ACTUALLY present in the scene right now — the people, creatures, and objects the narration has placed there. Then write the 3 actions, each referencing ONLY entities from that list or plain surroundings. A person or thing the narration has not placed in the scene (a driver, a guard, a shopkeep) does not exist — never aim an action at one.\n"
  +"Output ONLY one valid JSON object, no prose, no markdown, no backticks: {\"present\":\"one line listing who and what is in the scene\",\"actions\":[\"...\",\"...\",\"...\"]} — exactly 3 actions, each under 10 words.";/* #141: the present field IS the checking space t833 proved the instant-JSON call lacks — the driverless-cart phantom (field 2026-08-07) */
@@ -150,14 +151,34 @@ function buildSuggestionSys(prevActs){
       if(_spLoc.location)mpPov+=" "+_sp.name+" is currently at "+_spLoc.location+(_spLoc.sublocation?" ("+_spLoc.sublocation+")":"")+(_sp.splitLoc?" — SPLIT OFF from the party; suggest only actions available there.":".");
     }
   }
-  return {stable:s.stable+(rf||""),volatile:s.volatile+SUGGESTION_MODE_BLOCK+suggestionTacticalLine()+suggestionVarietyLine(prevActs)+mpPov};
+  /* #304 C: the suggestion call sends the TURN's volatile byte-for-byte (captured in callGM) so the
+     second breakpoint reads at 0.1×; the mode block and its appends ride in `extra`, a third uncached
+     block. The buttons still see the outcome — the GM's own last response is in the history pairs. */
+  var cap=(typeof lastTurnSys==="function")?lastTurnSys():null;
+  var useCap=!!(cap&&cap.volatile&&Date.now()-cap.at<5*60*1000);
+  return {stable:useCap?cap.stable:s.stable+(rf||""),volatile:useCap?cap.volatile:s.volatile,extra:SUGGESTION_MODE_BLOCK+suggestionTacticalLine()+suggestionVarietyLine(prevActs)+mpPov};
 }
-// The last 5 player/GM exchanges as labeled pairs (the ragRetrieve excerpt convention), oldest
+// #305 ②: the FOURTH button — engine-authored from state, no token. Priority: rest when wounded
+// (never mid-fight) → use a carried consumable with defined canon → accept the offered quest →
+// buy when a want is on the table and there is coin → the periodic wildcard. Null when nothing applies.
+function engineFourthAction(){
+  if(!worldState||!worldState.character)return null;
+  var c=worldState.character,i;
+  if(!worldState.combat&&typeof c.hp==="number"&&typeof c.maxHp==="number"&&c.hp<c.maxHp/2)return {kind:"rest",text:"Rest and recover — you are badly hurt."};
+  var wounded=typeof c.hp==="number"&&c.hp<c.maxHp,hurtOrAfflicted=wounded||((c.conditions||[]).length>0);
+  if(hurtOrAfflicted&&typeof itemLookup==="function"){for(i=0;i<(c.inventory||[]).length;i++){var it=c.inventory[i],e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A")return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(it):it)+"."};}}
+  var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
+  if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof nodeWaresLive==="function")?nodeWaresLive(node):[];if(live.length)return {kind:"buy",text:"Buy the "+live[0].item+" ("+live[0].price+")."};}
+  if(typeof WILDCARD_EVERY==="number"&&WILDCARD_EVERY>0&&worldState.turn>0&&worldState.turn%WILDCARD_EVERY===0)return {kind:"wild",text:"Do something reckless."};
+  return null;
+}
+function recklessArmIfChosen(text){if(!worldState)return;if(/do something reckless/i.test(String(text||"")))worldState.recklessPing={turn:worldState.turn};}
+// The last 3 player/GM exchanges (#304 B; was 5) as labeled pairs (the ragRetrieve excerpt convention), oldest
 // first, GM halves tag-stripped, under a ~6k char budget — five lavish prose turns can't balloon
 // the call; under pressure the window degrades 4→3→2 but the NEWEST pair always survives.
 function suggestionHistoryPairs(){
   var out=[],chars=0,i;
-  for(i=sessionLog.length-1;i>=0&&out.length<5;i--){
+  for(i=sessionLog.length-1;i>=0&&out.length<3;i--){/* #304 B (owner ruling 2026-09-02): five → three exchanges — the newest pair always survives below */
     if(sessionLog[i].role!=="assistant")continue;
     var gm=cleanTxt(sessionLog[i].content);
     var pl=(i>0&&sessionLog[i-1].role==="user")?sessionLog[i-1].content:"";
@@ -426,6 +447,13 @@ function suggestionFallback(man,taken){
   var cands=[],i,j;
   if(man.back)cands.push("Head back toward "+man.back+".");
   for(i=0;i<man.exits.length;i++)cands.push("Press on toward "+man.exits[i]+".");
+  /* #305 ③: flavour from STATE, not stock phrases — a wounded hero binds wounds, coin gets counted,
+     a market gets browsed, a companion gets checked on by name. Still revalidated below. */
+  var c=worldState&&worldState.character;
+  if(c&&typeof c.hp==="number"&&c.hp<c.maxHp/2)cands.push("Bind your wounds and rest.");
+  for(i=0;i<man.npcs.length;i++)cands.push("Check on "+man.npcs[i]+".");
+  if(c&&memory&&memory.map&&worldState.world&&worldState.world.location&&typeof nodeWaresLive==="function"){var _wk=worldState.world.location;if(typeof locResolve==="function")_wk=locResolve(_wk);var _wn=memory.map.nodes[_wk];if(_wn&&nodeWaresLive(_wn).length)cands.push("Look over what's for sale here.");}
+  if(c&&(c.gold||0)>0)cands.push("Count your coin and think.");
   for(i=0;i<man.npcs.length;i++)cands.push("Talk things over with "+man.npcs[i]+".");
   cands.push("Rest and take stock of the situation.");
   cands.push("Study your surroundings carefully.");
@@ -485,6 +513,10 @@ async function generateActions(msgEl){
     var _mpPfx=(typeof playerCount==="function"&&playerCount()>1&&activePlayer()&&activePlayer().name)?activePlayer().name+": ":"";
     for(i=0;i<3&&i<acts.length;i++){var a=punctuateAction(acts[i].trim());btns[i].textContent=_mpPfx+a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}/* #88: punctuated so a tapped suggestion reads as a real sentence and gets a clean TTS pause boundary */
     worldState.lastActions=acts.slice(0,3);
+    /* #305 ②: the fourth, engine-authored button — appended after the model's three, no token, and
+       exempt from the affordance gate (it names sheet, quest, and market facts, never scene entities). */
+    var _fa=(typeof engineFourthAction==="function")?engineFourthAction():null;
+    if(_fa&&_fa.text){var _fb=document.createElement("button");_fb.className="qa";var _fat=punctuateAction(_fa.text);_fb.textContent=_mpPfx+_fat;_fb.setAttribute("data-action",_fat);_fb.setAttribute("title","Tap to edit · hold or Ctrl-click to send");_fb.setAttribute("onclick","sendSuggestedAction(this,event)");_fb.style.borderStyle="dashed";btnDiv.appendChild(_fb);worldState.lastActions.push(_fat);}
   }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);if(typeof reportError==="function")reportError("actions",e.message,(e&&e.stack)||"");_cleanup();}
   finally{saveAll();}/* #280b: the turn's ONE cloud sync — EVERY exit (fresh buttons, the empty result, the failure's honest E26 null, the stale race) converges the server to the truth. R4's local-only save here left the E26 null on the wire while the fresh buttons stayed stranded on this device (the JP0-11 cap skips the mature-save flush), so the other device rendered the newest narration buttonless — the 2026-08-29 field report. One POST per turn, unchanged: the commit no longer arms one. */
 }
@@ -1867,6 +1899,7 @@ async function sendAction(override,opts){
     if(typeof showToast==="function")showToast("Death waits. Walk back to camp, or go onward.");return;
   }
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
+  if(typeof recklessArmIfChosen==="function"&&!(opts&&opts.silent))recklessArmIfChosen(txt);/* #305: the wildcard's reward note */
   // B10/v1.421 — repair the audio context HERE, in the send gesture. iOS interrupts the context
   // between turns, when nothing is watching (_armCtxWatch disarms itself while !_playing), so the
   // next read starts on a dead context and loses its first line to the native voice. This tap is a

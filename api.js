@@ -561,6 +561,17 @@ function buildDenouementPrompt(){
   lines.push("Write the denouement now.");
   return lines.join("\n");
 }
+// #304 C: the turn's exact {stable, volatile} as sent — the suggestion call seconds later must send the
+// same bytes in the same blocks for the volatile breakpoint to hit. Module-local; a fresh turn overwrites it.
+var _lastTurnSys=null;
+function lastTurnSysCapture(sys){_lastTurnSys={stable:sys.stable,volatile:sys.volatile,at:Date.now(),turn:(worldState&&worldState.turn)||0};}
+function lastTurnSys(){return _lastTurnSys;}
+function lastTurnSysClear(){_lastTurnSys=null;}
+// #305: the wildcard's reward — one shot, armed when the player sends the reckless button's text.
+function buildRecklessNote(){
+  var r=worldState&&worldState.recklessPing;if(!r)return"";delete worldState.recklessPing;
+  return "[ENGINE NOTE — RECKLESSNESS CHOSEN (not a player action): the player took the wildcard and is doing something reckless on purpose. REWARD the choice: let it work spectacularly or fail spectacularly — never mundanely, never punished for the choosing. Big consequences, new stakes, a door opened that caution would have kept shut.]";
+}
 // #300: the DOWNED note — fires EVERY turn while the hero is at 0 HP, combat included (this is the fight),
 // no latch (worldState.downed is state, cleared by the resolution). Names who can intervene; escalates
 // on the last turn before the engine rules the death.
@@ -1584,7 +1595,7 @@ function buildArcWallNudge(){
 // per companion) and questLog[].staleNudged (buildQuestStaleNudge — entry-30 ruling 2026-08-29:
 // the NARROW title-keyed snapshot, never questLog wholesale in the flat registry, which would
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
-var NOTE_LATCH_FIELDS=["deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
 var NOTE_NESTED_LATCHES=["questLog[].staleNudged","charSheet.splitLoc.audited","conditions[].until","memory.futureEvents[]._asked","sessionLog"];
 function snapshotNoteLatches(){
@@ -1625,7 +1636,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<ql2.length;j++){if(ql2[j]&&ql2[j].title===qr.title){
       if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;}}}
 }
-var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildDownedNote,buildRespawnNote,/* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // #309: THE SHAPE REGISTRY (owner ruling 2026-09-03 — one-in-one-out was REJECTED after the
 // 49-builder catalog, audits/RECORD_309_note_builder_catalog.md: builders are six shapes, not
 // fungible units). Every builder declares its shape, the latch fields it burns (declared in
@@ -1637,6 +1648,7 @@ var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildDownedNote,buildRespawnNot
 var NOTE_SHAPES={
   buildDeathSceneNote:{shape:"one-shot-ask",latch:["deathScene"],combat:"fires",ack:["DEATH_ANSWER"]},
   buildDownedNote:{shape:"cooldown-reminder",latch:["none"],combat:"fires",ack:["DOWNED_RESOLVED","HP"]},
+  buildRecklessNote:{shape:"one-shot-ask",latch:["recklessPing"],combat:"fires",ack:["none"]},
   buildRespawnNote:{shape:"one-shot-ask",latch:["respawnNote"],combat:"fires",ack:["none"]},
   buildArcWallNudge:{shape:"cooldown-reminder",latch:["arcWallWarned"],combat:"silent",ack:["QUEST"]},
   buildOrphanCombatNudge:{shape:"one-shot-ask",latch:["orphanCombat"],combat:"fires",ack:["COMBAT_START"]},
@@ -3023,7 +3035,8 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // in the stable (cacheable) half — appending it to volatile would work too, but stable keeps
   // OpenAI's automatic prefix caching effective and never displaces STYLE from the volatile end.
   if(!sysOverride){var _rf=resolveReinforce(prov,model);if(_rf){if(typeof sys==="string")sys+=_rf;else sys.stable+=_rf;}
-    _lastTurnModel=model;/* #45: gameplay turns only — logTranscript stamps this onto the GM entry */}
+    _lastTurnModel=model;/* #45: gameplay turns only — logTranscript stamps this onto the GM entry */
+    if(typeof sys!=="string")lastTurnSysCapture(sys);/* #304 C: the suggestion call reuses this exact volatile for the cache read */}
   // UA5 tripwire: the stable half must be byte-identical turn-over-turn within a campaign or
   // every cache hit dies SILENTLY (pure cost regression, no functional symptom). Legit changes
   // exist (rules/adult/tone edits, provider/model switch) — so warn loudly, never block.
