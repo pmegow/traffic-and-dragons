@@ -168,7 +168,7 @@ function engineFourthAction(){
   var wounded=typeof c.hp==="number"&&c.hp<c.maxHp,hurtOrAfflicted=wounded||((c.conditions||[]).length>0);
   if(hurtOrAfflicted&&typeof itemLookup==="function"){for(i=0;i<(c.inventory||[]).length;i++){var it=c.inventory[i],e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A")return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(it):it)+"."};}}
   var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
-  if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof nodeWaresLive==="function")?nodeWaresLive(node):[];if(live.length)return {kind:"buy",text:"Buy the "+live[0].item+" ("+live[0].price+")."};}
+  if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof waresOfferedHere==="function")?waresOfferedHere(node,buildSceneManifest().npcs):[];/* a seller or their shop must be IN the scene (2026-09-03) */if(live.length)return {kind:"buy",text:"Buy the "+live[0].item+" ("+live[0].price+")."};}
   if(montageDue())return {kind:"montage",text:"Skip ahead — a montage to the next real decision."};/* #308 */
   if(typeof WILDCARD_EVERY==="number"&&WILDCARD_EVERY>0&&worldState.turn>0&&worldState.turn%WILDCARD_EVERY===0)return {kind:"wild",text:"Do something reckless."};
   return null;
@@ -447,6 +447,14 @@ function validateSuggestion(text,man){
       console.info("[actions] off-scene NPC named in a suggestion (allowed, watching): \""+t+"\" → "+npcs[j].name);
       break;
     }
+  }
+  // ⑦ (2026-09-03, the High Spire lift terminal): a purchase of a recorded ware with neither the seller
+  // nor their shop in the scene — the settlement's market record is not a stall in front of the player.
+  if(/^(buy|purchase|haggle for|pay for)\b/i.test(t)&&typeof waresOfferedHere==="function"&&typeof memory!=="undefined"&&memory&&memory.map&&worldState.world&&worldState.world.location){
+    var _bk=worldState.world.location;if(typeof locResolve==="function")_bk=locResolve(_bk);var _bn=memory.map.nodes[_bk],_bl=(_bn&&typeof nodeWaresLive==="function")?nodeWaresLive(_bn):[],_bo=_bn?waresOfferedHere(_bn,man.npcs):[],_bi;
+    for(_bi=0;_bi<_bl.length;_bi++){var _bw=_bl[_bi];if(!new RegExp("\\b"+suggestionNameAlt(_bw.item)+"\\b","i").test(t))continue;
+      if(_bo.some(function(o){return o.item===_bw.item;}))break;
+      return {rule:"buy-without-seller",detail:_bw.item+" is on the settlement's record but neither its seller nor its shop is in the scene"};}
   }
   return null;
 }

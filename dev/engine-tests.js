@@ -831,11 +831,36 @@ function runEngineTests(R){
     c.hp=14;c.inventory=["Healing potion","Rope"];c.hp=9;a=engineFourthAction();if(!a||a.kind!=="use"||!/Healing potion/.test(a.text))return "use: "+JSON.stringify(a);
     c.hp=14;a=engineFourthAction();if(a&&a.kind==="use")return "a consumable at full health is not the move";
     c.inventory=[];worldState.questLog=[{title:"The Bell Below",status:"offered",desc:"",objectives:[],started:1}];a=engineFourthAction();if(!a||a.kind!=="accept"||!/Bell Below/.test(a.text))return "accept: "+JSON.stringify(a);
-    worldState.questLog=[];c.gold=30;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",wares:[{item:"Healing salve",price:"8 gp",note:"",t:1,min:(typeof clockNow==="function")?clockNow():0}]};
+    worldState.questLog=[];c.gold=30;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",wares:[{item:"Healing salve",price:"8 gp",note:"sold by Old Maud at her stall",t:1,min:(typeof clockNow==="function")?clockNow():0}]};
+    a=engineFourthAction();if(a&&a.kind==="buy")return "buy offered with no seller in the scene (the High Spire lift-terminal defect)";
+    worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
     a=engineFourthAction();if(!a||a.kind!=="buy"||!/Healing salve/.test(a.text))return "buy: "+JSON.stringify(a);
     c.gold=0;a=engineFourthAction();if(a&&a.kind==="buy")return "cannot buy with no coin";
     memory.map.nodes["Sandpoint"].wares=[];worldState.turn=WILDCARD_EVERY;a=engineFourthAction();if(!a||a.kind!=="wild"||!/reckless/i.test(a.text))return "wildcard: "+JSON.stringify(a);
     worldState.turn=WILDCARD_EVERY+1;return engineFourthAction()===null?true:"wildcard off-cycle";
+  });
+  t("#305/#303 a purchase is offered ONLY with the seller in front of you (owner report 2026-09-03, the High Spire lift terminal): a ware filed at a sub-location remembers it; the fourth button and the suggestion gate both refuse a buy when neither the seller nor their shop is in the scene; the geo line says so to the GM",function(){
+    makeWorld();var c=worldState.character;c.hp=14;c.maxHp=14;c.inventory=[];c.gold=40;worldState.questLog=[];worldState.turn=49;
+    worldState.world.location="High Spire";worldState.world.sublocation="The Gilded Cask";
+    memory.map.nodes["High Spire"]={firstVisit:40,visits:2,description:null,parent:null,npcs:[],items:[],size:"large"};
+    memory.map.nodes["High Spire|The Gilded Cask"]={firstVisit:48,visits:1,description:null,parent:"High Spire",npcs:[],items:[]};
+    applyMuts("[WARES:Fine spiced wine|15 gp|sold by Vintner Orla]");
+    var w=nodeWaresLive(memory.map.nodes["High Spire"]);if(w.length!==1||w[0].at!=="The Gilded Cask")return "ware did not remember where it was filed: "+JSON.stringify(w);
+    /* standing where it was filed, nobody named present → still offered (the shop is the place) */
+    var a=engineFourthAction();if(!a||a.kind!=="buy"||!/Fine spiced wine/.test(a.text))return "at the shop: "+JSON.stringify(a);
+    /* the lift terminal: same settlement, no seller, no shop → no buy button, and the model's own buy suggestion is rejected */
+    worldState.turn=50;worldState.world.sublocation="Upper Lift Terminal";memory.map.nodes["High Spire|Upper Lift Terminal"]={firstVisit:50,visits:1,description:null,parent:"High Spire",npcs:[],items:[]};
+    a=engineFourthAction();if(a&&a.kind==="buy")return "buy offered at the lift terminal";
+    var v=validateSuggestion("Buy the Fine spiced wine (15 gp).",buildSceneManifest());if(!v||v.rule!=="buy-without-seller")return "suggestion gate let the buy through: "+JSON.stringify(v);
+    if(validateSuggestion("Slip down into the promenade crowd.",buildSceneManifest()))return "an ordinary action was rejected";
+    /* the seller walks into the scene → both open up again */
+    worldState.npcs.push({name:"Vintner Orla",status:"",statusTurn:0,rel:"neutral",met:48,pronouns:"she/her"});memory.npcs["Vintner Orla"]={attitude:"",knowledge:[],events:[],lastSeenAt:"High Spire|Upper Lift Terminal"};
+    a=engineFourthAction();if(!a||a.kind!=="buy")return "seller present but no buy: "+JSON.stringify(a);
+    if(validateSuggestion("Buy the Fine spiced wine (15 gp).",buildSceneManifest()))return "seller present but the suggestion was rejected";
+    /* a ware whose note names the place you stand in is offered there too */
+    worldState.npcs.pop();delete memory.npcs["Vintner Orla"];applyMuts("[WARES:Halberd polish|2 gp|at the Upper Lift Terminal kiosk]");
+    var off=waresOfferedHere(memory.map.nodes["High Spire"],[]);if(off.length!==1||off[0].item!=="Halberd polish")return "note-names-the-place limb: "+JSON.stringify(off);
+    var g=buildGeoBlock();return /FOR SALE HERE/.test(g)&&/seller or their shop is in the scene/i.test(g)?true:"geo line does not tell the GM: "+g.slice(g.indexOf("FOR SALE"),g.indexOf("FOR SALE")+260);
   });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();

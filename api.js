@@ -36,7 +36,7 @@ function buildGeoBlock(){
   // #303: the market — what is for sale at this settlement and what someone here wants from the
   // party. Served from the WORLD node even inside a sublocation; expired wares are simply absent.
   var mkt=(wNode&&typeof nodeWaresLive==="function")?nodeWaresLive(wNode):[];
-  if(mkt.length)lines.push("FOR SALE HERE: "+mkt.map(function(x){return x.item+" — "+x.price+(x.note?" ("+x.note+")":"");}).join("; "));
+  if(mkt.length)lines.push("FOR SALE HERE: "+mkt.map(function(x){return x.item+" — "+x.price+(x.note?" ("+x.note+")":"");}).join("; ")+" — the settlement's record, not a stall in front of the party: offer a purchase only when the seller or their shop is in the scene.");
   else if(wNode&&wNode.waresNone&&typeof clockNow==="function"&&clockNow()-(wNode.waresNone.min||0)<WARES_RESTOCK_DAYS*MIN_PER_DAY)lines.push("Market: nothing for sale here on record (t"+wNode.waresNone.t+")");
   if(wNode&&wNode.wanted&&wNode.wanted.length)lines.push("WANTED HERE: "+wNode.wanted.map(function(x){return x.item+(x.by?" — "+x.by:"")+(x.offer?" offers "+x.offer:"");}).join("; "));
   // Items

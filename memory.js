@@ -287,12 +287,29 @@ function fileWare(item,price,note,turn){
   var now=(typeof clockNow==="function")?clockNow():0,low=it.toLowerCase(),i,row=null;
   for(i=0;i<node.wares.length;i++)if(String(node.wares[i].item).toLowerCase()===low){row=node.wares.splice(i,1)[0];break;}/* a re-stated ware refreshes, never twins */
   if(!row)row={item:it};row.item=it;row.price=pr;row.note=String(note||"").trim().slice(0,120);row.t=turn;row.min=now;
+  row.at=(worldState&&worldState.world&&worldState.world.sublocation)||null;/* where it was filed — the shop, when the GM answered from inside one (offer rule below) */
   node.wares.push(row);
   var cap=waresCapFor(node);
   while(node.wares.length>cap){var gone=node.wares.shift();if(typeof console!=="undefined")console.warn("[wares] "+gone.item+" dropped — the market here holds "+cap+" wares ("+(node.size||"unsized")+" place, #303)");}
   return row;
 }
 function fileWaresNone(turn){var node=_waresWorldNode(turn);if(!node)return false;node.waresNone={t:turn,min:(typeof clockNow==="function")?clockNow():0};node.wares=[];return true;}
+// The wares actually IN FRONT of the party (owner report 2026-09-03: the fourth button offered "Buy the
+// Fine spiced wine" in a lift terminal because the settlement's record was read as the scene). A live
+// ware is offered here when its note names a PRESENT NPC (the seller is in the scene), or its note
+// names the sub-location the party stands in (the shop is the place), or it was filed from the very
+// sub-location the party stands in. The settlement record itself stays with the GM; this is the
+// player-facing affordance rule. `presentNames` = the scene manifest's npcs.
+function waresOfferedHere(node,presentNames){
+  var live=nodeWaresLive(node);if(!live.length)return [];
+  var sub=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.sublocation)||null,names=presentNames||[],out=[],i,j;
+  for(i=0;i<live.length;i++){var w=live[i],note=String(w.note||""),ok=false;
+    if(sub&&w.at&&String(w.at).toLowerCase()===String(sub).toLowerCase())ok=true;
+    if(!ok&&sub&&note&&typeof nameContains==="function"&&nameContains(note,sub))ok=true;
+    for(j=0;j<names.length&&!ok;j++)if(note&&typeof nameContains==="function"&&nameContains(note,String(names[j])))ok=true;
+    if(ok)out.push(w);}
+  return out;
+}
 function nodeWaresLive(node){
   if(!node||!node.wares||!node.wares.length)return [];
   var now=(typeof clockNow==="function")?clockNow():0,win=((typeof WARES_RESTOCK_DAYS!=="undefined")?WARES_RESTOCK_DAYS:7)*((typeof MIN_PER_DAY!=="undefined")?MIN_PER_DAY:1440);
