@@ -30,6 +30,12 @@ function buildGeoBlock(){
   if(wNode&&wNode.stateNotes)wNode.stateNotes.forEach(function(x){chg.push(x.n+" (t"+x.t+")");});
   if(subNode&&subNode.stateNotes)subNode.stateNotes.forEach(function(x){chg.push(x.n+" (t"+x.t+")");});
   if(chg.length)lines.push("CHANGED since first visit (this OVERRIDES the descriptions above where they disagree): "+chg.join("; "));
+  // #303: the market — what is for sale at this settlement and what someone here wants from the
+  // party. Served from the WORLD node even inside a sublocation; expired wares are simply absent.
+  var mkt=(wNode&&typeof nodeWaresLive==="function")?nodeWaresLive(wNode):[];
+  if(mkt.length)lines.push("FOR SALE HERE: "+mkt.map(function(x){return x.item+" — "+x.price+(x.note?" ("+x.note+")":"");}).join("; "));
+  else if(wNode&&wNode.waresNone&&typeof clockNow==="function"&&clockNow()-(wNode.waresNone.min||0)<WARES_RESTOCK_DAYS*MIN_PER_DAY)lines.push("Market: nothing for sale here on record (t"+wNode.waresNone.t+")");
+  if(wNode&&wNode.wanted&&wNode.wanted.length)lines.push("WANTED HERE: "+wNode.wanted.map(function(x){return x.item+(x.by?" — "+x.by:"")+(x.offer?" offers "+x.offer:"");}).join("; "));
   // Items
   if(activeNode&&activeNode.items.length){
     var present=activeNode.items.filter(function(it){return!it.taken;});
@@ -520,6 +526,24 @@ function buildQuestStaleNudge(){
 // responses are dramatically crowded and write-once means a rushed description is pinned
 // forever — demand the description. Latch stamps on fire (the buildConditionAudit precedent);
 // re-fires every LOC_DESC_NUDGE_COOLDOWN turns while still null; a filed description ends it.
+// #303: the MARKET ASK — at a sized world node whose market record is empty or older than
+// WARES_RESTOCK_DAYS, ask ONCE per node per window; the GM answers with [WARES:] lines (count
+// scaled to the place's size) or [WARES:none]. Latch: worldState.marketAsk (#151-declared).
+// Combat-silent; an unsized node never asks (nothing to scale the cap by).
+function buildMarketNote(){
+  if(!worldState||worldState.combat||typeof memory==="undefined"||!memory||!memory.map||!worldState.world||!worldState.world.location)return"";
+  var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);
+  var node=memory.map.nodes[key];if(!node||!node.size)return"";
+  var tier=waresSizeTier(node.size);if(!tier)return"";
+  var now=(typeof clockNow==="function")?clockNow():0,win=WARES_RESTOCK_DAYS*MIN_PER_DAY;
+  if(nodeWaresLive(node).length)return"";
+  if(node.waresNone&&now-(node.waresNone.min||0)<win)return"";
+  var ma=worldState.marketAsk;
+  if(ma&&ma.node===key&&typeof ma.askedMin==="number"&&now-ma.askedMin<win)return"";
+  worldState.marketAsk={node:key,askedMin:now,askedTurn:worldState.turn};
+  var cap=waresCapFor(node),label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
+  return"[ENGINE NOTE — MARKET (not a player action): "+label+" is a "+node.size+" place and nothing is on record for sale here. If it is a settlement, emit one or two [WARES:item|price|note] lines for what is genuinely sold here (up to "+cap+" over the week; name the seller in the note; price at VALUE, never the party's purse). If nothing is sold here — wilderness, a ruin — emit [WARES:none]. If someone here wants something the party carries, [WANTED:item|offer|by].]\n";
+}
 function buildLocationDescNudge(){
   if(!worldState||worldState.combat||typeof memory==="undefined"||!memory||!memory.map)return"";
   var key=currentNodeKey();if(!key)return"";
@@ -1510,7 +1534,7 @@ function buildArcWallNudge(){
 // per companion) and questLog[].staleNudged (buildQuestStaleNudge — entry-30 ruling 2026-08-29:
 // the NARROW title-keyed snapshot, never questLog wholesale in the flat registry, which would
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[],quests:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -1538,7 +1562,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<ql2.length;j++){if(ql2[j]&&ql2[j].title===qr.title){
       if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;}}}
 }
-var NOTE_BUILDERS=[buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

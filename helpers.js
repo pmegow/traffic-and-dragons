@@ -973,6 +973,12 @@ function _itemServe(ov,base){
   }
   return ov||base||null;
 }
+// #303: a bible `value` ("50 gp", "1,200 gp") → number; null for N/A or anything unparseable.
+function itemValueGp(entry){if(!entry||!entry.value)return null;var m=String(entry.value).replace(/,/g,"").match(/(\d+(?:\.\d+)?)\s*gp/i);return m?parseFloat(m[1]):null;}
+// #303: LOCATION_SIZE text → the wares-cap tier. The GM's vocabulary is physical scale (small /
+// medium / large / vast — measured on the t2097 map); settlement words are folded in as a courtesy.
+// null when the node carries no size at all — an unsized place never gets a market ask.
+function waresSizeTier(size){var s=String(size||"").toLowerCase().trim();if(!s)return null;if(/vast|huge|sprawling|metropol/.test(s))return "vast";if(/large|big|major|city/.test(s))return "large";if(/medium|mid|moderate|town/.test(s))return "medium";if(/small|tiny|little|hamlet|village|outpost/.test(s))return "small";return "unknown";}
 function itemLookup(nm){
   var key=itemBaseName(nm);
   if(!key)return null;

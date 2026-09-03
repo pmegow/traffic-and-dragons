@@ -269,6 +269,44 @@ function fileLocationDesc(desc){
 // evicts the oldest loudly — newest state is the truest state, and every surviving note rides
 // the prompt every turn, so the record must compress. Creates the node if the location was never
 // formally filed — a note that silently vanished would be this feature failing its own defect.
+// #303 — WANTS & ECONOMY on the map. Wares and wants live on the WORLD node; expiry is by the
+// campaign clock (WARES_RESTOCK_DAYS), never by turn count. No ledger: an expired ware simply
+// stops being served and the market ask fires again.
+function _waresWorldNode(turn){
+  if(!worldState||!worldState.world||!worldState.world.location)return null;
+  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);
+  if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+  return memory.map.nodes[key];
+}
+function waresCapFor(node){var tier=(typeof waresSizeTier==="function")?waresSizeTier(node&&node.size):null;var caps=(typeof WARES_CAP_BY_SIZE!=="undefined")?WARES_CAP_BY_SIZE:{small:2,medium:4,large:6,vast:10,unknown:2};return caps[tier||"unknown"]||caps.unknown;}
+function fileWare(item,price,note,turn){
+  var node=_waresWorldNode(turn);if(!node)return null;
+  var it=String(item||"").trim(),pr=String(price||"").trim();if(!it||!pr)return null;
+  if(!node.wares)node.wares=[];delete node.waresNone;
+  var now=(typeof clockNow==="function")?clockNow():0,low=it.toLowerCase(),i,row=null;
+  for(i=0;i<node.wares.length;i++)if(String(node.wares[i].item).toLowerCase()===low){row=node.wares.splice(i,1)[0];break;}/* a re-stated ware refreshes, never twins */
+  if(!row)row={item:it};row.item=it;row.price=pr;row.note=String(note||"").trim().slice(0,120);row.t=turn;row.min=now;
+  node.wares.push(row);
+  var cap=waresCapFor(node);
+  while(node.wares.length>cap){var gone=node.wares.shift();if(typeof console!=="undefined")console.warn("[wares] "+gone.item+" dropped — the market here holds "+cap+" wares ("+(node.size||"unsized")+" place, #303)");}
+  return row;
+}
+function fileWaresNone(turn){var node=_waresWorldNode(turn);if(!node)return false;node.waresNone={t:turn,min:(typeof clockNow==="function")?clockNow():0};node.wares=[];return true;}
+function nodeWaresLive(node){
+  if(!node||!node.wares||!node.wares.length)return [];
+  var now=(typeof clockNow==="function")?clockNow():0,win=((typeof WARES_RESTOCK_DAYS!=="undefined")?WARES_RESTOCK_DAYS:7)*((typeof MIN_PER_DAY!=="undefined")?MIN_PER_DAY:1440);
+  return node.wares.filter(function(w){return typeof w.min!=="number"||now-w.min<win;});
+}
+function fileWanted(item,offer,by,turn){
+  var node=_waresWorldNode(turn);if(!node)return null;
+  var it=String(item||"").trim();if(!it)return null;
+  if(!node.wanted)node.wanted=[];
+  var low=it.toLowerCase(),i;for(i=0;i<node.wanted.length;i++)if(String(node.wanted[i].item).toLowerCase()===low){node.wanted.splice(i,1);break;}
+  var row={item:it,offer:String(offer||"").trim().slice(0,120),by:String(by||"").trim().slice(0,60),t:turn,min:(typeof clockNow==="function")?clockNow():0};
+  node.wanted.push(row);var cap=(typeof WANTED_CAP!=="undefined")?WANTED_CAP:4;while(node.wanted.length>cap)node.wanted.shift();
+  return row;
+}
 function fileLocationState(note,turn){
   if(!worldState||!worldState.world)return false;
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};

@@ -477,6 +477,110 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #303 wants & economy ────────────────────────────────────────────────────
+  function marketWorld(size){makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation=null;worldState.turn=30;
+    memory.map.nodes["Sandpoint"]={firstVisit:5,lastVisit:30,visits:3,description:"A harbour town.",parent:null,npcs:[],items:[],size:size||"medium",travelMins:20};
+    if(typeof clockEnsure==="function"){var ck=clockEnsure();if(ck)ck.min=10*MIN_PER_DAY;}}
+  t("#303 [WARES:] files a ware on the CURRENT world node with price, note, turn and clock stamp; the geo block serves it under FOR SALE HERE",function(){
+    marketWorld("medium");
+    var r=applyMuts("[WARES:Healing salve|8 gp|the apothecary on Salt Street]");
+    var n=memory.map.nodes["Sandpoint"];
+    if(!n.wares||n.wares.length!==1)return "wares: "+JSON.stringify(n.wares);
+    var w=n.wares[0];
+    if(w.item!=="Healing salve"||w.price!=="8 gp"||w.note!=="the apothecary on Salt Street"||w.t!==30||typeof w.min!=="number")return JSON.stringify(w);
+    if(!(r.muts||[]).some(function(m){return /for sale/i.test(m);}))return "no mut receipt: "+(r.muts||[]).join("|");
+    var g=buildGeoBlock();
+    return g.indexOf("FOR SALE HERE")>=0&&g.indexOf("Healing salve")>=0&&g.indexOf("8 gp")>=0?true:g;
+  });
+  t("#303 [WARES:none] records that nothing is for sale here and is served honestly (no phantom market)",function(){
+    marketWorld("small");
+    applyMuts("[WARES:none]");
+    var n=memory.map.nodes["Sandpoint"];
+    if(!n.waresNone)return "none not recorded";
+    var g=buildGeoBlock();
+    return g.indexOf("FOR SALE HERE")<0&&/nothing for sale/i.test(g)?true:g;
+  });
+  t("#303 wares cap scales with the node's LOCATION_SIZE (small 2 / medium 4 / large 6 / vast 10); the oldest ware yields, loudly",function(){
+    marketWorld("small");
+    applyMuts("[WARES:A|1 gp|x][WARES:B|1 gp|x][WARES:C|1 gp|x]");
+    var n=memory.map.nodes["Sandpoint"];
+    if(n.wares.length!==2)return "small cap: "+n.wares.length;
+    if(n.wares[0].item!=="B"||n.wares[1].item!=="C")return "oldest did not yield: "+n.wares.map(function(w){return w.item;}).join(",");
+    marketWorld("vast");
+    var tags="",i;for(i=0;i<12;i++)tags+="[WARES:W"+i+"|1 gp|x]";
+    applyMuts(tags);
+    return memory.map.nodes["Sandpoint"].wares.length===10?true:"vast cap: "+memory.map.nodes["Sandpoint"].wares.length;
+  });
+  t("#303 a re-stated ware refreshes the existing row (same item, case-insensitive) instead of stacking a twin",function(){
+    marketWorld("medium");
+    applyMuts("[WARES:Healing salve|8 gp|apothecary]");
+    worldState.turn=31;applyMuts("[WARES:healing salve|9 gp|apothecary, restocked]");
+    var n=memory.map.nodes["Sandpoint"];
+    return n.wares.length===1&&n.wares[0].price==="9 gp"&&n.wares[0].t===31?true:JSON.stringify(n.wares);
+  });
+  t("#303 wares EXPIRE after WARES_RESTOCK_DAYS in-game days — the geo block stops serving them and the market ask fires again",function(){
+    marketWorld("medium");
+    applyMuts("[WARES:Healing salve|8 gp|apothecary]");
+    worldState.marketAsk={node:"Sandpoint",askedMin:clockNow()};
+    var ck=clockEnsure();ck.min+=(WARES_RESTOCK_DAYS+1)*MIN_PER_DAY;
+    var g=buildGeoBlock();
+    if(g.indexOf("Healing salve")>=0)return "stale ware still served: "+g;
+    worldState.turn=40;var note=buildMarketNote();
+    return /WARES/.test(note)?true:"market ask did not re-fire after restock: "+note;
+  });
+  t("#303 the market ask: fires ONCE per node per restock window at a sized world node, combat-silent, never at a node with no size on file, latched on worldState.marketAsk",function(){
+    marketWorld("medium");
+    var n1=buildMarketNote();
+    if(!/\[WARES:/.test(n1)||!/medium/.test(n1)||!/WARES:none/.test(n1))return "first ask wrong: "+n1;
+    if(!worldState.marketAsk||worldState.marketAsk.node!=="Sandpoint")return "latch not stamped: "+JSON.stringify(worldState.marketAsk);
+    if(buildMarketNote()!=="")return "asked twice in the window";
+    if(NOTE_LATCH_FIELDS.indexOf("marketAsk")<0)return "marketAsk is not a declared latch field (#151)";
+    worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:2,maxHp:2}]};delete worldState.marketAsk;
+    if(buildMarketNote()!=="")return "asked during combat";
+    worldState.combat=null;memory.map.nodes["Sandpoint"].size=null;
+    if(buildMarketNote()!=="")return "asked at a node with no size";
+    memory.map.nodes["Sandpoint"].size="large";worldState.world.sublocation="The Rusty Flagon";memory.map.nodes["Sandpoint|The Rusty Flagon"]={firstVisit:30,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[]};
+    var n2=buildMarketNote();
+    return /Sandpoint/.test(n2)&&/large/.test(n2)?true:"the ask at a sublocation should still be about the WORLD node's market: "+n2;
+  });
+  t("#303 a [WARES:] price outside the bible band (⅓× … 3× the canon value) warns and receipts the canon price beside it — the price is never rewritten",function(){
+    marketWorld("medium");
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    var r;try{r=applyMuts("[WARES:Healing potion|900 gp|a swindler]");}finally{console.warn=_w;}
+    var w=memory.map.nodes["Sandpoint"].wares[0];
+    if(w.price!=="900 gp")return "price rewritten: "+w.price;
+    if(!warns.some(function(m){return /price/i.test(m)&&/50 gp/.test(m);}))return "no band warn: "+warns.join(" / ");
+    return (r.muts||[]).some(function(m){return /50 gp/.test(m);})?true:"canon price not receipted in muts: "+(r.muts||[]).join("|");
+  });
+  t("#303 [WANTED:] files what an NPC wants from the party on the current node (cap 4, newest wins) and the geo block serves it under WANTED HERE",function(){
+    marketWorld("medium");
+    var r=applyMuts("[WANTED:Stone disc|20 gp and a favour|Wyla Ashvane]");
+    var n=memory.map.nodes["Sandpoint"];
+    if(!n.wanted||n.wanted.length!==1||n.wanted[0].item!=="Stone disc"||n.wanted[0].offer!=="20 gp and a favour"||n.wanted[0].by!=="Wyla Ashvane")return JSON.stringify(n.wanted);
+    if(!(r.muts||[]).some(function(m){return /wanted/i.test(m);}))return "no mut receipt";
+    var i,tags="";for(i=0;i<5;i++)tags+="[WANTED:Thing"+i+"|1 gp|Someone]";applyMuts(tags);
+    if(n.wanted.length!==4)return "cap: "+n.wanted.length;
+    var g=buildGeoBlock();
+    return g.indexOf("WANTED HERE")>=0&&g.indexOf("Thing4")>=0?true:g;
+  });
+  t("#303 both tags are documented for the GM and stripped from prose; a malformed WARES (no price) warns and files nothing",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("[WARES:")<0||d.indexOf("[WANTED:")<0)return "doc lacks the tags";
+    if(cleanTxt("Goods. [WARES:Salve|8 gp|x][WANTED:Disc|9 gp|Y] End.")!=="Goods.  End.")return "not stripped: "+cleanTxt("Goods. [WARES:Salve|8 gp|x][WANTED:Disc|9 gp|Y] End.");
+    marketWorld("medium");
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[WARES:Just a name]");}finally{console.warn=_w;}
+    var n=memory.map.nodes["Sandpoint"];
+    return (!n.wares||!n.wares.length)&&warns.some(function(m){return /WARES/.test(m);})?true:"malformed ware filed or silent: "+JSON.stringify(n.wares)+" / "+warns.join("|");
+  });
+  t("#303 item bible content: five armors whose effects read as the class ladder does (no AC arithmetic), and four priced consumables beside the potion — every one resolves and carries a gp value",function(){
+    var armors=Object.keys(ITEM_BIBLE).filter(function(k){return ITEM_BIBLE[k].category==="armor";});
+    if(armors.length<5)return "armor entries: "+armors.join(", ");
+    for(var i=0;i<armors.length;i++){var e=ITEM_BIBLE[armors[i]];if(/\bAC\b|armor class/i.test(e.effect))return armors[i]+" still carries AC text: "+e.effect;if(!/\d+ gp/.test(e.value))return armors[i]+" has no gp value";}
+    var need=["healing salve","greater healing potion","antitoxin","smelling salts"];
+    for(i=0;i<need.length;i++){var it=itemLookup(need[i]);if(!it)return need[i]+" does not resolve";if(it.category!=="consumable"||!/\d+ gp/.test(it.value)||it.effect==="N/A")return need[i]+": "+JSON.stringify(it);}
+    return typeof itemValueGp==="function"&&itemValueGp(ITEM_BIBLE["healing potion"])===50?true:"itemValueGp broken";
+  });
   t("#302 re-level on load: a character whose XP now clears a higher gate levels up when the save is opened, companions too (no migration — the curve simply applies)",function(){
     makeWorld();var c=worldState.character;c.level=3;c.xp=CLASS_XP_LEVELS[4]+5;c.abilities=[];
     var cs={name:"Daeris",cls:"Cleric",level:2,xp:CLASS_XP_LEVELS[3]+1,maxHp:20,hp:20,stats:{CON:12,WIS:16},abilities:[],spells:[],partyMember:true};
@@ -5349,7 +5453,7 @@ function runEngineTests(R){
     // would read the relabel ceremony aloud in the prose and pollute the transcript.
     // v1.697 (#211): +NO_CHANGE in BOTH registries (+10 chars payload form; bare form joins
     // _CT_BARE) — the audit-ack channel must strip everywhere or the ack IS the leak it cures.
-    if(__djb2(_CT_TAGS.source)!==1838751325||_CT_TAGS.source.length!==1560)return "_CT_TAGS diverged from the frozen literal";/* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==386031354||_CT_TAGS.source.length!==1573)return "_CT_TAGS diverged from the frozen literal";/* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -5428,7 +5532,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-389515628&&d.length===25830)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===-1868999837&&d.length===26580)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
