@@ -43,9 +43,10 @@ var EDITOR_ASSETS = {
   "/capability_bible.js": "capability_bible.js",
   "/item_bible.js": "item_bible.js",
   "/helpers.js": "helpers.js",
-  "/class_bible.js": "class_bible.js"
+  "/class_bible.js": "class_bible.js",
+  "/satellite.css": "satellite.css"   // #312: the shared satellite palette — missing here = an unstyled editor (2026-09-03)
 };
-var MIME = { ".html": "text/html", ".js": "text/javascript" };
+var MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css" };
 var CORS = {
   "Access-Control-Allow-Origin": "*",          // the pages run from file:// (Origin: null)
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",

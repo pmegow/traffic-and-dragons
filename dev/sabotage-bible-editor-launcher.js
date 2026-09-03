@@ -51,7 +51,7 @@ const cases = [
     label: "helper protocol version loses its visible semver shape",
     file: "dev/bible-helper-version.js",
     mustFail: "Bible helper protocol version has a visible semver shape",
-    find: 'var BIBLE_HELPER_VERSION = "1.0.0";',
+    find: 'var BIBLE_HELPER_VERSION = "1.0.1";',
     replace: 'var BIBLE_HELPER_VERSION = "unknown";'
   },
   {

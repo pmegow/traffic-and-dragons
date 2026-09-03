@@ -209,6 +209,24 @@ function listeningPid(port) {
     const helperVersionAsset = await get(port, "/dev/bible-helper-version.js?fresh=fixture");
     verdict(helperVersionAsset.status === 200 && /module\.exports/.test(helperVersionAsset.body),
       "launcher server serves the helper protocol version registry", "status=" + helperVersionAsset.status);
+    // 2026-09-03 (the unstyled editor): after #312 the page links satellite.css, and the server's asset
+    // allow-list never learned it — a 404 for the stylesheet and the editor renders in browser defaults.
+    // Guard the CLASS: every stylesheet and script the page links must come back 200 from this origin.
+    const pageSrc = fs.readFileSync(path.join(ROOT, "bible_editor.html"), "utf8");
+    const linked = [];
+    pageSrc.replace(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g, (m, h) => { linked.push(h); return m; });
+    pageSrc.replace(/<script[^>]+src="([^"]+)"/g, (m, h) => { linked.push(h); return m; });
+    verdict(linked.indexOf("satellite.css") >= 0, "the editor page links the shared satellite palette", linked.join(","));
+    for (const href of linked) {
+      if (/^https?:/.test(href) || /['+]/.test(href)) continue; // a generated-tag template inside the page's JS is not a link
+      const asset = await get(port, "/" + href.replace(/^\.?\//, "") + "?fresh=fixture");
+      const ct = String(asset.headers["content-type"] || "");
+      const wantCt = /\.css$/.test(href) ? "text/css" : /\.js$/.test(href) ? "text/javascript" : "";
+      verdict(asset.status === 200 && (!wantCt || ct.indexOf(wantCt) === 0),
+        "launcher server serves the page's own asset " + href + " with the right type", "status=" + asset.status + " type=" + ct);
+    }
+    const css = await get(port, "/satellite.css?fresh=fixture");
+    verdict(css.status === 200 && /--acc\s*:/.test(css.body), "launcher server serves satellite.css with the palette tokens", "status=" + css.status);
     const mismatch = await post(port, "/install", {
       "Content-Type": "text/plain",
       "Origin": "http://127.0.0.1:" + port,
