@@ -21,12 +21,12 @@ rc |= sabotage.prove({
       replace: "    var moved = {}; for (var sabotageI = 0; sabotageI < common.length; sabotageI++) moved[common[sabotageI]] = true;" },
     { label: "new-row classification is lost",
       mustFail: "new row passes",
-      find: "    Object.keys(after).forEach(function (token) { if (!before[token]) added++; });",
-      replace: "    Object.keys(after).forEach(function (token) { if (!before[token]) return; });" },
+      find: "    for (j = 0; j < afterTable.rows.length; j++) if (!afterTaken[j]) added++;",
+      replace: "    for (j = 0; j < afterTable.rows.length; j++) if (!afterTaken[j]) added += 0;" },
     { label: "deleted-row classification is lost",
       mustFail: "deleted row passes",
-      find: "    Object.keys(before).forEach(function (token) { if (!after[token]) deleted++; });",
-      replace: "    Object.keys(before).forEach(function (token) { if (!after[token]) return; });" }
+      find: "    for (i = 0; i < pairs.length; i++) if (!pairs[i].after) deleted++;",
+      replace: "    for (i = 0; i < pairs.length; i++) if (!pairs[i].after) deleted += 0;" }
   ]
 });
 

@@ -142,6 +142,23 @@ try {
     return /1 added/.test(resultText(r)) ? "" : "new row was not classified as added: " + resultText(r);
   });
 
+  test("a closed twin sharing an open row's id leaves for the archive — the open row is not reported as moved-and-changed", function () {
+    // Two unrelated rows can share an id (an open #6 and a closed #6); when the closed copy is
+    // removed, the id's nth-occurrence token shifts and a token-only pairing blames the survivor.
+    var openRow = rowLine(head, "174");
+    var m = head.match(/<!-- completed -->\n\| # \|[^\n]*\n\|---[^\n]*\n/);
+    if (!m) return "fixture: no completed table header found";
+    var twin = "| 174 | Synthetic closed twin of an open id | S | Any | \u2705 done long ago |\n";
+    var withTwin = head.replace(m[0], m[0] + twin);
+    var withoutTwin = withTwin.replace(twin, "");
+    if (withoutTwin !== head) return "fixture: removing the twin did not restore the original";
+    var r = lintFixture(tmp, "dup-id-archive", withTwin, withoutTwin);
+    if (r.status !== 0) return "the open row was blamed for the twin's departure: " + resultText(r);
+    if (!/1 deleted/.test(resultText(r))) return "the twin was not classified as deleted: " + resultText(r);
+    if (rowLine(withoutTwin, "174") !== openRow) return "fixture: the open row changed";
+    return "";
+  });
+
   test("deleted row passes", function () {
     var deleted = head.replace(original175 + "\n", "");
     var r = lintFixture(tmp, "delete-row", head, deleted);

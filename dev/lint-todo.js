@@ -124,30 +124,45 @@ function movedRowErrors(headText, candidateText) {
     var beforeTable = headTables[key];
     var afterTable = candidateTables[key];
     if (!afterTable) return;
-    var before = {};
-    var after = {};
-    var common = [];
-    var i;
-    for (i = 0; i < beforeTable.rows.length; i++) before[beforeTable.rows[i].token] = { row: beforeTable.rows[i], order: i };
-    for (i = 0; i < afterTable.rows.length; i++) after[afterTable.rows[i].token] = { row: afterTable.rows[i], order: i };
-    Object.keys(after).forEach(function (token) { if (!before[token]) added++; });
-    Object.keys(before).forEach(function (token) { if (!after[token]) deleted++; });
-    Object.keys(before).forEach(function (token) { if (after[token]) common.push(token); });
-    var moved = {};
-    for (i = 0; i < common.length; i++) {
-      for (var j = i + 1; j < common.length; j++) {
-        var a = common[i], b = common[j];
-        var headSign = before[a].order < before[b].order;
-        var candidateSign = after[a].order < after[b].order;
-        if (headSign !== candidateSign) { moved[a] = true; moved[b] = true; }
+    var i, j;
+    // Pair rows by EXACT BYTES first. Two unrelated rows can share an id (an open row and a
+    // closed twin under the same section — #6, #19); the nth-occurrence token then shifts when
+    // one copy leaves for the archive, and a token-only pairing reports the survivor as "moved
+    // and changed" (the 2026-09-01 archive-move false positive). A byte-identical row is the
+    // same row wherever it sits; only rows with no byte twin fall back to the id token.
+    var afterTaken = [];
+    for (i = 0; i < afterTable.rows.length; i++) afterTaken.push(false);
+    var pairs = [];
+    for (i = 0; i < beforeTable.rows.length; i++) {
+      var b = beforeTable.rows[i], hit = -1;
+      for (j = 0; j < afterTable.rows.length; j++) { if (!afterTaken[j] && afterTable.rows[j].raw === b.raw) { hit = j; break; } }
+      pairs.push({ before: b, beforeOrder: i, after: hit >= 0 ? afterTable.rows[hit] : null, afterOrder: hit });
+      if (hit >= 0) afterTaken[hit] = true;
+    }
+    for (i = 0; i < pairs.length; i++) {
+      if (pairs[i].after) continue;
+      for (j = 0; j < afterTable.rows.length; j++) {
+        if (!afterTaken[j] && afterTable.rows[j].token === pairs[i].before.token) { pairs[i].after = afterTable.rows[j]; pairs[i].afterOrder = j; afterTaken[j] = true; break; }
       }
     }
-    Object.keys(moved).forEach(function (token) {
+    for (i = 0; i < pairs.length; i++) if (!pairs[i].after) deleted++;
+    for (j = 0; j < afterTable.rows.length; j++) if (!afterTaken[j]) added++;
+    var common = [];
+    for (i = 0; i < pairs.length; i++) if (pairs[i].after) common.push(pairs[i]);
+    var moved = {};
+    for (i = 0; i < common.length; i++) {
+      for (j = i + 1; j < common.length; j++) {
+        var headSign = common[i].beforeOrder < common[j].beforeOrder;
+        var candidateSign = common[i].afterOrder < common[j].afterOrder;
+        if (headSign !== candidateSign) { moved[i] = true; moved[j] = true; }
+      }
+    }
+    Object.keys(moved).forEach(function (k) {
       reordered++;
-      var oldRow = before[token].row;
-      var newRow = after[token].row;
+      var oldRow = common[k].before;
+      var newRow = common[k].after;
       if (oldRow.raw === newRow.raw) return;
-      errs.push("row #" + oldRow.id + " moved from HEAD line " + oldRow.line + " to candidate line " + newRow.line + " but its bytes changed (" + differenceSummary(oldRow.raw, newRow.raw) + "). A move must preserve the complete row byte-for-byte; make content edits in place before or after the reorder.");
+      errs.push("row #" + oldRow.id + " moved from HEAD line " + oldRow.line + " to candidate line " + newRow.line + " but its bytes changed (" + differenceSummary(oldRow.raw, newRow.raw) + "). A moved row must be byte-identical; edit it in place in its own commit.");
     });
   });
   return { errors: errs, reordered: reordered, added: added, deleted: deleted };
