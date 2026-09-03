@@ -477,6 +477,38 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #299 combat-slain ring: a rolled foe's death is combat canon for the summary validator ──
+  t("#299 a foe slain in combat lands in worldState.combatSlain (rostered or not), capped at COMBAT_SLAIN_CAP, oldest first out",function(){
+    makeWorld();worldState.turn=24;
+    applyMuts("[COMBAT_START:Chain-Dragger|18|13|+4|1d8|high]");applyMuts("[ENEMY_SLAIN:Chain-Dragger][COMBAT_END:victory]");
+    var r=worldState.combatSlain||[];
+    if(r.length!==1||r[0].name!=="Chain-Dragger"||r[0].turn!==24)return "ring: "+JSON.stringify(r);
+    var i;for(i=0;i<COMBAT_SLAIN_CAP+3;i++){worldState.turn++;applyMuts("[COMBAT_START:Rat "+i+"|2|10|+0|1d4|low]");applyMuts("[ENEMY_SLAIN:Rat "+i+"][COMBAT_END:victory]");}
+    r=worldState.combatSlain;
+    return r.length===COMBAT_SLAIN_CAP&&r[0].name!=="Chain-Dragger"&&r[r.length-1].name==="Rat "+(COMBAT_SLAIN_CAP+2)?true:"cap: "+r.length+" first "+r[0].name;
+  });
+  t("#299 a chapter summary that cites a combat-slain rolled foe under npcDeaths VALIDATES as combat canon (no throw, no conflict, no fork note), and the ring entry retires; an uncited stranger still refuses",function(){
+    makeWorld();worldState.turn=24;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];
+    applyMuts("[COMBAT_START:Chain-Dragger|18|13|+4|1d8|high]");applyMuts("[ENEMY_SLAIN:Chain-Dragger][COMBAT_END:victory]");
+    worldState.turn=26;
+    try{w2ValidateSummary({npcDeaths:[{name:"Chain-Dragger",handle:"",sourceTurn:24}],chapterSummary:"The Chain-Dragger died on the stair."});}
+    catch(e){return "combat canon refused: "+(e&&e.message);}
+    if((worldState.identityConflicts||[]).length)return "a conflict was minted for a combat corpse";
+    if((worldState.combatSlain||[]).some(function(x){return x.name==="Chain-Dragger";}))return "the cited entry was not retired";
+    /* the prose form — "the chain-dragger" — still matches the ring by name containment */
+    worldState.turn=30;applyMuts("[COMBAT_START:Bone Warden|20|14|+5|1d10|high]");applyMuts("[ENEMY_SLAIN:Bone Warden][COMBAT_END:victory]");
+    try{w2ValidateSummary({npcDeaths:[{name:"the Bone Warden",sourceTurn:30}],chapterSummary:""});}catch(e){return "prose-form citation refused: "+(e&&e.message);}
+    var threw=null;try{w2ValidateSummary({npcDeaths:[{name:"Nobody Slain",sourceTurn:30}],chapterSummary:""});}catch(e){threw=e;}
+    return threw?true:"an uncited stranger's death validated";
+  });
+  t("#25 locResolve's memo cannot serve a stale answer after a DIRECT identity-table write (an entry added without the generation bump)",function(){
+    makeGeoWorld();
+    if(locResolve("Sandpoint, Varisia")!=="Sandpoint, Varisia")return "fixture: not yet merged";
+    /* a direct write, the way a test or a repair tool might do it — no locMerge, no _locResGen++ */
+    if(!memory.map.identity)memory.map.identity={entries:{}};if(!memory.map.identity.entries)memory.map.identity.entries={};
+    memory.map.identity.entries["Sandpoint, Varisia"]={mergedInto:"Sandpoint"};
+    return locResolve("Sandpoint, Varisia")==="Sandpoint"?true:"stale memo served the dead key";
+  });
   // ── #308 montage turns + Car Mode bookends ───────────────────────────────────
   t("#308 montageDue: MONTAGE_AFTER_TURNS committed turns with no combat, no move and no fight open → due; any combat/move tag in the window, an open fight, or a downed hero → not due",function(){
     makeWorld();worldState.turn=40;var i;worldState.tagLog=[];

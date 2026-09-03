@@ -105,12 +105,13 @@ function _locEntriesEnsure(){
 // gen-only memo kept serving campaign A's canon inside campaign B. Content-identity invalidation
 // covers every replacement seam, including future ones — no per-seam bump to forget. The
 // retained reference is ONE object, replaced on the next resolve (monores: bounded).
-var _locResGen=0,_locResMemo=Object.create(null),_locResMemoGen=-1,_locResMemoObj=null;
+var _locResGen=0,_locResMemo=Object.create(null),_locResMemoGen=-1,_locResMemoObj=null,_locResMemoKeys=-1;
 function locResolve(name){
   if(name==null||name==="")return name;
   var entries=_locEntries();
   if(!entries)return name;
-  if(_locResMemoGen!==_locResGen||_locResMemoObj!==entries){_locResMemo=Object.create(null);_locResMemoGen=_locResGen;_locResMemoObj=entries;}
+  var _locKeyCount=0,_lk;for(_lk in entries)_locKeyCount++;/* #25: a direct table write (test fixture, repair tool) bumps no generation — the key count is the cheap tell */
+  if(_locResMemoGen!==_locResGen||_locResMemoObj!==entries||_locResMemoKeys!==_locKeyCount){_locResMemo=Object.create(null);_locResMemoGen=_locResGen;_locResMemoObj=entries;_locResMemoKeys=_locKeyCount;}
   var hit=_locResMemo[name];
   if(hit!==undefined)return hit;
   var cur=String(name),seen={},guard=0;
@@ -1635,9 +1636,18 @@ function w6ValidateSummary(extracted,table){
   return true;
 }
 function validateSummaryExtract(extracted,table){if(typeof w6ValidateSummary==="function")w6ValidateSummary(extracted,table);if(typeof w2ValidateSummary==="function")w2ValidateSummary(extracted);return true;}
+// #299: does the combat record already hold this death? Matches the ring by name containment both
+// ways (the summary says "the Bone Warden", the tracker said "Bone Warden"). A hit is combat canon —
+// the validator accepts it and RETIRES the ring entry (one citation per corpse).
+function _w2CombatSlainMatch(name){
+  var ring=worldState&&worldState.combatSlain;if(!ring||!ring.length||!name)return null;
+  var i;for(i=ring.length-1;i>=0;i--){var n=ring[i].name;if(!n)continue;
+    if(String(n).toLowerCase()===String(name).toLowerCase()||(typeof nameContains==="function"&&(nameContains(name,n)||nameContains(n,name))))return ring.splice(i,1)[0];}
+  return null;
+}
 function w2ValidateSummary(extracted){
   var legacyTrusted=!worldState.sceneRefs;sceneRefsEnsure();var ds=Array.isArray(extracted.npcDeaths)?extracted.npcDeaths:[],valid={},i,reason="",subject="",handle="-";
-  for(i=0;i<ds.length;i++){var d=ds[i],name=(d&&typeof d==="object")?String(d.name||""):String(d||""),ws=name&&typeof wsNpcByName==="function"?wsNpcByName(resolveNpcName(name)):null,mem=name&&memory.npcs&&memory.npcs[resolveNpcName(name)];if(!name)continue;name=resolveNpcName(name);subject=name;handle=(d&&typeof d==="object")?String(d.handle||""):"-";if((ws&&ws.dead)||(mem&&mem.dead)){valid[name]=true;continue;}if((!d||typeof d!=="object")&&!legacyTrusted)reason="uncited legacy npcDeaths entry cannot mint a new corpse";else if(!d||typeof d!=="object")valid[name]=true;else if(d.sourceTurn==null||!isFinite(Number(d.sourceTurn)))reason="summary death lacks a source turn";else if(!handle||!w2DeathAuthorized(name,handle,Number(d.sourceTurn)))reason="summary death lacks matching scene-handle evidence";else if(d.canonTxnId&&typeof _w2TxnFind==="function"&&(function(){var _ctr=_w2TxnFind(String(d.canonTxnId));if(_ctr&&_ctr.status==="quarantined")return true;if(!_ctr&&typeof console!=="undefined")console.warn("[identity] summary death cites unknown transaction id "+d.canonTxnId+" - ignored, handle evidence governs (#168R6b)");return false;})())reason="summary death cites a quarantined transaction";else valid[name]=true;if(reason)break;}
+  for(i=0;i<ds.length;i++){var d=ds[i],name=(d&&typeof d==="object")?String(d.name||""):String(d||""),ws=name&&typeof wsNpcByName==="function"?wsNpcByName(resolveNpcName(name)):null,mem=name&&memory.npcs&&memory.npcs[resolveNpcName(name)];if(!name)continue;name=resolveNpcName(name);subject=name;handle=(d&&typeof d==="object")?String(d.handle||""):"-";if((ws&&ws.dead)||(mem&&mem.dead)){valid[name]=true;continue;}if(!ws&&!mem&&_w2CombatSlainMatch(name)){valid[name]=true;continue;}/* #299: a rolled foe slain at a combat close — combat canon, no handle needed, no conflict */if((!d||typeof d!=="object")&&!legacyTrusted)reason="uncited legacy npcDeaths entry cannot mint a new corpse";else if(!d||typeof d!=="object")valid[name]=true;else if(d.sourceTurn==null||!isFinite(Number(d.sourceTurn)))reason="summary death lacks a source turn";else if(!handle||!w2DeathAuthorized(name,handle,Number(d.sourceTurn)))reason="summary death lacks matching scene-handle evidence";else if(d.canonTxnId&&typeof _w2TxnFind==="function"&&(function(){var _ctr=_w2TxnFind(String(d.canonTxnId));if(_ctr&&_ctr.status==="quarantined")return true;if(!_ctr&&typeof console!=="undefined")console.warn("[identity] summary death cites unknown transaction id "+d.canonTxnId+" - ignored, handle evidence governs (#168R6b)");return false;})())reason="summary death cites a quarantined transaction";else valid[name]=true;if(reason)break;}
   if(!reason&&extracted.chapterSummary){var names=Object.keys(memory.npcs||{}),j;for(j=0;j<names.length;j++){var cn=resolveNpcName(names[j]),cw=typeof wsNpcByName==="function"?wsNpcByName(cn):null;if((cw&&cw.dead)||memory.npcs[cn].dead||valid[cn])continue;if(_w2ChapterDeath(cn,extracted.chapterSummary)){subject=cn;reason="death-like chapter claim has no cited npcDeaths evidence";break;}}}
   if(reason){
     /* #190ⓔ (the lane race): the extractor truthfully reports prose the GAMEPLAY lane has not yet

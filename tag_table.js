@@ -215,6 +215,10 @@ function propagateSlainFoes(R){
   var f=(worldState.combat&&worldState.combat.foes)||[],i;
   for(i=0;i<f.length;i++){
     if(f[i].down!=="slain")continue;
+    /* #299: the combat-slain ring — EVERY slain foe, rostered or not. The encounter vanishes with the
+       close; without this the summary validator had nothing to match a rolled foe's cited death against
+       and opened a W2 conflict for a corpse that needed no ceremony (the t24 Chain-Dragger, six notes). */
+    if(f[i].name){if(!worldState.combatSlain)worldState.combatSlain=[];var _csn=String(f[i].name).trim();if(!worldState.combatSlain.some(function(x){return x.name===_csn&&x.turn===R.turn;}))worldState.combatSlain.push({name:_csn,turn:R.turn});var _cap=(typeof COMBAT_SLAIN_CAP==="number")?COMBAT_SLAIN_CAP:12;if(worldState.combatSlain.length>_cap)worldState.combatSlain=worldState.combatSlain.slice(worldState.combatSlain.length-_cap);}
     var cn=resolveNpcName(String(f[i].name||"").trim());
     var w=wsNpcByName(cn);
     if(!w||npcIsDead(w))continue;

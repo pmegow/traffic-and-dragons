@@ -21,8 +21,8 @@ rc |= sabotage.prove({
   cases: [
     { label: "locResolve reverts to gen-only invalidation — a campaign switch serves foreign canon again (#271①)",
       mustFail: "campaign A's merge served inside campaign B",
-      find: "  if(_locResMemoGen!==_locResGen||_locResMemoObj!==entries){_locResMemo=Object.create(null);_locResMemoGen=_locResGen;_locResMemoObj=entries;}",
-      replace: "  if(_locResMemoGen!==_locResGen){_locResMemo=Object.create(null);_locResMemoGen=_locResGen;}" },
+      find: "  if(_locResMemoGen!==_locResGen||_locResMemoObj!==entries||_locResMemoKeys!==_locKeyCount){_locResMemo=Object.create(null);_locResMemoGen=_locResGen;_locResMemoObj=entries;_locResMemoKeys=_locKeyCount;}",
+      replace: "  if(_locResMemoGen!==_locResGen){_locResMemo=Object.create(null);_locResMemoGen=_locResGen;}" },/* #25 (v1.783): the memo also keys on the table's key count — the clause targets the full line */
 
     { label: "the speech-fact memo drops the transcript reference from its key — a turn+length coincidence serves stale evidence to the death gate (#271①)",
       mustFail: "stale speech evidence served across a transcript replacement",
