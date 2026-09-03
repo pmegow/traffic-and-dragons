@@ -1297,6 +1297,7 @@ var _w2RefusedNow=[];
    (dev/run-tests.js) fails the build when a listed reason falls through to the generic
    fallback or when identity.js passes _w2Conflict a reason this list does not carry. */
 var W2_REFUSAL_REASONS=[
+  "plot armor: ",/* #319 — "plot armor: <name> is load-bearing until Act N … and cannot die yet"; a story beat, copy: they got away */
   "named death has no prior positive scene binding",
   "registered combat foe lacks a prior positive scene binding",
   "death names no observed handle",
