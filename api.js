@@ -21,6 +21,9 @@ function buildGeoBlock(){
   // Canonical descriptions
   if(wNode&&wNode.description)lines.push("Location desc: "+wNode.description);
   if(wNode&&wNode.size)lines.push("Location size: "+wNode.size+(wNode.travelMins?" (~"+wNode.travelMins+"min to cross)":""));
+  /* #207 ②: filed hours meet the clock — OPEN or CLOSED at this hour, said plainly, for the world node and the sublocation */
+  var _hrLine=function(node,label){if(!node||!node.hours||typeof clockNow!=="function")return;var h=node.hours,mins=clockNow()%MIN_PER_DAY,hr=Math.floor(mins/60),mn=mins%60,open=(h.open<=h.close)?(hr>=h.open&&hr<h.close):(hr>=h.open||hr<h.close);lines.push(label+"Hours: "+h.open+":00–"+h.close+":00"+(h.note?" ("+h.note+")":"")+" — "+(open?"OPEN now":"CLOSED at this hour")+" (it is "+hr+":"+(mn<10?"0":"")+mn+")");};
+  _hrLine(wNode,"");_hrLine(subNode,"Sub-location ");
   if(subNode&&subNode.description)lines.push("Sub-location desc: "+subNode.description);
   if(subNode&&subNode.size)lines.push("Sub-location size: "+subNode.size+(subNode.travelMins?" (~"+subNode.travelMins+"min to cross)":""));
   // #105 (B17): the state-change record — what the story has durably DONE to this place. Served
@@ -526,6 +529,29 @@ function buildQuestStaleNudge(){
 // responses are dramatically crowded and write-once means a rushed description is pinned
 // forever — demand the description. Latch stamps on fire (the buildConditionAudit precedent);
 // re-fires every LOC_DESC_NUDGE_COOLDOWN turns while still null; a filed description ends it.
+// #317: the WHISPERS ask — at a sized settlement, outside combat, every WHISPERS_EVERY turns. The GM authors
+// one line of what people say about the party FROM the recent decisions and finished quests (never invents a
+// fact the record lacks); [WHISPER:] files it. Latch: worldState.whisperAsk. No ledgers — hearsay only.
+function buildWhispersNote(){
+  if(!worldState||worldState.combat||!worldState.world||!worldState.world.location||typeof memory==="undefined"||!memory||!memory.map)return"";
+  var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);
+  var node=memory.map.nodes[key];if(!node||!node.size)return"";
+  var every=(typeof WHISPERS_EVERY==="number")?WHISPERS_EVERY:15,wa=worldState.whisperAsk;
+  if(wa&&typeof wa.turn==="number"&&worldState.turn-wa.turn<every)return"";
+  var dec=(memory.keyDecisions||[]).slice(-5).map(function(d){return "t"+d.turn+": "+d.desc;});
+  var qs=[],qk=Object.keys(memory.quests||{}),i;for(i=qk.length-1;i>=0&&qs.length<3;i--){var q=memory.quests[qk[i]];if(q&&(q.status==="completed"||q.status==="failed"))qs.push(qk[i]+" ("+q.status+")");}
+  var cm=(worldState.character&&worldState.character.coreMemories)||[],last=cm.length?cm[cm.length-1].text:"";
+  if(!dec.length&&!qs.length&&!last)return"";
+  worldState.whisperAsk={turn:worldState.turn,node:key};
+  var label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
+  return "[ENGINE NOTE — WHISPERS (not a player action): "+label+" is a place where people talk. Let ONE character in the scene mention what is said about the party — a rumour, a reputation, a name garbled in the telling — in one or two lines, in character, drawn ONLY from these facts: "+(dec.length?"decisions — "+dec.join("; ")+". ":"")+(qs.length?"finished quests — "+qs.join("; ")+". ":"")+(last?"defining moment — "+last+" ":"")+"Rumour distorts: it may exaggerate, blame the wrong person, or get a name wrong, but it never invents an event that did not happen. Emit [WHISPER:one sentence of what is said] so the engine remembers the rumour as rumour. If no one here would have heard anything, say nothing and emit nothing.]";
+}
+// #317: the served hearsay — the newest three rumours, framed as what is SAID, never what is true.
+function buildWhispersBlock(){
+  var w=worldState&&worldState.whispers;if(!w||!w.length)return"";
+  var last=w.slice(-3),lines=[],i;for(i=0;i<last.length;i++)lines.push("- (t"+last[i].turn+(last[i].at?", "+last[i].at:"")+") "+last[i].text);
+  return "WHISPERS ABOUT THE PARTY — what is SAID of them in taverns and markets, hearsay, not what is true; NPCs may repeat, doubt or twist these:\n"+lines.join("\n")+"\n\n";
+}
 // #303: the MARKET ASK — at a sized world node whose market record is empty or older than
 // WARES_RESTOCK_DAYS, ask ONCE per node per window; the GM answers with [WARES:] lines (count
 // scaled to the place's size) or [WARES:none]. Latch: worldState.marketAsk (#151-declared).
@@ -1605,7 +1631,7 @@ function buildArcWallNudge(){
 // per companion) and questLog[].staleNudged (buildQuestStaleNudge — entry-30 ruling 2026-08-29:
 // the NARROW title-keyed snapshot, never questLog wholesale in the flat registry, which would
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
-var NOTE_LATCH_FIELDS=["montagePing","wrapUpPing",/* #308 */"recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["whisperAsk",/* #317 */"montagePing","wrapUpPing",/* #308 */"recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
 var NOTE_NESTED_LATCHES=["questLog[].staleNudged","charSheet.splitLoc.audited","conditions[].until","memory.futureEvents[]._asked","sessionLog"];
 function snapshotNoteLatches(){
@@ -1646,7 +1672,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<ql2.length;j++){if(ql2[j]&&ql2[j].title===qr.title){
       if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;}}}
 }
-var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 */buildMontageNote,buildWrapUpNote,/* #308 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 */buildMontageNote,buildWrapUpNote,/* #308 */buildWhispersNote,/* #317 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // #309: THE SHAPE REGISTRY (owner ruling 2026-09-03 — one-in-one-out was REJECTED after the
 // 49-builder catalog, audits/RECORD_309_note_builder_catalog.md: builders are six shapes, not
 // fungible units). Every builder declares its shape, the latch fields it burns (declared in
@@ -1660,6 +1686,7 @@ var NOTE_SHAPES={
   buildDownedNote:{shape:"cooldown-reminder",latch:["none"],combat:"fires",ack:["DOWNED_RESOLVED","HP"]},
   buildRecklessNote:{shape:"one-shot-ask",latch:["recklessPing"],combat:"fires",ack:["none"]},
   buildMontageNote:{shape:"one-shot-ask",latch:["montagePing"],combat:"fires",ack:["TIME_ADVANCE"]},
+  buildWhispersNote:{shape:"cooldown-reminder",latch:["whisperAsk"],combat:"silent",ack:["WHISPER"]},
   buildWrapUpNote:{shape:"one-shot-ask",latch:["wrapUpPing"],combat:"fires",ack:["none"]},
   buildRespawnNote:{shape:"one-shot-ask",latch:["respawnNote"],combat:"fires",ack:["none"]},
   buildArcWallNudge:{shape:"cooldown-reminder",latch:["arcWallWarned"],combat:"silent",ack:["QUEST"]},
@@ -2048,6 +2075,7 @@ function buildSysPrompt(){
     +buildClockBlock()/* #73: campaign clock + computed deadline countdowns — volatile only (a per-turn counter must never touch the cached stable half) */
     +cb+erasBlock+hist
     +buildCoreMemoryBlock()
+    +buildWhispersBlock()/* #317: hearsay, volatile, ""-clean when nothing has been whispered */
     +buildRetconPinBlock()/* #147: correction-in-force pin — volatile only, ""-clean when no pin lives */
     +buildDeathSceneBlock()/* #301: Death's voice above the prose voice — "" outside the escort scene */
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"

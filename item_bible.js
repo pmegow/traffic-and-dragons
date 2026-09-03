@@ -286,7 +286,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "at-will",
-    "value": "N/A"
+    "value": "20 gp"
   },
   "throwing knives": {
     "category": "weapon",
@@ -309,7 +309,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "at-will",
-    "value": "N/A"
+    "value": "15 gp"
   },
   "brass key": {
     "category": "tool",
@@ -321,7 +321,7 @@ var ITEM_BIBLE = {
     ],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "1 gp"
   },
   "iron key": {
     "category": "tool",
@@ -331,7 +331,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "1 gp"
   },
   "room key": {
     "category": "tool",
@@ -341,7 +341,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "1 gp"
   },
   "cipher wheel": {
     "category": "tool",
@@ -352,7 +352,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "12 gp"
   },
   "transcription kit": {
     "category": "tool",
@@ -362,7 +362,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "8 gp"
   },
   "traveling ink kit": {
     "category": "tool",
@@ -372,7 +372,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "5 gp"
   },
   "chalk composite for ward marking": {
     "category": "tool",
@@ -382,7 +382,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "consumed per marking",
-    "value": "N/A"
+    "value": "4 gp"
   },
   "folding camp stove": {
     "category": "tool",
@@ -392,7 +392,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "6 gp"
   },
   "leather satchel": {
     "category": "tool",
@@ -412,7 +412,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "3 gp"
   },
   "oilcloth strip": {
     "category": "tool",
@@ -422,7 +422,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "1 gp"
   },
   "oilskin packet": {
     "category": "tool",
@@ -432,7 +432,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "1 gp"
   },
   "coin pouch": {
     "category": "tool",
@@ -452,7 +452,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "2 gp"
   },
   "saddles": {
     "category": "tool",
@@ -462,7 +462,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "25 gp"
   },
   "saddlebags": {
     "category": "tool",
@@ -472,7 +472,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "6 gp"
   },
   "bridles": {
     "category": "tool",
@@ -482,7 +482,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "4 gp"
   },
   "feed bags": {
     "category": "tool",
@@ -492,7 +492,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "1 gp"
   },
   "cart": {
     "category": "tool",
@@ -502,7 +502,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "60 gp"
   },
   "cart horse": {
     "category": "tool",
@@ -512,7 +512,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable — a working animal",
-    "value": "N/A"
+    "value": "50 gp"
   },
   "road horse": {
     "category": "tool",
@@ -522,7 +522,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable — a riding animal",
-    "value": "N/A"
+    "value": "75 gp"
   },
   "dark bay mare": {
     "category": "tool",
@@ -532,7 +532,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "reusable — a riding animal",
-    "value": "N/A"
+    "value": "90 gp"
   },
   "spare spectacles": {
     "category": "tool",
@@ -544,7 +544,7 @@ var ITEM_BIBLE = {
     ],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "20 gp"
   },
   "folded camp kit": {
     "category": "tool",
@@ -556,7 +556,7 @@ var ITEM_BIBLE = {
     ],
     "effect": "N/A",
     "uses": "reusable",
-    "value": "N/A"
+    "value": "10 gp"
   },
   "black wax candle": {
     "category": "consumable",
@@ -578,7 +578,7 @@ var ITEM_BIBLE = {
     ],
     "effect": "N/A",
     "uses": "single use — one day's food",
-    "value": "N/A"
+    "value": "2 gp"
   },
   "fuel block": {
     "category": "consumable",
@@ -588,7 +588,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "single use",
-    "value": "N/A"
+    "value": "1 gp"
   },
   "small tin of tallow": {
     "category": "consumable",
@@ -598,7 +598,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "several applications",
-    "value": "N/A"
+    "value": "1 gp"
   },
   "toffee twist": {
     "category": "consumable",
@@ -608,7 +608,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "single use",
-    "value": "N/A"
+    "value": "1 gp"
   },
   "vial of contact paralytic": {
     "category": "consumable",
@@ -618,7 +618,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "single use — applied",
-    "value": "N/A"
+    "value": "120 gp"
   },
   "vial of giant's bane": {
     "category": "consumable",
@@ -629,7 +629,7 @@ var ITEM_BIBLE = {
     "aliases": [],
     "effect": "N/A",
     "uses": "single use",
-    "value": "N/A"
+    "value": "150 gp"
   },
   "ameiko's note": {
     "category": "quest",

@@ -477,6 +477,52 @@ function runEngineTests(R){
     var d=buildSkillMechanicsDoc();
     return d.indexOf("Legendary: ")>=0?true:"ladder doc lacks the Legendary step";
   });
+  // ── #317 whispers: what the tavern says about you ─────────────────────────────
+  t("#317 the WHISPERS ask fires at a sized settlement outside combat, once per WHISPERS_EVERY turns, carrying recent decisions and finished quests; never in the wild; registered with its latch",function(){
+    makeWorld();worldState.turn=40;worldState.world.location="Sandpoint";
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"medium"};
+    memory.keyDecisions=[{turn:30,desc:"Spared the raider captain"},{turn:35,desc:"Burned the toll bridge"}];memory.quests={"The Bell Below":{status:"completed",desc:"Rang it"}};
+    var n=buildWhispersNote();
+    if(!/WHISPERS/.test(n)||!/toll bridge/.test(n)||!/Bell Below/.test(n)||!/\[WHISPER:/.test(n))return "note: "+n;
+    if(buildWhispersNote()!=="")return "fired twice inside the window";
+    worldState.turn+=WHISPERS_EVERY;if(buildWhispersNote()==="")return "did not re-fire after the window";
+    worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:1,maxHp:1}]};worldState.turn+=WHISPERS_EVERY;if(buildWhispersNote()!=="")return "fired in combat";worldState.combat=null;
+    memory.map.nodes["Sandpoint"].size=null;delete worldState.whisperAsk;if(buildWhispersNote()!=="")return "fired at an unsized place";
+    return NOTE_SHAPES.buildWhispersNote&&NOTE_LATCH_FIELDS.indexOf("whisperAsk")>=0?true:"not registered";
+  });
+  t("#317 [WHISPER:text] files a rumour on the ring (cap WHISPERS_CAP, stamped with turn and place), the block serves the newest three as hearsay, the tag is stripped and engine-only",function(){
+    makeWorld();worldState.turn=41;worldState.world.location="Sandpoint";
+    var r=applyMuts("The drunk leans in. [WHISPER:They say the bridge-burner drinks here now.]");
+    var w=worldState.whispers||[];
+    if(w.length!==1||!/bridge-burner/.test(w[0].text)||w[0].turn!==41||w[0].at!=="Sandpoint")return JSON.stringify(w);
+    if(!(r.muts||[]).some(function(m){return /whisper/i.test(m);}))return "no mut";
+    var i;for(i=0;i<WHISPERS_CAP+2;i++)applyMuts("[WHISPER:rumour "+i+"]");
+    if(worldState.whispers.length!==WHISPERS_CAP)return "cap "+worldState.whispers.length;
+    var b=buildWhispersBlock();
+    if(!/WHISPERS ABOUT THE PARTY/.test(b)||!/hearsay|not (what is )?true|what is said/i.test(b))return "block: "+b;
+    if(b.indexOf("rumour "+(WHISPERS_CAP+1))<0||b.indexOf("rumour 0")>=0)return "block must serve the newest three: "+b;
+    if(cleanTxt("A [WHISPER:x] B")!=="A  B")return "not stripped";
+    return TAG_DOC_ENGINE_ONLY.indexOf("WHISPER")>=0&&buildStateTagsDoc().indexOf("[WHISPER:")<0?true:"WHISPER must be engine-only (taught by the ask)";
+  });
+  // ── #207 ② location hours ─────────────────────────────────────────────────────
+  t("#207 ② [LOCATION_HOURS:open-close|note] files hours on the CURRENT node (sublocation-aware); the geo block says OPEN or CLOSED from the clock, overnight ranges included; a bad range refuses loudly",function(){
+    makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation="The Rusty Flagon";worldState.turn=50;
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[]};
+    memory.map.nodes["Sandpoint|The Rusty Flagon"]={firstVisit:2,visits:2,description:null,parent:"Sandpoint",npcs:[],items:[]};
+    var ck=clockEnsure();ck.min=3*MIN_PER_DAY+14*60;/* 14:00 */
+    applyMuts("[LOCATION_HOURS:8-18|the taproom]");
+    var n=memory.map.nodes["Sandpoint|The Rusty Flagon"];
+    if(!n.hours||n.hours.open!==8||n.hours.close!==18||n.hours.note!=="the taproom")return "hours: "+JSON.stringify(n.hours);
+    var g=buildGeoBlock();if(!/Hours: 8:00–18:00/.test(g)||!/OPEN now/.test(g))return "open: "+g.slice(0,400);
+    ck.min=3*MIN_PER_DAY+2*60+36;g=buildGeoBlock();if(!/CLOSED at this hour/.test(g)||!/2:36/.test(g))return "closed: "+g.slice(0,500);
+    applyMuts("[LOCATION_HOURS:20-4|night market]");n=memory.map.nodes["Sandpoint|The Rusty Flagon"];if(n.hours.open!==20||n.hours.close!==4)return "overnight not filed";
+    g=buildGeoBlock();if(!/OPEN now/.test(g))return "overnight range at 2:36 should be OPEN: "+g.slice(0,400);
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[LOCATION_HOURS:whenever]");}finally{console.warn=_w;}
+    if(n.hours.open!==20)return "a bad range overwrote the hours";
+    if(!warns.some(function(m){return /LOCATION_HOURS/.test(m);}))return "bad range was silent";
+    return buildStateTagsDoc().indexOf("[LOCATION_HOURS:")>=0?true:"not documented (spontaneous tag)";
+  });
   // ── #315 the injection fence ──────────────────────────────────────────────────
   t("#315 the stable half carries the authored-content-is-data rule, and custom rules are clamped to IMPORT_CAPS.rule",function(){
     makeWorld();var st=buildSysPrompt().stable;
@@ -5990,7 +6036,7 @@ function runEngineTests(R){
     // would read the relabel ceremony aloud in the prose and pollute the transcript.
     // v1.697 (#211): +NO_CHANGE in BOTH registries (+10 chars payload form; bare form joins
     // _CT_BARE) — the audit-ack channel must strip everywhere or the ack IS the leak it cures.
-    if(__djb2(_CT_TAGS.source)!==-423215573||_CT_TAGS.source.length!==1602)return "_CT_TAGS diverged from the frozen literal";/* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==-760578386||_CT_TAGS.source.length!==1625)return "_CT_TAGS diverged from the frozen literal";/* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -6069,7 +6115,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===899790228&&d.length===26022)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===-1432163285&&d.length===26324)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
