@@ -1038,6 +1038,28 @@ function runEngineTests(R){
     if(rl.indexOf("lastActionOpts")<0||rl.indexOf("silent:true")<0||rl.indexOf("rollTag:lastActionOpts.rollTag")<0)return "retryLast drops the silent opts";
     return typeof lastActionOpts!=="undefined"?true:"lastActionOpts not declared";
   });
+  // ── #207 ③ the HOURS ask (the t147 comb: zero [LOCATION_HOURS:] in 148 turns — the GM never files hours unasked) ──
+  t("#207 ③ buildHoursNote asks ONCE per establishment: at a sub-location of a sized settlement with no hours on record, outside combat; never at a bare world node, never twice, never after hours or 'none' are filed; [LOCATION_HOURS:none] files hoursNone; registered with its latch",function(){
+    makeWorld();worldState.turn=50;worldState.world.location="High Spire";worldState.world.sublocation="The Gilded Cask";
+    memory.map.nodes["High Spire"]={firstVisit:40,visits:2,description:null,parent:null,npcs:[],items:[],size:"large"};
+    memory.map.nodes["High Spire|The Gilded Cask"]={firstVisit:50,visits:1,description:null,parent:"High Spire",npcs:[],items:[]};
+    var n=buildHoursNote();if(!/HOURS/.test(n)||n.indexOf("Gilded Cask")<0||!/\[LOCATION_HOURS:open-close\|note\]/.test(n)||!/\[LOCATION_HOURS:none\]/.test(n))return "note: "+n;
+    if(buildHoursNote()!=="")return "asked twice for the same place";
+    worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:1,maxHp:1}]};delete worldState.hoursAsk;if(buildHoursNote()!=="")return "asked in combat";worldState.combat=null;
+    worldState.world.sublocation=null;delete worldState.hoursAsk;if(buildHoursNote()!=="")return "asked at a bare world node";
+    worldState.world.sublocation="The Gilded Cask";delete worldState.hoursAsk;
+    var r=applyMuts("[LOCATION_HOURS:none]");if(!memory.map.nodes["High Spire|The Gilded Cask"].hoursNone||!(r.muts||[]).some(function(m){return /hours/i.test(m);}))return "none not filed: "+JSON.stringify(r.muts);
+    if(buildHoursNote()!=="")return "asked after 'none'";
+    worldState.world.sublocation="The Lift Terminal";memory.map.nodes["High Spire|The Lift Terminal"]={firstVisit:51,visits:1,description:null,parent:"High Spire",npcs:[],items:[]};delete worldState.hoursAsk;
+    applyMuts("[LOCATION_HOURS:6-22|the cage runs dawn to late]");if(buildHoursNote()!=="")return "asked after hours were filed";
+    memory.map.nodes["High Spire"].size=null;worldState.world.sublocation="Somewhere Unsized";memory.map.nodes["High Spire|Somewhere Unsized"]={firstVisit:52,visits:1,description:null,parent:"High Spire",npcs:[],items:[]};delete worldState.hoursAsk;if(buildHoursNote()!=="")return "asked outside a sized settlement";
+    if(buildStateTagsDoc().indexOf("[LOCATION_HOURS:none]")<0)return "the doc does not teach the none form";
+    return NOTE_SHAPES.buildHoursNote&&NOTE_LATCH_FIELDS.indexOf("hoursAsk")>=0&&NOTE_BUILDERS.indexOf(buildHoursNote)>=0?true:"not registered";
+  });
+  t("#300 the in-app narrative export labels the dead branch the way the story compiler does ('the road not taken' / 'the road resumes')",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-files.js","utf8"),i=src.indexOf("function buildNarrativeHtml("),body=src.slice(i,i+6000);
+    return body.indexOf("the road not taken")>=0&&body.indexOf("the road resumes")>=0&&/!!e\.db!==/.test(body)?true:"no dead-branch label in the export";
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);
@@ -6460,7 +6482,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1999516568&&d.length===26825)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===-741778702&&d.length===26931)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never

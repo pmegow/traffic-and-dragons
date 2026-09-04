@@ -355,8 +355,10 @@ function buildNarrativeHtml(ws){
   var camp=(ws&&ws.campName)||c.name||"A Chronicle";
   var who=(c.subraceNm?c.subraceNm+" ":"")+(c.ancestry||"")+" "+(c.cls||"")+(c.level?", Level "+c.level:"");
   var body="",lastTurn=null,i,k;
+  var _inDead=false;/* #300 */
   for(i=0;i<tr.length;i++){
     var e=tr[i];if(!e||e.x==null||e.x==="")continue;
+    if(!!e.db!==_inDead){_inDead=!!e.db;body+="<p class='branch'>"+(_inDead?"\u2014 the road not taken \u2014":"\u2014 the road resumes \u2014")+"</p>";}/* #300: a death unwrote these turns; they stay in the book, marked (the story compiler's label) */
     if(e.t!=null&&e.t!==lastTurn){body+="<div class='turn'>Turn "+esc(String(e.t))+"</div>";lastTurn=e.t;}
     if(e.r==="player"){
       body+="<p class='act'>"+esc(e.x)+"</p>";
@@ -378,7 +380,7 @@ function buildNarrativeHtml(ws){
     +"header .meta{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.16em;}"
     +".turn{text-align:center;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.22em;margin:34px 0 12px;}"
     +".gm p{margin:0 0 16px;}"
-    +".act{margin:20px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);color:#5c5140;font-style:italic;}"
+    +".branch{text-align:center;font-style:italic;opacity:.6;margin:18px 0}.act{margin:20px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);color:#5c5140;font-style:italic;}"
     +".act::before{content:'\\276F   ';color:var(--acc);font-style:normal;}"
     +"footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:var(--dim);}"
     +"@media print{body{background:#fff;}.wrap{padding:0 0 24px;}}";

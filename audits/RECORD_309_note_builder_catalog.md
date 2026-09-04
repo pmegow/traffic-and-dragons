@@ -56,6 +56,7 @@ Evidence for the #309 ruling. Produced by a read-only catalog pass over `NOTE_BU
 | 48 | buildCanonContradictionNudge | api.js:1102 | `canonContradiction` armed (memory.js:1634 — roster-dead NPC with survival knowledge) | consumes the ping; stamps `canonContraNudged[name]=turn`, read by the armer with `CANON_CONTRA_COOLDOWN`=25 | yes | one-shot-ask (per NPC per 25 turns) | `[NPC_SUPERSEDE:]` or `[NPC:…\|resurrected\|…]` | medium (~631) |
 | 49 | buildRecurringNameNudge | api.js:1092 | `recurringNamePing` armed (memory.js:1620 — unregistered name in ≥ `RECURRING_NAME_MIN_TURNS`=3 turns, mid-sentence) | consumes the ping; `recurringNameNudged[name]={count,turn}`, armer gates on `RECURRING_NAME_COOLDOWN`=30 and `RECURRING_NAME_MAX_NUDGES`=2 | yes | escalation (capped, silence = ruling) | `[NPC:name\|status\|relation]` or silence | medium (~482) |
 | 50 | buildPlotArmorNote | api.js | `worldState.plotArmorPing` armed by `plotArmorRefuse` (any refused death of a load-bearing NPC — #319) | one-shot; cleared when built | **no** (a refused death mid-fight still needs its exit) | one-shot-ask | none | ~560 |
+| 51 | buildHoursNote | api.js | at a sub-location of a SIZED settlement with neither `hours` nor `hoursNone` on record (#207 ③) | `hoursAsk={node,turn}` — once per node; `[LOCATION_HOURS:none]` closes it | yes | one-shot-ask | `[LOCATION_HOURS:]` | ~480 |
 
 ---
 
