@@ -80,6 +80,7 @@ function buildFileMenus(){
       // security: every real gate stays on the server. Marking a row = one flag in this spec.
       +btn(p+"llm","🧠 Language Model&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"usage","📊 Usage &amp; cost&hellip;",0,{cls:"fm-dev-only"})
+      +btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"fal-key","🖼 Render Options&hellip;",0)
       +chk(p+"font-lg","Large text",0)
       +chk(p+"autosend","&#127908; Auto-send voice input",0)
@@ -172,7 +173,7 @@ function wireButtons(){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)
-    [["clearcache",clearCacheAndReload],["clearcache-top",clearCacheAndReload],["home",function(){location.href="home.html";}]].forEach(function(it){
+    [["clearcache",clearCacheAndReload],["clearcache-top",clearCacheAndReload],["home",function(){location.href="home.html";}],["admin-console",function(){location.href="admin_console.html";}]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",it[1]);
     });
     // Change handlers

@@ -908,7 +908,7 @@ var storageAdapter = (function() {
       cb(null, data && data.snapshot ? data.snapshot : null);
     });
   }
-  function _apiJson(path, method, bodyObj, cb) {
+  function _apiJson(path, method, bodyObj, cb, detailedErrors) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
     var opts = { headers: { "Authorization": "Bearer " + _token } };
     if (method && method !== "GET") opts.method = method;
@@ -917,7 +917,14 @@ var storageAdapter = (function() {
       opts.body = JSON.stringify(bodyObj);
     }
     _tFetch(_serverUrl + path, opts, SYNC_TIMEOUT_MS)
-      .then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(r) {
+        if (r.ok) return r.json();
+        var label = "HTTP " + r.status;
+        if (!detailedErrors) throw new Error(label);
+        return r.json().catch(function() { return null; }).then(function(d) {
+          throw new Error(label + (d && typeof d.error === "string" ? " — " + d.error : ""));
+        });
+      })
       .then(function(d) { if (cb) cb(null, d); })
       .catch(function(e) { if (cb) cb(e.message); });
   }
@@ -983,6 +990,11 @@ var storageAdapter = (function() {
   }
 
   // ── Character library ────────────────────────────────────────────────────
+
+  function listAdminUsers(cb) { _apiJson("/api/admin/users", "GET", null, cb, true); }
+  function getAdminStats(cb) { _apiJson("/api/admin/stats", "GET", null, cb, true); }
+  function updateSubscription(change, cb) { _apiJson("/api/admin/subscription", "POST", change, cb, true); }
+  function pingServerHealth(cb) { _apiJson("/health", "GET", null, cb, true); }
 
   function listCharacterLibrary(cb)         { _apiJson("/api/characters", "GET", null, cb); }
   function saveCharacterToLibrary(char, cb) { _apiJson("/api/characters", "POST", { character: char }, cb); }
@@ -1106,6 +1118,10 @@ var storageAdapter = (function() {
     clearFlushDirty:       clearFlushDirty,      // JP0-11: the unsynced-flush marker — clear (tests + campaign teardown)
     whoAmI:                whoAmI,
     fetchAccount:          fetchAccount,         // §3 gateway: account/entitlement readout → serverAccount global
+    listAdminUsers:        listAdminUsers,
+    getAdminStats:         getAdminStats,
+    updateSubscription:   updateSubscription,
+    pingServerHealth:     pingServerHealth,
     getCampaignState:      getCampaignState,
     pushCampaignState:     pushCampaignState,
     putCampaignPortrait:   putCampaignPortrait,

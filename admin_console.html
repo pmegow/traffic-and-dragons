@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Operator console — Traffic and Dragons</title>
+<link rel="stylesheet" href="satellite.css">
+<style>
+body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{font-size:16px;margin:0 0 12px}p{line-height:1.5}.sub{font-size:13px;color:var(--t1)}
+.overview{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:24px 0}.overview section{padding:18px;background:var(--bg1);border-radius:var(--rl)}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 12px}.toolbar h2{margin:0}button,input,select{font:inherit;color:var(--t0);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);padding:8px 10px}button{cursor:pointer}button:hover{border-color:var(--acc)}button:disabled{opacity:.45;cursor:default}button.danger{color:var(--hp)}
+#status{min-height:24px;margin:12px 0;color:var(--t1)}#status.error,.error{color:var(--hp)}#who{color:var(--t1);font-size:13px}.user{padding:20px 0;border-top:1px solid var(--brd)}
+.user-top{display:grid;grid-template-columns:minmax(180px,1fr) minmax(170px,1fr) minmax(190px,1fr);gap:18px}.user h3{margin:0 0 5px;font-size:18px;overflow-wrap:anywhere}.meta{font-size:12px;color:var(--t1);line-height:1.6;overflow-wrap:anywhere}.value{font-size:19px;color:var(--t0);margin-bottom:3px}.controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:14px}.controls label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--t1)}.controls input{width:90px}.controls select{max-width:100%}.controls button{font-size:13px}.empty{padding:24px 0;color:var(--t1)}details{margin-top:10px;font-size:12px;color:var(--t1)}summary{cursor:pointer;color:var(--acc)}.model{margin-top:6px;overflow-wrap:anywhere}
+@media(max-width:640px){body{padding:0 16px 32px}.overview,.user-top{grid-template-columns:1fr;gap:14px}.overview{margin:20px 0}.controls{gap:10px}.controls button{min-height:44px}.sat-header nav a{margin:0 16px 0 0}.user{padding:20px 0}.controls select{width:190px}}
+</style>
+</head>
+<body>
+<header class="sat-header"><div><h1>Operator console</h1><p class="sat-sub">Traffic and Dragons · beta operations</p></div><nav><a href="home.html">Home</a><a href="index.html">Game</a><a href="bug_tracker.html">Bug tracker</a></nav></header>
+<main>
+<p id="who">Checking account…</p>
+<div class="toolbar"><h2>Account activity</h2><button id="refresh" type="button">Refresh</button></div>
+<p id="status" role="status" aria-live="polite"></p>
+<div id="console" hidden>
+  <div class="overview">
+    <section><h2>Server health</h2><div id="health">Not checked</div><p id="metered" class="sub"></p><p class="sub">Error counts cover recorded upstream responses only. Local refusals, transport failures and billing refusals are not recorded here.</p></section>
+    <section><h2>Bug feed</h2><p class="sub">The existing tracker owns the live report feed, its access secret and triage history.</p><a href="bug_tracker.html">Open live reports and triage →</a></section>
+  </div>
+  <p class="sub">Activity = last metered request, not last login. Usage is a rolling 30-day window. USD estimates use the game’s current LLM rate table, not historical invoices; cached OpenAI/Gemini input is an upper bound. Unpriced models (including images) are listed, never counted as free.</p>
+  <div id="users"></div>
+</div>
+</main>
+<script src="globals.js"></script>
+<script src="data.js"></script>
+<script src="helpers.js"></script>
+<script src="state.js"></script>
+<script src="storage-adapter.js"></script>
+<script>
+(function(){
+  var authorized=false,pending=false,tiers={},controls=[],roster=[],refreshId=0;
+  function $(id){return document.getElementById(id);}
+  function el(tag,text,cls){var n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
+  function status(text,bad){$("status").textContent=text;$("status").className=bad?"error":"";if(bad)console.warn("[admin] "+text);}
+  function setPending(value){pending=value;$("refresh").disabled=value;controls.forEach(function(c){c.disabled=value||!!c.blocked;});}
+  function dateText(value){if(!value)return "—";var d=new Date(String(value).indexOf("T")<0?String(value).replace(" ","T")+"Z":value);return isNaN(d.getTime())?String(value):d.toLocaleString();}
+  function number(n){return Number(n||0).toLocaleString();}
+  function summarizeUsage(rows){
+    var total={usd:0,tokens:0,calls:0,errors:0,unpriced:[]};
+    var keys=Object.keys(MODEL_PRICING).sort(function(a,b){return b.length-a.length;});
+    var extraInput={anthropic:true};
+    (rows||[]).forEach(function(u){
+      var rate=null;keys.some(function(k){if(u.model===k||String(u.model).indexOf(k+"-")===0){rate=MODEL_PRICING[k];return true;}return false;});
+      total.calls+=Number(u.calls||0);total.errors+=Number(u.errors||0);
+      total.tokens+=Number(u.tokIn||0)+Number(u.tokOut||0)+(extraInput[u.provider]?Number(u.cacheRead||0)+Number(u.cacheWrite||0):0);
+      if(!rate){total.unpriced.push(String(u.provider)+"/"+String(u.model));return;}
+      total.usd+=(Number(u.tokIn||0)*rate.in+Number(u.tokOut||0)*rate.out+Number(u.cacheRead||0)*rate.cacheRead+Number(u.cacheWrite||0)*rate.cacheWrite)/1000000;
+    });
+    return total;
+  }
+  function renderUsers(list){
+    roster=list;controls=[];$("users").textContent="";
+    if(!list.length){$("users").appendChild(el("p","No accounts found.","empty"));return;}
+    list.forEach(function(u){
+      var row=el("article",undefined,"user"),top=el("div",undefined,"user-top"),identity=el("div"),plan=el("div"),usage=el("div"),s=summarizeUsage(u.usage30d);
+      identity.appendChild(el("h3",u.username||u.userId));identity.appendChild(el("div",u.userId,"meta"));
+      identity.appendChild(el("div","Joined "+dateText(u.createdAt),"meta"));identity.appendChild(el("div",u.lastActive?"Last metered: "+dateText(u.lastActive):"No metered activity","meta"));
+      plan.appendChild(el("div",u.tier?(tiers[u.tier]?tiers[u.tier].label:u.tier):"No subscription","value"));
+      plan.appendChild(el("div",u.tier?(u.status||"unknown")+" · expires "+dateText(u.periodEnd):"Grant access below.","meta"));
+      plan.appendChild(el("div",number(u.turnsUsed30d)+" turns in 30 days","meta"));
+      usage.appendChild(el("div","$"+s.usd.toFixed(4)+(s.unpriced.length?" + unpriced":""),"value"));
+      usage.appendChild(el("div",number(s.tokens)+" tokens · "+number(s.calls)+" requests · "+number(s.errors)+" recorded errors","meta"));
+      if(s.unpriced.length)usage.appendChild(el("div","Unpriced: "+s.unpriced.join(", "),"meta"));
+      top.appendChild(identity);top.appendChild(plan);top.appendChild(usage);row.appendChild(top);
+      var actions=el("div",undefined,"controls"),tierLabel=el("label","Grant tier"),select=el("select"),daysLabel=el("label","Days"),days=el("input");
+      Object.keys(tiers).forEach(function(k){var o=el("option",tiers[k].label+" · "+tiers[k].turnsPer30d+" turns");o.value=k;select.appendChild(o);});
+      select.value=Object.prototype.hasOwnProperty.call(tiers,u.tier)?u.tier:(tiers.tester?"tester":Object.keys(tiers)[0]);
+      select.setAttribute("aria-label","Grant tier for "+(u.username||u.userId));
+      days.type="number";days.min="1";days.max="3650";days.step="1";days.value="30";days.setAttribute("aria-label","Days for "+(u.username||u.userId));
+      tierLabel.appendChild(select);daysLabel.appendChild(days);actions.appendChild(tierLabel);actions.appendChild(daysLabel);controls.push(select,days);
+      [{action:"grant",label:"Grant / replace"},{action:"extend",label:"Extend"},{action:"revoke",label:"Revoke"}].forEach(function(spec){
+        var b=el("button",spec.label,spec.action==="revoke"?"danger":"");b.type="button";b.blocked=spec.action!=="grant"&&!u.tier;b.disabled=!!b.blocked;
+        b.addEventListener("click",function(){applyAction(u.userId,spec.action,select.value,days.value);});controls.push(b);actions.appendChild(b);
+      });
+      row.appendChild(actions);
+      if((u.usage30d||[]).length){var detail=el("details");detail.appendChild(el("summary","Token breakdown"));u.usage30d.forEach(function(m){detail.appendChild(el("div",m.provider+" / "+m.model+": input "+number(m.tokIn)+", output "+number(m.tokOut)+", cache read "+number(m.cacheRead)+", cache write "+number(m.cacheWrite),"model"));});row.appendChild(detail);}
+      $("users").appendChild(row);
+    });
+  }
+  function refresh(){
+    if(pending)return;
+    var thisRefresh=++refreshId;
+    authorized=false;tiers={};roster=[];controls=[];$("users").textContent="";$("console").hidden=true;
+    if(!storageAdapter.hasToken()){$("who").textContent="Not signed in.";status("Sign in from the game on this origin, then return here.",false);return;}
+    setPending(true);status("Checking operator access…",false);
+    storageAdapter.fetchAccount(function(err,a){
+      if(err||!a||a.isAdmin!==true){setPending(false);$("who").textContent="Operator access required.";status(err?"Account check failed: "+err:"This account is not an operator.",true);return;}
+      $("who").textContent="Signed in as "+a.username;$("console").hidden=false;$("health").textContent="Checking…";$("metered").textContent="";
+      storageAdapter.getAdminStats(function(statsErr,stats){
+        if(statsErr||!stats||!stats.tiers||!stats.metered24h){setPending(false);status("Operator stats unavailable: "+(statsErr||"invalid server response"),true);return;}
+        tiers=stats.tiers;$("metered").textContent="Last 24 hours: "+number(stats.metered24h.calls)+" recorded requests · "+number(stats.metered24h.errors)+" upstream errors.";
+        storageAdapter.pingServerHealth(function(healthErr,h){if(thisRefresh!==refreshId)return;var good=!healthErr&&h&&h.status==="ok";$("health").textContent=good?"Healthy · checked "+dateText(h.time):"Health check failed: "+(healthErr||"invalid response");$("health").className=good?"":"error";if(!good)console.warn("[admin] "+$("health").textContent);});
+        storageAdapter.listAdminUsers(function(usersErr,list){
+          setPending(false);
+          if(usersErr||Object.prototype.toString.call(list)!=="[object Array]"){status("Users unavailable: "+(usersErr||"invalid server response"),true);return;}
+          authorized=true;renderUsers(list);status(list.length+" account(s) · refreshed "+new Date().toLocaleTimeString(),false);
+        });
+      });
+    });
+  }
+  function applyAction(userId,action,tier,days){
+    if(pending)return;
+    if(!authorized){status("Sign in with an operator account before changing access.",true);return;}
+    var n=Number(days),names={grant:"Grant / replace",extend:"Extend",revoke:"Revoke"};
+    if(!Object.prototype.hasOwnProperty.call(names,action)){status("Unknown subscription action.",true);return;}
+    if(action!=="revoke"&&(!isFinite(n)||Math.floor(n)!==n||n<1||n>3650)){status("Days must be an integer from 1 to 3650.",true);return;}
+    var user=roster.filter(function(u){return u.userId===userId;})[0],name=user?user.username:userId;
+    var explanation=action==="revoke"?"Remove access immediately?":action==="extend"?"Add "+n+" days to the existing expiry (or today if expired), keeping the current tier?":"Set "+tier+" access for "+n+" days from today? This replaces any existing tier and expiry.";
+    if(!window.confirm(names[action]+" for "+name+" ("+userId+")\n\n"+explanation))return;
+    var change={userId:userId,action:action};if(action!=="revoke")change.days=n;if(action==="grant")change.tier=tier;
+    setPending(true);status("Submitting "+action+"…",false);
+    storageAdapter.updateSubscription(change,function(err,data){
+      setPending(false);
+      if(err||!data||!data.ok){status("Subscription change failed: "+(err||"invalid server response")+". Refresh before retrying if the result is uncertain.",true);return;}
+      refresh();
+    });
+  }
+  $("refresh").addEventListener("click",refresh);
+  window.__adminTest={refresh:refresh,applyAction:applyAction,summarizeUsage:summarizeUsage};
+  refresh();
+})();
+</script>
+</body>
+</html>
