@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My mementos — Traffic and Dragons</title>
+<link rel="stylesheet" href="satellite.css">
+<style>
+body{margin:0;padding:0 24px 40px}header,main{max-width:1080px;margin:auto}p{line-height:1.6}.sub,.meta{color:var(--t1);font-size:13px}.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:24px 0 12px}h2{margin:0;font-size:20px}button{font:inherit;padding:9px 14px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer}button:hover{border-color:var(--acc)}button:disabled{opacity:.45;cursor:default}button.danger{color:var(--hp)}
+#status{min-height:24px;color:var(--t1)}#status.error{color:var(--hp)}#stories{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:24px}.story{background:var(--bg1);padding:20px;border:1px solid var(--brd);border-radius:var(--rl);min-width:0}.story h3{font-size:19px;line-height:1.3;margin:0 0 12px;overflow-wrap:anywhere}.story .meta{overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.empty{color:var(--t1)}#reading{margin-top:30px;border-top:1px solid var(--brd);padding-top:20px}#reading-title{overflow-wrap:anywhere;min-width:0}#reader{width:100%;height:75vh;min-height:460px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg1)}.reading-tools{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+@media(max-width:600px){body{padding:0 16px 30px}#stories{grid-template-columns:1fr}.sat-header nav a{margin:0 16px 0 0}button{min-height:44px}#reader{height:72vh;min-height:360px}.toolbar{align-items:start}}
+</style>
+</head>
+<body>
+<header class="sat-header"><div><h1>My mementos</h1><p class="sat-sub">The stories you keep · Traffic and Dragons</p></div><nav><a href="home.html">Home</a><a href="index.html">Game</a><a href="story_compiler.html">Story compiler</a></nav></header>
+<main>
+<p id="who" class="sub">Your account’s saved stories.</p>
+<div class="toolbar"><h2>Saved stories</h2><button id="refresh">Refresh</button></div>
+<p class="sub">In the game, choose File → Save / Load → Save story to account. Each click saves a separate narrative snapshot; it does not change your campaign or its transcript.</p>
+<p id="limits" class="sub"></p>
+<p id="status" role="status" aria-live="polite"></p>
+<div id="stories"></div>
+<section id="reading" hidden>
+  <h2 id="reading-title"></h2>
+  <div class="reading-tools"><button id="download" disabled>Download HTML</button><button id="close-reader">Close reader</button></div>
+  <p class="sub">This preview is isolated from your account and cannot run scripts. Download only stories you trust.</p>
+  <iframe id="reader" title="Saved story reader" sandbox="" referrerpolicy="no-referrer"></iframe>
+</section>
+</main>
+<script src="globals.js"></script>
+<script src="data.js"></script>
+<script src="helpers.js"></script>
+<script src="state.js"></script>
+<script src="storage-adapter.js"></script>
+<script>
+(function(){
+  var generation=0,current=null,writing=false;
+  function $(id){return document.getElementById(id);}
+  function node(tag,text,cls){var n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
+  function status(text,bad){$("status").textContent=text;$("status").className=bad?"error":"";if(bad)console.warn("[mementos] "+text);}
+  function clearReader(){current=null;$("reader").srcdoc="";$("reading").hidden=true;$("download").disabled=true;}
+  function readerDocument(html){
+    // The first policy cannot be relaxed by another CSP inside the stored document.
+    return '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'; base-uri \'none\'; form-action \'none\'">'+html;
+  }
+  function when(value){if(!value)return "";var d=new Date(String(value).indexOf("T")<0?String(value).replace(" ","T")+"Z":value);return isNaN(d.getTime())?String(value):d.toLocaleString();}
+  function render(list){
+    $("stories").textContent="";
+    if(!list.length){$("stories").appendChild(node("p","No mementos yet. Save a story from the game to begin your collection.","empty"));return;}
+    list.forEach(function(s){
+      var card=node("article",undefined,"story");card.appendChild(node("h3",s.title));
+      card.appendChild(node("p",[s.characterName,s.campaignName,s.sourceTurn==null?"":"Turn "+s.sourceTurn].filter(function(x){return !!x;}).join(" · "),"meta"));
+      card.appendChild(node("p",when(s.updatedAt)+" · "+(Number(s.bytes||0)/1024).toFixed(1)+" KiB","meta"));
+      var acts=node("div",undefined,"actions"),read=node("button","Read"),del=node("button","Delete","danger");
+      read.addEventListener("click",function(){open(s.id);});del.addEventListener("click",function(){remove(s.id,s.title);});
+      acts.appendChild(read);acts.appendChild(del);card.appendChild(acts);$("stories").appendChild(card);
+    });
+  }
+  function refresh(){
+    var run=++generation;clearReader();$("stories").textContent="";$("limits").textContent="";
+    if(!storageAdapter.hasToken()){$("who").textContent="Not signed in.";status("Sign in from the game on this origin to see your saved stories.",false);return;}
+    status("Loading your account’s stories…",false);
+    storageAdapter.fetchAccount(function(accountErr,a){
+      if(run!==generation)return;
+      if(accountErr||!a){status("Account unavailable: "+(accountErr||"invalid response"),true);return;}
+      $("who").textContent="Saved on "+a.username+"’s account — available across signed-in devices.";
+      storageAdapter.listMementos(function(err,data){
+        if(run!==generation)return;
+        if(err||!data||!Array.isArray(data.mementos)){status("Stories unavailable: "+(err||"invalid server response"),true);return;}
+        render(data.mementos);var limits=data.limits||{};
+        $("limits").textContent=(limits.maxBytes?(limits.maxBytes/1048576).toFixed(0)+" MiB per story · ":"")+(limits.maxCount?limits.maxCount+" stories per account · ":"")+"Counts toward your account storage quota.";
+        status(data.mementos.length+" saved story/stories.",false);
+      });
+    });
+  }
+  function open(id){
+    if(!storageAdapter.hasToken()){refresh();return;}
+    var run=++generation;clearReader();status("Opening story…",false);
+    storageAdapter.getMemento(id,function(err,data){
+      if(run!==generation)return;
+      if(err||!data||typeof data.html!=="string"||!data.html.trim()){status("Could not open story: "+(err||"empty or invalid document"),true);return;}
+      current=data;$("reading-title").textContent=data.title;$("reader").srcdoc=readerDocument(data.html);$("reading").hidden=false;$("download").disabled=false;status("Reading “"+data.title+"”.",false);
+      if(typeof $("reading").scrollIntoView==="function")$("reading").scrollIntoView({block:"start",behavior:"auto"});
+    });
+  }
+  function download(){
+    if(!current)return;
+    var url=null;
+    try{var blob=new Blob([readerDocument(current.html)],{type:"text/html"});url=URL.createObjectURL(blob);var a=node("a");a.href=url;a.download=String(current.title||"story").replace(/[^a-zA-Z0-9_-]/g,"_").slice(0,100)+".html";a.click();}
+    catch(e){status("Download failed: "+(e&&e.message||e),true);}
+    finally{if(url)setTimeout(function(){URL.revokeObjectURL(url);},0);}
+  }
+  function remove(id,title){
+    if(writing)return;
+    if(!storageAdapter.hasToken()){refresh();return;}
+    if(!window.confirm("Delete “"+title+"” from your account? This permanently removes this saved story, not its campaign. Download it first if you want a local copy."))return;
+    writing=true;status("Deleting saved story…",false);
+    storageAdapter.deleteMemento(id,function(err,data){writing=false;if(err||!data||!data.ok){status("Delete failed: "+(err||"invalid server response"),true);return;}refresh();});
+  }
+  $("refresh").addEventListener("click",refresh);$("download").addEventListener("click",download);$("close-reader").addEventListener("click",function(){generation++;clearReader();});
+  window.__mementoTest={refresh:refresh,open:open,remove:remove,download:download,readerDocument:readerDocument};
+  refresh();
+})();
+</script>
+</body>
+</html>

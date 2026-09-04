@@ -996,6 +996,11 @@ var storageAdapter = (function() {
   function updateSubscription(change, cb) { _apiJson("/api/admin/subscription", "POST", change, cb, true); }
   function pingServerHealth(cb) { _apiJson("/health", "GET", null, cb, true); }
 
+  function listMementos(cb) { _apiJson("/api/mementos", "GET", null, cb, true); }
+  function getMemento(id, cb) { _apiJson("/api/mementos/" + encodeURIComponent(id), "GET", null, cb, true); }
+  function putMemento(id, snapshot, cb) { _apiJson("/api/mementos/" + encodeURIComponent(id), "PUT", snapshot, cb, true); }
+  function deleteMemento(id, cb) { _apiJson("/api/mementos/" + encodeURIComponent(id), "DELETE", null, cb, true); }
+
   function listCharacterLibrary(cb)         { _apiJson("/api/characters", "GET", null, cb); }
   function saveCharacterToLibrary(char, cb) { _apiJson("/api/characters", "POST", { character: char }, cb); }
   function deleteCharacterFromLibrary(slug, cb) { _apiJson("/api/characters/" + encodeURIComponent(slug), "DELETE", null, cb); }
@@ -1122,6 +1127,10 @@ var storageAdapter = (function() {
     getAdminStats:         getAdminStats,
     updateSubscription:   updateSubscription,
     pingServerHealth:     pingServerHealth,
+    listMementos:         listMementos,
+    getMemento:           getMemento,
+    putMemento:           putMemento,
+    deleteMemento:        deleteMemento,
     getCampaignState:      getCampaignState,
     pushCampaignState:     pushCampaignState,
     putCampaignPortrait:   putCampaignPortrait,

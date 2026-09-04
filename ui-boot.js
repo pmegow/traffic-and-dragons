@@ -54,7 +54,8 @@ function buildFileMenus(){
       +(g?btn(p+"export-char","Export Character",0):btn(null,"Export Character",0,{dim:true}))
       +btn(sf.imp+"import-char-btn","Import Character",0)
       +(g?btn(p+"export-bp","Export as Blueprint",0):btn(null,"Export as Blueprint",0,{dim:true}))
-      +(g?btn(p+"export-narr","&#128220; Export Narrative",0):btn(null,"&#128220; Export Narrative",0,{dim:true}));
+      +(g?btn(p+"export-narr","&#128220; Export Narrative",0):btn(null,"&#128220; Export Narrative",0,{dim:true}))
+      +(g?btn(p+"save-memento","&#9729; Save story to account",0):btn(null,"&#9729; Save story to account",0,{dim:true}));
     h+=drawer(p+"saveload",p+"saveloadmenu","&#128190; Save / Load",0,null,sl);
     h+=btn(p+"blueprints","&#9729; Blueprint Library&hellip;",0);
     h+=g?btn(p+"bugreport","⚠ Report bug&hellip;",0):btn(null,"⚠ Report bug&hellip;",0,{dim:true});/* #16b: game screen only — it reports on live play */
@@ -238,6 +239,7 @@ function wireButtons(){
   document.getElementById("fm-export-char").addEventListener("click",exportCharacter);
   document.getElementById("fm-export-bp").addEventListener("click",exportBlueprint);
   document.getElementById("fm-export-narr").addEventListener("click",exportNarrativeHtml);
+  document.getElementById("fm-save-memento").addEventListener("click",saveNarrativeMemento);
   // (import-char-btn is already wired in the shared _menus loop above — audit E66 removed the duplicate here)
   document.getElementById("fm-newgame").addEventListener("click",newGame);
   document.getElementById("fm-carmode").addEventListener("click",function(){closeAllMenus();showCarMode();});

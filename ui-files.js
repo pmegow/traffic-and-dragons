@@ -399,6 +399,25 @@ function exportNarrativeHtml(){
   var blob=new Blob([buildNarrativeHtml(worldState)],{type:"text/html"});
   exportToFolder("narrative",blob,buildFilename("narrative"));
 }
+function saveNarrativeMemento(){
+  if(saveNarrativeMemento.pending)return;
+  function fail(reason){console.warn("[memento] "+reason);if(typeof showToast==="function")showToast(reason);}
+  if(typeof storageAdapter==="undefined"||!storageAdapter.hasToken()){fail("Sign in before saving a story to your account.");return;}
+  var ws=typeof worldState!=="undefined"?worldState:null;
+  if(!ws||!Array.isArray(ws.transcript)||!ws.transcript.some(function(e){return e&&typeof e.x==="string"&&e.x.trim();})){fail("No recorded story to save yet.");return;}
+  if(typeof closeAllMenus==="function")closeAllMenus();
+  try{
+    var snapshot={title:String(ws.campName||"A Chronicle").slice(0,170)+" — turn "+String(ws.turn||0),campaignName:String(ws.campName||""),characterName:String(ws.character&&ws.character.name||""),sourceTurn:ws.turn||0,html:buildNarrativeHtml(ws)};
+    var id="story-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10);
+    saveNarrativeMemento.pending=true;
+    if(typeof showToast==="function")showToast("Saving story to your account…");
+    storageAdapter.putMemento(id,snapshot,function(err,data){
+      saveNarrativeMemento.pending=false;
+      if(err||!data||!data.ok){fail("Story save failed: "+(err||"invalid server response")+". Check Home → Mementos before retrying an uncertain save.");return;}
+      if(typeof showToast==="function")showToast("Story saved to your account — open Home → Mementos to read it.");
+    });
+  }catch(e){saveNarrativeMemento.pending=false;fail("Story save failed: "+(e&&e.message||e));}
+}
 function exportSave(){
   if(!worldState)return;
   document.getElementById("file-menu").style.display="none";
