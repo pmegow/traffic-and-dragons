@@ -98,31 +98,41 @@
       "name": "Vessa Corrow",
       "role": "neutral",
       "pronouns": "she/her",
-      "notes": "A mid-ranked Ascendant Guild broker who is the watcher intervening at the last second in the Purge Rotation arc — she buys the player's indenture to spare them the culling execution, projecting maternal warmth. She wants to rise within the Guild and sees the player as a disposable instrument for that climb. Her secret is that she was ordered to acquire the player by someone above her and does not know why; this surfaces in Act Three when she confesses she is as much a pawn as they are."
+      "notes": "A mid-ranked Ascendant Guild broker who is the watcher intervening at the last second in the Purge Rotation arc — she buys the player's indenture to spare them the culling execution, projecting maternal warmth. She wants to rise within the Guild and sees the player as a disposable instrument for that climb.",
+      "secret": "Her secret is that she was ordered to acquire the player by someone above her and does not know why; this surfaces in Act Three when she confesses she is as much a pawn as they are.",
+      "revealAct": 3
     },
     {
       "name": "Redd Salter",
       "role": "ally",
       "pronouns": "he/him",
-      "notes": "A weathered furnace-worker in the Bilge Wards who takes the player under his wing and speaks for the Undertow. He is the worker seated beside the player at the furnace in Act One's 'The Copper Tag' arc — the one whose warmth and easy talk mask an informant's habits, who smiles while reporting every complaint to the overseers. He genuinely likes the player but will trade their safety for the syndicate's goals without hesitation. His secret is that during a past purge, before the player arrived, Redd played that same smiling-informant role in earnest to survive, selling out a previous indentured to the overseers, and he still slips into it under pressure. It surfaces in Act Two when the player realizes the warning Redd gave them about informants was really a confession about who he himself had once been — and still is."
+      "notes": "A weathered furnace-worker in the Bilge Wards who takes the player under his wing and speaks for the Undertow. He is the worker seated beside the player at the furnace in Act One's 'The Copper Tag' arc — the one whose warmth and easy talk mask an informant's habits, who smiles while reporting every complaint to the overseers. He genuinely likes the player but will trade their safety for the syndicate's goals without hesitation.",
+      "secret": "His secret is that during a past purge, before the player arrived, Redd played that same smiling-informant role in earnest to survive, selling out a previous indentured to the overseers, and he still slips into it under pressure. It surfaces in Act Two when the player realizes the warning Redd gave them about informants was really a confession about who he himself had once been — and still is.",
+      "revealAct": 2
     },
     {
       "name": "Overseer Kolm",
       "role": "villain",
       "pronouns": "they/them",
-      "notes": "The brutal punishment-master of the boiler wards who orchestrates the culling rotations. They want to bury an accounting fraud that skims the indentured rolls. Their secret is that the fraud isn't theirs — they were ordered to run it by the Guild, and they resent being the visible hand that takes the blame; this surfaces if the player spares them in Act Two. If Kolm dies or is never spared, the Guild-ordered-fraud link surfaces instead through ledgers recovered from the boiler wards' punishment records or through Vessa Corrow's Act Three confession, so the connection to Ferrin Lyle's scheme always reaches the player."
+      "notes": "The brutal punishment-master of the boiler wards who orchestrates the culling rotations. They want to bury an accounting fraud that skims the indentured rolls.",
+      "secret": "Their secret is that the fraud isn't theirs — they were ordered to run it by the Guild, and they resent being the visible hand that takes the blame; this surfaces if the player spares them in Act Two. If Kolm dies or is never spared, the Guild-ordered-fraud link surfaces instead through ledgers recovered from the boiler wards' punishment records or through Vessa Corrow's Act Three confession, so the connection to Ferrin Lyle's scheme always reaches the player.",
+      "revealAct": 2
     },
     {
       "name": "The Cartographer",
       "role": "neutral",
       "pronouns": "they/them",
-      "notes": "A masked representative of the silent Meridian order who communicates only in schematics and terse conditions. They want to preserve the secret purpose of Cassivel's engines at any human cost. In Act Two, when the player infiltrates the Meridian Workshops for a schematic fragment, the Cartographer deliberately allows the theft — they leave the fragment reachable and impose only terse, schematic-only conditions (a route drawn, a door left unsealed, a wordless nod at a threshold), never speaking, never explaining, so the player believes they outmaneuvered the order rather than serving it. They reveal nothing of the Meridian's true intent, letting the copy pass into a faction's hands to serve their own longer war. Their secret is that the Meridian know the city is doomed and have chosen to let it fall in a controlled way rather than let a faction seize the core; this surfaces only in Act Three's core."
+      "notes": "A masked representative of the silent Meridian order who communicates only in schematics and terse conditions. They want to preserve the secret purpose of Cassivel's engines at any human cost. In Act Two, when the player infiltrates the Meridian Workshops for a schematic fragment, the Cartographer deliberately allows the theft — they leave the fragment reachable and impose only terse, schematic-only conditions (a route drawn, a door left unsealed, a wordless nod at a threshold), never speaking, never explaining, so the player believes they outmaneuvered the order rather than serving it. They reveal nothing of the Meridian's true intent, letting the copy pass into a faction's hands to serve their own longer war.",
+      "secret": "Their secret is that the Meridian know the city is doomed and have chosen to let it fall in a controlled way rather than let a faction seize the core; this surfaces only in Act Three's core.",
+      "revealAct": 3
     },
     {
       "name": "Ambassador Ferrin Lyle",
       "role": "villain",
       "pronouns": "he/him",
-      "notes": "A charming, seemingly minor liaison between the Guild and the city's absent aristocracy, easily dismissed as decoration. He is the true hand moving the pieces, engineering debts and disasters to consolidate control of the engine core. Appears in Acts One and Two as a bland, forgettable liaison exchanging pleasantries and paperwork; the GM should plant him in minor scenes without emphasis — waved through a checkpoint, signing a manifest near the Guild clerk, offering a distracted greeting during the Falling Ward — so his Act Three reveal recasts them. His secret—that he manufactured the player's indenture as one node in a vast board—surfaces only in the Act Three confrontation, recasting the entire campaign."
+      "notes": "A charming, seemingly minor liaison between the Guild and the city's absent aristocracy, easily dismissed as decoration. Appears in Acts One and Two as a bland, forgettable liaison exchanging pleasantries and paperwork; plant him in minor scenes without emphasis — waved through a checkpoint, signing a manifest near the Guild clerk, offering a distracted greeting during the Falling Ward.",
+      "secret": "He is the true hand moving the pieces, engineering debts and disasters to consolidate control of the engine core. He manufactured the player's indenture as one node in a vast board. This surfaces only in the Act Three confrontation, recasting his earlier appearances and the entire campaign.",
+      "revealAct": 3
     },
     {
       "name": "Snipe",

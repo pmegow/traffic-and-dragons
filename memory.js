@@ -205,7 +205,34 @@ function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[
 // Authored scenario directions are not learned beliefs. Separate storage keeps every ordinary
 // knowledge writer (supersede, forget, dedupe and caps) out of the authored tier by construction.
 function npcAuthoredText(n){return (n&&Array.isArray(n.authored)?n.authored:[]).filter(function(a){return a&&a.source==="blueprint"&&typeof a.text==="string";}).map(function(a){return a.text;}).join("\n");}
-function npcKnowledgeContext(n){return [npcAuthoredText(n),(n&&n.knowledge||[]).join("; ")].filter(function(s){return !!s;}).join("\n");}
+function npcKnowledgeContext(n){return [npcSecretText(n),npcAuthoredText(n),(n&&n.knowledge||[]).join("; ")].filter(function(s){return !!s;}).join("\n");}
+function validRevealAct(value,acts){return typeof value==="number"&&value%1===0&&value>=1&&value<=(acts||[]).length;}
+function fileNpcSecret(n,text,revealAct){
+  if(!n||typeof text!=="string"||!text.trim())return false;
+  if(!Array.isArray(n.secrets))n.secrets=[];
+  for(var i=0;i<n.secrets.length;i++)if(n.secrets[i]&&n.secrets[i].text===text&&n.secrets[i].revealAct===revealAct)return false;
+  n.secrets.push({source:"blueprint",text:text,revealAct:revealAct});return true;
+}
+// Act numbers are one-based and status-owned, like plot armor. Missing/corrupt gates stay closed.
+function npcSecretText(n){
+  var acts=(worldState&&worldState.skeleton&&worldState.skeleton.acts)||[],out=[],secrets=(n&&Array.isArray(n.secrets))?n.secrets:[];
+  for(var i=0;i<secrets.length;i++){
+    var s=secrets[i];if(!s||s.source!=="blueprint"||typeof s.text!=="string")continue;
+    if(!validRevealAct(s.revealAct,acts)){console.warn("[memory] authored secret withheld: revealAct does not name a valid skeleton act");continue;}
+    var a=acts[s.revealAct-1];if(a&&(a.status==="active"||a.status==="completed"))out.push(s.text);
+  }
+  return out.length?"Authored secret (act gate open; stage its discovery in the fiction): "+out.join("\n"):"";
+}
+// A blueprint has one secret slot per NPC. A merged dossier exports at its latest gate,
+// never an earlier one; the live save retains the independent gates without flattening.
+function npcSecretExport(n){
+  var secrets=(n&&Array.isArray(n.secrets))?n.secrets:[],texts=[],gate=0,bad=false;
+  for(var i=0;i<secrets.length;i++){
+    var s=secrets[i];if(!s||s.source!=="blueprint"||typeof s.text!=="string")continue;
+    texts.push(s.text);if(!validRevealAct(s.revealAct,(worldState.skeleton||{}).acts))bad=true;else gate=Math.max(gate,s.revealAct);
+  }
+  return texts.length?{secret:texts.join("\n"),revealAct:bad?null:gate}:null;
+}
 function fileNpcAuthored(n,text){
   if(!n||typeof text!=="string"||!text)return false;
   if(!Array.isArray(n.authored))n.authored=[];
@@ -1350,7 +1377,7 @@ function memoryTOC(){
   if(memory.chapters.length&&!_diet){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
   return lines.join("\n");
 }
-function memoryNpcDetail(name){if(memoryNpcIsPlayer(name))return"";var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+(n.attitude?" — toward you: "+n.attitude:"")],i;var _dWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(_dWs&&_dWs.partyMember&&_dWs.charSheet&&_dWs.charSheet.splitLoc){lines.push("  Currently: AWAY from the party at "+_dWs.charSheet.splitLoc.location+(_dWs.charSheet.splitLoc.sublocation?" ("+_dWs.charSheet.splitLoc.sublocation+")":"")+" — this line is authoritative; any position or activity claim below that contradicts it is STALE history.");}/* #144B: the zero-false-positive counter to legacy stale-posture Knows lines — a pure ADDITION, never suppression (a misclassifying suppressor would hide TRUE canon, the rebuttal-round objection) *//* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */var _auth=npcAuthoredText(n);if(_auth)lines.push("  Authored guidance (play outcomes are recorded separately): "+(_auth.length>2000?_auth.slice(0,2000)+" …[truncated]":_auth));if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
+function memoryNpcDetail(name){if(memoryNpcIsPlayer(name))return"";var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+(n.attitude?" — toward you: "+n.attitude:"")],i;var _dWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(_dWs&&_dWs.partyMember&&_dWs.charSheet&&_dWs.charSheet.splitLoc){lines.push("  Currently: AWAY from the party at "+_dWs.charSheet.splitLoc.location+(_dWs.charSheet.splitLoc.sublocation?" ("+_dWs.charSheet.splitLoc.sublocation+")":"")+" — this line is authoritative; any position or activity claim below that contradicts it is STALE history.");}/* #144B: the zero-false-positive counter to legacy stale-posture Knows lines — a pure ADDITION, never suppression (a misclassifying suppressor would hide TRUE canon, the rebuttal-round objection) *//* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */var _secret=npcSecretText(n);if(_secret)lines.push("  "+_secret);var _auth=npcAuthoredText(n);if(_auth)lines.push("  Authored guidance (play outcomes are recorded separately): "+(_auth.length>2000?_auth.slice(0,2000)+" …[truncated]":_auth));if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
 function npcLinkUpsert(nameA, nameB, rel){
   if(!memory.npcGraph)memory.npcGraph={edges:[]};
   var edges=memory.npcGraph.edges,i;

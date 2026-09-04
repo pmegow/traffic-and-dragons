@@ -149,7 +149,7 @@ async function generateBlueprintDraft(opts,model){
     +"JSON format:\n"
     +'{"name":"Campaign title","tone":"'+(opts.toneId?opts.toneId:"one of: "+opts.toneList)+'","startingLocation":"Where play begins (must appear in locations)","startingRegion":"The wider region","premise":"One paragraph: the central conflict driving the campaign",'
     +skelActsSchema(withDna)+skelDeepTimeSchema()+','
-    +'"npcs":[{"name":"","role":"ally or villain or neutral","pronouns":"e.g. she/her","notes":"2-4 sentences of GM guidance: who they are, what they want, their secret, and when it surfaces"}],'
+    +'"npcs":[{"name":"","role":"ally or villain or neutral","pronouns":"e.g. she/her","notes":"2-4 sentences of immediately available GM guidance: public identity, motives, early-act behavior. NO gated hidden truth.","secret":"The hidden truth and discovery conditions; withheld until revealAct opens. Never duplicate this truth in notes, premise, other NPC notes, or future-act titles/goals, which are visible early. Future-act arc objectives open only with that act.","revealAct":3}],'
     +'"locations":[{"name":"","description":"2-4 sentences of canonical description the GM will inject verbatim"}],'
     +'"rules":["optional standing GM directive — omit entries unless the world truly needs one"]}'
     +"\n\nRULES:\n"

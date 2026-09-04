@@ -2209,6 +2209,10 @@ function validateBlueprint(bp){
     }
   }
   if(bp.creatures){var ci;for(ci=0;ci<bp.creatures.length;ci++){if(!bp.creatures[ci].name)return"Creature "+(ci+1)+" is missing a name.";}}
+  for(var ni=0;ni<(bp.npcs||[]).length;ni++){
+    var ns=bp.npcs[ni];if(!ns||!ns.secret)continue;
+    if(typeof ns.secret!=="string"||!validRevealAct(ns.revealAct,bp.acts))return "NPC \""+(ns.name||ni+1)+"\" secret needs a reveal act number from 1 to "+(bp.acts||[]).length+". It stays withheld until a valid act opens.";
+  }
   // #192 — custom classes + the curated availability roster. Every refusal is LOUD and names
   // the class: this data becomes character-progression canon when the engine consumes it, and
   // a malformed class discovered at level-up would be far worse than a refused save.
@@ -2287,6 +2291,7 @@ function normalizeBlueprint(bp){
   // and the cloud-library path skips validateBlueprint, so a missing arcs crashed startGame.
   for(var _ai=0;_ai<bp.acts.length;_ai++){if(bp.acts[_ai]&&!Array.isArray(bp.acts[_ai].arcs))bp.acts[_ai].arcs=[];}
   if(!Array.isArray(bp.npcs))bp.npcs=[];
+  bp.npcs.forEach(function(n){if(n&&typeof n.revealAct==="string"&&/^\d+$/.test(n.revealAct.trim()))n.revealAct=Number(n.revealAct);});
   if(!Array.isArray(bp.locations))bp.locations=[];
   if(!Array.isArray(bp.rules))bp.rules=[];
   if(!Array.isArray(bp.creatures))bp.creatures=[]; // v1.176 — campaign bestiary
@@ -2320,7 +2325,7 @@ function normalizeBlueprint(bp){
     bp.premise=clampStr(bp.premise,_cp.premise);["startingLocation","startingRegion","author","name"].forEach(function(k){bp[k]=clampStr(bp[k],_cp.field);});
     for(_ci=0;_ci<bp.acts.length;_ci++){var _a=bp.acts[_ai=_ci];if(!_a)continue;["title","goal","dnaHint","desc"].forEach(function(k){_a[k]=clampStr(_a[k],_cp.field);});
       for(_cj=0;_cj<(_a.arcs||[]).length;_cj++){var _r=_a.arcs[_cj];if(_r)["title","objective","dnaHint","desc"].forEach(function(k){_r[k]=clampStr(_r[k],_cp.field);});}}
-    [bp.npcs,bp.locations,bp.creatures].forEach(function(list){for(var _k=0;_k<list.length;_k++){var _o=list[_k];if(_o&&typeof _o==="object")["name","notes","desc","role","status","relation","sizeNote"].forEach(function(f){_o[f]=clampStr(_o[f],_cp.field);});}});
+    [bp.npcs,bp.locations,bp.creatures].forEach(function(list){for(var _k=0;_k<list.length;_k++){var _o=list[_k];if(_o&&typeof _o==="object")["name","notes","secret","desc","role","status","relation","sizeNote"].forEach(function(f){_o[f]=clampStr(_o[f],_cp.field);});}});
     for(_ci=0;_ci<bp.rules.length;_ci++)bp.rules[_ci]=clampStr(bp.rules[_ci],_cp.rule);
   }
   return bp;
@@ -2395,6 +2400,7 @@ function buildBlueprintFromGame(){
     /* v1.439 (F2, brief B): role is RELATION-shaped by both authoring specs (designer + generator) —
        export the relation, never the mood the old line leaked (the same category error v1.379 fixed) */
     npcs.push({name:n.name,role:(n.rel&&n.rel!=="unknown")?n.rel:"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
+    var secret=npcSecretExport(mem);if(secret){npcs[npcs.length-1].secret=secret.secret;npcs[npcs.length-1].revealAct=secret.revealAct;}
   });
   var locations=[];
   if(memory.map&&memory.map.nodes){
@@ -2512,6 +2518,7 @@ function applyBlueprint(bp){
   for(var _an=0;_an<(bp.npcs||[]).length;_an++){
     var _am=memory.npcs[bp.npcs[_an].name];
     if(_am&&_am.knowledge&&_am.knowledge.length)fileNpcAuthored(_am,_am.knowledge[0]);
+    var _seed=bp.npcs[_an];if(_seed.secret){fileNpcSecret(_am,_seed.secret,_seed.revealAct);if(!validRevealAct(_seed.revealAct,(worldState.skeleton||{}).acts))console.warn("[blueprint] "+_seed.name+": secret withheld — invalid revealAct");}
   }
   // Custom rules from the blueprint — WRAPPED as quoted data (TODO #22, v1.350): a raw push gave a
   // semi-trusted campaign file the same prompt authority as the player's own rules (an embedded

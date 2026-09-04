@@ -4003,6 +4003,61 @@ function runEngineTests(R){
     return r.restored===1&&again.restored===0&&memory.npcs.Kolm.authored.length===1&&memory.npcs.Kolm.authored[0].text===old&&memory.npcs.Kolm.knowledge[0]==="Current play fact."&&JSON.stringify(memory.archive)===ar&&JSON.stringify(worldState)===ws&&JSON.stringify(sessionLog)===sl?true:"repair lost canon, duplicated sources, or touched unrelated data";
   });
 
+  section("#333 — act-gated NPC secrets");
+  function secretFixture(){
+    makeWorld();var bp={format:"tnd-blueprint-v1",name:"Secret test",premise:"A city awaits.",acts:[],npcs:[{name:"Lyle",notes:"A bland liaison.",secret:"TWIST_SENTINEL: Lyle forged the debt.",revealAct:3}]};
+    for(var i=1;i<=3;i++)bp.acts.push({title:"Act "+i,goal:"Goal "+i,arcs:[{title:"Arc "+i,objective:"Objective "+i}]});
+    applyBlueprint(normalizeBlueprint(bp));return bp;
+  }
+  t("#333 secret is withheld before the act opens in every NPC prompt projection",function(){
+    secretFixture();var n=memory.npcs.Lyle;if(!n.secrets||n.secrets[0].revealAct!==3)return "structured secret was not persisted";
+    var p=memoryNpcDetail("Lyle")+npcKnowledgeContext(n)+buildCompanionSheetPrompt("Lyle")+buildSysPrompt().volatile;
+    return p.indexOf("TWIST_SENTINEL")<0&&p.indexOf("A bland liaison.")>=0?true:"secret leaked or ordinary notes disappeared";
+  });
+  t("#333 active and completed reveal acts unlock without changing the stable prompt",function(){
+    secretFixture();var stable=buildSysPrompt().stable;worldState.skeleton.acts[2].status="active";
+    if(memoryNpcDetail("Lyle").indexOf("TWIST_SENTINEL")<0||npcKnowledgeContext(memory.npcs.Lyle).indexOf("TWIST_SENTINEL")<0)return "active act did not unlock";
+    worldState.skeleton.acts[2].status="completed";memory=JSON.parse(JSON.stringify(memory));healMemory();
+    return memoryNpcDetail("Lyle").indexOf("TWIST_SENTINEL")>=0&&buildSysPrompt().stable===stable?true:"reload relocked a completed act or changed stable bytes";
+  });
+  t("#333 invalid reveal gates are refused and cannot fail open when validation is bypassed",function(){
+    var bp=secretFixture(),bad=[null,0,-1,1.5,"3oops",4];
+    for(var i=0;i<bad.length;i++){
+      bp.npcs[0].revealAct=bad[i];if(!validateBlueprint(bp))return "validation accepted "+bad[i];
+      memory.npcs.Lyle.secrets[0].revealAct=bad[i];if(memoryNpcDetail("Lyle").indexOf("TWIST_SENTINEL")>=0)return "projection failed open for "+bad[i];
+    }
+    bp.npcs[0].revealAct="3";normalizeBlueprint(bp);return !validateBlueprint(bp)&&bp.npcs[0].revealAct===3?true:"designer numeric text did not normalize";
+  });
+  t("#333 closed secrets survive blueprint export and never enter learned-fact extraction",function(){
+    secretFixture();var bp=buildBlueprintFromGame(),n=bp.npcs[0];
+    if(n.secret!=="TWIST_SENTINEL: Lyle forged the debt."||n.revealAct!==3||n.notes!=="A bland liaison.")return "export lost or exposed secret in ordinary notes";
+    if(buildRecordedFactsBlock("Lyle is here.").indexOf("TWIST_SENTINEL")>=0)return "secret became learned evidence";
+    applyBlueprint(normalizeBlueprint(JSON.parse(JSON.stringify(bp))));return memoryNpcDetail("Lyle").indexOf("TWIST_SENTINEL")<0?true:"roundtrip bypassed gate";
+  });
+  t("#333 merge retains each secret's independent act gate and exports conservatively",function(){
+    secretFixture();fileNpcSecret(memory.npcs.Lyle,"EARLY_SECRET",2);
+    memory.npcs.Other={knowledge:[],events:[],aliases:[]};fileNpcSecret(memory.npcs.Other,"OTHER_SECRET",3);
+    applyMuts("[NPC_MERGE:Lyle|Other]");worldState.skeleton.acts[1].status="active";
+    var p=memoryNpcDetail("Lyle");if(p.indexOf("EARLY_SECRET")<0||p.indexOf("OTHER_SECRET")>=0||p.indexOf("TWIST_SENTINEL")>=0)return "merge lost or advanced a gate";
+    var ex=buildBlueprintFromGame().npcs[0];if(ex.revealAct!==3||ex.secret.indexOf("OTHER_SECRET")<0)return "export lost merged secret or advanced its gate";
+    worldState.skeleton.acts[2].status="active";return memoryNpcDetail("Lyle").indexOf("OTHER_SECRET")>=0?true:"merged secret never unlocked";
+  });
+  t("#333 secret-only NPC seeds and long ordinary dossiers still deliver the unlocked secret",function(){
+    var bp=secretFixture();bp.npcs[0].notes="";applyBlueprint(bp);worldState.skeleton.acts[2].status="active";
+    fileNpcAuthored(memory.npcs.Lyle,new Array(3001).join("x"));
+    return memoryNpcDetail("Lyle").indexOf("TWIST_SENTINEL")>=0?true:"secret-only seed lost or authored budget starved secret";
+  });
+  t("#333 Iron Meridian migration gates the Lyle twist and all five timed dossiers",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    makeWorld();var bp=JSON.parse(__fsForTests.readFileSync(__rootForTests+"/samples/the_iron_meridian.blueprint","utf8"));applyBlueprint(normalizeBlueprint(bp));
+    var lyle=bp.npcs.filter(function(n){return n.name==="Ambassador Ferrin Lyle";})[0];
+    if(!lyle.secret||lyle.revealAct!==3||bp.npcs.filter(function(n){return !!n.secret;}).length!==5)return "sample still embeds secrets in notes";
+    var p=buildSysPrompt().volatile+bp.npcs.map(function(n){return memoryNpcDetail(n.name);}).join("\n");
+    if(p.indexOf("manufactured the player's indenture")>=0||p.indexOf("true hand moving the pieces")>=0)return "Lyle twist still in early-visible guidance";
+    worldState.skeleton.acts[0].arcs.forEach(function(a){a.status="completed";});applyMuts("[ACT_COMPLETE:Ballast and Breath]");if(memoryNpcDetail(lyle.name).indexOf(lyle.secret)>=0)return "Act Two opened Lyle's gate early";
+    worldState.skeleton.acts[1].arcs.forEach(function(a){a.status="completed";});applyMuts("[ACT_COMPLETE:Threads in the Smoke]");return memoryNpcDetail(lyle.name).indexOf(lyle.secret)>=0?true:"real ACT_COMPLETE executor did not open Act Three gate";
+  });
+
   section("blueprint import hygiene (P7/P8/P9)");
   t("P7: blueprint location text is single-homed on the map node",function(){
     makeWorld();

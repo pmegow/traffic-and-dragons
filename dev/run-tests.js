@@ -1115,7 +1115,15 @@ try {
   // ⑨ (v0.40) The LLM gate consults the gateway route: a signed-in keyless player must not be
   //    refused before gmViaServer() is asked (the #44 starter-set build hit exactly this wall).
   if (!/gmViaServer\(\)/.test(_pageBD.slice(_pageBD.indexOf("function llmReady"), _pageBD.indexOf("function llmChoices")))) _failBD("llmReady no longer consults gmViaServer() — signed-in keyless players are refused every LLM feature.");
-  console.log("[blueprint-designer] contract OK — class roster + World Ages sections wired, seam present, save-free/publish-gated, gateway-aware");
+  ["secret", "revealAct"].forEach(function(k){if(_pageBD.indexOf('"npc",i,0,"'+k+'"')<0)_failBD("#333 designer secret fields: missing "+k+" control");});
+  if(_pageBD.indexOf("secrets/hooks into that NPC's notes")>=0||_pageBD.indexOf("secrets, behavioral hooks")>=0)_failBD("#333 authoring instructions still put gated secrets in immediate notes");
+  var _genBD=_fsBD.readFileSync(_pathBD.join(__dirname,"..","campaign_generator.js"),"utf8");
+  if(_genBD.indexOf('"revealAct"')<0||_genBD.indexOf('"secret"')<0)_failBD("#333 generator schema omits structured secret fields");
+  var _gateBD={bp:{npcs:[{}]}};_gateBD.FIELD_ROOTS={npc:function(i){return _gateBD.bp.npcs[i];}};
+  require("vm").runInNewContext(_pageBD.slice(_pageBD.indexOf("function bpFieldSet("),_pageBD.indexOf("function onField(")),_gateBD);
+  _gateBD.bpFieldSet("npc",0,0,"revealAct","3");if(_gateBD.bp.npcs[0].revealAct!==3)_failBD("#333 reveal-act editing must produce a number before Publish validation");
+  _gateBD.bpFieldSet("npc",0,0,"revealAct","3oops");if(_gateBD.bp.npcs[0].revealAct!=="3oops")_failBD("#333 reveal-act editing must retain invalid input for a loud validation error");
+  console.log("[blueprint-designer] contract OK — class roster + World Ages + secret gates wired, seam present, save-free/publish-gated, gateway-aware");
 } catch (e) { console.error("BLUEPRINT DESIGNER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── SATELLITE PALETTE CONTRACT (#312 ②, v1.781) ─────────────────────────────

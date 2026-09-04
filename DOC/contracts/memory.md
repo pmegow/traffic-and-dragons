@@ -18,6 +18,20 @@ obsolete belief. Blueprint exports retain the original authored text. The eviden
 archive, using `dev/fixtures/332-iron-meridian-authored.blueprint` as the frozen author source;
 dry run by default, `--write` creates a new export. Source save, transcript and archive remain intact.
 
+**Act-gated NPC secrets (#333, v1.813).** Blueprint NPCs may carry `secret` and `revealAct`
+(1-based integer). These seed `memory.npcs[name].secrets[]` records of
+`{source:"blueprint",text,revealAct}`. The shared `npcSecretText` projection withholds each
+entry until its exact skeleton act is active or completed. Invalid/missing gates stay closed
+and warn; blueprint validation rejects them. NPC detail and sheet-generation context use this
+projection. Secrets do not enter ordinary knowledge or the extractor's recorded-fact candidates.
+Unlocked secrets have their own detail line, so a long authored dossier cannot truncate them.
+Identity merge unions entries with their individual gates. Blueprint export retains all text;
+because its NPC schema has one secret slot, merged secrets export at the latest gate
+(conservative delay, never early disclosure). Live saves retain each independent gate.
+Legacy prose is not semantically rewritten on import; already revealed transcript facts are
+not erased. Authors must move timed truths out of notes and other early-visible fields.
+The bundled Iron Meridian's five timed NPC dossiers use the structured fields.
+
 `sessionTokens()` estimates the token count of the **unextracted** part of `sessionLog` (sum of `content.length` / 4, counting only messages past the `worldState.sessKept` marker — see tail retention below). When it hits `SUMMARIZE_AT` (globals.js, 2400), `summarize()` fires before the next player action. On failure the log is KEPT and retried next turn. The bounded strike lives in `worldState.summaryFailure`, is saved immediately, and therefore survives reload/campaign switching. After 3 ordinary failures a raw excerpt is archived as a degraded chapter; after 3 W2/W6 validation failures the source excerpt and validation reason instead enter non-injected `memory.archive.identityQuarantines` and no generated summary/canon consequence is filed.
 
 `summarize()`:
