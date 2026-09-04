@@ -21067,18 +21067,36 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return w2NamedPresenceEvidence("Bryn")?"a SPLIT party member still authorized as present":true;
   });
 
-  t("#194 L2: cast-sourced presence is playtest-gated — it never authorizes alone (ruling ④'s gate-lean clause)",function(){
+  t("#194 ④: earlier observed cast authorizes, same-turn and other cast limbs do not",function(){
     p194World();r168Npc("Quiet");
     var n=wsNpcByName("Quiet");n.introduced=10;
     worldState.presenceEpoch=0;worldState.presenceVer=1;
     worldState.turn=99;applyMuts("[SCENE_REF:onlooker|?]");/* active ledger */
     worldState.turn=100;applyMuts("[SCENE_CAST:Quiet]");/* the REAL cast path: observed channel + guestbook by + lastSeenSrc all land as "cast" */
     if(!memory.npcs["Quiet"]||memory.npcs["Quiet"].lastSeenSrc!=="cast")return "fixture: the cast answer did not record presence";
+    if(w2NamedPresenceEvidence("Quiet"))return "same-turn cast authorized its own death";
     worldState.turn=102;
-    if(w2NamedPresenceEvidence("Quiet"))return "cast-sourced evidence authorized before the playtest validated the channel: "+w2NamedPresenceEvidence("Quiet");
+    if(w2NamedPresenceEvidence("Quiet",100))return "summary cited cast from the death's own turn";
+    var ev=w2NamedPresenceEvidence("Quiet",101);
+    if(!ev||ev.indexOf("observed on screen (cast)")<0)return "earlier observed cast refused: "+ev;
+    worldState.sceneRefs.active.observed=[];
+    if(w2NamedPresenceEvidence("Quiet"))return "lastSeen/guestbook cast limbs were promoted too";
     worldState.turn=103;if(!npcRecordPresence("Quiet","say"))return "fixture: say presence write failed";
     worldState.turn=104;
     return w2NamedPresenceEvidence("Quiet")?true:"a say-sourced record no longer authorizes (over-broad cast exclusion)";
+  });
+
+  t("#194 ④: explicit negative outranks cast; observed cast agrees at death gate and executor",function(){
+    p194World();r168Npc("Quiet");wsNpcByName("Quiet").introduced=10;
+    worldState.turn=99;applyMuts("[SCENE_REF:onlooker|?]");
+    worldState.turn=100;applyMuts("[SCENE_CAST:Quiet]");
+    worldState.turn=101;
+    worldState.sceneRefs.active.negatives.push({entity:"Quiet",mode:"explicit",resolved:false});
+    if(w2NamedPresenceEvidence("Quiet"))return "cast overruled an explicit disidentification";
+    worldState.sceneRefs.active.negatives=[];
+    if(!w2DeathAuthorized("Quiet","Quiet"))return "death gate refused prior cast";
+    var r=applyMuts("[CANON_TXN_BEGIN:cast-death|npc-death|Quiet|Quiet|-][SCENE_DEATH:Quiet][CANON_TXN_END:cast-death]");
+    return npcIsDead(wsNpcByName("Quiet"))?true:"authorized cast death failed in executor: "+JSON.stringify(r);
   });
 
   t("#194 ①: the cast ask-vs-answer census — asks count at the builder, answers/none/volunteered at the seam, and all survive the fresh-ask reset",function(){

@@ -910,7 +910,6 @@ function _observedFact(canon,lim){
   var fs=_sceneRefFrames(),i,j;
   for(i=0;i<fs.length;i++){var ob=(fs[i]&&fs[i].observed)||[];
     for(j=0;j<ob.length;j++){var o=ob[j];
-      if(o.channel==="cast")continue;/* ruling ④: cast is playtest-gated out of authorization until a 50-turn run measures its compliance — promotion is this one clause */
       if(o.firstTurn<lim&&resolveNpcName(o.entity)===canon)return o;
     }}
   return null;
@@ -1054,8 +1053,8 @@ function w2NamedPresenceEvidence(name,sourceTurn){
   // cost was nil; re-witnessing (speech / cast / a post-epoch record) is the only way back in.
   // Post-epoch statusTurn — the mention channel that made 37 of 39 living t1903 NPCs killable by
   // bare name — likewise authorizes NOTHING. Every limb keeps the strictly-earlier contract (fact
-  // turn < lim), and "cast"-sourced records are excluded until the ruling-④ playtest validates
-  // the channel (ask-vs-answer counters ride worldState.castAsk for that measurement).
+  // turn < lim). Observed-frame cast is admitted by ruling ④; the independent lastSeen and
+  // guestbook cast limbs remain excluded. The castAsk census continues measuring compliance.
   var epoch=(typeof worldState.presenceEpoch==="number")?worldState.presenceEpoch:0;
   if(n&&n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n))&&!(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location))return "living party member at the player's side";
   var spf=_speechFactNear(canon,lim);

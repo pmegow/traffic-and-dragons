@@ -9,7 +9,7 @@ var rc = 0;
 
 rc |= sabotage.prove({
   file: "tag_table.js",
-  command: ["node", ["dev/run-tests.js"]],
+  command: ["node", ["dev/run-tests.js", "#194 — the presence split"]],
   cases: [
     { label: "the [NPC:] handler re-wired to the presence writer — mention teleports again (fixed point 1 broken)",
       mustFail: "mention REGISTERS (display association + lastMentioned) but records NO presence",
@@ -28,7 +28,7 @@ rc |= sabotage.prove({
 
 rc |= sabotage.prove({
   file: "identity.js",
-  command: ["node", ["dev/run-tests.js"]],
+  command: ["node", ["dev/run-tests.js", "#194 — the presence split"]],
   cases: [
     { label: "a statusTurn limb restored — the mention channel authorizes deaths again (layer 2's core regrade undone)",
       mustFail: "post-epoch statusTurn authorizes NOTHING",
@@ -54,10 +54,14 @@ rc |= sabotage.prove({
       mustFail: "can NEVER arm the W2 overflow latch",
       find: "    if(f.observed.length>=PRESENCE_OBSERVED_CAP){/* LRU evict — NEVER the overflow latch */\n      var old=0;for(i=1;i<f.observed.length;i++)if(f.observed[i].lastTurn<f.observed[old].lastTurn)old=i;\n      f.observed.splice(old,1);\n    }",
       replace: "    if(f.observed.length>=PRESENCE_OBSERVED_CAP){_sceneRefOverflow(\"observed\");return false;}" },
-    { label: "cast exclusion dropped from the observed limb — a rubber-stamped cast line becomes death authority before the playtest (ruling ④)",
-      mustFail: "cast-sourced presence is playtest-gated",
-      find: "      if(o.channel===\"cast\")continue;",
-      replace: "" },
+    { label: "observed cast promotion is lost — a measured earlier sighting stops authorizing",
+      mustFail: "earlier observed cast authorizes, same-turn and other cast limbs do not",
+      find: "      if(o.firstTurn<lim&&resolveNpcName(o.entity)===canon)return o;",
+      replace: "      if(o.channel===\"cast\")continue;if(o.firstTurn<lim&&resolveNpcName(o.entity)===canon)return o;" },
+    { label: "observed cast can authorize its own turn",
+      mustFail: "earlier observed cast authorizes, same-turn and other cast limbs do not",
+      find: "      if(o.firstTurn<lim&&resolveNpcName(o.entity)===canon)return o;",
+      replace: "      if(o.firstTurn<=lim&&resolveNpcName(o.entity)===canon)return o;" },
     { label: "the valve never arms — a refused named death quarantines forever again (the t1903 loop restored)",
       mustFail: "refused named death arms the valve",
       find: "if(!_bdOv)_w2ArmDeathValve(nm);/* #194 L3 */",
@@ -71,7 +75,7 @@ rc |= sabotage.prove({
 
 rc |= sabotage.prove({
   file: "memory.js",
-  command: ["node", ["dev/run-tests.js"]],
+  command: ["node", ["dev/run-tests.js", "#194 — the presence split"]],
   cases: [
     { label: "guestbook stamps lose their source — provenance dies and the cast gate has nothing to read",
       mustFail: "npcRecordPresence is the ONE presence writer",
@@ -86,7 +90,7 @@ rc |= sabotage.prove({
 
 rc |= sabotage.prove({
   file: "state.js",
-  command: ["node", ["dev/run-tests.js"]],
+  command: ["node", ["dev/run-tests.js", "#194 — the presence split"]],
   cases: [
     { label: "the epoch migration removed — with no anchor every pre-epoch mention-fed stamp reads as post-epoch and authorizes",
       mustFail: "migrateWorldState stamps presenceEpoch ONCE",
@@ -97,7 +101,7 @@ rc |= sabotage.prove({
 
 rc |= sabotage.prove({
   file: "api.js",
-  command: ["node", ["dev/run-tests.js"]],
+  command: ["node", ["dev/run-tests.js", "#194 — the presence split"]],
   cases: [
     { label: "the fork note stops naming the reported-death exit — the valve teaches a ceremony that cannot terminate",
       mustFail: "the fork note teaches [SAY:] and [NPC_DEATH_REPORTED:]",
@@ -108,7 +112,7 @@ rc |= sabotage.prove({
 
 rc |= sabotage.prove({
   file: "helpers.js",
-  command: ["node", ["dev/run-tests.js"]],
+  command: ["node", ["dev/run-tests.js", "#194 — the presence split"]],
   cases: [
     { label: "historical legacy-grade receipts vanish from drift health — the closed fail-open window loses its record",
       mustFail: "legacy-grade committed receipts surface in the drift-health",
