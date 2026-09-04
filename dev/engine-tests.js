@@ -966,6 +966,28 @@ function runEngineTests(R){
     if(/snoozedUntil|endingOffered\(/.test(body.slice(gate,blk)))return "the journal must ignore the snooze";
     return body.slice(gate,blk).indexOf("campaignEnded")>=0?true:"an ended campaign must not offer it again";
   });
+  // ── #328 in-band suggestion buttons (owner ruling 2026-09-03: try it, mindful of rollback) ──
+  t("#328 [SUGGEST:a|b|c] is a real tag: parsed (markers and asterisks stripped, capped at three), filed on worldState.suggestInband for THIS turn, stripped from the prose, taught in the STATE TAGS doc only while the setting is on",function(){
+    var a=parseSuggestTag("A) Crawl toward the sixth baffle | *Lie flat against the grating* | 3. Cast Prestidigitation to snuff the lantern | a fourth");
+    if(a.length!==3||a[0]!=="Crawl toward the sixth baffle"||a[1]!=="Lie flat against the grating"||a[2]!=="Cast Prestidigitation to snuff the lantern")return "parse: "+JSON.stringify(a);
+    if(parseSuggestTag("").length||parseSuggestTag("|| ").length)return "empty should be empty";
+    makeWorld();worldState.turn=40;var r=applyMuts("The lantern gutters. [SUGGEST:Wait for the guard to pass|Slip down the duct|Call out to Thessa]");
+    var ib=worldState.suggestInband;if(!ib||ib.turn!==40||ib.acts.length!==3||ib.acts[2]!=="Call out to Thessa")return "not filed: "+JSON.stringify(ib);
+    if(cleanTxt("A [SUGGEST:x|y|z] B")!=="A  B")return "not stripped";
+    var was=suggestInband;try{suggestInband=true;if(buildStateTagsDoc().indexOf("[SUGGEST:")<0)return "doc line missing while on";suggestInband=false;if(buildStateTagsDoc().indexOf("[SUGGEST:")>=0)return "doc line present while off (rollback must remove the ask)";}finally{suggestInband=was;}
+    return true;
+  });
+  t("#328 generateActions consumes the turn's in-band buttons and skips the suggestion call; a missing or short tag, or the setting off, falls through to the v1.288 un-starved call byte-for-byte; the record is cleared either way; the switch is a File-menu checkbox with a stored pref",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("async function generateActions("),body=src.slice(i,src.indexOf("// ── #96: dialogue attribution"));
+    var ib=body.indexOf("worldState.suggestInband"),call=body.indexOf("resp=await callGM("),gate=body.indexOf("applySuggestionGate(");
+    if(ib<0||!(ib<call)||!(call<gate))return "the in-band consumer must sit before the call and both must feed the same gate";
+    if(body.indexOf("suggestInband&&")<0)return "not gated by the setting";
+    if(body.indexOf("delete worldState.suggestInband")<0)return "the turn's record must be cleared";
+    if(!/_ib&&_ib\.length>=3/.test(body))return "fewer than three in-band actions must fall through to the call";
+    var boot=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
+    if(boot.indexOf("inband-cb")<0||boot.indexOf("toggleSuggestInband")<0||um.indexOf("function loadSuggestInband")<0||boot.indexOf("loadSuggestInband()")<0)return "the switch is not wired";
+    return typeof SUGGEST_INBAND_K==="string"&&um.indexOf("store.set(SUGGEST_INBAND_K")>=0?true:"no stored pref";
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);
@@ -6309,7 +6331,7 @@ function runEngineTests(R){
     // would read the relabel ceremony aloud in the prose and pollute the transcript.
     // v1.697 (#211): +NO_CHANGE in BOTH registries (+10 chars payload form; bare form joins
     // _CT_BARE) — the audit-ack channel must strip everywhere or the ack IS the leak it cures.
-    if(__djb2(_CT_TAGS.source)!==-760578386||_CT_TAGS.source.length!==1625)return "_CT_TAGS diverged from the frozen literal";/* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==-1066850964||_CT_TAGS.source.length!==1633)return "_CT_TAGS diverged from the frozen literal";/* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -6388,7 +6410,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1432163285&&d.length===26324)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===1999516568&&d.length===26825)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never

@@ -123,6 +123,12 @@ var WHISPERS_CAP=12;
 var PLOT_ARMOR_ESCAPES=2;
 // #325: after "play on", the offered ending stays off the fourth button this many turns before it is offered again.
 var ENDING_REOFFER_TURNS=15;
+// #328 (owner ruling 2026-09-03): the suggestion buttons ride the GM's own turn as a [SUGGEST:] tag
+// instead of a second full-prompt call ($2.40 of the $5.42 Iron Meridian run). ONE switch, ON by
+// default: off = the doc line leaves the prompt and generateActions runs the v1.288 un-starved call
+// exactly as before (the rollback). File menu checkbox; stored under SUGGEST_INBAND_K.
+var SUGGEST_INBAND_K="tnd_suggest_inband_v1";
+var suggestInband=true;
 var COMBAT_SLAIN_CAP=12;    // #299: the combat-slain ring — every foe slain at a combat close (rostered or not), so a chapter summary citing a rolled foe's death validates as combat canon instead of opening a W2 conflict
 var MONTAGE_AFTER_TURNS=6;  // #308: this many committed turns at one place with no fight and no move → the fourth button offers a MONTAGE (one paragraph, hours advance, land at the next decision)
 var PREVIOUSLY_AFTER_MS=2*60*60*1000; // #308: Car Mode speaks a "previously on" recap when the last turn is older than this
@@ -345,7 +351,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.803";
+var APP_VERSION="v1.804";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

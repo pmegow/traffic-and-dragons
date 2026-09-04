@@ -62,6 +62,9 @@ function toggleFontSize(){
   eachMenuEl("font-lg",function(el){el.checked=large;});
 }
 function toggleAdultMode(){adultMode=!adultMode;store.set(ADK,adultMode?"1":"");eachMenuEl("adult-cb",function(cb){cb.checked=adultMode;});showToast(adultMode?"18+ content enabled":"18+ content disabled");}
+/* #328: the in-band buttons switch — off = the ask leaves the prompt and the separate call returns (rollback). */
+function toggleSuggestInband(){suggestInband=!suggestInband;store.set(SUGGEST_INBAND_K,suggestInband?"1":"0");eachMenuEl("inband-cb",function(cb){cb.checked=suggestInband;});showToast(suggestInband?"Buttons ride the GM's turn (one call per turn)":"Buttons use their own call again (the v1.288 path)");}
+function loadSuggestInband(){var v=store.get(SUGGEST_INBAND_K);suggestInband=(v==null||v==="")?true:v==="1";eachMenuEl("inband-cb",function(cb){cb.checked=suggestInband;});}
 function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");eachMenuEl("adult-cb",function(cb){cb.checked=adultMode;});}
 function loadLegacySettings(){legacyCharsOn=store.get(LEGACY_ON_K)==="1";var pv=parseInt(store.get(LEGACY_PCT_K)||"5",10);legacyChancePct=(isNaN(pv)||pv<1)?5:Math.min(100,pv);eachMenuEl("legacy-cb",function(el){el.checked=legacyCharsOn;});eachMenuEl("legacy-pct",function(el){el.value=legacyChancePct;});}
 function saveLegacySettings(){store.set(LEGACY_ON_K,legacyCharsOn?"1":"");store.set(LEGACY_PCT_K,String(legacyChancePct));}

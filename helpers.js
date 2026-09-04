@@ -72,6 +72,9 @@ function questBearingText(b){
   if(b.arcN)s+="\nArc "+b.arcN+"/"+b.arcOf+" \u201c"+b.arcTitle+"\u201d";
   return s;
 }
+// #328: the [SUGGEST:a|b|c] payload → up to three clean actions. Leading "A)" / "1." markers and
+// asterisks are dropped (the v1.90 parseActions lesson); blanks vanish. Pure.
+function parseSuggestTag(body){var out=[],parts=String(body||"").split("|"),i;for(i=0;i<parts.length&&out.length<3;i++){var t=parts[i].replace(/\*/g,"").trim().replace(/^[(\[]?(?:[A-Ca-c]|[1-3])[)\].:]\s*/,"").trim();if(t.length>1)out.push(t);}return out;}
 // #319 plot armor (owner ruling 2026-09-03: derived with override). The blueprint's per-NPC `armor`
 // field, normalized: "none" strips derived armor; an act number grants it until that act opens;
 // anything else (blank, "auto") leaves derivation to the skeleton (plotArmor, identity.js). Pure.

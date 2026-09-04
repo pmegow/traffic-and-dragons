@@ -524,7 +524,14 @@ async function generateActions(msgEl){
     // stays true — the window IS the history, at a bounded cost. Runs on the ACTIVE model (null
     // override): caches are model-scoped, an escalated model would pay full freight. See the
     // block comment above the suggestion helpers for the whole incident history.
-    var resp=await callGM("RECENT SCENES (oldest first — the LAST one is the current moment):\n"+suggestionHistoryPairs()+"\n\n"+SUGGESTION_ASK,buildSuggestionSys(prevActs),200,null,{noHistory:true,kind:"actions"});/* #283②: SUGGESTION_ASK matches the mode block's object demand — the user channel no longer erases the #141 checking space */
+    /* #328 (owner ruling 2026-09-03): the GM wrote its own buttons at the end of the turn ([SUGGEST:], filed by the
+       tag table for THIS turn). Use them and skip the second full-prompt call. Anything short of three, or the
+       setting off, falls through to the v1.288 un-starved call below — byte-for-byte, the rollback path. */
+    var _ib=(typeof suggestInband!=="undefined"&&suggestInband&&worldState.suggestInband&&worldState.suggestInband.turn===worldState.turn)?worldState.suggestInband.acts:null;
+    delete worldState.suggestInband;
+    var resp=null;
+    if(_ib&&_ib.length>=3){resp=JSON.stringify({present:"",actions:_ib.slice(0,3)});if(typeof console!=="undefined")console.info("[actions] #328 in-band buttons used — no suggestion call");}
+    else resp=await callGM("RECENT SCENES (oldest first — the LAST one is the current moment):\n"+suggestionHistoryPairs()+"\n\n"+SUGGESTION_ASK,buildSuggestionSys(prevActs),200,null,{noHistory:true,kind:"actions"});/* #283②: SUGGESTION_ASK matches the mode block's object demand — the user channel no longer erases the #141 checking space */
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var acts=parseSuggestionArray(resp);
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */
