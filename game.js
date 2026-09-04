@@ -981,7 +981,7 @@ function showSpellUnlockModal(unl){
     var ds=(typeof spellPickDesc==="function")?spellPickDesc(pool[i]):"";
     ch+="<div class='sc' id='spu-opt-"+i+"' onclick='spuToggle("+i+")' data-nm=\""+pool[i].replace(/"/g,"&quot;")+"\" style='text-align:left;padding:12px 14px;margin-bottom:8px;'><div class='nm' style='font-size:14px;'>"+pool[i]+"</div>"+(ds?"<div class='sb' style='font-size:11px;color:var(--t2);margin-top:3px;'>"+ds+"</div>":"")+"</div>";
   }
-  modalShell("spu-modal","<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>Tier "+unl.tier+" Spells Unlocked</div><div style='font-size:13px;color:var(--t1);margin-bottom:12px;'>Choose "+need+" — <span id='spu-count'>0</span>/"+need+" selected.</div>"+ch+"<div id='spu-warn' style='color:var(--red);font-size:12px;margin:6px 0;'></div><button id='spu-confirm' onclick='spuConfirm()' style='width:100%;padding:12px;margin-top:6px;'>Confirm</button>",
+  modalShell("spu-modal","<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>Tier "+unl.tier+" Spells Unlocked</div><div style='font-size:13px;color:var(--t1);margin-bottom:12px;'>Choose "+need+" — <span id='spu-count'>0</span>/"+need+" selected.</div><div id='spu-list' style='max-height:min(672px,60vh);overflow-y:auto;padding-right:4px;'>"+ch+"</div><div id='spu-warn' style='color:var(--red);font-size:12px;margin:6px 0;'></div><button id='spu-confirm' onclick='spuConfirm()' style='width:100%;padding:12px;margin-top:6px;'>Confirm</button>",
     {overlayExtra:"overflow-y:auto;",boxBg:"#181818",maxWidth:480,wireClose:false});
 }
 function spuToggle(i){

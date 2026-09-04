@@ -929,6 +929,12 @@ function runEngineTests(R){
     var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("async function sendAction("),body=src.slice(i,src.indexOf("function retryLast("));
     return body.indexOf("endingChoiceFromText(")>=0&&body.indexOf("endingChoiceFromText(")<body.indexOf("var resp=await callGM(apiTxt")?true:"sendAction does not intercept the ending offer before the GM call";
   });
+  t("the tier-unlock spell picker scrolls its bench (owner call 2026-09-03: twelve tier-3 cards pushed Confirm off the screen) — the list sits in a box about seven cards tall with its own scrollbar; the header and Confirm stay outside it",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("function showSpellUnlockModal("),body=src.slice(i,src.indexOf("function spuToggle("));
+    var list=body.indexOf("id='spu-list'"),confirm=body.indexOf("id='spu-confirm'"),head=body.indexOf("Spells Unlocked");
+    if(list<0||!/spu-list' style='max-height:min\(672px,60vh\);overflow-y:auto/.test(body))return "no bounded scroll box around the bench";
+    return head<list&&list<confirm&&body.indexOf("</div><div id='spu-warn'")>list?true:"Confirm or the header ended up inside the scroll box";
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);
