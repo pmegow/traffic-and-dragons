@@ -1031,6 +1031,13 @@ function runEngineTests(R){
     if(cm.indexOf('cmd.kind === "roll"')<0&&cm.indexOf('cmd.kind==="roll"')<0)return "Car Mode does not roll";
     return bt.indexOf("dice-cb")>=0&&bt.indexOf("togglePlayerDice")>=0&&bt.indexOf("loadPlayerDice()")>=0&&um.indexOf("store.set(PLAYER_DICE_K")>=0?true:"the switch is not wired";
   });
+  t("#329b a failed roll continuation retries SILENTLY with its [DICE:] record — Retry never turns the engine note into the player's own words (the preview finding, 2026-09-03)",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    if(!/lastActionOpts=\(opts&&opts\.silent\)\?\{silent:true,rollTag:opts\.rollTag\|\|null\}:null/.test(g))return "sendAction does not remember the silent opts";
+    var rl=g.slice(g.indexOf("function retryLast("),g.indexOf("function retryLast(")+400);
+    if(rl.indexOf("lastActionOpts")<0||rl.indexOf("silent:true")<0||rl.indexOf("rollTag:lastActionOpts.rollTag")<0)return "retryLast drops the silent opts";
+    return typeof lastActionOpts!=="undefined"?true:"lastActionOpts not declared";
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);

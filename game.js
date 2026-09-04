@@ -1999,7 +1999,7 @@ async function sendAction(override,opts){
   // Talk question must never land there: ask a TT question, switch to Story, hit Retry, and the
   // out-of-character question would be replayed as a real player action — transcript-logged,
   // applyMuts'd, turn advanced. TT keeps its retry payload in the catch closure instead (#76).
-  busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;if(!isTT)lastAction=txt;
+  busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;if(!isTT)lastAction=txt;if(!isTT)lastActionOpts=(opts&&opts.silent)?{silent:true,rollTag:opts.rollTag||null}:null;/* #329: Retry must not turn an engine continuation into the player's words (the #76 literal stays intact) */
   if(!(opts&&opts.silent)&&!_mpResolve)addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+escHtml(txt):escHtml(txt));/* escape player input into the DOM (audit E11); a resolved round already displayed its per-PC lines */
   // #28 (v1.670): the player transcript write moved INTO commitGmTurn (logPlayer below) — an
   // action reaches the permanent record only once its answer commits, so failed calls can no
@@ -2096,7 +2096,7 @@ function rollPendingCheck(){
   if(typeof saveAll==="function")saveAll();
   sendAction(r.note,{silent:true,rollTag:r.diceTag});
 }
-function retryLast(){if(lastAction)sendAction(lastAction,{mpBypass:true});}/* P3: a retried multi-PC round is already an assembled block — re-queueing it as one PC's action would corrupt the round */
+function retryLast(){if(lastAction)sendAction(lastAction,lastActionOpts?{mpBypass:true,silent:true,rollTag:lastActionOpts.rollTag}:{mpBypass:true});}/* P3: a retried multi-PC round is already an assembled block — re-queueing it as one PC's action would corrupt the round */
 // Re-roll the last GM narration in the CURRENT prose voice WITHOUT advancing the turn
 // or re-applying state tags — a clean A/B tool for trying Prose Inspiration voices on the
 // same scene. Pops the last exchange so the GM regenerates in the original context, then

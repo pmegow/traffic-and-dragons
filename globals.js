@@ -356,7 +356,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.805";
+var APP_VERSION="v1.806";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
@@ -380,7 +380,7 @@ var providerModels={};          // {providerId: modelOverride} — falls back to
 // that wrote it (Haiku-vs-Sonnet quality analysis, incident forensics, future per-model billing).
 var _lastTurnModel=null;
 var customRules=[];
-var apiKey="",falKey="",busy=false,lastAction=null;
+var apiKey="",falKey="",busy=false,lastAction=null,lastActionOpts=null;/* #329: a silent continuation (the player's roll) retries silently too */
 var RENDER_MODELS=[
   // img2img.strength is the model's DEFAULT — the effective value goes through img2imgStrength()
   // (helpers.js, #42), which lets a per-model user override from Render Options win. Models whose
