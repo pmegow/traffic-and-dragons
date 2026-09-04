@@ -1066,7 +1066,7 @@ function buildCompanionSheetPrompt(npcName){
   var c=worldState.character;
   var known="Status: "+(npc.status||mem.attitude||"unknown")+" | Relation to the player: "+(npc.rel||"unknown")+(npc.pronouns?" | Pronouns: "+npc.pronouns:"")+"\n";
   if(mem.firstEncounter)known+="First met: "+mem.firstEncounter+"\n";
-  var kn=(mem.knowledge||[]).join("; ");if(kn.length>3000)kn=kn.slice(0,3000)+"…";
+  var kn=npcKnowledgeContext(mem);if(kn.length>3000)kn=kn.slice(0,3000)+"…";
   if(kn)known+="Known facts: "+kn+"\n";
   var ev=(mem.events||[]).slice(-8).join("; ");if(ev.length>1500)ev=ev.slice(0,1500)+"…";
   if(ev)known+="Recent events: "+ev+"\n";
@@ -1101,7 +1101,7 @@ function buildCompanionSheetStub(npcName){
   var npc=wsNpcByName(npcName)||{};
   var mem=(memory&&memory.npcs&&memory.npcs[npcName])||{};
   var lvl=(worldState&&worldState.character&&worldState.character.level)||1;
-  var cls=guessCompanionClass((npc.rel||"")+" "+(npc.status||"")+" "+((mem.knowledge||[]).join(" ")));
+  var cls=guessCompanionClass((npc.rel||"")+" "+(npc.status||"")+" "+npcKnowledgeContext(mem));
   var gender=npc.pronouns==="she/her"?"F":npc.pronouns==="they/them"?"NB":"M";
   var hp=companionBaselineHp(cls,lvl,0);
   return {name:npcName,gender:gender,age:"adult",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:null,subraceNm:null,heritageVariant:null,
@@ -2391,7 +2391,7 @@ function buildBlueprintFromGame(){
   var npcs=[];
   (worldState.npcs||[]).forEach(function(n){
     var mem=memory.npcs&&memory.npcs[n.name];
-    var notes=(mem&&mem.knowledge&&mem.knowledge.length)?mem.knowledge.join("; ").slice(0,400):"";
+    var notes=mem?(npcAuthoredText(mem)||npcKnowledgeContext(mem).slice(0,400)):"";
     /* v1.439 (F2, brief B): role is RELATION-shaped by both authoring specs (designer + generator) —
        export the relation, never the mood the old line leaked (the same category error v1.379 fixed) */
     npcs.push({name:n.name,role:(n.rel&&n.rel!=="unknown")?n.rel:"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
@@ -2508,6 +2508,11 @@ function applyBlueprint(bp){
       if(mn&&mn.knowledge){var ki=mn.knowledge.indexOf(sn.notes);if(ki>=0)mn.knowledge[ki]=sp.bio;}
     }
   }
+  // Stat extraction precedes provenance marking so mechanics have their single bestiary home.
+  for(var _an=0;_an<(bp.npcs||[]).length;_an++){
+    var _am=memory.npcs[bp.npcs[_an].name];
+    if(_am&&_am.knowledge&&_am.knowledge.length)fileNpcAuthored(_am,_am.knowledge[0]);
+  }
   // Custom rules from the blueprint — WRAPPED as quoted data (TODO #22, v1.350): a raw push gave a
   // semi-trusted campaign file the same prompt authority as the player's own rules (an embedded
   // "ignore all other rules…" would read as OUR instruction). The wrapper keeps the rule enforced
@@ -2551,6 +2556,22 @@ function applyBlueprint(bp){
   }
   // Store blueprint name on worldState for reference
   worldState.blueprintName=bp.name;
+}
+// Repair is evidence-bound: a matching author source AND a recorded original must exist.
+// It adds provenance to the original, preserving both the archive and subsequent play facts.
+function restoreAuthoredDossiers(bp,names){
+  var result={restored:0,names:[],missing:[]},archive=(memory.archive&&memory.archive.superseded)||[];
+  for(var i=0;i<(names||[]).length;i++){
+    var name=names[i],seed=null,j,n=memory.npcs[resolveNpcName(name)];
+    for(j=0;j<(bp.npcs||[]).length;j++)if(bp.npcs[j].name===name)seed=bp.npcs[j];
+    if(!n||!seed||!seed.notes){result.missing.push(name);continue;}
+    var split=splitNpcStatBlock(seed.notes),candidates=[seed.notes];if(split)candidates.push(split.bio);
+    var source=null;
+    for(j=0;j<archive.length;j++)if(resolveNpcName(archive[j].npc)===resolveNpcName(name)&&candidates.indexOf(archive[j].fact)>=0){source=archive[j].fact;break;}
+    if(!source){result.missing.push(name);continue;}
+    if(fileNpcAuthored(n,source)){result.restored++;result.names.push(name);console.info("[memory] restored authored dossier for "+name+" from superseded archive");}
+  }
+  return result;
 }
 async function generateSkeleton(statusFn){
   var c=worldState.character,w=worldState.world,t=worldState.tone;

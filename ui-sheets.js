@@ -346,7 +346,7 @@ async function generateNpcSheet(name,doneCb){
   if(wsNpc.pronouns)ctx+="Pronouns: "+wsNpc.pronouns+"\n";
   if(memNpc){
     if(memNpc.attitude)ctx+="Attitude/personality: "+memNpc.attitude+"\n";
-    if(memNpc.knowledge&&memNpc.knowledge.length)ctx+="Known facts: "+memNpc.knowledge.join("; ")+"\n";
+    if(npcKnowledgeContext(memNpc))ctx+="Known facts: "+npcKnowledgeContext(memNpc)+"\n";
     if(memNpc.events&&memNpc.events.length){ctx+="Event log:\n";for(i=0;i<memNpc.events.length;i++)ctx+="  Turn "+memNpc.events[i].turn+": "+memNpc.events[i].note+"\n";}
   }
   var prompt="Generate a full D&D-style character sheet for an NPC of this world (they may be a townsperson, an official, a merchant — not necessarily an adventurer; choose class and stats that fit who they actually are). Use the game world, tone, and lore you already know. "

@@ -1,0 +1,18 @@
+{
+  "format": "tnd-blueprint-v1",
+  "name": "The Iron Meridian",
+  "npcs": [
+    {
+      "name": "Overseer Kolm",
+      "role": "villain",
+      "pronouns": "they/them",
+      "notes": "The brutal punishment-master of the boiler wards who orchestrates the culling rotations. They want to bury an accounting fraud that skims the indentured rolls. Their secret is that the fraud isn't theirs — they were ordered to run it by the Guild, and they resent being the visible hand that takes the blame; this surfaces if the player spares them in Act Two. If Kolm dies or is never spared, the Guild-ordered-fraud link surfaces instead through ledgers recovered from the boiler wards' punishment records or through Vessa Corrow's Act Three confession, so the connection to Ferrin Lyle's scheme always reaches the player."
+    },
+    {
+      "name": "Ambassador Ferrin Lyle",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "A charming, seemingly minor liaison between the Guild and the city's absent aristocracy, easily dismissed as decoration. He is the true hand moving the pieces, engineering debts and disasters to consolidate control of the engine core. Appears in Acts One and Two as a bland, forgettable liaison exchanging pleasantries and paperwork; the GM should plant him in minor scenes without emphasis — waved through a checkpoint, signing a manifest near the Guild clerk, offering a distracted greeting during the Falling Ward — so his Act Three reveal recasts them. His secret—that he manufactured the player's indenture as one node in a vast board—surfaces only in the Act Three confrontation, recasting the entire campaign."
+    }
+  ]
+}

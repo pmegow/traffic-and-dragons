@@ -3964,6 +3964,45 @@ function runEngineTests(R){
   });
 
   // ── 9b. Blueprint import hygiene (audit P7/P8/P9) ────────────────────────────
+  section("#332 — authored NPC dossiers");
+  function authoredFixture(){makeWorld();applyBlueprint({name:"Authored test",npcs:[{name:"Kolm",notes:"Kolm waits for the signal. If Lyle falls, Vessa takes command."}]});return memory.npcs.Kolm;}
+  t("#332 blueprint dossier has authored provenance outside learned knowledge",function(){
+    var n=authoredFixture();return n.authored&&n.authored[0].source==="blueprint"&&n.authored[0].text.indexOf("Vessa")>=0&&n.knowledge.length===0?true:"authored guidance still stored as replaceable knowledge";
+  });
+  t("#332 summary supersession retains authored original and adds the play fact",function(){
+    var n=authoredFixture(),old="Kolm waits for the signal. If Lyle falls, Vessa takes command.";
+    applySummaryExtract({supersededFacts:[{name:"Kolm",old:old,"new":"Kolm gave the signal."}]});
+    return n.authored&&n.authored[0].text===old&&n.knowledge.indexOf("Kolm gave the signal.")>=0&&!(memory.archive.superseded||[]).length?true:"summary discarded dossier or lost the new fact";
+  });
+  t("#332 tag supersession and knowledge churn cannot retire authored guidance",function(){
+    var n=authoredFixture();applyMuts("[NPC_SUPERSEDE:Kolm|waits for the signal|Kolm gave the signal.]");
+    for(var i=0;i<18;i++)fileNpcKnowledge("Kolm","topic"+i+" unique"+i,20+i);
+    memory=JSON.parse(JSON.stringify(memory));healMemory();n=memory.npcs.Kolm;
+    return n.authored&&n.authored[0].text.indexOf("Vessa")>=0&&n.knowledge.length<=12&&memoryNpcDetail("Kolm").indexOf("Vessa")>=0?true:"churn, reload or prompt budget hid the authored dossier";
+  });
+  t("#332 merge preserves both authored sources and ordinary knowledge cap",function(){
+    authoredFixture();applyBlueprint({name:"Authored test",npcs:[{name:"Other",notes:"Second authored instruction."}]});
+    applyMuts("[NPC_MERGE:Kolm|Other]");var n=memory.npcs.Kolm;
+    return n.authored&&n.authored.length===2&&n.authored[1].text==="Second authored instruction."&&!memory.npcs.Other?true:"merge lost authored provenance";
+  });
+  t("#332 authored guidance is prompt-visible but never proposed as obsolete learned knowledge",function(){
+    var n=authoredFixture(),s=buildSysPrompt().stable;
+    var rec=buildRecordedFactsBlock("Kolm waits here.");
+    if(rec.indexOf("Vessa")>=0)return "extractor was invited to retire the authored dossier";
+    if(memoryNpcDetail("Kolm").indexOf("Vessa")<0)return "authored source not projected";
+    fileNpcKnowledge("Kolm","A new discovery.",20);
+    return buildSysPrompt().stable===s?true:"authored or learned knowledge leaked into stable half";
+  });
+  t("#332 archived dossier repair requires matching blueprint evidence and is idempotent",function(){
+    makeWorld();memory.npcs.Kolm={knowledge:["Current play fact."],events:[],aliases:[]};
+    var old="Kolm waits for the signal. If Lyle falls, Vessa takes command.";
+    memory.archive=archiveHeal({superseded:[{npc:"Kolm",fact:"An unrelated old play fact.",turn:2},{npc:"Kolm",fact:old,turn:28},{npc:"Kolm",fact:old,turn:144},{npc:"Stranger",fact:"Do not promote me.",turn:3}]});
+    var ws=JSON.stringify(worldState),sl=JSON.stringify(sessionLog),ar=JSON.stringify(memory.archive);
+    var bp={npcs:[{name:"Kolm",notes:old}]};
+    var r=restoreAuthoredDossiers(bp,["Kolm"]),again=restoreAuthoredDossiers(bp,["Kolm"]);
+    return r.restored===1&&again.restored===0&&memory.npcs.Kolm.authored.length===1&&memory.npcs.Kolm.authored[0].text===old&&memory.npcs.Kolm.knowledge[0]==="Current play fact."&&JSON.stringify(memory.archive)===ar&&JSON.stringify(worldState)===ws&&JSON.stringify(sessionLog)===sl?true:"repair lost canon, duplicated sources, or touched unrelated data";
+  });
+
   section("blueprint import hygiene (P7/P8/P9)");
   t("P7: blueprint location text is single-homed on the map node",function(){
     makeWorld();
@@ -3986,7 +4025,7 @@ function runEngineTests(R){
     var bio="Azaka is a weretiger guide who wants her mask back. She distrusts outsiders but honors debts.\nHUMAN FORM STATISTICS: AC 14 (leather armour), 52 HP. Actions: Shortbow (attack +5, 1d6+3 piercing).";
     applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
       npcs:[{name:"Azaka",role:"ally",notes:bio}]}));
-    var k=memory.npcs["Azaka"].knowledge[0];
+    var k=memory.npcs["Azaka"].authored[0].text;
     if(k.indexOf("STATISTICS")>=0)return "stat block left in knowledge";
     if(k.indexOf("wants her mask back")<0)return "narrative mangled: "+k;
     var b=(worldState.bestiary||[]).filter(function(x){return x.name==="Azaka";})[0];
@@ -3998,7 +4037,7 @@ function runEngineTests(R){
     var bio="A river pirate captain feared along the Soshenstar; she keeps her crew loyal with shares and fear.\nAC 12, 33 HP. Actions: Scimitar +4, 1d6+2 slashing.";
     applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
       npcs:[{name:"Zara",role:"enemy",notes:bio}]}));
-    var k=memory.npcs["Zara"].knowledge[0];
+    var k=memory.npcs["Zara"].authored[0].text;
     if(k.indexOf("AC 12")>=0)return "stat line left in knowledge: "+k;
     var b=(worldState.bestiary||[]).filter(function(x){return x.name==="Zara";})[0];
     return b&&b.notes.indexOf("AC 12")>=0?true:"mechanics not moved to bestiary";
@@ -4009,8 +4048,8 @@ function runEngineTests(R){
     var allStats="STATISTICS: AC 12, 9 HP. Actions: club +2.";
     applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
       npcs:[{name:"Captain",role:"neutral",notes:plain},{name:"Guard",role:"neutral",notes:allStats}]}));
-    if(memory.npcs["Captain"].knowledge[0]!==plain)return "prose bio was mangled: "+memory.npcs["Captain"].knowledge[0];
-    if(memory.npcs["Guard"].knowledge[0]!==allStats)return "all-stats bio (no lead-in) was split: "+memory.npcs["Guard"].knowledge[0];
+    if(memory.npcs["Captain"].authored[0].text!==plain)return "prose bio was mangled: "+memory.npcs["Captain"].authored[0].text;
+    if(memory.npcs["Guard"].authored[0].text!==allStats)return "all-stats bio (no lead-in) was split: "+memory.npcs["Guard"].authored[0].text;
     return (worldState.bestiary||[]).length===0?true:"bestiary entry created from an ambiguous bio";
   });
   t("P8: author-provided bestiary entry wins — same-name NPC bio stays whole",function(){
@@ -4021,7 +4060,7 @@ function runEngineTests(R){
       creatures:[{name:"Azaka",kind:"weretiger",threat:"deadly",notes:"canonical entry"}]}));
     if(worldState.bestiary.length!==1)return "duplicate bestiary entry: "+worldState.bestiary.length;
     if(worldState.bestiary[0].notes!=="canonical entry")return "author entry overwritten";
-    return memory.npcs["Azaka"].knowledge[0]===bio?true:"bio split despite existing bestiary entry (stats would be lost)";
+    return memory.npcs["Azaka"].authored[0].text===bio?true:"bio split despite existing bestiary entry (stats would be lost)";
   });
   t("P8: memoryNpcDetail caps injected knowledge at ~2000 chars with a marker",function(){
     makeWorld();

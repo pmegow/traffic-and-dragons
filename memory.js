@@ -202,11 +202,27 @@ function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[
 // recoverable, unlike the eviction it replaces), and the fold is loud. preferNew=true is the
 // SUPERSESSION mode: the new fact is an explicit truth assertion and always wins — richer-wins
 // there would let a verbose stale claim beat the very reveal that retires it.
+// Authored scenario directions are not learned beliefs. Separate storage keeps every ordinary
+// knowledge writer (supersede, forget, dedupe and caps) out of the authored tier by construction.
+function npcAuthoredText(n){return (n&&Array.isArray(n.authored)?n.authored:[]).filter(function(a){return a&&a.source==="blueprint"&&typeof a.text==="string";}).map(function(a){return a.text;}).join("\n");}
+function npcKnowledgeContext(n){return [npcAuthoredText(n),(n&&n.knowledge||[]).join("; ")].filter(function(s){return !!s;}).join("\n");}
+function fileNpcAuthored(n,text){
+  if(!n||typeof text!=="string"||!text)return false;
+  if(!Array.isArray(n.authored))n.authored=[];
+  for(var i=0;i<n.authored.length;i++)if(n.authored[i].source==="blueprint"&&n.authored[i].text===text)return false;
+  n.authored.push({source:"blueprint",text:text});
+  if(n.knowledge)n.knowledge=n.knowledge.filter(function(k){return k!==text;});
+  return true;
+}
+function authoredSupersede(n,oldText){
+  var text=npcAuthoredText(n);return !!text&&text.toLowerCase().indexOf(String(oldText).toLowerCase())>=0;
+}
 function fileNpcKnowledge(name,fact,turn,preferNew){
   name=resolveNpcName(name);
   var f=String(fact==null?"":fact);if(!f)return false;
   if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};
   var n=memory.npcs[name];if(!n.knowledge)n.knowledge=[];
+  if((n.authored||[]).some(function(a){return a.text===f;}))return true;
   if(n.knowledge.indexOf(f)>=0)return true;/* exact re-statement: already on file */
   var i;
   for(i=0;i<n.knowledge.length;i++){
@@ -1334,7 +1350,7 @@ function memoryTOC(){
   if(memory.chapters.length&&!_diet){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
   return lines.join("\n");
 }
-function memoryNpcDetail(name){if(memoryNpcIsPlayer(name))return"";var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+(n.attitude?" — toward you: "+n.attitude:"")],i;var _dWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(_dWs&&_dWs.partyMember&&_dWs.charSheet&&_dWs.charSheet.splitLoc){lines.push("  Currently: AWAY from the party at "+_dWs.charSheet.splitLoc.location+(_dWs.charSheet.splitLoc.sublocation?" ("+_dWs.charSheet.splitLoc.sublocation+")":"")+" — this line is authoritative; any position or activity claim below that contradicts it is STALE history.");}/* #144B: the zero-false-positive counter to legacy stale-posture Knows lines — a pure ADDITION, never suppression (a misclassifying suppressor would hide TRUE canon, the rebuttal-round objection) *//* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
+function memoryNpcDetail(name){if(memoryNpcIsPlayer(name))return"";var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+(n.attitude?" — toward you: "+n.attitude:"")],i;var _dWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(_dWs&&_dWs.partyMember&&_dWs.charSheet&&_dWs.charSheet.splitLoc){lines.push("  Currently: AWAY from the party at "+_dWs.charSheet.splitLoc.location+(_dWs.charSheet.splitLoc.sublocation?" ("+_dWs.charSheet.splitLoc.sublocation+")":"")+" — this line is authoritative; any position or activity claim below that contradicts it is STALE history.");}/* #144B: the zero-false-positive counter to legacy stale-posture Knows lines — a pure ADDITION, never suppression (a misclassifying suppressor would hide TRUE canon, the rebuttal-round objection) *//* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */var _auth=npcAuthoredText(n);if(_auth)lines.push("  Authored guidance (play outcomes are recorded separately): "+(_auth.length>2000?_auth.slice(0,2000)+" …[truncated]":_auth));if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
 function npcLinkUpsert(nameA, nameB, rel){
   if(!memory.npcGraph)memory.npcGraph={edges:[]};
   var edges=memory.npcGraph.edges,i;
@@ -1716,6 +1732,10 @@ function applySummaryExtract(extracted,identityTable){
   if(Array.isArray(extracted.supersededFacts)){for(i=0;i<extracted.supersededFacts.length;i++){var sf=extracted.supersededFacts[i];
     if(!sf||!sf.name||!sf.old||!sf["new"])continue;
     var sfName=resolveNpcName(String(sf.name)),sfNpc=memory.npcs[sfName];
+    if(authoredSupersede(sfNpc,sf.old)){
+      fileNpcKnowledge(sfName,String(sf["new"]),worldState.turn,true);
+      console.warn("[memory] authored dossier retained for "+sfName+"; play fact filed alongside");continue;
+    }
     if(!sfNpc||!sfNpc.knowledge||!sfNpc.knowledge.length){if(typeof console!=="undefined")console.warn("[memory] supersede: no knowledge on file for "+sfName+" — ignored");continue;}
     var oldS=String(sf.old),sfIdx=-1,ki;
     for(ki=0;ki<sfNpc.knowledge.length;ki++){if(String(sfNpc.knowledge[ki])===oldS){sfIdx=ki;break;}}

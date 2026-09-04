@@ -6,6 +6,18 @@ Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version s
 
 ## 8. Memory / summarization system (in `memory.js`)
 
+**Authored NPC dossiers (#332).** Blueprint notes are marked at seed time as
+`memory.npcs[name].authored[]` (`{source:"blueprint",text}`), after stat-block extraction.
+Learned `knowledge[]` remains a separate capped tier. Summary/tag supersession targeting an
+authored dossier preserves it and files the play fact alongside. Knowledge deduplication,
+forgetting and caps cannot retire scenario instructions; NPC merges union the authored sources.
+`memoryNpcDetail` projects authored guidance separately (a 2,000-character budget, explicit
+truncation) so play-fact churn cannot crowd it out. It is not offered to the extractor as an
+obsolete belief. Blueprint exports retain the original authored text. The evidence-bound
+`dev/repair-332-authored.js` restores the two Iron Meridian originals from the superseded
+archive, using `dev/fixtures/332-iron-meridian-authored.blueprint` as the frozen author source;
+dry run by default, `--write` creates a new export. Source save, transcript and archive remain intact.
+
 `sessionTokens()` estimates the token count of the **unextracted** part of `sessionLog` (sum of `content.length` / 4, counting only messages past the `worldState.sessKept` marker — see tail retention below). When it hits `SUMMARIZE_AT` (globals.js, 2400), `summarize()` fires before the next player action. On failure the log is KEPT and retried next turn. The bounded strike lives in `worldState.summaryFailure`, is saved immediately, and therefore survives reload/campaign switching. After 3 ordinary failures a raw excerpt is archived as a degraded chapter; after 3 W2/W6 validation failures the source excerpt and validation reason instead enter non-injected `memory.archive.identityQuarantines` and no generated summary/canon consequence is filed.
 
 `summarize()`:
