@@ -6,6 +6,13 @@ Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version s
 
 ## 8. Memory / summarization system (in `memory.js`)
 
+**Notes delivery budget (#309, v1.814).** Registry priority admits at most three builders and
+approximately 2,500 total characters, including the protocol. Consequence notes never yield;
+an oversized first note can be delivered alone. Overflows are flagged in `noteLog[].overBudget`.
+Each row's `d` lists `{n,reason,c}` for deferred candidates. Per-builder rollback preserves
+undelivered latches; shelf pings retain their own `_noteDeferred` marker, and expired threads
+retain `_askPending` until delivery. See [budget receipt](../../audits/RECORD_309_delivery_budget.md).
+
 **Authored NPC dossiers (#332).** Blueprint notes are marked at seed time as
 `memory.npcs[name].authored[]` (`{source:"blueprint",text}`), after stat-block extraction.
 Learned `knowledge[]` remains a separate capped tier. Summary/tag supersession targeting an

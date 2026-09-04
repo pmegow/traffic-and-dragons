@@ -703,10 +703,10 @@ function expireFutureEvents(){
     if(typeof f.setTurn!=="number")f.setTurn=now;
     if(now-f.setTurn<=FUTURE_EXPIRE_TURNS){kept.push(f);continue;}
     // #150: expiry is no longer liveness-blind, and NEVER the void. A thread still fingerprint-
-    // linked to an ACTIVE quest gets exactly ONE GM ask (buildExpiredThreadNudge renders it this
-    // turn; _asked marks it, the age is NEVER rewritten — Sol's immortal-event objection) and
-    // dies archived at the next sweep regardless of the answer. Everything else archives now.
-    if(!f._asked&&feQuestLinked(f)){f._asked=now;kept.push(f);console.info("[memory] #150: expiring thread \""+String(f.what).slice(0,60)+"\" looks quest-linked — one GM ask before it dies");continue;}
+    // linked to an ACTIVE quest gets one GM ask; delivery deferrals keep that ask pending, not
+    // younger. After delivery the next sweep archives it regardless of the answer.
+    if(f._askPending){kept.push(f);continue;}
+    if(!f._asked&&feQuestLinked(f)){f._asked=now;f._askPending=true;kept.push(f);console.info("[memory] #150: expiring thread \""+String(f.what).slice(0,60)+"\" looks quest-linked — one GM ask before it dies");continue;}
     memArchive().futureEvents.push({when:f.when,who:f.who,what:f.what,setTurn:f.setTurn,expiredAt:now});
     console.info("[memory] #150: pending thread expired at age "+(now-f.setTurn)+" — archived: \""+String(f.what).slice(0,60)+"\"");
   }

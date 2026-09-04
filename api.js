@@ -198,15 +198,13 @@ function condInjectFmt(x){
 // with a DIFFERENT campaign (an imported character's carried history) renders attributed to that
 // campaign — its turn number means nothing here.
 // #150 (drift pass order 6): the ONE ask before a quest-linked thread dies. expireFutureEvents
-// marks such a thread _asked=turn instead of expiring it; this renders on the SAME turn only
-// (single-fire by the turn stamp — the sweep runs pre-request, commitGmTurn increments the turn
-// after, so the next build is naturally silent) and the next sweep archives it regardless of
-// the answer. No latch state to snapshot; a transport loss costs only the courtesy ask, and
-// the archive still catches the thread.
+// marks such a thread _asked=turn instead of expiring it. _askPending holds that courtesy ask
+// across budget deferrals; building consumes it, and the request snapshot restores it on
+// failure. The next sweep after delivery archives the thread; its original age never changes.
 function buildExpiredThreadNudge(){
   if(typeof memory==="undefined"||!memory||!Array.isArray(memory.futureEvents))return"";
   var now=(typeof worldState!=="undefined"&&worldState)?worldState.turn:0,hits=[],i;
-  for(i=0;i<memory.futureEvents.length;i++){var f=memory.futureEvents[i];if(f&&f._asked===now)hits.push("\""+f.what+"\"");}
+  for(i=0;i<memory.futureEvents.length;i++){var f=memory.futureEvents[i];if(f&&(f._askPending||f._asked===now)){hits.push("\""+f.what+"\"");if(f._askPending)f._askPending=false;}}
   if(!hits.length)return"";
   return "[ENGINE NOTE — AGED-OUT THREAD (not a player action): the following anticipated event has been pending "+FUTURE_EXPIRE_TURNS+"+ turns and looks tied to an active quest: "+hits.join("; ")+". If it already happened, emit [FUTURE_EVENT_RESOLVED:its text]. If it is genuinely still coming, re-file it with a fresh [FUTURE_EVENT:what|when]. If you stay silent it is retired for good.]";
 }
@@ -738,11 +736,11 @@ function shelfPing(field,shelf,o){
     var p=worldState[field];
     if(!p)return"";
     if(o.combatSilent&&worldState.combat)return"";
-    if(worldState.turn-p.turn>shelf){if(o.del)delete worldState[field];else worldState[field]=null;return"";}
+    if(!p._noteDeferred&&worldState.turn-p.turn>shelf){if(o.del)delete worldState[field];else worldState[field]=null;return"";}
     if(o.del)delete worldState[field];else worldState[field]=null;
     return o.text(p);
   };
-  f._noteName=o.name;f._noteShape="transient";return f;
+  f._noteName=o.name;f._noteShape="transient";f._noteShelfField=field;return f;
 }
 // #309: the ONE-SHOT-PING frame — combat-silent WITHOUT consuming, pure one-shot (scalar or queue),
 // optional moot check. Six builders at api.js:1240-1268 shared this body; same discipline as above.
@@ -1147,7 +1145,7 @@ function buildArcStagingNudge(){
 // adapter (queued, canon unchanged) or is explicit (receipted), so the armer's !_explicit && weighty→
 // unweighty condition needs a write that bypasses the adapter: pre-W7 saves, sheet-editor edits, merge
 // paths. Kept deliberately as that backstop; a new campaign never sees it.
-function buildRelationshipDowngradeNudge(){
+function expireRelationshipDowngrades(){
   if(!worldState)return"";
   var q=worldState.relDowngrades;
   if(!q||!q.length)return"";
@@ -1165,6 +1163,11 @@ function buildRelationshipDowngradeNudge(){
       if(typeof console!=="undefined")console.log("[relationship] muted downgrade preimage for "+(ex.who?ex.who+"→":"")+ex.entity+" expired after "+REL_DOWNGRADE_EXPIRE_TURNS+" quiet turns — archived to memory.archive.relDowngrades (#181)");
     }}
   if(!q.length){delete worldState.relDowngrades;return"";}
+}
+function buildRelationshipDowngradeNudge(){
+  if(!worldState)return"";
+  expireRelationshipDowngrades();
+  var q=worldState.relDowngrades,i;if(!q||!q.length)return"";
   if(worldState.combat)return"";
   var d=null;
   for(i=0;i<q.length;i++){var e=q[i];if(!e.muted&&(e.lastFired==null||worldState.turn-e.lastFired>=REL_DOWNGRADE_COOLDOWN)){d=e;break;}}
@@ -1657,9 +1660,10 @@ function buildArcWallNudge(){
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
 var NOTE_LATCH_FIELDS=["hoursAsk",/* #207 ③ */"plotArmorPing",/* #319 */"whisperAsk",/* #317 */"montagePing","wrapUpPing",/* #308 */"recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
-var NOTE_NESTED_LATCHES=["questLog[].staleNudged","charSheet.splitLoc.audited","conditions[].until","memory.futureEvents[]._asked","sessionLog"];
+var NOTE_NESTED_LATCHES=["questLog[].staleNudged","charSheet.splitLoc.audited","conditions[].until","memory.futureEvents[]._asked","memory.futureEvents[]._askPending","sessionLog"];
 function snapshotNoteLatches(){
   var snap={t:{},split:[],quests:[],conds:[]},i;
+  snap.future=(memory.futureEvents||[]).map(function(f){return {what:f.what,setTurn:f.setTurn,asked:f._asked,pending:f._askPending};});
   /* #309: buildConditionAudit deletes cd.until (an expiry APPOINTMENT) when it consumes one — a nested
      write the flat registry never covered, so a dead provider call ate the appointment while the
      audit note was never delivered (the #151 class). Snapshot every condition's until by owner+index. */
@@ -1679,6 +1683,7 @@ function snapshotNoteLatches(){
 }
 function restoreNoteLatches(snap){
   if(!snap)return;var i,j;
+  for(i=0;i<(snap.future||[]).length;i++){var fr=snap.future[i];for(j=0;j<(memory.futureEvents||[]).length;j++){var f=memory.futureEvents[j];if(f.what===fr.what&&f.setTurn===fr.setTurn&&f._asked===fr.asked){if(fr.pending===undefined)delete f._askPending;else f._askPending=fr.pending;}}}
   for(i=0;i<(snap.conds||[]).length;i++){var cr=snap.conds[i],list=null;
     if(cr.who===""){list=worldState.character&&worldState.character.conditions;}
     else{var _cp2=(typeof partyCompanionsWithSheets==="function")?partyCompanionsWithSheets(true):[];for(j=0;j<_cp2.length;j++)if(_cp2[j].name===cr.who){list=_cp2[j].charSheet.conditions;break;}}
@@ -1703,17 +1708,17 @@ var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildPlotArmorNote,/* #319 */bu
 // NOTE_LATCH_FIELDS / NOTE_NESTED_LATCHES / the census exemptions, or "none"), whether it fires in
 // combat, and the tags that answer it. Contract-tested both ways: a builder without a row, a row
 // without a builder, an undeclared latch, or a declared latch nobody claims — each fails the build.
-// Adding a builder = one function + one row. A per-turn delivery cap is decided from the notes ring's
-// data after a playtest, never guessed here.
+// Registry order is delivery priority. The owner-ruled cap is three builders / ~2,500 characters;
+// neverYield marks consequences and prepare separates archive hygiene from delivery latches.
 var NOTE_SHAPES={
-  buildDeathSceneNote:{shape:"one-shot-ask",latch:["deathScene"],combat:"fires",ack:["DEATH_ANSWER"]},
-  buildPlotArmorNote:{shape:"one-shot-ask",latch:["plotArmorPing"],combat:"fires",ack:["none"]},/* #319 */
-  buildDownedNote:{shape:"cooldown-reminder",latch:["none"],combat:"fires",ack:["DOWNED_RESOLVED","HP"]},
+  buildDeathSceneNote:{neverYield:true,shape:"one-shot-ask",latch:["deathScene"],combat:"fires",ack:["DEATH_ANSWER"]},
+  buildPlotArmorNote:{neverYield:true,shape:"one-shot-ask",latch:["plotArmorPing"],combat:"fires",ack:["none"]},/* #319 */
+  buildDownedNote:{neverYield:true,shape:"cooldown-reminder",latch:["none"],combat:"fires",ack:["DOWNED_RESOLVED","HP"]},
   buildRecklessNote:{shape:"one-shot-ask",latch:["recklessPing"],combat:"fires",ack:["none"]},
   buildMontageNote:{shape:"one-shot-ask",latch:["montagePing"],combat:"fires",ack:["TIME_ADVANCE"]},
   buildWhispersNote:{shape:"cooldown-reminder",latch:["whisperAsk"],combat:"silent",ack:["WHISPER"]},
   buildWrapUpNote:{shape:"one-shot-ask",latch:["wrapUpPing"],combat:"fires",ack:["none"]},
-  buildRespawnNote:{shape:"one-shot-ask",latch:["respawnNote"],combat:"fires",ack:["none"]},
+  buildRespawnNote:{neverYield:true,shape:"one-shot-ask",latch:["respawnNote"],combat:"fires",ack:["none"]},
   buildArcWallNudge:{shape:"cooldown-reminder",latch:["arcWallWarned"],combat:"silent",ack:["QUEST"]},
   buildOrphanCombatNudge:{shape:"one-shot-ask",latch:["orphanCombat"],combat:"fires",ack:["COMBAT_START"]},
   buildCombatStaleNudge:{shape:"cooldown-reminder",latch:["combatStalePing"],combat:"fires",ack:["ENEMY_SLAIN","ENEMY_HP","COMBAT_END"]},
@@ -1739,7 +1744,7 @@ var NOTE_SHAPES={
   buildHoursNote:{shape:"one-shot-ask",latch:["hoursAsk"],combat:"silent",ack:["LOCATION_HOURS"]},/* #207 ③ */
   buildLocationStateNudge:{shape:"one-shot-ask",latch:["pendingLocState"],combat:"silent",ack:["LOCATION_STATE"]},
   buildScheduleEscalation:{shape:"cooldown-reminder",latch:["clock"],combat:"silent",ack:["SCHEDULE_RESOLVED","SCHEDULE_CANCEL"]},
-  buildExpiredThreadNudge:{shape:"one-shot-ask",latch:["memory.futureEvents[]._asked"],combat:"fires",ack:["FUTURE_EVENT_RESOLVED","FUTURE_EVENT"]},
+  buildExpiredThreadNudge:{shape:"one-shot-ask",latch:["memory.futureEvents[]._asked","memory.futureEvents[]._askPending"],combat:"fires",ack:["FUTURE_EVENT_RESOLVED","FUTURE_EVENT"]},
   buildConditionAudit:{shape:"audit",latch:["lastConditionAudit","conditions[].until"],combat:"silent",ack:["CONDITION_REMOVED","COMPANION_CONDITION_REMOVED","NO_CHANGE"]},
   buildHpZeroNudge:{shape:"cooldown-reminder",latch:["hpZero"],combat:"silent",ack:["HP","REST"]},
   buildReciprocityNudge:{shape:"one-shot-ask",latch:["reciprocityNudged"],combat:"silent",ack:["COMPANION_RELATIONSHIP_BOND"]},
@@ -1748,7 +1753,7 @@ var NOTE_SHAPES={
   buildPrincipalStageNudge:{shape:"escalation",latch:["principalNudged"],combat:"silent",ack:["NPC"]},
   buildArcDriftNudge:{shape:"escalation",latch:["arcDriftNudged"],combat:"silent",ack:["ARC_COMPLETE","ARC_CONTINUE"]},
   buildRelationshipAxisNudge:{shape:"cooldown-reminder",latch:["relBondChanges","relAxisChoices","relAxisReviewFired"],combat:"silent",ack:["RELATIONSHIP_BOND","RELATIONSHIP_DYNAMIC","RELATIONSHIP_PAIR_REMOVED"]},
-  buildRelationshipDowngradeNudge:{shape:"escalation",latch:["relDowngrades"],combat:"silent",ack:["RELATIONSHIP_BOND"],note:"legacy-save-only since #168 W7 — the adapter never lets a sanctioned write arm it; kept as the backstop for pre-W7 saves and sheet-editor edits"},
+  buildRelationshipDowngradeNudge:{prepare:expireRelationshipDowngrades,shape:"escalation",latch:["relDowngrades"],combat:"silent",ack:["RELATIONSHIP_BOND"],note:"legacy-save-only since #168 W7 — the adapter never lets a sanctioned write arm it; kept as the backstop for pre-W7 saves and sheet-editor edits"},
   buildRelationshipAudit:{shape:"audit",latch:["lastRelAudit","relAuditDue"],combat:"silent",ack:["RELATIONSHIP_BOND","RELATIONSHIP_DYNAMIC","NO_CHANGE"]},
   buildDeathEvidenceNudge:{shape:"fork-note",latch:["deathEvidencePing","deathEvidenceNudged"],combat:"silent",ack:["SAY","SCENE_CAST","NPC_DEATH_REPORTED"]},
   buildIdentityConflictNudge:{shape:"escalation",latch:["identityConflicts","identityConflictOverflow","pendingRewardClaims"],combat:"silent",ack:["SCENE_REVEAL","SCENE_REF","NPC_DEATH_REPORTED"]},
@@ -1799,12 +1804,25 @@ function noteLogCommit(){
 }
 function noteLogDiscard(){_notesBuilt=null;}
 function buildEngineNotes(){
-  var out=[],names=[],i;
-  for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n){out.push(n);names.push(noteBuilderName(NOTE_BUILDERS[i])||("#"+i));}}
+  var out=[],names=[],dropped=[],chars=ENGINE_NOTES_PROTOCOL.length+2,i;
+  for(i=0;i<NOTE_BUILDERS.length;i++){
+    var fn=NOTE_BUILDERS[i],name=noteBuilderName(fn)||("#"+i),row=NOTE_SHAPES[name]||{};
+    if(row.prepare)row.prepare();
+    var snap=snapshotNoteLatches(),n=fn();if(!n)continue;
+    var size=chars+n.length+(out.length?2:0),reason=names.length>=NOTE_DELIVERY_CAP?"count":size>NOTE_CHAR_BUDGET?"characters":"";
+    // An indivisible first note may exceed the soft character budget; it must not starve forever.
+    if(reason&&!row.neverYield&&names.length){
+      restoreNoteLatches(snap);
+      if(fn._noteShelfField&&worldState[fn._noteShelfField])worldState[fn._noteShelfField]._noteDeferred=true;
+      dropped.push({n:name,reason:reason,c:n.length});continue;
+    }
+    out.push(n);names.push(name);chars=size;
+  }
   _notesBuilt=null;
   if(!out.length)return"";
   var txt=out.join("\n\n")+"\n\n"+ENGINE_NOTES_PROTOCOL;
-  _notesBuilt={t:worldState.turn,n:names,c:txt.length};
+  _notesBuilt={t:worldState.turn,n:names,c:txt.length,d:dropped};
+  if(txt.length>NOTE_CHAR_BUDGET||names.length>NOTE_DELIVERY_CAP)_notesBuilt.overBudget=true;
   return txt;
 }
 function buildSysPrompt(){

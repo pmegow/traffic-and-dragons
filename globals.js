@@ -100,6 +100,8 @@ var DEEP_TIME_WHEN_MAX=90;
 var DEEP_TIME_NOTE_MAX=160;
 var TAG_LOG_CAP=40;
 var NOTE_LOG_CAP=40;
+var NOTE_DELIVERY_CAP=3;
+var NOTE_CHAR_BUDGET=2500;
 // #300 (owner rulings 2026-09-02): CONSEQUENCE. 0 HP is DOWNED, not dead — the engine takes the wheel
 // (struggle or yield), the GM resolves by capture, rescue or a companion's intervention within
 // DOWNED_MAX_TURNS committed turns, or the engine rules a true death. A true death RESPAWNS AT THE LAST
@@ -356,7 +358,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.813";
+var APP_VERSION="v1.814";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

@@ -1330,6 +1330,71 @@ function runEngineTests(R){
     b=wsNpcByName("Bram");
     return !npcIsDead(b)&&b.charSheet.hp===20&&b.charSheet.inventory[0]==="axe"&&(!worldState.mpFallen||!worldState.mpFallen.length)?true:"rejoin: "+JSON.stringify({dead:npcIsDead(b),hp:b.charSheet.hp,fallen:worldState.mpFallen});
   });
+  section("#309 — note delivery budget");
+  function withBudgetNotes(extra,fn){
+    var old=NOTE_BUILDERS;
+    NOTE_BUILDERS=[buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge].concat(extra||[]);
+    makeWorld();worldState.turn=100;
+    worldState.locationFilingPing={place:"Mill",turn:99};worldState.travelPricePing={destination:"Town",elapsed:5,shortfall:30,turn:99};worldState.commitmentPing={text:"Deliver tomorrow",turn:99};
+    try{return fn();}finally{NOTE_BUILDERS=old;noteLogDiscard();}
+  }
+  t("#309 count cap defers fourth builder without consuming it and logs the drop",function(){
+    return withBudgetNotes([buildFutureResolveNudge],function(){
+      worldState.futureResolveHints=[{what:"Sable arrived",evidence:"Sable arrived."}];var text=buildEngineNotes(),b=lastEngineNotesBuilt();
+      if(b.n.length!==3||text.length>2500||text.indexOf("Sable arrived")>=0)return "delivery cap exceeded";
+      if(!worldState.futureResolveHints||!b.d||b.d[0].n!=="buildFutureResolveNudge"||b.d[0].reason!=="count")return "drop ate trigger or omitted receipt";
+      noteLogCommit();worldState.turn++;text=buildEngineNotes();
+      return text.indexOf("Sable arrived")>=0&&worldState.noteLog[0].d.length===1?true:"deferred note did not retry next turn";
+    });
+  });
+  t("#309 character cap includes protocol; one oversized first note is delivered alone and flagged",function(){
+    return withBudgetNotes([],function(){
+      worldState.locationFilingPing.place=new Array(401).join("x");var text=buildEngineNotes(),b=lastEngineNotesBuilt();
+      if(text.length>2500||b.n.length!==1||!b.d||b.d[0].reason!=="characters")return "protocol bytes escaped character budget: "+JSON.stringify(b);
+      worldState.locationFilingPing={place:new Array(3001).join("x"),turn:100};text=buildEngineNotes();b=lastEngineNotesBuilt();
+      return text.length>2500&&b.n.length===1&&b.overBudget===true?true:"oversized first note was starved forever or silently overflowed";
+    });
+  });
+  t("#309 deferred transient survives its shelf but a replacement does not inherit the waiver",function(){
+    return withBudgetNotes([buildStayBehindNudge],function(){
+      worldState.presencePing={turn:98,name:"Mira"};buildEngineNotes();noteLogCommit();worldState=JSON.parse(JSON.stringify(worldState));worldState.turn++;
+      var text=buildEngineNotes();if(text.indexOf("Mira")<0)return "shelf expired the deferred note";
+      worldState.presencePing={turn:98,name:"Replacement"};
+      return buildStayBehindNudge()===""?true:"a replacement inherited the deferral waiver";
+    });
+  });
+  t("#309 deferred expiry appointment survives the next summary until its note is built",function(){
+    return withBudgetNotes([buildExpiredThreadNudge],function(){
+      worldState.questLog=[{title:"Intercept Sable",status:"active",objectives:[]}];memory.futureEvents=[{what:"Sable arrives to intercept the shipment",when:"soon",setTurn:50}];expireFutureEvents();
+      buildEngineNotes();noteLogCommit();worldState.turn++;expireFutureEvents();
+      if(!memory.futureEvents.length)return "summary retired a thread whose courtesy ask yielded";
+      var snap=snapshotNoteLatches(),txt=buildEngineNotes();if(txt.indexOf("Sable arrives")<0)return "deferred expiry ask never retried";
+      restoreNoteLatches(snap);noteLogDiscard();if(!memory.futureEvents[0]._askPending)return "dead turn consumed pending expiry ask";
+      buildEngineNotes();
+      noteLogCommit();worldState.turn++;expireFutureEvents();return !memory.futureEvents.length?true:"delivered ask made the old event immortal";
+    });
+  });
+  t("#309 dropped condition audit retains nested appointment; failed turn restores all consumed latches",function(){
+    return withBudgetNotes([buildConditionAudit],function(){
+      worldState.character.conditions=[{name:"Dazed",since:98,until:100}];var snap=snapshotNoteLatches();
+      buildEngineNotes();if(worldState.character.conditions[0].until!==100)return "budget drop consumed condition appointment";
+      restoreNoteLatches(snap);noteLogDiscard();if(!worldState.locationFilingPing||worldState.noteLog)return "failed turn consumed a delivered latch or wrote history";
+      delete worldState.locationFilingPing;delete worldState.travelPricePing;delete worldState.commitmentPing;worldState.turn++;
+      return buildEngineNotes().indexOf("Dazed")>=0?true:"condition audit did not retry";
+    });
+  });
+  t("#309 consequence notes never yield even after both budgets are full",function(){
+    function consequence(){return "[ENGINE NOTE — DOWNED: critical consequence]";}consequence._noteName="buildDownedNote";
+    return withBudgetNotes([consequence],function(){var text=buildEngineNotes(),b=lastEngineNotesBuilt();return b.n.length===4&&text.indexOf("critical consequence")>=0&&b.overBudget===true?true:"critical consequence yielded to delivery cap";});
+  });
+  t("#309 dropped legacy review cannot duplicate expired archive entries",function(){
+    return withBudgetNotes([buildRelationshipDowngradeNudge],function(){
+      worldState.relDowngrades=[{entity:"Old",muted:true,lastFired:0},{entity:"Mira",prev:"wife",next:"friend"}];
+      buildEngineNotes();noteLogCommit();worldState.turn++;buildEngineNotes();
+      var ar=memory.archive.relDowngrades||[];return ar.length===1?true:"budget rollback duplicated retired preimage: "+ar.length;
+    });
+  });
+  section("#309 — note shapes and ring");
   // ── #309 the engine's own behaviour, auditable ──────────────────────────────
   t("#309 notes ring: buildEngineNotes records what it built; noteLogCommit files {t,n,c} on worldState.noteLog (cap NOTE_LOG_CAP); noteLogDiscard drops a never-delivered build",function(){
     makeWorld();worldState.turn=12;worldState.locationFilingPing={place:"The Old Mill",turn:11};
