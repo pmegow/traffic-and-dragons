@@ -1060,6 +1060,39 @@ function runEngineTests(R){
     var src=__fsForTests.readFileSync(__rootForTests+"/ui-files.js","utf8"),i=src.indexOf("function buildNarrativeHtml("),body=src.slice(i,i+6000);
     return body.indexOf("the road not taken")>=0&&body.indexOf("the road resumes")>=0&&/!!e\.db!==/.test(body)?true:"no dead-branch label in the export";
   });
+  // ── Fable-review queue drain 2026-09-03 (entries 33 / 25 / 29) ──────────────────────────
+  t("entry 33 (#274 remedy): clockRepair REFUSES a delta that is not a finite integer — a string, NaN, Infinity — loudly, touching nothing (Fable f63's second remedy)",function(){
+    makeWorld();var c=clockEnsure();c.min=500;c.repairs=[];
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{
+      if(clockRepair("str-delta",500,"19h")!==false)return "string delta applied";
+      if(clockRepair("nan-delta",500,NaN)!==false)return "NaN delta applied";
+      if(clockRepair("inf-delta",500,Infinity)!==false)return "Infinity delta applied";
+      if(clockRepair("frac-delta",500,1.5)!==false)return "fractional delta applied";
+    }finally{console.warn=_w;}
+    if(c.min!==500||c.repairs.length)return "a refused repair touched the clock: "+JSON.stringify(c);
+    if(!warns.some(function(m){return /delta/.test(m)&&/#274/.test(m);}))return "refusal was silent";
+    return clockRepair("good",500,160)===true&&c.min===660?true:"a good repair no longer applies";
+  });
+  t("entry 25 (#254 probe 1): the rescue's kept-message tells the truth about a session-only backup (the in-memory store fallback) versus one that survives a reload",function(){
+    var a=rescueKeptText(true,false),b=rescueKeptText(true,true),c=rescueKeptText(false,false);
+    if(!/backup .*kept/i.test(a)||/this session only/i.test(a))return "durable: "+a;
+    if(!/this session only/i.test(b)||!/private|storage/i.test(b))return "session-only: "+b;
+    if(!/could NOT be backed up/i.test(c))return "not kept: "+c;
+    var src=__fsForTests.readFileSync(__rootForTests+"/state.js","utf8"),i=src.indexOf("function rescueCorruptStore("),body=src.slice(i,i+1600);
+    return body.indexOf("rescueKeptText(")>=0&&body.indexOf("_mKeys[rk]")>=0?true:"the rescue does not consult the fallback flag";
+  });
+  t("entry 29 (#254 probe 4): a COMBAT_END over a fight that THIS response opened (no tracker before it, every foe started after the close) is absorbed like the #225 ghost — no 'Combat: victory' line, no aftermath arm, no milestone — and the fresh encounter carries on",function(){
+    makeWorld();worldState.turn=40;worldState.combat=null;delete worldState.pendingLocState;
+    var r=applyMuts("[COMBAT_END:victory] Suddenly the bodyguard draws steel. [COMBAT_START:Bodyguard|12|13|+3|1d8|high]");
+    if((r.muts||[]).some(function(m){return /^Combat: victory/.test(m);}))return "ghost close recorded an outcome: "+JSON.stringify(r.muts);
+    if(!worldState.combat||!worldState.combat.foes.some(function(f){return f.name==="Bodyguard"&&!f.down;}))return "the fresh encounter did not carry: "+JSON.stringify(worldState.combat);
+    if(worldState.pendingLocState)return "the aftermath nudge armed over a ghost close";
+    if(!(r.muts||[]).some(function(m){return /absorbed|before any fight/i.test(m);}))return "the absorb was silent: "+JSON.stringify(r.muts);
+    /* the legitimate start-slay-close shape is untouched */
+    makeWorld();worldState.turn=41;applyMuts("[COMBAT_START:Rat|2|10|+0|1d4|low]");r=applyMuts("[ENEMY_SLAIN:Rat][COMBAT_END:victory]");
+    return (r.muts||[]).some(function(m){return /^Combat: victory/.test(m);})&&!worldState.combat?true:"the real close changed: "+JSON.stringify(r.muts);
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);

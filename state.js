@@ -682,13 +682,16 @@ function migrateWorldState(){
    Deliberately NO recovery UI in this pass (that flow is Fable's design): rescue + loud degrade is
    the whole deliverable, and nothing in the app ever deletes these keys — a later recovery flow
    is the only thing that should. */
+// Queue entry 25 (JP0-4 probe 1): a rescue written into the in-memory fallback (private mode, quota) does not
+// survive a reload — say so instead of folding it into "a backup was kept". Pure copy, engine-tested.
+function rescueKeptText(kept,volatile){if(!kept)return " and could NOT be backed up.";return volatile?" \u2014 a backup of the unreadable data was kept for this session only (private mode or storage full; it will not survive a reload).":" \u2014 a backup of the unreadable data was kept.";}
 function rescueCorruptStore(tier,raw,err){
   var label=(tier==="sess")?"session log":(tier==="mem")?"long-term memory":tier;
   var rk=STORE_RESCUE_K+tier+"_"+((typeof getActiveCampId==="function"&&getActiveCampId())||"default");
   var kept=false;
   if(typeof raw==="string"&&raw.length){try{store.set(rk,raw);kept=store.get(rk)===raw;}catch(e2){kept=false;}}
   if(typeof console!=="undefined")console.error("[save] the "+label+" store could not be parsed — "+(kept?("the unreadable original is preserved under "+rk):"the unreadable original could NOT be preserved")+"; this campaign loads with an EMPTY "+label,err);
-  if(typeof showToast==="function")showToast("⚠ Your "+label+" could not be read"+(kept?" — a backup of the unreadable data was kept.":" and could NOT be backed up.")+" The campaign is loading without it.");
+  if(typeof showToast==="function")showToast("⚠ Your "+label+" could not be read"+rescueKeptText(kept,!!(kept&&_mKeys[rk]))+" The campaign is loading without it.");
   return kept;
 }
 // #300 — CHECKPOINTS (the last camp). ONE snapshot per campaign: worldState minus the transcript and

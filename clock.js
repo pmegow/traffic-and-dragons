@@ -104,6 +104,10 @@ function clockNow(){var c=clockEnsure();return c?c.min:0;}
 // mutate NOTHING.
 function clockRepair(repairId,expectedMin,delta){
   var c=clockEnsure();if(!c)return false;
+  /* #274 (Fable f63's second remedy, queue entry 33): the entry vector for a poisoned scalar was a bad console
+     delta — "19h" concatenated to the string "882019h", NaN rode straight in. A delta is a finite whole number
+     of minutes or it is refused here, loudly, touching nothing. */
+  if(typeof delta!=="number"||!isFinite(delta)||delta!==Math.floor(delta)){if(typeof console!=="undefined")console.warn("[clock] repair \""+repairId+"\" REFUSED \u2014 delta must be a finite whole number of minutes, got "+(typeof delta)+" "+String(delta)+" (#274)");if(typeof showToast==="function")showToast("Clock repair refused: bad delta \u2014 see console");return false;}
   if(!c.repairs)c.repairs=[];
   var i;for(i=0;i<c.repairs.length;i++){if(c.repairs[i].id===repairId){
     if(typeof console!=="undefined")console.warn("[clock] repair \""+repairId+"\" ALREADY APPLIED (t"+c.repairs[i].t+", "+c.repairs[i].before+"→"+c.repairs[i].after+") — refused (#146)");

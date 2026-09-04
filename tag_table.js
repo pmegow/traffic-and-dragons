@@ -948,6 +948,13 @@ combatAttrEntry("COMBAT_VULN","vuln"),
        read as a win off its fatal verb; a genuinely unrecognized word over LIVING foes is LOUD
        (the else-branch below) instead of a silent discard — it can under-resolve, never falsely kill. */
     var _ceOut=ce[1].trim();
+    /* Queue entry 29 probe 4 (2026-09-03): with NO fight open before this response, COMBAT_START (table order)
+       has already minted the tracker by the time this handler runs, so the #225 null-tracker absorb above
+       cannot fire and "Combat: victory" was recorded over a fight that never was. If EVERY foe in the tracker
+       started after the close, the close refers to nothing: absorb it — no outcome line, no milestone, no
+       aftermath arm — and let the fresh encounter carry exactly as #254 intends. */
+    var _ceGhost=!!(worldState.combat&&!_ceRest.length&&_ceKeep.length&&_ceKeep.length===worldState.combat.foes.length);
+    if(_ceGhost){if(typeof console!=="undefined")console.warn("[combat] COMBAT_END:"+_ceOut+" before any fight — every foe in the tracker was introduced after the close; absorbed, the new encounter carries (#225/#254)");R.muts.push("\u26a0 COMBAT_END before any fight \u2014 absorbed; the encounter that opened this response carries on");}
     var _ceDefeatLed=/(defeat|\blost\b|\bloss\b|the party (falls|fell|dies|died|is slain|was slain|is wiped|breaks)|you (die|died|fall|fell|are slain|were slain)|tpk|fled|flee|escape|retreat|withdraw|disengag|truce|parley|stand-?off|spared|surrender|captur)/i.test(_ceOut);
     var _ceVictory=!_ceDefeatLed&&/(victor|triumph|\bw[oi]n\b|\bwins\b|rout|slain|slaughter|kill|\bdead\b|destroy|crush|annihilat|vanquish|put down)/i.test(_ceOut);
     if(worldState.combat&&!_ceVictory&&!_ceDefeatLed&&_ceRest.length){
@@ -967,9 +974,9 @@ combatAttrEntry("COMBAT_VULN","vuln"),
         if(typeof showToast==="function")showToast("\u2694 "+(_ceLive.length===1?_ceLive[0].name+" was":_ceLive.length+" foes were")+" still standing at victory \u2014 resolved as slain");
       }
     }
-    if(worldState.combat&&_ceVictory){var _bf=combatBossFoes();if(_bf.length)awardMilestoneXp("boss",_bf.map(function(f){return f.name;}).join(", "),R);}/* #302: one boss payday per victory close, however many bosses fell */
-    propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */
-    R.muts.push("Combat: "+ce[1].trim());
+    if(worldState.combat&&_ceVictory&&!_ceGhost){var _bf=combatBossFoes();if(_bf.length)awardMilestoneXp("boss",_bf.map(function(f){return f.name;}).join(", "),R);}/* #302: one boss payday per victory close, however many bosses fell */
+    if(!_ceGhost){propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */
+    R.muts.push("Combat: "+ce[1].trim());}
     if(_ceKeep.length){
       /* #254: the closed fight is over and its corpses go with it; the post-close arrivals become
          a NEW encounter at the node the party stands on now. The #149 aftermath anchor above
