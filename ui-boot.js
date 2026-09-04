@@ -62,7 +62,8 @@ function buildFileMenus(){
     var narr=btn(p+"rules","Narrative rules",0)
       +btn(p+"prose","✍ Prose inspiration&hellip;",0)
       +chk(p+"adult-cb","18+ Adult content",0,p+"adult-label")
-      +chk(p+"inband-cb","Buttons ride the GM's turn",0,p+"inband-label");/* #328 — off = the separate suggestion call (rollback) */
+      +chk(p+"inband-cb","Buttons ride the GM's turn",0,p+"inband-label")/* #328 — off = the separate suggestion call (rollback) */
+      +chk(p+"dice-cb","Player rolls own dice",0,p+"dice-label");/* #329 — off (default) = the GM rolls */
     var dm=btn(p+"tts-settings","🔊 Voice Settings&hellip;",0)
       // TODO #7: UI sound library toggle + test. Deliberately NOT inside the Voice Settings modal
       // (that modal is built entirely in tts.js, which is drift-protected/off-limits) — lives here
@@ -175,7 +176,7 @@ function wireButtons(){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",it[1]);
     });
     // Change handlers
-    [["adult-cb",toggleAdultMode],["inband-cb",toggleSuggestInband],["font-lg",toggleFontSize]].forEach(function(it){
+    [["adult-cb",toggleAdultMode],["inband-cb",toggleSuggestInband],["dice-cb",togglePlayerDice],["font-lg",toggleFontSize]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("change",it[1]);
     });
     // Cascading submenu toggles: Admin, Save/Load, Narrative options (nested in Admin).
@@ -203,7 +204,7 @@ function wireButtons(){
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["adult-cb","inband-cb","font-lg","legacy-cb","autosend","autolisten","sttconfirm","sound-cb"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤); sttconfirm joined at #77 */
+  ["adult-cb","inband-cb","dice-cb","font-lg","legacy-cb","autosend","autolisten","sttconfirm","sound-cb"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤); sttconfirm joined at #77 */
     eachMenuEl(sfx,function(el){
       var lbl=el.closest("label")||el.parentElement;
       if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
@@ -315,7 +316,7 @@ function wireButtons(){
 }
 function submitKey(){var k=document.getElementById("api-input").value.trim();if(!k){document.getElementById("api-warn").textContent="Enter an API key.";return;}apiKey=k;providerKeys[activeProvider]=k;store.set(AKK,k);saveProviderSettings();var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
 function initSettings(){
-  loadRules();loadAdultMode();loadSuggestInband();loadProseAuthor();loadLegacySettings();
+  loadRules();loadAdultMode();loadSuggestInband();loadPlayerDice();loadProseAuthor();loadLegacySettings();
   if(typeof loadLegacyLibrary==="function")loadLegacyLibrary();
   loadFontSize();updateServerUI();
 }

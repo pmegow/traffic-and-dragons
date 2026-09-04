@@ -72,6 +72,14 @@ function questBearingText(b){
   if(b.arcN)s+="\nArc "+b.arcN+"/"+b.arcOf+" \u201c"+b.arcTitle+"\u201d";
   return s;
 }
+// #329 roll your own dice — the pure half. parseCheckTag reads "[CHECK:label|+mod|DC n]"; resolveCheck
+// turns the player's d20 into the total, the outcome, the [DICE:] record the transcript keeps (the
+// same shape the GM writes when it rolls), and the engine note the continuation carries.
+function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),mod=parseInt(String(p[1]||"").replace(/[^-+\d]/g,""),10),dc=null,i;if(!label)return null;if(isNaN(mod))mod=0;for(i=1;i<p.length;i++){var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);}return {label:label,mod:mod,dc:dc};}
+function resolveCheck(chk,roll){var total=roll+(chk.mod||0),outcome=(chk.dc!=null)?(total>=chk.dc?"success":"failed"):(roll===20?"critical":(roll===1?"fumble":"rolled"));
+  var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+". Narrate the outcome of that check now; the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
+  return {roll:roll,total:total,outcome:outcome,diceTag:"[DICE:"+chk.label+"|"+total+"|"+outcome+"]",note:note};}
+function rollD20(){return 1+Math.floor(Math.random()*20);}
 // #328: the [SUGGEST:a|b|c] payload → up to three clean actions. Leading "A)" / "1." markers and
 // asterisks are dropped (the v1.90 parseActions lesson); blanks vanish. Pure.
 function parseSuggestTag(body){var out=[],parts=String(body||"").split("|"),i;for(i=0;i<parts.length&&out.length<3;i++){var t=parts[i].replace(/\*/g,"").trim().replace(/^[(\[]?(?:[A-Ca-c]|[1-3])[)\].:]\s*/,"").trim();if(t.length>1)out.push(t);}return out;}
@@ -884,6 +892,7 @@ function parseCarCommand(text, optionCount) {
   if (/^(?:repeat|read|say|play)\s+(?:it\s+|that\s+|the\s+)?(?:everything|all|scene|story|narration|again from the start)$/.test(t)
       || /^(?:repeat|read)\s+everything$/.test(t) || /^everything again$/.test(t)) return { kind: "repeatAll" };
   /* #308 Car Mode bookends: "wrap up" lands the scene at a hook within two turns; "previously" speaks the recap. */
+  if (/^(?:i )?roll(?: (?:the )?(?:dice|die|d20))?$/.test(t)) return { kind: "roll" };/* #329 */
   if (/^(?:lets |let us )?(?:wrap(?: it)?(?: up)?|stop here|find a stopping point|stopping point|end (?:it|here) for now)$/.test(t)) return { kind: "wrapUp" };
   if (/^(?:previously|recap|catch me up|where were we|where was i|what happened(?: last time| before)?|remind me)$/.test(t)) return { kind: "recap" };
   if (/^(?:repeat|again|say again|repeat that|say that again|read again|read that again|one more time)$/.test(t)

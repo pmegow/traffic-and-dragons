@@ -148,6 +148,7 @@ function carVoiceCommand(text) {
   /* #308 bookends */
   if (cmd.kind === "wrapUp") { if (worldState) worldState.wrapUpPing = { turn: worldState.turn }; carNotify("info", "Wrapping up — the story will find a stopping point."); if (typeof TTS !== "undefined" && typeof TTS.speak === "function") TTS.speak("Wrapping up. Say your next action and the story will find a stopping point."); return true; }
   if (cmd.kind === "recap") { _carPreviously(true); return true; }
+  if (cmd.kind === "roll") { if (worldState && worldState.pendingCheck && typeof rollPendingCheck === "function") { rollPendingCheck(); } else { carNotify("info", "Nothing to roll right now."); } return true; }/* #329 */
   if (cmd.kind === "repeat") {
     if (!_carReadOptions()) { carNotify("warn", CAR_STR.noOptionsYet); }
     return true;

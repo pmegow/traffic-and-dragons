@@ -507,6 +507,7 @@ async function generateActions(msgEl){
   /* #300: a downed hero gets the engine's two moves — no model call, no token, no invented rescue. */
   if(worldState&&worldState.deathScene&&worldState.deathScene.stage==="choose"&&typeof deathChoiceButtons==="function"){var _dcb=deathChoiceButtons();msgEl.insertAdjacentHTML("beforeend",buildActionButtons(_dcb));worldState.lastActions=_dcb;if(typeof saveAll==="function")saveAll();return;}/* #301 */
   if(worldState&&worldState.deathScene){worldState.lastActions=null;return;}/* #301: no suggestions while Death speaks — the next line is the question */
+  if(worldState&&worldState.pendingCheck){worldState.lastActions=null;return;}/* #329: the die is the only button while a roll is pending */
   if(worldState&&worldState.downed&&typeof downedChoices==="function"){var _dc=downedChoices();msgEl.insertAdjacentHTML("beforeend",buildActionButtons(_dc));worldState.lastActions=_dc;if(typeof saveAll==="function")saveAll();return;}
   var btnDiv=document.createElement("div");
   btnDiv.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;";
@@ -1940,6 +1941,8 @@ async function sendAction(override,opts){
     if(_dch==="onward"){if(inp)inp.value="";if(typeof showOnwardConfirmModal==="function")showOnwardConfirmModal();else deathSceneOnwardConfirm();return;}
     if(typeof showToast==="function")showToast("Death waits. Walk back to camp, or go onward.");return;
   }
+  /* #329: a typed action while a roll is pending lets the check lapse — the story moves on without it. */
+  if(worldState.pendingCheck&&!(opts&&opts.silent)){delete worldState.pendingCheck;if(typeof console!=="undefined")console.info("[dice] #329 pending "+worldState.turn+" check lapsed — the player acted instead of rolling");}
   /* #325: the offered ending is a DECISION, not an action — no model call, a modal decides. */
   if(!(opts&&opts.silent)&&typeof endingChoiceFromText==="function"&&typeof endingOffered==="function"){var _eoTxt=override!==null?override:(inp?inp.value.trim():"");
     if(_eoTxt&&endingChoiceFromText(_eoTxt)&&endingOffered()){if(inp)inp.value="";if(typeof showEndingOfferModal==="function")showEndingOfferModal();else endingDecide("write");return;}}
@@ -2047,6 +2050,7 @@ async function sendAction(override,opts){
       }catch(_rrE){if(typeof console!=="undefined")console.warn("[refusal] #323 retry call failed: "+(_rrE&&_rrE.message)+" \u2014 committing the original refusal");}
       if(_rrTh&&_rrTh.remove)_rrTh.remove();
     }
+    if(opts&&opts.rollTag&&!isTT)resp=opts.rollTag+"\n"+String(resp||"");/* #329: the player's roll rides the continuation as the [DICE:] record the transcript keeps */
     if(isTT){
       // #74 ①: the TT pane never ran cleanTxt, unlike the narrative path, so any stray tag
       // rendered verbatim to the player (the [CALENDAR:…] sighting). Strip them here too.
@@ -2080,6 +2084,17 @@ async function sendAction(override,opts){
   // B16 it can also be the failed action we just put back — and announcing "Heard you" would
   // overwrite the accurate "Turn failed — tap to retry" the catch just spoke, with a lie.
   if(typeof carMode!=="undefined"&&carMode&&!_restored){var _pk=document.getElementById("action-input");if(_pk&&_pk.value.trim()&&typeof carNotify==="function")carNotify("info","Heard you — tap to send");}
+}
+// #329: the click on the pending die. Rolls client-side, shows the result where the die was, and sends the
+// engine note as a SILENT continuation (no player line, no engine notes) with the [DICE:] record riding
+// along so the transcript and the provenance ring keep the roll exactly as a GM-rolled one.
+function rollPendingCheck(){
+  var chk=worldState&&worldState.pendingCheck;if(!chk||busy)return;
+  var r=resolveCheck(chk,rollD20());delete worldState.pendingCheck;
+  if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){var wrap=document.createElement("div");wrap.innerHTML=diceTxt(r.diceTag);if(wrap.firstChild)el.parentNode.replaceChild(wrap.firstChild,el);}}
+  if(typeof Sound!=="undefined")Sound.play("click_glass");
+  if(typeof saveAll==="function")saveAll();
+  sendAction(r.note,{silent:true,rollTag:r.diceTag});
 }
 function retryLast(){if(lastAction)sendAction(lastAction,{mpBypass:true});}/* P3: a retried multi-PC round is already an assembled block — re-queueing it as one PC's action would corrupt the round */
 // Re-roll the last GM narration in the CURRENT prose voice WITHOUT advancing the turn

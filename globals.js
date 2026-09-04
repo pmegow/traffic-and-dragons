@@ -129,6 +129,11 @@ var ENDING_REOFFER_TURNS=15;
 // exactly as before (the rollback). File menu checkbox; stored under SUGGEST_INBAND_K.
 var SUGGEST_INBAND_K="tnd_suggest_inband_v1";
 var suggestInband=true;
+// #329 (owner design 2026-09-03): the player rolls their own d20. OFF by default. On: the GM emits
+// [CHECK:label|mod|DC n] and stops; the chip reads "d20 · click to roll"; the click rolls client-side
+// and a silent continuation carries the result. Off: today's [DICE:] contract, byte-for-byte.
+var PLAYER_DICE_K="tnd_player_dice_v1";
+var playerRollsDice=false;
 var COMBAT_SLAIN_CAP=12;    // #299: the combat-slain ring — every foe slain at a combat close (rostered or not), so a chapter summary citing a rolled foe's death validates as combat canon instead of opening a W2 conflict
 var MONTAGE_AFTER_TURNS=6;  // #308: this many committed turns at one place with no fight and no move → the fourth button offers a MONTAGE (one paragraph, hours advance, land at the next decision)
 var PREVIOUSLY_AFTER_MS=2*60*60*1000; // #308: Car Mode speaks a "previously on" recap when the last turn is older than this
@@ -351,7 +356,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.804";
+var APP_VERSION="v1.805";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

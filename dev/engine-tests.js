@@ -988,6 +988,49 @@ function runEngineTests(R){
     if(boot.indexOf("inband-cb")<0||boot.indexOf("toggleSuggestInband")<0||um.indexOf("function loadSuggestInband")<0||boot.indexOf("loadSuggestInband()")<0)return "the switch is not wired";
     return typeof SUGGEST_INBAND_K==="string"&&um.indexOf("store.set(SUGGEST_INBAND_K")>=0?true:"no stored pref";
   });
+  // ── #329 roll your own dice (owner design 2026-09-03: a checkbox off by default; "d20 · click to roll") ──
+  t("#329 the pure half: parseCheckTag reads label/modifier/DC; resolveCheck turns a d20 into total, outcome, the [DICE:] record and the continuation note (the roll is final); no DC → rolled/critical/fumble",function(){
+    var c=parseCheckTag("Strength check|+3|DC 15");if(!c||c.label!=="Strength check"||c.mod!==3||c.dc!==15)return "parse: "+JSON.stringify(c);
+    var r=resolveCheck(c,19);if(r.total!==22||r.outcome!=="success"||r.diceTag!=="[DICE:Strength check|22|success]"||!/d20 = 19/.test(r.note)||!/do not roll again/i.test(r.note)||!/^\[ENGINE NOTE/.test(r.note))return "resolve: "+JSON.stringify(r);
+    if(resolveCheck(c,5).outcome!=="failed")return "5+3 vs 15 should fail";
+    var n=parseCheckTag("Stealth check|-1");if(n.mod!==-1||n.dc!==null)return "no DC parse: "+JSON.stringify(n);
+    if(resolveCheck(n,20).outcome!=="critical"||resolveCheck(n,1).outcome!=="fumble"||resolveCheck(n,10).outcome!=="rolled")return "no-DC outcomes";
+    if(parseCheckTag("")!==null)return "blank label should be null";
+    var i,ok=true;for(i=0;i<200;i++){var d=rollD20();if(d<1||d>20||d!==Math.floor(d))ok=false;}return ok?true:"rollD20 out of range";
+  });
+  t("#329 the contract: with the setting ON, [CHECK:] files worldState.pendingCheck for the turn and is stripped; the doc line and the MECHANICS line switch with the setting (OFF = today's [DICE:] contract byte-for-byte); a response that emits [CHECK:] AND rolls it anyway is treated as engine-rolled, loudly; OFF ignores [CHECK:]",function(){
+    var was=playerRollsDice;try{
+      playerRollsDice=true;makeWorld();worldState.turn=30;
+      var r=applyMuts("You crouch. [CHECK:Stealth check|+5|DC 14]");
+      var pc=worldState.pendingCheck;if(!pc||pc.label!=="Stealth check"||pc.mod!==5||pc.dc!==14||pc.turn!==30)return "not filed: "+JSON.stringify(pc);
+      if(!(r.muts||[]).some(function(m){return /yours to roll/i.test(m);}))return "no mut";
+      if(cleanTxt("A [CHECK:x|+1|DC 10] B")!=="A  B")return "not stripped";
+      if(buildStateTagsDoc().indexOf("[CHECK:")<0)return "doc line missing while on";
+      var st=buildSysPrompt().stable;if(!/THE PLAYER ROLLS/.test(st)||/\[DICE:Strength check\|result\|outcome\]/.test(st))return "MECHANICS line did not switch";
+      delete worldState.pendingCheck;var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+      try{r=applyMuts("[CHECK:Stealth check|+5|DC 14] You slip past. [DICE:Stealth check|17|success]");}finally{console.warn=_w;}
+      if(worldState.pendingCheck)return "a self-resolved check still armed a roll";if(!warns.some(function(m){return /rolled it anyway/.test(m);}))return "self-resolve was silent";
+      playerRollsDice=false;applyMuts("[CHECK:Stealth check|+5|DC 14]");if(worldState.pendingCheck)return "OFF filed a check";
+      if(buildStateTagsDoc().indexOf("[CHECK:")>=0)return "doc line present while off";
+      st=buildSysPrompt().stable;if(/THE PLAYER ROLLS/.test(st)||st.indexOf("[DICE:Strength check|result|outcome]")<0)return "OFF must keep today's MECHANICS line";
+      return true;
+    }finally{playerRollsDice=was;}
+  });
+  t("#329 the chip and the wiring: diceTxt renders a pending [CHECK:] as 'd20 · click to roll' only while it is the armed check, and [DICE:] as before; rollPendingCheck rolls, clears, and sends the note as a silent continuation carrying the [DICE:] record; no buttons while a roll is pending; a typed action lets the check lapse; Car Mode says 'roll'; the setting is a File ▸ Settings checkbox",function(){
+    var was=playerRollsDice;try{playerRollsDice=true;makeWorld();worldState.turn=30;applyMuts("[CHECK:Stealth check|+5|DC 14]");
+      var h=diceTxt("You crouch. [CHECK:Stealth check|+5|DC 14]");if(!/dice-pending/.test(h)||!/click to roll/i.test(h)||!/rollPendingCheck\(\)/.test(h)||!/STEALTH CHECK|Stealth check/.test(h))return "pending chip: "+h;
+      delete worldState.pendingCheck;h=diceTxt("[CHECK:Stealth check|+5|DC 14]");if(/dice-pending/.test(h)||/rollPendingCheck/.test(h))return "a lapsed check must not be clickable: "+h;
+      h=diceTxt("[DICE:Stealth check|17|success]");if(!/<strong>17<\/strong>/.test(h)||!/success/.test(h))return "[DICE:] rendering changed: "+h;
+    }finally{playerRollsDice=was;}
+    if(parseCarCommand("roll",3).kind!=="roll"||parseCarCommand("roll the dice",3).kind!=="roll"||parseCarCommand("roll away",3)&&parseCarCommand("roll away",3).kind==="roll")return "car command";
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    var rp=g.indexOf("function rollPendingCheck("),body=g.slice(rp,rp+2500);if(rp<0||body.indexOf("sendAction(")<0||body.indexOf("silent:true")<0||body.indexOf("rollTag:")<0||body.indexOf("delete worldState.pendingCheck")<0)return "rollPendingCheck wiring";
+    var sa=g.slice(g.indexOf("async function sendAction("),g.indexOf("function retryLast("));if(sa.indexOf("opts.rollTag")<0||sa.indexOf("pendingCheck")<0)return "sendAction does not carry the roll record or lapse the check";
+    var ga=g.slice(g.indexOf("async function generateActions("),g.indexOf("async function generateActions(")+1500);if(ga.indexOf("pendingCheck")<0)return "buttons are still offered while a roll is pending";
+    var cm=__fsForTests.readFileSync(__rootForTests+"/ui-carmode.js","utf8"),bt=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
+    if(cm.indexOf('cmd.kind === "roll"')<0&&cm.indexOf('cmd.kind==="roll"')<0)return "Car Mode does not roll";
+    return bt.indexOf("dice-cb")>=0&&bt.indexOf("togglePlayerDice")>=0&&bt.indexOf("loadPlayerDice()")>=0&&um.indexOf("store.set(PLAYER_DICE_K")>=0?true:"the switch is not wired";
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);
@@ -6331,7 +6374,7 @@ function runEngineTests(R){
     // would read the relabel ceremony aloud in the prose and pollute the transcript.
     // v1.697 (#211): +NO_CHANGE in BOTH registries (+10 chars payload form; bare form joins
     // _CT_BARE) — the audit-ack channel must strip everywhere or the ack IS the leak it cures.
-    if(__djb2(_CT_TAGS.source)!==-1066850964||_CT_TAGS.source.length!==1633)return "_CT_TAGS diverged from the frozen literal";/* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==16453478||_CT_TAGS.source.length!==1639)return "_CT_TAGS diverged from the frozen literal";/* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){

@@ -2046,7 +2046,7 @@ function buildSysPrompt(){
     +(_paVc?"NOTE: The TONE above governs CONTENT only (magic prevalence, danger, stakes, moral register). All prose STYLE is governed by the VOICE directive in the STYLE section at the end of this prompt — where they differ on style, the VOICE wins.\n\n":"")
     +narrativeDesignBlock
     +bestiaryBlock
-    +"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]\n\n"
+    +((typeof playerRollsDice!=="undefined"&&playerRollsDice)?"MECHANICS: DC 10=easy 15=moderate 20=hard. THE PLAYER ROLLS: for any d20 check or saving throw emit [CHECK:Strength check|+3|DC 15] and STOP before the outcome (see STATE TAGS) \u2014 never invent a die result; the player's roll arrives in the next message.\n\n":"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]\n\n")/* #329: one line, two contracts */
     // #52: the skills ladder — campaign-constant text derived from SKILL_LEVEL_MECHANICS
     // (skills_bible.js), so it is stable-half-safe; a ladder rebalance is one deliberate
     // cache invalidation. The per-character earned list rides the VOLATILE sheet below.
@@ -2395,7 +2395,14 @@ function cleanTxt(t){
 }
 // Renders EVERY [DICE:] tag in the response, not just the first (audit E10) — cleanTxt strips them
 // all, so a second roll used to vanish from the display. One dice-block div per tag.
-function diceTxt(t){var ms=String(t||"").match(/\[DICE:([^\]]+)\]/g);if(!ms)return"";var out="",di;for(di=0;di<ms.length;di++){var mm=ms[di].match(/\[DICE:([^\]]+)\]/);if(!mm)continue;var p=mm[1].split("|");var lbl=p[0]?'<span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+p[0]+'</span>':'';out+='<div class="dice-block">'+lbl+'d20: <strong>'+(p[1]||"?")+'</strong>'+(p[2]?" -- "+p[2]:"")+'</div>';}return out;}
+function diceTxt(t){var out="",di;
+  /* #329: a pending [CHECK:] renders as the die itself — clickable only while it is THE armed check (a lapsed or
+     already-rolled one shows inert), so a reload never offers a roll the record no longer expects. */
+  var cs=String(t||"").match(/\[CHECK:([^\]]+)\]/g)||[];for(di=0;di<cs.length;di++){var cm=cs[di].match(/\[CHECK:([^\]]+)\]/),ck=cm&&typeof parseCheckTag==="function"?parseCheckTag(cm[1]):null;if(!ck)continue;
+    var live=!!(typeof worldState!=="undefined"&&worldState&&worldState.pendingCheck&&worldState.pendingCheck.label===ck.label);
+    var lbl='<span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+escHtml(ck.label)+'</span>';
+    out+=live?'<div class="dice-block dice-pending" onclick="rollPendingCheck()" title="Click to roll">'+lbl+'d20'+(ck.mod?(ck.mod>0?"+":"")+ck.mod:"")+(ck.dc!=null?' vs DC '+ck.dc:'')+' &middot; <strong>click to roll</strong></div>':'<div class="dice-block" style="opacity:.6;">'+lbl+'d20 &middot; unrolled</div>';}
+  var ms=String(t||"").match(/\[DICE:([^\]]+)\]/g);if(!ms)return out;for(di=0;di<ms.length;di++){var mm=ms[di].match(/\[DICE:([^\]]+)\]/);if(!mm)continue;var p=mm[1].split("|");var lbl=p[0]?'<span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+p[0]+'</span>':'';out+='<div class="dice-block">'+lbl+'d20: <strong>'+(p[1]||"?")+'</strong>'+(p[2]?" -- "+p[2]:"")+'</div>';}return out;}
 // Builds the suggested-action buttons. PRIMARY: the structured [ACTIONS:a|b|c] tag, read
 // from the RAW response (cleanTxt has already stripped it from `clean`). FALLBACK: the legacy
 // prose "*You could ...*" line, so messages stored before the tag format still render on reload.
