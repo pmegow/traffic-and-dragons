@@ -19873,6 +19873,40 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return npcIsDead(wsNpcByName("Mokmurian"))?"death did not fail closed under negative overflow":true;
   });
 
+  t("#324 a handle declared in the SAME response as the death cannot veto prior NAMED evidence (the Iron Meridian Lyle, t126): an NPC who spoke on earlier turns dies through an envelope whose evidence is a fresh handle bound to him; a stranger with no prior presence still refuses; a handle bound to someone else still refuses",function(){
+    makeWorld();var L="Ambassador Ferrin Lyle";r168Npc(L);wsNpcByName(L).introduced=24;worldState.world.location="The Engine Core";worldState.world.sublocation=null;
+    /* the ledger has been live since t10 in the field; Lyle SPOKE on t123–t125 (transcript speech facts, the #194 L2 shape) */
+    worldState.turn=110;applyMuts("[SCENE_REF:onlooker|?]");
+    [123,124,125].forEach(function(t){worldState.transcript.push({t:t,r:"gm",x:L+" speaks.",sp:{n:1,s:{0:L}}});});
+    worldState.turn=125;applyMuts("[NPC:"+L+"|badly wounded, bleeding|enemy]");
+    worldState.turn=126;worldState.questLog=[{title:"The Descent",status:"active",desc:"d",objectives:[{text:"Seize control of the core console",done:false}],started:125}];
+    var r=applyMuts("You loose a point-blank blast. [SCENE_REF:lyle_ref|"+L+"][CANON_TXN_BEGIN:txn_lyle_execution|npc-death|"+L+"|lyle_ref|The Descent][SCENE_DEATH:lyle_ref][NPC:"+L+"|dead|enemy][CANON_TXN_END:txn_lyle_execution]");
+    var tx=(worldState.canonTxns||[]).filter(function(t){return t.id==="txn_lyle_execution";})[0];
+    if(!tx||tx.status!=="committed")return "the field envelope still quarantines: "+JSON.stringify(tx)+" muts "+JSON.stringify(r.muts);
+    if(!npcIsDead(wsNpcByName(L)))return "Lyle not dead";
+    /* a stranger nobody ever saw, same shape → still refused */
+    r168Npc("Nobody Seen");worldState.turn=127;
+    applyMuts("[SCENE_REF:nb_ref|Nobody Seen][CANON_TXN_BEGIN:txn_nobody|npc-death|Nobody Seen|nb_ref|-][SCENE_DEATH:nb_ref][NPC:Nobody Seen|dead|enemy][CANON_TXN_END:txn_nobody]");
+    tx=(worldState.canonTxns||[]).filter(function(t){return t.id==="txn_nobody";})[0];if(!tx||tx.status!=="quarantined")return "a stranger's same-turn handle passed: "+JSON.stringify(tx);
+    /* the handle bound to SOMEONE ELSE in the same response → still refused even though the subject has prior evidence */
+    r168Npc("Thessa Saltborn");wsNpcByName("Thessa Saltborn").introduced=10;worldState.transcript.push({t:128,r:"gm",x:"Thessa Saltborn speaks.",sp:{n:1,s:{0:"Thessa Saltborn"}}});worldState.turn=129;
+    if(w2DeathAuthorized("Thessa Saltborn","other_ref")!==false){}/* no such handle: name-path rules apply as before */
+    applyMuts("[SCENE_REF:other_ref|Nobody Seen]");
+    return w2DeathAuthorized("Thessa Saltborn","other_ref")===false?true:"a handle bound to a different entity authorized the subject";
+  });
+  t("#324 a reported death heals its standing identity conflict, and the quest the quarantined receipt named comes unstuck (The Descent, refused eight times t127–t143)",function(){
+    makeWorld();var L="Ambassador Ferrin Lyle";r168Npc(L);wsNpcByName(L).introduced=24;worldState.turn=140;worldState.sceneRefs={active:{frames:[]},sealed:[]};
+    worldState.questLog=[{title:"The Descent",status:"active",desc:"d",objectives:[{text:"Seize control of the core console",done:false}],started:125}];
+    worldState.identityConflicts=[{subject:L,handle:"lyle_ref",reason:"summary death lacks matching scene-handle evidence",turn:130,lastTurn:140,attempts:4,resolved:false}];
+    worldState.canonTxns=[{id:"txn_lyle_execution",claim:"npc-death",subject:L,evidence:"lyle_ref",quest:"The Descent",status:"quarantined",operations:[],turn:126,reason:"scene evidence does not bind the claimed victim"}];
+    applyMuts("[QUEST_STEP:The Descent|Seize control of the core console|true][QUEST:The Descent|completed]");
+    if(!worldState.questLog.some(function(q){return q.title==="The Descent"&&q.status==="active";}))return "fixture: the dispute strip should have withheld the completion";
+    worldState.turn=141;applyMuts("Thessa saw him go over. [NPC_DEATH_REPORTED:"+L+"|Thessa saw him hit the brine]");
+    if(!npcIsDead(wsNpcByName(L)))return "reported death not filed";
+    if((worldState.identityConflicts||[]).some(function(c){return !c.resolved;}))return "the reported death did not heal the conflict";
+    worldState.turn=142;applyMuts("[QUEST_STEP:The Descent|Seize control of the core console|true][QUEST:The Descent|completed]");
+    return (!worldState.questLog.some(function(q){return q.title==="The Descent"&&q.status==="active";})&&memory.quests["The Descent"]&&memory.quests["The Descent"].status==="completed")?true:"The Descent still stuck after the heal: "+JSON.stringify(worldState.questLog);
+  });
   t("R8b: bare-string npcDeaths cannot mint a corpse while the ledger is active",function(){
     makeWorld();r168Npc("Rinn");
     worldState.turn=90;applyMuts("[SCENE_REF:someone|?]");

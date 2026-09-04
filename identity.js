@@ -970,6 +970,7 @@ function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);
        and the write must agree about what a handle IS, or an authorized death fails on execution. */
     var sn=_w2HandleNamesSubject(handle,subj);
     if(sn&&w2NamedPresenceEvidence(sn))return _w2StampDead(sn,worldState.turn,R);
+    if(subj&&subj!=="-"&&w2NamedPresenceEvidence(subj))return _w2StampDead(subj,worldState.turn,R);/* #324: the executor agrees with the gate — a named subject with prior presence dies on the name path */
     var cf=(!subj||subj==="-")?_w2CombatFoeMatch(handle,""):null;/* #318: the gate accepted a combat kill — the death op is ceremonial here (the tracker + ring already hold the corpse) */
     if(cf){if(R)R.muts.push(cf+": slain in combat (the envelope closes the kill)");return true;}
     _w2Conflict(subj||"unknown",handle,"death names no observed handle");
@@ -984,6 +985,18 @@ function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);
     if(R&&R.errors)R.errors.push("SCENE_DEATH: the bound scene actor is not the transaction subject");
     return false;}
   hit.actor.present=false;hit.actor.died=worldState.turn;if(hit.actor.entity)return _w2StampDead(hit.actor.entity,worldState.turn,R);if(R)R.muts.push("Anonymous scene actor "+hit.actor.handle+" died");return true;}
+// #324 (the Iron Meridian Lyle, t126): a handle declared in the SAME response as the death cannot vouch
+// for it (#168R6 — a response must not arm its own evidence). But when that fresh handle binds to the
+// claimed subject, and the subject already has NAMED presence evidence from EARLIER turns (spoke, was
+// cast, was observed), the name path authorizes on its own — the handle must not veto what the record
+// already proves. A handle bound to someone else, or a subject nobody saw before, still refuses. The
+// field cost of the old rule: a plainly-executed villain quarantined, a conflict nobody could answer,
+// and the quest his envelope named ("The Descent") stripped of every completion for 17 turns.
+function _w2SameTurnNameFallback(hit,canon,sourceTurn){
+  if(!canon||!hit||!hit.actor)return false;
+  if(hit.actor.entity&&hit.actor.entity!==canon)return false;
+  return !!w2NamedPresenceEvidence(canon,sourceTurn);
+}
 function w2DeathAuthorized(name,handle,sourceTurn){
   if(!worldState||!worldState.sceneRefs)return true;
   var s=sceneRefsEnsure(),canon=(name&&name!=="-")?resolveNpcName(name):null,hit,i,fs;if(s.overflow)return false;
@@ -992,7 +1005,11 @@ function w2DeathAuthorized(name,handle,sourceTurn){
        to nobody because it never needed resolving. This is the shape the t1903 GM actually emitted
        ([CANON_TXN_BEGIN:...|Caul|caul|...] with [SCENE_DEATH:caul]), so without this the fix would
        have covered only the bare-tag path and the quarantine loop would have continued in play. */
-    if(!hit)return _w2HandleNamesSubject(handle,canon)?!!w2NamedPresenceEvidence(canon,sourceTurn):false;if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;/* #168R6 (entry-13 review): the summary path passes an explicit sourceTurn — same-turn evidence must refuse exactly like the tag path, else a summary can cite the very response that armed it */if(sourceTurn==null&&(hit.actor.sourceTurn>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;if(!canon)return true;if(hit.actor.entity!==canon)return false;if(_sceneRefExplicitNegative(hit.frame,hit.actor.handle,canon)&&!hit.actor.revealed)return false;return true;}
+    /* #324: an UNDECLARED handle (declared in this very response — the [SCENE_REF:] has not been applied
+       when the gate runs — or never) is noise beside a NAMED subject the record already places in the
+       scene; the name path decides, exactly as it would for the bare [NPC:name|dead] form. No subject
+       (the #318 combat shape) or no prior named evidence → refused as before. */
+    if(!hit)return canon?!!w2NamedPresenceEvidence(canon,sourceTurn):false;if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return _w2SameTurnNameFallback(hit,canon,sourceTurn);/* #324 */ /* #168R6 (entry-13 review): the summary path passes an explicit sourceTurn — same-turn evidence must refuse exactly like the tag path, else a summary can cite the very response that armed it */if(sourceTurn==null&&(hit.actor.sourceTurn>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return _w2SameTurnNameFallback(hit,canon,sourceTurn);/* #324 */if(!canon)return true;if(hit.actor.entity!==canon)return false;if(_sceneRefExplicitNegative(hit.frame,hit.actor.handle,canon)&&!hit.actor.revealed)return false;return true;}
   if(!canon)return false;/* #175bR: the frame scan honors a summary's cited sourceTurn exactly like
      the evidence limbs — a binding recorded AFTER the cited death turn cannot vouch for it. */
   var _nmLim=(sourceTurn!=null&&Number(sourceTurn)<worldState.turn)?Number(sourceTurn):worldState.turn;

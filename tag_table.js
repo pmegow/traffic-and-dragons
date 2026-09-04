@@ -620,6 +620,7 @@ var TAG_TABLE=[
   else{
     rdN.dead=R.turn;if(!npcDeadStatus(rdN.status))rdN.status="dead";rdN.statusTurn=R.turn;
     rdN.deathReported={turn:R.turn,source:rdSrc};
+    if(typeof _w2ResolveConflicts==="function")_w2ResolveConflicts(rdName,null);/* #324: a reported death answers the standing dispute — the strip on the quest its receipt named lifts (the #175 heal, at the third death path) */
     R.muts.push(rdName+": dead AS REPORTED (t"+R.turn+" — "+rdSrc+")");
     if(typeof showToast==="function")showToast("† "+rdName+" — death recorded as reported (not witnessed)");
   }

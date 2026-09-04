@@ -99,7 +99,7 @@ rc|=sabotage.prove({
       replace:"if(false&&"},
     {label:"same-turn summary evidence self-authorizes a corpse again",
     mustFail:"R6: a summary death cannot cite same-turn scene evidence the tag path ",
-      find:"if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;",
+      find:"if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return _w2SameTurnNameFallback(hit,canon,sourceTurn);/* #324 */",
       replace:""},
     {label:"a quarantined transaction id becomes citable death authority again",
     mustFail:"R6b: a summary death citing a quarantined transaction id is refused; a",
