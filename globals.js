@@ -322,6 +322,8 @@ var PROVIDERS={
     reinforce:TAG_REINFORCE
   },
   gemini:{
+    gatewayCapability:"geminiStableCacheV1",
+    gatewayHeaders:function(sys,kind){return kind==="turn"&&sys&&typeof sys==="object"&&typeof sys.stable==="string"&&sys.stable.length&&typeof sys.volatile==="string"?{"X-TND-Cache":"v1:"+sys.stable.length}:{};},
     // Google's schema differs: system in systemInstruction, messages in contents[]
     // (role "model" not "assistant"), reply at candidates[0].content.parts[0].text,
     // and the MODEL NAME is in the URL — so endpoint is a function(model).
@@ -358,7 +360,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.814";
+var APP_VERSION="v1.815";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

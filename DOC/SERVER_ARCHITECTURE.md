@@ -1,5 +1,11 @@
 # Server architecture — design (UA33, opening with the UA32 survey)
 
+**#334 build addendum (2026-09-04):** game v1.815 / server v1.4.0 adds schema 5's durable
+Gemini cache handles and storage-exposure receipts. The `GEMINI_EXPLICIT_CACHE` flag is
+disabled by default, not enabled or deployed. Its opt-in prompt-role transformation is the
+sole exception to the byte-verbatim gateway design below; BYOK and other providers are
+unchanged. See [design, limits, verification and live gates](DESIGN_334_gemini_explicit_cache.md).
+
 **Status: ✅ RATIFIED (2026-07-11, all §8 decisions walked with the user one-by-one — outcomes
 recorded in the §8 table).** Headline outcomes: own private server repo · streaming deferred ·
 billing provider DEFERRED to build time (shape identical either way) · **NO FREE TIER at launch**

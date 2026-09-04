@@ -3010,9 +3010,10 @@ function providerHttpError(prov,status,message){
 // ── Account-mode transport seam (SERVER_ARCHITECTURE §3 gateway, v1.753) ──────────────────
 // In account mode the SAME sweep-validated vendor body goes to the operator's gateway
 // (POST /api/llm/:provider/:model) with the session token; the server attaches its own vendor
-// key and forwards the raw text BYTE-VERBATIM. Prompt caching, the transient-retry loop, the
-// #29b fallback rung, and every provider parse behave identically because both the request
-// body and the vendor's response travel unmodified — ONLY the URL and auth headers change,
+// key and forwards the raw text BYTE-VERBATIM by default. The opt-in Gemini explicit cache
+// is the sole exception: it needs a versioned split header and a different prompt-role layout
+// (DOC/DESIGN_334_gemini_explicit_cache.md). The client always retains the complete body;
+// provider parsing and fallback-model routing share the same transport shape,
 // resolved here and nowhere else. (The ratified §9 sketch said "a server provider entry in
 // PROVIDERS"; by build time the three adapters were sweep-pinned — body shapes, cache blocks,
 // reasoning pins, rungs — so wrapping them in a fourth adapter would either duplicate all
@@ -3030,10 +3031,11 @@ function gmViaServer(){
   // owner's first fresh-Google-account test).
   return !(providerKeys[activeProvider]||apiKey);
 }
-function gmTransport(prov,model,key,kind){
+function gmTransport(prov,model,key,kind,sys){
   if(gmViaServer()){
     var h={"Content-Type":"application/json","X-TND-Kind":kind};
     var a=storageAdapter.authHeader();for(var k in a)h[k]=a[k];
+    if(prov.gatewayHeaders&&serverAccount&&serverAccount.transportCapabilities&&serverAccount.transportCapabilities[prov.gatewayCapability]===1){var extra=prov.gatewayHeaders(sys,kind);for(var gk in extra)h[gk]=extra[gk];}
     return {server:true,url:storageAdapter.getServerUrl()+"/api/llm/"+prov.id+"/"+encodeURIComponent(model),headers:h};
   }
   return {server:false,url:typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint,headers:prov.headers(key)};/* Gemini embeds the model in the URL */
@@ -3168,7 +3170,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   var _tok=maxTok||1500;/* 1000→1500 (v1.540, user call): the cap is runaway insurance, not a style lever — the model never sees it, and at 1000 it was scissoring legitimate long prose turns mid-tag (the #132 field toast). #132's crumb frequency is the tuning gauge */if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
   var body=prov.buildBody(msgs,sys,_tok,model);
   var _kind=(opts&&opts.kind)||(sysOverride?"other":"turn");
-  var _tp=gmTransport(prov,model,key,_kind);var url=_tp.url; // account mode rides the gateway; BYOK resolves the vendor endpoint exactly as before
+  var _tp=gmTransport(prov,model,key,_kind,sys);var url=_tp.url; // account mode rides the gateway; BYOK resolves the vendor endpoint exactly as before
   // #29 transport loop. The payload is serialized ONCE — a retried request is byte-identical,
   // so provider-side prompt caches see the same prefix on every attempt.
   var _payload=JSON.stringify(body);
@@ -3191,6 +3193,8 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
       // and it must never reach the fallback rung either: an exhausted account is not a storm,
       // and a second model on the same key would just bill a second refusal.
       if(isCreditExhausted(prov,res.status,_tm))throw providerHttpError(prov,res.status,_tm);
+      // The gateway can lose a response after the vendor accepted and billed the generation.
+      if(_tp.server&&_td&&_td.retryable===false)throw providerHttpError(prov,res.status,_tm);
       if(_retries<CALLGM_RETRY_MAX){
         _retries++;
         var _wait=CALLGM_RETRY_BASE_MS*Math.pow(2,_retries-1)+Math.floor(Math.random()*(CALLGM_RETRY_BASE_MS/5));
@@ -3219,7 +3223,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
         model=prov.fallbackModel;
         body=prov.buildBody(msgs,sys,_tok,model);
         _payload=JSON.stringify(body);
-        _tp=gmTransport(prov,model,key,_kind);url=_tp.url; // the rung rides the same transport (gateway or vendor) as the primary
+        _tp=gmTransport(prov,model,key,_kind,sys);url=_tp.url; // the rung rides the same transport (gateway or vendor) as the primary
         if(!sysOverride)_lastTurnModel=model; // #45: the transcript m: stamp must credit the model that actually wrote the turn
         console.warn("[transport] "+prov.id+" HTTP "+res.status+" after "+_retries+" retries — falling back "+_primary+" → "+model+" for THIS call only (#29b)");
         try{if(typeof erCrumb==="function")erCrumb("transport-fallback",{p:prov.id,s:res.status,m:model,k:_kind});}catch(e4){}

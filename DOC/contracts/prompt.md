@@ -65,6 +65,26 @@ Assembled fresh on every request from live state. **Returns `{stable, volatile}`
 
 **Age is cosmetic-only (user ruling 2026-08-10):** `age` is injected into ZERO gameplay prompts — neither the player identity header nor PARTY MEMBER SHEETS carries it; only the image-render prompt writers read it. Deliberate, NOT the #46/#61 missing-injection defect class: raw years would demand cross-ancestry age semantics (67 = elderly human, coming-of-age elf). Age-driven fiction belongs in `appear`/ancestry text. Full ruling: TODO.md ▸ Architecture decisions.
 
+### Account-mode Gemini explicit caching (#334, v1.815)
+
+The unchanged Gemini body still contains the complete `sysJoin()` system text. Its optional
+`gatewayHeaders(sys,kind)` adapter supplies `X-TND-Cache: v1:<stable UTF-16 length>` for turn
+calls only; BYOK, string overrides, suggestions and other providers do not opt in. Primary and
+fallback `gmTransport` calls carry the same reinforced split. No client creates cache handles.
+`gmTransport` requires `/api/account` to advertise the adapter's `gatewayCapability`
+(`transportCapabilities.geminiStableCacheV1:1`) before attaching this header: old/unknown
+gateways retain their supported header set and do not fail CORS before deployment.
+
+Server v1.4.0 can opt into a different prompt-role layout using `GEMINI_EXPLICIT_CACHE=1`;
+**the flag is off and live enablement is pending**. Stable rules plus a fixed layout directive
+become cached system instructions; live state moves into the first JSON text part of the latest
+user message. This changes the system-tail STYLE position and instruction role: byte retention
+alone does not prove prose/canon equivalence. Owner-approved build and live gate:
+[DESIGN_334](../DESIGN_334_gemini_explicit_cache.md). Disabled, ineligible or cache-preparation
+failure paths retain the original body byte-for-byte. Cached generation usage remains metered;
+storage exposure is recorded separately on the server. An ambiguous gateway generation loss
+returns `retryable:false`, which `callGM` honors before either automatic retry or model fallback.
+
 ## 13. Rendered action suggestions (decoupled — #14)
 
 Action suggestions are **fully decoupled from GM prose**. The GM writes pure narrative — no `[ACTIONS:]` tag, no `*You could…*` line. The STYLE block explicitly tells the GM NOT to emit action suggestions.

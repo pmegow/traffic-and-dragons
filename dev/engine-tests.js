@@ -4068,6 +4068,29 @@ function runEngineTests(R){
     return r.restored===1&&again.restored===0&&memory.npcs.Kolm.authored.length===1&&memory.npcs.Kolm.authored[0].text===old&&memory.npcs.Kolm.knowledge[0]==="Current play fact."&&JSON.stringify(memory.archive)===ar&&JSON.stringify(worldState)===ws&&JSON.stringify(sessionLog)===sl?true:"repair lost canon, duplicated sources, or touched unrelated data";
   });
 
+  section("#334 — Gemini cache transport metadata");
+  t("#334 Gemini advertises the exact Unicode stable prefix without changing the vendor body",function(){
+    var p=PROVIDERS.gemini,sys={stable:"Stable \ud83d\udc09 rules\n",volatile:"Live state",extra:"Extra"},msgs=[{role:"user",content:"Go"}];
+    if(typeof p.gatewayHeaders!=="function")return "cache header adapter absent";
+    var h=p.gatewayHeaders(sys,"turn"),b=p.buildBody(msgs,sys,100,"gemini-3.7-flash");
+    return h["X-TND-Cache"]==="v1:"+sys.stable.length&&b.systemInstruction.parts[0].text===sysJoin(sys)&&!b.cachedContent?true:"prefix length or raw fallback body changed";
+  });
+  t("#334 overrides and non-turn calls cannot request stable caching",function(){
+    var p=PROVIDERS.gemini;if(!p.gatewayHeaders)return "cache header adapter absent";
+    return !p.gatewayHeaders("plain system","turn")["X-TND-Cache"]&&!p.gatewayHeaders({stable:"S",volatile:"V"},"actions")["X-TND-Cache"]?true:"non-turn prompt entered caching";
+  });
+  t("#334 transport attaches metadata only in account mode, including fallback model",function(){
+    var via=gmViaServer,sa=storageAdapter,account=serverAccount,p=PROVIDERS.gemini,sys={stable:"Stable",volatile:"Live"};
+    try{
+      serverAccount={transportCapabilities:{geminiStableCacheV1:1}};
+      gmViaServer=function(){return true;};storageAdapter={authHeader:function(){return {Authorization:"Bearer test"};},getServerUrl:function(){return "http://localhost";}};
+      var primary=gmTransport(p,"gemini-3.7-flash","","turn",sys),fallback=gmTransport(p,p.fallbackModel,"","turn",sys);
+      if(primary.headers["X-TND-Cache"]!=="v1:6"||fallback.headers["X-TND-Cache"]!=="v1:6")return "account primary or fallback lost split metadata";
+      gmViaServer=function(){return false;};var own=gmTransport(p,"gemini-3.7-flash","own-test-key","turn",sys);
+      return !own.headers["X-TND-Cache"]&&own.headers["x-goog-api-key"]==="own-test-key"?true:"BYOK path changed";
+    }finally{gmViaServer=via;storageAdapter=sa;serverAccount=account;}
+  });
+
   section("#333 — act-gated NPC secrets");
   function secretFixture(){
     makeWorld();var bp={format:"tnd-blueprint-v1",name:"Secret test",premise:"A city awaits.",acts:[],npcs:[{name:"Lyle",notes:"A bland liaison.",secret:"TWIST_SENTINEL: Lyle forged the debt.",revealAct:3}]};

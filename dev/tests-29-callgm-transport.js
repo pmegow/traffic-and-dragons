@@ -604,6 +604,51 @@ tAsync("a job that never completes gives up LOUDLY at QUEUE_RENDER_MAX_MS (no si
   );
 });
 
+section("#334 Gemini cache metadata through callGM");
+tAsync("#334 older gateways get no unsupported CORS header before server deployment", function () {
+  reset("gemini"); fastKnobs(); serverOn(); script.push(geminiOk());
+  return raceCall(["act", { stable: "RULES", volatile: "STATE" }, 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    serverOff();
+    if (r.sentinel || !r.ok) return "legacy gateway call failed";
+    return calls[0].opts.headers["X-TND-Cache"] ? "unsupported header would fail preflight on the deployed gateway" : true;
+  });
+});
+tAsync("#334 ambiguous gateway generation failure forbids client retries and fallback", function () {
+  reset("gemini"); fastKnobs(); serverOn();
+  script.push(httpErr(502, '{"error":"Upstream connection lost; retry manually when ready","retryable":false}'));
+  script.push(geminiOk("Must not be consumed"));
+  return raceCall(["act", { stable: "RULES", volatile: "STATE" }, 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    serverOff();
+    if (r.sentinel || r.ok) return "ambiguous generation was retried into a fake success";
+    if (calls.length !== 1) return "ambiguous generation retried or fell back";
+    return /connection lost/.test(r.e.message) ? true : "failure reason lost";
+  });
+});
+tAsync("#334 primary and fallback carry the stable split while BYOK keeps the complete system", function () {
+  reset("gemini"); fastKnobs(); serverOn({ entitled: true, transportCapabilities: { geminiStableCacheV1: 1 } });
+  var original = buildSysPrompt, sys = { stable: "RULES \ud83d\udc09", volatile: "LIVE STATE" };
+  buildSysPrompt = function () { return sys; };
+  script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(httpErr(503, GEMINI_503)); script.push(geminiOk("Cached rung"));
+  return raceCall(["act", null, 60, null, { noHistory: true, kind: "turn" }]).then(function (r) {
+    buildSysPrompt = original; serverOff();
+    if (!r.ok || r.sentinel) return "gateway rung failed: " + (r.e && r.e.message);
+    if (calls.length !== 4) return "expected primary retries and one fallback";
+    for (var i = 0; i < calls.length; i++) {
+      if (calls[i].opts.headers["X-TND-Cache"] !== "v1:" + sys.stable.length) return "stable split missing on attempt " + i;
+      var body = JSON.parse(calls[i].opts.body);
+      if (body.systemInstruction.parts[0].text !== sysJoin(sys)) return "complete system lost on attempt " + i;
+      if (body.cachedContent) return "client minted a server-owned handle";
+    }
+    if (calls[3].url.indexOf("gemini-3.6-flash") < 0) return "fallback not exercised";
+    calls.length = 0; script.push(geminiOk());
+    return raceCall(["act", sys, 60, null, { noHistory: true, kind: "turn" }]).then(function (direct) {
+      if (!direct.ok || direct.sentinel) return "BYOK failed";
+      if (calls[0].opts.headers["X-TND-Cache"]) return "server-only metadata leaked to BYOK";
+      return JSON.parse(calls[0].opts.body).systemInstruction.parts[0].text === sysJoin(sys) ? true : "BYOK lost complete system";
+    });
+  });
+});
+
 // ── report ───────────────────────────────────────────────────────────────────
 chain.then(function () {
   if (fails.length) {

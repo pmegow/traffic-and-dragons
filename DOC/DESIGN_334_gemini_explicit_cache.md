@@ -1,6 +1,7 @@
 # #334 — Gemini stable-half explicit cache (design, 2026-09-04)
 
-Status: owner approved the disabled-flag build on 2026-09-04; implementation follows this design.
+Status: built as game v1.815 / server v1.4.0, schema 5; disabled by default, not deployed.
+Owner approved the disabled-flag build on 2026-09-04; implementation follows this design.
 Production enablement is not authorized by that approval. The local server environment has no Gemini key, so the
 current deployed model/API behavior has not been live-probed here.
 
@@ -21,9 +22,9 @@ behavioral equivalence from string tests; live drift checks must precede enablem
 If the owner retains the existing prompt roles, defer stable-only explicit caching rather than
 re-cache the entire changing system prompt on every turn and defeat the intended economics.
 
-## Proposed implementation contract
+## Implementation contract
 
-| Concern | Proposed behavior |
+| Concern | Behavior |
 |---|---|
 | Scope | Account-mode Gemini gameplay turns only, with a real stable/volatile split. Other providers, BYOK, string overrides and suggestion calls remain byte-verbatim. |
 | Client metadata | A versioned stable-prefix length header on the existing vendor-shaped body; the raw body remains a complete valid uncached request. Client never supplies a cache resource name. |
@@ -60,3 +61,43 @@ acceptance result; compare total input savings **and** cache storage charges ove
 Deployment is separate from committing: the server already contains undeployed schema-v3/v4
 work. Review that deployment bundle, take the required backup, then verify login/load and cache
 behavior. Do not deploy an older schema reader against a migrated production volume.
+
+## Build receipt
+
+The game sends `X-TND-Cache: v1:<stable UTF-16 length>` only for account-mode Gemini turns
+after `/api/account` advertises `transportCapabilities.geminiStableCacheV1:1`. This advertises
+header support, not feature enablement: the cache flag can remain off. Old/unknown gateways
+receive no extra header, avoiding a CORS failure before the server is deployed.
+Both primary and fallback paths carry the split after reinforcement. The gateway retains the
+original body, caches stable rules plus `CACHE_LAYOUT`, and prepends a JSON `engineState`
+text part to the latest user message. This includes the full volatile suffix (separator and
+any extra block included); no history, player action, secret state or per-turn note is cached.
+
+`gemini-cache.js` owns the lifecycle; migration 5 creates `gemini_prompt_caches` and
+`gemini_cache_events`. Limits: two known active handles/user, four cold admissions/user/hour,
+131,072 stable UTF-16 units, exact counted tokens from 4,096 through 65,536. Negative results
+cool down for ten minutes across restarts. Same-key single-flight and per-user serialization
+apply within the single gateway process; this is not a distributed lease for clustered writers.
+Warm handles renew only below fifteen minutes remaining, with a one-hour requested TTL.
+
+Cache events retain thirty days of create/renew/delete receipts. `token_seconds` is reserved
+storage exposure, **not an invoice**: failed-or-uncertain requests retain an upper-bound estimate
+because an upstream timeout can still create or renew a billed resource. Known-handle caps do
+not imply orphan resources cannot exist; the creation-rate limit and TTL bound that risk.
+Events store hashes and counts, not prompt text or API keys. Operators must include these
+storage charges when comparing savings; the existing generation-only cost UI is insufficient.
+
+Only an explicit 400/404 error naming the owned cached resource as missing/expired permits
+one original-body generation retry. Ambiguous gateway transport loss carries `retryable:false`;
+`callGM` honors that signal before transient retries or the fallback model. Its red-first test
+caught the previous client behavior: a gateway 502 was retried into a second generation.
+
+Verification: 2,001 engine assertions plus 27 standalone batteries ALL GREEN (40 assertions in
+the real-callGM transport battery). Server: 78 gateway + 56 hygiene/backup + 13 memento +
+10 cache-lifecycle + 15 Gemini gateway checks pass. Mutation receipts: six client clauses in
+`dev/sabotage-334-cache.js`, seventeen server clauses in `dev/server-proofs/334-gemini-cache.js`
+(run with the server checkout path). Every clause names its test; scratch copies only.
+
+Not verified: actual Gemini create/count request acceptance, deployed error wording, live
+drift/secret obedience, storage invoice or total savings. No local Gemini test key exists.
+The flag remains absent/off and production enablement still requires the live gates above.
