@@ -911,6 +911,24 @@ function runEngineTests(R){
     var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("async function suggestQuestCompletion("),body=src.slice(i,src.indexOf("function invDiffLines"));
     return body.indexOf("questReviewSynthesize(")>=0&&body.indexOf("questReviewSynthesize(")<body.indexOf("applyMuts(resp,{allow:REVIEW_CALL_TAGS})")?true:"the review call does not synthesize before the whitelist parse";
   });
+  t("#325 the authored tale told: closing the LAST act arms spineComplete; the fourth button offers 'Write the ending — the tale of X is told.'; the GM's skeleton block says the spine is complete; 'play on' snoozes the offer for ENDING_REOFFER_TURNS; 'write' ends the campaign with the living-hero denouement; sendAction treats the offer as a decision, not an action",function(){
+    makeWorld();worldState.campName="The Iron Meridian";worldState.turn=150;var c=worldState.character;c.hp=c.maxHp;c.inventory=[];worldState.questLog=[];
+    worldState.skeleton={premise:"p",acts:[{title:"Ballast and Breath",status:"completed",arcs:[]},{title:"The Weight Below",goal:"g",turningPoint:"tp",status:"active",arcs:[{title:"The Descent",objective:"o",status:"completed"}]}]};
+    if(engineFourthAction()&&engineFourthAction().kind==="ending")return "offered before the spine closed";
+    var r=applyMuts("[ACT_COMPLETE:The Weight Below]");
+    if(!worldState.spineComplete||worldState.spineComplete.act!=="The Weight Below")return "spineComplete not armed: "+JSON.stringify(r.muts);
+    var a=engineFourthAction();if(!a||a.kind!=="ending"||a.text.indexOf("Write the ending")<0||a.text.indexOf("The Iron Meridian")<0)return "button: "+JSON.stringify(a);
+    if(!endingChoiceFromText(a.text)||endingChoiceFromText("Write a letter to the harbourmaster."))return "endingChoiceFromText";
+    var sk=buildSkeletonBlock();if(!/TALE IS TOLD/.test(sk)||!/ending/i.test(sk))return "skeleton block silent about the finished spine";
+    var d=endingDecide("play");if(!d||d.action!=="play"||engineFourthAction()&&engineFourthAction().kind==="ending")return "play on did not snooze: "+JSON.stringify(d);
+    worldState.turn+=ENDING_REOFFER_TURNS;a=engineFourthAction();if(!a||a.kind!=="ending")return "the offer did not return after the snooze";
+    if(!/without the hero/.test(denouementSys()))return "death denouement lost its closing line";
+    d=endingDecide("write");if(!d||d.action!=="ended"||!worldState.ended||!worldState.ended.spine||!worldState.denouementOwed||!campaignEnded())return "write: "+JSON.stringify(d)+" "+JSON.stringify(worldState.ended);
+    if(engineFourthAction()!==null)return "the button survived the ending";
+    var ds=denouementSys();if(/without the hero/.test(ds)||!/hero (lives|survives|stands)|threads at rest|the hero and the world/i.test(ds))return "spine denouement should end on the living hero: "+ds;
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("async function sendAction("),body=src.slice(i,src.indexOf("function retryLast("));
+    return body.indexOf("endingChoiceFromText(")>=0&&body.indexOf("endingChoiceFromText(")<body.indexOf("var resp=await callGM(apiTxt")?true:"sendAction does not intercept the ending offer before the GM call";
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);

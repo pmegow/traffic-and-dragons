@@ -825,13 +825,27 @@ function showOnwardConfirmModal(){
   document.getElementById("onward-no").onclick=function(){m.remove();deathSceneChoose("back");};
   document.getElementById("onward-yes").onclick=function(){m.remove();deathSceneOnwardConfirm();};
 }
+// #325: the offered ending — a decision modal, never a model call. Write → the campaign closes and the
+// epilogue is written from the record; Play on → the offer returns in ENDING_REOFFER_TURNS.
+function showEndingOfferModal(){
+  closeAllMenus();var old=document.getElementById("ending-modal");if(old)old.remove();
+  var nm=escHtml((worldState&&worldState.campName)||"this tale");
+  var m=modalShell("ending-modal",
+    "<div style='font-size:20px;margin-bottom:8px;'>The tale is told</div>"
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>Every act of <b>"+nm+"</b> is complete. Write the ending now \u2014 the campaign closes and its epilogue is written from everything that happened \u2014 or play on and call for it later.</div>"
+    +"<div style='display:flex;gap:10px;margin-top:18px;'><button id='ending-play' style='flex:1;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Play on</button>"
+    +"<button id='ending-write' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Write the ending</button></div>",
+    {maxWidth:440,outside:true});
+  document.getElementById("ending-play").onclick=function(){m.remove();endingDecide("play");if(typeof syncUI==="function")syncUI();};
+  document.getElementById("ending-write").onclick=function(){m.remove();endingDecide("write");};
+}
 function showCampaignEndedModal(cause){
   closeAllMenus();var old=document.getElementById("ended-modal");if(old)old.remove();
   var m=document.createElement("div");m.id="ended-modal";
   m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
   m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
     +"<div style='font-size:20px;margin-bottom:8px;'>The story is complete</div>"
-    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>"+escHtml((worldState&&worldState.character&&worldState.character.name)||"The hero")+" has died for the last time — "+escHtml(cause||"slain")+".<br><br>This campaign is now read-only. File ▸ Export Narrative keeps the whole book, dead branches and all.</div>"
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>"+((worldState&&worldState.ended&&worldState.ended.spine)?("The tale of "+escHtml((worldState&&worldState.campName)||"this campaign")+" is told, and "+escHtml((worldState&&worldState.character&&worldState.character.name)||"the hero")+" lives to see its ending."):(escHtml((worldState&&worldState.character&&worldState.character.name)||"The hero")+" has died for the last time — "+escHtml(cause||"slain")+"."))+"<br><br>This campaign is now read-only. File ▸ Export Narrative keeps the whole book, dead branches and all.</div>"
     +"<div style='margin-top:16px;text-align:right;'><button id='ended-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:#111;border:0;border-radius:6px;cursor:pointer;'>Close</button></div></div>";
   document.body.appendChild(m);
   document.getElementById("ended-ok").onclick=function(){m.remove();};

@@ -1034,6 +1034,11 @@ function _itemServe(ov,base){
 // "Nolan Grimtide's raider" is not Nolan Grimtide. Epithets still match ("Kresh the Tall" ⊃ Kresh).
 // #300: the companions who can actually intervene — living, in the party, and NOT split away.
 function presentCompanions(){var a=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];return a.filter(function(n){return !(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location);});}
+// #325 (owner ruling 2026-09-03): when the authored spine's LAST act closes, the ending is OFFERED,
+// never forced — the fourth button carries it, a modal decides, "play on" snoozes it. Pure.
+function endingOfferText(){var nm=(typeof worldState!=="undefined"&&worldState&&worldState.campName)||"this tale";return "Write the ending \u2014 the tale of "+nm+" is told.";}
+function endingChoiceFromText(t){return /\bwrite the ending\b/i.test(String(t||""));}
+function endingOffered(){var sc=(typeof worldState!=="undefined"&&worldState)?worldState.spineComplete:null;if(!sc||campaignEnded())return false;if(typeof sc.snoozedUntil==="number"&&worldState.turn<sc.snoozedUntil)return false;return true;}
 function campaignEnded(){return !!(typeof worldState!=="undefined"&&worldState&&worldState.ended);}
 // #300: the only two moves a downed hero has — the engine authors these buttons, no model call.
 // #301: the two moves after Death has answered — engine buttons, no model call; typed text routes to one.

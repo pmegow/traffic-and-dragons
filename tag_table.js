@@ -1269,7 +1269,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
         var _fa=_sk2.acts[_si2+1].arcs,_isP=!!_sk2.acts[_si2+1].parallel;
         if(_fa&&_fa.length){for(var _fj=0;_fj<_fa.length;_fj++){if(_isP||_fj===0){_fa[_fj].status="active";_fa[_fj].startTurn=worldState.turn;/* #23 per-arc pacing clock starts now */}}}
         R.muts.push("New act: "+_sk2.acts[_si2+1].title);
-      }else{R.muts.push("Campaign complete!");}
+      }else{R.muts.push("Campaign complete!");worldState.spineComplete={turn:worldState.turn,act:_cAct.title||""};/* #325: the authored tale is told — the ENDING is offered on the fourth button, never forced */if(typeof showToast==="function")showToast("\u2605 The tale is told \u2014 the ending is yours to call, whenever you like",8000);}
       break;
     }
   }}},

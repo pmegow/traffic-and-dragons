@@ -580,6 +580,9 @@ function buildMarketNote(){
 // #301: the DENOUEMENT — the campaign's closing chapter, asked of the GM when the fourth death lands or the
 // player walks onward. Drawn from what the campaign actually recorded; written in the campaign's voice.
 var DENOUEMENT_SYS="You are the Game Master closing a FINISHED campaign. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. End on the world going on without the hero.";
+// #325: the spine's own ending — the hero LIVES. Same denouement, a different last line.
+var DENOUEMENT_SYS_TOLD="You are the Game Master closing a FINISHED campaign whose authored tale has been told to its last act. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. The hero lives: end on the hero and the world they made, the story's threads at rest.";
+function denouementSys(){return (worldState&&worldState.ended&&worldState.ended.spine)?DENOUEMENT_SYS_TOLD:DENOUEMENT_SYS;}
 function buildDenouementPrompt(){
   var c=worldState.character,lines=[],i;
   lines.push("CAMPAIGN: "+(worldState.campName||"")+" — hero "+c.name+", "+c.cls+" level "+c.level+".");
@@ -2128,6 +2131,7 @@ function buildSkeletonBlock(){
   // toward the authored beats; personalize the TELLING, don't replace the STORY.
   if(worldState.blueprintName)lines.push("AUTHORED CAMPAIGN — this is \""+worldState.blueprintName+"\", a pre-written adventure the player deliberately chose. The acts and arcs below are its AUTHORED SPINE, not loose suggestions: steer scenes toward the CURRENT arc's objective and advance through the authored beats. Use the character's backstory, flaw, and personality to COLOR those beats — never to replace them with an unrelated emergent subplot. The player picked this story to live it; deliver it.");
   lines.push("Premise: "+sk.premise);
+  if(worldState.spineComplete)lines.push("THE AUTHORED TALE IS TOLD \u2014 every act of this spine is complete (t"+worldState.spineComplete.turn+"). This is the epilogue in free play: keep faith with the record and let its consequences play out; the player may call for the ending whenever they choose (it is offered to them, not to you); do not open a new grand plot unasked.");/* #325 */
   /* #319 plot armor (owner ruling 2026-09-03): tell the GM up front who cannot die yet, so the exit is
      staged in the moment instead of retconned after a refusal. Derived from this skeleton + the roster. */
   if(typeof plotArmor==="function"){var _paL=[],_pi,_pr=worldState.npcs||[];for(_pi=0;_pi<_pr.length;_pi++){if(_pr[_pi].dead)continue;var _pa=plotArmor(_pr[_pi].name);if(_pa)_paL.push(_pr[_pi].name+" (until Act "+_pa.act+(_pa.arc?" \u201c"+_pa.arc+"\u201d":"")+" opens"+(_pa.escapes?"; "+_pa.escapes+" of "+_pa.max+" escapes spent":"")+")");}

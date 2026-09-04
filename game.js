@@ -165,6 +165,7 @@ function engineFourthAction(){
   if(!worldState||!worldState.character)return null;
   var c=worldState.character,i;
   if(!worldState.combat&&typeof c.hp==="number"&&typeof c.maxHp==="number"&&c.hp<c.maxHp/2)return {kind:"rest",text:"Rest and recover — you are badly hurt."};
+  if(typeof endingOffered==="function"&&endingOffered())return {kind:"ending",text:endingOfferText()};/* #325: the authored tale is told — the ending is offered, never forced */
   var wounded=typeof c.hp==="number"&&c.hp<c.maxHp,hurtOrAfflicted=wounded||((c.conditions||[]).length>0);
   if(hurtOrAfflicted&&typeof itemLookup==="function"){for(i=0;i<(c.inventory||[]).length;i++){var it=c.inventory[i],e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A")return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(it):it)+"."};}}
   var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
@@ -1932,6 +1933,9 @@ async function sendAction(override,opts){
     if(_dch==="onward"){if(inp)inp.value="";if(typeof showOnwardConfirmModal==="function")showOnwardConfirmModal();else deathSceneOnwardConfirm();return;}
     if(typeof showToast==="function")showToast("Death waits. Walk back to camp, or go onward.");return;
   }
+  /* #325: the offered ending is a DECISION, not an action — no model call, a modal decides. */
+  if(!(opts&&opts.silent)&&typeof endingChoiceFromText==="function"&&typeof endingOffered==="function"){var _eoTxt=override!==null?override:(inp?inp.value.trim():"");
+    if(_eoTxt&&endingChoiceFromText(_eoTxt)&&endingOffered()){if(inp)inp.value="";if(typeof showEndingOfferModal==="function")showEndingOfferModal();else endingDecide("write");return;}}
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
   if(typeof recklessArmIfChosen==="function"&&!(opts&&opts.silent))recklessArmIfChosen(txt);/* #305: the wildcard's reward note */
   if(typeof montageArmIfChosen==="function"&&!(opts&&opts.silent))montageArmIfChosen(txt);/* #308: the montage contract */
@@ -3029,12 +3033,28 @@ async function campaignDenouement(){
   if(!worldState||!worldState.denouementOwed||busy)return;
   busy=true;
   try{
-    var text=await callGM(buildDenouementPrompt(),DENOUEMENT_SYS,1500,null,{kind:"other",noHistory:true});
+    var text=await callGM(buildDenouementPrompt(),denouementSys(),1500,null,{kind:"other",noHistory:true});/* #325: the living-hero variant when the spine ended the tale */
     fileDenouement(String(text||"").trim());
     if(typeof addMsg==="function")addMsg("narrator",escHtml(String(text||"").trim()).replace(/\n/g,"<br>"));
     if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(worldState.ended&&worldState.ended.cause);
   }catch(e){console.warn("[denouement] not written yet — will retry at next boot:",e&&e.message);if(typeof showToast==="function")showToast("The denouement could not be written yet — it will be tried again next time");}
   finally{busy=false;}
+}
+// #325: the player's answer to the offered ending. "write" closes the campaign exactly like the fourth
+// death (ended + denouementOwed → campaignDenouement writes the epilogue from the record, the living-
+// hero variant); "play" snoozes the offer for ENDING_REOFFER_TURNS. Pure over state; the DOM modal calls it.
+function endingDecide(choice){
+  if(!worldState||!worldState.spineComplete||(typeof campaignEnded==="function"&&campaignEnded()))return null;
+  if(choice==="write"){
+    worldState.ended={turn:worldState.turn,cause:"the tale is told",at:Date.now(),spine:true,deaths:(worldState.respawns||0)};
+    worldState.denouementOwed=true;worldState.lastActions=null;
+    if(typeof saveAll==="function")saveAll();
+    if(typeof document!=="undefined"&&typeof campaignDenouement==="function")setTimeout(campaignDenouement,0);
+    return {action:"ended"};
+  }
+  worldState.spineComplete.snoozedUntil=worldState.turn+((typeof ENDING_REOFFER_TURNS==="number")?ENDING_REOFFER_TURNS:15);
+  if(typeof saveAll==="function")saveAll();
+  return {action:"play"};
 }
 function fileDenouement(text){
   if(!worldState)return;
