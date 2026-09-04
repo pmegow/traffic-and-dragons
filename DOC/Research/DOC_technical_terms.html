@@ -42,6 +42,7 @@
   <a href="#browser">Browser &amp; plumbing</a>
   <a href="#ai">AI &amp; the prompt</a>
   <a href="#jargon">Words we coined</a>
+  <a href="#story">Story engine</a>
   <a href="#state">Save &amp; state</a>
   <a href="#chars">Characters</a>
   <a href="#infra">Infra &amp; releases</a>
@@ -66,8 +67,10 @@
 
 <h2 id="ai">AI &amp; the prompt</h2>
 <dl>
+  <div class="term"><dt>engine note</dt><dd>A bracketed instruction the engine slips in front of your message for the GM — “not a player action”. How the engine asks for things (hours, wares, a staged escape) without you typing them.</dd></div>
   <div class="term"><dt>ELI10 <span class="full">Explain Like I'm 10</span></dt><dd>Describe what a thing does in plain words, no jargon. What this whole page is doing.</dd></div>
   <div class="term"><dt>GM <span class="full">Game Master</span></dt><dd>The AI playing narrator and referee. It writes the story <em>and</em> hides bookkeeping codes in its reply for the engine to read.</dd></div>
+  <div class="term"><dt>model refusal</dt><dd>The AI declining a scene in its own voice. The engine spots it, retries once asking for the beat without explicit detail, and if it still declines, commits the turn as non-canon.</dd></div>
   <div class="term"><dt>MTok <span class="full">million tokens</span></dt><dd>The unit model prices are quoted in — e.g. Haiku costs $1 per million tokens read in, $5 per million written out.</dd></div>
   <div class="term"><dt>prompt caching</dt><dd>Paying full price once for the unchanging part of our instructions, then ~10% each turn after. Big savings — the reason we split the prompt.</dd></div>
   <div class="term"><dt>RAG <span class="full">Retrieval-Augmented Generation</span></dt><dd>When old people or places come up, we dig the exact past scene out of the full log and show the AI — so it "remembers" turn-150 events at turn-300.</dd></div>
@@ -81,17 +84,24 @@
   <div class="term"><dt>act / arc</dt><dd>Act = a big chapter of the campaign; arc = a step inside it. Finishing one flips a status flag and advances the story.</dd></div>
   <div class="term"><dt>anti-drift injection</dt><dd>Re-feeding the AI the true current facts (quests, sheet, spell rules) every single turn, so it reads from data instead of its faulty memory.</dd></div>
   <div class="term"><dt>blueprint</dt><dd>A pre-made campaign kit — outline, NPCs, places, rules — minus any character. Load it and play someone else's adventure with your own hero.</dd></div>
+  <div class="term"><dt>contracts</dt><dd>One file per system under <code>DOC/contracts/</code> stating the rules the code must keep. Loaded on demand; as binding as if it sat in CLAUDE.md.</dd></div>
   <div class="term"><dt>corpus</dt><dd>The pile of raw turns collected from a playtest run — the evidence we grep through to judge quality and hunt drift.</dd></div>
   <div class="term"><dt>cutover</dt><dd>The day replacement code stops shadowing and becomes the real thing — like traffic switching to a new bridge after load-testing beside the old one.</dd></div>
   <div class="term"><dt>dnaHint</dt><dd>A one-line "how to run this bit" note that keeps each arc in the author's voice instead of drifting into generic procedure.</dd></div>
+  <div class="term"><dt>dossier</dt><dd>The authored notes a blueprint seeds for an NPC — who they really are, their secret, when it surfaces, the fallback. GM-eyes only; the summarizer may add beside it, never retire it.</dd></div>
   <div class="term"><dt>drift</dt><dd>The core enemy: the AI slowly reinventing a fact or rule over many turns — a spell's range creeping up, a character's backstory quietly mutating.</dd></div>
+  <div class="term"><dt>Fable-review queue</dt><dd>Drift-surface work done by a lighter model is logged in <code>todo_checkWithFable.md</code> for the top-tier model to check later. Drained to zero on 2026-09-03.</dd></div>
   <div class="term"><dt>fold</dt><dd>Weaving a player's action into the following narration so a story reads smoothly, instead of "I do X." then "X happens."</dd></div>
+  <div class="term"><dt>golden</dt><dd>A frozen copy of generated prompt text (the tag doc, the strip regex). The build fails if the bytes change — so every prompt change is a deliberate commit, never an accident.</dd></div>
   <div class="term"><dt>harness</dt><dd>A script that auto-plays the game for many turns (real AI calls) so we can stress-test and gather a corpus without hand-clicking.</dd></div>
   <div class="term"><dt>money test</dt><dd>The real question a feature exists to answer, tested under pressure — e.g. "does the AI actually obey the spell bible mid-fight?"</dd></div>
   <div class="term"><dt>nudge</dt><dd>A soft line slipped into the AI's instructions to push it toward doing something (close the act, stay on plot) without hard-forcing it.</dd></div>
   <div class="term"><dt>over-rail</dt><dd>Steering the story so hard the player's choices stop mattering. The thing our pacing nudges are deliberately careful NOT to do.</dd></div>
   <div class="term"><dt>palimpsest</dt><dd>Something written over so many times old and new layers mix — like a 300-turn save built across many engine versions, part current, part fossil.</dd></div>
+  <div class="term"><dt>rollback switch</dt><dd>A settings checkbox that returns a feature to the old path byte-for-byte, no deploy needed. The in-band buttons and the player-rolled dice both have one.</dd></div>
+  <div class="term"><dt>sabotage battery</dt><dd>A script that breaks a guarded line on purpose and proves a test turns red. A green test that nothing can break is worth nothing; the harness restores the file byte-identical.</dd></div>
   <div class="term"><dt>satellite page</dt><dd>A standalone HTML page opened on its own (the Blueprint Designer, this glossary) — NOT part of the cached main app.</dd></div>
+  <div class="term"><dt>satellite palette</dt><dd><code>satellite.css</code>: one colour set every side page links, defining no colours of its own — so the home page, editors and reference match the game.</dd></div>
   <div class="term"><dt>shadow mode</dt><dd>Running replacement code on a throwaway copy of the data while the old code stays in charge — differences get logged, players see nothing.</dd></div>
   <div class="term"><dt>skeleton</dt><dd>The campaign's 3-act outline — acts made of arcs — that the story follows. From a blueprint, or auto-generated at the start.</dd></div>
   <div class="term"><dt>soak</dt><dd>Letting new code run quietly alongside the old during real play, comparing results every turn until enough clean evidence accumulates to trust it.</dd></div>
@@ -100,6 +110,35 @@
   <div class="term"><dt>teeth</dt><dd>A rule the ENGINE enforces itself so we don't trust the AI to remember — e.g. "all objectives done → nudge it to close the quest."</dd></div>
   <div class="term"><dt>the bible <span class="full">capability_bible</span></dt><dd>One master list of what every spell and ability actually does, fed to the AI each turn so it can't rule them differently every time. Anti-drift.</dd></div>
   <div class="term"><dt>thrash</dt><dd>A system spinning uselessly — like the memory summarizer firing every two turns and never getting ahead. A sign something's tuned wrong.</dd></div>
+</dl>
+
+<h2 id="story">Story engine (the game's own machinery)</h2>
+<dl>
+  <div class="term"><dt>affordance gate</dt><dd>The checker that throws out a suggested button naming a person, door or spell not actually in the scene — and swaps in a safe fallback.</dd></div>
+  <div class="term"><dt>canon envelope <span class="full">receipt</span></dt><dd>A death and every reward it earns, wrapped in one <code>[CANON_TXN]</code> block. The engine commits or refuses the whole thing together and keeps a receipt either way.</dd></div>
+  <div class="term"><dt>checkpoint <span class="full">camp</span></dt><dd>A snapshot the engine takes at a rest or an act's close. After a true death the campaign is restored to the last one — the hero's respawn point.</dd></div>
+  <div class="term"><dt>combat-slain ring</dt><dd>The last dozen foes the combat tracker killed. A later summary or claim citing one of them is combat canon — no scene ceremony needed.</dd></div>
+  <div class="term"><dt>compass</dt><dd>The quest panel's top line — “Act 2: Threads in the Smoke / Arc 1/5 …” — so you always know where the story stands. Titles only, never the objective.</dd></div>
+  <div class="term"><dt>denouement</dt><dd>The closing chapter, written from the record when the campaign ends: the fourth death, walking onward with Death, or asking for the ending once the tale is told.</dd></div>
+  <div class="term"><dt>dispute strip</dt><dd>While an identity conflict stands on a character, the quest their refused envelope named cannot complete. Heals the moment the story files the death.</dd></div>
+  <div class="term"><dt>downed</dt><dd>Zero HP is death's door, not death. The hero is down; the engine asks the GM to resolve it — rescued, captured, or truly dead.</dd></div>
+  <div class="term"><dt>escort walk <span class="full">death scene</span></dt><dd>After a true death, Death walks the hero back to camp and answers one question. Four deaths end the campaign.</dd></div>
+  <div class="term"><dt>fourth button</dt><dd>The suggestion the engine writes itself, no AI call: rest when hurt, use a potion, accept an offer, buy, write the ending, montage, or “do something reckless”.</dd></div>
+  <div class="term"><dt>hours ask / market ask</dt><dd>One-time engine notes asking the GM to file an establishment's hours or a settlement's wares, because it never does so unasked. Answered by a tag, or an honest “none”.</dd></div>
+  <div class="term"><dt>in-band buttons</dt><dd>The three suggested actions the GM writes at the end of its own turn as <code>[SUGGEST:]</code> — one call instead of two. Rollback: File ▸ Settings ▸ “Buttons ride the GM's turn”.</dd></div>
+  <div class="term"><dt>milestone XP</dt><dd>Experience the engine pays itself for a finished quest, arc, act or boss, scaled by level. The GM's own XP awards are capped, so levels come from milestones.</dd></div>
+  <div class="term"><dt>montage</dt><dd>One compressed paragraph covering a quiet stretch of turns — offered on the fourth button when nothing has happened for a while.</dd></div>
+  <div class="term"><dt>notes ring</dt><dd>The log of which engine notes fired each turn and how big they were, with a per-turn budget so the prompt never drowns in asks.</dd></div>
+  <div class="term"><dt>player rolls dice <span class="full">[CHECK:]</span></dt><dd>With File ▸ Settings ▸ “Player rolls own dice” on, the GM declares a check and stops; the chip reads “d20 · click to roll” and your click is the die.</dd></div>
+  <div class="term"><dt>plot armor</dt><dd>A character the story still needs cannot die before the arc that needs them. The engine turns the death into an escape at a cost; two escapes and it is spent.</dd></div>
+  <div class="term"><dt>quarantine</dt><dd>A refused canon claim's receipt. Its rewards are withheld, the id is poisoned, and it never retires — the record of what the GM tried to write.</dd></div>
+  <div class="term"><dt>scene handle <span class="full">ledger</span></dt><dd>A nickname the GM gives an unnamed figure (<code>[SCENE_REF:hooded_man|?]</code>) so a later reveal or death binds to the right person. The ledger of them is <code>sceneRefs</code>.</dd></div>
+  <div class="term"><dt>secret gate</dt><dd>An NPC's secret and the act that unlocks it, kept as data; the engine withholds the secret from the prompt until that act opens. Ruled 2026-09-04, not yet built.</dd></div>
+  <div class="term"><dt>tale is told</dt><dd>Every act of the spine complete. The ending is offered — on the fourth button and in the quest journal — never forced; “play on” snoozes it.</dd></div>
+  <div class="term"><dt>verdict lines</dt><dd><code>DONE:</code> and <code>VERDICT:</code> lines the completion review must write, so the engine can apply what the GM decided even when it forgets the tags.</dd></div>
+  <div class="term"><dt>wares / wants</dt><dd>What a settlement sells, priced at value, and what someone there wants from you. A purchase is offered only with the seller or their shop in the scene.</dd></div>
+  <div class="term"><dt>whispers</dt><dd>What people say about the party — rumour, garbled and unfair, never a ledger. Filed by the GM when asked, served back as hearsay.</dd></div>
+  <div class="term"><dt>wildcard</dt><dd>“Do something reckless.” Every fifteenth quiet turn the fourth button dares you, and the GM is told to reward it.</dd></div>
 </dl>
 
 <h2 id="state">Save &amp; state</h2>
@@ -140,7 +179,7 @@
 </dl>
 
 <footer>
-  Traffic and Dragons — living glossary (#24). Found a term explained twice in the docs? Add it here.
+  Traffic and Dragons — living glossary (#24). Refreshed 2026-09-04 (dossier, plot armor, the story-engine vocabulary). Found a term explained twice in the docs? Add it here.
   Companion reading: <code>CLAUDE.md</code> (architecture), <code>TODO.md</code> (backlog), the <code>AUDIT_*.md</code> files.
 </footer>
 </div>
