@@ -958,6 +958,14 @@ function runEngineTests(R){
     var line=src.slice(i,src.indexOf("\n",i));
     return /third person/i.test(line)&&/past tense/i.test(line)&&/never .*(I|we)/i.test(line)?true:"voice not pinned: "+line.slice(0,300);
   });
+  t("#325c the quest journal carries the ending call (owner call 2026-09-03): a 'The tale is told' block with Write the ending sits above Active whenever the spine is told and the campaign is open — snooze or not — and routes to the same decision modal",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),i=src.indexOf("function showQuestModal("),body=src.slice(i,src.indexOf("function showQuestModal(")+9000);
+    var gate=body.indexOf("spineTold()"),blk=body.indexOf("id='qm-ending'"),act=body.indexOf(">Active</div>"),wire=body.indexOf("showEndingOfferModal()");
+    if(gate<0||blk<0||wire<0)return "journal has no ending call";
+    if(!(gate<blk&&blk<act))return "the block must sit above the Active section and behind the told-spine gate";
+    if(/snoozedUntil|endingOffered\(/.test(body.slice(gate,blk)))return "the journal must ignore the snooze";
+    return body.slice(gate,blk).indexOf("campaignEnded")>=0?true:"an ended campaign must not offer it again";
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);

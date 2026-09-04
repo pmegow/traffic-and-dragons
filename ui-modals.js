@@ -595,6 +595,15 @@ function showQuestModal(){
       +"</details>";}
   var body="";
   if(offeredHtml)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn);margin:2px 0 8px;'>⚑ Opportunities</div>"+offeredHtml;
+  /* #325c (owner call 2026-09-03): the journal is the deliberate place to call for the ending — shown whenever
+     the spine is told and the campaign is open, snooze or not, so loose ends can be sorted first and the
+     denouement asked for from here. Routes to the same decision modal as the fourth button. */
+  if(typeof spineTold==="function"&&spineTold()&&!(typeof campaignEnded==="function"&&campaignEnded())){
+    body+="<div style='border:1px solid var(--acc);border-radius:var(--r);padding:12px;margin-bottom:12px;background:var(--bg2);'>"
+      +"<div style='font-size:14px;color:var(--t0);font-weight:bold;'>The tale is told</div>"
+      +"<div style='font-size:12px;color:var(--t2);margin-top:3px;'>Every act of "+escHtml((worldState&&worldState.campName)||"this campaign")+" is complete. Tie off what you like, then call for the ending here.</div>"
+      +"<div style='display:flex;gap:8px;margin-top:10px;'><button class='qa' id='qm-ending' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Write the ending</button></div></div>";
+  }
   body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);margin:14px 0 8px;'>Active</div>"+(activeHtml||"<div style='font-size:12px;color:var(--t2);font-style:italic;'>No active quests.</div>");
   if(histHtml)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin:14px 0 8px;'>History</div>"+histHtml;
   var modal=modalShell("quest-modal",/* #14 */
@@ -603,6 +612,7 @@ function showQuestModal(){
   // Wire by TITLE, not render-time index (audit E24): applyMuts can splice the questLog while the
   // modal is open (a completed quest archives), and an index baked into onclick would then hit the
   // wrong quest — declineQuest could even archive a still-active quest.
+  var _qmEnd=modal.querySelector("#qm-ending");if(_qmEnd)_qmEnd.addEventListener("click",function(){modal.remove();if(typeof showEndingOfferModal==="function")showEndingOfferModal();});/* #325c */
   Array.prototype.forEach.call(modal.querySelectorAll("[data-qacc]"),function(b){b.addEventListener("click",function(){acceptQuest(b.getAttribute("data-qacc"));});});
   Array.prototype.forEach.call(modal.querySelectorAll("[data-qdec]"),function(b){b.addEventListener("click",function(){declineQuest(b.getAttribute("data-qdec"));});});
   // #229 — wired by TITLE like the pair above (audit E24: applyMuts can splice while open).
