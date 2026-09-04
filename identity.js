@@ -1432,7 +1432,11 @@ function _w2CollectStripped(text,res){var out=[],i,m;for(i=0;i<res.length;i++){m
    tag: outside the envelope they are ordinary, guarded upserts. */
 function _w2TxnPartition(meta,ops){
   var allowed=meta.claim==="npc-death"?{SCENE_DEATH:1,NPC:1,QUEST_STEP:1,QUEST:1,XP:1,GOLD:1,ITEM_GAINED:1}:{QUEST_STEP:1,QUEST:1,XP:1,GOLD:1,ITEM_GAINED:1},i,name,m,title,gov=[],eject=[];
-  if(meta.claim==="quest-outcome"&&(meta.subject!=="-"||meta.evidence!=="-"))return{reason:"quest outcome must not claim an NPC identity"};
+  /* #326 (t147 comb): a quest-outcome envelope writes NO identity — its allowed ops carry no death and no NPC
+     write — so an identity in its subject/evidence slots is inert noise, not a claim. gemini fills the evidence
+     slot with the relevant NPC as a habit (2 of 4 receipts in the field), and the old whole-claim refusal left
+     each quest stuck until the player ran Suggest completion. Ignore the slots, say so, commit the outcome. */
+  if(meta.claim==="quest-outcome"&&(meta.subject!=="-"||meta.evidence!=="-")){if(typeof console!=="undefined")console.warn("[identity] #326 quest-outcome claim "+meta.id+" carried an identity ("+meta.subject+" / "+meta.evidence+") \u2014 ignored; a quest outcome writes no identity");meta.subject="-";meta.evidence="-";}
   for(i=0;i<ops.length;i++){
     name=_w2TagName(ops[i]);
     if(!allowed[name]){eject.push(ops[i]);continue;}

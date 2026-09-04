@@ -1882,7 +1882,7 @@ async function summarize(){
   addMsg("system","Filing memories...");
   try{
     var _sumVc="";var _sumPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:"";if(_sumPaId&&typeof AUTHORS!=="undefined"){var _spi;for(_spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_sumPaId&&AUTHORS[_spi].vc){_sumVc=AUTHORS[_spi].vc;break;}}}
-    var _chapterDesc=_sumVc?"5-8 sentence narrative summary written in this prose voice — "+_sumVc:"5-8 sentence narrative summary";
+    var _chapterDesc=(_sumVc?"5-8 sentence narrative summary written in this prose voice — "+_sumVc:"5-8 sentence narrative summary")+"; third person, past tense, the hero by name (never 'I' or 'we')";/* #327: one voice across chapters — the t147 comb found ch4/ch8 in first person beside ch0-3 in third */
     // #29 ③: the extractor reads the session anyway — hand it the pending list and let it echo back
     // what the session shows is finished. EXACT text echo, so resolveFutureEvent's exact/substring
     // match lands without fuzzy matching. The GM itself rarely emits [FUTURE_EVENT_RESOLVED:].

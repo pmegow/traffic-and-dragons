@@ -935,6 +935,29 @@ function runEngineTests(R){
     if(list<0||!/spu-list' style='max-height:min\(672px,60vh\);overflow-y:auto/.test(body))return "no bounded scroll box around the bench";
     return head<list&&list<confirm&&body.indexOf("</div><div id='spu-warn'")>list?true:"Confirm or the header ended up inside the scroll box";
   });
+  t("#325b a save whose last act closed BEFORE v1.800 still gets the offer: endingOffered derives 'the tale is told' from the skeleton (every act completed) and backfills spineComplete (the t147 comb: Act 3 closed at t145 on v1.795, no stamp)",function(){
+    makeWorld();worldState.campName="X";worldState.turn=147;var c=worldState.character;c.hp=c.maxHp;
+    worldState.skeleton={premise:"p",acts:[{title:"A",status:"completed",completedTurn:30,arcs:[]},{title:"B",status:"completed",completedTurn:117,arcs:[]},{title:"C",status:"completed",completedTurn:145,arcs:[]}]};delete worldState.spineComplete;
+    if(!endingOffered())return "no offer for a told spine without the stamp";
+    if(!worldState.spineComplete||worldState.spineComplete.act!=="C"||worldState.spineComplete.turn!==145||!worldState.spineComplete.backfilled)return "backfill: "+JSON.stringify(worldState.spineComplete);
+    var a=engineFourthAction();if(!a||a.kind!=="ending")return "button: "+JSON.stringify(a);
+    worldState.skeleton.acts[2].status="active";delete worldState.spineComplete;return endingOffered()?"offered with a live act":true;
+  });
+  t("#326 a quest-outcome envelope that carries an identity (gemini fills the evidence slot with the relevant NPC — 2 of 4 receipts in the t147 comb) has the identity IGNORED, not the whole claim refused: the quest completes, the receipt commits with '-' in both slots, a warning names it",function(){
+    makeWorld();worldState.turn=137;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.canonTxns=[];
+    worldState.questLog=[{title:"The Open Wake",status:"active",desc:"d",objectives:[{text:"Consolidate power and plot a course across the Blackened Sea",done:false}],started:130}];
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};var r;
+    try{r=applyMuts("[CANON_TXN_BEGIN:txn_consolidate_power|quest-outcome|-|Thessa Saltborn|The Open Wake][QUEST_STEP:The Open Wake|Consolidate power and plot a course across the Blackened Sea|true][QUEST:The Open Wake|completed][CANON_TXN_END:txn_consolidate_power]");}finally{console.warn=_w;}
+    var tx=(worldState.canonTxns||[]).filter(function(t){return t.id==="txn_consolidate_power";})[0];
+    if(!tx||tx.status!=="committed"||tx.subject!=="-"||tx.evidence!=="-")return "receipt: "+JSON.stringify(tx)+" muts "+JSON.stringify(r&&r.muts);
+    if(!memory.quests["The Open Wake"]||memory.quests["The Open Wake"].status!=="completed")return "quest did not complete";
+    return warns.some(function(m){return /identity/.test(m)&&/txn_consolidate_power/.test(m);})?true:"silent";
+  });
+  t("#327 chapter summaries are written in ONE voice — third person, past tense, the hero by name (the t147 comb: ch4/ch8 slipped into 'we' while ch0-3 said 'Quickfuse')",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/memory.js","utf8"),i=src.indexOf("var _chapterDesc=");if(i<0)return "no _chapterDesc";
+    var line=src.slice(i,src.indexOf("\n",i));
+    return /third person/i.test(line)&&/past tense/i.test(line)&&/never .*(I|we)/i.test(line)?true:"voice not pinned: "+line.slice(0,300);
+  });
   t("#305 the wildcard arms recklessPing when sent, and buildRecklessNote fires once telling the GM to reward it; registered",function(){
     makeWorld();worldState.turn=WILDCARD_EVERY;var a=engineFourthAction();
     recklessArmIfChosen(a.text);

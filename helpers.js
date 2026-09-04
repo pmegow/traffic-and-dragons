@@ -1038,7 +1038,12 @@ function presentCompanions(){var a=(typeof livingPartyCompanions==="function")?l
 // never forced — the fourth button carries it, a modal decides, "play on" snoozes it. Pure.
 function endingOfferText(){var nm=(typeof worldState!=="undefined"&&worldState&&worldState.campName)||"this tale";return "Write the ending \u2014 the tale of "+nm+" is told.";}
 function endingChoiceFromText(t){return /\bwrite the ending\b/i.test(String(t||""));}
-function endingOffered(){var sc=(typeof worldState!=="undefined"&&worldState)?worldState.spineComplete:null;if(!sc||campaignEnded())return false;if(typeof sc.snoozedUntil==="number"&&worldState.turn<sc.snoozedUntil)return false;return true;}
+function spineTold(){var sk=(typeof worldState!=="undefined"&&worldState)?worldState.skeleton:null,acts=sk&&sk.acts;if(!acts||!acts.length)return false;var i;for(i=0;i<acts.length;i++)if(!acts[i]||acts[i].status!=="completed")return false;return true;}
+function endingOffered(){
+  if(typeof worldState==="undefined"||!worldState||campaignEnded())return false;var sc=worldState.spineComplete;
+  /* #325b: a save whose last act closed before v1.800 carries no stamp — derive it from the skeleton and backfill (the lazy-stamp precedent) */
+  if(!sc&&spineTold()){var _acts=worldState.skeleton.acts,_last=_acts[_acts.length-1];sc=worldState.spineComplete={turn:_last.completedTurn||worldState.turn,act:_last.title||"",backfilled:true};}
+  if(!sc)return false;if(typeof sc.snoozedUntil==="number"&&worldState.turn<sc.snoozedUntil)return false;return true;}
 function campaignEnded(){return !!(typeof worldState!=="undefined"&&worldState&&worldState.ended);}
 // #300: the only two moves a downed hero has — the engine authors these buttons, no model call.
 // #301: the two moves after Death has answered — engine buttons, no model call; typed text routes to one.
