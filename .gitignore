@@ -36,3 +36,6 @@ dev/*.endstate.json
 !dev/corpus_playtest_v1258.json.endstate.json
 !dev/corpus_playtest_v1271.json.endstate.json
 !dev/corpus_playtest_v1276.json.endstate.json
+
+# exploratory lens reviews (owner-only reading, never shipped)
+gygax_lens_results.html
