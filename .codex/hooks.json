@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node 'C:\\Users\\hannu\\OneDrive\\Documents\\Projects\\dnd_rpg\\.codex\\hooks\\es5-check.js'",
+            "command": "node 'C:\\Projects\\traffic-and-dragons\\.codex\\hooks\\es5-check.js'",
             "statusMessage": "ES5 check"
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node 'C:\\Users\\hannu\\OneDrive\\Documents\\Projects\\dnd_rpg\\.codex\\hooks\\stop-check.js'"
+            "command": "node 'C:\\Projects\\traffic-and-dragons\\.codex\\hooks\\stop-check.js'"
           }
         ]
       }
