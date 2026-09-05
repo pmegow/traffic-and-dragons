@@ -368,7 +368,12 @@ var PROVIDERS={
       if(txt.trim())return txt;
       var why=(pf&&pf.blockReason)?"prompt blocked: "+pf.blockReason:!c?"no candidates":"finish: "+(c.finishReason||"?"),cats=[],rs=(c&&c.safetyRatings)||(pf&&pf.safetyRatings)||[];
       for(i=0;i<rs.length;i++){if(rs[i]&&rs[i].blocked)cats.push(String(rs[i].category||"").replace(/^HARM_CATEGORY_/,""));}
-      var e=new Error("Empty response \u2014 gemini "+why+(cats.length?" ["+cats.join(", ")+"]":""));e.modelRefusal=true;e.finish=c?c.finishReason:(pf&&pf.blockReason);throw e;}, // (#198: the empty-turn commit class, field t2002)
+      var e=new Error("Empty response \u2014 gemini "+why+(cats.length?" ["+cats.join(", ")+"]":""));e.finish=c?c.finishReason:(pf&&pf.blockReason);
+      /* the reason decides the retry shape (the t189 probe, 2026-09-04: six replays of the "empty" request all narrated -
+         the empties were a STOP-with-no-parts blip, not a block): a NAMED block is a refusal and gets the narrate-the-beat
+         note; an empty STOP/OTHER/no-candidates is transient and gets one plain resend, so a blip never tames the scene */
+      e.modelRefusal=!!(pf&&pf.blockReason)||/SAFETY|PROHIBITED|BLOCKLIST|SPII|RECITATION|IMAGE_SAFETY/.test(String(e.finish||""))||cats.length>0;
+      e.emptyTransient=!e.modelRefusal;throw e;}, // (#198: the empty-turn commit class, field t2002)
     parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:(u.candidatesTokenCount||0)+(u.thoughtsTokenCount||0),cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};}, // thoughtsTokenCount folded into out (probe 2026-08-16: gemini-3.7-flash thinks MANDATORILY — 745 thought tokens per 51 output on a trivial call, billed as output, previously invisible to the meter)
     parseFinish:function(data){var c=data.candidates&&data.candidates[0];return (c&&c.finishReason==="MAX_TOKENS")?"MAX_TOKENS":null;},
     reinforce:TAG_REINFORCE,
@@ -376,7 +381,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.818";
+var APP_VERSION="v1.819";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

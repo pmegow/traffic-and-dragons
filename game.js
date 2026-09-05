@@ -2044,7 +2044,14 @@ async function sendAction(override,opts){
          writing "I cannot") is the same event as the worded refusal below and earns the same one retry —
          the narrate-the-beat note in front of the player's own words. A second failure rethrows WITH the
          adapter's reason (prompt block / finish reason / blocked category) so the error line says why. */
-      if(!isTT&&!(opts&&opts.silent)&&_e0&&_e0.modelRefusal&&typeof refusalRetryNote==="function"){
+      if(!isTT&&!(opts&&opts.silent)&&_e0&&_e0.emptyTransient){
+        /* the t189 probe: an empty STOP candidate is a blip, not a verdict - resend the SAME request once, unsoftened */
+        if(typeof console!=="undefined")console.warn("[refusal] #335 "+_e0.message+" - transient shape, resending once unchanged");
+        if(typeof erCrumb==="function")erCrumb("turn-empty-resend",String(_e0.finish||"?").slice(0,24));
+        var _e0Th2=addMsg("thinking","The GM went quiet — asking again…");
+        try{var resp=await callGM(apiTxt,sys,null,null,undefined);}
+        finally{if(_e0Th2&&_e0Th2.remove)_e0Th2.remove();}
+      }else if(!isTT&&!(opts&&opts.silent)&&_e0&&_e0.modelRefusal&&typeof refusalRetryNote==="function"){
         if(typeof console!=="undefined")console.warn("[refusal] #335 "+_e0.message+" \u2014 retrying once with the narrate-the-beat note");
         if(typeof erCrumb==="function")erCrumb("turn-empty-retry",String(_e0.finish||"?").slice(0,24));
         var _e0Th=addMsg("thinking","Rephrasing the ask\u2026");

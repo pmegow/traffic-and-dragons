@@ -2995,11 +2995,13 @@ function runEngineTests(R){
     try{P.parseResponse({candidates:[{finishReason:"SAFETY",safetyRatings:[{category:"HARM_CATEGORY_SEXUALLY_EXPLICIT",probability:"HIGH",blocked:true},{category:"HARM_CATEGORY_HARASSMENT",probability:"LOW",blocked:false}]}]});return "SAFETY finish did not throw";}catch(x){e=x;}
     if(!/finish: SAFETY/.test(e.message)||!/SEXUALLY_EXPLICIT/.test(e.message)||/HARASSMENT/.test(e.message)||!e.modelRefusal)return "safety finish: "+e.message;
     try{P.parseResponse({candidates:[{finishReason:"STOP",content:{parts:[]}}]});return "empty STOP did not throw";}catch(x){e=x;}
-    if(!/empty/i.test(e.message)||!/finish: STOP/.test(e.message)||!e.modelRefusal)return "empty STOP candidate (the model chose silence) must still earn the retry: "+e.message;
+    if(!/empty/i.test(e.message)||!/finish: STOP/.test(e.message)||e.modelRefusal||!e.emptyTransient)return "empty STOP candidate is the t189 blip shape - transient, NOT a refusal: "+e.message+" refusal="+e.modelRefusal;
     try{P.parseResponse({});return "no candidates did not throw";}catch(x){e=x;}
-    if(!/no candidates/.test(e.message)||!e.modelRefusal)return "no candidates: "+e.message;
+    if(!/no candidates/.test(e.message)||e.modelRefusal||!e.emptyTransient)return "no candidates is transient too: "+e.message;
     try{P.parseResponse({candidates:[{finishReason:"MAX_TOKENS",content:{parts:[{thought:true,text:"planning"}]}}]});return "thought-only did not throw";}catch(x){e=x;}
-    return /finish: MAX_TOKENS/.test(e.message)?true:"thought-only: "+e.message;
+    if(!/finish: MAX_TOKENS/.test(e.message)||e.modelRefusal)return "thought-only: "+e.message;
+    try{P.parseResponse({candidates:[{finishReason:"PROHIBITED_CONTENT"}]});return "PROHIBITED did not throw";}catch(x){e=x;}
+    return e.modelRefusal&&!e.emptyTransient?true:"a named block is a refusal: "+e.message;
   });
   t("#335 gemini parseResponse joins EVERY text part and skips thought parts — a leading signature/empty part no longer reads as an empty turn",function(){
     var P=PROVIDERS.gemini;
@@ -3010,6 +3012,7 @@ function runEngineTests(R){
   t("#335 sendAction: a thrown model refusal (the empty gemini candidate) gets the SAME one automatic narrate-the-beat retry as a worded refusal (#323), and only a story turn; the reason reaches the player when the retry fails too",function(){
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=g.indexOf("async function sendAction("),body=g.slice(i,g.indexOf("\nfunction ",i+10));
     if(body.indexOf("_e0.modelRefusal")<0)return "sendAction does not look at the thrown refusal flag";
+    var tb=body.slice(body.indexOf("_e0.emptyTransient"),body.indexOf("_e0.modelRefusal"));if(tb.indexOf("callGM(apiTxt,sys,null,null,undefined)")<0||tb.indexOf("refusalRetryNote")>=0)return "a transient empty must be resent UNCHANGED, never with the softening note (the t189 probe)";
     var blk=body.slice(body.indexOf("_e0.modelRefusal"),body.indexOf("throw _e0;"));if(blk.indexOf('refusalRetryNote()+"\\n\\n"+apiTxt')<0)return "the retry does not ride the narrate-the-beat note in front of the player's own words";
     if(!/!isTT&&[^\n]*_e0&&_e0\.modelRefusal/.test(body))return "Table Talk must never be retried";
     return /throw _e0;/.test(body)?true:"a non-refusal error must rethrow untouched";
