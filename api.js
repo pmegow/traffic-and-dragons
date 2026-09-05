@@ -575,13 +575,35 @@ function buildMarketNote(){
   var cap=waresCapFor(node),label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
   return"[ENGINE NOTE — MARKET (not a player action): "+label+" is a "+node.size+" place and nothing is on record for sale here. If it is a settlement, emit one or two [WARES:item|price|note] lines for what is genuinely sold here (up to "+cap+" over the week; name the seller in the note; price at VALUE, never the party's purse). If nothing is sold here — wilderness, a ruin — emit [WARES:none]. If someone here wants something the party carries, [WANTED:item|offer|by].]\n";
 }
+// ── #341 PARTY HISTORIES — the companions' authored past reaches the GM ────────────────────
+// Companion backstory/trait/flaw/motivation were WRITTEN by sheet generation and library import and
+// never READ by the prompt (the #46/#61 write-path-with-no-read-path class, third instance). Field
+// failure 2026-09-05: the #330 recruitment ask gave Morwen a want built from her heritage line and one
+// half-remembered name ("the Lorrath cabal's stolen grimoire") while her authored motivation — void the
+// bloodline debt that took her brother — sat unread on her sheet. STABLE half: these fields change only
+// on recruit/death/import/regeneration (one deliberate cache re-write each), never per turn — nothing
+// here may read HP, location, splitLoc or the turn. ""-clean when no living companion carries any of
+// the four fields, so legacy saves and companion-less campaigns stay byte-identical.
+function buildPartyHistoriesBlock(){
+  if(!worldState||!worldState.npcs||!worldState.npcs.length)return"";
+  var party=livingPartyCompanions(),L=[],i;
+  for(i=0;i<party.length;i++){var cs=party[i].charSheet||{};
+    if(!(cs.backstory||cs.trait||cs.flaw||cs.motivation))continue;
+    var pers="";if(cs.trait)pers+=" trait — "+cs.trait+";";if(cs.flaw)pers+=" flaw — "+cs.flaw+";";if(cs.motivation)pers+=" motivation — "+cs.motivation+";";
+    L.push("- "+party[i].name+": "+(cs.backstory||"(no recorded history)")+(pers?"\n  Personality:"+pers:""));}
+  if(!L.length)return"";
+  return "PARTY HISTORIES — who each companion was before this story and what drives them (authored canon; a companion's own wants, remarks and refusals grow from THIS, never from invention):\n"+L.join("\n")+"\n\n";
+}
 // ── #330 companions with agendas — the four asks ───────────────────────────────────────────
 // ① the recruitment ask: a companion with a sheet and no want, once (latch charSheet.agendaAsked).
 function buildAgendaAskNote(){
   if(!worldState||worldState.combat)return"";var party=(typeof presentCompanions==="function")?presentCompanions():[],i;
   for(i=0;i<party.length;i++){var np=party[i],cs=np.charSheet;if(!cs||cs.agenda||(cs.agendaQueue&&cs.agendaQueue.length)||cs.agendaAsked)continue;if(np.agenda)continue;/* a seed adopts at the next commit instead */
     cs.agendaAsked=worldState.turn;
-    return "[ENGINE NOTE \u2014 AGENDA (not a player action): "+np.name+" has no want of their own on record. As part of who they are, give them ONE \u2014 a thing they would be doing if the player were not here (a fish to catch, a debt to settle, a name to clear) \u2014 and file it: [COMPANION_AGENDA:"+np.name+"|the want in one sentence|violent or peaceful]. Let it show in a line or two of character now, no ceremony.]";}
+    /* #341: ground the want. With a motivation or history on record the want IS that motivation or its
+       next concrete step; without one the old freeform ask stands. Either way: no invented names. */
+    var grounded=(cs.motivation||cs.backstory)?" Their history"+(cs.motivation?" and motivation are":" is")+" on record in PARTY HISTORIES: derive the want from them \u2014 if a motivation is on record, the want IS that motivation or its next concrete step.":"";
+    return "[ENGINE NOTE \u2014 AGENDA (not a player action): "+np.name+" has no want of their own on record. As part of who they are, give them ONE \u2014 a thing they would be doing if the player were not here (a fish to catch, a debt to settle, a name to clear) \u2014 and file it: [COMPANION_AGENDA:"+np.name+"|the want in one sentence|violent or peaceful]."+grounded+" Never invent a faction, artifact or person for it \u2014 use only names already in this prompt or on their sheet. Let it show in a line or two of character now, no ceremony.]";}
   return"";
 }
 // ② the beat: an ACTIVE want pushes once per AGENDA_PUSH_DAYS on the campaign clock, outside combat; the note
@@ -2128,7 +2150,8 @@ function buildSysPrompt(){
     // capture). Doc wording changes are separate deliberate commits, never bundled with mechanics.
     +buildStateTagsDoc()
     +buildNamingClause()/* #156: the identity-discipline clause — campaign-constant by construction (assembled from IDENTITY_DOMAINS namingRules + fixed literals), so it is cache-safe in the stable half; engine-tested for call-stability */
-    +buildDeepTimeBlock();/* #227: the world age ladder — written once at campaign start and never mutated in play, so it is cache-safe in the stable half; ""-clean for every campaign without a ladder, which keeps legacy saves byte-identical */
+    +buildDeepTimeBlock()/* #227: the world age ladder — written once at campaign start and never mutated in play, so it is cache-safe in the stable half; ""-clean for every campaign without a ladder, which keeps legacy saves byte-identical */
+    +buildPartyHistoriesBlock();/* #341: companions' authored past — constant between recruit/death/import, ""-clean without one */
   var volatile_=identity+switchBlock+mpEndBlock+abandonBlock+wallSweepBlock+leftBlock
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"

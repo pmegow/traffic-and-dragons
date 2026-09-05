@@ -1126,6 +1126,21 @@ function runEngineTests(R){
     if(cleanTxt("A [COMPANION_AGENDA:Morwen|x|violent] B [COMPANION_AGENDA_BEAT:Morwen] C [COMPANION_AGENDA_DONE:Morwen] D")!=="A  B  C  D")return "not stripped";
     var d=buildStateTagsDoc();return d.indexOf("[COMPANION_AGENDA:")>=0&&d.indexOf("[COMPANION_AGENDA_DONE:")>=0&&d.indexOf("[COMPANION_AGENDA_BEAT:")>=0?true:"not taught";
   });
+  t("#341 PARTY HISTORIES: companion backstory/trait/flaw/motivation reach the GM in the STABLE half (byte-identical across turns), a companion without any is silent, a dead one is dropped, and the agenda ask grounds the want in the motivation on record (the Morwen grimoire incident, 2026-09-05)",function(){
+    var cs=__agendaWorld();
+    if(buildPartyHistoriesBlock()!=="")return "block present for a companion with no history fields";
+    var a0=buildAgendaAskNote();if(/PARTY HISTORIES/.test(a0)||!/never invent/i.test(a0))return "ungrounded ask should still forbid invention and not cite an absent block: "+a0;
+    cs.agendaAsked=undefined;
+    cs.backstory="Fifteen years reconstructing Fey Court contract law after the Court took her brother Caelen.";cs.trait="Catalogues everything.";cs.flaw="Deflects.";cs.motivation="Void the bloodline debt that took Caelen.";
+    var a=buildAgendaAskNote();if(!/PARTY HISTORIES/.test(a)||!/next concrete step/i.test(a)||!/never invent/i.test(a))return "ask not grounded: "+a;
+    var sp=buildSysPrompt();
+    if(!/PARTY HISTORIES/.test(sp.stable))return "block not in the stable half";
+    if(/PARTY HISTORIES/.test(sp.volatile))return "block leaked into the volatile half";
+    if(!/- Morwen: Fifteen years reconstructing/.test(sp.stable)||!/motivation — Void the bloodline debt/.test(sp.stable)||!/trait — Catalogues everything/.test(sp.stable))return "fields missing: "+sp.stable.slice(sp.stable.indexOf("PARTY HISTORIES"),sp.stable.indexOf("PARTY HISTORIES")+400);
+    worldState.turn++;worldState.character.hp--;worldState.world.location="Magnimar";var sp2=buildSysPrompt();if(sp2.stable!==sp.stable)return "stable half moved between turns";
+    wsNpcByName("Morwen").status="dead";if(/PARTY HISTORIES/.test(buildSysPrompt().stable))return "a dead companion's history is still injected";
+    return true;
+  });
   t("#330 the notes: the recruitment ask fires ONCE for a companion with no want; the beat note pushes an active want every AGENDA_PUSH_DAYS on the clock, silent in combat, and its own delivery resets the clock; the birth roll (1 in 4, one per moment) arms a note for a present companion; the announce note fires once after a promotion; all four registered with their latches",function(){
     var cs=__agendaWorld();
     var a=buildAgendaAskNote();if(!/AGENDA/.test(a)||a.indexOf("Morwen")<0||!/\[COMPANION_AGENDA:/.test(a))return "ask: "+a;

@@ -12,7 +12,7 @@ var CMD=["node",["dev/run-tests.js","#227"]];
 rc|=sabotage.prove({file:"api.js",command:CMD,also:ALSO,cases:[
   {label:"ladder moved out of the CACHED stable half — every turn re-pays for campaign-constant text",
     mustFail:"deep-time ladder rides the STABLE half",
-   find:"    +buildDeepTimeBlock();/* #227:",
+   find:"    +buildDeepTimeBlock()/* #227:",
    replace:"    +\"\";/* #227 sabotaged: */ /*"},
   {label:"the ceiling sentence deleted — the ladder becomes a list with no stated top",
     mustFail:"deep-time ladder rides the STABLE half",
