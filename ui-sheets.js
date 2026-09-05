@@ -197,7 +197,8 @@ function csSheetSections(c,invOwner,portable){
       _akaParts.push('<span style="white-space:nowrap">'+escHtml(c.aliases[aki])+_rejBtn+'</span>');}
     akaHtml=csKv("Also known as",_akaParts.join(", "));}
   var charKv=akaHtml+(c.appear?csKv("Appearance",escHtml(c.appear)):"")+(c.mark?csKv("Distinguishing Mark",escHtml(c.mark)):"")+(c.trait?csKv("Trait",escHtml(c.trait)):"")+(c.flaw?csKv("Flaw",escHtml(c.flaw)):"")+(c.motivation?csKv("Motivation",escHtml(c.motivation)):"")+(c.backstory?csKv("Backstory",escHtml(c.backstory)):"");/* user/model-authored prose (#22/UA18) */
-  return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(cmHtml?csSec("Defining Moments",cmHtml):"")+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
+  var _agHtml=(typeof agendaSheetHtml==="function")?agendaSheetHtml(c):"";/* #330: readable, never editable */
+  return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+(_agHtml?csSec("Wants",_agHtml):"")+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(cmHtml?csSec("Defining Moments",cmHtml):"")+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
 }
 // showCapabilityCard (TODO #10) — the player-facing click-card. Renders a spell/ability's canon via
 // the SHARED bibleCardHTML (same render as the bible_study.html viewer). Wired onto clickable spell

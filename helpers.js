@@ -83,6 +83,53 @@ function rollD20(){return 1+Math.floor(Math.random()*20);}
 // #328: the [SUGGEST:a|b|c] payload → up to three clean actions. Leading "A)" / "1." markers and
 // asterisks are dropped (the v1.90 parseActions lesson); blanks vanish. Pure.
 function parseSuggestTag(body){var out=[],parts=String(body||"").split("|"),i;for(i=0;i<parts.length&&out.length<3;i++){var t=parts[i].replace(/\*/g,"").trim().replace(/^[(\[]?(?:[A-Ca-c]|[1-3])[)\].:]\s*/,"").trim();if(t.length>1)out.push(t);}return out;}
+// ── #330 companions with agendas (owner sketch 2026-09-04) ─────────────────────────────────────
+// A companion carries ONE active want on their sheet plus a SILENT backlog; readable, never editable
+// (personality is not the player's to tailor). Sources: the blueprint's dossier line (adopted at the
+// next commit), the GM at recruitment (the ask note), or a defining moment (the birth roll). Refusal
+// is the ceiling — a companion never leaves over a want. The pure half lives here.
+function agendaKindOf(k){k=String(k||"").toLowerCase();if(/^non|peace/.test(k))return "nonviolent";return /viol|blood|kill|avenge|slay/.test(k)?"violent":"nonviolent";}
+function agendaFile(cs,want,kind,source,turn){
+  if(!cs||!want)return null;var rec={want:String(want).trim().slice(0,160),kind:agendaKindOf(kind),source:source||"gm",born:turn};
+  if(!cs.agenda){rec.since=turn;rec.lastBeat=(typeof clockNow==="function")?clockNow():0;cs.agenda=rec;return "active";}
+  if(!cs.agendaQueue)cs.agendaQueue=[];cs.agendaQueue.push(rec);return "silent";
+}
+// Complete the ACTIVE want (no fragment) — the oldest silent one is promoted and the announce note armed —
+// or resolve a SILENT want early by fragment (the Spike case): filed to history, nothing promoted.
+function agendaComplete(cs,fragment,turn,how){
+  if(!cs)return null;if(!cs.agendaHistory)cs.agendaHistory=[];var f=String(fragment||"").trim().toLowerCase(),i;
+  if(f&&cs.agendaQueue&&cs.agendaQueue.length){for(i=0;i<cs.agendaQueue.length;i++){if(String(cs.agendaQueue[i].want).toLowerCase().indexOf(f)>=0){var q=cs.agendaQueue.splice(i,1)[0];q.done=turn;q.how=how||"resolved before its turn";cs.agendaHistory.push(q);return {done:q.want,promoted:null,early:true};}}}
+  if(!cs.agenda)return null;var a=cs.agenda;a.done=turn;a.how=how||"fulfilled";cs.agendaHistory.push(a);cs.agenda=null;var next=null;
+  if(cs.agendaQueue&&cs.agendaQueue.length){next=cs.agendaQueue.shift();next.since=turn;next.lastBeat=(typeof clockNow==="function")?clockNow():0;cs.agenda=next;}
+  return {done:a.want,promoted:next?next.want:null,early:false};
+}
+// The blueprint's seed rides the roster (game.js seed) and is adopted onto a sheet that has no want yet —
+// called once per committed turn, idempotent. Returns how many were adopted.
+function agendaAdoptSeeds(){
+  var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],i,n=0;
+  for(i=0;i<party.length;i++){var np=party[i],cs=np.charSheet;if(!cs||cs.agenda||(cs.agendaQueue&&cs.agendaQueue.length)||(cs.agendaHistory&&cs.agendaHistory.length))continue;
+    if(np.agenda){agendaFile(cs,np.agenda,np.agendaKind,"blueprint",worldState.turn);delete np.agenda;delete np.agendaKind;n++;}}
+  return n;
+}
+// The birth roll: at a defining moment, 1 in 4 (AGENDA_BIRTH_CHANCE) that ONE present companion — the moment's
+// subject when they are a companion, else one at random — gains a new want born of it. One birth per moment.
+function agendaBirthMaybe(kind,who,text){
+  if(!worldState||worldState.agendaBirth)return null;
+  var party=(typeof presentCompanions==="function")?presentCompanions():[],i,pick=null;if(!party.length)return null;
+  for(i=0;i<party.length;i++)if(party[i].name===who){pick=party[i];break;}
+  if(!pick)pick=party[Math.floor(_agendaRoll()*party.length)%party.length];
+  if(_agendaRoll()>=((typeof AGENDA_BIRTH_CHANCE==="number")?AGENDA_BIRTH_CHANCE:0.25))return null;
+  worldState.agendaBirth={name:pick.name,moment:String(text||kind).slice(0,200),kind:kind,turn:worldState.turn};return worldState.agendaBirth;
+}
+// The sheet's Wants section — readable only (no inputs by contract).
+function agendaSheetHtml(cs){
+  if(!cs||(!cs.agenda&&!(cs.agendaQueue&&cs.agendaQueue.length)&&!(cs.agendaHistory&&cs.agendaHistory.length)))return "";
+  var h="<div class='cs-list'>",i;
+  if(cs.agenda)h+="<div class='cs-list-row'><b>"+escHtml(cs.agenda.want)+"</b> <span style='color:var(--t2);font-size:11px;'>"+escHtml(cs.agenda.kind)+" · since t"+cs.agenda.since+"</span></div>";
+  for(i=0;i<(cs.agendaQueue||[]).length;i++)h+="<div class='cs-list-row' style='opacity:.7;'>"+escHtml(cs.agendaQueue[i].want)+" <span style='color:var(--t2);font-size:11px;'>later · "+escHtml(cs.agendaQueue[i].kind)+"</span></div>";
+  for(i=0;i<(cs.agendaHistory||[]).length;i++)h+="<div class='cs-list-row' style='color:var(--t2);text-decoration:line-through;'>"+escHtml(cs.agendaHistory[i].want)+" <span style='font-size:11px;text-decoration:none;'>t"+cs.agendaHistory[i].done+"</span></div>";
+  return h+"</div>";
+}
 // #319 plot armor (owner ruling 2026-09-03: derived with override). The blueprint's per-NPC `armor`
 // field, normalized: "none" strips derived armor; an act number grants it until that act opens;
 // anything else (blank, "auto") leaves derivation to the skeleton (plotArmor, identity.js). Pure.

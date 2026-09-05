@@ -57,6 +57,10 @@ Evidence for the #309 ruling. Produced by a read-only catalog pass over `NOTE_BU
 | 49 | buildRecurringNameNudge | api.js:1092 | `recurringNamePing` armed (memory.js:1620 — unregistered name in ≥ `RECURRING_NAME_MIN_TURNS`=3 turns, mid-sentence) | consumes the ping; `recurringNameNudged[name]={count,turn}`, armer gates on `RECURRING_NAME_COOLDOWN`=30 and `RECURRING_NAME_MAX_NUDGES`=2 | yes | escalation (capped, silence = ruling) | `[NPC:name\|status\|relation]` or silence | medium (~482) |
 | 50 | buildPlotArmorNote | api.js | `worldState.plotArmorPing` armed by `plotArmorRefuse` (any refused death of a load-bearing NPC — #319) | one-shot; cleared when built | **no** (a refused death mid-fight still needs its exit) | one-shot-ask | none | ~560 |
 | 51 | buildHoursNote | api.js | at a sub-location of a SIZED settlement with neither `hours` nor `hoursNone` on record (#207 ③) | `hoursAsk={node,turn}` — once per node; `[LOCATION_HOURS:none]` closes it | yes | one-shot-ask | `[LOCATION_HOURS:]` | ~480 |
+| 52 | buildAgendaAskNote | api.js | a present companion with a sheet and no want (#330) | `charSheet.agendaAsked` — once per companion | yes | one-shot-ask | `[COMPANION_AGENDA:]` | ~480 |
+| 53 | buildAgendaBeatNote | api.js | an active want unserved for AGENDA_PUSH_DAYS on the clock (#330) | `charSheet.agenda.lastBeat` — the note resets it; so does `[COMPANION_AGENDA_BEAT:]` | yes | cooldown-reminder | `[COMPANION_AGENDA_BEAT:]` / `_DONE` | ~520 |
+| 54 | buildAgendaBirthNote | api.js | `worldState.agendaBirth` armed by the defining-moment roll (agendaBirthMaybe, 1 in 4) (#330) | one-shot; cleared when built | **no** (a moment mid-fight can birth a want) | one-shot-ask | `[COMPANION_AGENDA:]` | ~520 |
+| 55 | buildAgendaAnnounceNote | api.js | `worldState.agendaAnnounce` armed when a completion promotes a silent want (#330) | one-shot; cleared when built | **no** | one-shot-ask | `[COMPANION_AGENDA_BEAT:]` | ~420 |
 
 ---
 

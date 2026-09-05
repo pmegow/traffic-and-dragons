@@ -126,7 +126,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.42";
+var BP_DESIGNER_VERSION="v0.43";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -316,7 +316,9 @@ function render(){
     if(!n._c){
       h+="<div class='grid2'>"+fld("Name *",txt("npc",i,0,"name",n.name,""))+fld("Role",txt("npc",i,0,"role",n.role,"ally / enemy / neutral / …"))
       +fld("Pronouns",txt("npc",i,0,"pronouns",n.pronouns,"they/them"))
-      +fld("Plot armor",txt("npc",i,0,"armor",n.armor,"auto \u00b7 none \u00b7 act number"))+"</div>"
+      +fld("Plot armor",txt("npc",i,0,"armor",n.armor,"auto \u00b7 none \u00b7 act number"))
+      +fld("Agenda (a companion's own want)",txt("npc",i,0,"agenda",n.agenda,"e.g. Catch the 'ol Redbelly, the biggest fish in Finlake"))
+      +fld("Agenda kind",txt("npc",i,0,"agendaKind",n.agendaKind,"violent \u00b7 nonviolent"))+"</div>"
       +fldB("Notes (available immediately; no gated secrets)","npc",i,0,"notes","NPC: "+(n.name||"notes"),ta("npc",i,0,"notes",n.notes,"Public identity, motives, and early-act behavior"))
       +fldB("Secret (withheld until its reveal act opens)","npc",i,0,"secret","Secret: "+(n.name||"NPC"),ta("npc",i,0,"secret",n.secret||"","The hidden truth and how it surfaces — keep it out of early-visible fields"))
       +fld("Reveal act (1-based act number; required for a secret)",txt("npc",i,0,"revealAct",String(n.revealAct==null?"":n.revealAct),"e.g. 3"));
@@ -577,7 +579,7 @@ document.addEventListener("click",function(e){
   else if(op==="delarc"){if(bp.acts[i].arcs.length<=1&&!confirm("Every act needs at least one arc — remove anyway?"))return;bp.acts[i].arcs.splice(j,1);}
   else if(op==="uparc")move(bp.acts[i].arcs,j,-1);
   else if(op==="downarc")move(bp.acts[i].arcs,j,1);
-  else if(op==="addnpc")bp.npcs.push({name:"",role:"neutral",pronouns:"they/them",armor:"",notes:"",secret:"",revealAct:""});/* #319: "armor" — auto (derived from the acts), none, or an act number */
+  else if(op==="addnpc")bp.npcs.push({name:"",role:"neutral",pronouns:"they/them",armor:"",agenda:"",agendaKind:"",notes:"",secret:"",revealAct:""});/* #319 armor · #330 agenda */
   else if(op==="delnpc")bp.npcs.splice(i,1);
   else if(op==="upnpc")move(bp.npcs,i,-1);
   else if(op==="downnpc")move(bp.npcs,i,1);

@@ -123,6 +123,11 @@ var WHISPERS_CAP=12;
 // #319 plot armor (owner ruling 2026-09-03): a load-bearing NPC gets this many refused deaths (staged
 // escapes) before the armor is spent and the author's fallback carries the story.
 var PLOT_ARMOR_ESCAPES=2;
+// #330 companions with agendas (owner sketch 2026-09-04): an active want pushes once per AGENDA_PUSH_DAYS on the
+// clock (outside combat); a defining moment births a new, SILENT want for a present companion with
+// probability AGENDA_BIRTH_CHANCE (one per moment). _agendaRoll is the injectable die for tests.
+var AGENDA_PUSH_DAYS=3,AGENDA_BIRTH_CHANCE=0.25;
+var _agendaRoll=function(){return Math.random();};
 // #325: after "play on", the offered ending stays off the fourth button this many turns before it is offered again.
 var ENDING_REOFFER_TURNS=15;
 // #328 (owner ruling 2026-09-03): the suggestion buttons ride the GM's own turn as a [SUGGEST:] tag
@@ -360,7 +365,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.815";
+var APP_VERSION="v1.816";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

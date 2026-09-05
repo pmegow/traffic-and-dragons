@@ -1362,6 +1362,7 @@ function fileCoreMemory(kind,who,text){
     if(npcIsDead(n)&&!isSubject)continue;/* v1.439 (F1): a slain witness is as dead as a "dead" one */
     fileTo(n.charSheet);
   }
+  if(filedAny&&typeof agendaBirthMaybe==="function")agendaBirthMaybe(kind,who,text);/* #330: a defining moment may birth a companion's new want (1 in 4, one per moment) */
   if(filedAny&&typeof Sound!=="undefined")Sound.play("click_glass");/* #7: before the toast — claims the playIfQuiet window */
   if(filedAny&&typeof showToast==="function")showToast("★ Defining moment: "+text);
   return filedAny;/* #40 GM tag (v1.307): lets the CORE_MEMORY handler report honestly — no muts line for a deduped no-op */
@@ -1798,6 +1799,7 @@ function commitGmTurn(resp,opts){
   if(worldState.deathPending&&typeof resolvePlayerDeath==="function")resolvePlayerDeath();/* #300: the death narration is in the book; now the consequence */
   if(worldState.deathScene&&typeof deathSceneAdvance==="function"){if(worldState.deathScene.stage==="arrive")deathSceneAdvance("arrive");else if(worldState.deathScene.stage==="answer")deathSceneAdvance("answer");}/* #301: the scene's turn boundary */
   detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts */
+  if(typeof agendaAdoptSeeds==="function")agendaAdoptSeeds();/* #330: a blueprint want adopts onto the sheet the turn it exists */
   toastInventoryGains(_invPre);/* #107: say what reached the sheet — silence means the tag never fired */
   if(!o.isOpening){
     // #137 stay-behind watcher (fast path; buildPresenceAudit is the deterministic sibling):
@@ -2475,7 +2477,7 @@ function applyBlueprint(bp){
       /* v1.439 (F2, brief B): role fans into RELATION only. The old line wrote it into status
          (mood) and attitude (disposition) too — recreating in one call the exact contamination
          v1.379-383 separated. Mood/disposition start empty; play fills them. */
-      var _seedN={name:n.name,status:"",statusTurn:0,rel:n.role||"neutral",met:0,pronouns:n.pronouns||"they/them"},_seedA=(typeof seedArmor==="function")?seedArmor(n):undefined;if(_seedA!==undefined)_seedN.armor=_seedA;/* #319: the blueprint's plot-armor override rides the roster */
+      var _seedN={name:n.name,status:"",statusTurn:0,rel:n.role||"neutral",met:0,pronouns:n.pronouns||"they/them"},_seedA=(typeof seedArmor==="function")?seedArmor(n):undefined;if(_seedA!==undefined)_seedN.armor=_seedA;/* #319: the blueprint's plot-armor override rides the roster */if(n.agenda){_seedN.agenda=String(n.agenda).slice(0,160);_seedN.agendaKind=n.agendaKind||"";}/* #330: the authored want rides the roster until the sheet exists */
       worldState.npcs.push(_seedN);
       memory.npcs[n.name]={attitude:"",knowledge:n.notes?[n.notes]:[],events:[],pronouns:n.pronouns||"they/them"};
     }
