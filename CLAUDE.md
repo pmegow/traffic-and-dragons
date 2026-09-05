@@ -145,7 +145,6 @@ The system contracts live one file per drift-surface system under `DOC/contracts
 
 ## Known issues
 
-- **Local folder rename pending** — `dnd_rpg` → `traffic-and-dragons` (do in Explorer before opening Claude Code; then update hardcoded paths in `.claude/settings.local.json` and `.claude/hooks/stop-check.js`)
 
 (Resolved issues with their diagnosis records live in [DOC/CLAUDE_HISTORY.md](DOC/CLAUDE_HISTORY.md).)
 

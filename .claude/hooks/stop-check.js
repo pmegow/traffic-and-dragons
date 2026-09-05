@@ -4,8 +4,8 @@
 // Non-blocking: emits {systemMessage} and exits 0 so it never stalls the loop.
 var fs = require("fs"), os = require("os"), path = require("path");
 
-var ROOT = process.env.TND_STOP_ROOT || "C:\\Users\\hannu\\OneDrive\\Documents\\Projects\\dnd_rpg";
-var MEM = process.env.TND_STOP_MEM || "C:\\Users\\hannu\\.claude\\projects\\C--Users-hannu-OneDrive-Documents-Projects-dnd-rpg\\memory\\session_state.md";
+var ROOT = process.env.TND_STOP_ROOT || "C:\\Projects\\traffic-and-dragons";
+var MEM = process.env.TND_STOP_MEM || "C:\\Users\\hannu\\.claude\\projects\\C--Projects-traffic-and-dragons\\memory\\session_state.md";
 var TMP = process.env.TND_STOP_TMP || os.tmpdir();
 
 var raw = "";
