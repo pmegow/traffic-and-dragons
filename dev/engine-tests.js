@@ -9460,6 +9460,27 @@ function runEngineTests(R){
     if(/press on toward/i.test(out[0]))return "fallback offered overland travel from inside the Spire: "+out[0];
     return validateSuggestion(out[0],buildSceneManifest())===null?true:"replacement button does not itself validate: "+out[0];
   });
+  t("#342 rule ⑦ (t2418): a leading travel verb aimed at the CURRENT world location rejects as already-here — sublocated or not, by name or merged alias; leaving the sub by its own name passes; the same button from another town passes as real travel",function(){
+    __gateWorld();
+    memory.map.nodes={"Sandpoint":{},"Magnimar":{},"Sandpoint Coast - Sea Approach":{}};
+    worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    var man=buildSceneManifest();
+    var b1=validateSuggestion("Head back toward Sandpoint.",man);if(!b1||b1.rule!=="already-here-travel")return "the exact t2418 button passed while standing in Sandpoint: "+JSON.stringify(b1);
+    worldState.world.sublocation="Rusty Dragon - cellar";man=buildSceneManifest();
+    var b2=validateSuggestion("Head back toward Sandpoint.",man);if(!b2||b2.rule!=="already-here-travel")return "the same button passed from the cellar: "+JSON.stringify(b2);
+    if(!/leaving the sub-location/.test(b2.detail))return "the rejection does not teach the way-out phrasing: "+b2.detail;
+    var ok1=validateSuggestion("Head back up to the taproom.",man);if(ok1)return "leaving the sub by its own name was rejected: "+JSON.stringify(ok1);
+    var ok2=validateSuggestion("Return to Sandpoint tomorrow to report to the sheriff.",man);if(ok2&&ok2.rule==="already-here-travel")return "a planning shape with 'tomorrow' still rejected: "+JSON.stringify(ok2);
+    memory.map.nodes["Sandpoint, Varisia"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};/* a real node to merge — the identity layer refuses to merge what does not exist */
+    var mr=applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");man=buildSceneManifest();
+    if(typeof locResolve==="function"&&locResolve("Sandpoint, Varisia")!=="Sandpoint")return "test fixture: the merge did not take — locResolve('Sandpoint, Varisia') = "+locResolve("Sandpoint, Varisia")+" (muts: "+JSON.stringify(mr&&mr.muts||mr).slice(0,200)+")";
+    var b3=validateSuggestion("Travel to Sandpoint, Varisia.",man);if(!b3||b3.rule!=="already-here-travel")return "the merged alias of HERE passed: "+JSON.stringify(b3);
+    worldState.world.location="Magnimar";worldState.world.sublocation=null;man=buildSceneManifest();
+    var ok3=validateSuggestion("Head back toward Sandpoint.",man);if(ok3)return "real travel from Magnimar to Sandpoint was rejected: "+JSON.stringify(ok3);
+    /* the fail-closed replacement must itself validate */
+    worldState.world.location="Sandpoint";man=buildSceneManifest();var out=applySuggestionGate(["Head back toward Sandpoint.","Study your surroundings carefully.","Count your coin and think."]);
+    return validateSuggestion(out[0],man)===null&&out[0]!=="Head back toward Sandpoint."?true:"replacement button: "+JSON.stringify(out);
+  });
   t("B24 rule ⑤: asserted immediate travel to a remote world node while sublocated rejects; back-out, planning shapes, and open-road travel all pass",function(){
     __gateWorld();
     worldState.world.location="Magnimar";worldState.world.sublocation="The Spire - Hidden Stairwell";
@@ -9468,7 +9489,7 @@ function runEngineTests(R){
     var bad=validateSuggestion("Press on toward Varisia - North Road.",man);
     if(!bad)return "the exact t1459 button passed validation";
     if(bad.rule!=="unreachable-travel")return "wrong rule: "+bad.rule;
-    if(validateSuggestion("Head back toward Magnimar.",man)!==null)return "heading back to the current location false-rejected";
+    var ah=validateSuggestion("Head back toward Magnimar.",man);if(!ah||ah.rule!=="already-here-travel")return "travel to the current location must reject as already-here (#342 supersedes the B24 back-out whitelist, owner report 2026-09-05): "+JSON.stringify(ah);
     if(validateSuggestion("Return to Sandpoint tomorrow to report to the sheriff",man)!==null)return "planning-shape suggestion false-rejected (tier-2 watch territory)";
     worldState.world.sublocation=null;
     return validateSuggestion("Press on toward Varisia - North Road.",buildSceneManifest())===null?true:"open-road travel rejected while NOT sublocated";

@@ -375,6 +375,21 @@ function validateSuggestion(text,man){
     if(new RegExp("\\b(talk (to|with)|speak (to|with)|ask|tell|question|confront|greet|approach|show|give|message|signal|hail|summon|contact|warn|alert|call out to)\\b[ '\"]{0,3}(to |with |the |a )?"+suggestionNameAlt(npcs[j].name)+"\\b","i").test(t))
       return {rule:"absent-npc-direct-address",detail:npcs[j].name+" is not present in the scene"};
   }
+  // ⑦ (#342, t2418 — "Head back toward Sandpoint." while the HUD read Sandpoint): a LEADING travel
+  // verb whose destination IS the current world location. You are already here. This supersedes
+  // rule ⑤'s B24 back-out whitelist by owner report 2026-09-05: the way out of a sub-location is
+  // phrased as leaving the sub ("Head back up to the taproom" names no world node and passes), never
+  // as travelling to the town you are standing in. Same leading-verb precision lever as ⑤; the
+  // destination matches the current location by name or through the location identity table
+  // (a merged alias of HERE is still here, #156B).
+  var tvm7=t.match(/^\s*(?:press on (?:toward|to)|head (?:back )?(?:to|for|toward|towards)|travel (?:back )?to|return to|go back to|set out (?:for|toward|towards)|ride (?:back )?(?:to|toward|towards)|march (?:to|toward|towards)|journey (?:to|toward|towards)|make for)\s+(.+)$/i);
+  if(tvm7&&worldState.world&&worldState.world.location){
+    var d7=tvm7[1].replace(/[.!?]+\s*$/,"").trim(),here=worldState.world.location,hereLc=String(here).toLowerCase(),d7Lc=d7.toLowerCase(),same7=(d7Lc===hereLc);
+    if(!same7&&typeof locSame==="function"&&locSame(d7,here))same7=true;/* the identity table owns aliases and merges (#156B) */
+    if(!same7&&typeof locResolve==="function"&&String(locResolve(d7)).toLowerCase()===String(locResolve(here)).toLowerCase())same7=true;
+    if(!same7){var n7=(typeof memory!=="undefined"&&memory.map&&memory.map.nodes)||{};for(var k7 in n7){if(k7.toLowerCase()===d7Lc&&typeof locSame==="function"&&locSame(k7,here)){same7=true;break;}}}
+    if(same7)return {rule:"already-here-travel",detail:"travels to "+here+", where the party already stands"+(worldState.world.sublocation?" ("+worldState.world.sublocation+" — leaving the sub-location is phrased as leaving it, not as travel to the town)":"")};
+  }
   // ⑤ (B24, t1459): ASSERTED immediate overland travel while inside a sub-location — a LEADING
   // travel verb aimed at a known world node other than the current location. The leading verb
   // is the precision lever: it makes the travel BE the action, so "Press on toward Varisia -

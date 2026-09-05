@@ -89,6 +89,8 @@ returns `retryable:false`, which `callGM` honors before either automatic retry o
 
 ## 13. Rendered action suggestions (decoupled — #14)
 
+**Affordance gate rule ⑦ — already-here travel (#342, v1.826).** `validateSuggestion` rejects a LEADING travel verb whose destination is the current world location, by name or through the location identity table, sublocated or not (`already-here-travel`). Owner report 2026-09-05, t2418: "Head back toward Sandpoint." rendered while the HUD read Sandpoint — the mirror image of B24's north-road button (travel to a REMOTE node from inside a sub). This supersedes rule ⑤'s back-out whitelist: the way out of a sub-location is phrased as leaving the sub ("Head back up to the taproom" names no world node and passes). Planning shapes ("Return to Sandpoint tomorrow…") and real travel from another town pass; the fail-closed replacement must itself validate. Pinned by the #342 engine test and the amended B24 test.
+
 Action suggestions are **fully decoupled from GM prose**. The GM writes pure narrative — no `[ACTIONS:]` tag, no `*You could…*` line. The STYLE block explicitly tells the GM NOT to emit action suggestions.
 
 **Flow:** after the GM response renders, `generateActions(msgEl)` in `game.js`:
