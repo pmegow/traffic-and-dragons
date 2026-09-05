@@ -126,7 +126,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.43";
+var BP_DESIGNER_VERSION="v0.44";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -318,7 +318,7 @@ function render(){
       +fld("Pronouns",txt("npc",i,0,"pronouns",n.pronouns,"they/them"))
       +fld("Plot armor",txt("npc",i,0,"armor",n.armor,"auto \u00b7 none \u00b7 act number"))
       +fld("Agenda (a companion's own want)",txt("npc",i,0,"agenda",n.agenda,"e.g. Catch the 'ol Redbelly, the biggest fish in Finlake"))
-      +fld("Agenda kind",txt("npc",i,0,"agendaKind",n.agendaKind,"violent \u00b7 nonviolent"))+"</div>"
+      +fld("Agenda kind",txt("npc",i,0,"agendaKind",n.agendaKind,"violent \u00b7 peaceful"))+"</div>"
       +fldB("Notes (available immediately; no gated secrets)","npc",i,0,"notes","NPC: "+(n.name||"notes"),ta("npc",i,0,"notes",n.notes,"Public identity, motives, and early-act behavior"))
       +fldB("Secret (withheld until its reveal act opens)","npc",i,0,"secret","Secret: "+(n.name||"NPC"),ta("npc",i,0,"secret",n.secret||"","The hidden truth and how it surfaces — keep it out of early-visible fields"))
       +fld("Reveal act (1-based act number; required for a secret)",txt("npc",i,0,"revealAct",String(n.revealAct==null?"":n.revealAct),"e.g. 3"));

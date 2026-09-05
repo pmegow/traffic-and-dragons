@@ -88,7 +88,8 @@ function parseSuggestTag(body){var out=[],parts=String(body||"").split("|"),i;fo
 // (personality is not the player's to tailor). Sources: the blueprint's dossier line (adopted at the
 // next commit), the GM at recruitment (the ask note), or a defining moment (the birth roll). Refusal
 // is the ceiling — a companion never leaves over a want. The pure half lives here.
-function agendaKindOf(k){k=String(k||"").toLowerCase();if(/^non|peace/.test(k))return "nonviolent";return /viol|blood|kill|avenge|slay/.test(k)?"violent":"nonviolent";}
+// kind is "peaceful" or "violent" (owner 2026-09-04: no shared stem, so no substring can ever misfile one as the other).
+function agendaKindOf(k){k=String(k||"").toLowerCase();if(/peace|non/.test(k))return "peaceful";return /viol|blood|kill|avenge|slay/.test(k)?"violent":"peaceful";}
 function agendaFile(cs,want,kind,source,turn){
   if(!cs||!want)return null;var rec={want:String(want).trim().slice(0,160),kind:agendaKindOf(kind),source:source||"gm",born:turn};
   if(!cs.agenda){rec.since=turn;rec.lastBeat=(typeof clockNow==="function")?clockNow():0;cs.agenda=rec;return "active";}

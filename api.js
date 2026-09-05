@@ -581,7 +581,7 @@ function buildAgendaAskNote(){
   if(!worldState||worldState.combat)return"";var party=(typeof presentCompanions==="function")?presentCompanions():[],i;
   for(i=0;i<party.length;i++){var np=party[i],cs=np.charSheet;if(!cs||cs.agenda||(cs.agendaQueue&&cs.agendaQueue.length)||cs.agendaAsked)continue;if(np.agenda)continue;/* a seed adopts at the next commit instead */
     cs.agendaAsked=worldState.turn;
-    return "[ENGINE NOTE \u2014 AGENDA (not a player action): "+np.name+" has no want of their own on record. As part of who they are, give them ONE \u2014 a thing they would be doing if the player were not here (a fish to catch, a debt to settle, a name to clear) \u2014 and file it: [COMPANION_AGENDA:"+np.name+"|the want in one sentence|violent or nonviolent]. Let it show in a line or two of character now, no ceremony.]";}
+    return "[ENGINE NOTE \u2014 AGENDA (not a player action): "+np.name+" has no want of their own on record. As part of who they are, give them ONE \u2014 a thing they would be doing if the player were not here (a fish to catch, a debt to settle, a name to clear) \u2014 and file it: [COMPANION_AGENDA:"+np.name+"|the want in one sentence|violent or peaceful]. Let it show in a line or two of character now, no ceremony.]";}
   return"";
 }
 // ② the beat: an ACTIVE want pushes once per AGENDA_PUSH_DAYS on the campaign clock, outside combat; the note
@@ -597,7 +597,7 @@ function buildAgendaBeatNote(){
 function buildAgendaBirthNote(){
   var b=worldState&&worldState.agendaBirth;if(!b||!b.name)return"";var cs=findCompanionChar(b.name);if(!cs){delete worldState.agendaBirth;return"";}
   delete worldState.agendaBirth;
-  return "[ENGINE NOTE \u2014 A WANT IS BORN (not a player action): the defining moment \""+b.moment+"\" has given "+b.name+" something of their own to want. File it: [COMPANION_AGENDA:"+b.name+"|the want in one sentence|violent or nonviolent]."+(cs.agenda?" They already have a want in hand, so this one stays SILENT until it resolves \u2014 the engine files it as 'later'; do not have them speak of it yet.":" Let it show in a line of character now.")+"]";
+  return "[ENGINE NOTE \u2014 A WANT IS BORN (not a player action): the defining moment \""+b.moment+"\" has given "+b.name+" something of their own to want. File it: [COMPANION_AGENDA:"+b.name+"|the want in one sentence|violent or peaceful]."+(cs.agenda?" They already have a want in hand, so this one stays SILENT until it resolves \u2014 the engine files it as 'later'; do not have them speak of it yet.":" Let it show in a line of character now.")+"]";
 }
 // ④ the announce: the active want resolved and a silent one stepped up — the GM says so in character, once,
 // so the player never hears "you never mentioned your brother before".

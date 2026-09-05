@@ -1102,14 +1102,14 @@ function runEngineTests(R){
   }
   t("#330 the tags: [COMPANION_AGENDA:] files the first want ACTIVE and later ones SILENT (a backlog); [COMPANION_AGENDA_BEAT:] resets the push clock; [COMPANION_AGENDA_DONE:] completes the active want into history and promotes the oldest silent one (arming the announce note); DONE with a fragment resolves a silent one early; all three are stripped and taught",function(){
     var cs=__agendaWorld();
-    var r=applyMuts("[COMPANION_AGENDA:Morwen|Free the Widow Garman's cat|nonviolent]");
-    if(!cs.agenda||cs.agenda.want!=="Free the Widow Garman's cat"||cs.agenda.kind!=="nonviolent"||cs.agenda.since!==30||typeof cs.agenda.lastBeat!=="number")return "active not filed: "+JSON.stringify(cs.agenda)+" "+JSON.stringify(r.muts);
+    var r=applyMuts("[COMPANION_AGENDA:Morwen|Free the Widow Garman's cat|peaceful]");
+    if(!cs.agenda||cs.agenda.want!=="Free the Widow Garman's cat"||cs.agenda.kind!=="peaceful"||cs.agenda.since!==30||typeof cs.agenda.lastBeat!=="number")return "active not filed: "+JSON.stringify(cs.agenda)+" "+JSON.stringify(r.muts);
     applyMuts("[COMPANION_AGENDA:Morwen|Kill Spike, the dog that bit Frizwick|violent]");
     if(cs.agenda.want!=="Free the Widow Garman's cat"||!cs.agendaQueue||cs.agendaQueue.length!==1||cs.agendaQueue[0].kind!=="violent")return "second want should be silent: "+JSON.stringify(cs.agendaQueue);
     clockEnsure().min+=2*MIN_PER_DAY;applyMuts("[COMPANION_AGENDA_BEAT:Morwen]");if(cs.agenda.lastBeat!==clockNow())return "beat did not reset the clock";
     applyMuts("[COMPANION_AGENDA_DONE:Morwen|Spike]");
     if(cs.agendaQueue.length!==0||!cs.agendaHistory||cs.agendaHistory.length!==1||!/Spike/.test(cs.agendaHistory[0].want)||cs.agenda.want!=="Free the Widow Garman's cat")return "early resolve of a silent want: "+JSON.stringify(cs.agendaHistory);
-    applyMuts("[COMPANION_AGENDA:Morwen|Learn who sold the widow out|nonviolent]");
+    applyMuts("[COMPANION_AGENDA:Morwen|Learn who sold the widow out|peaceful]");
     r=applyMuts("[COMPANION_AGENDA_DONE:Morwen]");
     if(cs.agendaHistory.length!==2||!cs.agenda||cs.agenda.want!=="Learn who sold the widow out"||cs.agenda.since!==30)return "completion did not promote the silent want: "+JSON.stringify(cs.agenda);
     if(!worldState.agendaAnnounce||worldState.agendaAnnounce.name!=="Morwen")return "promotion did not arm the announce note";
@@ -1120,7 +1120,7 @@ function runEngineTests(R){
     var cs=__agendaWorld();
     var a=buildAgendaAskNote();if(!/AGENDA/.test(a)||a.indexOf("Morwen")<0||!/\[COMPANION_AGENDA:/.test(a))return "ask: "+a;
     if(buildAgendaAskNote()!=="")return "asked twice";
-    applyMuts("[COMPANION_AGENDA:Morwen|Free the Widow Garman's cat|nonviolent]");
+    applyMuts("[COMPANION_AGENDA:Morwen|Free the Widow Garman's cat|peaceful]");
     if(buildAgendaBeatNote()!=="")return "beat fired before the push window";
     clockEnsure().min+=AGENDA_PUSH_DAYS*MIN_PER_DAY;
     worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5}]};if(buildAgendaBeatNote()!=="")return "beat fired in combat";worldState.combat=null;
@@ -1139,13 +1139,13 @@ function runEngineTests(R){
     return NOTE_LATCH_FIELDS.indexOf("agendaBirth")>=0&&NOTE_LATCH_FIELDS.indexOf("agendaAnnounce")>=0&&NOTE_NESTED_LATCHES.indexOf("charSheet.agenda.lastBeat")>=0&&NOTE_NESTED_LATCHES.indexOf("charSheet.agendaAsked")>=0?true:"latches not declared";
   });
   t("#330 the prompt and the sheet: the stable half carries the COMPANION AGENDAS rule (refusal is the ceiling; a violent want surfaces in a fight only when the foe touches it; silent wants stay silent); the party block lists the active want and the silent ones; the sheet's Wants section is readable, never editable; a blueprint seed rides the roster and is adopted at the next commit",function(){
-    var cs=__agendaWorld();applyMuts("[COMPANION_AGENDA:Morwen|Free the Widow Garman's cat|nonviolent][COMPANION_AGENDA:Morwen|Kill Spike|violent]");
+    var cs=__agendaWorld();applyMuts("[COMPANION_AGENDA:Morwen|Free the Widow Garman's cat|peaceful][COMPANION_AGENDA:Morwen|Kill Spike|violent]");
     var sp=buildSysPrompt();if(!/COMPANION AGENDAS/.test(sp.stable)||!/refusal is the ceiling/i.test(sp.stable)||!/never leave/i.test(sp.stable)||!/touch/i.test(sp.stable))return "stable rule missing";
-    if(!/Wants: Free the Widow Garman's cat \[nonviolent\]/.test(sp.volatile)||!/Later \(silent[^)]*\): Kill Spike/.test(sp.volatile))return "party block lines: "+sp.volatile.slice(sp.volatile.indexOf("Morwen"),sp.volatile.indexOf("Morwen")+400);
+    if(!/Wants: Free the Widow Garman's cat \[peaceful\]/.test(sp.volatile)||!/Later \(silent[^)]*\): Kill Spike/.test(sp.volatile))return "party block lines: "+sp.volatile.slice(sp.volatile.indexOf("Morwen"),sp.volatile.indexOf("Morwen")+400);
     var h=agendaSheetHtml(cs);if(!/Widow Garman/.test(h)||!/Kill Spike/.test(h)||/<input|contenteditable|<textarea/.test(h))return "sheet html: "+h;
     var ui=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");if(ui.indexOf('csSec("Wants"')<0||ui.indexOf("agendaSheetHtml(")<0)return "the sheet does not render Wants";
     /* the blueprint seed: roster carries it, the next commit adopts it onto a sheet with no want */
-    worldState.npcs.push({name:"Frizwick",status:"",statusTurn:0,rel:"ally",met:1,partyMember:true,agenda:"Catch the 'ol Redbelly, the biggest fish in Finlake",agendaKind:"nonviolent",charSheet:{name:"Frizwick",cls:"Rogue",level:1,hp:8,maxHp:8,stats:{},abilities:[],spells:[],inventory:[]}});
+    worldState.npcs.push({name:"Frizwick",status:"",statusTurn:0,rel:"ally",met:1,partyMember:true,agenda:"Catch the 'ol Redbelly, the biggest fish in Finlake",agendaKind:"peaceful",charSheet:{name:"Frizwick",cls:"Rogue",level:1,hp:8,maxHp:8,stats:{},abilities:[],spells:[],inventory:[]}});
     var adopted=agendaAdoptSeeds();var fz=wsNpcByName("Frizwick").charSheet;
     if(adopted!==1||!fz.agenda||!/Redbelly/.test(fz.agenda.want)||fz.agenda.source!=="blueprint")return "seed not adopted: "+JSON.stringify(fz.agenda);
     if(agendaAdoptSeeds()!==0)return "adoption is not idempotent";
@@ -6756,7 +6756,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-718162564&&d.length===27756)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===-799296427&&d.length===27754)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
