@@ -2294,23 +2294,23 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Wild Shape (CR 1/4)",
-            "ds": "transform into a beast you have seen."
+            "ds": "transform into a lesser beast (crow, otter, stagg)."
           }
         ]
       },
       "5": {
         "features": [
           {
-            "nm": "Wild Shape (CR 1)",
-            "ds": "more powerful beast forms available."
+            "nm": "Poison Immunity",
+            "ds": "natural poisons / venoms have no effect."
           }
         ]
       },
       "7": {
         "features": [
           {
-            "nm": "Poison Immunity",
-            "ds": "natural poisons / venoms have no effect."
+            "nm": "Wild Shape (CR 1)",
+            "ds": "transform into a greater forest beast (Bear, Wolf, Tiger)."
           }
         ]
       },
@@ -2526,7 +2526,7 @@ var CLASS_BIBLE = {
   "Necromancer": {
     "id": "Necromancer",
     "nm": "Necromancer",
-    "hd": 6,
+    "hd": 4,
     "prime": "INT",
     "castStat": "INT",
     "desc": "Death magic, bone and shadow",
