@@ -141,11 +141,18 @@ function seedArmor(n){var v=n&&n.armor;if(v==null)return undefined;v=String(v).t
 //   folderName  — the live campaign folder handle's name, or null
 //   pendingName — a folder restored from IndexedDB but not yet re-permissioned this session, or null
 //   hasPicker   — window.showDirectoryPicker exists (desktop Chromium); false on mobile/Firefox
+// #336 (owner ruling 2026-09-04): the owner picks the CAMPAIGNS folder once; each campaign lives in its own
+// slugged subfolder beneath it, derived from the campaign name at write time. This is the label every host
+// shows ("Campaigns/The_Iron_Meridian__Gazz_Quickfuse_"); slugging matches ui-files' _slugFolderName.
+function campaignFolderLabel(rootName,campName){
+  if(!rootName)return "";
+  return rootName+"/"+String(campName||"Campaign").replace(/[^a-zA-Z0-9_\-]/g,"_");
+}
 function saveDestination(folderName,pendingName,hasPicker,sub){
   sub=sub||"saves";
   if(folderName)return {kind:"folder",text:folderName+"/"+sub+"/"};
   if(pendingName)return {kind:"pending",text:pendingName+"/"+sub+"/ (reconnects on Save)"};
-  return {kind:"downloads",text:"your browser's Downloads folder"+(hasPicker?" — File ▸ Set campaign folder to keep saves with the campaign":"")};
+  return {kind:"downloads",text:"your browser's Downloads folder"+(hasPicker?" — File ▸ Set campaigns folder to keep saves with the campaign":"")};
 }
 // Side-panel quick action (owner call 2026-09-03): the phrase a click on a spell or ability drops
 // into the input, or null when the thing is passive and there is nothing to DO. Spells → "Cast X.";

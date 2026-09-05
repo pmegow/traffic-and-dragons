@@ -557,8 +557,8 @@ function runEngineTests(R){
   t("saveDestination: live folder → '<folder>/saves/'; restored-but-unarmed folder → the same path flagged 'reconnects on Save'; no folder → the browser's Downloads with the set-folder hint (desktop) or plain Downloads (no picker); exportSave shows it and re-arms the handle before writing",function(){
     var a=saveDestination("Iron Meridian",null,true,"saves");if(a.kind!=="folder"||a.text!=="Iron Meridian/saves/")return "live: "+JSON.stringify(a);
     var b=saveDestination(null,"Iron Meridian",true,"saves");if(b.kind!=="pending"||b.text.indexOf("Iron Meridian/saves/")!==0||!/reconnect/i.test(b.text))return "pending: "+JSON.stringify(b);
-    var c=saveDestination(null,null,true,"saves");if(c.kind!=="downloads"||!/Downloads/.test(c.text)||!/Set campaign folder/.test(c.text))return "downloads: "+JSON.stringify(c);
-    var d=saveDestination(null,null,false,"saves");if(d.kind!=="downloads"||!/Downloads/.test(d.text)||/Set campaign folder/.test(d.text))return "no picker: "+JSON.stringify(d);
+    var c=saveDestination(null,null,true,"saves");if(c.kind!=="downloads"||!/Downloads/.test(c.text)||!/Set campaigns folder/.test(c.text))return "downloads: "+JSON.stringify(c);
+    var d=saveDestination(null,null,false,"saves");if(d.kind!=="downloads"||!/Downloads/.test(d.text)||/Set campaigns folder/.test(d.text))return "no picker: "+JSON.stringify(d);
     var src=__fsForTests.readFileSync(__rootForTests+"/ui-files.js","utf8"),i=src.indexOf("function exportSave("),body=src.slice(i,src.indexOf("function exportBlueprint("));
     if(body.indexOf("saveDestination(")<0)return "the modal does not name its destination";
     if(body.indexOf("_ensureFolderPerm()")<0)return "Save does not re-arm a restored folder handle — a post-reload save silently falls to Downloads";

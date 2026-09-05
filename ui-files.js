@@ -1,9 +1,14 @@
 // ui-files.js — campaign folder handles (File System Access API), filename builder, folder
 // export/rename, and save/blueprint/narrative export-import.
 // Split from ui.js at v1.324 per UI_SEAM_MAP.md (TODO #54 / UA17).
-var _campFolderHandle=null;
-
-var _campRootHandle=null;
+// #336 (owner ruling 2026-09-04): the ROOT is the persisted handle — the Campaigns folder the owner picks
+// ONCE. The per-campaign subfolder is DERIVED from the active campaign name whenever a write needs it
+// (campaignFolder()), so switching campaigns retargets by itself and a new campaign never re-opens the
+// picker. Before this, the subfolder handle itself was persisted and every new campaign asked again —
+// the owner picked the folder they had been living in, and Iron Meridian landed inside "Runelords".
+var _campRootHandle=null;     // persisted (IndexedDB) — the campaigns root
+var _campFolderHandle=null;   // derived cache: the active campaign's subfolder under the root
+var _campFolderSlug=null;     // the slug the cache was derived for (a rename or a switch invalidates it)
 var _SUBFOLDERS={save:"saves",narrative:"logs",character:"characters",render:"renders",portrait:"characters"};
 function buildFilename(type){
   var c=worldState&&worldState.character?worldState.character:{name:"unknown"};
@@ -26,9 +31,11 @@ function _downloadBlob(blob,filename){
 // fell back to a browser download (path unknown to us). Existing callers ignore the return value,
 // so adding it is backward compatible.
 function exportToFolder(type,blob,filename){
-  if(!_campFolderHandle){ _downloadBlob(blob,filename); return Promise.resolve(false); }
+  if(!_campRootHandle){ _downloadBlob(blob,filename); return Promise.resolve(false); }
   var sub=_SUBFOLDERS[type]||"misc";
-  return _campFolderHandle.getDirectoryHandle(sub,{create:true}).then(function(dir){
+  return campaignFolder(true).then(function(camp){
+    return camp.getDirectoryHandle(sub,{create:true});
+  }).then(function(dir){
     return dir.getFileHandle(filename,{create:true});
   }).then(function(fh){
     return fh.createWritable();
@@ -37,8 +44,8 @@ function exportToFolder(type,blob,filename){
   }).then(function(){
     // Name the WHOLE path, campaign folder included — "Saved to renders/x.jpg" left the user
     // guessing which folder that was (field request 2026-07-27).
-    var _fn=(_campFolderHandle&&_campFolderHandle.name)?_campFolderHandle.name+"/":"";
-    showToast("Saved to "+_fn+sub+"/"+filename);
+    var _fn=campaignFolderLabel(_campRootHandle&&_campRootHandle.name,worldState&&worldState.campName);/* #336: root/campaign */
+    showToast("Saved to "+(_fn?_fn+"/":"")+sub+"/"+filename);
     return true;
   }).catch(function(e){
     showToast("Folder write failed: "+e.message);
@@ -54,7 +61,7 @@ function exportToFolder(type,blob,filename){
 // structured-cloneable, so IndexedDB can hold one across sessions. Permission does NOT survive:
 // a restored handle comes back in the "prompt" state and re-granting needs a USER GESTURE, so we
 // restore the handle at boot but only ask for permission inside a click (see _ensureFolderPerm).
-var FS_IDB="tnd_fs_v1", FS_IDB_STORE="handles", FS_IDB_KEY="campFolder", CP_IDB_STORE="checkpoints";/* #300: the offline camp copy lives beside the folder handle — IndexedDB, never localStorage */
+var FS_IDB="tnd_fs_v1", FS_IDB_STORE="handles", FS_IDB_KEY="campRoot", FS_IDB_KEY_LEGACY="campFolder", CP_IDB_STORE="checkpoints";/* #336: the ROOT persists under a new key; the old per-campaign handle is retired at boot (its parent is unreachable) *//* #300: the offline camp copy lives beside the folder handle — IndexedDB, never localStorage */
 var _campFolderPending=null;   // restored but not yet re-permissioned
 function _idbOpen(){
   return new Promise(function(res,rej){
@@ -92,9 +99,20 @@ function idbGetCheckpoint(campId){
     rq.onsuccess=function(){res(rq.result||null);};rq.onerror=function(){rej(rq.error);};
   });});
 }
+// #336: the campaign subfolder, derived from the active campaign under the root. Cached per slug; a
+// campaign switch or rename derives afresh. Resolves null with no root (callers fall back to downloads).
+function campaignFolderSlug(){return _slugFolderName((typeof worldState!=="undefined"&&worldState&&worldState.campName)||"Campaign");}
+function campaignFolder(create){
+  if(!_campRootHandle)return Promise.resolve(null);
+  var slug=campaignFolderSlug();
+  if(_campFolderHandle&&_campFolderSlug===slug)return Promise.resolve(_campFolderHandle);
+  return _campRootHandle.getDirectoryHandle(slug,{create:create!==false}).then(function(sub){
+    _campFolderHandle=sub;_campFolderSlug=slug;updateCampFolderUI();return sub;
+  });
+}
 function persistCampaignFolder(){
-  if(!_campFolderHandle)return Promise.resolve(false);
-  return _idbSet(FS_IDB_KEY,_campFolderHandle).catch(function(e){
+  if(!_campRootHandle)return Promise.resolve(false);
+  return _idbSet(FS_IDB_KEY,_campRootHandle).catch(function(e){
     console.warn("[files] could not persist the campaign folder handle — it will not survive a reload:",e&&e.message);
     return false;
   });
@@ -103,10 +121,18 @@ function persistCampaignFolder(){
 // in _campFolderPending for the first save/restore that DOES have a gesture.
 function restoreCampaignFolder(){
   return _idbGet(FS_IDB_KEY).then(function(h){
-    if(!h)return false;
-    if(!h.queryPermission){_campFolderHandle=h;updateCampFolderUI();return true;}
+    if(!h){
+      /* #336: a pre-root install persisted the campaign SUBFOLDER. Its parent cannot be reached through the
+         File System Access API, so it is retired loudly and the root is picked once (the banner / File menu). */
+      return _idbGet(FS_IDB_KEY_LEGACY).then(function(old){
+        if(!old)return false;
+        console.info("[files] legacy per-campaign folder handle found ("+(old.name||"?")+") — retired; pick the Campaigns folder once (File ▸ Set campaigns folder) and every campaign gets its own subfolder beneath it (#336)");
+        return _idbSet(FS_IDB_KEY_LEGACY,null).then(function(){return false;},function(){return false;});
+      });
+    }
+    if(!h.queryPermission){_campRootHandle=h;updateCampFolderUI();return true;}
     return h.queryPermission({mode:"readwrite"}).then(function(p){
-      if(p==="granted"){_campFolderHandle=h;updateCampFolderUI();return true;}
+      if(p==="granted"){_campRootHandle=h;updateCampFolderUI();return true;}
       _campFolderPending=h;
       console.info("[files] campaign folder restored but needs re-permission — will ask on the next save");
       return false;
@@ -115,12 +141,12 @@ function restoreCampaignFolder(){
 }
 // Call from inside a user gesture. Resolves true when a usable folder handle is live.
 function _ensureFolderPerm(){
-  if(_campFolderHandle)return Promise.resolve(true);
+  if(_campRootHandle)return Promise.resolve(true);
   if(!_campFolderPending||!_campFolderPending.requestPermission)return Promise.resolve(false);
   var h=_campFolderPending;
   return h.requestPermission({mode:"readwrite"}).then(function(p){
     if(p!=="granted")return false;
-    _campFolderHandle=h;_campFolderPending=null;updateCampFolderUI();
+    _campRootHandle=h;_campFolderPending=null;updateCampFolderUI();
     return true;
   }).catch(function(e){return _folderPickerFailure(e,"permission");});
 }
@@ -179,7 +205,7 @@ function saveRenderImage(blob,filename,turn){
     }
     if(typeof window!=="undefined"&&window.showDirectoryPicker){
       _downloadBlob(blob,filename);
-      showToast("Saved to your downloads: "+filename+" — File ▸ Set campaign folder to keep renders with the campaign");
+      showToast("Saved to your downloads: "+filename+" — File ▸ Set campaigns folder to keep renders with the campaign");
       recordRenderPointer(filename,turn,"download");
       return "download";
     }
@@ -203,11 +229,11 @@ function recordRenderPointer(filename,turn,kind){
 // skipped silently — the row's explicit requirement. Resolves with the number restored.
 function restoreSavedRenders(){
   if(!worldState||!worldState.renders||!worldState.renders.length)return Promise.resolve(0);
-  if(!_campFolderHandle)return Promise.resolve(0);
+  if(!_campRootHandle)return Promise.resolve(0);
   var ptrs=[],i;
   for(i=0;i<worldState.renders.length;i++)if(worldState.renders[i]&&worldState.renders[i].k==="renders")ptrs.push(worldState.renders[i]);
   if(!ptrs.length)return Promise.resolve(0);
-  return _campFolderHandle.getDirectoryHandle(_SUBFOLDERS.render,{create:false}).then(function(dir){
+  return campaignFolder(false).then(function(camp){return camp.getDirectoryHandle(_SUBFOLDERS.render,{create:false});}).then(function(dir){
     var done=0;
     function step(n){
       if(n>=ptrs.length)return done;
@@ -244,15 +270,11 @@ function _attachRestoredRender(file,ptr){
 }
 function _slugFolderName(s){return(s||"Campaign").replace(/[^a-zA-Z0-9_\-]/g,"_");}
 function _openCampaignSubfolder(rootHandle,campName){
-  var slug=_slugFolderName(campName);
-  return rootHandle.getDirectoryHandle(slug,{create:true}).then(function(sub){
-    _campRootHandle=rootHandle;
-    _campFolderHandle=sub;
-    _campFolderPending=null;
-    persistCampaignFolder();   // #30: survive the next reload
-    updateCampFolderUI();
-    return sub;
-  });
+  /* #336: the pick is the ROOT; the campaign subfolder is derived beneath it (campName is the active one) */
+  _campRootHandle=rootHandle;_campFolderHandle=null;_campFolderSlug=null;_campFolderPending=null;
+  persistCampaignFolder();   // #30: survive the next reload — the ROOT is what persists
+  updateCampFolderUI();
+  return campaignFolder(true);
 }
 function _folderPickerFailure(e,action){
   if(e&&e.name==="AbortError"){
@@ -270,17 +292,22 @@ function setCampaignFolder(){
   return window.showDirectoryPicker({mode:"readwrite"}).then(function(root){
     return _openCampaignSubfolder(root,campName);
   }).then(function(sub){
-    showToast("📁 Folder ready: "+sub.name+"/");
+    showToast("📁 Folder ready: "+campaignFolderLabel(_campRootHandle.name,campName)+"/ — every campaign gets its own folder under "+_campRootHandle.name+"/");
     return true;
   }).catch(function(e){return _folderPickerFailure(e,"selection");});
 }
 function initCampaignFolderForGame(){
-  if(!window.showDirectoryPicker)return Promise.resolve(false);
   var campName=(worldState&&worldState.campName)||"Campaign";
+  /* #336: a root already picked means NO picker — just derive this campaign's folder and say where it is */
+  if(_campRootHandle){
+    return campaignFolder(true).then(function(){showToast("📁 Saving to "+campaignFolderLabel(_campRootHandle.name,campName)+"/");return true;})
+      .catch(function(e){return _folderPickerFailure(e,"initialization");});
+  }
+  if(!window.showDirectoryPicker)return Promise.resolve(false);
   return window.showDirectoryPicker({mode:"readwrite"}).then(function(root){
     return _openCampaignSubfolder(root,campName);
   }).then(function(sub){
-    showToast("📁 Saving to "+sub.name+"/");
+    showToast("📁 Saving to "+campaignFolderLabel(_campRootHandle.name,campName)+"/");
     return true;
   }).catch(function(e){return _folderPickerFailure(e,"initialization");});
 }
@@ -309,7 +336,7 @@ function _copyDir(srcDir,destDir){
   });
 }
 function renameCampaignFolder(newName){
-  if(!_campRootHandle||!_campFolderHandle)return;
+  if(!_campRootHandle||!_campFolderHandle)return;/* the cache is the OLD campaign folder — campName has already changed */
   var oldHandle=_campFolderHandle;
   var oldName=oldHandle.name;
   var newSlug=_slugFolderName(newName);
@@ -318,14 +345,14 @@ function renameCampaignFolder(newName){
     return _copyDir(oldHandle,newDir).then(function(){
       return _campRootHandle.removeEntry(oldName,{recursive:true});
     }).then(function(){
-      _campFolderHandle=newDir;
+      _campFolderHandle=newDir;_campFolderSlug=newSlug;
       updateCampFolderUI();
       showToast("📁 Renamed to "+newSlug+"/");
     });
   }).catch(function(e){showToast("Folder rename failed: "+e.message);});
 }
 function clearCampaignFolder(){
-  _campFolderHandle=null;_campRootHandle=null;_campFolderPending=null;
+  _campFolderHandle=null;_campFolderSlug=null;_campRootHandle=null;_campFolderPending=null;
   // #30: forget the PERSISTED handle too — otherwise "cleared" would silently un-clear itself on
   // the next reload, which is exactly the kind of lie the persistence was added to remove.
   updateCampFolderUI();
@@ -340,8 +367,8 @@ function clearCampaignFolder(){
   });
 }
 function updateCampFolderUI(){
-  eachMenuEl("set-folder",function(btn){btn.style.display=_campFolderHandle?"none":"block";});/* #15⑤ */
-  eachMenuEl("clear-folder",function(clr){clr.style.display=_campFolderHandle?"block":"none";if(_campFolderHandle)clr.textContent="📁 "+_campFolderHandle.name+" ×";});
+  eachMenuEl("set-folder",function(btn){btn.style.display=_campRootHandle?"none":"block";});/* #15⑤ */
+  eachMenuEl("clear-folder",function(clr){clr.style.display=_campRootHandle?"block":"none";if(_campRootHandle)clr.textContent="📁 "+campaignFolderLabel(_campRootHandle.name,worldState&&worldState.campName)+" ×";});/* #336: root/campaign */
 }
 // Export Narrative (v1.229) — an on-demand, self-contained HTML keepsake of the whole story. Reads
 // worldState.transcript (the COMPLETE, ordered, cross-device record — NOT the DOM, which the old removed
@@ -427,7 +454,7 @@ function exportSave(){
   var alreadySaved=saved.indexOf(fname)>=0;
   /* Owner call 2026-09-03 (the missing Iron Meridian save): say WHERE the file goes, not just its name.
      A folder restored from a previous session is only a name until Save re-arms it (below). */
-  var dest=saveDestination(_campFolderHandle&&_campFolderHandle.name,_campFolderPending&&_campFolderPending.name,!!(typeof window!=="undefined"&&window.showDirectoryPicker),_SUBFOLDERS.save);
+  var dest=saveDestination(campaignFolderLabel(_campRootHandle&&_campRootHandle.name,worldState&&worldState.campName)||null,_campFolderPending&&campaignFolderLabel(_campFolderPending.name,worldState&&worldState.campName),!!(typeof window!=="undefined"&&window.showDirectoryPicker),_SUBFOLDERS.save);
   var modal=modalShell("save-confirm-modal",/* #14 */
     "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Save Game (local)</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Turn "+worldState.turn+" &nbsp;·&nbsp; "+worldState.world.location+"</div>"

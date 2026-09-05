@@ -92,7 +92,7 @@ function buildFileMenus(){
       +"<div style='display:flex;align-items:center;gap:6px;padding:2px 14px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
       +"</div>"
       +sep(true)
-      +btn(p+"set-folder","📁 Set campaign folder&hellip;",0,{cls:"fm-dev-only"})
+      +btn(p+"set-folder","📁 Set campaigns folder&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"clear-folder","📁 &times;",0,{hidden:true,cls:"fm-dev-only",color:"var(--acc)",extra:"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"})
       +btn(p+"server-connect","☁ Connect to server",0,{cls:"fm-dev-only"})
       +btn(p+"server-disconnect","☁ Disconnect (<span id='"+p+"server-user'></span>)",0,{hidden:true,cls:"fm-dev-only"})

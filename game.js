@@ -2694,11 +2694,11 @@ async function beginAdventure(){
 }
 function _promptCampaignFolder(){
   if(!window.showDirectoryPicker)return;  // browser doesn't support it
-  if(typeof _campFolderHandle!=="undefined"&&_campFolderHandle)return;  // already set
+  if(typeof _campRootHandle!=="undefined"&&_campRootHandle)return;  // already set (#336: the ROOT is the one that persists)
   if(localStorage.getItem("tnd_folder_declined_v1"))return;  // user previously dismissed
   var banner=document.createElement("div");
   banner.style.cssText="position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--bg1);border:1px solid var(--acc);border-radius:var(--r);padding:12px 16px;z-index:500;display:flex;align-items:center;gap:12px;font-size:13px;font-family:var(--font);color:var(--t1);box-shadow:0 4px 16px rgba(0,0,0,.5);max-width:420px;width:90%;";
-  banner.innerHTML="<span>📁 Set a campaign folder to keep saves, renders, and logs organized?</span>"
+  banner.innerHTML="<span>📁 Pick your Campaigns folder once? Each campaign gets its own folder inside it for saves, renders, and logs.</span>"
     +"<button id='folder-yes' style='padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:#000;cursor:pointer;white-space:nowrap;'>Set folder</button>"
     +"<button id='folder-no' style='padding:6px 10px;font-size:12px;font-family:var(--font);background:none;border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;white-space:nowrap;'>Not now</button>";
   document.body.appendChild(banner);
