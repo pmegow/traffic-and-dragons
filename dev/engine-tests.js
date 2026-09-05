@@ -9460,6 +9460,27 @@ function runEngineTests(R){
     if(/press on toward/i.test(out[0]))return "fallback offered overland travel from inside the Spire: "+out[0];
     return validateSuggestion(out[0],buildSceneManifest())===null?true:"replacement button does not itself validate: "+out[0];
   });
+  t("#343 rule ⑧ (t2418): a leading cast of an INVENTED spell-shaped name rejects (nobody owns it, no bible entry); delegated casting passes when the named companion owns it and rejects when they do not; casting verbs in their plain-English sense pass; Table Talk feeds the companions' own spells and abilities",function(){
+    __gateWorld();
+    worldState.npcs=[{name:"Morwen Zethran",partyMember:true,status:"steady",charSheet:{name:"Morwen Zethran",cls:"Rogue",level:11,hp:70,maxHp:70,stats:{},abilities:[{nm:"Ward Architecture"}],spells:[{nm:"Silence",lvl:2,used:false},{nm:"Arcane Lock",lvl:2,used:false}],inventory:[]}},
+                    {name:"Daeris",partyMember:true,status:"steady",charSheet:{name:"Daeris",cls:"Cleric",level:11,hp:60,maxHp:60,stats:{},abilities:[{nm:"Binding Ward"},{nm:"Consecrated Ground"}],spells:[{nm:"Sacred Flame",lvl:0,used:false}],inventory:[]}}];
+    var man=buildSceneManifest();
+    if(!man.partyCaps||!man.partyCaps.Daeris||man.partyCaps.Daeris.indexOf("binding ward")<0)return "manifest lacks Daeris's caps: "+JSON.stringify(man.partyCaps);
+    var b1=validateSuggestion("Cast an ambush ward and hide in the shadows.",man);if(!b1||b1.rule!=="unknown-capability")return "the exact t2418 button passed: "+JSON.stringify(b1);
+    var ok1=validateSuggestion("Have Daeris set a Binding Ward on the grate.",man);if(ok1)return "Daeris's own Binding Ward was rejected: "+JSON.stringify(ok1);
+    var ok2=validateSuggestion("Have Morwen cast Silence over the cellar door.",man);if(ok2)return "Morwen's own Silence was rejected: "+JSON.stringify(ok2);
+    var b2=validateSuggestion("Have Daeris cast a Fire Bolt at the grate.",man);if(!b2||b2.rule!=="unowned-capability")return "Daeris casting a bible spell she lacks passed: "+JSON.stringify(b2);
+    var b3=validateSuggestion("Have Morwen weave a shadow glyph across the stairs.",man);if(!b3||b3.rule!=="unknown-capability")return "Morwen working an invented glyph passed: "+JSON.stringify(b3);
+    var ok3=validateSuggestion("Cast about for tracks along the bluff.",man);if(ok3)return "plain-English cast rejected: "+JSON.stringify(ok3);
+    var ok4=validateSuggestion("Cast a glance at the barkeep and wait.",man);if(ok4)return "'cast a glance' rejected: "+JSON.stringify(ok4);
+    var ok5=validateSuggestion("Set the table for supper.",man);if(ok5)return "'set the table' rejected: "+JSON.stringify(ok5);
+    var out=applySuggestionGate(["Cast an ambush ward and hide in the shadows.","Study your surroundings carefully.","Count your coin and think."]);
+    if(out[0]==="Cast an ambush ward and hide in the shadows."||validateSuggestion(out[0],man)!==null)return "replacement button: "+JSON.stringify(out);
+    /* Table Talk sees the party's sheets */
+    var p=buildTableTalkPrompt("who can cast silence?");
+    if(!/Companion sheets/.test(p)||!/Morwen Zethran: spells Silence, Arcane Lock/.test(p)||!/Daeris: spells Sacred Flame \| abilities Binding Ward, Consecrated Ground/.test(p))return "Table Talk does not carry the companion sheets: "+p.slice(p.indexOf("Party:"),p.indexOf("Party:")+300);
+    return true;
+  });
   t("#342 rule ⑦ (t2418): a leading travel verb aimed at the CURRENT world location rejects as already-here — sublocated or not, by name or merged alias; leaving the sub by its own name passes; the same button from another town passes as real travel",function(){
     __gateWorld();
     memory.map.nodes={"Sandpoint":{},"Magnimar":{},"Sandpoint Coast - Sea Approach":{}};

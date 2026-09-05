@@ -332,6 +332,13 @@ function buildSceneManifest(){
   }
   (c.spells||[]).forEach(function(s){addCap(s.nm);});
   (c.abilities||[]).forEach(function(a){addCap(a.nm);});
+  /* #343: what each PRESENT companion can use, by base name — rule ⑧ reads it for delegated casting
+     ("Have Daeris set a Binding Ward…"). Kept apart from man.caps, which stays the ACTIVE character's
+     ownership (rule ② must still reject the player casting a companion's spell). */
+  man.partyCaps={};
+  for(i=0;i<man.npcs.length;i++){var _pcs=(typeof findCompanionChar==="function")?findCompanionChar(man.npcs[i]):null;if(!_pcs)continue;var _pl=[];
+    (_pcs.spells||[]).forEach(function(s){_pl.push(capBaseName(s.nm));});(_pcs.abilities||[]).forEach(function(a){_pl.push(capBaseName(a.nm));});
+    man.partyCaps[man.npcs[i]]=_pl;}
   return man;
 }
 // null = passes; {rule,detail} = reject. Narrow, high-precision rules only.
@@ -351,10 +358,39 @@ function validateSuggestion(text,man){
   }
   // ② casting a bible spell the active character does not own
   if(/\b(cast|casts|casting)\b/i.test(t)&&typeof CAPABILITY_BIBLE!=="undefined"){
-    var owned={};for(i=0;i<man.caps.length;i++)owned[man.caps[i].name]=1;
+    /* #343: a DELEGATED cast ("Have Morwen cast Silence…") is judged against the named present
+       companion's sheet (man.partyCaps), not the active character's — Morwen casting her own
+       Silence is legal; the player casting Morwen's Silence still is not. */
+    var owned={},_dlg=t.match(/^\s*have\s+([A-Z][\w' -]*?)\s+(?:cast|casts)\b/i),_dlgName=null;
+    if(_dlg){for(var _dn in (man.partyCaps||{})){if(new RegExp("\\b"+suggestionNameAlt(_dn)+"\\b","i").test(_dlg[1])){_dlgName=_dn;break;}}}
+    if(_dlgName){for(i=0;i<man.partyCaps[_dlgName].length;i++)owned[man.partyCaps[_dlgName][i]]=1;}
+    else{for(i=0;i<man.caps.length;i++)owned[man.caps[i].name]=1;}
     for(var key in CAPABILITY_BIBLE){
       if(CAPABILITY_BIBLE[key].kind!=="spell"||owned[key])continue;
-      if(suggestionInvokesCap(t,key))return {rule:"unowned-capability",detail:"casts "+key+", which is not on the active character's sheet"};
+      if(suggestionInvokesCap(t,key))return {rule:"unowned-capability",detail:"casts "+key+", which is not on "+(_dlgName?_dlgName+"'s":"the active character's")+" sheet"};
+    }
+  }
+  // ⑧ (#343, t2418 — "Cast an ambush ward and hide in the shadows."): a LEADING casting verb — the
+  // player's own, or delegated ("Have Daeris set a Binding Ward on the grate.") — whose object is
+  // spell-SHAPED (ward, sphere, bolt, glyph…) yet is no capability anyone present owns. Rule ② only
+  // knows bible keys the active character lacks; an INVENTED name is not a bible key and slipped
+  // through. Precision levers: the leading verb, the spell-word list ("cast about for tracks" and
+  // "cast a glance" carry no spell-word and pass), and ownership resolved against the sheets —
+  // delegated to a present companion who owns it passes (Daeris DID have Binding Ward; the GM's
+  // narration that turn was grounded, only the button was invented).
+  var castM=t.match(/^\s*(?:have\s+([A-Z][\w' -]*?)\s+)?(?:cast|casts|set(?: down)?|lay(?: down)?|slap down|invoke|channel|work|weave)\s+(?:an?\s+|the\s+|your\s+|his\s+|her\s+|their\s+)?(.+)$/i);
+  if(castM){
+    var castObj=castM[2].replace(/[.!?]+\s*$/,"").split(/\s+(?:and|then|on|onto|over|near|at|across|around|before|while|so|to)\s+|,\s*/i)[0].trim(),castObjLc=castObj.toLowerCase();
+    if(castObj&&/\b(ward|wards|sphere|bolt|shield|blast|charm|hex|curse|glamour|illusion|barrier|sigil|glyph|rune|invocation|ritual|enchantment|spell|cantrip|aura|zone|circle|wall|blade|flame|frost|cloud|fog|mist|binding|blessing|banishment|summoning)\b/i.test(castObj)){
+      var ownsIn=function(list){var q;for(q=0;q<(list||[]).length;q++){if(String(list[q]).length>=3&&castObjLc.indexOf(String(list[q]).toLowerCase())>=0)return true;}return false;};
+      var activeNames=man.caps.map(function(cp){return cp.name;}),pcAll=man.partyCaps||{},pn;
+      if(castM[1]){/* delegated: the named present companion must own it */
+        var tgt=null;for(pn in pcAll){if(new RegExp("\\b"+suggestionNameAlt(pn)+"\\b","i").test(castM[1])){tgt=pn;break;}}
+        if(tgt&&!ownsIn(pcAll[tgt]))return {rule:(typeof capabilityLookup==="function"&&capabilityLookup(castObj))?"unowned-capability":"unknown-capability",detail:tgt+" has no \""+castObj+"\" on their sheet"};
+      }else{/* the player's own cast: a bible key they lack is rule ②'s; an invented name is ours */
+        var anyOwned=ownsIn(activeNames);for(pn in pcAll){if(ownsIn(pcAll[pn]))anyOwned=true;}
+        if(!anyOwned&&!(typeof capabilityLookup==="function"&&capabilityLookup(castObj)))return {rule:"unknown-capability",detail:"\""+castObj+"\" is not a capability anyone present owns, nor a bible entry"};
+      }
     }
   }
   // ③ direct interaction with the DECEASED (B3 stamp) — mere mention stays legal

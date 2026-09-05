@@ -193,6 +193,15 @@ function ttStateBlock(){
   var party=[];
   if(worldState.npcs)for(i=0;i<worldState.npcs.length;i++){var n=worldState.npcs[i];if(n.partyMember)party.push(n.name+(n.charSheet?" (lv"+n.charSheet.level+" "+(n.charSheet.cls||"")+", HP "+n.charSheet.hp+"/"+n.charSheet.maxHp+")":""));}
   s.push("Party: "+(party.length?party.join(", "):"(no companions)"));
+  /* #343 (owner 2026-09-05): Table Talk answered "no character sheet lists either spell" about capabilities
+     that WERE on Daeris's and Morwen's sheets — it fed only the player's spells and abilities and gave each
+     companion one line (level, class, HP). A help desk that cannot see the party's sheets misreports with
+     confidence, and a confident misreport sends the owner chasing phantom drift. Names only; canon comes
+     from the capability block when the question names one. */
+  var _ttSheets=[];
+  if(worldState.npcs)for(i=0;i<worldState.npcs.length;i++){var _tn=worldState.npcs[i];if(!_tn.partyMember||!_tn.charSheet)continue;var _tc=_tn.charSheet,_tsp=(_tc.spells||[]).map(function(x){return x.nm;}),_tab=(_tc.abilities||[]).map(function(x){return x.nm;});
+    if(_tsp.length||_tab.length)_ttSheets.push(_tn.name+": spells "+(_tsp.length?_tsp.join(", "):"none")+" | abilities "+(_tab.length?_tab.join(", "):"none"));}
+  if(_ttSheets.length)s.push("Companion sheets (their own spells and abilities — a companion CAN use what is listed here): "+_ttSheets.join("; "));
   if(c.inventory&&c.inventory.length)s.push("Inventory: "+c.inventory.join(", "));
   if(c.spells&&c.spells.length){var sp=[];for(i=0;i<c.spells.length;i++)sp.push(c.spells[i].nm+(c.spells[i].used?" (used)":""));s.push("Known spells: "+sp.join(", "));}
   if(c.abilities&&c.abilities.length){var ab=[];for(i=0;i<c.abilities.length;i++)ab.push(c.abilities[i].nm);s.push("Abilities: "+ab.join(", "));}
