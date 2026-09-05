@@ -2037,13 +2037,30 @@ async function sendAction(override,opts){
     // out-of-character instruction (#74 ②: GM narrated, was corrected, complied, then narrated
     // again next question). Its context now comes from buildTableTalkPrompt instead, including
     // a TT-only history. kind:"tabletalk" gives it its own Usage-modal bucket.
-    var resp=await callGM(apiTxt,sys,null,null,isTT?{noHistory:true,kind:"tabletalk"}:undefined);th.remove();
+    var _refusalRetried=false;/* #323/#335: ONE narrate-the-beat retry per turn, whichever refusal shape arrives first */
+    try{var resp=await callGM(apiTxt,sys,null,null,isTT?{noHistory:true,kind:"tabletalk"}:undefined);}/* var hoists: the #323 pin keeps its literal */
+    catch(_e0){
+      /* #335 (the t189 tub): a refusal that arrives as an EMPTY candidate (gemini 3 goes silent instead of
+         writing "I cannot") is the same event as the worded refusal below and earns the same one retry —
+         the narrate-the-beat note in front of the player's own words. A second failure rethrows WITH the
+         adapter's reason (prompt block / finish reason / blocked category) so the error line says why. */
+      if(!isTT&&!(opts&&opts.silent)&&_e0&&_e0.modelRefusal&&typeof refusalRetryNote==="function"){
+        if(typeof console!=="undefined")console.warn("[refusal] #335 "+_e0.message+" \u2014 retrying once with the narrate-the-beat note");
+        if(typeof erCrumb==="function")erCrumb("turn-empty-retry",String(_e0.finish||"?").slice(0,24));
+        var _e0Th=addMsg("thinking","Rephrasing the ask\u2026");
+        _refusalRetried=true;
+        try{resp=await callGM(refusalRetryNote()+"\n\n"+apiTxt,sys,null,null,undefined);}
+        finally{if(_e0Th&&_e0Th.remove)_e0Th.remove();}
+        if(typeof console!=="undefined")console.info("[refusal] #335 the retry narrated the beat");
+      }else throw _e0;
+    }
+    th.remove();
     /* #323 (owner call 2026-09-03): a model refusal gets ONE automatic retry with the narrate-the-beat
        note before anything is shown — the t140 kiss comes back as a kiss, not a policy sentence. The
        retry's answer is judged by the same detector; a second refusal falls through to the #197
        non-canon commit exactly as before. The record keeps the ORIGINAL user message (the note is
        engine ceremony, not the player's words). Table Talk is never retried. */
-    if(!isTT&&typeof detectModelRefusal==="function"&&typeof refusalRetryNote==="function"&&detectModelRefusal(cleanTxt(resp))){
+    if(!isTT&&!_refusalRetried&&typeof detectModelRefusal==="function"&&typeof refusalRetryNote==="function"&&detectModelRefusal(cleanTxt(resp))){
       var _rrTh=addMsg("thinking","Rephrasing the ask\u2026");
       try{
         var _rr2=await callGM(refusalRetryNote()+"\n\n"+apiTxt,sys,null,null,undefined);

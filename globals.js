@@ -357,7 +357,18 @@ var PROVIDERS={
     // and MORE narration (thinking-on spends its budget deliberating instead of writing).
     // ⚠ "minimal" is NOT a legal tightening — this model rejects it with HTTP 400.
     buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={thinkingConfig:{thinkingLevel:"low"}};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
-    parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string"||!data.candidates[0].content.parts[0].text.trim())throw new Error("Empty response");return data.candidates[0].content.parts[0].text;}, // #198: ""/whitespace THROWS (the empty-turn commit class, field t2002)
+    // #198: ""/whitespace THROWS. #335 (the t189 tub, 2026-09-04): three "EMPTY RESPONSE" in a row told the
+    // player nothing — the old guard read parts[0] only and discarded the reason. Now EVERY text part is
+    // joined (thought parts skipped — gemini 3 may lead with a signature or an empty part), and an empty
+    // turn names WHY: the prompt block reason, the candidate's finish reason plus any blocked safety
+    // category, or "no candidates". e.modelRefusal marks it for sendAction's narrate-the-beat retry (#323):
+    // an empty STOP candidate is the model choosing silence over a refusal sentence, so it counts too.
+    parseResponse:function(data){var c=data.candidates&&data.candidates[0],pf=data.promptFeedback,parts=(c&&c.content&&c.content.parts)||[],txt="",i;
+      for(i=0;i<parts.length;i++){if(parts[i]&&!parts[i].thought&&typeof parts[i].text==="string")txt+=parts[i].text;}
+      if(txt.trim())return txt;
+      var why=(pf&&pf.blockReason)?"prompt blocked: "+pf.blockReason:!c?"no candidates":"finish: "+(c.finishReason||"?"),cats=[],rs=(c&&c.safetyRatings)||(pf&&pf.safetyRatings)||[];
+      for(i=0;i<rs.length;i++){if(rs[i]&&rs[i].blocked)cats.push(String(rs[i].category||"").replace(/^HARM_CATEGORY_/,""));}
+      var e=new Error("Empty response \u2014 gemini "+why+(cats.length?" ["+cats.join(", ")+"]":""));e.modelRefusal=true;e.finish=c?c.finishReason:(pf&&pf.blockReason);throw e;}, // (#198: the empty-turn commit class, field t2002)
     parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:(u.candidatesTokenCount||0)+(u.thoughtsTokenCount||0),cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};}, // thoughtsTokenCount folded into out (probe 2026-08-16: gemini-3.7-flash thinks MANDATORILY — 745 thought tokens per 51 output on a trivial call, billed as output, previously invisible to the meter)
     parseFinish:function(data){var c=data.candidates&&data.candidates[0];return (c&&c.finishReason==="MAX_TOKENS")?"MAX_TOKENS":null;},
     reinforce:TAG_REINFORCE,
@@ -365,7 +376,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.817";
+var APP_VERSION="v1.818";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

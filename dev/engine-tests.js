@@ -2987,6 +2987,33 @@ function runEngineTests(R){
     if("reasoning_effort" in b4)return "gpt-4o got reasoning_effort — non-reasoning models reject the param";
     return b4.max_tokens===100?true:"gpt-4o max_tokens path drifted";
   });
+  // ── #335 (the t189 tub, 2026-09-04): three "GM ERROR: EMPTY RESPONSE" in a row with no reason ───
+  t("#335 gemini parseResponse names WHY a response is empty — the prompt block reason, the candidate's finish reason with any blocked safety category, or 'no candidates' — and flags the error as a model refusal for the retry; the message still says 'empty' for the #198 contract",function(){
+    var P=PROVIDERS.gemini,e;
+    try{P.parseResponse({promptFeedback:{blockReason:"PROHIBITED_CONTENT"}});return "prompt block did not throw";}catch(x){e=x;}
+    if(!/empty/i.test(e.message)||!/prompt blocked: PROHIBITED_CONTENT/.test(e.message)||!e.modelRefusal)return "prompt block: "+e.message+" refusal="+e.modelRefusal;
+    try{P.parseResponse({candidates:[{finishReason:"SAFETY",safetyRatings:[{category:"HARM_CATEGORY_SEXUALLY_EXPLICIT",probability:"HIGH",blocked:true},{category:"HARM_CATEGORY_HARASSMENT",probability:"LOW",blocked:false}]}]});return "SAFETY finish did not throw";}catch(x){e=x;}
+    if(!/finish: SAFETY/.test(e.message)||!/SEXUALLY_EXPLICIT/.test(e.message)||/HARASSMENT/.test(e.message)||!e.modelRefusal)return "safety finish: "+e.message;
+    try{P.parseResponse({candidates:[{finishReason:"STOP",content:{parts:[]}}]});return "empty STOP did not throw";}catch(x){e=x;}
+    if(!/empty/i.test(e.message)||!/finish: STOP/.test(e.message)||!e.modelRefusal)return "empty STOP candidate (the model chose silence) must still earn the retry: "+e.message;
+    try{P.parseResponse({});return "no candidates did not throw";}catch(x){e=x;}
+    if(!/no candidates/.test(e.message)||!e.modelRefusal)return "no candidates: "+e.message;
+    try{P.parseResponse({candidates:[{finishReason:"MAX_TOKENS",content:{parts:[{thought:true,text:"planning"}]}}]});return "thought-only did not throw";}catch(x){e=x;}
+    return /finish: MAX_TOKENS/.test(e.message)?true:"thought-only: "+e.message;
+  });
+  t("#335 gemini parseResponse joins EVERY text part and skips thought parts — a leading signature/empty part no longer reads as an empty turn",function(){
+    var P=PROVIDERS.gemini;
+    var r=P.parseResponse({candidates:[{finishReason:"STOP",content:{parts:[{thoughtSignature:"abc"},{text:""},{thought:true,text:"hidden plan"},{text:"The tub "},{text:"steams."}]}}]});
+    if(r!=="The tub steams.")return "joined: "+JSON.stringify(r);
+    return P.parseResponse({candidates:[{content:{parts:[{text:"ok"}]}}]})==="ok"?true:"single part broken";
+  });
+  t("#335 sendAction: a thrown model refusal (the empty gemini candidate) gets the SAME one automatic narrate-the-beat retry as a worded refusal (#323), and only a story turn; the reason reaches the player when the retry fails too",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=g.indexOf("async function sendAction("),body=g.slice(i,g.indexOf("\nfunction ",i+10));
+    if(body.indexOf("_e0.modelRefusal")<0)return "sendAction does not look at the thrown refusal flag";
+    var blk=body.slice(body.indexOf("_e0.modelRefusal"),body.indexOf("throw _e0;"));if(blk.indexOf('refusalRetryNote()+"\\n\\n"+apiTxt')<0)return "the retry does not ride the narrate-the-beat note in front of the player's own words";
+    if(!/!isTT&&[^\n]*_e0&&_e0\.modelRefusal/.test(body))return "Table Talk must never be retried";
+    return /throw _e0;/.test(body)?true:"a non-refusal error must rethrow untouched";
+  });
   t("#198 openai tokScale 4 — reasoning shares the completion budget, so the runaway cap needs headroom (turns 6000, actions 800)",function(){
     return PROVIDERS.openai.tokScale===4?true:"openai tokScale is "+PROVIDERS.openai.tokScale+" — the 200-token actions call is all-reasoning-empty without headroom";
   });
@@ -12806,7 +12833,8 @@ function runEngineTests(R){
     var call=body.indexOf("var resp=await callGM(apiTxt,sys"),retry=body.indexOf("refusalRetryNote()"),commit=body.indexOf("commitGmTurn(resp,{userMsg:apiTxt");
     if(call<0||retry<0||commit<0)return "wiring missing: call "+call+" retry "+retry+" commit "+commit;
     if(!(call<retry&&retry<commit))return "the retry must sit between the GM call and the commit";
-    if((body.match(/refusalRetryNote\(\)/g)||[]).length!==1)return "exactly one retry";
+    if((body.match(/refusalRetryNote\(\)/g)||[]).length!==2)return "exactly two retry sites (#323 worded, #335 empty candidate)";
+    if(body.indexOf("!_refusalRetried&&")<0||body.indexOf("_refusalRetried=true;")<0)return "one retry per turn: the worded-refusal retry must yield when the empty-candidate retry already fired (#335)";
     if(body.slice(retry,commit).indexOf("detectModelRefusal(cleanTxt(_rr2))")<0)return "the retry's answer is not judged by the same detector";
     return body.slice(call,commit).indexOf("isTT")>=0?true:"Table Talk must not be retried";
   });
