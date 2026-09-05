@@ -974,6 +974,13 @@ function maybeShowSpellUnlock(){
 // pick exactly N) as a milestone modal in the stat-bump house style. Forced choice: no ×, no
 // outside-close (same as the archetype/bump milestones); already-known spells are filtered by
 // base name so a re-shown modal can never offer a duplicate.
+// #340 (owner call 2026-09-05): three party members levelled in one refresh and the milestone modals
+// never said WHOSE pick this was. ONE header for all three (archetype / stat bump / spell unlock):
+// the character's name on top, the kicker beneath. escHtml — names are player text.
+function _milestoneHead(c,kicker){
+  return "<div id='ms-name' style='font-size:20px;font-weight:bold;color:var(--t0);margin-bottom:2px;'>"+escHtml((c&&c.name)||"?")+"</div>"
+    +"<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>"+kicker+"</div>";
+}
 function showSpellUnlockModal(unl){
   var c=worldState.character,have={},i;
   for(i=0;i<(c.spells||[]).length;i++)have[capBaseName(c.spells[i].nm)]=1;
@@ -989,7 +996,7 @@ function showSpellUnlockModal(unl){
     var ds=(typeof spellPickDesc==="function")?spellPickDesc(pool[i]):"";
     ch+="<div class='sc' id='spu-opt-"+i+"' onclick='spuToggle("+i+")' data-nm=\""+pool[i].replace(/"/g,"&quot;")+"\" style='text-align:left;padding:12px 14px;margin-bottom:8px;'><div class='nm' style='font-size:14px;'>"+pool[i]+"</div>"+(ds?"<div class='sb' style='font-size:11px;color:var(--t2);margin-top:3px;'>"+ds+"</div>":"")+"</div>";
   }
-  modalShell("spu-modal","<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>Tier "+unl.tier+" Spells Unlocked</div><div style='font-size:13px;color:var(--t1);margin-bottom:12px;'>Choose "+need+" — <span id='spu-count'>0</span>/"+need+" selected.</div><div id='spu-list' style='max-height:min(672px,60vh);overflow-y:auto;padding-right:4px;'>"+ch+"</div><div id='spu-warn' style='color:var(--red);font-size:12px;margin:6px 0;'></div><button id='spu-confirm' onclick='spuConfirm()' style='width:100%;padding:12px;margin-top:6px;'>Confirm</button>",
+  modalShell("spu-modal",_milestoneHead(c,"Tier "+unl.tier+" Spells Unlocked")+"<div style='font-size:13px;color:var(--t1);margin-bottom:12px;'>Choose "+need+" — <span id='spu-count'>0</span>/"+need+" selected.</div><div id='spu-list' style='max-height:min(672px,60vh);overflow-y:auto;padding-right:4px;'>"+ch+"</div><div id='spu-warn' style='color:var(--red);font-size:12px;margin:6px 0;'></div><button id='spu-confirm' onclick='spuConfirm()' style='width:100%;padding:12px;margin-top:6px;'>Confirm</button>",
     {overlayExtra:"overflow-y:auto;",boxBg:"#181818",maxWidth:480,wireClose:false});
 }
 function spuToggle(i){
@@ -1228,7 +1235,7 @@ function showArchetypeModal(){
   var c=worldState.character,archs=(classDef(c.cls)||{}).archetypes||[];/* C6 ② */
   var ch="",i;for(i=0;i<archs.length;i++){ch+="<div class='sc' onclick='pickArchetype("+i+")' style='text-align:left;padding:14px 16px;margin-bottom:10px;'><div class='nm' style='margin-bottom:5px;'>"+archs[i].nm+"</div><div style='font-size:12px;color:var(--t1);line-height:1.5;'>"+archs[i].desc+"</div></div>";}
   /* #14: modalShell (ui-shell.js) — wireClose:false, forced milestone choice (no × / no outside-close) */
-  modalShell("arch-modal","<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>Level 3 Milestone</div><div style='font-size:18px;color:var(--t0);margin-bottom:18px;'>Choose Archetype</div>"+ch,
+  modalShell("arch-modal",_milestoneHead(c,"Level 3 Milestone")+"<div style='font-size:18px;color:var(--t0);margin-bottom:18px;'>Choose Archetype</div>"+ch,
     {overlayExtra:"overflow-y:auto;",boxBg:"#181818",maxWidth:480,wireClose:false});
 }
 // #320 (owner report 2026-09-03, the Iron Meridian Gazz): the archetype pick grants the archetype's OWN
@@ -1271,7 +1278,7 @@ function showStatBumpModal(){
   var c=worldState.character;
   var rh="",i;for(i=0;i<STATS.length;i++){var s=STATS[i];rh+="<div style='display:flex;align-items:center;gap:10px;margin-bottom:10px;'><span style='width:36px;font-weight:bold;color:var(--t1);'>"+s+"</span><span style='width:32px;font-size:16px;font-weight:bold;' id='sb-cur-"+s+"'>"+c.stats[s]+"</span><button onclick=\"sbPick('"+s+"',1,this)\" style='padding:5px 14px;border:1px solid #444;border-radius:4px;background:#222;color:var(--t0);cursor:pointer;font-family:var(--font);'>+1</button><button onclick=\"sbPick('"+s+"',2,this)\" style='padding:5px 14px;border:1px solid #444;border-radius:4px;background:#222;color:var(--t0);cursor:pointer;font-family:var(--font);'>+2</button></div>";}
   /* #14: modalShell (ui-shell.js) — wireClose:false, forced milestone choice (Back/Confirm only) */
-  modalShell("sb-modal","<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>Stat Improvement</div><div style='font-size:13px;color:var(--t2);margin-bottom:18px;'>+2 to one or +1 to two. Max 20.</div>"+rh+"<p id='sb-warn' style='font-size:12px;color:#c04040;min-height:16px;'></p><div style='display:flex;gap:10px;'><button onclick='sbBack()' style='padding:10px 18px;font-family:var(--font);border:1px solid var(--brd);border-radius:var(--r);background:var(--bg1);color:var(--t0);cursor:pointer;'>Back</button><button onclick='sbConfirm()' style='flex:1;padding:12px;font-size:14px;font-family:var(--font);background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Confirm</button></div>",
+  modalShell("sb-modal",_milestoneHead(c,"Stat Improvement")+"<div style='font-size:13px;color:var(--t2);margin-bottom:18px;'>+2 to one or +1 to two. Max 20.</div>"+rh+"<p id='sb-warn' style='font-size:12px;color:#c04040;min-height:16px;'></p><div style='display:flex;gap:10px;'><button onclick='sbBack()' style='padding:10px 18px;font-family:var(--font);border:1px solid var(--brd);border-radius:var(--r);background:var(--bg1);color:var(--t0);cursor:pointer;'>Back</button><button onclick='sbConfirm()' style='flex:1;padding:12px;font-size:14px;font-family:var(--font);background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Confirm</button></div>",
     {boxBg:"#181818",maxWidth:380,wireClose:false});
   _sbPicks=[];
 }

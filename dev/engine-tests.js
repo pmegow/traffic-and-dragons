@@ -936,6 +936,15 @@ function runEngineTests(R){
     if(list<0||!/spu-list' style='max-height:min\(672px,60vh\);overflow-y:auto/.test(body))return "no bounded scroll box around the bench";
     return head<list&&list<confirm&&body.indexOf("</div><div id='spu-warn'")>list?true:"Confirm or the header ended up inside the scroll box";
   });
+  t("#340 every level-up milestone modal names WHOSE pick it is — the character's name sits above the kicker on the archetype, stat-bump and spell-unlock modals (owner call 2026-09-05: three party members levelled in one refresh)",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    var bad=[];[["spu-modal","Spells Unlocked"],["arch-modal","Level 3 Milestone"],["sb-modal","Stat Improvement"]].forEach(function(p){
+      var at=src.indexOf('modalShell("'+p[0]+'",_milestoneHead(c,"');if(at<0||src.slice(at,at+120).indexOf(p[1])<0)bad.push(p[0]);});
+    if(bad.length)return bad.join(", ")+" not built through _milestoneHead";
+    var h=_milestoneHead({name:"<Daeris>"},"Tier 3 Spells Unlocked");
+    if(h.indexOf("&lt;Daeris&gt;")<0)return "name not escaped: "+h;
+    return h.indexOf("id='ms-name'")>=0&&h.indexOf("ms-name")<h.indexOf("Tier 3 Spells Unlocked")?true:"name is not above the kicker: "+h;
+  });
   t("#325b a save whose last act closed BEFORE v1.800 still gets the offer: endingOffered derives 'the tale is told' from the skeleton (every act completed) and backfills spineComplete (the t147 comb: Act 3 closed at t145 on v1.795, no stamp)",function(){
     makeWorld();worldState.campName="X";worldState.turn=147;var c=worldState.character;c.hp=c.maxHp;
     worldState.skeleton={premise:"p",acts:[{title:"A",status:"completed",completedTurn:30,arcs:[]},{title:"B",status:"completed",completedTurn:117,arcs:[]},{title:"C",status:"completed",completedTurn:145,arcs:[]}]};delete worldState.spineComplete;
