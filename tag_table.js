@@ -392,6 +392,9 @@ var TAG_TABLE=[
 {t:"COMPANION_AGENDA",apply:function(text,R){var ts=text.match(/\[COMPANION_AGENDA:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[COMPANION_AGENDA:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/);if(!m)continue;var nm=resolveNpcName(m[1].trim()),cs=findCompanionChar(nm);
   if(!cs){if(typeof console!=="undefined")console.warn("[agenda] [COMPANION_AGENDA:"+m[1].trim()+"] — no companion sheet by that name; ignored (#330)");continue;}
   var placed=agendaFile(cs,m[2].trim(),m[3],"gm",R.turn);if(placed==="active")R.muts.push(nm+" wants: "+m[2].trim());else if(placed==="silent")R.muts.push(nm+" (later, silent): "+m[2].trim());
+  /* #347 (owner 2026-09-05): a want landing is a visible event, like a level-up — the sheet's Wants section fills in
+     silently otherwise, and three manufactured wants went unnoticed for days. One toast per filing. */
+  if(placed&&typeof showToast==="function")showToast((placed==="active"?"\u2605 "+nm+" wants: ":"\u2605 "+nm+" (later): ")+m[2].trim());
   if(worldState.agendaBirth&&worldState.agendaBirth.name===nm)delete worldState.agendaBirth;}}},
 {t:"COMPANION_AGENDA_DONE",apply:function(text,R){var ts=text.match(/\[COMPANION_AGENDA_DONE:([^|\]]+)(?:\|([^\]]*))?\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[COMPANION_AGENDA_DONE:([^|\]]+)(?:\|([^\]]*))?\]/);if(!m)continue;var nm=resolveNpcName(m[1].trim()),cs=findCompanionChar(nm);if(!cs)continue;
   var res=agendaComplete(cs,m[2],R.turn,m[2]?"resolved before its turn":"fulfilled");if(!res){if(typeof console!=="undefined")console.warn("[agenda] [COMPANION_AGENDA_DONE:"+nm+"] — nothing to complete (#330)");continue;}

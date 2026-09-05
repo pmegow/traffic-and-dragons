@@ -1129,10 +1129,10 @@ function runEngineTests(R){
   t("#341 PARTY HISTORIES: companion backstory/trait/flaw/motivation reach the GM in the STABLE half (byte-identical across turns), a companion without any is silent, a dead one is dropped, and the agenda ask grounds the want in the motivation on record (the Morwen grimoire incident, 2026-09-05)",function(){
     var cs=__agendaWorld();
     if(buildPartyHistoriesBlock()!=="")return "block present for a companion with no history fields";
-    var a0=buildAgendaAskNote();if(/PARTY HISTORIES/.test(a0)||!/never invent/i.test(a0))return "ungrounded ask should still forbid invention and not cite an absent block: "+a0;
-    cs.agendaAsked=undefined;
     cs.backstory="Fifteen years reconstructing Fey Court contract law after the Court took her brother Caelen.";cs.trait="Catalogues everything.";cs.flaw="Deflects.";cs.motivation="Void the bloodline debt that took Caelen.";
-    var a=buildAgendaAskNote();if(!/PARTY HISTORIES/.test(a)||!/next concrete step/i.test(a)||!/never invent/i.test(a))return "ask not grounded: "+a;
+    /* #347: the recruitment ask is retired — a want is never mandatory; the BIRTH note and the stable rule carry the grounding */
+    if(typeof buildAgendaAskNote!=="undefined")return "the recruitment ask still exists (#347 retired it)";
+    worldState.agendaBirth={name:"Morwen",moment:"Morwen was nearly slain"};var bn=buildAgendaBirthNote();if(!/PARTY HISTORIES/.test(bn)||!/never invent/i.test(bn))return "birth note not grounded: "+bn;
     var sp=buildSysPrompt();
     if(!/PARTY HISTORIES/.test(sp.stable))return "block not in the stable half";
     if(/PARTY HISTORIES/.test(sp.volatile))return "block leaked into the volatile half";
@@ -1141,10 +1141,19 @@ function runEngineTests(R){
     wsNpcByName("Morwen").status="dead";if(/PARTY HISTORIES/.test(buildSysPrompt().stable))return "a dead companion's history is still injected";
     return true;
   });
+  t("#347 a want is never mandatory: no note asks for one; the stable rule says so and forbids invention; filing one toasts (active and later), so a landing is never silent; the t2419 save cleanup left no agenda fields",function(){
+    var cs=__agendaWorld();__toasts.length=0;
+    var sp=buildSysPrompt();if(!/most carry none/i.test(sp.stable)||!/never manufactured/i.test(sp.stable)||!/never invents a faction/i.test(sp.stable))return "stable rule lacks the optional-want clause";
+    if(/has no want of their own on record/.test(sp.volatile))return "the recruitment ask still fires";
+    applyMuts("[COMPANION_AGENDA:Morwen|Free the Widow Garman's cat|peaceful]");
+    if(!__toasts.some(function(x){return /Morwen wants: Free the Widow Garman's cat/.test(x);}))return "no toast on the active want: "+JSON.stringify(__toasts);
+    applyMuts("[COMPANION_AGENDA:Morwen|Kill Spike|violent]");
+    if(!__toasts.some(function(x){return /Morwen \(later\): Kill Spike/.test(x);}))return "no toast on the silent want: "+JSON.stringify(__toasts);
+    return true;
+  });
   t("#330 the notes: the recruitment ask fires ONCE for a companion with no want; the beat note pushes an active want every AGENDA_PUSH_DAYS on the clock, silent in combat, and its own delivery resets the clock; the birth roll (1 in 4, one per moment) arms a note for a present companion; the announce note fires once after a promotion; all four registered with their latches",function(){
     var cs=__agendaWorld();
-    var a=buildAgendaAskNote();if(!/AGENDA/.test(a)||a.indexOf("Morwen")<0||!/\[COMPANION_AGENDA:/.test(a))return "ask: "+a;
-    if(buildAgendaAskNote()!=="")return "asked twice";
+    if(typeof buildAgendaAskNote!=="undefined"||NOTE_NESTED_LATCHES.indexOf("charSheet.agendaAsked")>=0)return "the recruitment ask must stay retired (#347): a want is never mandatory";
     applyMuts("[COMPANION_AGENDA:Morwen|Free the Widow Garman's cat|peaceful]");
     if(buildAgendaBeatNote()!=="")return "beat fired before the push window";
     clockEnsure().min+=AGENDA_PUSH_DAYS*MIN_PER_DAY;
@@ -1160,8 +1169,8 @@ function runEngineTests(R){
     if(buildAgendaBirthNote()!=="")return "birth note fired twice";
     worldState.agendaAnnounce={name:"Morwen",want:"Kill Spike",turn:worldState.turn};var an=buildAgendaAnnounceNote();if(!/Kill Spike/.test(an)||!/never mentioned|in character|first time/i.test(an))return "announce: "+an;
     if(buildAgendaAnnounceNote()!=="")return "announce fired twice";
-    var reg={buildAgendaAskNote:buildAgendaAskNote,buildAgendaBeatNote:buildAgendaBeatNote,buildAgendaBirthNote:buildAgendaBirthNote,buildAgendaAnnounceNote:buildAgendaAnnounceNote},k;for(k in reg)if(!NOTE_SHAPES[k]||NOTE_BUILDERS.indexOf(reg[k])<0)return k+" not registered";
-    return NOTE_LATCH_FIELDS.indexOf("agendaBirth")>=0&&NOTE_LATCH_FIELDS.indexOf("agendaAnnounce")>=0&&NOTE_NESTED_LATCHES.indexOf("charSheet.agenda.lastBeat")>=0&&NOTE_NESTED_LATCHES.indexOf("charSheet.agendaAsked")>=0?true:"latches not declared";
+    var reg={buildAgendaBeatNote:buildAgendaBeatNote,buildAgendaBirthNote:buildAgendaBirthNote,buildAgendaAnnounceNote:buildAgendaAnnounceNote},k;for(k in reg)if(!NOTE_SHAPES[k]||NOTE_BUILDERS.indexOf(reg[k])<0)return k+" not registered";
+    return NOTE_LATCH_FIELDS.indexOf("agendaBirth")>=0&&NOTE_LATCH_FIELDS.indexOf("agendaAnnounce")>=0&&NOTE_NESTED_LATCHES.indexOf("charSheet.agenda.lastBeat")>=0?true:"latches not declared";
   });
   t("#330 the prompt and the sheet: the stable half carries the COMPANION AGENDAS rule (refusal is the ceiling; a violent want surfaces in a fight only when the foe touches it; silent wants stay silent); the party block lists the active want and the silent ones; the sheet's Wants section is readable, never editable; a blueprint seed rides the roster and is adopted at the next commit",function(){
     var cs=__agendaWorld();applyMuts("[COMPANION_AGENDA:Morwen|Free the Widow Garman's cat|peaceful][COMPANION_AGENDA:Morwen|Kill Spike|violent]");

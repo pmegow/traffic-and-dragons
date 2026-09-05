@@ -595,17 +595,11 @@ function buildPartyHistoriesBlock(){
   return "PARTY HISTORIES — who each companion was before this story and what drives them (authored canon; a companion's own wants, remarks and refusals grow from THIS, never from invention):\n"+L.join("\n")+"\n\n";
 }
 // ── #330 companions with agendas — the four asks ───────────────────────────────────────────
-// ① the recruitment ask: a companion with a sheet and no want, once (latch charSheet.agendaAsked).
-function buildAgendaAskNote(){
-  if(!worldState||worldState.combat)return"";var party=(typeof presentCompanions==="function")?presentCompanions():[],i;
-  for(i=0;i<party.length;i++){var np=party[i],cs=np.charSheet;if(!cs||cs.agenda||(cs.agendaQueue&&cs.agendaQueue.length)||cs.agendaAsked)continue;if(np.agenda)continue;/* a seed adopts at the next commit instead */
-    cs.agendaAsked=worldState.turn;
-    /* #341: ground the want. With a motivation or history on record the want IS that motivation or its
-       next concrete step; without one the old freeform ask stands. Either way: no invented names. */
-    var grounded=(cs.motivation||cs.backstory)?" Their history"+(cs.motivation?" and motivation are":" is")+" on record in PARTY HISTORIES: derive the want from them \u2014 if a motivation is on record, the want IS that motivation or its next concrete step.":"";
-    return "[ENGINE NOTE \u2014 AGENDA (not a player action): "+np.name+" has no want of their own on record. As part of who they are, give them ONE \u2014 a thing they would be doing if the player were not here (a fish to catch, a debt to settle, a name to clear) \u2014 and file it: [COMPANION_AGENDA:"+np.name+"|the want in one sentence|violent or peaceful]."+grounded+" Never invent a faction, artifact or person for it \u2014 use only names already in this prompt or on their sheet. Let it show in a line or two of character now, no ceremony.]";}
-  return"";
-}
+// ① the recruitment ask is RETIRED (owner ruling 2026-09-05, #347): it fired once for every companion who
+// predated #330 and manufactured a want from whatever the prompt happened to hold — Frizwick's smuggler
+// ring, Daeris's Vashari ledger, Morwen's Lorrath grimoire, three days running, none from the story. A want
+// is never mandatory. Wants now arrive only organically: a blueprint seed, a defining moment (③ below), or
+// the GM filing one because the story earned it.
 // ② the beat: an ACTIVE want pushes once per AGENDA_PUSH_DAYS on the campaign clock, outside combat; the note
 // itself resets the clock (nested latch charSheet.agenda.lastBeat) so it never nags turn after turn.
 function buildAgendaBeatNote(){
@@ -619,7 +613,7 @@ function buildAgendaBeatNote(){
 function buildAgendaBirthNote(){
   var b=worldState&&worldState.agendaBirth;if(!b||!b.name)return"";var cs=findCompanionChar(b.name);if(!cs){delete worldState.agendaBirth;return"";}
   delete worldState.agendaBirth;
-  return "[ENGINE NOTE \u2014 A WANT IS BORN (not a player action): the defining moment \""+b.moment+"\" has given "+b.name+" something of their own to want. File it: [COMPANION_AGENDA:"+b.name+"|the want in one sentence|violent or peaceful]."+(cs.agenda?" They already have a want in hand, so this one stays SILENT until it resolves \u2014 the engine files it as 'later'; do not have them speak of it yet.":" Let it show in a line of character now.")+"]";
+  return "[ENGINE NOTE \u2014 A WANT IS BORN (not a player action): the defining moment \""+b.moment+"\" has given "+b.name+" something of their own to want. File it: [COMPANION_AGENDA:"+b.name+"|the want in one sentence|violent or peaceful]. The want grows from THAT moment and from their history on record (PARTY HISTORIES) \u2014 never invent a faction, artifact or person for it; use only names already in this prompt or on their sheet."+(cs.agenda?" They already have a want in hand, so this one stays SILENT until it resolves \u2014 the engine files it as 'later'; do not have them speak of it yet.":" Let it show in a line of character now.")+"]";
 }
 // ④ the announce: the active want resolved and a silent one stepped up — the GM says so in character, once,
 // so the player never hears "you never mentioned your brother before".
@@ -1712,7 +1706,7 @@ function buildArcWallNudge(){
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
 var NOTE_LATCH_FIELDS=["agendaBirth","agendaAnnounce",/* #330 */"hoursAsk",/* #207 ③ */"plotArmorPing",/* #319 */"whisperAsk",/* #317 */"montagePing","wrapUpPing",/* #308 */"recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
-var NOTE_NESTED_LATCHES=["questLog[].staleNudged","charSheet.splitLoc.audited","charSheet.agendaAsked","charSheet.agenda.lastBeat",/* #330 */"conditions[].until","memory.futureEvents[]._asked","memory.futureEvents[]._askPending","sessionLog"];
+var NOTE_NESTED_LATCHES=["questLog[].staleNudged","charSheet.splitLoc.audited","charSheet.agenda.lastBeat",/* #330; the agendaAsked latch retired with the recruitment ask (#347) */"conditions[].until","memory.futureEvents[]._asked","memory.futureEvents[]._askPending","sessionLog"];
 function snapshotNoteLatches(){
   var snap={t:{},split:[],quests:[],conds:[]},i;
   snap.future=(memory.futureEvents||[]).map(function(f){return {what:f.what,setTurn:f.setTurn,asked:f._asked,pending:f._askPending};});
@@ -1755,7 +1749,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<ql2.length;j++){if(ql2[j]&&ql2[j].title===qr.title){
       if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;}}}
 }
-var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildPlotArmorNote,/* #319 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 */buildMontageNote,buildWrapUpNote,/* #308 */buildWhispersNote,/* #317 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildHoursNote,/* #207 ③ */buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildAgendaAskNote,buildAgendaBirthNote,buildAgendaAnnounceNote,buildAgendaBeatNote,/* #330: character colour yields to every audit above */buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildPlotArmorNote,/* #319 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 */buildMontageNote,buildWrapUpNote,/* #308 */buildWhispersNote,/* #317 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildHoursNote,/* #207 ③ */buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildAgendaBirthNote,buildAgendaAnnounceNote,buildAgendaBeatNote,/* #330: character colour yields to every audit above */buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // #309: THE SHAPE REGISTRY (owner ruling 2026-09-03 — one-in-one-out was REJECTED after the
 // 49-builder catalog, audits/RECORD_309_note_builder_catalog.md: builders are six shapes, not
 // fungible units). Every builder declares its shape, the latch fields it burns (declared in
@@ -1796,8 +1790,7 @@ var NOTE_SHAPES={
   buildLocationDescNudge:{shape:"cooldown-reminder",latch:["locDescNudged"],combat:"silent",ack:["LOCATION_DESC"]},
   buildMarketNote:{shape:"one-shot-ask",latch:["marketAsk"],combat:"silent",ack:["WARES","WANTED"]},
   buildHoursNote:{shape:"one-shot-ask",latch:["hoursAsk"],combat:"silent",ack:["LOCATION_HOURS"]},/* #207 ③ */
-  buildAgendaAskNote:{shape:"one-shot-ask",latch:["charSheet.agendaAsked"],combat:"silent",ack:["COMPANION_AGENDA"]},/* #330 */
-  buildAgendaBeatNote:{shape:"cooldown-reminder",latch:["charSheet.agenda.lastBeat"],combat:"silent",ack:["COMPANION_AGENDA_BEAT","COMPANION_AGENDA_DONE"]},/* #330 */
+    buildAgendaBeatNote:{shape:"cooldown-reminder",latch:["charSheet.agenda.lastBeat"],combat:"silent",ack:["COMPANION_AGENDA_BEAT","COMPANION_AGENDA_DONE"]},/* #330 */
   buildAgendaBirthNote:{shape:"one-shot-ask",latch:["agendaBirth"],combat:"fires",ack:["COMPANION_AGENDA"]},/* #330 */
   buildAgendaAnnounceNote:{shape:"one-shot-ask",latch:["agendaAnnounce"],combat:"fires",ack:["COMPANION_AGENDA_BEAT"]},/* #330 */
   buildLocationStateNudge:{shape:"one-shot-ask",latch:["pendingLocState"],combat:"silent",ack:["LOCATION_STATE"]},
