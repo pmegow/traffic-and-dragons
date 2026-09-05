@@ -3,8 +3,9 @@
 Status: built as game v1.815 / server v1.4.0, schema 5; server deployed 2026-09-04 PDT,
 with `GEMINI_EXPLICIT_CACHE=0` explicitly verified. [Deployment receipt](../audits/DEPLOY_server_v1.4.0_2026-09-04.md).
 Owner approved the disabled-flag build on 2026-09-04; implementation follows this design.
-Production enablement is not authorized by that approval. The local server environment has no Gemini key, so the
-current deployed model/API behavior has not been live-probed here.
+Production enablement is not authorized by that approval. The first isolated live probe on
+2026-09-04 PDT failed at countTokens: the request omits required contents. No cache or
+generation was created. [Failure receipt](../audits/PROBE_334_cache_creation_2026-09-04.md).
 
 ## The decision that changes the build
 
@@ -61,8 +62,9 @@ acceptance result; compare total input savings **and** cache storage charges ove
 
 Deployment is separate from committing. The owner-approved 2026-09-04 PDT deployment found
 schema v3 already live, rehearsed v3 to v5 on a fresh backup, then deployed with caching off.
-Owner-side login/load verification remains pending. Do not deploy an older schema reader
-against the migrated production volume.
+The owner subsequently confirmed a hard refresh preserved the turn and ordinary account-mode
+gameplay worked. A fresh OAuth login was not separately exercised. Do not deploy an older
+schema reader against the migrated production volume.
 
 ## Build receipt
 
@@ -100,6 +102,9 @@ the real-callGM transport battery). Server: 78 gateway + 56 hygiene/backup + 13 
 `dev/sabotage-334-cache.js`, seventeen server clauses in `dev/server-proofs/334-gemini-cache.js`
 (run with the server checkout path). Every clause names its test; scratch copies only.
 
-Not verified: actual Gemini create/count request acceptance, deployed error wording, live
-drift/secret obedience, storage invoice or total savings. No local Gemini test key exists.
+The isolated live count request was rejected with HTTP 400 because its generateContentRequest
+has no contents; the canned provider stubs did not enforce that requirement. Correcting and
+regression-testing this payload is required before repeating the probe. No production fix was
+applied. Cache creation acceptance, live drift/secret obedience, storage invoice and total
+savings remain unverified. The probe used the existing server key without copying it locally.
 The deployed flag is explicitly `0`; production cache enablement still requires the live gates above.

@@ -52,12 +52,15 @@ Command: `flyctl deploy --app traffic-and-dragons-server --ha=false --remote-onl
 
 ## Still pending
 
-- Owner-side deployed-browser login/account refresh and campaign-load check, then ordinary
-  gameplay with caching off. No production subscription changes or test mementos were made.
+- Owner subsequently confirmed hard refresh preserved the turn and a couple of ordinary
+  account-mode turns worked. A fresh OAuth login was not separately exercised. No production
+  subscription changes or test mementos were made.
 - #291 retains its unfinished rendered/hostile-HTML/sabotage/CI closeout items. #292 still needs
   the deployed console readout check; do not mutate a real subscription as a smoke test.
 - #334 remains disabled. Actual vendor cache acceptance, reuse, expiry recovery, drift/secret
   obedience and total generation-plus-storage costs need isolated live verification before
   separate enablement approval. Header support is not an indication that caching is enabled.
+  The first isolated attempt found a countTokens request-shape defect before any cache or
+  generation was created; [failure receipt](PROBE_334_cache_creation_2026-09-04.md).
 - Roll forward on schema 5. Do not deploy the old schema-3 reader against the migrated volume;
   a database restore is a separate recovery operation, not an automatic rollback.
