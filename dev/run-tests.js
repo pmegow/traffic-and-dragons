@@ -1202,6 +1202,28 @@ try {
   console.log("[#62] character editor contract OK — portable-sheet surface, wrapper pinned, 9 list fields registered");
 } catch (e) { console.error("CHARACTER EDITOR CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── CAMPAIGN SLOT WRITER CONTRACT (#337, v1.821) ─────────────────────────────
+// The field failure: three raw store.set calls per path in campLoad/campCloudPull, unguarded — a
+// quota throw mid-triple left a half-written slot (or half-switched live keys) and no toast. Every
+// slot or live-key write in the campaign transport paths goes through writeCampaignSlot /
+// writeLiveKeys (state.js, engine-tested under a capacity-limited fake); a raw write here is the
+// same silent-failure class coming back.
+try {
+  var _csFs = require("fs"), _csPath = require("path");
+  var _csFail = function (msg) { console.error("CAMPAIGN SLOT WRITER CONTRACT: " + msg); process.exit(1); };
+  var _csUi = _csFs.readFileSync(_csPath.join(__dirname, "..", "ui-campaigns.js"), "utf8");
+  var _csSlice = _csUi.slice(_csUi.indexOf("function campLoad("), _csUi.indexOf("function campRemoveLocal("));
+  if (_csSlice.length < 200) _csFail("could not locate campLoad…campRemoveLocal in ui-campaigns.js");
+  if (/store\.set\(\s*campSlotKey\(/.test(_csSlice)) _csFail("campLoad/campCloudPush/campCloudPull writes a campaign slot with a raw store.set — route it through writeCampaignSlot.");
+  if (/store\.set\(\s*(WSK|SLK|MEM_KEY)\b/.test(_csSlice)) _csFail("campCloudPull writes a live key with a raw store.set — route it through writeLiveKeys.");
+  if (_csSlice.indexOf("writeCampaignSlot(") < 0 || _csSlice.indexOf("writeLiveKeys(") < 0) _csFail("the guarded writers are no longer used by the campaign transport paths.");
+  var _csState = _csFs.readFileSync(_csPath.join(__dirname, "..", "state.js"), "utf8");
+  var _csSw = _csState.slice(_csState.indexOf("function switchToCampaign("), _csState.indexOf("function dedupeActiveCampSlots("));
+  if (/store\.set\(\s*(WSK|SLK|MEM_KEY)\b/.test(_csSw)) _csFail("switchToCampaign writes a live key with a raw store.set — the #337 half-switch class.");
+  if (_csSw.indexOf("removeCampaignLocalCopy(id)") < 0 || _csSw.indexOf("removeCampaignLocalCopy(id)") > _csSw.indexOf("snapshotActiveCamp(")) _csFail("switchToCampaign must free the target slot BEFORE the outgoing snapshot (the two-blob peak).");
+  console.log("[#337] campaign slot writer contract OK — transport paths use writeCampaignSlot/writeLiveKeys; the switch frees the target slot before the snapshot");
+} catch (e) { console.error("CAMPAIGN SLOT WRITER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── MENU TIER CONTRACT (#289, v1.764) ────────────────────────────────────────
 // The Dev-vs-Beta split is ONE class in the menu spec + ONE toggle. Every operator row must carry
 // the flag (a missing flag silently shows a beta tester an operator surface), the toggle must

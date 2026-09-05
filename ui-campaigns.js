@@ -219,7 +219,7 @@ function campLoad(id){
   var hasLocal=!!(store.get(campSlotKey(id,"ws")));
   if(hasLocal){
     var ok=switchToCampaign(id);
-    if(!ok){showToast("Failed to load campaign.");return;}
+    if(!ok)return;/* #337: switchToCampaign toasts the specific reason (quota / corrupt) and restored the start layout */
     _applyLoadedCampaign();
     return;
   }
@@ -230,12 +230,10 @@ function campLoad(id){
   storageAdapter.getCampaignState(id,function(err,data){
     if(err){showToast("Failed to fetch campaign: "+err);return;}
     if(!data||!data.worldState){showToast("Campaign not found on server.");return;}
-    // Write into the campaign slot then switch to it
-    store.set(campSlotKey(id,"ws"),serializeWorldState(data.worldState));
-    store.set(campSlotKey(id,"sl"),JSON.stringify(data.sessionLog||[]));
-    store.set(campSlotKey(id,"mem"),JSON.stringify(data.memory||{}));
+    // Write into the campaign slot then switch to it — #337: through THE slot writer (all-or-nothing under quota)
+    if(!writeCampaignSlot(id,serializeWorldState(data.worldState),JSON.stringify(data.sessionLog||[]),JSON.stringify(data.memory||{})))return;
     var ok=switchToCampaign(id);
-    if(!ok){showToast("Failed to load campaign.");return;}
+    if(!ok)return;/* #337: the reason was toasted */
     _applyLoadedCampaign();
   });
 }
@@ -256,28 +254,26 @@ function campCloudPull(id){
     if(err){showToast("Pull failed: "+err);return;}
     if(!data||!data.worldState){showToast("Not found on server.");return;}
     data.worldState.campId=id;
-    store.set(campSlotKey(id,"ws"),serializeWorldState(data.worldState));
-    store.set(campSlotKey(id,"sl"),JSON.stringify(data.sessionLog||[]));
-    store.set(campSlotKey(id,"mem"),JSON.stringify(data.memory||{}));
-    // Update meta savedAt
-    var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);
-    showToast("☁ Pulled from server.");
-    // If active campaign, reload and restore narrative. Write the pulled blob straight into the
-    // LIVE keys and loadState — NOT switchToCampaign, whose snapshotActiveCamp would overwrite the
-    // just-pulled slot with the STALE live state before reading it back, silently discarding the
-    // pull while the toast claimed success (audit E3).
+    var wsS=serializeWorldState(data.worldState),slS=JSON.stringify(data.sessionLog||[]),memS=JSON.stringify(data.memory||{});
     if(id===getActiveCampId()){
-      store.set(WSK,serializeWorldState(data.worldState));
-      store.set(SLK,JSON.stringify(data.sessionLog||[]));
-      store.set(MEM_KEY,JSON.stringify(data.memory||{}));
+      // Active campaign: write the pulled blob straight into the LIVE keys and loadState — NOT
+      // switchToCampaign, whose snapshotActiveCamp would overwrite the just-pulled slot with the STALE
+      // live state before reading it back, silently discarding the pull while the toast claimed success
+      // (audit E3). #337: live keys ONLY — the old code wrote the slot too and then de-duped it, a
+      // doubled footprint on the one device that is already quota-pinned; and the writes are guarded.
+      if(!writeLiveKeys(wsS,slS,memS)){showToast("⚠ Not enough local storage to apply the pulled copy (~"+_kb(wsS.length+slS.length+memS.length)+" KB) — nothing changed. Free space: Campaigns → \"Remove local\" on old campaigns.");return;}
       var ok=loadState();
       if(ok){
         _applyLoadedCampaign(); // replays from the transcript via initReplaySession
         // Legacy fallback: pre-transcript blobs (no worldState.transcript) still carry narrativeHtml.
         if(data.narrativeHtml&&!(worldState&&worldState.transcript&&worldState.transcript.length)){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){}}
-        dedupeActiveCampSlots();/* B4: the slot copy written above duplicates the live keys just written */
       }
+    }else{
+      if(!writeCampaignSlot(id,wsS,slS,memS))return;/* #337: toasted; no partial slot left behind */
     }
+    // Update meta savedAt (small write; guarded so a quota edge can't kill the picker refresh below)
+    try{var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);}catch(e){console.error("[camps] campaign-list update failed after pull:",e);}
+    showToast("☁ Pulled from server.");
     var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
   });
 }

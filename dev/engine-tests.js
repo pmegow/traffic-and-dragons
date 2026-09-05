@@ -2781,6 +2781,153 @@ function runEngineTests(R){
     return rolledBack?true:"ok="+ok+" active="+getActiveCampId()+" char="+(worldState&&worldState.character?worldState.character.name:"none");
   });
 
+  // ── campaign switch under a localStorage QUOTA (#337, v1.821) ────────────────────────────────
+  // The field failure (owner 2026-09-05, Runelords Lv13 ⇄ Iron Meridian t228): switchToCampaign
+  // wrote the target's blobs into the live keys UNGUARDED after snapshotting the outgoing campaign,
+  // so its peak footprint was THREE large blobs (live A + slot A + slot B) and a quota throw on the
+  // live write escaped uncaught — a half-switched store and NO toast (the click looked like a no-op).
+  // The fake below is a capacity-limited localStorage (chars, Chrome's unit): the whole sequence
+  // runs against it, and every failure path must leave the disk byte-identical to the start.
+  function __withQuotaStorage(cap,fn){
+    var had=("localStorage" in global),real=had?global.localStorage:undefined;
+    var backing={},total=0;
+    function sizeOf(k,v){return k.length+String(v).length;}
+    var fake={
+      getItem:function(k){return (k in backing)?backing[k]:null;},
+      setItem:function(k,v){var nt=total-((k in backing)?sizeOf(k,backing[k]):0)+sizeOf(k,v);if(nt>cap){var e=new Error("quota");e.name="QuotaExceededError";throw e;}backing[k]=String(v);total=nt;},
+      removeItem:function(k){if(k in backing){total-=sizeOf(k,backing[k]);delete backing[k];}},
+      key:function(i){return Object.keys(backing)[i]||null;},
+      snapshot:function(){return JSON.stringify(backing);},
+      total:function(){return total;},
+      setCap:function(c){cap=c;}
+    };
+    Object.defineProperty(fake,"length",{get:function(){return Object.keys(backing).length;}});
+    var mSave=_m,mkSave=_mKeys;_m={};_mKeys={};
+    global.localStorage=fake;
+    var out;
+    try{out=fn(fake);}finally{
+      if(had)global.localStorage=real;else delete global.localStorage;
+      _m=mSave;_mKeys=mkSave;
+    }
+    return out;
+  }
+  // Two campaigns: A (live, active, character Tess) and B (slot, character Bram). pad* control sizes.
+  function __seedTwoCampaigns(padA,padB,padAMem){
+    makeWorld();worldState.campId="A";worldState.character.backstory=new Array(padA+1).join("a");
+    memory.lore=[new Array((padAMem||0)+1).join("m")];
+    setActiveCampId("A");
+    store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));store.set(MEM_KEY,JSON.stringify(memory));
+    var wsB=JSON.parse(JSON.stringify(worldState));wsB.campId="B";wsB.character.name="Bram";wsB.character.backstory=new Array(padB+1).join("b");
+    store.set("tnd_camp_B_ws",serializeWorldState(wsB));store.set("tnd_camp_B_sl","[]");store.set("tnd_camp_B_mem",JSON.stringify(blankMemory()));
+    setCampMeta([{id:"A",campName:"Alpha",charName:"Tess",charClass:"Warrior",charAncestry:"Human",level:1,location:"Ashfen",savedAt:1000000000000},
+                 {id:"B",campName:"Beta",charName:"Bram",charClass:"Warrior",charAncestry:"Human",level:1,location:"Ashfen",savedAt:1000000000000}]);
+    updateCampMeta();
+    return {a:store.get(WSK).length+store.get(SLK).length+store.get(MEM_KEY).length,
+            b:store.get("tnd_camp_B_ws").length+store.get("tnd_camp_B_sl").length+store.get("tnd_camp_B_mem").length};
+  }
+  function __diskSansMeta(fake){var b=JSON.parse(fake.snapshot());delete b[CAMP_META_K];/* savedAt legitimately moves on every snapshot */return JSON.stringify(b);}
+  function __campKeys(){return [WSK,SLK,MEM_KEY,"tnd_camp_A_ws","tnd_camp_A_sl","tnd_camp_A_mem","tnd_camp_B_ws","tnd_camp_B_sl","tnd_camp_B_mem",CAMP_META_K,ACTIVE_CAMP_K];}
+  function __diffKeys(a,b){var out=[];Object.keys(a).concat(Object.keys(b)).forEach(function(k){if(a[k]!==b[k]&&out.indexOf(k)<0)out.push(k+(k in a?"":" (new)")+(k in b?"":" (gone)"));});return out.join(", ");}
+  section("campaign switch under quota (#337)");
+  t("switch succeeds when only TWO blobs fit at once (the target slot is freed before the outgoing snapshot)",function(){
+    if(typeof global==="undefined")return true; /* browser: host storage not stubbable — node enforces */
+    return __withQuotaStorage(1e9,function(fake){
+      var sz=__seedTwoCampaigns(4000,12000);
+      // Room for the start layout plus LESS than one more copy of A: the old order (live A + slot A + slot B) throws here.
+      fake.setCap(fake.total()+sz.a-200);
+      var ok,threw=null;try{ok=switchToCampaign("B");}catch(e){threw=e;}
+      var res=threw?"switch THREW "+threw.name+" (the field failure — uncaught quota on the live write)"
+        :ok!==true?"switch returned "+ok+" toasts="+JSON.stringify(__toasts)
+        :getActiveCampId()!=="B"?"active id not moved: "+getActiveCampId()
+        :(worldState&&worldState.character&&worldState.character.name)!=="Bram"?"globals not loaded from B"
+        :!fake.getItem("tnd_camp_A_ws")?"outgoing campaign A was NOT snapshotted to its slot"
+        :fake.getItem("tnd_camp_B_ws")?"target slot B still on disk after the switch (B4 de-dup)"
+        :true;
+      __campKeys().forEach(function(k){store.del(k);});
+      return res;
+    });
+  });
+  t("snapshot cannot fit: returns false, no throw, disk byte-identical to the start, one toast names the campaign and the shortfall",function(){
+    if(typeof global==="undefined")return true;
+    return __withQuotaStorage(1e9,function(fake){
+      var sz=__seedTwoCampaigns(4000,300);
+      var start=__diskSansMeta(fake);__toasts.length=0;
+      fake.setCap(fake.total()+40); // no room for the outgoing snapshot even after freeing tiny B
+      var ok,threw=null;try{ok=switchToCampaign("B");}catch(e){threw=e;}
+      var after=__diskSansMeta(fake);
+      var res=threw?"THREW "+threw.name
+        :ok!==false?"expected false, got "+ok
+        :after!==start?"disk changed: "+__diffKeys(JSON.parse(start),JSON.parse(after))
+        :getActiveCampId()!=="A"?"active id moved to "+getActiveCampId()
+        :(worldState&&worldState.character&&worldState.character.name)!=="Tess"?"globals disturbed"
+        :!__toasts.some(function(m){return /Beta/.test(m)&&/KB/.test(m);})?"no toast naming the campaign + shortfall: "+JSON.stringify(__toasts)
+        :true;
+      __campKeys().forEach(function(k){store.del(k);});
+      return res;
+    });
+  });
+  t("live-key write cannot fit (snapshot did): rolled back, no throw, disk byte-identical, active id unmoved",function(){
+    if(typeof global==="undefined")return true;
+    return __withQuotaStorage(1e9,function(fake){
+      // A's bulk sits in MEMORY, B's in the WORLDSTATE: after the snapshot (2a) the WSK write is +bw-aw.
+      var sz=__seedTwoCampaigns(100,2600,2000);
+      var start=__diskSansMeta(fake);__toasts.length=0;
+      fake.setCap(fake.total()+1000);
+      var ok,threw=null;try{ok=switchToCampaign("B");}catch(e){threw=e;}
+      var after=__diskSansMeta(fake);
+      var res=threw?"THREW "+threw.name
+        :ok!==false?"expected false, got "+ok+" (test geometry - check the fixture sizes)"
+        :after!==start?"disk changed: "+__diffKeys(JSON.parse(start),JSON.parse(after))
+        :getActiveCampId()!=="A"?"active id moved"
+        :(worldState&&worldState.character&&worldState.character.name)!=="Tess"?"globals disturbed"
+        :!__toasts.some(function(m){return /Beta/.test(m);})?"no toast: "+JSON.stringify(__toasts)
+        :true;
+      __campKeys().forEach(function(k){store.del(k);});
+      return res;
+    });
+  });
+  t("corrupt target (E35) under the new order: the freed slot B is restored byte-for-byte after the rollback",function(){
+    if(typeof global==="undefined")return true;
+    return __withQuotaStorage(1e9,function(fake){
+      __seedTwoCampaigns(100,100);
+      store.set("tnd_camp_B_ws","{not valid json");
+      var start=fake.snapshot();
+      var ok=switchToCampaign("B");
+      var after=JSON.parse(fake.snapshot()),st=JSON.parse(start);
+      var res=ok!==false?"expected false":
+        after["tnd_camp_B_ws"]!==st["tnd_camp_B_ws"]||after["tnd_camp_B_sl"]!==st["tnd_camp_B_sl"]||after["tnd_camp_B_mem"]!==st["tnd_camp_B_mem"]?"target slot not restored":
+        after["tnd_camp_A_ws"]?"outgoing slot copy left behind (live A is the truth again)":
+        getActiveCampId()!=="A"?"active id moved":true;
+      __campKeys().forEach(function(k){store.del(k);});
+      return res;
+    });
+  });
+  t("writeCampaignSlot: a quota throw leaves NO partial slot (ws without mem) and returns false with a toast",function(){
+    if(typeof global==="undefined")return true;
+    return __withQuotaStorage(1e9,function(fake){
+      fake.setCap(300);__toasts.length=0;
+      var ok=writeCampaignSlot("C",new Array(200).join("w"),"[]",new Array(200).join("m"),"Gamma");
+      var res=ok!==false?"expected false":
+        fake.getItem("tnd_camp_C_ws")||fake.getItem("tnd_camp_C_sl")||fake.getItem("tnd_camp_C_mem")?"partial slot left on disk":
+        store.get("tnd_camp_C_ws")?"partial slot still served from the _m fallback":
+        !__toasts.some(function(m){return /Gamma/.test(m);})?"no toast: "+JSON.stringify(__toasts):true;
+      return res;
+    });
+  });
+  t("writeLiveKeys: a quota throw restores the previous live triple and returns false (caller toasts)",function(){
+    if(typeof global==="undefined")return true;
+    return __withQuotaStorage(1e9,function(fake){
+      store.set(WSK,"W0");store.set(SLK,"S0");store.set(MEM_KEY,"M0");
+      fake.setCap(fake.total()+50);
+      var ok=writeLiveKeys("W1",new Array(100).join("s"),"M1");
+      var res=ok!==false?"expected false":
+        fake.getItem(WSK)!=="W0"||fake.getItem(SLK)!=="S0"||fake.getItem(MEM_KEY)!=="M0"?"live triple not restored: "+fake.snapshot():
+        store.get(SLK)!=="S0"?"_m fallback still shadows the restored key":true;
+      [WSK,SLK,MEM_KEY].forEach(function(k){store.del(k);});
+      return res;
+    });
+  });
+
   t("healMemory fills shape defaults on an old/foreign blob (E14 server-adopt path)",function(){
     memory={npcs:{},locations:{}}; // minimal blob missing map/npcGraph/futureEvents/nameIdx/...
     healMemory();

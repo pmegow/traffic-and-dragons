@@ -883,7 +883,7 @@ function updateCampMeta(){
   // safe one. The list itself self-heals from the server merge (syncCampaignList).
   try{setCampMeta(meta);}catch(e){console.error("[camps] campaign-list update failed — storage full? (list self-heals from the server merge):",e);}
 }
-function snapshotActiveCamp(){
+function snapshotActiveCamp(quiet){/* #337: quiet=true — the caller shows ONE toast with the context (switchToCampaign) */
   var id=getActiveCampId();if(!id)return true;
   var ws=store.get(WSK),sl=store.get(SLK),mem=store.get(MEM_KEY);
   // B4: a quota throw here used to abort the CALLER unhandled — killing the beforeunload server
@@ -899,7 +899,7 @@ function snapshotActiveCamp(){
   }catch(e){
     ok=false;
     console.error("[camps] snapshot failed — storage full:",e);
-    if(typeof showToast==="function")showToast("⚠ Storage full — couldn't back up the current campaign. Free space: Campaigns → \"Remove local\" on old campaigns.");
+    if(!quiet&&typeof showToast==="function")showToast("⚠ Storage full — couldn't back up the current campaign. Free space: Campaigns → \"Remove local\" on old campaigns.");
   }
   updateCampMeta();
   // Flush the debounced server sync before leaving this campaign (audit E74): snapshotActiveCamp is
@@ -908,34 +908,81 @@ function snapshotActiveCamp(){
   if(typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow();
   return ok;
 }
+// #337: storage-usage readout for the quota toasts — total chars across localStorage (Chrome's
+// quota unit), -1 when the host storage can't be enumerated (node, privacy mode).
+function storageUsedChars(){try{var n=0,i;for(i=0;i<localStorage.length;i++){var k=localStorage.key(i);n+=k.length+String(localStorage.getItem(k)||"").length;}return n;}catch(e){return -1;}}
+function _kb(n){return Math.max(1,Math.round(n/1024));}
+function campDisplayName(id){var m=getCampMeta(),i;for(i=0;i<m.length;i++)if(m[i].id===id)return m[i].campName||m[i].charName||id;return id;}
+// #337: THE writer for a campaign's slot triple. Three raw store.set calls used to sit in campLoad
+// and campCloudPull unguarded — a quota throw mid-triple left a slot with a worldState but no
+// memory and the "Pulling…" toast never resolved. All-or-nothing: on a throw the partial keys are
+// removed (disk AND the _m shadow) and the caller gets false after ONE toast.
+function writeCampaignSlot(id,ws,sl,mem,label){
+  try{store.set(campSlotKey(id,"ws"),ws);store.set(campSlotKey(id,"sl"),sl);store.set(campSlotKey(id,"mem"),mem);return true;}
+  catch(e){
+    removeCampaignLocalCopy(id);
+    var need=String(ws||"").length+String(sl||"").length+String(mem||"").length,used=storageUsedChars();
+    console.error("[camps] slot write failed — storage full ("+need+" chars needed, "+used+" in use):",e);
+    if(typeof showToast==="function")showToast("⚠ Not enough local storage to download "+(label||campDisplayName(id))+" (~"+_kb(need)+" KB)"+(used>=0?" — this device holds ~"+_kb(used)+" KB":"")+". Free space: Campaigns → \"Remove local\" on old campaigns.");
+    return false;
+  }
+}
+// #337: THE writer for the live triple (WSK/SLK/MEM_KEY); null/undefined deletes the key. On a
+// quota throw the PREVIOUS live values are restored (that layout fits — it existed a moment ago)
+// and false returns; the caller owns the toast because it knows the context (switch vs pull).
+function writeLiveKeys(ws,sl,mem){
+  var prevWs=store.get(WSK),prevSl=store.get(SLK),prevMem=store.get(MEM_KEY);
+  function put(k,v){if(v!=null)store.set(k,v);else store.del(k);}
+  try{put(WSK,ws);put(SLK,sl);put(MEM_KEY,mem);return true;}
+  catch(e){
+    console.error("[camps] live-key write failed — storage full:",e);
+    try{put(WSK,prevWs);put(SLK,prevSl);put(MEM_KEY,prevMem);}
+    catch(x){console.error("[camps] live-key ROLLBACK failed — the live keys may be mixed; the next autosave rewrites them from the globals:",x);}
+    return false;
+  }
+}
 function switchToCampaign(id){
+  // #337 (owner field failure 2026-09-05, Runelords Lv13 ⇄ Iron Meridian t228): the switch is
+  // sequenced for a MINIMAL peak footprint and every write is guarded. The old order snapshotted the
+  // outgoing campaign (+a) and then wrote the target into the live keys UNGUARDED — peak footprint
+  // live A + slot A + slot B, and a quota throw on the live write escaped uncaught: a half-switched
+  // store (live worldState = B, live memory = A, active id = A) and NO toast — the click looked like
+  // a no-op. New order: read B into memory → free B's slot → snapshot A → write live B — the peak
+  // is TWO blobs, and every failure path restores the exact start layout before returning false.
+  var name=campDisplayName(id);
+  var tgtWs=store.get(campSlotKey(id,"ws")),tgtSl=store.get(campSlotKey(id,"sl")),tgtMem=store.get(campSlotKey(id,"mem"));
+  var prevId=getActiveCampId(),prevWs=store.get(WSK),prevSl=store.get(SLK),prevMem=store.get(MEM_KEY);
+  var outSize=String(prevWs||"").length+String(prevSl||"").length+String(prevMem||"").length;
+  function restoreTargetSlot(){
+    // The outgoing campaign's fresh snapshot copy (if any) goes first — live A is the truth again
+    // (B4 de-dup) — so the target's bytes, held in tgt*, fit back where they came from.
+    if(prevId)removeCampaignLocalCopy(prevId);
+    try{if(tgtWs!=null)store.set(campSlotKey(id,"ws"),tgtWs);if(tgtSl!=null)store.set(campSlotKey(id,"sl"),tgtSl);if(tgtMem!=null)store.set(campSlotKey(id,"mem"),tgtMem);}
+    catch(e){console.error("[camps] could not restore the target slot after a failed switch — "+name+" is cloud-only on this device now:",e);if(typeof showToast==="function")showToast("⚠ "+name+"'s local copy could not be kept — Load re-downloads it from the cloud.");}
+  }
+  function fullToast(step){
+    var used=storageUsedChars();
+    if(typeof showToast==="function")showToast("⚠ Couldn't switch to "+name+" — nothing changed. "+step+" needs ~"+_kb(outSize)+" KB of free local storage"+(used>=0?" (this device holds ~"+_kb(used)+" KB)":"")+". Free space: Campaigns → \"Remove local\" on old campaigns.");
+  }
+  removeCampaignLocalCopy(id);
   // B4: abort BEFORE touching the live keys if the outgoing snapshot couldn't be written (storage
   // full) — proceeding would overwrite the only local copy of the outgoing campaign's newest turns.
-  if(!snapshotActiveCamp())return false;
-  // Capture the live keys + active id so a failed load can roll back (audit E35). Without this,
-  // when loadState() fails on a corrupt target slot, the active id and live keys are already
-  // repointed while the worldState/memory globals still hold the OLD campaign — the next saveAll
-  // then writes campaign A's state under campaign B's id, locally AND on the server.
-  var prevWs=store.get(WSK),prevSl=store.get(SLK),prevMem=store.get(MEM_KEY),prevId=getActiveCampId();
-  var ws=store.get(campSlotKey(id,"ws")),sl=store.get(campSlotKey(id,"sl")),mem=store.get(campSlotKey(id,"mem"));
-  if(ws)store.set(WSK,ws);else store.del(WSK);
-  if(sl)store.set(SLK,sl);else store.del(SLK);
-  if(mem)store.set(MEM_KEY,mem);else store.del(MEM_KEY);
+  if(!snapshotActiveCamp(true)){restoreTargetSlot();fullToast("Backing up the current campaign");return false;}
+  if(!writeLiveKeys(tgtWs,tgtSl,tgtMem)){restoreTargetSlot();fullToast("Loading it");return false;}
   setActiveCampId(id);
   var ok=loadState();
   if(!ok){
-    if(prevWs)store.set(WSK,prevWs);else store.del(WSK);
-    if(prevSl)store.set(SLK,prevSl);else store.del(SLK);
-    if(prevMem)store.set(MEM_KEY,prevMem);else store.del(MEM_KEY);
+    // Roll back (audit E35): without this, when loadState() fails on a corrupt target slot, the active
+    // id and live keys are already repointed while the worldState/memory globals still hold the OLD
+    // campaign — the next saveAll then writes campaign A's state under campaign B's id, locally AND
+    // on the server. The previous layout fits by construction (it existed at entry).
+    writeLiveKeys(prevWs,prevSl,prevMem);
     setActiveCampId(prevId);
     loadState(); // restore the previous campaign into the globals
+    restoreTargetSlot();
     if(typeof showToast==="function")showToast("Couldn't load that campaign — its save looks corrupted.");
-  }else{
-    // B4 de-dup: the slot copy just BECAME the live keys — the standing duplicate was ~590K of
-    // dead weight on a quota-pinned save. The next switch-away/unload snapshot recreates it.
-    // Only on success: the failed-load rollback must keep the target slots untouched (E35).
-    store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
   }
+  // On success there is nothing to de-dup: the target slot was freed up front and its bytes ARE the live keys now.
   return ok;
 }
 // B4: drop the ACTIVE campaign's standing slot duplicate (~590K on a mature save). The live keys
