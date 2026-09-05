@@ -1,8 +1,9 @@
 # TODO #292 — operator console
 
 Built 2026-09-04 as game v1.809; server commit `689d726` (package 1.2.0).
-The server is **not deployed**: deploying its current tree also applies Fable's checkpoint
-migration v3. Owner approval is required before that combined deployment.
+The server was deployed with owner approval on 2026-09-04 PDT as part of v1.4.0.
+The checkpoint migration was already live; migrations 4/5 passed a fresh restore drill before
+deployment. Existing account data fingerprints are unchanged. [Deployment receipt](../../audits/DEPLOY_server_v1.4.0_2026-09-04.md).
 
 ## Behavior and boundaries
 
@@ -43,6 +44,6 @@ migration v3. Owner approval is required before that combined deployment.
 
 ## Remaining release check
 
-After owner-approved server deployment (snapshot first), verify the console against the
+After the backed-up server deployment, verify the console against the
 deployed server and Pages build. Do not use real Grant/Extend/Revoke as an unapproved smoke
 test; their mutation paths have already been exercised with disposable test accounts.

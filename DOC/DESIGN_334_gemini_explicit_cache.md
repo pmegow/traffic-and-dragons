@@ -1,6 +1,7 @@
 # #334 — Gemini stable-half explicit cache (design, 2026-09-04)
 
-Status: built as game v1.815 / server v1.4.0, schema 5; disabled by default, not deployed.
+Status: built as game v1.815 / server v1.4.0, schema 5; server deployed 2026-09-04 PDT,
+with `GEMINI_EXPLICIT_CACHE=0` explicitly verified. [Deployment receipt](../audits/DEPLOY_server_v1.4.0_2026-09-04.md).
 Owner approved the disabled-flag build on 2026-09-04; implementation follows this design.
 Production enablement is not authorized by that approval. The local server environment has no Gemini key, so the
 current deployed model/API behavior has not been live-probed here.
@@ -58,9 +59,10 @@ acceptance result; compare total input savings **and** cache storage charges ove
   secret-gate checks, cached-token receipt, subsequent-turn reuse, expired-handle recovery and
   total-cost observation. Keep the feature off until this evidence exists.
 
-Deployment is separate from committing: the server already contains undeployed schema-v3/v4
-work. Review that deployment bundle, take the required backup, then verify login/load and cache
-behavior. Do not deploy an older schema reader against a migrated production volume.
+Deployment is separate from committing. The owner-approved 2026-09-04 PDT deployment found
+schema v3 already live, rehearsed v3 to v5 on a fresh backup, then deployed with caching off.
+Owner-side login/load verification remains pending. Do not deploy an older schema reader
+against the migrated production volume.
 
 ## Build receipt
 
@@ -100,4 +102,4 @@ the real-callGM transport battery). Server: 78 gateway + 56 hygiene/backup + 13 
 
 Not verified: actual Gemini create/count request acceptance, deployed error wording, live
 drift/secret obedience, storage invoice or total savings. No local Gemini test key exists.
-The flag remains absent/off and production enablement still requires the live gates above.
+The deployed flag is explicitly `0`; production cache enablement still requires the live gates above.

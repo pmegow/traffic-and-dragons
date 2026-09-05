@@ -2,7 +2,9 @@
 
 Paused 2026-09-04 at the project's unrelated-red collaboration boundary. The owner then
 directed this isolated workstream to be committed and pushed as a reviewable checkpoint.
-The client is v1.810 and the server package is v1.3.0; the server has not been deployed.
+The checkpoint client is v1.810 and server package v1.3.0. The server was subsequently deployed
+with owner approval on 2026-09-04 PDT in v1.4.0, after a fresh backup and migration rehearsal.
+[Deployment receipt](../../audits/DEPLOY_server_v1.4.0_2026-09-04.md). The other closeout items below remain open.
 
 ## Blocker
 
@@ -13,7 +15,7 @@ is present on Fable's preceding `e33088e` (run 33837351064) and reproduces local
 protected drift file has been changed. Fable must adjudicate the state diff before work
 continues. The ordinary `node dev/run-tests.js` gate passes; it is not the whole CI workflow.
 
-## Work left in the shared trees
+## Implemented checkpoint
 
 Game: `mementos.html`, `dev/tests-291-mementos.js`, `dev/run-standalone-suites.js`,
 `storage-adapter.js`, `ui-files.js`, `ui-boot.js`, `home.html`, `sw.js`, and this task record.
@@ -21,7 +23,7 @@ The adapter-method and satellite-allowlist edits were explicitly owner-approved.
 
 Server (`C:\Users\hannu\Projects\traffic-and-dragons-server`): `mementos.js`,
 `test-mementos.mjs`, `db.js`, `index.js`, `package.json`, `test-hygiene.mjs`,
-`.github/workflows/tests.yml`. It remains at the prior package version until its own commit.
+`.github/workflows/tests.yml`. These landed in server commit `6bd263e` (v1.3.0).
 
 - Schema v4 adds a composite `(user_id,id)` store, independent of campaign deletion.
 - GET list returns metadata and limits, never all HTML blobs. GET/PUT/DELETE scope every
@@ -51,6 +53,6 @@ client/server sabotage proofs, final review, CI/deployed-page verification, and 
 closeout. Recheck both working trees before resuming: Fable works concurrently. Existing
 unrelated untracked research/test fixtures were untouched.
 
-Server deployment also requires owner approval: it will include Fable's pending checkpoint
-migration v3 as well as this memento migration v4. Snapshot the Fly volume before any
-approved deployment. No production database or real account was modified in this run.
+The approved deployment found checkpoint schema v3 already live and applied migrations v4/v5.
+All eight checked existing data tables retained identical row fingerprints. No production
+memento was created or deleted, and no real subscription was changed as a verification step.
