@@ -1,4 +1,4 @@
-# #334 isolated cache-creation probe — FAIL, 2026-09-04 PDT
+# #334 isolated cache-creation probe — failure and fix receipts, 2026-09-04 PDT
 
 Owner approved one temporary Gemini cache and two test generations, with production caching
 off and no live campaign changes. The probe stopped on its first provider operation: no cache
@@ -62,3 +62,78 @@ production code fix or redeployment was performed in this verification turn.
 
 Cache creation acceptance, actual cached-token usage, reuse, expiry/renewal, narrative drift,
 secret obedience and total-cost savings all remain unverified. Production caching stays off.
+
+## Follow-up fix and isolated retest — server v1.4.1, not deployed
+
+The sections above preserve the original v1.4.0 failure. The owner then requested the fix
+before moving the game project out of OneDrive. No project move or production deployment
+was performed in this follow-up.
+
+Server fix commit: `2c82d2a` (`traffic-and-dragons-server`, package v1.4.1).
+
+Review: this changes only cold-admission token counting. The documented direct-contents
+request contains exactly `stable + CACHE_LAYOUT`, once; it does not count live state, history
+or the player's action. Cache-create system instructions, prompt roles, identity hashes,
+TTL, bounds, schema and byte-verbatim fallback remain unchanged. This avoids adding a dummy
+message or the real conversation solely to satisfy GenerateContentRequest validation.
+
+Regression `token admission counts stable text through valid contents without live history`
+first failed on the original implementation: actual `fallback`, expected `cached`. Both server
+provider stubs reject missing contents; the regression also rejects the original request
+explicitly and pins the corrected count body to the cache-create text. The probe's fake
+provider enforces the same missing-field rejection and its request guard pins stable-only
+contents before any provider call.
+
+- Server `npm test`: **174 checks passed** (78 + 56 + 13 + 11 + 16).
+- `dev/server-proofs/334-gemini-cache.js`: **19 attributed mutations caught** in disposable
+  copies, including the original missing-contents request and live/history contamination.
+  Every mutated file restored byte-identical; the real server checkout was not sabotaged.
+- Game `node dev/run-tests.js`: **ALL GREEN, 2,007 engine assertions plus standalone suites**.
+  These are local gate results, not a claim that the separate historical replay CI is green.
+- Source uploaded only as an in-memory module to the existing server's separate probe
+  process, SHA-256 `46fcef70c90a5cb5a43cabe91c5edeab5ce0dfe17ffd29ad7bd1b0033949a13e`.
+  The probe supports `--cache-source-base64=` for this purpose and stamps the bytes it tests.
+  Its database remained `:memory:`; the production flag was asserted `0`. No deployed module,
+  database or secret file was changed. The key stayed inside the executing environment.
+
+### Live transport receipt
+
+Started 2026-09-05 **05:52:20.225 UTC**, finished **05:52:25.026 UTC**, `gemini-3.7-flash`.
+The first SSH attempt found no started VM and executed no probe. A health GET woke the
+auto-stopped VM and returned 200 before the successful SSH execution.
+
+| Operation | HTTP | Result |
+|---|---|---|
+| countTokens | 200 | 9,769 tokens, 231 ms |
+| cachedContents create | 200 | 9,769 tokens, 509 ms; expiry 06:52:20.592060370 UTC |
+| Generation 1 | 200 | Fixed marker RIVET-334, Blue Workshop, turn 1; 2,110 ms |
+| Generation 2, reconstructed manager / same handle | 200 | Fixed marker RIVET-334, Amber Observatory, turn 2; 1,668 ms |
+| DELETE owned test cache | 200 | 184 ms |
+| GET deleted cache | 403 | "CachedContent not found (or permission denied)", 83 ms |
+
+Both generations reported promptTokenCount **9,797**, cachedContentTokenCount **9,769**,
+candidatesTokenCount **33**, finishReason **STOP**. Their thoughtsTokenCount was 90 / 61 and
+totalTokenCount 9,920 / 9,891 respectively. Exactly one count, one create and two generations
+ran, with no generation retries. Reserved create exposure was **35,168,400 token-seconds**
+(9,769 × 3,600), not a storage invoice; cleanup ended the test resource early.
+
+Owned handle: `cachedContents/vcwhijnxf9wow68ajga69ee1ekpaf3e7vwtybq4d`.
+
+### Cleanup verification and honest verdict
+
+The probe exited **1**, despite passing every count/create/reuse/state assertion: its strict
+post-delete check expected 404, and Google returned the ambiguous 403 above. Its then-current
+error output incorrectly labeled `removed:false` even though DELETE succeeded. The probe
+now records deletion acceptance separately from absence verification; it still fails loudly
+on an unverified 403 rather than treating any permissions error as proof of deletion.
+
+A separate read-only listing at **2026-09-05 05:53:10.198 UTC** traversed the provider's
+cache list to its end (one page, no next page), checked only this exact handle and printed
+`found:false`, `productionFlag:"0"`. No other cache data was retained or printed. The test
+cache was removed and its absence is independently verified; no further paid generation ran.
+
+**Verdict: the count-request defect is fixed; live 3.7-flash creation, cache-token reporting,
+reuse and changed-state transport passed, with cleanup verified separately.** Not a fully
+green original probe exit, not a deployment, and not a gameplay drift/cost certification.
+Production remains v1.4.0 / schema 5 / cache flag `0`; v1.4.1 deployment, the second allowlisted
+model, expiry/renewal, real narrative/secret obedience and total-cost gates remain pending.

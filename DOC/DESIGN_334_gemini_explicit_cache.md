@@ -5,7 +5,10 @@ with `GEMINI_EXPLICIT_CACHE=0` explicitly verified. [Deployment receipt](../audi
 Owner approved the disabled-flag build on 2026-09-04; implementation follows this design.
 Production enablement is not authorized by that approval. The first isolated live probe on
 2026-09-04 PDT failed at countTokens: the request omits required contents. No cache or
-generation was created. [Failure receipt](../audits/PROBE_334_cache_creation_2026-09-04.md).
+generation was created. Server v1.4.1 corrects that request and passed isolated live 3.7-flash
+creation/reuse/state checks; cleanup was verified separately after the probe's strict 404
+check received 403. **The fix is not deployed; production stays v1.4.0 / flag 0.**
+[Failure, fix and retest receipts](../audits/PROBE_334_cache_creation_2026-09-04.md).
 
 ## The decision that changes the build
 
@@ -34,7 +37,7 @@ re-cache the entire changing system prompt on every turn and defeat the intended
 | Key | SHA-256 over authenticated user ID, exact model, operator-key fingerprint, exact stable bytes and layout-directive version. No cache sharing between users, models or rotated keys. |
 | Durable handles | Dedicated SQLite migration: hash/resource name, expiry, token count, attempt/renewal metadata. No prompt text or API key stored. Persistent handles prevent every cold start creating another billed cache. |
 | TTL | 3,600 seconds; renew on use only when less than 15 minutes remain. No idle refresh. A pause over an hour recreates the cache on the next eligible turn. |
-| Token floor | Exact provider `countTokens` on a cold candidate, model-specific admission floor (initially conservative 4,096 for the allowlisted 3.7/3.6 models). Provider validation remains authoritative; undersized/unsupported candidates fall back and are negatively cached. |
+| Token floor | Provider `countTokens` on a cold candidate using direct `contents` containing only stable text plus the fixed layout directive, never live state/history or a dummy message. Model-specific admission floor (initially conservative 4,096 for the allowlisted 3.7/3.6 models). Cache-create validation and its token receipt remain authoritative; undersized/unsupported candidates fall back and are negatively cached. |
 | Cost bounds | Per-user active-handle and creation-rate limits, a stable-prefix size ceiling, and single-flight cold creation. Expired local entries are swept; replacement deletes only owned cache resources. Failed deletion retains expiry/accounting so orphan storage is not invisible. |
 | Authorization | Existing auth, subscription, turn allowance and daily circuit breaker checks precede count/create/renew calls. Reject caller-supplied cachedContent handles on account-mode Gemini. |
 | Failure | Cache preparation failure logs an attributable reason and sends the complete original request. Only an explicit cache-not-found/expired rejection permits one uncached retry; ambiguous transport failure or generation timeout never triggers an extra generation. |
@@ -102,9 +105,17 @@ the real-callGM transport battery). Server: 78 gateway + 56 hygiene/backup + 13 
 `dev/sabotage-334-cache.js`, seventeen server clauses in `dev/server-proofs/334-gemini-cache.js`
 (run with the server checkout path). Every clause names its test; scratch copies only.
 
-The isolated live count request was rejected with HTTP 400 because its generateContentRequest
-has no contents; the canned provider stubs did not enforce that requirement. Correcting and
-regression-testing this payload is required before repeating the probe. No production fix was
-applied. Cache creation acceptance, live drift/secret obedience, storage invoice and total
-savings remain unverified. The probe used the existing server key without copying it locally.
-The deployed flag is explicitly `0`; production cache enablement still requires the live gates above.
+The initial isolated count request was rejected with HTTP 400 because its generateContentRequest
+had no contents; the canned provider stubs did not enforce that requirement. Server v1.4.1
+uses direct stable-only contents instead. The exact regression failed first, then all 174
+server checks and 19 attributed server mutations passed; the game gate remains ALL GREEN
+(2,007 engine assertions plus standalone suites). Earlier build counts above are historical.
+
+The fixed module was loaded only into a separate in-memory probe process, without deployment.
+One cache was created with 9,769 tokens; two 3.7-flash generations reused it, reported those
+cached tokens and returned the correct changing state. DELETE returned 200; the probe exited
+1 when a follow-up GET returned 403 instead of its expected 404. A separate exhaustive listing
+confirmed the owned cache absent. See the linked receipt for exact timings and usage.
+Production remains v1.4.0 with flag `0`. Deployment, the second model, expiry/renewal, real
+gameplay drift/secret obedience, storage invoice and total savings remain unverified. The key
+never left its executing environment. Enablement still requires the live gates above.

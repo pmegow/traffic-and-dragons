@@ -2,13 +2,19 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 
 const live = process.argv.includes("--live");
 assert.ok(live || process.argv.includes("--dry-run"), "Choose --live or --dry-run explicitly");
 const serverRoot = process.env.TND_PROBE_SERVER_ROOT || "/app";
 const requireServer = createRequire(resolve(serverRoot, "package.json"));
 const Database = requireServer("better-sqlite3");
-const { createGeminiCache, migrateGeminiCache } = await import(pathToFileURL(resolve(serverRoot, "gemini-cache.js")));
+// A reviewed source override runs in this process only; the deployed module stays untouched.
+const sourceArg = process.argv.find(arg => arg.startsWith("--cache-source-base64="));
+const cacheSource = sourceArg ? Buffer.from(sourceArg.slice("--cache-source-base64=".length), "base64") : readFileSync(resolve(serverRoot, "gemini-cache.js"));
+const moduleUrl = sourceArg ? "data:text/javascript;base64," + cacheSource.toString("base64") : pathToFileURL(resolve(serverRoot, "gemini-cache.js"));
+const { createGeminiCache, migrateGeminiCache, CACHE_LAYOUT } = await import(moduleUrl);
 const model = "gemini-3.7-flash";
 const key = live ? process.env.GEMINI_API_KEY : "dry-run-key";
 assert.ok(key, "Gemini key must already exist in the executing environment");
@@ -20,12 +26,16 @@ db.prepare("INSERT INTO users(id) VALUES(?)").run("isolated_probe_334");
 migrateGeminiCache(db);
 const owned = new Set();
 const counts = { count: 0, create: 0, generate: 0, delete: 0, inspect: 0 };
-const receipt = { mode: live ? "live" : "dry-run", model, started: new Date().toISOString(), productionFlag: process.env.GEMINI_EXPLICIT_CACHE || "absent", calls: [], generations: [], cleanup: [] };
+const receipt = { mode: live ? "live" : "dry-run", model, source: sourceArg ? "in-memory override" : "server checkout", sourceSha256: createHash("sha256").update(cacheSource).digest("hex"), started: new Date().toISOString(), productionFlag: process.env.GEMINI_EXPLICIT_CACHE || "absent", calls: [], generations: [], cleanup: [] };
 function report(value) { console.log(JSON.stringify(value)); }
 function safe(value) { return String(value).split(key).join("[REDACTED]"); }
 async function fakeFetch(url, opts) {
   const body = opts.body ? JSON.parse(opts.body) : null;
-  if (url.endsWith(":countTokens")) return Response.json({ totalTokens: 6500 });
+  if (url.endsWith(":countTokens")) {
+    const contents = body.generateContentRequest ? body.generateContentRequest.contents : body.contents;
+    if (!Array.isArray(contents) || !contents.length) return Response.json({ error: { message: "* CountTokensRequest.generate_content_request.contents: contents is not specified" } }, { status: 400 });
+    return Response.json({ totalTokens: 6500 });
+  }
   if (url.endsWith("/cachedContents")) return Response.json({ name: "cachedContents/isolated_probe_334", expireTime: new Date(Date.now() + 3600000).toISOString(), usageMetadata: { totalTokenCount: 6500 } });
   if (url.endsWith(":generateContent")) {
     const engineState = JSON.parse(body.contents.at(-1).parts[0].text).engineState;
@@ -45,6 +55,7 @@ async function guardedFetch(url, opts) {
   else throw Error("Unapproved probe request: " + opts.method + " " + path);
   const limit = kind === "generate" ? 2 : 1;
   assert.ok(counts[kind] < limit, "Probe request budget exceeded: " + kind);
+  if (kind === "count") assert.deepEqual(JSON.parse(opts.body), { contents: [{ parts: [{ text: stable + CACHE_LAYOUT }] }] }, "Only stable cache text may enter token admission");
   counts[kind]++;
   const start = Date.now();
   let response;
@@ -99,13 +110,15 @@ try {
   process.exitCode = 1;
 } finally {
   for (const name of owned) {
+    let deletionAccepted = false;
     try {
       const result = await guardedFetch(base + "/" + name, { method: "DELETE", headers: { "x-goog-api-key": key }, signal: AbortSignal.timeout(10000) });
       assert.ok(result.ok || result.status === 404, "Test-cache cleanup failed: " + result.status);
+      deletionAccepted = true;
       const check = await guardedFetch(base + "/" + name, { method: "GET", headers: { "x-goog-api-key": key }, signal: AbortSignal.timeout(10000) });
       assert.equal(check.status, 404, "Removed test cache must no longer exist");
-      receipt.cleanup.push({ name, removed: true, verifiedHttpStatus: check.status });
-    } catch (e) { receipt.cleanup.push({ name, removed: false, error: safe(e.message) }); receipt.result = "FAIL"; process.exitCode = 1; }
+      receipt.cleanup.push({ name, removed: true, absenceVerified: true, verifiedHttpStatus: check.status });
+    } catch (e) { receipt.cleanup.push({ name, removed: deletionAccepted, absenceVerified: false, error: safe(e.message) }); receipt.result = "FAIL"; process.exitCode = 1; }
   }
   receipt.exposure = db.prepare("SELECT action,tokens,token_seconds,status FROM gemini_cache_events ORDER BY id").all();
   receipt.counts = counts;

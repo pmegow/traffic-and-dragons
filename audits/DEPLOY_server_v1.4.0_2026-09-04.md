@@ -61,6 +61,9 @@ Command: `flyctl deploy --app traffic-and-dragons-server --ha=false --remote-onl
   obedience and total generation-plus-storage costs need isolated live verification before
   separate enablement approval. Header support is not an indication that caching is enabled.
   The first isolated attempt found a countTokens request-shape defect before any cache or
-  generation was created; [failure receipt](PROBE_334_cache_creation_2026-09-04.md).
+  generation was created. A subsequent v1.4.1 fix passed isolated 3.7-flash creation/reuse/state
+  checks, with cleanup verified separately after the strict probe received 403 rather than
+  404. **That fix has not been deployed**; this release remains v1.4.0 with caching off.
+  [Failure and follow-up receipts](PROBE_334_cache_creation_2026-09-04.md).
 - Roll forward on schema 5. Do not deploy the old schema-3 reader against the migrated volume;
   a database restore is a separate recovery operation, not an automatic rollback.

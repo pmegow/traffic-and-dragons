@@ -5,7 +5,7 @@ var source=path.resolve(process.argv[2]||"");
 if(!process.argv[2]||!fs.existsSync(path.join(source,"gemini-cache.js")))throw Error("Pass the server checkout containing gemini-cache.js");
 var scratch=fs.mkdtempSync(path.join(os.tmpdir(),"tnd-334-proof-")),rc=0;
 // Each bounded prove invocation retains its restoration handlers until process exit.
-process.setMaxListeners(32);
+process.setMaxListeners(40);
 try{
   fs.readdirSync(source).filter(function(f){return /\.(?:m?js)$/.test(f)||f==="package.json";}).forEach(function(f){fs.copyFileSync(path.join(source,f),path.join(scratch,f));});
   fs.symlinkSync(path.join(source,"node_modules"),path.join(scratch,"node_modules"),"junction");
@@ -13,6 +13,8 @@ try{
   if(baseline.status!==0)throw Error("Cache proof baseline failed: "+baseline.stdout+baseline.stderr);
   function prove(label,find,replace,test){rc|=sabotage.prove({file:path.join(scratch,"gemini-cache.js"),cwd:scratch,command:[process.execPath,[path.join(scratch,"test-gemini-cache.mjs"),test]],cases:[{label:label,find:find,replace:replace,mustFail:"FAIL: "+test}]});}
   prove("disabled flag ignored","!enabled||q.kind", "false||q.kind","disabled/malformed/non-turn requests");
+  prove("system-only count request omits required contents","{contents:[systemInstruction]}",'{generateContentRequest:{model:"models/"+q.model,systemInstruction}}',"token admission counts stable text");
+  prove("live state inflates cache admission","{contents:[systemInstruction]}","{contents:[systemInstruction,...q.parsed.contents]}","token admission counts stable text");
   prove("user omitted from identity","[q.userId,q.model,keyHash,stable,CACHE_LAYOUT]","[q.model,keyHash,stable,CACHE_LAYOUT]","single-flight and restart reuse");
   prove("model omitted from identity","[q.userId,q.model,keyHash,stable,CACHE_LAYOUT]","[q.userId,keyHash,stable,CACHE_LAYOUT]","single-flight and restart reuse");
   prove("key rotation reuses old resource","[q.userId,q.model,keyHash,stable,CACHE_LAYOUT]","[q.userId,q.model,stable,CACHE_LAYOUT]","single-flight and restart reuse");
