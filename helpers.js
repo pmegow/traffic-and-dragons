@@ -712,6 +712,19 @@ function manaCur(c){
   if(!c||typeof c.mana!=="number"||!isFinite(c.mana))return max;
   return Math.max(0,Math.min(max,c.mana));
 }
+/* #352 (v1.833): THE HP readout — one pure shape for every HP number the HUD paints (the topbar
+   hero readout and each companion card), so the two can never drift. The number carries the
+   health signal itself (the bar is gone): its hue IS the percentage — hsl(pct×1.2°) runs red (0°)
+   through amber to green (120°), muted to the palette (S 60%, L 58%). Under 10% (but alive) the
+   readout is `crit` and the host adds the .hp-crit breath; at zero it goes still and dim.
+   Car Mode keeps its own glance palette by design (UA21③). Owner-tuned 2026-09-06. */
+function hpReadout(hp,maxHp){
+  var mx=(typeof maxHp==="number"&&maxHp>0)?maxHp:0,cur=(typeof hp==="number"&&isFinite(hp))?hp:0;
+  var pct=mx?Math.max(0,Math.min(100,Math.round(cur/mx*100))):0;
+  var alive=cur>0&&mx>0;
+  return {pct:pct,alive:alive,crit:alive&&pct<10,
+    color:alive?"hsl("+Math.round(pct*1.2)+",60%,58%)":"hsl(0,25%,45%)"};
+}
 /* #101 (v1.479): the ONE picker-description line, derived from the capability bible at render
    time — replaces the mechanics-bearing parentheticals that used to ride inside spell display
    names (a second copy of dice/range that could, and did, drift from the canon). Empty string

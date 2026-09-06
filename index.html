@@ -214,7 +214,11 @@ body.font-large #action-input        { font-size: 19px; }
 body.font-large #topbar, body.font-large #membar, body.font-large .fm-item, body.font-large .fm-sub, body.font-large #chat-tabs, body.font-large .rpanel, body.font-large .toast, body.font-large #cpanel, body.font-large #sidebar { font-size: 15px; }
 body.font-large #topbar button, body.font-large .rpanel button { font-size: 14px; }
 /* #312 ③: motion is optional; a 44px floor for the suggestion buttons on touch */
+/* #352: the critical-HP breath — a slow opacity breath (1.6s, to 40%) on an HP number under 10%; owner-tuned 2026-09-06 */
+@keyframes hp-breath{0%,100%{opacity:1}50%{opacity:.4}}
+.hp-crit{animation:hp-breath 1.6s ease-in-out infinite;}
 @media (prefers-reduced-motion:reduce){ *,*::before,*::after{ animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+@media (prefers-reduced-motion:reduce){ .hp-crit{ font-weight:bold; } }/* #352: the state stays marked without motion */
 @media (pointer:coarse){ .qa{ min-height:44px; padding:10px 14px; font-size:13px; } }
 :focus-visible{ outline:2px solid var(--acc); outline-offset:2px; }
 body.font-large .msg.narrator     { font-size: 18px; }

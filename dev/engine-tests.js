@@ -1210,6 +1210,24 @@ function runEngineTests(R){
     if(TAG_NO_HANDLER.indexOf("DICE")>=0)return "DICE still listed as handler-less";
     return true;
   });
+  t("#352 the HP readout: hue is the percentage (100→120° green, 50→60° yellow, 0-alive→red), muted S60/L58; crit only while alive and under 10%; zero HP is still, dim and never crit; bad inputs never throw",function(){
+    var r=hpReadout(121,121);if(r.pct!==100||r.color!=="hsl(120,60%,58%)"||r.crit||!r.alive)return "full: "+JSON.stringify(r);
+    r=hpReadout(61,121);if(r.pct!==50||r.color!=="hsl(60,60%,58%)"||r.crit)return "half: "+JSON.stringify(r);
+    r=hpReadout(12,121);if(r.pct!==10||r.crit)return "exactly 10% must NOT pulse: "+JSON.stringify(r);
+    r=hpReadout(8,121);if(r.pct!==7||!r.crit||r.color!=="hsl(8,60%,58%)")return "7% must pulse, hue 8°: "+JSON.stringify(r);
+    r=hpReadout(1,121);if(!r.crit||r.color!=="hsl(1,60%,58%)")return "1 hp must pulse: "+JSON.stringify(r);
+    r=hpReadout(0,74);if(r.crit||r.alive||r.pct!==0||r.color!=="hsl(0,25%,45%)")return "zero must be still and dim: "+JSON.stringify(r);
+    r=hpReadout(-5,74);if(r.crit||r.alive||r.pct!==0)return "negative clamps to zero: "+JSON.stringify(r);
+    r=hpReadout(9,undefined);if(r.crit||r.alive||r.color!=="hsl(0,25%,45%)")return "no max → dim, never crit: "+JSON.stringify(r);
+    r=hpReadout("12",NaN);if(r.crit||r.alive)return "junk never throws or pulses: "+JSON.stringify(r);
+    r=hpReadout(200,100);if(r.pct!==100||r.color!=="hsl(120,60%,58%)")return "overheal clamps to 100: "+JSON.stringify(r);
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");
+    if(src.indexOf("height:5px;background:var(--bg3)")!==-1)return "the companion HP bar is back — the number carries the signal now";
+    if(src.split("hpReadout(").length<3)return "both HUD hosts (hero readout + companion card) must paint from hpReadout";
+    var css=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
+    if(css.indexOf(".hp-crit{animation:hp-breath 1.6s ease-in-out infinite;}")===-1||css.indexOf("50%{opacity:.4}")===-1)return "the breath must stay at the owner-tuned 1.6s / 40%";
+    if(css.indexOf("prefers-reduced-motion:reduce){ .hp-crit{ font-weight:bold; } }")===-1)return "reduced-motion must still mark the state (bold)";
+  });
   t("#348 curve change keeps every character at their level: a Lv17 with 131,190 XP (Ammut at t2419) loads as Lv17 with XP floored to the new gate, companions likewise; nobody de-levels and nobody levels up on load",function(){
     makeWorld();var c=worldState.character;c.level=17;c.xp=131190;
     worldState.npcs.push({name:"Daeris",partyMember:true,status:"steady",charSheet:{name:"Daeris",cls:"Cleric",level:16,xp:114240,hp:60,maxHp:60,stats:{},abilities:[],spells:[],inventory:[]}});

@@ -77,7 +77,7 @@ function updateHUD(){
   if(!worldState)return;var c=activePlayer(),hero=worldState.character,w=worldState.world;
   document.getElementById("hud-name").textContent=c.name;
   document.getElementById("hud-cls").textContent=(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" Lv"+c.level;
-  document.getElementById("hud-hp").textContent=c.hp+"/"+c.maxHp+" HP";
+  var _hudHp=document.getElementById("hud-hp"),_hpR=hpReadout(c.hp,c.maxHp);_hudHp.textContent=c.hp+"/"+c.maxHp+" HP";_hudHp.style.color=_hpR.color;_hudHp.classList.toggle("hp-crit",_hpR.crit);/* #352: the number carries the health signal */
   /* #110: mana rides beside HP — blue (var(--mana)), hidden entirely for pool-less characters */
   var _hudMana=document.getElementById("hud-mana");
   if(_hudMana){var _hmMx=(typeof manaMax==="function")?manaMax(c):0;
@@ -134,13 +134,10 @@ function updateHUD(){
         if(pv.split){/* #133c: vitals unknown while elsewhere */
           card.innerHTML=nameSpan+"<span style='color:var(--acc);font-size:10px;flex-shrink:0;'>(split: "+escHtml(pv.split.location)+")</span>";
         }else if(pmSheet&&pmSheet.maxHp){
-          var pct=pv.pct;
-          var hpClr=pct>50?"var(--grn)":pct>25?"var(--acc)":"var(--red)";/* HUD mapping — Car Mode's differs, kept separate (UA21③) */
+          var hpR=hpReadout(pv.hp,pv.maxHp);/* #352: number-only vitals, hue = percentage, breath under 10% — the bar is gone (owner call 2026-09-06) */
           var pmXpHtml="";if(pmSheet.xp!==undefined&&pmSheet.level!==undefined){var pmNextXp=classXpLevels()[pmSheet.level];/* C6 ② */pmXpHtml="<span style='color:var(--t2);font-size:10px;flex-shrink:0;margin-left:2px;'>"+pmSheet.xp+"/"+(pmNextXp!==undefined?pmNextXp:"max")+" xp</span>";}
           card.innerHTML=nameSpan
-            +"<div style='width:48px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;flex-shrink:0;'>"
-            +"<div style='width:"+pct+"%;height:100%;background:"+hpClr+";border-radius:3px;'></div></div>"
-            +"<span style='color:var(--hp);flex-shrink:0;'>"+(pv.hp||0)+"/"+pv.maxHp+"</span>"
+            +"<span class='"+(hpR.crit?"hp-crit":"")+"' style='color:"+hpR.color+";flex-shrink:0;'>"+(pv.hp||0)+"/"+pv.maxHp+"</span>"
             +_ppManaHtml(pmSheet)/* #110: card MP chip, blue beside the red HP */
             +pmXpHtml;
         }else{
