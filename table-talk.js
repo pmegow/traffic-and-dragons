@@ -202,6 +202,7 @@ function ttStateBlock(){
   if(worldState.npcs)for(i=0;i<worldState.npcs.length;i++){var _tn=worldState.npcs[i];if(!_tn.partyMember||!_tn.charSheet)continue;var _tc=_tn.charSheet,_tsp=(_tc.spells||[]).map(function(x){return x.nm;}),_tab=(_tc.abilities||[]).map(function(x){return x.nm;});
     if(_tsp.length||_tab.length)_ttSheets.push(_tn.name+": spells "+(_tsp.length?_tsp.join(", "):"none")+" | abilities "+(_tab.length?_tab.join(", "):"none"));}
   if(_ttSheets.length)s.push("Companion sheets (their own spells and abilities — a companion CAN use what is listed here): "+_ttSheets.join("; "));
+  if(typeof diceStatsLine==="function"){var _dl=diceStatsLine();if(_dl)s.push(_dl);}/* #350: the roll record, so "are my rolls fair?" is answered from data */
   if(c.inventory&&c.inventory.length)s.push("Inventory: "+c.inventory.join(", "));
   if(c.spells&&c.spells.length){var sp=[];for(i=0;i<c.spells.length;i++)sp.push(c.spells[i].nm+(c.spells[i].used?" (used)":""));s.push("Known spells: "+sp.join(", "));}
   if(c.abilities&&c.abilities.length){var ab=[];for(i=0;i<c.abilities.length;i++)ab.push(c.abilities[i].nm);s.push("Abilities: "+ab.join(", "));}

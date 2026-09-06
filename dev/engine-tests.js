@@ -1163,6 +1163,22 @@ function runEngineTests(R){
     if(!__toasts.some(function(x){return /2 levels claimed/.test(x);}))return "rest toast does not count the claimed levels: "+JSON.stringify(__toasts.slice(-3));
     return true;
   });
+  t("#350 the dice record: the player's roll files face/mod/DC/outcome; a GM [DICE:] tag files by:gm (face only when stated) and is still stripped; a GM echo of the player's roll is skipped; the ring is bounded; diceStats reports the 14+ share against 35%; the record survives a save round trip and reaches Table Talk",function(){
+    makeWorld();delete worldState.diceLog;
+    var r=resolveCheck({label:"Stealth check",mod:3,dc:15},14);var p=diceLogFile({by:"player",label:"Stealth check",face:14,mod:3,dc:15,total:r.total,outcome:r.outcome});
+    if(!p||p.face!==14||p.total!==17||p.outcome!=="success"||p.by!=="player")return "player entry wrong: "+JSON.stringify(p);
+    applyMuts("You slip past. [DICE:Stealth check|17|success]");if(worldState.diceLog.length!==1)return "the GM's echo of the player's roll was filed twice: "+JSON.stringify(worldState.diceLog);
+    if(cleanTxt("A [DICE:Stealth check|17|success] B")!=="A  B")return "DICE no longer stripped from the prose";
+    worldState.turn++;applyMuts("The blade turns. [DICE:Attack|9|failed]");var g=worldState.diceLog[1];if(!g||g.by!=="gm"||g.total!==9||g.outcome!=="failed"||g.face!==null)return "GM tag not filed: "+JSON.stringify(g);
+    applyMuts("[DICE:Perception|d20 = 19 + 2 = 21 vs DC 12|success]");var g2=worldState.diceLog[2];if(!g2||g2.face!==19||g2.dc!==12)return "stated face/DC not parsed: "+JSON.stringify(g2);
+    var s=diceStats();if(s.rolls!==3||s.byPlayer!==1||s.byGm!==2||s.faces!==2||s.share14plus!==100||s.expected14plus!==35||s.judged!==3||s.successRate!==Math.round(2/3*1000)/10)return "stats wrong: "+JSON.stringify(s);
+    var i;for(i=0;i<DICE_LOG_MAX+20;i++)diceLogFile({by:"player",label:"x",face:1+(i%20),total:1+(i%20),outcome:"rolled"});if(worldState.diceLog.length!==DICE_LOG_MAX)return "ring not bounded: "+worldState.diceLog.length;
+    var back=parseWorldState(serializeWorldState());if(!back.diceLog||back.diceLog.length!==DICE_LOG_MAX)return "diceLog lost in the save round trip";
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i0=src.indexOf("function rollPendingCheck("),body=src.slice(i0,src.indexOf("function retryLast("));if(body.indexOf("diceLogFile(")<0)return "rollPendingCheck does not file the player's roll";
+    var pr=buildTableTalkPrompt("are my rolls fair?");if(!/Dice record: /.test(pr)||!/a fair die: 35%/.test(pr))return "Table Talk does not carry the record: "+pr.slice(pr.indexOf("Party:"),pr.indexOf("Party:")+300);
+    if(TAG_NO_HANDLER.indexOf("DICE")>=0)return "DICE still listed as handler-less";
+    return true;
+  });
   t("#348 curve change keeps every character at their level: a Lv17 with 131,190 XP (Ammut at t2419) loads as Lv17 with XP floored to the new gate, companions likewise; nobody de-levels and nobody levels up on load",function(){
     makeWorld();var c=worldState.character;c.level=17;c.xp=131190;
     worldState.npcs.push({name:"Daeris",partyMember:true,status:"steady",charSheet:{name:"Daeris",cls:"Cleric",level:16,xp:114240,hp:60,maxHp:60,stats:{},abilities:[],spells:[],inventory:[]}});

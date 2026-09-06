@@ -90,7 +90,7 @@ TAG_STRIP_NAMES=["SCENE_REF","SCENE_NOT","SCENE_REVEAL","SCENE_DEATH","CANON_TXN
    decision has somewhere to go besides prose; it mutates nothing and is stripped everywhere.
    Taught ONLY in ENGINE_NOTES_PROTOCOL (api.js) — deliberately absent from TAG_DOC_LINES so the
    GM never emits it outside a note response (the NPC_DEATH_RETRACTED operator-only precedent). */
-var TAG_NO_HANDLER=["DICE","ACTIONS","RETCON","SAY","CANON_TXN_BEGIN","CANON_TXN_END","SCENE_CAST","NO_CHANGE"];
+var TAG_NO_HANDLER=["ACTIONS","RETCON","SAY","CANON_TXN_BEGIN","CANON_TXN_END","SCENE_CAST","NO_CHANGE"];
 function buildCtTags(){return new RegExp("\\[("+TAG_STRIP_NAMES.join("|")+"):[^\\]]+\\]","g");}
 function buildCtBare(){return new RegExp("\\[("+TAG_STRIP_BARE.join("|")+")\\]","g");}
 
@@ -709,6 +709,12 @@ var TAG_TABLE=[
   R.muts.push((drCompletionReplay?"Death correction completed: ":"Death retracted: ")+drName+" - "+drReason+" (at "+drLoc+")");
   if(typeof console!=="undefined")console.warn("[npc] death attribution "+(drCompletionReplay?"cleanup resumed":"retracted")+" for "+drName+" - pre-image archived; alive at "+drLoc);
 }}},
+{t:"DICE",apply:function(text,R){/* #350: the GM's [DICE:label|total|outcome] is FILED, never applied — still stripped from the prose. A face is kept only when the tag states one ("d20 = 14" / "d20: 14"); a tag that echoes the player's own roll this turn (same label and total) is skipped. */
+  var ds=text.match(/\[DICE:([^\]]+)\]/g)||[],i;for(i=0;i<ds.length;i++){var m=ds[i].match(/\[DICE:([^\]]+)\]/);if(!m)continue;var p=m[1].split("|"),label=(p[0]||"").trim(),total=parseInt(String(p[1]||"").replace(/[^-\d]/g,""),10),outcome=(p[2]||"").trim().toLowerCase();
+    var fm=m[1].match(/d20\s*[=:]\s*(\d{1,2})/i),face=fm?parseInt(fm[1],10):null,dm=m[1].match(/DC\s*(\d{1,2})/i),dc=dm?parseInt(dm[1],10):null;
+    var log=worldState.diceLog||[],last=log.length?log[log.length-1]:null;
+    if(last&&last.by==="player"&&last.t===R.turn&&last.label===label&&(isNaN(total)||last.total===total))continue;/* the GM repeating the player's roll back */
+    if(typeof diceLogFile==="function")diceLogFile({by:"gm",label:label,face:face,dc:dc,total:isNaN(total)?null:total,outcome:outcome,t:R.turn});}}},
 {t:"XP",apply:function(text,R){/* #302: the GM's [XP:] is FLAVOUR — summed per response and clamped to GM_XP_CAP_PER_LEVEL × level; quests, bosses and acts are paid by awardMilestoneXp at their own seams. The clamp is loud on both channels, never silent. */var xpTags=text.match(/\[XP:\s*\+?(\d+)[^\]]*\]/g)||[];var xpi,_xpSum=0;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:\s*\+?(\d+)[^\]]*\]/);if(!xpm)continue;_xpSum+=parseInt(xpm[1]);}if(!_xpSum)return;var _xpCap=(typeof GM_XP_CAP_PER_LEVEL==="number"?GM_XP_CAP_PER_LEVEL:10)*Math.max(1,worldState.character.level||1);if(_xpSum>_xpCap){if(typeof console!=="undefined")console.warn("[xp] GM award "+_xpSum+" XP clamped to "+_xpCap+" ("+GM_XP_CAP_PER_LEVEL+"× level; quests, bosses and acts are engine-paid — #302)");R.muts.push("+"+_xpCap+" XP (GM award "+_xpSum+" clamped to "+_xpCap+")");_xpSum=_xpCap;}else R.muts.push("+"+_xpSum+" XP");worldState.character.xp+=_xpSum;checkLevelUp();R._xpMirror(_xpSum);}},
 {t:"QUEST",apply:function(text,R){/* #175 side-find: the optional desc group required 1+ chars, so [QUEST:title|completed|] — trailing pipe, empty desc, a natural model shape — silently no-opped: no warn, no mutation, quest left active forever */var quests=text.match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";if(qStat==="complete"||qStat==="done"||qStat==="finished")qStat="completed";else if(qStat==="abandoned"||qStat==="dropped")qStat="failed";else if(qStat==="accepted")qStat="active";
   /* #259 (JP0-3b, owner ruling 2026-08-28): |declined is the PLAYER's journal decision, not GM

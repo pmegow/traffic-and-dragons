@@ -2197,6 +2197,7 @@ async function sendAction(override,opts){
 function rollPendingCheck(){
   var chk=worldState&&worldState.pendingCheck;if(!chk||busy)return;
   var r=resolveCheck(chk,rollD20());delete worldState.pendingCheck;
+  if(typeof diceLogFile==="function")diceLogFile({by:"player",label:chk.label,face:r.roll,mod:chk.mod||0,dc:(chk.dc!=null?chk.dc:null),total:r.total,outcome:r.outcome});/* #350: the authoritative record of the player's own roll */
   if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){var wrap=document.createElement("div");wrap.innerHTML=diceTxt(r.diceTag);if(wrap.firstChild)el.parentNode.replaceChild(wrap.firstChild,el);}}
   if(typeof Sound!=="undefined")Sound.play("click_glass");
   if(typeof saveAll==="function")saveAll();

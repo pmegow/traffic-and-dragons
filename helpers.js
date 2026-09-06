@@ -80,6 +80,39 @@ function resolveCheck(chk,roll){var total=roll+(chk.mod||0),outcome=(chk.dc!=nul
   var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+". Narrate the outcome of that check now; the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
   return {roll:roll,total:total,outcome:outcome,diceTag:"[DICE:"+chk.label+"|"+total+"|"+outcome+"]",note:note};}
 function rollD20(){return 1+Math.floor(Math.random()*20);}
+// #350 (owner 2026-09-05: "more often than not the player gets 14+ — I wanted a record to verify"): THE dice
+// record. Nothing kept a roll before — [DICE:] was strip-only and the player's own roll rode a silent send
+// that left no transcript line. Every roll the engine sees is filed here: the player's click (face, mod,
+// DC, outcome — authoritative) and any [DICE:] the GM writes (label, total, outcome; the face only when
+// the GM states it). Bounded ring (monotonic-resources rule); rides the save and the sync blob.
+var DICE_LOG_MAX=500;
+function diceLogFile(e){
+  if(!worldState||!e)return null;if(!worldState.diceLog)worldState.diceLog=[];
+  var rec={t:(typeof e.t==="number")?e.t:(worldState.turn||0),by:e.by==="gm"?"gm":"player",label:String(e.label||"").slice(0,80),
+    face:(typeof e.face==="number"&&e.face>=1&&e.face<=20)?e.face:null,mod:(typeof e.mod==="number")?e.mod:null,dc:(typeof e.dc==="number")?e.dc:null,
+    total:(typeof e.total==="number")?e.total:null,outcome:String(e.outcome||"").slice(0,20)};
+  worldState.diceLog.push(rec);while(worldState.diceLog.length>DICE_LOG_MAX)worldState.diceLog.shift();
+  return rec;
+}
+// The readout — pure, engine-tested, shared by Table Talk and whoever else asks. Faces are counted only
+// where a face was recorded (the player's own rolls, or a GM tag that stated one).
+function diceStats(log){
+  log=log||(worldState&&worldState.diceLog)||[];var n=log.length,faces=[],hist={},hi=0,sum=0,byP=0,byG=0,succ=0,judged=0,dcs=[],i;
+  for(i=1;i<=20;i++)hist[i]=0;
+  for(i=0;i<n;i++){var r=log[i];if(r.by==="gm")byG++;else byP++;
+    if(typeof r.face==="number"){faces.push(r.face);hist[r.face]++;sum+=r.face;if(r.face>=14)hi++;}
+    if(typeof r.dc==="number")dcs.push(r.dc);
+    if(r.outcome==="success"||r.outcome==="failed"){judged++;if(r.outcome==="success")succ++;}}
+  var dcMean=dcs.length?Math.round(dcs.reduce(function(a,b){return a+b;},0)/dcs.length*10)/10:null;
+  return {rolls:n,byPlayer:byP,byGm:byG,faces:faces.length,hist:hist,meanFace:faces.length?Math.round(sum/faces.length*100)/100:null,
+    share14plus:faces.length?Math.round(hi/faces.length*1000)/10:null,expected14plus:35,judged:judged,successRate:judged?Math.round(succ/judged*1000)/10:null,dcMean:dcMean};
+}
+function diceStatsLine(){
+  var s=diceStats();if(!s.rolls)return "";
+  return "Dice record: "+s.rolls+" roll"+(s.rolls>1?"s":"")+" ("+s.byPlayer+" by the player, "+s.byGm+" by the GM)"
+    +(s.faces?"; d20 faces recorded "+s.faces+", mean "+s.meanFace+", 14+ on "+s.share14plus+"% (a fair die: 35%)":"; no d20 faces recorded yet")
+    +(s.judged?"; checks against a DC: "+s.judged+", success "+s.successRate+"%"+(s.dcMean!=null?", mean DC "+s.dcMean:""):"")+".";
+}
 // #328: the [SUGGEST:a|b|c] payload → up to three clean actions. Leading "A)" / "1." markers and
 // asterisks are dropped (the v1.90 parseActions lesson); blanks vanish. Pure.
 function parseSuggestTag(body){var out=[],parts=String(body||"").split("|"),i;for(i=0;i<parts.length&&out.length<3;i++){var t=parts[i].replace(/\*/g,"").trim().replace(/^[(\[]?(?:[A-Ca-c]|[1-3])[)\].:]\s*/,"").trim();if(t.length>1)out.push(t);}return out;}

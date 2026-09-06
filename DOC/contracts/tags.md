@@ -4,6 +4,8 @@
 
 Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version stamps and history links inside are the record as written — the contract lines are current unless a newer commit says otherwise.
 
+
+**The dice record (#350, v1.831 — owner 2026-09-05: "more often than not the player gets 14+; I wanted a record to verify").** `[DICE:label|total|outcome]` now has a handler that FILES and never applies: it is still stripped from the prose, and `TAG_NO_HANDLER` no longer lists it. `diceLogFile` (helpers.js) keeps a bounded ring `worldState.diceLog` (`DICE_LOG_MAX` 500; rides the save and the sync blob): the player's own click files face/mod/DC/total/outcome from `rollPendingCheck` (authoritative), a GM tag files label/total/outcome with the face and DC only when the tag states them (`d20 = 14`, `DC 12`), and a GM tag that repeats the player's roll this turn (same label and total) is skipped. `diceStats()` / `diceStatsLine()` report rolls by source, the recorded d20 faces, their mean, the 14+ share against a fair die's 35%, the judged checks' success rate and the mean DC; Table Talk's state block carries the line so "are my rolls fair?" is answered from data. Nothing before this kept a roll: [DICE:] was strip-only and the player's roll rode a silent send with no transcript line.
 ## Files
 
 ### tag_table.js
