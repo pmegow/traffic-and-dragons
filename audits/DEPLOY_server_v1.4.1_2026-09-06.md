@@ -33,6 +33,32 @@ Verdict: created once, reused on every subsequent turn — the receipt the rollo
   renewal has not been observed yet. The expiry/renewal gate stays open until a turn lands after
   06:21 UTC and the handle either renews or is recreated cleanly.
 
+## Expiry → recreate verification (2026-09-06 16:02 UTC, read-only)
+
+After the owner played two more turns (Runelords t2436–t2437) ten hours later:
+
+| Table | Finding |
+|---|---|
+| `gemini_prompt_caches` | still ONE row — the 05:21 handle expired at 06:21 UTC and was replaced in place; new handle 13,520 tokens, created 15:54:45 UTC, expires 16:54:45 UTC; no orphans |
+| `gemini_cache_events` 3–4 | `candidate` → `create` ok at 15:54:45 UTC under the SAME `key_hash` as the 05:21 create — the stable half was byte-identical across the whole night's play |
+| `usage_events` 857–858 | both turns read `cache_read` 13,520 (`tok_in` 32.3k / 32.4k, status 200); every turn since the flip (845–858, ten turns) read the full stable half |
+
+Verdict: the expiry gate is closed — an expired handle is recreated cleanly on the next turn, one owned handle at a time.
+
+The on-use RENEWAL is a separate path and has not fired, by design: `RENEW_MS` (15 min) only runs it when a turn lands inside the last fifteen minutes of a handle's life, and the 05:21 handle's turns all landed 39–49 minutes before expiry. A turn between 16:39 and 16:54 UTC on the current handle (or the same window on a later one) exercises it.
+
+Break-even on PUBLISHED Flash rates (assumption — 3.7-flash billed like 2.5-flash: input $0.30/M, cached $0.03/M, storage $1.00/M-tokens/hour):
+
+| Quantity | Value |
+|---|---|
+| Storage per handle-hour (13,520 tokens) | ≈ $0.0135 |
+| Input saved per turn | ≈ $0.0037 |
+| Turns per handle-hour to break even | ≈ 3.7 |
+| Window 1 (05:21 handle, 8 turns) | ≈ +$0.016 net |
+| Window 2 (15:54 handle, 2 turns so far) | ≈ −$0.006 net unless two more turns land before 16:54 |
+
+The cache pays when a sitting runs four or more turns inside an hour and loses a fraction of a cent on a one- or two-turn session. The invoice must confirm the storage rate before the total-cost gate closes.
+
 ## Still open on #334
 
 Second model, gameplay drift and secret obedience over a session with the cache live, expiry and
