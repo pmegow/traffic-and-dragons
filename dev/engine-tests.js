@@ -61,7 +61,7 @@ function runEngineTests(R){
   // ── 2. Pure helpers ──────────────────────────────────────────────────────────
   section("helpers");
   t("skillLevel thresholds",function(){var w=[[0,0],[1,1],[4,1],[5,2],[11,2],[12,3],[25,4],[49,4],[50,5]];for(var i=0;i<w.length;i++){if(skillLevel(w[i][0])!==w[i][1])return "successes "+w[i][0]+" → "+skillLevel(w[i][0])+" want "+w[i][1];}return true;});
-  t("getLvl boundaries (#302 crushed curve)",function(){var w=[[0,1],[99,1],[100,2],[299,2],[300,3],[22000,10],[29999,10],[30000,11],[999999,20]];for(var i=0;i<w.length;i++){if(getLvl(w[i][0])!==w[i][1])return "xp "+w[i][0]+" → "+getLvl(w[i][0])+" want "+w[i][1];}return true;});/* C6 ②: the curve runs to 20 — 85000 is the L11 gate, the old hard-10 cap is gone */
+  t("getLvl boundaries (#348 midpoint curve — owner ruling 2026-09-05; the #302 crushed pin re-baselined deliberately)",function(){var w=[[0,1],[149,1],[150,2],[499,2],[500,3],[38000,10],[49999,10],[50000,11],[999999,20]];for(var i=0;i<w.length;i++){if(getLvl(w[i][0])!==w[i][1])return "xp "+w[i][0]+" → "+getLvl(w[i][0])+" want "+w[i][1];}return true;});/* C6 ②: the curve runs to 20 — 85000 is the L11 gate, the old hard-10 cap is gone */
   t("alignLabel 9-grid corners + center",function(){return eq(alignLabel(0,0),"True Neutral")===true&&eq(alignLabel(2,2),"Lawful Good")===true&&eq(alignLabel(-2,-2),"Chaotic Evil")===true&&eq(alignLabel(0,2),"Neutral Good")===true?eq(alignLabel(2,0),"Lawful Neutral"):"corner mismatch";});
   t("toFirstPerson: possessive",function(){return eq(toFirstPerson("Gather your belongings"),"Gather my belongings");});
   t("toFirstPerson: subject you",function(){return eq(toFirstPerson("You draw your sword"),"I draw my sword");});
@@ -402,8 +402,8 @@ function runEngineTests(R){
         if(/^Lv\d+$/.test(CLASS_BIBLE[k].levels[l].features[i].nm))return k+" L"+l+" still carries a level-number name";
     return true;
   });
-  t("#302 XP curve: the crushed curve, 20 strictly-ascending levels, frozen literals (owner ruling 2026-09-03 — a curve, not linear; L2 100 … L20 210k)",function(){
-    var RULED=[0,100,300,900,2000,4000,7000,11000,16000,22000,30000,40000,52000,66000,82000,100000,120000,145000,175000,210000];
+  t("#348 XP curve: the midpoint curve, 20 strictly-ascending levels, frozen literals (owner ruling 2026-09-05 — the geometric midpoint of v1.464 and the #302 crushed curve; L2 150 … L20 275k; the #302 pin re-baselined deliberately)",function(){
+    var RULED=[0,150,500,1600,3600,7500,13000,19000,28000,38000,50000,63000,79000,96000,115000,140000,165000,195000,230000,275000];
     if(CLASS_XP_LEVELS.length!==20)return "length "+CLASS_XP_LEVELS.length;
     for(var i=0;i<20;i++)if(CLASS_XP_LEVELS[i]!==RULED[i])return "L"+(i+1)+" diverges from the ruled table: "+CLASS_XP_LEVELS[i]+" vs "+RULED[i];
     for(i=1;i<20;i++)if(CLASS_XP_LEVELS[i]<=CLASS_XP_LEVELS[i-1])return "not ascending at L"+(i+1);
@@ -1139,6 +1139,18 @@ function runEngineTests(R){
     if(!/- Morwen: Fifteen years reconstructing/.test(sp.stable)||!/motivation — Void the bloodline debt/.test(sp.stable)||!/trait — Catalogues everything/.test(sp.stable))return "fields missing: "+sp.stable.slice(sp.stable.indexOf("PARTY HISTORIES"),sp.stable.indexOf("PARTY HISTORIES")+400);
     worldState.turn++;worldState.character.hp--;worldState.world.location="Magnimar";var sp2=buildSysPrompt();if(sp2.stable!==sp.stable)return "stable half moved between turns";
     wsNpcByName("Morwen").status="dead";if(/PARTY HISTORIES/.test(buildSysPrompt().stable))return "a dead companion's history is still injected";
+    return true;
+  });
+  t("#348 curve change keeps every character at their level: a Lv17 with 131,190 XP (Ammut at t2419) loads as Lv17 with XP floored to the new gate, companions likewise; nobody de-levels and nobody levels up on load",function(){
+    makeWorld();var c=worldState.character;c.level=17;c.xp=131190;
+    worldState.npcs.push({name:"Daeris",partyMember:true,status:"steady",charSheet:{name:"Daeris",cls:"Cleric",level:16,xp:114240,hp:60,maxHp:60,stats:{},abilities:[],spells:[],inventory:[]}});
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,"[]");store.set(MEM_KEY,JSON.stringify(memory));
+    var ok=loadState();var cc=worldState.character,dc=wsNpcByName("Daeris").charSheet;
+    store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+    if(!ok)return "loadState failed";
+    if(cc.level!==17||cc.xp!==165000)return "player: level "+cc.level+" xp "+cc.xp+" (want 17 / 165000)";
+    if(dc.level!==16||dc.xp!==140000)return "companion: level "+dc.level+" xp "+dc.xp+" (want 16 / 140000)";
+    if(getLvl(cc.xp)!==17||getLvl(dc.xp)!==16)return "floored XP does not map back to the kept level";
     return true;
   });
   t("#347 a want is never mandatory: no note asks for one; the stable rule says so and forbids invention; filing one toasts (active and later), so a landing is never silent; the t2419 save cleanup left no agenda fields",function(){
@@ -5721,9 +5733,9 @@ function runEngineTests(R){
     return worldState.npcs[1].charSheet.xp===100?true:"Bram mirror lost: "+worldState.npcs[1].charSheet.xp;
   });
   t("mirrored XP levels companions up",function(){
-    partyWorld();worldState.character.level=10;
-    applyMuts("A mighty deed. [XP:100]");/* the L2 gate is 100 on the #302 curve */
-    return worldState.npcs[0].charSheet.level===2?true:"Lyra level "+worldState.npcs[0].charSheet.level+" at 100 xp";
+    partyWorld();worldState.character.level=15;/* the GM cap is 10 × level per response — 150 must clear it */
+    applyMuts("A mighty deed. [XP:150]");/* the L2 gate is 150 on the #348 curve */
+    return worldState.npcs[0].charSheet.level===2?true:"Lyra level "+worldState.npcs[0].charSheet.level+" at 150 xp";
   });
   t("UA7/#178: every award lands exactly once even when a mid-parse sheet clone replaces the object",function(){
     partyWorld();

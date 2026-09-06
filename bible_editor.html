@@ -141,7 +141,7 @@ function serializeClassBible(bible, xp) {
     "//    prose. Empty features arrays are FILL-PHASE blanks, not errors.",
     "//  · spellTiers maps tier → unlock level (C2). Empty spell-tier arrays are fill-phase",
     "//    blanks. Half-caster (Ranger/Paladin) tiers are DRAFT pending the fill phase.",
-    "//  · CLASS_XP_LEVELS = the #302 crushed curve (owner ruling 2026-09-03): a curve, not a line — L2 100 … L11 30000 … L20 210000. Milestones are engine-paid and level-scaled (MILESTONE_XP, globals.js).",
+    "//  · CLASS_XP_LEVELS = the #348 midpoint curve (owner ruling 2026-09-05; the #302 crushed curve ran 17 levels in 30 in-game days): the geometric midpoint of the v1.464 and #302 curves — L2 150 … L11 50000 … L20 275000. Existing characters KEEP their level (the load-time XP floor in state.js tops XP up to the new gate; nobody de-levels). Milestones are engine-paid and level-scaled (MILESTONE_XP, globals.js).",
     ""
   ].join("\n");
   return header +
