@@ -625,6 +625,37 @@ function runEngineTests(R){
     var threw=null;try{w2ValidateSummary({npcDeaths:[{name:"Nobody Slain",sourceTurn:30}],chapterSummary:""});}catch(e){threw=e;}
     return threw?true:"an uncited stranger's death validated";
   });
+  // ── #345 the source fix: the ring is written at KILL time, and an open conflict heals when the kill lands ──
+  t("#345 the source: a slain foe is on the combatSlain ring at KILL time — [ENEMY_SLAIN:] before any close, [ENEMY_HP:] to 0, and COMBAT_END's victory sweep — and the close adds no duplicate",function(){
+    makeWorld();worldState.turn=6;
+    applyMuts("[COMBAT_START:Slaver Thug|12|11|+2|1d6|low][COMBAT_START:Slaver Boss|20|13|+4|1d8|high]");applyMuts("[ENEMY_SLAIN:Slaver Thug]");/* two foes: a lone foe's death auto-closes the fight, which would hide the ordering under test */
+    var r=worldState.combatSlain||[];if(r.length!==1||r[0].name!=="Slaver Thug"||r[0].turn!==6)return "not on the ring at kill time: "+JSON.stringify(r);
+    if(!worldState.combat)return "combat closed early";
+    worldState.turn=7;applyMuts("[COMBAT_END:victory]");var thugs=(worldState.combatSlain||[]).filter(function(x){return x.name==="Slaver Thug";});if(thugs.length!==1||thugs[0].turn!==6)return "the close duplicated or re-stamped the entry: "+JSON.stringify(worldState.combatSlain);
+    worldState.turn=8;applyMuts("[COMBAT_START:Guard|8|10|+1|1d6|low][COMBAT_START:Captain|14|12|+3|1d8|high]");applyMuts("[ENEMY_HP:Guard|-8]");
+    if(!(worldState.combatSlain||[]).some(function(x){return x.name==="Guard"&&x.turn===8;}))return "ENEMY_HP to 0 did not write the ring: "+JSON.stringify(worldState.combatSlain);
+    applyMuts("[COMBAT_END:victory]");
+    worldState.turn=9;applyMuts("[COMBAT_START:Archer|8|10|+1|1d6|low]");applyMuts("[COMBAT_END:victory]");/* still standing at victory → resolved slain */
+    return (worldState.combatSlain||[]).some(function(x){return x.name==="Archer"&&x.turn===9;})?true:"the victory sweep did not write the ring: "+JSON.stringify(worldState.combatSlain);
+  });
+  t("#345 a summary that cites the kill in the SAME turn, before the close, validates as combat canon (the v1823 t6 ordering) — no conflict, no fork note",function(){
+    makeWorld();worldState.turn=6;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];
+    applyMuts("[COMBAT_START:Slaver Thug|12|11|+2|1d6|low]");applyMuts("[ENEMY_SLAIN:Slaver Thug]");
+    try{w2ValidateSummary({npcDeaths:[{name:"Slaver Thug",handle:"",sourceTurn:6}],chapterSummary:"The slaver thug died at the crossroads."});}catch(ex){return "refused before the close: "+(ex&&ex.message);}
+    if((worldState.identityConflicts||[]).length)return "a conflict was minted";
+    applyMuts("[COMBAT_END:victory]");return buildIdentityConflictNudge()===""?true:"a fork note fired";
+  });
+  t("#345 the heal: an open death conflict for a foe resolves the moment the kill reaches the ring, with a receipt on the mutation line, and its nudge never fires again; a conflict about someone else is untouched",function(){
+    makeWorld();worldState.turn=6;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];
+    _w2Conflict("Slaver Thug","-","summary death lacks matching scene-handle evidence");_w2Conflict("Old Tam","-","summary death lacks matching scene-handle evidence");
+    if((worldState.identityConflicts||[]).length!==2)return "fixture: conflicts not minted";
+    applyMuts("[COMBAT_START:Slaver Thug|12|11|+2|1d6|low]");var R=applyMuts("[ENEMY_SLAIN:Slaver Thug][COMBAT_END:victory]");
+    var left=(worldState.identityConflicts||[]).filter(function(c){return !c.resolved;}).map(function(c){return c.subject;});
+    if(left.indexOf("Slaver Thug")>=0)return "conflict not healed: "+JSON.stringify(worldState.identityConflicts);
+    if(left.indexOf("Old Tam")<0)return "an unrelated conflict was retired: "+JSON.stringify(left);
+    if(!((R&&R.muts)||[]).some(function(m){return /Slaver Thug's death is combat canon/.test(m);}))return "no receipt: "+JSON.stringify(R&&R.muts);
+    worldState.identityConflicts=[];return buildIdentityConflictNudge()===""?true:"nudge still fires";
+  });
   // ── #319 plot armor: load-bearing NPCs cannot die before their arc (owner ruling 2026-09-03: derived with override) ──
   function __armorWorld(){
     makeWorld();worldState.turn=25;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];worldState.plotArmor={};delete worldState.plotArmorPing;

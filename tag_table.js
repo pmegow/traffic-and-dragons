@@ -218,6 +218,22 @@ function combatLivingFoes(){var out=[],i,f=(worldState.combat&&worldState.combat
 // class: [ENEMY_HP:] set down:"slain", [COMBAT_END:] nulled the object, and no store ever heard).
 // EXACT match only, on the alias-resolved canonical name: a pooled foe ("Goblin pack") or an
 // unregistered mook must never stamp a real NPC (the B3 mis-match hazard).
+// #345 — the SOURCE fix for the #299 class. "A foe is slain" used to be recorded in two stores at two
+// different times: the live tracker (the foe marked slain at kill time by three paths) and the
+// durable combatSlain ring (written only at combat close by propagateSlainFoes). The summary validator
+// read only the ring, so any consumer that ran between the kill and the close — the summarizer fires on
+// token pressure at the end of ANY turn — found a death the world had already recorded in the wrong
+// store, minted a W2 conflict, and nothing later reconciled it (v1823 t6→t7, six fork notes). Now the
+// fact is written ONCE, where it happens: every kill path calls foeSlain(), which marks the tracker,
+// writes the ring, and heals any open conflict for that subject. The close writes nothing.
+function combatSlainRecord(name,R){
+  if(!name||!worldState)return;var nm=String(name).trim();if(!worldState.combatSlain)worldState.combatSlain=[];
+  var turn=(R&&typeof R.turn==="number")?R.turn:(worldState.turn||0);
+  if(!worldState.combatSlain.some(function(x){return x.name===nm&&x.turn===turn;}))worldState.combatSlain.push({name:nm,turn:turn});
+  var cap=(typeof COMBAT_SLAIN_CAP==="number")?COMBAT_SLAIN_CAP:12;while(worldState.combatSlain.length>cap)worldState.combatSlain.shift();
+  if(typeof _w2HealCombatSlain==="function")_w2HealCombatSlain(nm,R);
+}
+function foeSlain(foe,R){foe.down="slain";combatSlainRecord(foe.name,R);}
 function propagateSlainFoes(R){
   var f=(worldState.combat&&worldState.combat.foes)||[],i;
   for(i=0;i<f.length;i++){
@@ -225,7 +241,7 @@ function propagateSlainFoes(R){
     /* #299: the combat-slain ring — EVERY slain foe, rostered or not. The encounter vanishes with the
        close; without this the summary validator had nothing to match a rolled foe's cited death against
        and opened a W2 conflict for a corpse that needed no ceremony (the t24 Chain-Dragger, six notes). */
-    if(f[i].name){if(!worldState.combatSlain)worldState.combatSlain=[];var _csn=String(f[i].name).trim();if(!worldState.combatSlain.some(function(x){return x.name===_csn&&x.turn===R.turn;}))worldState.combatSlain.push({name:_csn,turn:R.turn});var _cap=(typeof COMBAT_SLAIN_CAP==="number")?COMBAT_SLAIN_CAP:12;if(worldState.combatSlain.length>_cap)worldState.combatSlain=worldState.combatSlain.slice(worldState.combatSlain.length-_cap);}
+    /* #345: the ring is written at KILL time by foeSlain() — the close stamps rostered deaths only */
     var cn=resolveNpcName(String(f[i].name||"").trim());
     var w=wsNpcByName(cn);
     if(!w||npcIsDead(w))continue;
@@ -880,7 +896,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     else continue;
     foe.hp=Math.max(0,foe.hp+dv);
     worldState.combat.engaged=foe.name;
-    if(foe.hp<=0){if(typeof plotArmor==="function"&&plotArmor(foe.name)){foe.hp=1;foe.down="fled";plotArmorRefuse(foe.name,R,"combat");R.muts.push(foe.name+" breaks and flees");}else foe.down="slain";worldState.combat.engaged=null;}/* #319 */
+    if(foe.hp<=0){if(typeof plotArmor==="function"&&plotArmor(foe.name)){foe.hp=1;foe.down="fled";plotArmorRefuse(foe.name,R,"combat");R.muts.push(foe.name+" breaks and flees");}else foeSlain(foe,R);/* #345 */worldState.combat.engaged=null;}/* #319 */
   }}},
 // v1.463 (t1188 trafficker ambush): the GM's only way to kill a foe was a damage NUMBER, so a
 // narrated stealth execution emitted honest dice damage (-8 vs 18 hp) and the foe stayed up —
@@ -897,7 +913,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     if(!kfoe){console.warn("[combat] ENEMY_SLAIN target not found: "+km[1].trim()+" — no mutation");continue;}
     if(kfoe.down||kfoe.hp<=0)continue;/* already down — re-emission, quiet no-op */
     if(typeof plotArmor==="function"&&plotArmor(kfoe.name)){kfoe.hp=Math.max(1,kfoe.hp);kfoe.down="fled";plotArmorRefuse(kfoe.name,R,"combat");R.muts.push(kfoe.name+" breaks and flees");}/* #319: a load-bearing foe leaves the fight alive */
-    else{kfoe.hp=0;kfoe.down="slain";R.muts.push(kfoe.name+" slain");}
+    else{kfoe.hp=0;foeSlain(kfoe,R);/* #345: the ring at kill time */R.muts.push(kfoe.name+" slain");}
     if(worldState.combat.engaged===kfoe.name)worldState.combat.engaged=null;}
   if(/\[ENEMY_SLAIN\]/.test(text))console.warn("[combat] bare ENEMY_SLAIN unsupported — name the foe ([ENEMY_SLAIN:Name]); no mutation");}},
 // UA2 resolved as IMPLEMENT (user call 2026-07-10): the former phantom becomes a real beat.
@@ -989,7 +1005,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     }
     if(worldState.combat&&_ceVictory){
       var _ceLive=_ceRest,_cl;
-      for(_cl=0;_cl<_ceLive.length;_cl++){_ceLive[_cl].hp=0;_ceLive[_cl].down="slain";
+      for(_cl=0;_cl<_ceLive.length;_cl++){_ceLive[_cl].hp=0;foeSlain(_ceLive[_cl],R);/* #345 */
         R.muts.push(_ceLive[_cl].name+" slain (still standing at victory — resolved to the narration)");}
       if(_ceLive.length){
         if(typeof console!=="undefined")console.warn("[combat] COMBAT_END:"+ce[1].trim()+" closed with "+_ceLive.length+" foe(s) still standing \u2014 resolved as slain; the narration outranks an untagged hp bar (#214)");

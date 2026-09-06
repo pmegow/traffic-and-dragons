@@ -1730,6 +1730,20 @@ function plotArmorRefuse(name,R,how){
   if(typeof showToast==="function")showToast("\u26e8 "+canon+" got away \u2014 load-bearing until Act "+a.act+" (escape "+rec.escapes+" of "+a.max+")");
   return true;
 }
+// #345: the heal at the ring write. A conflict minted because a summary cited this death BEFORE the ring
+// held it (or a chapter claim named the corpse first) resolves the moment the kill reaches the ring — with
+// a receipt on the turn's mutation line, so the retirement is visible, never silent. Shelved (stale)
+// records are retired too; they were only clutter.
+function _w2HealCombatSlain(name,R){
+  var q=worldState&&worldState.identityConflicts;if(!q||!q.length||!name)return 0;var n=0,i;
+  var same=function(a,b){a=String(a||"").toLowerCase();b=String(b||"").toLowerCase();return !!a&&!!b&&(a===b||(typeof nameContains==="function"&&(nameContains(a,b)||nameContains(b,a))));};
+  for(i=0;i<q.length;i++){var c=q[i];if(c.resolved)continue;var rs=String(c.reason||"")+" "+String(c.lastReason||"");
+    if(rs.indexOf("summary death lacks matching scene-handle evidence")<0&&rs.indexOf("death-like chapter claim has no cited npcDeaths evidence")<0)continue;
+    if(!same(c.subject,name))continue;c.resolved=true;c.resolvedBy="combat-slain ring t"+(worldState.turn||0);n++;
+    if(R&&R.muts)R.muts.push("Identity: "+c.subject+"'s death is combat canon \u2014 the open conflict is retired");}
+  if(n)worldState.identityConflicts=q.filter(function(c){return !c.resolved;});
+  return n;
+}
 function _w2CombatSlainMatch(name){
   var ring=worldState&&worldState.combatSlain;if(!ring||!ring.length||!name)return null;
   var i;for(i=ring.length-1;i>=0;i--){var n=ring[i].name;if(!n)continue;
