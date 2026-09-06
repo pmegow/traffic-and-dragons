@@ -427,6 +427,7 @@ function runEngineTests(R){
     worldState.questLog.push({title:"First Job",status:"active",desc:"",objectives:[],started:1});
     var x0=c.xp;applyMuts("[QUEST:First Job|completed]");
     if(c.xp-x0!==MILESTONE_XP.quest)return "gained "+(c.xp-x0)+" want "+MILESTONE_XP.quest;
+    landOwedLevels();/* #349: the level lands at camp; the award was still priced at L1 */
     return c.level===2?true:"level "+c.level+" — the award should have lifted L1→L2";
   });
   t("#302 milestones: a failed or re-stated quest pays nothing",function(){
@@ -1141,6 +1142,27 @@ function runEngineTests(R){
     wsNpcByName("Morwen").status="dead";if(/PARTY HISTORIES/.test(buildSysPrompt().stable))return "a dead companion's history is still injected";
     return true;
   });
+  t("#349 levels land at camp: crossing a gate marks READY (one toast per gate, level and HP untouched, the meter says rest to claim); a long rest lands every owed level for the whole party at once and THEN fills HP and mana to the new maximums; a short rest lands nothing",function(){
+    makeWorld();__xpCapOff();var c=worldState.character;c.level=1;c.xp=0;c.hp=5;c.maxHp=14;c.cls="Sorcerer";c.spells=[{nm:"Fire Bolt",lvl:0,used:false},{nm:"Magic Missile",lvl:1,used:true}];c.mana=0;__toasts.length=0;
+    var cs={name:"Daeris",cls:"Cleric",level:1,xp:0,maxHp:10,hp:4,stats:{CON:12,WIS:16},abilities:[],spells:[],partyMember:true,mana:0};
+    worldState.npcs.push({name:"Daeris",status:"alive",rel:"ally",partyMember:true,charSheet:cs});
+    applyMuts("[XP:2000]");/* player + mirror: both cross L2..L4 (gates 150/500/1600) */
+    if(c.level!==1||c.levelReady!==4)return "player should be Lv1, ready for 4: "+c.level+"/"+c.levelReady;
+    if(cs.level!==1||cs.levelReady!==4)return "companion should be Lv1, ready for 4: "+cs.level+"/"+cs.levelReady;
+    if(c.maxHp!==14)return "maxHp moved before the rest";
+    var ready=__toasts.filter(function(x){return /rest to claim/.test(x);});if(ready.length!==2)return "expected one ready toast per character, got "+JSON.stringify(__toasts);
+    applyMuts("[XP:100]");if(__toasts.filter(function(x){return /rest to claim/.test(x);}).length!==2)return "a second cross of the SAME gate toasted again";
+    var m=csXpMeter(c.xp,c.level);if(!/ready/.test(m.tail)||m.pct!==100)return "meter does not say rest to claim: "+JSON.stringify(m);
+    if(typeof restShortHeal==="function"){var _h0=c.hp,_sh=restShortHeal();if(c.level!==1)return "a short rest landed the level";if(typeof c.hp!=="number"||isNaN(c.hp)||c.hp<=_h0||c.hp>c.maxHp||_sh<1)return "short rest heal is broken (the #300 NaN bug): hp "+_h0+" -> "+c.hp+" healed "+_sh;}
+    var slept=restSpells(true);
+    if(c.level!==4||cs.level!==4)return "levels did not land together at the long rest: "+c.level+"/"+cs.level;
+    if(c.hp!==c.maxHp||c.maxHp<=14)return "player not healed to the NEW max: "+c.hp+"/"+c.maxHp;
+    if(cs.hp!==cs.maxHp||cs.maxHp<=10)return "companion not healed to the NEW max: "+cs.hp+"/"+cs.maxHp;
+    if(c.mana!==manaMax(c)||manaMax(c)<=0)return "mana not filled to the new max: "+c.mana+"/"+manaMax(c);
+    if(c.levelReady!==undefined||cs.levelReady!==undefined)return "levelReady not cleared";
+    if(!__toasts.some(function(x){return /2 levels claimed/.test(x);}))return "rest toast does not count the claimed levels: "+JSON.stringify(__toasts.slice(-3));
+    return true;
+  });
   t("#348 curve change keeps every character at their level: a Lv17 with 131,190 XP (Ammut at t2419) loads as Lv17 with XP floored to the new gate, companions likewise; nobody de-levels and nobody levels up on load",function(){
     makeWorld();var c=worldState.character;c.level=17;c.xp=131190;
     worldState.npcs.push({name:"Daeris",partyMember:true,status:"steady",charSheet:{name:"Daeris",cls:"Cleric",level:16,xp:114240,hp:60,maxHp:60,stats:{},abilities:[],spells:[],inventory:[]}});
@@ -1713,15 +1735,18 @@ function runEngineTests(R){
     for(i=0;i<need.length;i++){var it=itemLookup(need[i]);if(!it)return need[i]+" does not resolve";if(it.category!=="consumable"||!/\d+ gp/.test(it.value)||it.effect==="N/A")return need[i]+": "+JSON.stringify(it);}
     return typeof itemValueGp==="function"&&itemValueGp(ITEM_BIBLE["healing potion"])===50?true:"itemValueGp broken";
   });
-  t("#302 re-level on load: a character whose XP now clears a higher gate levels up when the save is opened, companions too (no migration — the curve simply applies)",function(){
-    makeWorld();var c=worldState.character;c.level=3;c.xp=CLASS_XP_LEVELS[4]+5;c.abilities=[];
+  t("#302/#349 re-level on load: a character whose XP now clears a higher gate is marked READY on load (no level, one toast) and lands at the next long rest, companions too; a second load call changes nothing",function(){
+    makeWorld();var c=worldState.character;c.level=3;c.xp=CLASS_XP_LEVELS[4]+5;c.abilities=[];__toasts.length=0;
     var cs={name:"Daeris",cls:"Cleric",level:2,xp:CLASS_XP_LEVELS[3]+1,maxHp:20,hp:20,stats:{CON:12,WIS:16},abilities:[],spells:[],partyMember:true};
     worldState.npcs.push({name:"Daeris",status:"alive",rel:"ally",partyMember:true,charSheet:cs});
     relevelOnLoad();
-    if(c.level!==5)return "player level "+c.level+" want 5";
-    if(cs.level!==4)return "companion level "+cs.level+" want 4";
-    var l3=c.level;relevelOnLoad();
-    return c.level===l3?true:"a second call changed the level";
+    if(c.level!==3||c.levelReady!==5)return "player should stay Lv3 with levelReady 5 on load: "+c.level+"/"+c.levelReady;
+    if(cs.level!==2||cs.levelReady!==4)return "companion should stay Lv2 with levelReady 4: "+cs.level+"/"+cs.levelReady;
+    var tc=__toasts.filter(function(x){return /rest to claim/.test(x);}).length;relevelOnLoad();if(__toasts.filter(function(x){return /rest to claim/.test(x);}).length!==tc)return "a second load call toasted again";
+    restSpells(true);
+    if(c.level!==5||cs.level!==4)return "levels did not land at the rest: "+c.level+"/"+cs.level;
+    if(c.levelReady!==undefined||cs.levelReady!==undefined)return "levelReady not cleared after landing";
+    return true;
   });
   t("coverage guard: every spell NAME in the bible resolves in the capability bible (the racial_caps rule)",function(){
     // The fill-phase discipline this test enforces: a new spell lands in class_bible AND its
@@ -2003,7 +2028,7 @@ function runEngineTests(R){
   t("C6 ②: level-ups grant NAMED bible rows — class row at L5, archetype row at L6, none in between",function(){
     makeWorld();
     var c=worldState.character;c.level=4;c.xp=CLASS_XP_LEVELS[3];c.archetype="champion";c.abilities=[];
-    c.xp=CLASS_XP_LEVELS[5];checkLevelUp();/* 4 → 6: crosses 5 (class row) and 6 (archetype row) */
+    c.xp=CLASS_XP_LEVELS[5];checkLevelUp({land:true});/* 4 → 6: crosses 5 (class row) and 6 (archetype row) */
     if(c.level!==6)return "level "+c.level+" want 6";
     var nms=c.abilities.map(function(a){return a.nm;});
     if(nms.indexOf("Stunning Blow")<0)return "L5 class row missing: "+nms.join(", ");
@@ -2014,7 +2039,7 @@ function runEngineTests(R){
   t("C6 ②: levels 11-20 are REACHABLE — the L11 gate (30000 since #302) lifts a L10 character to 11 and grants the L11 class row",function(){
     makeWorld();
     var c=worldState.character;c.level=10;c.xp=CLASS_XP_LEVELS[9];c.abilities=[];
-    c.xp=CLASS_XP_LEVELS[10];checkLevelUp();
+    c.xp=CLASS_XP_LEVELS[10];checkLevelUp({land:true});
     if(c.level!==11)return "level "+c.level+" want 11 (the pre-C6 world capped at 10)";
     var l11=classFeaturesAt("Warrior",11);
     if(!l11.length)return "fixture rot: Warrior has no L11 row";
@@ -2024,7 +2049,7 @@ function runEngineTests(R){
   t("C6 ②: companion twin grants the same named rows (incl. archetype when the sheet carries one)",function(){
     makeWorld();
     var cs={name:"Bryn",cls:"Warrior",archetype:"champion",level:4,xp:CLASS_XP_LEVELS[3],maxHp:30,hp:30,stats:{CON:14},abilities:[]};
-    cs.xp=CLASS_XP_LEVELS[5];checkCompanionLevelUp(cs);
+    cs.xp=CLASS_XP_LEVELS[5];checkCompanionLevelUp(cs,{land:true});/* #349: mechanics test — land explicitly */
     if(cs.level!==6)return "companion level "+cs.level+" want 6";
     var nms=cs.abilities.map(function(a){return a.nm;});
     return nms.indexOf("Stunning Blow")>=0&&nms.length>=2?true:"companion rows missing: "+nms.join(", ");
@@ -2359,7 +2384,7 @@ function runEngineTests(R){
   t("UA8: [HP:] heals a NaN maxHp FIRST, then clamps (E71 order)",function(){makeWorld();worldState.character.maxHp=NaN;worldState.character.hp=10;applyMuts("[HP:+5]");if(worldState.character.maxHp!==10)return "maxHp not healed to positive hp: "+worldState.character.maxHp;return eq(worldState.character.hp,10,"clamp to healed maxHp");});
   t("GOLD parses '-5 gp' variant and floors at 0",function(){makeWorld();applyMuts("[GOLD:-5 gp]");if(worldState.character.gold!==20)return "got "+worldState.character.gold;applyMuts("[GOLD:-999]");return eq(worldState.character.gold,0,"floor");});
   t("signed [XP:+25] parses (v1.144 regression)",function(){makeWorld();worldState.character.level=3;worldState.character.xp=CLASS_XP_LEVELS[2];applyMuts("[XP:+25]");return eq(worldState.character.xp,CLASS_XP_LEVELS[2]+25);});
-  t("XP level-up applies HP gain",function(){makeWorld();worldState.character.xp=CLASS_XP_LEVELS[1]-5;applyMuts("[XP:10]");return eq(worldState.character.level,2)===true?(worldState.character.maxHp>14?true:"maxHp not raised"):"level "+worldState.character.level;});
+  t("XP level-up applies HP gain",function(){makeWorld();worldState.character.xp=CLASS_XP_LEVELS[1]-5;applyMuts("[XP:10]");if(worldState.character.level!==1||worldState.character.levelReady!==2)return "#349: should be READY for 2, not landed: "+worldState.character.level;landOwedLevels();return eq(worldState.character.level,2)===true?(worldState.character.maxHp>14?true:"maxHp not raised"):"level "+worldState.character.level;});
   t("ITEM_GAINED duplicate stacks to x2",function(){makeWorld();applyMuts("[ITEM_GAINED:Longsword]");var f=worldState.character.inventory.filter(function(x){return x.indexOf("Longsword")===0;});return eq(f.length,1)===true?eq(f[0],"Longsword x2"):"dup entries: "+JSON.stringify(f);});
   t("NPC registers; pronoun in relation slot rerouted",function(){makeWorld();applyMuts("[NPC:Bram|wary|he/him]");var n=worldState.npcs[0];return n&&n.name==="Bram"&&n.pronouns==="he/him"&&n.rel!=="he/him"?true:"npc: "+JSON.stringify(n);});
   t("NPC_ALIAS keeps one memory entry across variants",function(){makeWorld();applyMuts("[NPC:Veyra|calm|ally][NPC_ALIAS:Veyra|The Grey Blade]");applyMuts("[NPC_NOTE:The Grey Blade|paid her debt]");var k=Object.keys(memory.npcs);return eq(k.length,1)===true?(memory.npcs["Veyra"].events.length===1?true:"note misfiled"):"forked: "+k.join(",");});
@@ -5735,7 +5760,9 @@ function runEngineTests(R){
   t("mirrored XP levels companions up",function(){
     partyWorld();worldState.character.level=15;/* the GM cap is 10 × level per response — 150 must clear it */
     applyMuts("A mighty deed. [XP:150]");/* the L2 gate is 150 on the #348 curve */
-    return worldState.npcs[0].charSheet.level===2?true:"Lyra level "+worldState.npcs[0].charSheet.level+" at 150 xp";
+    if(worldState.npcs[0].charSheet.level!==1||worldState.npcs[0].charSheet.levelReady!==2)return "#349: the mirrored XP should mark Lyra READY for Lv2, not land it: "+JSON.stringify([worldState.npcs[0].charSheet.level,worldState.npcs[0].charSheet.levelReady]);
+    landOwedLevels();
+    return worldState.npcs[0].charSheet.level===2?true:"Lyra level "+worldState.npcs[0].charSheet.level+" after landing";
   });
   t("UA7/#178: every award lands exactly once even when a mid-parse sheet clone replaces the object",function(){
     partyWorld();
@@ -5759,7 +5786,7 @@ function runEngineTests(R){
     makeWorld(); // Warrior, CON 14 (+2 mod), hd 12 → per-level +9 HP; maxHp starts 14
     // Jump level 1 → 5 in one award (6500 XP = level 5). Player path must match the
     // companion path: 4 levels of HP (not 1), and BOTH Lv2 + Lv5 features (not just Lv5).
-    worldState.character.xp=CLASS_XP_LEVELS[4];checkLevelUp();/* #302: the L5 gate, straight through the loop */
+    worldState.character.xp=CLASS_XP_LEVELS[4];checkLevelUp({land:true});/* #302: the L5 gate, straight through the loop */
     var c=worldState.character;
     if(c.level!==5)return "level "+c.level+" want 5";
     if(c.maxHp!==14+9*4)return "maxHp "+c.maxHp+" want "+(14+36)+" (9/level x4)";
@@ -5776,13 +5803,13 @@ function runEngineTests(R){
   t("player level-up toasts the level AND each gained ability by name",function(){
     makeWorld();
     __toasts.length=0;
-    worldState.character.xp=CLASS_XP_LEVELS[4];checkLevelUp();/* 1 → 5: crosses L2 (Action Surge) + L5 (Stunning Blow) */
+    worldState.character.xp=CLASS_XP_LEVELS[4];checkLevelUp({land:true});/* 1 → 5: crosses L2 (Action Surge) + L5 (Stunning Blow) */
     var all=__toasts.join(" ¦ ");
     if(all.indexOf("reached level 5")<0)return "no level toast: "+all;
     if(all.indexOf(worldState.character.name)<0)return "toast does not name the character: "+all;
     if(all.indexOf("Action Surge")<0||all.indexOf("Stunning Blow")<0)return "gained abilities not toasted by name: "+all;
     __toasts.length=0;
-    worldState.character.xp=CLASS_XP_LEVELS[5];checkLevelUp();/* 5 → 6: no Warrior class row at 6 (rows are 2/5/7/9/...), no archetype committed — level toast only */
+    worldState.character.xp=CLASS_XP_LEVELS[5];checkLevelUp({land:true});/* 5 → 6: no Warrior class row at 6 (rows are 2/5/7/9/...), no archetype committed — level toast only */
     all=__toasts.join(" ¦ ");
     if(all.indexOf("reached level 6")<0)return "featureless level lost its toast: "+all;
     return /abilit/i.test(all)?"phantom ability toast on a featureless level: "+all:true;
@@ -5792,7 +5819,7 @@ function runEngineTests(R){
     var cs={name:"Bram",cls:"Warrior",level:1,hp:14,maxHp:14,xp:0,stats:{CON:14},abilities:[],spells:[],inventory:[],conditions:[]};
     worldState.npcs.push({name:"Bram",status:"ally",rel:"ally",partyMember:true,charSheet:cs});
     __toasts.length=0;
-    cs.xp=CLASS_XP_LEVELS[4];checkCompanionLevelUp(cs);
+    cs.xp=CLASS_XP_LEVELS[4];checkCompanionLevelUp(cs,{land:true});/* #349: mechanics test — land explicitly */
     var all=__toasts.join(" ¦ ");
     if(all.indexOf("Bram reached level 5")<0)return "companion level toast lost: "+all;
     if(all.indexOf("Action Surge")<0||all.indexOf("Stunning Blow")<0)return "companion gained abilities not toasted: "+all;
@@ -6087,7 +6114,7 @@ function runEngineTests(R){
     worldState.customClasses=[tinkFixture()];
     var c=worldState.character;c.cls="Tinkerer";c.level=1;c.xp=0;c.hp=10;c.maxHp=10;c.stats={STR:10,DEX:10,CON:10,INT:16,WIS:10,CHA:10};c.abilities=[];c.archetype=null;
     var savedArch=showArchetypeModal,archCalled=false;showArchetypeModal=function(){archCalled=true;};
-    c.xp=classXpLevels()[3]!=null?classXpLevels()[3]:900;checkLevelUp();
+    c.xp=classXpLevels()[3]!=null?classXpLevels()[3]:900;checkLevelUp({land:true});
     showArchetypeModal=savedArch;
     if(c.level<3)return "did not level to 3 (xp "+c.xp+", level "+c.level+")";
     var has=function(nm){for(var i=0;i<c.abilities.length;i++)if(c.abilities[i].nm===nm)return true;return false;};
@@ -9105,7 +9132,7 @@ function runEngineTests(R){
   t("checkLevelUp queues the player's unlock picks (pool-bearing tiers only) with SPELL_UNLOCK_PICKS counts",function(){
     makeWorld();
     var c=worldState.character;c.cls="Cleric";c.level=4;c.xp=CLASS_XP_LEVELS[3];c.abilities=[];c.spells=[{nm:"Sacred Flame",lvl:0,used:false}];
-    c.xp=CLASS_XP_LEVELS[4];checkLevelUp();
+    c.xp=CLASS_XP_LEVELS[4];checkLevelUp({land:true});
     if(c.level!==5)return "level "+c.level;
     var _lo=_luOwed();/* #284: the queue is SAVE STATE now — worldState.levelUpOwed, keyed by character */
     if(_lo.spells.length!==1)return "owed "+_lo.spells.length+" unlocks";
@@ -9121,7 +9148,7 @@ function runEngineTests(R){
     var infos=[];var _ci=console.info;console.info=function(m){infos.push(String(m));};
     try{
       var c=worldState.character;c.cls="Warrior";c.archetype="eldritchknight";c.level=13;c.xp=CLASS_XP_LEVELS[12];c.abilities=[];
-      c.xp=CLASS_XP_LEVELS[13];checkLevelUp();
+      c.xp=CLASS_XP_LEVELS[13];checkLevelUp({land:true});
     }finally{console.info=_ci;ek.spells["3"]=keep;}
     if(worldState.character.level!==14)return "level "+worldState.character.level;
     if(_luOwed().spells.length!==0)return "blank bench queued a pick";
@@ -9165,7 +9192,7 @@ function runEngineTests(R){
   t("#72 ③ (v1.766): the Eldritch Knight T3/T4 benches are filled — reaching L14 QUEUES a T3 pick instead of skipping (the fill-phase blank is closed)",function(){
     makeWorld();
     var c=worldState.character;c.cls="Warrior";c.archetype="eldritchknight";c.level=13;c.xp=CLASS_XP_LEVELS[12];c.abilities=[];c.spells=[];
-    c.xp=CLASS_XP_LEVELS[13];checkLevelUp();
+    c.xp=CLASS_XP_LEVELS[13];checkLevelUp({land:true});
     if(worldState.character.level!==14)return "level "+worldState.character.level;
     var owed=_luOwed().spells;
     if(!owed.length)return "no T3 pick queued — the bench is still blank";
@@ -9179,7 +9206,7 @@ function runEngineTests(R){
        the same XP could never rebuild them (newLvl <= c.level returns immediately). */
     makeWorld();
     var c=worldState.character;c.cls="Cleric";c.level=3;c.xp=CLASS_XP_LEVELS[2];c.abilities=[];c.spells=[{nm:"Sacred Flame",lvl:0,used:false}];
-    c.xp=CLASS_XP_LEVELS[4];checkLevelUp();/* 3→5: crosses the L4 stat bump AND the T2 unlock */
+    c.xp=CLASS_XP_LEVELS[4];checkLevelUp({land:true});/* 3→5: crosses the L4 stat bump AND the T2 unlock */
     if(c.level!==5)return "level "+c.level;
     var rec=worldState.levelUpOwed&&worldState.levelUpOwed[c.name];
     if(!rec)return "owed choices not homed on worldState — a reload strands them";
@@ -9194,7 +9221,7 @@ function runEngineTests(R){
   t("#284: owed records are keyed by CHARACTER — a PC swap cannot offer one character's earned picks to another",function(){
     makeWorld();
     var c=worldState.character;c.cls="Cleric";c.level=3;c.xp=900;c.abilities=[];c.spells=[];
-    c.xp=6500;checkLevelUp();
+    c.xp=6500;checkLevelUp({land:true});
     if(_luOwed().bumps!==1)return "precondition: no bump owed";
     var swapped={name:"Bram the Second",cls:"Warrior",level:5,xp:6500,hp:40,maxHp:40,stats:{},abilities:[],spells:[],inventory:[],conditions:[],archetype:"champion"};
     worldState.character=swapped;
@@ -9236,7 +9263,7 @@ function runEngineTests(R){
     var cs={name:"Daeris",cls:"Cleric",level:10,xp:CLASS_XP_LEVELS[9],maxHp:60,hp:60,stats:{CON:12,WIS:18},abilities:[],
       spells:[{nm:"Flame Strike",lvl:5,used:false}]};/* already knows one T5 bench spell */
     var m0=manaMax(cs);
-    cs.xp=CLASS_XP_LEVELS[10];checkCompanionLevelUp(cs);
+    cs.xp=CLASS_XP_LEVELS[10];checkCompanionLevelUp(cs,{land:true});/* #349: mechanics test — land explicitly */
     if(cs.level!==11)return "level "+cs.level;
     var t5=cs.spells.filter(function(s){return s.lvl===5;});
     if(t5.length!==1+SPELL_UNLOCK_PICKS[5])return "T5 spells after auto-pick: "+t5.map(function(s){return s.nm;}).join(", ");
@@ -13649,7 +13676,7 @@ t("min-1 clamp: a crippling CON penalty can never drain HP on level-up",function
 t("parity with a hand-computed companion level-up (Warrior hd12, CON 14, Lv1→3: +9+9)",function(){
   makeWorld();
   var cs={name:"Par",cls:"Warrior",level:1,xp:CLASS_XP_LEVELS[2],stats:{CON:14},hp:10,maxHp:10,abilities:[]};
-  checkCompanionLevelUp(cs);
+  checkCompanionLevelUp(cs,{land:true});/* #349: mechanics test — land explicitly */
   if(cs.level!==3)return "expected Lv3, got "+cs.level;
   if(cs.maxHp!==28)return "hand-computed 10+9+9=28, got "+cs.maxHp; // ceil(12/2)+1+2 = 9 per level
   return eq(cs.hp,28,"hp rides with maxHp");

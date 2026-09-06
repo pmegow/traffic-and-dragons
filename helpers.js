@@ -1119,8 +1119,18 @@ function deathChoiceFromText(t){var s=String(t||"").toLowerCase();if(/\bback\b|\
 function downedChoices(){return ["Struggle — fight for consciousness, crawl, cling to life","Yield — let go and trust whoever finds you"];}
 // #300: Rest heals. A long rest restores the hero and every living companion to full (the one heal
 // site for both paths — button and [REST:long]); a short rest rolls ONE hit die + CON, never past max.
+// csXpMeter — ONE XP-meter computation for every sheet host. C6 ran the curve to 20 but the
+// displays kept the pre-bible lvl>=10 ceiling, so a Level 10 sheet claimed "Max level" with a
+// full bar while the engine would happily ding 11 at the next gate (the Ammut t1431 report).
+// "Max level" now means the END of the curve; the bar is progress within the current band.
+function csXpMeter(xp,lvl){
+  var X=classXpLevels(),next=lvl<X.length?X[lvl]:null,prev=X[lvl-1]||0;
+  var pct=next===null?100:Math.max(0,Math.min(100,Math.round(((xp-prev)/Math.max(1,next-prev))*100)));// low clamp: xp below the level floor rendered width:-N% — invalid CSS, dropped, div defaulted to FULL (the Morwen full-bar lie)
+  if(next!==null&&xp>=next)return {lbl:xp+" / "+next+" XP",tail:"Lv "+(lvl+1)+" ready \u2014 rest to claim",pct:100};/* #349: the level is earned, the camp lands it */
+  return {lbl:next===null?xp+" XP":xp+" / "+next+" XP",tail:next===null?"Max level":"Next: Lv "+(lvl+1),pct:pct};
+}
 function restHealFull(){var c=worldState&&worldState.character;if(!c)return 0;var n=0;if(typeof c.maxHp==="number"&&c.hp<c.maxHp){c.hp=c.maxHp;n++;}var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],i;for(i=0;i<party.length;i++){var cs=party[i].charSheet;if(cs&&typeof cs.maxHp==="number"&&cs.hp<cs.maxHp){cs.hp=cs.maxHp;n++;}}return n;}
-function restShortHeal(){var c=worldState&&worldState.character;if(!c||typeof c.maxHp!=="number")return 0;if(c.hp>=c.maxHp)return 0;var d=(typeof classDef==="function"&&classDef(c.cls)&&classDef(c.cls).hd)||8;var mod=(typeof smod==="function"&&c.stats)?smod(c.stats.CON||10):0;var n=Math.max(1,Math.floor(Math.random()*d)+1+mod);n=Math.min(n,c.maxHp-c.hp);c.hp+=n;return n;}
+function restShortHeal(){var c=worldState&&worldState.character;if(!c||typeof c.maxHp!=="number")return 0;if(c.hp>=c.maxHp)return 0;var d=(typeof classDef==="function"&&classDef(c.cls)&&classDef(c.cls).hd)||8;var mod=c.stats?Math.floor(((c.stats.CON||10)-10)/2):0;/* #349 fix: smod() returns a STRING ("+2") — "1"+"+2" concatenated and Math.max turned it NaN, so every [REST:short] since #300 set hp to NaN */var n=Math.max(1,Math.floor(Math.random()*d)+1+mod);n=Math.min(n,c.maxHp-c.hp);c.hp+=n;return n;}
 function nameContains(hay,needle){
   var h=String(hay==null?"":hay).toLowerCase(),n=String(needle==null?"":needle).toLowerCase().trim();
   if(!h||!n)return false;

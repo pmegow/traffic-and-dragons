@@ -65,6 +65,7 @@ var REL_DOWNGRADE_EXPIRE_TURNS=60; // #181: muted-but-unresolved entries archive
 // Expected pace on the crushed curve: two quests for L2, ~four for L4, ~eight for L6, ~thirteen
 // for L10. The owner suspects it will run fast — tune these multipliers, never the curve's shape.
 var MILESTONE_XP={quest:50,boss:100,act:200};   // × character level at the moment of the award
+var LEVELS_LAND_AT_REST=true;                     // #349 (owner ruling 2026-09-05): a level LANDS at the next long rest — all owed levels, the whole party, HP and mana filled to the new maximums; XP accrues at once and the sheet says "rest to claim"
 var GM_XP_CAP_PER_LEVEL=10;                      // the GM's summed [XP:] per response is clamped to this × level (loud in muts)
 var BOSS_HP_RATIO=1.5;                           // a slain foe whose maxHp ≥ this × the player's maxHp is a boss (a rostered NPC foe qualifies at 1.0×)
 // #303 (owner ruling 2026-09-03): WANTS & ECONOMY. Wares are filed on the WORLD node by [WARES:]
@@ -381,7 +382,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.829";
+var APP_VERSION="v1.830";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

@@ -16,6 +16,8 @@ Quests are GM-emergent and **player-gated**. Live quests live in `worldState.que
 
 ## 11. Level-up system
 
+**Levels land at camp (#349, v1.830 — owner ruling 2026-09-05).** XP accrues the moment it is earned, but the level arrives at the next LONG rest: `checkLevelUp(opts)` / `checkCompanionLevelUp(cs,opts)` without `{land:true}` only mark `levelReady` (one "★ Name has the experience for Lv N — rest to claim it" toast per gate; the sheet meter and the HUD say "rest to claim"); `landOwedLevels()` is the ONE landing site, called by `restSpells()` BEFORE the heal so HP and mana fill to the NEW maximums; every owed level for the whole party lands together (hot-seat siblings level as one). A short rest lands nothing. Re-level on load (#302) marks ready instead of levelling. `LEVELS_LAND_AT_REST` (globals.js) is the switch; the milestone modals (archetype / stat bump / spell picks) surface after the rest exactly as they used to after the gate.
+
 `checkLevelUp()` called inside `applyMuts()` whenever XP changes:
 - HP gain per level: `ceil(hd/2) + 1 + CON_mod` (minimum 1)
 - Level rows granted from the class bible as NAMED abilities: class rows (2/5/7/9/11/13/15/17) + the committed archetype's rows (3/6/10/14/18 + capstone 20) via classFeaturesAt()/archFeaturesAt()

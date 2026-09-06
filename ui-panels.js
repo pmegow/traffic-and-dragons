@@ -86,7 +86,7 @@ function updateHUD(){
   document.getElementById("hud-gold").textContent=(c.gold!=null?c.gold:0)+" gp";/* companion sheets may lack gold */
   document.getElementById("hud-align").textContent=c.actualAlignment||c.statedAlignment||"Neutral";
   document.getElementById("hud-loc").textContent=pcEffectiveLoc(c).location;/* P5: camera follows the spotlight PC (a split PC shows THEIR location) */
-  var xpEl=document.getElementById("hud-xp");if(xpEl){var nxp=classXpLevels()[c.level];/* C6 ② */var xpTxt=nxp!==undefined?c.xp+" / "+nxp+" xp":c.xp+" xp (max)";var prevXp=xpEl.getAttribute("data-xp");if(prevXp!==null&&prevXp!==String(c.xp)){xpEl.className="";void xpEl.offsetWidth;/* force reflow so the animation retriggers on rapid gains */xpEl.className="xp-pulse";setTimeout(function(){xpEl.className="";},900);}xpEl.setAttribute("data-xp",String(c.xp));xpEl.textContent=xpTxt;}
+  var xpEl=document.getElementById("hud-xp");if(xpEl){var nxp=classXpLevels()[c.level];/* C6 ② */var xpTxt=nxp!==undefined?(c.xp+" / "+nxp+" xp"+(c.xp>=nxp?" \u2014 Lv "+(c.level+1)+" ready, rest to claim":"")):c.xp+" xp (max)";/* #349 */var prevXp=xpEl.getAttribute("data-xp");if(prevXp!==null&&prevXp!==String(c.xp)){xpEl.className="";void xpEl.offsetWidth;/* force reflow so the animation retriggers on rapid gains */xpEl.className="xp-pulse";setTimeout(function(){xpEl.className="";},900);}xpEl.setAttribute("data-xp",String(c.xp));xpEl.textContent=xpTxt;}
   // ── Party HUD (compact cards — second topbar row) ─────────────────────────
   var hudParty=document.getElementById("hud-party");
   if(hudParty){

@@ -16,15 +16,7 @@ function sheetOffsetGet(ownerNpc,char){
 function csSec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
 function csKv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
 // csInitials moved to helpers.js (#15③) — canonical home, loads before every consumer.
-// csXpMeter — ONE XP-meter computation for every sheet host. C6 ran the curve to 20 but the
-// displays kept the pre-bible lvl>=10 ceiling, so a Level 10 sheet claimed "Max level" with a
-// full bar while the engine would happily ding 11 at the next gate (the Ammut t1431 report).
-// "Max level" now means the END of the curve; the bar is progress within the current band.
-function csXpMeter(xp,lvl){
-  var X=classXpLevels(),next=lvl<X.length?X[lvl]:null,prev=X[lvl-1]||0;
-  var pct=next===null?100:Math.max(0,Math.min(100,Math.round(((xp-prev)/Math.max(1,next-prev))*100)));// low clamp: xp below the level floor rendered width:-N% — invalid CSS, dropped, div defaulted to FULL (the Morwen full-bar lie)
-  return {lbl:next===null?xp+" XP":xp+" / "+next+" XP",tail:next===null?"Max level":"Next: Lv "+(lvl+1),pct:pct};
-}
+// csXpMeter lives in helpers.js since #349 (pure; the engine tests read it; the HUD and every sheet host still call it here).
 function csHeroHeader(c){
   var genderLbl=genderLabel(c.gender);/* #11③: shared mapping */
   var subnm=c.subraceNm?c.subraceNm+" ":"";

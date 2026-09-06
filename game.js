@@ -972,8 +972,28 @@ function resurfaceLevelUpOwed(){
   if(lo.spells.length){maybeShowSpellUnlock();return true;}
   return false;
 }
-function checkLevelUp(){
-  if(!worldState)return;var c=worldState.character,newLvl=getLvl(c.xp);if(newLvl<=c.level)return;
+// #349 (owner ruling 2026-09-05): levels LAND AT CAMP. XP accrues the moment it is earned, but the
+// level itself arrives at the next long rest — every owed level, for the whole party, together, and
+// HP and mana fill to the NEW maximums after the levels apply (no camp → level → camp again). Three
+// companions levelling on one page refresh (#340) was the symptom; a level is a world event and this
+// gives it a place in world time. Every gate-crossing path still calls checkLevelUp /
+// checkCompanionLevelUp; without {land:true} they only mark readiness (one toast per gate) and
+// return. landOwedLevels() is the ONE landing site, called from restSpells before the heal.
+function levelReadyMark(c,newLvl){
+  if(c.levelReady===newLvl)return;c.levelReady=newLvl;
+  if(typeof showToast==="function")showToast("\u2605 "+(c.name||"?")+" has the experience for Lv "+newLvl+" \u2014 rest to claim it");
+}
+function landOwedLevels(){
+  if(!worldState||!worldState.character)return 0;var n=0,c=worldState.character;
+  if(typeof c.xp==="number"&&getLvl(c.xp)>(c.level||1)){checkLevelUp({land:true});n++;}
+  var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],i;
+  for(i=0;i<party.length;i++){var cs=party[i].charSheet;if(cs&&typeof cs.xp==="number"&&getLvl(cs.xp)>(cs.level||1)){checkCompanionLevelUp(cs,{land:true});n++;}}
+  return n;
+}
+function checkLevelUp(opts){
+  if(!worldState)return;var c=worldState.character,newLvl=getLvl(c.xp);if(newLvl<=c.level){delete c.levelReady;return;}
+  if(typeof LEVELS_LAND_AT_REST!=="undefined"&&LEVELS_LAND_AT_REST&&!(opts&&opts.land)){levelReadyMark(c,newLvl);return;}/* #349: mark, do not land */
+  delete c.levelReady;
   var oldLvl=c.level,i,cls=classDef(c.cls);/* #72 C6 ①: THE class lookup */
   if(!c.abilities)c.abilities=[];
   var totalHp=0,bumpsOwed=0,newFeatures=[],newFeatNames=[];/* owner 2026-08-24: names feed the gain toasts */
@@ -1073,12 +1093,14 @@ function spuConfirm(){
   initSpells();syncUI();saveAll();
   maybeShowSpellUnlock();/* drain the next queued unlock (a multi-level jump can owe several) */
 }
-function checkCompanionLevelUp(cs){
+function checkCompanionLevelUp(cs,opts){
   // Companion auto-level: HP + class features only. No archetype/stat-bump modals —
   // companions level silently; the GM narrates growth if it matters.
   if(!cs||typeof cs.xp!=="number")return;
   if(typeof cs.level!=="number"||cs.level<1)cs.level=1;
-  var newLvl=getLvl(cs.xp);if(newLvl<=cs.level)return;
+  var newLvl=getLvl(cs.xp);if(newLvl<=cs.level){delete cs.levelReady;return;}
+  if(typeof LEVELS_LAND_AT_REST!=="undefined"&&LEVELS_LAND_AT_REST&&!(opts&&opts.land)){levelReadyMark(cs,newLvl);return;}/* #349: mark, do not land */
+  delete cs.levelReady;
   var oldLvl=cs.level,cls=classDef(cs.cls),_cFeatNames=[];/* owner 2026-08-24: names feed the gain toast, companion twin of checkLevelUp's */
   while(cs.level<newLvl){
     cs.level++;
@@ -3041,6 +3063,7 @@ async function doRender(){
 }
 function restSpells(fromTag){
   if(!worldState)return 0;
+  var _landed=(typeof landOwedLevels==="function")?landOwedLevels():0;/* #349: levels land FIRST, so the heal and the mana refill below fill to the NEW maximums */
   if(typeof restHealFull==="function")restHealFull();/* #300: a long rest heals the party to full — the one site, both paths */
   // #89 note: the spell-restore is GUARDED per-list rather than gating the whole function — the
   // old early return meant a spell-less character's (a Warrior's) Rest did NOTHING at all, which
@@ -3060,7 +3083,7 @@ function restSpells(fromTag){
   var _slept=(typeof clockSleepRoll==="function")?clockSleepRoll():0;
   if(typeof updateSpPanel==="function")updateSpPanel();/* typeof: the headless engine harness has no panels */
   saveCore();
-  if(typeof showToast==="function")showToast(_slept?("Rested until dawn — "+clockFmt()+". Healed, mana restored."):"Healed, mana restored.");
+  if(typeof showToast==="function")showToast((_slept?("Rested until dawn — "+clockFmt()+". Healed, mana restored."):"Healed, mana restored.")+(_landed?" "+_landed+" level"+(_landed>1?"s":"")+" claimed.":""));
   if(!fromTag&&typeof takeCheckpoint==="function")takeCheckpoint("rest");/* #300: the button path takes the camp now; the tag path queued it for commit */
   return _slept;
 }
