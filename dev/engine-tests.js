@@ -8247,6 +8247,27 @@ function runEngineTests(R){
     return resolveRenderModel(null)===renderModel?true:"empty store must yield the default";
   });
 
+  section("#397 scene-led render poses");
+  t("#397 quiet and moving scenes retain their activity without compulsory action poses",function(){
+    var c={name:"Silas",gender:"M",age:"35",ancestry:"Human",cls:"Ranger",appear:"dark hair"};
+    var scenes=["Silas and Nyla sit beside the altar and quietly listen to the bishop.","Silas runs toward the gate while Nyla stands beside the bell and rings it."];
+    for(var i=0;i<scenes.length;i++)for(var j=0;j<2;j++){
+      var rp=buildSceneRenderRequest(c,j?mk165Party():[],{location:"temple",region:"valley",weather:""},{scene:scenes[i]});
+      if(rp.indexOf(scenes[i])<0)return "the scene's own activity was lost";
+      if(rp.indexOf("each character's actual activity and posture")<0||rp.indexOf("Stillness is valid")<0)return "scene-led posture and stillness permission missing";
+      if(rp.indexOf("Movement and its intensity must be supported by the scene")<0)return "movement is not grounded in the scene";
+      if(rp.indexOf("Include motion cues only when the scene describes movement")<0)return "camera instruction still forces movement";
+      if(/Comic-book splash-panel|dramatic foreshortening|mid-action|mid-motion|MOTION VERBS|NO two characters|partially cropped by the frame|blade streaking|sparks flying|lunging|bracing|diving|at least one seen from behind|at its most dramatic instant/.test(rp))return "compulsory action pose or framing returned";
+      if(rp.indexOf("dark fantasy concept art")<0||rp.indexOf("rich painterly texture")<0)return "painterly style lost";
+    }
+    return true;
+  });
+  t("#397 reference-image instructions preserve written posture instead of imposing action",function(){
+    var src=doRender.toString();
+    if(src.indexOf("Follow each character's WRITTEN posture, activity and orientation exactly, including stillness")<0)return "reference compositor lost scene-led posture";
+    return /NEW mid-action pose|no two figures in the same stance|at least one angled away from the camera/.test(src)?"reference compositor reimposes action or pose variety":true;
+  });
+
   section("party render — multi-image seeding");
   t("Nano edit body takes the WHOLE seed array (party composite)",function(){
     var b=__rm("fal-ai/nano-banana-2").img2img.body("scene",["data:p1","data:p2","data:p3"]);
@@ -8275,13 +8296,6 @@ function runEngineTests(R){
     if(!/gender/i.test(rp.split("Scene:")[0]))return "no explicit gender demand in the header before Scene:";/* #168R10: the old `!X===false&&…` pair was contradictory — it could never fire */
     if(rp.toLowerCase().indexOf("gender")<0)return "the spell-out instruction must demand gender explicitly (compression dropped it)";
     if(rp.indexOf("ONE full sentence")<0)return "no per-character description floor: "+rp.slice(rp.length-300);
-    /* t2084 dynamism upgrade: concrete pose-variety constraints + a named camera/motion sentence —
-       abstract "dynamic poses" rendered as a four-in-a-row tableau in the field. */
-    if(rp.indexOf("Comic-book splash-panel composition and posing")<0)return "the owner's comic-book composition directive missing";
-    if(rp.indexOf("never cel-shaded")<0)return "the style scoping is gone — comic COMPOSITION must not flip the painterly art style";
-    if(rp.indexOf("NO two characters in the same stance")<0)return "pose-variety constraint missing";
-    if(rp.indexOf("partially cropped by the frame")<0)return "foreground-crop depth directive missing";
-    if(rp.indexOf("camera-and-motion sentence")<0)return "the named camera/motion spec missing";
     if(rp.indexOf("FOCAL POINT")<0||rp.indexOf("gaze")<0)return "the eye-line convergence directive missing (owner: characters must look AT the scene's focus)";
     /* #209: the five-way field read — gaze words alone scattered; the anchored facing phrase and
        the body-orientation floor are the working levers, and the sanctioned exception's body
@@ -8311,19 +8325,18 @@ function runEngineTests(R){
     if(/nobody looks at the camera/.test(rp))return "the negation clause returned — it fails as a negation AND summons the camera (#209d)";
     if(rp.indexOf("CANDID")<0||rp.indexOf("unaware of being observed")<0)return "the positive candid framing is missing (#209d)";
     if(rp.indexOf("never a negation")<0)return "the writer is no longer taught the never-negate rule (#209d)";
-    if(rp.indexOf("MOTION VERBS")<0||rp.indexOf("oriented by construction")<0)return "the motion-verb preference is missing (#209d)";
     /* #209e: the verified gaze levers — dual-channel head/eye statements, and the eye-contact
        mutual-gaze trap taught to the writer. */
     if(rp.indexOf("TWO CHANNELS")<0||rp.indexOf("head turned toward the X, eyes fixed on the X")<0)return "the dual-channel gaze mitigation is missing (#209e)";
     if(rp.indexOf("MUTUAL gaze")<0)return "the eye-contact trap is no longer taught (#209e — 'eye contact' turns a group toward each other)";
     return rp.indexOf("pose clause")>=0?true:"per-character pose clause not demanded in the output shape";
   });
-  t("#165: solo render request keeps its shape — protagonist described, with a mid-action pose demanded",function(){
+  t("#165: solo render request keeps its shape — protagonist described, with a scene-appropriate pose",function(){
     var c={name:"Ammut",gender:"M",age:"35",ancestry:"Human",cls:"Necromancer",appear:"scarred",mark:""};
     var rp=buildSceneRenderRequest(c,[],{location:"X",region:"Y",time:"dawn",weather:"mist"});
     if(rp.indexOf("Ammut, a male")<0)return "protagonist description missing";
     if(rp.indexOf("3-4 sentences")<0)return "solo budget changed unexpectedly";
-    return rp.indexOf("mid-action pose")>=0?true:"solo request lost the pose demand";
+    return rp.indexOf("scene-appropriate posture")>=0?true:"solo request lost its scene-appropriate posture";
   });
   t("#165/#166: seed collection is a TABLE property carrying NAMES — multiSeed models gather the party, maxSeeds caps at collection, single-ref models stay player-only",function(){
     var c={name:"Ammut",portrait:"data:img/player"};

@@ -15,6 +15,8 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
+- 2026-09-11 · #397 · Astra: owner explicitly authorized removing the three compulsory pose directives, implementing scene-led posture and releasing. Updated duplicate writer/reference requirements and only the tests pinning superseded behavior; retained identity, facing, historical-context and movement-direction guards. Two focused tests failed before implementation, five mutation proofs passed, four browser render-path cases passed. No new state or runtime resources. See audits/AUDIT_397_scene_poses.md.
+
 - 2026-09-11 · #397 · Astra: owner-authorized removal of the two camera-facing explanations sent to the scene prompt writer. Deleted the negative gaze example and described-face camera-turn explanation; retained the composition directives and existing assertions. Version/cache bumped to v1.895. No new runtime resources or state.
 
 - 2026-09-11 · #397 · Astra: owner explicitly requested removal of both profile references from the scene prompt writer. Deleted only those two phrases in game.js; version/cache bumped. Existing render assertions retained and full suite passed. Composition lesson/rewrite/A-B remains open.
