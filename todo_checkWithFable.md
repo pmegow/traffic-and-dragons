@@ -15,7 +15,7 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
-- 2026-09-11 · #401 · Astra: v1.904 shortens Speechify option labels to name/gender and filters marketing/catalog tags from the selected voice description; existing saved catalogs benefit without refresh. Registry display metadata keeps provider-specific behavior at one boundary. Phone-width screenshots and narrator/cast/search/Save checks passed; local only.
+- 2026-09-11 · #401 · Astra: v1.904 shortens Speechify option labels to name/gender and filters marketing/catalog tags from the selected voice description; existing saved catalogs benefit without refresh. Registry display metadata keeps provider-specific behavior at one boundary. Phone-width screenshots and narrator/cast/search/Save checks passed. Published on owner request via PR #14; production v1.904 verified.
 
 - 2026-09-11 · #401 · Astra: reproduced two simultaneous Speechify requests against the owner-confirmed Free/trial plan (limit one). v1.903 gives each adapter its own prefetch depth (Speechify one; Inworld two) and reports documented 429 codes / numeric Retry-After. Tests cover response-body completion, Stop/late audio, malformed/stalled errors and visible error propagation. Published via PR #13 on owner request; production v1.903 sequential-request and visible-error checks passed. No real keys or paid requests.
 
