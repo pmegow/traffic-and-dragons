@@ -28,5 +28,32 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
  await test('#401 unstarred imported Piper speaker remains selectable and validates for Save',async()=>{const d=S.draft();d.primary='local';d.models.local.narrator='en_US-libritts_r-medium#611';assert.equal(S.validate(d),'');assert(S.catalog('local',d.models.local).some(v=>v.id===d.models.local.narrator));});
  await test('#401 a small actor bank reuses a matching narrator before crossing gender',async()=>{const d=draft('inworld'),c=d.models.inworld;delete c.cast[TTS.starsList()[0].id];c.voices=c.voices.slice(0,2);const female=TTS.starsList().find(v=>v.g==='F');assert.equal(S.actor('inworld',female.id,c),'a');});
  await test('#401 malformed saved root does not crash the settings dialog',async()=>{const k=S.keys.settings,old=store.get(k);try{store.set(k,'null');assert(S.draft().models.inworld);store.set(k,'[]');assert(S.draft().models.inworld)}finally{if(old===null)store.del(k);else store.set(k,old)}});
+
+ await test('#401 Speechify long audition waits for each response body before requesting another group',async()=>{
+  const pending=[];let active=0,max=0;
+  global.fetch=(u,o)=>{active++;max=Math.max(max,active);const p={signal:o.signal};pending.push(p);return Promise.resolve({ok:true,arrayBuffer:()=>new Promise(resolve=>{p.finish=()=>{active--;resolve(new Uint8Array([0,0,255,127]).buffer)}})})};
+  S.test(draft('speechify'),('A traveler waits beside the quiet river. ').repeat(15),'a',()=>{});await sleep(20);
+  assert.equal(pending.length,1,'free tier received overlapping speech requests');
+  pending[0].finish();await sleep(20);assert.equal(pending.length,2,'next group never requested');assert.equal(sources.length,1,'first group was not scheduled');
+  TTS.stop();assert(pending[1].signal.aborted,'Stop left the next request alive');pending[1].finish();await sleep(10);assert.equal(max,1);assert.equal(sources.length,1,'late cancelled audio played');
+ });
+ await test('#401 Speechify reports concurrency versus request-rate limits and Retry-After without retrying',async()=>{
+  for(const code of ['concurrency_limit_reached','rate_limited']){
+   let count=0;global.fetch=async()=>{count++;return{ok:false,status:429,headers:{get:k=>k==='Retry-After'?'3':null},json:async()=>({error:{code,message:'provider detail'}})}};
+   const r=await S.fetch('speechify',{text:'A quiet road.',voice:'a'},draft('speechify').models.speechify,'fixture');
+   assert.match(r.fail,/HTTP 429/);assert.match(r.fail,code==='concurrency_limit_reached'?/simultaneous speech requests/:/request-rate limit/);assert.match(r.fail,/try again in 3s/);assert.equal(count,1);
+  }
+ });
+ await test('#401 malformed or stalled 429 body remains bounded and attributable',async()=>{
+  global.fetch=async()=>({ok:false,status:429,json:async()=>{throw Error('bad JSON')}});assert.match((await S.fetch('speechify',{text:'Wait.',voice:'a'},draft('speechify').models.speechify,'fixture')).fail,/HTTP 429/);
+  global.setTimeout=(fn,ms)=>realTimer(fn,Math.min(ms,15));let signal;global.fetch=async(u,o)=>{signal=o.signal;return{ok:false,status:429,json:()=>new Promise(()=>{})}};
+  assert.match((await settled(S.fetch('speechify',{text:'Wait.',voice:'a'},draft('speechify').models.speechify,'fixture'))).fail,/timeout/);assert(signal.aborted);
+ });
+
+ await test('#401 Speechify limit reason reaches the visible audition error',async()=>{
+  toasts.length=0;global.fetch=async()=>({ok:false,status:429,json:async()=>({error:{code:'concurrency_limit_reached'}})});
+  S.test(draft('speechify'),'A quiet road.','a',()=>{});await sleep(20);
+  assert(toasts.some(t=>t.includes('Speechify')&&t.includes('simultaneous speech requests')));assert.equal(sources.length,0);assert.equal(TTS.isPlaying(),false);
+ });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' settings/transport groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

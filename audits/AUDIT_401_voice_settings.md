@@ -50,3 +50,13 @@ Test-first failure: Voice settings drafts (#401) / #401 Speechify rate uses rela
 Validation: full gate ALL GREEN (2,097 engine assertions and 32 standalone suites); focused browser QA passed. Sabotage harness caught absolute-percentage and incorrect-neutral mutations with the named regression assertion (2/2), restoring source byte-identically.
 
 Production release: owner authorized push/publish; PR #12 merged as 4c8bfed625b32b0f77b0b9ae35a22cdffbedce86 after both CI runs passed. Cloudflare production deployment 0c0f9089-fd7d-4afc-af07-3c6b5eeeda9c succeeded. The live https://traffic-and-dragons.pages.dev/ served v1.902 and passed the focused browser rate / Save / gameplay checks using intercepted requests. Real Speechify listening remains the owner trial.
+
+
+## Speechify trial concurrency — v1.903 (local)
+
+Owner saw HTTP 429 during a two-group Test and confirmed Free/trial. [Speechify API limits](https://docs.speechify.ai/docs/api-limits) allow one concurrent synthesis on Free, shared account-wide; the adapter inherited two-group prefetch. A synthetic request probe confirmed two requests started before either response arrived. Transport regression failed with 'free tier received overlapping speech requests'. The screenshot alone cannot distinguish concurrency from other quotas because the old request helper discarded the response body.
+
+Provider metadata now supplies scheduling depth: Speechify one, Inworld two. The second group begins after the first body completes; it can generate while the first plays. This does not coordinate other tabs or Speechify's console, nor guarantee instant provider-side cancellation. HTTP 429 diagnostics recognize concurrency_limit_reached and rate_limited and show valid numeric Retry-After. Unknown or malformed bodies retain the generic HTTP error; stalled bodies remain within the existing 20-second deadline. Raw provider messages are not echoed, avoiding accidental credential/text exposure. No automatic retry or additional billing is introduced.
+
+Test-first engine and transport failures preceded the fix. Transport tests cover waiting through body completion, the next group starting, Stop cancelling it, late audio staying silent, both 429 reasons, retry hints, malformed/stalled bodies and visible audition errors. Real account responses and audio have not been retested.
+Validation: full gate ALL GREEN (2,098 engine assertions, 32 standalone suites); focused Speechify rate / Save / gameplay browser QA passed. Two isolated sabotage mutations (overlapping requests and discarded limit reason) were caught by the named transport tests; source restored byte-identically.

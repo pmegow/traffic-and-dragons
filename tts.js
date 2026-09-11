@@ -754,7 +754,7 @@ var TTS = (function() {
     gemini: { label: "Google · Gemini TTS", key: true, direction: true, languages: [""],
       note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
       defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
-    inworld: { label: "Inworld · TTS-2", key: true, direction: true, rate: true, languages: ["", "en-US", "ko-KR"],
+    inworld: { label: "Inworld · TTS-2", depth: 2, key: true, direction: true, rate: true, languages: ["", "en-US", "ko-KR"],
       delivery: ["STABLE", "BALANCED", "CREATIVE"],
       note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Test bills your Inworld key.",
       defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },
@@ -764,7 +764,7 @@ var TTS = (function() {
       audio: function(r) { return r.json().then(function(j) { return _voiceDecode64(j.audioContent); }); },
       page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
       actor: function(v) { return { id: v.voiceId, label: v.displayName || v.voiceId, g: _voiceGender(v.gender), note: v.description || "", language: v.langCode || "" }; } },
-    speechify: { label: "Speechify · Simba 3.2", key: true, rate: true, languages: ["en-US"],
+    speechify: { label: "Speechify · Simba 3.2", depth: 1, key: true, rate: true, languages: ["en-US"],
       emotions: ["", "angry", "cheerful", "sad", "terrified", "relaxed", "fearful", "surprised", "calm", "assertive", "energetic", "warm", "direct", "bright"],
       note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate.",
       defaults: function() { return { narrator: "", language: "en-US", emotion: "" }; },
@@ -900,7 +900,20 @@ var TTS = (function() {
       return await Promise.race([(async function() {
         if (ctrl.signal.aborted) throw new Error("Request cancelled");
         var r = await fetch(url, options);
-        if (!r.ok) throw new Error("HTTP " + r.status + (r.status === 401 || r.status === 403 ? " — check API key and permissions" : r.status === 402 ? " — account credit required" : r.status === 429 ? " — quota or rate limit" : ""));
+        if (!r.ok) {
+          var reason = r.status === 401 || r.status === 403 ? "check API key and permissions" : r.status === 402 ? "account credit required" : r.status === 429 ? "quota or rate limit" : "";
+          if (r.status === 429) {
+            var body = null;
+            // An unreadable error body still reports the HTTP failure; the outer deadline bounds reads.
+            try { if (typeof r.json === "function") body = await r.json(); } catch (errorBody) {}
+            var descriptions = { concurrency_limit_reached: "too many simultaneous speech requests for this account", rate_limited: "account request-rate limit reached" };
+            var code = body && body.error && body.error.code;
+            if (Object.prototype.hasOwnProperty.call(descriptions, code)) reason = descriptions[code];
+            var retry = r.headers && typeof r.headers.get === "function" ? Number(r.headers.get("Retry-After")) : 0;
+            if (isFinite(retry) && retry > 0 && retry <= 86400) reason += "; try again in " + Math.ceil(retry) + "s";
+          }
+          throw new Error("HTTP " + r.status + (reason ? " — " + reason : ""));
+        }
         return await consume(r);
       })(), cancelled]);
     } finally { clearTimeout(timer); ctrl.signal.removeEventListener("abort", onAbort); }
@@ -1035,7 +1048,7 @@ var TTS = (function() {
   TTS_LADDER.unshift("inworld", "speechify");
   ["inworld", "speechify"].forEach(function(id) {
     var m = VOICE_MODELS[id];
-    CLOUD_READERS[id] = { label: m.label, depth: 2, prime: function() { return true; },
+    CLOUD_READERS[id] = { label: m.label, depth: m.depth, prime: function() { return true; },
       fetch: function(g, first, key, direction, regCtrl, config) { return _voiceFetch(id, g, config || _voiceConfig(id), key, regCtrl); },
       degrade: function(reason) { _voiceErrors[id] = { at: Date.now(), reason: reason }; console.warn("[tts " + id + "] " + reason); if (typeof showToast === "function") showToast(m.label + " unavailable: " + reason + " — using local voice", 8000); }
     };
