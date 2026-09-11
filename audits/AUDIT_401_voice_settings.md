@@ -42,9 +42,11 @@ Per request: one AbortController and deadline, both cleaned in finally. Per read
 Remaining: owner enters the two provider API keys and judges real audio, Korean pronunciation and end-to-end latency. CORS success and mocked transport tests do not establish real account entitlement or audio quality. Production browser QA passed on the live origin in a fresh profile with synthetic credentials and mocked paid endpoints. Real keys were not read or used during verification.
 
 
-## Speechify rate follow-up — v1.902 (local)
+## Speechify rate follow-up — v1.902 (published)
 
 Owner reported unusually fast Speechify narration with an ineffective slider. The UI already forwarded the draft rate, but the adapter encoded it as an absolute percentage (0.8 -> 80%, 1 -> 100%). [Speechify's SSML contract](https://docs.speechify.ai/docs/ssml/) specifies percentage adjustments relative to normal speed. The adapter now sends signed adjustments and the documented neutral keyword medium. No UI persistence behavior changed.
 
 Test-first failure: Voice settings drafts (#401) / #401 Speechify rate uses relative SSML adjustments at every slider step: 0.8x must send -20%, got rate=80%. The regression covers all eleven slider positions; the prior transport assertion expecting 110% was corrected to +10%. Browser QA (node dev/qa-401-speechify-rate.js) captures real Test requests for the default and replacement passages at 0.80x, 1.00x and 1.30x. Speechify remains selected while the dialog stays open; Close without Save restores OpenAI; Save/reopen retains Speechify and 0.80x; gameplay requests use that saved rate. Requests use synthetic keys and intercepted transport, so audible provider performance has not been re-tested.
 Validation: full gate ALL GREEN (2,097 engine assertions and 32 standalone suites); focused browser QA passed. Sabotage harness caught absolute-percentage and incorrect-neutral mutations with the named regression assertion (2/2), restoring source byte-identically.
+
+Production release: owner authorized push/publish; PR #12 merged as 4c8bfed625b32b0f77b0b9ae35a22cdffbedce86 after both CI runs passed. Cloudflare production deployment 0c0f9089-fd7d-4afc-af07-3c6b5eeeda9c succeeded. The live https://traffic-and-dragons.pages.dev/ served v1.902 and passed the focused browser rate / Save / gameplay checks using intercepted requests. Real Speechify listening remains the owner trial.
