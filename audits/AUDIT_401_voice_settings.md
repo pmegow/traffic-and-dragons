@@ -1,6 +1,6 @@
 # #401 — Model-driven Voice Settings
 
-Owner design, 2026-09-11. Built locally as v1.901 on `codex/voice-settings`; no push or deployment requested for this change.
+Owner design, 2026-09-11. Published as v1.901 on owner request via [PR #11](https://github.com/pmegow/traffic-and-dragons/pull/11), merge `781b10d`, after all branch CI checks passed. [Production](https://traffic-and-dragons.pages.dev/) and the release deployment `14b08703` were verified on 2026-09-11.
 
 ## Cause and behavior
 
@@ -39,4 +39,4 @@ Per request: one AbortController and deadline, both cleaned in finally. Per read
 - [Speechify voice catalog](https://docs.speechify.ai/build/api-reference/v1/voices/get): model-filtered catalog, `has_more` and cursor pagination.
 - [Speechify emotion control](https://docs.speechify.ai/tts/text-to-speech/features/emotion-control): SSML style emotion and prosody.
 
-Remaining: owner enters the two provider API keys and judges real audio, Korean pronunciation and end-to-end latency. CORS success and mocked transport tests do not establish real account entitlement or audio quality. No deployment was performed.
+Remaining: owner enters the two provider API keys and judges real audio, Korean pronunciation and end-to-end latency. CORS success and mocked transport tests do not establish real account entitlement or audio quality. Production browser QA passed on the live origin in a fresh profile with synthetic credentials and mocked paid endpoints. Real keys were not read or used during verification.
