@@ -22761,4 +22761,36 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return /legacy/i.test(String(an.detail))?true:"legacy-grade authorization invisible to the health readout: "+an.detail;
   });
 
+  section("OpenAI voice (#398)");
+  t("#398 OpenAI requires opt-in and a key; selecting it excludes Google",function(){
+    var O=TTS._openai;if(!O)return "OpenAI provider missing";
+    var old=providerKeys.openai,oldGemKey=providerKeys.gemini,gem=store.get(TTS._gemini.keys.on);
+    try {
+      store.del(O.keys.on);providerKeys.openai="fixture";providerKeys.gemini="fixture-gemini";TTS._gemini.resetDegrade();
+      if(O.ok())return "key alone enabled paid speech";
+      O.select(true);providerKeys.openai="";
+      if(O.ok())return "missing key accepted";
+      providerKeys.openai="fixture";store.set(TTS._gemini.keys.on,"1");
+      if(TTS.getEngine()!=="openai"||TTS._gemini.ok())return "selected OpenAI can fall into paid Google";
+      O.degrade("fixture failure");
+      if(TTS.getEngine()==="gemini"||TTS.getEngine()==="openai")return "failed OpenAI did not fall to free tiers";
+      return true;
+    } finally {providerKeys.openai=old;providerKeys.gemini=oldGemKey;store.del(O.keys.on);O.reset();if(gem===null||gem===undefined)store.del(TTS._gemini.keys.on);else store.set(TTS._gemini.keys.on,gem);}
+  });
+  t("#398 OpenAI narrator is validated and cast mapping stays stable",function(){
+    var O=TTS._openai;if(!O)return "OpenAI provider missing";
+    store.set(O.keys.narr,"not-a-voice");
+    if(O.narrator()!=="marin")return "invalid narrator escaped validation";
+    store.set(O.keys.narr,"cedar");
+    var v=O.voiceFor("en_US-libritts_r-medium#1");
+    var ok=O.voiceFor("")==="cedar"&&v===O.voiceFor("en_US-libritts_r-medium#1")&&v!=="cedar"&&O.voices.indexOf(v)>=0;
+    store.del(O.keys.narr);return ok?true:"narrator/cast mapping failed";
+  });
+  t("#398 OpenAI grouping preserves words and speaker boundaries",function(){
+    var O=TTS._openai;if(!O)return "OpenAI provider missing";
+    var g=O.group([{text:"The road."},{text:"Come along."},{text:"Night falls."}],"",{1:"en_US-libritts_r-medium#1"});
+    if(g.length!==3)return "speaker changes merged";
+    return g.map(function(x){return x.text;}).join(" ")==="The road. Come along. Night falls."?true:"words lost/reordered";
+  });
+
 }
