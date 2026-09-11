@@ -22941,4 +22941,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  t("#401 Speechify rate uses relative SSML adjustments at every slider step",function(){
+    var m=TTS.settings.models.speechify, rates=[0.8,0.85,0.9,0.95,1,1.05,1.1,1.15,1.2,1.25,1.3];
+    var expected=["-20%","-15%","-10%","-5%","medium","+5%","+10%","+15%","+20%","+25%","+30%"];
+    for(var i=0;i<rates.length;i++){
+      var input=m.request({text:"The lamps gutter.",voice:"alicia"},{rate:rates[i],emotion:""}).input;
+      if(input.indexOf('rate="'+expected[i]+'"')<0)return rates[i]+"x must send "+expected[i]+", got "+input;
+    }
+    return true;
+  });
+
 }

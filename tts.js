@@ -772,7 +772,10 @@ var TTS = (function() {
       request: function(g, c) {
         var text = escHtml(g.text);
         if (c.emotion) text = '<speechify:style emotion="' + c.emotion + '">' + text + '</speechify:style>';
-        return { input: '<speak><prosody rate="' + Math.round(c.rate * 100) + '%">' + text + '</prosody></speak>',
+        // Speechify percentages are adjustments to normal speed, not multipliers.
+        var adjustment = Math.round((c.rate - 1) * 100);
+        var rate = adjustment === 0 ? "medium" : (adjustment > 0 ? "+" : "") + adjustment + "%";
+        return { input: '<speak><prosody rate="' + rate + '">' + text + '</prosody></speak>',
           voice_id: g.voice, model: "simba-3.2", language: "en-US", output_format: "pcm_24000" };
       },
       audio: function(r) { return r.arrayBuffer().then(function(b) { return new Uint8Array(b); }); },
