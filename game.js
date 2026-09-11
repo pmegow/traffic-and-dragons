@@ -2894,15 +2894,7 @@ function buildSceneRenderRequest(c,party,w,opts){
     +"Scene: "+w.location+(opts&&opts.sublocation?", "+opts.sublocation:"")+", "+w.region+", "+(opts&&opts.timeText?opts.timeText:worldTimeDisplay())+(w.weather?", "+w.weather:"")+". "
     +(opts&&!w.weather?(opts.weatherInProse?"Weather: only as the scene text describes it. ":"Weather: the record names none for this moment — paint no weather, only the place and its light. "):"")/* #206: omit unless the prose names it */
     +(hasParty?"All "+(compDescs.length+1)+" party members must be present and individually recognizable in the scene. ":"")
-    +"Freeze the scene's CURRENT action at its most dramatic instant — mid-motion, never the calm after it. "
-    /* Abstract dynamism ("natural, dynamic poses") renders as a polite tableau — image models act
-       on CONCRETE craft vocabulary. Owner report t2084: four full-length figures standing in a
-       row despite the old directive. Per-character pose clauses + hard variety constraints +
-       one named camera/motion sentence are the working levers. */
-    /* Owner directive (t2084 follow-up): comic-book COMPOSITION/POSING vocabulary — scoped away
-       from the art style on purpose, so renders gain splash-page energy without going cel-shaded. */
-    +"Comic-book splash-panel composition and posing: dramatic foreshortening, exaggerated action angles, bodies cutting across the frame on diagonals — while the ART STYLE below stays painterly, never cel-shaded or inked. "
-    +"POSE every character by what they are doing in the scene right now — give each a specific mid-action body position (mid-swing, lunging, bracing, twisting to look, hauling, diving); NO two characters in the same stance, at least one seen from behind, at least one large in the foreground partially cropped by the frame; never a static front-facing line-up or posed group portrait. "
+    +"Depict the current moment faithfully. Derive each character's actual activity and posture from the scene, with a concrete pose clause for that character. Stillness is valid. Movement and its intensity must be supported by the scene; each character keeps the activity the story gives them. "
     /* Owner follow-up: scattered gazes read as separate figures sharing a canvas — converging
        eye-lines are what bind a composition into ONE event. The writer must NAME the focal point
        and aim every gaze at it; the one sanctioned exception must still serve the same scene. */
@@ -2949,9 +2941,6 @@ function buildSceneRenderRequest(c,party,w,opts){
        mints a SECOND concept (the five-way's own prompt said staircase/stairs/stairway/steps/
        terraces and scattered). One name, repeated verbatim, binds every clause to one target. */
     +"NAME THE FOCAL POINT ONCE and repeat that EXACT name in every character's facing phrase — never a pronoun ('it', 'them'), never a synonym (staircase does not become steps or terraces): one repeated name is what binds all four clauses to one target. "
-    /* #209d: implied motion orients a body more reliably than static facing words (convergent
-       practice — 'walking away toward the gate' is the community's rear-view idiom of choice). */
-    +"Prefer MOTION VERBS aimed at the named focal point over static facing words — 'striding toward the X', 'driving up the X', 'leaning into the X' — a body in motion toward a target is oriented by construction. "
     /* #209e (the adversarially-verified gaze deep-research, 2026-08-21): gaze is a RELATION
        clause — the weakest measured instruction class (~1-in-5 fail at the top end) — and the
        only single-prompt mitigation is dual-channel redundancy (TextGaze: head and eyes are
@@ -2959,8 +2948,8 @@ function buildSceneRenderRequest(c,party,w,opts){
        trained as MUTUAL gaze — in a group scene it turns characters toward EACH OTHER. */
     +"Write gaze in TWO CHANNELS per character — head and eyes as separate statements ('head turned toward the X, eyes fixed on the X'): stating both is the working mitigation for the least-obeyed instruction class. Never write 'eye contact' when characters should watch the focal point — it means MUTUAL gaze and turns them toward each other; reserve it for a deliberate two-character beat. "
     +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
-    +"End with ONE camera-and-motion sentence naming a specific angle and framing (low-angle close shot, over-the-shoulder, dutch tilt, worm's-eye) plus a motion cue (blade streaking, sparks flying, cloth and hair in motion). "
-    +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then that character's pose clause, then 1-2 sentences for the environment":"3-4 sentences including the protagonist's specific mid-action pose")+". Output ONLY the prompt, no game tags.";
+    +"End with ONE camera-and-framing sentence suited to the scene's activity and spatial relationships. Include motion cues only when the scene describes movement. "
+    +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then that character's pose clause, then 1-2 sentences for the environment":"3-4 sentences including the protagonist's scene-appropriate posture")+". Output ONLY the prompt, no game tags.";
 }
 // #165: portrait-seed selection as DATA — a model's img2img entry declares multiSeed (Nano, Grok)
 // and gets the companions' portraits; single-reference APIs (Flux family, Qwen) get the player
@@ -3118,10 +3107,10 @@ async function doRender(rOpts){
         var falPrompt=withImgStyle(resp);
         // Edit/compositor models (Nano, Grok) cling to the reference portraits' posed, front-facing
         // headshot framing (the "school-portrait" stiffness). Tell them the references are
-        // likeness-only so everyone re-stages dynamically. Scene-render only; portrait paths stay posed.
+        // likeness-only so the written scene controls posture and activity. Scene-render only; portrait paths stay posed.
         // #166: and NAME each numbered reference — three anonymous refs against four described
         // characters made Grok guess, and Daeris's likeness averaged away.
-        if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness, colouring and costume ONLY — do NOT copy their frontal, posed headshot framing or stance; re-stage every figure in a NEW mid-action pose fitting the scene, no two figures in the same stance, at least one angled away from the camera."+buildSeedLegend(sc.names,sc.omitted);
+        if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness, colouring and costume ONLY — do NOT copy their frontal, posed headshot framing or stance. Follow each character's WRITTEN posture, activity and orientation exactly, including stillness."+buildSeedLegend(sc.names,sc.omitted);
         var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
         // Elapsed-seconds heartbeat (owner call 2026-08-31, the Seedream hang): a frozen status
         // line reads as broken long before it reads as slow — a ticking counter is what tells
