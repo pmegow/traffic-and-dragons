@@ -15,6 +15,8 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
+- 2026-09-11 · #401 · Astra: reproduced two simultaneous Speechify requests against the owner-confirmed Free/trial plan (limit one). v1.903 gives each adapter its own prefetch depth (Speechify one; Inworld two) and reports documented 429 codes / numeric Retry-After. Tests cover response-body completion, Stop/late audio, malformed/stalled errors and visible error propagation. Local only; no real keys or paid requests.
+
 - 2026-09-11 · #401 · Astra: Speechify rate encoding used absolute percentages where the provider expects relative adjustments; corrected in v1.902. Test-first engine failure caught 0.8x -> 80% instead of -20%. Browser captures verify two passages at slow/normal/fast plus draft stability, Close rollback and Save/reopen/gameplay persistence. No real API credentials or paid synthesis used. Published on owner request via PR #12; live v1.902 verified with browser request-capture QA.
 
 - 2026-09-11 · #401 · Astra: owner-authorized adaptive voice settings, Save-only preferences, removable Manage Cast tab, Inworld/Speechify trial adapters. Separate DOM module and bounded registry adapters; no prompt, parser, memory, identity or campaign-schema edits. New script registration in index/app shell is the minimal wiring for the requested UI module. Draft cancellation, storage rollback, timeout/abort, model-specific controls, actor mapping and mobile layout verified. Existing OpenAI browser tests migrated to the expanded settings suite because the owner explicitly replaced their immediate-save behavior. See audits/AUDIT_401_voice_settings.md.

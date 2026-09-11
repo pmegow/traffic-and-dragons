@@ -22951,4 +22951,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  t("#401 Speechify declares free-tier-safe concurrency independently of Inworld",function(){
+    var m=TTS.settings.models;
+    var requested=[],q=TTS._gemini.conveyor(2,m.speechify.depth,function(i){requested.push(i);});q.pump();
+    if(requested.join(",")!=="0")return "Speechify must start exactly one request";
+    q.landed(0,{bytes:[0,0]});q.take();
+    if(requested.join(",")!=="0,1")return "Speechify must advance after consuming the first result";
+    return m.inworld.depth===2 ? true : "Inworld must retain two-group prefetch";
+  });
+
 }
