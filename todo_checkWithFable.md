@@ -15,6 +15,8 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
+- 2026-09-11 · #397 · Astra: owner-authorized removal of the two camera-facing explanations sent to the scene prompt writer. Deleted the negative gaze example and described-face camera-turn explanation; retained the composition directives and existing assertions. Version/cache bumped to v1.895. No new runtime resources or state.
+
 - 2026-09-11 · #397 · Astra: owner explicitly requested removal of both profile references from the scene prompt writer. Deleted only those two phrases in game.js; version/cache bumped. Existing render assertions retained and full suite passed. Composition lesson/rewrite/A-B remains open.
 
 - 2026-09-11 · #399 · Astra: owner-authorized OpenAI cast genders, Alloy male, gender/description picker labels. Existing GM speaker attribution and saved cast pins feed a shared cloud gender lookup; OpenAI now filters its actor pool. Six engine tests, six named proofs and browser QA. No GM prompt, parser, identity or campaign-schema edits.

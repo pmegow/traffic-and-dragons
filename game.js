@@ -2911,7 +2911,7 @@ function buildSceneRenderRequest(c,party,w,opts){
        ignores) that also injects the token "camera" (which invites the very thing it forbids;
        the Grok arm's protagonist glared straight into the lens). Positive candid framing is the
        working replacement, and the directive now teaches the never-negate rule to the writer. */
-    +"EYE-LINES: name the scene's single FOCAL POINT — the threat, the discovery, the speaker — and aim every character's gaze, face and body orientation at it. Every figure is CANDID — absorbed in the scene, unaware of being observed. Write orientation POSITIVELY: never a negation ('not looking at the camera' both fails as a negation and summons the camera). "
+    +"EYE-LINES: name the scene's single FOCAL POINT — the threat, the discovery, the speaker — and aim every character's gaze, face and body orientation at it. Every figure is CANDID — absorbed in the scene, unaware of being observed. Write orientation POSITIVELY: never a negation. "
     /* #209 (the five-way field read, 2026-08-21): gaze WORDS are the weakest lever image models
        have — three of four written gazes aimed at the stairs and the renders still scattered.
        Two working levers: an ANCHORED facing phrase closing every pose clause (concrete craft
@@ -2943,7 +2943,7 @@ function buildSceneRenderRequest(c,party,w,opts){
        moment her face words were removed and identity rode hair, build and clothes). The painter shows the face it
        is given, and a shown face turns the body toward the camera — no movement or view-angle wording survives
        that. The lever is what NOT to write. Positive phrasing per #209d: say what carries identity instead. */
-    +"A DESCRIBED FACE IS A SHOWN FACE: for any character posed from behind or in a rear view, carry their identity through hair, build, silhouette, clothing and gear ONLY — write nothing about their eyes, jaw, cheeks, complexion or expression, because the painter turns a described face toward the camera and the body follows. Face words are for the characters whose pose clause shows the face. "
+    +"A DESCRIBED FACE IS A SHOWN FACE: for any character posed from behind or in a rear view, carry their identity through hair, build, silhouette, clothing and gear ONLY — write nothing about their eyes, jaw, cheeks, complexion or expression. Face words are for the characters whose pose clause shows the face. "
     /* #209c (research synthesis, 2026-08-21): text encoders concentrate a concept in one or two
        tokens and propagate poorly across mentions — a pronoun binds to nothing and a synonym
        mints a SECOND concept (the five-way's own prompt said staircase/stairs/stairway/steps/
