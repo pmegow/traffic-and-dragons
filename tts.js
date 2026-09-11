@@ -169,15 +169,13 @@ var TTS = (function() {
     }
   }
 
-  // getEngine() — #9 rework (v1.398): the engine PICKER is gone; selection is RESOLVED, never
-  // stored. #90 (v1.435) adds the server tier on top: a connected, healthy TTS server wins,
-  // otherwise Piper is THE local engine exactly as before — so on any offline/unconnected device
-  // this still resolves to the same constant "piper" it has been since the rework. The retired
-  // storage keys (tnd_tts_engine_v1, tnd_tts_native_v1) still cannot resurrect anything —
-  // engine-tested. Native survives ONLY as the automatic fallback target (the runtime ladder in
-  // speak() + the iOS-audio-suspend path call TTS_PROVIDERS.native directly, NOT via getEngine),
-  // so a device where neither the server nor Piper can run still speaks.
-  function getEngine() { if (_openaiOk()) return "openai"; return _geminiTtsOk() ? "gemini" : (_serverTtsOk() ? "server" : "piper"); }
+  // Explicit selection is intent; a failed paid provider falls straight to local tiers.
+  function getEngine() {
+    var id = _voicePrimary();
+    if (id === "native") return "native";
+    if (id !== "local" && TTS_PROVIDERS[id] && TTS_PROVIDERS[id].available()) return id;
+    return _serverTtsOk() ? "server" : "piper";
+  }
 
   // ── Server TTS tier (#90 M1, v1.435 — the B9 architectural close) ────────────────────────────
   // Synthesis moved OFF the phone: POST /api/tts on the tnd-tts Fly app (server repo, tts/) runs
@@ -684,6 +682,7 @@ var TTS = (function() {
   function _openaiDirection() { return store.get(OPENAI_DIR_K) || OPENAI_DIRECTION; }
   function _openaiReset() { _openaiErr = ""; _openaiErrAt = 0; }
   function _openaiSelect(on) {
+    var settings = Object.assign({}, _voiceRead(VOICE_SETTINGS_K)); delete settings.primary; store.set(VOICE_SETTINGS_K, JSON.stringify(settings));
     store.set(OPENAI_TTS_K, on ? "1" : "0");
     if (on) { store.set(GEMINI_TTS_K, "0"); _openaiReset(); }
   }
@@ -711,7 +710,7 @@ var TTS = (function() {
   }
   // The deadline races the WHOLE operation, including body consumption. Aborting the
   // request alone is insufficient when a transport fails to reject its pending body read.
-  async function _openaiFetchGroup(g, isFirst, key, direction, regCtrl) {
+  async function _openaiFetchGroup(g, isFirst, key, direction, regCtrl, config) {
     if (!key) return { fail: "no OpenAI API key on file" };
     var ctrl = new AbortController(), timer, rejectAbort;
     var cancelled = new Promise(function(resolve, reject) { rejectAbort = reject; });
@@ -725,7 +724,7 @@ var TTS = (function() {
         var response = await fetch("https://api.openai.com/v1/audio/speech", {
           method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
           body: JSON.stringify({ model: "gpt-4o-mini-tts", input: g.text, voice: g.voice,
-            instructions: direction, response_format: "pcm", speed: getRate() }), signal: ctrl.signal
+            instructions: direction, response_format: "pcm", speed: config ? config.rate : getRate() }), signal: ctrl.signal
         });
         if (!response.ok) return { fail: "HTTP " + response.status + (response.status === 429 ? " (quota or rate limit)" : response.status === 401 ? " (check your API key)" : "") };
         var bytes = new Uint8Array(await response.arrayBuffer());
@@ -744,6 +743,232 @@ var TTS = (function() {
     openai: { label: "OpenAI TTS", key: _openaiKey, direction: _openaiDirection, group: _openaiGroup,
       fetch: _openaiFetchGroup, degrade: _openaiDegrade, depth: 2, prime: function() { return true; } }
   };
+
+  // Settings are copied into a draft; only commitSettings writes preferences.
+  var VOICE_SETTINGS_K = "tnd_voice_settings_v1", VOICE_KEYS_K = "tnd_voice_keys_v1";
+  var _voiceErrors = {}, _voiceReadCache = {};
+  var VOICE_MODELS = {
+    openai: { label: "OpenAI · GPT-4o mini TTS", key: true, direction: true, rate: true, languages: [""],
+      note: "13 actors. Uses your existing OpenAI key. Test bills that key.", catalog: function() { return OPENAI_VOICE_BANK; },
+      defaults: function() { return { narrator: _openaiNarrator(), direction: _openaiDirection(), rate: getRate() }; } },
+    gemini: { label: "Google · Gemini TTS", key: true, direction: true, languages: [""],
+      note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
+      defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
+    inworld: { label: "Inworld · TTS-2", key: true, direction: true, rate: true, languages: ["", "en-US", "ko-KR"],
+      delivery: ["STABLE", "BALANCED", "CREATIVE"],
+      note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Test bills your Inworld key.",
+      defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },
+      auth: "Basic", accept: "application/json", endpoint: "https://api.inworld.ai/tts/v1/voice", catalogUrl: "https://api.inworld.ai/voices/v1/voices?pageSize=2000",
+      request: function(g, c) { return { text: g.text, voiceId: g.voice, modelId: "inworld-tts-2", instruction: c.direction,
+        deliveryMode: c.delivery, language: c.language || undefined, audioConfig: { audioEncoding: "PCM", sampleRateHertz: 24000, speakingRate: c.rate } }; },
+      audio: function(r) { return r.json().then(function(j) { return _voiceDecode64(j.audioContent); }); },
+      page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
+      actor: function(v) { return { id: v.voiceId, label: v.displayName || v.voiceId, g: _voiceGender(v.gender), note: v.description || "", language: v.langCode || "" }; } },
+    speechify: { label: "Speechify · Simba 3.2", key: true, rate: true, languages: ["en-US"],
+      emotions: ["", "angry", "cheerful", "sad", "terrified", "relaxed", "fearful", "surprised", "calm", "assertive", "energetic", "warm", "direct", "bright"],
+      note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate.",
+      defaults: function() { return { narrator: "", language: "en-US", emotion: "" }; },
+      auth: "Bearer", accept: "audio/pcm", endpoint: "https://api.speechify.ai/v1/audio/stream", catalogUrl: "https://api.speechify.ai/v1/voices?locale=en&model=simba-3.2&limit=200",
+      request: function(g, c) {
+        var text = escHtml(g.text);
+        if (c.emotion) text = '<speechify:style emotion="' + c.emotion + '">' + text + '</speechify:style>';
+        return { input: '<speak><prosody rate="' + Math.round(c.rate * 100) + '%">' + text + '</prosody></speak>',
+          voice_id: g.voice, model: "simba-3.2", language: "en-US", output_format: "pcm_24000" };
+      },
+      audio: function(r) { return r.arrayBuffer().then(function(b) { return new Uint8Array(b); }); },
+      page: function(j) { if (j.has_more && !j.next_cursor) throw new Error("Voice catalog omitted its next cursor"); return { voices: j.voices, next: j.has_more ? j.next_cursor : "" }; }, cursor: "cursor",
+      actor: function(v) {
+        if (!Array.isArray(v.models) || !v.models.some(function(m) { return m.name === "simba-3.2"; })) return null;
+        return { id: v.id, label: v.display_name || v.id, g: _voiceGender(v.gender), note: (v.tags || []).join(", "), language: v.locale || "" };
+      } },
+    local: { label: "Piper · Server / offline", rate: true, languages: ["en-US"],
+      note: "Uses the connected T&D voice server, then offline Piper. First use downloads the selected model. Device voice is the final fallback.",
+      catalog: function() { return starsList().concat(PIPER_VOICES); }, defaults: function() { return { narrator: resolvePiperVoice(), language: "en-US", rate: getRate() }; } },
+    native: { label: "Device · Built-in voices", rate: true, languages: [""],
+      note: "Uses voices installed on this device. Voice availability and language support depend on your operating system.",
+      catalog: function() { return _voiceList().map(function(v) { return { id: v.name, label: v.name, note: v.lang }; }); },
+      defaults: function() { return { narrator: getNativeVoice(), rate: getRate() }; } }
+  };
+  function _voiceGender(g) { return g === "male" || g === "M" ? "M" : g === "female" || g === "F" ? "F" : ""; }
+  function _voiceRead(k) {
+    var raw = store.get(k), cached = _voiceReadCache[k];
+    if (cached && cached.raw === raw) return cached.value;
+    try { var parsed = JSON.parse(raw || "{}"); var value = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}; _voiceReadCache[k] = { raw: raw, value: value }; return value; }
+    catch (e) { console.warn("[tts settings] Invalid saved settings: " + e.message); return {}; }
+  }
+  function _voicePrimary() {
+    var p = _voiceRead(VOICE_SETTINGS_K).primary;
+    return VOICE_MODELS[p] ? p : _openaiEnabled() ? "openai" : geminiTtsEnabled() ? "gemini" : "local";
+  }
+  function _voiceConfig(id) {
+    var m = VOICE_MODELS[id], saved = _voiceRead(VOICE_SETTINGS_K).models || {};
+    var result = Object.assign({ narrator: "", direction: "", language: "", rate: 1, emotion: "", delivery: "STABLE", cast: {}, voices: [] }, m.defaults(), saved[id] || {});
+    if (id === "local") result.narrator = resolvePiperVoice();
+    if (id === "native") result.narrator = getNativeVoice();
+    return result;
+  }
+  function _voiceKey(id) { return id === "openai" ? _openaiKey() : id === "gemini" ? _geminiKey() : _voiceRead(VOICE_KEYS_K)[id] || ""; }
+  function _voiceCatalog(id, c) {
+    var m = VOICE_MODELS[id];
+    var list = (m.catalog ? m.catalog() : c.voices || []).slice();
+    if (id === "local" && c.narrator && _piperVoiceKnown(c.narrator) && !list.some(function(v) { return v.id === c.narrator; })) list.push({ id: c.narrator, label: _voiceLabelOf(c.narrator) });
+    return list.map(function(v) { return { id: v.id, label: v.label || (id === "openai" ? v.id.charAt(0).toUpperCase() + v.id.slice(1) : v.id), g: v.g || "", note: v.note || v.blurb || "", language: v.language || "" }; });
+  }
+  function _voiceDraft() {
+    var d = { primary: _voicePrimary(), models: {}, keys: {}, fallback: { piper: resolvePiperVoice(), native: getNativeVoice(), rate: getRate() } };
+    Object.keys(VOICE_MODELS).forEach(function(id) { d.models[id] = _voiceConfig(id); d.keys[id] = _voiceKey(id); });
+    return JSON.parse(JSON.stringify(d));
+  }
+  function _voiceValidate(d) {
+    if (!d || !VOICE_MODELS[d.primary]) return "Select a voice model.";
+    var m = VOICE_MODELS[d.primary], c = d.models[d.primary];
+    if (m.key && !String(d.keys[d.primary] || "").trim()) return "Enter a " + m.label.split(" · ")[0] + " API key.";
+    if (!c || m.languages.indexOf(c.language) < 0) return "Select a supported speech language.";
+    if (m.rate && (!isFinite(c.rate) || c.rate < 0.8 || c.rate > 1.3)) return "Speech rate must be between 0.8 and 1.3.";
+    if (m.delivery && m.delivery.indexOf(c.delivery) < 0) return "Select a delivery mode.";
+    if (m.emotions && m.emotions.indexOf(c.emotion) < 0) return "Select a supported emotion.";
+    var voices = _voiceCatalog(d.primary, c);
+    if (d.primary !== "native" && !voices.some(function(v) { return v.id === c.narrator; })) return "Load voices and choose a narrator.";
+    return "";
+  }
+  function _voiceCommit(d) {
+    var error = _voiceValidate(d); if (error) throw new Error(error);
+    var data = JSON.parse(JSON.stringify(d));
+    var keys = Object.assign({}, providerKeys);
+    ["openai", "gemini"].forEach(function(id) { if (data.keys[id]) keys[id] = data.keys[id].trim(); });
+    var local = data.primary === "local" ? data.models.local.narrator : data.fallback.piper;
+    var native = data.primary === "native" ? data.models.native.narrator : data.fallback.native;
+    var writes = [
+      [PKEYS_K, JSON.stringify(keys)],
+      [VOICE_KEYS_K, JSON.stringify({ inworld: data.keys.inworld.trim(), speechify: data.keys.speechify.trim() })],
+      [VOICE_SETTINGS_K, JSON.stringify({ primary: data.primary, models: data.models })],
+      [OPENAI_TTS_K, data.primary === "openai" ? "1" : "0"], [GEMINI_TTS_K, data.primary === "gemini" ? "1" : "0"],
+      [OPENAI_NARR_K, data.models.openai.narrator], [OPENAI_DIR_K, data.models.openai.direction],
+      [GEMINI_NARRATOR_K, data.models.gemini.narrator], [GEMINI_DIR_K, data.models.gemini.direction],
+      [NVOICE_K, native], [RATE_K, String((data.primary === "local" || data.primary === "native") ? data.models[data.primary].rate : data.fallback.rate)]
+    ];
+    var localChanged = local !== resolvePiperVoice();
+    if (localChanged) writes.push([PVOICE_K, local]);
+    var before = writes.map(function(w) { return [w[0], store.get(w[0])]; });
+    try { writes.forEach(function(w) { store.set(w[0], w[1]); }); }
+    catch (err) {
+      before.forEach(function(w) { try { if (w[1] === null) store.del(w[0]); else store.set(w[0], w[1]); } catch (rollback) { console.warn("[tts settings] Restore failed: " + rollback.message); } });
+      throw new Error("Could not save voice settings: " + err.message);
+    }
+    providerKeys = keys;
+    if (typeof activeProvider !== "undefined" && keys[activeProvider]) apiKey = keys[activeProvider];
+    if (localChanged) savePiperVoice(local);
+    _openaiReset(); _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiModelClosedUntil = {}; _voiceErrors = {};
+  }
+  function _voiceActor(id, legacy, c, bank) {
+    if (!legacy) return c.narrator;
+    var all = bank || _voiceCatalog(id, c), explicit = c.cast[legacy];
+    if (explicit && all.some(function(v) { return v.id === explicit; })) return explicit;
+    if (all.some(function(v) { return v.id === legacy; })) return legacy;
+    var gender = _castVoiceGender(legacy);
+    if (id === "gemini") {
+      var calm = GEMINI_VOICES.filter(function(v) { return v.calm && (!gender || v.g === gender); });
+      if (!calm.length) return c.narrator;
+      var hash = 0; for (var j = 0; j < legacy.length; j++) hash = ((hash * 31) + legacy.charCodeAt(j)) >>> 0;
+      var pick = calm[hash % calm.length].id;
+      return pick === c.narrator && calm.length > 1 ? calm[(hash + 1) % calm.length].id : pick;
+    }
+    var pool = all.filter(function(v) { return v.id !== c.narrator && (!gender || v.g === gender); });
+    if (!pool.length && gender) pool = all.filter(function(v) { return v.g === gender; });
+    if (!pool.length) pool = all.filter(function(v) { return v.id !== c.narrator; });
+    if (!pool.length) return c.narrator;
+    var h = 0; for (var i = 0; i < legacy.length; i++) h = ((h * 31) + legacy.charCodeAt(i)) >>> 0;
+    return pool[h % pool.length].id;
+  }
+  function _voiceDecode64(b64) {
+    if (typeof b64 !== "string" || b64.length > 8000000) throw new Error("Invalid audio response");
+    var s = atob(b64), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a;
+  }
+  // Deadline includes headers, body and decoding. Abort is raced even if a transport hangs.
+  async function _voiceRequest(url, options, consume, regCtrl) {
+    var ctrl = new AbortController(), timer, rejectAbort;
+    var cancelled = new Promise(function(resolve, reject) { rejectAbort = reject; });
+    function onAbort() { rejectAbort(new Error("Request cancelled")); }
+    ctrl.signal.addEventListener("abort", onAbort, { once: true });
+    if (regCtrl) regCtrl(ctrl);
+    options.signal = ctrl.signal;
+    timer = setTimeout(function() { rejectAbort(new Error("Request timeout (20s)")); ctrl.abort(); }, 20000);
+    try {
+      return await Promise.race([(async function() {
+        if (ctrl.signal.aborted) throw new Error("Request cancelled");
+        var r = await fetch(url, options);
+        if (!r.ok) throw new Error("HTTP " + r.status + (r.status === 401 || r.status === 403 ? " — check API key and permissions" : r.status === 402 ? " — account credit required" : r.status === 429 ? " — quota or rate limit" : ""));
+        return await consume(r);
+      })(), cancelled]);
+    } finally { clearTimeout(timer); ctrl.signal.removeEventListener("abort", onAbort); }
+  }
+  function _voiceFetch(id, g, c, key, regCtrl) {
+    var m = VOICE_MODELS[id];
+    if (!key) return Promise.resolve({ fail: "No API key" });
+    return _voiceRequest(m.endpoint, { method: "POST", headers: { "Content-Type": "application/json", "Accept": m.accept, "Authorization": m.auth + " " + key }, body: JSON.stringify(m.request(g, c)) }, m.audio, regCtrl)
+      .then(function(bytes) {
+        if (!bytes.length || bytes.length % 2 || bytes.length > 6000000) return { fail: "Invalid PCM audio response" };
+        return { bytes: bytes, rate: 24000 };
+      }, function(e) { return { fail: e.message }; });
+  }
+  async function _voiceLoadCatalog(id, key, regCtrl) {
+    var m = VOICE_MODELS[id], next = "", seen = {}, voices = [], pages = 0;
+    if (!m.catalogUrl || !key) throw new Error("Enter an API key before loading voices.");
+    do {
+      if (++pages > 20) throw new Error("Voice catalog exceeds 20 pages; narrow the workspace catalog.");
+      var j = await _voiceRequest(m.catalogUrl + (next ? "&" + m.cursor + "=" + encodeURIComponent(next) : ""),
+        { headers: { "Authorization": m.auth + " " + key } }, function(r) { return r.json(); }, regCtrl);
+      var page = m.page(j);
+      if (!Array.isArray(page.voices)) throw new Error("Invalid voice catalog response");
+      page.voices.forEach(function(v) { var actor = m.actor(v); if (actor && typeof actor.id === "string" && actor.id && !seen["v:" + actor.id]) { seen["v:" + actor.id] = true; voices.push(actor); } });
+      next = page.next;
+      if (next && seen["p:" + next]) throw new Error("Voice catalog repeated its pagination cursor");
+      if (next) seen["p:" + next] = true;
+      if (voices.length > 4000) throw new Error("Voice catalog exceeds 4000 actors");
+    } while (next);
+    if (!voices.length) throw new Error("No compatible actors returned for this model.");
+    return voices;
+  }
+  function _voiceReader(id, c, key, audition) {
+    var base = CLOUD_READERS[id], r = Object.assign({}, base), bank = _voiceCatalog(id, c), resolved = {};
+    r.key = function() { return key; }; r.direction = function() { return c.direction; };
+    r.group = function(units, voiceId, voices, force) { return _geminiGroupUnits(units, voiceId, voices, force, function(v) { var key = "voice:" + v; if (!Object.prototype.hasOwnProperty.call(resolved, key)) resolved[key] = _voiceActor(id, v, c, bank); return resolved[key]; }); };
+    r.fetch = function(g, first, k, direction, regCtrl) { return base.fetch(g, first, k, direction, regCtrl, c); };
+    if (audition) {
+      r.audition = true;
+      r.degrade = function(reason) { console.warn("[tts audition] " + reason); if (typeof showToast === "function") showToast(r.label + " test failed: " + reason, 8000); };
+    }
+    return r;
+  }
+  function _voiceLiveReader(id) { return _voiceReader(id, _voiceConfig(id), _voiceKey(id), false); }
+  function _voiceTest(d, text, actor, onPhase) {
+    var error = _voiceValidate(d); if (error) throw new Error(error);
+    text = String(text || "").trim(); if (!text || text.length > 1000) throw new Error("Test passage must contain 1–1000 characters.");
+    stop();
+    var testEpoch = _piperEpoch;
+    var id = d.primary, c = JSON.parse(JSON.stringify(d.models[id]));
+    _auditionCb = onPhase; _auditionPhase("loading");
+    if (CLOUD_READERS[id]) {
+      _queue.push({ text: text, cloud: id, reader: _voiceReader(id, c, d.keys[id].trim(), true), forceVoice: actor || c.narrator, voiceId: "" }); _drain();
+    } else if (id === "native") {
+      _auditionPhase("playing"); _queue.push({ text: text, native: true, audition: { voice: c.narrator, rate: c.rate } }); _drain();
+    } else {
+      _confirmVoiceEviction(c.narrator).then(function(ok) {
+        if (testEpoch !== _piperEpoch) return;
+        if (!ok || !_auditionCb) { _auditionPhase("idle"); return; }
+        _queue.push({ text: text, piper: true, voiceId: c.narrator, audition: { rate: c.rate } }); _drain();
+      });
+    }
+  }
+  function _voiceCastSlots() {
+    var slots = starsList().map(function(v) { return { id: v.id, label: v.label, g: v.g, assigned: [] }; });
+    function add(name, id) { if (!id) return; var s = slots.filter(function(v) { return v.id === id; })[0]; if (!s) { s = { id: id, label: _voiceLabelOf(id), g: _castVoiceGender(id), assigned: [] }; slots.push(s); } s.assigned.push(name); }
+    if (typeof worldState !== "undefined" && worldState) {
+      var ch = worldState.character; if (ch) add(ch.name || "Player", ch.voiceId);
+      (worldState.npcs || []).forEach(function(n) { if (n) add(n.name, n.charSheet && n.charSheet.voiceId || n.voiceId); });
+    }
+    return slots;
+  }
 
   // ── TTS_PROVIDERS — the provider table (mirrors the LLM PROVIDERS shape in globals.js) ───────
   // One entry per engine. speak() resolves getEngine() → this table → availability → enqueue(),
@@ -804,6 +1029,19 @@ var TTS = (function() {
   // for anyone who has not turned it on — available() is false and the walk starts at server
   // exactly as before.
   var TTS_LADDER = ["openai", "gemini", "server", "piper", "native"];
+  TTS_LADDER.unshift("inworld", "speechify");
+  ["inworld", "speechify"].forEach(function(id) {
+    var m = VOICE_MODELS[id];
+    CLOUD_READERS[id] = { label: m.label, depth: 2, prime: function() { return true; },
+      fetch: function(g, first, key, direction, regCtrl, config) { return _voiceFetch(id, g, config || _voiceConfig(id), key, regCtrl); },
+      degrade: function(reason) { _voiceErrors[id] = { at: Date.now(), reason: reason }; console.warn("[tts " + id + "] " + reason); if (typeof showToast === "function") showToast(m.label + " unavailable: " + reason + " — using local voice", 8000); }
+    };
+    TTS_PROVIDERS[id] = { id: id, label: m.label,
+      available: function() { var err = _voiceErrors[id]; return _voicePrimary() === id && !!_voiceKey(id) && !(typeof navigator !== "undefined" && navigator.onLine === false) && (!err || Date.now() - err.at >= 60000); },
+      enqueue: function(text) { return { text: text, cloud: id, voiceId: resolvePiperVoice() }; },
+      fallbackReason: function() { return _voiceErrors[id] ? _voiceErrors[id].reason : "Model is not selected or has no API key"; }
+    };
+  });
 
   // ── Piper voice LRU (#66) — cap resident voice models, evict oldest-stamped on overflow ────────
   function _piperLruLoad() {
@@ -1797,6 +2035,7 @@ var TTS = (function() {
       _playing = false;
       _paused  = false;
       _curNative = false;
+      if (_curItem && _curItem.audition) _auditionPhase("idle");
       _curItem = null;    // v1.438: nothing in flight — nothing for a ctx rebuild to replay
       _clearCtxWatch();   // audit #10 — nothing left to guard
       _clearPosState();   // rank 23 — same lifecycle as the ctx watch above
@@ -1812,8 +2051,8 @@ var TTS = (function() {
     _curItem = item;   // v1.438: retained so a doomed-ctx rebuild can requeue the interrupted item
     _curNative = !!item.native;
     if (item.native) _speakNative(item.text);
-    else if (item.cloud && CLOUD_READERS[item.cloud]) _speakGemini(item.text, item.voiceId, item.voices, item.forceVoice, item.dir, CLOUD_READERS[item.cloud]);
-    else if (item.gemini) _speakGemini(item.text, item.voiceId, item.voices, item.forceVoice, item.dir);
+    else if (item.cloud && CLOUD_READERS[item.cloud]) _speakGemini(item.text, item.voiceId, item.voices, item.forceVoice, item.dir, item.reader || _voiceLiveReader(item.cloud));
+    else if (item.gemini) _speakGemini(item.text, item.voiceId, item.voices, item.forceVoice, item.dir, _voiceLiveReader("gemini"));
     else if (item.server) _speakServer(item.text, item.voiceId, item.voices);
     else if (item.piper) _speakPiper(item.text, item.voiceId, item.voices);
     // A malformed item must never leave _playing latched with nothing scheduled.
@@ -1841,8 +2080,8 @@ var TTS = (function() {
       // later speak/Test silently queues behind the phantom). Kick resume() (harmless elsewhere)…
       try { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); } catch(e0) {}
       var u = new SpeechSynthesisUtterance(units[i].text);
-      u.rate = getRate(); u.pitch = 1.0;
-      var nv = _resolveNativeVoice();   // saved pick → preferred default → OS default
+      u.rate = _curItem && _curItem.audition ? _curItem.audition.rate : getRate(); u.pitch = 1.0;
+      var nv = _curItem && _curItem.audition ? _voiceList().filter(function(v) { return v.name === _curItem.audition.voice; })[0] : _resolveNativeVoice();
       if (nv) u.voice = nv;
       _nativeUtter = u;
       // …and arm a per-unit stall watchdog: if NEITHER event fires within a generous budget
@@ -2694,9 +2933,11 @@ var TTS = (function() {
     var myEpoch = ++_piperEpoch;
 
     var ctx = _ensureCtx();
+    if (!ctx && cloud.audition) { cloud.degrade("AudioContext unavailable"); _auditionPhase("idle"); _drain(); return; }
     if (!ctx) { console.warn("[tts " + cloud.label + "] AudioContext unavailable — line falls back to native"); _auditionPhase("idle"); _curNative = true; _speakNative(text); return; }
     var ctxOk = await _ctxRunning(ctx);
     if (_piperEpoch !== myEpoch) return;
+    if (!ctxOk && cloud.audition) { cloud.degrade("Audio is blocked; tap Test again to enable playback"); _auditionPhase("idle"); _drain(); return; }
     if (!ctxOk) { _ctxBlockedLoud(cloud.label); _auditionPhase("idle"); _curNative = true; _speakNative(text); return; }
     primeAudioSession();
     _armCtxWatch(cloud.label);
@@ -2713,7 +2954,7 @@ var TTS = (function() {
     var anyOk      = false;
     var handedOff  = false;
     var key        = cloud.key();
-    var direction  = (typeof dirOverride === "string" && dirOverride) ? dirOverride : cloud.direction();
+    var direction  = typeof dirOverride === "string" ? dirOverride : cloud.direction();
 
     function onAllDone() { abortAll(); _sources = []; _nextStart = 0; _auditionPhase("idle"); _drain(); }
 
@@ -2774,7 +3015,7 @@ var TTS = (function() {
         // bounded prepaid tokens, the price of prefetch.
         var rem = "";
         for (var k = i; k < groups.length; k++) rem += (rem ? " " : "") + groups[k].text;
-        if (rem) _queue.unshift({ text: rem, piper: true, voiceId: voiceBaseId(voiceId) });
+        if (rem && !cloud.audition) _queue.unshift({ text: rem, piper: true, voiceId: voiceBaseId(voiceId) });
         handedOff = true;
         cloud.degrade("group " + (i + 1) + "/" + groups.length + ": " + ((got && got.fail) || "no audio"), got && got.degradeMs);
         abortAll();
@@ -2985,7 +3226,7 @@ var TTS = (function() {
       try {
         // trailing space: documented static-tail guard; _piperSerial: audit #9 (never concurrent
         // with a prewarm predict or another flow's ensure/download on the shared wasm session)
-        blob = await _piperSerial(function() { return mod.predict({ text: u.text + " ", voiceId: uVoice, rate: getRate() }); });
+        blob = await _piperSerial(function() { return mod.predict({ text: u.text + " ", voiceId: uVoice, rate: _curItem && _curItem.audition ? _curItem.audition.rate : getRate() }); });
       } catch(e) {
         _piperCpuMs += performance.now() - _pt0;   // v1.434: the work was spent either way (governor budget)
         console.warn("[tts piper] synth failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e && e.message);
@@ -3019,6 +3260,7 @@ var TTS = (function() {
       src.buffer = buf;
       src.connect(ctx.destination);
       var startAt = Math.max(nextStart, ctx.currentTime + 0.03);   // never schedule in the past
+      if (_curItem && _curItem.audition) _auditionPhase("playing");
       src.start(startAt);
       _ctxSynths++;   // B9 H1 (v1.430): one more source started on the current context (crumb: cs)
       nextStart  = startAt + buf.duration + unitGap(u);   // tiered: comma/clause/fullstop/paragraph (see PAUSE_* above)
@@ -3381,6 +3623,7 @@ var TTS = (function() {
   function stop() {
     _stopCurrent();
     _queue   = [];
+    _curItem = null;
     _playing = false;
     _paused  = false;
     _showBar(false);
@@ -4034,268 +4277,19 @@ var TTS = (function() {
       console.warn("[tts piper] release of unused voice " + voiceId + " failed (kept):", e && e.message);
     });
   }
-  function showSettingsModal() {
-    var cloudButtonStyle = "padding:6px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-bottom:6px;";
-    var inpStyle = "width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;";
-    var smInpStyle = "width:100%;padding:6px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;box-sizing:border-box;margin-bottom:6px;";
-    // Cloud selections write through immediately; Piper/device voices remain the fallback.
-    /* #14: modalShell (global, ui-shell.js) — callable from this IIFE at run time */
-    var modal = modalShell("tts-modal",
-      "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'>"
-      +   "<span style='font-size:16px;color:var(--t0);font-weight:bold;'>&#128266; Voice Settings</span>"
-      +   "<button id='tts-modal-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button>"
-      + "</div>"
-      // Rank 20 (todo_carplay.html): speech rate — applies to Native + Piper. Placed ABOVE the
-      // voice block since it isn't engine-specific.
-      + "<div style='margin-bottom:16px;'>"
-      +   "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;'>"
-      +     "<label style='font-size:12px;color:var(--t2);'>Speech rate</label>"
-      +     "<span id='tts-rate-val' style='font-size:11px;color:var(--t2);'>" + getRate().toFixed(2) + "&times;</span>"
-      +   "</div>"
-      +   "<input id='tts-rate-sel' type='range' min='0.8' max='1.3' step='0.05' value='" + getRate() + "' style='width:100%;accent-color:var(--acc);'/>"
-      +   "<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Applies to Piper and OpenAI voices.</div>"
-      + "</div>"
-      // Keep audio diagnostics visible on phones, where the console is unavailable.
-      + "<div style='margin-bottom:14px;'>"
-      +   "<div id='tts-audio-diag' style='font-size:11px;color:var(--t2);font-family:var(--font-mono,monospace);'></div>"
-      +   "<div id='tts-server-line' style='font-size:11px;color:var(--t2);margin-top:4px;'></div>"   /* #90: server-tier status */
-      + "</div>"
-      + "<div style='margin-bottom:18px;padding:10px 12px;border:1px solid var(--brd);border-radius:6px;'>"
-      +   "<label style='display:flex;align-items:center;gap:8px;cursor:pointer;'><input id='tts-openai-on' type='checkbox' " + (_openaiEnabled() ? "checked" : "") + " style='accent-color:var(--acc);'/><span style='font-size:13px;color:var(--t0);font-weight:bold;'>OpenAI cloud voices</span></label>"
-      +   "<div style='font-size:11px;color:var(--t2);margin-top:5px;line-height:1.5;'>AI-generated narration with expressive delivery. <b>Bills your OpenAI API key</b>, including Test; separate from ChatGPT subscriptions. Selecting this turns Google voice off.</div>"
-      +   "<label for='tts-openai-key' style='display:block;font-size:12px;color:var(--t2);margin-top:8px;'>OpenAI API key</label>"
-      +   "<div style='display:flex;gap:6px;'><input id='tts-openai-key' type='password' autocomplete='off' placeholder='" + (_openaiKey() ? "Key saved — enter to replace" : "Paste API key") + "' style='" + smInpStyle + "min-width:0;flex:1;'/><button id='tts-openai-key-save' style='" + cloudButtonStyle + "'>Save key</button></div>"
-      +   "<div id='tts-openai-key-status' role='status' style='font-size:11px;color:var(--t2);'>" + (_openaiKey() ? "Using your saved OpenAI key." : "Add a key here to try OpenAI voice.") + "</div>"
-      +   "<div id='tts-openai-cfg' style='margin-top:10px;" + (_openaiEnabled() ? "" : "display:none;") + "'>"
-      +     "<label for='tts-openai-narr' style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Narrator voice</label>"
-      +     "<div style='display:flex;gap:6px;'><select id='tts-openai-narr' style='" + smInpStyle + "flex:1;min-width:0;'>" + _openaiVoiceOptions(_openaiNarrator()) + "</select><button id='tts-openai-test' style='" + cloudButtonStyle + "'>&#9654; Test</button></div>"
-      +     "<label for='tts-openai-dir' style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Delivery direction</label>"
-      +     "<textarea id='tts-openai-dir' rows='3' style='" + smInpStyle + "resize:vertical;'>" + escHtml(_openaiDirection()) + "</textarea>"
-      +     "<div style='font-size:11px;color:var(--t2);line-height:1.5;'>Marin and Cedar are recommended starting voices. Character voices are matched to your cast's gender. The speech rate slider applies.</div>"
-      +   "</div>"
-      + "</div>"
-      // Paid cloud voices require explicit selection, with billing stated on the control.
-      + "<div style='margin-bottom:18px;padding:10px 12px;border:1px solid var(--brd);border-radius:6px;'>"
-      +   "<label style='display:flex;align-items:center;gap:8px;cursor:pointer;'>"
-      +     "<input id='tts-gem-on' type='checkbox' " + (geminiTtsEnabled() ? "checked" : "") + " style='accent-color:var(--acc);'/>"
-      +     "<span style='font-size:13px;color:var(--t0);font-weight:bold;'>Gemini cloud voices</span>"
-      +   "</label>"
-      +   "<div style='font-size:11px;color:var(--t2);margin-top:5px;line-height:1.5;'>"
-      +     "Expressive Google narration. Selecting this turns OpenAI voice off."
-      +     "<br/><b>Bills your Gemini key</b> &mdash; measured at about $1.75 per 50 turns of narration."
-      +     (_geminiKey() ? "" : "<br/><span style='color:var(--warn,#b8935a);'>No Gemini key on file &mdash; add one in Language Model&hellip; first.</span>")
-      +   "</div>"
-      +   "<div id='tts-gem-cfg' style='margin-top:10px;" + (geminiTtsEnabled() ? "" : "display:none;") + "'>"
-      +     "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Narrator voice</label>"
-      +     "<div style='display:flex;gap:6px;align-items:flex-start;'>"
-      +       "<select id='tts-gem-narr' style='" + smInpStyle + "flex:1;'>" + _geminiVoiceOptions(geminiNarratorVoice()) + "</select>"
-      +       "<button id='tts-gem-test' style='padding:6px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
-      +     "</div>"
-      +     "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Delivery direction</label>"
-      +     "<textarea id='tts-gem-dir' rows='3' style='" + smInpStyle + "resize:vertical;'>" + escHtml(geminiDirection()) + "</textarea>"
-      +     "<div style='font-size:11px;color:var(--t2);line-height:1.5;'>"
-      +       "Style is the <i>only</i> control Google exposes &mdash; there is no pitch or rate knob. "
-      +       "Describe the <b>reading</b> (\"understated\", \"no theatrical emphasis\"), not the character: "
-      +       "naming a personality is what makes it overact. "
-      +       "<a href='#' id='tts-gem-reset' style='color:var(--acc);'>Reset to default</a>"
-      +     "</div>"
-      +     "<div style='font-size:11px;color:var(--t2);margin-top:6px;'>Character voices are matched automatically from your cast, keeping each speaker's gender.</div>"
-      +   "</div>"
-      + "</div>"
-      // ── Piper panel ──
-      + "<div id='tts-panel-piper' style='display:block;'>"
-      +   "<div style='margin-bottom:20px;'>"
-      +     "<div style='display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;'>"
-      +       "<label style='font-size:12px;color:var(--t2);'>Piper voice</label>"
-      +       "<span id='tts-piper-err' style='font-size:11px;color:#e06060;display:none;'></span>"
-      +     "</div>"
-      +     "<div style='display:flex;gap:6px;'>"
-      +       "<select id='tts-piper-sel' style='" + inpStyle + "flex:1;'>" + _buildPiperVoiceOptions() + "</select>"
-      +       "<button id='tts-piper-test' style='flex-shrink:0;padding:0 12px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
-      +     "</div>"
-      +     "<div id='tts-piper-blurb' style='font-size:11px;color:var(--t2);margin-top:4px;'>" + _escVal(_piperVoiceBlurb(resolvePiperVoice())) + "</div>"
-      +     "<div id='tts-piper-runtime' style='font-size:11px;color:var(--t2);margin-top:4px;font-family:var(--font-mono,monospace);'></div>"
-      +     "<div id='tts-piper-slots'></div>"   /* #66 slot UI — rendered async by _renderPiperSlots (OPFS read) */
-      +     "<div style='font-size:11px;color:var(--t2);margin-top:6px;'>If Piper can't load (first download, or an unsupported device), narration falls back to the device voice below.</div>"
-      +   "</div>"
-      + "</div>"
-      // ── Fallback (device native) voice — #9: always shown, no longer an engine choice; it is the
-      //    SILENT fallback whenever Piper can't load. ──
-      + "<div id='tts-panel-native' style='display:block;'>"
-      +   "<div style='margin-bottom:20px;'>"
-      +     "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Fallback voice <span style='color:var(--t2);'>(device — used only if Piper is unavailable)</span></label>"
-      +     "<div style='display:flex;gap:6px;'>"
-      +       "<select id='tts-nvoice-sel' style='" + inpStyle + "flex:1;'>" + _buildNativeVoiceOptions() + "</select>"
-      +       "<button id='tts-nvoice-test' style='flex-shrink:0;padding:0 12px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
-      +     "</div>"
-      +     "<div style='font-size:11px;color:var(--t2);margin-top:4px;'>Worth setting for the rare case Piper can't run. Windows 11 has neural voices (Aria, Guy); on iOS, download Enhanced voices in Settings &#8250; Accessibility &#8250; Spoken Content &#8250; Voices.</div>"
-      +   "</div>"
-      + "</div>"
-      + "<button id='tts-save-btn' style='width:100%;padding:10px;background:var(--acc);border:none;border-radius:6px;color:#000;font-family:var(--font);font-size:14px;font-weight:bold;cursor:pointer;'>Save</button>",
-      { align: "flex-start", overlayExtra: "overflow-y:auto;", boxBg: "#181818", maxWidth: 480, boxExtra: "margin-top:60px;", closeId: "tts-modal-x", outside: true });
-
-    _updatePiperErr();
-    _updateServerLine();   // #90: server-tier status (off / active / degraded-with-reason)
-    // B9 (v1.419): the "ORT NNNMB" half of the runtime line reads `_frameMem`, which is only
-    // refreshed BETWEEN narration reads — so opening this panel after a prewarm, or any time before
-    // a read has completed, showed no figure at all, and after one it could be stale. That figure is
-    // the only way a phone can tell whether the disposable-realm fix is actually holding memory
-    // down, so ask the live frame for a fresh reading on open and repaint when it lands. `mem` is
-    // the deliberately engine-free poll (piper-host.html) — it reads the wasm probe and never boots
-    // Piper, so opening Voice Settings can't trigger a 60-115MB model load. _frameRefreshMem
-    // resolves null with no side effects when synthesis is on the in-page fallback (no frame to
-    // ask) or the round trip fails, so the line simply keeps whatever it already showed. Async on
-    // purpose: the modal is up long before the postMessage answers, and never waits on it.
-    _frameRefreshMem().then(function (m) { if (m) _updatePiperErr(); });   // _updatePiperErr self-no-ops if the modal was closed meanwhile
-    _piperRefreshDownloaded();   // best-effort — only does anything if the engine is already warm
-    _renderPiperSlots();         // #66 slot UI — direct OPFS read, no engine init needed
-
-    // v1.327 on-device audio diagnostics: the phone has no console, so the modal SHOWS the shared
-    // AudioContext's state — "running" is the only state that produces sound on the Piper path;
-    // "suspended"/"interrupted" here IS the silence diagnosis, live-updating on statechange.
-    function _updateAudioDiag() {
-      var d = document.getElementById("tts-audio-diag");
-      if (!d) return;
-      var st = _audioCtx ? _audioCtx.state : "not created yet";
-      // v1.329: pipeline state too — a wedged _playing latch ("speaking" with nothing audible and
-      // items queued) is exactly the phone-visible signature of the stranded-fallback class.
-      var pipe = (_playing ? "speaking" : "idle") + (_queue.length ? " +" + _queue.length + " queued" : "");
-      d.textContent = "Audio: " + st + " · voice " + (isOn() ? "ON" : "off") + " · " + pipe + (st === "running" ? "" : st === "not created yet" ? " (created on first use/tap)" : " ⚠ no sound until running — tap 🔊 off/on");
-      d.style.color = (st === "running" || st === "not created yet") ? "var(--t2)" : "#e0a060";
-    }
-    _updateAudioDiag();
-    if (_audioCtx) _audioCtx.onstatechange = _updateAudioDiag;
-    // The ctx may be CREATED (or replaced) while the modal is open — a 1s self-clearing poll keeps
-    // the line honest; it stops itself as soon as the modal is gone.
-    var _diagPoll = setInterval(function() {
-      if (!document.getElementById("tts-modal")) { clearInterval(_diagPoll); return; }
-      _updateAudioDiag();
-      if (_audioCtx && _audioCtx.onstatechange !== _updateAudioDiag) _audioCtx.onstatechange = _updateAudioDiag;
-    }, 1000);
-
-    // Rank 20: live-write on drag — takes effect on the NEXT synth call (getRate() reads store live).
-    var rateSel = document.getElementById("tts-rate-sel");
-    if (rateSel) {
-      rateSel.addEventListener("input", function() {
-        store.set(RATE_K, this.value);
-        var rv = document.getElementById("tts-rate-val");
-        if (rv) rv.textContent = parseFloat(this.value).toFixed(2) + "×";
-      });
-    }
-    // #41: Gemini tier controls. All three write through immediately (same live-write semantics as
-    // the rate slider) — the next synth call reads the store, so nothing needs a Save round trip.
-    function paintCloudChoice() {
-      document.getElementById("tts-openai-on").checked = _openaiEnabled();
-      document.getElementById("tts-openai-cfg").style.display = _openaiEnabled() ? "" : "none";
-      document.getElementById("tts-gem-on").checked = geminiTtsEnabled();
-      document.getElementById("tts-gem-cfg").style.display = geminiTtsEnabled() ? "" : "none";
-    }
-    document.getElementById("tts-openai-key-save").addEventListener("click", function() {
-      var input = document.getElementById("tts-openai-key"), key = input.value.trim();
-      if (!key) { showToast("Paste an OpenAI API key first", 6000); return; }
-      providerKeys.openai = key;
-      store.set(PKEYS_K, JSON.stringify(providerKeys));
-      if (activeProvider === "openai") apiKey = key;
-      input.value = ""; input.placeholder = "Key saved — enter to replace";
-      document.getElementById("tts-openai-key-status").textContent = "OpenAI key saved. Turn on OpenAI cloud voices, then press Test.";
-      _openaiReset();
-    });
-    document.getElementById("tts-openai-on").addEventListener("change", function() {
-      if (this.checked && !_openaiKey()) { this.checked = false; showToast("Add an OpenAI API key below first", 6000); return; }
-      _openaiSelect(this.checked); paintCloudChoice();
-    });
-    document.getElementById("tts-openai-narr").addEventListener("change", function() { store.set(OPENAI_NARR_K, this.value); });
-    document.getElementById("tts-openai-dir").addEventListener("change", function() { store.set(OPENAI_DIR_K, this.value); });
-    document.getElementById("tts-openai-test").addEventListener("click", function() {
-      var btn = this, ticker = null;
-      testOpenaiVoice(document.getElementById("tts-openai-narr").value, document.getElementById("tts-openai-dir").value, function(phase) {
-        if (ticker) { ticker.stop(); ticker = null; }
-        if (phase === "loading") ticker = elapsedTicker(btn, "Preparing", { text: true });
-        else btn.textContent = phase === "playing" ? "Playing" : "▶ Test";
-      });
-    });
-    var gemOn = document.getElementById("tts-gem-on");
-    if (gemOn) {
-      gemOn.addEventListener("change", function() {
-        var on = !!this.checked;
-        if (on && !_geminiKey()) {
-          this.checked = false;
-          if (typeof showToast === "function") showToast("Add a Gemini API key first (Language Model…)");
-          return;
-        }
-        if (on) _openaiSelect(false);
-        store.set(GEMINI_TTS_K, on ? "1" : "0");
-        paintCloudChoice();
-        if (on) { _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiModelClosedUntil = {}; }   // opting in clears any stale degrade window + the #41f model memo
-        var cfg = document.getElementById("tts-gem-cfg");
-        if (cfg) cfg.style.display = on ? "" : "none";
-      });
-    }
-    var gemNarr = document.getElementById("tts-gem-narr");
-    if (gemNarr) gemNarr.addEventListener("change", function() { store.set(GEMINI_NARRATOR_K, this.value); });
-    var gemTest = document.getElementById("tts-gem-test");
-    if (gemTest) gemTest.addEventListener("click", function() {
-      var sel = document.getElementById("tts-gem-narr");
-      var dir = document.getElementById("tts-gem-dir");
-      var btn = this;
-      // Read both from the DOM, not the store: the point of Test is hearing what is on screen,
-      // including a direction the user has typed but not yet blurred out of.
-      testGeminiVoice(sel ? sel.value : "", dir ? dir.value : "", function(phase) {
-        // Cloud synthesis is silent for ~2-3s before the first sample plays; without this the
-        // button looks dead. Driven by the real milestone, so it stops the instant audio is
-        // scheduled — and every failure path signals idle too, so it can't stick.
-        if (!btn) return;
-        if (phase === "loading") { btn.classList.add("tts-testing"); btn.innerHTML = "&#9654; …"; }
-        else { btn.classList.remove("tts-testing"); btn.innerHTML = "&#9654; Test"; }
-      });
-    });
-    var gemDir = document.getElementById("tts-gem-dir");
-    if (gemDir) gemDir.addEventListener("change", function() { store.set(GEMINI_DIR_K, this.value || ""); });
-    var gemReset = document.getElementById("tts-gem-reset");
-    if (gemReset) gemReset.addEventListener("click", function(ev) {
-      ev.preventDefault();
-      store.set(GEMINI_DIR_K, GEMINI_DEFAULT_DIRECTION);
-      var d = document.getElementById("tts-gem-dir"); if (d) d.value = GEMINI_DEFAULT_DIRECTION;
-    });
-    // #9: engine-radio wiring removed (no radios). Piper is the engine; the fallback voice is below.
-
-    // Native voices may not be ready on modal open (esp. iOS) — repopulate when they load.
-    if (window.speechSynthesis) {
-      _voiceList(); // nudge some browsers to start loading the list
-      speechSynthesis.onvoiceschanged = function() {
-        var s = document.getElementById("tts-nvoice-sel");
-        if (s) s.innerHTML = _buildNativeVoiceOptions();
-      };
-    }
-    document.getElementById("tts-nvoice-test").addEventListener("click", function() {
-      var s = document.getElementById("tts-nvoice-sel");
-      _testNativeVoice(s ? s.value : "");
-    });
-
-    document.getElementById("tts-piper-sel").addEventListener("change", function() {
-      var blurb = document.getElementById("tts-piper-blurb");
-      if (blurb) blurb.textContent = _piperVoiceBlurb(this.value);
-      _updatePiperErr();
-      _renderPiperSlots();   // #66: keep the resident radio/highlight in step with the dropdown
-    });
-    document.getElementById("tts-piper-test").addEventListener("click", function() {
-      var s = document.getElementById("tts-piper-sel");
-      testVoice(s ? s.value : resolvePiperVoice());
-    });
-
-    document.getElementById("tts-save-btn").addEventListener("click", function() {
-      var nvs = document.getElementById("tts-nvoice-sel"); if (nvs) { if (nvs.value) store.set(NVOICE_K, nvs.value); else store.del(NVOICE_K); }   // the fallback voice
-      var psel = document.getElementById("tts-piper-sel");
-      if (psel && psel.value) savePiperVoice(psel.value);   // proseAuthor two-tier save — see savePiperVoice() above
-      if (isOn()) prewarmPiper(resolvePiperVoice());   // §5 Q4 — pre-warm the chosen Piper voice
-      modal.remove();
-      if (typeof showToast === "function") showToast("Voice settings saved.");
-    });
-  }
+  function showSettingsModal() { return VoiceSettings.show(); }
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
   return {
+    settings: { models: VOICE_MODELS, draft: _voiceDraft, validate: _voiceValidate, save: _voiceCommit,
+      catalog: _voiceCatalog, loadCatalog: _voiceLoadCatalog, actor: _voiceActor, castSlots: _voiceCastSlots, test: _voiceTest,
+      sample: GEMINI_TEST_LINE, fetch: _voiceFetch, request: _voiceRequest,
+      keys: { settings: VOICE_SETTINGS_K, credentials: VOICE_KEYS_K },
+      piperOptions: _buildPiperVoiceOptions, nativeOptions: _buildNativeVoiceOptions,
+      diagnostics: function() { return "Audio: " + (_audioCtx ? _audioCtx.state : "not started") + " · " + (_playing ? "speaking" : "idle") + " · engine: " + getEngine(); },
+      refreshDiagnostics: function() { _updatePiperErr(); _updateServerLine(); _frameRefreshMem().then(function(m) { if (m) _updatePiperErr(); }); }
+    },
     isOn:              isOn,
     isPlaying:         function() { return _playing && !_paused; },
     isPaused:          function() { return _paused; },
