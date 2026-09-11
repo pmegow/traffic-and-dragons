@@ -19,8 +19,8 @@ var cases = [
     find: "_queue.unshift({ text: _remText, piper: true",
     replace: "_queue.push({ text: _remText, piper: true" },
   { file: "tts.js", label: "native falls off the ladder's end (the only unconditional rung)", mustFail: "no longer the LAST rung",/* #218 stale-target repair: the ladder gained gemini (#41) and the contract error was reworded — the old server/piper swap would not even red today */
-    find: 'var TTS_LADDER = ["gemini", "server", "piper", "native"]',
-    replace: 'var TTS_LADDER = ["gemini", "server", "native", "piper"]' },
+    find: 'var TTS_LADDER = ["openai", "gemini", "server", "piper", "native"]',
+    replace: 'var TTS_LADDER = ["openai", "gemini", "server", "native", "piper"]' },
   { file: "tts.js", label: "voice audition stays on server tier", mustFail: "testVoice no longer auditions",
     find: "_queue.push({ text: TTS_TEST_LINE, server: true, voiceId: v });",
     replace: "_queue.push({ text: TTS_TEST_LINE, piper: true, voiceId: v });" },
@@ -39,7 +39,9 @@ try {
   var clone = cp.spawnSync("git", ["-c", "safe.directory=" + ROOT, "-c", "safe.directory=" + path.join(ROOT, ".git"),
     "clone", "--quiet", "--no-hardlinks", ROOT, tmp], { encoding: "utf8" });
   if (clone.status !== 0) throw new Error("scratch clone failed: " + output(clone));
-  // Exercise the working contract, not merely the last committed copy in the scratch clone.
+  // Both contract and targets must use working bytes: a pre-commit provider addition
+  // does not exist in the clone of HEAD, so a current ladder mutation would never apply.
+  cases.forEach(function(c) { fs.copyFileSync(path.join(ROOT, c.file), path.join(tmp, c.file)); });
   fs.copyFileSync(path.join(__dirname, "run-tests.js"), path.join(tmp, "dev", "run-tests.js"));
   for (var i = 0; i < cases.length; i++) {
     var c = cases[i], target = path.join(tmp, c.file);

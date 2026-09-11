@@ -177,7 +177,7 @@ var TTS = (function() {
   // engine-tested. Native survives ONLY as the automatic fallback target (the runtime ladder in
   // speak() + the iOS-audio-suspend path call TTS_PROVIDERS.native directly, NOT via getEngine),
   // so a device where neither the server nor Piper can run still speaks.
-  function getEngine() { return _geminiTtsOk() ? "gemini" : (_serverTtsOk() ? "server" : "piper"); }
+  function getEngine() { if (_openaiOk()) return "openai"; return _geminiTtsOk() ? "gemini" : (_serverTtsOk() ? "server" : "piper"); }
 
   // ── Server TTS tier (#90 M1, v1.435 — the B9 architectural close) ────────────────────────────
   // Synthesis moved OFF the phone: POST /api/tts on the tnd-tts Fly app (server repo, tts/) runs
@@ -496,7 +496,7 @@ var TTS = (function() {
     return "";
   }
   function _geminiTtsOk() {
-    if (!geminiTtsEnabled()) return false;
+    if (_openaiEnabled() || !geminiTtsEnabled()) return false;
     if (!_geminiKey()) return false;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
     if (_geminiTtsErr) {
@@ -579,10 +579,11 @@ var TTS = (function() {
   // read with Schedar selected came back in Umbriel. Only CAST units consult the mapping.
   // forceVoice (4th param) exists for the audition button: a Test press must speak the voice being
   // AUDITIONED, not the saved narrator, and must not require saving first.
-  function _geminiGroupUnits(units, voiceId, voices, forceVoice) {
+  function _geminiGroupUnits(units, voiceId, voices, forceVoice, voiceFor) {
+    voiceFor = voiceFor || _geminiVoiceFor;
     var groups = [], cur = null;
     for (var i = 0; i < units.length; i++) {
-      var v = forceVoice || _geminiVoiceFor((voices && voices[i]) || "");
+      var v = forceVoice || voiceFor((voices && voices[i]) || "");
       var t = units[i].text || "";
       // #41b fast start: while building the FIRST group, the accumulation cap is small — the cold
       // open is gated on group 1's whole non-streaming synthesis, so a big opener means many
@@ -645,6 +646,76 @@ var TTS = (function() {
     return "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
   }
 
+  // OpenAI speech uses the existing BYOK store; selection never changes the GM provider.
+  var OPENAI_TTS_K = "tnd_tts_openai_v1", OPENAI_NARR_K = "tnd_tts_openai_narr_v1";
+  var OPENAI_DIR_K = "tnd_tts_openai_dir_v1";
+  var OPENAI_VOICES = ["marin", "cedar", "alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse"];
+  var OPENAI_DIRECTION = "Read as an understated storyteller. Speak clearly and naturally, with restrained emotion and no theatrical emphasis.";
+  var _openaiErr = "", _openaiErrAt = 0, _cloudAbort = null;
+  function _openaiEnabled() { return store.get(OPENAI_TTS_K) === "1"; }
+  function _openaiKey() { return typeof providerKeys !== "undefined" && providerKeys ? providerKeys.openai || "" : ""; }
+  function _openaiNarrator() { var v = store.get(OPENAI_NARR_K); return OPENAI_VOICES.indexOf(v) >= 0 ? v : "marin"; }
+  function _openaiDirection() { return store.get(OPENAI_DIR_K) || OPENAI_DIRECTION; }
+  function _openaiReset() { _openaiErr = ""; _openaiErrAt = 0; }
+  function _openaiSelect(on) {
+    store.set(OPENAI_TTS_K, on ? "1" : "0");
+    if (on) { store.set(GEMINI_TTS_K, "0"); _openaiReset(); }
+  }
+  function _openaiOk() {
+    return _openaiEnabled() && !!_openaiKey() && !(typeof navigator !== "undefined" && navigator.onLine === false)
+      && (!_openaiErr || Date.now() - _openaiErrAt >= 60000);
+  }
+  function _openaiDegrade(reason) {
+    _openaiErr = String(reason || "speech failed"); _openaiErrAt = Date.now();
+    console.warn("[tts openai] " + _openaiErr);
+    if (typeof showToast === "function") showToast("OpenAI voice unavailable: " + _openaiErr + " — using the local voice", 8000);
+  }
+  function _openaiVoiceFor(id) {
+    if (!id) return _openaiNarrator();
+    if (OPENAI_VOICES.indexOf(id) >= 0) return id;
+    var h = 0, i, pool = OPENAI_VOICES.filter(function(v) { return v !== _openaiNarrator(); });
+    for (i = 0; i < id.length; i++) h = ((h * 31) + id.charCodeAt(i)) >>> 0;
+    return pool[h % pool.length];
+  }
+  function _openaiGroup(units, voiceId, voices, forceVoice) {
+    return _geminiGroupUnits(units, voiceId, voices, forceVoice, _openaiVoiceFor);
+  }
+  // The deadline races the WHOLE operation, including body consumption. Aborting the
+  // request alone is insufficient when a transport fails to reject its pending body read.
+  async function _openaiFetchGroup(g, isFirst, key, direction, regCtrl) {
+    if (!key) return { fail: "no OpenAI API key on file" };
+    var ctrl = new AbortController(), timer, rejectAbort;
+    var cancelled = new Promise(function(resolve, reject) { rejectAbort = reject; });
+    function onAbort() { rejectAbort(new Error("request cancelled")); }
+    ctrl.signal.addEventListener("abort", onAbort, { once: true });
+    if (regCtrl) regCtrl(ctrl);
+    timer = setTimeout(function() { rejectAbort(new Error("request timeout (20s)")); ctrl.abort(); }, 20000);
+    try {
+      var operation = (async function() {
+        if (ctrl.signal.aborted) throw new Error("request cancelled");
+        var response = await fetch("https://api.openai.com/v1/audio/speech", {
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+          body: JSON.stringify({ model: "gpt-4o-mini-tts", input: g.text, voice: g.voice,
+            instructions: direction, response_format: "pcm", speed: getRate() }), signal: ctrl.signal
+        });
+        if (!response.ok) return { fail: "HTTP " + response.status + (response.status === 429 ? " (quota or rate limit)" : response.status === 401 ? " (check your API key)" : "") };
+        var bytes = new Uint8Array(await response.arrayBuffer());
+        if (!bytes.length || bytes.length % 2 || bytes.length > 6000000) return { fail: "invalid PCM audio response" };
+        return { bytes: bytes, rate: 24000 };
+      })();
+      return await Promise.race([operation, cancelled]);
+    } catch (e) { return { fail: (e && e.message) || "speech request failed" }; }
+    finally { clearTimeout(timer); ctrl.signal.removeEventListener("abort", onAbort); }
+  }
+  // Cloud adapters share grouping, bounded prefetch, playback and cancellation. Only
+  // transport, voice selection and provider-specific startup policy differ.
+  var CLOUD_READERS = {
+    gemini: { label: "Gemini TTS", key: _geminiKey, direction: geminiDirection, group: _geminiGroupUnits,
+      fetch: _geminiFetchGroup, degrade: _geminiTtsDegrade, depth: GEMINI_TTS_PREFETCH, prime: _geminiPrimeReady },
+    openai: { label: "OpenAI TTS", key: _openaiKey, direction: _openaiDirection, group: _openaiGroup,
+      fetch: _openaiFetchGroup, degrade: _openaiDegrade, depth: 2, prime: function() { return true; } }
+  };
+
   // ── TTS_PROVIDERS — the provider table (mirrors the LLM PROVIDERS shape in globals.js) ───────
   // One entry per engine. speak() resolves getEngine() → this table → availability → enqueue(),
   // instead of if(engine===...) branches. Provider-specific quirks (Piper's voiceId resolution)
@@ -656,6 +727,11 @@ var TTS = (function() {
   // fallbackReason()  — human-readable reason shown by the settings-modal indicator when this
   //                     engine downgrades to native for an item.
   var TTS_PROVIDERS = {
+    openai: {
+      id: "openai", label: "OpenAI cloud voices", available: _openaiOk,
+      enqueue: function(text) { return { text: text, cloud: "openai", voiceId: resolvePiperVoice() }; },
+      fallbackReason: function() { return _openaiErr || "OpenAI voice is off or has no API key"; }
+    },
     native: {
       id: "native", label: "Native (device voice)",
       hint: "Your browser/OS built-in voice. No key needed, works everywhere, lower quality. Always the fallback target for the other engines.",
@@ -679,7 +755,7 @@ var TTS = (function() {
     },
     gemini: {
       id: "gemini", label: "Gemini (Google cloud voices — #41)",
-      hint: "Google's TTS voices — far better quality than Piper, and the only tier that can act a line. Bills per use against YOUR Gemini key (~$1.75 per 50 turns of narration), so it is off until you turn it on. Degrades to the server tier, then local Piper, then native.",
+      hint: "Google's TTS voices — far better quality than Piper, with expressive delivery. Bills per use against YOUR Gemini key (~$1.75 per 50 turns of narration), so it is off until you turn it on. Degrades to the server tier, then local Piper, then native.",
       available: function() { return _geminiTtsOk(); },
       // voiceId stays the PIPER id the cast already binds — _speakGemini maps it per unit, so a
       // player who turns this tier off keeps the exact cast they had.
@@ -698,7 +774,7 @@ var TTS = (function() {
   // #41: gemini sits ABOVE server. It is opt-in and default OFF, so this reorder changes nothing
   // for anyone who has not turned it on — available() is false and the walk starts at server
   // exactly as before.
-  var TTS_LADDER = ["gemini", "server", "piper", "native"];
+  var TTS_LADDER = ["openai", "gemini", "server", "piper", "native"];
 
   // ── Piper voice LRU (#66) — cap resident voice models, evict oldest-stamped on overflow ────────
   function _piperLruLoad() {
@@ -1707,12 +1783,11 @@ var TTS = (function() {
     _curItem = item;   // v1.438: retained so a doomed-ctx rebuild can requeue the interrupted item
     _curNative = !!item.native;
     if (item.native) _speakNative(item.text);
+    else if (item.cloud && CLOUD_READERS[item.cloud]) _speakGemini(item.text, item.voiceId, item.voices, item.forceVoice, item.dir, CLOUD_READERS[item.cloud]);
     else if (item.gemini) _speakGemini(item.text, item.voiceId, item.voices, item.forceVoice, item.dir);
     else if (item.server) _speakServer(item.text, item.voiceId, item.voices);
     else if (item.piper) _speakPiper(item.text, item.voiceId, item.voices);
-    // #9 sweep: the third branch (the removed cloud provider) is gone. Every item a
-    // provider enqueues carries .native or .piper, so this is unreachable — but a malformed item
-    // must never wedge the queue by leaving _playing latched with nothing scheduled to call back.
+    // A malformed item must never leave _playing latched with nothing scheduled.
     else { console.warn("[tts] queue item with no engine flag — dropped:", item && item.text); _drain(); }
   }
 
@@ -2585,21 +2660,22 @@ var TTS = (function() {
     }
     return b64 ? { b64: b64, rate: rate } : { fail: failReason || "no audio" };
   }
-  async function _speakGemini(text, voiceId, voices, forceVoice, dirOverride) {
+  async function _speakGemini(text, voiceId, voices, forceVoice, dirOverride, cloud) {
+    cloud = cloud || CLOUD_READERS.gemini;
     var myEpoch = ++_piperEpoch;
 
     var ctx = _ensureCtx();
-    if (!ctx) { console.warn("[tts gemini] AudioContext unavailable — line falls back to native"); _auditionPhase("idle"); _curNative = true; _speakNative(text); return; }
+    if (!ctx) { console.warn("[tts " + cloud.label + "] AudioContext unavailable — line falls back to native"); _auditionPhase("idle"); _curNative = true; _speakNative(text); return; }
     var ctxOk = await _ctxRunning(ctx);
     if (_piperEpoch !== myEpoch) return;
-    if (!ctxOk) { _ctxBlockedLoud("Gemini TTS"); _auditionPhase("idle"); _curNative = true; _speakNative(text); return; }
+    if (!ctxOk) { _ctxBlockedLoud(cloud.label); _auditionPhase("idle"); _curNative = true; _speakNative(text); return; }
     primeAudioSession();
-    _armCtxWatch("Gemini TTS");
+    _armCtxWatch(cloud.label);
     _armPosState(ctx);
 
     var units = splitSentences(text, null, true);   // same prep as the other cloud tier
     if (!units.length) { _auditionPhase("idle"); _drain(); return; }
-    var groups = _geminiGroupUnits(units, voiceId, voices, forceVoice);
+    var groups = cloud.group(units, voiceId, voices, forceVoice);
 
     _sources = [];
     var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
@@ -2607,10 +2683,10 @@ var TTS = (function() {
     var activeSrcs = 0;
     var anyOk      = false;
     var handedOff  = false;
-    var key        = _geminiKey();
-    var direction  = (typeof dirOverride === "string" && dirOverride) ? dirOverride : geminiDirection();
+    var key        = cloud.key();
+    var direction  = (typeof dirOverride === "string" && dirOverride) ? dirOverride : cloud.direction();
 
-    function onAllDone() { _sources = []; _nextStart = 0; _auditionPhase("idle"); _drain(); }
+    function onAllDone() { abortAll(); _sources = []; _nextStart = 0; _auditionPhase("idle"); _drain(); }
 
     // #41b: the conveyor. Fetch glue starts synthesis when the pump says so; each result lands
     // back into the conveyor, which releases them to this loop strictly IN ORDER. A voice change
@@ -2618,8 +2694,8 @@ var TTS = (function() {
     // narrator was still mid-paragraph. abortAll() cancels in-flight spend on skip/failure
     // (billing is per generated token; waste is bounded by the conveyor depth).
     var ctrls = {};
-    var conv = _geminiConveyor(groups.length, GEMINI_TTS_PREFETCH, function(ix) {
-      _geminiFetchGroup(groups[ix], ix === 0, key, direction, function(c) { ctrls[ix] = c; })
+    var conv = _geminiConveyor(groups.length, cloud.depth, function(ix) {
+      cloud.fetch(groups[ix], ix === 0, key, direction, function(c) { ctrls[ix] = c; })
         .then(function(r)  { delete ctrls[ix]; conv.landed(ix, r); },
               function(e)  { delete ctrls[ix]; conv.landed(ix, { fail: (e && e.message) || "synth rejected" }); });
     });
@@ -2627,7 +2703,9 @@ var TTS = (function() {
       conv.halt();
       for (var cIx in ctrls) { try { ctrls[cIx].abort(); } catch (eA) {} }
       ctrls = {};
+      if (_cloudAbort === abortAll) _cloudAbort = null;
     }
+    _cloudAbort = abortAll;
     conv.pump();
 
     for (var i = 0; i < groups.length; i++) {
@@ -2652,7 +2730,7 @@ var TTS = (function() {
           if (first && first.fail) break;   // a failed opener goes straight to the hand-off — holding it 8s serves nobody
           var prefix = [], pj;
           for (pj = 0; pj < groups.length; pj++) { var pr = conv.peek(pj); if (!pr || pr.fail) break; prefix.push(pr); }
-          if (_geminiPrimeReady(prefix, groups.length, Date.now() - primeT0)) break;
+          if (cloud.prime(prefix, groups.length, Date.now() - primeT0)) break;
           await new Promise(function(res) { setTimeout(res, 200); });
         }
         if (_piperEpoch !== myEpoch) { abortAll(); return; }
@@ -2669,20 +2747,23 @@ var TTS = (function() {
         for (var k = i; k < groups.length; k++) rem += (rem ? " " : "") + groups[k].text;
         if (rem) _queue.unshift({ text: rem, piper: true, voiceId: voiceBaseId(voiceId) });
         handedOff = true;
-        _geminiTtsDegrade("group " + (i + 1) + "/" + groups.length + ": " + ((got && got.fail) || "no audio"), got && got.degradeMs);
+        cloud.degrade("group " + (i + 1) + "/" + groups.length + ": " + ((got && got.fail) || "no audio"), got && got.degradeMs);
         abortAll();
         break;
       }
 
       var buf;
       try {
-        var bin = atob(got.b64), n = bin.length, bytes = new Uint8Array(n);
-        for (var q = 0; q < n; q++) bytes[q] = bin.charCodeAt(q);
+        var bytes = got.bytes;
+        if (!bytes) {
+          var bin = atob(got.b64), n = bin.length; bytes = new Uint8Array(n);
+          for (var q = 0; q < n; q++) bytes[q] = bin.charCodeAt(q);
+        }
         buf = _pcm16ToAudioBuffer(bytes, got.rate, ctx);
         if (_piperEpoch !== myEpoch) { abortAll(); return; }
-        if (!buf) { console.warn("[tts gemini] PCM decode produced nothing on group " + (i + 1) + " — skipping"); continue; }
+        if (!buf) { console.warn("[tts " + cloud.label + "] PCM decode produced nothing on group " + (i + 1) + " — skipping"); continue; }
       } catch (e1) {
-        console.warn("[tts gemini] decode failed on group " + (i + 1) + "/" + groups.length + ", skipping:", e1 && e1.message);
+        console.warn("[tts " + cloud.label + "] decode failed on group " + (i + 1) + "/" + groups.length + ", skipping:", e1 && e1.message);
         continue;
       }
 
@@ -2711,7 +2792,7 @@ var TTS = (function() {
     loopDone = true;
     if (_piperEpoch !== myEpoch) return;
     if (!anyOk && !handedOff) {
-      console.warn("[tts gemini] no group produced audio and nothing was handed off — falling back to native for this line");
+      console.warn("[tts " + cloud.label + "] no group produced audio and nothing was handed off — falling back to native for this line");
       _auditionPhase("idle");
       _curNative = true;
       _speakNative(text);
@@ -3263,6 +3344,7 @@ var TTS = (function() {
 
   function skip() {
     _stopCurrent();
+    _auditionPhase("idle");
     _playing = false;
     _drain();
   }
@@ -3286,6 +3368,7 @@ var TTS = (function() {
     try { var c = store.get(PIPER_CRUMB_K); if (c) { c = JSON.parse(c); c.done = true; store.set(PIPER_CRUMB_K, JSON.stringify(c)); } } catch(e) {}
   }
   function _stopCurrent() {
+    if (_cloudAbort) _cloudAbort();
     _piperEpoch++;   // invalidate any in-flight Piper synth loop — unabortable WASM predict() must not schedule stale audio
     _crumbDone();    // a user skip/stop is not a crash — don't let the boot check report it as one
     _clearCtxWatch();   // audit #10 — the item the watchdog guarded is gone
@@ -3860,6 +3943,15 @@ var TTS = (function() {
     if (p === "idle") _auditionCb = null;
     if (typeof cb === "function") { try { cb(p); } catch (e) {} }
   }
+  function testOpenaiVoice(voiceName, dirOverride, onPhase) {
+    if (!_openaiKey()) { if (typeof showToast === "function") showToast("Add an OpenAI API key in Voice Settings first", 6000); return; }
+    _openaiReset(); stop();
+    _auditionCb = typeof onPhase === "function" ? onPhase : null;
+    _auditionPhase("loading");
+    _queue.push({ text: GEMINI_TEST_LINE, cloud: "openai", voiceId: "",
+      forceVoice: OPENAI_VOICES.indexOf(voiceName) >= 0 ? voiceName : _openaiNarrator(), dir: dirOverride || "" });
+    _drain();
+  }
   function testGeminiVoice(voiceName, dirOverride, onPhase) {
     if (!_geminiKey()) {
       if (typeof showToast === "function") showToast("Add a Gemini API key first (Language Model…)");
@@ -3914,10 +4006,10 @@ var TTS = (function() {
     });
   }
   function showSettingsModal() {
+    var cloudButtonStyle = "padding:6px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-bottom:6px;";
     var inpStyle = "width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;";
     var smInpStyle = "width:100%;padding:6px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;box-sizing:border-box;margin-bottom:6px;";
-    // #9 rework: Piper is the only engine — no engine picker. The modal is just: speech rate,
-    // audio diagnostics, the Piper voice panel, and the device fallback voice.
+    // Cloud selections write through immediately; Piper/device voices remain the fallback.
     /* #14: modalShell (global, ui-shell.js) — callable from this IIFE at run time */
     var modal = modalShell("tts-modal",
       "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'>"
@@ -3932,23 +4024,35 @@ var TTS = (function() {
       +     "<span id='tts-rate-val' style='font-size:11px;color:var(--t2);'>" + getRate().toFixed(2) + "&times;</span>"
       +   "</div>"
       +   "<input id='tts-rate-sel' type='range' min='0.8' max='1.3' step='0.05' value='" + getRate() + "' style='width:100%;accent-color:var(--acc);'/>"
-      +   "<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Applies to the Piper voice.</div>"
+      +   "<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Applies to Piper and OpenAI voices.</div>"
       + "</div>"
-      // #9: engine picker REMOVED — Piper is the only engine (Native survives as the silent
-      // fallback below). Keep only the phone-visible audio diagnostics.
+      // Keep audio diagnostics visible on phones, where the console is unavailable.
       + "<div style='margin-bottom:14px;'>"
       +   "<div id='tts-audio-diag' style='font-size:11px;color:var(--t2);font-family:var(--font-mono,monospace);'></div>"
       +   "<div id='tts-server-line' style='font-size:11px;color:var(--t2);margin-top:4px;'></div>"   /* #90: server-tier status */
       + "</div>"
-      // ── #41: Gemini cloud voices. OPT-IN and default OFF — this is the only tier that spends
-      // the player's money, so the cost is stated on the control itself, not buried in a doc.
+      + "<div style='margin-bottom:18px;padding:10px 12px;border:1px solid var(--brd);border-radius:6px;'>"
+      +   "<label style='display:flex;align-items:center;gap:8px;cursor:pointer;'><input id='tts-openai-on' type='checkbox' " + (_openaiEnabled() ? "checked" : "") + " style='accent-color:var(--acc);'/><span style='font-size:13px;color:var(--t0);font-weight:bold;'>OpenAI cloud voices</span></label>"
+      +   "<div style='font-size:11px;color:var(--t2);margin-top:5px;line-height:1.5;'>AI-generated narration with expressive delivery. <b>Bills your OpenAI API key</b>, including Test; separate from ChatGPT subscriptions. Selecting this turns Google voice off.</div>"
+      +   "<label for='tts-openai-key' style='display:block;font-size:12px;color:var(--t2);margin-top:8px;'>OpenAI API key</label>"
+      +   "<div style='display:flex;gap:6px;'><input id='tts-openai-key' type='password' autocomplete='off' placeholder='" + (_openaiKey() ? "Key saved — enter to replace" : "Paste API key") + "' style='" + smInpStyle + "min-width:0;flex:1;'/><button id='tts-openai-key-save' style='" + cloudButtonStyle + "'>Save key</button></div>"
+      +   "<div id='tts-openai-key-status' role='status' style='font-size:11px;color:var(--t2);'>" + (_openaiKey() ? "Using your saved OpenAI key." : "Add a key here to try OpenAI voice.") + "</div>"
+      +   "<div id='tts-openai-cfg' style='margin-top:10px;" + (_openaiEnabled() ? "" : "display:none;") + "'>"
+      +     "<label for='tts-openai-narr' style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Narrator voice</label>"
+      +     "<div style='display:flex;gap:6px;'><select id='tts-openai-narr' style='" + smInpStyle + "flex:1;min-width:0;'>" + OPENAI_VOICES.map(function(v) { return "<option value='" + v + "'" + (v === _openaiNarrator() ? " selected" : "") + ">" + v.charAt(0).toUpperCase() + v.slice(1) + "</option>"; }).join("") + "</select><button id='tts-openai-test' style='" + cloudButtonStyle + "'>&#9654; Test</button></div>"
+      +     "<label for='tts-openai-dir' style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Delivery direction</label>"
+      +     "<textarea id='tts-openai-dir' rows='3' style='" + smInpStyle + "resize:vertical;'>" + escHtml(_openaiDirection()) + "</textarea>"
+      +     "<div style='font-size:11px;color:var(--t2);line-height:1.5;'>Marin and Cedar are recommended starting voices. Cast voices are assigned consistently from your existing cast. The speech rate slider applies.</div>"
+      +   "</div>"
+      + "</div>"
+      // Paid cloud voices require explicit selection, with billing stated on the control.
       + "<div style='margin-bottom:18px;padding:10px 12px;border:1px solid var(--brd);border-radius:6px;'>"
       +   "<label style='display:flex;align-items:center;gap:8px;cursor:pointer;'>"
       +     "<input id='tts-gem-on' type='checkbox' " + (geminiTtsEnabled() ? "checked" : "") + " style='accent-color:var(--acc);'/>"
       +     "<span style='font-size:13px;color:var(--t0);font-weight:bold;'>Gemini cloud voices</span>"
       +   "</label>"
       +   "<div style='font-size:11px;color:var(--t2);margin-top:5px;line-height:1.5;'>"
-      +     "Much better quality than the local voice, and the only engine that can act a line."
+      +     "Expressive Google narration. Selecting this turns OpenAI voice off."
       +     "<br/><b>Bills your Gemini key</b> &mdash; measured at about $1.75 per 50 turns of narration."
       +     (_geminiKey() ? "" : "<br/><span style='color:var(--warn,#b8935a);'>No Gemini key on file &mdash; add one in Language Model&hellip; first.</span>")
       +   "</div>"
@@ -4040,7 +4144,6 @@ var TTS = (function() {
       if (_audioCtx && _audioCtx.onstatechange !== _updateAudioDiag) _audioCtx.onstatechange = _updateAudioDiag;
     }, 1000);
 
-    // #9: _setEnginePanels removed — no engine picker; only the Piper panel + the fallback voice.
     // Rank 20: live-write on drag — takes effect on the NEXT synth call (getRate() reads store live).
     var rateSel = document.getElementById("tts-rate-sel");
     if (rateSel) {
@@ -4052,6 +4155,36 @@ var TTS = (function() {
     }
     // #41: Gemini tier controls. All three write through immediately (same live-write semantics as
     // the rate slider) — the next synth call reads the store, so nothing needs a Save round trip.
+    function paintCloudChoice() {
+      document.getElementById("tts-openai-on").checked = _openaiEnabled();
+      document.getElementById("tts-openai-cfg").style.display = _openaiEnabled() ? "" : "none";
+      document.getElementById("tts-gem-on").checked = geminiTtsEnabled();
+      document.getElementById("tts-gem-cfg").style.display = geminiTtsEnabled() ? "" : "none";
+    }
+    document.getElementById("tts-openai-key-save").addEventListener("click", function() {
+      var input = document.getElementById("tts-openai-key"), key = input.value.trim();
+      if (!key) { showToast("Paste an OpenAI API key first", 6000); return; }
+      providerKeys.openai = key;
+      store.set(PKEYS_K, JSON.stringify(providerKeys));
+      if (activeProvider === "openai") apiKey = key;
+      input.value = ""; input.placeholder = "Key saved — enter to replace";
+      document.getElementById("tts-openai-key-status").textContent = "OpenAI key saved. Turn on OpenAI cloud voices, then press Test.";
+      _openaiReset();
+    });
+    document.getElementById("tts-openai-on").addEventListener("change", function() {
+      if (this.checked && !_openaiKey()) { this.checked = false; showToast("Add an OpenAI API key below first", 6000); return; }
+      _openaiSelect(this.checked); paintCloudChoice();
+    });
+    document.getElementById("tts-openai-narr").addEventListener("change", function() { store.set(OPENAI_NARR_K, this.value); });
+    document.getElementById("tts-openai-dir").addEventListener("change", function() { store.set(OPENAI_DIR_K, this.value); });
+    document.getElementById("tts-openai-test").addEventListener("click", function() {
+      var btn = this, ticker = null;
+      testOpenaiVoice(document.getElementById("tts-openai-narr").value, document.getElementById("tts-openai-dir").value, function(phase) {
+        if (ticker) { ticker.stop(); ticker = null; }
+        if (phase === "loading") ticker = elapsedTicker(btn, "Preparing", { text: true });
+        else btn.textContent = phase === "playing" ? "Playing" : "▶ Test";
+      });
+    });
     var gemOn = document.getElementById("tts-gem-on");
     if (gemOn) {
       gemOn.addEventListener("change", function() {
@@ -4061,7 +4194,9 @@ var TTS = (function() {
           if (typeof showToast === "function") showToast("Add a Gemini API key first (Language Model…)");
           return;
         }
+        if (on) _openaiSelect(false);
         store.set(GEMINI_TTS_K, on ? "1" : "0");
+        paintCloudChoice();
         if (on) { _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiModelClosedUntil = {}; }   // opting in clears any stale degrade window + the #41f model memo
         var cfg = document.getElementById("tts-gem-cfg");
         if (cfg) cfg.style.display = on ? "" : "none";
@@ -4234,6 +4369,10 @@ var TTS = (function() {
                resetDegrade: function() { _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiTtsErrFor = 0; },
                testLine: GEMINI_TEST_LINE,
                phase: _auditionPhase, setPhaseCb: function(fn) { _auditionCb = fn; } },
+    _openai: { keys: { on: OPENAI_TTS_K, narr: OPENAI_NARR_K, dir: OPENAI_DIR_K },
+      voices: OPENAI_VOICES, narrator: _openaiNarrator, voiceFor: _openaiVoiceFor, group: _openaiGroup,
+      ok: _openaiOk, select: _openaiSelect, reset: _openaiReset, degrade: _openaiDegrade, fetchGroup: _openaiFetchGroup },
+    testOpenaiVoice: testOpenaiVoice,
     testGeminiVoice: testGeminiVoice,   // #41: audition one Gemini voice (settings-modal ▶ Test)
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit, unitGap: unitGap,
                  pauses: function() { return { comma: PAUSE_COMMA, clause: PAUSE_COMMA_CLAUSE, fullstop: PAUSE_FULLSTOP, paragraph: PAUSE_PARAGRAPH }; } },
