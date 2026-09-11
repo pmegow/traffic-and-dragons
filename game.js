@@ -1109,9 +1109,10 @@ function spuToggle(i){
 function spuConfirm(){
   var picks=window._spuPicks||[];
   if(picks.length!==window._spuNeed){var w=document.getElementById("spu-warn");if(w)w.textContent="Choose exactly "+window._spuNeed+".";return;}
-  var c=worldState.character,i;
+  var c=worldState.character,i,_mxB=manaMax(c);/* #110b: the pool grows with the max */
   if(!c.spells)c.spells=[];
   for(i=0;i<picks.length;i++)c.spells.push({nm:picks[i],lvl:window._spuTier,used:false});
+  manaGrowWithMax(c,_mxB);
   var m=document.getElementById("spu-modal");if(m)m.remove();
   addMsg("system","Learned: "+picks.join(", ")+" (tier "+window._spuTier+")");
   if(typeof Sound!=="undefined")Sound.play("chime");
@@ -1140,7 +1141,7 @@ function checkCompanionLevelUp(cs,opts){
   // unlock takes the first N bench spells not already known (base-name dedupe). The bench is
   // canon (bible-authored), so an auto-pick can never introduce off-canon content; the mana
   // pool grows with the picks automatically (#110 derives it from the known bench).
-  var _cUnl=spellUnlocksCrossed(cs.cls,cs.archetype,oldLvl,newLvl),_cu,_cp,_learned=[];
+  var _cUnl=spellUnlocksCrossed(cs.cls,cs.archetype,oldLvl,newLvl),_cu,_cp,_learned=[],_cMxB=manaMax(cs);/* #110b: the pool grows with the max */
   for(_cu=0;_cu<_cUnl.length;_cu++){
     if(!_cUnl[_cu].pool.length)continue;
     var _cHave={},_ch;if(!cs.spells)cs.spells=[];
@@ -1152,6 +1153,7 @@ function checkCompanionLevelUp(cs,opts){
       cs.spells.push({nm:_cNm,lvl:_cUnl[_cu].tier,used:false});_cHave[capBaseName(_cNm)]=1;_learned.push(_cNm);_cNeed--;
     }
   }
+  manaGrowWithMax(cs,_cMxB);/* #110b: the auto-picked spells arrive with their own mana */
   if(_learned.length)addMsg("system",(cs.name||"Companion")+" learns: "+_learned.join(", "));
   if(_cFeatNames.length)addMsg("system",(cs.name||"Companion")+" gains: "+_cFeatNames.join(", "));/* owner 2026-08-24: gained features had NO visible line at all */
   addMsg("system",(cs.name||"Companion")+" levels up! "+oldLvl+" -> "+newLvl);
@@ -1392,7 +1394,7 @@ function sbPick(s,v,btn){
   picks.push({s:s,v:v});_sbPicks=picks;document.getElementById("sb-warn").textContent="";btn.style.borderColor="var(--acc)";btn.style.color="var(--acc)";document.getElementById("sb-cur-"+s).textContent=c.stats[s]+v;document.getElementById("sb-cur-"+s).style.color="var(--acc)";
 }
 function sbBack(){var m=document.getElementById("sb-modal");if(m)m.remove();}
-function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("sb-warn").textContent="Must spend +2.";return;}var c=worldState.character;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var m=document.getElementById("sb-modal");if(m)m.remove();addMsg("system","Stats: "+picks.map(function(p){return p.s+"+"+p.v;}).join(", "));var _lo=_luOwed();if(_lo.bumps>0)_lo.bumps--;/* #284: the drain persists via the saveAll */syncUI();saveAll();maybeShowLevelBump();/* drain the multi-level bump queue (E1) */}
+function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("sb-warn").textContent="Must spend +2.";return;}var c=worldState.character,_mxB=manaMax(c);for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;manaGrowWithMax(c,_mxB);/* #110b: a casting-stat bump lifts the pool with the max */var m=document.getElementById("sb-modal");if(m)m.remove();addMsg("system","Stats: "+picks.map(function(p){return p.s+"+"+p.v;}).join(", "));var _lo=_luOwed();if(_lo.bumps>0)_lo.bumps--;/* #284: the drain persists via the saveAll */syncUI();saveAll();maybeShowLevelBump();/* drain the multi-level bump queue (E1) */}
 // A plain tap POPULATES the input (editable) so the player can tweak/combine before sending.
 // Ctrl/Cmd-click (desktop) or a long-press (mobile, handled in wireButtons) EXECUTES immediately.
 function sendSuggestedAction(btn,ev){
@@ -3379,12 +3381,13 @@ function initAbilities(){
 function grantSpellsFromList(c,list,lvl){
   if(!list||!list.length)return;
   if(!c.spells)c.spells=[];
-  var i,have={};
+  var i,have={},_mxB=manaMax(c);/* #110b: the pool grows with the max */
   for(i=0;i<c.spells.length;i++)have[capBaseName(c.spells[i].nm)]=1;
   for(i=0;i<list.length;i++){
     var b=capBaseName(list[i]);
     if(!have[b]){c.spells.push({nm:list[i],lvl:lvl,used:false});have[b]=1;}
   }
+  manaGrowWithMax(c,_mxB);
 }
 function initSpells(){
   if(!worldState)return;var c=worldState.character;

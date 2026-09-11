@@ -2876,6 +2876,40 @@ function runEngineTests(R){
     var c=makeCaster("Cleric","WIS",10,[{nm:"Bless",lvl:1},{nm:"Revivify",lvl:3}]);
     return manaCur(c)===4?true:"absent c.mana should read as max (full pool for everyone), got "+manaCur(c);
   });
+  /* #110b (field 2026-09-11, Silas Morne t121 — "just had a long rest, but only 2/7 mana regenerated"): the rest landed
+     level 5 (#349), then filled the pool to the max of the level-4 bench (Healing Word + Guiding Bolt at WIS 19 = 2), and
+     the level-5 picks (Command, Zone of Truth) came AFTER through the modal — max 7, pool still 2. The rule: THE POOL GROWS
+     WITH THE MAX. A newly learned spell arrives with its own mana; a casting-stat bump that lifts the max lifts the pool. */
+  t("#110b manaGrowWithMax: the pool grows by exactly the max growth — the t121 fixture (2/2 → picks → 7/7), spent mana stays spent, a shrink never drains, an absent pool stays absent",function(){
+    var c=makeCaster("Cleric","WIS",19,[{nm:"Sacred Flame",lvl:0},{nm:"Healing Word",lvl:1},{nm:"Guiding Bolt",lvl:1}]);c.mana=2;
+    if(manaMax(c)!==2)return "fixture: the level-4 bench at WIS 19 should max at 2, got "+manaMax(c);
+    var before=manaMax(c);grantSpellsFromList(c,["Command","Zone of Truth"],2);
+    if(manaMax(c)!==7)return "fixture: the level-5 bench should max at 7, got "+manaMax(c);
+    if(c.mana!==7)return "the rest-filled pool did not grow with the picks (#110b — the t121 2/7): "+c.mana;
+    c.mana=1;before=manaMax(c);c.spells.push({nm:"Spirit Guardians",lvl:3});manaGrowWithMax(c,before);var grew=manaMax(c)-before;
+    if(grew<3||c.mana!==1+grew)return "spent mana should stay spent — 1 + the max growth ("+grew+", the tier-3 spell under the WIS multiplier) = "+(1+grew)+", got "+c.mana;
+    var held=c.mana;before=manaMax(c);c.spells.pop();var g=manaGrowWithMax(c,before);
+    if(g!==0||c.mana!==held)return "a shrinking max must not touch the pool (it clamps on read): grew "+g+", mana "+c.mana+" (was "+held+")";
+    delete c.mana;before=manaMax(c);c.spells.push({nm:"Bless",lvl:1});manaGrowWithMax(c,before);
+    if("mana" in c)return "an absent pool (reads as full) must stay absent, not be materialised";
+    return true;
+  });
+  t("#110b a casting-stat bump lifts the pool with the max (WIS 16 → 19 on a 6-cost bench: 6/6 → 7/7; 3/6 → 4/7)",function(){
+    var c=makeCaster("Cleric","WIS",16,[{nm:"Healing Word",lvl:1},{nm:"Guiding Bolt",lvl:1},{nm:"Command",lvl:2},{nm:"Zone of Truth",lvl:2}]);c.mana=6;
+    var before=manaMax(c);if(before!==6)return "fixture max should be 6, got "+before;
+    c.stats.WIS=19;manaGrowWithMax(c,before);if(c.mana!==7||manaMax(c)!==7)return "bump growth: "+c.mana+"/"+manaMax(c);
+    c.mana=3;c.stats.WIS=16;before=manaMax(c);c.stats.WIS=19;manaGrowWithMax(c,before);if(c.mana!==4)return "partial pool after a bump should be 4, got "+c.mana;
+    return true;
+  });
+  t("#110b every spell-landing path grows the pool: the companion auto-learn on a landed level, and the two modal confirms (source-pinned — they need a DOM)",function(){
+    makeWorld();var cs=JSON.parse(JSON.stringify(worldState.character));cs.name="Tess";cs.cls="Cleric";cs.stats.WIS=16;cs.level=4;cs.xp=CLASS_XP_LEVELS[4];cs.spells=[{nm:"Healing Word",lvl:1},{nm:"Guiding Bolt",lvl:1}];cs.mana=1;cs.hp=20;cs.maxHp=20;
+    var before=manaMax(cs);cs.xp=CLASS_XP_LEVELS[5];checkCompanionLevelUp(cs,{land:true});var after=manaMax(cs);
+    if(after<=before)return "fixture: the companion learned nothing crossing 4→5 (max "+before+" → "+after+") — pick a bench that unlocks";
+    if(cs.mana!==Math.min(after,1+(after-before)))return "companion pool should be 1 + "+(after-before)+" = "+Math.min(after,1+(after-before))+", got "+cs.mana+" (of "+after+")";
+    if(String(spuConfirm).indexOf("manaGrowWithMax")<0)return "spuConfirm (the player's spell-pick confirm) does not grow the pool (#110b)";
+    if(String(sbConfirm).indexOf("manaGrowWithMax")<0)return "sbConfirm (the stat-bump confirm) does not grow the pool (#110b)";
+    return true;
+  });
   t("[SPELL_USED:] spends tier from the pool, still stamps the informational used flag",function(){
     var c=makeCaster("Cleric","WIS",10,[{nm:"Bless",lvl:1},{nm:"Spirit Guardians",lvl:3}]);
     applyMuts("[SPELL_USED:Spirit Guardians]");

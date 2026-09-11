@@ -807,6 +807,19 @@ function manaCur(c){
   if(!c||typeof c.mana!=="number"||!isFinite(c.mana))return max;
   return Math.max(0,Math.min(max,c.mana));
 }
+/* #110b (field 2026-09-11, Silas Morne t121 — "just had a long rest, but only 2/7 mana regenerated"): THE POOL GROWS
+   WITH THE MAX. The rest landed level 5 (#349) and filled the pool to the max of the level-4 bench (2); the level-5
+   picks came AFTER through the modal and lifted the max to 7 while the pool stayed at 2. Every path that can raise
+   manaMax — a learned spell (player pick, companion auto-learn, batch grant) or a casting-stat bump — captures the
+   max BEFORE the change and calls this AFTER: the pool gains exactly the growth (a new spell arrives with its own
+   mana; spent mana stays spent), clamped to the new max. A shrink never drains (manaCur clamps on read), and an
+   absent pool (reads as full, the #110 ruling) is left absent. Returns the growth applied. */
+function manaGrowWithMax(c,maxBefore){
+  if(!c)return 0;var after=manaMax(c),grow=after-(typeof maxBefore==="number"&&isFinite(maxBefore)?maxBefore:0);
+  if(grow<=0)return 0;
+  if(typeof c.mana!=="number"||!isFinite(c.mana))return grow;
+  c.mana=Math.max(0,Math.min(after,c.mana+grow));return grow;
+}
 /* #352 (v1.833/v1.834): THE vital readouts — one pure shape for every HP or MP number the HUD paints
    (the topbar hero readout and each companion card), so the hosts can never drift. The number
    carries the signal itself (no bars): its hue IS the percentage, walked along a per-vital ramp
