@@ -2902,7 +2902,7 @@ function buildSceneRenderRequest(c,party,w,opts){
     /* Owner directive (t2084 follow-up): comic-book COMPOSITION/POSING vocabulary — scoped away
        from the art style on purpose, so renders gain splash-page energy without going cel-shaded. */
     +"Comic-book splash-panel composition and posing: dramatic foreshortening, exaggerated action angles, bodies cutting across the frame on diagonals — while the ART STYLE below stays painterly, never cel-shaded or inked. "
-    +"POSE every character by what they are doing in the scene right now — give each a specific mid-action body position (mid-swing, lunging, bracing, twisting to look, hauling, diving); NO two characters in the same stance, at least one seen from behind or in profile, at least one large in the foreground partially cropped by the frame; never a static front-facing line-up or posed group portrait. "
+    +"POSE every character by what they are doing in the scene right now — give each a specific mid-action body position (mid-swing, lunging, bracing, twisting to look, hauling, diving); NO two characters in the same stance, at least one seen from behind, at least one large in the foreground partially cropped by the frame; never a static front-facing line-up or posed group portrait. "
     /* Owner follow-up: scattered gazes read as separate figures sharing a canvas — converging
        eye-lines are what bind a composition into ONE event. The writer must NAME the focal point
        and aim every gaze at it; the one sanctioned exception must still serve the same scene. */
@@ -2931,7 +2931,7 @@ function buildSceneRenderRequest(c,party,w,opts){
        vocabulary ('three-quarter rear view') steers bodies where gaze words never did; the
        previously-astray cleric converged completely once 'seen from behind at the flank'
        replaced 'her gaze fixed upward'. The formation-vector arm helped torsos but not gazes. */
-    +"STAGE THE GEOMETRY IN ONE OPENING SENTENCE before any character: the focal point sits DEEPER IN FRAME than every figure, with the camera low behind or beside the group ('the X rises deep in the frame beyond every figure; the camera sits low behind the party'), so that orientation follows from staging. Then give each character a CAMERA-RELATIVE VIEW ANGLE inside their pose clause — 'seen in three-quarter rear view', 'seen from behind at the flank', 'in full profile facing the X' — view-angle words steer bodies far more reliably than gaze words. "
+    +"STAGE THE GEOMETRY IN ONE OPENING SENTENCE before any character: the focal point sits DEEPER IN FRAME than every figure, with the camera low behind or beside the group ('the X rises deep in the frame beyond every figure; the camera sits low behind the party'), so that orientation follows from staging. Then give each character a CAMERA-RELATIVE VIEW ANGLE inside their pose clause — 'seen in three-quarter rear view', 'seen from behind at the flank' — view-angle words steer bodies far more reliably than gaze words. "
     /* #390 (owner art direction 2026-09-09, the High Reach gate render): torsos squared to the gate while
        the companion's LEGS carried her into the side wall — orientation (#209) never said where a MOVING
        body is going. Direction of travel is its own lever: state it relative to the focal point, give a
