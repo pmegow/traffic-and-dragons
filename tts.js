@@ -458,9 +458,7 @@ var TTS = (function() {
   // Gender comes from the star bench's own `g` field, so a cast female NPC gets a female voice.
   // Stability matters more than cleverness here: the same NPC must get the same voice every read,
   // so the hash is over the id string and nothing else (no ordering, no time, no roster position).
-  function _geminiVoiceFor(voiceId) {
-    if (!voiceId) return geminiNarratorVoice();
-    if (_geminiVoiceKnown(voiceId)) return voiceId;   // already a Gemini voice — pass through
+  function _castVoiceGender(voiceId) {
     var g = "", i, list;
     try {
       list = starsList();
@@ -471,6 +469,12 @@ var TTS = (function() {
         if (DEFAULT_SPEAKER_STARS[i].id === voiceId) { g = DEFAULT_SPEAKER_STARS[i].g || ""; break; }
       }
     }
+    return g;
+  }
+  function _geminiVoiceFor(voiceId) {
+    if (!voiceId) return geminiNarratorVoice();
+    if (_geminiVoiceKnown(voiceId)) return voiceId;   // already a Gemini voice — pass through
+    var g = _castVoiceGender(voiceId), i;
     var pool = [];
     for (i = 0; i < GEMINI_VOICES.length; i++) {
       if (!GEMINI_VOICES[i].calm) continue;                    // subdued bench only, by default
@@ -649,7 +653,29 @@ var TTS = (function() {
   // OpenAI speech uses the existing BYOK store; selection never changes the GM provider.
   var OPENAI_TTS_K = "tnd_tts_openai_v1", OPENAI_NARR_K = "tnd_tts_openai_narr_v1";
   var OPENAI_DIR_K = "tnd_tts_openai_dir_v1";
-  var OPENAI_VOICES = ["marin", "cedar", "alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse"];
+  // App casting labels, not provider identity claims. API ids stay unchanged in saved prefs.
+  var OPENAI_VOICE_BANK = [
+    { id: "marin", g: "F", note: "Warm, clear" },
+    { id: "cedar", g: "M", note: "Warm, natural" },
+    { id: "alloy", g: "M", note: "Neutral" },
+    { id: "ash", g: "M", note: "Low, steady" },
+    { id: "ballad", g: "M", note: "Soft, expressive" },
+    { id: "coral", g: "F", note: "Bright, friendly" },
+    { id: "echo", g: "M", note: "Clear, measured" },
+    { id: "fable", g: "M", note: "Storyteller" },
+    { id: "nova", g: "F", note: "Energetic" },
+    { id: "onyx", g: "M", note: "Deep, firm" },
+    { id: "sage", g: "F", note: "Calm, gentle" },
+    { id: "shimmer", g: "F", note: "Light, smooth" },
+    { id: "verse", g: "M", note: "Conversational" }
+  ];
+  var OPENAI_VOICES = OPENAI_VOICE_BANK.map(function(v) { return v.id; });
+  function _openaiVoiceOptions(sel) {
+    return OPENAI_VOICE_BANK.map(function(v) {
+      var label = v.id.charAt(0).toUpperCase() + v.id.slice(1) + " · " + (v.g === "M" ? "Male" : "Female") + " · " + v.note;
+      return "<option value='" + v.id + "'" + (v.id === sel ? " selected" : "") + ">" + escHtml(label) + "</option>";
+    }).join("");
+  }
   var OPENAI_DIRECTION = "Read as an understated storyteller. Speak clearly and naturally, with restrained emotion and no theatrical emphasis.";
   var _openaiErr = "", _openaiErrAt = 0, _cloudAbort = null;
   function _openaiEnabled() { return store.get(OPENAI_TTS_K) === "1"; }
@@ -673,7 +699,10 @@ var TTS = (function() {
   function _openaiVoiceFor(id) {
     if (!id) return _openaiNarrator();
     if (OPENAI_VOICES.indexOf(id) >= 0) return id;
-    var h = 0, i, pool = OPENAI_VOICES.filter(function(v) { return v !== _openaiNarrator(); });
+    var gender = _castVoiceGender(id), narrator = _openaiNarrator();
+    var h = 0, i, pool = OPENAI_VOICE_BANK.filter(function(v) {
+      return (!gender || v.g === gender) && v.id !== narrator;
+    }).map(function(v) { return v.id; });
     for (i = 0; i < id.length; i++) h = ((h * 31) + id.charCodeAt(i)) >>> 0;
     return pool[h % pool.length];
   }
@@ -4039,10 +4068,10 @@ var TTS = (function() {
       +   "<div id='tts-openai-key-status' role='status' style='font-size:11px;color:var(--t2);'>" + (_openaiKey() ? "Using your saved OpenAI key." : "Add a key here to try OpenAI voice.") + "</div>"
       +   "<div id='tts-openai-cfg' style='margin-top:10px;" + (_openaiEnabled() ? "" : "display:none;") + "'>"
       +     "<label for='tts-openai-narr' style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Narrator voice</label>"
-      +     "<div style='display:flex;gap:6px;'><select id='tts-openai-narr' style='" + smInpStyle + "flex:1;min-width:0;'>" + OPENAI_VOICES.map(function(v) { return "<option value='" + v + "'" + (v === _openaiNarrator() ? " selected" : "") + ">" + v.charAt(0).toUpperCase() + v.slice(1) + "</option>"; }).join("") + "</select><button id='tts-openai-test' style='" + cloudButtonStyle + "'>&#9654; Test</button></div>"
+      +     "<div style='display:flex;gap:6px;'><select id='tts-openai-narr' style='" + smInpStyle + "flex:1;min-width:0;'>" + _openaiVoiceOptions(_openaiNarrator()) + "</select><button id='tts-openai-test' style='" + cloudButtonStyle + "'>&#9654; Test</button></div>"
       +     "<label for='tts-openai-dir' style='font-size:12px;color:var(--t2);display:block;margin-bottom:3px;'>Delivery direction</label>"
       +     "<textarea id='tts-openai-dir' rows='3' style='" + smInpStyle + "resize:vertical;'>" + escHtml(_openaiDirection()) + "</textarea>"
-      +     "<div style='font-size:11px;color:var(--t2);line-height:1.5;'>Marin and Cedar are recommended starting voices. Cast voices are assigned consistently from your existing cast. The speech rate slider applies.</div>"
+      +     "<div style='font-size:11px;color:var(--t2);line-height:1.5;'>Marin and Cedar are recommended starting voices. Character voices are matched to your cast's gender. The speech rate slider applies.</div>"
       +   "</div>"
       + "</div>"
       // Paid cloud voices require explicit selection, with billing stated on the control.
@@ -4370,6 +4399,8 @@ var TTS = (function() {
                testLine: GEMINI_TEST_LINE,
                phase: _auditionPhase, setPhaseCb: function(fn) { _auditionCb = fn; } },
     _openai: { keys: { on: OPENAI_TTS_K, narr: OPENAI_NARR_K, dir: OPENAI_DIR_K },
+      catalog: function() { return OPENAI_VOICE_BANK.map(function(v) { return { id: v.id, g: v.g, note: v.note }; }); },
+      options: _openaiVoiceOptions,
       voices: OPENAI_VOICES, narrator: _openaiNarrator, voiceFor: _openaiVoiceFor, group: _openaiGroup,
       ok: _openaiOk, select: _openaiSelect, reset: _openaiReset, degrade: _openaiDegrade, fetchGroup: _openaiFetchGroup },
     testOpenaiVoice: testOpenaiVoice,
