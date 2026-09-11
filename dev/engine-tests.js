@@ -16842,9 +16842,22 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!detectDatedCommitment("The vellum directive: deliver all reports before the new moon, or the buyer walks."))return "the new-moon deadline did not arm";
     if(!detectDatedCommitment("Give me a day, maybe two, and I'll have a name instead of a smudge."))return "Ironbriar's day did not arm";
     if(detectDatedCommitment("By dawn the fire had died and the road was empty."))return "past narration armed a phantom";
-    if(detectDatedCommitment("If they come before the new moon, the buyer will walk and the deal will not be delivered."))return "a hypothetical armed";
+    /* #369b (field 2026-09-11, Silas Morne t49): an if-clause with a horizon and a consequence IS a deadline-shaped danger —
+       "if Father Vane finishes binding your family's vault tonight, nothing in this valley will ever sleep again" went
+       unregistered because the fence read every "if" as a hypothetical. The fence now reads hedged modals only; the GM
+       decides the rest (the note already offers the only-talk exit). The old negative is re-baselined deliberately. */
+    if(!detectDatedCommitment("If they come before the new moon, the buyer will walk and the deal will not be delivered."))return "a conditional threat with a horizon did not arm (#369b — an if-clause is a deadline, not a hypothetical)";
+    if(!detectDatedCommitment("\"Buy yourself a clean grave elsewhere, boy, because if Father Vane finishes binding your family's vault tonight, nothing in this valley will ever sleep again.\""))return "the t49 vault threat did not arm (#369b)";
+    if(detectDatedCommitment("If we could sail by dawn, we would be there before them."))return "a hedged hypothetical armed (#369b — could/would stay fenced)";
     if(detectDatedCommitment("She counts the coins twice."))return "plain prose armed";
     if(!detectDatedCommitment("Fifty gold, ready in three days, and not a copper before."))return "the money-and-interval axis broke";
+    /* #369b: the detector took the WHOLE narration and refused anything over 900 chars — 66 of 108 GM turns in the owner's
+       campaign — so the observer was blind on most turns. It scans sentence windows now; length is no longer a fence. */
+    var filler="";while(filler.length<1100)filler+="The ash settles on the limestone and the wind worries at the scarf around her throat. ";
+    if(!detectDatedCommitment(filler+"\"If Father Vane finishes binding your family's vault tonight, nothing in this valley will ever sleep again.\""))return "a threat at the end of a long narration went unseen (#369b — the 900-char cap is back)";
+    if(!detectDatedCommitment("You pay the ferryman with a look. "+filler+"Fifty gold, ready in three days, and not a copper before."))return "the money axis went blind on a long narration (#369b — first-match proximity across the whole text)";
+    if(detectDatedCommitment(filler))return "long plain prose armed (#369b window bug)";
+    var hit=detectDatedCommitment(filler+"Sable will arrive on the night of the low tide.");if(!hit||hit.length>300||!/low tide/.test(hit))return "the quoted snippet is not sentence-local: "+(hit&&hit.length);
     makeWorld();worldState.commitmentPing={text:"deliver all reports before the new moon",turn:worldState.turn};var n=buildCommitmentNudge();
     return n&&/an obligation, a promise or a threat with a horizon/.test(n)&&/before the new moon/.test(n)?true:"nudge text: "+n;
   });

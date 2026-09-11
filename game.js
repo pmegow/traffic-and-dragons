@@ -1807,7 +1807,17 @@ function detectTravelPrice(clean){
   return m?{destination:m[2].trim(),days:_driftNumber(m[1])}:null;
 }
 function detectDatedCommitment(clean){
-  var s=String(clean||"").replace(/\s+/g," ").trim();if(!s||s.length>900)return null;
+  /* #369b (field 2026-09-11, Silas Morne t49): the detector took the WHOLE narration and refused anything over 900 chars —
+     66 of 108 GM turns in the owner's campaign — so the observer was blind on most turns, and first-match proximity is
+     meaningless across a long text anyway (the first "pay" and the first "in three days" can be paragraphs apart while a
+     later pair sits together). Scan SENTENCE WINDOWS — each sentence with its successor, so a horizon and its cue may
+     straddle a full stop — and the proximity check and the quoted snippet stay sentence-local. Length is not a fence. */
+  var s=String(clean||"").replace(/\s+/g," ").trim();if(!s)return null;
+  var sents=s.replace(/([.!?…]["”')]?)\s+/g,"$1\n").split("\n");/* whitespace is already collapsed, so the newline is a free separator */
+  for(var i=0;i<sents.length;i++){var w=sents[i]+(i+1<sents.length?" "+sents[i+1]:"");var hit=_datedCommitmentWindow(w);if(hit)return hit;}
+  return null;
+}
+function _datedCommitmentWindow(s){
   var money=/\b(?:gold|gp|silver|sp|copper|cp|pay|payment|owe|owed|deliver|delivery|ready)\b/i;
   var interval=/\b(?:call\s+it|in|within|after)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:minutes?|hours?|days?|weeks?)\b/i;
   var hypo=/\b(?:if|could|might|maybe|hypothetically)\b/i.test(s);
@@ -1818,7 +1828,7 @@ function detectDatedCommitment(clean){
      owner's campaign went unregistered and drove the back half anyway; the note asks, the GM decides. */
   var horizon=/\b(?:(?:before|by|until|till|after|on)\s+(?:the\s+)?(?:new\s+moon|full\s+moon|next\s+(?:tide|low\s+tide|high\s+tide|dawn|moon|market\s+day)|night\s+of\s+the\s+\w+(?:\s+\w+)?|dawn|dusk|nightfall|sunrise|sunset|morning|noon|midnight|tomorrow|first\s+light)|tonight|give\s+me\s+(?:a|an|one|two|three)\s+(?:day|days|hour|hours|night|nights)|within\s+the\s+(?:hour|day|night|week))\b/i;
   var cue=/\b(?:will|shall|must|arrive|arrives|arriving|come|comes|coming|due|deliver|delivered|report|reports|attack|strike|strikes|return|returns|expect|expected|have\s+a\s+name|be\s+here|be\s+there|move|moves|sail|sails|hang|hangs|burn|burns)\b|'ll\b/i;
-  var hypoH=/\b(?:if|could|would|hypothetically)\b/i.test(s);/* "maybe two" is a hedged horizon, not a hypothetical */
+  var hypoH=/\b(?:could|would|hypothetically)\b/i.test(s);/* "maybe two" is a hedged horizon, not a hypothetical. #369b: "if" is NOT a fence — "if Father Vane finishes binding the vault tonight, nothing will ever sleep again" is a deadline-shaped danger, the exact thing this axis exists to catch; hedged modals stay fenced and the GM keeps the only-talk exit */
   var hm=s.match(horizon),cm=s.match(cue);if(!hm||!cm||Math.abs(hm.index-cm.index)>160||hypoH)return null;
   var hat=hm.index,hs=Math.max(0,hat-130),he=Math.min(s.length,hat+130);return s.slice(hs,he);
 }
