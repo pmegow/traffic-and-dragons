@@ -168,13 +168,29 @@ function engineFourthAction(){
   var c=worldState.character,i;
   if(!worldState.combat&&typeof c.hp==="number"&&typeof c.maxHp==="number"&&c.hp<c.maxHp/2)return {kind:"rest",text:"Rest and recover — you are badly hurt."};
   /* #364: the ending offer no longer rides this button — it lives in File ▸ Write the ending… (endingMenuVisible) and the journal; the beat slot is the ladder's again */
-  var wounded=typeof c.hp==="number"&&c.hp<c.maxHp,hurtOrAfflicted=wounded||((c.conditions||[]).length>0);
-  if(hurtOrAfflicted&&typeof itemLookup==="function"){for(i=0;i<(c.inventory||[]).length;i++){var it=c.inventory[i],e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A")return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(it):it)+"."};}}
+  /* #305c (owner field report 2026-09-11, Silas Morne t110): "Use your Vial of distilled panic" held the button for twenty-plus
+     turns — the rung offered the FIRST consumable with any defined effect whenever the hero was hurt at all, a fear vial for a
+     bruise, and outranked the quest, the buy, the montage and the wildcard while it did. The effect must ANSWER THE NEED —
+     healing words when wounded, the named condition when afflicted — and matching candidates rotate by turn (pure over the
+     turn number, no new state) so two potions take turns instead of the first always winning. */
+  var wounded=typeof c.hp==="number"&&c.hp<c.maxHp,conds=c.conditions||[];
+  if((wounded||conds.length>0)&&typeof itemLookup==="function"){var cands=[];for(i=0;i<(c.inventory||[]).length;i++){var it=c.inventory[i],e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A"&&consumableAnswersNeed(e.effect,wounded,conds))cands.push(it);}
+    if(cands.length){var pick=cands[(worldState.turn||0)%cands.length];return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(pick):pick)+"."};}}
   var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
   if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof waresOfferedHere==="function")?waresOfferedHere(node,buildSceneManifest().local):[];/* a seller or their shop must be IN the scene (2026-09-03); #392: the SCENE, not the town */if(live.length)return {kind:"buy",text:"Buy the "+live[0].item+" ("+live[0].price+")."};}
   if(montageDue())return {kind:"montage",text:"Skip ahead — a montage to the next real decision."};/* #308 */
   if(typeof WILDCARD_EVERY==="number"&&WILDCARD_EVERY>0&&worldState.turn>0&&worldState.turn%WILDCARD_EVERY===0)return {kind:"wild",text:"Do something reckless."};
   return null;
+}
+// #305c: does a consumable's canon effect answer the hero's present need? Wounded → the effect restores or heals HP,
+// closes wounds or stops bleeding. Afflicted → the effect names the condition's stem ("Poisoned" → poison, "Bleeding" →
+// bleed, "Stunned" → stunn). Pure; a fear vial answers neither, so it never fills the slot for a bruise.
+var HEALING_EFFECT=/\b(?:restores?|heals?|regains?|recovers?)\b[^.;]{0,40}\b(?:hp|hit points?|health|wounds?)\b|\bstops?\s+(?:the\s+)?bleeding\b|\bcloses?\s+(?:open\s+)?wounds?\b/i;
+function consumableAnswersNeed(effect,wounded,conds){
+  var ef=String(effect||"");if(wounded&&HEALING_EFFECT.test(ef))return true;
+  var i,stem;for(i=0;i<(conds||[]).length;i++){stem=String((conds[i]&&conds[i].name)||conds[i]||"").toLowerCase().replace(/[^a-z ]/g,"").trim().replace(/(?:ed|ing|ness)$/,"");
+    if(stem.length>=3&&ef.toLowerCase().indexOf(stem)>=0)return true;}
+  return false;
 }
 // #308 ①: is a MONTAGE due? MONTAGE_AFTER_TURNS committed turns (the tag log) with no combat tag, no
 // move tag, no open fight, no downed hero, no escort — the bellows-pumping stretch the review measured

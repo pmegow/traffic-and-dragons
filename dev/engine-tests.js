@@ -868,6 +868,18 @@ function runEngineTests(R){
     worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:2,maxHp:2}]};if(engineFourthAction()&&engineFourthAction().kind==="rest")return "rest offered in combat";worldState.combat=null;
     c.hp=14;c.inventory=["Healing potion","Rope"];c.hp=9;a=engineFourthAction();if(!a||a.kind!=="use"||!/Healing potion/.test(a.text))return "use: "+JSON.stringify(a);
     c.hp=14;a=engineFourthAction();if(a&&a.kind==="use")return "a consumable at full health is not the move";
+    /* #305c (owner field report 2026-09-11, Silas Morne t110: "Use your Vial of distilled panic" held the fourth button for
+       twenty-plus turns): the rung offered the FIRST consumable with any defined effect whenever the hero was hurt at all —
+       a fear vial for a bruise. The effect must answer the need (healing when wounded, the named condition when afflicted),
+       and matching candidates rotate by turn instead of the first always winning. */
+    worldState.itemBible={"vial of distilled panic":{category:"consumable",effect:"When shattered, forces beasts to flee in terror for 1 minute.",uses:"single use"},"antitoxin":{category:"consumable",effect:"Drunk as an action: ends one poison's ongoing effect.",uses:"single use"}};
+    c.hp=9;c.inventory=["Vial of distilled panic","Rope"];a=engineFourthAction();if(a&&a.kind==="use")return "a fear vial offered for a wound (#305c): "+JSON.stringify(a);
+    c.inventory=["Vial of distilled panic","Healing potion"];a=engineFourthAction();if(!a||a.kind!=="use"||!/Healing potion/.test(a.text))return "the healing potion behind the fear vial was not chosen (#305c): "+JSON.stringify(a);
+    c.hp=14;c.conditions=[{name:"Poisoned",duration:"1 hour"}];c.inventory=["Vial of distilled panic","Healing potion","Antitoxin"];a=engineFourthAction();if(!a||a.kind!=="use"||!/Antitoxin/.test(a.text))return "the antitoxin was not chosen for the poison (#305c): "+JSON.stringify(a);
+    c.conditions=[{name:"Frightened",duration:"1 hour"}];a=engineFourthAction();if(a&&a.kind==="use")return "a consumable offered for a condition nothing in the pack answers (#305c): "+JSON.stringify(a);
+    c.conditions=[];c.hp=9;c.inventory=["Healing potion","Healing salve","Rope"];worldState.turn=2;var r1=engineFourthAction().text;worldState.turn=3;var r2=engineFourthAction().text;if(r1===r2)return "matching consumables do not rotate by turn (#305c): "+r1;
+    worldState.turn=4;if(engineFourthAction().text!==r1)return "rotation is not periodic over the candidates (#305c)";
+    worldState.turn=1;c.hp=14;c.inventory=[];delete worldState.itemBible;
     c.inventory=[];worldState.questLog=[{title:"The Bell Below",status:"offered",desc:"",objectives:[],started:1}];a=engineFourthAction();if(!a||a.kind!=="accept"||!/Bell Below/.test(a.text))return "accept: "+JSON.stringify(a);
     worldState.questLog=[];c.gold=30;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",wares:[{item:"Healing salve",price:"8 gp",note:"sold by Old Maud at her stall",t:1,min:(typeof clockNow==="function")?clockNow():0}]};
     a=engineFourthAction();if(a&&a.kind==="buy")return "buy offered with no seller in the scene (the High Spire lift-terminal defect)";
