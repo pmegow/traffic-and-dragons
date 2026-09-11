@@ -2889,7 +2889,7 @@ function buildSceneRenderRequest(c,party,w,opts){
     +(hasParty?", portraying the whole adventuring party together in one composition":"")+". "
     +"Protagonist (describe exactly as written, do not invent appearance): "+charDesc+". "
     +(hasParty?"Party members also present — include every one, describe each exactly as written, do not invent appearance: "+compDescs.join("; ")+". ":"")
-    +"Spell out each character's gender, hair colour, skin tone, clothing and visible gear explicitly — never omit or change a character's stated gender; eye colour and face words belong ONLY to a character whose pose clause shows the face (see A DESCRIBED FACE IS A SHOWN FACE). "/* #390b: eye colour was demanded for everyone, which turned every rear view into a face view */
+    +"Spell out each character's gender, hair colour, skin tone, clothing and visible gear explicitly — never omit or change a character's stated gender; eye colour and face words belong ONLY to a character whose pose clause shows the face. "/* #390b: eye colour was demanded for everyone, which turned every rear view into a face view */
     +(opts&&opts.scene?"THE SCENE TO PAINT is a PAST moment, given here in the story's own words — paint exactly what this text describes and nothing that happened later: \u00ab"+String(opts.scene).replace(/\s+/g," ").trim()+"\u00bb ":"")/* #206 */
     +"Scene: "+w.location+(opts&&opts.sublocation?", "+opts.sublocation:"")+", "+w.region+", "+(opts&&opts.timeText?opts.timeText:worldTimeDisplay())+(w.weather?", "+w.weather:"")+". "
     +(opts&&!w.weather?(opts.weatherInProse?"Weather: only as the scene text describes it. ":"Weather: the record names none for this moment — paint no weather, only the place and its light. "):"")/* #206: omit unless the prose names it */
@@ -2930,12 +2930,6 @@ function buildSceneRenderRequest(c,party,w,opts){
        moving party ONE line of advance staggered in depth, and keep the ground ahead of every runner
        clear. Positive phrasing per #209d; the scene-split exception stays with the writer. */
     +"MOVEMENT: every MOVING character's direction of travel is stated RELATIVE TO THE FOCAL POINT inside their pose clause ('running toward the gate', 'backing away from the X', 'circling the X to its left') and the ground ahead of them is open toward it. A moving party shares ONE line of advance — the same heading, staggered in depth (one ahead, one two strides behind and to a side), never fanned across the frame on separate headings. A character who moves on another heading needs a stated reason that serves the same scene, and even then their path leads somewhere the frame shows. "
-    /* #390b (six-render A/B on the High Reach gate scene, 2026-09-09 — Seedream, Nano with party seeds, GPT Image 2,
-       seeds and no seeds, profile and rear-view wording: 0/5 with the companion's eyes and jaw described, 1/1 the
-       moment her face words were removed and identity rode hair, build and clothes). The painter shows the face it
-       is given, and a shown face turns the body toward the camera — no movement or view-angle wording survives
-       that. The lever is what NOT to write. Positive phrasing per #209d: say what carries identity instead. */
-    +"A DESCRIBED FACE IS A SHOWN FACE: for any character posed from behind or in a rear view, carry their identity through hair, build, silhouette, clothing and gear ONLY — write nothing about their eyes, jaw, cheeks, complexion or expression. Face words are for the characters whose pose clause shows the face. "
     /* #209c (research synthesis, 2026-08-21): text encoders concentrate a concept in one or two
        tokens and propagate poorly across mentions — a pronoun binds to nothing and a synonym
        mints a SECOND concept (the five-way's own prompt said staircase/stairs/stairway/steps/
