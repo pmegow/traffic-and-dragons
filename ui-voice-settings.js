@@ -7,7 +7,7 @@ var VoiceSettings = (function() {
   function option(id, label, selected) { return "<option value='" + e(id) + "'" + (id === selected ? " selected" : "") + ">" + e(label) + "</option>"; }
   function field(id, label, html) { return "<div class='tts-field'><label for='" + id + "'>" + label + "</label>" + html + "</div>"; }
   function select(id, values, current, labels) { return "<select id='" + id + "'>" + values.map(function(v) { return option(v, labels ? labels[v] : v || "Natural", current); }).join("") + "</select>"; }
-  function actorLabel(v) { return v.label + (v.g ? " · " + (v.g === "M" ? "Male" : "Female") : " · Unspecified") + (v.note ? " · " + v.note : ""); }
+  function actorLabel(v, compact) { return v.label + (v.g ? " · " + (v.g === "M" ? "Male" : "Female") : " · Unspecified") + (!compact && v.note ? " · " + v.note : ""); }
   function matchesActor(v, query) { query = query.trim().toLowerCase(); if (query === "male") return v.g === "M"; if (query === "female") return v.g === "F"; return actorLabel(v).toLowerCase().indexOf(query) >= 0; }
   function actors(ctx, selected, automatic, compact) {
     var html = automatic ? option("", "Automatic", selected) : "";
@@ -18,7 +18,7 @@ var VoiceSettings = (function() {
       list = list.filter(function(v) { return !query || matchesActor(v, query); }).slice(0, 100);
       if (chosen && !list.some(function(v) { return v.id === selected; })) list.push(chosen);
     }
-    list.forEach(function(v) { html += option(v.id, actorLabel(v), selected); });
+    list.forEach(function(v) { html += option(v.id, actorLabel(v, ctx.model().compactActors), selected); });
     if (selected && !list.some(function(v) { return v.id === selected; })) html += option(selected, selected + " · saved voice", selected);
     return html;
   }
@@ -45,7 +45,7 @@ var VoiceSettings = (function() {
     ctx.bind("tts-api-key", "input", function(el) { if (el.value.trim()) ctx.d.keys[ctx.id] = el.value.trim().replace(/^(Bearer|Basic)\s+/i, ""); });
     ctx.bind("tts-key-change", "click", function() { ctx.el("tts-key-wrap").hidden = false; ctx.el("tts-api-key").focus(); });
     ctx.bind("tts-load-voices", "click", function() { ctx.load(); });
-    ctx.bind("tts-actor-search", "input", function(el) { var query = el.value.toLowerCase(), list = ctx.catalog().filter(function(v) { return v.id === c.narrator || matchesActor(v, query); }); ctx.el("tts-narrator").innerHTML = list.map(function(v) { return option(v.id, actorLabel(v), c.narrator); }).join(""); });
+    ctx.bind("tts-actor-search", "input", function(el) { var query = el.value.toLowerCase(), list = ctx.catalog().filter(function(v) { return v.id === c.narrator || matchesActor(v, query); }); ctx.el("tts-narrator").innerHTML = list.map(function(v) { return option(v.id, actorLabel(v, ctx.model().compactActors), c.narrator); }).join(""); });
     ctx.bind("tts-narrator", "change", function(el) { c.narrator = el.value; describe(); });
     ctx.bind("tts-language", "change", function(el) { c.language = el.value; });
     ctx.bind("tts-direction", "input", function(el) { c.direction = el.value; });

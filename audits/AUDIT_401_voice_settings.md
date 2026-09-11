@@ -62,3 +62,13 @@ Test-first engine and transport failures preceded the fix. Transport tests cover
 Validation: full gate ALL GREEN (2,098 engine assertions, 32 standalone suites); focused Speechify rate / Save / gameplay browser QA passed. Two isolated sabotage mutations (overlapping requests and discarded limit reason) were caught by the named transport tests; source restored byte-identically.
 
 Production release: owner authorized commit/push/publish. PR #13 merged as 0bcdbb03424ea0e9c9d95e0fbf69105244fa5aca after both CI runs passed. Cloudflare production deployment b2d8ec1d-1093-45fb-a94c-9d8e527dc9b6 succeeded. The live https://traffic-and-dragons.pages.dev/ served v1.903 and passed browser checks for sequential request bodies, next-group progression, Stop abort, visible concurrency/rate-limit messages and retry timing, plus the existing rate/Save/gameplay checks. Synthetic credentials and intercepted synthesis only; owner account listening remains.
+
+
+## Speechify actor labels — v1.904 (local)
+
+Owner iPhone screenshot showed native options wrapping hundreds of characters of raw Speechify marketing metadata. The shared actorLabel included the whole note; Speechify's note was every API tag joined verbatim. A 125-actor synthetic saved catalog reproduced a 393-character option and a large repeated description at 390px width.
+
+The model registry now declares compact option labels and its note formatter. Narrator, filtered narrator and Manage Cast options display name/gender only for Speechify. Descriptions/search use up to three deduplicated casting traits, prioritizing accent, pitch and timbre, then style/age and short plain traits. Unknown structured marketing tags are omitted. Formatting occurs on read, leaving saved catalog data, IDs, casting and other providers unchanged. No catalog reload needed.
+
+Test-first engine assertion failed on unfiltered saved tags before the fix. Browser QA: node dev/qa-401-speechify-labels.js (--before captures the failing fixture). Evidence: screenshots/401-speechify-labels-before.png, screenshots/401-speechify-labels-after.png and screenshots/401-speechify-labels-cast.png. Verified at 390x844 in desktop Chrome: short labels on every option, readable description, useful-trait search, Manage Cast filtering, Save/reopen preserves actor ID, no horizontal overflow. This is a phone-width browser check, not a native iOS picker test; the supplied iPhone screenshot is the original native failure evidence.
+Validation: full gate ALL GREEN (2,099 engine assertions and 32 standalone suites); phone-width browser QA passed. Isolated mutations restoring raw tags and verbose option labels were caught by their named engine/browser guards; source restored byte-identically.

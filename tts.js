@@ -747,6 +747,26 @@ var TTS = (function() {
   // Settings are copied into a draft; only commitSettings writes preferences.
   var VOICE_SETTINGS_K = "tnd_voice_settings_v1", VOICE_KEYS_K = "tnd_voice_keys_v1";
   var _voiceErrors = {}, _voiceReadCache = {};
+  function _speechifyActorNote(note) {
+    var traits = {}, plain = [];
+    String(note || "").split(",").forEach(function(tag) {
+      tag = tag.trim(); var pair = /^([a-z-]+):(.+)$/i.exec(tag);
+      if (pair) { var key = pair[1].toLowerCase(); if (!Object.prototype.hasOwnProperty.call(traits, key)) traits[key] = pair[2].trim(); }
+      else if (tag && tag.indexOf(":") < 0) plain.push(tag);
+    });
+    var result = [], seen = {};
+    function add(value, suffix) {
+      value = String(value || "").replace(/[_-]+/g, " ").trim();
+      if (!value || value.length > 40) return;
+      if (suffix && value.toLowerCase().slice(-suffix.length) !== suffix) value += " " + suffix;
+      var key = value.toLowerCase(); if (seen[key] || result.length >= 3) return;
+      seen[key] = true; result.push(value.charAt(0).toUpperCase() + value.slice(1));
+    }
+    // Casting traits stay useful on a phone; marketing and catalog tags do not.
+    add(traits.accent, "accent"); add(traits.pitch, "pitch"); add(traits.timbre); add(traits.style); add(traits.age);
+    plain.forEach(function(value) { add(value); });
+    return result.join(" · ");
+  }
   var VOICE_MODELS = {
     openai: { label: "OpenAI · GPT-4o mini TTS", key: true, direction: true, rate: true, languages: [""],
       note: "13 actors. Uses your existing OpenAI key. Test bills that key.", catalog: function() { return OPENAI_VOICE_BANK; },
@@ -764,7 +784,7 @@ var TTS = (function() {
       audio: function(r) { return r.json().then(function(j) { return _voiceDecode64(j.audioContent); }); },
       page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
       actor: function(v) { return { id: v.voiceId, label: v.displayName || v.voiceId, g: _voiceGender(v.gender), note: v.description || "", language: v.langCode || "" }; } },
-    speechify: { label: "Speechify · Simba 3.2", depth: 1, key: true, rate: true, languages: ["en-US"],
+    speechify: { label: "Speechify · Simba 3.2", compactActors: true, actorNote: _speechifyActorNote, depth: 1, key: true, rate: true, languages: ["en-US"],
       emotions: ["", "angry", "cheerful", "sad", "terrified", "relaxed", "fearful", "surprised", "calm", "assertive", "energetic", "warm", "direct", "bright"],
       note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate.",
       defaults: function() { return { narrator: "", language: "en-US", emotion: "" }; },
@@ -815,7 +835,7 @@ var TTS = (function() {
     var m = VOICE_MODELS[id];
     var list = (m.catalog ? m.catalog() : c.voices || []).slice();
     if (id === "local" && c.narrator && _piperVoiceKnown(c.narrator) && !list.some(function(v) { return v.id === c.narrator; })) list.push({ id: c.narrator, label: _voiceLabelOf(c.narrator) });
-    return list.map(function(v) { return { id: v.id, label: v.label || (id === "openai" ? v.id.charAt(0).toUpperCase() + v.id.slice(1) : v.id), g: v.g || "", note: v.note || v.blurb || "", language: v.language || "" }; });
+    return list.map(function(v) { return { id: v.id, label: v.label || (id === "openai" ? v.id.charAt(0).toUpperCase() + v.id.slice(1) : v.id), g: v.g || "", note: m.actorNote ? m.actorNote(v.note || v.blurb || "") : v.note || v.blurb || "", language: v.language || "" }; });
   }
   function _voiceDraft() {
     var d = { primary: _voicePrimary(), models: {}, keys: {}, fallback: { piper: resolvePiperVoice(), native: getNativeVoice(), rate: getRate() } };
