@@ -52,7 +52,7 @@ Validation: full gate ALL GREEN (2,097 engine assertions and 32 standalone suite
 Production release: owner authorized push/publish; PR #12 merged as 4c8bfed625b32b0f77b0b9ae35a22cdffbedce86 after both CI runs passed. Cloudflare production deployment 0c0f9089-fd7d-4afc-af07-3c6b5eeeda9c succeeded. The live https://traffic-and-dragons.pages.dev/ served v1.902 and passed the focused browser rate / Save / gameplay checks using intercepted requests. Real Speechify listening remains the owner trial.
 
 
-## Speechify trial concurrency — v1.903 (local)
+## Speechify trial concurrency — v1.903 (published)
 
 Owner saw HTTP 429 during a two-group Test and confirmed Free/trial. [Speechify API limits](https://docs.speechify.ai/docs/api-limits) allow one concurrent synthesis on Free, shared account-wide; the adapter inherited two-group prefetch. A synthetic request probe confirmed two requests started before either response arrived. Transport regression failed with 'free tier received overlapping speech requests'. The screenshot alone cannot distinguish concurrency from other quotas because the old request helper discarded the response body.
 
@@ -60,3 +60,5 @@ Provider metadata now supplies scheduling depth: Speechify one, Inworld two. The
 
 Test-first engine and transport failures preceded the fix. Transport tests cover waiting through body completion, the next group starting, Stop cancelling it, late audio staying silent, both 429 reasons, retry hints, malformed/stalled bodies and visible audition errors. Real account responses and audio have not been retested.
 Validation: full gate ALL GREEN (2,098 engine assertions, 32 standalone suites); focused Speechify rate / Save / gameplay browser QA passed. Two isolated sabotage mutations (overlapping requests and discarded limit reason) were caught by the named transport tests; source restored byte-identically.
+
+Production release: owner authorized commit/push/publish. PR #13 merged as 0bcdbb03424ea0e9c9d95e0fbf69105244fa5aca after both CI runs passed. Cloudflare production deployment b2d8ec1d-1093-45fb-a94c-9d8e527dc9b6 succeeded. The live https://traffic-and-dragons.pages.dev/ served v1.903 and passed browser checks for sequential request bodies, next-group progression, Stop abort, visible concurrency/rate-limit messages and retry timing, plus the existing rate/Save/gameplay checks. Synthetic credentials and intercepted synthesis only; owner account listening remains.
