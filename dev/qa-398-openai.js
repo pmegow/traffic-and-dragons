@@ -26,6 +26,11 @@ module.exports(process.cwd(),async b=>{
  if(process.argv[2]){await b.send('Network.setBlockedURLs',{urls:[]});await b.send('Page.navigate',{url:process.argv[2]});for(var i=0;i<100;i++){await b.sleep(100);if(await b.evaluate('typeof TTS!=="undefined" && !!TTS._openai && document.readyState==="complete"'))break;}await b.send('Network.setBlockedURLs',{urls:['https://*','http://*']});}
  await b.evaluate(`store.del(TTS._openai.keys.on);providerKeys.openai="";TTS.showSettingsModal();window.__requests=[];window.__aborts=0;window.fetch=function(u,o){if(u==='https://api.openai.com/v1/audio/speech'){__requests.push(JSON.parse(o.body));o.signal.addEventListener('abort',function(){__aborts++});return new Promise(function(){});}return Promise.reject(new Error('Offline fixture'));};document.getElementById('tts-openai-on').click();`);
  assert(await b.evaluate(`!document.getElementById('tts-openai-on').checked`),'keyless opt-in accepted');
+
+ var actorOptions=await b.evaluate(`Array.prototype.map.call(document.getElementById('tts-openai-narr').options,function(o){return {id:o.value,label:o.textContent};})`);
+ assert.equal(actorOptions.length,13,'actor options missing');
+ for(var actor of actorOptions){assert.match(actor.label,/ · (Male|Female) · .+/,'actor label missing gender or description');}
+ assert.equal(actorOptions.find(a=>a.id==='alloy').label,'Alloy · Male · Neutral');
  var oldProvider=await b.evaluate('activeProvider');
  await b.evaluate(`document.getElementById('tts-openai-key').value='synthetic-test-key';document.getElementById('tts-openai-key-save').click();document.getElementById('tts-openai-on').click();document.getElementById('tts-openai-narr').value='cedar';document.getElementById('tts-openai-dir').value='Read softly.';`);
  assert.equal(await b.evaluate('activeProvider'),oldProvider,'voice key changed GM provider');
@@ -37,8 +42,10 @@ module.exports(process.cwd(),async b=>{
  await b.evaluate(`providerKeys.gemini='fixture';document.getElementById('tts-gem-on').click();`);assert(await b.evaluate(`!document.getElementById('tts-openai-on').checked&&document.getElementById('tts-gem-on').checked`),'provider switches overlap');
  await b.evaluate(`document.getElementById('tts-openai-on').click();document.getElementById('tts-openai-narr').dispatchEvent(new Event('change'));document.getElementById('tts-openai-dir').dispatchEvent(new Event('change'));document.getElementById('tts-modal-x').click();TTS.showSettingsModal();`);
  assert(await b.evaluate(`document.getElementById('tts-openai-on').checked&&document.getElementById('tts-openai-narr').value==='cedar'&&document.getElementById('tts-openai-dir').value==='Read softly.'`),'voice preferences did not persist');
- await b.sleep(6000);await b.screenshot(process.cwd()+'/audits/screenshots/398-desktop.png');
- await b.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await b.screenshot(process.cwd()+'/audits/screenshots/398-mobile.png');
+ await b.evaluate(`document.getElementById('tts-openai-narr').value='alloy';document.getElementById('tts-openai-narr').dispatchEvent(new Event('change'));`);
+ var shotPrefix=process.env.TND_VOICE_QA_PREFIX||'398';
+ await b.sleep(6000);await b.screenshot(process.cwd()+'/audits/screenshots/'+shotPrefix+'-desktop.png');
+ await b.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await b.screenshot(process.cwd()+'/audits/screenshots/'+shotPrefix+'-mobile.png');
  assert(await b.evaluate('document.documentElement.scrollWidth<=window.innerWidth'),'mobile horizontal overflow');
- console.log('ALL GREEN — browser key setup, provider isolation, DOM audition, timer, cancellation, persistence and desktop/mobile layout; '+await b.evaluate('APP_VERSION'));
+ console.log('ALL GREEN — browser actor labels, key setup, provider isolation, DOM audition, timer, cancellation, persistence and desktop/mobile layout; '+await b.evaluate('APP_VERSION'));
 }).catch(e=>{console.error(e);process.exitCode=1});
