@@ -22960,4 +22960,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return m.inworld.depth===2 ? true : "Inworld must retain two-group prefetch";
   });
 
+  t("#401 saved Speechify tags become short casting traits without changing actors",function(){
+    var S=TTS.settings,c={voices:[{id:"alec",label:"Alec",g:"M",note:"use-case:voice-over, label:new-voice, pitch:low, use-case:work, timbre:relaxed, accent:british, pitch:mid, style:classic"}]},before=JSON.stringify(c);
+    var v=S.catalog("speechify",c)[0];
+    if(v.note!=="British accent · Low pitch · Relaxed")return "raw tags leaked into actor description: "+v.note;
+    if(v.id!=="alec"||v.label!=="Alec"||v.g!=="M"||JSON.stringify(c)!==before)return "display cleanup changed saved actor data";
+    if(S.catalog("inworld",c)[0].note!==c.voices[0].note)return "other provider description changed";
+    return true;
+  });
+
 }
