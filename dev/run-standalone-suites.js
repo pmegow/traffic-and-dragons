@@ -17,6 +17,7 @@ var SUITES = [
   "dev/tests-41f-gemini-model-ladder.js",
   "dev/tests-233-tts-body-deadlines.js",
   "dev/tests-398-openai.js",
+  "dev/tests-401-voice-settings.js",
   "dev/tests-234-stt-upload-generation.js",
   "dev/tests-287-stt-autosend.js",
   "dev/tests-221-rename-capability.js",

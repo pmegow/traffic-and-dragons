@@ -22922,4 +22922,23 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var catalog=O.catalog();catalog[0].g="broken";return O.catalog()[0].g==="F"?true:"catalog snapshot mutated shared metadata";
   });
 
+  section("Voice settings drafts (#401)");
+  t("#401 editing every model and cast is isolated until Save",function(){
+    var S=TTS.settings;if(!S)return "settings draft API missing";
+    var before=JSON.stringify(S.draft()),d=S.draft();d.primary="openai";d.models.openai.narrator="alloy";d.models.openai.direction="Quiet";d.models.openai.rate=1.3;d.models.openai.cast["cast#1"]="onyx";d.keys.openai="unsaved";
+    return JSON.stringify(S.draft())===before?true:"draft mutated live settings";
+  });
+  t("#401 invalid selection and missing credentials refuse before writing",function(){
+    var S=TTS.settings;if(!S)return "settings draft API missing";var d=S.draft(),before=JSON.stringify(d);d.primary="speechify";d.keys.speechify="";
+    if(!S.validate(d))return "keyless paid selection accepted";d.primary="invented";if(!S.validate(d))return "unknown model accepted";
+    return JSON.stringify(S.draft())===before?true:"validation changed live settings";
+  });
+  t("#401 model registry describes supported controls and Korean reach",function(){
+    var S=TTS.settings;if(!S)return "settings draft API missing";var m=S.models;
+    if(!m.inworld||!m.speechify)return "trial providers missing";
+    if(m.inworld.languages.indexOf("ko-KR")<0||m.speechify.languages.indexOf("ko-KR")>=0)return "Korean capability misrepresented";
+    if(!m.inworld.direction||m.speechify.direction||!m.speechify.emotions)return "performance controls unsupported";
+    return true;
+  });
+
 }

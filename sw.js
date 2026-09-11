@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260911i";
+var CACHE = "tnd-v3-20260911j";
 // Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todos_completed/todo_TTS_piper.md Phase 2).
 // Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
 // frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
@@ -39,6 +39,7 @@ var APP_SHELL = [
   "/ui-modals.js",
   "/ui-boot.js",
   "/tts.js",
+  "/ui-voice-settings.js",
   "/piper-host.html",
   "/stt.js",
   "/sound.js",
