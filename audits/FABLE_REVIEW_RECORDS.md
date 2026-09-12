@@ -1650,6 +1650,98 @@ expected RAG query entity and any player-input watcher that arms.
 
 ## Queue drain 2026-09-03 (Fable) — entries 14, 18–33, verbatim as filed, verdict appended
 
+### 34 — Voice pipeline and character casting (#401/#402, v1.901–v1.906; Astra/Codex PRs #11–#16, owner-directed)
+
+**Filed:** 2026-09-11 (handoff DOC/HANDOFF_Fable_2026-09-11.md). **Adjudicated:** 2026-09-11, v1.907.
+**Touched by the fix:** `tts.js` (`castGenderMatches`, the crumb count, the menu-handler guard), `game.js`
+(`pinAutoCastVoices` order, `inheritVoicePins`, `attachCompanionSheet`), `ui-sheets.js` (backup empty
+label, NB label, the shared inheritance call), `ui-boot.js` (stale comment), `dev/engine-tests.js`,
+`dev/tests-402-character-voices.js`, `dev/sabotage-402-*.js`, `DOC/contracts/tts-stt.md`, TODO #401/#402
+notes + new rows #403/#404/#405.
+
+**Method.** Six evidence briefs in parallel (Opus, general-purpose, background): A speaker resolution and
+[SAY:] precedence; B cloud-failure seam, scheduler, cancellation, monotonic resources; C gender filter,
+pickers, save timing; D Piper composite path, existing saves, persistence hops; E settings shell, provider
+table, keys, conventions; F test and sabotage honesty on a scratch clone. Every load-bearing quote was
+spot-checked against the tree before a fix.
+
+**Confirmed defects → fixed, failing test first, sabotage-proven (all red for the evidence's reason,
+then green):**
+
+1. **Legacy speakers never got a Speechify pin (Brief A, confirmed by D on the real save).**
+   `pinAutoCastVoices` continued on an existing `voiceId` BEFORE the Speechify fill, so every character
+   of every pre-v1.905 campaign was unreachable — the owner's live t121 save: 14 voiced characters, zero
+   pins, two Piper collisions (#90 ×2, #3 ×2) that collapsed onto one Speechify actor. The fill now runs
+   before the Piper guard; test: two same-backup speakers both pinned, backups untouched, replay map
+   carries `providers.speechify`.
+2. **Three gender predicates (Briefs C and A).** Sheet filter (unknown/ANY → empty), creation assignment
+   (unknown → unfiltered), auto-cast (ANY → full) disagreed, so a character could be assigned an actor the
+   sheet rendered as "Saved voice (not listed)" with no way to change it. ONE `castGenderMatches`: M/F
+   exact (unknown or mixed actor metadata excluded — the owner's rule), NB/ANY/unknown see the whole bank.
+   Astra's "unknown gender unlocked both banks" negative re-baselined deliberately: an empty picker beside
+   an unfiltered auto-cast is a silent failure, and the same modal already defaults a sheetless NPC to NB
+   for the portrait. Consistency test runs every gender value through all three sites.
+3. **Automatic companion sheet orphaned hand-picked pins (Brief D, hop 19).** `generateNpcSheet`
+   inherited roster pins; `attachCompanionSheet` did not, and the sheet becomes the pin owner on attach
+   — probe on the real save: a hand-picked pair on Father Vane was re-dealt to a name-hash. ONE
+   `inheritVoicePins` on both paths; the roster copy cleared after attach.
+4. **Backup list had no empty state (Brief C).** The primary said "No matching actors"; the backup showed a
+   normal-looking one-entry dropdown. Named now; `g:"NB"` catalog actors labelled "Non-binary".
+5. **The `!cloud.audition` guard shipped unguarded (Brief F, mutation IX1 survived the whole tree).** A
+   two-group audition-failure test (opener over the 220-char fast-start cap lands, the second group fails)
+   asserts nothing reaches the read queue; sabotage case added and caught. Stop-drops-queued-items test added.
+6. **Small, confirmed, cheap (Brief E):** the settings menu handler threw a bare ReferenceError from a stale
+   shell — now a toast + warn; the #356 frozen-status scan covered four files and none of the voice
+   surfaces — extended; the read-start crumb counted the `providers` key as a unit; a stale ui-boot
+   comment. Astra's stale sabotage find-targets (the applicability scan caught them) retargeted at the
+   shared predicate and helper.
+
+**Affirmed (no gap at the code level):** [SAY:] segmentation and attribution byte-identical to base; per-unit
+precedence (sheet pin → cast slot → id → gender hash → narrator) measured; unread-only requeue with rebased
+indices and composite ids preserved, no automatic retries, 429 reasons + numeric Retry-After surfaced;
+Speechify one outstanding group / Inworld two measured; Stop/Skip abort in-flight fetches, drop unsent
+groups, leave no timers; draft-until-Save with Test on the draft, closing discards; no key reaches a toast,
+a console line or the #16 webhook; ES5 clean; relative rate encoding exact at every slider step; the ladder
+never switches to another paid service; every persistence hop carries both fields implicitly (18 hops
+traced, one live whitelist gap = defect 3); version/CACHE bumped on every code commit; all 16 shipped
+mutation cases caught on a scratch clone, receipts (2105 / 33 / 1005 of 99) reproduced exactly.
+
+**Accepted residues (with rationale) → TODO rows:** #403 the fallback item hard-routes to LOCAL Piper
+(skips the server rung) and the local path strips every composite — all 52 bench voices are composites on
+two base models, so local playback collapses a campaign to two voices (t121: 14 → 2); pre-existing shape,
+design work, plus `autoCastVoiceId` uniqueness. #404 provider-name conditionals off the table (five
+sites), the actor catalog in localStorage (25.8 KB per 200 actors, 526 KB at the cap, per model), the
+30 s piper-host timer, the `_cloudAbort` retention on one exit path (reachability UNDETERMINED),
+`_voiceGender` normalizing only at load. #405 coverage: catalog-added-later, pin surviving reopen in a node
+battery, invalid Retry-After branch, the five qa-*.js scripts in no runner/CI, screenshots showing a
+listbox shape the page never renders. **Owner residues:** Speechify audio owner-validated as excellent;
+Inworld audio and native iOS pickers untested by anyone; Korean support is owner research; the Voice
+Settings row carries no dev-only tier (non-admin players see BYOK key fields) — owner's call.
+**Random-at-creation (Brief A finding 6)** accepted per owner ruling #5; pins are filled once, so stable
+afterwards.
+
+**Receipts — delegated evidence.**
+
+| Brief | Tokens | Tool calls | Wall clock | Findings fed |
+|---|---|---|---|---|
+| A speaker resolution | 163,955 | 41 | 7m20s | defect 1; random-assignment residue |
+| B fallback seam / resources | 229,562 | 66 | 13m53s | #403 routing, #404 ②③, audition test target (with F) |
+| C gender filter / pickers | 141,168 | 38 | 5m37s | defects 2, 4; #404 `_voiceGender`; #405 screenshots |
+| D Piper path / old saves | 210,331 | 80 | 8m55s | defect 3; defect 1 on the real save; #403 ceiling + uniqueness |
+| E settings shell / conventions | 214,067 | 80 | 11m08s | item 6 (guard, #356 scan, comment); #404 ①; owner tier question |
+| F test honesty | 185,887 | 73 | 12m34s | defect 5; Stop test; #405 |
+| **Total** | **1,144,970** | **378** | ~14 min fan-out; review 21:58 → commit | |
+
+**Quality note.** Quotes accurate on every spot-check (A, C, D, E line citations all held). Scope growth
+declared by A, B, D, E, F. Honest UNDETERMINED labels (C: save incidence; D: owner's device preference;
+B: retention reachability). One factual miss: B stated no test asserts `piper:true` on the fallback item —
+`tests-402` group 2 does. One brief-author error: my Brief F said 18 mutation cases; there were 16.
+**Next run:** give agents the settings store key names and the sabotage harness's clone semantics (it
+copies the WORKING engine manifest into the clone) up front; ask resource briefs to grep existing
+assertions before claiming "unasserted".
+
+---
+
 ### 33 — Clock corruption rescue (#274, v1.734; Opus lane D, brief-mandated design)
 
 **Filed:** 2026-08-28. **Tracker:** TODO #274 (Fable f63, verified). **Touched:** `clock.js` (new

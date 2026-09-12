@@ -1,7 +1,9 @@
 var sabotage=require('./sabotage.js'),code=0;
 function prove(file,command,cases){if(!code)code=sabotage.prove({file:file,command:['node',command],also:['ui-sheets.js'],cases:cases});}
 prove('tts.js',['dev/run-tests.js','Character primary and backup voices'],[
- {label:'allow all genders in character filter',find:'return gender === "NB" || ((gender === "M" || gender === "F") && v.g === gender);',replace:'return true;',mustFail:'#402 voice lists restrict binary genders and show both only for non-binary characters'},
+ /* Fable review 2026-09-11: the three filters dispatch through ONE predicate (castGenderMatches); the mutation targets it */
+ {label:'allow all genders in character filter',find:'return (gender === "M" || gender === "F") ? actorGender === gender : true;',replace:'return true;',mustFail:'#402 voice lists restrict binary genders and show both only for non-binary characters'},
+ {label:'route the sheet filter around the shared predicate',find:'return voices.filter(function(v) { return castGenderMatches(gender, v.g); });',replace:'return voices.filter(function(v) { return gender === "NB" || v.g === gender; });',mustFail:'#402 ONE gender predicate: the sheet filter, the creation assignment and the auto-cast pool agree for every gender value'},
  {label:'bypass starred actor filter',find:'    if (char) st = filterCharacterVoices(char, st);',replace:'',mustFail:'#402 Piper stars filter metadata while narrator settings retain the full bank'}
 ]);
 prove('ui-sheets.js',['dev/tests-402-character-voices.js'],[

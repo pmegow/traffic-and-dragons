@@ -1003,9 +1003,17 @@ var TTS = (function() {
     { provider: "piper", field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
       test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
   ];
+  /* Fable review 2026-09-11 (Briefs A+C): THE one gender predicate. The sheet filter, the creation assignment and
+     the auto-cast pool had three hand-written predicates that disagreed on an unknown or ANY gender (empty picker,
+     unfiltered assignment, full pool) — a character could be assigned an actor the sheet then rendered as
+     "Saved voice (not listed)" with no way to change it. M and F match exactly (unknown or mixed actor metadata is
+     excluded — the owner's rule); NB, ANY and an unknown gender have nothing to filter by and see the whole bank. */
+  function castGenderMatches(gender, actorGender) {
+    return (gender === "M" || gender === "F") ? actorGender === gender : true;
+  }
   function filterCharacterVoices(char, voices) {
     var gender = _autoCastGender(char);
-    return voices.filter(function(v) { return gender === "NB" || ((gender === "M" || gender === "F") && v.g === gender); });
+    return voices.filter(function(v) { return castGenderMatches(gender, v.g); });
   }
   function assignCharacterVoices(char, random, provider) {
     if (!char) return false;
@@ -1014,8 +1022,8 @@ var TTS = (function() {
     CHARACTER_VOICE_SLOTS.forEach(function(slot) {
       if (provider && slot.provider !== provider) return;
       if (typeof char[slot.field] === "string" && char[slot.field]) return;
-      var pool = slot.catalog().filter(function(v) { return gender !== "M" && gender !== "F" || v.g === gender; });
-      if (!pool.length && slot.defaultCatalog) pool = slot.defaultCatalog().filter(function(v) { return gender !== "M" && gender !== "F" || v.g === gender; });
+      var pool = slot.catalog().filter(function(v) { return castGenderMatches(gender, v.g); });
+      if (!pool.length && slot.defaultCatalog) pool = slot.defaultCatalog().filter(function(v) { return castGenderMatches(gender, v.g); });
       if (!pool.length) return;
       var ix = Math.min(pool.length - 1, Math.max(0, Math.floor(random() * pool.length)));
       char[slot.field] = pool[ix].id; changed = true;
@@ -3189,7 +3197,7 @@ var TTS = (function() {
     // commaSplit=true: Piper gets its rhythm from scheduled gaps (see the pause tiers above)
     var units = splitSentences(text, null, true);
     if (!units.length) { _drain(); return; }
-    if (typeof erCrumb === "function") erCrumb("read-start", units.length + "u pc" + _piperSynthsTotal + " ps" + _piperSynthsSession + (voices ? " map" + Object.keys(voices).length : ""));
+    if (typeof erCrumb === "function") erCrumb("read-start", units.length + "u pc" + _piperSynthsTotal + " ps" + _piperSynthsSession + (voices ? " map" + Object.keys(voices).filter(function(k) { return /^\d+$/.test(k); }).length : ""));/* the providers key is not a unit */
 
     // Per-unit crash journal (v1.324) — see _crumbDone/loadSettings. Written BEFORE each unit's
     // synth, so if the tab dies mid-predict the crumb names the killing unit.
@@ -4122,7 +4130,7 @@ var TTS = (function() {
     var g = _autoCastGender(char);
     if (!g) return null;
     var pool = [], st = starsList(), i;
-    for (i = 0; i < st.length; i++) { if (g === "NB" || g === "ANY" || st[i].g === g) pool.push(st[i].id); }
+    for (i = 0; i < st.length; i++) { if (castGenderMatches(g, st[i].g)) pool.push(st[i].id); }
     if (!pool.length) return null;
     var nm = String(char.name || ""), h = 0;
     for (i = 0; i < nm.length; i++) h = (h * 31 + nm.charCodeAt(i)) >>> 0;
@@ -4348,7 +4356,7 @@ var TTS = (function() {
       console.warn("[tts piper] release of unused voice " + voiceId + " failed (kept):", e && e.message);
     });
   }
-  function showSettingsModal() { return VoiceSettings.show(); }
+  function showSettingsModal() { if (typeof VoiceSettings === "undefined") { if (typeof showToast === "function") showToast("Voice Settings failed to load — File ▸ Clear cache & reload"); console.warn("[tts settings] ui-voice-settings.js is not loaded (stale app shell?)"); return; } return VoiceSettings.show(); }/* Fable review 2026-09-11 (Brief E): a stale SW shell without ui-voice-settings.js threw a bare ReferenceError from the menu row */
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -4438,6 +4446,7 @@ var TTS = (function() {
     autoCastVoiceId:   autoCastVoiceId,
     assignCharacterVoices: assignCharacterVoices,
     filterCharacterVoices: filterCharacterVoices,
+    castGenderMatches: castGenderMatches,
     characterVoiceSlots: function() { return CHARACTER_VOICE_SLOTS.slice(); },
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.

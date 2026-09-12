@@ -852,8 +852,12 @@ function pinAutoCastVoices(sp){
     seen[nm]=1;
     sub=_speakerVoiceSubject(nm);
     ch=sub&&sub.char;
-    if(!sub||!ch||sub.owner.voiceId)continue;
+    if(!sub||!ch)continue;
+    /* Fable review 2026-09-11 (Brief A): the Speechify fill runs BEFORE the Piper guard — it used to sit below
+       `continue`-on-voiceId, so a speaker who already had a Piper backup (every character of every pre-v1.905
+       campaign) never received a Speechify pin, and two speakers sharing a backup collapsed onto one actor. */
     if(!sub.owner.speechifyVoiceId&&TTS.assignCharacterVoices){var _vpChar={name:ch.name,gender:ch.gender,pronouns:ch.pronouns,voiceId:sub.owner.voiceId||""};TTS.assignCharacterVoices(_vpChar,null,"speechify");if(_vpChar.speechifyVoiceId){sub.owner.speechifyVoiceId=_vpChar.speechifyVoiceId;pinned=true;}}
+    if(sub.owner.voiceId)continue;
     v=TTS.autoCastVoiceId(ch);
     if(!v)continue;
     sub.owner.voiceId=v;
@@ -1283,10 +1287,26 @@ function canonizeCompanionSpellDefs(resp,cls,npcName){
   return tags.length;
 }
 // Attach a generated/stub sheet to the named party member; makes findCompanionChar resolve them.
+/* Fable review 2026-09-11 (Brief D, hop 19): ONE inheritance step for BOTH sheet-attach paths. The sheet becomes the
+   pin owner the moment it is attached (_speakerVoiceSubject prefers charSheet), so a roster-level pin that is not
+   carried onto the sheet is orphaned and the speaker re-deals — the manual generateNpcSheet inherited, the automatic
+   attachCompanionSheet did not, and a hand-picked pair on a sheetless NPC was lost when its sheet auto-generated.
+   Model-authored voice fields are discarded first: voices belong to the player, never the generated response. */
+function inheritVoicePins(sheet,wsNpc,prior){
+  if(!sheet||typeof TTS==="undefined"||!TTS.characterVoiceSlots)return sheet;
+  TTS.characterVoiceSlots().forEach(function(slot){
+    delete sheet[slot.field];
+    var pinned=(prior&&prior[slot.field])||(wsNpc&&wsNpc[slot.field]);
+    if(pinned)sheet[slot.field]=pinned;
+  });
+  return sheet;
+}
 function attachCompanionSheet(npcName,sheet){
   var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet)return null;
+  inheritVoicePins(sheet,npc,null);
   npc.charSheet=sheet;delete npc.sheetPending;
+  if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)TTS.characterVoiceSlots().forEach(function(slot){delete npc[slot.field];});/* the sheet owns the pins now */
   if(memory&&memory.npcs&&memory.npcs[npcName])memory.npcs[npcName].partyMember=true;
   return npc;
 }

@@ -59,10 +59,32 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
    assert(csPrimaryVoiceOptions(char,primary).includes("value='b' selected disabled hidden"));assert(csBackupVoiceOptions(char).includes("value='en_US-libritts_r-medium#3' selected disabled hidden"));assert.equal(JSON.stringify(char),saved);
    char.gender='NB';assert.deepEqual(visible(csPrimaryVoiceOptions(char,primary)),['a','b','c']);assert(visible(csBackupVoiceOptions(char)).includes('en_US-libritts_r-medium#3'));
    char.gender='M';assert.deepEqual(visible(csPrimaryVoiceOptions(char,primary)),['b']);assert(!visible(csBackupVoiceOptions(char)).includes('en_GB-alba-medium'));
-   char.gender='';assert.deepEqual(visible(csPrimaryVoiceOptions(char,primary)),[]);assert.deepEqual(visible(csBackupVoiceOptions(char)),[]);
+   /* Fable review 2026-09-11 (Brief C): unknown gender sees the FULL bank, like NB — re-baselined from [] (an empty picker beside an unfiltered auto-cast was a silent failure). */
+   char.gender='';assert.deepEqual(visible(csPrimaryVoiceOptions(char,primary)),['a','b','c']);assert(visible(csBackupVoiceOptions(char)).includes('en_US-libritts_r-medium#3'));
+   /* Brief C: the backup list names its empty state like the primary does. */
+   {const realVoices=TTS.voices,realStars=TTS.starsList,realStarOpts=TTS.starOptionsHtml;try{TTS.voices=()=>[{id:'en_GB-alba-medium',label:'Alba',g:'F'}];TTS.starsList=()=>[];TTS.starOptionsHtml=()=>'';char.gender='M';const html=csBackupVoiceOptions(char);assert.deepEqual(visible(html),[]);assert(html.includes('No matching actors'),'backup empty state is unlabelled: '+html);}finally{TTS.voices=realVoices;TTS.starsList=realStars;TTS.starOptionsHtml=realStarOpts;}}
    store.set(key,JSON.stringify([{id:'en_US-ryan-high',label:'Owner-assigned actor',g:'F'}]));char.gender='F';assert(visible(csBackupVoiceOptions(char)).includes('en_US-ryan-high'));char.gender='M';assert(!visible(csBackupVoiceOptions(char)).includes('en_US-ryan-high'));
 
   }finally{if(old===null)store.del(key);else store.set(key,old);}
+ });
+ /* Fable review 2026-09-11 (Brief F): the `!cloud.audition` guard on the remainder hand-off shipped unpinned — deleting it
+    passed the whole tree. A failed AUDITION must fail visibly and never hand a fallback item to the read queue. */
+ await test('#402 a failed cloud audition never hands a fallback item to the read queue',async()=>{
+  /* Two groups: the first sentence overflows the 220-char fast-start cap, so it lands and is scheduled (its stub source
+     never ends, which keeps the queue observable), and the SECOND group fails — the exact branch the guard sits on. */
+  const d=draft('speechify');S.save(d);let n=0;global.fetch=async()=>++n===1?pcm():{ok:false,status:503,json:async()=>{throw Error('no body')}};
+  const opener='The lamps gutter along the quay while the tide drags at the pilings and the harbour bell tolls the hour for nobody in particular, and still the ferryman waits with his hand out and his eyes on the fog that will not lift tonight.';
+  assert(opener.length>220,'fixture: the opener must overflow the fast-start cap');
+  S.test(d,opener+' Then it fails.','a',()=>{});await sleep(60);
+  assert.equal(n,2,'fixture: the second group was never requested');
+  assert.equal(TTS._speakerTest.queued().length,0,'audition failure queued a fallback read: '+JSON.stringify(TTS._speakerTest.queued()));
+ });
+ /* Brief F coverage gap: Stop empties the queued-but-unsent items, not only the in-flight group. */
+ await test('#402 Stop drops queued-but-unsent items',async()=>{
+  const d=draft('speechify');S.save(d);global.fetch=()=>new Promise(()=>{});
+  TTS.speak('First line. Second line.',null,{0:'en_US-libritts_r-medium#3',1:'en_US-libritts_r-medium#8'});TTS.speak('A second passage waits.');await sleep(20);
+  assert(TTS._speakerTest.queued().length>=1,'fixture: nothing was queued behind the in-flight read');
+  TTS.stop();assert.equal(TTS._speakerTest.queued().length,0,'Stop left items in the queue');
  });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

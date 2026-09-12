@@ -69,7 +69,7 @@ function buildFileMenus(){
       +chk(p+"stake-cb","Name the stake before a roll",0,p+"stake-label");/* #371 — off = the pre-#371 MECHANICS line (rollback) */
     var dm=btn(p+"tts-settings","🔊 Voice Settings&hellip;",0)
       // TODO #7: UI sound library toggle + test. Deliberately NOT inside the Voice Settings modal
-      // (that modal is built entirely in tts.js, which is drift-protected/off-limits) — lives here
+      // (that modal lives in ui-voice-settings.js since #401; the sound toggle stays a menu row) — lives here
       // as an inline menu row instead, matching this file's own established pattern for a boolean
       // pref + inline action (font-lg/autosend/autolisten/legacy-cb checkboxes above).
       +"<div style='display:flex;align-items:center;gap:8px;padding:2px 14px 7px;'>"

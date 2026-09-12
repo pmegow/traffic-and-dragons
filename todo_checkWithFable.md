@@ -84,12 +84,8 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
-### Voice pipeline and character casting — v1.901–v1.906 (2026-09-11)
+(queue empty — entry 34 adjudicated 2026-09-11; entries 14, 18–34 in audits/FABLE_REVIEW_RECORDS.md)
 
-Owner requested a Fable handoff. [Handoff](DOC/HANDOFF_Fable_2026-09-11.md) summarizes shipped PRs #11–#16, owner rulings, current data/queue/UI contracts, verification receipts and remaining real-device/Korean/Piper-path checks. Latest production v1.906, feature 369a187, merge bcddd00. Probe transient speaker-map/fallback alignment, edited gender metadata and preserved out-of-list pins first; real audio and native iOS were not agent-tested. TODO #401/#402 remain the task records.
-
-
-(queue drained 2026-09-03 — entries 14, 18–33 adjudicated; records in audits/FABLE_REVIEW_RECORDS.md)
 
 ## Reviewed index
 
@@ -98,6 +94,7 @@ zero 2026-07-27 and again 2026-07-30.
 
 | # | Subject | Reviewed | Verdict |
 |---|---|---|---|
+| 34 | Voice pipeline and character casting (#401/#402, v1.901–v1.906; Astra/Codex PRs #11–#16) | 2026-09-11 | ADJUDICATED 2026-09-11, v1.907: #401 AFFIRMED (draft/Save/Test, keys, rate, concurrency, cancellation, ladder). #402: four defects fixed test-first + sabotage-proven — legacy speakers never got a Speechify pin (pin guard order), three divergent gender predicates → ONE `castGenderMatches` (unknown = full bank), automatic companion sheet orphaned pins → ONE `inheritVoicePins`, backup list unlabelled empty state; the unguarded `!cloud.audition` hand-off now tested + sabotaged. Residues → #403 (fallback routing / local Piper ceiling), #404 (table conditionals, catalog in localStorage, monotonic), #405 (coverage). Six Opus briefs, 1.14M tokens, 378 tool calls. |
 | 33 | Clock corruption rescue (#274, v1.734; Opus lane D, brief-mandated design) | 2026-09-03 | ADJUDICATED 2026-09-03: rescue design AFFIRMED (absent≠corrupt, non-finite snapshot). f63's second remedy SHIPPED v1.808 — clockRepair refuses a non-finite/non-integer delta. Contract lines added (clock.md, sync.md). |
 | 32 | Measured-award guard counts, not lengths (#273, v1.734; Opus lane D, brief-mandated design) | 2026-09-03 | ADJUDICATED 2026-09-03: UNVERIFIED-by-default AFFIRMED (a new reward tag must earn a measurement arm); close-on-partial stands, re-queue stays the #276 ③ residue. Contract line added (quests.md). |
 | 31 | Retained proofs for the unproven contract tier (#275 / Fable f74; Opus lane E, dev-only, merged as entry 31) | 2026-09-03 | ADJUDICATED 2026-09-03: the inert #213 contract was repaired by the #264-class fix (run-tests exits process.exitCode); filtered gate AFFIRMED as the contract-tier shape; residue 3 SHIPPED v1.808 — 8 of 9 blueprint-classes clauses pinned with mustFail (the identity-chain clause keeps its exit-status verdict). |

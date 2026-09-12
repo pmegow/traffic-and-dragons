@@ -1750,6 +1750,13 @@ function runEngineTests(R){
     if(sh.indexOf("lm-secs")===-1||sh.split("elapsedTicker(").length!==2||sh.indexOf("_lmT.stop();var m=document.getElementById(\"loading-modal\")")===-1)return "the loading modal must tick and stop on removal";
     if(/status\.innerHTML="<span[^"]*>(?:Generating portrait|Writing portrait prompt|Reading the portrait)/.test(up+cc))return "a frozen in-flight status survives somewhere";
     if(up.indexOf("_gt.stop();showResult(")===-1||up.indexOf("}catch(err){_gt.stop();")===-1||up.indexOf("}catch(err){_dt.stop();")===-1)return "every terminal write in the portrait modal must stop the ticker first";
+    /* Fable review 2026-09-11 (Brief E): the scan stopped at four files, so the voice surfaces (#401/#402) were unpinned —
+       they DO tick today (the settings Test and catalog load, the sheet's voice Test); this keeps them ticking. */
+    var vs=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),us=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");
+    if(vs.split("elapsedTicker(").length<3)return "Voice Settings' Test and catalog-load waits must both ride the ticker (#356)";
+    if(!/elapsedTicker\([^\n]*"Preparing"/.test(vs)||!/elapsedTicker\([^\n]*"Loading actors"/.test(vs))return "a Voice Settings wait status is painted without the ticker (#356)";
+    if(us.split("elapsedTicker(").length<2||!/elapsedTicker\([^\n]*"Preparing"/.test(us))return "the character sheet's voice Test wait must ride the ticker (#356)";
+    if(/textContent="(?:Preparing|Loading actors)(?:…|\.\.\.)?"/.test(vs+us))return "a frozen voice wait status survives somewhere (#356)";
   });
   t("#357 companions earn their own skill ladder: [COMPANION_SKILL_SUCCESS:Name|skill] bumps the named companion's counter (never the hero's), resolves a lowercased id, drops an unknown name or skill loudly, announces a ladder step with the name; the hero path is unchanged; a companion's earned skills ride the party block as one compact line and a zero sheet adds nothing; the tag is taught and stripped",function(){
     makeWorld();worldState.character.skills=initSkills();
@@ -3306,6 +3313,14 @@ function runEngineTests(R){
     makeWorld();worldState.npcs=[{name:"Ekene",status:"ally",rel:"guide",partyMember:true,sheetPending:true}];
     applyMuts("[COMPANION_HP:Ekene|-4]");
     return __toasts.join(" ").indexOf("no character sheet")>=0?true:"no warning toast: "+JSON.stringify(__toasts);
+  });
+  t("attachCompanionSheet inherits the roster's hand-picked voice pins onto the new sheet (Fable review 2026-09-11, Brief D hop 19: the sheet becomes the pin owner, so an un-inherited pin is orphaned and the speaker re-deals)",function(){
+    makeWorld();worldState.npcs.push({name:"Vane",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"he/him",voiceId:"en_GB-vctk-medium#13",speechifyVoiceId:"carter",sheetPending:true});
+    var sheet=buildCompanionSheetStub("Vane");sheet.speechifyVoiceId="MODEL-INVENTED";sheet.voiceId="MODEL-INVENTED";
+    var npc=attachCompanionSheet("Vane",sheet);if(!npc)return "attach refused";
+    if(npc.charSheet.voiceId!=="en_GB-vctk-medium#13"||npc.charSheet.speechifyVoiceId!=="carter")return "the sheet did not inherit the roster pins (got "+npc.charSheet.voiceId+" / "+npc.charSheet.speechifyVoiceId+")";
+    if(npc.voiceId||npc.speechifyVoiceId)return "the roster copy was left behind as a stale duplicate";
+    var sub=_speakerVoiceSubject("Vane");return sub&&sub.char.voiceId==="en_GB-vctk-medium#13"&&sub.char.speechifyVoiceId==="carter"?true:"the speaker still does not resolve to the pins: "+JSON.stringify(sub&&sub.char);
   });
   t("attachCompanionSheet clears the flag and makes findCompanionChar resolve",function(){
     makeWorld();worldState.npcs=[{name:"Ekene",status:"ally",rel:"guide",partyMember:true,sheetPending:true}];
@@ -22975,9 +22990,30 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var bank=[{id:"f",g:"F"},{id:"m",g:"M"},{id:"u",g:""}],pick=function(c){return TTS.filterCharacterVoices(c,bank).map(function(v){return v.id;}).join(",");};
     if(pick({gender:"F"})!=="f"||pick({gender:"M"})!=="m")return "binary character offered opposite or unspecified gender";
     if(pick({gender:"NB"})!=="f,m,u")return "non-binary character lost part of the bank";
-    if(pick({})!==""||pick({gender:"ANY"})!=="")return "unknown gender unlocked both banks";
+    /* Fable review 2026-09-11 (Brief C): the shipped sheet filter gave an UNKNOWN or ANY gender an EMPTY list while
+       assignCharacterVoices and the portrait subject already treated unknown as the whole bench — three predicates,
+       three answers. Re-baselined deliberately: a character with nothing to filter by sees the full bank, like NB.
+       Both binary rules and the pronoun fallback are unchanged. */
+    if(pick({})!=="f,m,u"||pick({gender:"ANY"})!=="f,m,u"||pick({gender:"Other"})!=="f,m,u")return "an unknown gender must see the full bank (Fable review 2026-09-11 — nothing to filter by; an empty picker is a silent failure)";
     if(pick({pronouns:"she/her"})!=="f"||pick({gender:"M",pronouns:"she/her"})!=="m")return "gender/pronoun precedence drifted";
     return bank.length===3?true:"catalog was mutated";
+  });
+  t("#402 ONE gender predicate: the sheet filter, the creation assignment and the auto-cast pool agree for every gender value (Fable review 2026-09-11 — the three-predicate drift)",function(){
+    if(typeof TTS.castGenderMatches!=="function")return "TTS.castGenderMatches is missing — the shared predicate the three sites must dispatch through";
+    var K="tnd_voice_settings_v1",old=store.get(K),genders=["M","F","NB","ANY","","Other",undefined],i,j;
+    try{
+      var cat=[{id:"m1",label:"Adam",g:"M"},{id:"f1",label:"Alicia",g:"F"},{id:"u1",label:"Unknown",g:""}];
+      store.set(K,JSON.stringify({models:{speechify:{voices:cat}}}));
+      for(i=0;i<genders.length;i++){
+        var g=genders[i],allowed=TTS.filterCharacterVoices({gender:g},cat).map(function(v){return v.id;});
+        for(j=0;j<3;j++){var c={name:"Probe",gender:g};TTS.assignCharacterVoices(c,function(){return [0,0.5,0.99][j];},"speechify");
+          if(c.speechifyVoiceId&&allowed.indexOf(c.speechifyVoiceId)<0)return "gender "+JSON.stringify(g)+": creation assigned "+c.speechifyVoiceId+" but the sheet offers only ["+allowed.join(",")+"]";
+          if(!c.speechifyVoiceId&&allowed.length)return "gender "+JSON.stringify(g)+": the sheet offers ["+allowed.join(",")+"] but creation assigned nothing";}
+        var stars=TTS.starsList();if(stars.length){var starAllowed=TTS.filterCharacterVoices({gender:g},stars).map(function(v){return v.id;}),auto=TTS.autoCastVoiceId({name:"Probe",gender:g});
+          if(auto&&starAllowed.indexOf(auto)<0)return "gender "+JSON.stringify(g)+": auto-cast chose "+auto+" outside the sheet's star list";}
+      }
+      return true;
+    }finally{if(old===null)store.del(K);else store.set(K,old);}
   });
   t("#402 Piper stars filter metadata while narrator settings retain the full bank",function(){
     var key="tnd_speaker_stars_v1",old=store.get(key);
@@ -23010,6 +23046,19 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       var empty={name:"Lysa",gender:"F"};store.set(K,JSON.stringify({models:{speechify:{voices:[]}}}));TTS.assignCharacterVoices(empty,function(){return 0;});
       return !empty.speechifyVoiceId&&empty.voiceId==="en_GB-alba-medium"?true:"missing cloud catalog blocked backup or invented actor";
     }finally{if(old===null)store.del(K);else store.set(K,old);if(stars===null)store.del("tnd_speaker_stars_v1");else store.set("tnd_speaker_stars_v1",stars);}
+  });
+  t("#402 a speaker with a Piper backup but no Speechify pin still gets a Speechify pin at speech time (Fable review 2026-09-11, Brief A: every pre-v1.905 campaign — the owner's live save had 14 voiced characters, zero pins, two Piper collisions)",function(){
+    var K="tnd_voice_settings_v1",old=store.get(K);
+    try{
+      store.set(K,JSON.stringify({models:{speechify:{voices:[{id:"m1",label:"One",g:"M"},{id:"m2",label:"Two",g:"M"}],narrator:"m1"}}}));
+      makeWorld();worldState.npcs=[{name:"Dorn",pronouns:"he/him",voiceId:"en_US-libritts_r-medium#3"},{name:"Vane",pronouns:"he/him",voiceId:"en_US-libritts_r-medium#3"}];
+      var sp={n:2,s:{0:"Dorn",1:"Vane"}},pinned=pinAutoCastVoices(sp);
+      if(!worldState.npcs[0].speechifyVoiceId||!worldState.npcs[1].speechifyVoiceId)return "a legacy speaker with a Piper backup was skipped before the Speechify fill (the voiceId guard sits above it): "+JSON.stringify(worldState.npcs);
+      if(!pinned)return "pinAutoCastVoices reported nothing pinned";
+      if(worldState.npcs[0].voiceId!=="en_US-libritts_r-medium#3")return "the existing Piper backup was rewritten";
+      var m=speakerVoiceMap(sp,"First line. Second line.");
+      return m&&m.providers&&m.providers.speechify&&m.providers.speechify[0]&&m.providers.speechify[1]?true:"the replay map still carries no Speechify pins: "+JSON.stringify(m);
+    }finally{if(old===null)store.del(K);else store.set(K,old);}
   });
   t("#402 replay keeps distinct primary actors even when characters share a backup",function(){
     makeWorld();worldState.npcs=[{name:"Lysa",pronouns:"she/her",charSheet:{name:"Lysa",gender:"F",voiceId:"en_GB-alba-medium",speechifyVoiceId:"alicia"}},{name:"Bera",pronouns:"she/her",voiceId:"en_GB-alba-medium",speechifyVoiceId:"belinda"}];

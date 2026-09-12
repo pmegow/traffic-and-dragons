@@ -67,9 +67,9 @@ function csUnlistedVoiceOption(cur){
 function csBackupVoiceOptions(char){
   var vs=TTS.filterCharacterVoices(char,TTS.voices()),cur=char.voiceId||"",allStars=TTS.starsList(),st=TTS.filterCharacterVoices(char,allStars);
   vs=vs.filter(function(v){return !allStars.some(function(star){return star.id===v.id;});});
-  var opts="<option value=''"+(cur?"":" selected")+">Automatic on first speech (default)</option>";
-  opts+=TTS.starOptionsHtml(cur,char);
   var listed=st.concat(vs).some(function(v){return v.id===cur;});
+  var opts="<option value=''"+(cur?"":" selected")+">"+(st.length||vs.length?"Automatic on first speech (default)":"No matching actors")+"</option>";/* Fable review 2026-09-11 (Brief C): the empty state is named, like the primary's */
+  opts+=TTS.starOptionsHtml(cur,char);
   if(cur&&!listed)opts+=csUnlistedVoiceOption(cur);
   vs.forEach(function(v){opts+="<option value='"+escHtml(v.id)+"'"+(v.id===cur?" selected":"")+">"+escHtml(v.label)+"</option>";});
   return opts;
@@ -78,7 +78,7 @@ function csPrimaryVoiceOptions(char,slot){
   var cur=char[slot.field]||"",catalog=slot.catalog(),voices=TTS.filterCharacterVoices(char,catalog);
   var empty=catalog.length?"No matching actors":"Load actors in Voice Settings";
   var opts="<option value=''"+(cur?"":" selected")+">"+(voices.length?"Automatic (gender matched)":empty)+"</option>";
-  voices.forEach(function(v){opts+="<option value='"+escHtml(v.id)+"'"+(v.id===cur?" selected":"")+">"+escHtml(v.label+" · "+(v.g==="M"?"Male":v.g==="F"?"Female":"Unspecified"))+"</option>";});
+  voices.forEach(function(v){opts+="<option value='"+escHtml(v.id)+"'"+(v.id===cur?" selected":"")+">"+escHtml(v.label+" · "+(v.g==="M"?"Male":v.g==="F"?"Female":v.g==="NB"?"Non-binary":"Unspecified"))+"</option>";});
   if(cur&&!voices.some(function(v){return v.id===cur;}))opts+=csUnlistedVoiceOption(cur);
   return opts;
 }
@@ -402,11 +402,7 @@ async function generateNpcSheet(name,doneCb){
     }
     // Voice settings belong to the player, never the generated model response.
     if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots){
-      TTS.characterVoiceSlots().forEach(function(slot){
-        delete sheet[slot.field];
-        var pinned=(_prior&&_prior[slot.field])||wsNpc[slot.field];
-        if(pinned)sheet[slot.field]=pinned;
-      });
+      inheritVoicePins(sheet,wsNpc,_prior);/* Fable review 2026-09-11: the ONE inheritance step, shared with attachCompanionSheet (game.js) */
       TTS.assignCharacterVoices(sheet);
     }
     // NPC stance and a directed character bond are different authorities. Model-authored rows
