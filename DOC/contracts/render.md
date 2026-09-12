@@ -52,3 +52,5 @@ Opened via **Sheet** button in topbar (desktop) or File menu (mobile). Built by 
 **Sections:** Hero card · Attributes · Character (trait/flaw/motivation/backstory) · Conditions · Relationships · Languages · Save Modifiers · Skills (earned only) · Story Beats · Abilities · Spells · Inventory
 
 **⟳ Sync button** (header, beside Export Character) calls `syncCharSheet()` in `game.js`. It sends an internal GM audit prompt (not a player turn) asking the GM to emit ONLY state tags for anything missing or changed on the player AND every party member — using `COMPANION_*` tags for companions. The prompt enumerates each party member by name. Response passes through `applyMuts()`; the sheet then closes and reopens. Gated by `busy`; uses a 500-token budget. Provides a manual fallback for older sessions where the GM didn't emit upkeep tags inline.
+
+**Character voice controls (#402):** Player and NPC sheets show separate Primary voice (Speechify) and Backup voice (Piper) selectors and Test buttons. Assignments save on selection; tests use the chosen actor. Speechify labels use name/gender and its test uses the player API key. Existing Piper IDs remain intact.

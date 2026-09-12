@@ -27,8 +27,8 @@ process.exit(sabotage.prove({
     {
       label: "Gemini timeout remainder appended behind later speech",
       mustFail: "timeout handoffs preserve the unread remainder and resume the queue",
-      find: "_queue.unshift({ text: rem, piper: true",
-      replace: "_queue.push({ text: rem, piper: true"
+      find: "_queue.unshift(_cloudFallbackItem(units, groups, i, voiceId, voices))",
+      replace: "_queue.push(_cloudFallbackItem(units, groups, i, voiceId, voices))"
     }
   ]
 }));
