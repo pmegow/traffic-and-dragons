@@ -1,7 +1,7 @@
 # #402 — Character primary and backup voices
 
 Date: 2026-09-11. Version: v1.905. Cache: tnd-v3-20260911n.
-Status: implemented and verified locally; not pushed or published.
+Status: LIVE v1.905; production controls verified. Ready for owner audio trial.
 
 ## Request and mechanism
 
@@ -34,3 +34,9 @@ No user credentials, paid service calls or live campaign writes were used. Audio
 - [Previous single voice control](screenshots/402-character-voices-before.png)
 - [Two voice controls](screenshots/402-character-voices-after.png)
 - [Full character sheet at phone width](screenshots/402-full-sheet-phone.png)
+
+## Publication
+
+Owner authorized push and publication on 2026-09-11. Feature commit 9c8e16522f116858e55e154ab8e49c5e3ba34ad3 shipped through [PR #15](https://github.com/pmegow/traffic-and-dragons/pull/15), merged as 8dd288f6cd320ec37b98ba2e9f4b369b432a1b89. Both GitHub runs [34669682509](https://github.com/pmegow/traffic-and-dragons/actions/runs/34669682509) and [34669675886](https://github.com/pmegow/traffic-and-dragons/actions/runs/34669675886) passed engine/source checks, all four replay fixtures, focused drift guards and 38 affected mutation batteries.
+
+Cloudflare preview cbed33eb-694b-412b-96fe-5f2b7259dea8 and production b2ba0874-34e3-4cc1-8dd6-31170ffefbf9 succeeded. The isolated browser QA passed against both the preview and https://traffic-and-dragons.pages.dev/, asserting APP_VERSION v1.905, independent selector persistence, selected Speechify audition actor, Stop cancellation and full sheet at 390px. Synthetic credentials and intercepted audio requests were used; no real paid audio or user campaign was touched. The initial temporary version probe expected an unprefixed version string; corrected to the existing v-prefixed marker before the successful runs.
