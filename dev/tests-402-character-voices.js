@@ -48,5 +48,21 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
    const saved=JSON.stringify([hero.voiceId,hero.speechifyVoiceId]);pendingCompanions=[];startGame(hero,'Fantasy','','');await sleep(10);assert.equal(JSON.stringify([hero.voiceId,hero.speechifyVoiceId]),saved);
   }finally{names.forEach(k=>{global[k]=old[k]});busy=false;}
  });
+
+ await test('#402 sheet renderers filter both actor lists without changing saved pins',async()=>{
+  const d=draft('speechify');S.save(d);const key='tnd_speaker_stars_v1',old=store.get(key);
+  try{
+   store.set(key,JSON.stringify([{id:'en_US-libritts_r-medium#9',label:'Female',g:'F'},{id:'en_US-libritts_r-medium#3',label:'Male',g:'M'}]));
+   const visible=html=>Array.from(html.matchAll(/<option\b([^>]*)>/g)).filter(m=>!(/\b(disabled|hidden)\b/.test(m[1]))).map(m=>(m[1].match(/value='([^']*)'/)||[])[1]).filter(Boolean);
+   const primary=TTS.characterVoiceSlots()[0],char={gender:'F',speechifyVoiceId:'b',voiceId:'en_US-libritts_r-medium#3'},saved=JSON.stringify(char);
+   assert.deepEqual(visible(csPrimaryVoiceOptions(char,primary)),['a','c']);const backup=visible(csBackupVoiceOptions(char));assert(backup.includes('en_US-libritts_r-medium#9'));assert(backup.includes('en_GB-alba-medium'));assert(!backup.includes('en_US-libritts_r-medium#3'));assert(!backup.includes('en_US-ryan-high'));
+   assert(csPrimaryVoiceOptions(char,primary).includes("value='b' selected disabled hidden"));assert(csBackupVoiceOptions(char).includes("value='en_US-libritts_r-medium#3' selected disabled hidden"));assert.equal(JSON.stringify(char),saved);
+   char.gender='NB';assert.deepEqual(visible(csPrimaryVoiceOptions(char,primary)),['a','b','c']);assert(visible(csBackupVoiceOptions(char)).includes('en_US-libritts_r-medium#3'));
+   char.gender='M';assert.deepEqual(visible(csPrimaryVoiceOptions(char,primary)),['b']);assert(!visible(csBackupVoiceOptions(char)).includes('en_GB-alba-medium'));
+   char.gender='';assert.deepEqual(visible(csPrimaryVoiceOptions(char,primary)),[]);assert.deepEqual(visible(csBackupVoiceOptions(char)),[]);
+   store.set(key,JSON.stringify([{id:'en_US-ryan-high',label:'Owner-assigned actor',g:'F'}]));char.gender='F';assert(visible(csBackupVoiceOptions(char)).includes('en_US-ryan-high'));char.gender='M';assert(!visible(csBackupVoiceOptions(char)).includes('en_US-ryan-high'));
+
+  }finally{if(old===null)store.del(key);else store.set(key,old);}
+ });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

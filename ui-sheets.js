@@ -60,31 +60,26 @@ function rejectEpithet(owner,idx,ev){
 // invOwner (#50 QOL): ""=live player sheet, "<npc name>"=live companion sheet — inventory rows
 // get a drop ×. undefined = read-only viewer (library/import preview): no drop buttons.
 // Character voice pins travel with the sheet. Roster NPCs carry them until a sheet inherits them.
+function csUnlistedVoiceOption(cur){
+  // Keep a saved pin selected without offering an actor outside the character's filtered list.
+  return "<option value='"+escHtml(cur)+"' selected disabled hidden>Saved voice (not listed)</option>";
+}
 function csBackupVoiceOptions(char){
-  var vs=TTS.voices(),cur=(char&&char.voiceId)||"",i;
+  var vs=TTS.filterCharacterVoices(char,TTS.voices()),cur=char.voiceId||"",allStars=TTS.starsList(),st=TTS.filterCharacterVoices(char,allStars);
+  vs=vs.filter(function(v){return !allStars.some(function(star){return star.id===v.id;});});
   var opts="<option value=''"+(cur?"":" selected")+">Automatic on first speech (default)</option>";
-  /* #95 (S5): the "★ Cast voices" optgroup — the starred speaker ids from the audition satellite
-     (device store tnd_speaker_stars_v1, read by TTS.starsList). Same renderer as the Voice Settings
-     dropdown; "" when nothing is starred, which is the normal state. The values are ordinary
-     voiceId strings, so the save path below is unchanged. */
-  opts+=(typeof TTS.starOptionsHtml==="function")?TTS.starOptionsHtml(cur):"";
-  /* #95 (v1.462, Fable review entry 7): an unstarred composite renders as its OWN selected option
-     (full composite value, honest label) — selecting only the base model mis-described the voice
-     and made the Test button audition the WRONG one. The Voice Settings twin had the worse version
-     of the same bug (an untouched Save rewrote composite -> base); keep the two renderers aligned. */
-  var starHit=false,st=(typeof TTS.starsList==="function")?TTS.starsList():[];
-  for(i=0;i<st.length;i++){if(st[i].id===cur)starHit=true;}
-  var isComp=!starHit&&cur&&typeof TTS.voiceBaseId==="function"&&TTS.voiceBaseId(cur)!==cur;
-  if(isComp)opts+="<option value='"+escHtml(cur)+"' selected>"+escHtml(typeof TTS.voiceLabel==="function"?TTS.voiceLabel(cur):cur)+"</option>";
-  var curBase=(starHit||isComp)?null:((typeof TTS.voiceBaseId==="function")?TTS.voiceBaseId(cur):cur);
-  for(i=0;i<vs.length;i++){opts+="<option value='"+escHtml(vs[i].id)+"'"+(vs[i].id===curBase?" selected":"")+">"+escHtml(vs[i].label)+"</option>";}
+  opts+=TTS.starOptionsHtml(cur,char);
+  var listed=st.concat(vs).some(function(v){return v.id===cur;});
+  if(cur&&!listed)opts+=csUnlistedVoiceOption(cur);
+  vs.forEach(function(v){opts+="<option value='"+escHtml(v.id)+"'"+(v.id===cur?" selected":"")+">"+escHtml(v.label)+"</option>";});
   return opts;
 }
 function csPrimaryVoiceOptions(char,slot){
-  var cur=char[slot.field]||"",voices=slot.catalog();
-  var opts="<option value=''"+(cur?"":" selected")+">"+(voices.length?"Automatic (gender matched)":"Load actors in Voice Settings")+"</option>";
+  var cur=char[slot.field]||"",catalog=slot.catalog(),voices=TTS.filterCharacterVoices(char,catalog);
+  var empty=catalog.length?"No matching actors":"Load actors in Voice Settings";
+  var opts="<option value=''"+(cur?"":" selected")+">"+(voices.length?"Automatic (gender matched)":empty)+"</option>";
   voices.forEach(function(v){opts+="<option value='"+escHtml(v.id)+"'"+(v.id===cur?" selected":"")+">"+escHtml(v.label+" · "+(v.g==="M"?"Male":v.g==="F"?"Female":"Unspecified"))+"</option>";});
-  if(cur&&!voices.some(function(v){return v.id===cur;}))opts+="<option value='"+escHtml(cur)+"' selected>"+escHtml(cur+" · saved actor")+"</option>";
+  if(cur&&!voices.some(function(v){return v.id===cur;}))opts+=csUnlistedVoiceOption(cur);
   return opts;
 }
 function csVoiceControlHtml(char){
