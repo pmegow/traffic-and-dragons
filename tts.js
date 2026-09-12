@@ -44,35 +44,35 @@ var TTS = (function() {
   // — the #9 ⑦ goldmine; per-speaker selection is a later step). Default is libritts_r (see
   // resolvePiperVoice) — the old lessac-medium default was dropped from the set.
   var PIPER_VOICES = [
-    { id:"en_GB-alba-medium", label:"Alba — UK female", size:"60MB", speakers:1,
+    { id:"en_GB-alba-medium", label:"Alba — UK female", g:"F", size:"60MB", speakers:1,
       blurb:"First use downloads once (60MB), then cached." },
     { id:"en_GB-aru-medium", label:"Aru — UK, 12-speaker", size:"73MB", speakers:12,
       blurb:"Multi-speaker model: 12 distinct voices in one download. First use downloads once (73MB), then cached." },
     { id:"en_GB-cori-high", label:"Cori — UK, high quality", size:"109MB", speakers:1,
       blurb:"First use downloads once (109MB), then cached." },
-    { id:"en_GB-jenny_dioco-medium", label:"Jenny — UK female", size:"60MB", speakers:1,
+    { id:"en_GB-jenny_dioco-medium", label:"Jenny — UK female", g:"F", size:"60MB", speakers:1,
       blurb:"First use downloads once (60MB), then cached." },
-    { id:"en_GB-northern_english_male-medium", label:"Northern English male — UK", size:"60MB", speakers:1,
+    { id:"en_GB-northern_english_male-medium", label:"Northern English male — UK", g:"M", size:"60MB", speakers:1,
       blurb:"First use downloads once (60MB), then cached." },
     { id:"en_GB-semaine-medium", label:"Semaine — UK, 4-speaker", size:"73MB", speakers:4,
       blurb:"Multi-speaker model: 4 distinct voices in one download. First use downloads once (73MB), then cached." },
-    { id:"en_GB-southern_english_female-low", label:"Southern English female — UK", size:"60MB", speakers:1,
+    { id:"en_GB-southern_english_female-low", label:"Southern English female — UK", g:"F", size:"60MB", speakers:1,
       blurb:"First use downloads once (60MB), then cached." },
     { id:"en_GB-vctk-medium", label:"VCTK — UK, 109-speaker", size:"73MB", speakers:109,
       blurb:"Multi-speaker model: 109 distinct voices in one download. First use downloads once (73MB), then cached." },
     { id:"en_US-arctic-medium", label:"Arctic — US, 18-speaker", size:"73MB", speakers:18,
       blurb:"Multi-speaker model: 18 distinct voices in one download. First use downloads once (73MB), then cached." },
-    { id:"en_US-danny-low", label:"Danny — US male", size:"60MB", speakers:1,
+    { id:"en_US-danny-low", label:"Danny — US male", g:"M", size:"60MB", speakers:1,
       blurb:"First use downloads once (60MB), then cached." },
-    { id:"en_US-hfc_female-medium", label:"HFC female — US", size:"60MB", speakers:1,
+    { id:"en_US-hfc_female-medium", label:"HFC female — US", g:"F", size:"60MB", speakers:1,
       blurb:"First use downloads once (60MB), then cached." },
-    { id:"en_US-hfc_male-medium", label:"HFC male — US", size:"60MB", speakers:1,
+    { id:"en_US-hfc_male-medium", label:"HFC male — US", g:"M", size:"60MB", speakers:1,
       blurb:"First use downloads once (60MB), then cached." },
-    { id:"en_US-joe-medium", label:"Joe — US male", size:"60MB", speakers:1,
+    { id:"en_US-joe-medium", label:"Joe — US male", g:"M", size:"60MB", speakers:1,
       blurb:"First use downloads once (60MB), then cached." },
-    { id:"en_US-kathleen-low", label:"Kathleen — US female", size:"60MB", speakers:1,
+    { id:"en_US-kathleen-low", label:"Kathleen — US female", g:"F", size:"60MB", speakers:1,
       blurb:"First use downloads once (60MB), then cached." },
-    { id:"en_US-kristin-medium", label:"Kristin — US female", size:"61MB", speakers:1,
+    { id:"en_US-kristin-medium", label:"Kristin — US female", g:"F", size:"61MB", speakers:1,
       blurb:"First use downloads once (61MB), then cached." },
     { id:"en_US-lessac-high", label:"Lessac — US, high quality", size:"109MB", speakers:1,
       blurb:"First use downloads once (109MB), then cached." },
@@ -80,7 +80,7 @@ var TTS = (function() {
       blurb:"Multi-speaker model: 904 distinct voices in one download. First use downloads once (130MB), then cached." },
     { id:"en_US-libritts_r-medium", label:"LibriTTS R — US, 904-speaker (default)", size:"75MB", speakers:904,
       blurb:"Multi-speaker model: 904 distinct voices in one download. First use downloads once (75MB), then cached." },
-    { id:"en_US-ryan-high", label:"Ryan — US male, high quality", size:"115MB", speakers:1,
+    { id:"en_US-ryan-high", label:"Ryan — US male, high quality", g:"M", size:"115MB", speakers:1,
       blurb:"First use downloads once (115MB), then cached." }
   ];
   var PIPER_VOICE_DEFAULT = "en_US-libritts_r-medium";
@@ -1003,6 +1003,10 @@ var TTS = (function() {
     { provider: "piper", field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
       test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
   ];
+  function filterCharacterVoices(char, voices) {
+    var gender = _autoCastGender(char);
+    return voices.filter(function(v) { return gender === "NB" || ((gender === "M" || gender === "F") && v.g === gender); });
+  }
   function assignCharacterVoices(char, random, provider) {
     if (!char) return false;
     var gender = _autoCastGender(char), changed = false;
@@ -4135,8 +4139,9 @@ var TTS = (function() {
   // Ids and labels come from a user-editable store, so they are escaped for a single-quoted
   // attribute (_escVal alone leaves ' alone, which would break out of value='…').
   function _escOpt(s) { return _escVal(s).replace(/'/g, "&#39;"); }
-  function starOptionsHtml(cur) {
+  function starOptionsHtml(cur, char) {
     var st = starsList(), i, html;
+    if (char) st = filterCharacterVoices(char, st);
     if (!st.length) return "";
     html = "<optgroup label='&#9733; Cast voices'>";
     for (i = 0; i < st.length; i++) {
@@ -4432,6 +4437,7 @@ var TTS = (function() {
     // unassigned speaker's voice comes from)
     autoCastVoiceId:   autoCastVoiceId,
     assignCharacterVoices: assignCharacterVoices,
+    filterCharacterVoices: filterCharacterVoices,
     characterVoiceSlots: function() { return CHARACTER_VOICE_SLOTS.slice(); },
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.

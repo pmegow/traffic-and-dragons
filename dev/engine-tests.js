@@ -22970,6 +22970,33 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   section("Character primary and backup voices (#402)");
+  t("#402 voice lists restrict binary genders and show both only for non-binary characters",function(){
+    if(!TTS.filterCharacterVoices)return "character voice filter missing";
+    var bank=[{id:"f",g:"F"},{id:"m",g:"M"},{id:"u",g:""}],pick=function(c){return TTS.filterCharacterVoices(c,bank).map(function(v){return v.id;}).join(",");};
+    if(pick({gender:"F"})!=="f"||pick({gender:"M"})!=="m")return "binary character offered opposite or unspecified gender";
+    if(pick({gender:"NB"})!=="f,m,u")return "non-binary character lost part of the bank";
+    if(pick({})!==""||pick({gender:"ANY"})!=="")return "unknown gender unlocked both banks";
+    if(pick({pronouns:"she/her"})!=="f"||pick({gender:"M",pronouns:"she/her"})!=="m")return "gender/pronoun precedence drifted";
+    return bank.length===3?true:"catalog was mutated";
+  });
+  t("#402 Piper stars filter metadata while narrator settings retain the full bank",function(){
+    var key="tnd_speaker_stars_v1",old=store.get(key);
+    try{
+      store.set(key,JSON.stringify([{id:"en_US-libritts_r-medium#3",label:"Edited (M)",g:"F"},{id:"en_US-libritts_r-medium#9",label:"Legacy (M)"},{id:"en_US-libritts_r-medium#8",label:"Unspecified"}]));
+      var f=TTS.starOptionsHtml("",{gender:"F"}),m=TTS.starOptionsHtml("",{gender:"M"}),nb=TTS.starOptionsHtml("",{gender:"NB"});
+      if(f.indexOf("en_US-libritts_r-medium#3")<0||f.indexOf("en_US-libritts_r-medium#9")>=0||f.indexOf("en_US-libritts_r-medium#8")>=0)return "female star list ignored structured metadata";
+      if(m.indexOf("en_US-libritts_r-medium#9")<0||m.indexOf("en_US-libritts_r-medium#3")>=0)return "male list ignored legacy metadata";
+      if(nb.indexOf("en_US-libritts_r-medium#3")<0||nb.indexOf("en_US-libritts_r-medium#9")<0||nb.indexOf("en_US-libritts_r-medium#8")<0)return "non-binary list narrowed";
+      return TTS.starOptionsHtml("").indexOf("en_US-libritts_r-medium#8")>=0?true:"global narrator list was filtered";
+    }finally{if(old===null)store.del(key);else store.set(key,old);}
+  });
+  t("#402 Piper single-actor lists distinguish female from male and exclude mixed models",function(){
+    if(!TTS.filterCharacterVoices)return "character voice filter missing";
+    var f=TTS.filterCharacterVoices({gender:"F"},TTS.voices()),m=TTS.filterCharacterVoices({gender:"M"},TTS.voices());
+    if(!f.some(function(v){return v.id==="en_GB-alba-medium";})||!m.some(function(v){return v.id==="en_US-ryan-high";}))return "known single actors missing";
+    return !f.concat(m).some(function(v){return v.speakers>1;})&&f.every(function(v){return v.g==="F";})&&m.every(function(v){return v.g==="M";})?true:"mixed model or opposite gender leaked";
+  });
+
   t("#402 creation draws gender-matched voices once and preserves existing pins",function(){
     if(!TTS.assignCharacterVoices)return "character assignment helper missing";
     var K=TTS.settings.keys.settings,old=store.get(K),stars=store.get("tnd_speaker_stars_v1");
