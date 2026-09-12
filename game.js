@@ -3333,7 +3333,7 @@ async function campaignDenouement(){
   try{
     var text=await callGM(buildDenouementPrompt(),denouementSys(),1500,null,{kind:"other",noHistory:true});/* #325: the living-hero variant when the spine ended the tale */
     fileDenouement(String(text||"").trim());
-    if(typeof addMsg==="function")addMsg("narrator",escHtml(String(text||"").trim()).replace(/\n/g,"<br>"));
+    if(typeof addMsg==="function"){var _df=denouementFrame(text);addMsg("narrator",_df.html,_df.opts);}
     if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(worldState.ended&&worldState.ended.cause);
   }catch(e){console.warn("[denouement] not written yet — will retry at next boot:",e&&e.message);if(typeof showToast==="function")showToast("The denouement could not be written yet — it will be tried again next time");}
   finally{busy=false;}
@@ -3354,6 +3354,15 @@ function endingDecide(choice,closing){
   var _cl=String(closing||"").trim().slice(0,160);if(_cl)worldState.spineComplete.closing=_cl;/* #367: the smallest fourth act — one line the two authors agreed on, held beside the stamp */
   if(typeof saveAll==="function")saveAll();
   return {action:"play"};
+}
+/* Field 2026-09-11 (owner: "No render button, no voice replay button on the denouement"): the closing chapter was
+   added to the log with none of the options a GM turn carries, so addMsg built neither button — while the reload
+   path (ui-boot.js) rebuilds the same transcript entry WITH them. One frame shape for both: the story's own
+   paragraph renderer, the replay text, the turn (the live render path composes from world state, so a Render here
+   paints the ending's place and party like the topbar button) and the clock stamp. Pure; the DOM call is one line. */
+function denouementFrame(text){
+  var t=String(text||"").trim();
+  return {html:"<p>"+escProse(t)+"</p>",opts:{replayText:t,turn:worldState?worldState.turn:null,ck:(typeof clockNow==="function")?clockNow():null}};
 }
 function fileDenouement(text){
   if(!worldState)return;

@@ -1057,6 +1057,15 @@ function runEngineTests(R){
       return true;
     }catch(e){return "threw: "+String(e.stack).split(/\r?\n/).slice(0,5).join(" | ");}finally{console.error=_ce;if(_re)reportError=_re;store.del(WSK);store.del(SLK);store.del(MEM_KEY);}
   });
+  t("#301 the denouement frame carries the replay text, the turn and the clock like any GM frame (field 2026-09-11: no Render, no replay on the closing chapter) — and matches the reload path's paragraph shape",function(){
+    makeWorld();worldState.turn=146;var t="The bell was quiet. Ammut learned *that* home was a thing you could choose.";
+    var f=denouementFrame("  "+t+"  ");
+    if(!f||!f.opts||f.opts.replayText!==t)return "replayText missing or untrimmed — no speaker button: "+JSON.stringify(f&&f.opts);
+    if(f.opts.turn!==146)return "turn missing — no Render button: "+JSON.stringify(f.opts);
+    if(typeof f.opts.ck!=="number")return "clock stamp missing: "+JSON.stringify(f.opts);
+    if(f.html!=="<p>"+escProse(t)+"</p>")return "the frame must use the story's paragraph renderer (the reload path's shape): "+f.html;
+    return f.html.indexOf("<em>that</em>")>=0?true:"escProse shape lost: "+f.html;
+  });
   t("#367 the ending prompt sees the party: buildDenouementPrompt carries a COMPANIONS block (relationship to the hero on both axes, motivation, open want) and a PENDING block (schedules due past the last played minute), both absent — byte-identical prompt — for a partyless, schedule-less save; both denouement voices close on what the tale changed in the hero; play on keeps an optional closing condition beside spineComplete and the skeleton block carries it; fileDenouement files the closing paragraph as a defining moment",function(){
     makeWorld();worldState.turn=300;worldState.campName="X";var c=worldState.character;c.name="Ammut";c.hp=c.maxHp;
     worldState.skeleton={premise:"p",acts:[{title:"A",status:"completed",completedTurn:100,arcs:[]},{title:"B",status:"completed",completedTurn:290,arcs:[]}]};delete worldState.spineComplete;delete worldState.ended;
