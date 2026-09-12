@@ -22969,4 +22969,34 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("Character primary and backup voices (#402)");
+  t("#402 creation draws gender-matched voices once and preserves existing pins",function(){
+    if(!TTS.assignCharacterVoices)return "character assignment helper missing";
+    var K=TTS.settings.keys.settings,old=store.get(K),stars=store.get("tnd_speaker_stars_v1");
+    try{
+      store.set(K,JSON.stringify({models:{speechify:{voices:[{id:"f1",label:"One",g:"F"},{id:"f2",label:"Two",g:"F"},{id:"m1",label:"Three",g:"M"}],narrator:"m1"}}}));
+      store.set("tnd_speaker_stars_v1",JSON.stringify([{id:"en_GB-alba-medium",label:"F",g:"F"},{id:"en_US-ryan-high",label:"M",g:"M"}]));
+      var c={name:"Mira",gender:"F"};TTS.assignCharacterVoices(c,function(){return 0.99;});
+      if(c.speechifyVoiceId!=="f2"||c.voiceId!=="en_GB-alba-medium")return "wrong gender or random pick: "+JSON.stringify(c);
+      var before=JSON.stringify(c);TTS.assignCharacterVoices(c,function(){return 0;});
+      if(JSON.stringify(c)!==before)return "existing actor was re-rolled";
+      var empty={name:"Lysa",gender:"F"};store.set(K,JSON.stringify({models:{speechify:{voices:[]}}}));TTS.assignCharacterVoices(empty,function(){return 0;});
+      return !empty.speechifyVoiceId&&empty.voiceId==="en_GB-alba-medium"?true:"missing cloud catalog blocked backup or invented actor";
+    }finally{if(old===null)store.del(K);else store.set(K,old);if(stars===null)store.del("tnd_speaker_stars_v1");else store.set("tnd_speaker_stars_v1",stars);}
+  });
+  t("#402 replay keeps distinct primary actors even when characters share a backup",function(){
+    makeWorld();worldState.npcs=[{name:"Lysa",pronouns:"she/her",charSheet:{name:"Lysa",gender:"F",voiceId:"en_GB-alba-medium",speechifyVoiceId:"alicia"}},{name:"Bera",pronouns:"she/her",voiceId:"en_GB-alba-medium",speechifyVoiceId:"belinda"}];
+    var text="First line. Second line.",sp={n:2,s:{0:"Lysa",1:"Bera"}},m=speakerVoiceMap(sp,text);
+    if(!m||!m.providers||!m.providers.speechify)return "primary voices missing from replay map";
+    if(m.providers.speechify[0]!=="alicia"||m.providers.speechify[1]!=="belinda"||m[0]!==m[1])return "primary and backup assignments conflated";
+    worldState.npcs[0].charSheet.speechifyVoiceId="cara";return speakerVoiceMap(sp,text).providers.speechify[0]==="cara"?true:"replay ignored changed sheet actor";
+  });
+  t("#402 cloud failure preserves only unread speakers and full Piper speaker ids",function(){
+    if(!TTS._gemini.fallbackItem)return "fallback builder missing";
+    var u=TTS._textPrep.splitSentences("Opening. Lysa speaks. Bera replies.",null,true),g=[{last:u[0]},{last:u[2]}];
+    var item=TTS._gemini.fallbackItem(u,g,1,"en_US-libritts_r-medium#9",{1:"en_US-libritts_r-medium#3",2:"en_US-libritts_r-medium#8"});
+    if(item.text!=="Lysa speaks. Bera replies."||item.voiceId!=="en_US-libritts_r-medium#9")return "read text or narrator speaker corrupted";
+    return item.voices[0]==="en_US-libritts_r-medium#3"&&item.voices[1]==="en_US-libritts_r-medium#8"?true:"individual backup voices lost";
+  });
+
 }

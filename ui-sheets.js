@@ -59,10 +59,8 @@ function rejectEpithet(owner,idx,ev){
 }
 // invOwner (#50 QOL): ""=live player sheet, "<npc name>"=live companion sheet — inventory rows
 // get a drop ×. undefined = read-only viewer (library/import preview): no drop buttons.
-// #9/#174: per-character voice control — writes char.voiceId ("" = automatic cast). Sheetless
-// roster NPCs store the same field on their world record until a generated sheet inherits it.
-function csVoiceControlHtml(char){
-  if(typeof TTS==="undefined"||typeof TTS.voices!=="function")return "";
+// Character voice pins travel with the sheet. Roster NPCs carry them until a sheet inherits them.
+function csBackupVoiceOptions(char){
   var vs=TTS.voices(),cur=(char&&char.voiceId)||"",i;
   var opts="<option value=''"+(cur?"":" selected")+">Automatic on first speech (default)</option>";
   /* #95 (S5): the "★ Cast voices" optgroup — the starred speaker ids from the audition satellite
@@ -80,31 +78,44 @@ function csVoiceControlHtml(char){
   if(isComp)opts+="<option value='"+escHtml(cur)+"' selected>"+escHtml(typeof TTS.voiceLabel==="function"?TTS.voiceLabel(cur):cur)+"</option>";
   var curBase=(starHit||isComp)?null:((typeof TTS.voiceBaseId==="function")?TTS.voiceBaseId(cur):cur);
   for(i=0;i<vs.length;i++){opts+="<option value='"+escHtml(vs[i].id)+"'"+(vs[i].id===curBase?" selected":"")+">"+escHtml(vs[i].label)+"</option>";}
-  return "<div class='cs-voice-row' style='display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--t1);'>"
-    +"<span title='This character speaks in this voice; assigned voices are saved with the campaign'>&#128266; Voice</span>"
-    +"<select id='cs-voice-sel' style='flex:1;min-width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:5px 8px;cursor:pointer;'>"+opts+"</select>"
-    +"<button id='cs-voice-test' type='button' style='flex-shrink:0;padding:5px 10px;font-family:var(--font);font-size:12px;background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
-    +"</div>";
+  return opts;
+}
+function csPrimaryVoiceOptions(char,slot){
+  var cur=char[slot.field]||"",voices=slot.catalog();
+  var opts="<option value=''"+(cur?"":" selected")+">"+(voices.length?"Automatic (gender matched)":"Load actors in Voice Settings")+"</option>";
+  voices.forEach(function(v){opts+="<option value='"+escHtml(v.id)+"'"+(v.id===cur?" selected":"")+">"+escHtml(v.label+" · "+(v.g==="M"?"Male":v.g==="F"?"Female":"Unspecified"))+"</option>";});
+  if(cur&&!voices.some(function(v){return v.id===cur;}))opts+="<option value='"+escHtml(cur)+"' selected>"+escHtml(cur+" · saved actor")+"</option>";
+  return opts;
+}
+function csVoiceControlHtml(char){
+  if(!char||typeof TTS==="undefined"||!TTS.characterVoiceSlots)return "";
+  var options={speechify:csPrimaryVoiceOptions,piper:csBackupVoiceOptions};
+  return TTS.characterVoiceSlots().map(function(slot){
+    return "<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'>"
+      +"<label for='"+slot.selectId+"' style='display:block;margin-bottom:5px;'>"+slot.label+" · "+slot.service+"</label>"
+      +"<div style='display:flex;align-items:center;gap:8px;'><select id='"+slot.selectId+"' style='flex:1;min-width:0;width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:8px;cursor:pointer;'>"+options[slot.provider](char,slot)+"</select>"
+      +"<button id='"+slot.testId+"' type='button' style='flex-shrink:0;min-height:36px;padding:5px 10px;font-family:var(--font);font-size:12px;background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;'>&#9654; Test</button></div></div>";
+  }).join("")+"<div style='font-size:11px;color:var(--t2);margin-top:6px;'>Speechify tests use your API key.</div>";
 }
 function csWireVoice(char){
-  var sel=document.getElementById("cs-voice-sel");if(!sel||!char)return;
-  sel.addEventListener("change",function(){
-    var prev=(char.voiceId)||"";/* capture BEFORE overwrite so the release check sees the change */
-    var v=sel.value;
-    if(v){char.voiceId=v;}else{delete char.voiceId;}
-    if(typeof saveAll==="function")saveAll();
-    /* #9 (user 2026-07-21): reassigning this character's voice frees the old one's download slot —
-       but TTS.releaseVoiceIfUnused only deletes it when NO other character and NOT the narrator still
-       use it (char.voiceId is already updated above, so this char no longer counts). */
-    if(prev&&prev!==v&&typeof TTS!=="undefined"&&typeof TTS.releaseVoiceIfUnused==="function")TTS.releaseVoiceIfUnused(prev);
-    if(typeof showToast==="function")showToast("&#128266; Voice: "+(v&&typeof TTS!=="undefined"?TTS.voiceLabel(v):"automatic on next speech"));
-  });
-  // #9: Test button — auditions the CURRENTLY-selected voice ("" → narrator). First test of an
-  // undownloaded voice triggers its one-time Piper download, same as the Voice Settings Test.
-  var tb=document.getElementById("cs-voice-test");
-  if(tb)tb.addEventListener("click",function(){
-    if(typeof TTS!=="undefined"&&typeof TTS.testVoice==="function")TTS.testVoice(sel.value);
-    else if(typeof showToast==="function")showToast("Voice engine not ready");
+  if(!char||typeof TTS==="undefined"||!TTS.characterVoiceSlots)return;
+  TTS.characterVoiceSlots().forEach(function(slot){
+    var sel=document.getElementById(slot.selectId),tb=document.getElementById(slot.testId),ticker=null;
+    if(!sel)return;
+    sel.addEventListener("change",function(){
+      var prev=char[slot.field]||"",v=sel.value;
+      if(v)char[slot.field]=v;else delete char[slot.field];
+      if(typeof saveAll==="function")saveAll();
+      if(prev&&prev!==v&&slot.release)slot.release(prev);
+      if(typeof showToast==="function")showToast(slot.label+": "+(v?sel.options[sel.selectedIndex].textContent:"automatic"));
+    });
+    if(tb)tb.addEventListener("click",function(){
+      try{slot.test(char,sel.value,function(phase){
+        if(ticker)ticker.stop();ticker=null;
+        if(!tb.isConnected)return;
+        if(phase==="loading")ticker=elapsedTicker(tb,"Preparing",{text:true});else tb.textContent="▶ Test";
+      });}catch(err){if(ticker)ticker.stop();ticker=null;tb.textContent="▶ Test";console.warn("[character voice] "+err.message);showToast(slot.service+" test failed: "+err.message,8000);}
+    });
   });
 }
 function csSheetSections(c,invOwner,portable){
@@ -393,17 +404,20 @@ async function generateNpcSheet(name,doneCb){
     // Carry the existing sheet's level/xp/hp/maxHp over the freshly-generated (default) values.
     var _prior=wsNpc.charSheet;
     if(_prior){if(typeof _prior.level==="number")sheet.level=_prior.level;if(typeof _prior.xp==="number")sheet.xp=_prior.xp;if(typeof _prior.hp==="number")sheet.hp=_prior.hp;if(typeof _prior.maxHp==="number")sheet.maxHp=_prior.maxHp;
-      if(_prior.voiceId)sheet.voiceId=_prior.voiceId;/* #9: the assigned voice is a SETTING, not LLM content — carry it across a regenerate like portrait/level */}
-    // #96b (user call 2026-07-26): pin a voice AT CREATION so the character sounds the same from
-    // their very first line. The auto-cast hash is stable, but a bench edit would re-deal an
-    // unpinned voice mid-campaign. A regenerate carried the prior pin just above; only a truly
-    // fresh sheet draws a new one. The player can always re-pin via the sheet's voice dropdown.
-    if(!sheet.voiceId&&wsNpc.voiceId)sheet.voiceId=wsNpc.voiceId;
-    if(!sheet.voiceId&&typeof TTS!=="undefined"&&TTS.autoCastVoiceId){var _vp=TTS.autoCastVoiceId(sheet);if(_vp)sheet.voiceId=_vp;}
+    }
+    // Voice settings belong to the player, never the generated model response.
+    if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots){
+      TTS.characterVoiceSlots().forEach(function(slot){
+        delete sheet[slot.field];
+        var pinned=(_prior&&_prior[slot.field])||wsNpc[slot.field];
+        if(pinned)sheet[slot.field]=pinned;
+      });
+      TTS.assignCharacterVoices(sheet);
+    }
     // NPC stance and a directed character bond are different authorities. Model-authored rows
     // migrate through the adapter; wsNpc.rel never seeds or overwrites a bond.
     relationshipMigrateSheet(sheet,wsNpc.name);
-    wsNpc.charSheet=sheet;if(wsNpc.voiceId)delete wsNpc.voiceId;
+    wsNpc.charSheet=sheet;if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)TTS.characterVoiceSlots().forEach(function(slot){delete wsNpc[slot.field];});
     saveAll();removeLoader();showToast("Character sheet ready!");
     if(doneCb)doneCb();
   }catch(err){removeLoader();showToast("Sheet generation failed: "+err.message);}

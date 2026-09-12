@@ -61,7 +61,7 @@ var VoiceSettings = (function() {
     ctx.castQuery = "";
     if (!ctx.model().key) { ctx.panel.innerHTML = "<p class='tts-help'>Piper and device casting use the existing character-sheet voices. Select a cloud model above to audition and assign its actors to cast slots.</p>"; return; }
     var c = ctx.config(), slots = ctx.S.castSlots();
-    var html = "<p class='tts-help'>Choose an actor for each existing cast slot. Automatic casting prefers matching gender. Characters sharing a cast voice share its actor. Assignments are saved separately for each model on this device.</p>";
+    var html = "<p class='tts-help'>Choose an actor for each existing cast slot. Automatic casting prefers matching gender. Characters sharing a cast voice share its actor. Assignments are saved separately for each model on this device. A primary actor assigned on a character sheet takes precedence over automatic casting.</p>";
     if (!ctx.catalog().length) { ctx.panel.innerHTML = html + "<p>Load the actor catalog in Voice & performance first.</p>"; return; }
     if (ctx.catalog().length > 100) html += field("tts-cast-search", "Find cast actors (up to 100 matches shown)", "<input id='tts-cast-search' type='search' placeholder='Name, gender or description'/>");
     if (!slots.length) html += "<p>No cast slots yet. Assign a character-sheet voice or star voices in the voice picker.</p>";

@@ -585,7 +585,7 @@ var TTS = (function() {
     voiceFor = voiceFor || _geminiVoiceFor;
     var groups = [], cur = null;
     for (var i = 0; i < units.length; i++) {
-      var v = forceVoice || voiceFor((voices && voices[i]) || "");
+      var v = forceVoice || voiceFor((voices && voices[i]) || "", i);
       var t = units[i].text || "";
       // #41b fast start: while building the FIRST group, the accumulation cap is small — the cold
       // open is gated on group 1's whole non-streaming synthesis, so a big opener means many
@@ -968,7 +968,7 @@ var TTS = (function() {
   function _voiceReader(id, c, key, audition) {
     var base = CLOUD_READERS[id], r = Object.assign({}, base), bank = _voiceCatalog(id, c), resolved = {};
     r.key = function() { return key; }; r.direction = function() { return c.direction; };
-    r.group = function(units, voiceId, voices, force) { return _geminiGroupUnits(units, voiceId, voices, force, function(v) { var key = "voice:" + v; if (!Object.prototype.hasOwnProperty.call(resolved, key)) resolved[key] = _voiceActor(id, v, c, bank); return resolved[key]; }); };
+    r.group = function(units, voiceId, voices, force) { var pins = voices && voices.providers && voices.providers[id]; return _geminiGroupUnits(units, voiceId, voices, force, function(v, ix) { if (pins && typeof pins[ix] === "string" && pins[ix]) return pins[ix]; var key = "voice:" + v; if (!Object.prototype.hasOwnProperty.call(resolved, key)) resolved[key] = _voiceActor(id, v, c, bank); return resolved[key]; }); };
     r.fetch = function(g, first, k, direction, regCtrl) { return base.fetch(g, first, k, direction, regCtrl, c); };
     if (audition) {
       r.audition = true;
@@ -995,6 +995,28 @@ var TTS = (function() {
         _queue.push({ text: text, piper: true, voiceId: c.narrator, audition: { rate: c.rate } }); _drain();
       });
     }
+  }
+  var CHARACTER_VOICE_SLOTS = [
+    { provider: "speechify", field: "speechifyVoiceId", label: "Primary voice", service: "Speechify", selectId: "cs-primary-voice-sel", testId: "cs-primary-voice-test",
+      catalog: function() { return _voiceCatalog("speechify", _voiceConfig("speechify")); },
+      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "speechify"; actor = actor || _voiceActor("speechify", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.speechify); d.models.speechify.narrator = actor; _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
+    { provider: "piper", field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
+      test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
+  ];
+  function assignCharacterVoices(char, random, provider) {
+    if (!char) return false;
+    var gender = _autoCastGender(char), changed = false;
+    random = random || Math.random;
+    CHARACTER_VOICE_SLOTS.forEach(function(slot) {
+      if (provider && slot.provider !== provider) return;
+      if (typeof char[slot.field] === "string" && char[slot.field]) return;
+      var pool = slot.catalog().filter(function(v) { return gender !== "M" && gender !== "F" || v.g === gender; });
+      if (!pool.length && slot.defaultCatalog) pool = slot.defaultCatalog().filter(function(v) { return gender !== "M" && gender !== "F" || v.g === gender; });
+      if (!pool.length) return;
+      var ix = Math.min(pool.length - 1, Math.max(0, Math.floor(random() * pool.length)));
+      char[slot.field] = pool[ix].id; changed = true;
+    });
+    return changed;
   }
   function _voiceCastSlots() {
     var slots = starsList().map(function(v) { return { id: v.id, label: v.label, g: v.g, assigned: [] }; });
@@ -2964,6 +2986,14 @@ var TTS = (function() {
     }
     return b64 ? { b64: b64, rate: rate } : { fail: failReason || "no audio" };
   }
+  function _cloudFallbackItem(units, groups, failed, voiceId, voices) {
+    var from = failed ? units.indexOf(groups[failed - 1].last) + 1 : 0, mapped = {}, hasVoices = false;
+    for (var i = from; i < units.length; i++) {
+      if (voices && voices[i]) { mapped[i - from] = voices[i]; hasVoices = true; }
+    }
+    return { text: units.slice(from).map(function(u) { return u.text || ""; }).join(" "), piper: true,
+      voiceId: voiceId, voices: hasVoices ? mapped : null };
+  }
   async function _speakGemini(text, voiceId, voices, forceVoice, dirOverride, cloud) {
     cloud = cloud || CLOUD_READERS.gemini;
     var myEpoch = ++_piperEpoch;
@@ -3051,7 +3081,7 @@ var TTS = (function() {
         // bounded prepaid tokens, the price of prefetch.
         var rem = "";
         for (var k = i; k < groups.length; k++) rem += (rem ? " " : "") + groups[k].text;
-        if (rem && !cloud.audition) _queue.unshift({ text: rem, piper: true, voiceId: voiceBaseId(voiceId) });
+        if (rem && !cloud.audition) _queue.unshift(_cloudFallbackItem(units, groups, i, voiceId, voices));
         handedOff = true;
         cloud.degrade("group " + (i + 1) + "/" + groups.length + ": " + ((got && got.fail) || "no audio"), got && got.degradeMs);
         abortAll();
@@ -4401,6 +4431,8 @@ var TTS = (function() {
     // (the #96 [SAY:] map resolves through characterVoiceId at speak time, so this is where an
     // unassigned speaker's voice comes from)
     autoCastVoiceId:   autoCastVoiceId,
+    assignCharacterVoices: assignCharacterVoices,
+    characterVoiceSlots: function() { return CHARACTER_VOICE_SLOTS.slice(); },
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
     // #41: Gemini tier internals, exported ONLY for the headless engine tests (same contract as
@@ -4408,7 +4440,7 @@ var TTS = (function() {
     _gemini: { voices: GEMINI_VOICES, voiceFor: _geminiVoiceFor, group: _geminiGroupUnits,
                enabled: geminiTtsEnabled, ok: _geminiTtsOk, direction: geminiDirection,
                narrator: geminiNarratorVoice, defaultDirection: GEMINI_DEFAULT_DIRECTION,
-               conveyor: _geminiConveyor, timeoutMs: _geminiTimeoutMs,           // #41b
+               conveyor: _geminiConveyor, fallbackItem: _cloudFallbackItem, timeoutMs: _geminiTimeoutMs,           // #41b
                fastStartCh: GEMINI_TTS_FAST_START_CH, prefetch: GEMINI_TTS_PREFETCH,
                retryDelayMs: _geminiRetryDelayMs,                                 // #41c
                backoff429: function() { return GEMINI_TTS_429_BACKOFF_MS.slice(); },
@@ -4453,6 +4485,7 @@ var TTS = (function() {
     // harness can provide — so the property is asserted against the function source instead.
     _speakerTest: {
       assignedTo:      function(id) { return _voiceAssignedTo(id); },
+      queued: function() { return _queue.map(function(item) { return { text: item.text, voiceId: item.voiceId, piper: !!item.piper, voices: item.voices ? JSON.parse(JSON.stringify(item.voices)) : null }; }); },
       localVoice:      function(id) { return _localVoiceId(id); },
       piperOptions:    function() { return _buildPiperVoiceOptions(); },
       piperOptionsSrc: function() { return String(_buildPiperVoiceOptions); },

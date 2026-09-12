@@ -79,7 +79,7 @@ var chain = tAsync("Gemini deadline covers a stalled json() body", function () {
     var geminiSrc = TTS._speakerTest.speakGeminiSrc();
     if (serverSrc.indexOf("_queue.unshift({ text: _remText, piper: true") < 0) return "server timeout policy does not preserve the unread remainder at the front of the queue";
     if (serverSrc.indexOf("if (handedOff) _drain()") < 0) return "server timeout handoff can leave playing state wedged instead of resuming the queue";
-    if (geminiSrc.indexOf("_queue.unshift({ text: rem, piper: true") < 0) return "Gemini timeout policy does not preserve the unread remainder at the front of the queue";
+    if (geminiSrc.indexOf("_queue.unshift(_cloudFallbackItem(units, groups, i, voiceId, voices))") < 0) return "Gemini timeout policy does not preserve the unread remainder at the front of the queue";
     if (geminiSrc.indexOf("if (handedOff) { _auditionPhase(\"idle\"); _drain(); }") < 0) return "Gemini timeout handoff does not release busy state and resume the queue";
     return "";
   });

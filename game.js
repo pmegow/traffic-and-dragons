@@ -1,6 +1,7 @@
 function startGame(char,toneName,toneVoice,authorId){
   // Ensure all v10 character fields are initialised
   if(!char.gender)char.gender="M";
+  if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(char);
   if(!char.skills)char.skills=initSkills();
   if(!char.conditions)char.conditions=[];
   if(!char.relationships)char.relationships=[];
@@ -23,6 +24,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
     var comp=pendingCompanions[ci];
+    if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(comp);
     worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,pronouns:pronounsForGender(comp.gender),portrait:null,charSheet:comp}); // portrait rides on charSheet only (#3 dedupe)
     memory.npcs[comp.name]={attitude:"ally",knowledge:[],events:[],partyMember:true,pronouns:pronounsForGender(comp.gender)};
     npcLinkUpsert(char.name,comp.name,"companions");
@@ -815,6 +817,7 @@ function speakerVoiceMap(sp,text){
     if(!vid)return;
     if(!out)out={};
     out[parseInt(k,10)]=vid;
+    if(ch.speechifyVoiceId){if(!out.providers)out.providers={speechify:{}};out.providers.speechify[parseInt(k,10)]=ch.speechifyVoiceId;}
   });
   return out;
 }
@@ -831,7 +834,7 @@ function _speakerVoiceSubject(name){
     p=String(owner.pronouns||ns[i].pronouns||((typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[nm])?memory.npcs[nm].pronouns:"")||"").toLowerCase().replace(/\s+/g,"");
     g=owner.gender;
     if(g!=="M"&&g!=="F"&&g!=="NB")g=/^she\//.test(p)?"F":(/^he\//.test(p)?"M":(/^they\//.test(p)?"NB":"ANY"));
-    return {char:{name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||""},owner:owner};
+    return {char:{name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||"",speechifyVoiceId:owner.speechifyVoiceId||""},owner:owner};
   }
   return null;
 }
@@ -850,6 +853,7 @@ function pinAutoCastVoices(sp){
     sub=_speakerVoiceSubject(nm);
     ch=sub&&sub.char;
     if(!sub||!ch||sub.owner.voiceId)continue;
+    if(!sub.owner.speechifyVoiceId&&TTS.assignCharacterVoices){var _vpChar={name:ch.name,gender:ch.gender,pronouns:ch.pronouns,voiceId:sub.owner.voiceId||""};TTS.assignCharacterVoices(_vpChar,null,"speechify");if(_vpChar.speechifyVoiceId){sub.owner.speechifyVoiceId=_vpChar.speechifyVoiceId;pinned=true;}}
     v=TTS.autoCastVoiceId(ch);
     if(!v)continue;
     sub.owner.voiceId=v;
