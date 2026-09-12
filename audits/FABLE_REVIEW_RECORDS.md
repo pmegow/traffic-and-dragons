@@ -1716,7 +1716,8 @@ sites), the actor catalog in localStorage (25.8 KB per 200 actors, 526 KB at the
 battery, invalid Retry-After branch, the five qa-*.js scripts in no runner/CI, screenshots showing a
 listbox shape the page never renders. **Owner residues:** Speechify audio owner-validated as excellent;
 Inworld audio and native iOS pickers untested by anyone; Korean support is owner research; the Voice
-Settings row carries no dev-only tier (non-admin players see BYOK key fields) — owner's call.
+Settings row carried no dev-only tier — owner ruled 2026-09-11: dev-only (v1.908); Inworld audio and iOS pickers
+set aside for now by owner choice.
 **Random-at-creation (Brief A finding 6)** accepted per owner ruling #5; pins are filled once, so stable
 afterwards.
 

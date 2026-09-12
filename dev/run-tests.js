@@ -1238,7 +1238,7 @@ try {
   var _mtFail = function (msg) { console.error("MENU TIER CONTRACT: " + msg); process.exit(1); };
   var _mtBoot = _mtFs.readFileSync(_mtPath.join(__dirname, "..", "ui-boot.js"), "utf8");
   var _mtSpec = _mtBoot.slice(_mtBoot.indexOf("function buildFileMenus"), _mtBoot.indexOf("function wireButtons"));
-  ["llm", "usage", "set-folder", "clear-folder", "server-connect", "server-disconnect", "clearcache\""].forEach(function (id) {
+  ["llm", "usage", "set-folder", "clear-folder", "server-connect", "server-disconnect", "tts-settings"/* owner ruling 2026-09-11: BYOK key fields */, "clearcache\""].forEach(function (id) {
     var re = new RegExp("btn\\(p\\+\"" + id.replace(/"/g, "") + "\"[^\n]*fm-dev-only");
     if (!re.test(_mtSpec)) _mtFail("operator row '" + id.replace(/"/g, "") + "' is not marked fm-dev-only — a beta tester would see it.");
   });
@@ -1248,7 +1248,7 @@ try {
   if (!/serverAccount = data;[^\n]*\n[^\n]*applyMenuTier\(\)/.test(_mtSa)) _mtFail("fetchAccount no longer re-applies the tier when the account lands — menus built before the answer keep the wrong tier.");
   var _mtShell = _mtFs.readFileSync(_mtPath.join(__dirname, "..", "ui-shell.js"), "utf8");
   if (_mtShell.indexOf("menuTierHidesDev(acct)") < 0) _mtFail("applyMenuTier no longer decides through the pure menuTierHidesDev helper.");
-  console.log("[#289] menu tier contract OK — 7 operator rows flagged, toggle re-applied on account load");
+  console.log("[#289] menu tier contract OK — 8 operator rows flagged, toggle re-applied on account load");
 } catch (e) { console.error("MENU TIER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────
