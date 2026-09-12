@@ -84,6 +84,11 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### Voice pipeline and character casting — v1.901–v1.906 (2026-09-11)
+
+Owner requested a Fable handoff. [Handoff](DOC/HANDOFF_Fable_2026-09-11.md) summarizes shipped PRs #11–#16, owner rulings, current data/queue/UI contracts, verification receipts and remaining real-device/Korean/Piper-path checks. Latest production v1.906, feature 369a187, merge bcddd00. Probe transient speaker-map/fallback alignment, edited gender metadata and preserved out-of-list pins first; real audio and native iOS were not agent-tested. TODO #401/#402 remain the task records.
+
+
 (queue drained 2026-09-03 — entries 14, 18–33 adjudicated; records in audits/FABLE_REVIEW_RECORDS.md)
 
 ## Reviewed index
