@@ -2075,6 +2075,7 @@ var geval=eval; // indirect eval → global scope (same loader convention as loa
    test gets fs through this handle instead. test.html never defines it — browser runs of such
    tests must guard on typeof and skip, keeping node CI the gate for fixture pins. */
 global.__fsForTests=fs;global.__rootForTests=path.join(__dirname,"..");
+geval(fs.readFileSync(path.join(__dirname,"village-measure.js"),"utf8"));/* #6 D4: the village acceptance measure — engine-visible so the suite can run it on a corpus */
 geval(fs.readFileSync(path.join(__dirname,"loc-repair-core.js"),"utf8"));/* #156B: the location repair census/apply core — engine-visible for the identity battery (drives the SHIPPING executors) */
 geval(fs.readFileSync(path.join(__dirname,"engine-tests.js"),"utf8"));
 

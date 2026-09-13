@@ -23524,4 +23524,173 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#6 the village — phase C/D/G/H: arrival, residents, the Hall, rewards (list I, 2026-09-13)");
+  function villageCD(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation=null;worldState.character.name="Silas";worldState.character.gold=25;worldState.character.coreMemories=[{kind:"ending",text:"Silas broke the runelord's crown on the last stair.",turn:900,who:"Silas"}];
+    if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+    memory.map.nodes["The Village"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["The Village|the tavern"]={firstVisit:1,visits:2,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["The Village|the smithy"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    importVillageResidents([{name:"Frizwick",gender:"F",cls:"Rogue",inventory:["Bone-handled knife"],coreMemories:[{kind:"ending",text:"Frizwick sang the whole way down the Storval stair.",turn:2000}],fate:{campaign:"Rise of the Runelords",turn:2437,cause:"the tale is told",line:"Frizwick kept the inn and never sang of the stair again.",unresolved:["The runewell under Sandpoint"]}},{name:"Daeris",gender:"F",cls:"Cleric",inventory:["Silver holy symbol"],coreMemories:[{kind:"death",text:"Daeris held the ward while the tower fell.",turn:1500}]}]);
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";memory.npcs["Daeris"].lastSeenAt="The Village|the tavern";
+    worldState.turn=12;worldState.clock={min:12*MIN_PER_DAY+10*60,schedule:[]};/* day 13, 10:00 */
+  }
+  t("#6C1 the return is observed ONCE per absence: villageReturnObserve arms returnPing after PREVIOUSLY_AFTER_MS of real time with the time away, ONE fact from the hero's record and ONE engine-chosen change; the same absence never arms twice; a short gap arms nothing; the adventure never arms",function(){
+    villageCD();var now=1789300000000;worldState.lastTurnAt=now-3*60*60*1000;delete worldState.returnPing;delete worldState.returnSeenAt;
+    applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");worldState.world.sublocation="the tavern";applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");worldState.world.sublocation=null;
+    memory.map.nodes["The Village|the tavern"].wares[0].min-=(WARES_RESTOCK_DAYS+1)*MIN_PER_DAY;/* an expired shelf = a visible change */
+    var r=villageReturnObserve(now);if(!r||!worldState.returnPing)return "the ping must arm after a long absence: "+JSON.stringify(r);
+    var p=worldState.returnPing;if(typeof p.awayMs!=="number"||p.awayMs<2*60*60*1000)return "the ping carries the time away: "+JSON.stringify(p);
+    if(!p.fact||!/runelord's crown/.test(p.fact))return "the fact must come from the hero's own record: "+JSON.stringify(p);
+    if(!p.change||!/Smoked fish/.test(p.change))return "the change must be engine-chosen from data (the expired shelf): "+JSON.stringify(p);
+    delete worldState.returnPing;var r2=villageReturnObserve(now+1000);if(r2||worldState.returnPing)return "the same absence must not arm twice";
+    worldState.lastTurnAt=now-10*60*1000;delete worldState.returnSeenAt;var r3=villageReturnObserve(now);if(r3||worldState.returnPing)return "a ten-minute gap is not a return";
+    makeWorld();delete worldState.kind;worldState.lastTurnAt=now-3*60*60*1000;if(villageReturnObserve(now)||worldState.returnPing)return "the adventure never arms the return";
+    return true;
+  });
+  t("#6C2 the greeting reaches the GM: buildReturnNote names the time away, the fact and the change, asks for a resident's greeting and a filed change, fires once; a registry row that fires in the village",function(){
+    villageCD();worldState.returnPing={awayMs:3*24*60*60*1000,fact:"Silas broke the runelord's crown on the last stair.",change:"Frizwick is at the smithy this hour",turn:12};
+    var n=buildEngineNotes();if(!/RETURN/.test(n)||!/3 days/.test(n))return "the note must name the time away in words: "+n.slice(0,300);
+    if(!/runelord's crown/.test(n)||!/at the smithy/.test(n))return "the note must carry the fact and the change";
+    if(!/greet/i.test(n)||!/LOCATION_STATE|tag/.test(n))return "the note must ask for a greeting and a filed change";
+    if(worldState.returnPing||/RETURN/.test(buildEngineNotes()))return "one-shot: the latch burns";
+    if(!NOTE_SHAPES.buildReturnNote||NOTE_SHAPES.buildReturnNote.village!=="fires")return "registry row missing or silent";
+    return true;
+  });
+  t("#6C3 Car Mode speaks STATE in the village: carRecapText names the hero, the place, the day and hour, the gold, the house's stash and who is about — no chapter summary; the adventure recap is byte-identical",function(){
+    villageCD();memory.chapters=[{turn:3,summary:"Tobin returned to the Village on an ash-scented morning."}];
+    memory.map.nodes[villageHouseKey("Silas")]={firstVisit:null,visits:0,description:null,parent:"The Village",npcs:[],items:[{name:"Old boots",placed:2,taken:false,qty:2,by:"Silas"}],size:"small",travelMins:null,owner:"Silas"};
+    var v=carRecapText();if(!/Silas/.test(v)||!/Village/.test(v)||!/[Dd]ay 13/.test(v)||!/25 gold/.test(v))return "the village recap must speak the state: "+v;
+    if(!/Old boots/.test(v)||!/Frizwick|Daeris/.test(v))return "the recap must name the house's stash and who is about: "+v;
+    if(/Previously:|ash-scented/.test(v))return "the village recap is state, not a chapter: "+v;
+    makeWorld();delete worldState.kind;memory.chapters=[{turn:3,summary:"The road climbed."}];worldState.world.location="Sandpoint";
+    if(carRecapText()!=="Previously: The road climbed. You are at Sandpoint.")return "the adventure recap changed: "+carRecapText();
+    return true;
+  });
+  t("#6D1 the village rung sits ABOVE buy: with coin and a stocked shop in the scene the fourth button still offers a resident call or a commons look-in first, rotating by turn, never the resident already in the scene; the adventure ladder is unchanged",function(){
+    villageCD();var c=worldState.character;c.hp=c.maxHp;c.inventory=[];worldState.questLog=[];worldState.world.sublocation="the tavern";applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
+    var a=engineFourthAction();if(!a||a.kind!=="village")return "the village rung must outrank buy: "+JSON.stringify(a);
+    if(/Frizwick|Daeris/.test(a.text)&&!/Call on/.test(a.text))return "a resident call reads 'Call on …': "+a.text;
+    if(/Call on (Frizwick|Daeris)/.test(a.text))return "never call on a resident already in the scene: "+a.text;
+    worldState.turn=13;var b=engineFourthAction();if(!b||b.kind!=="buy")return "when a purchase is possible right here the two rungs alternate — the odd turn is commerce: "+JSON.stringify(b);
+    worldState.turn=14;var b2=engineFourthAction();if(!b2||b2.kind!=="village"||b2.text===a.text)return "the village rung rotates its offer by turn: "+JSON.stringify([a,b2]);
+    memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");worldState.turn=14;var seen={},i;for(i=0;i<6;i++){worldState.turn=14+i;var x=engineFourthAction();if(x&&x.kind==="village")seen[x.text]=1;}
+    if(!Object.keys(seen).some(function(k){return /Call on Daeris/.test(k);}))return "an absent resident must come up for a call within a few turns: "+JSON.stringify(seen);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";var ac=worldState.character;ac.hp=ac.maxHp;ac.inventory=[];ac.gold=10;worldState.questLog=[];worldState.turn=3;
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};memory.map.nodes["Sandpoint|the market"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null};
+    worldState.npcs.push({name:"Ameiko",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Ameiko"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint|the market"};applyMuts("[WARES:Ale|1 gp|Ameiko]");
+    var adv=engineFourthAction();if(!adv||adv.kind!=="buy")return "the adventure ladder must go straight to buy: "+JSON.stringify(adv);
+    return true;
+  });
+  t("#6D2 one exchange between two residents: with two residents present buildResidentExchangeNote asks for ONE exchange the hero witnesses, naming both and a record each; latched for EXCHANGE_EVERY turns; silent with one resident; never in the adventure",function(){
+    villageCD();worldState.world.sublocation="the tavern";delete worldState.exchangeAsk;
+    var n=buildResidentExchangeNote();if(!n||!/Frizwick/.test(n)||!/Daeris/.test(n))return "two present residents must be named: "+String(n).slice(0,300);
+    if(!/Storval stair/.test(n)||!/tower fell/.test(n))return "one record each must feed the exchange: "+n.slice(0,400);
+    if(!/witness|hero/i.test(n))return "the hero witnesses";
+    if(!worldState.exchangeAsk||worldState.exchangeAsk.turn!==12)return "the ask latches";
+    if(buildResidentExchangeNote())return "no second ask within EXCHANGE_EVERY turns";
+    worldState.turn=12+EXCHANGE_EVERY;if(!buildResidentExchangeNote())return "the ask returns after EXCHANGE_EVERY turns";
+    memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");delete worldState.exchangeAsk;if(buildResidentExchangeNote())return "one resident present is no exchange";
+    if(!NOTE_SHAPES.buildResidentExchangeNote||NOTE_SHAPES.buildResidentExchangeNote.village!=="fires")return "registry row missing";
+    makeWorld();delete worldState.kind;if(buildResidentExchangeNote())return "never in the adventure";
+    return true;
+  });
+  t("#6D3 residents roam by the clock: residentWhereabouts is pure and deterministic (home at night, a commons by name and hour otherwise, drawn from the map's shops and the kind's list); the geo block serves RESIDENTS ABOUT for residents not in the scene and asks for tags; adventure geo block unchanged",function(){
+    villageCD();var night=13*MIN_PER_DAY+18*60,day=13*MIN_PER_DAY+4*60;/* the clock counts from dawn: 18h elapsed = midnight, 4h = 10 am */
+    if(!/home/i.test(residentWhereabouts("Frizwick",night)))return "night is at home: "+residentWhereabouts("Frizwick",night);
+    var d1=residentWhereabouts("Frizwick",day),d2=residentWhereabouts("Frizwick",day+5);if(!d1||d1!==d2)return "deterministic within the hour: "+d1+" / "+d2;
+    if(/home/i.test(d1))return "a day hour puts a resident in the commons: "+d1;
+    var places={},h;for(h=0;h<16;h++)places[residentWhereabouts("Frizwick",13*MIN_PER_DAY+h*60)]=1;/* 6 am to 9 pm */if(Object.keys(places).length<2)return "a resident moves through the day: "+JSON.stringify(places);
+    if(!Object.keys(places).some(function(p){return /tavern|smithy/.test(p);}))return "the map's shops feed the commons list: "+JSON.stringify(places);
+    memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");worldState.world.sublocation="the smithy";
+    var geo=buildGeoBlock();if(!/RESIDENTS ABOUT/.test(geo)||!/Frizwick/.test(geo)||!/Daeris/.test(geo))return "the geo block must serve the whereabouts: "+geo;
+    if(!/tag|\[NPC:|SCENE_CAST|SAY/.test(geo.slice(geo.indexOf("RESIDENTS ABOUT"))))return "the line must ask the GM to place them with tags";
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the smithy";var geo2=buildGeoBlock();if(/RESIDENTS ABOUT[^\n]*Frizwick/.test(geo2))return "a resident in the scene is not 'about'";
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};if(/RESIDENTS ABOUT/.test(buildGeoBlock()))return "the adventure geo block changed";
+    return true;
+  });
+  t("#6D4 the refusal count is a measure: dev/village-measure.js exports measureVillageCorpus — refusals, invented threats, words per turn, unprompted resident actions — with known counts on a synthetic corpus, and runs on the live corpus",function(){
+    var m={measureVillageCorpus:(typeof measureVillageCorpus==="function")?measureVillageCorpus:null};if(typeof m.measureVillageCorpus!=="function")return "measureVillageCorpus missing (run-tests loads dev/village-measure.js)";
+    var corpus={npcs:[{name:"Frizwick",resident:true},{name:"Daeris",resident:true}],transcript:[
+      {t:0,r:"gm",x:"The lane. Frizwick waves from her door."},{t:0,r:"player",x:"Ask Frizwick for bread."},
+      {t:1,r:"gm",x:"\"No,\" Frizwick says. \"Not today. The oven's cold.\" Daeris sharpens a knife by the hearth without looking up."},{t:1,r:"player",x:"Go to the tavern."},
+      {t:2,r:"gm",x:"A bandit ambush erupts at the door — three blades drawn. Frizwick shrugs. \"I can't help you with that.\""}]};
+    var r=m.measureVillageCorpus(corpus);
+    if(r.refusals!==3)return "three refusals expected (No / Not today / can't): "+JSON.stringify(r);
+    if(r.threats!==1)return "one invented threat turn expected: "+JSON.stringify(r);
+    if(typeof r.wordsPerTurn!=="number"||r.wordsPerTurn<=0)return "words per turn: "+JSON.stringify(r);
+    if(r.residentActions<1)return "Daeris acting unprompted must count: "+JSON.stringify(r);
+    var live=JSON.parse(__fsForTests.readFileSync(__rootForTests+"/dev/corpus_village_livecheck_v1912.json","utf8"));var lr=m.measureVillageCorpus(live);if(typeof lr.refusals!=="number"||lr.turns!==8)return "the live corpus must measure: "+JSON.stringify(lr);
+    return true;
+  });
+  t("#6G1 fates are stamped at the ending: fileDenouement stamps sheet.fate (campaign, cause, the sentence naming them, the unresolved quest titles) on the hero and every living party companion; the village never stamps",function(){
+    makeWorld();delete worldState.kind;worldState.campName="Rise of the Runelords";worldState.character.name="Ammut";worldState.ended={turn:40,cause:"the tale is told",at:1};
+    worldState.npcs.push({name:"Frizwick",status:"ally",rel:"companion",met:1,partyMember:true,pronouns:"she/her",charSheet:{name:"Frizwick",cls:"Rogue"}});
+    worldState.questLog=[{title:"The runewell under Sandpoint",status:"active"},{title:"A debt to Ameiko",status:"completed"}];
+    fileDenouement("The crown lay broken. Ammut walked south with the ash at her back. Frizwick kept the inn and never sang of the stair again.\n\nWhat the tale changed: nothing she would admit.");
+    var f=worldState.character.fate;if(!f||f.campaign!=="Rise of the Runelords"||f.cause!=="the tale is told"||!/walked south/.test(f.line))return "the hero's fate: "+JSON.stringify(f);
+    if(!f.unresolved||f.unresolved[0]!=="The runewell under Sandpoint"||f.unresolved.length!==1)return "unresolved = the open quest titles only: "+JSON.stringify(f.unresolved);
+    var cf=wsNpcByName("Frizwick").charSheet.fate;if(!cf||!/kept the inn/.test(cf.line))return "the companion's fate line: "+JSON.stringify(cf);
+    villageCD();worldState.ended={turn:1,cause:"x",at:1};fileDenouement("Nothing ends here. Silas sat down.");if(worldState.character.fate)return "the village never stamps a fate";
+    return true;
+  });
+  t("#6G2 the Hall seeds from the library: villageHallSeed mints the Hall node with one memento per fated resident (object, fate line, one unresolved thing) and a wall entry per resident without a fate; idempotent; import calls it",function(){
+    villageCD();var hk=villageHallKey(),hall=memory.map.nodes[hk];if(!hall||!hall.hall)return "import must mint the Hall node at "+hk+": "+JSON.stringify(hall);
+    var m=hall.mementos||[];if(m.length!==1||m[0].resident!=="Frizwick"||!/Bone-handled knife/.test(m[0].object)||!/kept the inn/.test(m[0].fate)||!/runewell/.test(m[0].unresolved))return "one memento for the fated resident: "+JSON.stringify(m);
+    var w=hall.wall||[];if(w.length!==1||w[0].resident!=="Daeris")return "one wall entry for the unfinished: "+JSON.stringify(w);
+    var r=villageHallSeed();if(r.mementos!==1||r.wall!==1||(hall.mementos||[]).length!==1)return "re-seeding is idempotent: "+JSON.stringify(r);
+    if(isShopNode(hk,hall))return "the Hall is never a shop";
+    return true;
+  });
+  t("#6G3 the Hall reaches the GM only in the Hall: the geo block serves THE HALL (the mementos) and THE WALL OF THE UNFINISHED there and nowhere else",function(){
+    villageCD();worldState.world.sublocation="the tavern";if(/THE HALL/.test(buildGeoBlock()))return "the Hall is not served in the tavern";
+    worldState.world.sublocation=locDisplayLeaf(villageHallKey());var g=buildGeoBlock();
+    if(!/THE HALL/.test(g)||!/Frizwick/.test(g)||!/kept the inn/.test(g)||!/runewell/.test(g))return "the mementos must be served in the Hall: "+g;
+    if(!/WALL OF THE UNFINISHED/.test(g)||!/Daeris/.test(g))return "the wall must name the unfinished";
+    if(!/decoration|one thing/i.test(g))return "the line must say objects are decoration and every memento names one unresolved thing";
+    return true;
+  });
+  t("#6G4 close this campaign: closeCampaign ends an OPEN adventure with cause 'closed by the player' and owes the denouement; refuses an ended campaign and the village; closeMenuVisible gates the row",function(){
+    makeWorld();delete worldState.kind;worldState.turn=5;if(!closeMenuVisible())return "an open adventure shows the row";
+    var r=closeCampaign();if(!r||r.action!=="closed"||!worldState.ended||!/closed by the player/.test(worldState.ended.cause)||!worldState.denouementOwed)return "closeCampaign must end and owe: "+JSON.stringify([r,worldState.ended]);
+    if(closeMenuVisible())return "an ended campaign hides the row";var r2=closeCampaign();if(!r2||r2.action!=="refused")return "closing twice refuses: "+JSON.stringify(r2);
+    villageCD();if(closeMenuVisible())return "the village never closes";var r3=closeCampaign();if(!r3||r3.action!=="refused")return "the village refuses to close";
+    makeWorld();delete worldState.kind;worldState.turn=0;if(closeMenuVisible())return "nothing to close before the first turn";
+    return true;
+  });
+  t("#6G5 one player-authored line: villageHallLine stores a clamped line on the resident's sheet, refreshes the memento and requests the write-back; refuses an unknown resident or an empty line",function(){
+    villageCD();var calls=[],saved=(typeof storageAdapter!=="undefined")?storageAdapter:null;
+    try{storageAdapter={isServerMode:function(){return true;},hasToken:function(){return true;},saveCharacterToLibrary:function(c,cb){calls.push(c.name+":"+(c.hallLine||""));cb(null,{ok:true});}};
+      var r=villageHallLine("Frizwick","  She would have hated the plaque.  ");if(!r||!r.ok)return "the line must land: "+JSON.stringify(r);
+      if(wsNpcByName("Frizwick").charSheet.hallLine!=="She would have hated the plaque.")return "the sheet carries the trimmed line";
+      var m=memory.map.nodes[villageHallKey()].mementos[0];if(m.line!=="She would have hated the plaque.")return "the memento refreshes: "+JSON.stringify(m);
+      if(!calls.length||!/plaque/.test(calls[0]))return "the write-back must carry the line: "+JSON.stringify(calls);
+      var long=villageHallLine("Frizwick",new Array(400).join("x"));if(!long.ok||wsNpcByName("Frizwick").charSheet.hallLine.length>200)return "the line clamps at 200";
+      if(villageHallLine("Nobody","x").ok||villageHallLine("Frizwick","   ").ok)return "unknown resident / empty line refuse";
+      return true;
+    }finally{storageAdapter=saved;}
+  });
+  t("#6H1 the village pays nothing: [XP:] is refused loudly in the village and the tag doc says so; adventure XP lands; a [QUEST:] still lands in the village as a goal the DRIVE rule never pushes",function(){
+    villageCD();worldState.character.xp=0;var warns=[],oc=console.warn;console.warn=function(m){warns.push(String(m));};var r;
+    try{r=applyMuts("Well done. [XP:20]");}finally{console.warn=oc;}
+    if(worldState.character.xp!==0)return "XP landed in the village: "+worldState.character.xp;
+    if(!(r.muts||[]).some(function(m){return /refused/i.test(m)&&/pays nothing|village/i.test(m);}))return "the log must name the refusal: "+JSON.stringify(r.muts);
+    if(!warns.some(function(w){return /XP/.test(w)&&/village/i.test(w);}))return "console must warn";
+    var doc=buildStateTagsDoc();if(!/XP/.test(doc.slice(doc.indexOf("THE VILLAGE")))||!/pays nothing/i.test(doc))return "the village tag doc must say the village pays nothing";
+    applyMuts("[QUEST:Mend the mill wheel|offered|Old Tam asks for a hand]");if(!(worldState.questLog||[]).some(function(q){return /mill wheel/.test(q.title);}))return "a village goal must still land in the quest log";
+    makeWorld();delete worldState.kind;worldState.character.xp=0;applyMuts("[XP:20]");if(!(worldState.character.xp>0))return "adventure XP must still land (clamped by the per-level cap, never zero): "+worldState.character.xp;
+    if(/pays nothing/i.test(buildStateTagsDoc()))return "the village line leaked into the adventure doc";
+    return true;
+  });
+
+  t("#6G6 the Hall has ONE key however the GM names it: in the village a [SUBLOCATION:] whose name is the Hall by the kind's hallWords ('Village Hall', 'the hall') files as the Hall node, so the mementos are served and no twin node is minted; other sub-locations and the adventure are untouched",function(){
+    villageCD();applyMuts("You push the Hall's doors. [SUBLOCATION:Village Hall]");
+    if(worldState.world.sublocation!==locDisplayLeaf(villageHallKey()))return "the sub-location must canonicalise to the Hall's leaf: "+JSON.stringify(worldState.world.sublocation);
+    if(memory.map.nodes["The Village|Village Hall"])return "no twin Hall node";
+    if(!/THE HALL/.test(buildGeoBlock()))return "the mementos must be served after the GM's own naming";
+    applyMuts("[SUBLOCATION:the smithy]");if(worldState.world.sublocation!=="the smithy")return "other sub-locations file as named";
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};applyMuts("[SUBLOCATION:the town hall]");if(worldState.world.sublocation!=="the town hall")return "the adventure files as named";
+    return true;
+  });
+
 }

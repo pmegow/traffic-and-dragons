@@ -929,3 +929,24 @@ function showHealthModal(){
     });
   };
 }
+/* #6 G4: Close this campaign — a confirm over the pure closeCampaign (game.js). The epilogue writes itself afterwards. */
+function showCloseCampaignModal(){
+  if(!worldState)return;
+  var modal=modalShell("close-campaign-modal",
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Close this campaign?</div>"
+    +"<div style='font-size:12px;color:var(--t1);line-height:1.5;margin-bottom:18px;'>The tale stops here, unfinished threads named, and the Game Master writes its closing chapter from the record. The hero and the party keep their fates on their sheets \u2014 the Village Hall will remember them. This cannot be undone.</div>"
+    +"<div style='display:flex;gap:8px;'><button class='qa' id='ccm-go' style='flex:1;background:var(--warn);color:#000;border:none;font-weight:bold;'>Close the campaign</button><button class='qa' id='ccm-cancel' style='flex:1;'>Keep playing</button></div>",{z:400,maxWidth:420,outside:true});
+  document.getElementById("ccm-cancel").addEventListener("click",function(){modal.remove();});
+  document.getElementById("ccm-go").addEventListener("click",function(){modal.remove();var r=(typeof closeCampaign==="function")?closeCampaign():{action:"refused",reason:"not available"};if(r.action==="closed"){showToast("The campaign is closed \u2014 its closing chapter is being written.",5000);if(typeof syncUI==="function")syncUI();}else showToast("Not closed \u2014 "+(r.reason||"refused"),5000);});
+}
+/* #6 G5: one line of the player's own for a resident's memento — stored on the library sheet as canon. */
+function showHallLineModal(name){
+  var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null,cur=(n&&n.charSheet&&n.charSheet.hallLine)||"";
+  var modal=modalShell("hall-line-modal",
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>"+escHtml(name)+" \u2014 a line for the Hall</div>"
+    +"<div style='font-size:12px;color:var(--t2);margin-bottom:10px;'>One sentence of your own under their memento. It becomes canon on their library sheet.</div>"
+    +"<textarea id='hlm-text' maxlength='200' rows='3' style='width:100%;box-sizing:border-box;background:var(--bg2);color:var(--t0);border:1px solid var(--brd2);border-radius:var(--r);padding:8px;font-family:var(--font);font-size:13px;'>"+escHtml(cur)+"</textarea>"
+    +"<div style='display:flex;gap:8px;margin-top:10px;'><button class='qa' id='hlm-save' style='flex:1;background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Save the line</button><button class='qa' id='hlm-cancel' style='flex:1;'>Cancel</button></div>",{z:420,maxWidth:420,outside:true});
+  document.getElementById("hlm-cancel").addEventListener("click",function(){modal.remove();});
+  document.getElementById("hlm-save").addEventListener("click",function(){var t=document.getElementById("hlm-text").value;var r=(typeof villageHallLine==="function")?villageHallLine(name,t):{ok:false,reason:"not available"};modal.remove();if(r.ok){if(typeof saveAll==="function")saveAll();showToast("Their line is on the wall \u2014 and on their sheet.",4000);}else showToast("Not saved \u2014 "+(r.reason||"refused"),5000);});
+}

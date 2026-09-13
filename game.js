@@ -186,6 +186,14 @@ function engineFourthAction(){
   var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
   /* #6 F6: in a tradeOnlyInShops kind the buy rung fires only in a shop with the keeper present and NAMES the keeper; a
      village-only sell rung offers a WANTED item the hero carries to that keeper. The adventure branch is the shipped rung, unchanged. */
+  /* #6 D1: the village rung sits ABOVE buy */
+  if(typeof kindDef==="function"&&kindDef().villageRung){
+    if(typeof montageDue==="function"&&montageDue()&&!kindDef().montage&&typeof console!=="undefined")console.info("[village] montage would be due at t"+worldState.turn+" — off in v1 for the village kind, logged for the measure");/* #6 phase B: the measure survives the rung */
+    var _vr=villageRung(),_vtc0=(typeof villageTradeContext==="function")?villageTradeContext():{ok:false},_commerce=false;
+    if(_vtc0.ok){var _live0=(typeof nodeWaresLive==="function")?nodeWaresLive(_vtc0.node):[];if((c.gold||0)>0&&_live0.length)_commerce=true;
+      if(!_commerce&&_vtc0.node.wanted&&_vtc0.node.wanted.length){var _inv0=c.inventory||[],_a,_b;for(_a=0;_a<_vtc0.node.wanted.length&&!_commerce;_a++)for(_b=0;_b<_inv0.length;_b++)if(itemBaseName(_inv0[_b])===itemBaseName(_vtc0.node.wanted[_a].item)){_commerce=true;break;}}}
+    if(_vr&&(!_commerce||(worldState.turn||0)%2===0))return _vr;/* #6 D1: the village rung leads; when a purchase or sale is possible right here, the two alternate by turn so neither starves */
+  }
   var _tk=(typeof kindDef==="function")?kindDef():null,_vt=null;
   if(_tk&&(_tk.tradeOnlyInShops||_tk.sellRung)&&typeof villageTradeContext==="function")_vt=villageTradeContext();
   if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){
@@ -1340,6 +1348,7 @@ function importVillageResidents(list){
     villageHouseEnsure(nm,here);
     added++;
   }
+  if(typeof villageHallSeed==="function"&&kindDef().hall)villageHallSeed();/* #6 G2: the Hall seeds from the library on day one, and re-seeds on every move-in */
   return {added:added,skipped:skipped};
 }
 /* #6 E6: ONE house-minting path — import and the swap's demotion both come here, so a resident always has a house with
@@ -1350,6 +1359,91 @@ function villageHouseEnsure(name,here){
   if(!memory.map.nodes[hk])memory.map.nodes[hk]={firstVisit:null,visits:0,description:null,parent:parent,npcs:[],items:[],size:"small",travelMins:null,owner:name};
   else if(!memory.map.nodes[hk].owner)memory.map.nodes[hk].owner=name;
   return memory.map.nodes[hk];
+}
+/* #6 C1 (2026-09-13): the RETURN is observed once per absence. Village only; PREVIOUSLY_AFTER_MS of real time since the last
+   turn arms returnPing with the time away, one fact from the hero's own record and one engine-chosen visible change;
+   returnSeenAt pins the absence so the ping never re-arms for the same gap. Called before the notes build. */
+function villageReturnObserve(now){
+  if(!worldState||typeof kindDef!=="function"||!kindDef().returnGreeting)return null;
+  var last=worldState.lastTurnAt;if(!last)return null;
+  var ms=(typeof now==="number"?now:Date.now())-last,thr=(typeof PREVIOUSLY_AFTER_MS==="number")?PREVIOUSLY_AFTER_MS:7200000;
+  if(ms<thr||worldState.returnSeenAt===last)return null;
+  worldState.returnSeenAt=last;
+  var ping={awayMs:ms,fact:villageReturnFact(),change:villageReturnChange(),turn:worldState.turn};worldState.returnPing=ping;return ping;
+}
+function villageReturnFact(){
+  var c=worldState.character,cm=(c&&c.coreMemories)||[];if(cm.length)return String(cm[cm.length-1].text||"").slice(0,200);
+  var kd=(memory&&memory.keyDecisions)||[];if(kd.length)return String(kd[kd.length-1].desc||"").slice(0,200);
+  var ch=(memory&&memory.chapters)||[];if(ch.length){var s=String(ch[ch.length-1].summary||""),cut=s.search(/[.!?]\s/);return (cut>0?s.slice(0,cut+1):s).slice(0,200);}
+  return null;
+}
+/* the visible change, chosen from DATA: an expired shelf first (the clock moved while they were away), then a resident's
+   whereabouts this hour, then the hour itself — never nothing. */
+function villageReturnChange(){
+  var k,now=(typeof clockNow==="function")?clockNow():0,win=WARES_RESTOCK_DAYS*MIN_PER_DAY,keys=Object.keys((memory&&memory.map&&memory.map.nodes)||{}).sort();
+  for(k=0;k<keys.length;k++){var n=memory.map.nodes[keys[k]];if(!n||!n.parent||!n.wares||!n.wares.length)continue;var i;for(i=0;i<n.wares.length;i++){var w=n.wares[i];if(typeof w.min==="number"&&now-w.min>=win)return w.item+" is gone from "+locDisplayLeaf(keys[k])+"'s shelf (the week turned; something else may be there)";}}
+  var npcs=worldState.npcs||[],j;for(j=0;j<npcs.length;j++){var r=npcs[j];if(!r.resident||npcIsDead(r))continue;var wh=(typeof residentWhereabouts==="function")?residentWhereabouts(r.name):null;if(wh&&wh!=="at home")return r.name+" is at "+wh+" this hour";}
+  return "it is "+((worldState.world&&worldState.world.time)||"a new hour")+" now";
+}
+/* #6 D1: the village rung — a resident call (whoever is NOT in the scene, with their whereabouts) or a look-in at a commons
+   other than the one the hero stands in; rotates by turn. Sits ABOVE buy so the ladder never falls through to commerce. */
+function villageRung(){
+  var man=buildSceneManifest(),local=(man.local||[]).map(function(x){return String(x).toLowerCase();}),res=[],i,npcs=worldState.npcs||[];
+  for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n.resident||npcIsDead(n)||local.indexOf(String(n.name).toLowerCase())>=0)continue;res.push(n);}
+  var sub=String((worldState.world&&worldState.world.sublocation)||"").toLowerCase(),commons=villageCommons().filter(function(c){return c.toLowerCase()!==sub;});
+  var opts=[],j;for(j=0;j<res.length;j++){var w=residentWhereabouts(res[j].name);opts.push("Call on "+res[j].name+(w?" \u2014 "+(w==="at home"?"at home":w):"")+".");}
+  for(j=0;j<commons.length;j++)opts.push("Look in at "+commons[j]+".");
+  if(!opts.length)return null;
+  return {kind:"village",text:opts[(worldState.turn||0)%opts.length]};
+}
+/* #6 G2: the Hall seeds from the library — one memento per resident with a fate (an object from their sheet, the fate line,
+   one unresolved thing, their own line if they wrote one) and a wall entry for every resident without one. Idempotent. */
+function villageHallSeed(){
+  if(!worldState||typeof kindDef!=="function"||!kindDef().hall)return {mementos:0,wall:0};
+  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  var hk=villageHallKey(),here=(worldState.world&&worldState.world.location)||"The Village",node=memory.map.nodes[hk];
+  if(!node)node=memory.map.nodes[hk]={firstVisit:null,visits:0,description:null,parent:here,npcs:[],items:[],size:"small",travelMins:null,hall:true};
+  node.hall=true;var prior={},i;(node.mementos||[]).forEach(function(m){prior[m.resident]=m;});
+  var npcs=worldState.npcs||[],mem=[],wall=[];
+  for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n.resident||!n.charSheet)continue;var s=n.charSheet;
+    if(s.fate){var obj=(s.inventory&&s.inventory.length)?_invBase(s.inventory[0]):"a plain token";mem.push({resident:n.name,campaign:s.fate.campaign||"a finished tale",object:obj,fate:s.fate.line||s.fate.cause||"",unresolved:(s.fate.unresolved&&s.fate.unresolved[0])||"nothing the record names",line:s.hallLine||(prior[n.name]&&prior[n.name].line)||null});}
+    else wall.push({resident:n.name,campaign:s.originCampaign||s.campName||"an unfinished tale"});}
+  node.mementos=mem;node.wall=wall;
+  return {mementos:mem.length,wall:wall.length};
+}
+/* #6 G5: one player-authored line per resident — canon on the library sheet (clamped), the memento refreshed, the write-back
+   requested through the same seam as a swap. Loud refusals, never a throw. */
+function villageHallLine(name,text){
+  var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(!n||!n.resident||!n.charSheet)return {ok:false,reason:"no such resident"};
+  var t=String(text||"").replace(/\s+/g," ").trim();if(!t)return {ok:false,reason:"an empty line"};
+  if(t.length>200)t=t.slice(0,200);n.charSheet.hallLine=t;
+  villageHallSeed();
+  var wb=(typeof villageWriteBack==="function")?villageWriteBack(n.charSheet):null;
+  return {ok:true,line:t,writeBack:wb};
+}
+/* #6 G4: close this campaign — the player deposits a stopped adventure: ended with cause \"closed by the player\", the
+   denouement owed, the existing epilogue path writes it (and stamps the fates). Pure over state; the File-menu modal calls it. */
+function closeCampaign(){
+  if(!worldState)return {action:"refused",reason:"no campaign"};
+  if(typeof kindDef!=="function"||!kindDef().closable)return {action:"refused",reason:"this kind of campaign never closes"};
+  if(typeof campaignEnded==="function"&&campaignEnded())return {action:"refused",reason:"already ended"};
+  worldState.ended={turn:worldState.turn,cause:"closed by the player",at:Date.now(),closed:true,deaths:(worldState.respawns||0)};
+  worldState.denouementOwed=true;worldState.lastActions=null;
+  if(typeof saveAll==="function")saveAll();
+  if(typeof document!=="undefined"&&typeof campaignDenouement==="function")setTimeout(campaignDenouement,0);
+  return {action:"closed"};
+}
+/* #6 G1: fates are stamped at the ending — on the hero and every living party companion: the campaign, the cause, the
+   denouement sentence that names them, the open quest titles. Rides the sheet into the library; the Hall reads it. A kind
+   that never closes (the village) never stamps. */
+function stampCampaignFates(text){
+  if(!worldState||(typeof kindDef==="function"&&!kindDef().closable))return 0;
+  var t=String(text||"").replace(/\s+/g," "),sent=t.match(/[^.!?]+[.!?]+/g)||[t],camp=worldState.campName||"",cause=(worldState.ended&&worldState.ended.cause)||"",turn=worldState.turn;
+  var open=(worldState.questLog||[]).filter(function(q){return q&&q.title&&q.status!=="completed"&&q.status!=="failed";}).map(function(q){return q.title;});
+  function line(name){var first=String(name||"").split(/\s+/)[0],i;if(!first)return "";for(i=0;i<sent.length;i++)if(sent[i].indexOf(first)>=0)return sent[i].trim();return "";}
+  var n=0;function stamp(sheet){if(!sheet||!sheet.name)return;sheet.fate={campaign:camp,turn:turn,cause:cause,line:line(sheet.name),unresolved:open.slice(0,3)};n++;}
+  stamp(worldState.character);var comps=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],j;for(j=0;j<comps.length;j++)stamp(comps[j].charSheet||comps[j]);
+  return n;
 }
 /* #6 E9: Car Mode's spoken undo — reverses the LAST item move (a placement or a take) once. Pure over worldState.lastItemMove
    (written by the LOCATION_ITEM handler); reports a reason when there is nothing to undo. */
@@ -1381,7 +1475,7 @@ function swapPlayerCharacter(name){
     ?{name:oldChar.name,status:"",statusTurn:0,rel:"resident",met:worldState.turn,partyMember:false,resident:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar}
     :{name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar};/* portrait rides on charSheet only (#3 dedupe) */
   worldState.npcs.splice(npcIdx,1);worldState.npcs.push(oldNpc);
-  if(toResident)villageHouseEnsure(oldChar.name,null);/* #6 E6: the demoted hero gets a house, same path as import */
+  if(toResident){villageHouseEnsure(oldChar.name,null);/* #6 E6: the demoted hero gets a house, same path as import */if(typeof villageHallSeed==="function"&&def.hall)villageHallSeed();/* #6 G2: and a place in the Hall's record */}
   newChar.portraitOffset=newChar.portraitOffset||npc.portraitOffset||{x:0.5,y:0.5,zoom:1};/* UA22: adopt the npc-wrapper framing the NPC sheet was showing */
   worldState.character=newChar;
   relationshipMigrateSheet(worldState.character,null);relationshipMigrateSheet(oldChar,oldChar.name);relationshipSwapOwners(newChar.name,oldChar.name);
@@ -2314,6 +2408,7 @@ async function sendAction(override,opts){
     // commitGmTurn's logPlayer), and lastAction/retry keep the clean txt too, so the note
     // never reaches the player.
     var apiTxt=txt;
+    if(!isTT&&!(opts&&opts.silent)&&typeof villageReturnObserve==="function")villageReturnObserve(Date.now());/* #6 C1: a return after a real absence arms the greeting before the notes build (same TT/silent guard as the notes) */
     if(!isTT&&!(opts&&opts.silent)){var _latchSnap=snapshotNoteLatches();/* #151: capture BEFORE the builders stamp/consume — the catch restores when the turn dies pre-commit */var _en=buildEngineNotes();if(_en)apiTxt=_en+"\n\n"+txt;}/* v1.255: the engine-notes registry (quest escalation + condition audit; adding a check = a NOTE_BUILDERS entry) */
     _tSent=Date.now();_hid0=(typeof document!=="undefined"&&document.hidden)?1:0;
     if(typeof erCrumb==="function")erCrumb("turn-start","t"+worldState.turn+(isTT?" tt":"")+((opts&&opts.silent)?" sil":"")+" "+String(apiTxt).length+"ch bg"+_hid0);/* pre-increment turn — commitGmTurn's "turn" crumb carries the post-increment one, so the pair brackets the request */
@@ -3479,6 +3574,7 @@ function fileDenouement(text){
   if(!worldState)return;
   var t=String(text||"").trim();if(!t)return;
   if(typeof logTranscript==="function")logTranscript("gm",t,t,undefined,{denouement:true});
+  if(typeof stampCampaignFates==="function")stampCampaignFates(t);/* #6 G1: the fates ride the sheets into the library */
   if(memory){if(!memory.chapters)memory.chapters=[];memory.chapters.push({turn:worldState.turn,summary:"DENOUEMENT: "+t.slice(0,600)});}
   /* #367: the closing paragraph names what the tale changed in the hero — filed as a defining moment, so a legacy hero carries it into the next campaign */
   var _paras=t.split(/\n\s*\n/),_lastP=String(_paras[_paras.length-1]||"").trim();if(_lastP&&typeof fileCoreMemory==="function")fileCoreMemory("ending",worldState.character&&worldState.character.name,_lastP.slice(0,240));

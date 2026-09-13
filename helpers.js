@@ -2139,6 +2139,7 @@ function quickStartPayloadValid(rec){
 
 // #308: the spoken "previously on" — the last chapter summary and where the party stands. Pure.
 function carRecapText(){
+  if(typeof kindDef==="function"&&kindDef().recap==="state"&&typeof villageRecapText==="function")return villageRecapText();/* #6 C3: the village speaks state */
   var ch=(typeof memory!=="undefined"&&memory&&memory.chapters)||[];
   var where=(typeof worldState!=="undefined"&&worldState&&worldState.world)?(worldState.world.sublocation||worldState.world.location||""):"";
   if(!ch.length)return "No chapters yet — this is the beginning."+(where?" You are at "+where+".":"");
@@ -2209,5 +2210,43 @@ function villageHouseGroup(){
   var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.stashQuantities||typeof worldState==="undefined"||!worldState||!worldState.character)return null;
   var rows=villageStash(villageHouseKey(worldState.character.name));if(!rows.length)return null;
   return {id:"house",label:"Your house",rows:rows.map(function(r){return {raw:r.name+(r.qty>1?" x"+r.qty:""),qty:r.qty,by:r.by,placed:r.placed};})};
+}
+/* #6 G: the Hall's node key — one place, one key. */
+function villageHallKey(){var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|the Village Hall";}
+/* #6 D3: the commons a resident may be found in — the map's filed shops first (the GM's own geography), then the kind's
+   fallback list; leaf names, deduped, in a stable order. */
+function villageCommons(){
+  var def=(typeof kindDef==="function")?kindDef():null,out=[],seen={},k;if(!def)return out;
+  var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";
+  function add(x){var s=String(x||"").trim();if(!s)return;var low=s.toLowerCase();if(seen[low])return;seen[low]=1;out.push(s);}
+  if(typeof memory!=="undefined"&&memory&&memory.map){var keys=Object.keys(memory.map.nodes).sort();for(k=0;k<keys.length;k++){var n=memory.map.nodes[keys[k]];if(n&&n.parent&&(typeof locSame==="function"?locSame(n.parent,v):n.parent===v)&&isShopNode(keys[k],n))add(typeof locDisplayLeaf==="function"?locDisplayLeaf(keys[k]):keys[k].split("|").pop());}}
+  (def.commons||[]).forEach(add);
+  return out;
+}
+/* #6 D3: residents ROAM (owner, 2026-09-12). Pure and deterministic over the name and the campaign clock: at home through the
+   night, otherwise a commons chosen by a name hash and the three-hour block, so the same resident is in the same place for a
+   while and somewhere else later. A whereabouts line, not a presence stamp — the story places them with tags. */
+function residentWhereabouts(name,min){
+  var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.roam)return null;
+  var m=(typeof min==="number")?min:((typeof clockNow==="function")?clockNow():0),day=(typeof MIN_PER_DAY==="number")?MIN_PER_DAY:1440;
+  /* the campaign clock counts ELAPSED minutes and clock%day==0 is dawn (clock.js #89/#106b): hour of day = elapsed + the dawn offset */
+  var dawn=(typeof DAWN_OFFSET_MIN==="number")?DAWN_OFFSET_MIN:360,hour=Math.floor(((((m%day)+day)%day+dawn)%day)/60);
+  if(hour>=22||hour<6)return "at home";
+  var list=villageCommons();if(!list.length)return "at home";
+  var h=0,s=String(name||""),i;for(i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
+  return list[(h+Math.floor(hour/3))%list.length];
+}
+/* #6 G4: the File-menu row shows for an open, closable campaign with at least one turn behind it. */
+function closeMenuVisible(){var def=(typeof kindDef==="function")?kindDef():null;return !!(typeof worldState!=="undefined"&&worldState&&def&&def.closable&&!campaignEnded()&&(worldState.turn||0)>=1);}
+/* #6 C3: Car Mode speaks STATE in the village — who you are, where, the day and hour, the purse, the house, who is about. */
+function villageRecapText(){
+  var ws=worldState,c=ws.character||{},v=(ws.world&&ws.world.location)||"The Village",sub=ws.world&&ws.world.sublocation;
+  var dn=(typeof clockDayNumber==="function")?clockDayNumber():1,tod=(typeof clockTimeOfDay==="function")?clockTimeOfDay():"";/* the ONE player-facing stamp, same as the caption */
+  var s="You are "+(c.name||"the hero")+", in "+v+(sub?", at "+sub:"")+". Day "+dn+(tod?", "+tod:"")+". "+(c.gold||0)+" gold.";
+  var st=(typeof villageStash==="function")?villageStash(villageHouseKey(c.name)):[];
+  s+=st.length?" Your house holds "+st.map(function(r){return r.name+(r.qty>1?", "+r.qty+" of them":"");}).join("; ")+".":" Your house holds nothing.";
+  var about=[],i,npcs=ws.npcs||[];for(i=0;i<npcs.length&&about.length<3;i++){var n=npcs[i];if(!n.resident||(typeof npcIsDead==="function"&&npcIsDead(n)))continue;var w=residentWhereabouts(n.name);if(w)about.push(n.name+" "+(w==="at home"?"at home":"at "+w));}
+  if(about.length)s+=" About the village: "+about.join("; ")+".";
+  return s;
 }
 function villageHouseKey(name){var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|"+String(name||"").trim()+"'s house";}

@@ -472,7 +472,8 @@ function showNpcSheet(name){
       /* TODO #1 P2 (D6/D7): manual spotlight pick — HUD/panels/Car Mode display this PC. Only a
          living isPC party member qualifies (setActivePC validates); hidden when already spotlit. */
       +(_isPC&&worldState&&worldState.activePC!==name?"<div style='margin-top:6px;'><button id='npc-spot-btn' style='font-size:10px;font-family:var(--font);padding:3px 10px;border:1px solid var(--acc);border-radius:var(--r);background:none;color:var(--acc);cursor:pointer;'>&#9728; Take the spotlight</button></div>":""):"";
-    heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+escHtml(name)+"</span>"+playBtn+"</div>"
+    var hallBtn=(wsNpc&&wsNpc.resident&&typeof kindDef==="function"&&kindDef().hall)?"<button id='npc-hall-btn' title='One line of your own for "+escHtml(name)+"&#39;s memento in the Village Hall' style='background:none;border:1px solid var(--brd2);color:var(--t1);cursor:pointer;font-size:11px;padding:2px 8px;margin-left:6px;border-radius:var(--r);font-family:var(--font);'>&#9998; Hall line</button>":"";/* #6 G5 */
+    heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+escHtml(name)+"</span>"+playBtn+hallBtn+"</div>"
       +"<div class='cs-hero-cls'>"+clsLine+"</div>"
       +"<div class='cs-hero-sub'>"+gLbl+" · "+escHtml(sheet.age||"?")+(sheet.deity?" · "+escHtml(sheet.deity):"")+"</div>"
       +pcToggle
@@ -572,6 +573,7 @@ function showNpcSheet(name){
   }
 
   // ── Play as this character ────────────────────────────────────────────────
+  if(document.getElementById("npc-hall-btn"))document.getElementById("npc-hall-btn").addEventListener("click",function(){if(typeof showHallLineModal==="function")showHallLineModal(name);});/* #6 G5 */
   if(document.getElementById("npc-play-btn")){
     document.getElementById("npc-play-btn").addEventListener("click",function(){
       /* #14: converted to the shell — id "switch-confirm" is NEW (the legacy div was

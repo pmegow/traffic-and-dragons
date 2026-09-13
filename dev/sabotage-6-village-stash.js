@@ -94,7 +94,7 @@ prove("helpers.js", [
 ]);
 prove("game.js", [
   { label: "the swap's demotion mints no house",
-    find: 'if(toResident)villageHouseEnsure(oldChar.name,null);', replace: '',
+    find: 'if(toResident){villageHouseEnsure(oldChar.name,null);/* #6 E6: the demoted hero gets a house, same path as import */', replace: 'if(toResident){',
     mustFail: "#6E6 owner on the node on EVERY path" },
   { label: "the village buy rung drops the keeper's name",
     find: '+") from "+_vt.keeper+"."};}}', replace: '+")."};}}',

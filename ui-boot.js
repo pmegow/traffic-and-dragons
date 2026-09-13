@@ -49,6 +49,7 @@ function buildFileMenus(){
     h+=btn(p+"home","&#127968; Home",0);/* #290: bibles, designer, curated shelf, the account library */
     h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
     if(g)h+=btn(p+"ending","&#9997; Write the ending&hellip;",0,{hidden:true,color:"var(--warn)",extra:"font-weight:bold;"});/* #364: shown by updateMemStatus while the tale is told and the campaign is open */
+    if(g)h+=btn(p+"close","&#9673; Close this campaign&hellip;",0,{hidden:true});/* #6 G4: shown by updateMemStatus for an open, closable campaign — deposits a stopped tale */
     h+=sep();
     var sl=(g?btn(p+"export","Save Game (local)",0):btn(null,"Save Game (local)",0,{dim:true}))
       +fileLbl(sf.imp+"import-inp","Load Game (local)",0)
@@ -250,6 +251,7 @@ function wireButtons(){
   document.getElementById("fm-newgame").addEventListener("click",newGame);
   document.getElementById("fm-carmode").addEventListener("click",function(){closeAllMenus();showCarMode();});
   document.getElementById("fm-ending").addEventListener("click",function(){closeAllMenus();if(typeof showEndingOfferModal==="function")showEndingOfferModal();});/* #364 */
+  var _fmClose=document.getElementById("fm-close");if(_fmClose)_fmClose.addEventListener("click",function(){closeAllMenus();if(typeof showCloseCampaignModal==="function")showCloseCampaignModal();});/* #6 G4 */
   document.getElementById("car-close-btn").addEventListener("click",hideCarMode);
   document.getElementById("car-tap-btn").addEventListener("click",_carTap);
   document.getElementById("car-prev-btn").addEventListener("click",_carPrev);

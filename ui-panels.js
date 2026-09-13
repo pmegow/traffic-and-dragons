@@ -472,7 +472,8 @@ function updateMemStatus(){if(!worldState)return;var dot=document.getElementById
 // hand the player the 0-based number the rest of the app stopped using.
 var dayPart=(typeof clockStamp==="function")?" | "+clockStamp():
   ((typeof clockDayNumber==="function")?" | Day "+clockDayNumber():"");
-txt.innerHTML="Memory ~"+(t>=1000?(t/1000).toFixed(1)+"k":t)+" tokens"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+escHtml(dayPart)+" | "+escHtml(APP_VERSION)+(mdl?" | "+escHtml(mdl):"");var _fe=document.getElementById("fm-ending");if(_fe)_fe.style.display=(typeof endingMenuVisible==="function"&&endingMenuVisible())?"block":"none";/* #364 */updateSyncBadge();updateHealthDot();}
+txt.innerHTML="Memory ~"+(t>=1000?(t/1000).toFixed(1)+"k":t)+" tokens"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+escHtml(dayPart)+" | "+escHtml(APP_VERSION)+(mdl?" | "+escHtml(mdl):"");var _fe=document.getElementById("fm-ending");if(_fe)_fe.style.display=(typeof endingMenuVisible==="function"&&endingMenuVisible())?"block":"none";
+var _fc=document.getElementById("fm-close");if(_fc)_fc.style.display=(typeof closeMenuVisible==="function"&&closeMenuVisible())?"block":"none";/* #6 G4 *//* #364 */updateSyncBadge();updateHealthDot();}
 // #17 drift-health dot — thin shell over healthIndicators (helpers.js, engine-tested there).
 // Same green/amber/red classes as the token dot beside it; n/a dims. Click opens the modal.
 function updateHealthDot(){

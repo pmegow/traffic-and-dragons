@@ -50,12 +50,16 @@ resting.
 
 ## C. Arrival and return
 
+**Built v1.914 (2026-09-13)** — list-I lines C1–C3 green: `villageReturnObserve` + `buildReturnNote` (once per real absence, a fact from the hero's record, an engine-chosen change), `villageRecapText` behind `carRecapText` (kind `recap:"state"`).
+
 - A return greeting keyed on real elapsed time, rendered as prose in the first turn, naming one specific
   fact from this player's record; the Car Mode recap speaks state (who greeted you, your quarters, gold)
   instead of a chapter.
 - At least one visible change per return: wares thinned, an hour shifted, a relationship axis moved.
 
 ## D. Residents
+
+**Built v1.914 (2026-09-13)** — list-I lines D1–D4 green: the village rung (`villageRung`, alternating with commerce by turn when a purchase or sale is possible right here), `buildResidentExchangeNote` on `EXCHANGE_EVERY`, `residentWhereabouts` + the geo block's RESIDENTS ABOUT line, and `dev/village-measure.js` (the refusal count and its siblings, run on the live corpus).
 
 - Residents may refuse: a fifteen-turn run counting refusals, grudges and "not today" is an acceptance
   test; zero fails.
@@ -95,6 +99,8 @@ resting.
 
 ## G. The Village Hall (a degraded v1, not phase 2)
 
+**Built v1.914 (2026-09-13)** — list-I lines G1–G6 green: `stampCampaignFates` at `fileDenouement`, `villageHallSeed` (mementos + the wall, idempotent, on import and swap), THE HALL / THE WALL in the geo block only in the Hall, `closeCampaign` + the File-menu row (`closeMenuVisible`) + its confirm modal, `villageHallLine` + the sheet's Hall-line button and modal, and one Hall key however the GM names it (G6, found while building).
+
 - Seeded on day one from the library: one object per retired resident; a wall for the unfinished, named
   not resolved; a File-menu "close this campaign" so a stopped campaign can be deposited (today "finished"
   fires only on the fourth death or the accepted ending).
@@ -103,6 +109,8 @@ resting.
 - One optional player-authored line per retired resident, stored on the library character as canon.
 
 ## H. Rewards and tempo
+
+**Built v1.914 (2026-09-13)** — the v1 cut is "the village pays nothing": `[XP:]` refused loudly (kind `xp:"none"`), the tag doc says so, a `[QUEST:]` still lands as a village goal the silent escalation notes never push. The rate-limited XP list is the re-cut if play wants it.
 
 - Either a small village XP list, rate-limited, or an explicit "the village pays nothing" in the fiction;
   the quest log may hold village goals the DRIVE rule cannot touch.
@@ -160,6 +168,48 @@ and unchanged on the ladder: every test that adds a village behaviour also asser
   an item the hero carries; the adventure ladder is byte-identical (no sell rung, same buy text).
 - **F7 Suggestions obey the same rule.** The action validator rejects a buy/sell/pay suggestion outside a shop with a keeper
   in the village (`trade-outside-shop`); the adventure keeps `buy-without-seller` unchanged.
+
+**C — arrival and return (2026-09-13)**
+
+- **C1 The return is observed, once per absence.** `villageReturnObserve(now)` arms `returnPing` when the last turn is older
+  than `PREVIOUSLY_AFTER_MS` (village only), stamped so the same absence never arms twice; the ping carries the real time
+  away, ONE fact from the hero's record (latest defining moment, else a decision, else a chapter) and ONE engine-chosen
+  visible change (an expired shelf, a resident's whereabouts, the hour). Adventure never arms.
+- **C2 The greeting reaches the GM.** `buildReturnNote` (one-shot, village:fires) names the time away, the fact and the
+  change and asks for a greeting from a resident present and a filed change; burned after one turn.
+- **C3 Car Mode speaks state.** `carRecapText()` in the village says who you are, where, the day and hour, your gold, your
+  house's stash and who is about — no chapter summary; the adventure recap is byte-identical.
+
+**D — residents (2026-09-13)**
+
+- **D1 The village rung sits ABOVE buy.** `engineFourthAction` offers a resident call or a look-in at a commons before
+  the buy rung, rotating by turn and skipping whoever is already in the scene; the adventure ladder is unchanged.
+- **D2 One exchange between two residents.** `buildResidentExchangeNote` fires when two residents are present and no
+  exchange was asked within `EXCHANGE_EVERY` turns, naming both and one record each; latch `exchangeAsk`.
+- **D3 Residents roam by the clock.** `residentWhereabouts(name,min)` is pure and deterministic: home at night, else a
+  commons drawn from the map's shops and the kind's list by name and hour; the geo block serves RESIDENTS ABOUT for
+  residents not present, and asks the GM to place them with tags when they appear. Adventure geo block unchanged.
+- **D4 The refusal count is a measure.** `dev/village-measure.js` reads a corpus and counts refusals, invented threats,
+  words per turn and unprompted resident actions; exported for the suite and run on the live corpus.
+
+**G — the Hall (2026-09-13)**
+
+- **G1 Fates are stamped at the ending.** `fileDenouement` stamps `sheet.fate` (campaign, cause, the sentence naming
+  them, the unresolved quest titles) on the hero and every living party companion, so the library carries the fate.
+- **G2 The Hall seeds from the library.** `villageHallSeed()` (idempotent, called by import) mints the Hall node with one
+  memento per resident with a fate — an object from their sheet, the fate line, one unresolved thing — and a wall entry
+  for every resident without one, named not resolved.
+- **G3 The Hall reaches the GM.** Standing in the Hall, the geo block serves THE HALL (mementos) and THE WALL OF THE
+  UNFINISHED; nowhere else.
+- **G4 Close this campaign.** `closeCampaign()` ends an open adventure campaign with cause "closed by the player" and
+  owes the denouement (the existing epilogue path); `closeMenuVisible()` gates the File-menu row.
+- **G5 One player-authored line.** `villageHallLine(name,text)` stores a clamped line on the resident's sheet as canon,
+  refreshes the memento and requests the library write-back.
+
+**H — rewards and tempo (2026-09-13)**
+
+- **H1 The village pays nothing.** `[XP:]` is refused loudly in the village (kind field), the tag doc says so; adventure
+  XP lands. `[QUEST:]` still lands as a village goal the DRIVE rule never pushes (the escalation notes are silent).
 
 **Live measures (the playtest checklist, not node tests):** three swaps in ten turns with the person-drift check; the
 fourth button non-null on a full-HP, zero-gold, zero-quest state; twenty-turn runs counting GM-invented threats, words per
