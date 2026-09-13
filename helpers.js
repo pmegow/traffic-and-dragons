@@ -2157,3 +2157,10 @@ function clampImportedCharacter(c){
   if(n&&typeof console!=="undefined")console.warn("[import] "+n+" over-long field(s) on "+(c.name||"the sheet")+" clamped at import (#315)");
   return {clamped:n};
 }
+/* #6 THE VILLAGE (phase A): the kind readers. campaignKind() never throws and never returns an unknown kind — a legacy save
+   with no `kind`, or a junk value, reads as adventure. kindDef() is the ONE dispatch point every kind-aware site uses. */
+function campaignKind(){var k=(typeof worldState!=="undefined"&&worldState)?worldState.kind:null;return (k&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[k])?k:"adventure";}
+function kindDef(){return CAMPAIGN_KINDS[campaignKind()];}
+/* A resident's house is a sub-location of the village node: "<village>|<Name>'s house". The map graph already keys
+   sub-locations as parent|leaf, so the house rides every existing reader (items, presence, hours) unchanged. */
+function villageHouseKey(name){var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|"+String(name||"").trim()+"'s house";}

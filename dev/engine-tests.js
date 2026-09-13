@@ -23084,4 +23084,85 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return item.voices[0]==="en_US-libritts_r-medium#3"&&item.voices[1]==="en_US-libritts_r-medium#8"?true:"individual backup voices lost";
   });
 
+  section("#6 the village — phase A: shape (kind registry, residents, the swap, the write-back)");
+  t("#6A CAMPAIGN_KINDS is ONE registry: adventure is the default kind, village is the second; campaignKind() reads worldState.kind and falls back to adventure for every legacy save; kindDef() dispatches — no per-site kind checks",function(){
+    if(typeof CAMPAIGN_KINDS!=="object"||!CAMPAIGN_KINDS.adventure||!CAMPAIGN_KINDS.village)return "CAMPAIGN_KINDS must carry adventure and village";
+    var k,need=["label","skeleton","swapDemotesTo","swapHandoff"];for(k in CAMPAIGN_KINDS){var d=CAMPAIGN_KINDS[k],i;for(i=0;i<need.length;i++)if(!(need[i] in d))return "kind '"+k+"' lacks the field '"+need[i]+"' — every kind carries the same shape";}
+    makeWorld();delete worldState.kind;if(campaignKind()!=="adventure")return "a legacy save with no kind must read as adventure: "+campaignKind();
+    worldState.kind="village";if(campaignKind()!=="village"||kindDef()!==CAMPAIGN_KINDS.village)return "village kind not read";
+    worldState.kind="nonsense";if(campaignKind()!=="adventure")return "an unknown kind must fall back to adventure, never throw";
+    if(CAMPAIGN_KINDS.adventure.skeleton!==true||CAMPAIGN_KINDS.village.skeleton!==false)return "the skeleton flag is the kind's, not a call site's";
+    if(CAMPAIGN_KINDS.adventure.swapDemotesTo!=="party"||CAMPAIGN_KINDS.village.swapDemotesTo!=="resident")return "demotion target per kind";
+    if(CAMPAIGN_KINDS.adventure.swapHandoff!==true||CAMPAIGN_KINDS.village.swapHandoff!==false)return "the village swap costs no GM turn";
+    return true;
+  });
+  t("#6A the blueprint carries the kind: normalizeBlueprint keeps a known kind and defaults an absent or junk one to adventure; applyBlueprint stamps worldState.kind for a village and leaves an adventure save byte-free of the field; the kind survives the save round trip",function(){
+    var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"The Village",kind:"village",startingLocation:"The Village",acts:[]});
+    if(bp.kind!=="village")return "normalize dropped the village kind: "+JSON.stringify(bp.kind);
+    if(normalizeBlueprint({format:"tnd-blueprint-v1",name:"X",acts:[]}).kind!=="adventure")return "an absent kind must normalize to adventure";
+    if(normalizeBlueprint({format:"tnd-blueprint-v1",name:"X",kind:"castle",acts:[]}).kind!=="adventure")return "a junk kind must normalize to adventure";
+    makeWorld();applyBlueprint(bp);if(worldState.kind!=="village")return "applyBlueprint did not stamp the village kind";
+    if(worldState.skeleton)return "a village blueprint must not mint a skeleton";
+    var rt=parseWorldState(serializeWorldState(worldState));if(!rt||rt.kind!=="village")return "the kind did not survive serialize/parse";
+    makeWorld();applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Plain",acts:[]}));if("kind" in worldState)return "an adventure blueprint must leave worldState.kind absent (legacy saves stay byte-identical)";
+    return true;
+  });
+  t("#6A residents: importVillageResidents seeds every library character as a NON-party resident with a full sheet and a house node owned by them; the hero and duplicates are skipped; the party cap is never consulted; re-import is idempotent",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.character.name="Silas";
+    var lib=[{name:"Silas",gender:"M",cls:"Cleric"},{name:"Ammut",gender:"F",cls:"Fighter",level:13,inventory:["Crown of Runelords"]},{name:"Daeris",gender:"F",cls:"Cleric"},{name:"Frizwick",gender:"M",cls:"Rogue"},{name:"Morwen",gender:"F",cls:"Wizard"},{name:"Gazz",gender:"M",cls:"Artificer"}];
+    var r=importVillageResidents(lib);
+    if(!r||r.added!==5)return "five residents expected (the hero is skipped): "+JSON.stringify(r);
+    var res=worldState.npcs.filter(function(n){return n.resident;});if(res.length!==5)return "resident flag missing: "+res.length;
+    if(res.some(function(n){return n.partyMember;}))return "a resident is not a party member";
+    if(partyCompanionCount()!==0)return "residents must not count against the party cap: "+partyCompanionCount();
+    var am=wsNpcByName("Ammut");if(!am||!am.charSheet||am.charSheet.level!==13||am.charSheet.inventory[0]!=="Crown of Runelords")return "the resident's sheet is not the library sheet";
+    if(am.charSheet===lib[1])return "the sheet must be a COPY — the village never mutates the library object";
+    if(!memory.npcs["Ammut"])return "memory.npcs entry missing for a resident";
+    var hk=villageHouseKey("Ammut"),node=memory.map.nodes[hk];if(!node)return "no house node for Ammut at "+hk;
+    if(node.owner!=="Ammut"||node.parent!=="The Village")return "the house node must carry its owner and sit under the village: "+JSON.stringify(node);
+    var r2=importVillageResidents(lib);if(r2.added!==0||worldState.npcs.filter(function(n){return n.resident;}).length!==5)return "re-import must be idempotent";
+    return true;
+  });
+  t("#6A the village swap (pure core): swapPlayerCharacter promotes a resident to the hero, demotes the old hero to a RESIDENT (never into the party), keeps the party count, marks recentSwitch with the kind, and asks for NO GM handoff; the adventure swap keeps its old shape (demote to party member, handoff)",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.character.name="Silas";
+    importVillageResidents([{name:"Ammut",gender:"F",cls:"Fighter",level:13},{name:"Daeris",gender:"F",cls:"Cleric"}]);
+    var r=swapPlayerCharacter("Ammut");
+    if(!r||!r.ok)return "swap refused: "+JSON.stringify(r);
+    if(worldState.character.name!=="Ammut"||worldState.character.level!==13)return "the resident's sheet did not become the hero";
+    var silas=wsNpcByName("Silas");if(!silas||!silas.resident||silas.partyMember||!silas.charSheet)return "the old hero must become a resident with their sheet: "+JSON.stringify(silas);
+    if(wsNpcByName("Ammut"))return "the promoted resident must leave the roster";
+    if(partyCompanionCount()!==0)return "the village swap must not grow the party";
+    if(!worldState.recentSwitch||worldState.recentSwitch.to!=="Ammut"||worldState.recentSwitch.from!=="Silas")return "recentSwitch not marked";
+    if(r.handoff!==false)return "a village swap must not spend a GM turn: "+JSON.stringify(r);
+    if(swapPlayerCharacter("Nobody").ok)return "an unknown name must refuse";
+    makeWorld();delete worldState.kind;worldState.character.name="Tess";worldState.npcs.push({name:"Sparks",status:"ally",rel:"companion",met:1,partyMember:true,pronouns:"he/him",charSheet:{name:"Sparks",gender:"M",cls:"Rogue",level:3}});
+    var a=swapPlayerCharacter("Sparks");if(!a.ok||a.handoff!==true)return "the adventure swap must keep its GM handoff";
+    var tess=wsNpcByName("Tess");if(!tess||!tess.partyMember||tess.resident)return "the adventure swap demotes into the party, as before";
+    return true;
+  });
+  t("#6A the switch-POV prompt block: the adventure wording is byte-identical to before; the village kind supplies the encounter beat (the old hero is a resident of the village, met as a person, never 'a companion in the party')",function(){
+    makeWorld();delete worldState.kind;worldState.recentSwitch={to:"Ammut",from:"Silas",turn:worldState.turn};
+    var _sp=function(){var p=buildSysPrompt();return (typeof p==="string")?p:String(p.stable||"")+String(p.volatile||"");};
+    var adv=_sp();if(adv.indexOf("Silas is now a non-player companion in the party")<0)return "the adventure switch block changed";
+    worldState.kind="village";var vil=_sp();
+    if(vil.indexOf("non-player companion in the party")>=0)return "the village block must not call the old hero a party companion";
+    if(!/CONTROL RECENTLY SWITCHED/.test(vil)||vil.indexOf("Silas")<0||vil.indexOf("Ammut")<0)return "the village block lost the control switch or the names";
+    if(!/resident/i.test(vil))return "the village block must say the old hero is a resident";
+    return true;
+  });
+  t("#6A the library write-back: villageWriteBack(sheet) saves through the storage adapter when a signed-in server session exists and the receipt follows the server's answer; with no adapter or no session it refuses LOUDLY (a named reason, never silence) and never throws",function(){
+    var calls=[],saved=(typeof storageAdapter!=="undefined")?storageAdapter:null;
+    try{
+      storageAdapter={isServerMode:function(){return true;},hasToken:function(){return true;},saveCharacterToLibrary:function(c,cb){calls.push(c.name);cb(null,{ok:true});}};
+      var r=villageWriteBack({name:"Ammut",cls:"Fighter"},function(res){calls.push("cb:"+(res&&res.ok));});
+      if(calls[0]!=="Ammut"||calls[1]!=="cb:true")return "write-back did not reach the adapter and report: "+JSON.stringify(calls);
+      if(!r||r.status!=="requested")return "an accepted write-back reports 'requested' (the receipt toast waits for the server): "+JSON.stringify(r);
+      storageAdapter={isServerMode:function(){return false;},hasToken:function(){return false;},saveCharacterToLibrary:function(c,cb){calls.push("MUST NOT REACH "+c.name);}};
+      var r2=villageWriteBack({name:"Ammut"});if(!r2||r2.status!=="refused"||!/signed in/.test(r2.reason||""))return "a signed-out write-back must refuse with the signed-in reason: "+JSON.stringify(r2);
+      if(calls.some(function(x){return /MUST NOT REACH/.test(x);}))return "a signed-out write-back must never call the server";
+      storageAdapter=undefined;var r3=villageWriteBack({name:"Ammut"});if(!r3||r3.status!=="refused"||!r3.reason)return "no adapter must refuse with a reason: "+JSON.stringify(r3);
+      return true;
+    }finally{storageAdapter=saved;}
+  });
+
 }

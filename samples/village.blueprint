@@ -1,0 +1,22 @@
+{
+  "format": "tnd-blueprint-v1",
+  "name": "The Village",
+  "kind": "village",
+  "author": "Traffic and Dragons",
+  "tone": "",
+  "proseAuthor": "",
+  "narratorVoice": "",
+  "premise": "A small village that belongs to your characters. Every hero you have ever saved lives here, each in their own quarters — a house, a manor, a hut — and they are not always at home: the tavern, the smithy, the trading post, the alchemist's, the guild halls, the healer's and the animal handler's yard are the commons where they meet. There are no quests here and no dangers. What is left in a house stays there until its owner returns for it. The Village Hall keeps what the finished campaigns left behind. Time passes; shops keep hours and restock; people remember.",
+  "startingLocation": "The Village",
+  "startingRegion": "The Village",
+  "startingTime": "08:00",
+  "locations": [
+    {
+      "name": "The Village",
+      "description": "A small village on a river bend: a lane of houses, each belonging to one of your characters; a tavern with a long table; a smithy under a chestnut tree; a trading post; an alchemist's shop with a green door; two guild halls facing each other across the square; a healer's house with a garden; an animal handler's yard at the edge of the fields; and the Village Hall, whose walls hold the mementos of finished campaigns."
+    }
+  ],
+  "npcs": [],
+  "acts": [],
+  "rules": []
+}

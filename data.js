@@ -298,3 +298,18 @@ var START_LOCATIONS=[
    list exactly these (pinned), and the random-hero roller draws from them. */
 var WIZARD_AGES=["early twenties","late twenties","thirties","middle-aged","weathered and old"];/* #379 (owner 2026-09-08): no "late teens" — too close to the no-kids line; the youngest hero is in their twenties */
 var WIZARD_ALIGNMENTS=["Lawful Good","Neutral Good","Chaotic Good","Lawful Neutral","True Neutral","Chaotic Neutral","Lawful Evil","Neutral Evil","Chaotic Evil"];
+
+/* #6 THE VILLAGE — phase A (2026-09-12): ONE registry of campaign kinds. Every place the engine behaves differently for a
+   village dispatches through kindDef() (helpers.js) and reads a field here — never an `if(kind==="village")` at a call
+   site (the abstraction rule). adventure is the default and the legacy: a save with no `kind` reads as adventure, and an
+   adventure blueprint stamps nothing, so every existing save stays byte-identical.
+   skeleton: does the campaign start mint an act/arc spine? · swapDemotesTo: where the old hero goes on a hero swap
+   ("party" = a companion travelling with you; "resident" = a villager with their own house, never in the party) ·
+   swapHandoff: does the swap spend a GM turn on a control-switch handoff? (the village swap is free — the encounter is
+   narrated on the player's next turn) · populateFromLibrary: on creation, move every library character in as a resident ·
+   switchPovBlock(rs): the switch-POV prompt block override (null = the adventure wording in api.js, byte-identical). */
+var CAMPAIGN_KINDS={
+  adventure:{label:"Adventure",skeleton:true,swapDemotesTo:"party",swapHandoff:true,populateFromLibrary:false,switchPovBlock:null},
+  village:{label:"Village",skeleton:false,swapDemotesTo:"resident",swapHandoff:false,populateFromLibrary:true,
+    switchPovBlock:function(rs){return "*** CONTROL RECENTLY SWITCHED — READ CAREFULLY ***\nThe player now plays "+rs.to+". Second-person narration ('you'/'your') refers to "+rs.to+" and ONLY "+rs.to+". "+rs.from+" is a resident of the village now — a person "+rs.to+" may meet in the street, at the tavern, or at "+rs.from+"'s own door — so describe "+rs.from+" in the third person by name, never as 'you'. The conversation history above was written while "+rs.from+" was the player character; do NOT let that mislead you into addressing "+rs.from+" as the protagonist. If the two are in the same place, the first beat is the ENCOUNTER — "+rs.to+" seeing "+rs.from+" as a person — never a resumption of "+rs.from+"'s scene. The protagonist is now "+rs.to+".\n\n";}}
+};

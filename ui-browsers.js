@@ -523,6 +523,22 @@ function _startImportedCampaign(char){
     startGame(char,tone.nm,tone.vc); // 3-arg on purpose: import flow has no author picker — campaign inherits the device default voice
   });
 }
+/* #6 THE VILLAGE — phase A: the DOM shell over importVillageResidents (game.js). Called from startGame for a kind that
+   populates from the library, BEFORE the opening scene; takes a continuation so the opening always follows. Signed out
+   or offline = a loud toast and an empty village, never a silent one. */
+function populateVillageFromLibrary(done){
+  var finish=function(){if(typeof done==="function")done();};
+  var sa=(typeof storageAdapter!=="undefined")?storageAdapter:null;
+  if(!sa||typeof sa.listCharacterLibrary!=="function"||!(typeof sa.isServerMode==="function"&&sa.isServerMode())||!(typeof sa.hasToken==="function"&&sa.hasToken())){showToast("⚠ The village is empty — sign in to move your library characters in.",7000);finish();return;}
+  sa.listCharacterLibrary(function(err,list){
+    if(err){showToast("⚠ Could not read the character library: "+String(err),7000);finish();return;}
+    var chars=(list||[]).map(function(e){return e&&e.character;}).filter(function(c){return !!c;});
+    var r=importVillageResidents(chars);
+    showToast(r.added?(r.added+" resident"+(r.added===1?"":"s")+" moved into the village."):"No new residents — the library is empty or everyone is already here.",5000);
+    if(typeof saveAll==="function")saveAll();
+    finish();
+  });
+}
 function _addImportedCompanion(char){
   if(!worldState){showToast("No active campaign to add companion to.");return;}
   // Check if already in party

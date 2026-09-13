@@ -54,6 +54,11 @@ function startGame(char,toneName,toneVoice,authorId){
   if(worldState.skeleton){
     // Blueprint provided a skeleton — skip generation, go straight to the adventure
     beginAdventure();
+  }else if(!kindDef().skeleton){
+    /* #6: a kind with no spine (the village) never forges one. If the kind populates from the library, the residents
+       move in BEFORE the opening scene so the GM's first turn sees them; the shell is DOM (ui-browsers.js) and takes
+       a continuation, so a signed-out player still gets the opening — with a loud toast that the village is empty. */
+    if(kindDef().populateFromLibrary&&typeof populateVillageFromLibrary==="function")populateVillageFromLibrary(beginAdventure);else beginAdventure();
   }else{
     // Generate the campaign skeleton, then open the adventure. If skeleton generation fails
     // (network, parse, bad provider), log it and start anyway — the game works without one.
@@ -1301,6 +1306,76 @@ function inheritVoicePins(sheet,wsNpc,prior){
   });
   return sheet;
 }
+/* #6 THE VILLAGE — phase A: residents. Every library character moves in as a NON-party NPC with a full sheet (a COPY —
+   the village never mutates the library object; the library is the source of truth and gets written back), a
+   memory.npcs entry, and a house node under the village keyed "<village>|<Name>'s house" that carries its owner. The
+   hero and anyone already on the roster are skipped, so re-import is idempotent. The party cap is never consulted:
+   residency is not membership (the panel's finding — "every saved character is a resident" and a four-slot party
+   collide unless residents live outside the party). Pure over worldState/memory; the DOM shell is
+   populateVillageFromLibrary (ui-browsers.js). */
+function importVillageResidents(list){
+  var added=0,skipped=[],i;if(!worldState||!(list instanceof Array))return {added:0,skipped:[]};
+  if(!worldState.npcs)worldState.npcs=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.npcs)memory.npcs={};
+  var here=(worldState.world&&worldState.world.location)||"The Village";
+  for(i=0;i<list.length;i++){var c=list[i];if(!c||!c.name)continue;var nm=String(c.name).trim();
+    if(worldState.character&&worldState.character.name===nm){skipped.push(nm);continue;}
+    if(wsNpcByName(nm)){skipped.push(nm);continue;}
+    var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
+    var pr=pronounsForGender(sheet.gender);
+    worldState.npcs.push({name:nm,status:"",statusTurn:0,rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet});/* portrait rides on charSheet only (#3 dedupe) */
+    if(!memory.npcs[nm])memory.npcs[nm]={attitude:"",knowledge:[],events:[],pronouns:pr};
+    var hk=villageHouseKey(nm);
+    if(!memory.map.nodes[hk])memory.map.nodes[hk]={firstVisit:null,visits:0,description:null,parent:here,npcs:[],items:[],size:"small",travelMins:null,owner:nm};
+    else if(!memory.map.nodes[hk].owner)memory.map.nodes[hk].owner=nm;
+    added++;
+  }
+  return {added:added,skipped:skipped};
+}
+/* #6 THE VILLAGE — phase A: the hero swap, PURE. Promotes a roster character with a sheet to the hero slot and demotes
+   the old hero where the kind says (kindDef().swapDemotesTo): "party" = the adventure shape that shipped (a companion
+   travelling with you, a GM handoff turn follows); "resident" = the village shape (a villager with their own house, never
+   in the party, no GM turn — the encounter is narrated on the player's next turn through the kind's switch-POV block).
+   ui-sheets.js _switchPlayerCharacter is the DOM shell: toast, panels, the handoff turn when the kind wants one, the
+   library write-back when the old hero became a resident. Returns {ok,from,to,handoff,demotedTo} or {ok:false,reason}. */
+function swapPlayerCharacter(name){
+  if(!worldState)return {ok:false,reason:"No active campaign."};
+  var npcIdx=-1,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name){npcIdx=i;break;}}
+  if(npcIdx<0)return {ok:false,reason:name+" is not in this campaign."};
+  var npc=worldState.npcs[npcIdx],newChar=npc.charSheet;
+  if(!newChar)return {ok:false,reason:name+" has no character sheet. Generate one first."};
+  var def=kindDef(),toResident=def.swapDemotesTo==="resident",oldChar=worldState.character,pr=pronounsForGender(oldChar.gender);
+  var oldNpc=toResident
+    ?{name:oldChar.name,status:"",statusTurn:0,rel:"resident",met:worldState.turn,partyMember:false,resident:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar}
+    :{name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar};/* portrait rides on charSheet only (#3 dedupe) */
+  worldState.npcs.splice(npcIdx,1);worldState.npcs.push(oldNpc);
+  newChar.portraitOffset=newChar.portraitOffset||npc.portraitOffset||{x:0.5,y:0.5,zoom:1};/* UA22: adopt the npc-wrapper framing the NPC sheet was showing */
+  worldState.character=newChar;
+  relationshipMigrateSheet(worldState.character,null);relationshipMigrateSheet(oldChar,oldChar.name);relationshipSwapOwners(newChar.name,oldChar.name);
+  delete worldState.activePC;/* TODO #1 P2: the heavy anchor swap resets the light display pointer — the new hero IS the spotlight */
+  worldState.recentSwitch={to:newChar.name,from:oldChar.name,turn:worldState.turn,kind:campaignKind()};/* buildSysPrompt re-injects the switch-POV block for ~2 turns; the kind picks the wording */
+  npcLinkUpsert(newChar.name,oldChar.name,toResident?"neighbours":"companions");
+  if(memory&&memory.npcs&&memory.npcs[oldChar.name])memory.npcs[oldChar.name].partyMember=!toResident;
+  return {ok:true,from:oldChar.name,to:newChar.name,handoff:!!def.swapHandoff,demotedTo:def.swapDemotesTo};
+}
+/* #6 THE VILLAGE — phase A: the library write-back. The library is the source of truth; a sheet that changed in the
+   village (a swap demoted it, or the hero is leaving for another campaign) goes back through the same endpoint the
+   character browser uses. Loud both ways: a receipt toast on success, a NAMED refusal (offline, signed out, no adapter,
+   server error) on failure — never silence, never a throw. Returns {status:"requested"} or {status:"refused",reason}. */
+function villageWriteBack(sheet,cb){
+  var nm=sheet&&sheet.name;
+  function refuse(reason){console.warn("[village] library write-back refused for "+(nm||"?")+": "+reason);if(typeof showToast==="function")showToast("⚠ "+(nm||"The character")+" was NOT saved to the library — "+reason,6000);if(typeof cb==="function")cb({ok:false,reason:reason});return {status:"refused",reason:reason};}
+  if(!sheet||!nm)return refuse("no character sheet");
+  if(typeof storageAdapter==="undefined"||!storageAdapter||typeof storageAdapter.saveCharacterToLibrary!=="function")return refuse("no server connection in this build");
+  if(!(typeof storageAdapter.isServerMode==="function"&&storageAdapter.isServerMode())||!(typeof storageAdapter.hasToken==="function"&&storageAdapter.hasToken()))return refuse("not signed in to the server");
+  try{
+    storageAdapter.saveCharacterToLibrary(sheet,function(err,res){
+      if(err){console.warn("[village] library write-back failed for "+nm+": "+String(err));if(typeof showToast==="function")showToast("⚠ "+nm+" was NOT saved to the library — "+String(err),6000);if(typeof cb==="function")cb({ok:false,reason:String(err)});return;}
+      if(typeof showToast==="function")showToast("✓ "+nm+" saved to the library.",3500);
+      if(typeof cb==="function")cb({ok:true,res:res});
+    });
+  }catch(e){return refuse((e&&e.message)||"exception");}
+  return {status:"requested",name:nm};
+}
 function attachCompanionSheet(npcName,sheet){
   var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet)return null;
@@ -2502,7 +2577,8 @@ function normalizeBlueprint(bp){
   if(typeof bp.premise!=="string")bp.premise=bp.premise==null?"":String(bp.premise);
   if(typeof bp.startingLocation!=="string")bp.startingLocation="";
   if(typeof bp.startingRegion!=="string")bp.startingRegion="";
-  if(typeof bp.startingTime!=="string")bp.startingTime="";/* #354: optional opening time "HH:MM" (blank = the wizard preset / dawn) */
+  if(typeof bp.startingTime!=="string")bp.startingTime="";
+  bp.kind=(typeof CAMPAIGN_KINDS!=="undefined"&&typeof bp.kind==="string"&&CAMPAIGN_KINDS[bp.kind])?bp.kind:"adventure";/* #6: a known kind or the default — never a junk value *//* #354: optional opening time "HH:MM" (blank = the wizard preset / dawn) */
   if(!Array.isArray(bp.acts))bp.acts=[];
   // Every act needs an arcs array (audit E19) — applyBlueprint iterates act.arcs unconditionally,
   // and the cloud-library path skips validateBlueprint, so a missing arcs crashed startGame.
@@ -2669,6 +2745,7 @@ function splitNpcStatBlock(text){
   return {bio:bio,stats:stats};
 }
 function applyBlueprint(bp){
+  if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind])worldState.kind=bp.kind;/* #6: only a non-default kind is stamped — adventure saves stay byte-identical */
   /* #192: persist the class roster into worldState as COPIES (a reused bp object must never be
      able to mutate canon later); the classDefs overlay + classAvailable read these from here on,
      and both ride the sync blob like any worldState field. Absent = unrestricted / no customs. */

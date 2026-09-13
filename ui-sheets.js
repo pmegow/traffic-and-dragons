@@ -662,40 +662,23 @@ function showNpcSheet(name){
 }
 function _switchPlayerCharacter(name){
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23 — a mid-flight swap mis-targets the response's tags and drops the handoff message
-  // Find the NPC and their charSheet
-  var npcIdx=-1,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name){npcIdx=i;break;}}
-  if(npcIdx<0){showToast("Companion not found.");return;}
-  var npc=worldState.npcs[npcIdx];
-  var newChar=npc.charSheet;
-  if(!newChar){showToast(name+" has no character sheet. Generate one first.");return;}
-  // Demote current player character to companion NPC
-  var oldChar=worldState.character;
-  var oldNpc={name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(oldChar.gender),portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar}; // portrait rides on charSheet only (#3 dedupe); carry the framing (audit E60)
-  // Swap
-  worldState.npcs.splice(npcIdx,1);         // remove new char from npcs
-  worldState.npcs.push(oldNpc);             // add old char as npc
-  newChar.portraitOffset=newChar.portraitOffset||npc.portraitOffset||{x:0.5,y:0.5,zoom:1};/* UA22: adopt the npc-wrapper framing the NPC sheet was showing (npcGetOff's E60 fallback, mirrored) — else a promotion silently resets it to center */
-  worldState.character=newChar;
-  relationshipMigrateSheet(worldState.character,null);relationshipMigrateSheet(oldChar,oldChar.name);relationshipSwapOwners(newChar.name,oldChar.name);
-  delete worldState.activePC;/* TODO #1 P2: the heavy anchor swap resets the light display pointer — the new hero IS the spotlight */
-  // Mark the switch so buildSysPrompt re-injects a forceful POV-reassignment block for
-  // the next couple of turns — the sessionLog is full of the OLD character as "you", and a
-  // single handoff line can't overpower that momentum. Cleared in sendAction after ~2 turns.
-  worldState.recentSwitch={to:newChar.name,from:oldChar.name,turn:worldState.turn};
-  // Update knowledge graph link
-  npcLinkUpsert(newChar.name,oldChar.name,"companions");
-  // The swap re-homes portraits (PC<->companion) WITHOUT calling a portrait setter, so
-  // the dirty flag stays false and the separate /portrait upload would be skipped mid-session
-  // (_portraitSyncedOnce). Result: the server's portrait store keeps the pre-swap mapping and a
-  // second device loads cross-wired portraits (new PC shows old PC's image). Mark dirty so the
-  // next sync re-uploads {portrait: new PC, npcPortraits: {old PC: ...}}.
+  /* #6 (phase A): the swap itself is the pure swapPlayerCharacter (game.js) — this is the DOM shell. The kind decides
+     where the old hero goes and whether a GM handoff turn follows; a village demotion writes the sheet back to the library. */
+  var r=swapPlayerCharacter(name);
+  if(!r||!r.ok){showToast((r&&r.reason)||"Switch failed.");return;}
+  // The swap re-homes portraits (PC<->companion) WITHOUT calling a portrait setter, so the dirty flag stays false and
+  // the separate /portrait upload would be skipped mid-session (_portraitSyncedOnce). Mark dirty so the next sync
+  // re-uploads {portrait: new PC, npcPortraits: {old PC: ...}}.
   if(typeof storageAdapter!=="undefined"&&storageAdapter.markPortraitDirty)storageAdapter.markPortraitDirty();
   saveAll();syncUI();initAbilities();initSpells();
   showToast("Now playing as "+name+".");
-  // Forceful, explicit control-reassignment directive — sent silently (it's out-of-character,
-  // not a player action). The old handoff ("steps into the lead") read as narrative flavor and
-  // never told the GM that the second-person referent had changed.
-  var handoff="[CONTROL SWITCH — out-of-character instruction, NOT a player action] The player now controls "+newChar.name+". From this moment on, the player character IS "+newChar.name+": every second-person reference ('you', 'your') means "+newChar.name+", a "+(newChar.subraceNm?newChar.subraceNm+" ":"")+(newChar.ancestry||"")+" "+(newChar.cls||"")+". "+oldChar.name+" is now a non-player companion travelling with the party — refer to "+oldChar.name+" in the THIRD person by name, never as 'you'. The earlier story was told with "+oldChar.name+" as the player; that has changed. Give ONE brief in-world beat acknowledging "+newChar.name+" taking the lead, then continue the scene from "+newChar.name+"'s eyes.";
+  if(r.demotedTo==="resident"&&typeof villageWriteBack==="function"){var _old=wsNpcByName(r.from);if(_old&&_old.charSheet)villageWriteBack(_old.charSheet);}
+  if(!r.handoff)return;/* the village swap is free — the encounter rides the kind's switch-POV block on the next player turn */
+  var newChar=worldState.character;
+  // Forceful, explicit control-reassignment directive — sent silently (it's out-of-character, not a player action).
+  // The old handoff ("steps into the lead") read as narrative flavor and never told the GM that the second-person
+  // referent had changed.
+  var handoff="[CONTROL SWITCH — out-of-character instruction, NOT a player action] The player now controls "+r.to+". From this moment on, the player character IS "+r.to+": every second-person reference ('you', 'your') means "+r.to+", a "+(newChar.subraceNm?newChar.subraceNm+" ":"")+(newChar.ancestry||"")+" "+(newChar.cls||"")+". "+r.from+" is now a non-player companion travelling with the party — refer to "+r.from+" in the THIRD person by name, never as 'you'. The earlier story was told with "+r.from+" as the player; that has changed. Give ONE brief in-world beat acknowledging "+r.to+" taking the lead, then continue the scene from "+r.to+"'s eyes.";
   sendAction(handoff,{silent:true});
 }
 // Read-only character-sheet viewer — renders any character object (e.g. a library snapshot)
