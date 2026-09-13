@@ -378,6 +378,13 @@ function _mgPreImageWs(n){
   if(c.charSheet&&typeof c.charSheet.portrait==="string"&&c.charSheet.portrait.length>256)c.charSheet.portrait={portraitOmitted:true,bytes:c.charSheet.portrait.length};
   return c;
 }
+/* #6 phase B — THE PEACE OF PAX (owner, 2026-09-12): the no-danger rule is symmetric — it protects the residents from the
+   player as much as the player from the world. ONE helper; the three harm handlers that a loose tag can reach (HP loss,
+   companion HP loss, a reported NPC death) call it first; a scene DEATH always travels in a canon envelope, and the
+   envelope is refused at the W2 gate in identity.js (w2PrepareResponse) before evidence — a loose [SCENE_DEATH:] is
+   already dropped by that pre-pass, so no handler gate is needed there. Loud: the mutation log names the goddess for the player, the console warns,
+   and the tag doc (tagDocNote) tells the GM the tags are refused. Healing is not harm and always lands. */
+function __villageHarmRefused(R,label,sample){if(typeof kindDef!=="function"||!kindDef().noHarm)return false;R.muts.push("Harm refused — "+kindDef().harmRefusal);if(typeof console!=="undefined")console.warn("[tags] "+label+" refused in the village (Pax): "+sample);return true;}
 function __tagNearMiss(text,R,name,strictSrc,shape){
   var all=String(text||"").match(new RegExp("\\["+name+":[^\\]]*\\]","g"))||[],i,strict=new RegExp(strictSrc);
   for(i=0;i<all.length;i++){
@@ -399,6 +406,7 @@ function skillSuccessApply(sheet,rawId,R,who,tagName){
 }
 var TAG_TABLE=[
 {t:"HP",apply:function(text,R){var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];if(!hpTags.length)return;
+  hpTags=hpTags.filter(function(h){var d=parseInt((h.match(/\[HP:\s*([+-]?\d+)/)||[])[1],10);return !(d<0&&__villageHarmRefused(R,"HP",h));});if(!hpTags.length)return;/* Pax: a loss is refused, a heal lands */
   // UA8: a save that escaped migration can carry non-finite hp/maxHp — the clamp math below
   // would then poison hp to NaN permanently. Heal with migrateWorldState's exact semantics
   // (maxHp FIRST — audit E71), loudly.
@@ -683,7 +691,7 @@ var TAG_TABLE=[
    a never-registered victim (the t1837 Vess class had no path to record its own murder victim).
    Emit OUTSIDE canon envelopes; owed rewards ride a NEW envelope afterwards via the
    dead-in-canon closing-bookkeeping path. */
-{t:"NPC_DEATH_REPORTED",apply:function(text,R){var rdTags=text.match(/\[NPC_DEATH_REPORTED:([^|\]]+)(?:\|([^\]]*))?\]/g)||[],rdi;for(rdi=0;rdi<rdTags.length;rdi++){
+{t:"NPC_DEATH_REPORTED",apply:function(text,R){var rdTags=text.match(/\[NPC_DEATH_REPORTED:([^|\]]+)(?:\|([^\]]*))?\]/g)||[],rdi;if(rdTags.length&&__villageHarmRefused(R,"NPC_DEATH_REPORTED",rdTags[0]))return;/* Pax */for(rdi=0;rdi<rdTags.length;rdi++){
   var rdm=rdTags[rdi].match(/\[NPC_DEATH_REPORTED:([^|\]]+)(?:\|([^\]]*))?\]/);if(!rdm)continue;
   var rdRaw=rdm[1].trim(),rdSrc=(rdm[2]||"").trim()||"unspecified report";
   var rdName=resolveNpcName(rdRaw);
@@ -1446,7 +1454,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   R.muts.push(psName+" splits off to "+psArg+(psSub?" ("+psSub+")":""));
   if(psToastWorthy&&typeof showToast==="function")showToast("⇢ "+psName+" splits from the party — "+psArg+(psSub?" · "+psSub:""));/* #189 — transition-gated */
 }}},
-{t:"COMPANION_HP",apply:function(text,R){var cHpTags=text.match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/g)||[];var cHpi;for(cHpi=0;cHpi<cHpTags.length;cHpi++){var cHpm=cHpTags[cHpi].match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/);if(!cHpm)continue;var cHpCs=findCompanionChar(cHpm[1]);if(!cHpCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cHpm[1].trim()+"' — companion tag dropped (#136③)");continue;}var cHpdv=parseInt(cHpm[2]);cHpCs.hp=Math.min(cHpCs.maxHp||cHpCs.hp,Math.max(0,cHpCs.hp+cHpdv));R.muts.push(cHpm[1].trim()+(cHpdv>0?" healed ":" took ")+Math.abs(cHpdv)+" HP");}}},
+{t:"COMPANION_HP",apply:function(text,R){var cHpTags=text.match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/g)||[];var cHpi;for(cHpi=0;cHpi<cHpTags.length;cHpi++){var cHpm=cHpTags[cHpi].match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/);if(!cHpm)continue;if(parseInt(cHpm[2],10)<0&&__villageHarmRefused(R,"COMPANION_HP",cHpTags[cHpi]))continue;/* Pax */var cHpCs=findCompanionChar(cHpm[1]);if(!cHpCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cHpm[1].trim()+"' — companion tag dropped (#136③)");continue;}var cHpdv=parseInt(cHpm[2]);cHpCs.hp=Math.min(cHpCs.maxHp||cHpCs.hp,Math.max(0,cHpCs.hp+cHpdv));R.muts.push(cHpm[1].trim()+(cHpdv>0?" healed ":" took ")+Math.abs(cHpdv)+" HP");}}},
 {t:"COMPANION_ITEM_GAINED",apply:function(text,R){var cIgTags=text.match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[],cIgCounts={},cIgi;for(cIgi=0;cIgi<cIgTags.length;cIgi++){var c0=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);if(c0){var ck0=c0[1].trim()+"|"+itemBaseName(c0[2]);cIgCounts[ck0]=(cIgCounts[ck0]||0)+1;}}for(cIgi=0;cIgi<cIgTags.length;cIgi++){var cIgm=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);if(!cIgm)continue;var cOwner=cIgm[1].trim(),cIgCs=findCompanionChar(cOwner);if(!cIgCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cOwner+"' — companion tag dropped (#136③)");continue;}if(!cIgCs.inventory)cIgCs.inventory=[];duplicateItemGrantWarning(cIgCs.inventory,cIgm[2].trim(),cIgCounts[cOwner+"|"+itemBaseName(cIgm[2])],cOwner,R,text);addInventoryItem(cIgCs.inventory,cIgm[2].trim());R.muts.push(cOwner+": +"+cIgm[2].trim());}}},
 {t:"COMPANION_ITEM_LOST",apply:function(text,R){var cIlTags=text.match(/\[COMPANION_ITEM_LOST:([^|\]]+)\|([^\]]+)\]/g)||[];var cIli;for(cIli=0;cIli<cIlTags.length;cIli++){var cIlm=cIlTags[cIli].match(/\[COMPANION_ITEM_LOST:([^|\]]+)\|([^\]]+)\]/);if(!cIlm)continue;var cIlCs=findCompanionChar(cIlm[1]);if(!cIlCs||!cIlCs.inventory){if(typeof console!=="undefined")console.warn("[tags] no party member (with inventory) matches '"+cIlm[1].trim()+"' — companion tag dropped (#136③)");continue;}if(removeInventoryItem(cIlCs.inventory,cIlm[2].trim())){R.muts.push(cIlm[1].trim()+": -"+cIlm[2].trim());_clearConsumablePending(cIlm[1].trim(),cIlm[2].trim());if(typeof wornPrune==="function")wornPrune(cIlCs);/* #388 */}else if(typeof console!=="undefined")console.warn("[tags] COMPANION_ITEM_LOST: '"+cIlm[2].trim()+"' not in "+cIlm[1].trim()+"'s inventory — no receipt (#136⑤)");}}},
 // #60b: companion form of ITEM_KEPT — same confirmed-negative latch, keyed by owner.

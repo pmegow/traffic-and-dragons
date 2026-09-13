@@ -38,6 +38,15 @@ resting.
   logged.
 - A village chapter prompt: who was seen, what was said, what was decided (the era prompt asks for plot
   movements the village never produces).
+- **The peace of Pax (owner, 2026-09-12).** The no-danger rule is symmetric: it protects the residents from the
+  player as much as the player from the world. The settlement is under the protection of Pax, goddess of peace — no
+  harm may befall those within its borders, nor be perpetrated by them. If the player attempts violence, theft or
+  cruelty, Pax's peace intercedes in the fiction (the blow does not land, the hand is stayed) — never punished, never a
+  fight. In the engine the harm tags (hero and companion HP loss, a scene death, a reported NPC death) are refused
+  loudly like combat; healing always lands. A death ENVELOPE ([CANON_TXN_BEGIN … npc-death …]) is refused at the one W2
+  gate every death passes, before evidence and before plot armor, with the reason "the peace of Pax: …" carried in the
+  #213 refusal registry and its player copy ("no one in the village can be harmed or killed, so nothing happened").
+- **Whispers are about anyone here (owner, 2026-09-12)** — the player, or a resident's own past — never only the party.
 
 ## C. Arrival and return
 

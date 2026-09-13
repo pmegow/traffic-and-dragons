@@ -23228,6 +23228,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!infos.some(function(x){return /montage/i.test(x)&&/village/i.test(x);}))return "the village must LOG that the montage would have been due (off in v1, measured)";
     return true;
   });
+  t("#6B PAX — the peace is symmetric: in the village a harm tag against ANYONE is refused loudly (hero HP loss, a companion's HP loss, a scene death, a reported NPC death), healing still lands, the DRIVE rule and the tag doc name the goddess and the intercession; the adventure is unchanged",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";var c=worldState.character;c.hp=14;c.maxHp=14;
+    importVillageResidents([{name:"Ammut",gender:"F",cls:"Fighter",hp:20,maxHp:20}]);
+    var warns=[],oc=console.warn;console.warn=function(m){warns.push(String(m));};var r;
+    try{r=applyMuts("You strike. [HP:-5]");}finally{console.warn=oc;}
+    if(c.hp!==14)return "hero HP fell in the village: "+c.hp;
+    if(!(r.muts||[]).some(function(m){return /refused/i.test(m)&&/Pax/i.test(m);}))return "the mutation log must name Pax's refusal: "+JSON.stringify(r.muts);
+    if(!warns.some(function(w){return /HP/.test(w)&&/village|Pax/i.test(w);}))return "console must warn on a refused harm tag";
+    c.hp=9;applyMuts("The healer binds it. [HP:+3]");if(c.hp!==12)return "healing must still land in the village: "+c.hp;
+    worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];
+    applyMuts("Ammut falls. [CANON_TXN_BEGIN:ammut_dies|npc-death|Ammut|-|-][SCENE_DEATH:Ammut][CANON_TXN_END:ammut_dies]");var am=wsNpcByName("Ammut");if(!am||npcIsDead(am))return "a scene death landed in the village";
+    var tx=(worldState.canonTxns||[]).filter(function(t){return t.id==="ammut_dies";})[0];if(!tx||tx.status!=="quarantined"||!/Pax/.test(String(tx.reason||"")))return "a death envelope must be quarantined under Pax at the ONE death gate: "+JSON.stringify(tx);
+    if(w2RefusalCopy(tx.reason)===W2_REFUSAL_FALLBACK)return "the Pax refusal needs player-facing copy (the #213 registry)";
+    var rr=applyMuts("They say Ammut is dead. [NPC_DEATH_REPORTED:Ammut|a rumour]");am=wsNpcByName("Ammut");if(!am||npcIsDead(am)||/dead/i.test(String(am.status||"")))return "a reported death landed in the village: "+JSON.stringify(am);
+    if(!(rr.muts||[]).some(function(m){return /Harm refused/.test(m);}))return "a reported death must be REFUSED by name: "+JSON.stringify(rr.muts);
+    var rules=getRulesBlock();if(!/Pax/i.test(rules)||!/goddess of peace/i.test(rules)||!/intercede/i.test(rules))return "the village DRIVE rule must name Pax and the intercession";
+    if(!/nor (may any )?be (done|perpetrated)|nor may any/i.test(rules))return "the rule must forbid harm BY the player as well as TO the player";
+    var doc=buildStateTagsDoc();if(!/Pax/i.test(doc)||!/HP/.test(doc.slice(doc.indexOf("THE VILLAGE"))))return "the village tag doc must tell the GM the harm tags are refused under Pax";
+    makeWorld();delete worldState.kind;worldState.character.hp=14;worldState.character.maxHp=14;applyMuts("[HP:-5]");if(worldState.character.hp!==9)return "the adventure must still take damage";
+    if(/Pax/i.test(getRulesBlock())||/Pax/i.test(buildStateTagsDoc()))return "Pax leaked into the adventure prompt";
+    return true;
+  });
+  t("#6B village whispers are about ANYONE here: the village framing says so and drops 'about the party'; the adventure framing is unchanged",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation="The tavern";worldState.turn=40;delete worldState.whisperAsk;
+    if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.map.nodes["The Village"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"small"};
+    importVillageResidents([{name:"Ammut",gender:"F",cls:"Fighter",coreMemories:[{kind:"ending",text:"Ammut broke the runelord's crown on the last stair."}]}]);memory.npcs["Ammut"].lastSeenAt="The Village|The tavern";
+    var note=buildWhispersNote();if(!note)return "fixture: no village whisper";
+    if(/about the party/.test(note))return "the village framing still points the rumour at the party";
+    if(!/anyone here/i.test(note))return "the village framing must invite a rumour about anyone here: "+note.slice(0,220);
+    makeWorld();delete worldState.kind;worldState.turn=40;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"medium"};
+    memory.keyDecisions=[{turn:30,desc:"Spared the raider captain"}];worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
+    var adv=buildWhispersNote();return /about the party/.test(adv)?true:"the adventure whisper framing changed: "+adv.slice(0,200);
+  });
   t("#6B the chapter prompt has a village note: the kind carries a chapter clause (who was seen, what was said, what was decided) and summarize() appends it through the kind — the adventure chapter description is unchanged",function(){
     if(!CAMPAIGN_KINDS.village.chapterNote||!/seen/.test(CAMPAIGN_KINDS.village.chapterNote)||!/said/.test(CAMPAIGN_KINDS.village.chapterNote)||!/decided/.test(CAMPAIGN_KINDS.village.chapterNote))return "the village chapter note must record who was seen, what was said, what was decided";
     if(CAMPAIGN_KINDS.adventure.chapterNote)return "the adventure kind carries no chapter note (byte-identical prompt)";

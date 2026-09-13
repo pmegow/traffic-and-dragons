@@ -37,7 +37,30 @@ prove("tag_table.js", [
     mustFail: "#6B combat is refused in the village" },
   { label: "the STATE TAGS doc drops the village line",
     find: '+((typeof kindDef==="function"&&kindDef().tagDocNote)||"")', replace: '+""',
-    mustFail: "#6B combat is refused in the village" }
+    mustFail: "#6B combat is refused in the village" },
+  /* the peace of Pax (owner, 2026-09-12) */
+  { label: "Pax never intercedes — the harm helper always says no refusal",
+    find: 'function __villageHarmRefused(R,label,sample){if(typeof kindDef!=="function"||!kindDef().noHarm)return false;', replace: 'function __villageHarmRefused(R,label,sample){if(true)return false;',
+    mustFail: "#6B PAX" },
+  { label: "the refusal is silent (no mutation-log line for the player)",
+    find: 'R.muts.push("Harm refused — "+kindDef().harmRefusal);if(typeof console!=="undefined")console.warn("[tags] "+label+" refused in the village (Pax): "+sample);return true;', replace: 'return true;',
+    mustFail: "#6B PAX" },
+  { label: "hero HP loss lands in the village (the HP gate is removed)",
+    find: 'return !(d<0&&__villageHarmRefused(R,"HP",h));', replace: 'return true;',
+    mustFail: "#6B PAX" },
+  { label: "a reported NPC death is not refused in the village",
+    find: 'if(rdTags.length&&__villageHarmRefused(R,"NPC_DEATH_REPORTED",rdTags[0]))return;', replace: '',
+    mustFail: "#6B PAX" }
+]);
+prove("identity.js", [
+  { label: "a death envelope passes the W2 gate in the village",
+    find: 'else if(meta.claim==="npc-death"&&typeof kindDef==="function"&&kindDef().noHarm)reason="the peace of Pax: "+kindDef().harmRefusal;', replace: '',
+    mustFail: "#6B PAX" }
+]);
+prove("api.js", [
+  { label: "village whispers stay pointed at the party",
+    find: '((_wpool&&typeof kindDef==="function"&&kindDef().whisperSubject)||"what is said about the party — ")', replace: '"what is said about the party — "',
+    mustFail: "#6B village whispers are about ANYONE here" }
 ]);
 prove("game.js", [
   { label: "the montage rung ignores the kind",

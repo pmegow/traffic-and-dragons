@@ -1313,6 +1313,7 @@ var _w2RefusedNow=[];
    (dev/run-tests.js) fails the build when a listed reason falls through to the generic
    fallback or when identity.js passes _w2Conflict a reason this list does not carry. */
 var W2_REFUSAL_REASONS=[
+  "the peace of Pax: ",/* #6 — the village kind refuses every death envelope; copy: Pax intercedes, no one here can die */
   "plot armor: ",/* #319 — "plot armor: <name> is load-bearing until Act N … and cannot die yet"; a story beat, copy: they got away */
   "named death has no prior positive scene binding",
   "registered combat foe lacks a prior positive scene binding",
@@ -1350,6 +1351,8 @@ var W2_REFUSAL_REASONS=[
 ];
 var W2_REFUSAL_FALLBACK="the GM's account of that scene did not add up";
 var W2_REFUSAL_COPY=[
+  {match:/peace of Pax/i,/* #6 — the village: a story beat, not a mix-up */
+   copy:"the peace of Pax holds here — no one in the village can be harmed or killed, so nothing happened"},
   {match:/plot armor/i,/* #319 — first: a refused death of a load-bearing character is a story beat, not a mix-up */
    copy:"they are load-bearing to the story and cannot die yet \u2014 they got away"},
   {match:/overflow latch|fail closed until a structured summary/i,
@@ -1493,7 +1496,7 @@ function w2PrepareResponse(text){
   var ordinary=text,txns=[],planned={},re=/\[CANON_TXN_BEGIN:([^\]]+)\]([\s\S]*?)\[CANON_TXN_END:([^\]]+)\]/g,m;
   while((m=re.exec(text))){
     ordinary=ordinary.replace(m[0],"");var p=m[1].split("|"),meta={id:(p[0]||"").trim(),claim:(p[1]||"").trim(),subject:(p[2]||"").trim(),evidence:(p[3]||"").trim(),quest:(p[4]||"").trim()},ops=_w2Tags(m[2]),reason="",existing=_w2TxnFind(meta.id),prior=planned[meta.id]||existing,i;
-    if(p.length!==5||!meta.id||m[3].trim()!==meta.id)reason="malformed or mismatched transaction envelope";else if(meta.claim!=="npc-death"&&meta.claim!=="quest-outcome")reason="unsupported canon claim type";else if(prior&&prior.status==="quarantined")reason="claim id was already quarantined";else if(prior&&!_w2TxnMetaSame(prior,meta))reason="claim id was reused with different metadata";
+    if(p.length!==5||!meta.id||m[3].trim()!==meta.id)reason="malformed or mismatched transaction envelope";else if(meta.claim!=="npc-death"&&meta.claim!=="quest-outcome")reason="unsupported canon claim type";else if(prior&&prior.status==="quarantined")reason="claim id was already quarantined";else if(prior&&!_w2TxnMetaSame(prior,meta))reason="claim id was reused with different metadata";else if(meta.claim==="npc-death"&&typeof kindDef==="function"&&kindDef().noHarm)reason="the peace of Pax: "+kindDef().harmRefusal;/* #6 phase B (owner, 2026-09-12): a death envelope in the village is refused at the ONE gate every death passes — before evidence, before plot armor */
     var _part=null;
     if(!reason){_part=_w2TxnPartition(meta,ops);if(_part.reason)reason=_part.reason;else{ops=_part.gov;if(_part.eject.length){ordinary+="\n"+_part.eject.join("");meta.ejected=_part.eject.map(_w2TagName);if(typeof console!=="undefined")console.warn("[identity] "+_part.eject.length+" incidental tag(s) ejected from canon claim "+meta.id+" and applied as ordinary tags: "+meta.ejected.join(", ")+" (#175 — one stray tag must never void a death and its rewards)");}}}
     if(!reason&&meta.claim==="npc-death"&&typeof plotArmor==="function"){/* #319: the load-bearing gate sits BEFORE evidence — a well-evidenced death of an armored NPC is still refused, and the envelope's rewards with it */
