@@ -197,7 +197,9 @@ function locFoldNodeRecords(canonNode,dupNode,canonLabel){
     var seen=false;
     for(j=0;j<canonNode.items.length;j++){if(String(canonNode.items[j].name).toLowerCase()===String(di[i].name).toLowerCase()){seen=true;break;}}
     if(!seen)canonNode.items.push(di[i]);
+    else if(di[i].qty!==undefined||canonNode.items[j].qty!==undefined){/* #6 E7: stash rows sum — a merge never loses a chest */var _ci=canonNode.items[j];if(!di[i].taken&&di[i].qty!==0){var _sum=(_ci.taken||_ci.qty===0?0:(_ci.qty||1))+(di[i].qty||1);_ci.qty=_sum;_ci.taken=false;}}
   }
+  if(!canonNode.owner&&dupNode.owner)canonNode.owner=dupNode.owner;/* #6 E7: a house keeps its owner through a merge */
   var ds=dupNode.stateNotes||[];
   if(ds.length){ /* chronological under LOC_STATE_CAP; overflow evicts OLDEST to the archive, loudly */
     canonNode.stateNotes=(canonNode.stateNotes||[]).concat(ds);

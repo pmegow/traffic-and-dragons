@@ -68,6 +68,8 @@ resting.
 
 ## E. Houses and the stash
 
+**Built v1.913 (2026-09-12)** — every list-I line E1–E9 is a green assertion; `dev/sabotage-6-village-stash.js` proves the guards. The Car Mode full-room listening test stays on the live checklist.
+
 - Per-house nodes with an owner; items carry quantity or instance keys and a turn/provenance stamp; a
   placement at a missing node is refused loudly, never dropped.
 - In village kind `taken` is refused outright (the tag carries no actor) and the `[ITEM_GAINED:]`
@@ -79,6 +81,8 @@ resting.
   residents before shipping.
 
 ## F. Shops
+
+**Built v1.913 (2026-09-12)** — every list-I line F1–F7 is a green assertion, plus three found by the live shop turns the same day: F8 a leave-then-arrive response ends at the arrival (text order), F9 a refused trade is TOLD to the GM next turn (`buildTradeRefusedNudge`), F10 the gate judges the response's own arrival and speakers. Live receipt t11: the note fired, the GM re-filed the tavern, wares landed on the shop node, the button read "Buy the Honeyed barley (3 sp) from Frizwick." The shop-ness vocabulary is data on the kind (`shopWords`/`hallWords`); a blueprint may also flag a sub-location `shop:true` once sub-locations reach the blueprint schema (not yet).
 
 - Wares scoped to the shop sub-location with a per-shop cap and a loud eviction (today: one
   settlement-wide list of 2–6, evicted silently).
@@ -105,13 +109,62 @@ resting.
 
 ## I. Pre-build failing tests
 
-- Permanence: two same-named items stay two; an item files to the house named, not where the hero stands;
-  a missing node refuses loudly; owner on the node; the auto-take path gated; wares survive one per shop; a
-  node merge keeps the chest.
-- Three swaps in ten turns with the person-drift check; the fourth button non-null on a full-HP,
-  zero-gold, zero-quest state.
-- Twenty-turn runs counting GM-invented threats, words per turn, refusals, unprompted resident actions and
-  companion-initiative filings.
+Written 2026-09-12 after the first live check ([AUDIT_village_livecheck_v1912.md](AUDIT_village_livecheck_v1912.md)); each
+line is ONE `t(...)` in `dev/engine-tests.js` under the section `#6 the village — phase E/F`, red before the code lands,
+and every guard it pins gets a case in `dev/sabotage-6-village-stash.js`. Adventure stays byte-identical on the prompt
+and unchanged on the ladder: every test that adds a village behaviour also asserts the adventure path did not move.
+
+**E — houses and the stash**
+
+- **E1 Permanence, two stay two.** In the village `[LOCATION_ITEM:Lantern|placed]` twice leaves ONE row with `qty:2` and
+  a provenance stamp (`placed` turn, `by` the hero, `min` the clock); the adventure keeps its toggle semantics (a re-placed
+  item flips `taken` back, no `qty`).
+- **E2 Files to the house named.** `[LOCATION_ITEM:Lantern|placed|Frizwick's house]` lands on `The Village|Frizwick's house`
+  while the hero stands in the tavern; the near-miss guard accepts the third operand; the STATE TAGS doc teaches it in the
+  village line.
+- **E3 A missing node refuses loudly.** A placement naming a place that is not on the map mutates nothing, puts a named
+  refusal in the mutation log and warns on the console — never a silent drop (all kinds).
+- **E4 `taken` has no actor.** In the village `[LOCATION_ITEM:x|taken]` is refused loudly and the stash keeps the item; the
+  adventure still marks it taken.
+- **E5 The auto-take path is gated.** `[ITEM_GAINED:x]` in the village auto-takes from the stash ONLY when the node's owner
+  is the hero (or the node has no owner); from another resident's house the stash keeps the item and the log says whose
+  house it is. Adventure auto-take is unchanged.
+- **E6 Owner on the node, on every path.** `importVillageResidents` AND the swap's resident demotion both mint
+  `<village>|<Name>'s house` with `owner` (the live check found the swap did not).
+- **E7 A node merge keeps the chest.** `locMerge` of two houses sums same-named `qty` instead of collapsing twins and keeps
+  the owner (the canonical's, else the duplicate's).
+- **E8 The stash is SEEN.** `villageStash(key)` (pure) lists rows with qty and provenance; the geography block carries
+  `STASH here` for the active node and a `YOUR HOUSE` line when the hero is elsewhere; the inventory panel's grouped view
+  gets a `Your house` group over the same pure function; the adventure geo block is byte-identical.
+- **E9 Car Mode undo.** `parseCarCommand("never mind")` → `{kind:"undoItem"}`; `undoLastItemMove()` reverses the last
+  placement or take recorded in `worldState.lastItemMove`, once, and reports when there is nothing to undo.
+
+**F — shops**
+
+- **F1 A shop is a place, decided by data.** `isShopNode(key,node)`: village only, a sub-location with no owner that is not
+  the Hall, matched by the kind's `shopWords` (tavern, smithy, trading post, alchemist, healer, guild, yard…) or
+  `node.shop`; a house and the Hall are never shops; the adventure never has shop nodes.
+- **F2 Wares live on the shop.** In the village `[WARES:]` files on the shop sub-location node (not the settlement), with
+  `WARES_CAP_SHOP` per shop and a LOUD eviction (mutation log + console); a `[WARES:]` emitted outside a shop is refused
+  by name. Adventure wares stay on the world node with the size cap.
+- **F3 Restock on the clock, per shop.** A ware older than `WARES_RESTOCK_DAYS` is not served from that shop; the market
+  ask (`buildMarketNote`) and the `FOR SALE HERE` line read the shop node in the village and fire per shop.
+- **F4 Prices pinned.** A village ware with a bible value is recorded at the bible value (the quote noted beside it); a
+  re-stated ware with no canon keeps its first quote. Adventure prices stay as narrated (the band warning only).
+- **F5 Trade only in a shop, with a counterparty.** In the village `[GOLD:±N]` lands only when the hero stands in a shop
+  sub-location with a present, living, non-party NPC; otherwise it is refused by name and an `[ITEM_GAINED:]`/
+  `[ITEM_LOST:]` riding the same response is refused with it. The Hall, the street and a house refuse. Adventure gold is
+  untouched.
+- **F6 The fourth button names both parties.** The village buy rung reads `Buy the X (price) from Y.` and fires only in a
+  shop with a keeper present; a village-only sell rung offers `Sell your X to Y (offer).` when the shop's WANTED row names
+  an item the hero carries; the adventure ladder is byte-identical (no sell rung, same buy text).
+- **F7 Suggestions obey the same rule.** The action validator rejects a buy/sell/pay suggestion outside a shop with a keeper
+  in the village (`trade-outside-shop`); the adventure keeps `buy-without-seller` unchanged.
+
+**Live measures (the playtest checklist, not node tests):** three swaps in ten turns with the person-drift check; the
+fourth button non-null on a full-HP, zero-gold, zero-quest state; twenty-turn runs counting GM-invented threats, words per
+turn, refusals, unprompted resident actions and companion-initiative filings; the full-room Car Mode listening test with
+eight residents.
 
 ## J. Sequencing and the declared hole
 

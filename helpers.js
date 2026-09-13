@@ -1113,6 +1113,8 @@ function parseCarCommand(text, optionCount) {
       || /^(?:repeat|read)\s+everything$/.test(t) || /^everything again$/.test(t)) return { kind: "repeatAll" };
   /* #308 Car Mode bookends: "wrap up" lands the scene at a hook within two turns; "previously" speaks the recap. */
   if (/^(?:i )?roll(?: (?:the )?(?:dice|die|d20))?$/.test(t)) return { kind: "roll" };/* #329 */
+  /* #6 E9: a spoken undo scoped to the LAST item move (a placement or a take) — anchored, so "never mind the guard, I attack" stays an action */
+  if (/^(?:never mind|nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/.test(t)) return { kind: "undoItem" };
   if (/^(?:lets |let us )?(?:wrap(?: it)?(?: up)?|stop here|find a stopping point|stopping point|end (?:it|here) for now)$/.test(t)) return { kind: "wrapUp" };
   if (/^(?:previously|recap|catch me up|where were we|where was i|what happened(?: last time| before)?|remind me)$/.test(t)) return { kind: "recap" };
   if (/^(?:repeat|again|say again|repeat that|say that again|read again|read that again|one more time)$/.test(t)
@@ -2163,4 +2165,49 @@ function campaignKind(){var k=(typeof worldState!=="undefined"&&worldState)?worl
 function kindDef(){return CAMPAIGN_KINDS[campaignKind()];}
 /* A resident's house is a sub-location of the village node: "<village>|<Name>'s house". The map graph already keys
    sub-locations as parent|leaf, so the house rides every existing reader (items, presence, hours) unchanged. */
+/* #6 F1 (2026-09-12): is this node a SHOP? Decided by the kind's data (shopWords / hallWords) and the node (owner, shop
+   flag) — never a name test at a call site. A house (owner) and the Hall are never shops; the settlement itself is not;
+   a kind without waresPerShop (the adventure) has no shop nodes at all. */
+function isShopNode(key,node){
+  var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.waresPerShop||!node)return false;
+  if(node.owner)return false;var k=String(key||"");if(k.indexOf("|")<0)return false;
+  var leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(k):k.split("|").pop();
+  if(def.hallWords&&def.hallWords.test(leaf))return false;
+  if(node.shop===true)return true;
+  return !!(def.shopWords&&def.shopWords.test(leaf));
+}
+/* #6 F5: THE trade gate — where and with whom coin may change hands. {ok:true} outside a tradeOnlyInShops kind; in the
+   village ok only when the hero stands in a shop sub-location with a present, living, non-party NPC (the keeper —
+   residents roam, so a resident behind the counter counts). Every refusal carries a reason the mutation log can print. */
+function villageTradeContext(text){
+  var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.tradeOnlyInShops)return {ok:true};
+  var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key||typeof memory==="undefined"||!memory||!memory.map)return {ok:false,reason:"no place on record"};
+  /* #6 F10: the RESPONSE's own arrival counts — the handler table runs GOLD before SUBLOCATION, so "[SUBLOCATION:the tavern] …
+     [GOLD:-2]" must be judged at the tavern (text order: the last arrival not followed by a leave). State-only callers pass nothing. */
+  var _t=String(text||""),_spk=[];
+  if(_t){var _arr=_t.match(/\[SUBLOCATION:([^\]]+)\]/g)||[],_lv=_t.lastIndexOf("[SUBLOCATION_LEAVE]");
+    if(_arr.length){var _last=_arr[_arr.length-1],_pos=_t.lastIndexOf(_last);if(_pos>_lv)key=worldState.world.location+"|"+_last.slice(13,-1).trim();else key=worldState.world.location;}
+    else if(_lv>=0)key=worldState.world.location;
+    var _sm=_t.match(/\[SAY:([^\]]+)\]/g)||[],_si;for(_si=0;_si<_sm.length;_si++)_spk.push(_sm[_si].slice(5,-1).trim());}
+  var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk],leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk;
+  if(!isShopNode(rk,node))return {ok:false,reason:"not in a shop ("+leaf+")"};
+  var man=(typeof buildSceneManifest==="function")?buildSceneManifest():{local:[]},local=(_t&&_arr&&_arr.length)?_spk:(man.local||[]).concat(_spk),i,keeper=null;/* an arrival in the text resets the room: only this response's speakers are known to be inside */
+  for(i=0;i<local.length&&!keeper;i++){var n=(typeof wsNpcByName==="function")?wsNpcByName(local[i]):null;if(n&&!n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n)))keeper=n.name;}
+  if(!keeper)return {ok:false,reason:"no counterparty present in "+leaf};
+  return {ok:true,keeper:keeper,shop:leaf,node:node,key:rk};
+}
+/* #6 E8: the stash as data — the untaken rows of a node with qty and provenance. Pure; the geo block, the inventory panel
+   and Car Mode all read this one function. */
+function villageStash(key){
+  if(typeof memory==="undefined"||!memory||!memory.map||!key)return [];
+  var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk];if(!node||!node.items)return [];
+  return node.items.filter(function(it){return !it.taken&&(it.qty===undefined||it.qty>0);}).map(function(it){return {name:it.name,qty:it.qty||1,placed:it.placed,by:it.by||null};});
+}
+/* #6 E8: the inventory panel's house group — the same shape groupInventory's groups carry, over villageStash. null outside
+   a stash kind or when the hero's house holds nothing. */
+function villageHouseGroup(){
+  var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.stashQuantities||typeof worldState==="undefined"||!worldState||!worldState.character)return null;
+  var rows=villageStash(villageHouseKey(worldState.character.name));if(!rows.length)return null;
+  return {id:"house",label:"Your house",rows:rows.map(function(r){return {raw:r.name+(r.qty>1?" x"+r.qty:""),qty:r.qty,by:r.by,placed:r.placed};})};
+}
 function villageHouseKey(name){var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|"+String(name||"").trim()+"'s house";}

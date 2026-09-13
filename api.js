@@ -35,16 +35,29 @@ function buildGeoBlock(){
   if(chg.length)lines.push("CHANGED since first visit (this OVERRIDES the descriptions above where they disagree): "+chg.join("; "));
   // #303: the market — what is for sale at this settlement and what someone here wants from the
   // party. Served from the WORLD node even inside a sublocation; expired wares are simply absent.
-  var mkt=(wNode&&typeof nodeWaresLive==="function")?nodeWaresLive(wNode):[];
-  if(mkt.length)lines.push("FOR SALE HERE: "+mkt.map(function(x){return x.item+" — "+x.price+(x.note?" ("+x.note+")":"");}).join("; ")+" — the settlement's record, not a stall in front of the party: offer a purchase only when the seller or their shop is in the scene.");
-  else if(wNode&&wNode.waresNone&&typeof clockNow==="function"&&clockNow()-(wNode.waresNone.min||0)<WARES_RESTOCK_DAYS*MIN_PER_DAY)lines.push("Market: nothing for sale here on record (t"+wNode.waresNone.t+")");
-  if(wNode&&wNode.wanted&&wNode.wanted.length)lines.push("WANTED HERE: "+wNode.wanted.map(function(x){return x.item+(x.by?" — "+x.by:"")+(x.offer?" offers "+x.offer:"");}).join("; "));
+  /* #6 F2/F3: in a waresPerShop kind the shelf is the SHOP's (the sub-location the hero stands in, if it is one) — the
+     settlement node is never read; the adventure keeps the world node and its wording byte-identical. */
+  var _perShop=!!(typeof kindDef==="function"&&kindDef().waresPerShop);
+  var mktNode=_perShop?((subNode&&typeof isShopNode==="function"&&isShopNode(rsubKey,subNode))?subNode:null):wNode;
+  var mkt=(mktNode&&typeof nodeWaresLive==="function")?nodeWaresLive(mktNode):[];
+  if(mkt.length)lines.push("FOR SALE HERE: "+mkt.map(function(x){return x.item+" — "+x.price+(x.note?" ("+x.note+")":"");}).join("; ")+(_perShop?" — this shop's shelf: name the keeper in every sale, and the buyer.":" — the settlement's record, not a stall in front of the party: offer a purchase only when the seller or their shop is in the scene."));
+  else if(mktNode&&mktNode.waresNone&&typeof clockNow==="function"&&clockNow()-(mktNode.waresNone.min||0)<WARES_RESTOCK_DAYS*MIN_PER_DAY)lines.push("Market: nothing for sale here on record (t"+mktNode.waresNone.t+")");
+  if(mktNode&&mktNode.wanted&&mktNode.wanted.length)lines.push("WANTED HERE: "+mktNode.wanted.map(function(x){return x.item+(x.by?" — "+x.by:"")+(x.offer?" offers "+x.offer:"");}).join("; "));
   // Items
-  if(activeNode&&activeNode.items.length){
+  var _stashKind=!!(typeof kindDef==="function"&&kindDef().stashQuantities),_activeKey=rsubKey||rwKey;
+  if(activeNode&&activeNode.items.length&&!_stashKind){
     var present=activeNode.items.filter(function(it){return!it.taken;});
     var gone=activeNode.items.filter(function(it){return it.taken;});
     if(present.length)lines.push("Items here: "+present.map(function(it){return it.name;}).join(", "));
     if(gone.length)lines.push("Items previously here (now gone): "+gone.map(function(it){return it.name;}).join(", "));
+  }
+  /* #6 E8: the stash is SEEN — the HOME block is data (qty + who left it when); the GM names at most two or three objects
+     by what happened to them. The hero's own house is served even when they stand elsewhere. Village only. */
+  if(_stashKind&&typeof villageStash==="function"){
+    var _stRow=function(r){return r.name+(r.qty>1?" ×"+r.qty:"")+(r.by?" (left t"+r.placed+" by "+r.by+")":"");};
+    var _stHere=activeNode?villageStash(_activeKey):[];
+    if(_stHere.length)lines.push("STASH here"+(activeNode.owner?" ("+activeNode.owner+"'s house)":"")+": "+_stHere.map(_stRow).join(", ")+" — what is left here stays until its owner takes it; name at most two or three of these by what happened to them.");
+    if(worldState.character&&typeof villageHouseKey==="function"){var _hk=locResolve(villageHouseKey(worldState.character.name));if(_hk!==_activeKey){var _stHome=villageStash(_hk);if(_stHome.length)lines.push("YOUR HOUSE ("+locDisplayLeaf(_hk)+"): "+_stHome.map(_stRow).join(", "));}}
   }
   // Known sub-locations
   // Only include sub-locations visited in the last 20 turns to keep the prompt lean in long campaigns.
@@ -633,16 +646,23 @@ function buildWhispersBlock(){
 // Combat-silent; an unsized node never asks (nothing to scale the cap by).
 function buildMarketNote(){
   if(!worldState||worldState.combat||typeof memory==="undefined"||!memory||!memory.map||!worldState.world||!worldState.world.location)return"";
-  var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);
-  var node=memory.map.nodes[key];if(!node||!node.size)return"";
-  var tier=waresSizeTier(node.size);if(!tier)return"";
+  var _perShop=!!(typeof kindDef==="function"&&kindDef().waresPerShop),key,node;
+  if(_perShop){/* #6 F3: the ask is per SHOP — the sub-location the hero stands in, when it is one; nothing asks elsewhere */
+    key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return"";if(typeof locResolve==="function")key=locResolve(key);
+    node=memory.map.nodes[key];if(!node||typeof isShopNode!=="function"||!isShopNode(key,node))return"";
+  }else{
+    key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);
+    node=memory.map.nodes[key];if(!node||!node.size)return"";
+    var tier=waresSizeTier(node.size);if(!tier)return"";
+  }
   var now=(typeof clockNow==="function")?clockNow():0,win=WARES_RESTOCK_DAYS*MIN_PER_DAY;
   if(nodeWaresLive(node).length)return"";
   if(node.waresNone&&now-(node.waresNone.min||0)<win)return"";
   var ma=worldState.marketAsk;
   if(ma&&ma.node===key&&typeof ma.askedMin==="number"&&now-ma.askedMin<win)return"";
   worldState.marketAsk={node:key,askedMin:now,askedTurn:worldState.turn};
-  var cap=waresCapFor(node),label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
+  var cap=_perShop?WARES_CAP_SHOP:waresCapFor(node),label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
+  if(_perShop)return"[ENGINE NOTE — MARKET (not a player action): "+label+" is a shop with nothing on record for sale. Emit one or two [WARES:item|price|note] lines for what this shop genuinely sells (up to "+cap+" on its shelf; name the keeper in the note; price at VALUE). If it sells nothing, emit [WARES:none]. If the keeper wants something the hero carries, [WANTED:item|offer|by].]\n";
   return"[ENGINE NOTE — MARKET (not a player action): "+label+" is a "+node.size+" place and nothing is on record for sale here. If it is a settlement, emit one or two [WARES:item|price|note] lines for what is genuinely sold here (up to "+cap+" over the week; name the seller in the note; price at VALUE, never the party's purse). If nothing is sold here — wilderness, a ruin — emit [WARES:none]. If someone here wants something the party carries, [WANTED:item|offer|by].]\n";
 }
 // ── #341 PARTY HISTORIES — the companions' authored past reaches the GM ────────────────────
@@ -1571,6 +1591,13 @@ var buildLocationFilingNudge=oneShotPing("locationFilingPing",{name:"buildLocati
 var buildSubLeaveNudge=oneShotPing("subLeavePing",{name:"buildSubLeaveNudge",text:function(q){
   return "[ENGINE NOTE \u2014 SUB-LOCATION LEFT? (not a player action): the record still places the party inside '"+q.sub+"', but the last narrations read as leaving it (\u201c"+q.cue+"\u201d). If they have left, emit [SUBLOCATION_LEAVE] (open ground in the settlement) or [SUBLOCATION:the place they stand in now] in THIS response. If they are still inside '"+q.sub+"', say so in the prose and emit nothing. Never mention this check.]\n";
 }});
+/* #6 F5/F9 (2026-09-12): the trade gate's CHANNEL. A refused [GOLD:] leaves a mutation line the GM never reads — live t9 of
+   the village check: the prose handed over the nettle and took the coppers while the engine refused both. Armed by the GOLD
+   handler (tradeRefusedPing), served once, burned; the GM either moves the scene into the shop and re-emits the tags or
+   narrates that the exchange did not happen. Never armed in a kind without the gate. */
+var buildTradeRefusedNudge=oneShotPing("tradeRefusedPing",{name:"buildTradeRefusedNudge",text:function(q){
+  return "[ENGINE NOTE \u2014 TRADE REFUSED (not a player action): last turn's exchange of coin"+(q.items?" and goods":"")+" did NOT happen \u2014 "+q.reason+". The purse and the pack are unchanged. Either move the scene into the shop ([SUBLOCATION:the shop] with the keeper present, naming who sells and who buys) and emit the [GOLD:] and item tags again, or narrate that the exchange did not take place. Never mention this note.]\n";
+}});
 var buildTravelPriceNudge=oneShotPing("travelPricePing",{name:"buildTravelPriceNudge",text:function(q){
   return "[ENGINE NOTE — TRAVEL TIME GAP (not a player action): the journey to "+q.destination+" was priced in days, but arrival landed after only "+q.elapsed+" clock minutes. If the travel really consumed the stated duration, emit [TIME_ADVANCE:"+q.shortfall+"m] for ONLY the missing shortfall. If the earlier duration was only an estimate, a shortcut occurred, or the route changed, leave the clock unchanged and keep the current fiction. Never auto-correct story text.]";
 }});
@@ -1852,7 +1879,7 @@ function buildArcWallNudge(){
 // per companion) and questLog[].staleNudged (buildQuestStaleNudge — entry-30 ruling 2026-08-29:
 // the NARROW title-keyed snapshot, never questLog wholesale in the flat registry, which would
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
-var NOTE_LATCH_FIELDS=["subLeavePing",/* #393 */"moneyAsk",/* #375 */"agendaOfferAsk",/* #373 */"checkWithdrawnPing",/* #391 */"suggestMissPing",/* #344 */"registerPing",/* #355 */"agendaBirth","agendaAnnounce",/* #330 */"hoursAsk",/* #207 ③ */"plotArmorPing",/* #319 */"whisperAsk",/* #317 */"montagePing","wrapUpPing",/* #308 */"recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["subLeavePing",/* #393 */"tradeRefusedPing",/* #6 F9 */"moneyAsk",/* #375 */"agendaOfferAsk",/* #373 */"checkWithdrawnPing",/* #391 */"suggestMissPing",/* #344 */"registerPing",/* #355 */"agendaBirth","agendaAnnounce",/* #330 */"hoursAsk",/* #207 ③ */"plotArmorPing",/* #319 */"whisperAsk",/* #317 */"montagePing","wrapUpPing",/* #308 */"recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
 var NOTE_NESTED_LATCHES=["questLog[].staleNudged","charSheet.splitLoc.audited","charSheet.agenda.lastBeat",/* #330; the agendaAsked latch retired with the recruitment ask (#347) */"conditions[].until","memory.futureEvents[]._asked","memory.futureEvents[]._askPending","sessionLog"];
 function snapshotNoteLatches(){
@@ -1897,7 +1924,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<ql2.length;j++){if(ql2[j]&&ql2[j].title===qr.title){
       if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;}}}
 }
-var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildPlotArmorNote,/* #319 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 */buildRegisterNote,/* #355 */buildSuggestMissNote,/* #344 */buildCheckWithdrawnNote,/* #391 */buildSubLeaveNudge,/* #393 */buildMoneyNote,/* #375 */buildAgendaOfferNote,/* #373 */buildMontageNote,buildWrapUpNote,/* #308 */buildWhispersNote,/* #317 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildHoursNote,/* #207 ③ */buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildAgendaBirthNote,buildAgendaAnnounceNote,buildAgendaBeatNote,/* #330: character colour yields to every audit above */buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildPlotArmorNote,/* #319 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 */buildRegisterNote,/* #355 */buildSuggestMissNote,/* #344 */buildCheckWithdrawnNote,/* #391 */buildSubLeaveNudge,/* #393 */buildTradeRefusedNudge,/* #6 F9 */buildMoneyNote,/* #375 */buildAgendaOfferNote,/* #373 */buildMontageNote,buildWrapUpNote,/* #308 */buildWhispersNote,/* #317 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildHoursNote,/* #207 ③ */buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildAgendaBirthNote,buildAgendaAnnounceNote,buildAgendaBeatNote,/* #330: character colour yields to every audit above */buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // #309: THE SHAPE REGISTRY (owner ruling 2026-09-03 — one-in-one-out was REJECTED after the
 // 49-builder catalog, audits/RECORD_309_note_builder_catalog.md: builders are six shapes, not
 // fungible units). Every builder declares its shape, the latch fields it burns (declared in
@@ -1915,6 +1942,7 @@ var NOTE_SHAPES={
   buildSuggestMissNote:{shape:"one-shot-ask",latch:["suggestMissPing"],combat:"fires",village:"fires",ack:["SUGGEST"]},/* #344 */
   buildCheckWithdrawnNote:{shape:"one-shot-ask",latch:["checkWithdrawnPing"],combat:"fires",village:"fires",ack:[]},/* #391 */
   buildSubLeaveNudge:{shape:"one-shot-ask",latch:["subLeavePing"],combat:"silent",village:"fires",ack:["SUBLOCATION","SUBLOCATION_LEAVE","LOCATION"]},/* #393 */
+  buildTradeRefusedNudge:{shape:"one-shot-ask",latch:["tradeRefusedPing"],combat:"silent",village:"fires",ack:["GOLD","SUBLOCATION"]},/* #6 F9 */
   buildMoneyNote:{shape:"cooldown-reminder",latch:["moneyAsk"],combat:"silent",village:"silent",ack:["GOLD"]},/* #375 */
   buildAgendaOfferNote:{shape:"one-shot-ask",latch:["agendaOfferAsk"],combat:"silent",village:"fires",ack:["QUEST"]},/* #373 */
   buildMontageNote:{shape:"one-shot-ask",latch:["montagePing"],combat:"fires",village:"silent",ack:["TIME_ADVANCE"]},

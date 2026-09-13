@@ -184,7 +184,14 @@ function engineFourthAction(){
   if((wounded||conds.length>0)&&typeof itemLookup==="function"){var cands=[];for(i=0;i<(c.inventory||[]).length;i++){var it=c.inventory[i],e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A"&&consumableAnswersNeed(e.effect,wounded,conds))cands.push(it);}
     if(cands.length){var pick=cands[(worldState.turn||0)%cands.length];return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(pick):pick)+"."};}}
   var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
-  if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof waresOfferedHere==="function")?waresOfferedHere(node,buildSceneManifest().local):[];/* a seller or their shop must be IN the scene (2026-09-03); #392: the SCENE, not the town */if(live.length)return {kind:"buy",text:"Buy the "+live[0].item+" ("+live[0].price+")."};}
+  /* #6 F6: in a tradeOnlyInShops kind the buy rung fires only in a shop with the keeper present and NAMES the keeper; a
+     village-only sell rung offers a WANTED item the hero carries to that keeper. The adventure branch is the shipped rung, unchanged. */
+  var _tk=(typeof kindDef==="function")?kindDef():null,_vt=null;
+  if(_tk&&(_tk.tradeOnlyInShops||_tk.sellRung)&&typeof villageTradeContext==="function")_vt=villageTradeContext();
+  if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){
+    if(_tk&&_tk.tradeOnlyInShops){if(_vt&&_vt.ok){var _vl=(typeof nodeWaresLive==="function")?nodeWaresLive(_vt.node):[];if(_vl.length)return {kind:"buy",text:"Buy the "+_vl[0].item+" ("+_vl[0].price+") from "+_vt.keeper+"."};}}
+    else{var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof waresOfferedHere==="function")?waresOfferedHere(node,buildSceneManifest().local):[];/* a seller or their shop must be IN the scene (2026-09-03); #392: the SCENE, not the town */if(live.length)return {kind:"buy",text:"Buy the "+live[0].item+" ("+live[0].price+")."};}}
+  if(_tk&&_tk.sellRung&&_vt&&_vt.ok&&_vt.node.wanted&&_vt.node.wanted.length){var _inv=c.inventory||[],_wi,_wj;for(_wi=0;_wi<_vt.node.wanted.length;_wi++){var _want=_vt.node.wanted[_wi];for(_wj=0;_wj<_inv.length;_wj++){if(itemBaseName(_inv[_wj])===itemBaseName(_want.item))return {kind:"sell",text:"Sell your "+_invBase(_inv[_wj])+" to "+_vt.keeper+(_want.offer?" ("+_want.offer+")":"")+"."};}}}
   if(montageDue()){if(kindDef().montage)return {kind:"montage",text:"Skip ahead — a montage to the next real decision."};/* #308 */
     if(typeof console!=="undefined")console.info("[village] montage would be due at t"+worldState.turn+" — off in v1 for the village kind, logged for the measure");}/* #6 phase B: off but measured (Laws: do not mute on theory) */
   if(kindDef().wildcard&&typeof WILDCARD_EVERY==="number"&&WILDCARD_EVERY>0&&worldState.turn>0&&worldState.turn%WILDCARD_EVERY===0)return {kind:"wild",text:"Do something reckless."};
@@ -532,6 +539,9 @@ function validateSuggestion(text,man){
       break;
     }
   }
+  /* #6 F7: in a tradeOnlyInShops kind a buy/sell/pay suggestion outside a shop with a keeper is rejected before the
+     adventure's ⑦ rule runs — the button must never offer what the trade gate would refuse. */
+  if(typeof kindDef==="function"&&kindDef().tradeOnlyInShops&&/^(buy|purchase|haggle for|pay for|pay|sell|offer to sell|trade|barter)\b/i.test(t)&&typeof villageTradeContext==="function"){var _vts=villageTradeContext();if(!_vts.ok)return {rule:"trade-outside-shop",detail:_vts.reason};}
   // ⑦ (2026-09-03, the High Spire lift terminal): a purchase of a recorded ware with neither the seller
   // nor their shop in the scene — the settlement's market record is not a stall in front of the player.
   if(/^(buy|purchase|haggle for|pay for)\b/i.test(t)&&typeof waresOfferedHere==="function"&&typeof memory!=="undefined"&&memory&&memory.map&&worldState.world&&worldState.world.location){
@@ -1327,12 +1337,32 @@ function importVillageResidents(list){
     var pr=pronounsForGender(sheet.gender);
     worldState.npcs.push({name:nm,status:"",statusTurn:0,rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet});/* portrait rides on charSheet only (#3 dedupe) */
     if(!memory.npcs[nm])memory.npcs[nm]={attitude:"",knowledge:[],events:[],pronouns:pr};
-    var hk=villageHouseKey(nm);
-    if(!memory.map.nodes[hk])memory.map.nodes[hk]={firstVisit:null,visits:0,description:null,parent:here,npcs:[],items:[],size:"small",travelMins:null,owner:nm};
-    else if(!memory.map.nodes[hk].owner)memory.map.nodes[hk].owner=nm;
+    villageHouseEnsure(nm,here);
     added++;
   }
   return {added:added,skipped:skipped};
+}
+/* #6 E6: ONE house-minting path — import and the swap's demotion both come here, so a resident always has a house with
+   its owner on the node (the live check of 2026-09-12 found the swap had none). */
+function villageHouseEnsure(name,here){
+  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  var hk=villageHouseKey(name),parent=here||(worldState&&worldState.world&&worldState.world.location)||"The Village";
+  if(!memory.map.nodes[hk])memory.map.nodes[hk]={firstVisit:null,visits:0,description:null,parent:parent,npcs:[],items:[],size:"small",travelMins:null,owner:name};
+  else if(!memory.map.nodes[hk].owner)memory.map.nodes[hk].owner=name;
+  return memory.map.nodes[hk];
+}
+/* #6 E9: Car Mode's spoken undo — reverses the LAST item move (a placement or a take) once. Pure over worldState.lastItemMove
+   (written by the LOCATION_ITEM handler); reports a reason when there is nothing to undo. */
+function undoLastItemMove(){
+  var mv=(typeof worldState!=="undefined"&&worldState)?worldState.lastItemMove:null;if(!mv)return {ok:false,reason:"nothing to undo"};
+  var node=(typeof memory!=="undefined"&&memory&&memory.map)?memory.map.nodes[mv.key]:null;if(!node)return {ok:false,reason:"the place is no longer on the map"};
+  var i,row=null;for(i=0;i<node.items.length;i++)if(String(node.items[i].name).toLowerCase()===String(mv.name).toLowerCase()){row=node.items[i];break;}
+  if(!row)return {ok:false,reason:mv.name+" is not on record there"};
+  var q=!!(typeof kindDef==="function"&&kindDef().stashQuantities);
+  if(mv.action==="placed"){if(q){if((row.qty||1)>1)row.qty-=1;else{row.taken=true;row.qty=0;}}else row.taken=true;}
+  else{row.taken=false;if(q)row.qty=(row.qty||0)+1;}
+  delete worldState.lastItemMove;
+  return {ok:true,name:mv.name,action:mv.action,key:mv.key};
 }
 /* #6 THE VILLAGE — phase A: the hero swap, PURE. Promotes a roster character with a sheet to the hero slot and demotes
    the old hero where the kind says (kindDef().swapDemotesTo): "party" = the adventure shape that shipped (a companion
@@ -1351,6 +1381,7 @@ function swapPlayerCharacter(name){
     ?{name:oldChar.name,status:"",statusTurn:0,rel:"resident",met:worldState.turn,partyMember:false,resident:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar}
     :{name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar};/* portrait rides on charSheet only (#3 dedupe) */
   worldState.npcs.splice(npcIdx,1);worldState.npcs.push(oldNpc);
+  if(toResident)villageHouseEnsure(oldChar.name,null);/* #6 E6: the demoted hero gets a house, same path as import */
   newChar.portraitOffset=newChar.portraitOffset||npc.portraitOffset||{x:0.5,y:0.5,zoom:1};/* UA22: adopt the npc-wrapper framing the NPC sheet was showing */
   worldState.character=newChar;
   relationshipMigrateSheet(worldState.character,null);relationshipMigrateSheet(oldChar,oldChar.name);relationshipSwapOwners(newChar.name,oldChar.name);

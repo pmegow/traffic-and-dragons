@@ -23282,4 +23282,246 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     }finally{storageAdapter=saved;}
   });
 
+  section("#6 the village — phase E/F: houses, the stash and the shops (list I, 2026-09-12)");
+  /* shared fixture: a village with two residents (houses), a tavern sub-location with Frizwick present, the hero in the tavern */
+  function villageEF(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation=null;worldState.character.name="Silas";worldState.character.gold=25;
+    if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+    memory.map.nodes["The Village"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+    importVillageResidents([{name:"Frizwick",gender:"F",cls:"Rogue"},{name:"Daeris",gender:"F",cls:"Cleric"}]);
+    memory.map.nodes["The Village|the tavern"]={firstVisit:1,visits:2,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["The Village|the Village Hall"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";memory.npcs["Daeris"].lastSeenAt="The Village|Daeris's house";
+    worldState.world.sublocation="the tavern";
+  }
+  function quiet(fn){var warns=[],oc=console.warn,oi=console.info;console.warn=function(m){warns.push(String(m));};console.info=function(m){warns.push(String(m));};try{return {r:fn(),warns:warns};}finally{console.warn=oc;console.info=oi;}}
+  t("#6E1 permanence — two stay two: in the village a second placement of the same name is ONE row with qty 2 and a provenance stamp; the adventure keeps its toggle (no qty)",function(){
+    villageEF();worldState.turn=7;
+    var r=applyMuts("You leave it. [LOCATION_ITEM:Lantern|placed]");r=applyMuts("And another. [LOCATION_ITEM:Lantern|placed]");
+    var rows=memory.map.nodes["The Village|the tavern"].items;if(rows.length!==1)return "twins must not twin: "+JSON.stringify(rows);
+    if(rows[0].qty!==2)return "qty must count the second placement: "+JSON.stringify(rows[0]);
+    if(rows[0].by!=="Silas"||rows[0].placed!==7||typeof rows[0].min!=="number")return "the row needs provenance (by, placed turn, clock): "+JSON.stringify(rows[0]);
+    if(!(r.muts||[]).some(function(m){return /Lantern/.test(m)&&/2/.test(m);}))return "the mutation log must show the count: "+JSON.stringify(r.muts);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    applyMuts("[LOCATION_ITEM:Lantern|placed]");applyMuts("[LOCATION_ITEM:Lantern|taken]");applyMuts("[LOCATION_ITEM:Lantern|placed]");
+    var adv=memory.map.nodes["Sandpoint"].items;if(adv.length!==1||adv[0].taken!==false||"qty" in adv[0])return "the adventure row must keep the toggle semantics and no qty: "+JSON.stringify(adv);
+    return true;
+  });
+  t("#6E2 files to the house named: [LOCATION_ITEM:name|placed|Frizwick's house] lands on the house node while the hero stands in the tavern; the near-miss guard accepts the third operand; the village tag doc teaches it",function(){
+    villageEF();
+    var q=quiet(function(){return applyMuts("You leave it at hers. [LOCATION_ITEM:Silver comb|placed|Frizwick's house]");});
+    var house=memory.map.nodes[villageHouseKey("Frizwick")];if(!house||!house.items.length||house.items[0].name!=="Silver comb")return "the comb must file to Frizwick's house: "+JSON.stringify(house&&house.items);
+    if(memory.map.nodes["The Village|the tavern"].items.length)return "the comb must NOT file where the hero stands";
+    if(q.warns.some(function(w){return /near-miss/.test(w);}))return "the third operand must not be a near-miss";
+    if(!(q.r.muts||[]).some(function(m){return /Silver comb/.test(m)&&/Frizwick/.test(m);}))return "the log must name the house: "+JSON.stringify(q.r.muts);
+    var doc=buildStateTagsDoc();if(!/LOCATION_ITEM:name\|placed\|/.test(doc.slice(doc.indexOf("THE VILLAGE"))))return "the village tag doc must teach the house operand";
+    makeWorld();delete worldState.kind;if(/placed\|/.test(buildStateTagsDoc()))return "the house operand leaked into the adventure doc";
+    return true;
+  });
+  t("#6E3 a missing node refuses LOUDLY: a placement naming a place not on the map mutates nothing, names the refusal in the mutation log and warns on the console (never a silent drop)",function(){
+    villageEF();
+    var q=quiet(function(){return applyMuts("[LOCATION_ITEM:Silver comb|placed|the well house]");});
+    var any=Object.keys(memory.map.nodes).some(function(k){return memory.map.nodes[k].items.some(function(it){return /comb/i.test(it.name);});});
+    if(any)return "the comb landed somewhere despite the missing node";
+    if(!(q.r.muts||[]).some(function(m){return /refused/i.test(m)&&/well house/.test(m);}))return "the mutation log must name the refusal and the place: "+JSON.stringify(q.r.muts);
+    if(!q.warns.some(function(w){return /well house/.test(w);}))return "console must warn";
+    return true;
+  });
+  t("#6E4 `taken` carries no actor: in the village [LOCATION_ITEM:x|taken] is refused loudly and the stash keeps the item; the adventure still marks it taken",function(){
+    villageEF();applyMuts("[LOCATION_ITEM:Lantern|placed]");
+    var q=quiet(function(){return applyMuts("Someone took it. [LOCATION_ITEM:Lantern|taken]");});
+    var row=memory.map.nodes["The Village|the tavern"].items[0];if(!row||row.taken)return "the stash must keep the lantern: "+JSON.stringify(row);
+    if(!(q.r.muts||[]).some(function(m){return /refused/i.test(m)&&/taken|actor/i.test(m);}))return "the log must name the refusal: "+JSON.stringify(q.r.muts);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    applyMuts("[LOCATION_ITEM:Lantern|placed]");applyMuts("[LOCATION_ITEM:Lantern|taken]");if(!memory.map.nodes["Sandpoint"].items[0].taken)return "the adventure must still mark it taken";
+    return true;
+  });
+  t("#6E5 the auto-take path is gated: [ITEM_GAINED:x] auto-takes from the stash only in the hero's own house (or an unowned place); from another resident's house the stash keeps it and the log says whose; adventure auto-take unchanged",function(){
+    villageEF();applyMuts("[LOCATION_ITEM:Silver comb|placed|Frizwick's house]");
+    worldState.world.sublocation="Frizwick's house";
+    var q=quiet(function(){return applyMuts("You pocket it. [ITEM_GAINED:Silver comb]");});
+    var row=memory.map.nodes[villageHouseKey("Frizwick")].items[0];if(!row||row.taken||(row.qty||1)!==1)return "Frizwick's stash must keep the comb: "+JSON.stringify(row);
+    if(!(q.r.muts||[]).some(function(m){return /Frizwick/.test(m)&&/house|kept/i.test(m);}))return "the log must say whose house kept it: "+JSON.stringify(q.r.muts);
+    memory.map.nodes[villageHouseKey("Silas")]={firstVisit:null,visits:0,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};
+    worldState.world.sublocation="the tavern";applyMuts("[LOCATION_ITEM:Old boots|placed|Silas's house]");worldState.world.sublocation="Silas's house";
+    applyMuts("[ITEM_GAINED:Old boots]");var mine=memory.map.nodes[villageHouseKey("Silas")].items[0];if(!mine||!(mine.taken||mine.qty===0))return "the hero's own stash must release the boots: "+JSON.stringify(mine);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    applyMuts("[LOCATION_ITEM:Lantern|placed]");applyMuts("[ITEM_GAINED:Lantern]");if(!memory.map.nodes["Sandpoint"].items[0].taken)return "adventure auto-take must still mark the item taken";
+    return true;
+  });
+  t("#6E6 owner on the node on EVERY path: the swap's resident demotion mints the old hero's house with its owner (import already did)",function(){
+    villageEF();var r=swapPlayerCharacter("Daeris");if(!r||!r.ok)return "fixture: swap failed "+JSON.stringify(r);
+    var hk=villageHouseKey("Silas"),node=memory.map.nodes[hk];if(!node)return "no house for the demoted hero at "+hk;
+    if(node.owner!=="Silas"||node.parent!=="The Village")return "the demoted hero's house must carry its owner under the village: "+JSON.stringify(node);
+    return true;
+  });
+  t("#6E7 a node merge keeps the chest: locMerge sums same-named qty instead of collapsing twins and keeps the owner",function(){
+    villageEF();var R={muts:[],turn:3};
+    memory.map.nodes["The Village|Frizwicks house"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[{name:"Lantern",placed:2,taken:false,qty:2,by:"Silas"}],size:"small",travelMins:null};
+    memory.map.nodes[villageHouseKey("Frizwick")].items.push({name:"Lantern",placed:1,taken:false,qty:1,by:"Silas"});
+    if(!locMerge(villageHouseKey("Frizwick"),"The Village|Frizwicks house",R))return "fixture: merge refused "+JSON.stringify(R.muts);
+    var node=memory.map.nodes[villageHouseKey("Frizwick")];if(node.items.length!==1||node.items[0].qty!==3)return "qty must sum across the merge: "+JSON.stringify(node.items);
+    if(node.owner!=="Frizwick")return "the owner must survive the merge";
+    memory.map.nodes["The Village|Spare"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["The Village|Spare2"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Daeris"};
+    locMerge("The Village|Spare","The Village|Spare2",{muts:[],turn:3});if(memory.map.nodes["The Village|Spare"].owner!=="Daeris")return "an ownerless canonical must take the duplicate's owner";
+    return true;
+  });
+  t("#6E8 the stash is SEEN: villageStash(key) lists rows with qty and provenance; the geo block carries STASH here and a YOUR HOUSE line when the hero is elsewhere; the inventory view model gets a house group; the adventure geo block is byte-identical",function(){
+    villageEF();memory.map.nodes[villageHouseKey("Silas")]={firstVisit:null,visits:0,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};
+    applyMuts("[LOCATION_ITEM:Old boots|placed|Silas's house][LOCATION_ITEM:Old boots|placed|Silas's house][LOCATION_ITEM:Lantern|placed]");
+    var st=villageStash(villageHouseKey("Silas"));if(!st||st.length!==1||st[0].name!=="Old boots"||st[0].qty!==2||st[0].by!=="Silas")return "villageStash must list qty and provenance: "+JSON.stringify(st);
+    var geo=buildGeoBlock();if(!/STASH here/.test(geo)||!/Lantern/.test(geo))return "the tavern's stash must be served as STASH here: "+geo;
+    if(!/YOUR HOUSE/.test(geo)||!/Old boots/.test(geo)||!/2/.test(geo.slice(geo.indexOf("YOUR HOUSE"))))return "the hero's own house must be served when elsewhere, with counts: "+geo;
+    if(typeof villageHouseGroup!=="function")return "villageHouseGroup (the panel's pure view model) is missing";
+    var g=villageHouseGroup();if(!g||g.id!=="house"||!g.rows||g.rows.length!==1||!/Old boots/.test(g.rows[0].raw)||!/2/.test(g.rows[0].raw))return "the panel group must show the hero's stash with counts: "+JSON.stringify(g);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[{name:"x"}].slice(1),items:[],size:"medium",travelMins:null};
+    applyMuts("[LOCATION_ITEM:Lantern|placed]");var adv=buildGeoBlock();if(/STASH|YOUR HOUSE/.test(adv)||!/Items here: Lantern/.test(adv))return "the adventure geo block changed: "+adv;
+    memory.map.nodes["Sandpoint|Tess's house"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[{name:"Old boots",placed:1,taken:false}],size:null,travelMins:null,owner:"Tess"};
+    if(villageHouseGroup()!==null)return "no house group outside the village, even with a stocked house node";
+    return true;
+  });
+  t("#6E9 Car Mode undo: parseCarCommand('never mind') → undoItem; undoLastItemMove reverses the last placement or take once and reports when there is nothing to undo",function(){
+    var c=parseCarCommand("never mind");if(!c||c.kind!=="undoItem")return "never mind must parse as undoItem: "+JSON.stringify(c);
+    if(!parseCarCommand("undo that")||parseCarCommand("undo that").kind!=="undoItem")return "undo that must parse as undoItem";
+    if(parseCarCommand("never mind the guard, I attack"))return "a sentence is an action, not a command";
+    villageEF();var u0=undoLastItemMove();if(!u0||u0.ok!==false||!u0.reason)return "nothing to undo must be reported: "+JSON.stringify(u0);
+    applyMuts("[LOCATION_ITEM:Lantern|placed]");var u=undoLastItemMove();if(!u||!u.ok)return "the placement must undo: "+JSON.stringify(u);
+    var rows=memory.map.nodes["The Village|the tavern"].items;if(rows.length&&!(rows[0].taken||rows[0].qty===0))return "the lantern must be gone from the stash after undo: "+JSON.stringify(rows);
+    var u2=undoLastItemMove();if(!u2||u2.ok!==false)return "an undo undoes once";
+    return true;
+  });
+  t("#6F1 a shop is a place, decided by data: isShopNode says yes to a tavern/smithy sub-location, no to a house, the Hall, the settlement itself, and to everything in the adventure",function(){
+    villageEF();
+    if(!isShopNode("The Village|the tavern",memory.map.nodes["The Village|the tavern"]))return "the tavern is a shop";
+    memory.map.nodes["The Village|the smithy"]={firstVisit:1,visits:0,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    if(!isShopNode("The Village|the smithy",memory.map.nodes["The Village|the smithy"]))return "the smithy is a shop";
+    memory.map.nodes["The Village|the old mill"]={firstVisit:1,visits:0,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,shop:true};
+    if(!isShopNode("The Village|the old mill",memory.map.nodes["The Village|the old mill"]))return "node.shop must make a shop of any name";
+    if(isShopNode(villageHouseKey("Frizwick"),memory.map.nodes[villageHouseKey("Frizwick")]))return "a house is never a shop";
+    importVillageResidents([{name:"Tanner",gender:"M",cls:"Rogue"}]);if(isShopNode(villageHouseKey("Tanner"),memory.map.nodes[villageHouseKey("Tanner")]))return "a house is never a shop, even when its owner's name is a trade (the owner guard, not the vocabulary)";
+    memory.map.nodes["The Village|the Village Hall"].shop=true;if(isShopNode("The Village|the Village Hall",memory.map.nodes["The Village|the Village Hall"]))return "the Hall is never a shop, even flagged";delete memory.map.nodes["The Village|the Village Hall"].shop;
+    memory.map.nodes["The Village|the guild hall"]={firstVisit:1,visits:0,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};if(!isShopNode("The Village|the guild hall",memory.map.nodes["The Village|the guild hall"]))return "a guild hall is a shop (only the Village Hall is the Hall)";
+    if(isShopNode("The Village",memory.map.nodes["The Village"]))return "the settlement itself is not a shop";
+    delete worldState.kind;if(isShopNode("The Village|the tavern",memory.map.nodes["The Village|the tavern"]))return "the adventure has no shop nodes";
+    return true;
+  });
+  t("#6F2 wares live on the shop: in the village [WARES:] files on the shop sub-location with WARES_CAP_SHOP and a LOUD eviction; outside a shop it is refused by name; adventure wares stay on the world node",function(){
+    villageEF();var r=applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
+    var shop=memory.map.nodes["The Village|the tavern"];if(!shop.wares||shop.wares.length!==1)return "the ware must file on the shop node: "+JSON.stringify(shop.wares);
+    if(memory.map.nodes["The Village"].wares&&memory.map.nodes["The Village"].wares.length)return "the ware must NOT file on the settlement";
+    if(typeof WARES_CAP_SHOP!=="number"||WARES_CAP_SHOP<4)return "WARES_CAP_SHOP must be a per-shop cap";
+    var i,txt="";for(i=0;i<WARES_CAP_SHOP+1;i++)txt+="[WARES:Ware "+i+"|1 gp|Frizwick]";
+    var q=quiet(function(){return applyMuts(txt);});
+    if(shop.wares.length!==WARES_CAP_SHOP)return "the shop must hold exactly the cap: "+shop.wares.length;
+    if(!(q.r.muts||[]).some(function(m){return /shelf|dropped|evict/i.test(m);}))return "an eviction must reach the mutation log: "+JSON.stringify(q.r.muts);
+    worldState.world.sublocation="the Village Hall";var q2=quiet(function(){return applyMuts("[WARES:Relic|5 gp|the warden]");});
+    if(memory.map.nodes["The Village|the Village Hall"].wares&&memory.map.nodes["The Village|the Village Hall"].wares.length)return "the Hall sells nothing";
+    if(!(q2.r.muts||[]).some(function(m){return /refused/i.test(m)&&/shop/i.test(m);}))return "a ware outside a shop must be refused by name: "+JSON.stringify(q2.r.muts);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the Rusty Dragon";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    applyMuts("[WARES:Ale|1 gp|Ameiko]");if(!memory.map.nodes["Sandpoint"].wares||memory.map.nodes["Sandpoint"].wares.length!==1)return "adventure wares must still file on the world node";
+    return true;
+  });
+  t("#6F3 restock on the clock, per shop: an expired ware is not served from that shop; the market ask and the FOR SALE line read the SHOP node in the village and fire per shop",function(){
+    villageEF();applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
+    var geo=buildGeoBlock();if(!/FOR SALE HERE: Smoked fish/.test(geo))return "the shop's wares must be served in the shop: "+geo;
+    worldState.world.sublocation="the Village Hall";if(/FOR SALE HERE/.test(buildGeoBlock()))return "the tavern's wares must not be served at the Hall";
+    memory.map.nodes["The Village|the smithy"]={firstVisit:1,visits:0,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    worldState.world.sublocation="the smithy";delete worldState.marketAsk;var note=buildMarketNote();if(!note||!/smithy/i.test(note))return "the market ask must fire for a shop with nothing on record: "+note;
+    worldState.world.sublocation="the tavern";delete worldState.marketAsk;if(buildMarketNote())return "a stocked shop asks nothing";
+    memory.map.nodes["The Village|the tavern"].wares[0].min-=(WARES_RESTOCK_DAYS+1)*MIN_PER_DAY;
+    if(/FOR SALE HERE/.test(buildGeoBlock()))return "an expired ware must not be served";
+    delete worldState.marketAsk;if(!buildMarketNote())return "after expiry the ask fires again (restock)";
+    return true;
+  });
+  t("#6F4 prices pinned: a village ware with a bible value is recorded at the bible value (the quote noted); a re-stated ware with no canon keeps its first quote; adventure prices stay as narrated",function(){
+    var key=Object.keys(ITEM_BIBLE).filter(function(k){return itemValueGp(ITEM_BIBLE[k]);})[0];if(!key)return "fixture: no priced bible item";
+    var canon=itemValueGp(ITEM_BIBLE[key]),name=ITEM_BIBLE[key].name||key;
+    villageEF();var r=applyMuts("[WARES:"+name+"|"+(canon*2)+" gp|Frizwick]");
+    var w=memory.map.nodes["The Village|the tavern"].wares[0];if(itemValueGp({value:w.price})!==canon)return "the recorded price must be the bible value: "+JSON.stringify(w)+" canon "+canon;
+    if(!(r.muts||[]).some(function(m){return /pinned/i.test(m);}))return "the log must say the price was pinned: "+JSON.stringify(r.muts);
+    applyMuts("[WARES:Grandmother's jam|3 gp|Frizwick]");applyMuts("[WARES:Grandmother's jam|9 gp|Frizwick]");
+    var jam=memory.map.nodes["The Village|the tavern"].wares.filter(function(x){return /jam/i.test(x.item);})[0];if(!jam||jam.price!=="3 gp")return "a re-stated ware without canon keeps its first quote: "+JSON.stringify(jam);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    applyMuts("[WARES:"+name+"|"+(canon*2)+" gp|a hawker]");if(itemValueGp({value:memory.map.nodes["Sandpoint"].wares[0].price})!==canon*2)return "adventure prices stay as narrated";
+    return true;
+  });
+  t("#6F5 trade only in a shop, with a counterparty: village [GOLD:±N] lands only in a shop sub-location with a present living non-party NPC; elsewhere it is refused by name and an item riding the same response is refused with it; adventure gold untouched",function(){
+    villageEF();var r=applyMuts("Frizwick takes your coin. [GOLD:-2][ITEM_GAINED:Smoked fish]");
+    if(worldState.character.gold!==23||worldState.character.inventory.indexOf("Smoked fish")<0)return "a purchase in a shop with the keeper present must land: "+worldState.character.gold+" "+JSON.stringify(worldState.character.inventory);
+    worldState.world.sublocation="the Village Hall";var q=quiet(function(){return applyMuts("You pay the warden. [GOLD:-5][ITEM_GAINED:Relic]");});
+    if(worldState.character.gold!==23)return "gold moved at the Hall: "+worldState.character.gold;
+    if(worldState.character.inventory.indexOf("Relic")>=0)return "the item riding a refused trade must be refused with it";
+    if(!(q.r.muts||[]).some(function(m){return /Trade refused/.test(m);}))return "the log must name the refusal: "+JSON.stringify(q.r.muts);
+    if(!q.warns.some(function(w){return /GOLD/.test(w)&&/shop|counterparty/i.test(w);}))return "console must warn";
+    worldState.world.sublocation="the tavern";memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");
+    var q2=quiet(function(){return applyMuts("You leave coin on the bar. [GOLD:-1]");});if(worldState.character.gold!==23)return "a shop with no counterparty present must refuse: "+worldState.character.gold;
+    if(!(q2.r.muts||[]).some(function(m){return /counterparty|no one/i.test(m);}))return "the refusal must say no counterparty: "+JSON.stringify(q2.r.muts);
+    worldState.world.sublocation=null;applyMuts("[ITEM_GAINED:Wild apple]");if(worldState.character.inventory.indexOf("Wild apple")<0)return "an item with no gold is a gift, never refused";
+    var doc=buildStateTagsDoc();if(!/GOLD/.test(doc.slice(doc.indexOf("THE VILLAGE")))||!/shop/i.test(doc.slice(doc.indexOf("THE VILLAGE"))))return "the village tag doc must tell the GM where trade happens";
+    makeWorld();delete worldState.kind;worldState.character.gold=25;applyMuts("[GOLD:-5]");if(worldState.character.gold!==20)return "adventure gold must still move";
+    return true;
+  });
+  t("#6F6 the fourth button names both parties: the village buy rung reads 'Buy the X (price) from Y.' only in a shop with a keeper present; a village-only sell rung offers 'Sell your X to Y (offer).'; the adventure ladder is byte-identical",function(){
+    villageEF();var c=worldState.character;c.hp=c.maxHp;c.inventory=["Longsword"];worldState.questLog=[];worldState.turn=3;
+    applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
+    var a=engineFourthAction();if(!a||a.kind!=="buy"||!/^Buy the Smoked fish \(1 gp\) from Frizwick\.$/.test(a.text))return "the village buy rung must name the keeper: "+JSON.stringify(a);
+    memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");var b=engineFourthAction();if(b&&b.kind==="buy")return "no keeper present, no buy rung: "+JSON.stringify(b);
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";applyMuts("[WANTED:Longsword|4 gp|Frizwick]");c.gold=0;
+    var s=engineFourthAction();if(!s||s.kind!=="sell"||!/^Sell your Longsword to Frizwick \(4 gp\)\.$/.test(s.text))return "the sell rung must offer the wanted item to the keeper: "+JSON.stringify(s);
+    worldState.world.sublocation="the Village Hall";var h=engineFourthAction();if(h&&(h.kind==="buy"||h.kind==="sell"))return "no trade rung at the Hall: "+JSON.stringify(h);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";var ac=worldState.character;ac.hp=ac.maxHp;ac.inventory=["Longsword"];ac.gold=10;worldState.questLog=[];worldState.turn=3;
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};memory.map.nodes["Sandpoint|the market"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null};
+    worldState.npcs.push({name:"Ameiko",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Ameiko"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint|the market"};
+    applyMuts("[WARES:Ale|1 gp|Ameiko][WANTED:Longsword|4 gp|Ameiko]");
+    var adv=engineFourthAction();if(!adv||adv.kind!=="buy"||adv.text!=="Buy the Ale (1 gp).")return "the adventure buy text must not change: "+JSON.stringify(adv);
+    ac.gold=0;var adv2=engineFourthAction();if(adv2&&adv2.kind==="sell")return "the adventure ladder has no sell rung";
+    return true;
+  });
+  t("#6F7 suggestions obey the same rule: the validator rejects a buy/sell/pay suggestion outside a shop with a keeper in the village (trade-outside-shop); the adventure keeps buy-without-seller",function(){
+    villageEF();applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
+    var ok=validateSuggestion("Buy the smoked fish from Frizwick.",buildSceneManifest());if(ok)return "a buy in the shop with the keeper must pass: "+JSON.stringify(ok);
+    worldState.world.sublocation="the Village Hall";var bad=validateSuggestion("Buy the smoked fish.",buildSceneManifest());if(!bad||bad.rule!=="trade-outside-shop")return "a buy at the Hall must fail with trade-outside-shop: "+JSON.stringify(bad);
+    var bad2=validateSuggestion("Sell your longsword to the warden.",buildSceneManifest());if(!bad2||bad2.rule!=="trade-outside-shop")return "a sale at the Hall must fail: "+JSON.stringify(bad2);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    applyMuts("[WARES:Ale|1 gp|Ameiko]");var adv=validateSuggestion("Buy the ale.",buildSceneManifest());if(!adv||adv.rule!=="buy-without-seller")return "the adventure rule must not change: "+JSON.stringify(adv);
+    return true;
+  });
+
+  t("#6F8 leave-then-arrive in ONE response ends at the arrival: [SUBLOCATION_LEAVE] before [SUBLOCATION:x] leaves x standing (text order, not table order); a leave AFTER the arrival, or alone, still clears — found live at t8 of the village check, where the shop shelf was refused because the arrival had been erased",function(){
+    villageEF();worldState.world.sublocation="Morwen Zethran's house";
+    var r=applyMuts("You step out and cross to the tavern. [SUBLOCATION_LEAVE] Inside, Frizwick is behind the bar. [SUBLOCATION:the tavern] [WARES:Dried nettle|2 cp|Frizwick]");
+    if(worldState.world.sublocation!=="the tavern")return "the arrival must stand: "+JSON.stringify(worldState.world.sublocation);
+    if((r.muts||[]).some(function(m){return /^Left sub-location/.test(m);}))return "a leave that precedes an arrival is not a departure from the arrival: "+JSON.stringify(r.muts);
+    if(!memory.map.nodes["The Village|the tavern"].wares||!memory.map.nodes["The Village|the tavern"].wares.some(function(w){return /nettle/i.test(w.item);}))return "the shelf must file on the shop arrived at: "+JSON.stringify(memory.map.nodes["The Village|the tavern"].wares);
+    applyMuts("[SUBLOCATION:the smithy] You leave again. [SUBLOCATION_LEAVE]");if(worldState.world.sublocation!==null)return "a leave after the arrival must clear";
+    worldState.world.sublocation="the tavern";applyMuts("Out into the square. [SUBLOCATION_LEAVE]");if(worldState.world.sublocation!==null)return "a lone leave must clear";
+    return true;
+  });
+
+  t("#6F9 a refused trade is TOLD to the GM next turn (the refusal has a channel, not only a log line): the GOLD gate arms tradeRefusedPing; buildEngineNotes serves ONE trade-refused note naming the reason and burns the latch; the adventure never arms it — found live at t9 of the village check, where the prose handed over the nettle while the engine refused the coin",function(){
+    villageEF();worldState.world.sublocation="the Village Hall";
+    applyMuts("You pay the warden. [GOLD:-5][ITEM_GAINED:Relic]");
+    if(!worldState.tradeRefusedPing||!/shop/.test(worldState.tradeRefusedPing.reason))return "the GOLD gate must arm the ping with its reason: "+JSON.stringify(worldState.tradeRefusedPing);
+    var notes=buildEngineNotes();if(!/TRADE REFUSED/.test(notes)||!/Village Hall/.test(notes)||!/did NOT happen|did not happen/i.test(notes))return "the note must name the refusal and the place: "+notes.slice(0,400);
+    if(!/SUBLOCATION/.test(notes)||!/GOLD/.test(notes))return "the note must tell the GM how to make the trade real (the shop, the tags) or to narrate that it did not occur";
+    if(worldState.tradeRefusedPing)return "a one-shot note burns its latch";
+    if(/TRADE REFUSED/.test(buildEngineNotes()))return "the note fires once";
+    if(!NOTE_SHAPES.buildTradeRefusedNudge||NOTE_SHAPES.buildTradeRefusedNudge.village!=="fires")return "the note needs a registry row that fires in the village";
+    makeWorld();delete worldState.kind;worldState.character.gold=25;applyMuts("[GOLD:-5]");if(worldState.tradeRefusedPing||/TRADE REFUSED/.test(buildEngineNotes()))return "the adventure never arms the trade note";
+    return true;
+  });
+
+  t("#6F10 the trade gate reads the response's OWN arrival and speakers: the handler table runs GOLD before SUBLOCATION, so a response that walks into the shop, has the keeper speak and sells in one breath must land — the arrival is the last [SUBLOCATION:] not followed by a leave, the keeper any rostered non-party living [SAY:] speaker; a response that arrives with nobody speaking still refuses (no counterparty); the state-only call (the fourth button) is unchanged",function(){
+    villageEF();worldState.world.sublocation="the Village Hall";memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");
+    var r=applyMuts("You cross to the tavern. [SUBLOCATION:the tavern] [SAY:Frizwick]\"Two coppers.\" [GOLD:-2][ITEM_GAINED:Dried nettle]");
+    if(worldState.character.gold!==23||worldState.character.inventory.indexOf("Dried nettle")<0)return "a same-response arrival with the keeper speaking must land: gold "+worldState.character.gold+" "+JSON.stringify(r.muts);
+    worldState.world.sublocation="the Village Hall";var r2=applyMuts("You cross to the tavern; it is empty. [SUBLOCATION:the tavern] [GOLD:-2]");
+    if(worldState.character.gold!==23||!(r2.muts||[]).some(function(m){return /counterparty|no one/i.test(m);}))return "an arrival with no speaker is still no counterparty: "+JSON.stringify(r2.muts);
+    worldState.world.sublocation="the tavern";var r3=applyMuts("You step out. [SUBLOCATION_LEAVE] [SAY:Frizwick]\"Wait!\" [GOLD:-2]");
+    if(worldState.character.gold!==23||!(r3.muts||[]).some(function(m){return /Trade refused/.test(m);}))return "a leave in the response means the trade happens outside: "+JSON.stringify(r3.muts);
+    worldState.world.sublocation="the Village Hall";var st=villageTradeContext();if(st.ok)return "the state-only call must not invent an arrival";
+    return true;
+  });
+
 }

@@ -274,6 +274,11 @@ function updateInvPanel(){
       h+='<div class="ii has-tip'+(eq?' eq':'')+'" data-item="'+escHtml(row.raw)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.raw)+_invTipCats(row,grp.id))+'">'+invItemHtml(row.raw)+(typeof isWorn==="function"&&isWorn(_ap,row.raw)?' <span style="color:var(--t2);font-size:10px;">· worn</span>':'')+'</div>';/* #388: plain-text marker, no pill (the no-borders rule) */
     }
   }
+  /* #6 E8: the hero's own stash, rendered from the same pure view model the prompt reads (villageHouseGroup) — plain rows,
+     not clickable: what is in the house is not on the person. Village only; "" elsewhere. */
+  var hg=(typeof villageHouseGroup==="function")?villageHouseGroup():null;
+  if(hg){var hOpen=_invSecOpen[hg.id]!==false,hj;h+='<div class="inv-cat" data-sec="'+hg.id+'" onclick="invToggleSec(this.dataset.sec)">'+(hOpen?"&#9662; ":"&#9656; ")+escHtml(hg.label)+' <span class="inv-cat-n">'+hg.rows.length+"</span></div>";
+    if(hOpen)for(hj=0;hj<hg.rows.length;hj++){var hr=hg.rows[hj];h+='<div class="ii" title="'+escHtml((hr.by?"left by "+hr.by:"")+(hr.placed!=null?" at turn "+hr.placed:""))+'" style="color:var(--t1);">'+escHtml(hr.raw)+'</div>';}}
   if(_ap.outfit&&_ap.outfit.text)h='<div style="font-size:11px;color:var(--t2);font-style:italic;padding:2px 0 4px;">Outfit: '+escHtml(_ap.outfit.text)+'</div>'+h;/* #388 */
   document.getElementById("inv-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">Empty</div>';
 }

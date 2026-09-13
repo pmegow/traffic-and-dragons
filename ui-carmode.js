@@ -148,6 +148,8 @@ function carVoiceCommand(text) {
   /* #308 bookends */
   if (cmd.kind === "wrapUp") { if (worldState) worldState.wrapUpPing = { turn: worldState.turn }; carNotify("info", "Wrapping up — the story will find a stopping point."); if (typeof TTS !== "undefined" && typeof TTS.speak === "function") TTS.speak("Wrapping up. Say your next action and the story will find a stopping point."); return true; }
   if (cmd.kind === "recap") { _carPreviously(true); return true; }
+  /* #6 E9: "never mind" — undo the last item move, say what happened either way */
+  if (cmd.kind === "undoItem") { var _u = (typeof undoLastItemMove === "function") ? undoLastItemMove() : { ok: false, reason: "not available" }; if (_u.ok) { if (typeof saveAll === "function") saveAll(); if (typeof syncUI === "function") syncUI(); } carNotify(_u.ok ? "info" : "warn", _u.ok ? "Never mind — " + _u.name + (_u.action === "placed" ? " is back with you." : " stays where it was.") : "Nothing to undo — " + _u.reason + "."); if (typeof TTS !== "undefined" && typeof TTS.speak === "function") TTS.speak(_u.ok ? "Never mind. " + _u.name + (_u.action === "placed" ? " is back with you." : " stays where it was.") : "Nothing to undo."); return true; }
   if (cmd.kind === "roll") { if (worldState && worldState.pendingCheck && typeof rollPendingCheck === "function") { rollPendingCheck(); } else { carNotify("info", "Nothing to roll right now."); } return true; }/* #329 */
   if (cmd.kind === "repeat") {
     if (!_carReadOptions()) { carNotify("warn", CAR_STR.noOptionsYet); }

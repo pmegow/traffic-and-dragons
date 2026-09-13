@@ -322,21 +322,42 @@ function _waresWorldNode(turn){
   if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
   return memory.map.nodes[key];
 }
+/* #6 F2: WHERE wares file. The adventure keeps the settlement (world) node; a kind with waresPerShop (the village) files on
+   the shop sub-location the hero stands in and on nothing else — outside a shop there is no node to file on, and the
+   handler refuses by name. isShopNode (helpers.js) decides shop-ness from the kind's data. */
+function waresNodeFor(turn){
+  if(typeof kindDef==="function"&&kindDef().waresPerShop){
+    if(!worldState||!worldState.world||!worldState.world.location||!memory||!memory.map)return null;
+    var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return null;
+    if(typeof locResolve==="function")key=locResolve(key);
+    var node=memory.map.nodes[key];
+    return (node&&typeof isShopNode==="function"&&isShopNode(key,node))?node:null;
+  }
+  return _waresWorldNode(turn);
+}
 function waresCapFor(node){var tier=(typeof waresSizeTier==="function")?waresSizeTier(node&&node.size):null;var caps=(typeof WARES_CAP_BY_SIZE!=="undefined")?WARES_CAP_BY_SIZE:{small:2,medium:4,large:6,vast:10,unknown:2};return caps[tier||"unknown"]||caps.unknown;}
-function fileWare(item,price,note,turn){
-  var node=_waresWorldNode(turn);if(!node)return null;
+/* `out` (optional, #6 F2/F4): the caller's receipt — out.evicted = names dropped by the cap, out.pinned = {from,to} when the
+   kind pins the price to canon, out.anchored = the first quote kept on a re-statement. */
+function fileWare(item,price,note,turn,out){
+  var node=waresNodeFor(turn);if(!node)return null;
   var it=String(item||"").trim(),pr=String(price||"").trim();if(!it||!pr)return null;
   if(!node.wares)node.wares=[];delete node.waresNone;
   var now=(typeof clockNow==="function")?clockNow():0,low=it.toLowerCase(),i,row=null;
   for(i=0;i<node.wares.length;i++)if(String(node.wares[i].item).toLowerCase()===low){row=node.wares.splice(i,1)[0];break;}/* a re-stated ware refreshes, never twins */
+  var prior=row?row.price:null,def=(typeof kindDef==="function")?kindDef():null;
+  if(def&&def.pinPrices){/* #6 F4: canon pins the price; without canon the first quote anchors */
+    var _pc=(typeof itemLookup==="function")?itemLookup(it):null,_pg=(typeof itemValueGp==="function")?itemValueGp(_pc):null;
+    if(_pg){var _pinTo=_pg+" gp";if(out&&(typeof itemValueGp!=="function"||itemValueGp({value:pr})!==_pg))out.pinned={from:pr,to:_pinTo};pr=_pinTo;}
+    else if(prior&&prior!==pr){if(out)out.anchored={kept:prior,quoted:pr};pr=prior;}
+  }
   if(!row)row={item:it};row.item=it;row.price=pr;row.note=String(note||"").trim().slice(0,120);row.t=turn;row.min=now;
   row.at=(worldState&&worldState.world&&worldState.world.sublocation)||null;/* where it was filed — the shop, when the GM answered from inside one (offer rule below) */
   node.wares.push(row);
-  var cap=waresCapFor(node);
-  while(node.wares.length>cap){var gone=node.wares.shift();if(typeof console!=="undefined")console.warn("[wares] "+gone.item+" dropped — the market here holds "+cap+" wares ("+(node.size||"unsized")+" place, #303)");}
+  var cap=(def&&def.waresPerShop&&typeof WARES_CAP_SHOP==="number")?WARES_CAP_SHOP:waresCapFor(node);
+  while(node.wares.length>cap){var gone=node.wares.shift();if(out){if(!out.evicted)out.evicted=[];out.evicted.push(gone.item);}if(typeof console!=="undefined")console.warn("[wares] "+gone.item+" dropped — "+((def&&def.waresPerShop)?"this shop's shelf holds "+cap+" wares (#6 F2)":"the market here holds "+cap+" wares ("+(node.size||"unsized")+" place, #303)"));}
   return row;
 }
-function fileWaresNone(turn){var node=_waresWorldNode(turn);if(!node)return false;node.waresNone={t:turn,min:(typeof clockNow==="function")?clockNow():0};node.wares=[];return true;}
+function fileWaresNone(turn){var node=waresNodeFor(turn);if(!node)return false;node.waresNone={t:turn,min:(typeof clockNow==="function")?clockNow():0};node.wares=[];return true;}
 // The wares actually IN FRONT of the party (owner report 2026-09-03: the fourth button offered "Buy the
 // Fine spiced wine" in a lift terminal because the settlement's record was read as the scene). A live
 // ware is offered here when its note names a PRESENT NPC (the seller is in the scene), or its note
@@ -359,7 +380,7 @@ function nodeWaresLive(node){
   return node.wares.filter(function(w){return typeof w.min!=="number"||now-w.min<win;});
 }
 function fileWanted(item,offer,by,turn){
-  var node=_waresWorldNode(turn);if(!node)return null;
+  var node=waresNodeFor(turn);if(!node)return null;
   var it=String(item||"").trim();if(!it)return null;
   if(!node.wanted)node.wanted=[];
   var low=it.toLowerCase(),i;for(i=0;i<node.wanted.length;i++)if(String(node.wanted[i].item).toLowerCase()===low){node.wanted.splice(i,1);break;}
@@ -390,24 +411,53 @@ function fileLocationState(note,turn){
   if(node.stateNotes.length>LOC_STATE_CAP){var ev=node.stateNotes.shift();memArchive().locationStates.push({node:key,note:ev.n,turn:ev.t});console.warn("[map] "+key+" state notes over cap ("+LOC_STATE_CAP+") — evicted oldest: \""+ev.n+"\" (archived, #149 — the prompt promises a durable change record)");}
   return true;
 }
-function fileLocationItem(name,action,turn){
-  if(!memory.map||!worldState||!worldState.world)return;
+/* #6 phase E (2026-09-12): the stash core. `place` (the tag's third operand) names the node the item files to — a
+   resident's house or a shop under the current settlement — so an item goes where the story SAYS, not where the hero
+   stands. Returns a status ({ok,key,qty} or {ok:false,reason}) so the handler can refuse LOUDLY: a placement at a
+   missing node was a silent drop before, in every kind. In a kind with stashQuantities (the village) rows carry qty +
+   provenance (placed turn, by whom, the clock) and two same-named items stay two; the adventure keeps its toggle rows
+   byte-identical (no qty field ever appears on an adventure save). */
+function fileLocationItem(name,action,turn,place){
+  if(!memory.map||!worldState||!worldState.world)return {ok:false,reason:"no map"};
   var key=currentNodeKey();/* UA9 */
+  if(place)key=worldState.world.location+"|"+String(place).trim();
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
-  if(!memory.map.nodes[key])return;
-  var items=memory.map.nodes[key].items,idx=-1,i;
+  var node=memory.map.nodes[key];
+  if(!node)return {ok:false,reason:"no such place on the map",key:key};
+  var items=node.items,idx=-1,i;
   for(i=0;i<items.length;i++){if(items[i].name.toLowerCase()===name.toLowerCase()){idx=i;break;}}
+  var qtyMode=!!(typeof kindDef==="function"&&kindDef().stashQuantities);
+  var hero=(worldState.character&&worldState.character.name)||null,now=(typeof clockNow==="function")?clockNow():0;
   if(action==="placed"){
+    if(qtyMode){
+      if(idx>=0){var row=items[idx];if(row.taken||row.qty===0){row.taken=false;row.qty=1;}else row.qty=(row.qty||1)+1;row.placed=turn;row.by=hero;row.min=now;return {ok:true,key:key,qty:row.qty};}
+      items.push({name:name,placed:turn,taken:false,qty:1,by:hero,min:now});return {ok:true,key:key,qty:1};
+    }
     if(idx>=0)items[idx].taken=false; // returned — toggle back
     else items.push({name:name,placed:turn,taken:false});
-  }else if(action==="taken"&&idx>=0){items[idx].taken=true;}
+    return {ok:true,key:key};
+  }
+  if(action==="taken"){
+    if(idx<0)return {ok:false,reason:"not on record here",key:key};
+    if(qtyMode){var r2=items[idx];if((r2.qty||1)>1)r2.qty-=1;else{r2.taken=true;r2.qty=0;}return {ok:true,key:key,qty:r2.qty};}
+    items[idx].taken=true;return {ok:true,key:key};
+  }
+  return {ok:false,reason:"unknown action",key:key};
 }
+/* #6 E5: the auto-take path is GATED in the village — a house's stash releases an item only to its owner; from another
+   resident's house the stash keeps it and the caller says whose house it is. Returns null (nothing matched), {taken},
+   or {kept,owner}. The adventure path is unchanged: the first untaken match is marked taken. */
 function autoTakeLocationItem(itemName){
-  if(!memory.map||!worldState||!worldState.world)return;
+  if(!memory.map||!worldState||!worldState.world)return null;
   var key=currentNodeKey();/* UA9 */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
-  var node=memory.map.nodes[key];if(!node)return;
-  var i;for(i=0;i<node.items.length;i++){if(node.items[i].name.toLowerCase()===itemName.toLowerCase()&&!node.items[i].taken){node.items[i].taken=true;return;}}
+  var node=memory.map.nodes[key];if(!node)return null;
+  var qtyMode=!!(typeof kindDef==="function"&&kindDef().stashQuantities),i;
+  for(i=0;i<node.items.length;i++){var it=node.items[i];if(it.name.toLowerCase()!==itemName.toLowerCase()||it.taken||it.qty===0)continue;
+    if(qtyMode&&node.owner&&worldState.character&&node.owner!==worldState.character.name)return {kept:true,owner:node.owner,name:it.name};
+    if(qtyMode){if((it.qty||1)>1)it.qty-=1;else{it.taken=true;it.qty=0;}return {taken:true,name:it.name};}
+    it.taken=true;return {taken:true,name:it.name};}
+  return null;
 }
 /* ═══ #194: the presence split — mapNpcLocation is DELETED, its two conflated jobs separated ═══
    A mention must never teleport a character (owner fixed point 1, ruled 2026-08-17): measured at
