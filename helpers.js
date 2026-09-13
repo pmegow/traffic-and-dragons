@@ -2280,4 +2280,16 @@ function villageRecapText(){
   if(about.length)s+=" About the village: "+about.join("; ")+".";
   return s;
 }
+/* #6 E10 (owner, 2026-09-13): a house is a SUB-LOCATION with ONE key. The GM writes "Ammut's home", "the cottage of Frizwick",
+   "my house"; the engine keys the house as <Owner>'s house. Returns the owner's exact name when a sub-location name is a
+   house of the hero or a living resident, else null. Village only; the adventure never rewrites a name. */
+function villageHouseOwnerFor(subName){
+  var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.stashQuantities||typeof worldState==="undefined"||!worldState)return null;
+  var s=String(subName||"").toLowerCase().replace(/[’]/g,"'").trim();if(!/\b(house|home|cottage|hut|manor|quarters|lodgings|place)\b/.test(s))return null;
+  var names=[],i;if(worldState.character&&worldState.character.name)names.push(worldState.character.name);
+  var npcs=worldState.npcs||[];for(i=0;i<npcs.length;i++)if(npcs[i].resident&&!(typeof npcIsDead==="function"&&npcIsDead(npcs[i])))names.push(npcs[i].name);
+  if(/^(my|your|own|the hero's)\b/.test(s)||/\b(my|your)\s+(own\s+)?(house|home|cottage|hut|manor|quarters|lodgings|place)\b/.test(s))return names[0]||null;
+  var best=null;for(i=0;i<names.length;i++){var full=String(names[i]).toLowerCase(),first=full.split(/\s+/)[0];if(s.indexOf(full)>=0||new RegExp("\\b"+first.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(s)){if(!best||full.length>String(best).toLowerCase().length)best=names[i];}}
+  return best;
+}
 function villageHouseKey(name){var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|"+String(name||"").trim()+"'s house";}

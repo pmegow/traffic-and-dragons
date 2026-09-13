@@ -23723,6 +23723,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  t("#6E10 a house is a SUB-LOCATION with ONE key (owner, 2026-09-13: the hero walked into his house and the HUD stayed on The Village): the village geo block lists every house by its exact name even before a visit; the village tag doc tells the GM to file [SUBLOCATION:<Owner>'s house] on entering; a GM naming ('Ammut's home', 'the cottage of Frizwick', 'my house') canonicalises to the house key; the adventure is untouched",function(){
+    villageCD();memory.map.nodes[villageHouseKey("Silas")]={firstVisit:null,visits:0,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};
+    var geo=buildGeoBlock();if(!/HOUSES here/.test(geo)||!/Frizwick's house/.test(geo)||!/Silas's house/.test(geo)||!/Daeris's house/.test(geo))return "every house must be listed by its exact name, visited or not: "+geo;
+    var doc=buildStateTagsDoc();if(!/SUBLOCATION:<Owner>'s house|\[SUBLOCATION:[^\]]*'s house\]/.test(doc.slice(doc.indexOf("THE VILLAGE"))))return "the village tag doc must teach the house sub-location";
+    applyMuts("You push open your own door. [SUBLOCATION:Silas's home]");if(worldState.world.sublocation!=="Silas's house")return "'Silas's home' must fold into the house key: "+worldState.world.sublocation;
+    applyMuts("[SUBLOCATION:the cottage of Frizwick]");if(worldState.world.sublocation!=="Frizwick's house")return "'the cottage of Frizwick' must fold: "+worldState.world.sublocation;
+    applyMuts("[SUBLOCATION:my house]");if(worldState.world.sublocation!=="Silas's house")return "'my house' is the hero's: "+worldState.world.sublocation;
+    if(memory.map.nodes["The Village|Silas's home"]||memory.map.nodes["The Village|my house"])return "no twin house nodes";
+    applyMuts("[SUBLOCATION:the smithy]");if(worldState.world.sublocation!=="the smithy")return "other sub-locations file as named";
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};applyMuts("[SUBLOCATION:Ameiko's house]");if(worldState.world.sublocation!=="Ameiko's house"||/HOUSES here/.test(buildGeoBlock()))return "the adventure files as named and lists no houses";
+    return true;
+  });
   section("#81b item canon TRAVELS with the sheet (owner field report 2026-09-13: Cleaver, a weapon in Runelords, arrived Unclassified)");
   t("#81b portableSheet attaches the campaign's item definitions for the items the sheet carries; a sheet whose items have no campaign canon carries no itemDefs key; the live sheet is never mutated",function(){
     makeWorld();worldState.itemBible={cleaver:{category:"weapon",effect:"N/A",value:"120 gp",inventoryCategories:["weapon"]},"old boots":{category:"mundane",effect:"N/A"}};
@@ -23775,5 +23787,6 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       return true;
     }finally{setCampMeta(meta);}
   });
+
 
 }

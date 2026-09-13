@@ -59,6 +59,9 @@ function buildGeoBlock(){
     if(_stHere.length)lines.push("STASH here"+(activeNode.owner?" ("+activeNode.owner+"'s house)":"")+": "+_stHere.map(_stRow).join(", ")+" — what is left here stays until its owner takes it; name at most two or three of these by what happened to them.");
     if(worldState.character&&typeof villageHouseKey==="function"){var _hk=locResolve(villageHouseKey(worldState.character.name));if(_hk!==_activeKey){var _stHome=villageStash(_hk);if(_stHome.length)lines.push("YOUR HOUSE ("+locDisplayLeaf(_hk)+"): "+_stHome.map(_stRow).join(", "));}}
   }
+  /* #6 E10: every house by its exact name, visited or not — the recency filter below would hide them, and the GM needs the
+     names to file [SUBLOCATION:<Owner>'s house] when the hero walks in. Village only. */
+  if(_stashKind){var _hk2=Object.keys(memory.map.nodes).filter(function(k){var n=memory.map.nodes[k];return n&&n.owner&&n.parent&&locSame(n.parent,wKey);}).sort().map(function(k){return locDisplayLeaf(k);});if(_hk2.length)lines.push("HOUSES here (each a sub-location — emit [SUBLOCATION:<Owner>'s house] with the owner's exact name whenever the hero enters one): "+_hk2.join(", "));}
   /* #6 D3: residents roam — served for residents NOT in the scene, by the hour, until the story places them. Village only. */
   if(typeof kindDef==="function"&&kindDef().roam&&typeof residentWhereabouts==="function"){var _ra=[],_ri,_rn=worldState.npcs||[],_local=(typeof buildSceneManifest==="function")?buildSceneManifest().local:[];
     for(_ri=0;_ri<_rn.length;_ri++){var _r=_rn[_ri];if(!_r.resident||(typeof npcIsDead==="function"&&npcIsDead(_r)))continue;var _rlow=String(_r.name).toLowerCase();if(_local.some(function(x){return String(x).toLowerCase()===_rlow;}))continue;var _w=residentWhereabouts(_r.name);if(_w)_ra.push(_r.name+" \u2014 "+_w);}

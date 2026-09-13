@@ -518,7 +518,9 @@ var TAG_TABLE=[
     if(!_freshFight){R.muts.push("Combat ended (left the area)");if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_staleFoe+") on move to "+_lname+" — GM emitted no [COMBAT_END:]");}}}}}},
 {t:"SUBLOCATION",apply:function(text,R){var sloctag=text.match(/\[SUBLOCATION:([^\]]+)\]/);if(sloctag){var _sln=sloctag[1].trim();
   /* #6 G6: the Hall has ONE key — a kind with a Hall canonicalises any sub-location its hallWords match to the Hall's leaf, so the GM's own naming ("Village Hall", "the hall") never mints a twin beside the mementos */
-  if(typeof kindDef==="function"&&kindDef().hall&&kindDef().hallWords&&kindDef().hallWords.test(_sln)&&typeof villageHallKey==="function"){var _hl=(typeof locDisplayLeaf==="function")?locDisplayLeaf(villageHallKey()):"the Village Hall";if(_sln!==_hl){R.muts.push("Sub: "+_sln+" → "+_hl+" (the Hall)");_sln=_hl;}}
+  var _hOwner=(typeof villageHouseOwnerFor==="function")?villageHouseOwnerFor(_sln):null;/* #6 E10: "Ammut's home" / "my house" → the ONE house key */
+  if(_hOwner){var _hLeaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(villageHouseKey(_hOwner)):_hOwner+"'s house";if(_sln!==_hLeaf){R.muts.push("Sub: "+_sln+" → "+_hLeaf);_sln=_hLeaf;}if(typeof villageHouseEnsure==="function")villageHouseEnsure(_hOwner,null);}
+  else if(typeof kindDef==="function"&&kindDef().hall&&kindDef().hallWords&&kindDef().hallWords.test(_sln)&&typeof villageHallKey==="function"){var _hl=(typeof locDisplayLeaf==="function")?locDisplayLeaf(villageHallKey()):"the Village Hall";if(_sln!==_hl){R.muts.push("Sub: "+_sln+" → "+_hl+" (the Hall)");_sln=_hl;}}
   worldState.world.sublocation=_sln;fileSubLocation(_sln,R.turn);R.muts.push("Sub: "+_sln);}}},
 /* #6F8 (2026-09-12): TEXT order, not table order — a response that leaves one sub-location and arrives at another ends at
    the arrival. The handler table applies LEAVE after SUBLOCATION, so "[SUBLOCATION_LEAVE] … [SUBLOCATION:the tavern]" used to

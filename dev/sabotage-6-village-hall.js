@@ -70,6 +70,9 @@ prove("game.js", [
     mustFail: "#6G2 the Hall seeds from the library" }
 ]);
 prove("helpers.js", [
+  { label: "'my house' belongs to nobody",
+    find: 'return names[0]||null;', replace: 'return null;',
+    mustFail: "#6E10 a house is a SUB-LOCATION" },
   { label: "residents roam at night too",
     find: 'if(hour>=22||hour<6)return "at home";', replace: '',
     mustFail: "#6D3 residents roam by the clock" },
@@ -84,6 +87,9 @@ prove("helpers.js", [
     mustFail: "#6G4 close this campaign" }
 ]);
 prove("api.js", [
+  { label: "the houses are not listed for the GM",
+    find: 'if(_hk2.length)lines.push("HOUSES here', replace: 'if(false)lines.push("HOUSES here',
+    mustFail: "#6E10 a house is a SUB-LOCATION" },
   { label: "the return note drops the fact",
     find: '+(q.fact?", and let it name ONE fact from the hero\'s own record: \\""+q.fact+"\\"":"")', replace: '',
     mustFail: "#6C2 the greeting reaches the GM" },
@@ -101,6 +107,9 @@ prove("api.js", [
     mustFail: "#6G3 the Hall reaches the GM only in the Hall" }
 ]);
 prove("tag_table.js", [
+  { label: "a house name mints its own node beside the house key",
+    find: 'if(_hOwner){var _hLeaf=', replace: 'if(false){var _hLeaf=',
+    mustFail: "#6E10 a house is a SUB-LOCATION" },
   { label: "the village pays XP after all",
     find: 'if(xpTags.length&&typeof kindDef==="function"&&kindDef().xp==="none"){', replace: 'if(false){',
     mustFail: "#6H1 the village pays nothing" },
