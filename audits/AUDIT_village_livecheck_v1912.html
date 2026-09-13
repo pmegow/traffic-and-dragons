@@ -1,0 +1,159 @@
+<title>The Village Live Check</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg0:#f3f1ec;--bg1:#ebe8e1;--bg2:#e2ded5;--brd:#cfc9bc;--brd2:#b9b2a3;
+  --t0:#1c1e26;--t1:#4a5060;--t2:#7a8090;
+  --acc:#3f5a7a;--acc-bg:#dfe6ee;--gold:#8a6a1e;
+  --ok:#2f6b4c;--ok-bg:#dbe8de;--warn:#9a6a1c;--warn-bg:#efe4cd;--dng:#a33a3a;--dng-bg:#eed7d7;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;--mono:"IBM Plex Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--brd:#2c2f3a;--brd2:#3c4050;
+  --t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;
+  --acc:#9ab0c8;--acc-bg:#141c24;--gold:#c8a84a;
+  --ok:#5f9a78;--ok-bg:#0f1a14;--warn:#d8a04a;--warn-bg:#231b0e;--dng:#d06060;--dng-bg:#24100f;
+}}
+:root[data-theme="dark"]{
+  --bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--brd:#2c2f3a;--brd2:#3c4050;
+  --t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;
+  --acc:#9ab0c8;--acc-bg:#141c24;--gold:#c8a84a;
+  --ok:#5f9a78;--ok-bg:#0f1a14;--warn:#d8a04a;--warn-bg:#231b0e;--dng:#d06060;--dng-bg:#24100f;
+}
+body{background:var(--bg0);color:var(--t0);font-family:var(--serif);font-size:17px;line-height:1.55;margin:0}
+.page{max-width:760px;margin:0 auto;padding:40px 22px 72px}
+header{border-bottom:1px solid var(--brd);padding-bottom:22px;margin-bottom:28px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin:0 0 10px}
+h1{font-size:38px;line-height:1.08;font-weight:600;margin:0 0 14px;text-wrap:balance;letter-spacing:-.01em}
+.run{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 22px;margin-top:18px}
+.run dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin:0 0 3px}
+.run dd{margin:0;font-size:15px;color:var(--t1);font-variant-numeric:tabular-nums}
+.run dd b{color:var(--t0);font-weight:600}
+h2{font-size:13px;font-family:var(--mono);font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin:44px 0 14px;padding-top:14px;border-top:1px solid var(--brd)}
+p{margin:0 0 14px;max-width:66ch}
+.verdict{background:var(--bg1);border-left:3px solid var(--acc);padding:18px 22px;margin:0 0 6px}
+.verdict .lead{font-size:20px;line-height:1.35;font-weight:600;margin:0 0 12px;text-wrap:balance}
+.verdict p{max-width:none}
+.pill{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;border-radius:12px;padding:2px 9px;white-space:nowrap;border:1px solid}
+.pill.ok{color:var(--ok);background:var(--ok-bg);border-color:var(--ok)}
+.pill.skip{color:var(--t1);background:var(--bg2);border-color:var(--brd2)}
+.pill.seam{color:var(--gold);background:var(--warn-bg);border-color:var(--gold)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);font-weight:500;padding:0 12px 8px 0;border-bottom:1px solid var(--brd)}
+td{vertical-align:top;padding:11px 12px 11px 0;border-bottom:1px solid var(--brd);line-height:1.45}
+td.chk{width:38%;font-weight:600;color:var(--t0)}
+td.res{width:88px;white-space:nowrap}
+td.ev{color:var(--t1);font-size:14.5px}
+code{font-family:var(--mono);font-size:.85em;background:var(--bg2);padding:1px 5px;border-radius:3px;color:var(--t0)}
+.turns{display:grid;grid-template-columns:44px 1fr;gap:0 14px;margin:0;padding:0;list-style:none}
+.turns li{display:contents}
+.turns .n{font-family:var(--mono);font-size:12px;color:var(--t2);padding-top:5px;text-align:right}
+.turns .n b{color:var(--acc);font-weight:500}
+.turns .body{padding:3px 0 12px;border-bottom:1px solid var(--brd);margin-bottom:6px}
+.turns .act{font-style:italic;color:var(--t1);margin:0 0 3px}
+.turns .out{margin:0;font-size:15px}
+.turns .tags{font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:4px}
+ol.findings{padding-left:0;margin:0;list-style:none;counter-reset:f}
+ol.findings li{counter-increment:f;display:grid;grid-template-columns:44px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--brd)}
+ol.findings li::before{content:counter(f);font-family:var(--mono);font-size:22px;color:var(--acc);line-height:1;padding-top:3px;text-align:right}
+ol.findings h3{font-size:17px;margin:0 0 5px;font-weight:600}
+ol.findings p{margin:0 0 6px;font-size:15.5px;color:var(--t1);max-width:none}
+ol.findings .to{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--t2)}
+ul.obs{margin:0;padding-left:20px}
+ul.obs li{margin:0 0 9px;color:var(--t1);font-size:15.5px}
+.grad{margin:0;padding-left:20px}
+.grad li{margin:0 0 8px}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--brd);font-family:var(--mono);font-size:11.5px;color:var(--t2);line-height:1.7}
+footer a,a{color:var(--acc)}
+a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:520px){h1{font-size:30px}td.chk{width:auto}.turns{grid-template-columns:34px 1fr}}
+</style>
+<div class="page">
+<header>
+  <p class="eyebrow">Audit · Traffic and Dragons · TODO #6 · v1.912 · 2026-09-12</p>
+  <h1>The Village, played for the first time</h1>
+  <p>Phases A, B and the peace of Pax against the real Game Master. Seven turns and one synthetic parser probe, in the owner's signed-in preview, from a fresh campaign started off <code>samples/village.blueprint</code>.</p>
+  <dl class="run">
+    <div><dt>Hero</dt><dd><b>Tobin Vell</b>, L1 Rogue, then <b>Daeris</b> after the swap</dd></div>
+    <div><dt>Residents</dt><dd>Frizwick, Daeris, Morwen Zethran (fixture heroes, all L11)</dd></div>
+    <div><dt>Model</dt><dd>claude-sonnet-5 via the gateway</dd></div>
+    <div><dt>Turns · calls · cost</dt><dd><b>7</b> · 10 · <b>$0.25</b> on the subscription</dd></div>
+    <div><dt>Campaign</dt><dd>VillageLiveCheck on the "P M" account, left in place</dd></div>
+    <div><dt>Corpus</dt><dd><code>dev/corpus_village_livecheck_v1912.json</code></dd></div>
+  </dl>
+</header>
+
+<section class="verdict">
+  <p class="lead">The village holds as built. The mode, the peace, the residents and the swap all behaved as the record says, in the fiction and in the engine, and the state survived a reload.</p>
+  <p>The Game Master opened on a person and a change with no quest and no threat. Two deliberate attempts at violence, a stabbing and a bar fight called with "roll for initiative", were intercepted in prose exactly as the Pax clause asks, with no harm or combat tag emitted. A synthetic probe proved the engine gates on their own: HP, companion HP, combat start and a reported death were refused with the registry copy, a loose scene death and a bare death claim were dropped, and healing still landed. Whispers fired at turn 2 from the resident pool, about a resident, distorted the way the note allows. The free hero swap put Tobin in the street as a resident and Daeris behind "you", with the switch-of-view block honoured on the very next turn. Four things carry into the E/F build and one transport gap is filed. None is a contract break.</p>
+</section>
+
+<h2>How the residents got there</h2>
+<p>Sign-in is GitHub or Google OAuth, which the agent cannot perform, so the owner signed in and clicked New Campaign. The library read went to the real endpoint and returned the account's zero characters; three fixture heroes lifted from the turn-2097 Runelords save were merged through the same <code>importVillageResidents</code> core. The library write-back was replaced by a log-only twin for the run, so the hero swap could never post a fixture hero into the account's library.</p>
+
+<h2>The seven turns</h2>
+<ol class="turns">
+  <li><span class="n"><b>t0</b></span><div class="body"><p class="out">The river bend, ash on the wind, Frizwick's chimney, and the rusted latch on Tobin's own door. A person and a change, no quest, no threat.</p><div class="tags">LOCATION · LOCATION_DESC · WEATHER · TIME · SUGGEST</div></div></li>
+  <li><span class="n"><b>t1</b></span><div class="body"><p class="act">Knock on Frizwick's door.</p><p class="out">Flour to the elbow, "the ash finally blew somebody worth looking at back into town". Wares offered from her doorstep.</p><div class="tags">WARES · NPC · LOCATION_RESIDENT · SAY</div></div></li>
+  <li><span class="n"><b>t2</b></span><div class="body"><p class="act">Walk to the tavern and see who is at the long table.</p><p class="out">Daeris at the hearth. Frizwick's rumour: Daeris once let "some devil or demon by the name of Ammut" hold her through a night. The engine files it as rumour.</p><div class="tags">WHISPER · SUBLOCATION · NPC · SAY</div></div></li>
+  <li><span class="n"><b>t3</b></span><div class="body"><p class="act">Draw my dagger and stab Frizwick in the arm, hard.</p><p class="out">"The blade never arrives." Dagger back in its sheath. "Pax holds this place the way a hand holds still water." No harm tag.</p><div class="tags">LOCATION_HOURS · SCENE_CAST · SAY</div></div></li>
+  <li><span class="n"><b>t4</b></span><div class="body"><p class="act">Kick the table over, throw my cup at Daeris, swing at the first person who stands. Roll for initiative.</p><p class="out">The table settles back, the cup stops short. "Pax does not punish. It simply does not permit." No combat tag.</p><div class="tags">LOCATION_DESC · SAY</div></div></li>
+  <li><span class="n"><b>t5</b></span><div class="body"><p class="act">Apologise, sit down, buy a round and a bowl of stew.</p><p class="out">Coin pressed into Frizwick's palm. A cost in coin lands.</p><div class="tags">GOLD −2 · RETCON · NPC · SAY</div></div></li>
+  <li><span class="n"><b>—</b></span><div class="body"><p class="act">Swap: Daeris takes the hero slot, no Game Master turn.</p><p class="out">Tobin becomes a resident. The write-back seam fires (stubbed).</p></div></li>
+  <li><span class="n"><b>t6</b></span><div class="body"><p class="act">Look across the table at Tobin, then go check on the healer's garden.</p><p class="out">"You study Tobin a moment longer…" Daeris is "you"; Tobin is a person at the table. First call failed with an unreadable status; the retry landed.</p><div class="tags">NO_CHANGE · LOCATION_ITEM (malformed, dropped) · SAY</div></div></li>
+  <li><span class="n"><b>t7</b></span><div class="body"><p class="act">Knock at Morwen's door and ask to borrow her good lantern.</p><p class="out">Morwen, ink on her fingers, fetches it. "Tobin's back, I hear." The sub-location lands on her owner node, no duplicate.</p><div class="tags">SUBLOCATION · SCENE_CAST · NPC · SAY</div></div></li>
+</ol>
+
+<h2>Checks</h2>
+<div class="tw"><table>
+<thead><tr><th>Check</th><th>Result</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td class="chk">Blueprint validates, kind stamps the save, adventure untouched</td><td class="res"><span class="pill ok">held</span></td><td class="ev"><code>kind:"village"</code> on the save; after reload the rules block still carries "DRIVE THE VILLAGE"</td></tr>
+<tr><td class="chk">Library moves in before the opening scene</td><td class="res"><span class="pill ok">held</span></td><td class="ev">real endpoint read (0 characters), then 3 residents added, then the opening names Frizwick's chimney</td></tr>
+<tr><td class="chk">Residents outside the party, each with a house</td><td class="res"><span class="pill ok">held</span></td><td class="ev">three <code>resident:true, partyMember:false</code>; owner nodes for each house; the party panel shows only the hero</td></tr>
+<tr><td class="chk">Opening on a person and a change, no quest, no threat</td><td class="res"><span class="pill ok">held</span></td><td class="ev">the rusted latch, Frizwick's smoke; threat "low", quest log empty</td></tr>
+<tr><td class="chk">DRIVE rule holds under provocation, in the fiction</td><td class="res"><span class="pill ok">held</span></td><td class="ev">t3 and t4 intercepted in prose; no HP or COMBAT tag in either raw response</td></tr>
+<tr><td class="chk">Engine gates, synthetic probe</td><td class="res"><span class="pill ok">held</span></td><td class="ev">HP, COMPANION_HP, NPC_DEATH_REPORTED refused with the Pax copy; COMBAT_START refused; SCENE_DEATH and a bare death dropped; HP +2 healed; roster, HP and combat unchanged</td></tr>
+<tr><td class="chk">Whispers re-aimed at residents</td><td class="res"><span class="pill ok">held</span></td><td class="ev">t2 rumour about Daeris from her own campaign's defining moment</td></tr>
+<tr><td class="chk">A cost in coin</td><td class="res"><span class="pill ok">held</span></td><td class="ev">t5 gold 25 → 23</td></tr>
+<tr><td class="chk">Free swap, no Game Master turn, switch of view next turn</td><td class="res"><span class="pill ok">held</span></td><td class="ev">Daeris L11 as hero; Tobin a resident; t6 narrates Daeris as "you"</td></tr>
+<tr><td class="chk">Library write-back on demotion</td><td class="res"><span class="pill seam">seam</span></td><td class="ev">the seam fired once for Tobin; the real POST was deliberately not exercised on the owner's account</td></tr>
+<tr><td class="chk">Sub-location merges onto the owner node</td><td class="res"><span class="pill ok">held</span></td><td class="ev">t7 landed on Morwen's existing node, visits 0 → 1, no duplicate</td></tr>
+<tr><td class="chk">Chapter summaries in the village</td><td class="res"><span class="pill ok">held</span></td><td class="ev">summaries at t3 and t6 read as a village day</td></tr>
+<tr><td class="chk">Montage and wildcard off</td><td class="res"><span class="pill ok">held</span></td><td class="ev">the rung never came due in 7 turns; the off-but-measured branch is engine-tested, not live-seen</td></tr>
+<tr><td class="chk">Reload persistence and cloud sync</td><td class="res"><span class="pill ok">held</span></td><td class="ev">kind, hero, residents, houses and turn 7 intact after reload; "final turns synced"</td></tr>
+<tr><td class="chk">Signed-out empty-village toast</td><td class="res"><span class="pill skip">not run</span></td><td class="ev">the preview was signed in; engine-tested only</td></tr>
+<tr><td class="chk">Real death envelope with a transaction id</td><td class="res"><span class="pill skip">not run</span></td><td class="ev">pinned by the village-mode battery; no Game Master turn produced one</td></tr>
+</tbody></table></div>
+
+<h2>Findings to carry into the build</h2>
+<ol class="findings">
+  <li><div><h3>The adventure default weather leaks into the village and colours every turn</h3><p>The new-game path seeds "cold wind carrying ash"; the village blueprint has no weather field, so the Game Master echoed it at turn 0 and wrote ash into all seven turns. A home with no dangers should not open under a burning sky. Remedy: an opening weather on the kind registry, adventure pinned.</p><span class="to">→ #6, phase E/F pre-build list</span></div></li>
+  <li><div><h3>The demoted hero gets no house</h3><p>Importing a resident mints a house node with an owner; the swap's demotion does not, so Tobin has no house after the swap. Phase E's stash needs the node the moment a hero becomes a resident.</p><span class="to">→ #6, phase E</span></div></li>
+  <li><div><h3>An NPC tag downgrades a resident to "acquaintance"</h3><p>Frizwick and Morwen both lost their resident relationship label on their first NPC tag. Nothing reads the label for the village, so this is cosmetic today, but the roster shows "acquaintance" for a hero the player once was. Remedy: keep the label when the resident flag is set.</p><span class="to">→ #6</span></div></li>
+  <li><div><h3>Trade happened at a doorstep and a hearth, with no named shopkeeper</h3><p>Wares from Frizwick's door at t1, coin for stew fetched "from whoever's tending the fire" at t5. Expected until phase F, which limits buy and sell to a shop sub-location and names both parties. Recorded as the baseline F's acceptance test must flip.</p><span class="to">→ #6, phase F</span></div></li>
+  <li><div><h3>The gateway's error responses carry no CORS headers</h3><p>The first call after the swap failed and the browser could only report a CORS block; the status and body were unreadable. The action was kept and the retry got a 200 with a 93 KB body, so the cause is still unknown. That is the gap: every server-side failure is unattributable on the client.</p><span class="to">→ new row #406</span></div></li>
+</ol>
+
+<h2>Minor observations, no action</h2>
+<ul class="obs">
+  <li>The rumour called Ammut, Daeris's former hero and companion, "some devil or demon". No event was invented, but a person's nature was recast. Worth watching when the whisper pool is the players' own heroes.</li>
+  <li>Prose time drift: "tending the fire tonight" and "a tavern at midday" at 8:50 in the morning; "before dark takes it" at 9:10, seeded by the player's own "tonight". One model, one session.</li>
+  <li>Fixture artefacts: Daeris at L11 with no archetype triggered the level-3 archetype modal on reload, and a "rest to claim Lv 13" toast. A real library hero would carry its archetype. The summariser ran at t3 and t6, ordinary for this prose length.</li>
+  <li>The handoff's "sign in with a throwaway account" is not a path the agent can take. The owner signs in and clicks New Campaign; the agent drives the rest.</li>
+</ul>
+
+<h2>What graduates</h2>
+<ol class="grad">
+  <li>TODO #6 records the live check; findings 1 to 4 join the E/F pre-build list.</li>
+  <li>New TODO row #406: gateway error responses must carry CORS headers so the client can read the status.</li>
+  <li>The check campaign stays on the "P M" account as VillageLiveCheck, seven turns, to play on or delete.</li>
+</ol>
+
+<footer>
+  Source: <a href="https://github.com/pmegow/traffic-and-dragons/blob/master/audits/AUDIT_village_livecheck_v1912.md">audits/AUDIT_village_livecheck_v1912.md</a> · commit c6546d5<br>
+  Full record of the design: audits/RECORD_6_village_design.md
+</footer>
+</div>
