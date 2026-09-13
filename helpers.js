@@ -1331,6 +1331,30 @@ function itemValueGp(entry){if(!entry||!entry.value)return null;var m=String(ent
 // medium / large / vast — measured on the t2097 map); settlement words are folded in as a courtesy.
 // null when the node carries no size at all — an unsized place never gets a market ask.
 function waresSizeTier(size){var s=String(size||"").toLowerCase().trim();if(!s)return null;if(/vast|huge|sprawling|metropol/.test(s))return "vast";if(/large|big|major|city/.test(s))return "large";if(/medium|mid|moderate|town/.test(s))return "medium";if(/small|tiny|little|hamlet|village|outpost/.test(s))return "small";return "unknown";}
+/* #81b (owner field report 2026-09-13): item canon TRAVELS with the sheet. A campaign's [ITEM_DEF:] overlays live on
+   worldState.itemBible; a character sheet is only a list of item names, so an exported hero arrived in the next campaign
+   with his runeforged Cleaver filed Unclassified. portableSheet attaches the origin campaign's definitions for the items
+   the sheet carries; adoptSheetItemDefs merges them into the destination's canon, missing keys only (canon is write-once,
+   #81). Every export (the .char file, the library save, the village write-back) and every import (startGame, a resident
+   moving in, an imported companion) goes through these two. Pure over worldState.itemBible; never throws. */
+function sheetItemDefs(sheet){
+  var out={},n=0,ovs=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)||null;if(!sheet||!ovs)return out;
+  var inv=sheet.inventory||[],i;for(i=0;i<inv.length;i++){var key=itemBaseName(inv[i]);if(!key)continue;var hit=key;if(!ovs[hit]){var canon=_itemAliasIndex()[key];if(canon&&ovs[canon])hit=canon;else continue;}if(!out[hit]){out[hit]=ovs[hit];n++;}}
+  return out;
+}
+function portableSheet(sheet){
+  if(!sheet||typeof sheet!=="object")return sheet;
+  var copy=JSON.parse(JSON.stringify(sheet)),defs=sheetItemDefs(sheet),k,any=false;for(k in defs){any=true;break;}
+  if(any)copy.itemDefs=JSON.parse(JSON.stringify(defs));else delete copy.itemDefs;
+  return copy;
+}
+function adoptSheetItemDefs(sheet){
+  if(!sheet||typeof sheet!=="object"||!sheet.itemDefs||typeof sheet.itemDefs!=="object"||typeof worldState==="undefined"||!worldState)return 0;
+  if(!worldState.itemBible)worldState.itemBible={};
+  var k,n=0;for(k in sheet.itemDefs){if(!sheet.itemDefs[k]||typeof sheet.itemDefs[k]!=="object")continue;if(worldState.itemBible[k])continue;/* the destination's canon wins — write-once */worldState.itemBible[k]=JSON.parse(JSON.stringify(sheet.itemDefs[k]));n++;}
+  if(n&&typeof console!=="undefined")console.info("[items] "+n+" item definition(s) travelled in with "+(sheet.name||"a sheet")+" (#81b)");
+  return n;
+}
 function itemLookup(nm){
   var key=itemBaseName(nm);
   if(!key)return null;

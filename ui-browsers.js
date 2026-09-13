@@ -425,7 +425,7 @@ function showCharImportPreview(char, onAccept, onCancel){
 }
 // ── Character I/O ─────────────────────────────────────────────────────────────
 function _doExportChar(name, sheet){
-  var data=JSON.stringify({ver:10,type:"character",character:sheet},null,2);
+  var data=JSON.stringify({ver:10,type:"character",character:portableSheet(sheet)},null,2);/* #81b: the item canon travels */
   var blob=new Blob([data],{type:"application/json"});
   var slug=function(s){return(s||"unknown").replace(/[^a-zA-Z0-9_\-]/g,"_");};
   var camp=slug(worldState.campName||worldState.character.name);
@@ -545,6 +545,7 @@ function _addImportedCompanion(char){
   if(wsNpcByName(char.name)){showToast(char.name+" is already in this campaign.");return;}/* #7: shared lookup */
   if(partyCompanionCount()>=partyCompanionCap()){showToast("Party full (max "+PARTY_MAX+", incl. you). Remove a companion before adding "+char.name+".");return;}
   // Add as party member NPC with full charSheet
+  if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(char);/* #81b: the companion's gear keeps its canon */
   var npc={name:char.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(char.gender),portrait:null,charSheet:char}; // portrait rides on charSheet only (#3 dedupe)
   worldState.npcs.push(npc);
   if(!memory.npcs[char.name])memory.npcs[char.name]={attitude:"ally",knowledge:[],events:[]};
@@ -600,7 +601,7 @@ function _showCharExportOptions(char){
       var slug=_charLibSlug(char.name),existing=null;
       for(var i=0;i<list.length;i++){if(list[i].slug===slug){existing=list[i];break;}}
       if(existing){modal.remove();_showCharOverwriteConfirm(char,existing);}
-      else{storageAdapter.saveCharacterToLibrary(char,function(err2){modal.remove();if(err2)showToast("Save failed: "+err2);else showToast("&#9729; "+char.name+" saved to the character library.");});}
+      else{storageAdapter.saveCharacterToLibrary(portableSheet(char),function(err2){modal.remove();if(err2)showToast("Save failed: "+err2);else showToast("&#9729; "+char.name+" saved to the character library.");});}/* #81b */
     });
   });
 }
@@ -618,7 +619,7 @@ function _showCharOverwriteConfirm(char,existing){
   document.getElementById("cow-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("cow-ok").addEventListener("click",function(){
     var btn=document.getElementById("cow-ok");btn.textContent="Saving…";btn.disabled=true;
-    storageAdapter.saveCharacterToLibrary(char,function(err){modal.remove();if(err)showToast("Save failed: "+err);else showToast("&#9729; "+char.name+" updated in the character library.");});
+    storageAdapter.saveCharacterToLibrary(portableSheet(char),function(err){modal.remove();if(err)showToast("Save failed: "+err);else showToast("&#9729; "+char.name+" updated in the character library.");});/* #81b */
   });
 }
 

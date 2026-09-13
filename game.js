@@ -19,6 +19,7 @@ function startGame(char,toneName,toneVoice,authorId){
   /* #354: the preset carries the opening hour — the clock is engine-owned, so the preset sets it (never the GM) */
   if(typeof char._startHour==="number"){worldState.clock={min:startClockMin(char._startHour),schedule:[]};worldState.world.time=clockHourLabel(char._startHour);}
   delete worldState.character._startLoc;delete worldState.character._campName;delete worldState.character._startHour;
+  if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(char);/* #81b: an imported hero's item canon travels in */
   if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}
   sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
   // Add any companions selected during character creation
@@ -1342,6 +1343,7 @@ function importVillageResidents(list){
     if(worldState.character&&worldState.character.name===nm){skipped.push(nm);continue;}
     if(wsNpcByName(nm)){skipped.push(nm);continue;}
     var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
+    if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);/* #81b: the resident's gear keeps its canon */
     var pr=pronounsForGender(sheet.gender);
     worldState.npcs.push({name:nm,status:"",statusTurn:0,rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet});/* portrait rides on charSheet only (#3 dedupe) */
     if(!memory.npcs[nm])memory.npcs[nm]={attitude:"",knowledge:[],events:[],pronouns:pr};
@@ -1496,7 +1498,7 @@ function villageWriteBack(sheet,cb){
   if(typeof storageAdapter==="undefined"||!storageAdapter||typeof storageAdapter.saveCharacterToLibrary!=="function")return refuse("no server connection in this build");
   if(!(typeof storageAdapter.isServerMode==="function"&&storageAdapter.isServerMode())||!(typeof storageAdapter.hasToken==="function"&&storageAdapter.hasToken()))return refuse("not signed in to the server");
   try{
-    storageAdapter.saveCharacterToLibrary(sheet,function(err,res){
+    storageAdapter.saveCharacterToLibrary((typeof portableSheet==="function")?portableSheet(sheet):sheet,function(err,res){/* #81b: the canon rides the write-back */
       if(err){console.warn("[village] library write-back failed for "+nm+": "+String(err));if(typeof showToast==="function")showToast("⚠ "+nm+" was NOT saved to the library — "+String(err),6000);if(typeof cb==="function")cb({ok:false,reason:String(err)});return;}
       if(typeof showToast==="function")showToast("✓ "+nm+" saved to the library.",3500);
       if(typeof cb==="function")cb({ok:true,res:res});

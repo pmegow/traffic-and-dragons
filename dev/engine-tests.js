@@ -23709,4 +23709,43 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#81b item canon TRAVELS with the sheet (owner field report 2026-09-13: Cleaver, a weapon in Runelords, arrived Unclassified)");
+  t("#81b portableSheet attaches the campaign's item definitions for the items the sheet carries; a sheet whose items have no campaign canon carries no itemDefs key; the live sheet is never mutated",function(){
+    makeWorld();worldState.itemBible={cleaver:{category:"weapon",effect:"N/A",value:"120 gp",inventoryCategories:["weapon"]},"old boots":{category:"mundane",effect:"N/A"}};
+    var c=worldState.character;c.inventory=["Cleaver (Thassilonian runeforged blade, three characters, origin unknown)","Longsword"];
+    var p=portableSheet(c);if(p===c)return "portableSheet returns a copy";if(!p.itemDefs||!p.itemDefs.cleaver||p.itemDefs.cleaver.category!=="weapon")return "the carried item's canon must ride the copy: "+JSON.stringify(p.itemDefs);
+    if(p.itemDefs["old boots"])return "only CARRIED items travel";if("itemDefs" in c)return "the live sheet must not grow the field";
+    c.inventory=["Longsword"];var q=portableSheet(c);if("itemDefs" in q)return "no canon to carry, no key";
+    return true;
+  });
+  t("#81b adoptSheetItemDefs merges a sheet's travelling canon into the NEW campaign's item canon — missing keys only (write-once, #81) — so itemLookup and groupInventory classify the item as its origin did; returns the count and is idempotent",function(){
+    makeWorld();worldState.itemBible={cleaver:{category:"weapon",effect:"N/A",value:"120 gp",inventoryCategories:["weapon"]}};worldState.character.inventory=["Cleaver (Thassilonian runeforged blade)"];
+    var p=portableSheet(worldState.character);
+    makeWorld();/* a fresh campaign: no canon for a cleaver */if(itemLookup("Cleaver (Thassilonian runeforged blade)"))return "fixture: the fresh world must not know the cleaver";
+    var n=adoptSheetItemDefs(p);if(n!==1)return "one definition adopted: "+n;
+    var e=itemLookup("Cleaver (Thassilonian runeforged blade)");if(!e||e.category!=="weapon")return "the adopted canon must classify the item: "+JSON.stringify(e);
+    var g=groupInventory(["Cleaver (Thassilonian runeforged blade)"]);if(!g.some(function(x){return x.id==="weapon"&&x.rows.length===1;}))return "the panel must file it under Weapons: "+JSON.stringify(g.map(function(x){return x.id+":"+x.rows.length;}));
+    if(adoptSheetItemDefs(p)!==0)return "idempotent";
+    worldState.itemBible.cleaver={category:"tool",effect:"N/A"};var p2=portableSheet({name:"X",inventory:["Cleaver"]});p2.itemDefs={cleaver:{category:"weapon",effect:"N/A"}};if(adoptSheetItemDefs(p2)!==0||worldState.itemBible.cleaver.category!=="tool")return "existing canon is never overwritten";
+    if(adoptSheetItemDefs({name:"Y"})!==0||adoptSheetItemDefs(null)!==0)return "a sheet without defs adopts nothing, never throws";
+    return true;
+  });
+  t("#81b every export and every import is wired: villageWriteBack sends the portable sheet (itemDefs attached), importVillageResidents adopts each resident's canon, startGame adopts the hero's; the source of the sheet button and the library save go through portableSheet",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";
+    var lib=[{name:"Ammut",gender:"F",cls:"Rogue",inventory:["Cleaver"],itemDefs:{cleaver:{category:"weapon",effect:"N/A"}}}];
+    importVillageResidents(lib);if(!worldState.itemBible||!worldState.itemBible.cleaver||worldState.itemBible.cleaver.category!=="weapon")return "a resident's canon must be adopted on move-in";
+    var sent=[],saved=(typeof storageAdapter!=="undefined")?storageAdapter:null;
+    try{storageAdapter={isServerMode:function(){return true;},hasToken:function(){return true;},saveCharacterToLibrary:function(c,cb){sent.push(c);cb(null,{ok:true});}};
+      var sh=wsNpcByName("Ammut").charSheet;delete sh.itemDefs;villageWriteBack(sh);
+      if(!sent.length||!sent[0].itemDefs||!sent[0].itemDefs.cleaver)return "the write-back must carry the canon: "+JSON.stringify(sent[0]&&sent[0].itemDefs);
+      if(sent[0]===sh)return "the write-back sends a portable copy";
+    }finally{storageAdapter=saved;}
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
+    if(!/function _doExportChar\(name, sheet\)\{[\s\S]{0,120}portableSheet\(sheet\)/.test(src))return "the .char export must go through portableSheet";
+    if((src.match(/saveCharacterToLibrary\(portableSheet\(char\)/g)||[]).length<2)return "both library-save branches must send the portable sheet";
+    if(!/_addImportedCompanion\(char\)\{[\s\S]{0,1200}adoptSheetItemDefs\(char\)/.test(src))return "an imported companion's canon must be adopted";
+    var game=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(!/function startGame\([\s\S]{0,3000}adoptSheetItemDefs\(char\)/.test(game))return "startGame must adopt the hero's travelling canon";
+    return true;
+  });
+
 }
