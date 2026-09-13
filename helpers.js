@@ -2243,7 +2243,7 @@ function villageHouseGroup(){
   return {id:"house",label:"Your house",rows:rows.map(function(r){return {raw:r.name+(r.qty>1?" x"+r.qty:""),qty:r.qty,by:r.by,placed:r.placed};})};
 }
 /* #6 G: the Hall's node key — one place, one key. */
-function villageHallKey(){var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|the Village Hall";}
+function villageHallKey(base){var v=base||(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|the Village Hall";}
 /* #6 D3: the commons a resident may be found in — the map's filed shops first (the GM's own geography), then the kind's
    fallback list; leaf names, deduped, in a stable order. */
 function villageCommons(){
@@ -2291,5 +2291,16 @@ function villageHouseOwnerFor(subName){
   if(/^(my|your|own|the hero's)\b/.test(s)||/\b(my|your)\s+(own\s+)?(house|home|cottage|hut|manor|quarters|lodgings|place)\b/.test(s))return names[0]||null;
   var best=null;for(i=0;i<names.length;i++){var full=String(names[i]).toLowerCase(),first=full.split(/\s+/)[0];if(s.indexOf(full)>=0||new RegExp("\\b"+first.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(s)){if(!best||full.length>String(best).toLowerCase().length)best=names[i];}}
   return best;
+}
+/* #6 E11 (owner, 2026-09-13): the commons are pre-minted, and a GM naming that carries a commons word folds into the
+   pre-minted node — "tavern common room" is the tavern, "the alchemist's shop with the green door" is the alchemist's —
+   so wares, hours and presence keep ONE node per shop. Returns the commons leaf or null. Village only. */
+function villageCommonFor(subName){
+  var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.commons||typeof worldState==="undefined"||!worldState||!memory||!memory.map)return null;
+  var s=String(subName||"").toLowerCase().replace(/[’]/g,"'"),v=(worldState.world&&worldState.world.location)||"The Village",i;
+  for(i=0;i<def.commons.length;i++){var leaf=def.commons[i];if(!memory.map.nodes[v+"|"+leaf])continue;if(s===leaf.toLowerCase())return leaf;
+    var stem=leaf.toLowerCase().replace(/^the\s+/,"").replace(/'s$/,"").replace(/'s\s+\w+$/,"");/* the tavern → tavern; the alchemist's → alchemist; the animal handler's yard → animal handler */
+    if(stem&&new RegExp("\\b"+stem.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(s))return leaf;}
+  return null;
 }
 function villageHouseKey(name){var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|"+String(name||"").trim()+"'s house";}

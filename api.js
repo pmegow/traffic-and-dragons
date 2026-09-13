@@ -61,6 +61,7 @@ function buildGeoBlock(){
   }
   /* #6 E10: every house by its exact name, visited or not — the recency filter below would hide them, and the GM needs the
      names to file [SUBLOCATION:<Owner>'s house] when the hero walks in. Village only. */
+  if(_stashKind&&typeof villageCommons==="function"){var _cm2=villageCommons();if(_cm2.length)lines.push("COMMONS here (each a sub-location — emit [SUBLOCATION:<name>] with the exact name whenever the hero enters one; the residents are found in them by the hour): "+_cm2.join(", "));}/* #6 E11 */
   if(_stashKind){var _hk2=Object.keys(memory.map.nodes).filter(function(k){var n=memory.map.nodes[k];return n&&n.owner&&n.parent&&locSame(n.parent,wKey);}).sort().map(function(k){return locDisplayLeaf(k);});if(_hk2.length)lines.push("HOUSES here (each a sub-location — emit [SUBLOCATION:<Owner>'s house] with the owner's exact name whenever the hero enters one): "+_hk2.join(", "));}
   /* #6 D3: residents roam — served for residents NOT in the scene, by the hour, until the story places them. Village only. */
   if(typeof kindDef==="function"&&kindDef().roam&&typeof residentWhereabouts==="function"){var _ra=[],_ri,_rn=worldState.npcs||[],_local=(typeof buildSceneManifest==="function")?buildSceneManifest().local:[];

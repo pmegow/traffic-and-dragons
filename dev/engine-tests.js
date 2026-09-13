@@ -23735,6 +23735,21 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};applyMuts("[SUBLOCATION:Ameiko's house]");if(worldState.world.sublocation!=="Ameiko's house"||/HOUSES here/.test(buildGeoBlock()))return "the adventure files as named and lists no houses";
     return true;
   });
+  t("#6E11 the commons are PRE-MINTED when the village is created (owner, 2026-09-13): applying a village blueprint mints every commons on the kind's list as a sub-location node (the shops flagged shop:true, the square not) plus the Hall, signed in or not; the geo block lists them so the GM has the names; a GM naming that carries a commons word ('tavern common room', 'the alchemist's shop') folds into the pre-minted node; a name with no commons word files as named; the adventure mints nothing",function(){
+    makeWorld();applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"The Village",kind:"village",startingLocation:"The Village",acts:[]}));
+    var n=memory.map.nodes;if(!n["The Village|the tavern"]||!n["The Village|the smithy"]||!n["The Village|the square"])return "the commons must exist on day one: "+Object.keys(n).join(", ");
+    if(n["The Village|the tavern"].shop!==true||n["The Village|the square"].shop)return "shops flagged, the square not";
+    if(!isShopNode("The Village|the tavern",n["The Village|the tavern"]))return "a pre-minted shop is a shop";
+    if(!n[villageHallKey("The Village")]||!n[villageHallKey("The Village")].hall)return "the Hall is minted with the commons, signed in or not";
+    worldState.world.location="The Village";/* startGame sets the hero's start location; applyBlueprint alone does not */
+    var geo=buildGeoBlock();if(!/COMMONS here/.test(geo)||!/the tavern/.test(geo)||!/the trading post/.test(geo))return "the geo block must list the commons by name: "+geo;
+    applyMuts("[SUBLOCATION:tavern common room]");if(worldState.world.sublocation!=="the tavern"||n["The Village|tavern common room"])return "a tavern-ish name folds into the pre-minted tavern: "+worldState.world.sublocation;
+    applyMuts("[SUBLOCATION:the alchemist's shop with the green door]");if(worldState.world.sublocation!=="the alchemist's")return "the alchemist's shop folds: "+worldState.world.sublocation;
+    applyMuts("[SUBLOCATION:the well house]");if(worldState.world.sublocation!=="the well house")return "a name with no commons word files as named";
+    var before=Object.keys(n).length;var r=villageCommonsSeed();if(Object.keys(n).length!==before)return "re-seeding is idempotent: "+JSON.stringify(r);
+    makeWorld();applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Plain",startingLocation:"Sandpoint",acts:[]}));if(Object.keys(memory.map.nodes).some(function(k){return /\|the tavern$/.test(k);}))return "the adventure mints no commons";
+    return true;
+  });
   section("#81b item canon TRAVELS with the sheet (owner field report 2026-09-13: Cleaver, a weapon in Runelords, arrived Unclassified)");
   t("#81b portableSheet attaches the campaign's item definitions for the items the sheet carries; a sheet whose items have no campaign canon carries no itemDefs key; the live sheet is never mutated",function(){
     makeWorld();worldState.itemBible={cleaver:{category:"weapon",effect:"N/A",value:"120 gp",inventoryCategories:["weapon"]},"old boots":{category:"mundane",effect:"N/A"}};

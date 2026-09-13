@@ -1350,7 +1350,7 @@ function importVillageResidents(list){
     villageHouseEnsure(nm,here);
     added++;
   }
-  if(typeof villageHallSeed==="function"&&kindDef().hall)villageHallSeed();/* #6 G2: the Hall seeds from the library on day one, and re-seeds on every move-in */
+  if(typeof villageCommonsSeed==="function")villageCommonsSeed();/* #6 E11 + G2: the commons and the Hall (mementos + the wall from the residents just added), idempotent, on day one and on every move-in */
   return {added:added,skipped:skipped};
 }
 /* #6 E6: ONE house-minting path — import and the swap's demotion both come here, so a resident always has a house with
@@ -1398,12 +1398,26 @@ function villageRung(){
   if(!opts.length)return null;
   return {kind:"village",text:opts[(worldState.turn||0)%opts.length]};
 }
-/* #6 G2: the Hall seeds from the library — one memento per resident with a fate (an object from their sheet, the fate line,
+/* #6 E11 (owner, 2026-09-13): the commons are PRE-MINTED when the village is created — every entry on the kind's list
+   becomes a sub-location node under the village, the shops flagged shop:true (the square is a commons, not a shop), the
+   Hall beside them. Idempotent; runs at blueprint time so a signed-out village has its geography too. */
+function villageCommonsSeed(base){
+  var def=(typeof kindDef==="function")?kindDef():null;if(!worldState||!def||!def.commons)return {minted:0};
+  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  var v=base||(worldState.world&&worldState.world.location)||"The Village",i,minted=0;
+  if(!memory.map.nodes[v])memory.map.nodes[v]={firstVisit:null,visits:0,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+  for(i=0;i<def.commons.length;i++){var leaf=def.commons[i],key=v+"|"+leaf;if(memory.map.nodes[key])continue;
+    var isShop=!!(def.shopWords&&def.shopWords.test(leaf));
+    memory.map.nodes[key]={firstVisit:null,visits:0,description:null,parent:v,npcs:[],items:[],size:"small",travelMins:null};if(isShop)memory.map.nodes[key].shop=true;minted++;}
+  if(typeof villageHallSeed==="function"&&def.hall)villageHallSeed(v);
+  return {minted:minted};
+}
+/* #6 G2: the Hall seeds from the library with a fate (an object from their sheet, the fate line,
    one unresolved thing, their own line if they wrote one) and a wall entry for every resident without one. Idempotent. */
-function villageHallSeed(){
+function villageHallSeed(base){
   if(!worldState||typeof kindDef!=="function"||!kindDef().hall)return {mementos:0,wall:0};
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-  var hk=villageHallKey(),here=(worldState.world&&worldState.world.location)||"The Village",node=memory.map.nodes[hk];
+  var here=base||(worldState.world&&worldState.world.location)||"The Village",hk=villageHallKey(here),node=memory.map.nodes[hk];
   if(!node)node=memory.map.nodes[hk]={firstVisit:null,visits:0,description:null,parent:here,npcs:[],items:[],size:"small",travelMins:null,hall:true};
   node.hall=true;var prior={},i;(node.mementos||[]).forEach(function(m){prior[m.resident]=m;});
   var npcs=worldState.npcs||[],mem=[],wall=[];
@@ -2877,7 +2891,8 @@ function splitNpcStatBlock(text){
 }
 function applyBlueprint(bp){
   if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind]){worldState.kind=bp.kind;/* #6: only a non-default kind is stamped — adventure saves stay byte-identical */
-    if(CAMPAIGN_KINDS[bp.kind].openingWeather&&worldState.world)worldState.world.weather=CAMPAIGN_KINDS[bp.kind].openingWeather;/* #6 C4: the kind's own sky, not the adventure's ash (the first live check opened under "cold wind carrying ash") */}
+    if(CAMPAIGN_KINDS[bp.kind].openingWeather&&worldState.world)worldState.world.weather=CAMPAIGN_KINDS[bp.kind].openingWeather;/* #6 C4: the kind's own sky, not the adventure's ash (the first live check opened under "cold wind carrying ash") */
+    worldState._seedCommons=bp.startingLocation||true;/* #6 E11: minted after the blueprint's own locations land (below), under the blueprint's own village name */}
   /* #192: persist the class roster into worldState as COPIES (a reused bp object must never be
      able to mutate canon later); the classDefs overlay + classAvailable read these from here on,
      and both ride the sync blob like any worldState field. Absent = unrestricted / no customs. */
@@ -2920,6 +2935,7 @@ function applyBlueprint(bp){
       if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]={firstVisit:null,visits:0,description:loc.description||null,parent:null,npcs:[],items:[]};
     }
   }
+  if(worldState._seedCommons){var _sc=worldState._seedCommons;delete worldState._seedCommons;if(typeof villageCommonsSeed==="function")villageCommonsSeed(typeof _sc==="string"?_sc:null);}/* #6 E11: the commons are pre-minted at creation, signed in or not */
   // Creatures — campaign bestiary; buildSysPrompt injects it into the STABLE prompt half
   // (campaign-constant: set once here, never mutated per turn, so it caches).
   if(bp.creatures&&bp.creatures.length)worldState.bestiary=bp.creatures;

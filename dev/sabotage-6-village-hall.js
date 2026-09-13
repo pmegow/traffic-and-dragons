@@ -38,6 +38,12 @@ prove("data.js", [
     mustFail: "#6G4 close this campaign" }
 ]);
 prove("game.js", [
+  { label: "the commons are not minted at creation",
+    find: 'if(worldState._seedCommons){var _sc=worldState._seedCommons;delete worldState._seedCommons;if(typeof villageCommonsSeed==="function")villageCommonsSeed(typeof _sc==="string"?_sc:null);}', replace: 'delete worldState._seedCommons;',
+    mustFail: "#6E11 the commons are PRE-MINTED" },
+  { label: "the square is a shop",
+    find: 'var isShop=!!(def.shopWords&&def.shopWords.test(leaf));', replace: 'var isShop=true;',
+    mustFail: "#6E11 the commons are PRE-MINTED" },
   { label: "the opening ignores the kind's ask",
     find: 'if(def&&typeof def.openingAsk==="function"){var res=', replace: 'if(false){var res=',
     mustFail: "#6C4 the OPENING is the kind" },
@@ -66,7 +72,7 @@ prove("game.js", [
     find: 'sheet.fate={campaign:camp,turn:turn,cause:cause,line:line(sheet.name),unresolved:open.slice(0,3)};', replace: 'sheet.fate={campaign:camp,turn:turn,cause:cause,line:line(sheet.name),unresolved:[]};',
     mustFail: "#6G1 fates are stamped at the ending" },
   { label: "import stops seeding the Hall",
-    find: 'if(typeof villageHallSeed==="function"&&kindDef().hall)villageHallSeed();/* #6 G2: the Hall seeds from the library on day one, and re-seeds on every move-in */', replace: '',
+    find: 'if(typeof villageCommonsSeed==="function")villageCommonsSeed();/* #6 E11 + G2: the commons and the Hall (mementos + the wall from the residents just added), idempotent, on day one and on every move-in */', replace: '',
     mustFail: "#6G2 the Hall seeds from the library" }
 ]);
 prove("helpers.js", [
@@ -107,6 +113,9 @@ prove("api.js", [
     mustFail: "#6G3 the Hall reaches the GM only in the Hall" }
 ]);
 prove("tag_table.js", [
+  { label: "a tavern-ish name mints a twin beside the tavern",
+    find: 'else if(typeof villageCommonFor==="function"&&villageCommonFor(_sln)){', replace: 'else if(false){',
+    mustFail: "#6E11 the commons are PRE-MINTED" },
   { label: "a house name mints its own node beside the house key",
     find: 'if(_hOwner){var _hLeaf=', replace: 'if(false){var _hLeaf=',
     mustFail: "#6E10 a house is a SUB-LOCATION" },
