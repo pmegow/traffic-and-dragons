@@ -882,6 +882,15 @@ function setCampMeta(arr){store.set(CAMP_META_K,JSON.stringify(arr));}
 function getActiveCampId(){return store.get(ACTIVE_CAMP_K)||null;}
 function setActiveCampId(id){if(id)store.set(ACTIVE_CAMP_K,id);else store.del(ACTIVE_CAMP_K);}
 function newCampaignId(){return"camp_"+Date.now()+"_"+Math.floor(Math.random()*9000+1000);}
+/* E13b (owner field report 2026-09-13): is this id already a campaign? The campaign list knows it, or a slot holds state
+   for it. startGame asks before adopting the active id — the wizard's normal path minted no id of its own, so a new
+   campaign started while another was active (a boot-adopted one, say) wrote itself under THAT campaign's id and the
+   cloud copy at turn 2477 refused a turn-3 village as a stale device. */
+function campaignIdOccupied(id){
+  if(!id)return false;
+  var meta=getCampMeta(),i;for(i=0;i<meta.length;i++)if(meta[i]&&meta[i].id===id)return true;
+  return !!store.get(campSlotKey(id,"ws"));
+}
 function updateCampMeta(){
   var id=getActiveCampId();if(!id||!worldState)return;
   var c=worldState.character,w=worldState.world;

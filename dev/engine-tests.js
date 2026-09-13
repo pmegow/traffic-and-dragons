@@ -23748,4 +23748,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("E13b a NEW campaign never inherits an OCCUPIED campaign id (owner field report 2026-09-13: a village at turn 3 synced as the Runelords campaign at turn 2477)");
+  t("E13b campaignIdOccupied says yes for an id the campaign list knows or a slot holds state for, no for a fresh id; startGame mints a fresh id whenever the active one is occupied (the wizard's normal path minted none and adopted whatever was active), and keeps a fresh one it was handed",function(){
+    makeWorld();var meta=getCampMeta();setCampMeta([{id:"camp_old_1",campName:"Rise of the Runelords",charName:"Ammut",level:17,savedAt:1}]);
+    try{
+      if(!campaignIdOccupied("camp_old_1"))return "a listed campaign id is occupied";
+      if(campaignIdOccupied("camp_fresh_9"))return "an unlisted id with no slot is free";
+      store.set(campSlotKey("camp_slot_2","ws"),"{}");try{if(!campaignIdOccupied("camp_slot_2"))return "an id with a saved slot is occupied";}finally{store.del(campSlotKey("camp_slot_2","ws"));}
+      if(campaignIdOccupied(null)||campaignIdOccupied(""))return "no id is not occupied";
+      var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+      if(!/var _aid=getActiveCampId\(\);if\(!_aid\|\|campaignIdOccupied\(_aid\)\)setActiveCampId\(newCampaignId\(\)\);/.test(src))return "startGame must mint a fresh id when the active one is occupied (and only then)";
+      return true;
+    }finally{setCampMeta(meta);}
+  });
+
 }

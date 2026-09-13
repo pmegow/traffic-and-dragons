@@ -14,7 +14,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // setActiveCampId, so a first-ever campaign had campId null for its whole first session —
   // updateCampMeta/snapshotActiveCamp both no-op on a null id, so it was never listed or
   // snapshotted and "New Game" deleted it with no save. The import/campNew paths already mint one.
-  if(!getActiveCampId())setActiveCampId(newCampaignId());
+  var _aid=getActiveCampId();if(!_aid||campaignIdOccupied(_aid))setActiveCampId(newCampaignId());/* E13b: never inherit an OCCUPIED id — a new campaign is a new campaign */
   worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,clock:{min:12*MIN_PER_HOUR,schedule:[]}};/* #73: new campaigns open at the declared dusk; rendered time derives from this scalar */
   /* #354: the preset carries the opening hour — the clock is engine-owned, so the preset sets it (never the GM) */
   if(typeof char._startHour==="number"){worldState.clock={min:startClockMin(char._startHour),schedule:[]};worldState.world.time=clockHourLabel(char._startHour);}
