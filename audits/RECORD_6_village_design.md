@@ -53,6 +53,9 @@ resting.
 - A village rung on the fourth button ABOVE buy — call on a resident, ask what they have been doing, a
   round at the tavern — so the ladder never falls through to commerce.
 - One village ask for an exchange between two residents with the hero as witness.
+- **Residents roam (owner, 2026-09-12).** A resident is not only at home: they may be at the tavern, in any shop,
+  at the Hall or in any common area, so the village reads as lived in. Presence is filed per sub-location as
+  today; the village mode places residents across the commons, not only in their houses.
 
 ## E. Houses and the stash
 
@@ -72,6 +75,10 @@ resting.
   settlement-wide list of 2–6, evicted silently).
 - Restock on the campaign clock; prices pinned to the bible value or anchored on the last quote; supply,
   not risk, is the constraint.
+- **Transactions happen in the shop, with the shopkeeper (owner, 2026-09-12).** The buy and sell rungs of the
+  fourth button are active only when the hero stands in a shop sub-location — never at the Hall, never on
+  the street. Every transaction names both parties: the player character and the NPC they transact WITH; a
+  purchase or sale with no named counterparty is refused.
 
 ## G. The Village Hall (a degraded v1, not phase 2)
 
