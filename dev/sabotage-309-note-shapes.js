@@ -8,7 +8,7 @@ rc|=sabotage.prove({
   cases:[
     { label:"#309: a builder loses its NOTE_SHAPES row",
       mustFail:"every NOTE_BUILDERS entry has a NOTE_SHAPES row",
-      find:'  buildMarketNote:{shape:"one-shot-ask",latch:["marketAsk"],combat:"silent",ack:["WARES","WANTED"]},\n',
+      find:'  buildMarketNote:{shape:"one-shot-ask",latch:["marketAsk"],combat:"silent",village:"fires",ack:["WARES","WANTED"]},\n',
       replace:'' },
     { label:"#309: a row claims an undeclared latch",
       mustFail:"every NOTE_BUILDERS entry has a NOTE_SHAPES row",

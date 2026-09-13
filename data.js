@@ -309,7 +309,22 @@ var WIZARD_ALIGNMENTS=["Lawful Good","Neutral Good","Chaotic Good","Lawful Neutr
    narrated on the player's next turn) · populateFromLibrary: on creation, move every library character in as a resident ·
    switchPovBlock(rs): the switch-POV prompt block override (null = the adventure wording in api.js, byte-identical). */
 var CAMPAIGN_KINDS={
-  adventure:{label:"Adventure",skeleton:true,swapDemotesTo:"party",swapHandoff:true,populateFromLibrary:false,switchPovBlock:null},
+  adventure:{label:"Adventure",skeleton:true,swapDemotesTo:"party",swapHandoff:true,populateFromLibrary:false,switchPovBlock:null,
+    /* phase B fields — the adventure carries the literals in api.js / tag_table.js / game.js, so every one of these is
+       "no override": the adventure prompt stays byte-identical (pinned). */
+    ruleOverrides:null,preamble:null,chapterNote:"",tagDocNote:"",noCombat:false,combatRefusal:"",montage:true,wildcard:true,whisperResidentPool:false},
   village:{label:"Village",skeleton:false,swapDemotesTo:"resident",swapHandoff:false,populateFromLibrary:true,
+    /* #6 phase B — THE PROMPT MODE (Fable, 2026-09-12; the panels' convergence: substitute, never subtract; cut on danger,
+       not initiative). ruleOverrides: keyed by the DEFAULT_RULES title a rule starts with — the village DRIVE rule fills the
+       adventure DRIVE rule's SLOT (same index, same count). preamble: the stable-half opening. chapterNote: appended to the
+       chapter summary description. tagDocNote: appended to the STATE TAGS doc so the GM is told what the village permits.
+       noCombat/combatRefusal: [COMBAT_START] is refused loudly. montage/wildcard: the fourth-button rungs (montage off in v1
+       but logged). whisperResidentPool: residents present are whisper sources and their own defining moments are the facts. */
+    ruleOverrides:{"DRIVE THE ADVENTURE":"DRIVE THE VILLAGE — you are an ACTIVE Game Master in a home with no quests and no dangers. Never wait for the player to manufacture a scene. Every scene must offer a PERSON (a resident doing something of their own), a CHANGE (something different since the player was last here), or a COST in coin or time. There are no dangers here: never a threat, never a monster, never an ambush, never a theft; nothing in the village can hurt, rob or trap the player, and no stranger arrives to make trouble. Residents have their own wants and moods: they may refuse, bargain, be busy, or be elsewhere — agreement is never automatic. End every scene on motion — someone crosses a threshold, a hand reaches, a door opens, a bell rings — even when nothing is at stake. When one conversation closes, open another door: who is at the tavern, what the smith is working on, who has not been seen for days."},
+    preamble:"You are the Game Master for Traffic and Dragons, a sword and sorcery RPG. This campaign is THE VILLAGE: the home between adventures, with no quests and no dangers, where every resident is one of the player's own past heroes. Write vivid second-person prose that keeps the player among people who remember them, in a place that changes while they are away. You drive the scene forward — offer a person, a change, or a cost, never a threat, and never wait to be entertained. Mature themes are permitted. The world state below is absolute truth -- never contradict it.\n\n",
+    chapterNote:"; this is a VILLAGE chapter: record who was seen, what was said, and what was decided — there is no plot to move, so never invent one",
+    tagDocNote:"\nTHE VILLAGE: [COMBAT_START] and every combat tag are REFUSED here — this campaign has no dangers. If the fiction reaches for a fight, write the scene the village permits instead: a person, a change, or a cost in coin or time; a refusal, a bargain, a door.",
+    noCombat:true,combatRefusal:"the village has no dangers (kind: village); write a person, a change, or a cost instead of a fight",
+    montage:false,wildcard:false,whisperResidentPool:true,
     switchPovBlock:function(rs){return "*** CONTROL RECENTLY SWITCHED — READ CAREFULLY ***\nThe player now plays "+rs.to+". Second-person narration ('you'/'your') refers to "+rs.to+" and ONLY "+rs.to+". "+rs.from+" is a resident of the village now — a person "+rs.to+" may meet in the street, at the tavern, or at "+rs.from+"'s own door — so describe "+rs.from+" in the third person by name, never as 'you'. The conversation history above was written while "+rs.from+" was the player character; do NOT let that mislead you into addressing "+rs.from+" as the protagonist. If the two are in the same place, the first beat is the ENCOUNTER — "+rs.to+" seeing "+rs.from+" as a person — never a resumption of "+rs.from+"'s scene. The protagonist is now "+rs.to+".\n\n";}}
 };

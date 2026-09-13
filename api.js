@@ -177,7 +177,12 @@ function buildChangedLocationsBlock(){
   if(over>0)s+="  (+"+over+" more changed locations — older changes remain on record)\n";
   return s+"\n";
 }
-function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules.map(function(r){return (typeof clampStr==="function")?clampStr(r,IMPORT_CAPS.rule):r;}));/* #315: a custom rule is player-authored text — capped like every other import */return"NARRATIVE RULES (STRICTLY ENFORCED -- check EVERY response before outputting):\n"+all.map(function(r,i){return(i+1)+". "+r;}).join("\n")+"\n\n";}
+function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules.map(function(r){return (typeof clampStr==="function")?clampStr(r,IMPORT_CAPS.rule):r;}));/* #315: a custom rule is player-authored text — capped like every other import */
+  /* #6 phase B: a kind may SUBSTITUTE a rule in its slot (keyed by the title the rule starts with) — the village DRIVE rule
+     replaces DRIVE THE ADVENTURE at the same index, so the slot is never empty and the count never changes; adventure has
+     no overrides and stays byte-identical. */
+  var _ov=(typeof kindDef==="function"&&kindDef().ruleOverrides)||null;if(_ov)all=all.map(function(r){var k;for(k in _ov)if(String(r).indexOf(k)===0)return _ov[k];return r;});
+  return"NARRATIVE RULES (STRICTLY ENFORCED -- check EVERY response before outputting):\n"+all.map(function(r,i){return(i+1)+". "+r;}).join("\n")+"\n\n";}
 // #46: one condition, one injected phrase — "Unconscious (until awakened; since t155; from
 // Reaper Spider attack)". The age is what lets the GM judge staleness; cause lands in Phase B.
 function condInjectFmt(x){
@@ -540,7 +545,8 @@ function buildWhispersNote(){
   var dec=(memory.keyDecisions||[]).slice(-5).map(function(d){return "t"+d.turn+": "+d.desc;});
   var qs=[],qk=Object.keys(memory.quests||{}),i;for(i=qk.length-1;i>=0&&qs.length<3;i--){var q=memory.quests[qk[i]];if(q&&(q.status==="completed"||q.status==="failed"))qs.push(qk[i]+" ("+q.status+")");}
   var cm=(worldState.character&&worldState.character.coreMemories)||[],last=cm.length?cm[cm.length-1].text:"";
-  if(!dec.length&&!qs.length&&!last)return"";
+  var _wpool=!!(typeof kindDef==="function"&&kindDef().whisperResidentPool);/* #6 phase B: in the village the residents' own defining moments are facts too */
+  if(!dec.length&&!qs.length&&!last&&!_wpool)return"";
   /* #396 (owner, 2026-09-10: "you've been with me the whole time, where are you getting 'word on the street'"): a whisper needs a
      SOURCE who has been elsewhere — a non-party character in the scene, or a party member who rejoined this turn or last
      (pendingReunion, stamped by the fold). A companion at the player's side has heard nothing the player has not. No source,
@@ -549,11 +555,13 @@ function buildWhispersNote(){
   var _wloc=(_wman&&_wman.local)||[];for(_wi=0;_wi<_wloc.length;_wi++){var _wn=(typeof wsNpcByName==="function")?wsNpcByName(_wloc[_wi]):null;if(_wn&&!_wn.partyMember&&!_wn.dead&&_wsrc.indexOf(_wn.name)<0)_wsrc.push(_wn.name);}
   var _wre=worldState.pendingReunion;if(_wre&&_wre.names instanceof Array&&typeof _wre.turn==="number"&&worldState.turn-_wre.turn<=1)for(_wi=0;_wi<_wre.names.length;_wi++)if(_wsrc.indexOf(_wre.names[_wi])<0)_wsrc.push(_wre.names[_wi]);
   if(!_wsrc.length)return"";
+  var resFacts=[];if(_wpool){for(_wi=0;_wi<_wsrc.length;_wi++){var _wr=(typeof wsNpcByName==="function")?wsNpcByName(_wsrc[_wi]):null,_wcm=_wr&&_wr.charSheet&&_wr.charSheet.coreMemories;if(_wcm&&_wcm.length&&_wcm[_wcm.length-1]&&_wcm[_wcm.length-1].text)resFacts.push(_wsrc[_wi]+" lived through this: "+String(_wcm[_wcm.length-1].text).slice(0,200));}}
+  if(!dec.length&&!qs.length&&!last&&!resFacts.length)return"";
   worldState.whisperAsk={turn:worldState.turn,node:key};
   var label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
   /* #384: the last three rumours already served ride the note so the GM cannot re-serve one (The Long Walk t64 repeated t19 verbatim) */
   var said=(worldState.whispers||[]).slice(-3).map(function(w){return String(w.text||"").slice(0,160);}).filter(function(s){return !!s;});
-  return "[ENGINE NOTE — WHISPERS (not a player action): "+label+" is a place where people talk. Let ONE of these mention what is said about the party — "+_wsrc.join(" or ")+" (someone who has been elsewhere; NEVER a companion who has been at the player's side, they have heard nothing the player has not) — a rumour, a reputation, a name garbled in the telling — in one or two lines, in character, drawn ONLY from these facts: "+(dec.length?"decisions — "+dec.join("; ")+". ":"")+(qs.length?"finished quests — "+qs.join("; ")+". ":"")+(last?"defining moment — "+last+" ":"")+"Rumour distorts: it may exaggerate, blame the wrong person, or get a name wrong, but it never invents an event that did not happen. Emit [WHISPER:one sentence of what is said] so the engine remembers the rumour as rumour. If no one here would have heard anything, say nothing and emit nothing."+(said.length?" Already said, in words or substance — do not repeat: \""+said.join("\" / \"")+"\". A new rumour, or nothing.":"")+"]";
+  return "[ENGINE NOTE — WHISPERS (not a player action): "+label+" is a place where people talk. Let ONE of these mention what is said about the party — "+_wsrc.join(" or ")+" (someone who has been elsewhere; NEVER a companion who has been at the player's side, they have heard nothing the player has not) — a rumour, a reputation, a name garbled in the telling — in one or two lines, in character, drawn ONLY from these facts: "+(dec.length?"decisions — "+dec.join("; ")+". ":"")+(qs.length?"finished quests — "+qs.join("; ")+". ":"")+(last?"defining moment — "+last+" ":"")+(resFacts.length?"what the residents here lived through in their own campaigns — "+resFacts.join("; ")+". ":"")+"Rumour distorts: it may exaggerate, blame the wrong person, or get a name wrong, but it never invents an event that did not happen. Emit [WHISPER:one sentence of what is said] so the engine remembers the rumour as rumour. If no one here would have heard anything, say nothing and emit nothing."+(said.length?" Already said, in words or substance — do not repeat: \""+said.join("\" / \"")+"\". A new rumour, or nothing.":"")+"]";
 }
 /* #375 (owner ruling 2026-09-08): MONEY AT STAKE. The world never named a price in a hundred turns; the only outflows
    were typed by the player. On the whispers shape — sized settlement, latch + MONEY_EVERY, combat-silent — one line lets
@@ -1899,74 +1907,74 @@ var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildPlotArmorNote,/* #319 */bu
 // Registry order is delivery priority. The owner-ruled cap is three builders / ~2,500 characters;
 // neverYield marks consequences and prepare separates archive hygiene from delivery latches.
 var NOTE_SHAPES={
-  buildDeathSceneNote:{neverYield:true,shape:"one-shot-ask",latch:["deathScene"],combat:"fires",ack:["DEATH_ANSWER"]},
-  buildPlotArmorNote:{neverYield:true,shape:"one-shot-ask",latch:["plotArmorPing"],combat:"fires",ack:["none"]},/* #319 */
-  buildDownedNote:{neverYield:true,shape:"cooldown-reminder",latch:["none"],combat:"fires",ack:["DOWNED_RESOLVED","HP"]},
-  buildRecklessNote:{shape:"one-shot-ask",latch:["recklessPing"],combat:"fires",ack:["none"]},
-  buildRegisterNote:{shape:"one-shot-ask",latch:["registerPing"],combat:"silent",ack:["none"]},/* #355 */
-  buildSuggestMissNote:{shape:"one-shot-ask",latch:["suggestMissPing"],combat:"fires",ack:["SUGGEST"]},/* #344 */
-  buildCheckWithdrawnNote:{shape:"one-shot-ask",latch:["checkWithdrawnPing"],combat:"fires",ack:[]},/* #391 */
-  buildSubLeaveNudge:{shape:"one-shot-ask",latch:["subLeavePing"],combat:"silent",ack:["SUBLOCATION","SUBLOCATION_LEAVE","LOCATION"]},/* #393 */
-  buildMoneyNote:{shape:"cooldown-reminder",latch:["moneyAsk"],combat:"silent",ack:["GOLD"]},/* #375 */
-  buildAgendaOfferNote:{shape:"one-shot-ask",latch:["agendaOfferAsk"],combat:"silent",ack:["QUEST"]},/* #373 */
-  buildMontageNote:{shape:"one-shot-ask",latch:["montagePing"],combat:"fires",ack:["TIME_ADVANCE"]},
-  buildWhispersNote:{shape:"cooldown-reminder",latch:["whisperAsk"],combat:"silent",ack:["WHISPER"]},
-  buildWrapUpNote:{shape:"one-shot-ask",latch:["wrapUpPing"],combat:"fires",ack:["none"]},
-  buildRespawnNote:{neverYield:true,shape:"one-shot-ask",latch:["respawnNote"],combat:"fires",ack:["none"]},
-  buildArcWallNudge:{shape:"cooldown-reminder",latch:["arcWallWarned"],combat:"silent",ack:["QUEST"]},
-  buildOrphanCombatNudge:{shape:"one-shot-ask",latch:["orphanCombat"],combat:"fires",ack:["COMBAT_START"]},
-  buildCombatStaleNudge:{shape:"cooldown-reminder",latch:["combatStalePing"],combat:"fires",ack:["ENEMY_SLAIN","ENEMY_HP","COMBAT_END"]},
-  buildUndefinedItemNudge:{shape:"one-shot-ask",latch:["itemDefCandidate","itemDefAsked"],combat:"silent",ack:["ITEM_DEF"]},
-  buildQuestEscalation:{shape:"cooldown-reminder",latch:["none"],combat:"silent",ack:["QUEST","QUEST_STEP"]},
-  buildQuestObjectiveNudge:{shape:"cooldown-reminder",latch:["none"],combat:"silent",ack:["QUEST_STEP"]},
-  buildQuestStaleNudge:{shape:"cooldown-reminder",latch:["questLog[].staleNudged"],combat:"silent",ack:["QUEST_STEP","QUEST"]},
-  buildSplitAudit:{shape:"audit",latch:["charSheet.splitLoc.audited"],combat:"silent",ack:["PARTY_SPLIT"]},
-  buildReunionNote:{shape:"transient",latch:["pendingReunion"],combat:"silent",ack:["PARTY_SPLIT"]},
-  buildPresenceAudit:{shape:"audit",latch:["lastPresenceAudit"],combat:"silent",ack:["PARTY_SPLIT","NO_CHANGE"]},
-  buildStayBehindNudge:{shape:"transient",latch:["presencePing"],combat:"fires",ack:["PARTY_SPLIT"]},
-  buildPlayerSplitNudge:{shape:"transient",latch:["playerSplitPing"],combat:"fires",ack:["PARTY_SPLIT"]},
-  buildDeityDriftNudge:{shape:"cooldown-reminder",latch:["deityDriftNudged"],combat:"silent",ack:["NO_CHANGE"]},
-  buildReconcileSkipNudge:{shape:"transient",latch:["reconcileSkip"],combat:"fires",ack:["REST","TIME_ADVANCE","TIME"]},
-  buildPhaseMismatchNudge:{shape:"one-shot-ask",latch:["phaseMismatch"],combat:"silent",ack:["TIME"]},
-  buildLocationFilingNudge:{shape:"one-shot-ask",latch:["locationFilingPing"],combat:"silent",ack:["LOCATION","SUBLOCATION","NO_CHANGE"]},
-  buildTravelPriceNudge:{shape:"one-shot-ask",latch:["travelPricePing"],combat:"silent",ack:["TIME_ADVANCE"]},
-  buildCommitmentNudge:{shape:"one-shot-ask",latch:["commitmentPing"],combat:"silent",ack:["SCHEDULE","FUTURE_EVENT","QUEST"]},
-  buildFutureResolveNudge:{shape:"one-shot-ask",latch:["futureResolveHints"],combat:"silent",ack:["FUTURE_EVENT_RESOLVED"]},
-  buildLocationTwinNudge:{shape:"fork-note",latch:["locationTwinConflicts"],combat:"silent",ack:["SUBLOCATION","LOCATION"]},
-  buildLocationDescNudge:{shape:"cooldown-reminder",latch:["locDescNudged"],combat:"silent",ack:["LOCATION_DESC"]},
-  buildMarketNote:{shape:"one-shot-ask",latch:["marketAsk"],combat:"silent",ack:["WARES","WANTED"]},
-  buildHoursNote:{shape:"one-shot-ask",latch:["hoursAsk"],combat:"silent",ack:["LOCATION_HOURS"]},/* #207 ③ */
-    buildAgendaBeatNote:{shape:"cooldown-reminder",latch:["charSheet.agenda.lastBeat"],combat:"silent",ack:["COMPANION_AGENDA_BEAT","COMPANION_AGENDA_DONE"]},/* #330 */
-  buildAgendaBirthNote:{shape:"one-shot-ask",latch:["agendaBirth"],combat:"fires",ack:["COMPANION_AGENDA"]},/* #330 */
-  buildAgendaAnnounceNote:{shape:"one-shot-ask",latch:["agendaAnnounce"],combat:"fires",ack:["COMPANION_AGENDA_BEAT"]},/* #330 */
-  buildLocationStateNudge:{shape:"one-shot-ask",latch:["pendingLocState"],combat:"silent",ack:["LOCATION_STATE"]},
-  buildScheduleEscalation:{shape:"cooldown-reminder",latch:["clock"],combat:"silent",ack:["SCHEDULE_RESOLVED","SCHEDULE_CANCEL"]},
-  buildExpiredThreadNudge:{shape:"one-shot-ask",latch:["memory.futureEvents[]._asked","memory.futureEvents[]._askPending"],combat:"fires",ack:["FUTURE_EVENT_RESOLVED","FUTURE_EVENT"]},
-  buildConditionAudit:{shape:"audit",latch:["lastConditionAudit","conditions[].until"],combat:"silent",ack:["CONDITION_REMOVED","COMPANION_CONDITION_REMOVED","NO_CHANGE"]},
-  buildHpZeroNudge:{shape:"cooldown-reminder",latch:["hpZero"],combat:"silent",ack:["HP","REST"]},
-  buildReciprocityNudge:{shape:"one-shot-ask",latch:["reciprocityNudged"],combat:"silent",ack:["COMPANION_RELATIONSHIP_BOND"]},
-  buildArcQuestNudge:{shape:"one-shot-ask",latch:["arcQuestNudged"],combat:"silent",ack:["QUEST","QUEST_STEP"]},
-  buildArcStagingNudge:{shape:"cooldown-reminder",latch:["arcStaged"],combat:"silent",ack:["QUEST"]},
-  buildPrincipalStageNudge:{shape:"escalation",latch:["principalNudged"],combat:"silent",ack:["NPC"]},
-  buildArcDriftNudge:{shape:"escalation",latch:["arcDriftNudged"],combat:"silent",ack:["ARC_COMPLETE","ARC_CONTINUE"]},
-  buildRelationshipAxisNudge:{shape:"cooldown-reminder",latch:["relBondChanges","relAxisChoices","relAxisReviewFired"],combat:"silent",ack:["RELATIONSHIP_BOND","RELATIONSHIP_DYNAMIC","RELATIONSHIP_PAIR_REMOVED"]},
-  buildRelationshipDowngradeNudge:{prepare:expireRelationshipDowngrades,shape:"escalation",latch:["relDowngrades"],combat:"silent",ack:["RELATIONSHIP_BOND"],note:"legacy-save-only since #168 W7 — the adapter never lets a sanctioned write arm it; kept as the backstop for pre-W7 saves and sheet-editor edits"},
-  buildRelationshipAudit:{shape:"audit",latch:["lastRelAudit","relAuditDue"],combat:"silent",ack:["RELATIONSHIP_BOND","RELATIONSHIP_DYNAMIC","NO_CHANGE"]},
-  buildDeathEvidenceNudge:{shape:"fork-note",latch:["deathEvidencePing","deathEvidenceNudged"],combat:"silent",ack:["SAY","SCENE_CAST","NPC_DEATH_REPORTED"]},
-  buildIdentityConflictNudge:{shape:"escalation",latch:["identityConflicts","identityConflictOverflow","pendingRewardClaims"],combat:"silent",ack:["SCENE_REVEAL","SCENE_REF","NPC_DEATH_REPORTED"]},
-  buildMergeConfirmNudge:{shape:"one-shot-ask",latch:["pendingMergeHints","mergeHintNudged","mergeConfirmArmed"],combat:"silent",ack:["NPC_MERGE"]},
-  buildProvisionalNudge:{shape:"cooldown-reminder",latch:["provisionalNudged"],combat:"silent",ack:["NPC_MERGE","MERGE"]},
-  buildDupItemNudge:{shape:"one-shot-ask",latch:["dupItemPending"],combat:"silent",ack:["ITEM_LOST","ITEM_RENAMED"]},
-  buildItemMisNudge:{shape:"transient",latch:["itemMisPing"],combat:"silent",ack:["ITEM_LOST","ITEM_GAINED","COMPANION_ITEM_GAINED"]},
-  buildConsumableNudge:{shape:"escalation",latch:["consumableChecks","consumablePending","consumableNudged"],combat:"silent",ack:["ITEM_LOST","ITEM_KEPT"]},
-  buildDeadStatusNudge:{shape:"fork-note",latch:["deadStatusConflicts"],combat:"silent",ack:["NPC"]},
-  buildMpEndNote:{shape:"cooldown-reminder",latch:["mpEnded"],combat:"fires",ack:["none"]},
-  buildMoodAudit:{shape:"audit",latch:["lastMoodAudit"],combat:"silent",ack:["NPC","NO_CHANGE"]},
-  buildSayComplianceNudge:{shape:"cooldown-reminder",latch:["sessionLog"],combat:"fires",ack:["SAY"]},
-  buildSceneCastNote:{shape:"one-shot-ask",latch:["castAsk"],combat:"silent",ack:["SCENE_CAST"]},
-  buildPersonDriftNudge:{shape:"cooldown-reminder",latch:["personDrift"],combat:"fires",ack:["none"]},
-  buildCanonContradictionNudge:{shape:"one-shot-ask",latch:["canonContradiction","canonContraNudged"],combat:"silent",ack:["NPC_SUPERSEDE","NPC"]},
-  buildRecurringNameNudge:{shape:"escalation",latch:["recurringNamePing","recurringNameNudged"],combat:"silent",ack:["NPC"]}
+  buildDeathSceneNote:{neverYield:true,shape:"one-shot-ask",latch:["deathScene"],combat:"fires",village:"fires",ack:["DEATH_ANSWER"]},
+  buildPlotArmorNote:{neverYield:true,shape:"one-shot-ask",latch:["plotArmorPing"],combat:"fires",village:"fires",ack:["none"]},/* #319 */
+  buildDownedNote:{neverYield:true,shape:"cooldown-reminder",latch:["none"],combat:"fires",village:"fires",ack:["DOWNED_RESOLVED","HP"]},
+  buildRecklessNote:{shape:"one-shot-ask",latch:["recklessPing"],combat:"fires",village:"silent",ack:["none"]},
+  buildRegisterNote:{shape:"one-shot-ask",latch:["registerPing"],combat:"silent",village:"fires",ack:["none"]},/* #355 */
+  buildSuggestMissNote:{shape:"one-shot-ask",latch:["suggestMissPing"],combat:"fires",village:"fires",ack:["SUGGEST"]},/* #344 */
+  buildCheckWithdrawnNote:{shape:"one-shot-ask",latch:["checkWithdrawnPing"],combat:"fires",village:"fires",ack:[]},/* #391 */
+  buildSubLeaveNudge:{shape:"one-shot-ask",latch:["subLeavePing"],combat:"silent",village:"fires",ack:["SUBLOCATION","SUBLOCATION_LEAVE","LOCATION"]},/* #393 */
+  buildMoneyNote:{shape:"cooldown-reminder",latch:["moneyAsk"],combat:"silent",village:"silent",ack:["GOLD"]},/* #375 */
+  buildAgendaOfferNote:{shape:"one-shot-ask",latch:["agendaOfferAsk"],combat:"silent",village:"fires",ack:["QUEST"]},/* #373 */
+  buildMontageNote:{shape:"one-shot-ask",latch:["montagePing"],combat:"fires",village:"silent",ack:["TIME_ADVANCE"]},
+  buildWhispersNote:{shape:"cooldown-reminder",latch:["whisperAsk"],combat:"silent",village:"fires",ack:["WHISPER"]},
+  buildWrapUpNote:{shape:"one-shot-ask",latch:["wrapUpPing"],combat:"fires",village:"fires",ack:["none"]},
+  buildRespawnNote:{neverYield:true,shape:"one-shot-ask",latch:["respawnNote"],combat:"fires",village:"fires",ack:["none"]},
+  buildArcWallNudge:{shape:"cooldown-reminder",latch:["arcWallWarned"],combat:"silent",village:"silent",ack:["QUEST"]},
+  buildOrphanCombatNudge:{shape:"one-shot-ask",latch:["orphanCombat"],combat:"fires",village:"fires",ack:["COMBAT_START"]},
+  buildCombatStaleNudge:{shape:"cooldown-reminder",latch:["combatStalePing"],combat:"fires",village:"fires",ack:["ENEMY_SLAIN","ENEMY_HP","COMBAT_END"]},
+  buildUndefinedItemNudge:{shape:"one-shot-ask",latch:["itemDefCandidate","itemDefAsked"],combat:"silent",village:"fires",ack:["ITEM_DEF"]},
+  buildQuestEscalation:{shape:"cooldown-reminder",latch:["none"],combat:"silent",village:"silent",ack:["QUEST","QUEST_STEP"]},
+  buildQuestObjectiveNudge:{shape:"cooldown-reminder",latch:["none"],combat:"silent",village:"silent",ack:["QUEST_STEP"]},
+  buildQuestStaleNudge:{shape:"cooldown-reminder",latch:["questLog[].staleNudged"],combat:"silent",village:"silent",ack:["QUEST_STEP","QUEST"]},
+  buildSplitAudit:{shape:"audit",latch:["charSheet.splitLoc.audited"],combat:"silent",village:"fires",ack:["PARTY_SPLIT"]},
+  buildReunionNote:{shape:"transient",latch:["pendingReunion"],combat:"silent",village:"fires",ack:["PARTY_SPLIT"]},
+  buildPresenceAudit:{shape:"audit",latch:["lastPresenceAudit"],combat:"silent",village:"fires",ack:["PARTY_SPLIT","NO_CHANGE"]},
+  buildStayBehindNudge:{shape:"transient",latch:["presencePing"],combat:"fires",village:"fires",ack:["PARTY_SPLIT"]},
+  buildPlayerSplitNudge:{shape:"transient",latch:["playerSplitPing"],combat:"fires",village:"fires",ack:["PARTY_SPLIT"]},
+  buildDeityDriftNudge:{shape:"cooldown-reminder",latch:["deityDriftNudged"],combat:"silent",village:"fires",ack:["NO_CHANGE"]},
+  buildReconcileSkipNudge:{shape:"transient",latch:["reconcileSkip"],combat:"fires",village:"fires",ack:["REST","TIME_ADVANCE","TIME"]},
+  buildPhaseMismatchNudge:{shape:"one-shot-ask",latch:["phaseMismatch"],combat:"silent",village:"fires",ack:["TIME"]},
+  buildLocationFilingNudge:{shape:"one-shot-ask",latch:["locationFilingPing"],combat:"silent",village:"fires",ack:["LOCATION","SUBLOCATION","NO_CHANGE"]},
+  buildTravelPriceNudge:{shape:"one-shot-ask",latch:["travelPricePing"],combat:"silent",village:"fires",ack:["TIME_ADVANCE"]},
+  buildCommitmentNudge:{shape:"one-shot-ask",latch:["commitmentPing"],combat:"silent",village:"silent",ack:["SCHEDULE","FUTURE_EVENT","QUEST"]},
+  buildFutureResolveNudge:{shape:"one-shot-ask",latch:["futureResolveHints"],combat:"silent",village:"fires",ack:["FUTURE_EVENT_RESOLVED"]},
+  buildLocationTwinNudge:{shape:"fork-note",latch:["locationTwinConflicts"],combat:"silent",village:"fires",ack:["SUBLOCATION","LOCATION"]},
+  buildLocationDescNudge:{shape:"cooldown-reminder",latch:["locDescNudged"],combat:"silent",village:"fires",ack:["LOCATION_DESC"]},
+  buildMarketNote:{shape:"one-shot-ask",latch:["marketAsk"],combat:"silent",village:"fires",ack:["WARES","WANTED"]},
+  buildHoursNote:{shape:"one-shot-ask",latch:["hoursAsk"],combat:"silent",village:"fires",ack:["LOCATION_HOURS"]},/* #207 ③ */
+    buildAgendaBeatNote:{shape:"cooldown-reminder",latch:["charSheet.agenda.lastBeat"],combat:"silent",village:"fires",ack:["COMPANION_AGENDA_BEAT","COMPANION_AGENDA_DONE"]},/* #330 */
+  buildAgendaBirthNote:{shape:"one-shot-ask",latch:["agendaBirth"],combat:"fires",village:"fires",ack:["COMPANION_AGENDA"]},/* #330 */
+  buildAgendaAnnounceNote:{shape:"one-shot-ask",latch:["agendaAnnounce"],combat:"fires",village:"fires",ack:["COMPANION_AGENDA_BEAT"]},/* #330 */
+  buildLocationStateNudge:{shape:"one-shot-ask",latch:["pendingLocState"],combat:"silent",village:"fires",ack:["LOCATION_STATE"]},
+  buildScheduleEscalation:{shape:"cooldown-reminder",latch:["clock"],combat:"silent",village:"silent",ack:["SCHEDULE_RESOLVED","SCHEDULE_CANCEL"]},
+  buildExpiredThreadNudge:{shape:"one-shot-ask",latch:["memory.futureEvents[]._asked","memory.futureEvents[]._askPending"],combat:"fires",village:"silent",ack:["FUTURE_EVENT_RESOLVED","FUTURE_EVENT"]},
+  buildConditionAudit:{shape:"audit",latch:["lastConditionAudit","conditions[].until"],combat:"silent",village:"fires",ack:["CONDITION_REMOVED","COMPANION_CONDITION_REMOVED","NO_CHANGE"]},
+  buildHpZeroNudge:{shape:"cooldown-reminder",latch:["hpZero"],combat:"silent",village:"fires",ack:["HP","REST"]},
+  buildReciprocityNudge:{shape:"one-shot-ask",latch:["reciprocityNudged"],combat:"silent",village:"fires",ack:["COMPANION_RELATIONSHIP_BOND"]},
+  buildArcQuestNudge:{shape:"one-shot-ask",latch:["arcQuestNudged"],combat:"silent",village:"silent",ack:["QUEST","QUEST_STEP"]},
+  buildArcStagingNudge:{shape:"cooldown-reminder",latch:["arcStaged"],combat:"silent",village:"silent",ack:["QUEST"]},
+  buildPrincipalStageNudge:{shape:"escalation",latch:["principalNudged"],combat:"silent",village:"silent",ack:["NPC"]},
+  buildArcDriftNudge:{shape:"escalation",latch:["arcDriftNudged"],combat:"silent",village:"silent",ack:["ARC_COMPLETE","ARC_CONTINUE"]},
+  buildRelationshipAxisNudge:{shape:"cooldown-reminder",latch:["relBondChanges","relAxisChoices","relAxisReviewFired"],combat:"silent",village:"fires",ack:["RELATIONSHIP_BOND","RELATIONSHIP_DYNAMIC","RELATIONSHIP_PAIR_REMOVED"]},
+  buildRelationshipDowngradeNudge:{prepare:expireRelationshipDowngrades,shape:"escalation",latch:["relDowngrades"],combat:"silent",village:"fires",ack:["RELATIONSHIP_BOND"],note:"legacy-save-only since #168 W7 — the adapter never lets a sanctioned write arm it; kept as the backstop for pre-W7 saves and sheet-editor edits"},
+  buildRelationshipAudit:{shape:"audit",latch:["lastRelAudit","relAuditDue"],combat:"silent",village:"fires",ack:["RELATIONSHIP_BOND","RELATIONSHIP_DYNAMIC","NO_CHANGE"]},
+  buildDeathEvidenceNudge:{shape:"fork-note",latch:["deathEvidencePing","deathEvidenceNudged"],combat:"silent",village:"fires",ack:["SAY","SCENE_CAST","NPC_DEATH_REPORTED"]},
+  buildIdentityConflictNudge:{shape:"escalation",latch:["identityConflicts","identityConflictOverflow","pendingRewardClaims"],combat:"silent",village:"fires",ack:["SCENE_REVEAL","SCENE_REF","NPC_DEATH_REPORTED"]},
+  buildMergeConfirmNudge:{shape:"one-shot-ask",latch:["pendingMergeHints","mergeHintNudged","mergeConfirmArmed"],combat:"silent",village:"fires",ack:["NPC_MERGE"]},
+  buildProvisionalNudge:{shape:"cooldown-reminder",latch:["provisionalNudged"],combat:"silent",village:"fires",ack:["NPC_MERGE","MERGE"]},
+  buildDupItemNudge:{shape:"one-shot-ask",latch:["dupItemPending"],combat:"silent",village:"fires",ack:["ITEM_LOST","ITEM_RENAMED"]},
+  buildItemMisNudge:{shape:"transient",latch:["itemMisPing"],combat:"silent",village:"fires",ack:["ITEM_LOST","ITEM_GAINED","COMPANION_ITEM_GAINED"]},
+  buildConsumableNudge:{shape:"escalation",latch:["consumableChecks","consumablePending","consumableNudged"],combat:"silent",village:"fires",ack:["ITEM_LOST","ITEM_KEPT"]},
+  buildDeadStatusNudge:{shape:"fork-note",latch:["deadStatusConflicts"],combat:"silent",village:"fires",ack:["NPC"]},
+  buildMpEndNote:{shape:"cooldown-reminder",latch:["mpEnded"],combat:"fires",village:"fires",ack:["none"]},
+  buildMoodAudit:{shape:"audit",latch:["lastMoodAudit"],combat:"silent",village:"fires",ack:["NPC","NO_CHANGE"]},
+  buildSayComplianceNudge:{shape:"cooldown-reminder",latch:["sessionLog"],combat:"fires",village:"fires",ack:["SAY"]},
+  buildSceneCastNote:{shape:"one-shot-ask",latch:["castAsk"],combat:"silent",village:"fires",ack:["SCENE_CAST"]},
+  buildPersonDriftNudge:{shape:"cooldown-reminder",latch:["personDrift"],combat:"fires",village:"fires",ack:["none"]},
+  buildCanonContradictionNudge:{shape:"one-shot-ask",latch:["canonContradiction","canonContraNudged"],combat:"silent",village:"fires",ack:["NPC_SUPERSEDE","NPC"]},
+  buildRecurringNameNudge:{shape:"escalation",latch:["recurringNamePing","recurringNameNudged"],combat:"silent",village:"fires",ack:["NPC"]}
 };
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
@@ -2004,6 +2012,7 @@ function buildEngineNotes(){
   var out=[],names=[],dropped=[],chars=ENGINE_NOTES_PROTOCOL.length+2,i;
   for(i=0;i<NOTE_BUILDERS.length;i++){
     var fn=NOTE_BUILDERS[i],name=noteBuilderName(fn)||("#"+i),row=NOTE_SHAPES[name]||{};
+    if(row[campaignKind()]==="silent")continue;/* #6 phase B: ONE mode gate — the kind's name is the registry axis; a silent note never runs, so its latch is untouched */
     if(row.prepare)row.prepare();
     var snap=snapshotNoteLatches(),n=fn();if(!n)continue;
     var size=chars+n.length+(out.length?2:0),reason=names.length>=NOTE_DELIVERY_CAP?"count":size>NOTE_CHAR_BUDGET?"characters":"";
@@ -2277,7 +2286,7 @@ function buildSysPrompt(){
   // volatile block (not in stable) on purpose: end-of-prompt position is load-bearing for
   // prose-voice fidelity (audit #2) and it's only a few hundred uncached tokens.
   var stable=getRulesBlock()+adultBlock
-    +"You are the Game Master for Traffic and Dragons, a sword and sorcery RPG. Write vivid second-person prose that keeps the player in danger, mystery, and wonder. You drive the adventure forward — push hooks and threats, never wait to be entertained. Mature violence and adult themes are fully permitted. The world state below is absolute truth -- never contradict it.\n\n"
+    +(((typeof kindDef==="function")&&kindDef().preamble)||"You are the Game Master for Traffic and Dragons, a sword and sorcery RPG. Write vivid second-person prose that keeps the player in danger, mystery, and wonder. You drive the adventure forward — push hooks and threats, never wait to be entertained. Mature violence and adult themes are fully permitted. The world state below is absolute truth -- never contradict it.\n\n")/* #6 phase B: the kind may supply the opening (the village's second push directive lived HERE, outside the note registry — Brief C, Ines) */
     +tb
     // With a prose author set, TONE and VOICE were two competing style directives the model
     // averaged — the "voice evaporated" mechanism (audit #2). Subordinate tone style explicitly.

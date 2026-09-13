@@ -23150,6 +23150,90 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/resident/i.test(vil))return "the village block must say the old hero is a resident";
     return true;
   });
+  section("#6 the village — phase B: the prompt mode (substitute, never subtract; cut on danger, not initiative)");
+  t("#6B the DRIVE rule is SUBSTITUTED, never deleted: the adventure rules block carries DRIVE THE ADVENTURE verbatim; the village block carries DRIVE THE VILLAGE in the SAME slot (same count, same index), never the adventure text, and it names a person, a change or a cost, motion at the end, and no danger",function(){
+    makeWorld();delete worldState.kind;var adv=getRulesBlock(),advLines=adv.split("\n").filter(function(l){return /^\d+\. /.test(l);});
+    var iAdv=-1,i;for(i=0;i<advLines.length;i++)if(advLines[i].indexOf("DRIVE THE ADVENTURE")>=0)iAdv=i;
+    if(iAdv<0||adv.indexOf("a scene with no stakes is a failed scene")<0)return "the adventure DRIVE rule is not verbatim";
+    worldState.kind="village";var vil=getRulesBlock(),vilLines=vil.split("\n").filter(function(l){return /^\d+\. /.test(l);});
+    if(vilLines.length!==advLines.length)return "the village rules block must keep the same number of rules (a slot is filled, not removed): "+vilLines.length+" vs "+advLines.length;
+    if(vilLines[iAdv].indexOf("DRIVE THE VILLAGE")<0)return "the village DRIVE rule must sit in the adventure DRIVE rule's slot: "+vilLines[iAdv].slice(0,80);
+    if(vil.indexOf("DRIVE THE ADVENTURE")>=0||vil.indexOf("a scene with no stakes is a failed scene")>=0||/death must remain possible/.test(vil))return "the adventure DRIVE text leaked into the village block";
+    var v=vilLines[iAdv];if(!/person/i.test(v)||!/change/i.test(v)||!/cost/i.test(v)||!/motion|threshold|door/i.test(v)||!/never (a )?(danger|threat)|no dangers|never danger/i.test(v))return "the village DRIVE rule must name a person, a change, a cost, end on motion, and forbid danger: "+v.slice(0,200);
+    if(!/refuse|busy|elsewhere|bargain/i.test(v))return "the village DRIVE rule must let residents say no";
+    for(i=0;i<advLines.length;i++)if(i!==iAdv&&advLines[i]!==vilLines[i])return "a rule other than DRIVE changed in the village block at slot "+(i+1);
+    return true;
+  });
+  t("#6B the stable preamble has a kind variant: adventure keeps the literal byte-identical ('keeps the player in danger'); the village preamble names the village and forbids the threat, and the adventure stable half carries no village text",function(){
+    var sp=function(){var p=buildSysPrompt();return String(p.stable||"");};
+    makeWorld();delete worldState.kind;var adv=sp();
+    if(adv.indexOf("Write vivid second-person prose that keeps the player in danger, mystery, and wonder. You drive the adventure forward — push hooks and threats, never wait to be entertained.")<0)return "the adventure preamble changed";
+    if(/VILLAGE/.test(adv))return "village text leaked into the adventure stable half";
+    worldState.kind="village";var vil=sp();
+    if(vil.indexOf("keeps the player in danger")>=0||vil.indexOf("push hooks and threats")>=0)return "the village preamble still pushes threats";
+    if(!/THE VILLAGE/.test(vil)||!/no quests and no dangers/i.test(vil))return "the village preamble must name the village and its premise";
+    if(vil.indexOf("The world state below is absolute truth")<0)return "the village preamble lost the canon clause";
+    return true;
+  });
+  t("#6B ONE mode gate: every NOTE_SHAPES row declares its village mode ('fires' or 'silent'); buildEngineNotes skips a village-silent note at ONE point; the design's OFF set is silent and the initiative set is not; adventure is untouched",function(){
+    var k,missing=[];for(k in NOTE_SHAPES){var m=NOTE_SHAPES[k].village;if(m!=="fires"&&m!=="silent")missing.push(k);}
+    if(missing.length)return "rows without an explicit village mode (every note must decide): "+missing.join(", ");
+    var off=["buildRecklessNote","buildMoneyNote","buildCommitmentNudge","buildScheduleEscalation","buildExpiredThreadNudge","buildMontageNote","buildQuestEscalation","buildQuestObjectiveNudge","buildQuestStaleNudge","buildArcWallNudge","buildArcQuestNudge","buildArcStagingNudge","buildPrincipalStageNudge","buildArcDriftNudge"],i;
+    for(i=0;i<off.length;i++)if(NOTE_SHAPES[off[i]].village!=="silent")return off[i]+" must be village-silent (the design's OFF set)";
+    var on=["buildAgendaBirthNote","buildAgendaAnnounceNote","buildAgendaOfferNote","buildWhispersNote","buildPresenceAudit","buildMoodAudit","buildRelationshipAudit","buildLocationStateNudge","buildHoursNote","buildMarketNote","buildLocationFilingNudge"];
+    for(i=0;i<on.length;i++)if(NOTE_SHAPES[on[i]].village!=="fires")return on[i]+" must fire in the village (cut on danger, not initiative)";
+    makeWorld();delete worldState.kind;worldState.commitmentPing={text:"fifty gold by the new moon",turn:worldState.turn};
+    var advNotes=buildEngineNotes();if(advNotes.indexOf("DATED COMMITMENT GAP")<0)return "fixture: the commitment nudge did not fire in the adventure";
+    makeWorld();worldState.kind="village";worldState.commitmentPing={text:"fifty gold by the new moon",turn:worldState.turn};
+    var vilNotes=buildEngineNotes();if(vilNotes.indexOf("DATED COMMITMENT GAP")>=0)return "a village-silent note reached the GM";
+    if(!worldState.commitmentPing)return "a skipped note must not consume its latch (the gate sits BEFORE the builder runs)";
+    if(String(buildEngineNotes).indexOf("[campaignKind()]")<0)return "the gate must dispatch on the kind name as the registry key — one axis, no per-site checks";
+    return true;
+  });
+  t("#6B whispers in the village draw on the RESIDENTS: a resident present in the scene is the source, and their own defining moments (from their library sheet) are the facts; the adventure pool is unchanged",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation="The tavern";worldState.turn=40;delete worldState.whisperAsk;
+    if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.map.nodes["The Village"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"small"};
+    importVillageResidents([{name:"Ammut",gender:"F",cls:"Fighter",coreMemories:[{kind:"ending",text:"Ammut broke the runelord's crown on the last stair."}]},{name:"Gazz",gender:"M",cls:"Artificer",coreMemories:[{kind:"death",text:"Gazz watched the Iron Meridian burn."}]}]);
+    memory.map.nodes["The Village|The tavern"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:["Ammut"],items:[],size:"small"};
+    memory.npcs["Ammut"].lastSeenAt="The Village|The tavern";memory.npcs["Gazz"].lastSeenAt="The Village|Gazz's house";
+    var note=buildWhispersNote();
+    if(!note)return "no whisper in a village with a resident present (residents ARE the non-party sources)";
+    if(note.indexOf("Ammut")<0)return "the present resident must be named as the source: "+note.slice(0,200);
+    if(note.indexOf("broke the runelord's crown")<0)return "the resident's own defining moment must be in the fact pool: "+note.slice(0,400);
+    if(note.indexOf("Iron Meridian")>=0)return "an absent resident's memory must not be in the pool (only who is here can tell it)";
+    return true;
+  });
+  t("#6B combat is refused in the village, LOUDLY, and the GM is told what the village permits: [COMBAT_START] creates no tracker, the mutation log names the refusal, console warns, the STATE TAGS doc carries the village line; the adventure doc is unchanged",function(){
+    makeWorld();delete worldState.kind;var advDoc=buildStateTagsDoc();if(/VILLAGE/.test(advDoc))return "village text leaked into the adventure tag doc";
+    worldState.kind="village";var vilDoc=buildStateTagsDoc();if(vilDoc.indexOf(advDoc)!==0)return "the village doc must be the adventure doc plus a village line, never a rewrite";
+    if(!/COMBAT_START/.test(vilDoc.slice(advDoc.length))||!/no dangers|refused/i.test(vilDoc.slice(advDoc.length)))return "the village doc line must tell the GM combat is refused and what to write instead";
+    var warns=[],oc=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{var r=applyMuts("A thug swings. [COMBAT_START:Thug|8|12|+2|1d6|steady]");}finally{console.warn=oc;}
+    if(worldState.combat)return "a combat tracker was created in the village";
+    if(!(r.muts||[]).some(function(m){return /refused/i.test(m)&&/village|dangers/i.test(m);}))return "the mutation log must name the refusal: "+JSON.stringify(r.muts);
+    if(!warns.some(function(w){return /COMBAT_START/.test(w)&&/village/i.test(w);}))return "console must warn on the refusal";
+    makeWorld();delete worldState.kind;applyMuts("A thug swings. [COMBAT_START:Thug|8|12|+2|1d6|steady]");if(!worldState.combat)return "the adventure must still start combat";
+    return true;
+  });
+  t("#6B the fourth button in the village: the montage rung is off (and logs that it would have been due) and the reckless wildcard is off; the adventure ladder is unchanged",function(){
+    makeWorld();delete worldState.kind;var c=worldState.character;c.hp=c.maxHp;c.inventory=[];c.gold=0;worldState.questLog=[];worldState.turn=WILDCARD_EVERY;
+    var a=engineFourthAction();if(!a||a.kind!=="wild")return "fixture: the adventure wildcard should fire on its turn: "+JSON.stringify(a);
+    worldState.kind="village";var v=engineFourthAction();if(v&&v.kind==="wild")return "the wildcard fired in the village";
+    worldState.turn=MONTAGE_AFTER_TURNS+1;worldState.tagLog=[];var i;for(i=0;i<MONTAGE_AFTER_TURNS;i++)worldState.tagLog.push({t:i+1,tags:["SAY"]});
+    delete worldState.kind;if(!montageDue())return "fixture: the montage should be due";
+    var m=engineFourthAction();if(!m||m.kind!=="montage")return "fixture: the adventure montage rung should fire: "+JSON.stringify(m);
+    worldState.kind="village";var infos=[],oi=console.info;console.info=function(x){infos.push(String(x));};
+    try{var vm=engineFourthAction();}finally{console.info=oi;}
+    if(vm&&(vm.kind==="montage"||vm.kind==="wild"))return "the montage or wildcard fired in the village: "+JSON.stringify(vm);
+    if(!infos.some(function(x){return /montage/i.test(x)&&/village/i.test(x);}))return "the village must LOG that the montage would have been due (off in v1, measured)";
+    return true;
+  });
+  t("#6B the chapter prompt has a village note: the kind carries a chapter clause (who was seen, what was said, what was decided) and summarize() appends it through the kind — the adventure chapter description is unchanged",function(){
+    if(!CAMPAIGN_KINDS.village.chapterNote||!/seen/.test(CAMPAIGN_KINDS.village.chapterNote)||!/said/.test(CAMPAIGN_KINDS.village.chapterNote)||!/decided/.test(CAMPAIGN_KINDS.village.chapterNote))return "the village chapter note must record who was seen, what was said, what was decided";
+    if(CAMPAIGN_KINDS.adventure.chapterNote)return "the adventure kind carries no chapter note (byte-identical prompt)";
+    if(String(summarize).indexOf("kindDef().chapterNote")<0)return "summarize() must read the chapter note through kindDef() (one boundary)";
+    return true;
+  });
   t("#6A the library write-back: villageWriteBack(sheet) saves through the storage adapter when a signed-in server session exists and the receipt follows the server's answer; with no adapter or no session it refuses LOUDLY (a named reason, never silence) and never throws",function(){
     var calls=[],saved=(typeof storageAdapter!=="undefined")?storageAdapter:null;
     try{

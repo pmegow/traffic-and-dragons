@@ -11,6 +11,6 @@ process.exit(sabotage.prove({
     { label: "a rejoined member is no longer a source",
       find: 'var _wre=worldState.pendingReunion;if(_wre&&_wre.names instanceof Array', replace: 'var _wre=null;if(_wre&&_wre.names instanceof Array' },
     { label: "no source still asks (the GM picks whoever is handy — the hat thief)",
-      find: 'if(!_wsrc.length)return"";\n  worldState.whisperAsk=', replace: '\n  worldState.whisperAsk=' }
+      find: 'if(!_wsrc.length)return"";\n  var resFacts=[];', replace: '\n  var resFacts=[];' }/* #6 phase B moved the village pool between the source check and the latch; the mutation still deletes the no-source return */
   ]
 }));

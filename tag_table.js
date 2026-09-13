@@ -208,7 +208,7 @@ function _docLineEngineOnly(line){
   var i;for(i=0;i<names.length;i++)if(TAG_DOC_ENGINE_ONLY.indexOf(names[i])<0)return false;
   return true;
 }
-function buildStateTagsDoc(){var out=[],i;for(i=0;i<TAG_DOC_LINES.length;i++){if(_docLineEngineOnly(TAG_DOC_LINES[i]))continue;if(TAG_DOC_LINES[i].indexOf("[SUGGEST:")===0&&typeof suggestInband!=="undefined"&&!suggestInband)continue;/* #328: the rollback switch removes the ask itself */if(TAG_DOC_LINES[i].indexOf("[CHECK:")===0&&!(typeof playerRollsDice!=="undefined"&&playerRollsDice))continue;/* #329: taught only while the player rolls */out.push(TAG_DOC_LINES[i]);}return out.join("");}
+function buildStateTagsDoc(){var out=[],i;for(i=0;i<TAG_DOC_LINES.length;i++){if(_docLineEngineOnly(TAG_DOC_LINES[i]))continue;if(TAG_DOC_LINES[i].indexOf("[SUGGEST:")===0&&typeof suggestInband!=="undefined"&&!suggestInband)continue;/* #328: the rollback switch removes the ask itself */if(TAG_DOC_LINES[i].indexOf("[CHECK:")===0&&!(typeof playerRollsDice!=="undefined"&&playerRollsDice))continue;/* #329: taught only while the player rolls */out.push(TAG_DOC_LINES[i]);}return out.join("")+((typeof kindDef==="function"&&kindDef().tagDocNote)||"");/* #6 phase B: a kind may append its own line (the village's combat refusal); adventure appends nothing — the frozen hash holds */}
 
 // ── THE TABLE — ordered handler registry. Bodies are 1:1 transcriptions of the applyMuts blocks
 // (only `muts`→R.muts, `turn`→R.turn, `feGet`→R.feGet, `_xpMirror`→R._xpMirror renamed). ──────────
@@ -869,6 +869,9 @@ var TAG_TABLE=[
 // encounter; combat active → ADD a foe; duplicate living name → re-emission, ignored + warn;
 // 9th foe → runaway-model guard (cap 8, ratified decision 4).
 {t:"COMBAT_START",apply:function(text,R){
+  /* #6 phase B: a kind with no dangers refuses combat LOUDLY — the mutation log names it for the player, the console
+     warns, and the STATE TAGS doc (tagDocNote) tells the GM what the village permits instead. One gate, via the kind. */
+  if(typeof kindDef==="function"&&kindDef().noCombat){var _vcs=text.match(/\[COMBAT_START:[^\]]*\]/g)||[];if(_vcs.length){R.muts.push("Combat refused — "+kindDef().combatRefusal);if(typeof console!=="undefined")console.warn("[tags] COMBAT_START refused in the village (no dangers): "+_vcs[0]);}return;}
   var csTags=text.match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|([^\]]+)\]/g)||[];var csi;
   for(csi=0;csi<csTags.length;csi++){
     var cs2=csTags[csi].match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|([^\]]+)\]/);if(!cs2)continue;

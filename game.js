@@ -185,8 +185,9 @@ function engineFourthAction(){
     if(cands.length){var pick=cands[(worldState.turn||0)%cands.length];return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(pick):pick)+"."};}}
   var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
   if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof waresOfferedHere==="function")?waresOfferedHere(node,buildSceneManifest().local):[];/* a seller or their shop must be IN the scene (2026-09-03); #392: the SCENE, not the town */if(live.length)return {kind:"buy",text:"Buy the "+live[0].item+" ("+live[0].price+")."};}
-  if(montageDue())return {kind:"montage",text:"Skip ahead — a montage to the next real decision."};/* #308 */
-  if(typeof WILDCARD_EVERY==="number"&&WILDCARD_EVERY>0&&worldState.turn>0&&worldState.turn%WILDCARD_EVERY===0)return {kind:"wild",text:"Do something reckless."};
+  if(montageDue()){if(kindDef().montage)return {kind:"montage",text:"Skip ahead — a montage to the next real decision."};/* #308 */
+    if(typeof console!=="undefined")console.info("[village] montage would be due at t"+worldState.turn+" — off in v1 for the village kind, logged for the measure");}/* #6 phase B: off but measured (Laws: do not mute on theory) */
+  if(kindDef().wildcard&&typeof WILDCARD_EVERY==="number"&&WILDCARD_EVERY>0&&worldState.turn>0&&worldState.turn%WILDCARD_EVERY===0)return {kind:"wild",text:"Do something reckless."};
   return null;
 }
 // #305c: does a consumable's canon effect answer the hero's present need? Wounded → the effect restores or heals HP,
@@ -1317,6 +1318,8 @@ function importVillageResidents(list){
   var added=0,skipped=[],i;if(!worldState||!(list instanceof Array))return {added:0,skipped:[]};
   if(!worldState.npcs)worldState.npcs=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.npcs)memory.npcs={};
   var here=(worldState.world&&worldState.world.location)||"The Village";
+  if(!memory.map.nodes[here])memory.map.nodes[here]={firstVisit:null,visits:0,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+  else if(!memory.map.nodes[here].size)memory.map.nodes[here].size="small";/* phase B: whispers, hours and wares all key on a SIZED settlement — the village is one */
   for(i=0;i<list.length;i++){var c=list[i];if(!c||!c.name)continue;var nm=String(c.name).trim();
     if(worldState.character&&worldState.character.name===nm){skipped.push(nm);continue;}
     if(wsNpcByName(nm)){skipped.push(nm);continue;}
