@@ -31,7 +31,7 @@ prove("game.js", [
     find: 'size:"small",travelMins:null,owner:name};', replace: 'size:"small",travelMins:null};',
     mustFail: "#6A residents: importVillageResidents" },
   { label: "applyBlueprint stamps every kind, adventure included (legacy saves gain a field)",
-    find: 'if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind])worldState.kind=bp.kind;', replace: 'if(bp.kind)worldState.kind=bp.kind;',
+    find: 'if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind]){worldState.kind=bp.kind;', replace: 'if(bp.kind){worldState.kind=bp.kind;',
     mustFail: "#6A the blueprint carries the kind" },
   { label: "the write-back stays silent when signed out",
     find: 'return refuse("not signed in to the server");', replace: 'return {status:"refused"};',

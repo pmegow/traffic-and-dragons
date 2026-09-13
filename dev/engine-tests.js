@@ -23693,4 +23693,20 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  t("#6C4 the OPENING is the kind's (owner, 2026-09-13: the first village opened on a siege — 'Open the adventure… Plant an immediate hook' rode the user message for every kind): buildOpeningIntro keeps the adventure literal byte-identical; the village ask is a homecoming that names the residents, asks for a person, a change or a cost and forbids a hook or a threat; a village blueprint opens under the kind's weather, an adventure blueprint keeps the default",function(){
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.region="Varisia";var c=worldState.character;c.backstory="A bloodline debt.";
+    var adv=buildOpeningIntro(c,worldState.world," They travel with companions: X.");
+    if(adv.indexOf("Open the adventure at Sandpoint, Varisia, at ")!==0||!/Plant an immediate hook\. Do not end with suggested actions/.test(adv)||adv.indexOf("Backstory: A bloodline debt.")<0||adv.indexOf(" They travel with companions: X.")<0)return "the adventure opening must be the shipped literal: "+adv;
+    villageCD();var vil=buildOpeningIntro(worldState.character,worldState.world,"");
+    if(/Plant an immediate hook|Open the adventure/i.test(vil))return "the village opening must not ask for a hook or name an adventure: "+vil;
+    if(!/Frizwick/.test(vil)||!/Daeris/.test(vil))return "the village opening names the residents who live here: "+vil;
+    if(!/person/i.test(vil)||!/change/i.test(vil)||!/cost/i.test(vil)||!/home|return|back/i.test(vil))return "the village opening is a homecoming with a person, a change or a cost: "+vil;
+    if(!/never (a )?(threat|danger)|no (threat|danger)/i.test(vil))return "the village opening must forbid a threat: "+vil;
+    if(!CAMPAIGN_KINDS.village.openingWeather||CAMPAIGN_KINDS.adventure.openingWeather)return "the village carries an opening weather; the adventure none";
+    makeWorld();applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"The Village",kind:"village",startingLocation:"The Village",acts:[]}));
+    if(worldState.world.weather!==CAMPAIGN_KINDS.village.openingWeather)return "a village blueprint opens under the kind's weather: "+worldState.world.weather;
+    makeWorld();var w0=worldState.world.weather;applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Plain",acts:[]}));if(worldState.world.weather!==w0)return "an adventure blueprint keeps the default weather";
+    return true;
+  });
+
 }

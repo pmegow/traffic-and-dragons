@@ -2874,7 +2874,8 @@ function splitNpcStatBlock(text){
   return {bio:bio,stats:stats};
 }
 function applyBlueprint(bp){
-  if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind])worldState.kind=bp.kind;/* #6: only a non-default kind is stamped — adventure saves stay byte-identical */
+  if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind]){worldState.kind=bp.kind;/* #6: only a non-default kind is stamped — adventure saves stay byte-identical */
+    if(CAMPAIGN_KINDS[bp.kind].openingWeather&&worldState.world)worldState.world.weather=CAMPAIGN_KINDS[bp.kind].openingWeather;/* #6 C4: the kind's own sky, not the adventure's ash (the first live check opened under "cold wind carrying ash") */}
   /* #192: persist the class roster into worldState as COPIES (a reused bp object must never be
      able to mutate canon later); the classDefs overlay + classAvailable read these from here on,
      and both ride the sync blob like any worldState field. Absent = unrestricted / no customs. */
@@ -3061,6 +3062,14 @@ async function generateSkeleton(statusFn){
   delete skel.deepTime;
   worldState.skeleton=skel;saveCore();
 }
+/* #6 C4 (owner, 2026-09-13): the opening's user message, kind-dispatched. The adventure branch is the shipped literal —
+   byte-identical, pinned — and the kind's openingAsk (a homecoming: a person, a change, a cost; never a hook) replaces it
+   wholesale. The residents' names ride the village ask so the GM opens among people, not on a siege. */
+function buildOpeningIntro(c,w,compStr){
+  var def=(typeof kindDef==="function")?kindDef():null;
+  if(def&&typeof def.openingAsk==="function"){var res=(worldState.npcs||[]).filter(function(n){return n.resident&&!(typeof npcIsDead==="function"&&npcIsDead(n));}).map(function(n){return n.name;});return def.openingAsk(c,w,res);}
+  return "Open the adventure at "+w.location+", "+w.region+", at "+worldTimeDisplay()+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+(compStr||"")+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
+}
 async function beginAdventure(){
   busy=true;document.getElementById("sendbtn").disabled=true;var th=addMsg("thinking","The world stirs...");
   var _openingCommitted=false;/* E82 latch for the opening — set by commitGmTurn's onMutated below */
@@ -3068,7 +3077,7 @@ async function beginAdventure(){
     var c=worldState.character,w=worldState.world;
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
-    var intro="Open the adventure at "+w.location+", "+w.region+", at "+worldTimeDisplay()+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
+    var intro=buildOpeningIntro(c,w,compStr);/* #6 C4: the opening ask is the kind's — the adventure literal, byte-identical, or the village's homecoming */
     var resp=await callGM(intro);th.remove();
     // Unified commit (audit 07-16 #5): inherits sendAction's canonical UA6 order — transcript/
     // sessionLog/state now persist BEFORE the opening scene renders, so a display throw can no

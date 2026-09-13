@@ -27,11 +27,20 @@ prove("data.js", [
   { label: "Car Mode recaps a chapter in the village",
     find: 'recap:"state",closable:false,', replace: 'recap:"chapter",closable:false,',
     mustFail: "#6C3 Car Mode speaks STATE" },
+  { label: "the village opens under the adventure's ash",
+    find: 'openingWeather:"a clear morning, woodsmoke on the air",', replace: 'openingWeather:null,',
+    mustFail: "#6C4 the OPENING is the kind" },
+  { label: "the village opening asks for a hook",
+    find: 'No hook, no threat, no danger of any kind', replace: 'Plant an immediate hook; a threat is welcome',
+    mustFail: "#6C4 the OPENING is the kind" },
   { label: "the village can be closed like an adventure",
     find: 'recap:"state",closable:false,', replace: 'recap:"state",closable:true,',
     mustFail: "#6G4 close this campaign" }
 ]);
 prove("game.js", [
+  { label: "the opening ignores the kind's ask",
+    find: 'if(def&&typeof def.openingAsk==="function"){var res=', replace: 'if(false){var res=',
+    mustFail: "#6C4 the OPENING is the kind" },
   { label: "the same absence arms the greeting every turn",
     find: 'if(ms<thr||worldState.returnSeenAt===last)return null;', replace: 'if(ms<thr)return null;',
     mustFail: "#6C1 the return is observed" },

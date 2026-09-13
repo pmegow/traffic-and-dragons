@@ -50,6 +50,8 @@ resting.
 
 ## C. Arrival and return
 
+**C4 (v1.915, owner field report 2026-09-13):** the first village the owner started opened on a fey-rot siege — the opening user message said "Open the adventure… Plant an immediate hook" for every kind and the hero's backstory fed it. `buildOpeningIntro` is now kind-dispatched: the adventure literal byte-identical, the village a HOMECOMING that names the residents and forbids a hook or a threat; the kind's `openingWeather` replaces the adventure's ash at blueprint time.
+
 **Built v1.914 (2026-09-13)** — list-I lines C1–C3 green: `villageReturnObserve` + `buildReturnNote` (once per real absence, a fact from the hero's record, an engine-chosen change), `villageRecapText` behind `carRecapText` (kind `recap:"state"`).
 
 - A return greeting keyed on real elapsed time, rendered as prose in the first turn, naming one specific
