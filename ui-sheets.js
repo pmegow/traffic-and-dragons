@@ -280,7 +280,8 @@ function showCharSheet(){
     +(activePlayer()!==c?"<div style='margin-top:6px;'><button id='cs-spot-btn' style='font-size:10px;font-family:var(--font);padding:3px 10px;border:1px solid var(--acc);border-radius:var(--r);background:none;color:var(--acc);cursor:pointer;'>&#9728; Take the spotlight</button></div>":"")
     +"<div style='margin-top:8px;font-size:13px;'>"
     +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
-    +" &nbsp;·&nbsp; <span style='color:var(--hp)'>"+c.hp+"/"+c.maxHp+" HP</span>"
+    +" &nbsp;·&nbsp; "+vitalSpanHtml("hp",c.hp,c.maxHp,"HP")/* #352c: the sheet paints vitals with the HUD's readout */
+    +(manaMax(c)>0?" &nbsp;·&nbsp; "+vitalSpanHtml("mp",manaCur(c),manaMax(c),"MP"):"")
     +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+c.gold+" gp</span>"
     +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
     +"</div>"
@@ -479,7 +480,8 @@ function showNpcSheet(name){
       +pcToggle
       +"<div style='margin-top:8px;font-size:13px;'>"
       +"<span style='color:var(--acc)'>Lv "+lvl+"</span>"
-      +" &nbsp;·&nbsp; <span style='color:var(--hp)'>"+(sheet.hp||0)+"/"+(sheet.maxHp||0)+" HP</span>"
+      +" &nbsp;·&nbsp; "+vitalSpanHtml("hp",sheet.hp||0,sheet.maxHp||0,"HP")/* #352c */
+      +(manaMax(sheet)>0?" &nbsp;·&nbsp; "+vitalSpanHtml("mp",manaCur(sheet),manaMax(sheet),"MP"):"")
       +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+(sheet.gold||0)+" gp</span>"
       +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(sheet.actualAlignment||sheet.statedAlignment||"Neutral")+"</span></div>"
       +"<div class='cs-xp-wrap'><div class='cs-xp-lbl'><span>"+xpm.lbl+"</span>"
@@ -704,7 +706,8 @@ function showReadOnlyCharSheet(c,opts){
     +"<div class='cs-hero-sub'>"+hdr.genderLbl+(c.age?" · "+c.age:"")+(c.deity?" · "+c.deity:"")+"</div>"
     +"<div style='margin-top:8px;font-size:13px;'>"
     +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
-    +" &nbsp;·&nbsp; <span style='color:var(--hp)'>"+(c.hp!=null?c.hp:"—")+"/"+(c.maxHp!=null?c.maxHp:"—")+" HP</span>"
+    +" &nbsp;·&nbsp; "+vitalSpanHtml("hp",c.hp,c.maxHp,"HP")/* #352c: a dash for an unknown value, the readout's hue otherwise */
+    +(manaMax(c)>0?" &nbsp;·&nbsp; "+vitalSpanHtml("mp",manaCur(c),manaMax(c),"MP"):"")
     +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+(c.gold!=null?c.gold:0)+" gp</span>"
     +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
     +"</div>"

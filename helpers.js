@@ -843,6 +843,13 @@ function vitalReadout(kind,cur,max){
     color:still?"hsl("+ramp.to+",25%,45%)":"hsl("+hue+",60%,58%)"};
 }
 function hpReadout(hp,maxHp){return vitalReadout("hp",hp,maxHp);}
+/* #352c (owner 2026-09-13): ONE span renderer for a vital on the character sheet — hero, NPC and read-only hosts all
+   call it for HP and, for a caster, MP; the hue is the readout's, the crit breath rides the class the HUD uses. Unknown
+   values render as a dash rather than "undefined". Pure: returns HTML, touches no DOM. */
+function vitalSpanHtml(kind,cur,max,label){
+  var r=vitalReadout(kind,cur,max),show=function(v){return (typeof v==="number"&&isFinite(v))?String(v):"\u2014";};
+  return "<span class='cs-vital"+(r.crit?" hp-crit":"")+"' style='color:"+r.color+"'>"+show(cur)+"/"+show(max)+" "+label+"</span>";
+}
 function mpReadout(mp,maxMp){return vitalReadout("mp",mp,maxMp);}
 /* #101 (v1.479): the ONE picker-description line, derived from the capability bible at render
    time — replaces the mechanics-bearing parentheticals that used to ride inside spell display

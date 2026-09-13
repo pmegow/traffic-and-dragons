@@ -1635,6 +1635,20 @@ function runEngineTests(R){
     if(css.indexOf(".roll-due{animation:hp-breath 1.6s ease-in-out infinite;}")===-1)return "the pending-roll chip must breathe on the same keyframes and timing as critical HP";
     if(css.indexOf("prefers-reduced-motion:reduce){ .hp-crit{ font-weight:bold; } }")===-1)return "reduced-motion must still mark the state (bold)";
   });
+  t("#352c the character sheet paints HP and MP with the SAME vital readout the HUD uses (owner 2026-09-13): ONE pure span renderer, three sheet hosts (hero, NPC, read-only), MP shown only for a caster, unknown values render as a dash",function(){
+    if(typeof vitalSpanHtml!=="function")return "vitalSpanHtml is missing — the one renderer the sheet hosts share";
+    var h=vitalSpanHtml("hp",131,131,"HP"),r=hpReadout(131,131);
+    if(h.indexOf("131/131 HP")<0||h.indexOf("color:"+r.color)<0)return "full HP span must carry the readout's colour: "+h;
+    if(/hp-crit/.test(h))return "full HP is not crit";
+    var lo=vitalSpanHtml("hp",3,40,"HP");if(!/hp-crit/.test(lo)||lo.indexOf(hpReadout(3,40).color)<0)return "low HP must carry the crit class and the red end of the ramp: "+lo;
+    var mp=vitalSpanHtml("mp",2,7,"MP");if(mp.indexOf("2/7 MP")<0||mp.indexOf(mpReadout(2,7).color)<0)return "MP must ride the mp ramp: "+mp;
+    var dash=vitalSpanHtml("hp",null,undefined,"HP");if(dash.indexOf("\u2014/\u2014 HP")<0)return "unknown values render as a dash: "+dash;
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");
+    if(src.split("vitalSpanHtml(").length<7)return "the three sheet hosts must each paint HP and MP through vitalSpanHtml (six calls expected)";
+    if(/color:var\(--hp\)'>"\+[^<]*HP<\/span>/.test(src))return "a sheet host still paints HP with the flat --hp colour";
+    if(src.indexOf("manaMax(")<0||src.indexOf("manaCur(")<0)return "the sheet must read the pool through manaCur/manaMax";
+    return true;
+  });
   t("#352b the MP readout: hue walks 217° blue → 330° hot pink and never reaches red; crit under 10% INCLUDING zero (spent mana pulses — owner ruling); zero keeps the ramp end colour, not the dim; no pool → nothing; the ramp registry drives both vitals",function(){
     var r=mpReadout(33,33);if(r.pct!==100||r.color!=="hsl(217,60%,58%)"||r.crit)return "full: "+JSON.stringify(r);
     r=mpReadout(17,33);if(r.pct!==52||r.color!=="hsl(271,60%,58%)"||r.crit)return "half-ish: "+JSON.stringify(r);
