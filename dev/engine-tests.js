@@ -163,6 +163,34 @@ function runEngineTests(R){
     if(parseCarCommand("",3)||parseCarCommand(null,3)||parseCarCommand("   ",3))return "empty input produced a command";
     return parseCarCommand("the",3)===null?true:"bare filler produced a command";
   });
+  t("#410 parseCarCommand hears pause / GM pause and resume / unpause / GM resume / GM continue as WHOLE utterances; 'I pause at the door', bare 'continue' and 'resume the search' stay actions",function(){
+    var ps=["pause","Pause.","GM pause","gm pause","uh, pause","okay pause"];
+    for(var i=0;i<ps.length;i++){var r=parseCarCommand(ps[i],3);if(!r||r.kind!=="pause")return JSON.stringify(ps[i])+" → "+JSON.stringify(r)+", wanted pause";}
+    var rs=["resume","unpause","GM resume","gm continue","Resume!"];
+    for(i=0;i<rs.length;i++){var r2=parseCarCommand(rs[i],3);if(!r2||r2.kind!=="resume")return JSON.stringify(rs[i])+" → "+JSON.stringify(r2)+", wanted resume";}
+    var acts=["I pause at the door","continue","continue down the corridor","resume the search","pause the music and listen","GM continue the story","I resume walking","pause for a moment then knock"];
+    for(i=0;i<acts.length;i++){var r3=parseCarCommand(acts[i],3);if(r3)return JSON.stringify(acts[i])+" was eaten as "+JSON.stringify(r3)+" — it is a free-form action";}
+    return true;
+  });
+  t("#410 carHoldDispatch is the pure table: pause while the narrator plays = ttsPause; pause with the mic open = hold (auto-mic stays closed); resume releases a TTS pause first, then a hold; resume with nothing held says nothingPaused; unknown kinds are a no-op that keeps the hold",function(){
+    var d=carHoldDispatch("pause",{ttsPlaying:true,ttsPaused:false,held:false});if(d.op!=="ttsPause"||d.held!==true||d.status!=="paused")return "pause while playing: "+JSON.stringify(d);
+    d=carHoldDispatch("pause",{ttsPlaying:false,ttsPaused:false,held:false});if(d.op!=="hold"||d.held!==true||d.status!=="pausedHold")return "pause while listening: "+JSON.stringify(d);
+    d=carHoldDispatch("pause",{ttsPlaying:false,ttsPaused:false,held:true});if(d.op!=="hold"||d.held!==true)return "pause twice stays held: "+JSON.stringify(d);
+    d=carHoldDispatch("resume",{ttsPlaying:false,ttsPaused:true,held:true});if(d.op!=="ttsResume"||d.held!==false||d.status!=="narratorSpeaking")return "resume a paused narrator: "+JSON.stringify(d);
+    d=carHoldDispatch("resume",{ttsPlaying:false,ttsPaused:false,held:true});if(d.op!=="release"||d.held!==false||d.status!=="listening")return "resume a hold: "+JSON.stringify(d);
+    d=carHoldDispatch("resume",{ttsPlaying:false,ttsPaused:false,held:false});if(d.op!=="noop"||d.held!==false||d.status!=="nothingPaused")return "resume with nothing held: "+JSON.stringify(d);
+    d=carHoldDispatch("repeat",{held:true});if(d.op!=="noop"||d.held!==true||d.status!==null)return "unknown kind must not touch the hold: "+JSON.stringify(d);
+    d=carHoldDispatch("pause",null);if(d.op!=="hold")return "null state is tolerated: "+JSON.stringify(d);
+    /* the executor and its seams exist: the hold gates the auto-mic, a tap releases it, hide resets it, and the intent event is the additive seam */
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-carmode.js","utf8");
+    if(!/if \(_carHeld\) \{ _carSetStatus\(CAR_STR\.pausedHold\); return; \}/.test(src))return "_carAutoMic must bail while held";
+    if(!/if \(_carHeld\) \{ _carHeld = false; _carIntent\("resume"\); \}/.test(src))return "_carTap must release the hold";
+    if(!/_carHeld = false; \/\/ #410/.test(src))return "hideCarMode must reset the hold";
+    if(!/new CustomEvent\("tnd:car-intent"/.test(src))return "the tnd:car-intent seam must exist";
+    if(!/cmd\.kind === "pause" \|\| cmd\.kind === "resume"/.test(src)||!/carHoldDispatch\(cmd\.kind/.test(src))return "carVoiceCommand must route pause/resume through carHoldDispatch";
+    if(!/pausedHold:/.test(src)||!/nothingPaused:/.test(src))return "CAR_STR must carry the two #410 statuses";
+    return true;
+  });
   t("#78: name-correction must not EAT a spoken command word (the 'third'→'Theros' class)",function(){
     // Found live while building: sttCorrectNames runs BEFORE the Car Mode interceptor, and
     // STT_COMMON protected one/two/three/first/last but not second/third/option/repeat — so a

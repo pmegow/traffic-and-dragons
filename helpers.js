@@ -1122,6 +1122,12 @@ function parseCarCommand(text, optionCount) {
   if (/^(?:i )?roll(?: (?:the )?(?:dice|die|d20))?$/.test(t)) return { kind: "roll" };/* #329 */
   /* #6 E9: a spoken undo scoped to the LAST item move (a placement or a take) — anchored, so "never mind the guard, I attack" stays an action */
   if (/^(?:never mind|nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/.test(t)) return { kind: "undoItem" };
+  /* #410: a spoken PAUSE / RESUME (owner vocabulary 2026-09-14: "stop" is too common a word). Anchored like everything
+     else — "I pause at the door" is an action; bare "continue" is NOT a command because "continue" alone is a plausible
+     action (keep walking), so the resume side is resume / unpause / GM resume / GM continue. What pause DOES is decided
+     by carHoldDispatch below, not here. */
+  if (/^(?:gm )?pause$/.test(t)) return { kind: "pause" };
+  if (/^(?:gm )?(?:resume|unpause)$|^gm continue$/.test(t)) return { kind: "resume" };
   if (/^(?:lets |let us )?(?:wrap(?: it)?(?: up)?|stop here|find a stopping point|stopping point|end (?:it|here) for now)$/.test(t)) return { kind: "wrapUp" };
   if (/^(?:previously|recap|catch me up|where were we|where was i|what happened(?: last time| before)?|remind me)$/.test(t)) return { kind: "recap" };
   if (/^(?:repeat|again|say again|repeat that|say that again|read again|read that again|one more time)$/.test(t)
@@ -1134,6 +1140,29 @@ function parseCarCommand(text, optionCount) {
   if (!n) return null;
   if (optionCount && n > optionCount) return null;   // "four" with 3 options is not a pick — let it be an action
   return { kind: "pick", n: n };
+}
+// #410 — what a spoken PAUSE or RESUME does, as a pure table over the moment it arrives. The Car Mode
+// mic opens only AFTER narration (auto-mic on TTS done), so a spoken "pause" can almost never reach a
+// playing narrator — the tap and the steering-wheel button already do that. What the word CAN do is
+// HOLD the session: close the mic and stop the auto-mic loop re-opening it after every turn (the
+// car-park case), until "resume" or a tap. When narration IS playing (cloud STT text arriving late),
+// pause maps onto the existing TTS pause toggle, exactly as the tap does.
+//   cmdKind: "pause" | "resume";  st: { ttsPlaying, ttsPaused, held }
+//   → { op: "ttsPause" | "hold" | "ttsResume" | "release" | "noop", held: bool, status: key of CAR_STR | null }
+// ui-carmode.js executes op; ambience (Astra's pilot) subscribes to the "tnd:car-intent" event the
+// executor dispatches — pause ends ambience, the next narration start brings it back (owner ruling 1).
+function carHoldDispatch(cmdKind, st) {
+  var s = st || {};
+  if (cmdKind === "pause") {
+    if (s.ttsPlaying) return { op: "ttsPause", held: true, status: "paused" };
+    return { op: "hold", held: true, status: "pausedHold" };
+  }
+  if (cmdKind === "resume") {
+    if (s.ttsPaused) return { op: "ttsResume", held: false, status: "narratorSpeaking" };
+    if (s.held) return { op: "release", held: false, status: "listening" };
+    return { op: "noop", held: false, status: "nothingPaused" };
+  }
+  return { op: "noop", held: !!s.held, status: null };
 }
 // #77 Layer-2 confirm vocabulary — SAME false-positive discipline as parseCarCommand above:
 // whole utterance, anchored ^…$, filler-stripped. "no time to lose" and "yes and I draw my

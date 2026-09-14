@@ -10,6 +10,13 @@
 // ── Car Mode ──────────────────────────────────────────────────────────────────
 var _carKbHandler = null;
 var _carRetryArmed = false;   // rank 2 — armed by carNotify("error",…), consumed by _carTap
+var _carHeld = false;         // #410 — a spoken "pause" holds the session: _carAutoMic will not reopen the mic until "resume" or a tap
+// #410 — the additive intent seam: a DOM CustomEvent any listener (Astra's ambience pilot) may subscribe to
+// without touching Car Mode's single TTS/STT callbacks. kind: "pause" | "resume". Fired ONLY by player-facing
+// controls, never by internal TTS.stop() cleanup (Astra reply 4, blacksmith_audio_proposal_review.html §5).
+function _carIntent(kind) {
+  try { document.dispatchEvent(new CustomEvent("tnd:car-intent", { detail: { kind: kind } })); } catch (e) {}
+}
 var _carWakeLock = null;      // rank 5 — Screen Wake Lock sentinel, held only while carMode is on
 // round-2 #30 — last {name, campName, portrait} triple the MediaMetadata was built from, so
 // _carMediaSession can skip the rebuild (incl. re-decoding the base64 portrait artwork) when
@@ -25,6 +32,8 @@ var CAR_STR = {
   heardTapToSend: "Heard you — tap to send", // final-pass #33 — must match the string game.js/stt.js send via carNotify
   tapToSpeak: "Tap to speak",
   paused: "Paused",
+  pausedHold: "Paused — say resume, or tap", // #410 — the spoken hold: mic closed, auto-mic off until resume/tap
+  nothingPaused: "Nothing is paused",         // #410 — "resume" with nothing held or paused
   narratorSpeaking: "Narrator speaking…",
   voiceUnavailable: "Voice input not available in this browser",
   retrying: "Retrying…",
@@ -145,6 +154,22 @@ function carVoiceCommand(text) {
   var inp = document.getElementById("action-input");
   if (inp) inp.value = "";
   if (cmd.kind === "repeatAll") { _carDoReplay(); return true; }
+  /* #410: spoken pause / resume — the decision is the pure carHoldDispatch table; this executes it */
+  if (cmd.kind === "pause" || cmd.kind === "resume") {
+    var _hd = (typeof carHoldDispatch === "function") ? carHoldDispatch(cmd.kind, {
+      ttsPlaying: typeof TTS !== "undefined" && TTS.isPlaying(),
+      ttsPaused:  typeof TTS !== "undefined" && TTS.isPaused(),
+      held: _carHeld }) : { op: "noop", held: _carHeld, status: null };
+    _carHeld = _hd.held;
+    if (_hd.op === "hold") { if (typeof STT !== "undefined") { if (typeof STT.cancel === "function") STT.cancel(); else STT.stop(); } }
+    else if (_hd.op === "ttsPause" || _hd.op === "ttsResume") { if (typeof TTS !== "undefined") TTS.pause(); /* the toggle, as _carTap uses it */ }
+    if (_hd.op === "hold" || _hd.op === "ttsPause") { if (typeof TTS !== "undefined" && typeof TTS.earcon === "function") TTS.earcon("ack"); _carIntent("pause"); }
+    if (_hd.op === "ttsResume" || _hd.op === "release") _carIntent("resume");
+    if (_hd.status) _carSetStatus(CAR_STR[_hd.status] || _hd.status);
+    _carSyncBtn();
+    if (_hd.op === "release") _carStartMic();
+    return true;
+  }
   /* #308 bookends */
   if (cmd.kind === "wrapUp") { if (worldState) worldState.wrapUpPing = { turn: worldState.turn }; carNotify("info", "Wrapping up — the story will find a stopping point."); if (typeof TTS !== "undefined" && typeof TTS.speak === "function") TTS.speak("Wrapping up. Say your next action and the story will find a stopping point."); return true; }
   if (cmd.kind === "recap") { _carPreviously(true); return true; }
@@ -250,6 +275,7 @@ function hideCarMode() {
   if (ov) ov.style.display = "none";
   if (_carKbHandler) { document.removeEventListener("keydown", _carKbHandler); _carKbHandler = null; }
   _carRetryArmed = false;
+  _carHeld = false; // #410 — a hold never outlives the overlay
   _carReleaseWakeLock(); // rank 5 — normal play must never hold the lock
   try { store.del("tnd_carmode_v1"); } catch (e) {} // rank 13 — × is always the escape hatch; clearing the flag is what makes it stick
   if (typeof TTS !== "undefined") {
@@ -355,6 +381,7 @@ function _carPulse(id) {
 function _carTap() {
   if (typeof busy !== "undefined" && busy) return; // (a)
   _carPulse("car-tap-btn");
+  if (_carHeld) { _carHeld = false; _carIntent("resume"); } // #410 — a tap is the explicit gesture that releases a spoken hold
   var sttOn = typeof STT !== "undefined" && STT.isListening();
   if (sttOn) { // (b) — cancel, never finalize-and-send (rank 4's send-on-cancel bug)
     // Cloud recording has no auto-endpoint — tap means "done, transcribe" (rank 7); native
@@ -469,6 +496,8 @@ function _carAutoMic() {
   // it. Bail before touching the mic — the existing tap branch (e) in _carTap sends it.
   var _parked = document.getElementById("action-input");
   if (_parked && _parked.value.trim()) { _carSetStatus(CAR_STR.heardTapToSend); return; }
+  // #410 — a spoken "pause" holds the session: the auto-mic loop stays closed until "resume" or a tap
+  if (_carHeld) { _carSetStatus(CAR_STR.pausedHold); return; }
   // round-2 #25 — cloud STT (Whisper) must be push-to-talk only, checked BEFORE the auto-listen
   // pref below. Auto-starting the cloud recorder after every narration uploads ~15s of road
   // noise on every turn (cost), and Whisper hallucinates text on silence — that can auto-send
