@@ -23741,6 +23741,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(n["The Village|the tavern"].shop!==true||n["The Village|the square"].shop)return "shops flagged, the square not";
     if(!isShopNode("The Village|the tavern",n["The Village|the tavern"]))return "a pre-minted shop is a shop";
     if(!n[villageHallKey("The Village")]||!n[villageHallKey("The Village")].hall)return "the Hall is minted with the commons, signed in or not";
+    var _hero=worldState.character.name;if(!n["The Village|"+_hero+"'s house"]||n["The Village|"+_hero+"'s house"].owner!==_hero)return "the hero's own house is minted on day one (#6 E12): "+Object.keys(n).join(", ");
     worldState.world.location="The Village";/* startGame sets the hero's start location; applyBlueprint alone does not */
     var geo=buildGeoBlock();if(!/COMMONS here/.test(geo)||!/the tavern/.test(geo)||!/the trading post/.test(geo))return "the geo block must list the commons by name: "+geo;
     applyMuts("[SUBLOCATION:tavern common room]");if(worldState.world.sublocation!=="the tavern"||n["The Village|tavern common room"])return "a tavern-ish name folds into the pre-minted tavern: "+worldState.world.sublocation;

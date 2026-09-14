@@ -2303,4 +2303,4 @@ function villageCommonFor(subName){
     if(stem&&new RegExp("\\b"+stem.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(s))return leaf;}
   return null;
 }
-function villageHouseKey(name){var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|"+String(name||"").trim()+"'s house";}
+function villageHouseKey(name,base){var v=base||(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|"+String(name||"").trim()+"'s house";}

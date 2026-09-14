@@ -1357,7 +1357,7 @@ function importVillageResidents(list){
    its owner on the node (the live check of 2026-09-12 found the swap had none). */
 function villageHouseEnsure(name,here){
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-  var hk=villageHouseKey(name),parent=here||(worldState&&worldState.world&&worldState.world.location)||"The Village";
+  var parent=here||(worldState&&worldState.world&&worldState.world.location)||"The Village",hk=villageHouseKey(name,parent);
   if(!memory.map.nodes[hk])memory.map.nodes[hk]={firstVisit:null,visits:0,description:null,parent:parent,npcs:[],items:[],size:"small",travelMins:null,owner:name};
   else if(!memory.map.nodes[hk].owner)memory.map.nodes[hk].owner=name;
   return memory.map.nodes[hk];
@@ -1409,6 +1409,7 @@ function villageCommonsSeed(base){
   for(i=0;i<def.commons.length;i++){var leaf=def.commons[i],key=v+"|"+leaf;if(memory.map.nodes[key])continue;
     var isShop=!!(def.shopWords&&def.shopWords.test(leaf));
     memory.map.nodes[key]={firstVisit:null,visits:0,description:null,parent:v,npcs:[],items:[],size:"small",travelMins:null};if(isShop)memory.map.nodes[key].shop=true;minted++;}
+  if(worldState.character&&worldState.character.name&&typeof villageHouseEnsure==="function"){var _hh=v+"|"+worldState.character.name+"'s house";if(!memory.map.nodes[_hh]){villageHouseEnsure(worldState.character.name,v);minted++;}}/* #6 E12: the hero's own house exists from day one — YOUR HOUSE and the stash key on it */
   if(typeof villageHallSeed==="function"&&def.hall)villageHallSeed(v);
   return {minted:minted};
 }
