@@ -1339,19 +1339,36 @@ function importVillageResidents(list){
   var here=(worldState.world&&worldState.world.location)||"The Village";
   if(!memory.map.nodes[here])memory.map.nodes[here]={firstVisit:null,visits:0,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
   else if(!memory.map.nodes[here].size)memory.map.nodes[here].size="small";/* phase B: whispers, hours and wares all key on a SIZED settlement — the village is one */
-  for(i=0;i<list.length;i++){var c=list[i];if(!c||!c.name)continue;var nm=String(c.name).trim();
+  for(i=0;i<list.length;i++){var c=list[i],_libAt=null;if(c&&c.character&&typeof c.character==="object"){_libAt=(typeof c.updatedAt==="number")?c.updatedAt:null;c=c.character;}/* #6 E13: a library entry {character,updatedAt} or a bare sheet */if(!c||!c.name)continue;var nm=String(c.name).trim();
     if(worldState.character&&worldState.character.name===nm){skipped.push(nm);continue;}
     if(wsNpcByName(nm)){skipped.push(nm);continue;}
     var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
     if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);/* #81b: the resident's gear keeps its canon */
     var pr=pronounsForGender(sheet.gender);
-    worldState.npcs.push({name:nm,status:"",statusTurn:0,rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet});/* portrait rides on charSheet only (#3 dedupe) */
+    worldState.npcs.push({name:nm,status:"",statusTurn:0,rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet,libraryAt:_libAt});/* portrait rides on charSheet only (#3 dedupe); libraryAt = the library's updated time at move-in (#6 E13) */
     if(!memory.npcs[nm])memory.npcs[nm]={attitude:"",knowledge:[],events:[],pronouns:pr};
     villageHouseEnsure(nm,here);
     added++;
   }
   if(typeof villageCommonsSeed==="function")villageCommonsSeed();/* #6 E11 + G2: the commons and the Hall (mementos + the wall from the residents just added), idempotent, on day one and on every move-in */
   return {added:added,skipped:skipped};
+}
+/* #6 E13 (owner ruling 2026-09-13): REFRESH ON ENTRY — the library is the source of truth and it flows IN, never out. A
+   resident whose library copy is newer than the snapshot they moved in with gets the library sheet (a copy, migrated,
+   its travelling item canon adopted); the house, its stash and the Hall record live on the node, not the sheet, and
+   survive. The hero and party members are never touched — an adventure's state reaches the library only by hand. Pure. */
+function villageRefreshFromLibrary(entries){
+  var out={refreshed:[],kept:[],unknown:[]};if(!worldState||typeof kindDef!=="function"||!kindDef().populateFromLibrary||!(entries instanceof Array))return out;
+  var i;for(i=0;i<entries.length;i++){var e=entries[i],c=e&&e.character;if(!c||!c.name)continue;var nm=String(c.name).trim(),at=(typeof e.updatedAt==="number")?e.updatedAt:null;
+    if(worldState.character&&worldState.character.name===nm){out.kept.push(nm);continue;}
+    var n=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(!n){out.unknown.push(nm);continue;}
+    if(!n.resident||n.partyMember){out.kept.push(nm);continue;}
+    if(at===null||(typeof n.libraryAt==="number"&&at<=n.libraryAt)){out.kept.push(nm);continue;}
+    var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);
+    if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);
+    n.charSheet=sheet;n.libraryAt=at;n.pronouns=pronounsForGender(sheet.gender);out.refreshed.push(nm);}
+  if(out.refreshed.length&&typeof villageHallSeed==="function"&&kindDef().hall)villageHallSeed();
+  return out;
 }
 /* #6 E6: ONE house-minting path — import and the swap's demotion both come here, so a resident always has a house with
    its owner on the node (the live check of 2026-09-12 found the swap had none). */

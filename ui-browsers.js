@@ -532,11 +532,24 @@ function populateVillageFromLibrary(done){
   if(!sa||typeof sa.listCharacterLibrary!=="function"||!(typeof sa.isServerMode==="function"&&sa.isServerMode())||!(typeof sa.hasToken==="function"&&sa.hasToken())){showToast("⚠ The village is empty — sign in to move your library characters in.",7000);finish();return;}
   sa.listCharacterLibrary(function(err,list){
     if(err){showToast("⚠ Could not read the character library: "+String(err),7000);finish();return;}
-    var chars=(list||[]).map(function(e){return e&&e.character;}).filter(function(c){return !!c;});
+    var chars=(list||[]).filter(function(e){return !!(e&&e.character);});/* #6 E13: the entries ride in whole so move-in stamps the library's updated time */
     var r=importVillageResidents(chars);
     showToast(r.added?(r.added+" resident"+(r.added===1?"":"s")+" moved into the village."):"No new residents — the library is empty or everyone is already here.",5000);
     if(typeof saveAll==="function")saveAll();
     finish();
+  });
+}
+/* #6 E13: the DOM shell over villageRefreshFromLibrary — runs when a village campaign loads (boot and campaign switch).
+   Signed out or offline = silence is wrong, so a quiet console line; a refresh = a toast naming who changed. */
+function villageRefreshOnEntry(){
+  if(!worldState||typeof kindDef!=="function"||!kindDef().populateFromLibrary||typeof villageRefreshFromLibrary!=="function")return;
+  var sa=(typeof storageAdapter!=="undefined")?storageAdapter:null;
+  if(!sa||typeof sa.listCharacterLibrary!=="function"||!(typeof sa.isServerMode==="function"&&sa.isServerMode())||!(typeof sa.hasToken==="function"&&sa.hasToken())){console.info("[village] refresh on entry skipped — not signed in");return;}
+  sa.listCharacterLibrary(function(err,list){
+    if(err){showToast("⚠ Could not read the character library for the refresh: "+String(err),6000);return;}
+    var r=villageRefreshFromLibrary(list||[]);
+    if(r.refreshed.length){showToast("↻ "+r.refreshed.join(", ")+" refreshed from the library.",6000);if(typeof saveAll==="function")saveAll();if(typeof syncUI==="function")syncUI();}
+    else console.info("[village] refresh on entry — every resident matches the library");
   });
 }
 function _addImportedCompanion(char){

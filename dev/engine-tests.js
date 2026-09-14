@@ -23751,6 +23751,28 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Plain",startingLocation:"Sandpoint",acts:[]}));if(Object.keys(memory.map.nodes).some(function(k){return /\|the tavern$/.test(k);}))return "the adventure mints no commons";
     return true;
   });
+  t("#6E13 REFRESH ON ENTRY (owner ruling 2026-09-13: the library is the source of truth, refresh in, never push out): importVillageResidents stamps each resident with the library's updated time; villageRefreshFromLibrary replaces a resident's sheet when the library copy is NEWER, keeps it when older or equal, never touches the hero or a party member, adopts the sheet's travelling item canon, keeps the house and its stash, and reports names; the boot and campaign-switch shells call it",function(){
+    villageCD();var lib=[{character:{name:"Frizwick",gender:"F",cls:"Rogue",level:11,inventory:["Bone-handled knife"]},updatedAt:1000},{character:{name:"Daeris",gender:"F",cls:"Cleric",level:11},updatedAt:1000}];
+    worldState.npcs=worldState.npcs.filter(function(n){return !n.resident;});importVillageResidents(lib);
+    var fz=wsNpcByName("Frizwick");if(fz.libraryAt!==1000)return "move-in must stamp the library's updated time: "+JSON.stringify(fz.libraryAt);
+    applyMuts("[LOCATION_ITEM:Old boots|placed|Frizwick's house]");
+    var newer=[{character:{name:"Frizwick",gender:"F",cls:"Rogue",level:12,inventory:["Bone-handled knife","Cleaver"],itemDefs:{cleaver:{category:"weapon",effect:"N/A"}}},updatedAt:2000},{character:{name:"Daeris",gender:"F",cls:"Cleric",level:3},updatedAt:900},{character:{name:"Silas",cls:"Cleric",level:99},updatedAt:5000}];
+    var r=villageRefreshFromLibrary(newer);
+    if(!r||r.refreshed.length!==1||r.refreshed[0]!=="Frizwick")return "only the NEWER copy refreshes: "+JSON.stringify(r);
+    fz=wsNpcByName("Frizwick");if(fz.charSheet.level!==12||fz.charSheet.inventory.indexOf("Cleaver")<0||fz.libraryAt!==2000)return "the refreshed sheet is the library's, stamped: "+JSON.stringify([fz.charSheet.level,fz.libraryAt]);
+    if(fz.charSheet===newer[0].character)return "a copy, never the library object";
+    if(!worldState.itemBible||!worldState.itemBible.cleaver)return "the refreshed sheet's item canon is adopted";
+    if(wsNpcByName("Daeris").charSheet.level!==11)return "an OLDER library copy never overwrites";
+    if(worldState.character.level===99)return "the hero is never refreshed";
+    if(!villageStash(villageHouseKey("Frizwick")).length)return "the house and its stash survive a refresh";
+    worldState.npcs.push({name:"Gazz",status:"ally",rel:"companion",met:1,partyMember:true,pronouns:"he/him",charSheet:{name:"Gazz",level:5}});
+    var r2=villageRefreshFromLibrary([{character:{name:"Gazz",level:9},updatedAt:9999}]);if(r2.refreshed.length||wsNpcByName("Gazz").charSheet.level!==5)return "a party member is never refreshed from the library";
+    if(villageRefreshFromLibrary(null).refreshed.length!==0)return "no list, no refresh, no throw";
+    var boot=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),camps=__fsForTests.readFileSync(__rootForTests+"/ui-campaigns.js","utf8");
+    if(!/villageRefreshOnEntry\(\)/.test(boot)||!/function _applyLoadedCampaign\(\)\{[\s\S]{0,600}villageRefreshOnEntry\(\)/.test(camps))return "boot and campaign switch must both refresh on entry";
+    makeWorld();delete worldState.kind;if(villageRefreshFromLibrary([{character:{name:"Tess",level:9},updatedAt:1}]).refreshed.length)return "the adventure never refreshes";
+    return true;
+  });
   section("#81b item canon TRAVELS with the sheet (owner field report 2026-09-13: Cleaver, a weapon in Runelords, arrived Unclassified)");
   t("#81b portableSheet attaches the campaign's item definitions for the items the sheet carries; a sheet whose items have no campaign canon carries no itemDefs key; the live sheet is never mutated",function(){
     makeWorld();worldState.itemBible={cleaver:{category:"weapon",effect:"N/A",value:"120 gp",inventoryCategories:["weapon"]},"old boots":{category:"mundane",effect:"N/A"}};

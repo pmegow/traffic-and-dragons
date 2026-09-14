@@ -22,7 +22,7 @@ prove("helpers.js", [
 ]);
 prove("game.js", [
   { label: "residents move in as party members",
-    find: 'rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet}', replace: 'rel:"resident",met:0,partyMember:true,resident:true,pronouns:pr,portrait:null,charSheet:sheet}',
+    find: 'rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet,libraryAt:_libAt}', replace: 'rel:"resident",met:0,partyMember:true,resident:true,pronouns:pr,portrait:null,charSheet:sheet,libraryAt:_libAt}',
     mustFail: "#6A residents: importVillageResidents" },
   { label: "the resident's sheet is the library object itself, not a copy",
     find: 'var sheet=JSON.parse(JSON.stringify(c));', replace: 'var sheet=c;',

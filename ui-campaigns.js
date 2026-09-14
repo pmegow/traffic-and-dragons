@@ -205,7 +205,7 @@ function _renderCampList(){
 }
 function _applyLoadedCampaign(){
   document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
-  syncUI();showGame();initAbilities();initSpells();
+  syncUI();showGame();initAbilities();initSpells();if(typeof villageRefreshOnEntry==="function")villageRefreshOnEntry();/* #6 E13 */
   addMsg("system","Campaign loaded: "+worldState.character.name+".");
   addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");
   initReplaySession(); // shared with init() — was a near-identical inline copy (audit #26)

@@ -38,6 +38,12 @@ prove("data.js", [
     mustFail: "#6G4 close this campaign" }
 ]);
 prove("game.js", [
+  { label: "an older library copy overwrites the resident",
+    find: 'if(at===null||(typeof n.libraryAt==="number"&&at<=n.libraryAt)){out.kept.push(nm);continue;}', replace: 'if(at===null){out.kept.push(nm);continue;}',
+    mustFail: "#6E13 REFRESH ON ENTRY" },
+  { label: "a party member is refreshed from the library",
+    find: 'if(!n.resident||n.partyMember){out.kept.push(nm);continue;}', replace: 'if(!n.resident&&!n.partyMember){out.kept.push(nm);continue;}',
+    mustFail: "#6E13 REFRESH ON ENTRY" },
   { label: "the commons are not minted at creation",
     find: 'if(worldState._seedCommons){var _sc=worldState._seedCommons;delete worldState._seedCommons;if(typeof villageCommonsSeed==="function")villageCommonsSeed(typeof _sc==="string"?_sc:null);}', replace: 'delete worldState._seedCommons;',
     mustFail: "#6E11 the commons are PRE-MINTED" },
