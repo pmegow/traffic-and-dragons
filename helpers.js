@@ -2260,8 +2260,9 @@ function villageCommons(){
 function residentWhereabouts(name,min){
   var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.roam)return null;
   var m=(typeof min==="number")?min:((typeof clockNow==="function")?clockNow():0),day=(typeof MIN_PER_DAY==="number")?MIN_PER_DAY:1440;
-  /* the campaign clock counts ELAPSED minutes and clock%day==0 is dawn (clock.js #89/#106b): hour of day = elapsed + the dawn offset */
-  var dawn=(typeof DAWN_OFFSET_MIN==="number")?DAWN_OFFSET_MIN:360,hour=Math.floor(((((m%day)+day)%day+dawn)%day)/60);
+  /* the campaign clock counts ELAPSED minutes and clock%day==0 is dawn (clock.js #89/#106b): the hour of day comes from
+     clockMinuteOfDay (#409, the ONE reader); the inline form survives only for a load order where clock.js is absent */
+  var dawn=(typeof DAWN_OFFSET_MIN==="number")?DAWN_OFFSET_MIN:360,hour=Math.floor(((typeof clockMinuteOfDay==="function")?clockMinuteOfDay(m):((((m%day)+day)%day+dawn)%day))/60);
   if(hour>=22||hour<6)return "at home";
   var list=villageCommons();if(!list.length)return "at home";
   var h=0,s=String(name||""),i;for(i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;

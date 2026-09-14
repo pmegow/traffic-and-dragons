@@ -21,8 +21,9 @@ function buildGeoBlock(){
   // Canonical descriptions
   if(wNode&&wNode.description)lines.push("Location desc: "+wNode.description);
   if(wNode&&wNode.size)lines.push("Location size: "+wNode.size+(wNode.travelMins?" (~"+wNode.travelMins+"min to cross)":""));
-  /* #207 ②: filed hours meet the clock — OPEN or CLOSED at this hour, said plainly, for the world node and the sublocation */
-  var _hrLine=function(node,label){if(!node||!node.hours||typeof clockNow!=="function")return;var h=node.hours,mins=clockNow()%MIN_PER_DAY,hr=Math.floor(mins/60),mn=mins%60,open=(h.open<=h.close)?(hr>=h.open&&hr<h.close):(hr>=h.open||hr<h.close);lines.push(label+"Hours: "+h.open+":00–"+h.close+":00"+(h.note?" ("+h.note+")":"")+" — "+(open?"OPEN now":"CLOSED at this hour")+" (it is "+hr+":"+(mn<10?"0":"")+mn+")");};
+  /* #207 ②: filed hours meet the clock — OPEN or CLOSED at this hour, said plainly, for the world node and the sublocation.
+     #409: the hour comes from clockMinuteOfDay() (dawn-offset applied) — raw clock minutes are elapsed-from-dawn, not the hour. */
+  var _hrLine=function(node,label){if(!node||!node.hours||typeof clockMinuteOfDay!=="function")return;var h=node.hours,mins=clockMinuteOfDay(),hr=Math.floor(mins/60),mn=mins%60,open=(h.open<=h.close)?(hr>=h.open&&hr<h.close):(hr>=h.open||hr<h.close);lines.push(label+"Hours: "+h.open+":00–"+h.close+":00"+(h.note?" ("+h.note+")":"")+" — "+(open?"OPEN now":"CLOSED at this hour")+" (it is "+hr+":"+(mn<10?"0":"")+mn+")");};
   _hrLine(wNode,"");_hrLine(subNode,"Sub-location ");
   if(subNode&&subNode.description)lines.push("Sub-location desc: "+subNode.description);
   if(subNode&&subNode.size)lines.push("Sub-location size: "+subNode.size+(subNode.travelMins?" (~"+subNode.travelMins+"min to cross)":""));

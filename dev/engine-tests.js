@@ -516,14 +516,29 @@ function runEngineTests(R){
     makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation="The Rusty Flagon";worldState.turn=50;
     memory.map.nodes["Sandpoint"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[]};
     memory.map.nodes["Sandpoint|The Rusty Flagon"]={firstVisit:2,visits:2,description:null,parent:"Sandpoint",npcs:[],items:[]};
-    var ck=clockEnsure();ck.min=3*MIN_PER_DAY+14*60;/* 14:00 */
+    /* #409: the clock counts ELAPSED minutes from DAWN (clock%day==0 is 6:00 am — clockTimeOfDay adds DAWN_OFFSET_MIN), so the
+       hours reader must use the same hour of day the player's stamp shows. The old form of this test set 14h elapsed and called
+       it "14:00" — it pinned the six-hour bug (the GM read CLOSED at 8 am and OPEN at midnight for a shop filed 8–18). */
+    var ck=clockEnsure();ck.min=3*MIN_PER_DAY+8*60;/* 8h after dawn = 2:00 pm */
+    if(!/2:00 pm/.test(clockTimeOfDay()))return "fixture: the player stamp should read 2:00 pm, got "+clockTimeOfDay();
     applyMuts("[LOCATION_HOURS:8-18|the taproom]");
     var n=memory.map.nodes["Sandpoint|The Rusty Flagon"];
     if(!n.hours||n.hours.open!==8||n.hours.close!==18||n.hours.note!=="the taproom")return "hours: "+JSON.stringify(n.hours);
     var g=buildGeoBlock();if(!/Hours: 8:00–18:00/.test(g)||!/OPEN now/.test(g))return "open: "+g.slice(0,400);
-    ck.min=3*MIN_PER_DAY+2*60+36;g=buildGeoBlock();if(!/CLOSED at this hour/.test(g)||!/2:36/.test(g))return "closed: "+g.slice(0,500);
+    if(!/it is 14:00\)/.test(g))return "the hours line must state the SAME hour the player stamp shows (2:00 pm = 14:00): "+g.slice(0,500);
+    ck.min=3*MIN_PER_DAY+2*60;/* 2h after dawn = 8:00 am — the shop is opening; the bug said CLOSED (hour 2) */
+    g=buildGeoBlock();if(!/OPEN now/.test(g)||!/it is 8:00\)/.test(g))return "8:00 am at a shop filed 8–18 is OPEN: "+g.slice(0,500);
+    ck.min=3*MIN_PER_DAY+18*60;/* 18h after dawn = midnight — the bug said OPEN (hour 18 is closing, not open) */
+    g=buildGeoBlock();if(!/CLOSED at this hour/.test(g)||!/it is 0:00\)/.test(g))return "midnight at a shop filed 8–18 is CLOSED: "+g.slice(0,500);
+    ck.min=3*MIN_PER_DAY+20*60+36;/* 20h36 after dawn = 2:36 am */
+    g=buildGeoBlock();if(!/CLOSED at this hour/.test(g)||!/it is 2:36\)/.test(g))return "closed: "+g.slice(0,500);
     applyMuts("[LOCATION_HOURS:20-4|night market]");n=memory.map.nodes["Sandpoint|The Rusty Flagon"];if(n.hours.open!==20||n.hours.close!==4)return "overnight not filed";
     g=buildGeoBlock();if(!/OPEN now/.test(g))return "overnight range at 2:36 should be OPEN: "+g.slice(0,400);
+    /* one reader: the geo line, the player stamp and the resident-roaming helper all derive the hour from clockMinuteOfDay */
+    if(typeof clockMinuteOfDay!=="function")return "clockMinuteOfDay (clock.js) is the ONE hour-of-day reader";
+    var _src=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");if(!/var _hrLine=[^\n]*clockMinuteOfDay\(\)/.test(_src))return "api.js _hrLine must read the hour through clockMinuteOfDay()";
+    var _hs=__fsForTests.readFileSync(__rootForTests+"/helpers.js","utf8");if(!/function residentWhereabouts[\s\S]{0,900}clockMinuteOfDay\(m\)/.test(_hs))return "helpers.js residentWhereabouts must CALL clockMinuteOfDay(m) (a comment naming it is not a call)";
+    var _cs=__fsForTests.readFileSync(__rootForTests+"/clock.js","utf8");if(!/function clockTimeOfDay[\s\S]{0,300}clockMinuteOfDay\(/.test(_cs))return "clockTimeOfDay must derive from clockMinuteOfDay (one computation)";
     var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
     try{applyMuts("[LOCATION_HOURS:whenever]");}finally{console.warn=_w;}
     if(n.hours.open!==20)return "a bad range overwrote the hours";

@@ -250,9 +250,16 @@ function clockFmt(min){
 // is 2am on the calendar morning AFTER Day 3 began, while still being Day 3. Hour 0 renders as
 // 12 (midnight/noon), matching how a person reads a clock.
 var DAWN_OFFSET_MIN=6*MIN_PER_HOUR;
-function clockTimeOfDay(min){
+// #409: THE ONE hour-of-day reader. The clock counts ELAPSED minutes and clock%day==0 is dawn, so every
+// consumer that needs "what hour is it" (the player stamp below, the geo block's OPEN/CLOSED line in
+// api.js, the resident-roaming helper in helpers.js) derives it HERE. Before this, api.js took the raw
+// elapsed minutes as the hour and told the GM CLOSED at 8 am and OPEN at midnight for a shop filed 8–18.
+function clockMinuteOfDay(min){
   var t=Math.max(0,Math.floor(Number(min==null?clockNow():min)||0));
-  var tod=((t%MIN_PER_DAY)+DAWN_OFFSET_MIN)%MIN_PER_DAY;
+  return ((t%MIN_PER_DAY)+DAWN_OFFSET_MIN)%MIN_PER_DAY;
+}
+function clockTimeOfDay(min){
+  var tod=clockMinuteOfDay(min);
   var h24=Math.floor(tod/MIN_PER_HOUR), m=tod%MIN_PER_HOUR;
   var ap=h24<12?"am":"pm", h=h24%12; if(h===0)h=12;
   return h+":"+(m<10?"0":"")+m+" "+ap;
