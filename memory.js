@@ -303,23 +303,54 @@ function fileSubLocation(name,turn){
    (the player's design form is the authority and the only editor after that; ③'s voice gate is a later slice). Every
    refusal is LOUD — returns {ok:false,reason} and the caller logs it; nothing half-files. Pure over the node. */
 var LAYOUT_SIZES=["tiny","small","medium","large"],LAYOUT_MAX_ROOMS=12;
+/* ONE validator for both writers — the GM's tag (parseLayout) and the player's form (layoutSetByPlayer). Returns
+   {ok,rooms} with normalised copies, or {ok:false,reason}. */
+function validateLayoutRooms(input){
+  var rooms=[],names={},i,j;
+  if(!input||!input.length)return {ok:false,reason:"no rooms"};
+  for(i=0;i<input.length;i++){
+    var r=input[i]||{},nm=String(r.name==null?"":r.name).trim(),sz=String(r.size==null?"":r.size).trim().toLowerCase(),feat=String(r.features==null?"":r.features).trim().slice(0,120);
+    var to=(Object.prototype.toString.call(r.to)==="[object Array]"?r.to:String(r.to==null?"":r.to).split(",")).map(function(s){return String(s==null?"":s).trim();}).filter(Boolean);
+    if(!nm)return {ok:false,reason:"a room has no name"};
+    if(LAYOUT_SIZES.indexOf(sz)<0)return {ok:false,reason:"'"+nm+"' size '"+(r.size==null?"":r.size)+"' is not one of "+LAYOUT_SIZES.join("/")};
+    if(!to.length)return {ok:false,reason:"'"+nm+"' connects to nothing — name a room or 'outside'"};
+    if(names[nm.toLowerCase()])return {ok:false,reason:"room '"+nm+"' is listed twice"};
+    names[nm.toLowerCase()]=1;rooms.push({name:nm.slice(0,40),size:sz,features:feat,to:to});
+  }
+  if(rooms.length>LAYOUT_MAX_ROOMS)return {ok:false,reason:"more than "+LAYOUT_MAX_ROOMS+" rooms"};
+  for(i=0;i<rooms.length;i++)for(j=0;j<rooms[i].to.length;j++){var t=rooms[i].to[j].toLowerCase();if(t!=="outside"&&!names[t])return {ok:false,reason:"'"+rooms[i].name+"' opens onto '"+rooms[i].to[j]+"', which is not a listed room (or 'outside')"};}
+  return {ok:true,rooms:rooms};
+}
 function parseLayout(body){
-  var parts=String(body==null?"":body).split(";"),rooms=[],i,names={};
+  var parts=String(body==null?"":body).split(";"),rooms=[],i;
   for(i=0;i<parts.length;i++){
     var p=parts[i].trim();if(!p)continue;
     var f=p.split("|").map(function(s){return s.trim();});
     if(f.length<4)return {ok:false,reason:"room '"+p.slice(0,40)+"' needs name|size|features|connections"};
-    var nm=f[0],sz=f[1].toLowerCase(),feat=f[2].slice(0,120),to=f.slice(3).join("|").split(",").map(function(s){return s.trim();}).filter(Boolean);
-    if(!nm)return {ok:false,reason:"a room has no name"};
-    if(LAYOUT_SIZES.indexOf(sz)<0)return {ok:false,reason:"'"+nm+"' size '"+f[1]+"' is not one of "+LAYOUT_SIZES.join("/")};
-    if(!to.length)return {ok:false,reason:"'"+nm+"' connects to nothing — name a room or 'outside'"};
-    if(names[nm.toLowerCase()])return {ok:false,reason:"room '"+nm+"' is listed twice"};
-    names[nm.toLowerCase()]=1;rooms.push({name:nm,size:sz,features:feat,to:to});
+    rooms.push({name:f[0],size:f[1],features:f[2],to:f.slice(3).join("|")});
   }
-  if(!rooms.length)return {ok:false,reason:"no rooms"};
-  if(rooms.length>LAYOUT_MAX_ROOMS)return {ok:false,reason:"more than "+LAYOUT_MAX_ROOMS+" rooms"};
-  for(i=0;i<rooms.length;i++){var j;for(j=0;j<rooms[i].to.length;j++){var t=rooms[i].to[j].toLowerCase();if(t!=="outside"&&!names[t])return {ok:false,reason:"'"+rooms[i].name+"' opens onto '"+rooms[i].to[j]+"', which is not a listed room (or 'outside')"};}}
-  return {ok:true,rooms:rooms};
+  return validateLayoutRooms(rooms);
+}
+/* #408 ⑥ (owner ruling 3: the FORM is the authority): the player's record REPLACES whatever is there, stamps by:"player",
+   and from then on a GM [LAYOUT:] is refused by fileLayout's write-once rule. Same validator, same loud refusal. */
+function layoutSetByPlayer(key,rooms){
+  if(typeof memory==="undefined"||!memory||!memory.map||!key)return {ok:false,reason:"no map"};
+  var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk];if(!node)return {ok:false,reason:"no such place on the map",key:rk};
+  var v=validateLayoutRooms(rooms);if(!v.ok){if(typeof console!=="undefined")console.warn("[layout] the design form was refused at "+rk+": "+v.reason+" — nothing changed (#408)");return {ok:false,reason:v.reason,key:rk};}
+  node.layout={rooms:v.rooms,by:"player",turn:(typeof worldState!=="undefined"&&worldState)?worldState.turn:0};
+  return {ok:true,key:rk,rooms:v.rooms.length};
+}
+/* #408 ④⑥: pin a stash row to a room from the form (or clear it with null). The name is NEVER touched; a room off the
+   record refuses loudly; an item not in the stash refuses. */
+function stashSetRoom(key,itemName,room){
+  if(typeof memory==="undefined"||!memory||!memory.map||!key)return {ok:false,reason:"no map"};
+  var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk];if(!node||!node.items)return {ok:false,reason:"no such place on the map",key:rk};
+  var nm=String(itemName==null?"":itemName).toLowerCase(),row=null,i;for(i=0;i<node.items.length;i++)if(String(node.items[i].name).toLowerCase()===nm&&!node.items[i].taken&&(node.items[i].qty===undefined||node.items[i].qty>0)){row=node.items[i];break;}
+  if(!row){if(typeof console!=="undefined")console.warn("[stash] room not set — '"+itemName+"' is not in the stash at "+rk+" (#408)");return {ok:false,reason:"'"+itemName+"' is not in this stash",key:rk};}
+  var txt=(room==null||String(room).trim()==="")?null:String(room).trim().slice(0,80);
+  if(txt&&node.layout&&node.layout.rooms){var rn=txt.split(",")[0].trim().toLowerCase();if(!node.layout.rooms.some(function(r){return String(r.name).toLowerCase()===rn;})){var why="'"+rn+"' is not a room on the record ("+node.layout.rooms.map(function(r){return r.name;}).join(", ")+")";if(typeof console!=="undefined")console.warn("[stash] room refused for '"+row.name+"' at "+rk+": "+why+" — nothing changed (#408)");return {ok:false,reason:why,key:rk};}}
+  if(txt)row.room=txt;else delete row.room;
+  return {ok:true,key:rk,name:row.name,room:txt};
 }
 function fileLayout(body,turn,by){
   if(!memory.map||!worldState||!worldState.world)return {ok:false,reason:"no map"};

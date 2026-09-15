@@ -278,7 +278,9 @@ function updateInvPanel(){
      not clickable: what is in the house is not on the person. Village only; "" elsewhere. */
   var hg=(typeof villageHouseGroup==="function")?villageHouseGroup():null;
   if(hg){var hOpen=_invSecOpen[hg.id]!==false,hj;h+='<div class="inv-cat" data-sec="'+hg.id+'" onclick="invToggleSec(this.dataset.sec)">'+(hOpen?"&#9662; ":"&#9656; ")+escHtml(hg.label)+' <span class="inv-cat-n">'+hg.rows.length+"</span></div>";
-    if(hOpen)for(hj=0;hj<hg.rows.length;hj++){var hr=hg.rows[hj];h+='<div class="ii" title="'+escHtml((hr.by?"left by "+hr.by:"")+(hr.placed!=null?" at turn "+hr.placed:""))+'" style="color:var(--t1);">'+escHtml(hr.raw)+'</div>';}}
+    if(hOpen)for(hj=0;hj<hg.rows.length;hj++){var hr=hg.rows[hj];h+='<div class="ii" title="'+escHtml((hr.by?"left by "+hr.by:"")+(hr.placed!=null?" at turn "+hr.placed:"")+(hr.room?" — "+hr.room:""))+'" style="color:var(--t1);">'+escHtml(hr.raw)+(hr.room?' <span style="color:var(--t2);font-size:10px;">— '+escHtml(hr.room)+'</span>':'')+'</div>';}}
+  /* #408 ⑥: the design surface opens from here — the player's hand on their own house (village only, whether or not the stash holds anything) */
+  if(typeof kindDef==="function"&&kindDef().stashQuantities&&worldState.character&&typeof showHouseDesignModal==="function")h+='<div class="ii" onclick="showHouseDesignModal()" style="cursor:pointer;color:var(--acc);font-size:11px;padding-top:6px;" title="Rooms, how they connect, and where your things sit">&#9998; Design your house</div>';
   if(_ap.outfit&&_ap.outfit.text)h='<div style="font-size:11px;color:var(--t2);font-style:italic;padding:2px 0 4px;">Outfit: '+escHtml(_ap.outfit.text)+'</div>'+h;/* #388 */
   document.getElementById("inv-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">Empty</div>';
 }

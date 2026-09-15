@@ -2496,6 +2496,9 @@ async function sendAction(override,opts){
       var ttClean=(typeof cleanTxt==="function")?cleanTxt(resp):resp;
       ttLogExchange(txt,ttClean);
       addMsg("tabletalk","<em>[GM]</em> <p>"+escProse(ttClean)+"</p>");/* escape GM table-talk output (audit E11) */
+      /* #408 ②: "no floor plan is recorded" offers ONE click — decided from the PLAYER's own question (layoutAskOfferFor), never by sniffing the answer */
+      if(typeof layoutAskOfferFor==="function"&&typeof currentNodeKey==="function"){var _lo=layoutAskOfferFor(txt,currentNodeKey());
+        if(_lo)addMsg("tabletalk","<em>[engine]</em> <p>No floor plan is recorded for "+escHtml(_lo.label)+". <button class='tt-arm' data-key='"+escHtml(_lo.key)+"' onclick=\"if(armLayoutAsk(this.dataset.key)){this.disabled=true;this.textContent='The GM will record it on your next story turn.';}\" style='font-size:11px;font-family:var(--font);background:none;border:1px solid var(--acc);border-radius:var(--r);color:var(--acc);cursor:pointer;padding:3px 8px;margin-left:6px;'>Ask the GM to record it</button></p>");}
       saveAll();/* persist the TT log; debounced server sync coalesces the burst */
     }
     else{

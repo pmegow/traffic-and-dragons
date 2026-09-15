@@ -33,7 +33,39 @@ rc |= sabotage.prove({
     { label: "a room not on the record is recorded anyway (silent misfile instead of a loud refusal)",
       mustFail: "not on the record",
       find: 'roomWhy="\'"+rn+"\' is not a room on the record ("+node.layout.rooms.map(function(r){return r.name;}).join(", ")+")";roomTxt=null;',
-      replace: 'roomWhy=null;' }
+      replace: 'roomWhy=null;' },
+    /* slice 2 — the player's form */
+    { label: "the design form skips the validator — a dangling door from the form becomes the record",
+      mustFail: "dangling connection from the form",
+      find: 'var v=validateLayoutRooms(rooms);if(!v.ok){if(typeof console!=="undefined")console.warn("[layout] the design form was refused at "+rk+": "+v.reason+" — nothing changed (#408)");return {ok:false,reason:v.reason,key:rk};}',
+      replace: 'var v={ok:true,rooms:rooms};' },
+    { label: "the form's record is stamped as the GM's — a later GM [LAYOUT:] overwrites the player's work",
+      mustFail: "the player's record replaces the GM's",
+      find: 'node.layout={rooms:v.rooms,by:"player",turn:',
+      replace: 'node.layout={rooms:v.rooms,by:"gm",turn:' },
+    { label: "IDENTITY from the form: stashSetRoom writes the room into the name",
+      mustFail: "IDENTITY",
+      find: 'if(txt)row.room=txt;else delete row.room;',
+      replace: 'if(txt){row.room=txt;row.name=txt;}else delete row.room;' },
+    { label: "stashSetRoom accepts a room off the record (silent misfile from the form)",
+      mustFail: "off the record",
+      find: 'if(typeof console!=="undefined")console.warn("[stash] room refused for \'"+row.name+"\' at "+rk+": "+why+" — nothing changed (#408)");return {ok:false,reason:why,key:rk};}}',
+      replace: '}}' }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "helpers.js",
+  command: ["node", ["dev/run-tests.js", "#408 home"]],
+  cases: [
+    { label: "the Table Talk offer ignores the player's question — every answer at a record-less place offers the arm",
+      mustFail: "non-spatial",
+      find: 'if(!LAYOUT_SPATIAL_RE.test(q))return null;',
+      replace: '' },
+    { label: "the Table Talk offer fires at a place that already has a record",
+      mustFail: "WITH a record",
+      find: 'if(!node||node.layout)return null;',
+      replace: 'if(!node)return null;' }
   ]
 });
 

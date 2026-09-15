@@ -2270,12 +2270,24 @@ function armLayoutAsk(key){
   if(typeof worldState==="undefined"||!worldState||!key)return false;
   worldState.layoutAskArmed=(typeof locResolve==="function")?locResolve(key):key;return true;
 }
+/* #408 ② the Table Talk offer: after an answer, offer "ask the GM to record this place's layout" as one click — decided
+   from the PLAYER's own question (a spatial word), never by sniffing the model's answer (ruling ③'s principle: the
+   player's words are the authoritative side). Pure: {key,label} when the place exists and holds no record, else null. */
+var LAYOUT_SPATIAL_RE=/\b(room|rooms|floor ?plan|layout|kitchen|cellar|attic|loft|stair|stairs|upstairs|downstairs|door|doors|window|windows|hall|hallway|corridor|pantry|how (?:big|large|many rooms)|where (?:is|are) the)\b/i;
+function layoutAskOfferFor(question,key){
+  var q=String(question==null?"":question);if(!q.trim()||!key)return null;
+  if(typeof memory==="undefined"||!memory||!memory.map)return null;
+  var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk];
+  if(!node||node.layout)return null;
+  if(!LAYOUT_SPATIAL_RE.test(q))return null;
+  return {key:rk,label:(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk};
+}
 /* #6 E8: the inventory panel's house group — the same shape groupInventory's groups carry, over villageStash. null outside
    a stash kind or when the hero's house holds nothing. */
 function villageHouseGroup(){
   var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.stashQuantities||typeof worldState==="undefined"||!worldState||!worldState.character)return null;
   var rows=villageStash(villageHouseKey(worldState.character.name));if(!rows.length)return null;
-  return {id:"house",label:"Your house",rows:rows.map(function(r){return {raw:r.name+(r.qty>1?" x"+r.qty:""),qty:r.qty,by:r.by,placed:r.placed};})};
+  return {id:"house",label:"Your house",rows:rows.map(function(r){return {raw:r.name+(r.qty>1?" x"+r.qty:""),qty:r.qty,by:r.by,placed:r.placed,room:r.room||null};})};/* #408 ④: the room rides the row */
 }
 /* #6 G: the Hall's node key — one place, one key. */
 function villageHallKey(base){var v=base||(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|the Village Hall";}

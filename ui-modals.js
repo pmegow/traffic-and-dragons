@@ -424,6 +424,75 @@ function showSoundModal(){
     var k;for(k=0;k<ids.length;k++)(function(id,n){setTimeout(function(){if(document.getElementById("snd-modal"))playOne(id);},n*700);})(ids[k],k);
   });
 }
+/* #408 ⑥ (owner rulings 2026-09-14): the HOUSE DESIGN modal — the player's hand on their own house. The form is the
+   AUTHORITY: it writes through layoutSetByPlayer (replaces any GM record, stamps by:"player") and pins stash rows through
+   stashSetRoom (the room is an additive field; the item's name is never touched). Thin DOM shell over those two pure
+   writers; every refusal they return is shown in the modal, never swallowed. Opened from the stash panel. */
+function showHouseDesignModal(){
+  closeAllMenus();/* #15④ */
+  if(!worldState||!worldState.character||typeof villageHouseKey!=="function"||typeof kindDef!=="function"||!kindDef().stashQuantities){showToast("House design is a village feature.");return;}
+  var hk=(typeof locResolve==="function")?locResolve(villageHouseKey(worldState.character.name)):villageHouseKey(worldState.character.name);
+  var node=(typeof memory!=="undefined"&&memory&&memory.map)?memory.map.nodes[hk]:null;
+  if(!node){showToast("Your house is not on the map yet — enter the village first.");return;}
+  var SIZES=(typeof LAYOUT_SIZES!=="undefined")?LAYOUT_SIZES:["tiny","small","medium","large"];
+  var rooms=(node.layout&&node.layout.rooms&&node.layout.rooms.length)?node.layout.rooms.map(function(r){return {name:r.name,size:r.size,features:r.features||"",to:(r.to||[]).slice()};}):[{name:"main room",size:"small",features:"",to:["outside"]}];
+  var stash=(typeof villageStash==="function")?villageStash(hk):[];
+  var pins={};stash.forEach(function(s){pins[s.name]=s.room||"";});
+  var inp="style='width:100%;box-sizing:border-box;font-family:var(--font);font-size:12px;background:var(--bg2,rgba(255,255,255,.04));border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);padding:5px 7px;'";
+  function roomRows(){
+    var h="",i;
+    for(i=0;i<rooms.length;i++){var r=rooms[i];
+      h+="<div class='hd-room' data-i='"+i+"' style='display:grid;grid-template-columns:1.2fr .8fr 1.6fr 1.4fr auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd);'>"
+        +"<input data-f='name' value='"+escHtml(r.name)+"' placeholder='room' "+inp+">"
+        +"<select data-f='size' "+inp+">"+SIZES.map(function(s){return "<option value='"+s+"'"+(s===r.size?" selected":"")+">"+s+"</option>";}).join("")+"</select>"
+        +"<input data-f='features' value='"+escHtml(r.features)+"' placeholder='fixed features (hearth, bed…)' "+inp+">"
+        +"<input data-f='to' value='"+escHtml(r.to.join(", "))+"' placeholder='opens onto (rooms, outside)' "+inp+">"
+        +"<button class='hd-del' data-i='"+i+"' title='Remove room' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:14px;'>&times;</button>"
+        +"</div>";}
+    return h;
+  }
+  function pinRows(){
+    if(!stash.length)return "<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>Nothing is in the house yet — things you leave here can be placed in a room.</div>";
+    var names=rooms.map(function(r){return r.name;});
+    return stash.map(function(s){var cur=pins[s.name]||"",room=cur.split(",")[0].trim(),spot=cur.indexOf(",")>=0?cur.slice(cur.indexOf(",")+1).trim():"";
+      return "<div class='hd-pin' data-item='"+escHtml(s.name)+"' style='display:grid;grid-template-columns:1.4fr 1fr 1.4fr;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd);'>"
+        +"<div style='font-size:12px;color:var(--t0);'>"+escHtml(s.name)+(s.qty>1?" &times;"+s.qty:"")+"</div>"
+        +"<select data-f='room' "+inp+"><option value=''>(not placed)</option>"+names.map(function(n){return "<option value='"+escHtml(n)+"'"+(n.toLowerCase()===room.toLowerCase()?" selected":"")+">"+escHtml(n)+"</option>";}).join("")+"</select>"
+        +"<input data-f='spot' value='"+escHtml(spot)+"' placeholder='where in the room (on the mantle…)' "+inp+">"
+        +"</div>";}).join("");
+  }
+  function readRooms(m){return Array.prototype.map.call(m.querySelectorAll(".hd-room"),function(row){return {name:row.querySelector("[data-f=name]").value,size:row.querySelector("[data-f=size]").value,features:row.querySelector("[data-f=features]").value,to:row.querySelector("[data-f=to]").value};});}
+  function readPins(m){var out={};Array.prototype.forEach.call(m.querySelectorAll(".hd-pin"),function(row){var rm=row.querySelector("[data-f=room]").value,sp=row.querySelector("[data-f=spot]").value.trim();out[row.getAttribute("data-item")]=rm?(rm+(sp?", "+sp:"")):"";});return out;}
+  function render(){
+    var modal=modalShell("house-modal",
+      "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>&#9998; Design your house</span><button id='hd-x' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:18px;'>&times;</button></div>"
+      +"<p style='font-size:11px;color:var(--t2);margin:0 0 10px;'>Rooms and how they connect — no measurements. The GM reads this every turn you are home and may not invent a room or a door that is not here. What you write here is the record; the GM cannot redecorate.</p>"
+      +"<div id='hd-rooms'>"+roomRows()+"</div>"
+      +"<button id='hd-add' style='font-size:11px;font-family:var(--font);background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;padding:4px 10px;margin:8px 0 14px;'>+ Add a room</button>"
+      +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);padding:6px 0 4px;'>Your things, and where they sit</div>"
+      +"<div id='hd-pins'>"+pinRows()+"</div>"
+      +"<div id='hd-err' style='color:var(--warn,#c06a5a);font-size:12px;min-height:16px;margin-top:10px;'></div>"
+      +"<div style='display:flex;justify-content:flex-end;gap:8px;margin-top:8px;'><button id='hd-cancel' style='font-size:12px;font-family:var(--font);background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;padding:6px 12px;'>Cancel</button><button id='hd-save' style='font-size:12px;font-family:var(--font);background:var(--acc);border:1px solid var(--acc);border-radius:var(--r);color:var(--bg,#111);cursor:pointer;padding:6px 14px;font-weight:bold;'>Save the house</button></div>",
+      {align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:640,boxExtra:"margin-top:30px;",closeId:"hd-x",outside:true});
+    Array.prototype.forEach.call(modal.querySelectorAll(".hd-del"),function(b){b.addEventListener("click",function(){rooms=readRooms(modal).map(function(r){return {name:r.name,size:r.size,features:r.features,to:String(r.to).split(",").map(function(s){return s.trim();}).filter(Boolean)};});var p=readPins(modal);Object.keys(p).forEach(function(k){pins[k]=p[k];});rooms.splice(+b.getAttribute("data-i"),1);if(!rooms.length)rooms=[{name:"main room",size:"small",features:"",to:["outside"]}];render();});});
+    document.getElementById("hd-add").addEventListener("click",function(){rooms=readRooms(modal).map(function(r){return {name:r.name,size:r.size,features:r.features,to:String(r.to).split(",").map(function(s){return s.trim();}).filter(Boolean)};});var p=readPins(modal);Object.keys(p).forEach(function(k){pins[k]=p[k];});rooms.push({name:"",size:"small",features:"",to:[rooms[0]?rooms[0].name:"outside"]});render();});
+    document.getElementById("hd-cancel").addEventListener("click",function(){modal.remove();});
+    document.getElementById("hd-save").addEventListener("click",function(){
+      var err=document.getElementById("hd-err");err.textContent="";
+      var r=layoutSetByPlayer(hk,readRooms(modal));
+      if(!r.ok){err.textContent="Not saved — "+r.reason;return;}
+      var p=readPins(modal),refused=[];
+      Object.keys(p).forEach(function(nm){var s=stashSetRoom(hk,nm,p[nm]||null);if(!s.ok)refused.push(nm+": "+s.reason);});
+      /* the record is written; a failing persist or panel refresh must be LOUD, never leave the form stuck open */
+      var persistErr=null;
+      try{if(typeof saveAll==="function")saveAll();}catch(e1){persistErr=e1;if(typeof console!=="undefined")console.error("[house] saveAll failed after the design was written: "+(e1&&e1.message),e1);}
+      try{if(typeof syncUI==="function")syncUI();}catch(e2){if(typeof console!=="undefined")console.error("[house] syncUI failed after the design was written: "+(e2&&e2.message),e2);}
+      if(refused.length){err.textContent="Rooms saved ("+r.rooms+"); some things could not be placed — "+refused.join("; ");return;}
+      showToast(persistErr?"⚠ House recorded, but saving failed — "+persistErr.message:"House saved — "+r.rooms+" room"+(r.rooms>1?"s":"")+".");modal.remove();
+    });
+  }
+  render();
+}
 function showProseModal(){
   closeAllMenus();/* #15④ */
   var sel=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(proseAuthor||"");

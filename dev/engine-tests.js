@@ -23922,6 +23922,37 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(NOTE_BUILDERS.indexOf(buildLayoutNote)<0||!NOTE_SHAPES.buildLayoutNote||NOTE_SHAPES.buildLayoutNote.combat!=="silent"||NOTE_LATCH_FIELDS.indexOf("layoutAsk")<0||NOTE_LATCH_FIELDS.indexOf("layoutAskArmed")<0)return "registry not wired";
     return true;
   });
+  t("#408 ⑥③ the player's hand: layoutSetByPlayer(key,rooms) is the authority — it validates like the tag (dangling connection refused loudly), REPLACES a GM record, stamps by:'player', and a later GM [LAYOUT:] is refused; stashSetRoom(key,item,room) pins or clears a row's room without touching its name (a room off the record and an unknown item refuse); layoutAskOfferFor(question,key) offers the one-click arm only for a spatial question at a place with no record; the DOM shells are wired (modal, panel row, Table Talk offer)",function(){
+    var hk=villageHouse();applyMuts(LAYOUT_TAG);
+    var r=layoutSetByPlayer(hk,[{name:"hall",size:"large",features:"long table, hearth",to:["loft","outside"]},{name:"loft",size:"small",features:"straw mattress",to:["hall"]}]);
+    if(!r.ok)return "the player's record must apply: "+JSON.stringify(r);
+    var n=memory.map.nodes[hk];if(n.layout.by!=="player"||n.layout.rooms.length!==2||n.layout.rooms[0].name!=="hall")return "the player's record replaces the GM's: "+JSON.stringify(n.layout);
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{
+      var bad=layoutSetByPlayer(hk,[{name:"hall",size:"large",features:"",to:["garden"]}]);if(bad.ok||n.layout.rooms[0].to.join(",")!=="loft,outside")return "a dangling connection from the form must refuse and change nothing: "+JSON.stringify(bad);
+      applyMuts("[LAYOUT:attic|small|dust|outside]");if(n.layout.by!=="player"||n.layout.rooms.length!==2)return "a GM filing must not overwrite the player's record";
+      applyMuts("[LOCATION_ITEM:Cleaver|placed|"+locDisplayLeaf(hk)+"|hall, over the hearth]");
+      var s1=stashSetRoom(hk,"Cleaver","loft, by the mattress");if(!s1.ok)return "stashSetRoom must pin: "+JSON.stringify(s1);
+      var row=n.items[0];if(row.name!=="Cleaver"||row.room!=="loft, by the mattress")return "IDENTITY: pin moved the room and kept the name: "+JSON.stringify(row);
+      var s2=stashSetRoom(hk,"Cleaver","cellar, in the dark");if(s2.ok||row.room!=="loft, by the mattress")return "a room off the record must refuse and change nothing: "+JSON.stringify(s2);
+      var s3=stashSetRoom(hk,"Cleaver",null);if(!s3.ok||row.room)return "null clears the room: "+JSON.stringify(row);
+      var s4=stashSetRoom(hk,"Halberd","hall");if(s4.ok)return "an unknown item must refuse";
+      if(row.name!=="Cleaver")return "IDENTITY after every call: "+row.name;
+    }finally{console.warn=_w;}
+    if(warns.length<3)return "refusals must be loud: "+JSON.stringify(warns);
+    /* the Table Talk offer — the PLAYER's own question is the signal (ruling ③'s principle), never the model's answer */
+    var tk=locResolve("The Village|the tavern");
+    var off=layoutAskOfferFor("Is there a kitchen in the tavern?",tk);if(!off||off.key!==tk||!/tavern/.test(off.label))return "a spatial question at a place with no record offers the arm: "+JSON.stringify(off);
+    if(layoutAskOfferFor("What does Frizwick want?",tk))return "a non-spatial question offers nothing";
+    if(layoutAskOfferFor("How big is the hall?",hk))return "a place WITH a record offers nothing";
+    if(layoutAskOfferFor("Where is the cellar door?","The Village|nowhere"))return "an unknown place offers nothing";
+    if(layoutAskOfferFor("",tk)||layoutAskOfferFor(null,tk))return "empty input offers nothing";
+    var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),up=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),gj=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    if(!/function showHouseDesignModal\(/.test(um)||!/layoutSetByPlayer\(/.test(um)||!/stashSetRoom\(/.test(um))return "the design modal must write through layoutSetByPlayer and stashSetRoom (the form is the authority)";
+    if(!/showHouseDesignModal\(\)/.test(up))return "the stash panel must open the design modal";
+    if(!/layoutAskOfferFor\(/.test(gj)||!/armLayoutAsk\(/.test(gj))return "the Table Talk answer must offer the one-click arm";
+    return true;
+  });
   section("E13b a NEW campaign never inherits an OCCUPIED campaign id (owner field report 2026-09-13: a village at turn 3 synced as the Runelords campaign at turn 2477)");
   t("E13b campaignIdOccupied says yes for an id the campaign list knows or a slot holds state for, no for a fresh id; startGame mints a fresh id wheneverthe active one is occupied (the wizard's normal path minted none and adopted whatever was active), and keeps a fresh one it was handed",function(){
     makeWorld();var meta=getCampMeta();setCampMeta([{id:"camp_old_1",campName:"Rise of the Runelords",charName:"Ammut",level:17,savedAt:1}]);
