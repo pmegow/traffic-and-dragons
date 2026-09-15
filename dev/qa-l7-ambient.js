@@ -26,21 +26,21 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   await page.evaluate(()=>Sound.setEnabled(false));
   await page.locator('#file-btn').click();await page.locator('#fm-devmode').click();await page.locator('#fm-ambient-cb').check();
   await page.locator('#file-btn').click();
-  assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0,'untagged smithy narration must not start fire');
-  assert.match(await page.locator('#fm-ambient-status').textContent(),/Waiting for an open smithy/);
+  assert.equal(await page.evaluate(()=>__loops.filter(s=>s.buffer.duration===18).length),0,'untagged smithy narration must not start fire');
+  assert.match(await page.locator('#fm-ambient-status').textContent(),/Village day/);
   assert.match(await page.evaluate(()=>buildEngineNotes()),/\[SUBLOCATION:the smithy\]/,'loaded-save repair must ask for the missing tag');
   assert.equal(await page.evaluate(()=>worldState.world.sublocation),null,'reminder must not move the party');
   // The real parser receives the GM's explicit filing; no paid model request or live save.
   await page.evaluate(()=>{applyMuts('[SUBLOCATION:the smithy]',{deferSave:true});syncUI()});
-  await page.waitForFunction(()=>Ambient.inspect().sources===1);
-  const decoded=await page.evaluate(()=>{const s=__loops[0],b=s.buffer,x=b.getChannelData(0);let peak=0;for(let i=0;i<x.length;i++)peak=Math.max(peak,Math.abs(x[i]));return {duration:b.duration,sampleRate:b.sampleRate,channels:b.numberOfChannels,bytes:b.length*4,loopStart:s.loopStart,loopEnd:s.loopEnd,boundaryStep:Math.abs(x[0]-x[Math.round(18*b.sampleRate)-1]),peak}});
+  await page.waitForFunction(()=>Ambient.inspect().sources===1&&!Ambient.inspect().pending&&!Ambient.inspect().transitioning);
+  const decoded=await page.evaluate(()=>{const s=__loops.at(-1),b=s.buffer,x=b.getChannelData(0);let peak=0;for(let i=0;i<x.length;i++)peak=Math.max(peak,Math.abs(x[i]));return {duration:b.duration,sampleRate:b.sampleRate,channels:b.numberOfChannels,bytes:b.length*4,loopStart:s.loopStart,loopEnd:s.loopEnd,boundaryStep:Math.abs(x[0]-x[Math.round(18*b.sampleRate)-1]),peak}});
   assert(decoded.duration>=18&&decoded.duration<=20);assert.equal(decoded.channels,1);assert(decoded.bytes<=4000000);
-  await page.evaluate(()=>{for(let i=0;i<100;i++)syncUI()});assert.equal(await page.evaluate(()=>__loops.length),1);
+  const startsBefore=await page.evaluate(()=>__loops.length);await page.evaluate(()=>{for(let i=0;i<100;i++)syncUI()});assert.equal(await page.evaluate(()=>__loops.length),startsBefore);
   await page.evaluate(()=>{document.dispatchEvent(new CustomEvent('tnd:car-intent',{detail:{kind:'pause'}}))});assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0);
   await page.evaluate(()=>{document.dispatchEvent(new CustomEvent('tnd:car-intent',{detail:{kind:'resume'}}))});await page.waitForFunction(()=>Ambient.inspect().sources===1);
-  await page.evaluate(()=>{worldState.clock.min=12*60;syncUI()});assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0,'closed at 18:00');
+  await page.evaluate(()=>{worldState.clock.min=12*60;syncUI()});await page.waitForFunction(()=>Ambient.inspect().sources===0); // closed at 18:00 fades out
   await page.evaluate(()=>{worldState.clock.min=2*60;syncUI()});await page.waitForFunction(()=>Ambient.inspect().sources===1);
-  await page.evaluate(()=>{worldState.world.sublocation='the tavern';syncUI()});assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0);
+  await page.evaluate(()=>{worldState.world.sublocation='the tavern';syncUI()});await page.waitForFunction(()=>Ambient.inspect().sources===0);
   await page.evaluate(()=>{worldState.world.sublocation='the smithy';syncUI()});await page.waitForFunction(()=>Ambient.inspect().sources===1);
 
   await page.waitForTimeout(350);

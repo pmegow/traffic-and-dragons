@@ -23,7 +23,7 @@ var Ambient = (function() {
     var common = null, w = typeof worldState !== "undefined" && worldState && worldState.world;
     if (kind === "village" && w && node) {
       AUDIO_SCENES.forEach(function(scene) {
-        if (scene.bind.kind === kind && locResolve(w.location + "|" + scene.bind.common) === nodeKey) common = scene.bind.common;
+        if (!scene.bind.exterior && scene.bind.kind === kind && locResolve(w.location + "|" + scene.bind.common) === nodeKey) common = scene.bind.common;
       });
     }
     var hours = node && node.hours, open = null;
@@ -37,6 +37,7 @@ var Ambient = (function() {
       visible: !!screen && screen.style.display === "flex", hidden: document.hidden,
       campaignKind: kind, campaignId: typeof getActiveCampId === "function" ? getActiveCampId() : "",
       nodeKey: nodeKey, common: common, open: open,
+      exterior: !!(w && !w.sublocation && node && !node.parent && nodeKey === locResolve(w.location)), minuteOfDay: clockMinuteOfDay(),
       speaking: typeof TTS !== "undefined" && TTS.isPlaying(), paused: typeof TTS !== "undefined" && TTS.isPaused() };
   }
   function paint() {
@@ -55,9 +56,9 @@ var Ambient = (function() {
     else if (location.protocol === "file:") { report(new Error("Open the hosted game or localhost to use ambience")); return; }
     else if (!unlocked) status = "Tap Enable audio to start";
     else if (held || s.paused) status = "Paused";
-    else if (!p.scene) status = s.common && s.open === null ? "Smithy hours are not recorded" : "Waiting for an open smithy";
+    else if (!p.scene) status = s.common && s.open === null ? "Smithy hours are not recorded" : "No ambience for this location";
     else if (capturing) status = "Quiet for microphone";
-    else if (!lastError) status = controller && controller.inspect().sources ? (s.speaking ? "Fire · quiet under narration" : "Smithy fire") : "Smithy ambience selected";
+    else if (!lastError) status = (p.scene.label || p.scene.id) + (s.speaking ? " · quiet under narration" : "") + (controller && controller.inspect().pending ? " · loading" : "");
     paint();
   }
   function driver() {
@@ -71,11 +72,11 @@ var Ambient = (function() {
         signal.addEventListener("abort", cancel);
         timer = setTimeout(cancel, 15000);
         return fetch(scene.bed.url, { signal: abort.signal }).then(function(r) {
-          if (!r.ok) throw new Error("Fire download failed (HTTP " + r.status + ")");
-          if (Number(r.headers.get("Content-Length")) > scene.bed.maxBytes) throw new Error("Fire download exceeds its size limit");
+          if (!r.ok) throw new Error("Ambience download failed (HTTP " + r.status + ")");
+          if (Number(r.headers.get("Content-Length")) > scene.bed.maxBytes) throw new Error("Ambience download exceeds its size limit");
           return r.arrayBuffer();
         }).then(function(bytes) {
-          if (bytes.byteLength > scene.bed.maxBytes) throw new Error("Fire download exceeds its size limit");
+          if (bytes.byteLength > scene.bed.maxBytes) throw new Error("Ambience download exceeds its size limit");
           if (signal.aborted) throw new Error("Scene cancelled");
           return new Promise(function(resolve, reject) { ctx.decodeAudioData(bytes, resolve, reject); });
         }).then(function(buffer) {
@@ -83,26 +84,36 @@ var Ambient = (function() {
           return ambientValidateBuffer(buffer, scene.bed);
         }, function(e) {
           clearTimeout(timer); signal.removeEventListener("abort", cancel);
-          throw new Error(e.name === "AbortError" ? "Fire download cancelled or timed out; use Enable audio to retry" : e.message || "Fire decoding failed");
+          throw new Error(e.name === "AbortError" ? "Ambience download cancelled or timed out; use Enable audio to retry" : e.message || "Ambience decoding failed");
         });
       },
       start: function(buffer, scene, value) {
-        var source = ctx.createBufferSource(), gain = ctx.createGain();
+        var source = ctx.createBufferSource(), gain = ctx.createGain(), envelope = ctx.createGain();
         try {
           source.buffer = buffer; source.loop = true; source.loopStart = scene.bed.loopStart; source.loopEnd = scene.bed.loopEnd;
-          gain.gain.value = 0; if (value > 0) gain.gain.setTargetAtTime(value, ctx.currentTime, 0.08); source.connect(gain); gain.connect(ctx.destination); source.start(0, scene.bed.loopStart);
-        } catch (e) { source.disconnect(); gain.disconnect(); throw e; }
-        status = "Smithy fire"; paint();
-        return { source: source, gain: gain, target: value };
+          gain.gain.value = value; envelope.gain.value = 0; source.connect(gain); gain.connect(envelope); envelope.connect(ctx.destination); source.start(0, scene.bed.loopStart);
+        } catch (e) { source.disconnect(); gain.disconnect(); envelope.disconnect(); throw e; }
+        lastError = ""; status = scene.label || scene.id; paint();
+        return { source: source, gain: gain, envelope: envelope, target: value, fade: {from:0,to:0,start:ctx.currentTime,end:ctx.currentTime} };
       },
       gain: function(voice, value) {
         if (voice.target === value) return;
         var param = voice.gain.gain; param.cancelScheduledValues(ctx.currentTime);
-        if (value === 0) param.setValueAtTime(0, ctx.currentTime);
+        if (value === 0) { param.cancelScheduledValues(0); param.value = 0; }
         else param.setTargetAtTime(value, ctx.currentTime, 0.08);
         voice.target = value;
       },
-      stop: function(voice) { voice.source.stop(); voice.source.disconnect(); voice.gain.disconnect(); voice.source.buffer = null; }
+      /* Envelope and mix level are independent: mic/voice events cannot cancel a scene fade. */
+      fade: function(voice, target, seconds) {
+        var now = ctx.currentTime, f = voice.fade;
+        var progress = f.end > f.start ? Math.max(0, Math.min(1, (now - f.start) / (f.end - f.start))) : 1;
+        var value = f.from + (f.to - f.from) * progress, param = voice.envelope.gain;
+        param.cancelScheduledValues(now); param.setValueAtTime(value, now); param.linearRampToValueAtTime(target, now + seconds);
+        voice.fade = {from:value,to:target,start:now,end:now + seconds};
+      },
+      later: function(fn, ms) { return setTimeout(fn, ms); },
+      cancel: function(timer) { clearTimeout(timer); },
+      stop: function(voice) { voice.source.stop(); voice.source.disconnect(); voice.gain.disconnect(); voice.envelope.disconnect(); voice.source.buffer = null; }
     };
   }
   function unlock() {

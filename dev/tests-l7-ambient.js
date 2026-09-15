@@ -10,13 +10,13 @@ async function test(name,fn){try{await fn();passed++;console.log('PASS L7 '+name
 function fixture(){
  const requests=[], voices=[], errors=[];
  const driver={abort:()=>new AbortController(),load:(scene,signal)=>new Promise((resolve,reject)=>requests.push({scene,signal,resolve,reject})),
- start:(buffer,scene,gain)=>{const v={buffer,scene,gain,stopped:false};voices.push(v);return v},gain:(v,g)=>v.gain=g,stop:v=>{v.stopped=true},error:e=>errors.push(e.message)};
+ start:(buffer,scene,gain)=>{const v={buffer,scene,gain,stopped:false};voices.push(v);return v},gain:(v,g)=>v.gain=g,fade:(v,to,seconds)=>v.fade={to,seconds},later:()=>({}),cancel:()=>{},stop:v=>{v.stopped=true},error:e=>errors.push(e.message)};
  return {c:sandbox.createAmbientController(driver,sandbox.AUDIO_SCENES),requests,voices,errors};
 }
 (async()=>{
  await test('same scene reuses one source; microphone silences synchronously',async()=>{
   const f=fixture();f.c.update(base);await flush();f.requests[0].resolve({});await flush();
-  for(let i=0;i<1000;i++)f.c.update(base);
+  for(let i=0;i<1000;i++)f.c.update(base);await flush();
   assert.equal(f.voices.length,1);assert.equal(f.requests.length,1);
   f.c.update({...base,capturing:true});assert.equal(f.voices[0].gain,0);
   f.c.update({...base,speaking:true});assert(f.voices[0].gain<0.275);

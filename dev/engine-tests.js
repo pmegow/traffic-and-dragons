@@ -24075,4 +24075,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("L7 exterior clock policy");
+  t("L7 outside uses clock bands while unrecorded interiors stay silent",function(){
+    var s={enabled:true,unlocked:true,visible:true,volume:0.5,campaignKind:"village",campaignId:"one",nodeKey:"Village",exterior:true,minuteOfDay:600};
+    var p=ambientPlan(s,AUDIO_SCENES);if(!p.scene||p.scene.id!=="village-day")return "daytime exterior is missing";
+    s.minuteOfDay=1260;p=ambientPlan(s,AUDIO_SCENES);if(!p.scene||p.scene.id!=="village-night")return "night boundary missing";
+    s.exterior=false;if(ambientPlan(s,AUDIO_SCENES).scene)return "unknown interior inherited outdoor ambience";
+    return true;
+  });
+
 }
