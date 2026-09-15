@@ -189,6 +189,7 @@ function buildReview(){
       +(ch.appear?'<div class="desc-pre">"'+escHtml(ch.appear)+'"</div>':"")
       +'<div style="font-size:11px;color:var(--t2);margin-top:8px;text-align:center;">Importing at level '+(ch.level||1)+" — no re-roll.</div>";
     var cnInp2=document.getElementById("rv-camp-name");if(cnInp2){if(pendingBlueprint&&pendingBlueprint.name){var _ibpNms=[dispName];var _ibpci;for(_ibpci=0;_ibpci<pendingCompanions.length;_ibpci++)_ibpNms.push(pendingCompanions[_ibpci].name);cnInp2.value=pendingBlueprint.name+" ("+_ibpNms.join(", ")+")"}else if(!cnInp2.value)cnInp2.value=dispName;}
+    _rvSyncBlueprintLocation();/* the blueprint dictates the start for an imported hero too */
     if(typeof _renderCompanionSlots==="function")_renderCompanionSlots();
     return;
   }
@@ -212,18 +213,12 @@ function buildReview(){
   if(lvlSel&&goBtn)goBtn.textContent=parseInt(lvlSel.value)>=3?"Assign level perks":"Begin your journey";
   // Pre-fill campaign name with character name if not yet set
   var cnInp=document.getElementById("rv-camp-name");if(cnInp&&!cnInp.value)cnInp.value=dispNm;
-  // Blueprint overrides: campaign name and starting location
-  var locField=document.getElementById("rv-loc-field"),locFixed=document.getElementById("rv-loc-fixed");
+  // Blueprint overrides: campaign name and starting location (the location half is _rvSyncBlueprintLocation, shared with the import branch above)
   if(pendingBlueprint){
     if(cnInp&&pendingBlueprint.name){var _bpNms=[dispNm||cs.name];var _bpci;for(_bpci=0;_bpci<pendingCompanions.length;_bpci++)_bpNms.push(pendingCompanions[_bpci].name);cnInp.value=pendingBlueprint.name+(_bpNms[0]?" ("+_bpNms.join(", ")+")":"");}
-    var bpLoc=pendingBlueprint.startingLocation;
-    if(bpLoc){
-      if(locField)locField.style.display="none";
-      if(locFixed){locFixed.style.display="block";locFixed.querySelector("span").textContent=bpLoc;}
-    }
+    _rvSyncBlueprintLocation();
   }else{
-    if(locField)locField.style.display="block";
-    if(locFixed)locFixed.style.display="none";
+    _rvSyncBlueprintLocation();
   }
   rvSyncXp();
   if(typeof _renderCompanionSlots==="function")_renderCompanionSlots();
@@ -265,6 +260,31 @@ function goStep(n){
   if(n===2){if(cs.ancestry){showAncDetail(cs.ancestry);}else{var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail");if(gw)gw.style.display="block";if(det)det.style.display="none";buildAncGrid();}}
   if(n===3)buildClsGrid();if(n===4){buildStatGrid();if(cs.statMode==="pb")buildPBCtrls();buildStep6Deity();}if(n===5)buildFinishingTouches();if(n===6)buildReview();window.scrollTo(0,0);
 }
+/* THE ONE reader of the campaign's start (owner ruling 2026-09-14: a blueprint ALWAYS dictates the starting location).
+   With a blueprint that names one: its location, no preset hour (the kind's own opening sets the sky and the clock).
+   Otherwise the picker: a preset (with its #354 opening hour) or the custom text. Both the fresh path and the
+   library-import path of confirmChar read here — the v1.114 import branch used to read the picker regardless. */
+function wizardStartLocation(){
+  if(typeof pendingBlueprint!=="undefined"&&pendingBlueprint&&pendingBlueprint.startingLocation)return {loc:pendingBlueprint.startingLocation,hour:null,fixed:true};
+  var locEl=document.getElementById("rv-start-loc"),loc=locEl?locEl.value:"The Crossroads of Ashenveil";
+  if(loc==="custom"){var custEl=document.getElementById("rv-start-loc-text");loc=custEl&&custEl.value.trim()?custEl.value.trim():"A place of your choosing";}
+  var se=(typeof startLocationEntry==="function")?startLocationEntry(loc):null;
+  return {loc:loc,hour:(se&&typeof se.hour==="number")?se.hour:null,fixed:false};
+}
+/* The review step's location field, for BOTH the fresh and the import branches: a blueprint that fixes the start hides
+   the picker and shows the fixed place; otherwise the picker shows. The import branch returned early without this until
+   2026-09-14 (the owner saw the Crossroads offered to a village hero). */
+function _rvSyncBlueprintLocation(){
+  var locField=document.getElementById("rv-loc-field"),locFixed=document.getElementById("rv-loc-fixed");
+  var bpLoc=(typeof pendingBlueprint!=="undefined"&&pendingBlueprint)?pendingBlueprint.startingLocation:null;
+  if(bpLoc){
+    if(locField)locField.style.display="none";
+    if(locFixed){locFixed.style.display="block";var sp=locFixed.querySelector("span");if(sp)sp.textContent=bpLoc;}
+  }else{
+    if(locField)locField.style.display="block";
+    if(locFixed)locFixed.style.display="none";
+  }
+}
 function confirmChar(){
   var nameEl=document.getElementById("char-name"),enteredName=nameEl?nameEl.value.trim():"";
   // Imported character path: skip normal build, just apply review-step fields and start game
@@ -272,9 +292,8 @@ function confirmChar(){
     var ic=pendingImportChar;pendingImportChar=null;
     ic.name=enteredName||ic.name;
     var cn2El=document.getElementById("rv-camp-name"),campNm2=cn2El&&cn2El.value.trim()?cn2El.value.trim():ic.name;
-    var slEl2=document.getElementById("rv-start-loc"),startLoc2=slEl2?slEl2.value:"The Crossroads of Ashenveil";
-    if(startLoc2==="custom"){var clEl2=document.getElementById("rv-start-loc-text");startLoc2=clEl2&&clEl2.value.trim()?clEl2.value.trim():"A place of your choosing";}
-    ic._campName=campNm2;ic._startLoc=startLoc2;var _se2=startLocationEntry(startLoc2);ic._startHour=(_se2&&typeof _se2.hour==="number")?_se2.hour:null;/* #354 */
+    var _ws2=wizardStartLocation();/* owner ruling 2026-09-14: the blueprint ALWAYS dictates the start; the picker is for freeform campaigns only (the v1.114 import branch read the picker and took its opening hour) */
+    ic._campName=campNm2;ic._startLoc=_ws2.loc;ic._startHour=_ws2.hour;
     if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);
     var nid=newCampaignId();setActiveCampId(nid);
@@ -294,9 +313,7 @@ function confirmChar(){
   // via E1's loop, but the character should still start inside its own band).
   var xpEl=document.getElementById("rv-start-xp"),_xpFloor=classXpLevels()[startLvl-1]||0,_xpCap=startLvl<classXpLevels().length?classXpLevels()[startLvl]-1:Infinity;/* C6 ② */
   var startXp=xpEl?Math.min(Math.max(parseInt(xpEl.value)||0,_xpFloor),_xpCap):_xpFloor;
-  var startLoc;
-  if(pendingBlueprint&&pendingBlueprint.startingLocation){startLoc=pendingBlueprint.startingLocation;}
-  else{var locEl=document.getElementById("rv-start-loc");startLoc=locEl?locEl.value:"The Crossroads of Ashenveil";if(startLoc==="custom"){var custLocEl=document.getElementById("rv-start-loc-text");startLoc=custLocEl&&custLocEl.value.trim()?custLocEl.value.trim():"A place of your choosing";}}
+  var _wsF=wizardStartLocation(),startLoc=_wsF.loc;/* ONE reader for both the fresh and the import paths */
   var cnEl=document.getElementById("rv-camp-name"),campNameVal=cnEl&&cnEl.value.trim()?cnEl.value.trim():null;
   var deityEl=document.getElementById("char-deity");var charDeity=(DEITY_CENTRIC.indexOf(cs.cls)>=0&&deityEl&&deityEl.value.trim())?deityEl.value.trim():null;/* gate: only deity classes carry a deity (audit E39) */
   // Derive starting languages from ancestry and subrace
@@ -342,7 +359,7 @@ function confirmChar(){
     // pre-bump HP/CON-mod, so HP can be recomputed from base on every apply/revert.
     pendingPerkBase={stats:Object.assign({},char.stats),abilLen:char.abilities.length,maxHp:char.maxHp,hp:char.hp,conMod:Math.floor((char.stats.CON-10)/2)};_cbApplied=[];
     showCreationArchetype();}
-  else{char._startLoc=startLoc;var _seH=startLocationEntry(startLoc);char._startHour=(_seH&&typeof _seH.hour==="number")?_seH.hour:null;/* #354: the preset carries the opening hour */if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc(),cs.author||"");}}
+  else{char._startLoc=startLoc;char._startHour=_wsF.hour;/* #354: the preset carries the opening hour — only when the picker chose the start */if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc(),cs.author||"");}}
 }
 function showCreationArchetype(){
   var c=pendingChar;if(!c)return;var archs=(classDef(c.cls)||{}).archetypes||[];/* C6 ② */

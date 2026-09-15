@@ -1274,6 +1274,23 @@ function runEngineTests(R){
     if((hs.match(/"Act "\+/g)||[]).length!==1)return "helpers.js formats the act label outside actLabel";if(/"Act "\+\(i\+1\)\+": "\+act\.title/.test(as))return "api.js still formats the act label itself";
     return true;
   });
+  t("#411 a blueprint ALWAYS dictates the starting location (owner ruling 2026-09-14): wizardStartLocation returns the blueprint's place with no preset hour when one is set, else the picker's preset (with its #354 hour) or the custom text; BOTH confirmChar branches (fresh and library import) read it and neither reads the picker directly; BOTH review branches sync the location field (the import branch used to return early and offer the Crossroads to a village hero)",function(){
+    var cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8");
+    var fnSrc=cc.slice(cc.indexOf("function wizardStartLocation("),cc.indexOf("function _rvSyncBlueprintLocation("));
+    var run=function(bp,pick,custom){var doc={getElementById:function(id){if(id==="rv-start-loc")return pick==null?null:{value:pick};if(id==="rv-start-loc-text")return custom==null?null:{value:custom};return null;}};
+      return new Function("pendingBlueprint","document","startLocationEntry",fnSrc+"\nreturn wizardStartLocation();")(bp,doc,startLocationEntry);};
+    var a=run({name:"The Village",startingLocation:"The Village"},"The Crossroads of Ashenveil",null);if(a.loc!=="The Village"||a.hour!==null||!a.fixed)return "the blueprint dictates, and no preset hour rides along: "+JSON.stringify(a);
+    var b=run(null,"The Crossroads of Ashenveil",null);if(b.loc!=="The Crossroads of Ashenveil"||b.hour!==6||b.fixed)return "the picker's preset carries its hour: "+JSON.stringify(b);
+    var c=run(null,"custom","A lighthouse");if(c.loc!=="A lighthouse"||c.hour!==null)return "custom text: "+JSON.stringify(c);
+    var d=run({name:"Freeform"},"Prison",null);if(d.loc!=="Prison"||d.fixed)return "a blueprint with no starting location leaves the picker in charge: "+JSON.stringify(d);
+    var confirm=cc.slice(cc.indexOf("function confirmChar("),cc.indexOf("function showCreationArchetype("));
+    if((confirm.match(/wizardStartLocation\(\)/g)||[]).length<2)return "both confirmChar branches must read wizardStartLocation";
+    if(/getElementById\("rv-start-loc"\)/.test(confirm))return "confirmChar must never read the picker directly";
+    var review=cc.slice(cc.indexOf("function buildReview("),cc.indexOf("function getDefaultDeity("));
+    var importBranch=review.slice(review.indexOf("if(pendingImportChar)"),review.indexOf("return;",review.indexOf("if(pendingImportChar)")));if(importBranch.indexOf("_rvSyncBlueprintLocation()")<0)return "the import branch of buildReview must sync the location field before it returns";
+    if((review.match(/_rvSyncBlueprintLocation\(\)/g)||[]).length<3)return "every review branch syncs the location field through the one helper";
+    return true;
+  });
   t("#378 rolling another character: a FULL re-roll builds its context without the current name/trait/flaw/motivation (three rolls used to return one name), the per-field sparkle keeps them, and the progress dots for finished steps are back-links wired to goStep",function(){
     var cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),ih=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
     var ctx=cc.slice(cc.indexOf("function _csContext("),cc.indexOf("async function aiSuggestField("));
