@@ -4,7 +4,7 @@ Owner authorized implementation on 2026-09-14 after [Fable and panel review](pan
 
 ## First listening experience
 
-One opt-in, default-off fire at the Village's canonical smithy. No music, hammering or transaction sounds in this slice. File → Settings contains Village ambience and a separate volume control beside UI sounds. Settings persist on this device; a gesture unlocks browser audio after a reload.
+One fire at the Village's canonical smithy (shipped opt-in and default-off; owner turned ambience ON by default in v1.936, 2026-09-15). No music, hammering or transaction sounds in this slice. File → Settings contains Village ambience and a separate volume control beside UI sounds. Settings persist on this device; a gesture unlocks browser audio after a reload.
 
 The room keeps one stable recording. UI refreshes and narration do not restart it. Fire fades in and ducks about 10 dB during a read, including its synthesis wait; finishing narration restores the level. Leaving the room, closing time, switching campaigns, leaving gameplay, disabling ambience, or pausing releases playback. Microphone capture silences the gain synchronously before native recognition or cloud getUserMedia starts, and keeps it silent until capture ends.
 

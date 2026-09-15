@@ -22,10 +22,10 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   });
   await page.goto(url+'/index.html');await page.waitForFunction(()=>typeof Ambient!=='undefined');
   await page.evaluate(f=>{worldState=f.world;memory=f.memory;sessionLog=[{role:'user',content:'head in to the smithy'},{role:'assistant',content:'You step back through the smithy door, the heat rolling out again to meet you. [TIME_CHECK:mid-morning] [SCENE_CAST:none]'}];document.getElementById('api-screen').style.display='none';showGame();syncUI();},fixture);
-  assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0,'default off');
+  assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0,'default on, but silent with no bound scene');
   await page.evaluate(()=>Sound.setEnabled(false));
   await page.locator('#file-btn').click();await page.locator('#fm-devmode').click();await page.locator('#fm-ambient-cb').check();
-  await page.locator('#file-btn').click();
+  await page.locator('#file-btn').click();await page.waitForFunction(()=>Ambient.snapshot().unlocked);/* default-on: the menu tap is the unlocking gesture and resume() settles asynchronously */
   assert.equal(await page.evaluate(()=>__loops.filter(s=>Math.abs(s.buffer.duration-AUDIO_SCENES[0].bed.loopEnd)<0.05).length),0,'untagged smithy narration must not start fire');
   assert.match(await page.locator('#fm-ambient-status').textContent(),/Village day/);
   assert.match(await page.evaluate(()=>buildEngineNotes()),/\[SUBLOCATION:the smithy\]/,'loaded-save repair must ask for the missing tag');
@@ -64,7 +64,7 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   await filePage.evaluate(()=>{const el=document.getElementById('api-fm-ambient-cb');el.checked=true;el.dispatchEvent(new Event('change'))});
   assert.equal(await filePage.evaluate(()=>Ambient.inspect().sources),0);
   assert.match(await filePage.locator('#api-fm-ambient-status').textContent(),/hosted game or localhost/);
-  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-audio-receipt.json'),JSON.stringify({decoded,errors,checks:['untagged saved smithy stays silent','loaded-save location reminder','explicit GM tag starts fire','default off','real enabling gesture','independent UI-sounds preference','real MP3 decode','idempotent UI','car pause/resume','8am open/6pm closed','leave/reenter','three loop boundaries','real TTS duck and restore','legacy plus additive callbacks','showChar release','file origin unavailable']},null,2));
+  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-audio-receipt.json'),JSON.stringify({decoded,errors,checks:['untagged saved smithy stays silent','loaded-save location reminder','explicit GM tag starts fire','default on and silent without a scene','real enabling gesture','independent UI-sounds preference','real MP3 decode','idempotent UI','car pause/resume','8am open/6pm closed','leave/reenter','three loop boundaries','real TTS duck and restore','legacy plus additive callbacks','showChar release','file origin unavailable']},null,2));
   console.log(JSON.stringify({decoded,errors,result:'BROWSER GREEN'}));
  }finally{await browser.close();server.close()}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1});

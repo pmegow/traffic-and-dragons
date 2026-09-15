@@ -133,7 +133,7 @@ var Ambient = (function() {
   }
   function init() {
     if (initialized) return; initialized = true;
-    enabled = saved("tnd_ambient_enabled_v1", "0") === "1";
+    enabled = saved("tnd_ambient_enabled_v1", "1") === "1"; /* owner ruling 2026-09-15: village ambience is ON by default (the checkbox still turns it off, per device) */
     volume = Math.max(0, Math.min(1, Number(saved("tnd_ambient_volume_v1", "0.45")) || 0));
     offs.push(TTS.on("state", sync));
     offs.push(STT.on("capture", function(value) { capturing = value; sync(); }));
