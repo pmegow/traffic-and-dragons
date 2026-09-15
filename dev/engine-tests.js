@@ -24128,4 +24128,78 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#413 ways from here");
+  /* #413 (owner field report 2026-09-15, stranded at the tavern by a purely atmospheric scene): the player is shown the
+     same exits the GM's geo block and the suggestion validator already know. Pure derivation from the map — no new state. */
+  function waysFixture(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation="the tavern";worldState.combat=null;
+    memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+    memory.map.nodes["The Village"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["The Village|the tavern"]={firstVisit:1,visits:2,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["The Village|the smithy"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["The Village|Healer's Garden"]={firstVisit:1,visits:0,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};/* pre-filed commons, never entered */
+    memory.map.nodes["Marrowgate"]={firstVisit:4,visits:1,description:null,parent:null,npcs:[],items:[],size:"large",travelMins:null};
+    memory.map.nodes["Old Mill"]={firstVisit:6,visits:1,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.edges=[{from:"The Village",to:"Marrowgate",turn:4},{from:"Old Mill",to:"The Village",turn:6}];
+  }
+  t("#413 ① inside a sub-location the row leads with the place (world › sub) and lists the way out first, then the sibling sub-locations with a never-entered one marked unexplored; roads never show from inside",function(){
+    waysFixture();var w=waysFromHere(worldState,memory);
+    if(w.here.world!=="The Village"||w.here.sub!=="the tavern")return "here: "+JSON.stringify(w.here);
+    var kinds=w.ways.map(function(x){return x.kind;}),labels=w.ways.map(function(x){return x.label;});
+    if(kinds[0]!=="out"||labels[0]!=="out to The Village")return "the way out must lead: "+JSON.stringify(w.ways);
+    if(labels.indexOf("the tavern")>=0)return "the current sub-location is not a way";
+    if(labels.indexOf("the smithy")<0||labels.indexOf("Healer's Garden")<0)return "siblings missing: "+JSON.stringify(labels);
+    var g=w.ways.filter(function(x){return x.label==="Healer's Garden";})[0],s=w.ways.filter(function(x){return x.label==="the smithy";})[0];
+    if(!g.unexplored||s.unexplored)return "unexplored must mark the never-entered commons only";
+    if(labels.indexOf("the smithy")>labels.indexOf("Healer's Garden"))return "entered places list before unexplored ones";
+    if(kinds.indexOf("road")>=0)return "B24: roads are not affordances from inside a sub-location";
+    if(w.ways[0].action!=="Step back out to The Village."||s.action!=="Head to the smithy.")return "prefill text: "+w.ways[0].action+" / "+s.action;
+    return true;
+  });
+  t("#413 ② at the world node the row lists the sub-locations here and then the first-travel roads (both edge directions, endpoints resolved); no way out",function(){
+    waysFixture();worldState.world.sublocation=null;var w=waysFromHere(worldState,memory);
+    if(w.here.sub!==null)return "no sub-location";
+    var kinds=w.ways.map(function(x){return x.kind;}),labels=w.ways.map(function(x){return x.label;});
+    if(kinds.indexOf("out")>=0)return "no way out at a world node";
+    if(labels.indexOf("the tavern")<0||labels.indexOf("the smithy")<0||labels.indexOf("Healer's Garden")<0)return "sub-locations missing: "+JSON.stringify(labels);
+    var roads=w.ways.filter(function(x){return x.kind==="road";}).map(function(x){return x.label;});
+    if(roads.join("|")!=="Marrowgate|Old Mill")return "roads (both edge directions, after the sub-locations): "+JSON.stringify(roads);
+    if(kinds.lastIndexOf("sub")>kinds.indexOf("road"))return "sub-locations list before roads";
+    var r=w.ways.filter(function(x){return x.kind==="road";})[0];if(r.action!=="Take the road to Marrowgate.")return "road prefill: "+r.action;
+    return true;
+  });
+  t("#413 ③ combat mirrors B24: no roads at a world node, only the way out from inside",function(){
+    waysFixture();worldState.world.sublocation=null;worldState.combat={round:1,enemies:[]};var w=waysFromHere(worldState,memory);
+    if(w.ways.some(function(x){return x.kind==="road";}))return "roads offered mid-combat";
+    if(!w.ways.some(function(x){return x.kind==="sub";}))return "the places here still show (orientation, not travel)";
+    worldState.world.sublocation="the tavern";w=waysFromHere(worldState,memory);
+    if(w.ways.length!==1||w.ways[0].kind!=="out")return "inside, in combat, only the way out: "+JSON.stringify(w.ways);
+    return true;
+  });
+  t("#413 ④ a #408 room graph on the current node lists its rooms between the way out and the siblings, never claiming explored/unexplored",function(){
+    waysFixture();memory.map.nodes["The Village|the tavern"].layout={rooms:[{name:"taproom",size:"medium",features:"",to:["outside","back room"]},{name:"back room",size:"small",features:"",to:["taproom"]}],by:"gm",turn:3};
+    var w=waysFromHere(worldState,memory);var kinds=w.ways.map(function(x){return x.kind;});
+    var rooms=w.ways.filter(function(x){return x.kind==="room";});if(rooms.length!==2||rooms[0].label!=="taproom"||rooms[1].label!=="back room")return "rooms: "+JSON.stringify(rooms);
+    if(rooms.some(function(x){return x.unexplored;}))return "room presence is not tracked — no unexplored claim";
+    if(kinds.indexOf("room")<kinds.indexOf("out")||kinds.indexOf("room")>kinds.indexOf("sub"))return "order out › rooms › siblings: "+JSON.stringify(kinds);
+    if(rooms[1].action!=="Go through to the back room.")return "room prefill: "+rooms[1].action;
+    return true;
+  });
+  t("#413 ⑤ a merged pair's edge (both endpoints resolving to the current node) is not a road",function(){
+    waysFixture();worldState.world.sublocation=null;memory.map.edges.push({from:"The Village",to:"The Village",turn:9});
+    var w=waysFromHere(worldState,memory);if(w.ways.filter(function(x){return x.kind==="road";}).length!==2)return "self-edge leaked as a road";
+    return true;
+  });
+  t("#413 ⑥ the row is a thin shell: index.html mounts #hud-ways under the party row and syncUI paints it through ONE renderer that only prefills the input (never sends)",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var html=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),ui=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");
+    if(html.indexOf('id="hud-ways"')<0)return "index.html must mount #hud-ways";
+    if(html.indexOf('id="hud-ways"')<html.indexOf('id="hud-party"'))return "#hud-ways sits under the party row";
+    if(!/function renderWaysRow\(/.test(ui)||!/waysFromHere\(worldState,memory\)/.test(ui))return "ui-panels must render waysFromHere through renderWaysRow";
+    var body=ui.slice(ui.indexOf("function renderWaysRow("),ui.indexOf("function renderWaysRow(")+2600);
+    if(/sendAction\(|sendSuggestedAction\(/.test(body))return "a tap prefills the input; it never sends (ruling ②)";
+    if(body.indexOf('getElementById("action-input")')<0)return "the tap must prefill #action-input";
+    return true;
+  });
+
 }

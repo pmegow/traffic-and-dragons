@@ -310,6 +310,35 @@ function suggestionInvokesCap(text,capName){
   var castVerb=/\b(cast|casts|casting|use|uses|using|invoke|invoking|channel)\b[\s\S]{0,24}$/i.test(String(text).slice(0,at));
   return midCap||castVerb;
 }
+// #413: THE WAYS FROM HERE — what the player's HUD shows as reachable, derived from the SAME map the geo
+// block ("Known sub-locations" / "Connected to") and the suggestion validator (man.back / man.exits, B24)
+// already read. Pure: no new state, no model, no prose — a door only the narration mentioned is not a way
+// until someone files it (slice 2, the [EXIT:] tag). Order: the way out of a sub-location, the #408 rooms
+// of the current node, the sibling sub-locations (entered first, never-entered marked unexplored), then
+// the first-travel roads — roads never from inside a sub-location and never mid-combat (B24). Each way
+// carries the exact sentence a tap PREFILLS into the input (owner ruling ②: prefill, never send).
+function waysFromHere(ws,mem){
+  var w=(ws&&ws.world)||{},loc=w.location||"",sub=w.sublocation||null,i,k;
+  var map=(mem&&mem.map)||{},nodes=map.nodes||{},edges=map.edges||[];
+  var R=function(key){return (typeof locResolve==="function")?locResolve(key):key;};
+  var leaf=function(key){if(typeof locDisplayLeaf==="function")return locDisplayLeaf(key);var s=String(key),p=s.lastIndexOf("|");return p<0?s:s.slice(p+1);};
+  var wKey=R(loc),subKey=sub?R(loc+"|"+sub):null,cur=nodes[subKey||wKey]||null;
+  var here={world:loc,sub:sub,key:subKey||wKey},ways=[],combat=!!(ws&&ws.combat);
+  if(!loc)return {here:here,ways:ways};
+  if(sub)ways.push({kind:"out",label:"out to "+loc,target:loc,action:"Step back out to "+loc+".",unexplored:false});
+  if(combat&&sub)return {here:here,ways:ways};/* B24: inside, mid-combat, the way out is the one honest move */
+  if(cur&&cur.layout&&cur.layout.rooms)for(i=0;i<cur.layout.rooms.length;i++){var rm=cur.layout.rooms[i];if(!rm||!rm.name)continue;
+    ways.push({kind:"room",label:rm.name,target:rm.name,action:"Go through to the "+rm.name+".",unexplored:false});}/* room presence is untracked — no explored claim */
+  var subs=[];
+  for(k in nodes){var n=nodes[k];if(!n||!n.parent)continue;if(R(n.parent)!==wKey)continue;var rk=R(k);if(rk!==k||rk===subKey)continue;/* an alias lists through its canonical twin; the current place is not a way */
+    var nm=leaf(k);subs.push({kind:"sub",label:nm,target:nm,action:"Head to "+nm+".",unexplored:!(n.visits>0||n.lastVisit)});}
+  subs.sort(function(a,b){if(a.unexplored!==b.unexplored)return a.unexplored?1:-1;return a.label<b.label?-1:a.label>b.label?1:0;});
+  ways=ways.concat(subs);
+  if(!sub&&!combat){var seen={};for(i=0;i<edges.length;i++){var e=edges[i],ef=R(e.from),et=R(e.to);if(ef===et)continue;/* #156B: a merged pair's edge leads nowhere */
+    var o=ef===wKey?et:(et===wKey?ef:null);if(!o||seen[o])continue;seen[o]=1;var on=leaf(o);
+    ways.push({kind:"road",label:on,target:on,action:"Take the road to "+on+".",unexplored:false});}}
+  return {here:here,ways:ways};
+}
 // The scene-local manifest: who is PRESENT, where the exits lead, what the active character can
 // actually use — pure derivation from existing state, no new bookkeeping, no model involvement.
 function buildSceneManifest(){

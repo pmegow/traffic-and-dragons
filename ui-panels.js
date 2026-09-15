@@ -45,6 +45,28 @@ function partyMemberVitals(npc){
   };
 }
 var _cpanelWasActive=false;/* TODO #7: module-local previous-state latch — lets syncUI detect the hidden->shown edge (combat just started) instead of firing a sound on every sync while combat persists */
+/* #413: ONE renderer for the ways row — a thin shell over waysFromHere (game.js, engine-tested). Leads with the
+   party's position (world › sub-location; ruling ④), then the recorded ways as tappable chips (interactive, so the
+   border is allowed). A tap PREFILLS #action-input with the way's sentence and focuses it — it never sends
+   (ruling ②). Unexplored = a place the map holds but the party has never entered (dashed). */
+function renderWaysRow(){
+  var el=document.getElementById("hud-ways");if(!el)return;
+  if(!worldState||!worldState.world||!worldState.world.location||typeof waysFromHere!=="function"){el.style.display="none";return;}
+  var w=waysFromHere(worldState,memory),i,h="";
+  h+="<span style='color:var(--t0);font-weight:bold;'>"+escHtml(w.here.world)+"</span>";
+  if(w.here.sub)h+="<span style='color:var(--t2);'>\u203A</span><span style='color:var(--t0);'>"+escHtml(w.here.sub)+"</span>";
+  h+="<span style='color:var(--t2);margin-left:6px;'>ways:</span>";
+  if(!w.ways.length)h+="<span style='color:var(--t2);'>none recorded yet</span>";
+  for(i=0;i<w.ways.length;i++){var x=w.ways[i];
+    h+="<button type='button' class='hw-chip"+(x.unexplored?" hw-unexplored":"")+"' data-way='"+i+"' title='"+escHtml(x.action)+"'>"+escHtml(x.label)+(x.unexplored?" ?":"")+"</button>";}
+  h+="<span style='color:var(--t2);font-size:10px;margin-left:4px;'>\u2026or name anywhere</span>";
+  el.innerHTML=h;el.style.display="flex";
+  var chips=el.querySelectorAll(".hw-chip");
+  for(i=0;i<chips.length;i++)(function(btn){btn.addEventListener("click",function(){
+    var x=w.ways[Number(btn.getAttribute("data-way"))],inp=document.getElementById("action-input");if(!x||!inp)return;
+    inp.value=x.action;inp.focus();try{inp.dispatchEvent(new Event("input"));}catch(e){}/* let the textarea auto-size listener see it */
+  });})(chips[i]);
+}
 function syncUI(){if(typeof Ambient!=="undefined")Ambient.sync();_ensureLongPressTips();/* #83: idempotent — wires the mobile long-press tooltip once */if(!worldState)return;updateHUD();updatePartyPanel();updateQuestPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();var _combatNowActive=!!worldState.combat;if(_combatNowActive){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}if(_combatNowActive&&!_cpanelWasActive&&typeof Sound!=="undefined")Sound.play("click_glass");/* #7: combat starting is an attention event — same glass as quests/level-ups (no toast here, so no window contention) */_cpanelWasActive=_combatNowActive;if(typeof carMode!=="undefined"&&carMode&&typeof _carUpdate==="function")_carUpdate();/* rank 10 (todo_carplay) — keep the car overlay's portrait/party/vitals fresh off the same funnel every other panel uses */}
 function updateQuestPanel(){
   if(!worldState)return;var ql=worldState.questLog||[];
@@ -94,6 +116,7 @@ function updateHUD(){
   document.getElementById("hud-gold").textContent=(c.gold!=null?c.gold:0)+" gp";/* companion sheets may lack gold */
   document.getElementById("hud-align").textContent=c.actualAlignment||c.statedAlignment||"Neutral";
   document.getElementById("hud-loc").textContent=pcEffectiveLoc(c).location;/* P5: camera follows the spotlight PC (a split PC shows THEIR location) */
+  renderWaysRow();/* #413: the party's position and the recorded ways, from the same map the GM reads */
   var xpEl=document.getElementById("hud-xp");if(xpEl){var nxp=classXpLevels()[c.level];/* C6 ② */var xpTxt=nxp!==undefined?(c.xp+" / "+nxp+" xp"+(c.xp>=nxp?" \u2014 Lv "+(c.level+1)+" ready, rest to claim":"")):c.xp+" xp (max)";/* #349 */var prevXp=xpEl.getAttribute("data-xp");if(prevXp!==null&&prevXp!==String(c.xp)){xpEl.className="";void xpEl.offsetWidth;/* force reflow so the animation retriggers on rapid gains */xpEl.className="xp-pulse";setTimeout(function(){xpEl.className="";},900);}xpEl.setAttribute("data-xp",String(c.xp));xpEl.textContent=xpTxt;}
   // ── Party HUD (compact cards — second topbar row) ─────────────────────────
   var hudParty=document.getElementById("hud-party");
