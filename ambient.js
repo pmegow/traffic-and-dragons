@@ -4,6 +4,18 @@ function ambientGain(snapshot, scene) {
   var s = snapshot || {};
   return s.capturing ? 0 : scene.bed.gain * Math.max(0, Math.min(1, Number(s.volume) || 0)) * (s.speaking ? 0.316 : 1);
 }
+function ambientExteriorNode(kind, worldKey, nodeKey, nodes, resolve, registry) {
+  var commons = registry[kind];
+  if (!commons || !worldKey || !nodeKey || !nodes) return false;
+  var world = resolve(worldKey), key = resolve(nodeKey), node = nodes[key];
+  if (!node) return false;
+  if (key === world) return !node.parent;
+  if (!node.parent || resolve(node.parent) !== world) return false;
+  for (var i = 0; i < commons.length; i++) {
+    if (resolve(worldKey + "|" + commons[i]) === key) return true;
+  }
+  return false;
+}
 function ambientSceneMatches(s, scene) {
   var bind = scene.bind;
   if (bind.kind !== s.campaignKind || !s.nodeKey) return false;

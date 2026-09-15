@@ -37,7 +37,7 @@ var Ambient = (function() {
       visible: !!screen && screen.style.display === "flex", hidden: document.hidden,
       campaignKind: kind, campaignId: typeof getActiveCampId === "function" ? getActiveCampId() : "",
       nodeKey: nodeKey, common: common, open: open,
-      exterior: !!(w && !w.sublocation && node && !node.parent && nodeKey === locResolve(w.location)), minuteOfDay: clockMinuteOfDay(),
+      exterior: !!(w && ambientExteriorNode(kind, w.location, nodeKey, memory && memory.map && memory.map.nodes, locResolve, AUDIO_EXTERIORS)), minuteOfDay: clockMinuteOfDay(),
       speaking: typeof TTS !== "undefined" && TTS.isPlaying(), paused: typeof TTS !== "undefined" && TTS.isPaused() };
   }
   function paint() {

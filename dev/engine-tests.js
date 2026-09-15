@@ -24084,4 +24084,26 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("L7 named exterior locations");
+  t("L7 the saved square and yard are outdoors but shops and unknown rooms are not",function(){
+    makeWorld();var nodes=memory.map.nodes;
+    nodes["The Village"]={parent:null};
+    ["the square","the animal handler's yard","the trading post","the smithy","the courtyard"].forEach(function(n){nodes["The Village|"+n]={parent:"The Village"};});
+    if(typeof ambientExteriorNode!=="function")return "named exterior resolver missing";
+    function outside(key){return ambientExteriorNode("village","The Village",key,nodes,locResolve,AUDIO_EXTERIORS);}
+    if(!outside("The Village|the square")||!outside("The Village|the animal handler's yard"))return "saved outdoor sublocation was excluded";
+    if(!outside("The Village"))return "bare village stopped being exterior";
+    if(outside("The Village|the trading post")||outside("The Village|the smithy")||outside("The Village|the courtyard")||outside("Missing"))return "unregistered interior treated as outdoors";
+    nodes["Elsewhere|the square"]={parent:"Elsewhere"};if(outside("Elsewhere|the square"))return "other-world square matched";
+    nodes["The Village|the square"].parent="Elsewhere";if(outside("The Village|the square"))return "reparented square matched";
+    if(ambientExteriorNode("adventure","The Village","The Village",nodes,locResolve,AUDIO_EXTERIORS))return "non-village exterior matched";
+    return true;
+  });
+  t("L7 exterior binding follows canonical identity through a renamed square",function(){
+    makeWorld();var nodes=memory.map.nodes;nodes["The Village"]={parent:null};memory.map.identity={entries:{"The Village|the square":{mergedInto:"The Village|Chestnut Square"}}};nodes["The Village|Chestnut Square"]={parent:"The Village"};
+    if(typeof ambientExteriorNode!=="function")return "named exterior resolver missing";
+    if(!ambientExteriorNode("village","The Village","The Village|Chestnut Square",nodes,locResolve,AUDIO_EXTERIORS))return "canonical renamed square did not bind";
+    return true;
+  });
+
 }
