@@ -23953,6 +23953,37 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/layoutAskOfferFor\(/.test(gj)||!/armLayoutAsk\(/.test(gj))return "the Table Talk answer must offer the one-click arm";
     return true;
   });
+  t("#408 ③ the voice gate: on the HERO's own house with a player record, a GM [LAYOUT:] applies only where the player's own last action named every room it adds, changes or removes; an unnamed change refuses loudly and the record stands; removing a room that holds a pinned item refuses; a resident's house is never GM-editable; the split carries the layout to the primary",function(){
+    var hk=villageHouse();applyMuts(LAYOUT_TAG);
+    if(!layoutSetByPlayer(hk,[{name:"main room",size:"medium",features:"hearth, long table",to:["kitchen","outside"]},{name:"kitchen",size:"small",features:"stove",to:["main room","cellar"]},{name:"cellar",size:"small",features:"barrels",to:["kitchen"]}]).ok)return "fixture";
+    applyMuts("[LOCATION_ITEM:Cleaver|placed|"+locDisplayLeaf(hk)+"|cellar, on a hook]");
+    var n=memory.map.nodes[hk],warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{
+      lastAction="I set up a workbench in the kitchen.";
+      applyMuts("[LAYOUT:main room|medium|hearth, long table|kitchen, outside; kitchen|small|stove, workbench|main room, cellar; cellar|small|barrels|kitchen]");
+      if(n.layout.rooms[1].features!=="stove, workbench")return "a change the player voiced must apply: "+JSON.stringify(n.layout.rooms[1]);
+      if(n.layout.by!=="player"||n.layout.voiced!==worldState.turn)return "the voiced change keeps the player as author and stamps voiced: "+JSON.stringify(n.layout);
+      lastAction="I sit by the hearth.";
+      applyMuts("[LAYOUT:main room|medium|hearth, long table|kitchen, outside; kitchen|small|stove, workbench|main room, cellar; cellar|small|barrels|kitchen; attic|tiny|dust|main room]");
+      if(n.layout.rooms.length!==3)return "a room the player never named must not appear: "+JSON.stringify(n.layout.rooms.map(function(r){return r.name;}));
+      if(!warns.some(function(m){return /attic/.test(m);}))return "the refusal must name the room";
+      lastAction="I board up the cellar.";
+      applyMuts("[LAYOUT:main room|medium|hearth, long table|kitchen, outside; kitchen|small|stove, workbench|main room]");
+      if(n.layout.rooms.length!==3)return "a room that holds a pinned item cannot be removed: "+JSON.stringify(n.layout.rooms.map(function(r){return r.name;}));
+      if(!warns.some(function(m){return /Cleaver/.test(m);}))return "the refusal must name the pinned item";
+      stashSetRoom(hk,"Cleaver",null);
+      applyMuts("[LAYOUT:main room|medium|hearth, long table|kitchen, outside; kitchen|small|stove, workbench|main room]");
+      if(n.layout.rooms.length!==2)return "with nothing pinned, a removal the player voiced applies: "+JSON.stringify(n.layout.rooms.map(function(r){return r.name;}));
+      var fk=villageHouseKey("Frizwick");memory.map.nodes[fk]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Frizwick"};
+      layoutSetByPlayer(fk,[{name:"hut",size:"tiny",features:"cot",to:["outside"]}]);worldState.world.sublocation=locDisplayLeaf(fk);lastAction="I move the cot in the hut.";
+      applyMuts("[LAYOUT:hut|tiny|cot, moved|outside]");if(memory.map.nodes[fk].layout.rooms[0].features!=="cot")return "a resident's house is never GM-editable, even when named";
+    }finally{console.warn=_w;lastAction=null;}
+    /* the split carries the layout to the primary successor */
+    worldState.world.sublocation=null;var R={muts:[],turn:worldState.turn};memory.map.nodes["The Fused House"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,layout:{rooms:[{name:"hall",size:"small",features:"",to:["outside"]}],by:"player",turn:1}};
+    locSplit("The Fused House",{primary:"East House",successors:[{key:"East House",take:{}},{key:"West House",take:{}}]},R);
+    if(!memory.map.nodes["East House"]||!memory.map.nodes["East House"].layout||memory.map.nodes["West House"].layout)return "the primary keeps the plan, the other successor starts without one";
+    return true;
+  });
   section("E13b a NEW campaign never inherits an OCCUPIED campaign id (owner field report 2026-09-13: a village at turn 3 synced as the Runelords campaign at turn 2477)");
   t("E13b campaignIdOccupied says yes for an id the campaign list knows or a slot holds state for, no for a fresh id; startGame mints a fresh id wheneverthe active one is occupied (the wizard's normal path minted none and adopted whatever was active), and keeps a fresh one it was handed",function(){
     makeWorld();var meta=getCampMeta();setCampMeta([{id:"camp_old_1",campName:"Rise of the Runelords",charName:"Ammut",level:17,savedAt:1}]);

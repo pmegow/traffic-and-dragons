@@ -333,6 +333,7 @@ function locSplit(fusedKey,spec,R){
     var fresh={firstVisit:node.firstVisit,visits:0,description:null,parent:node.parent||null,npcs:[],items:[],size:null,travelMins:null};
     if(s.kind)fresh.kind=s.kind;
     if(s.endpoints)fresh.endpoints=s.endpoints.slice();
+    if(node.layout&&s.key===spec.primary)fresh.layout=JSON.parse(JSON.stringify(node.layout));/* #408: the room graph stays with the primary successor */
     for(j=0;j<(take.stateNotes||[]).length;j++){var ni=take.stateNotes[j];if(notes[ni]){fresh.stateNotes=fresh.stateNotes||[];fresh.stateNotes.push(notes[ni]);claimedN[ni]=1;}}
     for(j=0;j<(take.items||[]).length;j++){var ii=take.items[j];if(items[ii]){fresh.items.push(items[ii]);claimedI[ii]=1;}}
     for(j=0;j<(take.npcs||[]).length;j++){if(npcs.indexOf(take.npcs[j])>=0){fresh.npcs.push(take.npcs[j]);claimedP[take.npcs[j]]=1;}}

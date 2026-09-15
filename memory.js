@@ -352,12 +352,34 @@ function stashSetRoom(key,itemName,room){
   if(txt)row.room=txt;else delete row.room;
   return {ok:true,key:rk,name:row.name,room:txt};
 }
-function fileLayout(body,turn,by){
+function fileLayout(body,turn,by,playerText){
   if(!memory.map||!worldState||!worldState.world)return {ok:false,reason:"no map"};
   var key=currentNodeKey();if(typeof locResolve==="function")key=locResolve(key);
   var node=memory.map.nodes[key];if(!node)return {ok:false,reason:"no such place on the map",key:key};
-  if(node.layout&&(by||"gm")==="gm")return {ok:false,reason:"a layout is already on record here (write-once — the design form edits it)",key:key};
   var p=parseLayout(body);if(!p.ok)return {ok:false,reason:p.reason,key:key};
+  if(node.layout&&(by||"gm")==="gm"){
+    if(node.layout.by!=="player")return {ok:false,reason:"a layout is already on record here (write-once — the design form edits it)",key:key};
+    /* #408 ③ THE VOICE GATE (owner ruling 3): on the HERO's OWN house the GM may change the player's record, but the
+       engine applies it only where the PLAYER's own last action named every room the filing adds, changes or removes.
+       The GM can never redecorate unasked; a room that holds a pinned item cannot be removed. */
+    var hero=worldState.character&&worldState.character.name;
+    if(!node.owner||!hero||node.owner!==hero)return {ok:false,reason:"this house has the player's own design on record; only its owner's design form changes it",key:key};
+    var said=String(playerText==null?"":playerText).toLowerCase(),oldRooms=node.layout.rooms,i,byName={};
+    for(i=0;i<oldRooms.length;i++)byName[oldRooms[i].name.toLowerCase()]=oldRooms[i];
+    var named=function(nm){return said.indexOf(String(nm).toLowerCase())>=0;};
+    var newNames={};for(i=0;i<p.rooms.length;i++)newNames[p.rooms[i].name.toLowerCase()]=1;
+    /* a connection that vanishes only because its room is being removed is judged with the removal, not as a change to the room that lost it */
+    var liveTo=function(to){return to.filter(function(t){var l=String(t).toLowerCase();return l==="outside"||newNames[l];}).join(",").toLowerCase();};
+    for(i=0;i<p.rooms.length;i++){var nr=p.rooms[i],or=byName[nr.name.toLowerCase()];
+      var changed=!or||or.size!==nr.size||or.features!==nr.features||liveTo(or.to)!==liveTo(nr.to);
+      if(changed&&!named(nr.name))return {ok:false,reason:"the player's design has '"+(or?nr.name+"' unchanged; a change to it":"no '"+nr.name+"'; adding it")+" needs the player to name that room in their own action",key:key};}
+    for(i=0;i<oldRooms.length;i++){var on=oldRooms[i].name;if(newNames[on.toLowerCase()])continue;
+      if(!named(on))return {ok:false,reason:"removing '"+on+"' needs the player to name that room in their own action",key:key};
+      var pinned=(node.items||[]).filter(function(it){return it.room&&!it.taken&&(it.qty===undefined||it.qty>0)&&String(it.room).split(",")[0].trim().toLowerCase()===on.toLowerCase();});
+      if(pinned.length)return {ok:false,reason:"'"+on+"' cannot be removed — "+pinned.map(function(it){return it.name;}).join(", ")+" "+(pinned.length>1?"sit":"sits")+" there; move them first",key:key};}
+    node.layout={rooms:p.rooms,by:"player",turn:node.layout.turn,voiced:turn};
+    return {ok:true,key:key,rooms:p.rooms.length,voiced:true};
+  }
   node.layout={rooms:p.rooms,by:by||"gm",turn:turn};
   return {ok:true,key:key,rooms:p.rooms.length};
 }
