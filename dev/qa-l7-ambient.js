@@ -18,7 +18,7 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{
    window.__loops=[];const proto=AudioContext.prototype,create=proto.createBufferSource;
-   proto.createBufferSource=function(){const s=create.call(this),start=s.start.bind(s),stop=s.stop.bind(s);s.start=function(...a){if(s.loop && s.buffer && s.buffer.duration>=17)window.__loops.push(s);return start(...a)};s.stop=function(...a){s.__stopped=true;return stop(...a)};const connect=s.connect.bind(s);s.connect=function(node){s.__gain=node;return connect(node)};return s};
+   proto.createBufferSource=function(){const s=create.call(this),start=s.start.bind(s),stop=s.stop.bind(s);s.start=function(...a){if(s.loop && s.buffer && s.buffer.duration>=8)window.__loops.push(s);return start(...a)};s.stop=function(...a){s.__stopped=true;return stop(...a)};const connect=s.connect.bind(s);s.connect=function(node){s.__gain=node;return connect(node)};return s};
   });
   await page.goto(url+'/index.html');await page.waitForFunction(()=>typeof Ambient!=='undefined');
   await page.evaluate(f=>{worldState=f.world;memory=f.memory;sessionLog=[{role:'user',content:'head in to the smithy'},{role:'assistant',content:'You step back through the smithy door, the heat rolling out again to meet you. [TIME_CHECK:mid-morning] [SCENE_CAST:none]'}];document.getElementById('api-screen').style.display='none';showGame();syncUI();},fixture);
@@ -26,15 +26,15 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   await page.evaluate(()=>Sound.setEnabled(false));
   await page.locator('#file-btn').click();await page.locator('#fm-devmode').click();await page.locator('#fm-ambient-cb').check();
   await page.locator('#file-btn').click();
-  assert.equal(await page.evaluate(()=>__loops.filter(s=>s.buffer.duration===18).length),0,'untagged smithy narration must not start fire');
+  assert.equal(await page.evaluate(()=>__loops.filter(s=>Math.abs(s.buffer.duration-AUDIO_SCENES[0].bed.loopEnd)<0.05).length),0,'untagged smithy narration must not start fire');
   assert.match(await page.locator('#fm-ambient-status').textContent(),/Village day/);
   assert.match(await page.evaluate(()=>buildEngineNotes()),/\[SUBLOCATION:the smithy\]/,'loaded-save repair must ask for the missing tag');
   assert.equal(await page.evaluate(()=>worldState.world.sublocation),null,'reminder must not move the party');
   // The real parser receives the GM's explicit filing; no paid model request or live save.
   await page.evaluate(()=>{applyMuts('[SUBLOCATION:the smithy]',{deferSave:true});syncUI()});
   await page.waitForFunction(()=>Ambient.inspect().sources===1&&!Ambient.inspect().pending&&!Ambient.inspect().transitioning);
-  const decoded=await page.evaluate(()=>{const s=__loops.at(-1),b=s.buffer,x=b.getChannelData(0);let peak=0;for(let i=0;i<x.length;i++)peak=Math.max(peak,Math.abs(x[i]));return {duration:b.duration,sampleRate:b.sampleRate,channels:b.numberOfChannels,bytes:b.length*4,loopStart:s.loopStart,loopEnd:s.loopEnd,boundaryStep:Math.abs(x[0]-x[Math.round(18*b.sampleRate)-1]),peak}});
-  assert(decoded.duration>=18&&decoded.duration<=20);assert.equal(decoded.channels,1);assert(decoded.bytes<=4000000);
+  const decoded=await page.evaluate(()=>{const s=__loops.at(-1),b=s.buffer,x=b.getChannelData(0);let peak=0;for(let i=0;i<x.length;i++)peak=Math.max(peak,Math.abs(x[i]));return {duration:b.duration,sampleRate:b.sampleRate,channels:b.numberOfChannels,bytes:b.length*4,loopStart:s.loopStart,loopEnd:s.loopEnd,boundaryStep:Math.abs(x[0]-x[Math.round(s.loopEnd*b.sampleRate)-1]),peak}});
+  assert(decoded.duration>=AUDIO_SCENES[0].bed.loopEnd&&decoded.duration<=AUDIO_SCENES[0].bed.maxSeconds);assert.equal(decoded.channels,1);assert(decoded.bytes<=4000000);
   const startsBefore=await page.evaluate(()=>__loops.length);await page.evaluate(()=>{for(let i=0;i<100;i++)syncUI()});assert.equal(await page.evaluate(()=>__loops.length),startsBefore);
   await page.evaluate(()=>{document.dispatchEvent(new CustomEvent('tnd:car-intent',{detail:{kind:'pause'}}))});assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0);
   await page.evaluate(()=>{document.dispatchEvent(new CustomEvent('tnd:car-intent',{detail:{kind:'resume'}}))});await page.waitForFunction(()=>Ambient.inspect().sources===1);

@@ -1,5 +1,5 @@
 var sabotage = require("./sabotage.js"), rc = 0;
-var also = ["index.html","sw.js","blueprint-designer.html","ui-ambient.js","ui-boot.js","ui-panels.js","ui-shell.js","stt.js","dev/engine-manifest.js","dev/tests-l7-ambient.js","sfx/smithy-fire-v1.mp3"];
+var also = ["index.html","sw.js","blueprint-designer.html","ui-ambient.js","ui-boot.js","ui-panels.js","ui-shell.js","stt.js","dev/engine-manifest.js","dev/tests-l7-ambient.js","sfx/smithy-fire-v2.mp3"];
 
 rc |= sabotage.prove({also:also,file:"ambient.js",command:["node",["dev/run-tests.js","L7 ambient scene policy"]],cases:[
  {label:"disabled preferences can start a fire",mustFail:"L7 fire needs enabled",find:"!s.enabled || ",replace:""},

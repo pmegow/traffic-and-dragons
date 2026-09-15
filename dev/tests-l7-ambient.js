@@ -41,10 +41,10 @@ function fixture(){
   f.c.update({...base,hidden:true});await flush();assert.equal(f.requests.length,1);
  });
  await test('buffer admission enforces memory channels duration and loop bounds',()=>{
-  const b={duration:18,length:864000,numberOfChannels:1},bed=sandbox.AUDIO_SCENES[0].bed;
+  const bed=sandbox.AUDIO_SCENES[0].bed,b={duration:bed.loopEnd,length:Math.round(bed.loopEnd*48000),numberOfChannels:1}; // the delivered smithy bed's own bounds, not a hardcoded 18 s
   assert.equal(sandbox.ambientValidateBuffer(b,bed),b);
-  for(const change of [{duration:21},{numberOfChannels:2},{length:1000001},{duration:17}])assert.throws(()=>sandbox.ambientValidateBuffer({...b,...change},bed));
-  assert.throws(()=>sandbox.ambientValidateBuffer(b,{...bed,loopStart:19}));
+  for(const change of [{duration:bed.maxSeconds+1},{numberOfChannels:2},{length:1000001},{duration:bed.loopEnd-1}])assert.throws(()=>sandbox.ambientValidateBuffer({...b,...change},bed));
+  assert.throws(()=>sandbox.ambientValidateBuffer(b,{...bed,loopStart:bed.loopEnd+1}));
  });
  await test('event subscribers coexist and unsubscribe without replacing another listener',()=>{
   const ev=sandbox.createAudioEvents(),seen=[];const a=x=>seen.push('a'+x),b=x=>seen.push('b'+x);
