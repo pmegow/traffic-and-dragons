@@ -1622,6 +1622,7 @@ var buildPhaseMismatchNudge=oneShotPing("phaseMismatch",{name:"buildPhaseMismatc
   return "[ENGINE NOTE — CLOCK vs NARRATION (not a player action): your last scene described \""+q.label+"\" but the campaign clock reads "+q.stamp+". If the story is NOW at "+q.label+", emit [TIME:"+q.label+"] in this response and the engine will reconcile the clock. If that mention was only a reference (a plan, a memory, a figure of speech), do nothing.]";
 }});
 var buildLocationFilingNudge=oneShotPing("locationFilingPing",{name:"buildLocationFilingNudge",text:function(q){
+  if(q.interior)return "[ENGINE NOTE — LOCATION FILING GAP (not a player action): your last committed narration placed the party inside the known interior '"+q.place+"', but its location tag is missing from the record. If the party is still there, emit [SUBLOCATION:"+q.place+"] in THIS response. If they have moved elsewhere, file their actual current location instead. If the narration did not establish an arrival, leave location state unchanged. Never acknowledge this check in prose.]";
   return "[ENGINE NOTE — LOCATION FILING GAP (not a player action): the story entered or remained inside '"+q.place+"' for several committed turns without a location tag. If this is a new world location, emit [LOCATION:"+q.place+"]; if it is an interior of the current world location, emit [SUBLOCATION:"+q.place+"]. If neither is true, leave location state unchanged. Never acknowledge this check in prose.]";
 }});
 /* #393: the party walked out and the record stayed in the room (The Long Walk t108–t132: the penthouse through the balcony,
@@ -2023,7 +2024,7 @@ var NOTE_SHAPES={
   buildDeityDriftNudge:{shape:"cooldown-reminder",latch:["deityDriftNudged"],combat:"silent",village:"fires",ack:["NO_CHANGE"]},
   buildReconcileSkipNudge:{shape:"transient",latch:["reconcileSkip"],combat:"fires",village:"fires",ack:["REST","TIME_ADVANCE","TIME"]},
   buildPhaseMismatchNudge:{shape:"one-shot-ask",latch:["phaseMismatch"],combat:"silent",village:"fires",ack:["TIME"]},
-  buildLocationFilingNudge:{shape:"one-shot-ask",latch:["locationFilingPing"],combat:"silent",village:"fires",ack:["LOCATION","SUBLOCATION","NO_CHANGE"]},
+  buildLocationFilingNudge:{prepare:function(){if(typeof prepareInteriorLocationFiling==="function")prepareInteriorLocationFiling();},shape:"one-shot-ask",latch:["locationFilingPing"],combat:"silent",village:"fires",ack:["LOCATION","SUBLOCATION","NO_CHANGE"]},
   buildTravelPriceNudge:{shape:"one-shot-ask",latch:["travelPricePing"],combat:"silent",village:"fires",ack:["TIME_ADVANCE"]},
   buildCommitmentNudge:{shape:"one-shot-ask",latch:["commitmentPing"],combat:"silent",village:"silent",ack:["SCHEDULE","FUTURE_EVENT","QUEST"]},
   buildFutureResolveNudge:{shape:"one-shot-ask",latch:["futureResolveHints"],combat:"silent",village:"fires",ack:["FUTURE_EVENT_RESOLVED"]},

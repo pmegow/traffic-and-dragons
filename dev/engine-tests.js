@@ -24013,4 +24013,49 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("Known interior filing repair");
+  function interiorFixture(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation=null;worldState.clock={min:205,schedule:[]};
+    memory.map.nodes["The Village"]={parent:null};
+    memory.map.nodes["The Village|the smithy"]={parent:"The Village",hours:{open:6,close:20},aliases:[]};
+    memory.map.nodes["Elsewhere|the tavern"]={parent:"Elsewhere"};
+  }
+  t("interior filing catches the owner's untagged smithy re-entry immediately without moving the party",function(){
+    interiorFixture();var text="You step back through the smithy door, the heat rolling out again to meet you.";
+    observeDriftAxes(text,text);
+    if(!worldState.locationFilingPing||worldState.locationFilingPing.place!=="the smithy"||!worldState.locationFilingPing.interior)return "known interior was skipped";
+    if(worldState.world.sublocation!==null)return "prose changed the canonical location";
+    var note=buildLocationFilingNudge();if(note.indexOf("[SUBLOCATION:the smithy]")<0||note.indexOf("several committed turns")>=0)return "immediate interior reminder missing or misleading";
+    applyMuts("[SUBLOCATION:the smithy]",{deferSave:true});
+    if(locResolve(currentNodeKey())!=="The Village|the smithy")return "normal tag did not reconcile the scene";
+    observeDriftAxes("[SUBLOCATION:the smithy]","");if(worldState.locationFilingPing)return "explicit location did not settle reminder";
+    return true;
+  });
+  t("interior filing rejects quotations speculation scenery remote rooms and departures",function(){
+    interiorFixture();if(typeof detectKnownInteriorArrival!=="function")return "interior detector missing";
+    var no=["When you enter the smithy, the smith greets you.","Before you enter the smithy, she stops you.","You will enter the smithy tomorrow.","If you step into the smithy, the smith might help.","You do not enter the smithy.",'"You step into the smithy," she suggests.',"The smith enters the smithy while you wait outside.","You watch the smith enter the smithy.","You walk toward the smithy.","You step through the smithy door onto the street.","You enter the smithy's courtyard.","You enter the tavern.","You remember how you step into the smithy."];
+    for(var i=0;i<no.length;i++)if(detectKnownInteriorArrival(no[i]))return "false arrival: "+no[i];
+    var yes=["You enter the smithy.","You walk into the smithy.","You are inside the smithy.","You step through the door of the smithy."];
+    for(i=0;i<yes.length;i++)if(!detectKnownInteriorArrival(yes[i]))return "missed arrival: "+yes[i];
+    if(detectKnownInteriorArrival("You enter the smithy. You step out onto the street."))return "later departure ignored";
+    worldState.world.sublocation="the smithy";if(detectKnownInteriorArrival(yes[0]))return "already filed interior re-asked";
+    return true;
+  });
+  t("interior filing recovers an existing save from the latest GM reply and respects actual location tags",function(){
+    interiorFixture();sessionLog=[{role:"user",content:"head in to the smithy"},{role:"assistant",content:"You step back through the smithy door, the heat rolling out again to meet you. [TIME_CHECK:mid-morning] [SCENE_CAST:none]"}];
+    var before=JSON.stringify(worldState.world),notes=buildEngineNotes();
+    if(notes.indexOf("[SUBLOCATION:the smithy]")<0)return "loaded-save repair missing";
+    if(JSON.stringify(worldState.world)!==before)return "loaded save moved without a tag";
+    if(buildLocationFilingNudge())return "one-shot note was not consumed";
+    var snap=snapshotNoteLatches();buildEngineNotes();restoreNoteLatches(snap);
+    if(buildEngineNotes().indexOf("[SUBLOCATION:the smithy]")<0)return "failed request could not retry the filing reminder";
+    delete worldState.locationFilingPing;
+    sessionLog.push({role:"user",content:"Leave"},{role:"assistant",content:"You step through the smithy door. [SUBLOCATION_LEAVE]"});
+    if(buildEngineNotes().indexOf("LOCATION FILING GAP")>=0)return "old arrival or explicit departure re-armed";
+    sessionLog.push({role:"assistant",content:"The rain falls on the square."});if(buildEngineNotes().indexOf("LOCATION FILING GAP")>=0)return "older arrival survived unrelated latest GM reply";
+    sessionLog=[{role:"assistant",content:"You enter the smithy.",rf:1}];if(buildEngineNotes().indexOf("LOCATION FILING GAP")>=0)return "refusal treated as canon";
+    sessionLog=[{role:"user",content:"You enter the smithy."}];if(buildEngineNotes().indexOf("LOCATION FILING GAP")>=0)return "player wish treated as committed narration";
+    return true;
+  });
+
 }

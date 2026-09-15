@@ -3,14 +3,14 @@ const fs=require('fs'),path=require('path'),http=require('http'),assert=require(
 const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');
 const root=path.join(__dirname,'..'),out=process.env.AUDIO_QA_OUT || path.join(root,'Audio','Prepared');
 const engine=require('./load-engine.js');engine.loadEngine();engine.makeTestWorld({kind:'village',clock:{min:240}});
-worldState.world.location='The Village';worldState.world.sublocation='the smithy';
+worldState.world.location='The Village';worldState.world.sublocation=null;
 memory.map.nodes['The Village']={name:'The Village',type:'world'};
 memory.map.nodes['The Village|the smithy']={name:'the smithy',parent:'The Village',hours:{open:8,close:18}};
 const fixture=JSON.parse(JSON.stringify({world:worldState,memory}));
 const types={'.js':'application/javascript','.html':'text/html','.css':'text/css','.mp3':'audio/mpeg','.json':'application/json','.svg':'image/svg+xml'};
 const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname==='/'?'/index.html':new URL(req.url,'http://localhost').pathname));if(!p.startsWith(root+path.sep)){res.writeHead(403);return res.end()};fs.readFile(p,(e,b)=>{res.writeHead(e?404:200,{'Content-Type':types[path.extname(p)]||'application/octet-stream'});res.end(e?'missing':b)})});
 (async()=>{
- await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));const url=process.env.AMBIENT_QA_URL || 'http://127.0.0.1:'+server.address().port;
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),errors=[];
@@ -21,11 +21,17 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
    proto.createBufferSource=function(){const s=create.call(this),start=s.start.bind(s),stop=s.stop.bind(s);s.start=function(...a){if(s.loop && s.buffer && s.buffer.duration>=17)window.__loops.push(s);return start(...a)};s.stop=function(...a){s.__stopped=true;return stop(...a)};const connect=s.connect.bind(s);s.connect=function(node){s.__gain=node;return connect(node)};return s};
   });
   await page.goto(url+'/index.html');await page.waitForFunction(()=>typeof Ambient!=='undefined');
-  await page.evaluate(f=>{worldState=f.world;memory=f.memory;document.getElementById('api-screen').style.display='none';showGame();syncUI();},fixture);
+  await page.evaluate(f=>{worldState=f.world;memory=f.memory;sessionLog=[{role:'user',content:'head in to the smithy'},{role:'assistant',content:'You step back through the smithy door, the heat rolling out again to meet you. [TIME_CHECK:mid-morning] [SCENE_CAST:none]'}];document.getElementById('api-screen').style.display='none';showGame();syncUI();},fixture);
   assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0,'default off');
   await page.evaluate(()=>Sound.setEnabled(false));
   await page.locator('#file-btn').click();await page.locator('#fm-devmode').click();await page.locator('#fm-ambient-cb').check();
   await page.locator('#file-btn').click();
+  assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0,'untagged smithy narration must not start fire');
+  assert.match(await page.locator('#fm-ambient-status').textContent(),/Waiting for an open smithy/);
+  assert.match(await page.evaluate(()=>buildEngineNotes()),/\[SUBLOCATION:the smithy\]/,'loaded-save repair must ask for the missing tag');
+  assert.equal(await page.evaluate(()=>worldState.world.sublocation),null,'reminder must not move the party');
+  // The real parser receives the GM's explicit filing; no paid model request or live save.
+  await page.evaluate(()=>{applyMuts('[SUBLOCATION:the smithy]',{deferSave:true});syncUI()});
   await page.waitForFunction(()=>Ambient.inspect().sources===1);
   const decoded=await page.evaluate(()=>{const s=__loops[0],b=s.buffer,x=b.getChannelData(0);let peak=0;for(let i=0;i<x.length;i++)peak=Math.max(peak,Math.abs(x[i]));return {duration:b.duration,sampleRate:b.sampleRate,channels:b.numberOfChannels,bytes:b.length*4,loopStart:s.loopStart,loopEnd:s.loopEnd,boundaryStep:Math.abs(x[0]-x[Math.round(18*b.sampleRate)-1]),peak}});
   assert(decoded.duration>=18&&decoded.duration<=20);assert.equal(decoded.channels,1);assert(decoded.bytes<=4000000);
@@ -58,7 +64,7 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   await filePage.evaluate(()=>{const el=document.getElementById('api-fm-ambient-cb');el.checked=true;el.dispatchEvent(new Event('change'))});
   assert.equal(await filePage.evaluate(()=>Ambient.inspect().sources),0);
   assert.match(await filePage.locator('#api-fm-ambient-status').textContent(),/hosted game or localhost/);
-  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-audio-receipt.json'),JSON.stringify({decoded,errors,checks:['default off','real enabling gesture','independent UI-sounds preference','real MP3 decode','idempotent UI','car pause/resume','8am open/6pm closed','leave/reenter','three loop boundaries','real TTS duck and restore','legacy plus additive callbacks','showChar release','file origin unavailable']},null,2));
+  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-audio-receipt.json'),JSON.stringify({decoded,errors,checks:['untagged saved smithy stays silent','loaded-save location reminder','explicit GM tag starts fire','default off','real enabling gesture','independent UI-sounds preference','real MP3 decode','idempotent UI','car pause/resume','8am open/6pm closed','leave/reenter','three loop boundaries','real TTS duck and restore','legacy plus additive callbacks','showChar release','file origin unavailable']},null,2));
   console.log(JSON.stringify({decoded,errors,result:'BROWSER GREEN'}));
  }finally{await browser.close();server.close()}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1});

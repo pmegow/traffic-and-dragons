@@ -2076,6 +2076,45 @@ function detectSubLeaveCue(clean){
     for(i=0;i<sibs.length;i++){if(new RegExp("\\b"+_driftEsc(sibs[i])+"\\b","i").test(sent))return sibs[i];}}
   return null;
 }
+/* Known interiors need a filing question on the next turn: the world-location watcher
+   deliberately ignores child nodes. Prose is evidence for a question, never a state mutation. */
+function detectKnownInteriorArrival(clean){
+  if(!worldState||!worldState.world)return null;
+  var s=String(clean||"").replace(/"[^"]*"/g," ").replace(/“[^”]*”/g," ");
+  var sents=s.match(/[^.!?]+[.!?]*/g)||[],nodes=(memory&&memory.map&&memory.map.nodes)||{};
+  var world=locResolve(worldState.world.location),current=locResolve(currentNodeKey()),keys=Object.keys(nodes),hit=null;
+  for(var si=0;si<sents.length;si++){
+    var sent=sents[si];
+    if(_LOC_CUE_VETO.test(sent)||/\b(?:will|shall|tomorrow|when|before|until|once|suppose|remember\w*|recall\w*)\b/i.test(sent))continue;
+    /* A later departure makes an earlier arrival insufficient evidence of the CURRENT room. */
+    if(_LOC_CUE_PARTY.test(sent)&&_SUB_EXIT_RE.test(sent))return null;
+    for(var i=0;i<keys.length;i++){
+      var key=keys[i],node=nodes[key];
+      if(!node||node.mergedInto||!node.parent||locResolve(node.parent)!==world)continue;
+      var leaf=locDisplayLeaf(key),name=_driftEsc(leaf);
+      var arrival=new RegExp("\\b(?:you|we|the party)\\s+(?:enter(?:s|ed)?\\s+|(?:step(?:s|ped)?|walk(?:s|ed)?|pass(?:es|ed)?)\\s+(?:back\\s+)?(?:into\\s+|through\\s+(?:(?:the\\s+)?doors?\\s+of\\s+)?)|(?:are|is|stand(?:s)?)\\s+(?:inside|within)\\s+)"+name+"(?:\\s+doors?)?(?=\\s*(?:[,;:.!?]|$))","i");
+      if(arrival.test(sent))hit={place:leaf,nodeKey:key};
+    }
+  }
+  return hit&&locResolve(hit.nodeKey)!==current?hit:null;
+}
+function armKnownInteriorFiling(raw,clean){
+  if(/\[(?:LOCATION|SUBLOCATION):[^\]]+\]|\[SUBLOCATION_LEAVE\]/i.test(String(raw||"")))return false;
+  var q=detectKnownInteriorArrival(clean);if(!q)return false;
+  worldState.locationFilingPing={place:q.place,nodeKey:q.nodeKey,interior:true,turn:worldState.turn||0};
+  delete worldState.locationFilingWatch;return true;
+}
+/* Reload recovery uses only the most recent committed GM reply. Never replay an older
+   arrival across a newer departure, or treat the player's requested move as an arrival. */
+function prepareInteriorLocationFiling(){
+  if(!worldState||worldState.locationFilingPing||!sessionLog)return;
+  for(var i=sessionLog.length-1;i>=0;i--){
+    var m=sessionLog[i];if(m.role!=="assistant")continue;
+    var clean=cleanTxt(m.content||"");
+    if(!m.bk&&!m.rf&&!detectModelRefusal(clean))armKnownInteriorFiling(m.content,clean);
+    return;
+  }
+}
 function _driftNumber(v){var s=String(v||"").toLowerCase();return /^\d+$/.test(s)?parseInt(s,10):((typeof FUTURE_NUMBER_WORDS!=="undefined"&&FUTURE_NUMBER_WORDS[s])||0);}
 function detectTravelPrice(clean){
   var s=String(clean||"");if(/\b(?:teleport|portal|instant(?:ly)?|magical shortcut)\b/i.test(s))return null;
@@ -2117,7 +2156,7 @@ function observeDriftAxes(raw,clean){
   if(!worldState)return;raw=String(raw||"");clean=String(clean||"");var turn=worldState.turn||0;
   var hasLoc=/\[(?:LOCATION|SUBLOCATION):[^\]]+\]|\[SUBLOCATION_LEAVE\]/i.test(raw),cue;
   if(hasLoc){delete worldState.locationFilingWatch;delete worldState.locationFilingPing;}
-  else{
+  else if(!armKnownInteriorFiling(raw,clean)){
     cue=detectLocationFilingCue(clean);
     if(cue&&((typeof locSame==="function"&&locSame(cue,worldState.world.location))||(worldState.world.sublocation&&String(cue).toLowerCase()===String(worldState.world.sublocation).toLowerCase())))cue=null;
     var lw=worldState.locationFilingWatch;
