@@ -1,3 +1,5 @@
+// Outdoor commons are authored scene bindings; a sublocation is not necessarily indoors.
+var AUDIO_EXTERIORS = { village: ["the square", "the animal handler's yard"] };
 // Delivery assets are versioned independently of the ignored WAV masters in Audio/.
 var AUDIO_SCENES = [{
   id: "smithy", label: "Smithy fire", bind: { kind: "village", common: "the smithy" },
@@ -15,10 +17,10 @@ var AUDIO_SCENES = [{
     "to": 600
   },
   "bed": {
-    "url": "sfx/village-morning-v1.mp3",
+    "url": "sfx/village-morning-v2.mp3",
     "gain": 0.55,
     "loopStart": 0,
-    "loopEnd": 107.714,
+    "loopEnd": 27.067,
     "maxSeconds": 125,
     "channels": 1,
     "maxBytes": 2200000,
@@ -36,10 +38,10 @@ var AUDIO_SCENES = [{
     "to": 1080
   },
   "bed": {
-    "url": "sfx/village-day-v1.mp3",
+    "url": "sfx/village-day-v2.mp3",
     "gain": 0.55,
     "loopStart": 0,
-    "loopEnd": 107.714,
+    "loopEnd": 55.838,
     "maxSeconds": 125,
     "channels": 1,
     "maxBytes": 2200000,
@@ -57,10 +59,10 @@ var AUDIO_SCENES = [{
     "to": 1260
   },
   "bed": {
-    "url": "sfx/village-evening-v1.mp3",
+    "url": "sfx/village-evening-v2.mp3",
     "gain": 0.55,
     "loopStart": 0,
-    "loopEnd": 121.428,
+    "loopEnd": 27.919,
     "maxSeconds": 125,
     "channels": 1,
     "maxBytes": 2200000,
@@ -78,10 +80,10 @@ var AUDIO_SCENES = [{
     "to": 300
   },
   "bed": {
-    "url": "sfx/village-night-v1.mp3",
+    "url": "sfx/village-night-v2.mp3",
     "gain": 0.55,
     "loopStart": 0,
-    "loopEnd": 107.714,
+    "loopEnd": 27.859,
     "maxSeconds": 125,
     "channels": 1,
     "maxBytes": 2200000,

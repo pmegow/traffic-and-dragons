@@ -11,10 +11,15 @@
 
 Change the filename and scene manifest when replacing the delivery file. WAV masters and review choices stay outside git. See [implementation brief](../DOC/PROPOSAL_Village_Blacksmith_Ambience.md).
 
-## Village exterior beds (v1.931)
+## Village exterior beds (v1.933 — CC0)
 
-Approved sources: Medieval Ambiences Morning, Medieval Ambiences Town 2 min, Light wind, and Medieval Ambience Night 2 min. Owner review exported 2026-09-15T06:46:16.059Z; the full review and all 26 approved assets are indexed under ignored Audio/. Music and action sounds remain approved assets for later integration.
+Delivery: village-morning-v2.mp3, village-day-v2.mp3, village-evening-v2.mp3, village-night-v2.mp3. **License: CC0 1.0** — all four are Nox_Sound loops from the free Essentials Series pack (https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound ; README: "All these sounds are under CC0 license."). They replace the v1.931 beds, which were Unity Asset Store cuts the EULA forbids in a public repository (TODO #412).
 
-Delivery: village-morning-v1.mp3, village-day-v1.mp3, village-evening-v1.mp3, village-night-v1.mp3. Each uses the full source recording with a two-second tail/head overlap, mono averaging, DC removal and level matching (-26 dBFS RMS target, -6 dBFS peak ceiling), encoded at 128 kbps. This keeps the long variation rather than repeating a short rooster-containing slice. Rooster calls remain part of the morning recording; no source separation or rooster removal is claimed.
+| Bed | Source loop | Length | Bytes |
+|---|---|---|---|
+| morning | Nature_Essentials/Ambiance_Forest_Birds_Loop_Stereo | 27.068 s | 433920 |
+| day | Sample_A_Sound_Effect/Ambiance_Nature_Meadow_Birds_Flies_Calm_Loop_Stereo | 55.838 s | 894336 |
+| evening | Nature_Essentials/Ambiance_Wind_Forest_Loop_Stereo | 27.919 s | 447744 |
+| night | Nature_Essentials/Ambiance_Night_Loop_Stereo | 27.860 s | 446592 |
 
-Source/derivative hashes, exact lengths and processing are in village-exterior-provenance.json. Loop ends round down to milliseconds to stay within resampled decoder lengths. The prepared loops need an owner audition; source approval is not clean-loop certification. New assets total 7,117,597 bytes. At 48 kHz each decoded bed uses 20.7–23.3 MB; the controller retains at most two during transitions and one load/decode job, with 24 MB per exterior buffer.
+Each is the author's full loop through `dev/prepare-ambience-loop.py`: mono mean, DC removal, two-second raised-cosine tail/head overlap, RMS −26 dBFS with a −6 dBFS peak ceiling (the v1.931 level policy; morning is peak-limited at −28.7 dBFS RMS), ffmpeg libmp3lame 128 kbps mono with the Xing/LAME gapless header. Source and derivative SHA-256, gains and boundary steps are in village-exterior-provenance.json. Loop ends round down to milliseconds. Owner audition pending: `Audio/Prepared/village-beds-audition.html`. The Unity-pack review (26 approved) remains indexed under ignored Audio/ for any later off-git use.
