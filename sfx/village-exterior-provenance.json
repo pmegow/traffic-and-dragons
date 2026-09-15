@@ -22,7 +22,8 @@
     "adjacentStepP99": 0.07641470574028708,
     "loopEndSeconds": 27.067,
     "loopEndPolicy": "Round down to a whole millisecond to stay within sample-rate-dependent decoder length.",
-    "loopListening": "Prepared derivative requires owner listening; the v1.931 approval covered different (Unity) recordings."
+    "loopListening": "Owner listened and approved all five CC0 beds (forge fire + four exterior), 2026-09-15: \"Those are all great. All approved.\"",
+    "ownerApproved": true
   },
   {
     "id": "village-day",
@@ -47,7 +48,8 @@
     "adjacentStepP99": 0.10727385511884333,
     "loopEndSeconds": 55.838,
     "loopEndPolicy": "Round down to a whole millisecond to stay within sample-rate-dependent decoder length.",
-    "loopListening": "Prepared derivative requires owner listening; the v1.931 approval covered different (Unity) recordings."
+    "loopListening": "Owner listened and approved all five CC0 beds (forge fire + four exterior), 2026-09-15: \"Those are all great. All approved.\"",
+    "ownerApproved": true
   },
   {
     "id": "village-evening",
@@ -72,7 +74,8 @@
     "adjacentStepP99": 0.036781030957238975,
     "loopEndSeconds": 27.919,
     "loopEndPolicy": "Round down to a whole millisecond to stay within sample-rate-dependent decoder length.",
-    "loopListening": "Prepared derivative requires owner listening; the v1.931 approval covered different (Unity) recordings."
+    "loopListening": "Owner listened and approved all five CC0 beds (forge fire + four exterior), 2026-09-15: \"Those are all great. All approved.\"",
+    "ownerApproved": true
   },
   {
     "id": "village-night",
@@ -97,6 +100,7 @@
     "adjacentStepP99": 0.24282191079641727,
     "loopEndSeconds": 27.859,
     "loopEndPolicy": "Round down to a whole millisecond to stay within sample-rate-dependent decoder length.",
-    "loopListening": "Prepared derivative requires owner listening; the v1.931 approval covered different (Unity) recordings."
+    "loopListening": "Owner listened and approved all five CC0 beds (forge fire + four exterior), 2026-09-15: \"Those are all great. All approved.\"",
+    "ownerApproved": true
   }
 ]
