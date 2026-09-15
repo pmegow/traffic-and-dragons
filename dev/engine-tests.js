@@ -23870,4 +23870,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
 
+  section("L7 ambient scene policy");
+  t("L7 fire needs enabled village canonical smithy and open hours; prose and residency cannot light it",function(){
+    if(typeof ambientPlan!=="function")return "ambientPlan missing";
+    var s={enabled:true,unlocked:true,visible:true,campaignKind:"village",campaignId:"one",nodeKey:"Village|the smithy",common:"the smithy",open:true,volume:0.5};
+    var p=ambientPlan(s,AUDIO_SCENES);if(!p.scene||p.gain<=0)return "eligible fire missing";
+    var fields={enabled:false,unlocked:false,visible:false,campaignKind:"adventure",common:"the tavern",open:null};
+    for(var k in fields){var q=Object.assign({},s);q[k]=fields[k];if(ambientPlan(q,AUDIO_SCENES).scene)return "ineligible scene: "+k;}
+    var mic=Object.assign({},s,{capturing:true});if(ambientPlan(mic,AUDIO_SCENES).gain!==0)return "mic is not silent";
+    var held=Object.assign({},s,{held:true});if(ambientPlan(held,AUDIO_SCENES).scene)return "pause intent is not silent";
+    var talking=Object.assign({},s,{speaking:true,hidden:true});var tp=ambientPlan(talking,AUDIO_SCENES);if(!tp.scene||!(tp.gain>0&&tp.gain<p.gain))return "hidden narration must retain ducked fire";
+    if(ambientPlan(Object.assign({},s,{hidden:true}),AUDIO_SCENES).scene)return "idle hidden scene must stop";
+    return true;
+  });
+
 }

@@ -22,6 +22,7 @@ global.showToast = function () {};
 global.carNotify = function () {};
 
 var geval = eval;
+geval(fs.readFileSync(path.join(root, "audio-events.js"), "utf8"));
 geval(fs.readFileSync(path.join(root, "stt.js"), "utf8"));
 
 var pass = 0, fails = [];

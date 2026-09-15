@@ -77,6 +77,11 @@ function buildFileMenus(){
         +"<label style='display:flex;align-items:center;gap:8px;flex:1;font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;'><input type='checkbox' id='"+p+"sound-cb' style='accent-color:var(--acc);cursor:pointer;width:13px;height:13px;'/> &#9834; UI sounds</label>"
         +"<button id='"+p+"sound-test' title='Audition every UI sound' style='font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;padding:2px 8px;'>&#9834; Sounds&hellip;</button>"/* was a chime-only Test button — replaced by the audition modal (a one-sound test could not serve judging the set) */
       +"</div>"
+      +"<div style='padding:4px 14px 9px;' class='ambient-settings'>"
+        +"<label style='display:block;font-size:12px;'><input type='checkbox' id='"+p+"ambient-cb' style='accent-color:var(--acc);margin:0 6px 0 0;'/> Village ambience</label>"
+        +"<label style='display:flex;align-items:center;gap:8px;font-size:11px;'>Volume <input type='range' min='0' max='100' id='"+p+"ambient-volume' style='width:100px;accent-color:var(--acc);'/></label>"
+        +"<button id='"+p+"ambient-unlock' style='font:inherit;font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t1);padding:3px 7px;cursor:pointer;'>Enable audio / retry</button>"
+        +"<div id='"+p+"ambient-status' role='status' style='font-size:11px;color:var(--t2);margin-top:4px;white-space:normal;'>Off</div></div>"
       +drawer(p+"narropts",p+"narroptsmenu","&#128214; Narrative options",0,null,narr)
       // #289 (owner ruling 2026-09-01): fm-dev-only rows are the OPERATOR's — applyMenuTier
       // (ui-shell.js) hides them for a signed-in non-admin (serverAccount.isAdmin, derived
@@ -211,7 +216,7 @@ function wireButtons(){
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["adult-cb","inband-cb","dice-cb","stake-cb","font-lg","legacy-cb","autosend","autolisten","sttconfirm","sound-cb"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤); sttconfirm joined at #77 */
+  ["adult-cb","inband-cb","dice-cb","stake-cb","font-lg","legacy-cb","autosend","autolisten","sttconfirm","sound-cb","ambient-cb","ambient-volume","ambient-unlock"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤); sttconfirm joined at #77 */
     eachMenuEl(sfx,function(el){
       var lbl=el.closest("label")||el.parentElement;
       if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});

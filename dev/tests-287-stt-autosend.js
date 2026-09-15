@@ -101,7 +101,7 @@ FakeRec.prototype.start = function () {};
 FakeRec.prototype.stop = function () {};
 FakeRec.prototype.abort = function () {};
 
-var sttSrc = fs.readFileSync(path.join(root, "stt.js"), "utf8");
+var sttSrc = fs.readFileSync(path.join(root, "audio-events.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "stt.js"), "utf8");
 global.window.webkitSpeechRecognition = FakeRec;
 geval(sttSrc);
 var STT_N = STT;                                   // native surface

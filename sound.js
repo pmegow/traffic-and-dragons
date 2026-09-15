@@ -354,6 +354,7 @@ var Sound = (function() {
   }
 
   return {
+    context: _ensureCtx,
     play: play,
     preview: preview,
     playIfQuiet: playIfQuiet,

@@ -121,12 +121,13 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="api.js"></script>
 <script src="campaign_generator.js"></script>
 <script src="game.js"></script>
+<script src="audio-events.js"></script>
 <script src="tts.js"></script>
 <script>
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.45";
+var BP_DESIGNER_VERSION="v0.46";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────

@@ -33,7 +33,10 @@ var ENGINE_MANIFEST = [
   { file: "table-talk.js",         sym: "ttMenuOutline" },
   { file: "campaign_generator.js", sym: "validateSkeletonStructure" },
   { file: "game.js",               sym: "checkLevelUp" },
+  { file: "audio-events.js",       sym: "createAudioEvents" },
   { file: "tts.js",                sym: "TTS" },
-  { file: "sound.js",              sym: "Sound" }
+  { file: "sound.js",              sym: "Sound" },
+  { file: "audio-scenes.js",       sym: "AUDIO_SCENES" },
+  { file: "ambient.js",            sym: "ambientPlan" }
 ];
 if (typeof module !== "undefined" && module.exports) module.exports = ENGINE_MANIFEST;

@@ -144,6 +144,7 @@ function modalShell(id,innerHtml,opts){
 function showGame(){
   document.getElementById("char-screen").style.display="none";
   document.getElementById("game-screen").style.display="flex";
+  if(typeof Ambient!=="undefined")Ambient.sync();
   var ca=document.getElementById("creation-arch");if(ca)ca.remove();
   var cb=document.getElementById("creation-bump");if(cb)cb.remove();
   var cs3=document.getElementById("creation-spells");if(cs3)cs3.remove();
@@ -151,6 +152,7 @@ function showGame(){
 function showChar(){
   document.getElementById("char-screen").style.display="block";
   document.getElementById("game-screen").style.display="none";
+  if(typeof Ambient!=="undefined")Ambient.sync();
   cs=blankWizardState();rvGoldRolled=false;pendingImportChar=null;/* audit #16: single-source blank wizard state (globals.js) */
   // Known issue #2: resetting cs alone left the OLD wizard in the DOM — the previous campaign's
   // Review step kept .active (so New Game landed on it), and stale input/select values leaked

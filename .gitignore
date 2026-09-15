@@ -39,3 +39,6 @@ dev/*.endstate.json
 
 # exploratory lens reviews (owner-only reading, never shipped)
 gygax_lens_results.html
+
+# Local audio library and experiments
+/Audio/

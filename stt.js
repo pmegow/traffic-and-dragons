@@ -14,6 +14,8 @@
 // (or this file may load somewhere carMode doesn't exist at all).
 
 var STT = (function() {
+  var _audioEvents = createAudioEvents();
+  function _capture(value) { _audioEvents.emit("capture", value); }
 
   var LANG_K       = "tnd_stt_lang_v1";
   var AUTO_K       = "tnd_stt_autosend_v1";
@@ -156,6 +158,7 @@ var STT = (function() {
     };
 
     _rec.onend = function() {
+      _capture(false);
       _listening = false;
       _rec = null;
       _syncBtn();
@@ -199,10 +202,12 @@ var STT = (function() {
     };
 
     try {
+      _capture(true);
       _rec.start();
       _listening = true;
       _syncBtn();
     } catch(e) {
+      _capture(false);
       _listening = false;
       _rec = null;
       _syncBtn();
@@ -448,6 +453,7 @@ var STT = (function() {
     _cloudChunks = [];
     _cloudMime   = "";
 
+    _capture(true);
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
       if (_cloudToken.generation !== _cloudGeneration) {
         try {
@@ -516,6 +522,7 @@ var STT = (function() {
       }
       if (typeof showToast === "function") showToast("Microphone permission denied.");
       if (typeof carNotify === "function") carNotify("warn", "Microphone permission denied"); /* final-pass #32 */
+      _capture(false);
       console.warn("[stt] getUserMedia failed:", e);
     });
   }
@@ -584,6 +591,7 @@ var STT = (function() {
       } catch(e) {}
       _cloudStream = null;
     }
+    _capture(false);
   }
 
   // MediaRecorder's onstop — fires once recording actually halts (tap-stop or the 15s cap).
@@ -726,6 +734,8 @@ var STT = (function() {
   // ── Public API ───────────────────────────────────────────────────────────────
 
   return {
+    on: _audioEvents.on,
+    off: _audioEvents.off,
     isSupported:   isSupported,
     isListening:   function() { return _listening; },
     isConfirmPending: isConfirmPending,   // #77 — Car Mode's auto-mic confirm branch reads this

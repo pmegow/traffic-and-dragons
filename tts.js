@@ -1512,6 +1512,7 @@ var TTS = (function() {
                                 // sourced, unlike _lastSpokenText which every speak() caller (incl. the
                                 // settings-modal Test buttons) overwrites. Backs TTS.replayLast().
   var _onDoneCallback  = null;
+  var _audioEvents = createAudioEvents();
   var _audioCtx   = null;   // single persistent context, created on first toggle-on
   var _nextStart  = 0;      // scheduled playback cursor (AudioContext time)
   var _sources    = [];     // scheduled AudioBufferSourceNodes
@@ -3737,11 +3738,13 @@ var TTS = (function() {
   // ── UI helpers ──────────────────────────────────────────────────────────────
 
   function _showBar(show) {
+    _audioEvents.emit("state", { playing: _playing, paused: _paused });
     var bar = document.getElementById("tts-bar");
     if (bar) bar.style.display = show ? "flex" : "none";
   }
 
   function _updatePauseBtn(paused) {
+    _audioEvents.emit("state", { playing: _playing, paused: _paused });
     var btn = document.getElementById("tts-pause-btn");
     if (btn) btn.textContent = paused ? "▶" : "⏸";
   }
@@ -4373,6 +4376,8 @@ var TTS = (function() {
     isPlaying:         function() { return _playing && !_paused; },
     isPaused:          function() { return _paused; },
     getLastText:       function() { return _lastSpokenText; },
+    on: _audioEvents.on,
+    off: _audioEvents.off,
     setOnDone:         function(fn) { _onDoneCallback = fn; },
     toggle:            toggle,
     loadSettings:      loadSettings,
