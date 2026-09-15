@@ -298,6 +298,38 @@ function fileSubLocation(name,turn){
   memory.map.nodes[key].visits++;memory.map.nodes[key].lastVisit=turn;// stamp recency so buildGeoBlock keeps a re-visited sub-location listed (audit E53)
   guestbookNoteArrival(key,turn);/* #173: same post-handler commit as the world arrival */
 }
+/* #408 ①: THE ROOM GRAPH — a place's layout as rooms and how they connect, no coordinates (owner ruling 2026-09-14).
+   node.layout = {rooms:[{name,size,features,to:[room|"outside"…]}], by:"gm"|"player", turn}. GM filings are WRITE-ONCE
+   (the player's design form is the authority and the only editor after that; ③'s voice gate is a later slice). Every
+   refusal is LOUD — returns {ok:false,reason} and the caller logs it; nothing half-files. Pure over the node. */
+var LAYOUT_SIZES=["tiny","small","medium","large"],LAYOUT_MAX_ROOMS=12;
+function parseLayout(body){
+  var parts=String(body==null?"":body).split(";"),rooms=[],i,names={};
+  for(i=0;i<parts.length;i++){
+    var p=parts[i].trim();if(!p)continue;
+    var f=p.split("|").map(function(s){return s.trim();});
+    if(f.length<4)return {ok:false,reason:"room '"+p.slice(0,40)+"' needs name|size|features|connections"};
+    var nm=f[0],sz=f[1].toLowerCase(),feat=f[2].slice(0,120),to=f.slice(3).join("|").split(",").map(function(s){return s.trim();}).filter(Boolean);
+    if(!nm)return {ok:false,reason:"a room has no name"};
+    if(LAYOUT_SIZES.indexOf(sz)<0)return {ok:false,reason:"'"+nm+"' size '"+f[1]+"' is not one of "+LAYOUT_SIZES.join("/")};
+    if(!to.length)return {ok:false,reason:"'"+nm+"' connects to nothing — name a room or 'outside'"};
+    if(names[nm.toLowerCase()])return {ok:false,reason:"room '"+nm+"' is listed twice"};
+    names[nm.toLowerCase()]=1;rooms.push({name:nm,size:sz,features:feat,to:to});
+  }
+  if(!rooms.length)return {ok:false,reason:"no rooms"};
+  if(rooms.length>LAYOUT_MAX_ROOMS)return {ok:false,reason:"more than "+LAYOUT_MAX_ROOMS+" rooms"};
+  for(i=0;i<rooms.length;i++){var j;for(j=0;j<rooms[i].to.length;j++){var t=rooms[i].to[j].toLowerCase();if(t!=="outside"&&!names[t])return {ok:false,reason:"'"+rooms[i].name+"' opens onto '"+rooms[i].to[j]+"', which is not a listed room (or 'outside')"};}}
+  return {ok:true,rooms:rooms};
+}
+function fileLayout(body,turn,by){
+  if(!memory.map||!worldState||!worldState.world)return {ok:false,reason:"no map"};
+  var key=currentNodeKey();if(typeof locResolve==="function")key=locResolve(key);
+  var node=memory.map.nodes[key];if(!node)return {ok:false,reason:"no such place on the map",key:key};
+  if(node.layout&&(by||"gm")==="gm")return {ok:false,reason:"a layout is already on record here (write-once — the design form edits it)",key:key};
+  var p=parseLayout(body);if(!p.ok)return {ok:false,reason:p.reason,key:key};
+  node.layout={rooms:p.rooms,by:by||"gm",turn:turn};
+  return {ok:true,key:key,rooms:p.rooms.length};
+}
 function fileLocationDesc(desc){
   if(!memory.map||!worldState||!worldState.world)return;
   var key=currentNodeKey();/* UA9 */
@@ -417,7 +449,7 @@ function fileLocationState(note,turn){
    missing node was a silent drop before, in every kind. In a kind with stashQuantities (the village) rows carry qty +
    provenance (placed turn, by whom, the clock) and two same-named items stay two; the adventure keeps its toggle rows
    byte-identical (no qty field ever appears on an adventure save). */
-function fileLocationItem(name,action,turn,place){
+function fileLocationItem(name,action,turn,place,room){
   if(!memory.map||!worldState||!worldState.world)return {ok:false,reason:"no map"};
   var key=currentNodeKey();/* UA9 */
   if(place)key=worldState.world.location+"|"+String(place).trim();
@@ -429,13 +461,24 @@ function fileLocationItem(name,action,turn,place){
   var qtyMode=!!(typeof kindDef==="function"&&kindDef().stashQuantities);
   var hero=(worldState.character&&worldState.character.name)||null,now=(typeof clockNow==="function")?clockNow():0;
   if(action==="placed"){
+    /* #408 ④: a placement may PIN the row to a room ("main room, on the mantle") — an ADDITIVE field on the same row.
+       The row's name is never touched by a placement (owner rule 2026-09-14: "Cleaver" stays "Cleaver"). Where the node
+       has a layout on record, the part before the first comma must name a listed room, else the room is refused LOUDLY
+       and the placement still lands roomless; without a record the text is kept as given. */
+    var roomTxt=(room==null)?null:String(room).trim().slice(0,80),roomWhy=null;
+    if(roomTxt&&node.layout&&node.layout.rooms){var rn=roomTxt.split(",")[0].trim().toLowerCase();if(!node.layout.rooms.some(function(r){return String(r.name).toLowerCase()===rn;})){roomWhy="'"+rn+"' is not a room on the record ("+node.layout.rooms.map(function(r){return r.name;}).join(", ")+")";roomTxt=null;}}
+    if(roomWhy&&typeof console!=="undefined")console.warn("[stash] room refused for '"+name+"' at "+key+": "+roomWhy+" — the placement lands without a room (#408)");
+    var res;
     if(qtyMode){
-      if(idx>=0){var row=items[idx];if(row.taken||row.qty===0){row.taken=false;row.qty=1;}else row.qty=(row.qty||1)+1;row.placed=turn;row.by=hero;row.min=now;return {ok:true,key:key,qty:row.qty};}
-      items.push({name:name,placed:turn,taken:false,qty:1,by:hero,min:now});return {ok:true,key:key,qty:1};
+      if(idx>=0){var row=items[idx];if(row.taken||row.qty===0){row.taken=false;row.qty=1;}else row.qty=(row.qty||1)+1;row.placed=turn;row.by=hero;row.min=now;if(roomTxt)row.room=roomTxt;res={ok:true,key:key,qty:row.qty};}
+      else{var nr={name:name,placed:turn,taken:false,qty:1,by:hero,min:now};if(roomTxt)nr.room=roomTxt;items.push(nr);res={ok:true,key:key,qty:1};}
+    }else{
+      if(idx>=0){items[idx].taken=false;if(roomTxt)items[idx].room=roomTxt;} // returned — toggle back
+      else{var nr2={name:name,placed:turn,taken:false};if(roomTxt)nr2.room=roomTxt;items.push(nr2);}
+      res={ok:true,key:key};
     }
-    if(idx>=0)items[idx].taken=false; // returned — toggle back
-    else items.push({name:name,placed:turn,taken:false});
-    return {ok:true,key:key};
+    if(roomWhy)res.roomRefused=roomWhy;
+    return res;
   }
   if(action==="taken"){
     if(idx<0)return {ok:false,reason:"not on record here",key:key};

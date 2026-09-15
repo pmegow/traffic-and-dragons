@@ -2262,7 +2262,13 @@ function villageTradeContext(text){
 function villageStash(key){
   if(typeof memory==="undefined"||!memory||!memory.map||!key)return [];
   var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk];if(!node||!node.items)return [];
-  return node.items.filter(function(it){return !it.taken&&(it.qty===undefined||it.qty>0);}).map(function(it){return {name:it.name,qty:it.qty||1,placed:it.placed,by:it.by||null};});
+  return node.items.filter(function(it){return !it.taken&&(it.qty===undefined||it.qty>0);}).map(function(it){return {name:it.name,qty:it.qty||1,placed:it.placed,by:it.by||null,room:it.room||null};});/* #408 ④: room rides the row */
+}
+/* #408 ②: arm the layout ask for a place anywhere (Table Talk's "no floor plan is recorded" offers it as one click; the
+   village house fires it unasked). buildLayoutNote consumes the arm on its next run. Pure over worldState. */
+function armLayoutAsk(key){
+  if(typeof worldState==="undefined"||!worldState||!key)return false;
+  worldState.layoutAskArmed=(typeof locResolve==="function")?locResolve(key):key;return true;
 }
 /* #6 E8: the inventory panel's house group — the same shape groupInventory's groups carry, over villageStash. null outside
    a stash kind or when the hero's house holds nothing. */

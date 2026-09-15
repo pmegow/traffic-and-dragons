@@ -7744,7 +7744,10 @@ function runEngineTests(R){
     // would read the relabel ceremony aloud in the prose and pollute the transcript.
     // v1.697 (#211): +NO_CHANGE in BOTH registries (+10 chars payload form; bare form joins
     // _CT_BARE) — the audit-ack channel must strip everywhere or the ack IS the leak it cures.
-    if(__djb2(_CT_TAGS.source)!==1519028161||_CT_TAGS.source.length!==1774)return "_CT_TAGS diverged from the frozen literal";/* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    // #408 (v1.926): +LAYOUT strip entry — source grew exactly 7 chars = "LAYOUT|". The room graph is engine-only in the
+    // doc (the doc golden is byte-unchanged) but MUST strip: a leaked [LAYOUT:] would read the floor plan aloud in TTS
+    // and put it in the transcript's clean text. Golden diffed by eye in the same commit.
+    if(__djb2(_CT_TAGS.source)!==-1119158309||_CT_TAGS.source.length!==1781)return "_CT_TAGS diverged from the frozen literal";/* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -23855,8 +23858,72 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#408 home design — the room graph (six owner rulings 2026-09-14; slice 1 = tag + ask + block + placement)");
+  var LAYOUT_TAG="[LAYOUT:main room|medium|hearth, long table|kitchen, outside; kitchen|small|stove, pantry shelves|main room, cellar; cellar|small|barrels|kitchen]";
+  function villageHouse(){villageCD();var hk=villageHouseKey("Silas");memory.map.nodes[hk]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};worldState.world.sublocation=locDisplayLeaf(hk);delete worldState.layoutAsk;delete worldState.layoutAskArmed;return hk;}
+  t("#408 ① the room graph: [LAYOUT:room|size|features|to; …] files rooms on the CURRENT node; a connection must name a listed room or 'outside'; a bad size, a dangling connection or an empty record refuses LOUDLY and files nothing; a second GM filing is refused (write-once — the player's form is the authority); LAYOUT strips from prose and is ENGINE-ONLY (the standing doc is byte-unchanged)",function(){
+    var hk=villageHouse(),docBefore=buildStateTagsDoc();
+    applyMuts(LAYOUT_TAG);
+    var n=memory.map.nodes[hk];if(!n.layout||!n.layout.rooms||n.layout.rooms.length!==3)return "three rooms: "+JSON.stringify(n.layout);
+    var r0=n.layout.rooms[0];if(r0.name!=="main room"||r0.size!=="medium"||r0.features!=="hearth, long table"||r0.to.join(",")!=="kitchen,outside")return "room 0: "+JSON.stringify(r0);
+    if(n.layout.rooms[2].to.join(",")!=="kitchen"||n.layout.by!=="gm"||n.layout.turn!==worldState.turn)return "room 2 / provenance: "+JSON.stringify(n.layout);
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{
+      applyMuts("[LAYOUT:attic|small|dust|outside]");if(n.layout.rooms.length!==3||n.layout.rooms[0].name!=="main room")return "write-once: a VALID second GM filing must not replace the record: "+JSON.stringify(n.layout.rooms.map(function(r){return r.name;}));
+      if(!warns.some(function(m){return /write-once/.test(m);}))return "the write-once refusal must be loud";
+      delete n.layout;applyMuts("[LAYOUT:hall|huge|nothing|outside]");if(n.layout)return "a bad size must refuse";
+      applyMuts("[LAYOUT:hall|small|nothing|garden]");if(n.layout)return "a dangling connection must refuse";
+      applyMuts("[LAYOUT:hall|small|nothing|]");if(n.layout)return "a room with no connections must refuse";
+      applyMuts("[LAYOUT:]");if(n.layout)return "an empty record must refuse";
+    }finally{console.warn=_w;}
+    if(warns.filter(function(m){return /LAYOUT/.test(m);}).length<5)return "every refusal must be loud: "+JSON.stringify(warns);
+    if(cleanTxt("You enter. "+LAYOUT_TAG+" Dust motes.").indexOf("LAYOUT")>=0)return "LAYOUT must strip from prose";
+    if(buildStateTagsDoc()!==docBefore||/\[LAYOUT:/.test(docBefore))return "LAYOUT is engine-only: the standing doc must not carry it and must be unchanged";
+    if(TAG_DOC_ENGINE_ONLY.indexOf("LAYOUT")<0||!TAG_DOC_LINES.some(function(l){return l.indexOf("[LAYOUT:")===0;}))return "the doc line exists and is demoted to the engine-only tier";
+    return true;
+  });
+  t("#408 ④⑤ served every turn while inside, and a placement pins a stash row to a room WITHOUT touching its name: the geo block carries a LAYOUT block (a line per room, a line per placed item) only where a record exists; [LOCATION_ITEM:Cleaver|placed|<house>|main room, on the mantle] sets row.room and row.name stays 'Cleaver'; a room not on the record is refused loudly and the placement still lands roomless; without a record the room text is kept as given; the adventure block is unchanged",function(){
+    var hk=villageHouse();applyMuts(LAYOUT_TAG);
+    var g=buildGeoBlock();if(!/LAYOUT \(/.test(g)||!/main room \(medium\): hearth, long table — opens onto kitchen, outside/.test(g)||!/kitchen \(small\): stove, pantry shelves — opens onto main room, cellar/.test(g)||!/cellar \(small\)/.test(g))return "the block must list every room with its size, features and connections: "+g;
+    if(!/do not invent|not listed/i.test(g.slice(g.indexOf("LAYOUT ("))))return "the block must forbid inventing rooms or doors";
+    applyMuts("[LOCATION_ITEM:Cleaver|placed|"+locDisplayLeaf(hk)+"|main room, on the mantle]");
+    var row=memory.map.nodes[hk].items[0];if(!row)return "the placement must land";
+    if(row.name!=="Cleaver")return "IDENTITY: the name must stay 'Cleaver', got '"+row.name+"' (owner rule 2026-09-14)";
+    if(row.room!=="main room, on the mantle")return "the room is an additive field: "+JSON.stringify(row);
+    var st=villageStash(hk);if(st.length!==1||st[0].name!=="Cleaver"||st[0].room!=="main room, on the mantle")return "villageStash carries the room: "+JSON.stringify(st);
+    applyMuts("[LOCATION_ITEM:Cleaver|placed|"+locDisplayLeaf(hk)+"|kitchen, by the stove]");/* a second placement of the SAME name hits the existing row */
+    row=memory.map.nodes[hk].items[0];if(memory.map.nodes[hk].items.length!==1||row.qty!==2)return "two stay two — one row, qty 2: "+JSON.stringify(memory.map.nodes[hk].items);
+    if(row.name!=="Cleaver")return "IDENTITY on re-placement: the name must stay 'Cleaver', got '"+row.name+"'";
+    if(row.room!=="kitchen, by the stove")return "a re-placement moves the room: "+JSON.stringify(row);
+    g=buildGeoBlock();if(!/PLACED: Cleaver ×2 — kitchen, by the stove/.test(g))return "the block lists placed items with qty and room: "+g;
+    if(!/STASH here[^\n]*Cleaver ×2 — kitchen, by the stove/.test(g))return "the STASH row carries the room after the name, never instead of it: "+g;
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[LOCATION_ITEM:Lantern|placed|"+locDisplayLeaf(hk)+"|attic, on a hook]");}finally{console.warn=_w;}
+    var lan=memory.map.nodes[hk].items.filter(function(r){return r.name==="Lantern";})[0];if(!lan)return "a placement with a bad room still lands";if(lan.room)return "a room not on the record must not be recorded: "+JSON.stringify(lan);
+    if(!warns.some(function(m){return /attic/.test(m);}))return "the bad room must be refused loudly";
+    if(memory.map.nodes[hk].items[0].name!=="Cleaver"||memory.map.nodes[hk].items[0].room!=="kitchen, by the stove")return "the earlier row must be untouched by another item's refused room";
+    applyMuts("[LOCATION_ITEM:Mug|placed|the tavern|behind the bar]");var mug=memory.map.nodes["The Village|the tavern"].items[0];if(!mug||mug.name!=="Mug"||mug.room!=="behind the bar")return "without a record the room text is kept as given: "+JSON.stringify(mug);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};if(/LAYOUT/.test(buildGeoBlock()))return "the adventure geo block changed";
+    return true;
+  });
+  t("#408 ② the layout ask fires ONCE at a village house with no record (the #207 ③ hours-ask pattern): never at a commons, never in the adventure unasked, never twice, never after a record exists, combat-silent; armLayoutAsk(key) makes it fire anywhere once and is consumed; the note teaches the LAYOUT syntax and the room operand; registry wired",function(){
+    var hk=villageHouse();
+    var n1=buildLayoutNote();if(!/\[LAYOUT:/.test(n1)||!/LOCATION_ITEM:[^\]]*placed/.test(n1)||!/outside/.test(n1))return "the note must teach the tag, the room operand and 'outside': "+n1;
+    if(worldState.layoutAsk==null||worldState.layoutAsk.node!==hk)return "the latch must name the node: "+JSON.stringify(worldState.layoutAsk);
+    if(buildLayoutNote()!=="")return "never twice at the same house";
+    delete worldState.layoutAsk;applyMuts(LAYOUT_TAG);if(buildLayoutNote()!=="")return "never after a record exists";
+    worldState.world.sublocation="the tavern";delete worldState.layoutAsk;if(buildLayoutNote()!=="")return "never at a commons unasked";
+    var tk=locResolve(currentNodeKey());armLayoutAsk(tk);if(worldState.layoutAskArmed!==tk)return "armLayoutAsk sets the arm";
+    var n2=buildLayoutNote();if(!/\[LAYOUT:/.test(n2))return "an armed commons fires";if(worldState.layoutAskArmed)return "the arm is consumed";if(buildLayoutNote()!=="")return "armed fires once";
+    delete worldState.layoutAsk;armLayoutAsk(tk);worldState.combat={foes:[{name:"Rat",hp:2}]};if(buildLayoutNote()!=="")return "combat-silent";delete worldState.combat;delete worldState.layoutAskArmed;
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="The Rusty Flagon";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};memory.map.nodes["Sandpoint|The Rusty Flagon"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null};delete worldState.layoutAsk;delete worldState.layoutAskArmed;
+    if(buildLayoutNote()!=="")return "never in the adventure unasked";
+    armLayoutAsk(locResolve(currentNodeKey()));if(!/\[LAYOUT:/.test(buildLayoutNote()))return "armed fires in the adventure (elsewhere on request)";
+    if(NOTE_BUILDERS.indexOf(buildLayoutNote)<0||!NOTE_SHAPES.buildLayoutNote||NOTE_SHAPES.buildLayoutNote.combat!=="silent"||NOTE_LATCH_FIELDS.indexOf("layoutAsk")<0||NOTE_LATCH_FIELDS.indexOf("layoutAskArmed")<0)return "registry not wired";
+    return true;
+  });
   section("E13b a NEW campaign never inherits an OCCUPIED campaign id (owner field report 2026-09-13: a village at turn 3 synced as the Runelords campaign at turn 2477)");
-  t("E13b campaignIdOccupied says yes for an id the campaign list knows or a slot holds state for, no for a fresh id; startGame mints a fresh id whenever the active one is occupied (the wizard's normal path minted none and adopted whatever was active), and keeps a fresh one it was handed",function(){
+  t("E13b campaignIdOccupied says yes for an id the campaign list knows or a slot holds state for, no for a fresh id; startGame mints a fresh id wheneverthe active one is occupied (the wizard's normal path minted none and adopted whatever was active), and keeps a fresh one it was handed",function(){
     makeWorld();var meta=getCampMeta();setCampMeta([{id:"camp_old_1",campName:"Rise of the Runelords",charName:"Ammut",level:17,savedAt:1}]);
     try{
       if(!campaignIdOccupied("camp_old_1"))return "a listed campaign id is occupied";
