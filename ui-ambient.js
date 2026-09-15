@@ -54,7 +54,7 @@ var Ambient = (function() {
     if (controller) controller.update(s);
     if (!enabled) status = "Off";
     else if (location.protocol === "file:") { report(new Error("Open the hosted game or localhost to use ambience")); return; }
-    else if (!unlocked) status = "Tap Enable audio to start";
+    else if (!unlocked) status = "Tap anywhere to start ambience";
     else if (held || s.paused) status = "Paused";
     else if (!p.scene) status = s.common && s.open === null ? "Smithy hours are not recorded" : "No ambience for this location";
     else if (capturing) status = "Quiet for microphone";
@@ -116,8 +116,9 @@ var Ambient = (function() {
       stop: function(voice) { voice.source.stop(); voice.source.disconnect(); voice.gain.disconnect(); voice.envelope.disconnect(); voice.source.buffer = null; }
     };
   }
-  function unlock() {
-    if (!enabled || gesturePending) return;
+  function unlock(fromGesture) {
+    // A blocked startup resume can stay pending until another resume runs inside a gesture.
+    if (!enabled || (gesturePending && !fromGesture)) return;
     if (location.protocol === "file:") { sync(); return; }
     ctx = Sound.context();
     if (!ctx) { report(new Error("This browser has no Web Audio support")); return; }
@@ -142,13 +143,13 @@ var Ambient = (function() {
     });
     document.addEventListener("visibilitychange", sync);
     window.addEventListener("pagehide", function() { if (controller) controller.dispose(); controller = null; unlocked = false; });
-    window.addEventListener("pageshow", sync);
-    document.addEventListener("pointerdown", function() { if (enabled && !unlocked) unlock(); }, true);
-    document.addEventListener("keydown", function() { if (enabled && !unlocked) unlock(); }, true);
-    eachMenuEl("ambient-cb", function(el) { el.addEventListener("change", function() { enabled = el.checked; lastError = ""; save(); sync(); if (enabled) unlock(); }); });
+    window.addEventListener("pageshow", function() { sync(); if (enabled && !unlocked) unlock(); });
+    document.addEventListener("pointerdown", function() { if (enabled && !unlocked) unlock(true); }, true);
+    document.addEventListener("keydown", function() { if (enabled && !unlocked) unlock(true); }, true);
+    eachMenuEl("ambient-cb", function(el) { el.addEventListener("change", function() { enabled = el.checked; lastError = ""; save(); sync(); if (enabled) unlock(true); }); });
     eachMenuEl("ambient-volume", function(el) { el.addEventListener("input", function() { volume = Number(el.value) / 100; save(); sync(); }); });
-    eachMenuEl("ambient-unlock", function(el) { el.addEventListener("click", function() { held = false; unlock(); }); });
-    sync();
+    eachMenuEl("ambient-unlock", function(el) { el.addEventListener("click", function() { held = false; unlock(true); }); });
+    sync(); if (enabled) unlock();
   }
   return { init: init, sync: sync, snapshot: snapshot, inspect: function() { return controller ? controller.inspect() : { sources: 0, buffers: 0, pending: 0 }; } };
 })();

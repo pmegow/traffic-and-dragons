@@ -24106,4 +24106,26 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("L7 ambience reload");
+  t("L7 reload starts saved enabled audio, restores after pagehide, and retries blocked autoplay on interaction",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-ambient.js","utf8");
+    function setup(enabled,allowed){
+      var events={},calls=0,created=0,waiting=[],status={style:{}},ctx={state:"suspended",resume:function(){calls++;if(allowed)ctx.state="running";return {};}};
+      var target={addEventListener:function(name,fn){events[name]=fn;},getElementById:function(){return {style:{display:"flex"}};},hidden:false};
+      var promise={resolve:function(){return {then:function(ok){if(ctx.state==="running")ok();else waiting.push(ok);}};}};
+      var create=function(){created++;return {update:function(){},retry:function(){},dispose:function(){},inspect:function(){return {pending:0};}};};
+      var app=new Function("window","document","localStorage","eachMenuEl","Sound","Promise","TTS","STT","createAmbientController","location",src+";return Ambient;")(
+        target,target,{getItem:function(k){return k==="tnd_ambient_enabled_v1"?(enabled?"1":"0"):"0.32";}},function(key,fn){if(key==="ambient-status")fn(status);},
+        {context:function(){return ctx;}},promise,{on:function(){},isPlaying:function(){return false;},isPaused:function(){return false;}},{on:function(){}},create,{protocol:"http:"});
+      return {app:app,events:events,status:status,calls:function(){return calls;},created:function(){return created;},allow:function(){allowed=true;},resolve:function(){waiting.splice(0).forEach(function(fn){fn();});}};
+    }
+    makeWorld();var f=setup(true,true);f.app.init();if(f.calls()!==1||!f.app.snapshot().unlocked||f.app.snapshot().volume!==0.32)return "enabled reload never attempted playback or lost volume";
+    f.events.pagehide();f.events.pageshow();if(!f.app.snapshot().unlocked||f.created()!==2)return "page restore did not rebuild the disposed controller";
+    var off=setup(false,true);off.app.init();off.events.pageshow();if(off.calls()||off.created())return "disabled reload attempted playback";
+    var blocked=setup(true,false);blocked.app.init();if(blocked.calls()!==1||blocked.app.snapshot().unlocked)return "blocked reload did not attempt then wait";
+    blocked.allow();blocked.events.pointerdown();blocked.resolve();if(blocked.calls()!==2||!blocked.app.snapshot().unlocked||blocked.created()!==1)return "pending autoplay blocked the interaction retry or duplicated the controller";
+    return true;
+  });
+
 }
