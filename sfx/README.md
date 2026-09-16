@@ -13,13 +13,19 @@ Change the filename and scene manifest when replacing the delivery file. WAV mas
 
 ## Village exterior beds (v1.933 — CC0)
 
-Delivery: village-morning-v2.mp3, village-day-v2.mp3, village-evening-v2.mp3, village-night-v2.mp3. **License: CC0 1.0** — all four are Nox_Sound loops from the free Essentials Series pack (https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound ; README: "All these sounds are under CC0 license."). They replace the v1.931 beds, which were Unity Asset Store cuts the EULA forbids in a public repository (TODO #412).
+Delivery: village-morning-v2.mp3, village-day-v2.mp3, village-evening-v2.mp3, village-night-v3.mp3. **License: CC0 1.0** — all four are Nox_Sound loops from the free Essentials Series pack (https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound ; README: "All these sounds are under CC0 license."). They replace the v1.931 beds, which were Unity Asset Store cuts the EULA forbids in a public repository (TODO #412).
 
 | Bed | Source loop | Length | Bytes |
 |---|---|---|---|
 | morning | Nature_Essentials/Ambiance_Forest_Birds_Loop_Stereo | 27.068 s | 433920 |
 | day | Sample_A_Sound_Effect/Ambiance_Nature_Meadow_Birds_Flies_Calm_Loop_Stereo | 55.838 s | 894336 |
 | evening | Nature_Essentials/Ambiance_Wind_Forest_Loop_Stereo | 27.919 s | 447744 |
-| night | Nature_Essentials/Ambiance_Night_Loop_Stereo | 27.860 s | 446592 |
+| night | Freesound 637083 Ambiance_Nature_Night_Cricket_Calm_Loop (v3, 2026-09-15 — the loop the owner rated PERFECT; v2 Night_Loop retained under Audio/Prepared) | 57.791 s | 925440 |
 
 Each is the author's full loop through `dev/prepare-ambience-loop.py`: mono mean, DC removal, two-second raised-cosine tail/head overlap, RMS −26 dBFS with a −6 dBFS peak ceiling (the v1.931 level policy; morning is peak-limited at −28.7 dBFS RMS), ffmpeg libmp3lame 128 kbps mono with the Xing/LAME gapless header. Source and derivative SHA-256, gains and boundary steps are in village-exterior-provenance.json. Loop ends round down to milliseconds. Owner listened and approved all four on 2026-09-15 (`Audio/Prepared/village-beds-audition.html`). The Unity-pack review (26 approved) remains indexed under ignored Audio/ for any later off-git use.
+
+## Tavern crowd and the rain layer (v1.939 — CC0)
+
+`tavern-v1.mp3`: 35.486 s, mono, 44.1 kHz, 128 kbps (568841 bytes). **CC0 1.0** — ivolipa, "Tavern_Ambience_Inside_Laughter" (Freesound 326313, verified on the sound page; owner-approved by listening in the CC0 review). Real tavern at dinner, Istria: chatter and laughter, no music, no intelligible speech. Bound as scene `tavern` to the village's canonical `the tavern` while its filed hours say open, the smithy pattern. Interior level policy (RMS −32 dBFS like the forge).
+
+`rain-calm-v1.mp3`: 28.000 s, mono, 48 kHz (448896 bytes). **CC0 1.0** — Nox_Sound Essentials `Ambiance_Rain_Calm_Loop_Stereo` (owner-approved). Prepared as a weather LAYER at the exterior level policy (RMS −26 dBFS). **Not bound to any scene yet**: layers wait on the WEATHER normalization contract (Proposal_general_audio §7, Fable feedback 19.2). Provenance for both: `interior-and-layer-provenance.json`.

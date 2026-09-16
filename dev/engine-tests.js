@@ -24021,7 +24021,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(typeof ambientPlan!=="function")return "ambientPlan missing";
     var s={enabled:true,unlocked:true,visible:true,campaignKind:"village",campaignId:"one",nodeKey:"Village|the smithy",common:"the smithy",open:true,volume:0.5};
     var p=ambientPlan(s,AUDIO_SCENES);if(!p.scene||p.gain<=0)return "eligible fire missing";
-    var fields={enabled:false,unlocked:false,visible:false,campaignKind:"adventure",common:"the tavern",open:null};
+    var fields={enabled:false,unlocked:false,visible:false,campaignKind:"adventure",common:"the healer's",open:null};/* v1.939: the tavern has its own scene now; the healer's has none */
     for(var k in fields){var q=Object.assign({},s);q[k]=fields[k];if(ambientPlan(q,AUDIO_SCENES).scene)return "ineligible scene: "+k;}
     var mic=Object.assign({},s,{capturing:true});if(ambientPlan(mic,AUDIO_SCENES).gain!==0)return "mic is not silent";
     var held=Object.assign({},s,{held:true});if(ambientPlan(held,AUDIO_SCENES).scene)return "pause intent is not silent";
@@ -24103,6 +24103,20 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();var nodes=memory.map.nodes;nodes["The Village"]={parent:null};memory.map.identity={entries:{"The Village|the square":{mergedInto:"The Village|Chestnut Square"}}};nodes["The Village|Chestnut Square"]={parent:"The Village"};
     if(typeof ambientExteriorNode!=="function")return "named exterior resolver missing";
     if(!ambientExteriorNode("village","The Village","The Village|Chestnut Square",nodes,locResolve,AUDIO_EXTERIORS))return "canonical renamed square did not bind";
+    return true;
+  });
+
+  section("L7 tavern binding");
+  t("L7 the tavern crowd binds to the village tavern by its canonical common name while its filed hours say open, is silent when closed or unrecorded, and never displaces the smithy fire",function(){
+    var base={enabled:true,unlocked:true,visible:true,volume:0.5,campaignKind:"village",campaignId:"one",nodeKey:"The Village|the tavern",common:"the tavern",open:true};
+    var p=ambientPlan(base,AUDIO_SCENES);if(!p.scene||p.scene.id!=="tavern")return "open tavern must play the tavern bed: "+JSON.stringify(p.scene&&p.scene.id);
+    if(p.scene.bed.url!=="sfx/tavern-v1.mp3")return "tavern bed url: "+p.scene.bed.url;
+    if(ambientPlan(Object.assign({},base,{open:false}),AUDIO_SCENES).scene)return "closed tavern must be silent";
+    if(ambientPlan(Object.assign({},base,{open:null}),AUDIO_SCENES).scene)return "unrecorded hours must be silent";
+    var sm=ambientPlan(Object.assign({},base,{nodeKey:"The Village|the smithy",common:"the smithy"}),AUDIO_SCENES);if(!sm.scene||sm.scene.id!=="smithy")return "smithy binding regressed";
+    if(ambientPlan(Object.assign({},base,{campaignKind:"adventure"}),AUDIO_SCENES).scene)return "campaign kind still gates the pilot bindings";
+    var night=AUDIO_SCENES.filter(function(x){return x.id==="village-night";})[0];if(!night||night.bed.url!=="sfx/village-night-v3.mp3")return "night bed must be the cricket cut (v3)";
+    if(!(night.bed.loopEnd>57&&night.bed.loopEnd<58))return "night loopEnd must be the measured v3 length: "+night.bed.loopEnd;
     return true;
   });
 

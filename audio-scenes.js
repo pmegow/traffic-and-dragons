@@ -80,14 +80,20 @@ var AUDIO_SCENES = [{
     "to": 300
   },
   "bed": {
-    "url": "sfx/village-night-v2.mp3",
+    "url": "sfx/village-night-v3.mp3",
     "gain": 0.55,
     "loopStart": 0,
-    "loopEnd": 27.859,
+    "loopEnd": 57.79,
     "maxSeconds": 125,
     "channels": 1,
     "maxBytes": 2200000,
     "maxDecodedBytes": 24000000
   },
   "layers": []
+},
+{
+  id: "tavern", label: "Tavern crowd", bind: { kind: "village", common: "the tavern" },
+  bed: { url: "sfx/tavern-v1.mp3", gain: 0.55, loopStart: 0, loopEnd: 35.485,
+    maxSeconds: 40, channels: 1, maxBytes: 700000, maxDecodedBytes: 8000000 },
+  layers: []
 }];

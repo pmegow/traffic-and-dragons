@@ -56,7 +56,7 @@ var Ambient = (function() {
     else if (location.protocol === "file:") { report(new Error("Open the hosted game or localhost to use ambience")); return; }
     else if (!unlocked) status = "Tap anywhere to start ambience";
     else if (held || s.paused) status = "Paused";
-    else if (!p.scene) status = s.common && s.open === null ? "Smithy hours are not recorded" : "No ambience for this location";
+    else if (!p.scene) status = s.common && s.open === null ? "Hours for " + s.common + " are not recorded" : "No ambience for this location";
     else if (capturing) status = "Quiet for microphone";
     else if (!lastError) status = (p.scene.label || p.scene.id) + (s.speaking ? " · quiet under narration" : "") + (controller && controller.inspect().pending ? " · loading" : "");
     paint();
