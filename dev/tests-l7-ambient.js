@@ -2,7 +2,7 @@ const assert = require('assert/strict'), fs = require('fs'), vm = require('vm'),
 const root = path.join(__dirname, '..');
 const source = f => fs.readFileSync(path.join(root, f), 'utf8');
 const sandbox = {console, Promise, AbortController}; vm.createContext(sandbox);
-['audio-events.js','audio-scenes.js','ambient.js'].forEach(f=>vm.runInContext(source(f), sandbox));
+['audio-events.js','audio-catalog.js','audio-scenes.js','ambient.js'].forEach(f=>vm.runInContext(source(f), sandbox));
 const base = {enabled:true,unlocked:true,visible:true,volume:0.5,campaignKind:'village',campaignId:'one',nodeKey:'Village|the smithy',common:'the smithy',open:true};
 const flush = async()=>{for(let i=0;i<8;i++)await Promise.resolve()};
 let passed = 0;

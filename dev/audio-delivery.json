@@ -1,0 +1,287 @@
+{
+  "schema": 1,
+  "cohort": "starter-1",
+  "assets": [
+    {
+      "id": "smithy",
+      "label": "Smithy fire",
+      "cohort": "starter-1",
+      "role": "feature",
+      "bed": {
+        "url": "sfx/smithy-fire-v2.mp3",
+        "gain": 0.55,
+        "loopStart": 0,
+        "loopEnd": 9.005,
+        "maxSeconds": 20,
+        "channels": 1,
+        "maxBytes": 500000,
+        "maxDecodedBytes": 4000000
+      },
+      "contains": [
+        "fire"
+      ],
+      "enclosures": [
+        "covered",
+        "sealed"
+      ],
+      "settings": [
+        "interior"
+      ],
+      "biomes": [
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "loop": true,
+        "mix": true
+      },
+      "source": {
+        "sha256": "36d5ccc8ffa065a642d46d2b8d15cda7556184f30662fe2bf3bf25c5236611c7",
+        "url": "https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound",
+        "author": "Nox_Sound",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono; DC removal; 1 s tail/head crossfade; RMS -32 dBFS; libmp3lame 128 kbps",
+      "seedOnly": true
+    },
+    {
+      "id": "village-morning",
+      "label": "Morning birds and breeze",
+      "cohort": "starter-1",
+      "role": "environment",
+      "bed": {
+        "url": "sfx/village-morning-v2.mp3",
+        "gain": 0.55,
+        "loopStart": 0,
+        "loopEnd": 27.067,
+        "maxSeconds": 125,
+        "channels": 1,
+        "maxBytes": 2200000,
+        "maxDecodedBytes": 24000000
+      },
+      "contains": [
+        "birds",
+        "wind"
+      ],
+      "enclosures": [
+        "open"
+      ],
+      "settings": [
+        "settlement",
+        "wilderness"
+      ],
+      "biomes": [
+        "temperate"
+      ],
+      "from": 300,
+      "to": 600,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "loop": true,
+        "mix": true
+      },
+      "source": {
+        "sha256": "98b1d9ea7542b496d97a182fcee828bc5d0df39b857ef3b7323c592912e1d372",
+        "url": "https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound",
+        "author": "Nox_Sound (Essentials Series)",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; 2.00-second raised-cosine overlap of tail/head; RMS target -26 dBFS with peak ceiling -6 dBFS; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "seedOnly": false
+    },
+    {
+      "id": "village-day",
+      "label": "Daytime birds and insects",
+      "cohort": "starter-1",
+      "role": "environment",
+      "bed": {
+        "url": "sfx/village-day-v2.mp3",
+        "gain": 0.55,
+        "loopStart": 0,
+        "loopEnd": 55.838,
+        "maxSeconds": 125,
+        "channels": 1,
+        "maxBytes": 2200000,
+        "maxDecodedBytes": 24000000
+      },
+      "contains": [
+        "birds",
+        "insects",
+        "wind"
+      ],
+      "enclosures": [
+        "open"
+      ],
+      "settings": [
+        "settlement",
+        "wilderness"
+      ],
+      "biomes": [
+        "temperate"
+      ],
+      "from": 600,
+      "to": 1080,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "loop": true,
+        "mix": true
+      },
+      "source": {
+        "sha256": "fdf564645bb6646d3f6c7bf071301aef78540f2c7260aec7d7c907aeecc32b8c",
+        "url": "https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound",
+        "author": "Nox_Sound (Essentials Series)",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; 2.00-second raised-cosine overlap of tail/head; RMS target -26 dBFS with peak ceiling -6 dBFS; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "seedOnly": false
+    },
+    {
+      "id": "village-evening",
+      "label": "Evening breeze",
+      "cohort": "starter-1",
+      "role": "environment",
+      "bed": {
+        "url": "sfx/village-evening-v2.mp3",
+        "gain": 0.55,
+        "loopStart": 0,
+        "loopEnd": 27.919,
+        "maxSeconds": 125,
+        "channels": 1,
+        "maxBytes": 2200000,
+        "maxDecodedBytes": 24000000
+      },
+      "contains": [
+        "wind"
+      ],
+      "enclosures": [
+        "open"
+      ],
+      "settings": [
+        "settlement",
+        "wilderness"
+      ],
+      "biomes": [
+        "temperate"
+      ],
+      "from": 1080,
+      "to": 1260,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "loop": true,
+        "mix": true
+      },
+      "source": {
+        "sha256": "e2ec7e5d2e74db52bc21a5b1830c2b983ec8270e976d6b0ef393912f6d383133",
+        "url": "https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound",
+        "author": "Nox_Sound (Essentials Series)",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; 2.00-second raised-cosine overlap of tail/head; RMS target -26 dBFS with peak ceiling -6 dBFS; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "seedOnly": false
+    },
+    {
+      "id": "village-night",
+      "label": "Night crickets",
+      "cohort": "starter-1",
+      "role": "environment",
+      "bed": {
+        "url": "sfx/village-night-v3.mp3",
+        "gain": 0.55,
+        "loopStart": 0,
+        "loopEnd": 57.79,
+        "maxSeconds": 125,
+        "channels": 1,
+        "maxBytes": 2200000,
+        "maxDecodedBytes": 24000000
+      },
+      "contains": [
+        "insects",
+        "wind"
+      ],
+      "enclosures": [
+        "open"
+      ],
+      "settings": [
+        "settlement",
+        "wilderness"
+      ],
+      "biomes": [
+        "temperate"
+      ],
+      "from": 1260,
+      "to": 300,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "loop": false,
+        "mix": false
+      },
+      "source": {
+        "sha256": "f4b4542a7036744acdeaf6e2c46e4f972f260fcd1624d1c1efa3cedcc9f71752",
+        "url": "https://freesound.org/s/637083/",
+        "author": "Nox_Sound (Freesound 637083)",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; 2.00-second raised-cosine overlap of tail/head; RMS target -26 dBFS with peak ceiling -6 dBFS; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "seedOnly": false
+    },
+    {
+      "id": "tavern",
+      "label": "Tavern crowd",
+      "cohort": "starter-1",
+      "role": "environment",
+      "bed": {
+        "url": "sfx/tavern-v1.mp3",
+        "gain": 0.55,
+        "loopStart": 0,
+        "loopEnd": 35.485,
+        "maxSeconds": 40,
+        "channels": 1,
+        "maxBytes": 700000,
+        "maxDecodedBytes": 8000000
+      },
+      "contains": [
+        "crowd",
+        "voices"
+      ],
+      "enclosures": [
+        "covered",
+        "sealed"
+      ],
+      "settings": [
+        "interior"
+      ],
+      "biomes": [
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "loop": false,
+        "mix": false
+      },
+      "source": {
+        "sha256": "fd4ba1511f8dec5420dd285175c23da7b39e1b2135c8a8c33b044f37550746a4",
+        "url": "https://freesound.org/s/326313/",
+        "author": "ivolipa (Freesound 326313)",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; 2.00-second raised-cosine overlap of tail/head; RMS target -32 dBFS with peak ceiling -6 dBFS; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "seedOnly": true
+    }
+  ]
+}

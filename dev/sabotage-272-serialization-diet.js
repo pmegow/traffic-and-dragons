@@ -76,8 +76,8 @@ rc |= sabotage.prove({
   cases: [
     { label: "commitGmTurn stops deferring applyMuts' save (#272 D1)",
       mustFail: "cloud-arming saveAll calls",
-      find: "  applyMuts(resp,{deferSave:true});",
-      replace: "  applyMuts(resp);" },
+      find: "  _audioMuts=applyMuts(resp,{deferSave:true});",
+      replace: "  _audioMuts=applyMuts(resp);" },
 
     { label: "a stamp lands AFTER the commit persist — the suggestion-completion POST re-compresses the whole transcript (#272 D1)",
       mustFail: "MISSED the memo",
@@ -86,13 +86,13 @@ rc |= sabotage.prove({
 
     { label: "the commit persist disappears — the ONE-POST contract's ordering pin catches it (#272 D1/#280b)",
       mustFail: "no longer persists local-only before display",
-      find: "  saveLocal();\n  var narEl=addMsg(\"narrator\"",
+      find: "  var _audioSaved=saveLocal();\n  var narEl=addMsg(\"narrator\"",
       replace: "  var narEl=addMsg(\"narrator\"" },
 
     { label: "the narration commit reverts to saveAll — the ordering pin catches the two-POST regression (#280b)",
       mustFail: "no longer persists local-only before display",
-      find: "  saveLocal();\n  var narEl=addMsg(\"narrator\"",
-      replace: "  saveAll();\n  var narEl=addMsg(\"narrator\"" },
+      find: "  var _audioSaved=saveLocal();\n  var narEl=addMsg(\"narrator\"",
+      replace: "  var _audioSaved=saveAll();\n  var narEl=addMsg(\"narrator\"" },
 
     { label: "generateActions loses its completion sync — the server strands on the E26 null, the second device renders no buttons (#280b)",
       mustFail: "generateActions lost its completion sync",
@@ -112,7 +112,7 @@ rc |= sabotage.prove({
   cases: [
     { label: "saveLocal grows the cloud arm back — every 'local' save POSTs (#272 D1)",
       mustFail: "armed the cloud debounce",
-      find: "function saveLocal(){saveCore();saveMem();updateCampMeta();}",
+      find: "function saveLocal(){var core=saveCore(),mem=saveMem();updateCampMeta();var ok=core!==false&&mem!==false;if(typeof audioScenePublish===\"function\")audioScenePublish(ok?\"save\":\"save-failed\",!ok);return ok;}",
       replace: "function saveLocal(){saveCore();saveMem();updateCampMeta();if(typeof storageAdapter!==\"undefined\")storageAdapter.syncToServer();}" },
 
     { label: "the unknown-form rescue reverts to {__lz}-only — a future form passes through poisoned (#272 D3)",

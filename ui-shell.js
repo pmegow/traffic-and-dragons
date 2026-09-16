@@ -144,6 +144,7 @@ function modalShell(id,innerHtml,opts){
 function showGame(){
   document.getElementById("char-screen").style.display="none";
   document.getElementById("game-screen").style.display="flex";
+  if(typeof audioScenePublish==="function")audioScenePublish("load");
   if(typeof Ambient!=="undefined")Ambient.sync();
   var ca=document.getElementById("creation-arch");if(ca)ca.remove();
   var cb=document.getElementById("creation-bump");if(cb)cb.remove();

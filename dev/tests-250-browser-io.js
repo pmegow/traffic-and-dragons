@@ -80,6 +80,7 @@ function loadSw(opts) {
     }
   };
   vm.createContext(ctx);
+  ctx.importScripts=function(){Array.prototype.forEach.call(arguments,function(name){vm.runInContext(fs.readFileSync(path.join(ROOT,name.split("?")[0]),"utf8"),ctx,{filename:name});});};
   vm.runInContext(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8"), ctx, { filename: "sw.js" });
   return { handler: handlers.fetch, warnings: warnings };
 }

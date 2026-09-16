@@ -7764,7 +7764,7 @@ function runEngineTests(R){
     // #408 (v1.926): +LAYOUT strip entry — source grew exactly 7 chars = "LAYOUT|". The room graph is engine-only in the
     // doc (the doc golden is byte-unchanged) but MUST strip: a leaked [LAYOUT:] would read the floor plan aloud in TTS
     // and put it in the transcript's clean text. Golden diffed by eye in the same commit.
-    if(__djb2(_CT_TAGS.source)!==-1119158309||_CT_TAGS.source.length!==1781)return "_CT_TAGS diverged from the frozen literal";/* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==-1534360820||_CT_TAGS.source.length!==1792)return "_CT_TAGS diverged from the frozen literal";/* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -24238,6 +24238,94 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(body.indexOf('getElementById("action-input")')<0)return "the tap must prefill #action-input";
     if(!/waysSplit\(w\.ways,WAYS_VISIBLE\)/.test(body))return "the renderer must cap through waysSplit(…, WAYS_VISIBLE) — no second cap";
     if(html.indexOf('id="hud-ways-more"')<0)return "index.html must mount the #hud-ways-more menu";
+    return true;
+  });
+
+  section("L7 general audio");
+  t("L7 general audio rejects unknown fields and incompatible mixed recordings",function(){
+    if(typeof audioValidateProfile!=="function")return "audio profile validator missing";
+    var p={enclosure:"open",setting:"wilderness",biome:"temperate",quiet:"normal",allows:["birds","insects","wind"],forbid:[]};
+    if(!audioValidateProfile(p).ok)return "valid profile refused";
+    if(audioValidateProfile(Object.assign({},p,{url:"evil.mp3"})).ok)return "arbitrary field admitted";
+    var s={profile:p,minuteOfDay:700,campaignId:"a",nodeKey:"forest"};
+    if(!audioSelect(s,AUDIO_CATALOG).scene)return "general forest did not select an approved bed";
+    s.profile=Object.assign({},p,{allows:["birds","wind"],forbid:["insects"]});
+    if(audioSelect(s,AUDIO_CATALOG).scene)return "inseparable flies ignored";
+    s.profile=Object.assign({},p,{quiet:"silent"});if(audioSelect(s,AUDIO_CATALOG).scene)return "explicit silence ignored";
+    s.profile=Object.assign({},p,{enclosure:"sealed"});if(audioSelect(s,AUDIO_CATALOG).scene)return "outdoors inherited by an interior";
+    s.profile=Object.assign({},p,{biome:"frozen"});if(audioSelect(s,AUDIO_CATALOG).scene)return "temperate birds put in frozen landscape";
+    return true;
+  });
+  t("L7 general audio seed and general selector share assets without rerolling adjacent nodes",function(){
+    if(typeof audioSelect!=="function")return "audio selector missing";
+    var p={enclosure:"open",setting:"settlement",biome:"temperate",quiet:"normal",allows:["birds","insects","wind"],forbid:[],cohort:"starter-1",variant:"fixed"};
+    var a=audioSelect({profile:p,minuteOfDay:700,campaignId:"a",nodeKey:"one"},AUDIO_CATALOG);
+    var b=audioSelect({profile:p,minuteOfDay:700,campaignId:"a",nodeKey:"two"},AUDIO_CATALOG);
+    if(!a.scene||a.key!==b.key)return "same recording restarted between adjacent places";
+    var cat=JSON.parse(JSON.stringify(AUDIO_CATALOG));var extra=JSON.parse(JSON.stringify(a.scene));extra.id="future";extra.cohort="later";cat.assets.unshift(extra);
+    for(var i=0;i<32;i++){p.variant="fixed"+i;if(audioSelect({profile:p,minuteOfDay:700,campaignId:"a",nodeKey:"one"},cat).key!==a.key)return "new cohort rerolled saved choice";}
+    return true;
+  });
+  t("L7 general audio refuses destination metadata after an unaccepted move",function(){
+    if(typeof audioFileCandidates!=="function")return "audio filing missing";
+    makeWorld();worldState.world.location="Village";worldState.world.sublocation=null;
+    memory.map.nodes.Village={parent:null};memory.map.nodes["Village|garden"]={parent:"Village"};
+    var body="garden|enclosure=open;setting=settlement;biome=temperate;quiet=normal;allows=birds,insects,wind;forbid=none";
+    var r=audioFileCandidates([body]);
+    if(r.ok||memory.map.nodes.Village.soundscape||memory.map.nodes["Village|garden"].soundscape)return "unaccepted destination was filed";
+    worldState.world.sublocation="garden";r=audioFileCandidates([body]);
+    if(!r.ok||!memory.map.nodes["Village|garden"].soundscape)return "accepted destination missing";
+    return true;
+  });
+
+  section("L7 general audio commit");
+  t("L7 audio is staged until final commit; refused narration and intermediate refresh never classify",function(){
+    makeWorld();memory.map.nodes.Ashfen={parent:null};
+    var tag="[SOUNDSCAPE:Ashfen|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,insects,wind;forbid=none]";
+    audioScenePublish("load");var previous=audioPublishedScene;
+    var r=applyMuts(tag,{deferSave:true});
+    if(!r.audioCandidates||memory.map.nodes.Ashfen.soundscape)return "tag filed before acceptance";
+    if(audioPublishedScene!==previous)return "intermediate scene was published";
+    audioCommitDepth++;try{audioScenePublish("save");if(audioPublishedScene!==previous)return "nested save published an unsettled scene";}finally{audioCommitDepth--;}
+
+    var oldSpeak=speakNarration,oldActions=generateActions,oldSheets=processPendingCompanionSheets;
+    speakNarration=function(){};generateActions=function(){};processPendingCompanionSheets=function(){};
+    try {
+      commitGmTurn("The trees shelter the clearing. "+tag,{userMsg:"look",playerTxt:"look"});
+      if(!memory.map.nodes.Ashfen.soundscape||!audioPublishedScene.profile)return "accepted profile never reached playback";
+      var revision=memory.map.nodes.Ashfen.soundscape.revision;
+      commitGmTurn("I cannot continue generating content for this scene. "+tag,{userMsg:"look",playerTxt:"look"});
+      if(memory.map.nodes.Ashfen.soundscape.revision!==revision)return "refusal classified the scene";
+      if(audioCommitDepth!==0)return "commit hold leaked";
+    } finally {speakNarration=oldSpeak;generateActions=oldActions;processPendingCompanionSheets=oldSheets;}
+    return true;
+  });
+  t("L7 audio rejects stale request scope after a campaign replacement or reload",function(){
+    makeWorld();memory.map.nodes.Ashfen={parent:null};
+    var body="Ashfen|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,insects,wind;forbid=none";
+    var scope=audioRequestScope();worldState=JSON.parse(JSON.stringify(worldState));
+    if(audioFileCandidates([body],scope).ok||memory.map.nodes.Ashfen.soundscape)return "stale campaign request classified same-named place";
+    scope=audioRequestScope();audioScenePublish("load");
+    if(audioFileCandidates([body],scope).ok)return "reload failed to invalidate request";
+    scope=audioRequestScope();if(!audioFileCandidates([body],scope).ok)return "current request was refused";
+    return true;
+  });
+  t("L7 classification asks once per visit and yields without burning a dropped note",function(){
+    makeWorld();memory.map.nodes.Ashfen={parent:null,visits:1};
+    var snap=snapshotNoteLatches();if(buildSoundscapeNote().indexOf("[SOUNDSCAPE:")<0)return "missing request";
+    if(buildSoundscapeNote())return "repeated request";
+    restoreNoteLatches(snap);if(!buildSoundscapeNote())return "failed call burned request";
+    memory.map.nodes.Ashfen.visits++;if(!buildSoundscapeNote())return "new visit was never eligible";
+    var before=buildStateTagsDoc();if(before.indexOf("[SOUNDSCAPE:")>=0)return "standing prompt was enlarged";
+    return true;
+  });
+  t("L7 material change and ambiguous location merge withdraw audio without guessing",function(){
+    makeWorld();memory.map.nodes.Ashfen={parent:null};
+    audioFileCandidates(["Ashfen|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,insects,wind;forbid=none"]);
+    var node=memory.map.nodes.Ashfen;if(!audioNodeProfile(node))return "profile missing";
+    node.stateNotes=[{t:worldState.turn,n:"The courtyard roof collapses."}];if(audioNodeProfile(node))return "old physical classification survived material change";
+    var other={soundscape:{quiet:"silent"}};locFoldNodeRecords(node,other,"Ashfen");
+    if(audioNodeProfile(node))return "conflicting merge retained a sound";
     return true;
   });
 

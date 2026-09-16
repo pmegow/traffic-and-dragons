@@ -2156,3 +2156,28 @@ async function summarize(){
     }
   }
 }
+
+// Only commitGmTurn files staged audio descriptors, after accepted location and consequences settle.
+function audioFileCandidates(candidates,scope){
+  if(!candidates||!candidates.length)return {ok:true};
+  var why=null,v=candidates.length===1?audioParseProfile(candidates[0]):{ok:false,reason:"multiple soundscape classifications"};
+  var key=locResolve(currentNodeKey()),nodes=memory.map&&memory.map.nodes,node=nodes&&nodes[key];
+  if(scope&&!audioRequestCurrent(scope))why="request belongs to an earlier campaign or playback generation";
+  else if(!v.ok)why=v.reason;
+  else if(!node)why="no current map node";
+  else {
+    var target=locResolve(v.target),child=locResolve(worldState.world.location+"|"+v.target);
+    if(target!==key&&child!==key)why="classification target is not the accepted location";
+  }
+  if(!why){
+    var p=v.profile,old=node.soundscape;
+    p.schema=1;p.source="gm";p.cohort=old&&old.cohort||AUDIO_CATALOG.cohort;p.variant=old&&old.variant||audioHash(String(worldState.campId)+"|"+key);p.revision=(old&&old.revision||0)+1;p.stamp=audioNodeStamp(node);
+    var size=JSON.stringify(p).length*2;
+    Object.keys(nodes).forEach(function(k){if(k!==key&&nodes[k].soundscape)size+=JSON.stringify(nodes[k].soundscape).length*2;});
+    if(size>262144)why="campaign audio metadata capacity reached";
+    else {node.soundscape=p;return {ok:true,key:key};}
+  }
+  console.warn("[audio] soundscape refused: "+why);
+  if(typeof showToast==="function")showToast("Ambience classification ignored: "+why,5000);
+  return {ok:false,reason:why};
+}

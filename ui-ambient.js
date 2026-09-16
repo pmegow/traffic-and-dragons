@@ -3,7 +3,7 @@ var Ambient = (function() {
   var enabled = false, volume = 0.45, unlocked = false, held = false, capturing = false;
   var AMBIENT_DUCK_ATTACK_SECONDS = 0.08, AMBIENT_DUCK_RELEASE_SECONDS = 1.2; /* setTargetAtTime time constants: ~0.3 s down, ~4 s back up */
   var ctx = null, controller = null, initialized = false, lastError = "", status = "Off";
-  var offs = [], gesturePending = false;
+  var offs = [], gesturePending = false, lastCacheError = "";
   function report(e) {
     var reason = (e && e.message) || String(e);
     status = "Unavailable: " + reason; paint();
@@ -18,28 +18,11 @@ var Ambient = (function() {
     catch (e) { report(new Error("Settings could not be saved: " + e.message)); }
   }
   function snapshot() {
-    var nodeKey = typeof currentNodeKey === "function" ? locResolve(currentNodeKey()) : null;
-    var node = nodeKey && typeof memory !== "undefined" && memory && memory.map && memory.map.nodes[nodeKey];
-    var kind = typeof campaignKind === "function" ? campaignKind() : "";
-    var common = null, w = typeof worldState !== "undefined" && worldState && worldState.world;
-    if (kind === "village" && w && node) {
-      AUDIO_SCENES.forEach(function(scene) {
-        if (!scene.bind.exterior && scene.bind.kind === kind && locResolve(w.location + "|" + scene.bind.common) === nodeKey) common = scene.bind.common;
-      });
-    }
-    var hours = node && node.hours, open = null;
-    if (hours && typeof hours.open === "number" && typeof hours.close === "number" &&
-        hours.open >= 0 && hours.open <= 24 && hours.close >= 0 && hours.close <= 24) {
-      var hr = clockMinuteOfDay() / 60;
-      open = hours.open <= hours.close ? hr >= hours.open && hr < hours.close : hr >= hours.open || hr < hours.close;
-    }
-    var screen = document.getElementById("game-screen");
-    return { enabled: enabled, volume: volume, unlocked: unlocked, held: held, capturing: capturing,
-      visible: !!screen && screen.style.display === "flex", hidden: document.hidden,
-      campaignKind: kind, campaignId: typeof getActiveCampId === "function" ? getActiveCampId() : "",
-      nodeKey: nodeKey, common: common, open: open,
-      exterior: !!(w && ambientExteriorNode(kind, w.location, nodeKey, memory && memory.map && memory.map.nodes, locResolve, AUDIO_EXTERIORS)), minuteOfDay: clockMinuteOfDay(),
-      speaking: typeof TTS !== "undefined" && TTS.isPlaying(), paused: typeof TTS !== "undefined" && TTS.isPaused() };
+    var scene=audioPublishedScene||{campaignId:"",nodeKey:null};
+    var screen=document.getElementById("game-screen");
+    return Object.assign({},scene,{enabled:enabled,volume:volume,unlocked:unlocked,held:held,capturing:capturing,
+      visible:!!screen&&screen.style.display==="flex",hidden:document.hidden,
+      speaking:typeof TTS!=="undefined"&&TTS.isPlaying(),paused:typeof TTS!=="undefined"&&TTS.isPaused()});
   }
   function paint() {
     if (typeof eachMenuEl === "function") {
@@ -63,31 +46,13 @@ var Ambient = (function() {
     paint();
   }
   function driver() {
+    var loader=createAudioLoader(ctx,AUDIO_CATALOG);
     return {
+      release:loader.release,
+      inspect:loader.inspect,
       abort: function() { return new AbortController(); },
       error: report,
-      load: function(scene, signal) {
-        if (!scene || signal.aborted) return Promise.reject(new Error("Scene cancelled"));
-        var abort = new AbortController(), timer = null;
-        function cancel() { abort.abort(); }
-        signal.addEventListener("abort", cancel);
-        timer = setTimeout(cancel, 15000);
-        return fetch(scene.bed.url, { signal: abort.signal }).then(function(r) {
-          if (!r.ok) throw new Error("Ambience download failed (HTTP " + r.status + ")");
-          if (Number(r.headers.get("Content-Length")) > scene.bed.maxBytes) throw new Error("Ambience download exceeds its size limit");
-          return r.arrayBuffer();
-        }).then(function(bytes) {
-          if (bytes.byteLength > scene.bed.maxBytes) throw new Error("Ambience download exceeds its size limit");
-          if (signal.aborted) throw new Error("Scene cancelled");
-          return new Promise(function(resolve, reject) { ctx.decodeAudioData(bytes, resolve, reject); });
-        }).then(function(buffer) {
-          clearTimeout(timer); signal.removeEventListener("abort", cancel);
-          return ambientValidateBuffer(buffer, scene.bed);
-        }, function(e) {
-          clearTimeout(timer); signal.removeEventListener("abort", cancel);
-          throw new Error(e.name === "AbortError" ? "Ambience download cancelled or timed out; use Enable audio to retry" : e.message || "Ambience decoding failed");
-        });
-      },
+      load: loader.load,
       start: function(buffer, scene, value) {
         var source = ctx.createBufferSource(), gain = ctx.createGain(), envelope = ctx.createGain();
         try {
@@ -115,7 +80,7 @@ var Ambient = (function() {
       },
       later: function(fn, ms) { return setTimeout(fn, ms); },
       cancel: function(timer) { clearTimeout(timer); },
-      stop: function(voice) { voice.source.stop(); voice.source.disconnect(); voice.gain.disconnect(); voice.envelope.disconnect(); voice.source.buffer = null; }
+      stop: function(voice) { voice.source.stop(); voice.source.disconnect(); voice.gain.disconnect(); voice.envelope.disconnect(); loader.release(voice.source.buffer); voice.source.buffer = null; }
     };
   }
   function unlock(fromGesture) {
@@ -143,6 +108,10 @@ var Ambient = (function() {
       if (!e.detail || (e.detail.kind !== "pause" && e.detail.kind !== "resume")) return;
       held = e.detail.kind === "pause"; sync();
     });
+    document.addEventListener("tnd:scene-committed", sync);
+    if(typeof navigator!=="undefined"&&navigator.serviceWorker)navigator.serviceWorker.addEventListener("message",function(e){
+      if(e.data&&e.data.type==="tnd:audio-cache-error"&&lastCacheError!==e.data.reason){lastCacheError=e.data.reason;console.warn("[audio cache] "+lastCacheError);if(typeof showToast==="function")showToast("Audio cache unavailable: "+lastCacheError,6000);}
+    });
     document.addEventListener("visibilitychange", sync);
     window.addEventListener("pagehide", function() { if (controller) controller.dispose(); controller = null; unlocked = false; });
     window.addEventListener("pageshow", function() { sync(); if (enabled && !unlocked) unlock(); });
@@ -151,6 +120,7 @@ var Ambient = (function() {
     eachMenuEl("ambient-cb", function(el) { el.addEventListener("change", function() { enabled = el.checked; lastError = ""; save(); sync(); if (enabled) unlock(true); }); });
     eachMenuEl("ambient-volume", function(el) { el.addEventListener("input", function() { volume = Number(el.value) / 100; save(); sync(); }); });
     eachMenuEl("ambient-unlock", function(el) { el.addEventListener("click", function() { held = false; unlock(true); }); });
+    if(!audioPublishedScene)audioScenePublish("load");
     sync(); if (enabled) unlock();
   }
   return { init: init, sync: sync, snapshot: snapshot, inspect: function() { return controller ? controller.inspect() : { sources: 0, buffers: 0, pending: 0 }; } };

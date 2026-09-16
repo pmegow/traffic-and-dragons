@@ -6,7 +6,7 @@ var AMBIENT_FADE_SECONDS = 3;
 var AMBIENT_DUCK = 0.5;
 function ambientGain(snapshot, scene) {
   var s = snapshot || {};
-  return s.capturing ? 0 : scene.bed.gain * Math.max(0, Math.min(1, Number(s.volume) || 0)) * (s.speaking ? AMBIENT_DUCK : 1);
+  return s.capturing ? 0 : scene.bed.gain * Math.max(0, Math.min(1, Number(s.volume) || 0)) * (s.speaking ? AMBIENT_DUCK : 1) * (s.profile && s.profile.quiet === "hushed" ? 0.5 : 1);
 }
 function ambientExteriorNode(kind, worldKey, nodeKey, nodes, resolve, registry) {
   var commons = registry[kind];
@@ -31,10 +31,15 @@ function ambientSceneMatches(s, scene) {
 function ambientPlan(snapshot, registry) {
   var s = snapshot || {}, silent = { scene: null, key: "", gain: 0, hardStop: false }, i, scene;
   if (!s.enabled || !s.unlocked || !s.visible || s.held || s.paused || (s.hidden && !s.speaking)) { silent.hardStop = true; return silent; }
+  if (s.classified || s.profile) {
+    var chosen=audioSelect(s,AUDIO_CATALOG);
+    if(!chosen.scene)return silent;
+    return {scene:chosen.scene,key:chosen.key,gain:ambientGain(s,chosen.scene),hardStop:false};
+  }
   for (i = 0; i < registry.length; i++) {
     scene = registry[i];
     if (ambientSceneMatches(s, scene)) {
-      return { scene: scene, key: String(s.campaignId) + "|" + s.nodeKey + "|" + scene.id, gain: ambientGain(s, scene), hardStop: false };
+      return { scene: scene, key: String(s.campaignId) + "|" + (scene.role || "environment") + "|" + scene.id, gain: ambientGain(s, scene), hardStop: false };
     }
   }
   return silent;
@@ -42,7 +47,7 @@ function ambientPlan(snapshot, registry) {
 
 function createAmbientController(driver, registry) {
   var desired = { scene: null, key: "", gain: 0 }, snapshot = {}, source = null, outgoing = null;
-  var key = "", pending = null, epoch = 0, failedKey = "", disposed = false, campaignId;
+  var key = "", pending = null, epoch = 0, failedKey = "", disposed = false, campaignId, generation;
   function cancelRetirement(record) { if (record && record.timer) { driver.cancel(record.timer); record.timer = null; } }
   function stop(record) { if (record) { cancelRetirement(record); driver.stop(record.voice); } }
   function stopAll() { stop(source); stop(outgoing); source = null; outgoing = null; }
@@ -80,8 +85,8 @@ function createAmbientController(driver, registry) {
           var voice = driver.start(decoded, job.scene, ambientGain(snapshot, job.scene));
           source = { voice: voice, scene: job.scene, key: job.key, timer: null };
           driver.fade(voice, 1, AMBIENT_FADE_SECONDS);
-        } catch (e) { failedKey = key; stop(source); source = null; driver.error(e); }
-      }
+        } catch (e) { failedKey = key; stop(source); source = null; if(driver.release)driver.release(decoded); driver.error(e); }
+      } else if(driver.release)driver.release(decoded);
       apply();
     }, function(e) {
       pending = null;
@@ -92,14 +97,14 @@ function createAmbientController(driver, registry) {
   return {
     update: function(s) {
       snapshot = s || {}; desired = ambientPlan(snapshot, registry);
-      if (desired.hardStop || (campaignId !== undefined && campaignId !== snapshot.campaignId)) {
+      if (desired.hardStop || (campaignId !== undefined && (campaignId !== snapshot.campaignId || generation !== snapshot.generation))) {
         invalidate(); stopAll(); key = ""; failedKey = "";
       }
-      campaignId = snapshot.campaignId; apply();
+      campaignId = snapshot.campaignId; generation = snapshot.generation; apply();
     },
     retry: function() { failedKey = ""; apply(); },
     dispose: function() { disposed = true; invalidate(); stopAll(); },
-    inspect: function() { var count = (source ? 1 : 0) + (outgoing ? 1 : 0); return { key: key, sources: count, buffers: count, pending: pending ? 1 : 0, failed: !!failedKey, transitioning: !!outgoing }; }
+    inspect: function() { var count = (source ? 1 : 0) + (outgoing ? 1 : 0); return Object.assign({ key: key, sources: count, buffers: count, pending: pending ? 1 : 0, failed: !!failedKey, transitioning: !!outgoing },driver.inspect?driver.inspect():{}); }
   };
 }
 

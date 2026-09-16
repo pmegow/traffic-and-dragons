@@ -2233,6 +2233,9 @@ function isBookkeepingResponse(raw,clean,dice){
   return false;
 }
 function commitGmTurn(resp,opts){
+  audioCommitDepth++;
+  try {
+  var _audioMuts=null,_audioRespawns=worldState.respawns||0;
   var o=opts||{};
   if(typeof clearPendingAction==="function")clearPendingAction();/* #14: a committed turn supersedes any persisted failed action */
   /* #197: an IN-BAND model refusal ("I cannot continue generating content for this scene…" —
@@ -2271,7 +2274,7 @@ function commitGmTurn(resp,opts){
     if(typeof showToast==="function")showToast("⚠ The model declined this scene — re-roll or rephrase",6000);
     if(typeof erCrumb==="function")erCrumb("turn-refused",{t:worldState.turn,ch:String(resp||"").length});
   }else{
-  applyMuts(resp,{deferSave:true});/* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
+  _audioMuts=applyMuts(resp,{deferSave:true});/* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
   if(o.latchSnap&&typeof noteLogCommit==="function")noteLogCommit();else if(typeof noteLogDiscard==="function")noteLogDiscard();/* #309: the notes ring files only DELIVERED gameplay notes (latchSnap rides only on those turns) */
   /* #149: a FIRED aftermath nudge is consumed by the turn that commits — whether the GM filed
      a [LOCATION_STATE:] or stayed silent, the one shot is spent. A pending stamped by THIS
@@ -2351,8 +2354,10 @@ function commitGmTurn(resp,opts){
      Bookkeeping turns never stamped speakers (narrateWithSpeakers ran after their early return)
      and still don't. */
   var _spMap=_bookkeeping?null:deriveAndStampSpeakers(clean,resp,worldState.transcript[worldState.transcript.length-1],worldState.transcript);
+  if(!_refusal&&_audioMuts&&_audioMuts.audioCandidates&&!( _audioMuts.errors&&_audioMuts.errors.length)&&(worldState.respawns||0)===_audioRespawns)audioFileCandidates(_audioMuts.audioCandidates,o.audioScope);
   if(_bookkeeping){
-    saveAll();/* bookkeeping turns never reach generateActions — the commit is their one sync */
+    var _audioSaved=saveAll();
+    if(!_refusal&&_audioSaved!==false)audioScenePublish("turn",true);/* bookkeeping turns never reach generateActions — the commit is their one sync */
     processPendingCompanionSheets();
     if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();if(worldState.pendingRewardClaims&&worldState.pendingRewardClaims.length&&typeof showRewardClaimModal==="function")showRewardClaimModal();/* #215: an unanswered claim survives the tab closing */
     return null;
@@ -2363,8 +2368,9 @@ function commitGmTurn(resp,opts){
      null buttons, the JP0-11 size cap skips the page-hide flush on any mature save, and the
      second device rendered the newest narration buttonless. UA6 unchanged: state+history+speakers
      still persist here, before any display step. */
-  saveLocal();
+  var _audioSaved=saveLocal();
   var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
+  if(!_refusal&&_audioSaved!==false)audioScenePublish("turn",true);
   if(_spMap&&narEl)narEl._sp=_spMap;   // the per-message replay button reads this at click time
   speakNarration(clean,_spMap);/* #96: map derived from the response's own [SAY:] tags; #177: entry + owning array were captured together at the stamp */
   generateActions(narEl);
@@ -2373,6 +2379,7 @@ function commitGmTurn(resp,opts){
      the only path from proposal to canon (accept writes the overlay; decline drops loudly). */
   if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();if(worldState.pendingRewardClaims&&worldState.pendingRewardClaims.length&&typeof showRewardClaimModal==="function")showRewardClaimModal();/* #215: an unanswered claim survives the tab closing */
   return narEl;
+  } finally { audioCommitDepth--; }
 }
 // TODO #1 P3 (D4): mid-round suggestion refresh — strip the previous sub-turn's buttons off the
 // last narration and generate a fresh set for the (new) spotlight PC. DOM-side companion to the
@@ -2516,7 +2523,7 @@ async function sendAction(override,opts){
     // captured the clean txt, the transcript player entry captures it at COMMIT time (#28,
     // commitGmTurn's logPlayer), and lastAction/retry keep the clean txt too, so the note
     // never reaches the player.
-    var apiTxt=txt;
+    var apiTxt=txt,_audioScope=audioRequestScope();
     if(!isTT&&!(opts&&opts.silent)&&typeof villageReturnObserve==="function")villageReturnObserve(Date.now());/* #6 C1: a return after a real absence arms the greeting before the notes build (same TT/silent guard as the notes) */
     if(!isTT&&!(opts&&opts.silent)){var _latchSnap=snapshotNoteLatches();/* #151: capture BEFORE the builders stamp/consume — the catch restores when the turn dies pre-commit */var _en=buildEngineNotes();if(_en)apiTxt=_en+"\n\n"+txt;}/* v1.255: the engine-notes registry (quest escalation + condition audit; adding a check = a NOTE_BUILDERS entry) */
     _tSent=Date.now();_hid0=(typeof document!=="undefined"&&document.hidden)?1:0;
@@ -2579,7 +2586,7 @@ async function sendAction(override,opts){
     else{
       // The whole commit sequence lives in commitGmTurn (audit 07-16 #5) — shared with
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
-      commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
+      commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
     }
     syncUI();
   }catch(e){th.remove();
@@ -3192,11 +3199,12 @@ async function beginAdventure(){
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
     var intro=buildOpeningIntro(c,w,compStr);/* #6 C4: the opening ask is the kind's — the adventure literal, byte-identical, or the village's homecoming */
+    var _openingAudioScope=audioRequestScope();
     var resp=await callGM(intro);th.remove();
     // Unified commit (audit 07-16 #5): inherits sendAction's canonical UA6 order — transcript/
     // sessionLog/state now persist BEFORE the opening scene renders, so a display throw can no
     // longer strand a saved state that lacks the opening narration. isOpening: no turn++.
-    commitGmTurn(resp,{userMsg:intro,isOpening:true,onMutated:function(){_openingCommitted=true;/* E82 latch for the opening (user ruling 2026-07-16) */}});
+    commitGmTurn(resp,{userMsg:intro,audioScope:_openingAudioScope,isOpening:true,onMutated:function(){_openingCommitted=true;/* E82 latch for the opening (user ruling 2026-07-16) */}});
     if(typeof showFirstTurnOverlay==="function")showFirstTurnOverlay();/* #307: four sentences, once per device, after the first scene is on screen */
     syncUI();
     _promptCampaignFolder();

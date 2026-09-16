@@ -78,7 +78,7 @@ function buildFileMenus(){
         +"<button id='"+p+"sound-test' title='Audition every UI sound' style='font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;padding:2px 8px;'>&#9834; Sounds&hellip;</button>"/* was a chime-only Test button — replaced by the audition modal (a one-sound test could not serve judging the set) */
       +"</div>"
       +"<div style='padding:4px 14px 9px;' class='ambient-settings'>"
-        +"<label style='display:block;font-size:12px;'><input type='checkbox' id='"+p+"ambient-cb' style='accent-color:var(--acc);margin:0 6px 0 0;'/> Village ambience</label>"
+        +"<label style='display:block;font-size:12px;'><input type='checkbox' id='"+p+"ambient-cb' style='accent-color:var(--acc);margin:0 6px 0 0;'/> Ambience</label>"
         +"<label style='display:flex;align-items:center;gap:8px;font-size:11px;'>Volume <input type='range' min='0' max='100' id='"+p+"ambient-volume' style='width:100px;accent-color:var(--acc);'/></label>"
         +"<button id='"+p+"ambient-unlock' style='font:inherit;font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t1);padding:3px 7px;cursor:pointer;'>Enable audio / retry</button>"
         +"<div id='"+p+"ambient-status' role='status' style='font-size:11px;color:var(--t2);margin-top:4px;white-space:normal;'>Off</div></div>"

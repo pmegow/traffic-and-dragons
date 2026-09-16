@@ -310,14 +310,14 @@ function restoreTranscriptRescue(){
     return true;
   }catch(e){console.error("[save] transcript rescue re-inflate failed — keeping the rescue blob",e);return false;}
 }
-function saveCore(){try{store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Free space: Campaigns → \"Remove local\" on old campaigns.");console.error("[save] saveCore failed:",e);}}
+function saveCore(){try{store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));return true;}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Free space: Campaigns → \"Remove local\" on old campaigns.");console.error("[save] saveCore failed:",e);return false;}}
 // #365: memory carries its owner's campId. Stamped on save when unset; a DIFFERENT stamp is never
 // overwritten, so a half-switched pair (live worldState = B, live memory = A — the 2026-09-05 #337
 // failure that ran the Runelords campaign on the Iron Meridian's memory for 28 turns) stays
 // detectable by memoryOwnerMismatch on the next load instead of being silently adopted.
 function memoryOwnerMismatch(ws,mem){return !!(ws&&mem&&ws.campId&&mem.campId&&ws.campId!==mem.campId);}
 function memoryOwnerStamp(){if(typeof worldState!=="undefined"&&worldState&&worldState.campId&&memory&&!memory.campId)memory.campId=worldState.campId;}
-function saveMem(){try{memoryOwnerStamp();store.set(MEM_KEY,JSON.stringify(memory));}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);}}
+function saveMem(){try{memoryOwnerStamp();store.set(MEM_KEY,JSON.stringify(memory));return true;}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);return false;}}
 // #2 (quota): snapshotActiveCamp() removed from saveAll — it duplicated the ENTIRE active state (incl. portraits)
 // into tnd_camp_<id>_* on every turn, redundant with tnd_core_v10. The active campaign is still snapshotted on
 // switch-away, beforeunload, and campaign ops — the moments the snapshot is actually read. ~halves the per-turn write.
@@ -327,8 +327,8 @@ function saveMem(){try{memoryOwnerStamp();store.set(MEM_KEY,JSON.stringify(memor
    the next turn's POST or any page-hide flush (syncNow on beforeunload/visibilitychange — the
    device-handoff case). A second device pulling MID-session may show the previous turn's
    suggestion buttons: cosmetic, accepted by ruling. */
-function saveLocal(){saveCore();saveMem();updateCampMeta();}
-function saveAll(){saveLocal();if(typeof storageAdapter!=="undefined")storageAdapter.syncToServer();}
+function saveLocal(){var core=saveCore(),mem=saveMem();updateCampMeta();var ok=core!==false&&mem!==false;if(typeof audioScenePublish==="function")audioScenePublish(ok?"save":"save-failed",!ok);return ok;}
+function saveAll(){var ok=saveLocal();if(typeof storageAdapter!=="undefined")storageAdapter.syncToServer();return ok;}
 // #12 — append-only campaign transcript: the verbatim prose record for the story compiler (#11) + cross-device
 // completeness. Lives in worldState (rides in the sync blob). Written from the turn sources (sendAction/beginAdventure),
 // NOT addMsg — addMsg re-fires when the last turns are re-rendered on reload, which would double-count.
@@ -768,6 +768,7 @@ function loadState(){
   /* #168 W7: relationship entity migration needs THIS campaign's alias table. Parsing/healing
      memory first prevents the previously active campaign from re-keying the incoming save. */
   try{if(worldState&&migrateWorldState())saveCore();}catch(e){worldState=null;return false;}
+  if(typeof audioScenePublish==="function")audioScenePublish("load");
   return !!ws&&!!worldState;
 }
 // Fill the shape defaults an older/foreign memory blob may be missing. Extracted from loadState so

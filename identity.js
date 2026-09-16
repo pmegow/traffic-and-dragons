@@ -183,6 +183,11 @@ function locationWorldTwinConflict(name){
 
 // ── Shared field-merge rules (the A0 §7.4 set — ONE implementation for merge and split) ─────
 function locFoldNodeRecords(canonNode,dupNode,canonLabel){
+  if(canonNode.soundscape||dupNode.soundscape){
+    var _ap=canonNode.soundscape,_bp=dupNode.soundscape;
+    if(!_ap&&_bp)canonNode.soundscape=JSON.parse(JSON.stringify(_bp));
+    else if(_ap&&_bp&&JSON.stringify(_ap)!==JSON.stringify(_bp))canonNode.soundscape={};
+  }
   if(dupNode.firstVisit!=null&&(canonNode.firstVisit==null||dupNode.firstVisit<canonNode.firstVisit))canonNode.firstVisit=dupNode.firstVisit;
   if(dupNode.lastVisit!=null&&(canonNode.lastVisit==null||dupNode.lastVisit>canonNode.lastVisit))canonNode.lastVisit=dupNode.lastVisit;
   canonNode.visits=(canonNode.visits||0)+(dupNode.visits||0);
@@ -331,6 +336,7 @@ function locSplit(fusedKey,spec,R){
   for(i=0;i<succ.length;i++){
     var s=succ[i],take=s.take||{};
     var fresh={firstVisit:node.firstVisit,visits:0,description:null,parent:node.parent||null,npcs:[],items:[],size:null,travelMins:null};
+    if(node.soundscape)fresh.soundscape={};
     if(s.kind)fresh.kind=s.kind;
     if(s.endpoints)fresh.endpoints=s.endpoints.slice();
     if(node.layout&&s.key===spec.primary)fresh.layout=JSON.parse(JSON.stringify(node.layout));/* #408: the room graph stays with the primary successor */

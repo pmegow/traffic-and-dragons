@@ -1,6 +1,6 @@
 const assert=require('assert/strict'),fs=require('fs'),vm=require('vm');
 const scope={console,Promise,AbortController,setTimeout,clearTimeout};vm.createContext(scope);
-['audio-scenes.js','ambient.js'].forEach(f=>vm.runInContext(fs.readFileSync(f,'utf8'),scope));
+['audio-catalog.js','audio-scenes.js','ambient.js'].forEach(f=>vm.runInContext(fs.readFileSync(f,'utf8'),scope));
 const smith={enabled:true,unlocked:true,visible:true,volume:.5,campaignKind:'village',campaignId:'one',nodeKey:'Village|the smithy',common:'the smithy',open:true};
 const outside={...smith,nodeKey:'Village',common:null,open:null,exterior:true,minuteOfDay:600};
 const flush=async()=>{for(let i=0;i<10;i++)await Promise.resolve()};
