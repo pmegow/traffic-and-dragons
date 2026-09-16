@@ -1876,16 +1876,36 @@ var TTS = (function() {
     // voice off/on cycle (which silently lost the iOS playback-category session, v1.328).
     stopAudioSessionPrimer();
     if (_audioCtx) { try { _audioCtx.close(); } catch(e) {} _audioCtx = null; }
+    _audioSessionPlayback = false;
+    _setAudioSessionType("auto");
   }
 
-  // iOS Safari quirk: speechSynthesis alone doesn't claim the "playback" audio
-  // session category, so native TTS can route nowhere (or be silenced by the
-  // mute switch) over Bluetooth. A silent looping AudioContext buffer, started
-  // inside a user gesture, keeps the page in an active playback session so
-  // native speech inherits correct Bluetooth routing. Used by Car Mode.
+  // A WebAudio loop keeps the context active; it does not select the OS playback category.
+  // Safari can retain the phone route after microphone capture (WebKit bug 282939).
+  // Release playback before capture, then reclaim it only after the mic has ended.
+  var _audioCapture = false, _audioSessionPlayback = false;
+  function _setAudioSessionType(type) {
+    try {
+      if (typeof navigator === "undefined" || !navigator.audioSession) return;
+      if (navigator.audioSession.type !== type) navigator.audioSession.type = type;
+    } catch(e) {
+      var reason = e && e.message ? e.message : String(e);
+      console.warn("[tts] audio session " + type + " failed: " + reason);
+      if (typeof showToast === "function") showToast("Audio routing could not switch to " + type + ": " + reason, 8000);
+    }
+  }
+  function _requestPlaybackSession() {
+    _audioSessionPlayback = true;
+    if (!_audioCapture) _setAudioSessionType("playback");
+  }
+  function setAudioCapture(active) {
+    _audioCapture = !!active;
+    _setAudioSessionType(_audioCapture || !_audioSessionPlayback ? "auto" : "playback");
+  }
   var _primerSrc = null;
 
   function primeAudioSession() {
+    _requestPlaybackSession();
     var ctx = _ensureCtx();
     if (!ctx) return;
     _resumeCtx(ctx, "primer");   // v1.327: covers iOS "interrupted" too
@@ -2139,6 +2159,7 @@ var TTS = (function() {
     if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") { _drain(); return; }
     var units = splitSentences(text, "... ");
     if (!units.length) { _drain(); return; }
+    _requestPlaybackSession();
     try { window.speechSynthesis.cancel(); } catch(e) {}   // clear any stuck/previous utterance before starting the chain
     _speakNativeUnit(units, 0);
   }
@@ -4393,6 +4414,7 @@ var TTS = (function() {
     testVoice:         testVoice,   // #9: audition a voiceId (or the narrator voice) — used by the character-sheet Test button
     releaseVoiceIfUnused: releaseVoiceIfUnused,   // #9: free a voice's OPFS slot on reassignment when nothing (incl. narrator) still uses it
     primeAudioSession:     primeAudioSession,
+    setAudioCapture:       setAudioCapture,
     // v1.421 (B10): repair an iOS-interrupted context. Call from a USER GESTURE — the send tap is
     // the valuable one, because it lands seconds before narration and so fixes the context BEFORE
     // the read that would otherwise lose its first line to the native voice.

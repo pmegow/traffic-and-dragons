@@ -15,7 +15,12 @@
 
 var STT = (function() {
   var _audioEvents = createAudioEvents();
-  function _capture(value) { _audioEvents.emit("capture", value); }
+  function _capture(value) {
+    // Both recognition and MediaRecorder finish here, after their microphone is released.
+    // Restore the session before subscribers can resume ambience or start another narration.
+    if (typeof TTS !== "undefined" && typeof TTS.setAudioCapture === "function") TTS.setAudioCapture(value);
+    _audioEvents.emit("capture", value);
+  }
 
   var LANG_K       = "tnd_stt_lang_v1";
   var AUTO_K       = "tnd_stt_autosend_v1";

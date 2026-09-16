@@ -17359,6 +17359,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#19 — Bluetooth microphone handoff");
+  t("TTS exposes a capture handoff for both STT paths",function(){
+    return typeof TTS.setAudioCapture === "function" ? true : "missing capture-to-playback session handoff";
+  });
+
   section("B10 — audio recovery");
   t("TTS.recoverAudio is exported and is safe to call with no AudioContext (it runs on EVERY send)",function(){
     // sendAction calls this on every submit, in every environment — including the headless one
