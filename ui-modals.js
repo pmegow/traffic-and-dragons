@@ -30,6 +30,54 @@ function radioRowsRefresh(container,cls,selId,labelSel){
     var lbl=r.querySelector(labelSel||"span");if(lbl)lbl.style.color=s?"var(--acc)":"var(--t1)";
   });
 }
+
+/* #407 THE SHOP MODAL — the owner's drawing (2026-09-16): the hero's inventory left, the keeper's wares right, the hero's
+   gold in small gold text under the name; a click on a left row marks it for SALE (green) and a click on a right row marks a
+   PURCHASE (pink); the signed amount sits at the marked row's right edge (ruling ③: no middle strip, one page on every
+   screen); a click on a stacked row adds one, clicking the count clears it (②); a signed total and ONE Complete button.
+   Thin shell: shopTradeCatalog / shopTradePlan (helpers.js) decide everything; shopTradeApply (game.js) lands it. */
+function showShopModal(){
+  var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no shop"};
+  if(!cat.ok){showToast("Trade: "+cat.reason);return;}
+  var marks={sell:{},buy:{}};
+  var modal=modalShell("shop-modal","",{maxWidth:720,align:"flex-start",overlayExtra:"overflow-y:auto;",boxExtra:"margin-top:24px;",wireClose:false});
+  var box=modal.firstChild;
+  function render(){
+    var plan=shopTradePlan(cat,marks),i,h="";
+    h+="<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;'><div><span style='font-size:16px;color:var(--t0);font-weight:bold;'>"+escHtml(worldState.character.name)+"</span><div class='igold' style='padding:0;'>"+cat.gold+" gp</div></div>"
+      +"<div style='text-align:right;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>"+escHtml(cat.keeper)+"</span><div style='font-size:11px;color:var(--t2);'>"+escHtml(cat.shop)+"</div></div>"
+      +"<button id='shop-x' class='ib' title='Close' style='margin-left:12px;'>\u00d7</button></div>";
+    h+="<div class='shop-grid'><div class='shop-col'><h4>Sell</h4>";
+    if(!cat.sell.length)h+="<div class='shop-empty'>Nothing carried</div>";
+    for(i=0;i<cat.sell.length;i++){var r=cat.sell[i],k=r.name.toLowerCase(),q=marks.sell[k]|0,off=r.worn||r.sellGp==null;
+      h+="<div class='shop-row"+(q?" sel-sell":"")+(off?" off":"")+"' data-sell='"+escHtml(k)+"' title='"+escHtml(r.worn?"Worn — take it off first":(r.sellGp==null?"No price on record here — ask "+cat.keeper:(r.wanted?"Wanted here: full price":"Half its listed value")))+"'>"
+        +"<span class='shop-name'>"+escHtml(r.name)+(r.qty>1?" <span class='shop-qty' data-clear='"+escHtml(k)+"' title='Clear'>"+(q?q+"/":"")+r.qty+"</span>":"")+(r.wanted?" <span class='shop-tag'>wanted</span>":"")+"</span>"
+        +"<span class='shop-amt'>"+(q?"+"+shopFmtGp(r.sellGp*q):(r.sellGp!=null?"<span class='shop-dim'>"+shopFmtGp(r.sellGp)+"</span>":""))+"</span></div>";}
+    h+="</div><div class='shop-col'><h4>Buy</h4>";
+    if(!cat.buy.length)h+="<div class='shop-empty'>Nothing on the shelf</div>";
+    for(i=0;i<cat.buy.length;i++){var b=cat.buy[i],bk=b.name.toLowerCase(),bq=marks.buy[bk]|0,boff=b.buyGp==null;
+      h+="<div class='shop-row"+(bq?" sel-buy":"")+(boff?" off":"")+"' data-buy='"+escHtml(bk)+"' title='"+escHtml(boff?"Priced in words — ask "+cat.keeper:b.price+(b.note?" · "+b.note:""))+"'>"
+        +"<span class='shop-name'>"+escHtml(b.name)+"</span><span class='shop-amt'>"+(bq?"\u2212"+shopFmtGp(b.buyGp):"<span class='shop-dim'>"+escHtml(b.price)+"</span>")+"</span></div>";}
+    h+="</div></div>";
+    h+="<div class='shop-total'><span>Total</span><span class='shop-amt'>"+(plan.lines.length?((plan.netGp>0?"\u2212":plan.netGp<0?"+":"")+Math.abs(plan.netGp)+" gp"):"\u2014")+"</span></div>";
+    h+="<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;'><span style='font-size:11px;color:"+(plan.ok||!plan.lines.length?"var(--t2)":"var(--hp)")+";'>"+escHtml(plan.lines.length?(plan.ok?"After: "+plan.goldAfter+" gp":plan.reason):"Tap items to mark them")+"</span>"
+      +"<button id='shop-go' class='ib' "+(plan.ok?"":"disabled ")+"style='"+(plan.ok?"border-color:var(--acc);color:var(--acc);":"opacity:.5;")+"'>Complete transaction</button></div>";
+    box.innerHTML=h;
+    box.querySelector("#shop-x").addEventListener("click",function(){modal.remove();});
+    var rows=box.querySelectorAll(".shop-row[data-sell]"),n;
+    for(n=0;n<rows.length;n++)(function(row){row.addEventListener("click",function(ev){if(row.classList.contains("off"))return;var key=row.getAttribute("data-sell");
+      var t=ev.target;if(t&&t.getAttribute&&t.getAttribute("data-clear")){delete marks.sell[key];render();return;}
+      var max=0,ii;for(ii=0;ii<cat.sell.length;ii++)if(cat.sell[ii].name.toLowerCase()===key)max=cat.sell[ii].qty;
+      var cur=marks.sell[key]|0;if(max<=1){if(cur)delete marks.sell[key];else marks.sell[key]=1;}else{marks.sell[key]=Math.min(max,cur+1);}render();});})(rows[n]);
+    rows=box.querySelectorAll(".shop-row[data-buy]");
+    for(n=0;n<rows.length;n++)(function(row){row.addEventListener("click",function(){if(row.classList.contains("off"))return;var key=row.getAttribute("data-buy");if(marks.buy[key])delete marks.buy[key];else marks.buy[key]=1;render();});})(rows[n]);
+    var go=box.querySelector("#shop-go");if(go&&plan.ok)go.addEventListener("click",function(){
+      var res=shopTradeApply(marks);
+      if(!res.ok){showToast("Trade refused — "+res.reason,6000);return;}
+      showToast(res.line,5000);modal.remove();});
+  }
+  render();
+}
 function showRulesModal(){
   /* #14: re-rendering modal — × wired per render below, so wireClose:false */
   var modal=modalShell("rules-modal","",{align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:520,boxExtra:"margin-top:40px;",wireClose:false});

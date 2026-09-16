@@ -24348,4 +24348,83 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#407 the shop interface");
+  /* #407 (owner drawing + four rulings 2026-09-16): the counter. shopTradeCatalog/shopTradePlan (helpers) are pure over the
+     village teeth; shopTradeApply (game) lands the plan as tags through the trade gate; buildTradeNote tells the GM once. */
+  function shopFixture(){
+    villageCD();worldState.world.sublocation="the trading post";delete worldState.tradePing;
+    memory.map.nodes["The Village|the trading post"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,
+      wares:[{item:"Rope",price:"1 gp",note:"",t:1,min:clockNow(),at:"the trading post"},{item:"Healing potion",price:"50 gp",note:"",t:1,min:clockNow(),at:"the trading post"},{item:"Lantern oil",price:"a handful of copper",note:"",t:1,min:clockNow(),at:"the trading post"}],
+      wanted:[{item:"Bone-handled knife",offer:"3 gp",by:"Frizwick",t:1,min:clockNow()}]};
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the trading post";
+    worldState.character.inventory=["Rope x3","Bone-handled knife","Longsword","Healing potion"];worldState.character.gold=25;
+    applyMuts("[WORN:Silas|Longsword|on]");
+  }
+  t("#407 ① the catalog reads the village teeth: only in a shop with its keeper; sell = half canon, FULL when WANTED, unsellable without either; worn items flagged; buy rows = the shop's live wares with their pinned price, word-priced wares unbuyable",function(){
+    shopFixture();var cat=shopTradeCatalog();if(!cat.ok)return "catalog: "+cat.reason;
+    if(cat.keeper!=="Frizwick"||cat.shop!=="the trading post"||cat.gold!==25)return "header: "+JSON.stringify([cat.keeper,cat.shop,cat.gold]);
+    var by={};cat.sell.forEach(function(r){by[r.name]=r;});
+    if(!by["Rope"]||by["Rope"].qty!==3||by["Rope"].sellGp!==0.5)return "rope: half of 1 gp canon, stack of 3: "+JSON.stringify(by["Rope"]);
+    if(!by["Bone-handled knife"]||!by["Bone-handled knife"].wanted||by["Bone-handled knife"].sellGp!==2)return "the WANTED knife sells at FULL canon (2 gp): "+JSON.stringify(by["Bone-handled knife"]);
+    if(!by["Longsword"]||by["Longsword"].sellGp!==null)return "no canon and not wanted = not sellable here: "+JSON.stringify(by["Longsword"]);
+    if(!by["Longsword"].worn)return "the worn longsword must be flagged";
+    if(!by["Healing potion"]||by["Healing potion"].sellGp!==25)return "potion: half of 50";
+    var bb={};cat.buy.forEach(function(b){bb[b.name]=b;});
+    if(!bb["Rope"]||bb["Rope"].buyGp!==1||!bb["Healing potion"]||bb["Healing potion"].buyGp!==50)return "buy rows must carry the pinned gp: "+JSON.stringify(cat.buy);
+    if(!bb["Lantern oil"]||bb["Lantern oil"].buyGp!==null)return "a word-priced ware is listed but unbuyable at the counter";
+    worldState.world.sublocation=null;if(shopTradeCatalog().ok)return "no shop, no catalog";
+    worldState.world.sublocation="the trading post";memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";if(shopTradeCatalog().ok)return "no keeper present, no catalog";
+    return true;
+  });
+  t("#407 ② the plan: a stack click counts up to the stack, worn and unpriced rows never enter, whole-gp totals with halves away from zero, a purchase never rounds to free, and Complete locks with the shortfall named",function(){
+    shopFixture();var cat=shopTradeCatalog();
+    var p=shopTradePlan(cat,{sell:{"rope":9,"longsword":1,"bone-handled knife":1},buy:{}});
+    var names=p.lines.map(function(l){return l.name+":"+l.qty;}).join(",");if(names!=="Rope:3,Bone-handled knife:1")return "lines: "+names;
+    if(p.sellGp!==3.5||p.netGp!==-4||p.goldAfter!==29||!p.ok)return "sell 1.5 + 2 = 3.5 → the hero is paid 4 (halves away from zero): "+JSON.stringify([p.sellGp,p.netGp,p.goldAfter,p.ok]);
+    p=shopTradePlan(cat,{sell:{"rope":1},buy:{}});if(p.netGp!==-1)return "a half-gp sale still pays 1 gp: "+p.netGp;
+    p=shopTradePlan(cat,{sell:{},buy:{"healing potion":1}});if(p.ok||!/short 25 gp/.test(p.reason)||p.netGp!==50)return "50 gp potion on 25 gp: locked, shortfall named: "+JSON.stringify(p);
+    p=shopTradePlan(cat,{sell:{"healing potion":1},buy:{"healing potion":1}});if(!p.ok||p.netGp!==25)return "sell the potion (25) and buy one (50): net 25: "+JSON.stringify(p);
+    applyMuts("[WORN:Silas|Healing potion|on]");cat=shopTradeCatalog();p=shopTradePlan(cat,{sell:{"healing potion":1},buy:{}});if(p.ok||p.lines.length)return "a WORN item (with canon) never enters the plan: "+JSON.stringify(p);
+    applyMuts("[WORN:Silas|Healing potion|off]");cat=shopTradeCatalog();
+    p=shopTradePlan(cat,{sell:{},buy:{"lantern oil":1}});if(p.ok||p.reason!=="nothing marked")return "an unbuyable ware marks nothing: "+JSON.stringify(p);
+    p=shopTradePlan(cat,{sell:{},buy:{}});if(p.ok||p.reason!=="nothing marked")return "empty plan is not completable";
+    var tags=shopTradeTagText(shopTradePlan(cat,{sell:{"rope":3,"bone-handled knife":1},buy:{"rope":1}}));
+    if(tags!=="[GOLD:+3][ITEM_LOST:Rope x3][ITEM_LOST:Bone-handled knife][ITEM_GAINED:Rope]")return "tag text: "+tags;
+    var big=shopTradeTagText({netGp:0,lines:[{kind:"sell",name:"Arrow",qty:12}]});if(big!=="[ITEM_LOST:Arrow x9][ITEM_LOST:Arrow x3]")return "stacks over nine chunk to the parser's x9: "+big;
+    return true;
+  });
+  t("#407 ③ Complete lands through the trade gate: gold and inventory move as tags in the mutation log, bought wares leave the shelf, sold items join it at canon, tradePing arms once and buildTradeNote speaks ONCE with 'ALREADY updated'; a stale plan against a closed gate moves nothing",function(){
+    shopFixture();worldState.character.gold=60;var res=shopTradeApply({sell:{"rope":3,"bone-handled knife":1},buy:{"healing potion":1}});
+    if(!res.ok)return "apply: "+res.reason;
+    if(worldState.character.gold!==60-47)return "gold 60 − (50 − 3.5 = 46.5 → 47): "+worldState.character.gold;
+    var inv=worldState.character.inventory.join("|");if(/Rope|Bone-handled/.test(inv)||!/Healing potion x2/.test(inv))return "inventory after: "+inv;
+    var node=memory.map.nodes["The Village|the trading post"],wn=node.wares.map(function(w){return w.item+"@"+w.price;}).join(",");
+    if(/Healing potion/.test(wn))return "the bought potion must leave the shelf: "+wn;
+    if(!/Rope@1 gp/.test(wn)||!/Bone-handled knife@2 gp/.test(wn))return "sold items join the shelf at canon: "+wn;
+    if(!worldState.tradePing||worldState.tradePing.keeper!=="Frizwick"||worldState.tradePing.netGp!==47)return "tradePing: "+JSON.stringify(worldState.tradePing);
+    if(!/Silas sold Rope x3/.test(res.line)||!/with Frizwick at the trading post/.test(res.line))return "the system line names hero and keeper: "+res.line;
+    var note=buildTradeNote();if(!/TRADE DONE/.test(note)||!/ALREADY updated/.test(note)||!/ONE in-character sentence/.test(note)||!/Frizwick/.test(note))return "note: "+note.slice(0,300);
+    if(buildTradeNote()!=="")return "the note speaks once";
+    var en=buildEngineNotes();if(/TRADE DONE/.test(en))return "consumed pings do not reach the orchestrator";
+    worldState.tradePing={turn:worldState.turn,keeper:"Frizwick",shop:"the trading post",hero:"Silas",sold:[],bought:["Rope (1 gp)"],netGp:1};
+    if(!/TRADE DONE/.test(buildEngineNotes()))return "an armed ping reaches the GM through the orchestrator";
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";var g=worldState.character.gold,inv2=worldState.character.inventory.slice();
+    var r2=shopTradeApply({sell:{},buy:{"rope":1}});if(r2.ok||worldState.character.gold!==g||worldState.character.inventory.join("|")!==inv2.join("|"))return "keeper gone: nothing moves, and it says why: "+JSON.stringify(r2);
+    return true;
+  });
+  t("#407 ④ registry and identity: buildTradeNote is a village-firing one-shot on tradePing; the adventure never opens the counter (no waresPerShop) and its prompt is untouched; the modal is a thin shell that plans and applies through the engine pair and never touches applyMuts itself",function(){
+    if(!NOTE_SHAPES.buildTradeNote||NOTE_SHAPES.buildTradeNote.village!=="fires"||NOTE_LATCH_FIELDS.indexOf("tradePing")<0||NOTE_BUILDERS.indexOf(buildTradeNote)<0)return "registry row missing";
+    makeWorld();delete worldState.kind;var a=buildSysPrompt().stable;worldState.tradePing={turn:1,keeper:"X",shop:"Y",hero:"Z",sold:[],bought:[],netGp:0};
+    if(buildSysPrompt().stable!==a)return "an armed ping must never touch the stable half";delete worldState.tradePing;
+    if(CAMPAIGN_KINDS.adventure.waresPerShop)return "the counter is village-only in v1";
+    if(typeof __fsForTests==="undefined")return true;
+    var ui=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),body=ui.slice(ui.indexOf("function showShopModal("),ui.indexOf("function showRulesModal("));
+    if(!/shopTradeCatalog\(\)/.test(body)||!/shopTradePlan\(cat,marks\)/.test(body)||!/shopTradeApply\(marks\)/.test(body))return "the modal must plan and apply through the engine pair";
+    if(/applyMuts\(|\.gold\s*=|\.inventory\s*=|fileWare\(/.test(body))return "the modal writes nothing itself";
+    if(!/igold/.test(body))return "the hero's gold rides under the name in the gold style";
+    var pn=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");if(!/villageTradeContext\(\);if\(_vtc\.ok\)h\+=/.test(pn))return "the inventory panel opens the counter only where the gate is open";
+    var html=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");if(!/\.shop-row\.sel-sell\{background:rgba\(122,168,106/.test(html)||!/\.shop-row\.sel-buy\{background:rgba\(214,112,140/.test(html))return "green sell / pink buy rows";
+    return true;
+  });
+
 }

@@ -2257,6 +2257,49 @@ function villageTradeContext(text){
   if(!keeper)return {ok:false,reason:"no counterparty present in "+leaf};
   return {ok:true,keeper:keeper,shop:leaf,node:node,key:rk};
 }
+
+/* #407 THE SHOP INTERFACE (owner drawing 2026-09-16; four rulings in the TODO row). A pure view model and plan over the
+   village's own teeth: villageTradeContext (a shop with its keeper present), the shop node's LIVE wares and WANTED list,
+   and bible canon. Sell price = HALF canon, FULL when the keeper WANTS it (a WANTED offer prices a no-canon item); with
+   neither, the item is not sellable at the counter (ask the keeper in prose). Buy price = the ware's pinned price; each
+   ware row is one unit. Coin is whole gp ([GOLD:] is an integer): the total rounds to the nearest gp and a non-zero
+   purchase never rounds to free. Nothing here writes state — shopTradeApply (game.js) lands the plan as tags. */
+var SHOP_SELL_FRACTION=0.5;
+function shopTradeCatalog(){
+  var vtc=(typeof villageTradeContext==="function")?villageTradeContext():{ok:false,reason:"no trade context"};
+  if(!vtc.ok||!vtc.node)return {ok:false,reason:vtc.reason||"not in a shop"};
+  var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||{},inv=c.inventory||[],hero={},order=[],i;
+  for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=base.toLowerCase();
+    if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonGp:null,wanted:false,sellGp:null};order.push(k);}
+    hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))hero[k].worn=true;}
+  var wanted={},wl=vtc.node.wanted||[];for(i=0;i<wl.length;i++)wanted[String(wl[i].item||"").toLowerCase()]=wl[i];
+  var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,gp=(typeof itemValueGp==="function")?itemValueGp(canon):null;
+    var w=wanted[order[i]]||wanted[String((typeof itemBaseName==="function")?itemBaseName(r.name):r.name).toLowerCase()]||null;
+    r.canonGp=gp;r.wanted=!!w;
+    if(gp)r.sellGp=w?gp:gp*SHOP_SELL_FRACTION;
+    else if(w){var og=(typeof itemValueGp==="function")?itemValueGp({value:w.offer}):null;if(og)r.sellGp=og;}
+    sell.push(r);}
+  var live=(typeof nodeWaresLive==="function")?nodeWaresLive(vtc.node):(vtc.node.wares||[]),buy=[];
+  for(i=0;i<live.length;i++){var ware=live[i],bg=(typeof itemValueGp==="function")?itemValueGp({value:ware.price}):null;buy.push({name:ware.item,price:ware.price,buyGp:bg,note:ware.note||""});}
+  return {ok:true,keeper:vtc.keeper,shop:vtc.shop,key:vtc.key,node:vtc.node,gold:Number(c.gold)||0,sell:sell,buy:buy};
+}
+/* marks = {sell:{<lowercase name>:qty}, buy:{<lowercase name>:1}} — what the player has clicked. */
+function shopTradePlan(cat,marks){
+  marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellGp=0,buyGp=0,i,k;
+  for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellGp==null)continue;q=Math.min(q,r.qty);lines.push({kind:"sell",name:r.name,qty:q,unitGp:r.sellGp,gp:r.sellGp*q});sellGp+=r.sellGp*q;}
+  for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();if(!(mb[k]|0)||b.buyGp==null)continue;lines.push({kind:"buy",name:b.name,qty:1,unitGp:b.buyGp,gp:b.buyGp,price:b.price});buyGp+=b.buyGp;}
+  var net=buyGp-sellGp,rounded=net>=0?Math.round(net):-Math.round(-net);/* whole gp, halves away from zero: a half-gp sale still pays 1 gp */
+  if(buyGp>0&&net>0&&rounded===0)rounded=1;/* the keeper never gives a thing away */
+  var goldAfter=cat.gold-rounded,ok=lines.length>0&&goldAfter>=0;
+  return {lines:lines,sellGp:sellGp,buyGp:buyGp,netGp:rounded,goldAfter:goldAfter,ok:ok,reason:!lines.length?"nothing marked":(goldAfter<0?"short "+(rounded-cat.gold)+" gp":"")};
+}
+/* The plan as the tags the parser already understands — every move lands in the mutation log through the trade gate. */
+function shopTradeTagText(plan){
+  var t="",i;if(plan.netGp!==0)t+="[GOLD:"+(plan.netGp>0?"-":"+")+Math.abs(plan.netGp)+"]";
+  for(i=0;i<plan.lines.length;i++){var l=plan.lines[i],n=l.qty;while(n>0){var chunk=Math.min(n,9);t+="["+(l.kind==="sell"?"ITEM_LOST":"ITEM_GAINED")+":"+l.name+(chunk>1?" x"+chunk:"")+"]";n-=chunk;}}
+  return t;
+}
+function shopFmtGp(gp){var v=Math.round(gp*10)/10;return (v%1===0?String(v):v.toFixed(1))+" gp";}
 /* #6 E8: the stash as data — the untaken rows of a node with qty and provenance. Pure; the geo block, the inventory panel
    and Car Mode all read this one function. */
 function villageStash(key){
