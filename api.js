@@ -579,6 +579,8 @@ function buildWhispersNote(){
   var qs=[],qk=Object.keys(memory.quests||{}),i;for(i=qk.length-1;i>=0&&qs.length<3;i--){var q=memory.quests[qk[i]];if(q&&(q.status==="completed"||q.status==="failed"))qs.push(qk[i]+" ("+q.status+")");}
   var cm=(worldState.character&&worldState.character.coreMemories)||[],last=cm.length?cm[cm.length-1].text:"";
   var _wpool=!!(typeof kindDef==="function"&&kindDef().whisperResidentPool);/* #6 phase B: in the village the residents' own defining moments are facts too */
+  var _wsmall=!!(typeof kindDef==="function"&&kindDef().smallTalk);/* #6 D5: …unless the kind talks SMALL — then the facts are today's (weather, hour, errands) and the past is barred from the opener */
+  if(_wsmall){last="";qs=[];}
   if(!dec.length&&!qs.length&&!last&&!_wpool)return"";
   /* #396 (owner, 2026-09-10: "you've been with me the whole time, where are you getting 'word on the street'"): a whisper needs a
      SOURCE who has been elsewhere — a non-party character in the scene, or a party member who rejoined this turn or last
@@ -588,12 +590,18 @@ function buildWhispersNote(){
   var _wloc=(_wman&&_wman.local)||[];for(_wi=0;_wi<_wloc.length;_wi++){var _wn=(typeof wsNpcByName==="function")?wsNpcByName(_wloc[_wi]):null;if(_wn&&!_wn.partyMember&&!_wn.dead&&_wsrc.indexOf(_wn.name)<0)_wsrc.push(_wn.name);}
   var _wre=worldState.pendingReunion;if(_wre&&_wre.names instanceof Array&&typeof _wre.turn==="number"&&worldState.turn-_wre.turn<=1)for(_wi=0;_wi<_wre.names.length;_wi++)if(_wsrc.indexOf(_wre.names[_wi])<0)_wsrc.push(_wre.names[_wi]);
   if(!_wsrc.length)return"";
-  var resFacts=[];if(_wpool){for(_wi=0;_wi<_wsrc.length;_wi++){var _wr=(typeof wsNpcByName==="function")?wsNpcByName(_wsrc[_wi]):null,_wcm=_wr&&_wr.charSheet&&_wr.charSheet.coreMemories;if(_wcm&&_wcm.length&&_wcm[_wcm.length-1]&&_wcm[_wcm.length-1].text)resFacts.push(_wsrc[_wi]+" lived through this: "+String(_wcm[_wcm.length-1].text).slice(0,200));}}
+  var resFacts=[];if(_wpool&&!_wsmall){for(_wi=0;_wi<_wsrc.length;_wi++){var _wr=(typeof wsNpcByName==="function")?wsNpcByName(_wsrc[_wi]):null,_wcm=_wr&&_wr.charSheet&&_wr.charSheet.coreMemories;if(_wcm&&_wcm.length&&_wcm[_wcm.length-1]&&_wcm[_wcm.length-1].text)resFacts.push(_wsrc[_wi]+" lived through this: "+String(_wcm[_wcm.length-1].text).slice(0,200));}}
+  if(_wsmall){/* #6 D5: today's facts — the weather, the hour, where each source is bound */
+    var _ww=worldState.world&&worldState.world.weather;if(_ww)resFacts.push("the weather — "+String(_ww).slice(0,80));
+    var _wph=(typeof clockPhaseLabelAt==="function")?clockPhaseLabelAt():"";if(_wph)resFacts.push("the hour — "+_wph);
+    for(_wi=0;_wi<_wsrc.length;_wi++){var _wab=(typeof residentWhereabouts==="function")?residentWhereabouts(_wsrc[_wi]):null;if(_wab)resFacts.push(_wsrc[_wi]+" — "+String(_wab).slice(0,120));}
+  }
   if(!dec.length&&!qs.length&&!last&&!resFacts.length)return"";
   worldState.whisperAsk={turn:worldState.turn,node:key};
   var label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
   /* #384: the last three rumours already served ride the note so the GM cannot re-serve one (The Long Walk t64 repeated t19 verbatim) */
   var said=(worldState.whispers||[]).slice(-3).map(function(w){return String(w.text||"").slice(0,160);}).filter(function(s){return !!s;});
+  if(_wsmall)return "[ENGINE NOTE — SMALL TALK (not a player action): "+label+" is a place where neighbours pass the time of day. Let ONE of these greet the hero or pass a remark — "+kindDef().whisperSubject+_wsrc.join(" or ")+" — in one or two lines, in character, about TODAY, drawn ONLY from these facts: "+(dec.length?"what the hero has been up to here — "+dec.join("; ")+". ":"")+(resFacts.length?resFacts.join("; ")+". ":"")+"Small talk stays small: NEVER a defining moment, an old campaign or a shared past unless the player raised it in this scene — that talk belongs to the Hall. Emit [WHISPER:one sentence of what was said] so the engine remembers it was said. If no one here would speak, say nothing and emit nothing."+(said.length?" Already said, in words or substance — do not repeat: \""+said.join("\" / \"")+"\". Something new, or nothing.":"")+"]";
   return "[ENGINE NOTE — WHISPERS (not a player action): "+label+" is a place where people talk. Let ONE of these mention "+((_wpool&&typeof kindDef==="function"&&kindDef().whisperSubject)||"what is said about the party — ")+_wsrc.join(" or ")+" (someone who has been elsewhere; NEVER a companion who has been at the player's side, they have heard nothing the player has not) — a rumour, a reputation, a name garbled in the telling — in one or two lines, in character, drawn ONLY from these facts: "+(dec.length?"decisions — "+dec.join("; ")+". ":"")+(qs.length?"finished quests — "+qs.join("; ")+". ":"")+(last?"defining moment — "+last+" ":"")+(resFacts.length?"what the residents here lived through in their own campaigns — "+resFacts.join("; ")+". ":"")+"Rumour distorts: it may exaggerate, blame the wrong person, or get a name wrong, but it never invents an event that did not happen. Emit [WHISPER:one sentence of what is said] so the engine remembers the rumour as rumour. If no one here would have heard anything, say nothing and emit nothing."+(said.length?" Already said, in words or substance — do not repeat: \""+said.join("\" / \"")+"\". A new rumour, or nothing.":"")+"]";
 }
 /* #375 (owner ruling 2026-09-08): MONEY AT STAKE. The world never named a price in a hundred turns; the only outflows
@@ -1664,6 +1672,10 @@ function buildResidentExchangeNote(){
   var a=res[0],b=res[1];function rec(n){var cm=(n.charSheet&&n.charSheet.coreMemories)||[];return cm.length?String(cm[cm.length-1].text||"").slice(0,160):"";}
   var ra=rec(a),rb=rec(b);
   worldState.exchangeAsk={turn:worldState.turn,pair:[a.name,b.name]};
+  if(kindDef().smallTalk){/* #6 D5: the exchange is about TODAY — an errand, the weather, a ware, each other — never their past unless the hero asks */
+    var _xw=worldState.world&&worldState.world.weather,_xa=(typeof residentWhereabouts==="function")?residentWhereabouts(a.name):null,_xb=(typeof residentWhereabouts==="function")?residentWhereabouts(b.name):null;
+    return "[ENGINE NOTE \u2014 RESIDENTS (not a player action): "+a.name+" and "+b.name+" are both here. Let them have ONE exchange with each other this response \u2014 a few lines the hero witnesses without being addressed \u2014 about something of their own TODAY: an errand, a ware, the work in hand, each other"+(_xw?", the weather ("+String(_xw).slice(0,80)+")":"")+(_xa?"; "+a.name+" is "+String(_xa).slice(0,100):"")+(_xb?"; "+b.name+" is "+String(_xb).slice(0,100):"")+". Never their past adventures or the hero's unless the hero asks \u2014 that talk belongs to the Hall. Tag every line [SAY:]. Never mention this note.]\n";
+  }
   return "[ENGINE NOTE \u2014 RESIDENTS (not a player action): "+a.name+" and "+b.name+" are both here. Let them have ONE exchange with each other this response \u2014 a few lines the hero witnesses without being addressed \u2014 about something of their own"+((ra||rb)?", drawn from what they lived: "+(ra?a.name+" \u2014 \""+ra+"\"":"")+(ra&&rb?"; ":"")+(rb?b.name+" \u2014 \""+rb+"\"":""):"")+". Tag every line [SAY:]. Never mention this note.]\n";
 }
 var buildTravelPriceNudge=oneShotPing("travelPricePing",{name:"buildTravelPriceNudge",text:function(q){

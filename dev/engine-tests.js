@@ -23267,7 +23267,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(String(buildEngineNotes).indexOf("[campaignKind()]")<0)return "the gate must dispatch on the kind name as the registry key — one axis, no per-site checks";
     return true;
   });
-  t("#6B whispers in the village draw on the RESIDENTS: a resident present in the scene is the source, and their own defining moments (from their library sheet) are the facts; the adventure pool is unchanged",function(){
+  t("#6B whispers in the village draw on the RESIDENTS: a resident present in the scene is the source; since D5 (v1.942) the facts are TODAY's, and no resident's defining moment \u2014 present or absent \u2014 enters the pool; the adventure pool is unchanged",function(){
     makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation="The tavern";worldState.turn=40;delete worldState.whisperAsk;
     if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.map.nodes["The Village"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"small"};
     importVillageResidents([{name:"Ammut",gender:"F",cls:"Fighter",coreMemories:[{kind:"ending",text:"Ammut broke the runelord's crown on the last stair."}]},{name:"Gazz",gender:"M",cls:"Artificer",coreMemories:[{kind:"death",text:"Gazz watched the Iron Meridian burn."}]}]);
@@ -23276,7 +23276,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var note=buildWhispersNote();
     if(!note)return "no whisper in a village with a resident present (residents ARE the non-party sources)";
     if(note.indexOf("Ammut")<0)return "the present resident must be named as the source: "+note.slice(0,200);
-    if(note.indexOf("broke the runelord's crown")<0)return "the resident's own defining moment must be in the fact pool: "+note.slice(0,400);
+    if(note.indexOf("broke the runelord's crown")>=0)return "#6 D5: a present resident's defining moment must NOT be in the small-talk pool: "+note.slice(0,400);
     if(note.indexOf("Iron Meridian")>=0)return "an absent resident's memory must not be in the pool (only who is here can tell it)";
     return true;
   });
@@ -23333,7 +23333,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     importVillageResidents([{name:"Ammut",gender:"F",cls:"Fighter",coreMemories:[{kind:"ending",text:"Ammut broke the runelord's crown on the last stair."}]}]);memory.npcs["Ammut"].lastSeenAt="The Village|The tavern";
     var note=buildWhispersNote();if(!note)return "fixture: no village whisper";
     if(/about the party/.test(note))return "the village framing still points the rumour at the party";
-    if(!/anyone here/i.test(note))return "the village framing must invite a rumour about anyone here: "+note.slice(0,220);
+    /* #6 D5 (owner 2026-09-16): the street talks SMALL — today's weather and hour, never a defining moment as an opener */
+    if(/runelord's crown|lived through this/.test(note))return "a resident's defining moment must not feed village small talk: "+note.slice(0,300);
+    if(!/SMALL TALK/.test(note)||!/small talk about the day/.test(note))return "the village note must be the small-talk shape: "+note.slice(0,220);
+    if(!/the hour — /.test(note))return "today's facts (the hour) must feed it: "+note.slice(0,300);
+    if(!/belongs to the Hall/.test(note))return "the past must be sent to the Hall: "+note.slice(0,300);
+    worldState.world.weather="a clear morning, woodsmoke on the air";delete worldState.whisperAsk;note=buildWhispersNote();if(!/the weather — a clear morning/.test(note))return "the weather must feed it: "+note.slice(0,300);
     makeWorld();delete worldState.kind;worldState.turn=40;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"medium"};
     memory.keyDecisions=[{turn:30,desc:"Spared the raider captain"}];worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
     var adv=buildWhispersNote();return /about the party/.test(adv)?true:"the adventure whisper framing changed: "+adv.slice(0,200);
@@ -23659,10 +23664,19 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var adv=engineFourthAction();if(!adv||adv.kind!=="buy")return "the adventure ladder must go straight to buy: "+JSON.stringify(adv);
     return true;
   });
+  t("#6 D5 neighbours talk small (owner field report 2026-09-16): the village DRIVE rule carries NEIGHBOURS TALK SMALL with the past sent to the Hall; the adventure rules are byte-identical",function(){
+    makeWorld();delete worldState.kind;var adv=getRulesBlock();
+    worldState.kind="village";var vil=getRulesBlock();
+    if(!/NEIGHBOURS TALK SMALL/.test(vil)||!/where the past is kept/.test(vil))return "the village DRIVE rule must carry the small-talk sentence";
+    if(/NEIGHBOURS TALK SMALL/.test(adv))return "the adventure rules must not carry it";
+    if(!CAMPAIGN_KINDS.village.smallTalk||CAMPAIGN_KINDS.adventure.smallTalk)return "smallTalk is a village field only";
+    return true;
+  });
   t("#6D2 one exchange between two residents: with two residents present buildResidentExchangeNote asks for ONE exchange the hero witnesses, naming both and a record each; latched for EXCHANGE_EVERY turns; silent with one resident; never in the adventure",function(){
     villageCD();worldState.world.sublocation="the tavern";delete worldState.exchangeAsk;
     var n=buildResidentExchangeNote();if(!n||!/Frizwick/.test(n)||!/Daeris/.test(n))return "two present residents must be named: "+String(n).slice(0,300);
-    if(!/Storval stair/.test(n)||!/tower fell/.test(n))return "one record each must feed the exchange: "+n.slice(0,400);
+    if(/Storval stair|tower fell|lived/.test(n))return "#6 D5: the exchange must NOT draw on their past: "+n.slice(0,400);
+    if(!/TODAY/.test(n)||!/belongs to the Hall/.test(n))return "the exchange is about today, the past goes to the Hall: "+n.slice(0,400);
     if(!/witness|hero/i.test(n))return "the hero witnesses";
     if(!worldState.exchangeAsk||worldState.exchangeAsk.turn!==12)return "the ask latches";
     if(buildResidentExchangeNote())return "no second ask within EXCHANGE_EVERY turns";

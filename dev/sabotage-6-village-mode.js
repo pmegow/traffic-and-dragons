@@ -24,9 +24,9 @@ prove("api.js", [
   { label: "the commitment observer fires in the village",
     find: 'buildCommitmentNudge:{shape:"one-shot-ask",latch:["commitmentPing"],combat:"silent",village:"silent"', replace: 'buildCommitmentNudge:{shape:"one-shot-ask",latch:["commitmentPing"],combat:"silent",village:"fires"',
     mustFail: "#6B ONE mode gate" },
-  { label: "the residents' defining moments are dropped from the whisper pool",
-    find: '(resFacts.length?"what the residents here lived through in their own campaigns — "+resFacts.join("; ")+". ":"")+', replace: '',
-    mustFail: "#6B whispers in the village" }
+  { label: "#6 D5 the small-talk note lets today's facts vanish (a resident present, no weather, no hour in the pool)",
+    find: 'var _wph=(typeof clockPhaseLabelAt==="function")?clockPhaseLabelAt():"";if(_wph)resFacts.push("the hour — "+_wph);', replace: 'var _wph="";',
+    mustFail: "#6B village whispers are about ANYONE here" }
 ]);
 prove("tag_table.js", [
   { label: "combat starts in the village",
@@ -58,16 +58,29 @@ prove("identity.js", [
     mustFail: "#6B PAX" }
 ]);
 prove("api.js", [
-  { label: "village whispers stay pointed at the party",
-    find: '((_wpool&&typeof kindDef==="function"&&kindDef().whisperSubject)||"what is said about the party — ")', replace: '"what is said about the party — "',
+  { label: "village small talk is pointed back at the party (the D5 branch ignores the kind's subject)",
+    find: 'pass a remark — "+kindDef().whisperSubject+_wsrc.join(" or ")', replace: 'pass a remark — "+"what is said about the party — "+_wsrc.join(" or ")',
     mustFail: "#6B village whispers are about ANYONE here" }
 ]);
+prove("api.js", [
+  { label: "#6 D5 the whisper facts fall back to the residents' defining moments",
+    find: 'var resFacts=[];if(_wpool&&!_wsmall){', replace: 'var resFacts=[];if(_wpool){',
+    mustFail: "#6B village whispers are about ANYONE here" },
+  { label: "#6 D5 the small-talk note loses its Hall clause",
+    find: 'that talk belongs to the Hall. Emit [WHISPER:one sentence of what was said]', replace: 'Emit [WHISPER:one sentence of what was said]',
+    mustFail: "#6B village whispers are about ANYONE here" },
+  { label: "#6 D5 the exchange seeds from the past again",
+    find: 'if(kindDef().smallTalk){/* #6 D5', replace: 'if(false){/* #6 D5',
+    mustFail: "#6D2 one exchange between two residents" }
+]);
+prove("data.js", [
+  { label: "#6 D5 the DRIVE rule drops NEIGHBOURS TALK SMALL",
+    find: ' NEIGHBOURS TALK SMALL: a resident who meets the hero', replace: ' NEIGHBOURS: a resident who meets the hero',
+    mustFail: "#6 D5 neighbours talk small" }
+]);
 prove("game.js", [
-  { label: "the montage rung ignores the kind",
-    find: 'if(montageDue()){if(kindDef().montage)return', replace: 'if(montageDue()){if(true)return',
-    mustFail: "#6B the fourth button in the village" },
-  { label: "the wildcard rung ignores the kind",
-    find: 'if(kindDef().wildcard&&typeof WILDCARD_EVERY==="number"', replace: 'if(typeof WILDCARD_EVERY==="number"',
-    mustFail: "#6B the fourth button in the village" }
+  { label: "the village rung branch is skipped — the village falls through to the adventure's montage/wildcard ladder (v1.914 made the two old clauses dead: the rung branch returns before those lines run)",
+    find: 'if(typeof kindDef==="function"&&kindDef().villageRung){', replace: 'if(false){',
+    mustFail: "#6D1 the village rung sits ABOVE buy" }
 ]);
 process.exit(code);

@@ -229,3 +229,17 @@ eight residents.
 The 2026-07 sketch (worldState.hq, [HQ_SET:]) and the 2026-08-24 attached-mini-skeleton framing are
 superseded by the own-campaign form; the party-bench idea survives as a phase-2 standalone. The panel
 rubrics live in `DOC/panel/` (designers) and `DOC/panel/players/` (the Panel of Players).
+
+## D5 — neighbours talk small (v1.942, owner field report 2026-09-16)
+
+**Report.** "The small talk from the residents is too defining-moment centric. I can't walk across the street without being called out for 'I still talk about how you and Daeris walked from A to B holding hands…'. A simple greeting would be fine. Or weather, just small talk. Referencing defining moments launches into a heavy conversation a normal person wouldn't immediately initiate."
+
+**Mechanism.** Not the model's taste: two engine notes told it to. The village WHISPERS note (phase B, `whisperResidentPool`) listed every present resident's LAST defining moment as the facts a rumour must be drawn from, and fired whenever a resident was in the scene and the cooldown had passed — in a village that is nearly every social turn. The D2 resident exchange seeded both residents with their last defining moment ("drawn from what they lived"). The DEFINING MOMENTS block and the return greeting also carry the past, but the greeting fires once per real absence and the block says "when relevant"; the two notes were the openers.
+
+**Rule.** The street belongs to the day; the past belongs to the Hall and to the player's asking. This is an identity rule (which place, which channel), not a cooldown.
+
+**Change.** A `smallTalk` field on the kind registry (village true, adventure false). With it set: the whisper note becomes SMALL TALK — one resident greets or passes a remark about TODAY, drawn from the weather, the hour (`clockPhaseLabelAt`), where each present resident is bound (`residentWhereabouts`) and the hero's own recent village decisions; the hero's defining moment and finished quests are dropped from the pool; the note bars "a defining moment, an old campaign or a shared past unless the player raised it in this scene — that talk belongs to the Hall". The exchange seeds from the same present-day facts with the same bar. The village DRIVE rule gains NEIGHBOURS TALK SMALL. The adventure whisper path is untouched (its fallback wording is byte-identical and pinned).
+
+**Kept.** The return greeting's one fact per real absence; the Hall's mementos and wall; the player may ask anyone about anything and the DEFINING MOMENTS block still lets the GM answer.
+
+**Tests.** The #6B whisper test now asserts no resident memory text, the SMALL TALK shape, the hour and weather facts and the Hall clause; the #6D2 exchange test flips from "one record each must feed the exchange" to "must NOT draw on their past"; a new #6 D5 test pins the DRIVE sentence and adventure byte-identity. Sabotage: the facts fall back to memories, the Hall clause is dropped, the exchange seeds from the past, the DRIVE sentence is removed — each caught by its named test.
