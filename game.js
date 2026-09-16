@@ -339,6 +339,13 @@ function waysFromHere(ws,mem){
     ways.push({kind:"road",label:on,target:on,action:"Take the road to "+on+".",unexplored:false});}}
   return {here:here,ways:ways};
 }
+// #413 ⑦: the HUD shows at most WAYS_VISIBLE chips (owner ruling 2026-09-15 — a village hub with a dozen
+// places spammed half a phone screen); the rest fold into a "+N more" menu in the SAME order. Pure.
+var WAYS_VISIBLE=4;
+function waysSplit(ways,cap){
+  var list=ways||[],n=Math.max(0,cap|0);
+  return {shown:list.slice(0,n),more:list.slice(n)};
+}
 // The scene-local manifest: who is PRESENT, where the exits lead, what the active character can
 // actually use — pure derivation from existing state, no new bookkeeping, no model involvement.
 function buildSceneManifest(){

@@ -34,6 +34,18 @@ const fixture=JSON.parse(JSON.stringify({world:worldState,memory})),url=process.
  assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('#hud-ways .hw-chip')].map(b=>b.textContent.trim())),['the smithy','the tavern',"Healer's Garden ?"],'combat hides the road');
  await page.evaluate(()=>{worldState.combat=null;syncUI()});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'ways-village-mobile.png'),clip:{x:0,y:0,width:390,height:260}});
+ // ⑦ the overflow menu: a hub with many places shows four chips + '+N more'; the menu lists the rest in order; a row tap prefills and closes
+ await page.evaluate(()=>{for(let i=0;i<6;i++)memory.map.nodes['The Village|stall '+i]={firstVisit:1,visits:1,description:null,parent:'The Village',npcs:[],items:[],size:'small',travelMins:null};syncUI()});
+ const capped=await page.evaluate(()=>[...document.querySelectorAll('#hud-ways .hw-chip')].map(b=>b.textContent.trim()));
+ assert.equal(capped.length,5,'four chips + the more button');assert.match(capped[4],/^\+6 more/);
+ assert.equal(await page.evaluate(()=>getComputedStyle(document.getElementById('hud-ways-more')).display),'none','menu closed by default');
+ await page.locator('#hud-ways-more-btn').click();assert.equal(await page.evaluate(()=>getComputedStyle(document.getElementById('hud-ways-more')).display),'block','menu opens');
+ const rows=await page.evaluate(()=>[...document.querySelectorAll('#hud-ways-more .hw-row')].map(b=>b.textContent.trim()));assert.equal(rows.length,6);assert.equal(rows[rows.length-1],'Marrowgate','the road is last, in the menu');
+ await page.screenshot({path:path.join(out,'ways-overflow-mobile.png'),clip:{x:0,y:0,width:390,height:420}});
+ await page.locator('#hud-ways-more .hw-row').last().click();
+ assert.equal(await page.evaluate(()=>document.getElementById('action-input').value),'Take the road to Marrowgate.','menu row prefills');
+ assert.equal(await page.evaluate(()=>getComputedStyle(document.getElementById('hud-ways-more')).display),'none','menu closes after a pick');
+ assert.equal(await page.evaluate(()=>sessionLog.length),0,'still never sends');
  assert.deepEqual(errors,[]);
- const receipt={result:'WAYS BROWSER GREEN',url,inside:inside.chips,outside};fs.writeFileSync(path.join(out,'ways-browser-receipt.json'),JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt));
+ const receipt={result:'WAYS BROWSER GREEN',url,inside:inside.chips,outside,capped,menuRows:rows};fs.writeFileSync(path.join(out,'ways-browser-receipt.json'),JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt));
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});

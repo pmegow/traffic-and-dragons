@@ -57,15 +57,27 @@ function renderWaysRow(){
   if(w.here.sub)h+="<span style='color:var(--t2);'>\u203A</span><span style='color:var(--t0);'>"+escHtml(w.here.sub)+"</span>";
   h+="<span style='color:var(--t2);margin-left:6px;'>ways:</span>";
   if(!w.ways.length)h+="<span style='color:var(--t2);'>none recorded yet</span>";
-  for(i=0;i<w.ways.length;i++){var x=w.ways[i];
+  var split=waysSplit(w.ways,WAYS_VISIBLE);/* ⑦: four chips, the rest in the menu — ONE cap, the engine's */
+  for(i=0;i<split.shown.length;i++){var x=split.shown[i];
     h+="<button type='button' class='hw-chip"+(x.unexplored?" hw-unexplored":"")+"' data-way='"+i+"' title='"+escHtml(x.action)+"'>"+escHtml(x.label)+(x.unexplored?" ?":"")+"</button>";}
+  if(split.more.length)h+="<button type='button' class='hw-chip hw-more' id='hud-ways-more-btn' title='"+split.more.length+" more recorded place"+(split.more.length===1?"":"s")+"'>+"+split.more.length+" more \u25BE</button>";
   h+="<span style='color:var(--t2);font-size:10px;margin-left:4px;'>\u2026or name anywhere</span>";
   el.innerHTML=h;el.style.display="flex";
-  var chips=el.querySelectorAll(".hw-chip");
-  for(i=0;i<chips.length;i++)(function(btn){btn.addEventListener("click",function(){
-    var x=w.ways[Number(btn.getAttribute("data-way"))],inp=document.getElementById("action-input");if(!x||!inp)return;
-    inp.value=x.action;inp.focus();try{inp.dispatchEvent(new Event("input"));}catch(e){}/* let the textarea auto-size listener see it */
-  });})(chips[i]);
+  var more=document.getElementById("hud-ways-more");if(more){more.style.display="none";more.innerHTML="";}
+  function prefill(x){var inp=document.getElementById("action-input");if(!x||!inp)return;
+    inp.value=x.action;inp.focus();try{inp.dispatchEvent(new Event("input"));}catch(e){}/* let the textarea auto-size listener see it */}
+  var chips=el.querySelectorAll(".hw-chip:not(.hw-more)");
+  for(i=0;i<chips.length;i++)(function(btn){btn.addEventListener("click",function(){prefill(split.shown[Number(btn.getAttribute("data-way"))]);});})(chips[i]);
+  var moreBtn=document.getElementById("hud-ways-more-btn");
+  if(moreBtn&&more){
+    var mh="";for(i=0;i<split.more.length;i++){var m=split.more[i];mh+="<button type='button' class='hw-row"+(m.unexplored?" hw-unexplored":"")+"' data-more='"+i+"' title='"+escHtml(m.action)+"'>"+escHtml(m.label)+(m.unexplored?" ?":"")+"</button>";}
+    more.innerHTML=mh;
+    var rows=more.querySelectorAll(".hw-row");
+    for(i=0;i<rows.length;i++)(function(btn){btn.addEventListener("click",function(ev){ev.stopPropagation();more.style.display="none";prefill(split.more[Number(btn.getAttribute("data-more"))]);});})(rows[i]);
+    moreBtn.addEventListener("click",function(ev){ev.stopPropagation();var open=more.style.display!=="none";if(open){more.style.display="none";return;}
+      more.style.left=Math.max(0,moreBtn.offsetLeft)+"px";more.style.top=(moreBtn.offsetTop+moreBtn.offsetHeight+4)+"px";more.style.display="block";});
+    if(!renderWaysRow._closer){renderWaysRow._closer=true;document.addEventListener("click",function(){var mm=document.getElementById("hud-ways-more");if(mm)mm.style.display="none";});}
+  }
 }
 function syncUI(){if(typeof Ambient!=="undefined")Ambient.sync();_ensureLongPressTips();/* #83: idempotent — wires the mobile long-press tooltip once */if(!worldState)return;updateHUD();updatePartyPanel();updateQuestPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();var _combatNowActive=!!worldState.combat;if(_combatNowActive){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}if(_combatNowActive&&!_cpanelWasActive&&typeof Sound!=="undefined")Sound.play("click_glass");/* #7: combat starting is an attention event — same glass as quests/level-ups (no toast here, so no window contention) */_cpanelWasActive=_combatNowActive;if(typeof carMode!=="undefined"&&carMode&&typeof _carUpdate==="function")_carUpdate();/* rank 10 (todo_carplay) — keep the car overlay's portrait/party/vitals fresh off the same funnel every other panel uses */}
 function updateQuestPanel(){

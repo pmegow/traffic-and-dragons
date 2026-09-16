@@ -24190,6 +24190,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var w=waysFromHere(worldState,memory);if(w.ways.filter(function(x){return x.kind==="road";}).length!==2)return "self-edge leaked as a road";
     return true;
   });
+  t("#413 ⑦ the row shows at most WAYS_VISIBLE chips; the rest fold into a '+N more' menu in the same order, and a set that fits shows no menu (owner phone report 2026-09-15)",function(){
+    waysFixture();worldState.world.sublocation=null;var i;for(i=0;i<6;i++)memory.map.nodes["The Village|stall "+i]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
+    var w=waysFromHere(worldState,memory),s=waysSplit(w.ways,WAYS_VISIBLE);
+    if(WAYS_VISIBLE!==4)return "owner cap is four";
+    if(s.shown.length!==4||s.more.length!==w.ways.length-4)return "split: "+s.shown.length+"/"+s.more.length+" of "+w.ways.length;
+    if(s.shown.concat(s.more).map(function(x){return x.label;}).join("|")!==w.ways.map(function(x){return x.label;}).join("|"))return "order must survive the split";
+    if(s.shown[3].label!=="stall 3"||s.more[0].label!=="stall 4")return "the visible four are the first four: "+s.shown.map(function(x){return x.label;}).join(",");
+    var small=waysSplit(w.ways.slice(0,4),WAYS_VISIBLE);if(small.more.length!==0||small.shown.length!==4)return "four chips need no menu";
+    var edge=waysSplit(w.ways.slice(0,5),WAYS_VISIBLE);if(edge.more.length!==1)return "five chips: four + one in the menu, never a '+1 more' replacing the fourth";
+    return true;
+  });
   t("#413 ⑥ the row is a thin shell: index.html mounts #hud-ways under the party row and syncUI paints it through ONE renderer that only prefills the input (never sends)",function(){
     if(typeof __fsForTests==="undefined")return true;
     var html=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),ui=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");
@@ -24199,6 +24210,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var body=ui.slice(ui.indexOf("function renderWaysRow("),ui.indexOf("function renderWaysRow(")+2600);
     if(/sendAction\(|sendSuggestedAction\(/.test(body))return "a tap prefills the input; it never sends (ruling ②)";
     if(body.indexOf('getElementById("action-input")')<0)return "the tap must prefill #action-input";
+    if(!/waysSplit\(w\.ways,WAYS_VISIBLE\)/.test(body))return "the renderer must cap through waysSplit(…, WAYS_VISIBLE) — no second cap";
+    if(html.indexOf('id="hud-ways-more"')<0)return "index.html must mount the #hud-ways-more menu";
     return true;
   });
 

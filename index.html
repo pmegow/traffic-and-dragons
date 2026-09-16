@@ -87,7 +87,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 @keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.3}}
 #game-screen{display:none;flex-direction:column;height:100vh}
 #topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--brd);background:var(--bg1);flex-shrink:0;flex-wrap:wrap;gap:8px}
-.hw-chip{font-size:11px;padding:1px 9px;border:1px solid var(--brd);border-radius:12px;background:var(--bg2);color:var(--t1);cursor:pointer;font-family:var(--font);line-height:1.5}.hw-chip:hover{background:var(--bg3);border-color:var(--acc)}.hw-chip.hw-unexplored{border-style:dashed;color:var(--t2)}
+.hw-chip{font-size:11px;padding:1px 9px;border:1px solid var(--brd);border-radius:12px;background:var(--bg2);color:var(--t1);cursor:pointer;font-family:var(--font);line-height:1.5}.hw-chip:hover{background:var(--bg3);border-color:var(--acc)}.hw-chip.hw-unexplored{border-style:dashed;color:var(--t2)}.hw-chip.hw-more{border-color:var(--acc);color:var(--acc)}.hw-row{display:block;width:100%;text-align:left;font-size:12px;padding:6px 10px;border:0;background:none;color:var(--t1);cursor:pointer;font-family:var(--font);border-radius:var(--r)}.hw-row:hover{background:var(--bg3)}.hw-row.hw-unexplored{color:var(--t2);font-style:italic}
 .ib{font-size:11px;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;font-family:var(--font);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),inset 0 -2px 0 rgba(0,0,0,0.4)}.ib:hover{background:var(--bg3)}.ib:active{box-shadow:inset 0 2px 4px rgba(0,0,0,0.5)}
 #sidebar{position:fixed;top:0;right:-280px;width:280px;height:100vh;background:var(--bg1);border-left:1px solid var(--brd);padding:16px;overflow-y:auto;z-index:100;transition:right .25s}
 #sidebar.open{right:0}#sidebar h3{font-size:13px;color:var(--acc);margin:0;text-transform:uppercase;letter-spacing:.08em}
@@ -445,7 +445,8 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <span style="color:var(--t2);font-size:11px;" id="hud-xp"></span>
     </div>
     <div id="hud-party" style="display:none;flex-basis:100%;gap:6px;flex-wrap:wrap;border-top:1px solid var(--brd);padding-top:6px;margin-top:2px;"></div>
-    <div id="hud-ways" style="display:none;flex-basis:100%;gap:6px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--brd);padding-top:6px;margin-top:2px;font-size:11px;" title="Where the party is, and the recorded ways from here. Tap a place to put the move in the input; you can still name anywhere."></div>
+    <div id="hud-ways" style="display:none;flex-basis:100%;gap:6px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--brd);padding-top:6px;margin-top:2px;font-size:11px;position:relative;" title="Where the party is, and the recorded ways from here. Tap a place to put the move in the input; you can still name anywhere."></div>
+    <div id="hud-ways-more" style="display:none;position:absolute;z-index:40;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:4px;min-width:160px;max-height:50vh;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.5);"></div>
     <div id="hud-btns" style="display:flex;gap:6px;align-items:center;margin-left:auto;">
       <button class="ib" id="sync-btn" title="Edit HP, gold, inventory and world state directly">Sync</button>
       <button class="ib" id="state-btn" title="View full world state in sidebar panel">World State</button>
