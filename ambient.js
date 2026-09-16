@@ -1,8 +1,12 @@
 // Pure policy plus an injected playback driver: no story parsing or state writes.
 var AMBIENT_FADE_SECONDS = 3;
+// Duck depth under narration. Shipped at 0.316 (−10 dB); owner field report 2026-09-15: the bed came back so much
+// louder after each narration that the contrast was stark. Now 0.5 (−6 dB); the RELEASE is also slowed in the
+// driver (ui-ambient.js) so the bed swells back instead of snapping. The duck-in stays fast — narration is never masked.
+var AMBIENT_DUCK = 0.5;
 function ambientGain(snapshot, scene) {
   var s = snapshot || {};
-  return s.capturing ? 0 : scene.bed.gain * Math.max(0, Math.min(1, Number(s.volume) || 0)) * (s.speaking ? 0.316 : 1);
+  return s.capturing ? 0 : scene.bed.gain * Math.max(0, Math.min(1, Number(s.volume) || 0)) * (s.speaking ? AMBIENT_DUCK : 1);
 }
 function ambientExteriorNode(kind, worldKey, nodeKey, nodes, resolve, registry) {
   var commons = registry[kind];

@@ -24120,6 +24120,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  t("L7 duck depth and release: narration ducks the bed to AMBIENT_DUCK (never deeper than −6 dB after the owner's stark-contrast report), and the driver releases slower than it attacks",function(){
+    if(!(AMBIENT_DUCK>=0.5&&AMBIENT_DUCK<1))return "duck depth must sit between −6 dB and unity: "+AMBIENT_DUCK;
+    var s={enabled:true,unlocked:true,visible:true,campaignKind:"village",campaignId:"one",nodeKey:"Village|the smithy",common:"the smithy",open:true,volume:0.5};
+    var full=ambientPlan(s,AUDIO_SCENES).gain,ducked=ambientPlan(Object.assign({},s,{speaking:true}),AUDIO_SCENES).gain;
+    if(Math.abs(ducked-full*AMBIENT_DUCK)>1e-9)return "ducked gain must be full × AMBIENT_DUCK: "+ducked+" vs "+full;
+    if(typeof __fsForTests==="undefined")return true;
+    var ui=__fsForTests.readFileSync(__rootForTests+"/ui-ambient.js","utf8");
+    var m=ui.match(/AMBIENT_DUCK_ATTACK_SECONDS = ([\d.]+), AMBIENT_DUCK_RELEASE_SECONDS = ([\d.]+)/);if(!m)return "driver must name its attack and release constants";
+    if(!(Number(m[2])>=4*Number(m[1])))return "release must be at least 4× slower than attack: "+m[1]+" / "+m[2];
+    if(!/value < voice\.target \? AMBIENT_DUCK_ATTACK_SECONDS : AMBIENT_DUCK_RELEASE_SECONDS/.test(ui))return "the driver must choose attack for a falling target and release for a rising one";
+    return true;
+  });
   section("L7 ambience reload");
   t("L7 reload starts saved enabled audio, restores after pagehide, and retries blocked autoplay on interaction",function(){
     if(typeof __fsForTests==="undefined")return true;

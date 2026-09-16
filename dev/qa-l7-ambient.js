@@ -49,10 +49,12 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   await page.route('https://api.openai.com/v1/audio/speech',route=>route.fulfill({status:200,contentType:'application/octet-stream',body:Buffer.alloc(24000*2*2)}));
   await page.evaluate(()=>{providerKeys.openai='fixture-key';TTS._openai.select(true);window.__voiceDone=0;window.__voiceStates=0;TTS.setOnDone(()=>__voiceDone++);TTS.on('state',()=>__voiceStates++);TTS.speak('The forge warms the room.');});
   await page.waitForTimeout(350);
-  const ducked=await page.evaluate(()=>__loops.at(-1).__gain.gain.value);assert(ducked<normal*0.4,'narration did not duck the real fire gain');
+  const ducked=await page.evaluate(()=>__loops.at(-1).__gain.gain.value);assert(ducked<normal*0.6&&ducked>normal*0.3,'narration must duck the real fire gain to about half (v1.940), not mute it');
   await page.waitForFunction(()=>!TTS.isPlaying());await page.waitForTimeout(350);
   assert(await page.evaluate(()=>__voiceDone>=1&&__voiceStates>=2),'legacy done and additive state must coexist');
-  assert((await page.evaluate(()=>__loops.at(-1).__gain.gain.value))>normal*0.95,'narration completion did not restore fire');
+  /* v1.940: the release is a ~4 s swell, not a snap: 350 ms after narration ends the bed must still be below full, and back within 8 s */
+  assert((await page.evaluate(()=>__loops.at(-1).__gain.gain.value))<normal*0.9,'the bed must swell back, not snap back (owner 2026-09-15)');
+  await page.waitForFunction(n=>__loops.at(-1).__gain.gain.value>n*0.95,normal,{timeout:8000});
   // Advance multiple real loop boundaries without waiting a minute per run.
   await page.evaluate(()=>{__loops.at(-1).playbackRate.value=12});await page.waitForTimeout(4700);
   assert.equal(await page.evaluate(()=>Ambient.inspect().sources),1);assert.equal(await page.evaluate(()=>__loops.filter(s=>!s.__stopped).length),1);

@@ -1,6 +1,7 @@
 // Device preferences and the committed scene are read at UI/voice boundaries, never polled.
 var Ambient = (function() {
   var enabled = false, volume = 0.45, unlocked = false, held = false, capturing = false;
+  var AMBIENT_DUCK_ATTACK_SECONDS = 0.08, AMBIENT_DUCK_RELEASE_SECONDS = 1.2; /* setTargetAtTime time constants: ~0.3 s down, ~4 s back up */
   var ctx = null, controller = null, initialized = false, lastError = "", status = "Off";
   var offs = [], gesturePending = false;
   function report(e) {
@@ -100,7 +101,8 @@ var Ambient = (function() {
         if (voice.target === value) return;
         var param = voice.gain.gain; param.cancelScheduledValues(ctx.currentTime);
         if (value === 0) { param.cancelScheduledValues(0); param.value = 0; }
-        else param.setTargetAtTime(value, ctx.currentTime, 0.08);
+        /* asymmetric: duck IN fast (narration is never masked), come BACK slowly (owner 2026-09-15: the snap-back was stark) */
+        else param.setTargetAtTime(value, ctx.currentTime, value < voice.target ? AMBIENT_DUCK_ATTACK_SECONDS : AMBIENT_DUCK_RELEASE_SECONDS);
         voice.target = value;
       },
       /* Envelope and mix level are independent: mic/voice events cannot cancel a scene fade. */
