@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>A GM with tastes — proposal | Traffic and Dragons</title><link rel="stylesheet" href="../satellite.css">
+<style>
+body{margin:0;line-height:1.65;font-size:17px}main{max-width:1160px;margin:auto;padding:46px 34px 90px}header{border-bottom:1px solid var(--brd2);padding-bottom:24px;margin-bottom:28px}.eyebrow,.meta{font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;color:var(--t1)}h1{font-size:clamp(32px,5vw,54px);line-height:1.13;margin:14px 0 20px;max-width:850px}h2{font-size:29px;line-height:1.25;color:var(--acc);margin:0 0 20px}h3{font-size:20px;margin:25px 0 9px}p{margin:0 0 16px}section{padding:34px 0;border-bottom:1px solid var(--brd)}.lede{font-size:23px;line-height:1.5;max-width:930px}.callout{padding:18px 22px;margin:22px 0;background:var(--bg2);border-left:3px solid var(--acc)}.small,figcaption{font-size:14px;color:var(--t1)}nav{background:var(--bg1);padding:20px 24px;margin:25px 0}nav ol{columns:2;column-gap:40px;margin:8px 0;padding-left:24px}nav li{break-inside:avoid;margin:5px 0}a{text-underline-offset:3px}li{margin:8px 0}ul,ol{padding-left:26px}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:26px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;list-style:none;padding:0}.flow li{background:var(--bg1);padding:16px;border-top:2px solid var(--brd2);margin:0}.flow span{display:block;font-size:14px;color:var(--t1);margin-top:7px}.tablewrap{max-width:100%;overflow:auto;margin:18px 0 22px}table{border-collapse:collapse;width:100%;font-size:15px;line-height:1.55}th,td{text-align:left;vertical-align:top;padding:13px 14px;border-bottom:1px solid var(--brd)}th{background:var(--bg2);color:var(--acc)}tbody tr:nth-child(even){background:var(--bg1)}td:first-child{min-width:165px;width:24%}code{font: .85em var(--font-mono);overflow-wrap:anywhere}pre{background:var(--bg1);padding:20px;overflow:auto;font:13px/1.65 var(--font-mono)}.review{padding:17px 0;border-bottom:1px solid var(--brd)}.review h3{margin-top:0}.review p:last-child{margin-bottom:0}footer{padding-top:28px;color:var(--t1);font-size:14px}section{scroll-margin-top:20px}@media(max-width:680px){main{padding:25px 18px 60px}body{font-size:16px}.lede{font-size:20px}nav ol{columns:1}.twocol{grid-template-columns:1fr;gap:0}.flow{grid-template-columns:1fr 1fr}h2{font-size:25px}th,td{padding:10px}table{min-width:540px}.callout{padding:14px 16px}}@media print{body,main,header,section,nav,.callout,th,td,pre,.flow li{background:white!important;color:black!important}main{max-width:none;padding:0;font-size:11pt}nav{display:none}h1{font-size:30pt}h2{font-size:20pt;break-after:avoid}h3{break-after:avoid}a{color:inherit}.tablewrap{overflow:visible}table{font-size:10pt;min-width:0}tr,.review,.callout{break-inside:avoid}section{padding:20px 0}.small,.meta,.eyebrow{color:#444!important}}
+</style></head><body><main>
+<header><div class="eyebrow">TRAFFIC AND DRAGONS · #331 · DESIGN PROPOSAL</div><h1>A GM with tastes</h1><p class="lede">Three disposition dials chosen at campaign start, rendered as one short, loud paragraph the Game Master reads every turn. Tone says what kind of world it is; the prose voice says how it is written; disposition says how this particular GM <em>judges</em>: what a failure costs, how fast the story moves, and whether it smiles.</p>
+<p class="meta">15 September 2026 · Draft A · Claude Fable 5.1 · for the owner's sketch. The row is parked "do not build unasked"; this document is the sketch's scaffolding, not a build.</p>
+<div class="callout"><strong>Recommendation in one line.</strong> Three dials with five stops each; the middle stop renders nothing, so every existing campaign's prompt stays byte-identical; each non-middle stop renders one imperative sentence naming a concrete behaviour, never an adjective; the paragraph lives in the stable half directly under TONE; and nothing ships to the prompt until a lab satellite lets the owner read paired outputs blind and pick the dial that produced each.</div></header>
+
+<nav aria-label="Contents"><strong>Contents</strong><ol>
+<li><a href="#why">Why a third channel</a></li><li><a href="#baseline">What the prompt already has</a></li><li><a href="#dials">The dials</a></li><li><a href="#render">How a dial becomes a sentence</a></li><li><a href="#teeth">What disposition may never touch</a></li><li><a href="#state">Where the choice lives</a></li><li><a href="#lab">The lab, before the prompt</a></li><li><a href="#tests">Contracts and tests</a></li><li><a href="#slices">Release slices</a></li><li><a href="#sketch">Questions for the owner's sketch</a></li></ol></nav>
+
+<section id="why"><h2>1. Why a third channel</h2>
+<p>The prompt has two dials today and they are both about the world or the words. <code>TONES</code> (data.js) sets the content register: how common magic is, how permanent wounds are, what stakes look like. <code>AUTHORS</code> (data.js) sets the prose voice and rides the STYLE tail at the very end of the volatile half, where end-of-prompt position is load-bearing (audit #2). Neither says how the GM <em>rules</em>. Two GMs running the same gritty world in the same voice can still differ on whether a failed lockpick means a broken pick or a guard's hand on your shoulder, whether a tavern evening may idle for four turns, and whether the grim moment gets a dry line.</p>
+<p>That third thing is what the owner called tastes. The review that spawned the row (B9) noticed the same gap from the other side: the prose voices are style, not disposition, and the sweep showed that a short, loud, behavioural directive holds across turns where an adjective list averages away. So the design is narrow on purpose: a few dials, each a behaviour, one paragraph.</p></section>
+
+<section id="baseline"><h2>2. What the prompt already has</h2>
+<p>Checked against the working tree at v1.940. Every row below is a precedent the design reuses rather than a thing it replaces.</p>
+<div class="tablewrap"><table><thead><tr><th>Already present</th><th>Where it sits</th><th>What it teaches this design</th></tr></thead><tbody>
+<tr><td><code>TONES</code>: id, name, tagline, magic, violence, and a <code>vc</code> paragraph</td><td>Stable half, <code>tb</code> block near the top (api.js:2127); <code>worldState.tone</code> is campaign-constant</td><td>A registry entry renders one paragraph; the wizard picks it once; a blueprint may pre-set it. Disposition is the same shape with a different job.</td></tr>
+<tr><td><code>AUTHORS</code> voice + <code>contentDNA</code></td><td>Voice in the STYLE tail; DNA as a stable NARRATIVE DESIGN block</td><td>"TONE governs CONTENT only… where they differ on style, the VOICE wins" (api.js:2382) is the subordination sentence that stopped two directives averaging. Disposition needs the same explicit precedence line.</td></tr>
+<tr><td>NARRATIVE RULES + the owner's <code>customRules</code></td><td>Stable half, first block, numbered, "STRICTLY ENFORCED"</td><td>Imperative rules at the top of the stable half are honoured turn after turn. Disposition sentences are written in that register.</td></tr>
+<tr><td>Adult, player-rolls-dice, name-the-stake switches (#329, #371)</td><td>Stable lines that render <code>""</code> while off</td><td>The rollback pattern: an unset switch leaves the prompt byte-identical. The middle stop of every dial does the same.</td></tr>
+<tr><td>The reckless wildcard's reward note (#305), the check-withdrawn note (#391)</td><td>Volatile engine notes, one turn, only when the situation arises</td><td>"An instruction that loses to the GM's own recent output needs a new channel, not a new spot" (owner, 2026-08). If an extreme dial ever needs reinforcing, it gets a situational note, not a louder paragraph.</td></tr>
+<tr><td>The stable-half byte-identity test (engine-tests 3956) and the doc golden</td><td>Contract</td><td>Disposition is campaign-constant. A mid-campaign edit costs one cache re-write, exactly like a bestiary edit, and must be tested to change nothing else.</td></tr>
+<tr><td>#227 no antiquity ratchet; no ledgers as story device; prose length is not a positive</td><td>Hard rules and owner rulings above any dial</td><td>"Pulp" must not mean longer; "grim" must not mean older; "ruthless" must not mean paperwork. Each dial's sentences are written to respect these.</td></tr>
+</tbody></table></div></section>
+
+<section id="dials"><h2>3. The dials</h2>
+<p>The row names three; I recommend exactly those three and list two candidates the sketch may add or reject. Every dial has five stops: two toward each pole and a silent middle. Stop names are the owner's to rename; the behaviours are what matter.</p>
+<h3>3.1 Consequence — merciful ↔ ruthless</h3>
+<p>What a failure costs in the fiction, where the rules leave latitude. The dice, DCs, HP and death gating are untouched (section 5). This dial decides whether a failed stealth roll is a creak the guard shrugs at or a hand on your shoulder, whether a captured party is ransomed or worked, whether the GM offers a way out.</p>
+<div class="tablewrap"><table><thead><tr><th>Stop</th><th>Rendered sentence (draft)</th></tr></thead><tbody>
+<tr><td>−2 Merciful</td><td>When a roll fails, the cost is a setback, never a loss: something breaks, someone notices, time is spent, but the door the player wanted stays reachable by another route you show.</td></tr>
+<tr><td>−1 Lenient</td><td>Failure costs something real but recoverable within the scene; offer the recovery without being asked.</td></tr>
+<tr><td>0</td><td><em>(nothing rendered)</em></td></tr>
+<tr><td>+1 Hard</td><td>Failure costs something the player will still feel next scene; do not offer a recovery, let them find one.</td></tr>
+<tr><td>+2 Ruthless</td><td>A failed roll closes the door it was for. Consequences land in full and at once, allies included; the world does not soften a bad decision, and you never narrate a rescue the player did not earn.</td></tr>
+</tbody></table></div>
+<h3>3.2 Pace — slow-burn ↔ pulp</h3>
+<p>How long a scene may breathe and how soon the next hook arrives. This is the dial most likely to be misread as "write more" or "write less"; the sentences are about <em>events per turn</em>, not words per turn, because prose length is never a positive.</p>
+<div class="tablewrap"><table><thead><tr><th>Stop</th><th>Rendered sentence (draft)</th></tr></thead><tbody>
+<tr><td>−2 Slow-burn</td><td>Let scenes breathe: a conversation, a meal or a road may run several turns with no new threat; plant hooks quietly and let the player choose when to pull one. Keep responses the same length as always.</td></tr>
+<tr><td>−1 Measured</td><td>One development per scene is enough; do not stack a second hook on a turn that already has one.</td></tr>
+<tr><td>0</td><td><em>(nothing rendered)</em></td></tr>
+<tr><td>+1 Brisk</td><td>Every turn advances something: a clock, a threat, a reveal. Cut travel and idle time to a sentence.</td></tr>
+<tr><td>+2 Pulp</td><td>Something happens every turn and it happens fast: cut to the moment of decision, end most responses on a fresh pressure, and never spend a turn on scenery alone. Same response length as always; more happens inside it.</td></tr>
+</tbody></table></div>
+<h3>3.3 Register — grim ↔ wry</h3>
+<p>Whether the GM allows itself humour and how it frames the dark. This is the dial closest to the prose voice, so its sentences say explicitly that they govern <em>what the GM chooses to notice</em>, and that word choice still belongs to the voice.</p>
+<div class="tablewrap"><table><thead><tr><th>Stop</th><th>Rendered sentence (draft)</th></tr></thead><tbody>
+<tr><td>−2 Grim</td><td>Notice the cost of things: wounds, hunger, what the victory spent. No jokes from the narrator; if a character jokes, nobody laughs. The voice still chooses the words.</td></tr>
+<tr><td>−1 Sober</td><td>Let dark moments stand without relief; humour belongs to characters, not to you.</td></tr>
+<tr><td>0</td><td><em>(nothing rendered)</em></td></tr>
+<tr><td>+1 Dry</td><td>Allow one dry observation per scene, usually at the expense of the powerful or the pompous; never at the player's expense.</td></tr>
+<tr><td>+2 Wry</td><td>Find the absurd in every scene and let the narration enjoy it: the villain's bad shoes, the ritual nobody remembers the point of. Danger stays real; it is simply also funny. The voice still chooses the words.</td></tr>
+</tbody></table></div>
+<h3>3.4 Candidates the sketch may add</h3>
+<ul>
+<li><strong>Generosity — stingy ↔ lavish.</strong> Loot, favours, information. Tempting, but it overlaps the wares economy (#81 pricing, the market ask) and XP tables the engine already owns; it would be a dial that mostly cannot act. Recommend no.</li>
+<li><strong>Initiative — player-led ↔ GM-driven.</strong> How hard the GM pushes when the player idles. Already half-owned by the DRIVE THE ADVENTURE rule and the village kind's override, and by the fourth button. Recommend folding into Pace rather than a fourth dial.</li>
+</ul></section>
+
+<section id="render"><h2>4. How a dial becomes a sentence</h2>
+<ol>
+<li>One registry, <code>DISPOSITIONS</code>, the <code>TONES</code>/<code>AUTHORS</code> house shape: <code>{id, nm, poles:[lowName, highName], stops:{"-2":sentence, "-1":sentence, "1":sentence, "2":sentence}}</code>. The middle has no entry by construction; a coverage guard refuses a registry where a middle sentence exists or any stop is empty.</li>
+<li><code>buildDispositionBlock()</code> (api.js, beside <code>tb</code>) joins the chosen non-middle sentences into one paragraph headed <code>GM DISPOSITION — how you rule (content and pacing, never prose style):</code> and returns <code>""</code> when every dial is at the middle. It is inserted into the stable half directly after the TONE block and before the "TONE governs CONTENT only" note, so the existing precedence sentence extends naturally: tone and disposition govern content; the voice governs style.</li>
+<li>Sentences are imperative, behavioural, and short. Every draft above names a concrete act (what a failed roll costs, how many hooks per turn, who may joke). Adjectives were what the sweep showed averaging away; behaviours are what it showed holding. No sentence may mention response length except to hold it constant.</li>
+<li>No echo in the volatile half and no per-turn restatement. One channel, one place. If a live campaign shows an extreme stop losing to the GM's own accumulated habit, the remedy is a situational engine note tied to the triggering event (a failed check under Ruthless; three idle turns under Pulp), never a second copy of the paragraph.</li>
+</ol></section>
+
+<section id="teeth"><h2>5. What disposition may never touch</h2>
+<div class="tablewrap"><table><thead><tr><th>Owned by the engine</th><th>Why the dial stays out</th></tr></thead><tbody>
+<tr><td>Dice, DCs, the stake clause, HP and damage, XP and level tables</td><td>Ruthless narrates the cost of a failure; it does not change the odds or the numbers. The player-rolls and stake switches keep their own rollback lines.</td></tr>
+<tr><td>Death gating and the escort scene (#301), downed resolution</td><td>Whether a character can die is a rule of the game, not a taste. Ruthless may describe death plainly; it cannot make one happen the rules would not.</td></tr>
+<tr><td>Quest teeth, skeleton lifecycle, milestones</td><td>Pace changes how soon hooks are offered, never whether a quest step counts.</td></tr>
+<tr><td>Canon: the map, NPC identity, relationship axes, the clock</td><td>No dial writes state. The paragraph is read by the GM; nothing about it is parsed back.</td></tr>
+<tr><td>#227 (age is never the escalation dial), no ledgers as story device, companion wants optional</td><td>Standing rulings sit above disposition. Grim does not mean older ruins; Ruthless does not mean debt paperwork.</td></tr>
+<tr><td>The prose voice</td><td>Register's sentences say twice that the voice chooses the words. Where they conflict on style, the voice wins, exactly as it wins over tone today.</td></tr>
+</tbody></table></div></section>
+
+<section id="state"><h2>6. Where the choice lives</h2>
+<ul>
+<li><strong>Record.</strong> <code>worldState.disposition = {consequence:0, pace:0, register:0}</code>, integers −2..2, additive to the v10 schema. Missing means all middle, which renders nothing, so every existing save and every old client is unaffected. Serialize, export and cloud-sync carry it like <code>tone</code>.</li>
+<li><strong>Chosen at campaign start.</strong> A row of three sliders on the wizard's tone step, defaulting to the middle. A blueprint may pre-set them (<code>"disposition"</code> beside <code>"tone"</code>), and the campaign generator may propose them the way it proposes a tone id today. The village kind starts at the middle unless the blueprint says otherwise.</li>
+<li><strong>Editable mid-campaign</strong> from File ▸ Settings, the same way the prose voice can change. The cost is one cache re-write of the stable half. Because the GM's own recent output is the strongest instruction it has, a change also arms a one-shot volatile note on the next turn: "The table's tastes changed: from here the GM rules {new sentence}." That is the only time disposition speaks in the volatile half.</li>
+<li><strong>Visible.</strong> The HUD does not show it; the campaign picker and the character sheet's campaign panel show the three stop names beside the tone, so a player can see why this GM feels different from the last.</li>
+</ul></section>
+
+<section id="lab"><h2>7. The lab, before the prompt</h2>
+<p>The row asks for the author-voice-lab pattern, and the pattern fits exactly. <code>disposition_lab.html</code> opens directly, loads globals.js and data.js read-only, links satellite.css, has a <code>?stub=1</code> mode and a <code>window.__dispositionLabTest</code> seam, and is network-first in sw.js like every satellite.</p>
+<ul>
+<li><strong>Fixed scenes.</strong> Three short scene setups, one per dial, each ending on the moment the dial decides: a failed lockpick with footsteps on the stair (consequence); a quiet tavern evening after a hard day (pace); a funeral for an NPC nobody liked (register). The scene text is fixed and name-free; only the disposition paragraph changes between arms.</li>
+<li><strong>Arms.</strong> For each dial, the −2 stop, the +2 stop and the silent middle, against one fixed tone and one fixed voice. Nine arms, plus the same nine with a second voice to prove the paragraph survives a strong style directive. Eighteen calls on the playtest model (gemini-3.7-flash per the 2026-09-05 ruling): cents, inside the weekly allowance, announced before spending.</li>
+<li><strong>The blind test.</strong> The lab shows the owner the three outputs of a dial unlabelled and asks which is Ruthless, which is Merciful, which is the middle. The feature passes when the owner picks right on all three dials, twice, with the second voice. The de-branding test asked "can you tell the author with no name in the prompt"; this asks "can you tell the disposition with no adjective in the prompt".</li>
+<li><strong>What the lab is not.</strong> Not a playtest and not a prompt editor. Sentence drafts are edited in data.js, and the lab reads them; the VOICE LAB CONTRACT's lockstep rule (lab rows derive from the registry) applies here too.</li>
+</ul></section>
+
+<section id="tests"><h2>8. Contracts and tests</h2>
+<p><code>buildSysPrompt</code> is drift surface, so the prompt half of this is Fable-tier by decree with a critical review before code. The lab and the registry entries are off-Fable legal under the safe-changes map once the registry shape exists.</p>
+<div class="tablewrap"><table><thead><tr><th>Clause</th><th>Test</th><th>Sabotage</th></tr></thead><tbody>
+<tr><td>All-middle renders nothing</td><td>Stable half byte-identical with and without a middle record; the doc golden unchanged</td><td>Delete the middle short-circuit → the byte-identity test fails</td></tr>
+<tr><td>Registry coverage</td><td>Every dial has poles and exactly four non-middle sentences; no sentence contains "longer", "shorter", "more words" or a length number; no middle sentence exists</td><td>Add a middle sentence → the guard names the dial</td></tr>
+<tr><td>Position</td><td>The block sits after TONE and before the TONE-governs-content note; never in the volatile half; STYLE remains last</td><td>Move it → the position assertion names the neighbour it lost</td></tr>
+<tr><td>No mechanics</td><td>Identical fixture turns with dials at −2, 0, +2 yield identical parser results and RNG; only the prompt text differs</td><td>Make any handler read <code>worldState.disposition</code> → the noninterference test fails</td></tr>
+<tr><td>Mid-campaign change</td><td>Editing a dial arms exactly one volatile note, consumed on the next committed turn, silent on a refused one</td><td>Drop the consumption → the note repeats</td></tr>
+<tr><td>Lab lockstep</td><td>Lab rows and arms derive from <code>DISPOSITIONS</code>; prompts are adjective-free by grep; seam present; sw.js allowlist entry</td><td>Hardcode a row → the lockstep clause fails</td></tr>
+</tbody></table></div></section>
+
+<section id="slices"><h2>9. Release slices</h2>
+<ol>
+<li><strong>0 — the sketch.</strong> This document, the owner's edits to the dial set and the stop sentences. Nothing built.</li>
+<li><strong>1 — registry and lab.</strong> <code>DISPOSITIONS</code> in data.js, the coverage guard, <code>disposition_lab.html</code>, the blind test run and its audit under <code>audits/</code>. Prompt untouched.</li>
+<li><strong>2 — the paragraph.</strong> <code>buildDispositionBlock</code>, the wizard sliders, blueprint field, serialization, the contracts above. Fable review of the prompt insertion and the precedence sentence.</li>
+<li><strong>3 — the mid-campaign edit and its note.</strong> Settings surface, the one-shot note, the campaign-panel display.</li>
+<li><strong>4 — engine-derived knobs, if wanted.</strong> Pace could later set the montage cadence and the fourth button's flavour; Consequence could set how loudly the check-withdrawn note speaks. Each is its own row.</li>
+</ol></section>
+
+<section id="sketch"><h2>10. Questions for the owner's sketch</h2>
+<ol>
+<li>Three dials as named, or a different set? The two candidates in 3.4 are there to be rejected.</li>
+<li>Five stops with a silent middle, or three (low, middle, high)? Five gives the lab a "lenient versus merciful" comparison; three is easier to explain on a phone.</li>
+<li>Do the draft sentences read like your GM? Edit them in place; the words matter more than the schema.</li>
+<li>May a blueprint author pin a dial, and may the player override it? My recommendation: blueprint sets the default, the player may move it, the campaign panel shows both.</li>
+<li>Is the blind test the right pass mark, and is eighteen calls on the playtest model the right budget for it?</li>
+</ol>
+<div class="callout"><strong>Not claimed:</strong> that these sentences hold under any model, that three dials are the right number, or that anything here is approved. The row stays parked until the sketch comes back.</div>
+<p class="small">Prepared from the working tree at v1.940: data.js (TONES, AUTHORS), api.js (buildSysPrompt, getRulesBlock, the reckless and check-withdrawn notes), char-creation.js (the tone step), campaign_generator.js, the prompt contract, the author-voice-lab contract, and the owner rulings recorded in memory. No code, save, prompt or deployment changed to produce it.</p></section>
+<footer>Traffic and Dragons · Proposal_331_gm_with_tastes.html · Draft A · Awaiting the owner's sketch</footer>
+</main></body></html>
