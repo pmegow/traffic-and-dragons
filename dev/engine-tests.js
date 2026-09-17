@@ -23036,7 +23036,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#401 invalid selection and missing credentials refuse before writing",function(){
     var S=TTS.settings;if(!S)return "settings draft API missing";var d=S.draft(),before=JSON.stringify(d);d.primary="speechify";d.keys.speechify="";
-    if(!S.validate(d))return "keyless paid selection accepted";d.primary="invented";if(!S.validate(d))return "unknown model accepted";
+    if(!S._validate(d))return "keyless paid selection accepted";d.primary="invented";if(!S._validate(d))return "unknown model accepted";
     return JSON.stringify(S.draft())===before?true:"validation changed live settings";
   });
   t("#401 model registry describes supported controls and Korean reach",function(){
@@ -23126,7 +23126,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
 
   t("#402 creation draws gender-matched voices once and preserves existing pins",function(){
     if(!TTS.assignCharacterVoices)return "character assignment helper missing";
-    var K=TTS.settings.keys.settings,old=store.get(K),stars=store.get("tnd_speaker_stars_v1");
+    var K=TTS.settings._keys.settings,old=store.get(K),stars=store.get("tnd_speaker_stars_v1");
     try{
       store.set(K,JSON.stringify({models:{speechify:{voices:[{id:"f1",label:"One",g:"F"},{id:"f2",label:"Two",g:"F"},{id:"m1",label:"Three",g:"M"}],narrator:"m1"}}}));
       store.set("tnd_speaker_stars_v1",JSON.stringify([{id:"en_GB-alba-medium",label:"F",g:"F"},{id:"en_US-ryan-high",label:"M",g:"M"}]));

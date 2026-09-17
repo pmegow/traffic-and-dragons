@@ -1903,6 +1903,7 @@ var TTS = (function() {
     _setAudioSessionType(_audioCapture || !_audioSessionPlayback ? "auto" : "playback");
   }
   var _primerSrc = null;
+  var _primerGain = null;   // audit F11 — retained so the primer's gain is torn down with its source
 
   function primeAudioSession() {
     _requestPlaybackSession();
@@ -1925,11 +1926,24 @@ var TTS = (function() {
       gain.connect(ctx.destination);
       src.start(0);
       _primerSrc = src;
+      _primerGain = gain;
     } catch(e) { console.warn("[tts] primer failed:", e.message); }
   }
 
+  // audit F11 — stopping the source left the source AND its gain wired to the destination, so
+  // every ctx rebuild (recoverAudio, the recycle) stranded another two-node chain on the old
+  // graph. Stop first, then disconnect both; a throw here is benign (already-stopped nodes) but
+  // never silent.
   function stopAudioSessionPrimer() {
-    if (_primerSrc) { try { _primerSrc.stop(); } catch(e) {} _primerSrc = null; }
+    if (_primerSrc) {
+      try { _primerSrc.stop(); } catch(e) {}
+      try { _primerSrc.disconnect(); } catch(e) { console.debug("[tts] primer source teardown:", e && e.message); }
+      _primerSrc = null;
+    }
+    if (_primerGain) {
+      try { _primerGain.disconnect(); } catch(e) { console.debug("[tts] primer gain teardown:", e && e.message); }
+      _primerGain = null;
+    }
   }
 
   function loadSettings() {
@@ -3661,6 +3675,14 @@ var TTS = (function() {
         gain.gain.value = 0.08;
         osc.connect(gain);
         gain.connect(ctx.destination);
+        // audit F11 — the earcon was the one WebAudio path in this file that never disconnected:
+        // Car Mode fires one per turn (2-4 nodes) on a context that lives as long as the page, so
+        // the graph grew for the whole drive. Same discipline as _sources' onended and sound.js
+        // (which documents itself as mirroring this function): the nodes go when the blip does.
+        osc.onended = function() {
+          try { osc.disconnect(); gain.disconnect(); }
+          catch (e) { console.debug("[tts] earcon teardown:", e && e.message); }
+        };
         var st = t0 + offset;
         osc.start(st);
         osc.stop(st + dur);
@@ -3758,14 +3780,29 @@ var TTS = (function() {
 
   // ── UI helpers ──────────────────────────────────────────────────────────────
 
+  // audit F8 — ONE definition of "narration is playing", and one event per transition.
+  // The payload used to be {playing: _playing, paused: _paused} straight off the internals, so it
+  // read playing:true while PAUSED — the exact opposite of isPlaying(), which is `_playing &&
+  // !_paused`. Two definitions of the same word is how a subscriber ducks ambience under a
+  // narrator that is not speaking. It now mirrors the getters, and consecutive identical payloads
+  // are dropped: _showBar + _updatePauseBtn both fire on every _drain, which announced every read
+  // start twice.
+  var _lastState = null;
+  function _emitState() {
+    var playing = _playing && !_paused;
+    if (_lastState && _lastState.playing === playing && _lastState.paused === _paused) return;
+    _lastState = { playing: playing, paused: _paused };
+    _audioEvents.emit("state", { playing: playing, paused: _paused });
+  }
+
   function _showBar(show) {
-    _audioEvents.emit("state", { playing: _playing, paused: _paused });
+    _emitState();
     var bar = document.getElementById("tts-bar");
     if (bar) bar.style.display = show ? "flex" : "none";
   }
 
   function _updatePauseBtn(paused) {
-    _audioEvents.emit("state", { playing: _playing, paused: _paused });
+    _emitState();
     var btn = document.getElementById("tts-pause-btn");
     if (btn) btn.textContent = paused ? "▶" : "⏸";
   }
@@ -4385,10 +4422,15 @@ var TTS = (function() {
   // ── Public API ──────────────────────────────────────────────────────────────
 
   return {
-    settings: { models: VOICE_MODELS, draft: _voiceDraft, validate: _voiceValidate, save: _voiceCommit,
+    // audit F12 — `request: _voiceRequest` had zero consumers anywhere, tests included, and is
+    // gone. The three below are consumed ONLY by the headless engine tests (same contract as
+    // _textPrep/_serverTest/_gemini/_openai); the underscore is the marker that says so, and
+    // ui-voice-settings.js — the one production consumer of this object — touches none of them.
+    settings: { models: VOICE_MODELS, draft: _voiceDraft, save: _voiceCommit,
       catalog: _voiceCatalog, loadCatalog: _voiceLoadCatalog, actor: _voiceActor, castSlots: _voiceCastSlots, test: _voiceTest,
-      sample: GEMINI_TEST_LINE, fetch: _voiceFetch, request: _voiceRequest,
-      keys: { settings: VOICE_SETTINGS_K, credentials: VOICE_KEYS_K },
+      sample: GEMINI_TEST_LINE,
+      _validate: _voiceValidate, _fetch: _voiceFetch,
+      _keys: { settings: VOICE_SETTINGS_K, credentials: VOICE_KEYS_K },
       piperOptions: _buildPiperVoiceOptions, nativeOptions: _buildNativeVoiceOptions,
       diagnostics: function() { return "Audio: " + (_audioCtx ? _audioCtx.state : "not started") + " · " + (_playing ? "speaking" : "idle") + " · engine: " + getEngine(); },
       refreshDiagnostics: function() { _updatePiperErr(); _updateServerLine(); _frameRefreshMem().then(function(m) { if (m) _updatePiperErr(); }); }
