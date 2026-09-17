@@ -43,7 +43,14 @@ var SUITES = [
   "dev/tests-sabotage-meta.js",
   "dev/tests-file-forensics.js",
   "dev/tests-install-bible.js",
-  "dev/tests-bible-editor-launcher.js"
+  "dev/tests-bible-editor-launcher.js",
+  // audit G8 (2026-09-18): both were committed and wired to NOTHING — ~34 assertions, including
+  // the six legacy modal cssText byte-pins, that no gate had run since they were written.
+  // tests-dedup-a.js was already in this list; its lane-B twin was not. tests-modal-shell.js was
+  // red on arrival (#312 ③ gave modalShell three setAttribute calls its DOM stub never grew) and
+  // was repaired to the live source in the same commit.
+  "dev/tests-dedup-b.js",
+  "dev/tests-modal-shell.js"
 ];
 
 // TODO #27 class, second instance (2026-08-15): git exports repo-location env (GIT_DIR,
