@@ -4029,8 +4029,10 @@ async function syncCharSheet(){
     }
     saveAll();
     if(typeof showToast==="function")showToast("Sheet synced.");
-    var ex=document.getElementById("cs-modal");if(ex)ex.remove();
-    if(typeof showCharSheet==="function")showCharSheet();
+    /* audit E7: in place when the sheet is still open (scroll + open sections kept, #382b); a plain
+       open when it was closed mid-sync, which is what the old remove-then-reopen guaranteed. */
+    if(typeof _csReRender==="function")_csReRender();
+    else{var ex=document.getElementById("cs-modal");if(ex)ex.remove();if(typeof showCharSheet==="function")showCharSheet();}
   }catch(e){
     if(typeof showToast==="function")showToast("Sync failed: "+(e.message||"unknown error"));
   }
