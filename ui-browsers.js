@@ -17,11 +17,11 @@ function _applyBlueprint(bp){
    show (initState with no save; newGame after the reset). Stale (>1h) or malformed payloads are
    dropped LOUDLY; a valid one goes through _applyBlueprint like every other path. One-shot. */
 function consumeHomeBlueprint(){
-  var raw=null;try{raw=localStorage.getItem(HOME_PENDING_BP_K);}catch(e){}
+  var raw=null;try{raw=localStorage.getItem(HOME_PENDING_BP_K);}catch(e){/* storage PROBE: a blocked localStorage (private mode) means there is no handoff — the absence IS the answer, nothing is lost */}
   if(!raw)return false;
-  try{localStorage.removeItem(HOME_PENDING_BP_K);}catch(e){}
-  var rec=null;try{rec=JSON.parse(raw);}catch(e){}
-  if(!rec||!rec.bp||typeof rec.bp!=="object"){console.warn("[home] pending blueprint payload unreadable — dropped");showToast("The blueprint from the home page could not be read.");return false;}
+  try{localStorage.removeItem(HOME_PENDING_BP_K);}catch(e){console.warn("[home] could not clear the pending blueprint handoff — it may replay on the next wizard open: "+((e&&e.message)||e));}
+  var rec=null,_bpErr=null;try{rec=JSON.parse(raw);}catch(e){_bpErr=(e&&e.message)||String(e);}/* audit E15: the reason a record vanished is the only clue the player can give us */
+  if(!rec||!rec.bp||typeof rec.bp!=="object"){console.warn("[home] pending blueprint payload unreadable — dropped"+(_bpErr?" ("+_bpErr+")":"")+"; "+String(raw).length+" chars discarded");showToast("The blueprint from the home page could not be read.");return false;}
   if(rec.at&&Date.now()-rec.at>3600*1000){console.warn("[home] pending blueprint is stale (>1h) — dropped");return false;}
   var err=validateBlueprint(rec.bp);
   if(err){console.warn("[home] pending blueprint refused: "+err);showToast("Blueprint refused: "+err);return false;}
@@ -32,12 +32,12 @@ function consumeHomeBlueprint(){
    pure quickStartPayloadValid, then started DIRECTLY (the import flow's own start sequence, no setup modal:
    the blueprint supplies tone, starting location and voice). One-shot; stale or malformed payloads drop LOUDLY. */
 function consumeHomeQuickStart(){
-  var raw=null;try{raw=localStorage.getItem(HOME_PENDING_QS_K);}catch(e){}
+  var raw=null;try{raw=localStorage.getItem(HOME_PENDING_QS_K);}catch(e){/* storage PROBE: a blocked localStorage means there is no handoff — nothing is lost */}
   if(!raw)return false;
-  try{localStorage.removeItem(HOME_PENDING_QS_K);}catch(e){}
-  var rec=null;try{rec=JSON.parse(raw);}catch(e){}
+  try{localStorage.removeItem(HOME_PENDING_QS_K);}catch(e){console.warn("[home] could not clear the pending quick-start handoff — it may replay: "+((e&&e.message)||e));}
+  var rec=null,_qsErr=null;try{rec=JSON.parse(raw);}catch(e){_qsErr=(e&&e.message)||String(e);}/* audit E15 */
   var bad=quickStartPayloadValid(rec);
-  if(bad){console.warn("[home] quick start dropped — "+bad);showToast("Quick start could not begin: "+bad);return false;}
+  if(bad){console.warn("[home] quick start dropped — "+bad+(_qsErr?" ("+_qsErr+")":"")+"; "+String(raw).length+" chars discarded");showToast("Quick start could not begin: "+bad);return false;}
   var bp=normalizeBlueprint(rec.bp),char=rec.char,tone=null,ti;
   if(typeof clampImportedCharacter==="function")clampImportedCharacter(char);/* #315 */
   for(ti=0;ti<TONES.length;ti++)if(TONES[ti].id===bp.tone)tone=TONES[ti];
@@ -96,9 +96,11 @@ function cbrSegBtnWide(lbl,val,sel,pos){
 // msgs carries the two caller-specific error strings, byte-preserved:
 //   {offline: no local copy and no server connection, missing: server blob has no character}.
 function loadCampaignCharacter(id,cb,msgs){
-  if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){}}}
+  /* audit E15: an unreadable record is a CORRUPT SAVE, not an absent one — the fallback chain below
+     still runs, but the corruption is named rather than vanishing into the "offline" message. */
+  if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){console.warn("[campaign] the LIVE world state is unreadable ("+((e&&e.message)||e)+") — falling back to the campaign snapshot");}}}
   var raw=store.get(campSlotKey(id,"ws"));/* #15: shared key builder (state.js) */
-  if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
+  if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){console.warn("[campaign] the local snapshot for "+id+" is unreadable ("+((e&&e.message)||e)+") — falling back to the server");}}
   if(!storageAdapter.isServerMode()||!storageAdapter.hasToken()){return cb(msgs.offline);}
   storageAdapter.getCampaignState(id,function(err,d){
     if(err)return cb(err);
@@ -554,6 +556,10 @@ function villageRefreshOnEntry(){
 }
 function _addImportedCompanion(char){
   if(!worldState){showToast("No active campaign to add companion to.");return;}
+  /* audit E9: the party write lands here but the join narration goes through sendAction, whose first
+     line returns on busy — the companion appeared, the toast said so, and the GM was never told. Refuse
+     BEFORE any state write instead, so the join is all-or-nothing. */
+  if(typeof busy!=="undefined"&&busy){showToast("Wait for the turn to finish — "+char.name+" can join after it.");return;}
   // Check if already in party
   if(wsNpcByName(char.name)){showToast(char.name+" is already in this campaign.");return;}/* #7: shared lookup */
   if(partyCompanionCount()>=partyCompanionCap()){showToast("Party full (max "+PARTY_MAX+", incl. you). Remove a companion before adding "+char.name+".");return;}
@@ -561,7 +567,11 @@ function _addImportedCompanion(char){
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(char);/* #81b: the companion's gear keeps its canon */
   var npc={name:char.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(char.gender),portrait:null,charSheet:char}; // portrait rides on charSheet only (#3 dedupe)
   worldState.npcs.push(npc);
-  if(!memory.npcs[char.name])memory.npcs[char.name]={attitude:"ally",knowledge:[],events:[]};
+  /* audit E9: same seeding as the [PARTY_MEMBER:] handler — aliases[] so every later alias write has a
+     list to push onto, and a firstEncounter line (there is no GM prose this turn to snip one from). */
+  if(!memory.npcs[char.name])memory.npcs[char.name]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+  if(!memory.npcs[char.name].aliases)memory.npcs[char.name].aliases=[];
+  if(!memory.npcs[char.name].firstEncounter)memory.npcs[char.name].firstEncounter=char.name+" joined the party at "+((worldState.world&&worldState.world.location)||"an unrecorded place")+" (t"+(worldState.turn||0)+").";
   memory.npcs[char.name].partyMember=true;
   npcLinkUpsert(worldState.character.name,char.name,"companions");
   saveAll();syncUI();
@@ -688,8 +698,6 @@ function showLibraryUpdateModal(char,onApplied){
     });
   });
 }
-// The standalone Character Library is now the Library tab of the unified Import Character browser.
-function showCharacterLibrary(){showCharacterBrowser("library");}
 // ── Campaign-start companion selection ────────────────────────────────────────
 function _renderCompanionSlots(){
   var sec=document.getElementById("companion-section");if(!sec)return;

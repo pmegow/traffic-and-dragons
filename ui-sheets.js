@@ -26,19 +26,22 @@ function csHeroHeader(c){
 }
 // #50 QOL: drop an inventory item from a live sheet. owner ""=player, else companion name.
 // Native confirm guards the misclick; the drop is a player edit (like the Sync modal), saved
-// and synced immediately, and the sheet re-renders in place.
+// and synced immediately, and the sheet re-renders IN PLACE (#382b — audit E7: this comment used
+// to promise an in-place re-render the code did not do).
 function dropInvItem(owner,idx,ev){
   if(ev&&ev.stopPropagation)ev.stopPropagation();
   idx=parseInt(idx,10);if(isNaN(idx)||!worldState)return;
-  var inv=null,i;
-  if(owner===""){inv=worldState.character&&worldState.character.inventory;}
-  else{for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];if(n&&n.name===owner&&n.charSheet){inv=n.charSheet.inventory;break;}}}
+  var inv=null,cs=null,i;
+  if(owner===""){cs=worldState.character;inv=cs&&cs.inventory;}
+  else{for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];if(n&&n.name===owner&&n.charSheet){cs=n.charSheet;inv=cs.inventory;break;}}}
   if(!inv||idx<0||idx>=inv.length)return;
   var nm=inv[idx];
   if(!window.confirm('Drop "'+nm+'"?'))return;
-  inv.splice(idx,1);saveAll();
+  inv.splice(idx,1);
+  if(typeof wornPrune==="function")wornPrune(cs);/* audit E4/#388: nothing is worn that is not carried — a dropped worn sword otherwise rode attireLine into every prompt */
+  saveAll();
   if(typeof showToast==="function")showToast("Dropped: "+nm);
-  if(owner===""){var ex=document.getElementById("cs-modal");if(ex){ex.remove();showCharSheet();}if(typeof updateInvPanel==="function")updateInvPanel();}
+  if(owner===""){refreshCharSheetInPlace();if(typeof updateInvPanel==="function")updateInvPanel();}
   else{var ex2=document.getElementById("npc-modal");if(ex2){ex2.remove();showNpcSheet(owner);}}
 }
 // #47 policy (user ruling 2026-07-12): epithets are GM-granted only, but the PLAYER may reject
@@ -54,7 +57,7 @@ function rejectEpithet(owner,idx,ev){
   if(!window.confirm('Reject the epithet "'+nm+'"? The GM will stop using it.'))return;
   al.splice(idx,1);saveAll();
   if(typeof showToast==="function")showToast("Epithet rejected: "+nm);
-  if(owner===""){var ex=document.getElementById("cs-modal");if(ex){ex.remove();showCharSheet();}}
+  if(owner===""){refreshCharSheetInPlace();}/* #382b / audit E7: keep the reader's scroll and open sections */
   else{var ex2=document.getElementById("npc-modal");if(ex2){ex2.remove();showNpcSheet(owner);}}
 }
 // invOwner (#50 QOL): ""=live player sheet, "<npc name>"=live companion sheet — inventory rows
@@ -247,6 +250,15 @@ function refreshCharSheetInPlace(){
   var ns=nx.querySelectorAll(".cs-sec");for(i=0;i<ns.length&&i<open.length;i++){if(!open[i])continue;var nb=ns[i].querySelector(".cs-sec-body"),na=ns[i].querySelector(".cs-tog-arr");if(nb)nb.style.display="block";if(na)na.style.transform="rotate(90deg)";}
   nx.scrollTop=top;return true;
 }
+/* audit E7 (2026-09-18): THE re-render call for every sheet action. #382b's helper existed at one of
+   nine sites; the other eight closed the modal and reopened it, so a drop/toggle/refresh threw the
+   reader back to the top with every section collapsed. In place when a sheet is open; a plain open
+   otherwise (the syncCharSheet path must still show the sheet when it was closed mid-sync). */
+function _csReRender(){
+  if(typeof refreshCharSheetInPlace==="function"&&refreshCharSheetInPlace())return true;
+  if(typeof showCharSheet==="function")showCharSheet();
+  return false;
+}
 function showCharSheet(){
   if(!worldState)return;
   var c=worldState.character;
@@ -298,7 +310,7 @@ function showCharSheet(){
   document.getElementById("cs-export-btn").addEventListener("click",function(){_showCharExportOptions(c);});
   /* #161: showLibraryUpdateModal lives in ui-browsers.js (loads AFTER this file) — safe by
      call-time resolution, the same load-order argument as ftRenderPortrait/UA21 ②. */
-  document.getElementById("cs-libupd-btn").addEventListener("click",function(){showLibraryUpdateModal(c,function(){showCharSheet();});});
+  document.getElementById("cs-libupd-btn").addEventListener("click",function(){showLibraryUpdateModal(c,function(){_csReRender();});});/* audit E7 */
   document.getElementById("cs-sync-btn").addEventListener("click",function(){if(typeof syncCharSheet==="function")syncCharSheet();});
   csWireToggles(modal);
   csWireVoice(c);/* #9 */
@@ -309,11 +321,11 @@ function showCharSheet(){
     delete c.isPC;/* undefined = PC — keeps legacy saves byte-clean, same convention as ragMemory */
     if(worldState.mpEnded&&playerCount()>1)worldState.mpEnded=null;/* D12: back into multiplayer — cancel the exit reinforcement */
     saveAll();showToast("★ "+c.name+" is a PLAYER character — "+playerCount()+" player"+(playerCount()===1?"":"s"),4000);
-    modal.remove();showCharSheet();
+    _csReRender();/* audit E7 */
   });
   document.getElementById("cs-tog-npc").addEventListener("click",function(){
     if(c.isPC===false)return;
-    var demote=function(){c.isPC=false;saveAll();showToast(c.name+" is GM-played — "+(playerCount()===0?"no active player (pure NPC turns)":playerCount()+" player"+(playerCount()===1?"":"s")+" remain"),5000);modal.remove();showCharSheet();};
+    var demote=function(){c.isPC=false;saveAll();showToast(c.name+" is GM-played — "+(playerCount()===0?"no active player (pure NPC turns)":playerCount()+" player"+(playerCount()===1?"":"s")+" remain"),5000);_csReRender();/* audit E7 */};
     if(playerCount()<=1)_confirmLastPcDemote(demote);else demote();
   });
   // ── Spotlight return (TODO #1 P2, D6/D7) ──────────────────────────────────
@@ -321,7 +333,7 @@ function showCharSheet(){
     document.getElementById("cs-spot-btn").addEventListener("click",function(){
       setActivePC(null);saveAll();if(typeof syncUI==="function")syncUI();
       showToast("☀ "+c.name+" has the spotlight",3500);
-      modal.remove();showCharSheet();
+      _csReRender();/* audit E7 */
     });
   }
 

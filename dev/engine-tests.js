@@ -1034,8 +1034,10 @@ function runEngineTests(R){
     var r=applyMuts("[ACT_COMPLETE:The Weight Below]");
     if(!worldState.spineComplete||worldState.spineComplete.act!=="The Weight Below")return "spineComplete not armed: "+JSON.stringify(r.muts);
     var a=engineFourthAction();if(a&&a.kind==="ending")return "#364: the ending is a menu item now, not the fourth button";
-    if(!endingOffered()||!endingMenuVisible())return "the offer did not arm";var et=endingOfferText();if(et.indexOf("Write the ending")<0||et.indexOf("The Iron Meridian")<0)return "offer text: "+et;
-    if(!endingChoiceFromText(et)||endingChoiceFromText("Write a letter to the harbourmaster."))return "endingChoiceFromText";
+    if(!endingOffered()||!endingMenuVisible())return "the offer did not arm";
+    /* audit E16: endingOfferText is deleted — since #364 the offer's copy is the File-menu item and the
+       modal, and this test was its only caller. The LIVE half (sendAction's intercept) is what matters. */
+    if(!endingChoiceFromText("Write the ending — the tale of The Iron Meridian is told.")||endingChoiceFromText("Write a letter to the harbourmaster."))return "endingChoiceFromText";
     var sk=buildSkeletonBlock();if(!/TALE IS TOLD/.test(sk)||!/ending/i.test(sk))return "skeleton block silent about the finished spine";
     var d=endingDecide("play");if(!d||d.action!=="play"||endingOffered())return "play on did not snooze: "+JSON.stringify(d);
     if(!endingMenuVisible())return "#364: the menu item must ignore the snooze — a menu is not a nag";
@@ -1902,6 +1904,10 @@ function runEngineTests(R){
     var tt=__fsForTests.readFileSync(__rootForTests+"/table-talk.js","utf8");if(tt.indexOf("spellUnavailable(c.spells[i])")<0||/c\.spells\[i\]\.used\?" \(used\)"/.test(tt))return "Table Talk must read the gate";
     var rule=DEFAULT_RULES.join("\n");if(/SPELLS AVAILABLE list|expended slots/.test(rule)||!/RACIAL 1\/day spell marked used CANNOT be cast again before a long rest/.test(rule)||!/Every other spell costs mana/.test(rule))return "slot-era wording survives in the default rules";
   });
+  /* #362: names from published RPG rosters that must never return to the defaults. Tiamat is Mesopotamian
+     by origin and stays, without the borrowed epithet. Audit E17 moved this list OUT of data.js — it is a
+     de-branding TEST fixture with no production reader, and it was shipping to every player. */
+  var PUBLISHED_RPG_DEITIES=["Pelor","Ioun","Avandra","Erathis","Raven Queen","Sehanine","Asmodeus","Vecna","Tharizdun","Bahamut","Kord","Melora","Corellon","Torog","Moradin","Gruumsh","Primal Spirits","Dragon Queen","Platinum Dragon","Abadar","Erastil","Sarenrae","Desna","Pharasma","Iomedae","Gorum","Torag","Nethys","Cayden Cailean","Calistria","Shelyn","Lamashtu","Rovagug","Urgathoa","Zon-Kuthon","Norgorber","Gozreh","Irori","Lathander","Mystra","Bane","Cyric","Kelemvor","Tempus","Selûne","Shar","Lolth","Gond","Helm","Ilmater","Oghma","Silvanus","Tymora","Umberlee","Waukeen"];
   t("#362 the default deities come from cultural pantheons only: every DEITY_CENTRIC class × alignment has a 'Name, epithet' entry, no name from a published RPG roster appears in the map or the ancestry resolver, and the drift nudge still matches the map's exact strings",function(){
     var cls,al,i,names=[];
     for(i=0;i<DEITY_CENTRIC.length;i++){cls=DEITY_CENTRIC[i];if(!DEITY_MAP[cls])return "no map for "+cls;

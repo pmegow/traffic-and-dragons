@@ -74,6 +74,7 @@ function showLedgerModal(spec){
 }
 /* #407 the counter: the shop spec over shopTradeCatalog / shopTradePlan / shopTradeApply. */
 function showShopModal(){
+  if(typeof busy!=="undefined"&&busy){showToast("Wait for the turn to finish before trading.");return;}/* audit E1: the panel row may have been painted before the turn began */
   var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no shop"};
   if(!cat.ok){showToast("Trade: "+cat.reason);return;}
   var rows=shopLedgerRows(cat);
@@ -87,6 +88,7 @@ function showShopModal(){
 }
 /* #6 E11 the chest: the stash spec over stashTradeCatalog / stashTradePlan / stashTradeApply — own house only. */
 function showStashModal(){
+  if(typeof busy!=="undefined"&&busy){showToast("Wait for the turn to finish before moving things.");return;}/* audit E1 */
   var cat=(typeof stashTradeCatalog==="function")?stashTradeCatalog():{ok:false,reason:"no stash"};
   if(!cat.ok){showToast("Stash: "+cat.reason);return;}
   var rows=stashLedgerRows(cat);
@@ -147,6 +149,36 @@ function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");eachMenuE
 function loadLegacySettings(){legacyCharsOn=store.get(LEGACY_ON_K)==="1";var pv=parseInt(store.get(LEGACY_PCT_K)||"5",10);legacyChancePct=(isNaN(pv)||pv<1)?5:Math.min(100,pv);eachMenuEl("legacy-cb",function(el){el.checked=legacyCharsOn;});eachMenuEl("legacy-pct",function(el){el.value=legacyChancePct;});}
 function saveLegacySettings(){store.set(LEGACY_ON_K,legacyCharsOn?"1":"");store.set(LEGACY_PCT_K,String(legacyChancePct));}
 
+/* audit E2 (2026-09-18): the Sync modal's place patch, as TAGS for the real filer instead of a raw
+   `world.location=` write. PURE — returns the tag text applyMuts should run, or "" when nothing moved:
+     • world node changed          → [LOCATION:name] (resolution, twin-conflict refusal, node mint, the
+                                     travel edge, lastArrivalFrom and sublocation=null all follow), plus
+                                     a [SUBLOCATION:] when the patch also names a sub under the new parent
+     • world node same, sub named  → [SUBLOCATION:name]
+     • world node same, sub blanked→ [SUBLOCATION_LEAVE]
+   Names are player free text, so a stray "]" (or a pasted tag) is scrubbed before it can become a second
+   tag — the modal patches a PLACE, never the tag stream. */
+function syncLocationPatchTags(w,loc,sub){
+  function clean(s){return String(s==null?"":s).replace(/[\[\]\r\n]+/g," ").replace(/\s+/g," ").trim();}
+  var here=clean(w&&w.location),hereSub=clean(w&&w.sublocation),L=clean(loc),S=clean(sub);
+  if(L&&L!==here)return "[LOCATION:"+L+"]"+(S?"\n[SUBLOCATION:"+S+"]":"");
+  if(S&&S!==hereSub)return "[SUBLOCATION:"+S+"]";
+  if(!S&&hereSub)return "[SUBLOCATION_LEAVE]";
+  return "";
+}
+/* audit E2: the Sync modal's LEVEL decision, PURE so the threshold arithmetic is engine-testable.
+   checkLevelUp is XP-driven, so a raise must lift XP to the target level's threshold first — an
+   off-by-one there would leave the level silently unchanged, which is the exact failure class this
+   fix exists to kill. A level DOWN has no un-grant path anywhere in the engine and is refused.
+   Returns {action:"none"} | {action:"raise", xp:<new xp or null when it already suffices} |
+   {action:"refuse", why}. */
+function syncLevelPatchPlan(c,lvl){
+  var max=classXpLevels().length,cur=(c&&c.level)||1;
+  if(typeof lvl!=="number"||isNaN(lvl)||lvl<1||lvl>max||lvl===cur)return {action:"none"};
+  if(lvl<cur)return {action:"refuse",why:"Level not lowered — granted features cannot be taken back here."};
+  var need=classXpLevels()[lvl-1],have=(c&&typeof c.xp==="number")?c.xp:0;
+  return {action:"raise",xp:(typeof need==="number"&&have<need)?need:null};
+}
 function showSyncModal(){
   var ex=document.getElementById("sync-modal");if(ex)ex.remove();if(!worldState){showToast("No active game.");return;}
   /* #14: re-rendering modal — × wired per render below, so wireClose:false */
@@ -163,8 +195,9 @@ function showSyncModal(){
       +"<div><label class='sc-lbl'>Gold</label><input id='sc-gold' type='number' class='sc-inp' value='"+c.gold+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>XP</label><input id='sc-xp' type='number' class='sc-inp' value='"+c.xp+"' "+ro+"/></div>"
       +((typeof manaMax==="function"&&manaMax(c)>0)?"<div><label class='sc-lbl'>Mana (max "+manaMax(c)+")</label><input id='sc-mana' type='number' min='0' max='"+manaMax(c)+"' class='sc-inp' value='"+manaCur(c)+"' "+ro+"/></div>":"")/* #110: the manual patch path for a desynced pool */
-      +"<div><label class='sc-lbl'>Level</label><input id='sc-level' type='number' min='1' max='10' class='sc-inp' value='"+c.level+"' "+ro+"/></div>"
+      +"<div><label class='sc-lbl'>Level</label><input id='sc-level' type='number' min='1' max='"+classXpLevels().length+"' class='sc-inp' value='"+c.level+"' "+ro+"/></div>"/* audit E11: the spinner's cap IS the curve length the handler accepts */
       +"<div><label class='sc-lbl'>Location</label><input id='sc-loc' type='text' class='sc-inp' value='"+escHtml(w.location)+"' "+ro+"/></div>"
+      +"<div><label class='sc-lbl'>Sub-location (blank = none)</label><input id='sc-sub' type='text' class='sc-inp' value='"+escHtml(w.sublocation||"")+"' "+ro+"/></div>"/* audit E2: the sub is real state; without a field here a patched location left it hanging under the old parent */
       +"<div><label class='sc-lbl'>Time flavor (clock is authoritative)</label><input id='sc-time' type='text' class='sc-inp' value='"+escHtml(w.time)+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>Weather</label><input id='sc-weather' type='text' class='sc-inp' value='"+escHtml(w.weather)+"' "+ro+"/></div></div>"
       +"<div style='margin-bottom:12px;'><label class='sc-lbl'>Inventory (one per line)</label><textarea id='sc-inv' class='sc-inp' style='height:80px;resize:vertical;' "+ro+">"+escHtml(c.inventory.join("\n"))+"</textarea></div>"
@@ -178,14 +211,34 @@ function showSyncModal(){
       var hp2=parseInt(document.getElementById("sc-hp").value),mhp2=parseInt(document.getElementById("sc-maxhp").value);
       var gld2=parseInt(document.getElementById("sc-gold").value),xp2=parseInt(document.getElementById("sc-xp").value),lvl2=parseInt(document.getElementById("sc-level").value);
       var loc2=document.getElementById("sc-loc").value.trim(),tm2=document.getElementById("sc-time").value.trim(),wx2=document.getElementById("sc-weather").value.trim();
+      var _scSub=document.getElementById("sc-sub"),sub2=_scSub?_scSub.value.trim():((w2.sublocation)||"");
       var rawInv=document.getElementById("sc-inv").value.trim();
       var inv2=rawInv?rawInv.split("\n").map(function(x){return x.trim();}).filter(function(x){return x.length>0;}):[];
+      var notes=[];/* audit E2: a refused or adjusted patch is reported in the modal, never silently dropped */
       if(!isNaN(mhp2)&&mhp2>0)c2.maxHp=mhp2;if(!isNaN(hp2))c2.hp=Math.min(c2.maxHp,Math.max(0,hp2));
       if(!isNaN(gld2))c2.gold=Math.max(0,gld2);if(!isNaN(xp2))c2.xp=Math.max(0,xp2);
-      if(!isNaN(lvl2)&&lvl2>=1&&lvl2<=classXpLevels().length)c2.level=lvl2;/* the curve length (20) is the cap since C6 — the old <=10 silently refused L11+ */if(loc2)w2.location=loc2;if(tm2)w2.time=tm2;if(wx2)w2.weather=wx2;
+      /* audit E2: the LEVEL goes through the same grant path a played level-up uses — the pure
+         syncLevelPatchPlan decides, checkLevelUp({land:true}) lands the class/archetype features, the
+         HP, the stat-bump queue and the spell-tier picks. The XP lift is visible: the field repaints
+         below and the modal says so. The curve length (20) is the cap since C6. */
+      var _lvPlan=syncLevelPatchPlan(c2,lvl2);
+      if(_lvPlan.action==="refuse"){notes.push(_lvPlan.why);if(typeof console!=="undefined")console.warn("[sync] level "+c2.level+" → "+lvl2+" refused: no un-grant path exists (audit E2)");}
+      else if(_lvPlan.action==="raise"){
+        if(_lvPlan.xp!=null){c2.xp=_lvPlan.xp;notes.push("XP raised to "+_lvPlan.xp+" for level "+lvl2+".");}
+        if(typeof checkLevelUp==="function")checkLevelUp({land:true});
+      }
+      /* audit E2: the PLACE goes through the real filer — one tag, one applyMuts, so resolution, the
+         twin-conflict refusal, the node mint, the travel edge and sublocation=null all happen. The
+         #264 whitelist is belt-and-braces: this text is engine-built, and nothing else may ride it. */
+      var _locTags=syncLocationPatchTags(w2,loc2,sub2);
+      if(_locTags){var _lr=applyMuts(_locTags,{allow:["LOCATION","SUBLOCATION","SUBLOCATION_LEAVE"]}),_lm=(_lr&&_lr.muts)||[],_li;
+        for(_li=0;_li<_lm.length;_li++)if(/REFUSED/i.test(String(_lm[_li])))notes.push(String(_lm[_li]));}
+      if(tm2)w2.time=tm2;if(wx2)w2.weather=wx2;
       var _scMana=document.getElementById("sc-mana");if(_scMana){var mn2=parseInt(_scMana.value);if(!isNaN(mn2))c2.mana=Math.max(0,Math.min(manaMax(c2),mn2));}/* #110 */
-      c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63) */syncUI();saveAll();renderSync();
-      var msg=document.getElementById("sc-msg");if(msg){msg.textContent="Applied.";msg.style.color="var(--grn)";}
+      c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63) */
+      if(typeof wornPrune==="function")wornPrune(c2);/* audit E4/#388: nothing is worn that is not carried */
+      syncUI();saveAll();renderSync();
+      var msg=document.getElementById("sc-msg");if(msg){msg.textContent=notes.length?("Applied. "+notes.join(" ")):"Applied.";msg.style.color=notes.length?"var(--warn)":"var(--grn)";}
     });}
   }
   renderSync();
@@ -260,6 +313,15 @@ function saveProviderSettings(){
   store.set(PMDL_K,JSON.stringify(providerModels));
   store.set(UPGRADE_K,allowModelUpgrade?"true":"false");
 }
+/* audit B7 (2026-09-18): for a provider whose upgradeModel IS its defaultModel — anthropic, gemini and
+   a default-config openai player today — the "allow model upgrade" switch changes NOTHING, while the UI
+   presents it as general. The row is shown DISABLED with a title that says so rather than hidden, so a
+   player who remembers the setting can see it is still there and why it is inert. upgradeModelFor()
+   itself is untouched; this is honesty about it. Pure. */
+function upgradeToggleIsInert(pid){
+  var p=(typeof PROVIDERS!=="undefined")&&PROVIDERS[pid];
+  return !!(p&&p.upgradeModel&&p.defaultModel&&p.upgradeModel===p.defaultModel);
+}
 function showProviderModal(){
   closeAllMenus();/* #15④: was the closeAllMenus body inlined verbatim */
   var selProv=PROVIDERS[activeProvider]?activeProvider:"anthropic";
@@ -277,7 +339,7 @@ function showProviderModal(){
     +"<input type='password' id='pv-key' autocomplete='one-time-code' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'/>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>Model</div>"
     +"<select id='pv-model' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'>"+modelOpts()+"</select>"
-    +"<label style='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;'><input type='checkbox' id='pv-upgrade'"+(allowModelUpgrade?" checked":"")+"><span style='font-size:12px;color:var(--t2);'>Allow model upgrade for complex tasks</span></label>"
+    +"<label id='pv-upgrade-row' style='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;'><input type='checkbox' id='pv-upgrade'"+(allowModelUpgrade?" checked":"")+"><span id='pv-upgrade-lbl' style='font-size:12px;color:var(--t2);'>Allow model upgrade for complex tasks</span></label>"/* B7: the row is disabled below when this provider's upgrade target is its own default */
     +"<p id='pv-msg' style='font-size:12px;min-height:16px;margin:12px 0;text-align:center;'></p>"
     +"<button id='pv-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save &amp; Use</button>",
     {maxWidth:420,closeId:"pv-x"});
@@ -285,6 +347,15 @@ function showProviderModal(){
   function refreshSel(){
     keyInp.value=_pvStaged[selProv]||"";keyInp.placeholder=PROVIDERS[selProv].keyHint;modelSel.innerHTML=modelOpts();
     radioRowsRefresh(modal,"pv-row",selProv,"span");/* #15① */
+    /* B7: the switch is inert when this provider's upgrade target IS its default — say so instead of
+       presenting it as general. The checkbox keeps its state, so Save still persists the player's choice. */
+    var _uRow=document.getElementById("pv-upgrade-row"),_uBox=document.getElementById("pv-upgrade"),_uLbl=document.getElementById("pv-upgrade-lbl"),_uInert=upgradeToggleIsInert(selProv);
+    if(_uRow&&_uBox&&_uLbl){
+      _uBox.disabled=_uInert;
+      _uRow.style.opacity=_uInert?".5":"1";_uRow.style.cursor=_uInert?"default":"pointer";
+      _uRow.title=_uInert?(PROVIDERS[selProv].label+" upgrades to the same model it already uses ("+PROVIDERS[selProv].defaultModel+") — this switch changes nothing here."):"Escalate skeleton, sheet-sync and suggestion calls to "+PROVIDERS[selProv].upgradeModel+".";
+      _uLbl.textContent=_uInert?"Allow model upgrade — nothing to upgrade to on "+PROVIDERS[selProv].label:"Allow model upgrade for complex tasks";
+    }
   }
   Array.prototype.forEach.call(modal.querySelectorAll(".pv-row"),function(row){row.addEventListener("click",function(){_pvStaged[selProv]=keyInp.value.trim();selProv=this.getAttribute("data-id");refreshSel();});});
   refreshSel();
@@ -816,10 +887,14 @@ function acceptQuest(title){
   var i;for(i=0;i<worldState.questLog.length;i++){if(worldState.questLog[i].title===title&&worldState.questLog[i].status==="offered"){worldState.questLog[i].status="active";saveAll();syncUI();if(typeof showToast==="function")showToast("Quest accepted: "+title);break;}}
   showQuestModal();
 }
+/* audit E6: the archive record has ONE author — archiveQuest (api.js). This used to build the
+   memory.quests entry and splice by hand, with a case-SENSITIVE title match where archiveQuest's is
+   case-insensitive, so the next field added to the record would land in one copy and not the other. */
 function declineQuest(title){
   if(_questJournalBusy())return;
   if(!worldState||!worldState.questLog)return;
-  var i;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(q.title===title&&q.status==="offered"){if(!memory.quests)memory.quests={};memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"declined",turn:worldState.turn||0};worldState.questLog.splice(i,1);saveAll();syncUI();if(typeof showToast==="function")showToast("Quest declined: "+title);break;}}
+  var i,found=null;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(String(q.title).toLowerCase()===String(title).toLowerCase()&&q.status==="offered"){found=q;break;}}
+  if(found){archiveQuest(found.title,"declined");saveAll();syncUI();if(typeof showToast==="function")showToast("Quest declined: "+found.title);}
   showQuestModal();
 }
 // ── Bug report modal (#16b) — File ▸ ⚠ Report bug ────────────────────────────────────────────

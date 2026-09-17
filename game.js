@@ -358,6 +358,7 @@ function waysSplit(ways,cap){
    pruning and the gated auto-take apply as for a GM turn. A refusal in the log is reported, never hidden. One system
    line; no GM note — the geo block already serves the STASH line every turn. */
 function stashTradeApply(marks){
+  if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[stash] move refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and its saveAll)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1: every other state-mutating entry point is busy-gated; this one was not */
   var cat=(typeof stashTradeCatalog==="function")?stashTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=stashTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
   var R=applyMuts(stashTradeTagText(plan),{deferSave:true}),muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Stash refused|kept/.test(String(m));});
@@ -373,6 +374,7 @@ function stashTradeApply(marks){
    ware leaves it, a sold item joins it (fileWare pins to canon; no canon = the price paid) so it can be bought back.
    One system line in the log names hero and keeper; tradePing arms the ONE in-character sentence for the next turn. */
 function shopTradeApply(marks){
+  if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[shop] trade refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and overwrite the one-shot tradePing)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1 */
   var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=shopTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
   var R=applyMuts(shopTradeTagText(plan),{deferSave:true}),muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Trade refused/.test(String(m));});
@@ -508,10 +510,22 @@ function validateSuggestion(text,man){
   // "cast a glance" carry no spell-word and pass), and ownership resolved against the sheets —
   // delegated to a present companion who owns it passes (Daeris DID have Binding Ward; the GM's
   // narration that turn was grounded, only the button was invented).
-  var castM=t.match(/^\s*(?:have\s+([A-Z][\w' -]*?)\s+)?(?:cast|casts|set(?: down)?|lay(?: down)?|slap down|invoke|channel|work|weave)\s+(?:an?\s+|the\s+|your\s+|his\s+|her\s+|their\s+)?(.+)$/i);
+  // audit E5 (2026-09-18): the spell-WORD list alone is necessary but NOT sufficient. Ordinary moves
+  // whose object happens to carry one died as unknown-capability and applySuggestionGate swapped the
+  // button silently — "Lay down your blade and surrender.", "Lay the blade on the table.", "Work the
+  // circle of tents for rumours." (the collision class the #343 negatives never exercised, since their
+  // objects carry no spell word). So a SECOND signal must also hold before the ownership question is
+  // asked: a real CASTING verb (cast/invoke/channel/weave — set/lay/slap down/work are plain English),
+  // or an object Title-Cased like a spell NAME ("Binding Ward", "Frost Lance"), or an object that IS a
+  // bible key (in which case the branches below defer a known key to rule ②, exactly as before).
+  var castM=t.match(/^\s*(?:have\s+([A-Z][\w' -]*?)\s+)?(cast|casts|set(?: down)?|lay(?: down)?|slap down|invoke|channel|work|weave)\s+(?:an?\s+|the\s+|your\s+|his\s+|her\s+|their\s+)?(.+)$/i);
   if(castM){
-    var castObj=castM[2].replace(/[.!?]+\s*$/,"").split(/\s+(?:and|then|on|onto|over|near|at|across|around|before|while|so|to)\s+|,\s*/i)[0].trim(),castObjLc=castObj.toLowerCase();
-    if(castObj&&/\b(ward|wards|sphere|bolt|shield|blast|charm|hex|curse|glamour|illusion|barrier|sigil|glyph|rune|invocation|ritual|enchantment|spell|cantrip|aura|zone|circle|wall|blade|flame|frost|cloud|fog|mist|binding|blessing|banishment|summoning)\b/i.test(castObj)){
+    var castObj=castM[3].replace(/[.!?]+\s*$/,"").split(/\s+(?:and|then|on|onto|over|near|at|across|around|before|while|so|to)\s+|,\s*/i)[0].trim(),castObjLc=castObj.toLowerCase();
+    var _castingVerb=/^(cast|casts|invoke|channel|weave)$/i.test(String(castM[2]).trim());
+    var _tcW=castObj?castObj.split(/\s+/):[],_tcNamed=_tcW.length>0&&/^[A-Z]/.test(_tcW[0]),_tcI;
+    for(_tcI=0;_tcI<_tcW.length&&_tcNamed;_tcI++){if(/^(of|the|a|an|and|in|on|to|from)$/.test(_tcW[_tcI]))continue;if(!/^[A-Z]/.test(_tcW[_tcI]))_tcNamed=false;}/* the object is mid-sentence, so an initial capital is a NAME, not a sentence start */
+    var _isBibleKey=!!(castObj&&typeof capabilityLookup==="function"&&capabilityLookup(castObj));
+    if(castObj&&(_castingVerb||_tcNamed||_isBibleKey)&&/\b(ward|wards|sphere|bolt|shield|blast|charm|hex|curse|glamour|illusion|barrier|sigil|glyph|rune|invocation|ritual|enchantment|spell|cantrip|aura|zone|circle|wall|blade|flame|frost|cloud|fog|mist|binding|blessing|banishment|summoning)\b/i.test(castObj)){
       var ownsIn=function(list){var q;for(q=0;q<(list||[]).length;q++){if(String(list[q]).length>=3&&castObjLc.indexOf(String(list[q]).toLowerCase())>=0)return true;}return false;};
       var activeNames=man.caps.map(function(cp){return cp.name;}),pcAll=man.partyCaps||{},pn;
       if(castM[1]){/* delegated: the named present companion must own it */
@@ -3426,14 +3440,20 @@ function buildSeedLegend(names,omitted){
   return s;
 }
 async function doRender(rOpts){
-  if(!worldState||_rendering)return;_rendering=true;
-  /* #206: a per-frame button passes {turn}; a past turn renders from ITS frame (own prose, place, clock, weather rule,
-     party), with NO history on the writer call. The current turn and the topbar button take the live path unchanged. */
-  var ctx=(rOpts&&typeof rOpts.turn==="number")?renderContextForTurn(rOpts.turn):null,hist=!!(ctx&&!ctx.live);
-  var _frame=(hist&&typeof document!=="undefined")?document.querySelector('[data-turn="'+ctx.turn+'"]'):null;
-  var th=addMsg("thinking","Composing scene...",hist?{keepPlace:true}:undefined);/* #206c: the marker sits under the frame being painted, the reader stays put */
-  if(_frame&&th&&_frame.parentNode===th.parentNode)_frame.parentNode.insertBefore(th,_frame.nextSibling);
+  if(!worldState||_rendering)return;
+  /* audit E13: the render latch is armed INSIDE the guarded block and cleared in a finally. It used to
+     be armed first, with renderContextForTurn, the querySelector, addMsg and the insertBefore running
+     unguarded after it — a throw in any of them left the latch raised forever, and every later render
+     was a silent no-op until reload, with no toast and no console line. */
+  var ctx=null,hist=false,_frame=null,th=null;
   try{
+    _rendering=true;
+    /* #206: a per-frame button passes {turn}; a past turn renders from ITS frame (own prose, place, clock, weather rule,
+       party), with NO history on the writer call. The current turn and the topbar button take the live path unchanged. */
+    ctx=(rOpts&&typeof rOpts.turn==="number")?renderContextForTurn(rOpts.turn):null;hist=!!(ctx&&!ctx.live);
+    _frame=(hist&&typeof document!=="undefined")?document.querySelector('[data-turn="'+ctx.turn+'"]'):null;
+    th=addMsg("thinking","Composing scene...",hist?{keepPlace:true}:undefined);/* #206c: the marker sits under the frame being painted, the reader stays put */
+    if(_frame&&th&&_frame.parentNode===th.parentNode)_frame.parentNode.insertBefore(th,_frame.nextSibling);
     var c=worldState.character,w=worldState.world;
     var party=hist?partyForRender(ctx):livingPartyCompanions();
     var rp=hist?buildSceneRenderRequest(c,party,{location:ctx.location,region:w.region,weather:ctx.weather},{scene:ctx.prose,timeText:(ctx.ck!=null&&typeof clockStamp==="function")?clockStamp(ctx.ck):null,sublocation:ctx.sublocation,weatherInProse:ctx.weatherInProse}):buildSceneRenderRequest(c,party,w);
@@ -3582,8 +3602,8 @@ async function doRender(rOpts){
       hint.textContent="Sign in (File → Account…) or set a fal.ai key (File → Render Options…) to generate images.";
       div.appendChild(hint);
     }
-  }catch(e){if(th.parentNode)th.remove();addMsg("system","Render failed: "+e.message);}
-  _rendering=false;
+  }catch(e){if(th&&th.parentNode)th.remove();addMsg("system","Render failed: "+e.message);}/* audit E13: th may be undefined if the throw came from addMsg itself */
+  finally{_rendering=false;}/* audit E13: the ONE clear, on every exit */
 }
 function restSpells(fromTag){
   if(!worldState)return 0;
@@ -3703,8 +3723,10 @@ function deathSceneChoose(choice){
     if(worldState.respawnNote)worldState.respawnNote.gift=gift;
   }
   if(typeof saveAll==="function")saveAll();
-  if(typeof rebuildNarrativeFromTranscript==="function"){try{rebuildNarrativeFromTranscript(20,true);}catch(e){}}/* #206b: was (true) — a boolean count painted exactly ONE entry after a respawn */
-  if(typeof syncUI==="function"){try{syncUI();}catch(e){}}
+  /* audit E15: the respawn state is already committed at this point — a repaint failure must not take
+     the walk back with it, but it must not be invisible either (the story pane or the HUD is now stale). */
+  if(typeof rebuildNarrativeFromTranscript==="function"){try{rebuildNarrativeFromTranscript(20,true);}catch(e){console.warn("[death] the story pane could not be rebuilt after the respawn — it may show the pre-death tail until reload: "+((e&&e.message)||e));}}/* #206b: was (true) — a boolean count painted exactly ONE entry after a respawn */
+  if(typeof syncUI==="function"){try{syncUI();}catch(e){console.warn("[death] the panels could not be repainted after the respawn — HP/place/party may read stale until the next turn: "+((e&&e.message)||e));}}
   if(typeof showRespawnModal==="function")showRespawnModal(r,cause);
   if(typeof carNotify==="function")carNotify("respawn","You wake again at "+r.camp+". Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+".");
   return {action:"respawn",turn:r.turn,camp:r.camp};
@@ -4027,8 +4049,10 @@ async function syncCharSheet(){
     }
     saveAll();
     if(typeof showToast==="function")showToast("Sheet synced.");
-    var ex=document.getElementById("cs-modal");if(ex)ex.remove();
-    if(typeof showCharSheet==="function")showCharSheet();
+    /* audit E7: in place when the sheet is still open (scroll + open sections kept, #382b); a plain
+       open when it was closed mid-sync, which is what the old remove-then-reopen guaranteed. */
+    if(typeof _csReRender==="function")_csReRender();
+    else{var ex=document.getElementById("cs-modal");if(ex)ex.remove();if(typeof showCharSheet==="function")showCharSheet();}
   }catch(e){
     if(typeof showToast==="function")showToast("Sync failed: "+(e.message||"unknown error"));
   }

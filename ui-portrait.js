@@ -186,7 +186,7 @@ async function showPortraitModal(refreshFn,opts){
   // anyway, and one repaint on the way out covers EVERY edit made here — appearance, portrait,
   // and framing — instead of only the one handler that remembered to ask for it.
   var refreshSheet=opts&&opts.refreshSheet?opts.refreshSheet:function(){
-    if(typeof showCharSheet==="function"&&document.getElementById("cs-modal"))showCharSheet();
+    if(typeof refreshCharSheetInPlace==="function")refreshCharSheetInPlace();/* audit E7: in place — the raw re-render reset the reader's scroll and collapsed every section (#382b) */
   };
   var _pmDirty=false;   // only repaint if something actually changed — a look-and-leave close must not reset the sheet's scroll
   /* #160: the character description + prompt request are built by the shared
