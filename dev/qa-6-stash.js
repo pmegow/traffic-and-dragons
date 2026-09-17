@@ -24,7 +24,7 @@ const fixture=JSON.parse(JSON.stringify({world:worldState,memory})),url=process.
  await page.click('#stash-modal .shop-row[data-side="left"][data-key="rope"]');await page.click('#stash-modal .shop-row[data-side="left"][data-key="rope"]');
  await page.click('#stash-modal .shop-row[data-side="right"][data-key="old boots"]');
  const marked=await page.evaluate(()=>({sell:[...document.querySelectorAll('#stash-modal .sel-sell')].map(e=>e.textContent.trim()),buy:[...document.querySelectorAll('#stash-modal .sel-buy')].map(e=>e.textContent.trim()),total:document.querySelector('#stash-modal .shop-total').innerText,go:document.querySelector('#ledger-go').disabled}));
- assert.equal(marked.sell.length,1);assert.match(marked.sell[0],/Rope.*2\/3.*→ house ×2/s);assert.equal(marked.buy.length,1);assert.match(marked.buy[0],/Old boots.*→ you/s);assert.match(marked.total,/2 in, 1 out/);assert.equal(marked.go,false);
+ assert.equal(marked.sell.length,1);assert.match(marked.sell[0],/Rope.*2\/3.*→ house ×2/s);assert.equal(marked.buy.length,1);assert.match(marked.buy[0],/← you.*Old boots/s);assert.match(marked.total,/2 in, 1 out/);assert.equal(marked.go,false);
  await page.screenshot({path:path.join(out,'stash-desktop.png')});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'stash-mobile.png')});await page.setViewportSize({width:1280,height:900});
  await page.click('#ledger-go');await page.waitForFunction(()=>!document.querySelector('#stash-modal'));

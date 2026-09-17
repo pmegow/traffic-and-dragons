@@ -42,9 +42,10 @@ function showLedgerModal(spec){
   var box=modal.firstChild;
   function col(side,rows){var h="",i;if(!rows.length)h+="<div class='shop-empty'>"+escHtml(spec.empty[side])+"</div>";
     for(i=0;i<rows.length;i++){var r=rows[i],q=marks[side][r.key]|0,amt=q?spec.amount(side,r,q):spec.dim(side,r);
-      h+="<div class='shop-row"+(q?(side==="left"?" sel-sell":" sel-buy"):"")+(r.off?" off":"")+"' data-side='"+side+"' data-key='"+escHtml(r.key)+"' title='"+escHtml(r.off?r.offReason:r.hint)+"'>"
-        +"<span class='shop-name'>"+escHtml(r.label)+(r.max>1?" <span class='shop-qty' data-clear='1' title='Clear'>"+(q?q+"/":"")+r.max+"</span>":"")+(r.tag?" <span class='shop-tag'>"+escHtml(r.tag)+"</span>":"")+"</span>"
-        +"<span class='shop-amt'>"+amt+"</span></div>";}
+      /* owner 2026-09-16: the amount sits on the side the goods MOVE TOWARD — the shop keeps both on the right (coin);
+         the chest puts "← you" at the LEFT edge of the take column so the arrow points where the item goes */
+      var lead=!!(spec.amountAt&&spec.amountAt[side]==="left"),nameHtml="<span class='shop-name'>"+escHtml(r.label)+(r.max>1?" <span class='shop-qty' data-clear='1' title='Clear'>"+(q?q+"/":"")+r.max+"</span>":"")+(r.tag?" <span class='shop-tag'>"+escHtml(r.tag)+"</span>":"")+"</span>",amtHtml="<span class='shop-amt'>"+amt+"</span>";
+      h+="<div class='shop-row"+(q?(side==="left"?" sel-sell":" sel-buy"):"")+(r.off?" off":"")+(lead?" lead":"")+"' data-side='"+side+"' data-key='"+escHtml(r.key)+"' title='"+escHtml(r.off?r.offReason:r.hint)+"'>"+(lead?amtHtml+nameHtml:nameHtml+amtHtml)+"</div>";}
     return h;}
   function render(){
     var plan=spec.plan(marks),h="";
@@ -86,7 +87,8 @@ function showStashModal(){
   function toMarks(m){return {stow:m.left,take:m.right};}
   showLedgerModal({id:"stash-modal",left:{name:cat.hero,sub:"carrying",head:"Stow"},right:{name:cat.house,sub:"in the house",head:"Take"},rows:rows,
     empty:{left:"Nothing carried",right:"The chest is empty"},hintIdle:"Tap items to move them",completeLabel:"Move them",refusedPrefix:"Stash \u2014 ",totalLabel:"Moving",
-    amount:function(side,r,q){return (side==="left"?"\u2192 house":"\u2192 you")+(q>1?" \u00d7"+q:"");},
+    amountAt:{left:"right",right:"left"},
+    amount:function(side,r,q){return side==="left"?"\u2192 house"+(q>1?" \u00d7"+q:""):"\u2190 you"+(q>1?" \u00d7"+q:"");},
     dim:function(){return "";},
     plan:function(m){var p=stashTradePlan(cat,toMarks(m));return {ok:p.ok,reason:p.reason,marked:p.lines.length>0,total:p.lines.length?((p.stowed?p.stowed+" in":"")+(p.stowed&&p.taken?", ":"")+(p.taken?p.taken+" out":"")):"",after:""};},
     complete:function(m){return stashTradeApply(toMarks(m));}});
