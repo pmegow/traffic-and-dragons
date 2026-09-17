@@ -362,7 +362,8 @@ function confirmChar(){
   else{char._startLoc=startLoc;char._startHour=_wsF.hour;/* #354: the preset carries the opening hour — only when the picker chose the start */if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc(),cs.author||"");}}
 }
 function showCreationArchetype(){
-  var c=pendingChar;if(!c)return;var archs=(classDef(c.cls)||{}).archetypes||[];/* C6 ② */
+  var c=pendingChar;if(!c)return;var ex=document.getElementById("creation-arch");if(ex)ex.remove();/* audit E14: remove a prior overlay by id, like the spell-pick and stat-bump siblings — two stacked #creation-arch nodes is the class showGame's sweep already had to clean up */
+  var archs=(classDef(c.cls)||{}).archetypes||[];/* C6 ② */
   /* #192: an archetype-less custom class has no L3 milestone — skip straight to the bump/spell/
      start continuation (the same chain pickCreationArch runs) instead of rendering an
      un-closeable empty chooser. */
