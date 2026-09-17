@@ -10,7 +10,9 @@
 //   • #181818 legacy box         — arch-modal (game.js:419-421 @ HEAD)
 // Plus remove-prior-by-id semantics and wireClose:false skipping ALL close listeners.
 //
-// UNWIRED fragment — not loaded by run-tests.js or test.html. Run standalone:
+// Wired into dev/run-standalone-suites.js (audit G8, 2026-09-18 — it had been committed and
+// referenced by nothing since it was written, which is how #312 ③'s three setAttribute calls
+// reddened every assertion here unnoticed). Also runnable on its own:
 //   node dev/tests-modal-shell.js
 //
 // Engine-tests style (section/t/eq reporter, same shape as dev/tests-dedup-b.js). ES5.
@@ -36,10 +38,15 @@ function t(name, fn) {
 
 // ── Stubbed document ─────────────────────────────────────────────────────────
 // Minimal surface modalShell touches: getElementById / createElement / body.appendChild,
-// element .id/.style.cssText/.innerHTML/.addEventListener/.remove. innerHTML is stored RAW
-// (no parsing) — the box style is asserted by extracting the style='…' attribute from it.
+// element .id/.style.cssText/.innerHTML/.setAttribute/.addEventListener/.remove. innerHTML is
+// stored RAW (no parsing) — the box style is asserted by extracting the style='…' attribute
+// from it, and attributes land in .attrs so the #312 ③ dialog semantics can be asserted too.
+// (setAttribute was added when this suite was wired into the gate — audit G8, 2026-09-18: the
+// suite had been unreferenced since it was written, and #312 ③ gave modalShell three
+// setAttribute calls the stub had never grown, so all 14 assertions threw.)
 function stubEl() {
-  return { id: "", style: { cssText: "" }, innerHTML: "", listeners: {}, removed: false,
+  return { id: "", style: { cssText: "" }, innerHTML: "", listeners: {}, removed: false, attrs: {},
+    setAttribute: function (name, value) { this.attrs[name] = String(value); },
     addEventListener: function (type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
     remove: function () { this.removed = true; } };
 }
@@ -125,6 +132,14 @@ t("innerHtml lands inside the box div", function () {
   return withDoc(null, function () {
     var m = modalShell("x-modal", "<p id='hello'>hi</p>", { maxWidth: 400 });
     return eq(m.innerHTML, "<div style='" + boxStyleOf(m) + "'><p id='hello'>hi</p></div>");
+  });
+});
+t("#312 ③ every modal carries the dialog semantics, labelled from its id", function () {
+  return withDoc(null, function () {
+    var m = modalShell("quest-journal-modal", "", { maxWidth: 480 });
+    var r = eq(m.attrs.role, "dialog", "role"); if (r !== true) return r;
+    r = eq(m.attrs["aria-modal"], "true", "aria-modal"); if (r !== true) return r;
+    return eq(m.attrs["aria-label"], "quest journal", "aria-label");
   });
 });
 

@@ -9,8 +9,9 @@
 //   • eachMenuEl (ui-shell.js)          — id construction, visit order, missing-el tolerance
 //     (stubbed document; the real DOM walks are coordinator-smoked in the browser).
 //
-// UNWIRED fragment — not loaded by run-tests.js or test.html. Run standalone:
-//   node dev/_tests_dedupB.js
+// Wired into dev/run-standalone-suites.js (audit G8, 2026-09-18 — its lane-A twin was gated and
+// this one was referenced by nothing). Also runnable on its own:
+//   node dev/tests-dedup-b.js
 //
 // Engine-tests style (section/t/eq reporter, same shape as dev/run-tests.js). ES5 throughout.
 
