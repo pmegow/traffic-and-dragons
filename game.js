@@ -3438,14 +3438,20 @@ function buildSeedLegend(names,omitted){
   return s;
 }
 async function doRender(rOpts){
-  if(!worldState||_rendering)return;_rendering=true;
-  /* #206: a per-frame button passes {turn}; a past turn renders from ITS frame (own prose, place, clock, weather rule,
-     party), with NO history on the writer call. The current turn and the topbar button take the live path unchanged. */
-  var ctx=(rOpts&&typeof rOpts.turn==="number")?renderContextForTurn(rOpts.turn):null,hist=!!(ctx&&!ctx.live);
-  var _frame=(hist&&typeof document!=="undefined")?document.querySelector('[data-turn="'+ctx.turn+'"]'):null;
-  var th=addMsg("thinking","Composing scene...",hist?{keepPlace:true}:undefined);/* #206c: the marker sits under the frame being painted, the reader stays put */
-  if(_frame&&th&&_frame.parentNode===th.parentNode)_frame.parentNode.insertBefore(th,_frame.nextSibling);
+  if(!worldState||_rendering)return;
+  /* audit E13: the render latch is armed INSIDE the guarded block and cleared in a finally. It used to
+     be armed first, with renderContextForTurn, the querySelector, addMsg and the insertBefore running
+     unguarded after it — a throw in any of them left the latch raised forever, and every later render
+     was a silent no-op until reload, with no toast and no console line. */
+  var ctx=null,hist=false,_frame=null,th=null;
   try{
+    _rendering=true;
+    /* #206: a per-frame button passes {turn}; a past turn renders from ITS frame (own prose, place, clock, weather rule,
+       party), with NO history on the writer call. The current turn and the topbar button take the live path unchanged. */
+    ctx=(rOpts&&typeof rOpts.turn==="number")?renderContextForTurn(rOpts.turn):null;hist=!!(ctx&&!ctx.live);
+    _frame=(hist&&typeof document!=="undefined")?document.querySelector('[data-turn="'+ctx.turn+'"]'):null;
+    th=addMsg("thinking","Composing scene...",hist?{keepPlace:true}:undefined);/* #206c: the marker sits under the frame being painted, the reader stays put */
+    if(_frame&&th&&_frame.parentNode===th.parentNode)_frame.parentNode.insertBefore(th,_frame.nextSibling);
     var c=worldState.character,w=worldState.world;
     var party=hist?partyForRender(ctx):livingPartyCompanions();
     var rp=hist?buildSceneRenderRequest(c,party,{location:ctx.location,region:w.region,weather:ctx.weather},{scene:ctx.prose,timeText:(ctx.ck!=null&&typeof clockStamp==="function")?clockStamp(ctx.ck):null,sublocation:ctx.sublocation,weatherInProse:ctx.weatherInProse}):buildSceneRenderRequest(c,party,w);
@@ -3594,8 +3600,8 @@ async function doRender(rOpts){
       hint.textContent="Sign in (File → Account…) or set a fal.ai key (File → Render Options…) to generate images.";
       div.appendChild(hint);
     }
-  }catch(e){if(th.parentNode)th.remove();addMsg("system","Render failed: "+e.message);}
-  _rendering=false;
+  }catch(e){if(th&&th.parentNode)th.remove();addMsg("system","Render failed: "+e.message);}/* audit E13: th may be undefined if the throw came from addMsg itself */
+  finally{_rendering=false;}/* audit E13: the ONE clear, on every exit */
 }
 function restSpells(fromTag){
   if(!worldState)return 0;
