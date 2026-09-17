@@ -81,13 +81,13 @@ rc |= sabotage.prove({
   cases: [
     { label: "the .tnd import goes back to a hand-rolled rebuild — the exact shape that dropped a category four separate times",
       mustFail: "no longer rebuilds its archive through archiveRebuild",
-      find: 'archive:archiveRebuild(mm.archive)};',
-      replace: 'archive:mm.archive?{lore:mm.archive.lore||[],decisions:mm.archive.decisions||[],chapters:mm.archive.chapters||[]}:{lore:[],decisions:[],chapters:[]}};' },
+      find: 'archive:archiveRebuild(mm.archive)});',
+      replace: 'archive:mm.archive?{lore:mm.archive.lore||[],decisions:mm.archive.decisions||[],chapters:mm.archive.chapters||[]}:{lore:[],decisions:[],chapters:[]}});' },/* D7 re-anchor: the carry moved into an Object.assign override beside the derived loop */
 
     { label: "the import keeps archiveRebuild but starts hand-patching a category beside it — the whitelist creeping back in one key at a time",
       mustFail: "enumerates archive categories by hand again",
-      find: 'archive:archiveRebuild(mm.archive)};',
-      replace: 'archive:archiveRebuild(mm.archive)};if(mm.archive)memory.archive.lore=mm.archive.lore||[];' }
+      find: 'archive:archiveRebuild(mm.archive)});',
+      replace: 'archive:archiveRebuild(mm.archive)});if(mm.archive)memory.archive.lore=mm.archive.lore||[];' }/* D7 re-anchor */
   ]
 });
 

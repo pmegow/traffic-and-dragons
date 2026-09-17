@@ -569,9 +569,34 @@ function importSave(event){
        v1.383 heal marker, so every .tnd import re-fired the one-time clear and wiped correct
        new-spec dispositions on the next load. A pre-v1.383 file has no marker → the heal fires →
        correct (its values ARE old-spec). */
-    memory={attitudeSpec:mm.attitudeSpec,npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:Array.isArray(mm.lore)?mm.lore:[],keyDecisions:Array.isArray(mm.keyDecisions)?mm.keyDecisions:[],futureEvents:Array.isArray(mm.futureEvents)?mm.futureEvents:[],chapters:Array.isArray(mm.chapters)?mm.chapters:[],eras:Array.isArray(mm.eras)?mm.eras:[],/* #168R (entry-13 review, brief D incidental): the whitelist silently dropped compiled eras on every .tnd import — the same class as the attitudeSpec and #144A drops above */map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph?{edges:mm.npcGraph.edges||[],factions:mm.npcGraph.factions||{},factionEdges:mm.npcGraph.factionEdges||[],npcFactions:mm.npcGraph.npcFactions||{}}:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:archiveRebuild(mm.archive)};/* JP0-5: this used to be a hand-copied key list, and it destroyed a category on every .tnd import FOUR separate times (attitudeSpec, eras, the #144A trio, npcDeathCorrections + relDowngrades). It is now derived from MEMORY_ARCHIVE_KEYS (state.js) and carries UNKNOWN categories through verbatim, so the next one costs no edit here at all. */
+    /* Audit D7 — the carry is DERIVED from blankMemory()'s own key list, never hand-listed. The
+       hand-listed object below it dropped `nameIdx` (advanced by 10 per narrative turn, read by the
+       AVAILABLE NAMES window): every .tnd round-trip reset it to 0 and the GM started re-offering
+       names it had already spent. That made FIVE fields lost by this one allowlist — attitudeSpec,
+       eras, the #144A trio, npcDeathCorrections+relDowngrades, and now nameIdx — so the list itself
+       is the defect, exactly as JP0-5 concluded one layer down for the archive. A future key of
+       blankMemory() is carried with zero edits here.
+       Type-guarded against the BLANK SHAPE, not against a second list: an array key takes an array
+       or the empty array, an object key takes an object or the blank default, a scalar takes a value
+       of the same type and is otherwise left UNDEFINED — which is load-bearing for attitudeSpec
+       (present-and-2 suppresses the v1.383 one-time clear; a pre-v1.383 file has no marker, so the
+       heal must fire) and for nameIdx (healMemory seeds 0). */
+    memory={};
+    var _bm=blankMemory(),_bk=Object.keys(_bm),_bi,_bKey,_bDef,_bVal;
+    for(_bi=0;_bi<_bk.length;_bi++){
+      _bKey=_bk[_bi];_bDef=_bm[_bKey];_bVal=mm[_bKey];
+      if(Array.isArray(_bDef))memory[_bKey]=Array.isArray(_bVal)?_bVal:[];
+      else if(_bDef&&typeof _bDef==="object")memory[_bKey]=(_bVal&&typeof _bVal==="object"&&!Array.isArray(_bVal))?_bVal:_bDef;
+      else memory[_bKey]=(typeof _bVal===typeof _bDef)?_bVal:undefined;
+    }
+    /* The two registry-owned keys keep their explicit builders (both pinned by the #144A ARCHIVE
+       CARRY CONTRACT): quests rides WHOLESALE because #235's by/wasOffered provenance lives on the
+       records, and the archive rebuilds through the MEMORY_ARCHIVE_KEYS registry, which carries
+       UNKNOWN categories through verbatim. */
+    Object.assign(memory,{quests:mm.quests||{},archive:archiveRebuild(mm.archive)});
     migrateWorldState();/* relationship re-keying must see the imported campaign's memory aliases, not the outgoing campaign's. */
     if(typeof healMemory==="function")healMemory();
+    if(typeof restoreCheckpointHolder==="function")restoreCheckpointHolder();/* D1: setActiveCampId dropped the OUTGOING campaign's camp (it would have restored the wrong world); fetch this one's own */
     saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+escHtml(worldState.character.name)+" Turn "+worldState.turn);/* imported-file name (#22/UA18) */if(typeof initReplaySession==="function")initReplaySession();/* replay the story pane like init()/campLoad do — importSave left it empty (audit E65) */if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
   reader.readAsText(file);event.target.value="";
 }
