@@ -1609,12 +1609,20 @@ try {
   // stated as invariants rather than one literal string so a future tier doesn't force a rewrite,
   // and it is STRICTER than the old literal: it now also pins that the paid tier cannot sink below
   // the free ones, which is what makes a degrade actually degrade.
+  // audit F10 (2026-09-18): this clause used to read the LITERAL only and never saw the four cloud
+  // rungs at all — `TTS_LADDER.unshift("inworld","speechify")` runs one line below the declaration,
+  // so the pin was asserting a ladder the runtime does not have. It now composes the EFFECTIVE
+  // ladder (literal + every unshift) and pins its documented order outright, because the order IS
+  // the contract (DOC/contracts/tts-stt.md ▸ tts.js): paid above free, server above local, native
+  // the floor. A new tier is a deliberate contract change — add it here and in the doc together.
   var _ladM = _ttsS.match(/var TTS_LADDER = \[([^\]]*)\]/);
   if (!_ladM) {
     console.error("SERVER TTS CONTRACT: TTS_LADDER not found — the runtime degradation ladder is the #90 design's spine.");
     process.exit(1);
   }
   var _lad = _ladM[1].replace(/["'\s]/g, "").split(",");
+  var _ladUn = /TTS_LADDER\.unshift\(([^)]*)\)/g, _ladU;
+  while ((_ladU = _ladUn.exec(_ttsS))) _lad = _ladU[1].replace(/["'\s]/g, "").split(",").concat(_lad);
   if (_lad[_lad.length - 1] !== "native") {
     console.error("SERVER TTS CONTRACT: native is no longer the LAST rung of TTS_LADDER — native's available() is the only unconditional true, so the ladder walk would run off the end. Got: " + _lad.join(" → "));
     process.exit(1);
@@ -1631,6 +1639,22 @@ try {
     console.error("SERVER TTS CONTRACT: the paid Gemini tier must sit ABOVE the free tiers, so a failure degrades toward free rather than toward spend. Got: " + _lad.join(" → "));
     process.exit(1);
   }
+  // audit F10: the documented effective order, end to end. Every cloud rung above the self-hosted
+  // server tier, server above the local wasm floor, native last.
+  var _ladDoc = "inworld → speechify → openai → gemini → server → piper → native";
+  if (_lad.join(" → ") !== _ladDoc) {
+    console.error("SERVER TTS CONTRACT: the EFFECTIVE TTS_LADDER (literal + unshift) no longer matches the documented order.\n  documented: " + _ladDoc + "\n  effective:  " + _lad.join(" → ") +
+      "\nThe order is the contract (DOC/contracts/tts-stt.md ▸ tts.js) — a new or moved tier changes what a degrade costs the player, so update the doc and this line in the same commit.");
+    process.exit(1);
+  }
+  // audit F10, second half — the mid-read handoff (clause ③ above) hands the remainder to LOCAL
+  // PIPER by name, not to "the next available rung below the current tier". That is deliberate and
+  // is stated here so it is a decision rather than an oversight: every cloud rung's available()
+  // requires being the selected primary (one primary at a time — the Voice Settings contract), so
+  // a fall from any cloud tier can only ever reach server → piper → native anyway, and the
+  // remainder must land on a tier that needs no key and no network. Route it through the ladder
+  // only when a second cloud tier can be live at once; until then this hardcode IS the ladder's
+  // answer, and clause ③ plus dev/sabotage-server-tts.js pin it.
   // #41 (v1.648): the ▶ Test pulse. Two clauses no headless test can reach, because the audition
   // path runs through the queue and a real AudioContext.
   //   ⓐ ORDER: testGeminiVoice must arm its phase callback AFTER its own stop() call. stop() signals

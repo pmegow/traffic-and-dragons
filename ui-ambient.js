@@ -98,12 +98,36 @@ var Ambient = (function() {
       sync(); controller.retry();
     }, function(e) { gesturePending = false; report(e); });
   }
+  /* audit F5 — `offs` collected unsubscribe handles nothing ever called, so pagehide disposed the
+     controller and left both voice subscriptions live: every later TTS/STT edge ran sync() against
+     a disposed controller. Subscription now shares the controller's lifecycle exactly — dropped on
+     dispose, restored on pageshow (a bfcache restore must not deafen ambience for the rest of the
+     page's life). Ambience only ever LISTENS here; it must never call TTS.stop(). */
+  function subscribe() {
+    if (offs.length) return;
+    offs.push(TTS.on("state", sync));
+    offs.push(STT.on("capture", function(value) { capturing = value; sync(); }));
+  }
+  function unsubscribe() {
+    while (offs.length) {
+      var off = offs.pop();
+      if (typeof off !== "function") continue;
+      try { off(); } catch (e) { console.warn("[ambience] unsubscribe failed: " + e.message); }
+    }
+  }
+  function dispose() {
+    unsubscribe();
+    capturing = false;
+    if (controller) controller.dispose();
+    controller = null; unlocked = false;
+  }
   function init() {
     if (initialized) return; initialized = true;
     enabled = saved("tnd_ambient_enabled_v1", "1") === "1"; /* owner ruling 2026-09-15: village ambience is ON by default (the checkbox still turns it off, per device) */
     volume = Math.max(0, Math.min(1, Number(saved("tnd_ambient_volume_v1", "0.45")) || 0));
-    offs.push(TTS.on("state", sync));
-    offs.push(STT.on("capture", function(value) { capturing = value; sync(); }));
+    subscribe();
+    /* The #410 player-intent seam. hideCarMode fires a resume here on exit (audit F1), so leaving
+       the overlay after a spoken "pause" can no longer wedge the bed OFF until a page reload. */
     document.addEventListener("tnd:car-intent", function(e) {
       if (!e.detail || (e.detail.kind !== "pause" && e.detail.kind !== "resume")) return;
       held = e.detail.kind === "pause"; sync();
@@ -113,8 +137,8 @@ var Ambient = (function() {
       if(e.data&&e.data.type==="tnd:audio-cache-error"&&lastCacheError!==e.data.reason){lastCacheError=e.data.reason;console.warn("[audio cache] "+lastCacheError);if(typeof showToast==="function")showToast("Audio cache unavailable: "+lastCacheError,6000);}
     });
     document.addEventListener("visibilitychange", sync);
-    window.addEventListener("pagehide", function() { if (controller) controller.dispose(); controller = null; unlocked = false; });
-    window.addEventListener("pageshow", function() { sync(); if (enabled && !unlocked) unlock(); });
+    window.addEventListener("pagehide", dispose);
+    window.addEventListener("pageshow", function() { subscribe(); sync(); if (enabled && !unlocked) unlock(); });
     document.addEventListener("pointerdown", function() { if (enabled && !unlocked) unlock(true); }, true);
     document.addEventListener("keydown", function() { if (enabled && !unlocked) unlock(true); }, true);
     eachMenuEl("ambient-cb", function(el) { el.addEventListener("change", function() { enabled = el.checked; lastError = ""; save(); sync(); if (enabled) unlock(true); }); });
@@ -123,6 +147,7 @@ var Ambient = (function() {
     if(!audioPublishedScene)audioScenePublish("load");
     sync(); if (enabled) unlock();
   }
-  return { init: init, sync: sync, snapshot: snapshot, inspect: function() { return controller ? controller.inspect() : { sources: 0, buffers: 0, pending: 0 }; } };
+  return { init: init, sync: sync, snapshot: snapshot, dispose: dispose,
+    inspect: function() { return controller ? controller.inspect() : { sources: 0, buffers: 0, pending: 0 }; } };
 })();
 window.addEventListener("load", function() { Ambient.init(); });

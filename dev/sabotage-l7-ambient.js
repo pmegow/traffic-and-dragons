@@ -16,6 +16,7 @@ rc |= sabotage.prove({also:also,file:"ambient.js",command:["node",["dev/tests-l7
 ]});
 rc |= sabotage.prove({also:also,file:"stt.js",command:["node",["dev/tests-l7-ambient.js"]],cases:[
  {label:"native microphone starts before silence",mustFail:"FAIL L7 native microphone",find:'_capture(true);\n      _rec.start();',replace:'_rec.start();\n      _capture(true);'},
- {label:"cloud microphone starts without silence",mustFail:"FAIL L7 cloud microphone",find:'    _capture(true);\n    navigator.mediaDevices.getUserMedia',replace:'    navigator.mediaDevices.getUserMedia'}
+ /* stale-target repair 2026-09-18: audit F2 put the acquisition epoch between these two lines. Same clause, same mutation — the capture claim no longer precedes the microphone request. */
+ {label:"cloud microphone starts without silence",mustFail:"FAIL L7 cloud microphone",find:'    _capture(true);\n    _cloudAcquiring = _cloudToken.generation;',replace:'    _cloudAcquiring = _cloudToken.generation;'}
 ]});
 process.exit(rc);

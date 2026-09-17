@@ -22,7 +22,11 @@ var STT = (function() {
     _audioEvents.emit("capture", value);
   }
 
-  var LANG_K       = "tnd_stt_lang_v1";
+  // audit F7 — there was a `tnd_stt_lang_v1` preference here that NOTHING ever wrote: no setter,
+  // no UI, not on the public API, so every read returned the same fallback. The recognition
+  // language is a constant until a real language picker exists (which would add a setter, a menu
+  // row and a contract line with it).
+  var STT_LANG     = "en-US";
   var AUTO_K       = "tnd_stt_autosend_v1";
   var AUTOLISTEN_K = "tnd_car_autolisten_v1";
   var CONFIRM_K    = "tnd_stt_confirm_v1";   // #77 Layer-2 gate pref — default ON when unset
@@ -46,6 +50,21 @@ var STT = (function() {
   function isConfirmGate()   { return store.get(CONFIRM_K) !== "0"; }
   function setConfirmGate(on){ store.set(CONFIRM_K, on ? "1" : "0"); }
   function isConfirmPending(){ return !!_confirmPending; }
+  // audit F3 — a pending confirmation used to be cleared ONLY by _resolveConfirm, so an
+  // unanswered "I heard: … — send it?" survived the Car Mode overlay that asked it. _applySendPolicy
+  // checks _confirmPending above everything, so the next dictation — hours later, on the desktop —
+  // was consumed as the answer: the field was blanked and, after a second unparsed utterance, the
+  // abandoned car text was parked as the player's action. It is Car-Mode-only state and dies with
+  // the situation that created it: an explicit discard (cancel) or the overlay closing.
+  // Deliberately NOT cleared by stop(): stop() is how the CLOUD path DELIVERS the spoken answer
+  // ("tap when done" — there is no auto-endpoint), so clearing there would break the iPhone
+  // confirm loop rather than protect it.
+  function clearConfirm(why) {
+    if (!_confirmPending) return false;
+    console.debug("[stt] pending confirmation discarded (" + (why || "cleared") + "): " + JSON.stringify(_confirmPending.text));
+    _confirmPending = null;
+    return true;
+  }
   function _resetUtterance() { _utterCorr = []; _utterConf = null; _confSum = 0; _confN = 0; }
   function _rosterNow() {
     return (typeof sttNameRoster === "function" && typeof worldState !== "undefined")
@@ -65,7 +84,6 @@ var STT = (function() {
   }
 
   function isSupported()  { return !!_Rec || _cloudAvailable(); }
-  function getLang()      { return store.get(LANG_K) || "en-US"; }
   function isAutoSend()   { return store.get(AUTO_K) === "1"; }
   function setAutoSend(on){ store.set(AUTO_K, on ? "1" : ""); _syncAutoCbs(); }
 
@@ -100,7 +118,7 @@ var STT = (function() {
       return;
     }
 
-    _rec.lang           = getLang();
+    _rec.lang           = STT_LANG;
     _rec.continuous     = false;   // single utterance; ends on natural pause
     _rec.interimResults = true;    // stream partial transcript into the field live
     _rec.maxAlternatives = 1;
@@ -220,6 +238,7 @@ var STT = (function() {
   }
 
   function stop() {
+    if (_cloudCancelAcquisition("stop")) return;   // audit F2 — nothing recorded yet; there is nothing to finalize
     if (_cloudRec) { _cloudStopRecording(false); return; }
     if (_rec) { try { _rec.stop(); } catch(e) {} }
     // onend will flip _listening / resync; guard in case it doesn't fire
@@ -233,6 +252,8 @@ var STT = (function() {
   // Cloud: stops the recorder/tracks and skips the upload entirely.
   function cancel() {
     _cancelled = true;
+    clearConfirm("cancel");   // audit F3 — cancel means discard, and a captured-but-unsent confirmation IS captured
+    if (_cloudCancelAcquisition("cancel")) return;   // audit F2 — the mic is still being acquired: revoke it before it opens
     if (_cloudRec) { _cloudStopRecording(true); return; }
     if (_rec) {
       try {
@@ -430,9 +451,28 @@ var STT = (function() {
   var _cloudTimer  = null;  // STT_MAX_RECORD_MS auto-stop (the endpointing backstop)
   var _nbToasted   = false; // §4d: narrowband-mic warning shown at most once per page load
   var _cloudGeneration = 0, _cloudActiveGeneration = 0, _cloudBaseText = "";
+  // audit F2 — the ACQUISITION window: from _cloudStart until getUserMedia resolves there is no
+  // recorder and no stream to stop, so cancel()/stop() used to be pure no-ops — the permission
+  // promise then opened the recorder BEHIND the cancel and held the microphone (and the #19
+  // playback session, which silences ambience) until the 45s backstop. The three callers that
+  // most need cancel to be immediate — hideCarMode, _carDoReplay, _carReadOptions — are exactly
+  // the ones that must not be heard. This holds the generation of the in-flight acquisition, 0
+  // when none is pending; bumping _cloudGeneration is what makes the pending .then read stale.
+  var _cloudAcquiring = 0;
 
   function _cloudBeginGeneration(baseText) {
     return { generation: ++_cloudGeneration, baseText: String(baseText || "") };
+  }
+
+  function _cloudCancelAcquisition(why) {
+    if (!_cloudAcquiring) return false;
+    _cloudAcquiring = 0;
+    _cloudGeneration++;   // the pending getUserMedia .then/.catch now reads stale and tears its stream down
+    console.info("[stt] microphone acquisition cancelled (" + why + ") — the pending getUserMedia will stop every track it receives");
+    _capture(false);      // nothing else owns the session: release it now, not in 45 seconds
+    _listening = false;
+    _syncBtn();
+    return true;
   }
 
   function _cloudAvailable() {
@@ -459,15 +499,20 @@ var STT = (function() {
     _cloudMime   = "";
 
     _capture(true);
+    _cloudAcquiring = _cloudToken.generation;   // audit F2 — cancel()/stop() can revoke from here on
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
       if (_cloudToken.generation !== _cloudGeneration) {
         try {
           var _staleTracks = stream.getTracks ? stream.getTracks() : [];
           for (var _sti = 0; _sti < _staleTracks.length; _sti++) _staleTracks[_sti].stop();
         } catch(e0) {}
-        console.info("[stt] stale microphone start ignored — a newer recording owns generation " + _cloudGeneration);
+        // Either a newer recording owns the generation (it holds the capture session — leave it
+        // alone) or this one was cancelled mid-acquisition, in which case _cloudCancelAcquisition
+        // already released the session. Both cases: stop the tracks, touch nothing else.
+        console.info("[stt] stale microphone start ignored — generation " + _cloudToken.generation + " is behind " + _cloudGeneration);
         return;
       }
+      _cloudAcquiring = 0;
       _cloudStream = stream;
       _cloudActiveGeneration = _cloudToken.generation;
       _cloudBaseText = _cloudToken.baseText;
@@ -522,9 +567,10 @@ var STT = (function() {
       }, STT_MAX_RECORD_MS);
     }).catch(function(e) {
       if (_cloudToken.generation !== _cloudGeneration) {
-        console.info("[stt] stale microphone failure ignored — a newer recording owns generation " + _cloudGeneration);
+        console.info("[stt] stale microphone failure ignored — generation " + _cloudToken.generation + " is behind " + _cloudGeneration);
         return;
       }
+      _cloudAcquiring = 0;
       if (typeof showToast === "function") showToast("Microphone permission denied.");
       if (typeof carNotify === "function") carNotify("warn", "Microphone permission denied"); /* final-pass #32 */
       _capture(false);
@@ -746,6 +792,7 @@ var STT = (function() {
     isConfirmPending: isConfirmPending,   // #77 — Car Mode's auto-mic confirm branch reads this
     isConfirmGate:    isConfirmGate,
     setConfirmGate:   setConfirmGate,
+    clearConfirm:     clearConfirm,       // audit F3 — hideCarMode calls this: the question dies with the overlay that asked it
     toggle:        toggle,
     start:         start,
     stop:          stop,
@@ -757,6 +804,8 @@ var STT = (function() {
     isAutoListen:  isAutoListen,
     setAutoListen: setAutoListen,
     loadSettings:  loadSettings,
+    // Cloud-path internals, exported ONLY for the headless engine tests (same contract as tts.js's
+    // _textPrep/_serverTest): the underscore marks them as not part of the player-facing surface.
     _cloudTest: {
       begin: _cloudBeginGeneration,
       upload: _cloudUpload,

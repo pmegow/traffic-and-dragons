@@ -45,7 +45,8 @@ var SUITES = [
   "dev/tests-install-bible.js",
   "dev/tests-bible-editor-launcher.js",
   "dev/tests-audit-sync.js",
-  "dev/tests-audit-ui.js"
+  "dev/tests-audit-ui.js",
+  "dev/tests-audit-voice.js"
 ];
 
 // TODO #27 class, second instance (2026-08-15): git exports repo-location env (GIT_DIR,
