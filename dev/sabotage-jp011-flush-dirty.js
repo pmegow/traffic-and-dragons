@@ -32,7 +32,7 @@ rc |= sabotage.prove({
 
     { label: "the gate counts CHARACTERS, not bytes — a multi-byte payload passes as small (the original proxy defect)",
       mustFail: "multi-byte",
-      find: "    try { if (typeof TextEncoder !== \"undefined\") return new TextEncoder().encode(s).length; } catch (e) {}",
+      find: "    try { if (typeof TextEncoder !== \"undefined\") return new TextEncoder().encode(s).length; } catch (e) { /* audit E15: a FEATURE probe, not a data condition — the char-count fallback below is a documented lower bound, so there is nothing lost to report. */ }",/* E15 re-anchor: the probe catch grew an explanatory comment (whole line pinned, so the deletion still leaves valid JS) */
       replace: "" },
 
     { label: "the skipped flush marks nothing — the final turns are dropped exactly as before, just quietly",

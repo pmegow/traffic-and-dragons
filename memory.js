@@ -2182,6 +2182,26 @@ async function summarize(){
   if(sessionTokens()<SUMMARIZE_AT)return;
   if(summarizeShouldDefer()){if(typeof console!=="undefined")console.info("[memory] #263: extraction attempt skipped — the "+worldState.summaryFailure.deferSubject+" dispute owns this window; no call billed, no strike counted");return;}
   addMsg("system","Filing memories...");
+  /* Audit D6 — ONE atomic commit for all three of summarize()'s exits. Each used to read
+     `retainSessionTail();summaryFailureClear();saveMem();saveCore();`: the session log was
+     TRUNCATED IN RAM first and the two writes were then fired with their return values ignored. A
+     quota failure on saveMem with saveCore succeeding left the disk saying "summarized" — a
+     truncated session log — while long-term memory never received the extraction, so that window's
+     events existed only in the raw transcript. saveLocal() exists precisely to pair the two and
+     check both returns; this path never used it.
+     Order is the fix, not the pairing alone: persist memory AND worldState FIRST, and only shrink
+     the log once both landed. A failed write keeps the whole window for next turn's retry — the
+     same discipline the transient-failure path has had since audit #5. */
+  function _sumCommit(note){
+    if(!saveLocal()){
+      console.error("[memory] summarize commit did NOT persist (storage full?) — the extraction is in memory but not on disk; the session log is kept INTACT and the window retries next turn");
+      addMsg("system","Memory extraction couldn't be saved (storage full?) — this window is kept and will be filed again next turn.");
+      return false;
+    }
+    retainSessionTail();summaryFailureClear();saveCore();/* the shrink is persisted by the second saveCore; summaryFailureClear rides with it */
+    addMsg("system",note);
+    return true;
+  }
   try{
     var _sumVc="";var _sumPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:"";if(_sumPaId&&typeof AUTHORS!=="undefined"){var _spi;for(_spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_sumPaId&&AUTHORS[_spi].vc){_sumVc=AUTHORS[_spi].vc;break;}}}
     var _chapterDesc=(_sumVc?"5-8 sentence narrative summary written in this prose voice — "+_sumVc:"5-8 sentence narrative summary")+"; third person, past tense, the hero by name (never 'I' or 'we')"+((typeof kindDef==="function"&&kindDef().chapterNote)||"");/* #6 phase B: the kind may add a chapter clause (the village: who was seen, said, decided) *//* #327: one voice across chapters — the t147 comb found ch4/ch8 in first person beside ch0-3 in third */
@@ -2209,7 +2229,7 @@ async function summarize(){
     if(!extractorRespHasJson(resp))throw new Error("extractor returned NO JSON at all (B11 class) — head: \""+String(resp).slice(0,60).replace(/\s+/g," ")+"\"");/* named at the call site; repairModelJson (8 shared callers) stays untouched */
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
     var _exStats=applySummaryExtract(extracted,_identityTable);
-    retainSessionTail();summaryFailureClear();saveMem();saveCore();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":""));
+    _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":""));
     compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
   }catch(e){
     // Do NOT discard the session log on a transient failure — that permanently erased up to a
@@ -2245,14 +2265,14 @@ async function summarize(){
     if(_sumFails>=3&&((e&&(e.w2Identity||e.summaryIdentity))||(worldState.summaryFailure&&worldState.summaryFailure.identityValidation))){
       var _iqBits=[],_iqi;for(_iqi=sessKeptStart();_iqi<sessionLog.length;_iqi++){if(sessionLog[_iqi]&&!sessionLog[_iqi].bk&&sessionLog[_iqi].role==="assistant")_iqBits.push(String(sessionLog[_iqi].content||"").slice(0,200));}
       summaryIdentityQuarantine(e,_iqBits,_sumFails);
-      retainSessionTail();summaryFailureClear();saveMem();saveCore();addMsg("system","Memory identity conflict quarantined; no chapter or canon consequence was filed.");
+      _sumCommit("Memory identity conflict quarantined; no chapter or canon consequence was filed.");
       return;
     }
     if(_sumFails>=3){
       var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri]&&!sessionLog[_ri].bk&&sessionLog[_ri].role==="assistant")_rawBits.push(String(sessionLog[_ri].content||"").slice(0,200));}/* v1.439 (F8, probes C/E): String() — a non-string content threw OUT of the catch and aborted the archive */
       var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);
       fileChapter(worldState.turn,_rawSum);/* audit #10: same routine as applySummaryExtract — the P12 cap/archive discipline cannot fork */
-      retainSessionTail();summaryFailureClear();saveMem();saveCore();addMsg("system","Memory saved (raw).");
+      _sumCommit("Memory saved (raw).");
     }else{
       addMsg("system","Memory filing failed ("+_eMsg+") — retry "+_sumFails+" of 3; the third failure archives this window raw."/* P3: the player sees how close the window is to degrading */);
     }

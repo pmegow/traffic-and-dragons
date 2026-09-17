@@ -1,4 +1,4 @@
-var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var STORE_RESCUE_K="tnd_store_rescue_v1_";/* + tier + "_" + campId (JP0-4) — see rescueCorruptStore */var CLOCK_RESCUE_K="tnd_clock_rescue_v1_";/* + campId (#274) — see clockRescueCorrupt (clock.js) */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var GMROUTE_K="tnd_gmroute_v1";/* "auto"|"byok" — account-mode GM routing (§3 gateway) */var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
+var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var STORE_RESCUE_K="tnd_store_rescue_v1_";/* + tier + "_" + campId (JP0-4) — see rescueCorruptStore */var CLOCK_RESCUE_K="tnd_clock_rescue_v1_";/* + campId (#274) — see clockRescueCorrupt (clock.js) */var CAMP_META_RESCUE_K="tnd_camps_v1_corrupt";/* audit D12: the campaign LIST's rescue slot (E72) — a third rescue key, now named beside its siblings so a hygiene pass can see it is protected, not litter */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var GMROUTE_K="tnd_gmroute_v1";/* "auto"|"byok" — account-mode GM routing (§3 gateway) */var UPGRADE_K="tnd_model_upgrade_v1";var PENDING_ACT_K="tnd_pending_act_v1";/* #14: the failed-turn action, campaign-stamped — its OWN key so the failure path never runs saveAll */
 var _m={};      // in-memory fallback for keys localStorage can't persist (privacy mode OR quota)
 var _mKeys={};  // keys whose authoritative value lives in _m — get() must prefer it over a stale disk copy
 var store={
@@ -11,7 +11,7 @@ var store={
     _m[k]=v;_mKeys[k]=1;
     if(e&&(e.name==="QuotaExceededError"||e.name==="NS_ERROR_DOM_QUOTA_REACHED"||e.code===22||e.code===1014))throw e;
   }},
-  del:function(k){try{localStorage.removeItem(k);}catch(e){}delete _m[k];delete _mKeys[k];}
+  del:function(k){try{localStorage.removeItem(k);}catch(e){/* audit E15: storage-AVAILABILITY only (privacy mode / no localStorage). The key is dropped from _m/_mKeys below either way, so nothing is lost and there is nothing to report. */}delete _m[k];delete _mKeys[k];}
 };
 var worldState=null;
 var sessionLog=[];
@@ -254,7 +254,7 @@ function inflateTranscriptField(t){
       if(c.tail){arr=_blobArr(c.tail);if(!arr)return null;parts=parts.concat(arr);}
       return parts;
     }
-  }catch(e){}
+  }catch(e){/* audit E15: a malformed/foreign chunk shape answers NULL, and the ONE caller treats null as 'could not inflate' — it preserves the compressed original and shouts (see the console.error + rescue below). Reporting here too would double-report the same loss. */}
   return null;
 }
 // #92: the object-form inflater — the SAME tolerance parseWorldState has always applied to
@@ -279,10 +279,10 @@ function inflateWorldStateSnapshot(o){
       // (restoreTranscriptRescue re-inflates + prepends on a later healthy load), start empty,
       // and shout. Keep the OLDEST rescue if one already exists — it holds the longest record.
       var _rk=TRANSCRIPT_RESCUE_K+(o.campId||"default");
-      try{if(!store.get(_rk))store.set(_rk,_lzBlob);}catch(e2){}
+      var _rkKept=false;try{if(store.get(_rk))_rkKept=true;else{store.set(_rk,_lzBlob);_rkKept=store.get(_rk)===_lzBlob;}}catch(e2){_rkKept=false;}/* audit E15: the write can fail (quota) and the line below CLAIMED the backup either way — the same lie the campaign-list rescue told */
       o.transcript=[];
-      console.error("[save] transcript inflate FAILED — compressed original preserved under "+_rk);
-      if(typeof showToast==="function")showToast("⚠ Story record could not be read — a backup was preserved and will auto-recover on a healthy reload.");
+      console.error("[save] transcript inflate FAILED — "+(_rkKept?("compressed original preserved under "+_rk):"the compressed original could NOT be preserved (storage full?) — this session starts with an EMPTY story record"));
+      if(typeof showToast==="function")showToast(_rkKept?"⚠ Story record could not be read — a backup was preserved and will auto-recover on a healthy reload.":"⚠ Story record could not be read AND could not be backed up (storage full?) — free space before playing on.");
     }
   }
   return o;
@@ -306,7 +306,7 @@ function restoreTranscriptRescue(){
     var old=null;
     try{old=JSON.parse(LZ.decompressFromUTF16(lz));}catch(eB){old=null;}
     if(!(old instanceof Array)&&typeof inflateTranscriptField==="function"){
-      try{var _ro=JSON.parse(lz);old=inflateTranscriptField(_ro);}catch(eJ){}
+      try{var _ro=JSON.parse(lz);old=inflateTranscriptField(_ro);}catch(eJ){/* audit E15: the object route is the SECOND of two attempts; neither producing an array falls through to the throw below, which the outer catch reports with the rescue key named. */}
     }
     if(!(old instanceof Array))throw new Error("rescue is not an array");
     if(!worldState.transcript)worldState.transcript=[];
@@ -723,7 +723,36 @@ function rescueCorruptStore(tier,raw,err){
 // stays in the book, RAG never serves it, the story compiler prints it as the branch that ended.
 var CHECKPOINT_STRIP=["transcript","tagLog","noteLog","usage","healthLog","renders","lastActions","checkpointDue","deathPending","downed","respawnNote","mpFallen"];
 var _checkpointMem=null;
-function checkpointHold(snap){_checkpointMem=snap||null;}
+/* Audit D1/D9 — THE gate every snapshot passes before it can be held or restored. The holder was a
+   bare module global scoped to nothing: a mid-session campaign switch left campaign A's camp in it,
+   and dying in campaign B restored A's world RE-STAMPED with B's campId — saveAll then wrote A's
+   state into B's keys and POSTed it at B's higher turn, so even the CAS guard waved it through. The
+   snapshot has carried `campId` and `v` since #300 and NOTHING read either. Both are read here now:
+   a foreign campaign is refused, and so is a snapshot written by a NEWER build than this one (a v2
+   camp restoring blind into a v1 reader is silent corruption, not compatibility). Pure — the two
+   consumers (checkpointHold, checkpointRestore) share one verdict. */
+function checkpointAcceptable(snap){
+  if(!snap||!snap.ws)return {ok:false,reason:"no snapshot"};
+  var myVer=(typeof CHECKPOINT_VER==="number")?CHECKPOINT_VER:1,snapVer=(typeof snap.v==="number")?snap.v:1;
+  if(snapVer>myVer)return {ok:false,reason:"that camp was written by a newer version of the game (snapshot v"+snapVer+", this build reads v"+myVer+")"};
+  var live=(typeof worldState!=="undefined"&&worldState&&worldState.campId)||null;
+  if(snap.campId&&live&&snap.campId!==live)return {ok:false,reason:"that camp belongs to another campaign ("+snap.campId+"; this campaign is "+live+")"};
+  return {ok:true};
+}
+/* checkpointHold is the ONE door a transported snapshot (IndexedDB or the server slot, via
+   restoreCheckpointHolder in game.js) comes through, so the gate lives here rather than in each
+   arm — a refused snapshot is never installed, and the refusal is loud. Returns true when held. */
+function checkpointHold(snap){
+  if(!snap){_checkpointMem=null;return true;}
+  var v=checkpointAcceptable(snap);
+  if(!v.ok){if(typeof console!=="undefined")console.warn("[checkpoint] camp REFUSED — "+v.reason+"; nothing is held (audit D1/D9)");return false;}
+  _checkpointMem=snap;return true;
+}
+/* Audit D1: the holder is campaign-scoped by CLEARING it wherever the campaign changes. setActiveCampId
+   is that one place (every path — switch, new campaign, import, "play as", the server adopt — goes
+   through it), so the clear rides the identity change itself instead of N call sites that can be
+   forgotten. The newly active campaign's own camp is re-fetched by restoreCheckpointHolder. */
+function checkpointClear(){_checkpointMem=null;}
 function checkpointHeld(){return _checkpointMem;}
 function checkpointCapture(reason){
   if(!worldState)return null;
@@ -735,13 +764,25 @@ function checkpointCapture(reason){
   _checkpointMem=snap;
   return snap;
 }
+/* Audit D2 — a restore is ALL-OR-NOTHING. Every one of these parses used to degrade in place:
+   `catch(e){sessionLog=[]}`, `catch(e){memory=blankMemory()}`, `catch(e){}` around healMemory — and
+   the caller's saveAll() one line later persisted the blank AND synced it, so an unreadable camp
+   (IndexedDB or the server slot) silently destroyed the campaign's long-term memory. This is the
+   JP0-4 class rescueCorruptStore closed at the loadState boundary: refuse, say which store failed,
+   leave the live state EXACTLY as it was. Nothing here mutates a live object until every part of
+   the snapshot has parsed; the heal (the last thing that can throw) rolls the globals back. */
 function checkpointRestore(snap,opts){
   opts=opts||{};
-  if(!snap||!snap.ws||!worldState)return {ok:false,reason:"no snapshot"};
-  var live=worldState,liveTurn=live.turn||0,ws;
-  try{ws=JSON.parse(snap.ws);}catch(e){return {ok:false,reason:"snapshot unreadable: "+(e&&e.message)};}
-  var tr=live.transcript||[],i;
-  for(i=0;i<tr.length;i++){if(tr[i]&&typeof tr[i].t==="number"&&tr[i].t>snap.turn)tr[i].db=1;}
+  if(!worldState)return {ok:false,reason:"no live campaign"};
+  var gate=checkpointAcceptable(snap);
+  if(!gate.ok){if(typeof console!=="undefined")console.warn("[checkpoint] restore REFUSED — "+gate.reason+"; the live campaign is untouched (audit D1/D9)");return {ok:false,reason:gate.reason};}
+  var live=worldState,liveTurn=live.turn||0,ws,sl,mem,i;
+  try{ws=JSON.parse(snap.ws);}catch(e){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's WORLD could not be read; the live campaign is untouched:",e);return {ok:false,reason:"the camp's world could not be read ("+((e&&e.message)||"unknown")+")"};}
+  try{sl=JSON.parse(snap.sl||"[]");}catch(e){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's SESSION LOG could not be read; the live campaign is untouched (it used to be blanked here, then saved and synced):",e);return {ok:false,reason:"the camp's session log could not be read ("+((e&&e.message)||"unknown")+")"};}
+  if(!Array.isArray(sl)){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's SESSION LOG is not an array ("+(typeof sl)+"); the live campaign is untouched");return {ok:false,reason:"the camp's session log is not a session log"};}
+  try{mem=JSON.parse(snap.mem||"{}");}catch(e){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's LONG-TERM MEMORY could not be read; the live campaign is untouched (it used to be blanked here, then saved and synced):",e);return {ok:false,reason:"the camp's long-term memory could not be read ("+((e&&e.message)||"unknown")+")"};}
+  if(!mem||typeof mem!=="object"||Array.isArray(mem)){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's LONG-TERM MEMORY is not an object ("+((mem===null)?"null":(Array.isArray(mem)?"array":typeof mem))+"); the live campaign is untouched");return {ok:false,reason:"the camp's long-term memory is not a memory"};}
+  var tr=live.transcript||[];
   ws.transcript=tr;ws.turn=liveTurn;
   ws.tagLog=live.tagLog;ws.noteLog=live.noteLog;ws.usage=live.usage;ws.healthLog=live.healthLog;ws.renders=live.renders;
   ws.campId=live.campId||ws.campId;ws.campName=live.campName||ws.campName;
@@ -750,10 +791,17 @@ function checkpointRestore(snap,opts){
   ws.checkpoint=live.checkpoint||{turn:snap.turn,reason:snap.reason,at:snap.at,location:snap.location};
   ws.lastActions=null;ws.combat=null;
   if(live.mpFallen)ws.mpFallen=live.mpFallen;
-  worldState=ws;
-  try{sessionLog=JSON.parse(snap.sl||"[]");}catch(e){sessionLog=[];}
-  try{memory=JSON.parse(snap.mem||"{}");}catch(e){memory=(typeof blankMemory==="function")?blankMemory():{};}
-  if(typeof healMemory==="function"){try{healMemory();}catch(e){}}
+  var prevWs=worldState,prevSl=sessionLog,prevMem=memory;
+  worldState=ws;sessionLog=sl;memory=mem;
+  if(typeof healMemory==="function"){try{healMemory();}catch(e){
+    worldState=prevWs;sessionLog=prevSl;memory=prevMem;
+    if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's LONG-TERM MEMORY could not be healed; the live campaign is rolled back untouched:",e);
+    return {ok:false,reason:"the camp's long-term memory could not be prepared ("+((e&&e.message)||"unknown")+")"};
+  }}
+  /* Committed from here: the dead branch is marked only once the restore can no longer refuse
+     (the marks ride the LIVE transcript array — a refusal after this point would leave the
+     surviving campaign's history stamped dead). */
+  for(i=0;i<tr.length;i++){if(tr[i]&&typeof tr[i].t==="number"&&tr[i].t>snap.turn)tr[i].db=1;}
   var c=worldState.character;
   if(c){c.hp=c.maxHp;if(typeof manaMax==="function")c.mana=manaMax(c);}
   var where=snap.location||"camp";
@@ -887,10 +935,23 @@ function campSlotKey(id,part){return "tnd_camp_"+id+"_"+part;}
 function getCampMeta(){var r=store.get(CAMP_META_K);if(!r)return[];try{return JSON.parse(r);}catch(e){
   // Back up the corrupt list before callers overwrite it (audit E72) — the next updateCampMeta would
   // persist a [] wipe, unlisting every other campaign; the raw copy keeps them recoverable.
-  try{store.set("tnd_camps_v1_corrupt",r);}catch(x){}if(typeof console!=="undefined")console.warn("[camps] campaign list corrupt — backed up to tnd_camps_v1_corrupt");return[];}}
+  // Audit E15: the backup WRITE can fail (quota), and the old empty catch let the line below claim a
+  // backup that does not exist. Report what actually happened — a lost list said to be safe is worse
+  // than a lost list known to be lost.
+  var _kept=false;try{store.set(CAMP_META_RESCUE_K,r);_kept=store.get(CAMP_META_RESCUE_K)===r;}catch(x){_kept=false;}
+  if(typeof console!=="undefined")console.warn("[camps] campaign list corrupt — "+(_kept?("the unreadable original is preserved under "+CAMP_META_RESCUE_K):"the unreadable original could NOT be preserved (storage full?)")+"; the list degrades to empty",e);
+  return[];}}
 function setCampMeta(arr){store.set(CAMP_META_K,JSON.stringify(arr));}
 function getActiveCampId(){return store.get(ACTIVE_CAMP_K)||null;}
-function setActiveCampId(id){if(id)store.set(ACTIVE_CAMP_K,id);else store.del(ACTIVE_CAMP_K);}
+/* Audit D1: THE campaign-identity change. Every path that repoints the app at another campaign goes
+   through here (switchToCampaign, campNew, importSave, "play as", the wizard, the server adopt), so
+   the campaign-scoped in-memory holder is dropped here rather than at each of those call sites — one
+   of which will always be missed. The new campaign's own camp is fetched by restoreCheckpointHolder. */
+function setActiveCampId(id){
+  var prev=store.get(ACTIVE_CAMP_K)||null;
+  if((id||null)!==prev&&typeof checkpointClear==="function")checkpointClear();
+  if(id)store.set(ACTIVE_CAMP_K,id);else store.del(ACTIVE_CAMP_K);
+}
 function newCampaignId(){return"camp_"+Date.now()+"_"+Math.floor(Math.random()*9000+1000);}
 /* E13b (owner field report 2026-09-13): is this id already a campaign? The campaign list knows it, or a slot holds state
    for it. startGame asks before adopting the active id — the wizard's normal path minted no id of its own, so a new
@@ -914,22 +975,27 @@ function updateCampMeta(){
   // safe one. The list itself self-heals from the server merge (syncCampaignList).
   try{setCampMeta(meta);}catch(e){console.error("[camps] campaign-list update failed — storage full? (list self-heals from the server merge):",e);}
 }
-function snapshotActiveCamp(quiet){/* #337: quiet=true — the caller shows ONE toast with the context (switchToCampaign) */
+/* opts: true (legacy) or {quiet:true} — the caller shows ONE toast with the context (switchToCampaign);
+   {noSync:true} — audit D11: skip the debounced-sync flush because the caller is about to fire the
+   keepalive beacon itself (the beforeunload handler). A plain fetch is abandoned on unload (E34), so
+   that first POST never landed: it only double-counted usage.syncPosts and set _syncing on the way out. */
+function snapshotActiveCamp(opts){
+  var quiet=(opts===true)||!!(opts&&opts.quiet),noSync=!!(opts&&opts.noSync);
   var id=getActiveCampId();if(!id)return true;
   var ws=store.get(WSK),sl=store.get(SLK),mem=store.get(MEM_KEY);
   // B4: a quota throw here used to abort the CALLER unhandled — killing the beforeunload server
   // flush below (exactly when the server copy is the only safe one) and leaving switch/new-game
   // half-done with no toast. Now: fail LOUDLY, still flush, and return false so destructive
   // callers (which wipe the live keys next) can abort instead of losing the un-snapshotted turns.
-  // One try for all three writes — the first failure stops the rest (consistent-stale together).
+  // Audit D3: the three raw store.set calls that used to live here are gone — a quota throw between
+  // them left ws@N beside mem@N-k, a slot that loads as a campaign whose world and memory disagree
+  // (and D5 then PUSHED that half-slot to the cloud). writeCampaignSlot is the #337 all-or-nothing
+  // writer built for exactly this; quiet=true because this function owns its own toasts below.
   var ok=true;
-  try{
-    if(ws)store.set(campSlotKey(id,"ws"),ws);
-    if(sl)store.set(campSlotKey(id,"sl"),sl);
-    if(mem)store.set(campSlotKey(id,"mem"),mem);
-  }catch(e){
-    ok=false;
-    console.error("[camps] snapshot failed — storage full:",e);
+  if(ws!=null){
+    ok=writeCampaignSlot(id,ws,sl,mem,null,true);/* label resolved lazily inside, only on failure — this runs on every switch, new game, import and page unload */
+  }
+  if(!ok){
     /* #395 (owner, the phone, 2026-09-10): ONE mature campaign fills the device — the live keys plus a full slot copy is
        twice the campaign, and "Remove local" refuses the campaign being played, so the toast's advice was useless. The
        same rule "Remove local" applies to OTHER campaigns applies here: when the cloud provably holds the current turn
@@ -938,7 +1004,7 @@ function snapshotActiveCamp(quiet){/* #337: quiet=true — the caller shows ONE 
        Anything less than proof keeps the refusal, now pointing at the sync instead of at campaigns that do not exist. */
     var _cloud=null;try{if(typeof storageAdapter!=="undefined"&&storageAdapter.isServerMode&&storageAdapter.isServerMode()&&storageAdapter.syncStatus){var _ss=storageAdapter.syncStatus();var _lt=(typeof worldState!=="undefined"&&worldState)?(worldState.turn||0):0;if(_ss&&!_ss.conflict&&typeof _ss.lastAckTurn==="number"&&_ss.lastAckTurn>=0&&_ss.lastAckTurn>=_lt)_cloud={turn:_ss.lastAckTurn};}}catch(_ce){_cloud=null;}
     if(_cloud){
-      try{store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));}catch(_cd){}
+      removeCampaignLocalCopy(id);/* D3: writeCampaignSlot already cleared its own partial — this keeps an OLDER complete slot from outliving the campaign it no longer matches */
       ok=true;console.warn("[camps] no room for a local copy of "+campDisplayName(id)+" — the cloud holds turn "+_cloud.turn+", proceeding without the slot copy (#395)");
       if(!quiet&&typeof showToast==="function")showToast("☁ No room for a local copy of "+campDisplayName(id)+" — it stays in your cloud library (turn "+_cloud.turn+" synced). Load re-downloads it anytime.");
     }
@@ -948,7 +1014,8 @@ function snapshotActiveCamp(quiet){/* #337: quiet=true — the caller shows ONE 
   // Flush the debounced server sync before leaving this campaign (audit E74): snapshotActiveCamp is
   // the "about to switch/wipe" signal, and switchToCampaign/campNew/newGame/import never flushed —
   // so the outgoing campaign's final turn(s) could sit unsent in the 1.5s debounce window.
-  if(typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow();
+  // D11: except on unload, where the caller's keepalive beacon is the one POST that can land.
+  if(!noSync&&typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow();
   return ok;
 }
 // #337: storage-usage readout for the quota toasts — total chars across localStorage (Chrome's
@@ -960,13 +1027,19 @@ function campDisplayName(id){var m=getCampMeta(),i;for(i=0;i<m.length;i++)if(m[i
 // and campCloudPull unguarded — a quota throw mid-triple left a slot with a worldState but no
 // memory and the "Pulling…" toast never resolved. All-or-nothing: on a throw the partial keys are
 // removed (disk AND the _m shadow) and the caller gets false after ONE toast.
-function writeCampaignSlot(id,ws,sl,mem,label){
-  try{store.set(campSlotKey(id,"ws"),ws);store.set(campSlotKey(id,"sl"),sl);store.set(campSlotKey(id,"mem"),mem);return true;}
+// quiet (audit D3): the caller owns the toast — snapshotActiveCamp has a cloud-proof branch (#395)
+// that turns a failed write into a NON-failure, so its toast must not be pre-empted by this one.
+// null/undefined DELETES that part (writeLiveKeys' rule): the live triple can legitimately lack a
+// session or memory key, and leaving the PREVIOUS slot's part beside a new world is the mismatched
+// pair this writer exists to prevent.
+function writeCampaignSlot(id,ws,sl,mem,label,quiet){
+  function put(k,v){if(v!=null)store.set(k,v);else store.del(k);}
+  try{put(campSlotKey(id,"ws"),ws);put(campSlotKey(id,"sl"),sl);put(campSlotKey(id,"mem"),mem);return true;}
   catch(e){
     removeCampaignLocalCopy(id);
     var need=String(ws||"").length+String(sl||"").length+String(mem||"").length,used=storageUsedChars();
-    console.error("[camps] slot write failed — storage full ("+need+" chars needed, "+used+" in use):",e);
-    if(typeof showToast==="function")showToast("⚠ Not enough local storage to download "+(label||campDisplayName(id))+" (~"+_kb(need)+" KB)"+(used>=0?" — this device holds ~"+_kb(used)+" KB":"")+". Free space: Campaigns → \"Remove local\" on old campaigns.");
+    console.error("[camps] slot write failed — storage full ("+need+" chars needed, "+used+" in use); the partial slot was removed:",e);
+    if(!quiet&&typeof showToast==="function")showToast("⚠ Not enough local storage to download "+(label||campDisplayName(id))+" (~"+_kb(need)+" KB)"+(used>=0?" — this device holds ~"+_kb(used)+" KB":"")+". Free space: Campaigns → \"Remove local\" on old campaigns.");
     return false;
   }
 }
@@ -1028,6 +1101,10 @@ function switchToCampaign(id){
     restoreTargetSlot();
     if(typeof showToast==="function")showToast("Couldn't load that campaign — its save looks corrupted.");
   }
+  // Audit D1: setActiveCampId dropped the outgoing campaign's camp; fetch THIS campaign's own from
+  // IndexedDB/the server so a death after a mid-session switch has a camp to wake at. Async and
+  // best-effort — the restore holds nothing if this campaign has no camp on file, which is correct.
+  if(typeof restoreCheckpointHolder==="function")restoreCheckpointHolder();
   // On success there is nothing to de-dup: the target slot was freed up front and its bytes ARE the live keys now.
   return ok;
 }
@@ -1043,8 +1120,25 @@ function dedupeActiveCampSlots(){
 // B4: remove a campaign's local snapshot but KEEP its picker row (unlike deleteCampaign) — the
 // row degrades to the existing cloud-only tier ("click Load to download"). The caller owns the
 // safety gate (planRemoveLocalCopy + a freshly confirmed cloud copy); this is just the storage op.
-function removeCampaignLocalCopy(id){
+// opts.teardown (audit D10) — this call is the campaign LEAVING the device (the picker's "Remove
+// local"), not the transport step that frees a slot mid-switch. Only a teardown may forget the sync
+// markers: switchToCampaign frees the incoming campaign's slot as part of the two-blob dance, and
+// clearing its unsynced-flush marker there would drop the record of turns the server never saw for
+// the campaign the player is about to play — the silent cross-device loss JP0-11 exists to prevent.
+function removeCampaignLocalCopy(id,opts){
   store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
+  if(opts&&opts.teardown)forgetCampaignSyncMarkers(id);
+}
+/* Audit D10/D13: the two per-campaign sync accumulators die WITH the campaign. JP0-11's unsynced-flush
+   marker is capped at SYNC_DIRTY_CAP=8 with oldest-first eviction, so a marker for a campaign that no
+   longer exists on this device pushes out a LIVE one and the boot push stops covering a real campaign
+   ("campaign teardown" was named as clearFlushDirty's caller and never existed). tnd_sync_size_warned_v1
+   appends a |id| segment per campaign and was never pruned — device-forever growth on exactly the
+   quota-pinned phones the sentinel exists for. */
+function forgetCampaignSyncMarkers(id){
+  if(!id||typeof storageAdapter==="undefined"||!storageAdapter)return;
+  if(storageAdapter.clearFlushDirty)storageAdapter.clearFlushDirty(id);
+  if(storageAdapter.clearSyncSizeWarn)storageAdapter.clearSyncSizeWarn(id);
 }
 // B4: policy for the picker's "Remove local" flow — pure so the engine tests can pin every branch;
 // ui-campaigns owns the dialogs and transport. cloudErr/cloudWs come from a FRESH server GET of
@@ -1068,6 +1162,7 @@ function planRemoveLocalCopy(cloudErr,cloudWs,localTurn){
 function deleteCampaign(id){
   store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
   setCampMeta(getCampMeta().filter(function(c){return c.id!==id;}));
+  forgetCampaignSyncMarkers(id);/* D10/D13: the campaign is gone — its sync markers must not keep a capped slot */
 }
 function migrateToCampaigns(){
   if(getActiveCampId())return;

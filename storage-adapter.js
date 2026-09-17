@@ -52,7 +52,7 @@ var storageAdapter = (function() {
   // without it we fall back to the char count, which is a lower bound (never an over-report).
   function _payloadBytes(s) {
     s = s || "";
-    try { if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(s).length; } catch (e) {}
+    try { if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(s).length; } catch (e) { /* audit E15: a FEATURE probe, not a data condition — the char-count fallback below is a documented lower bound, so there is nothing lost to report. */ }
     return s.length;
   }
   // Pure gate (exposed for the engine tests): is this payload too big to flush on keepalive?
@@ -99,7 +99,7 @@ var storageAdapter = (function() {
     if (!(id in map)) return;
     delete map[id];
     if (Object.keys(map).length) _dirtyWrite(map);
-    else { try { if (typeof store !== "undefined") store.del(SYNC_DIRTY_K); } catch (e) {} }
+    else { try { if (typeof store !== "undefined") store.del(SYNC_DIRTY_K); } catch (e) { /* audit E15: storage-AVAILABILITY only — store.del never throws on a data condition, and the marker map is already empty in memory. */ } }
   }
   // Clear the marker ONLY on a confirmed 2xx push of OUR OWN payload. A 409 self-heal acks the
   // SERVER's turn, which is no proof our turns landed — the retry it fires clears it on its 200.
@@ -122,7 +122,7 @@ var storageAdapter = (function() {
         syncSpeakerStars(null);   // #95.5: fire-and-forget bench adopt on boot (function is hoisted)
         fetchAccount(null);       // §3 gateway: populate serverAccount so gmViaServer can route
       }
-    } catch(e) {}
+    } catch(e) { /* audit E15: storage-AVAILABILITY only (privacy mode / no localStorage) — no saved session to restore means the app simply stays offline, which the sync badge already shows. */ }
   }
 
   // ── Server configuration ────────────────────────────────────────────────
@@ -138,7 +138,7 @@ var storageAdapter = (function() {
         localStorage.removeItem(SERVER_URL_KEY);
         localStorage.removeItem(SERVER_TOK_KEY);
       }
-    } catch(e) {}
+    } catch(e) { /* audit E15: storage-AVAILABILITY only — _serverUrl/_token are already set in memory, so this session syncs normally; only the remembered login is lost. */ }
   }
 
   function isServerMode() { return !!_serverUrl; }
@@ -190,7 +190,7 @@ var storageAdapter = (function() {
       clearTimeout(_authGiveUpTimer);
       window.removeEventListener("message", onMsg);
       if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
-      if (_popup && !_popup.closed) { try { _popup.close(); } catch(x) {} }
+      if (_popup && !_popup.closed) { try { _popup.close(); } catch(x) { /* audit E15: a cross-origin/already-gone popup refuses close() — nothing is lost, the auth result already arrived. */ } }
       _popup = null;
       setServer(serverUrl, sessionId);
       syncSpeakerStars(null);   // #95.5: fresh connect — adopt (or seed) the cloud star bench
@@ -296,6 +296,20 @@ var storageAdapter = (function() {
       return true;
     } catch (e) { return true; }
   }
+  // Audit D13: the |id| segments accumulated FOREVER — a deleted campaign kept its segment on the
+  // device for life, the one accumulator class capped everywhere else in the app. deleteCampaign /
+  // "Remove local" prune through here (state.js forgetCampaignSyncMarkers); the key disappears once
+  // the last segment goes, so a device that never crossed the 2MB line still stores nothing.
+  function clearSyncSizeWarn(campId) {
+    var id = campId || "default";
+    try {
+      if (typeof store === "undefined") return;
+      var seen = store.get(SYNC_SIZE_WARN_K) || "";
+      if (seen.indexOf("|" + id + "|") < 0) return;
+      var next = seen.split("|" + id + "|").join("");
+      if (next) store.set(SYNC_SIZE_WARN_K, next); else store.del(SYNC_SIZE_WARN_K);
+    } catch (e) { console.warn("[storage] could not prune the payload-size warning latch for " + id + " (" + (e && e.message) + ") — it stays on this device"); }
+  }
 
   function _tFetch(url, opts, ms) {
     var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
@@ -399,7 +413,7 @@ var storageAdapter = (function() {
     _updateSyncUI();
   }
   function _updateSyncUI() {
-    if (typeof updateSyncBadge === "function") { try { updateSyncBadge(); } catch(e) {} }
+    if (typeof updateSyncBadge === "function") { try { updateSyncBadge(); } catch(e) { /* audit E15: a UI repaint, not data — the badge is re-rendered on every later sync event. */ } }
   }
   function syncStatus() {
     var t = (typeof worldState !== "undefined" && worldState) ? (worldState.turn || 0) : 0;
@@ -602,7 +616,7 @@ var storageAdapter = (function() {
               else _onConflict(st);
             }).catch(function(){});
           }).catch(function(){});
-      } catch(e) {}
+      } catch(e) { /* audit E15: the page is unloading — a throw here means the browser already tore the context down; there is no channel left to report on (E34). */ }
       return;
     }
     _tFetch(_serverUrl + "/api/state", {
@@ -685,10 +699,15 @@ var storageAdapter = (function() {
       return r.json();
     }).then(function(serverList) {
       if (!Array.isArray(serverList)) { done(null); return; }
-      var local = [];
-      try { var raw = localStorage.getItem("tnd_camps_v1"); if (raw) local = JSON.parse(raw); } catch(e) {}
+      // Audit D8: the campaign list is read and written through state.js's OWN accessors, never raw
+      // localStorage with a second copy of the key literal. The hand-rolled pair lost three things:
+      // getCampMeta's E72 corrupt-list backup (a corrupt list parsed to [] here, and the server-only
+      // merge then UNLISTED every local campaign), the `store` in-memory fallback that keeps the list
+      // alive on a quota-full device, and the _mKeys shadow that stops a stale disk copy being served.
+      var local = (typeof getCampMeta === "function") ? getCampMeta() : [];
       var merged = mergeCampaignLists(local, serverList);
-      try { localStorage.setItem("tnd_camps_v1", JSON.stringify(merged)); } catch(e) {}
+      try { if (typeof setCampMeta === "function") setCampMeta(merged); }
+      catch (e) { console.error("[storage] the merged campaign list could not be persisted (storage full?) — the picker shows it this session only:", e); }
       done(merged);
     }).catch(function(e) {
       console.warn("[storage] campaign list sync failed:", (e && e.name === "AbortError") ? "timed out" : e.message);
@@ -984,7 +1003,7 @@ var storageAdapter = (function() {
     try {
       var a = JSON.parse(localJson || "[]");
       hasLocal = Object.prototype.toString.call(a) === "[object Array]" && a.length > 0;
-    } catch (e) {}
+    } catch (e) { console.warn("[storage] the local speaker-star bench could not be read (" + (e && e.message) + ") — treating this device as having no bench, so the cloud copy wins the next sync (audit E15)"); }
     if (srvRev > 0 && !srvHasList) return { action: "none" };
     if (srvRev > 0 && srvRev !== localRev) return { action: "adopt", rev: srvRev };
     if (srvRev === 0 && hasLocal) return { action: "seed" };
@@ -1078,17 +1097,21 @@ var storageAdapter = (function() {
   // parts = {worldState, sessionLog, memory} — the EXPLICIT blob to ship; never reads the
   // live globals, so a stale snapshot pushes as-is. NPC avatar portraits are stripped via
   // the same _stripNpcPortraits the main sync path uses (PC portrait stays inline — E27);
-  // they travel through putCampaignPortrait instead. No baseTurn: this is the connect-time
-  // "upload a local-only campaign" path, not the CAS-guarded per-turn sync (syncToServer
-  // owns that — the server row doesn't exist yet, so there is nothing to guard against).
+  // they travel through putCampaignPortrait instead. parts.baseTurn (audit D4) is OPTIONAL and rides
+  // through to the server's CAS turn guard: the connect-time "upload a local-only campaign" path omits
+  // it (no server row to guard against) and the body is byte-identical to before, while the manual
+  // push from the campaign picker passes the turn it just probed, so a device that wrote between the
+  // probe and this POST gets a 409 instead of being silently overwritten.
   function pushCampaignState(campId, parts, cb) {
-    _apiJson("/api/state", "POST", {
+    var body = {
       worldState:    wireWorldStateSnapshot(_stripNpcPortraits(parts.worldState)),/* #92/#272 D3: same wire form as _syncNow — the B9 one-map rule */
       sessionLog:    parts.sessionLog,
       memory:        parts.memory,
       campaignId:    campId,
       narrativeHtml: ""
-    }, cb);
+    };
+    if (typeof parts.baseTurn === "number") body.baseTurn = parts.baseTurn;
+    _apiJson("/api/state", "POST", body, cb);
   }
 
   // payload = {portrait, npcPortraits} — built by the caller from ITS blob (silent push
@@ -1146,7 +1169,8 @@ var storageAdapter = (function() {
     syncSizeWarnOnce:      syncSizeWarnOnce,     // v1.441: exposed for the engine tests (once-per-campaign sentinel gate)
     flushTooBigForKeepalive: flushTooBigForKeepalive, // JP0-11: the pure size gate (exposed for the engine tests)
     flushDirtyTurn:        flushDirtyTurn,       // JP0-11: the unsynced-flush marker — read
-    clearFlushDirty:       clearFlushDirty,      // JP0-11: the unsynced-flush marker — clear (tests + campaign teardown)
+    clearFlushDirty:       clearFlushDirty,      // JP0-11: the unsynced-flush marker — clear (tests + campaign teardown, D10)
+    clearSyncSizeWarn:     clearSyncSizeWarn,    // D13: prune a deleted campaign's payload-size latch segment
     whoAmI:                whoAmI,
     fetchAccount:          fetchAccount,         // §3 gateway: account/entitlement readout → serverAccount global
     listAdminUsers:        listAdminUsers,
