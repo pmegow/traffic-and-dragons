@@ -131,4 +131,34 @@ rc |= sabotage.prove({
   ]
 });
 
+/* ═══ G1 — the derived hook→CI coverage rule ═════════════════════════════════════════════════
+   New guard, so it needs its own proof: a rule that cannot fail is the thing this whole audit
+   section is about. Gated on dev/tests-verification-enforcement.js, which owns the #G1 fixtures
+   (the workflow/pre-commit topology is pure data — no engine load needed). */
+rc |= sabotage.prove({
+  file: "dev/check-enforcement.js",
+  also: ["dev/tests-verification-enforcement.js"],
+  command: ["node", ["dev/tests-verification-enforcement.js"]],
+  cases: [
+    {
+      label: "G1 realProblems stops folding in the hook→CI coverage rule",
+      mustFail: "realProblems ignored a hook-only gate",
+      find: ".concat(coverageProblems(workflow, hook));",
+      replace: ";"
+    },
+    {
+      label: "G1 every gate becomes exempt, so a hook-only gate passes",
+      mustFail: "a hook-only gate passed",
+      find: "    if (HOOK_ONLY[name]) return;",
+      replace: "    if (true) return;"
+    },
+    {
+      label: "G1 check-hook-parity loses its one documented exemption (CI has no installed hook)",
+      mustFail: "check-hook-parity.js lost its exemption",
+      find: "  \"check-hook-parity.js\": \"local-only: it compares the INSTALLED .git hook, which a CI checkout does not have\"",
+      replace: "  \"run-tests.js\": \"placeholder\""
+    }
+  ]
+});
+
 process.exit(rc);
