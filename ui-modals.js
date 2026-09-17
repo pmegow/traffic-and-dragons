@@ -856,10 +856,14 @@ function acceptQuest(title){
   var i;for(i=0;i<worldState.questLog.length;i++){if(worldState.questLog[i].title===title&&worldState.questLog[i].status==="offered"){worldState.questLog[i].status="active";saveAll();syncUI();if(typeof showToast==="function")showToast("Quest accepted: "+title);break;}}
   showQuestModal();
 }
+/* audit E6: the archive record has ONE author — archiveQuest (api.js). This used to build the
+   memory.quests entry and splice by hand, with a case-SENSITIVE title match where archiveQuest's is
+   case-insensitive, so the next field added to the record would land in one copy and not the other. */
 function declineQuest(title){
   if(_questJournalBusy())return;
   if(!worldState||!worldState.questLog)return;
-  var i;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(q.title===title&&q.status==="offered"){if(!memory.quests)memory.quests={};memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"declined",turn:worldState.turn||0};worldState.questLog.splice(i,1);saveAll();syncUI();if(typeof showToast==="function")showToast("Quest declined: "+title);break;}}
+  var i,found=null;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(String(q.title).toLowerCase()===String(title).toLowerCase()&&q.status==="offered"){found=q;break;}}
+  if(found){archiveQuest(found.title,"declined");saveAll();syncUI();if(typeof showToast==="function")showToast("Quest declined: "+found.title);}
   showQuestModal();
 }
 // ── Bug report modal (#16b) — File ▸ ⚠ Report bug ────────────────────────────────────────────
