@@ -15,9 +15,26 @@ try {
   console.error("VERIFICATION ENFORCEMENT CONTRACT FAILED: " + e.message);
   process.exit(1);
 }
+
+// ── SHARED READERS FOR THE SOURCE-CONTRACT SECTION (audit G11, 2026-09-18) ──────────────────
+// Every contract below does the same two things: read a repo file, and strip its comments before
+// scanning it (several contracts DOCUMENT the bad spelling they forbid, so a raw scan would flag
+// the fix itself). That had produced SEVENTEEN byte-identical copies of the stripper — with the
+// same `var` names redeclared across blocks — and up to eight re-reads of one file per run.
+// One stripper, one read-once cache. Every clause keeps its own message and its own failer; this
+// changes nothing a contract asserts. The same extraction already exists in frozen-golden.js and
+// latch-census.js; this section simply had not taken it.
+var _rtFs = require("fs"), _rtPath = require("path"), _rtRoot = _rtPath.join(__dirname, "..");
+function _stripComments(text) { return String(text).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); }
+var _srcCache = {};
+function _src(rel) {   // repo-relative path → file text, read at most once per process
+  if (!Object.prototype.hasOwnProperty.call(_srcCache, rel)) _srcCache[rel] = _rtFs.readFileSync(_rtPath.join(_rtRoot, rel), "utf8");
+  return _srcCache[rel];
+}
+
 try {
   var _fsV = require("fs"), _pathV = require("path");
-  var _vits = _fsV.readFileSync(_pathV.join(__dirname, "..", "vendor/piper/vits/vits-web.js"), "utf8");
+  var _vits = _src("vendor/piper/vits/vits-web.js");
   if (_vits.indexOf("T&D PATCH") < 0 || _vits.indexOf("tndGetSession") < 0 || _vits.indexOf("tndPhonemize") < 0) {
     console.error("VENDOR PATCH MISSING: vendor/piper/vits/vits-web.js lost the T&D session-cache patch (re-vendored?) — reapply it (see the patch header it should carry).");
     process.exit(1);
@@ -45,12 +62,12 @@ try {
     console.error("VENDOR PATCH MISSING: vits-web.js lost the TND_DEP_REV query on its dependency URLs (T&D r4) — a patched piper-DeOu3H9E.js/phonemize asset would never reach installed phones.");
     process.exit(1);
   }
-  var _idx = _fsV.readFileSync(_pathV.join(__dirname, "..", "index.html"), "utf8");
+  var _idx = _src("index.html");
   if (_idx.indexOf("ort.wasm.min.js?tnd=") < 0) {
     console.error("VENDOR PATCH MISSING: index.html import map lost the ?tnd= rev on ort.wasm.min.js — a patched ORT loader would never reach installed phones.");
     process.exit(1);
   }
-  var _tts = _fsV.readFileSync(_pathV.join(__dirname, "..", "tts.js"), "utf8");
+  var _tts = _src("tts.js");
   var _revT = (_tts.match(/PIPER_RUNTIME_REV\s*=\s*"(r\d+)"/) || [])[1];
   var _revV = (_vits.match(/TND_VITS_PATCH\s*=\s*"(r\d+)"/) || [])[1];
   if (!_revT || !_revV || _revT !== _revV) {
@@ -66,7 +83,7 @@ try {
   // ⑤b soak-harness rev lockstep (piper_test.html v0.2): the soak page imports vits-web with its
   //    own hardcoded ?tnd= rev. If it lags PIPER_RUNTIME_REV, the permanent SW piper-cache serves
   //    the soak a STALE runtime and the harness measures a build that no longer ships.
-  var _spike = _fsV.readFileSync(_pathV.join(__dirname, "..", "piper_test.html"), "utf8");
+  var _spike = _src("piper_test.html");
   var _revS = (_spike.match(/vits-web\.js\?tnd=(r\d+)/) || [])[1];
   if (_revS && _revS !== _revT) {
     console.error("SOAK REV LAG: piper_test.html imports vits-web ?tnd=" + _revS + " but tts.js PIPER_RUNTIME_REV=" + _revT + " — bump the soak page's import rev so the harness measures the shipped runtime.");
@@ -84,9 +101,7 @@ try {
 // A SOURCE CONTRACT because the regression lives in commitGmTurn, which needs the DOM and cannot be
 // driven headless — the behavioural half is the #172 engine tests.
 try {
-  var _fsN = require("fs"), _pathN = require("path");
-  var _gameN = _fsN.readFileSync(_pathN.join(__dirname, "..", "game.js"), "utf8")
-    .replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");   // strip comments: the fix DOCUMENTS the old counter
+  var _gameN = _stripComments(_src("game.js"));   // strip comments: the fix DOCUMENTS the old counter
   if (/mpEnded\s*&&\s*\([^)]*turn[^)]*\)\s*>=/.test(_gameN) || /mpEnded\.turn\s*\)\s*>=\s*\d/.test(_gameN)) {
     console.error("NARRATION PERSON CONTRACT: game.js retires worldState.mpEnded on a TURN COUNT again. That is the #172 bug — a GM that has not switched back to second person loses the correction forever, and single-player carries no other person instruction. Retire it in personDriftDetect on observed compliance instead.");
     process.exit(1);
@@ -106,8 +121,7 @@ try {
 // 57-handler blast radius (or breaks sheet correction). Source contract because the failure is
 // a one-argument deletion nothing behavioural exercises without a live model hallucinating.
 try {
-  var _rwFs = require("fs"), _rwPath = require("path");
-  var _rwGame = _rwFs.readFileSync(_rwPath.join(__dirname, "..", "game.js"), "utf8");
+  var _rwGame = _src("game.js");
   var _rwFail = [];
   var _rwDefine = _rwGame.slice(_rwGame.indexOf("async function defineItemFromStory"), _rwGame.indexOf("async function suggestQuestCompletion"));
   var _rwSuggest = _rwGame.slice(_rwGame.indexOf("async function suggestQuestCompletion"), _rwGame.indexOf("function invDiffLines"));
@@ -128,9 +142,8 @@ try {
 // in identity.js, forget its player sentence, and the toast quietly degrades to the generic
 // fallback with nothing red anywhere. This asserts the registry and the code still agree.
 try {
-  var _rcFs = require("fs"), _rcPath = require("path");
-  var _rcSrc = _rcFs.readFileSync(_rcPath.join(__dirname, "..", "identity.js"), "utf8");
-  var _rcApi = _rcFs.readFileSync(_rcPath.join(__dirname, "..", "api.js"), "utf8");
+  var _rcSrc = _src("identity.js");
+  var _rcApi = _src("api.js");
   var _rcCensus = require("./refusal-copy-census.js");
   global.__refusalCopyCensusForTests = _rcCensus;
   var _rcReport = _rcCensus.census(_rcSrc, _rcApi);
@@ -175,8 +188,7 @@ try {
   var _rootT = _pathT.join(__dirname, "..");
   _fsT.readdirSync(_rootT).forEach(function (f) {
     if (!/\.js$/.test(f) || f === "state.js") return;
-    var body = _fsT.readFileSync(_pathT.join(_rootT, f), "utf8")
-      .replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    var body = _stripComments(_fsT.readFileSync(_pathT.join(_rootT, f), "utf8"));
     var m = body.match(_trRe);
     if (m) {
       console.error("TRANSCRIPT SEAM CONTRACT: " + f + " writes a transcript-entry field directly (“" + m[0].trim() + "”). Route it through mutateTranscriptEntry (state.js) so memo invalidation is owned by the seam — a bypassed write persists a stale compressed blob at BOTH the save and sync exits (#177).");
@@ -207,15 +219,13 @@ try {
 // IIFE. They pin the four specific regressions that produced the bug. Each one failing means the
 // silent-no-op class is back.
 try {
-  var _fsD = require("fs"), _pathD = require("path");
-  var _tts = _fsD.readFileSync(_pathD.join(__dirname, "..", "tts.js"), "utf8");
+  var _tts = _src("tts.js");
   // Comments are stripped before matching. These functions DOCUMENT the bad call they replaced
   // ("was mod.remove(id) — the vendored path that swallows…"), so a naive scan flags the fix
   // itself. Caught by sabotage-testing the guard rather than by trusting it.
-  var _nc = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _evict = _nc((_tts.match(/async function _piperEvictExcess[\s\S]*?\n  \}\n/) || [""])[0]);
-  var _del   = _nc((_tts.match(/function _piperDeleteVoice[\s\S]*?\n  \}\n/) || [""])[0]);
-  var _rel   = _nc((_tts.match(/function releaseVoiceIfUnused[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _evict = _stripComments((_tts.match(/async function _piperEvictExcess[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _del   = _stripComments((_tts.match(/function _piperDeleteVoice[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _rel   = _stripComments((_tts.match(/function releaseVoiceIfUnused[\s\S]*?\n  \}\n/) || [""])[0]);
   // ① NO deletion path may go back through the swallowing vendored remove(). v1.439 extended to
   //    releaseVoiceIfUnused — the one site the original contract didn't cover, and exactly where
   //    the class regressed (found by the entry-4 evidence pass).
@@ -252,7 +262,7 @@ try {
   //    so releasing one voice would delete the ONE model file all five speak through, mid-drive,
   //    recovered only by a silent 60-130MB refetch inside a read. Same class as ③, one level of
   //    indirection deeper, and equally invisible until it costs a user their voices.
-  var _assign = _nc((_tts.match(/function _voiceAssignedTo\([\s\S]*?\n  \}\n/) || [""])[0]);
+  var _assign = _stripComments((_tts.match(/function _voiceAssignedTo\([\s\S]*?\n  \}\n/) || [""])[0]);
   if (!_assign) {
     console.error("VOICE DELETE CONTRACT: _voiceAssignedTo not found — the protection layer's anchor moved; re-verify clauses ③ and ⑥ by hand.");
     process.exit(1);
@@ -273,7 +283,7 @@ try {
   //    creeps back into a single call site nobody re-audits. v1.462 (Fable review entry 7): the
   //    net also catches indexOf and single-quoted variants — the old regex only saw the exact
   //    double-quoted split/lastIndexOf spellings, so a dodge-by-spelling passed silently.
-  var _splits = (_nc(_tts).match(/\.split\(["']#["']\)|lastIndexOf\(["']#["']\)|(?:[^t]|^)indexOf\(["']#["']\)/g) || []).length;
+  var _splits = (_stripComments(_tts).match(/\.split\(["']#["']\)|lastIndexOf\(["']#["']\)|(?:[^t]|^)indexOf\(["']#["']\)/g) || []).length;
   if (_splits > 2) {
     console.error("VOICE DELETE CONTRACT: tts.js takes voice ids apart on '#' in more than the two sanctioned places (voiceBaseId/voiceSpeaker) — every protection/eviction/download decision must normalize through the ONE helper (#95 spec R1).");
     process.exit(1);
@@ -289,7 +299,7 @@ try {
   // ⑨ #95 (S5): both voice pickers must offer the starred cast, or an assigned speaker voice is
   //    unreachable without hand-editing localStorage. ui-sheets.js is not loaded by the DOM-free
   //    engine harness, so its half is pinned here.
-  var _sheets = _nc(_fsD.readFileSync(_pathD.join(__dirname, "..", "ui-sheets.js"), "utf8"));
+  var _sheets = _stripComments(_src("ui-sheets.js"));
   if (_sheets.indexOf("starOptionsHtml") < 0) {
     console.error("VOICE DELETE CONTRACT: csVoiceControlHtml (ui-sheets.js) no longer renders the ★ Cast voices optgroup — a starred speaker voice becomes unassignable from the character sheet (#95 S5).");
     process.exit(1);
@@ -302,9 +312,8 @@ try {
 // clauses pin the surfaces the DOM-free harness cannot execute: the .tnd import whitelist
 // (ui-files.js) and the no-bare-shift discipline at the write sites.
 try {
-  var _fsAC = require("fs"), _pathAC = require("path");
   var _failAC = function (msg) { console.error("#144A ARCHIVE CARRY CONTRACT: " + msg); process.exit(1); };
-  var _ufAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "ui-files.js"), "utf8");
+  var _ufAC = _src("ui-files.js");
   // ① the import carries the FULL archive — and does so BY REGISTRY, never by hand-copied key
   //   list. This clause used to repeat the whitelist verbatim, which is exactly why the loss
   //   shipped green four times (the test and the code drifted together). JP0-5: the import must
@@ -316,7 +325,7 @@ try {
     _failAC("the .tnd import no longer rebuilds its archive through archiveRebuild — a hand-rolled rebuild is how this key list dropped a category four separate times");
   if (/mm\.archive\.[A-Za-z_$]/.test(_ufAC))
     _failAC("ui-files.js enumerates archive categories by hand again (mm.archive.<key>) — the registry in state.js is the only list");
-  var _stAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "state.js"), "utf8");
+  var _stAC = _src("state.js");
   var _regAC = (_stAC.match(/var MEMORY_ARCHIVE_KEYS=(\[[^\]]*\]);/) || [])[1];
   if (!_regAC) _failAC("MEMORY_ARCHIVE_KEYS is gone from state.js — there is no registry to derive from");
   var _keysAC = JSON.parse(_regAC);
@@ -328,7 +337,7 @@ try {
   // ② every consumer derives from the registry — a site that re-grows its own list is the class.
   if (!/archive:blankArchive\(\)/.test(_stAC)) _failAC("blankMemory no longer builds its archive from the registry");
   if (!/memory\.archive=archiveHeal\(memory\.archive\)/.test(_stAC)) _failAC("healMemory no longer heals its archive through the registry");
-  var _mmAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "memory.js"), "utf8");
+  var _mmAC = _src("memory.js");
   if (!/function memArchive\(\)\{memory\.archive=archiveHeal\(memory\.archive\);/.test(_mmAC))
     _failAC("memArchive no longer lazy-inits through the registry — it had its own drifted list before JP0-5");
   // ③ the carry is the actual class-closer: archiveRebuild must pass unregistered categories
@@ -340,8 +349,8 @@ try {
   // ② no bare knowledge.shift() — every shrink must feed memArchive().npcKnowledge. #269 widened
   //   the scan to tag_table.js: the NPC_SUPERSEDE handler's cap shift was the one knowledge write
   //   still shedding to the void (it predated #144A and the scan never looked there).
-  var _memAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "memory.js"), "utf8");
-  var _ttAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "tag_table.js"), "utf8");
+  var _memAC = _src("memory.js");
+  var _ttAC = _src("tag_table.js");
   var _srcsAC = [["memory.js", _memAC], ["tag_table.js", _ttAC]], _siAC;
   for (_siAC = 0; _siAC < _srcsAC.length; _siAC++) {
     var _shAC = /knowledge\.shift\(\)/g, _mAC, _bareAC = 0, _bodyAC = _srcsAC[_siAC][1];
@@ -381,7 +390,7 @@ try {
     _failAC("the .tnd import no longer carries memory.quests wholesale — #235 by/wasOffered provenance would be dropped on every round-trip");
   // ④ #235: the Quest Journal's History label routes through the one pure renderer, so a
   //   wall-swept thread can never render as the player's own drop.
-  var _umAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "ui-modals.js"), "utf8");
+  var _umAC = _src("ui-modals.js");
   if (_umAC.indexOf("questArchiveWording(aq).label") < 0)
     _failAC("the Quest Journal History line no longer renders abandoned records through questArchiveWording (#235) — all three authors read as one lie again");
 } catch (eAC) { console.error("#144A ARCHIVE CARRY CONTRACT: " + (eAC && eAC.message)); process.exit(1); }
@@ -432,7 +441,7 @@ try {
 try {
   var _fsLR = require("fs"), _pathLR = require("path");
   var _failLR = function (msg) { console.error("#151 LATCH REGISTRY CONTRACT: " + msg); process.exit(1); };
-  var _apiLR = _fsLR.readFileSync(_pathLR.join(__dirname, "..", "api.js"), "utf8");
+  var _apiLR = _src("api.js");
   var _lcLR = require("./latch-census.js"), _sourcesLR = {}, _filesLR = _lcLR.NOTE_LATCH_CENSUS_FILES;
   for (var _iLR = 0; _iLR < _filesLR.length; _iLR++)
     _sourcesLR[_filesLR[_iLR]] = _fsLR.readFileSync(_pathLR.join(__dirname, "..", _filesLR[_iLR]), "utf8");
@@ -452,7 +461,7 @@ try {
     _failLR("clockEnsure lazy repair exemption lacks its entry-30 rationale verbatim");
   if (_resultLR.exempt.pendingRewardClaims !== "f31: the player-visible shelve decision precedes the request; subject+tokens dedupe prevents a duplicate claim")
     _failLR("pendingRewardClaims exemption lacks its entry-30 rationale verbatim");
-  var _gmLR = _fsLR.readFileSync(_pathLR.join(__dirname, "..", "game.js"), "utf8");
+  var _gmLR = _src("game.js");
   var _snapAt = _gmLR.indexOf("snapshotNoteLatches()"), _notesAt = _gmLR.indexOf("buildEngineNotes()");
   if (_snapAt < 0 || _notesAt < 0 || _snapAt > _notesAt) _failLR("sendAction no longer snapshots BEFORE buildEngineNotes");
   if (!/if\(!_committed&&typeof _latchSnap!=="undefined"&&_latchSnap[^\n]*restoreNoteLatches\(_latchSnap\)/.test(_gmLR)) _failLR("the pre-commit failure path no longer restores the latches");
@@ -472,8 +481,7 @@ try {
 // server-backed Push/Pull — the cloud protocol is whole-list LWW, nothing left to merge.
 // These pin the wiring the DOM-free harness cannot execute.
 try {
-  var _fsSP = require("fs"), _pathSP = require("path");
-  var _sbSP = _fsSP.readFileSync(_pathSP.join(__dirname, "..", "speaker_browser.html"), "utf8");
+  var _sbSP = _src("speaker_browser.html");
   var _failSP = function (msg) { console.error("STARS PORTABILITY CONTRACT: " + msg); process.exit(1); };
   // the manual buttons must exist and route through the shared cloud helpers
   if (_sbSP.indexOf('id="star-push"') < 0 || _sbSP.indexOf('id="star-pull"') < 0)
@@ -488,7 +496,7 @@ try {
   var _bootSP = _sbSP.slice(_sbSP.indexOf("// ── Boot"));
   if (!/pullStarsOnBoot\(\)/.test(_bootSP) || !/pullGOvOnBoot\(\)/.test(_bootSP) || !/loadGOv\(\)/.test(_bootSP))
     _failSP("boot no longer loads/pulls the bench and gender fixes — other devices' edits never arrive (#95.5/#95.8)");
-  var _saSP = _fsSP.readFileSync(_pathSP.join(__dirname, "..", "storage-adapter.js"), "utf8");
+  var _saSP = _src("storage-adapter.js");
   if ((_saSP.match(/syncSpeakerStars\(null\)/g) || []).length < 2)
     _failSP("storage-adapter no longer syncs the star bench on BOTH boot (autoConnect) and fresh connect (onAuth) (#95.5)");
   // #95.7 adopt-path fix: EVERY cloud adopt must derive gender exactly like loadStars, or a pull
@@ -527,7 +535,7 @@ try {
   // ── DEFAULT BENCH CONTRACT (#95.6) ── the starter cast is duplicated in tts.js and
   // speaker_browser.html (the satellite is self-contained — no shared file possible), so the two
   // copies MUST stay byte-identical or new players see different benches in the game vs the browser.
-  var _ttsSP = _fsSP.readFileSync(_pathSP.join(__dirname, "..", "tts.js"), "utf8");
+  var _ttsSP = _src("tts.js");
   var _benchRe = /\/\/ >>> DEFAULT STAR BENCH[\s\S]*?\/\/ <<< DEFAULT STAR BENCH/;
   var _bTts = _ttsSP.match(_benchRe), _bSb = _sbSP.match(_benchRe);
   if (!_bTts || !_bSb) _failSP("DEFAULT STAR BENCH markers missing (tts.js: " + !!_bTts + ", speaker_browser: " + !!_bSb + ")");
@@ -557,8 +565,8 @@ try {
 try {
   var _fsBE = require("fs"), _pathBE = require("path");
   var _failBE = function (msg) { console.error("BIBLE EDITOR CONTRACT: " + msg); process.exit(1); };
-  var _bePage = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "bible_editor.html"), "utf8");
-  var _beFile = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "class_bible.js"), "utf8").replace(/\r\n/g, "\n");
+  var _bePage = _src("bible_editor.html");
+  var _beFile = _src("class_bible.js").replace(/\r\n/g, "\n");
   var _serM = _bePage.match(/\/\/ >>> BIBLE SERIALIZER[\s\S]*?\/\/ <<< BIBLE SERIALIZER/);
   if (!_serM) _failBE("the serializer markers are gone from bible_editor.html");
   var _serialize = new Function(_serM[0] + "\nreturn serializeClassBible;")();
@@ -591,7 +599,7 @@ try {
   // ── #311 ① ENGINE-ONLY TAG TIER CONTRACT: every tag demoted from the standing doc must be taught by the
   // note that asks for it — a demoted tag no builder names would be a phantom (parsed, never emitted).
   {
-    var _eoTT = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "tag_table.js"), "utf8");
+    var _eoTT = _src("tag_table.js");
     var _eoM = _eoTT.match(/var TAG_DOC_ENGINE_ONLY=(\[[^\]]*\]);/);
     if (!_eoM) _failBE("TAG_DOC_ENGINE_ONLY is gone from tag_table.js");
     var _eoList = JSON.parse(_eoM[1]);
@@ -603,7 +611,7 @@ try {
   }
 
   // ── ITEM BIBLE half (#81, same discipline): item_bible.js is machine-regenerated wholesale ──
-  var _biFile = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "item_bible.js"), "utf8").replace(/\r\n/g, "\n");
+  var _biFile = _src("item_bible.js").replace(/\r\n/g, "\n");
   var _serItems = new Function(_serM[0] + "\nreturn serializeItemBible;")();
   var _biData = new Function(_biFile + "\nreturn ITEM_BIBLE;")();
   var _biOut = _serItems(_biData).replace(/\r\n/g, "\n");
@@ -657,12 +665,12 @@ try {
   // the two GAME seams: commitGmTurn (the story-commit boundary — post-applyMuts, clean text)
   // and rerollLast (replacement narration applies NO tags, so the nudge is the only heal).
   // Losing either call silently re-opens the t1605 class on that path.
-  var _gmSrc = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "game.js"), "utf8");
+  var _gmSrc = _src("game.js");
   var _cgtBody = (_gmSrc.match(/function commitGmTurn[\s\S]*?\nfunction /) || [""])[0];
   var _rrlBody = (_gmSrc.match(/function rerollLast[\s\S]*?\nfunction /) || [""])[0];
   if (_cgtBody.indexOf("clockPhaseDetect(clean)") < 0) _failAC("#158: commitGmTurn no longer runs clockPhaseDetect on the committed clean prose — untagged phase narration goes unnoticed again");
   if (_rrlBody.indexOf("clockPhaseDetect(clean)") < 0) _failAC("#158: rerollLast no longer runs clockPhaseDetect — a re-rolled scene can assert a phase with no tag heal AND no detection");
-  var _clkSrc = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "clock.js"), "utf8");
+  var _clkSrc = _src("clock.js");
   if (_clkSrc.indexOf("TIME_PHASES[i].re.source") < 0) _failAC("#158: the prose forms are no longer DERIVED from TIME_PHASES — two vocabularies will drift (the one-vocabulary rule)");
 
   // ── CAP VALIDATOR CONTRACT (v1.480) ──────────────────────────────────────────────────
@@ -950,7 +958,7 @@ try {
   // entries re-emit as their original source lines and every comment survives in place. Without
   // this pin, a serializer change could silently reformat 175 entries and bury the real diff.
   var _capSerialize = new Function(_serM[0] + "\nreturn serializeCapabilityBible;")();
-  var _capSrc = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "capability_bible.js"), "utf8").replace(/\r\n/g, "\n");
+  var _capSrc = _src("capability_bible.js").replace(/\r\n/g, "\n");
   var _capLines = _capSrc.split("\n"), _cs = -1, _ce = -1, _ci;
   for (_ci = 0; _ci < _capLines.length; _ci++) if (/^var\s+CAPABILITY_BIBLE\s*=\s*\{/.test(_capLines[_ci])) { _cs = _ci; break; }
   for (_ci = _cs + 1; _ci < _capLines.length; _ci++) if (/^\};/.test(_capLines[_ci])) { _ce = _ci; break; }
@@ -996,9 +1004,8 @@ try {
 // baselines, prompt builders) is marker-delimited and evaluated here; the clauses below keep the
 // lab in lockstep with data.js AUTHORS and keep the dial prompt genuinely name-free.
 try {
-  var _fsVL = require("fs"), _pathVL = require("path");
   var _failVL = function (msg) { console.error("VOICE LAB CONTRACT: " + msg); process.exit(1); };
-  var _pageVL = _fsVL.readFileSync(_pathVL.join(__dirname, "..", "author_voice_lab.html"), "utf8");
+  var _pageVL = _src("author_voice_lab.html");
   // ① The pure core is extractable and DOM/fetch-free (the testability seam).
   var _mVL = _pageVL.match(/\/\* >>> VOICE LAB CORE[\s\S]*?\*\/([\s\S]*?)\/\* <<< VOICE LAB CORE \*\//);
   if (!_mVL || _mVL[1].length < 1000) _failVL("core markers missing — the pure logic block is the node-test seam; do not remove or rename the markers.");
@@ -1013,7 +1020,7 @@ try {
     if (_labVL.band(a, 1) !== a.bands[0] || _labVL.band(a, 5) !== a.bands[2] || _labVL.band(a, 10) !== a.bands[4]) _failVL("band mapping broken for '" + a.id + "' (1/5/10 must hit bands 0/2/4).");
   });
   // ③ Two-way lockstep with data.js AUTHORS: every author has baseline+flavor; no orphan baselines.
-  var _dataVL = _fsVL.readFileSync(_pathVL.join(__dirname, "..", "data.js"), "utf8");
+  var _dataVL = _src("data.js");
   var _segVL = _dataVL.slice(_dataVL.indexOf("var AUTHORS"), _dataVL.indexOf("];", _dataVL.indexOf("var AUTHORS")));
   var _idsVL = [], _namesVL = [], _reVL = /\{id:"(\w+)",nm:"([^"]+)"/g, _mmVL;
   while ((_mmVL = _reVL.exec(_segVL))) { _idsVL.push(_mmVL[1]); _namesVL.push(_mmVL[2]); }
@@ -1053,7 +1060,7 @@ try {
   // ⑥ The v1.360 class: the satellite must be in sw.js's network-first allowlist or the SW pins it
   //    stale. Check the REGEX LITERAL itself, not the whole file — a comment mention must not
   //    satisfy this (sabotage S3 proved indexOf-on-the-file was vacuous exactly that way).
-  var _swVL = _fsVL.readFileSync(_pathVL.join(__dirname, "..", "sw.js"), "utf8");
+  var _swVL = _src("sw.js");
   var _swReVL = _swVL.match(/if\(\/([^\n]+?)\/\.test\(e\.request\.url\)\)/);
   if (!_swReVL) _failVL("could not locate sw.js's network-first regex — the fetch-handler shape changed; update this contract.");
   if (_swReVL[1].indexOf("author_voice_lab") < 0) _failVL("author_voice_lab is missing from sw.js's network-first REGEX — the SW will pin the page stale (the v1.360 bug_tracker lesson).");
@@ -1071,7 +1078,7 @@ try {
 try {
   var _fsBD = require("fs"), _pathBD = require("path");
   var _failBD = function (msg) { console.error("BLUEPRINT DESIGNER CONTRACT: " + msg); process.exit(1); };
-  var _pageBD = _fsBD.readFileSync(_pathBD.join(__dirname, "..", "blueprint-designer.html"), "utf8");
+  var _pageBD = _src("blueprint-designer.html");
   // ① The browser test seam exists (the designer owed one since 2026-07-29).
   if (_pageBD.indexOf("window.__bpdTest") < 0) _failBD("the designer's window test seam is gone — satellites with logic must stay drivable.");
   // ② class_bible.js is loaded — the Available Classes roster's base half reads classDefs(),
@@ -1136,7 +1143,7 @@ try {
 try {
   var _spFs = require("fs"), _spPath = require("path");
   var _spFail = function (msg) { console.error("SATELLITE PALETTE CONTRACT: " + msg); process.exit(1); };
-  var _spCss = _spFs.readFileSync(_spPath.join(__dirname, "..", "satellite.css"), "utf8");
+  var _spCss = _src("satellite.css");
   var _spDefined = {}; (_spCss.match(/(--[a-z0-9-]+)\s*:/g) || []).forEach(function (t) { _spDefined[t.replace(/\s*:$/, "")] = 1; });
   if (_spCss.indexOf("prefers-reduced-motion") < 0 || _spCss.indexOf("pointer:coarse") < 0) _spFail("satellite.css lost the accessibility floor (reduced motion / 44px targets)");
   var _spLinked = 0;
@@ -1158,12 +1165,12 @@ try {
 try {
   var _hpFs = require("fs"), _hpPath = require("path");
   var _hpFail = function (msg) { console.error("HOME PAGE CONTRACT: " + msg); process.exit(1); };
-  var _hp = _hpFs.readFileSync(_hpPath.join(__dirname, "..", "home.html"), "utf8");
+  var _hp = _src("home.html");
   if (_hp.indexOf("window.__homeTest") < 0) _hpFail("the test seam is gone — satellites with logic must stay drivable.");
   if (/loadState\(|saveCore\(|saveAll\(/.test(_hp)) _hpFail("home.html touches the game's state writers — it is a read surface.");
   if (!/<script src="globals\.js">/.test(_hp) || _hp.indexOf("HOME_PENDING_BP_K") < 0) _hpFail("the handoff key must come from globals.js (HOME_PENDING_BP_K), never a local literal.");
   if (/<script src="game\.js">|<script src="ui-/.test(_hp)) _hpFail("home.html must not load game.js or any ui-*.js — it reads, it never plays.");
-  var _hpSw = _hpFs.readFileSync(_hpPath.join(__dirname, "..", "sw.js"), "utf8");
+  var _hpSw = _src("sw.js");
   if (_hpSw.indexOf("home\\.html") < 0) _hpFail("sw.js network-first allowlist lacks home.html — the SW would pin it stale.");
   var _hpCat = JSON.parse(_hpFs.readFileSync(_hpPath.join(__dirname, "..", "samples", "catalog.json"), "utf8"));
   if (!Array.isArray(_hpCat) || !_hpCat.length) _hpFail("samples/catalog.json is empty or not a list.");
@@ -1172,7 +1179,7 @@ try {
     if (/runelords|planescape|annihilation|modeltestcampaign/i.test(c.file)) _hpFail("catalog lists a licensed-IP or test fixture: " + c.file);
     if (!_hpFs.existsSync(_hpPath.join(__dirname, "..", "samples", c.file))) _hpFail("catalog entry file missing: " + c.file);
   });
-  var _hpUb = _hpFs.readFileSync(_hpPath.join(__dirname, "..", "ui-browsers.js"), "utf8");
+  var _hpUb = _src("ui-browsers.js");
   if (_hp.indexOf("HOME_PENDING_QS_K") < 0 || _hp.indexOf("samples/characters/catalog.json") < 0) _hpFail("the quick start must hand off through HOME_PENDING_QS_K (globals.js) and read the pre-made heroes from samples/characters/catalog.json (#307).");
   var _hpHeroes = JSON.parse(_fsBE.readFileSync(_pathBE.join(__dirname, "..", "samples", "characters", "catalog.json"), "utf8"));
   if (!Array.isArray(_hpHeroes) || _hpHeroes.length < 3) _hpFail("the quick start needs three pre-made heroes (#307) — catalog has " + (_hpHeroes && _hpHeroes.length));
@@ -1187,9 +1194,8 @@ try {
 // game.js / ui-*.js; the .char wrapper is the game's own; class/spell/skill references resolve
 // through the loaded bibles; every field lives in the FIELDS/LISTS registries; seam present.
 try {
-  var _ceFs = require("fs"), _cePath = require("path");
   var _ceFail = function (msg) { console.error("CHARACTER EDITOR CONTRACT: " + msg); process.exit(1); };
-  var _ce = _ceFs.readFileSync(_cePath.join(__dirname, "..", "character_editor.html"), "utf8");
+  var _ce = _src("character_editor.html");
   if (_ce.indexOf("window.__ceTest") < 0) _ceFail("the test seam is gone — satellites with logic must stay drivable.");
   if (/loadState\(|saveCore\(|saveAll\(/.test(_ce)) _ceFail("the editor touches the game's state writers — it edits a portable sheet, never a campaign.");
   if (/<script src="game\.js">|<script src="ui-/.test(_ce)) _ceFail("the editor must not load game.js or any ui-*.js.");
@@ -1201,7 +1207,7 @@ try {
   ["abilities", "spells", "inventory", "languages", "conditions", "relationships", "saveModifiers", "storyBeats", "coreMemories"].forEach(function (k) {
     if (!(new RegExp('\\{k:"' + k + '",title:')).test(_ce)) _ceFail("v10 list field '" + k + "' has no LISTS entry — unreachable in the editor.");
   });
-  var _ceSw = _ceFs.readFileSync(_cePath.join(__dirname, "..", "sw.js"), "utf8");
+  var _ceSw = _src("sw.js");
   if (_ceSw.indexOf("character_editor") < 0) _ceFail("sw.js network-first allowlist lacks character_editor — the SW would pin it stale.");
   console.log("[#62] character editor contract OK — portable-sheet surface, wrapper pinned, 9 list fields registered");
 } catch (e) { console.error("CHARACTER EDITOR CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
@@ -1213,15 +1219,14 @@ try {
 // writeLiveKeys (state.js, engine-tested under a capacity-limited fake); a raw write here is the
 // same silent-failure class coming back.
 try {
-  var _csFs = require("fs"), _csPath = require("path");
   var _csFail = function (msg) { console.error("CAMPAIGN SLOT WRITER CONTRACT: " + msg); process.exit(1); };
-  var _csUi = _csFs.readFileSync(_csPath.join(__dirname, "..", "ui-campaigns.js"), "utf8");
+  var _csUi = _src("ui-campaigns.js");
   var _csSlice = _csUi.slice(_csUi.indexOf("function campLoad("), _csUi.indexOf("function campRemoveLocal("));
   if (_csSlice.length < 200) _csFail("could not locate campLoad…campRemoveLocal in ui-campaigns.js");
   if (/store\.set\(\s*campSlotKey\(/.test(_csSlice)) _csFail("campLoad/campCloudPush/campCloudPull writes a campaign slot with a raw store.set — route it through writeCampaignSlot.");
   if (/store\.set\(\s*(WSK|SLK|MEM_KEY)\b/.test(_csSlice)) _csFail("campCloudPull writes a live key with a raw store.set — route it through writeLiveKeys.");
   if (_csSlice.indexOf("writeCampaignSlot(") < 0 || _csSlice.indexOf("writeLiveKeys(") < 0) _csFail("the guarded writers are no longer used by the campaign transport paths.");
-  var _csState = _csFs.readFileSync(_csPath.join(__dirname, "..", "state.js"), "utf8");
+  var _csState = _src("state.js");
   var _csSw = _csState.slice(_csState.indexOf("function switchToCampaign("), _csState.indexOf("function dedupeActiveCampSlots("));
   if (/store\.set\(\s*(WSK|SLK|MEM_KEY)\b/.test(_csSw)) _csFail("switchToCampaign writes a live key with a raw store.set — the #337 half-switch class.");
   if (_csSw.indexOf("removeCampaignLocalCopy(id)") < 0 || _csSw.indexOf("removeCampaignLocalCopy(id)") > _csSw.indexOf("snapshotActiveCamp(")) _csFail("switchToCampaign must free the target slot BEFORE the outgoing snapshot (the two-blob peak).");
@@ -1234,9 +1239,8 @@ try {
 // re-run when the account lands (menus are built before /api/account answers), and the decision
 // must stay the pure helper (menuTierHidesDev) so it remains engine-testable.
 try {
-  var _mtFs = require("fs"), _mtPath = require("path");
   var _mtFail = function (msg) { console.error("MENU TIER CONTRACT: " + msg); process.exit(1); };
-  var _mtBoot = _mtFs.readFileSync(_mtPath.join(__dirname, "..", "ui-boot.js"), "utf8");
+  var _mtBoot = _src("ui-boot.js");
   var _mtSpec = _mtBoot.slice(_mtBoot.indexOf("function buildFileMenus"), _mtBoot.indexOf("function wireButtons"));
   ["llm", "usage", "set-folder", "clear-folder", "server-connect", "server-disconnect", "tts-settings"/* owner ruling 2026-09-11: BYOK key fields */, "clearcache\""].forEach(function (id) {
     var re = new RegExp("btn\\(p\\+\"" + id.replace(/"/g, "") + "\"[^\n]*fm-dev-only");
@@ -1244,9 +1248,9 @@ try {
   });
   if (_mtSpec.indexOf("<div class='fm-dev-only'>") < 0 || _mtSpec.indexOf("legacy-cb") < 0) _mtFail("the Legacy-characters block lost its fm-dev-only wrapper.");
   if (_mtSpec.indexOf("applyMenuTier()") < 0) _mtFail("buildFileMenus no longer applies the tier after building.");
-  var _mtSa = _mtFs.readFileSync(_mtPath.join(__dirname, "..", "storage-adapter.js"), "utf8");
+  var _mtSa = _src("storage-adapter.js");
   if (!/serverAccount = data;[^\n]*\n[^\n]*applyMenuTier\(\)/.test(_mtSa)) _mtFail("fetchAccount no longer re-applies the tier when the account lands — menus built before the answer keep the wrong tier.");
-  var _mtShell = _mtFs.readFileSync(_mtPath.join(__dirname, "..", "ui-shell.js"), "utf8");
+  var _mtShell = _src("ui-shell.js");
   if (_mtShell.indexOf("menuTierHidesDev(acct)") < 0) _mtFail("applyMenuTier no longer decides through the pure menuTierHidesDev helper.");
   console.log("[#289] menu tier contract OK — 8 operator rows flagged, toggle re-applied on account load");
 } catch (e) { console.error("MENU TIER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
@@ -1258,10 +1262,8 @@ try {
 // Source contracts because the reconcile is async and private to the adapter IIFE — the
 // headless harness cannot await it; the pure halves are engine-tested.
 try {
-  var _fsSC = require("fs"), _pathSC = require("path");
-  var _saSC = _fsSC.readFileSync(_pathSC.join(__dirname, "..", "storage-adapter.js"), "utf8");
-  var _ncSC = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _saN = _ncSC(_saSC);
+  var _saSC = _src("storage-adapter.js");
+  var _saN = _stripComments(_saSC);
   if (!/data\.worldState\s*=\s*inflateWorldStateSnapshot\(\s*data\.worldState\s*\)/.test(_saN)) {
     console.error("SYNC COMPRESSION CONTRACT: the reconcile adopt no longer inflates the pulled blob — a compressed wire poisons live state (#92, the adopt-hop lesson).");
     process.exit(1);
@@ -1274,7 +1276,7 @@ try {
     console.error("SYNC COMPRESSION CONTRACT: only " + _cwsCount + " of the 2 POST paths (_syncNow payload + pushCampaignState) route worldState through wireWorldStateSnapshot — the 2MB plain-payload class returns (#92/#272).");
     process.exit(1);
   }
-  var _stSC = _ncSC(_fsSC.readFileSync(_pathSC.join(__dirname, "..", "state.js"), "utf8"));
+  var _stSC = _stripComments(_src("state.js"));
   // #280: the shipped wire form routes through the CHUNKED producer (sharing the disk segment
   // cache — the POST build pays zero LZ passes), and the chunked producer itself falls back to
   // compressWorldStateSnapshot below one segment — so the #92 compressed-wire guarantee holds at
@@ -1320,8 +1322,7 @@ try {
 // commit persists locally only. The #280b standalone proves the behavior; these pin the two
 // source seams the engine suite cannot both reach in one place.
 try {
-  var _fsOP = require("fs"), _pathOP = require("path");
-  var _gmOP = _fsOP.readFileSync(_pathOP.join(__dirname, "..", "game.js"), "utf8");
+  var _gmOP = _src("game.js");
   if (_gmOP.indexOf("finally{saveAll();}/* #280b") < 0) {
     console.error("#272/#280b ONE-POST CONTRACT: generateActions lost its completion sync — the server strands on the E26 null and the second device renders no buttons again.");
     process.exit(1);
@@ -1341,25 +1342,23 @@ try {
 // These pin the three edits that make recovery real. Source contracts — the code needs a live
 // WebAudio implementation the headless harness has no way to provide.
 try {
-  var _fsA = require("fs"), _pathA = require("path");
-  var _ttsA = _fsA.readFileSync(_pathA.join(__dirname, "..", "tts.js"), "utf8");
-  var _gameA = _fsA.readFileSync(_pathA.join(__dirname, "..", "game.js"), "utf8");
-  var _ncA = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _ttsA = _src("tts.js");
+  var _gameA = _src("game.js");
   // ① Recovery must REPLACE the context, not ask it to resume.
-  var _rec = _ncA((_ttsA.match(/function recoverAudio\(tag\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _rec = _stripComments((_ttsA.match(/function recoverAudio\(tag\)[\s\S]*?\n  \}\n/) || [""])[0]);
   if (!_rec || _rec.indexOf("_closeCtx()") < 0 || _rec.indexOf("_ensureCtx()") < 0) {
     console.error("AUDIO RECOVERY CONTRACT: recoverAudio no longer closes and rebuilds the context — resume() alone can NEVER revive an iOS-interrupted ctx (B10, v1.421).");
     process.exit(1);
   }
   // ② The tap-unlock handler is what the downgrade toast promises. It must rebuild, not resume.
-  var _unlock = _ncA((_ttsA.match(/function _armCtxUnlock\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _unlock = _stripComments((_ttsA.match(/function _armCtxUnlock\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
   if (_unlock.indexOf("recoverAudio(") < 0) {
     console.error("AUDIO RECOVERY CONTRACT: _armCtxUnlock no longer calls recoverAudio — 'tap anywhere, then it recovers' becomes a promise the code cannot keep (B10).");
     process.exit(1);
   }
   // ③ The send tap is the only gesture that lands BEFORE the read. Without it the first line of
   //    every post-interrupt narration is still lost to the native voice.
-  if (_ncA(_gameA).indexOf("TTS.recoverAudio(") < 0) {
+  if (_stripComments(_gameA).indexOf("TTS.recoverAudio(") < 0) {
     console.error("AUDIO RECOVERY CONTRACT: sendAction no longer repairs audio on the send gesture — the context stays dead until a read has already failed (B10, v1.421).");
     process.exit(1);
   }
@@ -1372,7 +1371,7 @@ try {
   }
   // ⑤ v1.437: the watchdog must re-arm the tap unlock EVERY poll — the one-shot handler was
   //    consumed by the first tap and `warned` stayed latched, so later clicks did nothing.
-  var _watchA = _ncA((_ttsA.match(/function _armCtxWatch\(engineLabel\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _watchA = _stripComments((_ttsA.match(/function _armCtxWatch\(engineLabel\)[\s\S]*?\n  \}\n/) || [""])[0]);
   if (!_watchA || _watchA.indexOf("_armCtxUnlock()") < 0 || _watchA.indexOf("_armCtxUnlock()") > _watchA.indexOf("if (!warned)")) {
     console.error("AUDIO RECOVERY CONTRACT: _armCtxWatch no longer re-arms the tap unlock on every poll (before the warned latch) — one tap per freeze gets a recovery attempt and every later tap is inert (v1.437).");
     process.exit(1);
@@ -1386,7 +1385,7 @@ try {
   // ⑦ v1.438 (field: tap rebuilt the ctx but left silence + a bar stuck on "Speaking…"): the
   //    rebuild must REQUEUE the interrupted item — "tap anywhere to resume" has to actually
   //    resume, and a teardown that tells no one leaves the play bar lying forever.
-  if (_rec.indexOf("_queue.unshift(replayItem)") < 0 || _ncA(_ttsA).indexOf("_curItem = item") < 0) {
+  if (_rec.indexOf("_queue.unshift(replayItem)") < 0 || _stripComments(_ttsA).indexOf("_curItem = item") < 0) {
     console.error("AUDIO RECOVERY CONTRACT: the doomed-ctx rebuild no longer requeues the in-flight item (_curItem/replayItem) — a recovery tap discards the narration and strands the play bar on 'Speaking…' (v1.438).");
     process.exit(1);
   }
@@ -1400,10 +1399,8 @@ try {
 // completed. The old realm must be destroyed FIRST so the replacement is built into freed memory.
 // Flipping this back reintroduces a fix that silently never runs, which is the worst of both.
 try {
-  var _fsR = require("fs"), _pathR = require("path");
-  var _ttsR = _fsR.readFileSync(_pathR.join(__dirname, "..", "tts.js"), "utf8");
-  var _ncR = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _resp = _ncR((_ttsR.match(/function _frameRespawnNow\(voiceId\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _ttsR = _src("tts.js");
+  var _resp = _stripComments((_ttsR.match(/function _frameRespawnNow\(voiceId\)[\s\S]*?\n  \}\n/) || [""])[0]);
   if (!_resp) { console.error("RESPAWN ORDERING CONTRACT: _frameRespawnNow not found."); process.exit(1); }
   var _destroyAt = _resp.indexOf("old.destroy()"), _spawnAt = _resp.indexOf("_piperSpawnFrame()");
   if (_destroyAt < 0 || _spawnAt < 0) {
@@ -1428,7 +1425,7 @@ try {
     console.error("RESPAWN ORDERING CONTRACT: _frameRespawnNow no longer publishes its swap as _frameRespawnP — _piperInit has nothing to wait on, and a read starting mid-respawn races the swap with a second concurrent realm (v1.429).");
     process.exit(1);
   }
-  var _initR = _ncR((_ttsR.match(/async function _piperInit\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _initR = _stripComments((_ttsR.match(/async function _piperInit\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
   if (!_initR) { console.error("RESPAWN ORDERING CONTRACT: _piperInit not found."); process.exit(1); }
   if (_initR.indexOf("await _frameRespawnP") < 0) {
     console.error("RESPAWN ORDERING CONTRACT: _piperInit no longer awaits _frameRespawnP — a read starting mid-respawn spawns a second concurrent realm and the loser leaks as an orphaned engine (v1.429).");
@@ -1444,13 +1441,12 @@ try {
 // and that regression would be inaudible in any headless test.
 try {
   var _fsP = require("fs"), _pathP = require("path");
-  var _ttsP = _fsP.readFileSync(_pathP.join(__dirname, "..", "tts.js"), "utf8");
-  var _ncP = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  if (_ncP(_ttsP).indexOf("mySrc.buffer = null") < 0) {
+  var _ttsP = _src("tts.js");
+  if (_stripComments(_ttsP).indexOf("mySrc.buffer = null") < 0) {
     console.error("PLAYBACK RECYCLE CONTRACT: the onended handler no longer nulls the source's buffer — Safari retains a source's decoded PCM after disconnect unless the buffer is explicitly detached (standardized-audio-context #718, v1.430).");
     process.exit(1);
   }
-  var _recA = _ncP((_ttsP.match(/function recoverAudio\(tag\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _recA = _stripComments((_ttsP.match(/function recoverAudio\(tag\)[\s\S]*?\n  \}\n/) || [""])[0]);
   if (!_recA) { console.error("PLAYBACK RECYCLE CONTRACT: recoverAudio not found."); process.exit(1); }
   if (_recA.indexOf("_ctxSynths >= AUDIO_CTX_RECYCLE_SYNTHS") < 0) {
     console.error("PLAYBACK RECYCLE CONTRACT: the healthy-context recycle is gone from recoverAudio — per-source native accumulation on the long-lived AudioContext is B9's prime suspect and nothing else caps it (v1.430).");
@@ -1474,10 +1470,9 @@ try {
 // The fix is a caller-supplied `setAppearance` seam (same shape as get/setPortrait). These pin it:
 // a raw `c.appear=` write returning would silently restore defect ①.
 try {
-  var _fsAW = require("fs"), _pathAW = require("path");
   var _failAW = function (m) { console.error("APPEARANCE WRITE CONTRACT: " + m); process.exit(1); };
-  var _pmAW = _fsAW.readFileSync(_pathAW.join(__dirname, "..", "ui-portrait.js"), "utf8");
-  var _shAW = _fsAW.readFileSync(_pathAW.join(__dirname, "..", "ui-sheets.js"), "utf8");
+  var _pmAW = _src("ui-portrait.js");
+  var _shAW = _src("ui-sheets.js");
   if (/\bc\.appear\s*=/.test(_pmAW))
     _failAW("ui-portrait.js writes c.appear directly again — for a sheet-less NPC `c` is a throwaway literal, so the description is lost silently (the original bug).");
   if (_pmAW.indexOf("opts.setAppearance") < 0)
@@ -1513,8 +1508,7 @@ try {
 // erDiagBlock, error-report.js.)
 try {
   var _fsB = require("fs"), _pathB = require("path");
-  var _ncB = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _erB = _ncB(_fsB.readFileSync(_pathB.join(__dirname, "..", "error-report.js"), "utf8"));
+  var _erB = _stripComments(_src("error-report.js"));
   if (_erB.indexOf('erCrumb("unload")') < 0) {
     console.error("UNLOAD STAMP CONTRACT: the pagehide/beforeunload unload stamp is gone from error-report.js — erPrevDirty can no longer distinguish a kill from a clean close, so every recovered ring would again be labeled 'ended without unload' in the crash diag (v1.432).");
     process.exit(1);
@@ -1528,9 +1522,7 @@ try {
 // narration to the native voice instead of letting iOS kill the tab. Losing either gate brings
 // the deaths back — visible in the field only after real players lose real sessions.
 try {
-  var _fsG = require("fs"), _pathG = require("path");
-  var _ncG = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _ttsG = _ncG(_fsG.readFileSync(_pathG.join(__dirname, "..", "tts.js"), "utf8"));
+  var _ttsG = _stripComments(_src("tts.js"));
   var _spB = (_ttsG.match(/async function _speakPiper\([\s\S]*?\n  \}\n/) || [""])[0];
   if (!_spB) { console.error("GOVERNOR CONTRACT: _speakPiper not found."); process.exit(1); }
   var _gStart = _spB.indexOf("_piperGovernStart()"), _gInit = _spB.indexOf("_piperInit()");
@@ -1555,8 +1547,7 @@ try {
 // tab deaths or wedged reads on a phone, weeks later.
 try {
   var _fsS = require("fs"), _pathS = require("path");
-  var _ncS = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _ttsS = _ncS(_fsS.readFileSync(_pathS.join(__dirname, "..", "tts.js"), "utf8"));
+  var _ttsS = _stripComments(_src("tts.js"));
   var _spS = (_ttsS.match(/async function _speakServer\([\s\S]*?\n  \}\n/) || [""])[0];
   if (!_spS) { console.error("SERVER TTS CONTRACT: _speakServer not found."); process.exit(1); }
   // ① Zero wasm: the server loop must never touch the local engine — no predict, no init, no
@@ -1610,7 +1601,7 @@ try {
   //     "idle" to cancel a previous audition, so arming first has stop() immediately clear the brand
   //     new callback and the button never pulses at all — a silent, plausible-looking failure.
   //   ⓑ stop() must signal idle, or a modal closed mid-fetch leaves the button pulsing forever.
-  var _tgS = _ncS((_ttsS.match(/function testGeminiVoice\([\s\S]*?\n  \}\n/) || [""])[0]);
+  var _tgS = _stripComments((_ttsS.match(/function testGeminiVoice\([\s\S]*?\n  \}\n/) || [""])[0]);
   if (_tgS) {
     var _iStop = _tgS.indexOf("stop()"), _iArm = _tgS.indexOf("_auditionCb =");
     if (_iStop < 0 || _iArm < 0) {
@@ -1622,21 +1613,21 @@ try {
       process.exit(1);
     }
   }
-  var _stopS = _ncS((_ttsS.match(/function stop\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _stopS = _stripComments((_ttsS.match(/function stop\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
   if (_stopS && _stopS.indexOf("_auditionPhase") < 0) {
     console.error("GEMINI TTS CONTRACT: stop() no longer clears the audition phase — a settings modal closed mid-fetch leaves the ▶ Test button pulsing forever (v1.648).");
     process.exit(1);
   }
   // ⑤ v1.436 (field lesson): ▶ Test auditions through the server tier when it's up — a local
   //    Test on a server-tier page boots the wasm engine and spends governor budget for nothing.
-  var _tvS = _ncS((_ttsS.match(/function testVoice\([\s\S]*?\n  \}\n/) || [""])[0]);
+  var _tvS = _stripComments((_ttsS.match(/function testVoice\([\s\S]*?\n  \}\n/) || [""])[0]);
   if (!/server: true/.test(_tvS)) {
     console.error("SERVER TTS CONTRACT: testVoice no longer auditions via the server tier — every Test press on a connected page boots the local wasm engine and spends the iOS energy budget the tier exists to spare (v1.436).");
     process.exit(1);
   }
   // ⑥ v1.436: the send-tap prewarm — without it the first unit of nearly every post-idle read
   //    pays the Fly cold boot and times out into the local ladder (the 🔋-latch field failure).
-  var _gameS = _ncS(_fsS.readFileSync(_pathS.join(__dirname, "..", "game.js"), "utf8"));
+  var _gameS = _stripComments(_src("game.js"));
   var _sendStartS = _gameS.indexOf("async function sendAction");
   var _sendEndS = _gameS.indexOf("function retryLast", _sendStartS);
   var _sendS = (_sendStartS >= 0 && _sendEndS > _sendStartS) ? _gameS.slice(_sendStartS, _sendEndS) : "";
@@ -1707,10 +1698,9 @@ try {
 try {
   var _fsX = require("fs"), _pathX = require("path");
   var _rootX = _pathX.join(__dirname, "..");
-  var _ncX = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
   // ① The narrativeHtml innerHTML sink stays dead. The transcript is the canonical record;
   //    pre-transcript blobs degrade to initReplaySession's escaped fallbacks.
-  var _sadX = _ncX(_fsX.readFileSync(_pathX.join(_rootX, "storage-adapter.js"), "utf8"));
+  var _sadX = _stripComments(_fsX.readFileSync(_pathX.join(_rootX, "storage-adapter.js"), "utf8"));
   if (/innerHTML\s*=\s*[^;\n]*narrativeHtml/.test(_sadX)) {
     console.error("INJECTION SINK CONTRACT: storage-adapter.js renders narrativeHtml via innerHTML again — server-blob HTML is untrusted; rebuild from the transcript (rebuildNarrativeFromTranscript / initReplaySession) instead.");
     process.exit(1);
@@ -1724,7 +1714,7 @@ try {
   var _uiFilesX = _fsX.readdirSync(_rootX).filter(function (f) { return /\.js$/.test(f) && f !== "sw.js"; });
   var _sinkHitsX = [];
   _uiFilesX.forEach(function (f) {
-    _ncX(_fsX.readFileSync(_pathX.join(_rootX, f), "utf8")).split("\n").forEach(function (line, i) {
+    _stripComments(_fsX.readFileSync(_pathX.join(_rootX, f), "utf8")).split("\n").forEach(function (line, i) {
       // Inspect the ASSIGNED EXPRESSION only, not the whole physical line — game.js packs an
       // innerHTML assignment and a legit showToast err.message read into one dense line (first
       // run's false positive). The statement ends at the first ';' OUTSIDE quotes: a naive
@@ -1760,11 +1750,10 @@ try {
 // funnel that every report field uses. Deliberately NOT a .message-specific pattern: this page's
 // untrusted surface includes report/detail/meta/findings/actions and future feed fields.
 try {
-  var _fsBT = require("fs"), _pathBT = require("path");
-  var _pageBT = _fsBT.readFileSync(_pathBT.join(__dirname, "..", "bug_tracker.html"), "utf8");
+  var _pageBT = _src("bug_tracker.html");
   var _scriptMatchBT = _pageBT.match(/<script>([\s\S]*?)<\/script>/);
   if (!_scriptMatchBT) throw new Error("script block not found — update the satellite contract for the new shape");
-  var _codeBT = _scriptMatchBT[1].replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  var _codeBT = _stripComments(_scriptMatchBT[1]);
   var _htmlSinkBT = /\.(?:innerHTML|outerHTML)\s*=|insertAdjacentHTML\s*\(|document\.write(?:ln)?\s*\(/;
   if (_htmlSinkBT.test(_codeBT)) {
     console.error("BUG TRACKER INJECTION CONTRACT: executable-HTML sink found — report-derived text must stay in textContent/createTextNode on this satellite.");
@@ -1797,8 +1786,7 @@ try {
 // Byte measurement is deliberately modal-only: putting it on updateHealthDot's hot path would
 // JSON-stringify the mature transcript/memory repeatedly just to paint a tiny status marker.
 try {
-  var _fsGT = require("fs"), _pathGT = require("path");
-  var _hmGT = _fsGT.readFileSync(_pathGT.join(__dirname, "..", "ui-modals.js"), "utf8");
+  var _hmGT = _src("ui-modals.js");
   if (_hmGT.indexOf('healthIndicators(worldState,(typeof memory!=="undefined"?memory:null),true)') < 0) {
     console.error("GROWTH TELEMETRY CONTRACT: the #17 modal no longer opts into pure world+memory byte measurement.");
     process.exit(1);
@@ -1820,8 +1808,7 @@ try {
 try {
   var _fsB = require("fs"), _pathB = require("path");
   var _rootB = _pathB.join(__dirname, "..");
-  var _ncB = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _srvB = _ncB(_fsB.readFileSync(_pathB.join(_rootB, "dev", "bible-server.js"), "utf8"));
+  var _srvB = _stripComments(_fsB.readFileSync(_pathB.join(_rootB, "dev", "bible-server.js"), "utf8"));
   // ① The token must be RANDOM PER RUN — a constant would be shared by every drive-by page.
   if (!/TOKEN\s*=\s*crypto\.randomBytes\(/.test(_srvB)) {
     console.error("BIBLE-SERVER WRITE-AUTH: TOKEN is no longer crypto.randomBytes per run — a static/absent token lets any local webpage write the bible while the server runs.");
@@ -1843,14 +1830,14 @@ try {
   }
   // ④ Both clients keep one POST boundary. The supported editor has NO credential UI; the
   //    legacy file:// necro tool retains the token fallback until it gains its own launcher.
-  var _editorAuth = _ncB(_fsB.readFileSync(_pathB.join(_rootB, "bible_editor.html"), "utf8"));
+  var _editorAuth = _stripComments(_fsB.readFileSync(_pathB.join(_rootB, "bible_editor.html"), "utf8"));
   if ((_editorAuth.match(/\/install"/g) || []).length !== 1 ||
       _editorAuth.indexOf("X-Bible-Token") >= 0 || _editorAuth.indexOf("srvToken") >= 0 ||
       _editorAuth.indexOf("bible-server write token") >= 0) {
     console.error("BIBLE-SERVER WRITE-AUTH: bible_editor.html must have one /install boundary and ZERO write-token headers/prompts — Bible Editor.cmd supplies localhost authority.");
     process.exit(1);
   }
-  var _necroAuth = _ncB(_fsB.readFileSync(_pathB.join(_rootB, "necro_spells_TMP.html"), "utf8"));
+  var _necroAuth = _stripComments(_fsB.readFileSync(_pathB.join(_rootB, "necro_spells_TMP.html"), "utf8"));
   if ((_necroAuth.match(/\/install"/g) || []).length !== 1 || _necroAuth.indexOf("X-Bible-Token") < 0) {
     console.error("BIBLE-SERVER WRITE-AUTH: necro_spells_TMP.html lost its single authenticated /install boundary.");
     process.exit(1);
@@ -1932,7 +1919,7 @@ try {
   for (var _biM = 0; _biM < _benchSpecsM.length; _biM++) {
     var _bsM = _benchSpecsM[_biM];
     var _benchM = _fsM.readFileSync(_pathM.join(_rootM, _bsM.file), "utf8");
-    var _benchCodeM = _benchM.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    var _benchCodeM = _stripComments(_benchM);
     if (!/require\(["']\.\/load-engine\.js["']\)/.test(_benchCodeM) ||
         !/\.loadEngine\(\)/.test(_benchCodeM) || !/\.FILES/.test(_benchCodeM) ||
         /var\s+files\s*=\s*\[/.test(_benchCodeM)) {
@@ -1953,9 +1940,8 @@ try {
 try {
   var _fsP = require("fs"), _pathP = require("path");
   var _rootP = _pathP.join(__dirname, "..");
-  var _ncP = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _gameP = _ncP(_fsP.readFileSync(_pathP.join(_rootP, "game.js"), "utf8"));
-  var _bootP = _ncP(_fsP.readFileSync(_pathP.join(_rootP, "ui-boot.js"), "utf8"));
+  var _gameP = _stripComments(_fsP.readFileSync(_pathP.join(_rootP, "game.js"), "utf8"));
+  var _bootP = _stripComments(_fsP.readFileSync(_pathP.join(_rootP, "ui-boot.js"), "utf8"));
   // ① The story-failure path persists the action (TT excluded — cross-channel restore).
   if (!/if\(!isTT\)savePendingAction\(txt\)/.test(_gameP)) {
     console.error("PENDING ACTION CONTRACT: the sendAction failure path no longer persists the story action — a page kill before the retry tap erases the player's words again (B16).");
@@ -1990,8 +1976,7 @@ try {
 // are pinned as source contracts (sttBiasPrompt itself is engine-tested in helpers).
 try {
   var _fsS = require("fs"), _pathS = require("path");
-  var _ncS = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _stt = _ncS(_fsS.readFileSync(_pathS.join(__dirname, "..", "stt.js"), "utf8"));
+  var _stt = _stripComments(_src("stt.js"));
   // §4a — the bias rides every transcription request (a silent drop resurrects Frizwick→Physics).
   if (!/form\.append\("prompt",\s*bias\)/.test(_stt) || _stt.indexOf("sttBiasPrompt") < 0) {
     console.error("STT UPGRADES: the Whisper prompt-bias append is gone from _transcribeOnce — fantasy nouns decode as homophones again (#113 §4a).");
@@ -2027,9 +2012,7 @@ try {
 // The pure half (sttConfidence/sttSuspicion/parseConfirmCommand/sttLogEvent) is engine-tested
 // in helpers; the stt.js wiring is pinned here because the harness never loads DOM files.
 try {
-  var _fsC = require("fs"), _pathC = require("path");
-  var _ncC = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
-  var _sttC = _ncC(_fsC.readFileSync(_pathC.join(__dirname, "..", "stt.js"), "utf8"));
+  var _sttC = _stripComments(_src("stt.js"));
   // ① Interceptor ORDER: the pending-confirmation branch must precede the carVoiceCommand
   //    block inside _applySendPolicy — otherwise a spoken "no" (2 chars) is eaten by the
   //    rank-8 gate, a "two" answers the #78 menu instead of the confirmation, and busy parks
