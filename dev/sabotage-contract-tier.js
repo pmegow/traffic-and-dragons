@@ -466,10 +466,14 @@ rc |= sabotage.prove({
       replace: "      if (false) { protectedIds.push(stored[i]); continue; }"
     },
     {
-      label: "v1.419 the slot list caps its row loop at PIPER_VOICE_CAP (over-cap voices undeletable)",
-      mustFail: "_renderPiperSlots caps its row loop at PIPER_VOICE_CAP",
-      find: "  function _renderPiperSlots(",
-      replace: "  function _renderPiperSlotsCapped(){var i;for (i = 0; i < PIPER_VOICE_CAP; i++){}}\n  function _renderPiperSlots("
+      label: "v1.419 the slot list caps its row count at PIPER_VOICE_CAP (over-cap voices undeletable)",
+      /* Re-aimed at audit G15 (2026-09-18). The clause used to plant a decoy function containing
+         the exact v1.419 spelling `for (i = 0; i < PIPER_VOICE_CAP; i++)`, because the contract
+         was a negative regex over the whole file. The contract now pins the PROPERTY inside
+         _renderPiperSlots, so the mutation is the real regression: cap the row count. */
+      mustFail: "_renderPiperSlots no longer bounds its row loop by",
+      find: "      var rows = Math.max(PIPER_VOICE_CAP, ids.length);",
+      replace: "      var rows = PIPER_VOICE_CAP;"
     },
     {
       label: "#95 R1 a third split-on-'#' site appears outside voiceBaseId/voiceSpeaker",

@@ -32,6 +32,24 @@ function _src(rel) {   // repo-relative path → file text, read at most once pe
   return _srcCache[rel];
 }
 
+// ── sw.js NETWORK-FIRST ALLOWLIST READER (audit G3, 2026-09-18) ─────────────────────────────
+// Three contracts pin a satellite's presence in sw.js's network-first allowlist (VOICE LAB ⑥,
+// HOME PAGE, CHARACTER EDITOR). Only ONE of them read the right thing. sw.js carries a PROSE
+// ROSTER of the same satellite names in the comment directly above the regex, so a whole-file
+// indexOf is satisfied by a comment mention — sabotage S3 proved that exact shape vacuous for
+// the voice lab, and the two later contracts were written in the weak shape anyway. All three
+// now go through here, which reads the REGEX LITERAL and nothing else.
+// _swAllowlistRegex() returning null means the fetch handler's shape changed: callers must fail
+// LOUDLY on that, never treat it as a pass (the G9 class).
+function _swAllowlistRegex() {
+  var m = _src("sw.js").match(/if\(\/([^\n]+?)\/\.test\(e\.request\.url\)\)/);
+  return m ? m[1] : null;
+}
+function _swAllowlistHas(name) {
+  var re = _swAllowlistRegex();
+  return !!re && re.indexOf(name) >= 0;
+}
+
 try {
   var _fsV = require("fs"), _pathV = require("path");
   var _vits = _src("vendor/piper/vits/vits-web.js");
@@ -85,7 +103,15 @@ try {
   //    the soak a STALE runtime and the harness measures a build that no longer ships.
   var _spike = _src("piper_test.html");
   var _revS = (_spike.match(/vits-web\.js\?tnd=(r\d+)/) || [])[1];
-  if (_revS && _revS !== _revT) {
+  //    A MISSING anchor is worse than a lagging one and used to pass silently (audit G9): with no
+  //    ?tnd= query the permanent SW piper-cache serves the soak whatever runtime it cached first,
+  //    forever, and the harness measures a build that has not shipped for months. Fail on it, the
+  //    way the neighbouring vendor clauses already fail on a missing match.
+  if (!_revS) {
+    console.error("SOAK REV ANCHOR MISSING: piper_test.html no longer imports vits-web with a ?tnd=r<N> query — the permanent SW piper-cache would pin the soak to a stale runtime forever and the lockstep check below cannot run. Restore the ?tnd= rev on the soak page's vits-web import.");
+    process.exit(1);
+  }
+  if (_revS !== _revT) {
     console.error("SOAK REV LAG: piper_test.html imports vits-web ?tnd=" + _revS + " but tts.js PIPER_RUNTIME_REV=" + _revT + " — bump the soak page's import rev so the harness measures the shipped runtime.");
     process.exit(1);
   }
@@ -252,8 +278,17 @@ try {
   }
   // ⑤ The slot list must render every resident voice. Capping the loop at PIPER_VOICE_CAP is why
   //    3 of 13 voices were counted in the header but had no ✕ to press.
-  if (/for \(i = 0; i < PIPER_VOICE_CAP; i\+\+\)/.test(_tts)) {
-    console.error("VOICE DELETE CONTRACT: _renderPiperSlots caps its row loop at PIPER_VOICE_CAP — over-cap voices become invisible and undeletable (v1.419).");
+  //    Pin the PROPERTY, not one spelling of the regression (audit G15, 2026-09-18): this used to
+  //    be a negative regex for the exact v1.419 source text `for (i = 0; i < PIPER_VOICE_CAP; i++)`,
+  //    so ANY other way of writing the same cap walked straight past it. tts.js is outside the
+  //    DOM-free harness, so this clause is the only guard the row count has.
+  var _slots = _stripComments((_tts.match(/function _renderPiperSlots\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  if (!_slots) {
+    console.error("VOICE DELETE CONTRACT: _renderPiperSlots not found — the slot renderer's anchor moved; re-verify clause ⑤ by hand.");
+    process.exit(1);
+  }
+  if (_slots.indexOf("Math.max(PIPER_VOICE_CAP, ids.length)") < 0 || !/for \(i = 0; i < rows; i\+\+\)/.test(_slots)) {
+    console.error("VOICE DELETE CONTRACT: _renderPiperSlots no longer bounds its row loop by `rows = Math.max(PIPER_VOICE_CAP, ids.length)` — over-cap voices become invisible and undeletable (v1.419), counted in the header with no ✕ to press.");
     process.exit(1);
   }
   // ⑥ #95 speaker casting: a voiceId may now carry a "#<speaker>" suffix, but OPFS and the LRU
@@ -555,6 +590,26 @@ try {
   }
 } catch (e) { console.error("STARS PORTABILITY CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── #158 PHASE-DETECTOR WIRING CONTRACT ──────────────────────────────────────────────────
+// The detector's engine half is battery-tested; what the DOM-free harness cannot execute is
+// the two GAME seams: commitGmTurn (the story-commit boundary — post-applyMuts, clean text)
+// and rerollLast (replacement narration applies NO tags, so the nudge is the only heal).
+// Losing either call silently re-opens the t1605 class on that path.
+// Its own block since audit G10 (2026-09-18): these four clauses were NESTED inside the BIBLE
+// EDITOR try and reported through _failAC, the #144A failer — so a real phase-detector
+// regression printed "#144A ARCHIVE CARRY CONTRACT:" and the clauses depended on vars hoisted
+// from a block with nothing to do with them.
+try {
+  var _fail158 = function (msg) { console.error("#158 PHASE-DETECTOR WIRING CONTRACT: " + msg); process.exit(1); };
+  var _gmSrc = _src("game.js");
+  var _cgtBody = (_gmSrc.match(/function commitGmTurn[\s\S]*?\nfunction /) || [""])[0];
+  var _rrlBody = (_gmSrc.match(/function rerollLast[\s\S]*?\nfunction /) || [""])[0];
+  if (_cgtBody.indexOf("clockPhaseDetect(clean)") < 0) _fail158("#158: commitGmTurn no longer runs clockPhaseDetect on the committed clean prose — untagged phase narration goes unnoticed again");
+  if (_rrlBody.indexOf("clockPhaseDetect(clean)") < 0) _fail158("#158: rerollLast no longer runs clockPhaseDetect — a re-rolled scene can assert a phase with no tag heal AND no detection");
+  var _clkSrc = _src("clock.js");
+  if (_clkSrc.indexOf("TIME_PHASES[i].re.source") < 0) _fail158("#158: the prose forms are no longer DERIVED from TIME_PHASES — two vocabularies will drift (the one-vocabulary rule)");
+} catch (e158) { console.error("#158 PHASE-DETECTOR WIRING CONTRACT: could not verify — " + (e158 && e158.message)); process.exit(1); }
+
 // ── BIBLE EDITOR CONTRACT (#72, v1.464) ─────────────────────────────────────────────────
 // class_bible.js is machine-REGENERATED by bible_editor.html's exporter; the serializer slice in
 // that page is THE canonical writer of the file. Byte-compare its output for the on-disk data
@@ -578,8 +633,18 @@ try {
       " (…" + JSON.stringify(_beFile.slice(Math.max(0, _di - 30), _di + 30)) + " vs …" +
       JSON.stringify(_beOut.slice(Math.max(0, _di - 30), _di + 30)) + "). Re-export from the editor, or align the serializer.");
   }
-  // the editor is a satellite: it must never be reachable from the game's own UI surface
-  if (_bePage.indexOf("id=\"bible-editor-link\"") >= 0) _failBE("unexpected in-game link marker");
+  // The editor is a DEV satellite: the game's own UI must never link to it (bibles are authored
+  // offline; a player-reachable authoring surface is the thing this clause forbids).
+  // Until audit G2 (2026-09-18) this scanned the EDITOR page for an `id="bible-editor-link"`
+  // sentinel that has never existed anywhere in this repo except in the clause itself — green,
+  // and guarding nothing. Scan where such a link would actually land instead: index.html's markup
+  // and ui-boot.js, which OWNS the generated File menus (buildFileMenus' spec and wireButtons'
+  // location.href handlers — the mount divs in index.html are empty by contract).
+  var _beIdxCode = _src("index.html").replace(/<!--[\s\S]*?-->/g, "");
+  if (_beIdxCode.indexOf("bible_editor.html") >= 0)
+    _failBE("index.html references bible_editor.html — the dev authoring satellite must never be reachable from the game's own UI surface");
+  if (_stripComments(_src("ui-boot.js")).indexOf("bible_editor.html") >= 0)
+    _failBE("ui-boot.js references bible_editor.html — the File menus are GENERATED there, so this is the game's own UI linking the dev authoring satellite");
 
   // The server-first authoring loop has one primary action: Save. These three legacy toolbar
   // controls exposed obsolete export/draft-management branches and made the normal path look
@@ -659,19 +724,6 @@ try {
   }
   // alias normalization needs the live itemBaseName — checked in the engine half via the #157
   // grouping battery; here the shape rules above are the load-bearing static contract.
-
-  // ── #158 PHASE-DETECTOR WIRING CONTRACT ────────────────────────────────────────────────
-  // The detector's engine half is battery-tested; what the DOM-free harness cannot execute is
-  // the two GAME seams: commitGmTurn (the story-commit boundary — post-applyMuts, clean text)
-  // and rerollLast (replacement narration applies NO tags, so the nudge is the only heal).
-  // Losing either call silently re-opens the t1605 class on that path.
-  var _gmSrc = _src("game.js");
-  var _cgtBody = (_gmSrc.match(/function commitGmTurn[\s\S]*?\nfunction /) || [""])[0];
-  var _rrlBody = (_gmSrc.match(/function rerollLast[\s\S]*?\nfunction /) || [""])[0];
-  if (_cgtBody.indexOf("clockPhaseDetect(clean)") < 0) _failAC("#158: commitGmTurn no longer runs clockPhaseDetect on the committed clean prose — untagged phase narration goes unnoticed again");
-  if (_rrlBody.indexOf("clockPhaseDetect(clean)") < 0) _failAC("#158: rerollLast no longer runs clockPhaseDetect — a re-rolled scene can assert a phase with no tag heal AND no detection");
-  var _clkSrc = _src("clock.js");
-  if (_clkSrc.indexOf("TIME_PHASES[i].re.source") < 0) _failAC("#158: the prose forms are no longer DERIVED from TIME_PHASES — two vocabularies will drift (the one-vocabulary rule)");
 
   // ── CAP VALIDATOR CONTRACT (v1.480) ──────────────────────────────────────────────────
   // The define form accepted anything until four real draft entries showed the cost: three were
@@ -756,8 +808,10 @@ try {
     _failBE("bib picker: a legacy parenthetical label failed to exclude its bible key");
   if (_bpKeys(_bpCands("1", [], _bpBib, { "smite": { kind: "spell", tier: 1, effect: "radiant" }, "bless": { kind: "spell", tier: 1, effect: "dupe of the bib entry" } })) !== "bless,command,smite")
     _failBE("bib picker: pending ADD spells must join the list once, never double a bib key");
-  if (_bePage.indexOf("button[data-bibpick]") < 0 || _bpM[0] === null)
-    _failBE("the + from bible button is rendered but never wired (or the wiring selector changed)");
+  // audit G7: the second disjunct was `_bpM[0] === null`, dead by construction — _bpM is a match
+  // result already asserted non-null above, so its [0] can never be null. One check, one message.
+  if (_bePage.indexOf("button[data-bibpick]") < 0)
+    _failBE("the + from bible button's wiring selector button[data-bibpick] is gone from bible_editor.html — the button renders but nothing listens");
   if (!/data-bibpick/.test(_bePage.slice(_bePage.indexOf("function chipList"), _bePage.indexOf("function renderClass"))))
     _failBE("chipList no longer renders the + from bible button");
 
@@ -1058,12 +1112,10 @@ try {
   var _ctlVL = _labVL.control("VOICE DIRECTIVE SENTINEL", _labVL.passage);
   if (_ctlVL.user.indexOf("VOICE DIRECTIVE SENTINEL") < 0 || _ctlVL.user.indexOf(_labVL.passage) < 0) _failVL("control prompt does not embed the vc directive + passage.");
   // ⑥ The v1.360 class: the satellite must be in sw.js's network-first allowlist or the SW pins it
-  //    stale. Check the REGEX LITERAL itself, not the whole file — a comment mention must not
-  //    satisfy this (sabotage S3 proved indexOf-on-the-file was vacuous exactly that way).
-  var _swVL = _src("sw.js");
-  var _swReVL = _swVL.match(/if\(\/([^\n]+?)\/\.test\(e\.request\.url\)\)/);
-  if (!_swReVL) _failVL("could not locate sw.js's network-first regex — the fetch-handler shape changed; update this contract.");
-  if (_swReVL[1].indexOf("author_voice_lab") < 0) _failVL("author_voice_lab is missing from sw.js's network-first REGEX — the SW will pin the page stale (the v1.360 bug_tracker lesson).");
+  //    stale. _swAllowlistHas reads the REGEX LITERAL, not the whole file — a comment mention must
+  //    not satisfy this (sabotage S3 proved indexOf-on-the-file was vacuous exactly that way).
+  if (!_swAllowlistRegex()) _failVL("could not locate sw.js's network-first regex — the fetch-handler shape changed; update this contract.");
+  if (!_swAllowlistHas("author_voice_lab")) _failVL("author_voice_lab is missing from sw.js's network-first REGEX — the SW will pin the page stale (the v1.360 bug_tracker lesson).");
   // ⑦ The browser seam + stub mode exist (satellite testability rule, 2026-07-29).
   if (_pageVL.indexOf("__voiceLabTest") < 0) _failVL("the window.__voiceLabTest seam is gone — satellites with logic must stay drivable.");
   if (_pageVL.indexOf("stub=1") < 0) _failVL("stub mode (?stub=1) is gone — UI verification without a key depends on it.");
@@ -1170,8 +1222,10 @@ try {
   if (/loadState\(|saveCore\(|saveAll\(/.test(_hp)) _hpFail("home.html touches the game's state writers — it is a read surface.");
   if (!/<script src="globals\.js">/.test(_hp) || _hp.indexOf("HOME_PENDING_BP_K") < 0) _hpFail("the handoff key must come from globals.js (HOME_PENDING_BP_K), never a local literal.");
   if (/<script src="game\.js">|<script src="ui-/.test(_hp)) _hpFail("home.html must not load game.js or any ui-*.js — it reads, it never plays.");
-  var _hpSw = _src("sw.js");
-  if (_hpSw.indexOf("home\\.html") < 0) _hpFail("sw.js network-first allowlist lacks home.html — the SW would pin it stale.");
+  // The allowlist pin reads the REGEX LITERAL (audit G3) — this used to be a whole-file indexOf,
+  // which sw.js's own prose roster of satellite names satisfies without the regex naming home.html.
+  if (!_swAllowlistRegex()) _hpFail("could not locate sw.js's network-first regex — the fetch-handler shape changed; update this contract.");
+  if (!_swAllowlistHas("home\\.html")) _hpFail("sw.js network-first REGEX lacks home.html — the SW would pin it stale.");
   var _hpCat = JSON.parse(_hpFs.readFileSync(_hpPath.join(__dirname, "..", "samples", "catalog.json"), "utf8"));
   if (!Array.isArray(_hpCat) || !_hpCat.length) _hpFail("samples/catalog.json is empty or not a list.");
   _hpCat.forEach(function (c) {
@@ -1207,8 +1261,10 @@ try {
   ["abilities", "spells", "inventory", "languages", "conditions", "relationships", "saveModifiers", "storyBeats", "coreMemories"].forEach(function (k) {
     if (!(new RegExp('\\{k:"' + k + '",title:')).test(_ce)) _ceFail("v10 list field '" + k + "' has no LISTS entry — unreachable in the editor.");
   });
-  var _ceSw = _src("sw.js");
-  if (_ceSw.indexOf("character_editor") < 0) _ceFail("sw.js network-first allowlist lacks character_editor — the SW would pin it stale.");
+  // The allowlist pin reads the REGEX LITERAL (audit G3) — a whole-file indexOf was satisfied by
+  // sw.js's prose roster of satellite names in the comment directly above the regex.
+  if (!_swAllowlistRegex()) _ceFail("could not locate sw.js's network-first regex — the fetch-handler shape changed; update this contract.");
+  if (!_swAllowlistHas("character_editor")) _ceFail("sw.js network-first REGEX lacks character_editor — the SW would pin it stale.");
   console.log("[#62] character editor contract OK — portable-sheet surface, wrapper pinned, 9 list fields registered");
 } catch (e) { console.error("CHARACTER EDITOR CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
