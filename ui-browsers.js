@@ -554,6 +554,10 @@ function villageRefreshOnEntry(){
 }
 function _addImportedCompanion(char){
   if(!worldState){showToast("No active campaign to add companion to.");return;}
+  /* audit E9: the party write lands here but the join narration goes through sendAction, whose first
+     line returns on busy — the companion appeared, the toast said so, and the GM was never told. Refuse
+     BEFORE any state write instead, so the join is all-or-nothing. */
+  if(typeof busy!=="undefined"&&busy){showToast("Wait for the turn to finish — "+char.name+" can join after it.");return;}
   // Check if already in party
   if(wsNpcByName(char.name)){showToast(char.name+" is already in this campaign.");return;}/* #7: shared lookup */
   if(partyCompanionCount()>=partyCompanionCap()){showToast("Party full (max "+PARTY_MAX+", incl. you). Remove a companion before adding "+char.name+".");return;}
@@ -561,7 +565,11 @@ function _addImportedCompanion(char){
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(char);/* #81b: the companion's gear keeps its canon */
   var npc={name:char.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(char.gender),portrait:null,charSheet:char}; // portrait rides on charSheet only (#3 dedupe)
   worldState.npcs.push(npc);
-  if(!memory.npcs[char.name])memory.npcs[char.name]={attitude:"ally",knowledge:[],events:[]};
+  /* audit E9: same seeding as the [PARTY_MEMBER:] handler — aliases[] so every later alias write has a
+     list to push onto, and a firstEncounter line (there is no GM prose this turn to snip one from). */
+  if(!memory.npcs[char.name])memory.npcs[char.name]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+  if(!memory.npcs[char.name].aliases)memory.npcs[char.name].aliases=[];
+  if(!memory.npcs[char.name].firstEncounter)memory.npcs[char.name].firstEncounter=char.name+" joined the party at "+((worldState.world&&worldState.world.location)||"an unrecorded place")+" (t"+(worldState.turn||0)+").";
   memory.npcs[char.name].partyMember=true;
   npcLinkUpsert(worldState.character.name,char.name,"companions");
   saveAll();syncUI();
