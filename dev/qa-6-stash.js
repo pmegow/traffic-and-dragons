@@ -27,7 +27,12 @@ const fixture=JSON.parse(JSON.stringify({world:worldState,memory})),url=process.
  assert.equal(marked.sell.length,1);assert.match(marked.sell[0],/Rope.*2\/3.*→ house ×2/s);assert.equal(marked.buy.length,1);assert.match(marked.buy[0],/← you.*Old boots/s);assert.match(marked.total,/2 in, 1 out/);assert.equal(marked.go,false);
  await page.screenshot({path:path.join(out,'stash-desktop.png')});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'stash-mobile.png')});await page.setViewportSize({width:1280,height:900});
- await page.click('#ledger-go');await page.waitForFunction(()=>!document.querySelector('#stash-modal'));
+ await page.click('#ledger-go');await page.waitForFunction(()=>document.querySelector('#stash-modal')&&!document.querySelector('#stash-modal .sel-sell')&&/1\/2/.test(document.querySelector('#stash-modal').innerText)===false);
+ const stay=await page.evaluate(()=>({open:!!document.querySelector('#stash-modal'),rope:[...document.querySelectorAll('#stash-modal .shop-row[data-side="left"]')].map(e=>e.textContent.trim()).filter(t=>/^Rope/.test(t))[0],boots:[...document.querySelectorAll('#stash-modal .shop-row[data-side="right"]')].map(e=>e.textContent.trim()).filter(t=>/Old boots/.test(t))[0],spacer:document.querySelector('#ledger-spacer').offsetWidth,close:document.querySelector('#ledger-close').offsetWidth,go:document.querySelector('#ledger-go').offsetWidth}));
+ assert.equal(stay.open,true,'the chest stays open after a move');assert.match(stay.rope,/^Rope$/,'one rope left carried, no stack count');assert.match(stay.boots,/Old boots$/,'one boot pair left in the house');
+ assert.equal(stay.spacer,stay.close,'the spacer is as wide as the close button');assert(stay.go>stay.close*3,'Move stretches across the bar');
+ await page.screenshot({path:path.join(out,'stash-after.png')});
+ await page.click('#ledger-close');await page.waitForFunction(()=>!document.querySelector('#stash-modal'));
  const after=await page.evaluate(()=>({inv:worldState.character.inventory.slice().sort(),stash:villageStash(villageHouseKey('Silas')).map(r=>r.name+':'+r.qty).sort(),log:[...document.querySelectorAll('#story-narrative div')].map(e=>e.textContent).filter(t=>/stowed Rope x2/.test(t)).length}));
  assert.deepEqual(after.inv,['Bone-handled knife','Old boots','Rope']);assert.deepEqual(after.stash,['Lantern:1','Old boots:1','Rope:2']);assert.equal(after.log,1,'one system line');
  assert.deepEqual(errors,[]);

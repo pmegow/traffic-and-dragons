@@ -53,16 +53,22 @@ function showLedgerModal(spec){
     h+="<div class='shop-grid'><div class='shop-col'><div class='shop-party'><span class='shop-who'>"+escHtml(spec.left.name)+"</span>"+(spec.left.sub?"<div class='"+(spec.left.gold?"igold":"shop-sub")+"' style='padding:0;'>"+escHtml(spec.left.sub)+"</div>":"")+"</div><h4>"+escHtml(spec.left.head)+"</h4>"+col("left",spec.rows.left)+"</div>"
       +"<div class='shop-col'><div class='shop-party'><span class='shop-who'>"+escHtml(spec.right.name)+"</span>"+(spec.right.sub?"<div class='shop-sub'>"+escHtml(spec.right.sub)+"</div>":"")+"</div><h4>"+escHtml(spec.right.head)+"</h4>"+col("right",spec.rows.right)+"</div></div>";
     h+="<div class='shop-total'><span>"+escHtml(spec.totalLabel||"Total")+"</span><span class='shop-amt'>"+escHtml(plan.total||"\u2014")+"</span></div>";
-    h+="<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;'><span style='font-size:11px;color:"+(plan.ok||!plan.marked?"var(--t2)":"var(--hp)")+";'>"+escHtml(plan.marked?(plan.ok?plan.after||"":plan.reason):spec.hintIdle)+"</span>"
-      +"<button id='ledger-go' class='ib' "+(plan.ok?"":"disabled ")+"style='"+(plan.ok?"border-color:var(--acc);color:var(--acc);":"opacity:.5;")+"'>"+escHtml(spec.completeLabel)+"</button></div>";
+    var status="<span style='font-size:11px;color:"+(plan.ok||!plan.marked?"var(--t2)":"var(--hp)")+";'>"+escHtml(plan.marked?(plan.ok?plan.after||"":plan.reason):spec.hintIdle)+"</span>";
+    var goBtn="<button id='ledger-go' class='ib' "+(plan.ok?"":"disabled ")+"style='"+(plan.ok?"border-color:var(--acc);color:var(--acc);":"opacity:.5;")+(spec.footer==="stretch"?"flex:1;":"")+"'>"+escHtml(spec.completeLabel)+"</button>";
+    if(spec.footer==="stretch"){/* owner 2026-09-16 (the chest): the modal stays open after a move; the action bar is [spacer][complete, stretched][close], the spacer as wide as the close button */
+      h+="<div style='margin-top:10px;'>"+status+"</div><div style='display:flex;align-items:center;gap:10px;margin-top:6px;'><span id='ledger-spacer' style='flex:none;'></span>"+goBtn+"<button id='ledger-close' class='ib' style='flex:none;'>"+escHtml(spec.closeLabel||"Close")+"</button></div>";}
+    else h+="<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;'>"+status+goBtn+"</div>";
     box.style.position="relative";box.innerHTML=h;
     box.querySelector("#ledger-x").addEventListener("click",function(){modal.remove();});
+    var closeBtn=box.querySelector("#ledger-close"),spacer=box.querySelector("#ledger-spacer");if(closeBtn){closeBtn.addEventListener("click",function(){modal.remove();});if(spacer)spacer.style.width=closeBtn.offsetWidth+"px";}
     var rows=box.querySelectorAll(".shop-row"),n;
     for(n=0;n<rows.length;n++)(function(row){row.addEventListener("click",function(ev){if(row.classList.contains("off"))return;var side=row.getAttribute("data-side"),key=row.getAttribute("data-key");
       if(ev.target&&ev.target.getAttribute&&ev.target.getAttribute("data-clear")){delete marks[side][key];render();return;}
       var max=1,ii,list=spec.rows[side];for(ii=0;ii<list.length;ii++)if(list[ii].key===key)max=list[ii].max;
       var cur=marks[side][key]|0;if(max<=1){if(cur)delete marks[side][key];else marks[side][key]=1;}else marks[side][key]=Math.min(max,cur+1);render();});})(rows[n]);
-    var go=box.querySelector("#ledger-go");if(go&&plan.ok)go.addEventListener("click",function(){var res=spec.complete(marks);if(!res.ok){showToast(spec.refusedPrefix+res.reason,6000);return;}showToast(res.line,5000);modal.remove();});
+    var go=box.querySelector("#ledger-go");if(go&&plan.ok)go.addEventListener("click",function(){var res=spec.complete(marks);if(!res.ok){showToast(spec.refusedPrefix+res.reason,6000);return;}showToast(res.line,5000);
+      if(spec.afterComplete&&spec.afterComplete()){marks={left:{},right:{}};render();return;}/* a spec that stays open rebuilds its rows and repaints */
+      modal.remove();});
   }
   render();return modal;
 }
@@ -85,13 +91,16 @@ function showStashModal(){
   if(!cat.ok){showToast("Stash: "+cat.reason);return;}
   var rows=stashLedgerRows(cat);
   function toMarks(m){return {stow:m.left,take:m.right};}
-  showLedgerModal({id:"stash-modal",left:{name:cat.hero,sub:"carrying",head:"Stow"},right:{name:cat.house,sub:"in the house",head:"Take"},rows:rows,
+  var spec={id:"stash-modal",left:{name:cat.hero,sub:"carrying",head:"Stow"},right:{name:cat.house,sub:"in the house",head:"Take"},rows:rows,
     empty:{left:"Nothing carried",right:"The chest is empty"},hintIdle:"Tap items to move them",completeLabel:"Move them",refusedPrefix:"Stash \u2014 ",totalLabel:"Moving",
     amountAt:{left:"right",right:"left"},
     amount:function(side,r,q){return side==="left"?"\u2192 house"+(q>1?" \u00d7"+q:""):"\u2190 you"+(q>1?" \u00d7"+q:"");},
     dim:function(){return "";},
     plan:function(m){var p=stashTradePlan(cat,toMarks(m));return {ok:p.ok,reason:p.reason,marked:p.lines.length>0,total:p.lines.length?((p.stowed?p.stowed+" in":"")+(p.stowed&&p.taken?", ":"")+(p.taken?p.taken+" out":"")):"",after:""};},
-    complete:function(m){return stashTradeApply(toMarks(m));}});
+    complete:function(m){return stashTradeApply(toMarks(m));},
+    footer:"stretch",closeLabel:"Close stash",
+    afterComplete:function(){var c2=stashTradeCatalog();if(!c2.ok)return false;cat=c2;spec.rows=stashLedgerRows(cat);return true;}};
+  showLedgerModal(spec);
 }
 function showRulesModal(){
   /* #14: re-rendering modal — × wired per render below, so wireClose:false */
