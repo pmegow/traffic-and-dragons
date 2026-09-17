@@ -56,6 +56,12 @@ var CAR_OPT_POLL_MS = 300;
 var _carOptRead     = false;   // options already spoken for the CURRENT turn
 var _carOptDeadline = 0;       // 0 = not yet waiting; else the give-up timestamp
 var _carOptTimer    = null;
+// audit F13 — the deferred mic open. Held in a variable for exactly one reason: hideCarMode must be
+// able to REVOKE it. An un-revoked timer fires after the overlay is gone and opens the microphone
+// on a page that is no longer in Car Mode (the callback's own carMode check catches that one), and
+// more importantly it fires inside a window in which the driver may have said "pause" or the next
+// narration may have started — both re-checked at the callback and in _carStartMic itself.
+var _carMicTimer    = null;
 
 // rank 5 — re-acquire the wake lock when the tab regains visibility while carMode is still on
 // (the lock auto-releases whenever the document is hidden, per spec). Single persistent
@@ -96,6 +102,7 @@ function _carOptReset() {
   _carOptRead = false;
   _carOptDeadline = 0;
   if (_carOptTimer) { clearTimeout(_carOptTimer); _carOptTimer = null; }
+  if (_carMicTimer) { clearTimeout(_carMicTimer); _carMicTimer = null; }   // audit F13 — same lifecycle: a new turn (or the exit) revokes the pending mic open
 }
 // THE single source for what the options are, per CAR_MODE.md: the live .qa buttons on the newest
 // narration. Deliberately not worldState.lastActions — the DOM copy is already punctuated (#88)
@@ -276,6 +283,13 @@ function hideCarMode() {
   if (_carKbHandler) { document.removeEventListener("keydown", _carKbHandler); _carKbHandler = null; }
   _carRetryArmed = false;
   _carHeld = false; // #410 — a hold never outlives the overlay
+  // audit F1 — clearing OUR flag was never enough: the hold also lives in every subscriber that
+  // heard the pause intent (ambience latches it and clears only on a resume intent), so leaving the
+  // overlay without saying "resume" wedged their side OFF until a page reload. Closing the overlay
+  // IS a player-facing release, so it announces one — unconditionally, because a subscriber may
+  // have latched on an intent whose _carHeld was already cleared by another path.
+  _carIntent("resume");
+  _carOptReset();   // audit F13 — revoke the deferred mic open and the options poll; neither may outlive the overlay
   _carReleaseWakeLock(); // rank 5 — normal play must never hold the lock
   try { store.del("tnd_carmode_v1"); } catch (e) {} // rank 13 — × is always the escape hatch; clearing the flag is what makes it stick
   if (typeof TTS !== "undefined") {
@@ -287,6 +301,11 @@ function hideCarMode() {
     // round-2 #31 — exiting car mode mid-cloud-recording used to still upload + transcribe
     // (STT.stop() finalizes). Exit should discard instead: prefer cancel() when available.
     if (typeof STT.cancel === "function") STT.cancel(); else STT.stop();
+    // audit F3 — the #77 confirmation is Car-Mode-only state ("I heard: … — send it?" has no
+    // desktop loop). An unanswered one used to survive the overlay and then OWN the next
+    // dictation hours later, blanking the field and finally parking the abandoned car text as
+    // the player's action. It dies with the overlay that asked the question.
+    if (typeof STT.clearConfirm === "function") STT.clearConfirm("car mode exit");
   }
   if ("mediaSession" in navigator) {
     try {
@@ -460,6 +479,13 @@ function _carPrev() {
 
 function _carStartMic() {
   if (typeof STT === "undefined" || !STT.isSupported()) { _carSetStatus(CAR_STR.voiceUnavailable); return; }
+  // audit F13 — the two conditions under which a mic must NEVER open, checked at the last
+  // possible moment because every caller reaches here through a timer or an async callback:
+  //   • held   — the driver said "pause"; the auto-mic loop is closed until resume or a tap
+  //   • narration playing — the mic would hear our own read (CAR_MODE.md's listen-vs-speak rule)
+  // Both are refusals, not failures, so they only repaint the status the state already implies.
+  if (_carHeld) { _carSetStatus(CAR_STR.pausedHold); return; }
+  if (typeof TTS !== "undefined" && TTS.isPlaying()) { _carSetStatus(CAR_STR.narratorSpeaking); return; }
   var inp = document.getElementById("action-input");
   if (inp) inp.value = "";
   // Start FIRST, then reflect the state STT actually reached — the old order set
@@ -483,10 +509,12 @@ function _carAutoMic() {
   // and a hallucinated non-answer can't send anyway — parseConfirmCommand refuses it.
   if (typeof STT !== "undefined" && typeof STT.isConfirmPending === "function" && STT.isConfirmPending()) {
     if (typeof STT.isCloudActive === "function" && STT.isCloudActive()) { _carSetStatus(CAR_STR.confirmTap); return; }
-    setTimeout(function() {
+    if (_carMicTimer) clearTimeout(_carMicTimer);
+    _carMicTimer = setTimeout(function() {
+      _carMicTimer = null;
       if (!carMode || (typeof busy !== "undefined" && busy) || (typeof STT !== "undefined" && STT.isListening())) return;
       if (!STT.isConfirmPending()) return;   // resolved while we waited (e.g. a tap answered)
-      _carStartMic();
+      _carStartMic();                        // audit F13: refuses on its own if a pause or a read landed in the gap
     }, 500);
     return;
   }
@@ -511,8 +539,16 @@ function _carAutoMic() {
   // waiting on the suggestion call; either way this cycle ends here and the next queue-drain
   // re-enters with _carOptRead set, so the mic opens after the driver has heard their choices.
   if (_carOptionsStep()) return;
-  setTimeout(function() {
+  // audit F13 — 800ms is long enough for the driver to say "pause" or for the next turn's
+  // narration to start, and neither was re-checked: the timer landed a hot mic on top of a paused
+  // session (which then transcribed road noise) or on top of the narrator (which heard our own
+  // read). The two live conditions are re-read at fire time, and the handle is revocable.
+  if (_carMicTimer) clearTimeout(_carMicTimer);
+  _carMicTimer = setTimeout(function() {
+    _carMicTimer = null;
     if (!carMode || (typeof busy !== "undefined" && busy) || (typeof STT !== "undefined" && STT.isListening())) return;
+    if (_carHeld) { _carSetStatus(CAR_STR.pausedHold); return; }
+    if (typeof TTS !== "undefined" && TTS.isPlaying()) return;   // a new read started in the gap — its own onDone re-enters here
     _carStartMic();
   }, 800);
 }
