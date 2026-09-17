@@ -290,6 +290,16 @@ function _invTipCats(row,filedId){
   var names=[];for(i=0;i<row.categories.length;i++)names.push(lbl[row.categories[i]]||row.categories[i]);
   return "\nCategories: "+names.join(", ")+" · Filed under: "+(lbl[filedId]||filedId);
 }
+/* audit E1 (2026-09-18): the trade and stash rows are the only inventory-panel rows that MUTATE
+   state — their Complete lands tags through applyMuts. Every other state-mutating entry point is
+   busy-gated, so these paint DISABLED while a GM turn is in flight. The openers refuse as well
+   (ui-modals.js), because a row painted before the turn began is still clickable.
+   label is pre-escaped markup; title is literal copy. */
+function _invLedgerBusy(){return typeof busy!=="undefined"&&!!busy;}
+function _invLedgerRow(call,label,title){
+  var b=_invLedgerBusy();
+  return '<div class="ii"'+(b?'':' onclick="'+call+'"')+' style="cursor:'+(b?'default':'pointer')+';color:'+(b?'var(--t2)':'var(--acc)')+';font-size:11px;padding-top:6px;" title="'+escHtml(b?"Wait for the turn to finish":title)+'">'+label+'</div>';
+}
 function updateInvPanel(){
   if(!worldState)return;var _ap=activePlayer(),inv=_ap.inventory||[],gold=(_ap.gold!=null?_ap.gold:0);/* P2: panel follows the spotlight PC */
   document.getElementById("inv-cnt").textContent=inv.length;/* badge stays the stored-row count — never the stack sum (Sol §6.2) */
@@ -315,9 +325,9 @@ function updateInvPanel(){
   if(hg){var hOpen=_invSecOpen[hg.id]!==false,hj;h+='<div class="inv-cat" data-sec="'+hg.id+'" onclick="invToggleSec(this.dataset.sec)">'+(hOpen?"&#9662; ":"&#9656; ")+escHtml(hg.label)+' <span class="inv-cat-n">'+hg.rows.length+"</span></div>";
     if(hOpen)for(hj=0;hj<hg.rows.length;hj++){var hr=hg.rows[hj];h+='<div class="ii" title="'+escHtml((hr.by?"left by "+hr.by:"")+(hr.placed!=null?" at turn "+hr.placed:"")+(hr.room?" — "+hr.room:""))+'" style="color:var(--t1);">'+escHtml(hr.raw)+(hr.room?' <span style="color:var(--t2);font-size:10px;">— '+escHtml(hr.room)+'</span>':'')+'</div>';}}
   /* #407: the counter — village only, and only where the trade gate is open (a shop with its keeper present) */
-  if(typeof kindDef==="function"&&kindDef().waresPerShop&&typeof villageTradeContext==="function"&&typeof showShopModal==="function"){var _vtc=villageTradeContext();if(_vtc.ok)h+='<div class="ii" onclick="showShopModal()" style="cursor:pointer;color:var(--acc);font-size:11px;padding-top:6px;" title="Buy and sell at the counter">&#8646; Trade with '+escHtml(_vtc.keeper)+'</div>';}
+  if(typeof kindDef==="function"&&kindDef().waresPerShop&&typeof villageTradeContext==="function"&&typeof showShopModal==="function"){var _vtc=villageTradeContext();if(_vtc.ok)h+=_invLedgerRow("showShopModal()","⇆ Trade with "+escHtml(_vtc.keeper),"Buy and sell at the counter");}
   /* #6 E11: the chest — only in the hero's own house */
-  if(typeof stashTradeCatalog==="function"&&typeof showStashModal==="function"&&stashTradeCatalog().ok)h+='<div class="ii" onclick="showStashModal()" style="cursor:pointer;color:var(--acc);font-size:11px;padding-top:6px;" title="Stow things in the house or take them with you">&#8645; Stow and take</div>';
+  if(typeof stashTradeCatalog==="function"&&typeof showStashModal==="function"&&stashTradeCatalog().ok)h+=_invLedgerRow("showStashModal()","⇅ Stow and take","Stow things in the house or take them with you");
   /* #408 ⑥: the design surface opens from here — the player's hand on their own house (village only, whether or not the stash holds anything) */
   if(typeof kindDef==="function"&&kindDef().stashQuantities&&worldState.character&&typeof showHouseDesignModal==="function")h+='<div class="ii" onclick="showHouseDesignModal()" style="cursor:pointer;color:var(--acc);font-size:11px;padding-top:6px;" title="Rooms, how they connect, and where your things sit">&#9998; Design your house</div>';
   if(_ap.outfit&&_ap.outfit.text)h='<div style="font-size:11px;color:var(--t2);font-style:italic;padding:2px 0 4px;">Outfit: '+escHtml(_ap.outfit.text)+'</div>'+h;/* #388 */

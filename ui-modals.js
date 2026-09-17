@@ -74,6 +74,7 @@ function showLedgerModal(spec){
 }
 /* #407 the counter: the shop spec over shopTradeCatalog / shopTradePlan / shopTradeApply. */
 function showShopModal(){
+  if(typeof busy!=="undefined"&&busy){showToast("Wait for the turn to finish before trading.");return;}/* audit E1: the panel row may have been painted before the turn began */
   var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no shop"};
   if(!cat.ok){showToast("Trade: "+cat.reason);return;}
   var rows=shopLedgerRows(cat);
@@ -87,6 +88,7 @@ function showShopModal(){
 }
 /* #6 E11 the chest: the stash spec over stashTradeCatalog / stashTradePlan / stashTradeApply — own house only. */
 function showStashModal(){
+  if(typeof busy!=="undefined"&&busy){showToast("Wait for the turn to finish before moving things.");return;}/* audit E1 */
   var cat=(typeof stashTradeCatalog==="function")?stashTradeCatalog():{ok:false,reason:"no stash"};
   if(!cat.ok){showToast("Stash: "+cat.reason);return;}
   var rows=stashLedgerRows(cat);

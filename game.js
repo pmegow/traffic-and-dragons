@@ -356,6 +356,7 @@ function waysSplit(ways,cap){
    pruning and the gated auto-take apply as for a GM turn. A refusal in the log is reported, never hidden. One system
    line; no GM note — the geo block already serves the STASH line every turn. */
 function stashTradeApply(marks){
+  if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[stash] move refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and its saveAll)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1: every other state-mutating entry point is busy-gated; this one was not */
   var cat=(typeof stashTradeCatalog==="function")?stashTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=stashTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
   var R=applyMuts(stashTradeTagText(plan),{deferSave:true}),muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Stash refused|kept/.test(String(m));});
@@ -371,6 +372,7 @@ function stashTradeApply(marks){
    ware leaves it, a sold item joins it (fileWare pins to canon; no canon = the price paid) so it can be bought back.
    One system line in the log names hero and keeper; tradePing arms the ONE in-character sentence for the next turn. */
 function shopTradeApply(marks){
+  if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[shop] trade refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and overwrite the one-shot tradePing)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1 */
   var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=shopTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
   var R=applyMuts(shopTradeTagText(plan),{deferSave:true}),muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Trade refused/.test(String(m));});
