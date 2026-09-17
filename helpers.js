@@ -1305,8 +1305,8 @@ function _itemServe(ov,base){
 // #300: the companions who can actually intervene — living, in the party, and NOT split away.
 function presentCompanions(){var a=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];return a.filter(function(n){return !(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location);});}
 // #325 (owner ruling 2026-09-03): when the authored spine's LAST act closes, the ending is OFFERED,
-// never forced — the fourth button carries it, a modal decides, "play on" snoozes it. Pure.
-function endingOfferText(){var nm=(typeof worldState!=="undefined"&&worldState&&worldState.campName)||"this tale";return "Write the ending \u2014 the tale of "+nm+" is told.";}
+// never forced — a modal decides, "play on" snoozes it. Pure. (#364 moved the offer to the File menu
+// and the quest journal; audit E16 deleted the orphaned endingOfferText copy of its wording.)
 function endingChoiceFromText(t){return /\bwrite the ending\b/i.test(String(t||""));}
 function spineTold(){var sk=(typeof worldState!=="undefined"&&worldState)?worldState.skeleton:null,acts=sk&&sk.acts;if(!acts||!acts.length)return false;var i;for(i=0;i<acts.length;i++)if(!acts[i]||acts[i].status!=="completed")return false;return true;}
 function endingOffered(){

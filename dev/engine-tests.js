@@ -1034,8 +1034,10 @@ function runEngineTests(R){
     var r=applyMuts("[ACT_COMPLETE:The Weight Below]");
     if(!worldState.spineComplete||worldState.spineComplete.act!=="The Weight Below")return "spineComplete not armed: "+JSON.stringify(r.muts);
     var a=engineFourthAction();if(a&&a.kind==="ending")return "#364: the ending is a menu item now, not the fourth button";
-    if(!endingOffered()||!endingMenuVisible())return "the offer did not arm";var et=endingOfferText();if(et.indexOf("Write the ending")<0||et.indexOf("The Iron Meridian")<0)return "offer text: "+et;
-    if(!endingChoiceFromText(et)||endingChoiceFromText("Write a letter to the harbourmaster."))return "endingChoiceFromText";
+    if(!endingOffered()||!endingMenuVisible())return "the offer did not arm";
+    /* audit E16: endingOfferText is deleted — since #364 the offer's copy is the File-menu item and the
+       modal, and this test was its only caller. The LIVE half (sendAction's intercept) is what matters. */
+    if(!endingChoiceFromText("Write the ending — the tale of The Iron Meridian is told.")||endingChoiceFromText("Write a letter to the harbourmaster."))return "endingChoiceFromText";
     var sk=buildSkeletonBlock();if(!/TALE IS TOLD/.test(sk)||!/ending/i.test(sk))return "skeleton block silent about the finished spine";
     var d=endingDecide("play");if(!d||d.action!=="play"||endingOffered())return "play on did not snooze: "+JSON.stringify(d);
     if(!endingMenuVisible())return "#364: the menu item must ignore the snooze — a menu is not a nag";
