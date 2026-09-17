@@ -20,11 +20,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2   # #312: run-sabotage-diff compares HEAD~1..HEAD
+          # FULL history (audit G1). #312 needed only HEAD~1 (run-sabotage-diff, and now the
+          # lint-todo + check-shell-markers range gates), but dev/tests-todo-hygiene.js reads its
+          # pre-move TODO.md fixture straight out of real history (93c182f^, blob 809c9fa) and
+          # asserts the blob hash — a depth-2 checkout cannot see it and the suite would abort on
+          # fixture setup. The pack is ~30 MiB, so the full clone costs seconds.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # ── the four gates the pre-commit hook runs before the suite (audit G1) ──────────────
+      # ── the hook's other gates, which run before the suite locally too (audit G1) ────────
+      # check-hook-parity is deliberately NOT here: it compares the INSTALLED .git hook, which a
+      # CI checkout does not have. That is the one entry in check-enforcement.js's HOOK_ONLY.
       # lint-todo in CI has no index to read, so it verifies the CHECKED-OUT TODO.md: shape +
       # the #310 row-size cap always, and the moved-row byte verification against the previous
       # commit when this checkout has one (fetch-depth: 2 gives us HEAD~1; on a pull_request
