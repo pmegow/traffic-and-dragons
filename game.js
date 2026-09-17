@@ -3705,8 +3705,10 @@ function deathSceneChoose(choice){
     if(worldState.respawnNote)worldState.respawnNote.gift=gift;
   }
   if(typeof saveAll==="function")saveAll();
-  if(typeof rebuildNarrativeFromTranscript==="function"){try{rebuildNarrativeFromTranscript(20,true);}catch(e){}}/* #206b: was (true) — a boolean count painted exactly ONE entry after a respawn */
-  if(typeof syncUI==="function"){try{syncUI();}catch(e){}}
+  /* audit E15: the respawn state is already committed at this point — a repaint failure must not take
+     the walk back with it, but it must not be invisible either (the story pane or the HUD is now stale). */
+  if(typeof rebuildNarrativeFromTranscript==="function"){try{rebuildNarrativeFromTranscript(20,true);}catch(e){console.warn("[death] the story pane could not be rebuilt after the respawn — it may show the pre-death tail until reload: "+((e&&e.message)||e));}}/* #206b: was (true) — a boolean count painted exactly ONE entry after a respawn */
+  if(typeof syncUI==="function"){try{syncUI();}catch(e){console.warn("[death] the panels could not be repainted after the respawn — HP/place/party may read stale until the next turn: "+((e&&e.message)||e));}}
   if(typeof showRespawnModal==="function")showRespawnModal(r,cause);
   if(typeof carNotify==="function")carNotify("respawn","You wake again at "+r.camp+". Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+".");
   return {action:"respawn",turn:r.turn,camp:r.camp};
