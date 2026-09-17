@@ -8,9 +8,9 @@
 // of mystery-red assertions (#17's failure mode).
 //
 // ORDER MATTERS: index.html's load order minus the DOM-wiring files (wasm-probe.js,
-// char-creation.js, ui-*.js, stt.js), with class_bible.js slotted after capability_bible.js
-// (#72: not in index.html's shell until C6-② — it loads here so the structural tests and the
-// BIBLE EDITOR CONTRACT see it, in its eventual real position). That relationship is
+// char-creation.js, ui-*.js, stt.js). class_bible.js sits after capability_bible.js because
+// that is where index.html loads it (#72 C6-②, 2026-08-03 — the header used to say "not in
+// index.html's shell until C6-②", which was true only before that commit; audit G12). That relationship is
 // MECHANICALLY ENFORCED against index.html by the ENGINE MANIFEST CONTRACT in run-tests.js —
 // adding an engine file to index.html without adding it here fails the build.
 var ENGINE_MANIFEST = [

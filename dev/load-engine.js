@@ -6,17 +6,20 @@
 // class: test.html's copy silently dropped 3 files and showed 55 false-red assertions).
 //
 // ONE DELIBERATE MANUAL COPY REMAINS (kept in step by hand):
-//   • dev/engine-tests.js makeWorld() — the browser-hosted twin of makeTestWorld() below.
-//     ⚠ Known gap at time of writing (#19): engine-tests.js makeWorld is MISSING
-//     character.coreMemories:[] (schema field since v1.304) — integrator should add it there.
+//   • dev/engine-tests.js __makeWorldState() — the browser-hosted twin of makeTestWorld()
+//     below. It cannot require() this module: test.html geval's engine-tests.js in the browser.
+//     The #19 gap (missing character.coreMemories:[], schema field since v1.304) is CLOSED, and
+//     so is the second in-file copy that had drifted from it (audit G4, 2026-09-18 — that copy
+//     also lacked the racial spell, so the commitGmTurn section ran a schema-incomplete world).
+//     engine-tests.js now holds exactly ONE definition of the shape; this is its only twin.
 // test.html is NO LONGER a manual copy (review 2026-08-01, the #17 rot class — it had silently
 // dropped clock.js/table-talk.js/sound.js): it loads dev/engine-manifest.js and generates its
 // tags + load-guard from it, same source as FILES below.
 //
 // FILES is index.html's load order minus the DOM-wiring files (wasm-probe.js, char-creation.js,
-// ui-*.js, stt.js), plus class_bible.js after capability_bible.js (#72: not in index.html's
-// shell until C6-② — it loads here so the structural tests + the BIBLE EDITOR CONTRACT see it,
-// in its eventual real position). Each engine file depends only on files earlier in the list.
+// ui-*.js, stt.js). class_bible.js sits after capability_bible.js because that is where
+// index.html loads it (#72 C6-②, 2026-08-03 — the header used to say "not in index.html's shell
+// until C6-②", stale since that commit; audit G12). Each engine file depends only on files earlier in the list.
 // The index.html relationship is enforced by the ENGINE MANIFEST CONTRACT in run-tests.js.
 var fs = require("fs"), path = require("path");
 var ROOT = path.join(__dirname, "..");
