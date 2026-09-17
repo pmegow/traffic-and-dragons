@@ -508,10 +508,22 @@ function validateSuggestion(text,man){
   // "cast a glance" carry no spell-word and pass), and ownership resolved against the sheets —
   // delegated to a present companion who owns it passes (Daeris DID have Binding Ward; the GM's
   // narration that turn was grounded, only the button was invented).
-  var castM=t.match(/^\s*(?:have\s+([A-Z][\w' -]*?)\s+)?(?:cast|casts|set(?: down)?|lay(?: down)?|slap down|invoke|channel|work|weave)\s+(?:an?\s+|the\s+|your\s+|his\s+|her\s+|their\s+)?(.+)$/i);
+  // audit E5 (2026-09-18): the spell-WORD list alone is necessary but NOT sufficient. Ordinary moves
+  // whose object happens to carry one died as unknown-capability and applySuggestionGate swapped the
+  // button silently — "Lay down your blade and surrender.", "Lay the blade on the table.", "Work the
+  // circle of tents for rumours." (the collision class the #343 negatives never exercised, since their
+  // objects carry no spell word). So a SECOND signal must also hold before the ownership question is
+  // asked: a real CASTING verb (cast/invoke/channel/weave — set/lay/slap down/work are plain English),
+  // or an object Title-Cased like a spell NAME ("Binding Ward", "Frost Lance"), or an object that IS a
+  // bible key (in which case the branches below defer a known key to rule ②, exactly as before).
+  var castM=t.match(/^\s*(?:have\s+([A-Z][\w' -]*?)\s+)?(cast|casts|set(?: down)?|lay(?: down)?|slap down|invoke|channel|work|weave)\s+(?:an?\s+|the\s+|your\s+|his\s+|her\s+|their\s+)?(.+)$/i);
   if(castM){
-    var castObj=castM[2].replace(/[.!?]+\s*$/,"").split(/\s+(?:and|then|on|onto|over|near|at|across|around|before|while|so|to)\s+|,\s*/i)[0].trim(),castObjLc=castObj.toLowerCase();
-    if(castObj&&/\b(ward|wards|sphere|bolt|shield|blast|charm|hex|curse|glamour|illusion|barrier|sigil|glyph|rune|invocation|ritual|enchantment|spell|cantrip|aura|zone|circle|wall|blade|flame|frost|cloud|fog|mist|binding|blessing|banishment|summoning)\b/i.test(castObj)){
+    var castObj=castM[3].replace(/[.!?]+\s*$/,"").split(/\s+(?:and|then|on|onto|over|near|at|across|around|before|while|so|to)\s+|,\s*/i)[0].trim(),castObjLc=castObj.toLowerCase();
+    var _castingVerb=/^(cast|casts|invoke|channel|weave)$/i.test(String(castM[2]).trim());
+    var _tcW=castObj?castObj.split(/\s+/):[],_tcNamed=_tcW.length>0&&/^[A-Z]/.test(_tcW[0]),_tcI;
+    for(_tcI=0;_tcI<_tcW.length&&_tcNamed;_tcI++){if(/^(of|the|a|an|and|in|on|to|from)$/.test(_tcW[_tcI]))continue;if(!/^[A-Z]/.test(_tcW[_tcI]))_tcNamed=false;}/* the object is mid-sentence, so an initial capital is a NAME, not a sentence start */
+    var _isBibleKey=!!(castObj&&typeof capabilityLookup==="function"&&capabilityLookup(castObj));
+    if(castObj&&(_castingVerb||_tcNamed||_isBibleKey)&&/\b(ward|wards|sphere|bolt|shield|blast|charm|hex|curse|glamour|illusion|barrier|sigil|glyph|rune|invocation|ritual|enchantment|spell|cantrip|aura|zone|circle|wall|blade|flame|frost|cloud|fog|mist|binding|blessing|banishment|summoning)\b/i.test(castObj)){
       var ownsIn=function(list){var q;for(q=0;q<(list||[]).length;q++){if(String(list[q]).length>=3&&castObjLc.indexOf(String(list[q]).toLowerCase())>=0)return true;}return false;};
       var activeNames=man.caps.map(function(cp){return cp.name;}),pcAll=man.partyCaps||{},pn;
       if(castM[1]){/* delegated: the named present companion must own it */
