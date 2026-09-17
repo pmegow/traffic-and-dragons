@@ -30,10 +30,18 @@ function runEngineTests(R){
 
   function eq(got,want,label){if(got===want)return true;return (label||"")+" expected "+JSON.stringify(want)+" got "+JSON.stringify(got);}
 
-  // Fresh minimal world for state tests — mirrors the harness character shape.
-  function makeWorld(){
+  // ── THE v10 fixture shape — ONE definition for this whole file (audit G4, 2026-09-18) ──
+  // There used to be a second copy of this literal inside the commitGmTurn IIFE further down,
+  // and it had DRIFTED: no character.coreMemories (schema field since v1.304) and spells:[]
+  // where this one seeds the racial spell — so every commitGmTurn test ran against a
+  // schema-incomplete world. Both makeWorld() wrappers now build through this function and
+  // differ only in which __toasts ring they clear (each scope owns its own showToast stub).
+  // Keep in step with dev/load-engine.js makeTestWorld() — the node-side twin, and the one
+  // copy that must remain: test.html geval's this file in the browser, where require() does
+  // not exist, so engine-tests.js cannot pull the fixture from a node module.
+  function __makeWorldState(){
     GM_XP_CAP_PER_LEVEL=__XP_CAP_DEFAULT;/* #302 */
-    memory=blankMemory();sessionLog=[];__toasts.length=0;
+    memory=blankMemory();sessionLog=[];
     worldState={ver:10,campId:null,campName:"Test",legacyCharsUsed:[],pendingLegacy:null,
       character:{name:"Tess",gender:"F",age:"30",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:"northlander",subraceNm:"Northlander",heritageVariant:"",
         cls:"Warrior",stats:{STR:15,DEX:12,CON:14,INT:10,WIS:10,CHA:10},hp:14,maxHp:14,gold:25,
@@ -45,9 +53,11 @@ function runEngineTests(R){
       npcs:[],questLog:[],eventHistory:[],combat:null,turn:5,transcript:[],ragMemory:false};
     // RAG defaults ON in production (v1.230); tests pin it OFF here for a deterministic baseline and
     // opt in explicitly. The default-on semantics are covered by their own unit test below.
-    // coreMemories:[] added at audit #19 close (v1.304 schema field) — keep in step with
-    // dev/load-engine.js makeTestWorld (the documented manual-copy pair).
+    return worldState;
   }
+
+  // Fresh minimal world for state tests — mirrors the harness character shape.
+  function makeWorld(){ __makeWorldState();__toasts.length=0; }
 
   // ── 1. Model-output JSON repair (the generateSkeleton/summarize failure class) ──
   section("repairModelJson / stripCodeFences");
@@ -13737,20 +13747,11 @@ function runEngineTests(R){
 
   function eq(got,want,label){if(got===want)return true;return (label||"")+" expected "+JSON.stringify(want)+" got "+JSON.stringify(got);}
 
-  // Fresh minimal world — mirrors engine-tests.js makeWorld().
-  function makeWorld(){
-    GM_XP_CAP_PER_LEVEL=__XP_CAP_DEFAULT;/* #302 */
-    memory=blankMemory();sessionLog=[];__toasts.length=0;
-    worldState={ver:10,campId:null,campName:"Test",legacyCharsUsed:[],pendingLegacy:null,
-      character:{name:"Tess",gender:"F",age:"30",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:"northlander",subraceNm:"Northlander",heritageVariant:"",
-        cls:"Warrior",stats:{STR:15,DEX:12,CON:14,INT:10,WIS:10,CHA:10},hp:14,maxHp:14,gold:25,
-        inventory:["Longsword","Travel ration"],level:1,xp:0,abilities:[],spells:[],
-        archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:"",
-        trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:initSkills(),
-        conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],partyMember:true},
-      world:{location:"Ashfen",region:"The Reach",time:"dusk",weather:"rain",threat:"low",sublocation:null},
-      npcs:[],questLog:[],eventHistory:[],combat:null,turn:5,transcript:[],ragMemory:false};
-  }
+  // Fresh minimal world. The second copy of the v10 literal lived HERE until audit G4
+  // (2026-09-18) and had drifted from the one above (no coreMemories, no racial spell) — this
+  // section ran against a schema-incomplete world. It now builds through the ONE
+  // __makeWorldState() at the top of runEngineTests and only clears this scope's own __toasts.
+  function makeWorld(){ __makeWorldState();__toasts.length=0; }
 
   section("commitGmTurn (audit 07-16 #5)");
 
