@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Fable audit — Traffic and Dragons, 2026-09-18</title>
+<style>
+:root{--bg:#0e0e10;--bg2:#161618;--bg3:#1e1e22;--brd:#2a2a30;--t0:#e6e2d8;--t1:#a9a49a;--t2:#6f6b64;--acc:#b8935a;--grn:#7aa86a;--amb:#d8a04a;--red:#c05050;--blu:#6a8fb8;--font:Georgia,"Times New Roman",serif;--mono:Consolas,"Courier New",monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t0);font-family:var(--font);font-size:15px;line-height:1.55}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 80px}
+h1{font-size:26px;margin:0 0 4px;letter-spacing:.02em}
+h2{font-size:19px;margin:44px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--brd);color:var(--acc)}
+h3{font-size:16px;margin:26px 0 8px;color:var(--t0)}
+p{margin:8px 0}
+.sub{color:var(--t1);font-size:13.5px}
+.lean{display:inline-block;border-radius:12px;padding:2px 10px;font-size:.78em;letter-spacing:1px;font-family:var(--mono);font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);border:1px solid var(--acc);background:#251d12;margin-right:6px}
+.lean.high{border-color:var(--red);background:#261010}.lean.med{border-color:var(--amb);background:#2b200f}.lean.low{border-color:var(--blu);background:#151b22}
+.lean.hole{border-color:var(--red);background:#261010}.lean.silent{border-color:var(--amb);background:#2b200f}.lean.redund{border-color:var(--blu);background:#151b22}.lean.vest{border-color:var(--t2);background:#1a1a1c}.lean.doc{border-color:var(--grn);background:#182215}
+table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:13.5px}
+th,td{border:1px solid var(--brd);padding:7px 9px;vertical-align:top;text-align:left}
+th{background:var(--bg2);color:var(--t1);font-weight:normal;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+td.n{font-family:var(--mono);white-space:nowrap;color:var(--t1)}
+.verdict{background:var(--bg2);border:1px solid var(--brd);border-left:3px solid var(--acc);padding:14px 18px;margin:18px 0;font-size:15.5px}
+.f{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:14px 18px;margin:14px 0}
+.f h3{margin:0 0 6px;font-size:16px}
+.f .k{display:inline-block;min-width:92px;color:var(--t2);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+.f p{margin:6px 0}
+code{font-family:var(--mono);font-size:.9em;color:#d9c9a8;background:#1a1712;padding:1px 4px;border-radius:3px}
+pre{font-family:var(--mono);font-size:12.5px;background:#111;border:1px solid var(--brd);border-radius:6px;padding:10px 12px;overflow:auto;color:#cfc8ba;margin:8px 0}
+ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
+.rej li{color:var(--t1)}
+.small{font-size:13px;color:var(--t1)}
+</style>
+</head>
+<body><main>
+<h1>Fable audit — 2026-09-18</h1>
+<p class="sub">Traffic and Dragons at v1.949 (commit 08a5260). A deep read-only technical review for drift vulnerabilities, redundancies and vestigial processes. <b>Nothing was fixed.</b> Every entry below was double-checked by the auditor against the source, and where a behaviour was claimed it was reproduced live in the headless engine (<code>dev/load-engine.js</code>) before being logged. Candidates that turned out to serve a purpose are listed in the rejected ledger at the end.</p>
+
+<div class="verdict">
+<b>Verdict.</b> The core anti-drift stack holds: the tag registry discipline is intact (every handler stripped, every strip name handled or registered), the transcript is never trimmed anywhere, the stable prompt half is pure, and the engine manifest matches index.html exactly. The holes are at the <b>edges</b> of that stack, and they cluster into six classes: (1) kind gates that only some handlers honour (the village pays XP, buries residents and hands companions goods that the hero is refused); (2) parsers that accept a malformed or duplicated tag and say nothing; (3) node-record carriers that each remember a different subset of the schema (thirteen hand-rolled node literals, a merge that drops floor plans, a split that drops owners); (4) UI paths that write canon around the filers or around the busy gate; (5) sync paths that bypass the CAS guard or persist a blank on a parse failure; (6) contracts that pin the wrong file, the wrong spelling, or nothing. Counts: <b>105 findings</b> — 27 high, 38 medium, 40 low; by class 47 drift holes, 14 silent failures, 19 redundancies, 16 vestigial, 9 documentation rot.
+</div>
+
+<h2>Method</h2>
+<ul>
+<li>Seven parallel read-only evidence sweeps (tags, prompt assembly, memory/identity, state/sync, game/UI, voice/audio, dev tooling/docs), each told to search for the purpose a candidate might serve before reporting it, and to list what it rejected.</li>
+<li>Auditor's own passes: a dead-symbol census over 1,748 top-level definitions (comments and strings stripped, HTML-built handlers counted), an empty-catch census, a direct-canon-write scan, a tag vocabulary cross-check (handlers vs strip list vs every bracketed name in engine text), a node-literal census.</li>
+<li>Verification: 26 behavioural claims reproduced by script in the headless engine; 60 textual claims checked mechanically against the cited lines; the rest read by eye. Two sweep claims were corrected during verification (the location merge does fold node fields, through <code>locFoldNodeRecords</code>; the sibling-place refusal in #415 is caught by the resolver, not the filer) and are recorded in their corrected form.</li>
+<li>Scope limits: no live GM calls were made; Car Mode, Bluetooth and the Piper soak were read, not driven; the Fly.dev server is out of scope.</li>
+</ul>
+
+<h2>Priority ladder — what to take to Fable first</h2>
+<table>
+<tr><th>#</th><th>Finding</th><th>Why first</th></tr>
+<tr><td class="n">A1</td><td>The village pays XP through the milestone paymaster and <code>[COMPANION_XP:]</code></td><td>Kind contract broken on two paths; scales with level</td></tr>
+<tr><td class="n">A4</td><td>The Pax gate misses the bare <code>[NPC:name|dead|relation]</code></td><td>The doc-taught form kills a resident in a no-harm kind</td></tr>
+<tr><td class="n">D1</td><td>Checkpoint holder is never campaign-scoped</td><td>A death after a campaign switch restores the other campaign's world under this campaign's id</td></tr>
+<tr><td class="n">D2</td><td>Checkpoint restore blanks memory on a bad snapshot and the caller saves it</td><td>JP0-4 class, cloud copy overwritten one line later</td></tr>
+<tr><td class="n">C1 / C2</td><td>Merge drops layout, wares, hours, wanted, mentions; split drops owner</td><td>Write-once canon dies silently; the two carriers disagree</td></tr>
+<tr><td class="n">A3</td><td>Two <code>[SUBLOCATION:]</code> in one response: handler takes the first, trade gate and doc take the last</td><td>Two readings of one text in the kind that gates trade on it</td></tr>
+<tr><td class="n">B1</td><td>Two quest note builders fire every turn with no latch</td><td>One stuck quest starves 50 lower builders under the 3-note cap</td></tr>
+<tr><td class="n">D4 / D5</td><td>Manual push bypasses CAS and can ship <code>memory:{}</code></td><td>Cross-device canon loss from a rename or an evict</td></tr>
+<tr><td class="n">E5</td><td>Validator rule ⑧ rejects "Lay down your blade and surrender."</td><td>Reproduced; legitimate buttons silently replaced</td></tr>
+<tr><td class="n">A2 / A6 / A10</td><td>Positional SPELL_DEF files an empty canon; COMBAT_START near-miss is silent; <code>[HP:]</code> leaks to TTS</td><td>Three silent parser failures with player-visible cost</td></tr>
+<tr><td class="n">F1 / F2 / F3</td><td>Car Mode: ambience wedge on exit after "pause"; STT cancel race; confirm latch outlives the overlay</td><td>Each wedges a real device session</td></tr>
+<tr><td class="n">G1</td><td>CI runs one of the five pre-commit gates</td><td>The cache-bump hard rule is bypassable by <code>--no-verify</code></td></tr>
+</table>
+
+<h2>A · State tags — the parser, the strip and the doc</h2>
+
+<div class="f"><h3>A1 · The village's <code>xp:"none"</code> refusal is bypassed by the milestone paymaster and by <code>[COMPANION_XP:]</code></h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">where</span><code>tag_table.js</code> <code>awardMilestoneXp</code> (fired from the QUEST, boss and act handlers) and the <code>COMPANION_XP</code> handler; the gate they bypass is the <code>[XP:]</code> handler's kind check.</p>
+<p><span class="k">what</span><code>[XP:]</code> in a kind with <code>xp:"none"</code> is refused loudly. <code>awardMilestoneXp</code> reads no kind; it writes <code>character.xp</code> and mirrors to every living companion. <code>COMPANION_XP</code> reads no kind either.</p>
+<p><span class="k">repro</span></p><pre>village fixture, [QUEST:Mend the mill wheel|completed]  →  xp 0 → 50, muts ["+50 XP (quest milestone: Mend the mill wheel)"], kindDef().xp === "none"
+village fixture, [COMPANION_XP:Frizwick|30]             →  Frizwick xp 30, muts ["Frizwick: +30 XP"], no refusal</pre>
+<p><span class="k">purpose</span>The #6H1 test exercises only <code>[XP:20]</code> and an offered quest; no sabotage clause covers the milestone path; <code>awardMilestoneXp</code> has 5 references, none a kind check.</p>
+<p><span class="k">remedy</span>One gate, one place: the kind check belongs in <code>awardMilestoneXp</code> and the companion handler, or better, in a single <code>xpAllowed()</code> every XP writer calls.</p></div>
+
+<div class="f"><h3>A2 · A positional <code>[SPELL_DEF:]</code> writes an empty definition into the capability bible, write-once, silently</h3>
+<span class="lean high">high</span><span class="lean silent">silent failure</span>
+<p><span class="k">where</span><code>tag_table.js</code> SPELL_DEF handler: parts without <code>=</code> are skipped with <code>continue</code>, then the entry is written unconditionally.</p>
+<p><span class="k">repro</span></p><pre>[SPELL_DEF:Frost Lance|60ft|1 creature|instantaneous|a lance of ice|slot|1|arcane|yes]
+→ capabilityBible["frost lance"] = {tier:0,cost:"at-will",isMagical:true,category:[],range:"",targets:"",duration:"",effect:""}
+  muts ["Spell canon defined: Frost Lance"], warns 0</pre>
+<p><span class="k">why</span>This is the #298 ITEM_DEF bug on the sibling tag, and worse: SPELL_DEF is direct and write-once (a redefinition is refused), so the empty canon is served forever and <code>manaSpellCost</code> prices the cast off <code>tier:0</code>. The GM demonstrably writes positional defs (that was #298's field evidence).</p>
+<p><span class="k">purpose</span>All 8 SPELL_DEF tests use key=value; no test covers the positional form; the #298 fix comment sits only in ITEM_DEF.</p></div>
+
+<div class="f"><h3>A3 · Two <code>[SUBLOCATION:]</code> tags in one response: the handler applies the FIRST, the trade gate and the doc read the LAST</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">where</span><code>tag_table.js</code> SUBLOCATION handler (non-global <code>text.match</code>) vs <code>helpers.js villageTradeContext</code> (#6 F10, last wins) and the SUBLOCATION_LEAVE handler (compares against the last arrival).</p>
+<p><span class="k">repro</span></p><pre>[SUBLOCATION:the kitchen] then cross to [SUBLOCATION:the cellar]
+→ world.sublocation = "the kitchen"; the cellar never filed; muts ["Sub: the kitchen"]; warns 0</pre>
+<p><span class="k">why</span><code>DOC/contracts/tags.md</code> states the contract as "the last <code>[SUBLOCATION:]</code> not followed by a leave is the place". GOLD is judged at the cellar while WARES, LOCATION_ITEM, the guestbook drain and the geo block are judged at the kitchen.</p>
+<p><span class="k">purpose</span>The #6F8 test covers leave-then-arrive and arrive-then-leave with one arrival tag only. No comment justifies first-wins; it is inherited non-global <code>.match</code>.</p></div>
+
+<div class="f"><h3>A4 · The Pax no-harm gate misses the bare <code>[NPC:name|dead|relation]</code>, the exact form the standing doc teaches</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">where</span><code>tag_table.js __villageHarmRefused</code> is called from HP, COMPANION_HP and NPC_DEATH_REPORTED only; the NPC handler's death branch has no kind check.</p>
+<p><span class="k">repro</span></p><pre>village fixture, [NPC:Old Tam|dead|neighbour]  →  npc.dead = 12, muts ["Old Tam: dead (t12)","NPC: Old Tam"], warns [], kindDef().noHarm === true</pre>
+<p><span class="k">why</span>The handler comment says a scene death "always travels in a canon envelope", but the envelope gate fires only for text wrapped in <code>[CANON_TXN_BEGIN:]</code>; the standing doc line teaches the bare form with no envelope. The common emission path is the ungated one.</p>
+<p><span class="k">purpose</span><code>noHarm</code> has exactly four references; the village sabotage battery mutates the two gates that exist, confirming the NPC handler was never enrolled.</p></div>
+
+<div class="f"><h3>A5 · <code>[COMPANION_ITEM_GAINED/LOST:]</code> ride straight through a refused village trade</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">where</span><code>tag_table.js</code> companion item handlers never read <code>R.villageTradeRefused</code>, which only ITEM_GAINED/ITEM_LOST honour.</p>
+<p><span class="k">repro</span></p><pre>village, outside a shop: [GOLD:-5][ITEM_GAINED:Rope][COMPANION_ITEM_GAINED:Frizwick|Lantern]
+→ gold unchanged, hero's Rope refused ("nothing gained (1 item tag rode with the refused coin)"), Frizwick: +Lantern</pre>
+<p><span class="k">why</span>The gate is defeated by writing the companion form. The #6 F5 comment says "the items riding with it … are refused with it" — the intent is plainly all items.</p></div>
+
+<div class="f"><h3>A6 · Three strict-shape handlers are not enrolled in <code>__tagNearMiss</code>: a malformed COMBAT_START opens no fight and says nothing</h3>
+<span class="lean high">high</span><span class="lean silent">silent failure</span>
+<p><span class="k">where</span><code>tag_table.js</code> COMBAT_START (demands <code>(\d+)\|(\d+)\|([+-]?\d+)</code>), ALIGNMENT (demands <code>law|good</code>), SAVE_MOD (drops on <code>isNaN</code>). The near-miss helper is used by six other handlers.</p>
+<p><span class="k">repro</span></p><pre>[COMBAT_START:Goblin|2d6|12|+2|1d6|low]  →  combat=false, muts [], warns 0   (every later [ENEMY_HP:] then no-ops)
+[ALIGNMENT:chaos+1]                      →  muts [], warns 0
+[SAVE_MOD:Ward|Fear|two]                 →  muts [], warns 0</pre>
+<p><span class="k">why</span>The unknown-tag scan is blind (the names are known), so the failure reaches neither channel. COMBAT_START is the highest-stakes strict shape in the table and the only one whose failure silently disarms a subsystem.</p>
+<p><span class="k">purpose</span>The #266 enrolment was a census of then-known cases, not a rule; <code>dev/sabotage-266-silent-drops.js</code> covers the six enrolled only.</p></div>
+
+<div class="f"><h3>A7 · <code>[COMPANION_XP:]</code>, <code>[COMPANION_AGENDA_DONE:]</code>, <code>[COMPANION_AGENDA_BEAT:]</code> drop an unresolvable companion name in total silence</h3>
+<span class="lean med">medium</span><span class="lean silent">silent failure</span>
+<p><span class="k">where</span><code>tag_table.js</code>: bare <code>continue</code> on a <code>findCompanionNpc</code>/<code>findCompanionChar</code> miss. Every other COMPANION_* handler warns with the #136③ marker.</p>
+<p><span class="k">repro</span><code>[COMPANION_XP:Nobody|50]</code> → muts [], warns 0. Same shape as the "Frizwick's 14,600 XP gap" the <code>_xpMirror</code> comment names.</p></div>
+
+<div class="f"><h3>A8 · <code>[NPC_FORGET:]</code> on a name with no <code>memory.npcs</code> record is a fully silent no-op: the Oubliate spell "lands" and nothing happens</h3>
+<span class="lean med">medium</span><span class="lean silent">silent failure</span>
+<p><span class="k">where</span><code>tag_table.js</code> NPC_FORGET: <code>if(!fgNpc)continue;</code>. Repro: <code>[NPC_FORGET:Nobody|the red key]</code> → muts [], warns 0. A character registered this same turn (in <code>worldState.npcs</code>, not yet in <code>memory.npcs</code>) takes this branch after the player has spent the spell. Contrast CONDITION_REMOVED and SAVE_MOD_REMOVED, which warn on exactly this case.</p></div>
+
+<div class="f"><h3>A9 · cleanTxt strips chained tag tails for EVERY family with a warn claiming "the parser filed it"; only WARES parses chains</h3>
+<span class="lean med">medium</span><span class="lean silent">silent failure</span>
+<p><span class="k">repro</span></p><pre>cleanTxt("Stock. [WANTED:rope|5 gp|Tam]|lamp oil|3 gp|Tam] Done.")  →  "Stock.  Done." + warn "orphan tag tail stripped … the parser filed it"
+applyMuts of the same text                                          →  wanted = ["rope"] — the second body was never filed</pre>
+<p><span class="k">why</span>The #6 F11 fix taught the display half generically and the parse half for one tag. The display is clean, the warn asserts the opposite, and the log has one line for two wares. Applies to LOCATION_ITEM, COMBAT_START, NPC and every other family.</p></div>
+
+<div class="f"><h3>A10 · <code>[HP:]</code> and <code>[XP:]</code> with an empty body, and a truncated <code>[HP</code>, leak verbatim into the transcript and the narrator</h3>
+<span class="lean high">high</span><span class="lean silent">silent failure</span>
+<p><span class="k">where</span><code>api.js cleanTxt</code>: <code>_CT_TAGS</code> requires a non-empty body; both catch-all nets require a 3+ character name. HP and XP are the only two-character names.</p>
+<p><span class="k">repro</span><code>cleanTxt("She reels. [HP:] Blood. [XP:] Done.")</code> returns the string unchanged with zero warns; <code>"Truncated mid tag. [HP"</code> likewise. The two tripwires disagree on the name floor (<code>__tagUnknownScan</code> uses <code>{1,}</code>); the display side is the looser one.</p></div>
+
+<div class="f"><h3>A11 · The contract doc's handler count is stale by more than 2×</h3>
+<span class="lean low">low</span><span class="lean doc">doc rot</span>
+<p><code>DOC/contracts/tags.md</code> and <code>CLAUDE.md</code> both say "~57 handlers"; the table holds 120 literal entries plus 3 from <code>combatAttrEntry</code>. More than half the parser (CHECK, SUGGEST, SOUNDSCAPE, LOCATION_HOURS, COMPANION_AGENDA*, WHISPER, SPELL_DEF, FACTION*, NPC_LINK, ITEM_KEPT …) has no row in the human index.</p></div>
+
+<div class="f"><h3>A12 · tags.md contradicts itself on <code>[DICE:]</code></h3>
+<span class="lean low">low</span><span class="lean doc">doc rot</span>
+<p>Line 8 (#350) says DICE "now has a handler that FILES"; the index row still reads "Rendered as a dice block (no mutation)". The code matches line 8 (<code>diceLogFile</code>, <code>worldState.diceLog</code>, absent from <code>TAG_NO_HANDLER</code>).</p></div>
+
+<div class="f"><h3>A13 · Three engine-only-tier tags are missing from <code>TAG_DOC_ENGINE_ONLY</code>, so the #311 "taught by a note" contract never checks them</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><code>DEATH_ANSWER</code> (taught by <code>buildDeathSceneNote</code>), <code>ITEM_KEPT</code> and <code>COMPANION_ITEM_KEPT</code> (taught by <code>buildConsumableCheck</code>) have handlers, no doc line, and no tier declaration. Delete either builder and the phantom-tag check stays green while the handler becomes unreachable. <code>dev/tag-census.js</code> shares the blind spot.</p></div>
+
+<div class="f"><h3>A14 · The "never emit <code>[MANA:]</code> for a cast" rule is stated twice on adjacent frozen doc lines</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p>SPELL_USED and MANA doc lines carry the same rule, the same two tag names and the same double-charge justification, ~300 characters spent twice in the cached stable half; a third partial repeat rides the cantrip line. Frozen by hash, so this needs its own A/B'd commit, which is why it is logged rather than trimmed.</p></div>
+
+<div class="f"><h3>A15 · Two dead symbols in the parser: <code>_ar</code> in SUBLOCATION_LEAVE and <code>R.text</code></h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><code>_ar</code> (index of the first arrival) is computed and never read; the branch tests <code>_arLast</code> only. <code>R.text</code> is set on every response scratch and on the fallback object; no consumer anywhere (<code>dev/diff-replay.js</code> reads <code>R.errors</code>, game.js reads <code>R.audioCandidates</code>/<code>R.errors</code>).</p></div>
+
+<div class="f"><h3>A16 · Prompt-side bracket markers share the GM's tag syntax and are neither stripped nor warned about if parroted</h3>
+<span class="lean low">low</span><span class="lean hole">drift hole</span>
+<p><code>[COMPLETED]</code> (quest block) and <code>[EXPENDED — …]</code> (spell block) are engine labels inside the prompt. A GM that echoes one emits a bare bracket the unknown-tag scan ignores (it needs a colon) and cleanTxt does not strip. Auditor's own cross-check; no field sighting yet.</p></div>
+
+<h2>B · Prompt assembly, providers, notes</h2>
+
+<div class="f"><h3>B1 · Two quest note builders declare <code>cooldown-reminder</code> but have no cooldown and no latch; they fire every turn, forever, from registry slots above every audit</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">where</span><code>api.js buildQuestEscalation</code>, <code>buildQuestObjectiveNudge</code>; rows declare <code>latch:["none"]</code>. Verified: the gate is purely quest age (≥3 turns), nothing stamps.</p>
+<p><span class="k">why</span><code>NOTE_DELIVERY_CAP</code> is 3. One stuck quest burns 1–2 slots permanently, and <code>buildQuestStaleNudge</code> joins at T+30 on the same quest (QUEST_STEP stamps <code>lastTouch</code> and <code>allDoneSince</code> together). Everything from slot 26 to 74 is starved while it lasts; the registry already records this eviction class as field-confirmed ("the heal nudge at 23 was evicted … at The Long Walk t123"). Sibling builders in the same shape all latch.</p>
+<p><span class="k">purpose</span>10 tests assert the fire threshold and wording; none a re-fire cooldown; the #309 contract passes because <code>latch:["none"]</code> is a legal declaration.</p></div>
+
+<div class="f"><h3>B2 · The living-NPC roster line and <code>memoryTOC()</code>'s name lists are uncapped volatile accumulators, and the names ride twice</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">measured</span>On the owner's largest save (Rise of the Runelords, t2412): 45 living NPCs, 84 <code>memory.npcs</code> keys; KNOWN NPCs line 1,520 chars; VISITED 755 chars; the whole volatile half 78,601 chars against a stable half of 55,613. The volatile half is the larger of the two and is uncached every turn.</p>
+<p><span class="k">why</span>The DECEASED half of the same roster line is capped at 10; every other monotonic prompt resource is bounded (GB_PROJ_MAX, CHANGED_LOC_MAX, NODE_MENTION_CAP, lore 30, eventHistory 8, eras by budget). These three are the standing exception, and the RAG diet trims LORE and chapters only.</p></div>
+
+<div class="f"><h3>B3 · <code>loadProviderSettings</code> validates the stored provider but never the stored model; a pruned model id is sent forever with no fallback</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>state.js loadProviderSettings</code>: <code>if(p&amp;&amp;PROVIDERS[p])activeProvider=p;</code> then <code>providerModels=JSON.parse(pm)</code> unvalidated. <code>CALLGM_TRANSIENT_STATUS</code> = {429,502,503,504,529}; 404 is not transient, so a retired id (the 2026-08-16 pruning removed gpt-4o, gemini-1.5/2.0/3.5, claude-sonnet-4-6, claude-opus-5) hard-kills the campaign until the player opens the provider modal and presses Save. The render side has exactly the guard this lacks (<code>resolveRenderModel</code> warns and falls back).</p></div>
+
+<div class="f"><h3>B4 · <code>buildSuggestionSys</code> builds the entire system prompt and discards it on the normal path, including a second RAG pass and a state-mutating pin expiry</h3>
+<span class="lean med">medium</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span><code>game.js buildSuggestionSys</code>: <code>var s=buildSysPrompt();</code> runs unconditionally; the return uses <code>useCap?cap.stable:s.stable</code>. Since #304 <code>useCap</code> is true on every ordinary turn. <code>buildSysPrompt</code> is not pure: it runs <code>sceneRefsEnsure</code>, <code>relationshipMigrateWorld</code>, a second <code>ragRetrieve</code>/<code>ragChapterRetrieve</code> (overwriting the #17 health sample), and <code>buildRetconPinBlock</code>, which can expire and delete <code>worldState.retconPin</code> from a non-turn context. Needed only on the <code>!useCap</code> fallback; a test pins byte-identity so it must move, not vanish.</p></div>
+
+<div class="f"><h3>B5 · <code>NOTE_SHAPES.combat</code> is declaration-only; the registry gate consults <code>row[campaignKind()]</code> and never <code>row.combat</code></h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>row.combat</code>: 0 references in api.js; the only reader is a test that checks the string is "silent"|"fires". 54 builders hand-duplicate their own combat gate. Today all 74 rows agree with their bodies (the sweep diffed them), so this is latent: a new builder can declare <code>combat:"silent"</code>, fire in combat, and pass the whole battery.</p></div>
+
+<div class="f"><h3>B6 · <code>describePortraitImage</code> bypasses <code>callGM</code> and the whole transport contract</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>Direct <code>fetch(PROVIDERS.anthropic.endpoint …)</code>; no <code>gmTransport</code> (an account-mode player with no BYOK key gets "Needs a Claude (Anthropic) key" instead of the gateway), no <code>_fetchTextDeadline</code>, no <code>providerHttpError</code> (a credit 400 surfaces as "Claude 400", the B15 class), no <code>recordUsage</code> (the #30 undercount class). The contract calls <code>callGM</code> "the single API entry point"; this is the counterexample.</p></div>
+
+<div class="f"><h3>B7 · <code>allowModelUpgrade</code> / <code>upgradeModelFor()</code> is inert for two of the three providers</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>anthropic claude-sonnet-5/claude-sonnet-5, gemini gemini-3.7-flash/gemini-3.7-flash, openai gpt-5.6-sol/gpt-5.6-sol. The persisted checkbox changes nothing for a default-config player; it escalates only an OpenAI player who chose luna. The UI presents it as general.</p></div>
+
+<div class="f"><h3>B8 · <code>ANTHROPIC_HAIKU_REINFORCE</code> is unreachable from any menu and is appended to the CACHED stable half</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>No provider lists a Haiku id (anthropic models = ["claude-sonnet-5"]); the picker builds strictly from <code>models[]</code>. The only way in is the unvalidated legacy override (B3) or a hand edit; the only exerciser is a test that sets <code>providerModels.anthropic</code> by hand. The <code>resolveReinforce</code> seam itself is live (returns "" for Sonnet); only the Haiku payload is dead.</p></div>
+
+<div class="f"><h3>B9 · The #132 truncation warning is swallowed by a bare catch with no console and no report</h3>
+<span class="lean med">medium</span><span class="lean silent">silent failure</span>
+<p><span class="k">verified</span><code>api.js</code>: <code>if(prov.parseFinish){try{…warn+toast+erCrumb…}catch(e3){}}</code>. This is the only channel that says a response was scissored mid-tag; a throw from <code>parseFinish</code>, <code>showToast</code> or <code>erCrumb</code> removes the warning and the crumb. Every sibling catch on this path reports.</p></div>
+
+<div class="f"><h3>B10 · <code>buildReunionNote</code> and <code>buildPresenceAudit</code> can fire the same turn about the same companion with opposite asks</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>Adjacent registry slots (26, 27); the audit lists every companion without <code>splitLoc</code>, which includes the one the reunion note just folded, and asks for <code>[PARTY_SPLIT:]</code>; it never reads <code>pendingReunion</code>. The engine has the cross-suppression pattern (death-evidence defers identity-conflict for the same subject) and does not apply it here.</p></div>
+
+<div class="f"><h3>B11 · <code>expireRelationshipDowngrades</code> runs twice per turn, on opposite sides of the latch snapshot</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span>3 references: definition, the <code>prepare:</code> row, and the first statement of <code>buildRelationshipDowngradeNudge</code>. The in-body call is a no-op sweep, but its writes are inside the snapshot window while the prepare hook's are outside; the #309 comment states <code>prepare</code> exists to separate the two.</p></div>
+
+<div class="f"><h3>B12 · <code>snapshotNoteLatches()</code> runs once per builder: 74 deep snapshots per turn, consumed only on a budget drop</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span><code>var snap=snapshotNoteLatches(),n=fn();</code> inside the loop; restored only when a note is dropped for budget. ~74 × 78 field stringifies per turn on the UI thread, most for builders that return "". Per-builder granularity is required; eagerness is not.</p></div>
+
+<div class="f"><h3>B13 · <code>lastTurnSysClear()</code> has no production caller; the capture's only invalidation is a wall clock</h3>
+<span class="lean med">medium</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>Definition plus three test callers. Nothing clears the capture on campaign load, new game, provider or model switch; the 5-minute guard is incidental safety. A cross-campaign replay of the volatile capture is theoretically reachable.</p></div>
+
+<div class="f"><h3>B14 · <code>buildSayComplianceNudge</code>'s row misdescribes it: <code>cooldown-reminder</code> with <code>latch:["sessionLog"]</code>, but it has no cooldown and writes nothing</h3>
+<span class="lean low">low</span><span class="lean doc">doc rot</span>
+<p><span class="k">verified</span>Row text confirmed. The builder only reads the newest assistant message; <code>sessionLog</code> is not snapshotted, so the declaration buys nothing and hides an unlatched every-turn note at slot 70.</p></div>
+
+<h2>C · Memory tiers, identity, clock</h2>
+
+<div class="f"><h3>C1 · <code>locFoldNodeRecords</code> folds a 2026-02 node schema: a merge silently destroys the duplicate's floor plan, market, hours, wants and rumour mill</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">corrected</span>The sweep first claimed the merge carries no node fields; it does, through <code>locFoldNodeRecords</code> (soundscape, visits, description, size, travelMins, npcs, items, owner, exits, stateNotes, guestbook). The hole is the fields it never learned.</p>
+<p><span class="k">repro</span></p><pre>duplicate node carrying layout, wares, hours, wanted, mentions → locMerge → canonical keys: firstVisit,visits,description,parent,npcs,items,size,travelMins
+muts ["Location merged: Greyhaven|the Inn -> Greyhaven|the inn"]  — nothing says what died</pre>
+<p><span class="k">purpose</span>The only fold test asserts the soundscape branch; <code>dev/identity-a0-gate.js</code> row F6 still defines node scalars as the 2026-02 six. TODO #408 records "locSplit carrying the plan"; merge was never taught it. The pre-image is archived but nothing reads it back.</p></div>
+
+<div class="f"><h3>C2 · <code>locSplit</code> is the mirror hole: it carries the plan but drops the house's owner (and wares, hours, wants)</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">repro</span>Split of <code>Greyhaven|Silas house</code> {owner:"Silas", wares:[…]} → primary successor keys: firstVisit,visits,description,parent,npcs,items,size,travelMins,lastVisit; <code>owner</code> undefined. An ownerless house turns off the auto-take owner gate, the layout voice gate and the "STASH here (X's house)" line. The asymmetry is exact: merge remembered owner and not layout; split remembered layout and not owner.</p></div>
+
+<div class="f"><h3>C3 · Thirteen hand-rolled map-node literals in three shapes; no factory</h3>
+<span class="lean med">medium</span><span class="lean redund">redundancy</span>
+<p><span class="k">census</span>game.js ×7 (lines 44, 1421, 1459, 1506, 1509, 1520, 3083), memory.js ×4 (279, 297, 467, 543), identity.js locSplit, tag_table.js PARTY_SPLIT. The blueprint seeder (game.js:3083) omits <code>size</code> and <code>travelMins</code>; <code>fileLocationState</code> (memory.js:543) derives <code>parent</code> from key punctuation, which the identity contract forbids ("world-ness derives from the PARENT relation, never key shape"). Adding a node field today means remembering thirteen places; C1/C2 are what that looks like after a year.</p></div>
+
+<div class="f"><h3>C4 · <code>memory.locations[k].visited[]</code> grows one integer per arrival forever, and nothing reads its contents</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">repro</span>300 arrivals at a hub → <code>visited.length === 300</code>. The sibling <code>notes</code> array is capped at 5; <code>node.visits</code> already carries the count the engine uses; the TOC reads keys only. Largest monotonic footprint in the memory tier, in every save and every sync POST.</p></div>
+
+<div class="f"><h3>C5 · The extractor's <code>sameNpc</code> merge-hint path bypasses the provisional guard the name-variant scan was given</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>memory.js</code> sameNpc block validates resolved/on-file/not-player/not-both-party and calls <code>_queueMergeHint</code>; <code>npcIsProvisional</code> is checked at memory.js:147 (the scan) and tag_table.js:636 (NPC_MERGE alias pollution) and nowhere on this path. The #156 comment on the scan explains why provisional identities must never enter this queue, and <code>buildRecordedFactsBlock</code> primes the extractor to propose exactly that pair.</p></div>
+
+<div class="f"><h3>C6 · <code>memory.locations</code> and <code>memory.map.nodes</code> are parallel stores synced by hand; only <code>fileLocation</code> writes both, so no sub-location ever reaches the GM's memory TOC</h3>
+<span class="lean med">medium</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span><code>fileSubLocation</code>, <code>fileLocationState</code>, the wares world-node minter and PARTY_SPLIT write the map only; <code>memoryTOC</code> iterates <code>memory.locations</code>. Its own #269③ comment is written for pipe keys, which today arrive only from legacy saves or blueprint seeding. <code>locMerge</code> pays the two-store tax twice.</p></div>
+
+<div class="f"><h3>C7 · <code>resolveFutureEvent</code> deletes a pending thread by substring, silently, with no archive</h3>
+<span class="lean high">high</span><span class="lean silent">silent failure</span>
+<p><span class="k">repro</span>threads ["Meet Ameiko at the docks at dusk","Meet Ameiko's brother"], <code>resolveFutureEvent("Meet Ameiko")</code> → the first spliced, archive delta 0, warns 0. Fed straight from the model's <code>resolvedEvents[]</code>. Every other mutation of <code>memory.futureEvents</code> archives and logs (the near-dup fold, the expiry sweep, the cap shrink, promotion). The empty-needle guard cites audit E45; only the empty string was fenced.</p></div>
+
+<div class="f"><h3>C8 · <code>fileWanted</code>'s cap evicts silently: the one eviction in the map tier with no console and no archive</h3>
+<span class="lean med">medium</span><span class="lean silent">silent failure</span>
+<p><span class="k">repro</span>six well-formed <code>[WANTED:x|1 gp|Tam]</code> → wanted = [c,d,e,f], cap 4, warns [], archive untouched; the mut log says "Wanted here: a" and "b" as if they stood. <code>fileWare</code> warns by name; <code>fileLocationState</code> warns and archives. No test, no sabotage clause names <code>WANTED_CAP</code>.</p></div>
+
+<div class="f"><h3>C9 · An NPC merge drops the duplicate's memory-tier presence and pronoun record</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>The NPC_MERGE fold carries aliases, authored, dead, events, firstEncounter, knowledge, pronouns (the worldState half), secrets; the memory-side <code>lastSeenAt/lastSeenTurn/lastSeenSrc/lastMentioned</code> are not folded, so the W2 "recorded at the party's current location" limb and the witnessed presence tier lose the sighting the duplicate key held. The guestbook and speech limbs survive, which is why it has gone unnoticed.</p></div>
+
+<div class="f"><h3>C10 · <code>currentNodeKey</code> composes the sub-location key from the RAW world pointer, the one thing <code>fileSubLocation</code> explicitly guards against</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>helpers.js:890</code> returns <code>w.location+"|"+w.sublocation</code> unresolved; ten filers resolve the composite afterwards, which does nothing for a tombstoned parent ("OldName|Room" has no alias entry). <code>fileSubLocation</code> resolves the parent first and says why (#156B, the stale-blob path). Same raw shape at memory.js:568 and 2229.</p></div>
+
+<div class="f"><h3>C11 · <code>fileLocation</code> never stamps <code>lastVisit</code>; <code>fileSubLocation</code> does</h3>
+<span class="lean low">low</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>The only production write of <code>lastVisit</code> is the sub-location filer. Merge, split, the merge-studio scorer and the ways row all read it with a firstVisit fallback; engine fixtures hand-set it on world nodes, exercising a state the engine cannot produce.</p></div>
+
+<div class="f"><h3>C12 · The geo block's 20-turn sub-location window hides places that hold a stash, a floor plan or open exits; patched for the village kind only</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>api.js</code>: <code>cutoff=worldState.turn-20</code>; the #6 E10 bypasses for COMMONS and HOUSES are gated on <code>_stashKind</code>. In an adventure, a sub-location carrying <code>items</code>, <code>layout</code>, <code>exits</code>, <code>stateNotes</code> or <code>wares</code> vanishes from the prompt 21 turns later, while <code>fileExit</code>/<code>fileLayout</code> keep refusing "already a place on record" against a place the GM can no longer see. (#415 shipped today makes this sharper.)</p></div>
+
+<div class="f"><h3>C13 · The monotonic-resources pass: <code>memory.archive.*</code> (16 of 17 categories) and eight nudge latch maps have no cap at all</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>MEMORY_ARCHIVE_KEYS</code> has 17 categories, 22 push sites; only <code>identityQuarantines</code> has a cap. <code>identityMerges</code> stores a full deep clone of every merged node and NPC; <code>quarantinedReceipts</code> whole envelopes. Uncapped also: <code>node.npcs[]</code>, guestbook name count, <code>map.edges</code> (compacted only on merge/split), <code>memory.npcs</code> and its aliases/authored/secrets, <code>mergeHintNudged</code>, <code>pendingMergeHints</code>, <code>provisionalNudged</code>, <code>recurringNameNudged</code>, <code>canonContraNudged</code>, <code>deathEvidenceNudged</code>, <code>locDescNudged</code>, <code>plotArmor</code>, <code>relBondReceipts</code>, <code>relAxisReviewFired</code>, <code>clock.repairs</code>. The P12 rationale ("strings are cheap") predates structured pre-images.</p></div>
+
+<div class="f"><h3>C14 · <code>sceneRefsSummaryFailure()</code> is an empty function whose caller computes an argument it cannot read</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>identity.js:771 has no parameters and no body; memory.js:2177 calls it with <code>_sumFails&gt;=3</code>. The no-op is the contract (a test asserts sealed evidence survives), but the ignored argument reads as live plumbing beside a paired <code>sceneRefsSummarySuccess</code> that does real work.</p></div>
+
+<div class="f"><h3>C15 · <code>futureResolveOverlap</code> re-derives <code>feNearDup</code> instead of calling it</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span>memory.js:972 re-tokenises both strings and re-states <code>shared&gt;=2 &amp;&amp; shared*2&gt;=min</code>, the exact predicate memory.js:887 was extracted to be the single fingerprint ("instead of minting a rival heuristic"). <code>scheduleNearDup</code> obeyed the rule.</p></div>
+
+<div class="f"><h3>C16 · <code>scheduleSweepExpired</code> hand-rolls the archive, the exact pattern JP0-5 consolidated</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span>clock.js writes <code>memory.archive.expiredSchedules</code> with its own existence checks and creates <code>memory.archive={}</code> bare, bypassing <code>archiveHeal</code>; <code>expiredSchedules</code> is in <code>MEMORY_ARCHIVE_KEYS</code>, so <code>memArchive().expiredSchedules.push</code> is a drop-in. (clock.js does reference <code>memArchive</code> once elsewhere, so the load-order excuse does not apply.)</p></div>
+
+<h2>D · State, storage, cloud sync</h2>
+
+<div class="f"><h3>D1 · The checkpoint holder is a module global that is never campaign-scoped: dying after a mid-session campaign switch restores the OTHER campaign's world, re-stamped with this campaign's id</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>state.js</code>: <code>_checkpointMem</code> is set by <code>checkpointHold</code> and <code>takeCheckpoint</code> only; there is no <code>checkpointHold(null)</code> anywhere; <code>restoreCheckpointHolder</code> runs once at boot and early-returns if held. <code>switchToCampaign</code>, <code>campLoad</code>, <code>campNew</code>, <code>importSave</code>, <code>loadState</code> leave it. <code>checkpointRestore</code> re-labels <code>ws.campId=live.campId</code>, and the caller's <code>saveAll()</code> then writes campaign A's world into campaign B's keys and POSTs it at B's higher turn, so the CAS guard passes. <code>snap.campId</code> is captured and read by nothing. New campaigns self-heal via the start camp; loaded ones do not.</p></div>
+
+<div class="f"><h3>D2 · <code>checkpointRestore</code> silently blanks sessionLog and long-term memory on an unreadable snapshot, and the caller persists and syncs the blank one line later</h3>
+<span class="lean high">high</span><span class="lean silent">silent failure</span>
+<p><span class="k">verified</span><code>try{sessionLog=JSON.parse(snap.sl||"[]");}catch(e){sessionLog=[];}</code>, <code>catch(e){memory=blankMemory()}</code>, <code>try{healMemory();}catch(e){}</code>. This is the JP0-4 class <code>rescueCorruptStore</code> closed at the other parse boundary ("preserved, shouted, THEN degraded"); <code>rescueCorruptStore</code> has two callers, both in <code>loadState</code>. The snapshot comes from IndexedDB or the server checkpoint slot.</p></div>
+
+<div class="f"><h3>D3 · <code>snapshotActiveCamp</code> writes the slot triple with three raw <code>store.set</code> calls; a quota throw mid-triple leaves <code>ws@N</code> beside <code>mem@N-k</code></h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>Three <code>store.set(campSlotKey…)</code> in one try, no <code>writeCampaignSlot</code>. #337 built <code>writeCampaignSlot</code> for exactly this all-or-nothing, and its contract scans a window that stops just above this function. The three refusal test runs assert <code>ok===false</code> only, while the harness stub throws on the second write, so the partial slot is created and never asserted away.</p></div>
+
+<div class="f"><h3>D4 · The manual cloud push bypasses the CAS guard and gates on the campaign-LIST turn, which the code itself documents as lagging the state row</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>campCloudPushSilent</code> reads <code>getServerCampaignTurn</code> (the list), confirms only if strictly greater, then <code>pushCampaignState</code> POSTs <code>/api/state</code> with no <code>baseTurn</code>. Reached from the picker's ☁↑, from <code>campRemoveLocal</code>'s push-then-evict, and from <code>campSaveRename</code> for a non-active campaign: a rename can overwrite a newer server copy.</p></div>
+
+<div class="f"><h3>D5 · A slot with no memory key is pushed as <code>memory:{}</code>, and the reconcile adopts that empty memory over a healthy local one</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>ui-campaigns.js</code>: <code>store.get(campSlotKey(id,"mem"))||"{}"</code> with only <code>ws</code> guarded. The blob ships with a real turn, so the adopt-side turn gate takes it, and <code>saveAll()</code> persists the wipe. D3's partial slot becomes cross-device canon loss. A missing memory slot is unknown, not empty.</p></div>
+
+<div class="f"><h3>D6 · The summarize commit persists memory and worldState as two independent writes whose return values are ignored</h3>
+<span class="lean med">medium</span><span class="lean silent">silent failure</span>
+<p><span class="k">verified</span>three <code>saveMem();saveCore();</code> pairs in memory.js after <code>retainSessionTail()</code> has already truncated the log in RAM. If <code>saveMem</code> fails on quota and <code>saveCore</code> succeeds, the disk says "summarized" while memory never received the extraction; only the raw transcript survives. <code>saveLocal</code> exists precisely to pair the two and check both returns; this path does not use it.</p></div>
+
+<div class="f"><h3>D7 · The <code>.tnd</code> import's memory whitelist drops <code>memory.nameIdx</code>, and the contract written to stop this class bans archive enumeration only</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>ui-files.js importSave</code> lists 12 of <code>blankMemory()</code>'s 13 fields; <code>nameIdx</code> (advanced by 10 per narrative turn, read by the AVAILABLE NAMES window) resets to 0 on every round-trip. Fifth field to drop from this list; <code>dev/identity-a0-gate.js</code> row F21 already names the allowlist as a drift shape.</p></div>
+
+<div class="f"><h3>D8 · <code>syncCampaignList</code> re-implements the campaign-list read/write on raw <code>localStorage</code> with a duplicated key literal</h3>
+<span class="lean med">medium</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span>two <code>"tnd_camps_v1"</code> literals in storage-adapter.js beside <code>CAMP_META_K</code> in state.js. Loses the E72 corrupt-list backup (a corrupt list parses to [] and the server-only merge unlists every local campaign), the <code>store</code> in-memory fallback under quota, and the <code>_mKeys</code> shadow.</p></div>
+
+<div class="f"><h3>D9 · <code>CHECKPOINT_VER</code> is stamped into every camp snapshot and read by nothing but one test</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>globals.js definition, the write in <code>checkpointCapture</code>, one test asserting the stamp; <code>snap.v</code> has zero reads. A v2 snapshot from a newer client restores blindly into an older build.</p></div>
+
+<div class="f"><h3>D10 · Nothing clears an unsynced-flush marker when a campaign is deleted; <code>clearFlushDirty</code>'s advertised "campaign teardown" caller does not exist</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>definition + export only in production; callers in dev/ tests. <code>SYNC_DIRTY_CAP</code> is 8 with oldest-first eviction, so dead markers push out live ones and the JP0-11 boot push stops covering a real campaign.</p></div>
+
+<div class="f"><h3>D11 · <code>beforeunload</code> fires two POSTs of the same state: a plain, size-ungated, browser-abandoned one and then the keepalive beacon</h3>
+<span class="lean med">medium</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span><code>ui-boot.js</code>: <code>snapshotActiveCamp();…syncNow(true)</code>; <code>snapshotActiveCamp</code> ends with <code>storageAdapter.syncNow()</code>. The first is the exact E34 shape; it also double-counts <code>usage.syncPosts</code> for a request that never lands and sets <code>_syncing</code> on the way out.</p></div>
+
+<div class="f"><h3>D12 · <code>tnd_camps_v1_corrupt</code> is written by one catch arm, read by nothing, deleted by nothing, and not in the rescue-key policy</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>one production site (the write). Not listed beside <code>STORE_RESCUE_K</code>/<code>CLOCK_RESCUE_K</code>; nothing tells the next hygiene pass not to reap it.</p></div>
+
+<div class="f"><h3>D13 · <code>tnd_sync_size_warned_v1</code> appends a campaign-id segment forever and is never pruned on delete</h3>
+<span class="lean low">low</span><span class="lean hole">drift hole</span>
+<p>Device-forever growth on the quota-pinned phones the feature exists for; small in bytes, but the same accumulator class capped everywhere else.</p></div>
+
+<div class="f"><h3>D14 · The sw.js network-first allowlist covers satellite PAGES but not the <code>/dev/</code> scripts two of them load</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>the regex has no <code>dev/</code> entry; <code>test.html</code> loads <code>dev/engine-manifest.js</code> + <code>dev/engine-tests.js</code>, <code>map_cleanup.html</code> loads <code>dev/loc-repair-core.js</code>; both pages are network-first and their scripts fall through to cache-first. Commits 1e12fe6 and 004a246 changed engine-tests.js without a CACHE bump, so a browser test run can grade a stale suite and map_cleanup can run a stale repair core against real saves. index.html's own list vs <code>APP_SHELL</code> is clean.</p></div>
+
+<h2>E · Game flow and UI</h2>
+
+<div class="f"><h3>E1 · The shop/stash ledger's Complete mutates state through <code>applyMuts</code> with no busy gate</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>stashTradeApply</code>/<code>shopTradeApply</code> never read <code>busy</code>; the panel rows stay clickable during a GM turn, so a tap runs a second <code>applyMuts</code> concurrently with the turn's, races two <code>saveAll</code>s, and overwrites the one-shot <code>tradePing</code>. Every other state-mutating entry point (<code>newGame</code>, <code>campLoad</code>, <code>campNew</code>, part-ways, switch PC, imports, the quest journal) is guarded.</p></div>
+
+<div class="f"><h3>E2 · The Sync modal's Apply writes <code>world.location</code> and <code>character.level</code> raw, skipping <code>fileLocation</code>/<code>locResolve</code> and <code>checkLevelUp</code></h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>ui-modals.js</code>: <code>c2.level=lvl2; … if(loc2)w2.location=loc2;</code>. Skips the twin-conflict refusal, the node mint, the edge, <code>lastArrivalFrom</code>, the guestbook arrival and, crucially, <code>sublocation=null</code>, so a patched location leaves a sub-location hanging under a different parent; the level write skips the feature grants and the bump queue. <code>dev/identity-a0-gate.js</code> already names "sync-modal direct writes" as a rot baseline.</p></div>
+
+<div class="f"><h3>E3 · <code>campCloudPull</code> replaces live <code>worldState</code>/<code>memory</code> with no busy gate</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>busy appears at ui-campaigns.js:216 (<code>campLoad</code>) and :361 (<code>campNew</code>) only. An in-flight turn's closure writes into the discarded objects, or <code>saveAll</code> persists a hybrid. <code>campRemoveLocal</code> is ungated too.</p></div>
+
+<div class="f"><h3>E4 · Two UI item-removal paths skip <code>wornPrune</code>, breaking the #388 "never worn what is not carried" invariant</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>wornPrune(</code> is called from the two ITEM_LOST handlers only; <code>dropInvItem</code> does <code>inv.splice(idx,1);saveAll();</code>, the Sync modal assigns <code>c2.inventory=inv2</code>. A dropped worn sword stays in <code>worn</code>, so <code>attireLine()</code> injects "Wearing: sword" into every prompt and the scene painter, the stale-attire class #388 closed.</p></div>
+
+<div class="f"><h3>E5 · Validator rule ⑧ rejects legitimate mundane moves whose object carries a spell-list word</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">repro</span></p><pre>REJECTED "Lay down your blade and surrender."     -> unknown-capability: "blade" is not a capability anyone present owns, nor a bible entry
+REJECTED "Lay the blade on the table."            -> unknown-capability
+REJECTED "Work the circle of tents for rumours."  -> unknown-capability
+passes   "Set down your shield and rest."         (shield happens to be a bible key)
+passes   "Cast about for tracks."</pre>
+<p><span class="k">why</span>The object is the first clause-split token and the word list holds blade, circle, wall, flame, frost, cloud, mist, shield; <code>applySuggestionGate</code> swaps the rejected button for a fallback silently. The #343 negatives all have objects with no spell word, so the collision class is untested.</p></div>
+
+<div class="f"><h3>E6 · <code>declineQuest</code> re-implements <code>archiveQuest</code> inline</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span><code>archiveQuest</code> has one caller (the QUEST handler); <code>declineQuest</code> builds the <code>memory.quests[title]</code> record and splices by hand, with a case-sensitive title match where the original is case-insensitive. The next field added to the record lands in one and not the other.</p></div>
+
+<div class="f"><h3>E7 · <code>refreshCharSheetInPlace</code> is used at 1 of 9 sheet re-render sites</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span>one caller (the item-def modal); nine raw <code>showCharSheet()</code> re-renders across ui-sheets, ui-portrait and game.js reset scroll and collapse every section, which the #382b helper exists to prevent. The comment above <code>dropInvItem</code> claims "the sheet re-renders in place"; it does not.</p></div>
+
+<div class="f"><h3>E8 · <code>showCharacterLibrary</code>: zero callers, still documented as the entry point</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>definition only in code; <code>DOC/contracts/sync.md</code> and <code>DOC/UI_SEAM_MAP.md</code> still name it; two earlier feature-usage audits flagged it and it still ships.</p></div>
+
+<div class="f"><h3>E9 · <code>_addImportedCompanion</code> writes party state, then silently drops the join narration if a turn is in flight</h3>
+<span class="lean med">medium</span><span class="lean silent">silent failure</span>
+<p><span class="k">verified</span><code>worldState.npcs.push(npc)</code>, direct <code>memory.npcs[…]=</code>, toast, then <code>sendAction(intro,{silent:true})</code> with no busy guard; <code>sendAction</code>'s first line returns on busy. The companion lands, the toast says so, the GM is never told, no second toast, no console line. The direct writes also skip the <code>[PARTY_MEMBER:]</code> handler's <code>aliases:[]</code> and <code>firstEncounter</code> seeding (benign, every reader guards).</p></div>
+
+<div class="f"><h3>E10 · Car Mode's party dot re-implements the #352 HP colour ramp</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span><code>ui-carmode.js</code>: <code>ratio &gt; 0.5 ? grn : ratio &gt; 0.25 ? warn : dng</code> with a UA21③ "kept separate" note that predates #352's single-source <code>hpReadout</code>; the one surviving third palette, and it misses the <code>hp-crit</code> breath.</p></div>
+
+<div class="f"><h3>E11 · Sync modal's level spinner caps at 10 while its handler accepts 20</h3>
+<span class="lean low">low</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>max='10'</code> in the markup; <code>lvl2&lt;=classXpLevels().length</code> in the handler with a comment about the old ≤10. Half a fix: the spinner arrows stop at 10 and 11–20 render invalid.</p></div>
+
+<div class="f"><h3>E12 · <code>SAVE_THREAT_TYPES</code>: a data.js constant with no consumer</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>one code reference (the definition); two prior feature-usage audits flagged it; still shipping in the game's data file.</p></div>
+
+<div class="f"><h3>E13 · <code>doRender</code> sets <code>_rendering=true</code> before its try block</h3>
+<span class="lean med">medium</span><span class="lean silent">silent failure</span>
+<p><span class="k">verified</span><code>if(!worldState||_rendering)return;_rendering=true;</code>, then <code>renderContextForTurn</code>, a <code>querySelector</code>, <code>addMsg</code> and an <code>insertBefore</code> run before <code>try{</code>. A throw in any of them leaves the latch true forever: every later render is a silent no-op until reload, with no toast and no console line. Three references total; no recovery path.</p></div>
+
+<div class="f"><h3>E14 · <code>showCreationArchetype</code> is the one creation overlay that does not remove its prior node by id</h3>
+<span class="lean low">low</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>creates <code>#creation-arch</code> with no prior-removal; the spell-pick and stat-bump siblings both remove first. Safe today by caller discipline; the <code>showGame</code> sweep that removes all three ids shows the class has bitten before.</p></div>
+
+<div class="f"><h3>E15 · Forty-three empty <code>catch(e){}</code> blocks across the engine and UI</h3>
+<span class="lean med">medium</span><span class="lean silent">silent failure</span>
+<p><span class="k">census</span>ui-browsers 8, game.js 7, error-report 6, state.js 5, ui-files 3, ui-campaigns 3, memory.js 3, ui-modals 2, helpers 2, ui-portrait/ui-panels/ui-boot 1 each. Most are storage or feature probes where the failure is the answer. The ones that swallow data: the home-page blueprint and quickstart handoffs (ui-browsers.js 20–38: a corrupt record vanishes with no line), a campaign rename's slot patch (ui-campaigns.js:353), <code>rebuildNarrativeFromTranscript</code> and <code>syncUI</code> after a respawn (game.js:3694–3695), <code>healMemory</code> in checkpoint restore (D2), and the suggestion JSON parse (game.js:262, covered by a second regex pass). Policy says a caught error that shows nothing is a bug; each of these deserves at least a console line.</p></div>
+
+<div class="f"><h3>E16 · <code>endingOfferText</code> has no production caller since #364 moved the offer to the File menu</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>helpers.js:1309; one test caller; game.js:178 records the move. The live copy is the menu button and the modal text.</p></div>
+
+<div class="f"><h3>E17 · Test-only registries shipped in production files</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><code>PUBLISHED_RPG_DEITIES</code> (data.js, a de-branding test list loaded by every player), <code>NOTE_NESTED_LATCHES</code> (api.js, read only by the #309 census test), <code>TAG_NO_HANDLER</code> (tag_table.js, read by tests and the unknown-tag scan's inverse). The first has no production reader at all.</p></div>
+
+<h2>F · Voice and audio</h2>
+
+<div class="f"><h3>F1 · Exiting Car Mode after a spoken "pause" wedges ambience OFF until page reload</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>hideCarMode</code> sets <code>_carHeld = false</code> and dispatches no <code>resume</code> intent (the two <code>_carIntent</code> calls in the file are the tap and the voice command). <code>ui-ambient.js</code> latches <code>held = e.detail.kind === "pause"</code> and clears it only on a resume intent or the unlock button, which is hidden after a normal session; the ambience checkbox does not clear it. The QA scripts dispatch pause then resume directly on <code>document</code>, never through <code>hideCarMode</code>; the #410 source test pins <code>_carHeld = false</code> by regex only.</p></div>
+
+<div class="f"><h3>F2 · <code>STT.cancel()</code> is a no-op while <code>getUserMedia</code> is pending: the mic opens AFTER the cancel</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>cancel</code> never touches <code>_cloudGeneration</code>; the only bump is <code>_cloudBeginGeneration</code>, i.e. a new start. A cancel inside the acquisition window sets a flag and the pending promise still opens the recorder, holds <code>_capture(true)</code> (pinning the #19 audio session and silencing ambience) until the 45 s backstop. The three callers that need cancel to be immediate are exactly the ones that must not be heard: <code>hideCarMode</code>, <code>_carDoReplay</code>, <code>_carReadOptions</code>. Every cloud-cancel test awaits <code>flush()</code> before cancelling.</p></div>
+
+<div class="f"><h3>F3 · <code>_confirmPending</code> survives Car Mode exit and then eats the next desktop utterance</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>cleared only inside <code>_resolveConfirm</code> (yes/no/redo or two unparsed answers); nothing in <code>cancel</code>, <code>start</code> or <code>hideCarMode</code>. <code>_applySendPolicy</code> checks it above everything, so the next dictation, hours later, is consumed as a confirm answer, the field is blanked, and after a second unparsed utterance the abandoned Car Mode text is parked into the input as the player's action.</p></div>
+
+<div class="f"><h3>F4 · stt.js builds a third AudioContext and never closes it, bypassing <code>Sound.context()</code></h3>
+<span class="lean med">medium</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span>three construction sites: sound.js:175, stt.js:555, tts.js:1582. The ambience slice deliberately reuses <code>Sound.context()</code>; stt.js is the one consumer that does not, on the platform (iOS Safari) with the tightest context budget, and no path closes it. A plausible reason exists (TTS pins 22,050 Hz) but nothing states it.</p></div>
+
+<div class="f"><h3>F5 · <code>offs</code> collects unsubscribe handles that nothing ever calls</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>three references in ui-ambient.js (declaration + two pushes). The pagehide handler disposes the controller and leaves both voice subscriptions live, so every TTS and mic edge keeps calling <code>sync()</code> against a disposed controller.</p></div>
+
+<div class="f"><h3>F6 · OpenAI has a bespoke cloud transport duplicating the generic <code>_voiceRequest</code>/<code>_voiceFetch</code></h3>
+<span class="lean med">medium</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span><code>_openaiFetchGroup</code> (tts.js:713) and <code>_voiceFetch</code> (:941) both carry the identical PCM guard <code>!bytes.length || bytes.length % 2 || bytes.length &gt; 6000000</code> and the same 20 s header-and-body deadline; inworld and speechify are registered generically off <code>VOICE_MODELS</code> metadata, which OpenAI's endpoint fits. The copies have drifted: the generic path decodes 401/402/429 bodies and Retry-After; OpenAI emits a bare "HTTP 429". Two test batteries cover the same contract on two code paths.</p></div>
+
+<div class="f"><h3>F7 · <code>tnd_stt_lang_v1</code> is read on every recognition start and written by nothing</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>one code reference (the key), plus the contract advertising it as a live preference. No <code>setLang</code>, no UI, not on the public STT API; always "en-US".</p></div>
+
+<div class="f"><h3>F8 · Two definitions of "narration is playing", and the event payload no one reads</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span><code>emit("state", { playing: _playing, paused: _paused })</code> ×2; <code>isPlaying()</code> returns <code>_playing &amp;&amp; !_paused</code>. The payload's <code>playing</code> is true while paused, the opposite of the getter; the only subscriber ignores the argument and re-derives from the getters. <code>_drain</code> also fires the event twice per read start.</p></div>
+
+<div class="f"><h3>F9 · Three verbatim copies of the schedule-and-retire block</h3>
+<span class="lean med">medium</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span>server, cloud and Piper read loops each create the source, compute <code>startAt</code>, advance <code>_nextStart</code>, push to <code>_sources</code> and install the same <code>onended</code> (the Safari <code>buffer = null</code> detach ×3, <code>disconnect()</code> ×3). The retention-critical block has three landing sites, and the tests compensate by asserting on function source text (<code>_speakerTest.*Src</code>).</p></div>
+
+<div class="f"><h3>F10 · The four cloud rungs of <code>TTS_LADDER</code> can never be fallback targets, and the mid-read handoff does not use the ladder</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>every cloud tier's <code>available()</code> requires being the selected primary, so a fall from any cloud rung skips the other three; the mid-read degradation hardcodes <code>piper: true</code> (5 sites) and never consults the ladder. The run-tests pin asserts only that native is last and server/piper present.</p></div>
+
+<div class="f"><h3>F11 · <code>earcon()</code> and <code>primeAudioSession()</code> are the only WebAudio paths that never disconnect their nodes</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>disconnect()</code> appears exactly three times in tts.js, all in the <code>_sources</code> handlers; the earcon oscillator/gain and the primer's 2 s buffer + gain are outside every teardown. Car Mode fires an earcon per turn (four nodes) on a page-lifetime context; sound.js, which says it "mirrors TTS.earcon", disconnects every node. Browser-dependent as a leak, certain as a discipline gap.</p></div>
+
+<div class="f"><h3>F12 · <code>TTS.settings.request</code> is exported with zero consumers; <code>.validate</code>/<code>.fetch</code>/<code>.keys</code> and <code>STT._cloudTest</code> are test-only seams on the production surface</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span><code>settings.request</code>: 0 references anywhere including tests. The others are consumed only by dev/ batteries and carry no <code>_</code> marker, unlike <code>_gemini</code>/<code>_openai</code>/<code>_serverTest</code>.</p></div>
+
+<div class="f"><h3>F13 · <code>_carAutoMic</code>'s deferred mic-open re-checks three conditions but not the hold or the narrator</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>setTimeout(function(){ if (!carMode || busy || STT.isListening()) return; _carStartMic(); }, 800)</code>. Neither <code>_carHeld</code> nor <code>TTS.isPlaying()</code> is re-checked, and <code>_carStartMic</code> checks neither, so a pause or a narration inside the 800 ms window lands a hot mic on top of it. The timer handle is not stored; <code>hideCarMode</code> cannot revoke it and does not call <code>_carOptReset</code> for the 300 ms options poll either.</p></div>
+
+<h2>G · Dev tooling, contracts, documentation</h2>
+
+<div class="f"><h3>G1 · CI runs one of the five pre-commit gates</h3>
+<span class="lean high">high</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>engine-tests.yml</code> node calls: run-tests, check-sabotage-applicability, diff-replay, sabotage-w2, run-sabotage-diff. <code>dev/pre-commit</code> also runs <code>check-hook-parity</code>, <code>lint-todo --git-aware --staged --cap</code>, <code>tests-todo-hygiene</code>, <code>check-shell-markers</code>. The workflow header says it exists because <code>--no-verify</code> or another machine bypasses the hook; the APP_VERSION/CACHE freshness check (the "hard rule") never made the crossing, and <code>check-enforcement.js</code> is built not to require overlap.</p></div>
+
+<div class="f"><h3>G2 · A source contract greps the wrong file for a string that has never existed</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>run-tests.js:573: <code>if (_bePage.indexOf('id="bible-editor-link"') &gt;= 0) _failBE(…)</code> guards "never reachable from the game's own UI" by inspecting the editor page; the sentinel appears once in the repo, in this line, since the editor's birth commit. A green clause guarding nothing.</p></div>
+
+<div class="f"><h3>G3 · The sw.js allowlist is pinned by three contracts; two use the check shape the third documents as sabotage-proven vacuous</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>VOICE LAB ⑥ extracts the regex literal ("a comment mention must not satisfy this … sabotage S3 proved indexOf-on-the-file was vacuous"); HOME PAGE and CHARACTER EDITOR use whole-file <code>indexOf</code>. <code>sw.js:140</code> is a prose roster of satellites directly above the regex; <code>author_voice_lab</code> appears twice today, home and character_editor once (regex only), so the weak pins are one documentation edit from vacuous.</p></div>
+
+<div class="f"><h3>G4 · <code>makeWorld</code> is defined twice in engine-tests.js and the two have drifted</h3>
+<span class="lean med">medium</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span>two definitions; the second lacks <code>coreMemories:[]</code> (the v1.304 field the load-engine header says the integrator should add) and has <code>spells:[]</code> where the first seeds a racial spell. The commitGmTurn section runs against a schema-incomplete world, and the copy count is three, not the documented two.</p></div>
+
+<div class="f"><h3>G5 · CLAUDE.md's file table and load order omit <code>ui-voice-settings.js</code>, and its counters are stale</h3>
+<span class="lean low">low</span><span class="lean doc">doc rot</span>
+<p><span class="k">verified</span>index.html loads 42 scripts; CLAUDE.md says 34 and "ui-*.js (×10)"; <code>ui-voice-settings.js</code> (20 KB, #401) appears zero times in CLAUDE.md. It is contracted in tts-stt.md, so only the table is wrong.</p></div>
+
+<div class="f"><h3>G6 · <code>proseBlock</code> is named as the prose-voice injection point by a contract and an open TODO row; no such symbol exists</h3>
+<span class="lean med">medium</span><span class="lean doc">doc rot</span>
+<p><span class="k">verified</span>0 code references; <code>DOC/contracts/character.md</code>, TODO #104 and two research docs name it. api.js records the retirement in a comment ("merged into the STYLE rule"); the live code is <code>_paVc</code>/<code>_paDNA</code>/<code>narrativeDesignBlock</code>. A Fable session scoping #104's blast radius from the contract hunts a deleted function and misses where the risk lives.</p></div>
+
+<div class="f"><h3>G7 · A contract's fail condition contains a disjunct that is dead by construction</h3>
+<span class="lean low">low</span><span class="lean vest">vestigial</span>
+<p><span class="k">verified</span>run-tests.js:751: <code>… || _bpM[0] === null</code> where <code>_bpM</code> is a match result already asserted non-null; the failure message promises two checks and delivers one.</p></div>
+
+<div class="f"><h3>G8 · Two committed test suites are wired to nothing, including the twin of a suite that is gated</h3>
+<span class="lean med">medium</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>tests-dedup-a.js</code> is in SUITES; <code>tests-dedup-b.js</code> and <code>tests-modal-shell.js</code> are not, and nothing else spawns them (~34 assertions, including the six legacy modal cssText pins). The sabotage census (A08) left the decision open, so this is known-undecided rather than an oversight.</p></div>
+
+<div class="f"><h3>G9 · The soak-harness rev-lockstep clause silently disarms if its own anchor disappears</h3>
+<span class="lean low">low</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span><code>if (_revS &amp;&amp; _revS !== _revT)</code>: no match → pass, while the neighbouring clause treats a missing match as failure. Dropping the <code>?tnd=</code> query is worse than lagging (the SW serves the cached runtime forever) and is waved through. Live today (all three revs say r9).</p></div>
+
+<div class="f"><h3>G10 · The #158 phase-detector contract is nested inside the Bible Editor block and reports under the #144A banner</h3>
+<span class="lean low">low</span><span class="lean doc">doc rot</span>
+<p><span class="k">verified</span>the four #158 clauses call <code>_failAC</code> (the #144A failer) from inside the bible-editor try block; a real regression prints the wrong contract name, and the clauses depend on hoisted vars from a block that ran earlier.</p></div>
+
+<div class="f"><h3>G11 · run-tests.js carries 17 byte-identical copies of the comment stripper and re-reads the same sources up to eight times</h3>
+<span class="lean low">low</span><span class="lean redund">redundancy</span>
+<p><span class="k">verified</span>17 clones of <code>.replace(/\/\/[^\n]*/g,"").replace(/\/\*[\s\S]*?\*\//g,"")</code>; several redeclare the same <code>var</code> names across blocks. The extraction pattern already exists (<code>frozen-golden.js</code>, <code>latch-census.js</code>) and was not taken here.</p></div>
+
+<div class="f"><h3>G12 · engine-manifest.js and load-engine.js headers still say class_bible.js is not in index.html's shell</h3>
+<span class="lean low">low</span><span class="lean doc">doc rot</span>
+<p><span class="k">verified</span>both headers carry "#72: not in index.html's shell until C6-②"; index.html has loaded it since 2026-08-03 and run-tests.js says so. Manifest data itself matches index.html 27/27.</p></div>
+
+<div class="f"><h3>G13 · CLAUDE.md lists <code>loadFromServer</code> as a storage-adapter export; it does not exist</h3>
+<span class="lean low">low</span><span class="lean doc">doc rot</span>
+<p><span class="k">verified</span>0 code references; the loader is <code>load(cb)</code>. The other four names in that row resolve.</p></div>
+
+<div class="f"><h3>G14 · The file table omits fourteen root HTML surfaces, three of them contract-pinned</h3>
+<span class="lean low">low</span><span class="lean doc">doc rot</span>
+<p><span class="k">verified</span>missing: admin_console, speaker_browser (STARS PORTABILITY contract), necro_spells_TMP (write-auth contract), mementos, story_compiler, todo-viewer, voice_picker, timeline_day1, piper-host, plus five one-off review reports at root (Fable_Review_2025_08_27, Sol_Review_2025_08_27, Joint_Review_2026_08_27, DOC_TTS_2026_9_11, gygax_lens_results) against the "satellite TOOLS stay at root, DOC/ holds reference docs" rule.</p></div>
+
+<div class="f"><h3>G15 · A negative contract clause pins one exact source spelling of the regression it forbids</h3>
+<span class="lean low">low</span><span class="lean hole">drift hole</span>
+<p><span class="k">verified</span>VOICE DELETE ⑤ regex requires <code>for (i = 0; i &lt; PIPER_VOICE_CAP; i++)</code> verbatim; any other spelling of the v1.419 bug passes, and the positive property (<code>Math.max(PIPER_VOICE_CAP, ids.length)</code>) is not pinned. tts.js is outside the headless harness, so this clause is the only guard.</p></div>
+
+<h2>Rejected candidates — checked and found to serve a purpose</h2>
+<p class="small">Listed so the next reviewer does not re-open them. Each was flagged by a sweep or by the auditor's census and then traced to a live purpose.</p>
+<ul class="rej">
+<li><b>The 40-odd "unreferenced" UI functions in the census</b> (pickAnc, cbConfirm, campNew, showItemCard, spuToggle, sbPick, invToggleSec, removeRule …) — all invoked from HTML built by string concatenation (<code>onclick='…'</code> inside JS strings); the raw-text count finds every one.</li>
+<li><b>Transcript trimming or restructuring</b> — searched every splice/shift/slice/cap: zero hits in app code; <code>sessionLog</code> trims are the sanctioned memory path; the owner decree is intact.</li>
+<li><b>Prompt text naming a tag the parser lacks</b> — every bracketed name in api.js, table-talk.js, campaign_generator.js and the engine resolves to a handler, a strip entry or a registered non-table path (SAY, SCENE_CAST, RETCON, NO_CHANGE, ACTIONS, CANON_TXN_*).</li>
+<li><b>Handler ↔ strip ↔ doc coverage</b> — zero handlers outside the strip registry, zero strip names without a handler outside <code>TAG_NO_HANDLER</code>; the registry discipline holds. The identity tags (SCENE_*, NPC_DEATH_RETRACTED) reach the strip regex from identity.js's own list.</li>
+<li><b><code>buildPartyHistoriesBlock</code> in the stable half reading the live roster</b> — deliberate, documented, and <code>_checkStablePurity</code> warns on it.</li>
+<li><b><code>MODEL_PRICING</code> rows for unlistable models</b> — honest pricing for legacy stored overrides (B3); removing them converts a priced call into the #30 undercount.</li>
+<li><b><code>fallbackModel</code> ids not in <code>models[]</code></b> — the emergency rung stays out of the sweep-validated picker by design.</li>
+<li><b><code>oneShotPing</code>/<code>shelfPing</code></b> — the de-duplication of 13 builder bodies, not a duplication.</li>
+<li><b>The three arc nudges</b> — disjoint states with mutual guards; <b>presence audit vs split audit</b> — provably disjoint subject sets.</li>
+<li><b>Table Talk not reusing the stable half</b> — the isolation is the point (UA5), contract-pinned; <code>ttLog</code> is capped.</li>
+<li><b>All 78 <code>NOTE_LATCH_FIELDS</code></b> — every one has a production write path.</li>
+<li><b>Two NPC tokenizers, three name resolvers, three dead-predicates</b> — each scoped and documented (proposal-time safety, the #193 death-seam ruling, ring-splice vs peek).</li>
+<li><b><code>healMemory</code>'s unconditional heals, <code>scheduleDedupSweep</code> at migrate time, the <code>ragMemory===false</code> clear, the v1.383 attitude clear</b> — idempotent, converge in one pass, marker-guarded where non-idempotent.</li>
+<li><b><code>memory.quests</code></b> — written by api.js and read by the quest block.</li>
+<li><b><code>serializeWorldState</code>/<code>parseWorldState</code> dropping unknown fields</b> — both are full-object copies; <code>node.exits</code>, <code>node.layout</code>, <code>tradePing</code> round-trip; the cloud payload likewise.</li>
+<li><b>The <code>__lzb64</code> inflater with no producer</b> — load-bearing under the inflater-first release gate.</li>
+<li><b>Rescue keys never deleted</b> — contract-pinned policy; the transcript rescue is released by its restore.</li>
+<li><b><code>store.set</code> swallowing a privacy-mode denial</b> — deliberate; the shadow keeps reads consistent and the volatile case is surfaced.</li>
+<li><b><code>SPELLS</code>/<code>ARCH_SPELLS</code> vs the capability bible</b> — the creation pick pools, deliberately separate.</li>
+<li><b>Every globals.js variable</b> — all have a real reader; <b>every DOM id in the surface files</b> — the twelve that look missing are emitted by <code>buildFileMenus</code>.</li>
+<li><b>The five hand-rolled modals in ui-modals.js</b> — all remove-by-id before re-creation.</li>
+<li><b><code>aiSuggestField</code>/<code>aiRandomiseAll</code> without <code>elapsedTicker</code></b> — a test pins exactly two ticker sites in char-creation; the spinning button is the affordance there.</li>
+<li><b><code>TTS.stop()</code> from ambience</b> — does not happen; ambience subscribes to <code>tnd:car-intent</code> only.</li>
+<li><b>The TTS ladder failing silently</b> — every rung warns; every degrade toasts once per session.</li>
+<li><b>Piper OPFS voices, the STT log ring, the audio cache, decoded buffers, <code>PIPER_CACHE</code>, wasm-probe retention, <code>_geminiModelClosedUntil</code></b> — all capped or bounded and documented.</li>
+<li><b><code>PIPER_RUNTIME_REV</code></b> — actively enforced in lockstep with the vendored patch and both harness pages.</li>
+<li><b>Goldens regenerated by their own test</b> — none; <code>frozen-golden.js</code> is read-only.</li>
+<li><b>Sabotage batteries missing from the applicability inventory</b> — both runners <code>readdir</code> on the prefix; all 76 covered.</li>
+<li><b><code>locReparent</code>, <code>locSplit</code>, <code>clockRepair</code>, <code>capabilitiesByCategory</code>, <code>armLayoutAsk</code>, <code>reconsiderPendingCheck</code>, <code>_w6TextHasName</code>, <code>panelQuickAction</code></b> — census "test-only" hits that resolve to satellites (map_cleanup, bible_editor), api.js/game.js callers, or dev tools.</li>
+<li><b><code>COMBAT_ATTR_FALLBACK="last-added"</code>, <code>__tagNoCombatWarns</code>, the test seams <code>sceneRefsEvidence</code>/<code>relationshipGuards</code>/<code>ragRetrieve._cands</code></b> — declared retained tripwires or adjudicated seams.</li>
+<li><b>The 39 tags never emitted in the 1,194-response census</b> — every one taught by a doc line or a note; rarity, not vestige.</li>
+</ul>
+
+<h2>Appendix — measurements and census</h2>
+<table>
+<tr><th>Measure</th><th>Value</th></tr>
+<tr><td>Top-level definitions scanned (root *.js)</td><td>1,748</td></tr>
+<tr><td>Zero production references after comment/string stripping</td><td>47, of which 43 are string-built HTML handlers; 4 genuinely dead or test-only (E16, E17)</td></tr>
+<tr><td>Empty <code>catch(e){}</code> blocks</td><td>43 (E15)</td></tr>
+<tr><td>TAG_TABLE handlers / strip names</td><td>120 + 3 factory / 122 (A11)</td></tr>
+<tr><td>Hand-rolled map-node literals</td><td>13 in 4 files, 3 shapes (C3)</td></tr>
+<tr><td>Largest owner save (Runelords t2412): volatile vs stable prompt half</td><td>78,601 vs 55,613 chars (B2)</td></tr>
+<tr><td>index.html script tags vs CLAUDE.md</td><td>42 vs "34" (G5)</td></tr>
+<tr><td>Engine manifest vs index.html engine subset</td><td>27/27 exact</td></tr>
+<tr><td>Full suite at v1.949</td><td>2,218 assertions green; standalone gate green</td></tr>
+</table>
+<p class="small">Repro scripts used for this audit live only in the session scratchpad; each repro's input and output is quoted inline above so the finding stands without them. File: <code>C:\Projects\traffic-and-dragons\audits\audit_fable_2026_09_18.html</code>.</p>
+</main></body></html>
