@@ -337,7 +337,7 @@ function _carUpdateParty() {
     ratio = pv.ratio;
     /* #133c: a split member's dot goes neutral grey and the tooltip shows where, not vitals —
        their HP/MP are unknown to the player while they're elsewhere. */
-    col = pv.split ? "var(--t2)" : ratio > 0.5 ? "var(--grn)" : ratio > 0.25 ? "var(--warn)" : "var(--dng)"; /* Car mapping — raw ratio + warn/dng palette; HUD's differs, kept separate (UA21③) */
+    col = pv.split ? "var(--t2)" : hpReadout(pv.hp, pv.maxHp).color; /* audit E10: ONE HP ramp (#352 vitalReadout, helpers.js) — the UA21③ "kept separate" note predates it and this was the last third palette */
     html += "<div style='width:36px;height:36px;border-radius:50%;background:"+col+";display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-family:var(--font);font-weight:bold;border:2px solid var(--bg0);' title='"
       +escHtml(n.name)+(pv.split?" (split: "+escHtml(pv.split.location)+")":" ("+pv.hp+"/"+pv.maxHp+" HP"+(function(){var _cmMx=(typeof manaMax==="function"&&pv.sheet)?manaMax(pv.sheet):0;return _cmMx>0?", "+manaCur(pv.sheet)+"/"+_cmMx+" MP":"";})()+")")+"'>"+escHtml((n.name||"?").slice(0,2))+"</div>";
   }
