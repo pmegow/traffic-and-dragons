@@ -243,3 +243,11 @@ rubrics live in `DOC/panel/` (designers) and `DOC/panel/players/` (the Panel of 
 **Kept.** The return greeting's one fact per real absence; the Hall's mementos and wall; the player may ask anyone about anything and the DEFINING MOMENTS block still lets the GM answer.
 
 **Tests.** The #6B whisper test now asserts no resident memory text, the SMALL TALK shape, the hour and weather facts and the Hall clause; the #6D2 exchange test flips from "one record each must feed the exchange" to "must NOT draw on their past"; a new #6 D5 test pins the DRIVE sentence and adventure byte-identity. Sabotage: the facts fall back to memories, the Hall clause is dropped, the exchange seeds from the past, the DRIVE sentence is removed — each caught by its named test.
+
+## F11 — a chained WARES tag leaked into the prose (v1.945, owner screenshot 2026-09-16)
+
+**Report.** At the trading post (t54) the narration opened with `|Pitcher of dark cider|1 gp|Tavern keeper's brew]|Block of tallow soap|1 gp|Herb-scented cake]`.
+
+**Mechanism.** The GM chained three wares into one tag, `[WARES:a|1 gp|n]|b|1 gp|m]|c|1 gp|k]`. The handler's regex matched to the first `]`, so one ware filed; the display strip (`[NAME:…]` to the first `]`) removed the same span and left the tail as prose. Not the model inventing vocabulary; a malformed but readable emission of a known tag.
+
+**Change.** The WARES handler matches the whole chain and files every body, with a console warn naming the form (one tag per ware remains the documented contract; the STATE TAGS doc is byte-unchanged). `cleanTxt` gains one bounded strip: a pipe-led, bracket-free run with at least one more pipe and a closing `]` is never prose and is removed loudly; a lone pipe, `[sic]`, or a single-pipe run stays. Test-first with the exact leaked string; sabotage proves both halves.

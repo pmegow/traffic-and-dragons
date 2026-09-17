@@ -2765,6 +2765,13 @@ function cleanTxt(t){
       return "";
     })
     .replace(/\[[A-Z][A-Z_]{2,}(:[^\]]*)?\s*$/,"")
+    /* #6 F11: an orphan tag TAIL — "|field|field]" left behind when the GM chained several bodies into one tag and the
+       [NAME:…] strip above consumed only the first — is never prose; strip it loudly. Needs a pipe-led, bracket-free run
+       with at least one more pipe and a closing ], so "either | or" and "[sic]" are untouched. */
+    .replace(/\|[^\[\]\n|]{1,120}\|[^\[\]\n]{0,240}\]/g,function(_m){
+      if(typeof console!=="undefined")console.warn("[tags] orphan tag tail stripped from display (a chained tag emission — the parser filed it; see the [wares] warn): "+_m.slice(0,60));
+      return "";
+    })
     .replace(_CT_DASH,", ").replace(_CT_NL,"\n\n").trim();
 }
 // Renders EVERY [DICE:] tag in the response, not just the first (audit E10) — cleanTxt strips them

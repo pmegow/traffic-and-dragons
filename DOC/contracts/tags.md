@@ -16,7 +16,7 @@ Status: ✅ Active (UA1)
 
 ## 7. State tag system (`applyMuts`)
 
-The GM embeds hidden tags in every response. `applyMuts(text)` parses them and mutates `worldState` and `memory`. Tags are stripped from displayed text by `cleanTxt()`.
+The GM embeds hidden tags in every response. `applyMuts(text)` parses them and mutates `worldState` and `memory`. Tags are stripped from displayed text by `cleanTxt()`. **Chained bodies (#6 F11, v1.945):** a tag written as `[WARES:a|1 gp|n]|b|1 gp|m]` files every chained body through the WARES handler (a loud warn names the form; one tag per ware stays the contract), and `cleanTxt` strips any orphan pipe-led tail `|…|…]` that a first-`]` strip leaves behind — a lone pipe in prose or `[sic]` is never touched.
 
 **#197 (v1.665): an in-band model refusal is NON-CANON — refused narration is not tag-accessible (owner ruling 2026-08-20).** `detectModelRefusal` (api.js — anchored meta-voice opener + meta-object gate + `REFUSAL_MAX_CHARS` whole-response cap, deliberately narrow) is judged at `commitGmTurn`/`rerollLast` on the CLEAN text. A detected refusal still commits (the player saw it; re-roll needs the pair) but: `applyMuts` never runs (embedded tags withheld, named in a `tagLogRefusal` provenance-ring entry), the transcript entry is `rf`-marked (RAG never serves it — §8b guard ③), the narration observers (person/phase/drift-axes/stay-behind/ghost-consumable) skip it, delivered engine-note latches are restored (the #151 principle — the GM never acted), and a toast says re-roll or rephrase. Field origin: t1985, the Magnimar bathhouse (gemini-3.7-flash). Mutation proof: `dev/sabotage-refusal.js` (6 clauses; its `also:` option rides co-changed working files into the scratch clone — the multi-file sibling of the #196 fix).
 

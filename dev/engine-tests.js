@@ -23493,6 +23493,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     delete worldState.kind;if(isShopNode("The Village|the tavern",memory.map.nodes["The Village|the tavern"]))return "the adventure has no shop nodes";
     return true;
   });
+  t("#6 F11 a chained WARES emission (owner t54 screenshot 2026-09-16): every chained ware files on the shop, the mutation log records each, and cleanTxt leaves NO tail in the prose; prose with a lone pipe or [sic] is untouched",function(){
+    villageEF();var raw="Silas nods. [WARES:Smoked fish|1 gp|Frizwick]|Pitcher of dark cider|1 gp|Tavern keeper's brew]|Block of tallow soap|1 gp|Herb-scented cake]\nThe shelves are neatly packed. Either | or, he says [sic].";
+    var q=quiet(function(){return applyMuts(raw);});var shop=memory.map.nodes["The Village|the tavern"];
+    var names=(shop.wares||[]).map(function(w){return w.item;}).join(",");if(names!=="Smoked fish,Pitcher of dark cider,Block of tallow soap")return "every chained ware must file: "+names;
+    if((q.r.muts||[]).filter(function(m){return /^For sale:/.test(m);}).length!==3)return "three For-sale entries in the log: "+JSON.stringify(q.r.muts);
+    var c=quiet(function(){return cleanTxt(raw);}).r;
+    if(/\|Pitcher|tallow|Herb-scented|\]/.test(c.replace("[sic]","")))return "the tail leaked into the prose: "+c;
+    if(c.indexOf("Silas nods.")!==0||c.indexOf("Either | or, he says [sic].")<0)return "prose damaged: "+c;
+    if(cleanTxt("A | B and [sic] and 3|4]")!=="A | B and [sic] and 3|4]")return "a lone pipe, [sic], or a single-pipe run must not be touched";
+    return true;
+  });
   t("#6F2 wares live on the shop: in the village [WARES:] files on the shop sub-location with WARES_CAP_SHOP and a LOUD eviction; outside a shop it is refused by name; adventure wares stay on the world node",function(){
     villageEF();var r=applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
     var shop=memory.map.nodes["The Village|the tavern"];if(!shop.wares||shop.wares.length!==1)return "the ware must file on the shop node: "+JSON.stringify(shop.wares);
