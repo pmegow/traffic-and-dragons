@@ -7764,7 +7764,7 @@ function runEngineTests(R){
     // #408 (v1.926): +LAYOUT strip entry — source grew exactly 7 chars = "LAYOUT|". The room graph is engine-only in the
     // doc (the doc golden is byte-unchanged) but MUST strip: a leaked [LAYOUT:] would read the floor plan aloud in TTS
     // and put it in the transcript's clean text. Golden diffed by eye in the same commit.
-    if(__djb2(_CT_TAGS.source)!==-657870782||_CT_TAGS.source.length!==1797)return "_CT_TAGS diverged from the frozen literal";/* #415 (v1.949): EXIT joins the strip vocabulary (+5) — golden re-baselined by eye in the same commit *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==-657871871||_CT_TAGS.source.length!==1797)return "_CT_TAGS diverged from the frozen literal";/* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -9142,11 +9142,14 @@ function runEngineTests(R){
     __relWorld();
     memory.archive=undefined;
     worldState.relDowngrades=[{who:"Morwen",entity:"Tess",prev:"Husband — beloved family",next:"Husband",turn:50,fired:3,lastFired:56,muted:true}];
+    /* audit 2026-09-18 B11: the expiry sweep is the row's prepare hook (run by buildEngineNotes before the latch snapshot,
+       combat included), no longer a twin call inside the builder — the test drives the registry path the loop takes */
+    var _run=function(){NOTE_SHAPES.buildRelationshipDowngradeNudge.prepare();return buildRelationshipDowngradeNudge();};
     worldState.turn=56+REL_DOWNGRADE_EXPIRE_TURNS-1;
-    buildRelationshipDowngradeNudge();
+    _run();
     if(!worldState.relDowngrades||worldState.relDowngrades.length!==1)return "expired one turn early";
     worldState.turn=56+REL_DOWNGRADE_EXPIRE_TURNS;
-    buildRelationshipDowngradeNudge();
+    _run();
     if(worldState.relDowngrades)return "muted entry survived past expiry";
     var ar=memory.archive&&memory.archive.relDowngrades;
     if(!ar||ar.length!==1)return "expired entry was not archived — that would be eviction to the void";
@@ -9156,12 +9159,13 @@ function runEngineTests(R){
   });
   t("#181: an UNMUTED entry never expires — only the mute path ends protection; combat still sweeps",function(){
     __relWorld();worldState.turn=500;
+    var _run=function(){NOTE_SHAPES.buildRelationshipDowngradeNudge.prepare();return buildRelationshipDowngradeNudge();};/* audit B11: the registry path — prepare hook, then the builder */
     worldState.relDowngrades=[{who:null,entity:"Morwen",prev:"Wife",next:"pal",turn:50,fired:1,lastFired:60}];
-    buildRelationshipDowngradeNudge();
+    _run();
     if(!worldState.relDowngrades||worldState.relDowngrades.length!==1)return "unmuted entry expired — 440 quiet turns must not end an ACTIVE guard";
     worldState.relDowngrades=[{who:null,entity:"Morwen",prev:"Wife",next:"pal",turn:50,fired:3,lastFired:60,muted:true}];
     worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
-    var n=buildRelationshipDowngradeNudge();
+    var n=_run();
     worldState.combat=null;
     if(n!=="")return "combat delivered a note";
     return worldState.relDowngrades===undefined?true:"the expiry sweep must run even in combat (bookkeeping, not a note)";
@@ -10907,34 +10911,16 @@ function runEngineTests(R){
   });
 
   // ── UA28: model-conditional reinforce (Haiku nudges) ─────────────────────────
-  section("resolveReinforce (UA28)");
-  t("Sonnet and Opus resolve to EMPTY — the money-tested prompt is untouched",function(){
-    if(resolveReinforce(PROVIDERS.anthropic,"claude-sonnet-4-6")!=="")return "sonnet got a reinforce block";
-    return eq(resolveReinforce(PROVIDERS.anthropic,"claude-opus-4-8"),"");
-  });
-  t("Haiku ids (incl. dated) resolve to the nudge block",function(){
-    var a=resolveReinforce(PROVIDERS.anthropic,"claude-haiku-4-5-20251001");
-    if(a!==ANTHROPIC_HAIKU_REINFORCE)return "dated haiku id missed";
-    return eq(resolveReinforce(PROVIDERS.anthropic,"claude-haiku-4-5"),ANTHROPIC_HAIKU_REINFORCE);
-  });
-  t("Sonnet stable half is BYTE-IDENTICAL after the reinforce append (cache invariant)",function(){
-    makeWorld();var s=buildSysPrompt(),before=s.stable;
-    s.stable+=resolveReinforce(PROVIDERS.anthropic,"claude-sonnet-4-6");
-    return s.stable===before?true:"stable half changed for Sonnet — every existing campaign's cache would invalidate";
-  });
-  t("Haiku block lands at the stable TAIL; volatile untouched; STYLE still ends volatile",function(){
-    makeWorld();var s=buildSysPrompt(),vol=s.volatile;
-    s.stable+=resolveReinforce(PROVIDERS.anthropic,"claude-haiku-4-5-20251001");
-    if(s.stable.indexOf("STATE DISCIPLINE")<0)return "block missing from stable";
-    if(s.stable.slice(-ANTHROPIC_HAIKU_REINFORCE.length)!==ANTHROPIC_HAIKU_REINFORCE)return "block not at the stable tail";
-    if(s.volatile!==vol)return "volatile perturbed";
-    return s.volatile.lastIndexOf("STYLE:")>s.volatile.lastIndexOf("REMINDER")?true:"STYLE no longer ends the volatile half";
-  });
-  t("Haiku block pins all three discipline items (HP, location, spell canon — t361)",function(){
-    var b=ANTHROPIC_HAIKU_REINFORCE;
-    if(b.indexOf("HP RECOVERY")<0)return "item 1 missing";
-    if(b.indexOf("LOCATION")<0)return "item 2 missing";
-    return b.indexOf("SPELL CANON")>=0&&/hard physics/.test(b)?true:"item 3 (spell canon) missing";
+  section("resolveReinforce (UA28 → audit 2026-09-18 B8)");
+  /* The Haiku reinforce block was retired 2026-09-18 (audit B8): no provider lists a Haiku id, the picker builds from
+     models[] only, and the block was appended to the CACHED stable half for a model nothing could select. The seam
+     stays: resolveReinforce is the one place a provider-conditional append can live, and it must be EMPTY for anthropic. */
+  t("anthropic has no model-conditional reinforce: every id (including a dated Haiku id) resolves to the empty string; gemini and openai keep TAG_REINFORCE",function(){
+    if(typeof ANTHROPIC_HAIKU_REINFORCE!=="undefined")return "the Haiku block is back";
+    if(resolveReinforce(PROVIDERS.anthropic,"claude-haiku-4-5-20251001")!==""||resolveReinforce(PROVIDERS.anthropic,"claude-sonnet-5")!=="")return "anthropic must resolve empty";
+    if(resolveReinforce(PROVIDERS.gemini,PROVIDERS.gemini.defaultModel)!==TAG_REINFORCE||resolveReinforce(PROVIDERS.openai,PROVIDERS.openai.defaultModel)!==TAG_REINFORCE)return "gemini/openai keep TAG_REINFORCE";
+    makeWorld();var s=buildSysPrompt(),g=buildSuggestionSys();lastTurnSysClear();if(g.stable!==s.stable)return "the suggestion stable must equal the main stable with no append";
+    return true;
   });
   t("every provider resolves to a string (function shape breaks nobody)",function(){
     var ks=Object.keys(PROVIDERS),i;
@@ -11077,14 +11063,7 @@ function runEngineTests(R){
     var s=buildSysPrompt(),g=buildSuggestionSys();
     return g.stable===s.stable?true:"stable perturbed — every cache hit would die silently";
   });
-  t("buildSuggestionSys: Haiku's model-conditional reinforce is mirrored into the stable half",function(){
-    makeWorld();
-    var saved=providerModels.anthropic;
-    providerModels.anthropic="claude-haiku-4-5-20251001";
-    var s=buildSysPrompt(),g=buildSuggestionSys();
-    providerModels.anthropic=saved;
-    return g.stable===s.stable+ANTHROPIC_HAIKU_REINFORCE?true:"reinforce append not mirrored — the suggestion call's stable prefix would mismatch the main turn's on Haiku";
-  });
+  /* audit 2026-09-18 B8: the Haiku reinforce test retired with ANTHROPIC_HAIKU_REINFORCE (no provider lists a Haiku id; resolveReinforce is pinned empty for anthropic in the audit section) */
   t("buildSuggestionSys: SUGGESTION MODE rides the third `extra` block (#304 C) — the volatile is the main turn's BYTE-FOR-BYTE, and the mode block still lands AFTER STYLE in the flattened text",function(){
     makeWorld();lastTurnSysClear();
     var s=buildSysPrompt(),g=buildSuggestionSys();
@@ -24405,6 +24384,252 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.combat={round:1,enemies:[]};if(/\[EXIT:name\|short note\]/.test(buildGeoBlock()))return "no teaching mid-combat";
     var ui=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),body=ui.slice(ui.indexOf("function renderWaysRow("));
     if(!/x\.note/.test(body))return "the chip must carry the note";
+    return true;
+  });
+
+  section("audit 2026-09-18 — core lane (tags, prompt assembly, memory/identity); audits/audit_fable_2026_09_18.html");
+  /* The Fable lane of the 2026-09-18 audit: kind gates that only some handlers honoured, parsers that accepted bad input
+     silently, node carriers that each remembered a different schema, and prompt accumulators. Every assertion here failed
+     red before its fix. Warn capture: console.warn is swapped for the duration of a test. */
+  function auditWarns(fn){var w=[],_cw=console.warn,_ce=console.error;console.warn=function(){w.push(Array.prototype.slice.call(arguments).join(" "));};console.error=console.warn;try{fn();}finally{console.warn=_cw;console.error=_ce;}return w;}
+  function auditComp(name){var cs={name:name,cls:"Rogue",level:2,xp:0,hp:10,maxHp:10,inventory:[],abilities:[],spells:[],stats:{str:10,dex:10,con:10,int:10,wis:10,cha:10}};
+    worldState.npcs.push({name:name,status:"ally",rel:"companion",met:1,partyMember:true,pronouns:"he/him",portrait:null,charSheet:cs});return cs;}
+  function auditVillage(){villageCD();worldState.turn=12;}
+  t("A1 the village pays nothing through ANY paymaster: a quest milestone and [COMPANION_XP:] are refused loud where xp:none, and still pay in an adventure",function(){
+    auditVillage();var xp0=worldState.character.xp||0;
+    applyMuts("[QUEST:Mend the mill wheel|active] [QUEST_STEP:Mend the mill wheel|Fix the axle|done]");
+    var R=applyMuts("[QUEST:Mend the mill wheel|completed]");
+    if((worldState.character.xp||0)!==xp0)return "milestone paid in the village: "+xp0+" -> "+worldState.character.xp;
+    if(!R.muts.some(function(m){return /XP refused/.test(m)&&/milestone/.test(m);}))return "the refusal must name the milestone: "+JSON.stringify(R.muts);
+    var cs=auditComp("Frizwick");R=applyMuts("[COMPANION_XP:Frizwick|30]");
+    if(cs.xp)return "companion paid in the village";
+    if(!R.muts.some(function(m){return /XP refused/.test(m);}))return "companion refusal must be loud: "+JSON.stringify(R.muts);
+    makeWorld();worldState.turn=12;cs=auditComp("Frizwick");applyMuts("[COMPANION_XP:Frizwick|30]");if(cs.xp!==30)return "the adventure must still pay companions";
+    applyMuts("[QUEST:Q|active] [QUEST_STEP:Q|a|done]");var a0=worldState.character.xp||0;applyMuts("[QUEST:Q|completed]");if((worldState.character.xp||0)<=a0)return "the adventure must still pay milestones";
+    return true;
+  });
+  t("A2 a positional [SPELL_DEF:] (no key=value fields) is refused loud and files NOTHING — the key=value form still files",function(){
+    makeWorld();var R,w=auditWarns(function(){R=applyMuts("[SPELL_DEF:Frost Lance|60ft|1 creature|instantaneous|a lance of ice|slot|1|arcane|yes]");});
+    if(worldState.capabilityBible&&worldState.capabilityBible["frost lance"])return "an empty canon was filed: "+JSON.stringify(worldState.capabilityBible["frost lance"]);
+    if(!R.muts.some(function(m){return /⚠/.test(m)&&/Frost Lance/.test(m);}))return "refusal must reach the mutation log: "+JSON.stringify(R.muts);
+    if(!w.some(function(x){return /SPELL_DEF/.test(x)&&/positional|key=value/.test(x);}))return "the console must explain the form: "+JSON.stringify(w);
+    applyMuts("[SPELL_DEF:Frost Lance|range=60ft|targets=1 creature|duration=instantaneous|effect=a lance of ice]");
+    var e=worldState.capabilityBible["frost lance"];if(!e||e.range!=="60ft"||e.effect!=="a lance of ice")return "key=value form must still file: "+JSON.stringify(e);
+    return true;
+  });
+  t("A3 two [SUBLOCATION:] tags in one response: the LAST is the place (the trade gate's and the doc's reading) and every arrival is filed",function(){
+    makeWorld();worldState.world.location="Greyhaven";worldState.world.sublocation=null;memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.map.nodes["Greyhaven"]=newMapNode(1,null);
+    var R=applyMuts("[SUBLOCATION:the kitchen] then cross to [SUBLOCATION:the cellar]");
+    if(worldState.world.sublocation!=="the cellar")return "position: "+worldState.world.sublocation;
+    if(!memory.map.nodes["Greyhaven|the kitchen"]||!memory.map.nodes["Greyhaven|the cellar"])return "both arrivals file";
+    if(!R.muts.some(function(m){return /cellar/.test(m);}))return "log: "+JSON.stringify(R.muts);
+    return true;
+  });
+  t("A4 the Pax gate covers the bare [NPC:name|dead|relation]: refused loud in a noHarm kind (the NPC is registered, not dead); an adventure still records the death",function(){
+    auditVillage();applyMuts("[NPC:Old Tam|neighbour|resident]");
+    var R=applyMuts("[NPC:Old Tam|dead|neighbour]");var tam=worldState.npcs.filter(function(n){return n.name==="Old Tam";})[0];
+    if(!tam)return "the NPC must still be registered";
+    if(tam.dead)return "a resident died in the village";
+    if(/dead/i.test(tam.status||""))return "the dead phrase must not land as a status either: "+tam.status;
+    if(!R.muts.some(function(m){return /Harm refused/.test(m);}))return "the goddess must be named in the log: "+JSON.stringify(R.muts);
+    makeWorld();worldState.turn=12;applyMuts("[NPC:Old Tam|neighbour|resident]");applyMuts("[NPC:Old Tam|dead|neighbour]");tam=worldState.npcs.filter(function(n){return n.name==="Old Tam";})[0];
+    if(!tam||!tam.dead)return "the adventure must still record the death";
+    return true;
+  });
+  t("A5 [COMPANION_ITEM_GAINED/LOST:] ride the refused village trade with the hero's own item tags",function(){
+    auditVillage();worldState.world.sublocation=null;var cs=auditComp("Frizwick");cs.inventory.push({name:"Lute",qty:1});
+    var R=applyMuts("[GOLD:-5][ITEM_GAINED:Rope][COMPANION_ITEM_GAINED:Frizwick|Lantern][COMPANION_ITEM_LOST:Frizwick|Lute]");
+    if(cs.inventory.some(function(i){return /lantern/i.test(i.name||i);}))return "the companion gained through the refused trade";
+    if(!cs.inventory.some(function(i){return /lute/i.test(i.name||i);}))return "the companion lost through the refused trade";
+    if(!R.muts.some(function(m){return /Trade refused/.test(m)&&/companion/i.test(m);}))return "the refusal must name the companion tags: "+JSON.stringify(R.muts);
+    return true;
+  });
+  t("A6 the three strict-shape handlers are enrolled in the near-miss tripwire: a malformed COMBAT_START, ALIGNMENT or SAVE_MOD warns and leaves a ⚠ in the log instead of vanishing",function(){
+    makeWorld();var R,w=auditWarns(function(){R=applyMuts("[COMBAT_START:Goblin|2d6|12|+2|1d6|low]");});
+    if(worldState.combat)return "a malformed start must not open a fight";
+    if(!R.muts.some(function(m){return /⚠ \[COMBAT_START:\] malformed/.test(m);})||!w.some(function(x){return /COMBAT_START operand near-miss/.test(x);}))return "COMBAT_START: "+JSON.stringify(R.muts)+" / "+JSON.stringify(w);
+    w=auditWarns(function(){R=applyMuts("[ALIGNMENT:chaos+1]");});if(!R.muts.some(function(m){return /⚠ \[ALIGNMENT:\] malformed/.test(m);}))return "ALIGNMENT silent: "+JSON.stringify(R.muts);
+    w=auditWarns(function(){R=applyMuts("[SAVE_MOD:Ward|Fear|two]");});if(!R.muts.some(function(m){return /⚠ \[SAVE_MOD:\] malformed/.test(m);}))return "SAVE_MOD silent: "+JSON.stringify(R.muts);
+    R=applyMuts("[COMBAT_START:Goblin|7|12|+2|1d6|low]");if(!worldState.combat)return "the well-formed start must still open a fight";
+    return true;
+  });
+  t("A7/A8 an unresolvable companion in COMPANION_XP / COMPANION_AGENDA_DONE / COMPANION_AGENDA_BEAT, and an unknown name in NPC_FORGET, leave a ⚠ in the log and a warn",function(){
+    makeWorld();var R,w=auditWarns(function(){R=applyMuts("[COMPANION_XP:Nobody|50] [COMPANION_AGENDA_DONE:Nobody] [COMPANION_AGENDA_BEAT:Nobody] [NPC_FORGET:Nobody|the red key]");});
+    var need=["COMPANION_XP","COMPANION_AGENDA_DONE","COMPANION_AGENDA_BEAT","NPC_FORGET"],i;
+    for(i=0;i<need.length;i++)if(!R.muts.some(function(m){return m.indexOf("⚠")===0&&m.indexOf(need[i])>=0;}))return need[i]+" is still silent: "+JSON.stringify(R.muts);
+    if(w.length<4)return "each miss must warn: "+JSON.stringify(w);
+    return true;
+  });
+  t("A9 a chained tag tail is honest on both channels: cleanTxt's warn says it was NOT parsed, and applyMuts leaves a ⚠ naming the ignored tail (WARES, which parses chains, is exempt)",function(){
+    makeWorld();worldState.world.location="Greyhaven";worldState.world.sublocation=null;memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.map.nodes["Greyhaven"]=newMapNode(1,null);
+    var w=auditWarns(function(){cleanTxt("Stock. [WANTED:rope|5 gp|Tam]|lamp oil|3 gp|Tam] Done.");});
+    if(!w.some(function(x){return /orphan tag tail/.test(x)&&/NOT parsed/.test(x);}))return "the display warn must say the tail was not parsed: "+JSON.stringify(w);
+    var R=applyMuts("[WANTED:rope|5 gp|Tam]|lamp oil|3 gp|Tam]");
+    if(!R.muts.some(function(m){return /⚠/.test(m)&&/WANTED/.test(m)&&/tail/.test(m);}))return "the parser must log the ignored tail: "+JSON.stringify(R.muts);
+    R=applyMuts("[WARES:ale|2 cp|Tam]|bread|1 cp|Tam]");if(R.muts.some(function(m){return /tail/.test(m)&&/⚠/.test(m);}))return "WARES chains are filed, never flagged: "+JSON.stringify(R.muts);
+    return true;
+  });
+  t("A10 an empty-bodied [HP:] / [XP:] and a truncated [HP are stripped from the display with a warn — the two-letter names no longer fall through both nets",function(){
+    makeWorld();var out,w=auditWarns(function(){out=cleanTxt("She reels. [HP:] Blood. [XP:] Done. [HP");});
+    if(/\[HP|\[XP/.test(out))return "leaked: "+JSON.stringify(out);
+    if(!w.length)return "the strip must warn";
+    if(cleanTxt("Take the [sic] road.").indexOf("[sic]")<0)return "lowercase bracket prose stays";
+    return true;
+  });
+  t("A13 DEATH_ANSWER, ITEM_KEPT and COMPANION_ITEM_KEPT sit in the engine-only tier so the #311 phantom check covers them",function(){
+    var i,need=["DEATH_ANSWER","ITEM_KEPT","COMPANION_ITEM_KEPT"];for(i=0;i<need.length;i++)if(TAG_DOC_ENGINE_ONLY.indexOf(need[i])<0)return need[i]+" missing from TAG_DOC_ENGINE_ONLY";
+    return true;
+  });
+  t("A15/A16 dead parser symbols are gone (no R.text on the scratch; no _ar in SUBLOCATION_LEAVE) and a parroted prompt marker ([COMPLETED], [EXPENDED — …]) is stripped from the display",function(){
+    makeWorld();var R=applyMuts("Nothing.");if(R.text!==undefined)return "R.text still allocated";
+    var tt=__fsForTests.readFileSync(__rootForTests+"/tag_table.js","utf8");if(/var _ar=text\.search/.test(tt))return "_ar still computed";
+    var out=cleanTxt("The quest [COMPLETED] is done and the spell [EXPENDED — 1/day heritage spell already spent] is gone.");
+    if(/\[COMPLETED\]|\[EXPENDED/.test(out))return "marker leaked: "+out;
+    return true;
+  });
+  t("B1 the quest escalation and objective nudges latch: one note, then silence for QUEST_NUDGE_REFIRE_TURNS, then a re-fire; the latch is declared, snapshotted and restored on a dead turn",function(){
+    makeWorld();worldState.turn=10;applyMuts("[QUEST:Q|active] [QUEST_STEP:Q|a|done]");worldState.questLog[0].allDoneSince=1;worldState.combat=null;
+    var n1=buildQuestEscalation();if(!/Quest 'Q'/.test(n1))return "must fire once: "+n1;
+    worldState.turn=11;if(buildQuestEscalation())return "must not fire the very next turn";
+    worldState.turn=10+QUEST_NUDGE_REFIRE_TURNS;if(!buildQuestEscalation())return "must re-fire after the cooldown";
+    if(NOTE_NESTED_LATCHES.indexOf("questLog[].escalateNudged")<0||NOTE_NESTED_LATCHES.indexOf("questLog[].objectiveNudged")<0)return "latches undeclared";
+    if(NOTE_SHAPES.buildQuestEscalation.latch.indexOf("questLog[].escalateNudged")<0)return "row must claim its latch";
+    worldState.turn=40;delete worldState.questLog[0].escalateNudged;var snap=snapshotNoteLatches();buildQuestEscalation();if(worldState.questLog[0].escalateNudged!==40)return "stamp expected";restoreNoteLatches(snap);
+    if(worldState.questLog[0].escalateNudged!==undefined)return "a dead turn must un-burn the escalation latch";
+    worldState.questLog=[{title:"Z",status:"active",objectives:[],noObjSince:1,turn:1}];worldState.turn=10;if(!buildQuestObjectiveNudge())return "objective nudge fires";worldState.turn=11;if(buildQuestObjectiveNudge())return "objective nudge must latch";
+    return true;
+  });
+  t("B2 the roster and the KNOWN NPCs list keep every name that is recent, HERE, mentioned or in the party, and fold the rest into a count — a stale NPC comes back the moment they are mentioned or the party returns to where they were last seen; Table Talk still gets the full list",function(){
+    makeWorld();worldState.turn=200;worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    var _mk=function(n,seenAt,seenTurn){worldState.npcs.push({name:n,status:"wary",statusTurn:seenTurn,rel:"neutral",met:seenTurn,partyMember:false,pronouns:"he/him",portrait:null,aliases:[]});memory.npcs[n]={events:[],knowledge:[],aliases:[],firstEncounter:seenTurn,lastSeenAt:seenAt,lastSeenTurn:seenTurn};};
+    _mk("Sheriff Hemlock","Marrowgate",5);_mk("Ameiko Kaijitsu","Marrowgate",195);_mk("Old Tam","Sandpoint",10);
+    var v=buildSysPrompt().volatile,line=(v.match(/^NPCs: [^\n]*/m)||[""])[0];
+    if(line.indexOf("Ameiko Kaijitsu")<0)return "a recently seen NPC stays: "+line;
+    if(line.indexOf("Old Tam")<0)return "an NPC last seen HERE stays: "+line;
+    if(line.indexOf("Sheriff Hemlock")>=0)return "a stale NPC seen elsewhere must leave the line: "+line;
+    if(!/1 other/.test(line)&&!/1 more/.test(line))return "the fold must be counted: "+line;
+    var toc=(v.match(/^KNOWN NPCs: [^\n]*/m)||[""])[0];if(toc.indexOf("Sheriff Hemlock")>=0||toc.indexOf("Ameiko Kaijitsu")<0)return "the TOC mirrors the rule: "+toc;
+    sessionLog.push({role:"user",content:"I ask about Sheriff Hemlock."});v=buildSysPrompt().volatile;line=(v.match(/^NPCs: [^\n]*/m)||[""])[0];
+    if(line.indexOf("Sheriff Hemlock")<0||line.indexOf("mood: wary")>=0&&false)return "a mentioned NPC returns with their record: "+line;
+    sessionLog.pop();worldState.world.location="Marrowgate";v=buildSysPrompt().volatile;line=(v.match(/^NPCs: [^\n]*/m)||[""])[0];
+    if(line.indexOf("Sheriff Hemlock")<0)return "returning to where they were last seen brings them back: "+line;
+    if(memoryTOC().indexOf("Sheriff Hemlock")<0)return "the bare memoryTOC() (Table Talk) keeps the full list";
+    return true;
+  });
+  t("B3 a stored model id no provider lists any more falls back to the provider's default with a warn instead of being sent forever",function(){
+    var saved=store.get(PMDL_K),savedM=providerModels.anthropic;
+    store.set(PMDL_K,JSON.stringify({anthropic:"claude-opus-4-8"}));var w=auditWarns(function(){loadProviderSettings();});
+    var got=providerModels.anthropic;store.set(PMDL_K,saved===null||saved===undefined?"":saved);if(saved===null||saved===undefined)store.del(PMDL_K);providerModels.anthropic=savedM;
+    if(got==="claude-opus-4-8")return "the retired id survived the load";
+    if(!w.some(function(x){return /claude-opus-4-8/.test(x);}))return "the reset must warn by name: "+JSON.stringify(w);
+    return true;
+  });
+  t("B4 buildSuggestionSys does not rebuild the system prompt when the turn's capture is fresh (the build is impure: a second RAG pass and a retcon-pin expiry rode every suggestion call)",function(){
+    makeWorld();var calls=0,_b=buildSysPrompt;buildSysPrompt=function(){calls++;return _b();};
+    try{lastTurnSysCapture(_b());buildSuggestionSys();if(calls!==0)return "rebuilt with a fresh capture ("+calls+")";lastTurnSysClear();buildSuggestionSys();if(calls!==1)return "must build on the fallback path";}
+    finally{buildSysPrompt=_b;lastTurnSysClear();}
+    return true;
+  });
+  t("B5 the registry's combat axis is enforced: a builder declared combat:'silent' never runs in combat, whatever its body would do",function(){
+    makeWorld();var fired=0;function buildAuditProbeNote(){fired++;return "[ENGINE NOTE — PROBE]";}
+    NOTE_BUILDERS.push(buildAuditProbeNote);NOTE_SHAPES.buildAuditProbeNote={shape:"transient",latch:["none"],combat:"silent",village:"fires",ack:["NO_CHANGE"]};
+    try{worldState.combat={round:1,enemies:[]};buildEngineNotes();noteLogDiscard();if(fired)return "a silent-in-combat builder ran in combat";worldState.combat=null;buildEngineNotes();noteLogDiscard();if(!fired)return "it must still run out of combat";}
+    finally{NOTE_BUILDERS.pop();delete NOTE_SHAPES.buildAuditProbeNote;}
+    return true;
+  });
+  t("B9/B11/B14 prompt-assembly hygiene: the truncation catch reports, expireRelationshipDowngrades runs once per turn, and the SAY compliance row declares what it is",function(){
+    var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
+    if(/catch\(e3\)\{\}/.test(api.slice(api.indexOf("prov.parseFinish"),api.indexOf("prov.parseFinish")+800)))return "parseFinish still swallows";
+    if((api.match(/expireRelationshipDowngrades\(\);/g)||[]).length!==0)return "the in-body call must go (the prepare hook owns it)";
+    var row=NOTE_SHAPES.buildSayComplianceNudge;if(row.shape!=="transient"||row.latch[0]!=="none")return "row: "+JSON.stringify(row);
+    if(NOTE_NESTED_LATCHES.indexOf("sessionLog")>=0)return "sessionLog is not a latch";
+    return true;
+  });
+  t("B10 the presence audit never asks about a companion the reunion note is folding back this same turn",function(){
+    makeWorld();worldState.turn=50;var cs=auditComp("Frizwick");worldState.lastPresenceAudit=0;worldState.pendingReunion={names:["Frizwick"],node:currentNodeKey(),turn:50};
+    var n=buildPresenceAudit();if(/Frizwick/.test(n))return "the audit named the reunion subject: "+n;
+    return true;
+  });
+  t("B13 the suggestion capture is campaign-scoped: a capture taken under one campaign id is never replayed under another",function(){
+    makeWorld();worldState.campId="camp_A";lastTurnSysCapture({stable:"S",volatile:"V"});if(!lastTurnSys())return "capture readable in its own campaign";
+    worldState.campId="camp_B";if(lastTurnSys())return "another campaign read the capture";
+    lastTurnSysClear();return true;
+  });
+  t("B6/B8 describePortraitImage rides the transport contract (deadline, provider error, usage), and the unreachable Haiku reinforce block is gone",function(){
+    var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),d=api.slice(api.indexOf("function describePortraitImage"),api.indexOf("function describePortraitImage")+2600);
+    if(d.indexOf("_fetchTextDeadline(")<0||d.indexOf("providerHttpError(")<0||d.indexOf("recordUsage(")<0)return "portrait describer bypasses the contract";
+    if(typeof ANTHROPIC_HAIKU_REINFORCE!=="undefined")return "Haiku block still shipped";
+    if(resolveReinforce(PROVIDERS.anthropic,"claude-haiku-4-5-20251001")!=="")return "reinforce must be empty for every anthropic model now";
+    return true;
+  });
+  t("C1/C2/C3 ONE node factory and ONE carry registry: newMapNode mints every node; a merge folds layout, wares, hours, wanted, mentions, hall, shop and owner; a split hands the same set to the primary successor; no hand-rolled node literal survives in production",function(){
+    if(typeof newMapNode!=="function")return "newMapNode missing";var n=newMapNode(3,"P",{owner:"Silas"});if(n.firstVisit!==3||n.parent!=="P"||n.owner!=="Silas"||!(n.items instanceof Array)||!(n.npcs instanceof Array)||n.visits!==0)return "factory shape: "+JSON.stringify(n);
+    makeWorld();worldState.world.location="Greyhaven";memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.map.nodes["Greyhaven"]=newMapNode(1,null);
+    memory.map.nodes["Greyhaven|the inn"]=newMapNode(1,"Greyhaven",{visits:1});
+    memory.map.nodes["Greyhaven|the Inn"]=newMapNode(2,"Greyhaven",{visits:1,layout:{rooms:[{name:"taproom",size:"medium",features:"",to:["outside"]}],by:"gm",turn:2},wares:[{item:"ale",price:"2 cp",t:2}],hours:{open:8,close:22},wanted:[{item:"pelts",t:2}],mentions:[{name:"X",t:2}],hall:true,shop:true,owner:"Bel"});
+    var R={muts:[],turn:13};locMerge("Greyhaven|the inn","Greyhaven|the Inn",R);var c=memory.map.nodes["Greyhaven|the inn"];
+    if(!c.layout||!c.wares||!c.hours||!c.wanted||!c.mentions||!c.hall||!c.shop||c.owner!=="Bel")return "fold dropped: "+Object.keys(c).join(",");
+    memory.map.nodes["Greyhaven|Silas house"]=newMapNode(1,"Greyhaven",{visits:2,owner:"Silas",wares:[{item:"ale",price:"2 cp",t:2}],hours:{open:8,close:22}});
+    R={muts:[],turn:14};locSplit("Greyhaven|Silas house",{primary:"Greyhaven|Silas cottage",successors:[{key:"Greyhaven|Silas cottage",take:{}},{key:"Greyhaven|Silas shed",take:{}}]},R);
+    var p=memory.map.nodes["Greyhaven|Silas cottage"],s=memory.map.nodes["Greyhaven|Silas shed"];if(!p||p.owner!=="Silas"||!p.wares||!p.hours)return "split dropped: "+JSON.stringify(p);if(s.owner||s.wares)return "the other successor gets none";
+    var files=["game.js","memory.js","identity.js","tag_table.js","api.js","helpers.js","clock.js"],i,bad=[];
+    for(i=0;i<files.length;i++){var src=__fsForTests.readFileSync(__rootForTests+"/"+files[i],"utf8"),m=src.match(/\{firstVisit:[^}]*visits:[^}]*npcs:\[\][^}]*\}/g)||[];if(m.length&&!(files[i]==="memory.js"&&m.length===1))bad.push(files[i]+":"+m.length);}
+    if(bad.length)return "hand-rolled node literals remain: "+bad.join(", ");
+    return true;
+  });
+  t("C4/C11 memory.locations[].visited is bounded and fileLocation stamps lastVisit like its sibling filer",function(){
+    makeWorld();memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.locations={};var i;
+    for(i=0;i<80;i++){worldState.world.location=(i%2)?"Hub":"Road";fileLocation("Hub",null,i);}
+    if(memory.locations["Hub"].visited.length!==VISITED_CAP||VISITED_CAP>50)return "unbounded: "+memory.locations["Hub"].visited.length+" kept of 80 (cap "+VISITED_CAP+")";
+    if(memory.map.nodes["Hub"].lastVisit!==79)return "lastVisit: "+memory.map.nodes["Hub"].lastVisit;
+    return true;
+  });
+  t("C5 the extractor's sameNpc merge hint never queues a provisional identity (the guard the name-variant scan already has)",function(){
+    makeWorld();worldState.turn=40;memory.npcs["Savah"]={events:[],knowledge:[],aliases:[]};memory.npcs["Savah °t30"]={events:[],knowledge:[],aliases:[]};worldState.pendingMergeHints=[];
+    var w=auditWarns(function(){applySummaryExtract({sameNpc:[{canonical:"Savah",duplicate:"Savah °t30"}]},"");});
+    if((worldState.pendingMergeHints||[]).length)return "a provisional pair was queued: "+JSON.stringify(worldState.pendingMergeHints);
+    if(!w.some(function(x){return /provisional/.test(x);}))return "the drop must warn: "+JSON.stringify(w);
+    return true;
+  });
+  t("C7 resolveFutureEvent archives what it removes and says when it matched by substring",function(){
+    makeWorld();memory.futureEvents=[{what:"Meet Ameiko at the docks at dusk",when:"dusk",setTurn:1},{what:"Meet Ameiko's brother",when:"soon",setTurn:2}];var a0=memArchive().futureEvents.length;
+    var w=auditWarns(function(){resolveFutureEvent("Meet Ameiko");});
+    if(memory.futureEvents.length!==1)return "one removed";var ar=memArchive().futureEvents;if(ar.length!==a0+1||!/substring/.test(ar[ar.length-1].resolvedBy||""))return "archive: "+JSON.stringify(ar.slice(-1));
+    if(!w.some(function(x){return /substring/i.test(x);}))return "the substring branch must log";
+    resolveFutureEvent("Meet Ameiko's brother");if(memory.futureEvents.length||memArchive().futureEvents.length!==a0+2)return "exact match archives too";
+    return true;
+  });
+  t("C8 the WANTED cap evicts loudly: a warn names the dropped want and the mutation log records it",function(){
+    makeWorld();worldState.world.location="Greyhaven";worldState.world.sublocation=null;memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.map.nodes["Greyhaven"]=newMapNode(1,null);
+    var R,w=auditWarns(function(){R=applyMuts("[WANTED:a|1 gp|Tam][WANTED:b|1 gp|Tam][WANTED:c|1 gp|Tam][WANTED:d|1 gp|Tam][WANTED:e|1 gp|Tam]");});
+    if(!w.some(function(x){return /wanted/i.test(x)&&/\ba\b/.test(x);}))return "the eviction must warn by name: "+JSON.stringify(w);
+    if(!R.muts.some(function(m){return /evicted|dropped/i.test(m)&&/\ba\b/.test(m);}))return "the log must record it: "+JSON.stringify(R.muts);
+    return true;
+  });
+  t("C9 an NPC merge carries the duplicate's presence stamps and memory-side pronouns (the W2 witnessed tier survives the fold)",function(){
+    makeWorld();worldState.turn=30;memory.npcs["Bosk"]={events:[],knowledge:[],aliases:[]};memory.npcs["Bosk the Tall"]={events:[],knowledge:[],aliases:[],lastSeenAt:"Sandpoint|the docks",lastSeenTurn:28,lastSeenSrc:"say",lastMentioned:29,pronouns:"he/him",attitude:"guarded"};
+    worldState.npcs.push({name:"Bosk",status:"",rel:"neutral",met:1,partyMember:false,aliases:[]});worldState.npcs.push({name:"Bosk the Tall",status:"",rel:"neutral",met:2,partyMember:false,aliases:[]});
+    applyMuts("[NPC_MERGE:Bosk|Bosk the Tall]");var m=memory.npcs["Bosk"];
+    if(!m||m.lastSeenTurn!==28||m.lastSeenAt!=="Sandpoint|the docks"||m.pronouns!=="he/him"||m.attitude!=="guarded"||m.lastMentioned!==29)return "carry: "+JSON.stringify(m);
+    return true;
+  });
+  t("C10 currentNodeKey composes under the CANONICAL world (a stale world pointer never mints a child under a tombstoned key)",function(){
+    makeWorld();worldState.world.location="Old Sandpoint";worldState.world.sublocation="the docks";memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.map.nodes["Sandpoint"]=newMapNode(1,null);memory.map.nodes["Old Sandpoint"]=newMapNode(1,null);
+    var R={muts:[],turn:5};locMerge("Sandpoint","Old Sandpoint",R);
+    if(currentNodeKey()!=="Sandpoint|the docks")return "composed: "+currentNodeKey();
+    return true;
+  });
+  t("C12 the geo block keeps a sub-location that holds canon (a floor plan, present items, open doors, wares, an owner, state notes) listed past the 20-turn recency window",function(){
+    makeWorld();worldState.turn=100;worldState.world.location="Greyhaven";worldState.world.sublocation=null;memory.map={nodes:{},edges:[],lastArrivalFrom:null};memory.map.nodes["Greyhaven"]=newMapNode(1,null,{visits:3});
+    memory.map.nodes["Greyhaven|the vault"]=newMapNode(2,"Greyhaven",{visits:1,lastVisit:2,items:[{name:"Iron Key",taken:false}]});
+    memory.map.nodes["Greyhaven|the loft"]=newMapNode(2,"Greyhaven",{visits:1,lastVisit:2});
+    var g=buildGeoBlock();if(g.indexOf("the vault")<0)return "a stash-holding place vanished from the prompt";if(g.indexOf("the loft")>=0)return "a bare stale place still folds";
+    return true;
+  });
+  t("C14/C15/C16 tier hygiene: a third summary failure warns, futureResolveOverlap delegates to feNearDup, clock.js archives through memArchive",function(){
+    var w=auditWarns(function(){sceneRefsSummaryFailure(true);});if(!w.length)return "the hard-failure arm must warn";
+    var mem=__fsForTests.readFileSync(__rootForTests+"/memory.js","utf8"),fo=mem.slice(mem.indexOf("function futureResolveOverlap"),mem.indexOf("function futureResolveOverlap")+500);if(fo.indexOf("feNearDup(")<0)return "overlap re-derives the fingerprint";
+    var clk=__fsForTests.readFileSync(__rootForTests+"/clock.js","utf8");if(/memory\.archive\.expiredSchedules=\[\]/.test(clk))return "clock hand-rolls the archive";
     return true;
   });
 

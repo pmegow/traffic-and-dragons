@@ -118,7 +118,7 @@ rc |= sabotage.prove({
     { label: "#277-3: the quest-stale capture dies — the contract's census pin catches it (entry 30)",
       // The transitive census rejects the missing nested capture before the older direct pin.
       mustFail: "transitive NOTE_BUILDERS writes UNDECLARED worldState key(s): questLog",
-      find: "  for(i=0;i<ql.length;i++){if(ql[i])snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged});}",
+      find: "  for(i=0;i<ql.length;i++){if(ql[i])snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged,escalateNudged:ql[i].escalateNudged,objectiveNudged:ql[i].objectiveNudged});}",
       replace: "" },
 
     { label: "#277-3: the quest-stale restore is behaviorally dead — a transport loss burns the review note again (entry 30)",

@@ -213,6 +213,22 @@ function locFoldNodeRecords(canonNode,dupNode,canonLabel){
       for(j=0;j<canonNode.exits.length;j++)if(exitNameKey(canonNode.exits[j].name)===exitNameKey(dx[i].name)){xdup=true;break;}
       if(!xdup&&canonNode.exits.length<xcap)canonNode.exits.push(dx[i]);}
   }
+  /* audit 2026-09-18 C1: every field a node can carry beyond the base folds through ONE registry (NODE_CARRY_FIELDS,
+     memory.js) — the fold used to know a 2026-02 schema and silently dropped the duplicate's floor plan, market, hours,
+     wants and rumour mill. Adding a node field is one registry row, never a new fold clause here. */
+  var _cf=(typeof NODE_CARRY_FIELDS!=="undefined")?NODE_CARRY_FIELDS:[],_ci;
+  for(_ci=0;_ci<_cf.length;_ci++){var _f=_cf[_ci],_k=_f.k,_dv=dupNode[_k],_cv=canonNode[_k];
+    if(_dv===undefined||_dv===null)continue;
+    if(_f.fold==="canon-wins"){if(_cv===undefined||_cv===null)canonNode[_k]=JSON.parse(JSON.stringify(_dv));}
+    else if(_f.fold==="or"){canonNode[_k]=!!(_cv||_dv);}
+    else if(_f.fold==="newer"){if(!_cv||((_dv&&_dv.t)||0)>((_cv&&_cv.t)||0))canonNode[_k]=JSON.parse(JSON.stringify(_dv));}
+    else if(_f.fold==="concat"||_f.fold==="union-by-item"){var _dl=(_dv instanceof Array)?_dv:[],_cl=(_cv instanceof Array)?_cv.slice():[],_di;
+      for(_di=0;_di<_dl.length;_di++){var _row=_dl[_di],_dup=false;
+        if(_f.fold==="union-by-item"){var _ri;for(_ri=0;_ri<_cl.length;_ri++){if(String((_cl[_ri]&&_cl[_ri].item)||"").toLowerCase()===String((_row&&_row.item)||"").toLowerCase()){_dup=true;break;}}}
+        if(!_dup)_cl.push(_row);}
+      if(_f.cap&&_cl.length>_f.cap){if(typeof console!=="undefined")console.warn("[identity] "+canonLabel+" "+_k+" over cap ("+_f.cap+") after fold — oldest "+(_cl.length-_f.cap)+" dropped");_cl=_cl.slice(_cl.length-_f.cap);}
+      canonNode[_k]=_cl;}
+  }
   var ds=dupNode.stateNotes||[];
   if(ds.length){ /* chronological under LOC_STATE_CAP; overflow evicts OLDEST to the archive, loudly */
     canonNode.stateNotes=(canonNode.stateNotes||[]).concat(ds);
@@ -343,12 +359,17 @@ function locSplit(fusedKey,spec,R){
   var claimedN={},claimedI={},claimedP={},claimedG={};
   for(i=0;i<succ.length;i++){
     var s=succ[i],take=s.take||{};
-    var fresh={firstVisit:node.firstVisit,visits:0,description:null,parent:node.parent||null,npcs:[],items:[],size:null,travelMins:null};
+    var fresh=newMapNode(node.firstVisit,node.parent||null);/* audit C3: the one factory */
     if(node.soundscape)fresh.soundscape={};
     if(s.kind)fresh.kind=s.kind;
     if(s.endpoints)fresh.endpoints=s.endpoints.slice();
-    if(node.layout&&s.key===spec.primary)fresh.layout=JSON.parse(JSON.stringify(node.layout));/* #408: the room graph stays with the primary successor */
-    if(node.exits&&s.key===spec.primary)fresh.exits=JSON.parse(JSON.stringify(node.exits));/* #415: the open doors stay with the primary successor, the layout rule */
+    /* #408/#415 and audit C2: everything the node carries beyond the base (the NODE_CARRY_FIELDS registry, plus owner and
+       exits) stays with the PRIMARY successor — the split used to carry the floor plan and drop the house's owner. A
+       successor spec's own kind/endpoints win over the fused node's. */
+    if(s.key===spec.primary){var _cf=(typeof NODE_CARRY_FIELDS!=="undefined")?NODE_CARRY_FIELDS:[],_ci;
+      for(_ci=0;_ci<_cf.length;_ci++){var _k=_cf[_ci].k;if(node[_k]===undefined||node[_k]===null||fresh[_k]!==undefined)continue;fresh[_k]=JSON.parse(JSON.stringify(node[_k]));}
+      if(node.owner)fresh.owner=node.owner;
+      if(node.exits)fresh.exits=JSON.parse(JSON.stringify(node.exits));}
     for(j=0;j<(take.stateNotes||[]).length;j++){var ni=take.stateNotes[j];if(notes[ni]){fresh.stateNotes=fresh.stateNotes||[];fresh.stateNotes.push(notes[ni]);claimedN[ni]=1;}}
     for(j=0;j<(take.items||[]).length;j++){var ii=take.items[j];if(items[ii]){fresh.items.push(items[ii]);claimedI[ii]=1;}}
     for(j=0;j<(take.npcs||[]).length;j++){if(npcs.indexOf(take.npcs[j])>=0){fresh.npcs.push(take.npcs[j]);claimedP[take.npcs[j]]=1;}}
@@ -768,7 +789,8 @@ function sceneRefsEvidence(){var s=sceneRefsEnsure();return {actors:s.active.act
    re-latches. Ordering keeps fail-closed honest: this runs at the END of applySummaryExtract,
    AFTER w2ValidateSummary, so the clearing summary's own death claims validate UNDER the latch. */
 function sceneRefsSummarySuccess(){var s=sceneRefsEnsure();if(!s)return;if(s.sealed.length)s.sealed=[];s.active.acknowledged=true;if(s.overflow)s.overflow=null;}
-function sceneRefsSummaryFailure(){/* Typed evidence survives every retry and degraded fallback. */}
+function sceneRefsSummaryFailure(hard){/* Typed evidence survives every retry and degraded fallback — nothing is discarded here by design. audit C14: the caller's third-failure flag now has a reader: it says so, loudly, once the summary is stuck. */
+  if(hard&&typeof console!=="undefined")console.warn("[scene-refs] the summary has failed three times running — sealed scene evidence is RETAINED (nothing discarded); the extraction will be retried on the next window");}
 function _sceneRefFrames(){var s=worldState&&worldState.sceneRefs;if(!s)return[];var fs=[s.active].concat((s.sealed||[]).slice().reverse());if(s.overflow&&s.overflow.frame&&fs.indexOf(s.overflow.frame)<0)fs.push(s.overflow.frame);if(s.overflow&&s.overflow.frames)for(var _ofi=0;_ofi<s.overflow.frames.length;_ofi++)if(fs.indexOf(s.overflow.frames[_ofi])<0)fs.push(s.overflow.frames[_ofi]);/* #168R9: buffered frames stay readable evidence */return fs;}
 /* #201 (v1.669): THE handle canonicalizer — the t2032 Third Watcher deadlock was a one-character
    spelling drift ("bronze_masked_runner" cited against the registered "bronze-masked runner"):

@@ -107,8 +107,8 @@ rc |= sabotage.prove({
   cases: [
     { label: "LAYOUT leaves the engine-only tier — the standing doc (and the stable prompt half) carries it for every campaign",
       mustFail: "engine-only",
-      find: '"COMPANION_ITEM_RENAMED","WHISPER","LAYOUT","EXIT"]',
-      replace: '"COMPANION_ITEM_RENAMED","WHISPER","EXIT"]' },
+      find: '"COMPANION_ITEM_RENAMED","WHISPER","LAYOUT","EXIT","DEATH_ANSWER","ITEM_KEPT","COMPANION_ITEM_KEPT"]',
+      replace: '"COMPANION_ITEM_RENAMED","WHISPER","EXIT","DEATH_ANSWER","ITEM_KEPT","COMPANION_ITEM_KEPT"]' },
     { label: "a refused LAYOUT is dropped silently (no mutation-log line, no console line)",
       mustFail: "loud",
       find: 'if(!lr.ok){R.muts.push("⚠ [LAYOUT:] refused — "+lr.reason);if(typeof console!=="undefined")console.warn("[tags] LAYOUT refused at "+(lr.key||"the current node")+": "+lr.reason+" — nothing filed (#408)");continue;}',

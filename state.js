@@ -77,6 +77,15 @@ function loadProviderSettings(){
   var p=store.get(PROV_K);if(p&&PROVIDERS[p])activeProvider=p;
   try{var pk=store.get(PKEYS_K);if(pk)providerKeys=JSON.parse(pk)||{};}catch(e){providerKeys={};}
   try{var pm=store.get(PMDL_K);if(pm)providerModels=JSON.parse(pm)||{};}catch(e2){providerModels={};}
+  /* audit 2026-09-18 B3: the stored PROVIDER was validated, the stored MODEL never was — a device that kept a retired id
+     (the 2026-08-16 pruning) sent it on every turn, 404 is not a transient status, and the campaign was dead until the
+     player opened the provider modal and pressed Save. A model no provider lists (models[], fallbackModel, upgradeModel)
+     falls back to that provider's default, loudly — the render side has had this guard (resolveRenderModel) all along. */
+  (function(){var p2,changed=false;for(p2 in providerModels){if(!Object.prototype.hasOwnProperty.call(providerModels,p2))continue;var prov=PROVIDERS[p2],mid=providerModels[p2];if(!prov){delete providerModels[p2];changed=true;continue;}
+      var legal=(prov.models||[]).slice();if(prov.fallbackModel)legal.push(prov.fallbackModel);if(prov.upgradeModel)legal.push(prov.upgradeModel);
+      if(mid&&legal.indexOf(mid)<0){if(typeof console!=="undefined")console.warn("[provider] stored model '"+mid+"' for "+p2+" is no longer offered — falling back to "+prov.defaultModel);delete providerModels[p2];changed=true;
+        if(typeof showToast==="function")showToast("Model "+mid+" is retired — using "+prov.defaultModel);}}
+    if(changed)try{store.set(PMDL_K,JSON.stringify(providerModels));}catch(e3){if(typeof console!=="undefined")console.warn("[provider] could not persist the model fallback: "+(e3&&e3.message));}})();
   // Migrate the legacy single Anthropic key (AKK) into the provider map
   var legacy=store.get(AKK);if(legacy&&!providerKeys.anthropic)providerKeys.anthropic=legacy;
   if(providerKeys[activeProvider])apiKey=providerKeys[activeProvider];

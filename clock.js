@@ -408,10 +408,10 @@ function scheduleSweepExpired(){
   c.schedule=kept;
   for(i=0;i<out.length;i++){
     var ex=out[i];
-    if(typeof memory!=="undefined"&&memory){
-      if(!memory.archive)memory.archive={};
-      if(!memory.archive.expiredSchedules)memory.archive.expiredSchedules=[];
-      memory.archive.expiredSchedules.push({label:ex.label,dueMin:ex.dueMin,born:ex.born,expiredAtMin:c.min,turn:(typeof worldState!=="undefined"&&worldState)?worldState.turn:0});
+    if(typeof memory!=="undefined"&&memory){/* audit C16: the ONE archive accessor (JP0-5), never a hand-rolled category */
+      var _arch=(typeof memArchive==="function")?memArchive():null;
+      if(_arch){if(!_arch.expiredSchedules)_arch.expiredSchedules=[];_arch.expiredSchedules.push({label:ex.label,dueMin:ex.dueMin,born:ex.born,expiredAtMin:c.min,turn:(typeof worldState!=="undefined"&&worldState)?worldState.turn:0});}
+      else if(typeof console!=="undefined")console.warn("[clock] memArchive unavailable — expired schedule not archived: "+ex.label);
     }
     console.warn("[clock] scheduled event EXPIRED unresolved, "+(c.min-ex.dueMin)+"m overdue: \""+ex.label+"\" — retired to memory.archive.expiredSchedules (the GM never emitted [SCHEDULE_RESOLVED:] through the escalation window)");
     if(typeof showToast==="function")showToast("⏰ Scheduled event expired unresolved: "+ex.label);

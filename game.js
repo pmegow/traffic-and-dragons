@@ -41,7 +41,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // travel, so first-visit [LOCATION_DESC/SIZE/ITEM] and NPC last-seen stamps at the opening
   // location were silently dropped (fileLocationDesc/etc. early-return with no node).
   if(memory.map&&worldState.world&&worldState.world.location&&!memory.map.nodes[worldState.world.location]){
-    memory.map.nodes[worldState.world.location]={firstVisit:0,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+    memory.map.nodes[worldState.world.location]=newMapNode(0,null,{visits:1});
   }
   if(typeof guestbookSeedStart==="function")guestbookSeedStart();/* #173: the creation-time party stands at the opening node — turn-0 provenance (runs even when a blueprint pre-seeded the node: the party is there either way) */
   saveAll();showGame();syncUI();initAbilities();initSpells();
@@ -140,7 +140,11 @@ function suggestionVarietyLine(prev){
   return "\nPREVIOUS SUGGESTIONS (do not repeat any of them, and do not lean on the same spell again): "+prev.join(" | ");
 }
 function buildSuggestionSys(prevActs){
-  var s=buildSysPrompt();
+  /* audit B4: buildSysPrompt is not pure (a second RAG pass, sceneRefsEnsure, a retcon-pin expiry) and its result was
+     discarded on every ordinary turn since #304 — it is built ONLY on the no-capture fallback now (below). */
+  var cap=(typeof lastTurnSys==="function")?lastTurnSys():null;
+  var useCap=!!(cap&&cap.volatile&&Date.now()-cap.at<5*60*1000);
+  var s=useCap?null:buildSysPrompt();
   // Mirror callGM's gameplay-turn reinforce append (same resolveReinforce, same inputs): the
   // cache is a PREFIX match, so the suggestion call's stable must be byte-identical to what the
   // main turn actually sent — which includes the model-conditional reinforce on weak models.
@@ -164,8 +168,6 @@ function buildSuggestionSys(prevActs){
   /* #304 C: the suggestion call sends the TURN's volatile byte-for-byte (captured in callGM) so the
      second breakpoint reads at 0.1×; the mode block and its appends ride in `extra`, a third uncached
      block. The buttons still see the outcome — the GM's own last response is in the history pairs. */
-  var cap=(typeof lastTurnSys==="function")?lastTurnSys():null;
-  var useCap=!!(cap&&cap.volatile&&Date.now()-cap.at<5*60*1000);
   return {stable:useCap?cap.stable:s.stable+(rf||""),volatile:useCap?cap.volatile:s.volatile,extra:SUGGESTION_MODE_BLOCK+suggestionTacticalLine()+suggestionVarietyLine(prevActs)+mpPov};
 }
 // #305 ②: the FOURTH button — engine-authored from state, no token. Priority: rest when wounded
@@ -1418,7 +1420,7 @@ function importVillageResidents(list){
   var added=0,skipped=[],i;if(!worldState||!(list instanceof Array))return {added:0,skipped:[]};
   if(!worldState.npcs)worldState.npcs=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.npcs)memory.npcs={};
   var here=(worldState.world&&worldState.world.location)||"The Village";
-  if(!memory.map.nodes[here])memory.map.nodes[here]={firstVisit:null,visits:0,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+  if(!memory.map.nodes[here])memory.map.nodes[here]=newMapNode(null,null,{size:"small"});
   else if(!memory.map.nodes[here].size)memory.map.nodes[here].size="small";/* phase B: whispers, hours and wares all key on a SIZED settlement — the village is one */
   for(i=0;i<list.length;i++){var c=list[i],_libAt=null;if(c&&c.character&&typeof c.character==="object"){_libAt=(typeof c.updatedAt==="number")?c.updatedAt:null;c=c.character;}/* #6 E13: a library entry {character,updatedAt} or a bare sheet */if(!c||!c.name)continue;var nm=String(c.name).trim();
     if(worldState.character&&worldState.character.name===nm){skipped.push(nm);continue;}
@@ -1456,7 +1458,7 @@ function villageRefreshFromLibrary(entries){
 function villageHouseEnsure(name,here){
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   var parent=here||(worldState&&worldState.world&&worldState.world.location)||"The Village",hk=villageHouseKey(name,parent);
-  if(!memory.map.nodes[hk])memory.map.nodes[hk]={firstVisit:null,visits:0,description:null,parent:parent,npcs:[],items:[],size:"small",travelMins:null,owner:name};
+  if(!memory.map.nodes[hk])memory.map.nodes[hk]=newMapNode(null,parent,{size:"small",owner:name});
   else if(!memory.map.nodes[hk].owner)memory.map.nodes[hk].owner=name;
   return memory.map.nodes[hk];
 }
@@ -1503,10 +1505,10 @@ function villageCommonsSeed(base){
   var def=(typeof kindDef==="function")?kindDef():null;if(!worldState||!def||!def.commons)return {minted:0};
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   var v=base||(worldState.world&&worldState.world.location)||"The Village",i,minted=0;
-  if(!memory.map.nodes[v])memory.map.nodes[v]={firstVisit:null,visits:0,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+  if(!memory.map.nodes[v])memory.map.nodes[v]=newMapNode(null,null,{size:"small"});
   for(i=0;i<def.commons.length;i++){var leaf=def.commons[i],key=v+"|"+leaf;if(memory.map.nodes[key])continue;
     var isShop=!!(def.shopWords&&def.shopWords.test(leaf));
-    memory.map.nodes[key]={firstVisit:null,visits:0,description:null,parent:v,npcs:[],items:[],size:"small",travelMins:null};if(isShop)memory.map.nodes[key].shop=true;minted++;}
+    memory.map.nodes[key]=newMapNode(null,v,{size:"small"});if(isShop)memory.map.nodes[key].shop=true;minted++;}
   if(worldState.character&&worldState.character.name&&typeof villageHouseEnsure==="function"){var _hh=v+"|"+worldState.character.name+"'s house";if(!memory.map.nodes[_hh]){villageHouseEnsure(worldState.character.name,v);minted++;}}/* #6 E12: the hero's own house exists from day one — YOUR HOUSE and the stash key on it */
   if(typeof villageHallSeed==="function"&&def.hall)villageHallSeed(v);
   return {minted:minted};
@@ -1517,7 +1519,7 @@ function villageHallSeed(base){
   if(!worldState||typeof kindDef!=="function"||!kindDef().hall)return {mementos:0,wall:0};
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   var here=base||(worldState.world&&worldState.world.location)||"The Village",hk=villageHallKey(here),node=memory.map.nodes[hk];
-  if(!node)node=memory.map.nodes[hk]={firstVisit:null,visits:0,description:null,parent:here,npcs:[],items:[],size:"small",travelMins:null,hall:true};
+  if(!node)node=memory.map.nodes[hk]=newMapNode(null,here,{size:"small",hall:true});
   node.hall=true;var prior={},i;(node.mementos||[]).forEach(function(m){prior[m.resident]=m;});
   var npcs=worldState.npcs||[],mem=[],wall=[];
   for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n.resident||!n.charSheet)continue;var s=n.charSheet;
@@ -3080,7 +3082,7 @@ function applyBlueprint(bp){
       var loc=bp.locations[li];
       if(!memory.locations[loc.name])memory.locations[loc.name]={visited:[],notes:[]};// was {visits:0} — wrong shape crashed fileLocation on first travel (audit #8)
       if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-      if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]={firstVisit:null,visits:0,description:loc.description||null,parent:null,npcs:[],items:[]};
+      if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]=newMapNode(null,null,{description:loc.description||null});
     }
   }
   if(worldState._seedCommons){var _sc=worldState._seedCommons;delete worldState._seedCommons;if(typeof villageCommonsSeed==="function")villageCommonsSeed(typeof _sc==="string"?_sc:null);}/* #6 E11: the commons are pre-minted at creation, signed in or not */

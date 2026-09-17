@@ -87,8 +87,12 @@ function listLiteral(src,name){
   return m?(m[1].match(/[A-Za-z_$][A-Za-z0-9_$]*/g)||[]):[];
 }
 function questNestedRestored(api){
-  return api.indexOf("snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged})")>=0&&
-    api.indexOf("if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;")>=0;
+  /* audit 2026-09-18 B1: three title-keyed quest latches ride the narrow snapshot now (staleNudged, escalateNudged,
+     objectiveNudged) — every one must be snapshotted AND restored for the questLog write to count as declared. */
+  var fields=["staleNudged","escalateNudged","objectiveNudged"],i;
+  if(api.indexOf("snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged,escalateNudged:ql[i].escalateNudged,objectiveNudged:ql[i].objectiveNudged})")<0)return false;
+  for(i=0;i<fields.length;i++){var f=fields[i];if(api.indexOf("if(qr."+f+"===undefined)delete ql2[j]."+f+";else ql2[j]."+f+"=qr."+f+";")<0)return false;}
+  return true;
 }
 function exemptionStatus(key,owners){
   var ex=NOTE_LATCH_EXEMPT[key],required=NOTE_LATCH_REQUIRED_RATIONALES[key],i;

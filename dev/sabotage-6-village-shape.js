@@ -28,7 +28,7 @@ prove("game.js", [
     find: 'var sheet=JSON.parse(JSON.stringify(c));', replace: 'var sheet=c;',
     mustFail: "#6A residents: importVillageResidents" },
   { label: "the house node forgets its owner",
-    find: 'size:"small",travelMins:null,owner:name};', replace: 'size:"small",travelMins:null};',
+    find: 'newMapNode(null,parent,{size:"small",owner:name})', replace: 'newMapNode(null,parent,{size:"small"})',
     mustFail: "#6A residents: importVillageResidents" },
   { label: "applyBlueprint stamps every kind, adventure included (legacy saves gain a field)",
     find: 'if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind]){worldState.kind=bp.kind;', replace: 'if(bp.kind){worldState.kind=bp.kind;',

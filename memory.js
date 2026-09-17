@@ -267,17 +267,42 @@ function fileNpcKnowledge(name,fact,turn,preferNew){
   while(n.knowledge.length>12)memArchive().npcKnowledge.push({npc:name,fact:n.knowledge.shift(),turn:turn});/* #144A: evict to archive, never the void */
   return true;
 }
+/* audit 2026-09-18 C3: ONE node factory. Thirteen hand-rolled node literals in three shapes were the reason a merge dropped
+   floor plans and a split dropped owners — every minting site now calls this, and every field a node can carry is named
+   ONCE in NODE_CARRY_FIELDS with its fold policy (read by locFoldNodeRecords and locSplit in identity.js). */
+function newMapNode(firstVisit,parent,extra){
+  var n={firstVisit:(firstVisit===undefined?null:firstVisit),visits:0,description:null,parent:parent||null,npcs:[],items:[],size:null,travelMins:null},k;
+  if(extra)for(k in extra)if(Object.prototype.hasOwnProperty.call(extra,k))n[k]=extra[k];
+  return n;
+}
+/* The optional fields a node may carry beyond the factory base, with how a MERGE folds the duplicate's value into the
+   canonical: "canon-wins" keeps the canonical's value and takes the duplicate's only when the canonical has none;
+   "union-by-item" concatenates array rows deduped by lowercase .item (cap optional); "concat" appends (cap optional);
+   "newer" keeps whichever has the larger .t; "or" is a boolean OR. A SPLIT deep-copies every one of these to the primary
+   successor. Adding a node field = one row here. (owner, exits, stateNotes, guestbook, npcs, items and soundscape keep
+   their older, more specific fold logic in locFoldNodeRecords.) */
+var NODE_CARRY_FIELDS=[
+  {k:"layout",fold:"canon-wins"},{k:"kind",fold:"canon-wins"},{k:"endpoints",fold:"canon-wins"},{k:"hours",fold:"canon-wins"},{k:"resident",fold:"canon-wins"},{k:"design",fold:"canon-wins"},
+  {k:"wares",fold:"union-by-item"},{k:"wanted",fold:"union-by-item",cap:(typeof WANTED_CAP!=="undefined")?WANTED_CAP:4},
+  {k:"mentions",fold:"concat",cap:8},{k:"mementos",fold:"concat"},{k:"wall",fold:"concat"},
+  {k:"waresNone",fold:"newer"},{k:"hoursNone",fold:"newer"},
+  {k:"shop",fold:"or"},{k:"hall",fold:"or"}
+];
+/* memory.locations[k].visited was write-only and grew one integer per arrival forever (audit C4); node.visits carries the
+   count the engine uses, so the list is bounded to the newest VISITED_CAP turns. */
+var VISITED_CAP=50;
 function fileLocation(loc,note,turn){
   if(typeof locResolve==="function")loc=locResolve(loc);/* #156B: a merged/aliased name lands on the canonical node — a tombstoned key must never re-mint (guarded: identity.js loads later; some dev tools load memory.js alone) */
   // Legacy locations index
   if(!memory.locations[loc])memory.locations[loc]={visited:[],notes:[]};
   if(!memory.locations[loc].visited)memory.locations[loc].visited=[];// blueprint-seeded entries lacked this (audit #8)
   memory.locations[loc].visited.push(turn);
+  if(memory.locations[loc].visited.length>VISITED_CAP)memory.locations[loc].visited.splice(0,memory.locations[loc].visited.length-VISITED_CAP);/* audit C4: bounded */
   if(note){memory.locations[loc].notes.push(note);if(memory.locations[loc].notes.length>5)memory.locations[loc].notes.shift();}
   // Map node
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-  if(!memory.map.nodes[loc]){memory.map.nodes[loc]={firstVisit:turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};if(typeof _exitNoteCreated==="function")_exitNoteCreated(loc);/* #415: a NEW place this parse */}
-  memory.map.nodes[loc].visits++;
+  if(!memory.map.nodes[loc]){memory.map.nodes[loc]=newMapNode(turn,null);if(typeof _exitNoteCreated==="function")_exitNoteCreated(loc);/* #415: a NEW place this parse */}
+  memory.map.nodes[loc].visits++;memory.map.nodes[loc].lastVisit=turn;/* audit C11: the world filer stamps recency like the sub-location filer */
   guestbookNoteArrival(loc,turn);/* #173: QUEUED during a parse, committed post-handler (amendment ③) — the attendance snapshot must see same-response split/rejoin state settled */
   // Edge + arrival tracking
   var prev=worldState&&worldState.world?worldState.world.location:null;
@@ -294,7 +319,7 @@ function fileSubLocation(name,turn){
   if(typeof locResolve==="function")parent=locResolve(parent);/* #156B: compose under the CANONICAL parent — a stale world pointer (older-device blob) must not mint children under a tombstoned key */
   var key=parent+"|"+name;
   if(typeof locResolve==="function")key=locResolve(key);/* the composed sub key may itself be merged */
-  if(!memory.map.nodes[key]){memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:parent,npcs:[],items:[],size:null,travelMins:null};if(typeof _exitNoteCreated==="function")_exitNoteCreated(key);/* #415: a NEW place this parse */}
+  if(!memory.map.nodes[key]){memory.map.nodes[key]=newMapNode(turn,parent);if(typeof _exitNoteCreated==="function")_exitNoteCreated(key);/* #415: a NEW place this parse */}
   memory.map.nodes[key].visits++;memory.map.nodes[key].lastVisit=turn;// stamp recency so buildGeoBlock keeps a re-visited sub-location listed (audit E53)
   guestbookNoteArrival(key,turn);/* #173: same post-handler commit as the world arrival */
 }
@@ -464,7 +489,7 @@ function _waresWorldNode(turn){
   if(!worldState||!worldState.world||!worldState.world.location)return null;
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);
-  if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+  if(!memory.map.nodes[key])memory.map.nodes[key]=newMapNode(turn,null);
   return memory.map.nodes[key];
 }
 /* #6 F2: WHERE wares file. The adventure keeps the settlement (world) node; a kind with waresPerShop (the village) files on
@@ -530,7 +555,10 @@ function fileWanted(item,offer,by,turn){
   if(!node.wanted)node.wanted=[];
   var low=it.toLowerCase(),i;for(i=0;i<node.wanted.length;i++)if(String(node.wanted[i].item).toLowerCase()===low){node.wanted.splice(i,1);break;}
   var row={item:it,offer:String(offer||"").trim().slice(0,120),by:String(by||"").trim().slice(0,60),t:turn,min:(typeof clockNow==="function")?clockNow():0};
-  node.wanted.push(row);var cap=(typeof WANTED_CAP!=="undefined")?WANTED_CAP:4;while(node.wanted.length>cap)node.wanted.shift();
+  node.wanted.push(row);var cap=(typeof WANTED_CAP!=="undefined")?WANTED_CAP:4;fileWanted.lastEvicted=[];
+  /* audit C8: the one eviction in the map tier that said nothing — a standing offer dropped with zero trace. Loud now:
+     the console names it and the handler reads fileWanted.lastEvicted for the mutation log. */
+  while(node.wanted.length>cap){var _wev=node.wanted.shift();fileWanted.lastEvicted.push(_wev.item);if(typeof console!=="undefined")console.warn("[wanted] cap "+cap+" reached — oldest want evicted: \""+_wev.item+"\""+(_wev.by?" (by "+_wev.by+")":""));}
   return row;
 }
 function fileLocationState(note,turn){
@@ -540,7 +568,9 @@ function fileLocationState(note,turn){
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var txt=String(note==null?"":note).trim();if(!txt)return false;
   if(txt.length>200){console.warn("[map] LOCATION_STATE note clamped to 200 chars: \""+txt.slice(0,60)+"…\"");txt=txt.slice(0,200);}
-  if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:(key.indexOf("|")>=0?key.split("|")[0]:null),npcs:[],items:[],size:null,travelMins:null};
+  if(!memory.map.nodes[key]){/* a composite key minted here is a child of the CURRENT world node by construction (currentNodeKey composed it under the canonical world) — the parent is the live pointer, never the key's punctuation */
+    var _lsParent=(key.indexOf("|")>=0)?((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location):null;
+    memory.map.nodes[key]=newMapNode(turn,_lsParent);}
   var node=memory.map.nodes[key];
   if(!node.stateNotes)node.stateNotes=[];
   var norm=txt.toLowerCase(),i;
@@ -565,7 +595,7 @@ function fileLocationState(note,turn){
 function fileLocationItem(name,action,turn,place,room){
   if(!memory.map||!worldState||!worldState.world)return {ok:false,reason:"no map"};
   var key=currentNodeKey();/* UA9 */
-  if(place)key=worldState.world.location+"|"+String(place).trim();
+  if(place)key=((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location)+"|"+String(place).trim();/* audit C10: compose under the CANONICAL world */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var node=memory.map.nodes[key];
   if(!node)return {ok:false,reason:"no such place on the map",key:key};
@@ -961,15 +991,20 @@ function fileFutureEvent(when,who,what,setTurn){
 }
 function resolveFutureEvent(what){var i;
   what=String(what==null?"":what);if(!what.trim())return;// empty/whitespace needle would substring-match (and delete) the oldest event (audit E45)
-  for(i=0;i<memory.futureEvents.length;i++){if(String(memory.futureEvents[i].what)===what){memory.futureEvents.splice(i,1);return;}}// exact, remove
-  for(i=0;i<memory.futureEvents.length;i++){if(String(memory.futureEvents[i].what).indexOf(what)>=0){memory.futureEvents.splice(i,1);return;}}}// partial, remove
+  /* audit C7: every other mutation of this list archives and logs; the resolve path was the one silent deletion, and the
+     substring branch is the one a short model echo ("Meet Ameiko") hits — it now archives with the match kind and says so. */
+  var _feResolve=function(idx,by){var ev=memory.futureEvents.splice(idx,1)[0]||{};var rec={when:ev.when,who:ev.who,what:ev.what,setTurn:ev.setTurn,resolvedBy:by,needle:what,resolvedTurn:(typeof worldState!=="undefined"&&worldState)?worldState.turn:0};
+    memArchive().futureEvents.push(rec);
+    if(by==="substring"&&typeof console!=="undefined")console.warn("[memory] future event resolved by SUBSTRING match — \""+ev.what+"\" for needle \""+what+"\" (archived; an exact title would be safer)");};
+  for(i=0;i<memory.futureEvents.length;i++){if(String(memory.futureEvents[i].what)===what){_feResolve(i,"exact");return;}}// exact, remove
+  for(i=0;i<memory.futureEvents.length;i++){if(String(memory.futureEvents[i].what).indexOf(what)>=0){_feResolve(i,"substring");return;}}}// partial, remove
 
 // W4: deterministic resolve assist. It never resolves state. A pending event must share the
 // existing #29 fingerprint with one chapter sentence AND that sentence must assert an outcome;
 // plans, reminders, and mere mentions stay pending. The bounded queue only asks the GM to file
 // the existing resolution tag or leave the event alone.
 var FUTURE_OUTCOME_RE=/\b(?:arrived|reached|entered|visited|met|found|confronted|investigated|identified|examined|completed|finished|delivered|returned|recovered|rescued|defeated|killed|slain|escaped|bathed|resolved|settled|paid|collected|avoided|routed\s+around)\b/i;
-function futureResolveOverlap(a,b){var at=feTokens(a),bt=feTokens(b),shared=[],i;for(i=0;i<at.length;i++)if(bt.indexOf(at[i])>=0)shared.push(at[i]);if(shared.length>=2&&shared.length*2>=Math.min(at.length,bt.length))return true;return shared.length===1&&shared[0].length>=7&&Math.min(at.length,bt.length)<=2;}
+function futureResolveOverlap(a,b){if(feNearDup(a,b))return true;/* audit C15: the SHARED fingerprint, never a re-derived copy of its thresholds */var at=feTokens(a),bt=feTokens(b),shared=[],i;for(i=0;i<at.length;i++)if(bt.indexOf(at[i])>=0)shared.push(at[i]);if(shared.length>=2&&shared.length*2>=Math.min(at.length,bt.length))return true;return shared.length===1&&shared[0].length>=7&&Math.min(at.length,bt.length)<=2;}
 function futureResolveAssist(summary){
   if(!memory.futureEvents||!memory.futureEvents.length)return;
   var ss=String(summary||"").match(/[^.!?]+[.!?]?/g)||[],i,j,f,s;
@@ -1526,7 +1561,11 @@ function _ragChapterScore(inputText,pool){
   if(!out.length)return "";
   return "PAST CHAPTERS — compressed summaries of earlier stretches of this campaign, retrieved because they touch the people, places, or topics in play right now. This is HISTORY (oldest first): attitudes, alliances, and stakes may have CHANGED since — the CURRENT state blocks above are the truth and override anything here. Use these for continuity, callbacks, and how-the-story-got-here, never as current fact.\n"+out.join("\n")+"\n\n";
 }
-function memoryTOC(){
+/* audit 2026-09-18 B2 (owner ruling): the prompt does not carry every NPC ever met — opts.npcFilter(name) decides which
+   KNOWN NPCs ride the line (buildSysPrompt passes the roster rule: recent, HERE, mentioned or in the party); the rest are
+   counted, their full records stay in memory.npcs and return through the detail block the moment they are mentioned.
+   No opts (Table Talk) = the full list, byte-identical to before. */
+function memoryTOC(opts){
   var lines=[],i;
   // RAG flag ON puts the TOC on a diet (same flag as retrieval — RAG_MEMORY.md §3.4):
   // lore filtered to scene-relevant + the most recent 8 (cap 12), and the CHAPTER SUMMARIES
@@ -1536,7 +1575,7 @@ function memoryTOC(){
   var _diet=typeof ragEnabled==="function"&&ragEnabled();
   // B3: dead NPCs stay listed (they're still known) but carry the marker — an unannotated name
   // read as alive. No dead NPCs → byte-identical to the pre-B3 line (the flag-off TOC contract).
-  var nk=Object.keys(memory.npcs);if(nk.length){var _nkS=[],_nki;for(_nki=0;_nki<nk.length;_nki++){if(memoryNpcIsPlayer(nk[_nki]))continue;_nkS.push(memory.npcs[nk[_nki]]&&memory.npcs[nk[_nki]].dead?nk[_nki]+" (dead)":nk[_nki]);}if(_nkS.length)lines.push("KNOWN NPCs: "+_nkS.join(", "));}
+  var nk=Object.keys(memory.npcs);if(nk.length){var _nkS=[],_nki,_nkFold=0,_nkF=(opts&&typeof opts.npcFilter==="function")?opts.npcFilter:null;for(_nki=0;_nki<nk.length;_nki++){if(memoryNpcIsPlayer(nk[_nki]))continue;if(_nkF&&!_nkF(nk[_nki])){_nkFold++;continue;}_nkS.push(memory.npcs[nk[_nki]]&&memory.npcs[nk[_nki]].dead?nk[_nki]+" (dead)":nk[_nki]);}if(_nkS.length||_nkFold)lines.push("KNOWN NPCs: "+_nkS.join(", ")+(_nkFold?(_nkS.length?"; ":"")+"+"+_nkFold+" other"+(_nkFold===1?"":"s")+" on record (named when mentioned or when the party returns to where they were last seen)":""));}
   // P9 (audit): blueprint import pre-files every location, so a flat "VISITED:" line told
   // the GM the party had already been to end-game sites (familiarity/spoiler drift). Split
   // on the map node's visit count; entries with NO node data are legacy saves — keep them
@@ -1994,6 +2033,9 @@ function applySummaryExtract(extracted,identityTable){
       var _plNm=(worldState&&worldState.character&&worldState.character.name)||"";
       if(_plNm&&(snC.toLowerCase()===_plNm.toLowerCase()||snD.toLowerCase()===_plNm.toLowerCase())){if(typeof console!=="undefined")console.warn("[memory] sameNpc hint dropped — names the player: "+snC+" / "+snD);continue;}
       if(_isParty(snC)&&_isParty(snD)){if(typeof console!=="undefined")console.warn("[memory] sameNpc hint dropped — both are party members: "+snC+" / "+snD);continue;}
+      /* audit C5: the extractor is PRIMED to propose the provisional pair (the recorded-facts block serves the °tN key
+         by name) — the scan's #156 guard applies here too: a provisional identity never enters the merge queue */
+      if(typeof npcIsProvisional==="function"&&(npcIsProvisional(snC)||npcIsProvisional(snD))){if(typeof console!=="undefined")console.warn("[memory] sameNpc hint dropped — a provisional identity is never queued for merge (#156): "+snC+" / "+snD);continue;}
       _queueMergeHint(snC,snD);/* #128: shared queue discipline (once-ever latch both orders + pending dedupe) — one implementation for both producers */
     }
   }
@@ -2226,7 +2268,7 @@ function audioFileCandidates(candidates,scope){
   else if(!v.ok)why=v.reason;
   else if(!node)why="no current map node";
   else {
-    var target=locResolve(v.target),child=locResolve(worldState.world.location+"|"+v.target);
+    var target=locResolve(v.target),child=locResolve(locResolve(worldState.world.location)+"|"+v.target);/* audit C10: canonical world first */
     if(target!==key&&child!==key)why="classification target is not the accepted location";
   }
   if(!why){

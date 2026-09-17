@@ -890,7 +890,12 @@ function initSkills(){var s={},i;for(i=0;i<SKILLS.length;i++)s[SKILLS[i].id]=0;r
 function currentNodeKey(){
   var w=(typeof worldState!=="undefined"&&worldState)?worldState.world:null;
   if(!w)return null;
-  return w.sublocation?w.location+"|"+w.sublocation:w.location;
+  /* audit 2026-09-18 C10: compose under the CANONICAL world — fileSubLocation already did this (#156B: a stale world pointer
+     from an older-device blob must not mint children under a tombstoned key); every other sub-grain writer composed raw and
+     resolved the composite, which does nothing for a tombstoned parent. identity.js loads later; the guard keeps dev tools
+     that load helpers alone working. */
+  var loc=(typeof locResolve==="function")?locResolve(w.location):w.location;
+  return w.sublocation?loc+"|"+w.sublocation:loc;
 }
 // Party cap helpers (PARTY_MAX total = players + companions). playerCount is 1 today; multiplayer (#1) will make it dynamic.
 function partyCompanionCap(){return PARTY_MAX-1;}

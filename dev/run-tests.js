@@ -459,8 +459,10 @@ try {
   // #277-3 / entry-30 (2026-08-29): the census scans TOP-LEVEL writes only, so the nested
   // questLog[].staleNudged stamp lived outside it — pin the narrow title-keyed pair the way the
   // companion splitLoc.audited nested latch is pinned by the engine tests.
-  if (_apiLR.indexOf("snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged})") < 0)
-    _failLR("snapshotNoteLatches no longer captures questLog[].staleNudged — a dead provider call burns the quest review note for QUEST_STALE_TURNS (entry 30)");
+  if (_apiLR.indexOf("snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged,escalateNudged:ql[i].escalateNudged,objectiveNudged:ql[i].objectiveNudged})") < 0)
+    _failLR("snapshotNoteLatches no longer captures the three title-keyed quest latches (staleNudged, escalateNudged, objectiveNudged — audit 2026-09-18 B1) — a dead provider call burns a quest note for its whole cooldown (entry 30)");
+  if (_apiLR.indexOf("if(qr.escalateNudged===undefined)delete ql2[j].escalateNudged;else ql2[j].escalateNudged=qr.escalateNudged;") < 0 || _apiLR.indexOf("if(qr.objectiveNudged===undefined)delete ql2[j].objectiveNudged;else ql2[j].objectiveNudged=qr.objectiveNudged;") < 0)
+    _failLR("restoreNoteLatches no longer restores questLog[].escalateNudged / objectiveNudged (audit B1)");
   if (_apiLR.indexOf("if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;") < 0)
     _failLR("restoreNoteLatches no longer restores questLog[].staleNudged title-keyed (entry 30)");
 } catch (eLR) { console.error("#151 LATCH REGISTRY CONTRACT: " + (eLR && eLR.message)); process.exit(1); }

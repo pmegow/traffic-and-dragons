@@ -82,7 +82,11 @@ function buildGeoBlock(){
   // Known sub-locations
   // Only include sub-locations visited in the last 20 turns to keep the prompt lean in long campaigns.
   var subLocs=[],nKeys=Object.keys(memory.map.nodes),cutoff=worldState.turn-20;
-  for(i=0;i<nKeys.length;i++){var sn=memory.map.nodes[nKeys[i]];if(sn.parent&&locSame(sn.parent,wKey)&&((sn.lastVisit||sn.firstVisit)>=cutoff))subLocs.push(locDisplayLeaf(nKeys[i]));}/* filter on RECENCY, not first visit, so a frequently-used sub-location doesn't vanish 20 turns after first entry (audit E53); #156B: parent compare resolves (reparented children list correctly) and the display is the LEAF (fixes the 3-segment split("|")[1] bug) */
+  /* audit C12: a sub-location that HOLDS canon (a floor plan, present items, open doors, wares, an owner, state notes) stays
+     listed past the recency window — the GM could not name a place to re-enter it while the filers kept refusing "already
+     on record" against it. The bare, stale ones still fold (prompt lean). */
+  var _subCanon=function(n){return !!(n.layout||(n.exits&&n.exits.length)||n.owner||(n.wares&&n.wares.length)||(n.stateNotes&&n.stateNotes.length)||(n.items&&n.items.some(function(it){return it&&!it.taken&&it.qty!==0;})));};
+  for(i=0;i<nKeys.length;i++){var sn=memory.map.nodes[nKeys[i]];if(sn.parent&&locSame(sn.parent,wKey)&&(((sn.lastVisit||sn.firstVisit)>=cutoff)||_subCanon(sn)))subLocs.push(locDisplayLeaf(nKeys[i]));}/* filter on RECENCY, not first visit, so a frequently-used sub-location doesn't vanish 20 turns after first entry (audit E53); #156B: parent compare resolves (reparented children list correctly) and the display is the LEAF (fixes the 3-segment split("|")[1] bug) */
   if(subLocs.length)lines.push("Known sub-locations: "+subLocs.join(", "));
   // Connections + arrival
   if(memory.map.lastArrivalFrom)lines.push("Arrived from: "+locResolve(memory.map.lastArrivalFrom));
@@ -476,10 +480,12 @@ function buildQuestEscalation(){
   for(i=0;i<worldState.questLog.length;i++){
     var q=worldState.questLog[i];
     if(q.status!=="active"||q.allDoneSince==null)continue;
+    if(q.escalateNudged!=null&&worldState.turn-q.escalateNudged<QUEST_NUDGE_REFIRE_TURNS)continue;/* audit B1: latched per quest, re-fires every QUEST_NUDGE_REFIRE_TURNS */
     var n=worldState.turn-q.allDoneSince;
     if(n>=QUEST_ESCALATE_TURNS&&n>stale){stale=n;pick=q;}
   }
   if(!pick)return"";
+  pick.escalateNudged=worldState.turn;
   /* #205: this note outranks the mid-prompt line, so it carries the same end-condition caveat —
      without it the stronger channel re-creates the t2101 errand-closes-the-quest failure. */
   return"[ENGINE NOTE: Quest '"+pick.title+"' has had every required objective complete for "+stale+" turns. In THIS response either emit [QUEST:"+pick.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]) — but ONLY if the checked objectives include the quest's end condition, not merely errands — or add the missing objective (the end condition first) via [QUEST_STEP:"+pick.title+"|<objective>].]";
@@ -495,10 +501,12 @@ function buildQuestObjectiveNudge(){
   for(i=0;i<worldState.questLog.length;i++){
     var q=worldState.questLog[i];
     if(q.status!=="active"||q.noObjSince==null)continue;
+    if(q.objectiveNudged!=null&&worldState.turn-q.objectiveNudged<QUEST_NUDGE_REFIRE_TURNS)continue;/* audit B1 */
     var n=worldState.turn-q.noObjSince;
     if(n>=QUEST_OBJECTIVE_NUDGE_TURNS&&n>stale){stale=n;pick=q;}
   }
   if(!pick)return"";
+  pick.objectiveNudged=worldState.turn;
   return"[ENGINE NOTE: Quest '"+pick.title+"' has been active for "+stale+" turns with NO recorded objectives — the player has no checklist. In THIS response emit [QUEST_STEP:"+pick.title+"|<its end condition — the outcome that finishes the quest>] first, then further concrete steps from the leads the story has already established.]";
 }
 // #191ⓑ (owner-designed 2026-08-14): letter-of-the-law objectives — a quest satisfied IN SPIRIT
@@ -844,8 +852,10 @@ function buildDenouementPending(){
 // #304 C: the turn's exact {stable, volatile} as sent — the suggestion call seconds later must send the
 // same bytes in the same blocks for the volatile breakpoint to hit. Module-local; a fresh turn overwrites it.
 var _lastTurnSys=null;
-function lastTurnSysCapture(sys){_lastTurnSys={stable:sys.stable,volatile:sys.volatile,at:Date.now(),turn:(worldState&&worldState.turn)||0};}
-function lastTurnSys(){return _lastTurnSys;}
+function lastTurnSysCapture(sys){_lastTurnSys={stable:sys.stable,volatile:sys.volatile,at:Date.now(),turn:(worldState&&worldState.turn)||0,campId:(worldState&&worldState.campId)||null};}
+/* audit B13: the capture is CAMPAIGN-scoped — nothing in production ever cleared it (lastTurnSysClear had test callers only),
+   so a load, new game or import inside the 5-minute window could replay another campaign's volatile half. */
+function lastTurnSys(){if(_lastTurnSys&&worldState&&(_lastTurnSys.campId||null)!==(worldState.campId||null))return null;return _lastTurnSys;}
 function lastTurnSysClear(){_lastTurnSys=null;}
 // #308 ①: the MONTAGE contract — one shot when the player takes the montage button.
 function buildMontageNote(){
@@ -1046,7 +1056,10 @@ function buildPresenceAudit(){
   var last=worldState.lastPresenceAudit||0;
   if(worldState.turn-last<PRESENCE_AUDIT_TURNS)return"";
   var withParty=[],all=livingPartyCompanions(),i;
-  for(i=0;i<all.length;i++){if(!(all[i].charSheet&&all[i].charSheet.splitLoc&&all[i].charSheet.splitLoc.location))withParty.push(all[i].name);}
+  /* audit B10: a companion the reunion note is folding back THIS turn is not audited the same turn — two adjacent notes
+     asked opposite things about one subject (acknowledge the reunion / consider re-splitting them). */
+  var _reun=(worldState.pendingReunion&&worldState.pendingReunion.turn===worldState.turn&&worldState.pendingReunion.names)||[];
+  for(i=0;i<all.length;i++){if(_reun.indexOf(all[i].name)>=0)continue;if(!(all[i].charSheet&&all[i].charSheet.splitLoc&&all[i].charSheet.splitLoc.location))withParty.push(all[i].name);}
   if(!withParty.length)return"";
   worldState.lastPresenceAudit=worldState.turn;
   return"[ENGINE NOTE — PRESENCE CHECK (not a player action): the tracker records these party members as WITH the player in the current scene: "+withParty.join(", ")+". For EACH one who is NOT physically present where you are narrating (stayed behind, waiting elsewhere, separated for any reason), emit [PARTY_SPLIT:Name|Location] or [PARTY_SPLIT:Name|Location|Sublocation] NOW — the record cannot heal itself, and an unrecorded separation eventually makes the engine assert their presence until the story breaks. If everyone listed is genuinely present, emit nothing.]";
@@ -1437,7 +1450,8 @@ function expireRelationshipDowngrades(){
 }
 function buildRelationshipDowngradeNudge(){
   if(!worldState)return"";
-  expireRelationshipDowngrades();
+  /* audit B11: the prepare hook on this builder's NOTE_SHAPES row runs expireRelationshipDowngrades once per turn, OUTSIDE
+     the latch snapshot; the in-body twin ran it a second time inside the snapshot window and is gone. */
   var q=worldState.relDowngrades,i;if(!q||!q.length)return"";
   if(worldState.combat)return"";
   var d=null;
@@ -1972,7 +1986,7 @@ function buildArcWallNudge(){
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
 var NOTE_LATCH_FIELDS=["audioAsk","subLeavePing",/* #393 */"tradeRefusedPing",/* #6 F9 */"tradePing",/* #407 */"returnPing",/* #6 C2 */"exchangeAsk",/* #6 D2 */"moneyAsk",/* #375 */"agendaOfferAsk",/* #373 */"checkWithdrawnPing",/* #391 */"suggestMissPing",/* #344 */"registerPing",/* #355 */"agendaBirth","agendaAnnounce",/* #330 */"hoursAsk",/* #207 ③ */"layoutAsk","layoutAskArmed",/* #408 ② */"plotArmorPing",/* #319 */"whisperAsk",/* #317 */"montagePing","wrapUpPing",/* #308 */"recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
-var NOTE_NESTED_LATCHES=["questLog[].staleNudged","charSheet.splitLoc.audited","charSheet.agenda.lastBeat",/* #330; the agendaAsked latch retired with the recruitment ask (#347) */"conditions[].until","memory.futureEvents[]._asked","memory.futureEvents[]._askPending","sessionLog"];
+var NOTE_NESTED_LATCHES=["questLog[].staleNudged","questLog[].escalateNudged","questLog[].objectiveNudged",/* audit B1: the two quest nudges latch per quest now */"charSheet.splitLoc.audited","charSheet.agenda.lastBeat",/* #330; the agendaAsked latch retired with the recruitment ask (#347) */"conditions[].until","memory.futureEvents[]._asked","memory.futureEvents[]._askPending"];/* audit B14: sessionLog is read, never latched — removed */
 function snapshotNoteLatches(){
   var snap={t:{},split:[],quests:[],conds:[]},i;
   snap.future=(memory.futureEvents||[]).map(function(f){return {what:f.what,setTurn:f.setTurn,asked:f._asked,pending:f._askPending};});
@@ -1991,7 +2005,7 @@ function snapshotNoteLatches(){
   for(i=0;i<party.length;i++){var cs=party[i].charSheet;if(cs&&cs.splitLoc)snap.split.push({name:party[i].name,audited:cs.splitLoc.audited});}
   snap.agenda=[];for(i=0;i<party.length;i++){var _acs=party[i].charSheet;if(_acs)snap.agenda.push({name:party[i].name,asked:_acs.agendaAsked,lastBeat:_acs.agenda?_acs.agenda.lastBeat:undefined});}/* #330 nested latches */
   var ql=worldState.questLog||[];
-  for(i=0;i<ql.length;i++){if(ql[i])snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged});}
+  for(i=0;i<ql.length;i++){if(ql[i])snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged,escalateNudged:ql[i].escalateNudged,objectiveNudged:ql[i].objectiveNudged});}/* audit B1: the two new quest latches ride the same narrow snapshot */
   return snap;
 }
 function restoreNoteLatches(snap){
@@ -2013,7 +2027,9 @@ function restoreNoteLatches(snap){
   var ql2=worldState.questLog||[];
   for(i=0;i<(snap.quests||[]).length;i++){var qr=snap.quests[i];
     for(j=0;j<ql2.length;j++){if(ql2[j]&&ql2[j].title===qr.title){
-      if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;}}}
+      if(qr.staleNudged===undefined)delete ql2[j].staleNudged;else ql2[j].staleNudged=qr.staleNudged;
+      if(qr.escalateNudged===undefined)delete ql2[j].escalateNudged;else ql2[j].escalateNudged=qr.escalateNudged;
+      if(qr.objectiveNudged===undefined)delete ql2[j].objectiveNudged;else ql2[j].objectiveNudged=qr.objectiveNudged;}}}
 }
 var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildPlotArmorNote,/* #319 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 */buildRegisterNote,/* #355 */buildSuggestMissNote,/* #344 */buildCheckWithdrawnNote,/* #391 */buildSubLeaveNudge,/* #393 */buildTradeRefusedNudge,/* #6 F9 */buildTradeNote,/* #407 */buildReturnNote,/* #6 C2 */buildResidentExchangeNote,/* #6 D2 */buildMoneyNote,/* #375 */buildAgendaOfferNote,/* #373 */buildMontageNote,buildWrapUpNote,/* #308 */buildWhispersNote,/* #317 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildHoursNote,buildLayoutNote,/* #408 ② *//* #207 ③ */buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildAgendaBirthNote,buildAgendaAnnounceNote,buildAgendaBeatNote,/* #330: character colour yields to every audit above */buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge,buildSoundscapeNote];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // #309: THE SHAPE REGISTRY (owner ruling 2026-09-03 — one-in-one-out was REJECTED after the
@@ -2047,8 +2063,8 @@ var NOTE_SHAPES={
   buildOrphanCombatNudge:{shape:"one-shot-ask",latch:["orphanCombat"],combat:"fires",village:"fires",ack:["COMBAT_START"]},
   buildCombatStaleNudge:{shape:"cooldown-reminder",latch:["combatStalePing"],combat:"fires",village:"fires",ack:["ENEMY_SLAIN","ENEMY_HP","COMBAT_END"]},
   buildUndefinedItemNudge:{shape:"one-shot-ask",latch:["itemDefCandidate","itemDefAsked"],combat:"silent",village:"fires",ack:["ITEM_DEF"]},
-  buildQuestEscalation:{shape:"cooldown-reminder",latch:["none"],combat:"silent",village:"silent",ack:["QUEST","QUEST_STEP"]},
-  buildQuestObjectiveNudge:{shape:"cooldown-reminder",latch:["none"],combat:"silent",village:"silent",ack:["QUEST_STEP"]},
+  buildQuestEscalation:{shape:"cooldown-reminder",latch:["questLog[].escalateNudged"],combat:"silent",village:"silent",ack:["QUEST","QUEST_STEP"]},/* audit B1: latched — was an every-turn note above every audit */
+  buildQuestObjectiveNudge:{shape:"cooldown-reminder",latch:["questLog[].objectiveNudged"],combat:"silent",village:"silent",ack:["QUEST_STEP"]},
   buildQuestStaleNudge:{shape:"cooldown-reminder",latch:["questLog[].staleNudged"],combat:"silent",village:"silent",ack:["QUEST_STEP","QUEST"]},
   buildSplitAudit:{shape:"audit",latch:["charSheet.splitLoc.audited"],combat:"silent",village:"fires",ack:["PARTY_SPLIT"]},
   buildReunionNote:{shape:"transient",latch:["pendingReunion"],combat:"silent",village:"fires",ack:["PARTY_SPLIT"]},
@@ -2094,7 +2110,7 @@ var NOTE_SHAPES={
   buildDeadStatusNudge:{shape:"fork-note",latch:["deadStatusConflicts"],combat:"silent",village:"fires",ack:["NPC"]},
   buildMpEndNote:{shape:"cooldown-reminder",latch:["mpEnded"],combat:"fires",village:"fires",ack:["none"]},
   buildMoodAudit:{shape:"audit",latch:["lastMoodAudit"],combat:"silent",village:"fires",ack:["NPC","NO_CHANGE"]},
-  buildSayComplianceNudge:{shape:"cooldown-reminder",latch:["sessionLog"],combat:"fires",village:"fires",ack:["SAY"]},
+  buildSayComplianceNudge:{shape:"transient",latch:["none"],combat:"fires",village:"fires",ack:["SAY"]},/* audit B14: reads the newest assistant message, writes nothing — an unlatched note that one compliant response silences */
   buildSceneCastNote:{shape:"one-shot-ask",latch:["castAsk"],combat:"silent",village:"fires",ack:["SCENE_CAST"]},
   buildPersonDriftNudge:{shape:"cooldown-reminder",latch:["personDrift"],combat:"fires",village:"fires",ack:["none"]},
   buildCanonContradictionNudge:{shape:"one-shot-ask",latch:["canonContradiction","canonContraNudged"],combat:"silent",village:"fires",ack:["NPC_SUPERSEDE","NPC"]},
@@ -2137,7 +2153,8 @@ function buildEngineNotes(){
   for(i=0;i<NOTE_BUILDERS.length;i++){
     var fn=NOTE_BUILDERS[i],name=noteBuilderName(fn)||("#"+i),row=NOTE_SHAPES[name]||{};
     if(row[campaignKind()]==="silent")continue;/* #6 phase B: ONE mode gate — the kind's name is the registry axis; a silent note never runs, so its latch is untouched */
-    if(row.prepare)row.prepare();
+    if(row.prepare)row.prepare();/* archive hygiene runs every turn, combat included (#181) — it is bookkeeping, not a note */
+    if(worldState.combat&&row.combat==="silent")continue;/* audit B5: the registry's combat axis was declaration-only (54 builders hand-duplicated the gate); enforced here, so a new builder cannot declare silent and fire */
     var snap=snapshotNoteLatches(),n=fn();if(!n)continue;
     var size=chars+n.length+(out.length?2:0),reason=names.length>=NOTE_DELIVERY_CAP?"count":size>NOTE_CHAR_BUDGET?"characters":"";
     // An indivisible first note may exceed the soft character budget; it must not starve forever.
@@ -2171,7 +2188,23 @@ function buildSysPrompt(){
   // presenting the dead as alive and NOTHING in "the CURRENT state blocks above" overrode it
   // (the Rinn Toldrath class). Cap 10 most recent; the full record stays in memory.npcs.
   var _decList=[];
-  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npcIsDead(npc)){_decList.push({n:npc.name,t:(typeof npc.dead==="number"?npc.dead:0)});continue;}var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=npc.partyMember?relByEntity[npc.name.toLowerCase()]:null;
+  /* audit 2026-09-18 B2 (owner ruling 2026-09-16): the prompt does not carry every NPC ever met. An NPC stays on the roster
+     line (and in KNOWN NPCs) while they are in the party, seen/mentioned/met within ROSTER_RECENT_TURNS, last seen at the
+     party's CURRENT world node, or named in the recent messages. Everyone else is COUNTED, never forgotten: the full record
+     (bond, mood, aliases, knowledge) stays in worldState.npcs/memory.npcs and returns to the prompt the moment the name is
+     mentioned or the party returns to where they were last seen — the sheriff wronged 100 turns ago still holds his grudge. */
+  var _rosterRecentTxt=sessionLog.filter(function(m){return m&&!m.bk;}).slice(-6).map(function(m){return String(m.role==="user"?stripEngineNotes(m.content):m.content);}).join(" ").toLowerCase();
+  var _rosterHere=(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location;
+  var _rosterKeep=function(npc){if(!npc||!npc.name)return false;if(npc.partyMember)return true;var m=(memory&&memory.npcs&&memory.npcs[npc.name])||{};
+    var seen=Math.max(typeof m.lastSeenTurn==="number"?m.lastSeenTurn:-1,typeof m.lastMentioned==="number"?m.lastMentioned:-1,(typeof npc.statusTurn==="number"&&npc.statusTurn>0)?npc.statusTurn:-1,(typeof npc.met==="number"&&npc.met>0)?npc.met:-1);
+    if(seen<0)return true;/* no recency evidence at all (a legacy record with no stamps) — never fold on absence of evidence */
+    if(worldState.turn-seen<=ROSTER_RECENT_TURNS)return true;
+    var at=m.lastSeenAt?String(m.lastSeenAt).split("|")[0]:"";if(at&&(typeof locSame==="function"?locSame(at,_rosterHere):at===_rosterHere))return true;
+    if(_rosterRecentTxt.indexOf(String(npc.name).toLowerCase())>=0)return true;var al=npc.aliases||m.aliases||[],k;for(k=0;k<al.length;k++)if(al[k]&&_rosterRecentTxt.indexOf(String(al[k]).toLowerCase())>=0)return true;
+    return false;};
+  var _rosterKeepName=function(name){var w=(typeof wsNpcByName==="function")?wsNpcByName(name):null;return _rosterKeep(w||{name:name,aliases:((memory&&memory.npcs&&memory.npcs[name])||{}).aliases||[]});};
+  var _rosterFold=0;
+  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npcIsDead(npc)){_decList.push({n:npc.name,t:(typeof npc.dead==="number"?npc.dead:0)});continue;}if(!_rosterKeep(npc)){_rosterFold++;continue;}var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=npc.partyMember?relByEntity[npc.name.toLowerCase()]:null;
     /* v1.372: build the parenthetical from PRESENT parts only. Mood may now be legitimately empty
        (a character whose current mood was never recorded, or was repaired away), and the old
        unguarded concatenation rendered that as a stray leading comma — "Morwen Zethran (, Wife…)".
@@ -2188,7 +2221,8 @@ function buildSysPrompt(){
     var npcBits=[],npcMoodAge=worldState.turn-(npc.statusTurn||0);
     if(npc.status&&npc.statusTurn>0&&npcMoodAge>=0&&npcMoodAge<MOOD_AUDIT_TURNS)npcBits.push("mood: "+npc.status);
     if(npcRel)npcBits.push("bond: "+npcRel);else if(!npc.partyMember&&npc.rel&&npc.rel!=="unknown")npcBits.push("NPC stance: "+npc.rel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
-    ns.push(npc.name+npcAka+(npcBits.length?" ("+npcBits.join(", ")+")":""));}if(ns.length)nstr=ns.join("; ");}
+    ns.push(npc.name+npcAka+(npcBits.length?" ("+npcBits.join(", ")+")":""));}if(ns.length)nstr=ns.join("; ");
+    if(_rosterFold)nstr+=(ns.length?"; ":"")+"+"+_rosterFold+" other"+(_rosterFold===1?"":"s")+" on record (long unseen — named here again when mentioned or when the party returns to where they were last seen; their bonds and moods are kept)";}
   if(_decList.length){
     _decList.sort(function(a,b){return b.t-a.t;});
     var _decShow=_decList.slice(0,10),_decStr=[],_dsi;
@@ -2307,7 +2341,7 @@ function buildSysPrompt(){
     cb="COMBAT ACTIVE (Round "+cm.round+(cfs.length>1?"; "+cfs.length+" foes — use [ENEMY_HP:Name|-X] to address each":"")+"):\n"+cbLines.join("\n")+(cbDown.length?"\nOut of the fight: "+cbDown.join(", "):"")+"\n\n";}
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
   var erasBlock=buildErasBlock();/* #148 Phase 2 — the always-on spine ABOVE the recent-chapter window; "" until the first era compiles */
-  var memToc=memoryTOC();
+  var memToc=memoryTOC({npcFilter:_rosterKeepName});/* audit B2: the KNOWN NPCs list follows the roster rule; Table Talk's bare memoryTOC() keeps the full list */
   // RAG episodic excerpts (#27 Phase 1) — "" unless worldState.ragMemory is on. VOLATILE
   // half ONLY: retrieval changes per turn and must never touch the cached stable block.
   var ragBlock=typeof ragRetrieve==="function"?ragRetrieve(typeof lastAction==="string"&&lastAction?lastAction:""):"";
@@ -2766,17 +2800,29 @@ function cleanTxt(t){
   // known-name stripping let the invention reach the displayed prose — and TTS read it aloud.
   // Any [ALLCAPS…] tag shape (colon or bare, the __tagUnknownScan shape) is display-stripped
   // with a loud warn. Lowercase/mixed-case bracket prose ("[sic]") is deliberately untouched.
-  return t.replace(_CT_TAGS,"").replace(_CT_BARE,"")
-    .replace(/\[[A-Z][A-Z_]{2,}(?::[^\]]*)?\]/g,function(_m){
+  /* audit 2026-09-18 A16: the prompt's own bracket markers ([COMPLETED] in the quest block, [EXPENDED — …] in the spell
+     block) share the GM's tag syntax; a parroted one is stripped here, loudly, before the dash normaliser can disguise it. */
+  return t.replace(/\[(?:COMPLETED|EXPENDED)(?:[\s—–,-][^\]]*)?\]/g,function(_m){
+      if(typeof console!=="undefined")console.warn("[tags] prompt marker parroted by the GM — stripped from display: "+_m.slice(0,60));
+      return "";
+    })
+    .replace(_CT_TAGS,"").replace(_CT_BARE,"")
+    /* audit A10: the floor is ONE letter after the first (the __tagUnknownScan shape) — HP and XP, the two-letter names,
+       used to fall through both nets with an empty body and reach the narrator. */
+    .replace(/\[[A-Z][A-Z_]{1,}(?::[^\]]*)?\]/g,function(_m){
       if(typeof console!=="undefined")console.warn("[tags] unknown tag stripped from display (invented vocabulary — see the __tagUnknownScan warn for the parse side): "+_m.slice(0,60));
       return "";
     })
-    .replace(/\[[A-Z][A-Z_]{2,}(:[^\]]*)?\s*$/,"")
+    .replace(/\[[A-Z][A-Z_]{1,}(:[^\]]*)?\s*$/,function(_m){
+      if(typeof console!=="undefined")console.warn("[tags] truncated tag fragment stripped from display (the response was cut mid-tag, #132): "+_m.slice(0,40));
+      return "";
+    })
     /* #6 F11: an orphan tag TAIL — "|field|field]" left behind when the GM chained several bodies into one tag and the
        [NAME:…] strip above consumed only the first — is never prose; strip it loudly. Needs a pipe-led, bracket-free run
-       with at least one more pipe and a closing ], so "either | or" and "[sic]" are untouched. */
+       with at least one more pipe and a closing ], so "either | or" and "[sic]" are untouched. audit A9: the warn is honest —
+       only [WARES:] chains are parsed; every other family's tail is recorded as ignored in the mutation log by applyMutsTable. */
     .replace(/\|[^\[\]\n|]{1,120}\|[^\[\]\n]{0,240}\]/g,function(_m){
-      if(typeof console!=="undefined")console.warn("[tags] orphan tag tail stripped from display (a chained tag emission — the parser filed it; see the [wares] warn): "+_m.slice(0,60));
+      if(typeof console!=="undefined")console.warn("[tags] orphan tag tail stripped from display — NOT parsed (only [WARES:] chains are filed; the mutation log names the ignored tail): "+_m.slice(0,60));
       return "";
     })
     .replace(_CT_DASH,", ").replace(_CT_NL,"\n\n").trim();
@@ -3130,7 +3176,7 @@ function applyMuts(text,opts){
     if(_rvStripped.length&&typeof console!=="undefined")console.warn("[tags] #264 review-call whitelist stripped "+_rvStripped.length+" out-of-scope tag name(s): "+_rvStripped.join(", ")+" (allowed: "+opts.allow.join(", ")+")");
   }
   var _w2Plan=(typeof w2PrepareResponse==="function")?w2PrepareResponse(text):{ordinary:text,txns:[]};
-  var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true}):{muts:[],turn:worldState.turn,text:_w2Plan.ordinary,errors:[]},_w2i;
+  var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true}):{muts:[],turn:worldState.turn,errors:[]},_w2i;
   if(_rvStripped&&_rvStripped.length)R.muts.push("⚠ review-call whitelist: out-of-scope tags stripped — "+_rvStripped.join(", "));/* #264: loud at the player, not just the console */
   for(_w2i=0;_w2i<_w2Plan.txns.length;_w2i++){
     var _w2t=_w2Plan.txns[_w2i];
@@ -3636,7 +3682,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
     console.warn("[truncation] "+prov.id+" response cut at the output-token cap (finish: "+_fin+", kind: "+_kind+") — any tag being emitted at the cut is LOST (#132)");
     if(typeof showToast==="function")showToast("⚠ Response hit the length limit — its tail was cut");
     if(typeof erCrumb==="function")erCrumb("turn-truncated",{p:prov.id,f:_fin,k:_kind});
-  }}catch(e3){}}
+  }}catch(e3){console.warn("[truncation] parseFinish threw — the truncation warning for this "+prov.id+" response was LOST (a scissored tag may have gone unreported, #132): "+(e3&&e3.message));}}/* audit B9: the only channel that reports a cut response must never itself vanish silently */
   return prov.parseResponse(data);
 }
 
@@ -3667,8 +3713,13 @@ async function describePortraitImage(base64Url,charName){
     {type:"text",text:"Describe this character's appearance for their sheet."+(charName?" Their name is "+charName+".":"")},
     {type:"image",source:{type:"base64",media_type:mm[1],data:mm[2]}}
   ]}]};
-  var r=await fetch(PROVIDERS.anthropic.endpoint,{method:"POST",headers:PROVIDERS.anthropic.headers(key),body:JSON.stringify(body)});
-  if(!r.ok)throw new Error("Claude "+r.status);
-  var data=await r.json();
-  return (PROVIDERS.anthropic.parseResponse(data)||"").trim();
+  /* audit 2026-09-18 B6: this was the one model call outside the transport contract — no deadline (a hung vision call hung
+     forever), no providerHttpError (an exhausted balance surfaced as "Claude 400", the B15 class), no recordUsage (every
+     description's tokens were invisible to the usage panel, the #30 undercount class). Same guarantees as callGM now. */
+  var prov=PROVIDERS.anthropic;
+  var res=await _fetchTextDeadline(prov.endpoint,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)},(typeof CALLGM_TIMEOUT_MS==="number")?CALLGM_TIMEOUT_MS:60000);
+  if(!res.ok){var _pm=String(res.raw||"").slice(0,400);throw providerHttpError(prov,res.status,_pm);}
+  var data;try{data=JSON.parse(res.raw);}catch(e){throw new Error("Claude returned an unreadable portrait description ("+(e&&e.message)+")");}
+  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,"portrait",model);}catch(e2){console.warn("[usage] portrait-description telemetry parse failed — this call is uncounted: "+(e2&&e2.message));}}
+  return (prov.parseResponse(data)||"").trim();
 }

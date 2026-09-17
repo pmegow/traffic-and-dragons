@@ -38,6 +38,8 @@ var SUMMARY_KEEP_EX=3;     // #28: max exchanges retained in sessionLog after a 
 var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest exchange always kept).
 var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this many turns triggers the engine-note escalation in sendAction (see buildQuestEscalation, api.js)
 var QUEST_STALE_TURNS=30; // #191ⓑ (owner-ruled 2026-08-14): an ACTIVE quest with no QUEST/QUEST_STEP tag activity for this many turns gets the outcomes-review engine note (buildQuestStaleNudge, api.js); also the re-fire cooldown and the #17 stalled-WATCH threshold. Legacy rows without lastTouch read infinitely old (the #133 ruling)
+var QUEST_NUDGE_REFIRE_TURNS=5; // audit 2026-09-18 B1: the escalation and objective nudges latch per quest and re-fire only every N turns — an unlatched pair burned 1–2 of the 3 delivery slots forever and starved every builder below them
+var ROSTER_RECENT_TURNS=40; // audit 2026-09-18 B2 (owner ruling 2026-09-16): an NPC unseen, unmentioned and not HERE for this many turns leaves the roster line and the KNOWN NPCs list (counted, never forgotten — the record returns on mention or on returning to where they were last seen)
 var QUEST_OBJECTIVE_NUDGE_TURNS=3; // #129: an active quest with ZERO objectives for this many turns triggers the checklist engine note (see buildQuestObjectiveNudge, api.js)
 var CORE_MEMORY_CAP=25;     // #40: defining-moments list cap, PER SHEET since #63 (v1.304) — generous, not infinite; overflow evicts to memory.archive with a loud warn (a full list means the triggers fire too easily, not that we need more storage)
 var RENDER_PTR_CAP=60;      // #30: cap on worldState.renders — POINTERS only ({f,t,k} ≈ 40 bytes), never image bytes. A monotonic per-render list rides the sync blob, so it gets a bound like every other accumulator (standing audit dimension); oldest drop out first. 60 ≈ every render of a long campaign at a realistic render rate, ~2.4KB.
@@ -219,7 +221,7 @@ var TAG_REINFORCE="\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these b
 // have, and attention is the scarce resource on the free tier). Appended to the STABLE half
 // by callGM — constant per model id, so cache-safe; resolveReinforce (api.js) returns "" for
 // Sonnet/Opus, keeping their prompt BYTE-IDENTICAL to today (zero cache invalidation).
-var ANTHROPIC_HAIKU_REINFORCE="\n\n=== STATE DISCIPLINE — rules this model tends to bend ===\n1. HP RECOVERY: whenever ANY character regains hit points for ANY reason — healing magic, a potion, first aid, a night's rest, natural recovery — emit [HP:+N] (player) or [COMPANION_HP:Name|+N] (party member) in the SAME response. If the sheet above shows 0 HP but you are narrating that character up and moving, the sheet is WRONG until you emit the recovery tag. Never leave a healed character at 0 HP on the sheet.\n2. LOCATION: whenever the party travels to a different named place, emit [LOCATION:name] in that response. Entering a distinct area inside it (a tavern, a chamber, a cave) emits [SUBLOCATION:name]; leaving it emits [SUBLOCATION_LEAVE]. Narrated travel without the tag strands the world state at the old location.\n3. SPELL CANON: the CANONICAL SPELL RULES block is hard physics. No spell ever reaches beyond its listed range, affects more than its listed targets, or lasts past its listed duration — no matter the circumstances, the stakes, or how it seemed to work before. If an attempted cast exceeds its canon, the spell simply FAILS: narrate the failure and offer what the canon actually allows.\n";/* item 3 added v1.248 — the t361 Haiku incident (Message conversation at three miles) */
+/* audit 2026-09-18 B8: ANTHROPIC_HAIKU_REINFORCE deleted — no provider lists a Haiku id, the picker builds from models[] only, and the block was appended to the CACHED stable half for a model nothing could select. MODEL_PRICING keeps its Haiku row for legacy stored overrides. */
 // Shared usage extractor for OpenAI-compatible providers (openai/grok/ollama).
 // UA13 (v1.280): normalized to ANTHROPIC unit semantics — `in` is UNCACHED input only.
 // OpenAI's raw prompt_tokens INCLUDES cached tokens, so we subtract cached_tokens here;
@@ -305,7 +307,7 @@ var PROVIDERS={
     // (byte-identical prompt — Sonnet needs no reinforcement, validated at v1.32 and re-money-
     // tested at v1.238). Pure function of the model id, so the stable half stays constant
     // within a campaign; a mid-campaign model switch is an expected one-time UA5 purity warn.
-    reinforce:function(model){return /haiku/i.test(model||"")?ANTHROPIC_HAIKU_REINFORCE:"";}
+    reinforce:null/* audit B8: no model-conditional reinforce for anthropic since the Haiku block was retired */
   },
   openai:{
     id:"openai", label:"ChatGPT (OpenAI)", keyHint:"sk-...",
@@ -402,7 +404,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.949";
+var APP_VERSION="v1.950";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
