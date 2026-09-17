@@ -414,14 +414,31 @@ try {
     _failSR("rescueCorruptStore no longer raises a typeof-guarded toast — the degrade went silent on the player channel");
   if (_rcSR.indexOf("session log") < 0 || _rcSR.indexOf("long-term memory") < 0)
     _failSR("rescueCorruptStore no longer names the degraded tier — the player cannot tell which recall layer was lost");
-  // ③ nothing in the shipped app deletes a rescue key.
+  // ③ nothing in the shipped app deletes a rescue key. Audit D12: the campaign LIST's rescue slot
+  //    (CAMP_META_RESCUE_K = "tnd_camps_v1_corrupt", written by getCampMeta's E72 catch arm) joins
+  //    STORE_RESCUE_K and CLOCK_RESCUE_K here — it was written by one arm, read by nothing and
+  //    deleted by nothing, with no line anywhere telling the next hygiene pass it is a rescue key
+  //    rather than litter. Both the constant and the raw literal are scanned: a reaper written
+  //    against the string must trip the same wire as one written against the name.
   var _shipSR = _fsSR.readdirSync(_ROOTSR).filter(function (f) { return /\.js$/.test(f); });
   if (_shipSR.indexOf("state.js") < 0) _failSR("the shipped-file scan found no state.js — the scan is broken, not the code");
+  var _rescueKeysSR = [
+    { re: /store\.del\(\s*STORE_RESCUE_K/, name: "store-rescue" },
+    { re: /store\.del\(\s*CLOCK_RESCUE_K/, name: "clock-rescue" },
+    { re: /store\.del\(\s*CAMP_META_RESCUE_K/, name: "campaign-list rescue" },
+    { re: /(store\.del|localStorage\.removeItem)\(\s*["']tnd_camps_v1_corrupt["']/, name: "campaign-list rescue" }
+  ];
   for (var _iSR = 0; _iSR < _shipSR.length; _iSR++) {
     var _srcSR = _fsSR.readFileSync(_pathSR.join(_ROOTSR, _shipSR[_iSR]), "utf8");
-    if (/store\.del\(\s*STORE_RESCUE_K/.test(_srcSR))
-      _failSR(_shipSR[_iSR] + " deletes a store-rescue key — the preserved bytes are the ONLY copy until a recovery flow ships");
+    for (var _kSR = 0; _kSR < _rescueKeysSR.length; _kSR++) {
+      if (_rescueKeysSR[_kSR].re.test(_srcSR))
+        _failSR(_shipSR[_iSR] + " deletes a " + _rescueKeysSR[_kSR].name + " key — the preserved bytes are the ONLY copy until a recovery flow ships");
+    }
   }
+  // ④ the campaign-list rescue key is NAMED (D12) — an anonymous literal is how it stayed invisible
+  //    to the policy for a year. The constant must live beside its two siblings in state.js.
+  if (!/var CAMP_META_RESCUE_K="tnd_camps_v1_corrupt";/.test(_stSR))
+    _failSR("CAMP_META_RESCUE_K is gone from state.js — the campaign-list rescue slot must be a named key beside STORE_RESCUE_K/CLOCK_RESCUE_K, or the next hygiene pass reaps it as litter (D12)");
 } catch (eSR) { console.error("JP0-4 CORRUPT-STORE RESCUE CONTRACT: " + (eSR && eSR.message)); process.exit(1); }
 
 // ── #151 LATCH REGISTRY CONTRACT (drift pass order 7, 2026-08-08) ────────────────────────
@@ -1225,7 +1242,15 @@ try {
   var _csSw = _csState.slice(_csState.indexOf("function switchToCampaign("), _csState.indexOf("function dedupeActiveCampSlots("));
   if (/store\.set\(\s*(WSK|SLK|MEM_KEY)\b/.test(_csSw)) _csFail("switchToCampaign writes a live key with a raw store.set — the #337 half-switch class.");
   if (_csSw.indexOf("removeCampaignLocalCopy(id)") < 0 || _csSw.indexOf("removeCampaignLocalCopy(id)") > _csSw.indexOf("snapshotActiveCamp(")) _csFail("switchToCampaign must free the target slot BEFORE the outgoing snapshot (the two-blob peak).");
-  console.log("[#337] campaign slot writer contract OK — transport paths use writeCampaignSlot/writeLiveKeys; the switch frees the target slot before the snapshot");
+  // Audit D3: the scan window used to stop just ABOVE snapshotActiveCamp, and that is exactly where
+  // three raw store.set(campSlotKey(…)) calls survived #337 — a quota throw between them left ws@N
+  // beside mem@N-k, the half-slot D5 then pushed to the cloud as canon. The writer's window now
+  // includes the function that writes a slot on every switch, new game, import and page unload.
+  var _csSnap = _csState.slice(_csState.indexOf("function snapshotActiveCamp("), _csState.indexOf("function storageUsedChars("));
+  if (_csSnap.length < 200) _csFail("could not locate snapshotActiveCamp…storageUsedChars in state.js");
+  if (/store\.set\(\s*campSlotKey\(/.test(_csSnap)) _csFail("snapshotActiveCamp writes a campaign slot with a raw store.set — a quota throw mid-triple leaves a half-written slot (audit D3); route it through writeCampaignSlot.");
+  if (_csSnap.indexOf("writeCampaignSlot(") < 0) _csFail("snapshotActiveCamp no longer routes its slot write through writeCampaignSlot — the all-or-nothing guarantee is the whole point of #337.");
+  console.log("[#337] campaign slot writer contract OK — transport paths AND snapshotActiveCamp use writeCampaignSlot/writeLiveKeys; the switch frees the target slot before the snapshot");
 } catch (e) { console.error("CAMPAIGN SLOT WRITER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── MENU TIER CONTRACT (#289, v1.764) ────────────────────────────────────────

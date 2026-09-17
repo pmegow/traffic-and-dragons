@@ -3682,9 +3682,19 @@ function deathSceneChoose(choice){
   if(choice!=="back")return null;
   var gift=ds.answer||null,cause=ds.cause||"slain";
   var snap=checkpointHeld();if(!snap)return {action:"no-camp"};
-  delete worldState.deathScene;
   var r=checkpointRestore(snap,{cause:cause});
-  if(!r.ok){console.warn("[death] restore failed: "+r.reason);return {action:"failed",reason:r.reason};}
+  /* Audit D2: a refused restore leaves the LIVE campaign untouched (checkpointRestore no longer
+     blanks the session log or long-term memory on its way out), so this path must change nothing
+     either: the death scene STAYS — the player is standing with Death and can still walk onward —
+     nothing is saved, nothing is synced, and the reason reaches the player, not just the console.
+     The deletion of worldState.deathScene used to happen BEFORE the restore, so a refusal stranded
+     the player with no scene and no respawn. */
+  if(!r.ok){
+    console.warn("[death] the walk back was refused: "+r.reason);
+    if(typeof showToast==="function")showToast("☠ Couldn't wake you at the camp — "+r.reason+". Nothing was changed; you can still walk onward.");
+    return {action:"failed",reason:r.reason};
+  }
+  delete worldState.deathScene;
   if(gift){/* MANDATORY CANON, filed on the RESTORED world — memory came back from camp, so this lands after */
     if(typeof fileLore==="function")fileLore("Death's answer (walk "+r.respawn+"): "+gift);
     if(typeof fileCoreMemory==="function")fileCoreMemory("death-gift",worldState.character.name,"On the walk back from death, "+worldState.character.name+" asked one question and Death answered: \""+gift+"\"");
