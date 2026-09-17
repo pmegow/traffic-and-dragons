@@ -149,6 +149,23 @@ function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");eachMenuE
 function loadLegacySettings(){legacyCharsOn=store.get(LEGACY_ON_K)==="1";var pv=parseInt(store.get(LEGACY_PCT_K)||"5",10);legacyChancePct=(isNaN(pv)||pv<1)?5:Math.min(100,pv);eachMenuEl("legacy-cb",function(el){el.checked=legacyCharsOn;});eachMenuEl("legacy-pct",function(el){el.value=legacyChancePct;});}
 function saveLegacySettings(){store.set(LEGACY_ON_K,legacyCharsOn?"1":"");store.set(LEGACY_PCT_K,String(legacyChancePct));}
 
+/* audit E2 (2026-09-18): the Sync modal's place patch, as TAGS for the real filer instead of a raw
+   `world.location=` write. PURE — returns the tag text applyMuts should run, or "" when nothing moved:
+     • world node changed          → [LOCATION:name] (resolution, twin-conflict refusal, node mint, the
+                                     travel edge, lastArrivalFrom and sublocation=null all follow), plus
+                                     a [SUBLOCATION:] when the patch also names a sub under the new parent
+     • world node same, sub named  → [SUBLOCATION:name]
+     • world node same, sub blanked→ [SUBLOCATION_LEAVE]
+   Names are player free text, so a stray "]" (or a pasted tag) is scrubbed before it can become a second
+   tag — the modal patches a PLACE, never the tag stream. */
+function syncLocationPatchTags(w,loc,sub){
+  function clean(s){return String(s==null?"":s).replace(/[\[\]\r\n]+/g," ").replace(/\s+/g," ").trim();}
+  var here=clean(w&&w.location),hereSub=clean(w&&w.sublocation),L=clean(loc),S=clean(sub);
+  if(L&&L!==here)return "[LOCATION:"+L+"]"+(S?"\n[SUBLOCATION:"+S+"]":"");
+  if(S&&S!==hereSub)return "[SUBLOCATION:"+S+"]";
+  if(!S&&hereSub)return "[SUBLOCATION_LEAVE]";
+  return "";
+}
 function showSyncModal(){
   var ex=document.getElementById("sync-modal");if(ex)ex.remove();if(!worldState){showToast("No active game.");return;}
   /* #14: re-rendering modal — × wired per render below, so wireClose:false */
@@ -165,8 +182,9 @@ function showSyncModal(){
       +"<div><label class='sc-lbl'>Gold</label><input id='sc-gold' type='number' class='sc-inp' value='"+c.gold+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>XP</label><input id='sc-xp' type='number' class='sc-inp' value='"+c.xp+"' "+ro+"/></div>"
       +((typeof manaMax==="function"&&manaMax(c)>0)?"<div><label class='sc-lbl'>Mana (max "+manaMax(c)+")</label><input id='sc-mana' type='number' min='0' max='"+manaMax(c)+"' class='sc-inp' value='"+manaCur(c)+"' "+ro+"/></div>":"")/* #110: the manual patch path for a desynced pool */
-      +"<div><label class='sc-lbl'>Level</label><input id='sc-level' type='number' min='1' max='10' class='sc-inp' value='"+c.level+"' "+ro+"/></div>"
+      +"<div><label class='sc-lbl'>Level</label><input id='sc-level' type='number' min='1' max='"+classXpLevels().length+"' class='sc-inp' value='"+c.level+"' "+ro+"/></div>"/* audit E11: the spinner's cap IS the curve length the handler accepts */
       +"<div><label class='sc-lbl'>Location</label><input id='sc-loc' type='text' class='sc-inp' value='"+escHtml(w.location)+"' "+ro+"/></div>"
+      +"<div><label class='sc-lbl'>Sub-location (blank = none)</label><input id='sc-sub' type='text' class='sc-inp' value='"+escHtml(w.sublocation||"")+"' "+ro+"/></div>"/* audit E2: the sub is real state; without a field here a patched location left it hanging under the old parent */
       +"<div><label class='sc-lbl'>Time flavor (clock is authoritative)</label><input id='sc-time' type='text' class='sc-inp' value='"+escHtml(w.time)+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>Weather</label><input id='sc-weather' type='text' class='sc-inp' value='"+escHtml(w.weather)+"' "+ro+"/></div></div>"
       +"<div style='margin-bottom:12px;'><label class='sc-lbl'>Inventory (one per line)</label><textarea id='sc-inv' class='sc-inp' style='height:80px;resize:vertical;' "+ro+">"+escHtml(c.inventory.join("\n"))+"</textarea></div>"
@@ -180,14 +198,34 @@ function showSyncModal(){
       var hp2=parseInt(document.getElementById("sc-hp").value),mhp2=parseInt(document.getElementById("sc-maxhp").value);
       var gld2=parseInt(document.getElementById("sc-gold").value),xp2=parseInt(document.getElementById("sc-xp").value),lvl2=parseInt(document.getElementById("sc-level").value);
       var loc2=document.getElementById("sc-loc").value.trim(),tm2=document.getElementById("sc-time").value.trim(),wx2=document.getElementById("sc-weather").value.trim();
+      var _scSub=document.getElementById("sc-sub"),sub2=_scSub?_scSub.value.trim():((w2.sublocation)||"");
       var rawInv=document.getElementById("sc-inv").value.trim();
       var inv2=rawInv?rawInv.split("\n").map(function(x){return x.trim();}).filter(function(x){return x.length>0;}):[];
+      var notes=[];/* audit E2: a refused or adjusted patch is reported in the modal, never silently dropped */
       if(!isNaN(mhp2)&&mhp2>0)c2.maxHp=mhp2;if(!isNaN(hp2))c2.hp=Math.min(c2.maxHp,Math.max(0,hp2));
       if(!isNaN(gld2))c2.gold=Math.max(0,gld2);if(!isNaN(xp2))c2.xp=Math.max(0,xp2);
-      if(!isNaN(lvl2)&&lvl2>=1&&lvl2<=classXpLevels().length)c2.level=lvl2;/* the curve length (20) is the cap since C6 — the old <=10 silently refused L11+ */if(loc2)w2.location=loc2;if(tm2)w2.time=tm2;if(wx2)w2.weather=wx2;
+      /* audit E2: the LEVEL goes through the same grant path a played level-up uses. checkLevelUp is
+         XP-driven, so a raise lifts XP to the target level's threshold first (visible — the XP field
+         repaints below) and then lands the class/archetype features, the HP, the stat-bump queue and
+         the spell-tier picks. A level-DOWN has no un-grant path anywhere in the engine, so it is
+         refused LOUDLY rather than written raw. The curve length (20) is the cap since C6. */
+      if(!isNaN(lvl2)&&lvl2>=1&&lvl2<=classXpLevels().length&&lvl2!==c2.level){
+        if(lvl2<c2.level){notes.push("Level not lowered — granted features cannot be taken back here.");if(typeof console!=="undefined")console.warn("[sync] level "+c2.level+" → "+lvl2+" refused: no un-grant path exists (audit E2)");}
+        else{var _need=classXpLevels()[lvl2-1];if(typeof _need==="number"&&c2.xp<_need){c2.xp=_need;notes.push("XP raised to "+_need+" for level "+lvl2+".");}
+          if(typeof checkLevelUp==="function")checkLevelUp({land:true});}
+      }
+      /* audit E2: the PLACE goes through the real filer — one tag, one applyMuts, so resolution, the
+         twin-conflict refusal, the node mint, the travel edge and sublocation=null all happen. The
+         #264 whitelist is belt-and-braces: this text is engine-built, and nothing else may ride it. */
+      var _locTags=syncLocationPatchTags(w2,loc2,sub2);
+      if(_locTags){var _lr=applyMuts(_locTags,{allow:["LOCATION","SUBLOCATION","SUBLOCATION_LEAVE"]}),_lm=(_lr&&_lr.muts)||[],_li;
+        for(_li=0;_li<_lm.length;_li++)if(/REFUSED/i.test(String(_lm[_li])))notes.push(String(_lm[_li]));}
+      if(tm2)w2.time=tm2;if(wx2)w2.weather=wx2;
       var _scMana=document.getElementById("sc-mana");if(_scMana){var mn2=parseInt(_scMana.value);if(!isNaN(mn2))c2.mana=Math.max(0,Math.min(manaMax(c2),mn2));}/* #110 */
-      c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63) */syncUI();saveAll();renderSync();
-      var msg=document.getElementById("sc-msg");if(msg){msg.textContent="Applied.";msg.style.color="var(--grn)";}
+      c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63) */
+      if(typeof wornPrune==="function")wornPrune(c2);/* audit E4/#388: nothing is worn that is not carried */
+      syncUI();saveAll();renderSync();
+      var msg=document.getElementById("sc-msg");if(msg){msg.textContent=notes.length?("Applied. "+notes.join(" ")):"Applied.";msg.style.color=notes.length?"var(--warn)":"var(--grn)";}
     });}
   }
   renderSync();

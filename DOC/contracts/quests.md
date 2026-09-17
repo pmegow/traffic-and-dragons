@@ -27,6 +27,8 @@ Quests are GM-emergent and **player-gated**. Live quests live in `worldState.que
 
 `checkCompanionLevelUp(cs)` called from the `[COMPANION_XP:]` handler — companions auto-level silently (HP gain + class features, same formula) with a toast and system message, but no archetype or stat-bump modals.
 
+**`checkLevelUp` is the ONE way a level changes (audit E2, 2026-09-18).** The Sync modal's Level field used to write `character.level` raw, so a patched level got no HP, no class/archetype rows, no bump queue and no spell picks. It now lifts XP to the target level's threshold (visibly — the XP field repaints, and the modal says so) and calls `checkLevelUp({land:true})`. A level *down* is REFUSED there with a line in the modal and a console warning: no un-grant path exists anywhere in the engine, and a raw decrement would leave the sheet carrying features the level no longer earns.
+
 **First-encounter memory:** the first time an NPC enters `memory.npcs`, a `firstEncounter` snippet is stored (cleaned response prose, ~280 chars, sentence boundary). Written once, never overwritten; preserved across `[NPC_MERGE:]`. Injected as "First met:" in `memoryNpcDetail()`.
 
 ## 12. Alignment drift
