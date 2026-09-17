@@ -79,20 +79,43 @@ function campCloudPushSilent(id,cb){
   // For the active campaign use live keys, not the snapshot (snapshot is only
   // written on campaign switch and may be many turns stale).
   var isActive=id===getActiveCampId();
+  var name=campDisplayName(id);
   var ws=isActive?store.get(WSK):store.get(campSlotKey(id,"ws"));
-  var sl=isActive?store.get(SLK):store.get(campSlotKey(id,"sl"))||"[]";
-  var mem=isActive?store.get(MEM_KEY):store.get(campSlotKey(id,"mem"))||"{}";
+  var sl=isActive?store.get(SLK):store.get(campSlotKey(id,"sl"));
+  var mem=isActive?store.get(MEM_KEY):store.get(campSlotKey(id,"mem"));
   if(!ws){if(cb)cb(false);return;}
+  // Audit D5: `||"{}"` was a LIE about the most valuable tier in the app. A slot whose memory key is
+  // missing (the D3 half-written slot, a storage eviction, an interrupted download) pushed
+  // memory:{} to the server WITH a real turn number, and the next reconcile on any device adopted
+  // that empty memory over a healthy local one and saveAll persisted the wipe. A missing memory slot
+  // is UNKNOWN, not empty — refuse, say so, and let Pull or a re-save fix it. Same for an
+  // unparseable one: JSON.parse used to throw out of this callback with nothing shown at all.
+  function _refuse(what,detail){
+    console.warn("[camps] cloud push REFUSED for "+name+" — "+what+" (audit D5)"+(detail?": "+detail:""));
+    if(typeof showToast==="function")showToast("⚠ "+name+" wasn't pushed — "+what+". Load or re-save it first.");
+    if(cb)cb(false);
+  }
+  var memObj,slObj;
+  if(mem==null){_refuse("its memory slot is missing — push refused rather than uploading empty memory");return;}
+  try{memObj=JSON.parse(mem);}catch(e){_refuse("its memory slot could not be read","unparseable: "+(e&&e.message));return;}
+  if(!memObj||typeof memObj!=="object"||Array.isArray(memObj)){_refuse("its memory slot is not a memory — push refused");return;}
+  try{slObj=JSON.parse(sl==null?"[]":sl);}catch(e){_refuse("its session log could not be read","unparseable: "+(e&&e.message));return;}
+  if(!Array.isArray(slObj)){_refuse("its session log is not a session log — push refused");return;}
   // v1.240: parseWorldState, NOT bare JSON.parse — since v1.227 the stored save carries the
   // transcript LZ-compressed ({__lz:…}). Shipping that raw poisoned the server blob: every
   // device that adopted it silently failed the story rebuild until UA3's tolerant inflate
   // self-healed it on the NEXT load (observed live 2026-07-10, the Ammut F5 incident).
   var wsObj;try{wsObj=parseWorldState(ws);}catch(e){if(cb)cb(false);return;}
-  // #7③ (#23① sweep): this push deliberately bypasses the CAS turn guard — it IS the manual
-  // rescue tool — but it must not clobber a NEWER server copy silently. Probe the server's turn
-  // first and confirm; null (offline / no server row / no turn field) means "cannot judge" and
-  // proceeds exactly as before, so the connect-time bulk push of local-only campaigns is untouched.
-  storageAdapter.getServerCampaignTurn(id,function(serverTurn){
+  // #7③ (#23① sweep): this push must not clobber a NEWER server copy silently. Probe the server's
+  // turn first and confirm; null (offline / no server row / the turn route not deployed) means
+  // "cannot judge" and proceeds exactly as before, so the connect-time bulk push of local-only
+  // campaigns is untouched.
+  // Audit D4: the probe reads the STATE row (getServerStateTurn), not the campaign LIST — #377
+  // measured in the field that the list turn LAGS the state row the CAS guard compares, so the old
+  // gate could pass while the server was in fact ahead. And a probe alone was never enough: between
+  // it and the POST another device can write. The probed turn now rides along as baseTurn, so the
+  // server's own CAS guard decides and a rename can no longer overwrite a newer cloud copy.
+  storageAdapter.getServerStateTurn(id,function(serverTurn){
   var localTurn=(wsObj&&wsObj.turn)||0;
   if(serverTurn!=null&&serverTurn>localTurn){
     if(!confirm("The server holds NEWER state for this campaign (turn "+serverTurn+" vs local turn "+localTurn+").\n\nOverwrite the server copy with this device's older save?")){if(cb)cb(false);return;}
@@ -101,8 +124,17 @@ function campCloudPushSilent(id,cb){
   // live-state contamination) and applies the shared NPC-portrait strip — the PC portrait
   // stays inline (audit E27), the same single map _syncNow uses, so the copies can't fork
   // again. narrativeHtml no longer shipped (audit #18) — replay rebuilds from the transcript.
-  storageAdapter.pushCampaignState(id,{worldState:wsObj,sessionLog:JSON.parse(sl),memory:JSON.parse(mem)},function(err){
-    if(err){if(cb)cb(false);return;}
+  storageAdapter.pushCampaignState(id,{worldState:wsObj,sessionLog:slObj,memory:memObj,baseTurn:(typeof serverTurn==="number"?serverTurn:undefined)},function(err){
+    if(err){
+      /* D4: a refused push is the CAS guard doing its job — the loudest possible outcome, never a
+         shrug. campSaveRename pushes with a NULL cb, so the announcement has to live here. */
+      if(String(err).indexOf("409")>=0){
+        console.warn("[camps] cloud push REFUSED for "+name+" — the server moved ahead between the check and the upload (CAS 409); nothing was overwritten");
+        if(typeof showToast==="function")showToast("⚠ "+name+" wasn't pushed — another device has newer state in the cloud. Pull it first, then push.");
+      }
+      else console.warn("[camps] cloud push failed for "+name+": "+err);
+      if(cb)cb(false);return;
+    }
     var meta=getCampMeta(),i;for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
     // Also push portrait if this campaign has one — fire-and-forget, silent on failure (as before)
     var portrait=wsObj.character&&wsObj.character.portrait;
@@ -212,6 +244,19 @@ function _applyLoadedCampaign(){
   if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
   if(typeof migratePendingCompanionSheets==="function")migratePendingCompanionSheets();// backfill sheet-less party members in existing saves (audit P2)
 }
+/* Audit D5, the download half: `JSON.stringify(data.memory||{})` wrote the STRING "{}" into the
+   campaign's memory slot when a server blob carried no memory — and `{}` is not an empty memory, it
+   is a BROKEN one: loadState parses it as truthy and heals only the lazily-initialised fields, so
+   memory.npcs/locations/lore stay undefined and the first reader (_applyLoadedCampaign's NPC count)
+   throws. blankMemory() is the one legitimate empty shape, and a blob with no memory is worth saying
+   out loud — it means the cloud copy of this campaign has no long-term memory to give back. */
+function _pulledMemory(data,id){
+  var m=data&&data.memory;
+  if(m&&typeof m==="object"&&!Array.isArray(m))return m;
+  console.warn("[camps] the server copy of "+campDisplayName(id)+" carries no long-term memory ("+(m===undefined?"absent":(m===null?"null":(Array.isArray(m)?"array":typeof m)))+") — this campaign downloads with an EMPTY memory (audit D5)");
+  if(typeof showToast==="function")showToast("⚠ "+campDisplayName(id)+"'s cloud copy has no long-term memory — it downloads without NPC/lore recall.");
+  return blankMemory();
+}
 function campLoad(id){
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
   var modal=document.getElementById("camp-modal");if(modal)modal.remove();
@@ -231,7 +276,7 @@ function campLoad(id){
     if(err){showToast("Failed to fetch campaign: "+err);return;}
     if(!data||!data.worldState){showToast("Campaign not found on server.");return;}
     // Write into the campaign slot then switch to it — #337: through THE slot writer (all-or-nothing under quota)
-    if(!writeCampaignSlot(id,serializeWorldState(data.worldState),JSON.stringify(data.sessionLog||[]),JSON.stringify(data.memory||{})))return;
+    if(!writeCampaignSlot(id,serializeWorldState(data.worldState),JSON.stringify(data.sessionLog||[]),JSON.stringify(_pulledMemory(data,id))))return;
     var ok=switchToCampaign(id);
     if(!ok)return;/* #337: the reason was toasted */
     _applyLoadedCampaign();
@@ -247,6 +292,10 @@ function campCloudPush(id){
   });
 }
 function campCloudPull(id){
+  // Audit E3: the same gate campLoad and campNew carry. A pull REPLACES the live worldState/memory
+  // objects; with a turn in flight the GM response's closure then writes into the objects that were
+  // just discarded, or saveAll persists a hybrid of the pulled campaign and the answering turn.
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}
   if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
   showToast("☁ Pulling from server…");
   // Adapter transport (audit B9): timed — a dead host fails this toast in 20s, not never.
@@ -254,7 +303,7 @@ function campCloudPull(id){
     if(err){showToast("Pull failed: "+err);return;}
     if(!data||!data.worldState){showToast("Not found on server.");return;}
     data.worldState.campId=id;
-    var wsS=serializeWorldState(data.worldState),slS=JSON.stringify(data.sessionLog||[]),memS=JSON.stringify(data.memory||{});
+    var wsS=serializeWorldState(data.worldState),slS=JSON.stringify(data.sessionLog||[]),memS=JSON.stringify(_pulledMemory(data,id));
     if(id===getActiveCampId()){
       // Active campaign: write the pulled blob straight into the LIVE keys and loadState — NOT
       // switchToCampaign, whose snapshotActiveCamp would overwrite the just-pulled slot with the STALE
@@ -266,7 +315,7 @@ function campCloudPull(id){
       if(ok){
         _applyLoadedCampaign(); // replays from the transcript via initReplaySession
         // Legacy fallback: pre-transcript blobs (no worldState.transcript) still carry narrativeHtml.
-        if(data.narrativeHtml&&!(worldState&&worldState.transcript&&worldState.transcript.length)){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){}}
+        if(data.narrativeHtml&&!(worldState&&worldState.transcript&&worldState.transcript.length)){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){console.warn("[camps] the legacy narrativeHtml replay failed ("+(x&&x.message)+") — this pre-transcript campaign loads with an empty story pane (audit E15)");}}
       }
     }else{
       if(!writeCampaignSlot(id,wsS,slS,memS))return;/* #337: toasted; no partial slot left behind */
@@ -283,16 +332,19 @@ function campCloudPull(id){
 // answer) — never the stale onServer flag, because an offline-played local copy can be AHEAD of
 // the server and eviction on a stale flag would delete the only copy of those turns.
 function campRemoveLocal(id){
+  // Audit E3: eviction pushes first (planRemoveLocalCopy's offer-update/offer-add arms), and that
+  // push reads the store while an in-flight turn is still writing to it — gate it like campLoad.
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}
   if(id===getActiveCampId()){showToast("Can't remove the campaign you're playing.");return;}
   if(!storageAdapter.isServerMode()){showToast("Connect to the server first — the cloud copy is what makes local removal safe.");return;}
   var raw=store.get(campSlotKey(id,"ws"));
   if(!raw){showToast("No local copy on this device.");return;}
-  var localTurn=-1;try{var lw=JSON.parse(raw);if(typeof lw.turn==="number")localTurn=lw.turn;}catch(e){}
+  var localTurn=-1;try{var lw=JSON.parse(raw);if(typeof lw.turn==="number")localTurn=lw.turn;}catch(e){console.warn("[camps] the local copy of "+campDisplayName(id)+" could not be read for the turn comparison ("+(e&&e.message)+") — treating this device as possibly AHEAD, so removal will require a cloud update first (audit E15)");}
   showToast("☁ Checking the cloud copy…");
   storageAdapter.getCampaignState(id,function(err,data){
     var plan=planRemoveLocalCopy(err,data&&data.worldState,localTurn);
     function evict(msg){
-      removeCampaignLocalCopy(id);
+      removeCampaignLocalCopy(id,{teardown:true});/* D10: the campaign is leaving this device — its unsynced-flush marker and payload-size latch go with it (a dead marker evicts a LIVE one from the capped map) */
       var meta=getCampMeta(),i;for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
       showToast(msg);_renderCampList();
     }
@@ -350,7 +402,7 @@ function campSaveRename(id){
   else {
     // Patch the stored worldState for this campaign
     var raw=store.get(campSlotKey(id,"ws"));
-    if(raw){try{var ws=JSON.parse(raw);ws.campName=name;store.set(campSlotKey(id,"ws"),JSON.stringify(ws));}catch(e){}}
+    if(raw){try{var ws=JSON.parse(raw);ws.campName=name;store.set(campSlotKey(id,"ws"),JSON.stringify(ws));}catch(e){console.warn("[camps] the rename could not be written into "+campDisplayName(id)+"'s stored save ("+(e&&e.message)+") — the picker row is renamed but the save still carries the old name; it reverts on the next list merge (audit E15)");}}
     // Push the rename to the server (audit E80) — otherwise the next syncCampaignList merge (server
     // wins on conflict) reverts the local name back to the server's old one.
     if(storageAdapter.isServerMode()&&typeof campCloudPushSilent==="function")campCloudPushSilent(id,null);
