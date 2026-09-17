@@ -166,6 +166,19 @@ function syncLocationPatchTags(w,loc,sub){
   if(!S&&hereSub)return "[SUBLOCATION_LEAVE]";
   return "";
 }
+/* audit E2: the Sync modal's LEVEL decision, PURE so the threshold arithmetic is engine-testable.
+   checkLevelUp is XP-driven, so a raise must lift XP to the target level's threshold first — an
+   off-by-one there would leave the level silently unchanged, which is the exact failure class this
+   fix exists to kill. A level DOWN has no un-grant path anywhere in the engine and is refused.
+   Returns {action:"none"} | {action:"raise", xp:<new xp or null when it already suffices} |
+   {action:"refuse", why}. */
+function syncLevelPatchPlan(c,lvl){
+  var max=classXpLevels().length,cur=(c&&c.level)||1;
+  if(typeof lvl!=="number"||isNaN(lvl)||lvl<1||lvl>max||lvl===cur)return {action:"none"};
+  if(lvl<cur)return {action:"refuse",why:"Level not lowered — granted features cannot be taken back here."};
+  var need=classXpLevels()[lvl-1],have=(c&&typeof c.xp==="number")?c.xp:0;
+  return {action:"raise",xp:(typeof need==="number"&&have<need)?need:null};
+}
 function showSyncModal(){
   var ex=document.getElementById("sync-modal");if(ex)ex.remove();if(!worldState){showToast("No active game.");return;}
   /* #14: re-rendering modal — × wired per render below, so wireClose:false */
@@ -204,15 +217,15 @@ function showSyncModal(){
       var notes=[];/* audit E2: a refused or adjusted patch is reported in the modal, never silently dropped */
       if(!isNaN(mhp2)&&mhp2>0)c2.maxHp=mhp2;if(!isNaN(hp2))c2.hp=Math.min(c2.maxHp,Math.max(0,hp2));
       if(!isNaN(gld2))c2.gold=Math.max(0,gld2);if(!isNaN(xp2))c2.xp=Math.max(0,xp2);
-      /* audit E2: the LEVEL goes through the same grant path a played level-up uses. checkLevelUp is
-         XP-driven, so a raise lifts XP to the target level's threshold first (visible — the XP field
-         repaints below) and then lands the class/archetype features, the HP, the stat-bump queue and
-         the spell-tier picks. A level-DOWN has no un-grant path anywhere in the engine, so it is
-         refused LOUDLY rather than written raw. The curve length (20) is the cap since C6. */
-      if(!isNaN(lvl2)&&lvl2>=1&&lvl2<=classXpLevels().length&&lvl2!==c2.level){
-        if(lvl2<c2.level){notes.push("Level not lowered — granted features cannot be taken back here.");if(typeof console!=="undefined")console.warn("[sync] level "+c2.level+" → "+lvl2+" refused: no un-grant path exists (audit E2)");}
-        else{var _need=classXpLevels()[lvl2-1];if(typeof _need==="number"&&c2.xp<_need){c2.xp=_need;notes.push("XP raised to "+_need+" for level "+lvl2+".");}
-          if(typeof checkLevelUp==="function")checkLevelUp({land:true});}
+      /* audit E2: the LEVEL goes through the same grant path a played level-up uses — the pure
+         syncLevelPatchPlan decides, checkLevelUp({land:true}) lands the class/archetype features, the
+         HP, the stat-bump queue and the spell-tier picks. The XP lift is visible: the field repaints
+         below and the modal says so. The curve length (20) is the cap since C6. */
+      var _lvPlan=syncLevelPatchPlan(c2,lvl2);
+      if(_lvPlan.action==="refuse"){notes.push(_lvPlan.why);if(typeof console!=="undefined")console.warn("[sync] level "+c2.level+" → "+lvl2+" refused: no un-grant path exists (audit E2)");}
+      else if(_lvPlan.action==="raise"){
+        if(_lvPlan.xp!=null){c2.xp=_lvPlan.xp;notes.push("XP raised to "+_lvPlan.xp+" for level "+lvl2+".");}
+        if(typeof checkLevelUp==="function")checkLevelUp({land:true});
       }
       /* audit E2: the PLACE goes through the real filer — one tag, one applyMuts, so resolution, the
          twin-conflict refusal, the node mint, the travel edge and sublocation=null all happen. The

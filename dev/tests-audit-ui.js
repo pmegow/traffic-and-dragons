@@ -101,12 +101,37 @@ test("E2 a patched location applied through applyMuts mints the node and clears 
   assert.equal(worldState.world.sublocation, null, "the sub-location still hangs under the old parent");
   assert(memory.map && memory.map.nodes && memory.map.nodes["Hollowmere"], "no map node was minted for the patched place");
 });
+test("E2 syncLevelPatchPlan lifts XP to the level's own threshold, and refuses a level-down", function () {
+  fresh();
+  var c = worldState.character;                      // Warrior, level 1, xp 0
+  assert.deepEqual(syncLevelPatchPlan(c, 1), { action: "none" }, "the current level must be a no-op");
+  assert.deepEqual(syncLevelPatchPlan(c, 0), { action: "none" }, "below the curve must be a no-op");
+  assert.deepEqual(syncLevelPatchPlan(c, classXpLevels().length + 1), { action: "none" }, "above the curve must be a no-op");
+  assert.deepEqual(syncLevelPatchPlan(c, NaN), { action: "none" });
+  var up = syncLevelPatchPlan(c, 5);
+  assert.equal(up.action, "raise");
+  assert.equal(up.xp, classXpLevels()[4], "the lift must be level 5's own threshold");
+  // THE arithmetic check: applying the plan and landing it must actually reach level 5 with the
+  // class rows granted. An off-by-one here would leave the level silently unchanged.
+  maybeShowSpellUnlock = function () {};             // the picker is a DOM surface
+  c.xp = up.xp; checkLevelUp({ land: true });
+  assert.equal(c.level, 5, "the lift did not reach the target level");
+  assert(c.maxHp > 14, "no HP was granted");
+  assert(c.abilities.length > 0, "no class rows were granted");
+  var down = syncLevelPatchPlan(c, 2);
+  assert.equal(down.action, "refuse", "a level-down must be refused — there is no un-grant path");
+  assert(/not lowered/i.test(down.why));
+  var same = syncLevelPatchPlan({ level: 5, xp: 999999 }, 6);
+  assert.equal(same.action, "raise");
+  assert.equal(same.xp, null, "XP that already suffices must not be rewritten");
+});
 test("E2 the Sync modal's Apply routes level and location through the grant path, never raw", function () {
   var m = src("ui-modals.js");
   var body = m.slice(m.indexOf("function showSyncModal("), m.indexOf("function loadFalKey("));
   assert(!/c2\.level\s*=\s*lvl2/.test(body), "the Apply still assigns c2.level raw — feature grants skipped");
   assert(!/w2\.location\s*=\s*loc2/.test(body), "the Apply still assigns w2.location raw — locResolve/twin refusal skipped");
   assert(/checkLevelUp\(/.test(body), "the Apply does not reach checkLevelUp");
+  assert(/syncLevelPatchPlan\(/.test(body), "the Apply decides the level change without the pure plan");
   assert(/applyMuts\(/.test(body), "the Apply does not reach applyMuts");
   assert(/wornPrune\(/.test(body), "the Apply assigns inventory without pruning worn (E4)");
   assert(/c2\.inventory\s*=\s*inv2/.test(body), "the E63 inventory-clear behaviour was dropped");
