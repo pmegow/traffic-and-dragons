@@ -52,7 +52,7 @@ After connecting to server, `syncCampaignList()` fetches the server campaign lis
 
 ## 17. Sync modal
 
-Direct editing of HP, max HP, gold, XP, level, location, time, weather, inventory without going through the GM.
+Direct editing of HP, max HP, gold, XP, level, sub-location, location, time, weather, inventory without going through the GM. **Level and place are NOT raw writes (audit E2, 2026-09-18):** the level goes through `syncLevelPatchPlan` → `checkLevelUp({land:true})` (a level-*down* is refused — no un-grant path exists), and the place is built as one engine-authored `[LOCATION:]`/`[SUBLOCATION:]`/`[SUBLOCATION_LEAVE]` tag by `syncLocationPatchTags` and applied through `applyMuts`, so resolution, the twin-conflict refusal, the node mint, the edge and `sublocation=null` all happen. The inventory assign is followed by `wornPrune` (audit E4).
 
 ## 22. Cloud sync (`storage-adapter.js`)
 
@@ -85,7 +85,7 @@ Server-side character storage separate from campaigns. Characters are portable s
 
 **Export flow:** "Export Character" button (char sheet + companion sheets) opens `_showCharExportOptions(char)` — offers "☁ Save to library" (grayed if not connected) and "⬇ Download .char file". If saving and character already exists in library at a different level, `_showCharOverwriteConfirm` asks before overwriting.
 
-**Import flow:** `showCharacterLibrary()` browser modal — lists saved characters with portrait, Import (→ `showCharImportPreview`) and × delete buttons. Accessible via the "☁ Character Library" button in the Import Character browser.
+**Import flow:** the Import Character browser's **Library** tab (`showCharacterBrowser("library")`) — lists saved characters with portrait, Import (→ `showCharImportPreview`) and × delete buttons. *(The `showCharacterLibrary()` alias was deleted with zero callers — audit E8, 2026-09-18.)*
 
 **Update from library (#161):** "⟳ Update from library" on player + companion sheet headers pulls the library copy's IDENTITY fields into the live sheet behind a per-field old→new preview — `LIB_UPDATE_FIELDS` registry + pure `libUpdateDiff`/`libUpdateApply` (helpers.js, engine-tested; apply recomputes the diff so preview and apply can never drift). Whitelist-only; **progression and play-earned state NEVER flow**; `name` is excluded (identity KEY — renames are #156 territory). Skip rules: lib-undefined skips, explicit `""` applies (deliberate clear), null/"" portrait skips. Modal: `showLibraryUpdateModal` (ui-browsers.js); companion apply mirrors `portraitOffset` onto `wsNpc`. The pull half of the future character-editor loop.
 

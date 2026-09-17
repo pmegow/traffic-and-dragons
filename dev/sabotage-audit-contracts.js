@@ -47,14 +47,15 @@ rc |= sabotage.prove({
     {
       label: "G3 home.html drops out of the network-first REGEX but stays named in the roster comment",
       mustFail: "sw.js network-first REGEX lacks home.html",
-      find: "  // story_compiler (#5), and everything under /DOC/. Tested against\n" +
+      find: "  // Nothing under /dev/ is in APP_SHELL, so this costs the app shell no bandwidth. Tested against\n" +
             "  // e.request.url (the FULL URL), hence the path-fragment style.\n" +
             "  if(/\\/sfx\\//.test(new URL(e.request.url).pathname)){e.respondWith(deliveryCache.fetch(e.request));return;}\n" +
             "  if(/blueprint-designer|todo-viewer|bible_study|\\/satellite\\.css|home\\.html(?:$|[?#])|admin_console|",
-      /* the comment quotes the REGEX FRAGMENT (home\.html), not the bare filename: that is the
+      /* re-anchored after audit D14 rewrote the comment above the regex (the /dev/ paragraph) — same mutation, new bytes.
+         the comment quotes the REGEX FRAGMENT (home\.html), not the bare filename: that is the
          exact string the old whole-file indexOf looked for, so this mutation is the documentation
          edit that would have made the old pin vacuous while the SW pinned the page stale. */
-      replace: "  // story_compiler (#5), the home\\.html landing page, and everything under /DOC/. Tested against\n" +
+      replace: "  // Nothing under /dev/ is in APP_SHELL (the home\\.html landing page included), so this costs the app shell no bandwidth. Tested against\n" +
             "  // e.request.url (the FULL URL), hence the path-fragment style.\n" +
             "  if(/\\/sfx\\//.test(new URL(e.request.url).pathname)){e.respondWith(deliveryCache.fetch(e.request));return;}\n" +
             "  if(/blueprint-designer|todo-viewer|bible_study|\\/satellite\\.css|admin_console|"
@@ -62,11 +63,11 @@ rc |= sabotage.prove({
     {
       label: "G3 character_editor drops out of the network-first REGEX but stays named in the roster comment",
       mustFail: "sw.js network-first REGEX lacks character_editor",
-      find: "  // story_compiler (#5), and everything under /DOC/. Tested against\n" +
+      find: "  // Nothing under /dev/ is in APP_SHELL, so this costs the app shell no bandwidth. Tested against\n" +
             "  // e.request.url (the FULL URL), hence the path-fragment style.\n" +
             "  if(/\\/sfx\\//.test(new URL(e.request.url).pathname)){e.respondWith(deliveryCache.fetch(e.request));return;}\n" +
             "  if(/blueprint-designer|todo-viewer|bible_study|\\/satellite\\.css|home\\.html(?:$|[?#])|admin_console|mementos|character_editor|",
-      replace: "  // story_compiler (#5), character_editor, and everything under /DOC/. Tested against\n" +
+      replace: "  // Nothing under /dev/ is in APP_SHELL (character_editor included), so this costs the app shell no bandwidth. Tested against\n" +
             "  // e.request.url (the FULL URL), hence the path-fragment style.\n" +
             "  if(/\\/sfx\\//.test(new URL(e.request.url).pathname)){e.respondWith(deliveryCache.fetch(e.request));return;}\n" +
             "  if(/blueprint-designer|todo-viewer|bible_study|\\/satellite\\.css|home\\.html(?:$|[?#])|admin_console|mementos|"

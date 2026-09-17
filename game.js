@@ -3648,8 +3648,10 @@ function takeCheckpoint(reason){
 function restoreCheckpointHolder(){
   if(!worldState||checkpointHeld())return;
   var id=worldState.campId||"local";
-  var fromServer=function(){if(typeof storageAdapter!=="undefined"&&storageAdapter.getCheckpoint)storageAdapter.getCheckpoint(id,function(err,snap){if(!err&&snap&&snap.ws){checkpointHold(snap);console.log("[checkpoint] camp restored from the server (turn "+snap.turn+")");}});};
-  if(typeof idbGetCheckpoint==="function")idbGetCheckpoint(id).then(function(snap){if(snap&&snap.ws){checkpointHold(snap);console.log("[checkpoint] camp restored from IndexedDB (turn "+snap.turn+")");}else fromServer();}).catch(fromServer);
+  /* audit D1: checkpointHold now REFUSES a foreign or newer-build camp (returns false, warns) — a refused local camp falls
+     through to the server copy instead of logging a restore that did not happen. */
+  var fromServer=function(){if(typeof storageAdapter!=="undefined"&&storageAdapter.getCheckpoint)storageAdapter.getCheckpoint(id,function(err,snap){if(!err&&snap&&snap.ws){if(checkpointHold(snap))console.log("[checkpoint] camp restored from the server (turn "+snap.turn+")");else console.warn("[checkpoint] the server camp was refused for this campaign — no camp on file until the next rest");}});};
+  if(typeof idbGetCheckpoint==="function")idbGetCheckpoint(id).then(function(snap){if(snap&&snap.ws){if(checkpointHold(snap))console.log("[checkpoint] camp restored from IndexedDB (turn "+snap.turn+")");else fromServer();}else fromServer();}).catch(fromServer);
   else fromServer();
 }
 // #300 — a true death resolves here, at commit. Three respawns per campaign; the fourth ends it.

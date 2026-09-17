@@ -141,7 +141,7 @@ t("ships EXACTLY the given parts — live worldState/sessionLog/memory never lea
   if (body.sessionLog[0].content !== "SNAP_SL" || body.memory.lore[0] !== "SNAP_MEM") return "sessionLog/memory not the given parts";
   if (body.campaignId !== "campX") return "campaignId " + body.campaignId;
   if (body.narrativeHtml !== "") return "narrativeHtml should be \"\" (audit #18), got " + JSON.stringify(body.narrativeHtml);
-  return ("baseTurn" in body) ? "baseTurn leaked in — that's syncToServer's CAS guard, not this path" : true;
+  return ("baseTurn" in body) ? "baseTurn leaked in — pushCampaignState sends it ONLY when the caller passes a numeric parts.baseTurn (audit D4); a bare push must not carry the key" : true;
 });
 t("NPC avatar portrait stripped, PC portrait INLINE, companion charSheet portrait rides (E27/#3)", function () {
   var body = JSON.parse(lastCall().opts.body);
