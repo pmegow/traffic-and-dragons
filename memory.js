@@ -276,7 +276,7 @@ function fileLocation(loc,note,turn){
   if(note){memory.locations[loc].notes.push(note);if(memory.locations[loc].notes.length>5)memory.locations[loc].notes.shift();}
   // Map node
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-  if(!memory.map.nodes[loc])memory.map.nodes[loc]={firstVisit:turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+  if(!memory.map.nodes[loc]){memory.map.nodes[loc]={firstVisit:turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};if(typeof _exitNoteCreated==="function")_exitNoteCreated(loc);/* #415: a NEW place this parse */}
   memory.map.nodes[loc].visits++;
   guestbookNoteArrival(loc,turn);/* #173: QUEUED during a parse, committed post-handler (amendment ③) — the attendance snapshot must see same-response split/rejoin state settled */
   // Edge + arrival tracking
@@ -294,7 +294,7 @@ function fileSubLocation(name,turn){
   if(typeof locResolve==="function")parent=locResolve(parent);/* #156B: compose under the CANONICAL parent — a stale world pointer (older-device blob) must not mint children under a tombstoned key */
   var key=parent+"|"+name;
   if(typeof locResolve==="function")key=locResolve(key);/* the composed sub key may itself be merged */
-  if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:parent,npcs:[],items:[],size:null,travelMins:null};
+  if(!memory.map.nodes[key]){memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:parent,npcs:[],items:[],size:null,travelMins:null};if(typeof _exitNoteCreated==="function")_exitNoteCreated(key);/* #415: a NEW place this parse */}
   memory.map.nodes[key].visits++;memory.map.nodes[key].lastVisit=turn;// stamp recency so buildGeoBlock keeps a re-visited sub-location listed (audit E53)
   guestbookNoteArrival(key,turn);/* #173: same post-handler commit as the world arrival */
 }
@@ -382,6 +382,66 @@ function fileLayout(body,turn,by,playerText){
   }
   node.layout={rooms:p.rooms,by:by||"gm",turn:turn};
   return {ok:true,key:key,rooms:p.rooms.length};
+}
+/* #415: THE NARRATED DOOR — a way the GM described that has no place on record (owner rulings 2026-09-15/16; the
+   review is audits/REVIEW_415_exit_tag.md). Filed write-once on the CURRENT node as node.exits[] ({name,note?,turn});
+   waysFromHere paints it unexplored; resolveExitsAfterMove REMOVES it when a sibling place of that name exists or when
+   the party's first entry into a NEW sibling place follows the player taking the door by name. Refused loud: a floor
+   plan on record (the plan is its door record), a name that is already a filed sibling place (already a way), the
+   sixth open exit (EXIT_CAP). A duplicate name is a benign skip. The note is DISPLAY only — never branched on. */
+var EXIT_CAP=5;
+var _exitCreated=null;/* keys minted between exitBeginResponse() and resolveExitsAfterMove() — a module var, never on the map */
+function exitBeginResponse(){_exitCreated=[];}
+function _exitNoteCreated(key){if(_exitCreated)_exitCreated.push(key);}
+function exitNameKey(s){return String(s==null?"":s).trim().toLowerCase().replace(/^(?:the|a|an)\s+/,"").replace(/\s+/g," ");}
+function _exitR(k){return (typeof locResolve==="function")?locResolve(k):k;}
+function _exitLeaf(k){if(typeof locDisplayLeaf==="function")return locDisplayLeaf(k);var s=String(k),p=s.lastIndexOf("|");return p<0?s:s.slice(p+1);}
+/* the places an exit from nodeKey could lead to, as display leaves: a sub-location's siblings under its parent; a world
+   node's children AND its edge neighbours. Every one of them is a way already. */
+function exitSiblingPlaces(nodeKey){
+  var nodes=memory.map.nodes,node=nodes[nodeKey],out=[],k,i;if(!node)return out;
+  var parent=node.parent?_exitR(node.parent):nodeKey;
+  for(k in nodes){var n=nodes[k];if(!n||!n.parent)continue;var rk=_exitR(k);if(rk!==k||rk===nodeKey)continue;if(_exitR(n.parent)!==parent)continue;out.push(_exitLeaf(k));}
+  if(!node.parent)for(i=0;i<memory.map.edges.length;i++){var e=memory.map.edges[i],ef=_exitR(e.from),et=_exitR(e.to);if(ef===et)continue;var o=ef===nodeKey?et:(et===nodeKey?ef:null);if(o)out.push(_exitLeaf(o));}
+  return out;
+}
+function fileExit(name,note,turn){
+  if(!memory.map||!worldState||!worldState.world||!worldState.world.location)return {ok:false,reason:"no map"};
+  var key=_exitR(currentNodeKey()),node=memory.map.nodes[key];if(!node)return {ok:false,reason:"no such place on the map",key:key};
+  var nm=String(name==null?"":name).trim().replace(/\s+/g," ");if(!nm)return {ok:false,reason:"an exit needs a name",key:key};
+  if(node.layout)return {ok:false,reason:"this place has a floor plan on record; the plan is its door record",key:key};
+  var nk=exitNameKey(nm),sibs=exitSiblingPlaces(key),i;
+  if(exitNameKey(_exitLeaf(key))===nk)return {ok:false,reason:"an exit cannot lead to the place itself",key:key};
+  for(i=0;i<sibs.length;i++)if(exitNameKey(sibs[i])===nk)return {ok:false,reason:"'"+sibs[i]+"' is already a place on record here — it is a way already",key:key};
+  var open=node.exits||[];
+  for(i=0;i<open.length;i++)if(exitNameKey(open[i].name)===nk)return {ok:true,dup:true,key:key,name:open[i].name,open:open.length};
+  if(open.length>=EXIT_CAP)return {ok:false,reason:"the cap of "+EXIT_CAP+" open ways here is reached; one must be taken before another is filed",key:key};
+  var ex={name:nm,turn:turn},nt=String(note==null?"":note).trim();if(nt)ex.note=nt;
+  node.exits=open;open.push(ex);
+  return {ok:true,key:key,name:nm,open:open.length};
+}
+/* Runs at the parser's post-handler seam (the #173 pattern) because the LOCATION/SUBLOCATION handlers overwrite the
+   party's position before their filers run, and the doors live on the node the party LEFT (R.departKey, captured at
+   parse start). Two triggers, checked in order per door: NAME — a sibling place now matches the door's name; TAKEN —
+   the player's own last action named the door AND a NEW sibling place (or, from a world node, a new world node on a
+   road from here) was minted this parse. Anything else leaves the door listed: it is still untaken. */
+function resolveExitsAfterMove(R){
+  var created=_exitCreated||[];_exitCreated=null;
+  if(!memory.map||!R||!R.departKey)return;
+  var dk=_exitR(R.departKey),node=memory.map.nodes[dk];if(!node||!node.exits||!node.exits.length)return;
+  var said=" "+String((typeof lastAction==="string")?lastAction:"").toLowerCase().replace(/[^a-z0-9' ]+/g," ").replace(/\s+/g," ")+" ",parent=node.parent?_exitR(node.parent):dk;/* the same substring evidence the #408 voice gate uses; the door's leading article is not required ("Follow the path…" takes "a path into the woods") */
+  var sibs=exitSiblingPlaces(dk),keep=[],i,j;
+  var road=function(a,b){var e,k;for(k=0;k<memory.map.edges.length;k++){e=memory.map.edges[k];var ef=_exitR(e.from),et=_exitR(e.to);if((ef===a&&et===b)||(ef===b&&et===a))return true;}return false;};
+  for(i=0;i<node.exits.length;i++){var ex=node.exits[i],nk=exitNameKey(ex.name),hit=null;
+    for(j=0;j<sibs.length;j++)if(exitNameKey(sibs[j])===nk){hit=sibs[j];break;}
+    if(!hit&&created.length&&said.indexOf(" "+nk+" ")>=0){
+      for(j=0;j<created.length;j++){var ck=_exitR(created[j]),cn=memory.map.nodes[ck];if(!cn||ck===dk)continue;
+        if(cn.parent&&_exitR(cn.parent)===parent){hit=_exitLeaf(ck);break;}
+        if(!cn.parent&&!node.parent&&road(dk,ck)){hit=_exitLeaf(ck);break;}}
+    }
+    if(hit)R.muts.push("Exit resolved: "+ex.name+" → "+hit);else keep.push(ex);
+  }
+  if(keep.length)node.exits=keep;else delete node.exits;
 }
 function fileLocationDesc(desc){
   if(!memory.map||!worldState||!worldState.world)return;

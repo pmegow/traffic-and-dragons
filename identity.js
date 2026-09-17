@@ -205,6 +205,14 @@ function locFoldNodeRecords(canonNode,dupNode,canonLabel){
     else if(di[i].qty!==undefined||canonNode.items[j].qty!==undefined){/* #6 E7: stash rows sum — a merge never loses a chest */var _ci=canonNode.items[j];if(!di[i].taken&&di[i].qty!==0){var _sum=(_ci.taken||_ci.qty===0?0:(_ci.qty||1))+(di[i].qty||1);_ci.qty=_sum;_ci.taken=false;}}
   }
   if(!canonNode.owner&&dupNode.owner)canonNode.owner=dupNode.owner;/* #6 E7: a house keeps its owner through a merge */
+  /* #415: the open doors follow the fold — union by name (article/case insensitive), the cap respected, never onto a plan */
+  var dx=dupNode.exits||[];
+  if(dx.length&&!canonNode.layout&&typeof exitNameKey==="function"){
+    var xcap=(typeof EXIT_CAP!=="undefined")?EXIT_CAP:5;canonNode.exits=canonNode.exits||[];
+    for(i=0;i<dx.length;i++){var xdup=false;
+      for(j=0;j<canonNode.exits.length;j++)if(exitNameKey(canonNode.exits[j].name)===exitNameKey(dx[i].name)){xdup=true;break;}
+      if(!xdup&&canonNode.exits.length<xcap)canonNode.exits.push(dx[i]);}
+  }
   var ds=dupNode.stateNotes||[];
   if(ds.length){ /* chronological under LOC_STATE_CAP; overflow evicts OLDEST to the archive, loudly */
     canonNode.stateNotes=(canonNode.stateNotes||[]).concat(ds);
@@ -340,6 +348,7 @@ function locSplit(fusedKey,spec,R){
     if(s.kind)fresh.kind=s.kind;
     if(s.endpoints)fresh.endpoints=s.endpoints.slice();
     if(node.layout&&s.key===spec.primary)fresh.layout=JSON.parse(JSON.stringify(node.layout));/* #408: the room graph stays with the primary successor */
+    if(node.exits&&s.key===spec.primary)fresh.exits=JSON.parse(JSON.stringify(node.exits));/* #415: the open doors stay with the primary successor, the layout rule */
     for(j=0;j<(take.stateNotes||[]).length;j++){var ni=take.stateNotes[j];if(notes[ni]){fresh.stateNotes=fresh.stateNotes||[];fresh.stateNotes.push(notes[ni]);claimedN[ni]=1;}}
     for(j=0;j<(take.items||[]).length;j++){var ii=take.items[j];if(items[ii]){fresh.items.push(items[ii]);claimedI[ii]=1;}}
     for(j=0;j<(take.npcs||[]).length;j++){if(npcs.indexOf(take.npcs[j])>=0){fresh.npcs.push(take.npcs[j]);claimedP[take.npcs[j]]=1;}}

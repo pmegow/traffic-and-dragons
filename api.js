@@ -89,6 +89,13 @@ function buildGeoBlock(){
   var conns=[];
   for(i=0;i<memory.map.edges.length;i++){var e=memory.map.edges[i],ef=locResolve(e.from),et=locResolve(e.to);if(ef===et)continue;/* #156B: resolve endpoints; a merged pair's edge is no longer a connection to anywhere else */if(ef===rwKey){if(conns.indexOf(et)<0)conns.push(et);}else if(et===rwKey){if(conns.indexOf(ef)<0)conns.push(ef);}}
   if(conns.length)lines.push("Connected to: "+conns.join(", "));
+  /* #415: UNEXPLORED WAYS — doors the GM narrated that have no place on record, filed by [EXIT:] on the node the party
+     stands in. Volatile lines, zero cache cost; the standing STATE TAGS doc never carries the tag (engine-only tier) —
+     the teaching sentence here IS its teacher, every turn, because a door is filed at narration time, not on request.
+     Silent mid-combat (nobody files doors in a fight) and on a place with a floor plan (the plan is its door record). */
+  var _exOpen=(activeNode&&activeNode.exits)||[];
+  if(_exOpen.length)lines.push("UNEXPLORED WAYS here (on record, not yet taken): "+_exOpen.map(function(x){return x.name+(x.note?" ("+x.note+")":"");}).join("; ")+" — when the party takes one, file where it leads with [SUBLOCATION:] or [LOCATION:] as usual; never re-file these.");
+  if(!worldState.combat&&!(activeNode&&activeNode.layout)&&typeof EXIT_CAP!=="undefined")lines.push("A door, stair, passage or path you narrate that the party COULD take and that has no place on record: file it once as [EXIT:name|short note] (never a window or decoration; at most "+EXIT_CAP+" open here; a place already on record is a way already and is never an EXIT).");
   // NPCs elsewhere. B3: the dead are excluded — "Rinn → the docks" affirmatively implied he was
   // findable there forever; the roster's DECEASED line now carries the truth instead.
   // B21: living NON-SPLIT party members are excluded too — lastSeenAt re-stamps only on [NPC:]

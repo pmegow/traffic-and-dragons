@@ -334,6 +334,10 @@ function waysFromHere(ws,mem){
     var nm=leaf(k);subs.push({kind:"sub",label:nm,target:nm,action:"Head to "+nm+".",unexplored:!(n.visits>0||n.lastVisit)});}
   subs.sort(function(a,b){if(a.unexplored!==b.unexplored)return a.unexplored?1:-1;return a.label<b.label?-1:a.label>b.label?1:0;});
   ways=ways.concat(subs);
+  /* #415: the narrated doors on record here — after the sibling places, before the roads (owner ruling); always unexplored
+     by definition (a door the party has taken has been resolved away); the note rides as the chip's title. */
+  var exs=(cur&&cur.exits)||[];for(i=0;i<exs.length;i++){var ex=exs[i];if(!ex||!ex.name)continue;
+    ways.push({kind:"exit",label:ex.name,target:ex.name,action:"Go through "+ex.name+".",unexplored:true,note:ex.note||""});}
   if(!sub&&!combat){var seen={};for(i=0;i<edges.length;i++){var e=edges[i],ef=R(e.from),et=R(e.to);if(ef===et)continue;/* #156B: a merged pair's edge leads nowhere */
     var o=ef===wKey?et:(et===wKey?ef:null);if(!o||seen[o])continue;seen[o]=1;var on=leaf(o);
     ways.push({kind:"road",label:on,target:on,action:"Take the road to "+on+".",unexplored:false});}}
@@ -385,7 +389,7 @@ function shopTradeApply(marks){
 // The scene-local manifest: who is PRESENT, where the exits lead, what the active character can
 // actually use — pure derivation from existing state, no new bookkeeping, no model involvement.
 function buildSceneManifest(){
-  var man={npcs:[],local:[],exits:[],caps:[]},i,seen={},seenLocal={};
+  var man={npcs:[],local:[],exits:[],doors:[],caps:[]},i,seen={},seenLocal={};
   function addNpc(nm){var k=String(nm).toLowerCase();if(!seen[k]){seen[k]=1;man.npcs.push(nm);}}
   /* #392: local = the SCENE, not the town. npcs keeps the #156B same-world rule (an NPC seen anywhere in this
      settlement may be addressed); local holds only those whose last-seen stamp IS this exact node/sub-location or
@@ -445,6 +449,10 @@ function buildSceneManifest(){
       if(ed.to===loc&&man.exits.indexOf(ed.from)<0)man.exits.push(ed.from);
     });
   }
+  /* #415: the narrated doors on record at the party's node — legal moves wherever they are filed, with their own verb.
+     NEVER man.exits: that list is B24-empty inside a sub-location and its fallback phrase is overland travel. */
+  var _dnode=(map.nodes||{})[(typeof locResolve==="function")?locResolve(nodeKey):nodeKey];
+  if(_dnode&&_dnode.exits&&!(worldState.combat&&sub))for(i=0;i<_dnode.exits.length;i++)if(_dnode.exits[i]&&_dnode.exits[i].name)man.doors.push(_dnode.exits[i].name);
   var c=worldState.character||{};
   function addCap(nm){
     var e=(typeof capabilityLookup==="function")?capabilityLookup(nm):null;
@@ -642,6 +650,7 @@ function suggestionFallback(man,taken){
   var cands=[],i,j;
   if(man.back)cands.push("Head back toward "+man.back+".");
   for(i=0;i<man.exits.length;i++)cands.push("Press on toward "+man.exits[i]+".");
+  for(i=0;i<(man.doors||[]).length;i++)cands.push("Go through "+man.doors[i]+".");/* #415: the narrated doors, their own verb */
   /* #305 ③: flavour from STATE, not stock phrases — a wounded hero binds wounds, coin gets counted,
      a market gets browsed, a companion gets checked on by name. Still revalidated below. */
   var c=worldState&&worldState.character;

@@ -59,7 +59,7 @@ function renderWaysRow(){
   if(!w.ways.length)h+="<span style='color:var(--t2);'>none recorded yet</span>";
   var split=waysSplit(w.ways,WAYS_VISIBLE);/* ⑦: four chips, the rest in the menu — ONE cap, the engine's */
   for(i=0;i<split.shown.length;i++){var x=split.shown[i];
-    h+="<button type='button' class='hw-chip"+(x.unexplored?" hw-unexplored":"")+"' data-way='"+i+"' title='"+escHtml(x.action)+"'>"+escHtml(x.label)+(x.unexplored?" ?":"")+"</button>";}
+    h+="<button type='button' class='hw-chip"+(x.unexplored?" hw-unexplored":"")+"' data-way='"+i+"' title='"+escHtml(x.action+(x.note?" — "+x.note:""))+"'>"+escHtml(x.label)+(x.unexplored?" ?":"")+"</button>";}/* #415: a door's note rides the title */
   if(split.more.length)h+="<button type='button' class='hw-chip hw-more' id='hud-ways-more-btn' title='"+split.more.length+" more recorded place"+(split.more.length===1?"":"s")+"'>+"+split.more.length+" more \u25BE</button>";
   h+="<span style='color:var(--t2);font-size:10px;margin-left:4px;'>\u2026or name anywhere</span>";
   el.innerHTML=h;el.style.display="flex";
@@ -70,7 +70,7 @@ function renderWaysRow(){
   for(i=0;i<chips.length;i++)(function(btn){btn.addEventListener("click",function(){prefill(split.shown[Number(btn.getAttribute("data-way"))]);});})(chips[i]);
   var moreBtn=document.getElementById("hud-ways-more-btn");
   if(moreBtn&&more){
-    var mh="";for(i=0;i<split.more.length;i++){var m=split.more[i];mh+="<button type='button' class='hw-row"+(m.unexplored?" hw-unexplored":"")+"' data-more='"+i+"' title='"+escHtml(m.action)+"'>"+escHtml(m.label)+(m.unexplored?" ?":"")+"</button>";}
+    var mh="";for(i=0;i<split.more.length;i++){var m=split.more[i];mh+="<button type='button' class='hw-row"+(m.unexplored?" hw-unexplored":"")+"' data-more='"+i+"' title='"+escHtml(m.action+(m.note?" — "+m.note:""))+"'>"+escHtml(m.label)+(m.unexplored?" ?":"")+"</button>";}
     more.innerHTML=mh;
     var rows=more.querySelectorAll(".hw-row");
     for(i=0;i<rows.length;i++)(function(btn){btn.addEventListener("click",function(ev){ev.stopPropagation();more.style.display="none";prefill(split.more[Number(btn.getAttribute("data-more"))]);});})(rows[i]);

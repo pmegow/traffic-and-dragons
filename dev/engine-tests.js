@@ -7764,7 +7764,7 @@ function runEngineTests(R){
     // #408 (v1.926): +LAYOUT strip entry — source grew exactly 7 chars = "LAYOUT|". The room graph is engine-only in the
     // doc (the doc golden is byte-unchanged) but MUST strip: a leaked [LAYOUT:] would read the floor plan aloud in TTS
     // and put it in the transcript's clean text. Golden diffed by eye in the same commit.
-    if(__djb2(_CT_TAGS.source)!==-1534360820||_CT_TAGS.source.length!==1792)return "_CT_TAGS diverged from the frozen literal";/* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==-657870782||_CT_TAGS.source.length!==1797)return "_CT_TAGS diverged from the frozen literal";/* #415 (v1.949): EXIT joins the strip vocabulary (+5) — golden re-baselined by eye in the same commit *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -24268,6 +24268,143 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(body.indexOf('getElementById("action-input")')<0)return "the tap must prefill #action-input";
     if(!/waysSplit\(w\.ways,WAYS_VISIBLE\)/.test(body))return "the renderer must cap through waysSplit(…, WAYS_VISIBLE) — no second cap";
     if(html.indexOf('id="hud-ways-more"')<0)return "index.html must mount the #hud-ways-more menu";
+    return true;
+  });
+
+  section("#415 the narrated door — [EXIT:] (owner rulings 2026-09-15/16; review audits/REVIEW_415_exit_tag.md)");
+  /* A way the GM described that has no place on record. Filed write-once on the CURRENT node as node.exits[]; shown by
+     waysFromHere as unexplored; RESOLVED (removed) by a name match on a sibling place or by the party's first entry into a
+     NEW sibling place right after the player took the exit by name. Refusals are loud; a duplicate is a benign skip. */
+  function exitFixture(){
+    makeWorld();worldState.kind="adventure";worldState.world.location="Greyhaven";worldState.world.sublocation="the nave";worldState.combat=null;worldState.turn=12;
+    memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+    memory.map.nodes["Greyhaven"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["Greyhaven|the nave"]={firstVisit:10,visits:1,lastVisit:12,description:null,parent:"Greyhaven",npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["Greyhaven|the churchyard"]={firstVisit:9,visits:1,lastVisit:11,description:null,parent:"Greyhaven",npcs:[],items:[],size:"small",travelMins:null};
+    memory.map.nodes["Marrowgate"]={firstVisit:4,visits:1,description:null,parent:null,npcs:[],items:[],size:"large",travelMins:null};
+    memory.map.edges=[{from:"Greyhaven",to:"Marrowgate",turn:4}];
+    lastAction="";
+    return memory.map.nodes["Greyhaven|the nave"];
+  }
+  t("#415 ① [EXIT:name|note] files once on the current node with the turn; the note is carried verbatim; the tag is stripped from prose; the standing STATE TAGS doc is byte-identical (engine-only tier)",function(){
+    var nave=exitFixture(),docBefore=buildStateTagsDoc();
+    var R=applyMuts("A low door stands ajar behind the altar. [EXIT:the back door|ajar, behind the altar]");
+    if(!nave.exits||nave.exits.length!==1)return "one exit on the nave: "+JSON.stringify(nave.exits);
+    var x=nave.exits[0];if(x.name!=="the back door"||x.note!=="ajar, behind the altar"||x.turn!==12)return "record: "+JSON.stringify(x);
+    if(!R.muts.some(function(m){return /^Exit: the back door/.test(m);}))return "the mutation log names the filing: "+JSON.stringify(R.muts);
+    if(/\[EXIT:/.test(cleanTxt("Text. [EXIT:the back door|ajar] More.")))return "cleanTxt must strip the tag";
+    if(buildStateTagsDoc()!==docBefore)return "the standing doc must not carry the tag";
+    if(TAG_DOC_ENGINE_ONLY.indexOf("EXIT")<0)return "EXIT must sit in the engine-only tier";
+    if(memory.map.nodes["Greyhaven"].exits)return "the world node must not receive a sub-location's door";
+    return true;
+  });
+  t("#415 ② a duplicate name is a benign skip (no ⚠, still one record); the sixth open exit is refused loud and files nothing (owner cap of five)",function(){
+    var nave=exitFixture();applyMuts("[EXIT:the back door|ajar]");
+    var R=applyMuts("[EXIT:The Back Door]");
+    if(nave.exits.length!==1)return "duplicate re-filed: "+JSON.stringify(nave.exits);
+    if(R.muts.some(function(m){return /⚠/.test(m);}))return "a duplicate is not an error: "+JSON.stringify(R.muts);
+    applyMuts("[EXIT:a stair down] [EXIT:a stair up] [EXIT:the vestry door] [EXIT:a crawlspace]");
+    if(nave.exits.length!==5)return "five open: "+nave.exits.length;
+    R=applyMuts("[EXIT:a sixth way]");
+    if(nave.exits.length!==5)return "the sixth was filed";
+    if(!R.muts.some(function(m){return /^⚠ \[EXIT:\] refused/.test(m)&&/cap/.test(m);}))return "the refusal must be loud and name the cap: "+JSON.stringify(R.muts);
+    if(EXIT_CAP!==5)return "owner cap is five";
+    return true;
+  });
+  t("#415 ③ a floor plan on record refuses the tag (the plan is the door record); a name that is already a filed sibling place refuses (already a way, article and case insensitive); an empty name refuses",function(){
+    var nave=exitFixture();
+    var R=applyMuts("[EXIT:the churchyard|through the side door]");
+    if(nave.exits)return "a known sibling was filed as an exit";
+    if(!R.muts.some(function(m){return /refused/.test(m)&&/already a place/.test(m);}))return "sibling refusal must be loud: "+JSON.stringify(R.muts);
+    R=applyMuts("[EXIT:Churchyard]");if(nave.exits)return "article/case must not slip the sibling refusal";
+    R=applyMuts("[EXIT:|ajar]");if(nave.exits)return "an empty name was filed";
+    if(!R.muts.some(function(m){return /refused/.test(m);}))return "the empty name must refuse loud";
+    nave.layout={rooms:[{name:"nave",size:"large",features:"",to:["outside"]}],by:"gm",turn:11};
+    R=applyMuts("[EXIT:the back door]");
+    if(nave.exits)return "a planned place accepted an exit";
+    if(!R.muts.some(function(m){return /refused/.test(m)&&/floor plan/.test(m);}))return "the plan refusal must be loud: "+JSON.stringify(R.muts);
+    return true;
+  });
+  t("#415 ④ NAME resolution: when a sibling place whose leaf matches the exit is filed (article and case insensitive), the exit is removed and the log says where it led — the player's action need not name it",function(){
+    var nave=exitFixture();applyMuts("[EXIT:Rectory|a door behind the altar]");
+    lastAction="I read the psalter on the lectern.";
+    var R=applyMuts("You push through into a cramped study. [SUBLOCATION:the rectory]");
+    if(nave.exits)return "the exit must resolve on the name match: "+JSON.stringify(nave.exits);
+    if(!R.muts.some(function(m){return /^Exit resolved: Rectory → the rectory/.test(m);}))return "the log must say where it led: "+JSON.stringify(R.muts);
+    if(!memory.map.nodes["Greyhaven|the rectory"])return "the arrival still files";
+    return true;
+  });
+  t("#415 ⑤ TAKEN resolution: the player's own last action names the door AND a NEW sibling place is created this parse → resolved to that place; a new place without the door named, or the door named without a new place, leaves the door listed",function(){
+    var nave=exitFixture();applyMuts("[EXIT:the back door|ajar]");
+    lastAction="I read the psalter on the lectern.";
+    applyMuts("[SUBLOCATION:the vestry]");
+    if(!nave.exits||nave.exits.length!==1)return "a new place the player did not walk through must not resolve the door";
+    worldState.world.sublocation="the nave";lastAction="Go through the back door.";
+    applyMuts("[SUBLOCATION:the churchyard]");/* an EXISTING place, nothing created */
+    if(!nave.exits||nave.exits.length!==1)return "naming the door without a new place must not resolve it";
+    worldState.world.sublocation="the nave";lastAction="Go through the back door.";
+    var R=applyMuts("The door gives onto a cramped study. [SUBLOCATION:the rectory]");
+    if(nave.exits)return "taken + new sibling must resolve: "+JSON.stringify(nave.exits);
+    if(!R.muts.some(function(m){return /^Exit resolved: the back door → the rectory/.test(m);}))return "log: "+JSON.stringify(R.muts);
+    return true;
+  });
+  t("#415 ⑥ a WORLD-node exit resolves when a new world node is filed with a road from here after the player took it; siblings at world grain include edge neighbours for the name match",function(){
+    exitFixture();worldState.world.sublocation=null;var town=memory.map.nodes["Greyhaven"];
+    applyMuts("[EXIT:a path into the woods|overgrown, north]");
+    if(!town.exits||town.exits.length!==1)return "filed on the world node: "+JSON.stringify(town.exits);
+    lastAction="Follow the path into the woods.";
+    var R=applyMuts("[LOCATION:Whisperwood]");
+    if(town.exits)return "taken + new road must resolve: "+JSON.stringify(town.exits);
+    if(!R.muts.some(function(m){return /^Exit resolved: a path into the woods → Whisperwood/.test(m);}))return "log: "+JSON.stringify(R.muts);
+    worldState.world.location="Greyhaven";worldState.world.sublocation=null;
+    R=applyMuts("[EXIT:Marrowgate]");if(town.exits)return "an edge neighbour is already a way — refused: "+JSON.stringify(R.muts);
+    return true;
+  });
+  t("#415 ⑦ waysFromHere lists the doors after the sibling places and before the roads, kind exit, unexplored, prefill 'Go through <name>.', note carried; inside mid-combat only the way out (B24 unchanged)",function(){
+    var nave=exitFixture();applyMuts("[EXIT:the back door|ajar]");
+    var w=waysFromHere(worldState,memory),kinds=w.ways.map(function(x){return x.kind;});
+    var d=w.ways.filter(function(x){return x.kind==="exit";});if(d.length!==1||d[0].label!=="the back door"||d[0].action!=="Go through the back door."||!d[0].unexplored||d[0].note!=="ajar")return "door way: "+JSON.stringify(d);
+    if(kinds.indexOf("exit")<kinds.lastIndexOf("sub"))return "doors list after the siblings: "+JSON.stringify(kinds);
+    worldState.combat={round:1,enemies:[]};w=waysFromHere(worldState,memory);if(w.ways.length!==1||w.ways[0].kind!=="out")return "inside, in combat, only the way out";
+    worldState.combat=null;worldState.world.sublocation=null;applyMuts("[EXIT:a path into the woods]");
+    w=waysFromHere(worldState,memory);kinds=w.ways.map(function(x){return x.kind;});
+    if(kinds.indexOf("exit")<0||kinds.indexOf("road")<0||kinds.indexOf("exit")>kinds.indexOf("road")||kinds.indexOf("exit")<kinds.lastIndexOf("sub"))return "world node order sub › exit › road: "+JSON.stringify(kinds);
+    return true;
+  });
+  t("#415 ⑧ the suggestion manifest carries the doors on record as man.doors (never man.exits — B24-empty inside), 'Go through the back door.' passes the validator inside the sub-location, and the fallback offers it",function(){
+    exitFixture();applyMuts("[EXIT:the back door|ajar]");
+    var man=buildSceneManifest();
+    if(!man.doors||man.doors.indexOf("the back door")<0)return "man.doors: "+JSON.stringify(man.doors);
+    if(man.exits.length)return "B24: man.exits stays empty inside a sub-location";
+    var v=validateSuggestion("Go through the back door.",man);if(v)return "the door move was rejected: "+JSON.stringify(v);
+    var fb=suggestionFallback(man,["Head back toward Greyhaven."]);if(fb!=="Go through the back door.")return "the fallback offers the door once the way out is taken: "+JSON.stringify(fb);
+    return true;
+  });
+  t("#415 ⑨ a location merge unions the duplicate's open exits into the canonical (by name, cap respected); a split keeps them with the primary successor",function(){
+    var nave=exitFixture();applyMuts("[EXIT:the back door|ajar] [EXIT:a stair down]");
+    memory.map.nodes["Greyhaven|the chapel"]={firstVisit:11,visits:1,description:null,parent:"Greyhaven",npcs:[],items:[],size:"small",travelMins:null,exits:[{name:"The Back Door",turn:11},{name:"a crypt hatch",turn:11}]};
+    var R={muts:[],turn:13};locMerge("Greyhaven|the nave","Greyhaven|the chapel",R);
+    var names=(nave.exits||[]).map(function(x){return x.name;});
+    if(names.join("|")!=="the back door|a stair down|a crypt hatch")return "union by name: "+JSON.stringify(names);
+    R={muts:[],turn:14};locSplit("Greyhaven|the nave",{primary:"Greyhaven|the nave east",successors:[{key:"Greyhaven|the nave east",take:{}},{key:"Greyhaven|the nave west",take:{}}]},R);
+    var e=memory.map.nodes["Greyhaven|the nave east"],w=memory.map.nodes["Greyhaven|the nave west"];
+    if(!e||!e.exits||e.exits.length!==3)return "the primary successor keeps the doors: "+JSON.stringify(e&&e.exits);
+    if(w&&w.exits)return "the other successor gets none";
+    return true;
+  });
+  t("#415 ⑩ source contract: the parser captures R.departKey BEFORE any handler runs and resolves exits at the post-handler seam; the geo block teaches the tag (engine-only tier, #311) and lists the open ways; the ways renderer shows the note",function(){
+    var tt=__fsForTests.readFileSync(__rootForTests+"/tag_table.js","utf8"),ap=tt.slice(tt.indexOf("function applyMutsTable("));
+    var dk=ap.indexOf("R.departKey="),loop=ap.indexOf("for(var i=0;i<TAG_TABLE.length;i++)"),res=ap.indexOf("resolveExitsAfterMove(R)");
+    if(dk<0||loop<0||dk>loop)return "R.departKey must be captured before the handler loop";
+    if(res<0||res<loop)return "resolveExitsAfterMove must run after every handler";
+    var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),geo=api.slice(api.indexOf("function buildGeoBlock("),api.indexOf("function buildGeoBlock(")+20000);
+    if(geo.indexOf("[EXIT:name|short note]")<0)return "the geo block must teach the tag";
+    if(geo.indexOf("UNEXPLORED WAYS here")<0)return "the geo block must list the open ways";
+    exitFixture();applyMuts("[EXIT:the back door|ajar]");var g=buildGeoBlock();
+    if(!/UNEXPLORED WAYS here[^\n]*the back door \(ajar\)/.test(g))return "geo: "+g;
+    worldState.combat={round:1,enemies:[]};if(/\[EXIT:name\|short note\]/.test(buildGeoBlock()))return "no teaching mid-combat";
+    var ui=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),body=ui.slice(ui.indexOf("function renderWaysRow("));
+    if(!/x\.note/.test(body))return "the chip must carry the note";
     return true;
   });
 
