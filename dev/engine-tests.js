@@ -24429,12 +24429,57 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(buildSysPrompt().stable!==a)return "an armed ping must never touch the stable half";delete worldState.tradePing;
     if(CAMPAIGN_KINDS.adventure.waresPerShop)return "the counter is village-only in v1";
     if(typeof __fsForTests==="undefined")return true;
-    var ui=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),body=ui.slice(ui.indexOf("function showShopModal("),ui.indexOf("function showRulesModal("));
-    if(!/shopTradeCatalog\(\)/.test(body)||!/shopTradePlan\(cat,marks\)/.test(body)||!/shopTradeApply\(marks\)/.test(body))return "the modal must plan and apply through the engine pair";
-    if(/applyMuts\(|\.gold\s*=|\.inventory\s*=|fileWare\(/.test(body))return "the modal writes nothing itself";
+    var html=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
+    var ui=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),body=ui.slice(ui.indexOf("function showLedgerModal("),ui.indexOf("function showRulesModal("));
+    /* #407 ⑤: ONE ledger renderer; the shop and the stash are specs over their engine pairs */
+    if(!/function showLedgerModal\(spec\)/.test(body)||body.split("showLedgerModal(").length!==4)return "one ledger renderer (its definition) called by exactly two specs (shop, stash)";
+    if(!/shopTradeCatalog\(\)/.test(body)||!/shopTradePlan\(cat,toMarks\(m\)\)/.test(body)||!/shopTradeApply\(toMarks\(m\)\)/.test(body))return "the shop spec must plan and apply through its engine pair";
+    if(!/stashTradeCatalog\(\)/.test(body)||!/stashTradePlan\(cat,toMarks\(m\)\)/.test(body)||!/stashTradeApply\(toMarks\(m\)\)/.test(body))return "the stash spec must plan and apply through its engine pair";
+    if(/applyMuts\(|\.gold\s*=|\.inventory\s*=|fileWare\(|fileLocationItem\(/.test(body))return "the shells write nothing themselves";
     if(!/igold/.test(body))return "the hero's gold rides under the name in the gold style";
+    if(!/\.shop-col\+\.shop-col\{border-left:1px solid var\(--brd\)\}/.test(html)||!/\.shop-party\{text-align:center/.test(html))return "a centre rule divides the halves and each party is centred over their column";
     var pn=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");if(!/villageTradeContext\(\);if\(_vtc\.ok\)h\+=/.test(pn))return "the inventory panel opens the counter only where the gate is open";
-    var html=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");if(!/\.shop-row\.sel-sell\{background:rgba\(122,168,106/.test(html)||!/\.shop-row\.sel-buy\{background:rgba\(214,112,140/.test(html))return "green sell / pink buy rows";
+    if(!/stashTradeCatalog\(\)\.ok\)h\+=/.test(pn))return "the inventory panel opens the chest only in the hero's own house";
+    if(!/\.shop-row\.sel-sell\{background:rgba\(122,168,106/.test(html)||!/\.shop-row\.sel-buy\{background:rgba\(214,112,140/.test(html))return "green sell / pink buy rows";
+    return true;
+  });
+  t("#407 ⑥ the ledger rows are sorted for the eye: unpriced sell rows sink to the bottom, priced rows keep their inventory order, worn rows keep their place greyed; buy rows likewise",function(){
+    shopFixture();worldState.character.inventory=["Longsword","Rope x3","Bruthazmus's head","Bone-handled knife","Healing potion"];var rows=shopLedgerRows(shopTradeCatalog());
+    var order=rows.left.map(function(r){return r.label;}).join(",");if(order!=="Rope,Bone-handled knife,Healing potion,Longsword,Bruthazmus's head")return "unpriced rows sink, priced keep order: "+order;
+    var ls=rows.left.filter(function(r){return r.label==="Longsword";})[0];if(!ls.off||!ls.worn||!/Worn/.test(ls.offReason))return "the worn longsword is off with its reason";
+    if(rows.right.map(function(r){return r.label;}).join(",")!=="Rope,Healing potion,Lantern oil")return "word-priced ware sinks: "+rows.right.map(function(r){return r.label;}).join(",");
+    if(rows.left.filter(function(r){return r.tag==="wanted";}).length!==1)return "the WANTED tag rides the row";
+    return true;
+  });
+
+  section("#407 the shop interface — the stash ledger (#6 E11)");
+  t("#6 E11 ① the chest opens only in the hero's OWN house: carried rows (stacked, worn flagged) on one side, the house's stash (qty, room) on the other; another resident's house and a shop are refused with the reason",function(){
+    villageEF();memory.map.nodes[villageHouseKey("Silas")]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};
+    worldState.world.sublocation="the tavern";applyMuts("[LOCATION_ITEM:Old boots|placed|Silas's house][LOCATION_ITEM:Old boots|placed|Silas's house][LOCATION_ITEM:Lantern|placed|Silas's house|main room]");
+    worldState.character.inventory=["Rope x3","Longsword","Bone-handled knife"];applyMuts("[WORN:Silas|Longsword|on]");
+    worldState.world.sublocation="Silas's house";var cat=stashTradeCatalog();if(!cat.ok)return "own house: "+cat.reason;
+    if(cat.house!=="Silas's house"||cat.hero!=="Silas")return "header: "+JSON.stringify([cat.house,cat.hero]);
+    var c={};cat.carried.forEach(function(r){c[r.name]=r;});if(!c["Rope"]||c["Rope"].qty!==3||!c["Longsword"]||!c["Longsword"].worn)return "carried rows: "+JSON.stringify(cat.carried);
+    var s={};cat.stored.forEach(function(r){s[r.name]=r;});if(!s["Old boots"]||s["Old boots"].qty!==2||!s["Lantern"]||s["Lantern"].room!=="main room")return "stored rows: "+JSON.stringify(cat.stored);
+    var rows=stashLedgerRows(cat);if(rows.left.filter(function(r){return r.label==="Longsword";})[0].off!==true||rows.right.filter(function(r){return r.label==="Lantern";})[0].tag!=="main room")return "ledger rows: worn off, room as the tag";
+    worldState.world.sublocation="Frizwick's house";var o=stashTradeCatalog();if(o.ok||!/Frizwick's house/.test(o.reason))return "another resident's house is refused with the owner named: "+JSON.stringify(o);
+    worldState.world.sublocation="the tavern";if(stashTradeCatalog().ok)return "a shop is not a house";
+    return true;
+  });
+  t("#6 E11 ② the plan and its tags: stow caps at the stack and skips worn, take caps at the chest; stow = ITEM_LOST + one placed per unit, take = one ITEM_GAINED per unit (the gated auto-take); Move lands both ways through applyMuts and the log; a stale plan against another house moves nothing",function(){
+    villageEF();memory.map.nodes[villageHouseKey("Silas")]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};
+    worldState.world.sublocation="the tavern";applyMuts("[LOCATION_ITEM:Old boots|placed|Silas's house][LOCATION_ITEM:Old boots|placed|Silas's house]");
+    worldState.character.inventory=["Rope x3","Longsword"];applyMuts("[WORN:Silas|Longsword|on]");worldState.world.sublocation="Silas's house";
+    var cat=stashTradeCatalog(),p=stashTradePlan(cat,{stow:{"rope":9,"longsword":1},take:{"old boots":5}});
+    if(p.lines.map(function(l){return l.kind+":"+l.name+":"+l.qty;}).join(",")!=="stow:Rope:3,take:Old boots:2"||p.stowed!==3||p.taken!==2||!p.ok)return "plan: "+JSON.stringify(p);
+    var tags=stashTradeTagText(p);if(tags!=="[ITEM_LOST:Rope x3][LOCATION_ITEM:Rope|placed][LOCATION_ITEM:Rope|placed][LOCATION_ITEM:Rope|placed][ITEM_GAINED:Old boots][ITEM_GAINED:Old boots]")return "tags: "+tags;
+    if(stashTradePlan(cat,{stow:{},take:{}}).ok)return "empty plan is not completable";
+    var res=quiet(function(){return stashTradeApply({stow:{"rope":2},take:{"old boots":1}});}).r;if(!res.ok)return "apply: "+res.reason;
+    var inv=worldState.character.inventory.join("|");if(!/Rope$|Rope\|/.test(inv)||/Rope x/.test(inv)||!/Old boots/.test(inv))return "inventory after: "+inv;
+    var st=villageStash(villageHouseKey("Silas")),m={};st.forEach(function(r){m[r.name]=r.qty;});if(m["Rope"]!==2||m["Old boots"]!==1)return "stash after: "+JSON.stringify(st);
+    if(!/Silas stowed Rope x2 and took Old boots at Silas's house\./.test(res.line))return "the system line: "+res.line;
+    worldState.world.sublocation="Frizwick's house";var g=worldState.character.inventory.slice();var r2=stashTradeApply({stow:{"rope":1},take:{}});
+    if(r2.ok||worldState.character.inventory.join("|")!==g.join("|"))return "another house: nothing moves: "+JSON.stringify(r2);
     return true;
   });
 

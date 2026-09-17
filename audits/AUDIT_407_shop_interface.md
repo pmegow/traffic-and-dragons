@@ -22,3 +22,11 @@
 
 - Haggling stays in prose. No keeper purse. Adventure campaigns do not get the counter in v1 (`waresPerShop` is village-only).
 - Owner in-game pass with a real inventory of eighty items: does the list need search or the bible's category grouping inside the modal?
+
+## v1.946 — the ledger abstraction and the chest (owner's first look, 2026-09-16)
+
+Owner asks after opening the counter with a real bag: a line down the centre, the two parties centred over their columns, unpriced rows at the bottom, the UI abstracted for reuse, and the same UI for the stash.
+
+- `showLedgerModal(spec)` (ui-modals) is now the one renderer for every two-column "mark rows, complete once" surface; a spec is data (two titled columns of rows, an amount rule, a plan, a complete). The shop became `shopLedgerRows` + a spec; the stash is `stashTradeCatalog` / `stashLedgerRows` / `stashTradePlan` / `stashTradeTagText` (helpers) + `stashTradeApply` (game) + a spec. Unpriced rows sink to the bottom in `shopLedgerRows` (a pure sort, tested); worn rows keep their place, greyed.
+- The chest opens from the inventory panel only in the hero's own house (`node.owner` is the hero; another resident's house is refused naming its owner). Stow emits `[ITEM_LOST:x N]` plus one `[LOCATION_ITEM:x|placed]` per unit; take emits one `[ITEM_GAINED:x]` per unit, which is the gated auto-take path (E5). Everything lands through `applyMuts`; a refusal in the log is reported in the system line. No GM note: the geo block already serves the STASH line every turn.
+- Tests: the thin-shell contract now pins one renderer called by exactly two specs and the centre-rule/centred-party styles; a sort test; two stash tests (the gate, the plan, the tags, Move both ways, another house moves nothing). `dev/sabotage-407-shop.js` 13/13. `dev/qa-6-stash.js` in real Chrome: the panel row, the modal, two stowed and one taken, "2 in, 1 out", Move, inventory and stash as expected, one log line, 1280 + 390 px; the shop QA re-run on the generic renderer.

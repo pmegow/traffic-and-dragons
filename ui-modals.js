@@ -31,52 +31,65 @@ function radioRowsRefresh(container,cls,selId,labelSel){
   });
 }
 
-/* #407 THE SHOP MODAL — the owner's drawing (2026-09-16): the hero's inventory left, the keeper's wares right, the hero's
-   gold in small gold text under the name; a click on a left row marks it for SALE (green) and a click on a right row marks a
-   PURCHASE (pink); the signed amount sits at the marked row's right edge (ruling ③: no middle strip, one page on every
-   screen); a click on a stacked row adds one, clicking the count clears it (②); a signed total and ONE Complete button.
-   Thin shell: shopTradeCatalog / shopTradePlan (helpers.js) decide everything; shopTradeApply (game.js) lands it. */
+/* #407 ⑤ THE LEDGER MODAL — ONE renderer for every two-column "mark rows, complete once" surface (owner 2026-09-16: "abstract
+   that UI so we can use it in a number of places"). The spec is data from an engine builder; this shell only paints and
+   collects marks. Left marks glow green, right marks pink; a stacked row adds one per tap and its count clears it; the
+   amount rides the marked row's right edge (no middle strip, one page on every screen); a centre rule divides the halves;
+   each party is centred over their own column with the hero's gold in the gold style. */
+function showLedgerModal(spec){
+  var marks={left:{},right:{}};
+  var modal=modalShell(spec.id,"",{maxWidth:720,align:"flex-start",overlayExtra:"overflow-y:auto;",boxExtra:"margin-top:24px;",wireClose:false});
+  var box=modal.firstChild;
+  function col(side,rows){var h="",i;if(!rows.length)h+="<div class='shop-empty'>"+escHtml(spec.empty[side])+"</div>";
+    for(i=0;i<rows.length;i++){var r=rows[i],q=marks[side][r.key]|0,amt=q?spec.amount(side,r,q):spec.dim(side,r);
+      h+="<div class='shop-row"+(q?(side==="left"?" sel-sell":" sel-buy"):"")+(r.off?" off":"")+"' data-side='"+side+"' data-key='"+escHtml(r.key)+"' title='"+escHtml(r.off?r.offReason:r.hint)+"'>"
+        +"<span class='shop-name'>"+escHtml(r.label)+(r.max>1?" <span class='shop-qty' data-clear='1' title='Clear'>"+(q?q+"/":"")+r.max+"</span>":"")+(r.tag?" <span class='shop-tag'>"+escHtml(r.tag)+"</span>":"")+"</span>"
+        +"<span class='shop-amt'>"+amt+"</span></div>";}
+    return h;}
+  function render(){
+    var plan=spec.plan(marks),h="";
+    h+="<button id='ledger-x' class='ib' title='Close' style='position:absolute;top:10px;right:10px;'>\u00d7</button>";
+    h+="<div class='shop-grid'><div class='shop-col'><div class='shop-party'><span class='shop-who'>"+escHtml(spec.left.name)+"</span>"+(spec.left.sub?"<div class='"+(spec.left.gold?"igold":"shop-sub")+"' style='padding:0;'>"+escHtml(spec.left.sub)+"</div>":"")+"</div><h4>"+escHtml(spec.left.head)+"</h4>"+col("left",spec.rows.left)+"</div>"
+      +"<div class='shop-col'><div class='shop-party'><span class='shop-who'>"+escHtml(spec.right.name)+"</span>"+(spec.right.sub?"<div class='shop-sub'>"+escHtml(spec.right.sub)+"</div>":"")+"</div><h4>"+escHtml(spec.right.head)+"</h4>"+col("right",spec.rows.right)+"</div></div>";
+    h+="<div class='shop-total'><span>"+escHtml(spec.totalLabel||"Total")+"</span><span class='shop-amt'>"+escHtml(plan.total||"\u2014")+"</span></div>";
+    h+="<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;'><span style='font-size:11px;color:"+(plan.ok||!plan.marked?"var(--t2)":"var(--hp)")+";'>"+escHtml(plan.marked?(plan.ok?plan.after||"":plan.reason):spec.hintIdle)+"</span>"
+      +"<button id='ledger-go' class='ib' "+(plan.ok?"":"disabled ")+"style='"+(plan.ok?"border-color:var(--acc);color:var(--acc);":"opacity:.5;")+"'>"+escHtml(spec.completeLabel)+"</button></div>";
+    box.style.position="relative";box.innerHTML=h;
+    box.querySelector("#ledger-x").addEventListener("click",function(){modal.remove();});
+    var rows=box.querySelectorAll(".shop-row"),n;
+    for(n=0;n<rows.length;n++)(function(row){row.addEventListener("click",function(ev){if(row.classList.contains("off"))return;var side=row.getAttribute("data-side"),key=row.getAttribute("data-key");
+      if(ev.target&&ev.target.getAttribute&&ev.target.getAttribute("data-clear")){delete marks[side][key];render();return;}
+      var max=1,ii,list=spec.rows[side];for(ii=0;ii<list.length;ii++)if(list[ii].key===key)max=list[ii].max;
+      var cur=marks[side][key]|0;if(max<=1){if(cur)delete marks[side][key];else marks[side][key]=1;}else marks[side][key]=Math.min(max,cur+1);render();});})(rows[n]);
+    var go=box.querySelector("#ledger-go");if(go&&plan.ok)go.addEventListener("click",function(){var res=spec.complete(marks);if(!res.ok){showToast(spec.refusedPrefix+res.reason,6000);return;}showToast(res.line,5000);modal.remove();});
+  }
+  render();return modal;
+}
+/* #407 the counter: the shop spec over shopTradeCatalog / shopTradePlan / shopTradeApply. */
 function showShopModal(){
   var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no shop"};
   if(!cat.ok){showToast("Trade: "+cat.reason);return;}
-  var marks={sell:{},buy:{}};
-  var modal=modalShell("shop-modal","",{maxWidth:720,align:"flex-start",overlayExtra:"overflow-y:auto;",boxExtra:"margin-top:24px;",wireClose:false});
-  var box=modal.firstChild;
-  function render(){
-    var plan=shopTradePlan(cat,marks),i,h="";
-    h+="<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;'><div><span style='font-size:16px;color:var(--t0);font-weight:bold;'>"+escHtml(worldState.character.name)+"</span><div class='igold' style='padding:0;'>"+cat.gold+" gp</div></div>"
-      +"<div style='text-align:right;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>"+escHtml(cat.keeper)+"</span><div style='font-size:11px;color:var(--t2);'>"+escHtml(cat.shop)+"</div></div>"
-      +"<button id='shop-x' class='ib' title='Close' style='margin-left:12px;'>\u00d7</button></div>";
-    h+="<div class='shop-grid'><div class='shop-col'><h4>Sell</h4>";
-    if(!cat.sell.length)h+="<div class='shop-empty'>Nothing carried</div>";
-    for(i=0;i<cat.sell.length;i++){var r=cat.sell[i],k=r.name.toLowerCase(),q=marks.sell[k]|0,off=r.worn||r.sellGp==null;
-      h+="<div class='shop-row"+(q?" sel-sell":"")+(off?" off":"")+"' data-sell='"+escHtml(k)+"' title='"+escHtml(r.worn?"Worn — take it off first":(r.sellGp==null?"No price on record here — ask "+cat.keeper:(r.wanted?"Wanted here: full price":"Half its listed value")))+"'>"
-        +"<span class='shop-name'>"+escHtml(r.name)+(r.qty>1?" <span class='shop-qty' data-clear='"+escHtml(k)+"' title='Clear'>"+(q?q+"/":"")+r.qty+"</span>":"")+(r.wanted?" <span class='shop-tag'>wanted</span>":"")+"</span>"
-        +"<span class='shop-amt'>"+(q?"+"+shopFmtGp(r.sellGp*q):(r.sellGp!=null?"<span class='shop-dim'>"+shopFmtGp(r.sellGp)+"</span>":""))+"</span></div>";}
-    h+="</div><div class='shop-col'><h4>Buy</h4>";
-    if(!cat.buy.length)h+="<div class='shop-empty'>Nothing on the shelf</div>";
-    for(i=0;i<cat.buy.length;i++){var b=cat.buy[i],bk=b.name.toLowerCase(),bq=marks.buy[bk]|0,boff=b.buyGp==null;
-      h+="<div class='shop-row"+(bq?" sel-buy":"")+(boff?" off":"")+"' data-buy='"+escHtml(bk)+"' title='"+escHtml(boff?"Priced in words — ask "+cat.keeper:b.price+(b.note?" · "+b.note:""))+"'>"
-        +"<span class='shop-name'>"+escHtml(b.name)+"</span><span class='shop-amt'>"+(bq?"\u2212"+shopFmtGp(b.buyGp):"<span class='shop-dim'>"+escHtml(b.price)+"</span>")+"</span></div>";}
-    h+="</div></div>";
-    h+="<div class='shop-total'><span>Total</span><span class='shop-amt'>"+(plan.lines.length?((plan.netGp>0?"\u2212":plan.netGp<0?"+":"")+Math.abs(plan.netGp)+" gp"):"\u2014")+"</span></div>";
-    h+="<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;'><span style='font-size:11px;color:"+(plan.ok||!plan.lines.length?"var(--t2)":"var(--hp)")+";'>"+escHtml(plan.lines.length?(plan.ok?"After: "+plan.goldAfter+" gp":plan.reason):"Tap items to mark them")+"</span>"
-      +"<button id='shop-go' class='ib' "+(plan.ok?"":"disabled ")+"style='"+(plan.ok?"border-color:var(--acc);color:var(--acc);":"opacity:.5;")+"'>Complete transaction</button></div>";
-    box.innerHTML=h;
-    box.querySelector("#shop-x").addEventListener("click",function(){modal.remove();});
-    var rows=box.querySelectorAll(".shop-row[data-sell]"),n;
-    for(n=0;n<rows.length;n++)(function(row){row.addEventListener("click",function(ev){if(row.classList.contains("off"))return;var key=row.getAttribute("data-sell");
-      var t=ev.target;if(t&&t.getAttribute&&t.getAttribute("data-clear")){delete marks.sell[key];render();return;}
-      var max=0,ii;for(ii=0;ii<cat.sell.length;ii++)if(cat.sell[ii].name.toLowerCase()===key)max=cat.sell[ii].qty;
-      var cur=marks.sell[key]|0;if(max<=1){if(cur)delete marks.sell[key];else marks.sell[key]=1;}else{marks.sell[key]=Math.min(max,cur+1);}render();});})(rows[n]);
-    rows=box.querySelectorAll(".shop-row[data-buy]");
-    for(n=0;n<rows.length;n++)(function(row){row.addEventListener("click",function(){if(row.classList.contains("off"))return;var key=row.getAttribute("data-buy");if(marks.buy[key])delete marks.buy[key];else marks.buy[key]=1;render();});})(rows[n]);
-    var go=box.querySelector("#shop-go");if(go&&plan.ok)go.addEventListener("click",function(){
-      var res=shopTradeApply(marks);
-      if(!res.ok){showToast("Trade refused — "+res.reason,6000);return;}
-      showToast(res.line,5000);modal.remove();});
-  }
-  render();
+  var rows=shopLedgerRows(cat);
+  function toMarks(m){return {sell:m.left,buy:m.right};}
+  showLedgerModal({id:"shop-modal",left:{name:worldState.character.name,sub:cat.gold+" gp",gold:true,head:"Sell"},right:{name:cat.keeper,sub:cat.shop,head:"Buy"},rows:rows,
+    empty:{left:"Nothing carried",right:"Nothing on the shelf"},hintIdle:"Tap items to mark them",completeLabel:"Complete transaction",refusedPrefix:"Trade refused \u2014 ",
+    amount:function(side,r,q){return side==="left"?"+"+shopFmtGp(r.unit*q):"\u2212"+shopFmtGp(r.unit*q);},
+    dim:function(side,r){return r.unit==null?"":"<span class='shop-dim'>"+escHtml(side==="left"?shopFmtGp(r.unit):r.price)+"</span>";},
+    plan:function(m){var p=shopTradePlan(cat,toMarks(m));return {ok:p.ok,reason:p.reason,marked:p.lines.length>0,total:p.lines.length?((p.netGp>0?"\u2212":p.netGp<0?"+":"")+Math.abs(p.netGp)+" gp"):"",after:"After: "+p.goldAfter+" gp"};},
+    complete:function(m){return shopTradeApply(toMarks(m));}});
+}
+/* #6 E11 the chest: the stash spec over stashTradeCatalog / stashTradePlan / stashTradeApply — own house only. */
+function showStashModal(){
+  var cat=(typeof stashTradeCatalog==="function")?stashTradeCatalog():{ok:false,reason:"no stash"};
+  if(!cat.ok){showToast("Stash: "+cat.reason);return;}
+  var rows=stashLedgerRows(cat);
+  function toMarks(m){return {stow:m.left,take:m.right};}
+  showLedgerModal({id:"stash-modal",left:{name:cat.hero,sub:"carrying",head:"Stow"},right:{name:cat.house,sub:"in the house",head:"Take"},rows:rows,
+    empty:{left:"Nothing carried",right:"The chest is empty"},hintIdle:"Tap items to move them",completeLabel:"Move them",refusedPrefix:"Stash \u2014 ",totalLabel:"Moving",
+    amount:function(side,r,q){return (side==="left"?"\u2192 house":"\u2192 you")+(q>1?" \u00d7"+q:"");},
+    dim:function(){return "";},
+    plan:function(m){var p=stashTradePlan(cat,toMarks(m));return {ok:p.ok,reason:p.reason,marked:p.lines.length>0,total:p.lines.length?((p.stowed?p.stowed+" in":"")+(p.stowed&&p.taken?", ":"")+(p.taken?p.taken+" out":"")):"",after:""};},
+    complete:function(m){return stashTradeApply(toMarks(m));}});
 }
 function showRulesModal(){
   /* #14: re-rendering modal — × wired per render below, so wireClose:false */

@@ -2300,6 +2300,52 @@ function shopTradeTagText(plan){
   return t;
 }
 function shopFmtGp(gp){var v=Math.round(gp*10)/10;return (v%1===0?String(v):v.toFixed(1))+" gp";}
+
+/* #407 ⑤ (owner 2026-09-16): ONE two-column LEDGER shape, used by the shop and the stash (and whatever comes next).
+   A spec is data: two titled columns of rows {key,label,max,worn,off,offReason,tag,sub}, an amount rule, a plan and a
+   complete function. showLedgerModal (ui-modals) renders any spec; the builders below stay pure and engine-tested.
+   Rows without a price sort to the bottom of their column (owner ask); worn rows keep their place, greyed. */
+function shopLedgerRows(cat){
+  var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.qty,worn:r.worn,off:r.worn||r.sellGp==null,unit:r.sellGp,
+    offReason:r.worn?"Worn \u2014 take it off first":(r.sellGp==null?"No price on record here \u2014 ask "+cat.keeper:""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: full price":"Half its listed value"};});
+  sell.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});/* stable in ES2019+; a priced row never sinks below an unpriced one */
+  var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:1,worn:false,off:b.buyGp==null,unit:b.buyGp,offReason:b.buyGp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
+  buy.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});
+  return {left:sell,right:buy};
+}
+/* THE STASH LEDGER (#6 E11) — carried on the left (stow: green), in the house on the right (take: pink). Only in the hero's
+   OWN house (node.owner = the hero); the tags it emits are the ones the stash already honours: [ITEM_LOST:] + a
+   [LOCATION_ITEM:x|placed] per unit to stow, [ITEM_GAINED:] per unit to take (the gated auto-take path, E5). */
+function stashTradeCatalog(){
+  var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.stashQuantities)return {ok:false,reason:"no stash in this campaign"};
+  var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||null;if(!c||!worldState.world)return {ok:false,reason:"no hero"};
+  var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key||typeof memory==="undefined"||!memory||!memory.map)return {ok:false,reason:"no place on record"};
+  var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk],leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk;
+  if(!node||!node.owner)return {ok:false,reason:"not in a house ("+leaf+")"};
+  if(node.owner!==c.name)return {ok:false,reason:"this is "+node.owner+"'s house \u2014 only its owner opens the chest"};
+  var inv=c.inventory||[],carried={},order=[],i;
+  for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=base.toLowerCase();
+    if(!carried[k]){carried[k]={name:base,qty:0,worn:false};order.push(k);}carried[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))carried[k].worn=true;}
+  var stored=(typeof villageStash==="function")?villageStash(rk):[];
+  return {ok:true,house:leaf,key:rk,node:node,hero:c.name,carried:order.map(function(k){return carried[k];}),stored:stored.map(function(r){return {name:r.name,qty:r.qty,room:r.room||null};})};
+}
+function stashLedgerRows(cat){
+  return {left:cat.carried.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.qty,worn:r.worn,off:r.worn,unit:null,offReason:r.worn?"Worn \u2014 take it off first":"",tag:"",hint:"Stow it in the house"};}),
+    right:cat.stored.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.qty,worn:false,off:false,unit:null,offReason:"",tag:r.room||"",hint:"Take it with you"};})};
+}
+/* marks = {stow:{<lowercase name>:qty}, take:{<lowercase name>:qty}} */
+function stashTradePlan(cat,marks){
+  marks=marks||{};var ms=marks.stow||{},mt=marks.take||{},lines=[],i,k,stow=0,take=0;
+  for(i=0;i<cat.carried.length;i++){var r=cat.carried[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn)continue;q=Math.min(q,r.qty);lines.push({kind:"stow",name:r.name,qty:q});stow+=q;}
+  for(i=0;i<cat.stored.length;i++){var s=cat.stored[i];k=s.name.toLowerCase();var tq=mt[k]|0;if(tq<=0)continue;tq=Math.min(tq,s.qty);lines.push({kind:"take",name:s.name,qty:tq});take+=tq;}
+  return {lines:lines,stowed:stow,taken:take,ok:lines.length>0,reason:lines.length?"":"nothing marked"};
+}
+function stashTradeTagText(plan){
+  var t="",i,j;for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];
+    if(l.kind==="stow"){var n=l.qty;while(n>0){var chunk=Math.min(n,9);t+="[ITEM_LOST:"+l.name+(chunk>1?" x"+chunk:"")+"]";n-=chunk;}for(j=0;j<l.qty;j++)t+="[LOCATION_ITEM:"+l.name+"|placed]";}
+    else{for(j=0;j<l.qty;j++)t+="[ITEM_GAINED:"+l.name+"]";}}
+  return t;
+}
 /* #6 E8: the stash as data — the untaken rows of a node with qty and provenance. Pure; the geo block, the inventory panel
    and Car Mode all read this one function. */
 function villageStash(key){

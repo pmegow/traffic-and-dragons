@@ -347,6 +347,21 @@ function waysSplit(ways,cap){
   return {shown:list.slice(0,n),more:list.slice(n)};
 }
 
+
+/* #6 E11: land a stash plan — the same tags the stash already honours, through applyMuts, so provenance, qty, worn
+   pruning and the gated auto-take apply as for a GM turn. A refusal in the log is reported, never hidden. One system
+   line; no GM note — the geo block already serves the STASH line every turn. */
+function stashTradeApply(marks){
+  var cat=(typeof stashTradeCatalog==="function")?stashTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
+  var plan=stashTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
+  var R=applyMuts(stashTradeTagText(plan),{deferSave:true}),muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Stash refused|kept/.test(String(m));});
+  if(typeof saveAll==="function")saveAll();
+  var i,st=[],tk=[];for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];(l.kind==="stow"?st:tk).push(l.name+(l.qty>1?" x"+l.qty:""));}
+  var line=cat.hero+(st.length?" stowed "+st.join(", "):"")+(st.length&&tk.length?" and":"")+(tk.length?" took "+tk.join(", "):"")+" at "+cat.house+"."+(refused.length?" Refused: "+refused.join("; "):"");
+  if(typeof document!=="undefined"&&typeof addMsg==="function")addMsg("system",line);
+  if(typeof syncUI==="function")syncUI();
+  return {ok:!refused.length,reason:refused.length?refused[0]:"",plan:plan,muts:muts,line:line};
+}
 /* #407: land a shop plan. The tags run through applyMuts, so the trade gate, the stack helpers, worn pruning and the
    mutation log all apply exactly as for a GM turn; a refusal is loud and nothing else moves. Then the shelf: a bought
    ware leaves it, a sold item joins it (fileWare pins to canon; no canon = the price paid) so it can be bought back.
