@@ -137,7 +137,6 @@ executing session finds one not listed here, stop and flag it.
 | `_charLibSlug` | 2245 | |
 | `_showCharExportOptions` | 2247–2276 | launched from char sheet + NPC sheet (ui-sheets) |
 | `_showCharOverwriteConfirm` | 2278–2295 | |
-| `showCharacterLibrary` | 2298 | one-liner alias |
 | `_renderCompanionSlots` | 2341–2364 | called by char-creation.js (Review step) |
 | `_addPendingCompanion`, `_removePendingCompanion` | 2365–2376 | inline-onclick targets |
 | `showCompanionBrowser` | 2377–2489 | segBtn copy #3 (UA21) |

@@ -688,8 +688,6 @@ function showLibraryUpdateModal(char,onApplied){
     });
   });
 }
-// The standalone Character Library is now the Library tab of the unified Import Character browser.
-function showCharacterLibrary(){showCharacterBrowser("library");}
 // ── Campaign-start companion selection ────────────────────────────────────────
 function _renderCompanionSlots(){
   var sec=document.getElementById("companion-section");if(!sec)return;
