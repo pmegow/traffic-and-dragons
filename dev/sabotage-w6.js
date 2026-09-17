@@ -85,10 +85,14 @@ rc|=sabotage.prove({file:"memory.js",command:replay,cases:[
     mustFail:"W6 REPLAY FAILED: failure lifecycle did not persist each strike and th",
     find:"_sumFails=summaryFailureBump(e);saveCore();",
     replace:"_sumFails=summaryFailureBump(e);"},
+  /* audit D6 re-anchor: the three summarize commits became one _sumCommit(), which pairs the two
+     writes through saveLocal() and only truncates the session log once BOTH landed. The clause is
+     unchanged in substance — drop summaryFailureClear() from the commit and the old strike stays
+     armed — it now mutates the single committer instead of one of three copies. */
   {label:"safe exhaustion leaves the old failure strike armed",
     mustFail:"W6 REPLAY FAILED: safe exhaustion left a stale strike",
-    find:"retainSessionTail();summaryFailureClear();saveMem();saveCore();addMsg(\"system\",\"Memory identity conflict quarantined; no chapter or canon consequence was filed.\");",
-    replace:"retainSessionTail();saveMem();saveCore();addMsg(\"system\",\"Memory identity conflict quarantined; no chapter or canon consequence was filed.\");"}
+    find:"    retainSessionTail();summaryFailureClear();saveCore();",
+    replace:"    retainSessionTail();saveCore();"}
 ]});
 
 rc|=sabotage.prove({file:"state.js",command:focused,cases:[
