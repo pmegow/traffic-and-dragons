@@ -47,7 +47,8 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 - `SPELLS` — Spell lists for Sorcerer, Cleric, Druid, Ranger, Paladin, Necromancer (cantrips + levels 1–3). **Necromancer also has a tier 4** (Rigor Mortis, Possess Thrall, Sleep of the Dead) — tiers are intentionally open-ended; creation only ever offers up to tier 3 (`buildPendingSpellPool` caps `maxSlot` at 3), so higher tiers are GM-grantable / high-level content only.
 - `ARCH_SPELLS` — Extra spell lists for Eldritch Knight and Arcane Trickster archetypes
 - `STAT_BUMP_LEVELS` — `[4, 8]` (levels where +2 stat improvement is awarded)
-- `DEITY_MAP` + `DEITY_CENTRIC` — Alignment-based deity suggestions for Cleric/Paladin/Druid
+- `DEITY_MAP` + `DEITY_CENTRIC` — Alignment-based deity suggestions for Cleric/Paladin/Druid. The #362 ban list of published-RPG deity names lives in `dev/engine-tests.js` beside the test that reads it, NOT here — it had no production reader and was shipping to every player (audit E17, 2026-09-18)
+- ~~`SAVE_THREAT_TYPES`~~ — **deleted (audit E12, 2026-09-18)**: zero readers in code or prompt; save modifiers carry their threat as free text
 - `DEFAULT_RULES` — 25 hard GM rules always injected into the system prompt (incl. character sheet upkeep, engine-controlled XP/leveling, mandatory NPC registration, quest lifecycle, active-crises-are-quests, player-actions-are-intent, canon-is-not-conversation). The AUDIT_FABLE #19 editorial merge SHIPPED at v1.148 (28→20, zero coverage loss, harness-validated); rules added since are distinct purpose-built additions — see data.js for truth. Reviewed rule-by-rule 2026-08-14 (#16①): no genuine duplicates remain.
 - `SPELL_PICK_LIMITS` — Max spells selectable per tier during creation: `{cantrips:2, "1":2, "2":2, "3":1}`
 - `SPELL_UNLOCK_PICKS` — **#72 C2 (2026-08-03):** picks granted when a spell tier UNLOCKS in play: `{"1":2,"2":2,"3":1,"4":1,"5":1,"6":1}` (per-class counts are template-iteration material)

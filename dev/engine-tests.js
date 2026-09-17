@@ -1902,6 +1902,10 @@ function runEngineTests(R){
     var tt=__fsForTests.readFileSync(__rootForTests+"/table-talk.js","utf8");if(tt.indexOf("spellUnavailable(c.spells[i])")<0||/c\.spells\[i\]\.used\?" \(used\)"/.test(tt))return "Table Talk must read the gate";
     var rule=DEFAULT_RULES.join("\n");if(/SPELLS AVAILABLE list|expended slots/.test(rule)||!/RACIAL 1\/day spell marked used CANNOT be cast again before a long rest/.test(rule)||!/Every other spell costs mana/.test(rule))return "slot-era wording survives in the default rules";
   });
+  /* #362: names from published RPG rosters that must never return to the defaults. Tiamat is Mesopotamian
+     by origin and stays, without the borrowed epithet. Audit E17 moved this list OUT of data.js — it is a
+     de-branding TEST fixture with no production reader, and it was shipping to every player. */
+  var PUBLISHED_RPG_DEITIES=["Pelor","Ioun","Avandra","Erathis","Raven Queen","Sehanine","Asmodeus","Vecna","Tharizdun","Bahamut","Kord","Melora","Corellon","Torog","Moradin","Gruumsh","Primal Spirits","Dragon Queen","Platinum Dragon","Abadar","Erastil","Sarenrae","Desna","Pharasma","Iomedae","Gorum","Torag","Nethys","Cayden Cailean","Calistria","Shelyn","Lamashtu","Rovagug","Urgathoa","Zon-Kuthon","Norgorber","Gozreh","Irori","Lathander","Mystra","Bane","Cyric","Kelemvor","Tempus","Selûne","Shar","Lolth","Gond","Helm","Ilmater","Oghma","Silvanus","Tymora","Umberlee","Waukeen"];
   t("#362 the default deities come from cultural pantheons only: every DEITY_CENTRIC class × alignment has a 'Name, epithet' entry, no name from a published RPG roster appears in the map or the ancestry resolver, and the drift nudge still matches the map's exact strings",function(){
     var cls,al,i,names=[];
     for(i=0;i<DEITY_CENTRIC.length;i++){cls=DEITY_CENTRIC[i];if(!DEITY_MAP[cls])return "no map for "+cls;

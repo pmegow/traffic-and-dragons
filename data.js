@@ -173,9 +173,8 @@ var DEITY_MAP={
     "Chaotic Evil":"Apophis, the Serpent of Unmaking"
   }
 };
-/* #362: names from published RPG rosters that must never return to the defaults (tested against the map
-   and the ancestry resolver). Tiamat is Mesopotamian by origin and stays, without the borrowed epithet. */
-var PUBLISHED_RPG_DEITIES=["Pelor","Ioun","Avandra","Erathis","Raven Queen","Sehanine","Asmodeus","Vecna","Tharizdun","Bahamut","Kord","Melora","Corellon","Torog","Moradin","Gruumsh","Primal Spirits","Dragon Queen","Platinum Dragon","Abadar","Erastil","Sarenrae","Desna","Pharasma","Iomedae","Gorum","Torag","Nethys","Cayden Cailean","Calistria","Shelyn","Lamashtu","Rovagug","Urgathoa","Zon-Kuthon","Norgorber","Gozreh","Irori","Lathander","Mystra","Bane","Cyric","Kelemvor","Tempus","Selûne","Shar","Lolth","Gond","Helm","Ilmater","Oghma","Silvanus","Tymora","Umberlee","Waukeen"];
+/* #362's ban list of published-RPG deity names lives with the test that reads it (dev/engine-tests.js) —
+   it had no production reader and was shipped to every player in this file (audit E17). */
 var SPELL_PICK_LIMITS={"cantrips":2,"1":2,"2":2,"3":1};
 // #72 C2 (2026-08-03): picks granted when a spell tier UNLOCKS in play — the creation-picker
 // rhythm carried forward (SPELL_PICK_LIMITS-style). Per-class counts are template-iteration
@@ -231,7 +230,6 @@ var SKILLS=[
 ];
 var SKILL_THRESHOLDS=[1,5,12,25,50,100]; // cumulative successes for levels 1-6 (#302: Legendary at 100)
 var SKILL_LEVELS=["Unskilled","Familiar","Trained","Proficient","Expert","Master","Legendary"];
-var SAVE_THREAT_TYPES=["Poison","Disease","Magic","Fire","Cold","Lightning","Fear","Charm","Psionic","Holy","Shadow","Other"];
 var NAMES={
   human:["Theron","Aldric","Nia","Brynn","Corven","Caelan","Zara","Devra","Eldric","Dorian","Sable","Edric","Morwen","Eryth","Cade","Fayla","Vesper","Farren","Isolde","Gavric","Davin","Gwynne","Petra","Harlan","Rylan","Hessa","Celeste","Idren","Hawke","Ilara","Nyla","Jareth","Corvus","Kaelan","Seren","Liryn","Aldus","Lorcan","Wyla","Maerik","Thane","Maeve","Briar","Nessa","Kiran","Norvan","Verity","Orla","Draven","Osric","Faye","Palyn","Oswin","Pyra","Tessaly","Rendal","Gareth","Reva","Nolan","Saevar","Sylvie","Thessa","Coran","Torvan","Elara","Vanya","Holt","Wren","Mirren","Arden","Zephyr","Eryn","Cavin","Dael","Lyra","Raen","Doran","Solene","Vesna","Crest","Rhett","Mira","Asha","Hadden","Aldwyn","Taryn","Corva","Vael","Siris","Brecken","Bramble","Lysa","Kessa","Fenwick","Vorn","Aldara","Lyss","Brennan","Calder","Caelin"],
   elf:["Aerindel","Calenmir","Thasindra","Daeris","Quelarin","Erevan","Veilindra","Faerindel","Sorindel","Galindra","Nyrindel","Ilrien","Aelith","Liriel","Caerindel","Miriel","Lythindra","Naelindra","Sereniel","Orindel","Vorindel","Sylvara","Thessindra","Thalindra","Pirindel","Uraiel","Aeravel","Valarei","Galindel","Windrel","Nirithel","Yaelindra","Calyindra","Zirindel","Selaindel","Elorin","Vyrindra","Farindel","Elarindel","Silindra","Norindel","Quelindel","Sylindra","Rindara","Kaeindel","Thessindel","Thornindra","Isindra","Yrindel","Aeravel"],
