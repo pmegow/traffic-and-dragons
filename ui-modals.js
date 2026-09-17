@@ -300,6 +300,15 @@ function saveProviderSettings(){
   store.set(PMDL_K,JSON.stringify(providerModels));
   store.set(UPGRADE_K,allowModelUpgrade?"true":"false");
 }
+/* audit B7 (2026-09-18): for a provider whose upgradeModel IS its defaultModel — anthropic, gemini and
+   a default-config openai player today — the "allow model upgrade" switch changes NOTHING, while the UI
+   presents it as general. The row is shown DISABLED with a title that says so rather than hidden, so a
+   player who remembers the setting can see it is still there and why it is inert. upgradeModelFor()
+   itself is untouched; this is honesty about it. Pure. */
+function upgradeToggleIsInert(pid){
+  var p=(typeof PROVIDERS!=="undefined")&&PROVIDERS[pid];
+  return !!(p&&p.upgradeModel&&p.defaultModel&&p.upgradeModel===p.defaultModel);
+}
 function showProviderModal(){
   closeAllMenus();/* #15④: was the closeAllMenus body inlined verbatim */
   var selProv=PROVIDERS[activeProvider]?activeProvider:"anthropic";
@@ -317,7 +326,7 @@ function showProviderModal(){
     +"<input type='password' id='pv-key' autocomplete='one-time-code' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'/>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>Model</div>"
     +"<select id='pv-model' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'>"+modelOpts()+"</select>"
-    +"<label style='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;'><input type='checkbox' id='pv-upgrade'"+(allowModelUpgrade?" checked":"")+"><span style='font-size:12px;color:var(--t2);'>Allow model upgrade for complex tasks</span></label>"
+    +"<label id='pv-upgrade-row' style='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;'><input type='checkbox' id='pv-upgrade'"+(allowModelUpgrade?" checked":"")+"><span id='pv-upgrade-lbl' style='font-size:12px;color:var(--t2);'>Allow model upgrade for complex tasks</span></label>"/* B7: the row is disabled below when this provider's upgrade target is its own default */
     +"<p id='pv-msg' style='font-size:12px;min-height:16px;margin:12px 0;text-align:center;'></p>"
     +"<button id='pv-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save &amp; Use</button>",
     {maxWidth:420,closeId:"pv-x"});
@@ -325,6 +334,15 @@ function showProviderModal(){
   function refreshSel(){
     keyInp.value=_pvStaged[selProv]||"";keyInp.placeholder=PROVIDERS[selProv].keyHint;modelSel.innerHTML=modelOpts();
     radioRowsRefresh(modal,"pv-row",selProv,"span");/* #15① */
+    /* B7: the switch is inert when this provider's upgrade target IS its default — say so instead of
+       presenting it as general. The checkbox keeps its state, so Save still persists the player's choice. */
+    var _uRow=document.getElementById("pv-upgrade-row"),_uBox=document.getElementById("pv-upgrade"),_uLbl=document.getElementById("pv-upgrade-lbl"),_uInert=upgradeToggleIsInert(selProv);
+    if(_uRow&&_uBox&&_uLbl){
+      _uBox.disabled=_uInert;
+      _uRow.style.opacity=_uInert?".5":"1";_uRow.style.cursor=_uInert?"default":"pointer";
+      _uRow.title=_uInert?(PROVIDERS[selProv].label+" upgrades to the same model it already uses ("+PROVIDERS[selProv].defaultModel+") — this switch changes nothing here."):"Escalate skeleton, sheet-sync and suggestion calls to "+PROVIDERS[selProv].upgradeModel+".";
+      _uLbl.textContent=_uInert?"Allow model upgrade — nothing to upgrade to on "+PROVIDERS[selProv].label:"Allow model upgrade for complex tasks";
+    }
   }
   Array.prototype.forEach.call(modal.querySelectorAll(".pv-row"),function(row){row.addEventListener("click",function(){_pvStaged[selProv]=keyInp.value.trim();selProv=this.getAttribute("data-id");refreshSel();});});
   refreshSel();
