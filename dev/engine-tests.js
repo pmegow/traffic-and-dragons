@@ -3199,6 +3199,14 @@ function runEngineTests(R){
   });
   t("cleanTxt converts em-dashes and collapses blank runs",function(){var c=cleanTxt("A — B\n\n\n\nC");return eq(c,"A, B\n\nC");});
   t("diceTxt renders a dice block",function(){var h=diceTxt("[DICE:Strength check|14|success]");return h.indexOf("dice-block")>0&&h.indexOf("14")>0?true:"bad html: "+h;});
+  t("diceTxt escapes all three [DICE:] fields — label, roll and note are model text that lands in innerHTML (#422; S2 in DOC/Research/remote_player_exploration.html §14)",function(){
+    var h=diceTxt("[DICE:<img src=x onerror=alert(1)>|12|<b>x</b>]");
+    if(/<img/.test(h)||/<b>/.test(h))return "raw markup reached the dice block: "+h;
+    if(h.indexOf("&lt;img src=x onerror=alert(1)&gt;")<0||h.indexOf("&lt;b&gt;x&lt;/b&gt;")<0)return "escaped text missing: "+h;
+    var r=diceTxt("[DICE:Strength check|<i>12</i>|ok]");
+    if(/<i>/.test(r)||r.indexOf("&lt;i&gt;12&lt;/i&gt;")<0)return "the roll field is still unescaped: "+r;
+    return true;
+  });
   t("parseActions: [ACTIONS:] tag",function(){var r=parseActions("prose","prose [ACTIONS:Fight|Flee|Parley]");return (r.btns.match(/data-action/g)||[]).length===3?true:"btns: "+r.btns;});
   t("parseActions: bare pipe-bracket (non-Claude)",function(){var r=parseActions("prose [Fight|Flee|Parley]","prose [Fight|Flee|Parley]");return (r.btns.match(/data-action/g)||[]).length===3&&r.clean==="prose"?true:"clean/btns wrong: "+JSON.stringify(r.clean);});
   t("parseActions: legacy *You could…* line",function(){var r=parseActions("Something happens. *You could fight; flee; or parley*","");return (r.btns.match(/data-action/g)||[]).length===3?true:"btns: "+r.btns;});
