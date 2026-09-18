@@ -15,6 +15,8 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
+- 2026-09-18 · #1 shared multiplayer costs · Codex: owner decision recorded in DOC/Research/remote_player_exploration.html#shared-cost — one room usage charge split equally among participating players, replacing owner-only funding. Updated consent, atomic per-account reservations, fractional settlement, retry/disconnect allocation and acceptance gates throughout the design. Documentation only; billing and multiplayer are not implemented.
+
 - 2026-09-18 · #1 remote multiplayer consolidation · Codex: owner-requested rewrite of DOC/Research/remote_player_exploration.html into one design incorporating the proposal, Fable critique and response. One current recommendation, corrected panel provenance, shared gateway/auth/recovery contract and all twenty review references; earlier full discussion retained in Git 07d4f83. Documentation only; no engine/server changes.
 
 - 2026-09-18 · #1 remote multiplayer · Codex: owner-requested response to Fable’s twenty findings appended at DOC/Research/remote_player_exploration.html#codex-response, preserving the original and review. Corrected funding, commit boundary, panel provenance, recovery and current #422/#423 status. Documentation only; no game/server edits.
