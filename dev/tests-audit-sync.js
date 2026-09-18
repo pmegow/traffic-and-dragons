@@ -165,7 +165,7 @@ t("switchToCampaign re-fetches the incoming campaign's OWN camp after the switch
 });
 
 t("the .tnd import re-fetches the holder too", function () {
-  return code("ui-files.js").indexOf("restoreCheckpointHolder()") >= 0 ? true : "importSave never re-runs the holder restore";
+  return importBody().indexOf("restoreCheckpointHolder()") >= 0 ? true : "importSaveData never re-runs the holder restore";
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -516,15 +516,22 @@ t("the three commit sites are ONE committer that saves before it truncates", fun
 // ═══════════════════════════════════════════════════════════════════════════════
 section("D7 — the .tnd import carries every blankMemory() key");
 
-// The import's memory build is EXECUTED out of the shipped ui-files.js (a DOM file the engine
-// manifest cannot load): the window from `var mm=data.memory||{};` to `migrateWorldState();` is
-// sliced and run with the engine's own blankMemory/archiveRebuild in scope. A regex would only
-// prove the shape of the code; this proves what it produces.
+// The import's memory build is EXECUTED out of the shipped import body — since #423 (v1.953) that
+// is state.js importSaveData, the engine half of importSave (it moved there verbatim; ui-files.js
+// keeps the file read and the DOM refresh): the window from `var mm=data.memory||{};` to
+// `migrateWorldState();` is sliced and run with the engine's own blankMemory/archiveRebuild in
+// scope. A regex would only prove the shape of the code; this proves what it produces.
+function importBody() {
+  var s = code("state.js");
+  var from = s.indexOf("function importSaveData("), to = s.indexOf("function updateCampMeta(", from);
+  if (from < 0 || to < 0) throw new Error("could not locate importSaveData in state.js");
+  return s.slice(from, to);
+}
 function runImportMemoryBuild(data) {
-  var s = code("ui-files.js");
-  var from = s.indexOf("    var mm=data.memory||{};");
-  var to = s.indexOf("    migrateWorldState();", from);
-  if (from < 0 || to < 0) throw new Error("could not locate the import's memory window in ui-files.js");
+  var s = importBody();
+  var from = s.indexOf("var mm=data.memory||{};");
+  var to = s.indexOf("migrateWorldState();", from);
+  if (from < 0 || to < 0) throw new Error("could not locate the import's memory window in state.js importSaveData");
   var body = s.slice(from, to);
   /* jshint evil:true */
   var f = new Function("data", "blankMemory", "archiveRebuild", "var memory;" + body + "\nreturn memory;");
@@ -585,9 +592,9 @@ t("unknown archive categories still ride through verbatim (JP0-5 is not weakened
 });
 
 t("the build is DERIVED — no hand-listed field enumeration is left", function () {
-  var s = code("ui-files.js");
-  var from = s.indexOf("    var mm=data.memory||{};");
-  var body = s.slice(from, s.indexOf("    migrateWorldState();", from));
+  var s = importBody();
+  var from = s.indexOf("var mm=data.memory||{};");
+  var body = s.slice(from, s.indexOf("migrateWorldState();", from));
   if (body.indexOf("Object.keys(blankMemory())") < 0 && body.indexOf("blankMemory()") < 0) return "the import no longer derives its key list from blankMemory()";
   if (/keyDecisions:Array\.isArray\(mm\.keyDecisions\)/.test(body)) return "the hand-listed whitelist is back — the shape that lost five fields";
   return true;

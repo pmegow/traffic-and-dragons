@@ -538,7 +538,9 @@ var storageAdapter = (function() {
   // `done` (optional, non-beacon only) fires ONCE when this push has settled — cb(null) on a
   // confirmed 2xx, cb(reason) otherwise. JP0-11's boot push is its only caller: it must know
   // whether the marked turns actually reached the server before the reconcile may adopt.
-  function _syncNow(beacon, healedRetry, done) {
+  // rehomedRetry (#423) bounds the foreign_campaign re-home to ONE retry per chain, the way healedRetry
+  // bounds the 409 self-heal.
+  function _syncNow(beacon, healedRetry, done, rehomedRetry) {
     var _doneCb = (typeof done === "function") ? done : null;
     function _fin(err) { var f = _doneCb; _doneCb = null; if (f) f(err || null); }
     if (!_serverUrl || typeof worldState === "undefined" || !worldState) { _fin("not connected"); return; }
@@ -637,6 +639,25 @@ var storageAdapter = (function() {
             _syncNow(false, true, _pass);
           } else { _onConflict(st); _fin("another device is ahead (server turn " + st + ")"); }
         }).catch(function(){ _onConflict(null); _fin("conflict — the 409 body was unreadable"); });
+      }
+      else if (r.status === 403) {
+        r.json().catch(function(){ return null; }).then(function(d){
+          if (d && d.reason === "foreign_campaign" && !rehomedRetry && typeof rehomeCampaign === "function") {
+            // #423: this device carries a campaign id ANOTHER ACCOUNT owns — an import that adopted the
+            // file's id before the re-mint shipped. The server refused the write (nothing overwritten;
+            // it answers 403 + reason, never {ok:true}, so the unsynced marker cannot clear on a
+            // zero-row write). Move the campaign to a fresh id — rehomeCampaign carries the slot, the
+            // list row, the marker and the #365 stamp — and retry ONCE; the retry owns completion.
+            var _nid = rehomeCampaign("cloud save refused: " + campId + " belongs to another account");
+            console.warn("[storage] sync refused (403 foreign_campaign): campaign " + campId + " belongs to another account — re-homed to " + _nid + " and retrying once. Nothing was overwritten.");
+            if (typeof showToast === "function") showToast("&#9729; Cloud save refused &mdash; that campaign id belongs to another account. This campaign was moved to a new id and saved.");
+            var _passR = _doneCb; _doneCb = null;
+            _syncNow(false, healedRetry, _passR, true);
+          } else {
+            var _why = "server returned 403" + (d && d.reason ? " (" + d.reason + ")" : "");
+            _onSyncFail(_why, 403); _fin(_why);
+          }
+        });
       }
       else if (r.status === 413) { r.json().then(function(d){ _onSyncFail(quotaRefusalText(d), 413); }).catch(function(){ _onSyncFail(quotaRefusalText(null), 413); }); _fin("server refused the save — quota"); }
       else if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); _fin("server returned " + r.status); }
@@ -1111,7 +1132,7 @@ var storageAdapter = (function() {
       narrativeHtml: ""
     };
     if (typeof parts.baseTurn === "number") body.baseTurn = parts.baseTurn;
-    _apiJson("/api/state", "POST", body, cb);
+    _apiJson("/api/state", "POST", body, cb, true);/* #423: detailed errors — a 403 says WHY ("campaign belongs to another account"), not just the status */
   }
 
   // payload = {portrait, npcPortraits} — built by the caller from ITS blob (silent push
@@ -1170,6 +1191,7 @@ var storageAdapter = (function() {
     flushTooBigForKeepalive: flushTooBigForKeepalive, // JP0-11: the pure size gate (exposed for the engine tests)
     flushDirtyTurn:        flushDirtyTurn,       // JP0-11: the unsynced-flush marker — read
     clearFlushDirty:       clearFlushDirty,      // JP0-11: the unsynced-flush marker — clear (tests + campaign teardown, D10)
+    markFlushDirty:        markFlushDirty,       // #423: the marker follows a re-homed campaign to its new id (rehomeCampaign)
     clearSyncSizeWarn:     clearSyncSizeWarn,    // D13: prune a deleted campaign's payload-size latch segment
     whoAmI:                whoAmI,
     fetchAccount:          fetchAccount,         // §3 gateway: account/entitlement readout → serverAccount global

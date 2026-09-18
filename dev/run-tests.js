@@ -349,18 +349,23 @@ try {
 try {
   var _failAC = function (msg) { console.error("#144A ARCHIVE CARRY CONTRACT: " + msg); process.exit(1); };
   var _ufAC = _src("ui-files.js");
+  var _stAC = _src("state.js");
+  // #423 (v1.953): the import BODY moved verbatim from ui-files.js importSave into state.js
+  // importSaveData (its engine half) so the two-account import case is engine-testable; the
+  // shell only reads the file and refreshes the DOM. This clause follows the body to its home.
+  var _impAC = _stAC.slice(_stAC.indexOf("function importSaveData("), _stAC.indexOf("function updateCampMeta("));
+  if (_impAC.length < 100) _failAC("importSaveData is gone from state.js — the .tnd import body has no engine home");
   // ① the import carries the FULL archive — and does so BY REGISTRY, never by hand-copied key
   //   list. This clause used to repeat the whitelist verbatim, which is exactly why the loss
   //   shipped green four times (the test and the code drifted together). JP0-5: the import must
-  //   route through archiveRebuild, ui-files.js must hold NO archive key list of its own, and the
-  //   registry in state.js must still cover every category (round-trip behavior, unknown-key
+  //   route through archiveRebuild, the import body must hold NO archive key list of its own, and
+  //   the registry in state.js must still cover every category (round-trip behavior, unknown-key
   //   carry and per-consumer agreement are proven by the engine suite's "memory.archive key
   //   registry (JP0-5)" section).
-  if (!/archive:archiveRebuild\(mm\.archive\)/.test(_ufAC))
+  if (!/archive:archiveRebuild\(mm\.archive\)/.test(_impAC))
     _failAC("the .tnd import no longer rebuilds its archive through archiveRebuild — a hand-rolled rebuild is how this key list dropped a category four separate times");
-  if (/mm\.archive\.[A-Za-z_$]/.test(_ufAC))
-    _failAC("ui-files.js enumerates archive categories by hand again (mm.archive.<key>) — the registry in state.js is the only list");
-  var _stAC = _src("state.js");
+  if (/mm\.archive\.[A-Za-z_$]/.test(_impAC) || /mm\.archive\.[A-Za-z_$]/.test(_ufAC))
+    _failAC("the .tnd import enumerates archive categories by hand again (mm.archive.<key>) — the registry in state.js is the only list");
   var _regAC = (_stAC.match(/var MEMORY_ARCHIVE_KEYS=(\[[^\]]*\]);/) || [])[1];
   if (!_regAC) _failAC("MEMORY_ARCHIVE_KEYS is gone from state.js — there is no registry to derive from");
   var _keysAC = JSON.parse(_regAC);
@@ -421,7 +426,7 @@ try {
   //   memory.quests records; a field-by-field rebuild here would drop them on every .tnd import —
   //   the exact class this contract exists for (attitudeSpec, eras, the #144A trio, the death
   //   corrections). The engine half of the round-trip is engine-tested; this pins the DOM surface.
-  if (_ufAC.indexOf("quests:mm.quests||{}") < 0)
+  if (_impAC.indexOf("quests:mm.quests||{}") < 0)/* #423: the import body lives in state.js importSaveData */
     _failAC("the .tnd import no longer carries memory.quests wholesale — #235 by/wasOffered provenance would be dropped on every round-trip");
   // ④ #235: the Quest Journal's History label routes through the one pure renderer, so a
   //   wall-swept thread can never render as the player's own drop.
@@ -1337,6 +1342,32 @@ try {
   if (_mtShell.indexOf("menuTierHidesDev(acct)") < 0) _mtFail("applyMenuTier no longer decides through the pure menuTierHidesDev helper.");
   console.log("[#289] menu tier contract OK — 8 operator rows flagged, toggle re-applied on account load");
 } catch (e) { console.error("MENU TIER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
+// ── IMPORT OWNERSHIP CONTRACT (#423, v1.953) ─────────────────────────────────────────────
+// An imported .tnd carries its campaign's own id; adopting it unconditionally posted the SENDER's id on
+// the next autosave and (before the server's owner predicate) overwrote the sender's cloud row. The
+// engine battery (dev/tests-423-import-ownership.js) proves the decision, the re-home and the honest
+// two-account case; these source pins guard what it cannot reach: the DOM shell must route through the
+// engine half, the resolver must decide on OWNERSHIP, and the sync path must key the re-home on the
+// server's reason code (with its one-retry bound), never the bare status.
+try {
+  var _ioFail = function (msg) { console.error("IMPORT OWNERSHIP CONTRACT: " + msg); process.exit(1); };
+  var _ioFiles = _src("ui-files.js");
+  var _ioAt = _ioFiles.indexOf("function importSave(");
+  var _ioImport = _ioFiles.slice(_ioAt, _ioFiles.indexOf("reader.readAsText(file)", _ioAt));
+  if (_ioImport.indexOf("importSaveData(data)") < 0) _ioFail("importSave (ui-files.js) no longer routes through importSaveData — the DOM shell has grown its own adoption path, which the engine battery cannot see.");
+  if (/setActiveCampId\(\s*(ws|data\.worldState)\.campId|setActiveCampId\(_cid\)/.test(_ioImport)) _ioFail("importSave adopts the file's campId directly again — a friend's export would post the sender's id.");
+  var _ioState = _src("state.js");
+  var _ioData = _ioState.slice(_ioState.indexOf("function importSaveData("), _ioState.indexOf("function updateCampMeta("));
+  if (_ioData.indexOf("resolveImportedCampaignId(ws.campId)") < 0) _ioFail("importSaveData no longer decides the id through resolveImportedCampaignId.");
+  var _ioResolve = _ioState.slice(_ioState.indexOf("function resolveImportedCampaignId("), _ioState.indexOf("function rehomeCampaign("));
+  if (_ioResolve.indexOf("campaignIdOccupied(fileId)") < 0) _ioFail("resolveImportedCampaignId no longer asks campaignIdOccupied — ownership is not what decides reuse.");
+  var _ioSa = _src("storage-adapter.js");
+  if (_ioSa.indexOf('d.reason === "foreign_campaign" && !rehomedRetry') < 0) _ioFail("the sync path's 403 branch no longer keys on reason foreign_campaign with the one-retry bound.");
+  if (_ioSa.indexOf("rehomeCampaign(") < 0) _ioFail("the sync path no longer re-homes through rehomeCampaign (state.js).");
+  if (_src("dev/run-standalone-suites.js").indexOf("dev/tests-423-import-ownership.js") < 0) _ioFail("the #423 battery is not in run-standalone-suites.js — the gate no longer runs it.");
+  console.log("[#423] import ownership contract OK — shell routes through importSaveData, resolver asks ownership, sync re-homes once on reason foreign_campaign");
+} catch (e) { console.error("IMPORT OWNERSHIP CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────
 // The wire format is the disk format ({__lz} transcript), and the reconcile ADOPT used to

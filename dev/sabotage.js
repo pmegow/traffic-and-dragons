@@ -64,6 +64,7 @@ function proveScratch(opts) {
     copyWorking("ui-files.js"); /* JP0-5 (v1.722, the #194L6 class again): the suite's archive-registry source contract readFileSync's ui-files.js, so a clone without it reds EVERY battery's baseline with an unrelated failure and poisons attribution — non-manifest files the suite scans BY SOURCE must ride in as standard, not per-battery `also:` */
     copyWorking("ui-modals.js"); /* #256 (v1.724, same class): the by-field History-label source contract reads ui-modals.js */
     copyWorking("dev/village-measure.js"); /* #6 D4 (v1.914, same class): run-tests.js geval-loads the village measure; a clone without it reds every baseline */
+    copyWorking("dev/run-standalone-suites.js"); /* #423 (v1.953, same class): the IMPORT OWNERSHIP CONTRACT reads the standalone runner list by source; a clone holding HEAD's copy exits the gate before any engine assertion prints and misattributes every battery (the jp0-5 3/7 pre-commit) */
     (opts.also || []).forEach(copyWorking); /* #197: the #196 fix's multi-FILE sibling — a feature spanning several engine files is only provable pre-commit if the WORKING copy of every co-changed file rides into the clone, else each clause "fails" on the absent feature and misattributes as caught */
     if (opts.command && opts.command[1] && opts.command[1][0]) copyWorking(opts.command[1][0]);
     return prove({

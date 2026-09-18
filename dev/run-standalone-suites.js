@@ -17,6 +17,7 @@ var SUITES = [
   "dev/tests-292-admin-console.js",
   "dev/tests-b9-transport.js",
   "dev/tests-jp011-flush-dirty.js",
+  "dev/tests-423-import-ownership.js",
   "dev/tests-c13-adapter.js",
   "dev/tests-29-callgm-transport.js",
   "dev/tests-41f-gemini-model-ladder.js",

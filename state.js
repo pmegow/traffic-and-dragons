@@ -962,6 +962,115 @@ function campaignIdOccupied(id){
   var meta=getCampMeta(),i;for(i=0;i<meta.length;i++)if(meta[i]&&meta[i].id===id)return true;
   return !!store.get(campSlotKey(id,"ws"));
 }
+/* #423 (research doc §14 finding S1, 2026-09-18): THE import decision. A .tnd file carries its campaign's own id,
+   and importSave used to adopt it unconditionally — so a friend importing an exported save posted the SENDER's id on
+   the next autosave and, before the server grew its owner predicate, overwrote the sender's cloud row (no malice, no
+   guessing: ids are camp_<timestamp>_<4 digits>). The file's id is reused only when THIS device already owns it —
+   the campaign list knows it or a local slot holds it (my own export, re-imported, keeps the cross-device workflow);
+   any other id is re-minted. A legacy file without an id keeps its old landing (the active campaign, else a fresh
+   one) — unchanged behaviour, deliberately outside this fix. The sync path's 403 re-home (rehomeCampaign) is the
+   backstop for a device that adopted a foreign id before this shipped. Pinned by dev/tests-423-import-ownership.js. */
+function resolveImportedCampaignId(fileId){
+  if(fileId){
+    if(campaignIdOccupied(fileId))return{id:fileId,reminted:false,fileId:fileId};
+    return{id:newCampaignId(),reminted:true,fileId:fileId};
+  }
+  var aid=getActiveCampId();
+  return{id:aid||newCampaignId(),reminted:false,fileId:null};
+}
+/* #423: move the ACTIVE campaign to a fresh id, carrying everything keyed by the old one — the local slot, the
+   campaign-list row (onServer dropped: the cloud never held THIS id), the JP0-11 unsynced marker and the payload-size
+   latch, the #365 memory owner stamp (only when it matched the old id — a stamp that never matched stays the signal
+   it is), the held checkpoint (the D1 id change would drop it; restamped instead), and the live worldState.campId.
+   ONE function, so the sync path's 403 re-home and any future caller cannot each forget a key. Returns the new id. */
+function rehomeCampaign(reason){
+  var old=getActiveCampId(),nid=newCampaignId(),parts=["ws","sl","mem"],i,v;
+  if(old){
+    for(i=0;i<parts.length;i++){v=store.get(campSlotKey(old,parts[i]));if(v!=null){store.set(campSlotKey(nid,parts[i]),v);store.del(campSlotKey(old,parts[i]));}}
+    var meta=getCampMeta(),changed=false;
+    for(i=0;i<meta.length;i++){if(meta[i]&&meta[i].id===old){meta[i]=Object.assign({},meta[i],{id:nid});delete meta[i].onServer;changed=true;}}
+    if(changed)setCampMeta(meta);
+    if(typeof storageAdapter!=="undefined"&&storageAdapter.flushDirtyTurn){
+      var t=storageAdapter.flushDirtyTurn(old);
+      if(t!=null){storageAdapter.clearFlushDirty(old);storageAdapter.markFlushDirty(nid,t);}
+      if(storageAdapter.clearSyncSizeWarn)storageAdapter.clearSyncSizeWarn(old);
+    }
+  }
+  var held=_checkpointMem;
+  setActiveCampId(nid);/* D1 clears the holder on an id change — restored below under the new stamp */
+  if(held){held.campId=nid;_checkpointMem=held;}
+  if(typeof worldState!=="undefined"&&worldState)worldState.campId=nid;
+  if(typeof memory!=="undefined"&&memory&&old&&memory.campId===old)memory.campId=nid;
+  console.warn("[camps] campaign re-homed "+(old||"(none)")+" → "+nid+(reason?" — "+reason:""));
+  return nid;
+}
+/* #423: THE engine half of importSave (ui-files.js keeps only the file read and the DOM refresh) — the body moved here
+   verbatim so the honest case (account B imports account A's export, plays a turn, syncs) runs through the REAL import
+   path in dev/tests-423-import-ownership.js. Throws the same Errors the shell used to surface as "Import failed: …";
+   returns the id plan ({id, reminted, fileId}). */
+function importSaveData(data){
+  if(!data||!data.worldState||!data.worldState.character)throw new Error("Invalid save.");
+  var ws=data.worldState,ch=ws.character;
+  if(typeof ch.name!=="string")throw new Error("Invalid character data.");
+  if(!Array.isArray(ch.inventory))ch.inventory=[];
+  if(!Array.isArray(ch.abilities))ch.abilities=[];
+  if(!Array.isArray(ch.spells))ch.spells=[];
+  if(!Array.isArray(ws.npcs))ws.npcs=[];
+  if(!Array.isArray(ws.questLog))ws.questLog=[];
+  if(!Array.isArray(ws.eventHistory))ws.eventHistory=[];
+  if(!ws.world||typeof ws.world!=="object")throw new Error("Invalid world data.");
+  // Snapshot (and flush, via E74) the OUTGOING campaign before repointing (audit E12) — importSave
+  // used to overwrite worldState + the active campaign id without preserving the current campaign,
+  // silently destroying its in-session progress since the last snapshot.
+  if(!snapshotActiveCamp())throw new Error("Storage full — couldn't back up the current campaign before importing.");/* B4: surfaces via importSave's own import-error path */
+  worldState=ws;
+  // Resolve the campaign slot (#423): the file's own id only when this device owns it; a foreign id is re-minted.
+  var plan=resolveImportedCampaignId(ws.campId);
+  setActiveCampId(plan.id);worldState.campId=plan.id;
+  sessionLog=Array.isArray(data.sessionLog)?data.sessionLog:[];
+  var mm=data.memory||{};
+  /* attitudeSpec carried through (v1.439, F7 — brief D): this whitelist silently DROPPED the
+     v1.383 heal marker, so every .tnd import re-fired the one-time clear and wiped correct
+     new-spec dispositions on the next load. A pre-v1.383 file has no marker → the heal fires →
+     correct (its values ARE old-spec). */
+  /* Audit D7 — the carry is DERIVED from blankMemory()'s own key list, never hand-listed. The
+     hand-listed object below it dropped `nameIdx` (advanced by 10 per narrative turn, read by the
+     AVAILABLE NAMES window): every .tnd round-trip reset it to 0 and the GM started re-offering
+     names it had already spent. That made FIVE fields lost by this one allowlist — attitudeSpec,
+     eras, the #144A trio, npcDeathCorrections+relDowngrades, and now nameIdx — so the list itself
+     is the defect, exactly as JP0-5 concluded one layer down for the archive. A future key of
+     blankMemory() is carried with zero edits here.
+     Type-guarded against the BLANK SHAPE, not against a second list: an array key takes an array
+     or the empty array, an object key takes an object or the blank default, a scalar takes a value
+     of the same type and is otherwise left UNDEFINED — which is load-bearing for attitudeSpec
+     (present-and-2 suppresses the v1.383 one-time clear; a pre-v1.383 file has no marker, so the
+     heal must fire) and for nameIdx (healMemory seeds 0).
+     #423 note: campId is NOT a blankMemory key, so the file's #365 owner stamp is dropped here and
+     saveAll below re-stamps it with the RESOLVED id — a re-minted import never carries the
+     sender's stamp into the next load's owner check. */
+  memory={};
+  var _bm=blankMemory(),_bk=Object.keys(_bm),_bi,_bKey,_bDef,_bVal;
+  for(_bi=0;_bi<_bk.length;_bi++){
+    _bKey=_bk[_bi];_bDef=_bm[_bKey];_bVal=mm[_bKey];
+    if(Array.isArray(_bDef))memory[_bKey]=Array.isArray(_bVal)?_bVal:[];
+    else if(_bDef&&typeof _bDef==="object")memory[_bKey]=(_bVal&&typeof _bVal==="object"&&!Array.isArray(_bVal))?_bVal:_bDef;
+    else memory[_bKey]=(typeof _bVal===typeof _bDef)?_bVal:undefined;
+  }
+  /* The two registry-owned keys keep their explicit builders (both pinned by the #144A ARCHIVE
+     CARRY CONTRACT): quests rides WHOLESALE because #235's by/wasOffered provenance lives on the
+     records, and the archive rebuilds through the MEMORY_ARCHIVE_KEYS registry, which carries
+     UNKNOWN categories through verbatim. */
+  Object.assign(memory,{quests:mm.quests||{},archive:archiveRebuild(mm.archive)});
+  migrateWorldState();/* relationship re-keying must see the imported campaign's memory aliases, not the outgoing campaign's. */
+  if(typeof healMemory==="function")healMemory();
+  if(typeof restoreCheckpointHolder==="function")restoreCheckpointHolder();/* D1: setActiveCampId dropped the OUTGOING campaign's camp (it would have restored the wrong world); fetch this one's own */
+  saveAll();
+  if(plan.reminted){
+    console.info("[import] the file's campaign id "+plan.fileId+" is not one this device owns — imported as a NEW campaign "+plan.id+" (#423); nothing in the cloud is overwritten.");
+    if(typeof showToast==="function")showToast("Imported as a new campaign — the file's campaign id isn't one of yours on this device, so no cloud save is overwritten.");
+  }
+  return plan;
+}
 function updateCampMeta(){
   var id=getActiveCampId();if(!id||!worldState)return;
   var c=worldState.character,w=worldState.world;

@@ -76,7 +76,7 @@ rc |= sabotage.prove({
 });
 
 rc |= sabotage.prove({
-  file: "ui-files.js",
+  file: "state.js",/* #423 (v1.953): the import body moved verbatim from ui-files.js importSave into state.js importSaveData — the clauses follow it */
   command: ["node", ["dev/run-tests.js"]],
   cases: [
     { label: "the .tnd import goes back to a hand-rolled rebuild — the exact shape that dropped a category four separate times",

@@ -544,59 +544,11 @@ function exportBlueprint(){
 function importSave(event){
   var file=event.target.files[0];if(!file)return;var reader=new FileReader();
   reader.onload=function(e){try{var data=JSON.parse(e.target.result);
-    if(!data.worldState||!data.worldState.character)throw new Error("Invalid save.");
-    var ws=data.worldState,ch=ws.character;
-    if(typeof ch.name!=="string")throw new Error("Invalid character data.");
-    if(!Array.isArray(ch.inventory))ch.inventory=[];
-    if(!Array.isArray(ch.abilities))ch.abilities=[];
-    if(!Array.isArray(ch.spells))ch.spells=[];
-    if(!Array.isArray(ws.npcs))ws.npcs=[];
-    if(!Array.isArray(ws.questLog))ws.questLog=[];
-    if(!Array.isArray(ws.eventHistory))ws.eventHistory=[];
-    if(!ws.world||typeof ws.world!=="object")throw new Error("Invalid world data.");
-    // Snapshot (and flush, via E74) the OUTGOING campaign before repointing (audit E12) — importSave
-    // used to overwrite worldState + the active campaign id without preserving the current campaign,
-    // silently destroying its in-session progress since the last snapshot.
-    if(!snapshotActiveCamp())throw new Error("Storage full — couldn't back up the current campaign before importing.");/* B4: surfaces via this function's own import-error path */
-    worldState=ws;
-    // Resolve campaign slot: reuse the file's own campId if present, else current active, else mint new
-    var _cid=ws.campId;
-    if(_cid){setActiveCampId(_cid);}
-    else{var _aid=getActiveCampId();if(!_aid){_aid=newCampaignId();setActiveCampId(_aid);}worldState.campId=_aid;}
-    sessionLog=Array.isArray(data.sessionLog)?data.sessionLog:[];
-    var mm=data.memory||{};
-    /* attitudeSpec carried through (v1.439, F7 — brief D): this whitelist silently DROPPED the
-       v1.383 heal marker, so every .tnd import re-fired the one-time clear and wiped correct
-       new-spec dispositions on the next load. A pre-v1.383 file has no marker → the heal fires →
-       correct (its values ARE old-spec). */
-    /* Audit D7 — the carry is DERIVED from blankMemory()'s own key list, never hand-listed. The
-       hand-listed object below it dropped `nameIdx` (advanced by 10 per narrative turn, read by the
-       AVAILABLE NAMES window): every .tnd round-trip reset it to 0 and the GM started re-offering
-       names it had already spent. That made FIVE fields lost by this one allowlist — attitudeSpec,
-       eras, the #144A trio, npcDeathCorrections+relDowngrades, and now nameIdx — so the list itself
-       is the defect, exactly as JP0-5 concluded one layer down for the archive. A future key of
-       blankMemory() is carried with zero edits here.
-       Type-guarded against the BLANK SHAPE, not against a second list: an array key takes an array
-       or the empty array, an object key takes an object or the blank default, a scalar takes a value
-       of the same type and is otherwise left UNDEFINED — which is load-bearing for attitudeSpec
-       (present-and-2 suppresses the v1.383 one-time clear; a pre-v1.383 file has no marker, so the
-       heal must fire) and for nameIdx (healMemory seeds 0). */
-    memory={};
-    var _bm=blankMemory(),_bk=Object.keys(_bm),_bi,_bKey,_bDef,_bVal;
-    for(_bi=0;_bi<_bk.length;_bi++){
-      _bKey=_bk[_bi];_bDef=_bm[_bKey];_bVal=mm[_bKey];
-      if(Array.isArray(_bDef))memory[_bKey]=Array.isArray(_bVal)?_bVal:[];
-      else if(_bDef&&typeof _bDef==="object")memory[_bKey]=(_bVal&&typeof _bVal==="object"&&!Array.isArray(_bVal))?_bVal:_bDef;
-      else memory[_bKey]=(typeof _bVal===typeof _bDef)?_bVal:undefined;
-    }
-    /* The two registry-owned keys keep their explicit builders (both pinned by the #144A ARCHIVE
-       CARRY CONTRACT): quests rides WHOLESALE because #235's by/wasOffered provenance lives on the
-       records, and the archive rebuilds through the MEMORY_ARCHIVE_KEYS registry, which carries
-       UNKNOWN categories through verbatim. */
-    Object.assign(memory,{quests:mm.quests||{},archive:archiveRebuild(mm.archive)});
-    migrateWorldState();/* relationship re-keying must see the imported campaign's memory aliases, not the outgoing campaign's. */
-    if(typeof healMemory==="function")healMemory();
-    if(typeof restoreCheckpointHolder==="function")restoreCheckpointHolder();/* D1: setActiveCampId dropped the OUTGOING campaign's camp (it would have restored the wrong world); fetch this one's own */
-    saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+escHtml(worldState.character.name)+" Turn "+worldState.turn);/* imported-file name (#22/UA18) */if(typeof initReplaySession==="function")initReplaySession();/* replay the story pane like init()/campLoad do — importSave left it empty (audit E65) */if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
+    /* #423: the engine half lives in state.js importSaveData — validation, the outgoing snapshot (E12), the campaign-id
+       decision (a foreign id is RE-MINTED so a friend's export can never post the sender's id), the memory carry (D7),
+       migrate/heal, the checkpoint holder (D1) and saveAll. This shell keeps the file read and the DOM refresh only, so
+       the import path is engine-testable (dev/tests-423-import-ownership.js runs the honest two-account case). */
+    importSaveData(data);
+    document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+escHtml(worldState.character.name)+" Turn "+worldState.turn);/* imported-file name (#22/UA18) */if(typeof initReplaySession==="function")initReplaySession();/* replay the story pane like init()/campLoad do — importSave left it empty (audit E65) */if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
   reader.readAsText(file);event.target.value="";
 }
