@@ -15,6 +15,8 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
+- 2026-09-18 · #1 remote multiplayer · Codex: owner-requested response to Fable’s twenty findings appended at DOC/Research/remote_player_exploration.html#codex-response, preserving the original and review. Corrected funding, commit boundary, panel provenance, recovery and current #422/#423 status. Documentation only; no game/server edits.
+
 - 2026-09-17 · #416 lane G (dev/docs) · Opus worktree under Fable review: audit G1–G15 + A11/A12 — contracts armed (G2/G3/G9/G15 sabotage-proven in `dev/sabotage-audit-contracts.js`), CI parity derived from the hook, run-tests.js de-duplicated (byte-identical gate output), the two orphan suites gated, CLAUDE.md and the contract docs repaired. Off-Fable-legal lane (dev tooling + docs); Fable merged and re-ran the full gate. Probe first: the run-tests refactor against the next contract addition.
 
 - 2026-09-17 · #416 lane D (state/sync) · Opus worktree under Fable review: audit D1–D14 + E3/E15 — campaign-scoped checkpoint holder (`checkpointClear`/`checkpointAcceptable`), refuse-not-blank restore, `snapshotActiveCamp` through `writeCampaignSlot`, CAS-guarded manual push on the state row, memory slot UNKNOWN never `{}`, atomic summarize commit (`_sumCommit`), import carries every `blankMemory()` key, one campaign-list reader/writer, sync-marker teardown, one unload POST, `/dev/` network-first. 52 assertions in `dev/tests-audit-sync.js` (46 red on the reverted sources); four sabotage batteries re-anchored. Fable reviewed the diff hunks before merge and ran the full gate after. Probe first: the checkpoint gate on a cross-device death, `_pulledMemory` on a pre-#337 blob.
