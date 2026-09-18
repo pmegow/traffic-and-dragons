@@ -32,8 +32,8 @@ if (rc === 0) {
     file: "ui-campaigns.js",
     command: ["node", ["dev/run-tests.js", "campaign switch under quota"]],
     cases: [
-      { label: "raw slot write sneaks back into campCloudPull",
-        find: "      if(!writeCampaignSlot(id,wsS,slS,memS))return;",
+      { label: "raw slot write sneaks back into the pull landing site (_applyPulledCampaign since #424, campCloudPull before)",
+        find: "      if(!writeCampaignSlot(id,wsS,slS,memS))return false;",
         replace: "      store.set(campSlotKey(id,\"ws\"),wsS);store.set(campSlotKey(id,\"sl\"),slS);store.set(campSlotKey(id,\"mem\"),memS);" }
     ]
   });

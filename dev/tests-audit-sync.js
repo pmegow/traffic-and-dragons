@@ -719,6 +719,56 @@ t("the JP0-4 rescue keys are joined by the campaign-list one, and nothing delete
 });
 
 // ── report ───────────────────────────────────────────────────────────────────
+// ── #424: cloud rewind — Load / ☁↓ Pull consult planCloudAdopt before overwriting a local copy ──
+// SOURCE clauses (ui-campaigns.js / ui-files.js are DOM-wiring files): the policy itself is
+// executed in engine-tests.js; these pin that the two download paths actually route through it.
+section("#424 — the download paths consult planCloudAdopt, and a confirmed rewind is never silent");
+t("campCloudPull decides through planCloudAdopt BEFORE any live-key or slot write", function () {
+  var s = code("ui-campaigns.js");
+  var pull = s.slice(s.indexOf("function campCloudPull("), s.indexOf("function campRemoveLocal("));
+  if (pull.length < 200) return "could not locate campCloudPull";
+  var plan = pull.indexOf("planCloudAdopt(\"pull\""), write = pull.search(/writeLiveKeys\(|writeCampaignSlot\(/);
+  if (plan < 0) return "campCloudPull no longer calls planCloudAdopt(\"pull\", …) — a local-ahead copy is overwritten silently again";
+  if (write >= 0 && write < plan) return "campCloudPull writes the pulled copy before consulting planCloudAdopt";
+  return true;
+});
+t("campLoad's has-local branch probes the server turn and decides through planCloudAdopt(\"load\", …)", function () {
+  var s = code("ui-campaigns.js");
+  var load = s.slice(s.indexOf("function campLoad("), s.indexOf("function campCloudPush("));
+  if (load.length < 200) return "could not locate campLoad";
+  if (load.indexOf("getServerStateTurn(") < 0) return "campLoad no longer probes the authoritative server turn — a stale or ahead local slot loads unexamined";
+  if (load.indexOf("planCloudAdopt(\"load\"") < 0) return "campLoad no longer decides through planCloudAdopt(\"load\", …)";
+  return true;
+});
+t("the rewind modal is an app modal with the export escape hatch — Export & pull, Pull anyway, Cancel", function () {
+  var s = code("ui-campaigns.js");
+  var m = s.slice(s.indexOf("function _cloudRewindModal("), s.indexOf("function campCloudPull("));
+  if (m.length < 200) return "could not locate _cloudRewindModal";
+  if (m.indexOf("modalShell(") < 0) return "the rewind confirmation is not an app modal (modalShell) — a native confirm() has no export path";
+  if (m.indexOf("exportCampaignCopy(") < 0) return "the modal lost its Export & pull path — a rewind is a total loss of the local turns again";
+  if (!/cr-export/.test(m) || !/cr-pull/.test(m) || !/cr-cancel/.test(m)) return "the three buttons are not wired (cr-export / cr-pull / cr-cancel)";
+  return true;
+});
+t("a confirmed rewind of the ACTIVE campaign re-bases the adapter (adoptServerTurn) and clears the campaign's unsynced-flush marker", function () {
+  var s = code("ui-campaigns.js");
+  var ap = s.slice(s.indexOf("function _applyPulledCampaign("), s.indexOf("function _cloudRewindModal("));
+  if (ap.length < 200) return "could not locate _applyPulledCampaign";
+  if (ap.indexOf("storageAdapter.adoptServerTurn(") < 0) return "the pulled turn is not adopted as the ack base — the next save would 409 or re-push the discarded turns";
+  if (ap.indexOf("storageAdapter.clearFlushDirty(") < 0) return "the unsynced-flush marker outlives the turns it marked (a dead marker evicts a live one from the capped map, D10)";
+  return true;
+});
+t("exportCampaignCopy exports the SLOT for a non-active campaign and the live state for the active one, through exportToFolder", function () {
+  var s = code("ui-files.js");
+  var at = s.indexOf("function exportCampaignCopy(");
+  if (at < 0) return "could not locate exportCampaignCopy in ui-files.js";
+  var ex = s.slice(at), end = ex.indexOf("\nfunction ", 10);
+  ex = end > 0 ? ex.slice(0, end) : ex;
+  if (ex.indexOf("campSlotKey(") < 0) return "the export reads no slot — a non-active campaign would export the wrong (live) campaign";
+  if (ex.indexOf("exportToFolder(\"save\"") < 0) return "the export does not go through exportToFolder(\"save\", …) — it would bypass the campaign folder";
+  if (ex.indexOf("_ensureFolderPerm(") < 0) return "the export skips _ensureFolderPerm — a restored folder silently falls to Downloads (the missing Iron Meridian save class)";
+  return true;
+});
+
 chain.then(function () {
   releaseConsole();
   if (fails.length) {

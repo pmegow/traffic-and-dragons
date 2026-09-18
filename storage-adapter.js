@@ -415,6 +415,17 @@ var storageAdapter = (function() {
   function _updateSyncUI() {
     if (typeof updateSyncBadge === "function") { try { updateSyncBadge(); } catch(e) { /* audit E15: a UI repaint, not data — the badge is re-rendered on every later sync event. */ } }
   }
+  // #424: a CONFIRMED rewind adopted an OLDER server copy on purpose. Every other ack path only ever RAISES
+  // _lastAckTurn (a 200 for our own payload, the reconcile's seed); after a rewind the base must be LOWERED to
+  // the turn the server provably holds, or the next POST rides the stale higher base, the CAS guard answers
+  // 409 for a copy this device just chose, and the badge counts the discarded turns as "unsynced". A standing
+  // 409 pause from before the rewind is moot for the same reason.
+  function adoptServerTurn(turn) {
+    if (typeof turn !== "number") return;
+    _lastAckTurn = turn;
+    _conflict = null;
+    _updateSyncUI();
+  }
   function syncStatus() {
     var t = (typeof worldState !== "undefined" && worldState) ? (worldState.turn || 0) : 0;
     return {
@@ -1176,6 +1187,7 @@ var storageAdapter = (function() {
     syncCampaignList:      syncCampaignList,
     mergeCampaignLists:    mergeCampaignLists, // exposed for the engine tests (UA20)
     resolveCas409:         resolveCas409,      // exposed for the engine tests (CAS self-heal)
+    adoptServerTurn:       adoptServerTurn,    // #424: a confirmed cloud rewind LOWERS the ack base to the adopted turn
     quotaRefusalText:      quotaRefusalText,   // exposed for the engine tests (#313 quota refusal copy)
     reconcileIdentityOk:   reconcileIdentityOk, // exposed for the engine tests (B7 identity guard)
     markPortraitDirty:     markPortraitDirty,

@@ -10,11 +10,12 @@ var _campRootHandle=null;     // persisted (IndexedDB) — the campaigns root
 var _campFolderHandle=null;   // derived cache: the active campaign's subfolder under the root
 var _campFolderSlug=null;     // the slug the cache was derived for (a rename or a switch invalidates it)
 var _SUBFOLDERS={save:"saves",narrative:"logs",character:"characters",render:"renders",portrait:"characters"};
-function buildFilename(type){
-  var c=worldState&&worldState.character?worldState.character:{name:"unknown"};
-  var turn=worldState?worldState.turn:0;
+function buildFilename(type,ws){
+  var w=ws||worldState;/* #424: a non-active campaign's copy names its own file; every existing caller passes nothing */
+  var c=w&&w.character?w.character:{name:"unknown"};
+  var turn=w?w.turn:0;
   var slug=function(s){return(s||"unknown").replace(/[^a-zA-Z0-9_\-]/g,"_");};
-  var camp=slug(worldState&&worldState.campName||c.name);
+  var camp=slug(w&&w.campName||c.name);
   var char=slug(c.name);
   var base=camp+"_"+char;
   if(type==="save")     return base+"_t"+turn+".tnd";
@@ -488,6 +489,28 @@ function exportSave(){
   document.getElementById("sc-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("sc-save").addEventListener("click",doSave);
   document.getElementById("sc-fname").addEventListener("keydown",function(e){if(e.key==="Enter")doSave();});
+}
+// #424: a safety copy of THIS DEVICE's copy of a campaign, written before a confirmed cloud rewind discards its newest
+// turns — the live triple for the active campaign, the SLOT triple for any other (the live keys hold a different
+// campaign then; exporting them would keep the wrong game). Same .tnd shape as File ▸ Save, same campaign folder
+// (with the folder re-armed inside the click gesture, the missing-Iron-Meridian-save lesson). Resolves when a file
+// was written somewhere (folder, or the Downloads fallback exportToFolder already toasts); rejects when there is
+// nothing readable to export, so the caller refuses the rewind rather than discarding turns it failed to keep.
+function exportCampaignCopy(id){
+  var isActive=typeof getActiveCampId==="function"&&id===getActiveCampId();
+  var ws,sl,mem;
+  if(isActive){
+    if(!worldState)return Promise.reject(new Error("no live campaign to export"));
+    ws=worldState;sl=sessionLog;mem=memory;
+  }else{
+    var rawWs=store.get(campSlotKey(id,"ws")),rawSl=store.get(campSlotKey(id,"sl")),rawMem=store.get(campSlotKey(id,"mem"));
+    if(!rawWs)return Promise.reject(new Error("this device holds no copy of "+campDisplayName(id)));
+    try{ws=parseWorldState(rawWs);sl=rawSl==null?[]:JSON.parse(rawSl);mem=rawMem==null?blankMemory():JSON.parse(rawMem);}
+    catch(e){return Promise.reject(new Error("this device's copy of "+campDisplayName(id)+" could not be read ("+(e&&e.message)+")"));}
+  }
+  var fname=buildFilename("save",ws);
+  var blob=new Blob([JSON.stringify({worldState:ws,sessionLog:sl,memory:mem},null,2)],{type:"application/json"});
+  return _ensureFolderPerm().then(function(){return exportToFolder("save",blob,fname);});
 }
 // buildBlueprintFromGame moved to game.js (v1.156) — pure data logic, now headless-testable.
 // The Blueprint Designer is a fully EXTERNAL page (blueprint-designer.html, D5 revised

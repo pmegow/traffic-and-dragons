@@ -15064,6 +15064,70 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return eq(threw,false);
   });
 
+  // ── #424: cloud rewind — Load / ☁↓ Pull when this device is AHEAD of the cloud ──────────
+  section("#424: cloud rewind (Load / Pull local-ahead confirm)");
+  t("planCloudAdopt pull: cloud at or ahead of this device → adopt, turns carried",function(){
+    var a=planCloudAdopt("pull",60,60,true),b=planCloudAdopt("pull",65,60,true);
+    if(a.kind!=="adopt")return "equal turns: "+JSON.stringify(a);
+    if(b.kind!=="adopt")return "cloud ahead: "+JSON.stringify(b);
+    return a.serverTurn===60&&a.localTurn===60?true:"turns not carried: "+JSON.stringify(a);
+  });
+  t("planCloudAdopt pull: this device AHEAD → confirm-rewind naming both turns and the turns that would be lost (the owner's t70-vs-t60 case)",function(){
+    var p=planCloudAdopt("pull",60,70,true);
+    return p.kind==="confirm-rewind"&&p.serverTurn===60&&p.localTurn===70&&p.lost===10?true:JSON.stringify(p);
+  });
+  t("planCloudAdopt: no local copy → adopt outright in both modes (nothing to lose)",function(){
+    var a=planCloudAdopt("pull",60,null,false),b=planCloudAdopt("load",60,null,false);
+    return a.kind==="adopt"&&b.kind==="adopt"?true:JSON.stringify([a,b]);
+  });
+  t("planCloudAdopt: unreadable local copy (-1) → confirm-rewind with lost unknown (conservative: it may be ahead)",function(){
+    var a=planCloudAdopt("pull",60,-1,true),b=planCloudAdopt("load",60,-1,true);
+    if(a.kind!=="confirm-rewind"||a.lost!==null)return "pull: "+JSON.stringify(a);
+    if(b.kind!=="confirm-rewind"||b.lost!==null)return "load: "+JSON.stringify(b);
+    return true;
+  });
+  t("planCloudAdopt pull: cloud turn unknown (null) → confirm-rewind, never a silent overwrite",function(){
+    var p=planCloudAdopt("pull",null,70,true);
+    return p.kind==="confirm-rewind"&&p.serverTurn===null&&p.lost===null?true:JSON.stringify(p);
+  });
+  t("planCloudAdopt load: cloud ahead → adopt; equal → keep-local; probe failed (null) → keep-local with reason 'unknown'",function(){
+    var a=planCloudAdopt("load",65,60,true),b=planCloudAdopt("load",60,60,true),c=planCloudAdopt("load",null,60,true);
+    if(a.kind!=="adopt")return "cloud ahead: "+JSON.stringify(a);
+    if(b.kind!=="keep-local")return "equal: "+JSON.stringify(b);
+    if(c.kind!=="keep-local"||c.reason!=="unknown")return "null: "+JSON.stringify(c);
+    return true;
+  });
+  t("planCloudAdopt load: this device AHEAD → confirm-rewind (Load no longer takes the local slot silently)",function(){
+    var p=planCloudAdopt("load",60,70,true);
+    return p.kind==="confirm-rewind"&&p.lost===10?true:JSON.stringify(p);
+  });
+  t("planCloudAdopt: an unknown mode throws (a caller typo must not fall into a silent default)",function(){
+    var threw=false;try{planCloudAdopt("sync",60,70,true);}catch(e){threw=/unknown mode/.test(String(e&&e.message));}return eq(threw,true);
+  });
+  t("campLocalTurn: absent slot → null; readable slot → its turn; unreadable slot → -1",function(){
+    var id="RW424";
+    try{
+      if(campLocalTurn(id)!==null)return "absent: "+campLocalTurn(id);
+      store.set(campSlotKey(id,"ws"),JSON.stringify({turn:70}));
+      if(campLocalTurn(id)!==70)return "readable: "+campLocalTurn(id);
+      store.set(campSlotKey(id,"ws"),"{not json");
+      if(campLocalTurn(id)!==-1)return "unreadable: "+campLocalTurn(id);
+      store.set(campSlotKey(id,"ws"),JSON.stringify({}));
+      if(campLocalTurn(id)!==-1)return "missing turn field: "+campLocalTurn(id);
+      return true;
+    }finally{store.del(campSlotKey(id,"ws"));}
+  });
+  t("storageAdapter.adoptServerTurn LOWERS the ack base to the adopted server turn and clears a standing conflict (the ordinary ack path only ever raises it)",function(){
+    if(typeof storageAdapter.adoptServerTurn!=="function")return "adoptServerTurn is not exported";
+    storageAdapter.adoptServerTurn(70);
+    if(storageAdapter.syncStatus().lastAckTurn!==70)return "seed: "+storageAdapter.syncStatus().lastAckTurn;
+    storageAdapter.adoptServerTurn(60);
+    var s=storageAdapter.syncStatus();
+    if(s.lastAckTurn!==60)return "the base was not lowered: "+s.lastAckTurn;
+    if(s.conflict)return "a conflict survived the adopt: "+JSON.stringify(s.conflict);
+    storageAdapter.resetSyncState();
+    return true;
+  });
   // ── B4: local-copy eviction + quota hardening ─────────────────────────────
   section("B4: local-copy eviction + quota hardening");
   t("planRemoveLocalCopy: HTTP 404 → offer-add (push first; decline aborts)",function(){

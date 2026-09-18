@@ -263,23 +263,45 @@ function campLoad(id){
   // Check if local data exists for this campaign
   var hasLocal=!!(store.get(campSlotKey(id,"ws")));
   if(hasLocal){
-    var ok=switchToCampaign(id);
-    if(!ok)return;/* #337: switchToCampaign toasts the specific reason (quota / corrupt) and restored the start layout */
-    _applyLoadedCampaign();
+    /* #424 (owner ask 2026-09-18): Load used to take the local slot without asking the server, so a device that was
+       AHEAD of (or behind) the cloud played its own copy in silence. Unconnected, that is still the only possible
+       answer. Connected, the authoritative turn probe decides through planCloudAdopt: a newer cloud copy is adopted,
+       a level one stays local, an unknown one stays local and says so, and a REWIND is confirmed — with an export
+       escape — never silent. */
+    if(!storageAdapter.isServerMode()){_campLoadLocal(id);return;}
+    showToast("☁ Checking the cloud copy…");
+    storageAdapter.getServerStateTurn(id,function(st){
+      var plan=planCloudAdopt("load",st,campLocalTurn(id),true);
+      if(plan.kind==="keep-local"){
+        if(plan.reason==="unknown")console.warn("[camps] the cloud turn of "+campDisplayName(id)+" could not be checked (offline, no cloud row, or the turn route is unavailable) — loading this device's copy (turn "+plan.localTurn+")");
+        _campLoadLocal(id);return;
+      }
+      if(plan.kind==="adopt"){_campPullAndLoad(id,"☁ The cloud copy is newer (turn "+plan.serverTurn+", this device had "+plan.localTurn+") — loaded it.");return;}
+      _cloudRewindModal({id:id,mode:"load",plan:plan,
+        onAdopt:function(){_campPullAndLoad(id,null);},
+        onCancel:function(){_campLoadLocal(id);}});
+    });
     return;
   }
   // No local data — fetch from server if connected. Adapter transport (audit B9): a
   // sleeping Fly host now times out in 20s instead of hanging this toast forever.
   if(!storageAdapter.isServerMode()){showToast("Campaign data not found locally. Connect to server to load it.");return;}
   showToast("☁ Fetching campaign from server…");
+  _campPullAndLoad(id,null);
+}
+// #424: the pre-#424 Load — switch to this device's copy of the campaign.
+function _campLoadLocal(id){
+  var ok=switchToCampaign(id);
+  if(!ok)return;/* #337: switchToCampaign toasts the specific reason (quota / corrupt) and restored the start layout */
+  _applyLoadedCampaign();
+}
+// #424: fetch the cloud copy, write it into the slot, switch to it — the no-local Load, the newer-cloud Load and the
+// confirmed Load rewind all land here. `note` is an extra toast for the newer-cloud case (null = the plain path).
+function _campPullAndLoad(id,note){
   storageAdapter.getCampaignState(id,function(err,data){
     if(err){showToast("Failed to fetch campaign: "+err);return;}
     if(!data||!data.worldState){showToast("Campaign not found on server.");return;}
-    // Write into the campaign slot then switch to it — #337: through THE slot writer (all-or-nothing under quota)
-    if(!writeCampaignSlot(id,serializeWorldState(data.worldState),JSON.stringify(data.sessionLog||[]),JSON.stringify(_pulledMemory(data,id))))return;
-    var ok=switchToCampaign(id);
-    if(!ok)return;/* #337: the reason was toasted */
-    _applyLoadedCampaign();
+    if(_applyPulledCampaign(id,data,{switchTo:true})&&note)showToast(note);
   });
 }
 function campCloudPush(id){
@@ -289,6 +311,80 @@ function campCloudPush(id){
     var b=document.getElementById("camp-push-"+id);if(b)b.style.animation="";
     if(ok){showToast("☁ Pushed to server.");var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();}
     else{showToast("Push failed.");}
+  });
+}
+// #424: apply a fetched cloud copy to this device — ONE landing site for ☁↓ Pull and every Load that downloads.
+//   active campaign → the LIVE keys and loadState — NOT switchToCampaign, whose snapshotActiveCamp would overwrite the
+//                     just-pulled slot with the STALE live state before reading it back, silently discarding the pull
+//                     while the toast claimed success (audit E3). #337: live keys ONLY (the old code wrote the slot too
+//                     and then de-duped it — a doubled footprint on the one device already quota-pinned); guarded writes.
+//   other campaign  → its slot through THE slot writer; opts.switchTo then makes it the active campaign.
+// Afterwards the campaign's unsynced-flush marker is cleared (the turns it marked were discarded by decision or
+// superseded by a newer cloud copy — a dead marker evicts a live one from the capped map, D10), and when the campaign
+// is active the adapter is re-based on the adopted turn (adoptServerTurn) so the next save neither 409s on a stale
+// higher base nor counts the discarded turns as unsynced. Returns true when the copy landed.
+function _applyPulledCampaign(id,data,opts){
+  opts=opts||{};
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}
+  data.worldState.campId=id;
+  var wsS=serializeWorldState(data.worldState),slS=JSON.stringify(data.sessionLog||[]),memS=JSON.stringify(_pulledMemory(data,id));
+  if(id===getActiveCampId()){
+    if(!writeLiveKeys(wsS,slS,memS)){showToast("⚠ Not enough local storage to apply the pulled copy (~"+_kb(wsS.length+slS.length+memS.length)+" KB) — nothing changed. Free space: Campaigns → \"Remove local\" on old campaigns.");return false;}
+    var ok=loadState();
+    if(ok){
+      _applyLoadedCampaign(); // replays from the transcript via initReplaySession
+      // Legacy fallback: pre-transcript blobs (no worldState.transcript) still carry narrativeHtml.
+      if(data.narrativeHtml&&!(worldState&&worldState.transcript&&worldState.transcript.length)){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){console.warn("[camps] the legacy narrativeHtml replay failed ("+(x&&x.message)+") — this pre-transcript campaign loads with an empty story pane (audit E15)");}}
+    }
+  }else{
+      if(!writeCampaignSlot(id,wsS,slS,memS))return false;/* #337: toasted; no partial slot left behind */
+    if(opts.switchTo){
+      if(!switchToCampaign(id))return false;/* #337: the reason was toasted */
+      _applyLoadedCampaign();
+    }
+  }
+  storageAdapter.clearFlushDirty(id);
+  if(id===getActiveCampId())storageAdapter.adoptServerTurn(typeof data.worldState.turn==="number"?data.worldState.turn:0);
+  // Update meta savedAt (small write; guarded so a quota edge can't kill the picker refresh below)
+  try{var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);}catch(e){console.error("[camps] campaign-list update failed after pull:",e);}
+  if(opts.toast)showToast(opts.toast);
+  return true;
+}
+// #424: the rewind confirmation — an APP modal (modalShell), never a native confirm(): it carries the export escape.
+// opts: {id, mode:"load"|"pull", plan (a confirm-rewind plan), onAdopt(), onCancel()}. Cancel on a Load plays this
+// device's copy (the caller's onCancel); Cancel on a Pull changes nothing. "Export, then use the cloud copy" writes
+// this device's copy through exportCampaignCopy FIRST and applies the cloud copy only when that file exists — a
+// failed safety copy aborts the rewind, loudly, because discarding turns that could not be kept is the one outcome
+// this modal exists to prevent.
+function _cloudRewindModal(opts){
+  var plan=opts.plan,name=campDisplayName(opts.id);
+  var turnsLine=plan.localTurn>=0
+    ?"Cloud copy: turn "+(plan.serverTurn===null?"unknown":plan.serverTurn)+" &nbsp;&middot;&nbsp; this device: turn "+plan.localTurn
+    :"This device's copy couldn't be read for comparison — it may be ahead of the cloud.";
+  var lossLine=plan.lost!==null
+    ?"Using the cloud copy discards "+(plan.lost===1?"turn "+plan.localTurn:"turns "+(plan.serverTurn+1)+"–"+plan.localTurn)+" on this device ("+plan.lost+" turn"+(plan.lost===1?"":"s")+")."
+    :"Using the cloud copy discards whatever this device holds beyond it.";
+  var cancelLabel=opts.mode==="load"?"Keep this device's copy":"Cancel";
+  var modal=modalShell("cloud-rewind-modal",
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>This device is ahead of the cloud</div>"
+    +"<div style='font-size:12px;color:var(--t1);margin-bottom:6px;'>"+escHtml(name)+"</div>"
+    +"<div style='font-size:12px;font-family:var(--font-mono);color:var(--acc);margin-bottom:10px;'>"+turnsLine+"</div>"
+    +"<div style='font-size:12px;color:var(--t1);margin-bottom:16px;'>"+lossLine+" Export them first to keep a file you can import later.</div>"
+    +"<div style='display:flex;flex-direction:column;gap:8px;'>"
+    +"<button id='cr-export' style='padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Export this device's copy, then use the cloud copy</button>"
+    +"<button id='cr-pull' style='padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Use the cloud copy anyway</button>"
+    +"<button id='cr-cancel' style='padding:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;'>"+cancelLabel+"</button>"
+    +"</div>",
+    {maxWidth:420,z:320});
+  document.getElementById("cr-cancel").addEventListener("click",function(){modal.remove();if(opts.onCancel)opts.onCancel();});
+  document.getElementById("cr-pull").addEventListener("click",function(){modal.remove();opts.onAdopt();});
+  document.getElementById("cr-export").addEventListener("click",function(){
+    var b=document.getElementById("cr-export");if(b){b.disabled=true;b.textContent="Exporting…";}
+    exportCampaignCopy(opts.id).then(function(){modal.remove();opts.onAdopt();},function(e){
+      console.error("[camps] the pre-rewind export of "+name+" failed — the cloud copy was NOT applied:",e);
+      showToast("⚠ Couldn't export this device's copy ("+((e&&e.message)||e)+") — nothing changed.");
+      modal.remove();if(opts.onCancel)opts.onCancel();
+    });
   });
 }
 function campCloudPull(id){
@@ -302,28 +398,17 @@ function campCloudPull(id){
   storageAdapter.getCampaignState(id,function(err,data){
     if(err){showToast("Pull failed: "+err);return;}
     if(!data||!data.worldState){showToast("Not found on server.");return;}
-    data.worldState.campId=id;
-    var wsS=serializeWorldState(data.worldState),slS=JSON.stringify(data.sessionLog||[]),memS=JSON.stringify(_pulledMemory(data,id));
-    if(id===getActiveCampId()){
-      // Active campaign: write the pulled blob straight into the LIVE keys and loadState — NOT
-      // switchToCampaign, whose snapshotActiveCamp would overwrite the just-pulled slot with the STALE
-      // live state before reading it back, silently discarding the pull while the toast claimed success
-      // (audit E3). #337: live keys ONLY — the old code wrote the slot too and then de-duped it, a
-      // doubled footprint on the one device that is already quota-pinned; and the writes are guarded.
-      if(!writeLiveKeys(wsS,slS,memS)){showToast("⚠ Not enough local storage to apply the pulled copy (~"+_kb(wsS.length+slS.length+memS.length)+" KB) — nothing changed. Free space: Campaigns → \"Remove local\" on old campaigns.");return;}
-      var ok=loadState();
-      if(ok){
-        _applyLoadedCampaign(); // replays from the transcript via initReplaySession
-        // Legacy fallback: pre-transcript blobs (no worldState.transcript) still carry narrativeHtml.
-        if(data.narrativeHtml&&!(worldState&&worldState.transcript&&worldState.transcript.length)){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){console.warn("[camps] the legacy narrativeHtml replay failed ("+(x&&x.message)+") — this pre-transcript campaign loads with an empty story pane (audit E15)");}}
-      }
-    }else{
-      if(!writeCampaignSlot(id,wsS,slS,memS))return;/* #337: toasted; no partial slot left behind */
+    /* #424 (owner ask 2026-09-18): the fetched copy IS the probe — compare turns BEFORE applying. The old pull wrote a
+       local-ahead copy over in silence; a rewind is now confirmed through _cloudRewindModal (with an export escape). */
+    var localTurn=campLocalTurn(id);
+    var plan=planCloudAdopt("pull",typeof data.worldState.turn==="number"?data.worldState.turn:null,localTurn===null?-1:localTurn,localTurn!==null);
+    function apply(){
+      if(!_applyPulledCampaign(id,data,{toast:"☁ Pulled from server."}))return;
+      var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
     }
-    // Update meta savedAt (small write; guarded so a quota edge can't kill the picker refresh below)
-    try{var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);}catch(e){console.error("[camps] campaign-list update failed after pull:",e);}
-    showToast("☁ Pulled from server.");
-    var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
+    if(plan.kind==="adopt"){apply();return;}
+    _cloudRewindModal({id:id,mode:"pull",plan:plan,onAdopt:apply,
+      onCancel:function(){showToast("Pull cancelled — this device's copy kept"+(plan.localTurn>=0?" (turn "+plan.localTurn+")":"")+".");}});
   });
 }
 // B4: "Remove local" — evict this campaign's local snapshot behind a PROVEN cloud copy.

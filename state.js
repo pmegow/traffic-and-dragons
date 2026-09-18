@@ -1268,6 +1268,44 @@ function planRemoveLocalCopy(cloudErr,cloudWs,localTurn){
   if(lt>=0&&ct>=lt)return {kind:"offer-remove",cloudTurn:ct,localTurn:lt};
   return {kind:"offer-update",cloudTurn:ct,localTurn:lt};
 }
+// #424 (owner ask 2026-09-18): the cloud-ADOPT policy for the picker's two download paths — Load on a campaign
+// that has a local copy, and ☁↓ Pull. Pure so the engine tests pin every branch; ui-campaigns owns the probe,
+// the modal and the transport. The old ☁↓ overwrote a local-ahead copy SILENTLY and the old Load kept it
+// silently — wrong in opposite directions; both now decide here and a rewind is always asked for.
+//   mode        "pull" — the player pressed ☁↓ (asked for the cloud copy by name)
+//               "load" — the player pressed Load on a campaign this device already holds
+//   serverTurn  the cloud copy's turn — a number, or null when unknown (probe failed, no row, no turn field)
+//   localTurn   this device's turn — a number, -1 when the local copy is unreadable (campLocalTurn)
+//   hasLocal    whether this device holds a copy at all (false → nothing to lose)
+// Kinds:
+//   "adopt"          — take the cloud copy: no local copy; the cloud is ahead (either mode); or level on a pull
+//                      (harmless, and the cloud may carry a rename — a level Load has nothing to gain, stays local)
+//   "keep-local"     — load only: level (reason "level"), or the cloud turn unknown (reason "unknown" — the caller
+//                      says the cloud could not be checked, then plays the local copy)
+//   "confirm-rewind" — this device is AHEAD, or unreadable, or (pull) the cloud turn is unknown: the caller MUST ask,
+//                      naming serverTurn / localTurn and `lost` (turns discarded by the rewind; null when unknowable)
+function planCloudAdopt(mode,serverTurn,localTurn,hasLocal){
+  if(mode!=="pull"&&mode!=="load")throw new Error("planCloudAdopt: unknown mode "+JSON.stringify(mode));
+  if(!hasLocal)return {kind:"adopt",serverTurn:typeof serverTurn==="number"?serverTurn:null,localTurn:null};
+  var st=typeof serverTurn==="number"?serverTurn:null,lt=typeof localTurn==="number"?localTurn:-1;
+  if(st===null)return mode==="load"?{kind:"keep-local",reason:"unknown",serverTurn:null,localTurn:lt}:{kind:"confirm-rewind",serverTurn:null,localTurn:lt,lost:null};
+  if(lt<0)return {kind:"confirm-rewind",serverTurn:st,localTurn:lt,lost:null};
+  if(st>lt||(st===lt&&mode==="pull"))return {kind:"adopt",serverTurn:st,localTurn:lt};
+  if(st===lt)return {kind:"keep-local",reason:"level",serverTurn:st,localTurn:lt};
+  return {kind:"confirm-rewind",serverTurn:st,localTurn:lt,lost:lt-st};
+}
+// #424: this device's turn for the adopt decision — null when it holds no copy, -1 when the copy is unreadable or
+// has no turn (conservative: possibly ahead). The ACTIVE campaign's truth is the live object, not a parse of the key.
+function campLocalTurn(id){
+  if(typeof getActiveCampId==="function"&&id&&id===getActiveCampId()){
+    if(typeof worldState==="undefined"||!worldState)return null;
+    return typeof worldState.turn==="number"?worldState.turn:-1;
+  }
+  var raw=store.get(campSlotKey(id,"ws"));
+  if(!raw)return null;
+  try{var w=JSON.parse(raw);return typeof w.turn==="number"?w.turn:-1;}
+  catch(e){console.warn("[camps] the local copy of "+campDisplayName(id)+" could not be read for the turn comparison ("+(e&&e.message)+") — treating this device as possibly AHEAD");return -1;}
+}
 function deleteCampaign(id){
   store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
   setCampMeta(getCampMeta().filter(function(c){return c.id!==id;}));
