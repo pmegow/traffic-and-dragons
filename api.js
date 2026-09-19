@@ -2296,7 +2296,8 @@ function buildSysPrompt(){
   var pmCnt=partyCompanionCount(),pmCap=partyCompanionCap();
   var partyCapBlock="PARTY SIZE: "+pmCnt+" of "+pmCap+" companion slots filled (hard cap "+PARTY_MAX+" total, including the player)."+(pmCnt>=pmCap?" THE PARTY IS FULL — do NOT have any new NPC join the party (no [PARTY_MEMBER:|true]) until a current companion leaves or dies. An NPC may still aid the party temporarily as an ally without becoming a member.":"")
     // TODO #1 P1: >1 guard is load-bearing — single-player prompts must stay BYTE-IDENTICAL
-    // (the DOC_multiplayer invariant; engine-tested). Full round semantics arrive with P3/P4.
+    // (the hot-seat drift-neutral invariant — DOC/todos_completed/todo_1_multiplayer_hotseat.md;
+    // pinned by the MP-P2/MP-P4 byte-identity tests). Full round semantics arrive with P3/P4.
     +(typeof playerCount==="function"&&playerCount()>1?" PLAYERS: "+playerCount()+" party members are PLAYER characters (hot-seat multiplayer — each acts on their own player's intent)."
       /* TODO #1 P4 (D8/D10): the multiplayer round rules — VOLATILE-only, playerCount>1 gated
          (single-player byte-identity is the spec anchor, engine-tested). References the existing

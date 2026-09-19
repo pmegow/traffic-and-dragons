@@ -906,8 +906,9 @@ function partyCompanionCap(){return PARTY_MAX-1;}
 function partyCompanionCount(){if(!worldState||!worldState.npcs)return 0;var n=0,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].partyMember&&!npcIsDead(worldState.npcs[i]))n++;}return n;}
 // TODO #1 P1 (multiplayer, D8): players = the hero (unless explicitly demoted via isPC===false —
 // no UI for that until P3's all-NPC rounds exist) + every living party member flagged isPC. Absent
-// flags = exactly 1: the single-player invariant every existing save relies on (DOC_multiplayer
-// "activePlayer() migration" anchor). Same dead-filter as partyCompanionCount above.
+// flags = exactly 1: the single-player invariant every existing save relies on (build record:
+// DOC/todos_completed/todo_1_multiplayer_hotseat.md; pinned by the MP-P2/MP-P4 byte-identity
+// tests). Same dead-filter as partyCompanionCount above.
 // #172: does this narration still address the player in SECOND person? Quoted dialogue is stripped
 // FIRST and that is the whole trick — characters say "you" to each other constantly, so a whole-text
 // test calls every dialogue-bearing third-person response compliant. Measured over 10,055 real GM
