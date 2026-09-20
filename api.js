@@ -2533,6 +2533,12 @@ function buildSkeletonBlock(){
   // is known-imperfect for this class, but it names the rule everything else (staging notes,
   // suggestion gate) enforces mechanically.
   lines.push("GM-EYES ONLY: this skeleton is your private planning document. NO character in the world knows it. Companions and NPCs may reference only what the story has surfaced on-screen — never let future arcs, act goals, villain names, or premise secrets reach dialogue, rumor, or suggestion before the fiction reveals them. To bring an upcoming beat into play, STAGE it in the world first (a rumor, a messenger, a discovery), then let characters react to what they actually witnessed.");
+  /* #425 (the_fae_crysalis t33, 2026-09-20): the fence above guards the PLOT; it must not swallow the hero's own life.
+     A freeform premise can hand the hero a stake the player never wrote (a twin, a guardianship, a loss), and the GM
+     narrated one from turn 7 as a thing the player already knew. The hero's stake is player-facing canon: surface it
+     on screen before treating it as known. Names the hero so the line reads as theirs; volatile half, ""-safe. */
+  var _hn=(worldState.character&&worldState.character.name)||"the hero";
+  lines.push("THE HERO'S OWN STAKE IS NEVER A SECRET FROM THE PLAYER: whatever personal stake this premise gives "+_hn+" — what they guard, what they lost, why they are here — is their own life, not a plot secret, and the player may not have read a word of it. If the story has not yet said it on screen, say it: plainly, early, in-fiction (a memory, a companion's word, the thing itself named) BEFORE narrating it as something already known. The antagonist's design, future acts and unrevealed turning points stay fenced as above.");
   // #23/#43 blueprint fidelity: when the player deliberately loaded an AUTHORED adventure, the acts/arcs
   // below are the load-bearing spine — the failure mode (v1.224 audit) was backstory-driven personalization
   // supplanting the authored plot (an emergent notation-seal subplot displacing the Skinsaw arcs). Steer

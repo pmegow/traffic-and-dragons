@@ -11456,6 +11456,113 @@ function runEngineTests(R){
     return normalizeSkeletonFindings(null).length===0&&normalizeSkeletonFindings({findings:[]}).length===0?true:"not empty";
   });
 
+  // ── #425 — the hero's own past is canon, and never a secret from the player (the_fae_crysalis t33, 2026-09-20) ──
+  // A level-17 legacy hero with an EMPTY backstory and 2,400 turns of record (three wives, a fey bloodline
+  // debt dissolved and its ledger burned) started a freeform campaign. The generator saw only class, trait,
+  // flaw and motivation and was told to make it "personal": it invented a twin sibling in a chrysalis, a
+  // Summer Court guardianship failed "centuries ago" and a stolen fey lineage — none of it in the record —
+  // and the GM narrated "your lost twin" from turn 7 as a thing the player already knew. Three guards, one
+  // per stage: the generator gets THE RECORD plus the canon / never-date / reveal rules; the reviewer gets the
+  // same character block and an INVENTED PAST dimension (the designer's review prompt stays byte-identical
+  // when no character rides along); the skeleton block tells the GM the hero's own stake is never a secret.
+  // Age stays out of every prompt (the 2026-08-10 "age is cosmetic-only" ruling): the guard forbids DATING
+  // the hero's past instead of injecting years.
+  section("#425 skeleton record");
+  function __recordHero(){return {name:"Ammut",ancestry:"Half-Blood",subraceNm:"Half-Fey",cls:"Rogue",archetypeNm:"Arcane Trickster",level:17,age:"early twenties",backstory:"",deity:null,
+    trait:"Recklessly brave to the point of stupidity",flaw:"Violently protective of one specific person or thing",motivation:"To prove yourself worthy of something lost",
+    coreMemories:[
+      {text:"Ammut, Morwen, and Frizwick knelt together and asked Daeris to marry into the family, and she said yes.",turn:1001,kind:"gm",who:"Ammut",camp:"Rise of the Runelords (Ammut)"},
+      {text:"Ammut and Morwen Zethran are married — five years wed before the story began.",turn:34,kind:"bond",who:"Morwen Zethran",camp:"Rise of the Runelords (Ammut)"},
+      {text:"Frizwick joined the party at smithy, The Village.",turn:2,kind:"party",who:"Frizwick",camp:"The Village (Ammut)"}],
+    storyBeats:[
+      {text:"Ammut reads the bloodline debt ledger and learns he was bargained to the Hollow Keeper of the Unseelie Tithe three generations before his birth",turn:55,camp:"camp_1782799175437_7288"},
+      {text:"Ammut burns the Bloodline Debt Ledger at dawn, severing the last formal claim against his name",turn:1077,camp:"camp_1782799175437_7288"},
+      {text:"Ammut and his companions slew Karzoug, Runelord of Greed, atop the Pinnacle of Avarice.",turn:2331,camp:"Rise of the Runelords (Ammut)"}]};}
+  function __freshHero(){return {name:"Tam",ancestry:"Human",cls:"Fighter",level:1,backstory:"",trait:"Stubborn",flaw:"Greedy",motivation:"To be remembered",coreMemories:[],storyBeats:[]};}
+  t("charRecordDigest: a fresh character has no record (\"\"); a legacy hero's bonds lead, earlier campaigns are named, a raw camp id reads as an earlier adventure, and the cap holds",function(){
+    if(charRecordDigest(__freshHero())!=="")return "fresh hero has a record";
+    if(charRecordDigest({name:"X"})!=="")return "no arrays → not \"\"";
+    var d=charRecordDigest(__recordHero()),L=d.split("\n");
+    if(L[0].indexOf("Ammut and Morwen Zethran are married")<0)return "the bond does not lead: "+L[0];
+    if(L[0].indexOf("(Rise of the Runelords (Ammut))")<0)return "the earlier campaign is not named: "+L[0];
+    if(d.indexOf("Bloodline Debt Ledger")<0)return "the burned ledger is missing";
+    if(d.indexOf("camp_1782799175437_7288")>=0)return "a raw campaign id leaked as a label";
+    if(d.indexOf("(an earlier adventure)")<0)return "the raw-id beat is not labelled an earlier adventure";
+    var bi=d.indexOf("bargained to the Hollow Keeper"),bu=d.indexOf("burns the Bloodline Debt Ledger");if(bi<0||bu<0||bi>bu)return "beats are not chronological";
+    if(d.indexOf("early twenties")>=0)return "age leaked into the record";
+    var big={coreMemories:[],storyBeats:[]},i;for(i=0;i<400;i++)big.storyBeats.push({text:"beat number "+i+" "+new Array(40).join("x"),turn:i,camp:"Old"});
+    var bd=charRecordDigest(big);if(bd.length>CHAR_RECORD_CAP+200)return "cap not held: "+bd.length;
+    if(bd.indexOf("beat number 399")<0)return "the cap dropped the NEWEST beat";if(bd.indexOf("beat number 0 ")>=0)return "the cap kept the OLDEST beat";
+    return true;
+  });
+  t("buildSkeletonPrompt: a legacy hero's RECORD reaches the generator with THE RECORD IS CANON; a fresh hero gets no record block; both get the never-date and reveal rules; the flaw/motivation lines and the frozen anchors survive",function(){
+    var w={location:"The Salted Wound Tavern",region:"The Blighted Reach"},tone={name:"High Fantasy"};
+    var p=buildSkeletonPrompt(__recordHero(),w,tone,"");
+    if(p.indexOf("Design a three-act campaign skeleton for this RPG character and setting.")!==0)return "head anchor moved";
+    if(p.indexOf("CHARACTER: Ammut, Half-Fey Half-Blood Rogue [Arcane Trickster], Level 17\n")<0)return "CHARACTER line changed";
+    if(p.indexOf("THE RECORD")<0||p.indexOf("Ammut and Morwen Zethran are married")<0)return "the record does not reach the generator";
+    if(p.indexOf("THE RECORD IS CANON")<0||p.indexOf("never invent a personal past the record does not contain")<0)return "the canon rule is missing";
+    if(p.indexOf("NEVER DATE THE CHARACTER'S OWN PAST")<0||p.indexOf("centuries ago")<0)return "the never-date rule is missing";
+    if(p.indexOf("THE PLAYER HAS NOT READ THIS PREMISE")<0||p.indexOf("Write it to be revealed, never assumed")<0)return "the reveal rule is missing";
+    if(p.indexOf("Age:")>=0||p.indexOf("early twenties")>=0)return "age was injected (2026-08-10 ruling)";
+    if(p.indexOf("- The character's flaw should be a source of tension, not just flavor\n")<0||p.indexOf("- Weave the motivation into the central conflict")<0)return "flaw/motivation rules lost";
+    if(p.indexOf(skelRulesHead(false))<0||p.slice(-skelRulesTail().length)!==skelRulesTail())return "shared fragments moved: head must be verbatim, tail must END the prompt";
+    var f=buildSkeletonPrompt(__freshHero(),w,tone,"");
+    if(f.indexOf("THE RECORD")>=0)return "a fresh hero carries a record block";
+    if(f.indexOf("NEVER DATE THE CHARACTER'S OWN PAST")<0||f.indexOf("THE PLAYER HAS NOT READ THIS PREMISE")<0)return "a fresh hero lost the always-on rules";
+    if(f.indexOf("Backstory:")>=0)return "an empty backstory printed a Backstory line";
+    var b=buildSkeletonPrompt(Object.assign(__freshHero(),{backstory:"Raised by wolves."}),w,tone,"");
+    if(b.indexOf("Backstory: Raised by wolves.\n")<0)return "a written backstory is not sent";
+    var dna=buildSkeletonPrompt(__freshHero(),w,tone,"Betrayal by the closest ally.");
+    if(dna.indexOf("NARRATIVE DESIGN")<0||dna.indexOf("dnaHint")<0)return "the DNA branch broke";
+    return true;
+  });
+  t("buildSkeletonReviewPrompt: with no character the designer's review prompt is byte-identical (no CHARACTER, no INVENTED PAST); with one the reviewer sees the record and the INVENTED PAST dimension, constraints still last",function(){
+    var sk={premise:"A twin in a chrysalis, stolen centuries ago when Ammut failed his guardianship.",acts:[{title:"A",goal:"g",turningPoint:"t",parallel:false,arcs:[{title:"x",objective:"o",type:"combat"}]},{title:"B",goal:"g",turningPoint:"t",parallel:true,arcs:[{title:"y",objective:"o",type:"social"}]},{title:"C",goal:"g",turningPoint:"t",parallel:false,arcs:[{title:"z",objective:"o",type:"combat"}]}]};
+    var bare=buildSkeletonReviewPrompt(sk);
+    if(bare.indexOf("Review this three-act campaign skeleton for a tabletop RPG run by an AI Game Master.")!==0)return "review head anchor moved";
+    if(bare.indexOf("CHARACTER")>=0||bare.indexOf("INVENTED PAST")>=0)return "the character dimension leaked into the designer's review";
+    if(bare.slice(-SKELETON_REVIEW_CONSTRAINTS.length)!==SKELETON_REVIEW_CONSTRAINTS)return "constraints no longer LAST (bare)";
+    if(bare!==buildSkeletonReviewPrompt(sk,""))return "an empty character block is not the bare prompt";
+    var ctx=skeletonCharBlock(__recordHero()),withC=buildSkeletonReviewPrompt(sk,ctx);
+    if(withC.indexOf("CHARACTER")<0||withC.indexOf("Ammut and Morwen Zethran are married")<0)return "the reviewer does not see the record";
+    if(withC.indexOf("INVENTED PAST")<0||withC.indexOf("centuries ago")<0)return "the INVENTED PAST dimension is missing";
+    if(withC.indexOf("INVENTED PAST")>withC.indexOf("Report every genuine issue"))return "the dimension sits outside the FOCUS list";
+    if(withC.slice(-SKELETON_REVIEW_CONSTRAINTS.length)!==SKELETON_REVIEW_CONSTRAINTS)return "constraints no longer LAST (with character)";
+    if(withC.indexOf("early twenties")>=0)return "age reached the reviewer (2026-08-10 ruling)";
+    return true;
+  });
+  t("buildSkeletonBlock: the hero's own stake is never a secret from the player — the line names the hero, rides right after the GM-EYES fence, in the volatile half, for freeform and authored spines alike",function(){
+    worldState=__makeWorldState();worldState.character.name="Ammut";delete worldState.blueprintName;
+    worldState.skeleton={premise:"p",acts:[{title:"A",goal:"g",turningPoint:"t",parallel:false,status:"active",arcs:[{title:"x",objective:"o",type:"combat",status:"active"}]},{title:"B",goal:"g",turningPoint:"t",parallel:true,status:"pending",arcs:[{title:"y",objective:"o",type:"social",status:"pending"}]},{title:"C",goal:"g",turningPoint:"t",parallel:false,status:"pending",arcs:[{title:"z",objective:"o",type:"combat",status:"pending"}]}]};
+    var sk=buildSkeletonBlock(),gi=sk.indexOf("GM-EYES ONLY"),si=sk.indexOf("THE HERO'S OWN STAKE IS NEVER A SECRET FROM THE PLAYER");
+    if(gi<0)return "the GM-EYES fence is gone";if(si<0)return "no stake line";if(si<gi)return "the stake line precedes the fence it qualifies";
+    var seg=sk.slice(si,sk.indexOf("\n",si));if(seg.indexOf("Ammut")<0||!/BEFORE narrating it as something already known/.test(seg)||!/stay fenced/.test(seg))return "stake line: "+seg;
+    if(sk.indexOf("Premise: p")<si)return "the stake line must come before the premise it qualifies";
+    worldState.blueprintName="Rise of the Runelords";if(buildSkeletonBlock().indexOf("THE HERO'S OWN STAKE")<0)return "an authored spine lost the line";delete worldState.blueprintName;
+    var as=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),bs=as.slice(as.indexOf("function buildSysPrompt("),as.indexOf("function buildSkeletonBlock("));
+    var st=bs.slice(bs.indexOf("var stable="),bs.indexOf("var volatile_=")),vo=bs.slice(bs.indexOf("var volatile_="));
+    if(st.indexOf("buildSkeletonBlock()")>=0||vo.indexOf("buildSkeletonBlock()")<0)return "the skeleton block left the volatile half";
+    return true;
+  });
+  t("#425 the failure condition — the_fae_crysalis shape: empty backstory, married three times, ledger burned. The generator and the reviewer both carry the marriages and the burned ledger and the canon rule; neither carries the hero's years",function(){
+    var h=__recordHero(),w={location:"The Salted Wound Tavern",region:"The Blighted Reach"},p=buildSkeletonPrompt(h,w,{name:"High Fantasy"},"");
+    var r=buildSkeletonReviewPrompt({premise:"x",acts:[]},skeletonCharBlock(h));
+    var need=["married","asked Daeris to marry","burns the Bloodline Debt Ledger"],i;
+    for(i=0;i<need.length;i++){if(p.indexOf(need[i])<0)return "generator lacks: "+need[i];if(r.indexOf(need[i])<0)return "reviewer lacks: "+need[i];}
+    if(p.indexOf("THE RECORD IS CANON")<0)return "generator: no canon rule";if(r.indexOf("INVENTED PAST")<0)return "reviewer: no invented-past dimension";
+    if(/early twenties|Age:/.test(p)||/early twenties|Age:/.test(r))return "years leaked";
+    if(p.indexOf("Backstory:")>=0)return "an empty backstory printed";
+    // The call sites: a pure builder nobody calls guards nothing. generateSkeleton must send THE builder's prompt, hand
+    // the reviewer the same character block, and reviewCampaignSkeleton must forward what it was handed.
+    var gs=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),gb=gs.slice(gs.indexOf("async function generateSkeleton("),gs.indexOf("function buildOpeningIntro("));
+    if(gb.indexOf("var prompt=buildSkeletonPrompt(c,w,t,_skelDNA);")<0)return "generateSkeleton does not send buildSkeletonPrompt's text";
+    if(gb.indexOf('reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c))')<0)return "the review call does not pass the hero's character block";
+    var cg=__fsForTests.readFileSync(__rootForTests+"/campaign_generator.js","utf8"),rb=cg.slice(cg.indexOf("async function reviewCampaignSkeleton("),cg.indexOf("async function correctCampaignSkeleton("));
+    if(rb.indexOf("buildSkeletonReviewPrompt(skel,charCtx)")<0)return "reviewCampaignSkeleton drops the character it was handed";
+    return true;
+  });
+
   // ── #50(d) — duplicate-inventory faucets + heal (v1.291) ─────────────────────
   // Byte-identical inventory pairs (Frizwick t455) can only be minted where model-emitted arrays
   // are copied verbatim: sheet generation + regeneration. sanitizeModelInventory guards those

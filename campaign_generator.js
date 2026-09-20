@@ -102,10 +102,15 @@ function normalizeSkeletonFindings(r){
   }
   return out;
 }
-async function reviewCampaignSkeleton(skel,model,kind){
-  var withDna=skeletonHasDna(skel);
-  var msg="Review this three-act campaign skeleton for a tabletop RPG run by an AI Game Master. Every structural gap you find is a gap the GM will fill by IMPROVISING mid-campaign — which causes canon drift over a long game. This is a ONE-PASS review whose fixes are applied automatically, unseen by a human: report only genuine, worth-fixing issues.\n\nSKELETON:\n"
+/* #425 (the_fae_crysalis t33, 2026-09-20): the review prompt, pure. The game passes the hero's character block
+   (skeletonCharBlock, game.js — backstory + THE RECORD) so the reviewer can see what the premise invented for them;
+   the designer passes nothing and its prompt stays byte-identical. The INVENTED PAST dimension bites only when the
+   player wrote a backstory or the hero carries a record — a fresh hero with neither may still be given a past. */
+function buildSkeletonReviewPrompt(skel,charCtx){
+  var withDna=skeletonHasDna(skel),ctx=charCtx?String(charCtx):"";
+  return "Review this three-act campaign skeleton for a tabletop RPG run by an AI Game Master. Every structural gap you find is a gap the GM will fill by IMPROVISING mid-campaign — which causes canon drift over a long game. This is a ONE-PASS review whose fixes are applied automatically, unseen by a human: report only genuine, worth-fixing issues.\n\nSKELETON:\n"
     +JSON.stringify({premise:skel.premise,acts:skel.acts},null,1)
+    +(ctx?"\n\nCHARACTER — the protagonist as the player made them. A written backstory and THE RECORD are canon the player lived; an empty backstory with no record means the player wrote no past at all:\n"+ctx:"")
     +"\n\nFOCUS — report findings ONLY about:\n"
     +"- arcs that are PLACES or standing situations rather than completable objectives (the engine can never complete a place)\n"
     +"- acts without a concrete turningPoint, or a turningPoint that does not propel into the next act\n"
@@ -113,9 +118,13 @@ async function reviewCampaignSkeleton(skel,model,kind){
     +"- NAME-DROPS: people, places, factions, or things referenced in the premise or arcs but never established anywhere in the skeleton\n"
     +"- contradictions between acts or arcs"
     +(withDna?"\n- dnaHints that are generic procedure instead of arc-specific narrative direction":"")
+    +(ctx?"\n- INVENTED PAST: when the CHARACTER carries a written backstory or THE RECORD, any personal history the premise or arcs assert for the protagonist (a sibling, a lost lineage, an old failure, a debt) that they do not contain or that contradicts them, and any premise that forgets a bond they name (a spouse, sworn family). With neither, an invented past is allowed. ALWAYS: a premise that dates the protagonist's own past ('centuries ago', 'a lifetime before') — their years are the player's, not the skeleton's":"")
     +"\nReport every genuine issue, worst-first (hard cap "+SKELETON_FINDINGS_CAP+" as a circuit breaker). If the skeleton is sound, return an empty findings array — do NOT invent issues to fill space.\n\n"
     +'Output ONLY this JSON:\n{"findings":[{"sev":"HIGH|MED|LOW","where":"premise, or the act/arc title","issue":"what is wrong","fix":"one concrete edit instruction"}]}\n\n'
     +SKELETON_REVIEW_CONSTRAINTS; // constraints LAST — end-of-prompt position is load-bearing (audit #2)
+}
+async function reviewCampaignSkeleton(skel,model,kind,charCtx){
+  var msg=buildSkeletonReviewPrompt(skel,charCtx);
   var resp=await callGM(msg,SKELETON_REVIEW_SYS,2000,model,{noHistory:true,kind:kind||"other"});
   return normalizeSkeletonFindings(JSON.parse(repairModelJson(resp)));
 }

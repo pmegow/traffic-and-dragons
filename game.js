@@ -3187,32 +3187,52 @@ function restoreAuthoredDossiers(bp,names){
   }
   return result;
 }
-async function generateSkeleton(statusFn){
-  var c=worldState.character,w=worldState.world,t=worldState.tone;
-  var _skelDNA="",_skelPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");
-  if(_skelPaId&&typeof AUTHORS!=="undefined"){for(var _spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_skelPaId&&AUTHORS[_spi].contentDNA){_skelDNA=AUTHORS[_spi].contentDNA;break;}}}
-  var prompt="Design a three-act campaign skeleton for this RPG character and setting. Output ONLY valid JSON, no markdown.\n\n"
-    +"CHARACTER: "+c.name+", "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+"\n"
+/* #425 (the_fae_crysalis t33, 2026-09-20): the character block the skeleton generator AND its reviewer read — one
+   renderer, two consumers. A legacy hero's lived history (charRecordDigest, helpers.js) rides as THE RECORD. Before
+   this the generator saw only class/trait/flaw/motivation and, told to make it "personal", invented a twin sibling in
+   a chrysalis, a guardianship failed "centuries ago" and a stolen lineage for a level-17 hero with an empty backstory,
+   three wives and a burned debt ledger — and the GM narrated "your lost twin" from turn 7 as a thing the player knew.
+   Age is deliberately absent (the 2026-08-10 "age is cosmetic-only" ruling): the rules forbid DATING the hero's past
+   instead of injecting years. */
+function skeletonCharBlock(c){
+  var rec=(typeof charRecordDigest==="function")?charRecordDigest(c):"";
+  return "CHARACTER: "+c.name+", "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+"\n"
     +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:"")+"\n":"")
     +(c.deity?"Deity: "+c.deity+"\n":"")
     +(c.backstory?"Backstory: "+c.backstory+"\n":"")
+    +(rec?"THE RECORD — this character's lived history from earlier adventures. The player LIVED these; they are canon:\n"+rec+"\n":"");
+}
+// The freeform skeleton prompt, pure over its inputs (extracted from generateSkeleton for #425 so the engine suite pins it).
+function buildSkeletonPrompt(c,w,t,dna){
+  var hasRecord=!!((typeof charRecordDigest==="function")&&charRecordDigest(c));
+  return "Design a three-act campaign skeleton for this RPG character and setting. Output ONLY valid JSON, no markdown.\n\n"
+    +skeletonCharBlock(c)
     +"SETTING: "+w.location+", "+w.region+" | Tone: "+(t&&t.name?t.name:"Sword and Sorcery")+"\n\n"
-    +(_skelDNA?"NARRATIVE DESIGN — shape the three acts and all arcs to reflect these story sensibilities (author's structural DNA, not prose style):\n"+_skelDNA+"\n\n":"")
+    +(dna?"NARRATIVE DESIGN — shape the three acts and all arcs to reflect these story sensibilities (author's structural DNA, not prose style):\n"+dna+"\n\n":"")
     +"Generate a campaign with a central conflict that ties to the character's backstory and personality. The story should feel personal, not generic.\n\n"
     +"JSON format:\n"
     +'{"premise":"One paragraph: the central conflict driving the campaign",'
     // Schema + generic rules are shared fragments (campaign_generator.js, #59) — the designer's
-    // ✨ Generate builds its acts on the SAME text; the assembled prompt here is byte-identical
-    // to the pre-extraction original (flaw/motivation lines splice between head and tail).
-    +skelActsSchema(!!_skelDNA)
+    // ✨ Generate builds its acts on the SAME text (flaw/motivation lines splice between head and tail).
+    +skelActsSchema(!!dna)
     +skelDeepTimeSchema()
     +"}\n\n"
     +"RULES:\n"
-    +skelRulesHead(!!_skelDNA)
+    +skelRulesHead(!!dna)
     +skelDeepTimeRule()
     +(c.flaw?"- The character's flaw should be a source of tension, not just flavor\n":"")
     +(c.motivation?"- Weave the motivation into the central conflict so pursuing the plot IS pursuing the motivation\n":"- Weave the character's backstory into the central conflict so pursuing the plot IS personal\n")
+    /* #425: the three guards — the record rule only when a record exists; the other two always. */
+    +(hasRecord?"- THE RECORD IS CANON: build the central conflict on it or beside it, and never invent a personal past the record does not contain — no lost sibling, no ancient failure, no stolen lineage, no secret debt this character never lived. The bonds in the record (spouses, family, sworn companions) are this character's people; a premise that forgets them is wrong.\n":"")
+    +"- NEVER DATE THE CHARACTER'S OWN PAST: do not state how old they are, and do not place their own deeds or losses in a distant age ('centuries ago', 'a lifetime before'). Their years are the player's, not yours.\n"
+    +"- THE PLAYER HAS NOT READ THIS PREMISE. Whatever personal stake it gives the character — what they guard, what they lost, why they are here — must be something the opening scene can state plainly on screen. Write it to be revealed, never assumed.\n"
     +skelRulesTail();
+}
+async function generateSkeleton(statusFn){
+  var c=worldState.character,w=worldState.world,t=worldState.tone;
+  var _skelDNA="",_skelPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");
+  if(_skelPaId&&typeof AUTHORS!=="undefined"){for(var _spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_skelPaId&&AUTHORS[_spi].contentDNA){_skelDNA=AUTHORS[_spi].contentDNA;break;}}}
+  var prompt=buildSkeletonPrompt(c,w,t,_skelDNA);/* #425: one pure builder, engine-pinned */
   var resp=await callGM(prompt,SKELETON_ARCHITECT_SYS,8192,upgradeModelFor(),{kind:"skeleton"});/* v1.249: shared escalation helper (was an inline twin) */
   var skel=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — covered by test.html
   validateSkeletonStructure(skel);
@@ -3222,7 +3242,7 @@ async function generateSkeleton(statusFn){
   // fall back to the valid first draft, loudly (toast + console — no silent failures).
   try{
     if(statusFn)statusFn("Reviewing the campaign...");
-    var findings=await reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton");
+    var findings=await reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c));/* #425: the reviewer sees the hero the premise was written for */
     if(findings.length){
       if(statusFn)statusFn("Refining the campaign ("+findings.length+" fix"+(findings.length===1?"":"es")+")...");
       skel=await correctCampaignSkeleton(skel,findings,upgradeModelFor(),"skeleton");

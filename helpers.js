@@ -63,6 +63,23 @@ function img2imgStrength(cfg){
 // block. An authored title that already opens with "Act …" ("Act 2: The Severing of Bloodlines") is kept as written;
 // any other title gets "Act N: " in front. Three surfaces used to format this three ways and two of them doubled it.
 function actLabel(n,title){var at=String(title||"");return /^act\s/i.test(at)?at:"Act "+n+": "+at;}
+/* #425 (the_fae_crysalis t33, 2026-09-20): the hero's lived history as ONE digest for the campaign-skeleton generator and
+   its reviewer (game.js skeletonCharBlock). Pure over the character: bonds first (who this character's people are), then
+   the other defining moments, then the newest story beats in the order they happened, each labelled by the adventure it
+   came from (a raw campaign id reads as "an earlier adventure"). "" when the character has no record at all — a fresh
+   hero prints no block. Capped so a 2,400-turn record stays a briefing: newest beats kept, oldest dropped. Age is
+   deliberately not here (the 2026-08-10 "age is cosmetic-only" ruling). */
+var CHAR_RECORD_CAP=3000;
+function charRecordDigest(c){
+  if(!c)return "";
+  var cm=Array.isArray(c.coreMemories)?c.coreMemories:[],sb=Array.isArray(c.storyBeats)?c.storyBeats:[],seen={},bonds=[],rest=[],beats=[],i;
+  function label(m){var k=String((m&&m.camp)||"");return !k||/^camp_\d/.test(k)?"an earlier adventure":k;}
+  function line(m){var t=String((m&&m.text)||"").replace(/\s+/g," ").trim();if(!t||seen[t])return null;seen[t]=1;return "- ("+label(m)+") "+t;}
+  for(i=0;i<cm.length;i++){var l=line(cm[i]);if(!l)continue;if(cm[i].kind==="bond")bonds.push(l);else rest.push(l);}
+  var out=bonds.concat(rest),used=out.join("\n").length;
+  for(i=sb.length-1;i>=0;i--){var b=line(sb[i]);if(!b)continue;if(used+b.length+1>CHAR_RECORD_CAP)break;beats.unshift(b);used+=b.length+1;}
+  return out.concat(beats).join("\n");
+}
 function questBearing(){
   var sk=(typeof worldState!=="undefined"&&worldState&&worldState.skeleton)||null;if(!sk||!sk.acts)return null;
   var i,j;for(i=0;i<sk.acts.length;i++){var a=sk.acts[i];if(!a||a.status!=="active")continue;
