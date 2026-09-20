@@ -2539,6 +2539,8 @@ function buildSkeletonBlock(){
      on screen before treating it as known. Names the hero so the line reads as theirs; volatile half, ""-safe. */
   var _hn=(worldState.character&&worldState.character.name)||"the hero";
   lines.push("THE HERO'S OWN STAKE IS NEVER A SECRET FROM THE PLAYER: whatever personal stake this premise gives "+_hn+" — what they guard, what they lost, why they are here — is their own life, not a plot secret, and the player may not have read a word of it. If the story has not yet said it on screen, say it: plainly, early, in-fiction (a memory, a companion's word, the thing itself named) BEFORE narrating it as something already known. The antagonist's design, future acts and unrevealed turning points stay fenced as above.");
+  /* #426: the player's own words at Begin — theirs to know, the GM's to honour; ""-clean for every save without one. */
+  var _ps=String(worldState.stake||"").trim();if(_ps)lines.push("THE PLAYER'S OWN STAKE (their words at the start of this campaign — theirs to know, yours to honour on screen): "+_ps);
   // #23/#43 blueprint fidelity: when the player deliberately loaded an AUTHORED adventure, the acts/arcs
   // below are the load-bearing spine — the failure mode (v1.224 audit) was backstory-driven personalization
   // supplanting the authored plot (an emergent notation-seal subplot displacing the Skinsaw arcs). Steer

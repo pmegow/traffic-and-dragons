@@ -11556,10 +11556,86 @@ function runEngineTests(R){
     // The call sites: a pure builder nobody calls guards nothing. generateSkeleton must send THE builder's prompt, hand
     // the reviewer the same character block, and reviewCampaignSkeleton must forward what it was handed.
     var gs=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),gb=gs.slice(gs.indexOf("async function generateSkeleton("),gs.indexOf("function buildOpeningIntro("));
-    if(gb.indexOf("var prompt=buildSkeletonPrompt(c,w,t,_skelDNA);")<0)return "generateSkeleton does not send buildSkeletonPrompt's text";
-    if(gb.indexOf('reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c))')<0)return "the review call does not pass the hero's character block";
+    if(gb.indexOf("var prompt=buildSkeletonPrompt(c,w,t,_skelDNA,worldState.stake);")<0)return "generateSkeleton does not send buildSkeletonPrompt's text (with the #426 stake)";
+    if(gb.indexOf('reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c,worldState.stake))')<0)return "the review call does not pass the hero's character block (with the #426 stake)";
     var cg=__fsForTests.readFileSync(__rootForTests+"/campaign_generator.js","utf8"),rb=cg.slice(cg.indexOf("async function reviewCampaignSkeleton("),cg.indexOf("async function correctCampaignSkeleton("));
     if(rb.indexOf("buildSkeletonReviewPrompt(skel,charCtx)")<0)return "reviewCampaignSkeleton drops the character it was handed";
+    return true;
+  });
+
+  // ── #426 — the player's own stake (owner rulings 2026-09-20: a modal at Begin, a per-campaign stake, optional with a ✦ draft) ──
+  // The follow-on to #425: a legacy hero's "backstory" is their record, so the missing question was never "who were
+  // they" but "what is at stake for them in THIS campaign". At Begin, when the backstory is empty, a modal asks for one
+  // or two sentences of the player's own (✦ drafts them from the record); blank means the generator decides under the
+  // #425 guards. The stake lives on the world state (per campaign — not on the sheet a legacy hero carries between
+  // campaigns), reaches the generator and the reviewer as a HARD CONSTRAINT, rides the GM's skeleton block in the
+  // player's own words, and shows in the journal — the player wrote it, so it spoils nothing.
+  section("#426 the player's stake");
+  t("stakeAskWanted: asked only when the backstory is empty — blank, whitespace or missing ask; a written backstory does not; no character never asks",function(){
+    if(!stakeAskWanted({backstory:""})||!stakeAskWanted({backstory:"   "})||!stakeAskWanted({}))return "an empty backstory must ask";
+    if(stakeAskWanted({backstory:"Raised by wolves."}))return "a written backstory must not ask";
+    if(stakeAskWanted(null)!==false)return "no character → no ask";
+    return true;
+  });
+  t("buildStakeDraftPrompt: the draft sees the generator's own character block (record, trait/flaw/motivation), the setting and tone, carries the never-invent and never-date rules, asks for one or two sentences in second person, and never the years",function(){
+    var h=__recordHero(),p=buildStakeDraftPrompt(h,{location:"The Salted Wound Tavern",region:"The Blighted Reach"},{name:"High Fantasy"});
+    if(p.indexOf(skeletonCharBlock(h))<0)return "the character block is not the generator's";
+    if(p.indexOf("Ammut and Morwen Zethran are married")<0)return "the record is missing";
+    if(p.indexOf("The Salted Wound Tavern")<0||p.indexOf("High Fantasy")<0)return "setting/tone missing";
+    if(!/never invent a past/i.test(p)||!/distant age/i.test(p))return "the #425 rules are missing from the draft";
+    if(/early twenties|Age:/.test(p))return "years leaked";
+    if(!/second person/i.test(p)||!/ONE or TWO sentences/.test(p))return "the ask is not one or two sentences in second person";
+    if(!/^You write/.test(STAKE_DRAFT_SYS)||!/ONLY the sentences/.test(STAKE_DRAFT_SYS))return "STAKE_DRAFT_SYS: "+STAKE_DRAFT_SYS;
+    return true;
+  });
+  t("skeletonCharBlock / buildSkeletonPrompt: a stake rides the character block after the record as a HARD CONSTRAINT; blank or absent → byte-identical to the stakeless block and the four-argument prompt",function(){
+    var h=__recordHero(),w={location:"L",region:"R"},tone={name:"High Fantasy"},s="You guard the home you and your wives built, and the Reach wants it back.";
+    var blk=skeletonCharBlock(h,s);if(blk.indexOf("THE PLAYER'S OWN STAKE")<0||blk.indexOf(s)<0||!/HARD CONSTRAINT/.test(blk))return "the stake is not in the character block as a hard constraint";
+    if(blk.indexOf("THE PLAYER'S OWN STAKE")<blk.indexOf("THE RECORD"))return "the stake must follow the record it builds on";
+    if(skeletonCharBlock(h,"")!==skeletonCharBlock(h)||skeletonCharBlock(h,"   ")!==skeletonCharBlock(h))return "a blank stake changes the block";
+    var p=buildSkeletonPrompt(h,w,tone,"",s);if(p.indexOf(s)<0||p.indexOf("THE PLAYER'S OWN STAKE")<0)return "the stake does not reach the generator";
+    if(buildSkeletonPrompt(h,w,tone,"")!==buildSkeletonPrompt(h,w,tone,"",""))return "no stake is not byte-identical";
+    if(buildSkeletonPrompt(h,w,tone,"").indexOf("PLAYER'S OWN STAKE")>=0)return "a stakeless prompt mentions the stake";
+    return true;
+  });
+  t("buildSkeletonReviewPrompt: the reviewer sees the stake through the same block and the INVENTED PAST dimension names it; the designer's bare prompt is still byte-identical",function(){
+    var h=__recordHero(),s="You guard the home you and your wives built.",sk={premise:"x",acts:[]};
+    var r=buildSkeletonReviewPrompt(sk,skeletonCharBlock(h,s));
+    if(r.indexOf(s)<0)return "the stake does not reach the reviewer";
+    var dim=r.slice(r.indexOf("- INVENTED PAST"),r.indexOf("Report every genuine issue"));
+    if(dim.indexOf("a written backstory, THE RECORD or THE PLAYER'S OWN STAKE")<0)return "the dimension does not count the stake among the canon the premise must not contradict: "+dim;
+    if(dim.indexOf("does not build on THE PLAYER'S OWN STAKE in the player's own terms")<0)return "the dimension does not flag a premise that ignores the stake: "+dim;
+    var bare=buildSkeletonReviewPrompt(sk);if(bare.indexOf("STAKE")>=0)return "the stake leaked into the designer's review";
+    return true;
+  });
+  t("buildSkeletonBlock: the player's stake rides the GM block in their own words right after the hero's-own-stake line, before the premise; \"\"-clean without one",function(){
+    worldState=__makeWorldState();worldState.character.name="Ammut";delete worldState.blueprintName;delete worldState.stake;
+    worldState.skeleton={premise:"p",acts:[{title:"A",goal:"g",turningPoint:"t",parallel:false,status:"active",arcs:[{title:"x",objective:"o",type:"combat",status:"active"}]},{title:"B",goal:"g",turningPoint:"t",parallel:true,status:"pending",arcs:[{title:"y",objective:"o",type:"social",status:"pending"}]},{title:"C",goal:"g",turningPoint:"t",parallel:false,status:"pending",arcs:[{title:"z",objective:"o",type:"combat",status:"pending"}]}]};
+    var none=buildSkeletonBlock();if(none.indexOf("PLAYER'S OWN STAKE")>=0)return "a stakeless save mentions the stake";
+    worldState.stake="You guard the home you and your wives built.";var sk=buildSkeletonBlock(),si=sk.indexOf("THE PLAYER'S OWN STAKE"),hi=sk.indexOf("THE HERO'S OWN STAKE"),pi=sk.indexOf("Premise: p");
+    if(si<0)return "no stake line";if(si<hi||si>pi)return "the stake line must sit between the hero's-own-stake line and the premise";
+    var seg=sk.slice(si,sk.indexOf("\n",si));if(seg.indexOf(worldState.stake)<0||!/their words/i.test(seg)||!/honour/i.test(seg))return "stake line: "+seg;
+    worldState.stake="";if(buildSkeletonBlock()!==none)return "an empty stake is not \"\"-clean";
+    delete worldState.stake;return true;
+  });
+  t("#426 the wiring: the modal fires ONLY in the skeleton branch of startGame and only when stakeAskWanted; draftStake rides the pinned prompt with noHistory in the skeleton bucket; the modal latches done() once, ticks its status, cannot be dismissed by an outside click, is loud on a failed draft, has Draft / Begin / Skip; the journal shows the stake",function(){
+    var gs=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),sg=gs.slice(gs.indexOf("function startGame("),gs.indexOf("// Model escalation for engine utility calls"));
+    var bpBranch=sg.slice(sg.indexOf("if(worldState.skeleton){"),sg.indexOf("}else if(!kindDef().skeleton){")),villageBranch=sg.slice(sg.indexOf("}else if(!kindDef().skeleton){"),sg.lastIndexOf("}else{")),skelBranch=sg.slice(sg.lastIndexOf("}else{"));
+    if(bpBranch.indexOf("showStakeModal")>=0||villageBranch.indexOf("showStakeModal")>=0)return "the stake modal reaches a blueprint or village start";
+    if(skelBranch.indexOf("stakeAskWanted(worldState.character)")<0||skelBranch.indexOf("showStakeModal(")<0)return "the skeleton branch does not gate the modal on stakeAskWanted";
+    if(skelBranch.indexOf('typeof showStakeModal==="function"')<0)return "a DOM-less host (tests, node) must forge without the modal";
+    var ds=gs.slice(gs.indexOf("async function draftStake("),gs.indexOf("async function generateSkeleton("));
+    if(!ds||ds.indexOf("buildStakeDraftPrompt(")<0||ds.indexOf("STAKE_DRAFT_SYS")<0||ds.indexOf("noHistory:true")<0||ds.indexOf('kind:"skeleton"')<0)return "draftStake does not ride the pinned prompt / noHistory / the skeleton bucket";
+    var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),s0=um.indexOf("function showStakeModal(");if(s0<0)return "no showStakeModal";
+    var s1=um.indexOf("\nfunction ",s0+1),sm=um.slice(s0,s1<0?um.length:s1);
+    if(!/var fired=false/.test(sm)||!/if\(fired\)return;fired=true/.test(sm))return "done() is not latched once";
+    if(sm.indexOf("elapsedTicker(")<0||!/\.stop\(\)/.test(sm))return "the draft status does not tick (#356)";
+    if(/outside:true/.test(sm))return "an outside click would dismiss the modal without deciding";
+    if(sm.indexOf("stake-draft")<0||sm.indexOf("stake-go")<0||sm.indexOf("stake-skip")<0||sm.indexOf("stake-text")<0)return "Draft / Begin / Skip / textarea ids missing";
+    if(sm.indexOf("worldState.stake=")<0)return "the modal never writes worldState.stake";
+    var ct=sm.slice(sm.indexOf(".catch("));if(sm.indexOf(".catch(")<0||ct.indexOf('showToast("Draft failed (')<0||ct.indexOf("Draft failed \\u2014")<0)return "a failed draft must be loud (a Draft-failed toast AND status line inside the catch), not silent";
+    var q0=um.indexOf("function showQuestModal("),q1=um.indexOf("\nfunction ",q0+1),qm=um.slice(q0,q1<0?um.length:q1);
+    if(qm.indexOf("worldState.stake")<0||qm.indexOf("Your stake")<0)return "the journal does not show the player's stake";
     return true;
   });
 

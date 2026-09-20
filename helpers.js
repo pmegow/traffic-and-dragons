@@ -80,6 +80,9 @@ function charRecordDigest(c){
   for(i=sb.length-1;i>=0;i--){var b=line(sb[i]);if(!b)continue;if(used+b.length+1>CHAR_RECORD_CAP)break;beats.unshift(b);used+=b.length+1;}
   return out.concat(beats).join("\n");
 }
+/* #426 (owner ruling 2026-09-20): the stake modal is asked at Begin only when the hero has no written backstory —
+   every legacy import (their record IS their backstory) and a fresh hero who left the field blank. Pure. */
+function stakeAskWanted(c){return !!c&&!String(c.backstory||"").trim();}
 function questBearing(){
   var sk=(typeof worldState!=="undefined"&&worldState&&worldState.skeleton)||null;if(!sk||!sk.acts)return null;
   var i,j;for(i=0;i<sk.acts.length;i++){var a=sk.acts[i];if(!a||a.status!=="active")continue;

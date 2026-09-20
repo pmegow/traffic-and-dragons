@@ -35,10 +35,10 @@ prove("game.js", [
     find: '+"- THE PLAYER HAS NOT READ THIS PREMISE.', replace: '+""+"',
     mustFail: "buildSkeletonPrompt" },
   { label: "the reviewer is called without the hero",
-    find: 'reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c))', replace: 'reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton")',
+    find: 'reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c,worldState.stake))', replace: 'reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton")',
     mustFail: "the failure condition" },
   { label: "generateSkeleton stops using the pinned builder",
-    find: 'var prompt=buildSkeletonPrompt(c,w,t,_skelDNA);', replace: 'var prompt="Design a three-act campaign skeleton."+skeletonCharBlock(c);',
+    find: 'var prompt=buildSkeletonPrompt(c,w,t,_skelDNA,worldState.stake);', replace: 'var prompt="Design a three-act campaign skeleton."+skeletonCharBlock(c);',
     mustFail: "the failure condition" }
 ]);
 prove("campaign_generator.js", [

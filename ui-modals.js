@@ -827,6 +827,9 @@ function showQuestModal(){
       +"<div style='font-size:12px;color:var(--t2);margin-top:3px;'>Every act of "+escHtml((worldState&&worldState.campName)||"this campaign")+" is complete. Tie off what you like, then call for the ending here.</div>"
       +"<div style='display:flex;gap:8px;margin-top:10px;'><button class='qa' id='qm-ending' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Write the ending</button></div></div>";
   }
+  /* #426: the player's own stake, written at Begin — theirs, so it spoils nothing. */
+  var _stk=(worldState&&worldState.stake)?String(worldState.stake).trim():"";
+  if(_stk)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin:2px 0 6px;'>Your stake</div><div style='font-size:12px;color:var(--t1);line-height:1.5;margin-bottom:8px;'>"+escHtml(_stk)+"</div>";
   body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);margin:14px 0 8px;'>Active</div>"+(activeHtml||"<div style='font-size:12px;color:var(--t2);font-style:italic;'>No active quests.</div>");
   if(histHtml)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin:14px 0 8px;'>History</div>"+histHtml;
   var modal=modalShell("quest-modal",/* #14 */
@@ -1165,4 +1168,28 @@ function showHallLineModal(name){
     +"<div style='display:flex;gap:8px;margin-top:10px;'><button class='qa' id='hlm-save' style='flex:1;background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Save the line</button><button class='qa' id='hlm-cancel' style='flex:1;'>Cancel</button></div>",{z:420,maxWidth:420,outside:true});
   document.getElementById("hlm-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("hlm-save").addEventListener("click",function(){var t=document.getElementById("hlm-text").value;var r=(typeof villageHallLine==="function")?villageHallLine(name,t):{ok:false,reason:"not available"};modal.remove();if(r.ok){if(typeof saveAll==="function")saveAll();showToast("Their line is on the wall \u2014 and on their sheet.",4000);}else showToast("Not saved \u2014 "+(r.reason||"refused"),5000);});
+}
+/* #426 (owner rulings 2026-09-20): the stake modal at Begin \u2014 asked only when the hero has no written backstory
+   (stakeAskWanted, helpers.js; the gate is startGame's skeleton branch). One or two sentences of the player's own;
+   \u2726 drafts them (draftStake, game.js) under an elapsed ticker (#356) with a LOUD failure; Begin writes
+   worldState.stake, Skip writes "". done() fires exactly once and an outside click cannot dismiss \u2014 the campaign must
+   forge exactly once, never twice and never not at all. */
+function showStakeModal(done){
+  var c=(worldState&&worldState.character)||{},nm=c.name||"your hero";
+  var fired=false;
+  function finish(text){if(fired)return;fired=true;worldState.stake=String(text||"").trim();modal.remove();if(typeof saveCore==="function")saveCore();done();}
+  var modal=modalShell("stake-modal",
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>What draws "+escHtml(nm)+" into this adventure?</div>"
+    +"<div style='font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:10px;'>One or two sentences of your own \u2014 what they guard, what they lost, why they are here. The campaign is built on it and the Game Master will say it out loud. Leave it blank and the Game Master decides.</div>"
+    +"<textarea id='stake-text' maxlength='600' rows='4' placeholder='You\u2026' style='width:100%;box-sizing:border-box;background:var(--bg2);color:var(--t0);border:1px solid var(--brd2);border-radius:var(--r);padding:8px;font-family:var(--font);font-size:13px;'></textarea>"
+    +"<div id='stake-status' style='font-size:12px;min-height:16px;margin-top:6px;'></div>"
+    +"<div style='display:flex;gap:8px;margin-top:10px;'><button class='qa' id='stake-draft' style='flex:1;'>\u2726 Draft one</button><button class='qa' id='stake-go' style='flex:1;background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Begin</button><button class='qa' id='stake-skip' style='flex:1;'>Skip</button></div>",{z:420,maxWidth:460,wireClose:false});
+  var ta=document.getElementById("stake-text"),st=document.getElementById("stake-status"),bd=document.getElementById("stake-draft"),bg=document.getElementById("stake-go"),bs=document.getElementById("stake-skip");
+  bd.addEventListener("click",function(){
+    if(typeof draftStake!=="function"){showToast("Drafting is not available here.");return;}
+    bd.disabled=true;bg.disabled=true;var tick=elapsedTicker(st,"Drafting\u2026");
+    draftStake().then(function(text){tick.stop();ta.value=text;st.innerHTML="<span style='color:var(--t2);'>Drafted \u2014 edit freely, or Begin.</span>";}).catch(function(e){tick.stop();var why=(e&&e.message)||"unknown error";st.innerHTML="<span style='color:var(--warn);'>Draft failed \u2014 "+escHtml(why)+"</span>";showToast("Draft failed ("+why+") \u2014 write your own or skip.",6000);}).then(function(){bd.disabled=false;bg.disabled=false;});
+  });
+  bg.addEventListener("click",function(){finish(ta.value);});
+  bs.addEventListener("click",function(){finish("");});
 }

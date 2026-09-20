@@ -63,8 +63,13 @@ function startGame(char,toneName,toneVoice,authorId){
   }else{
     // Generate the campaign skeleton, then open the adventure. If skeleton generation fails
     // (network, parse, bad provider), log it and start anyway — the game works without one.
-    var _skMsg=addMsg("thinking","Forging the campaign...");
-    generateSkeleton(function(tx){try{_skMsg.innerHTML=tx;}catch(_e){}}).then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);if(typeof reportError==="function")reportError("skeleton",reason,(e&&e.stack)||"");beginAdventure();});
+    /* #426 (owner ruling 2026-09-20): when the hero has no written backstory, ask the player for their stake first —
+       a modal at Begin; blank means the generator decides under the #425 guards. A DOM-less host forges straight away. */
+    var _forge=function(){
+      var _skMsg=addMsg("thinking","Forging the campaign...");
+      generateSkeleton(function(tx){try{_skMsg.innerHTML=tx;}catch(_e){}}).then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);if(typeof reportError==="function")reportError("skeleton",reason,(e&&e.stack)||"");beginAdventure();});
+    };
+    if(typeof showStakeModal==="function"&&stakeAskWanted(worldState.character))showStakeModal(_forge);else _forge();
   }
 }
 // Model escalation for engine utility calls (skeleton since v1.2xx, suggestions since v1.249):
@@ -3194,19 +3199,21 @@ function restoreAuthoredDossiers(bp,names){
    three wives and a burned debt ledger — and the GM narrated "your lost twin" from turn 7 as a thing the player knew.
    Age is deliberately absent (the 2026-08-10 "age is cosmetic-only" ruling): the rules forbid DATING the hero's past
    instead of injecting years. */
-function skeletonCharBlock(c){
-  var rec=(typeof charRecordDigest==="function")?charRecordDigest(c):"";
+function skeletonCharBlock(c,stake){
+  var rec=(typeof charRecordDigest==="function")?charRecordDigest(c):"",st=String(stake||"").trim();
   return "CHARACTER: "+c.name+", "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+"\n"
     +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:"")+"\n":"")
     +(c.deity?"Deity: "+c.deity+"\n":"")
     +(c.backstory?"Backstory: "+c.backstory+"\n":"")
-    +(rec?"THE RECORD — this character's lived history from earlier adventures. The player LIVED these; they are canon:\n"+rec+"\n":"");
+    +(rec?"THE RECORD — this character's lived history from earlier adventures. The player LIVED these; they are canon:\n"+rec+"\n":"")
+    /* #426: the player's own words at Begin — a HARD CONSTRAINT, after the record it builds on; ""-clean when skipped */
+    +(st?"THE PLAYER'S OWN STAKE — the player wrote this at the start; it is a HARD CONSTRAINT: the premise must build on it, in these terms, and may not replace it:\n"+st+"\n":"");
 }
 // The freeform skeleton prompt, pure over its inputs (extracted from generateSkeleton for #425 so the engine suite pins it).
-function buildSkeletonPrompt(c,w,t,dna){
+function buildSkeletonPrompt(c,w,t,dna,stake){
   var hasRecord=!!((typeof charRecordDigest==="function")&&charRecordDigest(c));
   return "Design a three-act campaign skeleton for this RPG character and setting. Output ONLY valid JSON, no markdown.\n\n"
-    +skeletonCharBlock(c)
+    +skeletonCharBlock(c,stake)
     +"SETTING: "+w.location+", "+w.region+" | Tone: "+(t&&t.name?t.name:"Sword and Sorcery")+"\n\n"
     +(dna?"NARRATIVE DESIGN — shape the three acts and all arcs to reflect these story sensibilities (author's structural DNA, not prose style):\n"+dna+"\n\n":"")
     +"Generate a campaign with a central conflict that ties to the character's backstory and personality. The story should feel personal, not generic.\n\n"
@@ -3228,11 +3235,30 @@ function buildSkeletonPrompt(c,w,t,dna){
     +"- THE PLAYER HAS NOT READ THIS PREMISE. Whatever personal stake it gives the character — what they guard, what they lost, why they are here — must be something the opening scene can state plainly on screen. Write it to be revealed, never assumed.\n"
     +skelRulesTail();
 }
+/* #426 (owner rulings 2026-09-20): the ✦ draft behind the stake modal — one or two sentences of personal stake in
+   second person, drafted from the SAME character block the generator reads (the record, the written backstory,
+   trait/flaw/motivation) under the #425 rules. Pure prompt; draftStake is the one call: noHistory, the skeleton bucket. */
+var STAKE_DRAFT_SYS="You write one or two sentences of a player character's personal stake for a tabletop RPG. Output ONLY the sentences — no quotes, no preamble, no markdown.";
+function buildStakeDraftPrompt(c,w,t){
+  return "Write the personal stake that draws this character into a new adventure: ONE or TWO sentences in second person ('You…'), plain and concrete — what they guard, what they lost, or why they are here. Output ONLY the sentences.\n\n"
+    +skeletonCharBlock(c)
+    +"SETTING: "+w.location+", "+w.region+" | Tone: "+(t&&t.name?t.name:"Sword and Sorcery")+"\n\n"
+    +"RULES:\n"
+    +"- Build on the record and the written backstory when there is one; never invent a past they did not live (no lost sibling, no ancient failure, no secret debt).\n"
+    +"- Never state how old they are, and never place their past in a distant age.\n"
+    +"- Their people in the record (spouses, family, sworn companions) are with them unless the record says otherwise.\n"
+    +"- Present tense. Name no villain and no place the character has not met.";
+}
+async function draftStake(){
+  var c=worldState.character,w=worldState.world,t=worldState.tone;
+  var raw=await callGM(buildStakeDraftPrompt(c,w,t),STAKE_DRAFT_SYS,300,upgradeModelFor(),{noHistory:true,kind:"skeleton"});
+  return String(raw||"").trim().replace(/^["“]+|["”]+$/g,"").trim();
+}
 async function generateSkeleton(statusFn){
   var c=worldState.character,w=worldState.world,t=worldState.tone;
   var _skelDNA="",_skelPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");
   if(_skelPaId&&typeof AUTHORS!=="undefined"){for(var _spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_skelPaId&&AUTHORS[_spi].contentDNA){_skelDNA=AUTHORS[_spi].contentDNA;break;}}}
-  var prompt=buildSkeletonPrompt(c,w,t,_skelDNA);/* #425: one pure builder, engine-pinned */
+  var prompt=buildSkeletonPrompt(c,w,t,_skelDNA,worldState.stake);/* #425: one pure builder, engine-pinned; #426: the player's stake rides along */
   var resp=await callGM(prompt,SKELETON_ARCHITECT_SYS,8192,upgradeModelFor(),{kind:"skeleton"});/* v1.249: shared escalation helper (was an inline twin) */
   var skel=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — covered by test.html
   validateSkeletonStructure(skel);
@@ -3242,7 +3268,7 @@ async function generateSkeleton(statusFn){
   // fall back to the valid first draft, loudly (toast + console — no silent failures).
   try{
     if(statusFn)statusFn("Reviewing the campaign...");
-    var findings=await reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c));/* #425: the reviewer sees the hero the premise was written for */
+    var findings=await reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c,worldState.stake));/* #425: the reviewer sees the hero the premise was written for; #426: and the player's stake */
     if(findings.length){
       if(statusFn)statusFn("Refining the campaign ("+findings.length+" fix"+(findings.length===1?"":"es")+")...");
       skel=await correctCampaignSkeleton(skel,findings,upgradeModelFor(),"skeleton");
