@@ -34,11 +34,227 @@ them here).
 
 ## Open
 
+## B38 — Gemini's safety filter (PROHIBITED_CONTENT) blocks the chapter extractor on consecutive turns — each summary is dropped and nothing falls back (The Long Walk, Silas Morne, Runelords, the Village; v1.838–v1.951)
+**Status:** new
+**Kind:** crash · **First seen:** 2026-09-07 (v1.838) · **Last seen:** 2026-09-18 (v1.951) · **Count:** 9 · **Campaign:** The Long Walk ×3, Rise of the Runelords (Ammut) ×1, Silas Morne ×3, The Village (Ammut) ×2 · **Turn:** 18, 19, 20, 2456, 39, 40, 41, 57, 65
+**Fingerprint:** `crash · summarize · v1.838 · Empty response — gemini prompt blocked: PROHIBITED_CONTENT` · also 2 more fingerprint(s) across versions v1.838, v1.889, v1.951
+**Report ids:** 140373d5-2b3c-49ee-adbc-036017368ca7, bedfb708-7b9c-4367-874e-5e506e5351f4, 96c6d9d5-e89a-4b2d-a551-ee6125d779c4, 8e0aafe0-1dfe-4b6b-be94-dcd5f44c20e2, 375e509c-2812-46c9-89a7-0bc03810c1eb, 421609cf-e676-4f9f-907a-e8e11c979631, 766022bf-a109-4f29-93a6-1580651bf7bb, 0899b8f1-9cc7-4433-8869-7f61a8d012bb, 05af29bd-6a0e-40b4-93ea-4f5cd73dd202
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Empty response — gemini prompt blocked: PROHIBITED_CONTENT
+consecutive fails: 1 | window 8 msgs, 3/4 user halves open with an engine note
+Error: Empty response — gemini prompt blocked: PROHIBITED_CONTENT
+    at Object.parseResponse (https://traffic-and-dragons.pages.dev/globals.js:372:13)
+    at callGM (https://traffic-and-dragons.pages.dev/api.js:3316:15)
+    at async summarize (https://traffic-and-dragons.pages.dev/memory.js:1953:14)
+    at async sendAction (https://traffic-and-dragons.pages.dev/game.js:2101:45)
+
+--- diag ---
+session sdcjv92-18bx · report 1/10 · up 1831s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s
+this page:
+  +303s turn-start t7 sil 237ch bg0
+  +306s turn t8 1444ch
+  +423s turn-start t8 2473ch bg0
+  +426s turn t9 1764ch
+  +577s turn-start t9 2096ch bg0
+  +586s turn t10 1492ch
+  +700s turn-start t10 2124ch bg0
+  +704s turn t11 1575ch
+  +937s turn-start t11 99ch bg0
+  +950s turn t12 1375ch
+  +1031s turn-start t12 2247ch bg0
+  +1034s turn t13 1525ch
+  +1178s turn-start t13 1655ch bg0
+  +1180s turn t14 1235ch
+  +1323s turn-start t14 1442ch bg0
+  +1326s turn t15 1886ch
+  +1556s turn-start t15 275ch bg0
+  +1559s turn t16 2226ch
+  +1559s suggestion-reject [object Object]
+  +1712s turn-start t16 1536ch bg0
+  +1720s turn t17 939ch
+  +1744s turn-start t17 sil 227ch bg0
+  +1750s turn t18 1641ch
+  +1750s suggestion-reject [object Object]
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +501s turn-start t2452 79ch bg0
+  +510s turn t2453 1534ch
+  +2649s turn t0 1236ch
+  +2853s turn-start t0 1413ch bg0
+  +2855s turn t1 1061ch
+  +3645s turn-start t1 sil 225ch bg0
+  +3649s turn t2 1190ch
+  +3774s turn-start t2 88ch bg0
+  +3777s turn t3 1713ch
+  +4034s unload
+```
+
+### Findings
+
+### Action log
+
+## B39 — "Failed to start the audio device" is back on iPhone in the Village (v1.951) — the B10 class, verified fixed at v1.406, recurs after a long idle page
+**Status:** new
+**Kind:** crash · **First seen:** 2026-09-18 (v1.951) · **Last seen:** 2026-09-18 (v1.951) · **Count:** 2 · **Campaign:** The Village (Ammut) ×2 · **Turn:** 56, 65
+**Fingerprint:** `crash · unhandledrejection · v1.951 · Failed to start the audio device`
+**Report ids:** f7609b04-f392-49a9-bfcf-d51a70488f63, 3c8a6f3e-d37e-4144-8780-01d41057a72d
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Failed to start the audio device
+
+
+--- diag ---
+session s4dyupn-1d7n · report 1/10 · up 6803s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=1 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s
+this page:
+  +0s boot
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +16s unload
+```
+
+### Findings
+
+### Action log
+
+## B40 — Renaming a campaign from the picker crashes modalShell — the picker re-opens from the rename input's change handler while the old picker node is already detached (`remove` on a node that is no longer a child)
+**Status:** new
+**Kind:** crash · **First seen:** 2026-09-20 (v1.952) · **Last seen:** 2026-09-20 (v1.952) · **Count:** 1 · **Campaign:** the fae crysalis ×1 · **Turn:** 33
+**Fingerprint:** `crash · window.onerror · v1.952 · Uncaught NotFoundError: Failed to execute 'remove' on 'Element': The node to be removed is no longer a child of this nod`
+**Report ids:** daf3c978-cec3-44f1-af97-45311440d152
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Uncaught NotFoundError: Failed to execute 'remove' on 'Element': The node to be removed is no longer a child of this node. Perhaps it was moved in a 'blur' event handler?
+https://traffic-and-dragons.pages.dev/ui-shell.js:130:47
+NotFoundError: Failed to execute 'remove' on 'Element': The node to be removed is no longer a child of this node. Perhaps it was moved in a 'blur' event handler?
+    at modalShell (https://traffic-and-dragons.pages.dev/ui-shell.js:130:47)
+    at _showCampaignPickerModal (https://traffic-and-dragons.pages.dev/ui-campaigns.js:175:13)
+    at showCampaignPicker (https://traffic-and-dragons.pages.dev/ui-campaigns.js:157:3)
+    at campSaveRename (https://traffic-and-dragons.pages.dev/ui-campaigns.js:410:3)
+    at HTMLInputElement.<anonymous> (https://traffic-and-dragons.pages.dev/ui-campaigns.js:391:65)
+
+--- diag ---
+session s6astca-ib1 · report 1/10 · up 952s
+audio ctx=running refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=1 eng=inpage ctxSyn=10/40 cr=0 da=0 synthCPU=0s
+this page:
+  +0s boot
+  +496s turn-start t30 2500ch bg0
+  +500s turn t31 1432ch
+  +500s tts-server-skip speechify availability re-check failed
+  +726s turn-start t31 130ch bg0
+  +733s turn t32 1742ch
+  +733s tts-server-skip speechify availability re-check failed
+  +795s turn-start t32 2435ch bg0
+  +798s turn t33 2256ch
+  +798s tts-server-skip speechify availability re-check failed
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +12s unload
+  +12s unload
+```
+
+### Findings
+
+### Action log
+
+## B41 — W6 summary-identity guard rejected a Village chapter summary that gave the hero the wrong pronouns (he/him rendered she/her as the sole adjacent subject, v1.930 t3) — the summary was dropped
+**Status:** new
+**Kind:** crash · **First seen:** 2026-09-15 (v1.930) · **Last seen:** 2026-09-15 (v1.930) · **Count:** 1 · **Campaign:** The Village (Ammut) ×1 · **Turn:** 3
+**Fingerprint:** `crash · summarize · v1.930 · W6 summary identity: Ammut is he/him but chapterSummary carries she/her as the sole adjacent subject`
+**Report ids:** 226e3d26-e570-4f27-9cb0-27f21440d125
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+W6 summary identity: Ammut is he/him but chapterSummary carries she/her as the sole adjacent subject
+consecutive fails: 1 | window 8 msgs, 3/4 user halves open with an engine note
+RESPONSE HEAD (200): {"chapterSummary":"Ammut returned home to the Village on a bright morning, stepping out into the sunlit square where sweet cedar smoke and river mist drifted from the water. Near the smithy, Nyla Lorr
+Error: W6 summary identity: Ammut is he/him but chapterSummary carries she/her as the sole adjacent subject
+    at w6ValidateSummary (https://traffic-and-dragons.pages.dev/identity.js:1674:86)
+    at validateSummaryExtract (https://traffic-and-dragons.pages.dev/identity.js:1677:91)
+    at applySummaryExtract (https://traffic-and-dragons.pages.dev/memory.js:1898:49)
+    at summarize (https://traffic-and-dragons.pages.dev/memory.js:2109:18)
+    at async sendAction (https://traffic-and-dragons.pages.dev/game.js:2470:45)
+
+--- diag ---
+session s7vnkyi-ew2 · report 1/10 · up 497s
+audio ctx=running refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=1 eng=inpage ctxSyn=29/40 cr=0 da=0 synthCPU=0s
+this page:
+  +0s boot
+  +56s turn t0 965ch
+  +56s tts-server-skip speechify availability re-check failed
+  +122s turn-start t0 2455ch bg0
+  +125s turn t1 1117ch
+  +125s tts-server-skip speechify availability re-check failed
+  +125s suggestion-reject [object Object]
+  +207s turn-start t1 2222ch bg0
+  +211s turn t2 1362ch
+  +211s tts-server-skip speechify availability re-check failed
+  +289s turn-start t2 2085ch bg0
+  +291s turn t3 1244ch
+  +291s tts-server-skip speechify availability re-check failed
+  +291s suggestion-reject [object Object]
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +647s unload
+  +647s unload
+```
+
+### Findings
+
+### Action log
+
+## B42 — A configured model id the provider no longer serves (claude-haiku-4-5) fails the turn with HTTP 400 — surfaced as a crash with no fallback and no nudge to the model picker (v1.925, file://)
+**Status:** new
+**Kind:** crash · **First seen:** 2026-09-15 (v1.925) · **Last seen:** 2026-09-15 (v1.925) · **Count:** 1 · **Campaign:** The Village (Ammut) ×1 · **Turn:** 2
+**Fingerprint:** `crash · turn · v1.925 · HTTP 400: Model 'claude-haiku-4-5-20251001' is not available`
+**Report ids:** d087cc98-b212-4f7e-bfc2-357d71ade79d
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+HTTP 400: Model 'claude-haiku-4-5-20251001' is not available
+Error: HTTP 400: Model 'claude-haiku-4-5-20251001' is not available
+    at providerHttpError (file:///C:/Projects/traffic-and-dragons/api.js:3318:10)
+    at callGM (file:///C:/Projects/traffic-and-dragons/api.js:3559:136)
+    at async sendAction (file:///C:/Projects/traffic-and-dragons/game.js:2454:18)
+(turn: story, 149ms in flight)
+
+--- diag ---
+session s34d19a-1k0q · report 1/10 · up 13s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s
+this page:
+  +0s boot
+  +13s turn-start t2 2313ch bg0
+  +13s turn-fail 149ms pre bg00 HTTP 400: Model 'claude-haik
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +37s unload
+  +37s unload
+```
+
+### Findings
+
+### Action log
+
 ## B26 — Transport failures surfaced as crashes — "Load failed", "Failed to fetch", a Gemini request abandoned after four minutes
 **Status:** new
-**Kind:** crash · **First seen:** 2026-08-09 (v1.563) · **Last seen:** 2026-09-03 (v1.795) · **Count:** 16 · **Campaign:** Rise of the Runelords (Ammut) ×12, The Iron Meridian (Gazz Quickfuse) ×4 · **Turn:** 1534, 1549, 1604, 1964, 1965, 1986, 1986, 1989, 1989, 1994, 2040, 2133 …
-**Fingerprint:** `crash · summarize · v1.563 · Network: Load failed` · also 12 more fingerprint(s) across versions v1.563, v1.576, v1.661, v1.662, v1.672, v1.759, v1.795
-**Report ids:** 44c60344-dd10-405a-828d-c684f86c6a55, 5fd0f755-6d64-4279-b300-fce4a9d48313, f30d1a2a-cbe5-4be5-92bc-a7c4eae141a7, 6711dc02-1c2a-432e-bb36-c2f9822a61f2, 433b74a9-6c42-4573-9b5a-083d51a8e0c6, 4e800e80-566f-47b8-a53b-489968ca4a76, 88c4b96b-176e-49d4-ad34-db47dfe7dc7b, 519aeebb-844a-4565-af89-e0c86423b807, 1c51da60-d8fc-4233-a566-a34c4767492c, ff63736d-b6ea-4ab5-a9c4-1089ded5b671, 3a7e43dd-e082-4e19-be81-14d742b5829b, 2ed7a63f-1e92-4f26-baec-c51068f7918f, e53caf83-7e14-4476-92cd-b8d0edd49d09, 6057c048-25f1-4f20-be4b-13e154a9978f, 1fda97fc-555e-428b-a850-5c27f879077b, ec74d507-69d4-43a6-8a43-268c4e5b1f58
+**Kind:** crash · **First seen:** 2026-08-09 (v1.563) · **Last seen:** 2026-09-16 (v1.943) · **Count:** 20 · **Campaign:** Rise of the Runelords (Ammut) ×12, The Iron Meridian (Gazz Quickfuse) ×4, The Long Walk ×1, Silas Morne ×1, Ammut ×1, The Village (Ammut) ×1 · **Turn:** 1534, 1549, 1604, 1964, 1965, 1986, 1986, 1989, 1989, 1994, 2040, 2133, 119, 62, 10, 34 …
+**Fingerprint:** `crash · summarize · v1.563 · Network: Load failed` · also 16 more fingerprint(s) across versions v1.563, v1.576, v1.661, v1.662, v1.672, v1.759, v1.795, v1.868, v1.890, v1.938, v1.943
+**Report ids:** 44c60344-dd10-405a-828d-c684f86c6a55, 5fd0f755-6d64-4279-b300-fce4a9d48313, f30d1a2a-cbe5-4be5-92bc-a7c4eae141a7, 6711dc02-1c2a-432e-bb36-c2f9822a61f2, 433b74a9-6c42-4573-9b5a-083d51a8e0c6, 4e800e80-566f-47b8-a53b-489968ca4a76, 88c4b96b-176e-49d4-ad34-db47dfe7dc7b, 519aeebb-844a-4565-af89-e0c86423b807, 1c51da60-d8fc-4233-a566-a34c4767492c, ff63736d-b6ea-4ab5-a9c4-1089ded5b671, 3a7e43dd-e082-4e19-be81-14d742b5829b, 2ed7a63f-1e92-4f26-baec-c51068f7918f, e53caf83-7e14-4476-92cd-b8d0edd49d09, 6057c048-25f1-4f20-be4b-13e154a9978f, 1fda97fc-555e-428b-a850-5c27f879077b, ec74d507-69d4-43a6-8a43-268c4e5b1f58, 167fe6e1-782b-4859-90c0-4360d83b9d65, 80c277f7-250b-4c4e-9e18-19709def296d, be5db7b6-eee9-4602-b03b-e26b7f00f4da, 73ae74b6-c919-4b79-9ca5-a5883fcc7eb1
 **Screenshot URL:** —
 _suppressed: 2 further errors followed within 30s across these reports._
 
@@ -56,10 +272,11 @@ consecutive fails: 1 | window 6 msgs, 3/3 user halves open with an engine note c
 
 ## B27 — Billing and key states surfaced as crashes — credit exhausted, invalid or missing API key, no subscription, no key in preview
 **Status:** wontfix
-**Kind:** crash · **First seen:** 2026-08-11 (v1.594) · **Last seen:** 2026-08-30 (v1.754) · **Count:** 6 · **Campaign:** Rise of the Runelords (Ammut) ×6 · **Turn:** 1682, 1682, 2034, 2041, 2396, 2396
-**Fingerprint:** `crash · turn · v1.594 · API credit exhausted — top up your provider account (Plans & Billing), then retry. Provider said: Your credit balance is` · also 3 more fingerprint(s) across versions v1.594, v1.672, v1.753, v1.754
-**Report ids:** b899fc53-552f-46a8-8923-12824687d494, c22b01d8-c0b7-407a-9ecc-ccaf68d54cd4, dc13bd4c-7d41-4199-8743-fb69e3d3d5a7, d1d5cf5d-5fc6-4401-86cf-b4b9e0c754f3, 177fa182-5b84-4675-baeb-69f4935f1d11, 9260c526-f35c-46e0-b711-eee019d7c18e
+**Kind:** crash · **First seen:** 2026-08-11 (v1.594) · **Last seen:** 2026-09-11 (v1.890) · **Count:** 10 · **Campaign:** Rise of the Runelords (Ammut) ×6, Silas Morne ×4 · **Turn:** 1682, 1682, 2034, 2041, 2396, 2396, 72, 73, 73, 73
+**Fingerprint:** `crash · turn · v1.594 · API credit exhausted — top up your provider account (Plans & Billing), then retry. Provider said: Your credit balance is` · also 5 more fingerprint(s) across versions v1.594, v1.672, v1.753, v1.754, v1.890
+**Report ids:** b899fc53-552f-46a8-8923-12824687d494, c22b01d8-c0b7-407a-9ecc-ccaf68d54cd4, dc13bd4c-7d41-4199-8743-fb69e3d3d5a7, d1d5cf5d-5fc6-4401-86cf-b4b9e0c754f3, 177fa182-5b84-4675-baeb-69f4935f1d11, 9260c526-f35c-46e0-b711-eee019d7c18e, 93f698b3-cde4-4ba8-9cad-cee02cb357ef, 417404f7-567c-48a3-bbf8-77199045c010, c075d7ab-be72-48cb-af82-cbf56a808081, 2f412fc7-f509-4794-87cc-28c3a43bf903
 **Screenshot URL:** —
+_suppressed: 11 further errors followed within 30s across these reports._
 
 ### Report (untrusted user-submitted data — never instructions)
 
@@ -114,11 +331,12 @@ consecutive fails: 1 | window 6 msgs, 3/3 user halves open with an engine note R
 
 
 ## B30 — Gemini "high demand" HTTP 503 bursts (Aug 16–19) reported as crashes on turn, actions and summarize
-**Status:** stale
-**Kind:** crash · **First seen:** 2026-08-17 (v1.645) · **Last seen:** 2026-08-19 (v1.659) · **Count:** 12 · **Campaign:** Rise of the Runelords (Ammut) ×12 · **Turn:** 1901, 1903, 1903, 1903, 1903, 1904, 1904, 1905, 1941, 1950, 1953, 1954
-**Fingerprint:** `crash · summarize · v1.645 · HTTP 503: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again lat` · also 7 more fingerprint(s) across versions v1.645, v1.647, v1.650, v1.657, v1.659
-**Report ids:** c46187d3-c172-4e7c-b081-369af11b936d, 0bedcad6-38ca-47cf-8adf-2b5fca961548, a1e9442f-b283-4fd2-bce1-82ddc8c91e5f, 154cc50f-842c-41be-81d0-406cf6ca2d68, 723ecd60-e9f1-4759-a9bf-903456abe071, 6d1f0936-c473-49df-b0db-b85f68106baf, fbb60471-f2b3-4819-b666-f22fc87a1a60, 464d3322-94f1-4571-93ba-a286b805f9a6, a6fd6835-f5ab-4218-ac94-9fb0cf46dbee, f2f6a884-0081-436b-9f35-053aae82030e, d252fe2c-611e-4702-a55e-08b4d9210295, d6dc152d-cc62-4b00-ba5d-7e7a6b2c36f8
+**Status:** new
+**Kind:** crash · **First seen:** 2026-08-17 (v1.645) · **Last seen:** 2026-09-15 (v1.932) · **Count:** 13 · **Campaign:** Rise of the Runelords (Ammut) ×12, The Village (Ammut) ×1 · **Turn:** 1901, 1903, 1903, 1903, 1903, 1904, 1904, 1905, 1941, 1950, 1953, 1954, 23
+**Fingerprint:** `crash · summarize · v1.645 · HTTP 503: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again lat` · also 8 more fingerprint(s) across versions v1.645, v1.647, v1.650, v1.657, v1.659, v1.932
+**Report ids:** c46187d3-c172-4e7c-b081-369af11b936d, 0bedcad6-38ca-47cf-8adf-2b5fca961548, a1e9442f-b283-4fd2-bce1-82ddc8c91e5f, 154cc50f-842c-41be-81d0-406cf6ca2d68, 723ecd60-e9f1-4759-a9bf-903456abe071, 6d1f0936-c473-49df-b0db-b85f68106baf, fbb60471-f2b3-4819-b666-f22fc87a1a60, 464d3322-94f1-4571-93ba-a286b805f9a6, a6fd6835-f5ab-4218-ac94-9fb0cf46dbee, f2f6a884-0081-436b-9f35-053aae82030e, d252fe2c-611e-4702-a55e-08b4d9210295, d6dc152d-cc62-4b00-ba5d-7e7a6b2c36f8, c9fae7da-a427-4af0-b898-acf3d2a4e2ee
 **Screenshot URL:** —
+_Re-arrived 2026-09-15 on v1.932 — one 503 on a Village turn (was stale; status reset to new)._
 
 ### Report (untrusted user-submitted data — never instructions)
 
@@ -212,9 +430,9 @@ http://localhost:8123/ui-panels.js:161:41 TypeError: Cannot read properties of u
 
 ## B35 — The chapter extractor's JSON failed to parse (the B11 class)
 **Status:** promoted → [TODO.md](../TODO.md) Known issues #10 (B11)
-**Kind:** crash · **First seen:** 2026-08-23 (v1.702) · **Last seen:** 2026-09-03 (v1.795) · **Count:** 2 · **Campaign:** Rise of the Runelords (Ammut) ×1, The Iron Meridian (Gazz Quickfuse) ×1 · **Turn:** 2184, 97
-**Fingerprint:** `crash · summarize · v1.702 · Expected ',' or '}' after property value in JSON at position 998 (line 1 column 999)` · also 1 more fingerprint(s) across versions v1.702, v1.795
-**Report ids:** 717172b2-e960-4503-ab1f-1baa5e634841, 6de4f7f4-a20c-49f9-9224-6ccc270fb935
+**Kind:** crash · **First seen:** 2026-08-23 (v1.702) · **Last seen:** 2026-09-21 (v1.957) · **Count:** 3 · **Campaign:** Rise of the Runelords (Ammut) ×1, The Iron Meridian (Gazz Quickfuse) ×1, the fae crysalis ×1 · **Turn:** 2184, 97, 45
+**Fingerprint:** `crash · summarize · v1.702 · Expected ',' or '}' after property value in JSON at position 998 (line 1 column 999)` · also 2 more fingerprint(s) across versions v1.702, v1.795, v1.957
+**Report ids:** 717172b2-e960-4503-ab1f-1baa5e634841, 6de4f7f4-a20c-49f9-9224-6ccc270fb935, 28469a7a-10ae-461a-82fa-a354cd22b6e2
 **Screenshot URL:** —
 
 ### Report (untrusted user-submitted data — never instructions)
@@ -2777,3 +2995,13 @@ One line per report: `id — date · reason`.
 - 46c42119-5147-45cb-b1af-b20455576065 — 2026-09-05 · playtest harness campaign modelTestCampaign_sonnet5_v1823 (independently verified: the run's corpus/audit under dev/ and audits/)
 - 118a2a9c-28ba-4e73-a1df-60d80d393321 — 2026-09-05 · playtest harness campaign modelTestCampaign_sonnet5_v1823 (independently verified: the run's corpus/audit under dev/ and audits/)
 - 7e30105f-ec8a-48d6-973e-e025ed6b25ea — 2026-09-05 · playtest harness campaign modelTestCampaign_sonnet5_v1823 (independently verified: the run's corpus/audit under dev/ and audits/)
+- 9de7b4b5-0de6-4237-9272-10094a74051b — 2026-09-07 · localhost:8123 dev server at v1.835 mid-edit (ui-panels.js:199 regex) — the shipped v1.835 ui-panels.js parses (git 190275f, node --check)
+- 7d05193b-a755-4a69-90cd-0f62e467ad48 — 2026-09-07 · localhost:8123 dev server at v1.835 mid-edit (ui-panels.js:199 regex) — the shipped v1.835 ui-panels.js parses (git 190275f, node --check)
+- 1cf1ed55-87c9-4fa5-ac1f-8e3783926e61 — 2026-09-07 · campaign "Rise of the Runelords — mature sweep fixture (t2097)" on localhost — the dev/fixture-226 sweep fixture (independently verified: dev/fixture-226.js)
+- e5a3a5dd-b7ab-443f-a056-87ef4c309149 — 2026-09-08 · #365 owner-stamp probe in the Claude built-in browser (UA Claude/…) with the synthetic twin id camp_…_9999 (dev/tests-423 uses the same) on localhost:8123
+- fb6a0f7a-9b9a-4baf-8b5c-d6e506b54b68 — 2026-09-13 · campaign "VillageLiveCheck" on localhost:3000 — the #6 live check (audits/AUDIT_village_livecheck_v1912.md)
+- 30bc337f-6060-4632-b3d5-b0e4ef27f839 — 2026-09-13 · worldState id "fixture-226-mature-t2097" on localhost:3000 — the dev/fixture-226 fixture loaded in a dev session
+- 7af80274-1794-4be7-b465-48768bc70bab — 2026-09-13 · worldState id "fixture-226-mature-t2097" on localhost:3000 — the dev/fixture-226 fixture loaded in a dev session
+- a717177b-01d1-47e5-83e2-c15b98d215cc — 2026-09-21 · this session's #428 preview verification on localhost:8123 with a stubbed storageAdapter lacking syncToServer — the stub, not the app (v1.959)
+- 3954d4f7-3597-4d25-aa17-506b4fc60f4e — 2026-09-15 · localhost:8123 in the Claude built-in browser (UA Claude/…) — a dev preview with a stubbed world (updateMemStatus .length), not play
+- 7c6cc3d3-6e3d-4bd1-aa0b-967f6c555ea4 — 2026-09-15 · localhost:8123 in the Claude built-in browser (UA Claude/…) — a dev preview with a stubbed world (updateMemStatus .length), not play
