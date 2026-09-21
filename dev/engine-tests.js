@@ -24194,6 +24194,79 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #428 — "Replace from library" on the sheet (owner ask + rulings 2026-09-21: every kind with a confirm; hero and companions) ──
+  // The explicit whole-sheet pull, beside the identity-only #161 Update. One adopter per host (adoptLibraryHero /
+  // adoptLibraryCompanion) serves the village's stamp-gated refresh AND the button, so the two can never disagree:
+  // wholesale copy, the NAME kept (it is the identity key), v10 arrays ensured (ensureV10Arrays — startGame's own
+  // list, now one helper), item canon adopted, relationships through the axis adapter, framing kept, the stamp set.
+  // The confirm shows what changes (libReplaceSummary) and says play-earned state in THIS campaign is replaced.
+  section("#428 replace from library");
+  function __libCopy(name,extra){var c={name:name,gender:"F",cls:"Rogue",level:18,xp:180000,hp:99,maxHp:120,gold:500,inventory:["Cleaver","Rope"],spells:[{nm:"Silence"}],coreMemories:[{text:"Slew Karzoug.",turn:1,kind:"gm",camp:"R"}],appear:"Silver hair."};var k;for(k in (extra||{}))c[k]=extra[k];return c;}
+  t("#428 ensureV10Arrays fills every missing v10 array/field and never touches a present one; startGame uses it",function(){
+    var s={name:"X",skills:{a:1},inventory:["Rope"]};ensureV10Arrays(s);
+    if(s.skills.a!==1||!s.conditions||!s.relationships||!s.saveModifiers||!s.languages||s.portrait!==null||s.backstory!==""||!s.storyBeats||!s.coreMemories)return "arrays not ensured: "+JSON.stringify(s);
+    var t2={name:"Y",conditions:[{name:"poisoned"}],backstory:"B",portrait:"data:x"};ensureV10Arrays(t2);if(t2.conditions[0].name!=="poisoned"||t2.backstory!=="B"||t2.portrait!=="data:x")return "a present field was touched";
+    var gs=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(!/function startGame\([\s\S]{0,900}ensureV10Arrays\(char\)/.test(gs))return "startGame does not use the one helper";
+    return true;
+  });
+  t("#428 libReplaceSummary: one row per headline field with a changed flag; tolerant of missing fields",function(){
+    var rows=libReplaceSummary({name:"A",level:17,gold:100,inventory:["a"],hp:10,maxHp:20},__libCopy("A"));
+    var by={};rows.forEach(function(r){by[r.label]=r;});
+    if(!by.Level||!by.Level.changed||by.Level.from!==17||by.Level.to!==18)return "level row: "+JSON.stringify(by.Level);
+    if(!by.Gold.changed||!by.Items.changed||!by.HP.changed||!by["Defining moments"].changed)return "changed flags: "+JSON.stringify(rows);
+    var same=libReplaceSummary(__libCopy("A"),__libCopy("A"));if(same.some(function(r){return r.changed;}))return "identical copies must show no change";
+    if(!libReplaceSummary(null,null).length)return "null-safe rows";
+    return true;
+  });
+  t("#428 libReplaceApply on the hero: the whole sheet is replaced as a COPY, the local name is kept even when the library spells it differently, v10 arrays ensured, canon adopted, framing kept, heroLibraryAt stamped; host reported",function(){
+    villageCD();var nm=worldState.character.name;worldState.character.portraitOffset={x:0.1,y:0.2,zoom:2};worldState.heroLibraryAt=1;
+    var lib=__libCopy(nm.toUpperCase(),{itemDefs:{cleaver:{category:"weapon",effect:"N/A"}}});delete lib.portraitOffset;
+    var r=libReplaceApply(nm,lib,4242);if(!r.ok||r.host!=="hero")return "apply: "+JSON.stringify(r);
+    var c=worldState.character;if(c===lib)return "must be a copy";if(c.name!==nm)return "the local name is the identity key: "+c.name;
+    if(c.level!==18||c.gold!==500||c.inventory.length!==2||c.appear!=="Silver hair."||c.coreMemories[0].text!=="Slew Karzoug.")return "not replaced wholesale";
+    if(!c.skills||!c.conditions||!c.storyBeats)return "v10 arrays not ensured";
+    if(!worldState.itemBible||!worldState.itemBible.cleaver)return "the copy's item canon not adopted";
+    if(!c.portraitOffset||c.portraitOffset.zoom!==2)return "the framing must survive when the copy has none";
+    if(worldState.heroLibraryAt!==4242)return "stamp: "+worldState.heroLibraryAt;
+    return true;
+  });
+  t("#428 libReplaceApply on a companion and on a resident: the charSheet is replaced as a copy, name kept, libraryAt stamped, pronouns and framing mirrored onto the wrapper; an unknown name or a missing copy refuses with a reason",function(){
+    villageCD();var fz=wsNpcByName("Frizwick");fz.libraryAt=1;
+    var r=libReplaceApply("Frizwick",__libCopy("Frizwick",{gender:"NB"}),777);if(!r.ok||r.host!=="resident")return "resident apply: "+JSON.stringify(r);
+    fz=wsNpcByName("Frizwick");if(fz.charSheet.level!==18||fz.charSheet.name!=="Frizwick"||fz.libraryAt!==777||fz.pronouns!==pronounsForGender("NB"))return "resident not replaced/stamped: "+JSON.stringify([fz.charSheet.level,fz.libraryAt,fz.pronouns]);
+    worldState.npcs.push({name:"Gazz",status:"ally",rel:"companion",met:1,partyMember:true,pronouns:"he/him",charSheet:{name:"Gazz",level:5,portraitOffset:{x:0.3,y:0.3,zoom:1}}});
+    var lib=__libCopy("Gazz",{portraitOffset:{x:0.9,y:0.9,zoom:3}});r=libReplaceApply("Gazz",lib,5);if(!r.ok||r.host!=="companion")return "companion apply: "+JSON.stringify(r);
+    var gz=wsNpcByName("Gazz");if(gz.charSheet===lib||gz.charSheet.level!==18||!gz.portraitOffset||gz.portraitOffset.zoom!==3)return "companion not replaced / framing not mirrored: "+JSON.stringify(gz.portraitOffset);
+    if(libReplaceApply("Nobody",__libCopy("Nobody"),1).ok||libReplaceApply("Gazz",null,1).ok||!/reason/.test(JSON.stringify(libReplaceApply("Nobody",__libCopy("Nobody"),1))))return "refusals must carry a reason";
+    return true;
+  });
+  t("#428 one adopter per host: villageRefreshFromLibrary routes the hero through adoptLibraryHero and a resident through adoptLibraryCompanion (the button and the auto-refresh can never disagree)",function(){
+    var gs=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),v0=gs.indexOf("function villageRefreshFromLibrary("),vb=gs.slice(v0,gs.indexOf("\nfunction ",v0+1));
+    if(vb.indexOf("adoptLibraryHero(")<0||vb.indexOf("adoptLibraryCompanion(")<0)return "the refresh does not use the shared adopters";
+    if(/JSON\.parse\(JSON\.stringify\(c\)\)/.test(vb))return "the refresh still copies on its own";
+    return true;
+  });
+  t("#428 the wiring: both sheet hosts render the Replace button beside Update, greyed the same way; the handlers open showLibraryReplaceModal; the modal confirms with libReplaceSummary, applies through libReplaceApply, refuses loudly, re-inits the hero's panels and saves",function(){
+    var us=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");
+    var pc=us.slice(us.indexOf("function showCharSheet("),us.indexOf("\nfunction ",us.indexOf("function showCharSheet(")+1));
+    if(pc.indexOf("id='cs-libupd-btn'")<0||pc.indexOf("id='cs-librep-btn'")<0)return "the hero sheet lacks the Replace button";
+    if(pc.indexOf("id='cs-librep-btn'")<pc.indexOf("id='cs-libupd-btn'"))return "Replace sits after Update on the hero sheet";
+    if((pc.match(/_libConn\?"var\(--bg2\)":"var\(--bg3\)"/g)||[]).length<2)return "the Replace button is not greyed like Update when disconnected";
+    if(pc.indexOf('getElementById("cs-librep-btn").addEventListener("click",function(){showLibraryReplaceModal(')<0)return "the hero handler does not open the replace modal";
+    var np=us.slice(us.indexOf("function showNpcSheet("),us.indexOf("\nfunction ",us.indexOf("function showNpcSheet(")+1));
+    if(np.indexOf("id='npc-libupd-btn'")<0||np.indexOf("id='npc-librep-btn'")<0)return "the companion sheet lacks the Replace button";
+    if(np.indexOf('"npc-librep-btn").addEventListener')<0||np.indexOf("showLibraryReplaceModal(")<0)return "the companion handler does not open the replace modal";
+    var ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8"),m0=ub.indexOf("function showLibraryReplaceModal(");if(m0<0)return "no showLibraryReplaceModal";
+    var mm=ub.slice(m0,ub.indexOf("\nfunction ",m0+1));
+    if(mm.indexOf("libReplaceSummary(")<0||mm.indexOf("libReplaceApply(")<0)return "the modal bypasses the pure summary/apply";
+    if(mm.indexOf("lr-apply")<0||mm.indexOf("lr-cancel")<0||/outside:true/.test(mm))return "no confirm, or an outside click applies nothing and closes";
+    if(mm.indexOf("Export Character")<0)return "a missing library copy must say how to create one";
+    if(!/if\(!r\.ok\)\{[^}]*showToast\(/.test(mm))return "a refused apply must toast";
+    if(mm.indexOf("initAbilities()")<0||mm.indexOf("initSpells()")<0||mm.indexOf("saveAll()")<0)return "the modal must re-init the hero's panels and save";
+    if(mm.indexOf("entry.updatedAt")<0)return "the stamp must come from the library entry";
+    return true;
+  });
+
   section("#408 home design — the room graph (six owner rulings 2026-09-14; slice 1 = tag + ask + block + placement)");
   var LAYOUT_TAG="[LAYOUT:main room|medium|hearth, long table|kitchen, outside; kitchen|small|stove, pantry shelves|main room, cellar; cellar|small|barrels|kitchen]";
   function villageHouse(){villageCD();var hk=villageHouseKey("Silas");memory.map.nodes[hk]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};worldState.world.sublocation=locDisplayLeaf(hk);delete worldState.layoutAsk;delete worldState.layoutAskArmed;return hk;}

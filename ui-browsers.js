@@ -701,6 +701,41 @@ function showLibraryUpdateModal(char,onApplied){
     });
   });
 }
+/* #428 (owner ask + rulings 2026-09-21): "Replace from library" — the explicit WHOLE-sheet pull for the hero or a companion,
+   every campaign kind, behind a confirm that shows what changes (libReplaceSummary) and says play-earned state in THIS
+   campaign is replaced. The apply is libReplaceApply (game.js) — the same adopters the village's auto-refresh uses. */
+function showLibraryReplaceModal(char,onApplied){
+  if(!storageAdapter.isServerMode()){showToast("Connect to server to use the character library.");return;}
+  storageAdapter.listCharacterLibrary(function(err,list){
+    if(err){showToast("Character library error: "+err);return;}
+    var slug=_charLibSlug(char.name),entry=null,i;
+    for(i=0;i<(list||[]).length;i++){if(list[i].slug===slug){entry=list[i];break;}}
+    if(!entry||!entry.character){showToast(char.name+" is not in the character library yet — Export Character ▸ Save to library first.");return;}
+    var lib=entry.character,rows=libReplaceSummary(char,lib),rowsHtml="";
+    for(i=0;i<rows.length;i++){var r=rows[i];rowsHtml+="<div style='display:flex;align-items:center;gap:10px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--brd);'><div style='flex:1;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;font-size:10px;'>"+escHtml(r.label)+"</div><div style='color:var(--t2);'>"+escHtml(String(r.from))+"</div><div style='color:"+(r.changed?"var(--acc)":"var(--t2)")+";'>&#8594;</div><div style='color:"+(r.changed?"var(--t0)":"var(--t2)")+";font-weight:"+(r.changed?"bold":"normal")+";'>"+escHtml(String(r.to))+"</div></div>";}
+    var when=(typeof entry.updatedAt==="number")?new Date(entry.updatedAt).toLocaleString():"an unknown time";
+    var modal=modalShell("lib-replace-modal",
+      "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>&#10515; Replace "+escHtml(char.name)+" from library</div>"
+      +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;line-height:1.5;'>Library copy: Lv"+(lib.level||"?")+" "+escHtml(((lib.subraceNm||lib.ancestry||"")+" "+(lib.cls||"")).trim())+", saved "+escHtml(when)+". This replaces the WHOLE sheet &mdash; level, gear, spells, memories and everything earned in this campaign &mdash; with that copy. The name stays. This cannot be undone.</div>"
+      +rowsHtml
+      +"<div style='display:flex;gap:10px;margin-top:16px;'>"
+      +"<button id='lr-apply' style='flex:1;padding:10px;font-family:var(--font);background:var(--warn);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Replace the sheet</button>"
+      +"<button id='lr-cancel' style='flex:1;padding:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+      +"</div>",
+      {z:400,maxWidth:460,wireClose:false,align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",boxExtra:"margin:20px 0 40px;"});
+    document.getElementById("lr-cancel").addEventListener("click",function(){modal.remove();});
+    document.getElementById("lr-apply").addEventListener("click",function(){
+      var r=libReplaceApply(char.name,lib,(typeof entry.updatedAt==="number")?entry.updatedAt:null);
+      modal.remove();
+      if(!r.ok){showToast("&#9888; "+char.name+" was NOT replaced — "+r.reason,6000);return;}
+      saveAll();if(typeof storageAdapter.markPortraitDirty==="function")storageAdapter.markPortraitDirty();
+      if(r.host==="hero"){if(typeof initAbilities==="function")initAbilities();if(typeof initSpells==="function")initSpells();}
+      if(typeof syncUI==="function")syncUI();
+      showToast("&#10515; "+char.name+" replaced from the library copy (Lv"+(lib.level||"?")+").",5000);
+      if(onApplied)onApplied(r);
+    });
+  });
+}
 // ── Campaign-start companion selection ────────────────────────────────────────
 function _renderCompanionSlots(){
   var sec=document.getElementById("companion-section");if(!sec)return;

@@ -2,14 +2,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // Ensure all v10 character fields are initialised
   if(!char.gender)char.gender="M";
   if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(char);
-  if(!char.skills)char.skills=initSkills();
-  if(!char.conditions)char.conditions=[];
-  if(!char.relationships)char.relationships=[];
-  if(!char.saveModifiers)char.saveModifiers=[];
-  if(!char.languages)char.languages=[];
-  if(char.portrait===undefined)char.portrait=null;
-  if(!char.backstory)char.backstory="";
-  if(!char.storyBeats)char.storyBeats=[];
+  ensureV10Arrays(char);/* #428: ONE helper for the v10 arrays — shared with the library adopters (hoisted; defined beside them) */
   // Mint a campaign id if none is active (audit E13): the normal wizard path never called
   // setActiveCampId, so a first-ever campaign had campId null for its whole first session —
   // updateCampMeta/snapshotActiveCamp both no-op on a null id, so it was never listed or
@@ -1459,6 +1452,52 @@ function importVillageResidents(list){
    resident whose library copy is newer than the snapshot they moved in with gets the library sheet (a copy, migrated,
    its travelling item canon adopted); the house, its stash and the Hall record live on the node, not the sheet, and
    survive. The hero and party members are never touched — an adventure's state reaches the library only by hand. Pure. */
+/* #428: the v10 field guarantee, ONE helper — startGame's own list (hoisted, so its call site above resolves). */
+function ensureV10Arrays(s){
+  if(!s)return s;
+  if(!s.skills)s.skills=initSkills();if(!s.conditions)s.conditions=[];if(!s.relationships)s.relationships=[];if(!s.saveModifiers)s.saveModifiers=[];if(!s.languages)s.languages=[];
+  if(s.portrait===undefined)s.portrait=null;if(!s.backstory)s.backstory="";if(!s.storyBeats)s.storyBeats=[];if(!s.coreMemories)s.coreMemories=[];
+  return s;
+}
+/* #427/#428: ONE adopter per host for a library copy — the village's stamp-gated refresh and the sheet's explicit
+   "Replace from library" both come here, so they can never disagree. Wholesale COPY, the local NAME kept (it is the
+   identity key everywhere), relationships through the axis adapter, item canon adopted, v10 arrays ensured, framing
+   kept when the copy has none, voices reassigned, the stamp set (null when the entry is undated). */
+function adoptLibraryHero(c,at){
+  var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);
+  hero.name=worldState.character.name;
+  if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(hero);
+  ensureV10Arrays(hero);
+  hero.portraitOffset=hero.portraitOffset||worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};
+  if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(hero);
+  worldState.character=hero;worldState.heroLibraryAt=(typeof at==="number")?at:null;
+  return hero;
+}
+function adoptLibraryCompanion(n,c,at){
+  var sheet=JSON.parse(JSON.stringify(c));sheet.name=n.name;
+  if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,n.name);
+  if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);
+  ensureV10Arrays(sheet);
+  sheet.portraitOffset=sheet.portraitOffset||(n.charSheet&&n.charSheet.portraitOffset)||n.portraitOffset||null;
+  n.charSheet=sheet;n.libraryAt=(typeof at==="number")?at:null;n.pronouns=pronounsForGender(sheet.gender);
+  if(sheet.portraitOffset)n.portraitOffset=JSON.parse(JSON.stringify(sheet.portraitOffset));/* §19: the wrapper's copy is what display reads */
+  return sheet;
+}
+/* #428 (owner ask + rulings 2026-09-21): "Replace from library" — the explicit, confirmed WHOLE-sheet pull for the hero
+   or a companion in every campaign kind (the identity-only #161 Update stays). The pure summary feeds the confirm; the
+   apply routes to the host's adopter. Loud refusals, never a throw. */
+function libReplaceSummary(cur,lib){
+  var c=cur||{},l=lib||{};function row(label,a,b){return {label:label,from:a,to:b,changed:String(a)!==String(b)};}
+  function hp(s){return (s.hp!=null?s.hp:"?")+"/"+(s.maxHp!=null?s.maxHp:"?");}
+  return [row("Level",c.level||0,l.level||0),row("XP",c.xp||0,l.xp||0),row("HP",hp(c),hp(l)),row("Gold",c.gold||0,l.gold||0),row("Items",(c.inventory||[]).length,(l.inventory||[]).length),row("Spells",(c.spells||[]).length,(l.spells||[]).length),row("Defining moments",(c.coreMemories||[]).length,(l.coreMemories||[]).length)];
+}
+function libReplaceApply(name,lib,at){
+  if(!worldState)return {ok:false,reason:"no active campaign"};
+  if(!lib||typeof lib!=="object"||!lib.name)return {ok:false,reason:"no library copy"};
+  if(worldState.character&&worldState.character.name===name){adoptLibraryHero(lib,at);return {ok:true,host:"hero"};}
+  var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(!n||!n.charSheet)return {ok:false,reason:name+" has no character sheet in this campaign"};
+  adoptLibraryCompanion(n,lib,at);return {ok:true,host:n.partyMember?"companion":"resident"};
+}
 function villageRefreshFromLibrary(entries){
   var out={refreshed:[],kept:[],unknown:[]};if(!worldState||typeof kindDef!=="function"||!kindDef().populateFromLibrary||!(entries instanceof Array))return out;
   var i;for(i=0;i<entries.length;i++){var e=entries[i],c=e&&e.character;if(!c||!c.name)continue;var nm=String(c.name).trim(),at=(typeof e.updatedAt==="number")?e.updatedAt:null;
@@ -1468,18 +1507,11 @@ function villageRefreshFromLibrary(entries){
          (level, gold, gear, memories) and re-stamps; older, equal or undated is kept. Village-only changes since the
          export are lost by design (village saves are disposable). The v10 arrays are ensured as startGame does. */
       if(at===null||(typeof worldState.heroLibraryAt==="number"&&at<=worldState.heroLibraryAt)){out.kept.push(nm);continue;}
-      var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);
-      if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(hero);
-      if(!hero.skills)hero.skills=initSkills();if(!hero.conditions)hero.conditions=[];if(!hero.relationships)hero.relationships=[];if(!hero.saveModifiers)hero.saveModifiers=[];if(!hero.languages)hero.languages=[];if(hero.portrait===undefined)hero.portrait=null;if(!hero.backstory)hero.backstory="";if(!hero.storyBeats)hero.storyBeats=[];if(!hero.coreMemories)hero.coreMemories=[];
-      hero.portraitOffset=hero.portraitOffset||worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};
-      if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(hero);
-      worldState.character=hero;worldState.heroLibraryAt=at;out.hero=nm;out.refreshed.push(nm);continue;}
+      adoptLibraryHero(c,at);out.hero=nm;out.refreshed.push(nm);continue;}/* #428: the one adopter the sheet's Replace uses too */
     var n=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(!n){out.unknown.push(nm);continue;}
     if(!n.resident||n.partyMember){out.kept.push(nm);continue;}
     if(at===null||(typeof n.libraryAt==="number"&&at<=n.libraryAt)){out.kept.push(nm);continue;}
-    var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);
-    if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);
-    n.charSheet=sheet;n.libraryAt=at;n.pronouns=pronounsForGender(sheet.gender);out.refreshed.push(nm);}
+    adoptLibraryCompanion(n,c,at);out.refreshed.push(nm);}
   if(out.refreshed.length&&typeof villageHallSeed==="function"&&kindDef().hall)villageHallSeed();
   return out;
 }

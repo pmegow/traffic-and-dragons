@@ -28,8 +28,8 @@ proveV("game.js", [
     mustFail: "#6E13 REFRESH ON ENTRY" }
 ]);
 proveU("game.js", [
-  { label: "the refreshed hero is not re-stamped",
-    find: 'worldState.character=hero;worldState.heroLibraryAt=at;out.hero=nm;', replace: 'worldState.character=hero;out.hero=nm;',
+  { label: "the refreshed hero is not re-stamped (the adopter forgets the stamp — #428 moved it there)",
+    find: 'worldState.character=hero;worldState.heroLibraryAt=(typeof at==="number")?at:null;', replace: 'worldState.character=hero;',
     mustFail: "the played hero refreshes" },
   { label: "an equal copy refreshes (the stamp comparison is off by one)",
     find: '(typeof worldState.heroLibraryAt==="number"&&at<=worldState.heroLibraryAt)', replace: '(typeof worldState.heroLibraryAt==="number"&&at<worldState.heroLibraryAt)',
