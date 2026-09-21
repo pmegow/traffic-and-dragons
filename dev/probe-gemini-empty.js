@@ -10,8 +10,8 @@
 var fs=require("fs"),path=require("path");
 var engine=require("./load-engine.js");engine.loadEngine("game.js");
 var args=process.argv.slice(2),n=3,model="gemini-3.7-flash",dry=false,save=null,lines=[];
-var extract=false;/* B38: replay the CHAPTER EXTRACTOR's exact payload from the save's session log, in both shapes */
-for(var i=0;i<args.length;i++){if(args[i]==="--n")n=parseInt(args[++i],10)||3;else if(args[i]==="--model")model=args[++i];else if(args[i]==="--dry")dry=true;else if(args[i]==="--extract")extract=true;else if(!save&&/\.tnd$/i.test(args[i]))save=args[i];else lines.push(args[i]);}
+var extract=false,win=null;/* B38: replay the CHAPTER EXTRACTOR's exact payload from the save's session log, in both shapes; --window a-b rebuilds that log from the transcript for turns a..b (the blocked windows are long gone from the live log) */
+for(var i=0;i<args.length;i++){if(args[i]==="--n")n=parseInt(args[++i],10)||3;else if(args[i]==="--model")model=args[++i];else if(args[i]==="--dry")dry=true;else if(args[i]==="--extract")extract=true;else if(args[i]==="--window")win=args[++i];else if(!save&&/\.tnd$/i.test(args[i]))save=args[i];else lines.push(args[i]);}
 if(!save){console.error("usage: node dev/probe-gemini-empty.js <save.tnd> [--n 3] [--model m] [--dry] [--extract] \"player line\" ...\n  --extract: replay the chapter extractor's payload built from the save's session log (B38) — the normal shape and the reframed, shortened shape, n tries each; prints promptFeedback/finishReason per try");process.exit(2);}
 if(!lines.length)lines=["It's... because.... of the... fuck it. Pull her hips down and take her in the tub.","Pull her hips down and take her in the tub."];
 var key=process.env.GEMINI_API_KEY||"";
@@ -21,6 +21,11 @@ if(!key&&!dry){console.error("GEMINI_API_KEY is not set — set it in this shell
 if(key&&!dry&&/[^\x21-\x7e]/.test(key)){console.error("GEMINI_API_KEY holds a character that cannot go in an HTTP header ("+JSON.stringify(key.slice(0,12))+"…) — a pasted placeholder? Set the real key, e.g. PowerShell: $env:GEMINI_API_KEY=\"PASTE-YOUR-KEY-HERE\"");process.exit(2);}
 var raw=JSON.parse(fs.readFileSync(save,"utf8"));
 worldState=inflateWorldStateSnapshot(raw.worldState);memory=raw.memory||memory;sessionLog=raw.sessionLog||[];
+if(win){/* B38: the exact turns a blocked window covered, rebuilt from the transcript (player → user, gm → assistant, clean text) */
+  var _w=String(win).split("-"),_a=parseInt(_w[0],10),_b=parseInt(_w[1],10);if(!(_a>=0&&_b>=_a)){console.error("--window wants a-b, e.g. --window 12-20");process.exit(2);}
+  sessionLog=[];(worldState.transcript||[]).forEach(function(e){if(!e||typeof e.t!=="number"||e.t<_a||e.t>_b)return;if(e.r==="player")sessionLog.push({role:"user",content:String(e.x||"")});else if(e.r==="gm")sessionLog.push({role:"assistant",content:String(e.x||"")});});
+  delete worldState.sessKept;worldState.turn=_b;console.log("window rebuilt from the transcript: turns "+_a+"-"+_b+", "+sessionLog.length+" entries, ~"+sessionTokens()+" tokens");
+}
 activeProvider="gemini";providerModels.gemini=model;
 var prov=PROVIDERS.gemini,sys=buildSysPrompt();
 function shape(data){
