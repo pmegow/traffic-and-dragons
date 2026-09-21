@@ -472,8 +472,14 @@ function campStartRename(id){
   var inp=document.createElement("input");
   inp.id="camp-rename-"+id;inp.value=cur;
   inp.style.cssText="font-size:14px;font-family:var(--font);background:var(--bg3);border:1px solid var(--acc);border-radius:4px;color:var(--t0);padding:2px 6px;width:140px;";
-  inp.addEventListener("blur",function(){campSaveRename(id);});
-  inp.addEventListener("keydown",function(e){if(e.key==="Enter")campSaveRename(id);if(e.key==="Escape")showCampaignPicker();});
+  /* B40 (2026-09-21): ONE latched commit owns the input's fate. Enter used to save and re-render the picker; modalShell's
+     removal of the old modal dispatched blur to the still-focused input BEFORE detaching (Blink), the blur listener saved
+     and re-rendered AGAIN inside the removal, and the outer remove() threw NotFoundError ("moved in a 'blur' event
+     handler"). Escape took the same path and SAVED. Now the second event no-ops, and Escape cancels. */
+  var done=false;
+  function commit(save){if(done)return;done=true;if(save)campSaveRename(id);else showCampaignPicker();}
+  inp.addEventListener("blur",function(){commit(true);});
+  inp.addEventListener("keydown",function(e){if(e.key==="Enter")commit(true);if(e.key==="Escape")commit(false);});
   span.parentNode.replaceChild(inp,span);inp.focus();inp.select();
 }
 function campSaveRename(id){

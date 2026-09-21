@@ -24323,6 +24323,30 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── B40 — the campaign rename fires once (2026-09-21) ──
+  // The rename input carried a blur listener AND an Enter listener, both calling campSaveRename with no latch. Enter
+  // saved and re-rendered the picker; modalShell's removal of the old modal dispatched blur to the still-focused input
+  // BEFORE detaching (Blink), so campSaveRename ran a second time inside the removal, rebuilt the picker itself, and
+  // the outer remove() then threw NotFoundError ("moved in a 'blur' event handler"). Escape took the same path and
+  // SAVED instead of cancelling. One closure now owns the input's fate: a done latch, blur/Enter commit, Escape cancels.
+  // ui-campaigns.js is a DOM shell (not in the engine manifest), so the pin is on the source; the browser repro is the
+  // ground truth (recorded in the BUGS row). The modal shell is deliberately NOT hardened with a pre-removal blur: a
+  // blur that re-renders would then append a second overlay instead of throwing.
+  section("B40 rename latch");
+  t("B40 campStartRename owns the input's fate through ONE latched commit: blur and Enter commit the save, Escape cancels, nothing calls campSaveRename directly from a listener, and campSaveRename keeps its missing-input guard",function(){
+    var uc=__fsForTests.readFileSync(__rootForTests+"/ui-campaigns.js","utf8"),s0=uc.indexOf("function campStartRename("),fn=uc.slice(s0,uc.indexOf("\nfunction ",s0+1));
+    if(fn.indexOf("var done=false")<0||!/function commit\(save\)\{if\(done\)return;done=true;/.test(fn))return "no single-fire latch in campStartRename";
+    if(fn.indexOf('addEventListener("blur",function(){commit(true);})')<0)return "blur does not commit through the latch";
+    if(fn.indexOf('if(e.key==="Enter")commit(true);')<0)return "Enter does not commit through the latch";
+    if(fn.indexOf('if(e.key==="Escape")commit(false);')<0)return "Escape does not cancel through the latch";
+    var listeners=fn.slice(fn.indexOf("addEventListener"));if(/campSaveRename\(/.test(listeners.replace(/function commit[^\n]*/,"")))return "a listener still calls campSaveRename directly";
+    if(!/if\(save\)campSaveRename\(id\);else showCampaignPicker\(\);/.test(fn))return "commit must save on true and cancel (re-render only) on false";
+    var s1=uc.indexOf("function campSaveRename("),sv=uc.slice(s1,uc.indexOf("\nfunction ",s1+1));if(sv.indexOf('var inp=document.getElementById("camp-rename-"+id);if(!inp)return;')<0)return "campSaveRename lost its missing-input guard";
+    var sh=__fsForTests.readFileSync(__rootForTests+"/ui-shell.js","utf8"),m0=sh.indexOf("function modalShell("),ms=sh.slice(m0,sh.indexOf("\nfunction ",m0+1));
+    if(ms.indexOf("activeElement.blur()")>=0)return "modalShell must not blur before removal (a re-rendering blur handler would append a second overlay)";
+    return true;
+  });
+
   section("#408 home design — the room graph (six owner rulings 2026-09-14; slice 1 = tag + ask + block + placement)");
   var LAYOUT_TAG="[LAYOUT:main room|medium|hearth, long table|kitchen, outside; kitchen|small|stove, pantry shelves|main room, cellar; cellar|small|barrels|kitchen]";
   function villageHouse(){villageCD();var hk=villageHouseKey("Silas");memory.map.nodes[hk]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};worldState.world.sublocation=locDisplayLeaf(hk);delete worldState.layoutAsk;delete worldState.layoutAskArmed;return hk;}

@@ -139,7 +139,7 @@ PREVIOUS page (ended cleanly):
 ### Action log
 
 ## B40 — Renaming a campaign from the picker crashes modalShell — the picker re-opens from the rename input's change handler while the old picker node is already detached (`remove` on a node that is no longer a child)
-**Status:** findings-ready
+**Status:** fixed (v1.961, 2026-09-21 — one latched commit owns the rename input: blur and Enter save once, Escape cancels)
 **Kind:** crash · **First seen:** 2026-09-20 (v1.952) · **Last seen:** 2026-09-20 (v1.952) · **Count:** 1 · **Campaign:** the fae crysalis ×1 · **Turn:** 33
 **Fingerprint:** `crash · window.onerror · v1.952 · Uncaught NotFoundError: Failed to execute 'remove' on 'Element': The node to be removed is no longer a child of this nod`
 **Report ids:** daf3c978-cec3-44f1-af97-45311440d152
@@ -190,6 +190,8 @@ PREVIOUS page (ended cleanly):
 - **Confidence:** high.
 
 ### Action log
+
+- 2026-09-21 · v1.961 · commit fix(B40) · Fable — mechanism re-verified in code (two listeners, no latch; Escape called showCampaignPicker and the pre-removal blur then saved). Fix in ui-campaigns.js `campStartRename`: a `done` latch and one `commit(save)` closure — blur/Enter commit the save, Escape cancels; the nested blur during modalShell's removal now no-ops, so the outer remove() completes. modalShell deliberately NOT given a pre-removal blur: a blur handler that re-renders would then append a second overlay instead of throwing. Browser repro in the preview (Chrome, document focused): the pre-fix wiring re-created in place threw the exact NotFoundError on Enter; the shipped wiring saved "New Name" with one #camp-modal and no error; Escape left the name unchanged with no error. Source pin `B40 rename latch` (ui-campaigns.js is a DOM shell outside the engine manifest); `dev/sabotage-b40-rename-latch.js` 6/6; full gate green.
 
 ## B41 — W6 summary-identity guard rejected a Village chapter summary that gave the hero the wrong pronouns (he/him rendered she/her as the sole adjacent subject, v1.930 t3) — the summary was dropped
 **Status:** new
