@@ -1175,9 +1175,9 @@ function switchToCampaign(id){
   // a no-op. New order: read B into memory → free B's slot → snapshot A → write live B — the peak
   // is TWO blobs, and every failure path restores the exact start layout before returning false.
   var name=campDisplayName(id);
-  /* #6 (phase A): leaving a village writes the hero back to the library first — the library is the source of truth, and
-     the next campaign started from it must see what the village changed. Loud either way (villageWriteBack toasts). */
-  if(typeof campaignKind==="function"&&campaignKind()==="village"&&typeof villageWriteBack==="function"&&worldState&&worldState.character)villageWriteBack(worldState.character);
+  /* #427 (owner ruling 2026-09-21): leaving a village writes NOTHING to the library. The phase-A write-back that lived here
+     could overwrite a newer export (an adventure's level 18) with the village's older copy — last writer by name. The
+     library is upstream; Export Character is the only road in. Pinned by "#6A the library is UPSTREAM". */
   var tgtWs=store.get(campSlotKey(id,"ws")),tgtSl=store.get(campSlotKey(id,"sl")),tgtMem=store.get(campSlotKey(id,"mem"));
   var prevId=getActiveCampId(),prevWs=store.get(WSK),prevSl=store.get(SLK),prevMem=store.get(MEM_KEY);
   var outSize=String(prevWs||"").length+String(prevSl||"").length+String(prevMem||"").length;

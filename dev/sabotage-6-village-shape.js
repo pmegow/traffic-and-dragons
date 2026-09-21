@@ -32,10 +32,10 @@ prove("game.js", [
     mustFail: "#6A residents: importVillageResidents" },
   { label: "applyBlueprint stamps every kind, adventure included (legacy saves gain a field)",
     find: 'if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind]){worldState.kind=bp.kind;', replace: 'if(bp.kind){worldState.kind=bp.kind;',
-    mustFail: "#6A the blueprint carries the kind" },
-  { label: "the write-back stays silent when signed out",
-    find: 'return refuse("not signed in to the server");', replace: 'return {status:"refused"};',
-    mustFail: "#6A the library write-back" }
+    mustFail: "#6A the blueprint carries the kind" }
+  /* the "write-back stays silent when signed out" clause was retired with villageWriteBack itself (#427, 2026-09-21):
+     the library is upstream and no automatic write-back exists to keep honest — dev/sabotage-427-library-upstream.js
+     now proves a write smuggled back into the campaign switch or the swap shell is caught. */
 ]);
 prove("api.js", [
   { label: "the switch-POV block ignores the kind's wording",

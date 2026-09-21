@@ -688,7 +688,7 @@ function _switchPlayerCharacter(name){
   if(typeof storageAdapter!=="undefined"&&storageAdapter.markPortraitDirty)storageAdapter.markPortraitDirty();
   saveAll();syncUI();initAbilities();initSpells();
   showToast("Now playing as "+name+".");
-  if(r.demotedTo==="resident"&&typeof villageWriteBack==="function"){var _old=wsNpcByName(r.from);if(_old&&_old.charSheet)villageWriteBack(_old.charSheet);}
+  /* #427 (owner ruling 2026-09-21): a demoted hero is NOT written back to the library — the library is upstream; Export Character is the only road in. */
   if(!r.handoff)return;/* the village swap is free — the encounter rides the kind's switch-POV block on the next player turn */
   var newChar=worldState.character;
   // Forceful, explicit control-reassignment directive — sent silently (it's out-of-character, not a player action).

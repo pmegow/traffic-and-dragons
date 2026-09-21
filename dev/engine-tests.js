@@ -23595,19 +23595,19 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(String(summarize).indexOf("kindDef().chapterNote")<0)return "summarize() must read the chapter note through kindDef() (one boundary)";
     return true;
   });
-  t("#6A the library write-back: villageWriteBack(sheet) saves through the storage adapter when a signed-in server session exists and the receipt follows the server's answer; with no adapter or no session it refuses LOUDLY (a named reason, never silence) and never throws",function(){
-    var calls=[],saved=(typeof storageAdapter!=="undefined")?storageAdapter:null;
-    try{
-      storageAdapter={isServerMode:function(){return true;},hasToken:function(){return true;},saveCharacterToLibrary:function(c,cb){calls.push(c.name);cb(null,{ok:true});}};
-      var r=villageWriteBack({name:"Ammut",cls:"Fighter"},function(res){calls.push("cb:"+(res&&res.ok));});
-      if(calls[0]!=="Ammut"||calls[1]!=="cb:true")return "write-back did not reach the adapter and report: "+JSON.stringify(calls);
-      if(!r||r.status!=="requested")return "an accepted write-back reports 'requested' (the receipt toast waits for the server): "+JSON.stringify(r);
-      storageAdapter={isServerMode:function(){return false;},hasToken:function(){return false;},saveCharacterToLibrary:function(c,cb){calls.push("MUST NOT REACH "+c.name);}};
-      var r2=villageWriteBack({name:"Ammut"});if(!r2||r2.status!=="refused"||!/signed in/.test(r2.reason||""))return "a signed-out write-back must refuse with the signed-in reason: "+JSON.stringify(r2);
-      if(calls.some(function(x){return /MUST NOT REACH/.test(x);}))return "a signed-out write-back must never call the server";
-      storageAdapter=undefined;var r3=villageWriteBack({name:"Ammut"});if(!r3||r3.status!=="refused"||!r3.reason)return "no adapter must refuse with a reason: "+JSON.stringify(r3);
-      return true;
-    }finally{storageAdapter=saved;}
+  /* #427 (owner ruling 2026-09-21): the phase-A write-back is GONE. The library is upstream of the village and the only
+     road into it is Export Character → Save to library. The switch write-back could overwrite a level-18 export with the
+     village's level-17 copy (last writer by name); the swap and hall-line write-backs shared the hazard. */
+  t("#6A the library is UPSTREAM (owner ruling 2026-09-21): no automatic write-back anywhere — villageWriteBack is gone, switchToCampaign never writes to the library, and the only saveCharacterToLibrary callers left in the app are the two manual library-save branches (Export Character) in ui-browsers.js",function(){
+    if(typeof villageWriteBack!=="undefined")return "villageWriteBack still exists";
+    var fs=__fsForTests,root=__rootForTests,files=["state.js","game.js","ui-sheets.js","ui-modals.js","ui-campaigns.js","helpers.js","api.js","char-creation.js","ui-boot.js","ui-panels.js","ui-files.js","ui-shell.js","memory.js","clock.js","identity.js"],i,hits=[];
+    for(i=0;i<files.length;i++){var s=fs.readFileSync(root+"/"+files[i],"utf8");if(s.indexOf("saveCharacterToLibrary(")>=0)hits.push(files[i]);if(s.indexOf("villageWriteBack")>=0)hits.push(files[i]+" (villageWriteBack)");}
+    if(hits.length)return "automatic library writes survive in: "+hits.join(", ");
+    var ub=fs.readFileSync(root+"/ui-browsers.js","utf8"),n=(ub.match(/saveCharacterToLibrary\(/g)||[]).length;
+    if(n!==2)return "ui-browsers.js must hold exactly the two manual library-save branches, found "+n;
+    var st=fs.readFileSync(root+"/state.js","utf8"),s0=st.indexOf("function switchToCampaign("),sw=st.slice(s0,st.indexOf("\nfunction ",s0+1));
+    if(/villageWriteBack|saveCharacterToLibrary|storageAdapter\.save/.test(sw))return "switchToCampaign still writes to the library";
+    return true;
   });
 
   section("#6 the village — phase E/F: houses, the stash and the shops (list I, 2026-09-12)");
@@ -24006,15 +24006,20 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();delete worldState.kind;worldState.turn=0;if(closeMenuVisible())return "nothing to close before the first turn";
     return true;
   });
-  t("#6G5 one player-authored line: villageHallLine stores a clamped line on the resident's sheet, refreshes the memento and requests the write-back; refuses an unknown resident or an empty line",function(){
+  t("#6G5 one player-authored line (re-homed 2026-09-21, #427): villageHallLine stores a clamped line in VILLAGE STATE (worldState.hallLines) — never on the sheet, never through the adapter; the memento refreshes from village state; a legacy sheet.hallLine still reads and seeds when village state has none; refuses an unknown resident or an empty line",function(){
     villageCD();var calls=[],saved=(typeof storageAdapter!=="undefined")?storageAdapter:null;
     try{storageAdapter={isServerMode:function(){return true;},hasToken:function(){return true;},saveCharacterToLibrary:function(c,cb){calls.push(c.name+":"+(c.hallLine||""));cb(null,{ok:true});}};
       var r=villageHallLine("Frizwick","  She would have hated the plaque.  ");if(!r||!r.ok)return "the line must land: "+JSON.stringify(r);
-      if(wsNpcByName("Frizwick").charSheet.hallLine!=="She would have hated the plaque.")return "the sheet carries the trimmed line";
+      if(!worldState.hallLines||worldState.hallLines["Frizwick"]!=="She would have hated the plaque.")return "village state carries the trimmed line: "+JSON.stringify(worldState.hallLines);
+      if(wsNpcByName("Frizwick").charSheet.hallLine)return "the line must NOT touch the sheet — the library is upstream";
+      if(villageHallLineOf("Frizwick")!=="She would have hated the plaque.")return "the reader returns the village-state line";
       var m=memory.map.nodes[villageHallKey()].mementos[0];if(m.line!=="She would have hated the plaque.")return "the memento refreshes: "+JSON.stringify(m);
-      if(!calls.length||!/plaque/.test(calls[0]))return "the write-back must carry the line: "+JSON.stringify(calls);
-      var long=villageHallLine("Frizwick",new Array(400).join("x"));if(!long.ok||wsNpcByName("Frizwick").charSheet.hallLine.length>200)return "the line clamps at 200";
+      if(calls.length)return "a hall line must never reach the library: "+JSON.stringify(calls);
+      var long=villageHallLine("Frizwick",new Array(400).join("x"));if(!long.ok||worldState.hallLines["Frizwick"].length>200)return "the line clamps at 200";
       if(villageHallLine("Nobody","x").ok||villageHallLine("Frizwick","   ").ok)return "unknown resident / empty line refuse";
+      delete worldState.hallLines;wsNpcByName("Frizwick").charSheet.hallLine="An older line on the sheet.";villageHallSeed();
+      if(villageHallLineOf("Frizwick")!=="An older line on the sheet."||memory.map.nodes[villageHallKey()].mementos[0].line!=="An older line on the sheet.")return "a legacy sheet line still reads and seeds";
+      if(villageHallLineOf("Nobody")!=="")return "an unknown name reads as \"\"";
       return true;
     }finally{storageAdapter=saved;}
   });
@@ -24085,19 +24090,20 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Plain",startingLocation:"Sandpoint",acts:[]}));if(Object.keys(memory.map.nodes).some(function(k){return /\|the tavern$/.test(k);}))return "the adventure mints no commons";
     return true;
   });
-  t("#6E13 REFRESH ON ENTRY (owner ruling 2026-09-13: the library is the source of truth, refresh in, never push out): importVillageResidents stamps each resident with the library's updated time; villageRefreshFromLibrary replaces a resident's sheet when the library copy is NEWER, keeps it when older or equal, never touches the hero or a party member, adopts the sheet's travelling item canon, keeps the house and its stash, and reports names; the boot and campaign-switch shells call it",function(){
+  t("#6E13 REFRESH ON ENTRY (owner ruling 2026-09-13: the library is the source of truth, refresh in, never push out; #427 2026-09-21: the played hero refreshes too): importVillageResidents stamps each resident with the library's updated time; villageRefreshFromLibrary replaces a resident's sheet when the library copy is NEWER, keeps it when older or equal, refreshes the hero by the same rule, never touches a party member, adopts the sheet's travelling item canon, keeps the house and its stash, and reports names; the boot and campaign-switch shells call it",function(){
     villageCD();var lib=[{character:{name:"Frizwick",gender:"F",cls:"Rogue",level:11,inventory:["Bone-handled knife"]},updatedAt:1000},{character:{name:"Daeris",gender:"F",cls:"Cleric",level:11},updatedAt:1000}];
     worldState.npcs=worldState.npcs.filter(function(n){return !n.resident;});importVillageResidents(lib);
     var fz=wsNpcByName("Frizwick");if(fz.libraryAt!==1000)return "move-in must stamp the library's updated time: "+JSON.stringify(fz.libraryAt);
     applyMuts("[LOCATION_ITEM:Old boots|placed|Frizwick's house]");
-    var newer=[{character:{name:"Frizwick",gender:"F",cls:"Rogue",level:12,inventory:["Bone-handled knife","Cleaver"],itemDefs:{cleaver:{category:"weapon",effect:"N/A"}}},updatedAt:2000},{character:{name:"Daeris",gender:"F",cls:"Cleric",level:3},updatedAt:900},{character:{name:"Silas",cls:"Cleric",level:99},updatedAt:5000}];
+    var heroNm=worldState.character.name;worldState.heroLibraryAt=1000;
+    var newer=[{character:{name:"Frizwick",gender:"F",cls:"Rogue",level:12,inventory:["Bone-handled knife","Cleaver"],itemDefs:{cleaver:{category:"weapon",effect:"N/A"}}},updatedAt:2000},{character:{name:"Daeris",gender:"F",cls:"Cleric",level:3},updatedAt:900},{character:{name:heroNm,cls:"Cleric",level:99},updatedAt:5000}];
     var r=villageRefreshFromLibrary(newer);
-    if(!r||r.refreshed.length!==1||r.refreshed[0]!=="Frizwick")return "only the NEWER copy refreshes: "+JSON.stringify(r);
+    if(!r||r.refreshed.length!==2||r.refreshed[0]!=="Frizwick"||r.refreshed[1]!==heroNm||r.hero!==heroNm)return "the NEWER copies refresh — the resident and the hero: "+JSON.stringify(r);
     fz=wsNpcByName("Frizwick");if(fz.charSheet.level!==12||fz.charSheet.inventory.indexOf("Cleaver")<0||fz.libraryAt!==2000)return "the refreshed sheet is the library's, stamped: "+JSON.stringify([fz.charSheet.level,fz.libraryAt]);
     if(fz.charSheet===newer[0].character)return "a copy, never the library object";
     if(!worldState.itemBible||!worldState.itemBible.cleaver)return "the refreshed sheet's item canon is adopted";
     if(wsNpcByName("Daeris").charSheet.level!==11)return "an OLDER library copy never overwrites";
-    if(worldState.character.level===99)return "the hero is never refreshed";
+    if(worldState.character.level!==99||worldState.character.name!==heroNm||worldState.heroLibraryAt!==5000)return "the hero refreshes from a NEWER copy and is re-stamped (#427): "+JSON.stringify([worldState.character.level,worldState.heroLibraryAt]);
     if(!villageStash(villageHouseKey("Frizwick")).length)return "the house and its stash survive a refresh";
     worldState.npcs.push({name:"Gazz",status:"ally",rel:"companion",met:1,partyMember:true,pronouns:"he/him",charSheet:{name:"Gazz",level:5}});
     var r2=villageRefreshFromLibrary([{character:{name:"Gazz",level:9},updatedAt:9999}]);if(r2.refreshed.length||wsNpcByName("Gazz").charSheet.level!==5)return "a party member is never refreshed from the library";
@@ -24128,21 +24134,63 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(adoptSheetItemDefs({name:"Y"})!==0||adoptSheetItemDefs(null)!==0)return "a sheet without defs adopts nothing, never throws";
     return true;
   });
-  t("#81b every export and every import is wired: villageWriteBack sends the portable sheet (itemDefs attached), importVillageResidents adopts each resident's canon, startGame adopts the hero's; the source of the sheet button and the library save go through portableSheet",function(){
+  t("#81b every export and every import is wired: importVillageResidents adopts each resident's canon, startGame adopts the hero's; the .char export and both manual library-save branches go through portableSheet (the village write-back that used to be the third sender is gone — #427)",function(){
     makeWorld();worldState.kind="village";worldState.world.location="The Village";
     var lib=[{name:"Ammut",gender:"F",cls:"Rogue",inventory:["Cleaver"],itemDefs:{cleaver:{category:"weapon",effect:"N/A"}}}];
     importVillageResidents(lib);if(!worldState.itemBible||!worldState.itemBible.cleaver||worldState.itemBible.cleaver.category!=="weapon")return "a resident's canon must be adopted on move-in";
-    var sent=[],saved=(typeof storageAdapter!=="undefined")?storageAdapter:null;
-    try{storageAdapter={isServerMode:function(){return true;},hasToken:function(){return true;},saveCharacterToLibrary:function(c,cb){sent.push(c);cb(null,{ok:true});}};
-      var sh=wsNpcByName("Ammut").charSheet;delete sh.itemDefs;villageWriteBack(sh);
-      if(!sent.length||!sent[0].itemDefs||!sent[0].itemDefs.cleaver)return "the write-back must carry the canon: "+JSON.stringify(sent[0]&&sent[0].itemDefs);
-      if(sent[0]===sh)return "the write-back sends a portable copy";
-    }finally{storageAdapter=saved;}
+    var sh=wsNpcByName("Ammut").charSheet;delete sh.itemDefs;var ps=portableSheet(sh);if(!ps.itemDefs||!ps.itemDefs.cleaver||ps===sh)return "portableSheet must attach the canon on a copy";
     var src=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
     if(!/function _doExportChar\(name, sheet\)\{[\s\S]{0,120}portableSheet\(sheet\)/.test(src))return "the .char export must go through portableSheet";
     if((src.match(/saveCharacterToLibrary\(portableSheet\(char\)/g)||[]).length<2)return "both library-save branches must send the portable sheet";
     if(!/_addImportedCompanion\(char\)\{[\s\S]{0,1200}adoptSheetItemDefs\(char\)/.test(src))return "an imported companion's canon must be adopted";
     var game=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(!/function startGame\([\s\S]{0,3000}adoptSheetItemDefs\(char\)/.test(game))return "startGame must adopt the hero's travelling canon";
+    return true;
+  });
+
+  // ── #427 — the library is UPSTREAM of the village (owner rulings 2026-09-21) ──
+  // The only road into the library is Export Character → Save to library. The three automatic village write-backs
+  // (the hero on campaign switch, the demoted hero at a swap, the Hall line) are gone — the switch one could overwrite
+  // a level-18 export with the village's level-17 copy, last writer by name. Hall lines live in village state. And the
+  // hero you are playing now refreshes wholesale from a newer library copy on entry, exactly as residents do: after
+  // export-then-enter, Ammut is level 18 in the village with no button press. Village-only changes since the export are
+  // lost by design (village saves are disposable, owner 2026-09-14). The stamps (heroLibraryAt / a resident's libraryAt)
+  // travel with a swap both ways, so "newer than what I moved in with" keeps meaning that.
+  section("#427 library upstream");
+  function __libEntry(name,at,extra){var c={name:name,gender:"M",cls:"Rogue",level:18,xp:180000,gold:500,inventory:["Cleaver"],coreMemories:[{text:"Slew Karzoug.",turn:2331,kind:"gm",camp:"Runelords"}]};var k;for(k in (extra||{}))c[k]=extra[k];return {character:c,updatedAt:at};}
+  t("#427 the played hero refreshes: a newer library copy replaces worldState.character wholesale (level, gold, inventory, memories) as a copy and stamps heroLibraryAt; an older, equal or undated copy is kept; the same copy never refreshes twice",function(){
+    villageCD();worldState.character.level=17;worldState.character.gold=100;worldState.heroLibraryAt=1000;var nm=worldState.character.name;
+    var r=villageRefreshFromLibrary([__libEntry(nm,900)]);if(r.hero||worldState.character.level!==17)return "an older copy must be kept: "+JSON.stringify(r);
+    r=villageRefreshFromLibrary([__libEntry(nm,1000)]);if(r.hero||worldState.character.level!==17)return "an equal copy must be kept";
+    r=villageRefreshFromLibrary([__libEntry(nm,null)]);if(r.hero||worldState.character.level!==17)return "an undated copy must be kept";
+    var e=__libEntry(nm,2000);r=villageRefreshFromLibrary([e]);if(r.hero!==nm||r.refreshed.indexOf(nm)<0)return "a newer copy must refresh the hero: "+JSON.stringify(r);
+    var c=worldState.character;if(c.name!==nm||c.level!==18||c.gold!==500||c.inventory[0]!=="Cleaver"||!c.coreMemories||c.coreMemories[0].text!=="Slew Karzoug.")return "the hero was not replaced wholesale: "+JSON.stringify({level:c.level,gold:c.gold});
+    if(c===e.character)return "the hero must be a copy of the library entry";
+    if(!c.skills||!c.conditions||!c.storyBeats)return "the v10 arrays must be ensured on the refreshed hero";
+    if(worldState.heroLibraryAt!==2000)return "heroLibraryAt not stamped: "+worldState.heroLibraryAt;
+    r=villageRefreshFromLibrary([__libEntry(nm,2000)]);if(r.hero)return "the same copy must not refresh twice";
+    return true;
+  });
+  t("#427 an unstamped hero (a village save from before the rule) takes the first dated library copy and is stamped from then on",function(){
+    villageCD();delete worldState.heroLibraryAt;worldState.character.level=17;var nm=worldState.character.name;
+    var r=villageRefreshFromLibrary([__libEntry(nm,5)]);if(r.hero!==nm||worldState.character.level!==18||worldState.heroLibraryAt!==5)return "the first dated copy must land and stamp: "+JSON.stringify(r)+" at="+worldState.heroLibraryAt;
+    return true;
+  });
+  t("#427 the stamps travel: importVillageResidents stamps the hero's move-in time from the library entry; a swap carries the stamp onto the demoted resident and takes the promoted resident's",function(){
+    villageCD();delete worldState.heroLibraryAt;var nm=worldState.character.name;
+    importVillageResidents([__libEntry(nm,777),__libEntry("Newcomer",888)]);
+    if(worldState.heroLibraryAt!==777)return "move-in must stamp the hero: "+worldState.heroLibraryAt;
+    var nc=wsNpcByName("Newcomer");if(!nc||nc.libraryAt!==888)return "a resident keeps its own stamp";
+    var sw=swapPlayerCharacter("Newcomer");if(!sw.ok)return "swap: "+sw.reason;
+    if(worldState.heroLibraryAt!==888)return "the promoted resident's stamp becomes the hero's: "+worldState.heroLibraryAt;
+    var old=wsNpcByName(nm);if(!old||!old.resident||old.libraryAt!==777)return "the demoted hero carries its stamp as a resident: "+JSON.stringify(old&&old.libraryAt);
+    return true;
+  });
+  t("#427 the wiring: villageRefreshOnEntry re-inits the hero's panels when the hero refreshed; the hall-line modal reads village state through villageHallLineOf; the swap shell never writes to the library",function(){
+    var ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8"),f0=ub.indexOf("function villageRefreshOnEntry("),fn=ub.slice(f0,ub.indexOf("\nfunction ",f0+1));
+    if(fn.indexOf("r.hero")<0||fn.indexOf("initAbilities()")<0||fn.indexOf("initSpells()")<0)return "the shell does not re-init panels for a refreshed hero";
+    var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),h0=um.indexOf("function showHallLineModal("),hm=um.slice(h0,um.indexOf("\nfunction ",h0+1));
+    if(hm.indexOf("villageHallLineOf(")<0||hm.indexOf("charSheet.hallLine")>=0)return "the hall-line modal must read village state through villageHallLineOf";
+    var us=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");if(/villageWriteBack|saveCharacterToLibrary/.test(us))return "the swap shell still writes to the library";
     return true;
   });
 

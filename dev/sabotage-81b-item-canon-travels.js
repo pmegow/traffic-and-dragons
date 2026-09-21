@@ -17,10 +17,9 @@ prove("helpers.js", [
 prove("game.js", [
   { label: "a resident moves in without their canon",
     find: 'if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);/* #81b: the resident\'s gear keeps its canon */', replace: '',
-    mustFail: "#81b every export and every import is wired" },
-  { label: "the write-back sends the raw sheet",
-    find: 'storageAdapter.saveCharacterToLibrary((typeof portableSheet==="function")?portableSheet(sheet):sheet,', replace: 'storageAdapter.saveCharacterToLibrary(sheet,',
     mustFail: "#81b every export and every import is wired" }
+  /* "the write-back sends the raw sheet" retired with villageWriteBack (#427, 2026-09-21) — the two manual library-save
+     branches below are the only senders left and keep their own portable-copy clause. */
 ]);
 prove("ui-browsers.js", [
   { label: "the .char export drops the canon",

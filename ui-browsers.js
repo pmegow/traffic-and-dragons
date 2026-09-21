@@ -550,7 +550,10 @@ function villageRefreshOnEntry(){
   sa.listCharacterLibrary(function(err,list){
     if(err){showToast("⚠ Could not read the character library for the refresh: "+String(err),6000);return;}
     var r=villageRefreshFromLibrary(list||[]);
-    if(r.refreshed.length){showToast("↻ "+r.refreshed.join(", ")+" refreshed from the library.",6000);if(typeof saveAll==="function")saveAll();if(typeof syncUI==="function")syncUI();}
+    if(r.refreshed.length){showToast("↻ "+r.refreshed.join(", ")+" refreshed from the library.",6000);if(typeof saveAll==="function")saveAll();
+      /* #427: the played hero can refresh too — the panels read the sheet, so they re-init like a swap does */
+      if(r.hero){if(typeof initAbilities==="function")initAbilities();if(typeof initSpells==="function")initSpells();if(typeof storageAdapter!=="undefined"&&storageAdapter&&storageAdapter.markPortraitDirty)storageAdapter.markPortraitDirty();}
+      if(typeof syncUI==="function")syncUI();}
     else console.info("[village] refresh on entry — every resident matches the library");
   });
 }

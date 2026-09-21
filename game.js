@@ -1442,7 +1442,7 @@ function importVillageResidents(list){
   if(!memory.map.nodes[here])memory.map.nodes[here]=newMapNode(null,null,{size:"small"});
   else if(!memory.map.nodes[here].size)memory.map.nodes[here].size="small";/* phase B: whispers, hours and wares all key on a SIZED settlement — the village is one */
   for(i=0;i<list.length;i++){var c=list[i],_libAt=null;if(c&&c.character&&typeof c.character==="object"){_libAt=(typeof c.updatedAt==="number")?c.updatedAt:null;c=c.character;}/* #6 E13: a library entry {character,updatedAt} or a bare sheet */if(!c||!c.name)continue;var nm=String(c.name).trim();
-    if(worldState.character&&worldState.character.name===nm){skipped.push(nm);continue;}
+    if(worldState.character&&worldState.character.name===nm){if(typeof _libAt==="number")worldState.heroLibraryAt=_libAt;/* #427: the hero's own move-in stamp — "newer than this" is what a later refresh means */skipped.push(nm);continue;}
     if(wsNpcByName(nm)){skipped.push(nm);continue;}
     var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
     if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);/* #81b: the resident's gear keeps its canon */
@@ -1462,7 +1462,18 @@ function importVillageResidents(list){
 function villageRefreshFromLibrary(entries){
   var out={refreshed:[],kept:[],unknown:[]};if(!worldState||typeof kindDef!=="function"||!kindDef().populateFromLibrary||!(entries instanceof Array))return out;
   var i;for(i=0;i<entries.length;i++){var e=entries[i],c=e&&e.character;if(!c||!c.name)continue;var nm=String(c.name).trim(),at=(typeof e.updatedAt==="number")?e.updatedAt:null;
-    if(worldState.character&&worldState.character.name===nm){out.kept.push(nm);continue;}
+    if(worldState.character&&worldState.character.name===nm){
+      /* #427 (owner ruling 2026-09-21): the hero you are playing refreshes too — the library is upstream, so the skip
+         had no reason left. Same rule as a resident: a dated copy newer than the stamp replaces the sheet wholesale
+         (level, gold, gear, memories) and re-stamps; older, equal or undated is kept. Village-only changes since the
+         export are lost by design (village saves are disposable). The v10 arrays are ensured as startGame does. */
+      if(at===null||(typeof worldState.heroLibraryAt==="number"&&at<=worldState.heroLibraryAt)){out.kept.push(nm);continue;}
+      var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);
+      if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(hero);
+      if(!hero.skills)hero.skills=initSkills();if(!hero.conditions)hero.conditions=[];if(!hero.relationships)hero.relationships=[];if(!hero.saveModifiers)hero.saveModifiers=[];if(!hero.languages)hero.languages=[];if(hero.portrait===undefined)hero.portrait=null;if(!hero.backstory)hero.backstory="";if(!hero.storyBeats)hero.storyBeats=[];if(!hero.coreMemories)hero.coreMemories=[];
+      hero.portraitOffset=hero.portraitOffset||worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};
+      if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(hero);
+      worldState.character=hero;worldState.heroLibraryAt=at;out.hero=nm;out.refreshed.push(nm);continue;}
     var n=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(!n){out.unknown.push(nm);continue;}
     if(!n.resident||n.partyMember){out.kept.push(nm);continue;}
     if(at===null||(typeof n.libraryAt==="number"&&at<=n.libraryAt)){out.kept.push(nm);continue;}
@@ -1542,20 +1553,26 @@ function villageHallSeed(base){
   node.hall=true;var prior={},i;(node.mementos||[]).forEach(function(m){prior[m.resident]=m;});
   var npcs=worldState.npcs||[],mem=[],wall=[];
   for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n.resident||!n.charSheet)continue;var s=n.charSheet;
-    if(s.fate){var obj=(s.inventory&&s.inventory.length)?_invBase(s.inventory[0]):"a plain token";mem.push({resident:n.name,campaign:s.fate.campaign||"a finished tale",object:obj,fate:s.fate.line||s.fate.cause||"",unresolved:(s.fate.unresolved&&s.fate.unresolved[0])||"nothing the record names",line:s.hallLine||(prior[n.name]&&prior[n.name].line)||null});}
+    if(s.fate){var obj=(s.inventory&&s.inventory.length)?_invBase(s.inventory[0]):"a plain token";mem.push({resident:n.name,campaign:s.fate.campaign||"a finished tale",object:obj,fate:s.fate.line||s.fate.cause||"",unresolved:(s.fate.unresolved&&s.fate.unresolved[0])||"nothing the record names",line:villageHallLineOf(n.name)||(prior[n.name]&&prior[n.name].line)||null});}/* #427: the line reads from village state first */
     else wall.push({resident:n.name,campaign:s.originCampaign||s.campName||"an unfinished tale"});}
   node.mementos=mem;node.wall=wall;
   return {mementos:mem.length,wall:wall.length};
 }
-/* #6 G5: one player-authored line per resident — canon on the library sheet (clamped), the memento refreshed, the write-back
-   requested through the same seam as a swap. Loud refusals, never a throw. */
+/* #6 G5: one player-authored line per resident — clamped, the memento refreshed. Loud refusals, never a throw.
+   #427 (owner ruling 2026-09-21): the line lives in VILLAGE STATE (worldState.hallLines, by resident name), never on the
+   sheet and never in the library — the library is upstream and a resident's sheet is replaced wholesale by a newer
+   library copy, which would have erased a line kept on it. A legacy sheet.hallLine still reads when village state has none. */
+function villageHallLineOf(name){
+  var ws=(typeof worldState!=="undefined")?worldState:null;if(!ws)return "";
+  var v=(ws.hallLines&&ws.hallLines[name])||"";if(v)return String(v);
+  var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;return (n&&n.charSheet&&n.charSheet.hallLine)?String(n.charSheet.hallLine):"";
+}
 function villageHallLine(name,text){
   var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(!n||!n.resident||!n.charSheet)return {ok:false,reason:"no such resident"};
   var t=String(text||"").replace(/\s+/g," ").trim();if(!t)return {ok:false,reason:"an empty line"};
-  if(t.length>200)t=t.slice(0,200);n.charSheet.hallLine=t;
+  if(t.length>200)t=t.slice(0,200);if(!worldState.hallLines)worldState.hallLines={};worldState.hallLines[name]=t;
   villageHallSeed();
-  var wb=(typeof villageWriteBack==="function")?villageWriteBack(n.charSheet):null;
-  return {ok:true,line:t,writeBack:wb};
+  return {ok:true,line:t};
 }
 /* #6 G4: close this campaign — the player deposits a stopped adventure: ended with cause \"closed by the player\", the
    denouement owed, the existing epilogue path writes it (and stamps the fates). Pure over state; the File-menu modal calls it. */
@@ -1608,9 +1625,10 @@ function swapPlayerCharacter(name){
   if(!newChar)return {ok:false,reason:name+" has no character sheet. Generate one first."};
   var def=kindDef(),toResident=def.swapDemotesTo==="resident",oldChar=worldState.character,pr=pronounsForGender(oldChar.gender);
   var oldNpc=toResident
-    ?{name:oldChar.name,status:"",statusTurn:0,rel:"resident",met:worldState.turn,partyMember:false,resident:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar}
+    ?{name:oldChar.name,status:"",statusTurn:0,rel:"resident",met:worldState.turn,partyMember:false,resident:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar,libraryAt:(typeof worldState.heroLibraryAt==="number")?worldState.heroLibraryAt:null}/* #427: the stamp travels with the sheet */
     :{name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar};/* portrait rides on charSheet only (#3 dedupe) */
   worldState.npcs.splice(npcIdx,1);worldState.npcs.push(oldNpc);
+  worldState.heroLibraryAt=(typeof npc.libraryAt==="number")?npc.libraryAt:null;/* #427: and the promoted resident's stamp becomes the hero's */
   if(toResident){villageHouseEnsure(oldChar.name,null);/* #6 E6: the demoted hero gets a house, same path as import */if(typeof villageHallSeed==="function"&&def.hall)villageHallSeed();/* #6 G2: and a place in the Hall's record */}
   newChar.portraitOffset=newChar.portraitOffset||npc.portraitOffset||{x:0.5,y:0.5,zoom:1};/* UA22: adopt the npc-wrapper framing the NPC sheet was showing */
   worldState.character=newChar;
@@ -1621,25 +1639,10 @@ function swapPlayerCharacter(name){
   if(memory&&memory.npcs&&memory.npcs[oldChar.name])memory.npcs[oldChar.name].partyMember=!toResident;
   return {ok:true,from:oldChar.name,to:newChar.name,handoff:!!def.swapHandoff,demotedTo:def.swapDemotesTo};
 }
-/* #6 THE VILLAGE — phase A: the library write-back. The library is the source of truth; a sheet that changed in the
-   village (a swap demoted it, or the hero is leaving for another campaign) goes back through the same endpoint the
-   character browser uses. Loud both ways: a receipt toast on success, a NAMED refusal (offline, signed out, no adapter,
-   server error) on failure — never silence, never a throw. Returns {status:"requested"} or {status:"refused",reason}. */
-function villageWriteBack(sheet,cb){
-  var nm=sheet&&sheet.name;
-  function refuse(reason){console.warn("[village] library write-back refused for "+(nm||"?")+": "+reason);if(typeof showToast==="function")showToast("⚠ "+(nm||"The character")+" was NOT saved to the library — "+reason,6000);if(typeof cb==="function")cb({ok:false,reason:reason});return {status:"refused",reason:reason};}
-  if(!sheet||!nm)return refuse("no character sheet");
-  if(typeof storageAdapter==="undefined"||!storageAdapter||typeof storageAdapter.saveCharacterToLibrary!=="function")return refuse("no server connection in this build");
-  if(!(typeof storageAdapter.isServerMode==="function"&&storageAdapter.isServerMode())||!(typeof storageAdapter.hasToken==="function"&&storageAdapter.hasToken()))return refuse("not signed in to the server");
-  try{
-    storageAdapter.saveCharacterToLibrary((typeof portableSheet==="function")?portableSheet(sheet):sheet,function(err,res){/* #81b: the canon rides the write-back */
-      if(err){console.warn("[village] library write-back failed for "+nm+": "+String(err));if(typeof showToast==="function")showToast("⚠ "+nm+" was NOT saved to the library — "+String(err),6000);if(typeof cb==="function")cb({ok:false,reason:String(err)});return;}
-      if(typeof showToast==="function")showToast("✓ "+nm+" saved to the library.",3500);
-      if(typeof cb==="function")cb({ok:true,res:res});
-    });
-  }catch(e){return refuse((e&&e.message)||"exception");}
-  return {status:"requested",name:nm};
-}
+/* #6 THE VILLAGE — phase A's library write-back was DELETED in #427 (owner ruling 2026-09-21): the library is UPSTREAM of
+   the village and the only road into it is Export Character → Save to library (ui-browsers.js). The write-back on a
+   campaign switch could overwrite a level-18 export with the village's level-17 copy — last writer by name; the swap and
+   Hall-line write-backs shared the hazard. Village changes stay in the village save unless the player exports. */
 function attachCompanionSheet(npcName,sheet){
   var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet)return null;
