@@ -16,6 +16,9 @@ if(!save){console.error("usage: node dev/probe-gemini-empty.js <save.tnd> [--n 3
 if(!lines.length)lines=["It's... because.... of the... fuck it. Pull her hips down and take her in the tub.","Pull her hips down and take her in the tub."];
 var key=process.env.GEMINI_API_KEY||"";
 if(!key&&!dry){console.error("GEMINI_API_KEY is not set — set it in this shell (it is never written to disk), or pass --dry to build the requests only.");process.exit(2);}
+/* 2026-09-21: a pasted placeholder ("…", quotes, a space) reached the header and died deep inside undici as a
+   ByteString error. Say what happened instead. A real key is plain ASCII with no spaces. */
+if(key&&!dry&&/[^\x21-\x7e]/.test(key)){console.error("GEMINI_API_KEY holds a character that cannot go in an HTTP header ("+JSON.stringify(key.slice(0,12))+"…) — a pasted placeholder? Set the real key, e.g. PowerShell: $env:GEMINI_API_KEY=\"PASTE-YOUR-KEY-HERE\"");process.exit(2);}
 var raw=JSON.parse(fs.readFileSync(save,"utf8"));
 worldState=inflateWorldStateSnapshot(raw.worldState);memory=raw.memory||memory;sessionLog=raw.sessionLog||[];
 activeProvider="gemini";providerModels.gemini=model;
