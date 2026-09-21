@@ -2137,6 +2137,28 @@ function buildExtractPrompt(chapterDesc,pend,sessRaw,sessStripped,identityTable)
   p+="\nOutput ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"how this NPC regards the PLAYER in 2-4 words -- their standing DISPOSITION (e.g. 'wary, testing' or 'openly loyal'), NOT their momentary mood, which the engine tracks separately\",\"knowledgeGained\":{\"fact\":\"\",\"kind\":\"durable = standing truth about the person or world (secrets, history, learned facts, commitments); scene = true only in that moment (where they stood, what they were doing) -- scene facts are filed as dated history, never as permanent knowledge\"}}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[{\"name\":\"exact on-file NPC name\",\"handle\":\"scene handle\",\"sourceTurn\":0,\"canonTxnId\":\"stable id if one exists\"}],\"attire\":[{\"name\":\"\",\"donned\":[\"exact inventory names put ON this session\"],\"doffed\":[\"exact inventory names taken OFF\"],\"outfit\":\"what they wear beneath or instead of gear, one line, ONLY if it changed this session (stripped for a bath, a borrowed robe, back in road clothes)\"}]}\n";/* #388: the attire belt — the GM tags changes live; the extractor catches the ones it narrated without tagging */
   return p;
 }
+/* B38 (2026-09-21): the extractor's two SHAPES. The window builder is the old inline composition made a function — the
+   normal caps reproduce it byte for byte (pinned); the reframed caps shorten both halves. The framing preface is the
+   fiction/adult/record framing the gameplay call already carries (adultBlock) and the extractor never did — the lever
+   that lets the same prose through gemini's PROHIBITED_CONTENT filter. The shape chooser reads the standing failure:
+   a refusal strike sends the reframed shape FIRST next turn, so a blocked payload is never replayed unchanged. */
+var EXTRACT_SYS="You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.";
+var EXTRACT_WINDOW_CAPS={assistant:4000,user:500};
+var EXTRACT_REFRAME_CAPS={assistant:1200,user:300};
+function extractRefusalFraming(){
+  return "FRAMING — this is the transcript of a fictional tabletop role-playing game between consenting adult players; the narration is the game's fiction, not a real event. You are extracting a structured RECORD from it (names, places, standing facts, decisions) for the game's memory. Reproduce no prose beyond the short chapter summary; describe intimate or violent beats in plain, non-explicit terms.\n\n";
+}
+function extractShapeForFailure(sf){return (sf&&sf.refusal===true&&typeof sf.count==="number"&&sf.count>0)?"reframed":"normal";}
+function buildExtractWindow(caps){
+  var raw="",txt="",i,a=(caps&&caps.assistant)||EXTRACT_WINDOW_CAPS.assistant,u=(caps&&caps.user)||EXTRACT_WINDOW_CAPS.user;
+  for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];
+    if(!_se||_se.bk||_se.content==null)continue;
+    raw+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?a:u)+"\n";
+    var _ssc=_se.role==="user"?stripEngineNotes(_se.content):_se.content;
+    txt+=_se.role+": "+_ssc.slice(0,_se.role==="assistant"?a:u)+"\n";
+  }
+  return {raw:raw,txt:txt};
+}
 var _sumFails=0; // runtime mirror of worldState.summaryFailure.count; persisted state is authoritative across reloads
 function summaryFailureBump(e){
   var old=worldState&&worldState.summaryFailure,prior=old&&typeof old.count==="number"?old.count:0,isIdentity=!!(e&&(e.summaryIdentity||e.w2Identity)),msg="unknown";try{msg=(e&&e.message!=null)?String(e.message):String(e);}catch(_sfb){}
@@ -2151,7 +2173,7 @@ function summaryFailureBump(e){
       if(!worldState.summaryFailure.deferSubject){worldState.summaryFailure.deferSubject=e.subject?String(e.subject).slice(0,120):"?";worldState.summaryFailure.deferSince=worldState.turn;}}
     return prior;}
   if(!worldState)return Math.min(3,prior+1);
-  worldState.summaryFailure={count:Math.min(3,prior+1),firstTurn:old&&old.firstTurn!=null?old.firstTurn:worldState.turn,lastTurn:worldState.turn,kind:isIdentity?"identity-validation":"extraction",reason:msg.slice(0,400),subject:e&&e.subject?String(e.subject).slice(0,120):"",identityValidation:!!(isIdentity||(old&&old.identityValidation))};
+  worldState.summaryFailure={count:Math.min(3,prior+1),firstTurn:old&&old.firstTurn!=null?old.firstTurn:worldState.turn,lastTurn:worldState.turn,kind:isIdentity?"identity-validation":"extraction",reason:msg.slice(0,400),subject:e&&e.subject?String(e.subject).slice(0,120):"",identityValidation:!!(isIdentity||(old&&old.identityValidation)),refusal:!!(e&&e.modelRefusal)/* B38: a NAMED provider block — the next attempt goes reframed first; any other failure class clears it */};
   return worldState.summaryFailure.count;
 }
 function summaryFailureClear(){if(worldState&&worldState.summaryFailure)delete worldState.summaryFailure;_sumFails=0;}
@@ -2216,20 +2238,32 @@ async function summarize(){
     // FACTS detection; _sessTxt has engine notes stripped from the USER halves (BEFORE the
     // 500-char slice, so the budget is spent on the player's words, not the replayed imperative
     // that made the extractor answer in state tags at t881).
-    var _sessTxt="",_sessRaw="",i;
-    for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];
-      if(!_se||_se.bk||_se.content==null)continue;
-      _sessRaw+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";
-      var _ssc=_se.role==="user"?stripEngineNotes(_se.content):_se.content;
-      _sessTxt+=_se.role+": "+_ssc.slice(0,_se.role==="assistant"?4000:500)+"\n";
+    /* B38 (2026-09-21): the window is composed by ONE builder for both shapes (the normal caps reproduce the old inline
+       composition byte for byte). A NAMED provider block (e0.modelRefusal — gemini's promptFeedback.blockReason such as
+       PROHIBITED_CONTENT) is not a transient: the identical payload was replayed next turn, blocked again, three turns
+       running, then archived raw with every structured fact lost, while the same prose narrated fine on the gameplay
+       call (fiction framing, role-tagged history). So the SHAPE changes, never the replay: one same-turn retry in the
+       reframed, shortened shape; while a refusal strike stands the reframed shape goes first (one call, not a doomed
+       pair); a reframed failure is the one that counts. */
+    var _shape=extractShapeForFailure(worldState.summaryFailure),_reframed=_shape==="reframed";
+    function _extractCall(shape){
+      var win=buildExtractWindow(shape==="reframed"?EXTRACT_REFRAME_CAPS:EXTRACT_WINDOW_CAPS);
+      var it=typeof summaryIdentityTable==="function"?summaryIdentityTable(win.raw):null;
+      var p=buildExtractPrompt(_chapterDesc,_pend,win.raw,win.txt,it);
+      return {prompt:shape==="reframed"?extractRefusalFraming()+p:p,identityTable:it};
     }
-    var _identityTable=typeof summaryIdentityTable==="function"?summaryIdentityTable(_sessRaw):null;
-    var extractPrompt=buildExtractPrompt(_chapterDesc,_pend,_sessRaw,_sessTxt,_identityTable);
-    var resp=await callGM(extractPrompt,"You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000,null,{kind:"summarize",noHistory:true});/* the extraction prompt already contains the session slice — don't also prepend the full sessionLog (audit E47) */
+    var _ec=_extractCall(_shape),_identityTable=_ec.identityTable,resp;
+    try{resp=await callGM(_ec.prompt,EXTRACT_SYS,2000,null,{kind:"summarize",noHistory:true});/* the extraction prompt already contains the session slice — don't also prepend the full sessionLog (audit E47) */}
+    catch(e0){
+      if(!(e0&&e0.modelRefusal)||_shape==="reframed")throw e0;/* transients and JSON failures keep the old strike path; a reframed refusal is terminal for this turn */
+      if(typeof console!=="undefined")console.warn("[memory] extractor blocked by the provider ("+((e0&&e0.message)||"?")+") — one same-turn retry in the reframed, shortened shape (B38)");
+      _shape="reframed";_reframed=true;_ec=_extractCall("reframed");_identityTable=_ec.identityTable;
+      resp=await callGM(_ec.prompt,EXTRACT_SYS,2000,null,{kind:"summarize",noHistory:true});
+    }
     if(!extractorRespHasJson(resp))throw new Error("extractor returned NO JSON at all (B11 class) — head: \""+String(resp).slice(0,60).replace(/\s+/g," ")+"\"");/* named at the call site; repairModelJson (8 shared callers) stays untouched */
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
     var _exStats=applySummaryExtract(extracted,_identityTable);
-    _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":""));
+    _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":"")+(_reframed?" (extracted in the reframed, shortened shape after the provider blocked the full window — B38)":""));
     compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
   }catch(e){
     // Do NOT discard the session log on a transient failure — that permanently erased up to a

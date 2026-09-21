@@ -24267,6 +24267,62 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── B38 — a NAMED provider block on the chapter extractor is never replayed unchanged (2026-09-21) ──
+  // Gemini answered the extractor with promptFeedback.blockReason=PROHIBITED_CONTENT; the adapter names it
+  // (e.modelRefusal) but summarize() treated it as a transient: strike, keep the window, replay the IDENTICAL
+  // payload next turn, blocked again, three turns running, then the raw archive — every structured fact lost.
+  // The same prose narrated fine on the gameplay call (fiction framing, role-tagged history): the extractor's
+  // SHAPE is the lever. Now: one same-turn retry in the alternate shape (a fiction-extraction framing preface +
+  // a shortened window); while a refusal strike stands the alternate shape goes first (one call, not a doomed
+  // pair); only the alternate's failure counts a strike; strike 3 stays the terminal raw archive. The async flow
+  // itself is proven by dev/tests-b38-extractor-refusal.js (stubbed provider, real summarize()).
+  section("B38 extractor refusal");
+  t("B38 extractShapeForFailure: no standing failure → normal; a refusal strike → reframed; a non-refusal strike → normal; a refusal flag with no strikes → normal",function(){
+    if(extractShapeForFailure(null)!=="normal"||extractShapeForFailure(undefined)!=="normal")return "no failure must be normal";
+    if(extractShapeForFailure({count:1,refusal:true})!=="reframed")return "a refusal strike must go reframed first";
+    if(extractShapeForFailure({count:2,refusal:false})!=="normal"||extractShapeForFailure({count:1})!=="normal")return "a non-refusal strike stays normal";
+    if(extractShapeForFailure({count:0,refusal:true})!=="normal")return "no strikes → normal even with a stale flag";
+    return true;
+  });
+  t("B38 extractRefusalFraming: names fiction between adults and a structured record, asks for no prose, and ends with a blank line so the standard prompt follows intact",function(){
+    var f=extractRefusalFraming();
+    if(!/fictional/i.test(f)||!/adult/i.test(f)||!/record/i.test(f)||!/no prose/i.test(f)||!/non-explicit/i.test(f))return "framing text: "+f;
+    if(!/\n\n$/.test(f))return "the framing must end with a blank line";
+    if(EXTRACT_REFRAME_CAPS.assistant>=EXTRACT_WINDOW_CAPS.assistant||EXTRACT_REFRAME_CAPS.user>=EXTRACT_WINDOW_CAPS.user)return "the reframed caps must be shorter";
+    return true;
+  });
+  t("B38 buildExtractWindow: the normal caps reproduce the old composition byte for byte (assistant 4000 / user 500; engine notes stripped from the user half of the stripped window only); the reframed caps shorten both halves",function(){
+    makeWorld();delete worldState.sessKept;var big="";var i;for(i=0;i<300;i++)big+="prose line "+i+" ";var note="[ENGINE NOTE — MOOD CHECK (not a player action): x]\n\nI draw my blade.";
+    sessionLog.length=0;sessionLog.push({role:"user",content:note},{role:"assistant",content:big},{role:"user",content:"and again",bk:true},{role:"assistant",content:big});
+    var w=buildExtractWindow(EXTRACT_WINDOW_CAPS),raw="",txt="";
+    for(i=sessKeptStart();i<sessionLog.length;i++){var s=sessionLog[i];if(!s||s.bk||s.content==null)continue;raw+=s.role+": "+s.content.slice(0,s.role==="assistant"?4000:500)+"\n";var c=s.role==="user"?stripEngineNotes(s.content):s.content;txt+=s.role+": "+c.slice(0,s.role==="assistant"?4000:500)+"\n";}
+    if(w.raw!==raw)return "raw window drifted from the old composition";if(w.txt!==txt)return "stripped window drifted from the old composition";
+    if(w.raw.indexOf("ENGINE NOTE")<0||w.txt.indexOf("ENGINE NOTE")>=0)return "engine notes must stay in raw and leave the stripped window";
+    if(w.raw.indexOf("and again")>=0)return "a bookkeeping entry leaked into the window";
+    var r=buildExtractWindow(EXTRACT_REFRAME_CAPS);if(r.raw.length>=w.raw.length||r.txt.length>=w.txt.length)return "the reframed window is not shorter";
+    if(r.raw.indexOf("assistant: "+big.slice(0,EXTRACT_REFRAME_CAPS.assistant)+"\n")<0)return "the reframed assistant cap is not applied";
+    return true;
+  });
+  t("B38 summaryFailureBump records refusal only for a named block, and a later non-refusal failure clears it",function(){
+    makeWorld();worldState.turn=20;delete worldState.summaryFailure;
+    var e=new Error("Empty response — gemini prompt blocked: PROHIBITED_CONTENT");e.modelRefusal=true;e.finish="PROHIBITED_CONTENT";
+    if(summaryFailureBump(e)!==1||!worldState.summaryFailure||worldState.summaryFailure.refusal!==true)return "a refusal strike must carry refusal:true: "+JSON.stringify(worldState.summaryFailure);
+    if(extractShapeForFailure(worldState.summaryFailure)!=="reframed")return "the next shape must be reframed";
+    if(summaryFailureBump(new Error("Unexpected token"))!==2||worldState.summaryFailure.refusal!==false)return "a JSON failure after a refusal must clear the flag: "+JSON.stringify(worldState.summaryFailure);
+    var t2=new Error("Empty response — gemini no candidates");t2.emptyTransient=true;t2.modelRefusal=false;
+    if(summaryFailureBump(t2)!==3||worldState.summaryFailure.refusal!==false)return "a transient never sets the flag";
+    summaryFailureClear();return true;
+  });
+  t("B38 the wiring: summarize() picks its first shape from the standing failure, retries ONCE in the reframed shape on a modelRefusal, never when the first shape was already reframed, never on a transient, and the standalone flow suite is registered",function(){
+    var s=String(summarize);
+    if(s.indexOf("extractShapeForFailure(worldState.summaryFailure)")<0)return "the first shape is not chosen from the standing failure";
+    if(s.indexOf("e0.modelRefusal")<0||s.indexOf('_shape==="reframed"')<0)return "the retry is not gated on a named block AND a not-yet-reframed shape";
+    if(s.indexOf("extractRefusalFraming()")<0||s.indexOf("EXTRACT_REFRAME_CAPS")<0)return "the retry does not change the shape";
+    if(s.indexOf("_sessRaw+=")>=0)return "summarize still composes the window inline (must go through buildExtractWindow)";
+    var ss=__fsForTests.readFileSync(__rootForTests+"/dev/run-standalone-suites.js","utf8");if(ss.indexOf("dev/tests-b38-extractor-refusal.js")<0)return "the B38 flow suite is not registered";
+    return true;
+  });
+
   section("#408 home design — the room graph (six owner rulings 2026-09-14; slice 1 = tag + ask + block + placement)");
   var LAYOUT_TAG="[LAYOUT:main room|medium|hearth, long table|kitchen, outside; kitchen|small|stove, pantry shelves|main room, cellar; cellar|small|barrels|kitchen]";
   function villageHouse(){villageCD();var hk=villageHouseKey("Silas");memory.map.nodes[hk]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};worldState.world.sublocation=locDisplayLeaf(hk);delete worldState.layoutAsk;delete worldState.layoutAskArmed;return hk;}

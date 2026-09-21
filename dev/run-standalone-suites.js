@@ -18,6 +18,7 @@ var SUITES = [
   "dev/tests-b9-transport.js",
   "dev/tests-jp011-flush-dirty.js",
   "dev/tests-423-import-ownership.js",
+  "dev/tests-b38-extractor-refusal.js",
   "dev/tests-c13-adapter.js",
   "dev/tests-29-callgm-transport.js",
   "dev/tests-41f-gemini-model-ladder.js",

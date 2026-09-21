@@ -35,7 +35,7 @@ them here).
 ## Open
 
 ## B38 — Gemini's safety filter (PROHIBITED_CONTENT) blocks the chapter extractor on consecutive turns — each summary is dropped and nothing falls back (The Long Walk, Silas Morne, Runelords, the Village; v1.838–v1.951)
-**Status:** new
+**Status:** fixed (v1.960, 2026-09-21 — the extractor never replays a blocked payload unchanged: one same-turn retry in a reframed, shortened shape, reframed-first while a refusal strike stands)
 **Kind:** crash · **First seen:** 2026-09-07 (v1.838) · **Last seen:** 2026-09-18 (v1.951) · **Count:** 9 · **Campaign:** The Long Walk ×3, Rise of the Runelords (Ammut) ×1, Silas Morne ×3, The Village (Ammut) ×2 · **Turn:** 18, 19, 20, 2456, 39, 40, 41, 57, 65
 **Fingerprint:** `crash · summarize · v1.838 · Empty response — gemini prompt blocked: PROHIBITED_CONTENT` · also 2 more fingerprint(s) across versions v1.838, v1.889, v1.951
 **Report ids:** 140373d5-2b3c-49ee-adbc-036017368ca7, bedfb708-7b9c-4367-874e-5e506e5351f4, 96c6d9d5-e89a-4b2d-a551-ee6125d779c4, 8e0aafe0-1dfe-4b6b-be94-dcd5f44c20e2, 375e509c-2812-46c9-89a7-0bc03810c1eb, 421609cf-e676-4f9f-907a-e8e11c979631, 766022bf-a109-4f29-93a6-1580651bf7bb, 0899b8f1-9cc7-4433-8869-7f61a8d012bb, 05af29bd-6a0e-40b4-93ea-4f5cd73dd202
@@ -96,7 +96,20 @@ PREVIOUS page (ended cleanly):
 
 ### Findings
 
+**2026-09-21 — bug-investigator (read-only)**
+
+- **Verdict:** real bug, root-caused — a named, deterministic-class block is handled as a generic transient and replayed unchanged three turns running.
+- **Mechanism:** (1) Gemini answers HTTP 200 with no candidates and `promptFeedback.blockReason=PROHIBITED_CONTENT`; `parseResponse` (globals.js:389–399) throws "Empty response — gemini prompt blocked: PROHIBITED_CONTENT" with `e.finish=PROHIBITED_CONTENT`, `e.modelRefusal=true`, `e.emptyTransient=false` — the throw carries a branchable flag. (2) `callGM` parses after the transport loop (api.js:3698); the #29 retry and the #29b fallback rung fire only on non-ok HTTP statuses, so a 200-with-block never enters them; the adapter's `buildBody` (globals.js:382) sends no `safetySettings`. (3) `summarize()` (memory.js:2181) sends the window from `sessKeptStart()` to the end — GM halves up to 4000 chars, user halves 500 (memory.js:2220–2228) — under the extractor sysOverride, so `buildSysPrompt()` never runs and the `adultBlock` fiction/adult-opt-in framing (api.js:2387) is absent: the prose arrives as one user part of `assistant: …` lines with no fiction framing. (4) The catch (memory.js:2234–2279) only bumps the persisted strike (`summaryFailureBump`, 2141–2156), reports, and prints "Memory filing failed … retry N of 3" — no in-turn retry, no reframed prompt, no smaller window, no other model (`upgradeModelFor` is unused there and a no-op on Gemini). (5) Next turn `sendAction` (game.js:2614) sees `sessionTokens()>=SUMMARIZE_AT` still true and re-sends the SAME window plus one more exchange → blocked again; strikes 1→2→3 on consecutive turns is exactly this replay. Strike 3 (memory.js:2271–2275) files a degraded chapter (first 200 chars of each GM half, ≤900 chars) and `_sumCommit` shrinks the log.
+- **Evidence:** only `ctx summarize` reports exist — the gameplay call on the same turn carries the same prose as role-tagged history plus `adultBlock` and narrated fine, so the extractor's framing/shape is the lever, not the words alone. The Village singletons (t57, t65, non-consecutive) show the block is not always sticky. The Village is the no-harm kind (data.js:318–327), so the trigger is romantic/adult prose, not violence. Ruled out: transport retry/rung (never reached), the #323/#335 narrate-the-beat retry (gameplay-only), #263 deferral (identity-only).
+- **User-visible consequences:** three "Memory filing failed" lines and three crash toasts; the #17 health line "memory filing failing (N strikes…)"; the gameplay prompt grows for those three turns (bounded by strike 3); then "Memory saved (raw)" — the whole window's structured extraction (npcUpdates, lore, decisions, future/resolved events, supersededFacts, sameNpc, npcDeaths, attire) is silently lost, replaced by scene openings. Degraded canon, not a crash.
+- **Fix sketch:** in `summarize()`'s catch branch on `e.modelRefusal`: ONE same-turn re-attempt with a DIFFERENT shape before counting a strike — a fiction-extraction framing preface on the extract prompt (the `refusalRetryNote` pattern, api.js:3317, adapted) and, if still blocked, a shortened window (GM cap 4000→~1200). Never replay the identical payload; keep the strike-3 raw archive as terminal. `safetySettings` in `buildBody` is legitimate hardening for `SAFETY` blocks, but `PROHIBITED_CONTENT` is Google's non-configurable filter which `BLOCK_NONE` does not lift.
+- **Drift-surface:** YES — `summarize()`/the extractor prompt (memory tier); `buildBody` if safetySettings are added. Fable tier.
+- **Risk:** a reframed or shortened window can change extraction quality or drop facts; an explicit adult-content line in the extractor prompt could raise block rates; a retry that double-counts strikes or bills under #263 deferral breaks pinned tests (engine-tests.js ~21318, ~21564).
+- **Confidence:** high on mechanism; medium on why the extractor shape is blocked when the gameplay shape passes — raise it by replaying the exact `buildExtractPrompt` payload from a blocked save with and without the framing note (dev/probe-gemini-empty.js).
+
 ### Action log
+
+- 2026-09-21 · v1.960 · commit fix(B38) · Fable — mechanism re-verified in code (globals.js parseResponse sets `modelRefusal`; summarize() only bumped a strike and replayed the identical window). Fix in memory.js: `buildExtractWindow` (the old inline composition as one builder, byte-identical under the normal caps), `extractRefusalFraming` + `EXTRACT_REFRAME_CAPS` (1200/300), `extractShapeForFailure`, `summaryFailure.refusal` on a named-block strike; summarize() retries ONCE in the reframed shape on a named block, goes reframed-first next turn while the refusal strike stands, never retries a transient or a reframed refusal, keeps strike 3 as the raw archive, and the system line says when a window was extracted reframed. Tests red→green: `B38 extractor refusal` (5, pure) + `dev/tests-b38-extractor-refusal.js` (5 async scenarios against a stubbed provider — the #183③ branch driven headlessly); `dev/sabotage-b38-extractor-refusal.js` 12/12; full gate 2279. Probe: `node dev/probe-gemini-empty.js <save.tnd> --extract` replays both shapes live (needs GEMINI_API_KEY) — the owner can confirm the reframed shape passes where the normal one is blocked.
 
 ## B39 — "Failed to start the audio device" is back on iPhone in the Village (v1.951) — the B10 class, verified fixed at v1.406, recurs after a long idle page
 **Status:** new
@@ -126,7 +139,7 @@ PREVIOUS page (ended cleanly):
 ### Action log
 
 ## B40 — Renaming a campaign from the picker crashes modalShell — the picker re-opens from the rename input's change handler while the old picker node is already detached (`remove` on a node that is no longer a child)
-**Status:** new
+**Status:** findings-ready
 **Kind:** crash · **First seen:** 2026-09-20 (v1.952) · **Last seen:** 2026-09-20 (v1.952) · **Count:** 1 · **Campaign:** the fae crysalis ×1 · **Turn:** 33
 **Fingerprint:** `crash · window.onerror · v1.952 · Uncaught NotFoundError: Failed to execute 'remove' on 'Element': The node to be removed is no longer a child of this nod`
 **Report ids:** daf3c978-cec3-44f1-af97-45311440d152
@@ -165,6 +178,16 @@ PREVIOUS page (ended cleanly):
 ```
 
 ### Findings
+
+**2026-09-21 — bug-investigator (read-only)**
+
+- **Verdict:** real bug, root-caused.
+- **Mechanism:** the rename input carries two listeners that both call `campSaveRename` — `blur` (ui-campaigns.js:475) and `keydown` Enter (ui-campaigns.js:476) — with no single-fire latch. On Enter, call A saves, then `showCampaignPicker()` → `_showCampaignPickerModal()` → `modalShell` (ui-shell.js:130) calls `ex.remove()` on the OLD `#camp-modal`, which still holds the focused input. Blink dispatches `blur` synchronously to the focused descendant BEFORE detaching and re-checks parentage afterwards. That blur runs call B: the input is still found, the name is saved again, and call B's own `showCampaignPicker` removes the old modal and appends a fresh one. Control returns to call A's `remove()`, the node is no longer a child of body, and Blink throws exactly this message (its own wording for the blur-during-removal case). `Element.remove()` on a parentless node would be a no-op; it throws here because the node was attached at entry and detached mid-call.
+- **Evidence:** the reported column (391:65) matches the keydown line, not the blur line (column 42); both frames sit exactly +85 lines from HEAD (391→476, 410→495), so the block is unchanged since v1.952. `campSaveRename` (479–496) guards only `if(!inp)return`, which cannot help because the input is still in the DOM during the pre-removal blur. `closeAllMenus()` only hides file menus and cannot blur the input. Escape (line 476) takes the same path — and call B then SAVES the typed name, so Escape does not cancel (a second, semantic bug). Clicking away is safe (focus already moved). Persistence: call A ran `setCampMeta` (484) and `saveAll()`/`renameCampaignFolder` (486) before the throw; call B repeated them idempotently. End state: exactly one `#camp-modal` (call B's), so the player sees nothing broken; `window.onerror` files the report. No test drives `campStartRename`.
+- **Fix sketch:** in `campStartRename` (469–478) a one-shot closure owns both events: a `done` latch; blur → commit(save); Enter → commit(save); Escape → commit(cancel) so Escape cancels. The nested blur then no-ops and the outer `remove()` completes. Optional hardening in `modalShell`: move focus out of the old node before removing it (`if(ex.contains(document.activeElement))document.activeElement.blur();`) so a re-rendering caller can never hit the mid-removal parentage check; `if(ex.parentNode)` alone does NOT help. Headless test: fire keydown Enter, assert one save and one modal; fire Escape, assert no save.
+- **Drift-surface:** NO — DOM shell only (ui-campaigns.js picker wiring, ui-shell.js modalShell).
+- **Risk:** a latch placed inside `campSaveRename` would block later renames — keep it per-input in `campStartRename`; the modalShell blur must stay a pure pre-removal focus move. The double cloud push disappears with the latch; nothing to fix separately.
+- **Confidence:** high.
 
 ### Action log
 
