@@ -10,8 +10,8 @@
 var fs=require("fs"),path=require("path");
 var engine=require("./load-engine.js");engine.loadEngine("game.js");
 var args=process.argv.slice(2),n=3,model="gemini-3.7-flash",dry=false,save=null,lines=[];
-var extract=false,win=null;/* B38: replay the CHAPTER EXTRACTOR's exact payload from the save's session log, in both shapes; --window a-b rebuilds that log from the transcript for turns a..b (the blocked windows are long gone from the live log) */
-for(var i=0;i<args.length;i++){if(args[i]==="--n")n=parseInt(args[++i],10)||3;else if(args[i]==="--model")model=args[++i];else if(args[i]==="--dry")dry=true;else if(args[i]==="--extract")extract=true;else if(args[i]==="--window")win=args[++i];else if(!save&&/\.tnd$/i.test(args[i]))save=args[i];else lines.push(args[i]);}
+var extract=false,win=null,bisect=false;/* --bisect (with --extract): one call per exchange of the window, normal shape — WHICH turn carries the block. B38: replay the CHAPTER EXTRACTOR's exact payload from the save's session log, in both shapes; --window a-b rebuilds that log from the transcript for turns a..b (the blocked windows are long gone from the live log) */
+for(var i=0;i<args.length;i++){if(args[i]==="--n")n=parseInt(args[++i],10)||3;else if(args[i]==="--model")model=args[++i];else if(args[i]==="--dry")dry=true;else if(args[i]==="--extract")extract=true;else if(args[i]==="--window")win=args[++i];else if(args[i]==="--bisect")bisect=true;else if(!save&&/\.tnd$/i.test(args[i]))save=args[i];else lines.push(args[i]);}
 if(!save){console.error("usage: node dev/probe-gemini-empty.js <save.tnd> [--n 3] [--model m] [--dry] [--extract] \"player line\" ...\n  --extract: replay the chapter extractor's payload built from the save's session log (B38) — the normal shape and the reframed, shortened shape, n tries each; prints promptFeedback/finishReason per try");process.exit(2);}
 if(!lines.length)lines=["It's... because.... of the... fuck it. Pull her hips down and take her in the tub.","Pull her hips down and take her in the tub."];
 var key=process.env.GEMINI_API_KEY||"";
@@ -23,7 +23,7 @@ var raw=JSON.parse(fs.readFileSync(save,"utf8"));
 worldState=inflateWorldStateSnapshot(raw.worldState);memory=raw.memory||memory;sessionLog=raw.sessionLog||[];
 if(win){/* B38: the exact turns a blocked window covered, rebuilt from the transcript (player → user, gm → assistant, clean text) */
   var _w=String(win).split("-"),_a=parseInt(_w[0],10),_b=parseInt(_w[1],10);if(!(_a>=0&&_b>=_a)){console.error("--window wants a-b, e.g. --window 12-20");process.exit(2);}
-  sessionLog=[];(worldState.transcript||[]).forEach(function(e){if(!e||typeof e.t!=="number"||e.t<_a||e.t>_b)return;if(e.r==="player")sessionLog.push({role:"user",content:String(e.x||"")});else if(e.r==="gm")sessionLog.push({role:"assistant",content:String(e.x||"")});});
+  sessionLog=[];(worldState.transcript||[]).forEach(function(e){if(!e||typeof e.t!=="number"||e.t<_a||e.t>_b)return;if(e.r==="player")sessionLog.push({role:"user",content:String(e.x||""),t:e.t});else if(e.r==="gm")sessionLog.push({role:"assistant",content:String(e.x||""),t:e.t});});
   delete worldState.sessKept;worldState.turn=_b;console.log("window rebuilt from the transcript: turns "+_a+"-"+_b+", "+sessionLog.length+" entries, ~"+sessionTokens()+" tokens");
 }
 activeProvider="gemini";providerModels.gemini=model;
@@ -37,6 +37,17 @@ function shape(data){
   return out;
 }
 (async function(){
+  if(extract&&bisect){
+    /* B38: which exchange carries the block — one normal-shape extractor call per (player, gm) exchange of the window. */
+    var ex=[],ei;for(ei=0;ei<sessionLog.length;ei++){var en=sessionLog[ei];if(!en||en.bk||en.role!=="assistant")continue;var pu=(ei>0&&sessionLog[ei-1]&&sessionLog[ei-1].role==="user"&&!sessionLog[ei-1].bk)?sessionLog[ei-1]:null;ex.push({label:(typeof en.t==="number")?"t"+en.t:"#"+ei,entries:pu?[pu,en]:[en]});}
+    var full=sessionLog,blockedL=[],passedL=[];console.log("bisect: "+ex.length+" exchange(s), normal shape, 1 call each");
+    for(ei=0;ei<ex.length;ei++){sessionLog=ex[ei].entries;delete worldState.sessKept;
+      var bw=buildExtractWindow(EXTRACT_WINDOW_CAPS),bp=buildExtractPrompt("5-8 sentence narrative summary; third person, past tense, the hero by name",[],bw.raw,bw.txt,null),bb=JSON.stringify(prov.buildBody([{role:"user",content:bp}],EXTRACT_SYS,2000*prov.tokScale,model));
+      if(dry){console.log("  "+ex[ei].label+": "+bb.length+" chars");continue;}
+      var br=await fetch(prov.endpoint(model),{method:"POST",headers:prov.headers(key),body:bb}),bt=await br.text(),bd;try{bd=JSON.parse(bt);}catch(e){console.log("  "+ex[ei].label+": HTTP "+br.status+" non-JSON");continue;}
+      var bs=shape(bd),isB=!!bs.promptBlock;(isB?blockedL:passedL).push(ex[ei].label);console.log("  "+ex[ei].label+": "+(isB?"BLOCKED "+bs.promptBlock:"pass")+" ("+bb.length+" chars)");}
+    sessionLog=full;console.log("\nbisect result: blocked "+(blockedL.join(", ")||"none")+" | passed "+(passedL.join(", ")||"none"));return;
+  }
   if(extract){
     /* B38: the extractor's two shapes, exactly as summarize() builds them — normal caps vs the reframed, shortened shape.
        The system instruction is the extractor's own (EXTRACT_SYS); the payload is one user part, like the game sends. */
