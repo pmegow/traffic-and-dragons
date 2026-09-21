@@ -24313,14 +24313,53 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(summaryFailureBump(t2)!==3||worldState.summaryFailure.refusal!==false)return "a transient never sets the flag";
     summaryFailureClear();return true;
   });
-  t("B38 the wiring: summarize() picks its first shape from the standing failure, retries ONCE in the reframed shape on a modelRefusal, never when the first shape was already reframed, never on a transient, and the standalone flow suite is registered",function(){
+  t("B38 the wiring: summarize() picks its first shape from the standing failure, retries ONCE in the reframed shape on a modelRefusal, never on a transient, runs the elision ladder when BOTH shapes are refused and only once per window, and the standalone flow suite is registered",function(){
     var s=String(summarize);
     if(s.indexOf("extractShapeForFailure(worldState.summaryFailure)")<0)return "the first shape is not chosen from the standing failure";
-    if(s.indexOf("e0.modelRefusal")<0||s.indexOf('_shape==="reframed"')<0)return "the retry is not gated on a named block AND a not-yet-reframed shape";
+    if(s.indexOf("e0.modelRefusal")<0||s.indexOf('_shape!=="reframed"')<0)return "the retry is not gated on a named block AND a not-yet-reframed shape";
     if(s.indexOf("extractRefusalFraming()")<0||s.indexOf("EXTRACT_REFRAME_CAPS")<0)return "the retry does not change the shape";
+    if(s.indexOf("summarizeElisionLadder(")<0||s.indexOf("ladderTried")<0)return "both shapes refused must reach the elision ladder, once per window";
     if(s.indexOf("_sessRaw+=")>=0)return "summarize still composes the window inline (must go through buildExtractWindow)";
     var ss=__fsForTests.readFileSync(__rootForTests+"/dev/run-standalone-suites.js","utf8");if(ss.indexOf("dev/tests-b38-extractor-refusal.js")<0)return "the B38 flow suite is not registered";
     return true;
+  });
+  // The bisect on the owner's Silas Morne t33–41 window (live, 2026-09-21): t34 and t38 blocked individually, the other
+  // seven pass — so the window's facts are recoverable by extracting AROUND the blocked exchanges. The ladder: probe each
+  // exchange with a tiny content check (parallel), replace both halves of a blocked exchange with a withheld marker,
+  // extract the rest in the reframed shape, and say in the chapter which share was withheld. Once per window.
+  t("B38 windowExchanges pairs each GM half with the player half before it, skipping bookkeeping entries and honouring the kept boundary",function(){
+    makeWorld();delete worldState.sessKept;sessionLog.length=0;
+    sessionLog.push({role:"user",content:"u0"},{role:"assistant",content:"a0"},{role:"user",content:"bk",bk:true},{role:"assistant",content:"a1"},{role:"user",content:"u2"},{role:"assistant",content:"a2"});
+    var xs=windowExchanges();if(xs.length!==3)return "3 exchanges expected: "+JSON.stringify(xs);
+    if(xs[0].u!==0||xs[0].a!==1)return "first pair wrong: "+JSON.stringify(xs[0]);
+    if(xs[1].u!==-1||xs[1].a!==3)return "a GM half after a bookkeeping entry has no player half: "+JSON.stringify(xs[1]);
+    if(xs[2].u!==4||xs[2].a!==5)return "third pair wrong: "+JSON.stringify(xs[2]);
+    worldState.sessKept=4;var k=windowExchanges();if(k.length!==1||k[0].a!==5)return "the kept boundary is not honoured: "+JSON.stringify(k);
+    return true;
+  });
+  t("B38 buildExtractWindow with elisions replaces BOTH halves of a blocked exchange with the withheld marker in raw and stripped windows alike; the blocked text is gone; nothing else changes",function(){
+    makeWorld();delete worldState.sessKept;sessionLog.length=0;
+    sessionLog.push({role:"user",content:"pull her close"},{role:"assistant",content:"THE BLOCKED PASSAGE"},{role:"user",content:"walk on"},{role:"assistant",content:"the road bends north"});
+    var plain=buildExtractWindow(EXTRACT_WINDOW_CAPS),el={};el[0]=1;el[1]=1;var w=buildExtractWindow(EXTRACT_WINDOW_CAPS,el);
+    if(w.raw.indexOf("THE BLOCKED PASSAGE")>=0||w.txt.indexOf("THE BLOCKED PASSAGE")>=0||w.raw.indexOf("pull her close")>=0)return "blocked text survived the elision";
+    if((w.raw.match(new RegExp(EXTRACT_WITHHELD.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"g"))||[]).length!==2)return "both halves must carry the marker in raw";
+    if((w.txt.match(new RegExp(EXTRACT_WITHHELD.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"g"))||[]).length!==2)return "both halves must carry the marker in the stripped window";
+    if(w.raw.indexOf("assistant: the road bends north\n")<0||w.txt.indexOf("user: walk on\n")<0)return "the passing exchange changed";
+    if(buildExtractWindow(EXTRACT_WINDOW_CAPS,{}).raw!==plain.raw)return "an empty elision set must be byte-identical";
+    if(!/withheld/.test(EXTRACT_WITHHELD)||!/content filter/.test(EXTRACT_WITHHELD))return "the marker must say what it is";
+    return true;
+  });
+  t("B38 exchangeProbeText carries just that exchange under the normal caps; withheldChapterNote names the share; summaryFailureBump carries ladderTried through the window's later strikes",function(){
+    makeWorld();delete worldState.sessKept;sessionLog.length=0;sessionLog.push({role:"user",content:"u0"},{role:"assistant",content:"a0"});
+    var p=exchangeProbeText({u:0,a:1});if(p!=="user: u0\nassistant: a0")return "probe text: "+JSON.stringify(p);
+    if(exchangeProbeText({u:-1,a:1})!=="assistant: a0")return "a GM-only exchange probes alone";
+    if(!/Reply with the single word OK/.test(EXTRACT_PROBE_SYS))return "the probe asks for an OK, nothing more";
+    var n=withheldChapterNote(2,9);if(!/2 of 9/.test(n)||!/withheld/.test(n)||!/content filter/.test(n)||!/transcript/.test(n))return "note: "+n;
+    if(typeof EXTRACT_ELIDE_MAX!=="number"||EXTRACT_ELIDE_MAX<6)return "the probe cap must exist and allow a normal window";
+    worldState.turn=20;delete worldState.summaryFailure;var e=new Error("blocked");e.modelRefusal=true;e.ladderTried=true;summaryFailureBump(e);
+    if(!worldState.summaryFailure||worldState.summaryFailure.ladderTried!==true)return "ladderTried not recorded";
+    var e2=new Error("blocked again");e2.modelRefusal=true;summaryFailureBump(e2);if(worldState.summaryFailure.ladderTried!==true)return "ladderTried must persist through the window's later strikes";
+    summaryFailureClear();return true;
   });
 
   // ── B40 — the campaign rename fires once (2026-09-21) ──

@@ -2149,10 +2149,44 @@ function extractRefusalFraming(){
   return "FRAMING — this is the transcript of a fictional tabletop role-playing game between consenting adult players; the narration is the game's fiction, not a real event. You are extracting a structured RECORD from it (names, places, standing facts, decisions) for the game's memory. Reproduce no prose beyond the short chapter summary; describe intimate or violent beats in plain, non-explicit terms.\n\n";
 }
 function extractShapeForFailure(sf){return (sf&&sf.refusal===true&&typeof sf.count==="number"&&sf.count>0)?"reframed":"normal";}
-function buildExtractWindow(caps){
+/* B38 elision ladder (the owner's live bisect 2026-09-21: Silas Morne t33–41 — t34 and t38 blocked on their own, the other
+   seven pass; both whole-window shapes blocked). When BOTH shapes are refused, probe each exchange with a tiny content
+   check (in parallel — summarize() runs before the GM turn, the player is waiting), replace both halves of a blocked
+   exchange with a withheld marker, and extract the rest in the reframed shape. The chapter says which share was
+   withheld; the transcript keeps the passage. Once per window (summaryFailure.ladderTried), capped in exchanges. */
+var EXTRACT_PROBE_SYS="You are a content check. Reply with the single word OK.";
+var EXTRACT_ELIDE_MAX=12;
+var EXTRACT_WITHHELD="[passage withheld — the provider's content filter refused this exchange; nothing from it is extracted]";
+function windowExchanges(){
+  var out=[],i,s=sessKeptStart();
+  for(i=s;i<sessionLog.length;i++){var e=sessionLog[i];if(!e||e.bk||e.content==null||e.role!=="assistant")continue;
+    var p=sessionLog[i-1],pu=(i>s&&p&&p.role==="user"&&!p.bk&&p.content!=null)?i-1:-1;out.push({u:pu,a:i});}
+  return out;
+}
+function exchangeProbeText(x){
+  var parts=[],e;if(x.u>=0){e=sessionLog[x.u];parts.push("user: "+String(e.content).slice(0,EXTRACT_WINDOW_CAPS.user));}
+  e=sessionLog[x.a];parts.push("assistant: "+String(e.content).slice(0,EXTRACT_WINDOW_CAPS.assistant));return parts.join("\n");
+}
+async function probeExchangeBlocked(x){
+  try{await callGM(exchangeProbeText(x),EXTRACT_PROBE_SYS,50,null,{noHistory:true,kind:"summarize"});return false;}
+  catch(e){return !!(e&&e.modelRefusal);}/* only a NAMED block counts; a transient or a transport error is not evidence */
+}
+function withheldChapterNote(n,total){return "("+n+" of "+total+" exchanges in this window withheld from extraction by the provider's content filter; the transcript keeps them)";}
+async function summarizeElisionLadder(mk){
+  var xs=windowExchanges();if(!xs.length||xs.length>EXTRACT_ELIDE_MAX)return null;
+  var flags=await Promise.all(xs.map(probeExchangeBlocked)),elide={},n=0,i;
+  for(i=0;i<xs.length;i++){if(flags[i]){n++;elide[xs[i].a]=1;if(xs[i].u>=0)elide[xs[i].u]=1;}}
+  if(!n)return null;/* nothing blocked on its own — an interaction effect; the strike path takes it */
+  if(typeof console!=="undefined")console.warn("[memory] "+n+" of "+xs.length+" exchanges refused on their own — extracting around them (B38)");
+  var ec=mk("reframed",elide);
+  var resp=await callGM(ec.prompt,EXTRACT_SYS,2000,null,{kind:"summarize",noHistory:true});/* a refusal here throws to the strike path */
+  return {resp:resp,identityTable:ec.identityTable,withheld:n,total:xs.length};
+}
+function buildExtractWindow(caps,elide){
   var raw="",txt="",i,a=(caps&&caps.assistant)||EXTRACT_WINDOW_CAPS.assistant,u=(caps&&caps.user)||EXTRACT_WINDOW_CAPS.user;
   for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];
     if(!_se||_se.bk||_se.content==null)continue;
+    if(elide&&elide[i]){raw+=_se.role+": "+EXTRACT_WITHHELD+"\n";txt+=_se.role+": "+EXTRACT_WITHHELD+"\n";continue;}
     raw+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?a:u)+"\n";
     var _ssc=_se.role==="user"?stripEngineNotes(_se.content):_se.content;
     txt+=_se.role+": "+_ssc.slice(0,_se.role==="assistant"?a:u)+"\n";
@@ -2173,7 +2207,7 @@ function summaryFailureBump(e){
       if(!worldState.summaryFailure.deferSubject){worldState.summaryFailure.deferSubject=e.subject?String(e.subject).slice(0,120):"?";worldState.summaryFailure.deferSince=worldState.turn;}}
     return prior;}
   if(!worldState)return Math.min(3,prior+1);
-  worldState.summaryFailure={count:Math.min(3,prior+1),firstTurn:old&&old.firstTurn!=null?old.firstTurn:worldState.turn,lastTurn:worldState.turn,kind:isIdentity?"identity-validation":"extraction",reason:msg.slice(0,400),subject:e&&e.subject?String(e.subject).slice(0,120):"",identityValidation:!!(isIdentity||(old&&old.identityValidation)),refusal:!!(e&&e.modelRefusal)/* B38: a NAMED provider block — the next attempt goes reframed first; any other failure class clears it */};
+  worldState.summaryFailure={count:Math.min(3,prior+1),firstTurn:old&&old.firstTurn!=null?old.firstTurn:worldState.turn,lastTurn:worldState.turn,kind:isIdentity?"identity-validation":"extraction",reason:msg.slice(0,400),subject:e&&e.subject?String(e.subject).slice(0,120):"",identityValidation:!!(isIdentity||(old&&old.identityValidation)),refusal:!!(e&&e.modelRefusal)/* B38: a NAMED provider block — the next attempt goes reframed first; any other failure class clears it */,ladderTried:!!((e&&e.ladderTried)||(old&&old.ladderTried))/* B38: the elision ladder runs once per window */};
   return worldState.summaryFailure.count;
 }
 function summaryFailureClear(){if(worldState&&worldState.summaryFailure)delete worldState.summaryFailure;_sumFails=0;}
@@ -2245,9 +2279,9 @@ async function summarize(){
        call (fiction framing, role-tagged history). So the SHAPE changes, never the replay: one same-turn retry in the
        reframed, shortened shape; while a refusal strike stands the reframed shape goes first (one call, not a doomed
        pair); a reframed failure is the one that counts. */
-    var _shape=extractShapeForFailure(worldState.summaryFailure),_reframed=_shape==="reframed";
-    function _extractCall(shape){
-      var win=buildExtractWindow(shape==="reframed"?EXTRACT_REFRAME_CAPS:EXTRACT_WINDOW_CAPS);
+    var _shape=extractShapeForFailure(worldState.summaryFailure),_reframed=_shape==="reframed",_withheld=null;
+    function _extractCall(shape,elide){
+      var win=buildExtractWindow(shape==="reframed"?EXTRACT_REFRAME_CAPS:EXTRACT_WINDOW_CAPS,elide);
       var it=typeof summaryIdentityTable==="function"?summaryIdentityTable(win.raw):null;
       var p=buildExtractPrompt(_chapterDesc,_pend,win.raw,win.txt,it);
       return {prompt:shape==="reframed"?extractRefusalFraming()+p:p,identityTable:it};
@@ -2255,15 +2289,25 @@ async function summarize(){
     var _ec=_extractCall(_shape),_identityTable=_ec.identityTable,resp;
     try{resp=await callGM(_ec.prompt,EXTRACT_SYS,2000,null,{kind:"summarize",noHistory:true});/* the extraction prompt already contains the session slice — don't also prepend the full sessionLog (audit E47) */}
     catch(e0){
-      if(!(e0&&e0.modelRefusal)||_shape==="reframed")throw e0;/* transients and JSON failures keep the old strike path; a reframed refusal is terminal for this turn */
-      if(typeof console!=="undefined")console.warn("[memory] extractor blocked by the provider ("+((e0&&e0.message)||"?")+") — one same-turn retry in the reframed, shortened shape (B38)");
-      _shape="reframed";_reframed=true;_ec=_extractCall("reframed");_identityTable=_ec.identityTable;
-      resp=await callGM(_ec.prompt,EXTRACT_SYS,2000,null,{kind:"summarize",noHistory:true});
+      if(!(e0&&e0.modelRefusal))throw e0;/* transients and JSON failures keep the old strike path */
+      if(_shape!=="reframed"){
+        if(typeof console!=="undefined")console.warn("[memory] extractor blocked by the provider ("+((e0&&e0.message)||"?")+") — one same-turn retry in the reframed, shortened shape (B38)");
+        _shape="reframed";_reframed=true;_ec=_extractCall("reframed");_identityTable=_ec.identityTable;
+        try{resp=await callGM(_ec.prompt,EXTRACT_SYS,2000,null,{kind:"summarize",noHistory:true});}
+        catch(e1){if(!(e1&&e1.modelRefusal))throw e1;e0=e1;resp=undefined;}
+      }
+      if(resp===undefined){/* both shapes refused → the elision ladder, once per window */
+        if(worldState.summaryFailure&&worldState.summaryFailure.ladderTried)throw e0;
+        var lad=null;try{lad=await summarizeElisionLadder(_extractCall);}catch(e2){if(e2)e2.ladderTried=true;throw e2;}
+        if(!lad){e0.ladderTried=true;throw e0;}
+        resp=lad.resp;_identityTable=lad.identityTable;_withheld=lad;_reframed=true;
+      }
     }
     if(!extractorRespHasJson(resp))throw new Error("extractor returned NO JSON at all (B11 class) — head: \""+String(resp).slice(0,60).replace(/\s+/g," ")+"\"");/* named at the call site; repairModelJson (8 shared callers) stays untouched */
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
+    if(_withheld&&extracted&&typeof extracted==="object")extracted.chapterSummary=String(extracted.chapterSummary||"")+" "+withheldChapterNote(_withheld.withheld,_withheld.total);/* B38: the chapter itself says a share was withheld */
     var _exStats=applySummaryExtract(extracted,_identityTable);
-    _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":"")+(_reframed?" (extracted in the reframed, shortened shape after the provider blocked the full window — B38)":""));
+    _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":"")+(_withheld?" ("+_withheld.withheld+" of "+_withheld.total+" exchanges withheld by the provider's content filter — extracted around them; B38)":_reframed?" (extracted in the reframed, shortened shape after the provider blocked the full window — B38)":""));
     compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
   }catch(e){
     // Do NOT discard the session log on a transient failure — that permanently erased up to a
