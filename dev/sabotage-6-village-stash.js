@@ -88,8 +88,8 @@ prove("helpers.js", [
   { label: "\"never mind\" is an action, not an undo",
     find: '/^(?:never mind|nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/', replace: '/^(?:nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/',
     mustFail: "#6E9 Car Mode undo" },
-  { label: "the house group shows outside the village",
-    find: 'if(!def||!def.stashQuantities||typeof worldState==="undefined"||!worldState||!worldState.character)return null;\n  var rows=villageStash(', replace: 'if(!def||typeof worldState==="undefined"||!worldState||!worldState.character)return null;\n  var rows=villageStash(',
+  { label: "the here line goes village-only (#431 replaced the panel's house group; the adventure's tavern would lose its readout)",
+    find: '  if(!node||!node.items||!node.items.length)return "";\n  var parts=[],i;', replace: '  if(!node||!node.items||!node.items.length||!(typeof kindDef==="function"&&kindDef().stashQuantities))return "";\n  var parts=[],i;',
     mustFail: "#6E8 the stash is SEEN" }
 ]);
 prove("game.js", [

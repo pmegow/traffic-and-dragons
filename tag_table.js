@@ -1576,6 +1576,16 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
 {t:"COMPANION_ALIGNMENT",apply:function(text,R){var cAlTags=text.match(/\[COMPANION_ALIGNMENT:([^|\]]+)\|(law|good)([+-]\d+)\]/gi)||[];var cAli;for(cAli=0;cAli<cAlTags.length;cAli++){var cAlp=cAlTags[cAli].match(/\[COMPANION_ALIGNMENT:([^|\]]+)\|(law|good)([+-]\d+)\]/i);if(!cAlp)continue;var cAlCs=findCompanionChar(cAlp[1]);if(!cAlCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cAlp[1].trim()+"' — companion tag dropped (#136③)");continue;}if(!cAlCs.alignLaw)cAlCs.alignLaw=0;if(!cAlCs.alignGood)cAlCs.alignGood=0;if(cAlp[2].toLowerCase()==="law")cAlCs.alignLaw=Math.max(-3,Math.min(3,cAlCs.alignLaw+parseInt(cAlp[3])));else cAlCs.alignGood=Math.max(-3,Math.min(3,cAlCs.alignGood+parseInt(cAlp[3])));var cNewAl=alignLabel(cAlCs.alignLaw,cAlCs.alignGood);if(cNewAl!==cAlCs.actualAlignment){R.muts.push(cAlp[1].trim()+": align "+cNewAl);cAlCs.actualAlignment=cNewAl;}}}}
 ];
 
+/* #431 (owner 2026-09-21): the ONE writer of the turn's summary line — the "Time +5m | Present: … | Here: …" system
+   chunk under the player's action. Both commit paths call it (the direct applyMutsTable commit below, and commitGmTurn
+   in api.js after the W2 pass) — they used to be two byte-identical joins. It appends the HERE readout (hereItemsLine,
+   helpers.js — what lies at the current node, every kind) to the DISPLAYED line only: R.muts stays what the tags did,
+   so the provenance ring and every caller see the mutations alone. UI only — never the transcript, never the prompt. */
+function mutsSummaryEmit(R){
+  var lines=(R&&R.muts)?R.muts.slice():[],here=(typeof hereItemsLine==="function")?hereItemsLine():"";
+  if(here)lines.push(here);
+  if(lines.length&&typeof addMsg==="function")addMsg("system",escHtml(lines.join(" | ")));
+}
 // ── The table-driven parser — THE sole applyMuts body since the v1.261 cutover close ───────────
 function applyMutsTable(text,opts){
   var R={muts:[],turn:worldState.turn};/* audit A15: R.text had no consumer anywhere */
@@ -1755,7 +1765,7 @@ function applyMutsTable(text,opts){
   var _swExp=scheduleSweepExpired(),_swi;
   for(_swi=0;_swi<_swExp.length;_swi++)R.muts.push("Event expired unresolved: "+_swExp[_swi].label);
   if(!(opts&&opts.deferCommit)){
-    if(R.muts.length)addMsg("system",escHtml(R.muts.join(" | ")));
+    mutsSummaryEmit(R);
     syncUI();saveAll();
   }
   return R;

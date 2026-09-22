@@ -23701,12 +23701,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var st=villageStash(villageHouseKey("Silas"));if(!st||st.length!==1||st[0].name!=="Old boots"||st[0].qty!==2||st[0].by!=="Silas")return "villageStash must list qty and provenance: "+JSON.stringify(st);
     var geo=buildGeoBlock();if(!/STASH here/.test(geo)||!/Lantern/.test(geo))return "the tavern's stash must be served as STASH here: "+geo;
     if(!/YOUR HOUSE/.test(geo)||!/Old boots/.test(geo)||!/2/.test(geo.slice(geo.indexOf("YOUR HOUSE"))))return "the hero's own house must be served when elsewhere, with counts: "+geo;
-    if(typeof villageHouseGroup!=="function")return "villageHouseGroup (the panel's pure view model) is missing";
-    var g=villageHouseGroup();if(!g||g.id!=="house"||!g.rows||g.rows.length!==1||!/Old boots/.test(g.rows[0].raw)||!/2/.test(g.rows[0].raw))return "the panel group must show the hero's stash with counts: "+JSON.stringify(g);
+    /* #431: the panel's house group is gone; the readout is the turn line's "Here:" for the CURRENT node (the tavern here) */
+    if(typeof villageHouseGroup!=="undefined")return "villageHouseGroup still ships — the panel group was retired by #431";
+    var hl=hereItemsLine();if(hl!=="Here: Lantern")return "the here line at the tavern: "+JSON.stringify(hl);
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[{name:"x"}].slice(1),items:[],size:"medium",travelMins:null};
     applyMuts("[LOCATION_ITEM:Lantern|placed]");var adv=buildGeoBlock();if(/STASH|YOUR HOUSE/.test(adv)||!/Items here: Lantern/.test(adv))return "the adventure geo block changed: "+adv;
     memory.map.nodes["Sandpoint|Tess's house"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[{name:"Old boots",placed:1,taken:false}],size:null,travelMins:null,owner:"Tess"};
-    if(villageHouseGroup()!==null)return "no house group outside the village, even with a stocked house node";
+    if(hereItemsLine()!=="Here: Lantern")return "the adventure here line reads the CURRENT node only: "+JSON.stringify(hereItemsLine());
     return true;
   });
   t("#6E9 Car Mode undo: parseCarCommand('never mind') → undoItem; undoLastItemMove reverses the last placement or take once and reports when there is nothing to undo",function(){
@@ -25425,6 +25426,53 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(invDropButtonText(1)!=="Delete 1 item"||invDropButtonText(12)!=="Delete 12 items")return invDropButtonText(1)+" / "+invDropButtonText(12);
     if(invDropNamesText(["A","B"])!=="A, B")return "two: "+invDropNamesText(["A","B"]);
     if(invDropNamesText(["A","B","C","D","E","F"])!=="A, B, C, D and 2 more")return "six: "+invDropNamesText(["A","B","C","D","E","F"]);
+    return true;
+  });
+
+  // ── #431 (owner 2026-09-21): the HERE readout rides the turn's summary line, in every kind; the panel's "Your house"
+  // group is retired. hereItemsLine is pure over the CURRENT node's items; mutsSummaryEmit is the ONE writer of the
+  // summary line (both commit paths) and appends it. UI only — never the transcript, never the prompt.
+  section("#431 here line");
+  t("#431 hereItemsLine: village qty rows with ×count and room, emptied rows excluded; adventure toggle rows, taken excluded; empty and mapless cases",function(){
+    villageEF();var hk=villageHouseKey("Silas");
+    memory.map.nodes[hk]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[
+      {name:"Old boots",placed:1,taken:false,qty:2,by:"Silas",min:0,room:"main room"},{name:"Folding camp stove",placed:2,taken:false,qty:1,by:"Silas",min:0},
+      {name:"Lamp oil",placed:1,taken:true,qty:0,by:"Silas",min:0}],size:"small",travelMins:null,owner:"Silas"};
+    worldState.world.sublocation="Silas's house";
+    var l=hereItemsLine();if(l!=="Here: Old boots ×2 (main room), Folding camp stove")return "village: "+JSON.stringify(l);
+    worldState.world.sublocation="the trading post";if(hereItemsLine()!=="")return "a node with nothing here must give \"\"";
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[{name:"Lantern",placed:1,taken:false},{name:"Rope",placed:1,taken:true}],size:"medium",travelMins:null};
+    if(hereItemsLine()!=="Here: Lantern")return "adventure: "+JSON.stringify(hereItemsLine());
+    memory.map.nodes["Sandpoint"].items=[];if(hereItemsLine()!=="")return "empty items must give \"\"";
+    var _mm=memory.map;memory.map=null;var none=hereItemsLine();memory.map=_mm;if(none!=="")return "no map must give \"\"";
+    return true;
+  });
+  t("#431 mutsSummaryEmit appends the here line to the turn's summary and leaves R.muts untouched; a turn with nothing here gets no Here",function(){
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    var _am=addMsg,cap=[];addMsg=function(ty,h){if(ty==="system")cap.push(String(h));return _am(ty,h);};
+    try{
+      applyMuts("[LOCATION_ITEM:Lantern|placed]");
+      if(!cap.length||!/Here: Lantern$/.test(cap[cap.length-1]))return "the summary line does not end with the here line: "+JSON.stringify(cap);
+      var R={muts:["Gold +5"],turn:worldState.turn};mutsSummaryEmit(R);
+      if(R.muts.length!==1)return "mutsSummaryEmit wrote the here line into R.muts (the provenance/caller-visible list)";
+      if(!/^Gold \+5 \| Here: Lantern$/.test(cap[cap.length-1]))return "joined line: "+cap[cap.length-1];
+      memory.map.nodes["Sandpoint"].items=[];cap.length=0;
+      mutsSummaryEmit({muts:["Gold +1"],turn:worldState.turn});if(cap[0]!=="Gold +1")return "a node with nothing here must not get a Here: "+JSON.stringify(cap);
+      cap.length=0;mutsSummaryEmit({muts:[],turn:worldState.turn});if(cap.length)return "an empty summary at an empty node must write nothing";
+    }finally{addMsg=_am;}
+    return true;
+  });
+  t("#431 source: both commit paths write the summary through mutsSummaryEmit and nowhere else; the panel's house group is gone",function(){
+    var tt=__fsForTests.readFileSync(__rootForTests+"/tag_table.js","utf8"),ap=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),up=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),hp=__fsForTests.readFileSync(__rootForTests+"/helpers.js","utf8");
+    if((tt.match(/mutsSummaryEmit\(R\)/g)||[]).length<1)return "tag_table's commit path bypasses mutsSummaryEmit";
+    if((ap.match(/mutsSummaryEmit\(R\)/g)||[]).length<1)return "commitGmTurn's path bypasses mutsSummaryEmit";
+    if(/R\.muts\.join\(" \| "\)/.test(ap))return "api.js still joins the summary line itself";
+    var body=tt.slice(tt.indexOf("function mutsSummaryEmit("),tt.indexOf("function applyMutsTable("));
+    if(!/hereItemsLine\(/.test(body))return "mutsSummaryEmit does not append the here line";
+    if((tt.replace(body,"").match(/R\.muts\.join\(" \| "\)/g)||[]).length)return "tag_table.js joins the summary line outside mutsSummaryEmit";
+    if(/villageHouseGroup/.test(up)||/function villageHouseGroup\(/.test(hp))return "the panel's house group still ships";
     return true;
   });
 

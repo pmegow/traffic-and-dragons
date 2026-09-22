@@ -2453,12 +2453,20 @@ function layoutAskOfferFor(question,key){
   if(!LAYOUT_SPATIAL_RE.test(q))return null;
   return {key:rk,label:(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk};
 }
-/* #6 E8: the inventory panel's house group — the same shape groupInventory's groups carry, over villageStash. null outside
-   a stash kind or when the hero's house holds nothing. */
-function villageHouseGroup(){
-  var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.stashQuantities||typeof worldState==="undefined"||!worldState||!worldState.character)return null;
-  var rows=villageStash(villageHouseKey(worldState.character.name));if(!rows.length)return null;
-  return {id:"house",label:"Your house",rows:rows.map(function(r){return {raw:r.name+(r.qty>1?" x"+r.qty:""),qty:r.qty,by:r.by,placed:r.placed,room:r.room||null};})};/* #408 ④: the room rides the row */
+/* #431 (owner 2026-09-21): what lies at the CURRENT node, as ONE readout for the turn's summary line —
+   "Here: Folding camp stove, Rope ×2 (main room)". Every kind: placed items live on every map node (fileLocationItem
+   keys by the current node), so the line works in an adventure's tavern as in the village house. Rows the party took
+   (adventure toggle) or emptied (village qty 0) are excluded; "" when nothing lies here. This REPLACES the side panel's
+   "Your house" group (#6 E8, villageHouseGroup — deleted): the readout rides the info chunk beside "Present:", the
+   panel keeps only the counter/chest/design rows. It is a UI line only — never the transcript, never the prompt. */
+function hereItemsLine(){
+  if(typeof worldState==="undefined"||!worldState||!worldState.world||typeof memory==="undefined"||!memory||!memory.map||!memory.map.nodes)return "";
+  var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return "";
+  var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk];
+  if(!node||!node.items||!node.items.length)return "";
+  var parts=[],i;
+  for(i=0;i<node.items.length;i++){var it=node.items[i];if(!it||!it.name||it.taken||it.qty===0)continue;parts.push(it.name+(it.qty>1?" ×"+it.qty:"")+(it.room?" ("+it.room+")":""));}
+  return parts.length?"Here: "+parts.join(", "):"";
 }
 /* #6 G: the Hall's node key — one place, one key. */
 function villageHallKey(base){var v=base||(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|the Village Hall";}

@@ -327,11 +327,9 @@ function updateInvPanel(){
       h+='<div class="ii has-tip'+(eq?' eq':'')+'" data-item="'+escHtml(row.raw)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.raw)+_invTipCats(row,grp.id))+'">'+invItemHtml(row.raw)+(typeof isWorn==="function"&&isWorn(_ap,row.raw)?' <span style="color:var(--t2);font-size:10px;">· worn</span>':'')+'</div>';/* #388: plain-text marker, no pill (the no-borders rule) */
     }
   }
-  /* #6 E8: the hero's own stash, rendered from the same pure view model the prompt reads (villageHouseGroup) — plain rows,
-     not clickable: what is in the house is not on the person. Village only; "" elsewhere. */
-  var hg=(typeof villageHouseGroup==="function")?villageHouseGroup():null;
-  if(hg){var hOpen=_invSecOpen[hg.id]!==false,hj;h+='<div class="inv-cat" data-sec="'+hg.id+'" onclick="invToggleSec(this.dataset.sec)">'+(hOpen?"&#9662; ":"&#9656; ")+escHtml(hg.label)+' <span class="inv-cat-n">'+hg.rows.length+"</span></div>";
-    if(hOpen)for(hj=0;hj<hg.rows.length;hj++){var hr=hg.rows[hj];h+='<div class="ii" title="'+escHtml((hr.by?"left by "+hr.by:"")+(hr.placed!=null?" at turn "+hr.placed:"")+(hr.room?" — "+hr.room:""))+'" style="color:var(--t1);">'+escHtml(hr.raw)+(hr.room?' <span style="color:var(--t2);font-size:10px;">— '+escHtml(hr.room)+'</span>':'')+'</div>';}}
+  /* #6 E8 → #431 (owner 2026-09-21): the "Your house" item group left this panel — what lies at the current node now
+     rides the turn's summary line ("Here: …", hereItemsLine via mutsSummaryEmit) in every kind. The panel keeps only
+     the rows that DO something: the counter, the chest, the design surface. */
   /* #407: the counter — village only, and only where the trade gate is open (a shop with its keeper present) */
   if(typeof kindDef==="function"&&kindDef().waresPerShop&&typeof villageTradeContext==="function"&&typeof showShopModal==="function"){var _vtc=villageTradeContext();if(_vtc.ok)h+=_invLedgerRow("showShopModal","⇆ Trade with "+escHtml(_vtc.keeper),"Buy and sell at the counter");}
   /* #6 E11: the chest — only in the hero's own house */

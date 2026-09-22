@@ -3257,7 +3257,7 @@ function applyMuts(text,opts){
     worldState.tagLog.push(_tlEntry);
     if(worldState.tagLog.length>TAG_LOG_CAP)worldState.tagLog=worldState.tagLog.slice(worldState.tagLog.length-TAG_LOG_CAP);
   }catch(_tle){if(typeof console!=="undefined")console.warn("[tags] provenance ring write failed:",_tle&&_tle.message);}
-  if(R.muts.length)addMsg("system",escHtml(R.muts.join(" | ")));
+  mutsSummaryEmit(R);/* #431: the one writer of the turn's summary line (tag_table.js) — appends the HERE readout */
   /* #272 D1: opts.deferSave — passed ONLY by commitGmTurn, which owns the turn's SINGLE save
      after the transcript pair and the speaker stamp land (three full-transcript LZ passes per
      turn collapse to one; the f70 mechanism). Every other caller keeps the immediate save. UA6
