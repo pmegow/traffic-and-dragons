@@ -1379,6 +1379,16 @@ try {
   console.log("[#429] batch drop battery registered");
 } catch (e) { console.error("BATCH DROP CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── #430 LEDGER ROWS LIVE CONTRACT (v1.966) ──────────────────────────────────────────────
+// The inventory panel's trade/stash rows used to bake the busy flag into their paint, and the turn's own
+// repaint runs before busy clears — every row painted by a turn stayed dead. The battery
+// dev/tests-430-ledger-rows-live.js proves the click-time gate and the source shape. This clause guards
+// that the gate still RUNS it.
+try {
+  if (_src("dev/run-standalone-suites.js").indexOf("dev/tests-430-ledger-rows-live.js") < 0) throw new Error("the #430 battery is not in run-standalone-suites.js — the gate no longer runs it.");
+  console.log("[#430] ledger rows live battery registered");
+} catch (e) { console.error("LEDGER ROWS LIVE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────
 // The wire format is the disk format ({__lz} transcript), and the reconcile ADOPT used to
 // consume the pulled blob RAW (worldState = data.worldState — never parseWorldState): shipping

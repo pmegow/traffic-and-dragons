@@ -79,7 +79,11 @@ test("E1 the ledger openers and the inventory rows that launch them read busy", 
   var stash = m.slice(m.indexOf("function showStashModal("), m.indexOf("function showRulesModal("));
   assert(/busy/.test(shop), "showShopModal opens a ledger during a GM turn");
   assert(/busy/.test(stash), "showStashModal opens a ledger during a GM turn");
-  assert(/_invLedgerBusy\(\)/.test(p), "the inventory panel's ledger rows are not gated on busy");
+  /* #430 (2026-09-21): the panel's gate moved from PAINT time to CLICK time — the paint-time version left every
+     row a turn painted dead, because syncUI runs before busy clears. The one gate is invLedgerOpen. */
+  var gate = p.slice(p.indexOf("function invLedgerOpen("), p.indexOf("function _invLedgerRow("));
+  assert(/busy/.test(gate), "the inventory panel's ledger gate does not read busy");
+  assert(/onclick="invLedgerOpen\(this\.dataset\.open\)"/.test(p), "the inventory panel's ledger rows do not route through the one click-time gate");
 });
 
 // ── E2 · the Sync modal patches through the real filers ──────────────────────
