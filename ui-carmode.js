@@ -553,6 +553,53 @@ function _carAutoMic() {
   }, 800);
 }
 
+// ── #19 second pass (2026-09-22): IDEMPOTENT transport ──────────────────────────────────────
+// "play" and "pause" used to route into _carTap(), a TOGGLE — so a head unit that re-sends PLAY on
+// its own (many do after a call-profile switch or on reconnect) paused the very narration it meant
+// to keep playing, and a redundant PAUSE resumed a paused one. Now "play" resumes only a paused
+// read and "pause" pauses only a playing one; anything else is a no-op. An idle "play" still
+// replays the last narration (rank 11), but never while a turn is in flight (the GM is about to
+// replace that read) or the mic is open (a spontaneous PLAY at a profile switch would kill the
+// dictation). The on-screen tap keeps its toggle — a tap is a deliberate gesture, a command is
+// not. Every command is crumbed with the state it arrived in, rate-limited per kind so a spamming
+// unit reads as a rising count rather than evicting the 24-entry ring. Returns what it did, for
+// dev/tests-19b-carmode-transport.js.
+var _carMediaCrumbAt = {}, _carMediaCount = {};
+var CAR_MEDIA_CRUMB_WINDOW_MS = 2000;
+function _carTransportState() {
+  if (typeof TTS !== "undefined" && TTS.isPlaying()) return "playing";
+  if (typeof TTS !== "undefined" && TTS.isPaused()) return "paused";
+  if (typeof STT !== "undefined" && typeof STT.isListening === "function" && STT.isListening()) return "listening";
+  if (typeof busy !== "undefined" && busy) return "busy";
+  return "idle";
+}
+function _carMediaCrumb(kind, state) {
+  var n = (_carMediaCount[kind] || 0) + 1;
+  _carMediaCount[kind] = n;
+  if (typeof erCrumb !== "function") return;
+  var now = Date.now();
+  if (_carMediaCrumbAt[kind] && now - _carMediaCrumbAt[kind] < CAR_MEDIA_CRUMB_WINDOW_MS) return;
+  _carMediaCrumbAt[kind] = now;
+  erCrumb("media-action", kind + " " + state + " #" + n);
+}
+function _carTransport(kind) {
+  if (!carMode) return "off";
+  var state = _carTransportState();
+  _carMediaCrumb(kind, state);
+  if (kind === "play") {
+    if (state === "paused") { TTS.pause(); _carSetStatus(CAR_STR.narratorSpeaking); _carSyncBtn(); return "resume"; }
+    if (state === "idle")   { _carDoReplay(); return "replay"; }
+    return "noop";   // already playing, a turn in flight, or the mic open
+  }
+  if (kind === "pause") {
+    if (state !== "playing") return "noop";
+    TTS.pause(); _carSetStatus(CAR_STR.paused); _carSyncBtn(); return "pause";
+  }
+  if (kind === "next") { _carNext(); return "next"; }
+  if (kind === "prev") { _carPrev(); return "prev"; }
+  return "noop";
+}
+
 // round-2 #30 — action handlers, registered ONCE from showCarMode. They were previously
 // re-registered on every _carUpdate()/_carMediaSession() call (every syncUI tick, i.e. every
 // game-state change) for no benefit — the closures don't capture anything per-call, so this
@@ -560,24 +607,13 @@ function _carAutoMic() {
 function _carMediaHandlers() {
   if (!("mediaSession" in navigator)) return;
   try {
-    // rank 11 — steering-wheel play/pause must never open a hot mic. While TTS is active
-    // both map onto the existing pause toggle (_carTap already routes that correctly); while
-    // idle, "play" replays the last narration instead of falling into _carTap's mic-start
-    // branch, and "pause" is a no-op (nothing to pause).
-    navigator.mediaSession.setActionHandler("play", function() {
-      if (!carMode) return;
-      var ttsActive = typeof TTS !== "undefined" && (TTS.isPlaying() || TTS.isPaused());
-      if (ttsActive) { _carTap(); return; }
-      _carDoReplay();
-    });
-    navigator.mediaSession.setActionHandler("pause", function() {
-      if (!carMode) return;
-      var ttsActive = typeof TTS !== "undefined" && (TTS.isPlaying() || TTS.isPaused());
-      if (ttsActive) _carTap();
-      // idle: no-op — the mic must never start from a mediaSession event
-    });
-    navigator.mediaSession.setActionHandler("nexttrack",     function() { if (carMode) _carNext(); });
-    navigator.mediaSession.setActionHandler("previoustrack", function() { if (carMode) _carPrev(); });
+    // rank 11 — steering-wheel play/pause must never open a hot mic; #19 second pass — and they
+    // are IDEMPOTENT (see _carTransport). All four commands go through one dispatcher so each is
+    // crumbed with the state it arrived in.
+    navigator.mediaSession.setActionHandler("play",          function() { _carTransport("play"); });
+    navigator.mediaSession.setActionHandler("pause",         function() { _carTransport("pause"); });
+    navigator.mediaSession.setActionHandler("nexttrack",     function() { _carTransport("next"); });
+    navigator.mediaSession.setActionHandler("previoustrack", function() { _carTransport("prev"); });
   } catch(e) {}
 }
 

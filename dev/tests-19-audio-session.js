@@ -3,7 +3,7 @@
 const assert = require('assert/strict'), fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 function fixture(kind, options = {}) {
-  const calls = [], warnings = [], toasts = [], recorders = [], recognizers = [];
+  const calls = [], warnings = [], toasts = [], recorders = [], recognizers = [], crumbs = [], contexts = [], buffers = [];
   let liveMic = 0, route = 'car', type = 'auto', sources = 0;
   const input = { value: '', style: {}, focus() {}, blur() {}, classList: { add() {}, remove() {} } };
   const session = {};
@@ -31,8 +31,10 @@ function fixture(kind, options = {}) {
   Recognition.prototype.stop = function() { calls.push('stop requested'); };
   Recognition.prototype.abort = Recognition.prototype.stop;
   Recognition.prototype.finish = function() { liveMic--; calls.push('mic ended'); this.onend(); };
-  function Context() { this.state = 'running'; this.sampleRate = 22050; this.destination = {}; }
-  Context.prototype.createBuffer = function() { return {}; };
+  function Context() { this.state = 'running'; this.sampleRate = 22050; this.destination = {}; this.listeners = []; contexts.push(this); }
+  Context.prototype.addEventListener = function(type, fn) { if (type === 'statechange') this.listeners.push(fn); };
+  Context.prototype.setState = function(state) { this.state = state; this.listeners.slice().forEach(fn => fn({ target: this })); };
+  Context.prototype.createBuffer = function(channels, length) { const data = new Float32Array(length || 0); buffers.push(data); return { length: length || 0, getChannelData: () => data }; };
   Context.prototype.createBufferSource = function() {
     sources++;
     return { context: this, connect() {}, start() {}, stop() {} };
@@ -60,11 +62,12 @@ function fixture(kind, options = {}) {
     document: { addEventListener() {}, getElementById: id => id === 'action-input' ? input : null },
     store: { get: () => '', set() {} }, providerKeys: { openai: 'fixture' },
     MediaRecorder: Recorder, eachMenuEl() {}, showToast: m => toasts.push(m),
-    carMode: false, busy: false, setTimeout: () => 1, clearTimeout() {}, setInterval: () => 1, clearInterval() {}
+    carMode: false, busy: false, setTimeout: () => 1, clearTimeout() {}, setInterval: () => 1, clearInterval() {},
+    erCrumb: (evt, data) => crumbs.push(evt + (data == null ? '' : ' ' + String(data)))
   };
   vm.createContext(c);
   ['audio-events.js', 'tts.js', 'stt.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), c, { filename: f }));
-  return { c, calls, warnings, toasts, recognizers, recorders, session,
+  return { c, calls, warnings, toasts, recognizers, recorders, session, crumbs, contexts, buffers,
     route: () => route, liveMic: () => liveMic, sources: () => sources };
 }
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
@@ -145,6 +148,45 @@ async function test(name, fn) {
     assert.equal(f.liveMic(), 0);
     assert(f.warnings.some(s => /session refused/.test(s)));
     assert(f.toasts.some(s => /session refused/.test(s)));
+  });
+  // ── #19 second pass (2026-09-22): the car verification failed with a new symptom, so the
+  // handoff is INSTRUMENTED (every transition rides the #16 crumb ring) and the primer can no
+  // longer emit digital silence. These four groups fail on the v1.943 code.
+  await test('audio-session transitions are crumbed as from>to', async () => {
+    const f = fixture('native'); f.c.TTS.primeAudioSession();
+    f.c.STT.start(); f.recognizers[0].finish();
+    // the fixture's mic open models the platform resolving 'auto' to play-and-record, so the
+    // restore crumb names THAT as its from-side — exactly what the ring should show on a real phone
+    assert.deepEqual(f.crumbs.filter(s => s.startsWith('audio-session ')),
+      ['audio-session auto>playback', 'audio-session playback>auto', 'audio-session play-and-record>playback']);
+    f.c.TTS.primeAudioSession();
+    assert.equal(f.crumbs.filter(s => s.startsWith('audio-session ')).length, 3, 'a same-value set must not crumb');
+  });
+  await test('the primer floor is dither, never digital silence', async () => {
+    const f = fixture('native'); f.c.TTS.primeAudioSession();
+    assert.equal(f.buffers.length, 1);
+    const d = f.buffers[0]; let nonzero = 0, peak = 0;
+    for (const x of d) { if (x !== 0) nonzero++; peak = Math.max(peak, Math.abs(x)); }
+    assert(d.length > 0 && nonzero > d.length / 2, 'primer buffer is digital silence — a head unit that mutes on silence mutes every gap');
+    assert(peak <= 1, 'primer dither exceeds full scale');
+  });
+  await test('read-start route fingerprint is coalesced, and forced after a capture ends', async () => {
+    const f = fixture('native'); f.c.TTS.primeAudioSession();
+    const route = () => f.crumbs.filter(s => s.startsWith('read-route '));
+    f.c.TTS._audioSessionTest.routeCrumb('read'); f.c.TTS._audioSessionTest.routeCrumb('read');
+    assert.equal(route().length, 1, 'identical fingerprints must coalesce (the ring holds 24 entries)');
+    assert.match(route()[0], /as=playback/); assert.match(route()[0], /cap=0/);
+    f.c.STT.start(); f.recognizers[0].finish();
+    f.c.TTS._audioSessionTest.routeCrumb('read');
+    assert.equal(route().length, 2, 'the first read after a capture must always be fingerprinted');
+    f.c.TTS._audioSessionTest.routeCrumb('read');
+    assert.equal(route().length, 2, 'the force is one-shot');
+  });
+  await test('narration context state changes are crumbed', async () => {
+    const f = fixture('native'); f.c.TTS.primeAudioSession();
+    assert.equal(f.contexts.length, 1);
+    f.contexts[0].setState('interrupted'); f.contexts[0].setState('interrupted'); f.contexts[0].setState('running');
+    assert.deepEqual(f.crumbs.filter(s => s.startsWith('ctx-state ')), ['ctx-state interrupted', 'ctx-state running'], 'a repeated state within the window must not crumb');
   });
   console.log((process.exitCode ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' Bluetooth session groups');
 })();

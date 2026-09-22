@@ -70,3 +70,65 @@ kept its TODO #6 changes, and assigned Bluetooth v1.943 with a fresh cache marke
 Production CI on d23405f already failed its v1276 replay at byte 4379 (expected
 12585 bytes, replayed 12709); this is separate from the Bluetooth change. No replay
 baseline or drift-stack code was changed to clear that failure.
+
+## Second pass, 2026-09-22 (v1.972)
+
+Owner field result on v1.943: narration now reaches the car stereo (the routing half
+works) but is unintelligible — "the Bluetooth drops in and out rapid fire". Bluetooth
+headphones and YouTube Music in the same car are clean.
+
+### What is established (code read, WebKit source, Apple forums; no car hardware)
+
+- iOS routes any active capture over the hands-free profile (HFP/SCO: 8–16 kHz mono, no
+  retransmission). A2DP cannot be duplex (Apple forum 730599, 737904).
+- WebKit's play-and-record is PlayAndRecord + AllowBluetooth + AllowBluetoothA2DP +
+  DefaultToSpeaker (`AudioSessionIOS.mm`). `navigator.audioSession.type = "playback"` is an
+  immediate category OVERRIDE (`DOMAudioSession.cpp`), and while an override is set WebKit
+  refuses its own category updates ("override set, NOT changing").
+- The iPhone runs the cloud STT path: `webkitSpeechRecognition` does not work in home-screen
+  web apps (Apple forum 748048). Push-to-talk, one mic cycle per turn — so the profile
+  switch is per turn, and a RETAINED route explains a rapid symptom better than flapping.
+
+### Ranked candidate mechanisms (none confirmed)
+
+1. Narration riding the hands-free link after a mic cycle: the `playback` re-assert lands
+   synchronously at capture end while iOS is still tearing capture down. SCO breaking up
+   IS "drops in and out rapid fire"; wideband SCO on headphones merely sounds tinny. The
+   app's idempotence check reads back what it set, not the effective category.
+2. Per-sentence gaps meeting head-unit silence-mute: units are gapless only while synthesis
+   stays ahead, and the primer emitted exact digital zeros between them.
+3. Toggle-style Media Session handlers: `play` and `pause` both ran `_carTap()`, so a head
+   unit's own redundant PLAY paused the read and an idle PLAY replayed it mid-turn.
+
+### Shipped
+
+- Instrumentation on the #16 crumb ring (24 entries, File ▸ ⚠ Report bug): `audio-session
+  from>to` on every real type transition; `ctx-state <state>` on every narration-context
+  state change (2 s window per state); `read-route <why> ol= bl= st= as= cap=` at read start
+  (`outputLatency`/`baseLatency` in 5 ms buckets, coalesced, forced on the first read after a
+  capture); `media-action <kind> <state> #n` per transport command (2 s window per kind).
+- The primer floor is full-scale noise under the 1e-4 gain (−80 dBFS): never digital silence.
+- Idempotent transport (`_carTransport`): `play` resumes only a paused read, `pause` pauses
+  only a playing one, idle `play` replays only when no turn is in flight and the mic is closed.
+- Batteries written failing-first: `dev/tests-19-audio-session.js` (12 groups, four new) and
+  `dev/tests-19b-carmode-transport.js` (8 groups, four of which fail on v1.971).
+
+### Deliberately not shipped
+
+The delayed or re-kicked `playback` re-assert for mechanism 1. Under one plausible WebKit
+model (capture accounting lingering after the tracks stop) a blind `auto`→`playback` re-kick
+flips the car BACK to hands-free right before the read, and the field shows the current
+override does apply (the audio reaches the car at all). The timing change waits for evidence:
+a `read-route` crumb whose `ol=` is short while `as=playback` would justify it.
+
+### Reading the next drive's crumbs
+
+| Ring shows | Meaning |
+|---|---|
+| `read-route … as=playback` with a SHORT `ol=` after a capture, long before it | mechanism 1: the read is on the hands-free link |
+| `ctx-state interrupted` bursts around reads | the car is flipping profiles under the context |
+| `media-action play playing #n` with n climbing | the head unit sends PLAY on its own (mechanism 3, now harmless) |
+| none of the above, still choppy | mechanism 2 or car-side A2DP; compare the native voice |
+
+Two-minute checks: one full narration BEFORE any mic use; the head unit's screen during a
+garbled read; the 🎙 telephone-quality toast; the native voice for one turn; ambience off.
