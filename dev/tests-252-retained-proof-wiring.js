@@ -42,6 +42,22 @@ test("applicability scan rejects a stale target in a disposable fixture", functi
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 
+test("applicability scan rejects an ambiguous target (a find that matches twice) in a disposable fixture", function () {
+  var tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-applicability-ambiguous-"));
+  try {
+    fs.mkdirSync(path.join(tmp, "dev"));
+    fs.writeFileSync(path.join(tmp, "target.js"), "if(!node)return fail;\nfunction other(){ if(!node)return fail; }\n", "utf8");
+    fs.writeFileSync(path.join(tmp, "dev", "sabotage-fixture.js"),
+      'if(process.env.TND_SABOTAGE_APPLICABILITY_ONLY==="1")module.exports=[{file:"target.js",label:"ambiguous fixture",find:"if(!node)return fail;",replace:"if(!node)return ok;"}];\n', "utf8");
+    var run = cp.spawnSync(process.execPath, ["dev/check-sabotage-applicability.js", "--root", tmp], {
+      cwd: ROOT, encoding: "utf8"
+    });
+    var out = output(run);
+    if (run.status === 0) return "ambiguous fixture passed (the harness would mutate the first match and the clause could guard the wrong site): " + out;
+    return out.indexOf("ambiguous fixture find target is ambiguous (2 matches)") >= 0 ? "" : "named ambiguous-target failure missing: " + out;
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
 test("applicability scan shares sabotage.js LF-to-CRLF target normalization", function () {
   var tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-applicability-crlf-"));
   try {

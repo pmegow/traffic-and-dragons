@@ -10,7 +10,7 @@ rc |= sabotage.prove({also:also,file:"ambient.js",command:["node",["dev/run-test
 ]});
 rc |= sabotage.prove({also:also,file:"ambient.js",command:["node",["dev/tests-l7-ambient.js"]],cases:[
  {label:"same-scene source is recreated on every UI sync",mustFail:"FAIL L7 same scene reuses one source",find:"!desired.scene || source || pending",replace:"!desired.scene || pending"},
- {label:"stale decoded audio is admitted after leaving",mustFail:"FAIL L7 leave during load",find:"!disposed && !job.cancelled && job.epoch === epoch) {",replace:"!disposed) {"},
+ {label:"stale decoded audio is admitted after leaving",mustFail:"FAIL L7 leave during load",find:"!disposed && !job.cancelled && job.epoch === epoch) {\n        try {",replace:"!disposed) {\n        try {"},/* anchored on the success path's try — the same guard opens the error path (ambiguous-find census 2026-09-21) */
  {label:"audio failure retries on every UI update",mustFail:"FAIL L7 failure is visible once",find:"pending || failedKey === key",replace:"pending"},
  {label:"decoded memory cap is removed",mustFail:"FAIL L7 buffer admission",find:"buffer.length * buffer.numberOfChannels * 4 > bed.maxDecodedBytes ||",replace:""}
 ]});

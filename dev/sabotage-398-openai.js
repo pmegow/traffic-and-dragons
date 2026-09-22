@@ -11,7 +11,7 @@ var transport=[
  {label:'body deadline depends solely on a cooperating fetch',find:'var bytes = new Uint8Array(await response.arrayBuffer());',replace:'clearTimeout(timer); var bytes = new Uint8Array(await response.arrayBuffer());',mustFail:'#398 deadline aborts stalled body'},
  {label:'Stop leaves paid requests running',find:'if (_cloudAbort) _cloudAbort();',replace:'/* cancellation removed */',mustFail:'#398 Stop aborts every prefetched request'},
  {label:'quota responses are treated as audio',find:'if (!response.ok) return { fail: "HTTP "',replace:'if (false) return { fail: "HTTP "',mustFail:'#398 rejected or malformed audio'},
- {label:'PCM plays at the wrong rate',find:'return { bytes: bytes, rate: 24000 };',replace:'return { bytes: bytes, rate: 22050 };',mustFail:'#398 request uses speech model'}
+ {label:'PCM plays at the wrong rate',find:'return { fail: "invalid PCM audio response" };\n        return { bytes: bytes, rate: 24000 };',replace:'return { fail: "invalid PCM audio response" };\n        return { bytes: bytes, rate: 22050 };',mustFail:'#398 request uses speech model'}/* anchored on the OpenAI adapter's own line — the bare return also sits in the shared voice-request path (ambiguous-find census 2026-09-21) */
 ];
 var a=sabotage.prove({file:'tts.js',command:['node',['dev/run-tests.js','#398']],cases:selection});
 var b=sabotage.prove({file:'tts.js',command:['node',['dev/tests-398-openai.js']],cases:transport});

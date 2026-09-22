@@ -43,7 +43,9 @@ prove("memory.js", [
     find: 'pr=_pinTo;}', replace: 'pr=pr;}',
     mustFail: "#6F4 prices pinned" },
   { label: "a missing node is a silent drop again",
-    find: 'if(!node)return {ok:false,reason:"no such place on the map",key:key};', replace: 'if(!node)return {ok:true,key:key};',
+    /* anchored on fileLocationItem's own next line: the bare refusal string also appears earlier in fileLayout (#408,
+       2026-09-14), and the harness mutates the FIRST match — this clause had been sabotaging the wrong function since. */
+    find: '  if(!node)return {ok:false,reason:"no such place on the map",key:key};\n  var items=node.items,idx=-1,i;', replace: '  if(!node)return {ok:true,key:key};\n  var items=node.items,idx=-1,i;',
     mustFail: "#6E3 a missing node refuses LOUDLY" }
 ]);
 prove("tag_table.js", [

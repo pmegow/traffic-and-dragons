@@ -392,8 +392,8 @@ rc|=sabotage.prove({
     {
         "label": "the twice-ignored retirement dies — the registration note becomes permanent noise",
         "mustFail": "P7: two ignored nudges retire the name for good",
-        "find": "  rec.count++;rec.turn=worldState.turn;",
-        "replace": "  rec.turn=worldState.turn;"
+        "find": "  rec.count++;rec.turn=worldState.turn;\n  return \"[ENGINE NOTE — UNREGISTERED RECURRING NAME",
+        "replace": "  rec.turn=worldState.turn;\n  return \"[ENGINE NOTE — UNREGISTERED RECURRING NAME"
     }
 ]
 });

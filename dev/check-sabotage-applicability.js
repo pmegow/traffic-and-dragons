@@ -23,6 +23,18 @@ function applyMutation(source, c) {
   return at < 0 ? source : source.slice(0, at) + cRepl + source.slice(at + cFind.length);
 }
 
+/* Occurrences of a string find in its target, with the same LF-to-CRLF folding applyMutation uses. */
+function countMatches(source, cFind) {
+  if (source.indexOf(cFind) < 0 && cFind.indexOf("\n") >= 0) {
+    var crlfFile = source.indexOf("\r\n") >= 0;
+    var folded = cFind.replace(/\r\n/g, "\n").replace(/\n/g, crlfFile ? "\r\n" : "\n");
+    if (source.indexOf(folded) >= 0) cFind = folded;
+  }
+  var n = 0, at = 0;
+  while ((at = source.indexOf(cFind, at)) >= 0) { n++; at += cFind.length || 1; }
+  return n;
+}
+
 function collectFrameworkBattery(file, clauses) {
   var originalLoad = Module._load, originalExit = process.exit;
   Module._load = function (request, parent, isMain) {
@@ -106,6 +118,13 @@ function problems(root) {
       continue;
     }
     if (after === before) failures.push(clause.battery + " :: " + clause.spec.label + " find target is stale in " + clause.file);
+    // 2026-09-21 (the #6E3 case): a string find that matches MORE THAN ONCE is ambiguous — the harness mutates the
+    // FIRST match, so the clause may be sabotaging the wrong site while its guard stays green (a week of false proof
+    // after a same-worded refusal landed earlier in the file). Anchor every clause on a unique span.
+    else if (typeof clause.spec.mutate !== "function" && !(clause.spec.find instanceof RegExp) && clause.spec.find != null) {
+      var n = countMatches(before, String(clause.spec.find));
+      if (n > 1) failures.push(clause.battery + " :: " + clause.spec.label + " find target is ambiguous (" + n + " matches) in " + clause.file + " — the harness mutates the first; anchor on a unique span");
+    }
   }
   return { batteries: inventory.batteries.length, clauses: inventory.clauses.length, failures: failures };
 }

@@ -23678,7 +23678,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("#6E6 owner on the node on EVERY path: the swap's resident demotion mints the old hero's house with its owner (import already did)",function(){
-    villageEF();var r=swapPlayerCharacter("Daeris");if(!r||!r.ok)return "fixture: swap failed "+JSON.stringify(r);
+    villageEF();
+    /* 2026-09-21 (sabotage found a false proof): the fixture had already minted Silas's house, so the demotion's own
+       villageHouseEnsure was never what this assertion exercised — remove the mint and stand elsewhere. */
+    delete memory.map.nodes[villageHouseKey("Silas")];worldState.world.sublocation=null;
+    var r=swapPlayerCharacter("Daeris");if(!r||!r.ok)return "fixture: swap failed "+JSON.stringify(r);
     var hk=villageHouseKey("Silas"),node=memory.map.nodes[hk];if(!node)return "no house for the demoted hero at "+hk;
     if(node.owner!=="Silas"||node.parent!=="The Village")return "the demoted hero's house must carry its owner under the village: "+JSON.stringify(node);
     return true;
