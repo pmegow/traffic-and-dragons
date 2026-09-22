@@ -1611,21 +1611,12 @@ var TTS = (function() {
   function _resumeCtx(ctx, tag) {
     if (!ctx) return;
     if (ctx.state === "suspended" || ctx.state === "interrupted") {
-      try {
-        var pr = ctx.resume();
-        if (pr && pr.then) pr.then(null, function(e) {
-          _ctxRefusals++;
-          var why = (e && (e.name + ": " + e.message)) || String(e);
-          // v1.421 — a REFUSED resume means this context object is finished, not busy. iOS does
-          // not hand an interrupted AudioContext back; resume() rejects on it forever. Mark it so
-          // recoverAudio() replaces it instead of asking again (which is all this app did, from
-          // four separate call sites, for as long as the bug existed).
-          if (ctx === _audioCtx) _ctxDoomed = true;
-          console.warn("[tts] AudioContext.resume() REFUSED (" + (tag || "?") + ", state " + ctx.state + "): " + why + " — context marked unrecoverable; next user gesture rebuilds it");
-          if (typeof erCrumb === "function") erCrumb("ctx-refused", (tag || "?") + " " + ctx.state + " " + why.slice(0, 40));
-        });
-        return pr;
-      } catch(e) {}
+      // B39: the observer (warn + ctx-refused crumb) is the shared resumeObserved (helpers.js) — the same one the
+      // earcon and mic contexts now ride. v1.421 — a REFUSED resume means this context object is finished, not
+      // busy. iOS does not hand an interrupted AudioContext back; resume() rejects on it forever. Mark it so
+      // recoverAudio() replaces it instead of asking again (which is all this app did, from four separate call
+      // sites, for as long as the bug existed).
+      return resumeObserved(ctx, "tts:" + (tag || "?"), function() { _ctxRefusals++; if (ctx === _audioCtx) _ctxDoomed = true; });
     }
   }
 

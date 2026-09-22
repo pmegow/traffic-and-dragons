@@ -601,7 +601,7 @@ var STT = (function() {
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       if (!_vadCtx) _vadCtx = new AC();
-      if (_vadCtx.state === "suspended") { try { _vadCtx.resume(); } catch(e) {} }
+      if (_vadCtx.state === "suspended" || _vadCtx.state === "interrupted") { if (typeof resumeObserved === "function") resumeObserved(_vadCtx, "vad"); else { try { _vadCtx.resume(); } catch(e) {} } }/* B39: observed, never a discarded promise */
       _vadSrc = _vadCtx.createMediaStreamSource(stream);
       _vadAnalyser = _vadCtx.createAnalyser();
       _vadAnalyser.fftSize = 512;

@@ -83,6 +83,24 @@ function charRecordDigest(c){
 /* #426 (owner ruling 2026-09-20): the stake modal is asked at Begin only when the hero has no written backstory —
    every legacy import (their record IS their backstory) and a fresh hero who left the field blank. Pure. */
 function stakeAskWanted(c){return !!c&&!String(c.backstory||"").trim();}
+/* B39 (2026-09-21): ONE observed AudioContext.resume() for every context in the app. B10 root-caused the "Failed to
+   start the audio device" report to a resume() whose promise nobody handled, and the v1.437 fix observed only tts.js's
+   context; sound.js's earcon context (a second context, reached from every toast, gesture or not) and stt.js's mic
+   context kept the bare `try{ctx.resume();}catch(e){}` — a synchronous catch cannot see an async rejection, so the
+   B10 fingerprint came back as B39 from the contexts B10 never instrumented. The promise is returned UNCHANGED (callers
+   may chain); a reporter rides alongside — never a bare .catch(){}, which would silence the only signal this class
+   has ever produced. The crumb + console line keep the record; onRefused lets the owner mark the context doomed. */
+function resumeObserved(ctx,tag,onRefused){
+  if(!ctx||typeof ctx.resume!=="function")return null;
+  var pr;try{pr=ctx.resume();}catch(e){return null;}
+  if(pr&&typeof pr.then==="function")pr.then(null,function(e){
+    var why=(e&&(e.name+": "+e.message))||String(e);
+    if(typeof console!=="undefined")console.warn("[audio] AudioContext.resume() REFUSED ("+(tag||"?")+", state "+ctx.state+"): "+why+" — context marked unrecoverable; the next user gesture rebuilds it");
+    if(typeof erCrumb==="function")erCrumb("ctx-refused",(tag||"?")+" "+ctx.state+" "+why.slice(0,40));
+    if(typeof onRefused==="function"){try{onRefused(e,why);}catch(_e){}}
+  });
+  return pr;
+}
 function questBearing(){
   var sk=(typeof worldState!=="undefined"&&worldState&&worldState.skeleton)||null;if(!sk||!sk.acts)return null;
   var i,j;for(i=0;i<sk.acts.length;i++){var a=sk.acts[i];if(!a||a.status!=="active")continue;

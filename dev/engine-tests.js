@@ -24386,6 +24386,44 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── B39 — every AudioContext.resume() is observed (2026-09-21) ──
+  // B10 root-caused "Failed to start the audio device" to a resume() whose promise nobody handled and fixed the one in
+  // tts.js. sound.js's earcon context (a SECOND context, reached from every toast, gesture or not) and stt.js's mic
+  // context kept the bare try/catch, so the same fingerprint came back as B39. One shared observer now (resumeObserved,
+  // helpers.js); a refused earcon context is doomed, rebuilt on the next request, and ambience is told to re-arm its
+  // in-gesture unlock (its controller closed over the old context). The async behaviour is proven by
+  // dev/tests-b39-resume-observed.js; these pins keep every call site on the one observer.
+  section("B39 resume observed");
+  t("B39 no AudioContext.resume() in the app is bare: tts, sound and stt all go through resumeObserved (speechSynthesis.resume is a different API and stays)",function(){
+    var files=["tts.js","sound.js","stt.js","ui-ambient.js","ambient.js","audio-loader.js","audio-cache.js","ui-carmode.js","game.js","ui-shell.js"],i,bad=[];
+    for(i=0;i<files.length;i++){var s=__fsForTests.readFileSync(__rootForTests+"/"+files[i],"utf8"),lines=s.split("\n"),j;
+      for(j=0;j<lines.length;j++){var L=lines[j];if(L.indexOf(".resume()")<0)continue;if(/speechSynthesis\.resume\(\)/.test(L))continue;if(/resumeObserved\(/.test(L)&&/pr=ctx\.resume\(\)|pr\s*=\s*ctx\.resume\(\)/.test(L))continue;
+        if(files[i]==="ui-ambient.js"&&/Promise\.resolve\(ctx\.resume\(\)\)\.then\(/.test(L))continue;/* handled in place: .then(ok, report) */
+        if(files[i]==="stt.js"&&/resumeObserved\(_vadCtx/.test(L))continue;/* the guarded fallback on the same line is behind typeof resumeObserved */
+        bad.push(files[i]+":"+(j+1)+" "+L.trim().slice(0,90));}}
+    var hs=__fsForTests.readFileSync(__rootForTests+"/helpers.js","utf8"),h0=hs.indexOf("function resumeObserved("),hb=hs.slice(h0,hs.indexOf("\nfunction ",h0+1));
+    if(!/pr=ctx\.resume\(\)/.test(hb)||!/pr\.then\(null,function\(e\)\{/.test(hb)||!/erCrumb\("ctx-refused"/.test(hb)||!/return pr;/.test(hb))return "the observer must call resume(), attach a rejection reporter with a crumb, and return the same promise";
+    if(/\.catch\(function\(\)\{\}\)|\.catch\(\(\)=>\{\}\)/.test(hb))return "a bare catch would silence the only signal this class has";
+    return bad.length?"bare resume() calls: "+bad.join(" | "):true;
+  });
+  t("B39 the wiring: tts delegates to the observer and still dooms its own context; sound dooms, rebuilds, dispatches tnd:audio-refused and exports a non-creating state(); ambience re-arms on that event; the diag line names the second context; the flow suite is registered",function(){
+    var ts=__fsForTests.readFileSync(__rootForTests+"/tts.js","utf8"),t0=ts.indexOf("function _resumeCtx("),tb=ts.slice(t0,ts.indexOf("\n  function ",t0+1));
+    if(tb.indexOf('resumeObserved(ctx, "tts:"')<0||tb.indexOf("_ctxDoomed = true")<0||tb.indexOf("_ctxRefusals++")<0)return "tts _resumeCtx must delegate and keep its doom/refusal bookkeeping";
+    var ss=__fsForTests.readFileSync(__rootForTests+"/sound.js","utf8");
+    if(ss.indexOf('resumeObserved(ctx, "sound:" + id, function(e, why) { _markRefused(why); })')<0)return "sound.play does not observe its resume";
+    if(ss.indexOf("if (_ctx && _ctxDoomed) { try { if (typeof _ctx.close === \"function\") _ctx.close(); } catch (e) {} _ctx = null;")<0)return "a doomed earcon context is not closed and rebuilt";
+    if(ss.indexOf('new CustomEvent("tnd:audio-refused"')<0||ss.indexOf("state: state,")<0)return "the refusal event or the state() export is missing";
+    if(typeof Sound==="undefined"||typeof Sound.state!=="function")return "Sound.state is not exported";
+    var ua=__fsForTests.readFileSync(__rootForTests+"/ui-ambient.js","utf8");
+    if(ua.indexOf('window.addEventListener("tnd:audio-refused"')<0)return "ambience does not listen for the refusal";
+    var lb=ua.slice(ua.indexOf('window.addEventListener("tnd:audio-refused"'),ua.indexOf("});",ua.indexOf('window.addEventListener("tnd:audio-refused"')));
+    if(lb.indexOf("controller = null; unlocked = false; ctx = null;")<0)return "the re-arm must drop the controller, clear the latch and forget the old context";
+    var er=__fsForTests.readFileSync(__rootForTests+"/error-report.js","utf8");if(er.indexOf('s += " snd=" + Sound.state()')<0)return "the diag line does not name the second context";
+    var st=__fsForTests.readFileSync(__rootForTests+"/stt.js","utf8");if(st.indexOf('resumeObserved(_vadCtx, "vad")')<0)return "the mic context is not observed";
+    var rs=__fsForTests.readFileSync(__rootForTests+"/dev/run-standalone-suites.js","utf8");if(rs.indexOf("dev/tests-b39-resume-observed.js")<0)return "the B39 flow suite is not registered";
+    return true;
+  });
+
   section("#408 home design — the room graph (six owner rulings 2026-09-14; slice 1 = tag + ask + block + placement)");
   var LAYOUT_TAG="[LAYOUT:main room|medium|hearth, long table|kitchen, outside; kitchen|small|stove, pantry shelves|main room, cellar; cellar|small|barrels|kitchen]";
   function villageHouse(){villageCD();var hk=villageHouseKey("Silas");memory.map.nodes[hk]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};worldState.world.sublocation=locDisplayLeaf(hk);delete worldState.layoutAsk;delete worldState.layoutAskArmed;return hk;}

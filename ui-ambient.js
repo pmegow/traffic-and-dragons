@@ -133,6 +133,16 @@ var Ambient = (function() {
       held = e.detail.kind === "pause"; sync();
     });
     document.addEventListener("tnd:scene-committed", sync);
+    /* B39: the earcon context (Sound) is the one ambience plays on. When its resume() is REFUSED (an iOS interruption
+       after which resume() rejects forever), Sound dooms it and rebuilds on the next call — but this shell's
+       controller closed over the OLD context and `unlocked` stayed latched, so no gesture ever resumed the new one.
+       Re-arm: drop the controller, clear the latch; the next tap runs unlock(true) on the rebuilt context. */
+    window.addEventListener("tnd:audio-refused", function() {
+      if (controller) { try { controller.dispose(); } catch (e) {} }
+      controller = null; unlocked = false; ctx = null;
+      status = "Audio device refused — tap anywhere to restart ambience"; paint();
+      console.warn("[ambience] the audio device refused to start; ambience re-armed for the next tap (B39)");
+    });
     if(typeof navigator!=="undefined"&&navigator.serviceWorker)navigator.serviceWorker.addEventListener("message",function(e){
       if(e.data&&e.data.type==="tnd:audio-cache-error"&&lastCacheError!==e.data.reason){lastCacheError=e.data.reason;console.warn("[audio cache] "+lastCacheError);if(typeof showToast==="function")showToast("Audio cache unavailable: "+lastCacheError,6000);}
     });

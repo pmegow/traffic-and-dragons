@@ -167,9 +167,23 @@ var Sound = (function() {
     else _memPref = v;                // localStorage unavailable this session — remember in memory
   }
 
-  // ── ONE lazy singleton AudioContext, created on first play(), reused forever ────────────────
-  var _ctx = null;
+  // ── ONE lazy singleton AudioContext, created on first play(), reused until it is DOOMED ───────
+  // B39 (2026-09-21): iOS does not hand an interrupted AudioContext back — resume() rejects on it forever
+  // ("Failed to start the audio device"). A refused resume marks this context doomed; the next _ensureCtx
+  // closes it (monotonic-resources rule: iOS caps concurrent contexts) and mints a fresh one, and a
+  // `tnd:audio-refused` event tells ambience to re-arm its in-gesture unlock, since its controller closed over
+  // the old context. Rebuild happens on the next call, which for a toast earcon is outside a gesture — the
+  // fresh context then starts suspended and the ambience tap is what actually resumes it.
+  var _ctx = null, _ctxDoomed = false, _ctxRebuilds = 0;
+  function _markRefused(why) {
+    _ctxDoomed = true;
+    if (typeof window !== "undefined" && typeof CustomEvent === "function" && window.dispatchEvent) {
+      try { window.dispatchEvent(new CustomEvent("tnd:audio-refused", { detail: { context: "sound", why: String(why || "") } })); } catch (e) {}
+    }
+  }
+  function state() { return _ctx ? (_ctx.state + (_ctxDoomed ? "/doomed" : "") + (_ctxRebuilds ? "/rebuilt×" + _ctxRebuilds : "")) : "none"; }
   function _ensureCtx() {
+    if (_ctx && _ctxDoomed) { try { if (typeof _ctx.close === "function") _ctx.close(); } catch (e) {} _ctx = null; _ctxDoomed = false; _ctxRebuilds++; console.warn("[sound] doomed AudioContext closed — rebuilding (B39)"); }
     if (_ctx) return _ctx;
     try {
       var AC = (typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext))
@@ -306,7 +320,8 @@ var Sound = (function() {
     if (!force && !enabled()) { console.debug("[sound] '" + id + "' skipped — disabled"); return false; }
     var ctx = _ensureCtx();
     if (!ctx) { console.debug("[sound] '" + id + "' skipped — no AudioContext"); return false; }
-    try { if (ctx.state === "suspended" && typeof ctx.resume === "function") ctx.resume(); } catch (e) {}
+    /* B39: observed, never a discarded promise — a refusal marks the context doomed and re-arms ambience */
+    if ((ctx.state === "suspended" || ctx.state === "interrupted") && typeof resumeObserved === "function") resumeObserved(ctx, "sound:" + id, function(e, why) { _markRefused(why); });
     if (ctx.state !== "running") { console.debug("[sound] '" + id + "' skipped — ctx " + ctx.state); return false; }
     try {
       // Per-play bus: dry straight out, plus a wet send into the shared reverb. Both bus nodes are
@@ -355,6 +370,7 @@ var Sound = (function() {
 
   return {
     context: _ensureCtx,
+    state: state,/* B39: non-creating — for the crash-report diag line */
     play: play,
     preview: preview,
     playIfQuiet: playIfQuiet,

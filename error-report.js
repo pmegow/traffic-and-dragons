@@ -123,6 +123,7 @@ function erDiagBlock() {
       + "session " + ER_SESSION_ID + " · report " + (_erSentCount + 1) + "/" + ER_SESSION_CAP
       + " · up " + Math.round((Date.now() - ER_BOOT_AT) / 1000) + "s";
     if (typeof TTS !== "undefined" && TTS.diag) { try { s += "\naudio " + TTS.diag(); } catch (e) {} }
+    if (typeof Sound !== "undefined" && Sound.state) { try { s += " snd=" + Sound.state(); } catch (e) {} }/* B39: the SECOND context, named — B10/B39 could not tell which context refused */
     s += "\nthis page:\n" + _erRenderCrumbs(_erCrumbs);
     // v1.432: label honestly — before the unload stamp existed, every recovered ring was
     // labeled "ended without unload" including clean closes, which overstated the evidence.
