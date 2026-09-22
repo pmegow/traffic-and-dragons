@@ -1832,30 +1832,35 @@ var TTS = (function() {
   }
   function _clearCtxWatch() { if (_ctxWatchT) { clearInterval(_ctxWatchT); _ctxWatchT = null; } }
 
-  // ── mediaSession positionState (Car Mode audit rank 23, todo_carplay.html) ─────────────────
+  // ── mediaSession positionState (Car Mode audit rank 23) — ONE push per read (#19 third pass) ──
   // Cosmetic, best-effort: without it, lock screens / head units show an inert 0:00 scrubber.
-  // Piggybacks the _armCtxWatch/_clearCtxWatch lifecycle (same "a WebAudio item is playing" window)
-  // rather than owning its own state — armed alongside the watchdog in _speakPiper, cleared
-  // everywhere the watchdog is cleared (_drain's empty-queue branch, _stopCurrent). A light 2s poll,
-  // never touches _nextStart/_sources, wrapped in try/catch so a missing/odd mediaSession API can
-  // never throw into the scheduler.
-  var _posStateT = null;
-  function _armPosState(ctx) {
-    if (_posStateT) return;
+  // #19 third pass (2026-09-22): this used to be a 2 s poll pushing a GROWING duration on every
+  // tick. On iOS every setPositionState is a Now Playing metadata push, and a metadata push is an
+  // AVRCP notification to a Bluetooth head unit — some units glitch their A2DP decode for a moment
+  // on each one, and the OS itself throttles apps that push too often ("Application exceeded audio
+  // metadata throttle limit"; Apple's guidance is to push only when the item changes). The owner's
+  // field result — plain narration over the car's Bluetooth stutters exactly like Car Mode's,
+  // headphones clean, YouTube Music clean — fits a per-tick trigger and nothing mic- or Car-Mode-
+  // specific. Now: one push at read start, duration ESTIMATED from every queued character at the
+  // current rate (the OS extrapolates position from playbackRate 1), one clear at read end, and no
+  // timer at all. Cosmetic cost: a long read's scrubber may end early. Same lifecycle as the ctx
+  // watch (armed in every WebAudio _speak*, cleared in _drain's empty branch and _stopCurrent).
+  var _posArmed = false;
+  var POS_CHARS_PER_SEC = 14;   // ~150 wpm narration at rate 1.0
+  function _armPosState(ctx, text) {
+    if (_posArmed) return;
     if (!ctx || !("mediaSession" in navigator) || typeof navigator.mediaSession.setPositionState !== "function") return;
-    var startedAt = ctx.currentTime;
-    _posStateT = setInterval(function() {
-      try {
-        if (!_playing || _paused || !_audioCtx) return;
-        // Coarse estimate: the scheduled span grown so far as "duration", now vs. start as "position".
-        var dur = Math.max(0.1, _nextStart - startedAt);
-        var pos = Math.max(0, Math.min(dur, ctx.currentTime - startedAt));
-        navigator.mediaSession.setPositionState({ duration: dur, playbackRate: 1, position: pos });
-      } catch(e) {}
-    }, 2000);
+    _posArmed = true;
+    try {
+      var chars = String(text || "").length, i;
+      for (i = 0; i < _queue.length; i++) chars += String((_queue[i] && _queue[i].text) || "").length;
+      var dur = Math.max(1, chars / (POS_CHARS_PER_SEC * (getRate() || 1)));
+      navigator.mediaSession.setPositionState({ duration: dur, playbackRate: 1, position: 0 });
+    } catch(e) {}
   }
   function _clearPosState() {
-    if (_posStateT) { clearInterval(_posStateT); _posStateT = null; }
+    if (!_posArmed) return;   // nothing was pushed, so nothing is cleared — every push is a notification to the car
+    _posArmed = false;
     try {
       if ("mediaSession" in navigator && typeof navigator.mediaSession.setPositionState === "function")
         navigator.mediaSession.setPositionState({ duration: 0, playbackRate: 1, position: 0 });
@@ -2870,7 +2875,7 @@ var TTS = (function() {
     if (!ctxOk) { _ctxBlockedLoud("Server TTS"); _curNative = true; _speakNative(text); return; }
     primeAudioSession();
     _armCtxWatch("Server TTS");
-    _armPosState(ctx);
+    _armPosState(ctx, text);
 
     var units = splitSentences(text, null, true);   // identical prep to local Piper — the audio IS Piper audio
     if (!units.length) { _drain(); return; }
@@ -3090,7 +3095,7 @@ var TTS = (function() {
     if (!ctxOk) { _ctxBlockedLoud(cloud.label); _auditionPhase("idle"); _curNative = true; _speakNative(text); return; }
     primeAudioSession();
     _armCtxWatch(cloud.label);
-    _armPosState(ctx);
+    _armPosState(ctx, text);
 
     var units = splitSentences(text, null, true);   // same prep as the other cloud tier
     if (!units.length) { _auditionPhase("idle"); _drain(); return; }
@@ -3248,7 +3253,7 @@ var TTS = (function() {
     if (!ctxOk) { _ctxBlockedLoud("Piper"); _curNative = true; _speakNative(text); return; }
     primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent (_primerSrc guard)
     _armCtxWatch("Piper");   // audit #10 — catch a mid-read ctx interruption loudly
-    _armPosState(ctx);   // rank 23 — same lifecycle as the ctx watch above
+    _armPosState(ctx, text);   // rank 23 — same lifecycle as the ctx watch above
 
     var mod;
     try {
@@ -4498,7 +4503,7 @@ var TTS = (function() {
     recoverAudio:          recoverAudio,
     stopAudioSessionPrimer: stopAudioSessionPrimer,
     // #19 second pass: exported ONLY for dev/tests-19-audio-session.js (the _textPrep contract).
-    _audioSessionTest: { routeCrumb: _routeCrumb, captureEndedAt: function() { return _captureEndedAt; } },
+    _audioSessionTest: { routeCrumb: _routeCrumb, captureEndedAt: function() { return _captureEndedAt; }, armPosState: _armPosState, clearPosState: _clearPosState },
     // Piper (TODO #41 Phase 3) — fire-and-forget pre-warm. Wired to TTS-enable (toggle()) and to
     // the settings-modal Save handler, both gated on Piper being the selected engine, so the ~9s
     // one-time WASM compile happens off the critical path of the user's first real narration.

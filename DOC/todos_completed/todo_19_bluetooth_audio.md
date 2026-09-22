@@ -132,3 +132,33 @@ a `read-route` crumb whose `ol=` is short while `as=playback` would justify it.
 
 Two-minute checks: one full narration BEFORE any mic use; the head unit's screen during a
 garbled read; the 🎙 telephone-quality toast; the native voice for one turn; ambience off.
+
+## Third pass, 2026-09-22 (v1.973)
+
+Owner, same day: plain narration (Car Mode off) over the car's Bluetooth stutters exactly the
+same way. That demotes mechanisms 1 and 3 above — neither the mic cycle nor the transport
+handlers run in plain narration — and asks what every WebAudio read does regardless of mode
+that only a car would notice.
+
+### Mechanism 4 — Now Playing metadata churn
+
+`_armPosState` (tts.js) pushed `navigator.mediaSession.setPositionState` every 2 s for the
+whole read, with a duration that GREW as units were scheduled. On iOS each push is a Now
+Playing metadata update, and each of those is an AVRCP notification to the head unit; some
+units glitch their A2DP decode for a moment on every one. iOS itself throttles apps that push
+too often ("Application exceeded audio metadata throttle limit", Apple forum 785411), and
+Apple's guidance is to push only when the playing item changes. Headphones ignore metadata;
+YouTube Music pushes only on a track change. This fits every observation so far.
+
+### Shipped
+
+- One push at read start (duration estimated from every queued character at the current rate,
+  position 0, playbackRate 1) and one clear at read end, only if something was pushed. No timer.
+- `dev/tests-19-audio-session.js` gains `position state is ONE push per read, never a timer`
+  (fails on v1.972: the seam did not exist and the ticker armed an interval).
+
+### Next drive
+
+Plain narration first. Stutter gone: mechanism 4 confirmed, the row closes. Stutter still
+there: the `read-route` crumbs and the native-voice check decide between mechanism 2 (the
+WebAudio path) and the car itself, then File ▸ ⚠ Report bug.

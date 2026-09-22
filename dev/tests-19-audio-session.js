@@ -5,6 +5,7 @@ const root = path.join(__dirname, '..');
 function fixture(kind, options = {}) {
   const calls = [], warnings = [], toasts = [], recorders = [], recognizers = [], crumbs = [], contexts = [], buffers = [];
   let liveMic = 0, route = 'car', type = 'auto', sources = 0;
+  const posCalls = [], intervals = [];
   const input = { value: '', style: {}, focus() {}, blur() {}, classList: { add() {}, remove() {} } };
   const session = {};
   Object.defineProperty(session, 'type', {
@@ -51,6 +52,7 @@ function fixture(kind, options = {}) {
     } }]; } });
   } } };
   if (!options.unsupported) navigator.audioSession = session;
+  navigator.mediaSession = { setPositionState(state) { posCalls.push(Object.assign({}, state)); } };
   function Recorder() {
     if (options.recorderFails) throw Error('recorder refused');
     this.state = 'inactive'; this.mimeType = 'audio/webm'; recorders.push(this);
@@ -62,12 +64,12 @@ function fixture(kind, options = {}) {
     document: { addEventListener() {}, getElementById: id => id === 'action-input' ? input : null },
     store: { get: () => '', set() {} }, providerKeys: { openai: 'fixture' },
     MediaRecorder: Recorder, eachMenuEl() {}, showToast: m => toasts.push(m),
-    carMode: false, busy: false, setTimeout: () => 1, clearTimeout() {}, setInterval: () => 1, clearInterval() {},
+    carMode: false, busy: false, setTimeout: () => 1, clearTimeout() {}, setInterval: (fn, ms) => { intervals.push(ms); return 1; }, clearInterval() {},
     erCrumb: (evt, data) => crumbs.push(evt + (data == null ? '' : ' ' + String(data)))
   };
   vm.createContext(c);
   ['audio-events.js', 'tts.js', 'stt.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), c, { filename: f }));
-  return { c, calls, warnings, toasts, recognizers, recorders, session, crumbs, contexts, buffers,
+  return { c, calls, warnings, toasts, recognizers, recorders, session, crumbs, contexts, buffers, posCalls, intervals,
     route: () => route, liveMic: () => liveMic, sources: () => sources };
 }
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
@@ -187,6 +189,22 @@ async function test(name, fn) {
     assert.equal(f.contexts.length, 1);
     f.contexts[0].setState('interrupted'); f.contexts[0].setState('interrupted'); f.contexts[0].setState('running');
     assert.deepEqual(f.crumbs.filter(s => s.startsWith('ctx-state ')), ['ctx-state interrupted', 'ctx-state running'], 'a repeated state within the window must not crumb');
+  });
+  // ── #19 third pass (2026-09-22): plain narration over the car's Bluetooth stutters too, so the one
+  // thing every WebAudio read did on a TIMER regardless of mode — a Now Playing metadata push every
+  // 2 s — is gone. Some head units glitch their decode on each AVRCP metadata notification.
+  await test('position state is ONE push per read, never a timer', async () => {
+    const f = fixture('native'); f.c.TTS.primeAudioSession();
+    f.c.TTS._audioSessionTest.armPosState(f.contexts[0], 'x'.repeat(280));
+    f.c.TTS._audioSessionTest.armPosState(f.contexts[0], 'a later unit of the same read');
+    assert.equal(f.posCalls.length, 1, 'a later unit of the same read must not push again');
+    assert.equal(f.posCalls[0].position, 0); assert.equal(f.posCalls[0].playbackRate, 1);
+    assert(f.posCalls[0].duration >= 15 && f.posCalls[0].duration <= 30, 'duration is estimated from the text at the current rate, got ' + f.posCalls[0].duration);
+    assert.deepEqual(f.intervals, [], 'no interval may be armed for position state');
+    f.c.TTS._audioSessionTest.clearPosState();
+    assert.equal(f.posCalls.length, 2); assert.equal(f.posCalls[1].duration, 0);
+    f.c.TTS._audioSessionTest.clearPosState();
+    assert.equal(f.posCalls.length, 2, 'a clear with nothing armed must not push (every push reaches the car)');
   });
   console.log((process.exitCode ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' Bluetooth session groups');
 })();
