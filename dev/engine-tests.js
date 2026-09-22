@@ -25500,6 +25500,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
         relationships:[{entity:"Nyla Lorrath",bond:"Unlikely confederate in matricidal vengeance",bondTurn:29,dynamic:"fierce, intimate devotion",dynamicTurn:143}],
         motivation:"Ease the passing of the dead."},
       {name:"Nyla Lorrath",gender:"F",cls:"Rogue",inventory:[],
+        trait:"Speaks in hushed, guarded murmurs, constantly tracking nearby exits.",flaw:"Easily cowed by displays of overwhelming violence and divine authority.",appear:"A gaunt, bruised woman with a newly-mended jaw and watchful, hollowed dark eyes.",/* #434 */
         coreMemories:[{text:"Silas Morne lifted Nyla Lorrath off her feet in the ruins of the Morne inner sanctum, sealing their victory with a fierce kiss over the stolen gold.",turn:143,kind:"gm",who:"Nyla Lorrath",camp:"The Long Walk"}],
         relationships:[{entity:"Silas Morne",bond:"Terrifying savior and ticket out of the ditch",bondTurn:29,dynamic:"fierce, intimate devotion",dynamicTurn:143}],
         motivation:"Survive Silas Morne's orbit by proving indispensable and staying out of his reach."}
@@ -25576,6 +25577,33 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       if(buildCarriedRecordNote()!=="")return "the note fired in combat";worldState.combat=null;
       if(NOTE_BUILDERS.indexOf(buildCarriedRecordNote)<0||!NOTE_SHAPES.buildCarriedRecordNote||NOTE_SHAPES.buildCarriedRecordNote.combat!=="silent"||NOTE_SHAPES.buildCarriedRecordNote.village!=="fires"||NOTE_SHAPES.buildCarriedRecordNote.shape!=="transient")return "not registered with the right row";
     }finally{lastAction=_la;sessionLog=_sl;worldState.combat=null;}
+    return true;
+  });
+
+  // ── #434 (owner 2026-09-22): a PRESENT non-party character's personality rides their roster entry — trait, flaw, look,
+  // motivation — the way companions get theirs; absent or merely-mentioned characters keep the one-liner; party members are
+  // not doubled; volatile half only. Village Nyla read as a housewife because her entry was "mood: pleasant, stance: resident".
+  section("#434 roster personality");
+  t("#434 a present resident's trait/flaw/look/motivation ride the roster entry; an absent one on the roster keeps the one-liner; a party member is not doubled; volatile only",function(){
+    carriedEF();var _la=lastAction;
+    try{
+      /* Nyla present (last seen at the current node); Silas kept on the roster by recency but standing elsewhere */
+      memory.npcs["Silas Morne"].lastSeenAt="The Village|Silas Morne's house";memory.npcs["Silas Morne"].lastSeenTurn=worldState.turn;memory.npcs["Silas Morne"].lastMentioned=worldState.turn;
+      worldState.npcs.push({name:"Bram",rel:"companion",partyMember:true,status:"ally",statusTurn:worldState.turn,charSheet:{name:"Bram",inventory:[],trait:"Whistles when nervous.",flaw:"Gambles."}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],lastSeenAt:currentNodeKey()};
+      /* a party member enters the scene manifest's LOCAL set only through the active frame's observed list (#283), so Bram is
+         observed here — otherwise the party gate is never exercised (sabotage 2026-09-22 found the doubled clause masked) */
+      delete worldState.sceneRefs;sceneRefsEnsure();worldState.sceneRefs.active.observed=(worldState.sceneRefs.active.observed||[]).concat([{entity:"Bram"}]);
+      if(buildSceneManifest().local.indexOf("Bram")<0)return "fixture: Bram is not local — "+JSON.stringify(worldState.sceneRefs.active.node)+" vs "+currentNodeKey();
+      lastAction="Stoke the fire.";var p=buildSysPrompt(),m=p.volatile.match(/\nNPCs: ([^\n]*)/);if(!m)return "no roster line in the volatile half";
+      var ents=m[1].split(/; (?=[A-Z])/),ny=ents.filter(function(x){return /^Nyla Lorrath/.test(x);})[0]||"",si=ents.filter(function(x){return /^Silas Morne/.test(x);})[0]||"",br=ents.filter(function(x){return /^Bram/.test(x);})[0]||"";
+      if(!ny)return "Nyla is not on the roster: "+m[1].slice(0,300);
+      if(!/trait: Speaks in hushed, guarded murmurs/.test(ny)||!/flaw: Easily cowed/.test(ny)||!/look: A gaunt, bruised woman/.test(ny)||!/motivation: Survive Silas Morne's orbit/.test(ny))return "the present resident's personality is missing: "+ny;
+      if(!si)return "Silas is not on the roster (fixture): "+m[1].slice(0,300);
+      if(/trait:|flaw:|look:|motivation:/.test(si))return "an ABSENT character's personality rode the roster (the backlog): "+si;
+      if(!br)return "Bram is not on the roster (fixture)";
+      if(/trait:|flaw:/.test(br))return "a party member's personality is doubled on the roster (the companion block has it): "+br;
+      if(/trait: Speaks in hushed/.test(p.stable))return "the personality leaked into the stable half";
+    }finally{lastAction=_la;}
     return true;
   });
 

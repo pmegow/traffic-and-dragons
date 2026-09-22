@@ -2243,6 +2243,16 @@ function buildSysPrompt(){
        moods are age-unknown and therefore omitted until the GM writes a current one. */
     var npcBits=[],npcMoodAge=worldState.turn-(npc.statusTurn||0);
     if(npc.status&&npc.statusTurn>0&&npcMoodAge>=0&&npcMoodAge<MOOD_AUDIT_TURNS)npcBits.push("mood: "+npc.status);
+    /* #434 (owner 2026-09-22, village Nyla "practically a housewife"): a PRESENT non-party character with a sheet carries
+       their personality on the roster — trait, flaw, look, motivation — the way companions do in their own block. The
+       one-line entry (mood + stance) is the GM's own last tag feeding itself; the sheet is the anchor. Presence only
+       (the scene manifest), so nobody's backlog rides the prompt; party members already have theirs (the companion
+       block); an absent or merely-mentioned character keeps the one-liner byte-identical. */
+    var _rosterPresent;
+    if(!npc.partyMember&&npc.charSheet){
+      if(!_rosterPresent){_rosterPresent={};var _rpl=(typeof buildSceneManifest==="function")?(buildSceneManifest().local||[]):[],_rpi;for(_rpi=0;_rpi<_rpl.length;_rpi++)_rosterPresent[String(_rpl[_rpi]).toLowerCase()]=1;}
+      if(_rosterPresent[String(npc.name).toLowerCase()]){var _pcs=npc.charSheet;if(_pcs.trait)npcBits.push("trait: "+_pcs.trait);if(_pcs.flaw)npcBits.push("flaw: "+_pcs.flaw);if(_pcs.appear)npcBits.push("look: "+String(_pcs.appear).slice(0,140));if(_pcs.motivation)npcBits.push("motivation: "+_pcs.motivation);}
+    }
     if(npcRel)npcBits.push("bond: "+npcRel);else if(!npc.partyMember&&npc.rel&&npc.rel!=="unknown")npcBits.push("NPC stance: "+npc.rel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
     ns.push(npc.name+npcAka+(npcBits.length?" ("+npcBits.join(", ")+")":""));}if(ns.length)nstr=ns.join("; ");
     if(_rosterFold)nstr+=(ns.length?"; ":"")+"+"+_rosterFold+" other"+(_rosterFold===1?"":"s")+" on record (long unseen — named here again when mentioned or when the party returns to where they were last seen; their bonds and moods are kept)";}
