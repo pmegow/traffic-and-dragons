@@ -2464,9 +2464,13 @@ function hereItemsLine(){
   var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return "";
   var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk];
   if(!node||!node.items||!node.items.length)return "";
-  var parts=[],i;
-  for(i=0;i<node.items.length;i++){var it=node.items[i];if(!it||!it.name||it.taken||it.qty===0)continue;parts.push(it.name+(it.qty>1?" ×"+it.qty:"")+(it.room?" ("+it.room+")":""));}
-  return parts.length?"Here: "+parts.join(", "):"";
+  var parts=[],units=0,i;
+  for(i=0;i<node.items.length;i++){var it=node.items[i];if(!it||!it.name||it.taken||it.qty===0)continue;units+=(it.qty>1?it.qty:1);parts.push(it.name+(it.qty>1?" ×"+it.qty:"")+(it.room?" ("+it.room+")":""));}
+  if(!parts.length)return "";
+  /* #432 (owner 2026-09-21): in a stash kind the chest holds a LOT — ONE entry with the count, never the contents
+     (the chest modal lists them). An adventure keeps its itemized line: a placed lantern is story, and there are few. */
+  if(typeof kindDef==="function"&&kindDef().stashQuantities)return "Here: Item stash ("+units+" item"+(units===1?"":"s")+")";
+  return "Here: "+parts.join(", ");
 }
 /* #6 G: the Hall's node key — one place, one key. */
 function villageHallKey(base){var v=base||(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|the Village Hall";}

@@ -91,7 +91,7 @@ prove("helpers.js", [
     find: '/^(?:never mind|nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/', replace: '/^(?:nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/',
     mustFail: "#6E9 Car Mode undo" },
   { label: "the here line goes village-only (#431 replaced the panel's house group; the adventure's tavern would lose its readout)",
-    find: '  if(!node||!node.items||!node.items.length)return "";\n  var parts=[],i;', replace: '  if(!node||!node.items||!node.items.length||!(typeof kindDef==="function"&&kindDef().stashQuantities))return "";\n  var parts=[],i;',
+    find: '  if(!node||!node.items||!node.items.length)return "";\n  var parts=[],units=0,i;', replace: '  if(!node||!node.items||!node.items.length||!(typeof kindDef==="function"&&kindDef().stashQuantities))return "";\n  var parts=[],units=0,i;',
     mustFail: "#6E8 the stash is SEEN" }
 ]);
 prove("game.js", [

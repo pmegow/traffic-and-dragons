@@ -13,6 +13,9 @@ prove("helpers.js", [
   { label: "the here line reads the hero's house instead of the current node",
     find: '  var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return "";\n  var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk];',
     replace: '  var key=(typeof villageHouseKey==="function"&&worldState.character)?villageHouseKey(worldState.character.name):null;if(!key)return "";\n  var rk=key,node=memory.map.nodes[rk];',
+    mustFail: "hereItemsLine" },
+  { label: "the village here line lists the whole chest again (#432: one entry, the chest holds a LOT)",
+    find: '  if(typeof kindDef==="function"&&kindDef().stashQuantities)return "Here: Item stash ("+units+" item"+(units===1?"":"s")+")";\n', replace: '',
     mustFail: "hereItemsLine" }
 ]);
 prove("tag_table.js", [

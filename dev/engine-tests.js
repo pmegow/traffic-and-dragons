@@ -23707,7 +23707,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/YOUR HOUSE/.test(geo)||!/Old boots/.test(geo)||!/2/.test(geo.slice(geo.indexOf("YOUR HOUSE"))))return "the hero's own house must be served when elsewhere, with counts: "+geo;
     /* #431: the panel's house group is gone; the readout is the turn line's "Here:" for the CURRENT node (the tavern here) */
     if(typeof villageHouseGroup!=="undefined")return "villageHouseGroup still ships — the panel group was retired by #431";
-    var hl=hereItemsLine();if(hl!=="Here: Lantern")return "the here line at the tavern: "+JSON.stringify(hl);
+    var hl=hereItemsLine();if(hl!=="Here: Item stash (1 item)")return "the here line at the tavern (#432: one entry in a stash kind): "+JSON.stringify(hl);
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[{name:"x"}].slice(1),items:[],size:"medium",travelMins:null};
     applyMuts("[LOCATION_ITEM:Lantern|placed]");var adv=buildGeoBlock();if(/STASH|YOUR HOUSE/.test(adv)||!/Items here: Lantern/.test(adv))return "the adventure geo block changed: "+adv;
     memory.map.nodes["Sandpoint|Tess's house"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[{name:"Old boots",placed:1,taken:false}],size:null,travelMins:null,owner:"Tess"};
@@ -25443,7 +25443,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       {name:"Old boots",placed:1,taken:false,qty:2,by:"Silas",min:0,room:"main room"},{name:"Folding camp stove",placed:2,taken:false,qty:1,by:"Silas",min:0},
       {name:"Lamp oil",placed:1,taken:true,qty:0,by:"Silas",min:0}],size:"small",travelMins:null,owner:"Silas"};
     worldState.world.sublocation="Silas's house";
-    var l=hereItemsLine();if(l!=="Here: Old boots ×2 (main room), Folding camp stove")return "village: "+JSON.stringify(l);
+    /* #432 (owner 2026-09-21): the village chest collapses to ONE entry with the unit count — 2 boots + 1 stove, the emptied oil excluded */
+    var l=hereItemsLine();if(l!=="Here: Item stash (3 items)")return "village: "+JSON.stringify(l);
+    memory.map.nodes[hk].items=[{name:"Lamp",placed:1,taken:false,qty:1,by:"Silas",min:0}];if(hereItemsLine()!=="Here: Item stash (1 item)")return "village singular: "+JSON.stringify(hereItemsLine());
     worldState.world.sublocation="the trading post";if(hereItemsLine()!=="")return "a node with nothing here must give \"\"";
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation=null;
     memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[{name:"Lantern",placed:1,taken:false},{name:"Rope",placed:1,taken:true}],size:"medium",travelMins:null};
