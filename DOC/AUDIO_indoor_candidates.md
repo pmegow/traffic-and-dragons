@@ -60,7 +60,7 @@ These need (a) a `chimes` content entry, Fable tier, and (b) the one-off schedul
 - AncientOracle, "Bowl Bell #1 (One Hit - Fade)" · https://freesound.org/people/AncientOracle/sounds/476871/
 - inoshirodesign, "singing bowl strike sound" · https://freesound.org/people/inoshirodesign/sounds/271370/
 - ganiket, "Indian Temple Bell" · https://freesound.org/people/ganiket/sounds/466652/
-- bassimat, "Church Bell · D3" · https://freesound.org/people/bassimat/sounds/857912/ · 28 s decay; more a village exterior accent than an interior one
+- bassimat, "Church Bell - D3" · https://freesound.org/people/bassimat/sounds/857912/ · 28 s decay; more a village exterior accent than an interior one
 - the_very_Real_Horst, "Tibetan Singing Bowls" pack · https://freesound.org/people/the_very_Real_Horst/packs/12242/
 
 ### Timber creaks (one-off accents for a house at night)
