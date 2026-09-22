@@ -1561,6 +1561,102 @@ function _ragChapterScore(inputText,pool){
   if(!out.length)return "";
   return "PAST CHAPTERS — compressed summaries of earlier stretches of this campaign, retrieved because they touch the people, places, or topics in play right now. This is HISTORY (oldest first): attitudes, alliances, and stakes may have CHANGED since — the CURRENT state blocks above are the truth and override anything here. Use these for continuity, callbacks, and how-the-story-got-here, never as current fact.\n"+out.join("\n")+"\n\n";
 }
+// ── #433: CARRIED HISTORY retrieval ──────────────────────────────────────────────────────────
+// (owner test 2026-09-21, t92 — asked how they met, Silas and Nyla invented a wagon wheel; their true record sat on their
+// library sheets in the save and reached no prompt.) What a NON-PARTY character lived before this campaign — their
+// sheet's story beats, defining moments, bonds, motivation, backstory — is a third READ-ONLY pool beside the transcript
+// and chapter passes. Served ONLY when the player's action NAMES them: no scene-presence weight (the owner's "don't
+// spam every prompt with the backlog"); a fact qualifies by naming an input entity, ranks by how many named people it
+// covers plus the IDF term lane, ties toward the OLDEST (origin over echo — "how did you meet" is the earliest record),
+// deduped across sheets (a shared moment sits on both), capped and budgeted, volatile half only. Party members are
+// excluded (their moments ride the companion block already). Nothing here writes a sheet; entity scans live in a RAM
+// memo keyed by the pool's own fingerprint, so an edited sheet is never served stale.
+var RAG_CARRIED_MAX=6;       // facts served per turn
+var RAG_CARRIED_BUDGET=1400; // chars — a garnish, never a second prompt
+var RAG_CARRIED_HEADER="CARRIED HISTORY — what these people lived BEFORE this campaign, from their own records. This is CANON: answer from it and build on it; where it is silent, invent nothing that contradicts it. Oldest first:";
+function _ragCarriedPool(){
+  var pool=[],seen={},i,j,n=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[];
+  function add(who,text,camp,turn,kind){var t=String(text||"").trim();if(!t)return;var key=t.toLowerCase();if(seen[key])return;seen[key]=1;pool.push({who:who,text:t,camp:camp||null,turn:(typeof turn==="number")?turn:0,kind:kind});}
+  for(i=0;i<n.length;i++){
+    var r=n[i];if(!r||r.partyMember||!r.charSheet||!r.name)continue;var cs=r.charSheet;
+    for(j=0;j<(cs.storyBeats||[]).length;j++){var sb=cs.storyBeats[j];if(sb)add(r.name,sb.text,sb.camp,sb.turn,"beat");}
+    for(j=0;j<(cs.coreMemories||[]).length;j++){var cm=cs.coreMemories[j];if(cm)add(r.name,cm.text,cm.camp,cm.turn,"moment");}
+    for(j=0;j<(cs.relationships||[]).length;j++){var rl=cs.relationships[j];if(!rl||!rl.entity||!(rl.bond||rl.dynamic))continue;
+      add(r.name,r.name+" ↔ "+rl.entity+(rl.bond?" — bond: "+rl.bond+(rl.bondTurn!=null?" (t"+rl.bondTurn+")":""):"")+(rl.dynamic?"; dynamic: "+rl.dynamic+(rl.dynamicTurn!=null?" (t"+rl.dynamicTurn+")":""):""),null,(typeof rl.bondTurn==="number")?rl.bondTurn:0,"bond");}
+    if(cs.motivation)add(r.name,r.name+"'s motivation: "+cs.motivation,null,0,"motivation");
+    if(cs.backstory)add(r.name,r.name+"'s past: "+ragTrim(cs.backstory,300),null,0,"backstory");
+  }
+  return pool;
+}
+function _ragCarriedFp(pool){var s="",i;for(i=0;i<pool.length;i++)s+=""+pool[i].who+"|"+pool[i].text;return pool.length+"."+_ragDjb2(s);}
+// Per-fact known-NPC scan (the owner's name always counts), memoized in RAM by the pool fingerprint + the roster.
+function _ragCarriedEnts(pool,fp){
+  var key=fp+"|"+_ragNpcsFp(),m=ragCarriedRetrieve._entMemo;
+  if(m&&m.fp===key)return m.ents;
+  var names=ragKnownNames(),ents=[],i;
+  for(i=0;i<pool.length;i++){
+    var found=[pool[i].who];
+    ragScanNames(pool[i].text.toLowerCase(),names,function(nm){if(found.indexOf(nm)<0&&found.length<8)found.push(nm);});
+    ents.push(found);
+  }
+  ragCarriedRetrieve._entMemo={fp:key,ents:ents};
+  return ents;
+}
+function ragCarriedRetrieve(inputText){
+  if(!ragEnabled())return "";
+  var pool=_ragCarriedPool();
+  if(!pool.length)return "";
+  var fp=_ragCarriedFp(pool),_k=_ragNpcsFp()+"|carried|"+fp+"|"+_ragDjb2(String(inputText==null?"":inputText));
+  var _m=ragCarriedRetrieve._memo;
+  if(_m&&_m.k===_k)return _m.v;
+  ragCarriedRetrieve._misses++;
+  var v=_ragCarriedScore(inputText,pool,fp);
+  ragCarriedRetrieve._memo={k:_k,v:v};
+  return v;
+}
+ragCarriedRetrieve._memo=null;ragCarriedRetrieve._entMemo=null;ragCarriedRetrieve._misses=0; // test hooks
+function _ragCarriedScore(inputText,pool,fp){
+  var q=ragQueryEntities(inputText||""),terms=ragQueryTerms(inputText||""),w={},k,any=false;
+  for(k in q.input){w[k]=3;any=true;}
+  if(!any)return "";/* the action named nobody: nothing is served — presence never spams the prompt */
+  var gRoot={};
+  for(k in q.groups){gRoot[k]=k;var gi;for(gi=0;gi<q.groups[k].length;gi++){gRoot[q.groups[k][gi]]=k;if(w[k]&&!w[q.groups[k][gi]])w[q.groups[k][gi]]=w[k];}}
+  (function(){var ent={},k2,i2,keepT=[];for(k2 in q.input){var tk=npcCoreTokens(k2);for(i2=0;i2<tk.length;i2++)ent[tk[i2]]=1;}for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}terms=keepT;})();
+  var ents=_ragCarriedEnts(pool,fp),lows=[],df=[],i,j;
+  for(j=0;j<terms.length;j++)df.push(0);
+  for(i=0;i<pool.length;i++){var lo=pool[i].text.toLowerCase();lows.push(lo);for(j=0;j<terms.length;j++){if(lo.indexOf(terms[j])>=0)df[j]++;}}
+  var N=pool.length,cands=[],_res={};
+  function _resolveIdx(nm){if(_res[nm]===undefined)_res[nm]=resolveNpcName(nm);return _res[nm];}
+  for(i=0;i<pool.length;i++){
+    var sc=0,seenG={};
+    for(j=0;j<ents[i].length;j++){
+      var enNm=ents[i][j];
+      if(!w[enNm]){var rn=_resolveIdx(enNm);if(!w[rn])continue;enNm=rn;}
+      var root=gRoot[enNm]||enNm;
+      if(seenG[root])continue;
+      seenG[root]=1;
+      sc+=w[enNm];
+    }
+    if(sc<=0)continue;/* the gate: a fact must name someone the action named */
+    var lex=0;
+    for(j=0;j<terms.length;j++){if(lows[i].indexOf(terms[j])>=0)lex+=Math.log((N+1)/(df[j]+1));}
+    sc+=Math.min(8,lex*1.5);
+    cands.push({i:i,t:pool[i].turn,sc:sc});
+  }
+  if(!cands.length)return "";
+  cands.sort(function(a,b){return b.sc-a.sc||a.t-b.t;});/* ties toward the OLDEST: origin over echo */
+  var picked=cands.slice(0,RAG_CARRIED_MAX);
+  picked.sort(function(a,b){return (a.t-b.t)||(a.i-b.i);});
+  var out=[],used=0,pi;
+  for(pi=0;pi<picked.length;pi++){
+    var f=pool[picked[pi].i];
+    var line="- ["+(f.camp?f.camp+", ":"")+(f.turn?"t"+f.turn:"carried")+"] "+((f.kind==="beat"||f.kind==="moment")?f.who+" — ":"")+ragTrim(f.text,300);
+    if(used+line.length>RAG_CARRIED_BUDGET)break;
+    out.push(line);used+=line.length;
+  }
+  if(!out.length)return "";
+  return RAG_CARRIED_HEADER+"\n"+out.join("\n")+"\n\n";
+}
 /* audit 2026-09-18 B2 (owner ruling): the prompt does not carry every NPC ever met — opts.npcFilter(name) decides which
    KNOWN NPCs ride the line (buildSysPrompt passes the roster rule: recent, HERE, mentioned or in the party); the rest are
    counted, their full records stay in memory.npcs and return through the detail block the moment they are mentioned.

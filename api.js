@@ -2353,6 +2353,10 @@ function buildSysPrompt(){
   // naturally ahead of the verbatim moments it frames.
   var chapRagBlock=typeof ragChapterRetrieve==="function"?ragChapterRetrieve(typeof lastAction==="string"&&lastAction?lastAction:""):"";
   __lastChapRagBlock=chapRagBlock;/* capture-ONLY harness seam, the __lastRagBlock pattern */
+  // #433: CARRIED HISTORY — what a NON-PARTY character lived before this campaign (their library sheet's beats, moments,
+  // bonds, motivation), served only when the action NAMES them. Same flag, same volatile-only discipline; "" otherwise,
+  // so every prompt that names no carrier is byte-identical to before.
+  var carriedRagBlock=typeof ragCarriedRetrieve==="function"?ragCarriedRetrieve(typeof lastAction==="string"&&lastAction?lastAction:""):"";
   var legacyBlock="";
   if(worldState.pendingLegacy){
     var _lc=worldState.pendingLegacy;
@@ -2484,6 +2488,7 @@ function buildSysPrompt(){
     +buildChangedLocationsBlock()/* #105: remote changed-locations roll-up — volatile only, ""-clean when nothing changed */
   +(function(){var s=getNameSuggestions(10,true);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
     +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
+    +carriedRagBlock/* #433: the named people's own records from BEFORE this campaign, ahead of this campaign's past; "" unless the action names a carrier */
     +chapRagBlock/* #148 Phase 1: PAST CHAPTERS before the finer-grained excerpts; "" when nothing retrieves */
     +ragBlock
     +legacyBlock

@@ -25482,4 +25482,81 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #433 (owner test 2026-09-21, t92 "we failed"): CARRIED HISTORY — what a NON-PARTY character lived BEFORE this
+  // campaign (their library sheet's defining moments, story beats, bonds, motivation, backstory) is a retrieval pool
+  // beside the transcript and chapter passes: served ONLY when the player's action NAMES them (no scene-presence weight —
+  // the owner's "don't spam every prompt"), ranked by how many named people a fact covers, ties toward the OLDEST
+  // (origin over echo: "how did you meet" is the earliest record), deduped across sheets, capped, volatile half only.
+  section("#433 carried history");
+  function carriedEF(){
+    villageEF();worldState.character.name="Ammut";worldState.ragMemory=true;/* the test world ships with retrieval OFF; the pool rides the same flag */
+    importVillageResidents([
+      {name:"Silas Morne",gender:"M",cls:"Cleric",inventory:[],
+        backstory:"He began as an orphaned toddler who wandered into a local graveyard after an assassin murdered his family.",
+        coreMemories:[{text:"Nyla Lorrath joined the party at Midnight in the center of the graveyard.",turn:28,kind:"party",who:"Nyla Lorrath",camp:"The Long Walk"},
+          {text:"Silas Morne lifted Nyla Lorrath off her feet in the ruins of the Morne inner sanctum, sealing their victory with a fierce kiss over the stolen gold.",turn:143,kind:"gm",who:"Nyla Lorrath",camp:"The Long Walk"}],
+        storyBeats:[{text:"Silas broke the corpse-binders in the catacombs and took Nyla Lorrath alive for answers.",turn:8,camp:"The Long Walk"},
+          {text:"Silas tore the copper anchor core from the Mourning Vault's obsidian altar.",turn:80,camp:"The Long Walk"}],
+        relationships:[{entity:"Nyla Lorrath",bond:"Unlikely confederate in matricidal vengeance",bondTurn:29,dynamic:"fierce, intimate devotion",dynamicTurn:143}],
+        motivation:"Ease the passing of the dead."},
+      {name:"Nyla Lorrath",gender:"F",cls:"Rogue",inventory:[],
+        coreMemories:[{text:"Silas Morne lifted Nyla Lorrath off her feet in the ruins of the Morne inner sanctum, sealing their victory with a fierce kiss over the stolen gold.",turn:143,kind:"gm",who:"Nyla Lorrath",camp:"The Long Walk"}],
+        relationships:[{entity:"Silas Morne",bond:"Terrifying savior and ticket out of the ditch",bondTurn:29,dynamic:"fierce, intimate devotion",dynamicTurn:143}],
+        motivation:"Survive Silas Morne's orbit by proving indispensable and staying out of his reach."}
+    ]);
+    memory.npcs["Silas Morne"].lastSeenAt="The Village|the tavern";memory.npcs["Nyla Lorrath"].lastSeenAt="The Village|the tavern";/* both PRESENT in the scene */
+    ragCarriedRetrieve._memo=null;ragCarriedRetrieve._entMemo=null;ragCarriedRetrieve._misses=0;
+  }
+  t("#433 a question naming two residents (first names, as typed) serves their carried history: the origin beat before the echo, both bonds, campaign-tagged, a shared moment once; an action naming nobody serves nothing even with both present",function(){
+    carriedEF();
+    if(ragCarriedRetrieve("Stoke the fire and pour the tea")!=="")return "presence alone served the pool (the owner's 'don't spam every prompt')";
+    var b=ragCarriedRetrieve("Ask Silas how he first met Nyla");
+    if(!/^CARRIED HISTORY/.test(b))return "no block: "+JSON.stringify(b);
+    if(!/corpse-binders/.test(b)||!/Midnight in the center of the graveyard/.test(b))return "the origin records are missing: "+b;
+    if(!/Unlikely confederate in matricidal vengeance/.test(b)||!/Terrifying savior and ticket out of the ditch/.test(b))return "the bonds are missing: "+b;
+    if(!/The Long Walk/.test(b))return "facts are not campaign-tagged: "+b;
+    if(b.indexOf("corpse-binders")>b.indexOf("fierce kiss"))return "the origin (t8) must come before the echo (t143): "+b;
+    if((b.match(/fierce kiss over the stolen gold/g)||[]).length!==1)return "the shared moment on two sheets must appear once: "+b;
+    /* the dedup pinned on the POOL itself — in the served block the cap can hide a duplicate (sabotage 2026-09-21 found exactly that) */
+    var pool=_ragCarriedPool(),kisses=pool.filter(function(f){return /fierce kiss over the stolen gold/.test(f.text);}).length;if(kisses!==1)return "the pool carries the shared moment "+kisses+" times";
+    return true;
+  });
+  t("#433 the pool is non-party only, keyed on the action's names (one name serves that person's records, not the other's private ones), capped and budgeted, memoized against sheet changes",function(){
+    carriedEF();
+    worldState.npcs.push({name:"Bram",rel:"companion",partyMember:true,status:"ally",charSheet:{name:"Bram",inventory:[],coreMemories:[{text:"Bram swore the oath at the Broken Tor.",turn:4,camp:"Elsewhere"}]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[]};
+    ragCarriedRetrieve._memo=null;
+    if(ragCarriedRetrieve("Ask Bram about the Broken Tor")!=="")return "a party member's moments rode the carried pool (they ride the companion block already)";
+    var one=ragCarriedRetrieve("Ask Nyla what keeps her here");
+    if(!/Survive Silas Morne's orbit/.test(one))return "Nyla's motivation missing: "+one;
+    if(/copper anchor core/.test(one))return "Silas's private beat rode a question about Nyla: "+one;
+    var s=wsNpcByName("Silas Morne").charSheet,i;for(i=0;i<40;i++)s.storyBeats.push({text:"Silas did deed number "+i+" in the marsh.",turn:200+i,camp:"The Long Walk"});
+    ragCarriedRetrieve._memo=null;var many=ragCarriedRetrieve("Ask Silas about the marsh");var n=(many.match(/\n- /g)||[]).length;
+    if(n>RAG_CARRIED_MAX)return "cap: "+n+" facts";if(many.length>RAG_CARRIED_HEADER.length+1+RAG_CARRIED_BUDGET)return "budget: "+many.length;
+    /* the SAME question before and after a sheet change — a different question would miss the memo on its own and prove nothing (sabotage 2026-09-21) */
+    ragCarriedRetrieve._memo=null;ragCarriedRetrieve._misses=0;var before=ragCarriedRetrieve("Ask Silas about the reeds");ragCarriedRetrieve("Ask Silas about the reeds");if(ragCarriedRetrieve._misses!==1)return "memo: "+ragCarriedRetrieve._misses+" passes for one question asked twice";
+    if(/marsh-lantern/.test(before))return "fixture: the lantern is not on the sheet yet";
+    s.storyBeats.push({text:"Silas found the marsh-lantern under the reeds.",turn:300,camp:"The Long Walk"});var after=ragCarriedRetrieve("Ask Silas about the reeds");
+    if(ragCarriedRetrieve._misses!==2||!/marsh-lantern/.test(after))return "a sheet change did not invalidate the memo (passes "+ragCarriedRetrieve._misses+"): "+after;
+    return true;
+  });
+  t("#433 buildSysPrompt: the block rides the VOLATILE half only when the action names a carrier; the stable half is byte-identical either way; the RAG off-switch gates it",function(){
+    carriedEF();var _la=lastAction;
+    try{
+      lastAction="Stoke the fire and pour the tea";var p0=buildSysPrompt();
+      lastAction="Ask Silas how he first met Nyla";var p1=buildSysPrompt();
+      if(/CARRIED HISTORY/.test(p0.volatile)||/CARRIED HISTORY/.test(p0.stable))return "the block appeared for an action naming nobody";
+      if(!/CARRIED HISTORY/.test(p1.volatile))return "the block is missing from the volatile half";
+      if(/CARRIED HISTORY/.test(p1.stable))return "the block leaked into the stable (cached) half";
+      if(p0.stable!==p1.stable)return "the stable half changed with the action — the cache would miss";
+      worldState.ragMemory=false;ragCarriedRetrieve._memo=null;var p2=buildSysPrompt();if(/CARRIED HISTORY/.test(p2.volatile))return "the RAG off-switch does not gate the pool";
+    }finally{lastAction=_la;delete worldState.ragMemory;}
+    return true;
+  });
+  t("#433 source: api.js calls the one retrieval function once and splices its block beside the chapter and scene excerpts",function(){
+    var ap=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
+    if((ap.match(/ragCarriedRetrieve\(/g)||[]).length!==1)return "api.js must call ragCarriedRetrieve exactly once, found "+(ap.match(/ragCarriedRetrieve\(/g)||[]).length;
+    if(!/\+carriedRagBlock\/\*/.test(ap))return "the carried block is not spliced into the volatile assembly";
+    return true;
+  });
+
 }
