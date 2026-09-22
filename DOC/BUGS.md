@@ -114,7 +114,7 @@ PREVIOUS page (ended cleanly):
 - 2026-09-21 · v1.960 · commit fix(B38) · Fable — mechanism re-verified in code (globals.js parseResponse sets `modelRefusal`; summarize() only bumped a strike and replayed the identical window). Fix in memory.js: `buildExtractWindow` (the old inline composition as one builder, byte-identical under the normal caps), `extractRefusalFraming` + `EXTRACT_REFRAME_CAPS` (1200/300), `extractShapeForFailure`, `summaryFailure.refusal` on a named-block strike; summarize() retries ONCE in the reframed shape on a named block, goes reframed-first next turn while the refusal strike stands, never retries a transient or a reframed refusal, keeps strike 3 as the raw archive, and the system line says when a window was extracted reframed. Tests red→green: `B38 extractor refusal` (5, pure) + `dev/tests-b38-extractor-refusal.js` (5 async scenarios against a stubbed provider — the #183③ branch driven headlessly); `dev/sabotage-b38-extractor-refusal.js` 12/12; full gate 2279. Probe: `node dev/probe-gemini-empty.js <save.tnd> --extract` replays both shapes live (needs GEMINI_API_KEY) — the owner can confirm the reframed shape passes where the normal one is blocked.
 
 ## B39 — "Failed to start the audio device" is back on iPhone in the Village (v1.951) — the B10 class, verified fixed at v1.406, recurs after a long idle page
-**Status:** new
+**Status:** investigating
 **Kind:** crash · **First seen:** 2026-09-18 (v1.951) · **Last seen:** 2026-09-18 (v1.951) · **Count:** 2 · **Campaign:** The Village (Ammut) ×2 · **Turn:** 56, 65
 **Fingerprint:** `crash · unhandledrejection · v1.951 · Failed to start the audio device`
 **Report ids:** f7609b04-f392-49a9-bfcf-d51a70488f63, 3c8a6f3e-d37e-4144-8780-01d41057a72d
@@ -195,88 +195,6 @@ PREVIOUS page (ended cleanly):
 
 - 2026-09-21 · v1.961 · commit fix(B40) · Fable — mechanism re-verified in code (two listeners, no latch; Escape called showCampaignPicker and the pre-removal blur then saved). Fix in ui-campaigns.js `campStartRename`: a `done` latch and one `commit(save)` closure — blur/Enter commit the save, Escape cancels; the nested blur during modalShell's removal now no-ops, so the outer remove() completes. modalShell deliberately NOT given a pre-removal blur: a blur handler that re-renders would then append a second overlay instead of throwing. Browser repro in the preview (Chrome, document focused): the pre-fix wiring re-created in place threw the exact NotFoundError on Enter; the shipped wiring saved "New Name" with one #camp-modal and no error; Escape left the name unchanged with no error. Source pin `B40 rename latch` (ui-campaigns.js is a DOM shell outside the engine manifest); `dev/sabotage-b40-rename-latch.js` 6/6; full gate green.
 
-## B41 — W6 summary-identity guard rejected a Village chapter summary that gave the hero the wrong pronouns (he/him rendered she/her as the sole adjacent subject, v1.930 t3) — the summary was dropped
-**Status:** new
-**Kind:** crash · **First seen:** 2026-09-15 (v1.930) · **Last seen:** 2026-09-15 (v1.930) · **Count:** 1 · **Campaign:** The Village (Ammut) ×1 · **Turn:** 3
-**Fingerprint:** `crash · summarize · v1.930 · W6 summary identity: Ammut is he/him but chapterSummary carries she/her as the sole adjacent subject`
-**Report ids:** 226e3d26-e570-4f27-9cb0-27f21440d125
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-W6 summary identity: Ammut is he/him but chapterSummary carries she/her as the sole adjacent subject
-consecutive fails: 1 | window 8 msgs, 3/4 user halves open with an engine note
-RESPONSE HEAD (200): {"chapterSummary":"Ammut returned home to the Village on a bright morning, stepping out into the sunlit square where sweet cedar smoke and river mist drifted from the water. Near the smithy, Nyla Lorr
-Error: W6 summary identity: Ammut is he/him but chapterSummary carries she/her as the sole adjacent subject
-    at w6ValidateSummary (https://traffic-and-dragons.pages.dev/identity.js:1674:86)
-    at validateSummaryExtract (https://traffic-and-dragons.pages.dev/identity.js:1677:91)
-    at applySummaryExtract (https://traffic-and-dragons.pages.dev/memory.js:1898:49)
-    at summarize (https://traffic-and-dragons.pages.dev/memory.js:2109:18)
-    at async sendAction (https://traffic-and-dragons.pages.dev/game.js:2470:45)
-
---- diag ---
-session s7vnkyi-ew2 · report 1/10 · up 497s
-audio ctx=running refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=1 eng=inpage ctxSyn=29/40 cr=0 da=0 synthCPU=0s
-this page:
-  +0s boot
-  +56s turn t0 965ch
-  +56s tts-server-skip speechify availability re-check failed
-  +122s turn-start t0 2455ch bg0
-  +125s turn t1 1117ch
-  +125s tts-server-skip speechify availability re-check failed
-  +125s suggestion-reject [object Object]
-  +207s turn-start t1 2222ch bg0
-  +211s turn t2 1362ch
-  +211s tts-server-skip speechify availability re-check failed
-  +289s turn-start t2 2085ch bg0
-  +291s turn t3 1244ch
-  +291s tts-server-skip speechify availability re-check failed
-  +291s suggestion-reject [object Object]
-PREVIOUS page (ended cleanly):
-  +0s boot
-  +647s unload
-  +647s unload
-```
-
-### Findings
-
-### Action log
-
-## B42 — A configured model id the provider no longer serves (claude-haiku-4-5) fails the turn with HTTP 400 — surfaced as a crash with no fallback and no nudge to the model picker (v1.925, file://)
-**Status:** new
-**Kind:** crash · **First seen:** 2026-09-15 (v1.925) · **Last seen:** 2026-09-15 (v1.925) · **Count:** 1 · **Campaign:** The Village (Ammut) ×1 · **Turn:** 2
-**Fingerprint:** `crash · turn · v1.925 · HTTP 400: Model 'claude-haiku-4-5-20251001' is not available`
-**Report ids:** d087cc98-b212-4f7e-bfc2-357d71ade79d
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-HTTP 400: Model 'claude-haiku-4-5-20251001' is not available
-Error: HTTP 400: Model 'claude-haiku-4-5-20251001' is not available
-    at providerHttpError (file:///C:/Projects/traffic-and-dragons/api.js:3318:10)
-    at callGM (file:///C:/Projects/traffic-and-dragons/api.js:3559:136)
-    at async sendAction (file:///C:/Projects/traffic-and-dragons/game.js:2454:18)
-(turn: story, 149ms in flight)
-
---- diag ---
-session s34d19a-1k0q · report 1/10 · up 13s
-audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s
-this page:
-  +0s boot
-  +13s turn-start t2 2313ch bg0
-  +13s turn-fail 149ms pre bg00 HTTP 400: Model 'claude-haik
-PREVIOUS page (ended cleanly):
-  +0s boot
-  +37s unload
-  +37s unload
-```
-
-### Findings
-
-### Action log
-
 ## B26 — Transport failures surfaced as crashes — "Load failed", "Failed to fetch", a Gemini request abandoned after four minutes
 **Status:** new
 **Kind:** crash · **First seen:** 2026-08-09 (v1.563) · **Last seen:** 2026-09-16 (v1.943) · **Count:** 20 · **Campaign:** Rise of the Runelords (Ammut) ×12, The Iron Meridian (Gazz Quickfuse) ×4, The Long Walk ×1, Silas Morne ×1, Ammut ×1, The Village (Ammut) ×1 · **Turn:** 1534, 1549, 1604, 1964, 1965, 1986, 1986, 1989, 1989, 1994, 2040, 2133, 119, 62, 10, 34 …
@@ -350,26 +268,6 @@ _Grounding: subjects across the reports — Ambassador Ferrin Lyle, Bronze Bell 
 ```text
 W2 referential integrity: Magistrate Coraline Vess - summary death lacks matching scene-handle evidence
 consecutive fails: 1 | window 6 msgs, 3/3 user halves open with an engine note RESPONSE HEAD (200): {"chapterSummary":"Ammut's blade walked the seams of drawer after drawer, patient as a hunting cat, until steel found the hollow lie behind old wood. There a list slept, four names in a dead hand's in Error: W2 referential integrity: Magistrate Coraline Vess - summary death lacks matching scene-handle evidence at w2ValidateSummary (https://traffic-and-dragons.pages.dev/identity.js:1030:55) at validateSummaryExtract (https://traffic-and-dragons.pages.dev/identity.js:1025:167) at applySummaryExtract (https://traffic-and-dragons.pages.dev/memory.js:1373:49) at summarize (https://traffic-and-dragons.pages.dev/memory.js:1543:18) at async sendAction (https://traffic-and-dragons.pages.dev/game.js:1780:45) --- diag --- session s3sa2ai-23i5 · report 1/10 · up 740s audio ctx=suspended refusals=0 playing=1 paused=1 q=3 synths=0/0 recycles=0 voices=0 on=1 eng=inpage ctxSyn=25/40 cr=0 da=0 synthCPU=0s this page: +0s boot +98s turn-start t1836 2736ch bg0 +110s turn t1837 2036ch +350s turn-start t1837 2941ch bg0 +363s turn t1838 2195ch +545s turn-start t1838 1712ch bg0 +552s turn t1839 1189ch +627s turn-start t1839 2087ch bg0 +638s turn t1840 1439ch PREVIOUS page (ended cleanly): +0s boot +587s turn-start t1833 1070ch bg0 +600s turn t1834 1331ch +1160s turn-start t1834 113ch bg0 +1166s turn t1835 503ch +1512s turn-start t1835 1466ch bg0 +1523s turn t1836 1744ch +1544s unload
-```
-
-### Findings
-
-### Action log
-
-
-## B30 — Gemini "high demand" HTTP 503 bursts (Aug 16–19) reported as crashes on turn, actions and summarize
-**Status:** new
-**Kind:** crash · **First seen:** 2026-08-17 (v1.645) · **Last seen:** 2026-09-15 (v1.932) · **Count:** 13 · **Campaign:** Rise of the Runelords (Ammut) ×12, The Village (Ammut) ×1 · **Turn:** 1901, 1903, 1903, 1903, 1903, 1904, 1904, 1905, 1941, 1950, 1953, 1954, 23
-**Fingerprint:** `crash · summarize · v1.645 · HTTP 503: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again lat` · also 8 more fingerprint(s) across versions v1.645, v1.647, v1.650, v1.657, v1.659, v1.932
-**Report ids:** c46187d3-c172-4e7c-b081-369af11b936d, 0bedcad6-38ca-47cf-8adf-2b5fca961548, a1e9442f-b283-4fd2-bce1-82ddc8c91e5f, 154cc50f-842c-41be-81d0-406cf6ca2d68, 723ecd60-e9f1-4759-a9bf-903456abe071, 6d1f0936-c473-49df-b0db-b85f68106baf, fbb60471-f2b3-4819-b666-f22fc87a1a60, 464d3322-94f1-4571-93ba-a286b805f9a6, a6fd6835-f5ab-4218-ac94-9fb0cf46dbee, f2f6a884-0081-436b-9f35-053aae82030e, d252fe2c-611e-4702-a55e-08b4d9210295, d6dc152d-cc62-4b00-ba5d-7e7a6b2c36f8, c9fae7da-a427-4af0-b898-acf3d2a4e2ee
-**Screenshot URL:** —
-_Re-arrived 2026-09-15 on v1.932 — one 503 on a Village turn (was stale; status reset to new)._
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-HTTP 503: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
-consecutive fails: 3 | window 12 msgs, 6/6 user halves open with an engine note Error: HTTP 503: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later. at providerHttpError (https://traffic-and-dragons.pages.dev/api.js:2037:10) at callGM (https://traffic-and-dragons.pages.dev/api.js:2070:136) at async summarize (https://traffic-and-dragons.pages.dev/memory.js:1672:14) at async sendAction (https://traffic-and-dragons.pages.dev/game.js:1781:45) --- diag --- session s3n5f4h-4q9 · report 1/10 · up 76s audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s this page: +0s boot PREVIOUS page (ended cleanly): +78655s turn-start t1892 60ch bg0 +78661s turn t1893 874ch +78744s ctx-recycle #21 after 40u +78744s turn-start t1893 1534ch bg0 +78752s turn t1894 1088ch +78831s turn-start t1894 1672ch bg0 +78839s turn t1895 1155ch +78907s ctx-recycle #22 after 58u +78921s turn-start t1895 1510ch bg0 +78929s turn t1896 1106ch +79002s turn-start t1896 1848ch bg0 +79010s turn t1897 1121ch +79014s suggestion-reject [object Object] +79078s ctx-recycle #23 after 59u +79078s turn-start t1897 1310ch bg0 +79086s turn t1898 1165ch +81025s turn-start t1898 1052ch bg0 +81034s turn t1899 1361ch +81192s turn-start t1899 1432ch bg0 +81201s turn t1900 1505ch +81381s turn-start t1900 1444ch bg0 +81390s turn t1901 1347ch +81488s voice-toggle off +204920s …
 ```
 
 ### Findings
@@ -1095,7 +993,115 @@ SUGGESTED ACTIONS SHOWN: Press on toward Varisia - North Road. | Get eyes on wha
 _Every verified and ignored row lives inside this collapsible container, newest first._
 
 <details>
-<summary><strong>Completed bugs (16 rows) — click to expand</strong></summary>
+<summary><strong>Completed bugs (19 rows) — click to expand</strong></summary>
+## B30 — Gemini "high demand" HTTP 503 bursts (Aug 16–19) reported as crashes on turn, actions and summarize
+**Status:** ignored
+**Kind:** crash · **First seen:** 2026-08-17 (v1.645) · **Last seen:** 2026-09-15 (v1.932) · **Count:** 13 · **Campaign:** Rise of the Runelords (Ammut) ×12, The Village (Ammut) ×1 · **Turn:** 1901, 1903, 1903, 1903, 1903, 1904, 1904, 1905, 1941, 1950, 1953, 1954, 23
+**Fingerprint:** `crash · summarize · v1.645 · HTTP 503: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again lat` · also 8 more fingerprint(s) across versions v1.645, v1.647, v1.650, v1.657, v1.659, v1.932
+**Report ids:** c46187d3-c172-4e7c-b081-369af11b936d, 0bedcad6-38ca-47cf-8adf-2b5fca961548, a1e9442f-b283-4fd2-bce1-82ddc8c91e5f, 154cc50f-842c-41be-81d0-406cf6ca2d68, 723ecd60-e9f1-4759-a9bf-903456abe071, 6d1f0936-c473-49df-b0db-b85f68106baf, fbb60471-f2b3-4819-b666-f22fc87a1a60, 464d3322-94f1-4571-93ba-a286b805f9a6, a6fd6835-f5ab-4218-ac94-9fb0cf46dbee, f2f6a884-0081-436b-9f35-053aae82030e, d252fe2c-611e-4702-a55e-08b4d9210295, d6dc152d-cc62-4b00-ba5d-7e7a6b2c36f8, c9fae7da-a427-4af0-b898-acf3d2a4e2ee
+**Screenshot URL:** —
+_Re-arrived 2026-09-15 on v1.932 — one 503 on a Village turn (was stale; status reset to new)._
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+HTTP 503: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
+consecutive fails: 3 | window 12 msgs, 6/6 user halves open with an engine note Error: HTTP 503: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later. at providerHttpError (https://traffic-and-dragons.pages.dev/api.js:2037:10) at callGM (https://traffic-and-dragons.pages.dev/api.js:2070:136) at async summarize (https://traffic-and-dragons.pages.dev/memory.js:1672:14) at async sendAction (https://traffic-and-dragons.pages.dev/game.js:1781:45) --- diag --- session s3n5f4h-4q9 · report 1/10 · up 76s audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s this page: +0s boot PREVIOUS page (ended cleanly): +78655s turn-start t1892 60ch bg0 +78661s turn t1893 874ch +78744s ctx-recycle #21 after 40u +78744s turn-start t1893 1534ch bg0 +78752s turn t1894 1088ch +78831s turn-start t1894 1672ch bg0 +78839s turn t1895 1155ch +78907s ctx-recycle #22 after 58u +78921s turn-start t1895 1510ch bg0 +78929s turn t1896 1106ch +79002s turn-start t1896 1848ch bg0 +79010s turn t1897 1121ch +79014s suggestion-reject [object Object] +79078s ctx-recycle #23 after 59u +79078s turn-start t1897 1310ch bg0 +79086s turn t1898 1165ch +81025s turn-start t1898 1052ch bg0 +81034s turn t1899 1361ch +81192s turn-start t1899 1432ch bg0 +81201s turn t1900 1505ch +81381s turn-start t1900 1444ch bg0 +81390s turn t1901 1347ch +81488s voice-toggle off +204920s …
+```
+
+### Findings
+
+### Action log
+
+- 2026-09-21 · ignored (was new) via tracker ✕ — owner: one 503 in five weeks after the August bursts; the transport retry ladder already covers it; file it unless it recurs
+
+
+## B41 — W6 summary-identity guard rejected a Village chapter summary that gave the hero the wrong pronouns (he/him rendered she/her as the sole adjacent subject, v1.930 t3) — the summary was dropped
+**Status:** ignored
+**Kind:** crash · **First seen:** 2026-09-15 (v1.930) · **Last seen:** 2026-09-15 (v1.930) · **Count:** 1 · **Campaign:** The Village (Ammut) ×1 · **Turn:** 3
+**Fingerprint:** `crash · summarize · v1.930 · W6 summary identity: Ammut is he/him but chapterSummary carries she/her as the sole adjacent subject`
+**Report ids:** 226e3d26-e570-4f27-9cb0-27f21440d125
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+W6 summary identity: Ammut is he/him but chapterSummary carries she/her as the sole adjacent subject
+consecutive fails: 1 | window 8 msgs, 3/4 user halves open with an engine note
+RESPONSE HEAD (200): {"chapterSummary":"Ammut returned home to the Village on a bright morning, stepping out into the sunlit square where sweet cedar smoke and river mist drifted from the water. Near the smithy, Nyla Lorr
+Error: W6 summary identity: Ammut is he/him but chapterSummary carries she/her as the sole adjacent subject
+    at w6ValidateSummary (https://traffic-and-dragons.pages.dev/identity.js:1674:86)
+    at validateSummaryExtract (https://traffic-and-dragons.pages.dev/identity.js:1677:91)
+    at applySummaryExtract (https://traffic-and-dragons.pages.dev/memory.js:1898:49)
+    at summarize (https://traffic-and-dragons.pages.dev/memory.js:2109:18)
+    at async sendAction (https://traffic-and-dragons.pages.dev/game.js:2470:45)
+
+--- diag ---
+session s7vnkyi-ew2 · report 1/10 · up 497s
+audio ctx=running refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=1 eng=inpage ctxSyn=29/40 cr=0 da=0 synthCPU=0s
+this page:
+  +0s boot
+  +56s turn t0 965ch
+  +56s tts-server-skip speechify availability re-check failed
+  +122s turn-start t0 2455ch bg0
+  +125s turn t1 1117ch
+  +125s tts-server-skip speechify availability re-check failed
+  +125s suggestion-reject [object Object]
+  +207s turn-start t1 2222ch bg0
+  +211s turn t2 1362ch
+  +211s tts-server-skip speechify availability re-check failed
+  +289s turn-start t2 2085ch bg0
+  +291s turn t3 1244ch
+  +291s tts-server-skip speechify availability re-check failed
+  +291s suggestion-reject [object Object]
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +647s unload
+  +647s unload
+```
+
+### Findings
+
+### Action log
+
+- 2026-09-21 · ignored (was new) via tracker ✕ — owner: the W6 guard did its job (a wrong-pronoun summary refused, one Village chapter at t3 dropped, village saves are disposable); if it recurs, the question is whether a guard trip should file a crash report at all
+
+## B42 — A configured model id the provider no longer serves (claude-haiku-4-5) fails the turn with HTTP 400 — surfaced as a crash with no fallback and no nudge to the model picker (v1.925, file://)
+**Status:** ignored
+**Kind:** crash · **First seen:** 2026-09-15 (v1.925) · **Last seen:** 2026-09-15 (v1.925) · **Count:** 1 · **Campaign:** The Village (Ammut) ×1 · **Turn:** 2
+**Fingerprint:** `crash · turn · v1.925 · HTTP 400: Model 'claude-haiku-4-5-20251001' is not available`
+**Report ids:** d087cc98-b212-4f7e-bfc2-357d71ade79d
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+HTTP 400: Model 'claude-haiku-4-5-20251001' is not available
+Error: HTTP 400: Model 'claude-haiku-4-5-20251001' is not available
+    at providerHttpError (file:///C:/Projects/traffic-and-dragons/api.js:3318:10)
+    at callGM (file:///C:/Projects/traffic-and-dragons/api.js:3559:136)
+    at async sendAction (file:///C:/Projects/traffic-and-dragons/game.js:2454:18)
+(turn: story, 149ms in flight)
+
+--- diag ---
+session s34d19a-1k0q · report 1/10 · up 13s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s
+this page:
+  +0s boot
+  +13s turn-start t2 2313ch bg0
+  +13s turn-fail 149ms pre bg00 HTTP 400: Model 'claude-haik
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +37s unload
+  +37s unload
+```
+
+### Findings
+
+### Action log
+
+- 2026-09-21 · ignored (was new) via tracker ✕ — owner: a single report from file:// on a model id nobody plays with; the error text already says what happened; file it unless it recurs
+
 
 ## B37 — Switching campaigns on a storage-full device threw QuotaExceededError out of the live-key write (the #337 class)
 **Status:** verified
