@@ -1523,7 +1523,8 @@ function groupInventory(inv){
   if(un.rows.length)out.push(un);
   return out;
 }
-// ── #429 BATCH DROP (owner 2026-09-21): the sheet's × MARKS a row, one "Drop N items" button commits ──
+// ── #429 BATCH DROP (owner 2026-09-21): the sheet's × MARKS a row, one "Delete N items" button commits ──
+// (The copy says DELETE: nothing is placed in the world, the item ceases to exist. The identifiers keep "drop".)
 // Marks are session state: {"<idx>|<name>":true} per owner. The pair pins a mark to the row it was set
 // on; invDropPlan re-resolves every mark against the LIVE inventory (index first, then by name, never
 // the same row twice) so a GM turn that spliced the array between the mark and the button never drops
@@ -1555,7 +1556,7 @@ function invDropApply(inv,plan){
   for(i=0;i<plan.drop.length;i++)names.push(plan.drop[i].name);
   return names;
 }
-function invDropButtonText(n){return "Drop "+n+" item"+(n===1?"":"s");}
+function invDropButtonText(n){return "Delete "+n+" item"+(n===1?"":"s");}
 function invDropNamesText(names){
   names=names||[];if(names.length<=4)return names.join(", ");
   return names.slice(0,4).join(", ")+" and "+(names.length-4)+" more";

@@ -25,9 +25,10 @@ function csHeroHeader(c){
   return {genderLbl:genderLbl,clsLine:clsLine,lvl:lvl,xpm:xpm};
 }
 // #429 BATCH DROP (owner 2026-09-21; supersedes the #50 per-item drop and its native confirm): the × on a
-// live sheet MARKS a row for dropping — the name goes red, the × becomes the un-mark — and ONE "Drop N items"
+// live sheet MARKS a row for deletion — the name goes red, the × becomes the un-mark — and ONE "Delete N items"
 // button at the foot of the list commits every mark at once: one splice pass, one worn-prune, one save, one
-// toast, in-place re-render. No per-item confirm and no batch confirm (owner ruling: the red rows are the
+// toast, in-place re-render. The copy says DELETE, never "drop" (owner 2026-09-21): nothing is placed in the
+// world — no LOCATION_ITEM, no chest — the item simply ceases to exist. (The identifiers keep the #50 "drop" verb.) No per-item confirm and no batch confirm (owner ruling: the red rows are the
 // review, and the commit lives away from the ×, which guards a misclick better than a reflex OK). Marks are
 // SESSION state, per owner ("" = hero, else the companion's name), stamped with the campaign so a switch never
 // carries them over, and resolved against the LIVE inventory (invDropPlan, helpers.js) at render AND at
@@ -62,18 +63,18 @@ function dropMarkedItems(owner,ev){
   var cs=_invOwnerSheet(owner);if(!cs)return;
   var plan=invDropPlan(cs.inventory,_invDropMarksFor(owner)),stale=plan.stale.length?" — no longer carried: "+plan.stale.join(", "):"";
   delete _invDropMarks.by[owner];
-  if(!plan.ok){if(typeof showToast==="function")showToast("Nothing to drop"+stale,5000);_invSheetRepaint(owner);return;}
+  if(!plan.ok){if(typeof showToast==="function")showToast("Nothing to delete"+stale,5000);_invSheetRepaint(owner);return;}
   var names=invDropApply(cs.inventory,plan);
   if(typeof wornPrune==="function")wornPrune(cs);/* audit E4/#388: nothing is worn that is not carried — a dropped worn sword otherwise rode attireLine into every prompt */
   saveAll();
-  if(typeof showToast==="function")showToast("Dropped "+names.length+" item"+(names.length===1?"":"s")+": "+invDropNamesText(names)+stale,6000);
+  if(typeof showToast==="function")showToast("Deleted "+names.length+" item"+(names.length===1?"":"s")+": "+invDropNamesText(names)+stale,6000);
   _invSheetRepaint(owner);
 }
 /* Closing a sheet with marks pending: cleared, and said (the modalShell onClose on both hosts). */
 function _invDropDiscard(owner){
   var n=invDropCount(_invDropMarksFor(owner));if(!n)return 0;
   delete _invDropMarks.by[owner];
-  if(typeof showToast==="function")showToast(n+" mark"+(n===1?"":"s")+" cleared — nothing dropped",4000);
+  if(typeof showToast==="function")showToast(n+" mark"+(n===1?"":"s")+" cleared — nothing deleted",4000);
   return n;
 }
 // #47 policy (user ruling 2026-07-12): epithets are GM-granted only, but the PLAYER may reject
@@ -209,7 +210,7 @@ function csSheetSections(c,invOwner,portable){
       invRows+='<div class="cs-inv-cat'+(_grp.id==="unclassified"?' unc':'')+'">'+escHtml(_grp.label)+'</div>';
       for(_ri=0;_ri<_grp.rows.length;_ri++){
         var _row=_grp.rows[_ri],_marked=!!_mkAt[_row.sourceIndex],_xc=_marked?'var(--dng)':'var(--t2)';
-        var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+_row.sourceIndex+'" data-c="'+_xc+'" onclick="markInvItem(this.dataset.own,this.dataset.idx,event)" title="'+(_marked?'Keep this item (un-mark)':'Mark this item to drop')+'" style="background:none;border:none;color:'+_xc+';cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=this.dataset.c">&#10005;</button>':"";/* #429: the × marks, never drops */
+        var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+_row.sourceIndex+'" data-c="'+_xc+'" onclick="markInvItem(this.dataset.own,this.dataset.idx,event)" title="'+(_marked?'Keep this item (un-mark)':'Mark this item to delete')+'" style="background:none;border:none;color:'+_xc+';cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=this.dataset.c">&#10005;</button>':"";/* #429: the × marks, never drops */
         // #230: 📖 Define — live sheets only; #285 (f18) widened the gate from bare itemLookup
         // misses to the shared itemDefEligible predicate (helpers.js): canon-less items AND
         // classification-only curated BASE entries qualify — both leave the GM re-deriving the
@@ -222,7 +223,7 @@ function csSheetSections(c,invOwner,portable){
         invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="inv-name'+(_marked?' inv-marked':'')+'" data-item="'+escHtml(_row.raw)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;'+(_marked?'color:var(--dng);':'')+'">'+invItemHtml(_row.raw)+(typeof isWorn==="function"&&isWorn(c,_row.raw)?' <span style="color:var(--t2);font-size:10px;">· worn</span>':'')+'</span><span style="display:flex;gap:2px;flex-shrink:0;">'+_defBtn+_dropBtn+'</span></div>';/* #388; #429: a marked row reads red */
       }
     }
-    if(_mkPlan.count)invRows+='<div class="cs-list-row inv-drop-bar" style="display:flex;justify-content:flex-end;padding-top:8px;"><button id="inv-drop-btn" data-own="'+escHtml(invOwner)+'" onclick="dropMarkedItems(this.dataset.own,event)" title="Drop every marked item now — there is no further prompt" style="font-size:12px;font-family:var(--font);padding:5px 12px;border:1px solid var(--dng);border-radius:var(--r);background:var(--bg2);color:var(--dng);cursor:pointer;">'+escHtml(invDropButtonText(_mkPlan.count))+'</button></div>';/* #429: the one commit, at the foot of the list, only while something is marked */
+    if(_mkPlan.count)invRows+='<div class="cs-list-row inv-drop-bar" style="display:flex;justify-content:flex-end;padding-top:8px;"><button id="inv-drop-btn" data-own="'+escHtml(invOwner)+'" onclick="dropMarkedItems(this.dataset.own,event)" title="Delete every marked item now — nothing is left behind in the world, and there is no further prompt" style="font-size:12px;font-family:var(--font);padding:5px 12px;border:1px solid var(--dng);border-radius:var(--r);background:var(--bg2);color:var(--dng);cursor:pointer;">'+escHtml(invDropButtonText(_mkPlan.count))+'</button></div>';/* #429: the one commit, at the foot of the list, only while something is marked */
     invHtml=(c.outfit&&c.outfit.text?'<div class="cs-list-row" style="font-style:italic;color:var(--t2);">Outfit (t'+escHtml(String(c.outfit.turn||0))+'): '+escHtml(c.outfit.text)+'</div>':"")+'<div class="cs-list">'+invRows+"</div>";/* #388 */}
   else invHtml='<span class="cs-none">Empty</span>';
   // #47: earned epithets/titles ride the character schema (c.aliases) so they survive PC↔NPC

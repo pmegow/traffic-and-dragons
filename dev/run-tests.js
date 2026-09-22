@@ -1370,7 +1370,7 @@ try {
 } catch (e) { console.error("IMPORT OWNERSHIP CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── #429 BATCH DROP CONTRACT (v1.964) ────────────────────────────────────────────────────
-// The sheet's × marks; one "Drop N items" button commits. The battery dev/tests-429-inventory-drop.js
+// The sheet's × marks; one "Delete N items" button commits. The battery dev/tests-429-inventory-drop.js
 // proves the mark, the commit, the shifted-index case, the loud stale refusal, the render, the
 // discard-on-close and the wiring on both sheet hosts. This clause guards that the gate still RUNS it
 // (the #423 precedent — a battery that falls out of the runner is green forever).

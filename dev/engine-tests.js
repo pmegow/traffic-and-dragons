@@ -25385,7 +25385,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
-  // ── #429 BATCH DROP (owner 2026-09-21): the sheet's × MARKS a row (red); one "Drop N items" button commits.
+  // ── #429 BATCH DROP (owner 2026-09-21): the sheet's × MARKS a row (red); one "Delete N items" button commits.
+  // The copy says DELETE (owner ruling the same day): nothing is placed in the world, the item ceases to exist.
   // The thorn: the post-campaign clean-out of a hundred single-use items, one native confirm each. Marks are
   // session state keyed "<idx>|<name>", resolved against the LIVE inventory at render and at commit, so a GM
   // turn that spliced the array between the mark and the button never drops the row that slid into the index.
@@ -25421,7 +25422,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("#429 the button text counts and pluralizes; the toast names up to four items and counts the rest",function(){
-    if(invDropButtonText(1)!=="Drop 1 item"||invDropButtonText(12)!=="Drop 12 items")return invDropButtonText(1)+" / "+invDropButtonText(12);
+    if(invDropButtonText(1)!=="Delete 1 item"||invDropButtonText(12)!=="Delete 12 items")return invDropButtonText(1)+" / "+invDropButtonText(12);
     if(invDropNamesText(["A","B"])!=="A, B")return "two: "+invDropNamesText(["A","B"]);
     if(invDropNamesText(["A","B","C","D","E","F"])!=="A, B, C, D and 2 more")return "six: "+invDropNamesText(["A","B","C","D","E","F"]);
     return true;
