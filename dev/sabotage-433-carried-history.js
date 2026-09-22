@@ -37,6 +37,20 @@ prove("memory.js", [
 prove("api.js", [
   { label: "the block is dropped from the volatile splice",
     find: '    +carriedRagBlock/* #433:', replace: '    +""/* #433:',
-    mustFail: "#433 buildSysPrompt" }
+    mustFail: "#433 buildSysPrompt" },
+  { label: "the CARRIED RECORD note fires without a recent GM mention (every naming turn pays for it)",
+    find: '  if(!spoken.length)return "";\n  return "[ENGINE NOTE — CARRIED RECORD', replace: '  return "[ENGINE NOTE — CARRIED RECORD',
+    mustFail: "#433 the CARRIED RECORD note" },
+  { label: "the CARRIED RECORD note leaves the registry (never delivered)",
+    find: 'buildResidentExchangeNote,/* #6 D2 */buildCarriedRecordNote,/* #433 */', replace: 'buildResidentExchangeNote,/* #6 D2 */',
+    mustFail: "#433 the CARRIED RECORD note" },
+  { label: "the note no longer calls the earlier telling an error",
+    find: 'that telling was an error, not a rival version:', replace: 'that is another version:',
+    mustFail: "#433 the CARRIED RECORD note" }
+]);
+prove("memory.js", [
+  { label: "the header no longer says the record wins over an earlier telling",
+    find: 'if narration earlier in this session told any of these events differently, the record wins and the earlier telling was an error — correct it in character; ', replace: '',
+    mustFail: "#433 the CARRIED RECORD note" }
 ]);
 process.exit(code);

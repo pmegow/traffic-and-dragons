@@ -1703,6 +1703,28 @@ function buildResidentExchangeNote(){
   }
   return "[ENGINE NOTE \u2014 RESIDENTS (not a player action): "+a.name+" and "+b.name+" are both here. Let them have ONE exchange with each other this response \u2014 a few lines the hero witnesses without being addressed \u2014 about something of their own"+((ra||rb)?", drawn from what they lived: "+(ra?a.name+" \u2014 \""+ra+"\"":"")+(ra&&rb?"; ":"")+(rb?b.name+" \u2014 \""+rb+"\"":""):"")+". Tag every line [SAY:]. Never mention this note.]\n";
 }
+/* #433 (owner 2026-09-22, t93 "Is that how you remember it Nyla?"): the CARRIED HISTORY block WAS served, and the GM kept
+   the wagon-wheel story it had improvised the turn before — a static block loses to the model's own recent output (the
+   standing channel lesson: an instruction that loses to recent narration needs a NEW CHANNEL, not a stronger sentence).
+   This note rides the user turn when (a) the action NAMES a carrier whose record is served this turn and (b) that person
+   spoke or was spoken of in the last two GM replies — exactly the case where an improvised telling can compete. Stateless
+   (no latch): computed from the action and the session log; "" otherwise. Conditional wording: it calls the earlier
+   telling an error only IF it differed. */
+function buildCarriedRecordNote(){
+  if(!worldState||worldState.combat||typeof ragCarriedRetrieve!=="function")return "";
+  var act=(typeof lastAction==="string")?lastAction:"";if(!act)return "";
+  if(!ragCarriedRetrieve(act))return "";/* memoized — buildSysPrompt's own call a moment later is a hit, not a second scoring pass */
+  var q=ragQueryEntities(act),named=[],k;
+  for(k in q.input){var n=(typeof wsNpcByName==="function")?wsNpcByName(k):null;if(n&&!n.partyMember&&n.charSheet)named.push(k);}
+  if(!named.length)return "";
+  var sl=(typeof sessionLog!=="undefined"&&sessionLog)?sessionLog:[],recent=[],i;
+  for(i=sl.length-1;i>=0&&recent.length<2;i--){if(sl[i]&&sl[i].role==="assistant"&&!sl[i].bk)recent.push(String(sl[i].content||"").toLowerCase());}
+  if(!recent.length)return "";
+  var names=ragKnownNames().filter(function(x){return named.indexOf(x.nm)>=0;}),spoken=[];
+  ragScanNames(recent.join(" "),names,function(nm){if(spoken.indexOf(nm)<0)spoken.push(nm);});
+  if(!spoken.length)return "";
+  return "[ENGINE NOTE — CARRIED RECORD (not a player action): the CARRIED HISTORY block in the system prompt is the canon of what "+spoken.join(" and ")+" lived before this campaign. If your narration earlier in this session told any part of that past differently, that telling was an error, not a rival version: have them correct it in character now — a wry \"no, that is not how it went\", then the record — and never repeat the earlier telling. Where the record is silent, invent nothing that contradicts it.]";
+}
 var buildTravelPriceNudge=oneShotPing("travelPricePing",{name:"buildTravelPriceNudge",text:function(q){
   return "[ENGINE NOTE — TRAVEL TIME GAP (not a player action): the journey to "+q.destination+" was priced in days, but arrival landed after only "+q.elapsed+" clock minutes. If the travel really consumed the stated duration, emit [TIME_ADVANCE:"+q.shortfall+"m] for ONLY the missing shortfall. If the earlier duration was only an estimate, a shortcut occurred, or the route changed, leave the clock unchanged and keep the current fiction. Never auto-correct story text.]";
 }});
@@ -2031,7 +2053,7 @@ function restoreNoteLatches(snap){
       if(qr.escalateNudged===undefined)delete ql2[j].escalateNudged;else ql2[j].escalateNudged=qr.escalateNudged;
       if(qr.objectiveNudged===undefined)delete ql2[j].objectiveNudged;else ql2[j].objectiveNudged=qr.objectiveNudged;}}}
 }
-var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildPlotArmorNote,/* #319 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 */buildRegisterNote,/* #355 */buildSuggestMissNote,/* #344 */buildCheckWithdrawnNote,/* #391 */buildSubLeaveNudge,/* #393 */buildTradeRefusedNudge,/* #6 F9 */buildTradeNote,/* #407 */buildReturnNote,/* #6 C2 */buildResidentExchangeNote,/* #6 D2 */buildMoneyNote,/* #375 */buildAgendaOfferNote,/* #373 */buildMontageNote,buildWrapUpNote,/* #308 */buildWhispersNote,/* #317 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildHoursNote,buildLayoutNote,/* #408 ② *//* #207 ③ */buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildAgendaBirthNote,buildAgendaAnnounceNote,buildAgendaBeatNote,/* #330: character colour yields to every audit above */buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge,buildSoundscapeNote];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
+var NOTE_BUILDERS=[buildDeathSceneNote,/* #301 */buildPlotArmorNote,/* #319 */buildDownedNote,buildRespawnNote,buildRecklessNote,/* #305 */buildRegisterNote,/* #355 */buildSuggestMissNote,/* #344 */buildCheckWithdrawnNote,/* #391 */buildSubLeaveNudge,/* #393 */buildTradeRefusedNudge,/* #6 F9 */buildTradeNote,/* #407 */buildReturnNote,/* #6 C2 */buildResidentExchangeNote,/* #6 D2 */buildCarriedRecordNote,/* #433 */buildMoneyNote,/* #375 */buildAgendaOfferNote,/* #373 */buildMontageNote,buildWrapUpNote,/* #308 */buildWhispersNote,/* #317 *//* #300: consequence first — nothing outranks a hero at 0 HP */buildArcWallNudge,buildOrphanCombatNudge,buildCombatStaleNudge,buildUndefinedItemNudge,buildQuestEscalation,buildQuestObjectiveNudge,buildQuestStaleNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildPlayerSplitNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildMarketNote,buildHoursNote,buildLayoutNote,/* #408 ② *//* #207 ③ */buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildHpZeroNudge,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildPrincipalStageNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildAgendaBirthNote,buildAgendaAnnounceNote,buildAgendaBeatNote,/* #330: character colour yields to every audit above */buildDeathEvidenceNudge,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildDupItemNudge,buildItemMisNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildSceneCastNote,buildPersonDriftNudge,buildCanonContradictionNudge,buildRecurringNameNudge,buildSoundscapeNote];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. #194: the death-evidence fork note sits BEFORE the conflict nudge (one ask per refusal); the cast ask rides after the SAY compliance sibling. */
 // #309: THE SHAPE REGISTRY (owner ruling 2026-09-03 — one-in-one-out was REJECTED after the
 // 49-builder catalog, audits/RECORD_309_note_builder_catalog.md: builders are six shapes, not
 // fungible units). Every builder declares its shape, the latch fields it burns (declared in
@@ -2053,6 +2075,7 @@ var NOTE_SHAPES={
   buildTradeNote:{shape:"one-shot-ask",latch:["tradePing"],combat:"silent",village:"fires",ack:["SAY"]},/* #407 ④ */
   buildReturnNote:{shape:"one-shot-ask",latch:["returnPing"],combat:"silent",village:"fires",ack:["LOCATION_STATE","SAY"]},/* #6 C2 */
   buildResidentExchangeNote:{shape:"cooldown-reminder",latch:["exchangeAsk"],combat:"silent",village:"fires",ack:["SAY"]},/* #6 D2 */
+  buildCarriedRecordNote:{shape:"transient",latch:["none"],combat:"silent",village:"fires",ack:["SAY"]},/* #433: stateless — the action + the session log decide */
   buildMoneyNote:{shape:"cooldown-reminder",latch:["moneyAsk"],combat:"silent",village:"silent",ack:["GOLD"]},/* #375 */
   buildAgendaOfferNote:{shape:"one-shot-ask",latch:["agendaOfferAsk"],combat:"silent",village:"fires",ack:["QUEST"]},/* #373 */
   buildMontageNote:{shape:"one-shot-ask",latch:["montagePing"],combat:"fires",village:"silent",ack:["TIME_ADVANCE"]},

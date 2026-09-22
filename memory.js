@@ -1573,7 +1573,7 @@ function _ragChapterScore(inputText,pool){
 // memo keyed by the pool's own fingerprint, so an edited sheet is never served stale.
 var RAG_CARRIED_MAX=6;       // facts served per turn
 var RAG_CARRIED_BUDGET=1400; // chars — a garnish, never a second prompt
-var RAG_CARRIED_HEADER="CARRIED HISTORY — what these people lived BEFORE this campaign, from their own records. This is CANON: answer from it and build on it; where it is silent, invent nothing that contradicts it. Oldest first:";
+var RAG_CARRIED_HEADER="CARRIED HISTORY — what these people lived BEFORE this campaign, from their own records. This is CANON: answer from it and build on it; if narration earlier in this session told any of these events differently, the record wins and the earlier telling was an error — correct it in character; where the record is silent, invent nothing that contradicts it. Oldest first:";
 function _ragCarriedPool(){
   var pool=[],seen={},i,j,n=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[];
   function add(who,text,camp,turn,kind){var t=String(text||"").trim();if(!t)return;var key=t.toLowerCase();if(seen[key])return;seen[key]=1;pool.push({who:who,text:t,camp:camp||null,turn:(typeof turn==="number")?turn:0,kind:kind});}

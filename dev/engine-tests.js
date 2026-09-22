@@ -25554,8 +25554,28 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#433 source: api.js calls the one retrieval function once and splices its block beside the chapter and scene excerpts",function(){
     var ap=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
-    if((ap.match(/ragCarriedRetrieve\(/g)||[]).length!==1)return "api.js must call ragCarriedRetrieve exactly once, found "+(ap.match(/ragCarriedRetrieve\(/g)||[]).length;
+    var bsp=ap.slice(ap.indexOf("function buildSysPrompt("));if((bsp.match(/ragCarriedRetrieve\(/g)||[]).length!==1)return "buildSysPrompt must call ragCarriedRetrieve exactly once, found "+(bsp.match(/ragCarriedRetrieve\(/g)||[]).length;
+    var note=ap.slice(ap.indexOf("function buildCarriedRecordNote("),ap.indexOf("var buildTravelPriceNudge="));if((note.match(/ragCarriedRetrieve\(/g)||[]).length!==1)return "the CARRIED RECORD note must gate on the served pool through the one memoized call";
+    if((ap.match(/ragCarriedRetrieve\(/g)||[]).length!==2)return "api.js calls ragCarriedRetrieve from somewhere new: "+(ap.match(/ragCarriedRetrieve\(/g)||[]).length;
     if(!/\+carriedRagBlock\/\*/.test(ap))return "the carried block is not spliced into the volatile assembly";
+    return true;
+  });
+  t("#433 the CARRIED RECORD note (t93: the served block lost to the GM's own wagon story) rides the user turn only when the action names a served carrier AND a recent GM reply spoke of them; silent otherwise, silent in combat; registered with a shape row; the header says the record wins",function(){
+    carriedEF();var _la=lastAction,_sl=sessionLog;
+    try{
+      if(!/the record wins/.test(RAG_CARRIED_HEADER))return "the header no longer says the record wins over an earlier telling";
+      sessionLog=[{role:"user",content:"Ask how they met."},{role:"assistant",content:"\"Three autumns back, a wagon wheel gave out,\" Silas says, and Nyla laughs."}];
+      lastAction="Is that how you remember it Nyla?";var n=buildCarriedRecordNote();
+      if(!/CARRIED RECORD/.test(n)||!/Nyla Lorrath/.test(n)||!/that telling was an error/.test(n))return "the note did not fire or is mis-worded: "+JSON.stringify(n);
+      if(/Silas Morne/.test(n))return "the note named someone the action did not name: "+n;
+      lastAction="Ask Nyla about the dye trade";sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"The kettle sings. Frizwick yawns."}];
+      if(buildCarriedRecordNote()!=="")return "the note fired with no recent GM mention of the carrier";
+      lastAction="Stoke the fire";sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"Nyla laughs at Silas."}];
+      if(buildCarriedRecordNote()!=="")return "the note fired for an action naming nobody";
+      lastAction="Is that how you remember it Nyla?";worldState.combat={round:1,foes:[]};
+      if(buildCarriedRecordNote()!=="")return "the note fired in combat";worldState.combat=null;
+      if(NOTE_BUILDERS.indexOf(buildCarriedRecordNote)<0||!NOTE_SHAPES.buildCarriedRecordNote||NOTE_SHAPES.buildCarriedRecordNote.combat!=="silent"||NOTE_SHAPES.buildCarriedRecordNote.village!=="fires"||NOTE_SHAPES.buildCarriedRecordNote.shape!=="transient")return "not registered with the right row";
+    }finally{lastAction=_la;sessionLog=_sl;worldState.combat=null;}
     return true;
   });
 
