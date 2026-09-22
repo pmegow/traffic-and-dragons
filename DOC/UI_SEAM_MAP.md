@@ -18,7 +18,7 @@ cutover commit — keep the diffs reviewable.
    (§4.3), which gets its **own commit**.
 2. **NO IIFE / module wrappers.** The entire codebase runs on file-scope `var` and
    `function` declarations acting as globals. Dozens of inline `onclick="…"` strings
-   (`showQuestModal()`, `dropInvItem(...)`, `campLoad(...)`, `_charExportPick(...)`,
+   (`showQuestModal()`, `markInvItem(...)`, `dropMarkedItems(...)`, `campLoad(...)`, `_charExportPick(...)`,
    `_removePendingCompanion(...)`, `showCompanionBrowser()`, `restSpells()`, `campNew()`,
    `campCloudPush/Pull(...)`, `campDelete(...)`, `campStartRename(...)`, `showCapabilityCard(...)`,
    `_cbPickLocal/_cbPickLib/_cbDelLib` via `window.`) resolve at global scope. Wrapping a file in
@@ -107,7 +107,7 @@ executing session finds one not listed here, stop and flag it.
 | Symbol | Lines | Note |
 |---|---|---|
 | `csSec`, `csKv`, `csInitials`, `csHeroHeader` | 990–1000 | shared cs-* builders |
-| `dropInvItem` | 1004–1017 | inline-onclick target — must stay global |
+| `markInvItem`, `dropMarkedItems` | 1004–1017 | inline-onclick targets — must stay global (#429: the × marks, the button commits; replaced `dropInvItem`) |
 | `csSheetSections` | 1020–1061 | ONE renderer, three hosts (player/NPC/read-only) |
 | `showCapabilityCard` | 1065–1074 | #10 click-card; inline-onclick target |
 | `csWireToggles` | 1075 | |

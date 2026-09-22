@@ -25385,4 +25385,46 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #429 BATCH DROP (owner 2026-09-21): the sheet's × MARKS a row (red); one "Drop N items" button commits.
+  // The thorn: the post-campaign clean-out of a hundred single-use items, one native confirm each. Marks are
+  // session state keyed "<idx>|<name>", resolved against the LIVE inventory at render and at commit, so a GM
+  // turn that spliced the array between the mark and the button never drops the row that slid into the index.
+  section("#429 batch drop");
+  t("#429 invDropToggle marks and unmarks one row, leaves the other marks alone, never mutates its input",function(){
+    var m0={};var m1=invDropToggle(m0,2,"Rope");if(Object.keys(m0).length)return "input mutated";
+    if(!m1["2|Rope"])return "not marked: "+JSON.stringify(m1);
+    var m2=invDropToggle(m1,0,"Lamp");if(!m2["2|Rope"]||!m2["0|Lamp"])return "the second mark lost the first";
+    var m3=invDropToggle(m2,2,"Rope");if(m3["2|Rope"]||!m3["0|Lamp"])return "unmark wrong: "+JSON.stringify(m3);
+    if(invDropCount(m3)!==1||invDropCount({})!==0||invDropCount(null)!==0)return "count";
+    return true;
+  });
+  t("#429 invDropPlan resolves by index, re-finds a shifted row by name, reports a vanished one as stale, never claims a row twice, sorts ascending",function(){
+    var p=invDropPlan(["Lamp","Rope","Torch","Rope","Bread"],{"1|Rope":true,"4|Bread":true});
+    if(!p.ok||p.count!==2||p.drop[0].idx!==1||p.drop[1].idx!==4||p.stale.length)return "plain: "+JSON.stringify(p);
+    /* the GM took the lamp between the mark and the button: every index slid down by one */
+    var p2=invDropPlan(["Rope","Torch","Rope","Bread"],{"1|Rope":true,"4|Bread":true});
+    if(p2.count!==2||p2.drop[0].name!=="Rope"||p2.drop[0].idx!==0||p2.drop[1].name!=="Bread"||p2.drop[1].idx!==3)return "shifted: "+JSON.stringify(p2);
+    /* the potion was drunk meanwhile: stale, reported by name, nothing else affected */
+    var p3=invDropPlan(["Lamp"],{"0|Potion":true,"0|Lamp":true});
+    if(p3.count!==1||p3.drop[0].name!=="Lamp"||p3.stale.join()!=="Potion")return "stale: "+JSON.stringify(p3);
+    /* two marks on identical names claim two different rows; two marks that resolve to ONE row keep one */
+    var p4=invDropPlan(["Rope","Rope"],{"0|Rope":true,"1|Rope":true});if(p4.count!==2||p4.drop[0].idx===p4.drop[1].idx)return "twins: "+JSON.stringify(p4);
+    var p5=invDropPlan(["Rope","Torch"],{"0|Rope":true,"5|Rope":true});if(p5.count!==1||p5.stale.length!==1)return "one row, two marks: "+JSON.stringify(p5);
+    var p6=invDropPlan(["Lamp","Rope","Torch"],{"2|Torch":true,"0|Lamp":true});if(p6.drop[0].idx!==0||p6.drop[1].idx!==2)return "not sorted";
+    if(invDropPlan(["Lamp"],{}).ok||invDropPlan([],{"0|Lamp":true}).ok||invDropPlan(null,null).ok)return "an empty plan is completable";
+    return true;
+  });
+  t("#429 invDropApply removes exactly the planned rows (highest index first) and returns their names in sheet order",function(){
+    var inv=["Lamp","Rope","Torch","Rope","Bread"],p=invDropPlan(inv,{"0|Lamp":true,"1|Rope":true,"4|Bread":true});
+    var names=invDropApply(inv,p);if(names.join(",")!=="Lamp,Rope,Bread")return "names: "+names.join(",");
+    if(inv.join(",")!=="Torch,Rope")return "left: "+inv.join(",");
+    return true;
+  });
+  t("#429 the button text counts and pluralizes; the toast names up to four items and counts the rest",function(){
+    if(invDropButtonText(1)!=="Drop 1 item"||invDropButtonText(12)!=="Drop 12 items")return invDropButtonText(1)+" / "+invDropButtonText(12);
+    if(invDropNamesText(["A","B"])!=="A, B")return "two: "+invDropNamesText(["A","B"]);
+    if(invDropNamesText(["A","B","C","D","E","F"])!=="A, B, C, D and 2 more")return "six: "+invDropNamesText(["A","B","C","D","E","F"]);
+    return true;
+  });
+
 }

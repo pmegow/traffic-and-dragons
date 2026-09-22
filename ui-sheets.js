@@ -24,28 +24,60 @@ function csHeroHeader(c){
   var lvl=c.level||1,xpm=csXpMeter(c.xp||0,lvl,typeof codaState==="function"&&codaState());/* #366 */
   return {genderLbl:genderLbl,clsLine:clsLine,lvl:lvl,xpm:xpm};
 }
-// #50 QOL: drop an inventory item from a live sheet. owner ""=player, else companion name.
-// Native confirm guards the misclick; the drop is a player edit (like the Sync modal), saved
-// and synced immediately, and the sheet re-renders IN PLACE (#382b — audit E7: this comment used
-// to promise an in-place re-render the code did not do).
-function dropInvItem(owner,idx,ev){
-  if(ev&&ev.stopPropagation)ev.stopPropagation();
-  idx=parseInt(idx,10);if(isNaN(idx)||!worldState)return;
-  var inv=null,cs=null,i;
-  if(owner===""){cs=worldState.character;inv=cs&&cs.inventory;}
-  else{for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];if(n&&n.name===owner&&n.charSheet){cs=n.charSheet;inv=cs.inventory;break;}}}
-  if(!inv||idx<0||idx>=inv.length)return;
-  var nm=inv[idx];
-  if(!window.confirm('Drop "'+nm+'"?'))return;
-  inv.splice(idx,1);
-  if(typeof wornPrune==="function")wornPrune(cs);/* audit E4/#388: nothing is worn that is not carried — a dropped worn sword otherwise rode attireLine into every prompt */
-  saveAll();
-  if(typeof showToast==="function")showToast("Dropped: "+nm);
-  if(owner===""){refreshCharSheetInPlace();if(typeof updateInvPanel==="function")updateInvPanel();}
+// #429 BATCH DROP (owner 2026-09-21; supersedes the #50 per-item drop and its native confirm): the × on a
+// live sheet MARKS a row for dropping — the name goes red, the × becomes the un-mark — and ONE "Drop N items"
+// button at the foot of the list commits every mark at once: one splice pass, one worn-prune, one save, one
+// toast, in-place re-render. No per-item confirm and no batch confirm (owner ruling: the red rows are the
+// review, and the commit lives away from the ×, which guards a misclick better than a reflex OK). Marks are
+// SESSION state, per owner ("" = hero, else the companion's name), stamped with the campaign so a switch never
+// carries them over, and resolved against the LIVE inventory (invDropPlan, helpers.js) at render AND at
+// commit. Closing the sheet discards pending marks and says so — a toast, never silence.
+var _invDropMarks={camp:null,by:{}};
+function _invDropMarksFor(owner){
+  var camp=(typeof worldState!=="undefined"&&worldState)?(worldState.campId||null):null;
+  if(_invDropMarks.camp!==camp){_invDropMarks.camp=camp;_invDropMarks.by={};}
+  return _invDropMarks.by[owner]||{};
+}
+/* The sheet the × and the button act on: owner "" = the hero, else the companion by name. */
+function _invOwnerSheet(owner){
+  if(typeof worldState==="undefined"||!worldState)return null;
+  var cs=null,i;
+  if(owner==="")cs=worldState.character;
+  else{for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];if(n&&n.name===owner&&n.charSheet){cs=n.charSheet;break;}}}
+  if(!cs)return null;if(!cs.inventory)cs.inventory=[];
+  return cs;
+}
+function _invSheetRepaint(owner){
+  if(owner===""){_csReRender();if(typeof updateInvPanel==="function")updateInvPanel();}
   else{var ex2=document.getElementById("npc-modal");if(ex2){ex2.remove();showNpcSheet(owner);}}
 }
+function markInvItem(owner,idx,ev){
+  if(ev&&ev.stopPropagation)ev.stopPropagation();
+  idx=parseInt(idx,10);var cs=_invOwnerSheet(owner);if(!cs||isNaN(idx)||idx<0||idx>=cs.inventory.length)return;
+  _invDropMarks.by[owner]=invDropToggle(_invDropMarksFor(owner),idx,cs.inventory[idx]);
+  _invSheetRepaint(owner);
+}
+function dropMarkedItems(owner,ev){
+  if(ev&&ev.stopPropagation)ev.stopPropagation();
+  var cs=_invOwnerSheet(owner);if(!cs)return;
+  var plan=invDropPlan(cs.inventory,_invDropMarksFor(owner)),stale=plan.stale.length?" — no longer carried: "+plan.stale.join(", "):"";
+  delete _invDropMarks.by[owner];
+  if(!plan.ok){if(typeof showToast==="function")showToast("Nothing to drop"+stale,5000);_invSheetRepaint(owner);return;}
+  var names=invDropApply(cs.inventory,plan);
+  if(typeof wornPrune==="function")wornPrune(cs);/* audit E4/#388: nothing is worn that is not carried — a dropped worn sword otherwise rode attireLine into every prompt */
+  saveAll();
+  if(typeof showToast==="function")showToast("Dropped "+names.length+" item"+(names.length===1?"":"s")+": "+invDropNamesText(names)+stale,6000);
+  _invSheetRepaint(owner);
+}
+/* Closing a sheet with marks pending: cleared, and said (the modalShell onClose on both hosts). */
+function _invDropDiscard(owner){
+  var n=invDropCount(_invDropMarksFor(owner));if(!n)return 0;
+  delete _invDropMarks.by[owner];
+  if(typeof showToast==="function")showToast(n+" mark"+(n===1?"":"s")+" cleared — nothing dropped",4000);
+  return n;
+}
 // #47 policy (user ruling 2026-07-12): epithets are GM-granted only, but the PLAYER may reject
-// one — the × beside each "Also known as" entry on live sheets. Same owner-routing as dropInvItem.
+// one — the × beside each "Also known as" entry on live sheets. Same owner-routing as markInvItem.
 function rejectEpithet(owner,idx,ev){
   if(ev&&ev.stopPropagation)ev.stopPropagation();
   idx=parseInt(idx,10);if(isNaN(idx)||!worldState)return;
@@ -163,18 +195,21 @@ function csSheetSections(c,invOwner,portable){
     var _shMx=(typeof manaMax==="function")?manaMax(c):0;
     spellHtml=(_shMx>0?'<div class="cs-v" style="color:var(--mana);margin-bottom:2px;">Mana '+manaCur(c)+' / '+_shMx+' <span style="color:var(--t2);font-size:.85em;">(a cast costs its tier; refills on rest)</span></div>':"")+'<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
   var invHtml;
-  if(c.inventory&&c.inventory.length){/* #50(b): one line per item (was a comma run); live sheets get a drop ×.
+  if(c.inventory&&c.inventory.length){/* #50(b): one line per item (was a comma run); live sheets get a mark × (#429).
      #157: rendered through the ONE shared grouping view model (same classifier as the side
      panel — Sol §5). Each row carries its ORIGINAL array index, so a visually regrouped Drop
      still removes the right stored row; the stored array itself is never reordered. No nested
      collapse here — the sheet already has a parent collapse (Sol §6.3). */
     var invRows="",_canDrop=(invOwner!==undefined),_gi,_ri,_grps=groupInventory(c.inventory);
+    /* #429: which rows read as marked is decided by the RESOLVED plan (index first, then name) — the same
+       call the button commits — so the render and the commit cannot disagree after a GM turn shifted the array. */
+    var _mkPlan=_canDrop?invDropPlan(c.inventory,_invDropMarksFor(invOwner)):{drop:[],count:0},_mkAt={},_mi;for(_mi=0;_mi<_mkPlan.drop.length;_mi++)_mkAt[_mkPlan.drop[_mi].idx]=true;
     for(_gi=0;_gi<_grps.length;_gi++){
       var _grp=_grps[_gi];
       invRows+='<div class="cs-inv-cat'+(_grp.id==="unclassified"?' unc':'')+'">'+escHtml(_grp.label)+'</div>';
       for(_ri=0;_ri<_grp.rows.length;_ri++){
-        var _row=_grp.rows[_ri];
-        var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+_row.sourceIndex+'" onclick="dropInvItem(this.dataset.own,this.dataset.idx,event)" title="Drop this item" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=\'var(--t2)\'">&#10005;</button>':"";
+        var _row=_grp.rows[_ri],_marked=!!_mkAt[_row.sourceIndex],_xc=_marked?'var(--dng)':'var(--t2)';
+        var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+_row.sourceIndex+'" data-c="'+_xc+'" onclick="markInvItem(this.dataset.own,this.dataset.idx,event)" title="'+(_marked?'Keep this item (un-mark)':'Mark this item to drop')+'" style="background:none;border:none;color:'+_xc+';cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=this.dataset.c">&#10005;</button>':"";/* #429: the × marks, never drops */
         // #230: 📖 Define — live sheets only; #285 (f18) widened the gate from bare itemLookup
         // misses to the shared itemDefEligible predicate (helpers.js): canon-less items AND
         // classification-only curated BASE entries qualify — both leave the GM re-deriving the
@@ -184,9 +219,10 @@ function csSheetSections(c,invOwner,portable){
         var _defBtn=(_canDrop&&typeof itemDefEligible==="function"&&itemDefEligible(_row.raw))?'<button class="inv-def" data-raw="'+escHtml(_row.raw)+'" onclick="defineItemFromStory(this.dataset.raw,event)" title="Define this item: the GM reviews the story for what is already established about it and proposes canon — you confirm before it binds. Canonized items are re-injected every turn, so their nature can no longer drift." style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--acc)\'" onmouseout="this.style.color=\'var(--t2)\'">&#9998;</button>':"";/* #382: the quill, like every other edit control */
         /* #295: the item text opens the click-card; the Define/Drop buttons sit in their own
            flex span, so their clicks never bubble into the card. */
-        invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span data-item="'+escHtml(_row.raw)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;">'+invItemHtml(_row.raw)+(typeof isWorn==="function"&&isWorn(c,_row.raw)?' <span style="color:var(--t2);font-size:10px;">· worn</span>':'')+'</span><span style="display:flex;gap:2px;flex-shrink:0;">'+_defBtn+_dropBtn+'</span></div>';/* #388 */
+        invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="inv-name'+(_marked?' inv-marked':'')+'" data-item="'+escHtml(_row.raw)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;'+(_marked?'color:var(--dng);':'')+'">'+invItemHtml(_row.raw)+(typeof isWorn==="function"&&isWorn(c,_row.raw)?' <span style="color:var(--t2);font-size:10px;">· worn</span>':'')+'</span><span style="display:flex;gap:2px;flex-shrink:0;">'+_defBtn+_dropBtn+'</span></div>';/* #388; #429: a marked row reads red */
       }
     }
+    if(_mkPlan.count)invRows+='<div class="cs-list-row inv-drop-bar" style="display:flex;justify-content:flex-end;padding-top:8px;"><button id="inv-drop-btn" data-own="'+escHtml(invOwner)+'" onclick="dropMarkedItems(this.dataset.own,event)" title="Drop every marked item now — there is no further prompt" style="font-size:12px;font-family:var(--font);padding:5px 12px;border:1px solid var(--dng);border-radius:var(--r);background:var(--bg2);color:var(--dng);cursor:pointer;">'+escHtml(invDropButtonText(_mkPlan.count))+'</button></div>';/* #429: the one commit, at the foot of the list, only while something is marked */
     invHtml=(c.outfit&&c.outfit.text?'<div class="cs-list-row" style="font-style:italic;color:var(--t2);">Outfit (t'+escHtml(String(c.outfit.turn||0))+'): '+escHtml(c.outfit.text)+'</div>':"")+'<div class="cs-list">'+invRows+"</div>";/* #388 */}
   else invHtml='<span class="cs-none">Empty</span>';
   // #47: earned epithets/titles ride the character schema (c.aliases) so they survive PC↔NPC
@@ -304,8 +340,8 @@ function showCharSheet(){
     +csVoiceControlHtml(c)/* #9: per-character voice, next to the portrait */
     +"</div></div>"
 
-    +csSheetSections(c,"")/* ""=live player sheet — inventory rows get the drop × (#50) */,
-    {align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"cs-x",outside:true});
+    +csSheetSections(c,"")/* ""=live player sheet — inventory rows get the mark × (#50 → #429) */,
+    {align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"cs-x",outside:true,onClose:function(){var m=document.getElementById("cs-modal");if(m)m.remove();_invDropDiscard("");}});/* #429: a close discards pending marks, loudly */
 
   document.getElementById("cs-export-btn").addEventListener("click",function(){_showCharExportOptions(c);});
   /* #161: showLibraryUpdateModal lives in ui-browsers.js (loads AFTER this file) — safe by
@@ -550,7 +586,7 @@ function showNpcSheet(name){
     +npcSections
     +genBtnHtml
     +partWaysHtml,
-    {align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"npc-x",outside:true});
+    {align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"npc-x",outside:true,onClose:function(){var m=document.getElementById("npc-modal");if(m)m.remove();_invDropDiscard(name);}});/* #429: a close discards pending marks, loudly */
 
   if(document.getElementById("npc-export-btn")){document.getElementById("npc-export-btn").addEventListener("click",function(){_showCharExportOptions(sheet);});}
   /* #161: companion pull writes the charSheet; portraitOffset is then mirrored onto wsNpc —

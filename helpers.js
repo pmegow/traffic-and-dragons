@@ -1523,6 +1523,43 @@ function groupInventory(inv){
   if(un.rows.length)out.push(un);
   return out;
 }
+// ── #429 BATCH DROP (owner 2026-09-21): the sheet's × MARKS a row, one "Drop N items" button commits ──
+// Marks are session state: {"<idx>|<name>":true} per owner. The pair pins a mark to the row it was set
+// on; invDropPlan re-resolves every mark against the LIVE inventory (index first, then by name, never
+// the same row twice) so a GM turn that spliced the array between the mark and the button never drops
+// the row that slid into a marked index. Pure and DOM-free — the sheet is a thin shell over these.
+function invDropMarkKey(idx,name){return String(idx|0)+"|"+String(name);}
+function invDropToggle(marks,idx,name){
+  marks=marks||{};var k=invDropMarkKey(idx,name),out={},m;
+  for(m in marks){if(marks.hasOwnProperty(m)&&marks[m]&&m!==k)out[m]=true;}
+  if(!marks[k])out[k]=true;
+  return out;
+}
+function invDropCount(marks){var n=0,m;if(!marks)return 0;for(m in marks){if(marks.hasOwnProperty(m)&&marks[m])n++;}return n;}
+function invDropPlan(inv,marks){
+  inv=inv||[];marks=marks||{};var live=[],stale=[],seen={},k,i;
+  for(k in marks){
+    if(!marks.hasOwnProperty(k)||!marks[k])continue;
+    var bar=k.indexOf("|"),idx=parseInt(k.slice(0,bar),10),name=k.slice(bar+1),at=-1;
+    if(idx>=0&&idx<inv.length&&inv[idx]===name&&!seen[idx])at=idx;
+    else{for(i=0;i<inv.length;i++){if(inv[i]===name&&!seen[i]){at=i;break;}}}
+    if(at<0){stale.push(name);continue;}
+    seen[at]=true;live.push({idx:at,name:name});
+  }
+  live.sort(function(a,b){return a.idx-b.idx;});
+  return {drop:live,stale:stale,count:live.length,ok:live.length>0};
+}
+function invDropApply(inv,plan){
+  var names=[],i;
+  for(i=plan.drop.length-1;i>=0;i--)inv.splice(plan.drop[i].idx,1);/* highest first: the lower indices stay true */
+  for(i=0;i<plan.drop.length;i++)names.push(plan.drop[i].name);
+  return names;
+}
+function invDropButtonText(n){return "Drop "+n+" item"+(n===1?"":"s");}
+function invDropNamesText(names){
+  names=names||[];if(names.length<=4)return names.join(", ");
+  return names.slice(0,4).join(", ")+" and "+(names.length-4)+" more";
+}
 // Player verdicts on [ITEM_DEF:] proposals — the ONLY writers of worldState.itemBible (#81).
 // Pure state ops (no DOM) so the confirm modal stays a thin veneer and the flow is engine-
 // testable. Accept = write-once overlay entry (an existing key refuses — the SPELL_DEF rule);

@@ -94,7 +94,7 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
   saveModifiers[],        // {source, type, amount}
   portrait,               // null | base64 data URL (compressed to max 400×600px JPEG 0.8)
   storyBeats[],           // {text, turn}
-  worn[],                 // #388: STORED inventory strings currently worn/held-ready — never an item not in inventory (wornSet refuses; ITEM_LOST prunes; ITEM_RENAMED follows). Audit E4 (2026-09-18): the two UI removal paths prune too — dropInvItem (ui-sheets) and the Sync modal's inventory assign; every path that can shorten an inventory calls wornPrune. Companion charSheets carry the same two fields
+  worn[],                 // #388: STORED inventory strings currently worn/held-ready — never an item not in inventory (wornSet refuses; ITEM_LOST prunes; ITEM_RENAMED follows). Audit E4 (2026-09-18): the two UI removal paths prune too — dropMarkedItems (ui-sheets; #429 replaced the per-item dropInvItem with the batch commit) and the Sync modal's inventory assign; every path that can shorten an inventory calls wornPrune. Companion charSheets carry the same two fields
   outfit,                 // #388: null | {text, turn} — the mundane layer beneath or instead of gear, one dated line, replaced never appended
   coreMemories[],         // {text, turn, kind, who, camp} — #63: defining moments, witnessed-by-all, portable across campaigns (see §8c)
   partyMember             // bool — always true for the player character

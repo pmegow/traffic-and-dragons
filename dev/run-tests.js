@@ -1369,6 +1369,16 @@ try {
   console.log("[#423] import ownership contract OK — shell routes through importSaveData, resolver asks ownership, sync re-homes once on reason foreign_campaign");
 } catch (e) { console.error("IMPORT OWNERSHIP CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── #429 BATCH DROP CONTRACT (v1.964) ────────────────────────────────────────────────────
+// The sheet's × marks; one "Drop N items" button commits. The battery dev/tests-429-inventory-drop.js
+// proves the mark, the commit, the shifted-index case, the loud stale refusal, the render, the
+// discard-on-close and the wiring on both sheet hosts. This clause guards that the gate still RUNS it
+// (the #423 precedent — a battery that falls out of the runner is green forever).
+try {
+  if (_src("dev/run-standalone-suites.js").indexOf("dev/tests-429-inventory-drop.js") < 0) throw new Error("the #429 battery is not in run-standalone-suites.js — the gate no longer runs it.");
+  console.log("[#429] batch drop battery registered");
+} catch (e) { console.error("BATCH DROP CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────
 // The wire format is the disk format ({__lz} transcript), and the reconcile ADOPT used to
 // consume the pulled blob RAW (worldState = data.worldState — never parseWorldState): shipping

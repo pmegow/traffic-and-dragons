@@ -138,12 +138,11 @@ test("E2 the Sync modal's Apply routes level and location through the grant path
 });
 
 // ── E4 · dropping a worn item prunes worn[] ──────────────────────────────────
-test("E4 dropInvItem prunes worn[] — a dropped sword is not still being worn", function () {
+test("E4 the batch drop prunes worn[] — a dropped sword is not still being worn", function () {
   fresh();
   var c = worldState.character;
   c.inventory = ["Longsword", "Chain shirt"]; c.worn = ["Chain shirt"];
-  __confirmAnswer = true;
-  dropInvItem("", 1, null);
+  markInvItem("", 1, null); dropMarkedItems("", null);/* #429: the × marks, the button commits — no confirm on the path */
   assert.equal(c.inventory.length, 1, "the item was not dropped");
   assert.equal(c.worn.length, 0, "a dropped item is still listed as worn — attireLine would inject it into every prompt");
 });
@@ -198,10 +197,11 @@ test("E7 no raw showCharSheet() re-render site survives", function () {
   assert(!/showLibraryUpdateModal\(c,\s*function\(\)\{showCharSheet\(\);\}\)/.test(rest), "the library-update callback still re-renders raw");
   assert(/refreshCharSheetInPlace/.test(p), "ui-portrait.js still re-renders the sheet raw");
   assert(/_csReRender/.test(g.slice(g.indexOf("async function syncCharSheet("))), "syncCharSheet still re-renders the sheet raw");
-  assert(/wornPrune\(cs\)/.test(s.slice(s.indexOf("function dropInvItem("), s.indexOf("function rejectEpithet("))),
-    "dropInvItem does not prune worn (E4)");
-  assert(/refreshCharSheetInPlace|_csReRender/.test(s.slice(s.indexOf("function dropInvItem("), s.indexOf("function rejectEpithet("))),
-    "the dropInvItem comment claims an in-place re-render the code does not do");
+  var drop = s.slice(s.indexOf("function dropMarkedItems("), s.indexOf("function _invDropDiscard("));/* #429: the batch commit replaced dropInvItem */
+  assert(/wornPrune\(cs\)/.test(drop), "dropMarkedItems does not prune worn (E4)");
+  assert(/_invSheetRepaint\(owner\)/.test(drop), "the batch drop does not repaint the sheet");
+  assert(/_csReRender\(\)/.test(s.slice(s.indexOf("function _invSheetRepaint("), s.indexOf("function markInvItem("))),
+    "the sheet repaint after a drop is not in place (E7)");
 });
 
 // ── E8 · the dead library alias is gone ──────────────────────────────────────
