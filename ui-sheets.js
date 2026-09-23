@@ -253,9 +253,18 @@ function showCapabilityCard(name){
 // per-turn injection read (one data source, three surfaces).
 function showItemCard(raw){
   var e=(typeof itemLookup==="function")?itemLookup(raw):null;
-  modalShell("item-card-modal",
-    itemCardHTML(raw,e)+"<button id='item-card-x' style='position:absolute;top:6px;right:10px;background:none;border:none;color:var(--t2);font-size:24px;line-height:1;cursor:pointer;'>&times;</button>",
+  var canDefine=!!(worldState&&worldState.character&&typeof itemDefEligible==="function"&&itemDefEligible(raw));
+  var action=canDefine?'<div style="padding:0 24px 22px;"><button id="item-card-define" type="button" style="width:100%;padding:12px 16px;font-family:var(--font);font-size:13px;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;">Consult story &amp; define</button><div style="margin-top:8px;font-size:12px;line-height:1.5;color:var(--t2);">Review what the story has established, then confirm the proposed definition.</div></div>':"";
+  var modal=modalShell("item-card-modal",
+    itemCardHTML(raw,e)+action+"<button id='item-card-x' style='position:absolute;top:6px;right:10px;background:none;border:none;color:var(--t2);font-size:24px;line-height:1;cursor:pointer;'>&times;</button>",
     {z:400,bg:".9",boxCss:"background:var(--modal-bg,#181818);border:1px solid var(--acc);border-radius:12px;max-width:420px;width:100%;position:relative;",closeId:"item-card-x",outside:true});
+  if(canDefine)document.getElementById("item-card-define").addEventListener("click",function(ev){
+    // Check at click time: a card opened during a turn must work when the turn ends.
+    if(busy){showToast("Wait for the turn to finish",3000);return;}
+    if(typeof defineItemFromStory!=="function"){console.warn("[item-card] Story review is unavailable");showToast("Story review is unavailable. Reload and try again.",4000);return;}
+    modal.remove();
+    defineItemFromStory(raw,ev);
+  });
 }
 function csWireToggles(modal){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}}
 

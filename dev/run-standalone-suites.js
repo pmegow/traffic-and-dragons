@@ -23,6 +23,7 @@ var SUITES = [
   "dev/tests-423-import-ownership.js",
   "dev/tests-429-inventory-drop.js",
   "dev/tests-430-ledger-rows-live.js",
+  "dev/tests-435-item-card-define.js",
   "dev/tests-b38-extractor-refusal.js",
   "dev/tests-b39-resume-observed.js",
   "dev/tests-c13-adapter.js",

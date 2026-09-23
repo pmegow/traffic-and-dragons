@@ -15,6 +15,8 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
+- 2026-09-23 · #435 (v1.979) · Codex: item-card button delegates to existing defineItemFromStory; eligibility delegates to itemDefEligible. Popup copy only in helpers.js; no prompt/parser/canon changes. Verified: five regression checks, six mutation proofs, 2,304 engine assertions + 52 standalone suites; phone-width Chrome render and review → confirmation → saved canon with a stubbed model response. Owner live play pending.
+
 - 2026-09-22 · #24 glossary · Codex: added CI (Continuous Integration) under Infra & releases and refreshed the footer and archived task status. Documentation only.
 
 - 2026-09-23 · L7 accent layer (v1.975) · Opus: owner-approved Proposal_general_audio §21, Opus-tier parts only. New audio-accents.js (selection, scheduler, controller) beside the unchanged bed controller; loader/cache media lookup; one-line bed-selector guard in audio-profile.js (`a.role!=="accent"`); tavern seed accents in audio-scenes.js. No parser, prompt, tag, memory or GM vocabulary change — the `chimes`/`bells` words are left for Fable. Verification: audits/AUDIT_L7_accent_layer.md (16 mutation clauses, Chrome run).

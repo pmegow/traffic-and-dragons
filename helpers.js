@@ -1730,7 +1730,7 @@ function itemCardHTML(raw,e){
   if(!e){
     var m=String(raw||"").match(/[—–]\s*(.+)$/);
     return '<div style="padding:22px 24px;">'+title
-      +'<div style="font-size:13px;color:var(--t2,#999);line-height:1.55;">No canon recorded for this item yet.'+(m?'':' Its story lives in play — the &#128214; Define button on the character sheet can pin it down.')+'</div>'
+      +'<div style="font-size:13px;color:var(--t2,#999);line-height:1.55;">No canon recorded for this item yet.'+(m?'':' Its story has not been pinned down yet.')+'</div>'
       +(m?'<div style="font-size:13px;color:var(--t1,#ccc);line-height:1.55;margin-top:10px;">'+escHtml(m[1])+'</div>':'')
       +'</div>';
   }
