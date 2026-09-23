@@ -46,6 +46,70 @@
     "boundaryStep": 0.0015149828211459895,
     "adjacentStepP99": 0.046718366729939176,
     "loopEndSeconds": 28.0,
-    "loopListening": "Prepared as a weather LAYER; no scene binds it until the WEATHER normalization contract lands (Proposal_general_audio \u00a77 / Fable feedback 19.2)."
+    "loopListening": "Prepared as a weather LAYER; no scene binds it until the WEATHER normalization contract lands (Proposal_general_audio §7 / Fable feedback 19.2)."
+  },
+  {
+    "id": "footsteps-wood",
+    "delivery": "sfx/accent-footsteps-wood-v1.mp3",
+    "license": "CC0 1.0 (Nox_Sound Essentials Series; pack README: \"All these sounds are under CC0 license.\")",
+    "author": "Nox_Sound (Essentials Series)",
+    "sourceUrl": "https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound",
+    "sources": [
+      {
+        "file": "Essentials_Series_NOX_SOUND/Footsteps_Essentials_NOX_SOUND/Footsteps_Wood/Footsteps_Wood_Walk/Footsteps_Wood_Walk_01.wav",
+        "sha256": "ced3c3e067d9e9e7d46075a5cfdcc8063153c0099c076fdfa27cd171f16f18d6",
+        "gainDb": 6.01
+      },
+      {
+        "file": "Essentials_Series_NOX_SOUND/Footsteps_Essentials_NOX_SOUND/Footsteps_Wood/Footsteps_Wood_Walk/Footsteps_Wood_Walk_02.wav",
+        "sha256": "0fbf01e67ceeefa6489d3b82d070c3b03df67ea4daf12503da7aa46a97c9b03b",
+        "gainDb": 0.28
+      },
+      {
+        "file": "Essentials_Series_NOX_SOUND/Footsteps_Essentials_NOX_SOUND/Footsteps_Wood/Footsteps_Wood_Walk/Footsteps_Wood_Walk_03.wav",
+        "sha256": "7b732ddaf1f3586571a6790ebeeea8400f1acf9e4921c64a987d29bb4764756f",
+        "gainDb": 2.94
+      },
+      {
+        "file": "Essentials_Series_NOX_SOUND/Footsteps_Essentials_NOX_SOUND/Footsteps_Wood/Footsteps_Wood_Walk/Footsteps_Wood_Walk_04.wav",
+        "sha256": "8d8c46c46c9743a436b92f971ffdc893ea8a82bb29d1197d767520d5885a666c",
+        "gainDb": 0.79
+      },
+      {
+        "file": "Essentials_Series_NOX_SOUND/Footsteps_Essentials_NOX_SOUND/Footsteps_Wood/Footsteps_Wood_Walk/Footsteps_Wood_Walk_05.wav",
+        "sha256": "71e464eb4ccea15c264339660b175ab55317024f8ae90aa6cdbd582efc72ab7e",
+        "gainDb": 3.62
+      }
+    ],
+    "cuts": [
+      [
+        0.25,
+        0.6722
+      ],
+      [
+        0.9222,
+        1.3425
+      ],
+      [
+        1.5925,
+        2.0656
+      ],
+      [
+        2.3156,
+        2.8182
+      ],
+      [
+        3.0682,
+        3.5287
+      ]
+    ],
+    "wavSha256": "24bda90e76ebf4d48289913ecca18d1090a3a9cab260f8f5fae74e6161eeceeb",
+    "mp3Sha256": "fb525bfb3e6a27164bb404100e3c91fdeaa58aecf738a4b0080b28b9a29c46ca",
+    "durationSeconds": 3.7787,
+    "bytes": 61440,
+    "sampleRate": 48000,
+    "channels": 1,
+    "method": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -6 dBFS; 10 ms raised-cosine fades; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+    "approval": "recordings owner-approved by listening 2026-09-22 (Walk 01-05); mix awaits the owner hearing the set as in game (dev/accent-audition.html)"
   }
 ]

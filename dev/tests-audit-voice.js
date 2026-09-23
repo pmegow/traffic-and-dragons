@@ -142,7 +142,9 @@ function loadAmbient(doc, over) {
     createAmbientController(driver) {
       const c = { updates: 0, disposed: false, update() { c.updates++; }, retry() {}, dispose() { c.disposed = true; }, inspect: () => ({ pending: 0, sources: 0, buffers: 0 }) };
       controllers.push(c); return c;
-    }
+    },
+    /* the accent layer (§21) is created beside the bed controller; a recording stub keeps this fixture about voice gating */
+    createAccentController() { return { update() {}, shed() {}, dispose() {}, inspect: () => ({}) }; }
   };
   const names = Object.keys(deps);
   const app = new Function(...names, source('ui-ambient.js') + '\n;return Ambient;')(...names.map(k => deps[k]));

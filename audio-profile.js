@@ -54,7 +54,7 @@ function audioSelect(s,catalog){
   if(!v.ok||v.profile.quiet==="silent"||typeof m!=="number"||!isFinite(m)||m<0||m>=1440)return empty;
   var p=v.profile, eligible=(catalog.assets||[]).filter(function(a){
     var ok=a.approval;
-    return !a.seedOnly&&ok&&ok.recording&&ok.rights&&ok.contents&&ok.loop&&ok.mix&&a.cohort===(p.cohort||catalog.cohort)&&
+    return a.role!=="accent"&&!a.seedOnly&&ok&&ok.recording&&ok.rights&&ok.contents&&ok.loop&&ok.mix&&a.cohort===(p.cohort||catalog.cohort)&&
       a.enclosures.indexOf(p.enclosure)>=0&&a.settings.indexOf(p.setting)>=0&&a.biomes.indexOf(p.biome)>=0&&
       (a.from<a.to?m>=a.from&&m<a.to:m>=a.from||m<a.to)&&
       a.contains.every(function(c){return p.allows.indexOf(c)>=0&&p.forbid.indexOf(c)<0;});

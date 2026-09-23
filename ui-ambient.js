@@ -3,6 +3,7 @@ var Ambient = (function() {
   var enabled = false, volume = 0.45, unlocked = false, held = false, capturing = false;
   var AMBIENT_DUCK_ATTACK_SECONDS = 0.08, AMBIENT_DUCK_RELEASE_SECONDS = 1.2; /* setTargetAtTime time constants: ~0.3 s down, ~4 s back up */
   var ctx = null, controller = null, initialized = false, lastError = "", status = "Off";
+  var accents = null, accentSettled = Promise.resolve();   /* the accent layer (§21) and its in-flight decode */
   var offs = [], gesturePending = false, lastCacheError = "";
   function report(e) {
     var reason = (e && e.message) || String(e);
@@ -36,6 +37,7 @@ var Ambient = (function() {
     if (!initialized) return;
     var s = snapshot(), p = ambientPlan(s, AUDIO_SCENES);
     if (controller) controller.update(s);
+    if (accents) accents.update(s);
     if (!enabled) status = "Off";
     else if (location.protocol === "file:") { report(new Error("Open the hosted game or localhost to use ambience")); return; }
     else if (!unlocked) status = "Tap anywhere to start ambience";
@@ -45,14 +47,20 @@ var Ambient = (function() {
     else if (!lastError) status = (p.scene.label || p.scene.id) + (s.speaking ? " · quiet under narration" : "") + (controller && controller.inspect().pending ? " · loading" : "");
     paint();
   }
-  function driver() {
-    var loader=createAudioLoader(ctx,AUDIO_CATALOG);
+  /* Bed and accents share ONE loader (one decode slot, one 48 MiB budget). The bed outranks accents (§21.5): it waits for
+     an in-flight accent decode instead of colliding with it, and a memory refusal sheds the accent buffers and retries once. */
+  function driver(loader) {
     return {
       release:loader.release,
       inspect:loader.inspect,
       abort: function() { return new AbortController(); },
       error: report,
-      load: loader.load,
+      load: function(scene, signal) {
+        return accentSettled.then(function() { return loader.load(scene, signal); }).catch(function(e) {
+          if (!accents || !/budget/.test(e && e.message)) throw e;
+          accents.shed(); return loader.load(scene, signal);
+        });
+      },
       start: function(buffer, scene, value) {
         var source = ctx.createBufferSource(), gain = ctx.createGain(), envelope = ctx.createGain();
         try {
@@ -83,6 +91,41 @@ var Ambient = (function() {
       stop: function(voice) { voice.source.stop(); voice.source.disconnect(); voice.gain.disconnect(); voice.envelope.disconnect(); loader.release(voice.source.buffer); voice.source.buffer = null; }
     };
   }
+  /* The accent layer's playback (audio-accents.js owns the policy). A burst's steps are all scheduled on the
+     AudioContext clock at once, so the walking cadence is sample-accurate; one gain node per voice lets it fade out. */
+  function accentDriver(loader) {
+    return {
+      now: function() { return Date.now(); },
+      later: function(fn, ms) { return setTimeout(fn, ms); },
+      cancel: function(timer) { clearTimeout(timer); },
+      abort: function() { return new AbortController(); },
+      idle: function() { return loader.inspect().reservedDecodes === 0; },
+      bedPending: function() { return !!(controller && controller.inspect().pending); },
+      load: function(set, signal) { var job = loader.load(set, signal); accentSettled = job.then(function() {}, function() {}); return job; },
+      release: loader.release,
+      rng: Math.random,
+      error: report,
+      warn: function(message) { console.warn("[ambience] " + message); },
+      play: function(buffer, set, steps, value) {
+        var gain = ctx.createGain(), t0 = ctx.currentTime + 0.05, voice = { gain: gain, sources: [], done: false }, left = steps.length;
+        gain.gain.value = value; gain.connect(ctx.destination);
+        steps.forEach(function(step) {
+          var cut = set.sprite.cuts[step.cut], source = ctx.createBufferSource();
+          source.buffer = buffer; source.connect(gain);
+          source.onended = function() { source.disconnect(); if (--left === 0) { voice.done = true; gain.disconnect(); } };
+          source.start(t0 + step.at, cut[0], cut[1] - cut[0]); voice.sources.push(source);
+        });
+        return voice;
+      },
+      stop: function(voice, seconds) {
+        if (voice.done) return;
+        var now = ctx.currentTime, param = voice.gain.gain;
+        param.cancelScheduledValues(now); param.setValueAtTime(param.value, now); param.linearRampToValueAtTime(0, now + seconds);
+        /* a source that already ended rejects a second stop(); that is the only failure possible here, and it is harmless */
+        voice.sources.forEach(function(source) { try { source.stop(now + seconds); } catch (e) {} });
+      }
+    };
+  }
   function unlock(fromGesture) {
     // A blocked startup resume can stay pending until another resume runs inside a gesture.
     if (!enabled || (gesturePending && !fromGesture)) return;
@@ -94,7 +137,11 @@ var Ambient = (function() {
       gesturePending = false; unlocked = ctx.state === "running";
       if (!unlocked) { report(new Error("Audio did not start; tap Enable audio again")); return; }
       lastError = "";
-      if (!controller) controller = createAmbientController(driver(), AUDIO_SCENES);
+      if (!controller) {
+        var loader = createAudioLoader(ctx, AUDIO_CATALOG);
+        controller = createAmbientController(driver(loader), AUDIO_SCENES);
+        accents = createAccentController(accentDriver(loader), AUDIO_CATALOG, AUDIO_SCENES);
+      }
       sync(); controller.retry();
     }, function(e) { gesturePending = false; report(e); });
   }
@@ -119,7 +166,8 @@ var Ambient = (function() {
     unsubscribe();
     capturing = false;
     if (controller) controller.dispose();
-    controller = null; unlocked = false;
+    if (accents) accents.dispose();
+    controller = null; accents = null; unlocked = false;
   }
   function init() {
     if (initialized) return; initialized = true;
@@ -139,6 +187,7 @@ var Ambient = (function() {
        Re-arm: drop the controller, clear the latch; the next tap runs unlock(true) on the rebuilt context. */
     window.addEventListener("tnd:audio-refused", function() {
       if (controller) { try { controller.dispose(); } catch (e) {} }
+      if (accents) { try { accents.dispose(); } catch (e) {} } accents = null;
       controller = null; unlocked = false; ctx = null;
       status = "Audio device refused — tap anywhere to restart ambience"; paint();
       console.warn("[ambience] the audio device refused to start; ambience re-armed for the next tap (B39)");
@@ -158,6 +207,6 @@ var Ambient = (function() {
     sync(); if (enabled) unlock();
   }
   return { init: init, sync: sync, snapshot: snapshot, dispose: dispose,
-    inspect: function() { return controller ? controller.inspect() : { sources: 0, buffers: 0, pending: 0 }; } };
+    inspect: function() { return Object.assign(controller ? controller.inspect() : { sources: 0, buffers: 0, pending: 0 }, { accents: accents ? accents.inspect() : null }); } };
 })();
 window.addEventListener("load", function() { Ambient.init(); });

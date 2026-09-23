@@ -29,3 +29,9 @@ Each is the author's full loop through `dev/prepare-ambience-loop.py`: mono mean
 `tavern-v1.mp3`: 35.486 s, mono, 44.1 kHz, 128 kbps (568841 bytes). **CC0 1.0** — ivolipa, "Tavern_Ambience_Inside_Laughter" (Freesound 326313, verified on the sound page; owner-approved by listening in the CC0 review). Real tavern at dinner, Istria: chatter and laughter, no music, no intelligible speech. Bound as scene `tavern` to the village's canonical `the tavern` while its filed hours say open, the smithy pattern. Interior level policy (RMS −32 dBFS like the forge).
 
 `rain-calm-v1.mp3`: 28.000 s, mono, 48 kHz (448896 bytes). **CC0 1.0** — Nox_Sound Essentials `Ambiance_Rain_Calm_Loop_Stereo` (owner-approved). Prepared as a weather LAYER at the exterior level policy (RMS −26 dBFS). **Not bound to any scene yet**: layers wait on the WEATHER normalization contract (Proposal_general_audio §7, Fable feedback 19.2). Provenance for both: `interior-and-layer-provenance.json`.
+
+## Accent sprite: footsteps on a wooden floor (v1.975 — CC0)
+
+`accent-footsteps-wood-v1.mp3`: 3.779 s, mono, 48000 Hz (61440 bytes). **CC0 1.0** — Nox_Sound Essentials `Footsteps_Wood_Walk_01` to `_05` (owner-approved by listening 2026-09-22; 06–10 rejected as "enough footsteps"). One file holds all five steps, separated by 0.25 s of silence; the catalog's cut list names each step's span on the decoded timeline, so a set is one download, one decode and one cache entry (Proposal_general_audio.html §21.2).
+
+Prepared with `dev/prepare-accent-sprite.py`: per step mono mean, DC removal, trim below −50 dB of its own peak (20 ms pre-roll), RMS −30 dBFS (peaks −6.8 to −11.5 dBFS), 10 ms raised-cosine fades; ffmpeg libmp3lame 128 kbps mono with the Xing/LAME gapless header. Source and derivative SHA-256 and the cut list are in `interior-and-layer-provenance.json`. The game plays it only once its catalog `mix` approval is granted after listening in `dev/accent-audition.html`.

@@ -25266,6 +25266,98 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("L7 accent layer");
+  /* Proposal_general_audio.html §21 (owner-approved 2026-09-22): occasional short sounds within a place — from its profile
+     or an authored seed, never over narration, footsteps only where people are about, footsteps stop under rain. */
+  function accentCatalog(mix){
+    var cat=JSON.parse(JSON.stringify(AUDIO_CATALOG));
+    cat.assets.forEach(function(a){if(a.role==="accent")a.approval.mix=mix!==false;});
+    return cat;
+  }
+  function accentRng(seed){var x=seed||7;return function(){x=(x*1103515245+12345)%2147483648;return x/2147483648;};}
+  function roomProfile(extra){return Object.assign({enclosure:"covered",setting:"interior",biome:"temperate",quiet:"normal",allows:["voices"],forbid:[]},extra||{});}
+  function accentSet(id,kind,gap,rain){
+    return {id:id,role:"accent",trigger:"ambient",rain:rain||"play",gap:gap,pattern:kind==="burst"?{kind:"burst",count:[3,7],cadence:[0.45,0.6]}:{kind:"single"},
+      sprite:{gain:0.5,cuts:[[0.25,0.6],[0.9,1.3],[1.6,2],[2.3,2.8],[3,3.5]]}};
+  }
+  t("L7 accent selection: footsteps need an interior where people are about; silence, open air, unheard mixes and cued sets never select",function(){
+    if(typeof audioSelectAccents!=="function")return "audioSelectAccents missing";
+    var cat=accentCatalog(),s={minuteOfDay:600,nodeKey:"Inn|the common room",campaignId:"c"};
+    function ids(profile,catalog,seed,extra){return audioSelectAccents(Object.assign({},s,{profile:profile},extra||{}),catalog||cat,seed||null).map(function(a){return a.id;}).join(",");}
+    if(ids(roomProfile())!=="footsteps-wood")return "a room with voices about must hear footsteps: "+ids(roomProfile());
+    if(ids(roomProfile({allows:["crowd"]}))!=="footsteps-wood")return "a crowd counts as people about";
+    if(ids(roomProfile({allows:["fire"]})))return "an empty room must stay quiet (owner ruling: footsteps only where people are about)";
+    if(ids(roomProfile({allows:["fire"],forbid:["voices"]})))return "forbidden voices must not summon footsteps";
+    if(ids(roomProfile({enclosure:"open",setting:"settlement"})))return "footsteps on a wooden floor do not play in the open";
+    if(ids(roomProfile({quiet:"silent"})))return "explicit silence must win";
+    if(ids(roomProfile(),accentCatalog(false)))return "a set whose mix the owner has not approved must never play";
+    var cued=accentCatalog();cued.assets.forEach(function(a){if(a.role==="accent")a.trigger="cued";});
+    if(ids(roomProfile(),cued))return "cued sets wait for the event project and never schedule";
+    var tavern=AUDIO_SCENES.filter(function(x){return x.id==="tavern";})[0];
+    if(!tavern||tavern.accents.join()!=="footsteps-wood")return "the Village tavern seed must list its footsteps";
+    if(audioSelectAccents({minuteOfDay:600,nodeKey:"v|the tavern"},cat,tavern).map(function(a){return a.id;}).join()!=="footsteps-wood")return "seed accents missing";
+    if(audioSelectAccents({minuteOfDay:600,nodeKey:"v|the tavern",classified:true},cat,tavern).length)return "an unreadable classification must not fall back to seed accents";
+    var loud=accentCatalog();loud.assets.forEach(function(a){if(a.role==="accent")a.approval.loop=true;});
+    var bed=audioSelect(Object.assign({},s,{profile:roomProfile({allows:["voices"]})}),loud);
+    if(bed.scene&&bed.scene.role==="accent")return "the bed selector must never pick an accent set";
+    return true;
+  });
+  t("L7 accent scheduler: arrival quiet, 3 s settle, dropped not queued, 30 s spacing, no immediate repeat, rain stops footsteps",function(){
+    if(typeof accentNext!=="function")return "accentNext missing";
+    var rng=accentRng(3),steps=accentSet("steps","burst",[90,240],"stop"),chime=accentSet("chime","single",[45,150],"play"),sets=[steps,chime];
+    var st=accentStart(sets,0,rng),quiet={speaking:false,quietSince:-Infinity,raining:false};
+    if(!(st.due.steps>=ACCENT_ARRIVAL_QUIET_MS&&st.due.chime>=ACCENT_ARRIVAL_QUIET_MS))return "arrival must stay quiet for 20 s";
+    if(accentNext(st,sets,quiet,ACCENT_ARRIVAL_QUIET_MS-1,rng).play)return "played inside the arrival quiet";
+    var at=Math.min(st.due.steps,st.due.chime),r=accentNext(st,sets,quiet,at,rng);
+    if(!r.play)return "a due set in silence must play";
+    var first=r.play.set.id;if(!(r.wake>at))return "wake must lie in the future";
+    /* speech: a set falling due is dropped and re-drawn from its gap, never saved up for the end of narration */
+    st.due.steps=st.due.chime=at+40000;var talking={speaking:true,quietSince:-Infinity,raining:false};
+    if(accentNext(st,sets,talking,at+40000,rng).play)return "played over narration";
+    if(!(st.due.steps>=at+40000+90000&&st.due.chime>=at+40000+45000))return "a set due during speech was queued instead of re-drawn";
+    st.due.steps=st.due.chime=at+300000;var justStopped={speaking:false,quietSince:at+299000,raining:false};
+    if(accentNext(st,sets,justStopped,at+300000,rng).play)return "played inside the 3 s settle after narration";
+    /* spacing and variety: both due together play one, the other waits 30 s; the next pick is not the last set again */
+    st.lastPlay=-Infinity;st.lastSet=first;st.due.steps=st.due.chime=at+600000;
+    r=accentNext(st,sets,quiet,at+600000,rng);if(!r.play||r.play.set.id===first)return "two ready sets must not repeat the last one";
+    var other=r.play.set.id===steps.id?chime:steps;if(st.due[other.id]!==at+600000+ACCENT_SPACING_MS)return "the other ready set must wait out the 30 s spacing";
+    if(accentNext(st,sets,quiet,at+600000+ACCENT_SPACING_MS-1,rng).play)return "two accents inside 30 s";
+    /* a set falling due on its own 10 s after another played waits out the spacing instead of sounding */
+    st.due[other.id]=at+610000;if(accentNext(st,sets,quiet,at+610000,rng).play)return "a set due 10 s after an accent played inside the 30 s spacing";
+    if(st.due[other.id]!==at+600000+ACCENT_SPACING_MS)return "a set held by the spacing must wake when the 30 s are up";
+    /* rain: owner ruling — footsteps stop, chimes play on */
+    var wet={speaking:false,quietSince:-Infinity,raining:true},played={};
+    var rs=accentStart(sets,0,rng);for(var now=0;now<4*3600000;now+=5000){var x=accentNext(rs,sets,wet,now,rng);if(x.play)played[x.play.set.id]=(played[x.play.set.id]||0)+1;}
+    if(played.steps)return "footsteps played under rain";if(!played.chime)return "chimes must keep playing over rain";
+    return true;
+  });
+  t("L7 accent burst: 3–7 footsteps at a walking cadence, never the same step twice running, within 5 s",function(){
+    var rng=accentRng(11),set=accentSet("steps","burst",[90,240]),last=null,counts={};
+    for(var i=0;i<400;i++){
+      var s=accentSteps(set,last,rng);counts[s.length]=1;
+      if(s.length<3||s.length>7)return "burst count out of range: "+s.length;
+      for(var j=0;j<s.length;j++){
+        if(j&&s[j].cut===s[j-1].cut)return "the same step played twice running";
+        if(j){var d=s[j].at-s[j-1].at;if(d<0.45-1e-9||d>0.6+1e-9)return "cadence out of range: "+d;}
+        if(s[j].at>ACCENT_BURST_MAX_SECONDS)return "burst ran past 5 s";
+      }
+      if(last!==null&&s[0].cut===last)return "a burst repeated the previous burst's last step";
+      last=s[s.length-1].cut;
+    }
+    if(!counts[3]||!counts[7])return "the whole count range must be reachable";
+    var single=accentSteps(accentSet("chime","single",[45,150]),null,rng);if(single.length!==1||single[0].at!==0)return "a single pattern is one strike";
+    return true;
+  });
+  t("L7 accent sprite admission: channel, duration, memory and cut boundaries are enforced before a buffer is kept",function(){
+    var sprite={channels:1,maxSeconds:6,maxDecodedBytes:1200000,cuts:[[0.25,0.6],[0.9,3.5]]},b={numberOfChannels:1,duration:3.78,length:181378};
+    try{audioValidateSprite(b,sprite);}catch(e){return "a valid sprite was refused: "+e.message;}
+    var bad=[[{numberOfChannels:2,duration:3.78,length:181378},sprite],[{numberOfChannels:1,duration:7,length:181378},sprite],
+      [{numberOfChannels:1,duration:3.78,length:400000},sprite],[b,Object.assign({},sprite,{cuts:[[0.25,4]]})],[b,Object.assign({},sprite,{cuts:[]})]];
+    for(var i=0;i<bad.length;i++){var threw=false;try{audioValidateSprite(bad[i][0],bad[i][1]);}catch(e){threw=true;}if(!threw)return "sprite admission case "+i+" passed";}
+    if(audioAssetMedia(AUDIO_CATALOG.assets.filter(function(a){return a.role==="accent";})[0]).url!=="sfx/accent-footsteps-wood-v1.mp3")return "the loader must find an accent's sprite";
+    return true;
+  });
+
   section("#407 the shop interface");
   /* #407 (owner drawing + four rulings 2026-09-16): the counter. shopTradeCatalog/shopTradePlan (helpers) are pure over the
      village teeth; shopTradeApply (game) lands the plan as tags through the trade gate; buildTradeNote tells the GM once. */

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Accent audition</title><link rel="stylesheet" href="../satellite.css">
+<style>
+body{margin:0;background:var(--bg0);color:var(--t0);font-family:var(--font);line-height:1.55}
+main{max-width:860px;margin:auto;padding:28px 16px 70px}h1{color:var(--acc);margin:0 0 6px;font-size:28px}
+.sub{color:var(--t1);margin-bottom:22px}.card{background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:16px 18px;margin:16px 0}
+label{display:block;margin:10px 0 4px;color:var(--t1);font-size:14px}select,input[type=range]{width:100%;max-width:420px}
+select{background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:6px;padding:6px}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}button{background:var(--bg2);color:var(--t0);border:1px solid var(--acc);border-radius:8px;padding:9px 16px;font:inherit;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}#status{font-family:var(--font-mono);font-size:13px;color:var(--t2);margin-top:14px;white-space:pre-wrap}
+#log{font-family:var(--font-mono);font-size:12px;color:var(--t1);max-height:220px;overflow:auto;white-space:pre-wrap}
+.note{font-size:14px;color:var(--t1)}
+</style></head><body><main>
+<h1>Accent audition</h1>
+<div class="sub">Hear an accent set the way the game would play it: over its bed, with the real pattern, gap and quiet rules (Proposal_general_audio.html §21). The approval to record after listening is the set's <em>mix</em>.</div>
+<div class="card">
+<label for="bed">Bed underneath</label><select id="bed"></select>
+<label for="set">Accent set</label><select id="set"></select>
+<label for="vol">Volume <span id="volv"></span></label><input id="vol" type="range" min="0" max="100" value="45">
+<label for="speed">Time</label><select id="speed"><option value="1">Real time (the game's gaps: minutes)</option><option value="10">10× faster gaps (for a quick listen)</option></select>
+<div><input id="talk" type="checkbox"> <label for="talk" style="display:inline">Pretend the narrator is speaking (accents must wait)</label></div>
+<div class="row"><button id="one">Play one now</button><button id="run">Run as in game</button><button id="stop" disabled>Stop</button></div>
+<div id="status">Choose a bed and a set, then press a button. Audio starts on your click.</div>
+</div>
+<div class="card"><div class="note">What plays, newest last</div><div id="log"></div></div>
+<script src="../audio-catalog.js"></script><script src="../audio-profile.js"></script><script src="../ambient.js"></script>
+<script src="../audio-accents.js"></script><script src="../audio-loader.js"></script>
+<script>
+/* A thin shell over the engine's own accent policy (accentStart / accentNext / accentSteps): nothing here re-implements
+   when or how an accent plays. Seam for scripted checks: window.__accentAudition. */
+(function(){
+  var $=function(id){return document.getElementById(id);},ctx=null,buffers={},bedVoice=null,accentVoice=null,timer=null,st=null,t0=0,env={speaking:false,quietSince:-Infinity,raining:false};
+  var beds=AUDIO_CATALOG.assets.filter(function(a){return a.bed;}),sets=AUDIO_CATALOG.assets.filter(function(a){return a.role==="accent";});
+  beds.forEach(function(a){var o=document.createElement("option");o.value=a.id;o.textContent=a.label+(a.id==="tavern"?" (the Village tavern)":"");$("bed").appendChild(o);});
+  sets.forEach(function(a){var o=document.createElement("option");o.value=a.id;o.textContent=a.label+" · "+(a.pattern.kind==="burst"?a.pattern.count[0]+"–"+a.pattern.count[1]+" steps":"one strike")+" · every "+a.gap[0]+"–"+a.gap[1]+" s"+(a.approval.mix?"":" · mix not yet approved");$("set").appendChild(o);});
+  $("bed").value="tavern";
+  function asset(id){return AUDIO_CATALOG.assets.filter(function(a){return a.id===id;})[0];}
+  function vol(){return Number($("vol").value)/100;}
+  function speed(){return Number($("speed").value);}
+  function now(){return (Date.now()-t0)*speed();}
+  function log(m){var l=$("log");l.textContent+=(l.textContent?"\n":"")+new Date().toLocaleTimeString()+"  "+m;l.scrollTop=l.scrollHeight;}
+  function fail(e){var m=(e&&e.message)||String(e);$("status").textContent="Failed: "+m;log("FAILED: "+m);console.error("[accent audition]",e);}
+  function ensure(){ctx=ctx||new AudioContext();return ctx.resume();}
+  function load(a){
+    var media=audioAssetMedia(a);if(buffers[a.id])return Promise.resolve(buffers[a.id]);
+    return fetch("../"+media.url).then(function(r){if(!r.ok)throw new Error(media.url+" HTTP "+r.status);return r.arrayBuffer();})
+      .then(function(b){return ctx.decodeAudioData(b);}).then(function(buf){if(a.sprite)audioValidateSprite(buf,a.sprite);buffers[a.id]=buf;return buf;});
+  }
+  function startBed(){
+    var a=asset($("bed").value);return load(a).then(function(buf){
+      stopBed();var s=ctx.createBufferSource(),g=ctx.createGain();s.buffer=buf;s.loop=true;s.loopStart=a.bed.loopStart;s.loopEnd=a.bed.loopEnd;
+      g.gain.value=a.bed.gain*vol();s.connect(g);g.connect(ctx.destination);s.start(0,a.bed.loopStart);bedVoice={s:s,g:g};
+    });
+  }
+  function stopBed(){if(bedVoice){try{bedVoice.s.stop();}catch(e){}bedVoice.s.disconnect();bedVoice.g.disconnect();bedVoice=null;}}
+  function playSteps(a,steps){
+    var buf=buffers[a.id],g=ctx.createGain(),t=ctx.currentTime+0.05;g.gain.value=a.sprite.gain*vol();g.connect(ctx.destination);
+    var srcs=steps.map(function(step){var c=a.sprite.cuts[step.cut],s=ctx.createBufferSource();s.buffer=buf;s.connect(g);s.start(t+step.at,c[0],c[1]-c[0]);return s;});
+    accentVoice={g:g,srcs:srcs};
+    log(a.label+": "+steps.length+(steps.length>1?" steps over "+steps[steps.length-1].at.toFixed(2)+" s":" strike")+" (samples "+steps.map(function(s){return s.cut+1;}).join(", ")+")");
+  }
+  function hush(){if(accentVoice){var n=ctx.currentTime;accentVoice.g.gain.setValueAtTime(accentVoice.g.gain.value,n);accentVoice.g.gain.linearRampToValueAtTime(0,n+AUDIO_LAYER_KINDS.accent.transitionSeconds);accentVoice.srcs.forEach(function(s){try{s.stop(n+0.15);}catch(e){}});accentVoice=null;}}
+  function tick(){
+    timer=null;var a=asset($("set").value),n=now(),r=accentNext(st,[a],env,n,Math.random);
+    if(r.play)playSteps(a,r.play.steps);
+    var wait=(r.wake-n)/speed();$("status").textContent="Running as in game"+(speed()>1?" (gaps 10× faster)":"")+" · next check in "+Math.round(wait/1000)+" s"+(env.speaking?" · narrator speaking: accents wait":"");
+    timer=setTimeout(tick,Math.max(50,wait));
+  }
+  function stop(){if(timer){clearTimeout(timer);timer=null;}st=null;hush();stopBed();$("stop").disabled=true;$("run").disabled=false;$("status").textContent="Stopped.";}
+  $("vol").oninput=function(){$("volv").textContent=$("vol").value+"%";if(bedVoice)bedVoice.g.gain.value=asset($("bed").value).bed.gain*vol();};$("vol").oninput();
+  $("talk").onchange=function(){var talking=$("talk").checked;if(talking&&!env.speaking)hush();if(!talking&&env.speaking)env.quietSince=now();env.speaking=talking;if(st){if(timer)clearTimeout(timer);tick();}};
+  $("one").onclick=function(){var a=asset($("set").value);ensure().then(function(){return load(a);}).then(function(){hush();playSteps(a,accentSteps(a,null,Math.random));$("status").textContent="Played one "+a.pattern.kind+" of "+a.label+".";}).catch(fail);};
+  $("run").onclick=function(){var a=asset($("set").value);ensure().then(function(){return Promise.all([load(a),startBed()]);}).then(function(){
+    t0=Date.now();env.quietSince=-Infinity;st=accentStart([a],0,Math.random);$("run").disabled=true;$("stop").disabled=false;log("Run started over "+asset($("bed").value).label);tick();}).catch(fail);};
+  $("stop").onclick=stop;
+  window.__accentAudition={state:function(){return {running:!!st,due:st&&st.due,buffers:Object.keys(buffers),speaking:env.speaking};},stop:stop};
+})();
+</script></main></body></html>

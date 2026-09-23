@@ -40,6 +40,7 @@ var ENGINE_MANIFEST = [
   { file: "audio-profile.js",       sym: "audioValidateProfile" },
   { file: "audio-scenes.js",       sym: "AUDIO_SCENES" },
   { file: "ambient.js",            sym: "ambientPlan" },
+  { file: "audio-accents.js",      sym: "accentNext" },
   { file: "audio-loader.js",       sym: "audioReadBytes" }
 ];
 if (typeof module !== "undefined" && module.exports) module.exports = ENGINE_MANIFEST;

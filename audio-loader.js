@@ -12,6 +12,8 @@ function audioReadBytes(response,limit,signal){
   });}
   return read().catch(function(e){chunks=[];return Promise.resolve(reader.cancel()).catch(function(cancelError){console.warn("[audio] stream cancellation failed: "+cancelError.message);}).then(function(){throw e;});});
 }
+// A catalog asset carries ONE audio file: a looping bed, or an accent set's sprite (§21). Every url/limit lookup goes through here.
+function audioAssetMedia(asset){return asset.bed||asset.sprite;}
 function createAudioLoader(context,catalog){
   var records=[],budget=48*1024*1024;
   function used(){return records.reduce(function(n,r){return n+r.bytes;},0);}
@@ -19,7 +21,7 @@ function createAudioLoader(context,catalog){
   function drop(record){var i=records.indexOf(record);if(i>=0)records.splice(i,1);}
   return {
     load:function(scene,signal){
-      var asset=catalog.assets.filter(function(a){return a.bed.url===scene.bed.url;})[0],bed=scene.bed;
+      var bed=audioAssetMedia(scene),asset=catalog.assets.filter(function(a){return audioAssetMedia(a).url===bed.url;})[0];
       if(!asset)return Promise.reject(new Error("Audio asset is absent from the delivery catalog"));
       if(records.some(function(r){return !r.buffer;}))return Promise.reject(new Error("Another audio decode is still settling"));
       var reserve=bed.maxDecodedBytes;
@@ -36,7 +38,7 @@ function createAudioLoader(context,catalog){
         });
       }).then(function(buffer){
         if(abort.signal.aborted)throw new Error("Ambience decode cancelled or timed out");
-        ambientValidateBuffer(buffer,bed);record.buffer=buffer;record.bytes=buffer.length*buffer.numberOfChannels*4;cleanup();return buffer;
+        if(scene.sprite)audioValidateSprite(buffer,bed);else ambientValidateBuffer(buffer,bed);record.buffer=buffer;record.bytes=buffer.length*buffer.numberOfChannels*4;cleanup();return buffer;
       }).catch(function(e){cleanup();drop(record);throw new Error(e.name==="AbortError"?"Ambience download cancelled or timed out; use Enable audio to retry":e.message||"Ambience decoding failed");});
     },
     release:release,

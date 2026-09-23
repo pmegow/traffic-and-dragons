@@ -1,15 +1,33 @@
 // Offline authoring tool; the shipped game reads the committed artifact directly.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const root = path.resolve(__dirname, '..');
-function build() {
-  const input = JSON.parse(fs.readFileSync(path.join(__dirname, 'audio-delivery.json'), 'utf8'));
+// Accent sets (Proposal_general_audio.html §21.2): one sprite with a cut list, a single/burst pattern, a gap range,
+// a trigger (ambient = the scheduler may play it; cued = catalogued for the later event project) and a rain rule.
+function validateAccent(a) {
+  const s = a.sprite, p = a.pattern, pair = (x, lo) => Array.isArray(x) && x.length === 2 && x[0] >= lo && x[1] >= x[0];
+  const bad = why => { throw Error('Invalid accent set ' + a.id + ': ' + why); };
+  if (!Array.isArray(s.cuts) || !s.cuts.length || s.cuts.some(c => !pair(c, 0) || c[1] === c[0] || c[1] > s.maxSeconds)) bad('cuts');
+  if (!p || (p.kind !== 'single' && p.kind !== 'burst')) bad('pattern kind');
+  if (p.kind === 'burst' && (!pair(p.count, 1) || !pair(p.cadence, 0.05))) bad('burst count/cadence');
+  if (!pair(a.gap, 1)) bad('gap');
+  if (a.trigger !== 'ambient' && a.trigger !== 'cued') bad('trigger');
+  if (a.rain !== 'play' && a.rain !== 'stop') bad('rain rule');
+  if (!Array.isArray(a.needsAny) || !(s.gain > 0 && s.gain <= 1) || s.channels !== 1) bad('needsAny/gain/channels');
+  if ('loop' in a.approval) bad('accents have no loop approval');
+}
+function build(override) {   /* override: a delivery object, so tests can prove each refusal without touching the file */
+  const input = override ? JSON.parse(JSON.stringify(override)) : JSON.parse(fs.readFileSync(path.join(__dirname, 'audio-delivery.json'), 'utf8'));
   const seen = new Set();
   for (const asset of input.assets) {
     if (seen.has(asset.id)) throw Error('Duplicate audio id: ' + asset.id);
     seen.add(asset.id);
-    if (!/^sfx\/[a-z0-9-]+\.mp3$/.test(asset.bed.url)) throw Error('Invalid audio URL');
-    const bytes = fs.readFileSync(path.join(root, asset.bed.url));
-    if (bytes.length > asset.bed.maxBytes || !asset.approval.rights || !asset.approval.recording || !asset.approval.contents) throw Error('Unapproved or oversized delivery: ' + asset.id);
+    if (!!asset.bed === !!asset.sprite) throw Error('An audio asset carries exactly one of bed or sprite: ' + asset.id);
+    if ((asset.role === 'accent') !== !!asset.sprite) throw Error('Accent sets (and only they) are sprites: ' + asset.id);
+    if (asset.sprite) validateAccent(asset);
+    const media = asset.bed || asset.sprite;
+    if (!/^sfx\/[a-z0-9-]+\.mp3$/.test(media.url)) throw Error('Invalid audio URL');
+    const bytes = fs.readFileSync(path.join(root, media.url));
+    if (bytes.length > media.maxBytes || !asset.approval.rights || !asset.approval.recording || !asset.approval.contents) throw Error('Unapproved or oversized delivery: ' + asset.id);
     asset.sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
     asset.bytes = bytes.length;
   }

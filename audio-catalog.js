@@ -295,7 +295,97 @@ var AUDIO_CATALOG = {
       "seedOnly": true,
       "sha256": "2329c059994ca980f35f3a1b648bc5fb222d738d2f089b590a0bba141a0511e4",
       "bytes": 568841
+    },
+    {
+      "id": "footsteps-wood",
+      "label": "Footsteps on a wooden floor",
+      "cohort": "starter-1",
+      "role": "accent",
+      "sprite": {
+        "url": "sfx/accent-footsteps-wood-v1.mp3",
+        "gain": 0.5,
+        "cuts": [
+          [
+            0.25,
+            0.6722
+          ],
+          [
+            0.9222,
+            1.3425
+          ],
+          [
+            1.5925,
+            2.0656
+          ],
+          [
+            2.3156,
+            2.8182
+          ],
+          [
+            3.0682,
+            3.5287
+          ]
+        ],
+        "maxSeconds": 6,
+        "channels": 1,
+        "maxBytes": 200000,
+        "maxDecodedBytes": 1200000
+      },
+      "pattern": {
+        "kind": "burst",
+        "count": [
+          3,
+          7
+        ],
+        "cadence": [
+          0.45,
+          0.6
+        ]
+      },
+      "gap": [
+        90,
+        240
+      ],
+      "trigger": "ambient",
+      "rain": "stop",
+      "needsAny": [
+        "voices",
+        "crowd"
+      ],
+      "contains": [],
+      "enclosures": [
+        "covered",
+        "sealed"
+      ],
+      "settings": [
+        "interior"
+      ],
+      "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "mix": false
+      },
+      "source": {
+        "sha256": "ced3c3e067d9e9e7d46075a5cfdcc8063153c0099c076fdfa27cd171f16f18d6,0fbf01e67ceeefa6489d3b82d070c3b03df67ea4daf12503da7aa46a97c9b03b,7b732ddaf1f3586571a6790ebeeea8400f1acf9e4921c64a987d29bb4764756f,8d8c46c46c9743a436b92f971ffdc893ea8a82bb29d1197d767520d5885a666c,71e464eb4ccea15c264339660b175ab55317024f8ae90aa6cdbd582efc72ab7e",
+        "url": "https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound",
+        "author": "Nox_Sound (Essentials Series)",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -6 dBFS; 10 ms raised-cosine fades; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "seedOnly": false,
+      "sha256": "fb525bfb3e6a27164bb404100e3c91fdeaa58aecf738a4b0080b28b9a29c46ca",
+      "bytes": 61440
     }
   ],
-  "version": "d770c4f0723a7384def0"
+  "version": "40b706dc0426bef70429"
 };
