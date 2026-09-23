@@ -191,3 +191,9 @@ Shipped: `_carOpen` — `STT.warmMic()` first (the permission prompt lands while
 the normal options-then-mic loop. An entry within two hours of the last turn skips the brief.
 The full recap stays on the spoken "previously". Batteries written failing-first:
 tests-19 (three warm-up groups), tests-19b (four entry groups), tests-19c (five brief groups).
+
+### Owner verification, 2026-09-23 (v1.974, direct Bluetooth)
+
+"Mic permission comes up immediately. Voice is great. Car mode is working well." The routing
+half (v1.943), the entry change (v1.974) and the voice path are field-verified. The only open
+item is the CarPlay stutter; direct Bluetooth is the working configuration.
