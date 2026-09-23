@@ -34,6 +34,10 @@ Owner rulings applied: accents from the place (seed or profile) first, GM cues l
 
 The owner listened in `dev/accent-audition.html` over the tavern crowd and approved: "Sounds great" (2026-09-23). `mix` is now true in the delivery catalog, so the Village tavern plays the footsteps.
 
+## Level range (v1.977)
+
+Owner ask 2026-09-23: rather than one volume per set, a range — footsteps 35% at the quietest, 70% at the loudest, drawn once per walk (owner chose per walk over per step). `sprite.gain` is now a `[min, max]` pair; `accentLevel` draws it inside `accentNext`, the builder refuses a reversed or single value, a scheduler test requires every level inside the range and the range actually used, and a mutation fixing the level at the top is caught. Audition page, four plays: 45%, 49%, 52%, 65%.
+
 ## Not claimed
 
 Phone/background behaviour; chimes, bells and the bowls (Fable vocabulary review, then sprites); cued accents (the §9 event project); the weather rule in action (no weather producer yet).

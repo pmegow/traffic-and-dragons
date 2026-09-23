@@ -27,7 +27,7 @@ async function controller(){
  assert.equal(c.inspect().buffers,1);assert(c.inspect().scheduled,'a loaded set is scheduled');
  advance(scope.ACCENT_ARRIVAL_QUIET_MS-1);assert.equal(plays.length,0,'arrival stays quiet for 20 s');
  advance(300000);assert(plays.length>=1,'footsteps within five minutes of quiet');
- const p=plays[0];assert.equal(p.buffer,buf);assert(p.steps.length>=3&&p.steps.length<=7);assert(Math.abs(p.gain-0.5*0.8)<1e-9,'gain = set gain × volume');
+ const p=plays[0];assert.equal(p.buffer,buf);assert(p.steps.length>=3&&p.steps.length<=7);assert(p.gain>=0.35*0.8-1e-9&&p.gain<=0.7*0.8+1e-9,'gain = a level from the set range (35–70%) × volume');
  p.done=false;let before=plays.length;c.update({...tavern,speaking:true});assert.equal(stops.at(-1),0.15,'narration fades a burst in progress in 0.15 s');
  advance(600000);assert.equal(plays.length,before,'never over narration');
  c.update(tavern);advance(scope.ACCENT_SETTLE_MS-1);assert.equal(plays.length,before,'nothing inside the 3 s settle');
@@ -62,7 +62,9 @@ function builder(){
   'gap':a=>{a.gap=[0,10];},
   'trigger':a=>{a.trigger='always';},
   'rain rule':a=>{delete a.rain;},
-  'loop approval':a=>{a.approval.loop=true;}
+  'loop approval':a=>{a.approval.loop=true;},
+  'gain range':a=>{a.sprite.gain=[0.7,0.35];},
+  'single gain':a=>{a.sprite.gain=0.5;}
  };
  for(const [why,mutate] of Object.entries(breaks)){
   const bad=JSON.parse(JSON.stringify(input)),a=bad.assets.find(x=>x.role==='accent');mutate(a);

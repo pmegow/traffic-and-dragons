@@ -25278,7 +25278,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   function roomProfile(extra){return Object.assign({enclosure:"covered",setting:"interior",biome:"temperate",quiet:"normal",allows:["voices"],forbid:[]},extra||{});}
   function accentSet(id,kind,gap,rain){
     return {id:id,role:"accent",trigger:"ambient",rain:rain||"play",gap:gap,pattern:kind==="burst"?{kind:"burst",count:[3,7],cadence:[0.45,0.6]}:{kind:"single"},
-      sprite:{gain:0.5,cuts:[[0.25,0.6],[0.9,1.3],[1.6,2],[2.3,2.8],[3,3.5]]}};
+      sprite:{gain:[0.35,0.7],cuts:[[0.25,0.6],[0.9,1.3],[1.6,2],[2.3,2.8],[3,3.5]]}};
   }
   t("L7 accent selection: footsteps need an interior where people are about; silence, open air, unheard mixes and cued sets never select",function(){
     if(typeof audioSelectAccents!=="function")return "audioSelectAccents missing";
@@ -25329,6 +25329,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var wet={speaking:false,quietSince:-Infinity,raining:true},played={};
     var rs=accentStart(sets,0,rng);for(var now=0;now<4*3600000;now+=5000){var x=accentNext(rs,sets,wet,now,rng);if(x.play)played[x.play.set.id]=(played[x.play.set.id]||0)+1;}
     if(played.steps)return "footsteps played under rain";if(!played.chime)return "chimes must keep playing over rain";
+    /* level: each play draws one level from the set's range (owner ask 2026-09-23: footsteps 35–70%, per walk) */
+    var ls=accentStart([steps],0,rng),lo=1,hi=0;for(now=0;now<48*3600000;now+=5000){x=accentNext(ls,[steps],quiet,now,rng);if(x.play){if(!(x.play.level>=0.35&&x.play.level<=0.7))return "level outside the set's range: "+x.play.level;lo=Math.min(lo,x.play.level);hi=Math.max(hi,x.play.level);}}
+    if(!(lo<0.4&&hi>0.65))return "levels must span the range, not sit at one value: "+lo+"–"+hi;
     return true;
   });
   t("L7 accent burst: 3–7 footsteps at a walking cadence, never the same step twice running, within 5 s",function(){

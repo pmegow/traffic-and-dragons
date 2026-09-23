@@ -12,7 +12,7 @@ function validateAccent(a) {
   if (!pair(a.gap, 1)) bad('gap');
   if (a.trigger !== 'ambient' && a.trigger !== 'cued') bad('trigger');
   if (a.rain !== 'play' && a.rain !== 'stop') bad('rain rule');
-  if (!Array.isArray(a.needsAny) || !(s.gain > 0 && s.gain <= 1) || s.channels !== 1) bad('needsAny/gain/channels');
+  if (!Array.isArray(a.needsAny) || !(pair(s.gain, 0) && s.gain[0] > 0 && s.gain[1] <= 1) || s.channels !== 1) bad('needsAny/gain/channels');
   if ('loop' in a.approval) bad('accents have no loop approval');
 }
 function build(override) {   /* override: a delivery object, so tests can prove each refusal without touching the file */

@@ -12,6 +12,7 @@ rc|=sabotage.prove({also,file:'audio-accents.js',command:engine,cases:[
  {label:'the same step twice running',mustFail:'L7 accent burst',find:'if (n > 1 && pick === cut)',replace:'if (false)'},
  {label:'footsteps in an empty room',mustFail:'L7 accent selection',find:'(!(a.needsAny || []).length || a.needsAny.some(heard))',replace:'true'},
  {label:'an unheard mix plays',mustFail:'L7 accent selection',find:'ok.contents && ok.mix;',replace:'ok.contents;'},
+ {label:'every walk plays at one fixed level',mustFail:'L7 accent scheduler',find:'return g[0] + rng() * (g[1] - g[0]);',replace:'return g[1];'},
  {label:'a sprite shorter than its cuts is kept',mustFail:'L7 accent sprite admission',find:'c[1] <= buffer.duration',replace:'true'}
 ]});
 rc|=sabotage.prove({also,file:'audio-profile.js',command:engine,cases:[

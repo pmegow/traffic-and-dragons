@@ -303,7 +303,10 @@ var AUDIO_CATALOG = {
       "role": "accent",
       "sprite": {
         "url": "sfx/accent-footsteps-wood-v1.mp3",
-        "gain": 0.5,
+        "gain": [
+          0.35,
+          0.7
+        ],
         "cuts": [
           [
             0.25,
@@ -387,5 +390,5 @@ var AUDIO_CATALOG = {
       "bytes": 61440
     }
   ],
-  "version": "1fdd46739a7813d87b13"
+  "version": "f6645e44f5f88220a1cb"
 };

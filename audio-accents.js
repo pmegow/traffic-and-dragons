@@ -91,13 +91,16 @@ function accentNext(st, sets, env, now, rng) {
     var steps = accentSteps(pick, st.lastCut[pick.id], rng);
     st.lastCut[pick.id] = steps[steps.length - 1].cut; st.lastSet = pick.id; st.lastPlay = now;
     ready.forEach(function(set) { st.due[set.id] = set === pick ? now + accentGapMs(set, rng) : now + ACCENT_SPACING_MS; });
-    play = {set: pick, steps: steps};
+    play = {set: pick, steps: steps, level: accentLevel(pick, rng)};
   }
   sets.forEach(function(set) { if (st.due[set.id] < wake) wake = st.due[set.id]; });
   return {play: play, wake: wake};
 }
-function accentGain(s, set) {
-  return set.sprite.gain * Math.max(0, Math.min(1, Number(s.volume) || 0)) * (s.profile && s.profile.quiet === "hushed" ? 0.5 : 1);
+/* Each play draws ONE level from the set's gain range (owner ask 2026-09-23: footsteps 35–70%, varied per walk — someone
+   close by or across the room; the steps inside a walk stay even). */
+function accentLevel(set, rng) { var g = set.sprite.gain; return g[0] + rng() * (g[1] - g[0]); }
+function accentGain(s, level) {
+  return level * Math.max(0, Math.min(1, Number(s.volume) || 0)) * (s.profile && s.profile.quiet === "hushed" ? 0.5 : 1);
 }
 
 /* driver: now, later, cancel, abort, idle, load, release, play(buffer,set,steps,gain)->voice, stop(voice,seconds),
@@ -143,7 +146,7 @@ function createAccentController(driver, catalog, registry) {
     if (!ready.length) { if (waiting) timer = driver.later(tick, ACCENT_RETRY_MS); return; }
     if (!st) st = accentStart(ready, now, driver.rng); else ready.forEach(function(set) { accentAdmit(st, set, now, driver.rng); });
     var r = accentNext(st, ready, env, now, driver.rng);
-    if (r.play) { hush(AUDIO_LAYER_KINDS.accent.transitionSeconds); voice = driver.play(buffers[r.play.set.id], r.play.set, r.play.steps, accentGain(snapshot, r.play.set)); }
+    if (r.play) { hush(AUDIO_LAYER_KINDS.accent.transitionSeconds); voice = driver.play(buffers[r.play.set.id], r.play.set, r.play.steps, accentGain(snapshot, r.play.level)); }
     var wake = Math.min(r.wake, retry);
     if (wake < Infinity) timer = driver.later(tick, Math.max(0, wake - now));
   }

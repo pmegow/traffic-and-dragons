@@ -290,7 +290,10 @@
       "role": "accent",
       "sprite": {
         "url": "sfx/accent-footsteps-wood-v1.mp3",
-        "gain": 0.5,
+        "gain": [
+          0.35,
+          0.7
+        ],
         "cuts": [
           [
             0.25,
