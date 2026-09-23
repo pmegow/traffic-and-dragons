@@ -393,6 +393,42 @@ var STT = (function() {
     if (typeof carNotify === "function") carNotify("info", "Heard you — tap to send");
   }
 
+  // ── #19 fourth pass (owner, 2026-09-23): warm the microphone PERMISSION at Car Mode entry ────
+  // The first mic open of a session is where the phone asks "allow the microphone?" — after the
+  // entry read and the options, i.e. once the driver is already driving. Car Mode calls this inside
+  // the gesture that opened it, so the prompt lands while the car is parked. Native: a throwaway
+  // recognizer is started and handed back the moment the platform reports it live (onstart /
+  // onaudiostart fire only after permission); the session is restored on ITS onend, never on the
+  // abort — the #19 handoff rule (playback only once the mic is really released). Cloud: one
+  // getUserMedia whose tracks are stopped on arrival. Resolves always (never rejects) so the entry
+  // read can chain whatever happened; a denied prompt is reported by the first real listen. A no-op
+  // while a listen is live or where nothing is supported.
+  var STT_WARM_TIMEOUT_MS = 8000;
+  function warmMic() {
+    if (_listening || !isSupported()) return Promise.resolve(false);
+    if (!_Rec) return _warmCloud();
+    return new Promise(function(resolve) {
+      var rec, done = false, ok = true, timer = null, grace = null;
+      function finish() { if (done) return; done = true; if (timer) clearTimeout(timer); if (grace) clearTimeout(grace); _capture(false); resolve(ok); }
+      function bail() { try { if (typeof rec.abort === "function") rec.abort(); else rec.stop(); } catch(e) {} }
+      try { rec = new _Rec(); } catch(e) { resolve(false); return; }
+      rec.lang = STT_LANG; rec.continuous = false; rec.interimResults = false;
+      rec.onstart = bail; rec.onaudiostart = bail;   // live = permission granted: hand the mic straight back
+      rec.onerror = function(ev) { ok = false; console.info("[stt] mic warm-up: " + ((ev && ev.error) || "error")); };
+      rec.onend = finish;                             // the platform has released the mic: NOW restore the session
+      try { _capture(true); rec.start(); } catch(e) { ok = false; finish(); return; }
+      timer = setTimeout(function() { ok = false; bail(); grace = setTimeout(finish, 1500); }, STT_WARM_TIMEOUT_MS);
+    });
+  }
+  function _warmCloud() {
+    if (!_cloudAvailable()) return Promise.resolve(false);
+    _capture(true);
+    return navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+      try { var tr = stream.getTracks ? stream.getTracks() : [], i; for (i = 0; i < tr.length; i++) tr[i].stop(); } catch(e) {}
+      _capture(false); return true;
+    }, function(e) { _capture(false); console.info("[stt] mic warm-up refused: " + (e && e.message)); return false; });
+  }
+
   // ── UI ─────────────────────────────────────────────────────────────────────
 
   function _syncBtn() {
@@ -794,6 +830,7 @@ var STT = (function() {
     setConfirmGate:   setConfirmGate,
     clearConfirm:     clearConfirm,       // audit F3 — hideCarMode calls this: the question dies with the overlay that asked it
     toggle:        toggle,
+    warmMic:       warmMic,       // #19 fourth pass — Car Mode entry warms the permission prompt while the car is parked
     start:         start,
     stop:          stop,
     cancel:        cancel,

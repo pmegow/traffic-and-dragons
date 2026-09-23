@@ -7,7 +7,8 @@ const assert = require('assert/strict'), fs = require('fs'), path = require('pat
 const root = path.join(__dirname, '..');
 function fixture() {
   const handlers = {}, calls = [], crumbs = [], els = {};
-  let clock = 1000;
+  let clock = 1000, brief = 'You are at the gate. The guard waits.', warmResult = true;
+  const world = { character: { name: 'A' } };   // activePlayer must return THIS object: a different one reads as a spotlit companion
   const el = () => ({ classList: { add() {}, remove() {} }, style: {}, textContent: '', innerHTML: '', disabled: false, value: '', offsetWidth: 0,
     getAttribute() { return null; }, setAttribute() {}, querySelectorAll() { return []; }, focus() {}, blur() {} });
   const tts = { _playing: false, _paused: false,
@@ -15,11 +16,13 @@ function fixture() {
     pause() { calls.push('pause'); if (this._playing) this._paused = !this._paused; },
     replayLast() { calls.push('replay'); return true; }, getLastText() { return 'x'; },
     stop() { calls.push('stop'); }, speak() { calls.push('speak'); }, skip() { calls.push('skip'); },
-    earcon() {}, setOnDone() {}, primeAudioSession() {}, stopAudioSessionPrimer() {}, isOn() { return true; } };
+    earcon() {}, setOnDone(fn) { this._onDone = fn; }, primeAudioSession() {}, stopAudioSessionPrimer() {}, isOn() { return true; } };
+  tts.speak = function(text) { calls.push('speak:' + text); };
   const stt = { _listening: false, isListening() { return this._listening; },
     cancel() { calls.push('stt-cancel'); }, stop() { calls.push('stt-stop'); }, start() { calls.push('stt-start'); },
     isCloudActive() { return false; }, isSupported() { return true; }, setOnState() {}, clearConfirm() {},
-    isConfirmPending() { return false; }, isAutoListen() { return true; } };
+    isConfirmPending() { return false; }, isAutoListen() { return true; },
+    warmMic() { calls.push('warm'); return Promise.resolve(warmResult); } };
   const c = {
     console: { warn() {}, info() {}, debug() {}, log() {} },
     document: { addEventListener() {}, removeEventListener() {}, dispatchEvent() { return true; },
@@ -28,15 +31,16 @@ function fixture() {
     CustomEvent: function(type, init) { this.type = type; this.detail = init && init.detail; },
     Date: Object.assign(function() {}, { now: () => clock }),
     setTimeout: () => 1, clearTimeout() {},
-    TTS: tts, STT: stt, carMode: true, busy: false, worldState: { character: { name: 'A' } },
+    TTS: tts, STT: stt, carMode: true, busy: false, worldState: world,
     store: { get: () => '', set() {}, del() {} }, showToast() {}, closeAllMenus() {},
     erCrumb: (evt, data) => crumbs.push(evt + ' ' + data),
-    activePlayer: () => ({ name: 'A' }), escHtml: s => s, PREVIOUSLY_AFTER_MS: 1, carRecapText: () => '', sendAction() {}, retryLast() {}
+    activePlayer: () => world.character, escHtml: s => s, PREVIOUSLY_AFTER_MS: 7200000, carRecapText: () => 'FULL RECAP', sendAction() {}, retryLast() {},
+    carSceneBrief: () => brief
   };
   vm.createContext(c);
   vm.runInContext(fs.readFileSync(path.join(root, 'ui-carmode.js'), 'utf8'), c, { filename: 'ui-carmode.js' });
   c._carMediaHandlers();
-  return { c, tts, stt, handlers, calls, crumbs, tick: ms => { clock += ms; } };
+  return { c, tts, stt, handlers, calls, crumbs, els, tick: ms => { clock += ms; }, setBrief: b => { brief = b; }, setWarm: v => { warmResult = v; } };
 }
 let passed = 0;
 function test(name, fn) {
@@ -95,4 +99,40 @@ test('every command is crumbed with the state it arrived in, rate-limited per ki
   const g = fixture(); g.c.busy = true; g.handlers.play(); g.stt._listening = true; g.c.busy = false; g.handlers.nexttrack();
   assert.deepEqual(g.crumbs, ['media-action play busy #1', 'media-action next listening #1']);
 });
-console.log((process.exitCode ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' Car Mode transport groups');
+// ── #19 fourth pass (owner, 2026-09-23): "When car-mode starts, just read the current scene, and jump to options."
+const flush = () => new Promise(r => setImmediate(r));
+async function atest(name, fn) {
+  try { await fn(); passed++; console.log('PASS #19b ' + name); }
+  catch (e) { process.exitCode = 1; console.error('FAIL #19b ' + name + ' — ' + e.stack); }
+}
+(async () => {
+  await atest('a stale entry warms the mic FIRST, then reads the scene brief, never the full recap', async () => {
+    const f = fixture(); f.c.worldState.lastTurnAt = 1000 - 3 * 3600 * 1000;
+    f.c.showCarMode(); await flush();
+    assert.deepEqual(f.calls.filter(s => s === 'warm' || s.startsWith('speak:')), ['warm', 'speak:You are at the gate. The guard waits.']);
+    assert.equal(f.els['car-status'].textContent, 'Narrator speaking…');
+    assert(!f.calls.includes('stt-start'), 'the mic opens after the brief and the options, not at entry');
+  });
+  await atest('a fresh entry skips the brief and goes straight to the options step', async () => {
+    const f = fixture(); f.c.worldState.lastTurnAt = 1000 - 60 * 1000;
+    f.c.showCarMode(); await flush();
+    assert.deepEqual(f.calls.filter(s => s.startsWith('speak:')), []);
+    assert(f.calls.includes('warm'));
+    assert.equal(f.els['car-status'].textContent, 'Getting your options…', 'the post-narration loop must be running');
+  });
+  await atest('a refused warm-up still proceeds to the brief; an empty brief falls through to the options', async () => {
+    const f = fixture(); f.setWarm(false); f.c.worldState.lastTurnAt = 0;
+    f.c.showCarMode(); await flush();
+    assert.deepEqual(f.calls.filter(s => s.startsWith('speak:')), ['speak:You are at the gate. The guard waits.']);
+    const g = fixture(); g.setBrief(''); g.c.worldState.lastTurnAt = 0;
+    g.c.showCarMode(); await flush();
+    assert.deepEqual(g.calls.filter(s => s.startsWith('speak:')), []);
+    assert.equal(g.els['car-status'].textContent, 'Getting your options…');
+  });
+  await atest('the spoken "previously" command still reads the full recap', async () => {
+    const f = fixture(); f.c.showCarMode(); await flush();
+    f.c._carPreviously(true);
+    assert(f.calls.includes('speak:FULL RECAP'));
+  });
+  console.log((process.exitCode ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' Car Mode transport groups');
+})();

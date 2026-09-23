@@ -230,6 +230,26 @@ function _carPreviously(force) {
   if (typeof TTS !== "undefined" && typeof TTS.speak === "function") TTS.speak(carRecapText());
   _carSetStatus("Previously…");
 }
+// ── #19 fourth pass (owner ruling 2026-09-23): "When car-mode starts, just read the current scene, and jump to
+// options." The entry used to speak carRecapText after a 2 h absence — in the Village that is every stash item and
+// three residents — and the microphone permission prompt (the first mic open of the session) arrived only after all
+// of it and the options, by which time the driver was driving. Now: ① the mic permission is WARMED first
+// (STT.warmMic, inside the gesture that opened Car Mode, so the prompt lands while the car is parked), ② the entry
+// read is the scene brief (carSceneBrief, helpers.js: where you are + the tail of the last narration), ③ its onDone
+// runs the normal post-narration loop — options, then the mic. An entry within PREVIOUSLY_AFTER_MS of the last turn
+// skips the brief (the driver just heard that scene) and goes straight to the options. The full recap stays on the
+// spoken "previously" / "catch me up" (_carPreviously(true)). Pinned by dev/tests-19b-carmode-transport.js.
+function _carOpen() {
+  var warm = (typeof STT !== "undefined" && typeof STT.warmMic === "function") ? STT.warmMic() : null;
+  var go = function() {
+    if (!carMode) return;
+    var stale = !worldState || !worldState.lastTurnAt || (Date.now() - worldState.lastTurnAt) >= PREVIOUSLY_AFTER_MS;
+    var brief = (stale && typeof carSceneBrief === "function") ? carSceneBrief() : "";
+    if (brief && typeof TTS !== "undefined" && typeof TTS.speak === "function") { TTS.speak(brief); _carSetStatus(CAR_STR.narratorSpeaking); return; }
+    _carAutoMic();   // nothing to brief — the options step and the mic follow exactly as after a narration
+  };
+  if (warm && typeof warm.then === "function") warm.then(go, go); else go();
+}
 function showCarMode() {
   if (!worldState || !worldState.character) { showToast("Start a game first."); return; }
   var ov = document.getElementById("car-overlay");
@@ -245,7 +265,7 @@ function showCarMode() {
   _carAcquireWakeLock(); // rank 5
   try { store.set("tnd_carmode_v1", JSON.stringify({on:1,t:Date.now()})); } catch (e) {} // rank 13 — reload survival, expired by ui-boot.js's restore check
   if (typeof TTS !== "undefined") TTS.setOnDone(function() { if (carMode) _carAutoMic(); });
-  _carPreviously(false);/* #308: a driver resuming after hours hears where the story stands before anything else */
+  _carOpen();   // #19 fourth pass: warm the mic permission, read the scene brief, jump to the options
   // #2 pre-flight fix (v1.309): follow the REAL listen state instead of guessing it once
   // before STT.start() resolved — the overlay used to freeze on "Listening…" forever after
   // any recognition end/error/timeout (stt.js only knew #mic-btn). Status writes here are

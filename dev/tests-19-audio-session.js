@@ -206,5 +206,33 @@ async function test(name, fn) {
     f.c.TTS._audioSessionTest.clearPosState();
     assert.equal(f.posCalls.length, 2, 'a clear with nothing armed must not push (every push reaches the car)');
   });
+  // ── #19 fourth pass (owner, 2026-09-23): the mic PERMISSION is warmed at Car Mode entry so the prompt
+  // lands while the car is parked. The warm-up rides the real handoff: the session is restored only
+  // once the platform has released the mic (native onend / cloud tracks stopped), never on abort.
+  await test('native mic warm-up starts a throwaway recognizer, aborts once live, restores playback on end', async () => {
+    const f = fixture('native'); f.c.TTS.primeAudioSession();
+    const p = f.c.STT.warmMic(); await flush();
+    assert.equal(f.recognizers.length, 1); assert.equal(f.liveMic(), 1); assert.notEqual(f.session.type, 'playback');
+    f.recognizers[0].onstart();
+    assert(f.calls.includes('stop requested'), 'the warm-up must hand the mic back the moment it is live');
+    assert.notEqual(f.session.type, 'playback', 'playback must wait for onend, not the abort');
+    f.recognizers[0].finish();
+    assert.equal(await p, true); assert.equal(f.liveMic(), 0); assert.equal(f.session.type, 'playback');
+    assert.deepEqual(f.warnings, []); assert.equal(f.c.STT.isListening(), false);
+  });
+  await test('cloud mic warm-up opens and closes one stream and restores playback', async () => {
+    const f = fixture('cloud'); f.c.TTS.primeAudioSession();
+    assert.equal(await f.c.STT.warmMic(), true);
+    assert(f.calls.includes('tracks stopped')); assert.equal(f.liveMic(), 0); assert.equal(f.session.type, 'playback');
+    assert.deepEqual(f.warnings, []); assert.equal(f.recorders.length, 0, 'a warm-up never records');
+  });
+  await test('a refused or failed warm-up resolves false and still restores playback', async () => {
+    const d = fixture('cloud', { permissionFails: true }); d.c.TTS.primeAudioSession();
+    assert.equal(await d.c.STT.warmMic(), false); assert.equal(d.session.type, 'playback');
+    const n = fixture('native', { startFails: true }); n.c.TTS.primeAudioSession();
+    assert.equal(await n.c.STT.warmMic(), false); assert.equal(n.session.type, 'playback'); assert.equal(n.liveMic(), 0);
+    const busy = fixture('native'); busy.c.TTS.primeAudioSession(); busy.c.STT.start();
+    assert.equal(await busy.c.STT.warmMic(), false); assert.equal(busy.recognizers.length, 1, 'no warm-up while a listen is live');
+  });
   console.log((process.exitCode ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' Bluetooth session groups');
 })();

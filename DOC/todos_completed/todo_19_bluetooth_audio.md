@@ -162,3 +162,32 @@ YouTube Music pushes only on a track change. This fits every observation so far.
 Plain narration first. Stutter gone: mechanism 4 confirmed, the row closes. Stutter still
 there: the `read-route` crumbs and the native-voice check decide between mechanism 2 (the
 WebAudio path) and the car itself, then File ▸ ⚠ Report bug.
+
+## Fourth pass, 2026-09-23 (v1.974)
+
+### Field result on v1.973: the stutter is CarPlay's
+
+Owner: the stutter persisted THROUGH CarPlay; skipping CarPlay and connecting the phone to the
+same car by plain Bluetooth, the audio was smooth. So mechanism 4 (the Now Playing ticker) was
+not it either, and every earlier "over Bluetooth" test was in fact over the CarPlay link.
+Direct Bluetooth is the working configuration today.
+
+What is specific to CarPlay and worth one check each: wireless CarPlay carries audio over Wi-Fi
+and is CPU-sensitive (a WASM synthesis tier in the page could starve it — compare the native
+voice and the server tier through CarPlay); CarPlay throttles Now Playing updates (now one per
+read); the CarPlay route's buffer differs from A2DP (the `read-route` crumbs will show its
+`ol=`); a wired CarPlay connection, if the current one is wireless.
+
+### Field correction: the iPhone runs the NATIVE recognition path
+
+The options were read aloud (the cloud path never auto-reads them) and the microphone prompt
+came from the recognizer start, so `webkitSpeechRecognition` works in the owner's home-screen
+app. The 09-22 "cloud path" note above is withdrawn; the auto-mic loop DOES run on the iPhone.
+
+### Owner ruling: "When car-mode starts, just read the current scene, and jump to options."
+
+Shipped: `_carOpen` — `STT.warmMic()` first (the permission prompt lands while parked), then
+`carSceneBrief()` (where you are + the last two sentences of the last narration, capped), then
+the normal options-then-mic loop. An entry within two hours of the last turn skips the brief.
+The full recap stays on the spoken "previously". Batteries written failing-first:
+tests-19 (three warm-up groups), tests-19b (four entry groups), tests-19c (five brief groups).

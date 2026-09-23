@@ -2289,6 +2289,26 @@ function carRecapText(){
   return "Previously: "+String(last.summary||"").trim()+(where?" You are at "+where+".":"");
 }
 
+/* #19 fourth pass (owner ruling 2026-09-23): Car Mode's ENTRY read. "When car-mode starts, just read the current scene, and
+   jump to options." The full recap (carRecapText — in the Village every stash item and three residents, elsewhere the last
+   chapter) stays on the spoken "previously" command; the entry reads WHERE you are and the TAIL of the last narration — the
+   last CAR_BRIEF_SENTENCES sentences, capped at CAR_BRIEF_MAX_CHARS on a word boundary — and the options step follows. Pure:
+   the transcript's last GM entry (clean text; bookkeeping and refusal entries skipped). "" when there is nothing to say. */
+var CAR_BRIEF_SENTENCES=2,CAR_BRIEF_MAX_CHARS=320;
+function carSceneBrief(ws){
+  ws=ws||((typeof worldState!=="undefined")?worldState:null);if(!ws)return "";
+  var tr=ws.transcript||[],i,last=null,e;
+  for(i=tr.length-1;i>=0;i--){e=tr[i];if(e&&e.r==="gm"&&!e.bk&&!e.rf&&e.x){last=e;break;}}
+  var where=(ws.world&&(ws.world.sublocation||ws.world.location))||"";
+  var lead=where?"You are at "+where+".":"";
+  if(!last)return lead;
+  var text=String(last.x).replace(/\s+/g," ").trim();
+  var sents=text.match(/[^.!?]+[.!?]+["'\u201d\u2019)]*|[^.!?]+$/g)||[text];
+  var tail=sents.slice(-CAR_BRIEF_SENTENCES).join(" ").replace(/\s+/g," ").trim();
+  if(tail.length>CAR_BRIEF_MAX_CHARS){tail=tail.slice(tail.length-CAR_BRIEF_MAX_CHARS);var sp=tail.indexOf(" ");if(sp>=0)tail=tail.slice(sp+1);}
+  return (lead?lead+" ":"")+tail;
+}
+
 // #315 (review C5): clamp helpers for imported text. Pure; the caps live in IMPORT_CAPS (globals.js).
 function clampStr(v,max){if(typeof v!=="string")return v;var lim=(typeof max==="number"&&max>0)?max:800;return v.length>lim?v.slice(0,lim):v;}
 // Clamp a portable character sheet's prose in place. Returns {clamped:N} so the import surface can say so.
