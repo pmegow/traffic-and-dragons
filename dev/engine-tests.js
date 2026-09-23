@@ -6535,6 +6535,96 @@ function runEngineTests(R){
     if(d.indexOf("the player must accept it before it becomes canon")<0)return "the proposal clause is gone — the GM will assume acceptance";
     return d.indexOf("NEVER put instance state")>=0?true:"the TYPE-vs-INSTANCE clause is gone";
   });
+  // ── #436 (field finding, The Necrotic Dungeon t11, 2026-09-23): the GM wrote the daggers' drain
+  // mechanic and the parser threw it away — "uses:at-will|value:800 gp" (colons, the form the
+  // injected ITEM CANON line teaches) were read BY POSITION under #298, so the price landed in
+  // the EFFECT slot. Nine accepted overlays across three campaigns carried "effect: value:N gp".
+  t("#436: the verbatim t11 daggers tag — mixed =/: fields keep the GM's effect; uses and value land in their own fields, never in the effect",function(){
+    makeWorld();worldState.pendingItemDefs=[];worldState.itemBible={};worldState.turn=11;
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ITEM_DEF:matched runic daggers|category=weapon|effect=A pair of balanced Thassilonian daggers etched with necromantic drain runes. Attacks deal 1d4+1 piercing plus 1d6 necrotic damage; on a critical hit, the wielder siphons 1d6 temporary hit points.|uses:at-will|value:800 gp]");}finally{console.warn=_w;}
+    var p=worldState.pendingItemDefs[0];
+    if(!p)return "no proposal queued";
+    if(!/drain runes/.test(p.entry.effect))return "the price overwrote the effect: "+p.entry.effect;
+    if(p.entry.category!=="weapon"||p.entry.uses!=="at-will"||p.entry.value!=="800 gp")return "colon-keyed fields lost: "+JSON.stringify(p.entry);
+    if(/unknown category/.test(warns.join(" ")))return "a colon field was still read as the category: "+warns.join(" || ");
+    /* the clobber fingerprint arriving INSIDE a keyed effect heals at the proposal too — one predicate, every boundary */
+    worldState.pendingItemDefs=[];
+    applyMuts("[ITEM_DEF:Salt charm|category=consumable|effect=value:5 gp|uses=single use]");
+    var q=worldState.pendingItemDefs[0];
+    if(!q||q.entry.effect!=="N/A"||q.entry.value!=="5 gp")return "a label-only effect must move into its field at the proposal: "+JSON.stringify(q&&q.entry);
+    return true;
+  });
+  t("#436: bare parts fill only the slots no keyed part claimed — a keyed field is never overwritten by position, whatever the order; a surplus bare part is refused loudly",function(){
+    makeWorld();worldState.pendingItemDefs=[];worldState.itemBible={};
+    applyMuts("[ITEM_DEF:Ash wand|category=tool|A wand of grey ash|at-will|30 gp]");
+    var a=worldState.pendingItemDefs[0];
+    if(!a||a.entry.category!=="tool"||a.entry.effect!=="A wand of grey ash"||a.entry.uses!=="at-will"||a.entry.value!=="30 gp")return "keyed-then-bare: "+JSON.stringify(a&&a.entry);
+    applyMuts("[ITEM_DEF:Bone key|Opens the ossuary gate|category=quest|N/A|priceless]");
+    var b=worldState.pendingItemDefs[1];
+    if(!b||b.entry.category!=="quest"||b.entry.effect!=="Opens the ossuary gate"||b.entry.uses!=="N/A"||b.entry.value!=="priceless")return "bare-around-keyed: "+JSON.stringify(b&&b.entry);
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ITEM_DEF:Iron whistle|category=tool|effect=Calls the hounds|uses=at-will|value=2 gp|found in the kennels]");}finally{console.warn=_w;}
+    var c=worldState.pendingItemDefs[2];
+    if(!c||c.entry.effect!=="Calls the hounds"||c.entry.value!=="2 gp")return "a surplus bare part overwrote a keyed field: "+JSON.stringify(c&&c.entry);
+    if(!/extra positional field 'found in the kennels'/.test(warns.join(" ")))return "the surplus part was dropped silently: "+warns.join(" || ");
+    /* #298's own two grammars stay whole */
+    applyMuts("[ITEM_DEF:Sealed letter|quest|A cracked-wax missive|single use|0 gp]");
+    var d=worldState.pendingItemDefs[3];
+    if(!d||d.entry.category!=="quest"||d.entry.effect!=="A cracked-wax missive"||d.entry.uses!=="single use"||d.entry.value!=="0 gp")return "the positional grammar broke: "+JSON.stringify(d&&d.entry);
+    return true;
+  });
+  t("#436: [SPELL_DEF:] reads the same colon-keyed form through the ONE field reader — range:/tier:/cost: are no longer dropped; a bare part is still refused",function(){
+    makeWorld();
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[SPELL_DEF:Grave Chill|range:30 ft|targets=1 creature|duration:instantaneous|effect:1d8 cold and the target cannot regain hit points this round|cost:slot|tier:2|magical:yes|sixty feet]");}finally{console.warn=_w;}
+    var e=capabilityLookup("Grave Chill");
+    if(!e)return "the definition did not file";
+    if(e.range!=="30 ft"||e.duration!=="instantaneous"||e.cost!=="slot"||e.tier!==2||e.isMagical!==true||!/1d8 cold/.test(e.effect)||e.targets!=="1 creature")return "colon-keyed spell fields lost: "+JSON.stringify(e);
+    if(!/positional field 'sixty feet'/.test(warns.join(" ")))return "the bare part must still be refused loudly: "+warns.join(" || ");
+    return true;
+  });
+  t("#436: the heal — an accepted overlay whose effect is only \"value:250 gp\" unseals: the price moves into value, the effect is N/A (classification-only), Define-eligible, never injected, idempotent; a real effect is untouched; a filled target field is never overwritten",function(){
+    makeWorld();
+    worldState.itemBible={"black iron core":{category:"quest",effect:"value:250 gp",uses:"N/A",value:"N/A",inventoryCategories:["quest"]},
+                          "real relic":{category:"tool",effect:"Opens the sealed doors of the Reach",uses:"N/A",value:"10 gp"},
+                          "odd coin":{category:"tool",effect:"uses:once",uses:"N/A",value:"1 gp"},
+                          "conflicted charm":{category:"tool",effect:"value:250 gp",uses:"N/A",value:"300 gp"}};
+    worldState.character.inventory=["Black iron core","Real relic","Odd coin","Conflicted charm"];
+    if(typeof itemBibleHeal!=="function")return "itemBibleHeal missing (the ONE heal every boundary calls)";
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    var healed;try{healed=itemBibleHeal(worldState.itemBible);}finally{console.warn=_w;}
+    if(!healed||healed.length!==2||healed.indexOf("black iron core")<0||healed.indexOf("odd coin")<0)return "healed keys: "+JSON.stringify(healed);
+    var b=worldState.itemBible["black iron core"];
+    if(b.effect!=="N/A"||b.value!=="250 gp"||b.category!=="quest"||!b.inventoryCategories)return "the price did not move into value: "+JSON.stringify(b);
+    var o=worldState.itemBible["odd coin"];
+    if(o.effect!=="N/A"||o.uses!=="once")return "a uses: label must move into uses: "+JSON.stringify(o);
+    if(worldState.itemBible["real relic"].effect!=="Opens the sealed doors of the Reach")return "a real effect was touched";
+    var cc=worldState.itemBible["conflicted charm"];
+    if(cc.effect!=="value:250 gp"||cc.value!=="300 gp")return "a filled target field was overwritten: "+JSON.stringify(cc);
+    if(!/conflicted charm/.test(warns.join(" ")))return "the un-healable entry was passed over silently";
+    if(!itemDefOverlayReplaceable("black iron core"))return "a healed entry is still sealed — Define could never replace it";
+    if(!itemDefEligible("Black iron core"))return "a healed entry is not Define-eligible";
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("black iron core")>=0)return "a healed classification-only entry still injects";
+    if(v.indexOf("real relic — tool")<0)return "the real entry stopped injecting";
+    if(itemBibleHeal(worldState.itemBible).length!==0)return "the heal is not idempotent";
+    return true;
+  });
+  t("#436: the heal runs at load (migrateWorldState, overlay AND pending queue) and when a sheet's travelling canon is adopted (#81b)",function(){
+    makeWorld();
+    worldState.itemBible={"extraction spike":{category:"tool",effect:"value:150 gp",uses:"N/A",value:"N/A"}};
+    worldState.pendingItemDefs=[{key:"matched runic daggers",name:"matched runic daggers",entry:{category:"weapon",effect:"value:800 gp",uses:"N/A",value:"N/A"},turn:11}];
+    if(!migrateWorldState())return "migrate reported no change";
+    if(worldState.itemBible["extraction spike"].effect!=="N/A"||worldState.itemBible["extraction spike"].value!=="150 gp")return "the overlay was not healed at load: "+JSON.stringify(worldState.itemBible["extraction spike"]);
+    var p=worldState.pendingItemDefs[0];
+    if(p.entry.effect!=="N/A"||p.entry.value!=="800 gp")return "the pending proposal was not healed at load: "+JSON.stringify(p.entry);
+    var n=adoptSheetItemDefs({name:"Ammut",inventory:["Archfey Signet of Siphonage"],itemDefs:{"archfey signet of siphonage":{category:"tool",effect:"value:500 gp",uses:"N/A",value:"N/A"}}});
+    if(n!==1)return "adopt count: "+n;
+    var s=worldState.itemBible["archfey signet of siphonage"];
+    if(!s||s.effect!=="N/A"||s.value!=="500 gp")return "travelling canon arrived clobbered: "+JSON.stringify(s);
+    return true;
+  });
 
   // ── 12. Summarize-tail retention (#28) — the amnesia-cliff fix ───────────────
   section("summarize-tail retention (#28)");

@@ -6,14 +6,15 @@ rc|=sabotage.prove({
   file:"tag_table.js",
   command:["node",["dev/run-tests.js"]],
   cases:[
+    /* re-anchored at #436 (v1.980): the handler collects keyed parts first and bare parts fill the unclaimed slots — same two guards, new lines */
     { label:"#298: positional parts skipped silently again",
       mustFail:"a POSITIONAL [ITEM_DEF:]",
-      find:"    if(idkv.length<2){if(idPosN>=idPos.length)",
-      replace:"    if(idkv.length<2){continue;if(idPosN>=idPos.length)" },
+      find:"    if(!idf.keyed){idBare.push(idf.val);continue;}",
+      replace:"    if(!idf.keyed){continue;}" },
     { label:"#298: positional order scrambled (effect lands in category)",
       mustFail:"a POSITIONAL [ITEM_DEF:]",
-      find:'  var idPos=["category","effect","uses","value"],idPosN=0;',
-      replace:'  var idPos=["effect","category","uses","value"],idPosN=0;' }
+      find:'  var idPos=["category","effect","uses","value"],idSlot=0,idb;',
+      replace:'  var idPos=["effect","category","uses","value"],idSlot=0,idb;' }
   ]
 });
 rc|=sabotage.prove({

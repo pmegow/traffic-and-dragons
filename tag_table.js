@@ -1206,7 +1206,8 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     R.muts.push("⚠ Spell canon NOT redefined: "+sdName+" is already curated — the official entry stands");
     continue;}
   var sdEntry={kind:"spell",tier:0,cost:"at-will",isMagical:true,category:[],range:"",targets:"",duration:"",effect:""},sdp;
-  for(sdp=1;sdp<sdParts.length;sdp++){var kv=sdParts[sdp].split("=");if(kv.length<2){if(typeof console!=="undefined")console.warn("[tags] SPELL_DEF: positional field '"+sdParts[sdp].trim()+"' on "+sdName+" ignored — the form is key=value (range=|targets=|duration=|effect=|cost=|tier=) (audit A2)");continue;}var kk=kv[0].trim().toLowerCase(),vv=kv.slice(1).join("=").trim();
+  var SD_KEYS={range:1,targets:1,target:1,duration:1,effect:1,cost:1,tier:1,save:1,dice:1,category:1,magical:1};
+  for(sdp=1;sdp<sdParts.length;sdp++){var sdf=defFieldRead(sdParts[sdp],SD_KEYS);/* #436: the ONE field reader — "range:30 ft" is keyed too, not dropped */if(!sdf.keyed){if(typeof console!=="undefined")console.warn("[tags] SPELL_DEF: positional field '"+sdf.val+"' on "+sdName+" ignored — the form is key=value (range=|targets=|duration=|effect=|cost=|tier=) (audit A2)");continue;}var kk=sdf.key,vv=sdf.val;
     if(kk==="range")sdEntry.range=vv;else if(kk==="targets"||kk==="target")sdEntry.targets=vv;else if(kk==="duration")sdEntry.duration=vv;else if(kk==="effect")sdEntry.effect=vv;else if(kk==="cost")sdEntry.cost=vv;else if(kk==="tier"){var _sdT=parseInt(vv);if(isNaN(_sdT)&&typeof console!=="undefined")console.warn("[tags] SPELL_DEF: unparseable tier '"+vv+"' on "+sdName+" — defaulting to 0 (#136③)");sdEntry.tier=isNaN(_sdT)?0:_sdT;}else if(kk==="save")sdEntry.save=vv;else if(kk==="dice")sdEntry.dice=vv;else if(kk==="category")sdEntry.category=vv.split(",").map(function(x){return x.trim().toLowerCase();}).filter(Boolean);else if(kk==="magical")sdEntry.isMagical=/^\s*(y|t|1|true)/i.test(vv);}
   /* audit A2: never file an EMPTY canon — write-once means an empty definition served forever and priced casts off tier 0
      (the #298 ITEM_DEF class, worse because there is no confirmation step). A def with no range/targets/duration/effect is
@@ -1232,14 +1233,26 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   /* #298 (playtest v1767): the engine note taught the POSITIONAL form [ITEM_DEF:name|category|effect|uses|value]
      while this parser read only key=value pairs — every positional part was skipped SILENTLY and the player
      was asked to accept an empty "tool / N/A" definition (three were accepted as canon in the run). Both
-     grammars are legal now: a part without "=" is read by position (category, effect, uses, value). */
-  var idPos=["category","effect","uses","value"],idPosN=0;
-  for(idp=1;idp<idParts.length;idp++){var idkv=idParts[idp].split("=");var idk,idv;
-    if(idkv.length<2){if(idPosN>=idPos.length){if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: extra positional field '"+idParts[idp].trim()+"' on '"+idName+"' ignored (#298)");continue;}idk=idPos[idPosN++];idv=idParts[idp].trim();}
-    else{idk=idkv[0].trim().toLowerCase();idv=idkv.slice(1).join("=").trim();}
-    if(idk==="category"){var idc=idv.toLowerCase();if(ID_CATS[idc])idEntry.category=idc;else if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: unknown category '"+idv+"' on '"+idName+"' — defaulted to tool (#81)");}
-    else if(idk==="effect"||idk==="uses"||idk==="value"){if(idv)idEntry[idk]=idv;}
-    else if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: field '"+idk+"' on '"+idName+"' ignored — instance state never enters a TYPE definition (#81)");}
+     grammars are legal: a bare part is read by position (category, effect, uses, value).
+     #436 (The Necrotic Dungeon t11): a KEYED part is '=' or a known key with a colon (defFieldRead, helpers.js —
+     "uses:at-will|value:800 gp" used to be read by position, and the price overwrote the drain effect the GM had
+     written); keyed parts are collected FIRST, and bare parts then fill only the slots no keyed part claimed, in
+     order — a keyed field is never overwritten by position, whichever order the GM wrote them in. */
+  var idFields=[],idBare=[],idSet={};
+  for(idp=1;idp<idParts.length;idp++){var idf=defFieldRead(idParts[idp],ITEM_DEF_KEYS);
+    if(!idf.keyed){idBare.push(idf.val);continue;}
+    if(ITEM_DEF_KEYS[idf.key]){idSet[idf.key]=1;idFields.push(idf);}
+    else if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: field '"+idf.key+"' on '"+idName+"' ignored — instance state never enters a TYPE definition (#81)");}
+  var idPos=["category","effect","uses","value"],idSlot=0,idb;
+  for(idb=0;idb<idBare.length;idb++){while(idSlot<idPos.length&&idSet[idPos[idSlot]])idSlot++;
+    if(idSlot>=idPos.length){if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: extra positional field '"+idBare[idb]+"' on '"+idName+"' ignored (#298)");continue;}
+    idFields.push({key:idPos[idSlot++],val:idBare[idb]});}
+  for(idp=0;idp<idFields.length;idp++){var idk=idFields[idp].key,idv=idFields[idp].val;
+    if(idk==="category"){var idc=idv.toLowerCase();if(ID_CATS[idc])idEntry.category=idc;else if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: unknown category '"+idv+"' on '"+idName+"' — kept as "+idEntry.category+" (#81)");}
+    else if(idv)idEntry[idk]=idv;}
+  /* #436: the fingerprint can also arrive INSIDE a keyed effect ("effect=value:20 gp") — one predicate, every boundary */
+  var idHeal=(typeof itemDefHeal==="function")?itemDefHeal(idEntry):"";
+  if(idHeal&&typeof console!=="undefined")console.warn("[tags] ITEM_DEF: the effect on '"+idName+"' was only a "+idHeal+" label — moved into "+idHeal+", effect left undefined (#436)");
   worldState.pendingItemDefs.push({key:idKey,name:idName,entry:idEntry,turn:R.turn});
   R.muts.push("Item canon proposed: "+idName+" (awaiting your confirmation)");
 }}},

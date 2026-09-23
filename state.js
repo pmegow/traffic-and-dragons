@@ -685,6 +685,15 @@ function migrateWorldState(){
     var _relAfter=JSON.stringify([c.relationships,worldState.pendingLegacy&&worldState.pendingLegacy.relationships,worldState.npcs.map(function(n){return n&&n.charSheet?n.charSheet.relationships:null;})]);
     if(_relBefore!==_relAfter)_mig=true;
   }
+  /* #436: item canon clobbered by the mixed =/: [ITEM_DEF:] read ("effect: value:250 gp" — nine
+     accepted entries across three campaigns) unseals here: the price moves into value, the effect
+     becomes N/A, so the entry stops injecting and Define can rebuild it from the story. The pending
+     queue heals the same way. Idempotent; helpers.js loads before this file. */
+  if(typeof itemBibleHeal==="function"){
+    if(worldState.itemBible&&itemBibleHeal(worldState.itemBible).length)_mig=true;
+    if(worldState.pendingItemDefs){var _ihP={},_ihi;for(_ihi=0;_ihi<worldState.pendingItemDefs.length;_ihi++){var _ihp=worldState.pendingItemDefs[_ihi];if(_ihp&&_ihp.entry)_ihP[_ihp.key||("pending "+_ihi)]=_ihp.entry;}
+      if(itemBibleHeal(_ihP).length)_mig=true;}
+  }
   return _mig;
 }
 /* JP0-4 (joint review 2026-08-27, Sol P0-02) — NO SILENT FAILURES at the recall-store boundary.

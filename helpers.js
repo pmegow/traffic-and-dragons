@@ -1431,7 +1431,8 @@ function portableSheet(sheet){
 function adoptSheetItemDefs(sheet){
   if(!sheet||typeof sheet!=="object"||!sheet.itemDefs||typeof sheet.itemDefs!=="object"||typeof worldState==="undefined"||!worldState)return 0;
   if(!worldState.itemBible)worldState.itemBible={};
-  var k,n=0;for(k in sheet.itemDefs){if(!sheet.itemDefs[k]||typeof sheet.itemDefs[k]!=="object")continue;if(worldState.itemBible[k])continue;/* the destination's canon wins — write-once */worldState.itemBible[k]=JSON.parse(JSON.stringify(sheet.itemDefs[k]));n++;}
+  var k,n=0,adopted={};for(k in sheet.itemDefs){if(!sheet.itemDefs[k]||typeof sheet.itemDefs[k]!=="object")continue;if(worldState.itemBible[k])continue;/* the destination's canon wins — write-once */worldState.itemBible[k]=adopted[k]=JSON.parse(JSON.stringify(sheet.itemDefs[k]));n++;}
+  if(n&&typeof itemBibleHeal==="function")itemBibleHeal(adopted);/* #436: a sheet exported before the fix carries the clobber with it — healed on the way in, the copies only */
   if(n&&typeof console!=="undefined")console.info("[items] "+n+" item definition(s) travelled in with "+(sheet.name||"a sheet")+" (#81b)");
   return n;
 }
@@ -1493,6 +1494,52 @@ function itemDefOverlayReplaceable(key){
   var ov=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)?worldState.itemBible[key]:null;
   if(!ov)return true;
   return !(ov.effect&&ov.effect!=="N/A");
+}
+/* #436 (field finding, The Necrotic Dungeon t11, 2026-09-23): ONE field reader for the definition
+   tags ([ITEM_DEF:] and [SPELL_DEF:]). A part is KEYED when it carries '=' (the taught form) OR
+   opens with a known key and a colon — the form the GM drifts into because the injected ITEM
+   CANON line reads "effect: … | uses: … | value: …". The #298 positional reader took
+   "uses:at-will|value:800 gp" by POSITION, so the price landed in the EFFECT slot and the drain
+   mechanic the GM had written for the daggers was gone before the player ever saw the proposal.
+   Returns {key,val,keyed:true,known} for a keyed part (an unknown '=' key stays keyed so the
+   caller can warn on it, as before) or {val,keyed:false} for a bare part. Pure. */
+function defFieldRead(part,known){
+  var s=String(part==null?"":part),m=s.match(/^\s*([A-Za-z_]+)\s*([:=])\s*([\s\S]*)$/);
+  if(m){var k=m[1].toLowerCase();
+    if(m[2]==="="||(known&&known[k]))return{key:k,val:m[3].replace(/\s+$/,""),keyed:true,known:!!(known&&known[k])};}
+  var eq=s.indexOf("=");
+  if(eq>=0)return{key:s.slice(0,eq).trim().toLowerCase(),val:s.slice(eq+1).trim(),keyed:true,known:false};/* "charges left=3" — keyed, unknown, warned by the caller */
+  return{val:s.trim(),keyed:false,known:false};
+}
+var ITEM_DEF_KEYS={category:1,effect:1,uses:1,value:1};
+/* #436: the clobber fingerprint — an effect that is nothing but a field label and its payload
+   ("value:250 gp"). Nine accepted overlays across three campaigns carried it, each SEALED as real
+   canon (write-once tests the effect) and injected every turn as "effect: value:250 gp". The
+   payload MOVES into the field it named — only into an empty one, a filled field is never
+   overwritten — and the effect becomes "N/A", which every reader already treats as
+   classification-only: unsealed for Define, never injected. Returns the label moved, "" when
+   nothing changed (idempotent), and null when the entry carries the fingerprint but could not be
+   healed (the target field holds something else — left as written for the caller to shout). Only
+   value/uses labels heal: category has a real default, so an explicit "tool" is indistinguishable
+   from an unset one, and the category form has never been observed. */
+function itemDefHeal(e){
+  if(!e||typeof e.effect!=="string")return "";
+  var m=e.effect.match(/^\s*(value|uses)\s*:\s*([\s\S]*?)\s*$/i);
+  if(!m)return "";
+  var k=m[1].toLowerCase(),v=m[2];
+  if(e[k]&&e[k]!=="N/A"&&e[k]!==v)return null;
+  e[k]=v||"N/A";e.effect="N/A";
+  return k;
+}
+/* #436: heal every entry of an overlay map (worldState.itemBible, or a sheet's travelling itemDefs)
+   in place; returns the healed keys. Shouts per entry, never throws. */
+function itemBibleHeal(map){
+  var out=[],k;if(!map||typeof map!=="object")return out;
+  for(k in map){var e=map[k];if(!e||typeof e!=="object")continue;
+    var r=itemDefHeal(e);
+    if(r){out.push(k);if(typeof console!=="undefined")console.warn("[items] #436 healed '"+k+"' — its effect was only a "+r+" label (the mixed =/: clobber); "+r+" is now \""+e[r]+"\", the effect is N/A, and the item is Define-eligible again");}
+    else if(r===null&&typeof console!=="undefined")console.warn("[items] #436 could NOT heal '"+k+"' — its effect is a field label (\""+e.effect+"\") but that field already holds \""+e[e.effect.match(/^\s*(\w+)/)[1].toLowerCase()]+"\"; left as written, fix it by hand");}
+  return out;
 }
 // #285: the confirm modal's shadow notice — non-empty when accepting the keyed proposal would
 // REPLACE a curated base entry wholesale (multi-category listings and curated value/uses are
