@@ -4,6 +4,17 @@ Owner ask (2026-09-22): peaceful ambience for indoor locations; gentle windchime
 
 **Every licence below is UNVERIFIED.** This list was built from search-index snippets in a session whose network policy blocks freesound.org and itch.io. Before any file enters `Audio/CC0/`, open its page with the owner's Freesound login and confirm the licence line reads "Creative Commons 0", exactly as the 2026-09-15 pulls were checked. Snippets that mention "credit the author" mean CC BY, which the game does not use.
 
+## Licence check and review results (2026-09-22)
+
+Every page below was opened with the owner’s Freesound login. Keepers are filed under `Audio/CC0/` with SHA-256 provenance (`provenance_freesound.json`, `provenance_nox.json`) and rows in `Audio/CC0/README.md` and `audition.html`.
+
+- **Phase 1 pulled (CC0 confirmed):** kyles 452516, Sadiquecat 800660, jmehlferber 370938, samarobryn 414767, Sayuri_Odin 216134, nicoproson 648529, Littleboot 147300, plus two from the Yuval room-tone pack (204843, 210097). Filed in `Interior/`.
+- **Phase 1 owner review:** approved kyles (“sounds like rain on a tin roof”) and nicoproson (waits on weather). Rejected the three fires (“we have fire already”; samarobryn too spitty), both Yuval rooms, Sayuri_Odin and Littleboot (“might as well just not play audio”).
+- **Wood-floor footsteps:** ten Nox_Sound `Footsteps_Wood_Walk` single steps unpacked from the Essentials zip into `Interior/` for the accent layer (owner: footsteps on wood are fine if not constant). Awaiting review.
+- **Phases 2 and 3 pulled (CC0 confirmed), in `Accents/`:** Kinoton 376001 and 378431, janbezouska 266951, GoatsheadCastle 739142, inoshirodesign 271370, the_very_Real_Horst 240934 and 241197, ganiket 466652, bassimat 857912, Rudmer_Rotteveel 502504 and 502507. Awaiting review.
+- **Not CC0, skipped:** hansendex 263994 and Debsound 337575 (Attribution NonCommercial 4.0); klankbeeld 171740, pfranzen 393808, InspectorJ 346641/346642 (Attribution 4.0); all twelve sounds in the Philip_Goddard pack (Attribution NonCommercial 4.0); DudeAwesome 386470, casemundy 130586, jppi_Stu 17090, AncientOracle 476871 and seven the_very_Real_Horst bowls (Attribution 4.0).
+- **Accent layer rulings (owner):** accents come from the place profile first, GM-cued story sounds later; accents play only in the gaps between narration. Tracked on TODO.md L7.
+
 ## Where the engine stands
 
 - No indoor place outside the Village pilot makes any sound today: `smithy` and `tavern` are `seedOnly`, and the tavern's loop/mix approvals are still false. A general interior bed would be the first sound most campaigns get indoors.
