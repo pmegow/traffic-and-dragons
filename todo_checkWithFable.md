@@ -15,6 +15,8 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
+- 2026-09-22 · #24 glossary · Codex: added CI (Continuous Integration) under Infra & releases and refreshed the footer and archived task status. Documentation only.
+
 - 2026-09-23 · L7 accent layer (v1.975) · Opus: owner-approved Proposal_general_audio §21, Opus-tier parts only. New audio-accents.js (selection, scheduler, controller) beside the unchanged bed controller; loader/cache media lookup; one-line bed-selector guard in audio-profile.js (`a.role!=="accent"`); tavern seed accents in audio-scenes.js. No parser, prompt, tag, memory or GM vocabulary change — the `chimes`/`bells` words are left for Fable. Verification: audits/AUDIT_L7_accent_layer.md (16 mutation clauses, Chrome run).
 
 - 2026-09-18 · #1 shared multiplayer costs · Codex: owner decision recorded in DOC/Research/remote_player_exploration.html#shared-cost — one room usage charge split equally among participating players, replacing owner-only funding. Updated consent, atomic per-account reservations, fractional settlement, retry/disconnect allocation and acceptance gates throughout the design. Documentation only; billing and multiplayer are not implemented.
