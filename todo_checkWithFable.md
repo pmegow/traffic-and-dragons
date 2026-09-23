@@ -15,6 +15,8 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
+- 2026-09-23 · #436 field finding (no code) · Opus: ran /field-finding on the Necrotic Dungeon t11 daggers. Mechanism grounded in the save's raw sessionLog and reproduced through the real parser: mixed `=`/`:` [ITEM_DEF:] fields are read positionally and `value:` overwrites the GM's effect (#298 lineage); 9 accepted overlays corrupted across 3 campaigns. The fix is Fable-tier (drift surface) and is not built.
+
 - 2026-09-23 · #435 (v1.979) · Codex: item-card button delegates to existing defineItemFromStory; eligibility delegates to itemDefEligible. Popup copy only in helpers.js; no prompt/parser/canon changes. Verified: five regression checks, six mutation proofs, 2,304 engine assertions + 52 standalone suites; phone-width Chrome render and review → confirmation → saved canon with a stubbed model response. Owner live play pending.
 
 - 2026-09-22 · #24 glossary · Codex: added CI (Continuous Integration) under Infra & releases and refreshed the footer and archived task status. Documentation only.
