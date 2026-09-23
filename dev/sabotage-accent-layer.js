@@ -1,7 +1,8 @@
 // Mutation proof for the accent layer (Proposal_general_audio.html §21): every rule below must turn a named test red.
 const sabotage=require('./sabotage.js');let rc=0;
 const also=['index.html','sw.js','ui-ambient.js','audio-scenes.js','audio-cache.js','dev/engine-manifest.js',
- 'dev/audio-delivery.json','dev/build-audio-catalog.js','sfx/accent-footsteps-wood-v1.mp3'];   /* the standalone suite reads these by path */
+ 'dev/audio-delivery.json','dev/build-audio-catalog.js','sfx/accent-footsteps-wood-v1.mp3','sfx/accent-chimes-koshi-v1.mp3',
+ 'sfx/accent-chimes-metal-v1.mp3','sfx/accent-bowl-small-v1.mp3','sfx/accent-bell-church-v1.mp3'];   /* the standalone suite reads these by path */
 const engine=['node',['dev/run-tests.js','L7 accent']],standalone=['node',['dev/tests-accent-layer.js']];
 rc|=sabotage.prove({also,file:'audio-accents.js',command:engine,cases:[
  {label:'accents play over narration',mustFail:'L7 accent scheduler',find:'var quiet = !env.speaking && now - env.quietSince >= ACCENT_SETTLE_MS',replace:'var quiet = true'},
@@ -16,7 +17,12 @@ rc|=sabotage.prove({also,file:'audio-accents.js',command:engine,cases:[
  {label:'a sprite shorter than its cuts is kept',mustFail:'L7 accent sprite admission',find:'c[1] <= buffer.duration',replace:'true'}
 ]});
 rc|=sabotage.prove({also,file:'audio-profile.js',command:engine,cases:[
- {label:'the bed selector picks an accent set',mustFail:'L7 accent selection',find:'return a.role!=="accent"&&!a.seedOnly',replace:'return !a.seedOnly'}
+ {label:'the bed selector picks an accent set',mustFail:'L7 accent selection',find:'return a.role!=="accent"&&!a.seedOnly',replace:'return !a.seedOnly'},
+ {label:'chimes leave the vocabulary',mustFail:'L7 accent vocabulary',find:'"music","chimes","bells"]',replace:'"music"]'},
+ {label:'the list cap forgets the vocabulary grew',mustFail:'L7 accent vocabulary',find:'list.length>AUDIO_CONTENTS.length',replace:'list.length>12'}
+]});
+rc|=sabotage.prove({also,file:'api.js',command:engine,cases:[
+ {label:'the note teaches a hand-copied list',mustFail:'L7 accent vocabulary',find:'comma lists of "+AUDIO_CONTENTS.join(",")+", or none.',replace:'comma lists of birds,insects,wind,water,fire,crowd,voices,rain,thunder,animals,machinery,music, or none.'}
 ]});
 rc|=sabotage.prove({also,file:'audio-accents.js',command:standalone,cases:[
  {label:'the mic leaves accents scheduled',mustFail:'the mic cancels the schedule',find:'clearTimer(); hush(0); st = null; return;',replace:'return;'},
@@ -26,6 +32,7 @@ rc|=sabotage.prove({also,file:'audio-accents.js',command:standalone,cases:[
  {label:'a memory refusal raises a failure toast',mustFail:'a memory refusal is logged',find:'if (/budget/.test(e && e.message)) driver.warn(',replace:'if (false) driver.warn('}
 ]});
 rc|=sabotage.prove({also,file:'dev/build-audio-catalog.js',command:standalone,cases:[
- {label:'the builder accepts a broken accent set',mustFail:'builder accepted a broken accent set',find:"if (asset.sprite) validateAccent(asset);",replace:''}
+ {label:'the builder accepts a broken accent set',mustFail:'builder accepted a broken accent set',find:"if (asset.sprite) validateAccent(asset);",replace:''},
+ {label:'the builder accepts a content word the GM was never taught',mustFail:'builder accepted a broken accent set: untaught content word',find:"if (!words.includes(w)) throw Error",replace:"if (false) throw Error"}
 ]});
 process.exit(rc);

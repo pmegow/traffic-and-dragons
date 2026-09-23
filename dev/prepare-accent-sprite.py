@@ -66,6 +66,8 @@ def main():
     ap.add_argument('name'); ap.add_argument('sources', nargs='+')
     ap.add_argument('--rms', type=float, default=-24.0); ap.add_argument('--peak', type=float, default=-6.0)
     ap.add_argument('--fade-ms', type=float, default=10.0); ap.add_argument('--gap', type=float, default=0.25)
+    ap.add_argument('--fade-in-ms', type=float, default=None, help='overrides --fade-ms at the head (a phrase cut from a continuous take)')
+    ap.add_argument('--fade-out-ms', type=float, default=None, help='overrides --fade-ms at the tail')
     ap.add_argument('--floor', type=float, default=-50.0)
     ap.add_argument('--license', default=''); ap.add_argument('--source-url', default=''); ap.add_argument('--author', default='')
     ap.add_argument('--deliver', action='store_true')
@@ -88,10 +90,10 @@ def main():
         rms = np.sqrt((x ** 2).mean()); gain_db = a.rms - db(rms)
         if db(np.abs(x).max()) + gain_db > a.peak: gain_db = a.peak - db(np.abs(x).max())
         x = x * 10 ** (gain_db / 20)
-        f = min(int(a.fade_ms / 1000 * sr), len(x) // 2)
-        if f > 0:
-            ramp = (1 - np.cos(np.linspace(0, np.pi, f))) / 2
-            x[:f] *= ramp; x[-f:] *= ramp[::-1]
+        fi = min(int((a.fade_in_ms if a.fade_in_ms is not None else a.fade_ms) / 1000 * sr), len(x) // 2)
+        fo = min(int((a.fade_out_ms if a.fade_out_ms is not None else a.fade_ms) / 1000 * sr), len(x) // 2)
+        if fi > 0: x[:fi] *= (1 - np.cos(np.linspace(0, np.pi, fi))) / 2
+        if fo > 0: x[-fo:] *= ((1 - np.cos(np.linspace(0, np.pi, fo))) / 2)[::-1]
         pieces.append(x)
         receipt_samples.append({'source': os.path.relpath(path, ROOT).replace('\\', '/'), 'cut': cut, 'sourceSha256': sha256(path),
                                 'gainDb': round(gain_db, 2), 'seconds': round(len(x) / sr, 4),
@@ -114,7 +116,7 @@ def main():
     with open(mp3_path, 'rb') as f: head = f.read(4096)
     if b'Xing' not in head and b'Info' not in head: raise SystemExit('encoder wrote no gapless (Xing/LAME) header; cuts would shift')
     receipt = {'name': a.name, 'sampleRate': rate, 'channels': 1, 'seconds': round(len(y) / rate, 4), 'cuts': cuts,
-               'samples': receipt_samples, 'method': 'mono mean; DC removal; trim below %g dB of sample peak with 20 ms pre-roll; RMS %g dBFS, peak ceiling %g dBFS; %g ms raised-cosine fades; %g s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3' % (a.floor, a.rms, a.peak, a.fade_ms, a.gap),
+               'samples': receipt_samples, 'method': 'mono mean; DC removal; trim below %g dB of sample peak with 20 ms pre-roll; RMS %g dBFS, peak ceiling %g dBFS; raised-cosine fades %g ms in / %g ms out; %g s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3' % (a.floor, a.rms, a.peak, a.fade_in_ms if a.fade_in_ms is not None else a.fade_ms, a.fade_out_ms if a.fade_out_ms is not None else a.fade_ms, a.gap),
                'license': a.license, 'sourceUrl': a.source_url, 'author': a.author,
                'wavSha256': sha256(wav_path), 'mp3Sha256': sha256(mp3_path), 'bytes': os.path.getsize(mp3_path)}
     if a.deliver:

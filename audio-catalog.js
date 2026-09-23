@@ -388,7 +388,325 @@ var AUDIO_CATALOG = {
       "seedOnly": false,
       "sha256": "fb525bfb3e6a27164bb404100e3c91fdeaa58aecf738a4b0080b28b9a29c46ca",
       "bytes": 61440
+    },
+    {
+      "id": "chimes-koshi",
+      "label": "Koshi wind chimes",
+      "cohort": "starter-1",
+      "role": "accent",
+      "sprite": {
+        "url": "sfx/accent-chimes-koshi-v1.mp3",
+        "gain": [
+          0.3,
+          0.55
+        ],
+        "cuts": [
+          [
+            0.25,
+            5.25
+          ],
+          [
+            5.5,
+            10.5
+          ],
+          [
+            10.75,
+            15.75
+          ],
+          [
+            16,
+            21
+          ],
+          [
+            21.25,
+            26.25
+          ],
+          [
+            26.5,
+            31.5
+          ]
+        ],
+        "maxSeconds": 33,
+        "channels": 1,
+        "maxBytes": 600000,
+        "maxDecodedBytes": 6288000
+      },
+      "pattern": {
+        "kind": "single"
+      },
+      "gap": [
+        45,
+        150
+      ],
+      "trigger": "ambient",
+      "rain": "play",
+      "needsAny": [],
+      "contains": [
+        "chimes"
+      ],
+      "enclosures": [
+        "open",
+        "covered",
+        "sealed"
+      ],
+      "settings": [
+        "settlement",
+        "interior",
+        "wilderness",
+        "coast",
+        "unspecified"
+      ],
+      "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "mix": false
+      },
+      "source": {
+        "sha256": "bcd9fb192471623bcfc28654ca8c43702eaadd9f1facd945ae41fb86e010513e,f281eaf154d6bec420a83b5f5fbd20c0d1d8145bc1da2bc1f294b75115adedba",
+        "url": "https://freesound.org/s/376001/ https://freesound.org/s/378431/",
+        "author": "Kinoton",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; trim below -90 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -6 dBFS; raised-cosine fades 300 ms in / 1500 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3; six 5 s phrases cut from two continuous takes at their quietest edges",
+      "seedOnly": false,
+      "sha256": "f24e1eddf7d252f90921a2e5142e0e96be1d05b3fcd85b3baf54dda697587844",
+      "bytes": 508800
+    },
+    {
+      "id": "chimes-metal",
+      "label": "Metal wind chimes",
+      "cohort": "starter-1",
+      "role": "accent",
+      "sprite": {
+        "url": "sfx/accent-chimes-metal-v1.mp3",
+        "gain": [
+          0.3,
+          0.55
+        ],
+        "cuts": [
+          [
+            0.25,
+            5.25
+          ],
+          [
+            5.5,
+            10.5
+          ],
+          [
+            10.75,
+            15.75
+          ],
+          [
+            16,
+            21
+          ],
+          [
+            21.25,
+            26.25
+          ]
+        ],
+        "maxSeconds": 28,
+        "channels": 1,
+        "maxBytes": 600000,
+        "maxDecodedBytes": 5280000
+      },
+      "pattern": {
+        "kind": "single"
+      },
+      "gap": [
+        45,
+        150
+      ],
+      "trigger": "ambient",
+      "rain": "play",
+      "needsAny": [],
+      "contains": [
+        "chimes"
+      ],
+      "enclosures": [
+        "open",
+        "covered",
+        "sealed"
+      ],
+      "settings": [
+        "settlement",
+        "interior",
+        "wilderness",
+        "coast",
+        "unspecified"
+      ],
+      "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "mix": false
+      },
+      "source": {
+        "sha256": "d6fd7c4b6b65f3b24d2543f552b3e027c74adfab6579024d4e7e194ec9f547ac",
+        "url": "https://freesound.org/s/266951/",
+        "author": "janbezouska",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; trim below -90 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -6 dBFS; raised-cosine fades 300 ms in / 1500 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3; five 5 s phrases cut from a continuous take at its quietest edges",
+      "seedOnly": false,
+      "sha256": "13b2313af15e1131b2e45f46b3461fe5ea0467342cfe3785e5362246ff4ad5a3",
+      "bytes": 425088
+    },
+    {
+      "id": "bowl-small",
+      "label": "Small singing bowl",
+      "cohort": "starter-1",
+      "role": "accent",
+      "sprite": {
+        "url": "sfx/accent-bowl-small-v1.mp3",
+        "gain": [
+          0.3,
+          0.5
+        ],
+        "cuts": [
+          [
+            0.25,
+            6.5193
+          ]
+        ],
+        "maxSeconds": 8,
+        "channels": 1,
+        "maxBytes": 600000,
+        "maxDecodedBytes": 1491705
+      },
+      "pattern": {
+        "kind": "single"
+      },
+      "gap": [
+        90,
+        300
+      ],
+      "trigger": "ambient",
+      "rain": "play",
+      "needsAny": [],
+      "contains": [
+        "chimes"
+      ],
+      "enclosures": [
+        "covered",
+        "sealed"
+      ],
+      "settings": [
+        "interior",
+        "settlement"
+      ],
+      "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "mix": false
+      },
+      "source": {
+        "sha256": "fc7872085065eb0ff64cf5d4c30730f396eb12652b8f1daa10408d7a5be12125",
+        "url": "https://freesound.org/s/271370/",
+        "author": "inoshirodesign",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; trim below -60 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -6 dBFS; raised-cosine fades 10 ms in / 300 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3; one strike; the owner heard it as a small chime",
+      "seedOnly": false,
+      "sha256": "d937c01e946178153deb1e012c353711f339d230ed3b8555100e3e39aa27f04e",
+      "bytes": 109440
+    },
+    {
+      "id": "bell-church",
+      "label": "Church bell, far off",
+      "cohort": "starter-1",
+      "role": "accent",
+      "sprite": {
+        "url": "sfx/accent-bell-church-v1.mp3",
+        "gain": [
+          0.2,
+          0.4
+        ],
+        "cuts": [
+          [
+            0.25,
+            14.25
+          ]
+        ],
+        "maxSeconds": 16,
+        "channels": 1,
+        "maxBytes": 600000,
+        "maxDecodedBytes": 2976000
+      },
+      "pattern": {
+        "kind": "single"
+      },
+      "gap": [
+        240,
+        600
+      ],
+      "trigger": "ambient",
+      "rain": "play",
+      "needsAny": [],
+      "contains": [
+        "bells"
+      ],
+      "enclosures": [
+        "open"
+      ],
+      "settings": [
+        "settlement"
+      ],
+      "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "mix": false
+      },
+      "source": {
+        "sha256": "8ef3ec01529564007a6484f8dffca50e06f41af2f637b39cdadebf48f5d834b6",
+        "url": "https://freesound.org/s/857912/",
+        "author": "bassimat",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; trim below -90 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -6 dBFS; raised-cosine fades 10 ms in / 2500 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3; first 14 s of the peal with a 2.5 s fade; outdoors only (owner ruling 2026-09-22)",
+      "seedOnly": false,
+      "sha256": "f1c7bc60d4daa125efc043a3cede71856c0d97d6ac2e34d8bf30beed845ddb59",
+      "bytes": 233088
     }
   ],
-  "version": "f6645e44f5f88220a1cb"
+  "version": "68e42eb06b2e1b5ae5bc"
 };

@@ -25361,6 +25361,37 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  t("L7 accent vocabulary: chimes and bells are ONE list the parser accepts and the note teaches; the standing prompt is untouched",function(){
+    /* Fable review 2026-09-23: adding a content word touches the parser (audioValidateProfile) and the GM-facing SOUNDSCAPE note.
+       The note DERIVES its list from AUDIO_CONTENTS, so a word can never be accepted but untaught, or taught but refused. */
+    if(AUDIO_CONTENTS.indexOf("chimes")<0||AUDIO_CONTENTS.indexOf("bells")<0)return "chimes/bells missing from the vocabulary";
+    var v=audioValidateProfile(roomProfile({allows:["chimes","bells","voices"],forbid:["music"]}));if(!v.ok)return "a profile allowing chimes and bells was refused: "+v.reason;
+    if(audioValidateProfile(roomProfile({allows:["gongs"]})).ok)return "an untaught word was accepted";
+    var all=audioValidateProfile(roomProfile({allows:[],forbid:AUDIO_CONTENTS.slice()}));if(!all.ok)return "forbidding the whole vocabulary must validate (the list cap follows the vocabulary): "+all.reason;
+    makeWorld();memory.map.nodes.Ashfen={parent:null,visits:1};
+    var note=buildSoundscapeNote();if(note.indexOf("[SOUNDSCAPE:")<0)return "note did not fire";
+    for(var i=0;i<AUDIO_CONTENTS.length;i++)if(note.indexOf(AUDIO_CONTENTS[i])<0)return "the note does not teach '"+AUDIO_CONTENTS[i]+"'";
+    if(!/comma lists of birds,insects,wind,water,fire,crowd,voices,rain,thunder,animals,machinery,music,chimes,bells, or none/.test(note))return "the note's list must be the vocabulary in order";
+    if(buildStateTagsDoc().indexOf("chimes")>=0)return "the standing STATE TAGS doc must stay byte-unchanged (engine-only tier)";
+    return true;
+  });
+  t("L7 accent chime and bell sets: chimes hang where the GM allowed them, the bell rings only in the open settlement, unheard mixes stay silent",function(){
+    var cat=accentCatalog(),s={minuteOfDay:600,nodeKey:"Vale|the shrine",campaignId:"c"};
+    function ids(profile){return audioSelectAccents(Object.assign({},s,{profile:profile}),cat,null).map(function(a){return a.id;}).sort().join(",");}
+    var shrine=ids(roomProfile({allows:["chimes"]}));
+    if(!/chimes|bowl/.test(shrine)||/footsteps|bell/.test(shrine)||shrine.split(",").length>ACCENT_MAX_SETS)return "a covered shrine allowing chimes must hear chime sets only, at most two: "+shrine;
+    if(ids(roomProfile({allows:["fire"]})))return "no chimes without the GM allowing them";
+    var square=ids(roomProfile({enclosure:"open",setting:"settlement",allows:["bells","crowd"]}));
+    if(square.indexOf("bell-church")<0)return "the open square allowing bells must hear the bell: "+square;
+    if(square.indexOf("footsteps-wood")>=0)return "wooden-floor footsteps in the open square";
+    if(ids(roomProfile({enclosure:"covered",setting:"interior",allows:["bells"]})).indexOf("bell-church")>=0)return "the bell rang indoors (owner ruling: outdoors only)";
+    if(ids(roomProfile({enclosure:"open",setting:"wilderness",allows:["bells"]})).indexOf("bell-church")>=0)return "the bell rang in the wilderness";
+    var real=audioSelectAccents(Object.assign({},s,{profile:roomProfile({allows:["chimes"]})}),AUDIO_CATALOG,null);
+    if(real.length)return "the shipped catalog plays a chime set whose mix the owner has not heard: "+real.map(function(a){return a.id;}).join();
+    var sets=AUDIO_CATALOG.assets.filter(function(a){return a.role==="accent";});
+    for(var i=0;i<sets.length;i++){var sp=sets[i].sprite;if(sp.maxDecodedBytes>8*1024*1024)return sets[i].id+" exceeds the 8 MiB per-set decoded ceiling";if(sets[i].contains.some(function(c){return AUDIO_CONTENTS.indexOf(c)<0;}))return sets[i].id+" claims an untaught content word";}
+    return true;
+  });
   section("#407 the shop interface");
   /* #407 (owner drawing + four rulings 2026-09-16): the counter. shopTradeCatalog/shopTradePlan (helpers) are pure over the
      village teeth; shopTradeApply (game) lands the plan as tags through the trade gate; buildTradeNote tells the GM once. */

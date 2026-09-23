@@ -64,7 +64,9 @@ function builder(){
   'rain rule':a=>{delete a.rain;},
   'loop approval':a=>{a.approval.loop=true;},
   'gain range':a=>{a.sprite.gain=[0.7,0.35];},
-  'single gain':a=>{a.sprite.gain=0.5;}
+  'single gain':a=>{a.sprite.gain=0.5;},
+  'untaught content word':a=>{a.contains=['gongs'];},
+  'untaught needsAny word':a=>{a.needsAny=['footfalls'];}
  };
  for(const [why,mutate] of Object.entries(breaks)){
   const bad=JSON.parse(JSON.stringify(input)),a=bad.assets.find(x=>x.role==='accent');mutate(a);

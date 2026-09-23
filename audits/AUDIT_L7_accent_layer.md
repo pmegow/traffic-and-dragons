@@ -38,6 +38,16 @@ The owner listened in `dev/accent-audition.html` over the tavern crowd and appro
 
 Owner ask 2026-09-23: rather than one volume per set, a range — footsteps 35% at the quietest, 70% at the loudest, drawn once per walk (owner chose per walk over per step). `sprite.gain` is now a `[min, max]` pair; `accentLevel` draws it inside `accentNext`, the builder refuses a reversed or single value, a scheduler test requires every level inside the range and the range actually used, and a mutation fixing the level at the top is caught. Audition page, four plays: 45%, 49%, 52%, 65%.
 
+## Vocabulary and the chime/bell sets (v1.978, Fable review)
+
+**What it touches:** the parser's accepted content words (`audioValidateProfile`) and the GM-facing SOUNDSCAPE engine note (`buildSoundscapeNote`, a one-shot per-visit note in the volatile half). Not touched: the standing STATE TAGS doc (engine-only tier; a test pins it byte-unchanged), the stable prompt half, any memory filer.
+
+**Silent-failure review before code:** (1) the note carried a hand-copied word list, so a word could be accepted by the parser but never taught; the note now derives from `AUDIO_CONTENTS`, and a test requires every word in the note. (2) The allows/forbid cap was a literal 12; with 14 words a GM forbidding everything would have had the whole profile refused into silence; the cap now follows the vocabulary. (3) A catalog set could claim a word the GM cannot write and never match; the builder now refuses it. (4) Places classified before this change hold no `chimes`/`bells`; they stay chime-less until the engine asks again on a new visit stamp. Forcing a re-ask across every classified place would cost a note each; not done (Village saves are disposable per the owner). (5) Opposing-stem rule: `chimes`/`bells` share no stem with any existing word.
+
+**Sets:** `chimes-koshi` (six 5 s phrases from two Kinoton takes), `chimes-metal` (five phrases, janbezouska), `bowl-small` (inoshirodesign, one strike; contains `chimes`, since the owner heard it as a chime), `bell-church` (bassimat, first 14 s, open settlement only per the owner). All `mix: false`. The chime sprites decode to 5–6 MB each, so the per-set ceiling is 8 MiB; two sets plus an outgoing and an incoming bed stay under 48 MiB.
+
+**Evidence:** two new engine tests (vocabulary; chime/bell selection with bell-indoors and bell-in-wilderness refusals, unheard mixes silent, ceiling and untaught-word scans over the shipped catalog); two builder refusals; five new mutation clauses (chimes leave the list, the cap forgets the vocabulary, the note hand-copies the list, the builder accepts an untaught word) all caught.
+
 ## Not claimed
 
 Phone/background behaviour; chimes, bells and the bowls (Fable vocabulary review, then sprites); cued accents (the §9 event project); the weather rule in action (no weather producer yet).

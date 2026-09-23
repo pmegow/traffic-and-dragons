@@ -5,7 +5,9 @@ var AUDIO_PROFILE_FIELDS = {
   biome:["temperate","arid","tropical","frozen","unspecified"],
   quiet:["normal","hushed","silent"]
 };
-var AUDIO_CONTENTS = ["birds","insects","wind","water","fire","crowd","voices","rain","thunder","animals","machinery","music"];
+/* The SOUNDSCAPE content vocabulary — the ONE list the parser accepts and the engine note teaches (buildSoundscapeNote derives
+   from it). chimes/bells added 2026-09-23 for the accent layer (Fable review; owner ruling: chimes hang where the GM says, bells ring outdoors). */
+var AUDIO_CONTENTS = ["birds","insects","wind","water","fire","crowd","voices","rain","thunder","animals","machinery","music","chimes","bells"];
 var AUDIO_PROFILE_META = ["schema","cohort","variant","revision","stamp","source"];
 var audioCommitDepth = 0, audioPublishedScene = null, audioPlaybackGeneration = 0;
 var audioPublishedWorld = null, audioPublishedCharacter = null, audioPublishedRespawns = null;
@@ -19,7 +21,7 @@ function audioValidateProfile(input) {
   for(k in AUDIO_PROFILE_FIELDS){if(AUDIO_PROFILE_FIELDS[k].indexOf(input[k])<0)return {ok:false,reason:"invalid "+k};p[k]=input[k];}
   for(i=0;i<2;i++){
     k=i?"forbid":"allows";var list=input[k];
-    if(!Array.isArray(list)||list.length>12)return {ok:false,reason:"invalid "+k};
+    if(!Array.isArray(list)||list.length>AUDIO_CONTENTS.length)return {ok:false,reason:"invalid "+k};
     if(list.some(function(x){return AUDIO_CONTENTS.indexOf(x)<0;}))return {ok:false,reason:"unknown content in "+k};
     p[k]=list.filter(function(x,n){return list.indexOf(x)===n;}).sort();
   }

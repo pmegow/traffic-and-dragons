@@ -15,7 +15,14 @@ function validateAccent(a) {
   if (!Array.isArray(a.needsAny) || !(pair(s.gain, 0) && s.gain[0] > 0 && s.gain[1] <= 1) || s.channels !== 1) bad('needsAny/gain/channels');
   if ('loop' in a.approval) bad('accents have no loop approval');
 }
-function build(override) {   /* override: a delivery object, so tests can prove each refusal without touching the file */
+// The content words every asset may claim are the SOUNDSCAPE vocabulary the GM is taught (audio-profile.js) — one list.
+function contentVocabulary() {
+  const vm = require('vm'), scope = {}; vm.createContext(scope);
+  vm.runInContext(fs.readFileSync(path.join(root, 'audio-profile.js'), 'utf8'), scope);
+  return scope.AUDIO_CONTENTS;
+}
+function build(override) {
+  const words = contentVocabulary();   /* override: a delivery object, so tests can prove each refusal without touching the file */
   const input = override ? JSON.parse(JSON.stringify(override)) : JSON.parse(fs.readFileSync(path.join(__dirname, 'audio-delivery.json'), 'utf8'));
   const seen = new Set();
   for (const asset of input.assets) {
@@ -23,6 +30,7 @@ function build(override) {   /* override: a delivery object, so tests can prove 
     seen.add(asset.id);
     if (!!asset.bed === !!asset.sprite) throw Error('An audio asset carries exactly one of bed or sprite: ' + asset.id);
     if ((asset.role === 'accent') !== !!asset.sprite) throw Error('Accent sets (and only they) are sprites: ' + asset.id);
+    for (const w of (asset.contains || []).concat(asset.needsAny || [])) if (!words.includes(w)) throw Error('Unknown content word "' + w + '" on ' + asset.id + ' (not in AUDIO_CONTENTS)');
     if (asset.sprite) validateAccent(asset);
     const media = asset.bed || asset.sprite;
     if (!/^sfx\/[a-z0-9-]+\.mp3$/.test(media.url)) throw Error('Invalid audio URL');
