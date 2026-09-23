@@ -1,6 +1,6 @@
 # L7 accent layer — implementation and verification (v1.975, 2026-09-23)
 
-**TLDR:** the Opus-tier half of the owner-approved accent design (Proposal_general_audio.html §21) is built: a place can now play occasional short sounds over its bed, never over narration. The first set, footsteps on a wooden floor, is bound to the Village tavern but stays silent until the owner approves its mix by listening in `dev/accent-audition.html`. Chimes and bells wait for the Fable review of the new content words.
+**TLDR:** the Opus-tier half of the owner-approved accent design (Proposal_general_audio.html §21) is built: a place can now play occasional short sounds over its bed, never over narration. The first set, footsteps on a wooden floor, is bound to the Village tavern; the owner approved its mix by listening (v1.976), so the tavern plays it. Chimes and bells wait for the Fable review of the new content words.
 
 ## What shipped
 
@@ -30,6 +30,10 @@ Owner rulings applied: accents from the place (seed or profile) first, GM cues l
 - **Chrome (browser pane, localhost, service worker cleared), compressed timing:** tavern bed plus accent set loaded (decoded 7.54 MB total); bursts of 3–7 real cuts ~0.5 s apart, no step repeated back to back; 0 accents during 7 s of simulated narration and the playing burst stopped; 0 inside the settle window, first accent 2.6 s after narration ended; car-intent pause cleared the schedule with 0 plays; leaving the tavern released the accent buffer and switched to the evening exterior bed; no console errors.
 - **Audition page:** real click, 10× gaps: first burst 2 s after start, next drawn 9–24 s; narrator toggle held accents for 20 s, then they resumed.
 
+## Owner acceptance (v1.976)
+
+The owner listened in `dev/accent-audition.html` over the tavern crowd and approved: "Sounds great" (2026-09-23). `mix` is now true in the delivery catalog, so the Village tavern plays the footsteps.
+
 ## Not claimed
 
-Owner listening acceptance of the footsteps mix; phone/background behaviour; chimes, bells and the bowls (Fable vocabulary review, then sprites); cued accents (the §9 event project); the weather rule in action (no weather producer yet).
+Phone/background behaviour; chimes, bells and the bowls (Fable vocabulary review, then sprites); cued accents (the §9 event project); the weather rule in action (no weather producer yet).

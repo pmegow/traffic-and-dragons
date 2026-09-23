@@ -52,7 +52,7 @@ async function controller(){
 function builder(){
  const text=build();assert.equal(fs.readFileSync('audio-catalog.js','utf8'),text,'audio-catalog.js is current');
  const input=JSON.parse(fs.readFileSync('dev/audio-delivery.json','utf8')),acc=input.assets.find(a=>a.role==='accent');
- assert(acc&&acc.approval.mix===false,'the footsteps mix waits for the owner hearing it as in game');
+ assert(acc&&acc.approval.mix===true,'the owner approved the footsteps mix by listening in the audition page (2026-09-23)');
  const breaks={
   'bed and sprite':a=>{a.bed={url:a.sprite.url,maxBytes:1e6};},
   'cuts':a=>{a.sprite.cuts=[[0.5,0.5]];},

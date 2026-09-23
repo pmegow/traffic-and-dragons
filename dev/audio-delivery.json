@@ -360,7 +360,7 @@
         "recording": true,
         "rights": true,
         "contents": true,
-        "mix": false
+        "mix": true
       },
       "source": {
         "sha256": "ced3c3e067d9e9e7d46075a5cfdcc8063153c0099c076fdfa27cd171f16f18d6,0fbf01e67ceeefa6489d3b82d070c3b03df67ea4daf12503da7aa46a97c9b03b,7b732ddaf1f3586571a6790ebeeea8400f1acf9e4921c64a987d29bb4764756f,8d8c46c46c9743a436b92f971ffdc893ea8a82bb29d1197d767520d5885a666c,71e464eb4ccea15c264339660b175ab55317024f8ae90aa6cdbd582efc72ab7e",
