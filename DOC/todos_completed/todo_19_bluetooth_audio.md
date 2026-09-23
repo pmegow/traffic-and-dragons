@@ -198,3 +198,13 @@ tests-19 (three warm-up groups), tests-19b (four entry groups), tests-19c (five 
 Bluetooth headset. The entry change (v1.974) and the voice path are verified there; in the
 car, direct Bluetooth played narration smoothly the same day, and a full Car Mode session in
 the car over direct Bluetooth is the remaining check. The only open item is the CarPlay stutter.
+
+### Car, direct Bluetooth, 2026-09-23 (v1.974)
+
+The mic prompt landed at the tap. The car's own buttons did nothing; the owner's read is that the
+car treated the session as a phone call. That is the iOS rule from the second pass: any open
+microphone puts the car on the hands-free profile, where its buttons are call controls, and with
+auto-listen ON the mic opens after every read. The lever is the existing pref, File ▾ ▸ 🚗
+Auto-listen after narration OFF (push-to-talk): the car stays in media mode and the buttons
+work while narrating. The `media-action` crumbs in a bug report show whether any command
+reached the page at all, which separates "swallowed by call mode" from "delivered and ignored".
