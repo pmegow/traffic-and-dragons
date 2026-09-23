@@ -524,6 +524,10 @@ function runEngineTests(R){
     memory.keyDecisions=[{turn:30,desc:"Spared the raider captain"},{turn:35,desc:"Burned the toll bridge"}];memory.quests={"The Bell Below":{status:"completed",desc:"Rang it"}};
     /* #396: a whisper needs a source who has been elsewhere — a companion at the player's side is not one */
     worldState.npcs.push({name:"Daeris",partyMember:true,status:"steady",charSheet:{name:"Daeris",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{},abilities:[],spells:[],inventory:[]}});memory.npcs["Daeris"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
+    /* the companion is OBSERVED in the scene (she spoke), so the manifest lists her as local — only api.js's own
+       party-member check keeps her from being a source (CI 2026-09-23: without this frame the guard was dead) */
+    worldState.sceneRefs={serial:1,sealed:[],active:{scene:1,node:"Sandpoint",startTurn:40,actors:[],negatives:[],observed:[{entity:"Daeris",channel:"say",firstTurn:40,lastTurn:40,turns:1}],acknowledged:[]}};
+    if(buildSceneManifest().local.indexOf("Daeris")<0)return "fixture: the observed companion must be local for the party-member guard to matter";
     if(buildWhispersNote()!==""||worldState.whisperAsk)return "a scene with only party members must not ask (and must not spend the window)";
     worldState.pendingReunion={names:["Daeris"],node:"Sandpoint",turn:40};var nr=buildWhispersNote();if(!/WHISPERS/.test(nr)||nr.indexOf("Daeris")<0)return "a companion who just rejoined is a source: "+nr.slice(0,200);delete worldState.pendingReunion;delete worldState.whisperAsk;
     worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
