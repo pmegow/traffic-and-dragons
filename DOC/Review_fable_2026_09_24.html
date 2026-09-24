@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Fable review — Traffic and Dragons, 2026-09-24</title>
+<style>
+:root{--bg:#0e0e10;--bg2:#161618;--bg3:#1e1e22;--brd:#2a2a30;--t0:#e6e2d8;--t1:#a9a49a;--t2:#6f6b64;--acc:#b8935a;--grn:#7aa86a;--amb:#d8a04a;--red:#c05050;--blu:#6a8fb8;--font:Georgia,"Times New Roman",serif;--mono:Consolas,"Courier New",monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t0);font-family:var(--font);font-size:15px;line-height:1.55}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 80px}
+h1{font-size:26px;margin:0 0 4px;letter-spacing:.02em}
+h2{font-size:19px;margin:44px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--brd);color:var(--acc)}
+h3{font-size:16px;margin:26px 0 8px;color:var(--t0)}
+p{margin:8px 0}
+.sub{color:var(--t1);font-size:13.5px}
+.lean{display:inline-block;border-radius:12px;padding:2px 10px;font-size:.78em;letter-spacing:1px;font-family:var(--mono);font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);border:1px solid var(--acc);background:#251d12;margin-right:6px}
+.lean.high{border-color:var(--red);background:#261010}.lean.med{border-color:var(--amb);background:#2b200f}.lean.low{border-color:var(--blu);background:#151b22}.lean.info{border-color:var(--t2);background:#1a1a1c}.lean.ok{border-color:var(--grn);background:#182215}
+table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:13.5px}
+th,td{border:1px solid var(--brd);padding:7px 9px;vertical-align:top;text-align:left}
+th{background:var(--bg2);color:var(--t1);font-weight:normal;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+td.n{font-family:var(--mono);white-space:nowrap;color:var(--t1)}
+.verdict{background:var(--bg2);border:1px solid var(--brd);border-left:3px solid var(--acc);padding:14px 18px;margin:18px 0;font-size:15.5px}
+.f{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:14px 18px;margin:14px 0}
+.f h3{margin:0 0 6px;font-size:16px}
+.f .k{display:inline-block;min-width:92px;color:var(--t2);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+.f p{margin:6px 0}
+code{font-family:var(--mono);font-size:.9em;color:#d9c9a8;background:#1a1712;padding:1px 4px;border-radius:3px}
+ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
+.small{font-size:13px;color:var(--t1)}
+</style>
+</head>
+<body><main>
+<h1>Fable review — 2026-09-24</h1>
+<p class="sub">Traffic and Dragons at v1.981 (commit b5a3893), server 1.5.3 (commit 1070b32). A read-only review across the project for improvements, written at the end of an unattended session that first worked through the queue in §2. Every finding below was verified by hand against the source or by a scripted census before it was logged; the censuses' own false positives are recorded where they happened. <b>Nothing in §3 was changed by this review</b> — the doc is the deliverable. File: <code>C:\Projects\traffic-and-dragons\DOC\Review_fable_2026_09_24.html</code></p>
+
+<div class="verdict">
+<b>Verdict.</b> The engine is in good order six days after the 2026-09-18 audit: 67 commits since, +12.5k lines of which the largest blocks are tests (engine-tests +1,417; three <code>tests-audit-*.js</code> suites +1,559; <code>tests-423</code> +400) — the remediation was test-led, and every gate this session ran was green (2,315 engine assertions, 53 standalone suites, 1,454/1,454 sabotage anchors applicable, weekly full battery and a 15-minute server health ping both scheduled in CI). What needs attention is not code: <b>the validation queue</b> (19 rows built and waiting on the owner's play, ear or car), <b>ten field bug reports sitting at "new"</b>, and <b>a server deploy that cannot be confirmed</b> (Fly v46 carries no receipt and <code>/health</code> reports no version; two fixes wait on one deploy). Code findings are small and vestigial: six dead definitions, a stale storage-key convention line, one misfiled report at root. Counts: 8 findings — 0 high, 3 medium, 4 low, 1 informational; and 3 suggestions that pass the "does it improve the product" gate.
+</div>
+
+<h2>1. Method</h2>
+<ul>
+<li>Scripted censuses, read-only: churn since the last audit (<code>git diff --numstat 08a5260..HEAD</code>); a dead-symbol census over every top-level definition in the engine files, checked against every root <code>.js</code>/<code>.html</code> and <code>dev/</code> file; empty-catch and <code>setInterval</code> counts per file; CLAUDE.md's file table against the files on disk; every <code>tnd_*</code> storage-key literal against the contract docs; the two #372 word lists against all 27 committed playtest corpora (2,403 GM texts, 2.19 M characters); TODO rows by status glyph; DOC/BUGS.md rows by status; the live server's <code>/health</code> and Fly's release list.</li>
+<li>Hand verification of every candidate the censuses raised. The dead-symbol census over-reported (its comment stripper swallowed code between a <code>/*</code> inside a regex literal and the next <code>*/</code>); the sixteen candidates were re-checked with a whole-word search including comments, and ten were alive. Only the six that occur exactly once anywhere are reported.</li>
+<li>Scope limits: no live GM calls; no device work (Car Mode, Bluetooth, the phone); the Fly deploy itself was not performed; the sixty-odd empty catch blocks in the voice files were counted, not re-read (the 2026-09-18 audit's F-series read them).</li>
+</ul>
+
+<h2>2. What this session shipped before the review</h2>
+<table>
+<tr><th>Row</th><th>What</th><th>Version</th><th>Verification</th></tr>
+<tr><td class="n">#436</td><td>Field finding from the owner's daggers, then the fix: mixed <code>=</code>/<code>:</code> fields in <code>[ITEM_DEF:]</code> no longer overwrite the GM's effect with the price; one field reader for both definition tags; nine clobbered overlays across three campaigns heal at load. Owner validated in play the same evening.</td><td>v1.980</td><td>5 assertions red→green; sabotage 9/9; #298's battery re-anchored 3/3; the real t11 save healed in memory (6 of 19 entries, nothing else touched)</td></tr>
+<tr><td class="n">#372</td><td>The register guard reaches chapters (one re-ask before the chapter files), sheets (report only), quest/schedule labels (paperwork nouns) and modern idiom (numbers only); one census field, a Register row on Drift health, a Table Talk line.</td><td>v1.981</td><td>6 engine + 6 standalone assertions (real <code>summarize()</code> against a stubbed provider) red→green; sabotage 13/13; stable half byte-identical</td></tr>
+<tr><td class="n">#406</td><td>Server: the body-cap 413 was the one response without CORS headers (<code>bodyLimit</code> registered above <code>cors()</code>); reordered in both apps. The field symptom itself is most likely Fly's cold-start reply — recorded on the row for the owner's call.</td><td>server 1.5.3 (not deployed)</td><td>Experiment under the exact middleware order; gateway battery 92/92 with the 413 red first; full <code>npm test</code> green</td></tr>
+<tr><td class="n">#405</td><td>Voice residues: node coverage for a catalog that arrives after casting, an out-of-list pin surviving a reopen, unusable Retry-After values; every browser QA script declares itself manual under a new source contract; the #396 "dead defense" case was already fixed on 2026-09-23 and re-proven.</td><td>tests only</td><td>Sabotage 6/6 — one clause was MISSED on the first proof (the default star bench is never empty) and the test now empties the bench to reach it</td></tr>
+<tr><td class="n">#421</td><td>Measured instead of built: 75 latch snapshots cost 2.5 ms on the most mature save. Recommended closing without code.</td><td>—</td><td>Timed on three real saves</td></tr>
+<tr><td class="n">#385</td><td>The settlement-tier spec for the owner's signature: derive the tier, roster on arrival, shops on the village model, five build rows.</td><td>doc</td><td><code>C:\Projects\traffic-and-dragons\DOC\Research\DOC_settlement_tiers.html</code></td></tr>
+<tr><td class="n">closes</td><td>#371 #373 #398 #407 #415 #426 #428 #432 closed and archived on the owner's word; #414 closed as superseded by #434.</td><td>—</td><td>Moved-row byte checks green</td></tr>
+</table>
+
+<h2>3. Findings</h2>
+
+<div class="f"><h3><span class="lean med">medium</span> F1 · The validation queue is the bottleneck, not the build queue</h3>
+<p><span class="k">Evidence</span> TODO.md holds 19 rows at ◉ (built, waiting on the owner), 8 at ◐ and 12 at ○. The ◉ set: #19 (Bluetooth, fourth pass, needs a drive), #104 (author voices, needs the owner's ear, waiting since v1.493), #369, #370, #386, #387 (four Long Walk behaviours), #410 (spoken pause, needs a car), #416 (device checks), #423 (server half, needs a deploy), #425, #427, #433, #434 (four village behaviours), #435, and today's #372, #385, #405, #406, #421. The #19 triage rule ("re-arms at +5 new open rows since 2026-08-14") fired long ago — rows #189 through #436 have been filed since.</p>
+<p><span class="k">Why it matters</span> A row at ◉ is finished work that cannot close; nineteen of them means the owner's play time, not engineering time, is the constraint, and the tracker's signal degrades when most open rows are "done, please look".</p>
+<p><span class="k">Remedy</span> Group them by the ONE session that validates each: one car drive covers #19 and #410; one village session covers #425, #427, #433, #434 and #372's Register row; one Long Walk session covers #369, #370, #386, #387; one deploy covers #406 and #423 (with #416's device checks folded into the drive). Four sessions clear fifteen rows. #104 and #385 are reads, not play. The triage worksheet the #19 rule asks for is this paragraph.</p></div>
+
+<div class="f"><h3><span class="lean med">medium</span> F2 · Ten field bug reports sit at "new"</h3>
+<p><span class="k">Evidence</span> DOC/BUGS.md by status: new 10 · verified 10 · fixed 7 · ignored 6 · promoted 6 · wontfix 3. The lifecycle is <code>new → investigating → findings-ready → fixed → verified</code>; ten reports have not entered it.</p>
+<p><span class="k">Why it matters</span> The #16 pipeline exists because the mobile console is invisible; a report that is filed and never read is the same as no report. Some may be duplicates of things fixed since — that is exactly what triage decides.</p>
+<p><span class="k">Remedy</span> One <code>/bugs investigate</code> pass over the ten (the read-only investigator agent; no code); duplicates and stale ones close on sight, the rest land as rows or get fixed. Off-Fable-legal and unattended-legal — it needs no owner input beyond the verdicts.</p></div>
+
+<div class="f"><h3><span class="lean med">medium</span> F3 · What the server runs cannot be confirmed; two fixes wait on one deploy</h3>
+<p><span class="k">Evidence</span> <code>flyctl releases</code>: v46 completed 2026-09-20, v45 on 2026-09-11. The last deployment receipt in the server repo is <code>DEPLOY_1.5.1_2026-09-10.md</code> (v45). The #423 server commit (1.5.2) is dated 2026-09-17, so v46 is probably 1.5.2 — but <code>/health</code> answers <code>{"status":"ok","server":"traffic-and-dragons","time":…}</code> with no version, so "probably" is the best available word. Today's 1.5.3 (#406) is pushed and undeployed.</p>
+<p><span class="k">Why it matters</span> The client holds a hard rule that "what is actually deployed is always confirmable" (APP_VERSION + CACHE); the server has the same rule in spirit (the receipt files) and it lapsed once already. A CORS fix that is committed but not running does not help the next cold start.</p>
+<p><span class="k">Remedy</span> Deploy 1.5.3 (the owner's action — it is production), write the v46 and v47 receipts, and take suggestion S1 so the question never needs a receipt to answer.</p></div>
+
+<div class="f"><h3><span class="lean low">low</span> F4 · Six definitions are referenced nowhere</h3>
+<p><span class="k">Evidence</span> Exactly one occurrence each across every root <code>.js</code>/<code>.html</code> and <code>dev/</code> file, comments included, no dynamic dispatch on the names: <code>relationshipBond</code> and <code>relationshipDynamic</code> (identity.js:546–547), <code>w2MergeCommitted</code> (identity.js:1257), <code>_geminiVoiceOptions</code> (tts.js:637), <code>QUOTE_GLYPH_G</code> (tts.js:1327), <code>_testNativeVoice</code> (tts.js:4101). None appears in the 2026-09-18 audit's ledger.</p>
+<p><span class="k">Why it matters</span> Vestigial only — but <code>w2MergeCommitted</code> reads like a live seam of the W2 merge flow, and a reader who trusts its name will look for a caller that does not exist.</p>
+<p><span class="k">Remedy</span> Delete all six. identity.js is a drift-surface file (Fable, own commit); the tts.js three are off-Fable. The dead-symbol census that found them should become a dev tool with a real tokenizer (the review's throwaway version had a comment-stripping bug, §1) so the next audit does not re-derive it.</p></div>
+
+<div class="f"><h3><span class="lean low">low</span> F5 · Storage keys: 52 of 66 undocumented, and the convention line is stale</h3>
+<p><span class="k">Evidence</span> 66 distinct <code>tnd_*</code> literals in the engine files; 14 appear in DOC/contracts/* or CLAUDE.md, 52 do not (every TTS/STT/voice key, the render keys, the rescue prefixes, the per-device preferences). CLAUDE.md ▸ Conventions says "all storage keys end in <code>_v10</code> (campaigns in <code>_v1</code>)"; the count is 3 keys ending <code>_v10</code>, 57 ending <code>_v1</code>, plus <code>tnd_rules_v9</code> and five prefix keys.</p>
+<p><span class="k">Why it matters</span> The #395/#404② quota hazard is a per-key question (which keys grow, which are per-device, which sync); a reader cannot answer it from the docs today, and the convention line teaches the wrong suffix.</p>
+<p><span class="k">Remedy</span> One table in sync.md — key, owner file, scope (device/campaign/account), growth bound — generated by a census contract in run-tests.js so it cannot rot (the #17 rot class); fix the convention line to what is true.</p></div>
+
+<div class="f"><h3><span class="lean low">low</span> F6 · One report is misfiled at root</h3>
+<p><span class="k">Evidence</span> <code>gygax_lens_results.html</code> is the only root file CLAUDE.md does not mention; it is a one-off result page, the class the file table's "Misfiled" row already names for the three review reports.</p>
+<p><span class="k">Remedy</span> Move it under DOC/ or audits/ with its citation, or add it to the misfiled row so the omission is deliberate.</p></div>
+
+<div class="f"><h3><span class="lean low">low</span> F7 · The Off-Fable log has never been skimmed</h3>
+<p><span class="k">Evidence</span> About forty entries since 2026-08-14 under a rule that reads "batch-skimmed by Fable; if the skims stay clean, this log graduates away" — no skim receipt exists in the file or in FABLE_REVIEW_RECORDS.md.</p>
+<p><span class="k">Skim, done today</span> Nothing in the log touched a drift-surface write path without a Fable review: the #416 lanes were merged under review, the voice/audio entries are bounded to their modules, the multiplayer and glossary entries are documents. Four entries deserve a probe-first when their surfaces are next touched: lane D's checkpoint gate on a cross-device death (already named in the entry), #402's game.js creation and voice-resolution hooks, the L7 one-line bed-selector guard in audio-profile.js, and #435's eligibility delegate. Verdict: clean. The receipt line is added to the log with this review.</p></div>
+
+<div class="f"><h3><span class="lean info">info</span> F8 · The modern-idiom list is precautionary — the corpora show zero</h3>
+<p><span class="k">Evidence</span> Across 2,403 GM texts (2.19 M characters) in every committed corpus, the #372 idiom list hits nothing — not "adrenaline", not one of the owner's five. The #355 register list hits 161 times (ledger ×143, ledgers ×15, clerical ×2, bookkeeping ×1), almost all in corpora recorded before the guard shipped. The words that did surface from a wider candidate scan are legitimate period English ("gravity" ×8, "boss" ×8 — the gravity of it, a shield boss).</p>
+<p><span class="k">Reading</span> The idiom counter will most likely read 0 in play, and that is the honest number; the channel costs one regex per turn. Nobody should "fix" the zero by widening the list — the census shows the candidates would be false positives.</p></div>
+
+<h2>4. Checked and clean</h2>
+<ul>
+<li><span class="lean ok">ok</span> CLAUDE.md's file table names every root file but the one in F6, and names no <code>.js</code> that does not exist.</li>
+<li><span class="lean ok">ok</span> The seven <code>setInterval</code> sites: the Voice Settings diagnostics poll clears on close AND self-clears when the modal disconnects; the elapsed ticker stops when its element disconnects. The storage polls, the VAD poll and the two tts.js watchers were not re-read here (the 2026-09-18 F-series covered them).</li>
+<li><span class="lean ok">ok</span> Stable-half byte identity survived today's three engine changes: the frozen doc and strip goldens and the ITEM CANON stable-unchanged test all pass.</li>
+<li><span class="lean ok">ok</span> CI: engine tests + every source contract + the applicability dry-check + four replays + the focused drift battery + touched batteries on every push; the full sabotage battery weekly (Mondays 05:00 UTC); the server health ping every 15 minutes.</li>
+<li><span class="lean ok">ok</span> Source <code>TODO</code>/<code>FIXME</code> comments: one in the whole engine.</li>
+<li><span class="lean ok">ok</span> Empty catch blocks: 137 across engine files (tts.js 45, ui-carmode.js 14, error-report.js 13, stt.js 11, sound.js 10) — counted as a watch figure only; the audit read them as availability guards and nothing here re-litigates that.</li>
+</ul>
+
+<h2>5. Suggestions</h2>
+<p class="small">Each one had to answer "does this improve the product, and how" — if it was only a change, it was dropped. Three passed; the dropped ones are named at the end so they are not re-proposed.</p>
+
+<div class="f"><h3>S1 · <code>/health</code> reports the server version</h3>
+<p><span class="k">Improves</span> Operability and honesty. Today the question "which server is running" needs a Fly release number and a receipt file that can lapse (F3); with <code>{"version":"1.5.3"}</code> in the health body it is answered by one request, the same way <code>APP_VERSION</code> answers it for the client, and the client's Connect modal could show both side by side.</p>
+<p><span class="k">Cost</span> One line reading package.json at boot; the health workflow already fetches the endpoint.</p></div>
+
+<div class="f"><h3>S2 · Warm the server before the first turn after a long idle</h3>
+<p><span class="k">Improves</span> Reliability of the first turn after a break — the owner's own field symptom ("first GM call after a swap failed as CORS, retry got 200"). With <code>auto_stop_machines = "stop"</code> and <code>min_machines_running = 0</code>, the first request after idle can meet Fly's own cold-start reply, which no in-app header decorates. A fire-and-forget <code>GET /health</code> when the game screen opens (and again when a session resumes after PREVIOUSLY_AFTER_MS) starts the machine while the player is still reading, so the GM call lands warm.</p>
+<p><span class="k">Cost</span> One request per session open, nothing when the machine is already up. It deliberately does not touch callGM's transient set (a completed-but-unreadable reply may already be billed, so the transport must not auto-retry a network failure). The paid alternative, <code>min_machines_running = 1</code>, buys the same outcome for a VM's monthly cost.</p></div>
+
+<div class="f"><h3>S3 · "Consult the story instead" on the item-canon proposal</h3>
+<p><span class="k">Improves</span> The recovery path the owner walked last night: a proposal that reads "effect: N/A · value: 800 gp" (any healed or thin proposal) currently needs Decline → open the sheet → find the item → Define. One button on the proposal modal — Decline and consult the story — runs the existing <code>defineItemFromStory</code> for the same key, so the GM's own account of the item (Morwen's identify scene) lands in one tap. The confirm queue, the write-once rule and the review-call whitelist are untouched; it is the #435 button on a different host.</p>
+<p><span class="k">Cost</span> Thin DOM wiring over an existing function; one test for the wiring.</p></div>
+
+<p class="small"><b>Considered and dropped</b> (changes, not improvements): switching the injected ITEM CANON line from <code>effect: …</code> to <code>effect=…</code> (the parser now absorbs both forms; prompt churn for no player-visible gain); widening the idiom list from the candidate scan (F8 — false positives); a batch "define every undefined item" action (N paid review calls for a list the player has not asked about); deep-linking the Register readout's sheet finding to the character editor (a hop saved, nothing learned); the semantics-preserving snapshot skip from #421 (2 ms nobody perceives).</p>
+
+<h2>6. Files this session created or changed for the owner</h2>
+<ul>
+<li><code>C:\Projects\traffic-and-dragons\DOC\Review_fable_2026_09_24.html</code> — this review.</li>
+<li><code>C:\Projects\traffic-and-dragons\DOC\Research\DOC_settlement_tiers.html</code> — the #385 spec, for signature.</li>
+<li><code>C:\Projects\traffic-and-dragons\TODO.md</code> — rows #372, #385, #405, #406, #421 updated; #414, #426, #428, #432, #436 closed and archived.</li>
+<li><code>C:\Users\hannu\Projects\traffic-and-dragons-server</code> — 1.5.3 committed and pushed, not deployed.</li>
+</ul>
+</main></body>
+</html>

@@ -15,6 +15,8 @@ should probe first. Self-contained enough that a Fable session needs no other co
 
 ## Off-Fable log
 
+- **Skimmed by Fable 2026-09-24** ([DOC/Review_fable_2026_09_24.html](DOC/Review_fable_2026_09_24.html) F7): every entry below down to 2026-08-14 read; nothing touched a drift-surface write path unreviewed. Probe-first when next touched: lane D's checkpoint gate on a cross-device death, #402's game.js creation/voice-resolution hooks, the L7 bed-selector guard in audio-profile.js, #435's eligibility delegate. Verdict: clean — the first skim the rule asked for.
+
 - 2026-09-23 · #436 field finding (no code) · Opus: ran /field-finding on the Necrotic Dungeon t11 daggers. Mechanism grounded in the save's raw sessionLog and reproduced through the real parser: mixed `=`/`:` [ITEM_DEF:] fields are read positionally and `value:` overwrites the GM's effect (#298 lineage); 9 accepted overlays corrupted across 3 campaigns. The fix was then built at Fable tier the same day (v1.980, the #436 row carries the critical review) — nothing here awaits review.
 
 - 2026-09-23 · #435 (v1.979) · Codex: item-card button delegates to existing defineItemFromStory; eligibility delegates to itemDefEligible. Popup copy only in helpers.js; no prompt/parser/canon changes. Verified: five regression checks, six mutation proofs, 2,304 engine assertions + 52 standalone suites; phone-width Chrome render and review → confirmation → saved canon with a stubbed model response. Owner live play pending.
