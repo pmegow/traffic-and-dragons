@@ -127,7 +127,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.46";
+var BP_DESIGNER_VERSION="v0.47";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -1327,9 +1327,28 @@ wireLlmSelect(); // after loadProviderSettings — the choices come from the loa
 document.getElementById("ver").textContent=BP_DESIGNER_VERSION+(typeof APP_VERSION!=="undefined"?" · engine "+APP_VERSION:"");
 // Boot: restore the working draft if one exists — reload continues where you were (New = blank).
 var _draft=null;try{_draft=JSON.parse(localStorage.getItem(DRAFT_K)||"null");}catch(e){}
+/* #439 (Astra review R2): a blueprint sent from the Home shelf rides ITS OWN slot (BPD_INCOMING_K, globals.js) and is
+   consumed here, once. The pure decision: no draft or a clean one → adopt it; a DIRTY draft → the author is asked, and
+   the draft survives byte-for-byte unless they choose Replace. The incoming slot is cleared either way. */
+function bpdIncomingDecision(draft,incoming,ask){
+  if(!incoming||!incoming.bp||typeof incoming.bp!=="object"||!incoming.bp.format)return {action:"ignore"};
+  var incomingName=String(incoming.bp.name||"Untitled blueprint"),draftName=(draft&&draft.bp&&draft.bp.name)||"Untitled blueprint";
+  if(!draft||!draft.bp||!draft.bp.format||!draft.dirty)return {action:"adopt",incomingName:incomingName,draftName:draftName};
+  var replace=!!ask("You have an unsaved draft — \""+draftName+"\".\n\nReplace it with \""+incomingName+"\" from the Home shelf? Your unsaved draft would be lost.\n\nOK = replace it.   Cancel = keep your draft ("+incomingName+" stays on the shelf).");
+  return {action:replace?"replace":"keep",incomingName:incomingName,draftName:draftName};
+}
+var _incoming=null,_fromHome=false,_keptMsg="";
+try{_incoming=JSON.parse(localStorage.getItem(BPD_INCOMING_K)||"null");}catch(e){}
+if(_incoming){
+  try{localStorage.removeItem(BPD_INCOMING_K);}catch(e){}
+  var _dec=bpdIncomingDecision(_draft,_incoming,function(q){return window.confirm(q);});
+  if(_dec.action==="adopt"||_dec.action==="replace"){clearDraft();_draft={bp:_incoming.bp,dirty:false,at:_incoming.at};_fromHome=true;}
+  else if(_dec.action==="keep")_keptMsg="Kept your unsaved draft \""+_dec.draftName+"\" — "+_dec.incomingName+" stays on the Home shelf; open it again when you are ready.";
+}
 if(_draft&&_draft.bp&&_draft.bp.format){
   bp=normalizeBlueprint(_draft.bp);dirty=!!_draft.dirty;render();
-  setStatus((bp.name||"Untitled blueprint")+" — restored from draft"+(dirty?" (unsaved changes)":""),"");
+  if(_fromHome){saveDraft();setStatus((bp.name||"Untitled blueprint")+" — opened from the Home shelf","");}
+  else setStatus(_keptMsg||((bp.name||"Untitled blueprint")+" — restored from draft"+(dirty?" (unsaved changes)":"")),_keptMsg?"warn":"");
 }else{
   bp=blankBp();render();setStatus("New blueprint — or Load an existing .blueprint file.","");
 }

@@ -113,10 +113,11 @@ a.link:hover{text-decoration:underline;}
     catch(e){status("Could not hand the blueprint to the game (storage full?) — open the game and use Load blueprint instead.",true);return;}
     location.href="index.html";
   }
-  // Open in designer: the designer restores its own draft slot on boot (bpd_draft_v1 — its key,
-  // documented at blueprint-designer.html ▸ Draft persistence). We seed that slot, clean.
+  // Open in designer: the blueprint rides its OWN slot (BPD_INCOMING_K, globals.js); the designer decides on boot
+  // whether it replaces the working draft. #439: this used to write the designer's autosave slot directly, which
+  // silently destroyed an unsaved draft the author was writing — the editor's beforeunload guard never saw it.
   function openInDesigner(bp){
-    try{localStorage.setItem("bpd_draft_v1",JSON.stringify({bp:bp,dirty:false,at:Date.now()}));}
+    try{localStorage.setItem(BPD_INCOMING_K,JSON.stringify({bp:bp,at:Date.now()}));}
     catch(e){status("Could not pass the blueprint to the designer (storage full?).",true);return;}
     location.href="blueprint-designer.html";
   }

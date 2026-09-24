@@ -1278,6 +1278,7 @@ try {
   if (_hpUb.indexOf("function consumeHomeQuickStart") < 0 || _hpUb.indexOf("startGame(char,tone.nm,tone.vc") < 0) _hpFail("consumeHomeQuickStart must start the campaign through startGame (#307).");
   if (_hpUb.indexOf("function consumeHomeBlueprint") < 0 || _hpUb.indexOf("_applyBlueprint(rec.bp)") < 0) _hpFail("consumeHomeBlueprint must route through _applyBlueprint (the wizard's one choke point).");
   if (_hp.indexOf("String(meta.blurb||bp.premise||\"\")") < 0) _hpFail("the shelf card must prefer the curated blurb over the premise, premise as the fallback (#445 — all five cards ended mid-sentence on the premise).");
+  if (_hp.indexOf('"bpd_draft_v1"') >= 0 || _hp.indexOf("localStorage.setItem(BPD_INCOMING_K") < 0) _hpFail("Open-in-designer must write the incoming slot (BPD_INCOMING_K, globals.js), never the designer's autosave slot — that overwrite destroyed unsaved drafts (#439).");
   _hpCat.forEach(function (c) { if (!c.blurb || String(c.blurb).length > 240) _hpFail("catalog entry '" + c.name + "' needs a player-facing blurb of at most 240 characters — the card cuts at 240 (#445)."); });
   console.log("[#290] home page contract OK — read-only surface, shared handoff key, " + _hpCat.length + " curated original(s)");
 } catch (e) { console.error("HOME PAGE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
