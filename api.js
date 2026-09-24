@@ -724,9 +724,9 @@ function buildPartyHistoriesBlock(){
      and the skeleton), while every companion got theirs every turn (#341); a library update to the hero's
      past changed nothing the GM could see. Trait/flaw/motivation stay on the identity line (volatile). */
   var hero=worldState.character||{};if(hero.backstory)L.push("- "+hero.name+" (the player): "+hero.backstory);
-  for(i=0;i<party.length;i++){var cs=party[i].charSheet||{};
-    if(!(cs.backstory||cs.trait||cs.flaw||cs.motivation))continue;
-    var pers="";if(cs.trait)pers+=" trait — "+cs.trait+";";if(cs.flaw)pers+=" flaw — "+cs.flaw+";";if(cs.motivation)pers+=" motivation — "+cs.motivation+";";
+  for(i=0;i<party.length;i++){var cs=party[i].charSheet||{},ml=(typeof motivationSettledLine==="function")?motivationSettledLine(cs):"";
+    if(!(cs.backstory||cs.trait||cs.flaw||cs.motivation||ml))continue;
+    var pers="";if(cs.trait)pers+=" trait — "+cs.trait+";";if(cs.flaw)pers+=" flaw — "+cs.flaw+";";if(cs.motivation)pers+=" motivation — "+cs.motivation+";";else if(ml)pers+=" motivation — none standing ("+ml+");";/* #437: a settled purpose is named as closed, so the GM cannot re-derive it from the backstory */
     L.push("- "+party[i].name+": "+(cs.backstory||"(no recorded history)")+(pers?"\n  Personality:"+pers:""));}
   if(!L.length)return"";
   return "PARTY HISTORIES — who each of the party was before this story and what drives them (authored canon — the player first, then each companion; a character's own wants, remarks and refusals grow from THIS, never from invention). A companion's FLAW must cost the party something visible now and then — a refusal, a withheld truth, a concession not given — and a companion may be right where the player is wrong, and refuse; trait and flaw govern how they speak in quiet and intimate scenes too. A flaw is not forever: when a companion acts AGAINST it at a defining moment, on screen and unasked, file [COMPANION_GROWTH:Name|the flaw|what replaced it] — rare, earned, never requested. And a compulsion-shaped flaw may act ON ITS OWN: now and then a companion does the thing it drives them to, unbidden — pockets what glitters, freezes before the priest, blurts the truth — resolved in the open with a filed roll and its consequence on THEIR sheet (their item, their condition, the shopkeeper's regard, a price paid), and recorded with [COMPANION_INITIATIVE:Name|what they did]. Rarely (the flaw is a person, not a tic), never on a turn the player has already stepped in to stop it, and never as the player's decision to make:\n"+L.join("\n")+"\n\n";
@@ -839,7 +839,7 @@ function buildDenouementCompanions(){
   var party=livingPartyCompanions(),c=worldState.character,rows=(typeof relationshipRows==="function"&&c)?relationshipRows(c,null):[],L=[],i,j;
   for(i=0;i<party.length;i++){var p=party[i],cs=p.charSheet||{},bond="",dyn="";
     for(j=0;j<rows.length;j++){if(rows[j]&&rows[j].entity&&rows[j].entity.toLowerCase()===String(p.name).toLowerCase()){bond=rows[j].bond||"";dyn=rows[j].dynamic||"";break;}}
-    var bits=[];if(bond)bits.push("to the hero: "+bond+(dyn?" ("+dyn+")":""));if(cs.motivation)bits.push("driven by: "+cs.motivation);if(cs.agenda&&cs.agenda.want)bits.push("still wants: "+cs.agenda.want);
+    var bits=[],_ml=(typeof motivationSettledLine==="function")?motivationSettledLine(cs):"";if(bond)bits.push("to the hero: "+bond+(dyn?" ("+dyn+")":""));if(cs.motivation)bits.push("driven by: "+cs.motivation);else if(_ml)bits.push("purpose settled ("+_ml+")");/* #437 */if(cs.agenda&&cs.agenda.want)bits.push("still wants: "+cs.agenda.want);
     L.push("- "+p.name+(bits.length?" — "+bits.join("; "):""));}
   return L.length?"COMPANIONS (alive at the end — the hero's people; their unfinished wants stay unfinished, named):\n"+L.join("\n"):"";
 }

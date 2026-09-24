@@ -245,6 +245,36 @@ function companionGrow(cs,oldFlaw,newFlaw,turn){
   if(!ok)return null;var now=String(newFlaw).trim().slice(0,160);if(!now||now.toLowerCase()===w)return null;
   if(!cs.growth)cs.growth=[];cs.growth.push({was:was,now:now,turn:turn});cs.flaw=now;return {old:was,now:now};
 }
+/* #437 (owner rulings 2026-09-24): a companion's MOTIVATION has a lifecycle — fulfilled → none standing → born by the
+   story. The Necrotic Dungeon's ledger plot grew from Daeris's purpose ("find the original creditor… close the
+   account"), settled two campaigns earlier (Runelords t1264, "her debts were paid") and never retired: the freeform
+   generator read the closed debt as an open thread. Retirement: the GM tag at a defining moment, the summarizer's
+   belt, the character editor. Birth: the story only (#347 — never manufactured), every filing toasts, and the write
+   path REFUSES a paperwork purpose (the #372 label list). Retired lines archive on the sheet (P12 — nothing vanishes)
+   and travel with it. The hero's purpose is the player's and never passes through here. */
+var MOTIVATION_SETTLED_RE=/^\s*(settled|fulfilled|done|closed|abandoned|outgrown)\b\s*[:—\-]?\s*/i;
+function motivationSettle(cs,how,turn,camp){
+  if(!cs||typeof cs.motivation!=="string"||!cs.motivation.trim())return null;
+  var was=cs.motivation.trim(),h=String(how||"").trim().slice(0,200)||"settled";
+  if(!cs.motivationHistory)cs.motivationHistory=[];
+  var rec={text:was,how:h,turn:turn,camp:String(camp!=null?camp:((typeof worldState!=="undefined"&&worldState&&worldState.campName)||""))};
+  cs.motivationHistory.push(rec);cs.motivation="";return rec;
+}
+function motivationBirth(cs,text,turn,camp){
+  if(!cs)return null;var t=String(text||"").trim().slice(0,200);if(!t)return null;
+  var hits=(typeof wordListScan==="function"&&typeof LABEL_RE!=="undefined")?wordListScan(t,LABEL_RE):[];
+  if(hits.length)return {refused:hits};
+  var was=(typeof cs.motivation==="string")?cs.motivation.trim():"";if(was&&was.toLowerCase()===t.toLowerCase())return null;
+  if(was)motivationSettle(cs,"replaced by a new purpose",turn,camp);
+  cs.motivation=t;return {now:t,replaced:was||null};
+}
+/* "" while a purpose stands or when none was ever recorded; otherwise how and where the last one ended — never its
+   old words, so a closed paperwork purpose stays closed in the prompt. */
+function motivationSettledLine(cs){
+  if(!cs||(typeof cs.motivation==="string"&&cs.motivation.trim()))return "";
+  var h=cs.motivationHistory;if(!h||!h.length)return "";var last=h[h.length-1];
+  return "settled"+(last.camp?" in "+last.camp:"")+": "+(last.how||"settled");
+}
 // #386: a companion acted on their flaw unbidden — file it (ring of 20, the sheet's stamp). Null when refused.
 function companionInitiativeFile(cs,what,turn){
   if(!cs||!cs.name||!what)return null;var w=String(what).trim().slice(0,200);if(!w)return null;

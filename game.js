@@ -3269,6 +3269,8 @@ function buildSkeletonPrompt(c,w,t,dna,stake){
     +(hasRecord?"- THE RECORD IS CANON: build the central conflict on it or beside it, and never invent a personal past the record does not contain — no lost sibling, no ancient failure, no stolen lineage, no secret debt this character never lived. The bonds in the record (spouses, family, sworn companions) are this character's people; a premise that forgets them is wrong.\n":"")
     +"- NEVER DATE THE CHARACTER'S OWN PAST: do not state how old they are, and do not place their own deeds or losses in a distant age ('centuries ago', 'a lifetime before'). Their years are the player's, not yours.\n"
     +"- THE PLAYER HAS NOT READ THIS PREMISE. Whatever personal stake it gives the character — what they guard, what they lost, why they are here — must be something the opening scene can state plainly on screen. Write it to be revealed, never assumed.\n"
+    /* #437 (The Necrotic Dungeon, 2026-09-24): the generator built a soul-tax campaign on a companion's debt that THE RECORD says was paid */
+    +"- THIS WORLD KEEPS NO BOOKS: never build the premise, an act or an arc on a debt, ledger, contract, tax, toll, tithe, creditor or paperwork of any kind — debts here are blood, oaths, hunger and memory."+(hasRecord?" A settled debt or a closed account in THE RECORD is closed history: never reopen it as the conflict.":"")+"\n"
     +skelRulesTail();
 }
 /* #426 (owner rulings 2026-09-20): the ✦ draft behind the stake modal — one or two sentences of personal stake in

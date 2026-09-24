@@ -7961,7 +7961,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1982511013&&d.length===29365)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===-1828191500&&d.length===29935)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -25938,6 +25938,100 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var gi=sm.indexOf("await chapterRegisterGuard(extracted"),ai=sm.indexOf("applySummaryExtract(extracted");
     if(gi<0||ai<0||gi>ai)return "summarize() must await chapterRegisterGuard on the parsed extraction BEFORE applySummaryExtract files the chapter";
     if(typeof chapterRegisterGuard!=="function")return "chapterRegisterGuard missing";
+    return true;
+  });
+
+  // ── #437: a companion's motivation has a lifecycle (owner rulings 2026-09-24): fulfilled → none
+  // standing → born by the story. The Necrotic Dungeon's ledger plot grew from Daeris's motivation,
+  // settled two campaigns earlier and never retired.
+  section("#437 motivation lifecycle");
+  function __mlWorld(){makeWorld();worldState.turn=40;worldState.campName="The Necrotic Dungeon";var c=worldState.character;c.name="Ammut";
+    worldState.npcs.push({name:"Daeris",partyMember:true,status:"steady",rel:"wife",charSheet:{name:"Daeris",cls:"Cleric",level:5,hp:30,maxHp:30,stats:{},abilities:[],spells:[],inventory:[],trait:"Counts exits.",flaw:"Trusts slowly.",motivation:"Find the original creditor and close the account properly."}});
+    worldState.npcs.push({name:"Frizwick",partyMember:true,status:"steady",rel:"wife",charSheet:{name:"Frizwick",cls:"Rogue",level:5,hp:30,maxHp:30,stats:{},abilities:[],spells:[],inventory:[],trait:"Reads a room.",flaw:"Hides."}});
+    return worldState;}
+  function __mlBlock(stable,name){var i=stable.indexOf("- "+name+":");if(i<0)return "";var j=stable.indexOf("\n- ",i+1);return stable.slice(i,j<0?undefined:j);}
+  t("#437 pure: motivationSettle retires the standing purpose into motivationHistory (text, how, turn, campaign) and empties the field; nothing standing → null; motivationBirth sets a new one, archives a standing one as replaced, refuses a paperwork purpose and never writes it, no-ops on the same text; motivationSettledLine names how and where it was settled, never the old words",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),f=findCompanionChar("Frizwick");
+    if(typeof motivationSettle!=="function"||typeof motivationBirth!=="function"||typeof motivationSettledLine!=="function")return "helpers missing";
+    var r=motivationSettle(d,"the creditor was found and the debt paid",40);
+    if(!r||r.text!=="Find the original creditor and close the account properly."||r.how!=="the creditor was found and the debt paid"||r.turn!==40||r.camp!=="The Necrotic Dungeon")return "settle record: "+JSON.stringify(r);
+    if(d.motivation!=="")return "the field must empty: "+JSON.stringify(d.motivation);
+    if(!d.motivationHistory||d.motivationHistory.length!==1)return "history: "+JSON.stringify(d.motivationHistory);
+    if(motivationSettle(d,"again",41)!==null)return "nothing standing must return null";
+    if(motivationSettle(f,"x",41)!==null)return "a sheet that never had one returns null";
+    var b=motivationBirth(f,"To find a place where leaving costs nothing vital.",42);
+    if(!b||b.now!=="To find a place where leaving costs nothing vital."||b.replaced!==null||f.motivation!==b.now)return "birth: "+JSON.stringify(b);
+    if(motivationBirth(f,"to find a place where leaving costs nothing vital.",43)!==null)return "the same text must no-op";
+    var bad=motivationBirth(f,"To audit the ledger of every debt the family owes.",44);
+    if(!bad||!bad.refused||bad.refused.indexOf("ledger")<0)return "a paperwork purpose must be refused: "+JSON.stringify(bad);
+    if(f.motivation!==b.now)return "a refused purpose must not write";
+    var rep=motivationBirth(f,"To keep the people who kept her.",45);
+    if(!rep||rep.replaced!==b.now||f.motivation!=="To keep the people who kept her."||f.motivationHistory.length!==1||!/replaced/.test(f.motivationHistory[0].how))return "a replacement must archive the old one: "+JSON.stringify(rep)+" "+JSON.stringify(f.motivationHistory);
+    if(motivationSettledLine(f)!=="")return "a standing purpose has no settled line";
+    var ml=motivationSettledLine(d);if(ml!=="settled in The Necrotic Dungeon: the creditor was found and the debt paid")return "settled line: "+ml;
+    if(motivationSettledLine({name:"x"})!=="")return "no history, no line";
+    return true;
+  });
+  t("#437 tag: [COMPANION_GROWTH:Name|motivation|settled: how] retires the purpose on screen (empty field, history, growth defining moment, toast, muts); off screen → refused; nothing standing → loud no-op; [COMPANION_GROWTH:Name|motivation|new purpose] births one (toast, defining moment); a paperwork purpose gets a ⚠ muts line and is never written; the flaw form still works; the doc line teaches both forms",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),f=findCompanionChar("Frizwick"),tl=[],warns=[],_st=showToast,_w=console.warn;showToast=function(m){tl.push(String(m));};console.warn=function(m){warns.push(String(m));};
+    try{
+      var R=applyMuts("The vault is silent. [COMPANION_GROWTH:Daeris|motivation|settled: the creditor was found and the debt paid]");
+      if(d.motivation!=="Find the original creditor and close the account properly.")return "settled with the companion off screen";
+      R=applyMuts("Daeris presses a hand to her throat. [COMPANION_GROWTH:Daeris|motivation|settled: the creditor was found and the debt paid]");
+      if(d.motivation!==""||!d.motivationHistory||d.motivationHistory.length!==1||d.motivationHistory[0].how!=="the creditor was found and the debt paid")return "not settled: "+JSON.stringify(d.motivation)+" "+JSON.stringify(d.motivationHistory);
+      if(!R.muts.some(function(m){return /Daeris/.test(m)&&/settled/.test(m);}))return "muts: "+JSON.stringify(R.muts);
+      var cm=(d.coreMemories||[]).filter(function(x){return x.kind==="growth"&&/purpose was settled/.test(x.text);});if(!cm.length)return "no growth defining moment: "+JSON.stringify(d.coreMemories);
+      if(!tl.some(function(x){return /Daeris/.test(x)&&/settled/.test(x);}))return "no toast: "+JSON.stringify(tl);
+      R=applyMuts("Daeris shrugs. [COMPANION_GROWTH:Daeris|motivation|settled: again]");
+      if(!R.muts.some(function(m){return /⚠/.test(m)&&/Daeris/.test(m);})||!warns.some(function(w){return /nothing standing/.test(w);}))return "a second settle must be a loud no-op: "+JSON.stringify(R.muts)+" "+JSON.stringify(warns);
+      R=applyMuts("Frizwick lingers at the door. [COMPANION_GROWTH:Frizwick|motivation|To find a place where leaving costs nothing vital.]");
+      if(f.motivation!=="To find a place where leaving costs nothing vital.")return "birth: "+JSON.stringify(f.motivation);
+      if(!tl.some(function(x){return /Frizwick now seeks/.test(x);})||!R.muts.some(function(m){return /Frizwick now seeks/.test(m);}))return "birth toast/muts: "+JSON.stringify(tl)+" "+JSON.stringify(R.muts);
+      var fm=(f.coreMemories||[]).filter(function(x){return x.kind==="growth"&&/Frizwick now seeks/.test(x.text);});if(!fm.length)return "a birth files a defining moment (witnessed by all, so Daeris's settle rides the same list): "+JSON.stringify(f.coreMemories);
+      R=applyMuts("Frizwick counts the coins. [COMPANION_GROWTH:Frizwick|motivation|To settle every invoice the Holding ever wrote.]");
+      if(f.motivation!=="To find a place where leaving costs nothing vital.")return "a paperwork purpose was written";
+      if(!R.muts.some(function(m){return /⚠/.test(m)&&/invoice/.test(m);}))return "the refusal must reach the mutation line: "+JSON.stringify(R.muts);
+      applyMuts("Frizwick throws herself between the blade and Daeris. [COMPANION_GROWTH:Frizwick|hides|Stands in front when it counts]");
+      if(f.flaw!=="Stands in front when it counts")return "the flaw form broke: "+f.flaw;
+      var doc=buildStateTagsDoc();if(doc.indexOf("[COMPANION_GROWTH:Name|motivation|settled: how it ended]")<0||doc.indexOf("[COMPANION_GROWTH:Name|motivation|the new purpose in one sentence]")<0)return "the doc line must teach both motivation forms";
+      if(!/paperwork/i.test(doc.slice(doc.indexOf("[COMPANION_GROWTH:Name|motivation"))))return "the doc must say a paperwork purpose is refused";
+    }finally{showToast=_st;console.warn=_w;}
+    return true;
+  });
+  t("#437 prompt: PARTY HISTORIES serves 'motivation — none standing (settled in <campaign>: how)' for a settled purpose, the standing text otherwise, and nothing for a sheet that never had one; the line lives in the stable half and never repeats the old words; the ending's companion line says the purpose was settled; the sheet renders it",function(){
+    __mlWorld();var d=findCompanionChar("Daeris");
+    var before=buildSysPrompt();
+    if(__mlBlock(before.stable,"Daeris").indexOf("motivation — Find the original creditor and close the account properly.;")<0)return "standing motivation missing from the stable half: "+__mlBlock(before.stable,"Daeris");
+    motivationSettle(d,"the creditor was found and the debt paid",40);
+    var after=buildSysPrompt(),db=__mlBlock(after.stable,"Daeris"),fb=__mlBlock(after.stable,"Frizwick");
+    if(db.indexOf("motivation — none standing (settled in The Necrotic Dungeon: the creditor was found and the debt paid);")<0)return "settled line missing: "+db;
+    if(db.indexOf("close the account")>=0)return "the old purpose still reaches the GM";
+    if(!fb||fb.indexOf("motivation")>=0)return "a sheet that never had a motivation must show none: "+fb;
+    var den=buildDenouementCompanions();if(!/Daeris[^\n]*purpose settled \(settled in The Necrotic Dungeon/.test(den))return "the ending must know the purpose was settled: "+den;
+    var us=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");if(us.indexOf("motivationSettledLine(c)")<0)return "the character sheet must render the settled line";
+    return true;
+  });
+  t("#437 belt: the extractor's motivationChanges settle and birth through the same helpers — companions only (the hero and a stranger are dropped loudly, a paperwork purpose is refused loudly, every filing toasts) — and the extraction schema names the field with its ONLY-if guards",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),f=findCompanionChar("Frizwick"),c=worldState.character;c.motivation="To prove yourself worthy of something lost";
+    var warns=[],_w=console.warn,tl=[],_st=showToast;console.warn=function(m){warns.push(String(m));};showToast=function(m){tl.push(String(m));};
+    try{applySummaryExtract({chapterSummary:"",motivationChanges:[{name:"Daeris",settled:"the creditor was found and the debt paid"},{name:"Frizwick",now:"To find a place where leaving costs nothing vital."},{name:"Ammut",settled:"x"},{name:"Nobody",now:"y"},{name:"Frizwick",now:"To audit every ledger in the Holding."}]},null);}finally{console.warn=_w;showToast=_st;}
+    if(d.motivation!==""||!d.motivationHistory||d.motivationHistory.length!==1)return "Daeris not settled by the belt: "+JSON.stringify(d.motivation);
+    if(f.motivation!=="To find a place where leaving costs nothing vital.")return "Frizwick's purpose not born by the belt: "+JSON.stringify(f.motivation);
+    if(c.motivation!=="To prove yourself worthy of something lost")return "the hero's purpose is the player's — the belt must not touch it";
+    if(!warns.some(function(w){return /Ammut/.test(w);})||!warns.some(function(w){return /Nobody/.test(w);})||!warns.some(function(w){return /ledger/.test(w);}))return "drops and refusals must be loud: "+JSON.stringify(warns);
+    if(tl.length<2)return "every filing toasts (#347): "+JSON.stringify(tl);
+    var p=buildExtractPrompt("desc",[],"raw","txt",null);if(p.indexOf('"motivationChanges"')<0||!/"settled"/.test(p)||!/ONLY if/.test(p))return "the extraction schema must name motivationChanges with the settled/now fields and the ONLY-if guards";
+    return true;
+  });
+  t("#437 generator: the freeform skeleton prompt carries the no-books rule (a settled debt in the record is closed history) and the reviewer carries a REGISTER dimension in both the bare and the character-bearing forms",function(){
+    makeWorld();var h=worldState.character;h.coreMemories=[{text:"Ammut told Daeris her debts were paid and she belonged.",turn:1264,kind:"bond",who:"Daeris",camp:"Rise of the Runelords"}];
+    var p=buildSkeletonPrompt(h,{location:"Sandpoint",region:"Varisia"},{name:"Gritty"},"","");
+    if(!/KEEPS NO BOOKS/.test(p)||!/closed history/i.test(p))return "generator rule missing (with a record, the closed-history clause must ride)";
+    h.coreMemories=[];h.storyBeats=[];var fresh=buildSkeletonPrompt(h,{location:"Sandpoint",region:"Varisia"},{name:"Gritty"},"","");
+    if(!/KEEPS NO BOOKS/.test(fresh)||/closed history/i.test(fresh)||fresh.indexOf("THE RECORD")>=0)return "without a record the rule must stand alone and never name THE RECORD";
+    var bare=buildSkeletonReviewPrompt({premise:"x",acts:[]}),withC=buildSkeletonReviewPrompt({premise:"x",acts:[]},"CHARACTER: X");
+    if(!/REGISTER:/.test(bare)||!/REGISTER:/.test(withC))return "reviewer dimension missing";
+    if(!/keeps no books/i.test(bare))return "the reviewer must state the rule";
     return true;
   });
 
