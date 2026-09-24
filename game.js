@@ -3523,6 +3523,14 @@ function buildSeedLegend(names,omitted){
   s+=" The scene contains EXACTLY "+total+" "+(total===1?"person":"people")+": one body per named character, never the same face twice"+(omitted&&omitted.length?"; described-only names must still appear":"")+".";
   return s;
 }
+/* #440 (Astra review R3): a render is a JOB with an identity — the campaign, turn and hero it was started for.
+   doRender awaits the prompt writer and the image service without setting busy, so a campaign load can land in
+   between; before #440 the finished scene was written into whichever story pane was current, seeded from the live
+   character, and Save/Portrait wrote the newly loaded campaign. Every asynchronous boundary now re-checks the job,
+   and a stale one is dropped LOUDLY — never written into the campaign that came after. Pure, engine-tested. */
+function _renderJobStart(){var c=worldState&&worldState.character;return {campId:worldState?worldState.campId:null,campName:(worldState&&worldState.campName)||"",turn:(worldState&&worldState.turn)||0,name:c?c.name:""};}
+function _renderJobLive(job){if(!job||!worldState)return false;var c=worldState.character;return worldState.campId===job.campId&&(!c||c.name===job.name);}
+function _renderJobDrop(job,what){var msg="The scene for "+(job.campName||"another campaign")+" (turn "+job.turn+") finished after you switched campaigns — "+what+" was discarded; nothing was written here.";console.warn("[render] #440 "+msg);if(typeof showToast==="function")showToast("🎨 "+msg,7000);}
 async function doRender(rOpts){
   if(!worldState||_rendering)return;
   /* audit E13: the render latch is armed INSIDE the guarded block and cleared in a finally. It used to
@@ -3532,6 +3540,7 @@ async function doRender(rOpts){
   var ctx=null,hist=false,_frame=null,th=null;
   try{
     _rendering=true;
+    var _job=_renderJobStart();/* #440: the identity every await below is checked against */
     /* #206: a per-frame button passes {turn}; a past turn renders from ITS frame (own prose, place, clock, weather rule,
        party), with NO history on the writer call. The current turn and the topbar button take the live path unchanged. */
     ctx=(rOpts&&typeof rOpts.turn==="number")?renderContextForTurn(rOpts.turn):null;hist=!!(ctx&&!ctx.live);
@@ -3543,6 +3552,7 @@ async function doRender(rOpts){
     var rp=hist?buildSceneRenderRequest(c,party,{location:ctx.location,region:w.region,weather:ctx.weather},{scene:ctx.prose,timeText:(ctx.ck!=null&&typeof clockStamp==="function")?clockStamp(ctx.ck):null,sublocation:ctx.sublocation,weatherInProse:ctx.weatherInProse}):buildSceneRenderRequest(c,party,w);
     var _wsys="You are an image prompt writer for a dark fantasy RPG. Output ONLY the image generation prompt. Describe EVERY listed character's exact physical appearance with full specificity — gender, colouring, build — never invent or alter them. No narration, no tags.";
     var resp=hist?await callGM(rp,_wsys,undefined,null,{noHistory:true}):await callGM(rp,_wsys);
+    if(!_renderJobLive(_job)){if(th&&th.parentNode)th.remove();_renderJobDrop(_job,"the scene prompt");return;}/* #440: the campaign changed while the writer worked */
     th.remove();
     var div=addMsg("render-out","",hist?{keepPlace:true}:undefined);
     if(_frame&&_frame.parentNode===div.parentNode)_frame.parentNode.insertBefore(div,_frame.nextSibling);/* #206: the image sits under ITS frame */
@@ -3572,7 +3582,8 @@ async function doRender(rOpts){
     var saveBtn=mkBtn("↓ Save","Save image (Photos on a phone, campaign folder on desktop)");
     saveBtn.addEventListener("click",function(){
       if(!imageUrl)return;
-      var _rt=hist?ctx.turn:(worldState?worldState.turn:0);/* #206: the pointer stamps the FRAME's turn, so the image re-attaches to it on reload */
+      if(!_renderJobLive(_job)){showToast("This scene belongs to "+(_job.campName||"another campaign")+", which is no longer loaded — nothing saved.");return;}/* #440 */
+      var _rt=hist?ctx.turn:_job.turn;/* #206: the pointer stamps the FRAME's turn, so the image re-attaches to it on reload; #440: the turn the render STARTED on, not the turn Save is clicked on */
       fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
         var fname=buildFilename("render");
         if(typeof saveRenderImage==="function")return saveRenderImage(blob,fname,_rt);
@@ -3601,6 +3612,7 @@ async function doRender(rOpts){
     var portraitBtn=mkBtn("⧉ Portrait","Use this scene as character portrait");
     portraitBtn.addEventListener("click",function(){
       if(!imageUrl){showToast("Image not ready yet.");return;}
+      if(!_renderJobLive(_job)){showToast("This scene belongs to "+(_job.campName||"another campaign")+", which is no longer loaded — the portrait was not changed.");return;}/* #440 */
       portraitBtn.textContent="Saving…";portraitBtn.disabled=true;
       fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
         var fr=new FileReader();
@@ -3665,6 +3677,7 @@ async function doRender(rOpts){
           falData=await falRes.json();
         }
         _rTick.stop();
+        if(!_renderJobLive(_job)){div.remove();_renderJobDrop(_job,"the image");return;}/* #440: the campaign changed while the image rendered */
         if(falData.images&&falData.images[0]&&falData.images[0].url){
           imageUrl=falData.images[0].url;
           imgStatus.remove();

@@ -448,6 +448,7 @@ function initState(saved){
         else store.del("tnd_carmode_v1");
       }
     }catch(e){store.del("tnd_carmode_v1");}
+    if(typeof offerHomeHandoff==="function")offerHomeHandoff();/* #441: a story picked on Home is offered, never silently ignored, when a campaign is already saved */
   }else{
     showChar();
     if(typeof consumeHomeQuickStart==="function"&&consumeHomeQuickStart())return;/* #307: a hero + story picked on the home page — the campaign is already running */

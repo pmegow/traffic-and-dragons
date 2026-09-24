@@ -134,12 +134,43 @@ function modalShell(id,innerHtml,opts){
   var boxCss=opts.boxCss||("background:"+(opts.boxBg||"var(--modal-bg)")+";border:1px solid var(--acc);border-radius:12px;padding:"+(opts.boxPad||"24px")+";max-width:"+(opts.maxWidth||480)+"px;width:100%;"+(opts.boxExtra||""));
   modal.innerHTML="<div style='"+boxCss+"'>"+(innerHtml||"")+"</div>";
   document.body.appendChild(modal);
+  /* #442 (Astra review R5): keyboard containment for EVERY modal on this shell — focus moves INTO the dialog (so Enter
+     can never reach the story box behind it), Tab and Shift+Tab stay inside the topmost dialog, Escape closes a
+     dismissible dialog (never a forced choice: wireClose:false, or noEscape:true), and the opener gets focus back when
+     the dialog goes — through our close, or through any caller's modal.remove() (the observer). */
+  var opener=(typeof document!=="undefined"&&document.activeElement)||null;
+  var baseClose=opts.onClose||function(){modal.remove();};
+  var close=function(){baseClose();if(modal._restoreFocus)modal._restoreFocus();};/* every close the shell wires restores the opener's focus */
+  modalFocusContain(modal,{escape:opts.wireClose!==false&&!opts.noEscape,close:close,opener:opener});
   if(opts.wireClose!==false){
-    var close=opts.onClose||function(){modal.remove();};
     if(opts.closeId){var xb=document.getElementById(opts.closeId);if(xb)xb.addEventListener("click",close);}
     if(opts.outside)modal.addEventListener("click",function(e){if(e.target===modal)close();});
   }
   return modal;
+}
+var MODAL_FOCUSABLE="button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex='-1'])";
+function modalFocusables(modal){return Array.prototype.slice.call(modal.querySelectorAll(MODAL_FOCUSABLE));}
+function modalFocusContain(modal,o){
+  o=o||{};if(!modal||typeof modal.querySelectorAll!=="function"||typeof modal.addEventListener!=="function")return;/* a scaffold stub without a DOM (the #14 parity suite) — nothing to contain */
+  var box=modal.firstChild;
+  if(box&&box.setAttribute)box.setAttribute("tabindex","-1");
+  var first=modalFocusables(modal)[0];
+  if(first&&first.focus)first.focus();else if(box&&box.focus)box.focus();
+  modal.addEventListener("keydown",function(e){
+    if(e.key==="Tab"){
+      var f=modalFocusables(modal);if(!f.length){e.preventDefault();return;}
+      var i=f.indexOf(document.activeElement);
+      if(e.shiftKey){if(i<=0){e.preventDefault();f[f.length-1].focus();}}
+      else if(i===-1||i>=f.length-1){e.preventDefault();f[0].focus();}
+    }else if(e.key==="Escape"&&o.escape){e.preventDefault();if(e.stopPropagation)e.stopPropagation();o.close();}
+  });
+  var restored=false;
+  function restore(){if(restored)return;restored=true;var op=o.opener;if(op&&op.focus&&(!document.body||!document.body.contains||document.body.contains(op)))op.focus();}
+  modal._restoreFocus=restore;
+  if(typeof MutationObserver==="function"&&document.body){
+    var mo=new MutationObserver(function(){if(!document.body.contains(modal)){mo.disconnect();restore();}});
+    mo.observe(document.body,{childList:true});
+  }
 }
 function showGame(){
   document.getElementById("char-screen").style.display="none";

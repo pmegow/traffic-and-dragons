@@ -458,13 +458,32 @@ function campRemoveLocal(id){
     pushThenEvict();
   });
 }
+/* #443 (Astra review R6): ONE operation owns the delete. Connected, the cloud delete is AWAITED and reported — the local
+   copy goes only once the server agreed (or says it never had the campaign), so a failed cloud delete never leaves a
+   row that vanishes locally and comes back on the next list sync; the reason reaches the player and deleting again is
+   the retry. Unconnected, the local delete is the whole operation, as before. */
+function campDeleteRemoteOutcome(err){
+  if(!err)return "deleted";
+  if(/\b404\b|not found/i.test(String(err)))return "absent";/* nothing to delete on the server — a local-only campaign */
+  return "failed";
+}
 function campDelete(id){
   if(!confirm("Delete this campaign? This cannot be undone."))return;
-  deleteCampaign(id);
-  // Also delete from server so syncCampaignList can't resurrect it
-  if(storageAdapter.isServerMode())storageAdapter.deleteCampaignFromServer(id,null);
+  var name=(typeof campDisplayName==="function")?campDisplayName(id):id;
   var ex=document.getElementById("camp-modal");if(ex)ex.remove();
-  showCampaignPicker();
+  if(!storageAdapter.isServerMode()){deleteCampaign(id);showCampaignPicker();return;}
+  showToast("Deleting "+name+"…");
+  storageAdapter.deleteCampaignFromServer(id,function(err){
+    var outcome=campDeleteRemoteOutcome(err);
+    if(outcome==="failed"){
+      console.warn("[camps] #443 cloud delete of "+name+" failed: "+err+" — the local copy is kept; delete again to retry");
+      showToast("⚠ Cloud delete failed ("+err+") — "+name+" is still here. Delete it again to retry.",8000);
+      showCampaignPicker();return;
+    }
+    deleteCampaign(id);
+    showToast(outcome==="absent"?"Deleted "+name+" (it was only on this device)":"Deleted "+name);
+    showCampaignPicker();
+  });
 }
 function campStartRename(id){
   var span=document.getElementById("camp-name-"+id);if(!span)return;

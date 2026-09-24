@@ -54,6 +54,50 @@ function consumeHomeQuickStart(){
   showToast("Quick start: "+char.name+" in "+(bp.name||"the story"));
   return true;
 }
+/* #441 (Astra review R4): a story picked on Home while a saved campaign exists used to be silently ignored — the
+   handoff keys were consumed only in initState's no-saved-world branch, so the game resumed the old campaign and the
+   choice sat stranded in storage. Now the saved-world boot resumes as before, then OFFERS the choice: start the
+   chosen story as a new campaign (the current one is snapshotted by the same reset the picker's New uses) or
+   continue the current campaign (the payload is cleared with a toast — it is still on the Home shelf). The payload
+   is consumed only once the choice succeeds. Pure read + pure chooser, one thin modal. */
+function homeHandoffPending(){
+  var kinds=[["qs",HOME_PENDING_QS_K],["bp",HOME_PENDING_BP_K]],i;
+  for(i=0;i<kinds.length;i++){
+    var raw=null;try{raw=localStorage.getItem(kinds[i][1]);}catch(e){/* storage PROBE: a blocked localStorage (private mode) means there is no handoff — the absence IS the answer */}
+    if(!raw)continue;
+    var rec=null;try{rec=JSON.parse(raw);}catch(e){console.warn("[home] pending handoff payload unreadable — "+((e&&e.message)||e)+"; the consumer drops it loudly on its own path");continue;}/* audit E15: a corrupt payload never vanishes without a line */
+    if(!rec||!rec.bp||typeof rec.bp!=="object")continue;
+    if(rec.at&&Date.now()-rec.at>3600*1000)continue;/* stale — the consumers drop it loudly on their own path */
+    return {kind:kinds[i][0],name:String(rec.bp.name||"the chosen story"),key:kinds[i][1]};
+  }
+  return null;
+}
+function homeHandoffClear(){
+  try{localStorage.removeItem(HOME_PENDING_QS_K);localStorage.removeItem(HOME_PENDING_BP_K);}
+  catch(e){console.warn("[home] could not clear the pending handoff — it may be offered again on the next boot: "+((e&&e.message)||e));}
+}
+function homeHandoffChoose(choice,pending){
+  pending=pending||homeHandoffPending();
+  if(!pending)return "nothing";
+  if(choice!=="start"){homeHandoffClear();if(typeof showToast==="function")showToast("Continuing "+((worldState&&worldState.campName)||"your campaign")+" — "+pending.name+" is still on the Home shelf.");return "continued";}
+  if(typeof busy!=="undefined"&&busy){if(typeof showToast==="function")showToast("Finish the current turn first.");return "busy";}
+  if(pending.kind==="qs")return consumeHomeQuickStart()?"started":"failed";/* the quick start does its own reset + start */
+  if(typeof campNew==="function")campNew();/* the picker's New: snapshot the current campaign, fresh id, the wizard */
+  return consumeHomeBlueprint()?"started":"failed";
+}
+function offerHomeHandoff(){
+  var pending=homeHandoffPending();if(!pending||typeof modalShell!=="function")return false;
+  var cur=escHtml((worldState&&worldState.campName)||"your current campaign");
+  var m=modalShell("home-handoff-modal",
+    "<div style='font-size:16px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>You picked "+escHtml(pending.name)+" on the Home page</div>"
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>"+cur+" is loaded. Start "+escHtml(pending.name)+" as a new campaign ("+cur+" stays in your campaign list), or continue where you were.</div>"
+    +"<div style='display:flex;gap:10px;margin-top:18px;'><button id='hh-continue' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Continue "+cur+"</button>"
+    +"<button id='hh-start' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Start "+escHtml(pending.name)+"</button></div>",
+    {maxWidth:460,wireClose:false});
+  document.getElementById("hh-continue").onclick=function(){m.remove();homeHandoffChoose("continue",pending);};
+  document.getElementById("hh-start").onclick=function(){m.remove();var r=homeHandoffChoose("start",pending);if(r==="failed"&&typeof showToast==="function")showToast("Could not start "+pending.name+" — see the console.");};
+  return true;
+}
 function clearBlueprint(){
   pendingBlueprint=null;
   var banner=document.getElementById("blueprint-banner");if(banner)banner.style.display="none";
