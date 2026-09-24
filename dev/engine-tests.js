@@ -25827,4 +25827,118 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #372: the register guard's reach — three channels the #355 narration census cannot see ──
+  section("#372 register reach");
+  t("#372 ③ labels: registerLabelScan reads QUEST / QUEST_STEP / SCHEDULE operands for paperwork nouns (the plot channel) and never the prose; the label list is the tight list PLUS the paperwork nouns",function(){
+    if(typeof registerLabelScan!=="function")return "registerLabelScan missing";
+    var raw="The manifest of the dead is read aloud. [QUEST:Recover the manifest|offered|Find the bearer note in the vault] [QUEST_STEP:Recover the manifest|Break the requisition seal] [SCHEDULE:The voucher comes due|tomorrow at dusk] [NPC:Clerk Osric|counting invoices|neutral]";
+    var hits=registerLabelScan(raw);
+    if(hits.join("|")!=="manifest|bearer note|requisition|voucher")return "label hits: "+JSON.stringify(hits);
+    if(registerLabelScan("A manifest of the dead is read aloud, and the invoice of her grief is filed.").length)return "prose outside the three label tags must not count (the narration census owns prose)";
+    if(registerLabelScan("[QUEST:The ledger of the drowned|active|A clerical debt]").join("|")!=="ledger|clerical")return "the tight #355 list must apply to labels too";
+    if(registerLabelScan("[QUEST:Take the oath|active|Blood for blood]").length)return "false positive on a clean label";
+    if(typeof PAPERWORK_WORDS==="undefined"||PAPERWORK_WORDS.indexOf("bearer note")<0||PAPERWORK_WORDS.indexOf("requisition")<0)return "PAPERWORK_WORDS must carry the plot nouns the row names";
+    if(REGISTER_WORDS.indexOf("manifest")>=0||REGISTER_WORDS.indexOf("voucher")>=0)return "the paperwork nouns must NOT widen the narration list — the note's false-positive discipline (#355) stands";
+    return true;
+  });
+  t("#372 ④ idiom: idiomScan counts modern idiom (numbers only — there is no note builder and no latch for it)",function(){
+    if(typeof idiomScan!=="function")return "idiomScan missing";
+    var h=idiomScan("Adrenaline hit him like napalm on Christmas morning; the refrigerator hummed in low orbit through the fiscal quarter.");
+    if(h.join("|")!=="adrenaline|napalm|christmas|refrigerator|low orbit|fiscal quarter")return "idiom hits: "+JSON.stringify(h);
+    if(idiomScan("The lamp hummed. Blood on the altar, oaths in the dark, the hunger of the long road.").length)return "false positive on period prose";
+    if(idiomScan("Christmastide bells; a robotic arm of the golem").length)return "word boundaries: 'Christmastide' and 'robotic' are not the listed words";
+    if(typeof NOTE_SHAPES!=="undefined"&&(NOTE_SHAPES.buildIdiomNote||NOTE_SHAPES.buildLabelNote))return "numbers only — no note may exist for idiom or labels";
+    if(NOTE_LATCH_FIELDS.indexOf("idiomPing")>=0||NOTE_LATCH_FIELDS.indexOf("labelPing")>=0)return "numbers only — no latch";
+    return true;
+  });
+  t("#372 the census ring: registerCensusFile files per channel on worldState.registerCensus (capped like #355's ring), never arms registerPing, and observeDriftAxes runs labels on the RAW response and idiom on the CLEANED narration",function(){
+    makeWorld();delete worldState.registerCensus;delete worldState.registerPing;delete worldState.registerSlips;delete worldState.combat;
+    if(typeof registerCensusFile!=="function")return "registerCensusFile missing";
+    var r=registerCensusFile("label",["manifest"],12);
+    if(r.join("|")!=="manifest")return "returns the hits";
+    if(!worldState.registerCensus||!worldState.registerCensus.label||worldState.registerCensus.label.length!==1||worldState.registerCensus.label[0].turn!==12||worldState.registerCensus.label[0].word!=="manifest")return "ring: "+JSON.stringify(worldState.registerCensus);
+    if(worldState.registerPing)return "a label hit must NEVER arm the #355 note";
+    registerCensusFile("label",[],13);if(worldState.registerCensus.label.length!==1)return "no hits, no entries";
+    registerCensusFile("chapter",["ledger"],14,{reasked:true,cleaned:false});
+    var ce=worldState.registerCensus.chapter[0];if(!ce||ce.reasked!==true||ce.cleaned!==false)return "extra fields ride the entry: "+JSON.stringify(ce);
+    var k;for(k=0;k<REGISTER_LOG_MAX+5;k++)registerCensusFile("idiom",["napalm"],100+k);
+    if(worldState.registerCensus.idiom.length!==REGISTER_LOG_MAX||worldState.registerCensus.idiom[0].turn!==105)return "ring must cap at "+REGISTER_LOG_MAX+" newest";
+    delete worldState.registerCensus;
+    observeDriftAxes("[QUEST:Recover the manifest|offered|Find the bearer note] The adrenaline surged as the manifest burned.","The adrenaline surged as the manifest burned.");
+    var c=worldState.registerCensus||{};
+    if(!c.label||c.label.map(function(x){return x.word;}).join("|")!=="manifest|bearer note")return "labels not filed from the raw response: "+JSON.stringify(c.label);
+    if(!c.idiom||c.idiom.map(function(x){return x.word;}).join("|")!=="adrenaline")return "idiom not filed from the cleaned narration: "+JSON.stringify(c.idiom);
+    if(worldState.registerPing)return "neither channel may arm the #355 note";
+    if(worldState.registerSlips&&worldState.registerSlips.length)return "'manifest' in prose must not file a #355 narration slip — the narration list stays tight";
+    var gm=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),ob=gm.slice(gm.indexOf("function observeDriftAxes("),gm.indexOf("var price=detectTravelPrice(clean);"));
+    if(ob.indexOf("registerLabelScan(raw)")<0||ob.indexOf("idiomScan(clean)")<0)return "the two census calls must sit inside observeDriftAxes beside registerFile — labels on raw, idiom on clean";
+    return true;
+  });
+  t("#372 ② sheets: sheetRegisterReport names the character and the FIELD (backstory/trait/flaw/motivation/look/want) that carries a register word — report only, never a rewrite; the tight #355 list keeps 'close the account properly' clean",function(){
+    makeWorld();if(typeof sheetRegisterReport!=="function")return "sheetRegisterReport missing";
+    var c=worldState.character;c.name="Daeris";c.motivation="Close the account properly and see the debt honoured.";c.trait="Keeps a ledger of every slight.";c.backstory="Born in the salt marsh.";
+    worldState.npcs=[
+      {name:"Morwen Zethran",partyMember:true,status:"ally",rel:"companion",charSheet:{name:"Morwen Zethran",flaw:"Files an invoice for every favour",agenda:{want:"Recover the manifest of the drowned fleet"},inventory:[],abilities:[],spells:[]}},
+      {name:"Osric",partyMember:false,status:"neutral",rel:"stranger"},
+      {name:"Bram",partyMember:true,status:"ally",rel:"companion",charSheet:{name:"Bram",trait:"Laughs at funerals",appear:"A tally sheet of scars down one arm",inventory:[],abilities:[],spells:[]}}];
+    var rep=sheetRegisterReport(worldState),j=JSON.stringify(rep);
+    if(!(rep instanceof Array)||rep.length!==4)return "expected four field hits, got: "+j;
+    function has(name,field,word){var i;for(i=0;i<rep.length;i++)if(rep[i].name===name&&rep[i].field===field&&rep[i].words.indexOf(word)>=0)return true;return false;}
+    if(!has("Daeris","trait","ledger"))return "the player's trait: "+j;
+    if(has("Daeris","motivation","account"))return "'account' is not on the list — the #355 tight-list discipline: "+j;
+    if(!has("Morwen Zethran","flaw","invoice"))return "a companion's flaw: "+j;
+    if(!has("Morwen Zethran","want","manifest"))return "the #330 want (agenda.want) is an authoring seam too: "+j;
+    if(!has("Bram","look","tally sheet"))return "appearance is scanned as 'look': "+j;
+    if(c.trait!=="Keeps a ledger of every slight."||worldState.npcs[0].charSheet.flaw!=="Files an invoice for every favour")return "the report must never rewrite a sheet — personality is the player's";
+    worldState.npcs=[];c.trait="";c.motivation="";c.backstory="";
+    if(sheetRegisterReport(worldState).length)return "clean sheets → empty report";
+    return true;
+  });
+  t("#372 the #17 readout carries ONE 'register' item: N/A with nothing recorded; counts per channel; WATCH with a hint when a sheet carries a register word or a chapter stayed dirty after its re-ask; Table Talk carries the census line",function(){
+    makeWorld();delete worldState.registerCensus;delete worldState.registerSlips;worldState.npcs=[];worldState.character.trait="";worldState.character.flaw="";worldState.character.motivation="";worldState.character.backstory="";
+    function item(){var h=healthIndicators(worldState,memory,false),i;for(i=0;i<h.items.length;i++)if(h.items[i].id==="register")return h.items[i];return null;}
+    var it=item();if(!it)return "no 'register' item on the readout";
+    if(it.level!=="na")return "nothing recorded must read N/A: "+JSON.stringify(it);
+    registerFile("or the ledger rots.",41);delete worldState.registerPing;
+    registerCensusFile("label",["manifest"],42);registerCensusFile("idiom",["napalm","adrenaline"],43);registerCensusFile("chapter",["ledger"],44,{reasked:true,cleaned:true});
+    it=item();
+    if(it.level!=="ok")return "counts without a standing source read HEALTHY: "+JSON.stringify(it);
+    if(!/narration 1/.test(it.detail)||!/chapters 1/.test(it.detail)||!/labels 1/.test(it.detail)||!/modern idiom 2/.test(it.detail))return "detail must count every channel: "+it.detail;
+    registerCensusFile("chapter",["invoice"],45,{reasked:true,cleaned:false});
+    it=item();if(it.level!=="warn"||!/still carried it/.test(it.detail))return "a chapter that stayed dirty after its one re-ask is a WATCH: "+JSON.stringify(it);
+    delete worldState.registerCensus;worldState.character.trait="Keeps a ledger of every slight.";
+    it=item();if(it.level!=="warn"||!/trait/.test(it.detail)||!/ledger/.test(it.detail)||!it.hint||!/character editor/i.test(it.hint))return "a sheet-sourced register word is a WATCH naming the field, with the editor hint: "+JSON.stringify(it);
+    if(it.hint.split(/\s+/).length>=25)return "hint over the 25-word contract: "+it.hint;
+    var tt=__fsForTests.readFileSync(__rootForTests+"/table-talk.js","utf8");if(tt.indexOf("registerCensusLine()")<0)return "Table Talk must carry the census line beside the #355 record";
+    if(typeof registerCensusLine!=="function")return "registerCensusLine missing";
+    worldState.character.trait="";delete worldState.registerCensus;if(registerCensusLine()!=="")return "no census → no line";
+    registerCensusFile("idiom",["napalm"],50);if(!/modern idiom/.test(registerCensusLine()))return "census line: "+registerCensusLine();
+    return true;
+  });
+  t("#372 ① chapters: the pure decision — a CLEAN rewrite replaces the summary, a dirty or empty rewrite keeps the original; the rewrite prompt names the words, keeps every fact and asks for the paragraph only; the reply normaliser strips quotes, fences and a JSON wrapper; summarize() awaits the guard BEFORE applySummaryExtract",function(){
+    if(typeof chapterRegisterDecide!=="function"||typeof buildChapterRegisterRewritePrompt!=="function"||typeof chapterRewriteText!=="function")return "guard helpers missing";
+    var orig="Ammut read the ledger of the dead while Morwen filed the invoice of her grief.",hits=registerScan(orig);
+    if(hits.join("|")!=="ledger|invoice")return "fixture";
+    var d=chapterRegisterDecide(orig,"Ammut read the names of the dead while Morwen counted her griefs.",hits);
+    if(!d.cleaned||d.text.indexOf("names of the dead")<0)return "a clean rewrite must replace: "+JSON.stringify(d);
+    d=chapterRegisterDecide(orig,"Ammut read the ledger of the dead again.",hits);
+    if(d.cleaned||d.text!==orig)return "a rewrite that still carries a word keeps the ORIGINAL (the extraction was verified; the rewrite was not): "+JSON.stringify(d);
+    d=chapterRegisterDecide(orig,"",hits);if(d.cleaned||d.text!==orig)return "an empty rewrite keeps the original";
+    d=chapterRegisterDecide(orig,null,hits);if(d.cleaned||d.text!==orig)return "a failed call keeps the original";
+    var p=buildChapterRegisterRewritePrompt(orig,hits);
+    if(p.indexOf("'ledger'")<0||p.indexOf("'invoice'")<0)return "the prompt must name the words";
+    if(!/every fact|every name|every event/i.test(p)||!/paragraph only|only the rewritten paragraph|reply with the rewritten paragraph/i.test(p))return "the prompt must keep the facts and ask for the paragraph alone: "+p;
+    if(!/blood, oaths, hunger/.test(p))return "the prompt carries the STYLE line's own words";
+    if(p.indexOf(orig)<0)return "the prompt carries the summary";
+    if(chapterRewriteText("\"Quoted paragraph.\"")!=="Quoted paragraph.")return "quotes stripped";
+    if(chapterRewriteText("```\nFenced paragraph.\n```")!=="Fenced paragraph.")return "fences stripped";
+    if(chapterRewriteText('{"chapterSummary":"Wrapped paragraph."}')!=="Wrapped paragraph.")return "a JSON wrapper is unwrapped";
+    if(chapterRewriteText("   ")!==null||chapterRewriteText(null)!==null)return "empty → null";
+    var mem=__fsForTests.readFileSync(__rootForTests+"/memory.js","utf8"),sm=mem.slice(mem.indexOf("async function summarize("),mem.indexOf("function audioFileCandidates("));
+    var gi=sm.indexOf("await chapterRegisterGuard(extracted"),ai=sm.indexOf("applySummaryExtract(extracted");
+    if(gi<0||ai<0||gi>ai)return "summarize() must await chapterRegisterGuard on the parsed extraction BEFORE applySummaryExtract files the chapter";
+    if(typeof chapterRegisterGuard!=="function")return "chapterRegisterGuard missing";
+    return true;
+  });
+
 }

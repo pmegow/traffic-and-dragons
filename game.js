@@ -2308,6 +2308,7 @@ function observeDriftAxes(raw,clean){
       if(sw.count>=SUBLEAVE_TURNS){worldState.subLeavePing={sub:sw.sub,cue:sw.cue,turn:turn};delete worldState.subLeaveWatch;}}
     else if(sw)delete worldState.subLeaveWatch;/* a narration that stays put breaks the streak */}
   if(typeof registerFile==="function")registerFile(clean,turn);/* #355: clerical-register census on the CLEANED narration */
+  if(typeof registerCensusFile==="function"){registerCensusFile("label",registerLabelScan(raw),turn);registerCensusFile("idiom",idiomScan(clean),turn);}/* #372 ③④: the plot channel (raw tag operands) and modern idiom (cleaned narration) — counted, never a note */
   var price=detectTravelPrice(clean);
   if(price&&price.days>0)worldState.travelPriceWatch={destination:price.destination,expected:price.days*MIN_PER_DAY,startMin:clockNow(),startTurn:turn};
   var tw=worldState.travelPriceWatch,lm=raw.match(/\[LOCATION:([^\]]+)\]/i);

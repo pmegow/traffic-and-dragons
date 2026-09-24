@@ -167,7 +167,47 @@ function diceStatsLine(){
 var REGISTER_WORDS=["ledger","ledgers","invoice","invoices","invoiced","paperwork","bookkeeping","bookkeeper","clerical","spreadsheet","spreadsheets","accountant","accountants","tally sheet","balance sheet"];
 var REGISTER_RE=new RegExp("\\b(?:"+REGISTER_WORDS.map(function(w){return w.replace(/ /g,"\\s+");}).join("|")+")\\b","gi");
 var REGISTER_LOG_MAX=50;
-function registerScan(text){var out=[],seen={},m,re=new RegExp(REGISTER_RE.source,"gi");while((m=re.exec(String(text||"")))){var w=m[0].toLowerCase().replace(/\s+/g," ");if(!seen[w]){seen[w]=1;out.push(w);}}return out;}
+/* #372: the guard's reach. ONE scanner over a word list (registerScan is the #355 instance, signature kept).
+   PAPERWORK_WORDS extend the tight list for LABELS and SHEETS only — plot nouns a prose list cannot see ("Recover
+   the manifest" is the ledger plot by another door) — never for the narration note, whose false-positive
+   discipline (#355) stands. IDIOM_WORDS is a second census, modern idiom, numbers only: no note, no latch. */
+function wordListRe(words){return new RegExp("\\b(?:"+words.map(function(w){return w.replace(/ /g,"\\s+");}).join("|")+")\\b","gi");}
+function wordListScan(text,re){var out=[],seen={},m,r=new RegExp(re.source,"gi");while((m=r.exec(String(text||"")))){var w=m[0].toLowerCase().replace(/\s+/g," ");if(!seen[w]){seen[w]=1;out.push(w);}}return out;}
+function registerScan(text){return wordListScan(text,REGISTER_RE);}
+var PAPERWORK_WORDS=["voucher","vouchers","manifest","manifests","requisition","requisitions","bearer note","bearer notes"];
+var LABEL_RE=wordListRe(REGISTER_WORDS.concat(PAPERWORK_WORDS));
+var IDIOM_WORDS=["christmas","refrigerator","refrigerators","napalm","fiscal quarter","fiscal quarters","low orbit","television","televisions","telephone","telephones","microwave","microwaves","laser","lasers","radar","robot","robots","computer","computers","adrenaline"];
+var IDIOM_RE=wordListRe(IDIOM_WORDS);
+function idiomScan(text){return wordListScan(text,IDIOM_RE);}
+/* ③ the plot channel: the operands of the three lifecycle tags, pipes to spaces, in order of appearance — never the prose */
+function registerLabelScan(raw){var ops=[],m,re=/\[(?:QUEST|QUEST_STEP|SCHEDULE):([^\]]*)\]/g;while((m=re.exec(String(raw||""))))ops.push(m[1].replace(/\|/g," "));return wordListScan(ops.join(" \n "),LABEL_RE);}
+/* the census ring — one field, three channels (chapter / label / idiom), each capped like #355's ring; extra fields
+   ride the entry (the chapter channel records reasked/cleaned). Never arms registerPing: these are counts. */
+function registerCensusFile(channel,hits,turn,extra){
+  if(typeof worldState==="undefined"||!worldState||!hits||!hits.length)return hits||[];
+  if(!worldState.registerCensus||typeof worldState.registerCensus!=="object")worldState.registerCensus={};
+  var c=worldState.registerCensus;if(!(c[channel] instanceof Array))c[channel]=[];
+  var i,k;for(i=0;i<hits.length;i++){var e={turn:turn,word:hits[i]};if(extra)for(k in extra)e[k]=extra[k];c[channel].push(e);}
+  while(c[channel].length>REGISTER_LOG_MAX)c[channel].shift();
+  return hits;
+}
+function registerCensusStats(ws){ws=ws||(typeof worldState!=="undefined"?worldState:null);var c=(ws&&ws.registerCensus)||{},out={chapter:0,chapterDirty:0,label:0,idiom:0},i;
+  var ch=c.chapter||[];for(i=0;i<ch.length;i++){out.chapter++;if(ch[i].reasked&&ch[i].cleaned===false)out.chapterDirty++;}
+  out.label=(c.label||[]).length;out.idiom=(c.idiom||[]).length;return out;}
+function registerCensusLine(){var s=registerCensusStats();if(!s.chapter&&!s.label&&!s.idiom)return "";return "Register census (counts only, no correction): chapter summaries "+s.chapter+(s.chapterDirty?" ("+s.chapterDirty+" still dirty after a re-ask)":"")+", quest/schedule labels "+s.label+", modern idiom "+s.idiom+".";}
+/* ② the authoring seams, read at the SHEET rather than hooked at four call sites (wizard, blueprint import,
+   generateNpcSheet, the #330 want birth): the live sheet is what every seam wrote, so one census over it covers
+   them all, and a hand edit in the character editor too. REPORT only — personality is the player's, never the
+   engine's to retro-edit. The wider label list applies: a sheet is authored text, and the reader is a human. */
+var SHEET_REGISTER_FIELDS=[["backstory","backstory"],["trait","trait"],["flaw","flaw"],["motivation","motivation"],["appear","look"]];
+function sheetRegisterReport(ws){
+  ws=ws||(typeof worldState!=="undefined"?worldState:null);var out=[];if(!ws)return out;
+  function scanSheet(name,s){if(!s)return;var i;for(i=0;i<SHEET_REGISTER_FIELDS.length;i++){var f=SHEET_REGISTER_FIELDS[i],v=s[f[0]];if(typeof v==="string"&&v){var h=wordListScan(v,LABEL_RE);if(h.length)out.push({name:name,field:f[1],words:h});}}
+    var w=s.agenda&&s.agenda.want;if(typeof w==="string"&&w){var hw=wordListScan(w,LABEL_RE);if(hw.length)out.push({name:name,field:"want",words:hw});}}
+  if(ws.character)scanSheet(ws.character.name||"the player",ws.character);
+  var n=ws.npcs||[],i;for(i=0;i<n.length;i++)if(n[i]&&n[i].charSheet)scanSheet(n[i].name,n[i].charSheet);
+  return out;
+}
 function registerStats(log){log=log||(worldState&&worldState.registerSlips)||[];var by={},i;for(i=0;i<log.length;i++){var w=log[i].word;by[w]=(by[w]||0)+1;}return {slips:log.length,byWord:by,lastTurn:log.length?log[log.length-1].turn:null};}
 function registerStatsLine(){var s=registerStats();if(!s.slips)return "";var parts=Object.keys(s.byWord).sort().map(function(w){return w+" \u00d7"+s.byWord[w];});return "Register slips (clerical words the narration used and was corrected on): "+s.slips+" ("+parts.join(", ")+"), last at turn "+s.lastTurn+".";}
 // ── #356 THE elapsed ticker (owner rule 2026-09-06: "we should always have the counter while we're
@@ -2292,6 +2332,15 @@ function healthIndicators(ws,mem,withGrowth){
      is over has nothing to watch — it is its own reading, never a warning. */
   push("stakes","At risk",ended?"na":(stakesFiledTurns(ws)<3?"na":(inCoda||riskRead.turns<20?"ok":"warn")),
     riskRead.turns+(riskRead.capped?"+":"")+" turns since recorded risk"+(riskRead.kind?" ("+riskRead.kind+")":" — retained record only")+"; "+(ended?"campaign ended (t"+(ws.ended.turn||ws.turn||0)+")":"coda: "+(inCoda?"yes":"no")));
+  // #372: the register census — #355's narration slips plus the three channels it could not reach, counted. A
+  // standing SOURCE (a sheet field the GM reads every turn, a chapter that stayed dirty after its one re-ask) is
+  // the actionable WATCH; counts alone are a reading. Sits after the stakes item (#374 pins stakes beside dice).
+  var rgN=(ws.registerSlips||[]).length,rgC=registerCensusStats(ws),rgSheet=sheetRegisterReport(ws),rgBits=[],rgSrc=[];
+  if(rgN||rgC.chapter||rgC.label||rgC.idiom)rgBits.push("narration "+rgN+", chapters "+rgC.chapter+(rgC.chapterDirty?" ("+rgC.chapterDirty+" still carried it after the re-ask)":"")+", labels "+rgC.label+", modern idiom "+rgC.idiom);
+  for(i=0;i<rgSheet.length&&rgSrc.length<3;i++)rgSrc.push(rgSheet[i].name+" — "+rgSheet[i].field+": "+rgSheet[i].words.join(", "));
+  if(rgSrc.length)rgBits.push("sheet text carries register words ("+rgSrc.join("; ")+(rgSheet.length>3?"; +"+(rgSheet.length-3)+" more":"")+")");
+  if(!rgBits.length)push("register","Register (clerical images, modern idiom)","na","nothing recorded");
+  else push("register","Register (clerical images, modern idiom)",(rgSheet.length||rgC.chapterDirty)?"warn":"ok",rgBits.join("; "));
   var HINTS={
     rag:{bad:"Past scenes aren't reaching the GM — memory questions get invented answers. Submit a report if this stays red.",
          warn:"Past scenes aren't reaching the GM lately. Watch it — submit a report if it goes red."},
@@ -2305,7 +2354,8 @@ function healthIndicators(ws,mem,withGrowth){
     stakes:{warn:"No recent recorded risk outside a coda. Judge the quiet stretch by the scenes; this measurement does not change play."},
     dice:{warn:"Every filed roll succeeded. Either a high-level skills ladder is doing its job or the GM is not rolling when something is at risk — judge by the scenes, and check File ▸ Settings ▸ Name the stake before a roll."},
     transport:{bad:"Heavy provider load-shedding — most turns need retries. Consider switching model for this session; report if it continues.",
-               warn:"The AI provider is shedding load — turns retry and feel slower. Usually clears on its own; report if it lasts all session."}
+               warn:"The AI provider is shedding load — turns retry and feel slower. Usually clears on its own; report if it lasts all session."},
+    register:{warn:"A character's own text or a chapter keeps clerical words the GM argues with every turn. Edit the text in the character editor."}
   };
   for(i=0;i<items.length;i++){var hh=HINTS[items[i].id];if(hh&&hh[items[i].level])items[i].hint=hh[items[i].level];}
   var rank={ok:0,warn:1,bad:2},worst="ok",any=false;

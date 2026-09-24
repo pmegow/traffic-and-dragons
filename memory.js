@@ -2239,6 +2239,41 @@ function buildExtractPrompt(chapterDesc,pend,sessRaw,sessStripped,identityTable)
    that lets the same prose through gemini's PROHIBITED_CONTENT filter. The shape chooser reads the standing failure:
    a refusal strike sends the reframed shape FIRST next turn, so a blocked payload is never replayed unchanged. */
 var EXTRACT_SYS="You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.";
+/* #372 ①: the chapter is a channel the narration census cannot reach — and the denouement reads chapters
+   verbatim. A summary carrying a register word is re-asked ONCE, as a paragraph rewrite (a chapter has no reader
+   waiting, so the retry is honest); a CLEAN rewrite replaces it, anything else keeps the verified original; the
+   census counts either way. Pure pieces first, the async guard last; summarize() awaits it before anything files. */
+var CHAPTER_REWRITE_SYS="You rewrite one paragraph of a story summary on request. Reply with the rewritten paragraph only: no preamble, no quotes, no markdown, no JSON.";
+function buildChapterRegisterRewritePrompt(summary,hits){
+  var w=(hits||[]).map(function(x){return "'"+x+"'";}).join(", ");
+  return "Rewrite the chapter summary below so that it keeps every fact, every name and every event, in the same voice and about the same length, but removes every clerical image — it used "+w+". This world keeps no books: debts are blood, oaths, hunger and memory; say what the thing IS instead of the clerical word. Reply with the rewritten paragraph only.\n\nSUMMARY:\n"+String(summary||"");
+}
+function chapterRewriteText(resp){
+  if(resp==null)return null;var s=String(resp).trim();
+  s=s.replace(/^```[a-z]*\s*/i,"").replace(/\s*```$/,"").trim();
+  if(/^\{[\s\S]*\}$/.test(s)){try{var o=JSON.parse(s),v=o.chapterSummary||o.summary||o.paragraph||o.text;if(typeof v==="string")s=v.trim();}catch(e){}}
+  s=s.replace(/^["'“‘]+/,"").replace(/["'”’]+$/,"").trim();
+  return s?s:null;
+}
+function chapterRegisterDecide(original,rewrite,hits){
+  var t=chapterRewriteText(rewrite);
+  if(!t)return {text:original,cleaned:false};
+  return registerScan(t).length?{text:original,cleaned:false}:{text:t,cleaned:true};
+}
+async function chapterRegisterGuard(extracted,turn,call){
+  if(!extracted||typeof extracted.chapterSummary!=="string"||typeof registerScan!=="function")return null;
+  var hits=registerScan(extracted.chapterSummary);
+  if(typeof idiomScan==="function"&&typeof registerCensusFile==="function")registerCensusFile("idiom",idiomScan(extracted.chapterSummary),turn,{chapter:true});/* ④: chapters ride the idiom census too */
+  if(!hits.length)return {hits:hits,reasked:false,cleaned:false};
+  var resp=null,reasked=false;
+  try{resp=await (call||callGM)(buildChapterRegisterRewritePrompt(extracted.chapterSummary,hits),CHAPTER_REWRITE_SYS,700,null,{kind:"summarize",noHistory:true});reasked=true;}
+  catch(e){if(typeof console!=="undefined")console.warn("[memory] #372 chapter rewrite call failed ("+((e&&e.message)||"?")+") — the original summary files as extracted");}
+  var d=chapterRegisterDecide(extracted.chapterSummary,resp,hits);
+  if(d.cleaned)extracted.chapterSummary=d.text;
+  if(typeof registerCensusFile==="function")registerCensusFile("chapter",hits,turn,{reasked:reasked,cleaned:d.cleaned});
+  if(typeof console!=="undefined")console.warn("[memory] #372 chapter summary used "+hits.join(", ")+" — "+(reasked?(d.cleaned?"re-asked once; the clean rewrite is the chapter on file":"re-asked once; the rewrite still carried it, the original files as extracted (counted)"):"the re-ask could not run; the original files as extracted (counted)"));
+  return {hits:hits,reasked:reasked,cleaned:d.cleaned};
+}
 var EXTRACT_WINDOW_CAPS={assistant:4000,user:500};
 var EXTRACT_REFRAME_CAPS={assistant:1200,user:300};
 function extractRefusalFraming(){
@@ -2402,6 +2437,7 @@ async function summarize(){
     if(!extractorRespHasJson(resp))throw new Error("extractor returned NO JSON at all (B11 class) — head: \""+String(resp).slice(0,60).replace(/\s+/g," ")+"\"");/* named at the call site; repairModelJson (8 shared callers) stays untouched */
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
     if(_withheld&&extracted&&typeof extracted==="object")extracted.chapterSummary=String(extracted.chapterSummary||"")+" "+withheldChapterNote(_withheld.withheld,_withheld.total);/* B38: the chapter itself says a share was withheld */
+    await chapterRegisterGuard(extracted,worldState.turn);/* #372 ①: a register word in the chapter is re-asked ONCE before anything files */
     var _exStats=applySummaryExtract(extracted,_identityTable);
     _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":"")+(_withheld?" ("+_withheld.withheld+" of "+_withheld.total+" exchanges withheld by the provider's content filter — extracted around them; B38)":_reframed?" (extracted in the reframed, shortened shape after the provider blocked the full window — B38)":""));
     compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
