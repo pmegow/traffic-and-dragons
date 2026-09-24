@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T&D — Settlement tiers: what a town opens on arrival (#385 spec)</title>
+<style>
+  :root{--bg:#111;--bg2:#181818;--acc:#b8935a;--t1:#ddd;--t2:#999;--brd:#333;
+    --good:#7aa86a;--warn:#b8935a;--bad:#c05050;}
+  body{background:var(--bg);color:var(--t1);font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:28px 18px 60px;line-height:1.65;}
+  h1{color:var(--acc);font-size:22px;line-height:1.25;}
+  h2{color:var(--acc);font-size:16px;margin-top:34px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
+  h3{font-size:14px;color:var(--t1);margin-top:22px;}
+  .meta{color:var(--t2);font-size:12px;margin-top:-6px;}
+  .tldr{border-left:4px solid var(--acc);background:#1c170f;padding:12px 16px;border-radius:0 8px 8px 0;margin:18px 0;}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px;}
+  th,td{border:1px solid var(--brd);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#1f1f1f;color:var(--acc);}
+  code{font-family:Consolas,ui-monospace,monospace;font-size:.88em;background:#222;padding:1px 5px;border-radius:4px;color:#d8c9a8;}
+  pre{font-family:Consolas,ui-monospace,monospace;font-size:12.5px;background:#0d0d0d;border:1px solid var(--brd);border-radius:6px;padding:10px 12px;white-space:pre-wrap;color:#cfc8ba;}
+  .lean{display:inline-block;font-family:Consolas,ui-monospace,monospace;font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);border-radius:12px;padding:2px 10px;font-size:.78em;letter-spacing:1px;white-space:nowrap;}
+  .lean.go{background:#182215;border:1px solid var(--good);}
+  .lean.defer{background:#251d12;border:1px solid var(--warn);}
+  .lean.nogo{background:#260d0d;border:1px solid var(--bad);}
+  ul{padding-left:1.3rem;} li{margin-bottom:6px;}
+  .note{color:var(--t2);font-size:12px;}
+  ::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:#0a0a0a;} ::-webkit-scrollbar-thumb{background:#333;} ::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+</style>
+</head>
+<body>
+<h1>Settlement tiers — what a town opens on arrival</h1>
+<p class="meta">#385 design note · Fable, 2026-09-24 · for the owner's signature · nothing here is built. File: <code>C:\Projects\traffic-and-dragons\DOC\Research\DOC_settlement_tiers.html</code></p>
+
+<div class="tldr">
+<b>TLDR.</b> Today a settlement carries one physical size word and a wares cap; the market ask fires once per place when nothing is on record, so The Long Walk's High Reach sat at two wares for forty turns. The proposal: every settlement has a <b>tier</b> — outpost, village, town, city, metropolis — and a tier declares a <b>roster</b> of establishments (its inn with its tavern, its shops). The roster is introduced in prose on first arrival, never as a shopping list; each establishment is filed as a sub-location as the party finds it, and each filed shop gets its own market ask on the village model. The tier is <b>derived</b> from what the GM already writes (the size word, the place's own name), so no new tag is needed and no save migrates. Five rows follow the signature.
+</div>
+
+<h2>0. The owner's invariants (2026-09-08)</h2>
+<ul>
+<li>Every settlement has at least one inn, and every inn has a tavern.</li>
+<li>Opening proposal: <b>outpost</b> — the one inn (with its tavern), no shops; <b>village</b> — 2 shops; <b>town</b> — 5 shops; <b>city</b> — 10 shops and a second inn; <b>metropolis</b> — 20 shops.</li>
+</ul>
+
+<h2>1. What exists today (facts, from the source)</h2>
+<table>
+<tr><th>Piece</th><th>Where</th><th>What it does</th></tr>
+<tr><td><code>[LOCATION_SIZE:scale|travelMins]</code></td><td>tag_table.js:575, doc line 126</td><td>Physical scale (tiny/small/medium/large/vast) and minutes to cross on foot, once per first visit, on the current node's <code>size</code>/<code>travelMins</code>.</td></tr>
+<tr><td><code>waresSizeTier(size)</code></td><td>helpers.js:1453</td><td>Maps the size word (and hamlet/village/outpost → small, town → medium, city → large, metropolis → vast) to a cap bucket.</td></tr>
+<tr><td><code>WARES_CAP_BY_SIZE</code> · <code>WARES_CAP_SHOP</code> · <code>WARES_RESTOCK_DAYS</code></td><td>globals.js:79–83</td><td>{small 2, medium 4, large 6, vast 10, unknown 2} on a WORLD node; 6 per SHOP node; wares expire after 7 game days.</td></tr>
+<tr><td>The market ask</td><td>api.js:690 <code>buildMarketNote</code></td><td>Adventures: fires when the current world node has a size and nothing live for sale, latched per node (<code>marketAsk</code>) for the restock window, asks for one or two <code>[WARES:]</code> lines "over the week". Village: per SHOP sub-location, only inside it.</td></tr>
+<tr><td>Shops in the village</td><td>helpers.js:2431 <code>isShopNode</code>, data.js:337</td><td>A sub-location whose leaf name matches <code>shopWords</code> (tavern, inn, smith, forge, trading post, store, market, stall, alchemist, apothecary, healer, guild, stable, bakery, brewer, tailor, tanner, mill…) or carries <code>shop:true</code>; never an owner's house or the hall. Wares live on the shop, trade happens only in a shop with the keeper present.</td></tr>
+<tr><td>The Buy button</td><td>game.js:200–202</td><td>Village: "Buy the X from &lt;keeper&gt;" when the hero stands in a shop with live wares. Adventure: reads the world node's wares and requires the seller (or their shop) to be IN the scene.</td></tr>
+<tr><td><code>[WANTED:item|offer|by]</code></td><td>tag_table.js:616</td><td>What someone here wants from the party; cap 4 per node.</td></tr>
+<tr><td>Viewers</td><td>map_viewer.html, map_cleanup.html</td><td>Neither reads <code>size</code> today; a tier would be a badge, not a layout change.</td></tr>
+</table>
+
+<h2>2. The tier table</h2>
+<table>
+<tr><th>Tier</th><th>Inns (each with its tavern)</th><th>Shops</th><th>Derived from</th><th>Shelf ceiling (shops × 6)</th></tr>
+<tr><td>outpost</td><td>1</td><td>0</td><td>size <code>tiny</code>, or the name/description says outpost, waystation, fort, camp</td><td>0 (the inn may still sell food and a bed — see §4)</td></tr>
+<tr><td>village</td><td>1</td><td>2</td><td>size <code>small</code>, or hamlet, village, thorp</td><td>12</td></tr>
+<tr><td>town</td><td>1</td><td>5</td><td>size <code>medium</code>, or town, township, market town</td><td>30</td></tr>
+<tr><td>city</td><td>2</td><td>10</td><td>size <code>large</code>, or city</td><td>60</td></tr>
+<tr><td>metropolis</td><td>2 or more</td><td>20</td><td>size <code>vast</code>, or metropolis, capital</td><td>120</td></tr>
+</table>
+<p class="note">The counts are the owner's numbers unchanged. The word lists are the derivation's whole vocabulary — deliberately short, one tier per word, no substring pairs (the opposing-values rule: "town" and "township" share a stem but resolve to the SAME tier, so the pair cannot misfile).</p>
+
+<h2>3. ① Vocabulary and mapping — recommendation: derive, never tag <span class="lean go">go</span></h2>
+<p><b>Keep <code>[LOCATION_SIZE:]</code> as the physical scale.</b> It already carries <code>travelMins</code>, every existing save has it, and the frozen tag doc is money-tested. The tier is a <b>read-time derivation</b>: <code>settlementTierFor(node)</code> (pure, helpers.js) reads the node's <code>size</code> and the leaf words of its name and <code>LOCATION_DESC</code>; a name word outranks the size word ("Greyhaven, a sprawling village" is a village). Unknown → null: a node with no tier is not a settlement and nothing below applies to it — wilderness and ruins stay exactly as they are.</p>
+<ul>
+<li>No new tag, no doc-line change, no strip-regex change: the stable prompt half is byte-identical.</li>
+<li>No migration: an existing save derives its tiers the first time a reader asks; nothing is stored until the roster is minted (§5).</li>
+<li><code>waresSizeTier</code> and <code>WARES_CAP_BY_SIZE</code> keep serving the legacy world-node market until row R3 retires it (§4).</li>
+<li>Rejected: a <code>[SETTLEMENT:tier]</code> tag. It is a parser + doc + strip change on the drift surface, and the GM would emit it as unreliably as it emits <code>[LOCATION_SIZE:]</code> today — the derivation reads what the GM already writes. If a campaign ever needs an explicit override, <code>map_cleanup.html</code> can set <code>node.tier</code> by hand and the derivation yields to a stored value.</li>
+</ul>
+
+<h2>4. ② What a shop is on the map — recommendation: the village model, everywhere <span class="lean go">go</span></h2>
+<p>A shop is a <b>sub-location node</b> under the settlement, exactly as the village files them: leaf name matches <code>shopWords</code> or carries <code>shop:true</code>, a <code>keeper</code> (the seller's name, from the WARES note or the first <code>[NPC:]</code> seen inside), and its own <code>wares[]</code> capped at <code>WARES_CAP_SHOP</code>. <b>Inns and taverns are shops with a role</b> — <code>role:"inn"</code> / <code>role:"tavern"</code> — not a separate node kind: one shape, one carrier through merge/split (the audit C1/C2 fix already carries <code>wares</code>, <code>hours</code>, <code>wanted</code>). What a role adds is an affordance, not a schema: the inn is where <code>[REST:long]</code> reads as safe and paid; the tavern is where whispers already gather and where a board could hang later (§7).</p>
+<ul>
+<li>The settlement node keeps the <b>roster</b>: <code>node.roster = {tier, inns:N, shops:N, found:[…leaf keys]}</code>, minted once on first arrival (§5). The roster is a count of what exists, not a list of names — the GM names each place as the party meets it.</li>
+<li>The legacy world-node market (wares on the town itself) is <b>retired for new settlements</b>: once a node has a roster, the per-shop ask replaces the per-town ask. A settlement that already carries world-node wares from the old ask keeps them until they expire (7 days) — no rewrite of existing data.</li>
+<li>The village kind is <b>exempt from rosters</b>: its shops are whatever the library's residents run (populated from the library, not from a tier), and the owner's "village" tier count would fight that. The village keeps its own model unchanged.</li>
+</ul>
+
+<h2>5. ③ How the opportunities are introduced — the arrival note <span class="lean go">go</span></h2>
+<p>On the party's <b>first arrival</b> at a node that derives a tier (the <code>[LOCATION:]</code> filing of a new settlement, or the first visit to an existing one after this ships), the engine mints the roster and arms a <b>one-shot engine note</b> for the next turn. It names the tier's roster in prose terms and forbids the shopping list; the GM files establishments as the party finds them, and each filed shop gets its own market ask the first time the party stands in it (the village mechanism, <code>buildMarketNote</code>'s per-shop branch, gated on the roster instead of the kind). Draft wording:</p>
+<pre>[ENGINE NOTE — ARRIVAL (not a player action): High Reach is a TOWN. What a town of this world has: one inn with its own tavern, and five shops or trades — a smith, a healer, a provisioner, whatever this place would plausibly keep. Do not list them. Let the party SEE them as they move: name an establishment when it comes into view or someone points to it, and file it with [SUBLOCATION:name] when the party enters. Wares are asked for inside each shop, never here. The inn is where a paid night is safe; the tavern is where the town talks.]</pre>
+<ul>
+<li>Once per settlement, ever — latched on the roster (<code>roster.introduced</code>), restored by the note-latch registry on a dead provider turn like every other one-shot.</li>
+<li>Silent in combat (the fight outranks the tour); silent in the village kind.</li>
+<li>Tier words the note uses are the tier table's own; the counts are the roster's, so a hand-set tier in map_cleanup speaks the same sentence.</li>
+<li>The #431 HERE line may add "Establishments: 2 of 5 found" at the settlement node — UI only, no prompt text.</li>
+</ul>
+
+<h2>6. ④ Ceilings and restock — recommendation: no new constants <span class="lean go">go</span></h2>
+<p>The tier sets the <b>number of shops</b>; the shelf per shop stays <code>WARES_CAP_SHOP</code> (6) and the restock rhythm stays <code>WARES_RESTOCK_DAYS</code> (7). The settlement's ceiling is therefore shops × 6 (table in §2) and it is a consequence, not a setting. An outpost's inn may still answer its ask with a bed and a meal; "no shops" means no trades, not no commerce. <code>WARES_CAP_BY_SIZE</code> retires with the world-node market (R3).</p>
+
+<h2>7. ⑤ The fourth button and the board</h2>
+<ul>
+<li><b>Buy</b>: the village rule generalises — "Buy the X from &lt;keeper&gt;" fires only when the hero stands in a shop node with live wares and the keeper in the scene. The adventure branch's looser "seller somewhere in the scene" rule retires with the world-node market. One branch, not two.</li>
+<li><b>A quest board</b> does not exist today and this spec does not design one. If wanted, it is an affordance of the tavern role (a <code>[QUEST:…|offered]</code> the GM raises when the party sits in the tavern) — a later row, after the roster has been played.</li>
+</ul>
+
+<h2>8. ⑥ Tests and viewers</h2>
+<ul>
+<li>Derivation table: every size word and every name word resolves to exactly one tier; an unknown yields null; a stored <code>node.tier</code> wins.</li>
+<li>Roster minting: first arrival mints once (idempotent on revisit), the note fires once, a dead turn restores the latch (the #151 registry census).</li>
+<li>Found shops: a filed sub-location whose leaf matches <code>shopWords</code> marks the roster; the per-shop ask fires inside it; the settlement's own market ask no longer fires once a roster exists; a village campaign is byte-identical.</li>
+<li>Carriers: merge/split carry <code>roster</code>, <code>shop</code>, <code>keeper</code>, <code>role</code> (the C1/C2 class — a test per field, not per carrier).</li>
+<li>Prompt: the stable half unchanged (frozen goldens); the volatile half gains the note only on the arrival turn.</li>
+<li>Viewers: map_viewer shows the tier as a badge on settlement nodes and shades found/unfound roster counts; map_cleanup lets the operator set <code>node.tier</code> and <code>shop</code>/<code>role</code> on a sub-location (the only explicit override).</li>
+</ul>
+
+<h2>9. Questions the signature settles</h2>
+<ol>
+<li>Roster counts as proposed (0/2/5/10/20 shops; 1/1/1/2/2+ inns)?</li>
+<li>Derive the tier from the GM's own words (recommended) rather than teach a new tag?</li>
+<li>Retire the town-level market for new settlements once a roster exists, and let the old wares expire in place?</li>
+<li>Inns and taverns as shop nodes with a role (one shape), rest-safety as the inn's affordance — or keep rest purely narrative?</li>
+<li>The village kind stays on its library-driven shops, exempt from rosters?</li>
+</ol>
+
+<h2>10. Build rows after the signature</h2>
+<table>
+<tr><th>Row</th><th>Scope</th><th>Tier</th><th>Effort</th></tr>
+<tr><td>R1</td><td><code>settlementTierFor</code> + the tier table + derivation tests; map_cleanup override</td><td>Any (pure helper) / satellite</td><td>S</td></tr>
+<tr><td>R2</td><td>Roster minting on first arrival + the ARRIVAL note (registry row, latch, combat/village gates)</td><td>Fable (prompt channel)</td><td>S</td></tr>
+<tr><td>R3</td><td>Shops as sub-location nodes in every kind: per-shop ask gated on the roster, the town market retired for rostered settlements, carriers carry the new fields</td><td>Fable (memory tier + prompt)</td><td>M</td></tr>
+<tr><td>R4</td><td>The Buy branch on the shop rule in every kind; the HERE line's "found" count</td><td>Fable (suggestion validator) / UI</td><td>S</td></tr>
+<tr><td>R5</td><td>map_viewer tier badge and roster shading</td><td>Any (satellite)</td><td>S</td></tr>
+</table>
+<p class="note">Everything above the rows is a reading of the current source plus the owner's numbers; nothing was built or changed while writing it.</p>
+</body>
+</html>
