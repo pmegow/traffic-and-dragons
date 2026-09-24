@@ -1277,6 +1277,8 @@ try {
   _hpHeroes.forEach(function (h) { var _w = JSON.parse(_fsBE.readFileSync(_pathBE.join(__dirname, "..", "samples", "characters", h.file), "utf8")); if (!_w || _w.type !== "character" || !_w.character || !_w.character.name || !_w.character.cls) _hpFail("hero " + h.file + " is not a .char wrapper with a named, classed sheet"); });
   if (_hpUb.indexOf("function consumeHomeQuickStart") < 0 || _hpUb.indexOf("startGame(char,tone.nm,tone.vc") < 0) _hpFail("consumeHomeQuickStart must start the campaign through startGame (#307).");
   if (_hpUb.indexOf("function consumeHomeBlueprint") < 0 || _hpUb.indexOf("_applyBlueprint(rec.bp)") < 0) _hpFail("consumeHomeBlueprint must route through _applyBlueprint (the wizard's one choke point).");
+  if (_hp.indexOf("String(meta.blurb||bp.premise||\"\")") < 0) _hpFail("the shelf card must prefer the curated blurb over the premise, premise as the fallback (#445 — all five cards ended mid-sentence on the premise).");
+  _hpCat.forEach(function (c) { if (!c.blurb || String(c.blurb).length > 240) _hpFail("catalog entry '" + c.name + "' needs a player-facing blurb of at most 240 characters — the card cuts at 240 (#445)."); });
   console.log("[#290] home page contract OK — read-only surface, shared handoff key, " + _hpCat.length + " curated original(s)");
 } catch (e) { console.error("HOME PAGE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 

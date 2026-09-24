@@ -124,7 +124,7 @@ a.link:hover{text-decoration:underline;}
     var acts=(bp.acts||[]).length,npcs=(bp.npcs||[]).length,locs=(bp.locations||[]).length;
     var h="<div class='card'><h3>"+esc(bp.name||meta.name||"Untitled")+"</h3>";
     h+="<div class='meta'>"+esc(toneName(bp.tone))+(acts?" · "+acts+" act"+(acts>1?"s":""):"")+(npcs?" · "+npcs+" NPCs":"")+(locs?" · "+locs+" places":"")+(meta.author?" · by "+esc(meta.author):"")+"</div>";
-    var prem=String(bp.premise||meta.blurb||"");if(prem.length>240)prem=prem.slice(0,237)+"…";
+    var prem=String(meta.blurb||bp.premise||"");if(prem.length>240)prem=prem.slice(0,237)+"…";/* #445: the curated pitch says what the player will DO; the premise is the designer's, a fallback here */
     h+="<p>"+esc(prem)+"</p>";
     h+="<div class='acts'><button class='b p' data-act='play'>Play</button><button class='b' data-act='design'>Open in designer</button></div></div>";
     var el=document.createElement("div");el.innerHTML=h;el=el.firstChild;

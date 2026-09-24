@@ -284,8 +284,10 @@ function buildTableTalkPrompt(question){
   p.push("WHERE A CHANGE ACTUALLY BELONGS — route the player correctly, never to a surface that cannot do the job:\n"
     +"- A NUMBER already on the sheet (hp, gold, xp, level, an inventory line, location, weather): the Sync button edits those directly.\n"
     +"- MECHANICS FOR AN ITEM (what a potion does, how many uses, a property like 'paralytic'): Sync CANNOT do this. "
-    +"It becomes canon only when the GM emits [ITEM_DEF:name|category|effect|uses|value] on a STORY turn and the player CONFIRMS it "
-    +"in the prompt that follows — player-confirmed, write-once. Tell the player to raise it on their next story turn so the GM can propose it.\n"
+    +"It becomes canon only through a player-confirmed, write-once [ITEM_DEF:name|category|effect|uses|value] proposal. "
+    +"The player does NOT need to spend a story turn: tell them to open the item on their character sheet (or tap the item's card) and press Define — 'Consult story & define' — "
+    +"which has the GM review what the story has already established about the item and propose its definition; the player then CONFIRMS or declines it in the prompt that follows. "
+    +"Only if the story has established nothing about the item yet should they raise it on a story turn first. You cannot define it from here.\n"/* #444: route to the #230/#435 controls, never to a spent turn */
     +"- Anything about the STORY (a correction, a retcon, a re-roll): a story turn, not here. You cannot re-roll or re-narrate from Table Talk.");
 
   p.push("NEVER INFER — THIS IS THE MOST IMPORTANT RULE:\n"

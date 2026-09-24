@@ -336,21 +336,48 @@ function _copyDir(srcDir,destDir){
     return chain;
   });
 }
+/* #438 (Astra review 2026-09-24, R1): a rename whose slug lands on an EXISTING folder is another campaign's folder —
+   it used to be opened with {create:true}, copied over file by file, and the source deleted ("Night?" and "Night!"
+   share one slug, so two campaigns can collide without anyone choosing to). Now: probe the destination first; an
+   occupied one is REFUSED loudly and nothing moves (unless it is provably the same directory — a case-only rename on
+   a case-insensitive disk); the source is only removed after the whole copy succeeded, and a copy that fails midway
+   says so and names the intact original. Returns a promise of {renamed|refused|same} for the test seam. */
 function renameCampaignFolder(newName){
-  if(!_campRootHandle||!_campFolderHandle)return;/* the cache is the OLD campaign folder — campName has already changed */
+  if(!_campRootHandle||!_campFolderHandle)return Promise.resolve(null);/* the cache is the OLD campaign folder — campName has already changed */
   var oldHandle=_campFolderHandle;
   var oldName=oldHandle.name;
   var newSlug=_slugFolderName(newName);
-  if(oldName===newSlug)return;
-  _campRootHandle.getDirectoryHandle(newSlug,{create:true}).then(function(newDir){
-    return _copyDir(oldHandle,newDir).then(function(){
-      return _campRootHandle.removeEntry(oldName,{recursive:true});
-    }).then(function(){
-      _campFolderHandle=newDir;_campFolderSlug=newSlug;
-      updateCampFolderUI();
-      showToast("📁 Renamed to "+newSlug+"/");
+  if(oldName===newSlug)return Promise.resolve(null);
+  return _campRootHandle.getDirectoryHandle(newSlug,{create:false}).then(function(existing){
+    var sameP=(typeof oldHandle.isSameEntry==="function")?oldHandle.isSameEntry(existing):Promise.resolve(false);
+    return sameP.then(function(same){
+      if(same)return {same:true};
+      var msg="A folder named "+newSlug+"/ already exists under "+_campRootHandle.name+"/ — the folder was NOT renamed and nothing was moved or overwritten; your files stay in "+oldName+"/. Pick a campaign name whose folder is free, or move the files by hand.";
+      console.warn("[files] #438 "+msg);
+      showToast("📁 "+msg,9000);
+      return {refused:true};
     });
-  }).catch(function(e){showToast("Folder rename failed: "+e.message);});
+  },function(e){
+    if(e&&e.name==="NotFoundError")return {free:true};
+    throw e;
+  }).then(function(r){
+    if(!r||!r.free)return r;
+    return _campRootHandle.getDirectoryHandle(newSlug,{create:true}).then(function(newDir){
+      return _copyDir(oldHandle,newDir).then(function(){
+        return _campRootHandle.removeEntry(oldName,{recursive:true});
+      }).then(function(){
+        _campFolderHandle=newDir;_campFolderSlug=newSlug;
+        updateCampFolderUI();
+        showToast("📁 Renamed to "+newSlug+"/");
+        return {renamed:true};
+      },function(e){
+        var why=(e&&e.message)||String(e);
+        console.warn("[files] #438 rename copy failed after creating "+newSlug+"/ — the original "+oldName+"/ is intact: "+why);
+        showToast("📁 Folder rename failed ("+why+") — your files are still in "+oldName+"/; the half-made "+newSlug+"/ can be removed by hand.",9000);
+        return {failed:true};
+      });
+    });
+  }).catch(function(e){showToast("Folder rename failed: "+e.message);return {failed:true};});
 }
 function clearCampaignFolder(){
   _campFolderHandle=null;_campFolderSlug=null;_campRootHandle=null;_campFolderPending=null;

@@ -19016,7 +19016,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     __ttWorld();
     var p=buildTableTalkPrompt("giant's bane is a paralytic, add that to canon");
     if(p.indexOf("[ITEM_DEF:")<0)return "TT is not taught the one path that actually makes item canon (#81)";
-    if(!/confirm/i.test(p.slice(p.indexOf("[ITEM_DEF:")-400,p.indexOf("[ITEM_DEF:")+400)))return "the [ITEM_DEF:] guidance omits that the PLAYER confirms it — TT would promise canon the GM cannot write alone";
+    if(!/confirm/i.test(p.slice(p.indexOf("[ITEM_DEF:")-400,p.indexOf("[ITEM_DEF:")+600)))return "the [ITEM_DEF:] guidance omits that the PLAYER confirms it — TT would promise canon the GM cannot write alone";
+    /* #444 (Astra review R7): the route is the Define control, not a spent story turn */
+    var q=buildTableTalkPrompt("How do I define Matched runic daggers?"),qi=q.indexOf("MECHANICS FOR AN ITEM"),qs=q.slice(qi,qi+900);
+    if(qi<0)return "the item-mechanics routing bullet is gone";
+    if(qs.indexOf("Consult story & define")<0||!/press Define/.test(qs))return "TT must route the player to the sheet's Define / the card's 'Consult story & define' (#230/#435): "+qs;
+    if(!/does NOT need to spend a story turn/.test(qs))return "TT still sends the player to spend a story turn: "+qs;
+    if(/raise it on their next story turn so the GM can propose it/.test(qs))return "the old next-turn instruction survives";
+    if(!/cannot define it from here/i.test(qs))return "TT must still say it cannot perform the change itself";
     return true;
   });
 
