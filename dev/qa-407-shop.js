@@ -1,3 +1,4 @@
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
 // #407 browser QA: the counter in a real Chrome — the village fixture at the trading post with the keeper present, the
 // inventory panel's "Trade with" row, the modal, two sales and a purchase, Complete, the ledger line, gold moved.
 // Local fixture only — no campaign writes, no paid calls. Serve the repo on 127.0.0.1:8124 (or AMBIENT_QA_URL), set

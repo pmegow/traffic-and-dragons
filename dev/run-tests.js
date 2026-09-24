@@ -162,6 +162,19 @@ try {
   } else console.log("[#264] review-call whitelist contract OK — both review sites gated, sheet sync ungated");
 } catch (_rwE) { console.error("REVIEW-CALL WHITELIST CONTRACT could not run: " + (_rwE && _rwE.message)); process.exitCode = 1; }
 
+// ── #405 MANUAL QA HEADER CONTRACT (2026-09-24) ──────────────────────────────────────────
+// The dev/qa-*.js browser scripts run in NO runner and NO workflow (they need a local Chrome), so
+// a behaviour whose only receipt is one of them is unenforced after its one manual run. Each
+// declares that on its first line, so a reader never mistakes it for a gate; a new script without
+// the header fails the build.
+try {
+  var _qaFiles = _rtFs.readdirSync(__dirname).filter(function (f) { return /^qa-.*\.js$/.test(f); });
+  var _qaBad = _qaFiles.filter(function (f) { return !/^\/\/ MANUAL QA /.test(_rtFs.readFileSync(_rtPath.join(__dirname, f), "utf8")); });
+  if (!_qaFiles.length) { console.error("MANUAL QA HEADER CONTRACT (#405): no dev/qa-*.js found — the scan is wrong"); process.exitCode = 1; }
+  else if (_qaBad.length) { console.error("MANUAL QA HEADER CONTRACT BROKEN (#405): these browser scripts do not open with '// MANUAL QA': " + _qaBad.join(", ")); process.exitCode = 1; }
+  else console.log("[#405] manual QA header contract OK — " + _qaFiles.length + " dev/qa-*.js scripts declare themselves manual");
+} catch (_qaE) { console.error("MANUAL QA HEADER CONTRACT could not run: " + (_qaE && _qaE.message)); process.exitCode = 1; }
+
 // ── REFUSAL COPY CONTRACT (#213, v1.698) ────────────────────────────
 // The two W2 withhold toasts ship to PLAYERS (owner ruling 2026-08-22) and must say why in
 // language a player owns. A SOURCE CONTRACT because the failure is silent: add a refusal reason

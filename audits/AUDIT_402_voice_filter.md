@@ -21,6 +21,7 @@ Existing assignments outside the filtered lists remain saved and selected throug
 - A temporary test comparison against #9 also matched the star icon's HTML entity; it was corrected to match full actor IDs. The browser fixture initially omitted required synthetic key/narrator settings; those were supplied before the successful reproduction. No paid requests were made.
 
 Screenshots: [before](screenshots/402-voice-filter-before.png), [after](screenshots/402-voice-filter-after.png).
+Caveat (#405, 2026-09-24): both screenshots show the selects expanded as five-row listboxes — the QA script sets `size=5` so the option lists are visible — and the shipped page renders native dropdowns. They evidence the option LISTS, not the phone-width dropdown's own rendering.
 Native iOS picker behavior and real service audio were not exercised; browser QA uses isolated Chrome and synthetic catalogs.
 
 ## Publication

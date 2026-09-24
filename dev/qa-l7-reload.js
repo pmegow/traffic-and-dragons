@@ -1,3 +1,4 @@
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
 // Isolated browser fixture: saved audio preferences persist across real reloads.
 const assert=require('assert/strict'), fs=require('fs'), path=require('path');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');

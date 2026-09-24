@@ -1,3 +1,4 @@
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
 const assert=require('assert/strict'),path=require('path'),qa=require('./browser-voice-qa.js');
 const before=process.argv.includes('--before');
 qa(process.cwd(),async b=>{

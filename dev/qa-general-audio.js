@@ -1,3 +1,4 @@
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
 const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
 const assert=require('assert/strict'),fs=require('fs');const engine=require('./load-engine');engine.loadEngine();engine.makeTestWorld({kind:'adventure',clock:{min:340}});
 worldState.world.location='Ashfen';worldState.world.sublocation=null;memory.map.nodes.Ashfen={parent:null,visits:1};

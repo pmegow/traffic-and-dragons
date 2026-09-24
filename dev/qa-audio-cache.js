@@ -1,3 +1,4 @@
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
 const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright'),assert=require('assert/strict');const engine=require('./load-engine');engine.loadEngine();engine.makeTestWorld({kind:'village',clock:{min:205}});worldState.world.location='The Village';memory.map.nodes['The Village']={parent:null};const fixture=JSON.parse(JSON.stringify({world:worldState,memory})),url=process.env.AMBIENT_QA_URL||'http://127.0.0.1:8124';
 (async()=>{const browser=await chromium.launch({channel:'chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required']});try{
 const context=await browser.newContext(),page=await context.newPage();await page.addInitScript(()=>localStorage.setItem('tnd_ak_v1','fixture-never-sent'));

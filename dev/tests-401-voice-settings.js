@@ -37,11 +37,16 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   pending[0].finish();await sleep(20);assert.equal(pending.length,2,'next group never requested');assert.equal(sources.length,1,'first group was not scheduled');
   TTS.stop();assert(pending[1].signal.aborted,'Stop left the next request alive');pending[1].finish();await sleep(10);assert.equal(max,1);assert.equal(sources.length,1,'late cancelled audio played');
  });
- await test('#401 Speechify reports concurrency versus request-rate limits and Retry-After without retrying',async()=>{
+ await test('#401 Speechify reports concurrency versus request-rate limits and Retry-After without retrying; #405 an HTTP-date, junk, zero, over-a-day or empty Retry-After omits the hint and never invents one',async()=>{
   for(const code of ['concurrency_limit_reached','rate_limited']){
    let count=0;global.fetch=async()=>{count++;return{ok:false,status:429,headers:{get:k=>k==='Retry-After'?'3':null},json:async()=>({error:{code,message:'provider detail'}})}};
    const r=await S._fetch('speechify',{text:'A quiet road.',voice:'a'},draft('speechify').models.speechify,'fixture');
    assert.match(r.fail,/HTTP 429/);assert.match(r.fail,code==='concurrency_limit_reached'?/simultaneous speech requests/:/request-rate limit/);assert.match(r.fail,/try again in 3s/);assert.equal(count,1);
+  }
+  for(const bad of ['Wed, 21 Oct 2026 07:28:00 GMT','abc','0','-5','90000','']){
+   let count=0;global.fetch=async()=>{count++;return{ok:false,status:429,headers:{get:k=>k==='Retry-After'?bad:null},json:async()=>({error:{code:'rate_limited',message:'provider detail'}})}};
+   const r=await S._fetch('speechify',{text:'A quiet road.',voice:'a'},draft('speechify').models.speechify,'fixture');
+   assert.match(r.fail,/HTTP 429/);assert.match(r.fail,/request-rate limit/);assert.doesNotMatch(r.fail,/try again/,'an unusable Retry-After ('+JSON.stringify(bad)+') must omit the hint, never invent one: '+r.fail);assert.equal(count,1,'no retry');
   }
  });
  await test('#401 malformed or stalled 429 body remains bounded and attributable',async()=>{

@@ -86,5 +86,38 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   assert(TTS._speakerTest.queued().length>=1,'fixture: nothing was queued behind the in-flight read');
   TTS.stop();assert.equal(TTS._speakerTest.queued().length,0,'Stop left items in the queue');
  });
+ /* #405 (Fable review 2026-09-11, Briefs C/F residues): behaviours the handoff named that no node battery exercised. */
+ await test('#405 a catalog that arrives AFTER automatic casting: an empty Speechify catalog leaves the primary unset (the backup fills from the shipped bench); once actors load, a second assignment fills the still-empty primary on the SAME sheet and never touches a pin already set',async()=>{
+  const d=draft('speechify');d.models.speechify.voices=[];d.primary='native';S.save(d);/* actors not loaded yet — the save rule needs a narrator only for the PRIMARY */
+  const c={name:'Rhea',gender:'F'};var backup;
+  store.set('tnd_speaker_stars_v1','[]');/* a written-but-EMPTY star bench: the backup slot must fall back to the shipped bench */
+  try{
+   assert.equal(TTS.starsList().length,0,'fixture: the star bench must read empty');
+   TTS.assignCharacterVoices(c,()=>0);
+   assert.equal(c.speechifyVoiceId,undefined,'an empty catalog must not invent a primary actor');
+   assert(c.voiceId&&TTS.voiceKnown(c.voiceId),'with no stars the backup slot must fill from the shipped bench: '+c.voiceId);
+   backup=c.voiceId;
+  }finally{store.del('tnd_speaker_stars_v1');}
+  S.save(draft('speechify'));
+  assert.equal(TTS.assignCharacterVoices(c,()=>0),true,'a populated catalog must fill the empty primary on the same sheet');
+  assert.equal(c.speechifyVoiceId,'a','gender-matched first actor (random()=0 → Actor A, F)');
+  assert.equal(c.voiceId,backup,'the backup pin already set was reassigned');
+  c.speechifyVoiceId='c';assert.equal(TTS.assignCharacterVoices(c,()=>0),false,'nothing left to assign');assert.equal(c.speechifyVoiceId,'c','a set pin is never overwritten');
+ });
+ await test('#405 an out-of-list pin survives a sheet reopen: both renderers keep the saved id selected through the hidden "Saved voice (not listed)" option, render identically twice, and never touch the sheet',async()=>{
+  require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-sheets.js'),'utf8'));
+  if(typeof global.escHtml!=='function')global.escHtml=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;');
+  S.save(draft('speechify'));
+  const c={name:'Rhea',gender:'F',speechifyVoiceId:'retired-actor',voiceId:'en_XX-nowhere-medium#9'};
+  const slot=TTS.characterVoiceSlots()[0];
+  const p1=csPrimaryVoiceOptions(c,slot),p2=csPrimaryVoiceOptions(c,slot);
+  assert.equal(p1,p2,'the primary renderer is not idempotent');
+  assert.match(p1,/value='retired-actor' selected disabled hidden>Saved voice \(not listed\)/,'the out-of-list primary pin lost its selection: '+p1);
+  assert.doesNotMatch(p1,/value='a' selected/,'a listed actor must not steal the selection');
+  const b1=csBackupVoiceOptions(c),b2=csBackupVoiceOptions(c);
+  assert.equal(b1,b2,'the backup renderer is not idempotent');
+  assert.match(b1,/value='en_XX-nowhere-medium#9' selected disabled hidden>Saved voice \(not listed\)/,'the out-of-list backup pin lost its selection: '+b1);
+  assert.equal(c.speechifyVoiceId,'retired-actor');assert.equal(c.voiceId,'en_XX-nowhere-medium#9');
+ });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

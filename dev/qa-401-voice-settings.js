@@ -1,3 +1,4 @@
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
 // Fresh Chrome profile and synthetic keys; outbound network is blocked by the helper.
 const assert=require('assert/strict'),qa=require('./browser-voice-qa.js');
 qa(process.cwd(),async b=>{

@@ -1,3 +1,4 @@
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
 // #413 browser QA: the ways row paints from the real map in a real Chrome, and a chip tap PREFILLS the input.
 // Local fixture only — no campaign writes, no paid calls. Serve the repo on 127.0.0.1:8124 (or set AMBIENT_QA_URL),
 // set PLAYWRIGHT_PATH to an installed Playwright module, and QA_OUT to a folder for the screenshots + receipt.

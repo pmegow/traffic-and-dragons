@@ -1,3 +1,4 @@
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
 // #6 E11 browser QA: the chest in a real Chrome — the hero in their own house, the inventory panel's "Stow and take" row,
 // the ledger modal, two stowed and one taken, Move, the log line, inventory and stash moved. Local fixture only.
 // Serve the repo (AMBIENT_QA_URL, default 127.0.0.1:8124), set PLAYWRIGHT_PATH and QA_OUT.
