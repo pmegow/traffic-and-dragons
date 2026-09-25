@@ -128,7 +128,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.49";
+var BP_DESIGNER_VERSION="v0.50";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -848,6 +848,11 @@ function openGenerate(){
         concept:document.getElementById("gen-concept").value.trim(),
         toneId:toneId,toneName:toneName,toneList:_toneIdList(),dna:dna
       },designerModel());
+      /* #459 ①: the same deterministic register gate the game runs at Begin — every hit lands in the draft's Review as a HIGH
+         finding (⚡ Apply rewrites it) before the author reads a word of it; nothing is refused here, the author decides. */
+      var _regF=(typeof skeletonRegisterFindings==="function")?skeletonRegisterFindings(draft):[],_rfi;
+      for(_rfi=0;_rfi<_regF.length;_rfi++)_regF[_rfi]._sel=0;
+      if(_regF.length)draft.review={findings:_regF,sections:0,failedSections:0};
       draft.format="tnd-blueprint-v1";draft.author="";draft.proseAuthor=voiceId||"";draft.narratorVoice=bp.narratorVoice||""; // #9: a generated draft must not silently drop an already-chosen narrator
       if(toneId)draft.tone=toneId; // the author's pick is authoritative over the model's echo
       bp=normalizeBlueprint(draft);
@@ -855,7 +860,7 @@ function openGenerate(){
       secOpen={}; // fresh content the author must actually read — start open, like New (loads collapse)
       markDirty();render();
       closeGenerate();
-      setStatus(err?("Generated with issues — "+err):("Generated “"+(bp.name||"untitled")+"” — a DRAFT, not a finished blueprint: edit freely, then 🔍 Review it."),err?"err":"ok");
+      setStatus(err?("Generated with issues — "+err):("Generated “"+(bp.name||"untitled")+"” — a DRAFT, not a finished blueprint: edit freely, then 🔍 Review it."+(_regF.length?" "+_regF.length+" line"+(_regF.length===1?"":"s")+" in accountant's language flagged in Review — apply those fixes first.":"")),err?"err":"ok");
     }catch(e){setStatus("Generation failed: "+e.message,"err");}
     btn.disabled=false;btn.textContent="✨ Generate";
   });

@@ -102,6 +102,31 @@ function normalizeSkeletonFindings(r){
   }
   return out;
 }
+/* #459 ① (owner field report 2026-09-25, the Village hearth): the deterministic REGISTER gate. The model review's REGISTER
+   criterion is a judgment; this is a scan — premise, act titles/goals/turning points and arc titles/objectives/dnaHints
+   against the widened label list (LABEL_RE, helpers.js: the narration list + the paperwork nouns). Each hit is ONE HIGH
+   finding in the reviewer's own shape, so the correction pass must rewrite it; the game re-scans the corrected skeleton,
+   regenerates once and refuses a dirty one (generateSkeleton); the designer seeds the same findings into the draft's Review. */
+function skeletonRegisterScan(skel){
+  var out=[];if(!skel||typeof skel!=="object")return out;
+  function chk(where,text){
+    if(typeof text!=="string"||!text||typeof wordListScan!=="function"||typeof LABEL_RE==="undefined")return;
+    var h=wordListScan(text,LABEL_RE);if(!h.length)return;
+    out.push({sev:"HIGH",where:where,issue:"written in accountant's language: "+h.join(", "),fix:"Rewrite it without "+h.join(", ")+" — this world keeps no books, so say what the thing IS (a curse, a hunger, an oath, a bargain in blood) and who wants it, in plain speech; keep every name and every event.",words:h});
+  }
+  chk("premise",skel.premise);
+  var acts=Array.isArray(skel.acts)?skel.acts:[],i,j;
+  for(i=0;i<acts.length;i++){var a=acts[i]||{},an="act "+(i+1);
+    chk(an+" title",a.title);chk(an+" goal",a.goal);chk(an+" turningPoint",a.turningPoint);
+    var arcs=Array.isArray(a.arcs)?a.arcs:[];
+    for(j=0;j<arcs.length;j++){var r=arcs[j]||{},rn="arc '"+(r.title||(an+" arc "+(j+1)))+"'";chk(rn+" title",r.title);chk(rn+" objective",r.objective);chk(rn+" dnaHint",r.dnaHint);}
+  }
+  return out;
+}
+/* the designer's shape of the same findings (sev/section/issue/fixes/status — what its Review list renders and ⚡ applies) */
+function skeletonRegisterFindings(skel){
+  return skeletonRegisterScan(skel).map(function(f){return {sev:"HIGH",section:"Story (acts & arcs)",issue:f.where+" is "+f.issue,fixes:[f.fix],status:""};});
+}
 /* #425 (the_fae_crysalis t33, 2026-09-20): the review prompt, pure. The game passes the hero's character block
    (skeletonCharBlock, game.js — backstory + THE RECORD) so the reviewer can see what the premise invented for them;
    the designer passes nothing and its prompt stays byte-identical. The INVENTED PAST dimension bites only when the

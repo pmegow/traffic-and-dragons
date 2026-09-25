@@ -3304,7 +3304,7 @@ async function draftStake(){
   var raw=await callGM(buildStakeDraftPrompt(c,w,t),STAKE_DRAFT_SYS,300,upgradeModelFor(),{noHistory:true,kind:"skeleton"});
   return String(raw||"").trim().replace(/^["“]+|["”]+$/g,"").trim();
 }
-async function generateSkeleton(statusFn){
+async function generateSkeleton(statusFn,_attempt){/* #459 ①: _attempt is the regeneration count (1 on entry) */
   var c=worldState.character,w=worldState.world,t=worldState.tone;
   var _skelDNA="",_skelPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");
   if(_skelPaId&&typeof AUTHORS!=="undefined"){for(var _spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_skelPaId&&AUTHORS[_spi].contentDNA){_skelDNA=AUTHORS[_spi].contentDNA;break;}}}
@@ -3316,9 +3316,13 @@ async function generateSkeleton(statusFn){
   // discipline, scoped to the skeleton schema (campaign_generator.js). Both extra calls ride
   // the "skeleton" usage bucket. A review/correction failure NEVER blocks campaign start:
   // fall back to the valid first draft, loudly (toast + console — no silent failures).
+  /* #459 ① (owner 2026-09-25): the deterministic REGISTER gate — premise, act goals, turning points and arc lines scanned
+     with the widened word list BEFORE the model review; every hit is a HIGH finding that LEADS the correction, so the
+     rewrite is demanded, never hoped for. The corrected skeleton is re-scanned after the review block. */
+  var _gate=skeletonRegisterScan(skel);
   try{
     if(statusFn)statusFn("Reviewing the campaign...");
-    var findings=await reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c,worldState.stake));/* #425: the reviewer sees the hero the premise was written for; #426: and the player's stake */
+    var findings=_gate.concat(await reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton",skeletonCharBlock(c,worldState.stake)));/* #425: the reviewer sees the hero the premise was written for; #426: and the player's stake */
     if(findings.length){
       if(statusFn)statusFn("Refining the campaign ("+findings.length+" fix"+(findings.length===1?"":"es")+")...");
       skel=await correctCampaignSkeleton(skel,findings,upgradeModelFor(),"skeleton");
@@ -3327,6 +3331,16 @@ async function generateSkeleton(statusFn){
   }catch(re){
     showToast("Campaign review failed ("+(re&&re.message?re.message:"unknown")+") — using the first draft",5000);
     if(typeof console!=="undefined")console.warn("[skeleton review] "+(re&&re.message?re.message:re));
+  }
+  /* #459 ①: a skeleton still in accountant's language after correction is regenerated ONCE, then REFUSED — the throw sits
+     outside the review catch by design: the Begin path toasts the reason and plays freeform; a dirty skeleton never lands. */
+  var _still=skeletonRegisterScan(skel);
+  if(_still.length){
+    var _stillWords=[],_swi,_swj;for(_swi=0;_swi<_still.length;_swi++)for(_swj=0;_swj<_still[_swi].words.length;_swj++)if(_stillWords.indexOf(_still[_swi].words[_swj])<0)_stillWords.push(_still[_swi].words[_swj]);
+    if((_attempt||1)>=2)throw new Error("The campaign came back in accountant's language twice ("+_stillWords.join(", ")+") — the skeleton was refused");
+    if(typeof console!=="undefined")console.warn("[skeleton] #459 still in accountant's language after correction ("+_stillWords.join(", ")+") — generating again");
+    if(statusFn)statusFn("The campaign came back in accountant's language ("+_stillWords.join(", ")+") — generating it again...");
+    return generateSkeleton(statusFn,(_attempt||1)+1);
   }
   stampSkeletonStatus(skel);
   // #227 — the freeform half of the age ladder (the #59 two-consumer pattern). A model that

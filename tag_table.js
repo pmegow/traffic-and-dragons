@@ -717,7 +717,13 @@ var TAG_TABLE=[
   /* v1.381: stamp the turn a MOOD was written, so staleness is measurable per character rather
      than guessed. Only on an actual mood write — a relation-only update ([NPC:Name||ally]) must
      NOT refresh the mood's age, or the audit would be fooled into thinking a stale mood is fresh. */
-  }else if(_npN){if(npStatus){_npN.status=npStatus;_npN.statusTurn=R.turn;}}
+  }else if(_npN){if(npStatus){
+    /* #460 ① (owner 2026-09-25): a sheeted resident's mood is what they are DOING — the sheet plays their disposition, so the
+       GM's own adjectives ("pleasant", "cheerful") are dropped here, loudly (mutation line + console), before they can feed the
+       roster back to the GM next turn. Party members keep their moods (their block is their own); an unsheeted NPC is unchanged. */
+    if(!_npN.partyMember&&_npN.charSheet&&typeof _npN.charSheet.trait==="string"&&_npN.charSheet.trait.trim()&&typeof moodDoingOnly==="function"){var _mdo=moodDoingOnly(npStatus);
+      if(_mdo!==npStatus){R.muts.push(npName+": mood kept to what they are doing"+(_mdo?" — "+_mdo:" (nothing doing; the sheet plays them)"));if(typeof console!=="undefined")console.warn("[npc] #460 "+npName+": disposition words dropped from the mood — \""+npStatus+"\" -> \""+_mdo+"\" (plays as: "+String(_npN.charSheet.trait).slice(0,60)+")");npStatus=_mdo;}}
+    _npN.status=npStatus;_npN.statusTurn=R.turn;}}
   /* v1.372: a new NPC's MOOD seeds EMPTY, not "unknown" — "unknown" is not a mood, and the field
      is now allowed to be honestly blank (the roster render skips empty parts). `rel` keeps
      "unknown" because that IS a legitimate category for a relationship we haven't established. */

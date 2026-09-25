@@ -25998,17 +25998,154 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       lastAction="Stoke the fire.";var p=buildSysPrompt(),m=p.volatile.match(/\nNPCs: ([^\n]*)/);if(!m)return "no roster line in the volatile half";
       var ents=m[1].split(/; (?=[A-Z])/),ny=ents.filter(function(x){return /^Nyla Lorrath/.test(x);})[0]||"",si=ents.filter(function(x){return /^Silas Morne/.test(x);})[0]||"",br=ents.filter(function(x){return /^Bram/.test(x);})[0]||"";
       if(!ny)return "Nyla is not on the roster: "+m[1].slice(0,300);
-      if(!/trait: Speaks in hushed, guarded murmurs/.test(ny)||!/flaw: Easily cowed/.test(ny)||!/look: A gaunt, bruised woman/.test(ny)||!/motivation: Survive Silas Morne's orbit/.test(ny))return "the present resident's personality is missing: "+ny;
+      if(!/plays as: Speaks in hushed, guarded murmurs/.test(ny)||!/flaw: Easily cowed/.test(ny)||!/look: A gaunt, bruised woman/.test(ny)||!/motivation: Survive Silas Morne's orbit/.test(ny))return "the present resident's personality is missing: "+ny;/* #460 ①: the sheet leads — "plays as" */
       if(!si)return "Silas is not on the roster (fixture): "+m[1].slice(0,300);
-      if(/trait:|flaw:|look:|motivation:/.test(si))return "an ABSENT character's personality rode the roster (the backlog): "+si;
+      if(/plays as:|trait:|flaw:|look:|motivation:/.test(si))return "an ABSENT character's personality rode the roster (the backlog): "+si;
       if(!br)return "Bram is not on the roster (fixture)";
-      if(/trait:|flaw:/.test(br))return "a party member's personality is doubled on the roster (the companion block has it): "+br;
-      if(/trait: Speaks in hushed/.test(p.stable))return "the personality leaked into the stable half";
+      if(/plays as:|trait:|flaw:/.test(br))return "a party member's personality is doubled on the roster (the companion block has it): "+br;
+      if(/Speaks in hushed/.test(p.stable))return "the personality leaked into the stable half";
     }finally{lastAction=_la;}
     return true;
   });
 
   // ── #372: the register guard's reach — three channels the #355 narration census cannot see ──
+  section("#459 / #460 — records never recited; the sheet outranks the GM's memory (owner field reports 2026-09-25)");
+  /* the owner's real Necrotic Dungeon skeleton (t35 save), shortened: the register lives in the premise, the act goals, a
+     turning point, an arc objective and an arc title — the exact lines the GM later pasted into Nyla's mouth at the hearth */
+  var _NECRO_SKEL={premise:"Ammut and his three wives breach an ossuary vault that begins consuming Daeris's body to repay an ancient soul-tax. To secure the debt-free life he promised her, Ammut must plunder the necrotic engines beneath the reach.",acts:[
+    {title:"The Threshold",goal:"Halt the spread of Daeris's petrification at the threshold vault and retrieve the counter-sigil relics.",turningPoint:"The counter-sigil shatters: halting the petrification requires the destruction of the subterranean tithe-engines anchoring the curse.",parallel:false,arcs:[{title:"Breaching the Maw",objective:"Navigate the collapsed outer threshold and establish a forward camp.",type:"exploration"}]},
+    {title:"The Foundations",goal:"Dismantle the three subterranean tithe-engines anchoring the vault's lien on Daeris before her body fully calcifies.",turningPoint:"The third engine falls and releases the Tomb-Architect's shade.",parallel:false,arcs:[{title:"The Vault of Unspoken Debts",objective:"Explore the archives of the ancient creditor-priests to discover the loophole in the vault's blood-contract.",type:"mystery"}]},
+    {title:"The Core",goal:"Confront the Tomb-Architect and annihilate the necrotic ledger binding Daeris.",turningPoint:"The master engine is shattered and Daeris is restored.",parallel:false,arcs:[{title:"The Ledger's End",objective:"Destroy the Tomb-Architect and shatter the soul-keystone.",type:"climax"}]}]};
+  t("#459 ① skeletonRegisterScan is the deterministic REGISTER gate: the real Necrotic skeleton's premise, act goals, turning points and arc lines each raise a HIGH finding naming the words with a one-sentence fix; a clean skeleton raises none",function(){
+    if(typeof skeletonRegisterScan!=="function")return "skeletonRegisterScan missing (campaign_generator.js)";
+    var f=skeletonRegisterScan(_NECRO_SKEL),wh=f.map(function(x){return x.where+":"+x.words.join("+");});
+    if(f.length<6)return "expected the six dirty lines: "+JSON.stringify(wh);
+    if(!f.every(function(x){return x.sev==="HIGH"&&x.issue&&x.fix&&x.where&&/never|no books|plain/i.test(x.fix);}))return "finding shape: "+JSON.stringify(f[0]);
+    if(wh[0]!=="premise:soul-tax")return "the premise's soul-tax must lead: "+wh[0];
+    if(!wh.some(function(w){return /^act 2 goal:tithe\+lien$/.test(w);}))return "act 2's goal must raise tithe and lien: "+JSON.stringify(wh);
+    if(!wh.some(function(w){return /turningPoint:tithe/.test(w);}))return "act 1's turning point must raise tithe";
+    if(!wh.some(function(w){return /objective:creditor/.test(w);}))return "the arc objective's creditor-priests must raise creditor";
+    if(!wh.some(function(w){return /title:ledger/.test(w);}))return "an arc TITLE in the register is a finding too: "+JSON.stringify(wh);
+    if(skeletonRegisterScan({premise:"A curse eats her from the feet up; only the engines below can be broken.",acts:[{title:"A",goal:"Break the first engine.",turningPoint:"It screams.",arcs:[{title:"Down",objective:"Reach the foundry."}]}]}).length)return "a clean skeleton must raise nothing";
+    if(skeletonRegisterScan(null).length||skeletonRegisterScan({}).length)return "an empty skeleton raises nothing";
+    return true;
+  });
+  t("#459 ① the designer's Generate takes the same gate: skeletonRegisterFindings renders the scan in the reviewer's finding shape (HIGH, section, issue, one fix, open status) and the gen-go handler seeds them into the draft's review before the author sees it",function(){
+    if(typeof skeletonRegisterFindings!=="function")return "skeletonRegisterFindings missing (campaign_generator.js)";
+    var f=skeletonRegisterFindings(_NECRO_SKEL);if(!f.length)return "no findings";
+    var k=Object.keys(f[0]).sort().join(",");if(k!=="fixes,issue,section,sev,status")return "designer shape sev/section/issue/fixes/status: "+k;
+    if(f[0].sev!=="HIGH"||f[0].status!==""||!Array.isArray(f[0].fixes)||f[0].fixes.length!==1||!/premise/.test(f[0].issue))return "finding: "+JSON.stringify(f[0]);
+    if(!skeletonRegisterFindings({premise:"Clean.",acts:[]}).length===false)return "";
+    var page=__fsForTests.readFileSync(__rootForTests+"/blueprint-designer.html","utf8"),gen=page.slice(page.indexOf('document.getElementById("gen-go")'),page.indexOf('document.getElementById("gen-concept").focus()'));
+    if(gen.indexOf("skeletonRegisterFindings(draft)")<0||gen.indexOf("draft.review=")<0)return "the Generate handler must scan the draft and seed draft.review before normalizeBlueprint";
+    return gen.indexOf("skeletonRegisterFindings(draft)")<gen.indexOf("bp=normalizeBlueprint(draft)")?true:"the seed must precede normalizeBlueprint";
+  });
+  t("#459 ① generateSkeleton source contract: the gate runs BEFORE the model review and its findings lead the correction; the corrected skeleton is re-scanned; a still-dirty skeleton is regenerated ONCE; a second failure throws OUTSIDE the review's catch (a loud toast at Begin, freeform play — never a silent dirty skeleton)",function(){
+    var gm=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),fn=gm.slice(gm.indexOf("async function generateSkeleton("),gm.indexOf("function buildOpeningIntro("));
+    var g1=fn.indexOf("skeletonRegisterScan(skel)"),rv=fn.indexOf("await reviewCampaignSkeleton("),tr=fn.indexOf("try{"),ct=fn.indexOf("}catch(re){");
+    if(g1<0||rv<0||g1>rv)return "the gate must run before the review";
+    if(fn.indexOf("_gate.concat(")<0&&fn.indexOf("gate.concat(")<0)return "the gate's findings must lead the review's findings into the correction";
+    var g2=fn.lastIndexOf("skeletonRegisterScan(skel)");if(g2<=ct)return "the corrected skeleton must be re-scanned after the review catch";
+    if(fn.indexOf("generateSkeleton(statusFn,")<0&&fn.indexOf("generateSkeleton(statusFn ")<0)return "one regeneration (a re-entry with an attempt count)";
+    var th=fn.indexOf("throw new Error(\"The campaign came back in accountant");if(th<0||th<ct)return "the refusal must throw outside the review catch";
+    return true;
+  });
+  t("#459 ② REGISTER_WORDS widened: lien, tithe, collateral, creditor, escrow, foreclose/foreclosure, repayment and soul-tax hit the narration census and the label list; legitimate English still passes",function(){
+    var h=registerScan("Her soul-tax lien and the tithe-engines; the creditors' collateral sat in escrow until the foreclosure; repayment came due; liens and tithes; foreclose on it; the creditor waits.");
+    var need=["soul-tax","lien","tithe","creditors","collateral","escrow","foreclosure","repayment","liens","tithes","foreclose","creditor"],i;
+    for(i=0;i<need.length;i++)if(h.indexOf(need[i])<0)return "missing "+need[i]+": "+JSON.stringify(h);
+    if(registerScan("Give an account of yourself. The contract of muscle tightened. She kept the register of her voice low. He paid his debt in blood. Collateral damage.").join("|")!=="collateral")return "false positive on legitimate English (collateral is the owner's call and the one expected hit)";
+    if(wordListScan("Recover the lien on the manifest",LABEL_RE).join("|")!=="lien|manifest")return "the label list inherits the widening";
+    if(motivationBirth({name:"X"},"Repay the lien to the creditor",1,"c").refused==null)return "a purpose in the widened register is refused";
+    return true;
+  });
+  t("#459 ③ the record guard's pure pieces: recordRegisterDecide keeps a clean rewrite, DROPS a line whose rewrite still carries a word or never came (a record is never filed in the banned register), and the rewrite prompt names the words, carries the line and asks for plain speech alone",function(){
+    if(typeof recordRegisterDecide!=="function"||typeof buildRecordRegisterRewritePrompt!=="function"||typeof recordRegisterGuard!=="function")return "guard pieces missing (memory.js)";
+    var orig="Her soul-tax lien and necrotic tether to the Reach's engines are extinguished for good.",hits=registerScan(orig);
+    if(hits.join("|")!=="soul-tax|lien")return "fixture: "+JSON.stringify(hits);
+    var d=recordRegisterDecide(orig,"The Reach's engines no longer have any hold on her; that curse is over for good.",hits);
+    if(!d.cleaned||d.text.indexOf("no longer have any hold")<0)return "a clean rewrite replaces the line: "+JSON.stringify(d);
+    d=recordRegisterDecide(orig,"Her lien is gone.",hits);if(d.cleaned||d.text!==null)return "a rewrite still carrying a word DROPS the line (null), never the original: "+JSON.stringify(d);
+    d=recordRegisterDecide(orig,null,hits);if(d.cleaned||d.text!==null)return "a failed call drops the line too";
+    d=recordRegisterDecide(orig,"\"Quoted clean line.\"",hits);if(!d.cleaned||d.text!=="Quoted clean line.")return "quotes stripped: "+JSON.stringify(d);
+    var p=buildRecordRegisterRewritePrompt(orig,hits);
+    if(p.indexOf("'soul-tax'")<0||p.indexOf("'lien'")<0||p.indexOf(orig)<0)return "the prompt names the words and carries the line";
+    if(!/plain/i.test(p)||!/blood, oaths, hunger/.test(p)||!/line only|only the rewritten line|reply with the rewritten line/i.test(p))return "the prompt asks for plain speech and the line alone: "+p;
+    return true;
+  });
+  t("#459 ③ summarize() awaits recordRegisterGuard on the parsed extraction, after the chapter guard and BEFORE applySummaryExtract files anything; the census carries a record channel with its dropped count on the stats line",function(){
+    var mem=__fsForTests.readFileSync(__rootForTests+"/memory.js","utf8"),sm=mem.slice(mem.indexOf("async function summarize("),mem.indexOf("function audioFileCandidates("));
+    var ci=sm.indexOf("await chapterRegisterGuard(extracted"),ri=sm.indexOf("await recordRegisterGuard(extracted"),ai=sm.indexOf("applySummaryExtract(extracted");
+    if(ci<0||ri<0||ai<0||ri<ci||ri>ai)return "order: chapter guard "+ci+", record guard "+ri+", apply "+ai;
+    makeWorld();delete worldState.registerCensus;registerCensusFile("record",["lien"],5,{reasked:true,dropped:true});registerCensusFile("record",["tithe"],6,{reasked:true,cleaned:true});
+    var s=registerCensusStats();if(s.record!==2||s.recordDropped!==1)return "stats: "+JSON.stringify(s);
+    return /record lines 2 \(1 dropped\)/.test(registerCensusLine())?true:"line: "+registerCensusLine();
+  });
+  t("#459 ④ STYLE carries THE RECORD IS YOURS, NOT THEIRS — short, vague, feeling first, never the record's wording; a companion who was there says less; a stranger has a garbled version — inside STYLE before 'Death is possible.'",function(){
+    makeWorld();var v=buildSysPrompt().volatile,tail=v.slice(v.indexOf("STYLE: ")),ri=tail.indexOf("THE RECORD IS YOURS, NOT THEIRS"),di=tail.indexOf("Death is possible.");
+    if(ri<0||di<0||ri>di)return "clause missing or misplaced";
+    if(!/never the wording of the record/.test(tail)||!/says less, not more/.test(tail)||!/garbled/.test(tail)||!/feeling first/.test(tail))return "clause wording";
+    return true;
+  });
+  t("#459 the settled filing lands in plain speech: a 'how' in the banned register falls to a bare 'settled' with a console line, so the growth core memory never recites it; a plain how is kept",function(){
+    var cs={name:"Daeris",motivation:"Find the original creditor."};var warns=[],_w=console.warn;console.warn=function(x){warns.push(String(x));};
+    var rec;try{rec=motivationSettle(cs,"Her soul-tax lien and necrotic tether to the Reach's engines are extinguished",49,"The Necrotic Dungeon");}finally{console.warn=_w;}
+    if(!rec||rec.how!=="settled")return "the register how must fall to 'settled': "+JSON.stringify(rec);
+    if(!warns.some(function(w){return /soul-tax/.test(w)&&/Daeris/.test(w);}))return "the refusal must be loud: "+JSON.stringify(warns);
+    if(cs.motivation!==""||cs.motivationHistory.length!==1)return "the purpose still settles";
+    var cs2={name:"Daeris",motivation:"Find him."};var r2=motivationSettle(cs2,"the engines below are broken and she walks free",50,"x");
+    return r2&&r2.how==="the engines below are broken and she walks free"?true:"a plain how is kept: "+JSON.stringify(r2);
+  });
+  t("#459 ⑤ dev/register-scrub.js (source pin; the behaviour rides dev/tests-459-register-gate.js): the walker covers knowledge, events, attitude, lore, decisions, chapters, core memories, motivationHistory, quests and the skeleton; the CLI gates writes on --apply, keeps a .bak, exports its pure pieces, and loads the engine lazily",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/dev/register-scrub.js","utf8"),need=[".coreMemories[",".motivationHistory[",".knowledge[",".events[",".attitude","memory.lore[","memory.keyDecisions[","memory.chapters[","worldState.quests[","worldState.skeleton.premise",".arcs[","--apply",".bak","module.exports","require.main === module","typeof wordListScan !== \"function\""],i;
+    for(i=0;i<need.length;i++)if(src.indexOf(need[i])<0)return "source lacks "+JSON.stringify(need[i]);
+    return true;
+  });
+  t("#460 ① the sheet outranks the GM's memory for a present sheeted resident: the roster entry LEADS with 'plays as: <trait>, flaw: …', the GM-written mood follows as 'now: …', then look and motivation; a resident without a trait keeps the mood-first entry",function(){
+    carriedEF();var _la=lastAction;
+    try{
+      var n=wsNpcByName("Nyla Lorrath");n.status="busy sorting dried goods";n.statusTurn=worldState.turn;
+      lastAction="Stoke the fire.";var p=buildSysPrompt(),m=p.volatile.match(/\nNPCs: ([^\n]*)/);if(!m)return "no roster line";
+      var ents=m[1].split(/; (?=[A-Z])/),ny=ents.filter(function(x){return /^Nyla Lorrath/.test(x);})[0]||"";
+      if(!/^Nyla Lorrath \(plays as: Speaks in hushed, guarded murmurs/.test(ny))return "the trait must lead: "+ny;
+      var pa=ny.indexOf("plays as:"),fl=ny.indexOf("flaw:"),nw=ny.indexOf("now: busy sorting dried goods"),lk=ny.indexOf("look:"),mo=ny.indexOf("motivation:");
+      if(!(pa<fl&&fl<nw&&nw<lk&&lk<mo))return "order plays as < flaw < now < look < motivation: "+ny;
+      if(/mood:|trait:/.test(ny))return "the old labels must be gone from a sheet-led entry: "+ny;
+      delete n.charSheet.trait;p=buildSysPrompt();m=p.volatile.match(/\nNPCs: ([^\n]*)/);ny=m[1].split(/; (?=[A-Z])/).filter(function(x){return /^Nyla Lorrath/.test(x);})[0]||"";
+      if(!/^Nyla Lorrath \(mood: busy sorting dried goods, flaw: Easily cowed/.test(ny))return "without a trait the mood-first entry stands: "+ny;
+    }finally{lastAction=_la;}
+    return true;
+  });
+  t("#460 ① a sheeted resident's GM-written mood is kept to what they are DOING: disposition words that restate or contradict the sheet are dropped at the tag with a mutation line and a console line; a mood with nothing doing leaves the field empty (the sheet plays them); an unsheeted NPC's mood is stored as written",function(){
+    carriedEF();var n=wsNpcByName("Nyla Lorrath");if(!n||!n.charSheet||!n.charSheet.trait)return "fixture";
+    if(typeof moodDoingOnly!=="function")return "moodDoingOnly missing (helpers.js)";
+    if(moodDoingOnly("at the market with her basket")!=="at the market with her basket")return "a place phrase is a doing";
+    if(moodDoingOnly("wary, watching the door")!=="watching the door")return "a participle part is a doing: "+moodDoingOnly("wary, watching the door");
+    if(moodDoingOnly("cheerful, warm")!=="")return "disposition alone is nothing doing";
+    var warns=[],_w=console.warn;console.warn=function(x){warns.push(String(x));};var r;
+    try{r=applyMuts("[NPC:Nyla Lorrath|pleasant, busy sorting dried goods, cheerful|neutral]");}finally{console.warn=_w;}
+    if(n.status!=="busy sorting dried goods")return "status: "+JSON.stringify(n.status);
+    if(!(r.muts||[]).some(function(x){return /Nyla Lorrath: mood kept to what they are doing/.test(x);}))return "muts: "+JSON.stringify(r.muts);
+    if(!warns.some(function(w){return /pleasant/.test(w)&&/cheerful/.test(w);}))return "the console must name what was dropped: "+JSON.stringify(warns);
+    applyMuts("[NPC:Nyla Lorrath|cheerful, warm|neutral]");if(n.status!=="")return "nothing doing → empty: "+JSON.stringify(n.status);
+    worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1});applyMuts("[NPC:Old Maud|cheerful, warm|neutral]");
+    return wsNpcByName("Old Maud").status==="cheerful, warm"?true:"an unsheeted NPC keeps the written mood: "+wsNpcByName("Old Maud").status;
+  });
+  t("#460 ① the memory attitude line is omitted for a sheeted resident with a trait — in the NPC detail and the graph node — and kept for everyone else",function(){
+    carriedEF();memory.npcs["Nyla Lorrath"].attitude="warm, friendly neighbor";
+    var d=memoryNpcDetail("Nyla Lorrath");if(/toward you:/.test(d))return "detail still carries the attitude: "+d;
+    npcLinkUpsert("Nyla Lorrath","Silas Morne","neighbour");var g=buildNpcGraph();
+    if(/Nyla Lorrath \([^)]*toward you: warm/.test(g))return "graph node still carries it: "+g;
+    delete wsNpcByName("Nyla Lorrath").charSheet.trait;
+    if(!/toward you: warm, friendly neighbor/.test(memoryNpcDetail("Nyla Lorrath")))return "without a trait the attitude is kept";
+    return /Nyla Lorrath \([^)]*toward you: warm/.test(buildNpcGraph())?true:"without a trait the graph keeps it";
+  });
+  t("#460 ② STYLE carries NO STOCK BLESSINGS OR RITUAL GREETINGS — people greet the way their trait says, or not at all — inside STYLE before 'Death is possible.', every kind",function(){
+    makeWorld();var v=buildSysPrompt().volatile,tail=v.slice(v.indexOf("STYLE: ")),gi=tail.indexOf("NO STOCK BLESSINGS OR RITUAL GREETINGS"),di=tail.indexOf("Death is possible.");
+    if(gi<0||di<0||gi>di)return "clause missing or misplaced";
+    if(!/the way their trait says/.test(tail)||!/or not at all/.test(tail))return "clause wording";
+    worldState.kind="village";v=buildSysPrompt().volatile;return v.indexOf("NO STOCK BLESSINGS OR RITUAL GREETINGS")>=0?true:"the village must carry it too";
+  });
   section("#372 register reach");
   t("#372 ③ labels: registerLabelScan reads QUEST / QUEST_STEP / SCHEDULE operands for paperwork nouns (the plot channel) and never the prose; the label list is the tight list PLUS the paperwork nouns",function(){
     if(typeof registerLabelScan!=="function")return "registerLabelScan missing";
@@ -26134,8 +26271,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#437 pure: motivationSettle retires the standing purpose into motivationHistory (text, how, turn, campaign) and empties the field; nothing standing → null; motivationBirth sets a new one, archives a standing one as replaced, refuses a paperwork purpose and never writes it, no-ops on the same text; motivationSettledLine names how and where it was settled, never the old words",function(){
     __mlWorld();var d=findCompanionChar("Daeris"),f=findCompanionChar("Frizwick");
     if(typeof motivationSettle!=="function"||typeof motivationBirth!=="function"||typeof motivationSettledLine!=="function")return "helpers missing";
-    var r=motivationSettle(d,"the creditor was found and the debt paid",40);
-    if(!r||r.text!=="Find the original creditor and close the account properly."||r.how!=="the creditor was found and the debt paid"||r.turn!==40||r.camp!=="The Necrotic Dungeon")return "settle record: "+JSON.stringify(r);
+    var r=motivationSettle(d,"the one she hunted was found and the debt paid",40);
+    if(!r||r.text!=="Find the original creditor and close the account properly."||r.how!=="the one she hunted was found and the debt paid"||r.turn!==40||r.camp!=="The Necrotic Dungeon")return "settle record: "+JSON.stringify(r);
     if(d.motivation!=="")return "the field must empty: "+JSON.stringify(d.motivation);
     if(!d.motivationHistory||d.motivationHistory.length!==1)return "history: "+JSON.stringify(d.motivationHistory);
     if(motivationSettle(d,"again",41)!==null)return "nothing standing must return null";
@@ -26149,17 +26286,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var rep=motivationBirth(f,"To keep the people who kept her.",45);
     if(!rep||rep.replaced!==b.now||f.motivation!=="To keep the people who kept her."||f.motivationHistory.length!==1||!/replaced/.test(f.motivationHistory[0].how))return "a replacement must archive the old one: "+JSON.stringify(rep)+" "+JSON.stringify(f.motivationHistory);
     if(motivationSettledLine(f)!=="")return "a standing purpose has no settled line";
-    var ml=motivationSettledLine(d);if(ml!=="settled in The Necrotic Dungeon: the creditor was found and the debt paid")return "settled line: "+ml;
+    var ml=motivationSettledLine(d);if(ml!=="settled in The Necrotic Dungeon: the one she hunted was found and the debt paid")return "settled line: "+ml;
     if(motivationSettledLine({name:"x"})!=="")return "no history, no line";
     return true;
   });
   t("#437 tag: [COMPANION_GROWTH:Name|motivation|settled: how] retires the purpose on screen (empty field, history, growth defining moment, toast, muts); off screen → refused; nothing standing → loud no-op; [COMPANION_GROWTH:Name|motivation|new purpose] births one (toast, defining moment); a paperwork purpose gets a ⚠ muts line and is never written; the flaw form still works; the doc line teaches both forms",function(){
     __mlWorld();var d=findCompanionChar("Daeris"),f=findCompanionChar("Frizwick"),tl=[],warns=[],_st=showToast,_w=console.warn;showToast=function(m){tl.push(String(m));};console.warn=function(m){warns.push(String(m));};
     try{
-      var R=applyMuts("The vault is silent. [COMPANION_GROWTH:Daeris|motivation|settled: the creditor was found and the debt paid]");
+      var R=applyMuts("The vault is silent. [COMPANION_GROWTH:Daeris|motivation|settled: the one she hunted was found and the debt paid]");
       if(d.motivation!=="Find the original creditor and close the account properly.")return "settled with the companion off screen";
-      R=applyMuts("Daeris presses a hand to her throat. [COMPANION_GROWTH:Daeris|motivation|settled: the creditor was found and the debt paid]");
-      if(d.motivation!==""||!d.motivationHistory||d.motivationHistory.length!==1||d.motivationHistory[0].how!=="the creditor was found and the debt paid")return "not settled: "+JSON.stringify(d.motivation)+" "+JSON.stringify(d.motivationHistory);
+      R=applyMuts("Daeris presses a hand to her throat. [COMPANION_GROWTH:Daeris|motivation|settled: the one she hunted was found and the debt paid]");
+      if(d.motivation!==""||!d.motivationHistory||d.motivationHistory.length!==1||d.motivationHistory[0].how!=="the one she hunted was found and the debt paid")return "not settled: "+JSON.stringify(d.motivation)+" "+JSON.stringify(d.motivationHistory);
       if(!R.muts.some(function(m){return /Daeris/.test(m)&&/settled/.test(m);}))return "muts: "+JSON.stringify(R.muts);
       var cm=(d.coreMemories||[]).filter(function(x){return x.kind==="growth"&&/purpose was settled/.test(x.text);});if(!cm.length)return "no growth defining moment: "+JSON.stringify(d.coreMemories);
       if(!tl.some(function(x){return /Daeris/.test(x)&&/settled/.test(x);}))return "no toast: "+JSON.stringify(tl);
@@ -26183,9 +26320,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     __mlWorld();var d=findCompanionChar("Daeris");
     var before=buildSysPrompt();
     if(__mlBlock(before.stable,"Daeris").indexOf("motivation — Find the original creditor and close the account properly.;")<0)return "standing motivation missing from the stable half: "+__mlBlock(before.stable,"Daeris");
-    motivationSettle(d,"the creditor was found and the debt paid",40);
+    motivationSettle(d,"the one she hunted was found and the debt paid",40);
     var after=buildSysPrompt(),db=__mlBlock(after.stable,"Daeris"),fb=__mlBlock(after.stable,"Frizwick");
-    if(db.indexOf("motivation — none standing (settled in The Necrotic Dungeon: the creditor was found and the debt paid);")<0)return "settled line missing: "+db;
+    if(db.indexOf("motivation — none standing (settled in The Necrotic Dungeon: the one she hunted was found and the debt paid);")<0)return "settled line missing: "+db;
     if(db.indexOf("close the account")>=0)return "the old purpose still reaches the GM";
     if(!fb||fb.indexOf("motivation")>=0)return "a sheet that never had a motivation must show none: "+fb;
     var den=buildDenouementCompanions();if(!/Daeris[^\n]*purpose settled \(settled in The Necrotic Dungeon/.test(den))return "the ending must know the purpose was settled: "+den;
@@ -26195,7 +26332,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#437 belt: the extractor's motivationChanges settle and birth through the same helpers — companions only (the hero and a stranger are dropped loudly, a paperwork purpose is refused loudly, every filing toasts) — and the extraction schema names the field with its ONLY-if guards",function(){
     __mlWorld();var d=findCompanionChar("Daeris"),f=findCompanionChar("Frizwick"),c=worldState.character;c.motivation="To prove yourself worthy of something lost";
     var warns=[],_w=console.warn,tl=[],_st=showToast;console.warn=function(m){warns.push(String(m));};showToast=function(m){tl.push(String(m));};
-    try{applySummaryExtract({chapterSummary:"",motivationChanges:[{name:"Daeris",settled:"the creditor was found and the debt paid"},{name:"Frizwick",now:"To find a place where leaving costs nothing vital."},{name:"Ammut",settled:"x"},{name:"Nobody",now:"y"},{name:"Frizwick",now:"To audit every ledger in the Holding."}]},null);}finally{console.warn=_w;showToast=_st;}
+    try{applySummaryExtract({chapterSummary:"",motivationChanges:[{name:"Daeris",settled:"the one she hunted was found and the debt paid"},{name:"Frizwick",now:"To find a place where leaving costs nothing vital."},{name:"Ammut",settled:"x"},{name:"Nobody",now:"y"},{name:"Frizwick",now:"To audit every ledger in the Holding."}]},null);}finally{console.warn=_w;showToast=_st;}
     if(d.motivation!==""||!d.motivationHistory||d.motivationHistory.length!==1)return "Daeris not settled by the belt: "+JSON.stringify(d.motivation);
     if(f.motivation!=="To find a place where leaving costs nothing vital.")return "Frizwick's purpose not born by the belt: "+JSON.stringify(f.motivation);
     if(c.motivation!=="To prove yourself worthy of something lost")return "the hero's purpose is the player's — the belt must not touch it";

@@ -164,7 +164,11 @@ function diceStatsLine(){
 // lesson: an instruction that loses to the model's own recent output must arrive beside it.
 // The list is deliberately tight — unambiguous clerical nouns only. "account", "contract", "bill",
 // "record", "register" and "the books" are all legitimate English in a fantasy mouth and stay out.
-var REGISTER_WORDS=["ledger","ledgers","invoice","invoices","invoiced","paperwork","bookkeeping","bookkeeper","clerical","spreadsheet","spreadsheets","accountant","accountants","tally sheet","balance sheet"];
+var REGISTER_WORDS=["ledger","ledgers","invoice","invoices","invoiced","paperwork","bookkeeping","bookkeeper","clerical","spreadsheet","spreadsheets","accountant","accountants","tally sheet","balance sheet",
+  /* #459 ② (owner 2026-09-25, the Necrotic Dungeon's "soul-tax lien" recited at a village hearth): the debt-and-tithe half of the
+     register — every consumer inherits it (the #355 note, the #372 chapter guard, the labels, the sheet report, the #459 skeleton gate
+     and record guard). "collateral" is the owner's call and catches "collateral damage" too — a known, accepted false positive. */
+  "lien","liens","tithe","tithes","collateral","creditor","creditors","escrow","foreclosures","foreclosure","foreclosed","foreclose","repayments","repayment","soul-tax"];
 var REGISTER_RE=new RegExp("\\b(?:"+REGISTER_WORDS.map(function(w){return w.replace(/ /g,"\\s+");}).join("|")+")\\b","gi");
 var REGISTER_LOG_MAX=50;
 /* #372: the guard's reach. ONE scanner over a word list (registerScan is the #355 instance, signature kept).
@@ -191,10 +195,11 @@ function registerCensusFile(channel,hits,turn,extra){
   while(c[channel].length>REGISTER_LOG_MAX)c[channel].shift();
   return hits;
 }
-function registerCensusStats(ws){ws=ws||(typeof worldState!=="undefined"?worldState:null);var c=(ws&&ws.registerCensus)||{},out={chapter:0,chapterDirty:0,label:0,idiom:0},i;
+function registerCensusStats(ws){ws=ws||(typeof worldState!=="undefined"?worldState:null);var c=(ws&&ws.registerCensus)||{},out={chapter:0,chapterDirty:0,label:0,idiom:0,record:0,recordDropped:0},i;
   var ch=c.chapter||[];for(i=0;i<ch.length;i++){out.chapter++;if(ch[i].reasked&&ch[i].cleaned===false)out.chapterDirty++;}
+  var rc=c.record||[];for(i=0;i<rc.length;i++){out.record++;if(rc[i].dropped)out.recordDropped++;}/* #459 ③: knowledge/lore lines re-asked, and how many were dropped */
   out.label=(c.label||[]).length;out.idiom=(c.idiom||[]).length;return out;}
-function registerCensusLine(){var s=registerCensusStats();if(!s.chapter&&!s.label&&!s.idiom)return "";return "Register census (counts only, no correction): chapter summaries "+s.chapter+(s.chapterDirty?" ("+s.chapterDirty+" still dirty after a re-ask)":"")+", quest/schedule labels "+s.label+", modern idiom "+s.idiom+".";}
+function registerCensusLine(){var s=registerCensusStats();if(!s.chapter&&!s.label&&!s.idiom&&!s.record)return "";return "Register census (counts only, no correction): chapter summaries "+s.chapter+(s.chapterDirty?" ("+s.chapterDirty+" still dirty after a re-ask)":"")+", quest/schedule labels "+s.label+", modern idiom "+s.idiom+(s.record?", record lines "+s.record+" ("+s.recordDropped+" dropped)":"")+".";}
 /* ② the authoring seams, read at the SHEET rather than hooked at four call sites (wizard, blueprint import,
    generateNpcSheet, the #330 want birth): the live sheet is what every seam wrote, so one census over it covers
    them all, and a hand edit in the character editor too. REPORT only — personality is the player's, never the
@@ -256,6 +261,11 @@ var MOTIVATION_SETTLED_RE=/^\s*(settled|fulfilled|done|closed|abandoned|outgrown
 function motivationSettle(cs,how,turn,camp){
   if(!cs||typeof cs.motivation!=="string"||!cs.motivation.trim())return null;
   var was=cs.motivation.trim(),h=String(how||"").trim().slice(0,200)||"settled";
+  /* #459 (owner 2026-09-25): the settled filing lands in plain speech — a how written in the banned register (the label list)
+     falls to a bare "settled", loudly; the purpose still settles (that fact is real), only its wording is refused, so the
+     growth core memory the filing writes never recites it either. */
+  var _hh=(typeof wordListScan==="function"&&typeof LABEL_RE!=="undefined")?wordListScan(h,LABEL_RE):[];
+  if(_hh.length){if(typeof console!=="undefined")console.warn("[motivation] #459 "+(cs.name||"?")+": the settled reason was written in accountant's language ("+_hh.join(", ")+") — filed as a bare 'settled': \""+h.slice(0,80)+"\"");h="settled";}
   if(!cs.motivationHistory)cs.motivationHistory=[];
   var rec={text:was,how:h,turn:turn,camp:String(camp!=null?camp:((typeof worldState!=="undefined"&&worldState&&worldState.campName)||""))};
   cs.motivationHistory.push(rec);cs.motivation="";return rec;
@@ -2714,4 +2724,24 @@ function sayMoodShape(raw){
   var s=String(raw==null?"":raw).replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
   if(!s||s.length>SAY_MOOD_MAX)return "";
   return /^[A-Za-z][A-Za-z ,-]*$/.test(s)?s:"";
+}
+
+// #460 ① (owner 2026-09-25, village Nyla "still isn't coming through"): a sheeted resident's GM-written mood is kept to
+// what they are DOING — the sheet plays their disposition. Comma-separated parts survive when they read as an activity
+// (a present participle: "sorting dried goods", "watching the door") or a place ("at the market with her basket");
+// bare disposition words ("pleasant", "cheerful, warm") are dropped by the tag handler, loudly. A proxy, not a judge:
+// an adjective ending in -ing ("charming") passes as a doing — accepted, recorded on the row.
+var MOOD_PLACE_RE=/^(?:at|in|on|by|with|behind|before|beside|near|under|over|inside|outside|out|up|down|to|from|among|beneath|atop|toward|towards|about|around|through|across|against|along|between|into|onto|upon|off|back|away|home|abroad|alone)\b/i;
+function moodDoingOnly(mood){
+  var parts=String(mood||"").split(/[,;]/),out=[],i,p;
+  for(i=0;i<parts.length;i++){p=parts[i].replace(/^\s+|\s+$/g,"");if(!p)continue;
+    if(/\b[a-z]{2,}ing\b/i.test(p)||MOOD_PLACE_RE.test(p))out.push(p);}
+  return out.join(", ");
+}
+// #460 ①: does the SHEET lead this character's entry? A present-or-absent non-party resident with a sheet trait — the
+// roster leads with "plays as", and the memory attitude line (the summariser's slower, GM-fed reading) is omitted in the
+// NPC detail and the graph node, so one clause from the sheet no longer loses to a hundred remembered lines.
+function sheetTraitLeads(name){
+  var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;
+  return !!(n&&!n.partyMember&&n.charSheet&&typeof n.charSheet.trait==="string"&&n.charSheet.trait.trim());
 }

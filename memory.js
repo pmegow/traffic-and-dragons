@@ -1718,7 +1718,7 @@ function memoryTOC(opts){
   if(memory.chapters.length&&!_diet){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
   return lines.join("\n");
 }
-function memoryNpcDetail(name){if(memoryNpcIsPlayer(name))return"";var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+(n.attitude?" — toward you: "+n.attitude:"")],i;var _dWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(_dWs&&_dWs.partyMember&&_dWs.charSheet&&_dWs.charSheet.splitLoc){lines.push("  Currently: AWAY from the party at "+_dWs.charSheet.splitLoc.location+(_dWs.charSheet.splitLoc.sublocation?" ("+_dWs.charSheet.splitLoc.sublocation+")":"")+" — this line is authoritative; any position or activity claim below that contradicts it is STALE history.");}/* #144B: the zero-false-positive counter to legacy stale-posture Knows lines — a pure ADDITION, never suppression (a misclassifying suppressor would hide TRUE canon, the rebuttal-round objection) *//* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */var _secret=npcSecretText(n);if(_secret)lines.push("  "+_secret);var _auth=npcAuthoredText(n);if(_auth)lines.push("  Authored guidance (play outcomes are recorded separately): "+(_auth.length>2000?_auth.slice(0,2000)+" …[truncated]":_auth));if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
+function memoryNpcDetail(name){if(memoryNpcIsPlayer(name))return"";var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+((n.attitude&&!(typeof sheetTraitLeads==="function"&&sheetTraitLeads(name)))?" — toward you: "+n.attitude:"")/* #460 ①: the sheet plays a traited resident; the summariser's attitude is omitted */],i;var _dWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(_dWs&&_dWs.partyMember&&_dWs.charSheet&&_dWs.charSheet.splitLoc){lines.push("  Currently: AWAY from the party at "+_dWs.charSheet.splitLoc.location+(_dWs.charSheet.splitLoc.sublocation?" ("+_dWs.charSheet.splitLoc.sublocation+")":"")+" — this line is authoritative; any position or activity claim below that contradicts it is STALE history.");}/* #144B: the zero-false-positive counter to legacy stale-posture Knows lines — a pure ADDITION, never suppression (a misclassifying suppressor would hide TRUE canon, the rebuttal-round objection) *//* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */var _secret=npcSecretText(n);if(_secret)lines.push("  "+_secret);var _auth=npcAuthoredText(n);if(_auth)lines.push("  Authored guidance (play outcomes are recorded separately): "+(_auth.length>2000?_auth.slice(0,2000)+" …[truncated]":_auth));if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
 function npcLinkUpsert(nameA, nameB, rel){
   if(!memory.npcGraph)memory.npcGraph={edges:[]};
   var edges=memory.npcGraph.edges,i;
@@ -1768,7 +1768,7 @@ function buildNpcGraph(){
     var npc=memory.npcs[name]||{};
     var wsNpc=wsNpcByName(name);/* #7: shared lookup */
     var meta=[];
-    if(npc.attitude)meta.push("toward you: "+npc.attitude);/* v1.382: labelled — see memoryNpcDetail. This is the graph node's disposition, NOT the roster's mood. */
+    if(npc.attitude&&!(typeof sheetTraitLeads==="function"&&sheetTraitLeads(name)))meta.push("toward you: "+npc.attitude);/* v1.382: labelled — see memoryNpcDetail. This is the graph node's disposition, NOT the roster's mood. #460 ①: omitted for a traited sheeted resident. */
     if(wsNpc&&wsNpc.partyMember)meta.push("PARTY");
     if(npc.dead)meta.push("DECEASED");/* B3 */
     if(npc.lastSeenAt)meta.push("last:"+npc.lastSeenAt);
@@ -2280,6 +2280,49 @@ async function chapterRegisterGuard(extracted,turn,call){
   if(typeof console!=="undefined")console.warn("[memory] #372 chapter summary used "+hits.join(", ")+" — "+(reasked?(d.cleaned?"re-asked once; the clean rewrite is the chapter on file":"re-asked once; the rewrite still carried it, the original files as extracted (counted)"):"the re-ask could not run; the original files as extracted (counted)"));
   return {hits:hits,reasked:reasked,cleaned:d.cleaned};
 }
+/* #459 ③ (owner field report 2026-09-25, the Village hearth): the RECORD guard — the #372 chapter guard's reach extended to the
+   extraction's knowledge and lore lines, the two records the GM later reads back through a character's mouth word for word.
+   Each line carrying a word from the narration list is re-asked ONCE as a one-line rewrite into plain speech; a CLEAN rewrite
+   replaces it in place, anything else (still dirty, empty, a failed call) DROPS the line — a record is never filed in the banned
+   register. Loud per line (console) and counted on the census's `record` channel (dropped vs cleaned). Pure pieces first; the
+   async guard runs in summarize() after the chapter guard and before applySummaryExtract files anything. Re-asks are capped
+   per window (a summarize already awaits one chapter re-ask; the player is waiting). */
+var RECORD_REWRITE_SYS="You rewrite one line of a story's memory record on request. Reply with the rewritten line only: no preamble, no quotes, no markdown, no JSON.";
+var RECORD_REGISTER_REASK_MAX=6;
+function buildRecordRegisterRewritePrompt(line,hits){
+  var w=(hits||[]).map(function(x){return "'"+x+"'";}).join(", ");
+  return "Rewrite the record line below in plain speech, the way a friend who was there would say it — keep every name, every fact and every event, about the same length, but remove every clerical image: it used "+w+". This world keeps no books: debts are blood, oaths, hunger and memory; say what the thing IS (a curse, a hunger, an oath, a bargain in blood) instead of the paperwork word for it. Reply with the rewritten line only.\n\nLINE:\n"+line;
+}
+function recordRegisterDecide(original,rewrite,hits){
+  var t=chapterRewriteText(rewrite);
+  if(!t)return {text:null,cleaned:false};
+  return registerScan(t).length?{text:null,cleaned:false}:{text:t,cleaned:true};
+}
+async function recordRegisterGuard(extracted,turn,call){
+  var out={hits:0,reasked:0,cleaned:0,dropped:0};
+  if(!extracted||typeof extracted!=="object"||typeof registerScan!=="function")return out;
+  var jobs=[],i;
+  var ups=Array.isArray(extracted.npcUpdates)?extracted.npcUpdates:[];
+  for(i=0;i<ups.length;i++){(function(nu){if(!nu||nu.knowledgeGained==null)return;var v=nu.knowledgeGained,f=(typeof v==="object"&&v)?v.fact:v;if(typeof f!=="string"||!f)return;
+    jobs.push({what:"knowledge ("+(nu.name||"?")+")",text:f,set:function(t){if(typeof v==="object"&&v)v.fact=t;else nu.knowledgeGained=t;},drop:function(){delete nu.knowledgeGained;}});})(ups[i]);}
+  var lore=Array.isArray(extracted.loreDiscovered)?extracted.loreDiscovered:[],loreDrop=[];
+  for(i=0;i<lore.length;i++){(function(ix){var f=lore[ix];if(typeof f!=="string"||!f)return;jobs.push({what:"lore",text:f,set:function(t){lore[ix]=t;},drop:function(){loreDrop.push(ix);}});})(i);}
+  var asked=0;
+  for(i=0;i<jobs.length;i++){
+    var j=jobs[i],hits=registerScan(j.text);if(!hits.length)continue;
+    out.hits++;var resp=null,reasked=false;
+    if(asked<RECORD_REGISTER_REASK_MAX){asked++;
+      try{resp=await (call||callGM)(buildRecordRegisterRewritePrompt(j.text,hits),RECORD_REWRITE_SYS,300,null,{kind:"summarize",noHistory:true});reasked=true;out.reasked++;}
+      catch(e){if(typeof console!=="undefined")console.warn("[memory] #459 record rewrite call failed ("+((e&&e.message)||"?")+") for the "+j.what+" line — the line is dropped, never filed in the register");}
+    }
+    var d=recordRegisterDecide(j.text,resp,hits);
+    if(d.cleaned){j.set(d.text);out.cleaned++;}else{j.drop();out.dropped++;}
+    if(typeof registerCensusFile==="function")registerCensusFile("record",hits,turn,d.cleaned?{reasked:reasked,cleaned:true}:{reasked:reasked,dropped:true});
+    if(typeof console!=="undefined")console.warn("[memory] #459 "+j.what+" line used "+hits.join(", ")+" — "+(d.cleaned?"re-asked once; the plain rewrite is on file":(reasked?"re-asked once; the rewrite still carried it — the line is dropped":"not re-asked — the line is dropped"))+": \""+j.text.slice(0,80)+"\"");
+  }
+  if(loreDrop.length){for(i=loreDrop.length-1;i>=0;i--)lore.splice(loreDrop[i],1);}
+  return out;
+}
 var EXTRACT_WINDOW_CAPS={assistant:4000,user:500};
 var EXTRACT_REFRAME_CAPS={assistant:1200,user:300};
 function extractRefusalFraming(){
@@ -2444,6 +2487,7 @@ async function summarize(){
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
     if(_withheld&&extracted&&typeof extracted==="object")extracted.chapterSummary=String(extracted.chapterSummary||"")+" "+withheldChapterNote(_withheld.withheld,_withheld.total);/* B38: the chapter itself says a share was withheld */
     await chapterRegisterGuard(extracted,worldState.turn);/* #372 ①: a register word in the chapter is re-asked ONCE before anything files */
+    await recordRegisterGuard(extracted,worldState.turn);/* #459 ③: a knowledge or lore line in the register is re-asked ONCE, else dropped — never filed */
     var _exStats=applySummaryExtract(extracted,_identityTable);
     _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":"")+(_withheld?" ("+_withheld.withheld+" of "+_withheld.total+" exchanges withheld by the provider's content filter — extracted around them; B38)":_reframed?" (extracted in the reframed, shortened shape after the provider blocked the full window — B38)":""));
     compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
