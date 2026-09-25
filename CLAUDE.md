@@ -190,6 +190,7 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Export save** before testing risky changes.
 - **CI test gate:** `.github/workflows/engine-tests.yml` runs `node dev/run-tests.js` (the full assertion suite + every source contract) on every push and PR — the local pre-commit hook is no longer the only enforcement (review 2026-08-01).
 - **Automated playtest harness** (`dev/playtest-harness.js`, not loaded by `index.html`) — drives N real GM turns against a throwaway character via `preview_eval`: smoke-tests invariants and collects a narration corpus for prose-voice/content-DNA drift judging. Ops: the `/playtest` skill.
+- **Thursday burn ladder** (`/thursday`, owner-chosen 2026-09-24, #448) — spends leftover Fable budget on owner-ruling-free work in a fixed order: the weekly commit review → read the week's play (`dev/dump-transcript.js` over the saves that moved under `Campaigns/*/saves`) → the prompt diff on those saves (`dev/capture-prompt.js`, HEAD vs the last receipt's anchor commit, every hunk attributed to a shipped row) → the deferred Fable-tier smalls. Every rung writes its receipt into `DOC/Review_fable_<date>.html` before the next begins.
 
 **Diagnosis & verification discipline** (origin sagas in [history](DOC/CLAUDE_HISTORY.md#the-v027v028-textarea-saga-origin-of-the-diagnosis-discipline)):
 - **Verify the FAILURE condition, not a benign case.** A check that can't fail proves nothing — exercise the input that would break it: overflow, empty, boundary, the exact thing reported.
