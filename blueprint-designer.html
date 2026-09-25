@@ -128,7 +128,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.48";
+var BP_DESIGNER_VERSION="v0.49";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -1311,51 +1311,76 @@ function openCatalogPublish(){
   });
 }
 document.getElementById("btn-publish-catalog").addEventListener("click",openCatalogPublish);
-function closeLibModal(){var m=document.getElementById("lib-modal");if(m)m.remove();}
+function closeLibModal(){var m=document.getElementById("lib-modal");if(m)m.remove();document.getElementById("btn-library").focus();}
 document.getElementById("btn-library").addEventListener("click",function(){
   if(!cloudReady())return;
   closeLibModal();
-  var wrap=document.createElement("div");
+  var wrap=document.createElement("div"),view=0,mode="library";
   wrap.id="lib-modal";
   wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;";
-  wrap.innerHTML="<div style='background:var(--bg1);border:1px solid var(--acc);border-radius:10px;max-width:560px;width:100%;max-height:75vh;overflow-y:auto;padding:16px;'>"
-    +"<div style='display:flex;align-items:center;margin-bottom:12px;'><h2 style='flex:1;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:0;'>&#9729; Your blueprint library</h2>"
-    +"<button class='mini' id='lib-x'>&#215;</button></div>"
-    +"<div id='lib-list' style='font-size:12px;color:var(--t2);'>Loading…</div></div>";
+  wrap.innerHTML="<div role='dialog' aria-modal='true' aria-labelledby='lib-title' style='background:var(--bg1);border:1px solid var(--acc);border-radius:10px;max-width:560px;width:100%;max-height:75vh;overflow-y:auto;padding:16px;'>"
+    +"<div style='display:flex;align-items:center;margin-bottom:12px;'><h2 id='lib-title' style='flex:1;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:0;'>Campaign Blueprints</h2>"
+    +"<button class='mini' id='lib-x' aria-label='Close library'>&#215;</button></div>"
+    +"<div id='lib-sources' role='group' aria-label='Blueprint source' style='display:flex;gap:8px;margin-bottom:12px;'></div>"
+    +"<p id='lib-access' style='font-size:12px;color:var(--t2);'></p>"
+    +"<div id='lib-list' aria-live='polite' style='font-size:12px;color:var(--t2);'></div></div>";
   document.body.appendChild(wrap);
   wrap.addEventListener("click",function(ev){if(ev.target===wrap)closeLibModal();});
-  document.getElementById("lib-x").addEventListener("click",closeLibModal);
-  storageAdapter.listBlueprintLibrary(function(e,list){
-    var el=document.getElementById("lib-list");if(!el)return;
-    if(e){el.innerHTML="<span style='color:var(--dng);'>Failed to load library: "+esc(e)+"</span>";return;}
-    if(!list||!list.length){el.innerHTML="<em>Library is empty — use Save to My Library to add a blueprint.</em>";return;}
-    var h="",i;
-    for(i=0;i<list.length;i++){
-      var it=list[i],acts=(it.blueprint&&it.blueprint.acts||[]).length;
-      h+="<div style='display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--brd);'>"
-        +"<div style='flex:1;min-width:0;'><div style='font-size:13px;color:var(--t0);font-weight:bold;'>"+esc(it.name)
-        +(it.public?" <span style='font-size:9px;color:var(--grn);border:1px solid var(--grn);border-radius:3px;padding:0 4px;vertical-align:middle;'>PUBLIC</span>":"")+"</div>"
-        +"<div style='font-size:10px;color:var(--t2);'>"+acts+" act"+(acts===1?"":"s")+" · updated "+(it.updatedAt?new Date(it.updatedAt).toLocaleDateString():"?")+"</div></div>"
-        +"<button class='mini' data-libopen='"+i+"'>Open</button>"
-        +"<button class='mini del' data-libdel='"+i+"' data-slug='"+esc(it.slug)+"' title='Delete from library'>&#215;</button>"
-        +"</div>";
-    }
-    el.innerHTML=h;
-    el.addEventListener("click",function(ev){
-      var t=ev.target,oi=t.getAttribute&&t.getAttribute("data-libopen"),di=t.getAttribute&&t.getAttribute("data-libdel");
-      if(oi!=null){
-        if(dirty&&!confirm("Discard unsaved changes?"))return;
-        closeLibModal();loadBlueprintObject(list[parseInt(oi,10)].blueprint);
-      }else if(di!=null){
-        var slug=t.getAttribute("data-slug"),nm=list[parseInt(di,10)].name;
-        if(!confirm("Delete “"+nm+"” from your cloud library? This cannot be undone."))return;
-        storageAdapter.deleteBlueprintFromLibrary(slug,function(e2){
-          if(e2){setStatus("Delete failed: "+e2,"err");return;}
-          t.parentNode.parentNode.removeChild(t.parentNode);
-          setStatus("Deleted “"+nm+"” from the library.","ok");
-        });
-      }
+  wrap.addEventListener("keydown",function(ev){if(ev.key==="Escape"){ev.preventDefault();closeLibModal();}});
+  wrap.querySelector("#lib-x").addEventListener("click",closeLibModal);
+  var sources={library:{label:"My Library",read:storageAdapter.listBlueprintLibrary,remove:storageAdapter.deleteBlueprintFromLibrary,hint:"Your saved personal copies.",empty:"Library is empty — use Save to My Library to add a blueprint."}};
+  function active(stamp){return stamp===view&&document.getElementById("lib-modal")===wrap;}
+  function drawSources(){
+    var tabs=wrap.querySelector("#lib-sources");tabs.innerHTML="";
+    Object.keys(sources).forEach(function(key){var b=document.createElement("button");b.className="tbtn"+(mode===key?" primary":"");b.setAttribute("data-libsource",key);b.setAttribute("aria-pressed",mode===key?"true":"false");b.textContent=sources[key].label;b.addEventListener("click",function(){mode=key;drawSources();readSource();});tabs.appendChild(b);});
+  }
+  function readSource(){
+    var stamp=++view,source=sources[mode],el=wrap.querySelector("#lib-list");
+    function failed(reason){console.warn("[designer] "+source.label+" load failed",reason);el.innerHTML="<p style='color:var(--dng);'>Could not load "+esc(source.label)+": "+esc(reason)+"</p><button class='mini' id='lib-retry'>Retry</button>";el.querySelector("#lib-retry").addEventListener("click",readSource);}
+    el.innerHTML="Loading "+esc(source.label)+"…";
+    source.read(function(e,list){
+      if(!active(stamp))return;
+      if(e){failed(e);return;}
+      if(!Array.isArray(list)||list.some(function(it){return !it||!it.blueprint||typeof it.blueprint!=="object"||typeof it.name!=="string";})){failed("Invalid blueprint list");return;}
+      var h="<p style='margin-top:0;'>"+esc(source.hint)+"</p>";
+      if(!list.length)h+="<em>"+esc(source.empty)+"</em>";
+      list.forEach(function(it,i){var acts=(it.blueprint.acts||[]).length;
+        h+="<div style='display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--brd);'>"
+          +"<div style='flex:1;min-width:0;'><div style='font-size:13px;color:var(--t0);font-weight:bold;overflow-wrap:anywhere;'>"+esc(it.name)+"</div>"
+          +"<div style='font-size:10px;color:var(--t2);'>"+acts+" act"+(acts===1?"":"s")+" · updated "+(it.updatedAt?new Date(it.updatedAt).toLocaleDateString():"?")+"</div></div>"
+          +"<button class='mini' data-libopen='"+i+"' aria-label='Open "+esc(it.name)+"'>Open</button>"
+          +(source.remove?"<button class='mini del' data-libdel='"+i+"' title='Delete from My Library'>&#215;</button>":"")+"</div>";
+      });
+      el.innerHTML=h;
+      el.onclick=function(ev){
+        if(!active(stamp))return;
+        var t=ev.target,oi=t.getAttribute&&t.getAttribute("data-libopen"),di=t.getAttribute&&t.getAttribute("data-libdel");
+        if(oi!=null){
+          if(dirty&&!confirm("Discard unsaved changes?"))return;
+          var item=list[parseInt(oi,10)],copy=JSON.parse(JSON.stringify(item.blueprint));
+          if(source.prepare)source.prepare(copy,item);
+          loadBlueprintObject(copy);closeLibModal();
+        }else if(di!=null&&source.remove){
+          var entry=list[parseInt(di,10)];
+          if(!confirm("Delete “"+entry.name+"” from your cloud library? This cannot be undone."))return;
+          t.disabled=true;
+          source.remove(entry.slug,function(e2){
+            if(e2){console.warn("[designer] library delete failed",e2);setStatus("Delete failed: "+e2,"err");if(active(stamp))t.disabled=false;return;}
+            if(active(stamp))readSource();
+            setStatus("Deleted “"+entry.name+"” from My Library.","ok");
+          });
+        }
+      };
     });
+  }
+  drawSources();readSource();wrap.querySelector("#lib-x").focus();
+  storageAdapter.fetchAccount(function(err,account){
+    if(document.getElementById("lib-modal")!==wrap)return;
+    if(err){console.warn("[designer] catalog access check failed",err);wrap.querySelector("#lib-access").textContent="Could not check Catalog access: "+err;return;}
+    if(account&&account.isAdmin===true){
+      sources.catalog={label:"Catalog",read:storageAdapter.listBlueprintCatalog,prepare:function(copy,item){copy.catalogId=item.id;},hint:"Published stock campaigns. Open one to edit, then use Publish to Catalog to update it for everyone.",empty:"No campaigns have been published to the catalog yet."};
+      drawSources();
+    }
   });
 });
 

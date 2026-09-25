@@ -22,3 +22,9 @@ Save to My Library now describes that personal action. Admin-only Publish to Cat
 ## Migration precautions
 
 Fly volume snapshot `vs_e548p5bn3BNSQvBYyl1L` completed at 2026-09-25 15:28:51 UTC before deployment (five-day retention). No off-server backup was triggered: automatic approval review rejected a proposed GitHub artifact export; the accepted alternative stayed within the existing Fly provider. Schema 6 seeds eight original campaigns exactly once, with Riverlight first and Silence's author blank. No production private-library edits or model calls are needed. Do not roll back to a schema-5-only server.
+
+## Designer catalog loading — v1.1000 / designer v0.49
+
+The Library window originally queried only private blueprints, leaving no direct stock-campaign loading path in the editor. Added an admin-only Catalog source after a fresh account-role check. A shared source registry renders both lists; Catalog opens a deep copy with the publication id, while only My Library exposes deletion. Unsaved-draft confirmation remains in the shared Open path. Stale reads cannot update a different tab or a reopened modal, and visible load errors offer Retry.
+
+The real-page browser regression failed first with `Admin library offers Catalog tab` (0 instead of 1). It now opens the published fixture through the Catalog tab and continues through edit and publication. It also exercises cancel/accept of dirty-draft replacement, late responses after tab switch and close/reopen, failed reads/retry, non-admin visibility, failed role lookup, and 390px mobile layout. Desktop/mobile renders inspected. Mutation clauses cover exposing the tab to non-admins and allowing stale reads to replace My Library, alongside retained publication/cache guards.
