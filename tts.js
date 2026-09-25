@@ -588,7 +588,7 @@ var TTS = (function() {
       var v = forceVoice || voiceFor((voices && voices[i]) || "", i);
       var t = units[i].text || "";
       var dir = (voices && voices.directions && voices.directions[i]) || "";/* #456: a character's delivery direction — a group never spans two */
-      var rt = (voices && voices.rates && voices.rates[i]) || 0;/* #457: a character's speed — likewise */
+      var rt = (voices && ((voices.rates && voices.rates[i]) || voices.rate)) || 0;/* #457: a character's speed — likewise; `voices.rate` is the audition's uniform speed */
       // #41b fast start: while building the FIRST group, the accumulation cap is small — the cold
       // open is gated on group 1's whole non-streaming synthesis, so a big opener means many
       // seconds of silence before the first sound. Later groups keep the big cap (call count).
@@ -769,10 +769,10 @@ var TTS = (function() {
     plain.forEach(function(value) { add(value); });
     return result.join(" · ");
   }
-  /* #457 (owner 2026-09-25): a character's own speed (sheet `voiceRate`, riding the speaker map as `rates` and the group as
-     `g.rate`) SCALES the provider rate for that character's groups — the provider rate is relative to each voice's natural
-     pace, so a leisurely actor needs its own nudge. Clamped to 0.5–2× and rounded, the range every provider accepts. */
-  function _effRate(c, g) { var r = (Number(c && c.rate) || 1.1) * (g && g.rate ? Number(g.rate) : 1); return Math.round(Math.min(2, Math.max(0.5, r)) * 100) / 100; }
+  /* #457 (owner 2026-09-25, ruling: "no silent multiplier"): a character's own speed (sheet `voiceRate`, riding the speaker
+     map as `rates` and the group as `g.rate`) IS the rate for that character's groups — absolute, what the slider says. The
+     provider rate (1.1× until saved) applies only to characters with no speed assigned. Clamped to the slider's range. */
+  function _effRate(c, g) { var own = (g && g.rate) ? Number(g.rate) : 0, r = own || Number(c && c.rate) || 1.1; return Math.round(Math.min(1.3, Math.max(0.8, r)) * 100) / 100; }
   var VOICE_MODELS = {
     openai: { label: "OpenAI · GPT-4o mini TTS", key: true, direction: true, rate: true, languages: [""],
       note: "13 actors. Uses your existing OpenAI key. Test bills that key.", catalog: function() { return OPENAI_VOICE_BANK; },
@@ -986,7 +986,7 @@ var TTS = (function() {
     return r;
   }
   function _voiceLiveReader(id) { return _voiceReader(id, _voiceConfig(id), _voiceKey(id), false); }
-  function _voiceTest(d, text, actor, onPhase) {
+  function _voiceTest(d, text, actor, onPhase, charRate) {/* #457: charRate rides the audition as a group rate — the validated model rate is never multiplied */
     var error = _voiceValidate(d); if (error) throw new Error(error);
     text = String(text || "").trim(); if (!text || text.length > 1000) throw new Error("Test passage must contain 1–1000 characters.");
     stop();
@@ -994,7 +994,7 @@ var TTS = (function() {
     var id = d.primary, c = JSON.parse(JSON.stringify(d.models[id]));
     _auditionCb = onPhase; _auditionPhase("loading");
     if (CLOUD_READERS[id]) {
-      _queue.push({ text: text, cloud: id, reader: _voiceReader(id, c, d.keys[id].trim(), true), forceVoice: actor || c.narrator, voiceId: "" }); _drain();
+      _queue.push({ text: text, cloud: id, reader: _voiceReader(id, c, d.keys[id].trim(), true), forceVoice: actor || c.narrator, voiceId: "", voices: charRate ? { rate: charRate } : null }); _drain();
     } else if (id === "native") {
       _auditionPhase("playing"); _queue.push({ text: text, native: true, audition: { voice: c.narrator, rate: c.rate } }); _drain();
     } else {
@@ -1014,13 +1014,13 @@ var TTS = (function() {
   var CHARACTER_VOICE_SLOTS = [
     { provider: "speechify", field: "speechifyVoiceId", label: "Speechify voice", service: "Speechify", selectId: "cs-primary-voice-sel", testId: "cs-primary-voice-test",
       catalog: function() { return _voiceCatalog("speechify", _voiceConfig("speechify")); }, bench: SPEECHIFY_BENCH,/* #455 */
-      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "speechify"; actor = actor || _voiceActor("speechify", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.speechify); d.models.speechify.narrator = actor; if (char.voiceRate) d.models.speechify.rate = _effRate(d.models.speechify, { rate: char.voiceRate });/* #457: the Test reads at the character's speed */ _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
+      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "speechify"; actor = actor || _voiceActor("speechify", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.speechify); d.models.speechify.narrator = actor; _voiceTest(d, TTS_TEST_LINE, actor, onPhase, Number(char.voiceRate) || 0);/* #457: the Test reads at the character's speed */ } },
     /* #456 (owner 2026-09-25, after the Inworld trial): the Inworld slot. Its Test reads with the character's own delivery
        direction when one is set, so the owner hears what play will do. Auto-assignment draws gender-matched from the loaded
        Inworld catalog (no bench — the owner's ear found the catalog uniformly good). */
     { provider: "inworld", field: "inworldVoiceId", label: "Inworld voice", service: "Inworld", selectId: "cs-inworld-voice-sel", testId: "cs-inworld-voice-test",
       catalog: function() { return _voiceCatalog("inworld", _voiceConfig("inworld")); },
-      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "inworld"; actor = actor || _voiceActor("inworld", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.inworld); d.models.inworld.narrator = actor; if (char.voiceDirection) d.models.inworld.direction = char.voiceDirection; if (char.voiceRate) d.models.inworld.rate = _effRate(d.models.inworld, { rate: char.voiceRate });/* #457 */ _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
+      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "inworld"; actor = actor || _voiceActor("inworld", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.inworld); d.models.inworld.narrator = actor; if (char.voiceDirection) d.models.inworld.direction = char.voiceDirection; _voiceTest(d, TTS_TEST_LINE, actor, onPhase, Number(char.voiceRate) || 0);/* #457 */ } },
     { provider: "piper", field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
       test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
   ];
@@ -4581,6 +4581,7 @@ var TTS = (function() {
     filterCharacterVoices: filterCharacterVoices,
     castGenderMatches: castGenderMatches,
     characterVoiceSlots: function() { return CHARACTER_VOICE_SLOTS.slice(); },
+    providerRate:      function() { var id = _voicePrimary(), c = _voiceConfig(id); return Math.round((Number(c && c.rate) || getRate()) * 100) / 100; },/* #457: what an unassigned character reads at */
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
     // #41: Gemini tier internals, exported ONLY for the headless engine tests (same contract as

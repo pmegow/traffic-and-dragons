@@ -940,7 +940,7 @@ function speakerVoiceMap(sp,text){
     var _ix=parseInt(k,10),_sl=TTS.characterVoiceSlots?TTS.characterVoiceSlots():[],_si;/* #456: every cloud slot's pin rides under providers.<id>; the delivery direction under directions */
     for(_si=0;_si<_sl.length;_si++){var _s=_sl[_si];if(_s.provider==="piper"||!ch[_s.field])continue;if(!out.providers)out.providers={};if(!out.providers[_s.provider])out.providers[_s.provider]={};out.providers[_s.provider][_ix]=ch[_s.field];}
     if(ch.voiceDirection){if(!out.directions)out.directions={};out.directions[_ix]=ch.voiceDirection;}
-    var _vr=Number(ch.voiceRate)||0;if(_vr&&Math.abs(_vr-1)>0.001){if(!out.rates)out.rates={};out.rates[_ix]=_vr;}/* #457: a neutral speed never rides */
+    var _vr=Number(ch.voiceRate)||0;if(_vr){if(!out.rates)out.rates={};out.rates[_ix]=_vr;}/* #457: an assigned speed rides, 1.0 included; unassigned follows the provider rate */
   });
   return out;
 }

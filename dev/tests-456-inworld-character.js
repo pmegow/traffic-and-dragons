@@ -70,19 +70,25 @@ test("the delivery direction saves trimmed on change, clears when emptied, and t
   assert.ok(__toasts.some(function (m) { return /direction cleared/i.test(m); }), "no clear toast");
 });
 
-test("the speed control renders with the saved multiplier, saves a changed value rounded to two decimals, and a neutral 1.0 clears the field", function () {
+test("the speed control: an assigned speed renders as the value and reads as that character's rate; unassigned shows the provider rate with a provider-default label; a change assigns (1.0 included); the × puts the character back on the provider rate", function () {
   fresh();
   var h = csVoiceControlHtml({ name: "Mother Vane", gender: "F", voiceRate: 1.15 });
   assert.ok(h.indexOf("id='cs-voice-rate'") >= 0, "no speed control");
-  assert.ok(h.indexOf("value='1.15'") >= 0, "the saved multiplier is not the control's value: " + h.slice(h.indexOf("cs-voice-rate"), h.indexOf("cs-voice-rate") + 200));
+  assert.ok(h.indexOf("value='1.15'") >= 0 && h.indexOf("1.15×") >= 0, "the assigned speed is not the control's value and label");
+  assert.ok(h.indexOf("provider default") < 0, "an assigned speed must not read as the provider default");
+  var u = csVoiceControlHtml({ name: "Ash Yarwick", gender: "M" }), pr = TTS.providerRate();
+  assert.ok(u.indexOf("value='" + pr + "'") >= 0 && u.indexOf("provider default") >= 0, "unassigned must show the provider rate " + pr + " as the default: " + u.slice(u.indexOf("cs-voice-rate-value"), u.indexOf("cs-voice-rate-value") + 120));
   var c = { name: "Mother Vane", gender: "F" };
   csWireVoice(c);
   fire("cs-voice-rate", "change", "1.2000001");
-  assert.equal(c.voiceRate, 1.2, "the multiplier did not save rounded");
+  assert.equal(c.voiceRate, 1.2, "the speed did not save rounded");
   assert.equal(__saves, 1, "the speed was not saved");
   assert.ok(__toasts.some(function (m) { return /1\.20×/.test(m); }), "no speed toast: " + JSON.stringify(__toasts));
   fire("cs-voice-rate", "change", "1");
-  assert.ok(!("voiceRate" in c), "a neutral speed must delete the field");
+  assert.equal(c.voiceRate, 1, "1.0 is an assignment, not a reset");
+  fire("cs-voice-rate-reset", "click", "");
+  assert.ok(!("voiceRate" in c), "the × must put the character back on the provider rate");
+  assert.ok(__toasts.some(function (m) { return /provider rate/i.test(m); }), "no reset toast: " + JSON.stringify(__toasts));
 });
 
 test("source: the sheet no longer names providers in a literal options map — the slot registry decides", function () {

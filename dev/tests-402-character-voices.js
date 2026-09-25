@@ -152,6 +152,11 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   var iw=TTS.characterVoiceSlots().filter(function(s){return s.provider==='inworld';})[0];
   iw.test({name:'Daeris',gender:'F',inworldVoiceId:'a',voiceRate:1.3,voiceDirection:'gruff'},'a',function(){});await sleep(40);
   assert.equal(bodies.length,1,'no Inworld audition request');assert.equal(bodies[0].audioConfig.speakingRate,1.3,'the Inworld Test ignored the character speed');assert.equal(bodies[0].instruction,'gruff');
+  /* the owner's case: model 1.1, character 1.3 — the character's own rate reads, absolute; the validated model rate is never touched */
+  d.models.inworld.rate=1.1;S.save(d);bodies=[];toasts.length=0;
+  iw.test({name:'Daeris',gender:'F',inworldVoiceId:'a',voiceRate:1.3},'a',function(){});await sleep(40);
+  assert.equal(bodies.length,1,'the Test refused a product beyond the slider range: '+JSON.stringify(toasts));assert.equal(bodies[0].audioConfig.speakingRate,1.3,'the character\'s speed must be the rate, not a multiplier');
+  assert.equal(TTS.settings.draft().models.inworld.rate,1.1,'the Test must never write the product into the model rate');
   var e=draft('speechify');e.models.speechify.rate=1;S.save(e);bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return pcm();};
   var sp=TTS.characterVoiceSlots().filter(function(s){return s.provider==='speechify';})[0];
   sp.test({name:'Daeris',gender:'F',speechifyVoiceId:'a',voiceRate:0.8},'a',function(){});await sleep(40);
