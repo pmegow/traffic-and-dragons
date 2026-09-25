@@ -13063,14 +13063,29 @@ function runEngineTests(R){
     if(sp.markups)return "Speechify must not declare markups (Simba ignores steering; a bracket would be read aloud)";
     if(typeof TTS._markupGroup!=="function")return "TTS._markupGroup seam missing";
     var g={text:"Hold the door.",voice:"a",mood:"weary"},mg=TTS._markupGroup(iw,g);
-    if(mg.text!=="[weary] Hold the door."||mg.voice!=="a")return "prefix: "+JSON.stringify(mg);
+    if(mg.text!=="[speak weary] Hold the door."||mg.voice!=="a")return "prefix: "+JSON.stringify(mg);/* #462: steering rides Inworld's own phrasing */
     if(g.text!=="Hold the door.")return "the group itself must not be mutated (the Piper hand-off reads it)";
     if(TTS._markupGroup(sp,g).text!=="Hold the door.")return "speechify saw the bracket";
     if(TTS._markupGroup(iw,{text:"x",voice:"a"}).text!=="x")return "no mood, no prefix";
     if(TTS._markupGroup(iw,{text:"x",voice:"a",mood:"weary!"}).text!=="x")return "a bad mood must be dropped at the request";
-    if(iw.request(mg,{rate:1,delivery:"STABLE"}).text!=="[weary] Hold the door.")return "the Inworld body must carry the prefixed text";
+    if(iw.request(mg,{rate:1,delivery:"STABLE"}).text!=="[speak weary] Hold the door.")return "the Inworld body must carry the prefixed text";
     var body=sp.request({text:"Hold.",voice:"a",mood:"weary"},{rate:1}).input;
     return body.indexOf("[")<0?true:"speechify body carries a bracket: "+body;
+  });
+  t("#462 Inworld non-verbal sounds stand in their own bracket: the prefix builder splits a mood on commas, folds the steering words into ONE [speak …] bracket and emits each recognised sound as its own tag — steering first, then the sounds in the order written (case-folded, once), then the text; the sound table is ONE list on the Inworld entry; a reader without a table keeps everything as steering",function(){
+    var iw=TTS.settings.models.inworld;if(!Array.isArray(iw.sounds)||iw.sounds.length<11)return "the Inworld entry must carry the sound table";
+    var need=["laugh","giggle","sigh","breathe","clear throat","cough","yawn","gasp","chuckle","sob","groan"],i;for(i=0;i<need.length;i++)if(iw.sounds.indexOf(need[i])<0)return "table lacks "+need[i];
+    if(typeof TTS._markupPrefix!=="function")return "TTS._markupPrefix seam missing";
+    var P=function(m){return TTS._markupPrefix(iw,m);};
+    if(P("surprised, laugh")!=="[speak surprised] [laugh] ")return "surprised, laugh → "+JSON.stringify(P("surprised, laugh"));
+    if(P("laugh")!=="[laugh] ")return "laugh alone → "+JSON.stringify(P("laugh"));
+    if(P("amused")!=="[speak amused] ")return "amused → "+JSON.stringify(P("amused"));
+    if(P("whispering, amused")!=="[speak whispering, amused] ")return "two steering words fold into one bracket: "+JSON.stringify(P("whispering, amused"));
+    if(P("laugh, surprised, Clear Throat")!=="[speak surprised] [laugh] [clear throat] ")return "steering first, then the sounds in the order written, case-folded: "+JSON.stringify(P("laugh, surprised, Clear Throat"));
+    if(P("sigh, weary, sigh")!=="[speak weary] [sigh] ")return "a repeated sound fires once: "+JSON.stringify(P("sigh, weary, sigh"));
+    if(TTS._markupPrefix({markups:true},"surprised, laugh")!=="[speak surprised, laugh] ")return "no table → everything is steering";
+    var g=TTS._markupGroup(iw,{text:"Hold.",voice:"a",mood:"surprised, laugh"});if(g.text!=="[speak surprised] [laugh] Hold.")return "the group text carries the split prefix: "+g.text;
+    return true;
   });
   t("#458 the SAY doc line teaches the optional |mood: the form, the shape, only when the feeling is not obvious, never every line, and the example list (emotions, delivery, non-verbals)",function(){
     var d=buildStateTagsDoc(),need=["[SAY:Character Name|mood]","not obvious from the words","never on every line","weary","slow and measured","clear throat","giggle","at most 40 characters","never a sentence"],i;

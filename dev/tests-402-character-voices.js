@@ -167,8 +167,15 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   var bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
   /* without the mood, the three short units would ride ONE group (well under the fast-start cap) — the split is the proof */
   TTS.speak('First line. Second line. Third line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',2:'en_GB-alba-medium',providers:{inworld:{0:'b',1:'b',2:'b'}},moods:{1:'weary'}});await sleep(40);
-  assert.deepEqual(bodies.map(function(b){return b.text;}),['First line.','[weary] Second line.','Third line.']);
+  assert.deepEqual(bodies.map(function(b){return b.text;}),['First line.','[speak weary] Second line.','Third line.']);/* #462: steering in Inworld's own phrasing */
   assert.deepEqual(bodies.map(function(b){return b.instruction;}),['Speak naturally.','Speak naturally.','Speak naturally.'],'the mood rides the text, never the instruction');
+ });
+ await test('#462 a real Inworld read splits a mood carrying a non-verbal into [speak …] plus the sound\'s own bracket, in that order, before the text; a sound alone stands alone; the Speechify builder still carries no bracket',async function(){
+  var d=draft('inworld');d.models.inworld.direction='Speak naturally.';d.models.inworld.voices=[{id:'a',label:'A',g:'F'},{id:'b',label:'B',g:'M'}];d.models.inworld.narrator='a';S.save(d);
+  var bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
+  TTS.speak('First line. Second line. Third line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',2:'en_GB-alba-medium',providers:{inworld:{0:'b',1:'b',2:'b'}},moods:{1:'surprised, laugh',2:'laugh'}});await sleep(40);
+  assert.deepEqual(bodies.map(function(b){return b.text;}),['First line.','[speak surprised] [laugh] Second line.','[laugh] Third line.']);
+  var sp=TTS.settings.models.speechify.request({text:'Second line.',voice:'a',mood:'surprised, laugh'},{rate:1});assert.ok(sp.input.indexOf('[')<0,'speechify body carries a bracket: '+sp.input);
  });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

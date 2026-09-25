@@ -774,6 +774,10 @@ var TTS = (function() {
      map as `rates` and the group as `g.rate`) IS the rate for that character's groups — absolute, what the slider says. The
      provider rate (1.1× until saved) applies only to characters with no speed assigned. Clamped to the slider's range. */
   function _effRate(c, g) { var own = (g && g.rate) ? Number(g.rate) : 0, r = own || Number(c && c.rate) || 1.1; return Math.round(Math.min(1.3, Math.max(0.8, r)) * 100) / 100; }
+  /* #462 (owner 2026-09-25, Village t135 — "[surprised, laugh]" never laughed): Inworld's NON-VERBAL sounds are standalone tags;
+     a sound sharing a bracket with a mood reads as delivery steering and is silently lost. ONE table beside the entry — adding a
+     sound is adding an entry; the prefix builder (_markupPrefix) gives each its own bracket after the steering words. */
+  var INWORLD_SOUNDS = ["laugh", "giggle", "chuckle", "sigh", "breathe", "gasp", "clear throat", "cough", "yawn", "sob", "groan"];
   var VOICE_MODELS = {
     openai: { label: "OpenAI · GPT-4o mini TTS", key: true, direction: true, rate: true, languages: [""],
       note: "13 actors. Uses your existing OpenAI key. Test bills that key.", catalog: function() { return OPENAI_VOICE_BANK; },
@@ -781,7 +785,7 @@ var TTS = (function() {
     gemini: { label: "Google · Gemini TTS", key: true, direction: true, languages: [""],
       note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
       defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
-    inworld: { label: "Inworld · TTS-2", depth: 2, key: true, direction: true, rate: true, markups: true,/* #458: square-bracket steering tags ride the text */ languages: ["", "en-US", "ko-KR"],
+    inworld: { label: "Inworld · TTS-2", depth: 2, key: true, direction: true, rate: true, markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
       delivery: ["STABLE", "BALANCED", "CREATIVE"],
       note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Test bills your Inworld key.",
       defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },
@@ -957,7 +961,22 @@ var TTS = (function() {
     if (!m || !m.markups || !g || !g.mood) return g;
     var mood = (typeof sayMoodShape === "function") ? sayMoodShape(g.mood) : "";
     if (!mood) { console.warn("[tts] mood dropped at send — not a short phrase: " + String(g.mood).slice(0, 60)); return g; }
-    return Object.assign({}, g, { text: "[" + mood + "] " + g.text });
+    return Object.assign({}, g, { text: _markupPrefix(m, mood) + g.text });
+  }
+  /* #462: the prefix — the mood split on commas; every part naming a sound in the reader's table becomes its own bracket
+     (case-folded, fired once, in the order written); the remaining words fold into ONE steering bracket in Inworld's own
+     phrasing, "[speak …]". Order: steering first (it carries forward), then the sounds (each fires at its position), then
+     the text. A reader with no table keeps every word as steering. */
+  function _markupPrefix(m, mood) {
+    var table = (m && Array.isArray(m.sounds)) ? m.sounds : [], parts = String(mood || "").split(","), steer = [], sounds = [], i, p, k;
+    for (i = 0; i < parts.length; i++) {
+      p = parts[i].replace(/^\s+|\s+$/g, ""); if (!p) continue;
+      k = p.toLowerCase().replace(/\s+/g, " ");
+      if (table.indexOf(k) >= 0) { if (sounds.indexOf(k) < 0) sounds.push(k); } else steer.push(p);
+    }
+    var out = steer.length ? "[speak " + steer.join(", ") + "] " : "";
+    for (i = 0; i < sounds.length; i++) out += "[" + sounds[i] + "] ";
+    return out;
   }
   function _voiceFetch(id, g, c, key, regCtrl, direction) {
     var m = VOICE_MODELS[id];
@@ -4597,6 +4616,7 @@ var TTS = (function() {
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
     _markupGroup: _markupGroup,/* #458: exported ONLY for the headless engine tests */
+    _markupPrefix: _markupPrefix,/* #462: likewise */
     // #41: Gemini tier internals, exported ONLY for the headless engine tests (same contract as
     // _textPrep and the #90 server internals below). No production caller reads this.
     _gemini: { voices: GEMINI_VOICES, voiceFor: _geminiVoiceFor, group: _geminiGroupUnits,
