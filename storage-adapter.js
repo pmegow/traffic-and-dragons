@@ -356,7 +356,7 @@ var storageAdapter = (function() {
     var localTurn = (typeof worldState !== "undefined" && worldState && worldState.turn) || 0;
     _conflict = { serverTurn: serverTurn };
     console.warn("[storage] sync CONFLICT (409): server holds turn " + serverTurn + ", this device last saw " + _lastAckTurn + " (local turn " + localTurn + "). Sync paused.");
-    if (typeof showToast === "function") showToast("&#9729; Another device is ahead (turn " + (serverTurn != null ? serverTurn : "?") + "). Sync paused &mdash; reload to adopt it, or export this save first.");
+    if (typeof showToast === "function") showToast("&#9729; Another device is ahead (turn " + (serverTurn != null ? serverTurn : "?") + "). Sync paused &mdash; reload to adopt it (or File &#9656; Campaigns &#9656; Load), or export this save first.");
     _updateSyncUI();
   }
 
@@ -825,12 +825,22 @@ var storageAdapter = (function() {
     // Timed (audit E76): the reconcile GET had no timeout and its failure was only console.warn'd —
     // a dead host or expired token left the user silently reading stale local state while believing
     // they were synced. _tFetch bounds it; the catch surfaces the failure through the sync badge.
-    _tFetch(_serverUrl + "/api/state", {
+    // #449 (field, 2026-09-24): ask for THIS campaign's row when one is active. GET /api/state answers with the
+    // account's most recently UPDATED campaign — whichever one — so a desktop parked on campaign A (turn 35) while
+    // the phone played A to turn 51 and then played B never adopted A's row: the identity guard below refused B's
+    // blob on every reload (silently, until this fix), while the per-campaign CAS kept answering 409 "reload to
+    // adopt it". Only a fresh device (no local campaign at all) still takes the account's latest. A 404 on the
+    // row is a local-only campaign whose first push is still pending — nothing to adopt, not a failure.
+    var _rcId = localOk ? ((((typeof getActiveCampId === "function") ? getActiveCampId() : null) || ((typeof worldState !== "undefined" && worldState) ? worldState.campId : null)) || null) : null;
+    var _rcUrl = _rcId ? "/api/campaigns/" + encodeURIComponent(_rcId) : "/api/state";
+    _tFetch(_serverUrl + _rcUrl, {
       headers: { "Authorization": "Bearer " + _token }
     }, SYNC_TIMEOUT_MS).then(function(r) {
+      if (r.status === 404 && _rcId) return null;
       if (!r.ok) { var _e = new Error("HTTP " + r.status); _e.status = r.status; throw _e; }
       return r.json();
     }).then(function(data) {
+      if (data === null) { console.info("[storage] reconcile: " + _rcId + " has no cloud copy yet — keeping local state until its first push lands"); syncCampaignList(null); return; }
       if (!data || !data.worldState) {
         syncCampaignList(null);
         return;
@@ -863,7 +873,10 @@ var storageAdapter = (function() {
       var _localActive = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
       var _serverCamp  = data.campaignId || data.worldState.campId || null;
       var _wsCampId    = (typeof worldState !== "undefined" && worldState) ? worldState.campId : null;
-      if (!reconcileIdentityOk(_localActive, _wsCampId, _serverCamp, localOk)) { syncCampaignList(null); return; }
+      if (!reconcileIdentityOk(_localActive, _wsCampId, _serverCamp, localOk)) {
+        console.error("[storage] reconcile REFUSED — the server answered with campaign " + _serverCamp + " while " + (_localActive || _wsCampId) + " is active here; keeping local state (#449: the row fetch should have made this impossible — a server-side id mismatch)");
+        syncCampaignList(null); return;
+      }
       var serverTurn = data.worldState.turn || 0;
       var localTurn  = (worldState && worldState.turn) || 0;
       // The server provably holds serverTurn — seed the ACK baseline (#24). If local is

@@ -66,6 +66,8 @@ console.warn = function () { warns.push(Array.prototype.slice.call(arguments).jo
 
 // ── Fixture ──────────────────────────────────────────────────────────────────
 var CAMP = "campJP11";
+// #449: the reconcile GET asks for the ACTIVE campaign's own row; /api/state remains the fresh-device route.
+function isReconcileGet(c) { return c.method === "GET" && (c.url === "https://unit.test/api/campaigns/" + CAMP || c.url === "https://unit.test/api/state"); }
 // A portrait-sized inline blob — the exact thing that pushes a real save past the keepalive cap
 // (the PC portrait rides inline by design; _stripNpcPortraits only strips NPC avatars).
 function bigPortrait(kb) { return "data:image/jpeg;base64," + new Array(kb * 1024).join("A"); }
@@ -177,10 +179,10 @@ tAsync("a marked campaign PUSHES before the reconcile GET is even issued", funct
     return settle().then(function () {
       if (!postSeen) return "no push fired";
       var stateGetBeforePost = false, seenPost = false, q;
-      for (q = 0; q < calls.length; q++) { if (calls[q].method === "POST") seenPost = true; else if (!seenPost && calls[q].url === "https://unit.test/api/state") stateGetBeforePost = true; }
-      if (stateGetBeforePost) return "a /api/state GET ran before the push — the adopt path outran the dirty turns";
+      for (q = 0; q < calls.length; q++) { if (calls[q].method === "POST") seenPost = true; else if (!seenPost && isReconcileGet(calls[q])) stateGetBeforePost = true; }
+      if (stateGetBeforePost) return "a reconcile GET ran before the push — the adopt path outran the dirty turns";
       var getAt = -1, k;
-      for (k = 0; k < calls.length; k++) { if (calls[k].method === "GET" && calls[k].url === "https://unit.test/api/state") { getAt = k; break; } }
+      for (k = 0; k < calls.length; k++) { if (isReconcileGet(calls[k])) { getAt = k; break; } }
       if (getAt < 0) return "the reconcile never ran after the push";
       return getAt > 0 ? true : "the reconcile GET was issued before the push";
     });
@@ -241,7 +243,7 @@ tAsync("no marker → load() reconciles exactly as before (one GET, no push)", f
   return settle().then(function () {
     var posts = calls.filter(function (c) { return c.method === "POST"; });
     if (posts.length) return "an unmarked boot pushed anyway (" + posts.length + " POST(s))";
-    var gets = calls.filter(function (c) { return c.url === "https://unit.test/api/state" && c.method === "GET"; });
+    var gets = calls.filter(isReconcileGet);
     return gets.length === 1 ? true : "expected exactly one reconcile GET, got " + gets.length;
   });
 });
