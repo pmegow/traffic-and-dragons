@@ -138,5 +138,13 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   var c={name:'Nyla',gender:'F',speechifyVoiceId:'keep'};assert.equal(TTS.assignCharacterVoices(c,function(){return 0;},'inworld'),true);
   assert.equal(c.inworldVoiceId,'iw_f');assert.equal(c.speechifyVoiceId,'keep');assert.equal(c.voiceId,undefined,'the provider filter must leave the Piper slot alone');
  });
+ await test('#457 a character\'s speed scales that character\'s groups on a real Inworld read (speakingRate) while the narrator keeps the provider rate; every provider defaults to 1.1× until saved',async function(){
+  assert.equal(TTS.settings.draft().models.inworld.rate,1.1,'the unsaved Inworld rate must default to 1.1×');
+  /* the Speechify builder's scaling is pinned string-for-string in the engine test; an earlier group in this file leaves Speechify degraded, so the live read here is Inworld's */
+  var e=draft('inworld');e.models.inworld.rate=1;S.save(e);var bodies=[];
+  global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
+  TTS.speak('First line. Second line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',providers:{inworld:{0:'a',1:'c'}},rates:{1:1.2}});await sleep(40);
+  assert.deepEqual(bodies.map(function(b){return b.audioConfig.speakingRate;}),[1,1.2]);
+ });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

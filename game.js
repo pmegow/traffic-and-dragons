@@ -940,6 +940,7 @@ function speakerVoiceMap(sp,text){
     var _ix=parseInt(k,10),_sl=TTS.characterVoiceSlots?TTS.characterVoiceSlots():[],_si;/* #456: every cloud slot's pin rides under providers.<id>; the delivery direction under directions */
     for(_si=0;_si<_sl.length;_si++){var _s=_sl[_si];if(_s.provider==="piper"||!ch[_s.field])continue;if(!out.providers)out.providers={};if(!out.providers[_s.provider])out.providers[_s.provider]={};out.providers[_s.provider][_ix]=ch[_s.field];}
     if(ch.voiceDirection){if(!out.directions)out.directions={};out.directions[_ix]=ch.voiceDirection;}
+    var _vr=Number(ch.voiceRate)||0;if(_vr&&Math.abs(_vr-1)>0.001){if(!out.rates)out.rates={};out.rates[_ix]=_vr;}/* #457: a neutral speed never rides */
   });
   return out;
 }
@@ -956,7 +957,7 @@ function _speakerVoiceSubject(name){
     p=String(owner.pronouns||ns[i].pronouns||((typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[nm])?memory.npcs[nm].pronouns:"")||"").toLowerCase().replace(/\s+/g,"");
     g=owner.gender;
     if(g!=="M"&&g!=="F"&&g!=="NB")g=/^she\//.test(p)?"F":(/^he\//.test(p)?"M":(/^they\//.test(p)?"NB":"ANY"));
-    var _sc={name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||"",speechifyVoiceId:owner.speechifyVoiceId||"",voiceDirection:owner.voiceDirection||""};
+    var _sc={name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||"",speechifyVoiceId:owner.speechifyVoiceId||"",voiceDirection:owner.voiceDirection||"",voiceRate:Number(owner.voiceRate)||0};
     var _scs=(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)?TTS.characterVoiceSlots():[],_sci;for(_sci=0;_sci<_scs.length;_sci++)if(!(_scs[_sci].field in _sc))_sc[_scs[_sci].field]=owner[_scs[_sci].field]||"";/* #456: every slot field, never a hand list */
     return {char:_sc,owner:owner};
   }

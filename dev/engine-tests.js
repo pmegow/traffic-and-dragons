@@ -25747,6 +25747,24 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var slots=TTS.characterVoiceSlots().map(function(s){return s.provider+":"+s.field;}).join(",");
     return slots==="speechify:speechifyVoiceId,inworld:inworldVoiceId,piper:voiceId"?true:"slot registry: "+slots;
   });
+  t("#457 speakerVoiceMap carries a character's speed under rates (never a neutral 1.0), the cloud grouper splits where the speed changes and stamps each group with it, and the effective rate is the provider rate times the character's, clamped",function(){
+    _mkSpeakerWorld();
+    var units=TTS._textPrep.splitSentences(_SPK_LINE,null,true);
+    var cs=worldState.npcs[0].charSheet;cs.voiceRate=1.2;
+    var vm=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
+    if(!vm||!vm.rates||vm.rates[1]!==1.2)return "rate missing: "+JSON.stringify(vm);
+    cs.voiceRate=1;var vm1=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);if(vm1.rates)return "a neutral speed must not ride the map";
+    var gu=[{text:"One."},{text:"Two."},{text:"Three."},{text:"Four."}];
+    var groups=TTS._gemini.group(gu,"n",{0:"v",1:"v",2:"v",3:"v",rates:{1:1.2,2:1.2}},null,function(v){return v||"n";});
+    var shape=groups.map(function(g){return g.voice+"|"+(g.rate||"")+"|"+g.text;}).join(" ~ ");
+    if(shape!=="v||One. ~ v|1.2|Two. Three. ~ v||Four.")return "groups: "+shape;
+    var m=TTS.settings.models.speechify;
+    if(m.request({text:"x",voice:"a",rate:1.2},{rate:1}).input.indexOf('rate="+20%"')<0)return "speechify did not scale by the group rate";
+    if(m.request({text:"x",voice:"a",rate:1.2},{rate:1.25}).input.indexOf('rate="+50%"')<0)return "speechify product wrong: "+m.request({text:"x",voice:"a",rate:1.2},{rate:1.25}).input;
+    if(m.request({text:"x",voice:"a",rate:3},{rate:1.3}).input.indexOf('rate="+100%"')<0)return "speechify rate not clamped at 2×";
+    var iw=TTS.settings.models.inworld.request({text:"x",voice:"a",rate:1.2},{rate:1,delivery:"STABLE"});
+    return iw.audioConfig.speakingRate===1.2?true:"inworld speakingRate "+iw.audioConfig.speakingRate;
+  });
   t("#456 cloud grouping splits a same-voice run where the delivery direction changes and stamps each group with its direction; undirected units carry none",function(){
     var units=[{text:"One."},{text:"Two."},{text:"Three."},{text:"Four."}];
     var voices={0:"v",1:"v",2:"v",3:"v",directions:{1:"gruff",2:"gruff"}};

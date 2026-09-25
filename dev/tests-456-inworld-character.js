@@ -70,10 +70,25 @@ test("the delivery direction saves trimmed on change, clears when emptied, and t
   assert.ok(__toasts.some(function (m) { return /direction cleared/i.test(m); }), "no clear toast");
 });
 
+test("the speed control renders with the saved multiplier, saves a changed value rounded to two decimals, and a neutral 1.0 clears the field", function () {
+  fresh();
+  var h = csVoiceControlHtml({ name: "Mother Vane", gender: "F", voiceRate: 1.15 });
+  assert.ok(h.indexOf("id='cs-voice-rate'") >= 0, "no speed control");
+  assert.ok(h.indexOf("value='1.15'") >= 0, "the saved multiplier is not the control's value: " + h.slice(h.indexOf("cs-voice-rate"), h.indexOf("cs-voice-rate") + 200));
+  var c = { name: "Mother Vane", gender: "F" };
+  csWireVoice(c);
+  fire("cs-voice-rate", "change", "1.2000001");
+  assert.equal(c.voiceRate, 1.2, "the multiplier did not save rounded");
+  assert.equal(__saves, 1, "the speed was not saved");
+  assert.ok(__toasts.some(function (m) { return /1\.20×/.test(m); }), "no speed toast: " + JSON.stringify(__toasts));
+  fire("cs-voice-rate", "change", "1");
+  assert.ok(!("voiceRate" in c), "a neutral speed must delete the field");
+});
+
 test("source: the sheet no longer names providers in a literal options map — the slot registry decides", function () {
   var s = fs.readFileSync(path.join(ROOT, "ui-sheets.js"), "utf8");
   assert.ok(s.indexOf("{speechify:csPrimaryVoiceOptions,piper:csBackupVoiceOptions}") < 0, "the provider-literal options map is still there");
 });
 
 if (failed) { console.error("#456 inworld character: " + failed + " FAILED"); process.exit(1); }
-console.log("ALL GREEN — #456 inworld character (4 groups)");
+console.log("ALL GREEN — #456 inworld character (5 groups)");

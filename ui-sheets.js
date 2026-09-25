@@ -132,8 +132,13 @@ function csVoiceControlHtml(char){
    ignores it. Saved on change like the voice selects; the Inworld slot's Test reads with it. */
 function csVoiceDirectionHtml(char){
   return "<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'><label for='cs-voice-direction' style='display:block;margin-bottom:5px;'>Delivery direction · Inworld</label>"
-    +"<textarea id='cs-voice-direction' rows='2' maxlength='300' placeholder='How this character speaks — e.g. gruff and impatient; low, unhurried' style='width:100%;box-sizing:border-box;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:8px;resize:vertical;'>"+escHtml(char.voiceDirection||"")+"</textarea></div>";
+    +"<textarea id='cs-voice-direction' rows='2' maxlength='300' placeholder='How this character speaks — e.g. gruff and impatient; low, unhurried' style='width:100%;box-sizing:border-box;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:8px;resize:vertical;'>"+escHtml(char.voiceDirection||"")+"</textarea></div>"
+    +"<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'><label for='cs-voice-rate' style='display:block;margin-bottom:5px;'>Speed · times the provider rate <span id='cs-voice-rate-value'>"+csVoiceRateLabel(char.voiceRate)+"</span></label>"
+    +"<input id='cs-voice-rate' type='range' min='0.8' max='1.3' step='0.05' value='"+csVoiceRateValue(char.voiceRate)+"' style='width:100%;'/></div>";/* #457 */
 }
+/* #457: the sheet's speed multiplier — 1.00× means "the provider rate as it is"; the field is absent at neutral. */
+function csVoiceRateValue(r){var v=Number(r);if(!v||v<0.8||v>1.3)v=1;return String(Math.round(v*100)/100);}
+function csVoiceRateLabel(r){return Number(csVoiceRateValue(r)).toFixed(2)+"×";}
 function csWireVoice(char){
   if(!char||typeof TTS==="undefined"||!TTS.characterVoiceSlots)return;
   TTS.characterVoiceSlots().forEach(function(slot){
@@ -154,6 +159,11 @@ function csWireVoice(char){
       });}catch(err){if(ticker)ticker.stop();ticker=null;tb.textContent="▶ Test";console.warn("[character voice] "+err.message);showToast(slot.service+" test failed: "+err.message,8000);}
     });
   });
+  var rate=document.getElementById("cs-voice-rate"),rateLabel=document.getElementById("cs-voice-rate-value");/* #457 */
+  if(rate){
+    rate.addEventListener("input",function(){if(rateLabel)rateLabel.textContent=csVoiceRateLabel(rate.value);});
+    rate.addEventListener("change",function(){var v=Math.round(Number(rate.value)*100)/100;if(!v||Math.abs(v-1)<0.001)delete char.voiceRate;else char.voiceRate=v;if(rateLabel)rateLabel.textContent=csVoiceRateLabel(char.voiceRate);if(typeof saveAll==="function")saveAll();if(typeof showToast==="function")showToast(char.voiceRate?"Speed "+csVoiceRateLabel(char.voiceRate):"Speed reset to the provider rate");});
+  }
   var dir=document.getElementById("cs-voice-direction");/* #456 */
   if(dir)dir.addEventListener("change",function(){var v=String(dir.value||"").trim().slice(0,300);if(v)char.voiceDirection=v;else delete char.voiceDirection;if(typeof saveAll==="function")saveAll();if(typeof showToast==="function")showToast(v?"Delivery direction saved":"Delivery direction cleared");});
 }

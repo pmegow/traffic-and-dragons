@@ -23,7 +23,7 @@ var TTS = (function() {
   var RATE_K = "tnd_tts_rate_v1";
   function getRate() {
     var v = parseFloat(store.get(RATE_K));
-    if (isNaN(v) || v < 0.8 || v > 1.3) return 1.0;
+    if (isNaN(v) || v < 0.8 || v > 1.3) return 1.1;/* #457 (owner 2026-09-25): 1.1× is the default pace everywhere */
     return v;
   }
 
@@ -588,15 +588,16 @@ var TTS = (function() {
       var v = forceVoice || voiceFor((voices && voices[i]) || "", i);
       var t = units[i].text || "";
       var dir = (voices && voices.directions && voices.directions[i]) || "";/* #456: a character's delivery direction — a group never spans two */
+      var rt = (voices && voices.rates && voices.rates[i]) || 0;/* #457: a character's speed — likewise */
       // #41b fast start: while building the FIRST group, the accumulation cap is small — the cold
       // open is gated on group 1's whole non-streaming synthesis, so a big opener means many
       // seconds of silence before the first sound. Later groups keep the big cap (call count).
       var cap = groups.length ? GEMINI_TTS_MAX_GROUP_CH : GEMINI_TTS_FAST_START_CH;
-      if (cur && cur.voice === v && (cur.direction || "") === dir && (cur.text.length + t.length + 1) <= cap) {
+      if (cur && cur.voice === v && (cur.direction || "") === dir && (cur.rate || 0) === rt && (cur.text.length + t.length + 1) <= cap) {
         cur.text += " " + t; cur.last = units[i];
       } else {
         if (cur) groups.push(cur);
-        cur = { voice: v, text: t, last: units[i], direction: dir };
+        cur = { voice: v, text: t, last: units[i], direction: dir, rate: rt };
       }
     }
     if (cur) groups.push(cur);
@@ -725,7 +726,7 @@ var TTS = (function() {
         var response = await fetch("https://api.openai.com/v1/audio/speech", {
           method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
           body: JSON.stringify({ model: "gpt-4o-mini-tts", input: g.text, voice: g.voice,
-            instructions: direction, response_format: "pcm", speed: config ? config.rate : getRate() }), signal: ctrl.signal
+            instructions: direction, response_format: "pcm", speed: _effRate({ rate: config ? config.rate : getRate() }, g)/* #457 */ }), signal: ctrl.signal
         });
         if (!response.ok) return { fail: "HTTP " + response.status + (response.status === 429 ? " (quota or rate limit)" : response.status === 401 ? " (check your API key)" : "") };
         var bytes = new Uint8Array(await response.arrayBuffer());
@@ -768,6 +769,10 @@ var TTS = (function() {
     plain.forEach(function(value) { add(value); });
     return result.join(" · ");
   }
+  /* #457 (owner 2026-09-25): a character's own speed (sheet `voiceRate`, riding the speaker map as `rates` and the group as
+     `g.rate`) SCALES the provider rate for that character's groups — the provider rate is relative to each voice's natural
+     pace, so a leisurely actor needs its own nudge. Clamped to 0.5–2× and rounded, the range every provider accepts. */
+  function _effRate(c, g) { var r = (Number(c && c.rate) || 1.1) * (g && g.rate ? Number(g.rate) : 1); return Math.round(Math.min(2, Math.max(0.5, r)) * 100) / 100; }
   var VOICE_MODELS = {
     openai: { label: "OpenAI · GPT-4o mini TTS", key: true, direction: true, rate: true, languages: [""],
       note: "13 actors. Uses your existing OpenAI key. Test bills that key.", catalog: function() { return OPENAI_VOICE_BANK; },
@@ -781,7 +786,7 @@ var TTS = (function() {
       defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },
       auth: "Basic", accept: "application/json", endpoint: "https://api.inworld.ai/tts/v1/voice", catalogUrl: "https://api.inworld.ai/voices/v1/voices?pageSize=2000",
       request: function(g, c, direction) { return { text: g.text, voiceId: g.voice, modelId: "inworld-tts-2", instruction: direction || c.direction,/* #456: the group's direction (a character's own) outranks the model's */
-        deliveryMode: c.delivery, language: c.language || undefined, audioConfig: { audioEncoding: "PCM", sampleRateHertz: 24000, speakingRate: c.rate } }; },
+        deliveryMode: c.delivery, language: c.language || undefined, audioConfig: { audioEncoding: "PCM", sampleRateHertz: 24000, speakingRate: _effRate(c, g)/* #457 */ } }; },
       audio: function(r) { return r.json().then(function(j) { return _voiceDecode64(j.audioContent); }); },
       page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
       actor: function(v) { return { id: v.voiceId, label: v.displayName || v.voiceId, g: _voiceGender(v.gender), note: v.description || "", language: v.langCode || "" }; } },
@@ -793,7 +798,7 @@ var TTS = (function() {
       request: function(g, c) {
         var text = escHtml(g.text);
         // Speechify percentages are adjustments to normal speed, not multipliers.
-        var adjustment = Math.round((c.rate - 1) * 100);
+        var adjustment = Math.round((_effRate(c, g) - 1) * 100);/* #457: × the character's speed */
         var rate = adjustment === 0 ? "medium" : (adjustment > 0 ? "+" : "") + adjustment + "%";
         var body = '<prosody rate="' + rate + '">' + text + '</prosody>';
         /* #454 (owner 2026-09-24): no emotion — Simba 3 ignores <speechify:style> (three emotions identical on Geffen in the
@@ -829,7 +834,7 @@ var TTS = (function() {
   }
   function _voiceConfig(id) {
     var m = VOICE_MODELS[id], saved = _voiceRead(VOICE_SETTINGS_K).models || {};
-    var result = Object.assign({ narrator: "", direction: "", language: "", rate: 1, emotion: "", delivery: "STABLE", cast: {}, voices: [] }, m.defaults(), saved[id] || {});
+    var result = Object.assign({ narrator: "", direction: "", language: "", rate: 1.1,/* #457: 1.1× default */ emotion: "", delivery: "STABLE", cast: {}, voices: [] }, m.defaults(), saved[id] || {});
     if (id === "local") result.narrator = resolvePiperVoice();
     if (id === "native") result.narrator = getNativeVoice();
     return result;
