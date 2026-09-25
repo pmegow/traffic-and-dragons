@@ -44,6 +44,7 @@ var SUITES = [
   "dev/tests-440-render-job.js",
   "dev/tests-443-campaign-delete.js",
   "dev/tests-449-boot-reconcile-row.js",
+  "dev/tests-453-npc-portrait.js",
   "dev/tests-441-home-handoff.js",
   "dev/tests-442-modal-focus.js",
   "dev/tests-336-campaign-root.js",

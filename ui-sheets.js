@@ -508,9 +508,11 @@ function showNpcSheet(name){
   var portrait=npcPortrait(wsNpc); // charSheet-first (#3 dedupe) — also fixes companions whose portrait arrived in the blob but not the separate store (known issue #6)
 
   // ── Avatar ────────────────────────────────────────────────────────────────
-  var avatarHtml=isParty
-    ?"<div class='cs-avatar' id='npc-avatar-btn' title='Drag to reframe · Click to edit'>"+(portrait?"<img id='npc-portrait-img' src='"+portrait+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
-    :"<div class='cs-avatar' style='font-size:16px;cursor:default;'>"+initials+"</div>";
+  /* #453 (owner 2026-09-24): EVERY NPC gets the editable avatar. The party gate drew an initials circle over an
+     existing portrait (every Village resident carries one) and left townsfolk with no way to get a face; the
+     portrait modal already handled a sheet-less subject (setPortrait → npc.portrait, setAppearance refused with a
+     toast). A render is spent only when Generate is clicked, against the weekly allowance (#381). */
+  var avatarHtml="<div class='cs-avatar' id='npc-avatar-btn' title='Drag to reframe · Click to edit'>"+(portrait?"<img id='npc-portrait-img' src='"+portrait+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>";
 
   // ── Hero info block ───────────────────────────────────────────────────────
   var heroInfo;
@@ -677,8 +679,8 @@ function showNpcSheet(name){
     });
   }
 
-  // ── Portrait (party members only) ─────────────────────────────────────────
-  if(isParty&&document.getElementById("npc-avatar-btn")){
+  // ── Portrait (every NPC — #453) ─────────────────────────────────────────
+  if(document.getElementById("npc-avatar-btn")){/* #453: every NPC, not only the party */
     // Offset is stored per-companion (mirrored onto charSheet so it survives a swap-to-PC).
     // Without dedicated get/setOffset the portrait modal would fall back to the PLAYER's
     // offset — editing a companion's framing would silently rewrite the player's.
