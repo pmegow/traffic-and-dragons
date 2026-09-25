@@ -1,0 +1,330 @@
+{
+  "format": "tnd-blueprint-v1",
+  "designerVersion": "v0.47",
+  "name": "The Road to Cinderwing",
+  "author": "",
+  "proseAuthor": "gaiman",
+  "narratorVoice": "",
+  "tone": "high",
+  "startingLocation": "Harrowmere",
+  "startingRegion": "The kingdom of Ambergate — a harbour, a river, a forest older than the crown, and a mountain where something with wings has woken",
+  "startingTime": "",
+  "premise": "On the eve of her name-day, Princess Ilsabet Marrow vanished from Vellamere, the haunted mansion on Harrowmere's headland where the royal house keeps its dead and its secrets. Her griffin came home riderless at dawn with scorched feathers. By noon the heralds had said the word the whole kingdom feared: Vaurach the Cinderwing, the dragon of Mount Ashenhold, has stirred after a hundred years of sleep, and he has taken the princess. The king's champions have already failed — one came back from the Ring of Salt in a cart, and two never came back from the Thornlight Weald at all. Now the crown is asking anyone who can hold a blade or a bow to bring Ilsabet home. The road runs from the sea to the mountain: through a house that remembers, an arena that decides who is worthy, a forest that judges the truthful, and up to a roost where the oldest creature in Ambergate is waiting for someone brave enough to ask it a question instead of drawing steel.",
+  "acts": [
+    {
+      "title": "The Empty Chair at Vellamere",
+      "goal": "Learn how the princess truly left Harrowmere, survive a night in the mansion that remembers every Marrow who ever died, and discover that the story the court is telling is not the story that happened",
+      "turningPoint": "The ghost of Lady Sennet Marrow shows you what the portrait saw: Ilsabet walked out of Vellamere on her own feet beside a hooded companion, and the scorch on her griffin's feathers came from a torch, not a dragon — someone in Harrowmere wants the princess believed dead, not rescued",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Riderless Griffin",
+          "objective": "Calm Quillon, the princess's griffin, and read what his wounds and his fury are trying to say",
+          "type": "investigation",
+          "dnaHint": "A griffin is a proud, grieving animal, not a clue on legs. Let the player earn his trust — a hand held still, the right word, a scrap of the princess's cloak — before he lets anyone near the burns. Captain Brisa Hollowell hovers, ashamed, certain she failed her charge."
+        },
+        {
+          "title": "Vellamere by Night",
+          "objective": "Enter the haunted mansion after dark and reach the princess's chambers on the third floor without fleeing or being driven mad",
+          "type": "exploration",
+          "dnaHint": "Vellamere is not cruel; it is bereaved. Doors that open onto the wrong decade, a dinner laid for guests fifty years dead, footsteps that walk the corridor the player just left. The Lantern of Unlying Light hangs in the entrance hall — carried, it shows the dead as they were and shows a lie as a smear of shadow on the liar's mouth. The house gives it up only to someone who lights it for a ghost, not against one."
+        },
+        {
+          "title": "What the Portrait Saw",
+          "objective": "Win the confidence of Lady Sennet Marrow's ghost and see the night of the disappearance as the house remembers it",
+          "type": "social",
+          "dnaHint": "Sennet was Ilsabet's grandmother and the last Marrow who spoke to dragons. She will not be commanded and cannot be bargained with; she wants to be listened to. When she is, the walls show the truth: Ilsabet leaving by choice, the hooded companion, the torch held to Quillon's feathers by a man in the chancellor's livery. End the act with the player knowing more than the crown — and someone in the crown knowing that they know."
+        }
+      ]
+    },
+    {
+      "title": "The Ring of Salt",
+      "goal": "Reach Kettlebridge, where the only living map to Vaurach's roost belongs to the orc gladiator-king Gorrak Ironjaw, and earn it in the arena or around it — while the chancellor's blade hunts you through the crowds",
+      "turningPoint": "Gorrak names his terms in the sand: he will guide you to Ashenhold himself, because a hundred years ago the Cinderwing spared his grandmother's clan when the crown would not — and the assassin Cael Vane, unmasked in the stands, escapes toward the forest with a head start",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "Kettlebridge Market",
+          "objective": "Find who in the river town knows the mountain road, and learn why every answer ends at the arena gates",
+          "type": "social",
+          "dnaHint": "Kettlebridge is loud, wet, and generous: halfling barge-folk, dwarf ferrymen, a gnome apothecary who sells salves that actually work. Dunnick Pell, a halfling tinker with a cart of unlikely tools, attaches himself to the player because he has always wanted to see a dragon. Nobody here has ever been to Ashenhold and come back except Gorrak."
+        },
+        {
+          "title": "Three Nights in the Pit",
+          "objective": "Fight three bouts in the Ring of Salt — a wild manticore, a hydra kept in the flooded lower cage, and whatever Gorrak chooses last — and be standing at the end",
+          "type": "combat",
+          "dnaHint": "The arena is a festival, not an execution; the crowd wants craft and courage, and it boos cruelty. The manticore fights like a cat with a poisoner's tail; the hydra's heads must be counted, and fire closes what steel opens. The third bout is Gorrak himself if the player has impressed him, or his champion if not. The Gauntlet of the Salt Ring — bronze, warm as a living hand, lets its wearer catch and hold a blade without harm — goes to whoever the sand keeps."
+        },
+        {
+          "title": "The Champion's Question",
+          "objective": "Persuade Gorrak Ironjaw that the princess is worth the mountain road, and that the player is not another crown's knight coming to kill something old",
+          "type": "social",
+          "dnaHint": "Gorrak asks one question and listens hard to the answer: why do you want her back? A player who answers with glory or reward gets the map and no guide; one who answers with the truth from Vellamere gets Gorrak himself. He carries the road in his head and his grandmother's story in his chest."
+        },
+        {
+          "title": "Knives in the Stands",
+          "objective": "Find the chancellor's assassin before he finds the player, and learn what Orvin Tallow is so afraid the princess will say",
+          "type": "investigation",
+          "dnaHint": "Cael Vane wears the Hollowstep Cloak, which swallows the sound of his feet and the memory of his face from anyone who looks away; the Lantern of Unlying Light burns through it. He is not here for the player at first — he is here to stop Gorrak talking. Let the player catch him by cleverness in the crowd or lose him to the forest road with a wound to remember him by."
+        }
+      ]
+    },
+    {
+      "title": "The Thornlight Weald",
+      "goal": "Cross the ancient forest between the river and the mountain, pass the elves' Court of Leaves and the unicorn's ford, and learn from the ones who were there what Ilsabet went to Ashenhold to do",
+      "turningPoint": "Elder Ithryl shows you the dragon's empty nest: Vaurach did not take the princess — the princess went to the Cinderwing to stop a war, because Chancellor Tallow's men stole the dragon's last egg from under the Weald, and Ilsabet offered herself as the dragon's honoured guest to buy Ambergate time before Vaurach burns Harrowmere to find it",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Under the Old Boughs",
+          "objective": "Enter the Thornlight Weald by the river gate and survive the first night among the dire wolves that hunt its edges",
+          "type": "exploration",
+          "dnaHint": "The Weald is older than the kingdom and knows it. Light comes down green; distances lie; the dire wolves of the border run in silence and test a camp twice before they commit. Dunnick's tinker tricks and Gorrak's memory of the road both matter here. Something with a single horn watches from beyond the firelight and does not come closer."
+        },
+        {
+          "title": "The Court of Leaves",
+          "objective": "Be received by the elves of the Weald and win Elder Ithryl's account of the night the egg was taken",
+          "type": "social",
+          "dnaHint": "The elves are courteous, unhurried, and grieving in a way humans will not understand at first: the egg lay in their keeping as much as the dragon's, and men in the chancellor's colours took it with iron and fire. Ithryl gives the Thornwood Bow — a bow whose arrows fly true through any darkness — to a player who speaks plainly, and gives nothing to one who flatters. The court may keep the player a night longer than they want; time in the Weald is not the world's time."
+        },
+        {
+          "title": "The Spider Road",
+          "objective": "Take the only path to the mountain, a ravine strung with the webs of giant spiders that have learned to prefer travellers to deer",
+          "type": "combat",
+          "dnaHint": "The spiders are patient and many; the road is narrow and the webs are the walls. Fire is the answer and the danger both — the Weald does not forgive a careless torch. Cael Vane has passed this way a day ahead and left a cut web and a dead spider behind him; the player is on his trail now, not the other way round."
+        },
+        {
+          "title": "The Unicorn's Ford",
+          "objective": "Cross the river Thornlight at the ford the unicorn guards, which lets pass only those who have told no lie since entering the Weald",
+          "type": "exploration",
+          "dnaHint": "The unicorn is never fought and never ridden; it stands in the water and looks, and the water rises or falls. A player who has lied — to the elves, to Gorrak, to themselves — must find the lie and unsay it aloud before the ford will open. The unicorn shows the empty nest on the far bank: the shape of an egg in the moss, and the marks of iron boots. Ithryl, if the player earned it, names the man who gave the order."
+        }
+      ]
+    },
+    {
+      "title": "Ashenhold",
+      "goal": "Reach Stonemoor beneath the mountain, take the dragon's egg back from the chancellor's men and the basilisk they set to guard it, climb to the roost, and bring the princess home — or bring her what she went for",
+      "turningPoint": "At the roost, with the egg in your arms, the Cinderwing speaks: he never wanted Ambergate's crown, only his child, and the princess is free the moment the egg is whole in his nest — and Ilsabet, freed, asks the player whether she should go home to a court that tried to have her forgotten, or stay as the first envoy between the dragon and the kingdom",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Stonemoor's Empty Halls",
+          "objective": "Enter the half-abandoned dwarf town under the mountain and find Thane Bora Grimmsdottir, the last dwarf who will still speak the Cinderwing's name",
+          "type": "exploration",
+          "dnaHint": "Stonemoor emptied when the dragon woke; the ones who stayed are stubborn, old, or in love with the stone. Bora knows the deep halls where the chancellor's men have hidden the egg and knows the thing they loosed to guard it. She will not lead the way — she is too old — but she will draw it in soot on the hearthstone."
+        },
+        {
+          "title": "The Egg in the Dark",
+          "objective": "Descend into the sealed halls, get past the basilisk without meeting its eyes, and take the dragon's egg from Cael Vane and the chancellor's soldiers",
+          "type": "combat",
+          "dnaHint": "The basilisk is a lamp in the dark that kills anyone who looks at it; Gorrak's Gauntlet, a polished shield, a blindfold and a keen ear are all answers. Cael Vane makes his last stand here, cornered, and may talk if the Lantern is on him: the chancellor meant to hatch the egg himself and keep a dragon on a chain. The egg is warm and heavy as a sleeping child."
+        },
+        {
+          "title": "The Climb",
+          "objective": "Carry the egg up the mountain path to the roost through cold, thin air and the Cinderwing's own watchfulness",
+          "type": "exploration",
+          "dnaHint": "The dragon knows they are coming from the first switchback and does nothing — he is waiting to see what they carry and how they carry it. Snow, a scree slope, a ledge where Gorrak's grandmother once stood. If the player has the Thornwood Bow, the dark of the last tunnel is not dark. Let the summit be beautiful."
+        },
+        {
+          "title": "The Cinderwing's Court",
+          "objective": "Face Vaurach the Cinderwing at his roost and settle the matter of the egg and the princess — by word, or by fire",
+          "type": "social",
+          "dnaHint": "Vaurach is old, articulate, and tired of humans. He will listen to a player holding his egg with care and he will burn one who holds it as a hostage. A fight is possible and survivable only by running; a conversation is the real finale. Ilsabet is there, unharmed, in a dragon's hospitality — reading to him, of all things. She has been waiting for someone with the sense to bring the egg instead of an army."
+        },
+        {
+          "title": "The Princess's Choice",
+          "objective": "Help Ilsabet decide her own ending, and carry the truth about Chancellor Tallow back down the mountain to a court that will not want to hear it",
+          "type": "social",
+          "dnaHint": "The rescue was never a leash. Ilsabet may ride home on Quillon with the player and face the chancellor in her father's hall; she may stay as Ambergate's first envoy to the dragon and send the player down with her seal and her testimony; she may ask the player what they would do. Whatever she chooses, Tallow's fall is the kingdom's business now, and the player made it possible. End on the road down, with the mountain behind and the sea ahead."
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Ilsabet Marrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "The princess of Ambergate, nineteen, human, clever, and far less helpless than the heralds make her. She grew up in Vellamere's library with her grandmother's dragon-stories and believed them. She is not in the story until the roost, but her choices shape every act: the griffin, the torch, the hooded companion, the empty nest.",
+      "secret": "She was never taken. She left Vellamere on her own feet with a hooded elf of the Weald to go to the Cinderwing as his honoured guest, buying Ambergate time before the dragon came looking for his stolen egg. The chancellor's man burned her griffin's feathers to make the abduction look real.",
+      "revealAct": 1
+    },
+    {
+      "name": "Orvin Tallow",
+      "role": "villain",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Chancellor of Ambergate, human, sixty, silver-tongued, the king's oldest friend and the man who actually runs the kingdom. He is never met in the field; he acts through Cael Vane and through soldiers in his brown-and-gold livery. He is charming in every account of him and terrifying in his effects.",
+      "secret": "He had the Cinderwing's last egg stolen from under the Thornlight Weald so he could hatch it himself and keep a dragon under his own hand, and he wants the princess believed dead because she knows it.",
+      "revealAct": 3
+    },
+    {
+      "name": "Brisa Hollowell",
+      "role": "ally",
+      "pronouns": "she/her",
+      "armor": "chain shirt",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Captain of the princess's shield, half-elf, thirty, quiet, exact, and eaten alive by the certainty that she failed her charge. She joins the player from Harrowmere if asked, fights like a woman with something to prove, and slowly comes to understand that Ilsabet did not need protecting from the dragon.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Gorrak Ironjaw",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "armor": "arena harness",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Gladiator-king of the Ring of Salt at Kettlebridge, orc, huge, scarred, and much more thoughtful than the crowd expects. He holds the only true road to Ashenhold in his memory. He respects courage, despises cruelty, and asks one question of anyone who wants the mountain.",
+      "secret": "A hundred years ago the Cinderwing spared his grandmother's clan when Ambergate's soldiers would have let them starve in the snow; he has carried the road to the roost ever since as a trust, and he will walk it himself for the right reason.",
+      "revealAct": 2
+    },
+    {
+      "name": "Lady Sennet Marrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "The ghost of Ilsabet's grandmother, the last Marrow who spoke with dragons, and the presiding spirit of Vellamere. Dry, sharp, fond of her granddaughter, and unimpressed by the living. She cannot be commanded; she can be listened to, and the house shows what she has seen.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Elder Ithryl",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Elder of the Court of Leaves, elf, older than Harrowmere, patient as a tree. The Weald's elves kept the dragon's egg in trust with the Cinderwing for a century and lost it to iron and fire. Ithryl speaks plainly to those who speak plainly, and gives the Thornwood Bow to one who does.",
+      "secret": "It was Ithryl's own hooded kin who walked the princess out of Vellamere and through the Weald to Ashenhold, at her request; the elves know exactly who took the egg and have been waiting for a human to ask.",
+      "revealAct": 3
+    },
+    {
+      "name": "Dunnick Pell",
+      "role": "ally",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "A halfling tinker of Kettlebridge with a cart of unlikely tools, a bottomless curiosity, and a lifelong wish to see a dragon with his own eyes. He attaches himself to the player at the market and proves useful in every place a lock, a rope, a lamp or a joke is needed. Brave in the way of people who have not yet learned better.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Bora Grimmsdottir",
+      "role": "ally",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Thane of Stonemoor, dwarf, ancient, the last of her town who will still say the Cinderwing's name aloud. She stayed when the others fled the mountain. She knows the sealed deep halls and the thing the chancellor's men loosed in them, and she draws the way in soot on her hearthstone for anyone she judges worth the stone.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Cael Vane",
+      "role": "villain",
+      "pronouns": "he/him",
+      "armor": "leather",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "The chancellor's blade, human, thirty, called Whisper in the places where he is called anything. He wears the Hollowstep Cloak, which swallows the sound of his feet and the memory of his face from anyone who looks away. He burned the griffin, hunts Gorrak in Kettlebridge, runs a day ahead through the Weald, and makes his last stand in the dark under Stonemoor.",
+      "secret": "He does not know the chancellor means to keep the hatchling on a chain; when the Lantern of Unlying Light is on him and he learns it, he may tell the truth for the first time in his life.",
+      "revealAct": 4
+    }
+  ],
+  "locations": [
+    {
+      "name": "Harrowmere",
+      "description": "The harbour town of Ambergate: grey stone, gull-cry, tar and salt, a royal residence above the quays and the headland road climbing to Vellamere. The crown's heralds cry the princess's abduction from the harbour steps every hour. Captain Hollowell keeps the griffin in the royal mews."
+    },
+    {
+      "name": "Vellamere",
+      "description": "The haunted mansion on Harrowmere's headland where the royal house keeps its dead and its secrets — three floors, a portrait gallery that watches, a dinner laid for guests fifty years gone, and Lady Sennet Marrow's ghost presiding. The Lantern of Unlying Light hangs in its entrance hall. Vellamere is bereaved, not cruel; it frightens the careless and shows the patient the truth."
+    },
+    {
+      "name": "Kettlebridge",
+      "description": "The river town where the Thornlight meets the lowland road: barge-folk, ferrymen, a market that never quite closes, and the Ring of Salt — a stone arena on the river island where Gorrak Ironjaw rules and the town decides who is worthy by watching them fight. Loud, wet, generous, and full of eyes."
+    },
+    {
+      "name": "The Ring of Salt",
+      "description": "Kettlebridge's arena on the river island: tiered stone stands, a sand floor salted white, a flooded lower cage where the hydra is kept, and Gorrak's box above the gate. Three nights of bouts decide the mountain road. The crowd wants craft and courage and boos cruelty."
+    },
+    {
+      "name": "The Thornlight Weald",
+      "description": "The ancient forest between the river and the mountain — older than the kingdom, green-lit, deceptive in distance. Dire wolves run its borders in silence; giant spiders own the ravine road; the elves keep the Court of Leaves at its heart; the unicorn guards the ford of the river Thornlight and lets pass only the truthful. The dragon's nest lay in the Weald's keeping until iron and fire took the egg."
+    },
+    {
+      "name": "Stonemoor",
+      "description": "The dwarf town under Mount Ashenhold, half-emptied when the dragon woke. Stubborn old dwarves, cold forges, a thane's hall with a soot-drawn map on the hearthstone, and sealed deep halls below where the chancellor's men have hidden the egg behind a basilisk."
+    },
+    {
+      "name": "Mount Ashenhold",
+      "description": "The Cinderwing's mountain: a switchback path above Stonemoor, a scree slope, a ledge where an orc's grandmother once stood, a last dark tunnel, and the roost at the summit — a warm hollow of black stone open to the sky, where the oldest creature in Ambergate keeps an empty nest and an honoured guest who reads to him."
+    }
+  ],
+  "creatures": [
+    {
+      "name": "Vaurach the Cinderwing",
+      "kind": "dragon",
+      "threat": "apex",
+      "notes": "The dragon of Mount Ashenhold, red-black, older than the kingdom, awake after a century because his last egg was stolen. Articulate, proud, tired of humans, capable of burning Harrowmere and choosing not to yet. He cannot be beaten in his roost, only fled or spoken with; he can be reasoned with by anyone who holds his egg with care and answers plainly. He remembers every kindness ever done him."
+    },
+    {
+      "name": "Quillon",
+      "kind": "griffin",
+      "threat": "moderate",
+      "notes": "The princess's griffin, eagle-headed and lion-bodied, bronze-feathered, proud and grieving. He came home riderless with scorched feathers and will savage anyone who reaches for the burns before earning his trust. Once calmed he is a mount, a tracker who knows the princess's scent, and the fastest way down the mountain at the end."
+    },
+    {
+      "name": "Manticore of the Ring",
+      "kind": "beast",
+      "threat": "deadly",
+      "notes": "The first bout in the Ring of Salt: a lion-bodied, man-faced beast with a scorpion's tail that throws venomed spines at range. Fights like a cat — circles, feints, and strikes at whoever looks away. The tail can be pinned; the spines are worst at distance."
+    },
+    {
+      "name": "Hydra of the Flooded Cage",
+      "kind": "beast",
+      "threat": "deadly",
+      "notes": "The second bout: a five-headed serpent kept in the arena's flooded lower cage, each head a separate temper. Steel opens a neck and two heads grow where one was cut; fire closes what steel opens. The crowd counts the heads aloud."
+    },
+    {
+      "name": "Dire wolves of the Weald's border",
+      "kind": "beast",
+      "threat": "moderate",
+      "notes": "Grey wolves the size of ponies that hunt the forest's edges in silence, in packs of six to nine. They test a camp twice before they commit — a scout at the firelight's edge, a feint from the dark — and go for the horses first. Fire and a held line turn them; a broken line does not."
+    },
+    {
+      "name": "Giant spiders of the Spider Road",
+      "kind": "beast",
+      "threat": "moderate",
+      "notes": "Cart-sized, patient, and many, they have strung the ravine road to the mountain with webs that are the walls of the path. They prefer travellers to deer now. Fire is the answer and the danger both, since the Weald does not forgive a careless torch. Cael Vane's cut web and a dead spider mark that he passed a day ahead."
+    },
+    {
+      "name": "The Basilisk of the Deep Halls",
+      "kind": "beast",
+      "threat": "deadly",
+      "notes": "An eight-legged, crested serpent-lizard loosed by the chancellor's men to guard the egg in Stonemoor's sealed halls. Its gaze turns living flesh to stone; its own reflection turns it. A blindfold, a polished shield, the Gauntlet of the Salt Ring, and a keen ear are all answers — meeting its eyes is not."
+    },
+    {
+      "name": "The Unicorn of the Ford",
+      "kind": "fey beast",
+      "threat": "low",
+      "notes": "Never fought, never ridden. It stands in the river Thornlight at the ford and looks, and the water rises against the untruthful and falls for the honest. It watches the player's camp from beyond the firelight on the first night in the Weald. On the far bank it shows the empty nest."
+    }
+  ],
+  "rules": [
+    "What binds people in Ambergate is oath, kinship, gratitude and shame — never anything that can be counted or written in a book. Money changes hands only at market stalls, and no scene ever turns on it.",
+    "Every threat in this world is a living creature, a person, a ghost, or the weather. Nothing made of metal or stone walks or thinks, and none may be introduced.",
+    "Named relics are found where they lie and never earlier: the Lantern of Unlying Light in Vellamere's entrance hall (shows the dead as they were; a lie is a smear of shadow on the liar's mouth), the Gauntlet of the Salt Ring in Kettlebridge (bronze, warm as a living hand; its wearer may catch and hold a blade without harm), the Hollowstep Cloak on Cael Vane (swallows the sound of the wearer's feet and the memory of their face from anyone who looks away; the Lantern burns through it), the Thornwood Bow from Elder Ithryl (its arrows fly true through any darkness), and, only if the roost ends in peace, a shield of the Cinderwing's shed scale that no fire can mark. Each asks for attention rather than anything that can be counted: the Lantern shows the player's own lies too.",
+    "The Cinderwing is a person, not a beast to be farmed for glory: he speaks, remembers, and can be reasoned with, and Ambergate's wrong came first. A player who arrives at the roost with an army's intent finds a fight they cannot win; one who arrives with the egg and a plain answer finds a conversation. The princess's ending is hers to choose."
+  ]
+}
