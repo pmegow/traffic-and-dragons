@@ -937,7 +937,9 @@ function speakerVoiceMap(sp,text){
     if(!vid)return;
     if(!out)out={};
     out[parseInt(k,10)]=vid;
-    if(ch.speechifyVoiceId){if(!out.providers)out.providers={speechify:{}};out.providers.speechify[parseInt(k,10)]=ch.speechifyVoiceId;}
+    var _ix=parseInt(k,10),_sl=TTS.characterVoiceSlots?TTS.characterVoiceSlots():[],_si;/* #456: every cloud slot's pin rides under providers.<id>; the delivery direction under directions */
+    for(_si=0;_si<_sl.length;_si++){var _s=_sl[_si];if(_s.provider==="piper"||!ch[_s.field])continue;if(!out.providers)out.providers={};if(!out.providers[_s.provider])out.providers[_s.provider]={};out.providers[_s.provider][_ix]=ch[_s.field];}
+    if(ch.voiceDirection){if(!out.directions)out.directions={};out.directions[_ix]=ch.voiceDirection;}
   });
   return out;
 }
@@ -954,7 +956,9 @@ function _speakerVoiceSubject(name){
     p=String(owner.pronouns||ns[i].pronouns||((typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[nm])?memory.npcs[nm].pronouns:"")||"").toLowerCase().replace(/\s+/g,"");
     g=owner.gender;
     if(g!=="M"&&g!=="F"&&g!=="NB")g=/^she\//.test(p)?"F":(/^he\//.test(p)?"M":(/^they\//.test(p)?"NB":"ANY"));
-    return {char:{name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||"",speechifyVoiceId:owner.speechifyVoiceId||""},owner:owner};
+    var _sc={name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||"",speechifyVoiceId:owner.speechifyVoiceId||"",voiceDirection:owner.voiceDirection||""};
+    var _scs=(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)?TTS.characterVoiceSlots():[],_sci;for(_sci=0;_sci<_scs.length;_sci++)if(!(_scs[_sci].field in _sc))_sc[_scs[_sci].field]=owner[_scs[_sci].field]||"";/* #456: every slot field, never a hand list */
+    return {char:_sc,owner:owner};
   }
   return null;
 }
@@ -976,7 +980,7 @@ function pinAutoCastVoices(sp){
     /* Fable review 2026-09-11 (Brief A): the Speechify fill runs BEFORE the Piper guard — it used to sit below
        `continue`-on-voiceId, so a speaker who already had a Piper backup (every character of every pre-v1.905
        campaign) never received a Speechify pin, and two speakers sharing a backup collapsed onto one actor. */
-    if(!sub.owner.speechifyVoiceId&&TTS.assignCharacterVoices){var _vpChar={name:ch.name,gender:ch.gender,pronouns:ch.pronouns,voiceId:sub.owner.voiceId||""};TTS.assignCharacterVoices(_vpChar,null,"speechify");if(_vpChar.speechifyVoiceId){sub.owner.speechifyVoiceId=_vpChar.speechifyVoiceId;pinned=true;}}
+    if(TTS.assignCharacterVoices&&TTS.characterVoiceSlots){var _vps=TTS.characterVoiceSlots(),_vpi;for(_vpi=0;_vpi<_vps.length;_vpi++){var _vp=_vps[_vpi];if(_vp.provider==="piper"||sub.owner[_vp.field])continue;var _vpChar={name:ch.name,gender:ch.gender,pronouns:ch.pronouns,voiceId:sub.owner.voiceId||""};TTS.assignCharacterVoices(_vpChar,null,_vp.provider);if(_vpChar[_vp.field]){sub.owner[_vp.field]=_vpChar[_vp.field];pinned=true;}}}/* #456: every cloud slot, not only Speechify */
     if(sub.owner.voiceId)continue;
     v=TTS.autoCastVoiceId(ch);
     if(!v)continue;

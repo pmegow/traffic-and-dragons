@@ -126,5 +126,17 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   d.models.speechify.voices=[{id:'slow_f',label:'Slow F',g:'F',note:''},{id:'geffen_32',label:'Geffen',g:'M',note:''}];d.models.speechify.narrator='geffen_32';S.save(d);
   var f={name:'Nyla',gender:'F'};TTS.assignCharacterVoices(f,function(){return 0;},'speechify');assert.equal(f.speechifyVoiceId,'slow_f','with no bench voice of her gender the whole catalog is the pool');
  });
+ await test('#456 Inworld reads honour per-unit sheet pins and per-character delivery directions: each unit goes to its pinned voice, a directed unit carries its own instruction, an undirected one the model direction',async function(){
+  var d=draft('inworld');d.models.inworld.direction='Speak naturally.';d.models.inworld.voices=[{id:'a',label:'A',g:'F'},{id:'b',label:'B',g:'M'},{id:'c',label:'C',g:'F'}];d.models.inworld.narrator='a';S.save(d);
+  var bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
+  TTS.speak('First line. Second line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',providers:{inworld:{0:'b',1:'c'}},directions:{1:'gruff and unhurried'}});await sleep(40);
+  assert.deepEqual(bodies.map(function(b){return b.voiceId;}),['b','c']);
+  assert.deepEqual(bodies.map(function(b){return b.instruction;}),['Speak naturally.','gruff and unhurried']);
+ });
+ await test('#456 automatic casting fills the Inworld slot from the loaded Inworld catalog, gender matched, without touching the other slots',async function(){
+  var d=draft('inworld');d.models.inworld.voices=[{id:'iw_f',label:'F',g:'F'},{id:'iw_m',label:'M',g:'M'}];d.models.inworld.narrator='iw_f';S.save(d);
+  var c={name:'Nyla',gender:'F',speechifyVoiceId:'keep'};assert.equal(TTS.assignCharacterVoices(c,function(){return 0;},'inworld'),true);
+  assert.equal(c.inworldVoiceId,'iw_f');assert.equal(c.speechifyVoiceId,'keep');assert.equal(c.voiceId,undefined,'the provider filter must leave the Piper slot alone');
+ });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -587,15 +587,16 @@ var TTS = (function() {
     for (var i = 0; i < units.length; i++) {
       var v = forceVoice || voiceFor((voices && voices[i]) || "", i);
       var t = units[i].text || "";
+      var dir = (voices && voices.directions && voices.directions[i]) || "";/* #456: a character's delivery direction — a group never spans two */
       // #41b fast start: while building the FIRST group, the accumulation cap is small — the cold
       // open is gated on group 1's whole non-streaming synthesis, so a big opener means many
       // seconds of silence before the first sound. Later groups keep the big cap (call count).
       var cap = groups.length ? GEMINI_TTS_MAX_GROUP_CH : GEMINI_TTS_FAST_START_CH;
-      if (cur && cur.voice === v && (cur.text.length + t.length + 1) <= cap) {
+      if (cur && cur.voice === v && (cur.direction || "") === dir && (cur.text.length + t.length + 1) <= cap) {
         cur.text += " " + t; cur.last = units[i];
       } else {
         if (cur) groups.push(cur);
-        cur = { voice: v, text: t, last: units[i] };
+        cur = { voice: v, text: t, last: units[i], direction: dir };
       }
     }
     if (cur) groups.push(cur);
@@ -779,7 +780,7 @@ var TTS = (function() {
       note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Test bills your Inworld key.",
       defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },
       auth: "Basic", accept: "application/json", endpoint: "https://api.inworld.ai/tts/v1/voice", catalogUrl: "https://api.inworld.ai/voices/v1/voices?pageSize=2000",
-      request: function(g, c) { return { text: g.text, voiceId: g.voice, modelId: "inworld-tts-2", instruction: c.direction,
+      request: function(g, c, direction) { return { text: g.text, voiceId: g.voice, modelId: "inworld-tts-2", instruction: direction || c.direction,/* #456: the group's direction (a character's own) outranks the model's */
         deliveryMode: c.delivery, language: c.language || undefined, audioConfig: { audioEncoding: "PCM", sampleRateHertz: 24000, speakingRate: c.rate } }; },
       audio: function(r) { return r.json().then(function(j) { return _voiceDecode64(j.audioContent); }); },
       page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
@@ -941,10 +942,10 @@ var TTS = (function() {
       })(), cancelled]);
     } finally { clearTimeout(timer); ctrl.signal.removeEventListener("abort", onAbort); }
   }
-  function _voiceFetch(id, g, c, key, regCtrl) {
+  function _voiceFetch(id, g, c, key, regCtrl, direction) {
     var m = VOICE_MODELS[id];
     if (!key) return Promise.resolve({ fail: "No API key" });
-    return _voiceRequest(m.endpoint, { method: "POST", headers: { "Content-Type": "application/json", "Accept": m.accept, "Authorization": m.auth + " " + key }, body: JSON.stringify(m.request(g, c)) }, m.audio, regCtrl)
+    return _voiceRequest(m.endpoint, { method: "POST", headers: { "Content-Type": "application/json", "Accept": m.accept, "Authorization": m.auth + " " + key }, body: JSON.stringify(m.request(g, c, direction)) }, m.audio, regCtrl)
       .then(function(bytes) {
         if (!bytes.length || bytes.length % 2 || bytes.length > 6000000) return { fail: "Invalid PCM audio response" };
         return { bytes: bytes, rate: 24000 };
@@ -1006,9 +1007,15 @@ var TTS = (function() {
      a pin already set is never touched. Piper's equivalent is the star bench. */
   var SPEECHIFY_BENCH = ["beatrice_32", "dominic_32", "edmund_32", "geffen_32", "harper_32", "hugh_32", "imogen_32", "wyatt_32"];
   var CHARACTER_VOICE_SLOTS = [
-    { provider: "speechify", field: "speechifyVoiceId", label: "Primary voice", service: "Speechify", selectId: "cs-primary-voice-sel", testId: "cs-primary-voice-test",
+    { provider: "speechify", field: "speechifyVoiceId", label: "Speechify voice", service: "Speechify", selectId: "cs-primary-voice-sel", testId: "cs-primary-voice-test",
       catalog: function() { return _voiceCatalog("speechify", _voiceConfig("speechify")); }, bench: SPEECHIFY_BENCH,/* #455 */
       test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "speechify"; actor = actor || _voiceActor("speechify", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.speechify); d.models.speechify.narrator = actor; _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
+    /* #456 (owner 2026-09-25, after the Inworld trial): the Inworld slot. Its Test reads with the character's own delivery
+       direction when one is set, so the owner hears what play will do. Auto-assignment draws gender-matched from the loaded
+       Inworld catalog (no bench — the owner's ear found the catalog uniformly good). */
+    { provider: "inworld", field: "inworldVoiceId", label: "Inworld voice", service: "Inworld", selectId: "cs-inworld-voice-sel", testId: "cs-inworld-voice-test",
+      catalog: function() { return _voiceCatalog("inworld", _voiceConfig("inworld")); },
+      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "inworld"; actor = actor || _voiceActor("inworld", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.inworld); d.models.inworld.narrator = actor; if (char.voiceDirection) d.models.inworld.direction = char.voiceDirection; _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
     { provider: "piper", field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
       test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
   ];
@@ -1113,7 +1120,7 @@ var TTS = (function() {
   ["inworld", "speechify"].forEach(function(id) {
     var m = VOICE_MODELS[id];
     CLOUD_READERS[id] = { label: m.label, depth: m.depth, prime: function() { return true; },
-      fetch: function(g, first, key, direction, regCtrl, config) { return _voiceFetch(id, g, config || _voiceConfig(id), key, regCtrl); },
+      fetch: function(g, first, key, direction, regCtrl, config) { return _voiceFetch(id, g, config || _voiceConfig(id), key, regCtrl, direction); },
       degrade: function(reason) { _voiceErrors[id] = { at: Date.now(), reason: reason }; console.warn("[tts " + id + "] " + reason); if (typeof showToast === "function") showToast(m.label + " unavailable: " + reason + " — using local voice", 8000); }
     };
     TTS_PROVIDERS[id] = { id: id, label: m.label,
@@ -3129,7 +3136,7 @@ var TTS = (function() {
     // (billing is per generated token; waste is bounded by the conveyor depth).
     var ctrls = {};
     var conv = _geminiConveyor(groups.length, cloud.depth, function(ix) {
-      cloud.fetch(groups[ix], ix === 0, key, direction, function(c) { ctrls[ix] = c; })
+      cloud.fetch(groups[ix], ix === 0, key, groups[ix].direction || direction, function(c) { ctrls[ix] = c; })/* #456: a directed character group outranks the read's direction */
         .then(function(r)  { delete ctrls[ix]; conv.landed(ix, r); },
               function(e)  { delete ctrls[ix]; conv.landed(ix, { fail: (e && e.message) || "synth rejected" }); });
     });

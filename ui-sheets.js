@@ -120,13 +120,19 @@ function csPrimaryVoiceOptions(char,slot){
 }
 function csVoiceControlHtml(char){
   if(!char||typeof TTS==="undefined"||!TTS.characterVoiceSlots)return "";
-  var options={speechify:csPrimaryVoiceOptions,piper:csBackupVoiceOptions};
+  /* #456: the registry decides — a cloud slot renders its catalog, the Piper slot its stars; no provider named here */
   return TTS.characterVoiceSlots().map(function(slot){
     return "<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'>"
       +"<label for='"+slot.selectId+"' style='display:block;margin-bottom:5px;'>"+slot.label+" · "+slot.service+"</label>"
-      +"<div style='display:flex;align-items:center;gap:8px;'><select id='"+slot.selectId+"' style='flex:1;min-width:0;width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:8px;cursor:pointer;'>"+options[slot.provider](char,slot)+"</select>"
+      +"<div style='display:flex;align-items:center;gap:8px;'><select id='"+slot.selectId+"' style='flex:1;min-width:0;width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:8px;cursor:pointer;'>"+(slot.provider==="piper"?csBackupVoiceOptions:csPrimaryVoiceOptions)(char,slot)+"</select>"
       +"<button id='"+slot.testId+"' type='button' style='flex-shrink:0;min-height:36px;padding:5px 10px;font-family:var(--font);font-size:12px;background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;'>&#9654; Test</button></div></div>";
-  }).join("")+"<div style='font-size:11px;color:var(--t2);margin-top:6px;'>Speechify tests use your API key.</div>";
+  }).join("")+csVoiceDirectionHtml(char)+"<div style='font-size:11px;color:var(--t2);margin-top:6px;'>Cloud voice tests use your API keys.</div>";
+}
+/* #456 (owner 2026-09-25): ONE delivery direction per character — Inworld's per-request instruction (OpenAI's too); Speechify
+   ignores it. Saved on change like the voice selects; the Inworld slot's Test reads with it. */
+function csVoiceDirectionHtml(char){
+  return "<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'><label for='cs-voice-direction' style='display:block;margin-bottom:5px;'>Delivery direction · Inworld</label>"
+    +"<textarea id='cs-voice-direction' rows='2' maxlength='300' placeholder='How this character speaks — e.g. gruff and impatient; low, unhurried' style='width:100%;box-sizing:border-box;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:8px;resize:vertical;'>"+escHtml(char.voiceDirection||"")+"</textarea></div>";
 }
 function csWireVoice(char){
   if(!char||typeof TTS==="undefined"||!TTS.characterVoiceSlots)return;
@@ -148,6 +154,8 @@ function csWireVoice(char){
       });}catch(err){if(ticker)ticker.stop();ticker=null;tb.textContent="▶ Test";console.warn("[character voice] "+err.message);showToast(slot.service+" test failed: "+err.message,8000);}
     });
   });
+  var dir=document.getElementById("cs-voice-direction");/* #456 */
+  if(dir)dir.addEventListener("change",function(){var v=String(dir.value||"").trim().slice(0,300);if(v)char.voiceDirection=v;else delete char.voiceDirection;if(typeof saveAll==="function")saveAll();if(typeof showToast==="function")showToast(v?"Delivery direction saved":"Delivery direction cleared");});
 }
 function csSheetSections(c,invOwner,portable){
   var i;

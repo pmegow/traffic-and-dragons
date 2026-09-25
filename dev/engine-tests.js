@@ -25734,6 +25734,26 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     companionInitiativeFile(cs,"pocketed a spoon",worldState.turn);if(buildCompanionImpulseNote()!=="")return "asked while a recent unbidden act is still on the cadence line";
     return NOTE_SHAPES.buildCompanionImpulseNote&&NOTE_LATCH_FIELDS.indexOf("impulseAsk")>=0&&NOTE_BUILDERS.indexOf(buildCompanionImpulseNote)>=0?true:"not registered";
   });
+  t("#456 speakerVoiceMap carries every cloud slot's pin under providers.<id> and the character's delivery direction under directions — Inworld pins and directions ride beside Speechify's; the slot registry is speechify, inworld, piper",function(){
+    _mkSpeakerWorld();
+    var units=TTS._textPrep.splitSentences(_SPK_LINE,null,true);
+    var cs=worldState.npcs[0].charSheet;cs.speechifyVoiceId="sp-daeris";cs.inworldVoiceId="inw-daeris";cs.voiceDirection="gruff and unhurried";
+    var vm=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
+    if(!vm||!vm.providers||!vm.providers.speechify||vm.providers.speechify[1]!=="sp-daeris")return "speechify pin lost: "+JSON.stringify(vm);
+    if(!vm.providers.inworld||vm.providers.inworld[1]!=="inw-daeris")return "inworld pin missing: "+JSON.stringify(vm);
+    if(!vm.directions||vm.directions[1]!=="gruff and unhurried")return "direction missing: "+JSON.stringify(vm);
+    delete cs.voiceDirection;delete cs.inworldVoiceId;var vm2=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
+    if(vm2.directions||(vm2.providers&&vm2.providers.inworld))return "empty fields must not appear in the map: "+JSON.stringify(vm2);
+    var slots=TTS.characterVoiceSlots().map(function(s){return s.provider+":"+s.field;}).join(",");
+    return slots==="speechify:speechifyVoiceId,inworld:inworldVoiceId,piper:voiceId"?true:"slot registry: "+slots;
+  });
+  t("#456 cloud grouping splits a same-voice run where the delivery direction changes and stamps each group with its direction; undirected units carry none",function(){
+    var units=[{text:"One."},{text:"Two."},{text:"Three."},{text:"Four."}];
+    var voices={0:"v",1:"v",2:"v",3:"v",directions:{1:"gruff",2:"gruff"}};
+    var groups=TTS._gemini.group(units,"n",voices,null,function(v){return v||"n";});
+    var shape=groups.map(function(g){return g.voice+"|"+(g.direction||"")+"|"+g.text;}).join(" ~ ");
+    return shape==="v||One. ~ v|gruff|Two. Three. ~ v||Four."?true:"groups: "+shape;
+  });
   t("#452 the summary line links each Present name the roster or memory knows to its sheet (data-npc span, escaped) and leaves unknown names and every other line exactly as before",function(){
     makeWorld();worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
     memory.npcs["Bram <b>"]={attitude:"",knowledge:[],events:[]};
