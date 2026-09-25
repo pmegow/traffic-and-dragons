@@ -25711,6 +25711,21 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     }finally{addMsg=_am;}
     return true;
   });
+  t("#386/#370 the companion impulse ask (owner 2026-09-24): fires once per COMPANION_INITIATIVE_EVERY turns when a flawed companion is at the player's side, names each flaw and both tags, yields in combat, to a split companion, to a recent unbidden act and inside the window; registered with its latch",function(){
+    makeWorld();worldState.turn=100;worldState.combat=null;
+    if(typeof buildCompanionImpulseNote!=="function")return "buildCompanionImpulseNote missing";
+    if(buildCompanionImpulseNote()!=="")return "asked with no companion";
+    worldState.npcs.push({name:"Nyla Lorrath",partyMember:true,status:"steady",charSheet:{name:"Nyla Lorrath",cls:"Rogue",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],flaw:"Kleptomania — anything that glitters"}});
+    var n=buildCompanionImpulseNote();
+    if(!/COMPANION IMPULSE/.test(n)||n.indexOf("Nyla Lorrath")<0||n.indexOf("anything that glitters")<0||!/\[COMPANION_INITIATIVE:/.test(n)||!/\[COMPANION_GROWTH:/.test(n)||!/emit nothing/.test(n))return "note: "+n.slice(0,300);
+    if(!worldState.impulseAsk||worldState.impulseAsk.turn!==100)return "latch not set";
+    if(buildCompanionImpulseNote()!=="")return "fired twice inside the window";
+    worldState.turn=100+COMPANION_INITIATIVE_EVERY;if(buildCompanionImpulseNote()==="")return "did not re-fire after the window";
+    delete worldState.impulseAsk;worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:1,maxHp:1}]};if(buildCompanionImpulseNote()!=="")return "fired in combat";worldState.combat=null;
+    var cs=findCompanionChar("Nyla Lorrath");cs.splitLoc={location:"Elsewhere"};if(buildCompanionImpulseNote()!=="")return "asked about a companion who is elsewhere";delete cs.splitLoc;
+    companionInitiativeFile(cs,"pocketed a spoon",worldState.turn);if(buildCompanionImpulseNote()!=="")return "asked while a recent unbidden act is still on the cadence line";
+    return NOTE_SHAPES.buildCompanionImpulseNote&&NOTE_LATCH_FIELDS.indexOf("impulseAsk")>=0&&NOTE_BUILDERS.indexOf(buildCompanionImpulseNote)>=0?true:"not registered";
+  });
   t("#452 the summary line links each Present name the roster or memory knows to its sheet (data-npc span, escaped) and leaves unknown names and every other line exactly as before",function(){
     makeWorld();worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
     memory.npcs["Bram <b>"]={attitude:"",knowledge:[],events:[]};
