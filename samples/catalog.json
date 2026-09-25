@@ -1,5 +1,11 @@
 [
   {
+    "name": "The Riverlight Masquerade (one-evening taster)",
+    "file": "the_riverlight_masquerade_one-evening_taster.blueprint",
+    "author": "",
+    "blurb": "A single evening of intrigue: find which of five masked guests carries the forged treaty before the midnight toast. Short by design — a taste of the game."
+  },
+  {
     "name": "The Iron Meridian",
     "file": "the_iron_meridian.blueprint",
     "author": "",
@@ -22,12 +28,6 @@
     "file": "the_weight_of_the_coffered_god.blueprint",
     "author": "",
     "blurb": "Sword and sorcery. A mercenary company escorts a sealed reliquary across a salt waste, hunted by a warlord, a cult, and the thing in the box that wants out."
-  },
-  {
-    "name": "The Riverlight Masquerade (one-evening taster)",
-    "file": "the_riverlight_masquerade_one-evening_taster.blueprint",
-    "author": "",
-    "blurb": "A single evening of intrigue: find which of five masked guests carries the forged treaty before the midnight toast. Short by design — a taste of the game."
   },
   {
     "name": "The Silence Between Leaves",
