@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260925k";
+var CACHE = "tnd-v3-20260925l";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -14,6 +14,7 @@ var PIPER_CACHE = "tnd-piper-v1";
 var APP_SHELL = [
   "/",
   "/globals.js",
+  "/blueprint-edition.js",
   "/error-report.js",
   "/wasm-probe.js",
   "/compress.js",

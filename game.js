@@ -2852,6 +2852,8 @@ function _attachGMErrorUI(em,retryFn,msg){
 function validateBlueprint(bp){
   if(!bp||typeof bp!=="object")return"Not a valid blueprint file.";
   if(bp.format!=="tnd-blueprint-v1"&&bp.format!=="tnd-campaign-v1")return"Unrecognised blueprint format.";
+  var editionError=BlueprintEdition.problem(BlueprintEdition.adopt({version:bp.version,releaseStatus:bp.releaseStatus}));
+  if(editionError)return editionError;
   if(!bp.name)return"Blueprint has no name.";
   if(!bp.premise&&(!bp.acts||!bp.acts.length))return"Blueprint has no premise or acts.";
   if(bp.acts){
@@ -2931,6 +2933,7 @@ function normalizeToneId(t){
 }
 function normalizeBlueprint(bp){
   if(!bp||typeof bp!=="object")return bp;
+  BlueprintEdition.adopt(bp);
   if(bp.format==="tnd-campaign-v1")bp.format="tnd-blueprint-v1";
   if(typeof bp.author!=="string")bp.author="";
   bp.tone=normalizeToneId(bp.tone);
@@ -3067,6 +3070,8 @@ function buildBlueprintFromGame(){
   }
   return {
     format:     "tnd-blueprint-v1",
+    version:    "0.01",
+    releaseStatus: "draft",
     name:       worldState.campName||worldState.character.name||"Unnamed Campaign",
     author:     "",
     tone:       normalizeToneId(worldState.tone&&worldState.tone.name||""),
@@ -3223,6 +3228,7 @@ function applyBlueprint(bp){
   }
   // Store blueprint name on worldState for reference
   worldState.blueprintName=bp.name;
+  worldState.blueprintEdition=BlueprintEdition.adopt({version:bp.version,releaseStatus:bp.releaseStatus});
 }
 // Repair is evidence-bound: a matching author source AND a recorded original must exist.
 // It adds provenance to the original, preserving both the archive and subsequent play facts.

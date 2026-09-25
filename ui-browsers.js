@@ -189,6 +189,7 @@ function showBlueprintBrowser(){
       npcHtml+="<div style='display:flex;gap:6px;align-items:baseline;margin-bottom:3px;'><span style='font-size:11px;color:var(--t0);'>"+escHtml(n.name)+"</span><span style='font-size:10px;color:"+roleCol+";'>"+escHtml(n.role||"neutral")+"</span></div>";
     }}
     body.innerHTML="<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>"+escHtml(bp.name)+"</div>"
+      +"<div style='font-size:12px;color:var(--acc);margin-bottom:8px;'>"+escHtml(BlueprintEdition.label(bp))+"</div>"
       +(bp.author?"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>by "+escHtml(bp.author)+"</div>":"")
       +"<div style='font-size:12px;color:var(--t1);margin-bottom:16px;line-height:1.6;'>"+escHtml(meta?meta.blurb:(bp.premise||""))+"</div>"
       +"<div style='display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;align-items:baseline;'>"
@@ -255,6 +256,7 @@ function showBlueprintBrowser(){
         html+="<div style='display:flex;align-items:center;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd)\"'>"
           +"<div data-bpidx='"+bi+"' style='flex:1;padding:10px 12px;cursor:pointer;'>"
           +"<div style='font-size:13px;color:var(--t0);font-weight:bold;margin-bottom:2px;'>"+escHtml(item.name)+"</div>"
+          +"<div style='font-size:11px;color:var(--acc);'>"+escHtml(BlueprintEdition.label(bp2))+"</div>"
           +"<div style='font-size:11px;color:var(--t2);'>"+actCount2+" acts &nbsp;·&nbsp; "+npcCount2+" NPCs &nbsp;·&nbsp; saved "+(item.updatedAt?new Date(item.updatedAt).toLocaleDateString():"")+"</div>"
           +"</div>"
           +"<button data-bpdel='"+escHtml(item.slug)+"' data-bpname='"+escHtml(item.name)+"' title='Delete blueprint' style='flex-shrink:0;padding:10px 14px;background:none;border:none;border-left:1px solid var(--brd);color:var(--t2);cursor:pointer;font-size:16px;border-radius:0 var(--r) var(--r) 0;' onmouseover='this.style.color=\"var(--dng)\";this.style.background=\"var(--dng-faint)\"' onmouseout='this.style.color=\"var(--t2)\";this.style.background=\"none\"'>&#215;</button>"
@@ -294,12 +296,13 @@ function showBlueprintBrowser(){
       if(!active(stamp))return;
       if(!Array.isArray(list))throw new Error("The catalog is not a campaign list.");
       list.forEach(function(c){if(!c||!c.id||!c.name||!c.blurb||!c.blueprint)throw new Error("A catalog entry is incomplete.");});
-      var html="<p style='font-size:12px;color:var(--t2);margin:0 0 12px;'>Original campaigns ready to play. Choose one to read more and use it for your new character.</p>";
+      var html="<p style='font-size:12px;color:var(--t2);margin:0 0 12px;'>Original campaigns. Check the version and release status, then choose one to read more and play.</p>";
       if(!list.length)html+="<p>No catalog campaigns are available yet.</p>";
       html+="<div style='display:flex;flex-direction:column;gap:10px;'>";
       list.forEach(function(c,i){
         html+="<button data-bpcat='"+i+"' style='display:block;width:100%;text-align:left;padding:14px;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);font-family:var(--font);cursor:pointer;'>"
           +"<span style='display:block;font-size:15px;font-weight:bold;margin-bottom:6px;'>"+escHtml(c.name)+"</span>"
+          +"<span style='display:block;font-size:12px;color:var(--acc);margin-bottom:6px;'>"+escHtml(BlueprintEdition.label(c.blueprint))+"</span>"
           +(c.author?"<span style='display:block;font-size:11px;color:var(--t2);margin-bottom:6px;'>by "+escHtml(c.author)+"</span>":"")
           +"<span style='display:block;font-size:13px;line-height:1.5;color:var(--t1);'>"+escHtml(c.blurb)+"</span></button>";
       });

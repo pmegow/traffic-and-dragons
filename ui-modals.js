@@ -816,7 +816,7 @@ function showQuestModal(){
       +(aq.desc?"<div style='font-size:12px;color:var(--t2);margin:4px 0 0 16px;'>"+escHtml(aq.desc)+"</div>":"")
       +"<div style='margin-left:16px;'>"+objList(aq)+"</div>"
       +"</details>";}
-  var body="";
+  var body=worldState&&worldState.blueprintName?"<div style='font-size:12px;color:var(--t2);margin-bottom:12px;'>Started from "+escHtml(worldState.blueprintName)+" · "+escHtml(worldState.blueprintEdition?BlueprintEdition.label(worldState.blueprintEdition):"Version not recorded")+"</div>":"";
   if(offeredHtml)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn);margin:2px 0 8px;'>⚑ Opportunities</div>"+offeredHtml;
   /* #325c (owner call 2026-09-03): the journal is the deliberate place to call for the ending — shown whenever
      the spine is told and the campaign is open, snooze or not, so loose ends can be sorted first and the

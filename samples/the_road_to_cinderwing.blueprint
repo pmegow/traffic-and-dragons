@@ -326,5 +326,7 @@
     "Every threat in this world is a living creature, a person, a ghost, or the weather. Nothing made of metal or stone walks or thinks, and none may be introduced.",
     "Named relics are found where they lie and never earlier: the Lantern of Unlying Light in Vellamere's entrance hall (shows the dead as they were; a lie is a smear of shadow on the liar's mouth), the Gauntlet of the Salt Ring in Kettlebridge (bronze, warm as a living hand; its wearer may catch and hold a blade without harm), the Hollowstep Cloak on Cael Vane (swallows the sound of the wearer's feet and the memory of their face from anyone who looks away; the Lantern burns through it), the Thornwood Bow from Elder Ithryl (its arrows fly true through any darkness), and, only if the roost ends in peace, a shield of the Cinderwing's shed scale that no fire can mark. Each asks for attention rather than anything that can be counted: the Lantern shows the player's own lies too.",
     "The Cinderwing is a person, not a beast to be farmed for glory: he speaks, remembers, and can be reasoned with, and Ambergate's wrong came first. A player who arrives at the roost with an army's intent finds a fight they cannot win; one who arrives with the egg and a plain answer finds a conversation. The princess's ending is hers to choose."
-  ]
+  ],
+  "version": "0.01",
+  "releaseStatus": "draft"
 }

@@ -353,5 +353,7 @@
   ],
   "customClasses": [],
   "startingTime": "",
-  "kind": "adventure"
+  "kind": "adventure",
+  "version": "0.01",
+  "releaseStatus": "draft"
 }

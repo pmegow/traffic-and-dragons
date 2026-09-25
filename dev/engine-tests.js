@@ -59,6 +59,51 @@ function runEngineTests(R){
   // Fresh minimal world for state tests — mirrors the harness character shape.
   function makeWorld(){ __makeWorldState();__toasts.length=0; }
 
+  section("blueprint editions");
+  t("legacy defaults and explicit malformed editions",function(){
+    var b=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Legacy",premise:"Story"});
+    if(b.version!=="0.01"||b.releaseStatus!=="draft")return "legacy blueprint has no edition";
+    b.version="1.0";delete b.releaseStatus;normalizeBlueprint(b);
+    if(b.releaseStatus!=="release-candidate")return "1.0 must mean candidate";
+    b.version="0.00";return !!validateBlueprint(b)||"zero revision accepted";
+  });
+  t("malformed edition types and trailing whitespace are rejected",function(){
+    return !!BlueprintEdition.problem({version:"1.0",releaseStatus:["released"]})&&!!BlueprintEdition.problem({version:"1.0\n",releaseStatus:"released"})&&!!BlueprintEdition.problem({version:1,releaseStatus:"released"});
+  });
+  t("normalization defaults do not mint a catalog revision",function(){
+    var b={format:"tnd-blueprint-v1",name:"Same story",tone:"politic",premise:"Story",acts:[]},n=normalizeBlueprint(JSON.parse(JSON.stringify(b)));
+    return eq(BlueprintEdition.key(n),BlueprintEdition.key(b));
+  });
+  t("integer revisions cross 09 and 99 without decimal arithmetic",function(){
+    return BlueprintEdition.next("0.09")==="0.10"&&BlueprintEdition.next("0.99")==="0.100"&&BlueprintEdition.next("1.0")==="1.01"&&BlueprintEdition.compare("1.10","1.09")>0;
+  });
+  t("draft saves advance once; unchanged export and reverted edits keep version",function(){
+    var b={name:"A",version:"0.01",releaseStatus:"draft"},base=BlueprintEdition.baseline(b);
+    if(BlueprintEdition.plan(b,null).version!=="0.01")return "first save bumped";
+    b.name="B";
+    if(BlueprintEdition.plan(b,base).version!=="0.02"||BlueprintEdition.plan(b,base).version!=="0.02")return "edit not stable";
+    b.name="A";b.designerVersion="v99";b._c=1;b.review={notes:"editor only"};
+    return eq(BlueprintEdition.plan(b,base).version,"0.01");
+  });
+  t("release status is explicit; editing released content produces candidate",function(){
+    var b={name:"A",version:"1.0",releaseStatus:"release-candidate"},base=BlueprintEdition.baseline(b);
+    b.releaseStatus="released";
+    var e=BlueprintEdition.plan(b,base);if(e.version!=="1.0"||e.releaseStatus!=="released")return "promotion renumbered";
+    base=BlueprintEdition.baseline(b);b.name="B";e=BlueprintEdition.plan(b,base);
+    return e.version==="1.01"&&e.releaseStatus==="release-candidate"&&!!BlueprintEdition.problem({version:"0.01",releaseStatus:"released"});
+  });
+  t("catalog publication cannot reuse or regress a content edition",function(){
+    var old={name:"A",version:"1.09",releaseStatus:"released"},b={name:"B",version:"0.04",releaseStatus:"draft"};
+    var e=BlueprintEdition.publication(b,old);
+    return e.version==="1.10"&&e.releaseStatus==="release-candidate"&&!!BlueprintEdition.publishProblem(b,old);
+  });
+  t("campaign records starting edition by value and survives serialization",function(){
+    makeWorld();var b=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Candidate",premise:"Story",acts:[],version:"1.0",releaseStatus:"release-candidate"});
+    applyBlueprint(b);b.version="1.01";b.releaseStatus="released";
+    var saved=parseWorldState(serializeWorldState(worldState));
+    return saved.blueprintEdition&&saved.blueprintEdition.version==="1.0"&&saved.blueprintEdition.releaseStatus==="release-candidate"||"starting edition lost or relabelled";
+  });
+
   // ── 1. Model-output JSON repair (the generateSkeleton/summarize failure class) ──
   section("repairModelJson / stripCodeFences");
   t("fenced object parses",function(){var o=JSON.parse(repairModelJson("```json\n{\"a\":1}\n```"));return eq(o.a,1);});

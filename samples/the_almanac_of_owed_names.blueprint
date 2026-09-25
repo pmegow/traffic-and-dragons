@@ -166,5 +166,7 @@
   "narratorVoice": "",
   "creatures": [],
   "customClasses": [],
-  "designerVersion": "v0.40"
+  "designerVersion": "v0.40",
+  "version": "0.01",
+  "releaseStatus": "draft"
 }

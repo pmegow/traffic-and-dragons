@@ -426,5 +426,7 @@
     "sections": 6,
     "failedSections": 0
   },
-  "narratorVoice": ""
+  "narratorVoice": "",
+  "version": "0.01",
+  "releaseStatus": "draft"
 }

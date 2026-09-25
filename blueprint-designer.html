@@ -112,6 +112,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="globals.js"></script>
 <script src="data.js"></script>
 <script src="class_bible.js"></script>
+<script src="blueprint-edition.js"></script>
 <script src="helpers.js"></script>
 <script src="state.js"></script>
 <script src="storage-adapter.js"></script>
@@ -128,9 +129,9 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.50";
+var BP_DESIGNER_VERSION="v0.51";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
-var bp=null,dirty=false;
+var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
 // Reload NEVER clears the editor — that's what New is for (user rule, 07-06). Every mutation
 // autosaves the RAW working state (not stripView: review selections, FAILED stamps, and collapse
@@ -138,7 +139,7 @@ var bp=null,dirty=false;
 var DRAFT_K="bpd_draft_v1",_draftT=null;
 function saveDraft(){
   if(_draftT)clearTimeout(_draftT);
-  _draftT=setTimeout(function(){_draftT=null;try{localStorage.setItem(DRAFT_K,JSON.stringify({bp:bp,dirty:dirty,at:Date.now()}));}catch(e){/* quota — draft is a convenience, never block editing */}},400);
+  _draftT=setTimeout(function(){_draftT=null;try{localStorage.setItem(DRAFT_K,JSON.stringify({bp:bp,dirty:dirty,editionBaseline:editionBaseline,at:Date.now()}));}catch(e){/* quota — draft is a convenience, never block editing */}},400);
 }
 function clearDraft(){if(_draftT){clearTimeout(_draftT);_draftT=null;}try{localStorage.removeItem(DRAFT_K);}catch(e){}}
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -153,7 +154,36 @@ function stripView(obj){return JSON.parse(JSON.stringify(obj,function(kk,vv){ret
 function fileOut(){
   var o=stripView(bp),out={format:o.format,designerVersion:BP_DESIGNER_VERSION},k;
   for(k in o){if(k!=="format"&&k!=="designerVersion")out[k]=o[k];}
+  var edition=BlueprintEdition.plan(out,editionBaseline);
+  out.version=edition.version;out.releaseStatus=edition.releaseStatus;
   return out;
+}
+function editionSaveBusy(){
+  if(!editionSaving)return false;
+  setStatus("A blueprint save is still in progress. Wait for it to finish before saving again.","warn");return true;
+}
+function editionSaved(snapshot,draft,requestedStatus){
+  if(bp!==draft)return;
+  editionBaseline=BlueprintEdition.baseline(snapshot);
+  if(!BlueprintEdition.parts(bp.version)||BlueprintEdition.compare(bp.version,snapshot.version)<=0)bp.version=snapshot.version;
+  if(bp.releaseStatus===requestedStatus)bp.releaseStatus=snapshot.releaseStatus;
+  var current=fileOut();
+  dirty=BlueprintEdition.key(current)!==editionBaseline.key||current.version!==snapshot.version||current.releaseStatus!==snapshot.releaseStatus;
+  updateEdition();saveDraft();
+}
+function updateEdition(){
+  var e=fileOut(),el=document.getElementById("bp-edition"),select=document.getElementById("bp-release-status");
+  if(el)el.textContent=BlueprintEdition.label(e);
+  if(select){select.value=e.releaseStatus;select.querySelector("option[value='released']").disabled=!editionBaseline||editionBaseline.releaseStatus==="draft"||BlueprintEdition.key(e)!==editionBaseline.key||e.version!==editionBaseline.version;}
+}
+function chooseReleaseStatus(value){
+  var e=fileOut();
+  if(value==="released"&&(!editionBaseline||editionBaseline.releaseStatus==="draft"||BlueprintEdition.key(e)!==editionBaseline.key||e.version!==editionBaseline.version)){
+    setStatus("Save this edition as a Release Candidate before marking it Released.","err");updateEdition();return;
+  }
+  if(value==="release-candidate"&&BlueprintEdition.parts(e.version)&&BlueprintEdition.parts(e.version)[0]===0)e.version="1.0";
+  if(BlueprintEdition.parts(bp.version)&&BlueprintEdition.parts(bp.version)[0]===0&&value==="release-candidate")bp.version="1.0";
+  bp.releaseStatus=value;markDirty();
 }
 function collapseAll(){
   var i,j;
@@ -196,7 +226,7 @@ function setStatus(msg,cls){var el=document.getElementById("statusline");el.text
 // Dirty marker keeps the blueprint's NAME in the statusline and appends the flag (bug fix
 // 2026-07-05: it used to replace the name with just "Unsaved changes"). Runs on every edit,
 // so a rename updates the shown name live.
-function markDirty(){dirty=true;setStatus((bp&&bp.name?bp.name:"Untitled blueprint")+" — unsaved changes","");saveDraft();}
+function markDirty(){dirty=true;updateEdition();setStatus((bp&&bp.name?bp.name:"Untitled blueprint")+" — unsaved changes","");saveDraft();}
 
 // ── Rendering ──────────────────────────────────────────────────────────────────
 function fld(label,inner){return "<div class='fld'><label>"+label+"</label>"+inner+"</div>";}
@@ -265,6 +295,10 @@ function render(){
   for(i=0;i<nvList.length;i++){nVoiceOpts+="<option value='"+nvList[i].id+"'"+(bp.narratorVoice===nvList[i].id?" selected":"")+">"+esc(nvList[i].label)+"</option>";}
   h+="<div class='sect'>"+secH("meta","Blueprint"+(bp.name?" — "+esc(bp.name):""));
   if(secOpen.meta!==false){
+    h+="<div style='margin-bottom:16px;'><strong id='bp-edition'></strong>"
+      +"<label for='bp-release-status' style='display:block;margin-top:8px;'>Release status</label><select id='bp-release-status'>"
+      +"<option value='draft'>Draft</option><option value='release-candidate'>Release Candidate</option><option value='released'>Released</option></select>"
+      +"<p style='font-size:12px;color:var(--t2);margin:6px 0 0;'>Starts at v0.01. Saving story changes advances the revision. v1.0 means a release candidate. Save a candidate before marking that edition Released; further edits return it to candidate status.</p></div>";
     h+="<div class='grid2'>"
     +fld("Name *",txt("meta",0,0,"name",bp.name,"e.g. Rise of the Runelords"))
     +fld("Author (credit)",txt("meta",0,0,"author",bp.author,"who made this campaign"))
@@ -491,6 +525,7 @@ function render(){
   updateCounts();
 }
 function updateCounts(){
+  updateEdition();
   var arcs=0,i;for(i=0;i<bp.acts.length;i++)arcs+=(bp.acts[i].arcs||[]).length;
   var el=document.getElementById("counts");
   if(el)el.textContent=bp.acts.length+" acts · "+arcs+" arcs · "+bp.npcs.length+" NPCs · "+bp.creatures.length+" creatures · "+bp.locations.length+" locations · "+(bp.customClasses||[]).length+" custom classes · "+bp.rules.length+" rules";
@@ -539,7 +574,8 @@ function bpFieldSet(sec,i,j,k,v){
   o[k]=v;
 }
 function onField(e){
-  var t=e.target,sec=t.getAttribute("data-sec");if(!sec)return;
+  var t=e.target;if(t.id==="bp-release-status"){if(e.type==="change")chooseReleaseStatus(t.value);return;}
+  var sec=t.getAttribute("data-sec");if(!sec)return;
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0,k=t.getAttribute("data-k");
   var v=t.type==="checkbox"?t.checked:t.value;
   bpFieldSet(sec,i,j,k,v);
@@ -667,7 +703,7 @@ function openBreakout(btn){
 
 // ── Load / New / Save ──────────────────────────────────────────────────────────
 function loadBlueprintObject(obj){
-  bp=normalizeBlueprint(obj);
+  bp=normalizeBlueprint(obj);editionBaseline=BlueprintEdition.baseline(bp);
   // Legacy review shape (pre-v0.19): findings carried a single `fix` string — lift into fixes[].
   if(bp.review&&bp.review.findings){bp.review.findings.forEach(function(f){if(!f.fixes||!f.fixes.length)f.fixes=f.fix!=null?[String(f.fix)]:[""];delete f.fix;});}
   var err=validateBlueprint(bp);
@@ -677,7 +713,7 @@ function loadBlueprintObject(obj){
 }
 document.getElementById("btn-new").addEventListener("click",function(){
   if(dirty&&!confirm("Discard unsaved changes?"))return;
-  bp=blankBp();dirty=false;clearDraft();render();setStatus("New blueprint","");
+  bp=blankBp();editionBaseline=null;dirty=false;clearDraft();render();setStatus("New blueprint","");
 });
 document.getElementById("btn-load").addEventListener("click",function(){
   if(dirty&&!confirm("Discard unsaved changes?"))return;
@@ -696,7 +732,7 @@ function designerValidate(){
   if(!bp.name||!bp.name.trim())return "Blueprint needs a name.";
   if(!bp.premise||!bp.premise.trim())return "Blueprint needs a premise.";
   if(!bp.acts.length)return "Blueprint needs at least one act.";
-  return validateBlueprint(bp); // engine validation: act/arc titles, goals, objectives
+  return validateBlueprint(fileOut()); // engine validation: act/arc titles, goals, objectives
 }
 // Save NEVER blocks (v0.39, owner call 2026-09-01): a blueprint is authored over several
 // sittings, and the one-slot localStorage draft is per-browser. Completeness is a PUBLISH
@@ -705,12 +741,15 @@ function designerValidate(){
 // opens it (the wizard import refuses, the designer Load reopens with issues named). The
 // status line still reports readiness honestly — a half-finished save is never called done.
 document.getElementById("btn-save").addEventListener("click",function(){
+  if(editionSaveBusy())return;
   var err=designerValidate();
-  var data=JSON.stringify(fileOut(),null,2); // stripView + designerVersion stamp
+  var snapshot=fileOut(),editionError=BlueprintEdition.problem(snapshot);
+  if(editionError){setStatus("Cannot save: "+editionError,"err");return;}
+  var data=JSON.stringify(snapshot,null,2); // stripView + designerVersion stamp
   var blob=new Blob([data],{type:"application/json"});
   var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".blueprint";
   var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
-  dirty=false;setStatus(err?("Saved "+fname+" — not publish-ready: "+err):("Saved "+fname+" — publish-ready"),err?"warn":"ok");
+  editionSaved(snapshot,bp,bp.releaseStatus);setStatus(err?("Saved "+fname+" — not publish-ready: "+err):("Saved "+fname+" — publish-ready"),err?"warn":"ok");
 });
 window.addEventListener("beforeunload",function(e){if(dirty){e.preventDefault();e.returnValue="";}});
 
@@ -855,7 +894,8 @@ function openGenerate(){
       if(_regF.length)draft.review={findings:_regF,sections:0,failedSections:0};
       draft.format="tnd-blueprint-v1";draft.author="";draft.proseAuthor=voiceId||"";draft.narratorVoice=bp.narratorVoice||""; // #9: a generated draft must not silently drop an already-chosen narrator
       if(toneId)draft.tone=toneId; // the author's pick is authoritative over the model's echo
-      bp=normalizeBlueprint(draft);
+      draft.version="0.01";draft.releaseStatus="draft";
+      bp=normalizeBlueprint(draft);editionBaseline=null;
       var err=validateBlueprint(bp);
       secOpen={}; // fresh content the author must actually read — start open, like New (loads collapse)
       markDirty();render();
@@ -1253,14 +1293,15 @@ function cloudReady(){
   return true;
 }
 document.getElementById("btn-publish").addEventListener("click",function(){
+  if(editionSaveBusy())return;
   if(!cloudReady())return;
   var err=designerValidate();if(err){setStatus("Can't save to My Library — "+err,"err");return;}
-  var snapshot=fileOut(),savedText=JSON.stringify(snapshot),button=document.getElementById("btn-publish");
-  button.disabled=true;setStatus("Saving to My Library…","");
+  var snapshot=fileOut(),draft=bp,requestedStatus=bp.releaseStatus,button=document.getElementById("btn-publish");
+  editionSaving=true;button.disabled=true;setStatus("Saving to My Library…","");
   storageAdapter.saveBlueprintToLibrary(snapshot,function(e){
-    button.disabled=false;
+    editionSaving=false;button.disabled=false;
     if(e){console.warn("[designer] library save failed",e);setStatus("Save to My Library failed: "+e,"err");return;}
-    if(JSON.stringify(fileOut())===savedText)dirty=false;
+    editionSaved(snapshot,draft,requestedStatus);
     setStatus("Saved “"+snapshot.name+"” to My Library. The shared catalog was not changed.","ok");
   });
 });
@@ -1273,6 +1314,7 @@ function updateCatalogAccess(){
   });
 }
 function openCatalogPublish(){
+  if(editionSaveBusy())return;
   if(!cloudReady())return;
   var err=designerValidate();if(err){setStatus("Can't publish to Catalog — "+err,"err");return;}
   var opener=document.getElementById("btn-publish-catalog");opener.disabled=true;
@@ -1295,20 +1337,22 @@ function openCatalogPublish(){
     var match=list.filter(function(entry){return entry.id===bp.catalogId;})[0]||list.filter(function(entry){return entry.name.toLowerCase()===bp.name.toLowerCase();})[0];
     if(match)target.value=match.id;
     function selected(){return list.filter(function(entry){return entry.id===target.value;})[0]||null;}
-    function describe(){var entry=selected();blurb.value=entry?entry.blurb:"";dialog.querySelector("#catalog-destination").textContent=entry?"Replace “"+entry.name+"” with the current “"+bp.name+"” blueprint.":"Add “"+bp.name+"” as a new catalog campaign.";dialog.querySelector("#catalog-credit").textContent=bp.author?"Author byline: "+bp.author:"No author byline will be shown.";}
+    function publishSnapshot(){var snapshot=fileOut(),entry=selected(),edition=BlueprintEdition.publication(snapshot,entry&&entry.blueprint);snapshot.version=edition.version;snapshot.releaseStatus=edition.releaseStatus;return snapshot;}
+    function describe(){var entry=selected();blurb.value=entry?entry.blurb:"";dialog.querySelector("#catalog-destination").textContent=entry?"Replace “"+entry.name+"” with the current “"+bp.name+"” blueprint.":"Add “"+bp.name+"” as a new catalog campaign.";dialog.querySelector("#catalog-credit").textContent=BlueprintEdition.label(publishSnapshot())+". "+(bp.author?"Author byline: "+bp.author:"No author byline will be shown.");}
     target.addEventListener("change",describe);describe();
     cancel.addEventListener("click",function(){dialog.close();});dialog.addEventListener("close",function(){dialog.remove();opener.focus();});
     dialog.addEventListener("cancel",function(ev){if(publishing)ev.preventDefault();});
     publish.addEventListener("click",function(){
+      if(editionSaveBusy())return;
       var error=dialog.querySelector("#catalog-publish-error"),pitch=blurb.value.trim();
       if(!pitch||pitch.length>240){error.textContent="Write a spoiler-free description of 1–240 characters.";return;}
-      var entry=selected(),snapshot=fileOut(),draft=bp,savedText=JSON.stringify(snapshot);
+      var entry=selected(),snapshot=publishSnapshot(),draft=bp,requestedStatus=bp.releaseStatus;
       var id=entry?entry.id:(snapshot.name.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,120)||("campaign_"+Date.now().toString(36)));
-      publishing=true;publish.disabled=true;cancel.disabled=true;error.textContent="";
+      editionSaving=true;publishing=true;publish.disabled=true;cancel.disabled=true;error.textContent="";
       storageAdapter.publishBlueprintToCatalog({id:id,revision:entry?entry.revision:0,blurb:pitch,blueprint:snapshot},function(publishError,result){
-        publishing=false;publish.disabled=false;cancel.disabled=false;
+        editionSaving=false;publishing=false;publish.disabled=false;cancel.disabled=false;
         if(publishError){console.warn("[designer] catalog publish failed",publishError);error.textContent="Could not publish: "+publishError;return;}
-        if(bp===draft){var unchanged=JSON.stringify(fileOut())===savedText;bp.catalogId=result.id;if(unchanged)dirty=false;}
+        if(bp===draft){bp.catalogId=result.id;editionSaved(result.blueprint||snapshot,draft,requestedStatus);}
         dialog.close();setStatus("Published “"+snapshot.name+"” to the shared Catalog. Reopen the catalog to see the update.","ok");
       });
     });
@@ -1352,6 +1396,7 @@ document.getElementById("btn-library").addEventListener("click",function(){
       list.forEach(function(it,i){var acts=(it.blueprint.acts||[]).length;
         h+="<div style='display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--brd);'>"
           +"<div style='flex:1;min-width:0;'><div style='font-size:13px;color:var(--t0);font-weight:bold;overflow-wrap:anywhere;'>"+esc(it.name)+"</div>"
+          +"<div style='font-size:11px;color:var(--acc);'>"+esc(BlueprintEdition.label(it.blueprint))+"</div>"
           +"<div style='font-size:10px;color:var(--t2);'>"+acts+" act"+(acts===1?"":"s")+" · updated "+(it.updatedAt?new Date(it.updatedAt).toLocaleDateString():"?")+"</div></div>"
           +"<button class='mini' data-libopen='"+i+"' aria-label='Open "+esc(it.name)+"'>Open</button>"
           +(source.remove?"<button class='mini del' data-libdel='"+i+"' title='Delete from My Library'>&#215;</button>":"")+"</div>";
@@ -1395,6 +1440,8 @@ document.getElementById("btn-library").addEventListener("click",function(){
 // reaches the page's own working state and its field-routing boundary.
 window.__bpdTest={
   getBp:function(){return bp;},
+  editionSaved:editionSaved,
+  chooseReleaseStatus:chooseReleaseStatus,
   load:function(obj){loadBlueprintObject(obj);},
   out:function(){return fileOut();},
   validate:function(){return designerValidate();},
@@ -1430,7 +1477,7 @@ if(_incoming){
   else if(_dec.action==="keep")_keptMsg="Kept your unsaved draft \""+_dec.draftName+"\" — "+_dec.incomingName+" stays on the Home shelf; open it again when you are ready.";
 }
 if(_draft&&_draft.bp&&_draft.bp.format){
-  bp=normalizeBlueprint(_draft.bp);dirty=!!_draft.dirty;render();
+  bp=normalizeBlueprint(_draft.bp);editionBaseline=Object.prototype.hasOwnProperty.call(_draft,"editionBaseline")?_draft.editionBaseline:BlueprintEdition.baseline(bp);dirty=!!_draft.dirty;render();
   if(_fromHome){saveDraft();setStatus((bp.name||"Untitled blueprint")+" — opened from the Home shelf","");}
   else setStatus(_keptMsg||((bp.name||"Untitled blueprint")+" — restored from draft"+(dirty?" (unsaved changes)":"")),_keptMsg?"warn":"");
 }else{
