@@ -3,69 +3,69 @@
   "tone": "politic",
   "startingLocation": "The Lantern Terrace",
   "startingRegion": "The Silted Reaches, a confederation of river-lords who control trade along the Marrowfen River",
-  "premise": "River-Lord Ossvane has called a masquerade to celebrate a treaty binding the five river-holds against upstream tariffs that have starved them for a decade. But a forged copy of that treaty has entered the manor tonight, hidden among five masked guests, meant to be swapped for the real one at the midnight toast so that whoever holds it can claim a false signature and seize a rival's water rights. The party has one evening to move through gossip, dances, and locked studies to learn who carries the forgery before the toast makes the lie permanent.",
+  "premise": "River-Lord Ossvane hosts a masquerade to bind five river-holds against ruinous upstream tariffs. Lady Threnna Voss has invited the party as independent observers and offers 10 gold for an honest report before midnight, payable whether or not they solve the case. On the Lantern Terrace at 21:00 she shows them an anonymous warning: 'Petrell's coat will condemn them at the toast.' She wants the claim checked before anyone is publicly accused. Establish the job, coat and deadline immediately; the party may decline or leave.\n\nGM TRUTH: Devrin Sallowmere commissioned scribe Mira Fen, attending as the Masked Forger, to counterfeit a treaty annex. It appears to give Petrell secret exemptions from the shared tariffs. Devrin planted it in Petrell's blue coat in the Glass Conservatory at 20:40. The genuine treaty remains in Ossvane's locked dais chest; there is no swap and no missing original seal. Devrin plans to reveal the annex at midnight, have Petrell excluded, and offer his own barges as the alliance's indispensable carrier. Petrell owes him money but never agreed to the annex.\n\nIndependent treaty witness Orris Vale saw Devrin plant the annex and followed him to the East Wing Library. Devrin stabbed Orris at 20:50; Orris is already dead at the opening. Mira saw the planting, sent Threnna the warning, and fears being next. She did not witness the murder. Fix these facts before play; never move guilt to match a player's accusation. The five featured masked guests are Threnna, Devrin, Petrell, Mira and Orris. Ossvane is the host, Brix the steward; background delegates are not extra secret culprits.\n\nThe treaty needs all five holds' assent. One credible discrepancy can pause ratification while it is checked; corroborated evidence can settle matters early. Guarding the genuine treaty alone cannot stop a public frame-up. The shortest complete route is the opening, the coat and counting-house, then a settlement; investigating Orris adds an answer to the murder. End with the actual consequences of the party's choices, not a compulsory sequel.",
   "acts": [
     {
       "title": "Act One: The Masks Arrive",
-      "goal": "Establish the manor, the guests, and the stakes of the treaty before the party realizes a forgery is already inside the walls.",
-      "turningPoint": "A guest is found dead in the East Wing library, clutching a torn scrap of parchment bearing a false seal — proof the forgery is real and already in motion.",
+      "goal": "Give the party a paid invitation, a specific warning and a visible midnight deadline. Introduce the four living featured guests by mask and motive; the fifth, Orris Vale, is missing from the receiving line. The party can pursue the coat immediately. A body discovery supplies another lead, not permission to begin investigating.",
+      "turningPoint": "Brix discovers Orris dead in the East Wing Library at 21:15 unless the party finds the body sooner. He tells the party and Ossvane; he does not announce a culprit. If the party already has enough evidence for a settlement, proceed to it and report the death without resetting their progress.",
       "parallel": false,
       "arcs": [
         {
-          "title": "Arrival and Introductions",
-          "objective": "Move through the receiving line and first dances to meet the five masked guests and River-Lord Ossvane, gathering first impressions and rumors.",
-          "type": "social"
+          "title": "An Invitation and a Warning",
+          "type": "social",
+          "objective": "Open on the Lantern Terrace at 21:00 with Threnna, her warning about Petrell's coat, and her offer of 10 gold for an honest report by midnight. She explains that failed agreement keeps food and freight expensive. Tell the player the coat is in the Glass Conservatory; Brix can verify documents. Introduce other guests only as they approach: Threnna wears a reed mask, Devrin a silver heron, Petrell a blue fish, Mira a moth. Orris's white owl mask is absent. Offer the coat, Brix, or introductions as immediate choices. A polite refusal is accepted; leaving produces the no-intervention epilogue."
         },
         {
-          "title": "The Scrap of Parchment",
-          "objective": "Investigate the body in the East Wing library and the torn seal fragment to confirm a forgery exists somewhere in the manor.",
-          "type": "investigation"
+          "title": "The Empty Owl Mask",
+          "type": "investigation",
+          "objective": "In the East Wing Library, Orris lies dead with one stab wound. An inspection reveals a torn silver-heron sleeve button clutched in their hand and a note written in their own blood: \"Sallowmere planted it. Blue coat. He came back.\" Their name is on the witness register; Brix identifies the handwriting. Neither clue vanishes on a failed roll. Searching Orris's papers reveals that the altered annex refers to a dock absent from the signed treaty. Devrin's missing button and fresh scratch corroborate contact, not by themselves murder. The party may leave the murder unresolved while protecting the alliance."
         }
       ]
     },
     {
       "title": "Act Two: Behind the Masks",
-      "goal": "Narrow the five suspects down by chasing leads through the manor's rooms, alliances, and secrets before midnight arrives.",
-      "turningPoint": "The party corners the forger's contact, who reveals the forgery isn't meant to replace the treaty at all — it's meant to be found, framing an innocent guest so the true culprit walks free during the chaos.",
+      "goal": "Follow any useful leads in any order. The coat proves a forgery exists; the payment and signed order establish its commissioner; Mira can independently corroborate the planting. Two corroborating routes are enough for exposure, and a single credible discrepancy earns time to check it. No arc is a compulsory visit. If evidence or negotiation resolves the dispute early, move directly to the settlement.",
+      "turningPoint": "When the party establishes the annex is planted, make the actual threat clear: Devrin intends to accuse Petrell of cheating the alliance, not exchange the genuine treaty. This can emerge from his order, Mira's testimony, Orris's note, or comparing the annex with Petrell's account. The contact is never the sole source of the revelation.",
       "parallel": true,
       "arcs": [
         {
-          "title": "The Gaming Room Wager",
-          "objective": "Draw out two suspicious guests over cards and drink, using social pressure and observation to catch a slip in their story.",
-          "type": "social"
+          "title": "Cards, Coats and Alibis",
+          "type": "social",
+          "objective": "The card table is in the Grand Hall, not another required room. Threnna can show her months-old receipt and plainly marked reference copy; neither contains the new dock exemption. Petrell admits owing Devrin money if offered discretion, denies agreeing to an annex, and permits inspection of their blue coat. Devrin claims he stayed at cards after 20:30, but Brix's service record places him requesting a library candle at 20:45. Observers can notice his missing heron button and fresh wrist scratch. Do not make mind-reading, intimidation, or a particular question necessary to find ordinary contradictions."
         },
         {
           "title": "The Steward's Ledgers",
-          "objective": "Search the counting-house off the courtyard for financial records proving which guest recently paid a forger's price.",
-          "type": "investigation"
+          "type": "investigation",
+          "objective": "Brix admits the party on Threnna's introduction, shown evidence, or a reasonable explanation of the warning. His ledger records Devrin paying Mira this morning for an \"annex correction\"; an attached signed order directs her to invent Petrell's dock exemption, copy the treaty seal and deliver the annex to Devrin. Brix witnessed Devrin sign and keeps an independent specimen for comparison. The receipt alone might mean honest copying; the order specifies the fraud. Brix supplies copies and can testify. Separately, the debt ledger explains Petrell's fear without making them guilty. The records remain if Mira escapes or Brix refuses to speak; the party can ask Ossvane to inspect them."
         },
         {
-          "title": "The Locked Conservatory",
-          "objective": "Slip past the night guard patrolling the glass conservatory to search a suspect's coat left behind during the dancing.",
-          "type": "exploration"
+          "title": "The Coat in the Conservatory",
+          "type": "exploration",
+          "objective": "Petrell's blue coat hangs on a numbered peg in the Glass Conservatory; the false annex is inside its inner pocket from 20:40 until somebody moves it. An attentive search finds it without a roll. Permission from Petrell, Threnna or Ossvane opens the room; asking the lantern-boy, sneaking or forcing entry are alternatives with stated social risks. Brix or Ossvane can compare the annex with the genuine treaty: wrong dock name, false Petrell signature, copied seal with an extra reed. Finding it proves forgery, not Petrell's or Devrin's guilt. Track who takes it. Devrin cannot produce a second copy if the party secures this one."
         },
         {
-          "title": "The Cornered Contact",
-          "objective": "Track down and confront the nervous go-between passing messages between guests before they vanish into the gardens.",
-          "type": "combat"
+          "title": "The Moth at the Water-Gate",
+          "type": "social",
+          "objective": "Mira waits in the Water-Gate Gardens for the 22:30 supply boat. She admits being the scribe if offered safe company with Brix or protection from Devrin; no payment, capture or combat is required. She saw Devrin plant the annex and can identify his signed commission and her own work. She wrote Threnna's warning. She did not see Orris die and will not invent eyewitness testimony. If she departs, refuses, or dies, the coat, signed order and Orris evidence remain. If the party helps her escape, distinguish protecting a witness from concealing her role. Devrin does not acquire her knowledge automatically."
         }
       ]
     },
     {
       "title": "Act Three: The Midnight Toast",
-      "goal": "Reveal the true culprit before Ossvane raises the toast and the false treaty is publicly sealed as truth.",
-      "turningPoint": "The party exposes the real forger in front of all five river-holds, forcing a choice: expose the treaty as compromised before witnesses, or let the toast proceed and quietly deal with the consequences after.",
+      "goal": "Resolve the frame-up and the treaty through the evidence and choices actually made. The party may expose Devrin publicly, negotiate safeguards, ask for a delay, make an unsupported accusation, or leave. A confession, arrest, every clue, and solving the murder are not prerequisites to protecting Petrell. The final gathering can ratify an earlier settlement rather than reveal a new culprit.",
+      "turningPoint": "At midnight Devrin tries to produce the annex from Petrell's coat only if it remains there and he is free to act. Otherwise he has only an allegation. Ossvane weighs the evidence already presented; he does not certify an unsupported accusation as fact. If the party has resolved the dispute, honor that settlement. If the party chooses no action, use the costly ending without inventing a rescue.",
       "parallel": false,
       "arcs": [
         {
-          "title": "The Grand Hall Reveal",
-          "objective": "Confront the true culprit publicly or privately before the toast, using gathered evidence to force a confession or surrender.",
-          "type": "social"
+          "title": "The Case Before the Toast",
+          "type": "social",
+          "objective": "Let the party act when ready. The annex plus Brix's authenticated commission proves Devrin ordered the fraud without Mira or a confession. Mira's planting testimony corroborated by Orris's note or the commission also supports exposure. Keep murder separate: Orris's dying note, torn button and Devrin's contradicted alibi support his detention for the killing; a button alone does not. One credible clue lets Ossvane pause ratification for a stated check. Without proof, guests ask for verification rather than becoming certain. Devrin may deny, bargain or flee; evidence still counts. No automatic duel, omniscient countermeasure or new mastermind rescues his scheme."
         },
         {
-          "title": "The Toast",
-          "objective": "Resolve the fate of the treaty and the manor as the clock strikes midnight, determined by what was uncovered and how it's used.",
-          "type": "investigation"
+          "title": "What the River Carries Home",
+          "type": "social",
+          "objective": "Give a short epilogue matching the outcome rules: public exposure; a safeguarded private settlement; unsupported or corrected accusation; or no intervention. State whether all five holds assented, whether Petrell was protected or excluded, what happened to Devrin and Mira, and whether Orris's killing was proved, referred for investigation or left unresolved. Do not reveal unearned secret knowledge through the player. Threnna pays the agreed 10 gold if the party reports honestly, even after failure. Close on lanterns reflected in the river and one concrete effect on the people trading there. Ask whether the player wants to end the taster; further play is optional."
         }
       ]
     }
@@ -92,68 +92,94 @@
       "name": "River-Lord Ossvane",
       "role": "neutral",
       "pronouns": "he/him",
-      "notes": "Host of the masquerade and the man whose signature the real treaty bears. He wants the toast to succeed publicly no matter what, because his hold's survival depends on the tariff relief it brings. His secret is that he already suspects a forgery exists but is choosing to stay willfully blind rather than delay the ceremony, and this surfaces if the party brings him direct evidence before midnight."
+      "notes": "Host in a plain gold half-mask. Wants all five holds to ratify the alliance and fears another season of costly freight. He keeps the genuine treaty in the locked Grand Hall dais chest; the seal is intact. He has the key and allows a witnessed comparison when shown a discrepancy. One credible clue earns a specific check and a delay; two corroborating sources can expose the fraud without a confession. He does not knowingly condemn an innocent guest to save appearances. If Devrin escapes, he can still record the evidence and exclude him as carrier. Ordinary house guards protect people; they are not a mandatory boss fight.",
+      "armor": "none"
     },
     {
       "name": "Lady Threnna Voss",
       "role": "ally",
       "pronouns": "she/her",
-      "notes": "A sharp-eyed river-hold delegate who arrived suspicious of the whole affair and quietly aids whichever guest asks the right questions. She wants the treaty to be genuine because her hold has the least power and needs the alliance most. Her secret is that she paid a scribe months ago to draft a private copy of the treaty for her own protection, which looks damning but is unrelated to the real forgery — this surfaces if she's accused too early."
+      "notes": "Reed mask; a small hold's delegate who remembers freight costs as empty supper plates. She invited the party as independent observers and offers 10 gold for an honest report by midnight, payable even if they fail. Mira's anonymous warning reached her at 20:55: \"Petrell's coat will condemn them at the toast.\" Threnna does not know its author at first. Her innocent reference copy was commissioned months ago and is plainly labelled COPY; its receipt and ordinary dock terms clear her. She assists a reasonable inquiry without a password, backs safe passage for a witness, and can introduce the party to Brix. She cannot pardon murder or forgive Petrell's private debt.",
+      "armor": "none"
     },
     {
       "name": "Master Devrin Sallowmere",
       "role": "villain",
       "pronouns": "he/him",
-      "notes": "A merchant-financier attending as a guest of River-Lord Ossvane, outwardly charming and generous with wine. He wants a rival hold discredited so his own trade routes gain a monopoly upstream. His secret, surfacing only when the go-between is cornered, is that he commissioned the forgery and planted evidence to frame an innocent guest, intending to be the one who 'discovers' the forgery and looks heroic."
+      "notes": "Silver heron mask; merchant-financier, charming when he controls the room. Commissioned Mira's false annex, planted it in Petrell's blue coat at 20:40, and stabbed Orris in the library at 20:50 after Orris saw him plant it. His sleeve lost a heron button in the struggle; his wrist is scratched. He falsely claims continuous attendance at cards after 20:30. His signed fraudulent order remains with Brix; he does not know which clues the party has found. Excluding Petrell would make his barges the alliance's main carrier. He may deny, offer to abandon that bid, or flee a supported accusation; he has no backup annex, hostage army or second mastermind. He cannot erase secured evidence or force a duel.",
+      "armor": "none"
     },
     {
       "name": "Guest-Lord Petrell Sae",
       "role": "neutral",
       "pronouns": "they/them",
-      "notes": "The guest framed by planted evidence, a nervous minor hold-lord already deep in debt. They want simply to survive the evening without their debts becoming public knowledge. Their secret, surfacing when the counting-house ledgers are found, is that their debt is owed to Devrin Sallowmere himself, which is why they were chosen as the perfect scapegoat."
+      "notes": "Blue fish mask; a minor hold-lord who keeps smoothing their empty cuffs. Their blue coat hangs in the Glass Conservatory. They owe Devrin money but never signed a tariff exemption or hired Mira. They will permit the party to inspect the coat when told of the warning and cooperate with a discreet investigation. Being indebted is not proof of forgery. Clearing their name does not cancel the debt; Threnna can arrange an honest repayment negotiation after the toast without making it a required sequel. They want both their hold's vote and a way to look their neighbors in the eye.",
+      "armor": "none"
     },
     {
       "name": "The Masked Forger",
       "role": "wildcard",
       "pronouns": "she/her",
-      "notes": "A guest attending under a false identity, the actual scribe who produced the forged treaty for payment and now wants out of the whole scheme before she's caught. She wants coin and a clean escape more than she wants either side to win. Her secret, surfacing if the party corners her directly rather than following the ledger trail, is that she kept the real treaty's original wax seal, which can prove the forgery instantly if recovered."
+      "notes": "Moth mask; real name Mira Fen, a hired scribe posing as a visiting collector. She knowingly forged Devrin's annex and saw him put it in Petrell's coat. Fearing for her safety, she sent Threnna the anonymous warning, then went to the Water-Gate Gardens to catch the 22:30 supply boat. She did not witness the murder and owns no stolen original seal. Protection beside Brix or voluntary safe company is enough for cooperation; coin and violence are unnecessary. She can authenticate Devrin's order and describe the planting. She accepts being held as a witness if protected, or escapes if ignored. Her testimony supports the other clues; losing her never erases them.",
+      "armor": "none"
     },
     {
       "name": "Steward Halven Brix",
       "role": "ally",
       "pronouns": "he/him",
-      "notes": "Ossvane's long-serving steward who manages the counting-house and knows every guest's finances. He wants the night to pass without scandal touching his master's name. His secret is that he already noticed the ledger discrepancy days ago but stayed silent out of loyalty, and he surfaces as an ally the moment the party asks the right question about recent payments."
+      "notes": "Unmasked steward with an ink-stained thumb. He keeps payment records, Devrin's signed order and a service log in the Counting-House. He saw Devrin sign the order but had not read the dock clause closely; his loyalty to Ossvane makes him defensive, not obstructive once shown a discrepancy. Threnna's introduction or an explained warning is enough for access. He can identify Orris's handwriting, authenticate the commission and compare seals; none requires a magic phrase. He discovers Orris at 21:15 if nobody does sooner. His log records Devrin requesting a library candle at 20:45, contradicting the card-table alibi. If absent, records and Ossvane's inspection remain available.",
+      "armor": "none"
+    },
+    {
+      "name": "Orris Vale",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "White owl mask; independent treaty witness and the fifth featured guest. Already dead at the 21:00 opening, killed by Devrin in the East Wing Library at 20:50; never introduce Orris alive. They saw him plant the annex at 20:40 and followed him to demand an explanation. During the stabbing they tore off his silver-heron sleeve button. Before dying they wrote in blood: \"Sallowmere planted it. Blue coat. He came back.\" Brix recognizes their hand from the witness register. Their papers note the false annex's nonexistent dock. If an established ability permits communication with the dead, honor its limits: Orris knows the planting and their attacker, not the payment terms or Mira's later movements.",
+      "armor": "none"
     }
   ],
   "locations": [
     {
       "name": "The Lantern Terrace",
-      "description": "A wide stone terrace strung with paper lanterns overlooking the black water of the Marrowfen, where the receiving line greets arriving guests. Music drifts out from the Grand Hall behind glass doors, and the river below carries the smell of reeds and woodsmoke. This is where masks are first exchanged and names first whispered."
+      "description": "Paper lanterns hang over black river water smelling of reeds and woodsmoke. This is the 21:00 opening: Threnna meets her invited observers here with the warning and offers their job. Glass doors lead into the Grand Hall; an outdoor path reaches the Water-Gate Gardens. A servant with Orris's entry in the guest register can explain which owl-masked guest is missing. Distances around this single manor are minutes, not expeditions."
     },
     {
       "name": "The Grand Hall",
-      "description": "The manor's central ballroom, floored in pale river-stone and ringed with a gallery where musicians play. Long tables groan under food from all five holds, a display of unity as much as hospitality. At midnight, Ossvane will stand on the raised dais here to make the toast that seals the treaty."
+      "description": "A river-stone ballroom with a musicians' gallery, food from all five holds and a card table along the west wall. Ossvane's locked dais chest holds the intact genuine treaty; he has its key. A curtained arch opens to the Glass Conservatory, an east passage to the library, and courtyard doors face the Counting-House. The final dance is announced at 23:00, guests are called at 23:45, and the toast is at midnight unless a specific check delays it."
     },
     {
       "name": "The East Wing Library",
-      "description": "A narrow room lined with ledgers and river-charts, usually locked but left open tonight for guests seeking quiet. Cold air comes through a cracked window overlooking the servants' path below. It smells of old paper and, tonight, of something worse."
+      "description": "River charts and old ledgers surround a cold hearth. Orris lies dead beside the reading desk, white owl mask fallen away, torn heron button in hand, blood-written note beside them. Their witness papers are on the desk. A cracked window overlooks the servants' path, but it is not proof of an escaping intruder. The door is unlocked tonight. The party can inspect the body and papers respectfully without winning a roll to notice the core clues."
     },
     {
       "name": "The Counting-House",
-      "description": "A low stone building across the courtyard where Steward Brix keeps the manor's ledgers and strongboxes, its door bearing River-Lord Ossvane's seal. Candlelight through its single window suggests someone works late even during the festivities. Rows of locked cabinets hold years of trade records."
+      "description": "Across the Grand Hall courtyard, Brix works by candlelight among trade ledgers. Devrin's payment entry, signed annex order, signature specimen and the service log are here. Threnna's innocent older copy receipt is filed separately. Brix grants legitimate access when the warning is explained; if he is unavailable, Ossvane can authorize an inspection. Breaking in is possible with announced risks, not the only solution. Copies made here preserve evidence if an original is later lost."
     },
     {
       "name": "The Glass Conservatory",
-      "description": "A humid room of ferns and citrus trees under a vaulted glass ceiling, connected to the Grand Hall by a curtained archway. Guests slip in here to escape the noise, leaving coats and masks draped over wicker chairs. A single lantern-boy patrols it slowly, more asleep than watchful."
+      "description": "Warm citrus trees and damp glass soften the music from the Grand Hall. Petrell's blue coat hangs on a numbered peg, the planted annex inside until somebody moves it. A lantern-boy tends the lamps; he is an ordinary servant, not a combat encounter. He allows access with the coat owner's or host's permission. The window shows the Water-Gate Gardens below. Opening the pocket, examining the false annex and retaining it are separate choices; track actual custody."
     },
     {
       "name": "The Water-Gate Gardens",
-      "description": "Terraced gardens descending toward the manor's private dock, where reeds grow thick around a stone water-gate controlling the millrace. Shadows pool between hedge walls even with torches lit, making it the favored spot for messages passed hand to hand. The river's current is loud enough here to cover a quiet conversation."
+      "description": "Terraces of reeds and hedge walls descend from the Lantern Terrace to a private dock. Mira waits here for the 22:30 supply boat; its lantern and bell announce its arrival. It is a normal boat, not a hidden assassin's escape trap. A path returns to the terrace and hall. Calm conversation can secure Mira's voluntary help. If the boat leaves with her, the other evidence remains where the party left it."
     }
   ],
   "rules": [
-    "This is a single self-contained evening: all major revelations and consequences must resolve before or at the midnight toast, with no plot threads requiring a future session.",
-    "No guest may be proven guilty by accusation alone — every reveal must trace back to a specific clue the party discovered in one of the five arcs."
+    "Fixed mystery: Devrin commissioned and planted the false annex and killed Orris before the opening. The genuine treaty is never swapped. Do not change the culprit, revive Orris, add a backup forgery or invent a new mastermind to prolong the taster. Ordinary established abilities still work.",
+    "Opening: 21:00 on the Lantern Terrace. The party are invited observers, not prisoners. Threnna offers 10 gold for an honest report by midnight, even after failure. Her warning names Petrell's coat. Let the player choose whether and how to help; declining ends in the no-intervention epilogue.",
+    "Clock: boat at 22:30, final dance at 23:00, summons at 23:45, toast at 00:00. Use elapsed fictional time, never a hidden message count. Announce approaching events. Before a lengthy action, state its time cost and the deadline it risks. Dialogue and ordinary inspections do not consume surprise hours.",
+    "Pacing: the coat and counting-house can support a complete short route. The library and Mira add alternatives and the murder answer. Arcs are opportunities, not a checklist. Honor an early solution and move to consequences; do not hold clues or success until all arcs have been visited.",
+    "Clues: deliberate inspection reveals core documents and visible physical evidence without a roll. Rolls can change discretion, time or extra detail after stakes are stated; a failed roll never erases the sole clue. Preserve discovered facts and the actual custody of documents and witnesses.",
+    "Proof: a false annex proves forgery, not its owner's guilt. The annex plus Brix's authenticated fraudulent order exposes Devrin; Mira's planting account plus Orris's note or the order is another route. A credible single clue warrants a check or pause. Confession and arrest are never necessary to establish the fraud.",
+    "Murder is a separate finding: Orris's note, the button torn from Devrin's sleeve and his contradicted alibi corroborate his guilt. A scratch or button alone is insufficient. If proof is incomplete, say the killing is unresolved and give the evidence to Brix; do not invent a confession or require a sequel.",
+    "At midnight Devrin can retrieve the planted annex only if it is still in the coat and he can act. If it is secured, he has an unsupported allegation, not another copy. If earlier evidence settled matters, honor it. Ossvane can suspend the toast for a stated verification; the deadline is social, not a magic curse.",
+    "Public exposure: corroborated fraud clears Petrell; all five holds can ratify with their assent. Devrin loses the carrier bid even if he escapes. Murder evidence determines detention or an unresolved inquiry. Mira is protected if she cooperates, not automatically pardoned for forgery. A first shared grain barge can leave at dawn.",
+    "Private settlement: secure the annex, obtain Devrin's withdrawal from the carrier bid and protect Petrell's vote before claiming success. If he refuses, pause ratification or go public. A bargain cannot erase Orris's death; report the actual evidence to Brix. Concealing a known killer is the party's choice, with that moral cost stated.",
+    "Wrong accusation: distinguish asking questions from declaring guilt. Unsupported claims prompt verification, not automatic punishment or a false confession. Threnna's older labelled copy can clear her. Allow a correction before ratification. If trust collapses and a hold withholds assent, the treaty is delayed and tariffs continue.",
+    "No intervention: if Devrin still has the annex and his opportunity, he accuses Petrell, the frightened delegates suspend ratification, and tariffs continue. Petrell faces suspicion, not automatic conviction. Devrin keeps his leverage; Mira leaves if able; Orris's death remains unresolved. Describe the costly ending without forcing more play.",
+    "Endings follow actual choices: if the annex is secured but its author unknown, Ossvane rejects the unproved charge; willing holds may ratify under document checks, while the commission and murder remain unresolved. Consent matters: no outcome forces a delegate's signature. Close the evening with a brief honest epilogue.",
+    "People are not clue dispensers or mandatory fights. Reasonable requests, cooperation, safe passage and established character abilities can work. Do not charge a bribe for an essential clue or require violence against Mira. If a witness dies, leaves or refuses, records and other evidence remain; never fabricate their testimony.",
+    "Nobody has plot armor. If a delegate dies or cannot assent, the treaty is delayed unless that hold can legitimately authorize another signer; do not invent instant consent. If the host or steward is lost, surviving witnesses and secured records remain, but missing authority or proof must have honest consequences."
   ],
   "format": "tnd-blueprint-v1",
   "author": "",
@@ -161,5 +187,7 @@
   "narratorVoice": "",
   "creatures": [],
   "customClasses": [],
-  "designerVersion": "v0.40"
+  "designerVersion": "v0.50",
+  "catalogId": "the_riverlight_masquerade_one-evening_taster",
+  "startingTime": "21:00"
 }
