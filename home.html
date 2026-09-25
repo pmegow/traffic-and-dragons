@@ -8,12 +8,12 @@
   home.html — the player's HOME PAGE (TODO #290, owner ruling 2026-09-01: "account library + curated
   shelf"). A satellite page (open directly; network-first in sw.js; NOT in the SW app shell) that
   gives players read-only access to the bibles, the Blueprint Designer, a CURATED shelf of the
-  original blueprints shipped in the repo, and their own account blueprint library.
+  original blueprints published by the team, and their own account blueprint library.
 
   Contracts (HOME PAGE CONTRACT, dev/run-tests.js):
    · never writes the game's state keys (no loadState/saveCore here) — the ONLY key it writes is
      HOME_PENDING_BP_K (globals.js), the one-shot blueprint handoff the wizard consumes at boot;
-   · the curated shelf is samples/catalog.json — ORIGINAL blueprints only (the licensed-IP fixtures
+   · the curated shelf reads the server catalog — ORIGINAL blueprints only (the licensed-IP fixtures
      in samples/ are Clear-for-Release items and never appear here); user-to-user sharing does NOT
      exist by design (the prompt-injection ruling: Architecture ▸ "Community blueprint sharing");
    · test seam window.__homeTest (satellite testability rule 2026-07-29).
@@ -79,12 +79,12 @@ a.link:hover{text-decoration:underline;}
   </section>
   <section id="shelf">
     <h2>Curated blueprints</h2>
-    <p class="sub">Original campaigns shipped with the game. Play one as written, or open it in the designer and make it yours.</p>
+    <p class="sub">Original campaigns published by the team. Play one as written, or open it in the designer and make it yours.</p>
     <div class="grid" id="shelf-grid"><div class="empty">Loading…</div></div>
   </section>
   <section id="mine">
     <h2>My blueprint library</h2>
-    <p class="sub" id="mine-sub">Blueprints you have published from the designer live on your account.</p>
+    <p class="sub" id="mine-sub">Blueprints saved from the designer live on your account.</p>
     <div class="grid" id="mine-grid"><div class="empty">Sign in from the game to see your library.</div></div>
   </section>
 </main>
@@ -100,6 +100,7 @@ a.link:hover{text-decoration:underline;}
 <script>
 (function(){
   var catalog=[],library=[];
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")loadCatalog();});
   function $(id){return document.getElementById(id);}
   function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
   function status(msg,err){var el=$("status");el.textContent=msg||"";el.style.display=msg?"block":"none";el.className=err?"err":"";if(!err&&msg)setTimeout(function(){if(el.textContent===msg)el.style.display="none";},4000);}
@@ -169,20 +170,18 @@ a.link:hover{text-decoration:underline;}
   function renderLibrary(){
     var g=$("mine-grid");g.innerHTML="";
     if(!signedIn()){g.innerHTML="<div class='empty'>Sign in from the game to see your library.</div>";return;}
-    if(!library.length){g.innerHTML="<div class='empty'>Your library is empty — publish a blueprint from the designer to start it.</div>";return;}
+    if(!library.length){g.innerHTML="<div class='empty'>Your library is empty — use Save to My Library in the designer to add a blueprint.</div>";return;}
     library.forEach(function(it){var bp=it.blueprint||{};g.appendChild(card(bp,{name:it.name},true));});
   }
+  var catalogRead=0;
   function loadCatalog(cb){
-    // samples/catalog.json lists ONLY original blueprints (licensed-IP fixtures never ship here).
-    fetch("samples/catalog.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(list){
-      var pending=list.length;catalog=list.map(function(x){return {name:x.name,file:x.file,author:x.author||"",blurb:x.blurb||"",bp:null,error:null};});
-      if(!pending){renderShelf();if(cb)cb();return;}
-      catalog.forEach(function(c){
-        fetch("samples/"+c.file,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
-          .then(function(bp){c.bp=bp;}).catch(function(e){c.error=String(e&&e.message||e);console.error("[home] catalog entry failed: "+c.file,e);})
-          .then(function(){pending--;if(!pending){renderShelf();if(cb)cb();}});
-      });
-    }).catch(function(e){catalog=[];$("shelf-grid").innerHTML="<div class='empty err'>Curated shelf unavailable: "+esc(e&&e.message||e)+"</div>";console.error("[home] catalog load failed",e);if(cb)cb();});
+    var read=++catalogRead;
+    storageAdapter.listBlueprintCatalog(function(err,list){
+      if(read!==catalogRead)return;
+      if(err){catalog=[];$("shelf-grid").innerHTML="<div class='empty err'>Catalog unavailable: "+esc(err)+"</div>";console.error("[home] catalog load failed",err);qsStories();if(cb)cb();return;}
+      catalog=list.map(function(c){return {id:c.id,name:c.name,author:c.author,blurb:c.blurb,bp:c.blueprint};});
+      renderShelf();qsStories();if(cb)cb();
+    });
   }
   function loadLibrary(cb){
     if(!signedIn()){renderLibrary();if(cb)cb();return;}
@@ -201,6 +200,7 @@ a.link:hover{text-decoration:underline;}
   $("go-designer").addEventListener("click",function(){location.href="blueprint-designer.html";});
   $("go-editor").addEventListener("click",function(){location.href="character_editor.html";});
   renderWho();loadCatalog(qsStories);loadLibrary();loadHeroes();
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)loadCatalog();});
 
   // Test seam — drives the page headlessly / in the preview pane (satellite testability rule).
   window.__homeTest={

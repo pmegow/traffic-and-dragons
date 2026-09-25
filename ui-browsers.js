@@ -153,7 +153,7 @@ function loadCampaignCharacter(id,cb,msgs){
 }
 function showBlueprintBrowser(){
   var connected=storageAdapter.isServerMode();
-  var mode="catalog",view=0,catalog=null;
+  var mode="catalog",view=0;
   var modal=modalShell("bp-browser-modal",/* #14 */
     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaign Blueprints</span>"
@@ -282,16 +282,6 @@ function showBlueprintBrowser(){
       });
     });
   }
-  function readSample(file){
-    return new Promise(function(resolve,reject){
-      var controller=typeof AbortController!=="undefined"?new AbortController():null;
-      var timer=setTimeout(function(){if(controller)controller.abort();reject(new Error("The catalog request timed out. Please try again."));},15000);
-      var options={cache:"no-store"};if(controller)options.signal=controller.signal;
-      Promise.resolve().then(function(){return fetch("samples/"+file,options);}).then(function(r){
-        if(!r.ok)throw new Error("HTTP "+r.status);return r.json();
-      }).then(function(data){clearTimeout(timer);resolve(data);},function(err){clearTimeout(timer);reject(err);});
-    });
-  }
   function catalogError(err){
     console.warn("[blueprints] catalog load failed",err);
     var body=modal.querySelector("#bp-body");
@@ -303,8 +293,7 @@ function showBlueprintBrowser(){
     function showList(list){
       if(!active(stamp))return;
       if(!Array.isArray(list))throw new Error("The catalog is not a campaign list.");
-      list.forEach(function(c){if(!c||!c.name||!c.blurb||!(/^[a-z0-9_-]+\.blueprint$/i).test(c.file))throw new Error("A catalog entry is incomplete.");});
-      catalog=list;
+      list.forEach(function(c){if(!c||!c.id||!c.name||!c.blurb||!c.blueprint)throw new Error("A catalog entry is incomplete.");});
       var html="<p style='font-size:12px;color:var(--t2);margin:0 0 12px;'>Original campaigns ready to play. Choose one to read more and use it for your new character.</p>";
       if(!list.length)html+="<p>No catalog campaigns are available yet.</p>";
       html+="<div style='display:flex;flex-direction:column;gap:10px;'>";
@@ -317,19 +306,18 @@ function showBlueprintBrowser(){
       body.innerHTML=html+"</div>";
       Array.prototype.forEach.call(body.querySelectorAll("[data-bpcat]"),function(button){
         button.addEventListener("click",function(){
-          var entry=list[parseInt(button.getAttribute("data-bpcat"),10)],selection=++view;
-          body.innerHTML="<p>Loading "+escHtml(entry.name)+"&hellip;</p>";
-          readSample(entry.file).then(function(bp){
-            if(!active(selection))return;
-            bp=normalizeBlueprint(bp);var err=validateBlueprint(bp);if(err)throw new Error(err);
-            showPreview(bp,entry);
-          }).catch(function(err){if(active(selection))catalogError(err);});
+          var entry=list[parseInt(button.getAttribute("data-bpcat"),10)];
+          try{var bp=normalizeBlueprint(JSON.parse(JSON.stringify(entry.blueprint)));var err=validateBlueprint(bp);if(err)throw new Error(err);showPreview(bp,entry);}
+          catch(e){catalogError(e);}
         });
       });
     }
-    if(catalog){showList(catalog);return;}
     body.innerHTML="<p style='font-size:12px;color:var(--t2);'>Loading catalog&hellip;</p>";
-    readSample("catalog.json").then(showList).catch(function(err){if(active(stamp))catalogError(err);});
+    storageAdapter.listBlueprintCatalog(function(err,list){
+      if(!active(stamp))return;
+      if(err){catalogError(err);return;}
+      try{showList(list);}catch(e){catalogError(e);}
+    });
   }
   var sources=[
     {lbl:"Catalog",val:"catalog",pos:"left",render:renderCatalog},

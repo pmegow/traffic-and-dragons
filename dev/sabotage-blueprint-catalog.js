@@ -4,6 +4,7 @@ process.exit(sabotage.prove({
   "file": "ui-browsers.js",
   "also": [
     "ui-boot.js",
+    "storage-adapter.js",
     "samples/catalog.json",
     "samples/the_silence_between_leaves.blueprint"
   ],
@@ -17,8 +18,8 @@ process.exit(sabotage.prove({
     {
       "label": "Catalog is the default source",
       "mustFail": "Catalog opens by default",
-      "find": "var mode=\"catalog\",view=0,catalog=null;",
-      "replace": "var mode=\"local\",view=0,catalog=null;"
+      "find": "var mode=\"catalog\",view=0;",
+      "replace": "var mode=\"local\",view=0;"
     },
     {
       "label": "Catalog preview protects the authored ending",

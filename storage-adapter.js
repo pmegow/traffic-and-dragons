@@ -1096,6 +1096,15 @@ var storageAdapter = (function() {
 
   // ── Blueprint library ────────────────────────────────────────────────────
 
+  function listBlueprintCatalog(cb) {
+    var url=(_serverUrl||"https://traffic-and-dragons-server.fly.dev")+"/catalog/blueprints";
+    _tFetch(url,{cache:"no-store"},SYNC_TIMEOUT_MS).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(list){
+      if(!Array.isArray(list)||list.some(function(c){return !c||typeof c.id!=="string"||typeof c.blurb!=="string"||!c.blueprint||typeof c.blueprint!=="object";}))throw new Error("Invalid catalog response");
+      cb(null,list);
+    }).catch(function(e){console.warn("[catalog] read failed",e);cb(e.message||String(e));});
+  }
+  function publishBlueprintToCatalog(payload,cb) { _apiJson("/api/admin/catalog","POST",payload,cb,true); }
+
   function listBlueprintLibrary(cb)       { _apiJson("/api/blueprints", "GET", null, cb); }
   function saveBlueprintToLibrary(bp, cb) { _apiJson("/api/blueprints", "POST", { blueprint: bp }, cb); }
   function deleteBlueprintFromLibrary(slug, cb) { _apiJson("/api/blueprints/" + encodeURIComponent(slug), "DELETE", null, cb); }
@@ -1231,6 +1240,8 @@ var storageAdapter = (function() {
     getCampaignState:      getCampaignState,
     pushCampaignState:     pushCampaignState,
     putCampaignPortrait:   putCampaignPortrait,
+    listBlueprintCatalog:       listBlueprintCatalog,
+    publishBlueprintToCatalog:  publishBlueprintToCatalog,
     listBlueprintLibrary:       listBlueprintLibrary,
     saveBlueprintToLibrary:     saveBlueprintToLibrary,
     deleteBlueprintFromLibrary: deleteBlueprintFromLibrary,

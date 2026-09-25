@@ -4,14 +4,17 @@ const fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
 const root=path.resolve(__dirname,'..'),out=process.env.CATALOG_ARTIFACT_DIR||path.join(require('os').tmpdir(),'tnd-blueprint-catalog-tests');
 fs.mkdirSync(out,{recursive:true});
+const catalogRows=JSON.parse(fs.readFileSync(path.join(root,'samples/catalog.json'),'utf8')).map(e=>({...e,id:e.file.replace(/^.*\//,'').replace(/\.blueprint$/,''),revision:1,blueprint:JSON.parse(fs.readFileSync(path.join(root,'samples',e.file),'utf8'))}));
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined),headless:true});try{
 const context=await browser.newContext({viewport:{width:900,height:900},serviceWorkers:'block'});const page=await context.newPage();let catalogMode='ok',held=[],requested=[];const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.route('**/*',async route=>{const u=new URL(route.request().url());if(u.hostname!=='catalog.test')return route.abort();requested.push(u.pathname);
-if(u.pathname==='/samples/catalog.json'){
+await page.route('**/*',async route=>{const u=new URL(route.request().url());requested.push(u.pathname);
+if(u.pathname==='/catalog/blueprints'){
  if(catalogMode==='hold'){held.push(route);return;}
  if(catalogMode==='error')return route.fulfill({status:503,body:'Unavailable'});
  if(catalogMode==='malformed')return route.fulfill({status:200,contentType:'application/json',body:'{}'});
+ return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(catalogRows.map(e=>catalogMode==='invalid-blueprint'&&e.name==='The Silence Between Leaves'?{...e,blueprint:{name:'Broken',format:'invalid'}}:e))});
 }
+if(u.hostname!=='catalog.test')return route.abort();
 if(catalogMode==='invalid-blueprint'&&u.pathname.endsWith('the_silence_between_leaves.blueprint'))return route.fulfill({status:200,contentType:'application/json',body:'{"name":"Broken","format":"invalid"}'});
 const f=path.resolve(root,'.'+decodeURIComponent(u.pathname));if(!f.startsWith(path.resolve(root)+path.sep))return route.abort();try{const body=fs.readFileSync(f);await route.fulfill({status:200,contentType:f.endsWith('.html')?'text/html':f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'application/json',body});}catch(e){await route.fulfill({status:404,body:'Not found'});}});
 await page.goto('http://catalog.test/index.html');await page.waitForFunction(()=>typeof showBlueprintBrowser==='function');
@@ -27,9 +30,9 @@ console.log('PASS: personal library still previews and selects; late library res
 await page.evaluate(()=>{storageAdapter.isServerMode=()=>false;showBlueprintBrowser();});await page.waitForSelector('[data-bpcat]');await page.locator('[data-seg=library]').click();assert((await page.locator('#bp-body').innerText()).includes('Sign in'));await page.locator('[data-seg=local]').click();await page.locator('#bp-file-inp').setInputFiles(path.join(root,'samples/the_silence_between_leaves.blueprint'));await page.waitForSelector('#bp-use');await page.locator('#bp-use').click();assert.equal(await page.evaluate(()=>catalogPicked.name),'The Silence Between Leaves');
 console.log('PASS: signed-out catalog and file import work.');
 for(const mode of ['error','malformed']){catalogMode=mode;await page.evaluate(()=>showBlueprintBrowser());await page.waitForSelector('#bp-retry');assert((await page.locator('#bp-body').innerText()).includes('Catalog unavailable'));catalogMode='ok';await page.locator('#bp-retry').click();await page.waitForSelector('[data-bpcat]');assert.equal(await page.locator('[data-bpcat]').count(),8);}
-catalogMode='invalid-blueprint';await page.getByRole('button',{name:/The Silence Between Leaves/}).click();await page.waitForSelector('#bp-retry');assert.equal(await page.locator('#bp-use').count(),0);catalogMode='ok';
+catalogMode='invalid-blueprint';await page.evaluate(()=>showBlueprintBrowser());await page.waitForSelector('[data-bpcat]');await page.getByRole('button',{name:/The Silence Between Leaves/}).click();await page.waitForSelector('#bp-retry');assert.equal(await page.locator('#bp-use').count(),0);catalogMode='ok';
 console.log('PASS: HTTP failure, malformed catalog and invalid blueprint are visible and recoverable.');
-catalogMode='hold';await page.evaluate(()=>showBlueprintBrowser());await page.waitForFunction(()=>document.querySelector('#bp-body').textContent.includes('Loading catalog'));await page.locator('[data-seg=local]').click();for(const route of held.splice(0))await route.fulfill({status:200,contentType:'application/json',body:fs.readFileSync(path.join(root,'samples/catalog.json'),'utf8')});await page.waitForTimeout(60);assert.equal(await page.locator('#bp-file-inp').count(),1);
+catalogMode='hold';await page.evaluate(()=>showBlueprintBrowser());await page.waitForFunction(()=>document.querySelector('#bp-body').textContent.includes('Loading catalog'));await page.locator('[data-seg=local]').click();for(const route of held.splice(0))await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(catalogRows)});await page.waitForTimeout(60);assert.equal(await page.locator('#bp-file-inp').count(),1);
 await page.evaluate(()=>showBlueprintBrowser());await page.waitForTimeout(60);await page.locator('#bp-x').click();catalogMode='ok';await page.evaluate(()=>showBlueprintBrowser());await page.waitForSelector('[data-bpcat]');for(const route of held.splice(0))await route.fulfill({status:200,contentType:'application/json',body:'[]'});await page.waitForTimeout(60);assert.equal(await page.locator('[data-bpcat]').count(),8);
 console.log('PASS: late catalog responses cannot overwrite another tab or a reopened modal.');
 await page.setViewportSize({width:390,height:844});await page.screenshot({path:out+'/catalog-mobile.png',fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.getByRole('button',{name:/The Silence Between Leaves/}).click();await page.waitForSelector('#bp-use');await page.waitForTimeout(200);await page.screenshot({path:out+'/preview-mobile.png',fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

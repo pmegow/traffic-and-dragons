@@ -92,7 +92,8 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
   <button class="tbtn" id="btn-ask">&#128172; Ask&hellip;</button>
   <button class="tbtn" id="btn-review">&#128269; Review</button>
   <button class="tbtn" id="btn-library">&#9729; Library&hellip;</button>
-  <button class="tbtn" id="btn-publish">&#9729; Publish</button>
+  <button class="tbtn" id="btn-publish">&#9729; Save to My Library</button>
+  <button class="tbtn" id="btn-publish-catalog" hidden>Publish to Catalog</button>
   <button class="tbtn primary" id="btn-save">&#8595; Save .blueprint</button>
   <div id="statusline"></div>
 </div>
@@ -127,7 +128,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.47";
+var BP_DESIGNER_VERSION="v0.48";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -824,7 +825,7 @@ function openGenerate(){
   wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;";
   wrap.innerHTML="<div style='background:var(--bg1);border:1px solid var(--acc);border-radius:10px;width:min(560px,94vw);padding:16px;display:flex;flex-direction:column;gap:10px;'>"
     +"<div style='display:flex;align-items:center;'><span style='font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);flex:1;'>&#10024; Generate a campaign from scratch</span><button class='mini' id='gen-x'>Close</button></div>"
-    +"<div style='font-size:12.5px;color:var(--t2);line-height:1.5;'>Fills the editor with a complete draft blueprint — premise, 3-act skeleton, seed NPCs and locations. Every seed below is optional (blank = surprise me). Nothing is saved until you Save or Publish; run &#128269; Review on the result.</div>"
+    +"<div style='font-size:12.5px;color:var(--t2);line-height:1.5;'>Fills the editor with a complete draft blueprint — premise, 3-act skeleton, seed NPCs and locations. Every seed below is optional (blank = surprise me). Nothing is saved until you save the file or use Save to My Library; run &#128269; Review on the result.</div>"
     +"<textarea id='gen-concept' style='min-height:64px;' placeholder='Optional concept — one line or a paragraph. e.g. A dying river god hires the party to find its murderer.'></textarea>"
     +"<div style='display:flex;gap:8px;'>"
     +"<label style='flex:1;font-size:12px;color:var(--t2);'>Tone<br><select id='gen-tone' style='width:100%;'>"+tOpts+"</select></label>"
@@ -1236,27 +1237,80 @@ function openAsk(seedFinding){
 document.getElementById("btn-ask").addEventListener("click",function(){openAsk(null);});
 
 // ── Cloud library (#15) ────────────────────────────────────────────────────────
-// Publish = upsert to the personal library (server slugs by name — same name overwrites).
+// Personal saves upsert by name. Catalog publication is an explicit, separately authorized action.
 // Auth rides in from the APP's login via same-origin localStorage (autoConnect); the designer
 // never does OAuth itself — if not connected, we say where to connect (single-purpose page).
 function cloudReady(){
   if(typeof storageAdapter==="undefined"||!storageAdapter.isServerMode()){
-    setStatus("Not connected — open the game and use File ▸ Connect to server, then reload this page.","err");
+    setStatus("Sign in from the game, then reload this page to save to your account.","err");
     return false;
   }
   return true;
 }
 document.getElementById("btn-publish").addEventListener("click",function(){
   if(!cloudReady())return;
-  var err=designerValidate();
-  if(err){setStatus("Can't publish — "+err,"err");return;}
-  setStatus("Publishing…","");
-  storageAdapter.saveBlueprintToLibrary(fileOut(),function(e){
-    if(e){setStatus("Publish failed: "+e+(String(e).indexOf("401")>=0?" — session expired; reconnect from the game.":""),"err");return;}
-    dirty=false;
-    setStatus("Published “"+bp.name+"” to your library (same name republishes over it).","ok");
+  var err=designerValidate();if(err){setStatus("Can't save to My Library — "+err,"err");return;}
+  var snapshot=fileOut(),savedText=JSON.stringify(snapshot),button=document.getElementById("btn-publish");
+  button.disabled=true;setStatus("Saving to My Library…","");
+  storageAdapter.saveBlueprintToLibrary(snapshot,function(e){
+    button.disabled=false;
+    if(e){console.warn("[designer] library save failed",e);setStatus("Save to My Library failed: "+e,"err");return;}
+    if(JSON.stringify(fileOut())===savedText)dirty=false;
+    setStatus("Saved “"+snapshot.name+"” to My Library. The shared catalog was not changed.","ok");
   });
 });
+function updateCatalogAccess(){
+  var button=document.getElementById("btn-publish-catalog");button.hidden=true;
+  if(!storageAdapter.isServerMode())return;
+  storageAdapter.fetchAccount(function(err,account){
+    if(err){console.warn("[designer] could not verify catalog publishing access",err);return;}
+    button.hidden=!(account&&account.isAdmin===true);
+  });
+}
+function openCatalogPublish(){
+  if(!cloudReady())return;
+  var err=designerValidate();if(err){setStatus("Can't publish to Catalog — "+err,"err");return;}
+  var opener=document.getElementById("btn-publish-catalog");opener.disabled=true;
+  setStatus("Loading catalog publishing options…","");
+  storageAdapter.listBlueprintCatalog(function(e,list){
+    opener.disabled=false;
+    if(e){console.warn("[designer] catalog unavailable",e);setStatus("Could not load catalog: "+e,"err");return;}
+    var old=document.getElementById("catalog-publish-dialog");if(old)old.remove();
+    var dialog=document.createElement("dialog");dialog.id="catalog-publish-dialog";
+    dialog.style.cssText="background:var(--bg1);color:var(--t0);border:1px solid var(--acc);border-radius:10px;padding:22px;width:480px;max-width:calc(100vw - 32px);max-height:85vh;overflow:auto;";
+    dialog.innerHTML="<h2 style='margin-top:0;font-size:19px;'>Publish to Catalog</h2><p>This publishes the current blueprint for everyone to browse and play. It does not change personal-library copies.</p>"
+      +"<label for='catalog-target'>Catalog entry</label><select id='catalog-target'><option value=''>Add a new campaign</option></select>"
+      +"<p id='catalog-destination'></p><label for='catalog-blurb'>Spoiler-free description</label><textarea id='catalog-blurb' maxlength='240' rows='4'></textarea>"
+      +"<p style='font-size:12px;color:var(--t2);'>Up to 240 characters. Existing campaigns keep their place in the catalog; new ones go at the end.</p>"
+      +"<p id='catalog-credit'></p><p id='catalog-publish-error' role='alert' style='color:var(--dng);'></p>"
+      +"<div style='display:flex;gap:10px;'><button class='tbtn primary' id='catalog-confirm'>Publish to Catalog</button><button class='tbtn' id='catalog-cancel'>Cancel</button></div>";
+    document.body.appendChild(dialog);
+    var target=dialog.querySelector("#catalog-target"),blurb=dialog.querySelector("#catalog-blurb"),publish=dialog.querySelector("#catalog-confirm"),cancel=dialog.querySelector("#catalog-cancel"),publishing=false;
+    list.forEach(function(entry){var option=document.createElement("option");option.value=entry.id;option.textContent=entry.name;target.appendChild(option);});
+    var match=list.filter(function(entry){return entry.id===bp.catalogId;})[0]||list.filter(function(entry){return entry.name.toLowerCase()===bp.name.toLowerCase();})[0];
+    if(match)target.value=match.id;
+    function selected(){return list.filter(function(entry){return entry.id===target.value;})[0]||null;}
+    function describe(){var entry=selected();blurb.value=entry?entry.blurb:"";dialog.querySelector("#catalog-destination").textContent=entry?"Replace “"+entry.name+"” with the current “"+bp.name+"” blueprint.":"Add “"+bp.name+"” as a new catalog campaign.";dialog.querySelector("#catalog-credit").textContent=bp.author?"Author byline: "+bp.author:"No author byline will be shown.";}
+    target.addEventListener("change",describe);describe();
+    cancel.addEventListener("click",function(){dialog.close();});dialog.addEventListener("close",function(){dialog.remove();opener.focus();});
+    dialog.addEventListener("cancel",function(ev){if(publishing)ev.preventDefault();});
+    publish.addEventListener("click",function(){
+      var error=dialog.querySelector("#catalog-publish-error"),pitch=blurb.value.trim();
+      if(!pitch||pitch.length>240){error.textContent="Write a spoiler-free description of 1–240 characters.";return;}
+      var entry=selected(),snapshot=fileOut(),draft=bp,savedText=JSON.stringify(snapshot);
+      var id=entry?entry.id:(snapshot.name.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,120)||("campaign_"+Date.now().toString(36)));
+      publishing=true;publish.disabled=true;cancel.disabled=true;error.textContent="";
+      storageAdapter.publishBlueprintToCatalog({id:id,revision:entry?entry.revision:0,blurb:pitch,blueprint:snapshot},function(publishError,result){
+        publishing=false;publish.disabled=false;cancel.disabled=false;
+        if(publishError){console.warn("[designer] catalog publish failed",publishError);error.textContent="Could not publish: "+publishError;return;}
+        if(bp===draft){var unchanged=JSON.stringify(fileOut())===savedText;bp.catalogId=result.id;if(unchanged)dirty=false;}
+        dialog.close();setStatus("Published “"+snapshot.name+"” to the shared Catalog. Reopen the catalog to see the update.","ok");
+      });
+    });
+    dialog.showModal();setStatus("Review the catalog entry and description before publishing.","");
+  });
+}
+document.getElementById("btn-publish-catalog").addEventListener("click",openCatalogPublish);
 function closeLibModal(){var m=document.getElementById("lib-modal");if(m)m.remove();}
 document.getElementById("btn-library").addEventListener("click",function(){
   if(!cloudReady())return;
@@ -1274,7 +1328,7 @@ document.getElementById("btn-library").addEventListener("click",function(){
   storageAdapter.listBlueprintLibrary(function(e,list){
     var el=document.getElementById("lib-list");if(!el)return;
     if(e){el.innerHTML="<span style='color:var(--dng);'>Failed to load library: "+esc(e)+"</span>";return;}
-    if(!list||!list.length){el.innerHTML="<em>Library is empty — Publish a blueprint to start it.</em>";return;}
+    if(!list||!list.length){el.innerHTML="<em>Library is empty — use Save to My Library to add a blueprint.</em>";return;}
     var h="",i;
     for(i=0;i<list.length;i++){
       var it=list[i],acts=(it.blueprint&&it.blueprint.acts||[]).length;
@@ -1352,6 +1406,7 @@ if(_draft&&_draft.bp&&_draft.bp.format){
 }else{
   bp=blankBp();render();setStatus("New blueprint — or Load an existing .blueprint file.","");
 }
+updateCatalogAccess();
 </script>
 </body>
 </html>
