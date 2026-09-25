@@ -162,5 +162,13 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   sp.test({name:'Daeris',gender:'F',speechifyVoiceId:'a',voiceRate:0.8},'a',function(){});await sleep(40);
   assert.equal(bodies.length,1,'no Speechify audition request');assert.ok(/rate="-20%"/.test(bodies[0].input),'the Speechify Test ignored the character speed: '+bodies[0].input);
  });
+ await test('#458 a real Inworld read prefixes a mooded group\'s text with [mood] and splits the read where the mood changes; the unmooded neighbours stay clean',async function(){
+  var d=draft('inworld');d.models.inworld.direction='Speak naturally.';d.models.inworld.voices=[{id:'a',label:'A',g:'F'},{id:'b',label:'B',g:'M'}];d.models.inworld.narrator='a';S.save(d);
+  var bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
+  /* without the mood, the three short units would ride ONE group (well under the fast-start cap) — the split is the proof */
+  TTS.speak('First line. Second line. Third line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',2:'en_GB-alba-medium',providers:{inworld:{0:'b',1:'b',2:'b'}},moods:{1:'weary'}});await sleep(40);
+  assert.deepEqual(bodies.map(function(b){return b.text;}),['First line.','[weary] Second line.','Third line.']);
+  assert.deepEqual(bodies.map(function(b){return b.instruction;}),['Speak naturally.','Speak naturally.','Speak naturally.'],'the mood rides the text, never the instruction');
+ });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

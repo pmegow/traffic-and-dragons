@@ -2478,7 +2478,7 @@ function villageTradeContext(text){
   if(_t){var _arr=_t.match(/\[SUBLOCATION:([^\]]+)\]/g)||[],_lv=_t.lastIndexOf("[SUBLOCATION_LEAVE]");
     if(_arr.length){var _last=_arr[_arr.length-1],_pos=_t.lastIndexOf(_last);if(_pos>_lv)key=worldState.world.location+"|"+_last.slice(13,-1).trim();else key=worldState.world.location;}
     else if(_lv>=0)key=worldState.world.location;
-    var _sm=_t.match(/\[SAY:([^\]]+)\]/g)||[],_si;for(_si=0;_si<_sm.length;_si++)_spk.push(_sm[_si].slice(5,-1).trim());}
+    var _sm=_t.match(/\[SAY:[^\]]+\]/g)||[],_si;for(_si=0;_si<_sm.length;_si++)_spk.push(_sm[_si].slice(5,-1).split("|")[0].trim());/* #458: the |mood is not part of the name — "Name|bright" is nobody on the roster */}
   var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk],leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk;
   if(!isShopNode(rk,node))return {ok:false,reason:"not in a shop ("+leaf+")"};
   var man=(typeof buildSceneManifest==="function")?buildSceneManifest():{local:[]},local=(_t&&_arr&&_arr.length)?_spk:(man.local||[]).concat(_spk),i,keeper=null;/* an arrival in the text resets the room: only this response's speakers are known to be inside */
@@ -2702,3 +2702,16 @@ function villageCommonFor(subName){
   return null;
 }
 function villageHouseKey(name,base){var v=base||(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";return v+"|"+String(name||"").trim()+"'s house";}
+
+// #458 (owner ask 2026-09-25): the ONE shape gate for a SAY mood — the optional |mood field of [SAY:Name|mood], HOW a
+// line is spoken. A short phrase only: letters, spaces, commas and hyphens, at most SAY_MOOD_MAX characters after
+// whitespace is collapsed. Anything else (a sentence, digits, quotes, brackets, a colon, a pipe) returns "" — the caller
+// drops the mood and says so in the console; the speaker binding is never at stake. Pure; shared by the deriver
+// (deriveSpeakerMapFromTags, game.js) and the request builder (_markupGroup, tts.js — re-checked at send time so nothing
+// hand-edited into a save reaches a provider). Hyphens admitted at build ("matter-of-fact", "sing-song").
+var SAY_MOOD_MAX=40;
+function sayMoodShape(raw){
+  var s=String(raw==null?"":raw).replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
+  if(!s||s.length>SAY_MOOD_MAX)return "";
+  return /^[A-Za-z][A-Za-z ,-]*$/.test(s)?s:"";
+}

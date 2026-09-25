@@ -7975,7 +7975,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1828191500&&d.length===29935)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===707742823&&d.length===30743)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -12998,6 +12998,85 @@ function runEngineTests(R){
     if(!k.length||m.s[k[0]]!=="Tess")return "PC line not bound by name: "+JSON.stringify(m.s);
     var vm=speakerVoiceMap(m,clean);
     return (vm&&vm[parseInt(k[0],10)]==="en_US-kristin-medium")?true:"PC voice not resolved from the map: "+JSON.stringify(vm);
+  });
+  /* #458 (owner ask 2026-09-25): the optional |mood on the SAY tag — how a line is spoken. One shape gate
+     (sayMoodShape, helpers.js), the mood persisted beside the speaker (sp.m), carried to the read as
+     voices.moods, split by the cloud grouper, and prefixed as an Inworld steering markup ONLY by a reader
+     that declares markups. Every other reader keeps a clean body. */
+  t("#458 the SAY mood: [SAY:Name|mood] keeps the name AND the mood on every unit of the tag's span (m beside s, absent when no tag carries one); the strip removes the whole tag; a mood failing the shape is dropped LOUDLY and the speaker kept",function(){
+    _mkSpeakerWorld();
+    var raw='The lamp gutters. [SAY:Daeris|weary]"Hold the door. Watch the stairs," Daeris says. Ash drifts past. [SAY:Frizwick]"Fine," he says.';
+    var clean=cleanTxt(raw);
+    if(/\[SAY|weary/.test(clean))return "the mood leaked into the displayed prose: "+clean;
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m||!m.m)return "no mood map: "+JSON.stringify(m);
+    var i,dk=[],fk=[];for(i in m.s){if(m.s[i]==="Daeris")dk.push(i);else fk.push(i);}
+    if(dk.length<2||!fk.length)return "Daeris's two-sentence line must be two units and Frizwick must bind: "+JSON.stringify(m);
+    for(i=0;i<dk.length;i++)if(m.m[dk[i]]!=="weary")return "every unit of the tagged span must carry the mood: "+JSON.stringify(m.m);
+    for(i=0;i<fk.length;i++)if(m.m[fk[i]])return "a tag without a mood carries none — the previous mood must not bleed forward: "+JSON.stringify(m.m);
+    var r0='[SAY:Daeris]"Hold," she says.',m0=deriveSpeakerMapFromTags(r0,cleanTxt(r0));
+    if(!m0||("m" in m0))return "a map without moods must not carry an m field (storage shape): "+JSON.stringify(m0);
+    var rb='[SAY:Daeris|Hold the door! she shouts, terrified of what comes next through it.]"Hold," she says.';
+    var warns=[],_w=console.warn;console.warn=function(x){warns.push(String(x));};
+    var mb;try{mb=deriveSpeakerMapFromTags(rb,cleanTxt(rb));}finally{console.warn=_w;}
+    if(!mb||mb.s[0]!=="Daeris")return "a bad mood must not cost the speaker: "+JSON.stringify(mb);
+    if(mb.m)return "a mood failing the shape must be dropped: "+JSON.stringify(mb.m);
+    return warns.some(function(w){return /mood/.test(w)&&/Daeris/.test(w);})?true:"the drop must be loud (console, naming the speaker): "+JSON.stringify(warns);
+  });
+  t("#458 sayMoodShape is the ONE gate: trims and collapses, admits letters, spaces, commas and hyphens up to 40 characters, refuses punctuation, digits, brackets and anything longer; empty is no mood",function(){
+    if(typeof sayMoodShape!=="function")return "sayMoodShape missing (helpers.js)";
+    if(sayMoodShape("  sound  concerned,  speaking carefully ")!=="sound concerned, speaking carefully")return "collapse/trim: "+JSON.stringify(sayMoodShape("  sound  concerned,  speaking carefully "));
+    if(sayMoodShape("matter-of-fact")!=="matter-of-fact")return "a hyphen is admitted";
+    if(sayMoodShape("clear throat")!=="clear throat")return "two words";
+    if(sayMoodShape("")!==""||sayMoodShape(null)!==""||sayMoodShape("   ")!=="")return "empty is no mood";
+    var bad=["say it! now","whisper.","3 sad","[sigh]","\"weary\"","very slow, measured, low and gravelly, tired","weary; cold","weary: cold","weary|cold"],i;
+    for(i=0;i<bad.length;i++)if(sayMoodShape(bad[i])!=="")return "must refuse "+JSON.stringify(bad[i])+" -> "+JSON.stringify(sayMoodShape(bad[i]));
+    return sayMoodShape(new Array(41).join("a"))===new Array(41).join("a")&&sayMoodShape(new Array(42).join("a"))===""?true:"the cap is 40";
+  });
+  t("#458 speakerVoiceMap carries the persisted mood under moods for a resolved speaker, beside directions and rates; a map without m yields no moods; an unresolved speaker carries neither voice nor mood",function(){
+    _mkSpeakerWorld();
+    var units=TTS._textPrep.splitSentences(_SPK_LINE,null,true);
+    var vm=speakerVoiceMap({n:units.length,s:{1:"Daeris"},m:{1:"weary"}},_SPK_LINE);
+    if(!vm||!vm.moods||vm.moods[1]!=="weary")return "mood missing: "+JSON.stringify(vm);
+    var vm0=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
+    if(!vm0||vm0.moods)return "no m, no moods: "+JSON.stringify(vm0);
+    var vmB=speakerVoiceMap({n:units.length,s:{1:"Nobody Known"},m:{1:"weary"}},_SPK_LINE);
+    return vmB===null?true:"an unresolved speaker narrates flat, mood and all: "+JSON.stringify(vmB);
+  });
+  t("#458 the mood map survives the save boundary (m rides the stamped entry through serialize/parse)",function(){
+    makeWorld();logTranscript("gm","He speaks. \"So do I,\" she says.","raw");
+    var e=worldState.transcript[worldState.transcript.length-1];serializeWorldState();
+    stampTranscriptSpeakers(e,{n:2,s:{1:"Daeris"},m:{1:"weary"}});
+    var back=parseWorldState(serializeWorldState()),last=back.transcript[back.transcript.length-1];
+    return last.sp&&last.sp.m&&last.sp.m[1]==="weary"&&last.sp.s[1]==="Daeris"?true:"mood lost at the save boundary: "+JSON.stringify(last.sp);
+  });
+  t("#458 cloud grouping never merges two moods: a same-voice run splits where the mood changes and each group carries its mood; unmooded units carry none",function(){
+    var units=[{text:"One."},{text:"Two."},{text:"Three."},{text:"Four."},{text:"Five."}];
+    var voices={0:"v",1:"v",2:"v",3:"v",4:"v",moods:{1:"weary",2:"weary",3:"bright"}};
+    var groups=TTS._gemini.group(units,"n",voices,null,function(v){return v||"n";});
+    var shape=groups.map(function(g){return g.voice+"|"+(g.mood||"")+"|"+g.text;}).join(" ~ ");
+    return shape==="v||One. ~ v|weary|Two. Three. ~ v|bright|Four. ~ v||Five."?true:"groups: "+shape;
+  });
+  t("#458 only a reader declaring markups (Inworld) gets the group text prefixed [mood]; Speechify never sees the bracket; the group itself is never mutated; a group mood failing the shape is dropped at the request too",function(){
+    var iw=TTS.settings.models.inworld,sp=TTS.settings.models.speechify;
+    if(iw.markups!==true)return "Inworld must declare markups";
+    if(sp.markups)return "Speechify must not declare markups (Simba ignores steering; a bracket would be read aloud)";
+    if(typeof TTS._markupGroup!=="function")return "TTS._markupGroup seam missing";
+    var g={text:"Hold the door.",voice:"a",mood:"weary"},mg=TTS._markupGroup(iw,g);
+    if(mg.text!=="[weary] Hold the door."||mg.voice!=="a")return "prefix: "+JSON.stringify(mg);
+    if(g.text!=="Hold the door.")return "the group itself must not be mutated (the Piper hand-off reads it)";
+    if(TTS._markupGroup(sp,g).text!=="Hold the door.")return "speechify saw the bracket";
+    if(TTS._markupGroup(iw,{text:"x",voice:"a"}).text!=="x")return "no mood, no prefix";
+    if(TTS._markupGroup(iw,{text:"x",voice:"a",mood:"weary!"}).text!=="x")return "a bad mood must be dropped at the request";
+    if(iw.request(mg,{rate:1,delivery:"STABLE"}).text!=="[weary] Hold the door.")return "the Inworld body must carry the prefixed text";
+    var body=sp.request({text:"Hold.",voice:"a",mood:"weary"},{rate:1}).input;
+    return body.indexOf("[")<0?true:"speechify body carries a bracket: "+body;
+  });
+  t("#458 the SAY doc line teaches the optional |mood: the form, the shape, only when the feeling is not obvious, never every line, and the example list (emotions, delivery, non-verbals)",function(){
+    var d=buildStateTagsDoc(),need=["[SAY:Character Name|mood]","not obvious from the words","never on every line","weary","slow and measured","clear throat","giggle","at most 40 characters","never a sentence"],i;
+    for(i=0;i<need.length;i++)if(d.indexOf(need[i])<0)return "doc lacks "+JSON.stringify(need[i]);
+    if(!/\[SAY:Frizwick\|[a-z ,]+\]/.test(d))return "the doc must show a mooded example";
+    return TAG_DOC_LINES.join("").indexOf("[SAY:Character Name|mood]")>=0?true:"the teaching must live in TAG_DOC_LINES";
   });
   t("#96: the FIELD fixture — multi-span speeches voice fully, and a merged span splits across its two speakers",function(){
     // Condensed from the real t1170 response that falsified v1 within hours (1 of 4 speeches
@@ -23989,6 +24068,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(worldState.character.gold!==23||!(r3.muts||[]).some(function(m){return /Trade refused/.test(m);}))return "a leave in the response means the trade happens outside: "+JSON.stringify(r3.muts);
     worldState.world.sublocation="the Village Hall";var st=villageTradeContext();if(st.ok)return "the state-only call must not invent an arrival";
     return true;
+  });
+  t("#458 the trade gate reads a mooded [SAY:Name|mood] keeper by NAME — the mood is never part of the counterparty (the one SAY consumer outside the deriver that split on the whole payload)",function(){
+    villageEF();worldState.world.sublocation="the Village Hall";memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");
+    var r=applyMuts("You cross to the tavern. [SUBLOCATION:the tavern] [SAY:Frizwick|bright]\"Two coppers.\" [GOLD:-2]");
+    return worldState.character.gold===23?true:"a mooded keeper must still be the counterparty: gold "+worldState.character.gold+" "+JSON.stringify(r.muts);
   });
 
   section("#6 the village — phase C/D/G/H: arrival, residents, the Hall, rewards (list I, 2026-09-13)");

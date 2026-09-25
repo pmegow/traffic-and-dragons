@@ -776,7 +776,7 @@ async function generateActions(msgEl){
 // segments and split correctly. Text before the first tag belongs to nobody (narrator), a unit
 // not found in any segment is skipped (clean/raw divergence — narrator, never a guess), and
 // unknown speaker names still pass through: speakerVoiceMap drops what it cannot resolve.
-var SAY_TAG_RE=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g;   // [SAY:Name] — the |descriptor payload is reserved (delivery styles, later)
+var SAY_TAG_RE=/\[SAY:([^\]|]+)(?:\|([^\]]*))?\]/g;   // [SAY:Name] or [SAY:Name|mood] — #458: the second field is the line's mood, gated by sayMoodShape (helpers.js)
 function _sayNorm(s){return String(s||"").replace(/[“”"]/g,"").replace(/\s+/g," ").replace(/^\s+|\s+$/g,"").toLowerCase();}
 // #93 ①b: _sayNorm strips quote marks, which made segment matching QUOTE-BLIND — narration sitting
 // in speaker A's segment that happened to contain the text of speaker B's later tagged line captured
@@ -840,18 +840,22 @@ function deriveSpeakerMapFromTags(raw,clean){
   // Segment text must pass through the SAME character rewrites the units underwent (splitSentences
   // runs normalizeForTTS: emphasis stripped, em/en-dash -> ", ", "..." -> "…") or a dash/markdown
   // inside a quoted line makes its 48-char key unfindable and the line narrates flat.
-  var segs=[],m,prevEnd=0,prevName=null,sawTag=false,qs={inQ:false};
+  var segs=[],m,prevEnd=0,prevName=null,prevMood="",sawTag=false,qs={inQ:false};
   while((m=SAY_TAG_RE.exec(raw))){
     sawTag=true;
-    segs.push(_sayCarry({name:prevName},_saySegScan(raw.slice(prevEnd,m.index),qs)));
+    segs.push(_sayCarry({name:prevName,mood:prevMood},_saySegScan(raw.slice(prevEnd,m.index),qs)));
     var nm=String(m[1]).replace(/^\s+|\s+$/g,"");
     prevName=nm||null;                                // [SAY: ] with a blank name owns its segment as narrator
+    /* #458: a mood rides ITS tag's segment only — the next tag without one carries none (Inworld's own carry-forward
+       rule, made explicit per tag). A mood failing the shape is dropped LOUDLY; the speaker binding is untouched. */
+    prevMood="";
+    if(m[2]!==undefined&&/\S/.test(m[2])){prevMood=sayMoodShape(m[2]);if(!prevMood)console.warn("[speakers] mood dropped for "+(nm||"(narrator)")+" — not a short phrase (letters, spaces, commas, hyphens; up to "+SAY_MOOD_MAX+" characters): "+String(m[2]).slice(0,60));}
     prevEnd=SAY_TAG_RE.lastIndex;
   }
   if(!sawTag)return null;
-  segs.push(_sayCarry({name:prevName},_saySegScan(raw.slice(prevEnd),qs)));
+  segs.push(_sayCarry({name:prevName,mood:prevMood},_saySegScan(raw.slice(prevEnd),qs)));
   var units=TTS._textPrep.splitSentences(clean,null,true);
-  var out={},kept=0,si=0,off=0,i;
+  var out={},moods={},anyMood=false,kept=0,si=0,off=0,i;
   for(i=0;i<units.length;i++){
     var u=units[i];
     if(!u)continue;
@@ -882,9 +886,11 @@ function deriveSpeakerMapFromTags(raw,clean){
        is real quoted text, so later speakers cannot steal it) but takes NO voice: the narrator
        reads it flat and sayTagCoverage counts it missing, so the compliance channel demands the
        tag. This retired the inherited-voice guess and the parity-discriminator debate with it. */
-    if(segs[j].name&&!(segs[j].para&&segs[j].para[hit])){out[i]=segs[j].name;kept++;}
+    if(segs[j].name&&!(segs[j].para&&segs[j].para[hit])){out[i]=segs[j].name;kept++;if(segs[j].mood){moods[i]=segs[j].mood;anyMood=true;}}
   }
-  return kept?{n:units.length,s:out}:null;
+  if(!kept)return null;
+  var map={n:units.length,s:out};if(anyMood)map.m=moods;/* #458: m beside s, only when a tag carried a mood — the storage shape of a moodless map is unchanged */
+  return map;
 }
 function _sayCarry(seg,scan){seg.text=scan.text;seg.mask=scan.mask;seg.para=scan.para;return seg;}
 
@@ -941,6 +947,7 @@ function speakerVoiceMap(sp,text){
     for(_si=0;_si<_sl.length;_si++){var _s=_sl[_si];if(_s.provider==="piper"||!ch[_s.field])continue;if(!out.providers)out.providers={};if(!out.providers[_s.provider])out.providers[_s.provider]={};out.providers[_s.provider][_ix]=ch[_s.field];}
     if(ch.voiceDirection){if(!out.directions)out.directions={};out.directions[_ix]=ch.voiceDirection;}
     var _vr=Number(ch.voiceRate)||0;if(_vr){if(!out.rates)out.rates={};out.rates[_ix]=_vr;}/* #457: an assigned speed rides, 1.0 included; unassigned follows the provider rate */
+    if(sp.m&&sp.m[_ix]){if(!out.moods)out.moods={};out.moods[_ix]=sp.m[_ix];}/* #458: the line's mood, persisted with the speaker; rides only with a resolved speaker, like directions and rates */
   });
   return out;
 }

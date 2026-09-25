@@ -589,15 +589,16 @@ var TTS = (function() {
       var t = units[i].text || "";
       var dir = (voices && voices.directions && voices.directions[i]) || "";/* #456: a character's delivery direction — a group never spans two */
       var rt = (voices && ((voices.rates && voices.rates[i]) || voices.rate)) || 0;/* #457: a character's speed — likewise; `voices.rate` is the audition's uniform speed */
+      var md = (voices && voices.moods && voices.moods[i]) || "";/* #458: the line's mood — a group never spans two */
       // #41b fast start: while building the FIRST group, the accumulation cap is small — the cold
       // open is gated on group 1's whole non-streaming synthesis, so a big opener means many
       // seconds of silence before the first sound. Later groups keep the big cap (call count).
       var cap = groups.length ? GEMINI_TTS_MAX_GROUP_CH : GEMINI_TTS_FAST_START_CH;
-      if (cur && cur.voice === v && (cur.direction || "") === dir && (cur.rate || 0) === rt && (cur.text.length + t.length + 1) <= cap) {
+      if (cur && cur.voice === v && (cur.direction || "") === dir && (cur.rate || 0) === rt && (cur.mood || "") === md && (cur.text.length + t.length + 1) <= cap) {
         cur.text += " " + t; cur.last = units[i];
       } else {
         if (cur) groups.push(cur);
-        cur = { voice: v, text: t, last: units[i], direction: dir, rate: rt };
+        cur = { voice: v, text: t, last: units[i], direction: dir, rate: rt, mood: md };
       }
     }
     if (cur) groups.push(cur);
@@ -780,7 +781,7 @@ var TTS = (function() {
     gemini: { label: "Google · Gemini TTS", key: true, direction: true, languages: [""],
       note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
       defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
-    inworld: { label: "Inworld · TTS-2", depth: 2, key: true, direction: true, rate: true, languages: ["", "en-US", "ko-KR"],
+    inworld: { label: "Inworld · TTS-2", depth: 2, key: true, direction: true, rate: true, markups: true,/* #458: square-bracket steering tags ride the text */ languages: ["", "en-US", "ko-KR"],
       delivery: ["STABLE", "BALANCED", "CREATIVE"],
       note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Test bills your Inworld key.",
       defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },
@@ -947,10 +948,21 @@ var TTS = (function() {
       })(), cancelled]);
     } finally { clearTimeout(timer); ctrl.signal.removeEventListener("abort", onAbort); }
   }
+  /* #458 (owner ask 2026-09-25): a group's mood becomes an Inworld steering markup — "[weary] " before the text — ONLY for
+     a reader that declares `markups` (Inworld's TTS-2 reads square-bracket tags; Speechify's Simba would read them aloud,
+     so it never sees one). The shape is re-checked through sayMoodShape (helpers.js; absent on the standalone voice pages,
+     where no mood ever rides), so nothing hand-edited into a save reaches a provider. The group is COPIED, never mutated:
+     the Piper hand-off reads the same object and must keep the clean text. */
+  function _markupGroup(m, g) {
+    if (!m || !m.markups || !g || !g.mood) return g;
+    var mood = (typeof sayMoodShape === "function") ? sayMoodShape(g.mood) : "";
+    if (!mood) { console.warn("[tts] mood dropped at send — not a short phrase: " + String(g.mood).slice(0, 60)); return g; }
+    return Object.assign({}, g, { text: "[" + mood + "] " + g.text });
+  }
   function _voiceFetch(id, g, c, key, regCtrl, direction) {
     var m = VOICE_MODELS[id];
     if (!key) return Promise.resolve({ fail: "No API key" });
-    return _voiceRequest(m.endpoint, { method: "POST", headers: { "Content-Type": "application/json", "Accept": m.accept, "Authorization": m.auth + " " + key }, body: JSON.stringify(m.request(g, c, direction)) }, m.audio, regCtrl)
+    return _voiceRequest(m.endpoint, { method: "POST", headers: { "Content-Type": "application/json", "Accept": m.accept, "Authorization": m.auth + " " + key }, body: JSON.stringify(m.request(_markupGroup(m, g), c, direction)) }, m.audio, regCtrl)
       .then(function(bytes) {
         if (!bytes.length || bytes.length % 2 || bytes.length > 6000000) return { fail: "Invalid PCM audio response" };
         return { bytes: bytes, rate: 24000 };
@@ -4584,6 +4596,7 @@ var TTS = (function() {
     providerRate:      function() { var id = _voicePrimary(), c = _voiceConfig(id); return Math.round((Number(c && c.rate) || getRate()) * 100) / 100; },/* #457: what an unassigned character reads at */
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
+    _markupGroup: _markupGroup,/* #458: exported ONLY for the headless engine tests */
     // #41: Gemini tier internals, exported ONLY for the headless engine tests (same contract as
     // _textPrep and the #90 server internals below). No production caller reads this.
     _gemini: { voices: GEMINI_VOICES, voiceFor: _geminiVoiceFor, group: _geminiGroupUnits,

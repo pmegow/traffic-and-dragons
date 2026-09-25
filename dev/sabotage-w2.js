@@ -289,8 +289,8 @@ rc|=sabotage.prove({
     {
         "label": "untagged continuation paragraphs inherit a voice again (the P4a ruling dies)",
         "mustFail": "P4a (owner-ruled)",
-        "find": "if(segs[j].name&&!(segs[j].para&&segs[j].para[hit])){out[i]=segs[j].name;kept++;}",
-        "replace": "if(segs[j].name){out[i]=segs[j].name;kept++;}"
+        "find": "if(segs[j].name&&!(segs[j].para&&segs[j].para[hit])){out[i]=segs[j].name;kept++;if(segs[j].mood){moods[i]=segs[j].mood;anyMood=true;}}",
+        "replace": "if(segs[j].name){out[i]=segs[j].name;kept++;if(segs[j].mood){moods[i]=segs[j].mood;anyMood=true;}}"
     },
     {
         "label": "scare-quoted narration counts as untagged speech again (the /i defect returns)",
