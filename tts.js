@@ -785,7 +785,7 @@ var TTS = (function() {
     gemini: { label: "Google · Gemini TTS", key: true, direction: true, languages: [""],
       note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
       defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
-    inworld: { label: "Inworld · TTS-2", depth: 2, key: true, direction: true, rate: true, markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
+    inworld: { label: "Inworld · TTS-2", depth: 4,/* #463 (owner on the Builder plan, 2026-09-25): 50 concurrent requests — four groups in flight hide the seam at a voice change; a skip aborts them all */ key: true, direction: true, rate: true, markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
       delivery: ["STABLE", "BALANCED", "CREATIVE"],
       note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Test bills your Inworld key.",
       defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },

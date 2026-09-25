@@ -23521,7 +23521,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(requested.join(",")!=="0")return "Speechify must start exactly one request";
     q.landed(0,{bytes:[0,0]});q.take();
     if(requested.join(",")!=="0,1")return "Speechify must advance after consuming the first result";
-    return m.inworld.depth===2 ? true : "Inworld must retain two-group prefetch";
+    return m.inworld.depth===4 ? true : "Inworld runs FOUR groups in flight on the Builder plan (50 concurrent requests, #463) — got "+m.inworld.depth;
   });
 
   t("#401 saved Speechify tags become short casting traits without changing actors",function(){
