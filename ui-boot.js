@@ -59,7 +59,7 @@ function buildFileMenus(){
       +(g?btn(p+"export-narr","&#128220; Export Narrative",0):btn(null,"&#128220; Export Narrative",0,{dim:true}))
       +(g?btn(p+"save-memento","&#9729; Save story to account",0):btn(null,"&#9729; Save story to account",0,{dim:true}));
     h+=drawer(p+"saveload",p+"saveloadmenu","&#128190; Save / Load",0,null,sl);
-    h+=btn(p+"blueprints","&#9729; Blueprint Library&hellip;",0);
+    h+=btn(p+"blueprints","Campaign Blueprints&hellip;",0);
     h+=g?btn(p+"bugreport","⚠ Report bug&hellip;",0):btn(null,"⚠ Report bug&hellip;",0,{dim:true});/* #16b: game screen only — it reports on live play */
     h+=sep();
     var narr=btn(p+"rules","Narrative rules",0)

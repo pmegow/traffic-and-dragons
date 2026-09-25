@@ -28,5 +28,23 @@
     "file": "the_riverlight_masquerade_one-evening_taster.blueprint",
     "author": "",
     "blurb": "A single evening of intrigue: find which of five masked guests carries the forged treaty before the midnight toast. Short by design — a taste of the game."
+  },
+  {
+    "name": "The Silence Between Leaves",
+    "file": "the_silence_between_leaves.blueprint",
+    "author": "Pete Megow",
+    "blurb": "A fairy-tale mystery. Stranded between rival fae courts, seek a missing prince, untangle dangerous bargains, and find your way home before the borderlands fall silent."
+  },
+  {
+    "name": "The Princess Is Not In Danger",
+    "file": "the_princess_is_not_in_danger.blueprint",
+    "author": "",
+    "blurb": "Comic fantasy. A prophecy has chosen you and your hat to rescue a princess from a very polite dragon. Set off through a kingdom where tradition matters more than common sense."
+  },
+  {
+    "name": "The Road to Cinderwing",
+    "file": "the_road_to_cinderwing.blueprint",
+    "author": "",
+    "blurb": "A fairy-tale adventure. Follow a missing princess from a haunted coastal mansion through an arena and an ancient forest to a dragon's mountain. Decide whom to trust along the way."
   }
 ]

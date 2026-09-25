@@ -126,7 +126,7 @@ function cbrSegControl(container,modes,current,btnHtml,attr,onSwitch){
 // blueprint and companion browsers.
 function cbrSegBtnStd(lbl,val,sel,pos){
   var segS="padding:7px 16px;font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid var(--brd2);";
-  return "<button data-seg='"+val+"' style='"+segS+"background:"+(sel?"var(--acc)":"var(--bg2)")+";color:"+(sel?"var(--on-acc)":"var(--t1)")+";border-radius:"+(pos==="left"?"var(--r) 0 0 var(--r)":"0 var(--r) var(--r) 0")+";font-weight:"+(sel?"bold":"normal")+";border-"+(pos==="left"?"right":"left")+":none;'>"+lbl+"</button>";}
+  return "<button data-seg='"+val+"' style='"+segS+"background:"+(sel?"var(--acc)":"var(--bg2)")+";color:"+(sel?"var(--on-acc)":"var(--t1)")+";border-radius:"+(pos==="left"?"var(--r) 0 0 var(--r)":pos==="middle"?"0":"0 var(--r) var(--r) 0")+";font-weight:"+(sel?"bold":"normal")+";border-"+(pos==="left"?"right":"left")+":none;'>"+lbl+"</button>";}
 // Full-width variant — byte-identical to the character browser's former inner segBtn
 // (class .cbr-seg + data-mode attr; flex:1 buttons, transparent unselected background).
 function cbrSegBtnWide(lbl,val,sel,pos){
@@ -153,16 +153,18 @@ function loadCampaignCharacter(id,cb,msgs){
 }
 function showBlueprintBrowser(){
   var connected=storageAdapter.isServerMode();
-  var mode=connected?"library":"local";
+  var mode="catalog",view=0,catalog=null;
   var modal=modalShell("bp-browser-modal",/* #14 */
     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaign Blueprints</span>"
-    +"<button id='bp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-    +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>Pre-built campaign skeletons with NPCs, locations, and story arcs.</div>"
-    +"<div id='bp-seg' style='display:flex;margin-bottom:16px;'></div>"
+    +"<button id='bp-x' aria-label='Close campaign blueprints' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>Choose a campaign from the catalog, your library, or a file.</div>"
+    +"<div id='bp-seg' style='display:flex;flex-wrap:wrap;margin-bottom:16px;'></div>"
     +"<div id='bp-body'></div>",
     {z:400,align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:500,boxExtra:"margin-top:40px;",closeId:"bp-x",outside:true});
-  function showPreview(bp){
+  function active(stamp){return stamp===view&&document.getElementById("bp-browser-modal")===modal;}
+  function showPreview(bp,meta){
+    view++;
     var body=document.getElementById("bp-body");if(!body)return;
     var actCount=bp.acts?bp.acts.length:0;
     var arcCount=0;if(bp.acts){var ai;for(ai=0;ai<bp.acts.length;ai++)arcCount+=(bp.acts[ai].arcs?bp.acts[ai].arcs.length:0);}
@@ -188,7 +190,7 @@ function showBlueprintBrowser(){
     }}
     body.innerHTML="<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>"+escHtml(bp.name)+"</div>"
       +(bp.author?"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>by "+escHtml(bp.author)+"</div>":"")
-      +"<div style='font-size:12px;color:var(--t1);margin-bottom:16px;line-height:1.6;'>"+escHtml(bp.premise||"")+"</div>"
+      +"<div style='font-size:12px;color:var(--t1);margin-bottom:16px;line-height:1.6;'>"+escHtml(meta?meta.blurb:(bp.premise||""))+"</div>"
       +"<div style='display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;align-items:baseline;'>"
       +"<div style='font-size:11px;color:var(--t2);'>"+actCount+" acts</div>"
       +"<div style='font-size:11px;color:var(--t2);'>"+arcCount+" arcs</div>"
@@ -196,12 +198,14 @@ function showBlueprintBrowser(){
       +"<div style='font-size:11px;color:var(--t2);'>"+locCount+" locations</div>"
       +(voiceNm?"<div style='font-size:11px;color:var(--acc);'>&#9997; "+escHtml(voiceNm)+"</div>":"")
       +"</div>"
+      +(meta&&bp.premise?"<details style='margin-bottom:14px;'><summary style='cursor:pointer;color:var(--t2);font-size:12px;'>Full campaign premise (contains spoilers)</summary><div style='font-size:12px;line-height:1.6;white-space:pre-wrap;margin-top:8px;'>"+escHtml(bp.premise)+"</div></details>":"")
       +(actsHtml?"<div style='margin-bottom:14px;border:1px solid var(--brd);border-radius:var(--r);padding:12px;background:var(--bg2);'><div id='bp-acts-toggle' style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);cursor:pointer;user-select:none;'><span id='bp-acts-arrow' style='display:inline-block;transition:transform .2s;transform:rotate(-90deg);'>&#9662;</span> Story arcs <span style='font-size:10px;color:var(--t2);font-style:italic;'>(contains spoilers)</span></div><div id='bp-acts-body' style='display:none;margin-top:8px;'>"+actsHtml+"</div></div>":"")
       +(npcHtml?"<div style='margin-bottom:14px;border:1px solid var(--brd);border-radius:var(--r);padding:12px;background:var(--bg2);'><div id='bp-npc-toggle' style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);cursor:pointer;user-select:none;'><span id='bp-npc-arrow' style='display:inline-block;transition:transform .2s;transform:rotate(-90deg);'>&#9662;</span> Key NPCs <span style='font-size:10px;color:var(--t2);font-style:italic;'>(contains spoilers)</span></div><div id='bp-npc-body' style='display:none;margin-top:8px;'>"+npcHtml+"</div></div>":"")
       +"<div style='display:flex;gap:10px;'>"
       +"<button id='bp-use' style='flex:1;padding:11px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Use this blueprint</button>"
       +"<button id='bp-back' style='padding:11px 18px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Back</button>"
       +"</div>";
+    modal.scrollTop=0;
     document.getElementById("bp-back").addEventListener("click",render);
     document.getElementById("bp-use").addEventListener("click",function(){modal.remove();_applyBlueprint(bp);});
     var actsToggle=document.getElementById("bp-acts-toggle"),npcToggle=document.getElementById("bp-npc-toggle");
@@ -209,9 +213,10 @@ function showBlueprintBrowser(){
     if(npcToggle)npcToggle.addEventListener("click",function(){var b=document.getElementById("bp-npc-body"),a=document.getElementById("bp-npc-arrow");var open=b.style.display==="none";b.style.display=open?"block":"none";a.style.transform=open?"rotate(0deg)":"rotate(-90deg)";});
   }
   function renderLocal(){
+    var stamp=view;
     var body=document.getElementById("bp-body");if(!body)return;
     body.innerHTML="<div style='text-align:center;padding:16px 0;'>"
-      +"<div style='font-size:12px;color:var(--t2);margin-bottom:16px;'>Import a .blueprint file from your device.</div>"
+      +"<div style='font-size:12px;color:var(--t2);margin-bottom:16px;'>Import a .blueprint file from your device."+(connected?" Imported files are also saved to My Library.":"")+"</div>"
       +"<label style='display:inline-block;padding:9px 22px;font-size:13px;font-family:var(--font);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t1)\"'>"
       +"<input type='file' id='bp-file-inp' accept='.blueprint,.campaign' style='display:none;'/> Import from file (.blueprint)&hellip;</label>"
       +"</div>";
@@ -219,12 +224,13 @@ function showBlueprintBrowser(){
       var file=ev.target.files[0];if(!file)return;
       var reader=new FileReader();
       reader.onload=function(re){
+        if(!active(stamp))return;
         try{
           var bp=normalizeBlueprint(JSON.parse(re.target.result)); // §5.1 — legacy format/tone repaired before validate/preview
           var err=validateBlueprint(bp);
           if(err){showToast("Invalid blueprint: "+err);return;}
           if(storageAdapter.isServerMode()){
-            storageAdapter.saveBlueprintToLibrary(bp,function(saveErr){if(!saveErr)showToast("Blueprint saved to your blueprint library.");});
+            storageAdapter.saveBlueprintToLibrary(bp,function(saveErr){if(saveErr){console.warn("[blueprints] library save failed",saveErr);showToast("Blueprint opened, but could not save to My Library: "+saveErr);}else showToast("Blueprint saved to My Library.");});
           }
           showPreview(bp);
         }catch(err2){showToast("Failed to read blueprint: "+err2.message);}
@@ -233,14 +239,16 @@ function showBlueprintBrowser(){
     });
   }
   function renderLibrary(){
+    var stamp=view;
     var body=document.getElementById("bp-body");if(!body)return;
-    if(!connected){body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Connect to server (File &#9656; Admin &#9656; Connect) to browse your blueprint library.</div>";return;}
+    if(!connected){body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Sign in to see the blueprints saved to your account. The Catalog and Import File tabs are available without signing in.</div>";return;}
     body.innerHTML="<div style='font-size:11px;color:var(--t2);padding:16px 0;text-align:center;'>Loading…</div>";
     storageAdapter.listBlueprintLibrary(function(err,list){
-      var body2=document.getElementById("bp-body");if(!body2)return;
-      if(err||!list){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Could not load blueprint library.</div>";return;}
-      if(!list.length){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No blueprints saved yet. Export one from an active game or use the Local tab to import a .blueprint file.</div>";return;}
-      var html="<div style='display:flex;flex-direction:column;gap:8px;'>",bi;
+      if(!active(stamp))return;
+      var body2=modal.querySelector("#bp-body");if(!body2)return;
+      if(err||!list){console.warn("[blueprints] library load failed",err||"Missing list");body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Could not load My Library: "+escHtml(err||"Missing list")+"</div>";return;}
+      if(!list.length){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No personal blueprints saved yet. Explore the Catalog, or use Import File to add one to your account.</div>";return;}
+      var html="<p style='font-size:12px;color:var(--t2);margin:0 0 12px;'>Blueprints saved to your account. These are your own copies, separate from the catalog.</p><div style='display:flex;flex-direction:column;gap:8px;'>",bi;
       for(bi=0;bi<list.length;bi++){
         var item=list[bi],bp2=item.blueprint||{};
         var actCount2=bp2.acts?bp2.acts.length:0,npcCount2=bp2.npcs?bp2.npcs.length:0;
@@ -268,15 +276,72 @@ function showBlueprintBrowser(){
           storageAdapter.deleteBlueprintFromLibrary(slug,function(err){
             if(err){showToast("Delete failed: "+err);return;}
             showToast("Blueprint deleted.");
-            renderLibrary();
+            if(active(stamp))render();
           });
         });
       });
     });
   }
+  function readSample(file){
+    return new Promise(function(resolve,reject){
+      var controller=typeof AbortController!=="undefined"?new AbortController():null;
+      var timer=setTimeout(function(){if(controller)controller.abort();reject(new Error("The catalog request timed out. Please try again."));},15000);
+      var options={cache:"no-store"};if(controller)options.signal=controller.signal;
+      Promise.resolve().then(function(){return fetch("samples/"+file,options);}).then(function(r){
+        if(!r.ok)throw new Error("HTTP "+r.status);return r.json();
+      }).then(function(data){clearTimeout(timer);resolve(data);},function(err){clearTimeout(timer);reject(err);});
+    });
+  }
+  function catalogError(err){
+    console.warn("[blueprints] catalog load failed",err);
+    var body=modal.querySelector("#bp-body");
+    body.innerHTML="<p style='font-size:12px;color:var(--t2);'>Catalog unavailable: "+escHtml(err&&err.message||err)+". You can still use My Library or Import File.</p><button id='bp-retry' class='b'>Try again</button>";
+    body.querySelector("#bp-retry").addEventListener("click",render);
+  }
+  function renderCatalog(){
+    var stamp=view,body=modal.querySelector("#bp-body");
+    function showList(list){
+      if(!active(stamp))return;
+      if(!Array.isArray(list))throw new Error("The catalog is not a campaign list.");
+      list.forEach(function(c){if(!c||!c.name||!c.blurb||!(/^[a-z0-9_-]+\.blueprint$/i).test(c.file))throw new Error("A catalog entry is incomplete.");});
+      catalog=list;
+      var html="<p style='font-size:12px;color:var(--t2);margin:0 0 12px;'>Original campaigns ready to play. Choose one to read more and use it for your new character.</p>";
+      if(!list.length)html+="<p>No catalog campaigns are available yet.</p>";
+      html+="<div style='display:flex;flex-direction:column;gap:10px;'>";
+      list.forEach(function(c,i){
+        html+="<button data-bpcat='"+i+"' style='display:block;width:100%;text-align:left;padding:14px;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);font-family:var(--font);cursor:pointer;'>"
+          +"<span style='display:block;font-size:15px;font-weight:bold;margin-bottom:6px;'>"+escHtml(c.name)+"</span>"
+          +(c.author?"<span style='display:block;font-size:11px;color:var(--t2);margin-bottom:6px;'>by "+escHtml(c.author)+"</span>":"")
+          +"<span style='display:block;font-size:13px;line-height:1.5;color:var(--t1);'>"+escHtml(c.blurb)+"</span></button>";
+      });
+      body.innerHTML=html+"</div>";
+      Array.prototype.forEach.call(body.querySelectorAll("[data-bpcat]"),function(button){
+        button.addEventListener("click",function(){
+          var entry=list[parseInt(button.getAttribute("data-bpcat"),10)],selection=++view;
+          body.innerHTML="<p>Loading "+escHtml(entry.name)+"&hellip;</p>";
+          readSample(entry.file).then(function(bp){
+            if(!active(selection))return;
+            bp=normalizeBlueprint(bp);var err=validateBlueprint(bp);if(err)throw new Error(err);
+            showPreview(bp,entry);
+          }).catch(function(err){if(active(selection))catalogError(err);});
+        });
+      });
+    }
+    if(catalog){showList(catalog);return;}
+    body.innerHTML="<p style='font-size:12px;color:var(--t2);'>Loading catalog&hellip;</p>";
+    readSample("catalog.json").then(showList).catch(function(err){if(active(stamp))catalogError(err);});
+  }
+  var sources=[
+    {lbl:"Catalog",val:"catalog",pos:"left",render:renderCatalog},
+    {lbl:"My Library",val:"library",pos:"middle",render:renderLibrary},
+    {lbl:"Import File",val:"local",pos:"right",render:renderLocal}
+  ];
   function render(){
-    cbrSegControl("bp-seg",[{lbl:"&#9729; Blueprint Library",val:"library",pos:"left"},{lbl:"Local",val:"local",pos:"right"}],mode,cbrSegBtnStd,"data-seg",function(v){mode=v;render();});/* UA21 ① */
-    if(mode==="library")renderLibrary();else renderLocal();
+    view++;
+    cbrSegControl("bp-seg",sources,mode,cbrSegBtnStd,"data-seg",function(v){mode=v;render();});
+    Array.prototype.forEach.call(modal.querySelectorAll("#bp-seg button"),function(button){button.setAttribute("aria-pressed",button.getAttribute("data-seg")===mode?"true":"false");});
+    sources.forEach(function(source){if(source.val===mode)source.render();});
+    modal.scrollTop=0;
   }
   render();
 }
