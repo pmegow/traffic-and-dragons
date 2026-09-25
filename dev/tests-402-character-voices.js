@@ -119,5 +119,12 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   assert.match(b1,/value='en_XX-nowhere-medium#9' selected disabled hidden>Saved voice \(not listed\)/,'the out-of-list backup pin lost its selection: '+b1);
   assert.equal(c.speechifyVoiceId,'retired-actor');assert.equal(c.voiceId,'en_XX-nowhere-medium#9');
  });
+ await test('#455 automatic casting draws a Speechify actor from the curated bench when the loaded catalog holds a gender match there — never from the long tail — and falls back to the whole catalog only when the bench has no match (owner 2026-09-24: auto-cast handed Daeris a bored audiobook reader)',async function(){
+  var d=draft('speechify');d.models.speechify.voices=[{id:'slow_f',label:'Slow F',g:'F',note:'Audiobook'},{id:'imogen_32',label:'Imogen',g:'F',note:''},{id:'slow_m',label:'Slow M',g:'M',note:'Audiobook'},{id:'geffen_32',label:'Geffen',g:'M',note:''}];d.models.speechify.narrator='imogen_32';S.save(d);
+  var draws=[0,0.3,0.6,0.99],i;for(i=0;i<draws.length;i++){var c={name:'Daeris',gender:'F'};TTS.assignCharacterVoices(c,function(){return draws[i];},'speechify');assert.equal(c.speechifyVoiceId,'imogen_32','random()='+draws[i]+' must land on the bench, got '+c.speechifyVoiceId);}
+  var m={name:'Halvard',gender:'M'};TTS.assignCharacterVoices(m,function(){return 0.99;},'speechify');assert.equal(m.speechifyVoiceId,'geffen_32','a male character must land on the male bench voice');
+  d.models.speechify.voices=[{id:'slow_f',label:'Slow F',g:'F',note:''},{id:'geffen_32',label:'Geffen',g:'M',note:''}];d.models.speechify.narrator='geffen_32';S.save(d);
+  var f={name:'Nyla',gender:'F'};TTS.assignCharacterVoices(f,function(){return 0;},'speechify');assert.equal(f.speechifyVoiceId,'slow_f','with no bench voice of her gender the whole catalog is the pool');
+ });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -1000,9 +1000,15 @@ var TTS = (function() {
       });
     }
   }
+  /* #455 (owner 2026-09-24: auto-cast handed Daeris a bored audiobook reader — set to the narrator's voice she was fine):
+     the curated Speechify bench automatic casting draws from FIRST — Speechify's own Simba 3.2 stock set, the voices
+     they curated for the model's expressivity (their models page, read 2026-09-24). The whole catalog remains the
+     pool only when the bench holds no voice of the character's gender, and stays the picker for a deliberate recast;
+     a pin already set is never touched. Piper's equivalent is the star bench. */
+  var SPEECHIFY_BENCH = ["beatrice_32", "dominic_32", "edmund_32", "geffen_32", "harper_32", "hugh_32", "imogen_32", "wyatt_32"];
   var CHARACTER_VOICE_SLOTS = [
     { provider: "speechify", field: "speechifyVoiceId", label: "Primary voice", service: "Speechify", selectId: "cs-primary-voice-sel", testId: "cs-primary-voice-test",
-      catalog: function() { return _voiceCatalog("speechify", _voiceConfig("speechify")); },
+      catalog: function() { return _voiceCatalog("speechify", _voiceConfig("speechify")); }, bench: SPEECHIFY_BENCH,/* #455 */
       test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "speechify"; actor = actor || _voiceActor("speechify", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.speechify); d.models.speechify.narrator = actor; _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
     { provider: "piper", field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
       test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
@@ -1027,6 +1033,7 @@ var TTS = (function() {
       if (provider && slot.provider !== provider) return;
       if (typeof char[slot.field] === "string" && char[slot.field]) return;
       var pool = slot.catalog().filter(function(v) { return castGenderMatches(gender, v.g); });
+      if (slot.bench && pool.length) { var onBench = pool.filter(function(v) { return slot.bench.indexOf(v.id) >= 0; }); if (onBench.length) pool = onBench; }/* #455: the curated bench first; the long tail only when the bench has no match */
       if (!pool.length && slot.defaultCatalog) pool = slot.defaultCatalog().filter(function(v) { return castGenderMatches(gender, v.g); });
       if (!pool.length) return;
       var ix = Math.min(pool.length - 1, Math.max(0, Math.floor(random() * pool.length)));
