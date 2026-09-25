@@ -123,7 +123,7 @@ var IMPORT_CAPS={premise:2500,backstory:2500,field:800,rule:400};
 // engine asks, every WHISPERS_EVERY turns, for one line of what is said about the party — authored by the
 // GM from the recent decisions and finished quests — filed by [WHISPER:] on a ring and served back as
 // hearsay, never as truth.
-var WHISPERS_EVERY=15;
+var WHISPERS_EVERY=30;/* #450 (owner 2026-09-24): half as often — 15 read as a running commentary */
 // #386 (owner 2026-09-08): a companion may act on a compulsion-shaped flaw UNBIDDEN — pocketing what glitters,
 // freezing before authority — resolved in the open with a filed roll and a consequence on their own sheet. This
 // many turns after one such act the prompt says "not again this soon"; the record is worldState.companionInitiatives.
@@ -404,7 +404,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.986";
+var APP_VERSION="v1.987";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

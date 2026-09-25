@@ -539,6 +539,20 @@ function runEngineTests(R){
     memory.map.nodes["Sandpoint"].size=null;delete worldState.whisperAsk;if(buildWhispersNote()!=="")return "fired at an unsized place";
     return NOTE_SHAPES.buildWhispersNote&&NOTE_LATCH_FIELDS.indexOf("whisperAsk")>=0?true:"not registered";
   });
+  t("#450 whispers are hearsay, half as often (owner 2026-09-24): WHISPERS_EVERY is 30; the note demands distortion — several mouths, at most one true detail, never a report — and seeds the defining moment as a 120-char gist, never verbatim",function(){
+    if(WHISPERS_EVERY!==30)return "WHISPERS_EVERY "+WHISPERS_EVERY;
+    makeWorld();worldState.turn=40;worldState.world.location="Sandpoint";
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"medium"};
+    memory.keyDecisions=[{turn:35,desc:"Burned the toll bridge"}];
+    var longMoment=new Array(30).join("the vault door groaned open ");worldState.character.coreMemories=[{text:longMoment,turn:36}];
+    worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
+    delete worldState.whisperAsk;var n=buildWhispersNote();
+    if(!/WHISPERS/.test(n))return "no ask: "+n.slice(0,120);
+    if(!/several mouths/.test(n)||!/at most one true detail/.test(n)||!/must NOT read as a report/.test(n))return "the note does not demand distortion: "+n.slice(0,400);
+    if(n.indexOf(longMoment)>=0)return "the defining moment rides verbatim";
+    if(n.indexOf(longMoment.slice(0,120))<0)return "the 120-char gist is missing";
+    return true;
+  });
   t("#317 [WHISPER:text] files a rumour on the ring (cap WHISPERS_CAP, stamped with turn and place), the block serves the newest three as hearsay, the tag is stripped and engine-only",function(){
     makeWorld();worldState.turn=41;worldState.world.location="Sandpoint";
     var r=applyMuts("The drunk leans in. [WHISPER:They say the bridge-burner drinks here now.]");
