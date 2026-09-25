@@ -791,11 +791,15 @@ var TTS = (function() {
       auth: "Bearer", accept: "audio/pcm", endpoint: "https://api.speechify.ai/v1/audio/stream", catalogUrl: "https://api.speechify.ai/v1/voices?locale=en&model=simba-3.2&limit=200",
       request: function(g, c) {
         var text = escHtml(g.text);
-        if (c.emotion) text = '<speechify:style emotion="' + c.emotion + '">' + text + '</speechify:style>';
         // Speechify percentages are adjustments to normal speed, not multipliers.
         var adjustment = Math.round((c.rate - 1) * 100);
         var rate = adjustment === 0 ? "medium" : (adjustment > 0 ? "+" : "") + adjustment + "%";
-        return { input: '<speak><prosody rate="' + rate + '">' + text + '</prosody></speak>',
+        var body = '<prosody rate="' + rate + '">' + text + '</prosody>';
+        /* #454 (owner 2026-09-24: three emotions, no audible change): the style tag sits DIRECTLY under <speak>, wrapping
+           the prosody element, as every Speechify example places it — it used to ride inside the prosody element, a
+           nesting their SSML reference never shows. */
+        if (c.emotion) body = '<speechify:style emotion="' + c.emotion + '">' + body + '</speechify:style>';
+        return { input: '<speak>' + body + '</speak>',
           voice_id: g.voice, model: "simba-3.2", language: "en-US", output_format: "pcm_24000" };
       },
       audio: function(r) { return r.arrayBuffer().then(function(b) { return new Uint8Array(b); }); },

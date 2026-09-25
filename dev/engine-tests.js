@@ -23413,6 +23413,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  t("#454 Speechify emotion rides directly under <speak> and wraps the prosody element — never nested inside it (owner 2026-09-24: three emotions, no audible change)",function(){
+    var m=TTS.settings.models.speechify;
+    var input=m.request({text:"The lamps gutter.",voice:"alicia"},{rate:1,emotion:"angry"}).input;
+    if(input!=='<speak><speechify:style emotion="angry"><prosody rate="medium">The lamps gutter.</prosody></speechify:style></speak>')return "shape: "+input;
+    var plain=m.request({text:"The lamps gutter.",voice:"alicia"},{rate:1.2,emotion:""}).input;
+    return plain==='<speak><prosody rate="+20%">The lamps gutter.</prosody></speak>'?true:"a Natural read must carry no style element: "+plain;
+  });
   t("#401 Speechify declares free-tier-safe concurrency independently of Inworld",function(){
     var m=TTS.settings.models;
     var requested=[],q=TTS._gemini.conveyor(2,m.speechify.depth,function(i){requested.push(i);});q.pump();
