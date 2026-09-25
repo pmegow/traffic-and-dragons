@@ -198,5 +198,6 @@
   "customClasses": [],
   "designerVersion": "v0.50",
   "catalogId": "the_riverlight_masquerade_one-evening_taster",
-  "startingTime": "21:00"
+  "startingTime": "21:00",
+  "version": "1.0"
 }
