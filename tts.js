@@ -1014,13 +1014,13 @@ var TTS = (function() {
   var CHARACTER_VOICE_SLOTS = [
     { provider: "speechify", field: "speechifyVoiceId", label: "Speechify voice", service: "Speechify", selectId: "cs-primary-voice-sel", testId: "cs-primary-voice-test",
       catalog: function() { return _voiceCatalog("speechify", _voiceConfig("speechify")); }, bench: SPEECHIFY_BENCH,/* #455 */
-      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "speechify"; actor = actor || _voiceActor("speechify", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.speechify); d.models.speechify.narrator = actor; _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
+      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "speechify"; actor = actor || _voiceActor("speechify", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.speechify); d.models.speechify.narrator = actor; if (char.voiceRate) d.models.speechify.rate = _effRate(d.models.speechify, { rate: char.voiceRate });/* #457: the Test reads at the character's speed */ _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
     /* #456 (owner 2026-09-25, after the Inworld trial): the Inworld slot. Its Test reads with the character's own delivery
        direction when one is set, so the owner hears what play will do. Auto-assignment draws gender-matched from the loaded
        Inworld catalog (no bench — the owner's ear found the catalog uniformly good). */
     { provider: "inworld", field: "inworldVoiceId", label: "Inworld voice", service: "Inworld", selectId: "cs-inworld-voice-sel", testId: "cs-inworld-voice-test",
       catalog: function() { return _voiceCatalog("inworld", _voiceConfig("inworld")); },
-      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "inworld"; actor = actor || _voiceActor("inworld", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.inworld); d.models.inworld.narrator = actor; if (char.voiceDirection) d.models.inworld.direction = char.voiceDirection; _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
+      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "inworld"; actor = actor || _voiceActor("inworld", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.inworld); d.models.inworld.narrator = actor; if (char.voiceDirection) d.models.inworld.direction = char.voiceDirection; if (char.voiceRate) d.models.inworld.rate = _effRate(d.models.inworld, { rate: char.voiceRate });/* #457 */ _voiceTest(d, TTS_TEST_LINE, actor, onPhase); } },
     { provider: "piper", field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
       test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
   ];
