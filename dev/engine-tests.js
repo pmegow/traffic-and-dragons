@@ -23399,7 +23399,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var S=TTS.settings;if(!S)return "settings draft API missing";var m=S.models;
     if(!m.inworld||!m.speechify)return "trial providers missing";
     if(m.inworld.languages.indexOf("ko-KR")<0||m.speechify.languages.indexOf("ko-KR")>=0)return "Korean capability misrepresented";
-    if(!m.inworld.direction||m.speechify.direction||!m.speechify.emotions)return "performance controls unsupported";
+    if(!m.inworld.direction||m.speechify.direction||m.speechify.emotions)return "performance controls: Inworld directs; Speechify has neither direction nor an Emotion control (#454: Simba 3 ignores the style tag)";
     return true;
   });
 
@@ -23413,12 +23413,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
-  t("#454 Speechify emotion rides directly under <speak> and wraps the prosody element — never nested inside it (owner 2026-09-24: three emotions, no audible change)",function(){
+  t("#454 Speechify offers NO Emotion control and never sends a style tag — Simba 3 ignores it (owner audition 2026-09-24: natural, angry, cheerful identical on Geffen; the 3.2 changelog names only break and prosody rate as honoured); a stale saved emotion is ignored too",function(){
     var m=TTS.settings.models.speechify;
+    if(m.emotions)return "the Emotion control is still offered for Speechify";
     var input=m.request({text:"The lamps gutter.",voice:"alicia"},{rate:1,emotion:"angry"}).input;
-    if(input!=='<speak><speechify:style emotion="angry"><prosody rate="medium">The lamps gutter.</prosody></speechify:style></speak>')return "shape: "+input;
-    var plain=m.request({text:"The lamps gutter.",voice:"alicia"},{rate:1.2,emotion:""}).input;
-    return plain==='<speak><prosody rate="+20%">The lamps gutter.</prosody></speak>'?true:"a Natural read must carry no style element: "+plain;
+    if(input!=='<speak><prosody rate="medium">The lamps gutter.</prosody></speak>')return "a stale saved emotion must not reach the request: "+input;
+    var fast=m.request({text:"The lamps gutter.",voice:"alicia"},{rate:1.2,emotion:""}).input;
+    return fast==='<speak><prosody rate="+20%">The lamps gutter.</prosody></speak>'?true:"rate regressed: "+fast;
   });
   t("#401 Speechify declares free-tier-safe concurrency independently of Inworld",function(){
     var m=TTS.settings.models;

@@ -785,8 +785,8 @@ var TTS = (function() {
       page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
       actor: function(v) { return { id: v.voiceId, label: v.displayName || v.voiceId, g: _voiceGender(v.gender), note: v.description || "", language: v.langCode || "" }; } },
     speechify: { label: "Speechify · Simba 3.2", compactActors: true, actorNote: _speechifyActorNote, depth: 1, key: true, rate: true, languages: ["en-US"],
-      emotions: ["", "angry", "cheerful", "sad", "terrified", "relaxed", "fearful", "surprised", "calm", "assertive", "energetic", "warm", "direct", "bright"],
-      note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate.",
+      /* #454 (owner 2026-09-24): no `emotions` — Simba 3 ignores <speechify:style>; the Emotion control was theatre and is gone */
+      note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate. Simba 3.2 honours speaking rate but not emotion tags, so there is no Emotion control here.",
       defaults: function() { return { narrator: "", language: "en-US", emotion: "" }; },
       auth: "Bearer", accept: "audio/pcm", endpoint: "https://api.speechify.ai/v1/audio/stream", catalogUrl: "https://api.speechify.ai/v1/voices?locale=en&model=simba-3.2&limit=200",
       request: function(g, c) {
@@ -795,10 +795,9 @@ var TTS = (function() {
         var adjustment = Math.round((c.rate - 1) * 100);
         var rate = adjustment === 0 ? "medium" : (adjustment > 0 ? "+" : "") + adjustment + "%";
         var body = '<prosody rate="' + rate + '">' + text + '</prosody>';
-        /* #454 (owner 2026-09-24: three emotions, no audible change): the style tag sits DIRECTLY under <speak>, wrapping
-           the prosody element, as every Speechify example places it — it used to ride inside the prosody element, a
-           nesting their SSML reference never shows. */
-        if (c.emotion) body = '<speechify:style emotion="' + c.emotion + '">' + body + '</speechify:style>';
+        /* #454 (owner 2026-09-24): no emotion — Simba 3 ignores <speechify:style> (three emotions identical on Geffen in the
+           owner's audition; the 3.2 changelog names only break and prosody rate as honoured). A stale saved emotion is
+           deliberately not sent: a tag the provider ignores is a silent failure dressed as a feature. */
         return { input: '<speak>' + body + '</speak>',
           voice_id: g.voice, model: "simba-3.2", language: "en-US", output_format: "pcm_24000" };
       },
