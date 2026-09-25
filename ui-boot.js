@@ -120,7 +120,7 @@ function resetFileSubmenus(menuEl){
   Array.prototype.forEach.call(menuEl.querySelectorAll(".fm-sub"),function(s){s.style.display="none";s.style.left="";s.style.right="";});
   Array.prototype.forEach.call(menuEl.querySelectorAll("[id$='-arrow']"),function(a){a.style.transform="";});
 }
-function wireButtons(){
+function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpcLinks();/* #452 */
   buildFileMenus(); // all three File menus render from ONE spec before any wiring binds to them
   document.getElementById("api-btn").addEventListener("click",submitKey);
   document.getElementById("api-input").addEventListener("keydown",function(e){if(e.key==="Enter")submitKey();});

@@ -25711,6 +25711,20 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     }finally{addMsg=_am;}
     return true;
   });
+  t("#452 the summary line links each Present name the roster or memory knows to its sheet (data-npc span, escaped) and leaves unknown names and every other line exactly as before",function(){
+    makeWorld();worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
+    memory.npcs["Bram <b>"]={attitude:"",knowledge:[],events:[]};
+    if(typeof summaryLineHTML!=="function")return "summaryLineHTML missing";
+    var h=summaryLineHTML(["Gold +5","Present: Old Maud (say), Bram <b> (seen), Nobody (say)","Here: Lantern"]);
+    if(h.indexOf('Gold +5 | Present: <span class="sum-npc" data-npc="Old Maud">Old Maud</span> (say), ')!==0)return "known name not linked or order changed: "+h;
+    if(h.indexOf('<span class="sum-npc" data-npc="Bram &lt;b&gt;">Bram &lt;b&gt;</span> (seen)')<0)return "a memory-only name is not linked, or the name reached the markup unescaped: "+h;
+    if(h.indexOf(", Nobody (say) | Here: Lantern")<0)return "an unknown name must stay plain text and the Here line unchanged: "+h;
+    if(summaryLineHTML(["Gold +5","Here: Lantern"])!=="Gold +5 | Here: Lantern")return "a line without Present must be byte-identical to the escaped join";
+    if(summaryLineHTML(["<b>x</b>"])!=="&lt;b&gt;x&lt;/b&gt;")return "escaping regressed";
+    var _am=addMsg,cap=[];addMsg=function(ty,x){if(ty==="system")cap.push(String(x));return _am(ty,x);};
+    try{mutsSummaryEmit({muts:["Present: Old Maud (say)"],turn:worldState.turn});}finally{addMsg=_am;}
+    return /data-npc="Old Maud"/.test(cap[0]||"")?true:"mutsSummaryEmit does not route through summaryLineHTML: "+JSON.stringify(cap);
+  });
   t("#431 source: both commit paths write the summary through mutsSummaryEmit and nowhere else; the panel's house group is gone",function(){
     var tt=__fsForTests.readFileSync(__rootForTests+"/tag_table.js","utf8"),ap=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),up=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),hp=__fsForTests.readFileSync(__rootForTests+"/helpers.js","utf8");
     if((tt.match(/mutsSummaryEmit\(R\)/g)||[]).length<1)return "tag_table's commit path bypasses mutsSummaryEmit";

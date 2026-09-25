@@ -2606,6 +2606,26 @@ function layoutAskOfferFor(question,key){
    (adventure toggle) or emptied (village qty 0) are excluded; "" when nothing lies here. This REPLACES the side panel's
    "Your house" group (#6 E8, villageHouseGroup — deleted): the readout rides the info chunk beside "Present:", the
    panel keeps only the counter/chest/design rows. It is a UI line only — never the transcript, never the prompt. */
+/* #452 (owner 2026-09-24): the turn's summary line links each PRESENT name to its sheet. Pure: takes the summary
+   lines, returns the HTML addMsg renders. Only a "Present:" line changes, and only a name the roster or memory
+   knows becomes a link — an unknown name stays text; every other line is escaped exactly as before (the #431 byte
+   pins hold). The link is a data-npc span (audit E69: never a name inside an inline onclick); ui-shell.js binds ONE
+   delegated click on the story pane (wireSummaryNpcLinks). */
+function summaryLineHTML(lines){
+  var out=[],i;
+  for(i=0;i<lines.length;i++){
+    var line=String(lines[i]);
+    if(line.indexOf("Present: ")!==0){out.push(escHtml(line));continue;}
+    var labels=line.slice(9).split(", "),parts=[],j;
+    for(j=0;j<labels.length;j++){
+      var lab=labels[j],m=lab.match(/^(.*?)( \([^()]*\))?$/),nm=m?m[1]:lab,suf=(m&&m[2])||"";
+      var known=!!((typeof wsNpcByName==="function"&&wsNpcByName(nm))||(typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[nm]));
+      parts.push(known?"<span class=\"sum-npc\" data-npc=\""+escHtml(nm)+"\">"+escHtml(nm)+"</span>"+escHtml(suf):escHtml(lab));
+    }
+    out.push("Present: "+parts.join(", "));
+  }
+  return out.join(" | ");
+}
 function hereItemsLine(){
   if(typeof worldState==="undefined"||!worldState||!worldState.world||typeof memory==="undefined"||!memory||!memory.map||!memory.map.nodes)return "";
   var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return "";

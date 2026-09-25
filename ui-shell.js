@@ -291,6 +291,14 @@ function stickStoryBottomAfterPanel(){
   if(rp)rp.addEventListener("transitionend",onEnd);
   setTimeout(apply,300);   // > the .2s width transition; harmless if transitionend already fired
 }
+/* #452: ONE delegated click for the summary line's Present names (the data-npc spans summaryLineHTML writes, helpers.js). */
+function wireSummaryNpcLinks(){
+  var story=document.getElementById("story-narrative");if(!story||story._sumNpcWired)return;story._sumNpcWired=true;
+  story.addEventListener("click",function(e){
+    var t=e.target;while(t&&t!==story&&!(t.getAttribute&&t.className==="sum-npc"&&t.getAttribute("data-npc")))t=t.parentNode;
+    if(!t||t===story)return;if(typeof showNpcSheet==="function")showNpcSheet(t.getAttribute("data-npc"));
+  });
+}
 function addMsg(type,html,opts){var isTTMsg=(type==="tabletalk");if(type==="player"&&!(opts&&opts.rebuild))_storyDomAllow=0;/* #206b: live play resumes the base cap */var story=document.getElementById(isTTMsg?"story-tabletalk":"story-narrative");var div=document.createElement("div");div.className="msg "+type;
 if(type==="narrator"&&opts&&opts.turn!=null){
   /* #106b: pair the turn marker with the in-world moment — "Turn 1204 | Day 1, 4:15 pm". Reads

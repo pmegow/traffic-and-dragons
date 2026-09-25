@@ -1608,7 +1608,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
 function mutsSummaryEmit(R){
   var lines=(R&&R.muts)?R.muts.slice():[],here=(typeof hereItemsLine==="function")?hereItemsLine():"";
   if(here)lines.push(here);
-  if(lines.length&&typeof addMsg==="function")addMsg("system",escHtml(lines.join(" | ")));
+  if(lines.length&&typeof addMsg==="function")addMsg("system",(typeof summaryLineHTML==="function")?summaryLineHTML(lines):escHtml(lines.join(" | ")));/* #452: Present names link to their sheets (helpers.js) */
 }
 // ── The table-driven parser — THE sole applyMuts body since the v1.261 cutover close ───────────
 function applyMutsTable(text,opts){
