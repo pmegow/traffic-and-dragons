@@ -2422,6 +2422,15 @@ function commitGmTurn(resp,opts){
         if(_psbHit)worldState.playerSplitPing={names:_psbHit.names||[],turn:worldState.turn};
       }
     }
+    /* #469: a bystander retold a party member's defining moment in the record's words (the Village lien line, 21 of 135
+       turns). Exempt = the hero + the living party — their own telling is theirs; a SAY-less segment is the narrator, not a
+       bystander (the detector ignores it). Arms the one-shot ping for buildMotifNudge; the repeat count lives on its latch. */
+    if(!_refusal&&typeof detectMomentRetelling==="function"){
+      var _mmList=[],_mmEx=[worldState.character.name],_mmi;(worldState.character.coreMemories||[]).forEach(function(m){_mmList.push(m);});
+      var _mmParty=livingPartyCompanions();for(_mmi=0;_mmi<_mmParty.length;_mmi++){_mmEx.push(_mmParty[_mmi].name);((_mmParty[_mmi].charSheet&&_mmParty[_mmi].charSheet.coreMemories)||[]).forEach(function(m){_mmList.push(m);});}
+      var _mmHit=detectMomentRetelling(resp,_mmList,_mmEx);
+      if(_mmHit){worldState.motifPing={speaker:_mmHit.speaker,who:_mmHit.who,gist:_mmHit.gist,turn:worldState.turn};console.info("[motif] "+_mmHit.speaker+" retold "+_mmHit.who+"'s defining moment ("+_mmHit.words+" shared words) — RETOLD MEMORY note armed (#469)");}
+    }
     if(!_refusal)detectGhostConsumables(o.playerTxt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags); #197: refusals excluded too */
     if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name,_lp=worldState.pendingLegacy;
       if(_lp.introduced||resp.indexOf(_lcn)>=0){if(!_lp.introduced){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);_lp.introduced=true;}if(relationshipAdoptPortableProposals(_lp,_lcn))worldState.pendingLegacy=null;}// introduced relationship conflicts transfer losslessly before the transient cameo record retires

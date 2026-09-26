@@ -737,6 +737,43 @@ function partyCompanionsWithSheets(includeDead){
 // scene render iterates this to describe (all models) and seed portraits (Nano Banana 2 only). Returns
 // the worldState.npcs entries; charSheet holds the v10 sheet, npcPortrait() the image.
 function livingPartyCompanions(){return partyCompanionsWithSheets(false);}
+/* #469 (owner 2026-09-26, the Village lien line): a resident retold a party member's defining moment in the record's own
+   words — 21 of 135 GM turns carried "Daeris is free of her lien". buildCoreMemoryBlock serves the record verbatim for the
+   party's OWN recall; this scan catches an OUTSIDER voicing it and arms buildMotifNudge (api.js), the do-not-repeat channel
+   (the standing lesson: an instruction that loses to the GM's own recent output needs a NEW channel). Pure: (raw reply, the
+   served moments, the exempt names = hero + living party) → {speaker,who,gist,words} or null. Only an ATTRIBUTED line
+   counts — a [SAY:Name] segment; a SAY-less segment is the narrator's own voice, not a bystander. Names never count as
+   content (the exempt list, the speaker and the moment's owner are stripped); a word must be MOTIF_WORD_MIN letters and
+   off the stoplist; MOTIF_MIN_WORDS distinct shared words is the bar — the owner's flagged Silas line shares exactly three
+   (necrotic, tether, engines), a fresh remark about mint shares none. */
+var MOTIF_MIN_WORDS=3,MOTIF_WORD_MIN=6,MOTIF_GIST_CHARS=60;
+var MOTIF_STOP={before:1,after:1,around:1,through:1,toward:1,towards:1,without:1,between:1,against:1,little:1,people:1,things:1,something:1,morning:1,evening:1,together:1,another:1,because:1,should:1,really:1,always:1,though:1,across:1,beside:1,inside:1,behind:1,having:1,himself:1,herself:1,themselves:1,nothing:1,anything:1,everything:1,someone:1,anyone:1,everyone:1,already:1,almost:1,enough:1,rather:1,whether:1,during:1,within:1,beyond:1,family:1,moment:1,turned:1,looked:1,seemed:1,called:1,wanted:1,needed:1,thought:1,became:1,finally:1,better:1,longer:1,others:1,itself:1,either:1,neither:1,indeed:1,simply:1,quietly:1,gently:1,slowly:1,softly:1,nearly:1,mostly:1,waiting:1,coming:1,making:1,taking:1,giving:1,saying:1,telling:1,asking:1,knowing:1,seeing:1,walking:1,sitting:1,standing:1,holding:1,looking:1,feeling:1,thinking:1,talking:1,leaving:1};
+function motifWords(text,exempt){
+  var out={},ex={},i;for(i=0;i<(exempt||[]).length;i++){String(exempt[i]||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex[p]=1;});}
+  String(text||"").toLowerCase().replace(/[\u2019']s\b/g,"").split(/[^a-z]+/).forEach(function(w){if(w.length>=MOTIF_WORD_MIN&&!MOTIF_STOP[w]&&!ex[w])out[w]=1;});
+  return out;
+}
+function detectMomentRetelling(raw,moments,exempt){
+  raw=String(raw||"");if(!raw||!moments||!moments.length)return null;
+  var ex=(exempt||[]).map(function(n){return String(n||"");}),exl=ex.map(function(n){return n.toLowerCase();}),i,j,best=null;
+  var re=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]([^\[]*)/g,m,segs=[];
+  while((m=re.exec(raw))){var sp=m[1].trim();if(sp)segs.push({speaker:sp,text:m[2]});}
+  if(!segs.length)return null;
+  function firstOf(n){return n.split(/\s+/)[0];}
+  for(i=0;i<segs.length;i++){
+    var s=segs[i],spl=s.speaker.toLowerCase(),own=false;
+    for(j=0;j<exl.length&&!own;j++)if(exl[j]&&(exl[j]===spl||firstOf(exl[j])===firstOf(spl)))own=true;
+    if(own)continue;/* the party's own telling is theirs to give */
+    var lineWords=motifWords(s.text,ex.concat([s.speaker]));
+    for(j=0;j<moments.length;j++){
+      var mo=moments[j];if(!mo||!mo.text)continue;
+      var mw=motifWords(mo.text,ex.concat([s.speaker,mo.who||""])),shared=0,k;
+      for(k in mw)if(lineWords[k])shared++;
+      if(shared>=MOTIF_MIN_WORDS&&(!best||shared>best.words))best={speaker:s.speaker,who:mo.who||"",gist:String(mo.text).slice(0,MOTIF_GIST_CHARS),words:shared};
+    }
+  }
+  return best;
+}
 function droll(s){return Math.floor(Math.random()*s)+1;}
 /* #354 (v1.837): opening-hour helpers. The clock's zero is DAWN (#89: clock%1440==0 ≡ ~6am), so a
    preset's clock hour becomes minutes-since-dawn. clockHourLabel is the one phase vocabulary for a

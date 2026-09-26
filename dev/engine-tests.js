@@ -612,6 +612,70 @@ function runEngineTests(R){
     if(cleanTxt("A [WHISPER:x] B")!=="A  B")return "not stripped";
     return TAG_DOC_ENGINE_ONLY.indexOf("WHISPER")>=0&&buildStateTagsDoc().indexOf("[WHISPER:")<0?true:"WHISPER must be engine-only (taught by the ask)";
   });
+  // ── #469 retold memory — residents parrot a party member's defining moment ──
+  t("#469 detectMomentRetelling fires on a resident retelling a party member's defining moment in the record's words (the Village t126 line and the owner's flagged Silas line), names the speaker and whose memory it was; silent for a fresh remark, the member's own telling, a name-only overlap and untagged narration",function(){
+    var moments=[{text:"Daeris's purpose was settled: Her soul-tax lien and necrotic tether to the Reach's engines and Tomb-Architect have been completely extinguished",turn:49,kind:"resolution",who:"Daeris",camp:"The Necrotic Dungeon"},
+      {text:"Frizwick embraced Ammut, Morwen, and Daeris at the Rusty Dragon, undone with relief that they survived Jorgenfist.",turn:1661,kind:"bond",who:"Frizwick",camp:"Rise of the Runelords (Ammut)"}];
+    var exempt=["Ammut","Daeris","Morwen Zethran","Frizwick"];
+    var raw="Nyla looks up from the porch. [SAY:Nyla Lorrath|warm]\"Peace on your hearth, Ammut! Still warms my heart to see Daeris walking so free and easy, now that her soul-tax lien and necrotic tether to the Reach's engines and Tomb-Architect are extinguished for good.\"";
+    var hit=detectMomentRetelling(raw,moments,exempt);
+    if(!hit)return "the t126 line did not fire";
+    if(hit.speaker!=="Nyla Lorrath"||hit.who!=="Daeris")return "wrong attribution: "+JSON.stringify(hit);
+    if(!(hit.words>=MOTIF_MIN_WORDS)||!hit.gist||hit.gist.length>MOTIF_GIST_CHARS)return "hit shape: "+JSON.stringify(hit);
+    var owner="[SAY:Silas Morne|easy]\"Morning, Nyla. Good to see Daeris walking so light across the square yesterday, knowing that Reach lien and the necrotic tether to the engines are burned out for good.\"";
+    var h2=detectMomentRetelling(owner,moments,exempt);if(!h2||h2.speaker!=="Silas Morne"||h2.who!=="Daeris")return "the owner's flagged line did not fire: "+JSON.stringify(h2);
+    var fresh="[SAY:Nyla Lorrath|bright]\"Morning, Ammut — the mint has come in early this year, and Daeris said she would want some.\"";
+    if(detectMomentRetelling(fresh,moments,exempt))return "a fresh remark fired";
+    var own="[SAY:Daeris|quiet]\"My soul-tax lien and the necrotic tether to the Reach's engines are extinguished. I still wake expecting the pull.\"";
+    if(detectMomentRetelling(own,moments,exempt))return "the member's own telling fired";
+    var names="[SAY:Silas Morne]\"Frizwick, Morwen and Daeris went by with Ammut — what a relief to see them all together.\"";
+    if(detectMomentRetelling(names,moments,exempt))return "a name-only overlap fired";
+    var narr="Seeing Daeris so untroubled, her soul-tax lien and necrotic tether to the Reach's engines extinguished, the square feels lighter.";
+    if(detectMomentRetelling(narr,moments,exempt))return "untagged narration fired (only an attributed outsider line counts)";
+    if(detectMomentRetelling(raw,[],exempt)||detectMomentRetelling("",moments,exempt))return "empty inputs fired";
+    return true;
+  });
+  t("#469 buildMotifNudge consumes the ping, names the speaker and whose memory it is, demands the passing-handle register and never the record's words, counts repeats, is silent with no ping and in combat, and is registered (shape, latches, builder order)",function(){
+    makeWorld();worldState.turn=127;delete worldState.motifNudged;
+    if(buildMotifNudge()!=="")return "fired with no ping";
+    worldState.motifPing={speaker:"Nyla Lorrath",who:"Daeris",gist:"Daeris's purpose was settled: Her soul-tax lien and necrotic",turn:126};
+    var n=buildMotifNudge();
+    if(!/RETOLD MEMORY/.test(n))return "no note: "+n.slice(0,80);
+    if(n.indexOf("Nyla Lorrath")<0||n.indexOf("Daeris")<0||!/passing handle/.test(n)||!/never the record's words/.test(n)||!/not a player action/.test(n))return "note wording: "+n;
+    if(worldState.motifPing)return "ping not consumed";
+    var rec=worldState.motifNudged&&worldState.motifNudged["Daeris's purpose was settled: Her soul-tax lien and necrotic"];
+    if(!rec||rec.count!==1||rec.turn!==127)return "latch record: "+JSON.stringify(worldState.motifNudged);
+    worldState.turn=131;worldState.motifPing={speaker:"Silas Morne",who:"Daeris",gist:"Daeris's purpose was settled: Her soul-tax lien and necrotic",turn:130};
+    var n2=buildMotifNudge();if(!/second time/.test(n2)||rec.count!==2)return "the repeat is not counted: "+n2;
+    worldState.motifPing={speaker:"Silas Morne",who:"Daeris",gist:"x",turn:131};worldState.combat={round:1};
+    if(buildMotifNudge()!=="")return "fired in combat";
+    delete worldState.combat;
+    if(!NOTE_SHAPES.buildMotifNudge||NOTE_SHAPES.buildMotifNudge.shape!=="escalation")return "no NOTE_SHAPES row";
+    if(NOTE_LATCH_FIELDS.indexOf("motifPing")<0||NOTE_LATCH_FIELDS.indexOf("motifNudged")<0)return "latches undeclared";
+    if(NOTE_BUILDERS.indexOf(buildMotifNudge)<0)return "not in NOTE_BUILDERS";
+    return true;
+  });
+  t("#469 the DEFINING MOMENTS block says whose words these are: an outsider knows a moment only as a passing handle, never the record's wording, and remarks on it once, not every meeting",function(){
+    makeWorld();worldState.character.coreMemories=[{text:"Tess was nearly slain.",turn:3,kind:"near-death",who:"Tess"}];
+    var b=buildCoreMemoryBlock();
+    if(!/passing handle/.test(b)||!/never the record's wording/.test(b)||!/once, not every meeting/.test(b))return "header: "+b.slice(0,500);
+    worldState.character.coreMemories=[];
+    return buildCoreMemoryBlock()===""?true:"an empty list must still render nothing";
+  });
+  t("#469 chapter summaries record a bystander's remark about the party's past as an attitude, never a quotation (the Village chapters 3 and 8 carried Daeris's lien sentence verbatim)",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/memory.js","utf8"),i=src.indexOf("var _chapterDesc=");if(i<0)return "no _chapterDesc";
+    var line=src.slice(i,src.indexOf("\n",i));
+    return /as an attitude/.test(line)&&/never quoted/.test(line)?true:"the bystander clause is missing from _chapterDesc";
+  });
+  t("#469 sendAction arms motifPing from the raw reply after the tags land (game.js), exempting the hero and the living party, never from a refusal",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    var i=src.indexOf("detectMomentRetelling(");if(i<0)return "game.js never calls detectMomentRetelling";
+    var win=src.slice(Math.max(0,i-500),i+500);
+    if(win.indexOf("if(!_refusal&&typeof detectMomentRetelling===\"function\")")<0)return "the call site itself must be refusal-gated";
+    if(!/worldState\.motifPing=/.test(win))return "does not arm motifPing";
+    if(win.indexOf("_mmEx=[worldState.character.name]")<0||win.indexOf("livingPartyCompanions()")<0)return "the exempt list must be the hero + the living party";
+    return true;
+  });
   // ── #207 ② location hours ─────────────────────────────────────────────────────
   t("#207 ② [LOCATION_HOURS:open-close|note] files hours on the CURRENT node (sublocation-aware); the geo block says OPEN or CLOSED from the clock, overnight ranges included; a bad range refuses loudly",function(){
     makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation="The Rusty Flagon";worldState.turn=50;
