@@ -75,7 +75,6 @@ All logic has been extracted from the HTML into separate JS files.
 | `blueprint-designer.html` | ✅ Active (#192) | The **Blueprint Designer** — authors `.blueprint` campaign skeletons. Seam `window.__bpdTest`; pinned by the BLUEPRINT DESIGNER CONTRACT. **Versions separately** (`BP_DESIGNER_VERSION`; see the carve-out under Version number) |
 | `necro_spells_TMP.html` | ⚠ TEMP working page | Necromancer spell drafts → capability bible, one-off conversion of the `necro_research.txt` shortlist. Its single authenticated `/install` boundary is pinned by the BIBLE-SERVER WRITE-AUTH CONTRACT, so it cannot be deleted silently |
 | `timeline_day1.html` | ⚠ One-off artifact | A generated Day-1 timeline for one campaign (Rise of the Runelords / Ammut). Play output, not a tool |
-| `Fable_Review_2025_08_27.html` · `Sol_Review_2025_08_27.html` · `Joint_Review_2026_08_27.html` (+ any other one-off review report that lands at root, e.g. `DOC_TTS_2026_9_11.html`) | ⚠ Misfiled | **One-off review reports, not satellite tools** — they belong under `DOC/` or `audits/` per the "DOC/ holds reference docs; satellite TOOLS stay at root" rule (audit G14, 2026-09-18). Rowed here so the omission cannot be mistaken for absence; moving them is its own task, because an audit citation must keep its link working |
 
 ### Script load order
 
