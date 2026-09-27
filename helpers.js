@@ -753,6 +753,30 @@ function motifWords(text,exempt){
   String(text||"").toLowerCase().replace(/[\u2019']s\b/g,"").split(/[^a-z]+/).forEach(function(w){if(w.length>=MOTIF_WORD_MIN&&!MOTIF_STOP[w]&&!ex[w])out[w]=1;});
   return out;
 }
+/* #469 ④ (owner 2026-09-27, the neighbourly chat still circled the same past): in a small-talk kind the earlier-adventure
+   moments are HELD BACK from the moments block — the street talks small (#6 D5), the past belongs to the Hall and to the
+   hero's asking — and this is the asking. Pure: (the action, the last PAST_RAISED_TURNS user turns, the party's names, the
+   held moments) → true when the hero raises the past: a member's name beside a past cue or beside a word from their record
+   ("Ask Daeris about the Reach"), two record words with no name ("what did the tether do to the engines?"), or the hero's
+   own past by cue ("my old days"). Her name alone ("Ask Daeris about the weather") raises nothing. The raise carries
+   across the window so a conversation about the past keeps its record mid-story. Names never count as record words. */
+var PAST_RAISED_TURNS=2,PAST_WORD_MIN=5;
+var PAST_CUE_RE=/\b(remember|recall|back then|back when|before (we|you|this|all this)|(your|her|his|their|my|our) (past|old life|old days|story|tale|earlier|last) ?(adventure|life|days|campaign)?|the old days|what happened (to|with|back|before|in)|tell (me|us) (about|of)|how did you|when you were|used to|earlier adventure)\b/i;
+function pastWords(text,ex){var out={};String(text||"").toLowerCase().replace(/[\u2019']s\b/g,"").split(/[^a-z]+/).forEach(function(w){if(w.length>=PAST_WORD_MIN&&!MOTIF_STOP[w]&&!ex[w])out[w]=1;});return out;}
+function pastRaisedByHero(action,userTurns,memberNames,priorMoments){
+  var texts=[String(action||"")].concat((PAST_RAISED_TURNS>0?(userTurns||[]).slice(-PAST_RAISED_TURNS):[]).map(function(t){return String(t||"");})),i,j,k;/* slice(-0) is slice(0): a zero window must mean none */
+  var ex={},firsts=[];(memberNames||[]).forEach(function(n){String(n||"").toLowerCase().split(/[^a-z]+/).forEach(function(p,ix){if(p)ex[p]=1;if(ix===0&&p.length>2)firsts.push(p);});});
+  var recordWords={};
+  for(i=0;i<(priorMoments||[]).length;i++){var mo=priorMoments[i];if(!mo||!mo.text)continue;var ex2={},w2;for(w2 in ex)ex2[w2]=1;String(mo.who||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex2[p]=1;});var mw=pastWords(mo.text,ex2);for(k in mw)recordWords[k]=1;}
+  for(i=0;i<texts.length;i++){
+    var t=texts[i];if(!t)continue;var low=t.toLowerCase(),lw=low.replace(/[\u2019']s\b/g,"").split(/[^a-z]+/);
+    var named=false;for(j=0;j<firsts.length&&!named;j++)if(lw.indexOf(firsts[j])>=0)named=true;
+    var cued=PAST_CUE_RE.test(low),hits=0,seenW={};
+    for(j=0;j<lw.length;j++)if(lw[j].length>=PAST_WORD_MIN&&recordWords[lw[j]]&&!seenW[lw[j]]){seenW[lw[j]]=1;hits++;}
+    if((named&&(cued||hits>=1))||hits>=2||(cued&&/\b(my|our)\b/.test(low)))return true;
+  }
+  return false;
+}
 function detectMomentRetelling(raw,moments,exempt){
   raw=String(raw||"");if(!raw||!moments||!moments.length)return null;
   var ex=(exempt||[]).map(function(n){return String(n||"");}),exl=ex.map(function(n){return n.toLowerCase();}),i,j,best=null;

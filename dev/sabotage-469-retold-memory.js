@@ -23,7 +23,15 @@ rc |= sabotage.prove({
     { label: "#469 — names count as content: a name-only overlap fires",
       mustFail: "a name-only overlap fired",
       find: "if(w.length>=MOTIF_WORD_MIN&&!MOTIF_STOP[w]&&!ex[w])out[w]=1;",
-      replace: "if(w.length>=MOTIF_WORD_MIN&&!MOTIF_STOP[w])out[w]=1;" }
+      replace: "if(w.length>=MOTIF_WORD_MIN&&!MOTIF_STOP[w])out[w]=1;" },
+    { label: "#469 ④ — a raise no longer carries: the record vanishes mid-conversation",
+      mustFail: "a raise one user turn ago did not carry",
+      find: "var PAST_RAISED_TURNS=2,PAST_WORD_MIN=5;",
+      replace: "var PAST_RAISED_TURNS=0,PAST_WORD_MIN=5;" },
+    { label: "#469 ④ — a member's name alone raises the past",
+      mustFail: "her name alone raised it",
+      find: "if((named&&(cued||hits>=1))||hits>=2||",
+      replace: "if(named||hits>=2||" }
   ]
 });
 
@@ -42,7 +50,19 @@ rc |= sabotage.prove({
     { label: "#469 — the moments block loses the once-not-every-meeting rule",
       mustFail: "header",
       find: ", and a bystander remarks on a moment once, not every meeting:\"];/* #469 ①: whose words these are */",
-      replace: ":\"];/* #469 ①: whose words these are */" }
+      replace: ":\"];/* #469 ①: whose words these are */" },
+    { label: "#469 ④ — the village serves the earlier adventures on a walk to the well",
+      mustFail: "the village served the earlier adventure on a walk to the well",
+      find: "!pastRaisedByHero(typeof lastAction===\"string\"?lastAction:\"\",_ut,names,prior))_hold=true;",
+      replace: "!pastRaisedByHero(typeof lastAction===\"string\"?lastAction:\"\",_ut,names,prior))_hold=false;" },
+    { label: "#469 ④ — the Hall no longer serves the past",
+      mustFail: "standing in the Hall did not serve the past",
+      find: "    if(!(_hk&&_ak===_hk)){\n      var _ut=[]",
+      replace: "    if(true){\n      var _ut=[]" },
+    { label: "#469 ④ — this campaign's own moments are withheld with the earlier adventures",
+      mustFail: "this campaign's own moment was withheld too",
+      find: "    if(!cur.length)return L0+\"\\n\\n\";",
+      replace: "    return L0+\"\\n\\n\";" }
   ]
 });
 

@@ -676,6 +676,36 @@ function runEngineTests(R){
     if(win.indexOf("_mmEx=[worldState.character.name]")<0||win.indexOf("livingPartyCompanions()")<0)return "the exempt list must be the hero + the living party";
     return true;
   });
+  t("#469 ④ the street talks small (D5): in a small-talk kind the earlier-adventure moments are HELD BACK unless the hero raises the past or stands in the Hall — a one-line notice names who carries a past and forbids inventing it; this campaign's own moments still serve; other kinds are byte-identical",function(){
+    makeWorld();worldState.turn=50;worldState.character.name="Ammut";worldState.world.location="The Village";delete worldState.world.sublocation;
+    var prior={text:"Daeris's purpose was settled: Her soul-tax lien and necrotic tether to the Reach's engines and Tomb-Architect have been completely extinguished",turn:49,kind:"resolution",who:"Daeris",camp:"The Necrotic Dungeon"};
+    worldState.character.coreMemories=[{text:"Daeris joined the party at the healer's house.",turn:5,kind:"party",who:"Daeris"}];
+    worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",hp:10,maxHp:10,coreMemories:[prior]}},
+      {name:"Morwen Zethran",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Morwen Zethran",hp:10,maxHp:10,coreMemories:[{text:prior.text,turn:prior.turn,kind:prior.kind,who:prior.who,camp:prior.camp}]}}];/* the same moment on two sheets: both carry it */
+    sessionLog=[];lastAction="Walk across the square to the well.";
+    var plain=buildCoreMemoryBlock();
+    if(plain.indexOf("necrotic tether")<0||/HELD BACK/.test(plain))return "outside a small-talk kind the earlier adventure must serve verbatim with no notice";
+    worldState.kind="village";
+    var held=buildCoreMemoryBlock();
+    if(held.indexOf("necrotic tether")>=0)return "the village served the earlier adventure on a walk to the well";
+    if(held.indexOf("Daeris joined the party")<0)return "this campaign's own moment was withheld too";
+    if(!/EARLIER ADVENTURES HELD BACK/.test(held)||held.indexOf("Daeris")<0||held.indexOf("Morwen Zethran")<0||!/do not invent/i.test(held)||!/passing handle/.test(held))return "the notice is missing or incomplete (every sheet that holds the moment carries it): "+held;
+    if(/\(1 moments/.test(held)===false)return "the shared moment must count once: "+held;
+    lastAction="Ask Daeris about the Reach and what the tether did to her.";
+    if(buildCoreMemoryBlock().indexOf("necrotic tether")<0)return "naming the member and her past did not raise it";
+    lastAction="Sit with Daeris. Do you ever think about back then?";
+    if(buildCoreMemoryBlock().indexOf("necrotic tether")<0)return "a past cue with the member's name did not raise it";
+    lastAction="Ask Daeris about the weather.";
+    if(buildCoreMemoryBlock().indexOf("necrotic tether")>=0)return "her name alone raised it";
+    lastAction="And then what happened?";sessionLog=[{role:"user",content:"Ask Daeris about the Reach."},{role:"assistant",content:"She goes quiet."}];
+    if(buildCoreMemoryBlock().indexOf("necrotic tether")<0)return "a raise one user turn ago did not carry";
+    sessionLog=[{role:"user",content:"Ask Daeris about the Reach."},{role:"assistant",content:"x"},{role:"user",content:"Buy bread."},{role:"assistant",content:"x"},{role:"user",content:"Buy cheese."},{role:"assistant",content:"x"},{role:"user",content:"Buy ale."},{role:"assistant",content:"x"}];
+    if(buildCoreMemoryBlock().indexOf("necrotic tether")>=0)return "a raise four user turns ago still serves";
+    lastAction="Look around.";sessionLog=[];worldState.world.sublocation="the Village Hall";memory.map.nodes[villageHallKey()]={firstVisit:1,visits:1,parent:"The Village",npcs:[],items:[]};
+    if(buildCoreMemoryBlock().indexOf("necrotic tether")<0)return "standing in the Hall did not serve the past";
+    delete worldState.world.sublocation;delete worldState.kind;lastAction=null;
+    return true;
+  });
   // ── #207 ② location hours ─────────────────────────────────────────────────────
   t("#207 ② [LOCATION_HOURS:open-close|note] files hours on the CURRENT node (sublocation-aware); the geo block says OPEN or CLOSED from the clock, overnight ranges included; a bad range refuses loudly",function(){
     makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation="The Rusty Flagon";worldState.turn=50;

@@ -339,15 +339,37 @@ function buildErasBlock(){
 function buildCoreMemoryBlock(){
   if(!worldState||!worldState.character)return"";
   var camp=worldState.campName||"",seen={},cur=[],prior=[],i;
-  function collect(list){
+  var carriers=[],names=[];/* #469 ④: who carries an earlier adventure, for the held-back notice */
+  function collect(list,owner){
     var j;for(j=0;j<(list||[]).length;j++){var m=list[j];if(!m||!m.text)continue;
+      if(m.camp&&m.camp!==camp&&owner&&carriers.indexOf(owner)<0)carriers.push(owner);/* before the dedupe: a moment shared across sheets is carried by every sheet that holds it */
       var k=(m.camp||"")+"|"+m.turn+"|"+m.text;if(seen[k])continue;seen[k]=1;
       if(m.camp&&m.camp!==camp)prior.push(m);else cur.push(m);}
   }
-  collect(worldState.character.coreMemories);
+  collect(worldState.character.coreMemories,worldState.character.name);names.push(worldState.character.name);
   var _cmParty=livingPartyCompanions();/* #6: shared party scan */
-  for(i=0;i<_cmParty.length;i++)collect(_cmParty[i].charSheet.coreMemories);
+  for(i=0;i<_cmParty.length;i++){collect(_cmParty[i].charSheet.coreMemories,_cmParty[i].name);names.push(_cmParty[i].name);}
   if(!cur.length&&!prior.length)return"";
+  /* #469 ④ (owner 2026-09-27): in a small-talk kind the earlier adventures are HELD BACK — the street talks small (#6 D5),
+     the past belongs to the Hall and to the hero's asking. The GM cannot parrot what it is not holding. Stateless: the
+     action + the last PAST_RAISED_TURNS user turns decide (pastRaisedByHero, helpers.js), or the hero stands in the Hall.
+     The notice names the carriers and forbids inventing the past. Other kinds: byte-identical. */
+  var _hold=false;
+  if(prior.length&&typeof kindDef==="function"&&kindDef().smallTalk){
+    var _w=worldState.world||{},_hk=(kindDef().hall&&typeof villageHallKey==="function")?locResolve(villageHallKey()):null,_ak=_w.sublocation?locResolve(_w.location+"|"+_w.sublocation):locResolve(_w.location||"");
+    if(!(_hk&&_ak===_hk)){
+      var _ut=[],_si,_sl=(typeof sessionLog!=="undefined"&&sessionLog)||[];for(_si=0;_si<_sl.length;_si++){var _sm=_sl[_si];if(_sm&&_sm.role==="user"&&!_sm.bk)_ut.push(typeof stripEngineNotes==="function"?stripEngineNotes(_sm.content):_sm.content);}
+      if(typeof pastRaisedByHero!=="function"||!pastRaisedByHero(typeof lastAction==="string"?lastAction:"",_ut,names,prior))_hold=true;
+    }
+  }
+  if(_hold){
+    var _hp=prior;prior=[];
+    var L0="EARLIER ADVENTURES HELD BACK — the street talks small: "+carriers.join(", ")+" "+(carriers.length===1?"carries":"each carry")+" a past from earlier adventures ("+_hp.length+" moments on record), served when the hero asks about it or in the Hall. Until then it is a passing handle at most, from anyone — and never invented: do not invent what the record holds.";
+    if(!cur.length)return L0+"\n\n";
+    var Lc=[L0,"DEFINING MOMENTS — this campaign's own, canon: recall them naturally when relevant, never contradict them:"];
+    for(i=0;i<cur.length;i++)Lc.push("- (turn "+cur[i].turn+") "+cur[i].text);
+    return Lc.join("\n")+"\n\n";
+  }
   var L=["DEFINING MOMENTS — permanent party history the whole party carries forever. These are canon: recall them naturally when relevant, never contradict them, and let them shade tone and relationships. They are the party's own memories in the party's own words — the people who lived them may recall them in detail; anyone OUTSIDE the party who has heard of one knows it only as a passing handle (\"that business with the lien\"), never the record's wording or its particulars, and a bystander remarks on a moment once, not every meeting:"];/* #469 ①: whose words these are */
   for(i=0;i<prior.length;i++)L.push("- ("+prior[i].camp+" — an earlier adventure) "+prior[i].text);
   for(i=0;i<cur.length;i++)L.push("- (turn "+cur[i].turn+") "+cur[i].text);
