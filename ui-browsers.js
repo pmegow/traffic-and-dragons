@@ -732,6 +732,42 @@ function _showCharExportOptions(char){
   });
 }
 
+/* #470: File ▸ Save / Load ▸ Upload party members to library — the hero and every living companion in one click. The
+   plan and the run are pure (helpers.js); this shell checks the connection, lists the library, confirms ONLY when an
+   entry would be overwritten, then reports by name — every failure reaches a toast (no silent drop). The third manual
+   road into the library beside Export Character's two (#6A: the library is upstream; a player's click is the road). */
+function uploadPartyToLibrary(){
+  var fm=document.getElementById("file-menu");if(fm)fm.style.display="none";
+  if(!worldState||!worldState.character){showToast("No active game.");return;}
+  if(!storageAdapter.isServerMode()){showToast("Connect to server to use the character library.");return;}
+  showToast("Checking the character library…",2500);
+  storageAdapter.listCharacterLibrary(function(err,list){
+    if(err){showToast("Character library error: "+err);return;}
+    var plan=partyUploadPlan(worldState.character,livingPartyCompanions(),list||[]);
+    if(!plan.rows.length){showToast("No party members with character sheets to upload.");return;}
+    function run(){
+      showToast("Uploading "+plan.rows.length+" party member"+(plan.rows.length===1?"":"s")+"…",4000);
+      partyUploadRun(plan,function(sheet,cb){storageAdapter.saveCharacterToLibrary(sheet,cb);},function(r){/* #81b: the run sends portable sheets */
+        var parts=[];if(r.saved.length)parts.push(r.saved.length+" saved ("+r.saved.join(", ")+")");if(r.updated.length)parts.push(r.updated.length+" updated ("+r.updated.join(", ")+")");
+        if(parts.length)showToast("&#9729; Party uploaded to the character library — "+parts.join("; ")+".",8000);
+        var i;for(i=0;i<r.failed.length;i++){console.warn("[library] party upload failed for "+r.failed[i].name+": "+r.failed[i].err);showToast("&#10007; "+escHtml(r.failed[i].name)+" was not uploaded: "+escHtml(r.failed[i].err),9000);}
+      });
+    }
+    if(!plan.overwrites.length){run();return;}
+    var names=plan.overwrites.map(function(n){return "<span style='color:var(--t1);'>"+escHtml(n)+"</span>";}).join(", ");
+    var modal=modalShell("party-upload-confirm",
+      "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>Upload "+plan.rows.length+" party members?</div>"
+      +"<div style='font-size:13px;color:var(--t2);margin-bottom:20px;'>The character library already holds "+names+" — those entries will be replaced with the live sheets. The rest are new.</div>"
+      +"<div style='display:flex;gap:10px;'>"
+      +"<button id='pup-ok' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Upload</button>"
+      +"<button id='pup-cancel' style='flex:1;padding:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+      +"</div>",
+      {z:400,maxWidth:380,wireClose:false});
+    document.getElementById("pup-cancel").addEventListener("click",function(){modal.remove();});
+    document.getElementById("pup-ok").addEventListener("click",function(){modal.remove();run();});
+  });
+}
+
 function _showCharOverwriteConfirm(char,existing){
   /* #14: wireClose:false — explicit Overwrite/Cancel choice only */
   var modal=modalShell("char-overwrite-modal",

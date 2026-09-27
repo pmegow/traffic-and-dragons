@@ -55,6 +55,7 @@ function buildFileMenus(){
       +fileLbl(sf.imp+"import-inp","Load Game (local)",0)
       +(g?btn(p+"export-char","Export Character",0):btn(null,"Export Character",0,{dim:true}))
       +btn(sf.imp+"import-char-btn","Import Character",0)
+      +(g?btn(p+"export-party","&#9729; Upload party members to library",0):btn(null,"&#9729; Upload party members to library",0,{dim:true}))/* #470 */
       +(g?btn(p+"export-bp","Export as Blueprint",0):btn(null,"Export as Blueprint",0,{dim:true}))
       +(g?btn(p+"export-narr","&#128220; Export Narrative",0):btn(null,"&#128220; Export Narrative",0,{dim:true}))
       +(g?btn(p+"save-memento","&#9729; Save story to account",0):btn(null,"&#9729; Save story to account",0,{dim:true}));
@@ -249,6 +250,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   document.getElementById("fm-state-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";document.getElementById("sidebar").classList.toggle("open");});
   document.getElementById("fm-render-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";doRender();});
   document.getElementById("fm-export-char").addEventListener("click",exportCharacter);
+  document.getElementById("fm-export-party").addEventListener("click",uploadPartyToLibrary);/* #470 */
   document.getElementById("fm-export-bp").addEventListener("click",exportBlueprint);
   document.getElementById("fm-export-narr").addEventListener("click",exportNarrativeHtml);
   document.getElementById("fm-save-memento").addEventListener("click",saveNarrativeMemento);

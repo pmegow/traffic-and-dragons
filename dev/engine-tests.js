@@ -706,6 +706,52 @@ function runEngineTests(R){
     delete worldState.world.sublocation;delete worldState.kind;lastAction=null;
     return true;
   });
+  // ── #470 Upload party members to library ──
+  t("#470 partyUploadPlan lists the hero and every living companion with a sheet (dead and sheetless ones skipped), marks which library entries would be overwritten by slug, and is pure over its inputs",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.character.level=4;
+    worldState.npcs=[{name:"Daeris",partyMember:true,charSheet:{name:"Daeris",level:3}},{name:"Old Maud",partyMember:false,charSheet:{name:"Old Maud",level:1}},
+      {name:"Bosk",partyMember:true,charSheet:{name:"Bosk",level:2},dead:{turn:3}},{name:"Frizwick",partyMember:true}];
+    var lib=[{slug:"daeris",name:"Daeris",level:2},{slug:"someone_else",name:"Someone Else",level:9}];
+    var plan=partyUploadPlan(worldState.character,livingPartyCompanions(),lib);
+    if(plan.rows.length!==2)return "expected hero + Daeris, got "+plan.rows.map(function(r){return r.name;}).join(",");
+    if(plan.rows[0].name!=="Ammut"||plan.rows[0].sheet!==worldState.character)return "the hero leads with the live sheet";
+    if(plan.rows[1].name!=="Daeris"||!plan.rows[1].existing||plan.rows[1].existing.level!==2)return "Daeris must be marked as an overwrite of the Lv2 entry: "+JSON.stringify(plan.rows[1]);
+    if(plan.rows[0].existing)return "Ammut is not in the library yet";
+    if(plan.overwrites.length!==1||plan.overwrites[0]!=="Daeris")return "overwrites: "+JSON.stringify(plan.overwrites);
+    var again=partyUploadPlan(worldState.character,livingPartyCompanions(),null);
+    if(again.rows.length!==2||again.overwrites.length)return "a missing library list means nothing is overwritten";
+    if(partyUploadPlan(null,[],[]).rows.length!==0)return "no hero, no rows";
+    if(partyUploadPlan(worldState.character,[{name:"Frizwick",partyMember:true},{name:"Bosk",partyMember:true,charSheet:null}],[]).rows.length!==1)return "a sheetless companion must be skipped by the plan itself";
+    return true;
+  });
+  t("#470 partyUploadRun saves every row through portableSheet in order, one call per member, and reports saved / updated / failed without stopping at a failure",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.itemBible={};
+    var plan={rows:[{name:"Ammut",sheet:worldState.character,existing:null},{name:"Daeris",sheet:{name:"Daeris",level:3},existing:{level:2}},{name:"Morwen",sheet:{name:"Morwen",level:5},existing:null}],overwrites:["Daeris"]};
+    var calls=[],done=null;
+    partyUploadRun(plan,function(sheet,cb){calls.push(sheet);if(sheet.name==="Daeris")cb("HTTP 500");else cb(null,{ok:true});},function(r){done=r;});
+    if(!done)return "the completion callback never ran";
+    if(calls.length!==3||calls[0].name!=="Ammut"||calls[2].name!=="Morwen")return "one save per row, in order: "+calls.map(function(c){return c.name;}).join(",");
+    if(calls[0]===worldState.character)return "the live sheet must not be sent — portableSheet makes a copy";
+    if(done.saved.join(",")!=="Ammut,Morwen"||done.updated.length!==0||done.failed.length!==1||done.failed[0].name!=="Daeris"||!/500/.test(done.failed[0].err))return "report: "+JSON.stringify(done);
+    var ok=null;partyUploadRun({rows:[{name:"Daeris",sheet:{name:"Daeris"},existing:{level:2}}],overwrites:["Daeris"]},function(s,cb){cb(null);},function(r){ok=r;});
+    if(!ok||ok.updated.join(",")!=="Daeris"||ok.saved.length)return "an existing entry counts as updated: "+JSON.stringify(ok);
+    var empty=null;partyUploadRun({rows:[],overwrites:[]},function(){throw new Error("must not be called");},function(r){empty=r;});
+    return empty&&!empty.saved.length&&!empty.failed.length?true:"an empty plan completes at once";
+  });
+  t("#470 the menu item and the uploadPartyToLibrary shell (connection, list, plan, one confirm on overwrite, run, loud failures)",function(){
+    var boot=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8");
+    if(!/btn\(p\+"export-party","[^"]*Upload party members to library",0\)/.test(boot))return "the game menu item is missing";
+    if(!/btn\(null,"[^"]*Upload party members to library",0,\{dim:true\}\)/.test(boot))return "the item must be dimmed on the non-game menus";
+    if(boot.indexOf('document.getElementById("fm-export-party").addEventListener("click",uploadPartyToLibrary);')<0)return "not wired";
+    var ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8"),s0=ub.indexOf("function uploadPartyToLibrary(");if(s0<0)return "uploadPartyToLibrary missing from ui-browsers.js";
+    var fn=ub.slice(s0,ub.indexOf("\nfunction ",s0+1));
+    if(!/isServerMode\(\)/.test(fn)||!/listCharacterLibrary\(/.test(fn))return "the shell must check the connection and list the library";
+    if(!/partyUploadPlan\(/.test(fn)||!/partyUploadRun\(/.test(fn))return "the shell must plan and run through the pure helpers";
+    if(!/overwrites\.length/.test(fn)||!/modalShell\(/.test(fn))return "the shell must confirm when entries would be overwritten";
+    if(!/r\.failed\[i\]\.name[^\n]{0,120}was not uploaded/.test(fn))return "failures must reach a toast";
+    if(/portableSheet\(/.test(fn))return "the shell must not build sheets itself — partyUploadRun owns portableSheet";
+    return true;
+  });
   // ── #207 ② location hours ─────────────────────────────────────────────────────
   t("#207 ② [LOCATION_HOURS:open-close|note] files hours on the CURRENT node (sublocation-aware); the geo block says OPEN or CLOSED from the clock, overnight ranges included; a bad range refuses loudly",function(){
     makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation="The Rusty Flagon";worldState.turn=50;
@@ -23954,13 +24000,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   /* #427 (owner ruling 2026-09-21): the phase-A write-back is GONE. The library is upstream of the village and the only
      road into it is Export Character → Save to library. The switch write-back could overwrite a level-18 export with the
      village's level-17 copy (last writer by name); the swap and hall-line write-backs shared the hazard. */
-  t("#6A the library is UPSTREAM (owner ruling 2026-09-21): no automatic write-back anywhere — villageWriteBack is gone, switchToCampaign never writes to the library, and the only saveCharacterToLibrary callers left in the app are the two manual library-save branches (Export Character) in ui-browsers.js",function(){
+  t("#6A the library is UPSTREAM (owner ruling 2026-09-21): no automatic write-back anywhere — villageWriteBack is gone, switchToCampaign never writes to the library, and the only saveCharacterToLibrary callers left in the app are the three manual library-save branches (Export Character ×2, Upload party #470) in ui-browsers.js",function(){
     if(typeof villageWriteBack!=="undefined")return "villageWriteBack still exists";
     var fs=__fsForTests,root=__rootForTests,files=["state.js","game.js","ui-sheets.js","ui-modals.js","ui-campaigns.js","helpers.js","api.js","char-creation.js","ui-boot.js","ui-panels.js","ui-files.js","ui-shell.js","memory.js","clock.js","identity.js"],i,hits=[];
     for(i=0;i<files.length;i++){var s=fs.readFileSync(root+"/"+files[i],"utf8");if(s.indexOf("saveCharacterToLibrary(")>=0)hits.push(files[i]);if(s.indexOf("villageWriteBack")>=0)hits.push(files[i]+" (villageWriteBack)");}
     if(hits.length)return "automatic library writes survive in: "+hits.join(", ");
     var ub=fs.readFileSync(root+"/ui-browsers.js","utf8"),n=(ub.match(/saveCharacterToLibrary\(/g)||[]).length;
-    if(n!==2)return "ui-browsers.js must hold exactly the two manual library-save branches, found "+n;
+    if(n!==3)return "ui-browsers.js must hold exactly the three manual library-save branches (Export Character ×2, Upload party #470), found "+n;
     var st=fs.readFileSync(root+"/state.js","utf8"),s0=st.indexOf("function switchToCampaign("),sw=st.slice(s0,st.indexOf("\nfunction ",s0+1));
     if(/villageWriteBack|saveCharacterToLibrary|storageAdapter\.save/.test(sw))return "switchToCampaign still writes to the library";
     return true;

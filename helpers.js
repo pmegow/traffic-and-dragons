@@ -737,6 +737,32 @@ function partyCompanionsWithSheets(includeDead){
 // scene render iterates this to describe (all models) and seed portraits (Nano Banana 2 only). Returns
 // the worldState.npcs entries; charSheet holds the v10 sheet, npcPortrait() the image.
 function livingPartyCompanions(){return partyCompanionsWithSheets(false);}
+/* #470 (owner 2026-09-27): ONE click uploads the whole party to the character library. The plan is pure — the hero
+   first, then every living companion with a sheet, each marked with the library entry it would overwrite (matched by
+   the same slug the single-character export uses) — and the run is a callback chain over an injected save function
+   so the engine can test it with a mock adapter. Every row goes through portableSheet (the #81b item canon travels);
+   a failure is recorded and the chain continues — the report lists saved, updated and failed by name. */
+function partyUploadSlug(name){return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");}
+function partyUploadPlan(hero,companions,libraryList){
+  var rows=[],overwrites=[],bySlug={},i;
+  for(i=0;i<(libraryList||[]).length;i++){var e=libraryList[i];if(e&&e.slug)bySlug[e.slug]=e;}
+  function add(name,sheet){if(!name||!sheet)return;var ex=bySlug[partyUploadSlug(name)]||null;rows.push({name:name,sheet:sheet,existing:ex});if(ex)overwrites.push(name);}
+  if(hero&&hero.name)add(hero.name,hero);
+  for(i=0;i<(companions||[]).length;i++){var c=companions[i];if(c&&c.charSheet)add(c.name,c.charSheet);}
+  return {rows:rows,overwrites:overwrites};
+}
+function partyUploadRun(plan,saveFn,done){
+  var rows=(plan&&plan.rows)||[],report={saved:[],updated:[],failed:[]},i=0;
+  function next(){
+    if(i>=rows.length){done(report);return;}
+    var row=rows[i++];
+    saveFn(portableSheet(row.sheet),function(err){
+      if(err)report.failed.push({name:row.name,err:String(err)});else if(row.existing)report.updated.push(row.name);else report.saved.push(row.name);
+      next();
+    });
+  }
+  next();
+}
 /* #469 (owner 2026-09-26, the Village lien line): a resident retold a party member's defining moment in the record's own
    words — 21 of 135 GM turns carried "Daeris is free of her lien". buildCoreMemoryBlock serves the record verbatim for the
    party's OWN recall; this scan catches an OUTSIDER voicing it and arms buildMotifNudge (api.js), the do-not-repeat channel
