@@ -880,7 +880,7 @@ var TTS = (function() {
     for (i = 0; i < parts.length; i++) {
       p = parts[i].replace(/^\s+|\s+$/g, ""); if (!p) continue;
       k = p.toLowerCase().replace(/\s+/g, " ");
-      if (table.indexOf(k) >= 0) { if (sounds.indexOf(k) < 0) sounds.push(k); } else steer.push(p);
+      if (table.indexOf(k) >= 0) { if (sounds.indexOf(k) < 0) sounds.push(k); } else { var sp = (typeof sayMoodSteer === "function") ? sayMoodSteer(p) : p; if (sp) steer.push(sp); else console.info("[tts] #477 mood part dropped — a manner of speaking, not a feeling: " + p); }
     }
     var out = steer.length ? "[speak " + steer.join(", ") + "] " : "";
     for (i = 0; i < sounds.length; i++) out += "[" + sounds[i] + "] ";

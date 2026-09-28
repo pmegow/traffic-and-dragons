@@ -13285,6 +13285,20 @@ function runEngineTests(R){
     var g=TTS._markupGroup(iw,{text:"Hold.",voice:"a",mood:"surprised, laugh"});if(g.text!=="[speak surprised] [laugh] Hold.")return "the group text carries the split prefix: "+g.text;
     return true;
   });
+  t("#477 a SAY mood that is a MANNER OF SPEAKING is not delivery steering (owner 2026-09-28, Village t198: Thessa's |speaking carefully| reached Inworld as [speak speaking carefully] and she was paced like a dirge; her next line, |sound amused|, was fine): sayMoodSteer drops the speech verb, drops a bare pacing adverb, keeps an emotion and keeps volume; the Inworld prefix routes every steering part through it",function(){
+    if(typeof sayMoodSteer!=="function")return "sayMoodSteer missing (helpers.js)";
+    if(sayMoodSteer("speaking carefully")!=="")return "'speaking carefully' must vanish: "+JSON.stringify(sayMoodSteer("speaking carefully"));
+    if(sayMoodSteer("sound amused")!=="amused")return "'sound amused' keeps the feeling: "+JSON.stringify(sayMoodSteer("sound amused"));
+    if(sayMoodSteer("carefully")!==""||sayMoodSteer("slowly")!==""||sayMoodSteer("haltingly")!==""||sayMoodSteer("slow and measured")!=="")return "a bare pacing phrase must vanish";
+    if(sayMoodSteer("weary")!=="weary"||sayMoodSteer("surprised")!=="surprised"||sayMoodSteer("amused")!=="amused")return "a feeling passes untouched";
+    if(sayMoodSteer("whispering")!=="whispering"||sayMoodSteer("shouting")!=="shouting"||sayMoodSteer("speaking softly")!=="softly")return "volume is a real delivery and stays";
+    var iw=TTS.settings.models.inworld,P=function(m){return TTS._markupPrefix(iw,m);};
+    if(P("speaking carefully")!=="")return "the prefix must carry nothing for a manner alone: "+JSON.stringify(P("speaking carefully"));
+    if(P("speaking carefully, laugh")!=="[laugh] ")return "the sound still fires when the manner is dropped: "+JSON.stringify(P("speaking carefully, laugh"));
+    if(P("sound amused")!=="[speak amused] ")return "sound amused → "+JSON.stringify(P("sound amused"));
+    if(P("surprised, laugh")!=="[speak surprised] [laugh] ")return "#462 shape untouched: "+JSON.stringify(P("surprised, laugh"));
+    return true;
+  });
   t("#458 the SAY doc line teaches the optional |mood: the form, the shape, only when the feeling is not obvious, never every line, and the example list (emotions, delivery, non-verbals)",function(){
     var d=buildStateTagsDoc(),need=["[SAY:Character Name|mood]","not obvious from the words","never on every line","weary","slow and measured","clear throat","giggle","at most 40 characters","never a sentence"],i;
     for(i=0;i<need.length;i++)if(d.indexOf(need[i])<0)return "doc lacks "+JSON.stringify(need[i]);

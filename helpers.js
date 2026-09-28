@@ -2807,6 +2807,20 @@ function villageHouseKey(name,base){var v=base||(typeof worldState!=="undefined"
 // (deriveSpeakerMapFromTags, game.js) and the request builder (_markupGroup, tts.js — re-checked at send time so nothing
 // hand-edited into a save reaches a provider). Hyphens admitted at build ("matter-of-fact", "sing-song").
 var SAY_MOOD_MAX=40;
+/* #477 (owner 2026-09-28, Village t198): Thessa's [SAY:…|speaking carefully] reached Inworld as "[speak speaking carefully]"
+   and the model paced her like a dirge; her next line ("sound amused") was fine. A mood that names a MANNER OF SPEAKING is
+   a stage direction, not a feeling: the speech verb is dropped, a bare pacing phrase is dropped (the model over-renders
+   pace), a feeling passes, and volume (whisper, shout, softly) stays because the model renders it well. Pure; the Inworld
+   prefix (tts.js _markupPrefix) routes every non-sound part through it. The doc may still teach "slow and measured" —
+   other readers render pace sanely; this is the one boundary where it does harm. */
+var SAY_SPEECH_VERB_RE=/^(speak|speaking|speaks|say|saying|says|sound|sounding|sounds|talk|talking|talks|tell|telling|tells|voice|voiced|tone|toned|reply|replying|replies|answer|answering|answers|add|adding|adds|note|noting|notes|remark|remarking|remarks|observe|observing|observes)\b\s*/i;
+var SAY_PACING_RE=/^(careful|carefully|slow|slowly|deliberate|deliberately|halting|haltingly|measured|even|evenly|flat|flatly|clipped|precise|precisely|methodical|methodically|pointed|pointedly|hesitant|hesitantly|hesitating|steady|steadily|unhurried|unhurriedly|thoughtful|thoughtfully|paced|pacing|slow and measured|slow and steady|slow and careful|slow and deliberate)$/i;
+function sayMoodSteer(part){
+  var p=String(part||"").replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
+  p=p.replace(SAY_SPEECH_VERB_RE,"");
+  if(!p||SAY_PACING_RE.test(p))return "";
+  return p;
+}
 function sayMoodShape(raw){
   var s=String(raw==null?"":raw).replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
   if(!s||s.length>SAY_MOOD_MAX)return "";
