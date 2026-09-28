@@ -42,3 +42,9 @@ gygax_lens_results.html
 
 # Local audio library and experiments
 /Audio/
+
+# One-off untracked reports the owner chose not to track (2026-09-27)
+DOC/Research/tabletop_vs_traffic_and_dragons.html
+DOC/panel/reviews/village/blacksmith_audio_proposal_review.html
+audits/FeatureUsage_Astra.html
+audits/FeatureUsage_Fable.html
