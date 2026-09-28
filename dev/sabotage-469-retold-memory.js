@@ -16,10 +16,10 @@ rc |= sabotage.prove({
       mustFail: "the member's own telling fired",
       find: "    if(own)continue;/* the party's own telling is theirs to give */",
       replace: "    if(false)continue;/* the party's own telling is theirs to give */" },
-    { label: "#469 — one shared word is enough: a fresh remark fires",
+    { label: "#469 — one shared word of any length is enough: a name-only overlap fires",
       mustFail: "fired",
-      find: "var MOTIF_MIN_WORDS=3,MOTIF_WORD_MIN=6,MOTIF_GIST_CHARS=60;",
-      replace: "var MOTIF_MIN_WORDS=1,MOTIF_WORD_MIN=6,MOTIF_GIST_CHARS=60;" },
+      find: "var MOTIF_MIN_WORDS=3,MOTIF_WORD_MIN=4,MOTIF_STRONG_MIN=8,MOTIF_GIST_CHARS=60;",
+      replace: "var MOTIF_MIN_WORDS=1,MOTIF_WORD_MIN=4,MOTIF_STRONG_MIN=1,MOTIF_GIST_CHARS=60;" },
     { label: "#469 — names count as content: a name-only overlap fires",
       mustFail: "a name-only overlap fired",
       find: "if(w.length>=MOTIF_WORD_MIN&&!MOTIF_STOP[w]&&!ex[w])out[w]=1;",
@@ -31,7 +31,15 @@ rc |= sabotage.prove({
     { label: "#469 ④ — a member's name alone raises the past",
       mustFail: "her name alone raised it",
       find: "if((named&&(cued||hits>=1))||hits>=2||",
-      replace: "if(named||hits>=2||" }
+      replace: "if(named||hits>=2||" },
+    { label: "#469 ⑤ — the six-letter floor returns: the t191 Silas line slips through again",
+      mustFail: "did not fire",
+      find: "var MOTIF_MIN_WORDS=3,MOTIF_WORD_MIN=4,MOTIF_STRONG_MIN=8,MOTIF_GIST_CHARS=60;",
+      replace: "var MOTIF_MIN_WORDS=3,MOTIF_WORD_MIN=6,MOTIF_STRONG_MIN=8,MOTIF_GIST_CHARS=60;" },
+    { label: "#469 ⑤ — no strong word required: everyday domestic words add up to a retelling",
+      mustFail: "three everyday words with no strong word fired",
+      find: "      if(shared>=MOTIF_MIN_WORDS&&strong&&(!best||shared>best.words))best=",
+      replace: "      if(shared>=MOTIF_MIN_WORDS&&(!best||shared>best.words))best=" }
   ]
 });
 
@@ -67,12 +75,27 @@ rc |= sabotage.prove({
 });
 
 rc |= sabotage.prove({
+  file: "api.js",
+  command: ["node", ["dev/run-tests.js", "motivation"]],
+  cases: [
+    { label: "#469 ⑤ — the settled how rides the village prompt again",
+      mustFail: "the village must serve the campaign only",
+      find: 'if(ml&&typeof kindDef==="function"&&kindDef().smallTalk)ml=ml.replace(/:\\s[\\s\\S]*$/,"");',
+      replace: 'if(false)ml=ml.replace(/:\\s[\\s\\S]*$/,"");' }
+  ]
+});
+
+rc |= sabotage.prove({
   file: "memory.js",
   command: CMD,
   cases: [
     { label: "#469 — the summarizer may quote a bystander again",
       mustFail: "the bystander clause is missing",
       find: "; what bystanders say about the party's past is recorded as an attitude ('Nyla was glad for Daeris'), never quoted or restated in its particulars",
+      replace: "" },
+    { label: "#469 ⑤ — the era compiler may quote a bystander again",
+      mustFail: "the era compiler must carry the bystander clause",
+      find: " What bystanders said about the party's past stays an attitude ('Nyla was glad for Daeris'), never quoted or restated in its particulars.",
       replace: "" }
   ]
 });

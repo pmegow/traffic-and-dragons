@@ -633,6 +633,16 @@ function runEngineTests(R){
     var narr="Seeing Daeris so untroubled, her soul-tax lien and necrotic tether to the Reach's engines extinguished, the square feels lighter.";
     if(detectMomentRetelling(narr,moments,exempt))return "untagged narration fired (only an attributed outsider line counts)";
     if(detectMomentRetelling(raw,[],exempt)||detectMomentRetelling("",moments,exempt))return "empty inputs fired";
+    /* #469 ⑤ (owner 2026-09-28, Village t178/t179/t191): the retellings keep the SHORT distinctive words (soul, lien, tomb) and drop the long ones — three field lines that a six-letter floor missed */
+    var DQ=String.fromCharCode(34),field=["[SAY:Silas Morne|warm]" + DQ + "Fine morning for it, Ammut! Good to see Daeris resting easy under your roof with that soul-tax lien and necrotic tether burnt clear out of her life." + DQ,
+      "[SAY:Silas Morne|easy]" + DQ + "Evening, Ammut. Good to see Daeris resting sound under your roof, now that the shadow-tether from the tomb-architect is burned out for good." + DQ,
+      "[SAY:Silas Morne|bright]" + DQ + "Good to see you breathing clear, Ammut. It is a fine morning to know Daeris walks without that vile soul-tax lien and necrotic tether dragging behind her." + DQ],fi;
+    for(fi=0;fi<field.length;fi++){var fh=detectMomentRetelling(field[fi],moments,exempt);if(!fh||fh.speaker!=="Silas Morne"||fh.who!=="Daeris")return "field line "+(fi+1)+" (t178/t179/t191) did not fire: "+JSON.stringify(fh);}
+    var homely=[{text:"Ammut promised Daeris a home waiting at the cottage, a tub of her own beside Morwen and Frizwick, and for a moment she believed it.",turn:1668,kind:"bond",who:"Daeris",camp:"Rise of the Runelords (Ammut)"}];
+    if(detectMomentRetelling("[SAY:Nyla Lorrath|bright]" + DQ + "Good to see you home at the cottage, Ammut — waiting on the tub with the kettle on, I expect." + DQ,moments.concat(homely),exempt))return "a domestic line sharing only everyday words fired (no strong word)";
+    var ledger=[{text:"Daeris let Ammut hold her through the night in Magnimar without bracing for the cost, the ledger in her head finally quiet.",turn:1701,kind:"bond",who:"Daeris",camp:"Rise of the Runelords (Ammut)"}];
+    if(detectMomentRetelling("[SAY:Nyla Lorrath|dry]" + DQ + "Mind the cost, Ammut — the ledger says bracing that fence will take the day." + DQ,moments.concat(ledger),exempt))return "three everyday words with no strong word fired (cost, ledger, bracing — none of eight letters)";
+
     return true;
   });
   t("#469 buildMotifNudge consumes the ping, names the speaker and whose memory it is, demands the passing-handle register and never the record's words, counts repeats, is silent with no ping and in combat, and is registered (shape, latches, builder order)",function(){
@@ -665,7 +675,10 @@ function runEngineTests(R){
   t("#469 chapter summaries record a bystander's remark about the party's past as an attitude, never a quotation (the Village chapters 3 and 8 carried Daeris's lien sentence verbatim)",function(){
     var src=__fsForTests.readFileSync(__rootForTests+"/memory.js","utf8"),i=src.indexOf("var _chapterDesc=");if(i<0)return "no _chapterDesc";
     var line=src.slice(i,src.indexOf("\n",i));
-    return /as an attitude/.test(line)&&/never quoted/.test(line)?true:"the bystander clause is missing from _chapterDesc";
+    if(!(/as an attitude/.test(line)&&/never quoted/.test(line)))return "the bystander clause is missing from _chapterDesc";
+    var e=src.indexOf("Compress this sequence of RPG campaign chapter summaries");if(e<0)return "no era prompt";
+    var eline=src.slice(e,src.indexOf("\n",e));
+    return /an attitude/.test(eline)&&/never quoted/.test(eline)?true:"#469 ⑤: the era compiler must carry the bystander clause too — a chapter that quoted a retelling would otherwise be compressed into the era verbatim";
   });
   t("#469 sendAction arms motifPing from the raw reply after the tags land (game.js), exempting the hero and the living party, never from a refusal",function(){
     var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
@@ -26467,6 +26480,16 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!fb||fb.indexOf("motivation")>=0)return "a sheet that never had a motivation must show none: "+fb;
     var den=buildDenouementCompanions();if(!/Daeris[^\n]*purpose settled \(settled in The Necrotic Dungeon/.test(den))return "the ending must know the purpose was settled: "+den;
     var us=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");if(us.indexOf("motivationSettledLine(c)")<0)return "the character sheet must render the settled line";
+    return true;
+  });
+  t("#469 ⑤ in a small-talk kind the settled motivation keeps its campaign but not its HOW — the how is the moment's own sentence and rode the stable half every turn (the Village t191 Silas line)",function(){
+    __mlWorld();var d=findCompanionChar("Daeris");motivationSettle(d,"the one she hunted was found and the debt paid",40);
+    worldState.kind="village";worldState.world.location="The Village";
+    var db=__mlBlock(buildSysPrompt().stable,"Daeris");
+    if(db.indexOf("motivation — none standing (settled in The Necrotic Dungeon);")<0)return "the village must serve the campaign only: "+db;
+    if(db.indexOf("debt paid")>=0)return "the how still reaches the GM in the village";
+    delete worldState.kind;
+    if(__mlBlock(buildSysPrompt().stable,"Daeris").indexOf("(settled in The Necrotic Dungeon: the one she hunted was found and the debt paid);")<0)return "outside a small-talk kind the how must return";
     return true;
   });
   t("#437 belt: the extractor's motivationChanges settle and birth through the same helpers — companions only (the hero and a stranger are dropped loudly, a paperwork purpose is refused loudly, every filing toasts) — and the extraction schema names the field with its ONLY-if guards",function(){

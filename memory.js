@@ -1948,7 +1948,7 @@ function eraApplyMerge(summary){
 function eraCompilePrompt(sources){
   var lines=[],i;for(i=0;i<sources.length;i++)lines.push("[t"+sources[i].turn+"] "+sources[i].summary);
   var ids=typeof buildSummaryIdentityBlock==="function"?buildSummaryIdentityBlock(summaryIdentityTable(lines.join("\n"))):"";
-  return "Compress this sequence of RPG campaign chapter summaries into ONE era summary of at most 150 tokens (5-7 tight sentences). Keep: major plot movements, the named characters who mattered, decisive outcomes, permanent changes to people and places. Drop: scene detail, travel, color. NEVER state anything the chapters do not contain — prefer omission over guessing.\n"+ids+"CHAPTERS (oldest first):\n"+lines.join("\n")+"\nOutput ONLY valid JSON, no markdown: {\"summary\":\"\"}";
+  return "Compress this sequence of RPG campaign chapter summaries into ONE era summary of at most 150 tokens (5-7 tight sentences). Keep: major plot movements, the named characters who mattered, decisive outcomes, permanent changes to people and places. Drop: scene detail, travel, color. What bystanders said about the party's past stays an attitude ('Nyla was glad for Daeris'), never quoted or restated in its particulars. NEVER state anything the chapters do not contain — prefer omission over guessing.\n"+ids+"CHAPTERS (oldest first):\n"+lines.join("\n")+"\nOutput ONLY valid JSON, no markdown: {\"summary\":\"\"}";
 }
 function eraMergePrompt(eraA,eraB){
   var raw=String(eraA.summary||"")+"\n"+String(eraB.summary||""),ids=typeof buildSummaryIdentityBlock==="function"?buildSummaryIdentityBlock(summaryIdentityTable(raw)):"";
