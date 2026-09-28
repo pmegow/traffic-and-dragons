@@ -1305,6 +1305,13 @@ try {
   // sw.js's prose roster of satellite names in the comment directly above the regex.
   if (!_swAllowlistRegex()) _ceFail("could not locate sw.js's network-first regex — the fetch-handler shape changed; update this contract.");
   if (!_swAllowlistHas("character_editor")) _ceFail("sw.js network-first REGEX lacks character_editor — the SW would pin it stale.");
+  // #476 (owner field report 2026-09-27, "HTTP 401" on Load from library): signed-in means a server URL AND a token; a
+  // 401 is the session, never a bare status; one retry after re-reading the stored session (a page opened before the
+  // game re-signed in holds the old token in memory); the boot probes the account so a dead session shows before a click.
+  if (!/function signedIn\(\)\{[^}]*isServerMode\(\)&&storageAdapter\.hasToken\(\)/.test(_ce)) _ceFail("#476: signedIn() must require a token, not just a server URL — a URL with no session sent unauthenticated library calls.");
+  if (_ce.indexOf("storageAdapter.reloadSession()") < 0) _ceFail("#476: a 401 must retry once after re-reading the stored session.");
+  if (_ce.indexOf("var SESSION_MSG=") < 0 || !/\/HTTP 401\/\.test\(/.test(_ce)) _ceFail("#476: a 401 must map to the sign-in-again message, never a bare HTTP 401.");
+  if (_ce.indexOf("storageAdapter.fetchAccount(") < 0) _ceFail("#476: the editor must probe the account at boot so a dead session shows before the first click.");
   console.log("[#62] character editor contract OK — portable-sheet surface, wrapper pinned, 9 list fields registered");
 } catch (e) { console.error("CHARACTER EDITOR CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 

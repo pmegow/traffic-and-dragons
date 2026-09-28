@@ -125,6 +125,18 @@ var storageAdapter = (function() {
     } catch(e) { /* audit E15: storage-AVAILABILITY only (privacy mode / no localStorage) — no saved session to restore means the app simply stays offline, which the sync badge already shows. */ }
   }
 
+  /* #476: a satellite page loaded before the game (re)signed in holds the old session in memory and answers 401 on every
+     library call (the character editor, 2026-09-27). Re-read the stored session and report whether it changed; the
+     satellites retry a 401 once through this. No side effects — autoConnect's boot adopt/fetch stay on boot. */
+  function reloadSession() {
+    var url = null, tok = null;
+    try { url = localStorage.getItem(SERVER_URL_KEY); tok = localStorage.getItem(SERVER_TOK_KEY); } catch (e) { return false; }
+    if (!url || !tok) return false;
+    var changed = (url !== _serverUrl) || (tok !== _token);
+    if (changed) { _serverUrl = url.replace(/\/$/, ""); _token = tok; }
+    return changed;
+  }
+
   // ── Server configuration ────────────────────────────────────────────────
 
   function setServer(url, token) {
@@ -1218,6 +1230,7 @@ var storageAdapter = (function() {
     saveCharacterToLibrary:          saveCharacterToLibrary,
     deleteCharacterFromLibrary:      deleteCharacterFromLibrary,
     hasToken:              hasToken,             // "am I connected" without touching the token key (audit B9)
+    reloadSession:         reloadSession,        // #476: re-read the stored session (satellites retry a 401 once)
     speakerStarsPlan:      speakerStarsPlan,     // #95.5: exposed for the engine tests (pure decision core)
     syncSpeakerStars:      syncSpeakerStars,     // #95.5: star-bench cloud adopt/seed
     authHeader:            authHeader,           // #90: Authorization header for the tnd-tts app (the header, never the raw token)

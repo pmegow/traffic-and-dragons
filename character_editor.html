@@ -80,6 +80,7 @@ table.list td.x button:hover{color:var(--dng);}
   <button class="b p" id="b-save">Save .char</button>
   <button class="b" id="b-libsave">Save to library</button>
   <div id="status"></div>
+  <div id="who" class="hint"></div>
 </div>
 <main id="main"></main>
 <div id="modal"><div class="box" id="modal-box"></div></div>
@@ -101,7 +102,18 @@ table.list td.x button:hover{color:var(--dng);}
   function $(id){return document.getElementById(id);}
   function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
   function setStatus(msg,cls){var el=$("status");el.textContent=msg||"";el.className=cls||"";}
-  function signedIn(){return typeof storageAdapter!=="undefined"&&storageAdapter.isServerMode();}
+  /* #476 (owner 2026-09-27, "HTTP 401" on Load from library): signed-in means a server URL AND a token; a 401 is the session
+     — expired (30-day fixed, SERVER_ARCHITECTURE R7) or replaced by a newer sign-in in the game while this page held the old
+     one — so every library call retries ONCE after re-reading the stored session, and a 401 that survives maps to the
+     sign-in-again message and disables the library buttons. The boot probes the account so the state shows before a click. */
+  var SESSION_MSG="Session expired — sign in again from the game on this origin (File ▸ Account), then reload this page.";
+  var sessionDead=false;
+  function signedIn(){return !sessionDead&&typeof storageAdapter!=="undefined"&&storageAdapter.isServerMode()&&storageAdapter.hasToken();}
+  function is401(err){return /HTTP 401/.test(String(err||""));}
+  function libErrText(err){return is401(err)?SESSION_MSG:String(err);}
+  function sessionLost(){sessionDead=true;$("b-lib").disabled=true;$("b-libsave").disabled=true;$("who").textContent=SESSION_MSG;$("who").className="hint err";}
+  /* one retry after the stored session is re-read — a page opened before the game re-signed in holds the old token */
+  function libCall(call,cb){call(function(err,data){if(is401(err)&&storageAdapter.reloadSession()){call(function(err2,data2){if(is401(err2))sessionLost();cb(err2,data2);});return;}if(is401(err))sessionLost();cb(err,data);});}
   var STAT_IDS=["str","dex","con","int","wis","cha"];
 
   // ── the blank v10 sheet ────────────────────────────────────────────────────
@@ -214,7 +226,7 @@ table.list td.x button:hover{color:var(--dng);}
     h+="<section class='wide'><h2>Skills</h2>"+skillsHtml()+"</section>";
     m.innerHTML=h;
     $("ver").textContent=CE_VERSION+(typeof APP_VERSION!=="undefined"?" · engine "+APP_VERSION:"");
-    $("b-libsave").disabled=!signedIn();$("b-lib").disabled=!signedIn();
+    $("b-libsave").disabled=!signedIn();$("b-lib").disabled=!signedIn();/* #476: sessionDead keeps them off across re-renders */
     wire();
   }
   function markDirty(){dirty=true;saveDraft();}
@@ -276,13 +288,13 @@ table.list td.x button:hover{color:var(--dng);}
     if(!signedIn()){setStatus("Not signed in — sign in from the game, then reload this page.","err");return;}
     var v=validate();if(v.errors.length){setStatus("Can't save — "+v.errors.join(" "),"err");return;}
     setStatus("Saving to library…","");
-    storageAdapter.saveCharacterToLibrary(ch,function(err){if(err){setStatus("Library save failed: "+err,"err");return;}dirty=false;setStatus("Saved “"+ch.name+"” to your library (same name overwrites).","ok");});
+    libCall(function(cb){storageAdapter.saveCharacterToLibrary(ch,cb);},function(err){if(err){setStatus("Library save failed: "+libErrText(err),"err");return;}dirty=false;setStatus("Saved “"+ch.name+"” to your library (same name overwrites).","ok");});
   }
   function openLibrary(){
     if(!signedIn()){setStatus("Not signed in — sign in from the game, then reload this page.","err");return;}
     var box=$("modal-box");box.innerHTML="<b>Character library</b><div class='hint'>Loading…</div>";$("modal").style.display="flex";
-    storageAdapter.listCharacterLibrary(function(err,list){
-      if(err){box.innerHTML="<b>Character library</b><div class='hint err'>"+esc(err)+"</div><button class='b' id='m-close'>Close</button>";$("m-close").addEventListener("click",closeModal);return;}
+    libCall(function(cb){storageAdapter.listCharacterLibrary(cb);},function(err,list){
+      if(err){box.innerHTML="<b>Character library</b><div class='hint err'>"+esc(libErrText(err))+"</div><button class='b' id='m-close'>Close</button>";$("m-close").addEventListener("click",closeModal);return;}
       var h="<b>Character library</b>";if(!list||!list.length)h+="<div class='hint'>Empty.</div>";
       (list||[]).forEach(function(it,i){h+="<div class='item'><span>"+esc(it.name)+" <span class='m'>L"+esc(it.level)+" "+esc(it.cls)+" · "+esc(it.ancestry)+"</span></span><button class='b' data-pick='"+i+"'>Load</button></div>";});
       h+="<div style='margin-top:10px'><button class='b' id='m-close'>Close</button></div>";box.innerHTML=h;
@@ -305,8 +317,11 @@ table.list td.x button:hover{color:var(--dng);}
   var d=null;try{d=JSON.parse(localStorage.getItem(CE_DRAFT_K)||"null");}catch(e){}
   if(d&&d.ch){ch=healChar(d.ch);dirty=!!d.dirty;render();setStatus((ch.name||"Untitled")+" — restored from draft"+(dirty?" (unsaved changes)":""),"");}
   else{ch=blankChar();render();}
+  // #476: probe the account once so a dead session shows before the first click (home.html / mementos.html do the same).
+  if(signedIn())storageAdapter.fetchAccount(function(err,acct){if(is401(err)){sessionLost();return;}if(!err&&acct&&acct.username){$("who").textContent="Library: signed in as "+acct.username;}else if(err){$("who").textContent="Library unreachable: "+err;$("who").className="hint err";}});
+  else if(typeof storageAdapter!=="undefined"&&storageAdapter.isServerMode()&&!storageAdapter.hasToken()){$("who").textContent="Not signed in — sign in from the game on this origin, then reload this page.";}
 
-  window.__ceTest={get:function(){return ch;},load:function(o){return loadObject(o,"test");},out:out,validate:validate,blank:blankChar,heal:healChar,rerender:render,fields:FIELDS,lists:LISTS,draftKey:CE_DRAFT_K};
+  window.__ceTest={get:function(){return ch;},load:function(o){return loadObject(o,"test");},out:out,validate:validate,blank:blankChar,heal:healChar,rerender:render,fields:FIELDS,lists:LISTS,draftKey:CE_DRAFT_K,openLibrary:openLibrary,saveLibrary:saveLibrary,sessionDead:function(){return sessionDead;},resetSession:function(){sessionDead=false;render();}};/* #476: the library shell is drivable */
 })();
 </script>
 </body>

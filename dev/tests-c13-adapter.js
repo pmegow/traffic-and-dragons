@@ -203,6 +203,28 @@ t("no duplicate cs literal survives — both sites assign from blankWizardState 
   return true;
 });
 
+// ── #476 reloadSession — a satellite page re-reads the stored session ────────
+section("#476 reloadSession");
+t("reloadSession picks up a session written after boot, reports the change, is a no-op when nothing changed, and the next call carries the new token", function () {
+  var src = fs.readFileSync(path.join(__dirname, "..", "storage-adapter.js"), "utf8");
+  var urlKey = (src.match(/SERVER_URL_KEY *= *"([^"]+)"/) || [])[1], tokKey = (src.match(/SERVER_TOK_KEY *= *"([^"]+)"/) || [])[1];
+  if (!urlKey || !tokKey) return "could not read the storage keys from storage-adapter.js";
+  var store = {};
+  global.localStorage = { getItem: function (k) { return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null; }, setItem: function (k, v) { store[k] = String(v); }, removeItem: function (k) { delete store[k]; } };
+  try {
+    if (typeof storageAdapter.reloadSession !== "function") return "reloadSession is not exported";
+    if (storageAdapter.reloadSession() !== false) return "no stored session must be a no-op";
+    store[urlKey] = "https://unit.test"; store[tokKey] = "TOK_NEW";
+    if (storageAdapter.reloadSession() !== true) return "a changed token must report true";
+    if (!storageAdapter.hasToken() || storageAdapter.authHeader().Authorization !== "Bearer TOK_NEW") return "the new token is not in force";
+    if (storageAdapter.reloadSession() !== false) return "an unchanged session must report false";
+    calls.length = 0; nextResponse = okJson([]);
+    storageAdapter.listCharacterLibrary(function () {});
+    var k = lastCall(); if (!k || k.opts.headers["Authorization"] !== "Bearer TOK_NEW") return "the next call must carry the reloaded token";
+    return true;
+  } finally { delete global.localStorage; storageAdapter.setServer("https://unit.test", "TOK_C13"); }
+});
+
 // ── report ────────────────────────────────────────────────────────────────────
 chain.then(function () {
   if (fails.length) {
