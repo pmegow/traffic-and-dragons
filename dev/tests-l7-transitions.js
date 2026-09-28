@@ -10,7 +10,7 @@ return {c:scope.createAmbientController(driver,scope.AUDIO_SCENES),requests,voic
 let passed=0;async function test(name,fn){try{await fn();passed++;console.log('PASS exterior '+name)}catch(e){console.error('FAIL exterior '+name+' — '+e.stack);process.exitCode=1}}
 (async()=>{
 await test('clock bands cover midnight and exact boundaries without using interior hours',()=>{
-for(const [minute,id] of [[0,'village-night'],[299,'village-night'],[300,'village-morning'],[599,'village-morning'],[600,'village-day'],[1079,'village-day'],[1080,'village-evening'],[1259,'village-evening'],[1260,'village-night'],[1439,'village-night']])assert.equal(scope.ambientPlan({...outside,minuteOfDay:minute},scope.AUDIO_SCENES).scene?.id,id);
+for(const [minute,id] of [[0,'village-night'],[299,'village-night'],[300,'village-morning'],[599,'village-morning'],[600,'village-day'],[1079,'village-day'],[1080,'village-dusk-noctina'],[1259,'village-dusk-noctina'],[1260,'village-night'],[1439,'village-night']])assert.equal(scope.ambientPlan({...outside,minuteOfDay:minute},scope.AUDIO_SCENES).scene?.id,id);
 for(const bad of [{exterior:false},{minuteOfDay:null},{minuteOfDay:NaN},{campaignKind:'adventure'},{nodeKey:null}])assert.equal(scope.ambientPlan({...outside,...bad},scope.AUDIO_SCENES).scene,null);
 assert.equal(scope.ambientPlan({...smith,open:null},scope.AUDIO_SCENES).scene,null);
 });

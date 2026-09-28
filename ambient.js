@@ -28,10 +28,27 @@ function ambientSceneMatches(s, scene) {
   if (s.exterior !== true || typeof m !== "number" || !isFinite(m) || m < 0 || m >= 1440) return false;
   return bind.from < bind.to ? m >= bind.from && m < bind.to : m >= bind.from || m < bind.to;
 }
+// Owner-authored village mixes supply their palette independently of observed `allows`.
+// Explicit prohibitions, silent/invalid profiles, and physical setting constraints still win.
+function ambientAuthoredProfileMatches(s, scene) {
+  if (scene.profilePolicy !== "authored" || !ambientSceneMatches(s, scene)) return false;
+  var v = audioValidateProfile(s.profile), ok = scene.approval;
+  if (!v.ok || v.profile.quiet === "silent" || !ok || !ok.recording || !ok.rights || !ok.contents || !ok.loop || !ok.mix) return false;
+  var p = v.profile;
+  return scene.cohort === (p.cohort || AUDIO_CATALOG.cohort) && scene.enclosures.indexOf(p.enclosure) >= 0 &&
+    scene.settings.indexOf(p.setting) >= 0 && scene.biomes.indexOf(p.biome) >= 0 &&
+    scene.contains.every(function(c) { return p.forbid.indexOf(c) < 0; });
+}
 function ambientPlan(snapshot, registry) {
   var s = snapshot || {}, silent = { scene: null, key: "", gain: 0, hardStop: false }, i, scene;
   if (!s.enabled || !s.unlocked || !s.visible || s.held || s.paused || (s.hidden && !s.speaking)) { silent.hardStop = true; return silent; }
   if (s.classified || s.profile) {
+    for (i = 0; i < registry.length; i++) {
+      scene = registry[i];
+      if (ambientAuthoredProfileMatches(s, scene)) {
+        return {scene:scene,key:String(s.campaignId)+"|"+(scene.role||"environment")+"|"+scene.id,gain:ambientGain(s,scene),hardStop:false};
+      }
+    }
     var chosen=audioSelect(s,AUDIO_CATALOG);
     if(!chosen.scene)return silent;
     return {scene:chosen.scene,key:chosen.key,gain:ambientGain(s,chosen.scene),hardStop:false};

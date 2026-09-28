@@ -709,7 +709,57 @@ var AUDIO_CATALOG = {
       "seedOnly": false,
       "sha256": "f1c7bc60d4daa125efc043a3cede71856c0d97d6ac2e34d8bf30beed845ddb59",
       "bytes": 233088
+    },
+    {
+      "id": "village-dusk-noctina",
+      "label": "Noctina - dusk with crickets",
+      "cohort": "starter-1",
+      "role": "environment",
+      "bed": {
+        "url": "sfx/village-dusk-noctina-v1.mp3",
+        "gain": 0.55,
+        "loopStart": 0,
+        "loopEnd": 84.15,
+        "maxSeconds": 125,
+        "channels": 1,
+        "maxBytes": 2200000,
+        "maxDecodedBytes": 24000000
+      },
+      "contains": [
+        "music",
+        "insects",
+        "wind"
+      ],
+      "enclosures": [
+        "open"
+      ],
+      "settings": [
+        "settlement",
+        "wilderness"
+      ],
+      "biomes": [
+        "temperate"
+      ],
+      "from": 1080,
+      "to": 1260,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "loop": true,
+        "mix": true
+      },
+      "source": {
+        "sha256": "42e638e79236f986aaa9d9842b922295af66c10cf847192cc3fd2f65d0d2936d",
+        "url": "https://suno.com/song/ff0a52f1-8590-4ba6-9c19-11ee87414f54",
+        "author": "highdefinitionbuttons823 (owner Suno account); crickets: Nox_Sound",
+        "license": "Owner-supplied Suno Pro music + CC0-1.0 effects; see sfx/noctina-night-CREDITS.md"
+      },
+      "recipe": "Add the preserved music and cricket layers with unity gains, mono mean, PCM16, MP3 128kbps with gapless header. Owner-selected dusk version, no owl, wing or coyote layer; 2026-09-28.",
+      "seedOnly": true,
+      "sha256": "b912f6c602c9638738a65a604b5826e5ec6b2516e9e01bcc31ba5b085f138475",
+      "bytes": 1347499
     }
   ],
-  "version": "2083874844abd639bff8"
+  "version": "a8432d87a92b71f407c1"
 };

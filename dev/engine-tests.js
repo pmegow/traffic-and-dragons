@@ -25017,6 +25017,38 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("Noctina authored soundtracks");
+  function noctinaSavedScene(minute) {
+    return {enabled:true,unlocked:true,visible:true,volume:0.45,campaignKind:"village",campaignId:"noctina-save",nodeKey:"The Village",exterior:true,minuteOfDay:minute,classified:true,
+      profile:{enclosure:"open",setting:"settlement",biome:"temperate",quiet:"hushed",allows:["voices","water","wind"],forbid:["crowd","machinery","rain","thunder"],schema:1,cohort:"starter-1"}};
+  }
+  t("Noctina saved dusk profile selects music and crickets, then full wildlife at 21:00",function(){
+    var s=noctinaSavedScene(1140),p=ambientPlan(s,AUDIO_SCENES);
+    if(!p.scene||p.scene.id!=="village-dusk-noctina")return "saved turn-202 profile must select Noctina at 19:00";
+    if(p.scene.contains.join(",")!=="music,insects,wind")return "dusk must contain only music and the cricket/wind bed";
+    if(p.scene.bed.url!=="sfx/village-dusk-noctina-v1.mp3")return "dusk must use its separate delivery";
+    if(Math.abs(p.gain-0.12375)>1e-9)return "hushed profile gain lost";
+    var ranges=[[1080,"village-dusk-noctina"],[1259,"village-dusk-noctina"],[1260,"village-night"],[1439,"village-night"],[0,"village-night"],[299,"village-night"]];
+    for(var i=0;i<ranges.length;i++){p=ambientPlan(Object.assign({},s,{minuteOfDay:ranges[i][0]}),AUDIO_SCENES);if(!p.scene||p.scene.id!==ranges[i][1])return "wrong authored selection at "+ranges[i][0];}
+    p=ambientPlan(Object.assign({},s,{minuteOfDay:300}),AUDIO_SCENES);if(p.scene&&p.scene.contains.indexOf("music")>=0)return "soundtrack continued into morning";
+    return true;
+  });
+  t("Noctina authored choices respect explicit silence, prohibited sounds and invalid profiles",function(){
+    var s=noctinaSavedScene(1260),cases=[{quiet:"silent"},{forbid:["music"]},{forbid:["birds"]},{forbid:["insects"]},{enclosure:"sealed"},{setting:"interior"},{biome:"arid"},{cohort:"other"}];
+    for(var i=0;i<cases.length;i++){var p=ambientPlan(Object.assign({},s,{profile:Object.assign({},s.profile,cases[i])}),AUDIO_SCENES);if(p.scene&&p.scene.contains.indexOf("music")>=0)return "ignored profile constraint "+JSON.stringify(cases[i]);}
+    if(ambientPlan(Object.assign({},s,{profile:null}),AUDIO_SCENES).scene)return "stale classified profile fell back to authored audio";
+    if(ambientPlan(Object.assign({},s,{profile:{quiet:"normal"}}),AUDIO_SCENES).scene)return "malformed profile fell back to authored audio";
+    return true;
+  });
+  t("Noctina authored choices stay village-bound and obey playback gates",function(){
+    var s=noctinaSavedScene(1140),cases=[{campaignKind:"adventure"},{exterior:false},{enabled:false},{unlocked:false},{visible:false},{held:true},{paused:true},{hidden:true}];
+    for(var i=0;i<cases.length;i++){var p=ambientPlan(Object.assign({},s,cases[i]),AUDIO_SCENES);if(p.scene&&p.scene.contains.indexOf("music")>=0)return "soundtrack escaped gate "+JSON.stringify(cases[i]);}
+    if(ambientPlan(Object.assign({},s,{capturing:true}),AUDIO_SCENES).gain!==0)return "microphone must silence soundtrack";
+    var p=ambientPlan(Object.assign({},s,{speaking:true}),AUDIO_SCENES);if(!p.scene||Math.abs(p.gain-0.061875)>1e-9)return "narration duck lost";
+    var d=AUDIO_CATALOG.assets.filter(function(a){return a.id==="village-dusk-noctina";})[0];if(!d||!d.seedOnly)return "dusk soundtrack must be seed-only";
+    return true;
+  });
+
   section("L7 tavern binding");
   t("L7 the tavern crowd binds to the village tavern by its canonical common name while its filed hours say open, is silent when closed or unrecorded, and never displaces the smithy fire",function(){
     var base={enabled:true,unlocked:true,visible:true,volume:0.5,campaignKind:"village",campaignId:"one",nodeKey:"The Village|the tavern",common:"the tavern",open:true};

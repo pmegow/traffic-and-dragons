@@ -16,3 +16,9 @@ Source-page HTML for the three new effects is retained locally. CC0 permits edit
 84.15-second loop candidate. Music trimmed to 1.05-89.20 seconds, 4-second tail/head crossfade. Quiet continuous crickets; sparse owl calls, one flutter and one filtered distant-coyote passage. Delivery: mono, 44.1 kHz, 128 kbps MP3 with gapless header. Previous cricket delivery retained for rollback. Sources, separate layers and build.py are in Audio/Music/Village-Night (gitignored). The existing ambience controller supplies volume, narration ducking, mic silence, pause, scene fades and resource limits. No new audio context, timer or state/prompt behavior.
 
 Musical loop quality and balance need owner listening; automated checks are not a listening review.
+
+## Dusk variant and saved-profile selection (2026-09-28)
+
+Owner selected Noctina at dusk with crickets, without owl or wing sounds. The dusk delivery also omits coyotes: `sfx/village-dusk-noctina-v1.mp3`, 18:00–21:00. It sums only the preserved music and cricket WAV layers at unity gain, folds to mono, and encodes with the same gapless MP3 settings. Receipt: Audio/Music/Village-Night/dusk-mix.json. The full night mix remains unchanged from 21:00–05:00.
+
+The original turn-202 save has a valid hushed soundscape profile whose observed allows list contains voices, water and wind. Profile-first matching previously bypassed seed-only soundtracks. These two owner-authored village bindings now explicitly supply their chosen palette; observed allows does not erase that choice. Explicit forbidden content, silence, stale/invalid profiles, physical setting limits, other campaigns, interiors and playback gates still prevent playback. General ambience matching is unchanged. The save is not edited.
