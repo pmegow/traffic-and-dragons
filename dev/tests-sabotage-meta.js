@@ -97,6 +97,44 @@ try {
     if (!cut.unobserved || !/cut off/.test(cut.unobserved)) return "runCaptured did not name a cut-off run: " + JSON.stringify(cut.unobserved);
     return intact() ? "" : "target bytes changed";
   });
+  // #475: proveScratch clones HEAD, and the clone must then BE the working tree but for the mutation — a curated copy list
+  // missed five co-changed files before this (the last: an uncommitted audio-catalog.js regeneration whose source stayed at
+  // HEAD, which failed a suite's baseline in every clone and stopped the runner before later catchers ran). The fixture is
+  // its own git repo holding a copy of this harness, so ROOT is the fixture and nothing here touches the real repository.
+  test("the scratch clone mirrors the working set — modified, deleted and untracked files ride in; testRuns/ logs are skipped out loud", function () {
+    var repo = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-sabotage-mirror-")), skewFile = repo + "-skew.txt";
+    var env = {};   // a hook's GIT_DIR / GIT_INDEX_FILE must never steer the fixture's git into the real repository
+    Object.keys(process.env).forEach(function (k) { if (k.indexOf("GIT_") !== 0) env[k] = process.env[k]; });
+    function git(args) { var r = cp.spawnSync("git", ["-c", "user.email=fixture@test", "-c", "user.name=fixture", "-c", "commit.gpgsign=false"].concat(args), { cwd: repo, env: env, encoding: "utf8" }); if (r.status !== 0) throw new Error("git " + args.join(" ") + ": " + out(r)); }
+    function put(rel, text) { fs.mkdirSync(path.dirname(path.join(repo, rel)), { recursive: true }); fs.writeFileSync(path.join(repo, rel), text, "utf8"); }
+    try {
+      ["sabotage.js", "capture-run.js"].forEach(function (f) { put("dev/" + f, fs.readFileSync(path.join(path.dirname(SABOTAGE), f), "utf8")); });
+      put("target.txt", "ORIGINAL\n"); put("data/extra.txt", "HEAD\n"); put("data/gone.txt", "HEAD\n");
+      // The guarded command records every way the clone differs from the working tree, then reds on the mutation by NAME.
+      put("check.js", [
+        'var fs=require("fs"),skew=[];',
+        'if(fs.readFileSync("data/extra.txt","utf8").trim()!=="WORKING")skew.push("a modified tracked file");',
+        'if(fs.existsSync("data/gone.txt"))skew.push("a deleted tracked file");',
+        'if(!fs.existsSync("data/new.txt"))skew.push("an untracked file");',
+        'if(fs.existsSync("testRuns/run.log"))skew.push("a testRuns/ log");',
+        'if(skew.length){fs.writeFileSync(' + JSON.stringify(skewFile) + ',skew.join(", "));console.error("CLONE SKEW");process.exit(1);}',
+        'if(fs.readFileSync("target.txt","utf8").indexOf("BROKEN")>=0){console.error("NAMED CATCH");process.exit(1);}'
+      ].join("\n"));
+      git(["init", "-q"]); git(["add", "-A"]); git(["commit", "-q", "-m", "fixture base"]);
+      put("data/extra.txt", "WORKING\n"); fs.unlinkSync(path.join(repo, "data", "gone.txt"));
+      put("data/new.txt", "UNTRACKED\n"); put("testRuns/run.log", "a personal run log\n");
+      var battery = path.join(tmp, "mirror-battery.js");
+      fs.writeFileSync(battery, 'var sabotage=require(' + JSON.stringify(path.join(repo, "dev", "sabotage.js")) + ');' +
+        'process.exit(sabotage.prove({file:"target.txt",command:[process.execPath,["check.js"]],cases:[{label:"mirror fixture",find:"ORIGINAL",replace:"BROKEN",mustFail:"NAMED CATCH"}]}));', "utf8");
+      var result = cp.spawnSync(process.execPath, [battery], { cwd: tmp, env: env, encoding: "utf8" }), o = out(result);
+      if (fs.existsSync(skewFile)) return "the scratch clone did not mirror the working set: " + fs.readFileSync(skewFile, "utf8");
+      if (result.status !== 0 || o.indexOf("caught") < 0) return "the mirrored clause was not caught: " + o.slice(0, 400);
+      if (!/mirrors the working set except 1 untracked personal run log/.test(o)) return "the testRuns/ skip was silent: " + o.slice(0, 400);
+      return fs.readFileSync(path.join(repo, "target.txt"), "utf8") === "ORIGINAL\n" ? "" : "the fixture's working target was touched";
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true }); fs.rmSync(skewFile, { force: true });
+    }
+  });
   test("repo-relative mutations stay inside a disposable clone", function () {
     // proveScratch clones the repo, so this case needs one. The standalone-sabotage battery
     // re-runs this whole suite inside a SYNTHETIC tree (no .git) to prove the newline

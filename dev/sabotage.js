@@ -35,7 +35,57 @@ var ROOT = path.join(__dirname, "..");
 /* Repo-relative contracts run against an exact working-byte copy in a disposable clone.
    This prevents a concurrent test process from loading the deliberate regression between
    mutation and restore — the mechanism behind the one-off E136 "flake" in TODO #25. Absolute
-   paths remain in-place so the synthetic meta-suite can prove crash/interrupt restoration. */
+   paths remain in-place so the synthetic meta-suite can prove crash/interrupt restoration.
+
+   #475 (2026-09-27) — THE WORKING SET RIDES IN, WHOLE. The clone is HEAD; mirrorWorkingSet() then
+   makes it the working tree — every tracked file modified, added or deleted against HEAD, and every
+   untracked file git does not ignore — so the clone differs from the working tree only by the
+   mutation. It used to copy a curated list, and each skew the list missed reddened the clone's
+   baseline and poisoned every clause's attribution until one more entry was added: #196
+   engine-tests.js, #194L6 the engine manifest, #197 also:, JP0-5 ui-files.js, #256 ui-modals.js,
+   #6 D4 village-measure.js, #423 run-standalone-suites.js. The last straw: an uncommitted
+   audio-catalog.js regeneration (a manifest file, so it rode in) whose source dev/audio-delivery.json
+   stayed at HEAD — the accent-layer suite's "catalog is current" check failed in every clone and
+   stopped the standalone runner before later catchers ran. `also:` still works; it is now redundant.
+   Untracked personal run logs (testRuns/) and Python caches are never test inputs: skipped, and
+   the skip is said once per process. */
+var MIRROR_SKIP = [
+  { re: /^testRuns\//, what: "personal run log(s) under testRuns/" },
+  { re: /(^|\/)__pycache__\//, what: "Python cache file(s)" }
+];
+var _mirrorSkipSaid = false;
+function mirrorWorkingSet(scratch) {
+  var env = {};   // a git hook's GIT_DIR / GIT_INDEX_FILE must not steer these reads off ROOT's own index (the TODO #27 class)
+  Object.keys(process.env).forEach(function (k) { if (k.indexOf("GIT_") !== 0) env[k] = process.env[k]; });
+  function git(args) {
+    var r = cp.spawnSync("git", ["-c", "safe.directory=" + ROOT, "-c", "core.quotepath=off"].concat(args), { cwd: ROOT, env: env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    if (r.status !== 0) throw new Error("git " + args[0] + " failed: " + String(r.stderr || r.stdout || r.error).trim());
+    return r.stdout;
+  }
+  function copyIn(rel) {
+    var src = path.join(ROOT, rel), st;
+    try { st = fs.statSync(src); } catch (e) { return; }
+    if (!st.isFile()) return;
+    fs.mkdirSync(path.dirname(path.join(scratch, rel)), { recursive: true });
+    fs.copyFileSync(src, path.join(scratch, rel));
+  }
+  var changed = git(["diff", "--name-status", "--no-renames", "-z", "HEAD"]).split("\0");
+  for (var i = 0; i + 1 < changed.length; i += 2) {
+    if (!changed[i] || !changed[i + 1]) continue;
+    if (changed[i] === "D") fs.rmSync(path.join(scratch, changed[i + 1]), { force: true });
+    else copyIn(changed[i + 1]);
+  }
+  var skipped = {};
+  git(["ls-files", "--others", "--exclude-standard", "-z"]).split("\0").filter(Boolean).forEach(function (rel) {
+    for (var j = 0; j < MIRROR_SKIP.length; j++) if (MIRROR_SKIP[j].re.test(rel)) { skipped[MIRROR_SKIP[j].what] = (skipped[MIRROR_SKIP[j].what] || 0) + 1; return; }
+    copyIn(rel);
+  });
+  var said = Object.keys(skipped);
+  if (said.length && !_mirrorSkipSaid) {
+    _mirrorSkipSaid = true;
+    console.log("sabotage: the scratch clone mirrors the working set except " + said.map(function (w) { return skipped[w] + " untracked " + w; }).join(" and ") + " (never test inputs)");
+  }
+}
 function proveScratch(opts) {
   var scratch = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-sabotage-proof-"));
   try {
@@ -53,20 +103,10 @@ function proveScratch(opts) {
       fs.mkdirSync(path.dirname(dst), { recursive: true });
       fs.copyFileSync(src, dst);
     }
+    try { mirrorWorkingSet(scratch); }
+    catch (eMirror) { console.error("sabotage: could not mirror the working set into the scratch clone — " + eMirror.message); return 1; }
     copyWorking(opts.file);
-    copyWorking("dev/run-tests.js");
-    copyWorking("dev/engine-tests.js"); /* #196 find: the clone held the COMMITTED suite, so a clause whose catching test was authored in the same (uncommitted) change was structurally unprovable pre-commit — every new #196 mutation reported MISSED against the old tests. The working suite must ride with the working runner. */
-    /* #194L6 (the class fix; #196/#197 were slices of it): the suite loads EVERY engine-manifest
-       file, so ANY working-vs-HEAD skew in ANY of them reds a clone's baseline and poisons every
-       clause's attribution (the #28 battery: 0/9 on a block whose clone mixed working tests with
-       pre-commit game.js). The whole manifest's working set rides in; `also:` survives for
-       non-manifest co-changes (satellites, ui shards). */
-    try{require("./engine-manifest.js").forEach(function(en){copyWorking(en.file);});}catch(eM){}
-    copyWorking("ui-files.js"); /* JP0-5 (v1.722, the #194L6 class again): the suite's archive-registry source contract readFileSync's ui-files.js, so a clone without it reds EVERY battery's baseline with an unrelated failure and poisons attribution — non-manifest files the suite scans BY SOURCE must ride in as standard, not per-battery `also:` */
-    copyWorking("ui-modals.js"); /* #256 (v1.724, same class): the by-field History-label source contract reads ui-modals.js */
-    copyWorking("dev/village-measure.js"); /* #6 D4 (v1.914, same class): run-tests.js geval-loads the village measure; a clone without it reds every baseline */
-    copyWorking("dev/run-standalone-suites.js"); /* #423 (v1.953, same class): the IMPORT OWNERSHIP CONTRACT reads the standalone runner list by source; a clone holding HEAD's copy exits the gate before any engine assertion prints and misattributes every battery (the jp0-5 3/7 pre-commit) */
-    (opts.also || []).forEach(copyWorking); /* #197: the #196 fix's multi-FILE sibling — a feature spanning several engine files is only provable pre-commit if the WORKING copy of every co-changed file rides into the clone, else each clause "fails" on the absent feature and misattributes as caught */
+    (opts.also || []).forEach(copyWorking); /* #197 `also:` — redundant since #475 (the mirror carries every co-changed file), still honoured */
     if (opts.command && opts.command[1] && opts.command[1][0]) copyWorking(opts.command[1][0]);
     return prove({
       file: path.join(scratch, opts.file),
