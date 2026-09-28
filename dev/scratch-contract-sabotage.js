@@ -6,6 +6,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const cp = require("child_process");
+const capture = require("./capture-run.js");
 
 const ROOT = path.join(__dirname, "..");
 function output(run) { return String(run.stdout || "") + String(run.stderr || ""); }
@@ -38,9 +39,10 @@ function prove(name, cases) {
         continue;
       }
       fs.writeFileSync(target, changed, "utf8");
-      const run = cp.spawnSync(process.execPath, ["dev/run-tests.js"], { cwd: scratch, encoding: "utf8" });
+      const run = capture.runCaptured(process.execPath, ["dev/run-tests.js"], { cwd: scratch });   /* #473: the whole output */
       fs.writeFileSync(target, original, "utf8");
       const intact = fs.readFileSync(target, "utf8") === original;
+      if (run.unobserved) { failed++; console.error("FAIL UNOBSERVED " + c.label + " — the guarded command " + run.unobserved + "; restored=" + intact); continue; }
       const out = output(run);
       if (run.status === 0 || out.indexOf(c.mustFail) < 0 || !intact) {
         failed++;

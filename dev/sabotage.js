@@ -28,6 +28,7 @@
 var fs = require("fs");
 var path = require("path");
 var cp = require("child_process");
+var capture = require("./capture-run.js");
 var os = require("os");
 var ROOT = path.join(__dirname, "..");
 
@@ -154,8 +155,12 @@ function prove(opts) {
       }
 
       writeRetry(file, after);
-      var run = cp.spawnSync(cmd[0], cmd[1], { cwd: opts.cwd || ROOT, encoding: "utf8" });
+      var run = capture.runCaptured(cmd[0], cmd[1], { cwd: opts.cwd || ROOT });   /* #473: the whole output, not Node's 1 MiB default */
       writeRetry(file, original);
+      if (run.unobserved) {   /* #473: a run the harness could not fully observe gets no verdict drawn from a fragment */
+        results.push({ label: c.label, verdict: "UNOBSERVED", detail: "the guarded command " + run.unobserved + " — this clause is UNTESTED" });
+        continue;
+      }
 
       /* #170 (entry-13 brief F): an exit-status-only verdict cannot tell a REAL catch from a
          mutation that tripped some unrelated red — measured: 2 of 25 v1.601 W7 clauses were

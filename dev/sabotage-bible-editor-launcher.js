@@ -251,11 +251,10 @@ try {
       return;
     }
     fs.writeFileSync(target, changed, "utf8");
-    var run = cp.spawnSync(process.execPath, ["dev/tests-bible-editor-launcher.js"], {
-      cwd: scratch, encoding: "utf8"
-    });
+    var run = require("./capture-run.js").runCaptured(process.execPath, ["dev/tests-bible-editor-launcher.js"], { cwd: scratch });   /* #473: the whole output */
     fs.writeFileSync(target, original, "utf8");
     var intact = fs.readFileSync(target, "utf8") === original;
+    if (run.unobserved) { failed++; console.error("FAIL UNOBSERVED " + c.label + " — the guarded command " + run.unobserved + "; restored=" + intact); return; }
     var out = combined(run);
     if (run.status === 0 || out.indexOf(c.mustFail) < 0 || !intact) {
       failed++;

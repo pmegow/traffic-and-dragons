@@ -15797,10 +15797,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#395 one mature campaign fills the phone: snapshotActiveCamp at quota proceeds WITHOUT a local slot copy when the cloud provably holds the current turn (server mode, acked turn ≥ local, no conflict), clears any partial slot writes, toasts the cloud-library outcome and still flushes; a cloud that is behind, in conflict, or absent keeps the refusal",function(){
     if(typeof global==="undefined")return true;
-    function run(status,serverMode){
+    /* #473 seed: {older:true} puts an OLDER complete slot copy on disk first; {failAt:1} makes the very first slot write
+       throw (default: the second), so writeCampaignSlot writes nothing and only its own cleanup can remove that copy. */
+    function run(status,serverMode,seed){
+      seed=seed||{};
       makeWorld();worldState.turn=9;setActiveCampId("QF2");store.set(WSK,'{"turn":9}');store.set(SLK,"[]");store.set(MEM_KEY,"{}");
-      var had=("localStorage" in global),real=had?global.localStorage:undefined,backing={},writes=0;
-      global.localStorage={getItem:function(k){return (k in backing)?backing[k]:null;},setItem:function(k,v){if(k.indexOf("tnd_camp_")===0){writes++;if(writes>1){var e=new Error("quota");e.name="QuotaExceededError";throw e;}}backing[k]=v;},removeItem:function(k){delete backing[k];}};
+      var had=("localStorage" in global),real=had?global.localStorage:undefined,backing={},writes=0,failAt=seed.failAt||2;
+      if(seed.older){backing[campSlotKey("QF2","ws")]='{"turn":3}';backing[campSlotKey("QF2","sl")]="[]";backing[campSlotKey("QF2","mem")]="{}";}
+      global.localStorage={getItem:function(k){return (k in backing)?backing[k]:null;},setItem:function(k,v){if(k.indexOf("tnd_camp_")===0){writes++;if(writes>=failAt){var e=new Error("quota");e.name="QuotaExceededError";throw e;}}backing[k]=v;},removeItem:function(k){delete backing[k];}};
       var flushed=false,rs=storageAdapter.syncNow,rm=storageAdapter.isServerMode,rst=storageAdapter.syncStatus;storageAdapter.syncNow=function(){flushed=true;};storageAdapter.isServerMode=function(){return serverMode;};storageAdapter.syncStatus=function(){return status;};
       var toasts=[],hadToast=("showToast" in global),realToast=hadToast?global.showToast:undefined;global.showToast=function(m){toasts.push(String(m));};
       var ok,slotLeft;try{ok=snapshotActiveCamp();slotLeft=Object.keys(backing).filter(function(k){return k.indexOf("tnd_camp_QF2_")===0;}).length;}finally{storageAdapter.syncNow=rs;storageAdapter.isServerMode=rm;storageAdapter.syncStatus=rst;if(hadToast)global.showToast=realToast;else delete global.showToast;if(had)global.localStorage=real;else delete global.localStorage;}
@@ -15812,10 +15816,16 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(r.slotLeft!==0)return "the partial slot write must be cleared (a half copy is worse than none): "+r.slotLeft;
     if(!r.flushed)return "the server flush was skipped";
     if(!r.toasts.some(function(t){return /cloud library/i.test(t)&&/turn 9/.test(t);}))return "the toast must say the campaign stays in the cloud library at turn 9: "+JSON.stringify(r.toasts);
-    r=run({lastAckTurn:8,conflict:null,serverMode:true},true);if(r.ok!==false)return "cloud behind by a turn must refuse";
-    r=run({lastAckTurn:9,conflict:{serverTurn:12},serverMode:true},true);if(r.ok!==false)return "a conflict must refuse";
-    r=run({lastAckTurn:9,conflict:null,serverMode:false},false);if(r.ok!==false)return "no server must refuse";
+    /* #473: a REFUSED snapshot must leave no slot either. The proceed path above removes the local copy twice (writeCampaignSlot's
+       own cleanup, then snapshotActiveCamp's), so there one removal always masks the other; the refusal paths have only the first,
+       and they are where this test can fail when it breaks. */
+    var HALF="a refused snapshot must still leave no partial slot (a half copy the picker would offer as whole): ";
+    r=run({lastAckTurn:8,conflict:null,serverMode:true},true);if(r.ok!==false)return "cloud behind by a turn must refuse";if(r.slotLeft!==0)return HALF+r.slotLeft;
+    r=run({lastAckTurn:9,conflict:{serverTurn:12},serverMode:true},true);if(r.ok!==false)return "a conflict must refuse";if(r.slotLeft!==0)return HALF+r.slotLeft;
+    r=run({lastAckTurn:9,conflict:null,serverMode:false},false);if(r.ok!==false)return "no server must refuse";if(r.slotLeft!==0)return HALF+r.slotLeft;
     if(!r.toasts.some(function(t){return /sync/i.test(t)||/cloud/i.test(t);}))return "the refusal toast for a single-campaign device must point at syncing, not at removing other campaigns: "+JSON.stringify(r.toasts);
+    r=run({lastAckTurn:8,conflict:null,serverMode:true},true,{older:true,failAt:1});if(r.ok!==false)return "cloud behind by a turn must refuse (older-copy case)";
+    if(r.slotLeft!==0)return "an OLDER complete local copy outlived a refused snapshot it no longer matches: "+r.slotLeft+" slot key(s) left";
     return true;
   });
   t("switchToCampaign ABORTS untouched when the outgoing snapshot hits quota",function(){

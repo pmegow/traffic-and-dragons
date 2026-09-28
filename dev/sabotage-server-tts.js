@@ -49,9 +49,10 @@ try {
     var changed = original.replace(c.find, c.replace);
     if (changed === original) { failed++; console.error("✗ NOT APPLIED " + c.label); continue; }
     fs.writeFileSync(target, changed, "utf8");
-    var run = cp.spawnSync(process.execPath, ["dev/run-tests.js"], { cwd: tmp, encoding: "utf8" });
+    var run = require("./capture-run.js").runCaptured(process.execPath, ["dev/run-tests.js"], { cwd: tmp });   /* #473: the whole output */
     fs.writeFileSync(target, original, "utf8");
     var restored = fs.readFileSync(target, "utf8") === original;
+    if (run.unobserved) { failed++; console.error("✗ UNOBSERVED " + c.label + " — the guarded command " + run.unobserved + "; restored=" + restored); continue; }
     var out = output(run);
     if (run.status === 0 || out.indexOf(c.mustFail) < 0 || !restored) {
       failed++;

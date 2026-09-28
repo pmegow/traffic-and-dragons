@@ -203,5 +203,18 @@ test("no battery command needs playwright, and every Chrome-driven battery skips
   return bad.join("\n");
 });
 
+// #473: both runners read a battery's WHOLE output for misfire phrases, labels included — so a label that SAYS
+// "misattributed" makes a fully caught battery read as failed (it happened in #472 and again in #473). Words in a
+// label describe a mutation; they must never collide with the words that report one.
+test("no clause label contains a phrase the runners read as a misfire", function () {
+  var dev = path.join(ROOT, "dev"), bad = [], seen = 0, re = /["']?label["']?\s*:\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, m;
+  fs.readdirSync(dev).filter(function (f) { return /^sabotage-.*\.js$/.test(f); }).forEach(function (f) {
+    var src = fs.readFileSync(path.join(dev, f), "utf8");
+    while ((m = re.exec(src))) { seen++; if (verdict.MISFIRE.test(m[1])) bad.push(f + ": " + m[1]); }
+  });
+  if (seen < 100) return "the label scan found only " + seen + " labels — the pattern no longer reads the batteries";
+  return bad.length ? "a clause label contains a phrase the runners read as a misfire (a passing battery would read as failed):\n  " + bad.join("\n  ") : "";
+});
+
 if (fail) { console.error("RETAINED PROOF WIRING: " + fail + " failed, " + pass + " passed"); process.exit(1); }
 console.log("ALL GREEN — " + pass + " retained-proof wiring probes");

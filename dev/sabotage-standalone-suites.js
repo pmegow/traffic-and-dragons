@@ -84,7 +84,7 @@ if (process.env.TND_SABOTAGE_APPLICABILITY_ONLY === "1") {
 
 function copy(from, to) { fs.copyFileSync(from, to); }
 function runSuite(tmp, suite) {
-  return cp.spawnSync(process.execPath, [path.join(tmp, "dev", suite)], { cwd: tmp, encoding: "utf8" });
+  return require("./capture-run.js").runCaptured(process.execPath, [path.join(tmp, "dev", suite)], { cwd: tmp });   /* #473: the whole output */
 }
 function output(run) { return String(run.stdout || "") + String(run.stderr || ""); }
 
@@ -94,6 +94,7 @@ try {
   fs.mkdirSync(path.join(tmp, "dev"));
   copy(path.join(__dirname, "engine-manifest.js"), path.join(tmp, "dev", "engine-manifest.js"));
   copy(path.join(__dirname, "sabotage.js"), path.join(tmp, "dev", "sabotage.js")); // the meta suite requires it; also the newline-normalizer clause's mutation target
+  copy(path.join(__dirname, "capture-run.js"), path.join(tmp, "dev", "capture-run.js")); // #473: sabotage.js captures through it
   for (var i = 0; i < SPECS.length; i++) copy(path.join(__dirname, SPECS[i].suite), path.join(tmp, "dev", SPECS[i].suite));
   for (var m = 0; m < MANIFEST.length; m++) copy(path.join(ROOT, MANIFEST[m].file), path.join(tmp, MANIFEST[m].file));
   // C13's duplicate-literal assertion scans every UI shard; dedupA loads ui-browsers.js.
@@ -102,7 +103,8 @@ try {
 
   for (var b = 0; b < SPECS.length; b++) {
     var baseline = runSuite(tmp, SPECS[b].suite);
-    if (baseline.status !== 0) {
+    if (baseline.unobserved) { failed++; console.error("✗ BASELINE UNOBSERVED " + SPECS[b].suite + " — " + baseline.unobserved); }
+    else if (baseline.status !== 0) {
       failed++;
       console.error("✗ BASELINE FAILED " + SPECS[b].suite + "\n" + output(baseline));
     } else console.log("✓ baseline green " + SPECS[b].suite);
@@ -125,6 +127,7 @@ try {
     fs.writeFileSync(target, original, "utf8");
     var restored = fs.readFileSync(target, "utf8") === original;
     var repoIntact = fs.readFileSync(repoTarget).equals(repoBefore);
+    if (run.unobserved) { failed++; console.error("✗ UNOBSERVED " + spec.label + " — the guarded suite " + run.unobserved + "; temp restored=" + restored + "; repository untouched=" + repoIntact); continue; }
     var out = output(run);
     var caught = run.status !== 0 && out.indexOf(spec.mustFail) >= 0;
     if (!caught || !restored || !repoIntact) {

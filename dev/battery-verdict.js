@@ -35,4 +35,4 @@ function classify(status, output) {
   return { verdict: status === 0 ? "ok" : "fail", skipLines: [] };
 }
 
-module.exports = { classify: classify, reportSkip: reportSkip, SKIP_EXIT: SKIP_EXIT };
+module.exports = { classify: classify, reportSkip: reportSkip, SKIP_EXIT: SKIP_EXIT, MISFIRE: MISFIRE };

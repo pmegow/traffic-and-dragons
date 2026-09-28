@@ -75,6 +75,28 @@ try {
     if (result.status === 0 || out(result).indexOf("MISATTRIBUTED") < 0 || out(result).indexOf("RIGHT RED") < 0) return "verdict/status wrong: " + out(result);
     return intact() ? "" : "target bytes changed";
   });
+  // #473: Node's spawnSync kills a child that prints past its 1 MiB default and keeps only the head. A mutation in a core
+  // helper reds hundreds of tests, so the named catcher can sit past the cut: sabotage-274's corruption clause printed
+  // 1,156,401 bytes with its catcher at byte 1,136,515 and read MISATTRIBUTED every week while its guard caught it.
+  test("a guarded run that prints past Node's 1 MiB default is judged on its WHOLE output", function () {
+    reset();
+    var loud = 'process.stdout.write("x".repeat(1300000)+"\\n");console.log("RIGHT RED");process.exitCode=1;';
+    var result = runChild("overflow", prelude() +
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e",' + JSON.stringify(loud) + ']],cases:[{label:"late catcher",find:"ORIGINAL",replace:"BROKEN",mustFail:"RIGHT RED"}]}));');
+    if (result.status !== 0 || out(result).indexOf("caught") < 0) return "a catcher after the first MiB was lost — the verdict read a fragment: " + out(result).slice(0, 400);
+    return intact() ? "" : "target bytes changed";
+  });
+  test("a guarded command that cannot be observed is UNOBSERVED — never judged caught or misattributed", function () {
+    reset();
+    var result = runChild("unobserved", prelude() +
+      'process.exit(sabotage.prove({file:target,command:["tnd-no-such-command-473",[]],cases:[{label:"unrunnable fixture",find:"ORIGINAL",replace:"BROKEN",mustFail:"RIGHT RED"}]}));');
+    var o = out(result);
+    if (result.status === 0 || o.indexOf("UNOBSERVED") < 0) return "an unrunnable command was not reported UNOBSERVED: " + o;
+    if (o.indexOf("MISATTRIBUTED") >= 0) return "a run nobody observed was judged anyway: " + o;
+    var cut = require(path.join(path.dirname(SABOTAGE), "capture-run.js")).runCaptured(process.execPath, ["-e", 'process.stdout.write("x".repeat(5000))'], { maxBuffer: 1024 });
+    if (!cut.unobserved || !/cut off/.test(cut.unobserved)) return "runCaptured did not name a cut-off run: " + JSON.stringify(cut.unobserved);
+    return intact() ? "" : "target bytes changed";
+  });
   test("repo-relative mutations stay inside a disposable clone", function () {
     // proveScratch clones the repo, so this case needs one. The standalone-sabotage battery
     // re-runs this whole suite inside a SYNTHETIC tree (no .git) to prove the newline
