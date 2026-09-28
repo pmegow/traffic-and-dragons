@@ -252,11 +252,11 @@ var AUDIO_CATALOG = {
     },
     {
       "id": "tavern",
-      "label": "Tavern crowd",
+      "label": "Tavern chatter and hearth",
       "cohort": "starter-1",
       "role": "environment",
       "bed": {
-        "url": "sfx/tavern-v1.mp3",
+        "url": "sfx/tavern-hearth-v1.mp3",
         "gain": 0.55,
         "loopStart": 0,
         "loopEnd": 35.485,
@@ -267,7 +267,8 @@ var AUDIO_CATALOG = {
       },
       "contains": [
         "crowd",
-        "voices"
+        "voices",
+        "fire"
       ],
       "enclosures": [
         "covered",
@@ -277,6 +278,10 @@ var AUDIO_CATALOG = {
         "interior"
       ],
       "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
         "unspecified"
       ],
       "from": 0,
@@ -285,18 +290,18 @@ var AUDIO_CATALOG = {
         "recording": true,
         "rights": true,
         "contents": true,
-        "loop": false,
-        "mix": false
+        "loop": true,
+        "mix": true
       },
       "source": {
-        "sha256": "fd4ba1511f8dec5420dd285175c23da7b39e1b2135c8a8c33b044f37550746a4",
-        "url": "https://freesound.org/s/326313/",
-        "author": "ivolipa (Freesound 326313)",
+        "sha256": "fd4ba1511f8dec5420dd285175c23da7b39e1b2135c8a8c33b044f37550746a4,36d5ccc8ffa065a642d46d2b8d15cda7556184f30662fe2bf3bf25c5236611c7",
+        "url": "https://freesound.org/s/326313/ https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound",
+        "author": "ivolipa (tavern), Nox_Sound (fire)",
         "license": "CC0-1.0"
       },
-      "recipe": "mono mean; DC removal; 2.00-second raised-cosine overlap of tail/head; RMS target -32 dBFS with peak ceiling -6 dBFS; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "recipe": "Resample source WAVs to mono 44.1kHz. Existing CC0 tavern loop plus 0.6-gain CC0 fire; four periodic fire cycles fitted to tavern duration; mono PCM16, MP3 128kbps with gapless header.",
       "seedOnly": true,
-      "sha256": "2329c059994ca980f35f3a1b648bc5fb222d738d2f089b590a0bba141a0511e4",
+      "sha256": "091d4177ecb1e9114ac6c1f0d62a8484dbd8a5d949ac7760abf022b10d4f5ecc",
       "bytes": 568841
     },
     {
@@ -759,7 +764,60 @@ var AUDIO_CATALOG = {
       "seedOnly": true,
       "sha256": "b912f6c602c9638738a65a604b5826e5ec6b2516e9e01bcc31ba5b085f138475",
       "bytes": 1347499
+    },
+    {
+      "id": "interior-hearth",
+      "label": "Quiet hearth fire",
+      "cohort": "starter-1",
+      "role": "environment",
+      "bed": {
+        "url": "sfx/smithy-fire-v2.mp3",
+        "gain": 0.55,
+        "loopStart": 0,
+        "loopEnd": 9.005,
+        "maxSeconds": 20,
+        "channels": 1,
+        "maxBytes": 500000,
+        "maxDecodedBytes": 4000000
+      },
+      "contains": [
+        "fire"
+      ],
+      "enclosures": [
+        "covered",
+        "sealed"
+      ],
+      "settings": [
+        "interior"
+      ],
+      "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "loop": true,
+        "mix": true
+      },
+      "source": {
+        "sha256": "36d5ccc8ffa065a642d46d2b8d15cda7556184f30662fe2bf3bf25c5236611c7",
+        "url": "https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound",
+        "author": "Nox_Sound",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono; DC removal; 1 s tail/head crossfade; RMS -32 dBFS; libmp3lame 128 kbps",
+      "seedOnly": true,
+      "defaultFor": "habitable-interior",
+      "sha256": "d2b017fce86f4ef9eef89b669733c35433dae5517fc85ff0ba3e2852b9df23cd",
+      "bytes": 145152
     }
   ],
-  "version": "a8432d87a92b71f407c1"
+  "version": "64ba9e616c842a3e99b1"
 };

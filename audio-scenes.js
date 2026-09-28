@@ -6,7 +6,7 @@ var AUDIO_SCENES = [
   {id:"village-day",bind:{kind:"village",exterior:true,from:600,to:1080}},
   {id:"village-dusk-noctina",profilePolicy:"authored",bind:{kind:"village",exterior:true,from:1080,to:1260}},
   {id:"village-night",profilePolicy:"authored",bind:{kind:"village",exterior:true,from:1260,to:300}},
-  {id:"tavern",bind:{kind:"village",common:"the tavern"},accents:["footsteps-wood"]}   /* people are about: footsteps may cross the floor */
+  {id:"tavern",profilePolicy:"authored",bind:{kind:"village",common:"the tavern"},accents:["footsteps-wood"]}   /* people are about: footsteps may cross the floor */
 ].map(function(seed){
   var asset=AUDIO_CATALOG.assets.filter(function(a){return a.id===seed.id;})[0];
   if(!asset)throw new Error("Missing pilot audio asset: "+seed.id);

@@ -74,6 +74,8 @@ function audioCurrentScene(){
   if(hours&&typeof hours.open==="number"&&typeof hours.close==="number"&&hours.open>=0&&hours.close<=24&&hours.close>=0&&hours.open<=24){var h=minute/60;open=hours.open<=hours.close?h>=hours.open&&h<hours.close:h>=hours.open||h<hours.close;}
   return {campaignId:ws.campId||getActiveCampId(),campaignKind:kind,nodeKey:key,common:common,open:open,minuteOfDay:minute,
     exterior:!!ambientExteriorNode(kind,w.location,key,nodes,locResolve,AUDIO_EXTERIORS),
+    // Canonical house ownership identifies homes before their first soundscape classification.
+    habitable:!!(kind==="village"&&node&&node.owner&&node.parent&&locResolve(node.parent)===locResolve(w.location)),
     profile:audioNodeProfile(node),classified:!!(node&&node.soundscape),generation:audioPlaybackGeneration};
 }
 function audioScenePublish(reason,force){

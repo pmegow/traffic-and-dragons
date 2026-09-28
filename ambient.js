@@ -32,12 +32,29 @@ function ambientSceneMatches(s, scene) {
 // Explicit prohibitions, silent/invalid profiles, and physical setting constraints still win.
 function ambientAuthoredProfileMatches(s, scene) {
   if (scene.profilePolicy !== "authored" || !ambientSceneMatches(s, scene)) return false;
+  return ambientProfileCompatible(s, scene);
+}
+function ambientProfileCompatible(s, scene) {
   var v = audioValidateProfile(s.profile), ok = scene.approval;
   if (!v.ok || v.profile.quiet === "silent" || !ok || !ok.recording || !ok.rights || !ok.contents || !ok.loop || !ok.mix) return false;
   var p = v.profile;
   return scene.cohort === (p.cohort || AUDIO_CATALOG.cohort) && scene.enclosures.indexOf(p.enclosure) >= 0 &&
     scene.settings.indexOf(p.setting) >= 0 && scene.biomes.indexOf(p.biome) >= 0 &&
     scene.contains.every(function(c) { return p.forbid.indexOf(c) < 0; });
+}
+// Defaults use canonical interior metadata; an invalid classification never becomes a fallback.
+function ambientDefaultScene(s, catalog) {
+  if (!s.nodeKey || s.exterior) return null;
+  var classified = !!(s.classified || s.profile);
+  if (!classified && !s.habitable) return null;
+  for (var i = 0; i < catalog.assets.length; i++) {
+    var scene = catalog.assets[i], ok = scene.approval;
+    if (scene.defaultFor !== "habitable-interior" || !scene.seedOnly || !ok ||
+        !ok.recording || !ok.rights || !ok.contents || !ok.loop || !ok.mix) continue;
+    if (classified && !ambientProfileCompatible(s, scene)) continue;
+    return scene;
+  }
+  return null;
 }
 function ambientPlan(snapshot, registry) {
   var s = snapshot || {}, silent = { scene: null, key: "", gain: 0, hardStop: false }, i, scene;
@@ -50,7 +67,11 @@ function ambientPlan(snapshot, registry) {
       }
     }
     var chosen=audioSelect(s,AUDIO_CATALOG);
-    if(!chosen.scene)return silent;
+    if(!chosen.scene) {
+      chosen.scene=ambientDefaultScene(s,AUDIO_CATALOG);
+      if(!chosen.scene)return silent;
+      chosen.key=String(s.campaignId)+"|"+(chosen.scene.role||"environment")+"|"+chosen.scene.id;
+    }
     return {scene:chosen.scene,key:chosen.key,gain:ambientGain(s,chosen.scene),hardStop:false};
   }
   for (i = 0; i < registry.length; i++) {
@@ -59,6 +80,8 @@ function ambientPlan(snapshot, registry) {
       return { scene: scene, key: String(s.campaignId) + "|" + (scene.role || "environment") + "|" + scene.id, gain: ambientGain(s, scene), hardStop: false };
     }
   }
+  scene = ambientDefaultScene(s, AUDIO_CATALOG);
+  if (scene) return {scene:scene,key:String(s.campaignId)+"|"+(scene.role||"environment")+"|"+scene.id,gain:ambientGain(s,scene),hardStop:false};
   return silent;
 }
 

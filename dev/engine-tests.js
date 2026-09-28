@@ -25017,6 +25017,51 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("Interior hearth defaults");
+  function hearthSavedScene() {
+    return {enabled:true,unlocked:true,visible:true,volume:0.45,campaignKind:"village",campaignId:"hearth-save",nodeKey:"The Village|the tavern",common:"the tavern",open:true,exterior:false,minuteOfDay:1195,classified:true,
+      profile:{enclosure:"covered",setting:"interior",biome:"temperate",quiet:"normal",allows:["fire","voices"],forbid:["machinery","rain","thunder"],schema:1,cohort:"starter-1"}};
+  }
+  t("Hearth saved tavern profile selects chatter and fire despite its observed allows list",function(){
+    var s=hearthSavedScene(),p=ambientPlan(s,AUDIO_SCENES);
+    if(!p.scene||p.scene.id!=="tavern")return "turn-205 tavern profile selected silence";
+    if(p.scene.bed.url!=="sfx/tavern-hearth-v1.mp3")return "tavern must include the hearth delivery";
+    if(["crowd","voices","fire"].some(function(c){return p.scene.contains.indexOf(c)<0;}))return "tavern contents must declare chatter and fire";
+    return true;
+  });
+  t("Hearth defaults serve classified interiors across campaigns and seeded homes before classification",function(){
+    var s=hearthSavedScene();s.common=null;s.nodeKey="Home";s.profile.allows=["wind"];
+    ["village","adventure"].forEach(function(kind){["covered","sealed"].forEach(function(enclosure){["temperate","arid","tropical","frozen","unspecified"].forEach(function(biome){var p=ambientPlan(Object.assign({},s,{campaignKind:kind,profile:Object.assign({},s.profile,{enclosure:enclosure,biome:biome})}),AUDIO_SCENES);if(!p.scene||p.scene.id!=="interior-hearth")throw new Error("missing interior default: "+kind+"/"+enclosure+"/"+biome);});});});
+    var p=ambientPlan(Object.assign({},s,{profile:null,classified:false,habitable:true}),AUDIO_SCENES);if(!p.scene||p.scene.id!=="interior-hearth")return "known unclassified house lacks its hearth";
+    var house=Object.assign({},s,{common:null,profile:Object.assign({},s.profile,{quiet:"hushed"})});p=ambientPlan(house,AUDIO_SCENES);if(!p.scene||Math.abs(p.gain-0.12375)>1e-9)return "hushed hearth gain lost";
+    return true;
+  });
+  t("Hearth defaults preserve silence, prohibitions, unknown places and outdoor/subterranean exclusions",function(){
+    var s=hearthSavedScene();s.common=null;s.nodeKey="Home";
+    var cases=[{quiet:"silent"},{forbid:["fire"]},{setting:"subterranean"},{setting:"wilderness"},{setting:"settlement"},{setting:"unspecified"},{enclosure:"open"},{enclosure:"unspecified"},{cohort:"other"}];
+    for(var i=0;i<cases.length;i++){var p=ambientPlan(Object.assign({},s,{profile:Object.assign({},s.profile,cases[i])}),AUDIO_SCENES);if(p.scene&&p.scene.id==="interior-hearth")return "default ignored "+JSON.stringify(cases[i]);}
+    var bad=[{profile:null,classified:true,habitable:true},{profile:{setting:"interior"},habitable:true},{profile:null,classified:false,habitable:false},{profile:null,classified:false,habitable:true,exterior:true}];
+    for(i=0;i<bad.length;i++){p=ambientPlan(Object.assign({},s,bad[i]),AUDIO_SCENES);if(p.scene&&p.scene.id==="interior-hearth")return "invalid/unknown place acquired a hearth: "+i;}
+    if(ambientPlan(Object.assign({},s,{capturing:true}),AUDIO_SCENES).gain!==0)return "microphone must silence hearth";
+    if(ambientPlan(Object.assign({},s,{held:true}),AUDIO_SCENES).scene)return "pause must silence hearth";
+    return true;
+  });
+  t("Hearth tavern chatter obeys opening hours and fire remains after closing",function(){
+    var s=hearthSavedScene(),p=ambientPlan(Object.assign({},s,{open:false}),AUDIO_SCENES);
+    if(!p.scene||p.scene.id!=="interior-hearth")return "closed tavern should retain only hearth, not chatter";
+    s.profile.allows=["fire"];s.profile.forbid=["voices"];p=ambientPlan(s,AUDIO_SCENES);if(!p.scene||p.scene.id!=="interior-hearth")return "voice prohibition should leave fire only";
+    s.profile.allows=["voices"];s.profile.forbid=["fire"];p=ambientPlan(s,AUDIO_SCENES);if(p.scene&&p.scene.contains.indexOf("fire")>=0)return "fire prohibition ignored";
+    return true;
+  });
+  t("Hearth snapshot derives habitable homes from canonical ownership, never arbitrary sublocations",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation="Ammut's house";memory.campId=worldState.campId;
+    memory.map.nodes={"The Village":{parent:null},"The Village|Ammut's house":{parent:"The Village",owner:"Ammut"}};
+    if(audioCurrentScene().habitable!==true)return "canonical owner house not marked habitable";
+    delete memory.map.nodes["The Village|Ammut's house"].owner;
+    if(audioCurrentScene().habitable)return "name alone classified a house";
+    return true;
+  });
+
   section("Noctina authored soundtracks");
   function noctinaSavedScene(minute) {
     return {enabled:true,unlocked:true,visible:true,volume:0.45,campaignKind:"village",campaignId:"noctina-save",nodeKey:"The Village",exterior:true,minuteOfDay:minute,classified:true,
@@ -25053,7 +25098,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("L7 the tavern crowd binds to the village tavern by its canonical common name while its filed hours say open, is silent when closed or unrecorded, and never displaces the smithy fire",function(){
     var base={enabled:true,unlocked:true,visible:true,volume:0.5,campaignKind:"village",campaignId:"one",nodeKey:"The Village|the tavern",common:"the tavern",open:true};
     var p=ambientPlan(base,AUDIO_SCENES);if(!p.scene||p.scene.id!=="tavern")return "open tavern must play the tavern bed: "+JSON.stringify(p.scene&&p.scene.id);
-    if(p.scene.bed.url!=="sfx/tavern-v1.mp3")return "tavern bed url: "+p.scene.bed.url;
+    if(p.scene.bed.url!=="sfx/tavern-hearth-v1.mp3")return "tavern bed url: "+p.scene.bed.url;
     if(ambientPlan(Object.assign({},base,{open:false}),AUDIO_SCENES).scene)return "closed tavern must be silent";
     if(ambientPlan(Object.assign({},base,{open:null}),AUDIO_SCENES).scene)return "unrecorded hours must be silent";
     var sm=ambientPlan(Object.assign({},base,{nodeKey:"The Village|the smithy",common:"the smithy"}),AUDIO_SCENES);if(!sm.scene||sm.scene.id!=="smithy")return "smithy binding regressed";
