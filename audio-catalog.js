@@ -200,22 +200,25 @@ var AUDIO_CATALOG = {
     },
     {
       "id": "village-night",
-      "label": "Night crickets",
+      "label": "Noctina - village night",
       "cohort": "starter-1",
       "role": "environment",
       "bed": {
-        "url": "sfx/village-night-v3.mp3",
+        "url": "sfx/village-night-noctina-v1.mp3",
         "gain": 0.55,
         "loopStart": 0,
-        "loopEnd": 57.79,
+        "loopEnd": 84.15,
         "maxSeconds": 125,
         "channels": 1,
         "maxBytes": 2200000,
         "maxDecodedBytes": 24000000
       },
       "contains": [
+        "music",
         "insects",
-        "wind"
+        "wind",
+        "birds",
+        "animals"
       ],
       "enclosures": [
         "open"
@@ -233,19 +236,19 @@ var AUDIO_CATALOG = {
         "recording": true,
         "rights": true,
         "contents": true,
-        "loop": false,
-        "mix": false
+        "loop": true,
+        "mix": true
       },
       "source": {
-        "sha256": "f4b4542a7036744acdeaf6e2c46e4f972f260fcd1624d1c1efa3cedcc9f71752",
-        "url": "https://freesound.org/s/637083/",
-        "author": "Nox_Sound (Freesound 637083)",
-        "license": "CC0-1.0"
+        "sha256": "42e638e79236f986aaa9d9842b922295af66c10cf847192cc3fd2f65d0d2936d",
+        "url": "https://suno.com/song/ff0a52f1-8590-4ba6-9c19-11ee87414f54",
+        "author": "highdefinitionbuttons823 (owner Suno account); effects: Breviceps, SamsterBirdies, Joseph SARDIN, Nox_Sound",
+        "license": "Owner-supplied Suno Pro music + CC0-1.0 effects; see sfx/noctina-night-CREDITS.md"
       },
-      "recipe": "mono mean; DC removal; 2.00-second raised-cosine overlap of tail/head; RMS target -26 dBFS with peak ceiling -6 dBFS; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
-      "seedOnly": false,
-      "sha256": "6fa58549815f5207b67911116bba88137081dc9a0ec51b5b7cdf3f75a157c40a",
-      "bytes": 925440
+      "recipe": "Noctina 1.05-89.20 s; 4 s tail/head overlap; music RMS -23 dBFS; quiet CC0 crickets and owl/wing/coyote events at 13/35/49/75 s; mono mean; 128 kbps MP3 with gapless header. Owner authorized in-game adjustment 2026-09-27.",
+      "seedOnly": true,
+      "sha256": "ac187ddca2a54093452cea8ee9a66c7c0f7cdaabf62c15fd38367defcdab90c6",
+      "bytes": 1347499
     },
     {
       "id": "tavern",
@@ -708,5 +711,5 @@ var AUDIO_CATALOG = {
       "bytes": 233088
     }
   ],
-  "version": "68e42eb06b2e1b5ae5bc"
+  "version": "2083874844abd639bff8"
 };

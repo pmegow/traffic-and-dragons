@@ -24989,8 +24989,25 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(ambientPlan(Object.assign({},base,{open:null}),AUDIO_SCENES).scene)return "unrecorded hours must be silent";
     var sm=ambientPlan(Object.assign({},base,{nodeKey:"The Village|the smithy",common:"the smithy"}),AUDIO_SCENES);if(!sm.scene||sm.scene.id!=="smithy")return "smithy binding regressed";
     if(ambientPlan(Object.assign({},base,{campaignKind:"adventure"}),AUDIO_SCENES).scene)return "campaign kind still gates the pilot bindings";
-    var night=AUDIO_SCENES.filter(function(x){return x.id==="village-night";})[0];if(!night||night.bed.url!=="sfx/village-night-v3.mp3")return "night bed must be the cricket cut (v3)";
-    if(!(night.bed.loopEnd>57&&night.bed.loopEnd<58))return "night loopEnd must be the measured v3 length: "+night.bed.loopEnd;
+    var night=AUDIO_SCENES.filter(function(x){return x.id==="village-night";})[0];if(!night||night.bed.url!=="sfx/village-night-noctina-v1.mp3")return "night bed must be the owner-selected Noctina mix";
+    if(!(night.bed.loopEnd>84&&night.bed.loopEnd<85))return "night loopEnd must be the measured Noctina length: "+night.bed.loopEnd;
+    return true;
+  });
+
+  t("L7 Noctina stays in the village night slot with truthful content and bounded delivery",function(){
+    var night=AUDIO_SCENES.filter(function(x){return x.id==="village-night";})[0];
+    if(!night.seedOnly)return "Noctina must not enter the general campaign ambience pool";
+    if(!night.approval.loop||!night.approval.mix)return "owner-authorized Noctina mix must be enabled";
+    if(["music","insects","wind","birds","animals"].some(function(c){return night.contains.indexOf(c)<0;}))return "Noctina music and wildlife contents must be declared";
+    var s={enabled:true,unlocked:true,visible:true,volume:0.5,campaignKind:"village",campaignId:"night-test",nodeKey:"The Village",exterior:true,minuteOfDay:1260};
+    [1260,1439,0,299].forEach(function(m){if(ambientPlan(Object.assign({},s,{minuteOfDay:m}),AUDIO_SCENES).scene.id!=="village-night")throw new Error("missing night at "+m);});
+    var morning=ambientPlan(Object.assign({},s,{minuteOfDay:300}),AUDIO_SCENES);
+    if(!morning.scene||morning.scene.id!=="village-morning")return "Noctina must end at 05:00";
+    if(ambientPlan(Object.assign({},s,{campaignKind:"adventure"}),AUDIO_SCENES).scene)return "Noctina leaked into another campaign";
+    if(ambientPlan(Object.assign({},s,{exterior:false}),AUDIO_SCENES).scene)return "Noctina leaked indoors";
+    if(ambientPlan(Object.assign({},s,{capturing:true}),AUDIO_SCENES).gain!==0)return "microphone must silence Noctina";
+    if(ambientPlan(Object.assign({},s,{held:true}),AUDIO_SCENES).scene)return "pause must stop Noctina";
+    if(night.bed.channels!==1||night.bed.maxDecodedBytes>24000000||night.bed.maxBytes>2200000)return "Noctina exceeds existing bed budget";
     return true;
   });
 
