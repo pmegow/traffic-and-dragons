@@ -71,6 +71,11 @@ jobs:
       # full-suite-per-mutation groups stay manual by the same ruling.
       - name: Prove drift guards (focused sabotage battery)
         run: node dev/sabotage-w2.js --focused
+      # #472: the blueprint browser batteries drive the runner's own Chrome through dev/cdp-browser.js (no
+      # Playwright, no npm install). Prove it launches first, so a missing or broken Chrome fails HERE by name —
+      # the batteries themselves only skip (loudly) on a machine without Chrome, which a runner must never be.
+      - name: Chrome launches for the browser sabotage batteries
+        run: node dev/cdp-browser.js --check
       # #312 ①: a battery whose target file changed in this push runs in this push (the weekly
       # job proves all 63; this keeps a guard's own edit honest the day it lands).
       - name: Run the sabotage batteries whose targets this change touched

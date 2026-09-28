@@ -1,7 +1,7 @@
-// Browser acceptance: run with PLAYWRIGHT_PATH set to an installed Playwright module. CHROME_PATH is optional.
+// Browser acceptance on a system Chrome (dev/cdp-browser.js finds it; CHROME_PATH overrides). No Playwright, no npm install.
 // Uses intercepted local files and fixture accounts; never calls a live service or spends model credits.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
-const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
+const {chromium}=require('./cdp-browser.js');/* #472: zero-dependency Chrome DevTools driver with the Playwright subset this test uses — no npm install */
 const root=path.resolve(__dirname,'..'),out=process.env.CATALOG_ARTIFACT_DIR||path.join(require('os').tmpdir(),'tnd-blueprint-catalog-tests');
 fs.mkdirSync(out,{recursive:true});
 const catalogRows=JSON.parse(fs.readFileSync(path.join(root,'samples/catalog.json'),'utf8')).map(e=>({...e,id:e.file.replace(/^.*\//,'').replace(/\.blueprint$/,''),revision:1,blueprint:JSON.parse(fs.readFileSync(path.join(root,'samples',e.file),'utf8'))}));

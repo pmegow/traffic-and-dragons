@@ -1,5 +1,7 @@
 # Catalog publication verification — 2026-09-25
 
+> **#472 (2026-09-27):** the browser tests and the two mutation batteries below needed the `playwright` module, which neither CI nor the owner's machine has, so their browser clauses had never actually been proven — every one misattributed. They now run on a system Chrome through the zero-dependency `dev/cdp-browser.js` with their assertions unchanged; all seven browser clauses were proven for the first time on 2026-09-27. A machine without Chrome skips them out loud (exit 78, one SABOTAGE SKIPPED line); CI checks that its Chrome launches before its sabotage steps.
+
 App v1.999, designer v0.48; server v1.6.0 (`9427fcb`, schema 6).
 
 ## Cause and change

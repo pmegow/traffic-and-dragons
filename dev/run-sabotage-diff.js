@@ -4,7 +4,7 @@
 // argv[2]), finds every dev/sabotage-*.js whose `file:` targets include one of them (or which is
 // itself changed), and runs those batteries. Nothing matched → exits 0 and says so.
 "use strict";
-var fs=require("fs"),path=require("path"),cp=require("child_process");
+var fs=require("fs"),path=require("path"),cp=require("child_process"),verdict=require("./battery-verdict.js");
 var ROOT=path.join(__dirname,"..");
 var range=process.argv[2]||"HEAD~1..HEAD";
 var diff=cp.spawnSync("git",["diff","--name-only",range],{cwd:ROOT,encoding:"utf8"});
@@ -15,19 +15,21 @@ var batteries=fs.readdirSync(path.join(ROOT,"dev")).filter(function(f){return /^
 var due=[];
 batteries.forEach(function(f){
   var src=fs.readFileSync(path.join(ROOT,"dev",f),"utf8");
-  var targets=[],m,re=/file\s*:\s*["']([^"']+)["']/g;while((m=re.exec(src)))targets.push(m[1].replace(/\\/g,"/"));
+  /* #472: a quoted key ("file": "x") counts too — sabotage-blueprint-catalog.js declares its target that way and was never
+     scheduled; the boundary keeps a key like profile: from reading as file: */
+  var targets=[],m,re=/(^|[^\w$])["']?file["']?\s*:\s*["']([^"']+)["']/g;while((m=re.exec(src)))targets.push(m[2].replace(/\\/g,"/"));
   var hit=changed.indexOf("dev/"+f)>=0||targets.some(function(t){return changed.indexOf(t)>=0;});
   if(hit)due.push(f);
 });
 if(!due.length){console.log("run-sabotage-diff: "+changed.length+" changed file(s), no battery targets them");process.exit(0);}
 console.log("run-sabotage-diff: "+due.length+" battery(ies) target changed files — "+due.join(", "));
-var failed=[];
+var failed=[],skipped=[];
 due.forEach(function(f){
   var r=cp.spawnSync(process.execPath,["dev/"+f],{cwd:ROOT,encoding:"utf8",maxBuffer:64*1024*1024});
-  var out=(r.stdout||"")+(r.stderr||"");
-  var bad=r.status!==0||/NOT on mustFail|no bytes changed|MISATTRIBUT/i.test(out);
-  console.log((bad?"FAIL ":"ok   ")+f);
-  if(bad){failed.push(f);console.log(out.split("\n").slice(-25).join("\n"));}
+  var out=(r.stdout||"")+(r.stderr||""),v=verdict.classify(r.status,out);
+  console.log((v.verdict==="fail"?"FAIL ":v.verdict==="skip"?"SKIP ":"ok   ")+f);
+  if(v.verdict==="fail"){failed.push(f);console.log(out.split("\n").slice(-25).join("\n"));}
+  if(v.verdict==="skip"){skipped.push(f);v.skipLines.forEach(function(l){console.log(l);});}   /* re-echoed: an Actions ::warning registers only from the step's own stdout */
 });
 if(failed.length){console.error("run-sabotage-diff: FAILED — "+failed.join(", "));process.exit(1);}
-console.log("run-sabotage-diff: all due batteries green");
+console.log("run-sabotage-diff: all due batteries green"+(skipped.length?" — except "+skipped.length+" SKIPPED, whose clauses were NOT proven here: "+skipped.join(", "):""));

@@ -7,7 +7,7 @@
 // as a failure. Slow by design (a full-suite run per mutation) — this is the weekly job, not the
 // commit gate. Exit non-zero if any battery failed; the summary names each one.
 "use strict";
-var fs=require("fs"),path=require("path"),cp=require("child_process");
+var fs=require("fs"),path=require("path"),cp=require("child_process"),verdict=require("./battery-verdict.js");
 var ROOT=path.join(__dirname,"..");
 var filters=process.argv.slice(2);
 var files=fs.readdirSync(path.join(ROOT,"dev")).filter(function(f){return /^sabotage-.*\.js$/.test(f);}).sort();
@@ -18,12 +18,14 @@ files.forEach(function(f){
   var start=Date.now();
   var r=cp.spawnSync(process.execPath,["dev/"+f],{cwd:ROOT,encoding:"utf8",maxBuffer:64*1024*1024});
   var out=(r.stdout||"")+(r.stderr||"");
-  var bad=r.status!==0||/NOT on mustFail|no bytes changed|MISATTRIBUT/i.test(out);
+  var v=verdict.classify(r.status,out),bad=v.verdict==="fail";
   var caught=(out.match(/✓|caught|PASS/g)||[]).length;
-  results.push({file:f,ok:!bad,secs:Math.round((Date.now()-start)/1000),caught:caught,status:r.status});
-  console.log((bad?"FAIL ":"ok   ")+f+" ("+results[results.length-1].secs+"s, "+caught+" ✓)");
+  results.push({file:f,ok:!bad,skip:v.verdict==="skip",secs:Math.round((Date.now()-start)/1000),caught:caught,status:r.status});
+  console.log((bad?"FAIL ":v.verdict==="skip"?"SKIP ":"ok   ")+f+" ("+results[results.length-1].secs+"s, "+caught+" ✓)");
+  v.skipLines.forEach(function(l){console.log(l);});   /* #472: a skip is announced, never folded into the green count */
   if(bad)console.log(out.split("\n").filter(function(l){return /FAIL|NOT on mustFail|no bytes|Error|MISATTRIB/i.test(l);}).slice(0,8).map(function(l){return "     "+l;}).join("\n"));
 });
-var failed=results.filter(function(r){return !r.ok;});
-console.log("\n"+(failed.length?"SABOTAGE ALL: "+failed.length+" of "+results.length+" batteries FAILED — "+failed.map(function(r){return r.file;}).join(", "):"SABOTAGE ALL: "+results.length+" batteries green")+" ("+Math.round((Date.now()-t0)/60000)+" min)");
+var failed=results.filter(function(r){return !r.ok;}),skipped=results.filter(function(r){return r.skip;});
+var skipNote=skipped.length?"; "+skipped.length+" SKIPPED, clauses NOT proven here — "+skipped.map(function(r){return r.file;}).join(", "):"";
+console.log("\n"+(failed.length?"SABOTAGE ALL: "+failed.length+" of "+results.length+" batteries FAILED — "+failed.map(function(r){return r.file;}).join(", "):"SABOTAGE ALL: "+(results.length-skipped.length)+" batteries green")+skipNote+" ("+Math.round((Date.now()-t0)/60000)+" min)");
 process.exit(failed.length?1:0);

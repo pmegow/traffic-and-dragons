@@ -14,4 +14,4 @@ Campaign creation copies `{version, releaseStatus}` into `worldState.blueprintEd
 
 `blueprint-edition.js` owns parsing, labels, content identity, revision planning, and publication checks. The server vendors the same bytes as `blueprint-edition.cjs`; update both together. Empty normalization defaults and the default adventure kind are not story changes; authored class restrictions remain significant.
 
-Verification: `node dev/run-tests.js`; `node dev/tests-blueprint-editions-browser.js` with PLAYWRIGHT_PATH configured; server `npm test`. Browser tests use intercepted fixtures, with no live publication or model calls.
+Verification: `node dev/run-tests.js`; `node dev/tests-blueprint-editions-browser.js` on a system Chrome (dev/cdp-browser.js finds it; CHROME_PATH overrides — no Playwright since #472); server `npm test`. Browser tests use intercepted fixtures, with no live publication or model calls.

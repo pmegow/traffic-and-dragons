@@ -1,12 +1,16 @@
-// Browser mutation proof; uses the same PLAYWRIGHT_PATH and CHROME_PATH as the acceptance script.
-var sabotage=require("./sabotage.js");
-process.exit(sabotage.prove({
+// Browser mutation proof on a system Chrome through dev/cdp-browser.js (no Playwright; CHROME_PATH overrides discovery).
+// #472: with no Chrome on this machine every clause is SKIPPED out loud (exit 78 + one SABOTAGE SKIPPED line the runners
+// print) — never passed. The clauses stay declared either way, so the dry applicability scan keeps counting them.
+var sabotage=require("./sabotage.js"),verdict=require("./battery-verdict.js"),chrome=require("./cdp-browser.js").locateChrome();
+var failed=sabotage.prove({
   "file": "ui-browsers.js",
+  "skip": !chrome.path,
   "also": [
     "ui-boot.js",
     "storage-adapter.js",
     "samples/catalog.json",
-    "samples/the_silence_between_leaves.blueprint"
+    "samples/the_silence_between_leaves.blueprint",
+    "dev/cdp-browser.js"
   ],
   "command": [
     "node",
@@ -40,4 +44,6 @@ process.exit(sabotage.prove({
       "replace": "storageAdapter.saveBlueprintToLibrary(bp,function(){});modal.remove();_applyBlueprint(bp);"
     }
   ]
-}));
+});
+if(!chrome.path&&!failed){verdict.reportSkip("sabotage-blueprint-catalog.js",4,chrome.why);process.exit(verdict.SKIP_EXIT);}
+process.exit(failed);

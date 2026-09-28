@@ -18,6 +18,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # #472: the blueprint browser batteries need the runner's Chrome (dev/cdp-browser.js); fail by name if it is gone.
+      - name: Chrome launches for the browser sabotage batteries
+        run: node dev/cdp-browser.js --check
       - name: Run every sabotage battery
         shell: bash  # Explicit bash enables pipefail: tee must not hide a red battery.
         run: node dev/run-sabotage-all.js | tee -a "$GITHUB_STEP_SUMMARY"
