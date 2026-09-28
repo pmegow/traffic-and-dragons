@@ -23576,97 +23576,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return /legacy/i.test(String(an.detail))?true:"legacy-grade authorization invisible to the health readout: "+an.detail;
   });
 
-  section("OpenAI voice (#398)");
-  t("#398 OpenAI requires opt-in and a key; selecting it excludes Google",function(){
-    var O=TTS._openai;if(!O)return "OpenAI provider missing";
-    var old=providerKeys.openai,oldGemKey=providerKeys.gemini,gem=store.get(TTS._gemini.keys.on);
-    try {
-      store.del(O.keys.on);providerKeys.openai="fixture";providerKeys.gemini="fixture-gemini";TTS._gemini.resetDegrade();
-      if(O.ok())return "key alone enabled paid speech";
-      O.select(true);providerKeys.openai="";
-      if(O.ok())return "missing key accepted";
-      providerKeys.openai="fixture";store.set(TTS._gemini.keys.on,"1");
-      if(TTS.getEngine()!=="openai"||TTS._gemini.ok())return "selected OpenAI can fall into paid Google";
-      O.degrade("fixture failure");
-      if(TTS.getEngine()==="gemini"||TTS.getEngine()==="openai")return "failed OpenAI did not fall to free tiers";
-      return true;
-    } finally {providerKeys.openai=old;providerKeys.gemini=oldGemKey;store.del(O.keys.on);O.reset();if(gem===null||gem===undefined)store.del(TTS._gemini.keys.on);else store.set(TTS._gemini.keys.on,gem);}
-  });
-  t("#398 OpenAI narrator is validated and cast mapping stays stable",function(){
-    var O=TTS._openai;if(!O)return "OpenAI provider missing";
-    store.set(O.keys.narr,"not-a-voice");
-    if(O.narrator()!=="marin")return "invalid narrator escaped validation";
-    store.set(O.keys.narr,"cedar");
-    var v=O.voiceFor("en_US-libritts_r-medium#1");
-    var ok=O.voiceFor("")==="cedar"&&v===O.voiceFor("en_US-libritts_r-medium#1")&&v!=="cedar"&&O.voices.indexOf(v)>=0;
-    store.del(O.keys.narr);return ok?true:"narrator/cast mapping failed";
-  });
-  t("#398 OpenAI grouping preserves words and speaker boundaries",function(){
-    var O=TTS._openai;if(!O)return "OpenAI provider missing";
-    var g=O.group([{text:"The road."},{text:"Come along."},{text:"Night falls."}],"",{1:"en_US-libritts_r-medium#1"});
-    if(g.length!==3)return "speaker changes merged";
-    return g.map(function(x){return x.text;}).join(" ")==="The road. Come along. Night falls."?true:"words lost/reordered";
-  });
-
-  section("OpenAI actor casting (#399)");
-  var _oaMale399=["alloy","ash","ballad","cedar","echo","fable","onyx","verse"];
-  var _oaFemale399=["coral","marin","nova","sage","shimmer"];
-  function _oaGender399(id){return _oaMale399.indexOf(id)>=0?"M":_oaFemale399.indexOf(id)>=0?"F":"";}
-  t("#399 all thirteen actors carry casting gender and descriptions; Alloy is male",function(){
-    var O=TTS._openai;if(!O.catalog)return "actor catalog missing";
-    var a=O.catalog(),seen={};if(a.length!==13)return "actor count "+a.length;
-    for(var i=0;i<a.length;i++){var v=a[i];if(seen[v.id]||O.voices.indexOf(v.id)<0)return "duplicate/invalid actor "+v.id;seen[v.id]=1;if(v.g!==_oaGender399(v.id)||!v.note)return "gender or description missing/wrong: "+v.id;}
-    return true;
-  });
-  t("#399 every default cast voice retains gender for every narrator",function(){
-    var O=TTS._openai,K="tnd_speaker_stars_v1",save=store.get(K),narr=store.get(O.keys.narr);
-    try {store.del(K);var stars=TTS.starsList();
-      for(var n=0;n<O.voices.length;n++){store.set(O.keys.narr,O.voices[n]);for(var i=0;i<stars.length;i++){
-        var id=O.voiceFor(stars[i].id);if(_oaGender399(id)!==stars[i].g)return stars[i].id+" ("+stars[i].g+") mapped to "+id+" with narrator "+O.voices[n];
-        if(id===O.voices[n]||id!==O.voiceFor(stars[i].id))return "narrator collision or unstable actor";
-      }}return true;
-    } finally {if(save===null)store.del(K);else store.set(K,save);if(narr===null)store.del(O.keys.narr);else store.set(O.keys.narr,narr);}
-  });
-  t("#399 edited star gender wins and legacy labels/default pins still resolve",function(){
-    var O=TTS._openai,K="tnd_speaker_stars_v1",save=store.get(K);
-    try {store.del(K);var shipped=TTS.starsList();store.set(K,JSON.stringify([{id:"custom#1",label:"Reader (F)",g:"M"},{id:"custom#2",label:"Reader (F)"}]));
-      if(_oaGender399(O.voiceFor("custom#1"))!=="M")return "edited structured gender ignored";
-      if(_oaGender399(O.voiceFor("custom#2"))!=="F")return "legacy label gender ignored";
-      for(var i=0;i<shipped.length;i++)if(_oaGender399(O.voiceFor(shipped[i].id))!==shipped[i].g)return "unstarred default pin lost its gender: "+shipped[i].id;
-      return true;
-    } finally {if(save===null)store.del(K);else store.set(K,save);}
-  });
-  t("#399 GM speaker attribution reaches matching OpenAI actors without rewriting NPC pins",function(){
-    var O=TTS._openai,K="tnd_speaker_stars_v1",save=store.get(K);makeWorld();
-    try {store.set(K,JSON.stringify([{id:"en_US-libritts_r-medium#9",label:"Reader (F)",g:"F"},{id:"en_US-libritts_r-medium#3",label:"Reader (M)",g:"M"}]));
-      worldState.npcs=[{name:"Lysa",pronouns:"she/her"},{name:"Bram",pronouns:"he/him"}];
-      var text="The path bends. Stay close. I see a light.",sp={n:3,s:{1:"Lysa",2:"Bram"}};
-      pinAutoCastVoices(sp);var pins=JSON.stringify(worldState.npcs),voices=speakerVoiceMap(sp,text),units=TTS._textPrep.splitSentences(text,null,true),g=O.group(units,"",voices);
-      if(g.length!==3||_oaGender399(g[1].voice)!=="F"||_oaGender399(g[2].voice)!=="M")return "GM speaker genders lost during cloud mapping: "+JSON.stringify(g);
-      if(JSON.stringify(O.group(units,"",voices))!==JSON.stringify(g)||JSON.stringify(worldState.npcs)!==pins)return "replay changed actors or saved pins";
-      return true;
-    } finally {if(save===null)store.del(K);else store.set(K,save);}
-  });
-  t("#399 actor labels show gender and description while option values stay API ids",function(){
-    var O=TTS._openai;if(!O.options)return "actor options renderer missing";
-    var html=O.options("alloy");
-    for(var i=0;i<O.voices.length;i++){var id=O.voices[i],re=new RegExp("<option value='"+id+"'[^>]*>([^<]+)</option>"),m=re.exec(html);if(!m||m[1].indexOf(_oaGender399(id)==="M"?"Male":"Female")<0||m[1].split(" · ").length<3)return "unlabelled actor "+id;}
-    return html.indexOf("value='alloy' selected")>=0?true:"selection changed API id";
-  });
-
-  t("#399 narrator and explicit actor ids stay intact; unknown cast stays valid and stable",function(){
-    var O=TTS._openai;
-    for(var i=0;i<O.voices.length;i++)if(O.voiceFor(O.voices[i])!==O.voices[i])return "explicit actor changed";
-    var v=O.voiceFor("unclassified-cast#999");
-    if(O.voices.indexOf(v)<0||v!==O.voiceFor("unclassified-cast#999")||v===O.narrator())return "unknown cast became invalid, unstable or narrator";
-    if(O.voiceFor("")!==O.narrator())return "narrator was auto-cast";
-    var catalog=O.catalog();catalog[0].g="broken";return O.catalog()[0].g==="F"?true:"catalog snapshot mutated shared metadata";
-  });
-
   section("Voice settings drafts (#401)");
   t("#401 editing every model and cast is isolated until Save",function(){
     var S=TTS.settings;if(!S)return "settings draft API missing";
-    var before=JSON.stringify(S.draft()),d=S.draft();d.primary="openai";d.models.openai.narrator="alloy";d.models.openai.direction="Quiet";d.models.openai.rate=1.3;d.models.openai.cast["cast#1"]="onyx";d.keys.openai="unsaved";
+    var before=JSON.stringify(S.draft()),d=S.draft();d.primary="inworld";d.models.inworld.narrator="alloy";d.models.inworld.direction="Quiet";d.models.inworld.rate=1.3;d.models.inworld.cast["cast#1"]="onyx";d.keys.inworld="unsaved";/* #467: the fixture rode the retired openai model */
     return JSON.stringify(S.draft())===before?true:"draft mutated live settings";
   });
   t("#401 invalid selection and missing credentials refuse before writing",function(){

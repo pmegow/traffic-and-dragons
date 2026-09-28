@@ -1,5 +1,7 @@
 # OpenAI actor genders — #399
 
+> **Retired by #467 (2026-09-27, owner ruling 2026-09-26).** The OpenAI voice tier and its 13-actor bank are removed; its engine checks and `dev/sabotage-399-openai-casting.js` were deleted with it. They live in git history: `git log --diff-filter=D --oneline -- <path>` names the deleting commit, and its parent holds the file. The shared gender lookup this record proved (edited star gender wins, legacy labels and unstarred shipped pins resolve) is now pinned on the live Inworld path in `dev/tests-401-voice-settings.js`.
+
 The owner requested gender assignments and actor descriptions for NPC casting, explicitly assigning Alloy male. Built as v1.893.
 
 ## Cause and mechanic

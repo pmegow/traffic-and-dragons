@@ -1,5 +1,7 @@
 # #401 — Model-driven Voice Settings
 
+> **#467 (2026-09-27):** the OpenAI voice model this record exercises is retired. `dev/qa-401-voice-settings.js` now runs its migration, key-on-file, draft-isolation, audition-payload and Save legs on Gemini (plus a check that a voice Save leaves the GM's OpenAI key alone), and its Speechify legs follow #454 (no Emotion control); `dev/qa-398-openai.js` was deleted. Re-run green in Chrome 2026-09-27 together with `dev/qa-401-speechify-rate.js`.
+
 Owner design, 2026-09-11. Published as v1.901 on owner request via [PR #11](https://github.com/pmegow/traffic-and-dragons/pull/11), merge `781b10d`, after all branch CI checks passed. [Production](https://traffic-and-dragons.pages.dev/) and the release deployment `14b08703` were verified on 2026-09-11.
 
 ## Cause and behavior

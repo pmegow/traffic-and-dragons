@@ -5,8 +5,8 @@ const sleep=ms=>new Promise(r=>realTimer(r,ms));
 const calls=[],sources=[],toasts=[];
 global.document={getElementById:()=>null,addEventListener:()=>{},removeEventListener:()=>{}};
 global.window={AudioContext:function(){this.state='running';this.currentTime=0;this.sampleRate=24000;this.destination={};this.createGain=()=>({gain:{},connect(){}});this.createBuffer=(c,n,r)=>({duration:n/r,getChannelData:()=>new Float32Array(n)});this.createBufferSource=()=>{const src={context:this,connect(){},disconnect(){},start(){if(!this.loop)sources.push(this)},stop(){},buffer:null};return src;};}};
-global.showToast=m=>toasts.push(m);providerKeys.openai='synthetic-test-key';
-let passed=0;async function test(name,fn){try{TTS.stop();TTS._openai.reset();calls.length=0;sources.length=0;await fn();passed++;console.log('PASS '+name)}catch(e){console.error('FAIL '+name+' — '+e.message);process.exitCode=1}finally{TTS.stop();global.setTimeout=realTimer;global.fetch=realFetch;}}
+global.showToast=m=>toasts.push(m);
+let passed=0;async function test(name,fn){try{TTS.stop();calls.length=0;sources.length=0;await fn();passed++;console.log('PASS '+name)}catch(e){console.error('FAIL '+name+' — '+e.message);process.exitCode=1}finally{TTS.stop();global.setTimeout=realTimer;global.fetch=realFetch;}}
 async function settled(p){let timer;try{return await Promise.race([p,new Promise((r,j)=>{timer=realTimer(()=>j(Error('operation stayed pending')),250)})])}finally{clearTimeout(timer)}}
 const pcm=()=>({ok:true,status:200,arrayBuffer:async()=>new Uint8Array([0,0,255,127]).buffer});
 
@@ -23,7 +23,7 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
  await test('#401 catalog follows even empty pages and filters unsupported Speechify actors',async()=>{let urls=[];global.fetch=async url=>{urls.push(url);return{ok:true,json:async()=>urls.length===1?{voices:[],has_more:true,next_cursor:'a b'}:{voices:[{id:'old',models:[{name:'simba-english'}]},{id:'new',display_name:'A <voice>',gender:'female',models:[{name:'simba-3.2'}]}],has_more:false}}};const v=await S.loadCatalog('speechify','fixture');assert.equal(urls.length,2);assert(urls[1].includes('cursor=a%20b'));assert.equal(v.length,1);assert.equal(v[0].id,'new');assert.equal(v[0].g,'F')});
  await test('#401 catalog rejects repeated cursor and supports explicit cancellation',async()=>{global.fetch=async()=>({ok:true,json:async()=>({voices:[],has_more:true,next_cursor:'loop'})});await assert.rejects(S.loadCatalog('speechify','fixture'),/repeated/);let c;global.fetch=()=>new Promise(()=>{});const p=S.loadCatalog('inworld','fixture',x=>c=x);c.abort();await assert.rejects(settled(p),/cancelled/)});
  await test('#401 Save commits selection and cast but never changes GM provider or NPC pins',async()=>{const d=draft('inworld'),gm=activeProvider,pins=JSON.stringify(worldState);d.models.inworld.cast['legacy#12']='b';S.save(d);assert.equal(TTS.getEngine(),'inworld');assert.equal(S.actor('inworld','legacy#12',S.draft().models.inworld),'b');assert.equal(activeProvider,gm);assert.equal(JSON.stringify(worldState),pins);let reload=S.draft();assert.equal(reload.keys.inworld,'fixture');assert.equal(reload.models.inworld.narrator,'a');reload.models.inworld.narrator='c';assert.equal(S.draft().models.inworld.narrator,'a');store.del(S._keys.settings);store.del(S._keys.credentials)});
- await test('#401 local draft keeps an imported composite narrator and Google auto-cast stays stable',async()=>{const d=S.draft();for(const v of TTS.starsList()){assert.equal(S.actor('gemini',v.id,d.models.gemini),TTS._gemini.voiceFor(v.id));assert.equal(S.actor('openai',v.id,d.models.openai),TTS._openai.voiceFor(v.id))}});
+ await test('#401 local draft keeps an imported composite narrator and Google auto-cast stays stable',async()=>{const d=S.draft();for(const v of TTS.starsList()){assert.equal(S.actor('gemini',v.id,d.models.gemini),TTS._gemini.voiceFor(v.id))}});
  await test('#401 storage quota failure restores every preference and credential',async()=>{const d=draft('speechify'),before=JSON.stringify(S.draft()),keys=JSON.stringify(providerKeys),original=store.set;let n=0;store.set=function(k,v){if(++n===3)throw Error('Quota exceeded');return original(k,v)};try{assert.throws(()=>S.save(d),/Could not save/);assert.equal(JSON.stringify(S.draft()),before);assert.equal(JSON.stringify(providerKeys),keys)}finally{store.set=original}});
  await test('#401 unstarred imported Piper speaker remains selectable and validates for Save',async()=>{const d=S.draft();d.primary='local';d.models.local.narrator='en_US-libritts_r-medium#611';assert.equal(S._validate(d),'');assert(S.catalog('local',d.models.local).some(v=>v.id===d.models.local.narrator));});
  await test('#401 a small actor bank reuses a matching narrator before crossing gender',async()=>{const d=draft('inworld'),c=d.models.inworld;delete c.cast[TTS.starsList()[0].id];c.voices=c.voices.slice(0,2);const female=TTS.starsList().find(v=>v.g==='F');assert.equal(S.actor('inworld',female.id,c),'a');});
@@ -59,6 +59,46 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   toasts.length=0;global.fetch=async()=>({ok:false,status:429,json:async()=>({error:{code:'concurrency_limit_reached'}})});
   S.test(draft('speechify'),'A quiet road.','a',()=>{});await sleep(20);
   assert(toasts.some(t=>t.includes('Speechify')&&t.includes('simultaneous speech requests')));assert.equal(sources.length,0);assert.equal(TTS.isPlaying(),false);
+ });
+ /* #467 carry-over: the retired OpenAI suites (#398 transport, #399 casting) were the ONLY guards of four shared behaviours the
+    live readers still run — measured by mutating each site against the post-cut gate (all four went green) and against HEAD
+    (each caught only by a #398/#399 test). Same assertions, moved onto the surviving Inworld/Speechify paths; the fourth (a new
+    audition stops the previous one) had been proven only for the retired OpenAI audition, never for this one. */
+ await test('#467 (carried from #399) auto-cast gender on the live Inworld path: the edited star bench wins, a legacy "(F)" label still counts, and an unstarred shipped pin keeps its gender',async()=>{
+  const K='tnd_speaker_stars_v1',old=store.get(K),c=draft('inworld').models.inworld;
+  c.voices=[{id:'a',g:'F'},{id:'b',g:'M'},{id:'c',g:'F'},{id:'d',g:'M'},{id:'e',g:'F'},{id:'f',g:'M'}];c.narrator='a';
+  const gOf=id=>(c.voices.find(v=>v.id===id)||{}).g;
+  try{
+   store.del(K);const shipped=TTS.starsList(),edited=[],legacy=[];
+   for(let i=1;i<=8;i++){edited.push({id:'custom#'+i,label:'Reader (F)',g:'M'});legacy.push({id:'legacy#'+i,label:'Reader (F)'});}
+   store.set(K,JSON.stringify(edited.concat(legacy)));
+   for(const s of edited)assert.equal(gOf(S.actor('inworld',s.id,c)),'M','edited structured gender ignored: '+s.id);
+   for(const s of legacy)assert.equal(gOf(S.actor('inworld',s.id,c)),'F','legacy label gender ignored: '+s.id);
+   for(const s of shipped)assert.equal(gOf(S.actor('inworld',s.id,c)),s.g,'unstarred shipped pin lost its gender: '+s.id);
+  }finally{if(old===null)store.del(K);else store.set(K,old);}
+ });
+ await test('#467 (carried from #398) a live Inworld read plays out-of-order synthesis in order and releases every decoded buffer',async()=>{
+  S.save(draft('inworld'));const pending=[],audio=()=>({ok:true,json:async()=>({audioContent:Buffer.from([0,0,255,127]).toString('base64')})});
+  global.fetch=(u,o)=>new Promise(resolve=>pending.push(resolve));
+  TTS.speak('First line. Second line.',null,{1:'cast-a'});await sleep(10);
+  assert.equal(pending.length,2,'both voices must be in flight');
+  pending[1](audio());await sleep(5);assert.equal(sources.length,0,'second voice jumped ahead');
+  pending[0](audio());await sleep(10);assert.equal(sources.length,2);assert.equal(sources[0].buffer.duration,2/24000);assert(TTS.isPlaying());
+  sources.slice().forEach(s=>s.onended());assert.equal(TTS.isPlaying(),false);assert(sources.every(s=>s.buffer===null),'a finished group kept its decoded audio');
+  store.del(S._keys.settings);store.del(S._keys.credentials);
+ });
+ await test('#467 (carried from #398) Skip aborts a cloud audition and releases its Test pulse',async()=>{
+  let signal;const phases=[];global.fetch=(u,o)=>{signal=o.signal;return new Promise(()=>{})};
+  S.test(draft('speechify'),'A quiet road.','b',p=>phases.push(p));await sleep(10);
+  assert(signal,'the audition never sent its request');TTS.skip();
+  assert(signal.aborted,'Skip left the audition request running');assert.equal(phases.at(-1),'idle','Skip left the Test pulse stuck');assert.equal(TTS.isPlaying(),false);
+ });
+ await test('#467 (carried from #398) a new cloud audition cancels the previous one before it starts',async()=>{
+  const pending=[],old=[],fresh=[];global.fetch=(u,o)=>{pending.push(o.signal);return new Promise(()=>{})};
+  S.test(draft('speechify'),'A quiet road.','a',p=>old.push(p));await sleep(5);
+  S.test(draft('speechify'),'A quiet road.','b',p=>fresh.push(p));await sleep(5);
+  assert(pending[0].aborted,'the first audition request is still running');assert.equal(old.at(-1),'idle','the first audition pulse was never released');assert.equal(fresh.at(-1),'loading');
+  TTS.stop();assert.equal(fresh.at(-1),'idle');
  });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' settings/transport groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

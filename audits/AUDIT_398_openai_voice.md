@@ -1,5 +1,7 @@
 # OpenAI voice option — #398
 
+> **Retired by #467 (2026-09-27, owner ruling 2026-09-26).** The OpenAI voice tier is removed. The files cited below — `dev/tests-398-openai.js`, `dev/sabotage-398-openai.js`, `dev/qa-398-openai.js` — were deleted with it, not re-baselined. They live in git history: `git log --diff-filter=D --oneline -- <path>` names the deleting commit, and its parent holds the file. The shared behaviours this record proved through OpenAI (Stop/Skip cancellation, in-order playback that releases decoded audio, Skip idling the Test pulse) are now pinned on the live providers in `dev/tests-401-voice-settings.js`; see [the voice contract](../DOC/contracts/tts-stt.md#ttsjs).
+
 Built as v1.892 on the isolated codex/openai-voice branch, based on dd922a7.
 
 ## Trial

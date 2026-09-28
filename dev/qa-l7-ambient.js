@@ -47,8 +47,8 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   await page.waitForTimeout(350);
   assert.equal(await page.evaluate(()=>Sound.enabled()),false,'ambience must work with UI sounds off');
   const normal=await page.evaluate(()=>__loops.at(-1).__gain.gain.value);
-  await page.route('https://api.openai.com/v1/audio/speech',route=>route.fulfill({status:200,contentType:'application/octet-stream',body:Buffer.alloc(24000*2*2)}));
-  await page.evaluate(()=>{providerKeys.openai='fixture-key';TTS._openai.select(true);window.__voiceDone=0;window.__voiceStates=0;TTS.setOnDone(()=>__voiceDone++);TTS.on('state',()=>__voiceStates++);TTS.speak('The forge warms the room.');});
+  await page.route('https://api.speechify.ai/v1/audio/stream',route=>route.fulfill({status:200,contentType:'audio/pcm',body:Buffer.alloc(24000*2*2)}));
+  await page.evaluate(()=>{var d=TTS.settings.draft();d.primary='speechify';d.keys.speechify='fixture';d.models.speechify.voices=[{id:'a',label:'A',g:'F'}];d.models.speechify.narrator='a';TTS.settings.save(d);/* #467: narration rides Speechify — the OpenAI voice tier is retired */window.__voiceDone=0;window.__voiceStates=0;TTS.setOnDone(()=>__voiceDone++);TTS.on('state',()=>__voiceStates++);TTS.speak('The forge warms the room.');});
   await page.waitForTimeout(350);
   const ducked=await page.evaluate(()=>__loops.at(-1).__gain.gain.value);assert(ducked<normal*0.6&&ducked>normal*0.3,'narration must duck the real fire gain to about half (v1.940), not mute it');
   await page.waitForFunction(()=>!TTS.isPlaying());await page.waitForTimeout(350);

@@ -498,7 +498,7 @@ var TTS = (function() {
     return "";
   }
   function _geminiTtsOk() {
-    if (_openaiEnabled() || !geminiTtsEnabled()) return false;
+    if (!geminiTtsEnabled()) return false;
     if (!_geminiKey()) return false;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
     if (_geminiTtsErr) {
@@ -651,100 +651,12 @@ var TTS = (function() {
     return "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
   }
 
-  // OpenAI speech uses the existing BYOK store; selection never changes the GM provider.
-  var OPENAI_TTS_K = "tnd_tts_openai_v1", OPENAI_NARR_K = "tnd_tts_openai_narr_v1";
-  var OPENAI_DIR_K = "tnd_tts_openai_dir_v1";
-  // App casting labels, not provider identity claims. API ids stay unchanged in saved prefs.
-  var OPENAI_VOICE_BANK = [
-    { id: "marin", g: "F", note: "Warm, clear" },
-    { id: "cedar", g: "M", note: "Warm, natural" },
-    { id: "alloy", g: "M", note: "Neutral" },
-    { id: "ash", g: "M", note: "Low, steady" },
-    { id: "ballad", g: "M", note: "Soft, expressive" },
-    { id: "coral", g: "F", note: "Bright, friendly" },
-    { id: "echo", g: "M", note: "Clear, measured" },
-    { id: "fable", g: "M", note: "Storyteller" },
-    { id: "nova", g: "F", note: "Energetic" },
-    { id: "onyx", g: "M", note: "Deep, firm" },
-    { id: "sage", g: "F", note: "Calm, gentle" },
-    { id: "shimmer", g: "F", note: "Light, smooth" },
-    { id: "verse", g: "M", note: "Conversational" }
-  ];
-  var OPENAI_VOICES = OPENAI_VOICE_BANK.map(function(v) { return v.id; });
-  function _openaiVoiceOptions(sel) {
-    return OPENAI_VOICE_BANK.map(function(v) {
-      var label = v.id.charAt(0).toUpperCase() + v.id.slice(1) + " · " + (v.g === "M" ? "Male" : "Female") + " · " + v.note;
-      return "<option value='" + v.id + "'" + (v.id === sel ? " selected" : "") + ">" + escHtml(label) + "</option>";
-    }).join("");
-  }
-  var OPENAI_DIRECTION = "Read as an understated storyteller. Speak clearly and naturally, with restrained emotion and no theatrical emphasis.";
-  var _openaiErr = "", _openaiErrAt = 0, _cloudAbort = null;
-  function _openaiEnabled() { return store.get(OPENAI_TTS_K) === "1"; }
-  function _openaiKey() { return typeof providerKeys !== "undefined" && providerKeys ? providerKeys.openai || "" : ""; }
-  function _openaiNarrator() { var v = store.get(OPENAI_NARR_K); return OPENAI_VOICES.indexOf(v) >= 0 ? v : "marin"; }
-  function _openaiDirection() { return store.get(OPENAI_DIR_K) || OPENAI_DIRECTION; }
-  function _openaiReset() { _openaiErr = ""; _openaiErrAt = 0; }
-  function _openaiSelect(on) {
-    var settings = Object.assign({}, _voiceRead(VOICE_SETTINGS_K)); delete settings.primary; store.set(VOICE_SETTINGS_K, JSON.stringify(settings));
-    store.set(OPENAI_TTS_K, on ? "1" : "0");
-    if (on) { store.set(GEMINI_TTS_K, "0"); _openaiReset(); }
-  }
-  function _openaiOk() {
-    return _openaiEnabled() && !!_openaiKey() && !(typeof navigator !== "undefined" && navigator.onLine === false)
-      && (!_openaiErr || Date.now() - _openaiErrAt >= 60000);
-  }
-  function _openaiDegrade(reason) {
-    _openaiErr = String(reason || "speech failed"); _openaiErrAt = Date.now();
-    console.warn("[tts openai] " + _openaiErr);
-    if (typeof showToast === "function") showToast("OpenAI voice unavailable: " + _openaiErr + " — using the local voice", 8000);
-  }
-  function _openaiVoiceFor(id) {
-    if (!id) return _openaiNarrator();
-    if (OPENAI_VOICES.indexOf(id) >= 0) return id;
-    var gender = _castVoiceGender(id), narrator = _openaiNarrator();
-    var h = 0, i, pool = OPENAI_VOICE_BANK.filter(function(v) {
-      return (!gender || v.g === gender) && v.id !== narrator;
-    }).map(function(v) { return v.id; });
-    for (i = 0; i < id.length; i++) h = ((h * 31) + id.charCodeAt(i)) >>> 0;
-    return pool[h % pool.length];
-  }
-  function _openaiGroup(units, voiceId, voices, forceVoice) {
-    return _geminiGroupUnits(units, voiceId, voices, forceVoice, _openaiVoiceFor);
-  }
-  // The deadline races the WHOLE operation, including body consumption. Aborting the
-  // request alone is insufficient when a transport fails to reject its pending body read.
-  async function _openaiFetchGroup(g, isFirst, key, direction, regCtrl, config) {
-    if (!key) return { fail: "no OpenAI API key on file" };
-    var ctrl = new AbortController(), timer, rejectAbort;
-    var cancelled = new Promise(function(resolve, reject) { rejectAbort = reject; });
-    function onAbort() { rejectAbort(new Error("request cancelled")); }
-    ctrl.signal.addEventListener("abort", onAbort, { once: true });
-    if (regCtrl) regCtrl(ctrl);
-    timer = setTimeout(function() { rejectAbort(new Error("request timeout (20s)")); ctrl.abort(); }, 20000);
-    try {
-      var operation = (async function() {
-        if (ctrl.signal.aborted) throw new Error("request cancelled");
-        var response = await fetch("https://api.openai.com/v1/audio/speech", {
-          method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
-          body: JSON.stringify({ model: "gpt-4o-mini-tts", input: g.text, voice: g.voice,
-            instructions: direction, response_format: "pcm", speed: _effRate({ rate: config ? config.rate : getRate() }, g)/* #457 */ }), signal: ctrl.signal
-        });
-        if (!response.ok) return { fail: "HTTP " + response.status + (response.status === 429 ? " (quota or rate limit)" : response.status === 401 ? " (check your API key)" : "") };
-        var bytes = new Uint8Array(await response.arrayBuffer());
-        if (!bytes.length || bytes.length % 2 || bytes.length > 6000000) return { fail: "invalid PCM audio response" };
-        return { bytes: bytes, rate: 24000 };
-      })();
-      return await Promise.race([operation, cancelled]);
-    } catch (e) { return { fail: (e && e.message) || "speech request failed" }; }
-    finally { clearTimeout(timer); ctrl.signal.removeEventListener("abort", onAbort); }
-  }
   // Cloud adapters share grouping, bounded prefetch, playback and cancellation. Only
   // transport, voice selection and provider-specific startup policy differ.
+  var _cloudAbort = null;   // the active cloud conveyor's abort-all (Stop/Skip reach every prefetched request through it)
   var CLOUD_READERS = {
     gemini: { label: "Gemini TTS", key: _geminiKey, direction: geminiDirection, group: _geminiGroupUnits,
-      fetch: _geminiFetchGroup, degrade: _geminiTtsDegrade, depth: GEMINI_TTS_PREFETCH, prime: _geminiPrimeReady },
-    openai: { label: "OpenAI TTS", key: _openaiKey, direction: _openaiDirection, group: _openaiGroup,
-      fetch: _openaiFetchGroup, degrade: _openaiDegrade, depth: 2, prime: function() { return true; } }
+      fetch: _geminiFetchGroup, degrade: _geminiTtsDegrade, depth: GEMINI_TTS_PREFETCH, prime: _geminiPrimeReady }
   };
 
   // Settings are copied into a draft; only commitSettings writes preferences.
@@ -779,9 +691,6 @@ var TTS = (function() {
      sound is adding an entry; the prefix builder (_markupPrefix) gives each its own bracket after the steering words. */
   var INWORLD_SOUNDS = ["laugh", "giggle", "chuckle", "sigh", "breathe", "gasp", "clear throat", "cough", "yawn", "sob", "groan"];
   var VOICE_MODELS = {
-    openai: { label: "OpenAI · GPT-4o mini TTS", key: true, direction: true, rate: true, languages: [""],
-      note: "13 actors. Uses your existing OpenAI key. Test bills that key.", catalog: function() { return OPENAI_VOICE_BANK; },
-      defaults: function() { return { narrator: _openaiNarrator(), direction: _openaiDirection(), rate: getRate() }; } },
     gemini: { label: "Google · Gemini TTS", key: true, direction: true, languages: [""],
       note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
       defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
@@ -835,7 +744,7 @@ var TTS = (function() {
   }
   function _voicePrimary() {
     var p = _voiceRead(VOICE_SETTINGS_K).primary;
-    return VOICE_MODELS[p] ? p : _openaiEnabled() ? "openai" : geminiTtsEnabled() ? "gemini" : "local";
+    return VOICE_MODELS[p] ? p : geminiTtsEnabled() ? "gemini" : "local";
   }
   function _voiceConfig(id) {
     var m = VOICE_MODELS[id], saved = _voiceRead(VOICE_SETTINGS_K).models || {};
@@ -844,12 +753,12 @@ var TTS = (function() {
     if (id === "native") result.narrator = getNativeVoice();
     return result;
   }
-  function _voiceKey(id) { return id === "openai" ? _openaiKey() : id === "gemini" ? _geminiKey() : _voiceRead(VOICE_KEYS_K)[id] || ""; }
+  function _voiceKey(id) { return id === "gemini" ? _geminiKey() : _voiceRead(VOICE_KEYS_K)[id] || ""; }
   function _voiceCatalog(id, c) {
     var m = VOICE_MODELS[id];
     var list = (m.catalog ? m.catalog() : c.voices || []).slice();
     if (id === "local" && c.narrator && _piperVoiceKnown(c.narrator) && !list.some(function(v) { return v.id === c.narrator; })) list.push({ id: c.narrator, label: _voiceLabelOf(c.narrator) });
-    return list.map(function(v) { return { id: v.id, label: v.label || (id === "openai" ? v.id.charAt(0).toUpperCase() + v.id.slice(1) : v.id), g: v.g || "", note: m.actorNote ? m.actorNote(v.note || v.blurb || "") : v.note || v.blurb || "", language: v.language || "" }; });
+    return list.map(function(v) { return { id: v.id, label: v.label || v.id, g: v.g || "", note: m.actorNote ? m.actorNote(v.note || v.blurb || "") : v.note || v.blurb || "", language: v.language || "" }; });
   }
   function _voiceDraft() {
     var d = { primary: _voicePrimary(), models: {}, keys: {}, fallback: { piper: resolvePiperVoice(), native: getNativeVoice(), rate: getRate() } };
@@ -872,15 +781,14 @@ var TTS = (function() {
     var error = _voiceValidate(d); if (error) throw new Error(error);
     var data = JSON.parse(JSON.stringify(d));
     var keys = Object.assign({}, providerKeys);
-    ["openai", "gemini"].forEach(function(id) { if (data.keys[id]) keys[id] = data.keys[id].trim(); });
+    if (data.keys.gemini) keys.gemini = data.keys.gemini.trim();   // the one voice key kept in the BYOK store; every other entry (the GM's) passes through untouched
     var local = data.primary === "local" ? data.models.local.narrator : data.fallback.piper;
     var native = data.primary === "native" ? data.models.native.narrator : data.fallback.native;
     var writes = [
       [PKEYS_K, JSON.stringify(keys)],
       [VOICE_KEYS_K, JSON.stringify({ inworld: data.keys.inworld.trim(), speechify: data.keys.speechify.trim() })],
       [VOICE_SETTINGS_K, JSON.stringify({ primary: data.primary, models: data.models })],
-      [OPENAI_TTS_K, data.primary === "openai" ? "1" : "0"], [GEMINI_TTS_K, data.primary === "gemini" ? "1" : "0"],
-      [OPENAI_NARR_K, data.models.openai.narrator], [OPENAI_DIR_K, data.models.openai.direction],
+      [GEMINI_TTS_K, data.primary === "gemini" ? "1" : "0"],
       [GEMINI_NARRATOR_K, data.models.gemini.narrator], [GEMINI_DIR_K, data.models.gemini.direction],
       [NVOICE_K, native], [RATE_K, String((data.primary === "local" || data.primary === "native") ? data.models[data.primary].rate : data.fallback.rate)]
     ];
@@ -895,7 +803,7 @@ var TTS = (function() {
     providerKeys = keys;
     if (typeof activeProvider !== "undefined" && keys[activeProvider]) apiKey = keys[activeProvider];
     if (localChanged) savePiperVoice(local);
-    _openaiReset(); _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiModelClosedUntil = {}; _voiceErrors = {};
+    _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiModelClosedUntil = {}; _voiceErrors = {};
   }
   function _voiceActor(id, legacy, c, bank) {
     if (!legacy) return c.narrator;
@@ -1104,11 +1012,6 @@ var TTS = (function() {
   // fallbackReason()  — human-readable reason shown by the settings-modal indicator when this
   //                     engine downgrades to native for an item.
   var TTS_PROVIDERS = {
-    openai: {
-      id: "openai", label: "OpenAI cloud voices", available: _openaiOk,
-      enqueue: function(text) { return { text: text, cloud: "openai", voiceId: resolvePiperVoice() }; },
-      fallbackReason: function() { return _openaiErr || "OpenAI voice is off or has no API key"; }
-    },
     native: {
       id: "native", label: "Native (device voice)",
       hint: "Your browser/OS built-in voice. No key needed, works everywhere, lower quality. Always the fallback target for the other engines.",
@@ -1151,7 +1054,7 @@ var TTS = (function() {
   // #41: gemini sits ABOVE server. It is opt-in and default OFF, so this reorder changes nothing
   // for anyone who has not turned it on — available() is false and the walk starts at server
   // exactly as before.
-  var TTS_LADDER = ["openai", "gemini", "server", "piper", "native"];
+  var TTS_LADDER = ["gemini", "server", "piper", "native"];
   TTS_LADDER.unshift("inworld", "speechify");
   ["inworld", "speechify"].forEach(function(id) {
     var m = VOICE_MODELS[id];
@@ -4448,15 +4351,6 @@ var TTS = (function() {
     if (p === "idle") _auditionCb = null;
     if (typeof cb === "function") { try { cb(p); } catch (e) {} }
   }
-  function testOpenaiVoice(voiceName, dirOverride, onPhase) {
-    if (!_openaiKey()) { if (typeof showToast === "function") showToast("Add an OpenAI API key in Voice Settings first", 6000); return; }
-    _openaiReset(); stop();
-    _auditionCb = typeof onPhase === "function" ? onPhase : null;
-    _auditionPhase("loading");
-    _queue.push({ text: GEMINI_TEST_LINE, cloud: "openai", voiceId: "",
-      forceVoice: OPENAI_VOICES.indexOf(voiceName) >= 0 ? voiceName : _openaiNarrator(), dir: dirOverride || "" });
-    _drain();
-  }
   function testGeminiVoice(voiceName, dirOverride, onPhase) {
     if (!_geminiKey()) {
       if (typeof showToast === "function") showToast("Add a Gemini API key first (Language Model…)");
@@ -4517,7 +4411,7 @@ var TTS = (function() {
   return {
     // audit F12 — `request: _voiceRequest` had zero consumers anywhere, tests included, and is
     // gone. The three below are consumed ONLY by the headless engine tests (same contract as
-    // _textPrep/_serverTest/_gemini/_openai); the underscore is the marker that says so, and
+    // _textPrep/_serverTest/_gemini); the underscore is the marker that says so, and
     // ui-voice-settings.js — the one production consumer of this object — touches none of them.
     settings: { models: VOICE_MODELS, draft: _voiceDraft, save: _voiceCommit,
       catalog: _voiceCatalog, loadCatalog: _voiceLoadCatalog, actor: _voiceActor, castSlots: _voiceCastSlots, test: _voiceTest,
@@ -4642,12 +4536,6 @@ var TTS = (function() {
                resetDegrade: function() { _geminiTtsErr = ""; _geminiTtsErrAt = 0; _geminiTtsErrFor = 0; },
                testLine: GEMINI_TEST_LINE,
                phase: _auditionPhase, setPhaseCb: function(fn) { _auditionCb = fn; } },
-    _openai: { keys: { on: OPENAI_TTS_K, narr: OPENAI_NARR_K, dir: OPENAI_DIR_K },
-      catalog: function() { return OPENAI_VOICE_BANK.map(function(v) { return { id: v.id, g: v.g, note: v.note }; }); },
-      options: _openaiVoiceOptions,
-      voices: OPENAI_VOICES, narrator: _openaiNarrator, voiceFor: _openaiVoiceFor, group: _openaiGroup,
-      ok: _openaiOk, select: _openaiSelect, reset: _openaiReset, degrade: _openaiDegrade, fetchGroup: _openaiFetchGroup },
-    testOpenaiVoice: testOpenaiVoice,
     testGeminiVoice: testGeminiVoice,   // #41: audition one Gemini voice (settings-modal ▶ Test)
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit, unitGap: unitGap,
                  pauses: function() { return { comma: PAUSE_COMMA, clause: PAUSE_COMMA_CLAUSE, fullstop: PAUSE_FULLSTOP, paragraph: PAUSE_PARAGRAPH }; } },

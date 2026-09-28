@@ -1405,6 +1405,16 @@ try {
   console.log("[#430] ledger rows live battery registered");
 } catch (e) { console.error("LEDGER ROWS LIVE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── #467 OPENAI VOICE RETIRED CONTRACT (v1.1010) ─────────────────────────────────────────
+// The OpenAI voice tier is gone; the OpenAI LANGUAGE MODEL shares its name and stays. The battery
+// dev/tests-467-openai-voice-retired.js proves a device still holding the retired voice keys reads
+// on the local ladder, and that PROVIDERS.openai survives and the Language Model modal lists it.
+// This clause guards that the gate still RUNS it (the #423 precedent).
+try {
+  if (_src("dev/run-standalone-suites.js").indexOf("dev/tests-467-openai-voice-retired.js") < 0) throw new Error("the #467 battery is not in run-standalone-suites.js — the gate no longer runs it.");
+  console.log("[#467] retired OpenAI voice battery registered");
+} catch (e) { console.error("OPENAI VOICE RETIRED CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────
 // The wire format is the disk format ({__lz} transcript), and the reconcile ADOPT used to
 // consume the pulled blob RAW (worldState = data.worldState — never parseWorldState): shipping
@@ -1755,7 +1765,7 @@ try {
   }
   // audit F10: the documented effective order, end to end. Every cloud rung above the self-hosted
   // server tier, server above the local wasm floor, native last.
-  var _ladDoc = "inworld → speechify → openai → gemini → server → piper → native";
+  var _ladDoc = "inworld → speechify → gemini → server → piper → native";/* #467: the openai rung retired */
   if (_lad.join(" → ") !== _ladDoc) {
     console.error("SERVER TTS CONTRACT: the EFFECTIVE TTS_LADDER (literal + unshift) no longer matches the documented order.\n  documented: " + _ladDoc + "\n  effective:  " + _lad.join(" → ") +
       "\nThe order is the contract (DOC/contracts/tts-stt.md ▸ tts.js) — a new or moved tier changes what a degrade costs the player, so update the doc and this line in the same commit.");

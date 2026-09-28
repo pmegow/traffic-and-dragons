@@ -4,7 +4,7 @@ const assert = require('assert/strict');
 const qa = require('./browser-voice-qa.js');
 qa(process.cwd(), async b => {
   const ev = b.evaluate;
-  await ev(`providerKeys.openai='fixture';store.set(TTS._openai.keys.on,'1');
+  await ev(`providerKeys.gemini='fixture';store.set(TTS._gemini.keys.on,'1');/* #467: the pre-saved primary is Gemini — the OpenAI voice tier is retired */
     window.__change=function(id,value,type){var n=document.getElementById(id);n.value=value;n.dispatchEvent(new Event(type||'change'));};
     TTS.showSettingsModal();__change('tts-model','speechify');__change('tts-api-key','fixture','input');
     window.fetch=function(){return Promise.resolve({ok:true,json:function(){return Promise.resolve({voices:[{id:'alicia',display_name:'Alicia',gender:'female',models:[{name:'simba-3.2'}]}],has_more:false})}})};
@@ -24,13 +24,13 @@ qa(process.cwd(), async b => {
       assert(req.body.input.includes('rate="'+expected+'"'), JSON.stringify({value,request:req.body.input}));
       assert.equal(req.body.voice_id,'alicia');
       assert.equal(await ev(`document.getElementById('tts-model').value`),'speechify');
-      assert.equal(await ev('TTS.settings.draft().primary'),'openai');
+      assert.equal(await ev('TTS.settings.draft().primary'),'gemini');
       await ev("document.getElementById('tts-stop-btn').click()");
     }
   }
   // Closing without Save restores the prior model; saving must retain the trial model.
   await ev("document.getElementById('tts-modal-x').click();TTS.showSettingsModal()");
-  assert.equal(await ev("document.getElementById('tts-model').value"),'openai');
+  assert.equal(await ev("document.getElementById('tts-model').value"),'gemini');
   await ev(`document.getElementById('tts-modal-x').click();var d=TTS.settings.draft();d.keys.speechify='fixture';d.models.speechify.voices=[{id:'alicia',label:'Alicia',g:'F'}];d.models.speechify.narrator='alicia';TTS.settings.save(d);TTS.showSettingsModal();__change('tts-model','speechify');__change('tts-speed','0.8','input');document.getElementById('tts-save-btn').click();TTS.showSettingsModal();`);
   assert.equal(await ev("document.getElementById('tts-model').value"),'speechify');
   assert.equal(await ev("document.getElementById('tts-speed').value"),'0.8');
