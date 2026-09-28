@@ -24622,6 +24622,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var mm=ub.slice(m0,ub.indexOf("\nfunction ",m0+1));
     if(mm.indexOf("libReplaceSummary(")<0||mm.indexOf("libReplaceApply(")<0)return "the modal bypasses the pure summary/apply";
     if(mm.indexOf("lr-apply")<0||mm.indexOf("lr-cancel")<0||/outside:true/.test(mm))return "no confirm, or an outside click applies nothing and closes";
+    if(mm.indexOf('document.getElementById("lr-apply").addEventListener("click",function(){')<0)return "the wiring: the Apply button must be wired to the confirm handler (weekly 2026-09-28: the clause was dead — lr-apply also names the button markup)";
+    if(mm.indexOf('libReplaceApply(char.name,lib,(typeof entry.updatedAt==="number")?entry.updatedAt:null)')<0)return "the wiring: the stamp must be read from the library entry, never invented";
     if(mm.indexOf("Export Character")<0)return "a missing library copy must say how to create one";
     if(!/if\(!r\.ok\)\{[^}]*showToast\(/.test(mm))return "a refused apply must toast";
     if(mm.indexOf("initAbilities()")<0||mm.indexOf("initSpells()")<0||mm.indexOf("saveAll()")<0)return "the modal must re-init the hero's panels and save";
