@@ -1547,10 +1547,29 @@ function villageReturnObserve(now){
   worldState.returnSeenAt=last;
   var ping={awayMs:ms,fact:villageReturnFact(),change:villageReturnChange(),turn:worldState.turn};worldState.returnPing=ping;return ping;
 }
+/* #481 C1 (audit 2026-09-29, Fable-approved; owner ruling): the fact comes from THIS campaign's own record only, and the
+   filter is unconditional — never the held-past gate, which releases the past in the Hall and when the hero asks; the
+   ruling admits neither. The old picker took the hero's LAST core memory verbatim, which since the Necrotic Dungeon was
+   Daeris's "soul-tax lien" moment: it rode the note before all six recitals (t110, t126, t165, t178, t191, t212), while
+   #469/#479 were closing every other channel. Candidates, newest first:
+   - this campaign's moments (campIsCurrent — an unstamped moment is this campaign's), minus the party/bond filings;
+   - then key decisions;
+   - then the last chapter's first sentence.
+   A candidate is skipped when the register scan hits it, when it echoes an earlier adventure's moment
+   (momentEchoWords against heldPastParty().prior), or when its gist is already a motif key. null → the note omits the
+   fact clause. */
 function villageReturnFact(){
-  var c=worldState.character,cm=(c&&c.coreMemories)||[];if(cm.length)return String(cm[cm.length-1].text||"").slice(0,200);
-  var kd=(memory&&memory.keyDecisions)||[];if(kd.length)return String(kd[kd.length-1].desc||"").slice(0,200);
-  var ch=(memory&&memory.chapters)||[];if(ch.length){var s=String(ch[ch.length-1].summary||""),cut=s.search(/[.!?]\s/);return (cut>0?s.slice(0,cut+1):s).slice(0,200);}
+  var c=worldState.character,cm=(c&&c.coreMemories)||[],cands=[],i;
+  for(i=cm.length-1;i>=0;i--){var m=cm[i];if(!m||!m.text||!campIsCurrent(m)||m.kind==="party"||m.kind==="bond")continue;cands.push(String(m.text));}
+  var kd=(memory&&memory.keyDecisions)||[];for(i=kd.length-1;i>=0;i--)if(kd[i]&&kd[i].desc)cands.push(String(kd[i].desc));
+  var ch=(memory&&memory.chapters)||[];if(ch.length){var s=String(ch[ch.length-1].summary||""),cut=s.search(/[.!?]\s/);if(s)cands.push(cut>0?s.slice(0,cut+1):s);}
+  var held=(typeof heldPastParty==="function")?heldPastParty():null,prior=(held&&held.prior)||[],names=(held&&held.names)||[],nudged=worldState.motifNudged||{};
+  var gistLen=(typeof MOTIF_GIST_CHARS==="number")?MOTIF_GIST_CHARS:60;
+  for(i=0;i<cands.length;i++){var f=cands[i].slice(0,200);
+    if(typeof registerScan==="function"&&registerScan(f).length)continue;
+    if(prior.length&&typeof momentEchoWords==="function"&&momentEchoWords(f,prior,names))continue;
+    if(Object.prototype.hasOwnProperty.call(nudged,f.slice(0,gistLen)))continue;
+    return f;}
   return null;
 }
 /* the visible change, chosen from DATA: an expired shelf first (the clock moved while they were away), then a resident's

@@ -106,7 +106,7 @@ prove("api.js", [
     find: 'if(_hk2.length)lines.push("HOUSES here', replace: 'if(false)lines.push("HOUSES here',
     mustFail: "#6E10 a house is a SUB-LOCATION" },
   { label: "the return note drops the fact",
-    find: '+(q.fact?", and let it name ONE fact from the hero\'s own record: \\""+q.fact+"\\"":"")', replace: '',
+    find: '+(q.fact?"; the greeting may touch ONE thing from this village\'s own record, in the neighbour\'s own words, one passing clause, never the record\'s wording: \\""+q.fact+"\\"":"")', replace: '',
     mustFail: "#6C2 the greeting reaches the GM" },
   { label: "the exchange asks with one resident",
     find: 'if(res.length<2)return "";', replace: 'if(res.length<1)return "";',

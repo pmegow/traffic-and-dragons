@@ -24274,11 +24274,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();delete worldState.kind;worldState.lastTurnAt=now-3*60*60*1000;if(villageReturnObserve(now)||worldState.returnPing)return "the adventure never arms the return";
     return true;
   });
-  t("#6C2 the greeting reaches the GM: buildReturnNote names the time away, the fact and the change, asks for a resident's greeting and a filed change, fires once; a registry row that fires in the village",function(){
+  t("#6C2 the greeting reaches the GM: buildReturnNote names the time away, the fact and the change, asks for a resident's greeting (the change is shown, never filed — #481 C2), fires once; a registry row that fires in the village",function(){
     villageCD();worldState.returnPing={awayMs:3*24*60*60*1000,fact:"Silas broke the runelord's crown on the last stair.",change:"Frizwick is at the smithy this hour",turn:12};
     var n=buildEngineNotes();if(!/RETURN/.test(n)||!/3 days/.test(n))return "the note must name the time away in words: "+n.slice(0,300);
     if(!/runelord's crown/.test(n)||!/at the smithy/.test(n))return "the note must carry the fact and the change";
-    if(!/greet/i.test(n)||!/LOCATION_STATE|tag/.test(n))return "the note must ask for a greeting and a filed change";
+    if(!/greet/i.test(n))return "the note must ask for a greeting";/* #481 C2 (Fable, 2026-09-29): re-baselined — the change is SHOWN, never filed (the old "filed change" ask produced transient, misplaced permanent place history) */
     if(worldState.returnPing||/RETURN/.test(buildEngineNotes()))return "one-shot: the latch burns";
     if(!NOTE_SHAPES.buildReturnNote||NOTE_SHAPES.buildReturnNote.village!=="fires")return "registry row missing or silent";
     return true;
@@ -26677,6 +26677,53 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/campRestamp\(worldState,_oldCampName,name,id\)/.test(uc))return "campSaveRename no longer re-stamps the ACTIVE campaign";
     if(!/campRestamp\(ws,ws\.campName,name,id\)/.test(uc))return "campSaveRename no longer re-stamps a STORED campaign";
     return true;
+  });
+
+  // ── #481 C1 + C2 (audit 2026-09-29, Fable-approved; owner ruling C1): the welcome-back (RETURN) note had quoted the
+  // hero's LAST core memory — Daeris's Necrotic Dungeon moment — before all six "soul-tax lien" recitals (t110 … t212),
+  // and ordered its non-changes ("it is night now") FILED as permanent place history on whatever node the hero stood in.
+  // The fact now comes from THIS campaign's own record only, never an echo or a register word or a flagged gist; the
+  // greeting is staged at the door; the change is shown, never filed.
+  section("#481 C1 C2 the welcome-back note");
+  t("#481 C1 the fact comes from this village's own record: never an earlier adventure's moment, a party filing, a register word or a flagged gist",function(){
+    villageCD();worldState.campId="camp_v1";worldState.campName="The Village (Silas)";
+    var c=worldState.character;
+    c.coreMemories=[
+      {kind:"growth",text:"Silas mended the mill wheel with Halvard.",turn:5,who:"Silas",camp:"The Village (Silas)",campId:"camp_v1"},
+      {kind:"party",text:"Frizwick joined the party at the smithy.",turn:7,who:"Frizwick",camp:"The Village (Silas)",campId:"camp_v1"},
+      {kind:"growth",text:"Daeris's purpose was settled: Her soul-tax lien and necrotic tether to the Reach's engines have been extinguished.",turn:34,who:"Daeris",camp:"The Necrotic Dungeon",campId:"camp_nd"},
+      {kind:"growth",text:"Silas crossed the river at dawn.",turn:80,who:"Silas",camp:"Rise of the Runelords",campId:"camp_rr"}];/* newest, plain and foreign: only the campaign filter keeps it out */
+    memory.keyDecisions=[];memory.chapters=[];worldState.motifNudged={};
+    var f=villageReturnFact();
+    if(!f||!/mill wheel/.test(f))return "the fact must be this village's own moment, skipping the party filing and the earlier adventures: "+JSON.stringify(f);
+    c.coreMemories[0].text="Silas balanced the ledger of the mill.";
+    memory.keyDecisions=[{desc:"Silas chose to keep the old well open.",turn:6}];
+    f=villageReturnFact();if(!f||!/old well/.test(f))return "a register-word moment is skipped and the key decision serves: "+JSON.stringify(f);
+    worldState.motifNudged["Silas chose to keep the old well open.".slice(0,MOTIF_GIST_CHARS)]={count:1,turn:9};
+    memory.chapters=[{summary:"The village gathered for the harvest. Nothing else happened."}];
+    f=villageReturnFact();if(!f||!/harvest/.test(f)||/Nothing else/.test(f))return "a flagged gist is skipped and the last chapter's first sentence serves: "+JSON.stringify(f);
+    memory.chapters=[];f=villageReturnFact();
+    return f===null?true:"nothing clean left must give null (the note then omits the fact clause): "+JSON.stringify(f);
+  });
+  t("#481 C1 an own-campaign moment that ECHOES an earlier adventure's moment is skipped",function(){
+    villageCD();worldState.campId="camp_v1";worldState.campName="The Village (Silas)";
+    var c=worldState.character;
+    c.coreMemories=[
+      {kind:"growth",text:"Silas heard again how the necrotic tether of the Reach's engines was extinguished forever.",turn:40,who:"Silas",camp:"The Village (Silas)",campId:"camp_v1"},
+      {kind:"growth",text:"Daeris's purpose was settled: Her necrotic tether to the Reach's engines has been extinguished.",turn:34,who:"Daeris",camp:"The Necrotic Dungeon",campId:"camp_nd"}];
+    memory.keyDecisions=[];memory.chapters=[];worldState.motifNudged={};
+    var f=villageReturnFact();
+    return f===null?true:"an echo of the held-back moment must not be the greeting's fact: "+JSON.stringify(f);
+  });
+  t("#481 C1/C2 the RETURN note stages the greeting at the door, asks for the neighbour's own words, and files nothing (ack SAY only)",function(){
+    villageCD();worldState.returnPing={awayMs:3*60*60*1000,fact:"Silas mended the mill wheel with Halvard.",change:"it is night now",turn:12};
+    var n=buildEngineNotes();
+    if(!/RETURN/.test(n))return "the note must fire: "+n.slice(0,200);
+    if(/LOCATION_STATE|FILE it|so it persists/.test(n))return "the note must not ask to file the change: "+n.slice(0,600);
+    if(!/never through a window/i.test(n))return "the greeting is staged at the door, never through a window";
+    if(!/own words/i.test(n)||n.indexOf("mill wheel")<0)return "the fact rides the note, named in the neighbour's own words";
+    var ack=NOTE_SHAPES.buildReturnNote&&NOTE_SHAPES.buildReturnNote.ack;
+    return (ack&&ack.join(",")==="SAY")?true:"the ack list is SAY only: "+JSON.stringify(ack);
   });
 
 }

@@ -1731,7 +1731,11 @@ var buildTradeRefusedNudge=oneShotPing("tradeRefusedPing",{name:"buildTradeRefus
    once per absence; carries the time away, one fact from the hero's record and one engine-chosen visible change. */
 function awayWords(ms){var m=Math.round((ms||0)/60000);if(m<60)return m+" minute"+(m===1?"":"s");var h=Math.round(m/60);if(h<48)return h+" hour"+(h===1?"":"s");var d=Math.round(h/24);return d+" day"+(d===1?"":"s");}
 var buildReturnNote=oneShotPing("returnPing",{name:"buildReturnNote",text:function(q){
-  return "[ENGINE NOTE \u2014 RETURN (not a player action): the player has been away "+awayWords(q.awayMs)+" of real time. Open THIS response with a greeting from a resident who is here or crosses the hero's path"+(q.fact?", and let it name ONE fact from the hero's own record: \""+q.fact+"\"":"")+". Show ONE visible change since the last visit: "+(q.change||"something small that moved while they were away")+" \u2014 and FILE it with the matching tag ([LOCATION_STATE:], [WARES:], [NPC:]) so it persists. Then the scene as usual. Never mention this note.]\n";
+  /* #481 C1/C2 (audit 2026-09-29, Fable-approved): the fact is this village's own (villageReturnFact) and named in the
+     neighbour's own words; the greeting is staged at the door (window greetings stamped the speakers inside the house);
+     the change is SHOWN, never filed \u2014 the old "FILE it \u2026 [LOCATION_STATE:]" ask turned "it is night now" and a
+     neighbour's errand into permanent place history on whatever node the hero stood in. */
+  return "[ENGINE NOTE \u2014 RETURN (not a player action): the player has been away "+awayWords(q.awayMs)+" of real time. Open THIS response with a greeting from a resident who is here, or who calls at the door or crosses the hero's path when the hero steps out \u2014 never through a window or shutters"+(q.fact?"; the greeting may touch ONE thing from this village's own record, in the neighbour's own words, one passing clause, never the record's wording: \""+q.fact+"\"":"")+". Show ONE visible change since the last visit: "+(q.change||"something small that moved while they were away")+" \u2014 show it in the scene; it is not a lasting change to any place, so file nothing for it. Then the scene as usual. Never mention this note.]\n";
 }});
 /* #407 ④: the counter spoke — ONE in-character sentence next turn, never a re-tally; gold and items already moved. */
 var buildTradeNote=oneShotPing("tradePing",{name:"buildTradeNote",text:function(q){
@@ -2124,7 +2128,7 @@ var NOTE_SHAPES={
   buildSubLeaveNudge:{shape:"one-shot-ask",latch:["subLeavePing"],combat:"silent",village:"fires",ack:["SUBLOCATION","SUBLOCATION_LEAVE","LOCATION"]},/* #393 */
   buildTradeRefusedNudge:{shape:"one-shot-ask",latch:["tradeRefusedPing"],combat:"silent",village:"fires",ack:["GOLD","SUBLOCATION"]},/* #6 F9 */
   buildTradeNote:{shape:"one-shot-ask",latch:["tradePing"],combat:"silent",village:"fires",ack:["SAY"]},/* #407 ④ */
-  buildReturnNote:{shape:"one-shot-ask",latch:["returnPing"],combat:"silent",village:"fires",ack:["LOCATION_STATE","SAY"]},/* #6 C2 */
+  buildReturnNote:{shape:"one-shot-ask",latch:["returnPing"],combat:"silent",village:"fires",ack:["SAY"]},/* #6 C2; #481 C2: the change is shown, never filed — LOCATION_STATE is not an ack */
   buildResidentExchangeNote:{shape:"cooldown-reminder",latch:["exchangeAsk"],combat:"silent",village:"fires",ack:["SAY"]},/* #6 D2 */
   buildCarriedRecordNote:{shape:"transient",latch:["none"],combat:"silent",village:"fires",ack:["SAY"]},/* #433: stateless — the action + the session log decide */
   buildMoneyNote:{shape:"cooldown-reminder",latch:["moneyAsk"],combat:"silent",village:"silent",ack:["GOLD"]},/* #375 */
