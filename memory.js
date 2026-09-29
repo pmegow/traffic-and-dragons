@@ -318,6 +318,10 @@ function fileSubLocation(name,turn){
   var parent=worldState&&worldState.world?worldState.world.location:null;if(!parent)return;
   if(typeof locResolve==="function")parent=locResolve(parent);/* #156B: compose under the CANONICAL parent — a stale world pointer (older-device blob) must not mint children under a tombstoned key */
   var key=parent+"|"+name;
+  /* #481 A1/A5: a name the resolver knows (a passed-through "The Village Hall", a case twin such as "Wyla Ashvane's Shop")
+     lands on the existing node instead of minting a twin; a canonical house the story names is minted WITH its owner */
+  var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(name,parent):null;
+  if(_rp){key=_rp.key;if(_rp.via==="house"&&!memory.map.nodes[key]&&typeof villageHouseEnsure==="function")villageHouseEnsure(_rp.owner,parent);}
   if(typeof locResolve==="function")key=locResolve(key);/* the composed sub key may itself be merged */
   if(!memory.map.nodes[key]){memory.map.nodes[key]=newMapNode(turn,parent);if(typeof _exitNoteCreated==="function")_exitNoteCreated(key);/* #415: a NEW place this parse */}
   memory.map.nodes[key].visits++;memory.map.nodes[key].lastVisit=turn;// stamp recency so buildGeoBlock keeps a re-visited sub-location listed (audit E53)
@@ -595,7 +599,10 @@ function fileLocationState(note,turn){
 function fileLocationItem(name,action,turn,place,room){
   if(!memory.map||!worldState||!worldState.world)return {ok:false,reason:"no map"};
   var key=currentNodeKey();/* UA9 */
-  if(place)key=((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location)+"|"+String(place).trim();/* audit C10: compose under the CANONICAL world */
+  if(place){/* #481 A1: the place operand goes through the SAME resolver as the arrival, so every name that walks in also files items; null keeps the loud refusal (#6 E3) */
+    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim()):null;
+    key=_rp?_rp.key:((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location)+"|"+String(place).trim();/* audit C10: compose under the CANONICAL world */
+  }
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var node=memory.map.nodes[key];
   if(!node)return {ok:false,reason:"no such place on the map",key:key};
@@ -2551,7 +2558,8 @@ function audioFileCandidates(candidates,scope){
   else if(!v.ok)why=v.reason;
   else if(!node)why="no current map node";
   else {
-    var target=locResolve(v.target),child=locResolve(locResolve(worldState.world.location)+"|"+v.target);/* audit C10: canonical world first */
+    var _rpA=(typeof resolvePlaceName==="function")?resolvePlaceName(v.target):null;/* #481 A1/A5: "The Village Hall" is the Hall, as for every other place writer */
+    var target=locResolve(v.target),child=_rpA?_rpA.key:locResolve(locResolve(worldState.world.location)+"|"+v.target);/* audit C10: canonical world first */
     if(target!==key&&child!==key)why="classification target is not the accepted location";
   }
   if(!why){

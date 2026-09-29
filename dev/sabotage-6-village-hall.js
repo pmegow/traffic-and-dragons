@@ -122,17 +122,22 @@ prove("api.js", [
     mustFail: "#6G3 the Hall reaches the GM only in the Hall" }
 ]);
 prove("tag_table.js", [
-  { label: "a tavern-ish name mints a twin beside the tavern",
-    find: 'else if(typeof villageCommonFor==="function"&&villageCommonFor(_sln)){', replace: 'else if(false){',
-    mustFail: "#6E11 the commons are PRE-MINTED" },
-  { label: "a house name mints its own node beside the house key",
-    find: 'if(_hOwner){var _hLeaf=', replace: 'if(false){var _hLeaf=',
-    mustFail: "#6E10 a house is a SUB-LOCATION" },
   { label: "the village pays XP after all",
     find: 'if(xpTags.length&&typeof kindDef==="function"&&kindDef().xp==="none"){', replace: 'if(false){',
-    mustFail: "#6H1 the village pays nothing" },
+    mustFail: "#6H1 the village pays nothing" }
+]);
+/* #481 A1 (2026-09-29): the SUBLOCATION handler's house / commons / hall if-chain became the place resolver's kind table
+   (identity.js PLACE_CANONICALISERS, listed by the village's placeCanon). The three clauses moved with the code and still
+   prove the same #6 contracts: each disables one canonicaliser and the twin it prevents comes back. */
+prove("identity.js", [
+  { label: "a tavern-ish name mints a twin beside the tavern",
+    find: 'commons:function(name,parent){var c=(typeof villageCommonFor==="function")?villageCommonFor(name):null;', replace: 'commons:function(name,parent){var c=null;',
+    mustFail: "#6E11 the commons are PRE-MINTED" },
+  { label: "a house name mints its own node beside the house key",
+    find: 'house:function(name,parent){var o=(typeof villageHouseOwnerFor==="function")?villageHouseOwnerFor(name):null;', replace: 'house:function(name,parent){var o=null;',
+    mustFail: "#6E10 a house is a SUB-LOCATION" },
   { label: "the GM's naming mints a twin Hall",
-    find: 'if(_sln!==_hl){R.muts.push("Sub: "+_sln+" → "+_hl+" (the Hall)");_sln=_hl;}', replace: '',
+    find: 'return (d&&d.hall&&d.hallWords&&d.hallWords.test(name)&&typeof villageHallKey==="function")?', replace: 'return (false)?',
     mustFail: "#6G6 the Hall has ONE key" }
 ]);
 prove("dev/village-measure.js", [

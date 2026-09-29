@@ -312,7 +312,7 @@ var CAMPAIGN_KINDS={
        "no override": the adventure prompt stays byte-identical (pinned). */
     ruleOverrides:null,preamble:null,chapterNote:"",tagDocNote:"",noCombat:false,combatRefusal:"",noHarm:false,harmRefusal:"",whisperSubject:null,montage:true,wildcard:true,whisperResidentPool:false,smallTalk:false,
     /* phase E/F fields — the adventure keeps the world-node market, toggle item rows and the shipped buy rung */
-    stashQuantities:false,tradeOnlyInShops:false,waresPerShop:false,pinPrices:false,sellRung:false,shopWords:null,hallWords:null,
+    stashQuantities:false,tradeOnlyInShops:false,waresPerShop:false,pinPrices:false,sellRung:false,shopWords:null,hallWords:null,placeCanon:null,/* #481 A1: no kind canonicalisers — the place resolver's identity and case/article steps only */
     /* phase C/D/G/H — no override: the adventure recaps a chapter, its ladder goes straight to buy, it can be closed, its GM pays XP */
     returnGreeting:false,villageRung:false,residentExchange:false,roam:false,hall:false,xp:"gm",commons:null,recap:"chapter",closable:true,openingAsk:null,openingWeather:null},
   village:{label:"Village",skeleton:false,swapDemotesTo:"resident",swapHandoff:false,populateFromLibrary:true,
@@ -337,6 +337,9 @@ var CAMPAIGN_KINDS={
     stashQuantities:true,tradeOnlyInShops:true,waresPerShop:true,pinPrices:true,sellRung:true,
     shopWords:/tavern|inn\b|smith|forge|trading post|trader|store|shop|market|stall|alchemist|apothecary|healer|guild|yard|handler|stable|bakery|baker|brewer|tailor|tanner|mill\b/i,
     hallWords:/village hall|\bthe hall\b/i,
+    /* #481 A1: the place resolver's kind table, in precedence order (identity.js PLACE_CANONICALISERS) — was an if-chain
+       inside the SUBLOCATION handler that the item filer never saw */
+    placeCanon:["house","commons","hall"],
     /* #6 phase C/D/G/H (2026-09-13). returnGreeting: a return after PREVIOUSLY_AFTER_MS arms the greeting note. villageRung: a resident call or a commons look-in sits above buy on the fourth button. residentExchange: two present residents get one exchange the hero witnesses every EXCHANGE_EVERY turns. roam: residents are placed across the commons by the hour until the story places them. hall: the Village Hall node with its mementos and its wall. xp:"none": the village pays nothing. commons: the fallback list when the map has filed no shops yet. recap:"state": Car Mode speaks the state, not a chapter. closable:false: a village never ends. */
     returnGreeting:true,villageRung:true,residentExchange:true,roam:true,hall:true,xp:"none",recap:"state",closable:false,
     /* #6 C4 (owner, 2026-09-13): the OPENING is the kind's. The adventure's user message says "Open the adventure… Plant an immediate hook" — the first village opened on a fey-rot siege because that line rode every kind. The village asks for a homecoming; its sky is its own, not the adventure's ash. */

@@ -164,6 +164,43 @@ function locDisplayLeaf(key){
   return i<0?s:s.slice(i+1);
 }
 
+/* #481 A1 (audit 2026-09-29, Fable-approved): THE place resolver. Which node does a place NAME the GM wrote mean, under
+   a parent? ONE answer for every writer that takes a place from the GM's text: the SUBLOCATION arrival, fileSubLocation,
+   LOCATION_ITEM's place operand and the SOUNDSCAPE target. Before this, the arrival canonicalised names while the item
+   filer composed its key raw. At Village t216 "[LOCATION_ITEM:…|placed|The Village Hall]" was refused, because the node
+   is "the Village Hall", and 7 of 9 natural namings failed the same way.
+   Precedence, fixed:
+   (1) the identity overlay: parent|name through locResolve, when that node exists;
+   (2) the kind's canonicalisers, DATA on the kind def (kindDef().placeCanon, in order): house owner (#6 E10), commons
+       (#6 E11), hall words (#6 G6);
+   (3) a case- and article-insensitive match of the name against the parent's existing children;
+   (4) null: no known place. The arrival mints it as named; the item filer refuses loudly.
+   Returns {key, via, owner?}. Pure over the map (no minting; the callers own their side effects). */
+var PLACE_CANONICALISERS={
+  house:function(name,parent){var o=(typeof villageHouseOwnerFor==="function")?villageHouseOwnerFor(name):null;return o?{key:locResolve(villageHouseKey(o,parent)),owner:o}:null;},
+  commons:function(name,parent){var c=(typeof villageCommonFor==="function")?villageCommonFor(name):null;return c?{key:locResolve(parent+"|"+c)}:null;},
+  hall:function(name,parent){var d=(typeof kindDef==="function")?kindDef():null;return (d&&d.hall&&d.hallWords&&d.hallWords.test(name)&&typeof villageHallKey==="function")?{key:locResolve(villageHallKey(parent))}:null;}
+};
+function placeNameNorm(s){return String(s==null?"":s).replace(/[‘’]/g,"'").replace(/\s+/g," ").trim().toLowerCase().replace(/^(the|a|an)\s+/,"");}
+function placeKeyLeaf(key){var s=String(key==null?"":key),i=s.lastIndexOf("|");return i<0?s:s.slice(i+1);}
+function resolvePlaceName(name,parent){
+  var nm=String(name==null?"":name).trim();
+  if(!nm||typeof memory==="undefined"||!memory||!memory.map||!memory.map.nodes)return null;
+  var nodes=memory.map.nodes,i;
+  if(parent==null){if(typeof worldState==="undefined"||!worldState||!worldState.world||!worldState.world.location)return null;parent=worldState.world.location;}
+  parent=locResolve(parent);
+  var direct=locResolve(parent+"|"+nm);if(nodes[direct])return {key:direct,via:"exact"};
+  var def=(typeof kindDef==="function")?kindDef():null,canon=(def&&def.placeCanon)||[];
+  for(i=0;i<canon.length;i++){var fn=PLACE_CANONICALISERS[canon[i]];if(!fn)continue;var hit=fn(nm,parent);if(hit&&hit.key){hit.via=canon[i];return hit;}}
+  var want=placeNameNorm(nm);if(!want)return null;
+  var ks=Object.keys(nodes).sort(),found=[],seen={};
+  for(i=0;i<ks.length;i++){var k=locResolve(ks[i]),n=nodes[k];if(!n||seen[k]||!n.parent||!locSame(n.parent,parent))continue;
+    if(placeNameNorm(placeKeyLeaf(k))===want||placeNameNorm(locDisplayLeaf(k))===want){seen[k]=1;found.push(k);}}
+  if(!found.length)return null;
+  if(found.length>1){found.sort(function(a,b){return ((nodes[b].visits||0)-(nodes[a].visits||0))||(a<b?-1:a>b?1:0);});if(typeof console!=="undefined")console.warn("[place] '"+nm+"' matches "+found.length+" places under "+parent+" ("+found.join(", ")+") — chose "+found[0]+"; a map_cleanup merge would end the twin");}
+  return {key:found[0],via:"leaf"};
+}
+
 // W5: a bare [LOCATION:leaf] must not mint a world twin of an already-known child under the
 // current world. Resolution/parent relations are authoritative; punctuation in the key is not.
 // A genuine live world node with the same display name wins and remains a legal destination.

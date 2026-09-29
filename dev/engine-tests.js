@@ -24429,6 +24429,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(memory.map.nodes["The Village|Village Hall"])return "no twin Hall node";
     if(!/THE HALL/.test(buildGeoBlock()))return "the mementos must be served after the GM's own naming";
     applyMuts("[SUBLOCATION:the smithy]");if(worldState.world.sublocation!=="the smithy")return "other sub-locations file as named";
+    /* #481 A1: "Village Hall" now also folds by the resolver's article-insensitive match, so the hall words must be proven on
+       a naming only they catch */
+    applyMuts("[SUBLOCATION:the hall]");if(worldState.world.sublocation!==locDisplayLeaf(villageHallKey()))return "'the hall' must canonicalise to the Hall's leaf too: "+JSON.stringify(worldState.world.sublocation);
+    if(memory.map.nodes["The Village|the hall"])return "no twin Hall node for 'the hall'";
+    applyMuts("[SUBLOCATION:the smithy]");
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};applyMuts("[SUBLOCATION:the town hall]");if(worldState.world.sublocation!=="the town hall")return "the adventure files as named";
     return true;
   });
@@ -26724,6 +26729,45 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/own words/i.test(n)||n.indexOf("mill wheel")<0)return "the fact rides the note, named in the neighbour's own words";
     var ack=NOTE_SHAPES.buildReturnNote&&NOTE_SHAPES.buildReturnNote.ack;
     return (ack&&ack.join(",")==="SAY")?true:"the ack list is SAY only: "+JSON.stringify(ack);
+  });
+
+  // ── #481 A1 (+A5 key and soundscape parts; audit 2026-09-29, Fable-approved): ONE place resolver. The tomb-iron core
+  // placed with [LOCATION_ITEM:…|placed|The Village Hall] at Village t216 was refused because the item filer composed its
+  // key from the GM's raw spelling while the arrival canonicalised it — 7 of 9 natural namings refused. resolvePlaceName
+  // (identity.js): identity overlay → the kind's canonicalisers (data: placeCanon) → a case/article-insensitive leaf
+  // match → null. The arrival mints on null; the item filer refuses loudly on null.
+  section("#481 A1 place resolver");
+  t("#481 A1 the item filer accepts every naming the arrival accepts: The Village Hall, the hall, my house and The Tavern file on the canonical node; an unknown place still refuses loudly",function(){
+    villageEF();villageHouseEnsure("Silas",null);
+    var hall="The Village|the Village Hall",home=villageHouseKey("Silas"),tav="The Village|the tavern";
+    var q=quiet(function(){return applyMuts("[LOCATION_ITEM:Tomb-iron core|placed|The Village Hall][LOCATION_ITEM:Pebble|placed|the hall][LOCATION_ITEM:Comb|placed|my house][LOCATION_ITEM:Cup|placed|The Tavern]");});
+    function has(k,n){return (memory.map.nodes[k].items||[]).some(function(it){return it.name===n&&!it.taken&&it.qty!==0;});}
+    if(!has(hall,"Tomb-iron core"))return "The Village Hall must file on the Hall: "+JSON.stringify(q.r.muts);
+    if(!has(hall,"Pebble"))return "'the hall' must file on the Hall";
+    if(!has(home,"Comb"))return "'my house' must file on the hero's house";
+    if(!has(tav,"Cup"))return "'The Tavern' must file on the tavern";
+    if(memory.map.nodes["The Village|The Village Hall"]||memory.map.nodes["The Village|The Tavern"])return "no twin node may be minted by a placement";
+    var q2=quiet(function(){return applyMuts("[LOCATION_ITEM:Ring|placed|the well house]");});
+    return (q2.r.muts||[]).some(function(m){return /refused/i.test(m)&&/well house/.test(m);})?true:"an unknown place must still refuse loudly: "+JSON.stringify(q2.r.muts);
+  });
+  t("#481 A1 a case or article variant never mints a twin: the adventure shop, the village Hall passed through, and no arrow for a case-only canonicalisation",function(){
+    makeWorld();delete worldState.kind;worldState.world.location="Magnimar";worldState.world.sublocation=null;
+    memory.map.nodes["Magnimar"]={firstVisit:1,visits:2,description:null,parent:null,npcs:[],items:[],size:"large",travelMins:null};
+    memory.map.nodes["Magnimar|Wyla Ashvane's shop"]={firstVisit:1,visits:1,description:null,parent:"Magnimar",npcs:[],items:[],size:"small",travelMins:null};
+    var r=applyMuts("[SUBLOCATION:Wyla Ashvane's Shop]");
+    if(worldState.world.sublocation!=="Wyla Ashvane's shop")return "the arrival must land on the existing shop: "+JSON.stringify(worldState.world.sublocation);
+    if(memory.map.nodes["Magnimar|Wyla Ashvane's Shop"])return "no case twin may be minted (the Runelords twin)";
+    if((r.muts||[]).some(function(m){return /→/.test(m);}))return "a case-only canonicalisation prints no arrow: "+JSON.stringify(r.muts);
+    applyMuts("[LOCATION_ITEM:Lantern|placed|Wyla Ashvane's Shop]");
+    if(!memory.map.nodes["Magnimar|Wyla Ashvane's shop"].items.some(function(it){return it.name==="Lantern";}))return "the adventure item filer resolves the case variant too";
+    villageEF();applyMuts("[SUBLOCATION:The Village Hall] You look in, then cross back. [SUBLOCATION:the tavern]");
+    if(memory.map.nodes["The Village|The Village Hall"])return "a passed-through 'The Village Hall' must not mint a twin";
+    return worldState.world.sublocation==="the tavern"?true:"the last arrival stands: "+worldState.world.sublocation;
+  });
+  t("#481 A1 the soundscape target resolves like every other place name: 'The Village Hall' is accepted while standing in the Hall",function(){
+    villageEF();worldState.world.sublocation="the Village Hall";var _t=typeof showToast==="function"?showToast:null;showToast=function(){};
+    var r;try{r=audioFileCandidates(["The Village Hall|enclosure=covered;setting=interior;biome=temperate;quiet=hushed;allows=wind;forbid=none"]);}finally{if(_t)showToast=_t;}
+    return (r&&r.ok)?true:"the Hall's classification must file: "+JSON.stringify(r);
   });
 
 }

@@ -535,11 +535,13 @@ var TAG_TABLE=[
 {t:"SUBLOCATION",apply:function(text,R){/* audit A3: the LAST arrival is the place (the reading SUBLOCATION_LEAVE, the trade gate and tags.md already take); the earlier ones are passed-through places and file as visited */
   var _slAll=text.match(/\[SUBLOCATION:([^\]]+)\]/g)||[],_sli;for(_sli=0;_sli<_slAll.length-1;_sli++){var _slMid=(_slAll[_sli].match(/\[SUBLOCATION:([^\]]+)\]/)||[])[1];if(_slMid&&_slMid.trim()){_slMid=_slMid.trim();fileSubLocation(_slMid,R.turn);R.muts.push("Sub (passed through): "+_slMid);}}
   var sloctag=_slAll.length?_slAll[_slAll.length-1].match(/\[SUBLOCATION:([^\]]+)\]/):null;if(sloctag){var _sln=sloctag[1].trim();
-  /* #6 G6: the Hall has ONE key — a kind with a Hall canonicalises any sub-location its hallWords match to the Hall's leaf, so the GM's own naming ("Village Hall", "the hall") never mints a twin beside the mementos */
-  var _hOwner=(typeof villageHouseOwnerFor==="function")?villageHouseOwnerFor(_sln):null;/* #6 E10: "Ammut's home" / "my house" → the ONE house key */
-  if(_hOwner){var _hLeaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(villageHouseKey(_hOwner)):_hOwner+"'s house";if(_sln!==_hLeaf){R.muts.push("Sub: "+_sln+" → "+_hLeaf);_sln=_hLeaf;}if(typeof villageHouseEnsure==="function")villageHouseEnsure(_hOwner,null);}
-  else if(typeof villageCommonFor==="function"&&villageCommonFor(_sln)){var _cLeaf=villageCommonFor(_sln);if(_sln!==_cLeaf){R.muts.push("Sub: "+_sln+" → "+_cLeaf);_sln=_cLeaf;}}/* #6 E11: one node per commons */
-  else if(typeof kindDef==="function"&&kindDef().hall&&kindDef().hallWords&&kindDef().hallWords.test(_sln)&&typeof villageHallKey==="function"){var _hl=(typeof locDisplayLeaf==="function")?locDisplayLeaf(villageHallKey()):"the Village Hall";if(_sln!==_hl){R.muts.push("Sub: "+_sln+" → "+_hl+" (the Hall)");_sln=_hl;}}
+  /* #481 A1 (audit 2026-09-29): ONE place resolver (identity.js resolvePlaceName) — the kind's canonicalisers are data on
+     the kind def (placeCanon: #6 E10 "Ammut's home" / "my house" → the ONE house key, #6 E11 one node per commons, #6 G6
+     the Hall has ONE key), then a case/article-insensitive match against the place's existing children. The SAME
+     resolver serves LOCATION_ITEM's place operand, so a name that walks in also files items. null = no known place: the
+     arrival mints it as named. A case- or article-only canonicalisation prints no arrow (it reads as a no-op in capitals). */
+  var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(_sln):null,_rpParent=(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location;
+  if(_rp&&_rp.key.indexOf(_rpParent+"|")===0){if(_rp.via==="house"&&typeof villageHouseEnsure==="function")villageHouseEnsure(_rp.owner,null);var _rpLeaf=placeKeyLeaf(_rp.key);if(_rpLeaf!==_sln){if(placeNameNorm(_rpLeaf)!==placeNameNorm(_sln))R.muts.push("Sub: "+_sln+" → "+_rpLeaf+(_rp.via==="hall"?" (the Hall)":""));_sln=_rpLeaf;}}
   worldState.world.sublocation=_sln;fileSubLocation(_sln,R.turn);R.muts.push("Sub: "+_sln);}}},
 /* #6F8 (2026-09-12): TEXT order, not table order — a response that leaves one sub-location and arrives at another ends at
    the arrival. The handler table applies LEAVE after SUBLOCATION, so "[SUBLOCATION_LEAVE] … [SUBLOCATION:the tavern]" used to
