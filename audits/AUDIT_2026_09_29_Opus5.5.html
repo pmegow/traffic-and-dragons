@@ -209,6 +209,13 @@ details[open] summary{margin-bottom:8px}
 <li>then null.</li>
 </ul>
 <p>The SUBLOCATION arrival, <code>fileLocationItem</code>'s place operand and every A5 composer call it. Adding a kind's alias rule becomes one table entry.</p>
+<p><span class="k">vs #480</span>TODO #480 was filed the same day by a parallel session, on the same symptom. Its premise, "the save cannot tell the two apart", is superseded:</p>
+<ul>
+<li>The t216 raw log shows the placement tag was emitted.</li>
+<li>The provenance ring shows it was refused.</li>
+<li>#480's unpaired-loss detector skips logged refusals, so it would stay silent on this exact case.</li>
+</ul>
+<p>Fold #480 into A1 + A2 (with A3 as the GM channel), or keep it as the net for the rarer case where the GM never emits the placement at all.</p>
 <details><summary>Mechanism · evidence · test</summary>
 <p><span class="k">Where</span><code>memory.js:595-601</code> — <code>fileLocationItem</code> composes <code>world + "|" + place</code> from the raw operand and does an exact key lookup. <code>tag_table.js:535-543</code> — the SUBLOCATION handler runs <code>villageHouseOwnerFor</code>, <code>villageCommonFor</code> and <code>kindDef().hallWords</code> first. <code>tag_table.js:605-611</code> — the LOCATION_ITEM handler.</p>
 <p><span class="k">Why</span>Two resolvers for one question ("which node does this name mean?"), and only one of them knows the village's naming rules or ignores case. The GM reuses the name it used on arrival: t213 <code>[SUBLOCATION:The Village Hall]</code>, then t216 <code>…|placed|The Village Hall]</code>.</p>
