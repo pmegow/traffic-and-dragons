@@ -1,0 +1,1200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opus 5.5 Audit</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg0:#f3f1ec;--bg1:#ebe8e1;--bg2:#e2ded5;--brd:#cfc9bc;--brd2:#b9b2a3;
+  --t0:#1c1e26;--t1:#4a5060;--t2:#7a8090;
+  --acc:#3f5a7a;--acc-bg:#dfe6ee;--code:#5a4520;--code-bg:#e7e1d4;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;--mono:"IBM Plex Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--brd:#2c2f3a;--brd2:#3c4050;
+  --t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;
+  --acc:#9ab0c8;--acc-bg:#141c24;--code:#d9c9a8;--code-bg:#1a1712;
+}}
+:root[data-theme="dark"]{
+  --bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--brd:#2c2f3a;--brd2:#3c4050;
+  --t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;
+  --acc:#9ab0c8;--acc-bg:#141c24;--code:#d9c9a8;--code-bg:#1a1712;
+}
+*{box-sizing:border-box}
+body{background:var(--bg0);color:var(--t0);font-family:var(--serif);font-size:16.5px;line-height:1.55;margin:0}
+.page{max-width:1180px;margin:0 auto;padding:40px 22px 80px}
+header{border-bottom:1px solid var(--brd);padding-bottom:22px;margin-bottom:26px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin:0 0 10px}
+h1{font-size:38px;line-height:1.08;font-weight:600;margin:0 0 12px;letter-spacing:-.01em}
+.sub{color:var(--t1);max-width:78ch;margin:0}
+.run{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 22px;margin:20px 0 0;padding:0}
+.run div{margin:0}
+.run dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin:0 0 3px}
+.run dd{margin:0;font-size:15px;color:var(--t1);font-variant-numeric:tabular-nums}
+.run dd b{color:var(--t0);font-weight:600}
+h2{font-size:13px;font-family:var(--mono);font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin:48px 0 14px;padding-top:14px;border-top:1px solid var(--brd)}
+h3{font-size:19px;font-weight:600;margin:26px 0 8px}
+p{margin:0 0 12px;max-width:80ch}
+ul,ol{margin:6px 0 14px 22px;padding:0;max-width:84ch}
+li{margin:4px 0}
+a{color:var(--acc)}
+code{font-family:var(--mono);font-size:.84em;color:var(--code);background:var(--code-bg);padding:1px 4px;border-radius:3px;overflow-wrap:anywhere}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.45;background:var(--bg1);border:1px solid var(--brd);border-radius:6px;padding:10px 12px;overflow:auto;color:var(--t1);margin:8px 0 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.verdict{background:var(--bg1);border-left:3px solid var(--acc);padding:18px 22px;margin:0 0 8px}
+.verdict .lead{font-size:20px;line-height:1.38;font-weight:600;margin:0 0 12px}
+.verdict p{max-width:none}
+.answer{background:var(--bg1);border:1px solid var(--brd);border-radius:8px;padding:18px 22px;margin:0 0 10px}
+.answer h3{margin-top:0}
+table{border-collapse:collapse;width:100%;margin:10px 0 18px;font-size:15px}
+th,td{border:1px solid var(--brd);padding:8px 10px;vertical-align:top;text-align:left}
+th{background:var(--bg1);color:var(--t2);font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+td.n{font-family:var(--mono);font-size:13px;white-space:nowrap;color:var(--t1);width:52px}
+td.c{font-family:var(--mono);font-size:12.5px;white-space:nowrap;color:var(--t1);text-align:center;width:74px}
+td.s{font-family:var(--mono);font-size:12.5px;white-space:nowrap;color:var(--t1);width:110px}
+table.todo td p{margin:0 0 8px;max-width:none}
+table.todo td p:last-child{margin-bottom:0}
+.ttl{font-weight:600;font-size:16.5px;margin:0 0 6px}
+.tldr{color:var(--t0)}
+.k{display:inline-block;min-width:84px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t2)}
+details{margin:6px 0 0;border-top:1px dashed var(--brd);padding-top:6px}
+summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+details[open] summary{margin-bottom:8px}
+.lean{display:inline-block;border-radius:12px;padding:2px 10px;font-size:.72em;letter-spacing:1px;font-family:var(--mono);font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);border:1px solid #6f6b64;background:#161615;margin:0 6px 0 0;vertical-align:2px;white-space:nowrap}
+.lean.high{border-color:#c05050;background:#261010}
+.lean.med{border-color:#d8a04a;background:#2b200f}
+.lean.low{border-color:#6a8fb8;background:#151c25}
+.small{font-size:14px;color:var(--t1)}
+.muted{color:var(--t1)}
+.ladder td:first-child{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.toc{columns:2;column-gap:32px;margin:6px 0 0 20px}
+.toc li{break-inside:avoid}
+@media (max-width:760px){
+  h1{font-size:30px}
+  .toc{columns:1}
+  table.todo,table.todo tbody,table.todo tr,table.todo td{display:block;width:auto}
+  table.todo thead{display:none}
+  table.todo tr{border:1px solid var(--brd);margin:0 0 14px;border-radius:6px}
+  table.todo td{border:0;border-bottom:1px solid var(--brd)}
+  table.todo td.n,table.todo td.c,table.todo td.s{display:inline-block;border:0;width:auto;padding:6px 10px}
+  table.ladder,table.plain{display:block;overflow-x:auto}
+}
+</style>
+</head>
+<body><main class="page">
+<header>
+<p class="eyebrow">Audit · Traffic and Dragons · 2026-09-29</p>
+<h1>Opus 5.5 audit</h1>
+<p class="sub">A read-only sweep of the whole project at <b>v1.1017</b> (commit <code>6dbb0eb</code>), started from one question: why the tomb-iron core you set down in the Village Hall at turn 216 is not listed there. <b>No code was changed.</b> Every finding below was reproduced against a frozen copy of HEAD, most of them on your own saves. Each one carries a proposed fix and the test that should fail first. The findings tables use the TODO.md row shape (# · Task · Effort · Tier · Status), so rows can move into TODO.md unchanged when you promote them. They carry audit-local ids until then; no TODO numbers were claimed.</p>
+<dl class="run">
+<div><dt>Findings</dt><dd><b>68</b> — 12 high · 30 medium · 26 low</dd></div>
+<div><dt>Evidence base</dt><dd><b>54</b> owner saves, <b>828</b> logged GM responses</dd></div>
+<div><dt>Replay fidelity</dt><dd><b>12 / 12</b> Village turns reproduce exactly at HEAD</dd></div>
+<div><dt>Suite at HEAD</dt><dd><b>2,369</b> assertions green, all 68 findings uncaught</dd></div>
+<div><dt>Spend</dt><dd><b>$0</b> — no model calls</dd></div>
+</dl>
+</header>
+
+<h2 id="answer">Your question — the tomb-iron core in the Village Hall</h2>
+<div class="answer">
+<h3>It was never written to the Hall. It lives only in the GM's short-term memory, and one of your two cores was destroyed in the attempt.</h3>
+<p>At turn 216 the GM tagged the move correctly in spirit:</p>
+<pre>[ITEM_LOST:tomb-iron siphon core]
+[LOCATION_ITEM:tomb-iron siphon core|placed|The Village Hall]</pre>
+<ol>
+<li><b>The pack lost the item.</b> <code>[ITEM_LOST:]</code> ran first (handler-table order), so your stack went from <code>tomb-iron siphon core x2</code> to <code>x1</code>.</li>
+<li><b>The Hall refused it.</b> The item filer builds the node key from the GM's exact spelling: <code>"The Village|The Village Hall"</code>, capital T. The real node is <code>"The Village|the Village Hall"</code>. No such node, so it refused. The refusal went into the turn's summary line as "Stash refused — tomb-iron siphon core (The Village Hall): no such place on the map", in the same small grey capitals as "Time +10m".</li>
+<li><b>Nothing undid step 1.</b> The core left your pack and landed nowhere. In the t218 save the Hall node's item list is empty, and the next prompt has no stash line for the Hall.</li>
+<li><b>Why the GM still "sees" it at t218.</b> It was still in the last few exchanges of the conversation. Once t216 scrolls out of that window (about seven turns), the GM will lose it for good.</li>
+</ol>
+<p><b>Why the same name works for walking in but not for setting things down.</b> The arrival tag runs every name through three village fix-ups: the Hall's words, house owners, and the commons. The item filer runs none of them. The same nine namings, tried from the tavern on your t213 save:</p>
+<table class="plain">
+<tr><th>The GM writes</th><th><code>[SUBLOCATION:…]</code> arrives at</th><th><code>[LOCATION_ITEM:x|placed|…]</code></th></tr>
+<tr><td>The Village Hall</td><td>the Village Hall</td><td>refused — no such place</td></tr>
+<tr><td>the Village Hall</td><td>the Village Hall</td><td>filed</td></tr>
+<tr><td>the hall</td><td>the Village Hall</td><td>refused</td></tr>
+<tr><td>my house</td><td>Ammut's house</td><td>refused</td></tr>
+<tr><td>Ammut's home</td><td>Ammut's house</td><td>refused</td></tr>
+<tr><td>The Tavern</td><td>the tavern</td><td>refused</td></tr>
+<tr><td>tavern common room</td><td>the tavern</td><td>refused</td></tr>
+<tr><td>Frizwick's cottage</td><td>Frizwick's cottage (a new node)</td><td>refused</td></tr>
+<tr><td>the smithy</td><td>the smithy</td><td>filed</td></tr>
+</table>
+<p><b>Even if it had filed,</b> the top line would have said <code>Here: Item stash (1 item)</code>, not the core's name. #432 collapses the item line to a count at every village node, and the chest that lists the contents opens only in your own house (finding A6, an owner decision).</p>
+<p><b>Two more things in your screenshot are wrong.</b> "PRESENT: THESSA SALTBORN (SAY), THE ENTITY (SAY)": both spoke in the tavern before you walked back, and the engine recorded them as standing in the Hall with you (B1). The line "SUB: THE VILLAGE HALL → THE VILLAGE HALL (THE HALL)" is a capital-T-to-lowercase rename that the capitals hide, so it reads as a no-op (A7).</p>
+<p><b>Getting the core back.</b> Your t213 save still holds both cores. After A1 and A2 ship, "leave it at the base of the wall" works as written. Until then, a placement in the Hall only files if the GM happens to write the tag with no place name, or with exactly "the Village Hall".</p>
+</div>
+
+<h2 id="verdict">Verdict</h2>
+<div class="verdict">
+<p class="lead">The core anti-drift machinery holds. The damage is at its edges, and most of it comes from three patterns.</p>
+<p><b>1 · "Where?" has more than one answer.</b> Arrival cleans up place names; the item filer, the soundscape filer, the state-note filer and passed-through arrivals don't (A1, A5). Tags apply in the handler table's order, not the story's, so everything in one reply is judged at the place where the reply <i>ends</i>. That covers:</p>
+<ul>
+<li>t198 — the honey cakes were bought inside the tavern, then refused as "not in a shop" and never paid for (A4);</li>
+<li>a shop's hours landing on the whole village, which the prompt now calls CLOSED at 7:40 (A4);</li>
+<li>speakers recorded where they never stood (B1);</li>
+<li>your wives recorded as visiting the Hall from their bed (B2).</li>
+</ul>
+<p><b>2 · Engine notes cause the violations other guards then police.</b> The welcome-back note quoted Daeris's "soul-tax lien" sentence to the GM before all six recitals you reported (t110, t126, t165, t178, t191, t212); the #469 and #479 passes never looked at that note (C1). The same note turns "it is night now" into permanent place history, on whatever place you are standing in; your house's record now holds nothing true about your house (C2). The RESIDENTS note re-summons the same two neighbours every eight turns from stale sightings (B3).</p>
+<p><b>3 · Moves split across two tags land by halves.</b> The core was destroyed. The same shape mints gold on a sale, copies an item into both pack and chest on a stow, and copies a chest row endlessly (A2, D2). Car Mode's spoken "never mind" deletes the last stowed item and says it is back with you. Your save's undo pointer aims at the Sihedron ritual spear (D1).</p>
+<p><b>Outside the story engine:</b></p>
+<ul>
+<li>Every Inworld mood since t202 is dropped, because the GM started writing <code>mood:</code> in front of it (E1).</li>
+<li>Two of your Village campaigns share one folder on disk (F1).</li>
+<li>A crafted save can run script through a portrait (F2).</li>
+<li><code>testRuns/</code> was never actually gitignored (G1).</li>
+</ul>
+<p>None of the 68 is caught by the 2,369-assertion suite. Each is in a seam between tests, which is why every row names the failing test to write first.</p>
+</div>
+
+<h2 id="ladder">Priority ladder — what to fix first</h2>
+<table class="ladder plain">
+<tr><th>#</th><th>Finding</th><th>Why first</th><th>Effort</th></tr>
+<tr><td>1</td><td>C1 · The welcome-back note hands the GM the held-back "lien" sentence</td><td>The source of a complaint you have made four times. #479's owner check fails on your next absence of two hours or more.</td><td>S</td></tr>
+<tr><td>2</td><td>A1 + A2 · The Hall relic: place names, and moves that land by halves</td><td>Your question. Items are destroyed or duplicated with only a grey line to show for it.</td><td>S + M</td></tr>
+<tr><td>3</td><td>D1 · Car Mode "never mind" destroys the last stowed item</td><td>Live in your save: the pointer aims at the Sihedron spear stowed 132 turns ago.</td><td>S</td></tr>
+<tr><td>4</td><td>A4 · One reply, one place: build the per-reply place timeline</td><td>One fix for t198's free cakes, the "CLOSED" village, the fight anchored at the wrong place, and B1's node.</td><td>M</td></tr>
+<tr><td>5</td><td>B1 + B2 · Read <code>[SCENE_CAST:]</code> as the authority on who stands where</td><td>Stops false eyewitness records, which is the whole purpose of the #173 guestbook.</td><td>M</td></tr>
+<tr><td>6</td><td>C2 · Stop the welcome-back note filing non-changes as permanent state</td><td>Same builder as C1, so it ships with it.</td><td>S</td></tr>
+<tr><td>7</td><td>E1 · Accept <code>mood:</code> in front of a SAY mood</td><td>Brings back every laugh, sigh and giggle since t202. A one-line gate fix.</td><td>S</td></tr>
+<tr><td>8</td><td>F2 · Escape portrait strings</td><td>Security, before any friend imports a save.</td><td>S–M</td></tr>
+<tr><td>9</td><td>F1 · Key campaign folders by id</td><td>Two Villages already share a folder, and same-turn saves overwrite each other.</td><td>M</td></tr>
+<tr><td>10</td><td>G1 · Ignore <code>testRuns/</code></td><td>Your own campaign prose is one <code>git add</code> from the repo and the Pages deploy.</td><td>S</td></tr>
+<tr><td>11</td><td>B3 + B4 · Only people on stage now are "here"</td><td>Ends the summoned neighbours at your window.</td><td>S + M</td></tr>
+<tr><td>12</td><td>C3 · A quest's last step lands when the quest closes in the same reply</td><td>Removes the false ⚠ that trains you to skip warnings — the one that hid the Hall refusal.</td><td>S</td></tr>
+</table>
+
+<h2 id="forks">Owner decisions this audit needs</h2>
+<ol>
+<li><b>A6 — show the item's name outside your own house?</b> Recommended: yes. Name the items at the Hall, the commons and the shops, and keep "Item stash (N)" for your own chest, the only one you can open.</li>
+<li><b>A3 — does a companion who lives in your house count as the owner's hand at the chest?</b> Recommended: yes. Your household takes from your chest, and the t88 clothes refusal goes away.</li>
+<li><b>C1 — the welcome-back note's "one fact from your record".</b> Recommended: keep it, but take it only from this campaign's own record, never word for word, never a banned word. The alternative is to drop the fact entirely.</li>
+<li><b>C7 — the record guard and proper nouns made of banned words</b> ("tithe-engines", "soul-tax lien"). Recommended: exempt exact canonical names from the drop, keep the scan on free prose, and defer lines over the cap instead of dropping them.</li>
+<li><b>D4 — a keeper's "wanted" offer.</b> Should it retire when met? Recommended: yes. Should the counter pay the keeper's stated offer or the canon value? Recommended: the stated offer, which is what the GM was told.</li>
+<li><b>D7 — a counter sale worth under half a gold.</b> Refuse it, or pay a 1 gp minimum? Recommended: refuse, with the reason shown.</li>
+<li><b>D9 — library refresh versus the stash.</b> Re-apply this village's stash moves to the refreshed sheet, or reconcile using the stash rows' provenance? Recommended: re-apply.</li>
+<li><b>E8 — a car's own PLAY press during a spoken "pause" hold.</b> Recommended: ignore it; only "resume" or a tap releases the hold.</li>
+<li><b>G1 — does the privacy ruling also cover testRuns receipts that are already tracked?</b> For example, <code>testRuns/recall_gate_results_t1549.json</code> holds eleven compiled eras of a campaign.</li>
+<li><b>G3 — the TODO viewer.</b> Recommended: strip it to truly read-only, which matches the sole-writer rule. The alternative is to make its editing safe.</li>
+<li><b>B4 — the #392 wares gate.</b> Recommended: keep "keeper stamped at their own shop" as the wares gate's own predicate, and give every other consumer a "present now" predicate.</li>
+</ol>
+
+<h2 id="contents">Findings</h2>
+<ul class="toc">
+<li><a href="#secA">A · Where things are — place names and positions</a> (7)</li>
+<li><a href="#secB">B · Who is where — presence and scene</a> (7)</li>
+<li><a href="#secC">C · Engine notes, memory and the prompt</a> (11)</li>
+<li><a href="#secD">D · Items and the economy</a> (10)</li>
+<li><a href="#secE">E · Voice and audio</a> (10)</li>
+<li><a href="#secF">F · UI, sync, library and satellites</a> (12)</li>
+<li><a href="#secG">G · Tooling, tests, CI and docs</a> (11)</li>
+<li><a href="#rejected">Rejected ledger</a> · <a href="#method">Method</a></li>
+</ul>
+<p class="small">Tier follows the drift decree. <b>Fable</b> means the row touches the drift surface: applyMuts write paths, memory tiers, prompt canon blocks, the tag vocabulary and its docs, transcript integrity, or the quest lifecycle. <b>Off-Fable</b> rows fit the safe-changes map. Line numbers refer to HEAD <code>6dbb0eb</code>. Every row is ○ not started.</p>
+
+<h2 id="secA">A · Where things are — place names and positions</h2>
+<table class="todo">
+<thead><tr><th>#</th><th>Task</th><th>Effort</th><th>Tier</th><th>Status</th></tr></thead>
+<tbody>
+
+<tr id="A1"><td class="n">A1</td><td>
+<p class="ttl">The Hall relic: the item filer refuses seven of nine namings the arrival tag accepts <span class="lean high">high</span><span class="lean">drift hole</span></p>
+<p class="tldr"><b>TLDR:</b> If the GM names a place in a slightly different way than the map does ("The Village Hall", "my house", "The Tavern"), an item set down there is refused, even though walking into the same place under the same name works.</p>
+<p><span class="k">Fix</span>One place resolver, <code>resolvePlaceName(name, parent)</code>, in identity.js next to <code>locResolve</code>. It applies, in order:</p>
+<ul>
+<li>the identity overlay;</li>
+<li>the kind's canonicalisers, as a table the village registers (house owner, commons, hall words) instead of the inline if-chain at tag_table.js:539-542;</li>
+<li>a case- and article-insensitive leaf match against the parent's existing children (the rule <code>locationWorldTwinConflict</code> already uses);</li>
+<li>then null.</li>
+</ul>
+<p>The SUBLOCATION arrival, <code>fileLocationItem</code>'s place operand and every A5 composer call it. Adding a kind's alias rule becomes one table entry.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>memory.js:595-601</code> — <code>fileLocationItem</code> composes <code>world + "|" + place</code> from the raw operand and does an exact key lookup. <code>tag_table.js:535-543</code> — the SUBLOCATION handler runs <code>villageHouseOwnerFor</code>, <code>villageCommonFor</code> and <code>kindDef().hallWords</code> first. <code>tag_table.js:605-611</code> — the LOCATION_ITEM handler.</p>
+<p><span class="k">Why</span>Two resolvers for one question ("which node does this name mean?"), and only one of them knows the village's naming rules or ignores case. The GM reuses the name it used on arrival: t213 <code>[SUBLOCATION:The Village Hall]</code>, then t216 <code>…|placed|The Village Hall]</code>.</p>
+<p><span class="k">Evidence</span>The nine-naming table in <a href="#answer">the answer above</a>, run on your t213 save. The t216 provenance ring reads: <code>"-tomb-iron siphon core"</code>, <code>"Stash refused — tomb-iron siphon core (The Village Hall): no such place on the map"</code>. In the t218 save the Hall node has <code>items: []</code>.</p>
+<p><span class="k">Purpose</span>The #6G6 test (engine-tests.js:24426) pins hall-word canonicalisation for SUBLOCATION only. No test sends an alias through LOCATION_ITEM's place operand; #6E2 uses the exact key "Frizwick's house".</p>
+<p><span class="k">Test first</span>On the village fixture, <code>[LOCATION_ITEM:Pebble|placed|The Village Hall]</code>, <code>…|the hall]</code> and <code>…|my house]</code> each file on the canonical node. A genuinely unknown place is still refused loudly. Sabotage clause: bypass the resolver in <code>fileLocationItem</code>.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="A2"><td class="n">A2</td><td>
+<p class="ttl">Moves written as two tags land by halves: the core destroyed, gold minted, items copied <span class="lean high">high</span><span class="lean">silent failure</span></p>
+<p class="tldr"><b>TLDR:</b> A stow, sale, gift or hand-off is two tags. When the engine refuses or misses one half, the other half still happens, so items vanish or duplicate and gold appears from nothing.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>One inventory name resolver, <code>resolveInventoryName(inv, name)</code>: exact match first, then a unique base-name match (the rule <code>renameInventoryItem</code> already uses).</li>
+<li>One pairing pass per reply that recognises the four shapes: sale (GOLD + ITEM_LOST), stow (ITEM_LOST + LOCATION_ITEM placed), give (ITEM_LOST + COMPANION_ITEM_GAINED) and take-from-companion.</li>
+<li>When one half misses, the partner is withheld and one "⚠ … nothing moved" line says why.</li>
+<li>Immediate minimum: a refused placement puts the unit back in the pack and says so.</li>
+</ul>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>tag_table.js:492-500</code> (GOLD, then ITEM_GAINED, then ITEM_LOST), <code>605-611</code> (LOCATION_ITEM ignores the ITEM_LOST outcome), <code>1563-1567</code> (companion twins resolve independently), <code>api.js:3165-3168</code> (<code>removeInventoryItem</code> matches exactly; the rename path at 3119 has a fallback).</p>
+<p><span class="k">Why</span>Each half resolves the item name on its own, in handler-table order. The tag doc teaches provenance-rich names ("Signet ring (from Sheriff Hemlock)"), and the GM later writes the short name.</p>
+<p><span class="k">Evidence</span></p>
+<ul>
+<li><b>Loss.</b> t216: pack x2→x1, placement refused.</li>
+<li><b>Minted gold.</b> Adventure <code>[GOLD:+30][ITEM_LOST:Signet ring]</code> against "Signet ring (from Sheriff Hemlock)": gold 25→55, ring kept, log shows only "+30 gp". Village trading post: <code>[GOLD:+40][ITEM_LOST:Golvak's medallion]</code> gives +40 gp and the medallion stays.</li>
+<li><b>Duplication.</b> <code>[ITEM_LOST:Rope][LOCATION_ITEM:Rope|placed]</code> against "Rope — mountain grade, 50ft": the chest gains "Rope" and the pack is unchanged. <code>[COMPANION_ITEM_LOST:Morwen Zethran|Small corked vial, violet residue][ITEM_GAINED:…]</code>: Morwen keeps her vial and the hero reaches x2. That matches the live t218 state of the hero's vial and throwing knives.</li>
+<li><b>Vanish.</b> <code>[ITEM_LOST:Bottle of wine][COMPANION_ITEM_GAINED:Nyla Lorrath|…]</code>: bottle gone, resident never gains it (console only).</li>
+<li><b>Live miss rate.</b> 3 of 26 hero ITEM_LOST responses in the saved rings removed nothing.</li>
+</ul>
+<p><span class="k">Purpose</span>#136⑤ removed false receipts but never considered paired halves. The #6 F5 gate already refuses items riding a refused coin, so the pair rule exists; it just isn't general.</p>
+<p><span class="k">Test first</span></p>
+<ul>
+<li>A sale whose item misses moves no gold.</li>
+<li>A stow whose placement is refused leaves the pack unchanged.</li>
+<li>A companion hand-off whose loss misses gives the hero nothing.</li>
+</ul>
+<p>Sabotage clause: the partner ignores the miss.</p>
+</details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="A3"><td class="n">A3</td><td>
+<p class="ttl">A refused placement or take never reaches the GM <span class="lean med">medium</span><span class="lean">drift hole</span></p>
+<p class="tldr"><b>TLDR:</b> When the engine refuses to file an item move, only you are told, in a grey line, so the GM keeps narrating the item where the story put it and the record drifts further each turn.</p>
+<p><span class="k">Fix</span>Arm a one-shot <code>stashRefusedPing</code> note, following the trade gate's pattern (<code>buildTradeRefusedNudge</code>, api.js:1726). It names the refused move, the legal place names here, and the choice: re-emit with the exact name, or narrate that the item is still in hand. With A1 shipped this fires rarely.</p>
+<p><span class="k">Owner fork</span>Does a companion who lives in the hero's house count as "the owner's hand" at the chest? If yes, <code>[COMPANION_ITEM_GAINED:]</code> gets the gated auto-take and the t88 case resolves.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>tag_table.js:606, 608</code> — refusals go to <code>R.muts</code> and the console only; no ping is armed.</p>
+<p><span class="k">Evidence</span></p>
+<ul>
+<li><b>t218 narration.</b> "…the Village Hall, where the tomb-iron cylinder rests silently at the base of the south wall", two turns after the refusal.</li>
+<li><b>t88.</b> The player asked to fetch Morwen's and Daeris's clothes from the stash. The GM narrated the hand-over. Both <code>[LOCATION_ITEM:…|taken]</code> tags were refused ("names no actor"). At t218 the STASH line still serves "Morwen's traveling clothes (left t84 by Ammut), Daeris's traveling clothes…" on every house turn.</li>
+</ul>
+<p><span class="k">Test first</span>A refused <code>placed</code> and a refused <code>taken</code> each arm the ping; the next turn's notes carry it once.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="A4"><td class="n">A4</td><td>
+<p class="ttl">One reply, one place: every tag is judged where the reply ends, not where it happens <span class="lean high">high</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> If you do something and then walk somewhere in the same reply, the engine applies everything as if it happened at the destination. A purchase inside the shop is refused because the reply ends outside, and an item set down at home is filed at the tavern.</p>
+<p><span class="k">Fix</span>One per-reply place sequencer at the top of <code>applyMutsTable</code>.</p>
+<ul>
+<li>It walks <code>[LOCATION:]</code>, <code>[SUBLOCATION:]</code> and <code>[SUBLOCATION_LEAVE]</code> in text order. Earlier places file as passed through, with their edges chained.</li>
+<li>It records a timeline on <code>R</code>. <code>R.departKey</code> (#415) is already its first entry.</li>
+<li>Every node-scoped handler asks <code>R.placeAt(tagOffset)</code>: the trade gate, auto-take, LOCATION_ITEM without a place, LOCATION_STATE, LOCATION_HOURS, WARES/WANTED, COMBAT_START's node, and presence (B1).</li>
+</ul>
+<p>This generalises the two point-fixes that exist (#6 F8, #6 F10). A pending ask (<code>hoursAsk.node</code>) keeps answering to its own node.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span>TAG_TABLE order puts LOCATION (entry 18), SUBLOCATION and LEAVE before every node-scoped handler except LOCATION_HOURS (entry 10, before the move). <code>helpers.js:2606-2608</code> (<code>villageTradeContext</code>: any LEAVE with no later arrival counts as "outside", wherever GOLD sits). <code>tag_table.js:511</code> (LOCATION takes the first match). <code>tag_table.js:985</code> (<code>combat.node = currentNodeKey()</code>).</p>
+<p><span class="k">Evidence</span></p>
+<ul>
+<li><b>t198, live.</b> <code>[GOLD:-1]</code> then <code>[SUBLOCATION_LEAVE]</code>, with Nyla and Thessa speaking at the counter, gave "Trade refused — not in a shop (The Village)". The purse stayed at 27,563; the story paid and ate the cakes. Replayed on HEAD with the same result; without the leave: "-1 gp".</li>
+<li><b>Stow then leave.</b> <code>[LOCATION_ITEM:Wool blanket|placed] … [SUBLOCATION_LEAVE][SUBLOCATION:the tavern]</code> from Ammut's house files the blanket at <code>The Village|the tavern</code>, with the summary "Left: Wool blanket".</li>
+<li><b>Hours on the whole village, live.</b> The world node carries <code>{open:8, close:18, "Open daylight hours for brewing and trade"}</code>, and the t219 prompt says "Hours: 8:00–18:00 … — CLOSED at this hour (it is 7:40)" about the settlement. Repro: <code>[SUBLOCATION:The Brass Kettle] … [LOCATION_HOURS:8-18|…]</code> sets the town's hours and leaves the shop's null.</li>
+<li><b>Fight then ride away.</b> <code>[COMBAT_START:Wolf|…][ENEMY_SLAIN:Wolf][COMBAT_END:victory][LOCATION:Greyford]</code> gives the next note "AFTERMATH CHECK … a fight just ended at Greyford". The #149 comment promises this "can't mis-anchor".</li>
+<li><b>Two moves in one reply</b> (latent, 0 field hits). <code>[LOCATION:Greyford] … [LOCATION:Millbrook]</code> leaves the hero at Greyford, and Millbrook is never filed. <code>[SUBLOCATION:the stables] … [LOCATION:Greyford]</code> mints <code>Greyford|the stables</code>.</li>
+</ul>
+<p><span class="k">Purpose</span>The #6F8 test says "text order, not table order", but only for leave-then-arrive. #6F10 pins leave-then-pay only. The 2026-09-18 audit (A3) fixed first-match for SUBLOCATION but not LOCATION.</p>
+<p><span class="k">Test first</span>These must pass:</p>
+<ul>
+<li>pay-then-leave lands;</li>
+<li>place-then-leave files in the house;</li>
+<li>arrive-then-hours files on the shop;</li>
+<li>fight-then-ride anchors at the fight;</li>
+<li>two <code>[LOCATION:]</code> tags end at the second.</li>
+</ul>
+<p>The existing leave-then-pay test still refuses. Sabotage clause: <code>placeAt</code> returns the end state.</p>
+</details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="A5"><td class="n">A5</td><td>
+<p class="ttl">Four more places still build a key from the GM's raw spelling <span class="lean med">medium</span><span class="lean">drift hole</span></p>
+<p class="tldr"><b>TLDR:</b> Besides the item filer, the passed-through arrival, the soundscape filer, the plain sub-location filer and the state-note filer all take the GM's spelling as-is. They mint twin places, throw away work, or glue a place name into a sentence.</p>
+<p><span class="k">Fix</span>Route all four through A1's resolver. <code>[LOCATION_STATE:]</code> gets an optional <code>|place</code> operand resolved by it. Until then, enrol the tag in <code>__tagNearMiss</code> so a pipe is refused loudly instead of stored as text.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<ul>
+<li><b>Passed-through arrivals</b> (<code>tag_table.js:536</code>, raw <code>fileSubLocation(_slMid)</code>). On the t218 state, <code>[SUBLOCATION:The Village Hall]…[SUBLOCATION:the tavern]</code> mints a twin node <code>The Village|The Village Hall</code>.</li>
+<li><b>Case twins</b> (<code>memory.js:316-325</code>, exact key). Live in Rise of the Runelords: <code>Magnimar|Wyla Ashvane's Shop</code> and <code>Magnimar|Wyla Ashvane's shop</code>.</li>
+<li><b>Soundscape target</b> (<code>memory.js:2552-2555</code>). <code>[SOUNDSCAPE:The Village Hall|…]</code> was refused at t213–t218, with a toast each time. The Hall has no stored profile, and the note re-asks on every Hall visit.</li>
+<li><b>State notes</b> (<code>tag_table.js:617</code> → <code>memory.js:564</code>). <code>[LOCATION_STATE:…tavern counter.|The Village]</code> stored the literal text <code>"…counter.|The Village"</code> on Ammut's house (t191, t195).</li>
+</ul>
+<p><span class="k">Test first</span>Each composer, fed "The Village Hall" on the village fixture, lands on <code>The Village|the Village Hall</code>. No node count grows. No note text contains a pipe.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="A6"><td class="n">A6</td><td>
+<p class="ttl">"Here: Item stash (N items)" at places whose contents cannot be opened <span class="lean low">low</span><span class="lean">UX · owner fork</span></p>
+<p class="tldr"><b>TLDR:</b> In the village the top line only ever counts items, even in the Hall or a shop, where no chest opens to list them, so a relic you placed shows up as "1 item".</p>
+<p><span class="k">Fix</span>Collapse to the count only at <code>node.owner === hero</code> (the chest you can open). Name the items everywhere else, as the adventure already does.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>helpers.js:2767</code> decides by campaign kind (<code>stashQuantities</code>), never by node. The #432 rationale "the chest modal lists them" is true only in the hero's house (<code>stashTradeCatalog</code>, helpers.js:2676-2682).</p>
+<p><span class="k">Evidence</span>A placement at the Hall on the t218 state gives <code>"Here: Item stash (1 item)"</code>, and the stash ledger is refused as "not in a house". With <code>stashQuantities</code> off, the line reads <code>"Here: Brass lantern"</code>.</p>
+<p><span class="k">Test first</span>Extend the #431 here-line group: the Hall names the item; the hero's house keeps the count.</p>
+</details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="A7"><td class="n">A7</td><td>
+<p class="ttl">Refusals look like routine news in the summary line, and false alarms teach you to skip them <span class="lean med">medium</span><span class="lean">UX · silent failure</span></p>
+<p class="tldr"><b>TLDR:</b> "Stash refused" appears in the same small grey capitals as "Time +10m", and a false "⚠ already completed" shows up on nearly every quest completion, so the lines that matter are trained into invisibility.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>A refusal class in the summary renderer: every refused, ignored or kept line gets a leading ⚠ and a warning colour.</li>
+<li>Remove the false alarm (C3).</li>
+<li>Print one "Sub:" line per arrival.</li>
+<li>Show a canonicalisation only when it changes more than letter case.</li>
+</ul>
+<p>The renderer work is Off-Fable. The "Sub:" label change lives in tag_table.js, so it is Fable.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>helpers.js:2742-2756</code> (<code>summaryLineHTML</code> escapes every line identically and special-cases only "Present:"). <code>tag_table.js:542-543</code> pushes both "Sub: The Village Hall → the Village Hall (the Hall)" and "Sub: the Village Hall" on every arrival. The CSS capitals make the first read "THE VILLAGE HALL → THE VILLAGE HALL".</p>
+<p><span class="k">Evidence</span>The t216 line was "Stash refused — …", with no ⚠. The provenance rings show "⚠ '…' is already completed — objective not recorded" on 16 of 17 quest completions (C3).</p>
+<p><span class="k">Test first</span><code>summaryLineHTML</code> marks a line matching the refusal vocabulary; an arrival emits one "Sub:" line; a case-only rename emits no arrow.</p>
+</details>
+</td><td class="c">S</td><td class="c">Off-Fable + Fable</td><td class="s">○ not started</td></tr>
+</tbody></table>
+
+<h2 id="secB">B · Who is where — presence and scene</h2>
+<table class="todo">
+<thead><tr><th>#</th><th>Task</th><th>Effort</th><th>Tier</th><th>Status</th></tr></thead>
+<tbody>
+
+<tr id="B1"><td class="n">B1</td><td>
+<p class="ttl">Everyone who speaks before a move is recorded at the destination <span class="lean high">high</span><span class="lean">drift hole</span></p>
+<p class="tldr"><b>TLDR:</b> When you change place partway through a reply, everyone who spoke earlier in that reply is recorded as standing where you ended up, and the next prompt and notes treat them as being there.</p>
+<p><span class="k">Fix</span>Make <code>[SCENE_CAST:]</code> the per-reply authority on who stands where the reply ends.</p>
+<ul>
+<li>Parse a non-<code>none</code> cast once, at the top of <code>applyMutsTable</code>, into <code>R.castSet</code>.</li>
+<li>In <code>derivePresenceFromResponse</code>, a <code>[SAY:]</code> speaker the cast omits gets no node presence: no lastSeenAt, no guestbook stamp, no frame observation. The transcript speech record stays, so the death gate is unaffected.</li>
+<li>Arm a one-shot "X spoke but your cast leaves them out" note, so a forgotten cast heals.</li>
+<li>Tighten the SCENE_CAST doc line (tag_table.js:191) to "the characters standing where THIS reply ENDS, party members included". The SOUNDSCAPE note's wording is the precedent.</li>
+<li>Combat presence takes the fight's node (A4).</li>
+</ul>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>tag_table.js:1768</code> (derivation at the post-handler seam) → <code>identity.js:852-921</code> → <code>memory.js:681-701</code> (<code>npcRecordPresence</code> reads <code>currentNodeKey()</code>, which is the final node). <code>presenceObserve</code> rotates the scene frame to the final node before pushing the observation.</p>
+<p><span class="k">Why</span>Amendment ③ moved derivation after all handlers so split and rejoin settle first. That is right for party attendance, but it lands every speaker at the final node. Tag position alone cannot fix this: the GM usually writes its tags as a header block, whether the dialogue happens before the move (t198, t213) or after it (Runelords t2428).</p>
+<p><span class="k">Evidence</span>This happened five times in 21 Village turns:</p>
+<ul>
+<li>t198 — Nyla and Thessa (tavern), recorded on the village node;</li>
+<li>t206 — Thessa and Sable (tavern), recorded at Ammut's house;</li>
+<li>t208 — Silas (the lane), recorded at the house;</li>
+<li>t213 — Frizwick, speaking from bed, recorded in the Hall;</li>
+<li>t218 — Thessa and The Entity, recorded in the Hall.</li>
+</ul>
+<p>The t219 prompt then treats Thessa and The Entity as present through five channels:</p>
+<ul>
+<li>the guestbook, "the Village Hall remembers these visitors: … Thessa Saltborn (t218); The Entity (t218)";</li>
+<li>RESIDENTS ABOUT, which leaves both out as "local";</li>
+<li>the #434 "plays as" lines;</li>
+<li>the retrieval scene set;</li>
+<li>a future RESIDENTS note ("both here").</li>
+</ul>
+<p>Replaying t214–t218 from your t213 save reproduces the real t218 presence exactly.</p>
+<p><span class="k">Corpus check</span>Out of 139 cast-bearing replies, 15 SAY speakers were missing from their own reply's cast. 12 were truly elsewhere (at the origin of a move, behind shutters, across the gravel). 3 were present but left out of the cast (Silas t121; Iron Meridian t202, t207). The rule would under-record those 3, which is the safe direction, and the note heals them.</p>
+<p><span class="k">Test first</span>The exact t218 reply on the t213-save chain: Thessa and The Entity not local in the Hall, lastSeenAt still the tavern (red at HEAD). The t2428 shape (the cast names the keeper, the keeper speaks): keeper local (green, must stay). No cast: today's behaviour. Sabotage clause: drop the <code>R.castSet</code> check.</p>
+</details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="B2"><td class="n">B2</td><td>
+<p class="ttl">Your wives stayed in bed; the record says they walked to the Hall and the tavern <span class="lean high">high</span><span class="lean">silent failure</span></p>
+<p class="tldr"><b>TLDR:</b> You went out alone at t213, and the GM said so with a cast of just you for six turns, but the engine recorded Frizwick, Morwen and Daeris as visiting the Hall and the tavern with you.</p>
+<p><span class="k">Fix</span>This rides B1's seam. When a non-<code>none</code> cast names at least one character but leaves out a living, unsplit party member:</p>
+<ul>
+<li>withhold that member's arrival stamps for this reply (a missing visit reads as unknown; a false one damages canon);</li>
+<li>don't count their SAY as presence at the destination;</li>
+<li>arm a one-shot ping in the <code>buildStayBehindNudge</code> shape asking for <code>[PARTY_SPLIT:]</code>. The GM decides; the engine never splits on its own.</li>
+</ul>
+<p>Exclude <code>[SCENE_CAST:none]</code>, and clarify its doc line.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>memory.js:800-826</code> (<code>_gbPresentPartyNames</code> / <code>_gbStampParty</code> stamp every unsplit member at every arrival), <code>identity.js:902-908</code> (casts are read only for the names they include).</p>
+<p><span class="k">Why nothing fired</span></p>
+<ul>
+<li><code>detectStayBehind</code> needs "X stays / waits…"; Frizwick only "mumbles, tucking the heavy quilt…".</li>
+<li><code>detectPlayerStayBehind</code> needs a stay verb plus a name; "I'll be right back" has neither.</li>
+<li><code>detectPartyAbsenceCorrection</code> reads only "GM:" or "OOC:" lines.</li>
+<li>The presence audit runs every 12 turns; the next is at t224.</li>
+</ul>
+<p><span class="k">Evidence</span></p>
+<ul>
+<li>The t218 guestbook has the wives arriving at the Hall at t213 and t218, and at the tavern at t217. The transcript's present-list names all three for t213–t218, with no splitLoc.</li>
+<li>The t219 prompt reads: "the Village Hall remembers these visitors: … Frizwick (t11, t12, t213, t218)".</li>
+<li>The GM stayed truthful throughout. Its buttons read "Return to the cottage to bring breakfast to your wives" and "…walk back home to share the warm breakfast with your wives".</li>
+<li>Corpus: 10 of 140 casts leave out a party member, and every one that could be judged was a true absence.</li>
+</ul>
+<p><span class="k">Test first</span>The t213 exchange on the reconstructed pre-state: no Hall stamps for the wives, and a ping names all three (red at HEAD). A full cast gives no ping; <code>[SCENE_CAST:none]</code> gives no ping.</p>
+</details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="B3"><td class="n">B3</td><td>
+<p class="ttl">The RESIDENTS note re-summons the same two neighbours every eight turns <span class="lean high">high</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> The engine keeps telling the GM "Nyla and Silas are both here" when they are not. The GM obliges by putting them outside your window, and their lines then count as proof they were here for the next round.</p>
+<p><span class="k">Fix</span>Change the note's gate from "both local" to "both on stage now": both residents observed in the active scene frame by the latest reply. The note can then amplify a real pair but never summon one. B1 removes the through-the-window fuel.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>api.js:1740-1755</code> (the note's "both here" test is <code>buildSceneManifest().local</code>), <code>game.js:411-438</code>, <code>identity.js:896-897</code>.</p>
+<p><span class="k">Evidence</span></p>
+<ul>
+<li>The t191 save's note log shows the exchange note built at turns 129, 137, 145, 153, 162, 170, 178 and 186, always for the pair [Nyla Lorrath, Silas Morne].</li>
+<li>Nyla's speech stamps at Ammut's house fall on 130, 138, 146, 154, 163 and 171, each the turn right after a delivery.</li>
+<li>The staging: "Outside the open window…" (t130, t146), during private scenes (t154, t171), and "Across the gravel path…" at t179. The t179 exchange carried the lien line #469 counted.</li>
+<li>Walking the hero home on the t218 state gives <code>local = [Nyla, Silas, Sable]</code> and the note "Nyla Lorrath and Silas Morne are both here" again.</li>
+</ul>
+<p><span class="k">Test first</span>The t85-shaped state (hero at home, Nyla and Silas last stamped 3–6 turns earlier, not in the last reply) produces no note (red at HEAD). Both speaking in the last reply fires it. Sabotage clause: revert to <code>manifest.local</code>.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="B4"><td class="n">B4</td><td>
+<p class="ttl">"In the scene" never expires <span class="lean med">medium</span><span class="lean">wrong outcome · owner fork</span></p>
+<p class="tldr"><b>TLDR:</b> Anyone whose last sighting was at this exact spot counts as present now, however old the sighting. Victor Marlow, last seen in the tavern at t28, was "present" there at t205.</p>
+<p><span class="k">Fix</span>One predicate, <code>scenePresentNow(name)</code>: observed in the active frame since it began, or lastSeenAt here with <code>lastSeenTurn ≥ frame.startTurn</code>. The consumers read it: RESIDENTS ABOUT, the #434 personality line, whispers and small talk, <code>sceneAntagonists</code>, the exchange note, the buy and village rungs, the suggestion gate, and the retrieval scene set. The wares gate keeps its own keeper predicate (owner fork: #392 pins today's semantics for it).</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>game.js:417-418</code> — the exact-spot check <code>rls===rNode</code> has no recency test. #392 added it for the wares gate, then #434, #6 D2/D5 and #375 reused it to mean "physically present now".</p>
+<p><span class="k">Evidence</span>On the t205 save (hero in the tavern), <code>local</code> = Thessa (t205), Sable (t205), The Entity (t197), <b>Victor Marlow (t28)</b>, Pirindel (t205). The t206 prompt gives Victor the "plays as" line and leaves him out of RESIDENTS ABOUT. Walk-ins on t218: the smithy yields Gazz, Halvard and Vyrindra, last seen 105–107 turns earlier.</p>
+<p><span class="k">Test first</span>On the t205 state, Victor is not local, RESIDENTS ABOUT lists him, and he gets no "plays as" line (red at HEAD).</p>
+</details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="B5"><td class="n">B5</td><td>
+<p class="ttl">"Along your left side" is read as someone having left — every separation alarm this fortnight was false <span class="lean med">medium</span><span class="lean">guard firing on noise</span></p>
+<p class="tldr"><b>TLDR:</b> The stay-behind detector treats the word "left" as a departure, so "Daeris settles in along your left side" makes the engine tell the GM that Daeris left the party.</p>
+<p><span class="k">Fix</span>A bare "left" counts only with a departure complement ("left the / for / behind", "has left"). Reject "your left", "the left", "left side / shoulder / hand", and a noun followed by "left".</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>helpers.js:560</code> (bare <code>left</code> in the departure verbs) → <code>game.js:2411-2415</code> arms <code>presencePing</code> → <code>api.js:1232</code> delivers it.</p>
+<p><span class="k">Evidence</span><code>detectStayBehind("Daeris settles in along your left side, warm and quiet.")</code> returns <code>"Daeris"</code>. Six of six field hits were false: Village t74, t115, t144, t173 and t194, plus fae t9 ("the residue left along the plinth"). Five SEPARATION UNRECORDED notes were delivered, and the GM spent a <code>[NO_CHANGE]</code> on one at t116.</p>
+<p><span class="k">Test first</span>The six field lines as negatives; "Daeris left the tavern" as a positive.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="B6"><td class="n">B6</td><td>
+<p class="ttl">The RESIDENTS note says "Thessa Saltborn is the animal handler's yard", and fires as you walk out <span class="lean low">low</span><span class="lean">wrong text</span></p>
+<p class="tldr"><b>TLDR:</b> The note joins a name and a place with "is", naming somewhere else for two people it also says are here. It fires on departure turns, and it sends residents to shops that are closed at that hour.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li><code>residentWhereabouts</code> returns <code>{place, home}</code>.</li>
+<li>One renderer, "is at …", serves RESIDENTS, RETURN, RESIDENTS ABOUT and the recap.</li>
+<li>Omit whereabouts for residents who are present.</li>
+<li>Skip shops that are closed at the hour (the geo block's OPEN/CLOSED predicate).</li>
+<li>Suppress the note when the action is travel (reuse the suggestion gate's verb parse).</li>
+</ul>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>api.js:1750-1752</code> (<code>name+" is "+whereabouts</code>), <code>helpers.js:2785-2795</code>. Other callers compensate for the missing preposition (<code>helpers.js:2805</code>, <code>game.js:1561/1570</code>).</p>
+<p><span class="k">Evidence</span></p>
+<ul>
+<li>t218: "Thessa Saltborn is the animal handler's yard; The Entity is the tavern". It was delivered with "head back to the hall", which set up B1.</li>
+<li>t198: "Nyla Lorrath is the tavern".</li>
+<li>At 7:40, RESIDENTS ABOUT places Nyla in the tavern, whose filed hours are 10:00–24:00.</li>
+</ul>
+<p><span class="k">Test first</span>The note never matches <code>/\b(?:is|are) the /</code> after a resident's name, and carries no whereabouts for present residents.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="B7"><td class="n">B7</td><td>
+<p class="ttl">The console says the hero is "not on the roster" every turn <span class="lean low">low</span><span class="lean">noise</span></p>
+<p class="tldr"><b>TLDR:</b> A harmless warning about your own character prints on every turn. It buries the one console line (<code>[motif]</code>) that the #469 owner check depends on.</p>
+<p><span class="k">Fix</span>In <code>identity.js:857-858</code>, run the player check before the roster check.</p>
+<details><summary>Evidence</summary>
+<p>"[presence] 'Ammut' (cast) is not on the roster…" appeared on 24 of 24 replayed turns.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+</tbody></table>
+
+<h2 id="secC">C · Engine notes, memory and the prompt</h2>
+<table class="todo">
+<thead><tr><th>#</th><th>Task</th><th>Effort</th><th>Tier</th><th>Status</th></tr></thead>
+<tbody>
+
+<tr id="C1"><td class="n">C1</td><td>
+<p class="ttl">The welcome-back note hands the GM the held-back "soul-tax lien" sentence — the source of all six recitals <span class="lean high">high</span><span class="lean">drift hole</span></p>
+<p class="tldr"><b>TLDR:</b> Every time you return after two hours or more, the engine tells the GM to have a neighbour quote Daeris's Necrotic Dungeon moment word for word; the next turn two other notes scold the GM for doing it. #469 and #479 closed five other channels but never looked at this one.</p>
+<p><span class="k">Fix</span>Route <code>villageReturnFact</code> through the one held-past gate (<code>heldPastParty</code> / <code>pastHeldNow</code>) and <code>registerScan</code>. That gives the gate three consumers: moments, the retriever and this note.</p>
+<ul>
+<li>In a small-talk kind, draw only from this campaign's own record: the hero's moments stamped with this campaign, its key decisions and its chapters.</li>
+<li>Never word for word, never a register word, never a moment already in <code>motifNudged</code>.</li>
+<li>Stage the greeting "when the hero steps out or someone calls at the door — never through a window".</li>
+</ul>
+<p><span class="k">Owner fork</span>The alternative is to drop the fact and keep D5's "today" texture.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>game.js:1550-1555</code> — <code>villageReturnFact</code> returns the hero's last core memory, verbatim, up to 200 characters. <code>api.js:1732-1734</code> — "let it name ONE fact from the hero's own record: "…"". <code>game.js:1542-1549</code> arms it once per real absence of 2 h or more.</p>
+<p><span class="k">Why</span>Since the Necrotic Dungeon, the hero's last core memory is "Daeris's purpose was settled: Her soul-tax lien and necrotic tether…". Four mechanisms suppress exactly that text: the #469④/#479 held-past gate, <code>REGISTER_WORDS</code>, the DEFINING MOMENTS header, and stable rule 3. The note rides the user message, so the system-prompt gates never see it. Few new hero moments arrive in the village, so the same sentence is served at every return.</p>
+<p><span class="k">Evidence</span>Checked by the lead across every Village save:</p>
+<pre>RETURN note delivered: 18 26 32 34 48 52 55 56 75 95 96 100 107 109 125 161 164 174 177 178 190 194 211
+GM turns saying soul-tax / lien: 110 126 165 178 191 212
+…of which follow a RETURN note:  110 126 165 178 191 212   (6 of 6)</pre>
+<p>t212: the note quotes the sentence, and Nyla says "…now that her soul-tax lien and necrotic tether to the Reach's engines are completely extinguished." The t213 user turn then carries REGISTER ("used 'soul-tax', 'lien'") and RETOLD MEMORY (Nyla). Across all notes, 13 of the 14 earlier-adventure retelling turns answered a RETURN note.</p>
+<p><span class="k">Side effect</span>The note demands a resident greeting while you are indoors or asleep, so the GM stages it through shutters or a window. Those <code>[SAY:]</code> lines stamp Nyla and Silas inside your house at RETURN turns 162, 165, 175, 178, 191 and 212 (feeds B3).</p>
+<p><span class="k">Purpose</span>D5 (d23405f) deliberately kept "one fact per real absence", but that predates #469④. <code>RETOLD_MEMORY_469.md</code> passes ①–⑤ and #479 never mention the RETURN channel, and #479's premise ("a rebuilt t212 prompt carried the sentence nowhere") is true only of the system prompt. <b>#479's owner check will fail at your next absence of two hours or more.</b></p>
+<p><span class="k">Test first</span>On a village fixture whose hero's last core memory is the Necrotic settle moment, the armed RETURN note carries no held moment, no <code>registerScan</code> hit and no echo of 3+ words. Re-baselining the C2 fixture (engine-tests.js:24277-24285 pins a past-adventure fact) is a contract change, so it is Fable. Sabotage clause: remove the gate call.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C2"><td class="n">C2</td><td>
+<p class="ttl">The welcome-back note files non-changes as permanent place history, on the wrong place <span class="lean high">high</span><span class="lean">silent canon corruption</span></p>
+<p class="tldr"><b>TLDR:</b> The same note tells the GM to permanently record "it is night now" or a neighbour's daily errand as a change to the place. Your house's three-slot history now holds two notes about the tavern counter and one about frost, and the real house details were pushed out.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>The change picker returns <code>{text, tag}</code>. Only a real change (an expired shelf → <code>[WARES:]</code>) carries a filing ask.</li>
+<li>Schedules and the hour are shown, never filed.</li>
+<li>Drop LOCATION_STATE from the note and from its ack list (api.js:2126).</li>
+<li>A5 resolves or refuses the <code>|place</code> pipe.</li>
+</ul>
+<p>Your house's current notes are all wrong. Village saves are disposable, so a reset is fine, or clear them with the map-cleanup tool.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>game.js:1558-1563</code> — <code>villageReturnChange</code> picks an expired ware, else a resident's roam slot ("X is at Y this hour"), else "it is &lt;time&gt; now". <code>api.js:1733</code> — "FILE it with the matching tag ([LOCATION_STATE:], [WARES:], [NPC:]) so it persists". The tag's own doc (<code>tag_table.js:135</code>) reserves it for places "MATERIALLY and durably changed". <code>memory.js:564-590</code> files at the current node with <code>LOC_STATE_CAP = 3</code>, and the result is served every turn as "CHANGED since first visit (this OVERRIDES the descriptions…)".</p>
+<p><span class="k">Evidence</span>Ammut's house state notes at t218:</p>
+<pre>t191  Nyla Lorrath has set out a basket of fresh hearth-scones on the tavern counter.|The Village
+t195  Nyla Lorrath has arranged a fresh display of spiced honey cakes on the tavern counter.|The Village
+t212  Thick hoarfrost glazes the eaves and riverbank weirs after the cold night.
+archived by the cap:  t96 drying trays · t97 "the hearth fire has burned down to a red glow" · t126 bowl of resin (genuine) · t178 trading-post sill</pre>
+<p>Every one was filed on a turn answering a RETURN note. The notes that produced them: "Nyla Lorrath is at the tavern this hour" (t191, t195) and "it is night now" (t212). Knock-on: every new note invalidates the house's soundscape, so the house plays nothing at t213 and t218 (E7).</p>
+<p><span class="k">Test first</span>The hour and schedule branches produce a note with no filing ask. <code>[LOCATION_STATE:x|The Village]</code> never stores "|The Village".</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C3"><td class="n">C3</td><td>
+<p class="ttl">Finishing a quest loses its last step and shows a false ⚠ <span class="lean med">medium</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> When the GM ticks the final objective and completes the quest in the same reply, the engine archives the quest first and then refuses the tick. The Quest Journal shows the "how" unticked, and you get a false warning on nearly every completion.</p>
+<p><span class="k">Fix</span>The QUEST handler records what it closed this reply (<code>R.questsClosed</code>). A QUEST_STEP that ticks an <i>existing</i> objective of a quest closed in the same reply lands on the archived record, silently. A late or new step on a quest closed earlier stays refused, as #265② intends.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>tag_table.js:859</code> (QUEST runs first and archives), <code>953-957</code> (QUEST_STEP on an archived quest: "⚠ '…' is already completed — objective not recorded").</p>
+<p><span class="k">Evidence</span>Lead repro:</p>
+<pre>[QUEST_STEP:The Lost Bell|Return the bell to the priest|true]
+[QUEST:The Lost Bell|completed]
+→ muts: "Quest The Lost Bell: completed", "+50 XP …", "⚠ 'The Lost Bell' is already completed — objective not recorded"
+→ memory.quests["The Lost Bell"].objectives[1] = {text:"Return the bell to the priest", done:false}</pre>
+<p>In the field, 16 of 17 quests completed this fortnight have their final step unticked (fae 9/9, Necrotic 5/6, Princess 2/2). The provenance rings show the ⚠ on the completion turn every time. The #265③ rehydrate reads these flags if the quest is re-offered.</p>
+<p><span class="k">Purpose</span>The #265② tests pin a step on a quest closed in an <i>earlier</i> reply. The same-reply case is untested.</p>
+<p><span class="k">Test first</span>The repro above leaves no ⚠ and <code>done:true</code>. A step on a quest closed at an earlier turn still refuses. Sabotage clause: ignore <code>R.questsClosed</code>.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C4"><td class="n">C4</td><td>
+<p class="ttl">An act or arc close that drops the "Act 1:" prefix is ignored with only a console line <span class="lean med">medium</span><span class="lean">silent failure</span></p>
+<p class="tldr"><b>TLDR:</b> The prompt shows acts and arcs as "Act 1: title", but the close tag must match the stored title exactly, and a mismatch is reported only to the console. The Necrotic Dungeon's first act closed eight turns late.</p>
+<p><span class="k">Fix</span>Add one pure <code>skeletonTitleKey()</code> that strips a leading "Act|Arc &lt;n&gt;:" and case. ACT_COMPLETE, ARC_COMPLETE and ARC_CONTINUE all use it. A real mismatch pushes a ⚠ summary line and a one-shot note quoting the exact title.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>helpers.js:65</code> (<code>actLabel</code> prefixes only when the title lacks one), <code>api.js:2667</code> (arcs rendered "Arc N: title"), <code>tag_table.js:1374, 1418, 1439, 1451-1453</code> (console-only refusals).</p>
+<p><span class="k">Evidence</span>Lead repro on the Necrotic t11 save: <code>[ACT_COMPLETE:The Plunder of the Hollowed Vaults]</code> against the stored "Act 1: The Plunder of the Hollowed Vaults" gives <code>muts: []</code>, one console warning, and the act still active. In the field it closed at t18 instead of t10, delaying the act XP and the act camp. fae t30's <code>[ARC_COMPLETE:Arc 3: …]</code> copied the display numbering and was ignored.</p>
+<p><span class="k">Test first</span>Both field shapes close. "Totally Wrong" still refuses, now visibly.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C5"><td class="n">C5</td><td>
+<p class="ttl">Last campaign's private scene follows the hero: outfit and "current dynamic" carry across campaigns and never age <span class="lean med">medium</span><span class="lean">stale canon</span></p>
+<p class="tldr"><b>TLDR:</b> Characters brought into a new adventure keep scene details from the last one. At turn 18 of The Princess Is Not In Danger, the prompt still describes the outfits and a relationship mood from a private scene in another campaign as current.</p>
+<p><span class="k">Fix</span>One scene-level field registry (outfit, worn, relationship dynamics) that carries a campaign stamp.</p>
+<ul>
+<li>On import or campaign start, clear these fields or mark them "from an earlier adventure".</li>
+<li>Render only this campaign's values within N turns (parity with <code>MOOD_AUDIT_TURNS</code>), and omit negative ages, as the NPC mood line already does (<code>api.js:2297</code>).</li>
+</ul>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>helpers.js:1623-1628</code> (<code>portableSheet</code> deep-copies these fields with their turn stamps), <code>api.js:3052</code> (<code>attireLine</code> has no age gate), <code>api.js:2374-2376, 2420</code>.</p>
+<p><span class="k">Evidence</span>Princess t18 prompt: the hero's and Frizwick's "Outfit (t169): …" lines, stamped turn 169 in an 18-turn campaign. Also a "Current dynamic: … Frizwick (…)" line with <code>dynamicTurn</code> 2106, which comes from Rise of the Runelords. The same Frizwick dynamic is served in Necrotic t35 and in the Village's public Hall scene at t218. The quoted lines are left out here on purpose: this file is public.</p>
+<p><span class="k">Test first</span>An imported sheet whose <code>outfit.turn</code> is greater than the current turn renders neither line.</p>
+</details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C6"><td class="n">C6</td><td>
+<p class="ttl">CARRIED HISTORY and the CARRIED RECORD note ignore the held-past gate <span class="lean med">medium</span><span class="lean">drift hole</span></p>
+<p class="tldr"><b>TLDR:</b> In the village, buying honey cakes from a neighbour pulls about 1,200 characters of that neighbour's old-adventure record into the prompt as "canon to build on", and a note tells the GM to have them correct their past in character.</p>
+<p><span class="k">Fix</span>In small-talk kinds, serve CARRIED HISTORY and fire CARRIED RECORD only when the hero raises the past (<code>pastRaisedByHero</code>, extended with the named resident), or in the Hall.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>memory.js:1579, 1608-1660</code> (the gate is simply "the action names them"), <code>api.js:1763-1778</code>. The gate helpers at <code>helpers.js:839-857</code> are used only by the moments block and <code>ragRetrieve</code>. This runs against #479's "ONE gate … so the two can never disagree".</p>
+<p><span class="k">Evidence</span>Over the Village's 218 player actions, CARRIED HISTORY is served on 33, and only 2 of those raise the past. t15, "Ask Gazz about his available salves and tinctures", pulls in 1,202 characters. CARRIED RECORD rode "Buy four warm spiced honey cakes from Nyla for 1 gp" (t198), and the GM answered one delivery with <code>[NO_CHANGE]</code>, spending one of the three note slots.</p>
+<p><span class="k">Test first</span>"Buy cakes from Nyla" serves neither. "How did you and Silas meet?" serves both.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C7"><td class="n">C7</td><td>
+<p class="ttl">The record guard throws away core-plot lore whose proper nouns contain banned words <span class="lean med">medium</span><span class="lean">silent failure · owner fork</span></p>
+<p class="tldr"><b>TLDR:</b> In a campaign whose plot objects are named with register words ("tithe-engines", "creditor-priests", "soul-tax lien"), about a third of the new facts are dropped. The rewrite is told to keep every name, so the lines stay "dirty" and get dropped.</p>
+<p><span class="k">Fix</span>Needs your ruling. Recommended: exempt exact canonical names from the drop, keep the scan on free prose, and defer lines beyond the re-ask cap to the next window instead of dropping them. Alternative: a per-campaign rename map.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>memory.js:2294-2326</code>. The rewrite prompt says "keep every name". A line that is still dirty is dropped, and lines past <code>RECORD_REGISTER_REASK_MAX = 6</code> are dropped without a re-ask.</p>
+<p><span class="k">Evidence</span>A HEAD replay of the Necrotic t35 save's own 36 lore lines, with a rewrite stub that keeps names: <code>{hits:12, reasked:6, cleaned:0, dropped:12}</code>. Among the dropped: "The three subterranean tithe-engines have been destroyed, releasing the soul-tax lien…", which is the act-2 outcome.</p>
+<p><span class="k">Test first</span>A lore line whose only register hits are canonical names is filed.</p>
+</details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C8"><td class="n">C8</td><td>
+<p class="ttl">Renaming a campaign turns its own memories into "an earlier adventure" <span class="lean med">medium</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> Memories are stamped with the campaign's display name, so after a rename the prompt describes this campaign's own events as coming from some other adventure, and small-talk kinds would hide them.</p>
+<p><span class="k">Fix</span>Stamp the campaign id, compare through one helper, and render the current name for that id.</p>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span>The <code>camp</code> stamp is <code>campName</code> (<code>engine-tests.js:11324</code>). It is compared at <code>api.js:345-347</code>, <code>helpers.js:842</code> and <code>ui-sheets.js:201/209</code>. Rename changes <code>campName</code> (<code>ui-campaigns.js:505-516</code>).</p>
+<p><span class="k">Evidence</span>The fae crysalis was named "Ammut" at t12. Its t89 prompt reads "(Ammut — an earlier adventure) Ammut and his wives defended the Slumbering Chrysalis…", which is this campaign's own plot.</p>
+<p><span class="k">Test first</span>File a moment, rename the campaign, and the moment still counts as this campaign's.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C9"><td class="n">C9</td><td>
+<p class="ttl">The register cleanup can't finish, and the engine's own examples use banned words <span class="lean low">low</span><span class="lean">contradiction · test gap</span></p>
+<p class="tldr"><b>TLDR:</b> The cleanup tool never looks at quests, names the GM must use exactly (Daeris's "Ledger Memory") get it scolded, and the instruction on how outsiders should mention the past uses "that business with the lien" as its example.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li><code>dev/register-scrub.js</code> walks <code>questLog</code> instead of <code>quests</code>. That is Off-Fable, but the pinned assertion at engine-tests.js:26371 must move with it.</li>
+<li>Add ability and item names to the sheet report.</li>
+<li>Exempt exact canonical names from the narration scan.</li>
+<li>The DEFINING MOMENTS header (<code>api.js:366</code>) uses "all that business", and the motif note (<code>api.js:1583</code>) names the moment by owner and campaign instead of quoting it.</li>
+</ul>
+<details><summary>Evidence</summary>
+<p><code>registerScan</code> over the header's own example returns <code>["lien"]</code>. <code>registerScan("Daeris calls on Ledger Memory")</code> returns <code>["ledger"]</code>. The scrub over Necrotic t35 finds 91 lines and zero quest paths.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C10"><td class="n">C10</td><td>
+<p class="ttl">On Claude, every turn pays to cache the per-turn prompt half for a reader that rarely comes <span class="lean low">low</span><span class="lean">resource</span></p>
+<p class="tldr"><b>TLDR:</b> Since the suggestion buttons moved into the GM's reply, the second call that would reuse the cached per-turn half almost never happens, but every Claude turn still pays the 25% cache-write surcharge on it. You play on Gemini, so this is the Anthropic path only.</p>
+<p><span class="k">Fix</span>Attach <code>cache_control</code> to the volatile block only when the separate suggestion call will run, or move the marker to a rarely-changing middle block.</p>
+<details><summary>Evidence</summary>
+<p><code>globals.js:289-296</code> marks both blocks. <code>game.js:728-732</code> skips the call on in-band buttons. <code>buildSuggestMissNote</code> fired about once per 40 Village turns, and 0 times in the fae, Necrotic and Princess logs.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="C11"><td class="n">C11</td><td>
+<p class="ttl">Small prompt defects: a start place "never visited", truncated "First met", joined templates, adventure crisis rules in the village <span class="lean low">low</span><span class="lean">cosmetic · redundancy</span></p>
+<p class="tldr"><b>TLDR:</b> A handful of small text errors ride every turn's prompt. Individually harmless; together they are noise the GM has to read past.</p>
+<p><span class="k">Fix</span>One commit of text fixes, each with an assertion.</p>
+<ul>
+<li>Stamp the start arrival (<code>game.js:33-38</code> vs the village and blueprint mints).</li>
+<li>Skip "First met" for imported party members, and cut it at a sentence end (<code>tag_table.js:1627</code>).</li>
+<li>Add the missing <code>\n</code> after <code>tagDocNote</code> (data.js:330).</li>
+<li>Drop the repeated region.</li>
+<li>Gate rule 18 and the ACTIVE CRISES line out of no-danger kinds.</li>
+<li>Replace "emit nothing" with <code>[NO_CHANGE]</code> in the PRESENCE CHECK and SEPARATION notes.</li>
+</ul>
+<details><summary>Evidence</summary>
+<ul>
+<li>Village t20 and t218 both show "KNOWN OF (not yet visited): The Village" beside "Location: The Village".</li>
+<li>Necrotic t35 "First met: … to the rightmo", cut mid-word.</li>
+<li>"…push or escalate.NAMING (identity discipline)".</li>
+<li>"Location: The Village, The Village".</li>
+<li>About 730 characters a turn duplicated between the NPC graph and Bond lines, and between "Known sub-locations" and COMMONS + HOUSES.</li>
+</ul>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+</tbody></table>
+
+<h2 id="secD">D · Items and the economy</h2>
+<table class="todo">
+<thead><tr><th>#</th><th>Task</th><th>Effort</th><th>Tier</th><th>Status</th></tr></thead>
+<tbody>
+
+<tr id="D1"><td class="n">D1</td><td>
+<p class="ttl">Car Mode's "never mind" destroys the last stowed item and says it is back with you <span class="lean high">high</span><span class="lean">silent failure</span></p>
+<p class="tldr"><b>TLDR:</b> Saying "never mind", "undo that" or "put it back" in Car Mode removes the last stowed item from the chest but never returns it to the pack, while the voice says "…is back with you". In your save that item is the Sihedron ritual spear, stowed at turn 86.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>At move time, record the inverse <i>tags</i>. Undo by applying them through <code>applyMuts</code>, so both halves move on one path with receipts.</li>
+<li>Expire the pointer after the next GM turn.</li>
+<li>Every item move writes or clears it, the chest ledger's takes included.</li>
+</ul>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>game.js:1647-1657</code> (<code>undoLastItemMove</code> mutates only the node row), <code>tag_table.js:610</code> (only LOCATION_ITEM writes the pointer), <code>ui-carmode.js:184</code> ("Never mind — X is back with you.").</p>
+<p><span class="k">Evidence</span>Verified by the lead on your t218 save:</p>
+<pre>worldState.lastItemMove = {"name":"Sihedron ritual spear","action":"placed","key":"The Village|Ammut's house","turn":86}
+undoLastItemMove() → {ok:true} · Car Mode says "Never mind — Sihedron ritual spear is back with you."
+stash row → {taken:true, qty:0} · the pack still holds no spear
+fresh stow of a Blasting charge, then undo → pack x5 → x4 → x4, stash row qty 0: one charge destroyed</pre>
+<p><span class="k">Purpose</span>The E9 design says undo "reverses the last placement or take". The E9 test pins only the stash row, and the #6 row notes that the Car Mode listening test was never run.</p>
+<p><span class="k">Test first</span>An undo after a stow returns the item to the pack. An undo two turns later is refused. Sabotage clause: drop the inverse re-add.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="D2"><td class="n">D2</td><td>
+<p class="ttl">The chest and the pack disagree on an item's name — a "Hemp rope x2" row is a copy machine <span class="lean med">medium</span><span class="lean">duplication</span></p>
+<p class="tldr"><b>TLDR:</b> The chest matches names letter for letter, while the pack understands quantities and plurals. Taking "x2" removes one from the chest but adds two to the pack, and a chest row literally named "Hemp rope x2" hands out two ropes on every click, forever.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>One <code>stashKey(name)</code>, built on <code>_qtyParse</code> and <code>_invNorm</code>, used by <code>fileLocationItem</code>, <code>autoTakeLocationItem</code>, <code>villageStash</code> and the undo.</li>
+<li>Auto-take takes n units.</li>
+<li>Heal legacy "…xN" rows at load.</li>
+</ul>
+<details><summary>Evidence · test</summary>
+<pre>[ITEM_GAINED:Iron ring x2] in your own house → stash qty 2→1, pack "Iron ring x2"
+[ITEM_LOST:Hemp rope x2][LOCATION_ITEM:Hemp rope x2|placed] → row {name:"Hemp rope x2", qty:1}
+three chest takes → pack x2 → x4 → x6, row unchanged, each "Ammut took Hemp rope x2"</pre>
+<p><span class="k">Test first</span>The three repros above conserve the unit count.</p>
+</details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="D3"><td class="n">D3</td><td>
+<p class="ttl">Quantities of ten or more, and any quantity on a companion, move one unit while the log claims the full number <span class="lean med">medium</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> "+Arrows x12" onto 13 arrows gives 14. "-Arrow x10" removes one. A companion's "Torch x3" adds one torch and raises a false duplicate alarm.</p>
+<p><span class="k">Fix</span>One quantity grammar, <code>\sx(\d+)$</code> with n ≥ 2 and a loud upper bound, shared by the hero and companion tags. Receipts print the count actually moved.</p>
+<details><summary>Evidence</summary>
+<p><code>api.js:3059</code>: <code>_qtyParse</code> accepts only <code>x[2-9]</code>, while the stack reader accepts any <code>x\d+</code>. The companion twins (<code>tag_table.js:1563-1567</code>) never parse quantity. Repro: "Arrow x13" + <code>[ITEM_GAINED:Arrows x12]</code> gives "Arrow x14", muts "+Arrows x12".</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="D4"><td class="n">D4</td><td>
+<p class="ttl">A met "wanted" offer is never retired — the counter pays full price again and again <span class="lean med">medium</span><span class="lean">drift hole · owner fork</span></p>
+<p class="tldr"><b>TLDR:</b> After a keeper buys the thing they wanted, the GM is still told they want it, and the counter keeps paying full price for every further copy.</p>
+<p><span class="k">Fix</span>A sale of a wanted item in that shop retires the row, whether through the counter or a GM-closed sale. Wants expire on the clock, like wares.</p>
+<p><span class="k">Owner fork</span>#407 ruling ① makes the counter pay full canon (200 gp) and ignore the keeper's stated offer (40 gp). Recommended: pay the stated offer, which is what the GM was told.</p>
+<details><summary>Evidence</summary>
+<p><code>[WANTED:Warded ring|40 gp|Gazz Quickfuse]</code>, then two counter sales, each "+200 gp". The want row survives both, and the geo block still says "WANTED HERE: Warded ring — Gazz Quickfuse offers 40 gp". Where: <code>memory.js:552-563</code> (no expiry, no consumer), <code>game.js:374-390</code>.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="D5"><td class="n">D5</td><td>
+<p class="ttl">Prices in silver or copper are invisible to the economy, and <code>[GOLD:]</code> ignores its unit <span class="lean med">medium</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> Village goods priced in silver or copper can't be bought or sold at the counter, "1 gp per 20" reads as 1 gp each, and a <code>[GOLD:-25 cp]</code> would charge 25 gold.</p>
+<p><span class="k">Fix</span>One <code>parseCoin(str)</code> that understands gp/sp/cp and "per N" / "each", used by <code>itemValueGp</code>, the GOLD handler, price pinning, the price-band warning and the counter. GOLD converts or refuses a non-gold unit loudly. The overspend receipt states the amount actually moved.</p>
+<details><summary>Evidence</summary>
+<pre>itemValueGp("25 cp" | "5 sp" | "2 sp") → null      itemValueGp("1 gp per 20") → 1
+[GOLD:-25 cp] (purse 100) → 75, log "-25 gp"         [GOLD:-10] (purse 3) → 0, log "-10 gp"</pre>
+<p>The GOLD-unit half has zero field instances (every field <code>[GOLD:]</code> is integer gold). The price half is live: travel rations, wine and the honey cake are unsellable, and 25 cp wares can't be bought.</p>
+</details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="D6"><td class="n">D6</td><td>
+<p class="ttl">Taking from your own chest trips the GM's duplicate-item alarm <span class="lean low">low</span><span class="lean">wrong outcome risk</span></p>
+<p class="tldr"><b>TLDR:</b> Taking an Iron ring from your own chest, or buying a second salve at the counter, logs "DUPLICATE ITEM". The next turn tells the GM to delete it if it was "the same item re-described".</p>
+<p><span class="k">Fix</span>Ledger plans apply with <code>applyMuts(text, {source:"ledger"})</code>. ITEM_GAINED then skips the duplicate warning and the undefined-item candidate.</p>
+<details><summary>Evidence</summary><p><code>stashTradeApply({take:{"iron ring":1}})</code> gives "DUPLICATE ITEM: player sheet already had uncounted 'Iron ring'…" and sets <code>dupItemPending</code>, so the next notes include "DUPLICATE ITEM GRANT" (api.js:1861-1869).</p></details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="D7"><td class="n">D7</td><td>
+<p class="ttl">A counter sale worth under half a gold deletes the item and pays nothing <span class="lean low">low</span><span class="lean">owner fork</span></p>
+<p class="tldr"><b>TLDR:</b> Selling something worth 0.3 gp at the counter removes it from your pack and pays 0 gp.</p>
+<p><span class="k">Fix</span>Refuse with the reason shown (recommended), or pay a 1 gp minimum, mirroring "a non-zero purchase never rounds to free". <code>helpers.js:2648-2656</code>.</p>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="D8"><td class="n">D8</td><td>
+<p class="ttl">The undefined-item question keeps one slot per reply, and a sixth proposal is dropped silently <span class="lean low">low</span><span class="lean">silent failure</span></p>
+<p class="tldr"><b>TLDR:</b> Two new items in one reply: only the last one gets its "what does this do?" question. When the proposal queue is full, the extra proposal vanishes with only a console line.</p>
+<p><span class="k">Fix</span>Make the candidate a queue (still one ask per turn). Surface a full-queue drop in the summary line, without consuming the ask.</p>
+<details><summary>Evidence</summary><p><code>[ITEM_GAINED:Ring of the drowned king][ITEM_GAINED:Heel of rye bread]</code> asks only about the bread (<code>api.js:1836</code>, last wins). Queue-full is console-only (<code>tag_table.js:1247</code>).</p></details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="D9"><td class="n">D9</td><td>
+<p class="ttl">A library refresh duplicates items you stashed in the village <span class="lean med">medium</span><span class="lean">latent · owner fork</span></p>
+<p class="tldr"><b>TLDR:</b> Put something in your house chest; the next time the village refreshes your hero from a newer library copy, the item is back in your pack and still in the chest.</p>
+<p><span class="k">Fix</span>Recommended: re-apply this village's stash moves made since <code>heroLibraryAt</code> to the refreshed sheet. Alternative: reconcile with the stash rows' provenance fields.</p>
+<details><summary>Evidence</summary><p>A HEAD repro: after a placement, <code>villageRefreshFromLibrary</code> → <code>adoptLibraryHero</code> (<code>game.js:1513-1529</code>) leaves the item in both the pack and the chest. Refreshes really do happen mid-campaign: between t205 and t213 your <code>heroLibraryAt</code> moved, with gold +9 and XP +6,300. No duplication was hit this fortnight.</p></details>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="D10"><td class="n">D10</td><td>
+<p class="ttl">"Replace from library" keeps the old sheet's owed level-up choices <span class="lean low">low</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> Replacing your hero with the library copy can hand the new sheet an extra stat bump or spell pick that the old sheet had earned.</p>
+<p><span class="k">Fix</span>The adopter clears <code>levelUpOwed[name]</code> and that owner's pending #429 marks. Add an assertion in the #428 group.</p>
+<details><summary>Evidence</summary><p><code>adoptLibraryHero</code> (<code>game.js:1478</code>) keeps the local name, which keys <code>worldState.levelUpOwed</code>. After <code>libReplaceApply</code>, the owed queue still holds <code>{"bumps":1,"spells":[…"Old Bench Spell"…]}</code>, and it resurfaces on the next send.</p></details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+</tbody></table>
+
+<h2 id="secE">E · Voice and audio</h2>
+<table class="todo">
+<thead><tr><th>#</th><th>Task</th><th>Effort</th><th>Tier</th><th>Status</th></tr></thead>
+<tbody>
+
+<tr id="E1"><td class="n">E1</td><td>
+<p class="ttl">Every Inworld mood since t202 is dropped: the GM started writing <code>mood:</code> in front of it <span class="lean high">high</span><span class="lean">silent failure</span></p>
+<p class="tldr"><b>TLDR:</b> Since 2026-09-28 the GM tags lines as <code>[SAY:Frizwick|mood:bright, giggle]</code>. The colon fails the mood check, so the whole mood is discarded, including every laugh, giggle and sigh. The only trace is a console line you can't see on the phone.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>At the one gate, <code>sayMoodShape</code> strips a leading <code>(mood|emotion|tone)\s*[:=]</code> before the shape test. The parser and the request builder both call it, so both get the fix.</li>
+<li>Surface drops in the #17 health readout, or with one toast per session that gives the count.</li>
+<li>Separately, a Fable review of the SAY doc line. It writes the field as <code>[SAY:Character Name|mood]</code>, which invites a label, and its example "sound concerned, speaking carefully" is exactly what #477 now drops.</li>
+</ul>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>helpers.js:2855-2859</code> (<code>sayMoodShape</code> admits only <code>[A-Za-z ,-]</code>), <code>game.js:852</code> (the drop and its console warning), <code>tts.js:868-873</code>.</p>
+<p><span class="k">Evidence</span></p>
+<pre>sayMoodShape("bright, giggle")       → "bright, giggle"     → Inworld prefix "[speak bright] [giggle] "
+sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all</pre>
+<table class="plain">
+<tr><th>Saves</th><th>Mood tags</th><th>Dropped</th></tr>
+<tr><td>t135–t198</td><td>29</td><td>0</td></tr>
+<tr><td>t202</td><td>12</td><td>12</td></tr>
+<tr><td>t205</td><td>9</td><td>6</td></tr>
+<tr><td>t213</td><td>3</td><td>3</td></tr>
+<tr><td>t218</td><td>3</td><td>3</td></tr>
+</table>
+<p>Every dropped tag carries <code>mood:</code>. The saves hold 19 distinct <code>mood:</code> tags. This also blocks the open #477 owner check, because manner moods are now dropped whole before the manner filter runs.</p>
+<p><span class="k">Test first</span>In the #458 group, <code>[SAY:Frizwick|mood:bright, giggle]</code> keeps its mood as "bright, giggle", and the prefix is <code>[speak bright] [giggle] </code>. Add a sabotage clause on the strip.</p>
+</details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="E2"><td class="n">E2</td><td>
+<p class="ttl">Village daytime ambience goes silent once a place has been classified <span class="lean med">medium</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> The square, the animal yard and the village itself play nothing from 10:00 to 18:00 once the GM has classified them. The approved morning and day beds are held to strict general matching; the #471 fix exempted only dusk and night.</p>
+<p><span class="k">Fix</span>Treat every AUDIO_SCENES seed as authored data. Drop the per-row <code>profilePolicy</code> flag, and keep the vetoes (forbid, silent, enclosure, setting, biome, cohort) in <code>ambientProfileCompatible</code>. A seed's accents stay while its authored bed matches.</p>
+<details><summary>Evidence</summary>
+<p><code>ambient.js:62-76</code>, <code>audio-scenes.js:4-6</code>, <code>audio-profile.js:57-62</code>. On t218 and t202:</p>
+<ul>
+<li>The village node, with allows voices / water / wind, is silent at 06:00, 12:00 and 16:40.</li>
+<li>The square and the yard, with allows birds / voices / wind, play the morning bed at 06:00 and are silent at 12:00 and 16:40.</li>
+</ul>
+<p>Unclassified, all three would play their beds. The classified tavern keeps its crowd bed but loses its authored footsteps.</p>
+</details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="E3"><td class="n">E3</td><td>
+<p class="ttl">An accent that finishes loading while the layer is blocked plays anyway <span class="lean med">medium</span><span class="lean">race</span></p>
+<p class="tldr"><b>TLDR:</b> If ambience is switched off, the page is hidden, the mic opens or narration pauses while a place's accent sound is still loading, footsteps start about 20 s later and keep repeating. A mic capture also resets the 30-second spacing rule.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li><code>plan()</code> returns early while <code>blocked(snapshot)</code> is true.</li>
+<li>The blocked branch aborts the in-flight load, as the bed's <code>invalidate()</code> does.</li>
+<li>A blocked reset clears only the due times and keeps <code>lastPlay</code>.</li>
+</ul>
+<details><summary>Evidence</summary><p><code>audio-accents.js:130-163</code>. With the real controller and a fake driver: arrival → load in flight → <code>enabled:false</code> → load settles → 15 minutes with no update gives 4 plays, the first at +42 s. Same result when hidden, capturing, paused or held. After a 1 s capture: plays at 20 s and 42 s, 22 s apart against the 30 s rule. §21.4 says these states "cancel the schedule at once".</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="E4"><td class="n">E4</td><td>
+<p class="ttl">Switching campaigns keeps the old narration playing, and "repeat" replays the old campaign <span class="lean med">medium</span><span class="lean">state across a switch</span></p>
+<p class="tldr"><b>TLDR:</b> Loading another campaign mid-read doesn't stop the narration, so a cloud voice keeps fetching and billing. Until the new campaign narrates once, "repeat", ⏮ or a steering-wheel PLAY reads the previous campaign's story.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>Stop TTS at the one campaign-activation boundary (the path where <code>audioScenePublish("load")</code> already runs).</li>
+<li>Key the replay text by campaign id, or read only <code>worldState.lastNarration</code>.</li>
+</ul>
+<details><summary>Evidence</summary><p><code>tts.js:1467, 2113-2128, 3700-3712</code>. A repro with the real tts.js: speak "CAMPAIGN A: …", stop, swap to campaign B, then <code>TTS.replayLast()</code> speaks "CAMPAIGN A: the dungeon door grinds shut behind you." The only <code>TTS.stop</code> callers are in Car Mode.</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="E5"><td class="n">E5</td><td>
+<p class="ttl">Half of the GM's soundscape classifications are thrown away over one invented word <span class="lean med">medium</span><span class="lean">wrong outcome · UX</span></p>
+<p class="tldr"><b>TLDR:</b> When the GM classifies a place but adds a sound word the engine doesn't know ("footsteps", "breathing"), the whole classification is rejected with a toast, and the place stays silent for that visit.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li><code>audioParseProfile</code> drops unknown <i>content</i> words, reports them in <code>v.dropped</code> with one console line, and keeps the record. Enum fields stay strict.</li>
+<li>Throttle the refusal toasts.</li>
+<li>The catalog can only contain vocabulary words, so an unknown word could never match or veto anything anyway; single-vocabulary rule v1.978 survives.</li>
+</ul>
+<details><summary>Evidence</summary><p>18 distinct field tags; 9 rejected, all from this fortnight. Three fail only on a content word: <code>allows=footsteps,voices,wind,birds</code> (Village t198, verified: "unknown content in allows"), <code>footspring</code> (Necrotic t11), <code>breathing</code> (fae t33). The other six are enum errors (interior, ruin, swamp, tense).</p></details>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="E6"><td class="n">E6</td><td>
+<p class="ttl">Per-character voice controls are shown for providers that ignore or misuse them <span class="lean med">medium</span><span class="lean">silent no-op</span></p>
+<p class="tldr"><b>TLDR:</b></p>
+<ul>
+<li>The sheet's Speed control does nothing on Piper, the voice server, device voices or Gemini.</li>
+<li>A character's Inworld delivery direction is sent to Gemini as the instruction itself.</li>
+<li>A mood splits Speechify and Gemini requests although only Inworld uses moods.</li>
+</ul>
+<p><span class="k">Fix</span>Per-model capability flags on VOICE_MODELS (for example <code>unitRate</code>, <code>unitDirection</code>; <code>markups</code> already exists), consulted at one boundary.</p>
+<ul>
+<li>The sheet shows only the rows the primary provider honours.</li>
+<li>The grouper splits only on what the reader declares.</li>
+<li>A group direction goes only to readers with an instruction field.</li>
+</ul>
+<details><summary>Evidence</summary><p><code>ui-sheets.js:133-137</code>. <code>tts.js:688</code> (<code>_effRate</code> is used only by the Inworld and Speechify builders), <code>tts.js:3078, 2974</code> (Gemini's body is <code>direction + "\n\n" + text</code>, so a directed group loses the narrator instruction). Whether Gemini reads the direction aloud is unverified (no spend). Owner #454: "A control that does nothing is a silent failure dressed as a feature."</p></details>
+</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="E7"><td class="n">E7</td><td>
+<p class="ttl">A stale soundscape silences your own house <span class="lean low">low</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> Every new state note on a classified house marks its soundscape stale, and a stale house plays nothing, not even the hearth, until the GM reclassifies it. Your house is silent in the t213 and t218 saves.</p>
+<p><span class="k">Fix</span>Publish <code>stale</code> separately from <code>classified</code>. A stale but valid profile falls back to the unclassified plan (authored bindings plus the hearth) until it is re-asked. C2 removes most of the churn.</p>
+<details><summary>Evidence</summary><p><code>audio-profile.js:39-44</code>, <code>ambient.js:46-58</code>. The house was reclassified 5 times in 7 turns. The freshness stamp moved with the misfiled notes: "…tavern counter.|The Village" at t191, then hoarfrost at t212.</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="E8"><td class="n">E8</td><td>
+<p class="ttl">A car's own PLAY press during a spoken "pause" replays the last narration <span class="lean low">low</span><span class="lean">race · owner fork</span></p>
+<p class="tldr"><b>TLDR:</b> After you say "pause", the car sometimes sends PLAY by itself (after a call or a reconnect). That replays the last narration, while the hold keeps ambience silent.</p>
+<p><span class="k">Fix</span>Add a "held" transport state. Recommended: PLAY while held does nothing, and only "resume" or a tap releases the hold (#410). Add a tests-19b group.</p>
+<details><summary>Evidence</summary><p><code>ui-carmode.js:605-611</code>: <code>_carTransport</code> ignores <code>_carHeld</code>. Repro: after the spoken pause, <code>_carTransport("play")</code> returns "replay" and the hold stays set.</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="E9"><td class="n">E9</td><td>
+<p class="ttl">Opening Car Mode mid-narration opens the microphone mid-read <span class="lean low">low</span><span class="lean">race</span></p>
+<p class="tldr"><b>TLDR:</b> Car Mode's entry warms the mic even while narration is playing, which switches the phone's audio route mid-sentence. Every other Car Mode mic path refuses to do that while narration plays.</p>
+<p><span class="k">Fix</span>Skip the warm-up while <code>TTS.isPlaying()</code>, or defer it to the first gap after narration. Add a tests-19 group. <code>ui-carmode.js:242-243</code>, <code>stt.js:407-408, 18-22</code>. Not verified on a device.</p>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="E10"><td class="n">E10</td><td>
+<p class="ttl">The audio catalog builder checks only content words; voice doc rot <span class="lean low">low</span><span class="lean">test gap · doc rot</span></p>
+<p class="tldr"><b>TLDR:</b> A typo in a catalog asset's place type or time window would make it silently unmatchable, and a few voice comments contradict the code.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>Validate enclosures, settings, biomes, from/to (0–1440) and <code>defaultFor</code> in <code>dev/build-audio-catalog.js:28-41</code>, with break cases in tests-accent-layer.</li>
+<li>Fix <code>tts.js:715</code> ("× the character's speed", against the owner's "never a multiplier") and <code>tts.js:863-867</code> (the old prefix).</li>
+<li>Add the #477 line to tts-stt.md.</li>
+<li>Delete Speechify's dead emotion branches (<code>tts.js:710, 751, 775</code>; <code>ui-voice-settings.js:42</code>).</li>
+</ul>
+<p>All 13 current catalog assets are valid.</p>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</tbody></table>
+
+<h2 id="secF">F · UI, sync, library and satellites</h2>
+<table class="todo">
+<thead><tr><th>#</th><th>Task</th><th>Effort</th><th>Tier</th><th>Status</th></tr></thead>
+<tbody>
+
+<tr id="F1"><td class="n">F1</td><td>
+<p class="ttl">Campaign folders are keyed by campaign name — two of your Village campaigns already share one folder <span class="lean high">high</span><span class="lean">silent loss on disk</span></p>
+<p class="tldr"><b>TLDR:</b> Two campaigns with the same name write into the same folder, so a save at the same turn, a character export or a portrait silently overwrites the other campaign's file. A refused rename still sends the next save into the other campaign's folder.</p>
+<p><span class="k">Fix</span>One resolver, <code>campaignFolderFor(campId)</code>.</p>
+<ul>
+<li>The folder slug is minted once per campaign and stored on its meta row.</li>
+<li>On collision, append <code>_2</code>, <code>_3</code>, confirmed by a small marker file in the folder that holds the campaign id.</li>
+<li>Route <code>exportToFolder</code>, <code>restoreSavedRenders</code>, <code>exportCampaignCopy</code> and rename through it. A rename changes only the display name.</li>
+</ul>
+<details><summary>Mechanism · evidence · test</summary>
+<p><span class="k">Where</span><code>ui-files.js:105-113</code> (the folder is <code>slug(worldState.campName)</code>), <code>ui-files.js:13-27</code> (no campaign id in filenames; <code>_character.char</code> and <code>_portrait.png</code> carry no turn), <code>ui-campaigns.js:511</code> (sets <code>campName</code> before the rename), plus deterministic default names (<code>char-creation.js:191</code> "&lt;blueprint&gt; (&lt;hero&gt;)").</p>
+<p><span class="k">Evidence</span>Your <code>Campaigns/The_Village__Ammut_/saves</code> holds saves from two campaign ids, both named "The Village (Ammut)": <code>camp_1789338232587_9271</code> (t77–t218) and <code>camp_1789451371865_4817</code> (t20, t25). The turns differ, so no save has been overwritten yet; the character export has no turn number at all. With the real ui-files.js on an in-memory file system:</p>
+<ul>
+<li>A refused rename toasts "your files stay in Beta/". The next exports then write to <code>Campaigns/Night_/…</code>, overwriting campaign A's files with campaign B's.</li>
+<li>The #424 safety copy of a non-active campaign lands in the active campaign's folder.</li>
+</ul>
+<p><span class="k">Purpose</span>The #438 row declined an id-to-folder mapping because "the refusal makes the collision safe". The repro shows it doesn't.</p>
+<p><span class="k">Test first</span>Two same-name campaigns get two folders. After a refused rename, the next export lands in the original folder. Sabotage clause: restore the <code>campName</code> derivation.</p>
+</details>
+</td><td class="c">M</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F2"><td class="n">F2</td><td>
+<p class="ttl">Portrait strings go into the page unescaped — a crafted save can run script when you open any NPC's sheet <span class="lean med">medium</span><span class="lean">security</span></p>
+<p class="tldr"><b>TLDR:</b> A portrait value in an imported save is pasted straight into the page. A crafted one can run code that reads your stored API key and session token. #453 extended this to every NPC's sheet, and #452 put those sheets one click away.</p>
+<p><span class="k">Fix</span>One <code>safeImgSrc(url)</code> in helpers.js.</p>
+<ul>
+<li>It allows <code>data:image/(png|jpeg|gif|webp);base64,…</code>, <code>https:</code> and <code>blob:</code>, then escapes with <code>escHtml</code>.</li>
+<li>Every portrait <code>src=</code> goes through it.</li>
+<li>Also sanitise portraits at the import boundaries: <code>importSaveData</code>, .char import and the library adopters.</li>
+<li>A contract scan forbids a raw <code>src='"+</code>.</li>
+</ul>
+<details><summary>Evidence</summary><p><code>ui-sheets.js:535, 713</code> (<code>src='"+portrait+"'</code>). The same class appears at <code>ui-sheets.js:342, 411, 784</code>, <code>ui-browsers.js:367, 885</code>, <code>char-creation.js:104, 183, 203</code> and <code>ui-portrait.js:213</code>. With the real <code>showNpcSheet</code>, a portrait value that contains a single quote closes the <code>src</code> attribute early, and the rest of the value becomes an event-handler attribute on the <code>&lt;img&gt;</code>. The payload is left out here on purpose: this file is public. #423 makes importing a friend's save a supported flow.</p></details>
+</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F3"><td class="n">F3</td><td>
+<p class="ttl">Keyboard focus falls back to the story box behind an open dialog, so Enter can send a turn <span class="lean med">medium</span><span class="lean">broken contract (#442)</span></p>
+<p class="tldr"><b>TLDR:</b> After some GM turns and most sheet actions, keyboard focus lands on the story input behind the open popup, and pressing Enter sends a story turn. #442 promised this could not happen.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>One <code>focusStoryBox()</code> that yields while an <code>[aria-modal=true]</code> dialog is open, used at the end of <code>sendAction</code> (game.js:2729).</li>
+<li>In <code>modalShell</code>, a same-id re-creation inherits the old opener and disconnects the old observer.</li>
+<li><code>restore()</code> acts only when focus is on the body or detached and no dialog is open.</li>
+</ul>
+<details><summary>Evidence</summary><p><code>ui-shell.js:141-144, 167-173</code>, <code>ui-sheets.js:312-318</code>. With a microtask-timed observer model and the real <code>modalShell</code>, an in-place sheet re-render ends with "focus = action-input | dialog still open: true", and Enter reaches <code>sendAction</code>. tests-442 is green only because it calls the restore by hand.</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F4"><td class="n">F4</td><td>
+<p class="ttl">Home page: coming back to the tab resets your Quick Start pick, and a failed refresh wipes the shelf <span class="lean med">medium</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> Pick a story, switch tabs and come back, and your pick silently reverts to the taster. The catalog loads twice, and one network blip on return empties the shelf.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>Keep one <code>visibilitychange</code> listener.</li>
+<li><code>qsStories</code> keeps the current selection by catalog id.</li>
+<li>A failed re-read keeps the last good catalog and shows a notice.</li>
+<li>Test through <code>__homeTest</code>.</li>
+</ul>
+<details><summary>Evidence</summary><p><code>home.html:104</code> and <code>:205</code> both register the listener (commit 76e67c5). <code>:152-153</code> forces the taster, and <code>:183</code> sets <code>catalog=[]</code> on error. Repro: pick The Iron Meridian, hide, show → 2 catalog GETs and the select back on the Riverlight taster.</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F5"><td class="n">F5</td><td>
+<p class="ttl">The server and the client build library slugs differently <span class="lean med">medium</span><span class="lean">silent overwrite</span></p>
+<p class="tldr"><b>TLDR:</b> Names that begin and end with an accent or a bracket are never found by "Replace / Update from library", and exporting them overwrites the library copy without the usual confirm.</p>
+<p><span class="k">Fix</span>One slug function shared by both ends, vendored like <code>blueprint-edition.cjs</code>. On the server, add the <code>g</code> flag plus a collision-aware migration of stored trailing-underscore slugs.</p>
+<details><summary>Evidence</summary><p>Server <code>traffic-and-dragons-server/index.js:715-717</code> uses <code>.replace(/^_|_$/, "")</code> without <code>g</code>, and <code>bpSlug</code> (:790) has the same bug. The client (<code>ui-browsers.js:706</code>, <code>helpers.js:745</code>) uses <code>g</code>. So "(Ammut)" is <code>ammut_</code> on the server and <code>ammut</code> on the client; "Åsa Lindé" is <code>sa_lind_</code> and <code>sa_lind</code>. Plain ASCII names match.</p></details>
+</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F6"><td class="n">F6</td><td>
+<p class="ttl">When a folder rename half-fails, the toast points you at the wrong folder <span class="lean med">medium</span><span class="lean">misleading error</span></p>
+<p class="tldr"><b>TLDR:</b> If the copy succeeds but the old folder can't be fully deleted, the app says your files are safe in the old folder and the new one can be removed. In fact the new folder is the only complete copy.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>Split the two stages.</li>
+<li>A removal failure after a complete copy says "complete copy in Gamma/; Alpha/ could not be fully removed", and moves the handle to the new folder.</li>
+<li>Add a tests-438 group.</li>
+</ul>
+<details><summary>Evidence</summary><p><code>ui-files.js:366-378</code>: one rejection handler covers both <code>_copyDir</code> and <code>removeEntry</code>. Repro toast: "Folder rename failed (The file is in use) — your files are still in Alpha/; the half-made Gamma/ can be removed by hand". At that point Alpha/ holds one save and Gamma/ holds both.</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F7"><td class="n">F7</td><td>
+<p class="ttl">"Upload party members" can overwrite a newer library copy without saying so <span class="lean low">low</span><span class="lean">guard gap</span></p>
+<p class="tldr"><b>TLDR:</b> The party upload's confirm lists names only. It doesn't show that the library copy is higher level or newer, which is the #427 hazard again, and it doesn't catch two party names that map to one library slot.</p>
+<p><span class="k">Fix</span>The plan flags rows where the library copy is higher or newer, and the confirm names them ("Ammut: library Lv18, saved Sep 27 → live Lv17"). Refuse two plan rows that share a slug. <code>ui-browsers.js:757-760</code>, <code>helpers.js:746-753</code>.</p>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F8"><td class="n">F8</td><td>
+<p class="ttl">The inventory × marks whatever item now sits at the row's old position <span class="lean low">low</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> If the character sheet stayed open through a GM turn that removed an item, the first × can mark, and then delete, the neighbouring item.</p>
+<p><span class="k">Fix</span>The × carries the row's name as well as its index. The mark resolves by name when the two disagree. Add a tests-429 case.</p>
+<details><summary>Evidence</summary><p><code>ui-sheets.js:57-58</code>. Inventory [Rope, Torch, Waterskin]; the Torch × carries index 1. After <code>[ITEM_LOST:Rope]</code>, clicking Torch's × and then Delete gives "Deleted 1 item: Waterskin".</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F9"><td class="n">F9</td><td>
+<p class="ttl">A campaign deleted on one device is quietly put back by another <span class="lean low">low</span><span class="lean">sync</span></p>
+<p class="tldr"><b>TLDR:</b> Delete a campaign on your phone while it's open on your desktop, and the desktop reads the missing row as "not uploaded yet" and re-uploads it.</p>
+<p><span class="k">Fix</span>A 404 for a campaign whose <code>onServer</code> flag is set asks: keep and re-upload, or remove locally. Compare the reconcile id with the currently active campaign before blaming "a server-side id mismatch". <code>storage-adapter.js:846-855, 889</code>.</p>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F10"><td class="n">F10</td><td>
+<p class="ttl">A signed-out device gets no visible signal <span class="lean low">low</span><span class="lean">silent failure</span></p>
+<p class="tldr"><b>TLDR:</b> Signed out, the character editor's library buttons are just grey with no reason, and the village silently skips its library refresh.</p>
+<p><span class="k">Fix</span>Show the editor hint whenever the device is signed out (<code>character_editor.html:322</code>; its current condition can never be true). Show one toast per load: "signed out — the village was not refreshed from the library" (<code>ui-browsers.js:649</code>).</p>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F11"><td class="n">F11</td><td>
+<p class="ttl">"Start" ignores a refused campaign creation <span class="lean low">low</span><span class="lean">wrong outcome</span></p>
+<p class="tldr"><b>TLDR:</b> If storage is full when you pick "Start", the app says the blueprint loaded but keeps you in the old campaign, and your pick from the home page is gone.</p>
+<p><span class="k">Fix</span><code>campNew</code> returns a boolean, checked before the payload is consumed. The quick start runs its guards before <code>removeItem</code>. <code>ui-browsers.js:19-46, 85-86</code>, <code>ui-campaigns.js:525</code>.</p>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="F12"><td class="n">F12</td><td>
+<p class="ttl">The sync contract still describes the library before #427 and #470 <span class="lean low">low</span><span class="lean">doc rot</span></p>
+<p class="tldr"><b>TLDR:</b> The sync contract says two code paths write to the library. There are four, and a few comments still describe the retired village write-back.</p>
+<p><span class="k">Fix</span>Update <code>DOC/contracts/sync.md:91</code> and §24 (party upload). Fix the stale comments at <code>ui-sheets.js:753</code>, <code>game.js:1663</code> and <code>helpers.js:1616</code>.</p>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</tbody></table>
+
+<h2 id="secG">G · Tooling, tests, CI and docs</h2>
+<table class="todo">
+<thead><tr><th>#</th><th>Task</th><th>Effort</th><th>Tier</th><th>Status</th></tr></thead>
+<tbody>
+
+<tr id="G1"><td class="n">G1</td><td>
+<p class="ttl"><code>testRuns/</code> was never gitignored — your own campaign prose is one <code>git add</code> away from the repo <span class="lean high">high</span><span class="lean">privacy contract broken (latent)</span></p>
+<p class="tldr"><b>TLDR:</b> The docs and tests say an owner decree keeps <code>testRuns/</code> out of git, but no ignore rule exists. 100 turns of your real Runelords play, full prompts and mementos sit there untracked. A stray <code>git add</code> would commit them, and the Pages deploy (which publishes the repo root) would serve them.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>Add <code>testRuns/</code> and <code>**/__pycache__/</code> to <code>.gitignore</code>. Future receipts need an explicit <code>git add -f</code>; already-tracked receipts stay tracked.</li>
+<li>Add a run-tests contract: <code>git check-ignore -q testRuns/fixtures/probe.json</code> must succeed, with a loud skip when there is no <code>.git</code>. Sabotage clause: delete the line.</li>
+<li>Correct the four docs that claim it is ignored.</li>
+</ul>
+<p><span class="k">Owner call</span>Does the ruling also cover tracked receipts that hold campaign summaries, such as <code>testRuns/recall_gate_results_t1549.json</code>, which has 11 compiled eras?</p>
+<details><summary>Evidence</summary><p><code>.gitignore</code> ignores <code>*.tnd</code> only. <code>git check-ignore -v testRuns/fixtures/owner_runelords_t2338-2437.json</code> exits 1 (verified by the lead); the file is 195 KB of "the owner's own play". Also exposed: <code>testRuns/probe198/</code> (two full system prompts of about 134 KB each) and 11 memento HTML files, the same class <code>momentos/</code> was ignored for. The docs that believe otherwise: <code>CLAUDE.md:151</code>, <code>dev/tests-226-fixture.js:2-3</code>, <code>dev/sabotage-226-fixture.js:10</code> and commit d425853's message. The same leak class happened once before (d425853 pushed the t2097 transcript).</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G2"><td class="n">G2</td><td>
+<p class="ttl">CI checks only the last commit of each push <span class="lean med">medium</span><span class="lean">test gap</span></p>
+<p class="tldr"><b>TLDR:</b> CI compares a push's final commit with its parent. When a code commit and a docs commit are pushed together, which the archive ritual makes routine, the code commit skips the version-bump check, the tracker check and the mutation proofs.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>One range, computed at one boundary: <code>${{ github.event.before }}..${{ github.sha }}</code>, falling back to the merge-base or <code>HEAD~1</code>.</li>
+<li>Feed it to <code>check-shell-markers --range</code> and <code>run-sabotage-diff "$RANGE"</code>, and run lint-todo per commit.</li>
+<li>Pin <code>github.event.before</code> in <code>check-enforcement</code>.</li>
+<li>Test first: a fixture repo with a shell change and no bump, then a docs-only commit, must fail CI mode.</li>
+</ul>
+<details><summary>Evidence</summary><p><code>.github/workflows/engine-tests.yml:41-46, 54, 82</code> all diff <code>HEAD~1..HEAD</code>. Since 2026-09-18 there were 127 pushes, 34 of them multi-commit. In 6, CI scheduled fewer sabotage batteries than the push touched. One example: 29d92c5 carried the #454 fix (tts.js, sw.js, globals.js) under an archive commit, and CI ran 0 batteries against the 12 needed. Cloud sessions commit with no hook at all (7d668c6, 8748101, cee917f).</p></details>
+</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G3"><td class="n">G3</td><td>
+<p class="ttl">The "read-only" TODO viewer writes TODO.md — its Export alters rows and Renumber rewrites the numbering <span class="lean med">medium</span><span class="lean">wrong outcome · owner fork</span></p>
+<p class="tldr"><b>TLDR:</b> CLAUDE.md says the TODO viewer never writes, but it can save TODO.md in place. A save with no edits changes four rows, its Renumber button rewrites 44 of 45 open row numbers, and the lint passes both.</p>
+<p><span class="k">Fix</span>Recommended (it matches the sole-writer rule): make it truly read-only. Delete Export, Renumber, Add, Delete, Complete and the status toggle, and add a contract (no <code>createWritable</code>, no <code>renumber(</code>). The alternative is a byte-identical round-trip test plus archive-style moves.</p>
+<details><summary>Evidence</summary><p><code>todo-viewer.html:417-418, 816, 835, 884-896</code>. Running the page's own parse → buildMd on HEAD's TODO.md grows the file from 113,410 to 113,421 bytes. <code>[SAY:Thessa Saltborn|speaking carefully]</code> becomes <code>…\|speaking carefully]</code> in rows #6, #370, #437 and #477. Renumber turns #6 into #2, #19 into #3, and so on. <code>buildMd</code> still writes the pre-2026-09-01 <code>&lt;!-- completed --&gt;</code> scheme.</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G4"><td class="n">G4</td><td>
+<p class="ttl">A TODO row number can be claimed twice — #264 is claimed twice right now <span class="lean med">medium</span><span class="lean">test gap</span></p>
+<p class="tldr"><b>TLDR:</b> Nothing checks that a row number is used once. Two different archived rows are both #264 today, and last week's double #463 was caught by a person a day later.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>An id pass in lint-todo, run by both the hook and CI: numeric ids ≥ 31 must be unique across TODO.md and DOC/TODO_ARCHIVE.md. The legacy #1–#30 duplicates go on an explicit grandfather list.</li>
+<li>Write the failing fixture first.</li>
+<li>Owner call: renumber the #264 that no code cites (the quest-journal one), following b4d034d.</li>
+</ul>
+<details><summary>Evidence</summary><p><code>DOC/TODO_ARCHIVE.md:131</code>, "#264 QUEST JOURNAL ACTIONS WAIT FOR THE GM TURN", and <code>:143</code>, "#264 The review-call tag whitelist", which api.js and engine-tests.js cite (verified by the lead). A fixture with two <code>| 463 |</code> rows passes <code>lint-todo --git-aware --cap</code> with exit 0.</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G5"><td class="n">G5</td><td>
+<p class="ttl">Three "class-wide" guards check only hand-written lists — four model/image waits show a frozen status today <span class="lean med">medium</span><span class="lean">owner rule broken (#356)</span></p>
+<p class="tldr"><b>TLDR:</b> The docs promise that tests fail on any new wait message without a timer, any page with its own colours, and any new page missing from the service worker's list. Each test actually checks a fixed list, and four waits currently show a frozen message.</p>
+<p><span class="k">Fix</span>Derive each class from the source, with one reasoned exemption registry:</p>
+<ul>
+<li>every function containing <code>await callGM(</code>, <code>falFetch(</code> and the like must contain <code>elapsedTicker(</code>;</li>
+<li>every root *.html must link satellite.css or carry an exemption;</li>
+<li>every root *.html outside APP_SHELL must match the network-first rule.</li>
+</ul>
+<details><summary>Evidence</summary>
+<p>Frozen waits:</p>
+<ul>
+<li><code>game.js:3642</code> — "Enhancing…" during a fal image-to-image render. Owner: "we should always have the counter while we're rendering".</li>
+<li><code>char-creation.js:549</code> — "✦ Rolling…".</li>
+<li><code>blueprint-designer.html:829, 879</code> — "Consulting the story…" and "Generating… (can take a minute)".</li>
+</ul>
+<p>Other gaps: <code>story_compiler.html:37</code> defines its own palette, and <code>necro_spells_TMP.html</code> is served cache-first. The #356 scan (<code>engine-tests.js:2081-2095</code>) counts tickers in six named files.</p>
+</details>
+</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G6"><td class="n">G6</td><td>
+<p class="ttl">The CI-topology guard leaves the newer CI steps unpinned, and three browser suites never gate anything <span class="lean low">low</span><span class="lean">guard gap</span></p>
+<p class="tldr"><b>TLDR:</b> The check that stops CI steps from being quietly deleted doesn't cover the mutation-proof step, the Chrome check, the weekly job or the git-identity tripwire, and the three blueprint browser suites never run as a pass/fail gate.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>Pin those steps in <code>workflowProblems</code> (<code>dev/check-enforcement.js:33-55</code>), and add a <code>weeklyProblems</code> check.</li>
+<li>Move the inline identity tripwire into <code>dev/check-identity.js</code> with a CI mode.</li>
+<li>Run <code>dev/tests-blueprint-{catalog,editions,publish}-browser.js</code> after the Chrome check.</li>
+</ul>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G7"><td class="n">G7</td><td>
+<p class="ttl">"Byte-identical" archive moves are never checked, and some aren't <span class="lean low">low</span><span class="lean">test gap</span></p>
+<p class="tldr"><b>TLDR:</b> Every archive commit says the row moved unchanged, but nothing compares the copies. Row #44 changed on the way and now exceeds the row-size cap. Row L7 (7,201 bytes) escapes the cap because its id isn't numeric.</p>
+<p><span class="k">Fix</span>In <code>--git-aware</code> mode, a row that leaves TODO.md while the same id enters the archive must be byte-identical. Apply the size cap to archive entries, and widen the id pattern to <code>[A-Za-z]*\d+</code>.</p>
+<details><summary>Evidence</summary><p>5 of 486 row moves since 2026-09-01 were not identical. For example, 0826478 "archive #44 (byte-identical move…)" grew the row from 5,965 to 6,182 bytes and left an unbalanced <code>**</code>.</p></details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G8"><td class="n">G8</td><td>
+<p class="ttl">47 broken links in CLAUDE.md and the contract files <span class="lean low">low</span><span class="lean">doc rot</span></p>
+<p class="tldr"><b>TLDR:</b></p>
+<ul>
+<li>The contract files' history and audit links point at the wrong folder: 34 of 44 still resolve from the repo root, as before the #310 split.</li>
+<li>13 of CLAUDE.md's links aim at section names that don't exist: an underscore became a hyphen.</li>
+</ul>
+<p><span class="k">Fix</span>Rebase the 34 links to <code>../</code>, fix the 13 anchors (for example <code>#capability_biblejs</code>), and add <code>dev/check-doc-links.js</code> to run-tests. These are mechanical path fixes; no contract wording changes.</p>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G9"><td class="n">G9</td><td>
+<p class="ttl">CLAUDE.md's hand-copied facts have drifted from the code <span class="lean low">low</span><span class="lean">doc rot</span></p>
+<p class="tldr"><b>TLDR:</b> The project guide's load order, script count and a few "how it works" lines no longer match the code, and nothing checks them.</p>
+<p><span class="k">Fix</span>A run-tests contract that derives the load-order line from index.html, in the same shape as the ENGINE MANIFEST CONTRACT. Pin or remove the documented counts. The api.js/applyMuts description is drift-surface text, so that row is Fable.</p>
+<details><summary>Evidence</summary>
+<ul>
+<li>The load order omits <code>blueprint-edition.js</code>.</li>
+<li>It says "42 script tags, no inline JS"; index.html has 44 plus an inline service-worker registration.</li>
+<li>It calls applyMuts "a thin veneer"; it is the W2 canon-transaction boundary plus the #264 whitelist.</li>
+<li>It says async appears in "only three API-facing functions"; there are 51.</li>
+<li>Stale CI comments: "951-assertion suite" (2,369 today) and "63 batteries" (159 today).</li>
+</ul>
+</details>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G10"><td class="n">G10</td><td>
+<p class="ttl">The ES5-only rule is enforced only when an AI editor saves a file <span class="lean low">low</span><span class="lean">test gap</span></p>
+<p class="tldr"><b>TLDR:</b> The old-JavaScript-only rule is checked by the Claude and Codex editor hooks alone. Shell edits, cloud sessions and hand edits are never checked, and neither the commit gate nor CI looks. HEAD is clean today.</p>
+<p><span class="k">Fix</span>A <code>dev/check-es5.js</code> that strips strings and comments and checks root *.js, run by the hook and by CI. Anchor the editor hook's path filter to the repo (it fired on a scratch file under %TEMP%).</p>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+
+<tr id="G11"><td class="n">G11</td><td>
+<p class="ttl">Repository hygiene: stale caches, 230 untracked gate logs, an overdue schedule entry, seven orphan scripts <span class="lean low">low</span><span class="lean">vestigial</span></p>
+<p class="tldr"><b>TLDR:</b> Leftovers keep the session-start warning permanently on ("Untracked testRuns files (298)", "SCHEDULE DUE: playtest (due 2026-09-15)"), so it no longer signals anything.</p>
+<p><span class="k">Fix</span></p>
+<ul>
+<li>Ignore <code>__pycache__</code> (G1).</li>
+<li>Send gate logs to %TEMP%.</li>
+<li>Resolve the overdue schedule entry.</li>
+<li>Delete or document the seven orphans: <code>one-shot-receiver</code>, <code>qa-audio-cache</code>, <code>qa-general-audio</code>, <code>qa-hearth</code>, <code>qa-noctina</code>, <code>repair-t2231-spine</code>, <code>repair-t2324-unstick</code>.</li>
+<li>Move the 15 <code>qa-*.js</code> that still require Playwright to <code>dev/cdp-browser.js</code>.</li>
+<li>Move <code>reviews/</code> under <code>audits/</code>, fixing citations in the same commit.</li>
+</ul>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</tbody></table>
+
+<h2 id="rejected">Rejected ledger — candidates that turned out deliberate or harmless</h2>
+<ul class="small">
+<li><b>The honey cake's proposed value (25 cp) against <code>[GOLD:-1]</code> for four</b> — consistent: 100 cp ÷ 4. The unit problem is D5.</li>
+<li><b>The undefined-item note firing for plain food</b> — owner ruling #294B ("ALL items need a description"); the GM may decline.</li>
+<li><b>Unconfirmed item proposals accumulating</b> — by design (#81); capped at 5 and re-offered after every turn. Only the silent sixth drop is reported (D8).</li>
+<li><b>Stable-half impurity</b> — 9 kinds of per-turn change on three saves left the cached half byte-identical.</li>
+<li><b>Stale OpenAI voice keys falling through silently</b> — deliberate (#467), owner-verified 09-27.</li>
+<li><b>A mood string injecting Inworld markup</b> — impossible; the shape gate admits only letters, spaces, commas and hyphens.</li>
+<li><b>The accent scheduler's invariants</b> — hold over 5 seeds × 6 hours (20 s arrival quiet, 30 s spacing, nothing during speech or the 3 s settle). The only break is across a blocked reset (E3).</li>
+<li><b>Ambience beds leaking across a campaign switch, SW audio cache growth, #19 crumbs</b> — all bounded and correct.</li>
+<li><b>LOCATION_STATE landing on the destination of a move</b> — deliberate (tag_table.js:612-616). The misfiles in C2 come from the note, not the order.</li>
+<li><b>Misplaced presence stamps authorising deaths</b> — no; the death gate's speech evidence ignores location.</li>
+<li><b>Voices through a window stamped inside the house</b> — the presence panel accepts "shouting through a door" as an over-record. C1 and B3 are reported because notes make it systematic.</li>
+<li><b>#429 deleting a whole stack row; GOLD flooring at 0; #427 losing village-only changes on a refresh</b> — owner-ruled. Only the misleading overspend receipt is reported (D5).</li>
+<li><b>14 engine tests returning <code>undefined</code></b> — fall-through style in which every failure returns a string; none is vacuous.</li>
+<li><b>ES5 violations at HEAD</b> — none (lexer scan of root *.js and inline satellite scripts).</li>
+<li><b>Mature-fixture skips in CI</b> — deliberate privacy ruling (d425853), loudly reported.</li>
+<li><b>Version drift or nondeterminism in the replays</b> — none; 12 of 12 turns reproduce exactly.</li>
+<li><b>Princess t2 arc wall; a FUTURE_EVENT pending 34 turns; the #450 whisper garble</b> — by design.</li>
+<li><b>No busy gate on Replace, Delete and the refresh callback</b> — marginal: a mid-turn apply targets the same named sheet, and the GM's tags still land coherently.</li>
+</ul>
+
+<h2 id="method">Method</h2>
+<ul>
+<li><b>Scope.</b> The whole repository at <code>6dbb0eb</code> (v1.1017), with emphasis on the 231 commits since the 2026-09-18 Fable audit, and on your real saves: The Village t77–t218, The Princess Is Not In Danger t18, The Necrotic Dungeon t11–t35, the fae crysalis t12–t89, and older campaigns for the provenance census. The Fly.dev server repo was read only where a finding crossed into it (F5).</li>
+<li><b>Seven parallel read-only lanes</b> under one brief: items, presence, memory/prompt/notes, UI/sync/satellites, voice/audio, tooling/CI/docs, and a replay of the fortnight's play. The brief required:
+<ul>
+<li>never write the repo or a save; no model calls; no browser;</li>
+<li>load the engine from a frozen <code>git archive</code> of HEAD in the session scratchpad;</li>
+<li>search for a candidate's purpose before reporting it, and list what was rejected;</li>
+<li>reproduce behavioural claims headlessly and quote input and output.</li>
+</ul></li>
+<li><b>The lead auditor</b> did the headline investigation, the place-name census, and a census of the saves' provenance rings (<code>worldState.tagLog</code>: every GM response's mutation log, 828 distinct responses across 54 saves since 1 September). The lead also adjudicated: every high finding, and most mediums, were re-run by the lead against HEAD before acceptance.</li>
+<li><b>Replay fidelity.</b> Village t199–t205 and t214–t218 were replayed through <code>commitGmTurn</code> from the preceding save, and 12 of 12 turns reproduce the recorded ring exactly. Every finding is present behaviour, not version drift.</li>
+<li><b>The suite at HEAD.</b> 2,369 assertions plus 65 standalone suites, green in 25 s, and 1,585 of 1,585 sabotage clauses are applicable. None of the 68 findings is caught, so every row names the failing test to write first.</li>
+<li><b>Not covered.</b> No device testing: Car Mode routes, Bluetooth and real audio timing are code-read only (E3, E8 and E9 note it). No live GM turns. Adventure-side console-only refusals older than the saved rings are invisible.</li>
+</ul>
+<p class="small">The repro scripts lived in the session scratchpad and are not kept. Each finding quotes its repro's input and output, so it stands without them. File: <code>C:\Projects\traffic-and-dragons\audits\AUDIT_2026_09_29_Opus5.5.html</code></p>
+
+</main></body></html>
