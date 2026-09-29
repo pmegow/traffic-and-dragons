@@ -47,6 +47,10 @@ jobs:
           fi
       - name: TODO/session hygiene acceptance fixtures
         run: node dev/tests-todo-hygiene.js
+      # #481 G10: the ES5-only rule used to live in the editor hooks alone, so a shell edit, a cloud
+      # session or a hand edit shipped unchecked. Same lexer the hook and the editor hooks use.
+      - name: ES5 check for the game client
+        run: node dev/check-es5.js
       # The hard rule: a change to sw.js or any APP_SHELL asset bumps globals.js APP_VERSION and
       # sw.js CACHE. --ci compares HEAD~1..HEAD (the hook's staging-area mode has no meaning on a
       # runner); it says so and exits 0 when there is no previous commit to compare against.

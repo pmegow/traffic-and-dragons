@@ -1152,7 +1152,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <p class="ttl">The ES5-only rule is enforced only when an AI editor saves a file <span class="lean low">low</span><span class="lean">test gap</span></p>
 <p class="tldr"><b>TLDR:</b> The old-JavaScript-only rule is checked by the Claude and Codex editor hooks alone. Shell edits, cloud sessions and hand edits are never checked, and neither the commit gate nor CI looks. HEAD is clean today.</p>
 <p><span class="k">Fix</span>A <code>dev/check-es5.js</code> that strips strings and comments and checks root *.js, run by the hook and by CI. Anchor the editor hook's path filter to the repo (it fired on a scratch file under %TEMP%).</p>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ done 2026-09-29 — dev/check-es5.js in the hook, CI and both editor hooks; proven by dev/sabotage-481-g10-es5-check.js</td></tr>
 
 <tr id="G11"><td class="n">G11</td><td>
 <p class="ttl">Repository hygiene: stale caches, 230 untracked gate logs, an overdue schedule entry, seven orphan scripts <span class="lean low">low</span><span class="lean">vestigial</span></p>

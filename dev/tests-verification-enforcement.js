@@ -29,8 +29,8 @@ function stopRun(root, mem, tmp, sid) {
     env: Object.assign({}, process.env, { TND_STOP_ROOT: root, TND_STOP_MEM: mem, TND_STOP_TMP: tmp })
   });
 }
-function es5Run(file, tmp, sid) {
-  return run(process.execPath, [ES5], {
+function es5Run(file, tmp, sid, hook) {
+  return run(process.execPath, [hook || ES5], {
     input: JSON.stringify({ session_id: sid, tool_input: { file_path: file } }),
     env: Object.assign({}, process.env, { TND_HOOK_TMP: tmp })
   });
@@ -73,13 +73,22 @@ try {
     return /unavailable|could not verify/i.test(out) ? "" : "missing source was silent: " + out;
   });
   test("ES5 hook rejects game const but permits modern dev tooling", function () {
+    /* #481 G10: the hook anchors "game client" to the root of ITS OWN repo (path.resolve(__dirname,"..","..")) and
+       scans with the shared dev/check-es5.js, so the fixture runs a copy of both installed inside the fake project.
+       A file outside that root (a scratch file under %TEMP%) is not client code and is never checked. */
+    var hookDir = path.join(fakeRoot, ".claude", "hooks"); fs.mkdirSync(hookDir, { recursive: true });
+    var fakeHook = path.join(hookDir, "es5-check.js"); fs.copyFileSync(ES5, fakeHook);
+    var devDir = path.join(fakeRoot, "dev"); fs.mkdirSync(devDir, { recursive: true });
+    fs.copyFileSync(path.join(ROOT, "dev", "check-es5.js"), path.join(devDir, "check-es5.js"));
     var game = path.join(fakeRoot, "client.js");
-    var devDir = path.join(fakeRoot, "dev"); fs.mkdirSync(devDir);
     var tool = path.join(devDir, "tool.js");
+    var outside = path.join(fakeTmp, "scratch-outside.js");
     fs.writeFileSync(game, "const forbidden = 1;\n", "utf8");
     fs.writeFileSync(tool, "const allowed = 1;\n", "utf8");
-    var bad = es5Run(game, fakeTmp, "es5-game"), good = es5Run(tool, fakeTmp, "es5-dev");
+    fs.writeFileSync(outside, "var f = x => x;\n", "utf8");
+    var bad = es5Run(game, fakeTmp, "es5-game", fakeHook), good = es5Run(tool, fakeTmp, "es5-dev", fakeHook), out = es5Run(outside, fakeTmp, "es5-out", fakeHook);
     if (bad.status !== 2 || text(bad).indexOf("ES5 VIOLATION") < 0) return "game const was not blocked: " + text(bad);
+    if (out.status !== 0) return "a file outside the repo root was checked (the #481 G10 anchoring is gone): " + text(out);
     return good.status === 0 ? "" : "dev tooling was incorrectly blocked: " + text(good);
   });
   test("ES5 touched log drives the stop warning and CLAUDE.md suppresses it", function () {
@@ -180,7 +189,7 @@ try {
   test("#G1 hookGateNames reads the gates out of the REAL pre-commit, in order", function () {
     var guard = require(ENFORCE);
     var names = guard.hookGateNames(fs.readFileSync(path.join(ROOT, "dev", "pre-commit"), "utf8"));
-    var want = ["check-hook-parity.js", "lint-todo.js", "tests-todo-hygiene.js", "check-shell-markers.js", "run-tests.js"];
+    var want = ["check-hook-parity.js", "lint-todo.js", "tests-todo-hygiene.js", "check-es5.js"/* #481 G10 */, "check-shell-markers.js", "run-tests.js"];
     if (names.join(",") !== want.join(",")) return "got [" + names.join(",") + "], want [" + want.join(",") + "]";
     return "";
   });

@@ -29,6 +29,11 @@ node "$(git rev-parse --show-toplevel)/dev/tests-todo-hygiene.js" || {
   echo "Commit blocked: TODO/session hygiene acceptance fixtures failed (details above)." >&2
   exit 1
 }
+node "$(git rev-parse --show-toplevel)/dev/check-es5.js" || {
+  echo "" >&2
+  echo "Commit blocked: the game client must stay ES5 — no const/let, arrow function, template literal or class (findings above)." >&2
+  exit 1
+}
 node "$(git rev-parse --show-toplevel)/dev/check-shell-markers.js" || {
   echo "" >&2
   echo "Commit blocked: staged app-shell files require fresh APP_VERSION and CACHE markers (details above)." >&2
