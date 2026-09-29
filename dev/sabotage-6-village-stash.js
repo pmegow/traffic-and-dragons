@@ -28,7 +28,7 @@ prove("data.js", [
 ]);
 prove("memory.js", [
   { label: "a second placement no longer counts",
-    find: 'else row.qty=(row.qty||1)+1;', replace: 'else row.qty=1;',
+    find: 'else row.qty=(row.qty||1)+_sq.n;', replace: 'else row.qty=_sq.n;',
     mustFail: "#6E1 permanence" },
   { label: "the auto-take gate opens every house",
     find: 'if(qtyMode&&node.owner&&!stashHandAllowed(node,actor))return {kept:true,owner:node.owner,name:it.name};', replace: 'if(false)return null;',/* #481 A3: re-anchored — the gate became stashHandAllowed (the household rule) */

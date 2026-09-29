@@ -3220,6 +3220,10 @@ function removeInventoryItem(inv,name){var i=resolveInventoryName(inv,name);remo
    LOCATION_ITEM placed), give (ITEM_LOST + COMPANION_ITEM_GAINED), take (COMPANION_ITEM_LOST + ITEM_GAINED), and sale
    (GOLD + ITEM_LOST). */
 function itemPairKey(name){return _invNorm(itemBaseName(_qtyParse(String(name==null?"":name)).base));}
+/* #481 D2 (audit 2026-09-29, Fable-approved): the STASH identity — the quantity grammar plus the pack's own name normaliser
+   (plural s, dash spacing, case), so the chest and the pack agree on what an item is. Unlike the pair key it keeps the
+   provenance: "Rope (spare)" and "Rope" are two different chest rows. Every stash consumer keys through it. */
+function stashKey(name){return _invNorm(_qtyParse(String(name==null?"":name)).base);}
 function itemPairNote(R,field,name,val){if(!R[field])R[field]={};var k=itemPairKey(name);(R[field][k]=R[field][k]||[]).push(val);}
 function itemPairTake(R,field,name){var m=R&&R[field],k=itemPairKey(name);return (m&&m[k]&&m[k].length)?m[k].pop():null;}
 function itemPairMissed(R,name){return !!(R&&R.ilMiss&&R.ilMiss[itemPairKey(name)]);}

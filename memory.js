@@ -607,8 +607,12 @@ function fileLocationItem(name,action,turn,place,room){
   var node=memory.map.nodes[key];
   if(!node)return {ok:false,reason:"no such place on the map",key:key};
   var items=node.items,idx=-1,i;
-  for(i=0;i<items.length;i++){if(items[i].name.toLowerCase()===name.toLowerCase()){idx=i;break;}}
   var qtyMode=!!(typeof kindDef==="function"&&kindDef().stashQuantities);
+  /* #481 D2: ONE stash identity (stashKey); in a stash kind the row stores the BASE name and the tag's count ("Hemp rope x2" is
+     one row of two, never a row literally named "Hemp rope x2"). Adventure toggle rows keep the name as given (byte-identical). */
+  var _sk=(typeof stashKey==="function")?stashKey(name):String(name).toLowerCase(),_sq=(qtyMode&&typeof _qtyParse==="function")?_qtyParse(name):{base:name,n:1};
+  if(qtyMode)name=_sq.base;
+  for(i=0;i<items.length;i++){if(((typeof stashKey==="function")?stashKey(items[i].name):items[i].name.toLowerCase())===_sk){idx=i;break;}}
   var hero=(worldState.character&&worldState.character.name)||null,now=(typeof clockNow==="function")?clockNow():0;
   if(action==="placed"){
     /* #408 ④: a placement may PIN the row to a room ("main room, on the mantle") — an ADDITIVE field on the same row.
@@ -620,8 +624,8 @@ function fileLocationItem(name,action,turn,place,room){
     if(roomWhy&&typeof console!=="undefined")console.warn("[stash] room refused for '"+name+"' at "+key+": "+roomWhy+" — the placement lands without a room (#408)");
     var res;
     if(qtyMode){
-      if(idx>=0){var row=items[idx];if(row.taken||row.qty===0){row.taken=false;row.qty=1;}else row.qty=(row.qty||1)+1;row.placed=turn;row.by=hero;row.min=now;if(roomTxt)row.room=roomTxt;res={ok:true,key:key,qty:row.qty};}
-      else{var nr={name:name,placed:turn,taken:false,qty:1,by:hero,min:now};if(roomTxt)nr.room=roomTxt;items.push(nr);res={ok:true,key:key,qty:1};}
+      if(idx>=0){var row=items[idx];if(row.taken||row.qty===0){row.taken=false;row.qty=_sq.n;}else row.qty=(row.qty||1)+_sq.n;row.placed=turn;row.by=hero;row.min=now;if(roomTxt)row.room=roomTxt;res={ok:true,key:key,qty:row.qty};}/* #481 D2: the tag's count */
+      else{var nr={name:name,placed:turn,taken:false,qty:_sq.n,by:hero,min:now};if(roomTxt)nr.room=roomTxt;items.push(nr);res={ok:true,key:key,qty:_sq.n};}
     }else{
       if(idx>=0){items[idx].taken=false;if(roomTxt)items[idx].room=roomTxt;} // returned — toggle back
       else{var nr2={name:name,placed:turn,taken:false};if(roomTxt)nr2.room=roomTxt;items.push(nr2);}
@@ -632,7 +636,7 @@ function fileLocationItem(name,action,turn,place,room){
   }
   if(action==="taken"){
     if(idx<0)return {ok:false,reason:"not on record here",key:key};
-    if(qtyMode){var r2=items[idx];if((r2.qty||1)>1)r2.qty-=1;else{r2.taken=true;r2.qty=0;}return {ok:true,key:key,qty:r2.qty};}
+    if(qtyMode){var r2=items[idx],_tn=Math.min(_sq.n,r2.qty||1);r2.qty=(r2.qty||1)-_tn;if(r2.qty<=0){r2.taken=true;r2.qty=0;}return {ok:true,key:key,qty:r2.qty,n:_tn};}/* #481 D2: a counted take moves n units */
     items[idx].taken=true;return {ok:true,key:key};
   }
   return {ok:false,reason:"unknown action",key:key};
@@ -640,6 +644,31 @@ function fileLocationItem(name,action,turn,place,room){
 /* #6 E5: the auto-take path is GATED in the village — a house's stash releases an item only to its owner; from another
    resident's house the stash keeps it and the caller says whose house it is. Returns null (nothing matched), {taken},
    or {kept,owner}. The adventure path is unchanged: the first untaken match is marked taken. */
+/* #481 D2 (audit 2026-09-29, Fable-approved): legacy "…xN" stash rows heal to the base name with the count folded in, and
+   fold into an existing row of the same identity. Only rows that CARRY a qty field (the stash kinds) are touched; an
+   adventure toggle row never has one, so adventure saves stay byte-identical. Idempotent; loud once. Returns rows healed. */
+function healStashRows(){
+  if(typeof memory==="undefined"||!memory||!memory.map||!memory.map.nodes||typeof _qtyParse!=="function"||typeof stashKey!=="function")return 0;
+  var healed=0,ks=Object.keys(memory.map.nodes),i,j,x;
+  for(i=0;i<ks.length;i++){var node=memory.map.nodes[ks[i]];if(!node||!Array.isArray(node.items)||!node.items.length)continue;
+    var renamed=0;
+    for(j=0;j<node.items.length;j++){var it=node.items[j];if(!it||typeof it.qty!=="number"||typeof it.name!=="string")continue;
+      var q=_qtyParse(it.name);if(q.base===it.name)continue;
+      it.qty=(it.taken||it.qty===0)?0:(it.qty||1)*q.n;it.name=q.base;if(it.qty>0)it.taken=false;renamed++;}
+    if(!renamed)continue;
+    healed+=renamed;
+    var kept=[];
+    for(j=0;j<node.items.length;j++){var r=node.items[j];
+      if(!r||typeof r.qty!=="number"){kept.push(r);continue;}
+      var k=stashKey(r.name),into=null;
+      for(x=0;x<kept.length;x++)if(kept[x]&&typeof kept[x].qty==="number"&&stashKey(kept[x].name)===k){into=kept[x];break;}
+      if(!into){kept.push(r);continue;}
+      var add=(r.taken||r.qty===0)?0:r.qty;if(add>0){into.qty=((into.taken||into.qty===0)?0:into.qty)+add;into.taken=false;}}
+    node.items=kept;
+  }
+  if(healed&&typeof console!=="undefined")console.warn("[stash] healed "+healed+" legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)");
+  return healed;
+}
 /* #481 A3 (owner ruling 2026-09-29, Fable-approved): the household counts as the owner's hand. At a house the HERO owns,
    the hero and every living, unsplit party member (the ones who live there with them) may take from the chest; at another
    resident's house only that owner takes (unchanged). actor defaults to the hero. */
@@ -651,15 +680,16 @@ function stashHandAllowed(node,actor){
   var n=(typeof wsNpcByName==="function")?wsNpcByName(who):null;
   return !!(n&&n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n))&&!(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location));
 }
-function autoTakeLocationItem(itemName,actor){
+function autoTakeLocationItem(itemName,actor,units){
   if(!memory.map||!worldState||!worldState.world)return null;
   var key=currentNodeKey();/* UA9 */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var node=memory.map.nodes[key];if(!node)return null;
   var qtyMode=!!(typeof kindDef==="function"&&kindDef().stashQuantities),i;
-  for(i=0;i<node.items.length;i++){var it=node.items[i];if(it.name.toLowerCase()!==itemName.toLowerCase()||it.taken||it.qty===0)continue;
+  var _tk=(typeof stashKey==="function")?stashKey(itemName):String(itemName).toLowerCase(),_un=Math.max(1,units|0);/* #481 D2: one identity; a take moves n units */
+  for(i=0;i<node.items.length;i++){var it=node.items[i];if(((typeof stashKey==="function")?stashKey(it.name):it.name.toLowerCase())!==_tk||it.taken||it.qty===0)continue;
     if(qtyMode&&node.owner&&!stashHandAllowed(node,actor))return {kept:true,owner:node.owner,name:it.name};/* #481 A3 */
-    if(qtyMode){if((it.qty||1)>1)it.qty-=1;else{it.taken=true;it.qty=0;}return {taken:true,name:it.name};}
+    if(qtyMode){var _got=Math.min(_un,it.qty||1);it.qty=(it.qty||1)-_got;if(it.qty<=0){it.taken=true;it.qty=0;}return {taken:true,name:it.name,n:_got};}
     it.taken=true;return {taken:true,name:it.name};}
   return null;
 }

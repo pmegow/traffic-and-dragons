@@ -26899,4 +26899,49 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts(tags);return c.inventory.length===0?true:"all thirteen must leave the pack: "+JSON.stringify(c.inventory);
   });
 
+  // ── #481 D2 (audit 2026-09-29, Fable-approved): the chest and the pack agree on what an item IS. Stash rows matched the
+  // raw tag text while the pack parsed counts and plurals: taking "x2" removed one from the chest but gave two, and a row
+  // literally named "Hemp rope x2" handed out two ropes per click forever. ONE stashKey (the quantity grammar + the pack's
+  // name normaliser) keys every stash consumer; rows store the base name with a count; a take moves n units; legacy
+  // "…xN" village rows heal at load (rows with a qty field only — adventure rows are byte-identical).
+  section("#481 D2 stash identity");
+  function d2House(){villageEF();villageHouseEnsure("Silas",null);worldState.world.sublocation="Silas's house";return memory.map.nodes[villageHouseKey("Silas")];}
+  t("#481 D2 taking 'x2' takes two from the chest; a GM stow of 'Hemp rope x2' is ONE row of two and the chest cannot copy",function(){
+    var h=d2House(),c=worldState.character;c.inventory=[];
+    applyMuts("[LOCATION_ITEM:Iron ring|placed][LOCATION_ITEM:Iron ring|placed]");
+    var Rg=applyMuts("[ITEM_GAINED:Iron ring x2]");
+    var ring=h.items.filter(function(it){return it.name==="Iron ring";})[0];
+    if(!ring||!(ring.taken||ring.qty===0))return "both rings must leave the chest: "+JSON.stringify(ring);
+    if(Rg.muts.indexOf("From the stash: Iron ring ×2")<0)return "the receipt names the two units the chest gave: "+JSON.stringify(Rg.muts);
+    if(c.inventory.join()!=="Iron ring x2")return "the pack holds two: "+JSON.stringify(c.inventory);
+    c.inventory=["Hemp rope x2"];applyMuts("[ITEM_LOST:Hemp rope x2][LOCATION_ITEM:Hemp rope x2|placed]");
+    var rope=h.items.filter(function(it){return stashKey(it.name)==="hemp rope";});
+    if(rope.length!==1||rope[0].name!=="Hemp rope"||rope[0].qty!==2)return "one row named 'Hemp rope' holding two: "+JSON.stringify(rope);
+    quiet(function(){stashTradeApply({take:{"hemp rope":1}});stashTradeApply({take:{"hemp rope":1}});stashTradeApply({take:{"hemp rope":1}});});
+    return (c.inventory.join()==="Hemp rope x2"&&(rope[0].qty===0||rope[0].taken))?true:"three takes of a two-rope row give two, never more: "+JSON.stringify(c.inventory)+" "+JSON.stringify(rope[0]);
+  });
+  t("#481 D2 a counted take on the record moves that many units, never more than the row holds",function(){
+    var h=d2House();h.items=[{name:"Hemp rope",placed:1,taken:false,qty:3,by:"Silas",min:0}];
+    var r=fileLocationItem("Hemp rope x2","taken",5,null,null);
+    if(!r.ok||r.n!==2||h.items[0].qty!==1)return "x2 takes two of three: "+JSON.stringify(r)+" "+JSON.stringify(h.items[0]);
+    r=fileLocationItem("Hemp rope x5","taken",6,null,null);
+    return (r.ok&&r.n===1&&h.items[0].qty===0&&h.items[0].taken)?true:"x5 of a one-rope row takes the one left: "+JSON.stringify(r)+" "+JSON.stringify(h.items[0]);
+  });
+  t("#481 D2 a plural or dash variant reaches the right row",function(){
+    var h=d2House(),c=worldState.character;c.inventory=[];
+    applyMuts("[LOCATION_ITEM:Good wool cloak|placed]");applyMuts("[ITEM_GAINED:Good wool cloaks]");
+    var row=h.items.filter(function(it){return it.name==="Good wool cloak";})[0];
+    return (row&&(row.taken||row.qty===0))?true:"the plural gain must take the cloak from the chest: "+JSON.stringify(row);
+  });
+  t("#481 D2 legacy '…xN' village rows heal at load, idempotently; adventure rows are never touched",function(){
+    var h=d2House();h.items=[{name:"Hemp rope x2",placed:1,taken:false,qty:1,by:"Silas",min:0},{name:"Hemp rope",placed:2,taken:false,qty:1,by:"Silas",min:0}];
+    var n=quiet(function(){return healStashRows();}).r;
+    var rope=h.items.filter(function(it){return stashKey(it.name)==="hemp rope";});
+    if(rope.length!==1||rope[0].name!=="Hemp rope"||rope[0].qty!==3)return "the legacy row folds into one row of three: "+JSON.stringify(h.items);
+    if(quiet(function(){return healStashRows();}).r!==0)return "the heal is idempotent";
+    makeWorld();memory.map={nodes:{"Ashfen":{firstVisit:1,visits:1,parent:null,npcs:[],items:[{name:"Rope x2",placed:1,taken:false}]}},edges:[]};
+    var before=JSON.stringify(memory.map);healStashRows();
+    return JSON.stringify(memory.map)===before?(n===1?true:"heal count "+n):"an adventure row (no qty field) must stay byte-identical";
+  });
+
 }

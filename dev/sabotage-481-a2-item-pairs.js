@@ -18,7 +18,7 @@ prove("tag_table.js", [
     find: 'if(_invLastMiss&&_invLastMiss.why==="ambiguous")R.muts.push(', replace: 'if(false)R.muts.push(',
     mustFail: "two candidates refuse loudly" },
   { label: "a refused placement no longer puts the unit back (t216)",
-    find: 'if(_lact==="placed"){var _lpb=itemPairTake(R,"ilHits",_lnm);', replace: 'if(false){var _lpb=itemPairTake(R,"ilHits",_lnm);',
+    find: 'if(_lact==="placed"){var _lpb=null,', replace: 'if(false){var _lpb=null,',
     mustFail: "a stow whose placement is refused" },
   { label: "a placement whose loss missed is placed anyway",
     find: 'if(_lact==="placed"&&itemPairMissed(R,_lnm)){', replace: 'if(false){',

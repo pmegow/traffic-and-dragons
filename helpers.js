@@ -2712,20 +2712,21 @@ function stashTradeCatalog(){
   if(!node||!node.owner)return {ok:false,reason:"not in a house ("+leaf+")"};
   if(node.owner!==c.name)return {ok:false,reason:"this is "+node.owner+"'s house \u2014 only its owner opens the chest"};
   var inv=c.inventory||[],carried={},order=[],i;
-  for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=base.toLowerCase();
+  for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=(typeof stashKey==="function")?stashKey(base):base.toLowerCase();/* #481 D2 */
     if(!carried[k]){carried[k]={name:base,qty:0,worn:false};order.push(k);}carried[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))carried[k].worn=true;}
   var stored=(typeof villageStash==="function")?villageStash(rk):[];
   return {ok:true,house:leaf,key:rk,node:node,hero:c.name,carried:order.map(function(k){return carried[k];}),stored:stored.map(function(r){return {name:r.name,qty:r.qty,room:r.room||null};})};
 }
 function stashLedgerRows(cat){
-  return {left:cat.carried.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.qty,worn:r.worn,off:r.worn,unit:null,offReason:r.worn?"Worn \u2014 take it off first":"",tag:"",hint:"Stow it in the house"};}),
-    right:cat.stored.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.qty,worn:false,off:false,unit:null,offReason:"",tag:r.room||"",hint:"Take it with you"};})};
+  return {left:cat.carried.map(function(r){return {key:(typeof stashKey==="function")?stashKey(r.name):r.name.toLowerCase(),/* #481 D2: the one stash identity */label:r.name,max:r.qty,worn:r.worn,off:r.worn,unit:null,offReason:r.worn?"Worn \u2014 take it off first":"",tag:"",hint:"Stow it in the house"};}),
+    right:cat.stored.map(function(r){return {key:(typeof stashKey==="function")?stashKey(r.name):r.name.toLowerCase(),label:r.name,max:r.qty,worn:false,off:false,unit:null,offReason:"",tag:r.room||"",hint:"Take it with you"};})};
 }
 /* marks = {stow:{<lowercase name>:qty}, take:{<lowercase name>:qty}} */
 function stashTradePlan(cat,marks){
   marks=marks||{};var ms=marks.stow||{},mt=marks.take||{},lines=[],i,k,stow=0,take=0;
-  for(i=0;i<cat.carried.length;i++){var r=cat.carried[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn)continue;q=Math.min(q,r.qty);lines.push({kind:"stow",name:r.name,qty:q});stow+=q;}
-  for(i=0;i<cat.stored.length;i++){var s=cat.stored[i];k=s.name.toLowerCase();var tq=mt[k]|0;if(tq<=0)continue;tq=Math.min(tq,s.qty);lines.push({kind:"take",name:s.name,qty:tq});take+=tq;}
+  function _mk(m,name){var a=(typeof stashKey==="function")?stashKey(name):name.toLowerCase();return (m[a]|0)||(m[name.toLowerCase()]|0);}/* #481 D2: marks keyed by the stash identity (a lowercase name still reads) */
+  for(i=0;i<cat.carried.length;i++){var r=cat.carried[i];var q=_mk(ms,r.name);if(q<=0||r.worn)continue;q=Math.min(q,r.qty);lines.push({kind:"stow",name:r.name,qty:q});stow+=q;}
+  for(i=0;i<cat.stored.length;i++){var s=cat.stored[i];var tq=_mk(mt,s.name);if(tq<=0)continue;tq=Math.min(tq,s.qty);lines.push({kind:"take",name:s.name,qty:tq});take+=tq;}
   return {lines:lines,stowed:stow,taken:take,ok:lines.length>0,reason:lines.length?"":"nothing marked"};
 }
 function stashTradeTagText(plan){

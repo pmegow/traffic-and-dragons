@@ -853,6 +853,7 @@ function healMemory(){
   if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
   if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};
   memory.archive=archiveHeal(memory.archive);/* JP0-5: was eleven hand-copied lines that had drifted five categories behind the registry (P12 pre-archive saves still heal here) */
+  if(typeof healStashRows==="function")healStashRows();/* #481 D2: legacy "…xN" stash rows → base name + count (qty rows only; adventure rows untouched) */
   // #149: junk-note sweep — the live save carried a literal "none" stateNote on Sandpoint (a
   // no-op that occupies a capped slot and reads as canon). Idempotent; each drop logs.
   if(memory.map&&memory.map.nodes){var _jnk=Object.keys(memory.map.nodes),_jni;for(_jni=0;_jni<_jnk.length;_jni++){var _jnn=memory.map.nodes[_jnk[_jni]];if(_jnn&&Array.isArray(_jnn.stateNotes)&&_jnn.stateNotes.length){var _jnb=_jnn.stateNotes.length;_jnn.stateNotes=_jnn.stateNotes.filter(function(sn){return sn&&String(sn.n||"").trim()&&!/^none[.!]?$/i.test(String(sn.n).trim());});if(_jnn.stateNotes.length<_jnb)console.info("[map] #149: dropped "+(_jnb-_jnn.stateNotes.length)+" junk stateNote(s) on "+_jnk[_jni]);}}}

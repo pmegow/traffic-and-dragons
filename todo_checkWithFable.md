@@ -45,6 +45,11 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Counter:** shopTradeTagText and stashTradeTagText drop the x9 chunking; the #407 pin was re-baselined to one tag per stack.
   - **Reach:** `rewardAwardTargets` and the pair keys inherit the grammar. Touches the applyMuts write paths ITEM_GAINED, ITEM_LOST and the companion twins.
   - **Proof:** 3 red-first tests in "#481 D3"; full suite green (2,390); replay baselines unchanged; `dev/sabotage-481-d3-quantities.js` 5/5 caught. The A3 battery clause was re-anchored (its line changed).
+- 2026-09-29 · #481 D2 · v1.1024 · Opus 5.5 · ONE stash identity. `stashKey(name)` (api.js, over `_qtyParse` + `_invNorm`) keys `fileLocationItem`, `autoTakeLocationItem`, the chest catalog, `stashLedgerRows` and the plan marks.
+  - **Rows:** in a stash kind a placement stores the BASE name with the tag's count — "Hemp rope x2" is one row of two, never a row literally named "Hemp rope x2" (the copy machine). Adventure toggle rows keep the name as given.
+  - **Takes:** the auto-take moves n units (never more than the row holds) and its receipt names n ("From the stash: Iron ring ×2", stash kinds only). A counted take on the record moves n too. A refused counted placement puts back every unit.
+  - **Heal:** `healStashRows()` in `healMemory` renames legacy "…xN" rows and folds same-key rows. Stash kinds only; idempotent; loud once. Adventure rows stay byte-identical.
+  - **Proof:** 4 red-first tests in "#481 D2"; full suite green (2,394); replay baselines unchanged; `dev/sabotage-481-d2-stash-identity.js` 7/7 caught. Re-anchored: the A2 and A3 batteries, `sabotage-408-layout.js` (two IDENTITY clauses) and `sabotage-6-village-stash.js` (the second-placement count).
 
 ## Off-Fable log
 
