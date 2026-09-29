@@ -13,6 +13,14 @@ review lands here with its supporting documentation. Two intake classes:
 commits), what it touches, why it's risky or not, supporting docs/tests, and what a reviewer
 should probe first. Self-contained enough that a Fable session needs no other context.
 
+## Opus probation log
+
+Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier for drift-surface work.
+- **What goes here:** every drift-surface commit an Opus session lands, as ONE line — date · row · version · commit · what it touches · the proof.
+- **The skim:** Fable skims this list on Thursdays; mark each line `skimmed clean` or `DEFECT: …`.
+- **Graduation:** after 10 entries across two clean skims, the probation ends.
+- **Revert:** one silent defect puts the drift surface back to Fable-only.
+
 ## Off-Fable log
 
 - 2026-09-28 · #478 (v1.1016) · Codex: owner-requested tavern chatter/hearth delivery and default interior fire. Shared audio-only profile compatibility retains explicit silence/prohibitions; snapshot adds read-only habitable flag from canonical village house ownership. No parser, prompt, persisted metadata or state-write changes. One existing bed controller/loader, no additional timers or audio contexts. Turn-205 saved profile reproduced silent before fix; tests written first, exact-save browser and named mutation proofs. Owner listening pending.
