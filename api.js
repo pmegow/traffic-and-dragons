@@ -3086,7 +3086,12 @@ function attireRenderText(cs){if(!cs)return "";var w=(cs.worn||[]).filter(functi
 // stepped the count to x2 instead of x4, and losing "Rope x2" removed only one. The x must be
 // a separate token (whitespace before, single digit 2-9 after) so names that merely end in x
 // ("Potion of Hex") are never mangled.
-function _qtyParse(name){var m=(name||"").trim().match(/^(.*\S)\s+x([2-9])$/i);return m?{base:m[1],n:parseInt(m[2],10)}:{base:(name||"").trim(),n:1};}
+/* #481 D3 (audit 2026-09-29, Fable-approved): ONE quantity grammar — " xN" for any N from 1 (the stack reader always
+   accepted any xN; the tag parser read only x2..x9, so "+Arrows x12" onto 13 gave 14 and "-Arrow x10" removed one). "x1" is
+   one unit, never part of a name; x0 and leading zeros stay part of the name (unchanged). A runaway count is CLAMPED at
+   QTY_MAX with clamped:true, and every caller names the bound in its receipt. */
+var QTY_MAX=999;
+function _qtyParse(name){var m=(name||"").trim().match(/^(.*\S)\s+x([1-9]\d*)$/i);if(!m)return {base:(name||"").trim(),n:1};var n=parseInt(m[2],10);return n>QTY_MAX?{base:m[1],n:QTY_MAX,clamped:true}:{base:m[1],n:n};}
 function addInventoryItem(inv,name){var t=_invNorm(name),i;
   for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){inv[i]=_invBase(inv[i])+" x"+(_invCount(inv[i])+1);return;}}
   inv.push(name);

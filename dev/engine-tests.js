@@ -25917,7 +25917,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     p=shopTradePlan(cat,{sell:{},buy:{}});if(p.ok||p.reason!=="nothing marked")return "empty plan is not completable";
     var tags=shopTradeTagText(shopTradePlan(cat,{sell:{"rope":3,"bone-handled knife":1},buy:{"rope":1}}));
     if(tags!=="[GOLD:+3][ITEM_LOST:Rope x3][ITEM_LOST:Bone-handled knife][ITEM_GAINED:Rope]")return "tag text: "+tags;
-    var big=shopTradeTagText({netGp:0,lines:[{kind:"sell",name:"Arrow",qty:12}]});if(big!=="[ITEM_LOST:Arrow x9][ITEM_LOST:Arrow x3]")return "stacks over nine chunk to the parser's x9: "+big;
+    var big=shopTradeTagText({netGp:0,lines:[{kind:"sell",name:"Arrow",qty:12}]});if(big!=="[ITEM_LOST:Arrow x12]")return "a stack of twelve rides ONE tag now (#481 D3: the parser reads any count; re-baselined from the x9 chunking): "+big;
     return true;
   });
   t("#407 ③ Complete lands through the trade gate: gold and inventory move as tags in the mutation log, bought wares leave the shelf, sold items join it at canon, tradePing arms once and buildTradeNote speaks ONCE with 'ALREADY updated'; a stale plan against a closed gate moves nothing",function(){
@@ -26866,6 +26866,37 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var row2=memory.map.nodes[villageHouseKey("Frizwick")].items.filter(function(it){return it.name==="Silver comb";})[0];
     if(!row2||row2.taken||row2.qty===0)return "another resident's chest keeps its item: "+JSON.stringify(row2);
     return (q.r.muts||[]).some(function(m){return /Stash kept/.test(m);})?true:"the kept line must be said: "+JSON.stringify(q.r.muts);
+  });
+
+  // ── #481 D3 (audit 2026-09-29, Fable-approved): ONE quantity grammar. The tag parser read only x2..x9, while the stack
+  // read any xN — "+Arrows x12" onto 13 arrows gave 14, "-Arrow x10" removed one, and the companion tags never parsed a
+  // count at all ("Torch x3" added one torch and raised a false duplicate alarm). Now: " xN" for any N from 1, a loud clamp
+  // at QTY_MAX, the companion twins parse it, and every receipt names the count actually moved.
+  section("#481 D3 quantity grammar");
+  t("#481 D3 the hero: x12 and x10 move twelve and ten; x1 is one unit, never a name; an absurd count is clamped LOUDLY",function(){
+    makeWorld();var c=worldState.character;c.inventory=["Arrow x13"];
+    var r=applyMuts("[ITEM_GAINED:Arrows x12]");if(c.inventory[0]!=="Arrow x25")return "x12 onto 13 must give 25: "+JSON.stringify(c.inventory);
+    if(!(r.muts||[]).some(function(m){return m==="+Arrows x12";}))return "the receipt names twelve: "+JSON.stringify(r.muts);
+    r=applyMuts("[ITEM_LOST:Arrow x10]");if(c.inventory[0]!=="Arrow x15")return "x10 must remove ten: "+JSON.stringify(c.inventory);
+    c.inventory=[];applyMuts("[ITEM_GAINED:Rope x1]");if(c.inventory.join()!=="Rope")return "x1 is one unit, not a name: "+JSON.stringify(c.inventory);
+    c.inventory=[];var q=quiet(function(){return applyMuts("[ITEM_GAINED:Arrow x5000]");});
+    if(_invCount(c.inventory[0])!==QTY_MAX)return "an absurd count is clamped to QTY_MAX: "+JSON.stringify(c.inventory);
+    return (q.r.muts||[]).some(function(m){return /clamp/i.test(m)&&m.indexOf(String(QTY_MAX))>=0;})?true:"the clamp must be said with the bound named: "+JSON.stringify(q.r.muts);
+  });
+  t("#481 D3 the companion twins read the count: Torch x3 onto one torch gives four with no duplicate alarm; x2 removes two",function(){
+    makeWorld();worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:["Torch"]}});
+    delete worldState.dupItemPending;
+    var r=applyMuts("[COMPANION_ITEM_GAINED:Bram|Torch x3]");var inv=findCompanionChar("Bram").inventory;
+    if(inv[0]!=="Torch x4")return "three more torches must give four: "+JSON.stringify(inv);
+    if(worldState.dupItemPending||(r.muts||[]).some(function(m){return /DUPLICATE/.test(m);}))return "three torches granted is not a duplicate of one: "+JSON.stringify(r.muts);
+    applyMuts("[COMPANION_ITEM_LOST:Bram|Torch x2]");
+    return findCompanionChar("Bram").inventory[0]==="Torch x2"?true:"x2 must remove two: "+JSON.stringify(findCompanionChar("Bram").inventory);
+  });
+  t("#481 D3 the counter's tag text round-trips a stack of thirteen through the parser",function(){
+    makeWorld();var c=worldState.character;c.inventory=["Arrow x13"];
+    var tags=shopTradeTagText({netGp:0,lines:[{kind:"sell",name:"Arrow",qty:13}]});
+    if(tags!=="[ITEM_LOST:Arrow x13]")return "one tag for thirteen: "+tags;
+    applyMuts(tags);return c.inventory.length===0?true:"all thirteen must leave the pack: "+JSON.stringify(c.inventory);
   });
 
 }

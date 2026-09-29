@@ -40,6 +40,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Touches:** applyMuts write paths (LOCATION_ITEM, COMPANION_ITEM_GAINED), memory.js autoTakeLocationItem, the note registry. Volatile notes only. One sabotage-6-village-stash clause was re-anchored onto the new gate.
   - **Proof:** 2 red-first tests in "#481 A3"; full suite green (2,387); 4 replay baselines unchanged; `dev/sabotage-481-a3-stash-refusals.js` 5/5 caught; village-stash battery all proven.
 
+- 2026-09-29 · #481 D3 · v1.1023 · Opus 5.5 · ONE quantity grammar. `_qtyParse` reads " xN" for any N from 1 (x1 is one unit), with a loud clamp at QTY_MAX=999 named in the receipt.
+  - **Companion twins:** COMPANION_ITEM_GAINED and COMPANION_ITEM_LOST now parse the count; the duplicate-alarm counts are n per base; receipts name the count moved.
+  - **Counter:** shopTradeTagText and stashTradeTagText drop the x9 chunking; the #407 pin was re-baselined to one tag per stack.
+  - **Reach:** `rewardAwardTargets` and the pair keys inherit the grammar. Touches the applyMuts write paths ITEM_GAINED, ITEM_LOST and the companion twins.
+  - **Proof:** 3 red-first tests in "#481 D3"; full suite green (2,390); replay baselines unchanged; `dev/sabotage-481-d3-quantities.js` 5/5 caught. The A3 battery clause was re-anchored (its line changed).
+
 ## Off-Fable log
 
 - 2026-09-28 · #478 (v1.1016) · Codex: owner-requested tavern chatter/hearth delivery and default interior fire. Shared audio-only profile compatibility retains explicit silence/prohibitions; snapshot adds read-only habitable flag from canonical village house ownership. No parser, prompt, persisted metadata or state-write changes. One existing bed controller/loader, no additional timers or audio contexts. Turn-205 saved profile reproduced silent before fix; tests written first, exact-save browser and named mutation proofs. Owner listening pending.

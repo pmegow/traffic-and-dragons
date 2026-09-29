@@ -723,7 +723,7 @@ three chest takes → pack x2 → x4 → x6, row unchanged, each "Ammut took Hem
 <details><summary>Evidence</summary>
 <p><code>api.js:3059</code>: <code>_qtyParse</code> accepts only <code>x[2-9]</code>, while the stack reader accepts any <code>x\d+</code>. The companion twins (<code>tag_table.js:1563-1567</code>) never parse quantity. Repro: "Arrow x13" + <code>[ITEM_GAINED:Arrows x12]</code> gives "Arrow x14", muts "+Arrows x12".</p>
 </details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ built v1.1023 — ready to test: item counts of 10+ and companion counts move exactly what the tag says; the counter sends one tag per stack</td></tr>
 
 <tr id="D4"><td class="n">D4</td><td>
 <p class="ttl">A met "wanted" offer is never retired — the counter pays full price again and again <span class="lean med">medium</span><span class="lean">drift hole · ruled</span></p>

@@ -2684,7 +2684,7 @@ function shopTradePlan(cat,marks){
 /* The plan as the tags the parser already understands — every move lands in the mutation log through the trade gate. */
 function shopTradeTagText(plan){
   var t="",i;if(plan.netGp!==0)t+="[GOLD:"+(plan.netGp>0?"-":"+")+Math.abs(plan.netGp)+"]";
-  for(i=0;i<plan.lines.length;i++){var l=plan.lines[i],n=l.qty;while(n>0){var chunk=Math.min(n,9);t+="["+(l.kind==="sell"?"ITEM_LOST":"ITEM_GAINED")+":"+l.name+(chunk>1?" x"+chunk:"")+"]";n-=chunk;}}
+  for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];if(l.qty>0)t+="["+(l.kind==="sell"?"ITEM_LOST":"ITEM_GAINED")+":"+l.name+(l.qty>1?" x"+l.qty:"")+"]";}/* #481 D3: the parser reads any count — no x9 chunking */
   return t;
 }
 function shopFmtGp(gp){var v=Math.round(gp*10)/10;return (v%1===0?String(v):v.toFixed(1))+" gp";}
@@ -2730,7 +2730,7 @@ function stashTradePlan(cat,marks){
 }
 function stashTradeTagText(plan){
   var t="",i,j;for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];
-    if(l.kind==="stow"){var n=l.qty;while(n>0){var chunk=Math.min(n,9);t+="[ITEM_LOST:"+l.name+(chunk>1?" x"+chunk:"")+"]";n-=chunk;}for(j=0;j<l.qty;j++)t+="[LOCATION_ITEM:"+l.name+"|placed]";}
+    if(l.kind==="stow"){if(l.qty>0)t+="[ITEM_LOST:"+l.name+(l.qty>1?" x"+l.qty:"")+"]";/* #481 D3: one tag, any count */for(j=0;j<l.qty;j++)t+="[LOCATION_ITEM:"+l.name+"|placed]";}
     else{for(j=0;j<l.qty;j++)t+="[ITEM_GAINED:"+l.name+"]";}}
   return t;
 }
