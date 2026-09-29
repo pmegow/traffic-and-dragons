@@ -600,8 +600,8 @@ rc |= sabotage.prove({
   cases: [
     { label: "#260: the defer condition dies — the LOCATION clear wipes the tracker before same-response outcome tags again",
       mustFail: "survives the move",
-      find: '      R._deferCombatClear={to:_lname};',
-      replace: '      worldState.combat=null;' },
+      find: '{R._deferCombatClear={to:to};return;}',
+      replace: '{worldState.combat=null;return;}' },
 
     { label: "#260: the seam settle is dropped — a deferred fight leaks open into the new location forever",
       mustFail: "partial damage applies, THEN",

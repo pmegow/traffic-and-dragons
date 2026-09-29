@@ -291,7 +291,7 @@ var NODE_CARRY_FIELDS=[
 /* memory.locations[k].visited was write-only and grew one integer per arrival forever (audit C4); node.visits carries the
    count the engine uses, so the list is bounded to the newest VISITED_CAP turns. */
 var VISITED_CAP=50;
-function fileLocation(loc,note,turn){
+function fileLocation(loc,note,turn,from){/* #481 A4: `from` = where this move left from (the walker chains a reply's moves); absent = the live pointer */
   if(typeof locResolve==="function")loc=locResolve(loc);/* #156B: a merged/aliased name lands on the canonical node — a tombstoned key must never re-mint (guarded: identity.js loads later; some dev tools load memory.js alone) */
   // Legacy locations index
   if(!memory.locations[loc])memory.locations[loc]={visited:[],notes:[]};
@@ -305,7 +305,7 @@ function fileLocation(loc,note,turn){
   memory.map.nodes[loc].visits++;memory.map.nodes[loc].lastVisit=turn;/* audit C11: the world filer stamps recency like the sub-location filer */
   guestbookNoteArrival(loc,turn);/* #173: QUEUED during a parse, committed post-handler (amendment ③) — the attendance snapshot must see same-response split/rejoin state settled */
   // Edge + arrival tracking
-  var prev=worldState&&worldState.world?worldState.world.location:null;
+  var prev=(from!=null)?from:(worldState&&worldState.world?worldState.world.location:null);
   if(prev&&prev!==loc){
     memory.map.lastArrivalFrom=prev;
     var exi=false,ei;
@@ -313,9 +313,9 @@ function fileLocation(loc,note,turn){
     if(!exi)memory.map.edges.push({from:prev,to:loc,turn:turn});
   }
 }
-function fileSubLocation(name,turn){
+function fileSubLocation(name,turn,inWorld){/* #481 A4: `inWorld` = the world this arrival happened under (a sub named before a world move belongs to the OLD world) */
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-  var parent=worldState&&worldState.world?worldState.world.location:null;if(!parent)return;
+  var parent=(inWorld!=null)?inWorld:(worldState&&worldState.world?worldState.world.location:null);if(!parent)return;
   if(typeof locResolve==="function")parent=locResolve(parent);/* #156B: compose under the CANONICAL parent — a stale world pointer (older-device blob) must not mint children under a tombstoned key */
   var key=parent+"|"+name;
   /* #481 A1/A5: a name the resolver knows (a passed-through "The Village Hall", a case twin such as "Wyla Ashvane's Shop")
@@ -489,31 +489,31 @@ function fileLocationDesc(desc){
 // #303 — WANTS & ECONOMY on the map. Wares and wants live on the WORLD node; expiry is by the
 // campaign clock (WARES_RESTOCK_DAYS), never by turn count. No ledger: an expired ware simply
 // stops being served and the market ask fires again.
-function _waresWorldNode(turn){
+function _waresWorldNode(turn,atWorld){
   if(!worldState||!worldState.world||!worldState.world.location)return null;
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-  var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);
+  var key=atWorld||worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);
   if(!memory.map.nodes[key])memory.map.nodes[key]=newMapNode(turn,null);
   return memory.map.nodes[key];
 }
 /* #6 F2: WHERE wares file. The adventure keeps the settlement (world) node; a kind with waresPerShop (the village) files on
    the shop sub-location the hero stands in and on nothing else — outside a shop there is no node to file on, and the
    handler refuses by name. isShopNode (helpers.js) decides shop-ness from the kind's data. */
-function waresNodeFor(turn){
+function waresNodeFor(turn,at){/* #481 A4: `at` = the reply's place where the tag happened ({key, world}); absent = the live pointer */
   if(typeof kindDef==="function"&&kindDef().waresPerShop){
     if(!worldState||!worldState.world||!worldState.world.location||!memory||!memory.map)return null;
-    var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return null;
+    var key=(at&&at.key)?at.key:((typeof currentNodeKey==="function")?currentNodeKey():null);if(!key)return null;
     if(typeof locResolve==="function")key=locResolve(key);
     var node=memory.map.nodes[key];
     return (node&&typeof isShopNode==="function"&&isShopNode(key,node))?node:null;
   }
-  return _waresWorldNode(turn);
+  return _waresWorldNode(turn,at&&at.world);
 }
 function waresCapFor(node){var tier=(typeof waresSizeTier==="function")?waresSizeTier(node&&node.size):null;var caps=(typeof WARES_CAP_BY_SIZE!=="undefined")?WARES_CAP_BY_SIZE:{small:2,medium:4,large:6,vast:10,unknown:2};return caps[tier||"unknown"]||caps.unknown;}
 /* `out` (optional, #6 F2/F4): the caller's receipt — out.evicted = names dropped by the cap, out.pinned = {from,to} when the
    kind pins the price to canon, out.anchored = the first quote kept on a re-statement. */
-function fileWare(item,price,note,turn,out){
-  var node=waresNodeFor(turn);if(!node)return null;
+function fileWare(item,price,note,turn,out,at){
+  var node=waresNodeFor(turn,at);if(!node)return null;
   var it=String(item||"").trim(),pr=String(price||"").trim();if(!it||!pr)return null;
   if(!node.wares)node.wares=[];delete node.waresNone;
   var now=(typeof clockNow==="function")?clockNow():0,low=it.toLowerCase(),i,row=null;
@@ -531,7 +531,7 @@ function fileWare(item,price,note,turn,out){
   while(node.wares.length>cap){var gone=node.wares.shift();if(out){if(!out.evicted)out.evicted=[];out.evicted.push(gone.item);}if(typeof console!=="undefined")console.warn("[wares] "+gone.item+" dropped — "+((def&&def.waresPerShop)?"this shop's shelf holds "+cap+" wares (#6 F2)":"the market here holds "+cap+" wares ("+(node.size||"unsized")+" place, #303)"));}
   return row;
 }
-function fileWaresNone(turn){var node=waresNodeFor(turn);if(!node)return false;node.waresNone={t:turn,min:(typeof clockNow==="function")?clockNow():0};node.wares=[];return true;}
+function fileWaresNone(turn,at){var node=waresNodeFor(turn,at);if(!node)return false;node.waresNone={t:turn,min:(typeof clockNow==="function")?clockNow():0};node.wares=[];return true;}
 // The wares actually IN FRONT of the party (owner report 2026-09-03: the fourth button offered "Buy the
 // Fine spiced wine" in a lift terminal because the settlement's record was read as the scene). A live
 // ware is offered here when its note names a PRESENT NPC (the seller is in the scene), or its note
@@ -553,8 +553,8 @@ function nodeWaresLive(node){
   var now=(typeof clockNow==="function")?clockNow():0,win=((typeof WARES_RESTOCK_DAYS!=="undefined")?WARES_RESTOCK_DAYS:7)*((typeof MIN_PER_DAY!=="undefined")?MIN_PER_DAY:1440);
   return node.wares.filter(function(w){return typeof w.min!=="number"||now-w.min<win;});
 }
-function fileWanted(item,offer,by,turn){
-  var node=waresNodeFor(turn);if(!node)return null;
+function fileWanted(item,offer,by,turn,at){
+  var node=waresNodeFor(turn,at);if(!node)return null;
   var it=String(item||"").trim();if(!it)return null;
   if(!node.wanted)node.wanted=[];
   var low=it.toLowerCase(),i;for(i=0;i<node.wanted.length;i++)if(String(node.wanted[i].item).toLowerCase()===low){node.wanted.splice(i,1);break;}
@@ -565,15 +565,15 @@ function fileWanted(item,offer,by,turn){
   while(node.wanted.length>cap){var _wev=node.wanted.shift();fileWanted.lastEvicted.push(_wev.item);if(typeof console!=="undefined")console.warn("[wanted] cap "+cap+" reached — oldest want evicted: \""+_wev.item+"\""+(_wev.by?" (by "+_wev.by+")":""));}
   return row;
 }
-function fileLocationState(note,turn){
+function fileLocationState(note,turn,at){/* #481 A4: `at` = the reply's place where the tag happened */
   if(!worldState||!worldState.world)return false;
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-  var key=currentNodeKey();/* sublocation-aware, same grain as LOCATION_ITEM/LOCATION_SIZE */
+  var key=(at&&at.key)?at.key:currentNodeKey();/* sublocation-aware, same grain as LOCATION_ITEM/LOCATION_SIZE */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var txt=String(note==null?"":note).trim();if(!txt)return false;
   if(txt.length>200){console.warn("[map] LOCATION_STATE note clamped to 200 chars: \""+txt.slice(0,60)+"…\"");txt=txt.slice(0,200);}
   if(!memory.map.nodes[key]){/* a composite key minted here is a child of the CURRENT world node by construction (currentNodeKey composed it under the canonical world) — the parent is the live pointer, never the key's punctuation */
-    var _lsParent=(key.indexOf("|")>=0)?((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location):null;
+    var _lsParent=(key.indexOf("|")>=0)?((at&&at.world)?at.world:((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location)):null;
     memory.map.nodes[key]=newMapNode(turn,_lsParent);}
   var node=memory.map.nodes[key];
   if(!node.stateNotes)node.stateNotes=[];
@@ -596,12 +596,13 @@ function fileLocationState(note,turn){
    missing node was a silent drop before, in every kind. In a kind with stashQuantities (the village) rows carry qty +
    provenance (placed turn, by whom, the clock) and two same-named items stay two; the adventure keeps its toggle rows
    byte-identical (no qty field ever appears on an adventure save). */
-function fileLocationItem(name,action,turn,place,room){
+function fileLocationItem(name,action,turn,place,room,at){
   if(!memory.map||!worldState||!worldState.world)return {ok:false,reason:"no map"};
-  var key=currentNodeKey();/* UA9 */
+  var key=(at&&at.key)?at.key:currentNodeKey();/* UA9; #481 A4: `at` = the reply's place where the tag happened */
   if(place){/* #481 A1: the place operand goes through the SAME resolver as the arrival, so every name that walks in also files items; null keeps the loud refusal (#6 E3) */
-    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim()):null;
-    key=_rp?_rp.key:((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location)+"|"+String(place).trim();/* audit C10: compose under the CANONICAL world */
+    var _pw=(at&&at.world)?at.world:((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location);
+    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw):null;
+    key=_rp?_rp.key:_pw+"|"+String(place).trim();/* audit C10: compose under the CANONICAL world */
   }
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var node=memory.map.nodes[key];
@@ -711,9 +712,9 @@ function stashHandAllowed(node,actor){
   var n=(typeof wsNpcByName==="function")?wsNpcByName(who):null;
   return !!(n&&n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n))&&!(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location));
 }
-function autoTakeLocationItem(itemName,actor,units){
+function autoTakeLocationItem(itemName,actor,units,atKey){
   if(!memory.map||!worldState||!worldState.world)return null;
-  var key=currentNodeKey();/* UA9 */
+  var key=atKey||currentNodeKey();/* UA9; #481 A4: the reply's place where the gain happened */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var node=memory.map.nodes[key];if(!node)return null;
   var qtyMode=!!(typeof kindDef==="function"&&kindDef().stashQuantities),i;

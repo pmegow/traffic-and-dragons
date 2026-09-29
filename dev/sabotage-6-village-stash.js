@@ -68,10 +68,10 @@ prove("tag_table.js", [
     find: 'if(!_lst.noop&&mutPolicy(R).record){', replace: 'if(false){',
     mustFail: "#6E9 Car Mode undo" },
   { label: "a leave erases an arrival that came after it (table order again)",
-    find: 'if(_arLast>_lv)return;/* the arrival came after the leave — it stands */', replace: '',
+    find: '  if(subTouched)worldState.world.sublocation=end.sub;', replace: '  if(subTouched)worldState.world.sublocation=(lastLeave>=0)?null:end.sub;',
     mustFail: "#6F8 leave-then-arrive" },
   { label: "a ware outside a shop files silently",
-    find: 'if(typeof kindDef==="function"&&kindDef().waresPerShop&&!waresNodeFor(R.turn)){', replace: 'if(false){',
+    find: 'if(typeof kindDef==="function"&&kindDef().waresPerShop&&!waresNodeFor(R.turn,_wat)){', replace: 'if(false){',
     mustFail: "#6F2 wares live on the shop" }
 ]);
 prove("helpers.js", [
@@ -82,7 +82,7 @@ prove("helpers.js", [
     find: 'if(def.hallWords&&def.hallWords.test(leaf))return false;', replace: '',
     mustFail: "#6F1 a shop is a place" },
   { label: "the gate ignores the response's own arrival (table order again)",
-    find: 'if(_pos>_lv)key=worldState.world.location+"|"+_last.slice(13,-1).trim();else key=worldState.world.location;', replace: 'key=key;',
+    find: '    if(_st&&_st.key)key=_st.key;', replace: '    if(false)key=_st.key;',
     mustFail: "#6F10 the trade gate reads the response" },
   { label: "a shop with no one in it still trades",
     find: 'if(!keeper)return {ok:false,reason:"no counterparty present in "+leaf};', replace: 'if(!keeper)keeper="someone";',

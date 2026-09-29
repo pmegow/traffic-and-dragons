@@ -27090,4 +27090,76 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (u.ok&&c.inventory.join()==="Tomb-iron core"&&(hall.items[0].taken||hall.items[0].qty===0))?true:"the core comes back from the hall: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(hall.items);
   });
 
+  section("#481 A4 the place sequencer");
+  t("#481 A4 pay-then-leave lands: a coin paid at the counter before walking out is paid in the shop (t198)",function(){
+    shopFixture();var g=worldState.character.gold;
+    var r=quiet(function(){return applyMuts("[SAY:Frizwick]\"A copper, love.\" You pay. [GOLD:-1] You step back out. [SUBLOCATION_LEAVE]");}).r;
+    if(worldState.character.gold!==g-1)return "the coin paid inside must land: gold "+worldState.character.gold+" "+JSON.stringify(r.muts);
+    return worldState.world.sublocation===null?true:"and the party ends outside: "+worldState.world.sublocation;
+  });
+  t("#481 A4 place-then-leave files the item in the house it was set down in",function(){
+    var h=d2House(),c=worldState.character;c.inventory=["Wool blanket"];worldState.stashMoves=[];
+    applyMuts("You fold the blanket onto the chest. [ITEM_LOST:Wool blanket][LOCATION_ITEM:Wool blanket|placed] Then you walk to the tavern. [SUBLOCATION_LEAVE][SUBLOCATION:the tavern]");
+    var inHouse=h.items.some(function(it){return it.name==="Wool blanket"&&!it.taken;}),tav=memory.map.nodes["The Village|the tavern"].items.some(function(it){return it.name==="Wool blanket";});
+    if(!inHouse||tav)return "the blanket lies in the house, not the tavern: house "+JSON.stringify(h.items)+" tavern "+JSON.stringify(memory.map.nodes["The Village|the tavern"].items);
+    return worldState.world.sublocation==="the tavern"?true:"the party ends at the tavern: "+worldState.world.sublocation;
+  });
+  t("#481 A4 arrive-then-hours files on the shop, never the settlement",function(){
+    villageEF();worldState.world.sublocation=null;
+    applyMuts("[SUBLOCATION:The Brass Kettle] The sign reads eight to six. [LOCATION_HOURS:8-18|brewing and trade]");
+    var shop=memory.map.nodes["The Village|The Brass Kettle"],town=memory.map.nodes["The Village"];
+    if(!shop||!shop.hours||shop.hours.open!==8)return "the hours land on the shop: "+JSON.stringify(shop&&shop.hours);
+    return town.hours?"the settlement keeps no hours of the shop: "+JSON.stringify(town.hours):true;
+  });
+  t("#481 A4 fight-then-ride anchors the aftermath at the fight",function(){
+    makeWorld();worldState.turn=50;delete worldState.pendingLocState;var start=locResolve(worldState.world.location);
+    applyMuts("[COMBAT_START:Wolf|10|12|2|1d6|steady] You cut it down. [ENEMY_SLAIN:Wolf][COMBAT_END:victory] You ride on. [LOCATION:Greyford]");
+    var p=worldState.pendingLocState;
+    if(!p||p.node!==start)return "the aftermath belongs to the fight place ("+start+"): "+JSON.stringify(p);
+    return worldState.world.location==="Greyford"?true:"the party ends at Greyford";
+  });
+  t("#481 A4 two moves in one reply end at the second; both are filed and the road between them is on the map",function(){
+    makeWorld();var start=locResolve(worldState.world.location);
+    var r=applyMuts("You pass through Greyford. [LOCATION:Greyford] By dusk you reach Millbrook. [LOCATION:Millbrook]");
+    if(worldState.world.location!=="Millbrook")return "the party ends at the second: "+worldState.world.location+" "+JSON.stringify(r.muts);
+    if(!memory.map.nodes["Greyford"]||!memory.map.nodes["Millbrook"])return "both places are filed: "+Object.keys(memory.map.nodes).join(", ");
+    var e=memory.map.edges.some(function(x){return (x.from==="Greyford"&&x.to==="Millbrook")||(x.from==="Millbrook"&&x.to==="Greyford");}),e0=memory.map.edges.some(function(x){return (x.from===start&&x.to==="Greyford")||(x.to===start&&x.from==="Greyford");});
+    return (e&&e0)?true:"the edges chain start, Greyford, Millbrook: "+JSON.stringify(memory.map.edges);
+  });
+  t("#481 A4 a sub-location named before a world move belongs to the OLD world; the party ends at the new one with no sub-location",function(){
+    makeWorld();var start=locResolve(worldState.world.location);
+    applyMuts("You saddle up in the stables. [SUBLOCATION:the stables] Then ride out. [LOCATION:Greyford]");
+    if(!memory.map.nodes[start+"|the stables"])return "the stables file under "+start+": "+Object.keys(memory.map.nodes).join(", ");
+    if(memory.map.nodes["Greyford|the stables"])return "Greyford|the stables must not be minted";
+    return (worldState.world.location==="Greyford"&&worldState.world.sublocation===null)?true:"ends at Greyford with no sub: "+JSON.stringify(worldState.world);
+  });
+  t("#481 A4 a pending hours ask keeps answering to its own node when the answer comes before the leave",function(){
+    shopFixture();var k=locResolve(currentNodeKey());worldState.hoursAsk={node:k,turn:worldState.turn};worldState.turn++;
+    applyMuts("[LOCATION_HOURS:9-17|by the bell] You head out. [SUBLOCATION_LEAVE]");
+    var n=memory.map.nodes[k];return (n.hours&&n.hours.open===9&&worldState.hoursAsk.node===k)?true:"the answer files on the asked shop: "+JSON.stringify(n.hours)+" "+JSON.stringify(worldState.hoursAsk);
+  });
+  t("#481 A4 wares and a state note filed before a leave land on the shop they were filed in",function(){
+    shopFixture();var k=locResolve(currentNodeKey());
+    var r=quiet(function(){return applyMuts("[WARES:Tallow candle|1 cp|Frizwick] [LOCATION_STATE:the shutters hang broken] You step out. [SUBLOCATION_LEAVE]");}).r;
+    var n=memory.map.nodes[k];
+    if(!(n.wares||[]).some(function(x){return /Tallow/.test(x.item);}))return "the ware files on the shop: "+JSON.stringify(r.muts);
+    return (n.stateNotes||[]).length?true:"the state note files on the shop: "+JSON.stringify(n.stateNotes);
+  });
+  t("#481 A4 arrive-then-take takes from where the hero arrived",function(){
+    var h=d2House();worldState.world.sublocation="the tavern";worldState.character.inventory=[];worldState.stashMoves=[];
+    h.items=[{name:"Iron ring",placed:1,taken:false,qty:1,by:"Silas",min:0}];
+    memory.map.nodes["The Village|the tavern"].items=[{name:"Iron ring",placed:1,taken:false,qty:1,by:"Frizwick",min:0}];
+    applyMuts("You go home. [SUBLOCATION:Silas's house] You pocket the ring. [ITEM_GAINED:Iron ring]");
+    var tav=memory.map.nodes["The Village|the tavern"].items[0];
+    if(!tav||tav.taken||tav.qty===0)return "the tavern ring stays put: "+JSON.stringify(tav);
+    return (h.items[0].taken||h.items[0].qty===0)?true:"the ring leaves the house chest: "+JSON.stringify(h.items[0]);
+  });
+  t("#481 A4 the timeline is pure and answers any offset: before, between and after the moves",function(){
+    makeWorld();var start=locResolve(worldState.world.location),txt="a [SUBLOCATION:the stables] b [LOCATION:Greyford] c [SUBLOCATION:the inn] d [SUBLOCATION_LEAVE] e ",before=JSON.stringify(memory.map);
+    var tl=placeTimeline(txt);if(JSON.stringify(memory.map)!==before)return "the timeline mints nothing";
+    var at=function(ch){return placeStateAt(tl,txt.indexOf(" "+ch+" ")).key;};
+    var want=[start,start+"|the stables","Greyford","Greyford|the inn","Greyford"],got=["a","b","c","d","e"].map(at);
+    return JSON.stringify(got)===JSON.stringify(want)?true:"states by offset: "+JSON.stringify(got);
+  });
+
 }

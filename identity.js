@@ -204,18 +204,49 @@ function resolvePlaceName(name,parent){
 // W5: a bare [LOCATION:leaf] must not mint a world twin of an already-known child under the
 // current world. Resolution/parent relations are authoritative; punctuation in the key is not.
 // A genuine live world node with the same display name wins and remains a legal destination.
-function locationWorldTwinConflict(name){
+function locationWorldTwinConflict(name,fromWorld){
   var nodes=(typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes)?memory.map.nodes:null;
   if(!nodes||!worldState||!worldState.world)return null;
   var raw=String(name||"").trim(),target=locResolve(raw),direct=nodes[target];
   if(direct&&!direct.parent)return null;
-  var current=locResolve(worldState.world.location),leaf=locDisplayLeaf(target).toLowerCase(),ks=Object.keys(nodes),i,k,n;
+  var current=locResolve(fromWorld!=null?fromWorld:worldState.world.location),/* #481 A4: a second move in one reply is judged from where the first one left the party */leaf=locDisplayLeaf(target).toLowerCase(),ks=Object.keys(nodes),i,k,n;
   for(i=0;i<ks.length;i++){
     k=locResolve(ks[i]);n=nodes[k]||nodes[ks[i]];
     if(!n||!n.parent||!locSame(n.parent,current))continue;
     if(locSame(k,target)||locDisplayLeaf(k).toLowerCase()===leaf)return {requested:raw,child:k,parent:current,leaf:locDisplayLeaf(k)};
   }
   return null;
+}
+/* #481 A4 (audit 2026-09-29, Fable-approved): ONE place timeline per applyMutsTable call. The movement tags — [LOCATION:],
+   [SUBLOCATION:] and [SUBLOCATION_LEAVE] — are read ONCE, in TEXT order, from where the party stands when the call begins,
+   into states {off, world, sub, key} (the first is the start, off -1) and the events between them. The movement walker
+   (applyPlaceTimeline, tag_table.js) applies the events; every node-scoped handler asks R.placeAt(tagOffset) where its own
+   tag happened (the trade gate, the auto-takes, LOCATION_ITEM, LOCATION_STATE, LOCATION_HOURS, WARES/WANTED, COMBAT_START).
+   A sub-location named before a world move belongs to the OLD world; a W5 twin-refused world move changes nothing. The
+   ordinary stream and each CANON_TXN body are separate calls, so a body runs on the already-moved state and a reward
+   inside an envelope is judged at the end state. Pure: it resolves names, it never mints. */
+function placeTimeline(text,startWorld,startSub){
+  var ws=(typeof worldState!=="undefined"&&worldState&&worldState.world)?worldState.world:{};
+  var world=(startWorld!==undefined)?startWorld:(ws.location||null),sub=(startSub!==undefined)?startSub:(ws.sublocation||null);
+  if(world)world=locResolve(world);
+  function key(w,s){if(!w)return null;return locResolve(s?w+"|"+s:w);}
+  var t=String(text==null?"":text),re=/\[(LOCATION|SUBLOCATION):([^\]]+)\]|\[SUBLOCATION_LEAVE\]/g,m,states=[{off:-1,world:world,sub:sub,key:key(world,sub)}],events=[];
+  while((m=re.exec(t))!==null){
+    var ev={off:m.index,fromWorld:world,fromSub:sub};
+    if(m[1]==="LOCATION"){var nm=locResolve(normalizeEndpointPair(m[2].trim())),tw=locationWorldTwinConflict(nm,world);ev.kind="world";ev.name=nm;if(tw)ev.twin=tw;else{world=nm;sub=null;}}
+    else if(m[1]==="SUBLOCATION"){var raw=m[2].trim(),nmS=raw,rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world):null;
+      ev.kind="sub";ev.raw=raw;ev.world=world;if(rp&&world&&rp.key.indexOf(world+"|")===0){ev.rp=rp;nmS=placeKeyLeaf(rp.key);}
+      ev.name=nmS;sub=nmS;}
+    else{ev.kind="leave";sub=null;}
+    events.push(ev);states.push({off:m.index,world:world,sub:sub,key:key(world,sub)});
+  }
+  return {states:states,events:events};
+}
+/* The state in force at a text offset: the last state whose tag came before it. No offset = where the reply ends. */
+function placeStateAt(tl,off){
+  var st=tl&&tl.states,i,best;if(!st||!st.length)return null;if(off==null)return st[st.length-1];
+  best=st[0];for(i=1;i<st.length;i++){if(st[i].off<off)best=st[i];else break;}
+  return best;
 }
 
 // ── Shared field-merge rules (the A0 §7.4 set — ONE implementation for merge and split) ─────

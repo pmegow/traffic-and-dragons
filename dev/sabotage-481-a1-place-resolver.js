@@ -9,7 +9,7 @@ var CMD = ["node", ["dev/run-tests.js", "#481 A1"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 prove("memory.js", [
   { label: "the item filer composes its key raw again (the t216 refusal)",
-    find: '    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim()):null;\n', replace: '    var _rp=null;\n',
+    find: '    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw):null;\n', replace: '    var _rp=null;\n',
     mustFail: "the item filer accepts every naming the arrival accepts" },
   { label: "fileSubLocation mints twins again",
     find: '  var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(name,parent):null;\n', replace: '  var _rp=null;\n',
@@ -19,13 +19,11 @@ prove("memory.js", [
     mustFail: "the soundscape target resolves" }
 ]);
 prove("identity.js", [
+  { label: "the arrival bypasses the resolver (#481 A4: it resolves in the place timeline)",
+    find: 'rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world):null;', replace: 'rp=null;',
+    mustFail: "never mints a twin" },
   { label: "the resolver loses its case/article-insensitive step",
     find: '  var want=placeNameNorm(nm);if(!want)return null;\n', replace: '  return null;\n',
-    mustFail: "never mints a twin" }
-]);
-prove("tag_table.js", [
-  { label: "the arrival bypasses the resolver",
-    find: '  var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(_sln):null,', replace: '  var _rp=null,',
     mustFail: "never mints a twin" }
 ]);
 process.exit(code);

@@ -2628,19 +2628,21 @@ function isShopNode(key,node){
 /* #6 F5: THE trade gate — where and with whom coin may change hands. {ok:true} outside a tradeOnlyInShops kind; in the
    village ok only when the hero stands in a shop sub-location with a present, living, non-party NPC (the keeper —
    residents roam, so a resident behind the counter counts). Every refusal carries a reason the mutation log can print. */
-function villageTradeContext(text){
+function villageTradeContext(text,R){
   var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.tradeOnlyInShops)return {ok:true};
   var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key||typeof memory==="undefined"||!memory||!memory.map)return {ok:false,reason:"no place on record"};
-  /* #6 F10: the RESPONSE's own arrival counts — the handler table runs GOLD before SUBLOCATION, so "[SUBLOCATION:the tavern] …
-     [GOLD:-2]" must be judged at the tavern (text order: the last arrival not followed by a leave). State-only callers pass nothing. */
-  var _t=String(text||""),_spk=[];
-  if(_t){var _arr=_t.match(/\[SUBLOCATION:([^\]]+)\]/g)||[],_lv=_t.lastIndexOf("[SUBLOCATION_LEAVE]");
-    if(_arr.length){var _last=_arr[_arr.length-1],_pos=_t.lastIndexOf(_last);if(_pos>_lv)key=worldState.world.location+"|"+_last.slice(13,-1).trim();else key=worldState.world.location;}
-    else if(_lv>=0)key=worldState.world.location;
+  /* #6 F10 → #481 A4: the coin moves where the reply's FIRST [GOLD:] happens — the ONE place timeline (R.places, or the same
+     pure placeTimeline over the text) says where that is, so pay-then-leave pays in the shop and leave-then-pay outside. The F10
+     keeper rule stays: an arrival in the reply before the coin moved resets the room, and only the reply's own speakers are
+     known to be inside. State-only callers pass nothing. */
+  var _t=String(text||""),_spk=[],_arrived=false;
+  if(_t){var _tl=(R&&R.places)?R.places:placeTimeline(_t),_go=_t.search(/\[GOLD:/),_st=placeStateAt(_tl,_go>=0?_go:null),_ei;
+    if(_st&&_st.key)key=_st.key;
+    for(_ei=0;_ei<_tl.events.length;_ei++){var _e=_tl.events[_ei];if((_go<0||_e.off<_go)&&(_e.kind==="sub"||(_e.kind==="world"&&!_e.twin)))_arrived=true;}
     var _sm=_t.match(/\[SAY:[^\]]+\]/g)||[],_si;for(_si=0;_si<_sm.length;_si++)_spk.push(_sm[_si].slice(5,-1).split("|")[0].trim());/* #458: the |mood is not part of the name — "Name|bright" is nobody on the roster */}
   var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk],leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk;
   if(!isShopNode(rk,node))return {ok:false,reason:"not in a shop ("+leaf+")"};
-  var man=(typeof buildSceneManifest==="function")?buildSceneManifest():{local:[]},local=(_t&&_arr&&_arr.length)?_spk:(man.local||[]).concat(_spk),i,keeper=null;/* an arrival in the text resets the room: only this response's speakers are known to be inside */
+  var man=(typeof buildSceneManifest==="function")?buildSceneManifest():{local:[]},local=_arrived?_spk:(man.local||[]).concat(_spk),i,keeper=null;/* an arrival in the text resets the room: only this response's speakers are known to be inside */
   for(i=0;i<local.length&&!keeper;i++){var n=(typeof wsNpcByName==="function")?wsNpcByName(local[i]):null;if(n&&!n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n)))keeper=n.name;}
   if(!keeper)return {ok:false,reason:"no counterparty present in "+leaf};
   return {ok:true,keeper:keeper,shop:leaf,node:node,key:rk};
