@@ -31,7 +31,7 @@ prove("memory.js", [
     find: 'else row.qty=(row.qty||1)+1;', replace: 'else row.qty=1;',
     mustFail: "#6E1 permanence" },
   { label: "the auto-take gate opens every house",
-    find: 'if(qtyMode&&node.owner&&worldState.character&&node.owner!==worldState.character.name)return {kept:true,owner:node.owner,name:it.name};', replace: 'if(false)return null;',
+    find: 'if(qtyMode&&node.owner&&!stashHandAllowed(node,actor))return {kept:true,owner:node.owner,name:it.name};', replace: 'if(false)return null;',/* #481 A3: re-anchored — the gate became stashHandAllowed (the household rule) */
     mustFail: "#6E5 the auto-take path is gated" },
   { label: "wares file on any sub-location, shop or not",
     find: 'return (node&&typeof isShopNode==="function"&&isShopNode(key,node))?node:null;', replace: 'return node||null;',

@@ -26835,4 +26835,37 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var n=buildEngineNotes();return /Torch/.test(n)?true:"the note must name the item: "+n.slice(0,300);
   });
 
+  // ── #481 A3 (audit 2026-09-29, Fable-approved; owner ruling: the household counts as the owner's hand): a refused item
+  // move never reached the GM, so the story kept the relic in the Hall (t218) and the wives' clothes in hand (t88) while
+  // the record said otherwise. A one-shot note now tells the GM (stashRefusedPing), naming the legal places and the legal
+  // tags; and a companion who lives in the hero's house takes from the hero's chest with [COMPANION_ITEM_GAINED:].
+  section("#481 A3 stash refusals and the household");
+  function a3Wife(name){worldState.npcs.push({name:name,status:"ally",rel:"companion",partyMember:true,charSheet:{name:name,inventory:[]}});}
+  t("#481 A3 a refused placement and a refused take each arm ONE note that names the item, the places here and the legal tags",function(){
+    villageEF();delete worldState.stashRefusedPing;
+    quiet(function(){return applyMuts("[LOCATION_ITEM:Silver comb|placed|the well house]");});
+    if(!worldState.stashRefusedPing)return "a refused placement must arm the note";
+    var n=buildEngineNotes();
+    if(!/Silver comb/.test(n)||!/the tavern/.test(n)||!/COMPANION_ITEM_GAINED/.test(n))return "the note must name the item, the places here and the legal tags: "+n.slice(0,500);
+    if(worldState.stashRefusedPing||/Silver comb/.test(buildEngineNotes()))return "one-shot: the latch burns";
+    quiet(function(){return applyMuts("[LOCATION_ITEM:Lantern|placed]");});delete worldState.stashRefusedPing;
+    quiet(function(){return applyMuts("Morwen takes it. [LOCATION_ITEM:Lantern|taken]");});
+    return worldState.stashRefusedPing?true:"a refused take (no actor) must arm the note too";
+  });
+  t("#481 A3 the household: a companion who lives in the hero's house takes from the hero's chest; at another resident's house the chest keeps its item",function(){
+    villageEF();villageHouseEnsure("Silas",null);a3Wife("Morwen");
+    worldState.world.sublocation="Silas's house";
+    quiet(function(){return applyMuts("[LOCATION_ITEM:Traveling clothes|placed]");});
+    quiet(function(){return applyMuts("[COMPANION_ITEM_GAINED:Morwen|Traveling clothes]");});
+    var row=memory.map.nodes[villageHouseKey("Silas")].items.filter(function(it){return it.name==="Traveling clothes";})[0];
+    if(!row||!(row.taken||row.qty===0))return "the household take must decrement the hero's chest: "+JSON.stringify(row);
+    if((findCompanionChar("Morwen").inventory||[]).indexOf("Traveling clothes")<0)return "Morwen holds the clothes";
+    worldState.world.sublocation="Frizwick's house";
+    quiet(function(){return applyMuts("[LOCATION_ITEM:Silver comb|placed]");});
+    var q=quiet(function(){return applyMuts("[COMPANION_ITEM_GAINED:Morwen|Silver comb]");});
+    var row2=memory.map.nodes[villageHouseKey("Frizwick")].items.filter(function(it){return it.name==="Silver comb";})[0];
+    if(!row2||row2.taken||row2.qty===0)return "another resident's chest keeps its item: "+JSON.stringify(row2);
+    return (q.r.muts||[]).some(function(m){return /Stash kept/.test(m);})?true:"the kept line must be said: "+JSON.stringify(q.r.muts);
+  });
+
 }

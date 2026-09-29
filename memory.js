@@ -640,14 +640,25 @@ function fileLocationItem(name,action,turn,place,room){
 /* #6 E5: the auto-take path is GATED in the village — a house's stash releases an item only to its owner; from another
    resident's house the stash keeps it and the caller says whose house it is. Returns null (nothing matched), {taken},
    or {kept,owner}. The adventure path is unchanged: the first untaken match is marked taken. */
-function autoTakeLocationItem(itemName){
+/* #481 A3 (owner ruling 2026-09-29, Fable-approved): the household counts as the owner's hand. At a house the HERO owns,
+   the hero and every living, unsplit party member (the ones who live there with them) may take from the chest; at another
+   resident's house only that owner takes (unchanged). actor defaults to the hero. */
+function stashHandAllowed(node,actor){
+  if(!node||!node.owner)return true;
+  var hero=(worldState&&worldState.character&&worldState.character.name)||null,who=actor||hero;
+  if(node.owner===who)return true;
+  if(node.owner!==hero)return false;
+  var n=(typeof wsNpcByName==="function")?wsNpcByName(who):null;
+  return !!(n&&n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n))&&!(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location));
+}
+function autoTakeLocationItem(itemName,actor){
   if(!memory.map||!worldState||!worldState.world)return null;
   var key=currentNodeKey();/* UA9 */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var node=memory.map.nodes[key];if(!node)return null;
   var qtyMode=!!(typeof kindDef==="function"&&kindDef().stashQuantities),i;
   for(i=0;i<node.items.length;i++){var it=node.items[i];if(it.name.toLowerCase()!==itemName.toLowerCase()||it.taken||it.qty===0)continue;
-    if(qtyMode&&node.owner&&worldState.character&&node.owner!==worldState.character.name)return {kept:true,owner:node.owner,name:it.name};
+    if(qtyMode&&node.owner&&!stashHandAllowed(node,actor))return {kept:true,owner:node.owner,name:it.name};/* #481 A3 */
     if(qtyMode){if((it.qty||1)>1)it.qty-=1;else{it.taken=true;it.qty=0;}return {taken:true,name:it.name};}
     it.taken=true;return {taken:true,name:it.name};}
   return null;

@@ -34,6 +34,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Touches:** the applyMuts write paths GOLD / ITEM_GAINED / ITEM_LOST / LOCATION_ITEM / COMPANION_ITEM_GAINED / COMPANION_ITEM_LOST, plus the note registry (latch, builder and shape rows). Volatile notes only; stable half untouched. The new builder sits AFTER buildTradeNote, so sabotage-407-shop's adjacency anchor holds.
   - **Proof:** 7 red-first tests in "#481 A2 two-tag item moves". One test was aligned to the field's parenthetical provenance, because `itemBaseName` strips parentheticals and dashes, not commas, per Fable's spec. Full suite green (2,385); `dev/sabotage-481-a2-item-pairs.js` 10/10 caught.
 
+- 2026-09-29 · #481 A3 · v1.1022 · Opus 5.5 · a refused item move reaches the GM, and the household takes from the chest.
+  - **Note:** the new one-shot `buildStashRefusedNudge` (latch `stashRefusedPing`, registered in latch/builder/shape). The LOCATION_ITEM handler arms it on a refused placement or a refused village take; it names the item, the reason, the places here by record name (capped at 12) and the legal tags.
+  - **Household rule:** `stashHandAllowed` — at a hero-owned node, the hero and every living unsplit party member may take; another resident's house releases only to its owner, as before. COMPANION_ITEM_GAINED now runs the gated auto-take with the companion as actor (adventure rows toggle as before).
+  - **Touches:** applyMuts write paths (LOCATION_ITEM, COMPANION_ITEM_GAINED), memory.js autoTakeLocationItem, the note registry. Volatile notes only. One sabotage-6-village-stash clause was re-anchored onto the new gate.
+  - **Proof:** 2 red-first tests in "#481 A3"; full suite green (2,387); 4 replay baselines unchanged; `dev/sabotage-481-a3-stash-refusals.js` 5/5 caught; village-stash battery all proven.
+
 ## Off-Fable log
 
 - 2026-09-28 · #478 (v1.1016) · Codex: owner-requested tavern chatter/hearth delivery and default interior fire. Shared audio-only profile compatibility retains explicit silence/prohibitions; snapshot adds read-only habitable flag from canonical village house ownership. No parser, prompt, persisted metadata or state-write changes. One existing bed controller/loader, no additional timers or audio contexts. Turn-205 saved profile reproduced silent before fix; tests written first, exact-save browser and named mutation proofs. Owner listening pending.
