@@ -26770,4 +26770,69 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (r&&r.ok)?true:"the Hall's classification must file: "+JSON.stringify(r);
   });
 
+  // ── #481 A2 (audit 2026-09-29, Fable-approved with changes): a move written as two tags lands together or not at all.
+  // Each half resolved the item on its own, so at Village t216 the core left the pack while its placement was refused
+  // (destroyed); elsewhere a sale minted gold while the item stayed, a stow or a hand-off duplicated, a gift vanished.
+  // (a) ONE inventory name resolver: exact, then a UNIQUE base name, ambiguity refused loudly (no removal).
+  // (b) Name-keyed pairs (stow, give, take) withhold or put back on a miss, in every kind.
+  // (c) The sale pair withholds only where trade is gated (tradeOnlyInShops); in an adventure a missed sale KEEPS the
+  //     coin, says so, and asks the GM (itemNotHeldPing) — never a silent mint, never a withheld reward.
+  section("#481 A2 two-tag item moves");
+  function a2Comp(inv){worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:inv||[]}});}
+  t("#481 A2 the resolver: a short name reaches the one provenance-rich entry; two candidates refuse loudly and remove nothing",function(){
+    makeWorld();var c=worldState.character;c.inventory=["Signet ring (from Sheriff Hemlock)","Rope — mountain grade, 50ft"];
+    var q=quiet(function(){return applyMuts("[ITEM_LOST:Signet ring]");});
+    if(c.inventory.indexOf("Signet ring (from Sheriff Hemlock)")>=0)return "the unique base name must resolve: "+JSON.stringify(c.inventory);
+    c.inventory=["Rope — mountain grade, 50ft","Rope (spare coil)"];
+    q=quiet(function(){return applyMuts("[ITEM_LOST:Rope]");});
+    if(c.inventory.length!==2)return "an ambiguous name must remove nothing: "+JSON.stringify(c.inventory);
+    return (q.r.muts||[]).some(function(m){return /^⚠/.test(m)&&/Rope/.test(m)&&/ambiguous|which/i.test(m);})?true:"the ambiguity must be refused LOUDLY: "+JSON.stringify(q.r.muts);
+  });
+  t("#481 A2 a stow whose placement is refused leaves the item in the pack (the t216 destroyed core)",function(){
+    villageEF();var c=worldState.character;c.inventory=["Tomb-iron siphon core x2"];
+    var q=quiet(function(){return applyMuts("[ITEM_LOST:Tomb-iron siphon core][LOCATION_ITEM:Tomb-iron siphon core|placed|the well house]");});
+    if(c.inventory[0]!=="Tomb-iron siphon core x2")return "the refused placement must put the unit back: "+JSON.stringify(c.inventory)+" "+JSON.stringify(q.r.muts);
+    return (q.r.muts||[]).some(function(m){return /^⚠/.test(m)&&/stays in the pack|put back/i.test(m);})?true:"the put-back must be said: "+JSON.stringify(q.r.muts);
+  });
+  t("#481 A2 a loss that matched nothing places nothing, gives nothing, and a refused village trade rider places nothing",function(){
+    villageEF();villageHouseEnsure("Silas",null);var c=worldState.character;c.inventory=["Lantern"];
+    quiet(function(){return applyMuts("[ITEM_LOST:Leather satchel][LOCATION_ITEM:Leather satchel|placed]");});
+    if(memory.map.nodes["The Village|the tavern"].items.some(function(it){return /satchel/i.test(it.name);}))return "a satchel that never left the pack must not appear in the world";
+    worldState.world.sublocation=null;/* outside every shop: the coin is refused, so its riders are misses */
+    quiet(function(){return applyMuts("[GOLD:-1][ITEM_LOST:Lantern][LOCATION_ITEM:Lantern|placed|Silas's house]");});
+    if(memory.map.nodes[villageHouseKey("Silas")].items.some(function(it){return it.name==="Lantern";}))return "a refused trade rider must not be placed (the satchel in pack AND chest)";
+    if(c.inventory.indexOf("Lantern")<0)return "the lantern stays in the pack";
+    makeWorld();a2Comp([]);worldState.character.inventory=[];
+    quiet(function(){return applyMuts("[ITEM_LOST:Bottle of wine][COMPANION_ITEM_GAINED:Bram|Bottle of wine]");});
+    return (findCompanionChar("Bram").inventory||[]).length===0?true:"a gift the hero never held must not reach the companion";
+  });
+  t("#481 A2 a gift to someone who is not a party member stays in the pack (the vanishing bottle)",function(){
+    makeWorld();worldState.character.inventory=["Bottle of wine"];
+    var q=quiet(function(){return applyMuts("[ITEM_LOST:Bottle of wine][COMPANION_ITEM_GAINED:Nyla Lorrath|Bottle of wine]");});
+    if(worldState.character.inventory.indexOf("Bottle of wine")<0)return "the bottle must stay in the pack: "+JSON.stringify(q.r.muts);
+    return (q.r.muts||[]).some(function(m){return /^⚠/.test(m)&&/Bottle of wine/.test(m);})?true:"the put-back must be said: "+JSON.stringify(q.r.muts);
+  });
+  t("#481 A2 a take from a companion whose loss misses gives the hero nothing; the resolver lets the real take land",function(){
+    makeWorld();a2Comp(["Small corked vial, violet residue (half full)"]);var c=worldState.character;c.inventory=[];
+    quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Iron key][ITEM_GAINED:Iron key]");});
+    if(c.inventory.some(function(x){return /Iron key/.test(x);}))return "a key Bram never held must not reach the hero: "+JSON.stringify(c.inventory);
+    quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Small corked vial, violet residue][ITEM_GAINED:Small corked vial, violet residue]");});
+    if((findCompanionChar("Bram").inventory||[]).length!==0)return "the short name must reach Bram's one vial (no x2 duplicate): "+JSON.stringify(findCompanionChar("Bram").inventory);
+    return c.inventory.length===1?true:"the hero holds the one vial: "+JSON.stringify(c.inventory);
+  });
+  t("#481 A2 the village sale pair: a sale whose item misses moves no coin",function(){
+    villageEF();var c=worldState.character;c.inventory=["Lantern"];var g0=c.gold;
+    var q=quiet(function(){return applyMuts("You sell it to Frizwick at the counter. [GOLD:+30][ITEM_LOST:Golvak's medallion]");});
+    if(c.gold!==g0)return "the coin must be withheld: "+g0+" -> "+c.gold+" "+JSON.stringify(q.r.muts);
+    return (q.r.muts||[]).some(function(m){return /^⚠/.test(m)&&/medallion/.test(m);})?true:"the withheld sale must be said: "+JSON.stringify(q.r.muts);
+  });
+  t("#481 A2 the adventure never withholds a reward: a missed loss keeps the coin, says so, and asks the GM",function(){
+    makeWorld();var c=worldState.character;c.gold=25;delete worldState.itemNotHeldPing;
+    var q=quiet(function(){return applyMuts("[GOLD:+30][ITEM_LOST:Torch]");});
+    if(c.gold!==55)return "the reward must land: "+c.gold;
+    if(!(q.r.muts||[]).some(function(m){return /^⚠/.test(m)&&/Torch/.test(m)&&/not on the sheet/.test(m);}))return "the miss must be said: "+JSON.stringify(q.r.muts);
+    if(!worldState.itemNotHeldPing)return "the GM must be asked (itemNotHeldPing)";
+    var n=buildEngineNotes();return /Torch/.test(n)?true:"the note must name the item: "+n.slice(0,300);
+  });
+
 }
