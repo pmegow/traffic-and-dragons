@@ -1345,6 +1345,7 @@ function _ragRetrieveScore(inputText){
   // IDF makes rare words dominate ("broadsheet": ~4 entries → strong; "keep": everywhere →
   // ~nothing) without a hand-tuned stoplist — the t164 lesson. Deterministic, no vectors.
   var elig=[],df=[],N=0,bdf=[];
+  var _echo=(typeof ragEchoGate==="function")?ragEchoGate():null,_echoSkipped=0;/* #469 ⑥: while the earlier adventures are held, an excerpt that retells one is not evidence the street would repeat */
   for(j=0;j<terms.length;j++)df.push(0);
   for(j=0;j<bigrams.length;j++)bdf.push(0);
   for(i=0;i<tr.length;i++){
@@ -1360,6 +1361,7 @@ function _ragRetrieveScore(inputText){
     // they quote (the t164 broadsheet displacement) and preserve false corrections (the t160
     // pin-grab). Excluded from candidacy AND from the IDF document set.
     if(/^\s*gm\s*[:,]/.test(prev0))continue;
+    if(_echo&&typeof momentEchoWords==="function"&&momentEchoWords(String(en0.x),_echo.prior,_echo.names)){_echoSkipped++;continue;}/* #469 ⑥: the Village t212 lien line came back through here after every other channel was closed */
     if(!en0.e){if(!names)names=ragKnownNames();en0.e=ragBackfillEntry(en0,names);}
     var low0=String(en0.x).toLowerCase();
     var hits0=[],bhits0=[];
@@ -1368,6 +1370,7 @@ function _ragRetrieveScore(inputText){
     elig.push({i:i,en:en0,hits:hits0,bhits:bhits0});
     N++;
   }
+  if(_echoSkipped&&typeof console!=="undefined")console.info("[rag] #469 ⑥ "+_echoSkipped+" excerpt(s) withheld — they retell an earlier adventure the street is not talking about");
   // Pass 2: score. Entity/location/quest overlap gates; IDF-weighted term hits rank.
   // Write-time index names can be ORPHANED by a later [NPC_MERGE:] — entries stamped
   // e.n=["Hemlock"] stop matching once that key is deleted from memory.npcs (the t198

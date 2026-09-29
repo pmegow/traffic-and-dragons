@@ -354,14 +354,7 @@ function buildCoreMemoryBlock(){
      the past belongs to the Hall and to the hero's asking. The GM cannot parrot what it is not holding. Stateless: the
      action + the last PAST_RAISED_TURNS user turns decide (pastRaisedByHero, helpers.js), or the hero stands in the Hall.
      The notice names the carriers and forbids inventing the past. Other kinds: byte-identical. */
-  var _hold=false;
-  if(prior.length&&typeof kindDef==="function"&&kindDef().smallTalk){
-    var _w=worldState.world||{},_hk=(kindDef().hall&&typeof villageHallKey==="function")?locResolve(villageHallKey()):null,_ak=_w.sublocation?locResolve(_w.location+"|"+_w.sublocation):locResolve(_w.location||"");
-    if(!(_hk&&_ak===_hk)){
-      var _ut=[],_si,_sl=(typeof sessionLog!=="undefined"&&sessionLog)||[];for(_si=0;_si<_sl.length;_si++){var _sm=_sl[_si];if(_sm&&_sm.role==="user"&&!_sm.bk)_ut.push(typeof stripEngineNotes==="function"?stripEngineNotes(_sm.content):_sm.content);}
-      if(typeof pastRaisedByHero!=="function"||!pastRaisedByHero(typeof lastAction==="string"?lastAction:"",_ut,names,prior))_hold=true;
-    }
-  }
+  var _hold=prior.length>0&&typeof pastHeldNow==="function"&&pastHeldNow(names,prior);/* #469 ⑥: ONE gate (helpers.js), shared with the excerpt retriever */
   if(_hold){
     var _hp=prior;prior=[];
     var L0="EARLIER ADVENTURES HELD BACK — the street talks small: "+carriers.join(", ")+" "+(carriers.length===1?"carries":"each carry")+" a past from earlier adventures ("+_hp.length+" moments on record), served when the hero asks about it or in the Hall. Until then it is a passing handle at most, from anyone — and never invented: do not invent what the record holds.";

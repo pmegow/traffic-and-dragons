@@ -814,16 +814,47 @@ function detectMomentRetelling(raw,moments,exempt){
     var s=segs[i],spl=s.speaker.toLowerCase(),own=false;
     for(j=0;j<exl.length&&!own;j++)if(exl[j]&&(exl[j]===spl||firstOf(exl[j])===firstOf(spl)))own=true;
     if(own)continue;/* the party's own telling is theirs to give */
-    var lineWords=motifWords(s.text,ex.concat([s.speaker]));
-    for(j=0;j<moments.length;j++){
-      var mo=moments[j];if(!mo||!mo.text)continue;
-      var mw=motifWords(mo.text,ex.concat([s.speaker,mo.who||""])),shared=0,k;
-      var strong=false;for(k in mw)if(lineWords[k]){shared++;if(k.length>=MOTIF_STRONG_MIN)strong=true;}
-      if(shared>=MOTIF_MIN_WORDS&&strong&&(!best||shared>best.words))best={speaker:s.speaker,who:mo.who||"",gist:String(mo.text).slice(0,MOTIF_GIST_CHARS),words:shared};
-    }
+    var hit=momentEchoWords(s.text,moments,ex.concat([s.speaker]));
+    if(hit&&(!best||hit.words>best.words))best={speaker:s.speaker,who:hit.who,gist:hit.gist,words:hit.words};
   }
   return best;
 }
+/* #469 ⑥: the detector's core over PLAIN text — a transcript excerpt carries no SAY tags. (text, moments, exempt names) →
+   the best echoed moment {who,gist,words} or null; the same bar as the detector (MOTIF_MIN_WORDS shared, one strong). */
+function momentEchoWords(text,moments,exempt){
+  var ex=(exempt||[]).map(function(n){return String(n||"");}),best=null,j,k;
+  var lineWords=motifWords(text,ex);
+  for(j=0;j<(moments||[]).length;j++){
+    var mo=moments[j];if(!mo||!mo.text)continue;
+    var mw=motifWords(mo.text,ex.concat([mo.who||""])),shared=0;
+      var strong=false;for(k in mw)if(lineWords[k]){shared++;if(k.length>=MOTIF_STRONG_MIN)strong=true;}
+      if(shared>=MOTIF_MIN_WORDS&&strong&&(!best||shared>best.words))best={who:mo.who||"",gist:String(mo.text).slice(0,MOTIF_GIST_CHARS),words:shared};
+  }
+  return best;
+}
+/* #469 ④/⑥ (owner 2026-09-29, Village t212: the lien line came back through the scene-excerpt retriever after every other
+   channel was closed): ONE gate says whether the earlier adventures are HELD right now — a small-talk kind, not standing in
+   the Hall, and the hero has not raised the past (pastRaisedByHero over the action and the last user turns). The moments
+   block and the excerpt retriever both ask it, so the two can never disagree. heldPastParty gathers what it needs. */
+function heldPastParty(){
+  if(typeof worldState==="undefined"||!worldState||!worldState.character)return null;
+  var camp=worldState.campName||"",names=[worldState.character.name],prior=[],seen={};
+  function take(list){var i;for(i=0;i<(list||[]).length;i++){var m=list[i];if(!m||!m.text||!m.camp||m.camp===camp)continue;var k=m.camp+"|"+m.turn+"|"+m.text;if(seen[k])continue;seen[k]=1;prior.push(m);}}
+  take(worldState.character.coreMemories);
+  var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],i;
+  for(i=0;i<party.length;i++){names.push(party[i].name);take(party[i].charSheet&&party[i].charSheet.coreMemories);}
+  return prior.length?{names:names,prior:prior}:null;
+}
+function pastHeldNow(names,prior){
+  if(!prior||!prior.length||typeof kindDef!=="function"||!kindDef().smallTalk)return false;
+  var w=(typeof worldState!=="undefined"&&worldState&&worldState.world)||{},res=(typeof locResolve==="function")?locResolve:function(x){return x;};
+  var hk=(kindDef().hall&&typeof villageHallKey==="function")?res(villageHallKey()):null;
+  var ak=w.sublocation?res(w.location+"|"+w.sublocation):res(w.location||"");
+  if(hk&&ak===hk)return false;/* the Hall serves everything */
+  var ut=[],i,sl=(typeof sessionLog!=="undefined"&&sessionLog)||[];for(i=0;i<sl.length;i++){var m=sl[i];if(m&&m.role==="user"&&!m.bk)ut.push(typeof stripEngineNotes==="function"?stripEngineNotes(m.content):m.content);}
+  return !pastRaisedByHero(typeof lastAction==="string"?lastAction:"",ut,names,prior);
+}
+function ragEchoGate(){var p=heldPastParty();return (p&&pastHeldNow(p.names,p.prior))?p:null;}
 function droll(s){return Math.floor(Math.random()*s)+1;}
 /* #354 (v1.837): opening-hour helpers. The clock's zero is DAWN (#89: clock%1440==0 ≡ ~6am), so a
    preset's clock hour becomes minutes-since-dawn. clockHourLabel is the one phase vocabulary for a

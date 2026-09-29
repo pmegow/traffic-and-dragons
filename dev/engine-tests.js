@@ -642,6 +642,11 @@ function runEngineTests(R){
     if(detectMomentRetelling("[SAY:Nyla Lorrath|bright]" + DQ + "Good to see you home at the cottage, Ammut — waiting on the tub with the kettle on, I expect." + DQ,moments.concat(homely),exempt))return "a domestic line sharing only everyday words fired (no strong word)";
     var ledger=[{text:"Daeris let Ammut hold her through the night in Magnimar without bracing for the cost, the ledger in her head finally quiet.",turn:1701,kind:"bond",who:"Daeris",camp:"Rise of the Runelords (Ammut)"}];
     if(detectMomentRetelling("[SAY:Nyla Lorrath|dry]" + DQ + "Mind the cost, Ammut — the ledger says bracing that fence will take the day." + DQ,moments.concat(ledger),exempt))return "three everyday words with no strong word fired (cost, ledger, bracing — none of eight letters)";
+    /* #469 ⑥: the same core over PLAIN text (a transcript excerpt has no SAY tags) — the t165 line echoes Daeris's moment, a domestic line does not */
+    if(typeof momentEchoWords!=="function")return "momentEchoWords missing";
+    var echo=momentEchoWords("Morning, Nyla. Good to see Daeris walking so light across the square yesterday, knowing that Reach lien and the necrotic tether to the engines are burned out for good.",moments,exempt);
+    if(!echo||echo.who!=="Daeris")return "the plain t165 line must echo Daeris's moment: "+JSON.stringify(echo);
+    if(momentEchoWords("Daeris laughed at the mule by the well and went in for bread.",moments,exempt))return "a domestic plain line echoed";
 
     return true;
   });
@@ -718,6 +723,26 @@ function runEngineTests(R){
     if(buildCoreMemoryBlock().indexOf("necrotic tether")<0)return "standing in the Hall did not serve the past";
     delete worldState.world.sublocation;delete worldState.kind;lastAction=null;
     return true;
+  });
+  t("#469 ⑥ the scene-excerpt retriever does not re-serve a retelling of a held past (Village t212: Nyla's lien line came back through PAST SCENE EXCERPTS after every other channel was closed): withheld on a walk, served when the hero raises the past, in the Hall, and outside small-talk kinds",function(){
+    makeWorld();sessionLog.length=0;delete worldState.ragMemory;worldState.campName="The Village (Ammut)";worldState.character.name="Ammut";
+    worldState.kind="village";worldState.world.location="The Village";delete worldState.world.sublocation;
+    var prior={text:"Daeris's purpose was settled: Her soul-tax lien and necrotic tether to the Reach's engines and Tomb-Architect have been completely extinguished",turn:49,kind:"resolution",who:"Daeris",camp:"The Necrotic Dungeon"};
+    worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,met:1,charSheet:{name:"Daeris",hp:10,maxHp:10,coreMemories:[prior]}}];memory.npcs["Daeris"]={attitude:"",knowledge:[],events:[]};
+    var i;for(i=1;i<=44;i++){worldState.turn=i;logTranscript("player","filler step "+i);
+      logTranscript("gm",i===4?"Nyla calls across the lane. \"Morning, Ammut. Good to see Daeris walking so light across the square, knowing that Reach lien and the necrotic tether to the engines are burned out for good.\"":i===8?"Daeris laughed at the mule by the well and went in for bread.":"Nothing of note happens in this entry, number "+i+", quiet hours only.","(raw)");}
+    worldState.turn=60;lastAction="Greet Nyla by the lane and look at the square.";
+    ragRetrieve._memo=null;var held=ragRetrieve(lastAction);
+    if(/necrotic tether/.test(held))return "the retriever served the retelling while the past is held: "+held.slice(0,200);
+    lastAction="Look for the mule by the well.";ragRetrieve._memo=null;
+    if(ragRetrieve(lastAction).indexOf("mule")<0)return "the neutral Daeris scene must still serve: "+JSON.stringify(ragRetrieve(lastAction).slice(0,160));
+    lastAction="Ask Daeris about the Reach and what the tether did to her.";ragRetrieve._memo=null;
+    if(!/necrotic tether/.test(ragRetrieve(lastAction)))return "raising the past must let the excerpt through";
+    lastAction="Greet Nyla by the lane and look at the square.";worldState.world.sublocation="the Village Hall";memory.map.nodes[villageHallKey()]={firstVisit:1,visits:1,parent:"The Village",npcs:[],items:[]};ragRetrieve._memo=null;
+    if(!/necrotic tether/.test(ragRetrieve(lastAction)))return "the Hall must serve the excerpt";
+    delete worldState.world.sublocation;delete worldState.kind;ragRetrieve._memo=null;
+    if(!/necrotic tether/.test(ragRetrieve(lastAction)))return "outside a small-talk kind the excerpt must serve";
+    lastAction=null;return true;
   });
   // ── #470 Upload party members to library ──
   t("#470 partyUploadPlan lists the hero and every living companion with a sheet (dead and sheetless ones skipped), marks which library entries would be overwritten by slug, and is pure over its inputs",function(){

@@ -39,7 +39,26 @@ rc |= sabotage.prove({
     { label: "#469 ⑤ — no strong word required: everyday domestic words add up to a retelling",
       mustFail: "three everyday words with no strong word fired",
       find: "      if(shared>=MOTIF_MIN_WORDS&&strong&&(!best||shared>best.words))best=",
-      replace: "      if(shared>=MOTIF_MIN_WORDS&&(!best||shared>best.words))best=" }
+      replace: "      if(shared>=MOTIF_MIN_WORDS&&(!best||shared>best.words))best=" },
+    { label: "#469 ④/⑥ — the gate never holds: the village serves the earlier adventures on a walk to the well",
+      mustFail: "the village served the earlier adventure on a walk to the well",
+      find: "  return !pastRaisedByHero(typeof lastAction===\"string\"?lastAction:\"\",ut,names,prior);\n}",
+      replace: "  return false;\n}" },
+    { label: "#469 ④/⑥ — the Hall no longer serves the past",
+      mustFail: "standing in the Hall did not serve the past",
+      find: "  if(hk&&ak===hk)return false;/* the Hall serves everything */\n",
+      replace: "" }
+  ]
+});
+
+rc |= sabotage.prove({
+  file: "memory.js",
+  command: CMD,
+  cases: [
+    { label: "#469 ⑥ — the excerpt retriever serves a retelling of the held past again",
+      mustFail: "the retriever served the retelling while the past is held",
+      find: "if(_echo&&typeof momentEchoWords===\"function\"&&momentEchoWords(String(en0.x),_echo.prior,_echo.names)){_echoSkipped++;continue;}",
+      replace: "if(false){_echoSkipped++;continue;}" }
   ]
 });
 
@@ -59,14 +78,6 @@ rc |= sabotage.prove({
       mustFail: "header",
       find: ", and a bystander remarks on a moment once, not every meeting:\"];/* #469 ①: whose words these are */",
       replace: ":\"];/* #469 ①: whose words these are */" },
-    { label: "#469 ④ — the village serves the earlier adventures on a walk to the well",
-      mustFail: "the village served the earlier adventure on a walk to the well",
-      find: "!pastRaisedByHero(typeof lastAction===\"string\"?lastAction:\"\",_ut,names,prior))_hold=true;",
-      replace: "!pastRaisedByHero(typeof lastAction===\"string\"?lastAction:\"\",_ut,names,prior))_hold=false;" },
-    { label: "#469 ④ — the Hall no longer serves the past",
-      mustFail: "standing in the Hall did not serve the past",
-      find: "    if(!(_hk&&_ak===_hk)){\n      var _ut=[]",
-      replace: "    if(true){\n      var _ut=[]" },
     { label: "#469 ④ — this campaign's own moments are withheld with the earlier adventures",
       mustFail: "this campaign's own moment was withheld too",
       find: "    if(!cur.length)return L0+\"\\n\\n\";",
