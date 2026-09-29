@@ -359,7 +359,7 @@ function stashTradeApply(marks){
   if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[stash] move refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and its saveAll)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1: every other state-mutating entry point is busy-gated; this one was not */
   var cat=(typeof stashTradeCatalog==="function")?stashTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=stashTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
-  var R=applyMuts(stashTradeTagText(plan),{deferSave:true}),muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Stash refused|kept/.test(String(m));});
+  var R=applyMuts(stashTradeTagText(plan),{deferSave:true,source:"ledger"}),/* #481 D6: the player's own hand — no duplicate alarm, no define ask */muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Stash refused|kept/.test(String(m));});
   if(typeof saveAll==="function")saveAll();
   var i,st=[],tk=[];for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];(l.kind==="stow"?st:tk).push(l.name+(l.qty>1?" x"+l.qty:""));}
   var line=cat.hero+(st.length?" stowed "+st.join(", "):"")+(st.length&&tk.length?" and":"")+(tk.length?" took "+tk.join(", "):"")+" at "+cat.house+"."+(refused.length?" Refused: "+refused.join("; "):"");
@@ -375,7 +375,7 @@ function shopTradeApply(marks){
   if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[shop] trade refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and overwrite the one-shot tradePing)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1 */
   var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=shopTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
-  var R=applyMuts(shopTradeTagText(plan),{deferSave:true}),muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Trade refused/.test(String(m));});
+  var R=applyMuts(shopTradeTagText(plan),{deferSave:true,source:"ledger"}),/* #481 D6 */muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Trade refused/.test(String(m));});
   if(refused.length){if(typeof console!=="undefined")console.warn("[shop] "+refused[0]);return {ok:false,reason:refused[0],muts:muts};}
   var i,node=cat.node,sold=[],bought=[],hero=(worldState.character&&worldState.character.name)||"the hero";
   for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];

@@ -26944,4 +26944,33 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return JSON.stringify(memory.map)===before?(n===1?true:"heal count "+n):"an adventure row (no qty field) must stay byte-identical";
   });
 
+  section("#481 D6 ledger moves");
+  t("#481 D6 taking a ring from your own chest while you carry one is no duplicate grant: no alarm, no GM nudge, no define ask; the ring rides the log as a ledger move",function(){
+    var h=d2House(),c=worldState.character;c.inventory=["Iron ring","Moonlit bone charm"];h.items=[{name:"Iron ring",placed:1,taken:false,qty:1,by:"Silas",min:0},{name:"Moonlit bone charm",placed:1,taken:false,qty:1,by:"Silas",min:0}];
+    delete worldState.dupItemPending;delete worldState.itemDefCandidate;var n0=(worldState.tagLog||[]).length;
+    var res=quiet(function(){return stashTradeApply({take:{"iron ring":1,"moonlit bone charm":1}});}).r;
+    if(!res.ok||c.inventory.join()!=="Iron ring x2,Moonlit bone charm x2")return "the take lands: "+JSON.stringify(res)+" "+JSON.stringify(c.inventory);
+    if((res.muts||[]).some(function(m){return /DUPLICATE ITEM/.test(m);}))return "a ledger take is no duplicate grant: "+JSON.stringify(res.muts);
+    if(worldState.dupItemPending)return "no DUPLICATE ITEM GRANT nudge is armed: "+JSON.stringify(worldState.dupItemPending);
+    if(worldState.itemDefCandidate)return "a ledger move asks the GM to define nothing: "+JSON.stringify(worldState.itemDefCandidate);
+    var e=worldState.tagLog[worldState.tagLog.length-1],nl=worldState.tagLog.length;
+    delete worldState.itemDefCandidate;quiet(function(){applyMuts("[ITEM_GAINED:Moonlit bone charm]");});if(!worldState.itemDefCandidate)return "the probe: a GM grant of the off-canon charm asks for its definition";delete worldState.itemDefCandidate;
+    return (nl>n0&&e.src==="ledger"&&!worldState.tagLog[worldState.tagLog.length-1].src)?true:"the provenance ring names the ledger: "+JSON.stringify(e);
+  });
+  t("#481 D6 buying a second salve at the counter is no duplicate grant",function(){
+    shopFixture();delete worldState.dupItemPending;worldState.character.gold=60;
+    var res=quiet(function(){return shopTradeApply({sell:{},buy:{"healing potion":1}});}).r;
+    if(!res.ok||worldState.character.inventory.indexOf("Healing potion x2")<0)return "the buy lands: "+JSON.stringify(res)+" "+JSON.stringify(worldState.character.inventory);
+    return ((res.muts||[]).some(function(m){return /DUPLICATE ITEM/.test(m);})||worldState.dupItemPending)?"a counter buy is no duplicate grant: "+JSON.stringify(res.muts):true;
+  });
+  t("#481 D6 the same grant from the GM still raises the alarm, and an unknown source is loud and runs as the GM",function(){
+    d2House();worldState.character.inventory=["Iron ring"];delete worldState.dupItemPending;
+    var R=quiet(function(){return applyMuts("[ITEM_GAINED:Iron ring]");}).r;
+    if(!R.muts.some(function(m){return /DUPLICATE ITEM/.test(m);})||!worldState.dupItemPending)return "a GM grant keeps the alarm: "+JSON.stringify(R.muts);
+    worldState.character.inventory=["Iron ring"];delete worldState.dupItemPending;
+    var q=quiet(function(){return applyMuts("[ITEM_GAINED:Iron ring]",{source:"ledgr"});});
+    if(!q.warns.some(function(w){return /unknown mutation source .ledgr./.test(w);}))return "an unknown source warns: "+JSON.stringify(q.warns);
+    return worldState.dupItemPending?true:"an unknown source runs with the GM policy (the alarm stays)";
+  });
+
 }

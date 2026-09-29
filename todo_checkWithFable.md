@@ -50,6 +50,11 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Takes:** the auto-take moves n units (never more than the row holds) and its receipt names n ("From the stash: Iron ring ×2", stash kinds only). A counted take on the record moves n too. A refused counted placement puts back every unit.
   - **Heal:** `healStashRows()` in `healMemory` renames legacy "…xN" rows and folds same-key rows. Stash kinds only; idempotent; loud once. Adventure rows stay byte-identical.
   - **Proof:** 4 red-first tests in "#481 D2"; full suite green (2,394); replay baselines unchanged; `dev/sabotage-481-d2-stash-identity.js` 7/7 caught. Re-anchored: the A2 and A3 batteries, `sabotage-408-layout.js` (two IDENTITY clauses) and `sabotage-6-village-stash.js` (the second-placement count).
+- 2026-09-29 · #481 D6 · v1.1025 · Opus 5.5 · Ledger moves are the player's own hand. `MUT_SOURCES` (tag_table.js) is ONE table of who wrote a mutation text and what it may set off; `applyMuts(text,{source})` carries the name in and handlers read `mutPolicy(R)`.
+  - **Sources:** `gm` (default) keeps the duplicate-item alarm and the define ask; `ledger` (the chest and the counter) sets off neither. An unknown source warns and runs as `gm`. D1's undo joins as one more entry.
+  - **Ring:** a non-GM entry carries `src` in the provenance ring; GM entries stay byte-identical.
+  - **Touches:** the ITEM_GAINED and COMPANION_ITEM_GAINED write paths (the alarm call and the define-candidate call are now policy-gated), `applyMuts`, `stashTradeApply`, `shopTradeApply`.
+  - **Proof:** 3 red-first tests in "#481 D6"; full suite green (2,397); replay baselines unchanged; `dev/sabotage-481-d6-ledger-source.js` 8/8 caught; the shop, stash, A2, A3, D2 and D3 batteries re-run green.
 
 ## Off-Fable log
 

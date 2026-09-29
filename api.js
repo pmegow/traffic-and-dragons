@@ -3346,7 +3346,7 @@ function applyMuts(text,opts){
     if(_rvStripped.length&&typeof console!=="undefined")console.warn("[tags] #264 review-call whitelist stripped "+_rvStripped.length+" out-of-scope tag name(s): "+_rvStripped.join(", ")+" (allowed: "+opts.allow.join(", ")+")");
   }
   var _w2Plan=(typeof w2PrepareResponse==="function")?w2PrepareResponse(text):{ordinary:text,txns:[]};
-  var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true}):{muts:[],turn:worldState.turn,errors:[]},_w2i;
+  var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true,source:(opts&&opts.source)||null}):{muts:[],turn:worldState.turn,errors:[]},_w2i;/* #481 D6: the source rides into the table */
   if(_rvStripped&&_rvStripped.length)R.muts.push("⚠ review-call whitelist: out-of-scope tags stripped — "+_rvStripped.join(", "));/* #264: loud at the player, not just the console */
   for(_w2i=0;_w2i<_w2Plan.txns.length;_w2i++){
     var _w2t=_w2Plan.txns[_w2i];
@@ -3409,6 +3409,7 @@ function applyMuts(text,opts){
     var _tlM=(R.muts||[]).slice(0,10);
     if((R.muts||[]).length>10)_tlM.push("+"+((R.muts||[]).length-10)+" more");
     var _tlEntry={t:R.turn,tags:_tlNames,m:_tlM};
+    if(R.source&&R.source!=="gm")_tlEntry.src=R.source;/* #481 D6: a ledger move is decidable in the ring; GM entries stay byte-identical */
     if(_rvStripped&&_rvStripped.length)_tlEntry.stripped=_rvStripped.slice(0,10);/* #264: whitelist strips ride the ring — emitted-then-stripped stays decidable */
     var _tlRef=(typeof w2RefusedThisResponse==="function")?w2RefusedThisResponse():[];
     if(_tlRef.length){_tlEntry.refused=_tlRef.slice(0,6);if(_tlRef.length>6)_tlEntry.refused.push("+"+(_tlRef.length-6)+" more");}

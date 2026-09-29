@@ -751,7 +751,7 @@ three chest takes → pack x2 → x4 → x6, row unchanged, each "Ammut took Hem
 <p class="tldr"><b>TLDR:</b> Taking an Iron ring from your own chest, or buying a second salve at the counter, logs "DUPLICATE ITEM". The next turn tells the GM to delete it if it was "the same item re-described".</p>
 <p><span class="k">Fix</span>Ledger plans apply with <code>applyMuts(text, {source:"ledger"})</code>. ITEM_GAINED then skips the duplicate warning and the undefined-item candidate.</p>
 <details><summary>Evidence</summary><p><code>stashTradeApply({take:{"iron ring":1}})</code> gives "DUPLICATE ITEM: player sheet already had uncounted 'Iron ring'…" and sets <code>dupItemPending</code>, so the next notes include "DUPLICATE ITEM GRANT" (api.js:1861-1869).</p></details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1025</td></tr>
 
 <tr id="D7"><td class="n">D7</td><td>
 <p class="ttl">A counter sale worth under half a gold deletes the item and pays nothing <span class="lean low">low</span><span class="lean">ruled</span></p>
