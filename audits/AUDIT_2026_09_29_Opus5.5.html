@@ -1051,7 +1051,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 </ul>
 <p><span class="k">Ruled</span>2026-09-29: forward only. Tracked receipts, such as <code>testRuns/recall_gate_results_t1549.json</code> and the nine <code>*_owner100.md</code> reviews, stay tracked.</p>
 <details><summary>Evidence</summary><p><code>.gitignore</code> ignores <code>*.tnd</code> only. <code>git check-ignore -v testRuns/fixtures/owner_runelords_t2338-2437.json</code> exits 1 (verified by the lead); the file is 195 KB of "the owner's own play". Also exposed: <code>testRuns/probe198/</code> (two full system prompts of about 134 KB each) and 11 memento HTML files, the same class <code>momentos/</code> was ignored for. The docs that believe otherwise: <code>CLAUDE.md:151</code>, <code>dev/tests-226-fixture.js:2-3</code>, <code>dev/sabotage-226-fixture.js:10</code> and commit d425853's message. The same leak class happened once before (d425853 pushed the t2097 transcript).</p></details>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ done 2026-09-29 — ignore rule + TESTRUNS IGNORE CONTRACT, proven by dev/sabotage-481-g1-testruns-ignore.js</td></tr>
 
 <tr id="G2"><td class="n">G2</td><td>
 <p class="ttl">CI checks only the last commit of each push <span class="lean med">medium</span><span class="lean">test gap</span></p>

@@ -17,6 +17,16 @@ audits/AUDIT_FABLE_*.md
 # Personal save files
 *.tnd
 
+# Personal play artifacts and gate logs (#481 G1, owner 2026-09-29, forward only). Fixtures of the
+# owner's own campaigns, full prompts, mementos and logs live here. The docs had said testRuns/ was
+# ignored since the mature-fixture ruling (d425853), but only *.tnd was. The receipts already tracked
+# stay tracked; a new receipt needs an explicit `git add -f`. Pinned by the TESTRUNS IGNORE CONTRACT
+# in dev/run-tests.js.
+testRuns/
+
+# Python bytecode from the audio pipeline scripts (dev/prepare-*.py)
+__pycache__/
+
 # Campaign export folder (File System Access target — saves, renders, narratives written by the
 # game itself). Live play output, never source. Was merely untracked until 2026-07-27, which meant
 # it showed in every `git status` and one stray `git add -A` would have committed it.

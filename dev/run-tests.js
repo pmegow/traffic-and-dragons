@@ -175,6 +175,20 @@ try {
   else console.log("[#405] manual QA header contract OK — " + _qaFiles.length + " dev/qa-*.js scripts declare themselves manual");
 } catch (_qaE) { console.error("MANUAL QA HEADER CONTRACT could not run: " + (_qaE && _qaE.message)); process.exitCode = 1; }
 
+// ── TESTRUNS IGNORE CONTRACT (#481 G1, owner 2026-09-29) ─────────────────────────────────
+// testRuns/ holds the owner's own play: fixtures of real campaigns, full prompts, mementos. The
+// privacy ruling needs it ignored. The docs said it was for a month while only *.tnd was. A missing
+// .git (a plain export) is a LOUD skip, never a pass.
+try {
+  var _tiRoot = _rtPath.join(__dirname, "..");
+  if (!_rtFs.existsSync(_rtPath.join(_tiRoot, ".git"))) console.log("[#481 G1] TESTRUNS IGNORE CONTRACT SKIPPED — no .git here (a plain export); the ignore rule is unverified");
+  else {
+    var _tiR = require("child_process").spawnSync("git", ["check-ignore", "-q", "testRuns/fixtures/probe.json"], { cwd: _tiRoot });
+    if (_tiR.status !== 0) { console.error("TESTRUNS IGNORE CONTRACT BROKEN (#481 G1): testRuns/ is not gitignored — the owner's own play is one `git add` from the repo and the Pages deploy"); process.exitCode = 1; }
+    else console.log("[#481 G1] testRuns ignore contract OK — testRuns/ is gitignored");
+  }
+} catch (_tiE) { console.error("TESTRUNS IGNORE CONTRACT could not run: " + (_tiE && _tiE.message)); process.exitCode = 1; }
+
 // ── REFUSAL COPY CONTRACT (#213, v1.698) ────────────────────────────
 // The two W2 withhold toasts ship to PLAYERS (owner ruling 2026-08-22) and must say why in
 // language a player owns. A SOURCE CONTRACT because the failure is silent: add a refusal reason
