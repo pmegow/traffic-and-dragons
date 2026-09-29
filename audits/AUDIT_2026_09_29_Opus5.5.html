@@ -890,6 +890,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <p class="ttl">A car's own PLAY press during a spoken "pause" replays the last narration <span class="lean low">low</span><span class="lean">race · ruled</span></p>
 <p class="tldr"><b>TLDR:</b> After you say "pause", the car sometimes sends PLAY by itself (after a call or a reconnect). That replays the last narration, while the hold keeps ambience silent.</p>
 <p><span class="k">Fix</span>Ruled 2026-09-29: add a "held" transport state in which a PLAY is ignored; only "resume" or a tap releases the hold (#410). Add a tests-19b group.</p>
+<p><span class="k">Verify</span>Owner 2026-09-29: build a Car Mode CDP driver on <code>dev/cdp-browser.js</code> as this row's verification. It opens the real game in Chrome, enters Car Mode, and fires the actual Media Session actions (play, pause, next, previous) in scripted sequences, for example a call ends and then the car sends PLAY during a spoken pause. It logs the game's transitions. The same driver then serves E9 and the #474 device checks. The standalone CX-5 emulator (<code>C:\Projects\cx5-stereo-emulator</code>) was reviewed and set aside for this: it cannot reach the game tab.</p>
 <details><summary>Evidence</summary><p><code>ui-carmode.js:605-611</code>: <code>_carTransport</code> ignores <code>_carHeld</code>. Repro: after the spoken pause, <code>_carTransport("play")</code> returns "replay" and the hold stays set.</p></details>
 </td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
 
