@@ -697,7 +697,7 @@ fresh stow of a Blasting charge, then undo → pack x5 → x4 → x4, stash row 
 <p><span class="k">Purpose</span>The E9 design says undo "reverses the last placement or take". The E9 test pins only the stash row, and the #6 row notes that the Car Mode listening test was never run.</p>
 <p><span class="k">Test first</span>An undo after a stow returns the item to the pack. An undo two turns later is refused. Sabotage clause: drop the inverse re-add.</p>
 </details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1026</td></tr>
 
 <tr id="D2"><td class="n">D2</td><td>
 <p class="ttl">The chest and the pack disagree on an item's name — a "Hemp rope x2" row is a copy machine <span class="lean med">medium</span><span class="lean">duplication</span></p>
@@ -771,7 +771,7 @@ three chest takes → pack x2 → x4 → x6, row unchanged, each "Ammut took Hem
 <p class="tldr"><b>TLDR:</b> Put something in your house chest; the next time the village refreshes your hero from a newer library copy, the item is back in your pack and still in the chest.</p>
 <p><span class="k">Fix</span>Ruled 2026-09-29: re-apply this village's stash moves made since <code>heroLibraryAt</code> to the refreshed sheet.</p>
 <details><summary>Evidence</summary><p>A HEAD repro: after a placement, <code>villageRefreshFromLibrary</code> → <code>adoptLibraryHero</code> (<code>game.js:1513-1529</code>) leaves the item in both the pack and the chest. Refreshes really do happen mid-campaign: between t205 and t213 your <code>heroLibraryAt</code> moved, with gold +9 and XP +6,300. No duplication was hit this fortnight.</p></details>
-</td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1026</td></tr>
 
 <tr id="D10"><td class="n">D10</td><td>
 <p class="ttl">"Replace from library" keeps the old sheet's owed level-up choices <span class="lean low">low</span><span class="lean">wrong outcome</span></p>

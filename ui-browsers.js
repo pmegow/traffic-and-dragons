@@ -650,7 +650,9 @@ function villageRefreshOnEntry(){
   sa.listCharacterLibrary(function(err,list){
     if(err){showToast("⚠ Could not read the character library for the refresh: "+String(err),6000);return;}
     var r=villageRefreshFromLibrary(list||[]);
-    if(r.refreshed.length){showToast("↻ "+r.refreshed.join(", ")+" refreshed from the library.",6000);if(typeof saveAll==="function")saveAll();
+    if(r.refreshed.length){var rp=r.replay;showToast("↻ "+r.refreshed.join(", ")+" refreshed from the library"+((rp&&rp.applied)?" — "+rp.applied+" stash move(s) re-applied":"")+".",6000);if(typeof saveAll==="function")saveAll();
+      /* #481 D9: what the refresh could NOT re-apply is said, never swallowed */
+      if(rp&&(rp.legacy||rp.missed.length))showToast("⚠ "+(rp.legacy?rp.legacy+" item(s) stowed before the move record existed were not re-applied — check the pack against the chest. ":"")+(rp.missed.length?"Not on the library copy: "+rp.missed.join(", ")+".":""),9000);
       /* #427: the played hero can refresh too — the panels read the sheet, so they re-init like a swap does */
       if(r.hero){if(typeof initAbilities==="function")initAbilities();if(typeof initSpells==="function")initSpells();if(typeof storageAdapter!=="undefined"&&storageAdapter&&storageAdapter.markPortraitDirty)storageAdapter.markPortraitDirty();}
       if(typeof syncUI==="function")syncUI();}

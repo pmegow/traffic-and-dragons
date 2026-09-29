@@ -540,6 +540,7 @@ function migrateWorldState(){
   // the toggle UI is gone, so a legacy explicit-OFF would be permanent and invisible. Clear it.
   // ragEnabled()'s default-ON semantics are untouched; `worldState.ragMemory=false` from the console
   // remains a diagnosis-only escape hatch (cleared again on next load by this line).
+  if(worldState.lastItemMove){delete worldState.lastItemMove;_mig=true;}/* #481 D1: the retired undo pointer — the move record's tail replaces it */
   if(worldState.ragMemory===false){delete worldState.ragMemory;console.info("[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)");_mig=true;}
   /* #63 (v1.304): core memories moved OFF worldState onto the character schema — witnessed-by-all
      (see fileCoreMemory, game.js). The legacy party-shared list is copied to the player and every

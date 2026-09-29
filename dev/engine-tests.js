@@ -26973,4 +26973,121 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return worldState.dupItemPending?true:"an unknown source runs with the GM policy (the alarm stays)";
   });
 
+  section("#481 D9 the village move record");
+  function d9Village(){var h=d2House();worldState.campId="camp_V";worldState.stashMoves=[];delete worldState.stashUndoGrp;delete worldState.stashLegacyCounted;delete worldState.character.stashMarks;return h;}
+  t("#481 D9 a village move is recorded once, a ledger plan is ONE move, and the sheet carries the mark of the moves it reflects",function(){
+    var h=d9Village(),c=worldState.character;c.inventory=["Rope x3","Sihedron ritual spear"];
+    applyMuts("[ITEM_LOST:Sihedron ritual spear][LOCATION_ITEM:Sihedron ritual spear|placed]");
+    var m=worldState.stashMoves;if(m.length!==1)return "one stow, one move: "+JSON.stringify(m);
+    var e=m[0];if(e.name!=="Sihedron ritual spear"||e.units!==1||e.action!=="placed"||e.key!==villageHouseKey("Silas")||e.by!=="Silas"||!e.pack||e.pack.name!=="Sihedron ritual spear"||e.pack.units!==1||typeof e.at!=="number")return "the move names what moved: "+JSON.stringify(e);
+    quiet(function(){stashTradeApply({stow:{"rope":3}});});
+    if(m.length!==2||m[1].units!==3||!m[1].pack||m[1].pack.units!==3)return "a ledger stow of three ropes is ONE move of three: "+JSON.stringify(m);
+    quiet(function(){stashTradeApply({take:{"rope":2}});});
+    if(m.length!==3||m[2].action!=="taken"||m[2].units!==2||!m[2].pack||m[2].pack.units!==2||m[2].by!=="Silas")return "a ledger take of two is ONE move of two: "+JSON.stringify(m[2]);
+    return (c.stashMarks&&c.stashMarks.camp_V===m[2].at)?true:"the hero sheet carries the mark of the latest move: "+JSON.stringify(c.stashMarks);
+  });
+  t("#481 D9 a refresh from a library copy that never saw the village re-applies its moves: a stowed item is not back in the pack, a taken one is not lost",function(){
+    var h=d9Village(),c=worldState.character;worldState.heroLibraryAt=1000;c.inventory=["Sihedron ritual spear","Longsword"];
+    h.items=[{name:"Iron ring",placed:1,taken:false,qty:1,by:"Silas",min:0}];
+    applyMuts("[ITEM_LOST:Sihedron ritual spear][LOCATION_ITEM:Sihedron ritual spear|placed]");
+    quiet(function(){stashTradeApply({take:{"iron ring":1}});});
+    var lib=JSON.parse(JSON.stringify(c));lib.inventory=["Sihedron ritual spear","Longsword","Healing potion"];delete lib.stashMarks;
+    var r=quiet(function(){return villageRefreshFromLibrary([{character:lib,updatedAt:Date.now()+5000}]);}).r,inv=worldState.character.inventory.join("|");
+    if(r.hero!=="Silas")return "the hero refreshed: "+JSON.stringify(r);
+    if(/Sihedron/.test(inv))return "the spear stays in the chest, not back in the pack: "+inv;
+    if(!/Iron ring/.test(inv)||!/Healing potion/.test(inv))return "the ring taken from the chest stays in the pack, and the library copy brings its new potion: "+inv;
+    if(!r.replay||r.replay.applied!==2)return "the refresh reports what it re-applied: "+JSON.stringify(r.replay);
+    var ms=worldState.stashMoves;return (worldState.character.stashMarks&&worldState.character.stashMarks.camp_V===ms[ms.length-1].at)?true:"the refreshed sheet now reflects every move: "+JSON.stringify(worldState.character.stashMarks);
+  });
+  t("#481 D9 a refresh from the village own export re-applies nothing it already holds (no second charge lost)",function(){
+    var h=d9Village(),c=worldState.character;worldState.heroLibraryAt=1000;c.inventory=["Blasting charge x5"];
+    quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});
+    if(c.inventory.join()!=="Blasting charge x4")return "the stow: "+JSON.stringify(c.inventory);
+    var lib=portableSheet(c);
+    var r=quiet(function(){return villageRefreshFromLibrary([{character:lib,updatedAt:Date.now()+5000}]);}).r;
+    if(r.hero!=="Silas")return "refreshed: "+JSON.stringify(r);
+    return worldState.character.inventory.join()==="Blasting charge x4"?true:"a copy that already reflects the stow must not lose a second charge: "+JSON.stringify(worldState.character.inventory);
+  });
+  t("#481 D9 stash rows stowed before the record existed are not re-applied; they are counted once, loudly",function(){
+    var h=d9Village(),c=worldState.character;worldState.heroLibraryAt=1000;
+    h.items=[{name:"Old boots",placed:3,taken:false,qty:2,by:"Silas",min:0},{name:"Lantern",placed:3,taken:false,qty:1,by:"Frizwick",min:0}];
+    var lib=JSON.parse(JSON.stringify(c));
+    var q=quiet(function(){return villageRefreshFromLibrary([{character:lib,updatedAt:5000}]);});
+    if(!q.r.replay||q.r.replay.legacy!==2)return "two legacy units by the hero are counted: "+JSON.stringify(q.r.replay);
+    if(!q.warns.some(function(x){return /stowed before the move record/.test(x);}))return "the count is loud: "+JSON.stringify(q.warns);
+    lib=JSON.parse(JSON.stringify(worldState.character));
+    var q2=quiet(function(){return villageRefreshFromLibrary([{character:lib,updatedAt:6000}]);});
+    return (q2.r.replay&&q2.r.replay.legacy)?"counted once: "+JSON.stringify(q2.r.replay):true;
+  });
+  t("#481 D9 the record is capped, and evicting a move a refresh would need is loud",function(){
+    var h=d9Village(),i;for(i=0;i<STASH_MOVES_CAP;i++)worldState.stashMoves.push({name:"Pebble",units:1,action:"placed",key:villageHouseKey("Silas"),by:"Silas",pack:{name:"Pebble",units:1},at:1+i,turn:1,grp:i+1});
+    var q=quiet(function(){return applyMuts("[LOCATION_ITEM:Lantern|placed]");});
+    if(worldState.stashMoves.length!==STASH_MOVES_CAP)return "the ring stays at its cap: "+worldState.stashMoves.length;
+    return q.warns.some(function(x){return /move record full/.test(x)&&/Pebble/.test(x)&&/can no longer re-apply/.test(x);})?true:"the eviction names what a refresh loses: "+JSON.stringify(q.warns);
+  });
+  t("#481 D9 the adventure records its moves without a clock stamp or a sheet mark (replays stay deterministic)",function(){
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map={nodes:{"Sandpoint":{firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null}},edges:[],lastArrivalFrom:null};
+    worldState.character.inventory=["Lantern"];worldState.stashMoves=[];
+    applyMuts("[ITEM_LOST:Lantern][LOCATION_ITEM:Lantern|placed]");
+    var e=(worldState.stashMoves||[])[0];
+    if(!e||e.action!=="placed"||!e.pack||e.pack.units!==1)return "the adventure records the move for the undo: "+JSON.stringify(worldState.stashMoves);
+    return (("at" in e)||worldState.character.stashMarks)?"no clock stamp and no sheet mark outside the village: "+JSON.stringify(e):true;
+  });
+
+  section("#481 D1 the Car Mode undo");
+  t("#481 D1 never mind after a stow puts the item back in the pack and off the chest, through the one parser",function(){
+    var h=d9Village(),c=worldState.character;c.inventory=["Sihedron ritual spear","Blasting charge x5"];
+    applyMuts("[ITEM_LOST:Sihedron ritual spear][LOCATION_ITEM:Sihedron ritual spear|placed]");
+    var u=quiet(function(){return undoLastItemMove();}).r;
+    if(!u.ok)return "the undo lands: "+JSON.stringify(u);
+    if(c.inventory.indexOf("Sihedron ritual spear")<0)return "the spear is back with you: "+JSON.stringify(c.inventory);
+    var row=h.items.filter(function(it){return stashKey(it.name)==="sihedron ritual spear";})[0];
+    if(row&&!(row.taken||row.qty===0))return "and no longer in the chest: "+JSON.stringify(row);
+    if(worldState.stashMoves.length)return "the undone move leaves the record (a refresh must not replay it): "+JSON.stringify(worldState.stashMoves);
+    var e=worldState.tagLog[worldState.tagLog.length-1];if(e.src!=="undo")return "the inverse rides the log as an undo: "+JSON.stringify(e);
+    quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});
+    var u2=quiet(function(){return undoLastItemMove();}).r;
+    return (u2.ok&&c.inventory.indexOf("Blasting charge x5")>=0)?true:"a ledger stow undoes too, no charge destroyed: "+JSON.stringify(u2)+" "+JSON.stringify(c.inventory);
+  });
+  t("#481 D1 never mind after a chest take puts it back in the chest; a ledger plan of three is ONE move",function(){
+    var h=d9Village(),c=worldState.character;c.inventory=[];h.items=[{name:"Rope",placed:1,taken:false,qty:3,by:"Silas",min:0}];
+    quiet(function(){stashTradeApply({take:{"rope":3}});});
+    if(c.inventory.join()!=="Rope x3")return "the take: "+JSON.stringify(c.inventory);
+    var u=quiet(function(){return undoLastItemMove();}).r;
+    return (u.ok&&u.action==="taken"&&c.inventory.length===0&&h.items[0].qty===3&&!h.items[0].taken)?true:"all three ropes go back in ONE undo: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(h.items[0]);
+  });
+  t("#481 D1 the undo refuses mid-turn, undoes once, and expires with the next GM turn",function(){
+    var h=d9Village(),c=worldState.character;c.inventory=["Lantern"];
+    applyMuts("[ITEM_LOST:Lantern][LOCATION_ITEM:Lantern|placed]");
+    busy=true;var ub;try{ub=undoLastItemMove();}finally{busy=false;}
+    if(ub.ok||!/wait for the turn to finish/.test(ub.reason))return "a turn in flight refuses the undo: "+JSON.stringify(ub);
+    var u=quiet(function(){return undoLastItemMove();}).r;if(!u.ok)return "the undo lands: "+JSON.stringify(u);
+    if(undoLastItemMove().ok)return "an undo undoes once";
+    applyMuts("[ITEM_LOST:Lantern][LOCATION_ITEM:Lantern|placed]");worldState.turn++;applyMuts("The rain keeps on.");
+    var u4=undoLastItemMove();return u4.ok?"a GM turn later there is nothing to undo: "+JSON.stringify(u4):true;
+  });
+  t("#481 D1 a placement the pack never paid for undoes on the row alone; the retired pointer of an old save drives nothing",function(){
+    var h=d9Village(),c=worldState.character;c.inventory=["Longsword"];
+    applyMuts("[LOCATION_ITEM:Old boots|placed]");
+    var u=quiet(function(){return undoLastItemMove();}).r;
+    if(!u.ok||c.inventory.join()!=="Longsword")return "the pack is untouched: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory);
+    var row=h.items.filter(function(it){return it.name==="Old boots";})[0];if(row&&!(row.taken||row.qty===0))return "the boots leave the chest: "+JSON.stringify(row);
+    worldState.lastItemMove={name:"Sihedron ritual spear",action:"placed",key:villageHouseKey("Silas"),turn:86};
+    var u2=undoLastItemMove();return u2.ok?"the retired pointer must not drive an undo: "+JSON.stringify(u2):true;
+  });
+  t("#481 D1 an undo whose other half is gone refuses loudly and moves nothing",function(){
+    var h=d9Village(),c=worldState.character;c.inventory=["Lantern"];
+    applyMuts("[ITEM_LOST:Lantern][LOCATION_ITEM:Lantern|placed]");
+    h.items[0].qty=0;h.items[0].taken=true;
+    var u=quiet(function(){return undoLastItemMove();}).r;
+    return (!u.ok&&/no longer/.test(u.reason)&&c.inventory.length===0)?true:"the pack must not mint a lantern the chest no longer holds: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory);
+  });
+  t("#481 D1 a stow into a sibling place undoes from where you stand (the Village Hall core)",function(){
+    var h=d9Village(),c=worldState.character;worldState.world.sublocation="the tavern";c.inventory=["Tomb-iron core"];
+    applyMuts("[ITEM_LOST:Tomb-iron core][LOCATION_ITEM:Tomb-iron core|placed|Village Hall]");
+    var hall=memory.map.nodes["The Village|the Village Hall"];if(!hall.items.length)return "the core lands in the hall: "+JSON.stringify(hall.items);
+    var u=quiet(function(){return undoLastItemMove();}).r;
+    return (u.ok&&c.inventory.join()==="Tomb-iron core"&&(hall.items[0].taken||hall.items[0].qty===0))?true:"the core comes back from the hall: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(hall.items);
+  });
+
 }

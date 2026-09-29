@@ -1483,6 +1483,7 @@ function adoptLibraryHero(c,at){
   hero.portraitOffset=hero.portraitOffset||worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};
   if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(hero);
   worldState.character=hero;worldState.heroLibraryAt=(typeof at==="number")?at:null;
+  adoptLibraryHero.lastReplay=(typeof stashMovesReplay==="function")?stashMovesReplay(hero,c&&c.stashMarks?c.stashMarks[stashMarkKey()]:null):null;/* #481 D9 */
   return hero;
 }
 function adoptLibraryCompanion(n,c,at){
@@ -1493,6 +1494,7 @@ function adoptLibraryCompanion(n,c,at){
   sheet.portraitOffset=sheet.portraitOffset||(n.charSheet&&n.charSheet.portraitOffset)||n.portraitOffset||null;
   n.charSheet=sheet;n.libraryAt=(typeof at==="number")?at:null;n.pronouns=pronounsForGender(sheet.gender);
   if(sheet.portraitOffset)n.portraitOffset=JSON.parse(JSON.stringify(sheet.portraitOffset));/* §19: the wrapper's copy is what display reads */
+  adoptLibraryCompanion.lastReplay=(typeof stashMovesReplay==="function")?stashMovesReplay(sheet,c&&c.stashMarks?c.stashMarks[stashMarkKey()]:null):null;/* #481 D9: the household's takes too */
   return sheet;
 }
 /* #428 (owner ask + rulings 2026-09-21): "Replace from library" — the explicit, confirmed WHOLE-sheet pull for the hero
@@ -1519,7 +1521,7 @@ function villageRefreshFromLibrary(entries){
          (level, gold, gear, memories) and re-stamps; older, equal or undated is kept. Village-only changes since the
          export are lost by design (village saves are disposable). The v10 arrays are ensured as startGame does. */
       if(at===null||(typeof worldState.heroLibraryAt==="number"&&at<=worldState.heroLibraryAt)){out.kept.push(nm);continue;}
-      adoptLibraryHero(c,at);out.hero=nm;out.refreshed.push(nm);continue;}/* #428: the one adopter the sheet's Replace uses too */
+      adoptLibraryHero(c,at);out.hero=nm;out.refreshed.push(nm);out.replay=adoptLibraryHero.lastReplay;continue;}/* #428: the one adopter the sheet's Replace uses too */
     var n=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(!n){out.unknown.push(nm);continue;}
     if(!n.resident||n.partyMember){out.kept.push(nm);continue;}
     if(at===null||(typeof n.libraryAt==="number"&&at<=n.libraryAt)){out.kept.push(nm);continue;}
@@ -1661,18 +1663,70 @@ function stampCampaignFates(text){
   stamp(worldState.character);var comps=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],j;for(j=0;j<comps.length;j++)stamp(comps[j].charSheet||comps[j]);
   return n;
 }
-/* #6 E9: Car Mode's spoken undo — reverses the LAST item move (a placement or a take) once. Pure over worldState.lastItemMove
-   (written by the LOCATION_ITEM handler); reports a reason when there is nothing to undo. */
+/* #6 E9 → #481 D1 (audit 2026-09-29, Fable-approved): Car Mode's spoken undo reverses the LAST group of item moves — the tail
+   of the move record (stashMoves, memory.js) while the pointer stashUndoGrp still names it; every applyMuts call sets or
+   clears the pointer, so the next GM turn, a trade or the undo itself ends it. The inverse derives from the halves that
+   landed and applies through applyMuts with the undo source (no auto-take; the hand may take from a stash), so both halves
+   move on one path with receipts. Every half is checked first; one that is no longer there refuses the whole undo, loudly,
+   before anything moves. Busy-gated like every other state-mutating entry point. */
+function _stashUndoQty(n){return n>1?" x"+n:"";}
+function _stashUndoInverse(e,curKey,curWorld){
+  var nodes=(memory&&memory.map&&memory.map.nodes)||{},node=nodes[e.key];if(!node)return {ok:false,reason:e.key+" is no longer on the map"};
+  var R2=function(k){return (typeof locResolve==="function")?locResolve(k):k;},op="",leaf=String(e.key).split("|").pop();
+  if(e.key!==curKey){if(!node.parent||R2(node.parent)!==curWorld)return {ok:false,reason:"you are no longer where "+e.name+" was moved"};op="|"+leaf;}
+  var q=!!(typeof kindDef==="function"&&kindDef().stashQuantities),sk=(typeof stashKey==="function")?stashKey(e.name):String(e.name).toLowerCase(),i,row=null;
+  for(i=0;i<node.items.length;i++)if(((typeof stashKey==="function")?stashKey(node.items[i].name):String(node.items[i].name).toLowerCase())===sk){row=node.items[i];break;}
+  var hero=worldState.character&&worldState.character.name,t="",cnt=q?_stashUndoQty(e.units):"";
+  if(e.action==="placed"){
+    var held=row&&!row.taken&&(!q||(row.qty||1)>=e.units);if(!held)return {ok:false,reason:e.name+" is no longer in "+leaf};
+    if(e.pack)t+=(e.by&&e.by!==hero)?"[COMPANION_ITEM_GAINED:"+e.by+"|"+e.pack.name+_stashUndoQty(e.pack.units)+"]":"[ITEM_GAINED:"+e.pack.name+_stashUndoQty(e.pack.units)+"]";
+    t+="[LOCATION_ITEM:"+e.name+cnt+"|taken"+op+"]";
+  }else{
+    if(!row)return {ok:false,reason:e.name+" is no longer on record in "+leaf};
+    if(e.pack){var sh=(typeof stashActorSheet==="function")?stashActorSheet(e.by||hero):null,inv=(sh&&sh.inventory)||[],j,have=0,pk=(typeof stashKey==="function")?stashKey(e.pack.name):e.pack.name;
+      for(j=0;j<inv.length;j++)if(((typeof stashKey==="function")?stashKey(_invBase(inv[j])):_invBase(inv[j]))===pk)have+=_invCount(inv[j]);
+      if(have<e.pack.units)return {ok:false,reason:e.pack.name+" is no longer in "+((e.by&&e.by!==hero)?e.by+"'s":"your")+" pack"};
+      t+=(e.by&&e.by!==hero)?"[COMPANION_ITEM_LOST:"+e.by+"|"+e.pack.name+_stashUndoQty(e.pack.units)+"]":"[ITEM_LOST:"+e.pack.name+_stashUndoQty(e.pack.units)+"]";}
+    t+="[LOCATION_ITEM:"+e.name+cnt+"|placed"+op+"]";
+  }
+  return {ok:true,tags:t};
+}
 function undoLastItemMove(){
-  var mv=(typeof worldState!=="undefined"&&worldState)?worldState.lastItemMove:null;if(!mv)return {ok:false,reason:"nothing to undo"};
-  var node=(typeof memory!=="undefined"&&memory&&memory.map)?memory.map.nodes[mv.key]:null;if(!node)return {ok:false,reason:"the place is no longer on the map"};
-  var i,row=null;for(i=0;i<node.items.length;i++)if(String(node.items[i].name).toLowerCase()===String(mv.name).toLowerCase()){row=node.items[i];break;}
-  if(!row)return {ok:false,reason:mv.name+" is not on record there"};
-  var q=!!(typeof kindDef==="function"&&kindDef().stashQuantities);
-  if(mv.action==="placed"){if(q){if((row.qty||1)>1)row.qty-=1;else{row.taken=true;row.qty=0;}}else row.taken=true;}
-  else{row.taken=false;if(q)row.qty=(row.qty||0)+1;}
-  delete worldState.lastItemMove;
-  return {ok:true,name:mv.name,action:mv.action,key:mv.key};
+  if(typeof busy!=="undefined"&&busy)return {ok:false,reason:"wait for the turn to finish"};
+  if(typeof worldState==="undefined"||!worldState)return {ok:false,reason:"no campaign"};
+  var ring=worldState.stashMoves||[],g=worldState.stashUndoGrp,tail=ring[ring.length-1],i;
+  if(g==null||!tail||tail.grp!==g)return {ok:false,reason:"nothing to undo"};
+  var grp=[];for(i=ring.length-1;i>=0&&ring[i].grp===g;i--)grp.push(ring[i]);/* newest first — undone in reverse */
+  var cur=currentNodeKey(),curKey=(typeof locResolve==="function")?locResolve(cur):cur,curWorld=(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location;
+  var text="";for(i=0;i<grp.length;i++){var inv=_stashUndoInverse(grp[i],curKey,curWorld);if(!inv.ok){if(typeof console!=="undefined")console.warn("[stash] undo refused — "+inv.reason+"; nothing moved (#481 D1)");return {ok:false,reason:inv.reason};}text+=inv.tags;}
+  ring.splice(ring.length-grp.length,grp.length);/* the undone moves leave the record — a refresh must not re-apply them */
+  var R=applyMuts(text,{source:"undo",deferSave:true}),bad=((R&&R.muts)||[]).filter(function(m){return /^Stash refused|^⚠/.test(String(m));});
+  if(bad.length){if(typeof console!=="undefined")console.error("[stash] undo partly refused after its checks passed — "+bad.join("; ")+" (#481 D1)");return {ok:false,reason:"the undo was partly refused: "+bad[0]};}
+  return {ok:true,name:grp.map(function(e){return e.name;}).reverse().join(", "),action:tail.action,key:tail.key,units:tail.units};
+}
+/* #481 D9 (owner ruling 2026-09-29, Fable-approved): a library refresh replaces a sheet wholesale, so the moves this campaign
+   recorded since the copy was made are re-applied to the refreshed sheet — a stowed item is not back in the pack, a taken
+   one is not lost. Which moves a copy already holds is read from the COPY's own mark (stashMarks[campId], stamped on the live
+   sheet at every clocked move, so every export carries it): a copy exported from here holds its moves up to the mark; a copy
+   with no mark never saw this campaign, so every recorded move by that actor is re-applied. (The mark refines the approval's
+   "at > the copy's updatedAt": a copy made elsewhere after a village move is newer yet never saw it.) Moves made before the
+   record existed cannot be re-applied — counted once per actor, loudly. Returns {applied, missed, legacy}. */
+function stashMovesReplay(sheet,copyMark){
+  var out={applied:0,missed:[],legacy:0};if(!sheet||typeof worldState==="undefined"||!worldState||typeof kindDef!=="function"||!kindDef().populateFromLibrary)return out;
+  if(!sheet.inventory)sheet.inventory=[];
+  var ring=worldState.stashMoves||[],since=(typeof copyMark==="number")?copyMark:null,latest=null,firstTurn=null,i,j;
+  for(i=0;i<ring.length;i++){var e=ring[i];if(!e.at||e.by!==sheet.name)continue;if(firstTurn===null)firstTurn=e.turn;if(latest===null||e.at>latest)latest=e.at;
+    if(!e.pack||(since!==null&&e.at<=since))continue;
+    if(e.action==="placed"){for(j=0;j<e.pack.units;j++){if(removeInventoryItem(sheet.inventory,e.pack.name))out.applied++;else{out.missed.push(e.pack.name);break;}}}
+    else{for(j=0;j<e.pack.units;j++)addInventoryItem(sheet.inventory,e.pack.name);out.applied+=e.pack.units;}}
+  if(latest!==null){if(!sheet.stashMarks)sheet.stashMarks={};sheet.stashMarks[stashMarkKey()]=latest;}
+  if(!worldState.stashLegacyCounted)worldState.stashLegacyCounted={};
+  if(!worldState.stashLegacyCounted[sheet.name]){worldState.stashLegacyCounted[sheet.name]=true;
+    var nodes=(memory&&memory.map&&memory.map.nodes)||{},k;for(k in nodes){var its=nodes[k].items||[];for(j=0;j<its.length;j++){var it=its[j];
+      if(it.by===sheet.name&&!it.taken&&it.qty!==0&&(firstTurn===null||(it.placed||0)<firstTurn))out.legacy+=(it.qty||1);}}
+    if(out.legacy&&typeof console!=="undefined")console.warn("[stash] "+out.legacy+" item unit(s) "+sheet.name+" stowed before the move record existed were not re-applied to the refreshed sheet — the pack may hold copies of them (#481 D9)");}
+  if(out.missed.length&&typeof console!=="undefined")console.warn("[stash] the refresh could not re-apply every stow — not on the library copy: "+out.missed.join(", ")+" (#481 D9)");
+  return out;
 }
 /* #6 THE VILLAGE — phase A: the hero swap, PURE. Promotes a roster character with a sheet to the hero slot and demotes
    the old hero where the kind says (kindDef().swapDemotesTo): "party" = the adventure shape that shipped (a companion

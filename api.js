@@ -3392,6 +3392,9 @@ function applyMuts(text,opts){
       R.muts.push("Identity conflict for "+_w2t.meta.subject+" resolved by committed canon claim "+_w2t.meta.id);
     }
   }
+  /* #481 D1: the undo pointer names the tail group of the move record, and every applyMuts call sets it (this call recorded
+     moves) or clears it — a GM turn, a trade, a sync or the undo itself ends the chance to undo what came before. */
+  if(R.moveGrp)worldState.stashUndoGrp=R.moveGrp;else delete worldState.stashUndoGrp;
   __tagUnknownScan(text);
   __mpBareTagScan(text);
   // #137 provenance ring — the record the t1467 forensics lacked: per-response tag names +

@@ -627,9 +627,10 @@ function fileLocationItem(name,action,turn,place,room){
       if(idx>=0){var row=items[idx];if(row.taken||row.qty===0){row.taken=false;row.qty=_sq.n;}else row.qty=(row.qty||1)+_sq.n;row.placed=turn;row.by=hero;row.min=now;if(roomTxt)row.room=roomTxt;res={ok:true,key:key,qty:row.qty};}/* #481 D2: the tag's count */
       else{var nr={name:name,placed:turn,taken:false,qty:_sq.n,by:hero,min:now};if(roomTxt)nr.room=roomTxt;items.push(nr);res={ok:true,key:key,qty:_sq.n};}
     }else{
+      var _was=idx>=0&&!items[idx].taken;/* #481 D1: a toggle row already lying here moves nothing — the record must not claim a move */
       if(idx>=0){items[idx].taken=false;if(roomTxt)items[idx].room=roomTxt;} // returned — toggle back
       else{var nr2={name:name,placed:turn,taken:false};if(roomTxt)nr2.room=roomTxt;items.push(nr2);}
-      res={ok:true,key:key};
+      res={ok:true,key:key};if(_was)res.noop=true;
     }
     if(roomWhy)res.roomRefused=roomWhy;
     return res;
@@ -637,9 +638,39 @@ function fileLocationItem(name,action,turn,place,room){
   if(action==="taken"){
     if(idx<0)return {ok:false,reason:"not on record here",key:key};
     if(qtyMode){var r2=items[idx],_tn=Math.min(_sq.n,r2.qty||1);r2.qty=(r2.qty||1)-_tn;if(r2.qty<=0){r2.taken=true;r2.qty=0;}return {ok:true,key:key,qty:r2.qty,n:_tn};}/* #481 D2: a counted take moves n units */
+    if(items[idx].taken)return {ok:true,key:key,noop:true};/* #481 D1: already gone — nothing moved */
     items[idx].taken=true;return {ok:true,key:key};
   }
   return {ok:false,reason:"unknown action",key:key};
+}
+/* #481 D9 + D1 (audit 2026-09-29, Fable-approved): THE item-move record — one ring, worldState.stashMoves, of what actually
+   moved between a pack and a place: {name, units, action, key, by, pack:{name,units}|null, turn, grp[, at]}. Written by
+   LOCATION_ITEM and the auto-take path (a source whose policy records; never the undo). One applyMuts call is ONE group,
+   and units of one item in a group fold into one entry (a ledger plan of N units is ONE move). Two consumers: the Car Mode
+   undo reverses the tail group (D1), and a library refresh re-applies the moves a library copy never saw (D9). Only where
+   the kind populates from the library does an entry carry the wall clock `at`, and the actor's sheet the mark
+   stashMarks[campId] of the latest move it reflects — so any export of that sheet says which moves it already holds.
+   Capped; evicting a clocked entry is loud (a refresh from a copy that never saw it can no longer re-apply it). */
+var STASH_MOVES_CAP=200;
+function stashMarkKey(){return (worldState&&worldState.campId)||"local";}
+function stashActorSheet(name){
+  if(!worldState||!name)return null;if(worldState.character&&worldState.character.name===name)return worldState.character;
+  var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;return (n&&n.charSheet)||null;
+}
+function stashMoveRecord(R,mv){
+  if(!worldState||!R||!mv)return null;
+  var ring=worldState.stashMoves||(worldState.stashMoves=[]),tail=ring[ring.length-1],pk=mv.pack||null,by=mv.by||null;
+  if(!R.moveGrp)R.moveGrp=(tail?(tail.grp||0):0)+1;
+  var e=null;
+  if(tail&&tail.grp===R.moveGrp&&tail.name===mv.name&&tail.action===mv.action&&tail.key===mv.key&&tail.by===by&&(!tail.pack)===(!pk)&&(!pk||tail.pack.name===pk.name)){
+    e=tail;e.units+=mv.units;if(pk)e.pack.units+=pk.units;}
+  else{e={name:mv.name,units:mv.units,action:mv.action,key:mv.key,by:by,pack:pk?{name:pk.name,units:pk.units}:null,turn:R.turn,grp:R.moveGrp};
+    if(typeof kindDef==="function"&&kindDef().populateFromLibrary)e.at=Date.now();
+    ring.push(e);}
+  if(e.at&&by){var sh=stashActorSheet(by);if(sh){if(!sh.stashMarks)sh.stashMarks={};sh.stashMarks[stashMarkKey()]=e.at;}}
+  while(ring.length>STASH_MOVES_CAP){var ev=ring.shift(),msg="[stash] move record full ("+STASH_MOVES_CAP+") — evicted "+ev.action+" "+ev.name+" x"+ev.units+" at "+ev.key+" (t"+ev.turn+")";
+    if(typeof console!=="undefined"){if(ev.at)console.warn(msg+"; a library refresh from a copy that never saw it can no longer re-apply it (#481 D9)");else console.info(msg);}}
+  return e;
 }
 /* #6 E5: the auto-take path is GATED in the village — a house's stash releases an item only to its owner; from another
    resident's house the stash keeps it and the caller says whose house it is. Returns null (nothing matched), {taken},
@@ -689,8 +720,8 @@ function autoTakeLocationItem(itemName,actor,units){
   var _tk=(typeof stashKey==="function")?stashKey(itemName):String(itemName).toLowerCase(),_un=Math.max(1,units|0);/* #481 D2: one identity; a take moves n units */
   for(i=0;i<node.items.length;i++){var it=node.items[i];if(((typeof stashKey==="function")?stashKey(it.name):it.name.toLowerCase())!==_tk||it.taken||it.qty===0)continue;
     if(qtyMode&&node.owner&&!stashHandAllowed(node,actor))return {kept:true,owner:node.owner,name:it.name};/* #481 A3 */
-    if(qtyMode){var _got=Math.min(_un,it.qty||1);it.qty=(it.qty||1)-_got;if(it.qty<=0){it.taken=true;it.qty=0;}return {taken:true,name:it.name,n:_got};}
-    it.taken=true;return {taken:true,name:it.name};}
+    if(qtyMode){var _got=Math.min(_un,it.qty||1);it.qty=(it.qty||1)-_got;if(it.qty<=0){it.taken=true;it.qty=0;}return {taken:true,name:it.name,n:_got,key:key};}
+    it.taken=true;return {taken:true,name:it.name,key:key};}/* #481 D9/D1: the node rides the result, for the move record */
   return null;
 }
 /* ═══ #194: the presence split — mapNpcLocation is DELETED, its two conflated jobs separated ═══

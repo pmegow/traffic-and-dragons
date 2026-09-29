@@ -7,10 +7,10 @@ var CMD = ["node", ["dev/run-tests.js", "#481 D6"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 prove("tag_table.js", [
   { label: "the ledger policy raises the duplicate alarm again",
-    find: "  ledger:{dupAlarm:false,defineAsk:false}\n", replace: "  ledger:{dupAlarm:true,defineAsk:false}\n",
+    find: "  ledger:{dupAlarm:false,defineAsk:false,autoTake:true,handTake:false,record:true},\n", replace: "  ledger:{dupAlarm:true,defineAsk:false,autoTake:true,handTake:false,record:true},\n",
     mustFail: "no duplicate grant" },
   { label: "the ledger policy asks the GM to define the item again",
-    find: "  ledger:{dupAlarm:false,defineAsk:false}\n", replace: "  ledger:{dupAlarm:false,defineAsk:true}\n",
+    find: "  ledger:{dupAlarm:false,defineAsk:false,autoTake:true,handTake:false,record:true},\n", replace: "  ledger:{dupAlarm:false,defineAsk:true,autoTake:true,handTake:false,record:true},\n",
     mustFail: "asks the GM to define nothing" },
   { label: "the hero's grant ignores the policy",
     find: "if(mutPolicy(R).dupAlarm)duplicateItemGrantWarning(worldState.character.inventory,", replace: "duplicateItemGrantWarning(worldState.character.inventory,",
