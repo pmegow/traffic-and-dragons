@@ -198,7 +198,7 @@ function csSheetSections(c,invOwner,portable){
   if(c.storyBeats&&c.storyBeats.length){
     var _sbBound=(typeof priorBeatBoundary==="function")?priorBeatBoundary(c.storyBeats,worldState&&worldState.turn):0;
     for(i=c.storyBeats.length-1;i>=0;i--){var _sb=c.storyBeats[i],_sbLbl;
-      if(_sb.camp&&worldState&&_sb.camp!==worldState.campName)_sbLbl=escHtml(_sb.camp);
+      if(_sb.camp&&worldState&&!campIsCurrent(_sb))_sbLbl=escHtml(_sb.camp);/* #481 C8: by id, not display name */
       else if(!_sb.camp&&i<_sbBound)_sbLbl="Earlier adventure";
       else _sbLbl="Turn "+_sb.turn;
       beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">'+_sbLbl+'</span>'+escHtml(_sb.text)+'</div>';}}/* GM-tag text (#22/UA18) */
@@ -206,7 +206,7 @@ function csSheetSections(c,invOwner,portable){
   // own carried history: companions display theirs too, and an imported character keeps moments
   // from earlier adventures — labeled with the campaign name instead of a meaningless turn number.
   var cmHtml="",_cmList=c.coreMemories||[];
-  if(_cmList.length){for(i=_cmList.length-1;i>=0;i--){var _cmLbl=(_cmList[i].camp&&worldState&&_cmList[i].camp!==worldState.campName)?escHtml(_cmList[i].camp):"Turn "+_cmList[i].turn;cmHtml+='<div class="cs-beat"><span class="cs-beat-turn">'+_cmLbl+'</span>'+escHtml(_cmList[i].text)+'</div>';}}
+  if(_cmList.length){for(i=_cmList.length-1;i>=0;i--){var _cmLbl=(_cmList[i].camp&&worldState&&!campIsCurrent(_cmList[i]))?escHtml(_cmList[i].camp):"Turn "+_cmList[i].turn;cmHtml+='<div class="cs-beat"><span class="cs-beat-turn">'+_cmLbl+'</span>'+escHtml(_cmList[i].text)+'</div>';}}
   var abilHtml="";
   if(c.abilities&&c.abilities.length){for(i=0;i<c.abilities.length;i++){var _abN=c.abilities[i].nm,_abCanon=(typeof capabilityLookup==="function")&&capabilityLookup(_abN);var _abNm=_abCanon?'<button type="button" class="cs-abil-nm cs-cap" data-cap="'+escHtml(_abN)+'" onclick="showCapabilityCard(this.dataset.cap)" title="Read ability details" style="font-family:inherit;text-align:left;background:none;border:0;border-bottom:1px dotted var(--acc);padding:6px 0;min-height:36px;max-width:100%;overflow-wrap:anywhere;cursor:pointer;">'+escHtml(_abN)+'</button>':'<span class="cs-abil-nm" style="overflow-wrap:anywhere;">'+escHtml(_abN)+'</span>';abilHtml+='<div class="cs-abil">'+_abNm+'<span class="cs-abil-ds" style="font-size:12px;color:var(--t1);overflow-wrap:anywhere;">'+escHtml(c.abilities[i].ds||"")+'</span></div>';}}else abilHtml='<span class="cs-none">None yet</span>';
   var spellHtml="";

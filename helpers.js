@@ -258,6 +258,37 @@ function companionGrow(cs,oldFlaw,newFlaw,turn){
    path REFUSES a paperwork purpose (the #372 label list). Retired lines archive on the sheet (P12 — nothing vanishes)
    and travel with it. The hero's purpose is the player's and never passes through here. */
 var MOTIVATION_SETTLED_RE=/^\s*(settled|fulfilled|done|closed|abandoned|outgrown)\b\s*[:—\-]?\s*/i;
+/* #481 C8 (audit 2026-09-29, Fable-approved): a campaign stamp is the display name (camp) AND the id (campId). Every
+   reader used to compare display names, so renaming a campaign turned its own moments into "an earlier adventure"
+   (fae t89). ONE stamper and ONE comparator. campStampOn(obj[, name]) stamps the current campaign; an explicit name
+   keeps that name and carries the id only when it IS the current campaign's name. campIsCurrent(rec) compares by id
+   when both sides carry one, else by name. An unstamped record counts as this campaign's (the long-standing convention).
+   campRestamp is the rename's re-stamp for name-only legacy entries; an already-renamed legacy save is not repaired. */
+function campStampOn(obj,name){
+  var ws=(typeof worldState!=="undefined"&&worldState)?worldState:null,cur=String((ws&&ws.campName)||"");
+  obj.camp=(name!=null)?String(name):cur;
+  if(ws&&ws.campId&&obj.camp===cur)obj.campId=ws.campId;
+  return obj;
+}
+function campIsCurrent(rec){
+  if(!rec)return true;
+  var ws=(typeof worldState!=="undefined"&&worldState)?worldState:null;
+  if(rec.campId&&ws&&ws.campId)return rec.campId===ws.campId;
+  if(!rec.camp)return true;
+  if(!rec.campId&&/^camp_\d/.test(rec.camp))return !!(ws&&rec.camp===ws.campId);/* a legacy stamp that holds the id itself */
+  return rec.camp===String((ws&&ws.campName)||"");
+}
+function campRestamp(ws,oldName,newName,id){
+  if(!ws)return 0;
+  var n=0,sheets=[ws.character],i;
+  for(i=0;i<(ws.npcs||[]).length;i++)if(ws.npcs[i]&&ws.npcs[i].charSheet)sheets.push(ws.npcs[i].charSheet);
+  sheets.forEach(function(cs){if(!cs)return;["coreMemories","storyBeats","motivationHistory"].forEach(function(f){(cs[f]||[]).forEach(function(r){
+    if(!r)return;
+    if(r.campId&&id&&r.campId===id){if(r.camp!==newName){r.camp=newName;n++;}}
+    else if(!r.campId&&oldName&&r.camp===oldName){r.camp=newName;if(id)r.campId=id;n++;}
+  });});});
+  return n;
+}
 function motivationSettle(cs,how,turn,camp){
   if(!cs||typeof cs.motivation!=="string"||!cs.motivation.trim())return null;
   var was=cs.motivation.trim(),h=String(how||"").trim().slice(0,200)||"settled";
@@ -267,7 +298,7 @@ function motivationSettle(cs,how,turn,camp){
   var _hh=(typeof wordListScan==="function"&&typeof LABEL_RE!=="undefined")?wordListScan(h,LABEL_RE):[];
   if(_hh.length){if(typeof console!=="undefined")console.warn("[motivation] #459 "+(cs.name||"?")+": the settled reason was written in accountant's language ("+_hh.join(", ")+") — filed as a bare 'settled': \""+h.slice(0,80)+"\"");h="settled";}
   if(!cs.motivationHistory)cs.motivationHistory=[];
-  var rec={text:was,how:h,turn:turn,camp:String(camp!=null?camp:((typeof worldState!=="undefined"&&worldState&&worldState.campName)||""))};
+  var rec=campStampOn({text:was,how:h,turn:turn},camp);/* #481 C8 */
   cs.motivationHistory.push(rec);cs.motivation="";return rec;
 }
 function motivationBirth(cs,text,turn,camp){
@@ -839,7 +870,7 @@ function momentEchoWords(text,moments,exempt){
 function heldPastParty(){
   if(typeof worldState==="undefined"||!worldState||!worldState.character)return null;
   var camp=worldState.campName||"",names=[worldState.character.name],prior=[],seen={};
-  function take(list){var i;for(i=0;i<(list||[]).length;i++){var m=list[i];if(!m||!m.text||!m.camp||m.camp===camp)continue;var k=m.camp+"|"+m.turn+"|"+m.text;if(seen[k])continue;seen[k]=1;prior.push(m);}}
+  function take(list){var i;for(i=0;i<(list||[]).length;i++){var m=list[i];if(!m||!m.text||campIsCurrent(m))continue;/* #481 C8: by id, not display name */var k=m.camp+"|"+m.turn+"|"+m.text;if(seen[k])continue;seen[k]=1;prior.push(m);}}
   take(worldState.character.coreMemories);
   var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],i;
   for(i=0;i<party.length;i++){names.push(party[i].name);take(party[i].charSheet&&party[i].charSheet.coreMemories);}

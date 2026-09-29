@@ -1851,13 +1851,13 @@ function coreMemorySnapshot(){
 }
 function fileCoreMemory(kind,who,text){
   if(!worldState||!worldState.character)return;
-  var camp=worldState.campName||"",cap=(typeof CORE_MEMORY_CAP!=="undefined")?CORE_MEMORY_CAP:25,filedAny=false,i;
+  var cap=(typeof CORE_MEMORY_CAP!=="undefined")?CORE_MEMORY_CAP:25,filedAny=false,i;
   function fileTo(owner){
     if(!owner)return;
     if(!owner.coreMemories)owner.coreMemories=[];
     var cm=owner.coreMemories,j;
     for(j=0;j<cm.length;j++){if(cm[j].turn===worldState.turn&&cm[j].kind===kind&&cm[j].who===who)return;}// one moment per event per turn per witness
-    cm.push({text:text,turn:worldState.turn,kind:kind,who:who,camp:camp});
+    cm.push(campStampOn({text:text,turn:worldState.turn,kind:kind,who:who}));/* #481 C8: name AND id */
     filedAny=true;
     if(cm.length>cap){
       // Evict the oldest near-death first (the repetitive class); preserve it in memory.archive

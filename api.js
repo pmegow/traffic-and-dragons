@@ -342,9 +342,10 @@ function buildCoreMemoryBlock(){
   var carriers=[],names=[];/* #469 ④: who carries an earlier adventure, for the held-back notice */
   function collect(list,owner){
     var j;for(j=0;j<(list||[]).length;j++){var m=list[j];if(!m||!m.text)continue;
-      if(m.camp&&m.camp!==camp&&owner&&carriers.indexOf(owner)<0)carriers.push(owner);/* before the dedupe: a moment shared across sheets is carried by every sheet that holds it */
+      var _mPrior=!campIsCurrent(m);/* #481 C8: by id when both sides carry one — a rename no longer makes this campaign's moments "earlier" */
+      if(_mPrior&&owner&&carriers.indexOf(owner)<0)carriers.push(owner);/* before the dedupe: a moment shared across sheets is carried by every sheet that holds it */
       var k=(m.camp||"")+"|"+m.turn+"|"+m.text;if(seen[k])continue;seen[k]=1;
-      if(m.camp&&m.camp!==camp)prior.push(m);else cur.push(m);}
+      if(_mPrior)prior.push(m);else cur.push(m);}
   }
   collect(worldState.character.coreMemories,worldState.character.name);names.push(worldState.character.name);
   var _cmParty=livingPartyCompanions();/* #6: shared party scan */

@@ -26634,4 +26634,49 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #481 C8 (audit 2026-09-29, Fable-approved): a campaign stamp is the display name AND the id. Renaming a campaign
+  // turned its own moments into "an earlier adventure" (fae t89) because every reader compared display names. ONE
+  // stamper (campStampOn), ONE comparator (campIsCurrent: by id when both sides carry one, else by name; unstamped =
+  // this campaign's), and campSaveRename re-stamps name-only legacy entries (campRestamp).
+  section("#481 C8 campaign stamps");
+  t("#481 C8 a moment is stamped with the campaign's name AND id, and a rename keeps it this campaign's",function(){
+    makeWorld();worldState.campId="camp_1790000000000_0001";worldState.campName="Old Name";worldState.turn=12;
+    fileCoreMemory("growth","Tess","Tess learned the tide tables.");
+    var cm=worldState.character.coreMemories,m=cm[cm.length-1];
+    if(!m||m.camp!=="Old Name"||m.campId!=="camp_1790000000000_0001")return "stamp: "+JSON.stringify(m);
+    worldState.campName="New Name";/* a rename that re-stamped nothing */
+    if(!campIsCurrent(m))return "an id-stamped moment must stay this campaign's after a rename";
+    var blk=buildCoreMemoryBlock();
+    if(blk.indexOf("tide tables")<0)return "the moment must be served: "+blk.slice(0,300);
+    if(/earlier adventure/i.test(blk))return "the moments block called this campaign's own moment an earlier adventure: "+blk.slice(0,400);
+    worldState.character.storyBeats=[];applyMuts("[STORY_BEAT:The tide turned.]");var b=worldState.character.storyBeats[0];
+    if(!b||b.campId!=="camp_1790000000000_0001")return "story beats carry the id too: "+JSON.stringify(b);
+    return true;
+  });
+  t("#481 C8 legacy name-only stamps: unstamped is this campaign's, a foreign campaign stays foreign, and a rename re-stamps the old name",function(){
+    makeWorld();worldState.campId="camp_1";worldState.campName="Old";
+    var c=worldState.character;
+    c.coreMemories=[{text:"legacy mine",turn:3,kind:"growth",who:"Tess",camp:"Old"},{text:"unstamped",turn:4,kind:"growth",who:"Tess"},{text:"foreign",turn:9,kind:"growth",who:"Tess",camp:"Rise",campId:"camp_9"}];
+    c.storyBeats=[{text:"beat",turn:3,camp:"Old"}];
+    if(!campIsCurrent(c.coreMemories[1]))return "an unstamped moment is this campaign's (the long-standing convention)";
+    if(campIsCurrent(c.coreMemories[2]))return "a foreign campaign's moment must stay foreign";
+    var n=campRestamp(worldState,"Old","New","camp_1");worldState.campName="New";
+    if(c.coreMemories[0].camp!=="New"||c.coreMemories[0].campId!=="camp_1")return "the legacy stamp must follow the rename: "+JSON.stringify(c.coreMemories[0]);
+    if(c.storyBeats[0].camp!=="New")return "beats re-stamp too";
+    if(c.coreMemories[2].camp!=="Rise"||c.coreMemories[2].campId!=="camp_9")return "a foreign stamp must never be touched";
+    if(!campIsCurrent(c.coreMemories[0]))return "after the re-stamp the legacy moment is this campaign's";
+    return n===2?true:"re-stamp count "+n;
+  });
+  t("#481 C8 source: the stamp sites use the one stamper, the readers the one comparator, and the rename re-stamps",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),tt=__fsForTests.readFileSync(__rootForTests+"/tag_table.js","utf8"),a=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),u=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8"),uc=__fsForTests.readFileSync(__rootForTests+"/ui-campaigns.js","utf8"),h=__fsForTests.readFileSync(__rootForTests+"/helpers.js","utf8");
+    if(/who:who,camp:camp\}/.test(g))return "fileCoreMemory stamps a bare name again";
+    if(/storyBeats\.push\(\{text:btp2\[1\],turn:R\.turn,camp:/.test(tt))return "STORY_BEAT stamps a bare name again";
+    if(/m\.camp&&m\.camp!==camp/.test(a))return "buildCoreMemoryBlock compares by name again";
+    if(/!m\.camp\|\|m\.camp===camp/.test(h))return "heldPastParty compares by name again";
+    if(/camp!==worldState\.campName/.test(u))return "the sheet labels compare by name again";
+    if(!/campRestamp\(worldState,_oldCampName,name,id\)/.test(uc))return "campSaveRename no longer re-stamps the ACTIVE campaign";
+    if(!/campRestamp\(ws,ws\.campName,name,id\)/.test(uc))return "campSaveRename no longer re-stamps a STORED campaign";
+    return true;
+  });
+
 }

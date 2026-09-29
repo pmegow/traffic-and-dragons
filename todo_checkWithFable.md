@@ -21,6 +21,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 - **Graduation:** after 10 entries across two clean skims, the probation ends.
 - **Revert:** one silent defect puts the drift surface back to Fable-only.
 
+- 2026-09-29 · #481 C8 · v1.1018 · Opus 5.5 · campaign stamps carry name AND id. Touches: the core-memory, story-beat and motivation-history stamp sites (fileCoreMemory, STORY_BEAT, motivationSettle); the DEFINING MOMENTS prior/current split (buildCoreMemoryBlock, volatile half); heldPastParty; the sheet labels; campSaveRename's re-stamp. Stable half untouched. Proof: 3 red-first tests in "#481 C8 campaign stamps", full suite green (2,372), `dev/sabotage-481-c8-campaign-stamps.js` 5/5 caught. The first run missed one clause (a source pin matched the other branch) and was tightened before commit.
+
 ## Off-Fable log
 
 - 2026-09-28 · #478 (v1.1016) · Codex: owner-requested tavern chatter/hearth delivery and default interior fire. Shared audio-only profile compatibility retains explicit silence/prohibitions; snapshot adds read-only habitable flag from canonical village house ownership. No parser, prompt, persisted metadata or state-write changes. One existing bed controller/loader, no additional timers or audio contexts. Turn-205 saved profile reproduced silent before fix; tests written first, exact-save browser and named mutation proofs. Owner listening pending.

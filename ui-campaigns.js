@@ -508,11 +508,13 @@ function campSaveRename(id){
   for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].campName=name;break;}}
   setCampMeta(meta);
   // Also update worldState.campName if this is the active campaign
-  if(id===getActiveCampId()&&worldState){worldState.campName=name;saveAll();renameCampaignFolder(name);}
+  /* #481 C8: the rename re-stamps this campaign's name-only legacy moments, beats and motivation history (campRestamp),
+     so they stay this campaign's; id-stamped ones just take the new display name. */
+  if(id===getActiveCampId()&&worldState){var _oldCampName=worldState.campName;worldState.campName=name;campRestamp(worldState,_oldCampName,name,id);saveAll();renameCampaignFolder(name);}
   else {
     // Patch the stored worldState for this campaign
     var raw=store.get(campSlotKey(id,"ws"));
-    if(raw){try{var ws=JSON.parse(raw);ws.campName=name;store.set(campSlotKey(id,"ws"),JSON.stringify(ws));}catch(e){console.warn("[camps] the rename could not be written into "+campDisplayName(id)+"'s stored save ("+(e&&e.message)+") — the picker row is renamed but the save still carries the old name; it reverts on the next list merge (audit E15)");}}
+    if(raw){try{var ws=JSON.parse(raw);campRestamp(ws,ws.campName,name,id);ws.campName=name;store.set(campSlotKey(id,"ws"),JSON.stringify(ws));}catch(e){console.warn("[camps] the rename could not be written into "+campDisplayName(id)+"'s stored save ("+(e&&e.message)+") — the picker row is renamed but the save still carries the old name; it reverts on the next list merge (audit E15)");}}
     // Push the rename to the server (audit E80) — otherwise the next syncCampaignList merge (server
     // wins on conflict) reverts the local name back to the server's old one.
     if(storageAdapter.isServerMode()&&typeof campCloudPushSilent==="function")campCloudPushSilent(id,null);
