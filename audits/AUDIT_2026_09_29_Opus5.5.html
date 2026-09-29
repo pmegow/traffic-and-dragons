@@ -121,7 +121,7 @@ details[open] summary{margin-bottom:8px}
 <tr><td>Frizwick's cottage</td><td>Frizwick's cottage (a new node)</td><td>refused</td></tr>
 <tr><td>the smithy</td><td>the smithy</td><td>filed</td></tr>
 </table>
-<p><b>Even if it had filed,</b> the top line would have said <code>Here: Item stash (1 item)</code>, not the core's name. #432 collapses the item line to a count at every village node, and the chest that lists the contents opens only in your own house (finding A6, an owner decision).</p>
+<p><b>Even if it had filed,</b> the top line would have said <code>Here: Item stash (1 item)</code>, not the core's name. #432 collapses the item line to a count at every village node, and the chest that lists the contents opens only in your own house (finding A6, now ruled: a container by count, loose objects by name).</p>
 <p><b>Two more things in your screenshot are wrong.</b> "PRESENT: THESSA SALTBORN (SAY), THE ENTITY (SAY)": both spoke in the tavern before you walked back, and the engine recorded them as standing in the Hall with you (B1). The line "SUB: THE VILLAGE HALL → THE VILLAGE HALL (THE HALL)" is a capital-T-to-lowercase rename that the capitals hide, so it reads as a no-op (A7).</p>
 <p><b>Getting the core back.</b> Your t213 save still holds both cores. After A1 and A2 ship, "leave it at the base of the wall" works as written. Until then, a placement in the Hall only files if the GM happens to write the tag with no place name, or with exactly "the Village Hall".</p>
 </div>
@@ -165,19 +165,22 @@ details[open] summary{margin-bottom:8px}
 <tr><td>12</td><td>C3 · A quest's last step lands when the quest closes in the same reply</td><td>Removes the false ⚠ that trains you to skip warnings — the one that hid the Hall refusal.</td><td>S</td></tr>
 </table>
 
-<h2 id="forks">Owner decisions this audit needs</h2>
+<h2 id="forks">Owner rulings — 2026-09-29</h2>
+<p class="small">All 13 were answered through the question UI, one at a time. The rows below carry them.</p>
 <ol>
-<li><b>A6 — show the item's name outside your own house?</b> Recommended: yes. Name the items at the Hall, the commons and the shops, and keep "Item stash (N)" for your own chest, the only one you can open.</li>
-<li><b>A3 — does a companion who lives in your house count as the owner's hand at the chest?</b> Recommended: yes. Your household takes from your chest, and the t88 clothes refusal goes away.</li>
-<li><b>C1 — the welcome-back note's "one fact from your record".</b> Recommended: keep it, but take it only from this campaign's own record, never word for word, never a banned word. The alternative is to drop the fact entirely.</li>
-<li><b>C7 — the record guard and proper nouns made of banned words</b> ("tithe-engines", "soul-tax lien"). Recommended: exempt exact canonical names from the drop, keep the scan on free prose, and defer lines over the cap instead of dropping them.</li>
-<li><b>D4 — a keeper's "wanted" offer.</b> Should it retire when met? Recommended: yes. Should the counter pay the keeper's stated offer or the canon value? Recommended: the stated offer, which is what the GM was told.</li>
-<li><b>D7 — a counter sale worth under half a gold.</b> Refuse it, or pay a 1 gp minimum? Recommended: refuse, with the reason shown.</li>
-<li><b>D9 — library refresh versus the stash.</b> Re-apply this village's stash moves to the refreshed sheet, or reconcile using the stash rows' provenance? Recommended: re-apply.</li>
-<li><b>E8 — a car's own PLAY press during a spoken "pause" hold.</b> Recommended: ignore it; only "resume" or a tap releases the hold.</li>
-<li><b>G1 — does the privacy ruling also cover testRuns receipts that are already tracked?</b> For example, <code>testRuns/recall_gate_results_t1549.json</code> holds eleven compiled eras of a campaign.</li>
-<li><b>G3 — the TODO viewer.</b> Recommended: strip it to truly read-only, which matches the sole-writer rule. The alternative is to make its editing safe.</li>
-<li><b>B4 — the #392 wares gate.</b> Recommended: keep "keeper stamped at their own shop" as the wares gate's own predicate, and give every other consumer a "present now" predicate.</li>
+<li><b>C1 — the welcome-back note's fact:</b> taken only from this campaign's own record: its moments, key decisions and chapters. Never word for word, never a banned word, never a moment already flagged. The greeting is staged at the door, not through a window.</li>
+<li><b>A6 — the "Here:" line:</b> a container shows by name with its count, e.g. "chest (10 items)", and loose objects are named. The engine has no container model yet, so your house stash reads "chest (N items)" and every other place names its items. Haversacks and cabinets as real containers are a follow-up design.</li>
+<li><b>A3 — the chest:</b> your household counts as the owner's hand. A companion who lives in your house takes from the chest.</li>
+<li><b>C7 — banned words in proper names:</b> exempt exact canonical names from the drop, and keep scanning free prose. Lines over the re-ask cap wait for the next pass instead of being dropped.</li>
+<li><b>D4 — "wanted" offers:</b> a met want retires, and the counter pays the keeper's stated offer. This amends #407 ruling ① for wanted items.</li>
+<li><b>D7 — sales under half a gold:</b> refused, with the reason shown; the item stays in the pack.</li>
+<li><b>D9 — library refresh versus the stash:</b> the refresh re-applies this village's stash moves made since the library copy.</li>
+<li><b>E8 — a car's own PLAY during a spoken pause:</b> ignored. Only "resume" or a tap releases the hold.</li>
+<li><b>G1 — privacy:</b> forward only. <code>testRuns/</code> is ignored from now on; files already tracked stay.</li>
+<li><b>G3 — the TODO viewer:</b> becomes truly read-only, and all TODO edits stay with Claude.</li>
+<li><b>B4 — "who is here":</b> the rule is split. The shop sale gate keeps its own keeper rule (a shop's owner counts as present while the shop is open), and every other consumer uses "seen in this scene".</li>
+<li><b>#480:</b> kept, rescoped to the net for the rarer case where the GM never writes a placement at all. The t216 cause is A1 + A2.</li>
+<li><b>Promotion:</b> one umbrella row in TODO.md (#481), like #416. This audit is the tracker, and leftovers split out when the sweep closes.</li>
 </ol>
 
 <h2 id="contents">Findings</h2>
@@ -215,7 +218,7 @@ details[open] summary{margin-bottom:8px}
 <li>The provenance ring shows it was refused.</li>
 <li>#480's unpaired-loss detector skips logged refusals, so it would stay silent on this exact case.</li>
 </ul>
-<p>Fold #480 into A1 + A2 (with A3 as the GM channel), or keep it as the net for the rarer case where the GM never emits the placement at all.</p>
+<p>Ruled 2026-09-29: #480 is kept, rescoped to the net for the rarer case where the GM never writes a placement at all. The cause is fixed here and in A2.</p>
 <details><summary>Mechanism · evidence · test</summary>
 <p><span class="k">Where</span><code>memory.js:595-601</code> — <code>fileLocationItem</code> composes <code>world + "|" + place</code> from the raw operand and does an exact key lookup. <code>tag_table.js:535-543</code> — the SUBLOCATION handler runs <code>villageHouseOwnerFor</code>, <code>villageCommonFor</code> and <code>kindDef().hallWords</code> first. <code>tag_table.js:605-611</code> — the LOCATION_ITEM handler.</p>
 <p><span class="k">Why</span>Two resolvers for one question ("which node does this name mean?"), and only one of them knows the village's naming rules or ignores case. The GM reuses the name it used on arrival: t213 <code>[SUBLOCATION:The Village Hall]</code>, then t216 <code>…|placed|The Village Hall]</code>.</p>
@@ -261,7 +264,7 @@ details[open] summary{margin-bottom:8px}
 <p class="ttl">A refused placement or take never reaches the GM <span class="lean med">medium</span><span class="lean">drift hole</span></p>
 <p class="tldr"><b>TLDR:</b> When the engine refuses to file an item move, only you are told, in a grey line, so the GM keeps narrating the item where the story put it and the record drifts further each turn.</p>
 <p><span class="k">Fix</span>Arm a one-shot <code>stashRefusedPing</code> note, following the trade gate's pattern (<code>buildTradeRefusedNudge</code>, api.js:1726). It names the refused move, the legal place names here, and the choice: re-emit with the exact name, or narrate that the item is still in hand. With A1 shipped this fires rarely.</p>
-<p><span class="k">Owner fork</span>Does a companion who lives in the hero's house count as "the owner's hand" at the chest? If yes, <code>[COMPANION_ITEM_GAINED:]</code> gets the gated auto-take and the t88 case resolves.</p>
+<p><span class="k">Ruled</span>2026-09-29: the household counts. A companion who lives in the hero's house takes from the chest; <code>[COMPANION_ITEM_GAINED:]</code> gets the gated auto-take, and the t88 case resolves.</p>
 <details><summary>Mechanism · evidence · test</summary>
 <p><span class="k">Where</span><code>tag_table.js:606, 608</code> — refusals go to <code>R.muts</code> and the console only; no ping is armed.</p>
 <p><span class="k">Evidence</span></p>
@@ -322,9 +325,9 @@ details[open] summary{margin-bottom:8px}
 </td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
 
 <tr id="A6"><td class="n">A6</td><td>
-<p class="ttl">"Here: Item stash (N items)" at places whose contents cannot be opened <span class="lean low">low</span><span class="lean">UX · owner fork</span></p>
+<p class="ttl">"Here: Item stash (N items)" at places whose contents cannot be opened <span class="lean low">low</span><span class="lean">UX · ruled</span></p>
 <p class="tldr"><b>TLDR:</b> In the village the top line only ever counts items, even in the Hall or a shop, where no chest opens to list them, so a relic you placed shows up as "1 item".</p>
-<p><span class="k">Fix</span>Collapse to the count only at <code>node.owner === hero</code> (the chest you can open). Name the items everywhere else, as the adventure already does.</p>
+<p><span class="k">Fix</span>Ruled 2026-09-29: a container shows by name with its count ("chest (10 items)"), and loose objects are named. With no container model yet, the hero's house stash renders as "chest (N items)" and every other node names its items. Haversacks and cabinets as real containers are a follow-up design.</p>
 <details><summary>Mechanism · evidence · test</summary>
 <p><span class="k">Where</span><code>helpers.js:2767</code> decides by campaign kind (<code>stashQuantities</code>), never by node. The #432 rationale "the chest modal lists them" is true only in the hero's house (<code>stashTradeCatalog</code>, helpers.js:2676-2682).</p>
 <p><span class="k">Evidence</span>A placement at the Hall on the t218 state gives <code>"Here: Item stash (1 item)"</code>, and the stash ledger is refused as "not in a house". With <code>stashQuantities</code> off, the line reads <code>"Here: Brass lantern"</code>.</p>
@@ -440,9 +443,9 @@ details[open] summary{margin-bottom:8px}
 </td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
 
 <tr id="B4"><td class="n">B4</td><td>
-<p class="ttl">"In the scene" never expires <span class="lean med">medium</span><span class="lean">wrong outcome · owner fork</span></p>
+<p class="ttl">"In the scene" never expires <span class="lean med">medium</span><span class="lean">wrong outcome · ruled</span></p>
 <p class="tldr"><b>TLDR:</b> Anyone whose last sighting was at this exact spot counts as present now, however old the sighting. Victor Marlow, last seen in the tavern at t28, was "present" there at t205.</p>
-<p><span class="k">Fix</span>One predicate, <code>scenePresentNow(name)</code>: observed in the active frame since it began, or lastSeenAt here with <code>lastSeenTurn ≥ frame.startTurn</code>. The consumers read it: RESIDENTS ABOUT, the #434 personality line, whispers and small talk, <code>sceneAntagonists</code>, the exchange note, the buy and village rungs, the suggestion gate, and the retrieval scene set. The wares gate keeps its own keeper predicate (owner fork: #392 pins today's semantics for it).</p>
+<p><span class="k">Fix</span>One predicate, <code>scenePresentNow(name)</code>: observed in the active frame since it began, or lastSeenAt here with <code>lastSeenTurn ≥ frame.startTurn</code>. The consumers read it: RESIDENTS ABOUT, the #434 personality line, whispers and small talk, <code>sceneAntagonists</code>, the exchange note, the buy and village rungs, the suggestion gate, and the retrieval scene set. The wares gate keeps its own keeper predicate (ruled 2026-09-29: a shop's owner counts as present while the shop is open).</p>
 <details><summary>Mechanism · evidence · test</summary>
 <p><span class="k">Where</span><code>game.js:417-418</code> — the exact-spot check <code>rls===rNode</code> has no recency test. #392 added it for the wares gate, then #434, #6 D2/D5 and #375 reused it to mean "physically present now".</p>
 <p><span class="k">Evidence</span>On the t205 save (hero in the tavern), <code>local</code> = Thessa (t205), Sable (t205), The Entity (t197), <b>Victor Marlow (t28)</b>, Pirindel (t205). The t206 prompt gives Victor the "plays as" line and leaves him out of RESIDENTS ABOUT. Walk-ins on t218: the smithy yields Gazz, Halvard and Vyrindra, last seen 105–107 turns earlier.</p>
@@ -508,7 +511,7 @@ details[open] summary{margin-bottom:8px}
 <li>Never word for word, never a register word, never a moment already in <code>motifNudged</code>.</li>
 <li>Stage the greeting "when the hero steps out or someone calls at the door — never through a window".</li>
 </ul>
-<p><span class="k">Owner fork</span>The alternative is to drop the fact and keep D5's "today" texture.</p>
+<p><span class="k">Ruled</span>2026-09-29: this campaign's own record only (the fix above).</p>
 <details><summary>Mechanism · evidence · test</summary>
 <p><span class="k">Where</span><code>game.js:1550-1555</code> — <code>villageReturnFact</code> returns the hero's last core memory, verbatim, up to 200 characters. <code>api.js:1732-1734</code> — "let it name ONE fact from the hero's own record: "…"". <code>game.js:1542-1549</code> arms it once per real absence of 2 h or more.</p>
 <p><span class="k">Why</span>Since the Necrotic Dungeon, the hero's last core memory is "Daeris's purpose was settled: Her soul-tax lien and necrotic tether…". Four mechanisms suppress exactly that text: the #469④/#479 held-past gate, <code>REGISTER_WORDS</code>, the DEFINING MOMENTS header, and stable rule 3. The note rides the user message, so the system-prompt gates never see it. Few new hero moments arrive in the village, so the same sentence is served at every return.</p>
@@ -601,9 +604,9 @@ archived by the cap:  t96 drying trays · t97 "the hearth fire has burned down t
 </td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
 
 <tr id="C7"><td class="n">C7</td><td>
-<p class="ttl">The record guard throws away core-plot lore whose proper nouns contain banned words <span class="lean med">medium</span><span class="lean">silent failure · owner fork</span></p>
+<p class="ttl">The record guard throws away core-plot lore whose proper nouns contain banned words <span class="lean med">medium</span><span class="lean">silent failure · ruled</span></p>
 <p class="tldr"><b>TLDR:</b> In a campaign whose plot objects are named with register words ("tithe-engines", "creditor-priests", "soul-tax lien"), about a third of the new facts are dropped. The rewrite is told to keep every name, so the lines stay "dirty" and get dropped.</p>
-<p><span class="k">Fix</span>Needs your ruling. Recommended: exempt exact canonical names from the drop, keep the scan on free prose, and defer lines beyond the re-ask cap to the next window instead of dropping them. Alternative: a per-campaign rename map.</p>
+<p><span class="k">Fix</span>Ruled 2026-09-29: exempt exact canonical names from the drop, keep the scan on free prose, and defer lines beyond the re-ask cap to the next window instead of dropping them.</p>
 <details><summary>Mechanism · evidence · test</summary>
 <p><span class="k">Where</span><code>memory.js:2294-2326</code>. The rewrite prompt says "keep every name". A line that is still dirty is dropped, and lines past <code>RECORD_REGISTER_REASK_MAX = 6</code> are dropped without a re-ask.</p>
 <p><span class="k">Evidence</span>A HEAD replay of the Necrotic t35 save's own 36 lore lines, with a rewrite stub that keeps names: <code>{hits:12, reasked:6, cleaned:0, dropped:12}</code>. Among the dropped: "The three subterranean tithe-engines have been destroyed, releasing the soul-tax lien…", which is the act-2 outcome.</p>
@@ -723,10 +726,10 @@ three chest takes → pack x2 → x4 → x6, row unchanged, each "Ammut took Hem
 </td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
 
 <tr id="D4"><td class="n">D4</td><td>
-<p class="ttl">A met "wanted" offer is never retired — the counter pays full price again and again <span class="lean med">medium</span><span class="lean">drift hole · owner fork</span></p>
+<p class="ttl">A met "wanted" offer is never retired — the counter pays full price again and again <span class="lean med">medium</span><span class="lean">drift hole · ruled</span></p>
 <p class="tldr"><b>TLDR:</b> After a keeper buys the thing they wanted, the GM is still told they want it, and the counter keeps paying full price for every further copy.</p>
 <p><span class="k">Fix</span>A sale of a wanted item in that shop retires the row, whether through the counter or a GM-closed sale. Wants expire on the clock, like wares.</p>
-<p><span class="k">Owner fork</span>#407 ruling ① makes the counter pay full canon (200 gp) and ignore the keeper's stated offer (40 gp). Recommended: pay the stated offer, which is what the GM was told.</p>
+<p><span class="k">Ruled</span>2026-09-29: a met want retires, and the counter pays the keeper's stated offer. This amends #407 ruling ① for wanted items.</p>
 <details><summary>Evidence</summary>
 <p><code>[WANTED:Warded ring|40 gp|Gazz Quickfuse]</code>, then two counter sales, each "+200 gp". The want row survives both, and the geo block still says "WANTED HERE: Warded ring — Gazz Quickfuse offers 40 gp". Where: <code>memory.js:552-563</code> (no expiry, no consumer), <code>game.js:374-390</code>.</p>
 </details>
@@ -751,9 +754,9 @@ three chest takes → pack x2 → x4 → x6, row unchanged, each "Ammut took Hem
 </td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
 
 <tr id="D7"><td class="n">D7</td><td>
-<p class="ttl">A counter sale worth under half a gold deletes the item and pays nothing <span class="lean low">low</span><span class="lean">owner fork</span></p>
+<p class="ttl">A counter sale worth under half a gold deletes the item and pays nothing <span class="lean low">low</span><span class="lean">ruled</span></p>
 <p class="tldr"><b>TLDR:</b> Selling something worth 0.3 gp at the counter removes it from your pack and pays 0 gp.</p>
-<p><span class="k">Fix</span>Refuse with the reason shown (recommended), or pay a 1 gp minimum, mirroring "a non-zero purchase never rounds to free". <code>helpers.js:2648-2656</code>.</p>
+<p><span class="k">Fix</span>Ruled 2026-09-29: refuse, with the reason shown; the item stays in the pack. <code>helpers.js:2648-2656</code>.</p>
 </td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
 
 <tr id="D8"><td class="n">D8</td><td>
@@ -764,9 +767,9 @@ three chest takes → pack x2 → x4 → x6, row unchanged, each "Ammut took Hem
 </td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
 
 <tr id="D9"><td class="n">D9</td><td>
-<p class="ttl">A library refresh duplicates items you stashed in the village <span class="lean med">medium</span><span class="lean">latent · owner fork</span></p>
+<p class="ttl">A library refresh duplicates items you stashed in the village <span class="lean med">medium</span><span class="lean">latent · ruled</span></p>
 <p class="tldr"><b>TLDR:</b> Put something in your house chest; the next time the village refreshes your hero from a newer library copy, the item is back in your pack and still in the chest.</p>
-<p><span class="k">Fix</span>Recommended: re-apply this village's stash moves made since <code>heroLibraryAt</code> to the refreshed sheet. Alternative: reconcile with the stash rows' provenance fields.</p>
+<p><span class="k">Fix</span>Ruled 2026-09-29: re-apply this village's stash moves made since <code>heroLibraryAt</code> to the refreshed sheet.</p>
 <details><summary>Evidence</summary><p>A HEAD repro: after a placement, <code>villageRefreshFromLibrary</code> → <code>adoptLibraryHero</code> (<code>game.js:1513-1529</code>) leaves the item in both the pack and the chest. Refreshes really do happen mid-campaign: between t205 and t213 your <code>heroLibraryAt</code> moved, with gold +9 and XP +6,300. No duplication was hit this fortnight.</p></details>
 </td><td class="c">M</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
 
@@ -884,9 +887,9 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 </td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
 
 <tr id="E8"><td class="n">E8</td><td>
-<p class="ttl">A car's own PLAY press during a spoken "pause" replays the last narration <span class="lean low">low</span><span class="lean">race · owner fork</span></p>
+<p class="ttl">A car's own PLAY press during a spoken "pause" replays the last narration <span class="lean low">low</span><span class="lean">race · ruled</span></p>
 <p class="tldr"><b>TLDR:</b> After you say "pause", the car sometimes sends PLAY by itself (after a call or a reconnect). That replays the last narration, while the hold keeps ambience silent.</p>
-<p><span class="k">Fix</span>Add a "held" transport state. Recommended: PLAY while held does nothing, and only "resume" or a tap releases the hold (#410). Add a tests-19b group.</p>
+<p><span class="k">Fix</span>Ruled 2026-09-29: add a "held" transport state in which a PLAY is ignored; only "resume" or a tap releases the hold (#410). Add a tests-19b group.</p>
 <details><summary>Evidence</summary><p><code>ui-carmode.js:605-611</code>: <code>_carTransport</code> ignores <code>_carHeld</code>. Repro: after the spoken pause, <code>_carTransport("play")</code> returns "replay" and the hold stays set.</p></details>
 </td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
 
@@ -1045,7 +1048,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>Add a run-tests contract: <code>git check-ignore -q testRuns/fixtures/probe.json</code> must succeed, with a loud skip when there is no <code>.git</code>. Sabotage clause: delete the line.</li>
 <li>Correct the four docs that claim it is ignored.</li>
 </ul>
-<p><span class="k">Owner call</span>Does the ruling also cover tracked receipts that hold campaign summaries, such as <code>testRuns/recall_gate_results_t1549.json</code>, which has 11 compiled eras?</p>
+<p><span class="k">Ruled</span>2026-09-29: forward only. Tracked receipts, such as <code>testRuns/recall_gate_results_t1549.json</code> and the nine <code>*_owner100.md</code> reviews, stay tracked.</p>
 <details><summary>Evidence</summary><p><code>.gitignore</code> ignores <code>*.tnd</code> only. <code>git check-ignore -v testRuns/fixtures/owner_runelords_t2338-2437.json</code> exits 1 (verified by the lead); the file is 195 KB of "the owner's own play". Also exposed: <code>testRuns/probe198/</code> (two full system prompts of about 134 KB each) and 11 memento HTML files, the same class <code>momentos/</code> was ignored for. The docs that believe otherwise: <code>CLAUDE.md:151</code>, <code>dev/tests-226-fixture.js:2-3</code>, <code>dev/sabotage-226-fixture.js:10</code> and commit d425853's message. The same leak class happened once before (d425853 pushed the t2097 transcript).</p></details>
 </td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
 
@@ -1063,9 +1066,9 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 </td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
 
 <tr id="G3"><td class="n">G3</td><td>
-<p class="ttl">The "read-only" TODO viewer writes TODO.md — its Export alters rows and Renumber rewrites the numbering <span class="lean med">medium</span><span class="lean">wrong outcome · owner fork</span></p>
+<p class="ttl">The "read-only" TODO viewer writes TODO.md — its Export alters rows and Renumber rewrites the numbering <span class="lean med">medium</span><span class="lean">wrong outcome · ruled</span></p>
 <p class="tldr"><b>TLDR:</b> CLAUDE.md says the TODO viewer never writes, but it can save TODO.md in place. A save with no edits changes four rows, its Renumber button rewrites 44 of 45 open row numbers, and the lint passes both.</p>
-<p><span class="k">Fix</span>Recommended (it matches the sole-writer rule): make it truly read-only. Delete Export, Renumber, Add, Delete, Complete and the status toggle, and add a contract (no <code>createWritable</code>, no <code>renumber(</code>). The alternative is a byte-identical round-trip test plus archive-style moves.</p>
+<p><span class="k">Fix</span>Ruled 2026-09-29: truly read-only. Delete Export, Renumber, Add, Delete, Complete and the status toggle, and add a contract (no <code>createWritable</code>, no <code>renumber(</code>). All TODO edits stay with Claude.</p>
 <details><summary>Evidence</summary><p><code>todo-viewer.html:417-418, 816, 835, 884-896</code>. Running the page's own parse → buildMd on HEAD's TODO.md grows the file from 113,410 to 113,421 bytes. <code>[SAY:Thessa Saltborn|speaking carefully]</code> becomes <code>…\|speaking carefully]</code> in rows #6, #370, #437 and #477. Renumber turns #6 into #2, #19 into #3, and so on. <code>buildMd</code> still writes the pre-2026-09-01 <code>&lt;!-- completed --&gt;</code> scheme.</p></details>
 </td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
 
