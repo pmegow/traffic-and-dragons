@@ -3673,6 +3673,10 @@ var TTS = (function() {
     try {
       var ctx = _ensureCtx();   // reuse the shared ctx — creates it only if genuinely absent
       if (!ctx) { console.debug("[tts] earcon '" + kind + "' skipped — no AudioContext"); return; }
+      /* #484: the context is the NARRATION's; while the read is paused it is suspended on purpose, and resuming it for a
+         blip would un-pause the story (Car Mode's spoken pause acks right after pausing — the read played on under
+         "Paused", and the next tap's toggle suspended it instead). A paused read is its own acknowledgement. */
+      if (_paused) { console.debug("[tts] earcon '" + kind + "' skipped — the read is paused"); return; }
       _resumeCtx(ctx, "piper-entry");          // best-effort; does not block — see the state check right below
       if (ctx.state !== "running") { console.debug("[tts] earcon '" + kind + "' skipped — ctx " + ctx.state); return; }
       var t0 = ctx.currentTime;

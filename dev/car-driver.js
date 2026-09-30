@@ -131,7 +131,7 @@ const SCENARIOS = {
     expect(await car.press("play"), { tts: "playing", held: false }, fail, "e8-paused-read");
     expect(await car.say("pause"), { tts: "paused", held: true }, fail, "e8-paused-read");
     expect(await car.press("play"), { tts: "paused", held: true, crumb: "media-action play held" }, fail, "e8-paused-read");
-    expect(await car.tap(), { held: false }, fail, "e8-paused-read");
+    expect(await car.tap(), { held: false, tts: "playing" }, fail, "e8-paused-read");   /* #484: the ack earcon no longer un-pauses the read, so the tap resumes it */
   }
 };
 
