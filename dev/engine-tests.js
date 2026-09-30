@@ -27345,4 +27345,27 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var n=buildResidentExchangeNote();return n===""?true:"present by B4 is not on stage by B3 (neither spoke in the latest reply): "+n.slice(0,200);
   });
 
+  section("#481 B5 left is a side, not a departure");
+  t("#481 B5 the six field lines are no separation (Village t74, t115, t144, t173, t194; fae t9 — the participle case)",function(){
+    var names=["Frizwick","Morwen Zethran","Daeris"],neg=[
+      "Morwen curls into your left side with a drowsy murmur, while Daeris tucks herself under your right arm.",
+      "Morwen walks close at your left side, her fingers lightly trailing along the smooth wood.",
+      "Morwen steps in close at your left, her dark eyes smoldering with fierce intent.",
+      "Frizwick curls tight along your left side, while Daeris presses close to your right.",
+      "Daeris settles in along your left, letting the hot, herbal water reach her shoulders.",
+      "\"For now,\" Morwen cautions, examining the residue left along the stone plinth.",
+      "Daeris watches the carter's mule left the yard at a trot.",
+      "Morwen left-handedly flips the coin across her knuckles."
+    ],i;
+    for(i=0;i<neg.length;i++){var hit=detectStayBehind(neg[i],names);if(hit)return "false separation for "+hit+" on "+neg[i];}
+    return true;
+  });
+  t("#481 B5 a real departure still counts: left the / left for / has left",function(){
+    var names=["Frizwick","Morwen Zethran","Daeris"];
+    if(detectStayBehind("Daeris left the tavern before dawn.",names)!=="Daeris")return "left the";
+    if(detectStayBehind("Frizwick left for the market an hour ago.",names)!=="Frizwick")return "left for";
+    if(detectStayBehind("Morwen has left.",names)!=="Morwen Zethran")return "has left";
+    return detectStayBehind("Morwen quietly left the room without a word.",names)==="Morwen Zethran"?true:"an adverb before left the";
+  });
+
 }

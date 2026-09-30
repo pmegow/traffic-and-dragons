@@ -588,7 +588,12 @@ function _partyClauseSeparation(clause,partyNames){
     h=hits[i];
     if(/^['’]s\b/i.test(clause.slice(h.end)))continue;
     tail=clause.slice(h.end);
-    vm=tail.match(/^([^.!?;]{0,45}?)(?:(?:stay(?:s|ing)|remain(?:s|ing)|wait(?:s|ing))[\s,]+(?:behind|here|there|put|at\b|outside|below|above|by\b)|hang(?:s|ing)?\s+back|keep(?:s|ing)?\s+watch|left\s+behind|isn['’]?t\s+coming|is\s+not\s+coming|not\s+coming\s+(?:along|down|inside)|leaves|left|depart(?:s|ed)|is\s+gone|(?:rides|rode)\s+ahead|heads\s+back|goes\s+ahead)/i);
+    vm=tail.match(/^([^.!?;]{0,45}?)(?:(?:stay(?:s|ing)|remain(?:s|ing)|wait(?:s|ing))[\s,]+(?:behind|here|there|put|at\b|outside|below|above|by\b)|hang(?:s|ing)?\s+back|keep(?:s|ing)?\s+watch|left\s+behind|isn['’]?t\s+coming|is\s+not\s+coming|not\s+coming\s+(?:along|down|inside)|leaves|left(?=\s+(?:the|for)\b)|(?:has|had)\s+left\b|depart(?:s|ed)|is\s+gone|(?:rides|rode)\s+ahead|heads\s+back|goes\s+ahead)/i);
+    /* #481 B5 (audit 2026-09-29): a bare "left" is a SIDE, not a departure — "settles in along your left", "at your left",
+       "the residue left along the plinth" were six of six field alarms. "left" counts only with a departure complement
+       ("left the", "left for", "has left") AND only when nothing but an auxiliary or an adverb stands between the name and
+       it (a noun before "left" is that noun's verb — "the mule left the yard"). */
+    if(vm&&/\bleft\b/i.test(vm[0].slice(vm[1].length))&&!/^\s*(?:(?:has|had|just|already|quietly|finally|then|now|silently|abruptly|simply|soon|,)\s*)*$/i.test(vm[1]))vm=null;
     if(vm){
       gap=vm[1];after=tail.slice(vm.index+vm[0].length);
       otherSubject=false;for(j=0;j<hits.length;j++){if(hits[j].at>h.at&&hits[j].at<h.end+gap.length){otherSubject=true;break;}}

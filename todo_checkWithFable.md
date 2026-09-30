@@ -107,6 +107,11 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Tests updated to the new shape:** #6D3 (same assertions over `{place, home}`); two `sabotage-6-village-hall.js` clauses re-anchored.
   - **Real-save evidence:** the t218 save sits at 7:40. RESIDENTS ABOUT now reads "Nyla Lorrath is at the alchemist's; …". No resident is placed in a shop closed at that hour; before, Nyla went to the tavern, whose hours are 10–24.
   - **Proof:** 4 tests in "#481 B6" (4 red before the build; the note test never matches "<name> is the"). Full suite green (2,441); four replay baselines unchanged; `dev/sabotage-481-b6-whereabouts.js` 6/6 caught (the hours-line clause runs under the #207 tests).
+- 2026-09-29 · #481 B5 · v1.1033 · Opus 5.5 · "Left" is a side, not a departure. In `_partyClauseSeparation` (helpers.js), a bare `left` no longer counts. Two independent guards, each with its own negative:
+  - **Complement:** only "left the", "left for" and "has/had left" count (not "left-handedly").
+  - **Gap:** only an auxiliary or adverb may stand between the name and "left" (a noun before "left" is that noun's verb — "the mule left the yard", and Fable's participle case "the residue left along").
+  - **Real-field evidence:** all six field lines — Village t74, t115, t144, t173, t194 and fae t9, extracted from the owner's saves — alarmed before and are silent after. The t144 line is paraphrased in the public test to the same grammatical shape.
+  - **Proof:** 2 tests in "#481 B5" (the negatives red before the build; the positives are regression guards: left the / left for / has left / quietly left the). Full suite green (2,443); four replay baselines unchanged; `dev/sabotage-481-b5-left-side.js` 3/3 caught.
 
 ## Off-Fable log
 
