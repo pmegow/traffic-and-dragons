@@ -8198,7 +8198,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===707742823&&d.length===30743)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===-1850835842&&d.length===30758)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -27160,6 +27160,54 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var at=function(ch){return placeStateAt(tl,txt.indexOf(" "+ch+" ")).key;};
     var want=[start,start+"|the stables","Greyford","Greyford|the inn","Greyford"],got=["a","b","c","d","e"].map(at);
     return JSON.stringify(got)===JSON.stringify(want)?true:"states by offset: "+JSON.stringify(got);
+  });
+
+  section("#481 B1 the cast decides who stands where the reply ends");
+  function b1Hall(){villageEF();worldState.world.sublocation="the Village Hall";worldState.turn=20;delete worldState.castSpeakerPing;if(typeof sceneRefsEnsure==="function")sceneRefsEnsure();
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";memory.npcs["Frizwick"].lastSeenTurn=19;return "The Village|the Village Hall";}
+  function b1Stamped(key,name){var n=memory.map.nodes[key],g=n&&n.guestbook;if(!g)return false;var k;for(k in g)if(resolveNpcName(k)===name&&g[k]&&(g[k].turns||[]).indexOf(worldState.turn)>=0)return true;return false;}
+  function b1Observed(name){var s=worldState.sceneRefs;if(!s||!s.active)return false;return (s.active.observed||[]).some(function(o){return o.entity===name&&o.lastTurn===worldState.turn;});}
+  t("#481 B1 a speaker the cast leaves out gets no place: the t218 shape (Frizwick speaks from the tavern while the cast in the Hall names Daeris)",function(){
+    var hall=b1Hall();
+    var R=quiet(function(){return applyMuts("[SCENE_CAST:Daeris] [SAY:Frizwick]\"Tell the Hall I'm on my way.\" [SAY:Daeris]\"Come in out of the wind.\"");}).r;
+    if(memory.npcs["Frizwick"].lastSeenAt!=="The Village|the tavern")return "Frizwick stays where the record last saw her: "+memory.npcs["Frizwick"].lastSeenAt;
+    if(b1Stamped(hall,"Frizwick"))return "no guestbook stamp in the Hall for a speaker the cast leaves out";
+    if(b1Observed("Frizwick"))return "no frame observation for her either";
+    if(memory.npcs["Daeris"].lastSeenAt!==hall)return "the cast member is placed: "+memory.npcs["Daeris"].lastSeenAt;
+    if(!R.muts.some(function(m){return /Frizwick \(spoke, not in cast\)/.test(m);}))return "the Present line says who spoke outside the cast: "+JSON.stringify(R.muts);
+    return (worldState.castSpeakerPing&&worldState.castSpeakerPing.names.indexOf("Frizwick")>=0)?true:"the one-shot note is armed: "+JSON.stringify(worldState.castSpeakerPing);
+  });
+  t("#481 B1 the t2428 shape stays: the cast names the keeper and the keeper speaks, so the keeper is here",function(){
+    var hall=b1Hall();quiet(function(){applyMuts("[SCENE_CAST:Frizwick, Daeris] [SAY:Frizwick]\"Welcome back.\"");});
+    return (memory.npcs["Frizwick"].lastSeenAt===hall&&b1Stamped(hall,"Frizwick"))?true:"a cast speaker is placed and stamped: "+memory.npcs["Frizwick"].lastSeenAt;
+  });
+  t("#481 B1 no cast and [SCENE_CAST:none] keep today: a speaker is placed where the reply ends",function(){
+    var hall=b1Hall();quiet(function(){applyMuts("[SAY:Frizwick]\"Evening.\"");});
+    if(memory.npcs["Frizwick"].lastSeenAt!==hall)return "no cast: the speaker is placed: "+memory.npcs["Frizwick"].lastSeenAt;
+    hall=b1Hall();quiet(function(){applyMuts("[SCENE_CAST:none] [SAY:Frizwick]\"Evening.\"");});
+    return memory.npcs["Frizwick"].lastSeenAt===hall?true:"none is no cast: the speaker is placed: "+memory.npcs["Frizwick"].lastSeenAt;
+  });
+  t("#481 B1 a combatant is seen where the fight happened, not where the reply ends",function(){
+    makeWorld();worldState.turn=30;var start=locResolve(worldState.world.location);memory.map.nodes[start]=memory.map.nodes[start]||{firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
+    applyMuts("[NPC:Varrek the Red|hostile|a bandit captain]");
+    quiet(function(){applyMuts("[COMBAT_START:Varrek the Red|20|13|4|1d8|steady] You drive him off. [ENEMY_SURRENDERS:Varrek the Red][COMBAT_END:victory] You ride on. [LOCATION:Greyford]");});
+    var m=memory.npcs["Varrek the Red"];return (m&&m.lastSeenAt===start)?true:"the fight place ("+start+"): "+JSON.stringify(m&&m.lastSeenAt);
+  });
+  t("#481 B1 the cast note: one-shot, registered, combat-silent, and it heals a forgotten cast",function(){
+    b1Hall();quiet(function(){applyMuts("[SCENE_CAST:Daeris] [SAY:Frizwick]\"Tell them I'm coming.\"");});
+    worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:2,maxHp:2}],node:"The Village"};
+    if(buildCastSpeakerNote()!==""||!worldState.castSpeakerPing)return "combat-silent, and the latch waits";
+    worldState.combat=null;var n1=buildCastSpeakerNote();
+    if(!/CAST CHECK/.test(n1)||!/Frizwick/.test(n1)||!/SCENE_CAST/.test(n1))return "the note names who spoke outside the cast: "+n1.slice(0,300);
+    if(buildCastSpeakerNote()!==""||worldState.castSpeakerPing)return "one-shot";
+    if(NOTE_BUILDERS.indexOf(buildCastSpeakerNote)<0)return "the builder is registered";
+    if(NOTE_LATCH_FIELDS.indexOf("castSpeakerPing")<0)return "the latch is registered";
+    return (NOTE_SHAPES.buildCastSpeakerNote&&NOTE_SHAPES.buildCastSpeakerNote.combat==="silent")?true:"the note needs a registry row, combat-silent: "+JSON.stringify(NOTE_SHAPES.buildCastSpeakerNote);
+  });
+  t("#481 B1 the doc line and the cast ask say who the cast is: standing where THIS reply ENDS, party members included",function(){
+    var d=buildStateTagsDoc();if(!/where THIS reply ENDS, party members included/.test(d))return "the STATE TAGS doc line";
+    makeWorld();worldState.castAsk={node:"elsewhere",askedTurn:-1,lastAnswerTurn:-1,seedTurn:0};worldState.turn=40;
+    var n=buildSceneCastNote();return /where THIS reply ENDS, party members included/.test(n)?true:"the cast ask: "+n.slice(0,300);
   });
 
 }

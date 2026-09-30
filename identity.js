@@ -917,7 +917,7 @@ function presenceTier(name){
   if(m.lastMentioned!=null)return{tier:"spokenOf"};
   return null;
 }
-function presenceObserve(name,channel){
+function presenceObserve(name,channel,atKey){/* #481 B1: atKey = where it was observed (a fight's own place); absent = where the reply ends */
   var raw=String(name||"").trim();if(!raw||!worldState)return false;
   var canon=resolveNpcName(raw);
   var n=(typeof wsNpcByName==="function")?wsNpcByName(canon):null;
@@ -926,13 +926,14 @@ function presenceObserve(name,channel){
   if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(canon))return false;/* the PC is not an NPC */
   if((n&&typeof npcIsDead==="function"&&npcIsDead(n))||(m&&m.dead))return false;/* B3: the dead don't travel */
   if(n&&n.partyMember&&n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location)return false;/* #137: a split member's remote line/blow is not presence at the camera node */
-  npcRecordPresence(canon,channel);/* the record half (lastSeen* + sourced guestbook) — may legitimately land nowhere when the current location was never FILED (the tagless-dungeon case); the frame observation below must survive that, or derived evidence dies exactly where location tags starve */
+  npcRecordPresence(canon,channel,atKey);/* the record half (lastSeen* + sourced guestbook) — may legitimately land nowhere when the current location was never FILED (the tagless-dungeon case); the frame observation below must survive that, or derived evidence dies exactly where location tags starve */
   /* Frame half: NEVER mints worldState.sceneRefs — activating the ledger changes w2DeathAuthorized's
      whole regime (its absence is the legacy-trusted bypass), and "every campaign becomes gated by a
      side effect of derivation" is exactly the unruled semantics change appendix 4 flagged. The
      sanctioned activator stays buildSysPrompt (every real gameplay turn); where the ledger does not
      exist there is no gate needing this evidence. */
   var s=worldState.sceneRefs?sceneRefsEnsure():null;if(!s)return true;
+  if(atKey&&typeof currentNodeKey==="function"&&locResolve(currentNodeKey())!==locResolve(atKey))return true;/* #481 B1: seen at another place this reply (the fight's) — the active frame is where the reply ends */
   var f=s.active;if(!f.observed)f.observed=[];/* pre-#194 frames */
   var t=worldState.turn,i,hit=null;
   for(i=0;i<f.observed.length;i++)if(f.observed[i].entity===canon){hit=f.observed[i];break;}
@@ -951,22 +952,38 @@ function presenceObserve(name,channel){
    character lands at their EFFECTIVE node and the split guard reads settled records). Parses
    TAGS only, never prose. Envelope bodies never reach here with presence tags — the W2 partition
    ejects them to the ordinary stream first. */
+/* #481 B1 (audit 2026-09-29, Fable-approved): the reply's cast — every non-none [SCENE_CAST:] name, raw (resolved at the
+   check, after this reply's aliases and merges have landed). null = no cast: [SCENE_CAST:none] and a reply without one both
+   leave presence to the speakers, as before. */
+function sceneCastSet(text){
+  var re=/\[SCENE_CAST:([^\]]*)\]/g,m,set=null,i;
+  while((m=re.exec(String(text==null?"":text)))!==null){var p=m[1].trim();if(!p||/^none$/i.test(p))continue;if(!set)set={};
+    var parts=p.split(/[|,]/);for(i=0;i<parts.length;i++){var nm=parts[i].trim();if(nm)set[nm]=1;}}
+  return set;
+}
 function derivePresenceFromResponse(text,R){
   if(!worldState)return;
   text=String(text||"");
-  var recorded={},labels=[],m,i;
-  function take(nm,ch){
+  var recorded={},labels=[],m,i,withheld=[];
+  /* #481 B1: a [SAY:] speaker the reply's cast leaves out stands somewhere else — the dialogue happened before a move, from
+     behind shutters, across the gravel (t198/t206/t208/t213/t218 in the Village). They get NO node presence: no lastSeenAt,
+     no guestbook stamp, no frame observation. The transcript speech record is untouched, so the death gate still sees the
+     line. Party members are B2's (the hero is never withheld). A combatant is seen at the fight's own place (A4). */
+  var castCanon=null,ck;if(R&&R.castSet){castCanon={};for(ck in R.castSet)castCanon[resolveNpcName(ck)]=1;}
+  function take(nm,ch,atKey){
     var key=String(nm||"").trim();if(!key)return;
     var canon=resolveNpcName(key);
     if(recorded[canon])return;
-    if(presenceObserve(key,ch)){recorded[canon]=ch;labels.push(canon+" ("+ch+")");}
+    if(ch==="say"&&castCanon&&!castCanon[canon]){var _wn=(typeof wsNpcByName==="function")?wsNpcByName(canon):null;if(!(_wn&&_wn.partyMember)){if(withheld.indexOf(canon)<0)withheld.push(canon);return;}}
+    if(presenceObserve(key,ch,atKey)){recorded[canon]=ch;labels.push(canon+" ("+ch+")");}
   }
+  function fightAt(off){return (typeof rPlaceAt==="function"&&R)?rPlaceAt(R,off).key:null;}
   var re=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g;
   while((m=re.exec(text)))take(m[1],"say");
   re=/\[(?:COMBAT_START|ENEMY_SLAIN|ENEMY_SURRENDERS):([^|\]]+)[|\]]/g;
-  while((m=re.exec(text)))take(m[1],"combat");
+  while((m=re.exec(text)))take(m[1],"combat",fightAt(m.index));
   re=/\[ENEMY_HP:([^|\]]+)\|/g;
-  while((m=re.exec(text)))take(m[1],"combat");
+  while((m=re.exec(text)))take(m[1],"combat",fightAt(m.index));
   re=/\[SCENE_CAST:([^\]]*)\]/g;
   var castSeen=false,castNone=false;
   while((m=re.exec(text))){
@@ -985,6 +1002,11 @@ function derivePresenceFromResponse(text,R){
     _ca.lastAnswerTurn=_at;
     worldState.castAsk.node=(typeof currentNodeKey==="function")?((typeof locResolve==="function")?locResolve(currentNodeKey()):currentNodeKey()):null;
   }
+  /* #481 B1: who spoke outside the cast is said, and the GM is asked once (a forgotten cast heals) — rostered names only,
+     the same refusals presenceObserve makes (not on the roster, the hero, the dead) */
+  var wl=[];for(i=0;i<withheld.length;i++){var w=withheld[i];if(recorded[w])continue;var wn=(typeof wsNpcByName==="function")?wsNpcByName(w):null,wm=(typeof memory!=="undefined"&&memory&&memory.npcs)?memory.npcs[w]:null;
+    if(!wn&&!wm)continue;if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(w))continue;if((wn&&typeof npcIsDead==="function"&&npcIsDead(wn))||(wm&&wm.dead))continue;wl.push(w);labels.push(w+" (spoke, not in cast)");}
+  if(wl.length)worldState.castSpeakerPing={turn:(R&&R.turn!=null)?R.turn:worldState.turn,names:wl.slice(0,6)};
   if(labels.length&&R&&R.muts)R.muts.push("Present: "+labels.join(", "));
 }
 /* #194: the death gate's speech limb — transcript speaker maps (entry.sp) the engine wrote

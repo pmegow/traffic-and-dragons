@@ -188,7 +188,7 @@ var TAG_DOC_LINES=[
 "[ARC_CONTINUE:arc title|why it remains open] -- the OTHER answer to an ARC DRIFT CHECK: the arc is genuinely unfinished. Records your reason and resets the check timer. Every drift check must be answered with this or [ARC_COMPLETE:] -- never left unanswered\n",
 "[ACT_COMPLETE:act title] -- emit when the act's turning point occurs; advances to the next act. The title must MATCH the active act, and every arc in it must be closed first ([ARC_COMPLETE:] may land in the same response)\n",
 "COMPANION SHEET TAGS — use these (not the player tags) when the event affects a named party member, not the player:\n",
-"[SCENE_CAST:Name, Name] -- WHO IS PHYSICALLY HERE: the characters standing in the scene you are narrating, close enough to be spoken to or struck this instant. Emit ONE such line when the engine asks (it asks at scene changes); name every present character and nobody else -- someone the party is talking ABOUT, expecting, or remembering is NOT in the cast. If the party is alone, emit [SCENE_CAST:none].\n",
+"[SCENE_CAST:Name, Name] -- WHO IS PHYSICALLY HERE: the characters standing where THIS reply ENDS, party members included, close enough to be spoken to or struck this instant. Emit ONE such line when the engine asks (it asks at scene changes); name every present character and nobody else -- someone the party is talking ABOUT, expecting, or remembering is NOT in the cast. If the party is alone, emit [SCENE_CAST:none].\n",
 "[NPC_DEATH_REPORTED:name|source] -- a death the party did NOT witness: learned from testimony, a discovered body, or news from elsewhere. Commits the death honestly as REPORTED second-hand canon (no eyewitness claim). Use it when you narrate an off-screen death; never for a death the party watches happen -- that one is [NPC:name|dead|relation], inside its CANON_TXN when rewards ride with it.\n",
 "[COMPANION_HP:Name|+/-N] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item] [COMPANION_XP:Name|N]\n",
 "[COMPANION_CONDITION:Name|condName|duration|cause] [COMPANION_CONDITION_REMOVED:Name|condName]\n",
@@ -1694,6 +1694,7 @@ function applyMutsTable(text,opts){
   R.departKey=(typeof currentNodeKey==="function")?currentNodeKey():null;/* #415: where the party stood BEFORE any handler moves it — the doors live there */
   R.places=(typeof placeTimeline==="function"&&worldState.world)?placeTimeline(text):null;/* #481 A4: ONE place timeline per call — its first state is departKey's place */
   R.placeAt=function(off){return R.places?placeStateAt(R.places,off):null;};
+  R.castSet=(typeof sceneCastSet==="function")?sceneCastSet(text):null;/* #481 B1: a non-none [SCENE_CAST:] is the reply's authority on who stands where it ENDS */
   if(typeof exitBeginResponse==="function")exitBeginResponse();
   _sheetlessWarned={};
   if(typeof guestbookBeginResponse==="function")guestbookBeginResponse();/* #173: arrivals QUEUE during the parse; the attendance snapshot commits at the post-handler seam below (amendment ③) */

@@ -758,7 +758,7 @@ function npcRegisterMention(name){
   mn.push({n:name,t:mt});
   if(mn.length>NODE_MENTION_CAP)mn.splice(0,mn.length-NODE_MENTION_CAP);
 }
-function npcRecordPresence(name,src){
+function npcRecordPresence(name,src,atKey){/* #481 B1: atKey = where it was observed; absent = where the reply ends */
   /* THE one presence writer for non-party characters: lastSeenAt + lastSeenTurn + lastSeenSrc +
      a SOURCED guestbook stamp. Sources: "say" | "combat" | "cast" | "arrive". The #137 split
      guard covers every derived channel in one place — a split member speaking via sending or
@@ -768,7 +768,7 @@ function npcRecordPresence(name,src){
      w2NamedPresenceEvidence (identity.js). */
   if(!memory.map||!worldState||!worldState.world)return false;
   name=resolveNpcName(name);
-  var key=currentNodeKey();/* UA9 */
+  var key=atKey||currentNodeKey();/* UA9 */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   if(!memory.map.nodes[key])return false;
   var _gbWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;
