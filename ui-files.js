@@ -31,10 +31,10 @@ function _downloadBlob(blob,filename){
 // Returns a Promise<bool>: true = written into the campaign folder (restorable later), false =
 // fell back to a browser download (path unknown to us). Existing callers ignore the return value,
 // so adding it is backward compatible.
-function exportToFolder(type,blob,filename){
+function exportToFolder(type,blob,filename,campId,campName){/* #481 F1: campId/campName name a NON-active campaign's folder (the #424 copy); absent = the active one */
   if(!_campRootHandle){ _downloadBlob(blob,filename); return Promise.resolve(false); }
   var sub=_SUBFOLDERS[type]||"misc";
-  return campaignFolder(true).then(function(camp){
+  return (campId?campaignFolderFor(campId,campName,true):campaignFolder(true)).then(function(camp){
     return camp.getDirectoryHandle(sub,{create:true});
   }).then(function(dir){
     return dir.getFileHandle(filename,{create:true});
@@ -45,7 +45,7 @@ function exportToFolder(type,blob,filename){
   }).then(function(){
     // Name the WHOLE path, campaign folder included — "Saved to renders/x.jpg" left the user
     // guessing which folder that was (field request 2026-07-27).
-    var _fn=campaignFolderLabel(_campRootHandle&&_campRootHandle.name,worldState&&worldState.campName);/* #336: root/campaign */
+    var _fn=campaignFolderLabel(_campRootHandle&&_campRootHandle.name,activeCampFolderName());/* #336: root/campaign */
     showToast("Saved to "+(_fn?_fn+"/":"")+sub+"/"+filename);
     return true;
   }).catch(function(e){
@@ -100,16 +100,68 @@ function idbGetCheckpoint(campId){
     rq.onsuccess=function(){res(rq.result||null);};rq.onerror=function(){rej(rq.error);};
   });});
 }
-// #336: the campaign subfolder, derived from the active campaign under the root. Cached per slug; a
-// campaign switch or rename derives afresh. Resolves null with no root (callers fall back to downloads).
-function campaignFolderSlug(){return _slugFolderName((typeof worldState!=="undefined"&&worldState&&worldState.campName)||"Campaign");}
+/* #481 F1 (audit 2026-09-29, Fable-approved): ONE resolver from a CAMPAIGN ID to its folder under the root — the folder was
+   slug(campaign name), so two campaigns with one name shared a folder (the owner's two "The Village (Ammut)" campaigns
+   already did) and a refused rename sent the next save into the other campaign's folder. The slug is minted ONCE per
+   campaign and stored on its meta row (folderSlug — this device's disk, never taken from the server); a small marker file
+   in the folder (CAMP_MARKER) names the campaign id. With no stored slug (legacy): the candidate is slug(name); an absent
+   folder is created WITH a marker, a present one WITHOUT a marker is ADOPTED (marker written — files never move), and a
+   marker naming another LIVE campaign skips to _2, _3…. A stored slug whose marker names a campaign no longer on the list
+   (a rehome, a deleted twin) is re-stamped. A rename keeps #438's refusal; only a successful one moves the stored slug. */
+var CAMP_MARKER="tnd-campaign.json",_campFolderCache={};
+function _campMetaRow(id){var m=(typeof getCampMeta==="function")?getCampMeta():[],i;for(i=0;i<m.length;i++)if(m[i]&&m[i].id===id)return m[i];return null;}
+function _campSetFolderSlug(id,slug){if(typeof getCampMeta!=="function"||typeof setCampMeta!=="function")return;var m=getCampMeta(),i;for(i=0;i<m.length;i++)if(m[i]&&m[i].id===id){m[i].folderSlug=slug;setCampMeta(m);return;}}
+function _campReadMarker(dir){return dir.getFileHandle(CAMP_MARKER,{create:false}).then(function(fh){return fh.getFile();}).then(function(f){return (typeof f.text==="function")?f.text():f.text;}).then(function(t){try{var j=JSON.parse(t);return (j&&j.campId)?j:{campId:null};}catch(e){return {campId:null};}},function(e){if(e&&e.name==="NotFoundError")return null;throw e;});}
+function _campWriteMarker(dir,id,name){return dir.getFileHandle(CAMP_MARKER,{create:true}).then(function(fh){return fh.createWritable();}).then(function(w){return w.write(JSON.stringify({campId:id,campName:name||"",at:Date.now()})).then(function(){return w.close();});});}
+function _campIdLive(id){return !!_campMetaRow(id);}
+/* the active campaign's folder name for labels: the stored slug, else what the legacy probe would try first */
+function activeCampFolderName(){var id=(typeof getActiveCampId==="function")?getActiveCampId():null,r=id?_campMetaRow(id):null;return (r&&r.folderSlug)||_slugFolderName((typeof worldState!=="undefined"&&worldState&&worldState.campName)||"Campaign");}
+function campaignFolderFor(id,campName,create){
+  if(!_campRootHandle)return Promise.resolve(null);
+  var root=_campRootHandle,base=_slugFolderName(campName||"Campaign");
+  if(!id)return root.getDirectoryHandle(base,{create:create!==false});/* no campaign id (a bare page): the name, unmarked */
+  if(_campFolderCache[id])return Promise.resolve(_campFolderCache[id]);
+  function keep(dir){_campFolderCache[id]=dir;_campSetFolderSlug(id,dir.name);return dir;}
+  function probe(n){var name=n===1?base:base+"_"+n;
+    return root.getDirectoryHandle(name,{create:false}).then(function(dir){
+      return _campReadMarker(dir).then(function(mk){
+        if(!mk||!mk.campId){return _campWriteMarker(dir,id,campName).then(function(){if(typeof console!=="undefined")console.info("[files] #481 F1 "+name+"/ adopted for "+id+" (no marker; files untouched)");return keep(dir);});}
+        if(mk.campId===id)return keep(dir);
+        return probe(n+1);/* another campaign's folder — never written */
+      });
+    },function(e){
+      if(!e||e.name!=="NotFoundError")throw e;
+      if(create===false)return null;
+      return root.getDirectoryHandle(name,{create:true}).then(function(dir){return _campWriteMarker(dir,id,campName).then(function(){return keep(dir);});});
+    });}
+  var row=_campMetaRow(id),stored=row&&row.folderSlug;
+  if(!stored)return probe(1);
+  return root.getDirectoryHandle(stored,{create:create!==false}).then(function(dir){
+    return _campReadMarker(dir).then(function(mk){
+      if(!mk||!mk.campId||mk.campId===id||!_campIdLive(mk.campId)){return (mk&&mk.campId===id)?keep(dir):_campWriteMarker(dir,id,campName).then(function(){return keep(dir);});}
+      if(typeof console!=="undefined")console.warn("[files] #481 F1 the stored folder "+stored+"/ is marked for "+mk.campId+" — "+id+" is given its own folder instead");
+      return probe(1);
+    });
+  },function(e){if(e&&e.name==="NotFoundError"&&create===false)return null;throw e;});
+}
+/* the active campaign's folder (the #336 accessor): the resolver, with the old per-slug cache kept for the rename */
+function campaignFolderSlug(){return activeCampFolderName();}
 function campaignFolder(create){
   if(!_campRootHandle)return Promise.resolve(null);
-  var slug=campaignFolderSlug();
-  if(_campFolderHandle&&_campFolderSlug===slug)return Promise.resolve(_campFolderHandle);
-  return _campRootHandle.getDirectoryHandle(slug,{create:create!==false}).then(function(sub){
-    _campFolderHandle=sub;_campFolderSlug=slug;updateCampFolderUI();return sub;
+  var id=(typeof getActiveCampId==="function")?getActiveCampId():null;
+  return campaignFolderFor(id,(typeof worldState!=="undefined"&&worldState&&worldState.campName)||"Campaign",create).then(function(sub){
+    if(sub&&(_campFolderHandle!==sub||_campFolderSlug!==sub.name)){_campFolderHandle=sub;_campFolderSlug=sub.name;updateCampFolderUI();}
+    return sub;
   });
+}
+/* #481 F1 (3): a rehome changes a campaign's id — the folder's marker it owns is re-stamped so the campaign keeps its folder */
+function campaignFolderRestamp(oldId,newId){
+  if(!_campRootHandle||!oldId||!newId)return Promise.resolve(false);
+  if(_campFolderCache[oldId]){_campFolderCache[newId]=_campFolderCache[oldId];delete _campFolderCache[oldId];}
+  var row=_campMetaRow(newId)||_campMetaRow(oldId),slug=row&&row.folderSlug;if(!slug)return Promise.resolve(false);
+  return _campRootHandle.getDirectoryHandle(slug,{create:false}).then(function(dir){
+    return _campReadMarker(dir).then(function(mk){if(mk&&mk.campId&&mk.campId!==oldId&&mk.campId!==newId)return false;return _campWriteMarker(dir,newId,row.campName).then(function(){return true;});});
+  }).catch(function(e){if(typeof console!=="undefined")console.warn("[files] #481 F1 the rehome could not re-stamp "+slug+"/ for "+newId+" — "+((e&&e.message)||e)+"; the next write re-stamps it (the old id is no longer on the list)");return false;});
 }
 function persistCampaignFolder(){
   if(!_campRootHandle)return Promise.resolve(false);
@@ -272,7 +324,7 @@ function _attachRestoredRender(file,ptr){
 function _slugFolderName(s){return(s||"Campaign").replace(/[^a-zA-Z0-9_\-]/g,"_");}
 function _openCampaignSubfolder(rootHandle,campName){
   /* #336: the pick is the ROOT; the campaign subfolder is derived beneath it (campName is the active one) */
-  _campRootHandle=rootHandle;_campFolderHandle=null;_campFolderSlug=null;_campFolderPending=null;
+  _campRootHandle=rootHandle;_campFolderHandle=null;_campFolderSlug=null;_campFolderPending=null;_campFolderCache={};/* #481 F1: a new root, new folders */
   persistCampaignFolder();   // #30: survive the next reload — the ROOT is what persists
   updateCampFolderUI();
   return campaignFolder(true);
@@ -293,7 +345,7 @@ function setCampaignFolder(){
   return window.showDirectoryPicker({mode:"readwrite"}).then(function(root){
     return _openCampaignSubfolder(root,campName);
   }).then(function(sub){
-    showToast("📁 Folder ready: "+campaignFolderLabel(_campRootHandle.name,campName)+"/ — every campaign gets its own folder under "+_campRootHandle.name+"/");
+    showToast("📁 Folder ready: "+campaignFolderLabel(_campRootHandle.name,activeCampFolderName())+"/ — every campaign gets its own folder under "+_campRootHandle.name+"/");
     return true;
   }).catch(function(e){return _folderPickerFailure(e,"selection");});
 }
@@ -301,14 +353,14 @@ function initCampaignFolderForGame(){
   var campName=(worldState&&worldState.campName)||"Campaign";
   /* #336: a root already picked means NO picker — just derive this campaign's folder and say where it is */
   if(_campRootHandle){
-    return campaignFolder(true).then(function(){showToast("📁 Saving to "+campaignFolderLabel(_campRootHandle.name,campName)+"/");return true;})
+    return campaignFolder(true).then(function(){showToast("📁 Saving to "+campaignFolderLabel(_campRootHandle.name,activeCampFolderName())+"/");return true;})
       .catch(function(e){return _folderPickerFailure(e,"initialization");});
   }
   if(!window.showDirectoryPicker)return Promise.resolve(false);
   return window.showDirectoryPicker({mode:"readwrite"}).then(function(root){
     return _openCampaignSubfolder(root,campName);
   }).then(function(sub){
-    showToast("📁 Saving to "+campaignFolderLabel(_campRootHandle.name,campName)+"/");
+    showToast("📁 Saving to "+campaignFolderLabel(_campRootHandle.name,activeCampFolderName())+"/");
     return true;
   }).catch(function(e){return _folderPickerFailure(e,"initialization");});
 }
@@ -342,6 +394,8 @@ function _copyDir(srcDir,destDir){
    occupied one is REFUSED loudly and nothing moves (unless it is provably the same directory — a case-only rename on
    a case-insensitive disk); the source is only removed after the whole copy succeeded, and a copy that fails midway
    says so and names the intact original. Returns a promise of {renamed|refused|same} for the test seam. */
+/* #481 F1: a rename that landed moves the active campaign's stored slug (and its cache) to the new folder — a refusal never calls this */
+function _campRenameStored(newDir){var id=(typeof getActiveCampId==="function")?getActiveCampId():null;if(!id)return;_campFolderCache[id]=newDir;_campSetFolderSlug(id,newDir.name);}
 function renameCampaignFolder(newName){
   if(!_campRootHandle||!_campFolderHandle)return Promise.resolve(null);/* the cache is the OLD campaign folder — campName has already changed */
   var oldHandle=_campFolderHandle;
@@ -369,12 +423,14 @@ function renameCampaignFolder(newName){
          to the incomplete original). */
       return _copyDir(oldHandle,newDir).then(function(){
         return _campRootHandle.removeEntry(oldName,{recursive:true}).then(function(){
+          _campRenameStored(newDir);
           _campFolderHandle=newDir;_campFolderSlug=newSlug;
           updateCampFolderUI();
           showToast("📁 Renamed to "+newSlug+"/");
           return {renamed:true};
         },function(e){
           var why=(e&&e.message)||String(e);
+          _campRenameStored(newDir);
           _campFolderHandle=newDir;_campFolderSlug=newSlug;
           updateCampFolderUI();
           console.warn("[files] #481 F6 rename: complete copy in "+newSlug+"/ — "+oldName+"/ could not be fully removed: "+why);
@@ -391,7 +447,7 @@ function renameCampaignFolder(newName){
   }).catch(function(e){showToast("Folder rename failed: "+e.message);return {failed:true};});
 }
 function clearCampaignFolder(){
-  _campFolderHandle=null;_campFolderSlug=null;_campRootHandle=null;_campFolderPending=null;
+  _campFolderHandle=null;_campFolderSlug=null;_campRootHandle=null;_campFolderPending=null;_campFolderCache={};/* #481 F1 */
   // #30: forget the PERSISTED handle too — otherwise "cleared" would silently un-clear itself on
   // the next reload, which is exactly the kind of lie the persistence was added to remove.
   updateCampFolderUI();
@@ -493,7 +549,7 @@ function exportSave(){
   var alreadySaved=saved.indexOf(fname)>=0;
   /* Owner call 2026-09-03 (the missing Iron Meridian save): say WHERE the file goes, not just its name.
      A folder restored from a previous session is only a name until Save re-arms it (below). */
-  var dest=saveDestination(campaignFolderLabel(_campRootHandle&&_campRootHandle.name,worldState&&worldState.campName)||null,_campFolderPending&&campaignFolderLabel(_campFolderPending.name,worldState&&worldState.campName),!!(typeof window!=="undefined"&&window.showDirectoryPicker),_SUBFOLDERS.save);
+  var dest=saveDestination(campaignFolderLabel(_campRootHandle&&_campRootHandle.name,activeCampFolderName())||null,_campFolderPending&&campaignFolderLabel(_campFolderPending.name,worldState&&worldState.campName),!!(typeof window!=="undefined"&&window.showDirectoryPicker),_SUBFOLDERS.save);
   var modal=modalShell("save-confirm-modal",/* #14 */
     "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Save Game (local)</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Turn "+worldState.turn+" &nbsp;·&nbsp; "+worldState.world.location+"</div>"
@@ -548,7 +604,7 @@ function exportCampaignCopy(id){
   }
   var fname=buildFilename("save",ws);
   var blob=new Blob([JSON.stringify({worldState:ws,sessionLog:sl,memory:mem},null,2)],{type:"application/json"});
-  return _ensureFolderPerm().then(function(){return exportToFolder("save",blob,fname);});
+  return _ensureFolderPerm().then(function(){return exportToFolder("save",blob,fname,isActive?null:id,ws&&ws.campName);});/* #481 F1: a non-active campaign's copy lands in ITS folder */
 }
 // buildBlueprintFromGame moved to game.js (v1.156) — pure data logic, now headless-testable.
 // The Blueprint Designer is a fully EXTERNAL page (blueprint-designer.html, D5 revised

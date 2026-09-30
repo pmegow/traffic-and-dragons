@@ -1013,6 +1013,7 @@ function rehomeCampaign(reason){
   if(typeof worldState!=="undefined"&&worldState)worldState.campId=nid;
   if(typeof memory!=="undefined"&&memory&&old&&memory.campId===old)memory.campId=nid;
   console.warn("[camps] campaign re-homed "+(old||"(none)")+" → "+nid+(reason?" — "+reason:""));
+  if(old&&typeof campaignFolderRestamp==="function")campaignFolderRestamp(old,nid);/* #481 F1: the folder's marker follows the new id (loud on failure) */
   return nid;
 }
 /* #423: THE engine half of importSave (ui-files.js keeps only the file read and the DOM refresh) — the body moved here

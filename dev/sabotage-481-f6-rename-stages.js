@@ -6,9 +6,11 @@
 var sabotage = require("./sabotage.js");
 process.exit(sabotage.prove({ file: "ui-files.js", command: ["node", ["dev/tests-438-folder-rename.js"]], cases: [
   { label: "a removal failure falls into the copy-failure handler again (the toast points at the incomplete original)",
-    find: "        },function(e){\n          var why=(e&&e.message)||String(e);\n          _campFolderHandle=newDir;_campFolderSlug=newSlug;", replace: "        },null&&function(e){\n          var why=(e&&e.message)||String(e);\n          _campFolderHandle=newDir;_campFolderSlug=newSlug;",
+    find: "        },function(e){\n          var why=(e&&e.message)||String(e);\n          _campRenameStored(newDir);\n          _campFolderHandle=newDir;_campFolderSlug=newSlug;",
+    replace: "        },null&&function(e){\n          var why=(e&&e.message)||String(e);\n          _campRenameStored(newDir);\n          _campFolderHandle=newDir;_campFolderSlug=newSlug;",
     mustFail: "#481 F6 a removal that fails AFTER a complete copy" },
   { label: "the handle stays on the stale original after a complete copy",
-    find: "          var why=(e&&e.message)||String(e);\n          _campFolderHandle=newDir;_campFolderSlug=newSlug;", replace: "          var why=(e&&e.message)||String(e);",
+    find: "          var why=(e&&e.message)||String(e);\n          _campRenameStored(newDir);\n          _campFolderHandle=newDir;_campFolderSlug=newSlug;",
+    replace: "          var why=(e&&e.message)||String(e);",
     mustFail: "#481 F6 a removal that fails AFTER a complete copy" }
 ]}));

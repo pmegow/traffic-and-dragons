@@ -716,9 +716,9 @@ var storageAdapter = (function() {
       serverList[i].onServer = true;
       found = false;
       for (j = 0; j < merged.length; j++) {
-        if (merged[j].id === serverList[i].id) { merged[j] = Object.assign({}, merged[j], serverList[i], {onServer:true}); found = true; break; }
+        if (merged[j].id === serverList[i].id) { var _fs = merged[j].folderSlug; merged[j] = Object.assign({}, merged[j], serverList[i], {onServer:true}); if (_fs) merged[j].folderSlug = _fs; else delete merged[j].folderSlug; found = true; break; }/* #481 F1: the folder slug is this device's disk */
       }
-      if (!found) merged.push(serverList[i]);
+      if (!found) { var _nr = Object.assign({}, serverList[i]); delete _nr.folderSlug; merged.push(_nr); }
     }
     var kept = [], pruned = [];
     for (j = 0; j < merged.length; j++) {

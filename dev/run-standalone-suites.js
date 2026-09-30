@@ -43,6 +43,7 @@ var SUITES = [
   "dev/tests-306-harness-picker.js",
   "dev/tests-250-browser-io.js",
   "dev/tests-438-folder-rename.js",
+  "dev/tests-481-f1-campaign-folders.js",
   "dev/tests-439-designer-incoming.js",
   "dev/tests-440-render-job.js",
   "dev/tests-443-campaign-delete.js",

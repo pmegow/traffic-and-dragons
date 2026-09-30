@@ -16,13 +16,17 @@ function tAsync(name, fn) {
     console.error("FAIL " + name + " — threw: " + (e && e.stack || e));
   });
 }
-// A fake File System Access directory: records every getDirectoryHandle/getFileHandle by path.
+// A fake File System Access directory: records every getDirectoryHandle/getFileHandle by path. #481 F1 re-baseline (deliberate,
+// Fable-approved): a missing entry rejects with a NotFoundError (the real API's shape — the campaign-folder resolver branches on
+// it) and a file exists only once created, holding what was written (the resolver reads its marker back).
+function notFound(n) { var e = new Error("NotFound " + n); e.name = "NotFoundError"; return e; }
 function fakeDir(name, log) {
-  var kids = {};
+  var kids = {}, files = {};
   return {
     name: name, kind: "directory",
-    getDirectoryHandle: function(n, o) { log.push("dir:" + name + "/" + n + (o && o.create ? "+" : "")); if (!kids[n]) { if (!(o && o.create)) return Promise.reject(new Error("NotFound " + n)); kids[n] = fakeDir(n, log); } return Promise.resolve(kids[n]); },
-    getFileHandle: function(n) { log.push("file:" + name + "/" + n); return Promise.resolve({ createWritable: function() { return Promise.resolve({ write: function() { return Promise.resolve(); }, close: function() { return Promise.resolve(); } }); } }); },
+    getDirectoryHandle: function(n, o) { log.push("dir:" + name + "/" + n + (o && o.create ? "+" : "")); if (!kids[n]) { if (!(o && o.create)) return Promise.reject(notFound(n)); kids[n] = fakeDir(n, log); } return Promise.resolve(kids[n]); },
+    getFileHandle: function(n, o) { log.push("file:" + name + "/" + n); if (!files[n]) { if (!(o && o.create)) return Promise.reject(notFound(n)); files[n] = { text: "" }; } var fr = files[n]; return Promise.resolve({ getFile: function() { return Promise.resolve({ text: function() { return Promise.resolve(fr.text); } }); }, createWritable: function() { return Promise.resolve({ write: function(x) { fr.text = (typeof x === "string") ? x : fr.text; return Promise.resolve(); }, close: function() { return Promise.resolve(); } }); } }); },
+    _files: files,
     queryPermission: function() { return Promise.resolve("granted"); },
     requestPermission: function() { return Promise.resolve("granted"); },
     removeEntry: function() { return Promise.resolve(); },
@@ -38,6 +42,9 @@ function loadFiles(opts) {
     window: { showDirectoryPicker: function() { pickerCalls++; return opts.picker ? opts.picker() : Promise.reject(new Error("picker must not open")); } },
     navigator: {}, localStorage: { getItem: function() { return null; }, setItem: function() {} },
     worldState: { campName: opts.campName || "The Iron Meridian (Gazz Quickfuse)", character: { name: "Gazz" }, turn: 3, renders: [] },
+    /* #481 F1: campaigns are keyed by id — the list and the active id, in memory */
+    __meta: [{ id: "camp_IM", campName: "The Iron Meridian (Gazz Quickfuse)" }, { id: "camp_RL", campName: "Rise of the Runelords (Ammut)" }], __active: opts.campId || "camp_IM",
+    getCampMeta: function() { return JSON.parse(JSON.stringify(ctx.__meta)); }, setCampMeta: function(a) { ctx.__meta = JSON.parse(JSON.stringify(a)); }, getActiveCampId: function() { return ctx.__active; },
     showToast: function(s) { toasts.push(String(s)); },
     eachMenuEl: function() {},
     saveDestination: function(f, p, h, sub) { return { kind: f ? "folder" : p ? "pending" : "downloads", text: (f || p || "downloads") + "/" + (sub || "saves") + "/" }; },
@@ -65,6 +72,9 @@ var chain = tAsync("#336 the pick is the ROOT: it is what persists, and the camp
     if (log.indexOf("dir:Campaigns/The_Iron_Meridian__Gazz_Quickfuse_+") < 0) return "campaign subfolder not derived under the root: " + JSON.stringify(log);
     if (log.indexOf("dir:The_Iron_Meridian__Gazz_Quickfuse_/saves+") < 0) return "saves/ not created under the campaign subfolder: " + JSON.stringify(log);
     if (!f.toasts.some(function(s) { return s.indexOf("Campaigns/The_Iron_Meridian__Gazz_Quickfuse_/saves/Gazz_t3.tnd") >= 0; })) return "the toast does not name the whole path: " + JSON.stringify(f.toasts);
+    /* #481 F1: the folder is the campaign's by id — a marker names it, and the slug is stored on its row */
+    var mk = root._kids["The_Iron_Meridian__Gazz_Quickfuse_"]._files["tnd-campaign.json"];if (!mk || JSON.parse(mk.text).campId !== "camp_IM") return "the new folder carries no marker for camp_IM: " + JSON.stringify(mk);
+    if (f.ctx.__meta[0].folderSlug !== "The_Iron_Meridian__Gazz_Quickfuse_") return "the slug is not stored on the campaign row: " + JSON.stringify(f.ctx.__meta[0]);
     return "";
   });
 }).then(function() {
@@ -73,7 +83,7 @@ var chain = tAsync("#336 the pick is the ROOT: it is what persists, and the camp
     return f.ctx.setCampaignFolder().then(function() {
       return f.ctx.exportToFolder("save", new Blob(["x"]), "a.tnd");
     }).then(function() {
-      f.ctx.worldState.campName = "Rise of the Runelords (Ammut)";
+      f.ctx.worldState.campName = "Rise of the Runelords (Ammut)";f.ctx.__active = "camp_RL";/* #481 F1: a switch changes the active campaign id */
       log.length = 0;
       return f.ctx.exportToFolder("render", new Blob(["x"]), "b.jpg");
     }).then(function(written) {
