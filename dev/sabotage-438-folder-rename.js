@@ -15,7 +15,7 @@ process.exit(sabotage.prove({
       replace:"" },
     { label:"#438: the source is removed before the copy is known to have succeeded",
       mustFail:"a copy that fails midway leaves the source intact",
-      find:"      return _copyDir(oldHandle,newDir).then(function(){\n        return _campRootHandle.removeEntry(oldName,{recursive:true});\n      }).then(function(){",
-      replace:"      return _campRootHandle.removeEntry(oldName,{recursive:true}).then(function(){\n        return _copyDir(oldHandle,newDir);\n      }).then(function(){" }
+      find:"      return _copyDir(oldHandle,newDir).then(function(){\n        return _campRootHandle.removeEntry(oldName,{recursive:true}).then(function(){",
+      replace:"      return _campRootHandle.removeEntry(oldName,{recursive:true}).then(function(){\n        return _copyDir(oldHandle,newDir).then(function(){" }/* #481 F6: the two stages nest now — swapping them still removes the source first */
   ]
 }));

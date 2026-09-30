@@ -363,13 +363,24 @@ function renameCampaignFolder(newName){
   }).then(function(r){
     if(!r||!r.free)return r;
     return _campRootHandle.getDirectoryHandle(newSlug,{create:true}).then(function(newDir){
+      /* #481 F6 (audit 2026-09-29): TWO stages, two messages. A copy that fails leaves the original as the only complete
+         folder (below). A removal that fails AFTER a complete copy leaves the NEW folder as the complete one — the handle
+         follows it and the toast says the old one could not be fully removed (the single handler used to send the player
+         to the incomplete original). */
       return _copyDir(oldHandle,newDir).then(function(){
-        return _campRootHandle.removeEntry(oldName,{recursive:true});
-      }).then(function(){
-        _campFolderHandle=newDir;_campFolderSlug=newSlug;
-        updateCampFolderUI();
-        showToast("📁 Renamed to "+newSlug+"/");
-        return {renamed:true};
+        return _campRootHandle.removeEntry(oldName,{recursive:true}).then(function(){
+          _campFolderHandle=newDir;_campFolderSlug=newSlug;
+          updateCampFolderUI();
+          showToast("📁 Renamed to "+newSlug+"/");
+          return {renamed:true};
+        },function(e){
+          var why=(e&&e.message)||String(e);
+          _campFolderHandle=newDir;_campFolderSlug=newSlug;
+          updateCampFolderUI();
+          console.warn("[files] #481 F6 rename: complete copy in "+newSlug+"/ — "+oldName+"/ could not be fully removed: "+why);
+          showToast("📁 Folder renamed: complete copy in "+newSlug+"/; "+oldName+"/ could not be fully removed ("+why+") — delete it by hand once nothing holds it open.",9000);
+          return {renamed:true,staleOld:true};
+        });
       },function(e){
         var why=(e&&e.message)||String(e);
         console.warn("[files] #438 rename copy failed after creating "+newSlug+"/ — the original "+oldName+"/ is intact: "+why);

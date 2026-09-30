@@ -118,6 +118,21 @@ t("a copy that fails midway leaves the source intact, keeps the handle on the or
     return null;
   });
 });
+/* #481 F6: the copy is COMPLETE and only the old folder's removal fails (the file is in use) — the new folder is the only
+   complete copy, so the handle follows it and the toast says so (the old message sent the player to the incomplete folder) */
+t("#481 F6 a removal that fails AFTER a complete copy points at the new folder: the handle follows it and the toast names the complete copy and the stale original", function () {
+  var w = world(), origRm = w.root.removeEntry;
+  w.root.removeEntry = function (n) { if (n === "Alpha") { var e = new Error("The file is in use"); e.name = "NoModificationAllowedError"; return Promise.reject(e); } return origRm(n); };
+  var h = load(w.root, w.alpha);
+  return h.ctx.renameCampaignFolder("Gamma").then(function (r) {
+    if (!r || !r.renamed || !r.staleOld) return "expected {renamed:true, staleOld:true}, got " + JSON.stringify(r);
+    var g = w.root._e.Gamma; if (!g || g._e.saves._e["shared.tnd"].text !== "ALPHA SAVE" || g._e.saves._e["only-alpha.txt"].text !== "A") return "the complete copy is in Gamma/: " + JSON.stringify(snapshot(w.root));
+    if (h.ctx._campFolderHandle !== g || h.ctx._campFolderSlug !== "Gamma") return "the handle must follow the complete copy";
+    if (!h.toasts.some(function (s) { return /complete copy in Gamma\//.test(s) && /Alpha\/ could not be fully removed/.test(s) && /in use/.test(s); })) return "the toast must name the complete copy and the stale original: " + JSON.stringify(h.toasts);
+    if (h.toasts.some(function (s) { return /still in Alpha\//.test(s); })) return "the old, wrong message must not appear";
+    return null;
+  });
+});
 t("punctuation collides on one slug — 'Night?' and 'Night!' — so the second campaign's rename is refused, never merged", function () {
   var w = world(); var night = memDir("Night_", { saves: memDir("saves", { "shared.tnd": memFile("shared.tnd", "NIGHT? SAVE") }) }); w.root._e["Night_"] = night;
   var h = load(w.root, w.alpha);
