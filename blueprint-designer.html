@@ -129,7 +129,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.51";
+var BP_DESIGNER_VERSION="v0.52";/* v0.52: #481 G5 — every model wait's status counts seconds (creature, generate, review, apply) */
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -223,6 +223,10 @@ function availRename(oldName,newName){
 function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",narratorVoice:"",tone:"",startingLocation:"",startingRegion:"",startingTime:"",premise:"",acts:[blankAct()],npcs:[],locations:[],creatures:[],rules:[]});}
 
 function setStatus(msg,cls){var el=document.getElementById("statusline");el.textContent=msg||"";el.className=cls||"";}
+// #481 G5 (owner rule #356): a status that waits on a model counts elapsed seconds. setStatus clears the class, the ticker
+// paints "<base> Ns" and keeps counting; stop() it BEFORE any terminal setStatus (markDirty included), or the next tick
+// overwrites the result a second later.
+function statusTicker(base){setStatus(base,"");return elapsedTicker(document.getElementById("statusline"),base,{text:true});}
 // Dirty marker keeps the blueprint's NAME in the statusline and appends the flag (bug fix
 // 2026-07-05: it used to replace the name with just "Unsaved changes"). Runs on every edit,
 // so a rename updates the shown name live.
@@ -826,7 +830,7 @@ function storyContext(){
 }
 async function genCreature(btn){
   if(!llmReady())return;
-  btn.disabled=true;btn.textContent="Consulting the story…";setStatus("Generating a creature in service to the story…","");
+  btn.disabled=true;var _ct=statusTicker("Generating a creature in service to the story…");/* #481 G5: one status, and it counts */
   try{
     var msg=storyContext()
       +"\n\nTASK: Invent exactly ONE new creature for this campaign's bestiary, IN SERVICE to the story above."
@@ -836,12 +840,13 @@ async function genCreature(btn){
       +"\n- kind = one or two words (beast/undead/aberration/construct/monstrosity/...); threat = low/moderate/deadly/apex or a CR."
       +"\nOutput ONLY this JSON object: {\"name\":\"\",\"kind\":\"\",\"threat\":\"\",\"notes\":\"\"}";
     var resp=await callGM(msg,"You design bestiary entries for tabletop RPG campaign blueprints. Output ONLY one valid JSON object — no markdown, no prose, no code fences.",500,designerModel(),{noHistory:true,kind:"other"});
+    _ct.stop();
     var c=JSON.parse(repairModelJson(resp));
     if(!c||!c.name)throw new Error("model returned no usable creature");
     bp.creatures.push({name:String(c.name),kind:String(c.kind||""),threat:String(c.threat||""),notes:String(c.notes||"")});
     markDirty();render();
     setStatus("Added “"+c.name+"” to the bestiary — it's yours now: review, edit, or delete freely.","ok");
-  }catch(e){setStatus("Creature generation failed: "+e.message,"err");}
+  }catch(e){_ct.stop();setStatus("Creature generation failed: "+e.message,"err");}
   var b2=document.querySelector("[data-op='gencreature']");
   if(b2){b2.disabled=false;b2.innerHTML="✨ Generate creature from story";}
 }
@@ -876,8 +881,8 @@ function openGenerate(){
   document.getElementById("gen-x").addEventListener("click",closeGenerate);
   document.getElementById("gen-go").addEventListener("click",async function(){
     if(dirty&&!confirm("Generating replaces the editor contents. Discard unsaved changes?"))return;
-    var btn=this;btn.disabled=true;btn.textContent="Generating… (can take a minute)";
-    setStatus("Generating a campaign draft…","");
+    /* #481 G5: the modal covers the statusline, so its button is the one status — and it counts */
+    var btn=this;btn.disabled=true;var _gt=elapsedTicker(btn,"Generating… (can take a minute)",{text:true});
     try{
       var toneId=document.getElementById("gen-tone").value,toneName="",j;
       for(j=0;j<TONES.length;j++)if(TONES[j].id===toneId)toneName=TONES[j].nm;
@@ -902,7 +907,7 @@ function openGenerate(){
       closeGenerate();
       setStatus(err?("Generated with issues — "+err):("Generated “"+(bp.name||"untitled")+"” — a DRAFT, not a finished blueprint: edit freely, then 🔍 Review it."+(_regF.length?" "+_regF.length+" line"+(_regF.length===1?"":"s")+" in accountant's language flagged in Review — apply those fixes first.":"")),err?"err":"ok");
     }catch(e){setStatus("Generation failed: "+e.message,"err");}
-    btn.disabled=false;btn.textContent="✨ Generate";
+    _gt.stop();btn.disabled=false;btn.textContent="✨ Generate";
   });
   document.getElementById("gen-concept").focus();
 }
@@ -984,20 +989,21 @@ function reviewVerdict(){
 document.getElementById("btn-review").addEventListener("click",async function(){
   if(!llmReady())return;
   if(bp.review&&bp.review.findings&&bp.review.findings.some(function(f){return !f.status;})&&!confirm("A review with open findings exists — replace it with a fresh review?"))return;
-  var btn=this;btn.disabled=true;
+  var btn=this;btn.disabled=true;var _rt=null;
   try{
     var payload=stripView(bp);delete payload.review;
     var payloadJson=JSON.stringify(payload,null,1);
     // Chunks are READ-ONLY (each just reads the blueprint and returns findings — no bp mutation),
     // so they run fully concurrently: no grouping, no ordering, no race. Bounded by the slowest
     // section, not their sum (v0.25).
-    var doneCt=0;setStatus("Reviewing "+REVIEW_CHUNKS.length+" sections in parallel…","");
+    var doneCt=0;_rt=statusTicker("Reviewing "+REVIEW_CHUNKS.length+" sections in parallel…");/* #481 G5: progress rides set(), the seconds keep counting */
     var settled=await Promise.all(REVIEW_CHUNKS.map(function(chunk){
       return reviewChunk(payloadJson,chunk).then(
-        function(fs){doneCt++;setStatus("Reviewed "+doneCt+"/"+REVIEW_CHUNKS.length+" sections…","");return fs;},
-        function(e){doneCt++;setStatus("Reviewed "+doneCt+"/"+REVIEW_CHUNKS.length+" sections…","");if(typeof console!=="undefined"&&console.warn)console.warn("[review] "+chunk.key+" failed: "+e.message);return null;}
+        function(fs){doneCt++;_rt.set("Reviewed "+doneCt+"/"+REVIEW_CHUNKS.length+" sections…");return fs;},
+        function(e){doneCt++;_rt.set("Reviewed "+doneCt+"/"+REVIEW_CHUNKS.length+" sections…");if(typeof console!=="undefined"&&console.warn)console.warn("[review] "+chunk.key+" failed: "+e.message);return null;}
       );
     }));
+    _rt.stop();
     var all=[],failed=0,i;
     for(i=0;i<settled.length;i++){if(settled[i])all=all.concat(settled[i]);else failed++;}
     if(failed===REVIEW_CHUNKS.length)throw new Error("every section review failed — check the model / key");
@@ -1014,7 +1020,7 @@ document.getElementById("btn-review").addEventListener("click",async function(){
     markDirty();render();
     var sect=document.querySelector("[data-key='review']");if(sect)sect.scrollIntoView({behavior:"smooth"});
     setStatus("Review: "+reviewVerdict(),failed?"err":"ok");
-  }catch(e){setStatus("Review failed: "+e.message,"err");}
+  }catch(e){if(_rt)_rt.stop();setStatus("Review failed: "+e.message,"err");}
   btn.disabled=false;
 });
 // Apply one finding — BOUNDED section replacement: the model returns ONLY the top-level
@@ -1108,7 +1114,9 @@ async function applyFinding(idx){
   var chosenIdx=typeof f._sel==="number"?f._sel:0,fixText=f.fixes[chosenIdx]||"";
   delete f._err; // fresh attempt — clear any prior failure stamp
   if(!_applyingAll)_batchDeleted={}; // standalone apply gets a clean deleted-set; a batch keeps its own (reset in applyAllFindings) so deletes accumulate across findings
-  f.status="applying";render();setStatus("Applying fix: "+f.issue.slice(0,60)+"…","");
+  f.status="applying";render();
+  /* #481 G5: a lone apply counts its seconds; inside Apply-all the batch owns the statusline (one ticker, never two fighting) */
+  var _at=_applyingAll?null:statusTicker("Applying fix: "+f.issue.slice(0,60)+"…");
   var snapshot=null;
   try{
     var payload=stripView(bp);delete payload.review;
@@ -1133,6 +1141,7 @@ async function applyFinding(idx){
     // — for JSON, amputation is total loss, so it sits far above any sane response. WHY responses
     // ever balloon that big is diagnosed via the raw-response console dump in the catch below.
     var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically, ONE item at a time. Output ONLY valid JSON. Change nothing beyond what the finding requires.",16000,designerModel(),{noHistory:true,kind:"other"});
+    if(_at)_at.stop();
     var patch=JSON.parse(repairModelJson(resp));
     if(!patch||!patch.patches||!patch.patches.length)throw new Error("model returned no patches");
     snapshot=JSON.parse(JSON.stringify(bp));
@@ -1147,6 +1156,7 @@ async function applyFinding(idx){
     markDirty();render();
     setStatus("Applied ("+res.labels.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
   }catch(e){
+    if(_at)_at.stop();
     if(snapshot)bp=snapshot; // undo any partial in-place merge
     var emsg=e.message;
     // JSON died — keep the EVIDENCE (v0.30). Before this, the raw response was discarded on a parse
@@ -1196,8 +1206,9 @@ async function applyAllFindings(){
   for(i=0;i<bp.review.findings.length;i++){var bf=bp.review.findings[i];if(bf&&!bf.status&&typeof bf._sel==="number")sel.push(i);}
   var groups={},order=[],CONS="consistency";
   for(i=0;i<sel.length;i++){var key=findingTargetKey(bp.review.findings[sel[i]]);if(!groups[key]){groups[key]=[];order.push(key);}groups[key].push(sel[i]);}
-  var total=sel.length,doneCt=0,results=[];
-  function tick(){setStatus("Applying "+total+" selected fix"+(total===1?"":"es")+" — "+doneCt+"/"+total+" done…","");}
+  var total=sel.length,doneCt=0,results=[],_bt=null;
+  /* #481 G5: ONE ticker for the batch — progress rides set(), each lone apply's own ticker stands down while _applyingAll */
+  function tick(){var b="Applying "+total+" selected fix"+(total===1?"":"es")+" — "+doneCt+"/"+total+" done…";if(_bt){setStatus(b,"");_bt.set(b);}else _bt=statusTicker(b);}/* setStatus first: a finished apply left the line green or red */
   if(total)tick();
   async function runGroup(key){
     var g=groups[key],gi;
@@ -1215,7 +1226,7 @@ async function applyAllFindings(){
     await Promise.all(order.filter(function(k){return k!==CONS;}).map(runGroup));
     // …then the cross-cutting group last, on the settled blueprint (it can touch anything)
     if(groups[CONS])await runGroup(CONS);
-  }finally{_applyingAll=false;}
+  }finally{_applyingAll=false;if(_bt)_bt.stop();}
   render();
   var fails=results.filter(function(r){return !r.ok;}),ok=results.length-fails.length;
   if(fails.length&&typeof console!=="undefined"&&console.warn){fails.forEach(function(r){console.warn("[apply] "+(bp.review.findings[r.idx].section||"")+": "+r.err);});}

@@ -65,6 +65,7 @@ var SUITES = [
   "dev/tests-481-g4-row-ids.js",/* #481 G4: a TODO row id is used once across TODO.md and the archive (explicit grandfather list) */
   "dev/tests-481-g7-archive-moves.js",/* #481 G7: an archive move is byte-identical; letter ids meet the row cap */
   "dev/tests-481-g3-todo-viewer.js",/* #481 G3: the TODO viewer is truly read-only (the browser half: tests-481-g3-todo-viewer-browser.js) */
+  "dev/tests-481-g5-class-guards.js",/* #481 G5: waits tick, pages share the palette and are network-first — derived from the source (browser half: tests-481-g5-waits-browser.js) */
   "dev/tests-441-home-handoff.js",
   "dev/tests-442-modal-focus.js",
   "dev/tests-336-campaign-root.js",

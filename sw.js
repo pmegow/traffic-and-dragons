@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260929zzf";
+var CACHE = "tnd-v3-20260929zzg";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -149,7 +149,7 @@ self.addEventListener("fetch", function(e){
   // Nothing under /dev/ is in APP_SHELL, so this costs the app shell no bandwidth. Tested against
   // e.request.url (the FULL URL), hence the path-fragment style.
   if(/\/sfx\//.test(new URL(e.request.url).pathname)){e.respondWith(deliveryCache.fetch(e.request));return;}
-  if(/blueprint-designer|todo-viewer|bible_study|\/satellite\.css|home\.html(?:$|[?#])|admin_console|mementos|character_editor|bible_editor|piper_test|npc-merge-studio|bug_tracker|author_voice_lab|voice_picker|recall_gate|map_viewer|map_cleanup|story_compiler|speaker_browser|libritts_speakers|vctk_speakers|timeline_day1|\/test\.html(?:$|[?#])|\/dev\/|\/DOC\/|\/samples\//.test(e.request.url)){/* class_bible left this regex at C6-② (2026-08-03): it precaches with the app shell now — keeping it network-first too would re-download it every load (the Netlify bandwidth class) */
+  if(/blueprint-designer|todo-viewer|bible_study|\/satellite\.css|home\.html(?:$|[?#])|admin_console|mementos|character_editor|bible_editor|piper_test|npc-merge-studio|bug_tracker|author_voice_lab|voice_picker|recall_gate|map_viewer|map_cleanup|story_compiler|speaker_browser|libritts_speakers|vctk_speakers|timeline_day1|necro_spells_TMP|\/test\.html(?:$|[?#])|\/dev\/|\/DOC\/|\/samples\//.test(e.request.url)){/* class_bible left this regex at C6-② (2026-08-03): it precaches with the app shell now — keeping it network-first too would re-download it every load (the Netlify bandwidth class) */
     e.respondWith(
       fetch(e.request).then(function(response){
         // OK response: cache a clone (restores offline support) and serve it fresh.

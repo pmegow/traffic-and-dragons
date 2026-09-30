@@ -546,7 +546,7 @@ async function aiSuggestField(fieldId,fieldLabel,btn){
    old Review-step Randomise only wrote identity text; the front-of-wizard button rolls EVERYTHING and
    lands on Review, where every field is still editable and Back walks the steps). */
 async function aiRandomHero(btn){
-  if(btn){btn.disabled=true;btn.textContent="✦ Rolling…";}
+  if(btn)btn.disabled=true;
   var ts=document.getElementById("tone-sel");if(ts&&ts.value)cs.tone=ts.value;
   if(cs.tone==="custom"){var _ct=document.getElementById("tone-ct");if(!_ct||!_ct.value.trim()){cs.tone="swords";if(ts)ts.value="swords";}}
   var r=rollRandomHero();
@@ -556,10 +556,12 @@ async function aiRandomHero(btn){
   if(g)g.value=r.gender;if(a)a.value=r.age;if(al)al.value=r.alignment;
   buildStep6Deity();/* divine classes get their default deity, others clear it (audit E39) */
   goStep(6);
-  try{await aiRandomiseAll(null);}finally{if(btn){btn.disabled=false;btn.textContent="✦ Roll a random character";}}
+  /* #481 G5: the model writes the hero's name and story on the Review step, where step 1's button is out of sight — so the
+     wait is the loading modal, which counts seconds (#356) and holds the fields the reply is about to overwrite */
+  var _done=(typeof showLoadingModal==="function")?showLoadingModal("Writing your hero…"):null;
+  try{await aiRandomiseAll();}finally{if(_done)_done();if(btn)btn.disabled=false;}
 }
-async function aiRandomiseAll(btn){
-  if(btn){btn.classList.add("spinning");btn.disabled=true;btn.textContent="✦ …";}
+async function aiRandomiseAll(){/* its one caller is aiRandomHero; the Review-step button it once spun is gone (#354) */
   var ctx=_csContext({fresh:true});/* #378 */
   var prompt="Generate a complete dark fantasy RPG character identity. Return ONLY valid JSON, no markdown:\n"
     +'{"name":"string","appear":"1-2 sentence physical description","backstory":"1-2 sentences of history","trait":"one line","flaw":"one line","motivation":"one line"}'
@@ -575,7 +577,6 @@ async function aiRandomiseAll(btn){
     buildReview();
     showToast("Character generated — review and adjust below.");
   }catch(e){showToast("Generate failed: "+e.message);}
-  if(btn){btn.classList.remove("spinning");btn.disabled=false;btn.textContent="✦ Randomise";}
 }
 // Inject sparkle buttons next to field labels in step 2
 function injectSparkleButtons(){

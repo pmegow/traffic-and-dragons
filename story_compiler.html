@@ -33,8 +33,9 @@
      recall_gate discipline). The only thing it produces is a downloaded file.
      Like all satellites it must ride sw.js's network-first allowlist (the bug_tracker
      stale-pin lesson) — done in the same commit that created this file. -->
+<link rel="stylesheet" href="satellite.css">
 <style>
-  :root{--bg:#0a0a0c;--bg2:#121214;--bg3:#1b1a1c;--bg4:#232124;--brd:#29272b;--brd2:#3a3537;--acc:#b8935a;--acc2:#ddb978;--t0:#eee7db;--t1:#b9b0a0;--t2:#777064;--bad:#b86b6b;--good:#80aa70;--r:8px;--font:'Segoe UI',system-ui,sans-serif}
+  /* #481 G5: tokens come from satellite.css (#312) — one palette for every satellite; the page rules below */
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--t1);font-family:var(--font);height:100vh;display:flex;flex-direction:column;overflow:hidden}
   #bar{display:flex;align-items:center;gap:18px;min-height:58px;padding:9px 18px;background:linear-gradient(180deg,#171619 0%,var(--bg2) 100%);border-bottom:1px solid var(--brd);box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:2}
@@ -448,12 +449,14 @@
     return out.join("");
   }
 
+  // The exported BOOK is a self-contained file with its own palette (paper and ink, light and dark). Its page colour is named
+  // --bg (it was --paper): the #312 palette contract checks every var() in this file against satellite.css.
   function bookCss(){
-    return ":root{--paper:#f7f1e6;--ink:#2b2620;--dim:#8a7f6d;--acc:#b8935a;--rule:#e3d8c4;--quiet:#5c5140}"
-      +"@media (prefers-color-scheme:dark){:root{--paper:#141310;--ink:#ded4c2;--dim:#8d8371;--acc:#c6a06a;--rule:#2c2822;--quiet:#a99d88}}"
+    return ":root{--bg:#f7f1e6;--ink:#2b2620;--dim:#8a7f6d;--acc:#b8935a;--rule:#e3d8c4;--quiet:#5c5140}"
+      +"@media (prefers-color-scheme:dark){:root{--bg:#141310;--ink:#ded4c2;--dim:#8d8371;--acc:#c6a06a;--rule:#2c2822;--quiet:#a99d88}}"
       +"*{box-sizing:border-box}html,body{margin:0}"
       +".branch{margin:18px 0 8px;text-align:center;color:var(--dim);font-style:italic;letter-spacing:.06em}"
-      +"body{background:var(--paper);color:var(--ink);font:17px/1.72 Georgia,'Iowan Old Style','Times New Roman',serif}"
+      +"body{background:var(--bg);color:var(--ink);font:17px/1.72 Georgia,'Iowan Old Style','Times New Roman',serif}"
       +".wrap{max-width:720px;margin:0 auto;padding:56px 24px 96px}"
       +".cover{text-align:center;border-bottom:2px solid var(--acc);padding-bottom:30px;margin-bottom:14px}"
       +".cover img{width:150px;height:200px;object-fit:cover;border:1px solid var(--rule);border-radius:3px;margin-bottom:20px;display:inline-block}"

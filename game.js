@@ -3736,16 +3736,16 @@ async function doRender(rOpts){
     enhanceBtn.addEventListener("click",function(){
       if(!imageUrl){showToast("Image not ready yet.");return;}
       if(!falAvailable()){showToast("Sign in or set a fal.ai key first.");return;}
-      enhanceBtn.textContent="Enhancing…";enhanceBtn.disabled=true;
+      enhanceBtn.disabled=true;var _et=elapsedTicker(enhanceBtn,"Enhancing…",{text:true});/* #481 G5: the owner's "always have the counter while we're rendering" (#356) */
       var ep=withImgStyle(resp)+" "+ENHANCE_DIRECTIVE;
       falFetch("fal-ai/flux/dev/image-to-image",{prompt:ep,image_url:imageUrl,strength:ENHANCE_STRENGTH,num_inference_steps:28,num_images:1})
         .then(function(r){if(!r.ok)return r.text().catch(function(){return "";}).then(function(t){throw new Error(falErrorMsg(r.status,t));});return r.json();})/* #163b */
         .then(function(d){
           if(!(d.images&&d.images[0]&&d.images[0].url))throw new Error("No image returned.");
           imageUrl=d.images[0].url;if(sceneImg)sceneImg.src=imageUrl;
-          enhanceBtn.textContent="✨ Enhance";enhanceBtn.disabled=false;
+          _et.stop();enhanceBtn.textContent="✨ Enhance";enhanceBtn.disabled=false;
         })
-        .catch(function(e){enhanceBtn.textContent="✨ Enhance";enhanceBtn.disabled=false;showToast("Enhance failed: "+e.message);});
+        .catch(function(e){_et.stop();enhanceBtn.textContent="✨ Enhance";enhanceBtn.disabled=false;showToast("Enhance failed: "+e.message);});
     });
     var portraitBtn=mkBtn("⧉ Portrait","Use this scene as character portrait");
     portraitBtn.addEventListener("click",function(){
