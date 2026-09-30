@@ -38,6 +38,8 @@ function workflowProblems(source) {
     /* #481 G2: ONE range per run, before every range gate — they used to diff HEAD~1..HEAD and missed every commit but a
        push's last. The two per-commit gates and the sabotage diff read it as "$CI_RANGE". */
     { label: "node dev/ci-range.js --github-env (#481 G2: one range per run)", pattern: /run:\s*node dev\/ci-range\.js\s+--github-env(?:\s|$)/ },
+    /* #481 G6: the identity tripwire over every pushed commit's author (cloud sessions commit with no hook at all) */
+    { label: "node dev/check-identity.js --ci \"$CI_RANGE\" (#481 G6)", pattern: /run:\s*node dev\/check-identity\.js\s+--ci\s+"\$CI_RANGE"(?:\s|$)/ },
     /* #G1: the three hook gates that had never crossed to CI. They run BEFORE the suite here,
        in the hook's own order, so a red one blocks the expensive steps the way it does locally. */
     { label: "node dev/lint-todo.js --git-aware per commit of $CI_RANGE (#G1 hook parity; #481 G2)", pattern: /node dev\/ci-per-commit\.js "\$CI_RANGE" -- node dev\/lint-todo\.js[^\n]*--git-aware/ },
@@ -50,8 +52,27 @@ function workflowProblems(source) {
     { label: "v1271 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1271\.json --check(?:\s|$)/ },
     { label: "v1276 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1276\.json --check(?:\s|$)/ },
     { label: "node dev/sabotage-w2.js --focused", pattern: /run:\s*node dev\/sabotage-w2\.js\s+--focused(?:\s|$)/ },
+    /* #481 G6: the Chrome check, then the three blueprint browser suites as gates in their own right (they used to run only
+       when a sabotage battery happened to call them) */
+    { label: "node dev/cdp-browser.js --check (#481 G6)", pattern: /run:\s*node dev\/cdp-browser\.js\s+--check(?:\s|$)/ },
+    { label: "node dev/tests-blueprint-catalog-browser.js (#481 G6)", pattern: /run:\s*node dev\/tests-blueprint-catalog-browser\.js(?:\s|$)/ },
+    { label: "node dev/tests-blueprint-editions-browser.js (#481 G6)", pattern: /run:\s*node dev\/tests-blueprint-editions-browser\.js(?:\s|$)/ },
+    { label: "node dev/tests-blueprint-publish-browser.js (#481 G6)", pattern: /run:\s*node dev\/tests-blueprint-publish-browser\.js(?:\s|$)/ },
     { label: "node dev/run-sabotage-diff.js \"$CI_RANGE\" (#481 G2: the whole push, once)", pattern: /run:\s*node dev\/run-sabotage-diff\.js\s+"\$CI_RANGE"(?:\s|$)/ }
   ], "engine-tests.yml");
+}
+// #481 G6: the weekly job was unpinned — full history (the TODO hygiene fixture reads 93c182f^), Node 22, the Chrome check the
+// browser batteries need, and every battery under bash so tee cannot hide a red one.
+function weeklyProblems(source) {
+  return orderedProblems(String(source || ""), [
+    { label: "actions/checkout@v4", pattern: /actions\/checkout@v4/ },
+    { label: "fetch-depth: 0 (full history)", pattern: /fetch-depth:\s*0(?:\s|$)/ },
+    { label: "actions/setup-node@v4", pattern: /actions\/setup-node@v4/ },
+    { label: "Node 22", pattern: /node-version:\s*["']?22["']?/ },
+    { label: "node dev/cdp-browser.js --check", pattern: /run:\s*node dev\/cdp-browser\.js\s+--check(?:\s|$)/ },
+    { label: "shell: bash (pipefail: tee must not hide a red battery)", pattern: /shell:\s*bash(?:\s|$)/ },
+    { label: "node dev/run-sabotage-all.js", pattern: /run:\s*node dev\/run-sabotage-all\.js/ }
+  ], "sabotage-weekly.yml");
 }
 // hookGateNames — every dev/<tool>.js the pre-commit invokes, in the order it invokes them.
 function hookGateNames(source) {
@@ -72,6 +93,8 @@ function coverageProblems(workflow, hook) {
 function preCommitProblems(source) {
   return orderedProblems(String(source || ""), [
     { label: "check-hook-parity.js", pattern: /dev\/check-hook-parity\.js/ },
+    /* the INVOCATION, not the name — the hook's own comment names the file, and a name-only pin passed with the call removed */
+    { label: "check-identity.js (#481 G6: the identity tripwire, shared with CI)", pattern: /^node [^\n]*dev\/check-identity\.js"?\s*\|\|/m },
     { label: "lint-todo.js --git-aware --staged", pattern: /dev\/lint-todo\.js[^\n]*--git-aware\s+--staged/ },
     { label: "tests-todo-hygiene.js", pattern: /dev\/tests-todo-hygiene\.js/ },
     { label: "check-shell-markers.js", pattern: /dev\/check-shell-markers\.js/ },
@@ -81,7 +104,9 @@ function preCommitProblems(source) {
 function realProblems(root) {
   var workflow = fs.readFileSync(path.join(root, ".github", "workflows", "engine-tests.yml"), "utf8");
   var hook = fs.readFileSync(path.join(root, "dev", "pre-commit"), "utf8");
-  return workflowProblems(workflow).concat(preCommitProblems(hook)).concat(coverageProblems(workflow, hook));
+  var weeklyFile = path.join(root, ".github", "workflows", "sabotage-weekly.yml");   /* #481 G6 */
+  var weekly = fs.existsSync(weeklyFile) ? weeklyProblems(fs.readFileSync(weeklyFile, "utf8")) : ["sabotage-weekly.yml is missing (#481 G6: the weekly mutation proof)"];
+  return workflowProblems(workflow).concat(preCommitProblems(hook)).concat(coverageProblems(workflow, hook)).concat(weekly);
 }
 
-module.exports = { workflowProblems: workflowProblems, preCommitProblems: preCommitProblems, coverageProblems: coverageProblems, hookGateNames: hookGateNames, HOOK_ONLY: HOOK_ONLY, realProblems: realProblems };
+module.exports = { workflowProblems: workflowProblems, weeklyProblems: weeklyProblems, preCommitProblems: preCommitProblems, coverageProblems: coverageProblems, hookGateNames: hookGateNames, HOOK_ONLY: HOOK_ONLY, realProblems: realProblems };

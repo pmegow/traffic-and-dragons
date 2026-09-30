@@ -1064,7 +1064,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>Test first: a fixture repo with a shell change and no bump, then a docs-only commit, must fail CI mode.</li>
 </ul>
 <details><summary>Evidence</summary><p><code>.github/workflows/engine-tests.yml:41-46, 54, 82</code> all diff <code>HEAD~1..HEAD</code>. Since 2026-09-18 there were 127 pushes, 34 of them multi-commit. In 6, CI scheduled fewer sabotage batteries than the push touched. One example: 29d92c5 carried the #454 fix (tts.js, sw.js, globals.js) under an archive commit, and CI ran 0 batteries against the 12 needed. Cloud sessions commit with no hook at all (7d668c6, 8748101, cee917f).</p></details>
-</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">◉ ready to test — built: dev/ci-range.js (one range per run, Fable's base ladder), dev/ci-per-commit.js (check-shell-markers and lint-todo per commit), run-sabotage-diff over the range, pins in check-enforcement. Proof: dev/tests-481-g2-ci-range.js (fixture repos; the audit's repro red first), dev/sabotage-481-g2-ci-range.js 4/4. The first CI run on the next push proves the workflow itself.</td></tr>
+</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">✅ complete — dev/ci-range.js computes ONE range per run; check-shell-markers and lint-todo run per commit (dev/ci-per-commit.js); run-sabotage-diff gets the range; pins in check-enforcement. Proven in real CI at b8ecb59: range from event.before, both gates per commit, 3 batteries scheduled over the range, all green. Proof: dev/tests-481-g2-ci-range.js, dev/sabotage-481-g2-ci-range.js 4/4.</td></tr>
 
 <tr id="G3"><td class="n">G3</td><td>
 <p class="ttl">The "read-only" TODO viewer writes TODO.md — its Export alters rows and Renumber rewrites the numbering <span class="lean med">medium</span><span class="lean">wrong outcome · ruled</span></p>
@@ -1114,7 +1114,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>Move the inline identity tripwire into <code>dev/check-identity.js</code> with a CI mode.</li>
 <li>Run <code>dev/tests-blueprint-{catalog,editions,publish}-browser.js</code> after the Chrome check.</li>
 </ul>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — the Chrome check and the three blueprint browser suites (now CI steps) are pinned; weeklyProblems pins sabotage-weekly.yml and realProblems folds it in; the identity tripwire is dev/check-identity.js, called by the hook (invocation-pinned) and by CI with --ci over the range. Proof: dev/tests-481-g6-ci-topology.js (red first), dev/sabotage-481-g6-ci-topology.js 5/5; audit-contracts re-run green.</td></tr>
 
 <tr id="G7"><td class="n">G7</td><td>
 <p class="ttl">"Byte-identical" archive moves are never checked, and some aren't <span class="lean low">low</span><span class="lean">test gap</span></p>

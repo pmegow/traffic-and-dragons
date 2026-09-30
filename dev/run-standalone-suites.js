@@ -61,6 +61,7 @@ var SUITES = [
   "dev/tests-481-f9-deleted-elsewhere.js",/* #481 F9: a campaign deleted on another device asks before it is uploaded again */
   "dev/tests-481-f5-library-slug.js",/* #481 F5: one library slug with the server (vendored; hash-pinned) */
   "dev/tests-481-g2-ci-range.js",/* #481 G2: CI checks every commit of a push, over ONE range */
+  "dev/tests-481-g6-ci-topology.js",/* #481 G6: the newer CI steps, the weekly job and the identity tripwire are pinned */
   "dev/tests-441-home-handoff.js",
   "dev/tests-442-modal-focus.js",
   "dev/tests-336-campaign-root.js",

@@ -127,17 +127,18 @@ try {
   // #481 G2: ONE range per run — the range step, both hook gates per commit of $CI_RANGE, the sabotage diff over it.
   var LINT_STEP = "- run: node dev/ci-per-commit.js \"$CI_RANGE\" -- node dev/lint-todo.js --git-aware --cap --file {file:TODO.md} --head-file {parentFile:TODO.md}\n";
   var SHELL_STEP = "- run: node dev/ci-per-commit.js \"$CI_RANGE\" -- node dev/check-shell-markers.js --ci --range {parent}..{commit}\n";
-  var GOOD_WORKFLOW = "- uses: actions/checkout@v4\n- uses: actions/setup-node@v4\n  with:\n    node-version: 22\n- run: node dev/ci-range.js --github-env\n" + LINT_STEP + "- run: node dev/tests-todo-hygiene.js\n" + SHELL_STEP + "- run: node dev/run-tests.js\n- run: node dev/check-sabotage-applicability.js\n- run: node dev/diff-replay.js dev/corpus_playtest_v1238.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1258.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1271.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1276.json --check\n- run: node dev/sabotage-w2.js --focused\n- run: node dev/run-sabotage-diff.js \"$CI_RANGE\"\n";
-  var GOOD_HOOK = "node dev/check-hook-parity.js\nnode dev/lint-todo.js --git-aware --staged\nnode dev/tests-todo-hygiene.js\nnode dev/check-shell-markers.js\nnode dev/run-tests.js\n";
+  // #481 G6: the identity tripwire over the range, the Chrome check and the three browser suites are pinned steps too.
+  var GOOD_WORKFLOW = "- uses: actions/checkout@v4\n- uses: actions/setup-node@v4\n  with:\n    node-version: 22\n- run: node dev/ci-range.js --github-env\n- run: node dev/check-identity.js --ci \"$CI_RANGE\"\n" + LINT_STEP + "- run: node dev/tests-todo-hygiene.js\n" + SHELL_STEP + "- run: node dev/run-tests.js\n- run: node dev/check-sabotage-applicability.js\n- run: node dev/diff-replay.js dev/corpus_playtest_v1238.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1258.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1271.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1276.json --check\n- run: node dev/sabotage-w2.js --focused\n- run: node dev/cdp-browser.js --check\n- run: node dev/tests-blueprint-catalog-browser.js\n- run: node dev/tests-blueprint-editions-browser.js\n- run: node dev/tests-blueprint-publish-browser.js\n- run: node dev/run-sabotage-diff.js \"$CI_RANGE\"\n";
+  var GOOD_HOOK = "node dev/check-hook-parity.js\nnode dev/check-identity.js || exit 1\nnode dev/lint-todo.js --git-aware --staged\nnode dev/tests-todo-hygiene.js\nnode dev/check-shell-markers.js\nnode dev/run-tests.js\n";
 
   test("CI/pre-commit topology rejects removal of every required enforcement step", function () {
     if (!fs.existsSync(ENFORCE)) return "check-enforcement.js is missing";
     var guard = require(ENFORCE);
     if (guard.workflowProblems(GOOD_WORKFLOW).length) return "good workflow rejected: " + guard.workflowProblems(GOOD_WORKFLOW).join("; ");
     if (guard.preCommitProblems(GOOD_HOOK).length) return "good hook rejected: " + guard.preCommitProblems(GOOD_HOOK).join("; ");
-    var workflowNeedles = ["actions/checkout@v4", "actions/setup-node@v4", "node-version: 22", "node dev/ci-range.js --github-env", "node dev/lint-todo.js --git-aware --cap", "node dev/tests-todo-hygiene.js", "node dev/check-shell-markers.js --ci", "node dev/run-sabotage-diff.js \"$CI_RANGE\"", "node dev/run-tests.js", "node dev/check-sabotage-applicability.js", "node dev/diff-replay.js dev/corpus_playtest_v1238.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1258.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1271.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1276.json --check", "node dev/sabotage-w2.js --focused"];
+    var workflowNeedles = ["actions/checkout@v4", "actions/setup-node@v4", "node-version: 22", "node dev/ci-range.js --github-env", "node dev/check-identity.js --ci", "node dev/cdp-browser.js --check", "node dev/tests-blueprint-catalog-browser.js", "node dev/tests-blueprint-editions-browser.js", "node dev/tests-blueprint-publish-browser.js", "node dev/lint-todo.js --git-aware --cap", "node dev/tests-todo-hygiene.js", "node dev/check-shell-markers.js --ci", "node dev/run-sabotage-diff.js \"$CI_RANGE\"", "node dev/run-tests.js", "node dev/check-sabotage-applicability.js", "node dev/diff-replay.js dev/corpus_playtest_v1238.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1258.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1271.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1276.json --check", "node dev/sabotage-w2.js --focused"];
     for (var i = 0; i < workflowNeedles.length; i++) if (!guard.workflowProblems(GOOD_WORKFLOW.replace(workflowNeedles[i], "REMOVED")).length) return "workflow removal passed: " + workflowNeedles[i];
-    var hookNeedles = ["node dev/check-hook-parity.js", "--git-aware --staged", "node dev/tests-todo-hygiene.js", "node dev/check-shell-markers.js", "node dev/run-tests.js"];
+    var hookNeedles = ["node dev/check-hook-parity.js", "node dev/check-identity.js", "--git-aware --staged", "node dev/tests-todo-hygiene.js", "node dev/check-shell-markers.js", "node dev/run-tests.js"];
     for (var j = 0; j < hookNeedles.length; j++) if (!guard.preCommitProblems(GOOD_HOOK.replace(hookNeedles[j], "REMOVED")).length) return "hook removal passed: " + hookNeedles[j];
     return "";
   });
@@ -183,6 +184,8 @@ try {
     var hookFile = path.join(fakeRoot, "dev", "pre-commit");
     fs.writeFileSync(yml, GOOD_WORKFLOW, "utf8");
     fs.writeFileSync(hookFile, GOOD_HOOK, "utf8");
+    /* #481 G6: realProblems also reads the weekly job — the shipped shape carries one */
+    fs.writeFileSync(path.join(fakeRoot, ".github", "workflows", "sabotage-weekly.yml"), "- uses: actions/checkout@v4\n  with:\n    fetch-depth: 0\n- uses: actions/setup-node@v4\n  with:\n    node-version: 22\n- run: node dev/cdp-browser.js --check\n- shell: bash\n  run: node dev/run-sabotage-all.js\n", "utf8");
     if (guard.realProblems(fakeRoot).length) return "the shipped-shape pair was rejected: " + guard.realProblems(fakeRoot).join("; ");
     fs.writeFileSync(hookFile, GOOD_HOOK + "node dev/check-brand-new-gate.js\n", "utf8");
     var problems = guard.realProblems(fakeRoot);
@@ -192,7 +195,7 @@ try {
   test("#G1 hookGateNames reads the gates out of the REAL pre-commit, in order", function () {
     var guard = require(ENFORCE);
     var names = guard.hookGateNames(fs.readFileSync(path.join(ROOT, "dev", "pre-commit"), "utf8"));
-    var want = ["check-hook-parity.js", "lint-todo.js", "tests-todo-hygiene.js", "check-es5.js"/* #481 G10 */, "check-shell-markers.js", "run-tests.js"];
+    var want = ["check-hook-parity.js", "check-identity.js"/* #481 G6 */, "lint-todo.js", "tests-todo-hygiene.js", "check-es5.js"/* #481 G10 */, "check-shell-markers.js", "run-tests.js"];
     if (names.join(",") !== want.join(",")) return "got [" + names.join(",") + "], want [" + want.join(",") + "]";
     return "";
   });

@@ -144,8 +144,9 @@ rc |= sabotage.prove({
     {
       label: "G1 realProblems stops folding in the hook→CI coverage rule",
       mustFail: "realProblems ignored a hook-only gate",
-      find: ".concat(coverageProblems(workflow, hook));",
-      replace: ";"
+      /* #481 G6 re-anchor: realProblems now also folds in the weekly job's pins */
+      find: ".concat(coverageProblems(workflow, hook)).concat(weekly);",
+      replace: ".concat(weekly);"
     },
     {
       label: "G1 every gate becomes exempt, so a hook-only gate passes",

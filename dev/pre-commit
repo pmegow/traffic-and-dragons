@@ -10,15 +10,13 @@ node "$(git rev-parse --show-toplevel)/dev/check-hook-parity.js" || {
 }
 # Identity tripwire (2026-08-16): a leaked fixture 'git config user.*' once misattributed 39
 # real commits to 'Forensics Fixture <forensics@example.invalid>'. Any fixture-looking identity
-# blocks the commit until git config user.name/user.email are restored.
-ci_name="$(git config user.name)"; ci_email="$(git config user.email)"
-case "$ci_name|$ci_email" in
-  *[Ff]ixture*|*.invalid|*example.invalid*)
-    echo "Commit blocked: git identity looks like a TEST FIXTURE ($ci_name <$ci_email>)." >&2
-    echo "A fixture config write leaked into the real repo (the #27 env-leak class)." >&2
-    echo "Restore it:  git config user.name pmegow ; git config user.email pmegow@gmail.com" >&2
-    exit 1;;
-esac
+# blocks the commit until git config user.name/user.email are restored. #481 G6: the rule lives in
+# dev/check-identity.js, which CI also runs over every pushed commit's author (--ci).
+node "$(git rev-parse --show-toplevel)/dev/check-identity.js" || {
+  echo "" >&2
+  echo "Commit blocked: the git identity looks like a test fixture (details above)." >&2
+  exit 1
+}
 node "$(git rev-parse --show-toplevel)/dev/lint-todo.js" --git-aware --staged --cap || {
   echo "" >&2
   echo "Commit blocked: TODO.md integrity failed — table shape or moved-row bytes differ from HEAD (findings above)." >&2

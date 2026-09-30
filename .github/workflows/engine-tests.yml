@@ -34,6 +34,10 @@ jobs:
       # they used to diff HEAD~1..HEAD, so a code commit pushed under a docs commit skipped them all.
       - name: Compute the range this run checks
         run: node dev/ci-range.js --github-env
+      # #481 G6: the identity tripwire the hook runs for the committer, here over every pushed commit's author and
+      # committer — cloud sessions commit with no hook at all (a leaked fixture identity once misattributed 39 commits).
+      - name: No commit in the push carries a test-fixture identity
+        run: node dev/check-identity.js --ci "$CI_RANGE"
       # ── the hook's other gates, which run before the suite locally too (audit G1) ────────
       # check-hook-parity is deliberately NOT here: it compares the INSTALLED .git hook, which a
       # CI checkout does not have. That is the one entry in check-enforcement.js's HOOK_ONLY.
@@ -77,6 +81,14 @@ jobs:
       # the batteries themselves only skip (loudly) on a machine without Chrome, which a runner must never be.
       - name: Chrome launches for the browser sabotage batteries
         run: node dev/cdp-browser.js --check
+      # #481 G6: the three blueprint browser suites gate on their own — they used to run only when a sabotage battery
+      # happened to call them, so a red one could sit unseen for weeks.
+      - name: Blueprint catalog in a real browser
+        run: node dev/tests-blueprint-catalog-browser.js
+      - name: Blueprint editions in a real browser
+        run: node dev/tests-blueprint-editions-browser.js
+      - name: Blueprint publication in a real browser
+        run: node dev/tests-blueprint-publish-browser.js
       # #312 ①: a battery whose target file changed in this push runs in this push (the weekly
       # job proves all 63; this keeps a guard's own edit honest the day it lands). #481 G2: the
       # WHOLE push's range, once — not just its last commit.
