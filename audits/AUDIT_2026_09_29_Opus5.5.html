@@ -1131,7 +1131,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>13 of CLAUDE.md's links aim at section names that don't exist: an underscore became a hyphen.</li>
 </ul>
 <p><span class="k">Fix</span>Rebase the 34 links to <code>../</code>, fix the 13 anchors (for example <code>#capability_biblejs</code>), and add <code>dev/check-doc-links.js</code> to run-tests. These are mechanical path fixes; no contract wording changes.</p>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — all 47 dead links fixed mechanically, with no contract wording changed. 34 contract-file links now resolve from DOC/contracts/ (../CLAUDE_HISTORY.md, ../../audits/…). 13 CLAUDE.md anchors now keep the heading's _ (#capability_biblejs). dev/check-doc-links.js checks every relative link in CLAUDE.md and DOC/contracts/*.md: the file must exist and its #fragment must be a real heading slug (GitHub rules: _ kept, a repeat gets -1) or id. Links inside code are skipped, and a root-resolving path gets a rebase hint. run-tests runs it before the suite. Proof: dev/tests-481-g8-doc-links.js (4 groups; the live check found exactly the audit's 47 before the fix); dev/sabotage-481-g8-doc-links.js 6/6.</td></tr>
 
 <tr id="G9"><td class="n">G9</td><td>
 <p class="ttl">CLAUDE.md's hand-copied facts have drifted from the code <span class="lean low">low</span><span class="lean">doc rot</span></p>

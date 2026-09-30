@@ -6,7 +6,7 @@ Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version s
 
 ## 10. Combat system
 
-**Multi-foe (UA26)** — design + ratified decisions in [MULTI_ENEMY_COMBAT.md](DOC/MULTI_ENEMY_COMBAT.md). Combat state lives in `worldState.combat`:
+**Multi-foe (UA26)** — design + ratified decisions in [MULTI_ENEMY_COMBAT.md](../MULTI_ENEMY_COMBAT.md). Combat state lives in `worldState.combat`:
 
 ```
 { round: N,

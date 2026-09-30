@@ -15,6 +15,18 @@ try {
   console.error("VERIFICATION ENFORCEMENT CONTRACT FAILED: " + e.message);
   process.exit(1);
 }
+// #481 G8: every relative link in the LIVE contract docs (CLAUDE.md + DOC/contracts/*.md) lands — the file exists and a
+// #fragment names a real heading or id. The #310 split had left 34 links resolving from the wrong folder and 13 dead anchors.
+try {
+  var _docLinks = require("./check-doc-links.js").brokenLinks(require("path").join(__dirname, ".."));
+  if (_docLinks.length) {
+    console.error("DOC LINKS CONTRACT FAILED:\n  - " + _docLinks.map(function (b) { return b.file + ":" + b.line + " → " + b.target + " — " + b.why; }).join("\n  - "));
+    process.exit(1);
+  }
+} catch (e) {
+  console.error("DOC LINKS CONTRACT FAILED: " + e.message);
+  process.exit(1);
+}
 
 // ── SHARED READERS FOR THE SOURCE-CONTRACT SECTION (audit G11, 2026-09-18) ──────────────────
 // Every contract below does the same two things: read a repo file, and strip its comments before
