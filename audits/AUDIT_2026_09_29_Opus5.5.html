@@ -1166,7 +1166,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>Move the 15 <code>qa-*.js</code> that still require Playwright to <code>dev/cdp-browser.js</code>.</li>
 <li>Move <code>reviews/</code> under <code>audits/</code>, fixing citations in the same commit.</li>
 </ul>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">◐ partially complete — Done: reviews/ moved to audits/reviews/ in one commit. Its one citing file (DOC/TODO_ARCHIVE.md, whose links were already dead from DOC/) now points there, and the one outward link inside the pages is rebased; every relative link lands. The three one-shots are deleted (one-shot-receiver, repair-t2231-spine, repair-t2324-unstick; each served one past run; git keeps them). Per Fable (1), the Playwright port is its own row: TODO #485 lists the ten scripts that still need Playwright (15 at audit time), including the four uncited QA scripts. __pycache__ was ignored by G1; the gate-logs bullet is dropped per Fable (2). <b>Open (1), an allowance spend per Fable (3):</b> the overdue playtest (dev/schedule.json, due 2026-09-15). <b>Open (2), owner ruling:</b> the 'Untracked testRuns files (298)' advisory is NOT moot after G1. session-check reports IGNORED testRuns files by #20 design, pinned by the hygiene test, while G1 made testRuns/ the sanctioned home for local artifacts; 231 are gate logs and 67 the owner's saves and artifacts, so nothing was deleted. Options: stop reporting ignored testRuns files; skip only *.log; or keep it and prune by hand.</td></tr>
 </tbody></table>
 
 <h2 id="rejected">Rejected ledger — candidates that turned out deliberate or harmless</h2>
