@@ -1464,6 +1464,7 @@ var TTS = (function() {
   var _curItem    = null;   // the item _drain last dispatched (v1.438) — a doomed-ctx rebuild
                             // requeues it so "tap anywhere to resume" re-reads instead of discarding
   var _lastSpokenText  = "";
+  var _lastNarrationCamp = null;   // #481 E4: the campaign that narrated _lastNarration — a replay never crosses a switch
   var _lastNarration   = "";   // set ONLY by speakResponse (rank 17/18, todo_carplay.html) — narration-
                                 // sourced, unlike _lastSpokenText which every speak() caller (incl. the
                                 // settings-modal Test buttons) overwrites. Backs TTS.replayLast().
@@ -2115,14 +2116,15 @@ var TTS = (function() {
     var trimmed = cleanText.trim();
     // Rank 17/18: record ONLY here (narration, not Test/other speak() callers), and persist onto
     // worldState so ⏮ survives a reload — it rides the existing saveAll cycles (no save call here).
-    _lastNarration = trimmed;
+    _lastNarration = trimmed; _lastNarrationCamp = (typeof worldState !== "undefined" && worldState) ? (worldState.campId || null) : null;
     if (typeof worldState !== "undefined" && worldState && worldState.character) worldState.lastNarration = trimmed;
     speak(trimmed, null, voices);
   }
 
   // Reload-tolerant read: in-memory copy first, else the persisted worldState fallback (rank 18).
   function _getLastNarration() {
-    if (_lastNarration) return _lastNarration;
+    var _cur = (typeof worldState !== "undefined" && worldState) ? (worldState.campId || null) : null;
+    if (_lastNarration && _lastNarrationCamp === _cur) return _lastNarration;   /* #481 E4: keyed by campaign — another campaign's story is never replayed */
     if (typeof worldState !== "undefined" && worldState && worldState.lastNarration) return worldState.lastNarration;
     return "";
   }

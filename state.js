@@ -960,7 +960,7 @@ function getActiveCampId(){return store.get(ACTIVE_CAMP_K)||null;}
    of which will always be missed. The new campaign's own camp is fetched by restoreCheckpointHolder. */
 function setActiveCampId(id){
   var prev=store.get(ACTIVE_CAMP_K)||null;
-  if((id||null)!==prev&&typeof checkpointClear==="function")checkpointClear();
+  if((id||null)!==prev){if(typeof checkpointClear==="function")checkpointClear();if(typeof TTS!=="undefined"&&TTS&&typeof TTS.stop==="function"&&((TTS.isPlaying&&TTS.isPlaying())||(TTS.isPaused&&TTS.isPaused())))TTS.stop();}/* #481 E4: the ONE campaign-activation boundary — another campaign's narration stops here (a cloud voice kept fetching and billing) */
   if(id)store.set(ACTIVE_CAMP_K,id);else store.del(ACTIVE_CAMP_K);
 }
 function newCampaignId(){return"camp_"+Date.now()+"_"+Math.floor(Math.random()*9000+1000);}

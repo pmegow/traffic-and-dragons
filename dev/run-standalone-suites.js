@@ -51,7 +51,8 @@ var SUITES = [
   "dev/tests-453-npc-portrait.js",
   "dev/tests-456-inworld-character.js",
   "dev/tests-459-register-gate.js",
-  "dev/tests-481-c7-record-names.js",/* #481 C7: canonical names are not the register; deferral past the cap */
+  "dev/tests-481-c7-record-names.js",
+  "dev/tests-481-e4-campaign-switch.js",/* #481 E4: a campaign switch stops the read; the replay is keyed by campaign *//* #481 C7: canonical names are not the register; deferral past the cap */
   "dev/tests-441-home-handoff.js",
   "dev/tests-442-modal-focus.js",
   "dev/tests-336-campaign-root.js",

@@ -848,7 +848,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>Key the replay text by campaign id, or read only <code>worldState.lastNarration</code>.</li>
 </ul>
 <details><summary>Evidence</summary><p><code>tts.js:1467, 2113-2128, 3700-3712</code>. A repro with the real tts.js: speak "CAMPAIGN A: …", stop, swap to campaign B, then <code>TTS.replayLast()</code> speaks "CAMPAIGN A: the dungeon door grinds shut behind you." The only <code>TTS.stop</code> callers are in Car Mode.</p></details>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">◉ ready to test — v1.1060</td></tr>
 
 <tr id="E5"><td class="n">E5</td><td>
 <p class="ttl">Half of the GM's soundscape classifications are thrown away over one invented word <span class="lean med">medium</span><span class="lean">wrong outcome · UX</span></p>
