@@ -42,21 +42,12 @@
     .tbtn.danger:hover{border-color:var(--red);color:var(--red);}
     .tbtn.accent{background:var(--acc);color:#000;border-color:var(--acc);}
     .tbtn.accent:hover{opacity:.85;color:#000;}
-    /* Drag and drop */
-    .drag-handle{cursor:grab;color:var(--t2);padding:0 6px 0 2px;font-size:14px;user-select:none;}
-    .drag-handle:hover{color:var(--acc);}
-    tr.dragging{opacity:0.4;}
-    tr.drag-over td{border-top:2px solid var(--acc);}
     .num-cell{color:var(--t2);width:36px;font-size:12px;}
-    .handle-cell{width:24px;padding:7px 0;}
-    /* Add task bar */
-    #add-task-bar{display:none;align-items:center;gap:8px;margin-top:12px;}
-    #add-task-inp{flex:1;font-family:Georgia,serif;font-size:13px;background:var(--bg2);border:1px solid var(--acc);border-radius:4px;color:var(--t0);padding:7px 10px;outline:none;}
-    #add-task-inp:focus{border-color:var(--acc);box-shadow:0 0 0 2px rgba(200,146,42,.15);}
-    /* Row edit button — lives inside task cell, shown on row hover */
-    .row-edit-btn{visibility:hidden;background:none;border:none;color:var(--t2);cursor:pointer;font-size:12px;padding:2px 4px;line-height:1;flex-shrink:0;align-self:flex-start;}
-    .row-edit-btn:hover{color:var(--acc);}
-    tr:hover .row-edit-btn{visibility:visible;}
+    /* Status glyph — read-only (#481 G3: the viewer never writes; it used to be a click-to-cycle toggle) */
+    .dot{font-size:13px;line-height:1;color:var(--brd2);}
+    .dot.part{color:var(--t1);}
+    .dot.rtt{color:var(--acc);}
+    .dot.done{color:var(--grn);}
     .task-cell-inner{display:flex;align-items:flex-start;gap:10px;}
     .task-cell-inner .task-body{flex:1;min-width:0;}
     /* Per-item collapse — arrow spacing/size echoes the main section toggles */
@@ -64,35 +55,19 @@
     .task-arr.open{transform:rotate(90deg);}
     .task-head{cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .task-head:hover{color:var(--t0);}
-    /* Textarea for inline editing */
-    .edit-inp{font-family:Georgia,serif;font-size:13px;background:var(--bg3);border:1px solid var(--acc);border-radius:3px;color:var(--t0);padding:4px 6px;width:100%;outline:none;resize:vertical;line-height:1.5;}
-    /* Done toggle */
     .check-cell{width:22px;padding:7px 2px;text-align:center;}
-    .check-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:0;line-height:1;color:var(--grn);}
-    .check-btn.undone{color:var(--brd2);}
-    .check-btn.rtt{color:var(--acc);}
-    .check-btn:hover{opacity:.7;}
     /* Ready to test row */
     tr.rtt td{background:rgba(200,146,42,.07);}
     tr.rtt:hover td{background:rgba(200,146,42,.14);}
-    /* Action cells (complete + delete) */
-    .act-cell{width:22px;padding:7px 2px;text-align:center;}
-    .row-act-btn{visibility:hidden;background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;}
-    .row-act-btn:hover{color:var(--acc);}
-    .row-act-btn.del:hover{color:var(--red);}
-    .row-act-btn.del{font-size:16px;}
-    tr:hover .row-act-btn{visibility:visible;}
     /* Resizable status column */
-    th.resizable{position:sticky;right:44px;overflow:visible;background:var(--bg1);z-index:3;}
+    th.resizable{position:sticky;right:0;overflow:visible;background:var(--bg1);z-index:3;}
     .col-resize-handle{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;}
     .col-resize-handle:hover,.col-resize-handle.dragging{background:var(--acc);opacity:0.4;}
-    /* Status and action cells sticky-right */
-    td.status-td{position:sticky;right:44px;background:var(--bg1);z-index:1;}
-    td.comp-cell,th.comp-th{position:sticky;right:22px;background:var(--bg1);z-index:3;}
-    td.del-cell,th.del-th{position:sticky;right:0;background:var(--bg1);z-index:3;}
-    tr:hover td.status-td,tr:hover td.comp-cell,tr:hover td.del-cell{background:var(--bg2);}
-    tr.rtt td.status-td,tr.rtt td.comp-cell,tr.rtt td.del-cell{background:rgba(184,147,90,.07);}
-    tr.rtt:hover td.status-td,tr.rtt:hover td.comp-cell,tr.rtt:hover td.del-cell{background:rgba(184,147,90,.14);}
+    /* Status cell sticky-right (the complete/delete columns that sat beside it are gone — #481 G3) */
+    td.status-td{position:sticky;right:0;background:var(--bg1);z-index:1;}
+    tr:hover td.status-td{background:var(--bg2);}
+    tr.rtt td.status-td{background:rgba(184,147,90,.07);}
+    tr.rtt:hover td.status-td{background:rgba(184,147,90,.14);}
     /* Lock task column — don't let it shrink */
     td.task-td,th.task-th{min-width:400px;}
     .task-table{table-layout:fixed;width:100%;}
@@ -136,8 +111,6 @@
     .completed-body.open{display:block;}
     .completed-body table{opacity:.55;}
     .completed-body tr:hover td{opacity:1;}
-    .completed-body .row-act-btn.restore{font-size:12px;}
-    .completed-body .row-act-btn.restore:hover{color:var(--grn);}
   </style>
 </head>
 <body>
@@ -149,24 +122,20 @@
       <p style="margin-top:16px;font-size:11px;">or drag &amp; drop TODO.md here</p>
     </div>
   </div>
-  <div id="add-task-bar">
-    <input id="add-task-inp" type="text" placeholder="New task description…">
-    <button class="tbtn accent" onclick="doAddTask()">Add</button>
-    <button class="tbtn" onclick="hideAddTask()">&#215;</button>
-  </div>
 
 <script>
 var _sections = [];
-var TODO_VIEWER_VERSION = "v0.4";  // bump on every todo-viewer change (satellite versioning,
+var TODO_VIEWER_VERSION = "v0.5";  // bump on every todo-viewer change (satellite versioning,
                                    // the BP_DESIGNER_VERSION precedent — this page is NOT in
                                    // the SW app shell, so APP_VERSION/CACHE stay put for it)
+// #481 G3 (owner ruling 2026-09-29): TRULY read-only. The viewer used to export TODO.md in place (a no-edit save changed four
+// rows; Renumber rewrote 44 of 45 open numbers) behind a "read-only" label. Every write and edit path is gone — export,
+// renumber, add, edit, delete, complete, restore, the status toggle, drag-reorder; the READ handle stays. All TODO edits go
+// through Claude. Contract: dev/tests-481-g3-todo-viewer.js.
 var _tasks = [];
-var _dragSrc = null;
 var _fileHandle = null;
 var _startHandle = null; // last-stored TODO handle, kept even when read permission has lapsed — used ONLY as the picker's startIn anchor (startIn needs no permission), so "Select TODO…" opens IN the project directory instead of the browser default
 var _fileName = ""; // name of the file being viewed (File System Access API exposes no directory path)
-var _addSec = -1;   // tasks-section idx the add bar targets; set by the per-section add buttons
-var _editIdx = -1;
 var _statusColW = 240;
 var _hasEffort = false;
 var _compOpen = {}; // track which completed sections are open, keyed by section idx
@@ -304,11 +273,6 @@ function splitCells(line) {
   cells.push(cur.trim());
   return cells;
 }
-// Newlines MUST become <br> — a raw newline inside a cell splits the row across physical lines
-// (invalid GFM). joinWrappedRows() re-absorbs those on OUR next load, which masked the corruption
-// for every other reader (GitHub, Claude edits) until an external edit stranded the tail lines
-// (the 2026-07-09 #24 break). The edit textarea is where multi-line text gets in.
-function escCell(s) { return String(s).replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>"); }
 
 // Rejoin table rows that were written WRAPPED across physical lines (invalid GFM, but generated
 // audits do it — AUDIT_PLAYTHRU's P2 opened "| P2 | **…** " and terminated "| M | open |" five
@@ -414,23 +378,16 @@ function renderPage() {
     + "<div class='toolbar-right'>"
     + "<button class='tbtn' onclick='pickFile()'>&#128194; Select TODO&hellip;</button>"
     + "<button class='tbtn' onclick='refresh()'>&#8635; Refresh</button>"
-    + "<button class='tbtn' onclick='renumber()'>Renumber</button>"
-    + "<button class='tbtn' onclick='exportMd()'>Export " + inline(_fileName || "TODO.md") + "</button>"
     + "<button class='tbtn' onclick='location.reload()'>Reset</button>"
     + "</div></div>";
 
   // Flatten sections into ordered pieces, splitting text sections at their ## headings so each
   // top-level section (heading + all its content up to the next ##) can be wrapped as collapsible.
-  // lastHeading tracks the ## group each task table lands in, so its add button can be
-  // labeled for the section ("Add issue" under Known issues, "Add task" elsewhere).
   var pieces = [];
-  var lastHeading = "";
   for (var s = 0; s < _sections.length; s++) {
     var sec = _sections[s];
     if (sec.type === "tasks") {
-      var addLbl = /issue/i.test(lastHeading) ? "Add issue" : "Add task";
-      var addBtn = "<div style='margin:-6px 0 14px;'><button class='tbtn accent' onclick='showAddTask(" + sec.idx + ",\"" + addLbl + "\")'>&#65291; " + addLbl + "</button></div>";
-      pieces.push({ type: "html", html: renderTaskTable(sec) + addBtn + renderCompletedSection(sec) });
+      pieces.push({ type: "html", html: renderTaskTable(sec) + renderCompletedSection(sec) });
     } else {
       var lines = sec.content.split("\n");
       var buf = [];
@@ -439,7 +396,6 @@ function renderPage() {
         if (hm) {
           if (buf.length) { pieces.push({ type: "html", html: parseMarkdown(buf.join("\n")) }); buf = []; }
           pieces.push({ type: "heading", title: hm[1] });
-          lastHeading = hm[1];
         } else {
           buf.push(lines[li]);
         }
@@ -516,9 +472,8 @@ function tierBadge(t) {
 // The status dot is the deliberate human triage, so it outranks any ✅ buried in the prose.
 // Owner rule 2026-09-02: ○ not started · ◐ partially complete · ◉ ready to test · ✅ complete.
 // ◒ is the LEGACY ready-to-test dot (archived rows still carry it) and reads as ◉.
-var DOT_UNDONE = "○", DOT_PARTIAL = "◐", DOT_RTT = "◉", DOT_RTT_LEGACY = "◒";
+var DOT_PARTIAL = "◐", DOT_RTT = "◉", DOT_RTT_LEGACY = "◒";
 function rowDot(t) { var m = /[◒○◐◉]/.exec(t.status || ""); return m ? (m[0] === DOT_RTT_LEGACY ? DOT_RTT : m[0]) : ""; }
-function stripDot(s) { return String(s || "").replace(/[◒○◐◉]\s*/, "").trim(); }
 function isDone(t) {
   if (rowDot(t)) return false;   // an explicit ○/◐/◉ says the row is NOT finished, whatever it contains
   return /✅/.test(t.task) || /✅/.test(t.status) || /\bDone\b/.test(t.status);
@@ -565,10 +520,10 @@ function toggleTaskExpand(i) {
 function renderTaskTable(sec) {
   var hasEff = sec.hasEffort, hasTier = sec.hasTier;
   var h = "<table class='task-table'>"
-    + "<thead><tr><th style='width:22px;'></th><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
+    + "<thead><tr><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
     + (hasEff ? "<th class='effort-th'>Effort</th>" : "")
     + (hasTier ? "<th class='tier-th'>Tier</th>" : "")
-    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status<div class='col-resize-handle'></div></th><th class='comp-th' style='width:22px;'></th><th class='del-th' style='width:22px;'></th></tr></thead>"
+    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status<div class='col-resize-handle'></div></th></tr></thead>"
     + "<tbody class='tt-body' data-sec='"+sec.idx+"'>";
   for (var i = 0; i < _tasks.length; i++) {
     if (_tasks[i].sec !== sec.idx || _tasks[i].completed) continue;
@@ -576,35 +531,25 @@ function renderTaskTable(sec) {
     var done = isDone(t), rtt = isReadyToTest(t), part = isPartial(t), low = isLow(t);
     var sCls = done ? "status sdone" : low ? "status slow" : "status";
     var rowCls = done ? "done" : rtt ? "rtt" : "";
-    var checkCls = done ? "check-btn" : rtt ? "check-btn rtt" : "check-btn undone";
-    var checkSym = done ? "&#10003;" : rtt ? "&#9673;" : part ? "&#9680;" : "&#9711;";
-    var checkTitle = done ? "Mark not started" : rtt ? "Mark complete" : part ? "Mark ready to test" : "Mark partially complete";
-    var editing = (i === _editIdx);
+    /* #481 G3: the status glyph is shown, never clicked — it used to cycle the status (an edit) */
+    var dotCls = done ? "dot done" : rtt ? "dot rtt" : part ? "dot part" : "dot";
+    var dotSym = done ? "&#10003;" : rtt ? "&#9673;" : part ? "&#9680;" : "&#9711;";
+    var dotTitle = done ? "complete" : rtt ? "ready to test" : part ? "partially complete" : "not started";
     var expanded = !!t._expanded;
-    var rows = Math.max(2, Math.ceil(t.task.length / 72));
-    var safeText = t.task.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     var taskBody = expanded
       ? "<span class='task-body'>" + inline(t.task) + "</span>"
       : "<span class='task-body task-head' onclick='toggleTaskExpand(" + i + ")'>" + inline(taskHeadline(t.task)) + "</span>";
-    var taskCell = editing
-      ? "<td class='task-td'><textarea class='edit-inp' id='edit-task-inp' rows='" + rows + "'"
-          + " onkeydown='if(event.key===\"Escape\"){_editIdx=-1;renderPage();}'"
-          + " onblur='saveEditTask(" + i + ")'>" + safeText + "</textarea></td>"
-      : "<td class='task-td'><div class='task-cell-inner'>"
+    var taskCell = "<td class='task-td'><div class='task-cell-inner'>"
           + "<span class='task-arr" + (expanded ? " open" : "") + "' onclick='toggleTaskExpand(" + i + ")' title='Expand / collapse'>&#9654;</span>"
           + taskBody
-          + "<button class='row-edit-btn' title='Edit' onclick='startEditTask(" + i + ")'>&#9998;</button>"
           + "</div></td>";
-    h += "<tr class='" + rowCls + "' draggable='" + (!editing) + "' data-idx='" + i + "'>"
-      + "<td class='handle-cell'><span class='drag-handle' title='Drag to reorder'>&#10783;</span></td>"
-      + "<td class='check-cell'><button class='" + checkCls + "' onclick='toggleDone(" + i + ")' title='" + checkTitle + "'>" + checkSym + "</button></td>"
+    h += "<tr class='" + rowCls + "' data-idx='" + i + "'>"
+      + "<td class='check-cell'><span class='" + dotCls + "' title='" + dotTitle + "'>" + dotSym + "</span></td>"
       + "<td class='num-cell'>" + inline(t.num) + "</td>"
       + taskCell
       + (hasEff ? "<td class='effort-td'>" + effortBadge(t.effort) + "</td>" : "")
       + (hasTier ? "<td class='tier-td'>" + tierBadge(t.tier) + "</td>" : "")
       + "<td class='status-td " + sCls + "'>" + (expanded ? inline(t.status) : "") + "</td>"
-      + "<td class='comp-cell'><button class='row-act-btn' title='Move to Completed' onclick='completeTask(" + i + ")'>C</button></td>"
-      + "<td class='del-cell'><button class='row-act-btn del' title='Delete task' onclick='deleteTask(" + i + ")'>&#215;</button></td>"
       + "</tr>";
   }
   h += "</tbody></table>";
@@ -630,7 +575,7 @@ function renderCompletedSection(sec) {
     + "<thead><tr><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
     + (hasEff ? "<th class='effort-th'>Effort</th>" : "")
     + (hasTier ? "<th class='tier-th'>Tier</th>" : "")
-    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status</th><th style='width:22px;'></th><th style='width:22px;'></th></tr></thead>"
+    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status</th></tr></thead>"
     + "<tbody>";
   for (var j = 0; j < compTasks.length; j++) {
     var t = compTasks[j].task, gi = compTasks[j].idx;
@@ -647,8 +592,6 @@ function renderCompletedSection(sec) {
       + (hasEff ? "<td class='effort-td'>" + effortBadge(t.effort) + "</td>" : "")
       + (hasTier ? "<td class='tier-td'>" + tierBadge(t.tier) + "</td>" : "")
       + "<td class='status-td status sdone'>" + (cExpanded ? inline(t.status) : "") + "</td>"
-      + "<td class='act-cell'><button class='row-act-btn restore' title='Restore to active' onclick='restoreTask(" + gi + ")'>&#8617;</button></td>"
-      + "<td class='act-cell'><button class='row-act-btn del' title='Delete task' onclick='deleteTask(" + gi + ")'>&#215;</button></td>"
       + "</tr>";
   }
   h += "</tbody></table></div></div>";
@@ -656,46 +599,7 @@ function renderCompletedSection(sec) {
 }
 
 function wireTaskTable() {
-  var bodies = document.querySelectorAll("tbody.tt-body");
-  for (var b = 0; b < bodies.length; b++) wireTaskBody(bodies[b]);
   initColResize();
-}
-function wireTaskBody(tbody) {
-  var rows = tbody.querySelectorAll("tr");
-  for (var i = 0; i < rows.length; i++) {
-    (function(row) {
-      row.addEventListener("dragstart", function(e) {
-        _dragSrc = row;
-        row.classList.add("dragging");
-        e.dataTransfer.effectAllowed = "move";
-      });
-      row.addEventListener("dragend", function() {
-        row.classList.remove("dragging");
-        var all = document.querySelectorAll("tbody.tt-body tr");
-        for (var j = 0; j < all.length; j++) all[j].classList.remove("drag-over");
-      });
-      row.addEventListener("dragover", function(e) {
-        e.preventDefault();
-        if (_dragSrc && _dragSrc !== row) {
-          var all = document.querySelectorAll("tbody.tt-body tr");
-          for (var j = 0; j < all.length; j++) all[j].classList.remove("drag-over");
-          row.classList.add("drag-over");
-        }
-      });
-      row.addEventListener("drop", function(e) {
-        e.preventDefault();
-        if (_dragSrc && _dragSrc !== row) {
-          var srcIdx = parseInt(_dragSrc.getAttribute("data-idx"));
-          var destIdx = parseInt(row.getAttribute("data-idx"));
-          var destSec = _tasks[destIdx].sec;
-          var moved = _tasks.splice(srcIdx, 1)[0];
-          moved.sec = destSec;
-          _tasks.splice(destIdx, 0, moved);
-          renderPage();
-        }
-      });
-    })(rows[i]);
-  }
 }
 
 function initColResize() {
@@ -724,191 +628,15 @@ function wireColResize(handle) {
   });
 }
 
-// ── Add task ──────────────────────────────────────────────────────────────────
-
-function showAddTask(secIdx, label) {
-  _addSec = (typeof secIdx === "number") ? secIdx : -1;
-  var bar = document.getElementById("add-task-bar");
-  if (bar) {
-    bar.style.display = "flex";
-    var inp = document.getElementById("add-task-inp");
-    if (inp) { inp.value = ""; inp.placeholder = "New " + (/issue/i.test(label || "") ? "issue" : "task") + " description…"; inp.focus(); }
-  }
-}
-function hideAddTask() {
-  var bar = document.getElementById("add-task-bar");
-  if (bar) bar.style.display = "none";
-}
-function doAddTask() {
-  var inp = document.getElementById("add-task-inp");
-  if (!inp) return;
-  var task = inp.value.trim();
-  if (!task) return;
-  var target = _addSec, s;
-  if (target < 0) { // fallback: first tasks section (pre-section-button behavior)
-    for (s = 0; s < _sections.length; s++) { if (_sections[s].type === "tasks") { target = _sections[s].idx; break; } }
-    if (target < 0) target = 0;
-  }
-  var n = 0, k;
-  for (k = 0; k < _tasks.length; k++) if (_tasks[k].sec === target && !_tasks[k].completed) n++;
-  _tasks.push({num: String(n + 1), task: task, effort: "", tier: "", status: "", sec: target, completed: false});
-  inp.value = "";
-  renderPage();
-}
-function startEditTask(idx) {
-  _editIdx = idx;
-  renderPage();
-  var inp = document.getElementById("edit-task-inp");
-  if (inp) { inp.focus(); inp.select(); }
-}
-function saveEditTask(idx) {
-  if (_editIdx !== idx) return;
-  var inp = document.getElementById("edit-task-inp");
-  if (!inp) return;
-  var val = inp.value.trim();
-  if (val) _tasks[idx].task = val;
-  _editIdx = -1;
-  renderPage();
-}
-// Cycles ○ not started → ◐ partially complete → ◉ ready to test → ✅ complete → ○. The dot is the state, so every
-// branch has to move it: leaving one behind would make isDone() refuse and the click look dead.
-function toggleDone(idx) {
-  var t = _tasks[idx], rest = stripDot(t.status);
-  if (isDone(t)) {                       // complete → not started
-    rest = rest.replace(/✅\s*/g, "").replace(/^Done\s*[-—]\s*/i, "").replace(/^Done\s*$/i, "").trim();
-    t.task = t.task.replace(/✅\s*/g, "").trim();
-    t.status = (DOT_UNDONE + " " + rest).trim();
-  } else if (isReadyToTest(t)) {         // ready to test → complete (the dot goes, the check lands)
-    rest = rest.replace(/ready\s+to\s+test\s*[-—]?\s*/i, "").trim();
-    t.status = rest ? "✅ Done — " + rest : "✅ Done";
-  } else if (isPartial(t)) {             // partially complete → ready to test
-    t.status = (DOT_RTT + " " + rest).trim();
-  } else {                               // not started → partially complete
-    t.status = (DOT_PARTIAL + " " + rest).trim();
-  }
-  renderPage();
-}
-function deleteTask(idx) {
-  _tasks.splice(idx, 1);
-  renderPage();
-}
-function completeTask(idx) {
-  _tasks[idx].completed = true;
-  _compOpen[_tasks[idx].sec] = true; // auto-open to show where it went
-  renderPage();
-}
-function restoreTask(idx) {
-  _tasks[idx].completed = false;
-  renderPage();
-}
 function toggleCompletedSection(secIdx) {
   _compOpen[secIdx] = !_compOpen[secIdx];
   renderPage();
 }
 
-document.getElementById("add-task-inp").addEventListener("keydown", function(e) {
-  if (e.key === "Enter") doAddTask();
-  if (e.key === "Escape") hideAddTask();
-});
-
-// ── Actions ───────────────────────────────────────────────────────────────────
-
-function renumber() {
-  var counters = {};
-  for (var i = 0; i < _tasks.length; i++) {
-    if (_tasks[i].completed) continue; // don't renumber completed tasks
-    var s = _tasks[i].sec;
-    counters[s] = (counters[s] || 0) + 1;
-    _tasks[i].num = String(counters[s]);
-  }
-  renderPage();
-}
-
-function clearDone() {
-  var kept = _tasks.filter(function(t) { return !isDone(t); });
-  if (kept.length === _tasks.length) return;
-  if (!confirm("Remove " + (_tasks.length - kept.length) + " completed task(s)?")) return;
-  _tasks = kept;
-  renderPage();
-}
-
-function buildMd() {
-  var out = "";
-  for (var s = 0; s < _sections.length; s++) {
-    var sec = _sections[s];
-    if (sec.type === "tasks") {
-      var active = _tasks.filter(function(t) { return t.sec === sec.idx && !t.completed; });
-      var completed = _tasks.filter(function(t) { return t.sec === sec.idx && t.completed; });
-      if (sec.hasEffort) {
-        // Tier-aware round trip: a table parsed WITH a Tier column must export it back
-        // (an unaware export silently deletes the column — the stale-load clobber class).
-        var hasTier = sec.hasTier;
-        var hdrMd = hasTier ? "| # | Task | Effort | Tier | Status |\n|---|---|:---:|:---:|---|\n"
-                            : "| # | Task | Effort | Status |\n|---|---|:---:|---|\n";
-        var rowMd = function (t) {
-          return "| " + escCell(t.num) + " | " + escCell(t.task) + " | " + escCell(t.effort || "—")
-            + (hasTier ? " | " + escCell(t.tier || "—") : "")
-            + " | " + escCell(t.status) + " |\n";
-        };
-        out += hdrMd;
-        for (var i = 0; i < active.length; i++) out += rowMd(active[i]);
-        if (completed.length) {
-          out += "<!-- completed -->\n";
-          out += hdrMd;
-          for (var j = 0; j < completed.length; j++) out += rowMd(completed[j]);
-          out += "<!-- /completed -->\n";
-        }
-      } else {
-        out += "| # | Task | Status |\n|---|---|---|\n";
-        for (var i = 0; i < active.length; i++) {
-          var t = active[i];
-          out += "| " + escCell(t.num) + " | " + escCell(t.task) + " | " + escCell(t.status) + " |\n";
-        }
-        if (completed.length) {
-          out += "<!-- completed -->\n";
-          out += "| # | Task | Status |\n|---|---|---|\n";
-          for (var j = 0; j < completed.length; j++) {
-            var ct = completed[j];
-            out += "| " + escCell(ct.num) + " | " + escCell(ct.task) + " | " + escCell(ct.status) + " |\n";
-          }
-          out += "<!-- /completed -->\n";
-        }
-      }
-    } else {
-      out += sec.content;
-      if (s < _sections.length - 1) out += "\n";
-    }
-  }
-  return out;
-}
-function exportMd() {
-  var out = buildMd();
-  if (_fileHandle && _fileHandle.createWritable) {
-    _fileHandle.createWritable().then(function(writable) {
-      return writable.write(out).then(function() { return writable.close(); });
-    }).then(function() {
-      showToast("Saved to " + (_fileName || "TODO.md"));
-    }).catch(function(e) {
-      _downloadMd(out);
-    });
-  } else {
-    _downloadMd(out);
-  }
-}
-function _downloadMd(out) {
-  var blob = new Blob([out], {type:"text/plain"});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement("a");
-  a.href = url; a.download = _fileName || "TODO.md"; a.click();
-  URL.revokeObjectURL(url);
-}
-function showToast(msg) {
-  var t = document.createElement("div");
-  t.textContent = msg;
-  t.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--acc);color:var(--t0);font-family:Georgia,serif;font-size:13px;padding:8px 18px;border-radius:6px;z-index:999;pointer-events:none;";
-  document.body.appendChild(t);
-  setTimeout(function() { t.remove(); }, 2000);
-}
+// #481 G3 test seam: feed a TODO.md's text straight to the renderer (no picker, no file handle). Read-only like the page.
+window.__todoViewerTest = {
+  loadText: function(text, name) { _fileName = name || ""; parse(String(text || "")); renderPage(); }
+};
 
 // ── Markdown renderer ─────────────────────────────────────────────────────────
 
