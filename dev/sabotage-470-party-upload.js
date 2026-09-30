@@ -16,8 +16,9 @@ rc |= sabotage.prove({
   cases: [
     { label: "#470 — a sheetless companion is planned with an empty sheet",
       mustFail: "a sheetless companion must be skipped by the plan itself",
-      find: "for(i=0;i<(companions||[]).length;i++){var c=companions[i];if(c&&c.charSheet)add(c.name,c.charSheet);}",
-      replace: "for(i=0;i<(companions||[]).length;i++){var c=companions[i];if(c)add(c.name,c.charSheet||{});}" },
+      /* #481 F7 re-anchor: the plan now gathers candidates first (a slot collision refuses both) */
+      find: "if(c&&c.name&&c.charSheet)cand.push({name:c.name,sheet:c.charSheet,at:c.libraryAt});",
+      replace: "if(c&&c.name)cand.push({name:c.name,sheet:c.charSheet||{},at:c.libraryAt});" },
     { label: "#470 — the run sends the live sheet instead of a portable copy",
       mustFail: "the live sheet must not be sent",
       find: "    saveFn(portableSheet(row.sheet),function(err){",

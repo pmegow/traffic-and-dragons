@@ -1001,7 +1001,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <p class="ttl">"Upload party members" can overwrite a newer library copy without saying so <span class="lean low">low</span><span class="lean">guard gap</span></p>
 <p class="tldr"><b>TLDR:</b> The party upload's confirm lists names only. It doesn't show that the library copy is higher level or newer, which is the #427 hazard again, and it doesn't catch two party names that map to one library slot.</p>
 <p><span class="k">Fix</span>The plan flags rows where the library copy is higher or newer, and the confirm names them ("Ammut: library Lv18, saved Sep 27 → live Lv17"). Refuse two plan rows that share a slug. <code>ui-browsers.js:757-760</code>, <code>helpers.js:746-753</code>.</p>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1069: the party upload plan flags a library copy that is ahead of the live sheet (higher level, or saved after the copy the sheet came from — heroLibraryAt / libraryAt) and the confirm names each with its detail (&quot;Ammut: library Lv18, saved Sep 27 → live Lv17&quot;); two members on one library slot are refused, loudly, and the rest still go. Real Chrome render checked. Proof: 3 tests (red first), dev/sabotage-481-f7-party-upload.js 6/6; the #470 battery re-anchored and green.</td></tr>
 
 <tr id="F8"><td class="n">F8</td><td>
 <p class="ttl">The inventory × marks whatever item now sits at the row's old position <span class="lean low">low</span><span class="lean">wrong outcome</span></p>

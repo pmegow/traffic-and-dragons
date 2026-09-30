@@ -748,8 +748,10 @@ function uploadPartyToLibrary(){
   showToast("Checking the character library…",2500);
   storageAdapter.listCharacterLibrary(function(err,list){
     if(err){showToast("Character library error: "+err);return;}
-    var plan=partyUploadPlan(worldState.character,livingPartyCompanions(),list||[]);
-    if(!plan.rows.length){showToast("No party members with character sheets to upload.");return;}
+    var plan=partyUploadPlan(worldState.character,livingPartyCompanions(),list||[],worldState.heroLibraryAt);
+    /* #481 F7: two members that map to one library slot would overwrite each other — both are refused, loudly */
+    var ri;for(ri=0;ri<plan.refused.length;ri++){var rf=plan.refused[ri];console.warn("[library] party upload refused — one library slot ("+rf.slug+") for "+rf.names.join(" and "));showToast("&#10007; Not uploaded: "+escHtml(rf.names.join(" and "))+" share one library slot — rename one first.",9000);}
+    if(!plan.rows.length){if(!plan.refused.length)showToast("No party members with character sheets to upload.");return;}
     function run(){
       showToast("Uploading "+plan.rows.length+" party member"+(plan.rows.length===1?"":"s")+"…",4000);
       partyUploadRun(plan,function(sheet,cb){storageAdapter.saveCharacterToLibrary(sheet,cb);},function(r){/* #81b: the run sends portable sheets */
@@ -760,8 +762,12 @@ function uploadPartyToLibrary(){
     }
     if(!plan.overwrites.length){run();return;}
     var names=plan.overwrites.map(function(n){return "<span style='color:var(--t1);'>"+escHtml(n)+"</span>";}).join(", ");
+    /* #481 F7: a library copy that is AHEAD (higher level, or saved after this sheet came from it) is named with its detail */
+    var aheadRows=plan.rows.filter(function(r){return r.ahead;});
+    var aheadHtml=aheadRows.length?"<div style='font-size:13px;color:var(--warn);margin-bottom:14px;line-height:1.5;'>&#9888; The library copy is ahead of the live sheet for:<br>"+aheadRows.map(function(r){return escHtml(partyUploadAheadText(r));}).join("<br>")+"<br>Uploading replaces it with the live sheet.</div>":"";
     var modal=modalShell("party-upload-confirm",
       "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>Upload "+plan.rows.length+" party members?</div>"
+      +aheadHtml
       +"<div style='font-size:13px;color:var(--t2);margin-bottom:20px;'>The character library already holds "+names+" — those entries will be replaced with the live sheets. The rest are new.</div>"
       +"<div style='display:flex;gap:10px;'>"
       +"<button id='pup-ok' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Upload</button>"

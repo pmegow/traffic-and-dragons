@@ -845,13 +845,34 @@ function livingPartyCompanions(){return partyCompanionsWithSheets(false);}
    so the engine can test it with a mock adapter. Every row goes through portableSheet (the #81b item canon travels);
    a failure is recorded and the chain continues — the report lists saved, updated and failed by name. */
 function partyUploadSlug(name){return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");}
-function partyUploadPlan(hero,companions,libraryList){
-  var rows=[],overwrites=[],bySlug={},i;
+/* #481 F7 (audit 2026-09-29): the plan also says which library copies are AHEAD of the live sheet (partyUploadAhead — the #427
+   hazard: the confirm listed names only), and REFUSES party members whose names map to one library slot (they used to
+   overwrite each other). heroAt = worldState.heroLibraryAt; a companion's stamp is its libraryAt. */
+function partyUploadPlan(hero,companions,libraryList,heroAt){
+  var rows=[],overwrites=[],ahead=[],refused=[],bySlug={},cand=[],group={},i;
   for(i=0;i<(libraryList||[]).length;i++){var e=libraryList[i];if(e&&e.slug)bySlug[e.slug]=e;}
-  function add(name,sheet){if(!name||!sheet)return;var ex=bySlug[partyUploadSlug(name)]||null;rows.push({name:name,sheet:sheet,existing:ex});if(ex)overwrites.push(name);}
-  if(hero&&hero.name)add(hero.name,hero);
-  for(i=0;i<(companions||[]).length;i++){var c=companions[i];if(c&&c.charSheet)add(c.name,c.charSheet);}
-  return {rows:rows,overwrites:overwrites};
+  if(hero&&hero.name)cand.push({name:hero.name,sheet:hero,at:heroAt});
+  for(i=0;i<(companions||[]).length;i++){var c=companions[i];if(c&&c.name&&c.charSheet)cand.push({name:c.name,sheet:c.charSheet,at:c.libraryAt});}
+  for(i=0;i<cand.length;i++){var s=partyUploadSlug(cand[i].name);(group[s]=group[s]||[]).push(cand[i]);}
+  for(i=0;i<cand.length;i++){
+    var x=cand[i],slug=partyUploadSlug(x.name),grp=group[slug];
+    if(grp.length>1){if(grp[0]===x)refused.push({slug:slug,names:grp.map(function(g){return g.name;})});continue;}
+    var ex=bySlug[slug]||null,row={name:x.name,sheet:x.sheet,existing:ex,ahead:partyUploadAhead(ex,x.sheet,x.at)};
+    rows.push(row);if(ex)overwrites.push(x.name);if(row.ahead)ahead.push(x.name);
+  }
+  return {rows:rows,overwrites:overwrites,ahead:ahead,refused:refused};
+}
+/* #481 F7: is the library copy ahead of the live sheet — a higher level, or saved after the copy this sheet came from (its
+   library stamp)? No stamp means the date cannot say, so only the level does. Null when not ahead. Pure. */
+function partyUploadAhead(ex,sheet,at){
+  if(!ex)return null;var higher=(ex.level|0)>((sheet&&sheet.level)|0),newer=typeof ex.updatedAt==="number"&&typeof at==="number"&&ex.updatedAt>at;
+  return higher||newer?{higher:higher,newer:newer}:null;
+}
+var PARTY_UPLOAD_MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+/* #481 F7: the confirm's line for an ahead row — "Ammut: library Lv18, saved Sep 27 → live Lv17". Pure. */
+function partyUploadAheadText(row){
+  var ex=(row&&row.existing)||{},d=typeof ex.updatedAt==="number"?new Date(ex.updatedAt):null;
+  return row.name+": library Lv"+(ex.level|0)+(d?", saved "+PARTY_UPLOAD_MONTHS[d.getMonth()]+" "+d.getDate():"")+" → live Lv"+((row.sheet&&row.sheet.level)|0);
 }
 function partyUploadRun(plan,saveFn,done){
   var rows=(plan&&plan.rows)||[],report={saved:[],updated:[],failed:[]},i=0;

@@ -790,6 +790,36 @@ function runEngineTests(R){
     if(/portableSheet\(/.test(fn))return "the shell must not build sheets itself — partyUploadRun owns portableSheet";
     return true;
   });
+  // ── #481 F7 (audit 2026-09-29): the party upload's confirm listed names only — it never said the library copy was higher level
+  // or newer (the #427 hazard again), and two party names that map to one library slot overwrote each other.
+  t("#481 F7 the plan flags a library copy that is AHEAD (higher level, or saved after the copy this sheet came from) and says so in one line",function(){
+    if(typeof partyUploadAheadText!=="function")return "partyUploadAheadText is missing";
+    makeWorld();var c=worldState.character;c.name="Ammut";c.level=17;
+    var noon=Date.UTC(2026,8,27,12),dayBefore=noon-86400000;
+    var lib=[{slug:"ammut",name:"Ammut",level:18,updatedAt:noon},{slug:"daeris",name:"Daeris",level:3,updatedAt:noon},{slug:"morwen",name:"Morwen",level:5,updatedAt:dayBefore},{slug:"bosk",name:"Bosk",level:2,updatedAt:noon}];
+    var comps=[{name:"Daeris",partyMember:true,charSheet:{name:"Daeris",level:3},libraryAt:dayBefore},   /* the library changed after Daeris moved in */
+      {name:"Morwen",partyMember:true,charSheet:{name:"Morwen",level:6},libraryAt:dayBefore},             /* the same copy she came from: not ahead */
+      {name:"Bosk",partyMember:true,charSheet:{name:"Bosk",level:2}}];                                     /* no stamp, same level: cannot tell — an overwrite only */
+    var plan=partyUploadPlan(c,comps,lib,null);
+    if(JSON.stringify(plan.ahead)!==JSON.stringify(["Ammut","Daeris"]))return "ahead: "+JSON.stringify(plan.ahead);
+    if(JSON.stringify(plan.overwrites)!==JSON.stringify(["Ammut","Daeris","Morwen","Bosk"]))return "every existing slot is still an overwrite: "+JSON.stringify(plan.overwrites);
+    var line=partyUploadAheadText(plan.rows[0]);
+    if(line!=="Ammut: library Lv18, saved Sep 27 → live Lv17")return "the line: "+line;
+    var withStamp=partyUploadPlan(c,[],lib,noon);
+    return withStamp.ahead.join(",")==="Ammut"?true:"a higher library level is ahead whatever the stamp: "+JSON.stringify(withStamp.ahead);
+  });
+  t("#481 F7 two party members that map to one library slot are refused, never uploaded over each other; the rest still go",function(){
+    makeWorld();var c=worldState.character;c.name="Ammut";c.level=4;
+    var plan=partyUploadPlan(c,[{name:"Ammut!",partyMember:true,charSheet:{name:"Ammut!",level:2}},{name:"Daeris",partyMember:true,charSheet:{name:"Daeris",level:3}}],[],null);
+    if(!plan.refused||plan.refused.length!==1||plan.refused[0].slug!=="ammut"||plan.refused[0].names.join(",")!=="Ammut,Ammut!")return "refused: "+JSON.stringify(plan.refused);
+    return plan.rows.map(function(r){return r.name;}).join(",")==="Daeris"?true:"the colliding rows must leave the plan and the rest stay: "+plan.rows.map(function(r){return r.name;}).join(",");
+  });
+  t("#481 F7 the shell passes the hero's library stamp, names every row that is ahead in the confirm, and says every refused pair in a toast",function(){
+    var ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8"),s0=ub.indexOf("function uploadPartyToLibrary("),fn=ub.slice(s0,ub.indexOf("\nfunction ",s0+1));
+    if(!/partyUploadPlan\([^;\n]*,worldState\.heroLibraryAt\)/.test(fn))return "the plan must get the hero's library stamp (worldState.heroLibraryAt)";
+    if(!/partyUploadAheadText\(/.test(fn))return "the confirm must name each row that is ahead";
+    return /showToast\("[^"]*Not uploaded: "\+escHtml\(rf\.names\.join\(/.test(fn)?true:"a refused pair must reach a toast naming both";
+  });
   // ── #207 ② location hours ─────────────────────────────────────────────────────
   t("#207 ② [LOCATION_HOURS:open-close|note] files hours on the CURRENT node (sublocation-aware); the geo block says OPEN or CLOSED from the clock, overnight ranges included; a bad range refuses loudly",function(){
     makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation="The Rusty Flagon";worldState.turn=50;
