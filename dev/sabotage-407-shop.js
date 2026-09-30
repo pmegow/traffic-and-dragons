@@ -15,7 +15,7 @@ prove("helpers.js", [
     find: "if(q<=0||r.worn||r.sellGp==null)continue;", replace: "if(q<=0||r.sellGp==null)continue;",
     mustFail: "#407 ② the plan" },
   { label: "the affordability lock is gone",
-    find: "var goldAfter=cat.gold-rounded,ok=lines.length>0&&goldAfter>=0;", replace: "var goldAfter=cat.gold-rounded,ok=lines.length>0;",
+    find: "var goldAfter=cat.gold-rounded,ok=lines.length>0&&goldAfter>=0&&!under.length;", replace: "var goldAfter=cat.gold-rounded,ok=lines.length>0&&!under.length;",/* #481 D7 re-anchor: the plan also refuses a sub-half-gold line */
     mustFail: "#407 ② the plan" },
   { label: "a half-gp sale rounds to nothing",
     find: "rounded=net>=0?Math.round(net):-Math.round(-net);", replace: "rounded=Math.round(net);",

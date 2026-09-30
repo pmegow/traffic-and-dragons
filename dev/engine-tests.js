@@ -27674,7 +27674,32 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!w||w.price!=="5 sp")return "the village pins rations to canon's 5 sp: "+JSON.stringify(w);
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation=null;memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
     var r=quiet(function(){return applyMuts("[WARES:Bottle of wine|2 gp]");}).r;
-    return (r.muts||[]).some(function(m){return /Bottle of wine/.test(m)&&/(canon 2 sp)/.test(m);})?true:"the band receipt quotes canon: "+JSON.stringify(r.muts);
+    return (r.muts||[]).some(function(m){return /Bottle of wine/.test(m)&&/\(canon 2 sp\)/.test(m);})?true:"the band receipt quotes canon: "+JSON.stringify(r.muts);
+  });
+
+  // ── #481 D7 (audit 2026-09-29, ruled): a counter sale worth under half a gold piece rounded to 0 gp — the item left the
+  // pack and nothing was paid. (a) The floor applies to the LINE total (count × unit price): two 0.3 gp items sell for
+  // 1 gp; a lone one is refused with the reason, and it stays in the pack.
+  section("#481 D7 a sale worth nothing is refused, not given away");
+  function d7Fixture(){shopFixture();var n=memory.map.nodes["The Village|the trading post"];n.wanted.push({item:"Carved whistle",offer:"3 sp",by:"Frizwick",t:1,min:clockNow()});worldState.character.inventory.push("Carved whistle x2");}
+  t("#481 D7 a lone 3 sp whistle is refused with the reason and stays in the pack; nothing is paid",function(){
+    d7Fixture();var c=worldState.character,g=c.gold,inv=c.inventory.slice(),cat=shopTradeCatalog();
+    var p=shopTradePlan(cat,{sell:{"carved whistle":1},buy:{}});
+    if(p.ok)return "the plan must refuse a line worth under half a gold piece: "+JSON.stringify(p);
+    if(!/whistle/i.test(p.reason)||!/half a gold/i.test(p.reason))return "the reason names the item and the floor: "+p.reason;
+    var res=quiet(function(){return shopTradeApply({sell:{"carved whistle":1},buy:{}});}).r;
+    if(res.ok)return "the apply refuses too";
+    if(c.gold!==g||c.inventory.join("|")!==inv.join("|"))return "nothing may move: "+c.gold+" "+JSON.stringify(c.inventory);
+    /* beside a good line the whole plan still waits — a partial trade would leave the whistle's mark silently unsold */
+    var p2=shopTradePlan(cat,{sell:{"carved whistle":1,"rope":1},buy:{}});if(p2.ok)return "a refused line holds the whole plan: "+JSON.stringify(p2);
+    res=quiet(function(){return shopTradeApply({sell:{"carved whistle":1,"rope":1},buy:{}});}).r;
+    return (!res.ok&&c.gold===g&&c.inventory.join("|")===inv.join("|"))?true:"the mixed plan moved something: "+c.gold+" "+JSON.stringify(c.inventory);
+  });
+  t("#481 D7 two whistles are one line worth 6 sp, and they sell for 1 gp",function(){
+    d7Fixture();var c=worldState.character,g=c.gold;
+    var res=quiet(function(){return shopTradeApply({sell:{"carved whistle":2},buy:{}});}).r;
+    if(!res.ok)return "the pair sells: "+res.reason;
+    return (c.gold===g+1&&!c.inventory.some(function(x){return /whistle/i.test(x);}))?true:"+1 gp and the whistles gone: "+c.gold+" "+JSON.stringify(c.inventory);
   });
 
 }

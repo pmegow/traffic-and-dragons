@@ -163,6 +163,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Fable (d):** the floor stays; the receipt states what moved, plus a ⚠ line for the shortfall. No spend receipt from an empty purse, which keeps `turnsSinceRisk`'s "gold spent" pattern honest.
   - **Real save:** the t218 pack held six mispriced canon items — five read as unsellable (rations x2, wine, bolt, honey cake) and the arrow at 20× — all priced now. The 18 raw [GOLD:] tags in the saved windows were all gold (the audit's "zero field instances").
   - **Proof:** 7 tests in "#481 D5" (six red before the build; the seventh added for pinning and the band). Full suite green (2,470); four replay baselines unchanged (no existing pin changed); `dev/sabotage-481-d5-coin.js` 14/14 caught.
+  - **Correction (v1.1046):** the D5 band test's regex lost its backslashes to the shell (it read as a group, not literal parentheses). It still failed under the sabotage, but it was weaker than written. Fixed in the D7 commit.
+- 2026-09-29 · #481 D7 · v1.1046 · Opus 5.5 · A sale line worth under half a gold piece is refused, not given away.
+  - **Touches:** `shopTradePlan` (helpers.js) and one flag in the counter's plan adapter (ui-modals.js: a refused line counts as a mark, so its reason shows).
+  - **Rule (Fable (a)):** the floor is on the LINE total. **Judgement call:** a refused line holds the whole plan, because a partial trade would leave that mark silently unsold.
+  - **Browser proof:** `dev/qa-481-d5-d7-counter.js` (new, manual; CDP driver serving the repo from disk, fresh profile). Real modal screenshots: the lone whistle's reason in red with Complete locked; the pair at +1 gp; D5's silver/copper prices on the rows.
+  - **Proof:** 2 tests in "#481 D7" (the lone case red first; the mixed case added when the battery MISSED "a refused line lets the rest through"). Full suite green; four replay baselines unchanged; `dev/sabotage-481-d7-sale-floor.js` 4/4 caught; the #407 affordability clause re-anchored and caught.
 
 ## Off-Fable log
 

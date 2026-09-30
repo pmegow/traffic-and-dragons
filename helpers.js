@@ -2728,13 +2728,16 @@ function shopTradeCatalog(){
 }
 /* marks = {sell:{<lowercase name>:qty}, buy:{<lowercase name>:1}} — what the player has clicked. */
 function shopTradePlan(cat,marks){
-  marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellGp=0,buyGp=0,i,k;
-  for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellGp==null)continue;q=Math.min(q,r.qty);lines.push({kind:"sell",name:r.name,qty:q,unitGp:r.sellGp,gp:r.sellGp*q});sellGp+=r.sellGp*q;}
+  marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],under=[],sellGp=0,buyGp=0,i,k;
+  /* #481 D7 (ruled 2026-09-29): the floor is on the LINE total — a sale line worth under half a gold piece would round to
+     0 gp while the item left the pack. It is refused with the reason and nothing moves; two 3 sp whistles (6 sp) sell for 1 gp. */
+  for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellGp==null)continue;q=Math.min(q,r.qty);if(Math.round(r.sellGp*q)===0){under.push(q+" "+r.name+" ("+shopFmtGp(r.sellGp*q)+")");continue;}lines.push({kind:"sell",name:r.name,qty:q,unitGp:r.sellGp,gp:r.sellGp*q});sellGp+=r.sellGp*q;}
   for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();var bq=Math.min(mb[k]|0,b.per||1);if(bq<=0||b.buyGp==null)continue;lines.push({kind:"buy",name:b.name,qty:bq,unitGp:b.buyGp,gp:b.buyGp*bq,price:b.price});buyGp+=b.buyGp*bq;}/* #481 D5: the line is the unit price times the count */
   var net=buyGp-sellGp,rounded=net>=0?Math.round(net):-Math.round(-net);/* whole gp, halves away from zero: a half-gp sale still pays 1 gp */
   if(buyGp>0&&net>0&&rounded===0)rounded=1;/* the keeper never gives a thing away */
-  var goldAfter=cat.gold-rounded,ok=lines.length>0&&goldAfter>=0;
-  return {lines:lines,sellGp:sellGp,buyGp:buyGp,netGp:rounded,goldAfter:goldAfter,ok:ok,reason:!lines.length?"nothing marked":(goldAfter<0?"short "+(rounded-cat.gold)+" gp":"")};
+  var goldAfter=cat.gold-rounded,ok=lines.length>0&&goldAfter>=0&&!under.length;
+  var why=under.length?"the keeper pays nothing for "+under.join(", ")+" — under half a gold piece; mark more of it, or keep it":(!lines.length?"nothing marked":(goldAfter<0?"short "+(rounded-cat.gold)+" gp":""));
+  return {lines:lines,under:under,sellGp:sellGp,buyGp:buyGp,netGp:rounded,goldAfter:goldAfter,ok:ok,reason:why};
 }
 /* The plan as the tags the parser already understands — every move lands in the mutation log through the trade gate. */
 function shopTradeTagText(plan){

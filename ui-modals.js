@@ -83,7 +83,7 @@ function showShopModal(){
     empty:{left:"Nothing carried",right:"Nothing on the shelf"},hintIdle:"Tap items to mark them",completeLabel:"Complete transaction",refusedPrefix:"Trade refused \u2014 ",
     amount:function(side,r,q){return side==="left"?"+"+shopFmtGp(r.unit*q):"\u2212"+shopFmtGp(r.unit*q);},
     dim:function(side,r){return r.unit==null?"":"<span class='shop-dim'>"+escHtml(side==="left"?shopFmtGp(r.unit):r.price)+"</span>";},
-    plan:function(m){var p=shopTradePlan(cat,toMarks(m));return {ok:p.ok,reason:p.reason,marked:p.lines.length>0,total:p.lines.length?((p.netGp>0?"\u2212":p.netGp<0?"+":"")+Math.abs(p.netGp)+" gp"):"",after:"After: "+p.goldAfter+" gp"};},
+    plan:function(m){var p=shopTradePlan(cat,toMarks(m));return {ok:p.ok,reason:p.reason,marked:p.lines.length>0||!!(p.under&&p.under.length),/* #481 D7: a refused line is still a mark — its reason shows */total:p.lines.length?((p.netGp>0?"\u2212":p.netGp<0?"+":"")+Math.abs(p.netGp)+" gp"):"",after:"After: "+p.goldAfter+" gp"};},
     complete:function(m){return shopTradeApply(toMarks(m));}});
 }
 /* #6 E11 the chest: the stash spec over stashTradeCatalog / stashTradePlan / stashTradeApply — own house only. */
