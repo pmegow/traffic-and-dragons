@@ -587,6 +587,7 @@ function _carAutoMic() {
 var _carMediaCrumbAt = {}, _carMediaCount = {};
 var CAR_MEDIA_CRUMB_WINDOW_MS = 2000;
 function _carTransportState() {
+  if (_carHeld) return "held";   /* #481 E8: a spoken pause outranks every other state — see _carTransport */
   if (typeof TTS !== "undefined" && TTS.isPlaying()) return "playing";
   if (typeof TTS !== "undefined" && TTS.isPaused()) return "paused";
   if (typeof STT !== "undefined" && typeof STT.isListening === "function" && STT.isListening()) return "listening";
@@ -597,15 +598,21 @@ function _carMediaCrumb(kind, state) {
   var n = (_carMediaCount[kind] || 0) + 1;
   _carMediaCount[kind] = n;
   if (typeof erCrumb !== "function") return;
-  var now = Date.now();
-  if (_carMediaCrumbAt[kind] && now - _carMediaCrumbAt[kind] < CAR_MEDIA_CRUMB_WINDOW_MS) return;
-  _carMediaCrumbAt[kind] = now;
+  /* #481 E8: the window coalesces a REPEAT (same command in the same state), never a state change — a held PLAY right after
+     a playing one still lands its "held" crumb. The count stays per command, so it keeps rising across states. */
+  var now = Date.now(), key = kind + " " + state;
+  if (_carMediaCrumbAt[key] && now - _carMediaCrumbAt[key] < CAR_MEDIA_CRUMB_WINDOW_MS) return;
+  _carMediaCrumbAt[key] = now;
   erCrumb("media-action", kind + " " + state + " #" + n);
 }
 function _carTransport(kind) {
   if (!carMode) return "off";
   var state = _carTransportState();
   _carMediaCrumb(kind, state);
+  /* #481 E8 (owner ruling 2026-09-29: a car's own PLAY is ignored during a spoken pause): a head unit re-sends PLAY by itself
+     after a call or a reconnect, and it used to replay the last narration while the hold kept ambience silent. While held, ALL
+     four commands are no-ops (crumbed "held" above); only spoken resume, the tap or hideCarMode releases the hold (#410). */
+  if (state === "held") return "held";
   if (kind === "play") {
     if (state === "paused") { TTS.pause(); _carSetStatus(CAR_STR.narratorSpeaking); _carSyncBtn(); return "resume"; }
     if (state === "idle")   { _carDoReplay(); return "replay"; }

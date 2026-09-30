@@ -39,6 +39,9 @@ function fixture() {
   };
   vm.createContext(c);
   vm.runInContext(fs.readFileSync(path.join(root, 'ui-carmode.js'), 'utf8'), c, { filename: 'ui-carmode.js' });
+  /* the spoken-command path (#410): parseCarCommand and carHoldDispatch, sliced from helpers.js with their constants */
+  const hp = fs.readFileSync(path.join(root, 'helpers.js'), 'utf8'), ha = hp.indexOf('var CAR_CMD_FILLER'), hd = hp.indexOf('function carHoldDispatch(');
+  vm.runInContext(hp.slice(ha, hp.indexOf('\n}\n', hd) + 3), c, { filename: 'helpers.js#car-commands' });
   c._carMediaHandlers();
   return { c, tts, stt, handlers, calls, crumbs, els, tick: ms => { clock += ms; }, setBrief: b => { brief = b; }, setWarm: v => { warmResult = v; } };
 }
@@ -98,6 +101,43 @@ test('every command is crumbed with the state it arrived in, rate-limited per ki
   assert.equal(f.crumbs[2], 'media-action pause playing #1', 'kinds are limited independently');
   const g = fixture(); g.c.busy = true; g.handlers.play(); g.stt._listening = true; g.c.busy = false; g.handlers.nexttrack();
   assert.deepEqual(g.crumbs, ['media-action play busy #1', 'media-action next listening #1']);
+});
+// ── #481 E8 (audit 2026-09-29; owner ruling: "a car's own PLAY is ignored during a spoken pause"; Fable: ALL four commands are
+// no-ops while held, each landing a "media-action <kind> held" crumb; only spoken resume, the tap or hideCarMode releases).
+// A head unit re-sends PLAY by itself after a call or a reconnect: it used to replay the last narration while the hold kept
+// ambience silent.
+test('the repro: after a spoken "pause", the car\'s own PLAY replays nothing and the hold stays', () => {
+  const f = fixture();
+  assert.equal(f.c.carVoiceCommand('pause'), true, 'fixture: the spoken pause is a command');
+  assert.equal(f.c._carHeld, true, 'fixture: the session is held');
+  f.calls.length = 0;
+  f.handlers.play();
+  assert.deepEqual(f.calls, [], 'a PLAY while held must not replay (or open anything): ' + JSON.stringify(f.calls));
+  assert.equal(f.c._carHeld, true, 'the hold stays');
+});
+test('while held, all four commands are no-ops, each crumbed "held" — even right after a crumb of the same command; a paused narration stays paused', () => {
+  const f = fixture(); f.tts._playing = true;
+  f.handlers.play();                                             /* a redundant PLAY while reading: crumbed "playing" */
+  f.c.carVoiceCommand('pause');                                  /* narration playing: the spoken pause pauses it AND holds */
+  assert.equal(f.tts.isPaused(), true, 'fixture: the read is paused');
+  f.calls.length = 0;
+  f.handlers.play(); f.handlers.pause(); f.handlers.nexttrack(); f.handlers.previoustrack();
+  assert.deepEqual(f.calls, [], 'nothing resumes, skips or replays while held: ' + JSON.stringify(f.calls));
+  assert.equal(f.tts.isPaused(), true, 'the read stays paused');
+  assert.deepEqual(f.crumbs, ['media-action play playing #1', 'media-action play held #2', 'media-action pause held #1', 'media-action next held #1', 'media-action prev held #1'],
+    'the rate window coalesces a repeat, never a state change');
+  f.handlers.play();
+  assert.equal(f.crumbs.length, 5, 'a repeated held PLAY inside the window is coalesced');
+});
+test('the hold clears only via spoken resume, the tap, or leaving Car Mode — then PLAY works again', () => {
+  const said = fixture(); said.c.carVoiceCommand('pause'); said.c.carVoiceCommand('resume');
+  assert.equal(said.c._carHeld, false, 'spoken resume releases');
+  said.stt._listening = false; said.calls.length = 0; said.handlers.play();
+  assert.ok(said.calls.includes('replay'), 'after release an idle PLAY replays as before: ' + JSON.stringify(said.calls));
+  const tap = fixture(); tap.c.carVoiceCommand('pause'); tap.c._carTap();
+  assert.equal(tap.c._carHeld, false, 'the tap releases');
+  const gone = fixture(); gone.c.carVoiceCommand('pause'); gone.c.hideCarMode();
+  assert.equal(gone.c._carHeld, false, 'leaving Car Mode releases');
 });
 // ── #19 fourth pass (owner, 2026-09-23): "When car-mode starts, just read the current scene, and jump to options."
 const flush = () => new Promise(r => setImmediate(r));
