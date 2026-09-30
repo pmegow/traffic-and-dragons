@@ -2822,7 +2822,7 @@ async function sendAction(override,opts){
     else{if(!_mpResolve&&!(opts&&opts.silent)){_restored=restoreFailedInput(inp,txt);if(!isTT)savePendingAction(txt);/* #14: survive a page kill too — story turns only (a TT question restored into the story box would cross channels) */}
       var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
-  busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("action-input").focus();
+  busy=false;document.getElementById("sendbtn").disabled=false;if(typeof focusStoryBox==="function")focusStoryBox();/* #481 F3: yields while a dialog is open (ui-shell.js) */
   // A non-empty box here normally means STT heard something WHILE the turn was in flight. Since
   // B16 it can also be the failed action we just put back — and announcing "Heard you" would
   // overwrite the accurate "Turn failed — tap to retry" the catch just spoke, with a lie.

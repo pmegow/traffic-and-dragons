@@ -127,7 +127,11 @@ function showLoadingModal(msg){
 // (re-rendering callers set .firstChild.innerHTML).
 function modalShell(id,innerHtml,opts){
   opts=opts||{};
-  var ex=document.getElementById(id);if(ex)ex.remove();
+  /* #481 F3: a same-id re-creation (an in-place re-render) is the SAME dialog to the keyboard. The old dialog's removal
+     observer is disconnected first — it used to fire a microtask later, after the new dialog had taken focus, and
+     "restore" focus to the story box BEHIND it (Enter then sent a turn) — and the new dialog inherits the original opener. */
+  var ex=document.getElementById(id),inherited=null;
+  if(ex){inherited=ex._focusOpener||null;if(ex._focusObserver)ex._focusObserver.disconnect();ex.remove();}
   var modal=document.createElement("div");modal.id=id;modal.setAttribute("role","dialog");modal.setAttribute("aria-modal","true");modal.setAttribute("aria-label",id.replace(/-modal$/,"").replace(/-/g," "));/* #312 ③ */
   var overlayHead=opts.bg?("position:fixed;inset:0;background:rgba(0,0,0,"+opts.bg+");"):"position:fixed;inset:0;background:rgba(0,0,0,.88);";
   modal.style.cssText=opts.overlayCss||(overlayHead+"z-index:"+(opts.z||300)+";display:flex;align-items:"+(opts.align||"center")+";justify-content:center;padding:20px;"+(opts.overlayExtra||""));
@@ -138,7 +142,7 @@ function modalShell(id,innerHtml,opts){
      can never reach the story box behind it), Tab and Shift+Tab stay inside the topmost dialog, Escape closes a
      dismissible dialog (never a forced choice: wireClose:false, or noEscape:true), and the opener gets focus back when
      the dialog goes — through our close, or through any caller's modal.remove() (the observer). */
-  var opener=(typeof document!=="undefined"&&document.activeElement)||null;
+  var opener=inherited||(typeof document!=="undefined"&&document.activeElement)||null;
   var baseClose=opts.onClose||function(){modal.remove();};
   var close=function(){baseClose();if(modal._restoreFocus)modal._restoreFocus();};/* every close the shell wires restores the opener's focus */
   modalFocusContain(modal,{escape:opts.wireClose!==false&&!opts.noEscape,close:close,opener:opener});
@@ -165,13 +169,23 @@ function modalFocusContain(modal,o){
     }else if(e.key==="Escape"&&o.escape){e.preventDefault();if(e.stopPropagation)e.stopPropagation();o.close();}
   });
   var restored=false;
-  function restore(){if(restored)return;restored=true;var op=o.opener;if(op&&op.focus&&(!document.body||!document.body.contains||document.body.contains(op)))op.focus();}
-  modal._restoreFocus=restore;
+  /* #481 F3: the opener gets focus back only when focus was LOST (on the body, or on an element no longer in the page) —
+     never stolen from a live element — and never behind an open dialog: while one is open, the opener must be inside it. */
+  function restore(){if(restored)return;restored=true;var op=o.opener,ae=document.activeElement,bd=document.body;
+    if(ae&&ae!==bd&&(!bd||!bd.contains||bd.contains(ae)))return;
+    var top=modalTopOpen();if(top&&!(top.contains&&top.contains(op)))return;
+    if(op&&op.focus&&(!bd||!bd.contains||bd.contains(op)))op.focus();}
+  modal._restoreFocus=restore;modal._focusOpener=o.opener||null;
   if(typeof MutationObserver==="function"&&document.body){
     var mo=new MutationObserver(function(){if(!document.body.contains(modal)){mo.disconnect();restore();}});
-    mo.observe(document.body,{childList:true});
+    mo.observe(document.body,{childList:true});modal._focusObserver=mo;
   }
 }
+/* #481 F3: the topmost open dialog (the last [aria-modal] in the page), or null */
+function modalTopOpen(){if(typeof document==="undefined"||typeof document.querySelectorAll!=="function")return null;var all=document.querySelectorAll("[aria-modal='true']");return all&&all.length?all[all.length-1]:null;}
+/* #481 F3: the ONE way code hands the keyboard back to the story box — it yields while a dialog is open, so Enter can never
+   send a turn from behind a popup (#442's promise). Returns whether it focused. */
+function focusStoryBox(){if(modalTopOpen())return false;var inp=document.getElementById("action-input");if(!inp||typeof inp.focus!=="function")return false;inp.focus();return true;}
 function showGame(){
   document.getElementById("char-screen").style.display="none";
   document.getElementById("game-screen").style.display="flex";

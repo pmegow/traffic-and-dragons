@@ -963,7 +963,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li><code>restore()</code> acts only when focus is on the body or detached and no dialog is open.</li>
 </ul>
 <details><summary>Evidence</summary><p><code>ui-shell.js:141-144, 167-173</code>, <code>ui-sheets.js:312-318</code>. With a microtask-timed observer model and the real <code>modalShell</code>, an in-place sheet re-render ends with "focus = action-input | dialog still open: true", and Enter reaches <code>sendAction</code>. tests-442 is green only because it calls the restore by hand.</p></details>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1067: a same-id modalShell re-creation inherits the first opener and disconnects the old removal observer; a restore acts only when focus was lost and never behind an open dialog; the end of sendAction goes through focusStoryBox, which yields while a dialog is open. Real Chrome (dev/qa-481-f3-focus.js): at the pre-fix code a real Enter after a sheet re-render sent a turn from behind the sheet; now focus stays in the sheet. Proof: dev/tests-481-f3-focus-behind-dialog.js (microtask observer model, 7 groups, red first), dev/sabotage-481-f3-focus-behind-dialog.js 5/5; #442 and B40 batteries green (B40 re-anchored).</td></tr>
 
 <tr id="F4"><td class="n">F4</td><td>
 <p class="ttl">Home page: coming back to the tab resets your Quick Start pick, and a failed refresh wipes the shelf <span class="lean med">medium</span><span class="lean">wrong outcome</span></p>

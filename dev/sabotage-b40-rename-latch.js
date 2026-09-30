@@ -24,7 +24,8 @@ prove("ui-campaigns.js", [
 ]);
 prove("ui-shell.js", [
   { label: "modalShell blurs before removing (a re-rendering blur handler would append a second overlay)",
-    find: 'var ex=document.getElementById(id);if(ex)ex.remove();', replace: 'var ex=document.getElementById(id);if(ex){if(ex.contains(document.activeElement))document.activeElement.blur();ex.remove();}',
+    /* #481 F3 re-anchor: the same-id branch now also inherits the opener and disconnects the old observer */
+    find: 'if(ex._focusObserver)ex._focusObserver.disconnect();ex.remove();}', replace: 'if(ex._focusObserver)ex._focusObserver.disconnect();if(ex.contains(document.activeElement))document.activeElement.blur();ex.remove();}',
     mustFail: "B40 campStartRename" }
 ]);
 process.exit(code);
