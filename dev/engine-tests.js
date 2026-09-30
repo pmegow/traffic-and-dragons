@@ -575,7 +575,7 @@ function runEngineTests(R){
     if(buildSceneManifest().local.indexOf("Daeris")<0)return "fixture: the observed companion must be local for the party-member guard to matter";
     if(buildWhispersNote()!==""||worldState.whisperAsk)return "a scene with only party members must not ask (and must not spend the window)";
     worldState.pendingReunion={names:["Daeris"],node:"Sandpoint",turn:40};var nr=buildWhispersNote();if(!/WHISPERS/.test(nr)||nr.indexOf("Daeris")<0)return "a companion who just rejoined is a source: "+nr.slice(0,200);delete worldState.pendingReunion;delete worldState.whisperAsk;
-    worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
+    worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint",lastSeenTurn:40/* #481 B4: a dated sighting this frame */};
     var n=buildWhispersNote();
     if(!/WHISPERS/.test(n)||!/toll bridge/.test(n)||!/Bell Below/.test(n)||!/\[WHISPER:/.test(n)||n.indexOf("Old Maud")<0||!/NEVER a companion/.test(n))return "note: "+n;
     if(buildWhispersNote()!=="")return "fired twice inside the window";
@@ -26182,7 +26182,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
         relationships:[{entity:"Silas Morne",bond:"Terrifying savior and ticket out of the ditch",bondTurn:29,dynamic:"fierce, intimate devotion",dynamicTurn:143}],
         motivation:"Survive Silas Morne's orbit by proving indispensable and staying out of his reach."}
     ]);
-    memory.npcs["Silas Morne"].lastSeenAt="The Village|the tavern";memory.npcs["Nyla Lorrath"].lastSeenAt="The Village|the tavern";/* both PRESENT in the scene */
+    memory.npcs["Silas Morne"].lastSeenAt="The Village|the tavern";memory.npcs["Nyla Lorrath"].lastSeenAt="The Village|the tavern";/* both PRESENT in the scene */memory.npcs["Silas Morne"].lastSeenTurn=worldState.turn;memory.npcs["Nyla Lorrath"].lastSeenTurn=worldState.turn;/* #481 B4: presence is a DATED sighting, as every live writer stamps it — an undated one no longer counts once a scene frame exists */
     ragCarriedRetrieve._memo=null;ragCarriedRetrieve._entMemo=null;ragCarriedRetrieve._misses=0;
   }
   t("#433 a question naming two residents (first names, as typed) serves their carried history: the origin beat before the echo, both bonds, campaign-tagged, a shared moment once; an action naming nobody serves nothing even with both present",function(){
@@ -27246,6 +27246,49 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#481 B2 the SCENE_CAST doc line says what none means",function(){
     var d=buildStateTagsDoc();return /\[SCENE_CAST:none\][^\n]*whole party/.test(d)?true:"the none clause names the whole party: "+(d.match(/\[SCENE_CAST:none\][^\n]*/)||[""])[0].slice(0,200);
+  });
+
+  section("#481 B4 in the scene expires");
+  function b4Tavern(){villageEF();worldState.turn=205;delete worldState.castLast;delete worldState.sceneRefs;
+    importVillageResidents([{name:"Victor Marlow",gender:"M",cls:"Fighter",trait:"Talks over everyone.",flaw:"Owes money."}]);
+    memory.npcs["Victor Marlow"].lastSeenAt="The Village|the tavern";memory.npcs["Victor Marlow"].lastSeenTurn=28;
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";memory.npcs["Frizwick"].lastSeenTurn=205;
+    worldState.turn=200;sceneRefsEnsure();worldState.turn=205;return "The Village|the tavern";}
+  t("#481 B4 Victor, last seen in the tavern at t28, is not in the scene at t205: not local, listed in RESIDENTS ABOUT, no plays-as line",function(){
+    b4Tavern();var man=buildSceneManifest();
+    if(man.local.indexOf("Victor Marlow")>=0)return "a sighting from t28 is not presence at t205: "+JSON.stringify(man.local);
+    if(man.local.indexOf("Frizwick")<0)return "a sighting this frame is: "+JSON.stringify(man.local);
+    var geo=buildGeoBlock(),ra=(geo.match(/RESIDENTS ABOUT[^\n]*/)||[""])[0];
+    if(!/Victor Marlow/.test(ra))return "Victor is about, by the hour: "+ra.slice(0,300);
+    var _la=lastAction;try{lastAction="Look around.";var p=buildSysPrompt(),m=p.volatile.match(/\nNPCs: ([^\n]*)/)||["",""];
+      var vic=m[1].split(/; (?=[A-Z])/).filter(function(x){return /^Victor Marlow/.test(x);})[0]||"";
+      if(/plays as:/.test(vic))return "no plays-as line for someone who is not here: "+vic;}finally{lastAction=_la;}
+    return true;
+  });
+  t("#481 B4 a shop whose keeper was last seen 100 turns ago still trades (the keeper counts while the shop is open)",function(){
+    shopFixture();memory.npcs["Frizwick"].lastSeenTurn=worldState.turn-100;var t0=worldState.turn;worldState.turn=t0-2;delete worldState.sceneRefs;sceneRefsEnsure();worldState.turn=t0;
+    if(buildSceneManifest().local.indexOf("Frizwick")>=0)return "fixture: the keeper is not fresh";
+    var v=villageTradeContext();return (v.ok&&v.keeper==="Frizwick")?true:"the trade gate keeps the stale-tolerant keeper: "+JSON.stringify(v);
+  });
+  t("#481 B4 the latest cast is the authority: someone seen here, then left out of a later cast, is not in the scene",function(){
+    b4Tavern();var f=worldState.sceneRefs.active;f.observed.push({entity:"Daeris",channel:"say",firstTurn:201,lastTurn:201,turns:1});
+    if(buildSceneManifest().local.indexOf("Daeris")<0)return "fixture: observed this frame = local";
+    worldState.castLast={turn:203,node:"The Village|the tavern",names:["Frizwick"]};
+    if(buildSceneManifest().local.indexOf("Daeris")>=0)return "a later cast that leaves Daeris out ends her presence";
+    worldState.castLast={turn:203,node:"The Village|the tavern",names:["Frizwick","Daeris"]};
+    return buildSceneManifest().local.indexOf("Daeris")>=0?true:"a cast that names her keeps her";
+  });
+  t("#481 B4 a non-none cast is remembered where the reply ends; none leaves the last one standing",function(){
+    b4Tavern();quiet(function(){applyMuts("[SCENE_CAST:Frizwick]");});var cl=worldState.castLast;
+    if(!cl||cl.node!=="The Village|the tavern"||cl.names.indexOf("Frizwick")<0||cl.turn!==205)return "the cast is recorded: "+JSON.stringify(cl);
+    worldState.turn++;quiet(function(){applyMuts("[SCENE_CAST:none]");});
+    return worldState.castLast.turn===205?true:"none records no cast: "+JSON.stringify(worldState.castLast);
+  });
+  t("#481 B4 the exchange note is not on this predicate (B3 owns its gate)",function(){
+    b4Tavern();memory.npcs["Daeris"].lastSeenAt="The Village|the tavern";memory.npcs["Daeris"].lastSeenTurn=150;memory.npcs["Frizwick"].lastSeenTurn=150;delete worldState.exchangeAsk;
+    var man=buildSceneManifest();if(man.local.length)return "fixture: nobody fresh: "+JSON.stringify(man.local);
+    if(man.seenHere.indexOf("Frizwick")<0||man.seenHere.indexOf("Daeris")<0)return "the stale-tolerant list keeps the exact-spot sightings: "+JSON.stringify(man.seenHere);
+    var n=buildResidentExchangeNote();return (/Frizwick/.test(n)&&/Daeris/.test(n))?true:"the exchange note still reads the exact-spot list until B3 gives it its own gate: "+n.slice(0,200);
   });
 
 }

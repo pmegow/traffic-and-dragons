@@ -971,6 +971,27 @@ function castOmittedCompanions(R){
     if(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location)continue;if(cast[resolveNpcName(n.name)])continue;names.push(n.name);set[n.name]=1;}
   return names.length?{names:names,set:set}:null;
 }
+/* #481 B4 (audit 2026-09-29, owner-ruled, Fable-approved): "in the scene" EXPIRES. ONE predicate, present NOW at the party's
+   node: observed in the active scene frame (every observation there is since the frame began), or last seen at this exact
+   spot since the frame began — and a rostered name the latest non-none cast here left out, AFTER its last observation, is
+   not present (the cast is the authority, as in B1). With no active frame at this node (a legacy save before its first
+   prompt) the exact-spot record stands, as before. The ONE boundary is buildSceneManifest's addLocal, so every man.local
+   reader changes together; the trade gate keeps the stale-tolerant man.seenHere (a shop's keeper counts while the shop is
+   open — owner ruling), and the exchange note is B3's. */
+function scenePresentNow(name){
+  if(!worldState||!worldState.world||typeof memory==="undefined"||!memory)return false;
+  var canon=resolveNpcName(name),here=locResolve(currentNodeKey()),f=worldState.sceneRefs&&worldState.sceneRefs.active,i;
+  var frameHere=!!(f&&f.node!=null&&locResolve(String(f.node))===here),last=null;
+  if(frameHere){var ob=f.observed||[];for(i=0;i<ob.length;i++)if(ob[i]&&resolveNpcName(ob[i].entity)===canon){last=(typeof ob[i].lastTurn==="number")?ob[i].lastTurn:f.startTurn;break;}}
+  var m=memory.npcs?memory.npcs[canon]:null;
+  if(m&&m.lastSeenAt&&locResolve(String(m.lastSeenAt))===here){var lt=(typeof m.lastSeenTurn==="number")?m.lastSeenTurn:null;
+    if(!frameHere){if(last==null)last=(lt!=null)?lt:-1;}
+    else if(lt!=null&&lt>=f.startTurn&&(last==null||lt>last))last=lt;}
+  if(last==null)return false;
+  var cl=worldState.castLast;
+  if(cl&&cl.node===here&&cl.turn>last&&(cl.names||[]).indexOf(canon)<0)return false;
+  return true;
+}
 function derivePresenceFromResponse(text,R){
   if(!worldState)return;
   text=String(text||"");
@@ -979,7 +1000,8 @@ function derivePresenceFromResponse(text,R){
      behind shutters, across the gravel (t198/t206/t208/t213/t218 in the Village). They get NO node presence: no lastSeenAt,
      no guestbook stamp, no frame observation. The transcript speech record is untouched, so the death gate still sees the
      line. Party members are B2's (the hero is never withheld). A combatant is seen at the fight's own place (A4). */
-  var castCanon=null,ck;if(R&&R.castSet){castCanon={};for(ck in R.castSet)castCanon[resolveNpcName(ck)]=1;}
+  var castCanon=null,ck;if(R&&R.castSet){castCanon={};for(ck in R.castSet)castCanon[resolveNpcName(ck)]=1;
+    worldState.castLast={turn:(R.turn!=null)?R.turn:worldState.turn,node:locResolve(currentNodeKey()),names:Object.keys(castCanon)};/* #481 B4: the latest non-none cast, where the reply ends — scenePresentNow reads it */}
   function take(nm,ch,atKey){
     var key=String(nm||"").trim();if(!key)return;
     var canon=resolveNpcName(key);

@@ -391,13 +391,16 @@ function shopTradeApply(marks){
 // The scene-local manifest: who is PRESENT, where the exits lead, what the active character can
 // actually use — pure derivation from existing state, no new bookkeeping, no model involvement.
 function buildSceneManifest(){
-  var man={npcs:[],local:[],exits:[],doors:[],caps:[]},i,seen={},seenLocal={};
+  var man={npcs:[],local:[],seenHere:[],exits:[],doors:[],caps:[]},i,seen={},seenLocal={},seenHereK={};
   function addNpc(nm){var k=String(nm).toLowerCase();if(!seen[k]){seen[k]=1;man.npcs.push(nm);}}
   /* #392: local = the SCENE, not the town. npcs keeps the #156B same-world rule (an NPC seen anywhere in this
      settlement may be addressed); local holds only those whose last-seen stamp IS this exact node/sub-location or
      who are OBSERVED in the active frame. The wares gate reads local: a seller a mile away is not a stall in front
      of the player (The Long Walk t105–t132 — smelling salts offered at the family gate for thirty turns). */
-  function addLocal(nm){var k=String(nm).toLowerCase();if(!seenLocal[k]){seenLocal[k]=1;man.local.push(nm);}}
+  /* #481 B4: ONE boundary — man.local is who is in the scene NOW (scenePresentNow, identity.js); man.seenHere keeps the
+     stale-tolerant exact-spot list for the trade gate (a shop's keeper counts while the shop is open) and B3's note */
+  function addSeenHere(nm){var k=String(nm).toLowerCase();if(!seenHereK[k]){seenHereK[k]=1;man.seenHere.push(nm);}}
+  function addLocal(nm,exact){var k=String(nm).toLowerCase();if(!seenLocal[k]&&((typeof scenePresentNow==="function")?scenePresentNow(nm):exact)){seenLocal[k]=1;man.local.push(nm);}}/* the predicate is the ONLY authority for local; `exact` is the fallback where identity.js is not loaded */
   var loc=(worldState.world&&worldState.world.location)||"";
   var sub=(worldState.world&&worldState.world.sublocation)||null;
   var nodeKey=sub?loc+"|"+sub:loc;
@@ -415,7 +418,8 @@ function buildSceneManifest(){
        node's merged alias is HERE. Same-world test runs on the RESOLVED keys. */
     var rls=ls?locResolve(ls):"",rLoc=locResolve(loc),rNode=locResolve(nodeKey);
     if(rls&&(rls===rNode||rls===rLoc||rls.indexOf(rLoc+"|")===0))addNpc(n.name);
-    if(rls&&rls===rNode)addLocal(n.name);/* #392: the exact spot only */
+    if(rls&&rls===rNode)addSeenHere(n.name);/* #392: the exact spot only — the stale-tolerant list */
+    addLocal(n.name,rls&&rls===rNode);/* #481 B4: present NOW — the predicate alone decides (it carries #392's exact-spot rule) */
   }
   // #283 (Sol brief 35①): presence by STRUCTURED observation only — the active scene frame's
   // observed[] list (#194: [SAY:] speakers, combat-named rostered NPCs, [SCENE_CAST:] members,
@@ -434,7 +438,7 @@ function buildSceneManifest(){
     for(i=0;i<_frame.observed.length;i++){
       var _ob=_frame.observed[i]&&_frame.observed[i].entity;if(!_ob)continue;
       var _obNm=(typeof resolveNpcName==="function")?resolveNpcName(_ob):_ob;
-      for(var _oj=0;_oj<npcs.length;_oj++){if(npcs[_oj].name===_obNm&&!npcs[_oj].dead){addNpc(npcs[_oj].name);addLocal(npcs[_oj].name);/* #392: observed = in the scene */break;}}
+      for(var _oj=0;_oj<npcs.length;_oj++){if(npcs[_oj].name===_obNm&&!npcs[_oj].dead){addNpc(npcs[_oj].name);addSeenHere(npcs[_oj].name);addLocal(npcs[_oj].name,true);/* #392: observed = in the scene */break;}}
     }
   }
   // B24: world-map edges are connectivity at WORLD-NODE grain only. Inside a sub-location the

@@ -2642,7 +2642,7 @@ function villageTradeContext(text,R){
     var _sm=_t.match(/\[SAY:[^\]]+\]/g)||[],_si;for(_si=0;_si<_sm.length;_si++)_spk.push(_sm[_si].slice(5,-1).split("|")[0].trim());/* #458: the |mood is not part of the name — "Name|bright" is nobody on the roster */}
   var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk],leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk;
   if(!isShopNode(rk,node))return {ok:false,reason:"not in a shop ("+leaf+")"};
-  var man=(typeof buildSceneManifest==="function")?buildSceneManifest():{local:[]},local=_arrived?_spk:(man.local||[]).concat(_spk),i,keeper=null;/* an arrival in the text resets the room: only this response's speakers are known to be inside */
+  var man=(typeof buildSceneManifest==="function")?buildSceneManifest():{local:[]},local=_arrived?_spk:(man.seenHere||man.local||[]).concat(_spk)/* #481 B4: the keeper counts while the shop is open */,i,keeper=null;/* an arrival in the text resets the room: only this response's speakers are known to be inside */
   for(i=0;i<local.length&&!keeper;i++){var n=(typeof wsNpcByName==="function")?wsNpcByName(local[i]):null;if(n&&!n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n)))keeper=n.name;}
   if(!keeper)return {ok:false,reason:"no counterparty present in "+leaf};
   return {ok:true,keeper:keeper,shop:leaf,node:node,key:rk};
