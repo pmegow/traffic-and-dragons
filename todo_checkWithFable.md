@@ -143,6 +143,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Guard:** the "#481 A7 source" test lints every `muts.push(` in the engine files, so a new refusal without the glyph fails the suite.
   - **Real saves:** the owner's rings held 13 unglyphed refusal lines (6 clock skips, 3 "mood kept", 2 canon quarantines, 1 trade, 1 stash) and 2 doubled Sub arrivals. The render was screenshot on the real t218 state (amber, computed `rgb(216,160,74)`).
   - **Proof:** 5 tests in "#481 A7" (all red before the build). Full suite green (2,459); four replay checks green; `dev/sabotage-481-a7-refusal-glyph.js` 10/10 caught.
+- 2026-09-29 · #482 · v1.1043 · Opus 5.5 · A village house belongs to a name, not to a word (found building #481 A7; not an audit row — Fable has not reviewed it).
+  - **Touches:** `villageHouseOwnerFor` (helpers.js), which feeds the #481 A1 place resolver's house canonicaliser: arrivals, item placements and the house mint.
+  - **The bug:** the first-word rule let the resident "The Entity" own every "the … house / place"; even "the cottage of Frizwick" went to The Entity because the longest match won.
+  - **The rule now:** the whole name (word-bounded, a leading article optional) or one of its words as a possessive or after "of". A whole-name match outranks a word match.
+  - **Real save:** t218 roster — "the well house" resolved to The Entity's house before; now the well house, the market place and the bath house file as named, and every real house still resolves. No occurrence was recorded in the saved windows.
+  - **Proof:** 2 tests in "#482" (red first). Full suite green (2,461); four replay baselines unchanged; `dev/sabotage-482-house-owner.js` 5/5 caught.
 
 ## Off-Fable log
 

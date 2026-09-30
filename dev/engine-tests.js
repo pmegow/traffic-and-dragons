@@ -27545,4 +27545,27 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (subs.length===1&&subs[0]==="Sub: the tavern")?true:"a plain arrival: "+JSON.stringify(subs);
   });
 
+  // ── #482 (found building #481 A7, 2026-09-29): the village house matcher read a resident's FIRST WORD as their name, so
+  // "The Entity" (a resident in the Ammut village) owned every "the … house" and "the … place": [SUBLOCATION:the well
+  // house] walked the party into The Entity's house and a placement there filed into its chest. A name now matches as the
+  // whole name (word-bounded, a leading article optional) or as one of its own words in a name position — possessive
+  // ("Maud's cottage") or after "of" ("the cottage of Frizwick") — never as an adjective in a compound noun.
+  section("#482 a house belongs to a name, not to a word");
+  function h482(){villageEF();importVillageResidents([{name:"The Entity",gender:"F",cls:"Mage"},{name:"Old Maud",gender:"F",cls:"Cleric"},{name:"Ash",gender:"M",cls:"Rogue"}]);}
+  t("#482 an article or an adjective is nobody's name: the well house, the market place and the old house resolve to no one; nothing is minted",function(){
+    h482();var n0=Object.keys(memory.map.nodes).length,bad=[];
+    ["the well house","the market place","the old house","the bath house","The Guard House","the meeting place","the wash house"].forEach(function(p){var o=villageHouseOwnerFor(p);if(o)bad.push(p+" → "+o);});
+    if(bad.length)return "a common word claimed a house: "+bad.join("; ");
+    var r=quiet(function(){return applyMuts("[SUBLOCATION:the well house]");}).r;
+    if(worldState.world.sublocation==="The Entity's house")return "the party walked into The Entity's house (the Ammut field shape): "+JSON.stringify(r.muts);
+    if(worldState.world.sublocation!=="the well house")return "the well house files as named: "+worldState.world.sublocation;
+    return Object.keys(memory.map.nodes).length===n0+1?true:"only the well house itself is new: "+Object.keys(memory.map.nodes).join(", ");
+  });
+  t("#482 every way a name owns a house still resolves: the whole name, a possessive of one of its words, 'of' a name, my house",function(){
+    h482();var want={"The Entity's house":"The Entity","the Entity's lodgings":"The Entity","Old Maud's cottage":"Old Maud","Maud's cottage":"Old Maud",
+      "the cottage of Frizwick":"Frizwick","Frizwick house":"Frizwick","Daeris' house":"Daeris","the home of old Maud":"Old Maud","the home of Maud":"Old Maud","Ash's hut":"Ash","my house":"Silas","Silas's home":"Silas"},bad=[];
+    Object.keys(want).forEach(function(p){var o=villageHouseOwnerFor(p);if(o!==want[p])bad.push(p+" → "+o+" (want "+want[p]+")");});
+    return bad.length?bad.join("; "):true;
+  });
+
 }

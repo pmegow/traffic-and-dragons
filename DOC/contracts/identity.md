@@ -16,6 +16,7 @@ Status: ✅ Active (#156)
 - **Precedence, fixed:**
   1. The identity overlay: parent|name through `locResolve`, when that node exists.
   2. The kind's canonicalisers. These are DATA: `kindDef().placeCanon` names entries of `PLACE_CANONICALISERS`; the village lists house owner, commons, hall words.
+     - **The house owner (#482, v1.1043):** `villageHouseOwnerFor` gives a house to a NAME — the whole name, word-bounded, a leading article optional — or to one of its own words in a name position: a possessive ("Maud's cottage", "Daeris' house") or after "of" ("the home of Maud"). A whole-name match outranks a word match; the longer name wins within a class. A bare word never owns a house: the old first-word rule let the resident "The Entity" own every "the … house / place" (the well house, the market place, even "the cottage of Frizwick").
   3. A case- and article-insensitive leaf match among the parent's children (`placeNameNorm`); on a twin, the most-visited wins, loudly.
   4. `null`.
 - **On `null`:** the arrival mints the place as named; the item filer refuses loudly (#6 E3).
