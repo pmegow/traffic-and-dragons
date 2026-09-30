@@ -16,7 +16,7 @@ All logic has been extracted from the HTML into separate JS files.
 
 | File | Status | Contents |
 |---|---|---|
-| `index.html` | **Active host** | CSS, HTML scaffolding, 42 `<script src>` tags, no inline JS |
+| `index.html` | **Active host** | CSS, HTML scaffolding, the `<script src>` tags in the load order below (derived: `dev/check-doc-facts.js`), and two small inline scripts — the Piper runtime's import map and the manifest + service-worker registration |
 | `globals.js` | ✅ Extracted | `apiKey`, `busy`, `lastAction`, `panelCol`, `secCol`, `activeChatTab`, `pendingChar`, `pendingSpellPool`, `pendingBumps`, `currentBump`, `rvGold`, `customRules`, `RENDER_MODELS`, `pendingCompanions` |
 | `wasm-probe.js` | ✅ Active (B9) | WebAssembly linear-memory probe — hooks the wasm instantiation entry points at load (must run before any wasm exists), making ORT's otherwise-invisible linear-memory growth measurable. Loaded by BOTH index.html and the Piper synthesis iframe |
 | `error-report.js` | ✅ Active (#16) | Mobile error reporting — `reportError(ctx,msg,detail)` POSTs runtime errors to a Google Apps Script webhook that emails pmegow@gmail.com (the mobile console is invisible. → [full contract](DOC/contracts/satellites.md#error-reportjs) |
@@ -32,7 +32,7 @@ All logic has been extracted from the HTML into separate JS files.
 | `clock.js` | ✅ Active (#73) | The CAMPAIGN CLOCK — ONE monotonic scalar `worldState.clock.min`. → [full contract](DOC/contracts/clock.md#clockjs) |
 | `identity.js` | ✅ Active (#156) | ⛨ **THE IDENTITY LAYER spine** — `IDENTITY_DOMAINS` registry (npc = full adapter. → [full contract](DOC/contracts/identity.md#identityjs) |
 | `tag_table.js` | ✅ Active (UA1) | ⛨ **THE tag registry** — one ordered table (`TAG_TABLE`, **123 handlers** — 120 literal entries + 3 from `combatAttrEntry`; "~57" was stale by more than 2× until audit A11) from which three formerly hand-synced surfaces DERIVE: `applyMutsTable()` (THE parser), `buildCtTags()`/`buildCtBare()` (cleanTxt's strip regexes), and `buildStateTagsDoc()` (the STATE T… → [full contract](DOC/contracts/tags.md#tag_tablejs) |
-| `api.js` | ✅ Extracted | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts` (a thin veneer — `applyMutsTable()` + `__tagUnknownScan()`; the legacy parser is deleted), `findCompanionChar`, `cleanTxt` (regexes derived from tag_table), `diceTxt`, `parseActions`, `buildGeoBlock` |
+| `api.js` | ✅ Extracted | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts` (THE tag-application boundary: the #264 review-call whitelist strips out-of-scope tags first; W2 splits the reply into ordinary tags — `applyMutsTable()` — and canon-claim transactions, each staged on a detached clone, then committed with a receipt or rolled back and quarantined; then `__tagUnknownScan()`, the bare-tag scan and the #137 provenance ring. The legacy parser is deleted), `findCompanionChar`, `cleanTxt` (regexes derived from tag_table), `diceTxt`, `parseActions`, `buildGeoBlock` |
 | `table-talk.js` | ✅ Active (#76) | The Table Talk HELP AGENT — an out-of-character help desk answering factual questions about the app, the rules, and this campaign's own history. → [full contract](DOC/contracts/prompt.md#table-talkjs) |
 | `campaign_generator.js` | ✅ Active (#59) | ⛨ Shared campaign-skeleton generator + one-pass review serving TWO consumers: `game.js generateSkeleton()` (freeform campaign start gets ONE review pass + auto-correction. → [full contract](DOC/contracts/character.md#campaign_generatorjs) |
 | `char-creation.js` | ✅ Extracted | All wizard step logic, `cs`, `confirmChar`, archetype/spell/stat-bump pickers |
@@ -136,7 +136,7 @@ The system contracts live one file per drift-surface system under `DOC/contracts
 
 ## Conventions
 
-- **ES5.1+ JavaScript** — `var`, no arrow functions, no template literals, no `const`/`let`. `async/await` only in the three API-facing functions. ES5.1 builtins (`.forEach`, `.map`, `.filter`, `Object.keys`) and `Object.assign` (ES6, universally supported) are permitted.
+- **ES5.1+ JavaScript** — `var`, no arrow functions, no template literals, no `const`/`let`. `async/await` where a function awaits I/O (model calls, sync, storage, audio); `dev/check-es5.js` polices the forbidden forms (const/let, arrows, template literals, classes). ES5.1 builtins (`.forEach`, `.map`, `.filter`, `Object.keys`) and `Object.assign` (ES6, universally supported) are permitted.
 - **Single-character variables** common in dense utility functions.
 - **HTML built by string concatenation** — no templating engine.
 - **State versioning via key suffix** — all storage keys end in `_v10` (campaigns in `_v1`).

@@ -1,7 +1,7 @@
 # Weekly mutation proof (#312 ①): every dev/sabotage-*.js battery, not just the one focused w2
 # group the commit gate runs. Each battery mutates a guarded branch and requires the NAMED test to
 # fail; the runner treats a non-zero exit, a misattributed red, or a no-byte mutation as a failure.
-# Slow by design (a full-suite run per mutation, ~40–60 min across 63 batteries) — hence weekly.
+# Slow by design (a full-suite run per mutation, across every battery) — hence weekly.
 name: Sabotage (all batteries, weekly)
 on:
   schedule:

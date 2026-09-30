@@ -27,6 +27,15 @@ try {
   console.error("DOC LINKS CONTRACT FAILED: " + e.message);
   process.exit(1);
 }
+// #481 G9: CLAUDE.md's hand-copied facts are DERIVED — its script load order must equal index.html's <script src> order (the
+// ENGINE MANIFEST CONTRACT's shape, for the doc), and a script-tag count written in the index.html row must be true.
+try {
+  var _docFacts = require("./check-doc-facts.js").allProblems(require("path").join(__dirname, ".."));
+  if (_docFacts.length) { console.error("DOC FACTS CONTRACT FAILED:\n  - " + _docFacts.join("\n  - ")); process.exit(1); }
+} catch (e) {
+  console.error("DOC FACTS CONTRACT FAILED: " + e.message);
+  process.exit(1);
+}
 
 // ── SHARED READERS FOR THE SOURCE-CONTRACT SECTION (audit G11, 2026-09-18) ──────────────────
 // Every contract below does the same two things: read a repo file, and strip its comments before
