@@ -8161,7 +8161,7 @@ function runEngineTests(R){
     // #408 (v1.926): +LAYOUT strip entry — source grew exactly 7 chars = "LAYOUT|". The room graph is engine-only in the
     // doc (the doc golden is byte-unchanged) but MUST strip: a leaked [LAYOUT:] would read the floor plan aloud in TTS
     // and put it in the transcript's clean text. Golden diffed by eye in the same commit.
-    if(__djb2(_CT_TAGS.source)!==-657871871||_CT_TAGS.source.length!==1797)return "_CT_TAGS diverged from the frozen literal";/* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==162957682||_CT_TAGS.source.length!==1809)return "_CT_TAGS diverged from the frozen literal";/* #481 B4 (2026-09-30): SHOP_KEEPER joins the strip vocabulary (+12) *//* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -27447,6 +27447,98 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!cl||cl.node!=="The Village|the tavern"||cl.names.indexOf("Frizwick")<0||cl.turn!==205)return "the cast is recorded: "+JSON.stringify(cl);
     worldState.turn++;quiet(function(){applyMuts("[SCENE_CAST:none]");});
     return worldState.castLast.turn===205?true:"none records no cast: "+JSON.stringify(worldState.castLast);
+  });
+
+  section("#481 B4 keeper of record: a shop's keeper counts at the counter while the shop is open");
+  /* Owner ruling 2026-09-29 ("a shop's owner counts as present while the shop is open"), built 2026-09-30 on the owner's go.
+     Shops gain a keeper of record ([SHOP_KEEPER:], engine-only, asked by buildKeeperNote). The trade gate counts the keeper at
+     the counter while the shop's hours say open (no hours on record = open); anyone else — and the keeper out of hours —
+     counts only in the scene now or speaking in the reply. A shop with NO keeper on record keeps the old stale-tolerant rule. */
+  var B4K_POST="The Village|the trading post";
+  function b4kHour(){return Math.floor(clockMinuteOfDay()/60);}
+  function b4kOpen(){memory.map.nodes[B4K_POST].hours={open:0,close:24};}
+  function b4kClosed(){var h=b4kHour();memory.map.nodes[B4K_POST].hours={open:(h+1)%24,close:(h+2)%24};}
+  function b4kStale(){var t0=worldState.turn;memory.npcs["Frizwick"].lastSeenTurn=t0-100;worldState.turn=t0-2;delete worldState.sceneRefs;sceneRefsEnsure();worldState.turn=t0;}
+  function b4kBram(){importVillageResidents([{name:"Bram Oakes",gender:"M",cls:"Fighter",trait:"Quiet.",flaw:"Proud."}]);}
+  t("#481 B4k [SHOP_KEEPER:] files the keeper on the shop where it happens; a new keeper names the old one",function(){
+    shopFixture();var r=quiet(function(){return applyMuts("Frizwick wipes the counter. [SHOP_KEEPER:Frizwick]");}).r;
+    if(memory.map.nodes[B4K_POST].keeper!=="Frizwick")return "not filed: "+JSON.stringify(memory.map.nodes[B4K_POST].keeper);
+    if(!(r.muts||[]).some(function(m){return /Keeper of the trading post: Frizwick/.test(m);}))return "no receipt: "+JSON.stringify(r.muts);
+    b4kBram();r=quiet(function(){return applyMuts("[SHOP_KEEPER:Bram Oakes]");}).r;
+    if(memory.map.nodes[B4K_POST].keeper!=="Bram Oakes")return "a new keeper replaces the old";
+    return (r.muts||[]).some(function(m){return /Keeper of the trading post: Bram Oakes \(was Frizwick\)/.test(m);})?true:"the change names the old keeper: "+JSON.stringify(r.muts);
+  });
+  t("#481 B4k a keeper that cannot be filed is refused out loud and files nothing: not on the roster, dead, not a shop",function(){
+    shopFixture();var q=quiet(function(){return applyMuts("[SHOP_KEEPER:Nobody Atall]");});
+    if(memory.map.nodes[B4K_POST].keeper)return "an unknown name was filed";
+    if(!(q.r.muts||[]).some(function(m){return /⚠ Keeper refused/.test(m)&&/Nobody Atall/.test(m);}))return "the refusal is on the record: "+JSON.stringify(q.r.muts);
+    var fz=wsNpcByName("Frizwick");fz.dead=true;q=quiet(function(){return applyMuts("[SHOP_KEEPER:Frizwick]");});delete fz.dead;
+    if(memory.map.nodes[B4K_POST].keeper)return "a dead keeper was filed";
+    if(!(q.r.muts||[]).some(function(m){return /⚠ Keeper refused/.test(m)&&/dead/.test(m);}))return "the dead refusal: "+JSON.stringify(q.r.muts);
+    /* the Hall node EXISTS, so only the shop test (isShopNode) can refuse it — a missing node would refuse for another reason */
+    if(!memory.map.nodes["The Village|the Village Hall"])memory.map.nodes["The Village|the Village Hall"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[]};
+    worldState.world.sublocation="the Village Hall";q=quiet(function(){return applyMuts("[SHOP_KEEPER:Frizwick]");});
+    var hall=memory.map.nodes["The Village|the Village Hall"];if(hall.keeper)return "the Hall is not a shop";
+    return (q.r.muts||[]).some(function(m){return /⚠ Keeper refused/.test(m)&&/not a shop/.test(m);})?true:"the not-a-shop refusal: "+JSON.stringify(q.r.muts);
+  });
+  t("#481 B4k the ruling: a keeper last seen 100 turns ago trades while the shop is open, and not while it is closed",function(){
+    shopFixture();memory.map.nodes[B4K_POST].keeper="Frizwick";b4kStale();
+    if(buildSceneManifest().local.indexOf("Frizwick")>=0)return "fixture: the keeper is not in the scene";
+    b4kOpen();var v=villageTradeContext();if(!v.ok||v.keeper!=="Frizwick")return "open: the keeper is at the counter: "+JSON.stringify(v);
+    b4kClosed();v=villageTradeContext();if(v.ok)return "closed: the keeper is not at the counter: "+JSON.stringify(v);
+    if(!/closed/.test(v.reason)||!/Frizwick/.test(v.reason))return "the refusal says why: "+v.reason;
+    delete memory.map.nodes[B4K_POST].hours;v=villageTradeContext();
+    return (v.ok&&v.keeper==="Frizwick")?true:"no hours on record = open: "+JSON.stringify(v);
+  });
+  t("#481 B4k out of hours the keeper still trades when in the scene, speaking in the reply",function(){
+    shopFixture();memory.map.nodes[B4K_POST].keeper="Frizwick";b4kStale();b4kClosed();
+    var v=villageTradeContext("Frizwick opens the shutter for you. [SAY:Frizwick] \"Quick, then.\" [GOLD:-1]");
+    return (v.ok&&v.keeper==="Frizwick")?true:"a keeper who answers the door trades: "+JSON.stringify(v);
+  });
+  t("#481 B4k once a shop has a keeper of record, a stale sighting of anyone else no longer opens it",function(){
+    shopFixture();b4kBram();memory.map.nodes[B4K_POST].keeper="Bram Oakes";b4kStale();b4kClosed();
+    var v=villageTradeContext();if(v.ok)return "Frizwick, seen here 100 turns ago, is not the counter: "+JSON.stringify(v);
+    b4kOpen();v=villageTradeContext();return (v.ok&&v.keeper==="Bram Oakes")?true:"open: the keeper of record: "+JSON.stringify(v);
+  });
+  t("#481 B4k a dead or travelling keeper is not at the counter; someone in the scene still is",function(){
+    shopFixture();memory.map.nodes[B4K_POST].keeper="Frizwick";b4kStale();b4kOpen();
+    var fz=wsNpcByName("Frizwick");fz.dead=true;var v=villageTradeContext();delete fz.dead;
+    if(v.ok)return "a dead keeper keeps no shop: "+JSON.stringify(v);
+    fz.partyMember=true;v=villageTradeContext();delete fz.partyMember;
+    if(v.ok)return "a keeper travelling with the party is not at the counter: "+JSON.stringify(v);
+    b4kBram();fz.dead=true;v=villageTradeContext("Bram minds the counter. [SAY:Bram Oakes] \"Frizwick's gone.\" [GOLD:-1]");delete fz.dead;
+    return (v.ok&&v.keeper==="Bram Oakes")?true:"someone speaking in the reply still trades: "+JSON.stringify(v);
+  });
+  t("#481 B4k a shop with NO keeper on record keeps the old rule until the GM files one (behaviour-identical)",function(){
+    shopFixture();b4kStale();b4kClosed();
+    var v=villageTradeContext();return (v.ok&&v.keeper==="Frizwick")?true:"no record: the stale-tolerant keeper still trades: "+JSON.stringify(v);
+  });
+  t("#481 B4k the keeper ask: once per shop with no keeper, the syntax taught, registered; silent with a keeper and outside shops",function(){
+    shopFixture();delete worldState.keeperAsk;var n=buildKeeperNote();
+    if(n.indexOf("[SHOP_KEEPER:")<0||!/the trading post/.test(n))return "the ask teaches the tag for this shop: "+n;
+    if(buildKeeperNote()!=="")return "once per shop";
+    memory.map.nodes[B4K_POST].keeper="Frizwick";delete worldState.keeperAsk;if(buildKeeperNote()!=="")return "silent with a keeper";
+    delete memory.map.nodes[B4K_POST].keeper;worldState.world.sublocation="the Village Hall";delete worldState.keeperAsk;if(buildKeeperNote()!=="")return "silent outside a shop";
+    var s=NOTE_SHAPES.buildKeeperNote;if(!s||s.shape!=="one-shot-ask"||s.latch[0]!=="keeperAsk"||s.ack.indexOf("SHOP_KEEPER")<0)return "registry row: "+JSON.stringify(s);
+    return (NOTE_BUILDERS.indexOf(buildKeeperNote)>=0&&NOTE_LATCH_FIELDS.indexOf("keeperAsk")>=0)?true:"the builder and its latch are registered";
+  });
+  t("#481 B4k the tag is stripped and engine-only: the standing doc does not teach it, so the cached half is unchanged",function(){
+    if(cleanTxt("She nods. [SHOP_KEEPER:Frizwick] Done.")!=="She nods.  Done.")return "not stripped: "+cleanTxt("She nods. [SHOP_KEEPER:Frizwick] Done.");
+    if(TAG_STRIP_NAMES.indexOf("SHOP_KEEPER")<0)return "the strip registry must name it (a generic net is not the contract)";
+    if(TAG_DOC_ENGINE_ONLY.indexOf("SHOP_KEEPER")<0)return "engine-only";
+    if(buildStateTagsDoc().indexOf("[SHOP_KEEPER:")>=0)return "the standing doc must not teach it";
+    return TAG_DOC_LINES.join("").indexOf("[SHOP_KEEPER:")>=0?true:"the vocabulary lists it";
+  });
+  t("#481 B4k the geo block names a shop's keeper and whether they are at the counter",function(){
+    shopFixture();memory.map.nodes[B4K_POST].keeper="Frizwick";b4kOpen();
+    var geo=buildGeoBlock();if(!/Keeper: Frizwick[^\n]*at the counter/.test(geo))return "open: "+(geo.match(/Keeper[^\n]*/)||["(none)"])[0];
+    b4kClosed();geo=buildGeoBlock();if(!/Keeper: Frizwick[^\n]*CLOSED/.test(geo))return "closed: "+(geo.match(/Keeper[^\n]*/)||["(none)"])[0];
+    delete memory.map.nodes[B4K_POST].keeper;return /Keeper:/.test(buildGeoBlock())?"no keeper, no line":true;
+  });
+  t("#481 B4k a merge keeps the keeper (one NODE_CARRY_FIELDS row)",function(){
+    var canon={items:[]},dup={items:[],keeper:"Frizwick"};locFoldNodeRecords(canon,dup,"x");
+    if(canon.keeper!=="Frizwick")return "the merge dropped the keeper";
+    return NODE_CARRY_FIELDS.some(function(f){return f.k==="keeper";})?true:"the keeper is carried by the registry";
   });
 
   section("#481 B3 the exchange note amplifies a real pair, never summons one");

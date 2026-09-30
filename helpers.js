@@ -2812,9 +2812,16 @@ function villageTradeContext(text,R){
     var _sm=_t.match(/\[SAY:[^\]]+\]/g)||[],_si;for(_si=0;_si<_sm.length;_si++)_spk.push(_sm[_si].slice(5,-1).split("|")[0].trim());/* #458: the |mood is not part of the name — "Name|bright" is nobody on the roster */}
   var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk],leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk;
   if(!isShopNode(rk,node))return {ok:false,reason:"not in a shop ("+leaf+")"};
-  var man=(typeof buildSceneManifest==="function")?buildSceneManifest():{local:[]},local=_arrived?_spk:(man.seenHere||man.local||[]).concat(_spk)/* #481 B4: the keeper counts while the shop is open */,i,keeper=null;/* an arrival in the text resets the room: only this response's speakers are known to be inside */
+  var man=(typeof buildSceneManifest==="function")?buildSceneManifest():{local:[]},local,i,keeper=null;
+  /* #481 B4 (owner ruling 2026-09-29, "a shop's owner counts as present while the shop is open"): a shop with a KEEPER OF
+     RECORD ([SHOP_KEEPER:]) counts that keeper at the counter while it is open (shopOpenNow: its hours, or none on record);
+     anyone else — and the keeper out of hours — only in the scene now (man.local) or speaking in this reply. A shop with no
+     keeper on record keeps the stale-tolerant exact-spot rule (man.seenHere) until the GM files one. */
+  var _kName=(node&&node.keeper)?node.keeper:null,_kOpen=_kName?shopOpenNow(node):true;
+  if(_kName){local=_arrived?_spk.slice():(man.local||[]).concat(_spk);if(_kOpen)local.unshift((typeof resolveNpcName==="function")?resolveNpcName(_kName):_kName);}
+  else local=_arrived?_spk:(man.seenHere||man.local||[]).concat(_spk);/* an arrival in the text resets the room: only this response's speakers are known to be inside */
   for(i=0;i<local.length&&!keeper;i++){var n=(typeof wsNpcByName==="function")?wsNpcByName(local[i]):null;if(n&&!n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n)))keeper=n.name;}
-  if(!keeper)return {ok:false,reason:"no counterparty present in "+leaf};
+  if(!keeper)return {ok:false,reason:(_kName&&!_kOpen)?leaf+" is closed at this hour ("+_kName+" keeps it) and nobody in the scene can trade":"no counterparty present in "+leaf};
   return {ok:true,keeper:keeper,shop:leaf,node:node,key:rk};
 }
 
@@ -3008,6 +3015,12 @@ function villageCommons(){
 /* #481 B6 (audit 2026-09-29, Fable-approved): the ONE open-at-the-hour predicate — the geo block's OPEN/CLOSED line and the
    residents' whereabouts both read it. null = no hours on record (read as open). Overnight ranges (20-4) wrap. Pure. */
 function nodeOpenAtHour(node,hr){if(!node||!node.hours)return null;var h=node.hours;return (h.open<=h.close)?(hr>=h.open&&hr<h.close):(hr>=h.open||hr<h.close);}
+/* #481 B4: is this shop open NOW? Its hours at the clock's hour (nodeOpenAtHour, the one predicate); a place with no hours on
+   record — none filed yet, or [LOCATION_HOURS:none] — counts as open, so a keeper of record is never lost to a missing record. */
+function shopOpenNow(node){
+  if(!node||!node.hours||typeof clockMinuteOfDay!=="function")return true;
+  return nodeOpenAtHour(node,Math.floor(clockMinuteOfDay()/60))!==false;
+}
 /* #481 B6: ONE renderer for a resident's whereabouts — "<name> is at home" / "<name> is at <place>". The RESIDENTS note used to
    join a name and a place with a bare "is" ("Thessa Saltborn is the animal handler's yard"). Serves RESIDENTS ABOUT, the
    RETURN change, the whispers facts and the Car Mode recap. */

@@ -283,6 +283,7 @@ function newMapNode(firstVisit,parent,extra){
    their older, more specific fold logic in locFoldNodeRecords.) */
 var NODE_CARRY_FIELDS=[
   {k:"layout",fold:"canon-wins"},{k:"kind",fold:"canon-wins"},{k:"endpoints",fold:"canon-wins"},{k:"hours",fold:"canon-wins"},{k:"resident",fold:"canon-wins"},{k:"design",fold:"canon-wins"},
+  {k:"keeper",fold:"canon-wins"},/* #481 B4: a shop's keeper of record ([SHOP_KEEPER:]) */
   {k:"wares",fold:"union-by-item"},{k:"wanted",fold:"union-by-item",cap:(typeof WANTED_CAP!=="undefined")?WANTED_CAP:4},
   {k:"mentions",fold:"concat",cap:8},{k:"mementos",fold:"concat"},{k:"wall",fold:"concat"},
   {k:"waresNone",fold:"newer"},{k:"hoursNone",fold:"newer"},

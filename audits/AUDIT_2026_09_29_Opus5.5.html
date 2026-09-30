@@ -451,7 +451,7 @@ details[open] summary{margin-bottom:8px}
 <p><span class="k">Evidence</span>On the t205 save (hero in the tavern), <code>local</code> = Thessa (t205), Sable (t205), The Entity (t197), <b>Victor Marlow (t28)</b>, Pirindel (t205). The t206 prompt gives Victor the "plays as" line and leaves him out of RESIDENTS ABOUT. Walk-ins on t218: the smithy yields Gazz, Halvard and Vyrindra, last seen 105–107 turns earlier.</p>
 <p><span class="k">Test first</span>On the t205 state, Victor is not local, RESIDENTS ABOUT lists him, and he gets no "plays as" line (red at HEAD).</p>
 </details>
-</td><td class="c">M</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1030</td></tr>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1030 (the scene predicate) and v1.1077 (the keeper of record, built on the owner's go 2026-09-30). <b>The ruling is now enforced:</b> a shop carries a keeper of record, filed by the engine-only [SHOP_KEEPER:Name] (asked once per keeperless shop by buildKeeperNote). The trade gate counts the keeper at the counter while the shop is open (its hours; no hours = open); anyone else, and the keeper out of hours, trades only in the scene now or speaking in the reply. A shop with no keeper on record keeps the old rule until the GM files one. The geo block names the keeper and whether they are at the counter. Proof: 11 tests in "#481 B4 keeper" (8 red first); dev/sabotage-481-b4-keeper.js 13/13; the strip golden and its frozen hash re-baselined (+SHOP_KEEPER); the four replays unchanged. The real Village t218 save's prompt is byte-identical at HEAD and now, and with the hero moved into the tavern the keeper ask is the only new note.</td></tr>
 
 <tr id="B5"><td class="n">B5</td><td>
 <p class="ttl">"Along your left side" is read as someone having left — every separation alarm this fortnight was false <span class="lean med">medium</span><span class="lean">guard firing on noise</span></p>
@@ -1213,7 +1213,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 </div>
 <h3>Needs you</h3>
 <ol>
-<li><b>B4 — a shop keeper record.</b> The ruling's "a shop's owner counts as present while the shop is open" can't be evaluated: shop nodes carry no keeper and residents carry no occupation. B4 is built with the sale gate unchanged, so a keeper seen 100 turns ago still trades. Decide separately whether shops should gain a keeper record with an hours rule.</li>
+<li><b>B4 — a shop keeper record. (Resolved 2026-09-30: built on your go, v1.1077.)</b> The ruling's "a shop's owner counts as present while the shop is open" can't be evaluated: shop nodes carry no keeper and residents carry no occupation. B4 is built with the sale gate unchanged, so a keeper seen 100 turns ago still trades. Decide separately whether shops should gain a keeper record with an hours rule.</li>
 <li><b>G4 — the double #264.</b> Renumbering one of the two #264 archive rows is your call; it wasn't among the 13. The new lint ships with #264 grandfathered until you rule.</li>
 <li><b>F5 — a server deploy.</b> The library slug fix has a server half, which needs <code>flyctl deploy --ha=false</code>. It is prepared, not deployed, until you say go.</li>
 <li><b>G11 — the overdue playtest, and a split.</b> The overdue playtest is an allowance spend (pre-authorized as of today), not code. Porting the Playwright qa scripts to CDP becomes its own row.</li>

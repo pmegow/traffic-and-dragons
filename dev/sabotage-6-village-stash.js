@@ -85,7 +85,7 @@ prove("helpers.js", [
     find: '    if(_st&&_st.key)key=_st.key;', replace: '    if(false)key=_st.key;',
     mustFail: "#6F10 the trade gate reads the response" },
   { label: "a shop with no one in it still trades",
-    find: 'if(!keeper)return {ok:false,reason:"no counterparty present in "+leaf};', replace: 'if(!keeper)keeper="someone";',
+    find: 'if(!keeper)return {ok:false,reason:(_kName&&!_kOpen)?', replace: 'if(!keeper)keeper="someone";if(!keeper)return {ok:false,reason:(_kName&&!_kOpen)?',/* #481 B4: the refusal line gained the keeper-closed reason */
     mustFail: "#6F5 trade only in a shop" },
   { label: "\"never mind\" is an action, not an undo",
     find: '/^(?:never mind|nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/', replace: '/^(?:nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/',
