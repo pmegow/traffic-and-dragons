@@ -45,11 +45,33 @@ function shapeErrors(text) {
 // #310: a TODO row is a pointer, not a record — over TODO_ROW_MAX bytes the record belongs in
 // DOC/todos_completed (or audits/) and the row keeps title + TLDR + verdict + link (the #22/#41 precedent).
 var TODO_ROW_MAX = 6144;
-function rowSizeErrors(text, max) {
-  var lim = max || TODO_ROW_MAX, errs = [], lines = text.split("\n"), i;
+var ROW_ID_RE = /^\|\s*([A-Za-z]*\d+)\s*\|/;   /* #481 G7: numeric ids and letter-prefixed ones (L7) */
+// #481 G7 (audit 2026-09-29): a row that LEAVES TODO.md while its id ENTERS the archive in the same change must arrive
+// byte-identical — "byte-identical move" was written in every archive commit and never checked (5 of 486 moves changed on the
+// way; #44 grew 5,965 → 6,182 bytes and kept an unbalanced **). A row written straight into the archive is not a move. Per
+// Fable, archive entries carry no size cap. Duplicate legacy ids: the entering copy must equal one of the leaving copies.
+function archiveMoveErrors(headTodo, candTodo, headArch, candArch) {
+  function rows(text) { var out = []; String(text || "").split(/\r?\n/).forEach(function (l) { var m = ROW_ID_RE.exec(l); if (m) out.push({ id: m[1], raw: l }); }); return out; }
+  function counts(list) { var c = {}; list.forEach(function (r) { c[r.raw] = (c[r.raw] || 0) + 1; }); return c; }
+  var ht = rows(headTodo), ct = counts(rows(candTodo)), ha = counts(rows(headArch)), errs = [], left = {}, seen = {};
+  ht.forEach(function (r) { if (ct[r.raw]) { ct[r.raw]--; return; } (left[r.id] = left[r.id] || []).push(r.raw); });   /* rows gone from TODO.md */
+  rows(candArch).forEach(function (r) {
+    if (ha[r.raw]) { ha[r.raw]--; return; }                                        /* already in the archive at HEAD */
+    if (!left[r.id]) return;                                                        /* entered with no TODO origin: not a move */
+    if (left[r.id].indexOf(r.raw) >= 0 || seen[r.id]) return;
+    seen[r.id] = true;
+    errs.push("row #" + r.id + " changed on its way to the archive — " + differenceSummary(left[r.id][0], r.raw) + ". Move the row unchanged in its own commit; edit it before or after.");
+  });
+  return errs;
+}
+function rowSizeErrors(text, max, unchangedAgainst) {
+  var lim = max || TODO_ROW_MAX, errs = [], lines = text.split("\n"), i, before = {};
+  /* #481 G7: with a HEAD text (--cap-changed, CI per commit) a row that is byte-identical there is not this change's doing */
+  if (typeof unchangedAgainst === "string") unchangedAgainst.split(/\r?\n/).forEach(function (l) { before[l.replace(/\r$/, "")] = true; });
   for (i = 0; i < lines.length; i++) {
-    var m = /^\|\s*(\d+)\s*\|/.exec(lines[i]);
+    var m = ROW_ID_RE.exec(lines[i]);   /* #481 G7: a letter-prefixed id (L7) is a row id too — L7 escaped the cap at 7,201 bytes */
     if (!m) continue;
+    if (before[lines[i].replace(/\r$/, "")]) continue;
     var bytes = Buffer.byteLength(lines[i], "utf8");
     if (bytes > lim) errs.push("row #" + m[1] + " (line " + (i + 1) + ") is " + bytes + " bytes — over the " + lim + "-byte cap; move the record to DOC/todos_completed and keep title + TLDR + verdict + link");
   }
@@ -221,9 +243,11 @@ function parseArgs(argv) {
     else if (argv[i] === "--shape-only") opts.gitAware = false;
     else if (argv[i] === "--staged") opts.staged = true;
     else if (argv[i] === "--cap") opts.cap = true; /* #310: enforce TODO_ROW_MAX (the hook passes it; fixture-driven suites do not) */
+    else if (argv[i] === "--cap-changed") { opts.cap = true; opts.capChanged = true; } /* #481 G7: CI per commit — only the rows this change adds or edits (an old branch's untouched rows are not its commit's doing) */
     else if (argv[i] === "--file" && argv[i + 1]) opts.file = path.resolve(argv[++i]);
     else if (argv[i] === "--head-file" && argv[i + 1]) opts.headFile = path.resolve(argv[++i]);
     else if (argv[i] === "--archive-file" && argv[i + 1]) opts.archiveFile = path.resolve(argv[++i]); /* #481 G4: the archive the id pass reads */
+    else if (argv[i] === "--head-archive" && argv[i + 1]) opts.headArchive = path.resolve(argv[++i]); /* #481 G7: the archive before this change (CI: the parent's) */
     else throw new Error("unknown or incomplete argument: " + argv[i]);
   }
   if (opts.staged && opts.file !== DEFAULT_FILE) throw new Error("--staged cannot be combined with --file");
@@ -236,6 +260,7 @@ function main() {
   var candidateText;
   var headText;
   var archiveText = "";
+  var headArchiveText = null;
   try {
     opts = parseArgs(process.argv.slice(2));
     candidateText = opts.staged ? readGit(":TODO.md") : fs.readFileSync(opts.file, "utf8");
@@ -247,6 +272,10 @@ function main() {
     else if (opts.staged) { try { archiveText = readGit(":DOC/TODO_ARCHIVE.md"); } catch (e2) { archiveText = ""; } }
     else if (opts.file === DEFAULT_FILE && fs.existsSync(ARCHIVE)) archiveText = fs.readFileSync(ARCHIVE, "utf8");
     else archiveText = "";
+    /* #481 G7: the archive BEFORE this change, for the move check — the given file (CI), else HEAD's in the hook and the working
+       tree; a bare --file fixture without --head-archive has no move check */
+    if (opts.headArchive) headArchiveText = fs.readFileSync(opts.headArchive, "utf8");
+    else if (opts.staged || opts.file === DEFAULT_FILE) { try { headArchiveText = readGit("HEAD:DOC/TODO_ARCHIVE.md"); } catch (e3) { headArchiveText = null; } }
   } catch (e) {
     console.error("TODO.md TABLE INTEGRITY FAILED: could not load verification inputs — " + (e && e.message));
     process.exit(1);
@@ -261,7 +290,7 @@ function main() {
     process.exit(1);
   }
 
-  var sizeErrs = opts.cap ? rowSizeErrors(candidateText) : [];
+  var sizeErrs = opts.cap ? rowSizeErrors(candidateText, 0, opts.capChanged ? headText : null) : [];
   if (sizeErrs.length) {
     console.error("TODO.md ROW SIZE CAP FAILED (" + sizeErrs.length + " row" + (sizeErrs.length > 1 ? "s" : "") + "):");
     for (var r = 0; r < sizeErrs.length; r++) console.error("  ✗ " + sizeErrs[r]);
@@ -276,6 +305,13 @@ function main() {
     console.error("TODO.md ROW ID CHECK FAILED (" + idErrs.length + " id" + (idErrs.length > 1 ? "s" : "") + " used more than once):");
     for (var d = 0; d < idErrs.length; d++) console.error("  ✗ " + idErrs[d]);
     console.error("Row numbers are global across TODO.md and DOC/TODO_ARCHIVE.md — fetch origin before claiming one (a parallel session may hold it).");
+    process.exit(1);
+  }
+
+  var archErrs = (opts.gitAware && headArchiveText !== null && headText !== undefined) ? archiveMoveErrors(headText, candidateText, headArchiveText, archiveText) : [];   /* #481 G7 */
+  if (archErrs.length) {
+    console.error("TODO.md → ARCHIVE MOVE CHECK FAILED (" + archErrs.length + " row" + (archErrs.length > 1 ? "s" : "") + " changed on the way):");
+    for (var am = 0; am < archErrs.length; am++) console.error("  ✗ " + archErrs[am]);
     process.exit(1);
   }
 
@@ -294,4 +330,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { rowIdErrors: rowIdErrors, ROW_ID_GRANDFATHER: ROW_ID_GRANDFATHER, rowSizeErrors: rowSizeErrors, TODO_ROW_MAX: TODO_ROW_MAX, shapeErrors: shapeErrors, parseTables: parseTables, movedRowErrors: movedRowErrors, differenceSummary: differenceSummary };
+module.exports = { archiveMoveErrors: archiveMoveErrors, rowIdErrors: rowIdErrors, ROW_ID_GRANDFATHER: ROW_ID_GRANDFATHER, rowSizeErrors: rowSizeErrors, TODO_ROW_MAX: TODO_ROW_MAX, shapeErrors: shapeErrors, parseTables: parseTables, movedRowErrors: movedRowErrors, differenceSummary: differenceSummary };

@@ -45,7 +45,7 @@ jobs:
       # parent's (shape, the #310 row-size cap, the moved-row bytes) — PER COMMIT of the range
       # (#481 G2); a commit whose parent has no TODO.md is skipped out loud.
       - name: TODO.md table integrity, every commit of the push (shape, row cap, moved-row bytes)
-        run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/lint-todo.js --git-aware --cap --file {file:TODO.md} --head-file {parentFile:TODO.md} --archive-file {file:DOC/TODO_ARCHIVE.md}
+        run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/lint-todo.js --git-aware --cap-changed --file {file:TODO.md} --head-file {parentFile:TODO.md} --archive-file {file:DOC/TODO_ARCHIVE.md} --head-archive {parentFile:DOC/TODO_ARCHIVE.md}
       - name: TODO/session hygiene acceptance fixtures
         run: node dev/tests-todo-hygiene.js
       # #481 G10: the ES5-only rule used to live in the editor hooks alone, so a shell edit, a cloud
