@@ -55,6 +55,35 @@ function rowSizeErrors(text, max) {
   }
   return errs;
 }
+// #481 G4 (audit 2026-09-29): a row id is used ONCE across TODO.md and DOC/TODO_ARCHIVE.md — the numbers are global across both
+// files (the 2026-09-01 archive rule). The grandfather list is EXPLICIT and pinned at today's counts, so a new copy of any of
+// these ids still fails: the legacy #1–#30 numbering predates the global rule, and #264 is two archived rows.
+var LEGACY_ID = "legacy numbering, before the global row-number rule";
+var ROW_ID_GRANDFATHER = {
+  1: { count: 2, why: LEGACY_ID }, 2: { count: 2, why: LEGACY_ID }, 3: { count: 3, why: LEGACY_ID }, 4: { count: 2, why: LEGACY_ID },
+  5: { count: 2, why: LEGACY_ID }, 6: { count: 3, why: LEGACY_ID }, 7: { count: 4, why: LEGACY_ID }, 8: { count: 2, why: LEGACY_ID },
+  9: { count: 2, why: LEGACY_ID }, 10: { count: 2, why: LEGACY_ID }, 11: { count: 2, why: LEGACY_ID }, 12: { count: 3, why: LEGACY_ID },
+  14: { count: 3, why: LEGACY_ID }, 15: { count: 2, why: LEGACY_ID }, 16: { count: 3, why: LEGACY_ID }, 17: { count: 3, why: LEGACY_ID },
+  18: { count: 2, why: LEGACY_ID }, 19: { count: 4, why: LEGACY_ID }, 20: { count: 4, why: LEGACY_ID }, 21: { count: 4, why: LEGACY_ID },
+  22: { count: 3, why: LEGACY_ID }, 23: { count: 5, why: LEGACY_ID }, 24: { count: 3, why: LEGACY_ID }, 25: { count: 6, why: LEGACY_ID },
+  26: { count: 4, why: LEGACY_ID }, 27: { count: 5, why: LEGACY_ID }, 28: { count: 4, why: LEGACY_ID }, 29: { count: 2, why: LEGACY_ID },
+  30: { count: 2, why: LEGACY_ID },
+  264: { count: 2, why: "two archived rows (quest-journal actions; the review-call tag whitelist, which api.js and engine-tests.js cite) — the owner's renumber ruling is pending: renumber the quest-journal one (the b4d034d way) and drop this entry" }
+};
+function rowIdErrors(todoText, archiveText) {
+  var n = {}, where = {}, max = 0, errs = [];
+  [["TODO.md", todoText || ""], ["DOC/TODO_ARCHIVE.md", archiveText || ""]].forEach(function (f) {
+    f[1].split("\n").forEach(function (l, i) {
+      var m = /^\|\s*(\d+)\s*\|/.exec(l); if (!m) return;
+      var id = Number(m[1]); n[id] = (n[id] || 0) + 1; (where[id] = where[id] || []).push(f[0] + ":" + (i + 1)); if (id > max) max = id;
+    });
+  });
+  Object.keys(n).forEach(function (k) {
+    var g = ROW_ID_GRANDFATHER[k], allowed = g ? g.count : 1;
+    if (n[k] > allowed) errs.push("row #" + k + " is used " + n[k] + " times" + (g ? " (grandfathered at " + allowed + ": " + g.why + ")" : "") + " — " + where[k].join(", ") + "; claim the next free number instead (#" + (max + 1) + ")");
+  });
+  return errs;
+}
 function headingKey(stack) {
   var out = [];
   for (var i = 1; i < stack.length; i++) if (stack[i]) out.push(stack[i]);
@@ -186,7 +215,7 @@ function readGit(spec) {
 }
 
 function parseArgs(argv) {
-  var opts = { gitAware: true, staged: false, file: DEFAULT_FILE, headFile: "", cap: false };
+  var opts = { gitAware: true, staged: false, file: DEFAULT_FILE, headFile: "", archiveFile: "", cap: false };
   for (var i = 0; i < argv.length; i++) {
     if (argv[i] === "--git-aware") opts.gitAware = true;
     else if (argv[i] === "--shape-only") opts.gitAware = false;
@@ -194,6 +223,7 @@ function parseArgs(argv) {
     else if (argv[i] === "--cap") opts.cap = true; /* #310: enforce TODO_ROW_MAX (the hook passes it; fixture-driven suites do not) */
     else if (argv[i] === "--file" && argv[i + 1]) opts.file = path.resolve(argv[++i]);
     else if (argv[i] === "--head-file" && argv[i + 1]) opts.headFile = path.resolve(argv[++i]);
+    else if (argv[i] === "--archive-file" && argv[i + 1]) opts.archiveFile = path.resolve(argv[++i]); /* #481 G4: the archive the id pass reads */
     else throw new Error("unknown or incomplete argument: " + argv[i]);
   }
   if (opts.staged && opts.file !== DEFAULT_FILE) throw new Error("--staged cannot be combined with --file");
@@ -205,10 +235,18 @@ function main() {
   var opts;
   var candidateText;
   var headText;
+  var archiveText = "";
   try {
     opts = parseArgs(process.argv.slice(2));
     candidateText = opts.staged ? readGit(":TODO.md") : fs.readFileSync(opts.file, "utf8");
     if (opts.gitAware) headText = opts.headFile ? fs.readFileSync(opts.headFile, "utf8") : readGit("HEAD:TODO.md");
+    /* #481 G4: the archive for the id pass — the index's in the hook, the given file in CI / fixtures, the working copy by
+       default; a bare --file fixture (no --archive-file) has no id pass */
+    var ARCHIVE = path.join(ROOT, "DOC", "TODO_ARCHIVE.md");
+    if (opts.archiveFile) archiveText = fs.readFileSync(opts.archiveFile, "utf8");
+    else if (opts.staged) { try { archiveText = readGit(":DOC/TODO_ARCHIVE.md"); } catch (e2) { archiveText = ""; } }
+    else if (opts.file === DEFAULT_FILE && fs.existsSync(ARCHIVE)) archiveText = fs.readFileSync(ARCHIVE, "utf8");
+    else archiveText = "";
   } catch (e) {
     console.error("TODO.md TABLE INTEGRITY FAILED: could not load verification inputs — " + (e && e.message));
     process.exit(1);
@@ -230,6 +268,17 @@ function main() {
     process.exit(1);
   }
 
+  /* #481 G4: the id pass runs where the archive is part of the input — the hook (the index), CI (--archive-file per commit), the
+     working tree — never on a bare --file fixture (the moved-row fixtures are historical TODO.md files with pre-archive twins) */
+  var idPass = opts.gitAware && (!!opts.archiveFile || opts.staged || opts.file === DEFAULT_FILE);
+  var idErrs = idPass ? rowIdErrors(candidateText, archiveText) : [];
+  if (idErrs.length) {
+    console.error("TODO.md ROW ID CHECK FAILED (" + idErrs.length + " id" + (idErrs.length > 1 ? "s" : "") + " used more than once):");
+    for (var d = 0; d < idErrs.length; d++) console.error("  ✗ " + idErrs[d]);
+    console.error("Row numbers are global across TODO.md and DOC/TODO_ARCHIVE.md — fetch origin before claiming one (a parallel session may hold it).");
+    process.exit(1);
+  }
+
   var moves = { errors: [], reordered: 0, added: 0, deleted: 0 };
   if (opts.gitAware) moves = movedRowErrors(headText, candidateText);
   if (moves.errors.length) {
@@ -245,4 +294,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { rowSizeErrors: rowSizeErrors, TODO_ROW_MAX: TODO_ROW_MAX, shapeErrors: shapeErrors, parseTables: parseTables, movedRowErrors: movedRowErrors, differenceSummary: differenceSummary };
+module.exports = { rowIdErrors: rowIdErrors, ROW_ID_GRANDFATHER: ROW_ID_GRANDFATHER, rowSizeErrors: rowSizeErrors, TODO_ROW_MAX: TODO_ROW_MAX, shapeErrors: shapeErrors, parseTables: parseTables, movedRowErrors: movedRowErrors, differenceSummary: differenceSummary };
