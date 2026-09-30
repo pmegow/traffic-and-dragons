@@ -922,8 +922,8 @@ function presenceObserve(name,channel,atKey){/* #481 B1: atKey = where it was ob
   var canon=resolveNpcName(raw);
   var n=(typeof wsNpcByName==="function")?wsNpcByName(canon):null;
   var m=(typeof memory!=="undefined"&&memory&&memory.npcs)?memory.npcs[canon]:null;
+  if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(canon))return false;/* the PC is not an NPC — checked FIRST (#481 B7: the hero named in every cast printed a not-on-the-roster line every turn, burying the [motif] line #469 reads) */
   if(!n&&!m){if(typeof console!=="undefined")console.info("[presence] '"+raw+"' ("+channel+") is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)");return false;}
-  if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(canon))return false;/* the PC is not an NPC */
   if((n&&typeof npcIsDead==="function"&&npcIsDead(n))||(m&&m.dead))return false;/* B3: the dead don't travel */
   if(n&&n.partyMember&&n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location)return false;/* #137: a split member's remote line/blow is not presence at the camera node */
   npcRecordPresence(canon,channel,atKey);/* the record half (lastSeen* + sourced guestbook) — may legitimately land nowhere when the current location was never FILED (the tagless-dungeon case); the frame observation below must survive that, or derived evidence dies exactly where location tags starve */

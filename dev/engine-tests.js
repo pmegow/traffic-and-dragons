@@ -27307,6 +27307,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.world.sublocation="the tavern";return sceneOnStageNow("Frizwick")?"on stage elsewhere: a frame at another place is not this scene":true;
   });
 
+  section("#481 B7 the hero is not a stranger to the roster");
+  t("#481 B7 the hero named in a cast is refused quietly as the player, never logged as not on the roster",function(){
+    villageEF();var q=quiet(function(){return presenceObserve(worldState.character.name,"cast");});
+    if(q.r!==false)return "the hero is not an NPC presence";
+    return q.warns.some(function(x){return /not on the roster/.test(x);})?"the per-turn noise line: "+JSON.stringify(q.warns):true;
+  });
+
   section("#481 B6 where a resident is, said once and right");
   t("#481 B6 residentWhereabouts is pure and returns {place, home}; ONE renderer says \"is at\"",function(){
     villageCD();var night=13*MIN_PER_DAY+18*60,day=13*MIN_PER_DAY+4*60;

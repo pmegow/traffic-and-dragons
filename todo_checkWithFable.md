@@ -112,6 +112,7 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Gap:** only an auxiliary or adverb may stand between the name and "left" (a noun before "left" is that noun's verb — "the mule left the yard", and Fable's participle case "the residue left along").
   - **Real-field evidence:** all six field lines — Village t74, t115, t144, t173, t194 and fae t9, extracted from the owner's saves — alarmed before and are silent after. The t144 line is paraphrased in the public test to the same grammatical shape.
   - **Proof:** 2 tests in "#481 B5" (the negatives red before the build; the positives are regression guards: left the / left for / has left / quietly left the). Full suite green (2,443); four replay baselines unchanged; `dev/sabotage-481-b5-left-side.js` 3/3 caught.
+- 2026-09-29 · #481 B7 · v1.1034 · Opus 5.5 · `presenceObserve` (identity.js) runs the player check BEFORE the roster check. The hero named in every cast no longer prints "[presence] 'Ammut' (cast) is not on the roster" every turn (24 of 24 replayed turns), which buried the [motif] line #469 reads. Behaviour is unchanged (the hero was refused either way; only the log line goes). Proof: 1 red-first test; full suite green (2,444); replays unchanged; `dev/sabotage-481-b7-hero-roster.js` 1/1; presence and B1 batteries green.
 
 ## Off-Fable log
 
