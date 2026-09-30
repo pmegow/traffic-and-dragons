@@ -1352,26 +1352,27 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
        same response just activated — and both refuse loudly. Distinct titles that WERE live all
        close (the old first-match parse silently swallowed a parallel act's second sweep). */
     var _pre={};
-    for(_si=0;_si<_sk.acts.length;_si++){if(_sk.acts[_si].status!=="active")continue;var _pa=_sk.acts[_si].arcs||[];for(_sj=0;_sj<_pa.length;_sj++){if(_pa[_sj].status==="active"&&_pa[_sj].title)_pre[_pa[_sj].title.toLowerCase()]=1;}}
+    for(_si=0;_si<_sk.acts.length;_si++){if(_sk.acts[_si].status!=="active")continue;var _pa=_sk.acts[_si].arcs||[];for(_sj=0;_sj<_pa.length;_sj++){if(_pa[_sj].status==="active"&&_pa[_sj].title)_pre[skeletonTitleKey(_pa[_sj].title)]=1;}}/* #481 C4 */
     var _seen={};
     for(_ti=0;_ti<arcTags.length;_ti++){
     var _atm=arcTags[_ti].match(/\[ARC_COMPLETE:([^\]]+)\]/);if(!_atm)continue;
-    var _ad=_atm[1].trim(),_adk=_ad.toLowerCase(),_any=false;
+    var _ad=_atm[1].trim(),_adk=skeletonTitleKey(_ad),_any=false;/* #481 C4: the display numbering is not the title */
     if(_seen[_adk])continue;/* #233: a duplicated title closes once — no double sweep, no double advance */
     _seen[_adk]=1;
     if(!_pre[_adk]){
       var _nowLive=false;
-      for(_si=0;_si<_sk.acts.length;_si++){if(_sk.acts[_si].status!=="active")continue;var _ca=_sk.acts[_si].arcs||[];for(_sj=0;_sj<_ca.length;_sj++){if(_ca[_sj].status==="active"&&_ca[_sj].title&&_ca[_sj].title.toLowerCase()===_adk)_nowLive=true;}}
+      for(_si=0;_si<_sk.acts.length;_si++){if(_sk.acts[_si].status!=="active")continue;var _ca=_sk.acts[_si].arcs||[];for(_sj=0;_sj<_ca.length;_sj++){if(_ca[_sj].status==="active"&&_ca[_sj].title&&skeletonTitleKey(_ca[_sj].title)===_adk)_nowLive=true;}}
       if(typeof console!=="undefined")console.warn(_nowLive
         ?"[tags] ARC_COMPLETE: \""+_ad+"\" was activated by an earlier tag in this SAME response — chain-close refused (#233); close it in a later response if its story is truly done"
         :"[tags] ARC_COMPLETE: \""+_ad+"\" matches no ACTIVE arc — ignored, nothing closed (#136①)");
+      if(!_nowLive)skelTitleMiss(R,"arc",_ad);/* #481 C4: a real mismatch is said, and asked once */
       continue;}
     for(_si=0;_si<_sk.acts.length;_si++){
       if(_sk.acts[_si].status!=="active")continue;
       var _act=_sk.acts[_si],_matched=false;
       for(_sj=0;_sj<_act.arcs.length;_sj++){
         if(_act.arcs[_sj].status!=="active")continue;
-        if(_act.arcs[_sj].title.toLowerCase()!==_ad.toLowerCase())continue;/* #136① RULING (oversight, not design): the title is validated for SEQUENTIAL acts too — the old parallel-only guard let a hallucinated/misspelled title close the running arc silently (Sol's probe closed "True Arc" via "Totally Wrong"), while the strict sibling ARC_CONTINUE proves the intended discipline. The #127 escalation machinery re-demands the fork if the arc is genuinely finished under another name. */
+        if(skeletonTitleKey(_act.arcs[_sj].title)!==_adk)continue;/* #481 C4 *//* #136① RULING (oversight, not design): the title is validated for SEQUENTIAL acts too — the old parallel-only guard let a hallucinated/misspelled title close the running arc silently (Sol's probe closed "True Arc" via "Totally Wrong"), while the strict sibling ARC_CONTINUE proves the intended discipline. The #127 escalation machinery re-demands the fork if the arc is genuinely finished under another name. */
         _act.arcs[_sj].status="completed";_matched=true;
         R.muts.push("Arc complete: "+_act.arcs[_sj].title);
         /* #231 THE ARC WALL (owner ruling 2026-08-24, hard wall — no promotion path). Field
@@ -1421,15 +1422,15 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     for(_ci=0;_ci<worldState.skeleton.acts.length&&!_cfound;_ci++){
       var _carcs=worldState.skeleton.acts[_ci].arcs||[];
       for(_cj=0;_cj<_carcs.length;_cj++){
-        if(_carcs[_cj].status!=="active"||_carcs[_cj].title.toLowerCase()!==_ct.toLowerCase())continue;
+        if(_carcs[_cj].status!=="active"||skeletonTitleKey(_carcs[_cj].title)!==skeletonTitleKey(_ct))continue;/* #481 C4 */
         _cfound=true;
         if(_cr)_carcs[_cj].continueReason=_cr;
-        if(worldState.arcDriftNudged){for(_ck in worldState.arcDriftNudged){if(_ck.toLowerCase().indexOf(_ct.toLowerCase()+"|")===0)worldState.arcDriftNudged[_ck]={t:worldState.turn,n:0};}}
+        if(worldState.arcDriftNudged){for(_ck in worldState.arcDriftNudged){if(_ck.toLowerCase().indexOf(_carcs[_cj].title.toLowerCase()+"|")===0)worldState.arcDriftNudged[_ck]={t:worldState.turn,n:0};}}
         R.muts.push("Arc continues: "+_carcs[_cj].title+(_cr?" — "+_cr:""));
         break;
       }
     }
-    if(!_cfound)console.warn("[tags] ARC_CONTINUE: no ACTIVE arc titled '"+_ct+"' — no-op (typo, or the arc already completed?)");
+    if(!_cfound){console.warn("[tags] ARC_CONTINUE: no ACTIVE arc titled '"+_ct+"' — no-op (typo, or the arc already completed?)");skelTitleMiss(R,"arc",_ct);}
   }}},
 {t:"ACT_COMPLETE",apply:function(text,R){var actDone=text.match(/\[ACT_COMPLETE:([^\]]+)\]/);
   if(actDone&&worldState.skeleton){
@@ -1441,8 +1442,9 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
          entirely, so a hallucinated act name closed the running act silently (Sol's joint-review
          probe: "[ACT_COMPLETE:Totally Wrong]"). A titled act demands a case-insensitive match; a
          title-less act (malformed skeleton) closes with a warn rather than wedging progression. */
-      if(_cAct.title&&_cAct.title.toLowerCase()!==_at.toLowerCase()){
+      if(_cAct.title&&skeletonTitleKey(_cAct.title)!==skeletonTitleKey(_at)){/* #481 C4 */
         if(typeof console!=="undefined")console.warn("[tags] ACT_COMPLETE: \""+_at+"\" does not match the ACTIVE act \""+_cAct.title+"\" — ignored, nothing closed (#233)");
+        skelTitleMiss(R,"act",_at);
         break;}
       if(!_cAct.title&&typeof console!=="undefined")console.warn("[tags] ACT_COMPLETE: the active act has no title — closing on \""+_at+"\" unverified (#233 fail-open)");
       /* #233 ② no completed act may ever contain a live arc — the open door that orphaned #231
@@ -1630,6 +1632,12 @@ var MUT_SOURCES={
   undo:{dupAlarm:false,defineAsk:false,autoTake:false,handTake:true,record:false}
 };
 function mutPolicy(R){return (R&&R.policy)||MUT_SOURCES.gm;}
+/* #481 C4: an act/arc close whose title matches nothing active is SAID (⚠ line) and asked ONCE (skelTitlePing → buildSkeletonTitleNote),
+   quoting the exact active titles — it used to be a console line only (the Necrotic act closed 8 turns late). */
+function skelTitleMiss(R,kind,given){var sk=worldState&&worldState.skeleton,t=[],i,j;if(!sk)return;
+  for(i=0;i<(sk.acts||[]).length;i++){var a=sk.acts[i];if(!a||a.status!=="active")continue;if(kind==="act"){if(a.title)t.push(a.title);}else{for(j=0;j<(a.arcs||[]).length;j++)if(a.arcs[j].status==="active"&&a.arcs[j].title)t.push(a.arcs[j].title);}}
+  R.muts.push("⚠ "+(kind==="act"?"Act":"Arc")+" close ignored — '"+given+"' matches no active "+kind+(t.length?" ("+t.join("; ")+")":""));
+  worldState.skelTitlePing={turn:R.turn,kind:kind,given:String(given).slice(0,120),titles:t.slice(0,6)};}
 /* #481 A4: a tag's occurrences WITH their text offsets (same regex, same order as a /g match), and the reply's place at an
    offset — R.placeAt when the table built a timeline, else the live pointer (a handler called outside applyMutsTable). */
 function tagHits(text,re){var out=[],m,g=new RegExp(re.source,"g"),t=String(text==null?"":text);while((m=g.exec(t))!==null){out.push({m:m,off:m.index});if(m[0]==="")g.lastIndex++;}return out;}

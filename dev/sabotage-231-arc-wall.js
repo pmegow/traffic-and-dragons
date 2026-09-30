@@ -71,7 +71,7 @@ rc |= sabotage.prove({
     // ── #233 — the act door (JP0-1, joint review 2026-08-27) ──────────────────────────
     { label: "#233: ACT_COMPLETE stops validating its operand — a hallucinated act name closes the running act again",
       mustFail: "a wrong act title mutates NOTHING",
-      find: '      if(_cAct.title&&_cAct.title.toLowerCase()!==_at.toLowerCase()){',
+      find: '      if(_cAct.title&&skeletonTitleKey(_cAct.title)!==skeletonTitleKey(_at)){/* #481 C4 */',/* #481 C4: the compare keys both sides now */
       replace: '      if(false){' },
 
     { label: "#233: the live-arc refusal is dropped — an act closes over an active arc, orphaning its stamped progeny forever",

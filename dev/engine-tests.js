@@ -27352,6 +27352,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#481 C4 a close that drops the display numbering still closes");
+  t("#481 C4 skeletonTitleKey strips a leading \"Act|Arc <n>:\" and case, nothing else",function(){
+    var P=[["Act 1: The Plunder of the Hollowed Vaults","the plunder of the hollowed vaults"],["Arc 3: The Glass Orchard","the glass orchard"],["the glass orchard","the glass orchard"],["ARC 12 - Ashes","ashes"],["Act One","act one"],["Arcane Debts","arcane debts"]],i;
+    for(i=0;i<P.length;i++)if(skeletonTitleKey(P[i][0])!==P[i][1])return P[i][0]+" -> "+skeletonTitleKey(P[i][0]);
+    return true;
+  });
+  t("#481 C4 both field shapes close: the Necrotic act without its \"Act 1:\" prefix, the fae arc WITH the display numbering",function(){
+    makeWorld();worldState.skeleton={premise:"p",acts:[{title:"Act 1: The Plunder of the Hollowed Vaults",status:"active",arcs:[{title:"The Hollow",status:"completed"}]},{title:"Act 2: Below",status:"pending",arcs:[]}]};
+    var R=quiet(function(){return applyMuts("[ACT_COMPLETE:The Plunder of the Hollowed Vaults]");}).r;
+    if(worldState.skeleton.acts[0].status!=="completed")return "the act closes without its prefix: "+JSON.stringify(R.muts);
+    makeWorld();worldState.skeleton={premise:"p",acts:[{title:"Act 1",status:"active",arcs:[{title:"The Glass Orchard",status:"active"},{title:"The Thorn Gate",status:"pending"}]}]};
+    var R2=quiet(function(){return applyMuts("[ARC_COMPLETE:Arc 3: The Glass Orchard]");}).r;
+    if(worldState.skeleton.acts[0].arcs[0].status!=="completed")return "the arc closes with the display numbering: "+JSON.stringify(R2.muts);
+    makeWorld();worldState.skeleton={premise:"p",acts:[{title:"Act 1",status:"active",parallel:true,arcs:[{title:"Arc 1: The Glass Orchard",status:"active"},{title:"The Thorn Gate",status:"active"}]}]};
+    var R4=quiet(function(){return applyMuts("[ARC_COMPLETE:The Glass Orchard]");}).r;
+    if(worldState.skeleton.acts[0].arcs[0].status!=="completed")return "a STORED title carrying the numbering closes without it (both sides keyed): "+JSON.stringify(R4.muts);
+    var R3=quiet(function(){return applyMuts("[ARC_CONTINUE:Arc 4: The Thorn Gate|still climbing]");}).r;
+    return R3.muts.some(function(m){return /Arc continues: The Thorn Gate/.test(m);})?true:"ARC_CONTINUE reads the same key: "+JSON.stringify(R3.muts);
+  });
+  t("#481 C4 a real mismatch still refuses — now visibly: a warning line and ONE note quoting the exact titles (combat fires)",function(){
+    makeWorld();worldState.skeleton={premise:"p",acts:[{title:"Act 1: The Plunder",status:"active",arcs:[{title:"True Arc",status:"active"}]}]};delete worldState.skelTitlePing;
+    var R=quiet(function(){return applyMuts("[ARC_COMPLETE:Totally Wrong]");}).r;
+    if(worldState.skeleton.acts[0].arcs[0].status!=="active")return "a wrong title closes nothing";
+    if(!R.muts.some(function(m){return /^⚠/.test(m)&&/Totally Wrong/.test(m);}))return "the refusal is visible: "+JSON.stringify(R.muts);
+    worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:2,maxHp:2}],node:"x"};
+    var n=buildSkeletonTitleNote();if(!/True Arc/.test(n)||!/\[ARC_COMPLETE:/.test(n))return "the note quotes the exact active title, in combat too: "+n;
+    if(buildSkeletonTitleNote()!=="")return "one-shot";
+    var R2=quiet(function(){return applyMuts("[ACT_COMPLETE:Totally Wrong]");}).r;
+    if(worldState.skeleton.acts[0].status!=="active"||!R2.muts.some(function(m){return /^⚠/.test(m)&&/Totally Wrong/.test(m);}))return "a wrong act title refuses visibly: "+JSON.stringify(R2.muts);
+    if(!/Act 1: The Plunder/.test(buildSkeletonTitleNote()))return "the act note quotes the exact act title";
+    return (NOTE_LATCH_FIELDS.indexOf("skelTitlePing")>=0&&NOTE_SHAPES.buildSkeletonTitleNote&&NOTE_SHAPES.buildSkeletonTitleNote.combat==="fires")?true:"registered, combat fires: "+JSON.stringify(NOTE_SHAPES.buildSkeletonTitleNote);
+  });
+
   section("#481 F2 a portrait is an image, never markup");
   t("#481 F2 safeImgSrc admits an image data URL, https: and blob:, escaped; anything else is empty and said once",function(){
     var png="data:image/png;base64,iVBORw0KGgo=",jpg="data:image/jpeg;base64,/9j/4AAQ+/=";

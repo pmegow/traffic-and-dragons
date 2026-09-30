@@ -125,6 +125,11 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Still refused (#265②):** a new objective in the closing reply, and any step a reply later. The test documents the cross-envelope limit (b): the exemption lives on one `applyMutsTable` call's R.
   - **Field evidence:** 16 of 17 completions this fortnight had the final step unticked, with a false ⚠ on every completion turn.
   - **Proof:** 2 tests in "#481 C3" (the same-reply one red before the build). Full suite green (2,450); four replay baselines unchanged; `dev/sabotage-481-c3-final-step.js` 3/3 caught, incl. Fable's "ignore R.questsClosed"; the #271 battery green.
+- 2026-09-29 · #481 C4 · v1.1040 · Opus 5.5 · An act or arc close that drops or copies the display numbering still closes.
+  - **Key (a):** `skeletonTitleKey` (helpers.js) strips a leading "Act|Arc <n>" separator and case. It is applied to BOTH sides everywhere a title is compared: the ACT_COMPLETE active-act compare, ARC_COMPLETE's `_pre` snapshot keys, `_seen` and the close compare, and ARC_CONTINUE (whose drift-reset now keys on the stored title).
+  - **Mismatch (b):** a real mismatch pushes a ⚠ line naming the active titles and arms ONE note, `buildSkeletonTitleNote` (latch `skelTitlePing`, registered, combat FIRES, village silent), quoting the exact titles.
+  - **Tests:** both field shapes close (the Necrotic act without its "Act 1:", the fae arc with "Arc 3:"), plus a stored-prefixed arc closed without it. The sabotage caught that the first fixture could not tell the snapshot key apart.
+  - **Proof:** 3 tests in "#481 C4" (all red before the build). Full suite green (2,453); four replay baselines unchanged; `dev/sabotage-481-c4-title-key.js` 5/5 caught; `sabotage-231-arc-wall.js` 23/23 with its #233 act-operand clause re-anchored.
 
 ## Off-Fable log
 

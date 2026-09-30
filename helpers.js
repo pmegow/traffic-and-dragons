@@ -2917,6 +2917,10 @@ function sayMoodSteer(part){
   if(!p||SAY_PACING_RE.test(p))return "";
   return p;
 }
+/* #481 C4 (audit 2026-09-29, Fable-approved): the ONE skeleton title key — the prompt SHOWS acts and arcs as "Act 1: title" /
+   "Arc 3: title", and the GM's close tag may drop the numbering (the Necrotic act closed 8 turns late) or copy it (a fae arc
+   was ignored). A leading "Act|Arc <n>" with its separator, and case, are not part of the identity. Pure. */
+function skeletonTitleKey(t){return String(t==null?"":t).trim().replace(/^(?:act|arc)\s*\d+\s*[:.\-–—]\s*/i,"").trim().toLowerCase();}
 function sayMoodShape(raw){
   var s=String(raw==null?"":raw).replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
   /* #481 E1 (audit 2026-09-29, Fable-approved): since t202 the GM writes a LABEL in front of the mood — "mood:bright, giggle" —
