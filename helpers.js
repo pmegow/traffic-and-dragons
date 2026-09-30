@@ -844,7 +844,7 @@ function livingPartyCompanions(){return partyCompanionsWithSheets(false);}
    the same slug the single-character export uses) — and the run is a callback chain over an injected save function
    so the engine can test it with a mock adapter. Every row goes through portableSheet (the #81b item canon travels);
    a failure is recorded and the chain continues — the report lists saved, updated and failed by name. */
-function partyUploadSlug(name){return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");}
+function partyUploadSlug(name){return LibrarySlug.library(name);}/* #481 F5: the ONE slug the server vendors (library-slug.js) */
 /* #481 F7 (audit 2026-09-29): the plan also says which library copies are AHEAD of the live sheet (partyUploadAhead — the #427
    hazard: the confirm listed names only), and REFUSES party members whose names map to one library slot (they used to
    overwrite each other). heroAt = worldState.heroLibraryAt; a companion's stamp is its libraryAt. */

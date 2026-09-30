@@ -81,7 +81,7 @@ On `init()`, if a saved game is found, `rebuildNarrativeFromTranscript()` (ui-bo
 
 Server-side character storage separate from campaigns. Characters are portable snapshots — exporting Ammut at Lv3 stores a Lv3 version; campaigns have no dependency on this store.
 
-**Server table:** `characters (user_id, slug, name, char_data, level, cls, ancestry, updated_at)` — composite PK `(user_id, slug)`. One slot per character name per user.
+**Server table:** `characters (user_id, slug, name, char_data, level, cls, ancestry, updated_at)` — composite PK `(user_id, slug)`. One slot per character name per user. **The slug (#481 F5, v1.1075):** ONE rule on both ends — `library-slug.js` (`LibrarySlug.library`: lowercase, every run outside a-z0-9 → one `_`, BOTH edge underscores trimmed; `.blueprint` adds the designer's 120-character cut), vendored unchanged to the server as `library-slug.cjs` with its SHA-256 pinned in both repos. The server's own `charSlug` / `bpSlug` trimmed ONE edge underscore, so "(Ammut)" was `ammut_` there and `ammut` here: Replace / Update from library never found it, and an export overwrote the library copy without the usual confirm. The server half (the shared rule plus a collision-safe migration of stored slugs — rename only when the new slug is free for that user, else log and leave) ships with a server deploy.
 
 **Server endpoints:**
 - `GET /api/characters` — list all characters for user (includes full char_data with portrait)

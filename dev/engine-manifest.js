@@ -23,6 +23,7 @@ var ENGINE_MANIFEST = [
   { file: "skills_bible.js",       sym: "SKILLS_BIBLE" },
   { file: "item_bible.js",         sym: "ITEM_BIBLE" },
   { file: "blueprint-edition.js",  sym: "BlueprintEdition" },
+  { file: "library-slug.js",       sym: "LibrarySlug" },/* #481 F5: the library slug the server vendors */
   { file: "helpers.js",            sym: "skillLevel" },
   { file: "state.js",              sym: "blankMemory" },
   { file: "storage-adapter.js",    sym: "storageAdapter" },

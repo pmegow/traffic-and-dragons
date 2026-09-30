@@ -59,6 +59,7 @@ var SUITES = [
   "dev/tests-481-f10-signed-out.js",/* #481 F10: a signed-out village entry says the library refresh was skipped, once per load */
   "dev/tests-481-f11-start-refused.js",/* #481 F11: a refused reset never consumes the Home pick */
   "dev/tests-481-f9-deleted-elsewhere.js",/* #481 F9: a campaign deleted on another device asks before it is uploaded again */
+  "dev/tests-481-f5-library-slug.js",/* #481 F5: one library slug with the server (vendored; hash-pinned) */
   "dev/tests-441-home-handoff.js",
   "dev/tests-442-modal-focus.js",
   "dev/tests-336-campaign-root.js",

@@ -715,7 +715,7 @@ function importCharacterFile(e){
   reader.readAsText(file);e.target.value="";
 }
 // ── Character library ─────────────────────────────────────────────────────────
-function _charLibSlug(name){return(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");}
+function _charLibSlug(name){return LibrarySlug.library(name);}/* #481 F5: the ONE slug the server vendors (library-slug.js) */
 
 function _showCharExportOptions(char){
   var connected=storageAdapter.isServerMode();
