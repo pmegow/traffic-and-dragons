@@ -81,7 +81,7 @@ async function test(name, fn) {
     assert.equal(extracted.npcUpdates[0].knowledgeGained.kind, "durable");
     assert.equal(extracted.npcUpdates[1].knowledgeGained, "He keeps bees behind the mill.", "a clean line is never touched");
     assert.deepEqual(extracted.loreDiscovered, ["The mill wheel turns at dawn."], "the dirty lore line is DROPPED, the clean one kept");
-    assert.deepEqual(r, { hits: 2, reasked: 2, cleaned: 1, dropped: 1 });
+    assert.deepEqual(r, { hits: 2, reasked: 2, cleaned: 1, dropped: 1, deferred: 0 });/* #481 C7: the guard also counts deferrals */
     var c = worldState.registerCensus.record; assert.equal(c.length, 3, "one census entry per word: soul-tax, lien, tithe");
     assert.ok(c.some(function (e) { return e.word === "tithe" && e.dropped === true; }) && c.some(function (e) { return e.word === "lien" && e.cleaned === true; }), JSON.stringify(c));
     assert.ok(warns.some(function (w) { return /dropped/.test(w) && /tithe/.test(w); }), "the drop is loud: " + JSON.stringify(warns));
@@ -92,13 +92,13 @@ async function test(name, fn) {
     var warns = [], _w = console.warn; console.warn = function (x) { warns.push(String(x)); };
     var r; try { r = await recordRegisterGuard(extracted, 41, async function () { throw new Error("provider down"); }); } finally { console.warn = _w; }
     assert.equal(extracted.npcUpdates[0].knowledgeGained, undefined, "the fact is gone from the update");
-    assert.deepEqual(r, { hits: 1, reasked: 0, cleaned: 0, dropped: 1 });
+    assert.deepEqual(r, { hits: 1, reasked: 0, cleaned: 0, dropped: 1, deferred: 0 });
     assert.ok(warns.some(function (w) { return /provider down/.test(w); }), JSON.stringify(warns));
   });
   await test("③ nothing to do: a clean extraction is returned untouched with zero calls", async function () {
     var extracted = { npcUpdates: [{ name: "Bram", knowledgeGained: "He keeps bees." }], loreDiscovered: ["Dawn."] };
     var r = await recordRegisterGuard(extracted, 42, async function () { throw new Error("must not be called"); });
-    assert.deepEqual(r, { hits: 0, reasked: 0, cleaned: 0, dropped: 0 });
+    assert.deepEqual(r, { hits: 0, reasked: 0, cleaned: 0, dropped: 0, deferred: 0 });
     assert.deepEqual(extracted.loreDiscovered, ["Dawn."]);
   });
   await test("⑤ list walks every record family — knowledge, events, attitude, lore, decisions, chapters, core memories (hero and party), motivationHistory, quests, skeleton — with path + words + text; clean lines are not listed; apply writes only rewrites that resolve", async function () {

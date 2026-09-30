@@ -215,6 +215,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Fable (c):** adventure kinds are never held; the #433 adventure behavior is unchanged.
   - **Real save:** village, from the square — 33 → 11 served. The remainder is the shared #469 record-word rule and its two-turn carry, reported rather than forked.
   - **Proof:** 3 tests in "#481 C6" (two red before the build). Full suite green (2,491); the #469 battery 19/19 with two clauses re-anchored; `dev/sabotage-481-c6-carried-gate.js` 8/8 caught.
+- 2026-09-29 · #481 C7 · v1.1054 · Opus 5.5 · The record guard no longer drops lore for naming plot objects with register words.
+  - **Touches:** helpers.js (`registerMaskNames`, `registerScanProse`, `recordCanonNames`, census outcomes) and memory.js (the #372 chapter guard and the #459 record guard: scan through the mask, the prompts list the names to keep, deferral past the cap with `recordDeferPush`). This is the record the GM reads back — a drift-surface item.
+  - **Judgement call, defining "exact canonical names":** the record's identifiers plus a LEGACY skeleton's own register terms as written. Without the skeleton terms, the audit's own example line would still drop: the Necrotic plot nouns name no entity, they live in the premise and act goals. Lore is never a source (that would be circular). New skeletons carry none (the #459 gate).
+  - **Changed shape:** the guard's return gained a `deferred` count, so the #459 suite's three deep-equal expectations were updated (additive). Two clauses re-anchored (#372 decide, #459 census).
+  - **Real save:** Necrotic t35 — of 40 record lines, 15 carry register words; 8 are names-only and now file as written; 7 are re-asked with the names protected. Before, the audit replay dropped 12.
+  - **Proof:** `dev/tests-481-c7-record-names.js` 6/6 (all red before the build), registered in the standalone runner. Full suite green; four replay baselines unchanged; `dev/sabotage-481-c7-record-names.js` 7/7 caught.
 
 ## Off-Fable log
 

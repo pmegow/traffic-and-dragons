@@ -50,7 +50,7 @@ rc|=sabotage.prove({
   cases:[
     { label:"#372 ①: a rewrite that still carries the word is committed anyway",
       mustFail:"#372 ① chapters",
-      find:"  return registerScan(t).length?{text:original,cleaned:false}:{text:t,cleaned:true};",
+      find:"  return registerScanProse(t,names).length?{text:original,cleaned:false}:{text:t,cleaned:true};/* #481 C7: names are not the register */",/* #481 C7 re-anchor: the decide scans through the name mask */
       replace:"  return {text:t,cleaned:true};" },
     { label:"#372 ①: summarize() files the chapter without the guard",
       mustFail:"#372 ① chapters",

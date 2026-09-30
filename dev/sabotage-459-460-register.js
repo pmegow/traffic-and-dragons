@@ -10,7 +10,7 @@ prove('helpers.js',['dev/run-tests.js',SEC],[
  {label:'the settled reason files in the register',find:'— filed as a bare \'settled\': \\""+h.slice(0,80)+"\\"");h="settled";}',replace:'— filed as a bare \'settled\': \\""+h.slice(0,80)+"\\"");}',mustFail:'#459 the settled filing lands in plain speech'},
  {label:'a place phrase stops counting as a doing',find:'||MOOD_PLACE_RE.test(p)',replace:'',mustFail:'#460 ① a sheeted resident\'s GM-written mood is kept to what they are DOING'},
  {label:'the sheet never leads',find:'  return !!(n&&!n.partyMember&&n.charSheet&&typeof n.charSheet.trait==="string"&&n.charSheet.trait.trim());',replace:'  return false;',mustFail:'#460 ① the memory attitude line is omitted'},
- {label:'the census forgets the record channel',find:'var rc=c.record||[];for(i=0;i<rc.length;i++){out.record++;if(rc[i].dropped)out.recordDropped++;}',replace:'',mustFail:'#459 ③ summarize() awaits recordRegisterGuard'}
+ {label:'the census forgets the record channel',find:'var rc=c.record||[];for(i=0;i<rc.length;i++){out.record++;if(rc[i].dropped)out.recordDropped++;if(rc[i].deferred)out.recordDeferred++;if(rc[i].evicted)out.recordEvicted++;}',replace:'',mustFail:'#459 ③ summarize() awaits recordRegisterGuard'}/* #481 C7 re-anchor: the channel counts deferrals and evictions too */
 ]);
 prove('campaign_generator.js',['dev/run-tests.js',SEC],[
  {label:'an arc title in the register passes the gate',find:'chk(rn+" title",r.title);',replace:'',mustFail:'#459 ① skeletonRegisterScan is the deterministic REGISTER gate'},

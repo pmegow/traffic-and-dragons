@@ -2358,9 +2358,11 @@ var EXTRACT_SYS="You are a data extraction system. Output ONLY valid JSON. No pr
    waiting, so the retry is honest); a CLEAN rewrite replaces it, anything else keeps the verified original; the
    census counts either way. Pure pieces first, the async guard last; summarize() awaits it before anything files. */
 var CHAPTER_REWRITE_SYS="You rewrite one paragraph of a story summary on request. Reply with the rewritten paragraph only: no preamble, no quotes, no markdown, no JSON.";
-function buildChapterRegisterRewritePrompt(summary,hits){
+function registerKeepClause(keep){return (keep&&keep.length)?" Keep these names exactly as written — they are the story's own: "+keep.map(function(x){return "'"+x+"'";}).join(", ")+". Every other clerical word must go, hyphenated coinages included (a 'debt-bond' is still a debt).":" Every clerical word must go, hyphenated coinages included (a 'debt-bond' is still a debt).";}/* #481 C7 (b) */
+function registerKeepFor(text,names){var low=String(text||"").toLowerCase();return (names||[]).filter(function(n){return registerScan(n).length&&low.indexOf(String(n).toLowerCase())>=0;});}/* the canonical names the text carries that the scan would otherwise catch */
+function buildChapterRegisterRewritePrompt(summary,hits,keep){
   var w=(hits||[]).map(function(x){return "'"+x+"'";}).join(", ");
-  return "Rewrite the chapter summary below so that it keeps every fact, every name and every event, in the same voice and about the same length, but removes every clerical image — it used "+w+". This world keeps no books: debts are blood, oaths, hunger and memory; say what the thing IS instead of the clerical word. Reply with the rewritten paragraph only.\n\nSUMMARY:\n"+String(summary||"");
+  return "Rewrite the chapter summary below so that it keeps every fact, every name and every event, in the same voice and about the same length, but removes every clerical image — it used "+w+"."+registerKeepClause(keep)+" This world keeps no books: debts are blood, oaths, hunger and memory; say what the thing IS instead of the clerical word. Reply with the rewritten paragraph only.\n\nSUMMARY:\n"+String(summary||"");
 }
 function chapterRewriteText(resp){
   if(resp==null)return null;var s=String(resp).trim();
@@ -2369,20 +2371,20 @@ function chapterRewriteText(resp){
   s=s.replace(/^["'“‘]+/,"").replace(/["'”’]+$/,"").trim();
   return s?s:null;
 }
-function chapterRegisterDecide(original,rewrite,hits){
+function chapterRegisterDecide(original,rewrite,hits,names){
   var t=chapterRewriteText(rewrite);
   if(!t)return {text:original,cleaned:false};
-  return registerScan(t).length?{text:original,cleaned:false}:{text:t,cleaned:true};
+  return registerScanProse(t,names).length?{text:original,cleaned:false}:{text:t,cleaned:true};/* #481 C7: names are not the register */
 }
 async function chapterRegisterGuard(extracted,turn,call){
   if(!extracted||typeof extracted.chapterSummary!=="string"||typeof registerScan!=="function")return null;
-  var hits=registerScan(extracted.chapterSummary);
+  var _cn=(typeof recordCanonNames==="function")?recordCanonNames():[],hits=registerScanProse(extracted.chapterSummary,_cn);/* #481 C7: the scan stays on free prose */
   if(typeof idiomScan==="function"&&typeof registerCensusFile==="function")registerCensusFile("idiom",idiomScan(extracted.chapterSummary),turn,{chapter:true});/* ④: chapters ride the idiom census too */
   if(!hits.length)return {hits:hits,reasked:false,cleaned:false};
   var resp=null,reasked=false;
-  try{resp=await (call||callGM)(buildChapterRegisterRewritePrompt(extracted.chapterSummary,hits),CHAPTER_REWRITE_SYS,700,null,{kind:"summarize",noHistory:true});reasked=true;}
+  try{resp=await (call||callGM)(buildChapterRegisterRewritePrompt(extracted.chapterSummary,hits,registerKeepFor(extracted.chapterSummary,_cn)),CHAPTER_REWRITE_SYS,700,null,{kind:"summarize",noHistory:true});reasked=true;}
   catch(e){if(typeof console!=="undefined")console.warn("[memory] #372 chapter rewrite call failed ("+((e&&e.message)||"?")+") — the original summary files as extracted");}
-  var d=chapterRegisterDecide(extracted.chapterSummary,resp,hits);
+  var d=chapterRegisterDecide(extracted.chapterSummary,resp,hits,_cn);
   if(d.cleaned)extracted.chapterSummary=d.text;
   if(typeof registerCensusFile==="function")registerCensusFile("chapter",hits,turn,{reasked:reasked,cleaned:d.cleaned});
   if(typeof console!=="undefined")console.warn("[memory] #372 chapter summary used "+hits.join(", ")+" — "+(reasked?(d.cleaned?"re-asked once; the clean rewrite is the chapter on file":"re-asked once; the rewrite still carried it, the original files as extracted (counted)"):"the re-ask could not run; the original files as extracted (counted)"));
@@ -2397,33 +2399,52 @@ async function chapterRegisterGuard(extracted,turn,call){
    per window (a summarize already awaits one chapter re-ask; the player is waiting). */
 var RECORD_REWRITE_SYS="You rewrite one line of a story's memory record on request. Reply with the rewritten line only: no preamble, no quotes, no markdown, no JSON.";
 var RECORD_REGISTER_REASK_MAX=6;
-function buildRecordRegisterRewritePrompt(line,hits){
+function buildRecordRegisterRewritePrompt(line,hits,keep){
   var w=(hits||[]).map(function(x){return "'"+x+"'";}).join(", ");
-  return "Rewrite the record line below in plain speech, the way a friend who was there would say it — keep every name, every fact and every event, about the same length, but remove every clerical image: it used "+w+". This world keeps no books: debts are blood, oaths, hunger and memory; say what the thing IS (a curse, a hunger, an oath, a bargain in blood) instead of the paperwork word for it. Reply with the rewritten line only.\n\nLINE:\n"+line;
+  return "Rewrite the record line below in plain speech, the way a friend who was there would say it — keep every name, every fact and every event, about the same length, but remove every clerical image: it used "+w+"."+registerKeepClause(keep)+" This world keeps no books: debts are blood, oaths, hunger and memory; say what the thing IS (a curse, a hunger, an oath, a bargain in blood) instead of the paperwork word for it. Reply with the rewritten line only.\n\nLINE:\n"+line;
 }
-function recordRegisterDecide(original,rewrite,hits){
+function recordRegisterDecide(original,rewrite,hits,names){
   var t=chapterRewriteText(rewrite);
   if(!t)return {text:null,cleaned:false};
-  return registerScan(t).length?{text:null,cleaned:false}:{text:t,cleaned:true};
+  return registerScanProse(t,names).length?{text:null,cleaned:false}:{text:t,cleaned:true};/* #481 C7 */
+}
+/* #481 C7 (c): a line past the per-window re-ask cap is DEFERRED, never dropped — queued on the save (worldState.
+   recordDeferred), re-guarded at the next summarize before the new lines, bounded at RECORD_DEFER_CAP with a loud eviction,
+   and counted on the census as its own outcome. */
+var RECORD_DEFER_CAP=24;
+function recordDeferPush(job,turn){
+  if(!worldState.recordDeferred)worldState.recordDeferred=[];var q=worldState.recordDeferred;
+  q.push({kind:job.kind||"lore",name:job.name||null,text:String(job.text||""),turn:turn});
+  while(q.length>RECORD_DEFER_CAP){var ev=q.shift();if(typeof console!=="undefined")console.warn("[memory] #481 C7 the deferred record queue is full ("+RECORD_DEFER_CAP+") — the oldest line is dropped: \""+ev.text.slice(0,80)+"\"");if(typeof registerCensusFile==="function")registerCensusFile("record",registerScan(ev.text).length?registerScan(ev.text):["(evicted)"],turn,{evicted:true});}
 }
 async function recordRegisterGuard(extracted,turn,call){
-  var out={hits:0,reasked:0,cleaned:0,dropped:0};
+  var out={hits:0,reasked:0,cleaned:0,dropped:0,deferred:0};
   if(!extracted||typeof extracted!=="object"||typeof registerScan!=="function")return out;
-  var jobs=[],i;
+  var jobs=[],i,names=(typeof recordCanonNames==="function")?recordCanonNames():[];
+  /* #481 C7 (c): last window's deferred lines are guarded FIRST — they have waited longest; a clean one files through the extraction */
+  var prev=(worldState&&worldState.recordDeferred)?worldState.recordDeferred.splice(0):[];if(worldState&&worldState.recordDeferred&&!worldState.recordDeferred.length)delete worldState.recordDeferred;
+  for(i=0;i<prev.length;i++){(function(dq){if(!dq||!dq.text)return;jobs.push({what:(dq.kind==="knowledge"?"knowledge ("+(dq.name||"?")+")":"lore")+" (deferred t"+dq.turn+")",kind:dq.kind,name:dq.name,text:dq.text,deferredFrom:dq.turn,
+    set:function(t){if(dq.kind==="knowledge"&&dq.name){if(!Array.isArray(extracted.npcUpdates))extracted.npcUpdates=[];extracted.npcUpdates.push({name:dq.name,knowledgeGained:t});}else{if(!Array.isArray(extracted.loreDiscovered))extracted.loreDiscovered=[];extracted.loreDiscovered.push(t);}},drop:function(){}});})(prev[i]);}
   var ups=Array.isArray(extracted.npcUpdates)?extracted.npcUpdates:[];
   for(i=0;i<ups.length;i++){(function(nu){if(!nu||nu.knowledgeGained==null)return;var v=nu.knowledgeGained,f=(typeof v==="object"&&v)?v.fact:v;if(typeof f!=="string"||!f)return;
-    jobs.push({what:"knowledge ("+(nu.name||"?")+")",text:f,set:function(t){if(typeof v==="object"&&v)v.fact=t;else nu.knowledgeGained=t;},drop:function(){delete nu.knowledgeGained;}});})(ups[i]);}
+    jobs.push({what:"knowledge ("+(nu.name||"?")+")",kind:"knowledge",name:nu.name||null,text:f,set:function(t){if(typeof v==="object"&&v)v.fact=t;else nu.knowledgeGained=t;},drop:function(){delete nu.knowledgeGained;}});})(ups[i]);}
   var lore=Array.isArray(extracted.loreDiscovered)?extracted.loreDiscovered:[],loreDrop=[];
-  for(i=0;i<lore.length;i++){(function(ix){var f=lore[ix];if(typeof f!=="string"||!f)return;jobs.push({what:"lore",text:f,set:function(t){lore[ix]=t;},drop:function(){loreDrop.push(ix);}});})(i);}
+  for(i=0;i<lore.length;i++){(function(ix){var f=lore[ix];if(typeof f!=="string"||!f)return;jobs.push({what:"lore",kind:"lore",text:f,set:function(t){lore[ix]=t;},drop:function(){loreDrop.push(ix);}});})(i);}
   var asked=0;
   for(i=0;i<jobs.length;i++){
-    var j=jobs[i],hits=registerScan(j.text);if(!hits.length)continue;
+    var j=jobs[i],hits=registerScanProse(j.text,names);/* #481 C7: canonical names are not the register */
+    if(!hits.length){if(j.deferredFrom!=null)j.set(j.text);continue;}
     out.hits++;var resp=null,reasked=false;
-    if(asked<RECORD_REGISTER_REASK_MAX){asked++;
-      try{resp=await (call||callGM)(buildRecordRegisterRewritePrompt(j.text,hits),RECORD_REWRITE_SYS,300,null,{kind:"summarize",noHistory:true});reasked=true;out.reasked++;}
+    if(asked>=RECORD_REGISTER_REASK_MAX){/* #481 C7 (c): past the cap — deferred to the next window, never dropped unasked */
+      j.drop();recordDeferPush(j,j.deferredFrom!=null?j.deferredFrom:turn);out.deferred++;
+      if(typeof registerCensusFile==="function")registerCensusFile("record",hits,turn,{deferred:true});
+      if(typeof console!=="undefined")console.warn("[memory] #481 C7 "+j.what+" line used "+hits.join(", ")+" — past the re-ask cap ("+RECORD_REGISTER_REASK_MAX+"), deferred to the next window: \""+j.text.slice(0,80)+"\"");
+      continue;}
+    {asked++;
+      try{resp=await (call||callGM)(buildRecordRegisterRewritePrompt(j.text,hits,registerKeepFor(j.text,names)),RECORD_REWRITE_SYS,300,null,{kind:"summarize",noHistory:true});reasked=true;out.reasked++;}
       catch(e){if(typeof console!=="undefined")console.warn("[memory] #459 record rewrite call failed ("+((e&&e.message)||"?")+") for the "+j.what+" line — the line is dropped, never filed in the register");}
     }
-    var d=recordRegisterDecide(j.text,resp,hits);
+    var d=recordRegisterDecide(j.text,resp,hits,names);
     if(d.cleaned){j.set(d.text);out.cleaned++;}else{j.drop();out.dropped++;}
     if(typeof registerCensusFile==="function")registerCensusFile("record",hits,turn,d.cleaned?{reasked:reasked,cleaned:true}:{reasked:reasked,dropped:true});
     if(typeof console!=="undefined")console.warn("[memory] #459 "+j.what+" line used "+hits.join(", ")+" — "+(d.cleaned?"re-asked once; the plain rewrite is on file":(reasked?"re-asked once; the rewrite still carried it — the line is dropped":"not re-asked — the line is dropped"))+": \""+j.text.slice(0,80)+"\"");

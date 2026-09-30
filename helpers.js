@@ -191,6 +191,42 @@ var REGISTER_LOG_MAX=50;
 function wordListRe(words){return new RegExp("\\b(?:"+words.map(function(w){return w.replace(/ /g,"\\s+");}).join("|")+")\\b","gi");}
 function wordListScan(text,re){var out=[],seen={},m,r=new RegExp(re.source,"gi");while((m=r.exec(String(text||"")))){var w=m[0].toLowerCase().replace(/\s+/g," ");if(!seen[w]){seen[w]=1;out.push(w);}}return out;}
 function registerScan(text){return wordListScan(text,REGISTER_RE);}
+/* #481 C7 (audit 2026-09-29, owner ruling + Fable): a campaign may NAME its plot objects with register words ("tithe-engines",
+   "soul-tax lien" — a legacy skeleton written before the #459 gate, an item called "Ledger fragment", an ability "Ledger
+   Memory"). The scan stays on FREE PROSE: registerMaskNames blanks every exact canonical name (whole phrase, any case, a
+   typographic apostrophe allowed) before registerScan reads the text. ONE helper, used by the record guard, the #372
+   chapter guard and the narration scan. Pure. */
+function registerMaskNames(text,names){
+  var s=String(text==null?"":text),list=(names||[]).map(function(n){return String(n==null?"":n).trim();}).filter(function(n){return n.length>=3;}).sort(function(a,b){return b.length-a.length;}),i;
+  for(i=0;i<list.length;i++){var esc=list[i].replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/['\u2019]/g,"['\u2019]").replace(/\s+/g,"\\s+");
+    s=s.replace(new RegExp("(^|[^A-Za-z0-9])("+esc+")(?![A-Za-z0-9])","gi"),function(m0,pre,nm){return pre+nm.replace(/\S/g,"\u25a1");});}
+  return s;
+}
+function registerScanProse(text,names){return registerScan(registerMaskNames(text,names));}
+/* #481 C7: the canonical names a record line may carry as written — the identifiers the record keys things by (the hero and
+   every NPC and alias, places, quest, act and arc titles, carried items, abilities and spells, item canon, factions) and
+   the skeleton's OWN register terms as written (a legacy premise built on a "soul-tax" keeps its word; a post-#459
+   skeleton has none). Lore — the text being guarded — is never a source. Pure over the live state. */
+function recordCanonNames(){
+  var out=[],seen={};
+  function add(n){n=String(n==null?"":(typeof n==="object"&&n.name!=null?n.name:n)).trim();if(n.length<3)return;var k=n.toLowerCase();if(seen[k])return;seen[k]=1;out.push(n);}
+  function item(it){var b=(typeof _invBase==="function")?_invBase(it):String(it||"");b=String(b).split(/\s+[\u2014\u2013]\s+|\s+-\s+/)[0].replace(/\s*\([^)]*\)\s*$/,"");add(b);}
+  function sheet(cs){if(!cs)return;(cs.inventory||[]).forEach(item);(cs.abilities||[]).forEach(add);(cs.spells||[]).forEach(add);}
+  if(typeof worldState==="undefined"||!worldState)return out;
+  var ws=worldState,mem=(typeof memory!=="undefined"&&memory)||{};
+  if(ws.character){add(ws.character.name);sheet(ws.character);}
+  (ws.npcs||[]).forEach(function(n){if(!n)return;add(n.name);(n.aliases||[]).forEach(add);sheet(n.charSheet);});
+  Object.keys(mem.npcs||{}).forEach(function(k){add(k);((mem.npcs[k]&&mem.npcs[k].aliases)||[]).forEach(add);});
+  Object.keys((mem.map&&mem.map.nodes)||{}).forEach(function(k){add(k.split("|").pop());});
+  (ws.questLog||[]).forEach(function(q){if(q)add(q.title);});Object.keys(mem.quests||{}).forEach(add);
+  Object.keys(ws.itemBible||{}).forEach(add);(ws.factions||[]).forEach(add);
+  var sk=ws.skeleton;
+  if(sk){var parts=[sk.premise];
+    (sk.acts||[]).forEach(function(a){if(!a)return;add(a.title);add(String(a.title||"").replace(/^\s*act\s*\d+\s*[:.\-\u2013\u2014]\s*/i,""));parts.push(a.title,a.goal,a.turningPoint);(a.arcs||[]).forEach(function(r){if(!r)return;add(r.title);parts.push(r.title,r.objective);});});
+    var skText=parts.filter(function(x){return x;}).join(" \n "),re=new RegExp(REGISTER_RE.source,"gi"),m;
+    while((m=re.exec(skText))){var st=m.index,en=m.index+m[0].length;while(st>0&&/[A-Za-z0-9\-]/.test(skText.charAt(st-1)))st--;while(en<skText.length&&/[A-Za-z0-9\-]/.test(skText.charAt(en)))en++;add(skText.slice(st,en).replace(/^-+|-+$/g,""));}}
+  return out;
+}
 var PAPERWORK_WORDS=["voucher","vouchers","manifest","manifests","requisition","requisitions","bearer note","bearer notes"];
 var LABEL_RE=wordListRe(REGISTER_WORDS.concat(PAPERWORK_WORDS));
 var IDIOM_WORDS=["christmas","refrigerator","refrigerators","napalm","fiscal quarter","fiscal quarters","low orbit","television","televisions","telephone","telephones","microwave","microwaves","laser","lasers","radar","robot","robots","computer","computers","adrenaline"];
@@ -208,11 +244,11 @@ function registerCensusFile(channel,hits,turn,extra){
   while(c[channel].length>REGISTER_LOG_MAX)c[channel].shift();
   return hits;
 }
-function registerCensusStats(ws){ws=ws||(typeof worldState!=="undefined"?worldState:null);var c=(ws&&ws.registerCensus)||{},out={chapter:0,chapterDirty:0,label:0,idiom:0,record:0,recordDropped:0},i;
+function registerCensusStats(ws){ws=ws||(typeof worldState!=="undefined"?worldState:null);var c=(ws&&ws.registerCensus)||{},out={chapter:0,chapterDirty:0,label:0,idiom:0,record:0,recordDropped:0,recordDeferred:0,recordEvicted:0},i;
   var ch=c.chapter||[];for(i=0;i<ch.length;i++){out.chapter++;if(ch[i].reasked&&ch[i].cleaned===false)out.chapterDirty++;}
-  var rc=c.record||[];for(i=0;i<rc.length;i++){out.record++;if(rc[i].dropped)out.recordDropped++;}/* #459 ③: knowledge/lore lines re-asked, and how many were dropped */
+  var rc=c.record||[];for(i=0;i<rc.length;i++){out.record++;if(rc[i].dropped)out.recordDropped++;if(rc[i].deferred)out.recordDeferred++;if(rc[i].evicted)out.recordEvicted++;}/* #481 C7: deferred to the next window, and evicted from a full queue *//* #459 ③: knowledge/lore lines re-asked, and how many were dropped */
   out.label=(c.label||[]).length;out.idiom=(c.idiom||[]).length;return out;}
-function registerCensusLine(){var s=registerCensusStats();if(!s.chapter&&!s.label&&!s.idiom&&!s.record)return "";return "Register census (counts only, no correction): chapter summaries "+s.chapter+(s.chapterDirty?" ("+s.chapterDirty+" still dirty after a re-ask)":"")+", quest/schedule labels "+s.label+", modern idiom "+s.idiom+(s.record?", record lines "+s.record+" ("+s.recordDropped+" dropped)":"")+".";}
+function registerCensusLine(){var s=registerCensusStats();if(!s.chapter&&!s.label&&!s.idiom&&!s.record)return "";return "Register census (counts only, no correction): chapter summaries "+s.chapter+(s.chapterDirty?" ("+s.chapterDirty+" still dirty after a re-ask)":"")+", quest/schedule labels "+s.label+", modern idiom "+s.idiom+(s.record?", record lines "+s.record+" ("+s.recordDropped+" dropped"+(s.recordDeferred?", "+s.recordDeferred+" deferred":"")+(s.recordEvicted?", "+s.recordEvicted+" evicted":"")+")":"")+".";}
 /* ② the authoring seams, read at the SHEET rather than hooked at four call sites (wizard, blueprint import,
    generateNpcSheet, the #330 want birth): the live sheet is what every seam wrote, so one census over it covers
    them all, and a hand edit in the character editor too. REPORT only — personality is the player's, never the
