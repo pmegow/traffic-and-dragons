@@ -2690,6 +2690,11 @@ function audioFileCandidates(candidates,scope){
     else {node.soundscape=p;return {ok:true,key:key};}
   }
   console.warn("[audio] soundscape refused: "+why);
-  if(typeof showToast==="function")showToast("Ambience classification ignored: "+why,5000);
+  if(typeof showToast==="function"&&audioRefusalToastDue(why,Date.now()))showToast("Ambience classification ignored: "+why,5000);
   return {ok:false,reason:why};
 }
+/* #481 E5: the GM is re-asked on every visit, so a persistent mistake used to pop the same toast every turn. The console hears
+   every refusal; the toast fires once per reason (its words before any ":" — a GM-named field never grows the map) per ten minutes. */
+var AUDIO_REFUSAL_TOAST_MS=600000,audioRefusalToastAt={};
+function audioRefusalToastDue(why,now){var k=String(why).split(":")[0],last=audioRefusalToastAt[k];
+  if(typeof last==="number"&&now-last<AUDIO_REFUSAL_TOAST_MS)return false;audioRefusalToastAt[k]=now;return true;}

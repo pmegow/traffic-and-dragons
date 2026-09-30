@@ -28029,4 +28029,84 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return bad.length?"sites that bypass the boundary helper: "+bad.join(", "):true;
   });
 
+  // ── #481 E5 (audit 2026-09-29, Fable-approved with changes): 9 of the 18 distinct saved [SOUNDSCAPE:] tags were refused, three
+  // of them over ONE invented content word (Village t198 "footsteps", Necrotic t11 "footspring", fae t33 "breathing") — the place
+  // stayed unclassified for the visit. (1) audioParseProfile drops a word outside AUDIO_CONTENTS from allows AND forbid; an allows
+  // list of only unknown words is still refused. (2) The dropped words reach the turn's summary line. (3) The six enum refusals
+  // stay refused. The refusal toast fires once per reason per ten minutes; the console hears every refusal.
+  section("#481 E5 an unknown sound word is left out, not the place");
+  var E5_ENUM=[   /* the six saved enum mistakes, verbatim — each must stay refused, and for its own field */
+    ["The Ashen Mire|enclosure=open;setting=wilderness;biome=swamp;quiet=tense;allows=wind,machinery,footsteps,voices;forbid=birds","invalid biome"],
+    ["The Salted Wound Tavern|enclosure=ruined interior;setting=tavern;biome=frontier;quiet=violence;allows=wood cracking,metal grinding,shouts,spells;forbid=birds","invalid enclosure"],
+    ["Tavern Cellar|enclosure=sealed;setting=subterranean;biome=temperate;quiet=tense;allows=machinery,fire,voices;forbid=birds,insects,rain,wind","invalid quiet"],
+    ["The Salted Wound Tavern|enclosure=underground;setting=interior;quiet=quiet;allows=humming,machinery,magic;forbid=wind,rain,thunder,insects,birds","invalid enclosure"],
+    ["Mildew Hall Courtyard|enclosure=open;setting=ruin;biome=temperate;quiet=normal;allows=wind,night,voices;forbid=machinery","invalid setting"],
+    ["Mildew Hall Foyer|enclosure=interior;setting=ruin;biome=temperate;quiet=echoing;allows=wind,footsteps,voices,creaking;forbid=machinery","invalid enclosure"]
+  ];
+  t("#481 E5 the repro: the Village, the Treasury and the Cellar keep their classification; the invented word is left out and named",function(){
+    var cases=[   /* the three saved content-word refusals, verbatim */
+      ["The Village|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=footsteps,voices,wind,birds;forbid=machinery,thunder","The Village",["birds","voices","wind"],["machinery","thunder"],["footsteps"]],
+      ["The Lower Treasury|enclosure=sealed;setting=subterranean;biome=temperate;quiet=normal;allows=footspring,voices,machinery;forbid=birds,insects,wind","The Lower Treasury",["machinery","voices"],["birds","insects","wind"],["footspring"]],
+      ["Tavern Cellar|enclosure=sealed;setting=subterranean;biome=temperate;quiet=hushed;allows=voices,breathing;forbid=birds,insects,rain,wind","Tavern Cellar",["voices"],["birds","insects","rain","wind"],["breathing"]]
+    ],i;
+    for(i=0;i<cases.length;i++){var c=cases[i],v=audioParseProfile(c[0]);
+      if(!v.ok)return c[1]+" refused: "+v.reason;
+      if(v.target!==c[1])return "target: "+v.target;
+      if(JSON.stringify(v.profile.allows)!==JSON.stringify(c[2])||JSON.stringify(v.profile.forbid)!==JSON.stringify(c[3]))return c[1]+" lists: "+JSON.stringify(v.profile);
+      if(JSON.stringify(v.dropped)!==JSON.stringify(c[4]))return c[1]+" must name what it left out: "+JSON.stringify(v.dropped);
+      if(!audioValidateProfile(v.profile).ok)return c[1]+": the kept profile must pass the strict validator";}
+    var clean=audioParseProfile("Ashfen|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,insects,wind;forbid=none");
+    return clean.ok&&clean.dropped===undefined?true:"a clean tag names nothing left out: "+JSON.stringify(clean);
+  });
+  t("#481 E5 the rules that stay: only-unknown allows, the six enum mistakes and a both-ways word are refused; forbid sheds its unknown words; a space after a comma is no word",function(){
+    var head="The Village|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;",v,i;
+    v=audioParseProfile(head+"allows=footsteps,breathing;forbid=none");
+    if(v.ok||v.reason!=="unknown content in allows")return "an allows list of only unknown words must stay refused (an empty list would silence the place): "+JSON.stringify(v);
+    v=audioParseProfile(head+"allows=none;forbid=none");if(!v.ok||v.profile.allows.length)return "allows=none is an explicit empty list: "+JSON.stringify(v);
+    v=audioParseProfile(head+"allows=wind;forbid=footsteps,machinery");
+    if(!v.ok||JSON.stringify(v.profile.forbid)!==JSON.stringify(["machinery"])||JSON.stringify(v.dropped)!==JSON.stringify(["footsteps"]))return "forbid drops its unknown word and keeps the rest: "+JSON.stringify(v);
+    v=audioParseProfile(head+"allows=wind;forbid=footsteps");
+    if(!v.ok||v.profile.forbid.length)return "a forbid of only unknown words vetoes nothing either way — it files empty: "+JSON.stringify(v);
+    v=audioParseProfile(head+"allows=wind, voices,footsteps,footsteps;forbid=none");
+    if(!v.ok||JSON.stringify(v.profile.allows)!==JSON.stringify(["voices","wind"])||JSON.stringify(v.dropped)!==JSON.stringify(["footsteps"]))return "a space after a comma is formatting, and a repeated unknown word is named once: "+JSON.stringify(v);
+    v=audioParseProfile(head+"allows=wind,footsteps;forbid=wind");if(v.ok)return "a word both allowed and forbidden is still refused";
+    for(i=0;i<E5_ENUM.length;i++){v=audioParseProfile(E5_ENUM[i][0]);if(v.ok||v.reason!==E5_ENUM[i][1])return "enum mistake "+(i+1)+" must stay refused as '"+E5_ENUM[i][1]+"': "+JSON.stringify(v);}
+    return true;
+  });
+  t("#481 E5 the left-out word reaches the turn's summary line once, marked; the place is classified; the console hears it once",function(){
+    makeWorld();memory.map.nodes.Ashfen={parent:null};
+    var tag="[SOUNDSCAPE:Ashfen|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=footsteps,voices,wind,birds;forbid=machinery,thunder]";
+    var oldAdd=addMsg,oldSpeak=speakNarration,oldActions=generateActions,oldSheets=processPendingCompanionSheets,sys=[],q;
+    addMsg=function(type,html){if(type==="system")sys.push(String(html));return __stubEl();};
+    speakNarration=function(){};generateActions=function(){};processPendingCompanionSheets=function(){};
+    try{q=quiet(function(){commitGmTurn("Wind moves over the fen. "+tag,{userMsg:"look",playerTxt:"look"});});}
+    finally{addMsg=oldAdd;speakNarration=oldSpeak;generateActions=oldActions;processPendingCompanionSheets=oldSheets;}
+    var sc=memory.map.nodes.Ashfen.soundscape;
+    if(!sc||JSON.stringify(sc.allows)!==JSON.stringify(["birds","voices","wind"]))return "the place must be classified without the invented word: "+JSON.stringify(sc);
+    var lines=sys.join("\n"),hits=lines.split("footsteps").length-1;
+    if(hits!==1)return "the summary line names the left-out word exactly once (got "+hits+"): "+lines;
+    if(!/<span class="sum-warn">⚠ [^<]*footsteps/.test(lines))return "the left-out word rides a ⚠ line: "+lines;
+    var logged=q.warns.filter(function(w){return /footsteps/.test(w);});
+    return logged.length===1?true:"one console line names it: "+JSON.stringify(q.warns);
+  });
+  t("#481 E5 a refusal toasts once per reason inside ten minutes, again after; the console hears every refusal",function(){
+    if(typeof audioRefusalToastAt!=="object"||typeof AUDIO_REFUSAL_TOAST_MS!=="number")return "the refusal-toast throttle is missing";
+    makeWorld();memory.map.nodes.Ashfen={parent:null};
+    var toasts=[],oldT=showToast,q,k;for(k in audioRefusalToastAt)delete audioRefusalToastAt[k];
+    var enc="Ashfen|enclosure=interior;setting=wilderness;biome=temperate;quiet=normal;allows=wind;forbid=none",qt="Ashfen|enclosure=open;setting=wilderness;biome=temperate;quiet=tense;allows=wind;forbid=none";
+    showToast=function(m){toasts.push(String(m));};
+    try{
+      q=quiet(function(){audioFileCandidates([enc]);audioFileCandidates([enc]);audioFileCandidates([enc]);audioFileCandidates([qt]);});
+      if(toasts.length!==2)return "one toast per reason (enclosure, quiet) — got "+JSON.stringify(toasts);
+      if(q.warns.filter(function(w){return /soundscape refused/.test(w);}).length!==4)return "the console hears all four refusals: "+JSON.stringify(q.warns);
+      audioRefusalToastAt["invalid enclosure"]-=AUDIO_REFUSAL_TOAST_MS+1;
+      quiet(function(){audioFileCandidates([enc]);});
+      if(toasts.length!==3)return "after ten minutes the same mistake toasts again: "+JSON.stringify(toasts);
+      var fld="Ashfen|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=wind;forbid=none;";
+      quiet(function(){audioFileCandidates([fld+"loudness=high"]);audioFileCandidates([fld+"echo=long"]);});
+      if(toasts.length!==4)return "a field the GM invents is one reason, whatever its name (the map never grows per name): "+JSON.stringify(toasts);
+    }finally{showToast=oldT;}
+    return Object.keys(audioRefusalToastAt).length===3?true:"three reasons, three keys: "+JSON.stringify(audioRefusalToastAt);
+  });
+
 }

@@ -542,7 +542,11 @@ var TAG_TABLE=[
    so it is judged before any of this response's own advances land. */
 {t:"TIME_CHECK",apply:function(text,R){/* NOT nc — shipped with nc:1 by mistake (v1.700), which made the every-response declaration trip the UA27 no-combat warn on every peaceful turn */var tcTag=text.match(/\[TIME_CHECK:([^\]]+)\]/);if(tcTag&&typeof clockCheckDeclared==="function")clockCheckDeclared(tcTag[1].trim());}},
 {t:"TIME",apply:function(text,R){var timeTag=text.match(/\[TIME:([^\]]+)\]/);if(timeTag){worldState.world.time=timeTag[1].trim();R.timeText=timeTag[1].trim();/* #131: the tail reconciles the clock to this AFTER TIME_ADVANCE/REST land */R.muts.push("Time: "+timeTag[1].trim());}}},
-{t:"SOUNDSCAPE",apply:function(text,R){R.audioCandidates=(text.match(/\[SOUNDSCAPE:([^\]]*)\]/g)||[]).map(function(x){return x.slice(12,-1);});}},
+{t:"SOUNDSCAPE",apply:function(text,R){R.audioCandidates=(text.match(/\[SOUNDSCAPE:([^\]]*)\]/g)||[]).map(function(x){return x.slice(12,-1);});
+  /* #481 E5: a lone classification that parses with invented content words files WITHOUT them (audioParseProfile); the parser tail
+     says which on the summary line, and the console hears it here, once. Two candidates are refused whole at filing — nothing to say. */
+  if(R.audioCandidates.length===1&&typeof audioParseProfile==="function"){var _sv=audioParseProfile(R.audioCandidates[0]);
+    if(_sv.ok&&_sv.dropped){R.audioDropped=_sv.dropped;if(typeof console!=="undefined")console.info("[audio] soundscape words left out (not in AUDIO_CONTENTS): "+_sv.dropped.join(", "));}}}},
 {t:"WEATHER",apply:function(text,R){var wxTag=text.match(/\[WEATHER:([^\]]+)\]/);if(wxTag){worldState.world.weather=wxTag[1].trim();R.muts.push("Weather: "+wxTag[1].trim());}}},
 // ── #73 campaign clock ──────────────────────────────────────────────────────────────────────
 // [TIME_ADVANCE:N] advances the elapsed-minutes clock. The GM emits a natural-unit ESTIMATE
@@ -1912,6 +1916,10 @@ function applyMutsTable(text,opts){
   // in the system message like every other state change.
   var _swExp=scheduleSweepExpired(),_swi;
   for(_swi=0;_swi<_swExp.length;_swi++)R.muts.push("Event expired unresolved: "+_swExp[_swi].label);
+  /* #481 E5: the words a lone [SOUNDSCAPE:] lost (the SOUNDSCAPE handler above) — said here, after every handler, so the line never
+     displaces an earlier label from the provenance ring's first ten. Four words at most, each cut at 24 characters. */
+  if(R.audioDropped&&R.audioDropped.length){var _adw=R.audioDropped.slice(0,4).map(function(x){return String(x).slice(0,24);});
+    R.muts.push("⚠ Ambience: left out "+_adw.join(", ")+(R.audioDropped.length>4?" +"+(R.audioDropped.length-4)+" more":"")+" — not "+(R.audioDropped.length>1?"sound words":"a sound word")+" the engine knows");}
   if(!(opts&&opts.deferCommit)){
     mutsSummaryEmit(R);
     syncUI();saveAll();

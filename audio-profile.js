@@ -47,14 +47,26 @@ function audioNodeProfile(node){
    hearth) until the GM reclassifies; buildSoundscapeNote re-asks as before. An INVALID stored profile stays "classified
    without a profile" and never becomes a fallback. */
 function audioNodeStale(node){if(!node||!node.soundscape)return false;var v=audioValidateProfile(node.soundscape);return !!(v.ok&&v.profile.stamp!==audioNodeStamp(node));}
+/* #481 E5 (audit 2026-09-29, Fable-approved with changes): a content word outside AUDIO_CONTENTS is LEFT OUT here — in allows and
+   forbid alike — and named in v.dropped. The catalog holds vocabulary words only, so an invented word could never match or veto a
+   recording; it used to throw the whole classification away (Village t198 "footsteps"). An allows list of ONLY unknown words is
+   still refused (an empty list would silence a place the GM meant to fill), the enum fields stay strict, and the validator stays
+   the strict gate for every stored profile. A space after a comma is formatting, not a word. */
 function audioParseProfile(body){
-  var raw=String(body||""),cut=raw.lastIndexOf("|"),parts=[raw.slice(0,cut),raw.slice(cut+1)],input={},seen={},bad=null;
+  var raw=String(body||""),cut=raw.lastIndexOf("|"),parts=[raw.slice(0,cut),raw.slice(cut+1)],input={},seen={},bad=null,dropped=[],noAllows=false;
   if(cut<1||!parts[0].trim()||parts[0].length>160||body.length>800)return {ok:false,reason:"expected explicit place|fields"};
   parts[1].split(";").forEach(function(pair){var kv=pair.trim().split("="),key=kv[0];if(kv.length!==2||seen[key]){bad="invalid or repeated field";return;}seen[key]=true;
     if(AUDIO_PROFILE_META.indexOf(key)>=0){bad="engine-owned field";return;}
-    input[key]=(key==="allows"||key==="forbid")?(kv[1]==="none"?[]:kv[1].split(",")):kv[1];});
+    if(key!=="allows"&&key!=="forbid"){input[key]=kv[1];return;}
+    if(kv[1]==="none"){input[key]=[];return;}
+    var words=kv[1].split(",").map(function(x){return x.trim();}),known=words.filter(function(x){return AUDIO_CONTENTS.indexOf(x)>=0;});
+    words.forEach(function(x){if(x&&AUDIO_CONTENTS.indexOf(x)<0&&dropped.indexOf(x)<0)dropped.push(x);});
+    if(key==="allows"&&!known.length)noAllows=true;
+    input[key]=known;});
   if(bad)return {ok:false,reason:bad};
-  var v=audioValidateProfile(input);v.target=parts[0].trim();return v;
+  var v=audioValidateProfile(input);
+  if(v.ok&&noAllows)v={ok:false,reason:"unknown content in allows"};   /* after the validator, so an enum mistake keeps its own reason */
+  v.target=parts[0].trim();if(dropped.length)v.dropped=dropped;return v;
 }
 function audioSelect(s,catalog){
   var empty={scene:null,key:"",gain:0}, v=audioValidateProfile(s&&s.profile), m=s&&s.minuteOfDay;

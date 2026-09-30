@@ -860,7 +860,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>The catalog can only contain vocabulary words, so an unknown word could never match or veto anything anyway; single-vocabulary rule v1.978 survives.</li>
 </ul>
 <details><summary>Evidence</summary><p>18 distinct field tags; 9 rejected, all from this fortnight. Three fail only on a content word: <code>allows=footsteps,voices,wind,birds</code> (Village t198, verified: "unknown content in allows"), <code>footspring</code> (Necrotic t11), <code>breathing</code> (fae t33). The other six are enum errors (interior, ruin, swamp, tense).</p></details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">✅ complete — v1.1061: a lone unknown content word is left out (allows and forbid), named on the turn's summary line (⚠) and once in the console; an only-unknown allows list and the six enum mistakes stay refused for their own reasons; the refusal toast fires once per reason per ten minutes. Real saves: 9 of 18 refused → 6. Proof: 4 tests in &quot;#481 E5&quot;, dev/sabotage-481-e5-sound-words.js 12/12.</td></tr>
 
 <tr id="E6"><td class="n">E6</td><td>
 <p class="ttl">Per-character voice controls are shown for providers that ignore or misuse them <span class="lean med">medium</span><span class="lean">silent no-op</span></p>

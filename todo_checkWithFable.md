@@ -232,6 +232,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Judgement call:** at the boundary an UNSTAMPED outfit and every dynamic are treated as foreign (clear). The boundary only runs on a sheet crossing in, and the stamp lets a same-campaign round trip keep its outfit. A same-campaign library replace does lose its dynamics, which are scene-level.
   - **Real saves (HEAD vs working tree):** Princess t18 — dynamic entries 17 → 0, outfit lines 2 → 0. Necrotic t35 and fae t89 — 17 → 0. Village t218 — 17 → 4. Runelords t2477 is byte-identical (the t2106 dynamics are its own). No private text quoted here or in the commit.
   - **Proof:** 4 tests in "#481 C5" (three red before the build). Full suite green (2,499); four replay baselines unchanged; `dev/sabotage-481-c5-scene-boundary.js` 9/9 caught; the #428 hero-copy clause re-anchored and caught.
+- 2026-09-29 · #481 E5 · v1.1061 · Opus 5.5 · One invented sound word no longer throws a place's soundscape away.
+  - **Touches:** audio-profile.js (`audioParseProfile` leaves out unknown content words and names them in `v.dropped`), tag_table.js (the SOUNDSCAPE handler records them, `R.audioDropped`, and logs once; the parser tail pushes one ⚠ summary line) and memory.js (`audioRefusalToastDue` throttles the refusal toast). No prompt, doc-table or strip change: the SOUNDSCAPE entry has no GM doc, and the tag name is unchanged.
+  - **Fable (1)–(4):** filter in the parse only, both lists; an only-unknown allows list stays refused; `v.dropped` reaches the summary line; the six enum refusals stay refused, each for its own reason (the only-unknown check runs after the validator); tests and a battery.
+  - **Judgement calls:** the ⚠ line is pushed in the parser tail, not in the handler, so it cannot displace an earlier label from the provenance ring's first ten (`turnsSinceRisk` reads them). A space after a comma is trimmed, not reported. The toast throttle keys on a refusal's words before any ":", so a GM-invented field name never grows the map.
+  - **Real saves:** of 18 distinct saved tags, 9 were refused; now 6 are — the six enum mistakes, with unchanged reasons. The three one-word cases file: the Village loses "footsteps", the Lower Treasury "footspring", the Tavern Cellar "breathing".
+  - **Proof:** 4 tests in "#481 E5" (all red before the build). Four replay baselines unchanged; `dev/sabotage-481-e5-sound-words.js` 12/12 caught; the applicability scan is green (all clauses match once).
 
 ## Off-Fable log
 
