@@ -322,6 +322,20 @@ function campStampOn(obj,name){
   if(ws&&ws.campId&&obj.camp===cur)obj.campId=ws.campId;
   return obj;
 }
+/* #481 C5 (audit 2026-09-29, Fable-approved): a SCENE stays in its campaign. The scene registry is a sheet's OUTFIT and its
+   relationship DYNAMICS (worn gear and bonds are the character's own and cross untouched). sceneFieldsCross is the ONE
+   boundary every adoption/import site runs (startGame, importVillageResidents, adoptLibraryHero, adoptLibraryCompanion,
+   _addImportedCompanion): an incoming outfit crosses only when it carries THIS campaign's stamp (outfitSet stamps with
+   campStampOn); every dynamic is left at the door. sceneTurnLive is the render's negative-age test — a turn stamped after
+   the current turn is another campaign's clock (Princess t18 served an outfit from t169 and a mood from t2106). There is no
+   same-campaign age gate: this campaign's scene renders exactly as before. */
+function sceneFieldsCross(sheet){
+  if(!sheet||typeof sheet!=="object")return sheet;
+  var o=sheet.outfit;if(o&&!((o.camp!==undefined||o.campId)&&campIsCurrent(o)))delete sheet.outfit;
+  (sheet.relationships||[]).forEach(function(r){if(r&&r.dynamic){r.dynamic="";r.dynamicTurn=null;}});
+  return sheet;
+}
+function sceneTurnLive(turn){var now=(typeof worldState!=="undefined"&&worldState&&typeof worldState.turn==="number")?worldState.turn:0;return !(typeof turn==="number"&&turn>now);}
 function campIsCurrent(rec){
   if(!rec)return true;
   var ws=(typeof worldState!=="undefined"&&worldState)?worldState:null;

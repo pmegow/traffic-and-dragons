@@ -22,11 +22,12 @@ function startGame(char,toneName,toneVoice,authorId){
   if(typeof char._startHour==="number"){worldState.clock={min:startClockMin(char._startHour),schedule:[]};worldState.world.time=clockHourLabel(char._startHour);}
   delete worldState.character._startLoc;delete worldState.character._campName;delete worldState.character._startHour;
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(char);/* #81b: an imported hero's item canon travels in */
+  if(typeof sceneFieldsCross==="function")sceneFieldsCross(char);/* #481 C5: the last campaign's scene stays there */
   if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}
   sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
-    var comp=pendingCompanions[ci];
+    var comp=pendingCompanions[ci];if(typeof sceneFieldsCross==="function")sceneFieldsCross(comp);/* #481 C5 */
     if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(comp);
     worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,pronouns:pronounsForGender(comp.gender),portrait:null,charSheet:comp}); // portrait rides on charSheet only (#3 dedupe)
     memory.npcs[comp.name]={attitude:"ally",knowledge:[],events:[],partyMember:true,pronouns:pronounsForGender(comp.gender)};
@@ -1466,6 +1467,7 @@ function importVillageResidents(list){
     if(worldState.character&&worldState.character.name===nm){if(typeof _libAt==="number")worldState.heroLibraryAt=_libAt;/* #427: the hero's own move-in stamp — "newer than this" is what a later refresh means */skipped.push(nm);continue;}
     if(wsNpcByName(nm)){skipped.push(nm);continue;}
     var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
+    if(typeof sceneFieldsCross==="function")sceneFieldsCross(sheet);/* #481 C5 */
     if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);/* #81b: the resident's gear keeps its canon */
     var pr=pronounsForGender(sheet.gender);
     worldState.npcs.push({name:nm,status:"",statusTurn:0,rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet,libraryAt:_libAt});/* portrait rides on charSheet only (#3 dedupe); libraryAt = the library's updated time at move-in (#6 E13) */
@@ -1492,7 +1494,7 @@ function ensureV10Arrays(s){
    identity key everywhere), relationships through the axis adapter, item canon adopted, v10 arrays ensured, framing
    kept when the copy has none, voices reassigned, the stamp set (null when the entry is undated). */
 function adoptLibraryHero(c,at){
-  var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);
+  var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross==="function")sceneFieldsCross(hero);/* #481 C5 */
   hero.name=worldState.character.name;
   if(typeof portraitAdmit==="function"&&portraitAdmit(hero,"library")&&typeof showToast==="function")showToast("⚠ "+hero.name+"'s library portrait was dropped — not an image");/* #481 F2 */
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(hero);
@@ -1509,7 +1511,7 @@ function adoptLibraryHero(c,at){
 }
 function adoptLibraryCompanion(n,c,at){
   var sheet=JSON.parse(JSON.stringify(c));sheet.name=n.name;if(typeof portraitAdmit==="function"&&portraitAdmit(sheet,"library")&&typeof showToast==="function")showToast("⚠ "+n.name+"'s library portrait was dropped — not an image");/* #481 F2 */
-  if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,n.name);
+  if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,n.name);if(typeof sceneFieldsCross==="function")sceneFieldsCross(sheet);/* #481 C5 */
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);
   ensureV10Arrays(sheet);
   sheet.portraitOffset=sheet.portraitOffset||(n.charSheet&&n.charSheet.portraitOffset)||n.portraitOffset||null;

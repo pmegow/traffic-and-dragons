@@ -672,6 +672,7 @@ function _addImportedCompanion(char){
   if(partyCompanionCount()>=partyCompanionCap()){showToast("Party full (max "+PARTY_MAX+", incl. you). Remove a companion before adding "+char.name+".");return;}
   // Add as party member NPC with full charSheet
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(char);/* #81b: the companion's gear keeps its canon */
+  if(typeof sceneFieldsCross==="function")sceneFieldsCross(char);/* #481 C5: the last campaign's scene stays there */
   var npc={name:char.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(char.gender),portrait:null,charSheet:char}; // portrait rides on charSheet only (#3 dedupe)
   worldState.npcs.push(npc);
   /* audit E9: same seeding as the [PARTY_MEMBER:] handler — aliases[] so every later alias write has a

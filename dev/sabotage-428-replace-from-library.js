@@ -15,7 +15,7 @@ prove("game.js", [
     find: 'if(!s.conditions)s.conditions=[];', replace: 's.conditions=[];',
     mustFail: "ensureV10Arrays" },
   { label: "the hero adopter hands over the library object itself",
-    find: 'var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);\n  hero.name=worldState.character.name;', replace: 'var hero=c;if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);\n  hero.name=worldState.character.name;',
+    find: 'var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross', replace: 'var hero=c;if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross',/* #481 C5 re-anchor: the boundary helper follows the copy */
     mustFail: "libReplaceApply on the hero" },
   { label: "the hero adopter takes the library's spelling of the name",
     find: '  hero.name=worldState.character.name;\n', replace: '',

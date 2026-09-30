@@ -27930,4 +27930,45 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (it.length===1&&/Ledger fragment/.test(it[0].text))?true:"the item is reported: "+JSON.stringify(r);
   });
 
+  // ── #481 C5 (audit 2026-09-29, Fable-approved with changes): the last campaign's private scene followed the hero — at
+  // Princess t18 the prompt served an outfit stamped t169 and a relationship mood stamped t2106 (Rise of the Runelords) as
+  // current. (a) The scene registry is OUTFIT plus the relationship DYNAMIC; worn and bond are untouched. (b) ONE boundary
+  // helper at the five adoption/import sites. (c) No same-campaign age gate: only the boundary and the negative-age
+  // omission ship; same-campaign data renders byte-identically. (d) An outfit is stamped with C8's stamper.
+  section("#481 C5 a scene stays in its campaign");
+  function c5World(outTurn,dynTurn){makeWorld();delete worldState.kind;worldState.turn=18;var c=worldState.character;c.worn=["Longsword"];c.inventory=["Longsword"];c.outfit={text:"a borrowed silk robe",turn:outTurn};c.relationships=[{entity:"Frizwick",bond:"wife",bondTurn:3,dynamic:"a quiet storm",dynamicTurn:dynTurn}];/* the hero block renders dynamics too */
+    worldState.npcs.push({name:"Frizwick",status:"ally",rel:"companion",partyMember:true,pronouns:"she/her",charSheet:{name:"Frizwick",cls:"Rogue",level:3,hp:10,maxHp:10,inventory:[],worn:[],outfit:{text:"a torn stage costume",turn:outTurn},relationships:[{entity:c.name,bond:"wife",bondTurn:3,dynamic:"a private hush",dynamicTurn:dynTurn}]}});
+    memory.npcs["Frizwick"]={attitude:"ally",knowledge:[],events:[],aliases:[],partyMember:true};}
+  t("#481 C5 an imported sheet whose outfit and dynamic are stamped after the current turn renders neither line; the bond stays",function(){
+    c5World(169,2106);var v=buildSysPrompt().volatile;
+    if(/Outfit \(t169\)/.test(v)||/silk robe|stage costume/.test(v))return "an outfit from another campaign's clock is served as current";
+    if(/a private hush/.test(v)||/a quiet storm/.test(v))return "a dynamic stamped t2106 at turn 18 is served as current";
+    return /Bond: [^\n]*\(wife\)/.test(v)?true:"the bond is untouched";
+  });
+  t("#481 C5 same-campaign data renders exactly as before (no age gate)",function(){
+    c5World(10,12);var v=buildSysPrompt().volatile;
+    if(!/Outfit \(t10\): a borrowed silk robe/.test(v))return "this campaign's outfit is served";
+    return (/Current dynamic: [^\n]*a private hush/.test(v)&&/Current dynamic: [^\n]*a quiet storm/.test(v))?true:"this campaign's dynamics are served (party and hero)";
+  });
+  t("#481 C5 the boundary: an incoming sheet leaves its outfit and dynamics at the door (worn and bonds stay); an outfit stamped as THIS campaign's crosses",function(){
+    villageEF();importVillageResidents([{name:"Tamsin",gender:"F",cls:"Bard",inventory:["Cloak"],worn:["Cloak"],outfit:{text:"a masquerade gown",turn:169},relationships:[{entity:"Silas",bond:"friend",bondTurn:3,dynamic:"sulking",dynamicTurn:40}]}]);
+    var cs=wsNpcByName("Tamsin").charSheet;if(cs.outfit)return "the resident's old outfit crossed: "+JSON.stringify(cs.outfit);
+    if(!cs.worn||cs.worn[0]!=="Cloak")return "worn is untouched: "+JSON.stringify(cs.worn);
+    var rr=(cs.relationships||[]).filter(function(r){return r.entity==="Silas";})[0];if(!rr||rr.bond!=="friend"||rr.dynamic)return "the bond stays and the dynamic goes: "+JSON.stringify(rr);
+    var nm=worldState.character.name,mine=__libCopy(nm,{});mine.outfit=campStampOn({text:"work clothes",turn:2});var r=libReplaceApply(nm,mine,5000);
+    if(!r.ok||!worldState.character.outfit||worldState.character.outfit.text!=="work clothes")return "an outfit stamped as this campaign's crosses a same-campaign replace: "+JSON.stringify(worldState.character.outfit);
+    var theirs=__libCopy(nm,{});theirs.outfit={text:"court finery",turn:2,camp:"Rise of the Runelords"};libReplaceApply(nm,theirs,5001);
+    return worldState.character.outfit?"another campaign's outfit crossed: "+JSON.stringify(worldState.character.outfit):true;
+  });
+  t("#481 C5 an outfit is filed with the campaign's stamp; every adoption site crosses through the one helper",function(){
+    makeWorld();var c=worldState.character,o=outfitSet(c,"travel leathers",5);
+    if(!o||o.camp!==String(worldState.campName||""))return "the outfit carries the campaign's name: "+JSON.stringify(o);
+    if(worldState.campId&&o.campId!==worldState.campId)return "and its id: "+JSON.stringify(o);
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),b=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
+    function body(src,name){var a=src.indexOf("function "+name+"(");return a<0?"":src.slice(a,src.indexOf("\nfunction ",a+10));}
+    var sites=[[g,"startGame"],[g,"importVillageResidents"],[g,"adoptLibraryHero"],[g,"adoptLibraryCompanion"],[b,"_addImportedCompanion"]],bad=[];
+    sites.forEach(function(x){if(!/sceneFieldsCross\(/.test(body(x[0],x[1])))bad.push(x[1]);});
+    return bad.length?"sites that bypass the boundary helper: "+bad.join(", "):true;
+  });
+
 }

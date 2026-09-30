@@ -226,6 +226,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **The pin moved in the same commit:** the #459 ⑤ fixture now uses the real `questLog` field and adds an archived quest; the engine-test source pin names `worldState.questLog[` and `memory.quests[`.
   - **Real save:** Necrotic t35 — the scrub lists 99 lines, 4 of them quest objectives (was 91 and zero). 10 of 17 narration hits were canonical names, no longer slips.
   - **Proof:** 4 tests in "#481 C9" (all red before the build). Full suite green (2,495); four replay baselines unchanged; `dev/sabotage-481-c9-own-words.js` 7/7 caught.
+- 2026-09-29 · #481 C5 · v1.1056 · Opus 5.5 · The last campaign's private scene stops following the hero.
+  - **Touches:** helpers.js (`sceneFieldsCross`, `sceneTurnLive`), api.js (`outfitSet` stamps via C8; `attireLine` / `attireRenderText` and both "Current dynamic" renders omit a negative age), and the five adoption sites (game.js ×4, ui-browsers.js ×1).
+  - **Fable (a)–(d):** worn and bond untouched; one helper; no same-campaign age gate; the outfit stamped.
+  - **Judgement call:** at the boundary an UNSTAMPED outfit and every dynamic are treated as foreign (clear). The boundary only runs on a sheet crossing in, and the stamp lets a same-campaign round trip keep its outfit. A same-campaign library replace does lose its dynamics, which are scene-level.
+  - **Real saves (HEAD vs working tree):** Princess t18 — dynamic entries 17 → 0, outfit lines 2 → 0. Necrotic t35 and fae t89 — 17 → 0. Village t218 — 17 → 4. Runelords t2477 is byte-identical (the t2106 dynamics are its own). No private text quoted here or in the commit.
+  - **Proof:** 4 tests in "#481 C5" (three red before the build). Full suite green (2,499); four replay baselines unchanged; `dev/sabotage-481-c5-scene-boundary.js` 9/9 caught; the #428 hero-copy clause re-anchored and caught.
 
 ## Off-Fable log
 
