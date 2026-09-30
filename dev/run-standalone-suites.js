@@ -56,6 +56,7 @@ var SUITES = [
   "dev/tests-481-e6-voice-caps.js",/* #481 E6: a voice control shows, splits and rides only where the reader honours it */
   "dev/tests-484-earcon-pause.js",/* #484: an earcon never resumes a paused read's context */
   "dev/tests-481-f3-focus-behind-dialog.js",/* #481 F3: focus never lands on the story box behind an open dialog (microtask observer model) */
+  "dev/tests-481-f10-signed-out.js",/* #481 F10: a signed-out village entry says the library refresh was skipped, once per load */
   "dev/tests-441-home-handoff.js",
   "dev/tests-442-modal-focus.js",
   "dev/tests-336-campaign-root.js",

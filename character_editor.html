@@ -319,7 +319,9 @@ table.list td.x button:hover{color:var(--dng);}
   else{ch=blankChar();render();}
   // #476: probe the account once so a dead session shows before the first click (home.html / mementos.html do the same).
   if(signedIn())storageAdapter.fetchAccount(function(err,acct){if(is401(err)){sessionLost();return;}if(!err&&acct&&acct.username){$("who").textContent="Library: signed in as "+acct.username;}else if(err){$("who").textContent="Library unreachable: "+err;$("who").className="hint err";}});
-  else if(typeof storageAdapter!=="undefined"&&storageAdapter.isServerMode()&&!storageAdapter.hasToken()){$("who").textContent="Not signed in — sign in from the game on this origin, then reload this page.";}
+  /* #481 F10: signed out, the library buttons are off — say why. (This used to require a server URL with no token, which never
+     holds: the adapter restores a URL only together with its token.) */
+  else{$("who").textContent="Not signed in — sign in from the game on this origin, then reload this page.";}
 
   window.__ceTest={get:function(){return ch;},load:function(o){return loadObject(o,"test");},out:out,validate:validate,blank:blankChar,heal:healChar,rerender:render,fields:FIELDS,lists:LISTS,draftKey:CE_DRAFT_K,openLibrary:openLibrary,saveLibrary:saveLibrary,sessionDead:function(){return sessionDead;},resetSession:function(){sessionDead=false;render();}};/* #476: the library shell is drivable */
 })();

@@ -48,6 +48,8 @@ Status: ✅ Active (#62)
 
 The STANDALONE character editor — every v10 field through ONE `FIELDS` + ONE `LISTS` registry (adding a field = one entry), class/archetype pickers from the class bible, portrait upload at the game's 400×600 JPEG contract, .char load/save in the game's own wrapper (imports run the game's migrations), account library load/save. Edits a PORTABLE sheet, never a campaign: no game.js/ui-*.js, no state writers (CHARACTER EDITOR CONTRACT). Unknown names warn, never block (owner ruling: no cheat-guard). Seam `window.__ceTest`; network-first in sw.js
 
+**Signed out (#481 F10, v1.1072):** the library buttons are off AND `#who` says why ("Not signed in — sign in from the game on this origin, then reload this page."). The hint used to sit behind a server URL with no token, which never holds (the adapter restores a URL only with its token). Proof: `dev/tests-481-f10-editor-browser.js` (real Chrome) through `dev/sabotage-481-f10-signed-out.js`. The village half: a signed-out village entry toasts once per page load that the library refresh was skipped (`villageRefreshOnEntry`, sync.md §24).
+
 ### home.html
 
 Status: ✅ Active (#290)

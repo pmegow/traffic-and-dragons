@@ -644,11 +644,13 @@ function populateVillageFromLibrary(done){
   });
 }
 /* #6 E13: the DOM shell over villageRefreshFromLibrary — runs when a village campaign loads (boot and campaign switch).
-   Signed out or offline = silence is wrong, so a quiet console line; a refresh = a toast naming who changed. */
+   A refresh = a toast naming who changed. #481 F10: signed out, the skip is SAID — one toast per page load (a console line
+   alone left the residents silently at whatever the save held). */
+var _villageSignedOutSaid=false;
 function villageRefreshOnEntry(){
   if(!worldState||typeof kindDef!=="function"||!kindDef().populateFromLibrary||typeof villageRefreshFromLibrary!=="function")return;
   var sa=(typeof storageAdapter!=="undefined")?storageAdapter:null;
-  if(!sa||typeof sa.listCharacterLibrary!=="function"||!(typeof sa.isServerMode==="function"&&sa.isServerMode())||!(typeof sa.hasToken==="function"&&sa.hasToken())){console.info("[village] refresh on entry skipped — not signed in");return;}
+  if(!sa||typeof sa.listCharacterLibrary!=="function"||!(typeof sa.isServerMode==="function"&&sa.isServerMode())||!(typeof sa.hasToken==="function"&&sa.hasToken())){console.info("[village] refresh on entry skipped — not signed in");if(!_villageSignedOutSaid){_villageSignedOutSaid=true;if(typeof showToast==="function")showToast("Signed out — the village was not refreshed from the character library.",6000);}return;}
   sa.listCharacterLibrary(function(err,list){
     if(err){showToast("⚠ Could not read the character library for the refresh: "+String(err),6000);return;}
     var r=villageRefreshFromLibrary(list||[]);

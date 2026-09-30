@@ -1020,7 +1020,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <p class="ttl">A signed-out device gets no visible signal <span class="lean low">low</span><span class="lean">silent failure</span></p>
 <p class="tldr"><b>TLDR:</b> Signed out, the character editor's library buttons are just grey with no reason, and the village silently skips its library refresh.</p>
 <p><span class="k">Fix</span>Show the editor hint whenever the device is signed out (<code>character_editor.html:322</code>; its current condition can never be true). Show one toast per load: "signed out — the village was not refreshed from the library" (<code>ui-browsers.js:649</code>).</p>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1072: signed out, the character editor says why its library buttons are off (the hint's old condition could never hold), and a village entry toasts once per page load that the library refresh was skipped. Proof: dev/tests-481-f10-signed-out.js (node, registered) and dev/tests-481-f10-editor-browser.js (real Chrome), both red first; dev/sabotage-481-f10-signed-out.js 3/3.</td></tr>
 
 <tr id="F11"><td class="n">F11</td><td>
 <p class="ttl">"Start" ignores a refused campaign creation <span class="lean low">low</span><span class="lean">wrong outcome</span></p>
