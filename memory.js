@@ -890,19 +890,21 @@ function _gbPresentPartyNames(){/* the hero + every living party member NOT spli
   }
   return out;
 }
-function _gbStampParty(nodeKey,turn){
-  var who=_gbPresentPartyNames(),i;
-  for(i=0;i<who.length;i++)guestbookStamp(nodeKey,who[i],turn,"arrive");/* #194: arrivals are the truthful writers they always were — now sourced */
+function _gbStampParty(nodeKey,turn,omit){/* #481 B2: `omit` = companions the reply's cast leaves out — not stamped (a missing visit reads as unknown; a false one damages canon) */
+  var who=_gbPresentPartyNames(),i,out=[];
+  for(i=0;i<who.length;i++){if(omit&&omit[who[i]]){out.push(who[i]);continue;}guestbookStamp(nodeKey,who[i],turn,"arrive");}
+  return out;/* #194: arrivals are the truthful writers they always were — now sourced */
 }
 function guestbookNoteArrival(nodeKey,turn){
   if(_gbDeferArrivals){_gbPendingArrivals.push({key:nodeKey,turn:turn});return;}
   _gbStampParty(nodeKey,turn);
 }
 function guestbookBeginResponse(){_gbDeferArrivals=true;_gbPendingArrivals.length=0;}
-function guestbookCommitArrivals(){
+function guestbookCommitArrivals(omit){/* #481 B2: returns the companions whose arrival stamp was withheld (for the loud line) */
   _gbDeferArrivals=false;
-  var i;for(i=0;i<_gbPendingArrivals.length;i++)_gbStampParty(_gbPendingArrivals[i].key,_gbPendingArrivals[i].turn);
+  var i,j,held=[];for(i=0;i<_gbPendingArrivals.length;i++){var o=_gbStampParty(_gbPendingArrivals[i].key,_gbPendingArrivals[i].turn,omit);for(j=0;j<o.length;j++)if(held.indexOf(o[j])<0)held.push(o[j]);}
   _gbPendingArrivals.length=0;
+  return held;
 }
 function guestbookSeedStart(){/* startGame's testable half: the whole creation-time party stands at the opening node (turn 0) */
   if(!worldState||!worldState.world||!worldState.world.location)return;

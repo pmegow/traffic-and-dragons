@@ -188,7 +188,7 @@ var TAG_DOC_LINES=[
 "[ARC_CONTINUE:arc title|why it remains open] -- the OTHER answer to an ARC DRIFT CHECK: the arc is genuinely unfinished. Records your reason and resets the check timer. Every drift check must be answered with this or [ARC_COMPLETE:] -- never left unanswered\n",
 "[ACT_COMPLETE:act title] -- emit when the act's turning point occurs; advances to the next act. The title must MATCH the active act, and every arc in it must be closed first ([ARC_COMPLETE:] may land in the same response)\n",
 "COMPANION SHEET TAGS — use these (not the player tags) when the event affects a named party member, not the player:\n",
-"[SCENE_CAST:Name, Name] -- WHO IS PHYSICALLY HERE: the characters standing where THIS reply ENDS, party members included, close enough to be spoken to or struck this instant. Emit ONE such line when the engine asks (it asks at scene changes); name every present character and nobody else -- someone the party is talking ABOUT, expecting, or remembering is NOT in the cast. If the party is alone, emit [SCENE_CAST:none].\n",
+"[SCENE_CAST:Name, Name] -- WHO IS PHYSICALLY HERE: the characters standing where THIS reply ENDS, party members included, close enough to be spoken to or struck this instant. Emit ONE such line when the engine asks (it asks at scene changes); name every present character and nobody else -- someone the party is talking ABOUT, expecting, or remembering is NOT in the cast. If the party is alone, emit [SCENE_CAST:none] -- none means the whole party is here and no one else; a companion who is elsewhere is left out of a named cast.\n",
 "[NPC_DEATH_REPORTED:name|source] -- a death the party did NOT witness: learned from testimony, a discovered body, or news from elsewhere. Commits the death honestly as REPORTED second-hand canon (no eyewitness claim). Use it when you narrate an off-screen death; never for a death the party watches happen -- that one is [NPC:name|dead|relation], inside its CANON_TXN when rewards ride with it.\n",
 "[COMPANION_HP:Name|+/-N] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item] [COMPANION_XP:Name|N]\n",
 "[COMPANION_CONDITION:Name|condName|duration|cause] [COMPANION_CONDITION_REMOVED:Name|condName]\n",
@@ -1825,7 +1825,13 @@ function applyMutsTable(text,opts){
   // above) has settled. fileLocation/fileSubLocation only QUEUE arrivals; this drain stamps the
   // hero + every living UNSPLIT party member at each queued node. Split members' own arrivals
   // are stamped directly by the PARTY_SPLIT handler — the one writer with settled knowledge.
-  if(typeof guestbookCommitArrivals==="function")guestbookCommitArrivals();
+  /* #481 B2: the cast's left-out companions get no arrival stamp (loud), and ONE ask for [PARTY_SPLIT:] — no re-arm for the same
+     set within PRESENCE_AUDIT_TURNS (castOmitLast). The GM decides; the engine never splits. */
+  var _omit=(typeof castOmittedCompanions==="function")?castOmittedCompanions(R):null;
+  var _held=(typeof guestbookCommitArrivals==="function")?guestbookCommitArrivals(_omit?_omit.set:null):[];
+  if(_held&&_held.length)R.muts.push("Cast omits "+_held.join(", ")+" — arrival not stamped");
+  if(_omit){var _ok=_omit.names.slice().sort().join("|"),_ol=worldState.castOmitLast;
+    if(!_ol||_ol.key!==_ok||R.turn-_ol.turn>=PRESENCE_AUDIT_TURNS){worldState.castOmitPing={turn:R.turn,names:_omit.names.slice(0,6)};worldState.castOmitLast={key:_ok,turn:R.turn};}}
   /* #415: the narrated doors resolve here, after every arrival has settled — the resolver reads the DEPARTURE node
      (R.departKey) because the SUBLOCATION/LOCATION handlers overwrote the party's position before their filers ran. */
   if(typeof resolveExitsAfterMove==="function")resolveExitsAfterMove(R);

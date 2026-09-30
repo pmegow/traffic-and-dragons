@@ -55,8 +55,8 @@ rc |= sabotage.prove({
   cases: [
     { label: "post-handler commit removed — queued arrivals never stamp (amendment ③'s seam)",
       mustFail: "arrival snapshot",
-      find: "  if(typeof guestbookCommitArrivals===\"function\")guestbookCommitArrivals();",
-      replace: "" },
+      find: "  var _held=(typeof guestbookCommitArrivals===\"function\")?guestbookCommitArrivals(_omit?_omit.set:null):[];",
+      replace: "  var _held=[];" },
     { label: "PARTY_SPLIT own-arrival stamp removed — the split member's journey goes unrecorded",
       mustFail: "split member's own arrival",
       find: "  if(typeof guestbookStamp===\"function\"){\n    guestbookStamp(psArg,psName,R.turn,\"arrive\");\n    if(psSub){var _gbSk=psArg+\"|\"+psSub;if(memory.map.nodes[typeof locResolve===\"function\"?locResolve(_gbSk):_gbSk])guestbookStamp(_gbSk,psName,R.turn,\"arrive\");}\n  }",

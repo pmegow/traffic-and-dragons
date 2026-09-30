@@ -961,6 +961,16 @@ function sceneCastSet(text){
     var parts=p.split(/[|,]/);for(i=0;i<parts.length;i++){var nm=parts[i].trim();if(nm)set[nm]=1;}}
   return set;
 }
+/* #481 B2 (audit 2026-09-29, Fable-approved): the companions a non-none cast leaves out — living, unsplit party members (the
+   hero is exempt). null when the reply carries no cast or only [SCENE_CAST:none] (none means the whole party and no one
+   else). The GM decides whether they stayed behind; the engine never splits on its own. */
+function castOmittedCompanions(R){
+  if(!R||!R.castSet||!worldState)return null;
+  var cast={},k,i,names=[],set={},npcs=worldState.npcs||[];for(k in R.castSet)cast[resolveNpcName(k)]=1;
+  for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n||!n.partyMember)continue;if(typeof npcIsDead==="function"&&npcIsDead(n))continue;
+    if(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location)continue;if(cast[resolveNpcName(n.name)])continue;names.push(n.name);set[n.name]=1;}
+  return names.length?{names:names,set:set}:null;
+}
 function derivePresenceFromResponse(text,R){
   if(!worldState)return;
   text=String(text||"");
@@ -974,7 +984,7 @@ function derivePresenceFromResponse(text,R){
     var key=String(nm||"").trim();if(!key)return;
     var canon=resolveNpcName(key);
     if(recorded[canon])return;
-    if(ch==="say"&&castCanon&&!castCanon[canon]){var _wn=(typeof wsNpcByName==="function")?wsNpcByName(canon):null;if(!(_wn&&_wn.partyMember)){if(withheld.indexOf(canon)<0)withheld.push(canon);return;}}
+    if(ch==="say"&&castCanon&&!castCanon[canon]){var _wn=(typeof wsNpcByName==="function")?wsNpcByName(canon):null;if(!(_wn&&_wn.partyMember)){if(withheld.indexOf(canon)<0)withheld.push(canon);return;}if(labels.indexOf(canon+" (spoke, not in cast)")<0)labels.push(canon+" (spoke, not in cast)");return;/* #481 B2: a companion the cast leaves out — the stay-behind ask covers them */}
     if(presenceObserve(key,ch,atKey)){recorded[canon]=ch;labels.push(canon+" ("+ch+")");}
   }
   function fightAt(off){return (typeof rPlaceAt==="function"&&R)?rPlaceAt(R,off).key:null;}

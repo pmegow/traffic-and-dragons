@@ -79,6 +79,14 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Residual (f):** a cast that itself names pre-move speakers (t198) still places them at the end; only the wording can fix that.
   - **Real-save acceptance:** `dev/replay-t218-cast-presence.js` (manual; the saves are gitignored) replays t214–t218 from the owner's t213 save. It was RED before B1: Thessa Saltborn and The Entity were placed in the Hall at t218, exactly the live record. It is GREEN after: they stay in the tavern where t217's cast put them, the Hall has no stamp for them, and the cast check is armed for both.
   - **Proof:** 6 tests in "#481 B1" (4 red before the build; 2 are regression guards: a cast speaker is placed, and no cast / none keeps today). Full suite green (2,425); four replay baselines unchanged; `dev/sabotage-481-b1-cast-presence.js` 11/11 caught, including Fable's named "drop the R.castSet check".
+- 2026-09-29 · #481 B2 · v1.1029 · Opus 5.5 · A companion the cast leaves out stayed behind.
+  - **Rule:** `castOmittedCompanions(R)` (identity.js) returns the living, unsplit party members a non-none cast leaves out. The hero is exempt (a); none or no cast omits nobody.
+  - **Guestbook (d):** the post-handler seam hands that set to `guestbookCommitArrivals(omit)`, which skips their arrival stamps and returns who was withheld. The log line reads "Cast omits X, Y — arrival not stamped" (b). The memory.md guestbook clause is amended.
+  - **Speech:** their own `[SAY:]` is no presence either; the Present line says "(spoke, not in cast)".
+  - **Ask (c):** `buildCastOmitNote` (latch `castOmitPing`, registered) is one-shot and combat-silent and asks for `[PARTY_SPLIT:]` or a fuller cast. `castOmitLast` blocks a re-arm for the same member set within `PRESENCE_AUDIT_TURNS`. The GM decides; the engine never splits.
+  - **Doc:** the SCENE_CAST none sentence now says none means the whole party and no one else, and a companion who is elsewhere is left out of a named cast (the volatile ask says the same). STABLE-HALF TOUCH, flagged: golden and djb2 pin re-baselined; the golden diff is that one sentence.
+  - **Real-save acceptance:** `dev/replay-t218-cast-presence.js` now checks B2 too. Run against HEAD before B2 (a throwaway worktree), it FAILED with exactly the live record: Frizwick, Morwen Zethran and Daeris stamped at the tavern t217 and the Hall t218. With B2 it passes: no false visits, and the split ask names all three.
+  - **Proof:** 4 tests in "#481 B2" (3 red before the build; a hero-exemption case added when its clause first missed). Full suite green (2,429); four replay baselines unchanged; `dev/sabotage-481-b2-cast-omits.js` 7/7 caught, including Fable's named "drop the exclusion". Re-anchored: `sabotage-guestbook.js` "post-handler commit removed".
 
 ## Off-Fable log
 

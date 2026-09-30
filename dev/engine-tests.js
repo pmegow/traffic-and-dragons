@@ -8198,7 +8198,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1850835842&&d.length===30758)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===329803738&&d.length===30870)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -27208,6 +27208,44 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var d=buildStateTagsDoc();if(!/where THIS reply ENDS, party members included/.test(d))return "the STATE TAGS doc line";
     makeWorld();worldState.castAsk={node:"elsewhere",askedTurn:-1,lastAnswerTurn:-1,seedTurn:0};worldState.turn=40;
     var n=buildSceneCastNote();return /where THIS reply ENDS, party members included/.test(n)?true:"the cast ask: "+n.slice(0,300);
+  });
+
+  section("#481 B2 a companion the cast leaves out stayed behind");
+  function b2Home(){villageEF();worldState.turn=213;delete worldState.castOmitPing;delete worldState.castOmitLast;
+    ["Frizwick","Daeris"].forEach(function(nm){var n=wsNpcByName(nm);n.partyMember=true;n.resident=true;});
+    villageHouseEnsure("Silas",null);worldState.world.sublocation="Silas's house";return "The Village|the Village Hall";}
+  function b2Stamped(key,name,turn){var n=memory.map.nodes[key],r=n&&n.guestbook&&n.guestbook[name];return !!(r&&(r.turns||[]).indexOf(turn)>=0);}
+  t("#481 B2 the t213 shape: the hero walks to the Hall alone (cast of the hero only) — no Hall stamps for the wives, a loud line, and one split ping naming them",function(){
+    var hall=b2Home();
+    var R=quiet(function(){return applyMuts("You slip out into the dawn and cross to the Hall. [SUBLOCATION:the Village Hall] [SCENE_CAST:Silas]");}).r;
+    if(b2Stamped(hall,"Frizwick",213)||b2Stamped(hall,"Daeris",213))return "no arrival stamps for the companions the cast leaves out: "+JSON.stringify(memory.map.nodes[hall].guestbook);
+    if(!b2Stamped(hall,"Silas",213))return "the hero is exempt — the hero arrival is stamped";
+    if(!R.muts.some(function(m){return /Cast omits .*Frizwick.*Daeris|Cast omits .*Daeris.*Frizwick/.test(m)&&/arrival not stamped/.test(m);}))return "the withheld stamps are loud: "+JSON.stringify(R.muts);
+    var p=worldState.castOmitPing;if(!p||p.names.indexOf("Frizwick")<0||p.names.indexOf("Daeris")<0)return "the ping names both: "+JSON.stringify(p);
+    var n1=buildCastOmitNote();if(!/PARTY_SPLIT/.test(n1)||!/Frizwick/.test(n1))return "the note asks for [PARTY_SPLIT:] and names them: "+n1.slice(0,300);
+    return (buildCastOmitNote()===""&&!worldState.castOmitPing&&NOTE_BUILDERS.indexOf(buildCastOmitNote)>=0)?true:"one-shot and registered";
+  });
+  t("#481 B2 a full cast, [SCENE_CAST:none] and no cast change nothing: every companion is stamped, no ping",function(){
+    var hall=b2Home();quiet(function(){applyMuts("[SUBLOCATION:the Village Hall] [SCENE_CAST:Silas, Frizwick, Daeris]");});
+    if(!b2Stamped(hall,"Frizwick",213)||!b2Stamped(hall,"Daeris",213)||worldState.castOmitPing)return "a full cast stamps everyone and pings nobody";
+    hall=b2Home();quiet(function(){applyMuts("[SUBLOCATION:the Village Hall] [SCENE_CAST:Frizwick, Daeris]");});
+    if(!b2Stamped(hall,"Silas",213)||worldState.castOmitPing)return "a cast that forgets the hero never withholds the hero";
+    hall=b2Home();quiet(function(){applyMuts("[SUBLOCATION:the Village Hall] [SCENE_CAST:none]");});
+    if(!b2Stamped(hall,"Frizwick",213)||worldState.castOmitPing)return "none is excluded";
+    hall=b2Home();quiet(function(){applyMuts("[SUBLOCATION:the Village Hall]");});
+    return (b2Stamped(hall,"Frizwick",213)&&!worldState.castOmitPing)?true:"no cast keeps today";
+  });
+  t("#481 B2 a companion the cast leaves out is not placed by their own speech, and the ping keeps a cooldown for the same set",function(){
+    var hall=b2Home();memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Silas");memory.npcs["Frizwick"].lastSeenTurn=212;
+    quiet(function(){applyMuts("[SUBLOCATION:the Village Hall] [SCENE_CAST:Silas] [SAY:Frizwick]\"Bring back the honey cakes!\"");});
+    if(memory.npcs["Frizwick"].lastSeenAt===hall)return "her line from bed is no presence in the Hall: "+memory.npcs["Frizwick"].lastSeenAt;
+    delete worldState.castOmitPing;worldState.turn++;quiet(function(){applyMuts("[SCENE_CAST:Silas]");});
+    if(worldState.castOmitPing)return "the same set within the cooldown re-arms nothing: "+JSON.stringify(worldState.castOmitPing);
+    worldState.turn+=PRESENCE_AUDIT_TURNS;quiet(function(){applyMuts("[SCENE_CAST:Silas]");});
+    return worldState.castOmitPing?true:"after the cooldown the ping may arm again";
+  });
+  t("#481 B2 the SCENE_CAST doc line says what none means",function(){
+    var d=buildStateTagsDoc();return /\[SCENE_CAST:none\][^\n]*whole party/.test(d)?true:"the none clause names the whole party: "+(d.match(/\[SCENE_CAST:none\][^\n]*/)||[""])[0].slice(0,200);
   });
 
 }
