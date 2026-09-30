@@ -1493,6 +1493,10 @@ function adoptLibraryHero(c,at){
   hero.portraitOffset=hero.portraitOffset||worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};
   if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(hero);
   worldState.character=hero;worldState.heroLibraryAt=(typeof at==="number")?at:null;
+  /* #481 D10: the OLD sheet's owed level-up choices and pending delete-marks go with it — the queue is keyed by the kept
+     name, so it resurfaced on the next send offering a bump or pick the copy never earned; the marks index the old pack. */
+  if(worldState.levelUpOwed)delete worldState.levelUpOwed[hero.name];
+  if(typeof invDropMarksForget==="function")invDropMarksForget("");
   adoptLibraryHero.lastReplay=(typeof stashMovesReplay==="function")?stashMovesReplay(hero,c&&c.stashMarks?c.stashMarks[stashMarkKey()]:null):null;/* #481 D9 */
   return hero;
 }

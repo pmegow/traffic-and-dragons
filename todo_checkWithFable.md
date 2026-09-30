@@ -177,6 +177,9 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Owner-visible consequence:** a lowball offer pays less than an unwanted sale would (Gazz's 40 gp for a 200 gp ring). That is the ruling as written; `max(offer, half canon)` is a one-line change if wanted.
   - **Replay on t218 (the audit's scenario):** sale 1 +40 gp with "Want met: Warded ring (Gazz Quickfuse)", and the WANTED line is gone from the geo block; sale 2 +100 (half canon). Before, both sales paid +200 and the want survived.
   - **Proof:** 5 tests in "#481 D4" (four red before the build; the rung test rewritten when the battery MISSED — an expired want alone never reaches the sell rung). Full suite green; four replay baselines unchanged; `dev/sabotage-481-d4-want-met.js` 7/7 caught.
+- 2026-09-29 · #481 D10 · v1.1048 · Opus 5.5 · Replace from library clears the old sheet's owed level-up choices and delete-marks.
+  - **Touches:** `adoptLibraryHero` (game.js) plus a one-line hook in ui-sheets.js (`invDropMarksForget`). This is sheet adoption — not the drift surface — but it is logged for completeness.
+  - **Proof:** the assertion in the #428 group (red first; its "forgotten" check was tightened, since `[""]` and `[]` both join to ""). Full suite green; four replay baselines unchanged; `dev/sabotage-481-d10-replace-owed.js` 3/3 caught.
 
 ## Off-Fable log
 

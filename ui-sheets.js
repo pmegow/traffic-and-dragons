@@ -39,6 +39,8 @@ function _invDropMarksFor(owner){
   if(_invDropMarks.camp!==camp){_invDropMarks.camp=camp;_invDropMarks.by={};}
   return _invDropMarks.by[owner]||{};
 }
+/* #481 D10: a replaced sheet's marks index a pack that no longer exists — the adopter forgets them (owner "" = the hero). */
+function invDropMarksForget(owner){if(_invDropMarks&&_invDropMarks.by)delete _invDropMarks.by[owner];}
 /* The sheet the × and the button act on: owner "" = the hero, else the companion by name. */
 function _invOwnerSheet(owner){
   if(typeof worldState==="undefined"||!worldState)return null;

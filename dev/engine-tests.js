@@ -24647,6 +24647,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(worldState.heroLibraryAt!==4242)return "stamp: "+worldState.heroLibraryAt;
     return true;
   });
+  t("#481 D10 replacing the hero from the library clears the OLD sheet's owed level-up choices and its pending delete-marks; another owner's queue is untouched",function(){
+    villageCD();var nm=worldState.character.name;
+    worldState.levelUpOwed={};worldState.levelUpOwed[nm]={bumps:1,spells:[{tier:1,count:1,pool:["Old Bench Spell"],source:"level 4"}]};worldState.levelUpOwed["Frizwick"]={bumps:1,spells:[]};
+    var forgot=[],had=(typeof invDropMarksForget==="function")?invDropMarksForget:null;invDropMarksForget=function(o){forgot.push(o);};
+    var r;try{r=libReplaceApply(nm,__libCopy(nm,{}),4243);}finally{invDropMarksForget=had||undefined;}
+    if(!r||!r.ok)return "apply: "+JSON.stringify(r);
+    if(worldState.levelUpOwed[nm])return "the old sheet's owed choices resurface on the next send: "+JSON.stringify(worldState.levelUpOwed[nm]);
+    if(!worldState.levelUpOwed["Frizwick"]||worldState.levelUpOwed["Frizwick"].bumps!==1)return "another owner's queue must stay";
+    if(forgot.length!==1||forgot[0]!=="")return "the hero's pending delete-marks (owner \"\") must be forgotten: "+JSON.stringify(forgot);
+    var us=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8"),fn=us.slice(us.indexOf("function invDropMarksForget("),us.indexOf("function invDropMarksForget(")+200);
+    return /delete _invDropMarks\.by\[owner\]/.test(fn)?true:"ui-sheets.js must drop the owner's marks: "+fn;
+  });
   t("#428 libReplaceApply on a companion and on a resident: the charSheet is replaced as a copy, name kept, libraryAt stamped, pronouns and framing mirrored onto the wrapper; an unknown name or a missing copy refuses with a reason",function(){
     villageCD();var fz=wsNpcByName("Frizwick");fz.libraryAt=1;
     var r=libReplaceApply("Frizwick",__libCopy("Frizwick",{gender:"NB"}),777);if(!r.ok||r.host!=="resident")return "resident apply: "+JSON.stringify(r);

@@ -778,7 +778,7 @@ three chest takes → pack x2 → x4 → x6, row unchanged, each "Ammut took Hem
 <p class="tldr"><b>TLDR:</b> Replacing your hero with the library copy can hand the new sheet an extra stat bump or spell pick that the old sheet had earned.</p>
 <p><span class="k">Fix</span>The adopter clears <code>levelUpOwed[name]</code> and that owner's pending #429 marks. Add an assertion in the #428 group.</p>
 <details><summary>Evidence</summary><p><code>adoptLibraryHero</code> (<code>game.js:1478</code>) keeps the local name, which keys <code>worldState.levelUpOwed</code>. After <code>libReplaceApply</code>, the owed queue still holds <code>{"bumps":1,"spells":[…"Old Bench Spell"…]}</code>, and it resurfaces on the next send.</p></details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1048</td></tr>
 </tbody></table>
 
 <h2 id="secE">E · Voice and audio</h2>
