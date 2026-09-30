@@ -1,5 +1,5 @@
 // session-check.js — #20 warn-only session-start hygiene advisory.
-// Reports shared-tree tracker edits, untracked/ignored testRuns artifacts, lane declarations,
+// Reports shared-tree tracker edits, untracked (not ignored) testRuns artifacts, lane declarations,
 // due entries in the read-only dev/schedule.json registry, and watched-doc size budgets
 // (#16④ — dev/doc-size.js owns the thresholds; this only relays its findings).
 // It is intentionally incapable of blocking: every path exits 0 after reporting what it could see.
@@ -100,9 +100,11 @@ function main() {
     status.split(/\r?\n/).forEach(function (line) { if (line.trim()) trackers.push(line); });
   } catch (e1) { inspectionErrors.push(e1.message); }
   try {
+    // #481 G11 (owner ruling 2026-09-30): an IGNORED testRuns file is a sanctioned local artifact (G1 made testRuns/ the home
+    // of gate logs and the owner's saves), so it is no longer listed; 298 of them kept this advisory permanently on. A testRuns
+    // file that is untracked but NOT ignored still is: it would land in a plain commit.
     artifacts = uniqueLines([
-      git(opts.root, ["ls-files", "--others", "--exclude-standard", "--", "testRuns"]),
-      git(opts.root, ["ls-files", "--others", "--ignored", "--exclude-standard", "--", "testRuns"])
+      git(opts.root, ["ls-files", "--others", "--exclude-standard", "--", "testRuns"])
     ]);
   } catch (e2) { inspectionErrors.push(e2.message); }
   try { parity = hookParity.inspect(opts.root); }

@@ -188,9 +188,36 @@ try {
     var out = resultText(r);
     if (r.status !== 0) return "advisory blocked with exit " + r.status + ": " + out;
     if (out.indexOf("TODO.md") < 0) return "tracker edit not reported: " + out;
-    if (out.indexOf("testRuns/unregistered.tnd") < 0) return "untracked testRuns file not reported: " + out;
+    /* #481 G11 (owner ruling 2026-09-30): an IGNORED testRuns file is a sanctioned local artifact — G1 made testRuns/ the home
+       of gate logs and the owner's saves — so the advisory no longer lists it (it had 298 of them permanently on screen) */
+    if (out.indexOf("testRuns/unregistered.tnd") >= 0) return "an IGNORED testRuns file was reported: " + out;
     if (out.indexOf("dev/lane-declaration.json") < 0 || out.indexOf("fixture") < 0) return "lane declaration not reported: " + out;
     if (!/WARN|ADVIS/i.test(out)) return "output was not visibly advisory: " + out;
+    return "";
+  });
+
+  test("a testRuns file that is untracked and NOT ignored is still reported", function () {
+    var repo = path.join(tmp, "stray-repo");
+    fs.mkdirSync(repo);
+    fs.mkdirSync(path.join(repo, "DOC"));
+    fs.mkdirSync(path.join(repo, "dev"));
+    fs.mkdirSync(path.join(repo, "testRuns"));
+    fs.writeFileSync(path.join(repo, "TODO.md"), "baseline\n", "utf8");
+    fs.writeFileSync(path.join(repo, "DOC", "BUGS.md"), "bugs\n", "utf8");
+    fs.writeFileSync(path.join(repo, "todo_checkWithFable.md"), "reviews\n", "utf8");
+    fs.writeFileSync(path.join(repo, ".gitignore"), "*.log\n", "utf8");   /* testRuns/ itself is NOT ignored here */
+    fs.writeFileSync(path.join(repo, "CLAUDE.md"), "tiny fixture doc\n", "utf8");
+    fs.writeFileSync(path.join(repo, "dev", "schedule.json"), JSON.stringify([{ id: "future", due: "2999-12-31", every_days: 14, note: "Synthetic future schedule" }]), "utf8");
+    git(repo, ["init", "-q"]);
+    git(repo, ["add", "TODO.md", "DOC/BUGS.md", "todo_checkWithFable.md", ".gitignore", "CLAUDE.md", "dev/schedule.json"]);
+    git(repo, ["-c", "user.name=Hygiene Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture baseline"]);
+    fs.writeFileSync(path.join(repo, "testRuns", "stray.tnd"), "synthetic\n", "utf8");   /* would land in a plain commit */
+    fs.writeFileSync(path.join(repo, "testRuns", "gate.log"), "synthetic\n", "utf8");    /* ignored by *.log */
+    var r = run(process.execPath, [SESSION, "--root", repo], { cwd: ROOT });
+    var out = resultText(r);
+    if (r.status !== 0) return "advisory blocked with exit " + r.status + ": " + out;
+    if (out.indexOf("testRuns/stray.tnd") < 0) return "a non-ignored untracked testRuns file was not reported: " + out;
+    if (out.indexOf("testRuns/gate.log") >= 0) return "an ignored testRuns file was reported: " + out;
     return "";
   });
 
