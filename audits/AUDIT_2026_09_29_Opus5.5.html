@@ -884,7 +884,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <p class="tldr"><b>TLDR:</b> Every new state note on a classified house marks its soundscape stale, and a stale house plays nothing, not even the hearth, until the GM reclassifies it. Your house is silent in the t213 and t218 saves.</p>
 <p><span class="k">Fix</span>Publish <code>stale</code> separately from <code>classified</code>. A stale but valid profile falls back to the unclassified plan (authored bindings plus the hearth) until it is re-asked. C2 removes most of the churn.</p>
 <details><summary>Evidence</summary><p><code>audio-profile.js:39-44</code>, <code>ambient.js:46-58</code>. The house was reclassified 5 times in 7 turns. The freshness stamp moved with the misfiled notes: "…tavern counter.|The Village" at t191, then hoarfrost at t212.</p></details>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">◉ ready to test — v1.1057</td></tr>
 
 <tr id="E8"><td class="n">E8</td><td>
 <p class="ttl">A car's own PLAY press during a spoken "pause" replays the last narration <span class="lean low">low</span><span class="lean">race · ruled</span></p>

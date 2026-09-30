@@ -42,6 +42,11 @@ function audioNodeProfile(node){
   var v=audioValidateProfile(node.soundscape);
   return v.ok&&v.profile.stamp===audioNodeStamp(node)?v.profile:null;
 }
+/* #481 E7 (audit 2026-09-29): a VALID profile whose freshness stamp no longer matches (a state note moved it) is STALE, not
+   classified — the snapshot publishes it apart, and the plan plays the unclassified fallback (authored bindings plus the
+   hearth) until the GM reclassifies; buildSoundscapeNote re-asks as before. An INVALID stored profile stays "classified
+   without a profile" and never becomes a fallback. */
+function audioNodeStale(node){if(!node||!node.soundscape)return false;var v=audioValidateProfile(node.soundscape);return !!(v.ok&&v.profile.stamp!==audioNodeStamp(node));}
 function audioParseProfile(body){
   var raw=String(body||""),cut=raw.lastIndexOf("|"),parts=[raw.slice(0,cut),raw.slice(cut+1)],input={},seen={},bad=null;
   if(cut<1||!parts[0].trim()||parts[0].length>160||body.length>800)return {ok:false,reason:"expected explicit place|fields"};
@@ -76,7 +81,7 @@ function audioCurrentScene(){
     exterior:!!ambientExteriorNode(kind,w.location,key,nodes,locResolve,AUDIO_EXTERIORS),
     // Canonical house ownership identifies homes before their first soundscape classification.
     habitable:!!(kind==="village"&&node&&node.owner&&node.parent&&locResolve(node.parent)===locResolve(w.location)),
-    profile:audioNodeProfile(node),classified:!!(node&&node.soundscape),generation:audioPlaybackGeneration};
+    profile:audioNodeProfile(node),classified:!!(node&&node.soundscape)&&!audioNodeStale(node),stale:audioNodeStale(node),generation:audioPlaybackGeneration};
 }
 function audioScenePublish(reason,force){
   if(audioCommitDepth&&!force)return;

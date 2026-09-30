@@ -25133,6 +25133,25 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     s.profile.allows=["voices"];s.profile.forbid=["fire"];p=ambientPlan(s,AUDIO_SCENES);if(p.scene&&p.scene.contains.indexOf("fire")>=0)return "fire prohibition ignored";
     return true;
   });
+  /* #481 E7 (audit 2026-09-29): every new state note on a classified house moved its freshness stamp, the snapshot still said
+     "classified" with no usable profile, and the plan went silent — the hero's own house was silent at t213 and t218. A
+     stale-but-valid profile is published as STALE and plays the unclassified plan (authored bindings plus the hearth) until
+     the GM reclassifies; an INVALID profile still never becomes a fallback; the re-ask still fires on staleness. */
+  t("#481 E7 a stale house plays its hearth until reclassified; an invalid profile stays silent; the re-ask still fires",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation="Ammut's house";worldState.character.name="Ammut";memory.campId=worldState.campId;delete worldState.audioAsk;
+    var house={parent:"The Village",owner:"Ammut",visits:3,stateNotes:[]};memory.map.nodes={"The Village":{parent:null},"The Village|Ammut's house":house};
+    house.soundscape={enclosure:"covered",setting:"interior",biome:"temperate",quiet:"normal",allows:["fire"],forbid:[],schema:1,cohort:"starter-1",stamp:audioNodeStamp(house)};
+    var s=audioCurrentScene();if(!s.classified||!s.profile||s.stale)return "fixture: a current profile is classified: "+JSON.stringify({c:s.classified,p:!!s.profile,st:s.stale});
+    house.stateNotes.push({n:"Hoarfrost on the windows.",t:212});/* a state note moves the freshness stamp (t212, the field shape) */
+    s=audioCurrentScene();if(s.classified||s.profile||!s.stale)return "a stale-but-valid profile is published as stale, not classified: "+JSON.stringify({c:s.classified,p:!!s.profile,st:s.stale});
+    var p=ambientPlan(Object.assign({},s,{enabled:true,unlocked:true,visible:true}),AUDIO_SCENES);
+    if(!p.scene||p.scene.id!=="interior-hearth")return "the stale house plays its hearth: "+JSON.stringify(p.scene&&p.scene.id);
+    if(!/SOUNDSCAPE/.test(buildSoundscapeNote()))return "the re-ask still fires on staleness";
+    house.soundscape={enclosure:"bogus"};s=audioCurrentScene();
+    if(!s.classified||s.stale)return "an invalid profile stays classified-without-profile (never a fallback): "+JSON.stringify({c:s.classified,st:s.stale});
+    p=ambientPlan(Object.assign({},s,{enabled:true,unlocked:true,visible:true}),AUDIO_SCENES);
+    return (p.scene&&p.scene.id==="interior-hearth")?"an invalid classification became a fallback":true;
+  });
   t("Hearth snapshot derives habitable homes from canonical ownership, never arbitrary sublocations",function(){
     makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation="Ammut's house";memory.campId=worldState.campId;
     memory.map.nodes={"The Village":{parent:null},"The Village|Ammut's house":{parent:"The Village",owner:"Ammut"}};
