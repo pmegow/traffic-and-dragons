@@ -14,9 +14,15 @@ prove("helpers.js", [
     find: '  var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return "";\n  var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk];',
     replace: '  var key=(typeof villageHouseKey==="function"&&worldState.character)?villageHouseKey(worldState.character.name):null;if(!key)return "";\n  var rk=key,node=memory.map.nodes[rk];',
     mustFail: "hereItemsLine" },
-  { label: "the village here line lists the whole chest again (#432: one entry, the chest holds a LOT)",
-    find: '  if(typeof kindDef==="function"&&kindDef().stashQuantities)return "Here: Item stash ("+units+" item"+(units===1?"":"s")+")";\n', replace: '',
-    mustFail: "hereItemsLine" }
+  { label: "the hero's house lists the whole chest again (#432: one entry, the chest holds a LOT)",
+    find: '  if(node.owner&&hero&&node.owner===hero)return "Here: chest ("+units+" item"+(units===1?"":"s")+")";\n', replace: '',
+    mustFail: "hereItemsLine" },
+  { label: "#481 A6: the count is decided by the kind again (the Hall's relic reads as a stash count)",
+    find: '  if(node.owner&&hero&&node.owner===hero)return', replace: '  if(typeof kindDef==="function"&&kindDef().stashQuantities)return',
+    mustFail: "#481 A6 the here line decides by NODE" },
+  { label: "#481 A6: any owned house shows a chest (another resident's house has none the hero opens)",
+    find: '  if(node.owner&&hero&&node.owner===hero)return', replace: '  if(node.owner)return',
+    mustFail: "#481 A6 the here line decides by NODE" }
 ]);
 prove("tag_table.js", [
   { label: "the here line is written into R.muts (the provenance ring and every caller would see it)",

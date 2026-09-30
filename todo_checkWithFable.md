@@ -130,6 +130,11 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Mismatch (b):** a real mismatch pushes a ⚠ line naming the active titles and arms ONE note, `buildSkeletonTitleNote` (latch `skelTitlePing`, registered, combat FIRES, village silent), quoting the exact titles.
   - **Tests:** both field shapes close (the Necrotic act without its "Act 1:", the fae arc with "Arc 3:"), plus a stored-prefixed arc closed without it. The sabotage caught that the first fixture could not tell the snapshot key apart.
   - **Proof:** 3 tests in "#481 C4" (all red before the build). Full suite green (2,453); four replay baselines unchanged; `dev/sabotage-481-c4-title-key.js` 5/5 caught; `sabotage-231-arc-wall.js` 23/23 with its #233 act-operand clause re-anchored.
+- 2026-09-29 · #481 A6 · v1.1041 · Opus 5.5 · The "Here:" line decides by node: the hero's own house shows "chest (N items)"; every other node names its items.
+  - **Touches:** `hereItemsLine` only (helpers.js; a UI line, never the transcript or the prompt). The kind check is gone; the gate is `node.owner === hero`, the same one the chest ledger uses.
+  - **Re-baselined pins (Fable (b)):** the #431 village pins now read "Here: chest (3 items)" / "(1 item)"; the #6E8 tavern pin now reads "Here: Lantern".
+  - **Real save:** t218 — a relic placed in the Hall reads "Here: Brass lantern" (was "Item stash (1 item)"); Ammut's house reads "Here: chest (17 items)".
+  - **Proof:** the A6 test (red before the build). Full suite green (2,454); four replay baselines unchanged; `sabotage-431-here-line.js` 8/8 caught, incl. "decide by kind again" and "any owned house shows a chest".
 
 ## Off-Fable log
 

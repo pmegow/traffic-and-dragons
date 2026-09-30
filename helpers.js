@@ -2814,9 +2814,12 @@ function hereItemsLine(){
   var parts=[],units=0,i;
   for(i=0;i<node.items.length;i++){var it=node.items[i];if(!it||!it.name||it.taken||it.qty===0)continue;units+=(it.qty>1?it.qty:1);parts.push(it.name+(it.qty>1?" ×"+it.qty:"")+(it.room?" ("+it.room+")":""));}
   if(!parts.length)return "";
-  /* #432 (owner 2026-09-21): in a stash kind the chest holds a LOT — ONE entry with the count, never the contents
-     (the chest modal lists them). An adventure keeps its itemized line: a placed lantern is story, and there are few. */
-  if(typeof kindDef==="function"&&kindDef().stashQuantities)return "Here: Item stash ("+units+" item"+(units===1?"":"s")+")";
+  /* #432 (owner 2026-09-21): the chest holds a LOT — ONE entry with the count, never the contents (the chest modal lists
+     them). #481 A6 (ruled 2026-09-29): decided by the NODE, not the kind — only the hero's OWN house has a chest the
+     hero opens (stashTradeCatalog's gate), so only there does a container show by name with its count; the Hall, a shop
+     and another resident's house name what lies there, as an adventure always has. No container model yet. */
+  var hero=worldState.character&&worldState.character.name;
+  if(node.owner&&hero&&node.owner===hero)return "Here: chest ("+units+" item"+(units===1?"":"s")+")";
   return "Here: "+parts.join(", ");
 }
 /* #6 G: the Hall's node key — one place, one key. */
