@@ -434,7 +434,21 @@ if (require.main === module) {
       late._send("Page.navigate", { url: "http://late.test/" }).catch(() => {});
       await inFlight;
       console.error = function () { const line = Array.prototype.join.call(arguments, " "); if (/route handler threw/.test(line)) routeErrs.push(line.split("\n")[0]); origErr.apply(console, arguments); };
-      try { await browser.conn.send("Target.closeTarget", { targetId: late.targetId }); release(); await answered; await sleep(100); }
+      try {
+        await browser.conn.send("Target.closeTarget", { targetId: late.targetId });
+        // Only answer once the page's session is really GONE. Linux Chrome acknowledges the close before it detaches the
+        // session, so an immediate fulfill raced ahead and succeeded — the proof passed with the fix removed (MISSED in CI,
+        // c648a26). A platform whose dead session answers differently fails here by name instead of passing.
+        let deadMsg = null;
+        for (let i = 0; i < 100 && !deadMsg; i++) {
+          const probe = late._send("Runtime.evaluate", { expression: "1" }); probe.catch(() => {});
+          const r = await Promise.race([probe.then(() => null, e => e.message), sleep(500).then(() => null)]);
+          if (r) deadMsg = r; else await sleep(50);
+        }
+        if (!deadMsg) throw new Error("the closed page's session never went away");
+        if (!/Session with given id not found/.test(deadMsg)) throw new Error("a closed page's session answers \"" + deadMsg + "\" on this platform — teach Route._settle that benign case");
+        release(); await answered; await sleep(100);
+      }
       finally { console.error = origErr; }
       if (routeErrs.length) throw new Error("a page closed mid-request printed a route error: " + routeErrs[0]);
       console.log("cdp-browser --check: OK — " + v.product + " at " + c.path + " (a page closed mid-request stays quiet)");
