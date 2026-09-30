@@ -24334,10 +24334,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#6D3 residents roam by the clock: residentWhereabouts is pure and deterministic (home at night, a commons by name and hour otherwise, drawn from the map's shops and the kind's list); the geo block serves RESIDENTS ABOUT for residents not in the scene and asks for tags; adventure geo block unchanged",function(){
     villageCD();var night=13*MIN_PER_DAY+18*60,day=13*MIN_PER_DAY+4*60;/* the clock counts from dawn: 18h elapsed = midnight, 4h = 10 am */
-    if(!/home/i.test(residentWhereabouts("Frizwick",night)))return "night is at home: "+residentWhereabouts("Frizwick",night);
-    var d1=residentWhereabouts("Frizwick",day),d2=residentWhereabouts("Frizwick",day+5);if(!d1||d1!==d2)return "deterministic within the hour: "+d1+" / "+d2;
-    if(/home/i.test(d1))return "a day hour puts a resident in the commons: "+d1;
-    var places={},h;for(h=0;h<16;h++)places[residentWhereabouts("Frizwick",13*MIN_PER_DAY+h*60)]=1;/* 6 am to 9 pm */if(Object.keys(places).length<2)return "a resident moves through the day: "+JSON.stringify(places);
+    /* #481 B6: residentWhereabouts returns {place, home} — the same assertions over the new shape */
+    var _wn=residentWhereabouts("Frizwick",night);if(!_wn||!_wn.home)return "night is at home: "+JSON.stringify(_wn);
+    var d1=residentWhereabouts("Frizwick",day),d2=residentWhereabouts("Frizwick",day+5);if(!d1||JSON.stringify(d1)!==JSON.stringify(d2))return "deterministic within the hour: "+JSON.stringify(d1)+" / "+JSON.stringify(d2);
+    if(d1.home)return "a day hour puts a resident in the commons: "+JSON.stringify(d1);
+    var places={},h;for(h=0;h<16;h++){var _wh=residentWhereabouts("Frizwick",13*MIN_PER_DAY+h*60);places[_wh.home?"at home":_wh.place]=1;}/* 6 am to 9 pm */if(Object.keys(places).length<2)return "a resident moves through the day: "+JSON.stringify(places);
     if(!Object.keys(places).some(function(p){return /tavern|smithy/.test(p);}))return "the map's shops feed the commons list: "+JSON.stringify(places);
     memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");worldState.world.sublocation="the smithy";
     var geo=buildGeoBlock();if(!/RESIDENTS ABOUT/.test(geo)||!/Frizwick/.test(geo)||!/Daeris/.test(geo))return "the geo block must serve the whereabouts: "+geo;
@@ -27304,6 +27305,38 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(sceneOnStageNow("Frizwick"))return "present is not on stage";
     f.observed[0].lastTurn=85;if(!sceneOnStageNow("Frizwick"))return "observed by the latest reply is on stage";
     worldState.world.sublocation="the tavern";return sceneOnStageNow("Frizwick")?"on stage elsewhere: a frame at another place is not this scene":true;
+  });
+
+  section("#481 B6 where a resident is, said once and right");
+  t("#481 B6 residentWhereabouts is pure and returns {place, home}; ONE renderer says \"is at\"",function(){
+    villageCD();var night=13*MIN_PER_DAY+18*60,day=13*MIN_PER_DAY+4*60;
+    var n1=residentWhereabouts("Frizwick",night),d1=residentWhereabouts("Frizwick",day),d2=residentWhereabouts("Frizwick",day+5);
+    if(!n1||n1.home!==true||n1.place!==null)return "night is at home: "+JSON.stringify(n1);
+    if(!d1||d1.home!==false||!d1.place||JSON.stringify(d1)!==JSON.stringify(d2))return "a place by day, deterministic: "+JSON.stringify(d1)+" / "+JSON.stringify(d2);
+    if(residentWhereText("Frizwick",n1)!=="Frizwick is at home")return "home: "+residentWhereText("Frizwick",n1);
+    return residentWhereText("Frizwick",d1)==="Frizwick is at "+d1.place?true:"a place: "+residentWhereText("Frizwick",d1);
+  });
+  t("#481 B6 a shop closed at the hour is nobody's whereabouts (Nyla in the tavern at 7:40, its hours 10-24)",function(){
+    villageCD();var day=13*MIN_PER_DAY+4*60,i,ks=Object.keys(memory.map.nodes);
+    for(i=0;i<ks.length;i++){var nd=memory.map.nodes[ks[i]];if(nd&&nd.parent&&isShopNode(ks[i],nd))nd.hours={open:23,close:23,note:"never"};}
+    (kindDef().commons||[]).forEach(function(c){var k=locResolve("The Village|"+c);if(!memory.map.nodes[k])memory.map.nodes[k]=newMapNode(1,"The Village");memory.map.nodes[k].hours={open:23,close:23,note:"never"};});
+    var r=residentWhereabouts("Frizwick",day);return (r&&r.home)?true:"every commons closed: the resident is at home, never in a shut shop: "+JSON.stringify(r);
+  });
+  t("#481 B6 the notes never say \"<name> is the <place>\", and a present resident gets no whereabouts",function(){
+    villageCD();worldState.world.sublocation="the tavern";delete worldState.exchangeAsk;delete worldState.sceneRefs;sceneRefsEnsure();
+    worldState.sceneRefs.active.observed=[{entity:"Frizwick",channel:"say",firstTurn:worldState.turn,lastTurn:worldState.turn,turns:1},{entity:"Daeris",channel:"say",firstTurn:worldState.turn,lastTurn:worldState.turn,turns:1}];
+    var n=buildResidentExchangeNote();if(!n)return "fixture: the pair is on stage";
+    if(/(?:Frizwick|Daeris) (?:is|are) the /.test(n))return "a name joined to a place with a bare is: "+n.slice(0,300);
+    if(/Frizwick is at|Daeris is at/.test(n))return "the pair is HERE; no whereabouts for present residents: "+n.slice(0,300);
+    var geo=buildGeoBlock(),ra=(geo.match(/RESIDENTS ABOUT[^\n]*/)||[""])[0];if(ra&&/ (?:is|are) the /.test(ra))return "RESIDENTS ABOUT with a bare is: "+ra;
+    var rc=villageRecapText();if(/Frizwick is at|Daeris is at/.test(rc))return "the recap gives no whereabouts for residents in the scene: "+rc;
+    return true;
+  });
+  t("#481 B6 the RESIDENTS note waits while the player travels (the player's own action only)",function(){
+    villageCD();worldState.world.sublocation="the tavern";delete worldState.exchangeAsk;delete worldState.sceneRefs;sceneRefsEnsure();
+    worldState.sceneRefs.active.observed=[{entity:"Frizwick",channel:"say",firstTurn:worldState.turn,lastTurn:worldState.turn,turns:1},{entity:"Daeris",channel:"say",firstTurn:worldState.turn,lastTurn:worldState.turn,turns:1}];
+    var _la=lastAction;try{lastAction="Head back to the Village Hall.";if(buildResidentExchangeNote()||worldState.exchangeAsk)return "travel: no note, and the latch is not spent";
+      lastAction="Ask Frizwick about the harvest.";return buildResidentExchangeNote()?true:"a stay-put action lets it fire";}finally{lastAction=_la;}
   });
   t("#481 B3 present by the B4 predicate is not on stage: the exchange note ignores scenePresentNow (B3 owns its gate)",function(){
     b4Tavern();memory.npcs["Daeris"].lastSeenAt="The Village|the tavern";memory.npcs["Daeris"].lastSeenTurn=204;memory.npcs["Frizwick"].lastSeenTurn=204;delete worldState.exchangeAsk;

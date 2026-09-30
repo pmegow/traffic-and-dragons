@@ -23,7 +23,7 @@ function buildGeoBlock(){
   if(wNode&&wNode.size)lines.push("Location size: "+wNode.size+(wNode.travelMins?" (~"+wNode.travelMins+"min to cross)":""));
   /* #207 ②: filed hours meet the clock — OPEN or CLOSED at this hour, said plainly, for the world node and the sublocation.
      #409: the hour comes from clockMinuteOfDay() (dawn-offset applied) — raw clock minutes are elapsed-from-dawn, not the hour. */
-  var _hrLine=function(node,label){if(!node||!node.hours||typeof clockMinuteOfDay!=="function")return;var h=node.hours,mins=clockMinuteOfDay(),hr=Math.floor(mins/60),mn=mins%60,open=(h.open<=h.close)?(hr>=h.open&&hr<h.close):(hr>=h.open||hr<h.close);lines.push(label+"Hours: "+h.open+":00–"+h.close+":00"+(h.note?" ("+h.note+")":"")+" — "+(open?"OPEN now":"CLOSED at this hour")+" (it is "+hr+":"+(mn<10?"0":"")+mn+")");};
+  var _hrLine=function(node,label){if(!node||!node.hours||typeof clockMinuteOfDay!=="function")return;var h=node.hours,mins=clockMinuteOfDay(),hr=Math.floor(mins/60),mn=mins%60,open=nodeOpenAtHour(node,hr);/* #481 B6: the one predicate */lines.push(label+"Hours: "+h.open+":00–"+h.close+":00"+(h.note?" ("+h.note+")":"")+" — "+(open?"OPEN now":"CLOSED at this hour")+" (it is "+hr+":"+(mn<10?"0":"")+mn+")");};
   _hrLine(wNode,"");_hrLine(subNode,"Sub-location ");
   if(subNode&&subNode.description)lines.push("Sub-location desc: "+subNode.description);
   if(subNode&&subNode.size)lines.push("Sub-location size: "+subNode.size+(subNode.travelMins?" (~"+subNode.travelMins+"min to cross)":""));
@@ -73,7 +73,7 @@ function buildGeoBlock(){
   if(_stashKind){var _hk2=Object.keys(memory.map.nodes).filter(function(k){var n=memory.map.nodes[k];return n&&n.owner&&n.parent&&locSame(n.parent,wKey);}).sort().map(function(k){return locDisplayLeaf(k);});if(_hk2.length)lines.push("HOUSES here (each a sub-location — emit [SUBLOCATION:<Owner>'s house] with the owner's exact name whenever the hero enters one): "+_hk2.join(", "));}
   /* #6 D3: residents roam — served for residents NOT in the scene, by the hour, until the story places them. Village only. */
   if(typeof kindDef==="function"&&kindDef().roam&&typeof residentWhereabouts==="function"){var _ra=[],_ri,_rn=worldState.npcs||[],_local=(typeof buildSceneManifest==="function")?buildSceneManifest().local:[];
-    for(_ri=0;_ri<_rn.length;_ri++){var _r=_rn[_ri];if(!_r.resident||(typeof npcIsDead==="function"&&npcIsDead(_r)))continue;var _rlow=String(_r.name).toLowerCase();if(_local.some(function(x){return String(x).toLowerCase()===_rlow;}))continue;var _w=residentWhereabouts(_r.name);if(_w)_ra.push(_r.name+" \u2014 "+_w);}
+    for(_ri=0;_ri<_rn.length;_ri++){var _r=_rn[_ri];if(!_r.resident||(typeof npcIsDead==="function"&&npcIsDead(_r)))continue;var _rlow=String(_r.name).toLowerCase();if(_local.some(function(x){return String(x).toLowerCase()===_rlow;}))continue;var _w=residentWhereabouts(_r.name);if(_w)_ra.push(residentWhereText(_r.name,_w));/* #481 B6 */}
     if(_ra.length)lines.push("RESIDENTS ABOUT (by the hour, until the story places them): "+_ra.join("; ")+" \u2014 when one appears in the scene, place them with [NPC:] / [SAY:] / [SCENE_CAST:] as usual.");}
   /* #6 G3: the Hall — served only when the hero stands in it. */
   if(typeof kindDef==="function"&&kindDef().hall&&typeof villageHallKey==="function"&&_activeKey===locResolve(villageHallKey())){var _hn=memory.map.nodes[_activeKey]||{},_hm=_hn.mementos||[],_hw=_hn.wall||[];
@@ -625,7 +625,7 @@ function buildWhispersNote(){
   if(_wsmall){/* #6 D5: today's facts — the weather, the hour, where each source is bound */
     var _ww=worldState.world&&worldState.world.weather;if(_ww)resFacts.push("the weather — "+String(_ww).slice(0,80));
     var _wph=(typeof clockPhaseLabelAt==="function")?clockPhaseLabelAt():"";if(_wph)resFacts.push("the hour — "+_wph);
-    for(_wi=0;_wi<_wsrc.length;_wi++){var _wab=(typeof residentWhereabouts==="function")?residentWhereabouts(_wsrc[_wi]):null;if(_wab)resFacts.push(_wsrc[_wi]+" — "+String(_wab).slice(0,120));}
+    for(_wi=0;_wi<_wsrc.length;_wi++){var _wab=(typeof residentWhereabouts==="function")?residentWhereabouts(_wsrc[_wi]):null;if(_wab)resFacts.push(residentWhereText(_wsrc[_wi],_wab).slice(0,160));/* #481 B6 */}
   }
   if(!dec.length&&!qs.length&&!last&&!resFacts.length)return"";
   worldState.whisperAsk={turn:worldState.turn,node:key};
@@ -1784,14 +1784,15 @@ function buildResidentExchangeNote(){
   var npcs=worldState.npcs||[],res=[],i;
   for(i=0;i<npcs.length;i++){var n=npcs[i];if(n&&n.resident&&!n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n))&&typeof sceneOnStageNow==="function"&&sceneOnStageNow(n.name))res.push(n);}
   if(res.length<2)return "";
+  if(typeof lastAction!=="undefined"&&lastAction&&typeof travelActionTarget==="function"&&travelActionTarget(lastAction))return "";/* #481 B6: the player is leaving — the exchange waits (the player's own action; the latch is not spent) */
   var ask=worldState.exchangeAsk,every=(typeof EXCHANGE_EVERY==="number")?EXCHANGE_EVERY:8;
   if(ask&&(worldState.turn-ask.turn)<every)return "";
   var a=res[0],b=res[1];function rec(n){var cm=(n.charSheet&&n.charSheet.coreMemories)||[];return cm.length?String(cm[cm.length-1].text||"").slice(0,160):"";}
   var ra=rec(a),rb=rec(b);
   worldState.exchangeAsk={turn:worldState.turn,pair:[a.name,b.name]};
   if(kindDef().smallTalk){/* #6 D5: the exchange is about TODAY — an errand, the weather, a ware, each other — never their past unless the hero asks */
-    var _xw=worldState.world&&worldState.world.weather,_xa=(typeof residentWhereabouts==="function")?residentWhereabouts(a.name):null,_xb=(typeof residentWhereabouts==="function")?residentWhereabouts(b.name):null;
-    return "[ENGINE NOTE \u2014 RESIDENTS (not a player action): "+a.name+" and "+b.name+" are both here. Let them have ONE exchange with each other this response \u2014 a few lines the hero witnesses without being addressed \u2014 about something of their own TODAY: an errand, a ware, the work in hand, each other"+(_xw?", the weather ("+String(_xw).slice(0,80)+")":"")+(_xa?"; "+a.name+" is "+String(_xa).slice(0,100):"")+(_xb?"; "+b.name+" is "+String(_xb).slice(0,100):"")+". Never their past adventures or the hero's unless the hero asks \u2014 that talk belongs to the Hall. Tag every line [SAY:]. Never mention this note.]\n";
+    var _xw=worldState.world&&worldState.world.weather;/* #481 B6: no whereabouts — the pair is HERE (on stage, B3); the old "<name> is <place>" named somewhere else */
+    return "[ENGINE NOTE \u2014 RESIDENTS (not a player action): "+a.name+" and "+b.name+" are both here. Let them have ONE exchange with each other this response \u2014 a few lines the hero witnesses without being addressed \u2014 about something of their own TODAY: an errand, a ware, the work in hand, each other"+(_xw?", the weather ("+String(_xw).slice(0,80)+")":"")+". Never their past adventures or the hero's unless the hero asks \u2014 that talk belongs to the Hall. Tag every line [SAY:]. Never mention this note.]\n";
   }
   return "[ENGINE NOTE \u2014 RESIDENTS (not a player action): "+a.name+" and "+b.name+" are both here. Let them have ONE exchange with each other this response \u2014 a few lines the hero witnesses without being addressed \u2014 about something of their own"+((ra||rb)?", drawn from what they lived: "+(ra?a.name+" \u2014 \""+ra+"\"":"")+(ra&&rb?"; ":"")+(rb?b.name+" \u2014 \""+rb+"\"":""):"")+". Tag every line [SAY:]. Never mention this note.]\n";
 }

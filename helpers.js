@@ -2816,16 +2816,29 @@ function villageCommons(){
 /* #6 D3: residents ROAM (owner, 2026-09-12). Pure and deterministic over the name and the campaign clock: at home through the
    night, otherwise a commons chosen by a name hash and the three-hour block, so the same resident is in the same place for a
    while and somewhere else later. A whereabouts line, not a presence stamp — the story places them with tags. */
+/* #481 B6 (audit 2026-09-29, Fable-approved): the ONE open-at-the-hour predicate — the geo block's OPEN/CLOSED line and the
+   residents' whereabouts both read it. null = no hours on record (read as open). Overnight ranges (20-4) wrap. Pure. */
+function nodeOpenAtHour(node,hr){if(!node||!node.hours)return null;var h=node.hours;return (h.open<=h.close)?(hr>=h.open&&hr<h.close):(hr>=h.open||hr<h.close);}
+/* #481 B6: ONE renderer for a resident's whereabouts — "<name> is at home" / "<name> is at <place>". The RESIDENTS note used to
+   join a name and a place with a bare "is" ("Thessa Saltborn is the animal handler's yard"). Serves RESIDENTS ABOUT, the
+   RETURN change, the whispers facts and the Car Mode recap. */
+function residentWhereText(name,wh){if(!wh)return "";return name+" is "+(wh.home?"at home":"at "+wh.place);}
+/* #481 B6: the ONE leading-travel parse — validateSuggestion's rule ⑦ and the RESIDENTS note's travel wait both read it.
+   Returns the named destination, or null. Pure. */
+function travelActionTarget(t){var m=String(t==null?"":t).match(/^\s*(?:press on (?:toward|to)|head (?:back )?(?:to|for|toward|towards)|travel (?:back )?to|return to|go back to|set out (?:for|toward|towards)|ride (?:back )?(?:to|toward|towards)|march (?:to|toward|towards)|journey (?:to|toward|towards)|make for)\s+(.+)$/i);return m?m[1]:null;}
 function residentWhereabouts(name,min){
   var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.roam)return null;
   var m=(typeof min==="number")?min:((typeof clockNow==="function")?clockNow():0),day=(typeof MIN_PER_DAY==="number")?MIN_PER_DAY:1440;
   /* the campaign clock counts ELAPSED minutes and clock%day==0 is dawn (clock.js #89/#106b): the hour of day comes from
      clockMinuteOfDay (#409, the ONE reader); the inline form survives only for a load order where clock.js is absent */
   var dawn=(typeof DAWN_OFFSET_MIN==="number")?DAWN_OFFSET_MIN:360,hour=Math.floor(((typeof clockMinuteOfDay==="function")?clockMinuteOfDay(m):((((m%day)+day)%day+dawn)%day))/60);
-  if(hour>=22||hour<6)return "at home";
-  var list=villageCommons();if(!list.length)return "at home";
+  if(hour>=22||hour<6)return {place:null,home:true};
+  /* #481 B6: a commons CLOSED at the hour is nobody's whereabouts (Nyla "in the tavern" at 7:40, its hours 10-24) */
+  var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";
+  var list=villageCommons().filter(function(c){var nd=(typeof memory!=="undefined"&&memory&&memory.map)?memory.map.nodes[(typeof locResolve==="function")?locResolve(v+"|"+c):v+"|"+c]:null;return nodeOpenAtHour(nd,hour)!==false;});
+  if(!list.length)return {place:null,home:true};
   var h=0,s=String(name||""),i;for(i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
-  return list[(h+Math.floor(hour/3))%list.length];
+  return {place:list[(h+Math.floor(hour/3))%list.length],home:false};
 }
 /* #6 G4: the File-menu row shows for an open, closable campaign with at least one turn behind it. */
 function closeMenuVisible(){var def=(typeof kindDef==="function")?kindDef():null;return !!(typeof worldState!=="undefined"&&worldState&&def&&def.closable&&!campaignEnded()&&(worldState.turn||0)>=1);}
@@ -2836,7 +2849,7 @@ function villageRecapText(){
   var s="You are "+(c.name||"the hero")+", in "+v+(sub?", at "+sub:"")+". Day "+dn+(tod?", "+tod:"")+". "+(c.gold||0)+" gold.";
   var st=(typeof villageStash==="function")?villageStash(villageHouseKey(c.name)):[];
   s+=st.length?" Your house holds "+st.map(function(r){return r.name+(r.qty>1?", "+r.qty+" of them":"");}).join("; ")+".":" Your house holds nothing.";
-  var about=[],i,npcs=ws.npcs||[];for(i=0;i<npcs.length&&about.length<3;i++){var n=npcs[i];if(!n.resident||(typeof npcIsDead==="function"&&npcIsDead(n)))continue;var w=residentWhereabouts(n.name);if(w)about.push(n.name+" "+(w==="at home"?"at home":"at "+w));}
+  var about=[],i,npcs=ws.npcs||[];for(i=0;i<npcs.length&&about.length<3;i++){var n=npcs[i];if(!n.resident||(typeof npcIsDead==="function"&&npcIsDead(n)))continue;var w=residentWhereabouts(n.name);if(w&&!(typeof scenePresentNow==="function"&&scenePresentNow(n.name)))about.push(residentWhereText(n.name,w));/* #481 B6: one renderer; nobody in the scene gets whereabouts */}
   if(about.length)s+=" About the village: "+about.join("; ")+".";
   return s;
 }

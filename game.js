@@ -564,9 +564,9 @@ function validateSuggestion(text,man){
   // as travelling to the town you are standing in. Same leading-verb precision lever as ⑤; the
   // destination matches the current location by name or through the location identity table
   // (a merged alias of HERE is still here, #156B).
-  var tvm7=t.match(/^\s*(?:press on (?:toward|to)|head (?:back )?(?:to|for|toward|towards)|travel (?:back )?to|return to|go back to|set out (?:for|toward|towards)|ride (?:back )?(?:to|toward|towards)|march (?:to|toward|towards)|journey (?:to|toward|towards)|make for)\s+(.+)$/i);
+  var tvm7=travelActionTarget(t);/* #481 B6: the one travel parse (helpers.js) */
   if(tvm7&&worldState.world&&worldState.world.location){
-    var d7=tvm7[1].replace(/[.!?]+\s*$/,"").trim(),here=worldState.world.location,hereLc=String(here).toLowerCase(),d7Lc=d7.toLowerCase(),same7=(d7Lc===hereLc);
+    var d7=tvm7.replace(/[.!?]+\s*$/,"").trim(),here=worldState.world.location,hereLc=String(here).toLowerCase(),d7Lc=d7.toLowerCase(),same7=(d7Lc===hereLc);
     if(!same7&&typeof locSame==="function"&&locSame(d7,here))same7=true;/* the identity table owns aliases and merges (#156B) */
     if(!same7&&typeof locResolve==="function"&&String(locResolve(d7)).toLowerCase()===String(locResolve(here)).toLowerCase())same7=true;
     if(!same7){var n7=(typeof memory!=="undefined"&&memory.map&&memory.map.nodes)||{};for(var k7 in n7){if(k7.toLowerCase()===d7Lc&&typeof locSame==="function"&&locSame(k7,here)){same7=true;break;}}}
@@ -1583,7 +1583,7 @@ function villageReturnFact(){
 function villageReturnChange(){
   var k,now=(typeof clockNow==="function")?clockNow():0,win=WARES_RESTOCK_DAYS*MIN_PER_DAY,keys=Object.keys((memory&&memory.map&&memory.map.nodes)||{}).sort();
   for(k=0;k<keys.length;k++){var n=memory.map.nodes[keys[k]];if(!n||!n.parent||!n.wares||!n.wares.length)continue;var i;for(i=0;i<n.wares.length;i++){var w=n.wares[i];if(typeof w.min==="number"&&now-w.min>=win)return w.item+" is gone from "+locDisplayLeaf(keys[k])+"'s shelf (the week turned; something else may be there)";}}
-  var npcs=worldState.npcs||[],j;for(j=0;j<npcs.length;j++){var r=npcs[j];if(!r.resident||npcIsDead(r))continue;var wh=(typeof residentWhereabouts==="function")?residentWhereabouts(r.name):null;if(wh&&wh!=="at home")return r.name+" is at "+wh+" this hour";}
+  var npcs=worldState.npcs||[],j;for(j=0;j<npcs.length;j++){var r=npcs[j];if(!r.resident||npcIsDead(r))continue;var wh=(typeof residentWhereabouts==="function")?residentWhereabouts(r.name):null;if(wh&&!wh.home&&!(typeof scenePresentNow==="function"&&scenePresentNow(r.name)))return residentWhereText(r.name,wh)+" this hour";/* #481 B6 */}
   return "it is "+((worldState.world&&worldState.world.time)||"a new hour")+" now";
 }
 /* #6 D1: the village rung — a resident call (whoever is NOT in the scene, with their whereabouts) or a look-in at a commons
@@ -1592,7 +1592,7 @@ function villageRung(){
   var man=buildSceneManifest(),local=(man.local||[]).map(function(x){return String(x).toLowerCase();}),res=[],i,npcs=worldState.npcs||[];
   for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n.resident||npcIsDead(n)||local.indexOf(String(n.name).toLowerCase())>=0)continue;res.push(n);}
   var sub=String((worldState.world&&worldState.world.sublocation)||"").toLowerCase(),commons=villageCommons().filter(function(c){return c.toLowerCase()!==sub;});
-  var opts=[],j;for(j=0;j<res.length;j++){var w=residentWhereabouts(res[j].name);opts.push("Call on "+res[j].name+(w?" \u2014 "+(w==="at home"?"at home":w):"")+".");}
+  var opts=[],j;for(j=0;j<res.length;j++){var w=residentWhereabouts(res[j].name);opts.push("Call on "+res[j].name+(w?" \u2014 "+(w.home?"at home":w.place):"")+".");/* #481 B6: the {place, home} shape */}
   for(j=0;j<commons.length;j++)opts.push("Look in at "+commons[j]+".");
   if(!opts.length)return null;
   return {kind:"village",text:opts[(worldState.turn||0)%opts.length]};

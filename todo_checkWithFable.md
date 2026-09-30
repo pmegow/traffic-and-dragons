@@ -99,6 +99,14 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Tests:** B4's interim pin moved into the B3 section and now asserts "present by B4 is not on stage". The #6D2 fixture (a pair "present" by stale sighting) now stages both in the frame. Its assertions are unchanged, including the one-resident case (only Frizwick staged).
   - **Real-save evidence:** the t218 state with the hero walked home. The stale list still holds Nyla, Silas and Sable (the audit's re-summoned pair plus one), B4's local is empty, and the note is silent.
   - **Proof:** 4 tests in "#481 B3" (3 red before the build). Full suite green (2,437); four replay baselines unchanged; `dev/sabotage-481-b3-on-stage.js` 3/3 caught, including Fable's named "revert to manifest.local".
+- 2026-09-29 · #481 B6 · v1.1032 · Opus 5.5 · Where a resident is, said once and right.
+  - **Shape:** `residentWhereabouts` returns `{place, home}`, pure and deterministic (Fable). A commons CLOSED at the hour is skipped through `nodeOpenAtHour` (helpers.js). That is now the ONE open-at-the-hour predicate; the geo block's OPEN/CLOSED line reads it too, byte-identical.
+  - **Renderer:** `residentWhereText` ("X is at home" / "X is at P") serves RESIDENTS ABOUT, the RETURN change, the whispers facts and the recap. The rung keeps its button text on the new shape.
+  - **Present residents:** the RESIDENTS exchange note carries no whereabouts (the pair is HERE by B3). The recap and the RETURN change skip residents in the scene (`scenePresentNow`).
+  - **Travel wait:** `travelActionTarget` is the ONE leading-travel parse, extracted byte-identical from `validateSuggestion`'s rule ⑦. The exchange note waits while the PLAYER's own action is travel (`lastAction`, per Fable), without spending its latch.
+  - **Tests updated to the new shape:** #6D3 (same assertions over `{place, home}`); two `sabotage-6-village-hall.js` clauses re-anchored.
+  - **Real-save evidence:** the t218 save sits at 7:40. RESIDENTS ABOUT now reads "Nyla Lorrath is at the alchemist's; …". No resident is placed in a shop closed at that hour; before, Nyla went to the tavern, whose hours are 10–24.
+  - **Proof:** 4 tests in "#481 B6" (4 red before the build; the note test never matches "<name> is the"). Full suite green (2,441); four replay baselines unchanged; `dev/sabotage-481-b6-whereabouts.js` 6/6 caught (the hours-line clause runs under the #207 tests).
 
 ## Off-Fable log
 
