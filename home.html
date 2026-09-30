@@ -101,7 +101,6 @@ a.link:hover{text-decoration:underline;}
 <script>
 (function(){
   var catalog=[],library=[];
-  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")loadCatalog();});
   function $(id){return document.getElementById(id);}
   function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
   function status(msg,err){var el=$("status");el.textContent=msg||"";el.style.display=msg?"block":"none";el.className=err?"err":"";if(!err&&msg)setTimeout(function(){if(el.textContent===msg)el.style.display="none";},4000);}
@@ -149,7 +148,11 @@ a.link:hover{text-decoration:underline;}
   }
   function renderHeroes(){var g=$("hero-grid");g.innerHTML="";if(!heroes.length){g.innerHTML="<div class='empty'>No pre-made heroes yet.</div>";return;}heroes.forEach(function(h){g.appendChild(heroCard(h));});}
   function qsUpdate(){var sel=$("qs-story");var ok=!!(qsHero&&qsHero.char&&sel.value);$("qs-go").disabled=!ok;$("qs-hint").textContent=ok?"Ready — "+qsHero.name+" in "+sel.options[sel.selectedIndex].textContent:(qsHero?"Pick a story.":"Pick a hero first.");}
-  function qsStories(){var sel=$("qs-story");sel.innerHTML="";catalog.forEach(function(c,i){if(!c.bp)return;var o=document.createElement("option");o.value=String(i);o.textContent=c.name;sel.appendChild(o);});
+  /* #481 F4: a rebuild keeps the player's pick by catalog id (a tab return re-reads the catalog); the taster is only the
+     first-visit default. */
+  function qsStories(){var sel=$("qs-story"),prev=sel.selectedIndex>=0&&sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].getAttribute("data-id"):null,keep=-1;
+    sel.innerHTML="";catalog.forEach(function(c,i){if(!c.bp)return;var o=document.createElement("option");o.value=String(i);o.setAttribute("data-id",String(c.id));o.textContent=c.name;sel.appendChild(o);if(prev!==null&&String(c.id)===prev)keep=i;});
+    if(keep>=0){sel.value=String(keep);qsUpdate();return;}
     var taster=-1;catalog.forEach(function(c,i){if(c.bp&&/taster/i.test(c.name)&&taster<0)taster=i;});if(taster>=0)sel.value=String(taster);qsUpdate();}
   function loadHeroes(){
     fetch("samples/characters/catalog.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(list){
@@ -180,6 +183,8 @@ a.link:hover{text-decoration:underline;}
     var read=++catalogRead;
     storageAdapter.listBlueprintCatalog(function(err,list){
       if(read!==catalogRead)return;
+      /* #481 F4: a failed RE-read keeps the last good shelf and says so; only a first load with nothing to show says unavailable */
+      if(err&&catalog.length){console.error("[home] catalog refresh failed — keeping the last loaded shelf",err);status("Could not refresh the catalog ("+err+") — showing the last loaded shelf.",true);if(cb)cb();return;}
       if(err){catalog=[];$("shelf-grid").innerHTML="<div class='empty err'>Catalog unavailable: "+esc(err)+"</div>";console.error("[home] catalog load failed",err);qsStories();if(cb)cb();return;}
       catalog=list.map(function(c){return {id:c.id,name:c.name,author:c.author,blurb:c.blurb,bp:c.blueprint};});
       renderShelf();qsStories();if(cb)cb();

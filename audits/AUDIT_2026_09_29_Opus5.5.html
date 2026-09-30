@@ -976,7 +976,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>Test through <code>__homeTest</code>.</li>
 </ul>
 <details><summary>Evidence</summary><p><code>home.html:104</code> and <code>:205</code> both register the listener (commit 76e67c5). <code>:152-153</code> forces the taster, and <code>:183</code> sets <code>catalog=[]</code> on error. Repro: pick The Iron Meridian, hide, show → 2 catalog GETs and the select back on the Riverlight taster.</p></details>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1071: one visibilitychange listener (one catalog read per tab return); the Quick Start pick is kept by catalog id across the rebuild; a failed re-read keeps the last good shelf and says so in the status line. Real Chrome test (dev/tests-481-f4-home-return.js, red first: the taster revert, two reads, an emptied shelf); dev/sabotage-481-f4-home-return.js 4/4; the blueprint-publish browser battery stays green.</td></tr>
 
 <tr id="F5"><td class="n">F5</td><td>
 <p class="ttl">The server and the client build library slugs differently <span class="lean med">medium</span><span class="lean">silent overwrite</span></p>
