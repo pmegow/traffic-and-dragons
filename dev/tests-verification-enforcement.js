@@ -124,7 +124,10 @@ try {
   });
 
   // #G1 (2026-09-18): the workflow fixture grew the three hook gates that had never crossed to CI.
-  var GOOD_WORKFLOW = "- uses: actions/checkout@v4\n- uses: actions/setup-node@v4\n  with:\n    node-version: 22\n- run: node dev/lint-todo.js --git-aware --cap\n- run: node dev/tests-todo-hygiene.js\n- run: node dev/check-shell-markers.js --ci\n- run: node dev/run-tests.js\n- run: node dev/check-sabotage-applicability.js\n- run: node dev/diff-replay.js dev/corpus_playtest_v1238.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1258.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1271.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1276.json --check\n- run: node dev/sabotage-w2.js --focused\n";
+  // #481 G2: ONE range per run — the range step, both hook gates per commit of $CI_RANGE, the sabotage diff over it.
+  var LINT_STEP = "- run: node dev/ci-per-commit.js \"$CI_RANGE\" -- node dev/lint-todo.js --git-aware --cap --file {file:TODO.md} --head-file {parentFile:TODO.md}\n";
+  var SHELL_STEP = "- run: node dev/ci-per-commit.js \"$CI_RANGE\" -- node dev/check-shell-markers.js --ci --range {parent}..{commit}\n";
+  var GOOD_WORKFLOW = "- uses: actions/checkout@v4\n- uses: actions/setup-node@v4\n  with:\n    node-version: 22\n- run: node dev/ci-range.js --github-env\n" + LINT_STEP + "- run: node dev/tests-todo-hygiene.js\n" + SHELL_STEP + "- run: node dev/run-tests.js\n- run: node dev/check-sabotage-applicability.js\n- run: node dev/diff-replay.js dev/corpus_playtest_v1238.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1258.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1271.json --check\n- run: node dev/diff-replay.js dev/corpus_playtest_v1276.json --check\n- run: node dev/sabotage-w2.js --focused\n- run: node dev/run-sabotage-diff.js \"$CI_RANGE\"\n";
   var GOOD_HOOK = "node dev/check-hook-parity.js\nnode dev/lint-todo.js --git-aware --staged\nnode dev/tests-todo-hygiene.js\nnode dev/check-shell-markers.js\nnode dev/run-tests.js\n";
 
   test("CI/pre-commit topology rejects removal of every required enforcement step", function () {
@@ -132,7 +135,7 @@ try {
     var guard = require(ENFORCE);
     if (guard.workflowProblems(GOOD_WORKFLOW).length) return "good workflow rejected: " + guard.workflowProblems(GOOD_WORKFLOW).join("; ");
     if (guard.preCommitProblems(GOOD_HOOK).length) return "good hook rejected: " + guard.preCommitProblems(GOOD_HOOK).join("; ");
-    var workflowNeedles = ["actions/checkout@v4", "actions/setup-node@v4", "node-version: 22", "node dev/lint-todo.js --git-aware --cap", "node dev/tests-todo-hygiene.js", "node dev/check-shell-markers.js --ci", "node dev/run-tests.js", "node dev/check-sabotage-applicability.js", "node dev/diff-replay.js dev/corpus_playtest_v1238.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1258.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1271.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1276.json --check", "node dev/sabotage-w2.js --focused"];
+    var workflowNeedles = ["actions/checkout@v4", "actions/setup-node@v4", "node-version: 22", "node dev/ci-range.js --github-env", "node dev/lint-todo.js --git-aware --cap", "node dev/tests-todo-hygiene.js", "node dev/check-shell-markers.js --ci", "node dev/run-sabotage-diff.js \"$CI_RANGE\"", "node dev/run-tests.js", "node dev/check-sabotage-applicability.js", "node dev/diff-replay.js dev/corpus_playtest_v1238.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1258.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1271.json --check", "node dev/diff-replay.js dev/corpus_playtest_v1276.json --check", "node dev/sabotage-w2.js --focused"];
     for (var i = 0; i < workflowNeedles.length; i++) if (!guard.workflowProblems(GOOD_WORKFLOW.replace(workflowNeedles[i], "REMOVED")).length) return "workflow removal passed: " + workflowNeedles[i];
     var hookNeedles = ["node dev/check-hook-parity.js", "--git-aware --staged", "node dev/tests-todo-hygiene.js", "node dev/check-shell-markers.js", "node dev/run-tests.js"];
     for (var j = 0; j < hookNeedles.length; j++) if (!guard.preCommitProblems(GOOD_HOOK.replace(hookNeedles[j], "REMOVED")).length) return "hook removal passed: " + hookNeedles[j];
@@ -157,7 +160,7 @@ try {
   });
   test("#G1 dropping a crossed gate from CI alone fails the topology check", function () {
     var guard = require(ENFORCE);
-    var stripped = GOOD_WORKFLOW.replace("- run: node dev/check-shell-markers.js --ci\n", "");
+    var stripped = GOOD_WORKFLOW.replace(SHELL_STEP, "");
     var problems = guard.coverageProblems(stripped, GOOD_HOOK);
     if (!problems.length) return "removing the shell-marker step from CI passed";
     return problems.join(" ").indexOf("check-shell-markers.js") >= 0 ? "" : "the problem does not name it: " + problems.join("; ");

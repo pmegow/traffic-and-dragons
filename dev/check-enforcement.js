@@ -35,18 +35,22 @@ function workflowProblems(source) {
     { label: "actions/checkout@v4", pattern: /actions\/checkout@v4/ },
     { label: "actions/setup-node@v4", pattern: /actions\/setup-node@v4/ },
     { label: "Node 22", pattern: /node-version:\s*["']?22["']?/ },
+    /* #481 G2: ONE range per run, before every range gate — they used to diff HEAD~1..HEAD and missed every commit but a
+       push's last. The two per-commit gates and the sabotage diff read it as "$CI_RANGE". */
+    { label: "node dev/ci-range.js --github-env (#481 G2: one range per run)", pattern: /run:\s*node dev\/ci-range\.js\s+--github-env(?:\s|$)/ },
     /* #G1: the three hook gates that had never crossed to CI. They run BEFORE the suite here,
        in the hook's own order, so a red one blocks the expensive steps the way it does locally. */
-    { label: "node dev/lint-todo.js --git-aware (#G1 hook parity)", pattern: /node dev\/lint-todo\.js[^\n]*--git-aware/ },
+    { label: "node dev/lint-todo.js --git-aware per commit of $CI_RANGE (#G1 hook parity; #481 G2)", pattern: /node dev\/ci-per-commit\.js "\$CI_RANGE" -- node dev\/lint-todo\.js[^\n]*--git-aware/ },
     { label: "node dev/tests-todo-hygiene.js (#G1 hook parity)", pattern: /run:\s*node dev\/tests-todo-hygiene\.js(?:\s|$)/ },
-    { label: "node dev/check-shell-markers.js --ci (#G1 hook parity)", pattern: /node dev\/check-shell-markers\.js\s+--ci(?:\s|$)/ },
+    { label: "node dev/check-shell-markers.js --ci per commit of $CI_RANGE (#G1 hook parity; #481 G2)", pattern: /node dev\/ci-per-commit\.js "\$CI_RANGE" -- node dev\/check-shell-markers\.js\s+--ci\s+--range \{parent\}\.\.\{commit\}/ },
     { label: "node dev/run-tests.js", pattern: /run:\s*node dev\/run-tests\.js(?:\s|$)/ },
     { label: "node dev/check-sabotage-applicability.js", pattern: /run:\s*node dev\/check-sabotage-applicability\.js(?:\s|$)/ },
     { label: "v1238 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1238\.json --check(?:\s|$)/ },
     { label: "v1258 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1258\.json --check(?:\s|$)/ },
     { label: "v1271 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1271\.json --check(?:\s|$)/ },
     { label: "v1276 diff-replay baseline check", pattern: /run:\s*node dev\/diff-replay\.js dev\/corpus_playtest_v1276\.json --check(?:\s|$)/ },
-    { label: "node dev/sabotage-w2.js --focused", pattern: /run:\s*node dev\/sabotage-w2\.js\s+--focused(?:\s|$)/ }
+    { label: "node dev/sabotage-w2.js --focused", pattern: /run:\s*node dev\/sabotage-w2\.js\s+--focused(?:\s|$)/ },
+    { label: "node dev/run-sabotage-diff.js \"$CI_RANGE\" (#481 G2: the whole push, once)", pattern: /run:\s*node dev\/run-sabotage-diff\.js\s+"\$CI_RANGE"(?:\s|$)/ }
   ], "engine-tests.yml");
 }
 // hookGateNames — every dev/<tool>.js the pre-commit invokes, in the order it invokes them.

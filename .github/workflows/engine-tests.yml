@@ -29,22 +29,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # #481 G2: ONE range per run, computed at one boundary (dev/ci-range.js): a PR's base.sha; a push's event.before
+      # via merge-base; else the merge-base with origin/master; else HEAD~1. Every range gate below reads $CI_RANGE —
+      # they used to diff HEAD~1..HEAD, so a code commit pushed under a docs commit skipped them all.
+      - name: Compute the range this run checks
+        run: node dev/ci-range.js --github-env
       # ── the hook's other gates, which run before the suite locally too (audit G1) ────────
       # check-hook-parity is deliberately NOT here: it compares the INSTALLED .git hook, which a
       # CI checkout does not have. That is the one entry in check-enforcement.js's HOOK_ONLY.
-      # lint-todo in CI has no index to read, so it verifies the CHECKED-OUT TODO.md: shape +
-      # the #310 row-size cap always, and the moved-row byte verification against the previous
-      # commit when this checkout has one (fetch-depth: 2 gives us HEAD~1; on a pull_request
-      # HEAD~1 is the base branch, so the whole PR is verified at once).
-      - name: TODO.md table integrity (shape, row cap, moved-row bytes)
-        run: |
-          if git rev-parse --verify --quiet HEAD~1 >/dev/null 2>&1 && git cat-file -e HEAD~1:TODO.md 2>/dev/null; then
-            git show HEAD~1:TODO.md > "$RUNNER_TEMP/todo-base.md"
-            node dev/lint-todo.js --git-aware --cap --head-file "$RUNNER_TEMP/todo-base.md"
-          else
-            echo "no previous commit with a TODO.md in this checkout — shape + row cap only"
-            node dev/lint-todo.js --git-aware --cap
-          fi
+      # lint-todo in CI has no index to read, so it verifies each commit's TODO.md against its
+      # parent's (shape, the #310 row-size cap, the moved-row bytes) — PER COMMIT of the range
+      # (#481 G2); a commit whose parent has no TODO.md is skipped out loud.
+      - name: TODO.md table integrity, every commit of the push (shape, row cap, moved-row bytes)
+        run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/lint-todo.js --git-aware --cap --file {file:TODO.md} --head-file {parentFile:TODO.md}
       - name: TODO/session hygiene acceptance fixtures
         run: node dev/tests-todo-hygiene.js
       # #481 G10: the ES5-only rule used to live in the editor hooks alone, so a shell edit, a cloud
@@ -52,10 +49,10 @@ jobs:
       - name: ES5 check for the game client
         run: node dev/check-es5.js
       # The hard rule: a change to sw.js or any APP_SHELL asset bumps globals.js APP_VERSION and
-      # sw.js CACHE. --ci compares HEAD~1..HEAD (the hook's staging-area mode has no meaning on a
-      # runner); it says so and exits 0 when there is no previous commit to compare against.
-      - name: APP_VERSION / CACHE freshness for shell assets
-        run: node dev/check-shell-markers.js --ci
+      # sw.js CACHE — on EVERY commit (#481 G2), each compared with its parent (the hook's
+      # staging-area mode has no meaning on a runner).
+      - name: APP_VERSION / CACHE freshness for shell assets, every commit of the push
+        run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/check-shell-markers.js --ci --range {parent}..{commit}
       - name: Run engine suite + source contracts
         run: node dev/run-tests.js
       - name: Verify every retained sabotage target still applies
@@ -81,6 +78,7 @@ jobs:
       - name: Chrome launches for the browser sabotage batteries
         run: node dev/cdp-browser.js --check
       # #312 ①: a battery whose target file changed in this push runs in this push (the weekly
-      # job proves all 63; this keeps a guard's own edit honest the day it lands).
+      # job proves all 63; this keeps a guard's own edit honest the day it lands). #481 G2: the
+      # WHOLE push's range, once — not just its last commit.
       - name: Run the sabotage batteries whose targets this change touched
-        run: node dev/run-sabotage-diff.js
+        run: node dev/run-sabotage-diff.js "$CI_RANGE"
