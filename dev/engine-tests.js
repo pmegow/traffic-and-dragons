@@ -4237,7 +4237,15 @@ function runEngineTests(R){
     // chars/4 is a rough floor for token count; below 8500 chars the block risks silently not caching
     return s.length>=8500?true:"stable only "+s.length+" chars (~"+Math.round(s.length/4)+" tok) — under the 2048-token cache minimum";
   });
-  t("anthropic buildBody (#304 C): object sys → stable AND volatile blocks each carry a breakpoint (the turn writes the volatile, the suggestion call reads it at 0.1×); an `extra` block rides third, uncached",function(){
+  t("#481 C10 anthropic buildBody with in-band buttons ON (the default): only the stable block carries a breakpoint — the separate suggestion call that would read the volatile rarely runs, so no turn pays the 1.25× write for it",function(){
+    var _ib=suggestInband;suggestInband=true;
+    try{var b=PROVIDERS.anthropic.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V",extra:"X"},100,"claude-sonnet-5");}finally{suggestInband=_ib;}
+    var n=b.system.filter(function(x){return !!x.cache_control;}).length;
+    if(n!==1||!b.system[0].cache_control)return "one breakpoint, on the stable block: "+JSON.stringify(b.system);
+    return (b.system[1].text==="V"&&!b.system[1].cache_control&&b.system[2].text==="X"&&!b.system[2].cache_control)?true:"the volatile and extra blocks ride uncached: "+JSON.stringify(b.system);
+  });
+  t("anthropic buildBody (#304 C, amended by #481 C10 — the setting OFF): object sys → stable AND volatile blocks each carry a breakpoint (the turn writes the volatile, the suggestion call reads it at 0.1×); an `extra` block rides third, uncached",function(){
+    var _ib=suggestInband;suggestInband=false;try{
     var b=PROVIDERS.anthropic.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V"},100,"claude-sonnet-4-6");
     if(!Array.isArray(b.system)||b.system.length!==2)return "system: "+JSON.stringify(b.system);
     if(b.system[0].text!=="S"||!b.system[0].cache_control||b.system[0].cache_control.type!=="ephemeral")return "stable block wrong";
@@ -4246,6 +4254,7 @@ function runEngineTests(R){
     if(!Array.isArray(b3.system)||b3.system.length!==3)return "three blocks expected: "+JSON.stringify(b3.system);
     if(b3.system[1].text!=="V"||!b3.system[1].cache_control)return "volatile block changed under extra";
     if(b3.system[2].text!=="X"||b3.system[2].cache_control)return "the extra block must be uncached and last";
+    }finally{suggestInband=_ib;}
     return sysJoin({stable:"S",volatile:"V",extra:"X"})==="SVX"&&sysJoin({stable:"S",volatile:"V"})==="SV"?true:"sysJoin does not carry extra";
   });
   t("#304 C: the suggestion call reuses the TURN's captured volatile byte-for-byte (the mode block rides in `extra`); with nothing captured it regenerates",function(){

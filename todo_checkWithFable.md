@@ -186,6 +186,11 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Judgement call:** promotion drops an entry more than 10 turns old, because the note says "just acquired". Found by reading the v1258 replay: it delivers no notes, so a t10 head sat in front of t63/t93 items.
   - **Re-baselined:** v1258's end state — exactly `itemDefCandidate` and `itemDefQueue` (walker diff against HEAD); the other three replays are unchanged. The #294 "stamped at arming" clause was re-anchored to the new arming site and caught.
   - **Proof:** 4 tests in "#481 D8" (three red before the build; the stale test added with the window). Full suite green (2,482); `dev/sabotage-481-d8-item-ask-queue.js` 7/7 caught (the unregistered-latch clause is caught first by the #151 census, so its mustFail names the field).
+- 2026-09-29 · #481 C10 · v1.1050 · Opus 5.5 · The volatile cache breakpoint rides the in-band-buttons setting.
+  - **Touches:** the Anthropic `buildBody` (globals.js) — the cache split, a drift-surface item. The prompt TEXT is byte-identical, and so is `buildSuggestionSys` (Fable (b)).
+  - **Rule:** the volatile block's `cache_control` is present when `suggestInband` is OFF and absent when ON. Only Claude is affected; the owner plays on Gemini.
+  - **Amendment (Fable (c)):** recorded on #304 C, in its archived row and in prompt.md.
+  - **Proof:** the new C10 test (red first) plus the #304 C buildBody test, now pinned to the OFF case. Full suite green (2,483); four replay baselines unchanged; `dev/sabotage-481-c10-volatile-cache.js` 2/2 (both directions).
 
 ## Off-Fable log
 

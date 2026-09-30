@@ -292,7 +292,12 @@ var PROVIDERS={
            byte-for-byte and READS it at 0.1× instead of paying full price — the pair costs ≈1.35× the
            volatile instead of 2×. Anthropic allows up to four breakpoints; the mode block rides as a
            third, uncached `extra` block so the prefix match ends exactly at the volatile boundary. */
-        body.system=[{type:"text",text:sys.stable,cache_control:{type:"ephemeral"}},{type:"text",text:sys.volatile,cache_control:{type:"ephemeral"}}];
+        /* #481 C10 (audit 2026-09-29, Fable-approved; amends #304 C): the volatile breakpoint pays only when the separate
+           suggestion call reads it — with in-band buttons ON (#328, the default) that call runs about once in 40 turns, so
+           every turn paid the 1.25× write for a reader that rarely came. The breakpoint rides the SETTING: present when OFF,
+           absent when ON. The stable breakpoint and buildSuggestionSys are unchanged. */
+        var _volC=(typeof suggestInband==="undefined"||!suggestInband);
+        body.system=[{type:"text",text:sys.stable,cache_control:{type:"ephemeral"}},_volC?{type:"text",text:sys.volatile,cache_control:{type:"ephemeral"}}:{type:"text",text:sys.volatile}];
         if(sys.extra)body.system.push({type:"text",text:sys.extra});
       }
       return body;
@@ -404,7 +409,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.1049";
+var APP_VERSION="v1.1050";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
