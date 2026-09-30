@@ -27568,4 +27568,35 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return bad.length?bad.join("; "):true;
   });
 
+  // ── #481 A5 (audit 2026-09-29, Fable-approved with changes): the state-note filer took the GM's text raw, so
+  // [LOCATION_STATE:…counter.|The Village] stored "…counter.|The Village" as the note on Ammut's house (t191, t195).
+  // (a) An optional |place operand is resolved by the ONE place resolver (or names the world node itself); ENGINE-ONLY
+  // (the standing doc does not teach it). An unresolvable place is refused loudly and NEVER stored as text.
+  section("#481 A5 a state note's place is a place, never text");
+  function a5Notes(k){var n=memory.map.nodes[k];return (n&&n.stateNotes||[]).map(function(x){return x.n;});}
+  function a5AnyPipe(){var ks=Object.keys(memory.map.nodes),i,j;for(i=0;i<ks.length;i++){var sn=memory.map.nodes[ks[i]].stateNotes||[];for(j=0;j<sn.length;j++)if(String(sn[j].n).indexOf("|")>=0)return ks[i]+": "+sn[j].n;}return null;}
+  t("#481 A5 the place operand files the note where it names: the tavern from the Hall, the Hall by any spelling, the village itself; the text never carries a pipe",function(){
+    villageEF();worldState.world.sublocation="the Village Hall";
+    var r=quiet(function(){return applyMuts("[LOCATION_STATE:The counter is sticky with ale.|the tavern][LOCATION_STATE:The lanterns are lit.|The Village Hall][LOCATION_STATE:The square is muddy.|The Village]");}).r;
+    if(a5Notes("The Village|the tavern").indexOf("The counter is sticky with ale.")<0)return "the tavern note: "+JSON.stringify(a5Notes("The Village|the tavern"))+" "+JSON.stringify(r.muts);
+    if(a5Notes("The Village|the Village Hall").indexOf("The lanterns are lit.")<0)return "the Hall note (case variant): "+JSON.stringify(a5Notes("The Village|the Village Hall"));
+    if(a5Notes("The Village").indexOf("The square is muddy.")<0)return "the village note: "+JSON.stringify(a5Notes("The Village"));
+    if(a5Notes("The Village|the Village Hall").length!==1)return "only the Hall's own note lands on the Hall (the party stands there): "+JSON.stringify(a5Notes("The Village|the Village Hall"));
+    delete memory.map.nodes[villageHouseKey("Silas")];/* the mint path: a house not on the map yet */
+    quiet(function(){applyMuts("[LOCATION_STATE:The roof leaks.|my house]");});var hn=memory.map.nodes[villageHouseKey("Silas")];
+    if(!hn||hn.owner!=="Silas"||a5Notes(villageHouseKey("Silas")).indexOf("The roof leaks.")<0)return "a house named by the note is minted as the arrival mints it (owner on the node): "+JSON.stringify(hn);
+    var p=a5AnyPipe();return p?"a note stored a pipe: "+p:true;
+  });
+  t("#481 A5 an unresolvable place is refused loudly and nothing is stored; a malformed body is refused too; a plain note is unchanged",function(){
+    villageEF();var n0=Object.keys(memory.map.nodes).length;
+    var r=quiet(function(){return applyMuts("[LOCATION_STATE:A cold draft.|the glass observatory][LOCATION_STATE:one|two|three]");}).r;
+    var ref=(r.muts||[]).filter(function(x){return mutLineWarns(x)&&/LOCATION_STATE/.test(x);});
+    if(ref.length!==2)return "two loud refusals: "+JSON.stringify(r.muts);
+    if(!/glass observatory/.test(ref[0]))return "the refusal names the place: "+ref[0];
+    if(Object.keys(memory.map.nodes).length!==n0)return "no node may be minted by a refused note";
+    var ks=Object.keys(memory.map.nodes),i;for(i=0;i<ks.length;i++)if((memory.map.nodes[ks[i]].stateNotes||[]).length)return "nothing may be stored: "+ks[i]+" "+JSON.stringify(memory.map.nodes[ks[i]].stateNotes);
+    quiet(function(){applyMuts("[LOCATION_STATE:The fire burns low.]");});
+    return a5Notes("The Village|the tavern").indexOf("The fire burns low.")>=0?true:"a plain note files where the party stands: "+JSON.stringify(a5Notes("The Village|the tavern"));
+  });
+
 }

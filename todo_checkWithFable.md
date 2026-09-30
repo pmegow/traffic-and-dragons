@@ -149,6 +149,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **The rule now:** the whole name (word-bounded, a leading article optional) or one of its words as a possessive or after "of". A whole-name match outranks a word match.
   - **Real save:** t218 roster — "the well house" resolved to The Entity's house before; now the well house, the market place and the bath house file as named, and every real house still resolves. No occurrence was recorded in the saved windows.
   - **Proof:** 2 tests in "#482" (red first). Full suite green (2,461); four replay baselines unchanged; `dev/sabotage-482-house-owner.js` 5/5 caught.
+- 2026-09-29 · #481 A5 (the remaining half) · v1.1044 · Opus 5.5 · A state note's place is a place, never text.
+  - **Touches:** the LOCATION_STATE handler (tag_table.js) only. The operand is ENGINE-ONLY: no doc change, no stable-half touch (Fable (a)).
+  - **Rule:** `[LOCATION_STATE:note|place]` resolves the place through `resolvePlaceName`. An unresolvable place, an empty half or a second pipe is a ⚠ refusal, and nothing is stored.
+  - **Judgement call:** the operand may also name the world node itself ("|The Village"), which is the field shape. The resolver answers only for children, so without this the GM's own t191/t195 notes would be refused.
+  - **Real save:** both field notes ("…on the tavern counter.|The Village") replay onto the village node with clean text. Before, they were stored on Ammut's house with the pipe (those two stay, per C2(c): no migration).
+  - **Proof:** 2 tests in "#481 A5" (red first). Full suite green (2,463); four replay baselines unchanged; `dev/sabotage-481-a5-state-place.js` 5/5 caught (the house-mint clause MISSED at first — the fixture's house already existed; the test now deletes it); the A4 state-note clause re-anchored and caught.
 
 ## Off-Fable log
 

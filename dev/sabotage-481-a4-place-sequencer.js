@@ -38,7 +38,7 @@ prove("tag_table.js", [
     find: "_wat=rPlaceAt(R,wtOff[wi]);", replace: "_wat=rPlaceAt(R,null);",
     mustFail: "wares and a state note filed before a leave" },
   { label: "a state note files where the reply ends",
-    find: "fileLocationState(lsm[1].trim(),R.turn,rPlaceAt(R,lsOff[lsi]))", replace: "fileLocationState(lsm[1].trim(),R.turn,rPlaceAt(R,null))",
+    find: "var lsAt=rPlaceAt(R,lsOff[lsi]),", replace: "var lsAt=rPlaceAt(R,null),",/* #481 A5: the handler parses the place operand now */
     mustFail: "wares and a state note filed before a leave" }
 ]);
 prove("helpers.js", [

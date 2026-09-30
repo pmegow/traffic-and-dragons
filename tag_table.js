@@ -600,7 +600,18 @@ var TAG_TABLE=[
 // description is untouched); read back by buildGeoBlock (current node, beside the frozen
 // description) and buildChangedLocationsBlock (the always-present remote roll-up, api.js).
 // Ordered AFTER LOCATION so a move + a state note in one response land on the NEW node.
-{t:"LOCATION_STATE",apply:function(text,R){var lsTags=text.match(/\[LOCATION_STATE:([^\]]+)\]/g)||[];var lsi,lsOff=tagOffsets(text,/\[LOCATION_STATE:([^\]]+)\]/);for(lsi=0;lsi<lsTags.length;lsi++){var lsm=lsTags[lsi].match(/\[LOCATION_STATE:([^\]]+)\]/);if(!lsm)continue;if(fileLocationState(lsm[1].trim(),R.turn,rPlaceAt(R,lsOff[lsi])))R.muts.push("Location changed: "+lsm[1].trim().slice(0,60));}}},
+{t:"LOCATION_STATE",apply:function(text,R){var lsTags=text.match(/\[LOCATION_STATE:([^\]]+)\]/g)||[];var lsi,lsOff=tagOffsets(text,/\[LOCATION_STATE:([^\]]+)\]/);for(lsi=0;lsi<lsTags.length;lsi++){var lsm=lsTags[lsi].match(/\[LOCATION_STATE:([^\]]+)\]/);if(!lsm)continue;
+  /* #481 A5 (audit 2026-09-29, Fable-approved): an optional |place operand (ENGINE-ONLY — the standing doc does not teach
+     it; the GM writes it unasked, t191/t195). It is resolved by the ONE place resolver, or names the world node itself;
+     an unresolvable place, an empty half or a second pipe is refused LOUDLY and the text is never stored as the note. */
+  var lsAt=rPlaceAt(R,lsOff[lsi]),lsBar=lsm[1].split("|"),lsNote=lsBar[0].trim(),lsWhere="";
+  if(lsBar.length>2||!lsNote||(lsBar.length===2&&!lsBar[1].trim())){R.muts.push("⚠ [LOCATION_STATE:] refused — write one note and at most one place: [LOCATION_STATE:note|place] (nothing stored)");if(typeof console!=="undefined")console.warn("[tags] LOCATION_STATE malformed: "+lsTags[lsi].slice(0,120));continue;}
+  if(lsBar.length===2){var lsPl=lsBar[1].trim(),lsW=(lsAt&&lsAt.world)?lsAt.world:((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location);
+    var lsRp=(typeof resolvePlaceName==="function")?resolvePlaceName(lsPl,lsW):null,lsKey=lsRp?lsRp.key:((typeof locSame==="function"&&locSame(lsPl,lsW))?lsW:null);
+    if(!lsKey){R.muts.push("⚠ [LOCATION_STATE:] refused — '"+lsPl+"' names no place under "+lsW+"; the note was not stored");if(typeof console!=="undefined")console.warn("[tags] LOCATION_STATE place unresolvable: '"+lsPl+"' under "+lsW);continue;}
+    if(lsRp&&lsRp.via==="house"&&!memory.map.nodes[lsKey]&&typeof villageHouseEnsure==="function")villageHouseEnsure(lsRp.owner,lsW);/* the arrival's house mint, same path */
+    lsAt={key:lsKey,world:lsW};lsWhere=" — at "+((typeof locDisplayLeaf==="function")?locDisplayLeaf(lsKey):lsKey);}
+  if(fileLocationState(lsNote,R.turn,lsAt))R.muts.push("Location changed: "+(lsWhere?lsNote.slice(0,60).replace(/s+$/,""):lsNote.slice(0,60))+lsWhere);}}},
 /* #303 WANTS & ECONOMY — [WARES:item|price|note] files a ware on the WORLD node (fileWare: size-capped, clock-expiring, re-statement refreshes); [WARES:none] records an honest empty market; a price outside WARES_PRICE_BAND× of the bible value warns and receipts the canon beside it — the narrated price is never rewritten. [WANTED:item|offer|by] files what someone here wants from the party. */
 {t:"WARES",apply:function(text,R){var _wraw=text.match(/\[WARES:[^\]]*\](?:\|[^\[\]\n]*\])*/g)||[],wt=[],_wri,_wrOff=tagOffsets(text,/\[WARES:[^\]]*\](?:\|[^\[\]\n]*\])*/),wtOff=[];
   /* #6 F11 (owner screenshot 2026-09-16, t54 at the trading post): the GM chained several wares into one tag — "[WARES:a|1 gp|n]|b|1 gp|m]|c|1 gp|k]" — so the parser filed one and cleanTxt left "|b|1 gp|m]|c…]" in the prose. Every chained ware files; the contract stays one [WARES:item|price|note] per ware and the warn says so. */
