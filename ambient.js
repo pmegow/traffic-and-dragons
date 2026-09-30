@@ -30,8 +30,12 @@ function ambientSceneMatches(s, scene) {
 }
 // Owner-authored village mixes supply their palette independently of observed `allows`.
 // Explicit prohibitions, silent/invalid profiles, and physical setting constraints still win.
+/* #481 E2 (audit 2026-09-29, Fable-approved): EVERY AUDIO_SCENES seed is authored data — the per-row profilePolicy flag is
+   gone. A classified place plays a seed whose binding matches and whose profile vetoes (forbid, silent, enclosure, setting,
+   biome, cohort — ambientProfileCompatible) all pass; an observed allows list no longer has to name every bed sound (the
+   day bed's insects silenced every classified village place from 10:00 to 18:00). */
 function ambientAuthoredProfileMatches(s, scene) {
-  if (scene.profilePolicy !== "authored" || !ambientSceneMatches(s, scene)) return false;
+  if (!ambientSceneMatches(s, scene)) return false;
   return ambientProfileCompatible(s, scene);
 }
 function ambientProfileCompatible(s, scene) {

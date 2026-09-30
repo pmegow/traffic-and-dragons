@@ -25137,6 +25137,45 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
      "classified" with no usable profile, and the plan went silent — the hero's own house was silent at t213 and t218. A
      stale-but-valid profile is published as STALE and plays the unclassified plan (authored bindings plus the hearth) until
      the GM reclassifies; an INVALID profile still never becomes a fallback; the re-ask still fires on staleness. */
+  /* #481 E2 (audit 2026-09-29, Fable-approved with changes): once the GM classified the village's outdoor places, the approved
+     morning and day beds were held to strict general matching (every bed sound must be ALLOWED) — the day bed's insects
+     failed every observed profile, so the square, the yard and the village itself played nothing from 10:00 to 18:00 (#471
+     had exempted only dusk and night). Every AUDIO_SCENES seed is authored data now: its binding plus the profile's vetoes
+     (forbid, silent, enclosure, setting, biome, cohort) decide; the hushed halving stays; a chosen seed's accents ride,
+     still subject to the profile's forbid. Fixtures: the REAL t218/t205 profiles. */
+  function e2Snap(nodeKey,exterior,minute,profile,common){return {enabled:true,unlocked:true,visible:true,volume:0.45,campaignKind:"village",campaignId:"village-save",nodeKey:nodeKey,common:common||null,open:true,exterior:exterior,minuteOfDay:minute,classified:true,profile:profile};}
+  var E2_VILLAGE={enclosure:"open",setting:"settlement",biome:"temperate",quiet:"hushed",allows:["voices","water","wind"],forbid:["crowd","machinery","rain","thunder"],cohort:"starter-1",schema:1};
+  var E2_SQUARE={enclosure:"open",setting:"settlement",biome:"temperate",quiet:"normal",allows:["birds","voices","wind"],forbid:["rain","thunder"],cohort:"starter-1",schema:1};
+  t("#481 E2 the classified village square, yard and green play their beds at 06:00, 12:00 and 16:40; the hushed village plays at half gain",function(){
+    var cases=[["The Village",E2_VILLAGE],["The Village|the square",E2_SQUARE],["The Village|the animal handler's yard",E2_SQUARE]],mins=[[360,"village-morning"],[720,"village-day"],[1000,"village-day"]],bad=[];
+    cases.forEach(function(c){mins.forEach(function(m){var pl=ambientPlan(e2Snap(c[0],true,m[0],c[1]),AUDIO_SCENES);if(!pl.scene||pl.scene.id!==m[1])bad.push(c[0]+" @"+m[0]+" → "+(pl.scene?pl.scene.id:"silence"));});});
+    if(bad.length)return "silent or wrong beds: "+bad.join("; ");
+    var hushed=ambientPlan(e2Snap("The Village",true,720,E2_VILLAGE),AUDIO_SCENES),normal=ambientPlan(e2Snap("The Village|the square",true,720,E2_SQUARE),AUDIO_SCENES);
+    return Math.abs(hushed.gain-normal.gain*0.5)<1e-9?true:"the hushed halving stays: "+hushed.gain+" vs "+normal.gain;
+  });
+  t("#481 E2 a profile's forbid still wins: the t218 tavern (forbid crowd) gets the hearth; a forbidden bed sound or a silent profile vetoes a seed",function(){
+    var t218={enclosure:"covered",setting:"interior",biome:"temperate",quiet:"normal",allows:["fire","voices"],forbid:["crowd","thunder"],cohort:"starter-1",schema:1};
+    var pl=ambientPlan(e2Snap("The Village|the tavern",false,1195,t218,"the tavern"),AUDIO_SCENES);if(!pl.scene||pl.scene.id!=="interior-hearth")return "forbid crowd must leave the hearth: "+(pl.scene&&pl.scene.id);
+    var noBirds=Object.assign({},E2_SQUARE,{forbid:["birds"]});pl=ambientPlan(e2Snap("The Village|the square",true,720,noBirds),AUDIO_SCENES);if(pl.scene&&pl.scene.id==="village-day")return "a forbidden bed sound vetoes the seed";
+    pl=ambientPlan(e2Snap("The Village|the square",true,720,Object.assign({},E2_SQUARE,{quiet:"silent"})),AUDIO_SCENES);return pl.scene?"silent vetoes the seed":true;
+  });
+  t("#481 E2 the t202 tavern plays its crowd bed AND its authored footsteps (a chosen seed's accents ride, subject to forbid)",function(){
+    var t205={enclosure:"covered",setting:"interior",biome:"temperate",quiet:"normal",allows:["fire","voices"],forbid:["machinery","rain","thunder"],cohort:"starter-1",schema:1};
+    var sn=e2Snap("The Village|the tavern",false,1195,t205,"the tavern"),pl=ambientPlan(sn,AUDIO_SCENES);if(!pl.scene||pl.scene.id!=="tavern")return "the crowd bed: "+(pl.scene&&pl.scene.id);
+    var acc=audioSelectAccents(sn,AUDIO_CATALOG,accentSeedFor(sn,AUDIO_SCENES)).map(function(a){return a.id;});
+    if(acc.indexOf("footsteps-wood")<0)return "the tavern's authored footsteps: "+JSON.stringify(acc);
+    /* the SEED path proper: a classified tavern whose observed list names only fire — the profile path hears no one, the
+       authored crowd bed plays, and its footsteps ride with it */
+    var fireOnly=Object.assign({},t205,{allows:["fire"]}),sn3=e2Snap("The Village|the tavern",false,1195,fireOnly,"the tavern");
+    if((ambientPlan(sn3,AUDIO_SCENES).scene||{}).id!=="tavern")return "fixture: the authored crowd bed plays";
+    var acc3=audioSelectAccents(sn3,AUDIO_CATALOG,accentSeedFor(sn3,AUDIO_SCENES)).map(function(a){return a.id;});
+    if(acc3.indexOf("footsteps-wood")<0)return "a chosen seed's accents ride a classified place: "+JSON.stringify(acc3);
+    /* still subject to the profile's forbid: the seed's own list, filtered — no one about, no footsteps */
+    var tavernSeed=AUDIO_SCENES.filter(function(x){return x.id==="tavern";})[0],hushAll=Object.assign({},t205,{allows:["fire"],forbid:["voices","crowd","thunder"]}),sn2=e2Snap("The Village|the tavern",false,1195,hushAll,"the tavern");
+    var acc2=audioSelectAccents(sn2,AUDIO_CATALOG,tavernSeed).map(function(a){return a.id;});
+    return acc2.indexOf("footsteps-wood")<0?true:"no one about (voices and crowd forbidden) — no footsteps: "+JSON.stringify(acc2);
+  });
+
   t("#481 E7 a stale house plays its hearth until reclassified; an invalid profile stays silent; the re-ask still fires",function(){
     makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation="Ammut's house";worldState.character.name="Ammut";memory.campId=worldState.campId;delete worldState.audioAsk;
     var house={parent:"The Village",owner:"Ammut",visits:3,stateNotes:[]};memory.map.nodes={"The Village":{parent:null},"The Village|Ammut's house":house};

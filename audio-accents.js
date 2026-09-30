@@ -36,18 +36,32 @@ function audioAccentMatches(a, p, m) {
     a.contains.every(heard) && (!(a.needsAny || []).length || a.needsAny.some(heard));
 }
 /* A place's accent sets: from its saved profile, or from an authored seed scene's list. Deterministic per place. */
+/* #481 E2: the registry seed the ambient plan chose for this snapshot (a seed carries a binding; a catalog pick or the
+   hearth default does not), or null. Its accent list rides whether or not the place is classified. */
+function accentSeedFor(snapshot, registry) {
+  var sc = (typeof ambientPlan === "function") ? (ambientPlan(snapshot, registry || []).scene || null) : null;
+  return (sc && sc.bind) ? sc : null;
+}
 function audioSelectAccents(s, catalog, seedScene) {
   var assets = (catalog && catalog.assets) || [], m = s && s.minuteOfDay, chosen;
-  if (s && s.profile) {
+  if (seedScene && seedScene.accents && seedScene.accents.length) {   /* #481 E2: a chosen seed's authored accents, subject to the profile's forbid */
+    var pf = null;
+    if (s && s.classified && !s.profile) return [];   /* an unreadable classification never falls back to seed accents */
+    if (s && s.profile) { var pv = audioValidateProfile(s.profile); if (!pv.ok || pv.profile.quiet === "silent") return []; pf = pv.profile; }
+    chosen = seedScene.accents.map(function(id) { return assets.filter(function(a) { return a.id === id; })[0]; })
+      .filter(function(a) {
+        if (!a || !audioAccentApproved(a)) return false;
+        if (!pf) return true;
+        if ((a.contains || []).some(function(c) { return pf.forbid.indexOf(c) >= 0; })) return false;
+        return !((a.needsAny || []).length && a.needsAny.every(function(c) { return pf.forbid.indexOf(c) >= 0; }));   /* no one about */
+      });
+  } else if (s && s.profile) {
     var v = audioValidateProfile(s.profile), p;
     if (!v.ok || v.profile.quiet === "silent" || typeof m !== "number" || !isFinite(m) || m < 0 || m >= 1440) return [];
     p = Object.assign({}, v.profile, {cohort: v.profile.cohort || catalog.cohort});
     var salt = p.variant || s.nodeKey || "";
     chosen = assets.filter(function(a) { return audioAccentApproved(a) && audioAccentMatches(a, p, m); })
       .sort(function(a, b) { var x = audioHash(salt + "|" + a.id), y = audioHash(salt + "|" + b.id); return x < y ? -1 : x > y ? 1 : 0; });
-  } else if (s && !s.classified && seedScene && seedScene.accents) {
-    chosen = seedScene.accents.map(function(id) { return assets.filter(function(a) { return a.id === id; })[0]; })
-      .filter(function(a) { return a && audioAccentApproved(a); });
   } else return [];
   return chosen.slice(0, ACCENT_MAX_SETS);
 }
@@ -161,7 +175,7 @@ function createAccentController(driver, catalog, registry) {
       if (blocked(snapshot)) {                     /* mic, pause, hidden, OFF: cut now; the gap timer starts over after */
         clearTimer(); hush(0); st = null; return;
       }
-      var seed = snapshot.classified || snapshot.profile ? null : (ambientPlan(snapshot, registry || []).scene || null);
+      var seed = accentSeedFor(snapshot, registry);/* #481 E2: the seed the plan chose, classified or not */
       var next = audioSelectAccents(snapshot, catalog, seed);
       var nextKey = next.length ? [snapshot.campaignId, snapshot.nodeKey, snapshot.generation, next.map(function(x) { return x.id; }).join(",")].join("|") : "";
       if (nextKey !== key) { clearTimer(); hush(0); releaseAll(); st = null; failed = {}; key = nextKey; sets = next; }
