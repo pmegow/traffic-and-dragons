@@ -1780,8 +1780,9 @@ var buildTradeNote=oneShotPing("tradePing",{name:"buildTradeNote",text:function(
 /* #6 D2: one exchange between two residents, the hero as witness — a cooldown ask on exchangeAsk, village only. */
 function buildResidentExchangeNote(){
   if(!worldState||worldState.combat||typeof kindDef!=="function"||!kindDef().residentExchange)return "";
-  var _xm=(typeof buildSceneManifest==="function")?buildSceneManifest():{},local=_xm.seenHere||_xm.local||[],res=[],i;/* #481 B4: not on the present-now predicate — B3 owns this gate */
-  for(i=0;i<local.length;i++){var n=(typeof wsNpcByName==="function")?wsNpcByName(local[i]):null;if(n&&n.resident&&!n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n)))res.push(n);}
+  /* #481 B3: the pair must be ON STAGE NOW — both observed in the active frame by the latest reply (sceneOnStageNow) */
+  var npcs=worldState.npcs||[],res=[],i;
+  for(i=0;i<npcs.length;i++){var n=npcs[i];if(n&&n.resident&&!n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n))&&typeof sceneOnStageNow==="function"&&sceneOnStageNow(n.name))res.push(n);}
   if(res.length<2)return "";
   var ask=worldState.exchangeAsk,every=(typeof EXCHANGE_EVERY==="number")?EXCHANGE_EVERY:8;
   if(ask&&(worldState.turn-ask.turn)<every)return "";

@@ -992,6 +992,17 @@ function scenePresentNow(name){
   if(cl&&cl.node===here&&cl.turn>last&&(cl.names||[]).indexOf(canon)<0)return false;
   return true;
 }
+/* #481 B3 (audit 2026-09-29, Fable-approved): ON STAGE NOW — observed in the active scene frame by the latest reply
+   (lastTurn === worldState.turn). Stricter than scenePresentNow (B4): the resident-exchange note gates on it, so the note can
+   amplify a pair who are really there, never summon one (t129–t186: the same two neighbours were called "both here" every
+   eight turns and staged outside the window, and their lines then counted as presence for the next round). */
+function sceneOnStageNow(name){
+  var f=worldState&&worldState.sceneRefs&&worldState.sceneRefs.active;if(!f||f.node==null)return false;
+  if(locResolve(String(f.node))!==locResolve(currentNodeKey()))return false;
+  var canon=resolveNpcName(name),ob=f.observed||[],i;
+  for(i=0;i<ob.length;i++)if(ob[i]&&resolveNpcName(ob[i].entity)===canon)return ob[i].lastTurn===worldState.turn;
+  return false;
+}
 function derivePresenceFromResponse(text,R){
   if(!worldState)return;
   text=String(text||"");

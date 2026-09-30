@@ -24317,15 +24317,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("#6D2 one exchange between two residents: with two residents present buildResidentExchangeNote asks for ONE exchange the hero witnesses, naming both and a record each; latched for EXCHANGE_EVERY turns; silent with one resident; never in the adventure",function(){
-    villageCD();worldState.world.sublocation="the tavern";delete worldState.exchangeAsk;
+    /* #481 B3: "present" for the exchange is ON STAGE NOW — both observed in the active frame by the latest reply */
+    function stage(names){delete worldState.sceneRefs;sceneRefsEnsure();worldState.sceneRefs.active.observed=names.map(function(nm){return {entity:nm,channel:"say",firstTurn:worldState.turn,lastTurn:worldState.turn,turns:1};});}
+    villageCD();worldState.world.sublocation="the tavern";delete worldState.exchangeAsk;stage(["Frizwick","Daeris"]);
     var n=buildResidentExchangeNote();if(!n||!/Frizwick/.test(n)||!/Daeris/.test(n))return "two present residents must be named: "+String(n).slice(0,300);
     if(/Storval stair|tower fell|lived/.test(n))return "#6 D5: the exchange must NOT draw on their past: "+n.slice(0,400);
     if(!/TODAY/.test(n)||!/belongs to the Hall/.test(n))return "the exchange is about today, the past goes to the Hall: "+n.slice(0,400);
     if(!/witness|hero/i.test(n))return "the hero witnesses";
     if(!worldState.exchangeAsk||worldState.exchangeAsk.turn!==12)return "the ask latches";
     if(buildResidentExchangeNote())return "no second ask within EXCHANGE_EVERY turns";
-    worldState.turn=12+EXCHANGE_EVERY;if(!buildResidentExchangeNote())return "the ask returns after EXCHANGE_EVERY turns";
-    memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");delete worldState.exchangeAsk;if(buildResidentExchangeNote())return "one resident present is no exchange";
+    worldState.turn=12+EXCHANGE_EVERY;stage(["Frizwick","Daeris"]);if(!buildResidentExchangeNote())return "the ask returns after EXCHANGE_EVERY turns";
+    memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");delete worldState.exchangeAsk;stage(["Frizwick"]);if(buildResidentExchangeNote())return "one resident present is no exchange";
     if(!NOTE_SHAPES.buildResidentExchangeNote||NOTE_SHAPES.buildResidentExchangeNote.village!=="fires")return "registry row missing";
     makeWorld();delete worldState.kind;if(buildResidentExchangeNote())return "never in the adventure";
     return true;
@@ -27284,11 +27286,30 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn++;quiet(function(){applyMuts("[SCENE_CAST:none]");});
     return worldState.castLast.turn===205?true:"none records no cast: "+JSON.stringify(worldState.castLast);
   });
-  t("#481 B4 the exchange note is not on this predicate (B3 owns its gate)",function(){
-    b4Tavern();memory.npcs["Daeris"].lastSeenAt="The Village|the tavern";memory.npcs["Daeris"].lastSeenTurn=150;memory.npcs["Frizwick"].lastSeenTurn=150;delete worldState.exchangeAsk;
-    var man=buildSceneManifest();if(man.local.length)return "fixture: nobody fresh: "+JSON.stringify(man.local);
+
+  section("#481 B3 the exchange note amplifies a real pair, never summons one");
+  function b3Home(){villageEF();villageHouseEnsure("Silas",null);worldState.world.sublocation="Silas's house";worldState.turn=80;delete worldState.sceneRefs;sceneRefsEnsure();delete worldState.exchangeAsk;
+    var f=worldState.sceneRefs.active;f.observed.push({entity:"Frizwick",channel:"say",firstTurn:79,lastTurn:82,turns:2});f.observed.push({entity:"Daeris",channel:"say",firstTurn:80,lastTurn:79,turns:1});
+    memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Silas");memory.npcs["Frizwick"].lastSeenTurn=82;memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Silas");memory.npcs["Daeris"].lastSeenTurn=79;
+    worldState.turn=85;return f;}
+  t("#481 B3 the t85 shape: a pair seen here 3-6 turns ago, silent in the latest reply, gets no exchange note",function(){
+    b3Home();var n=buildResidentExchangeNote();return n===""?true:"the note must not summon a pair that is not on stage: "+n.slice(0,200);
+  });
+  t("#481 B3 both speaking in the latest reply fires it",function(){
+    var f=b3Home();f.observed.forEach(function(o){o.lastTurn=85;});
+    var n=buildResidentExchangeNote();return (/Frizwick/.test(n)&&/Daeris/.test(n))?true:"a pair on stage now gets the note: "+n.slice(0,200);
+  });
+  t("#481 B3 sceneOnStageNow is its own predicate beside scenePresentNow: observed in the active frame by the latest reply",function(){
+    var f=b3Home();if(!scenePresentNow("Frizwick"))return "fixture: Frizwick is present by B4";
+    if(sceneOnStageNow("Frizwick"))return "present is not on stage";
+    f.observed[0].lastTurn=85;if(!sceneOnStageNow("Frizwick"))return "observed by the latest reply is on stage";
+    worldState.world.sublocation="the tavern";return sceneOnStageNow("Frizwick")?"on stage elsewhere: a frame at another place is not this scene":true;
+  });
+  t("#481 B3 present by the B4 predicate is not on stage: the exchange note ignores scenePresentNow (B3 owns its gate)",function(){
+    b4Tavern();memory.npcs["Daeris"].lastSeenAt="The Village|the tavern";memory.npcs["Daeris"].lastSeenTurn=204;memory.npcs["Frizwick"].lastSeenTurn=204;delete worldState.exchangeAsk;
+    var man=buildSceneManifest();if(man.local.indexOf("Frizwick")<0||man.local.indexOf("Daeris")<0)return "fixture: both present now by B4: "+JSON.stringify(man.local);
     if(man.seenHere.indexOf("Frizwick")<0||man.seenHere.indexOf("Daeris")<0)return "the stale-tolerant list keeps the exact-spot sightings: "+JSON.stringify(man.seenHere);
-    var n=buildResidentExchangeNote();return (/Frizwick/.test(n)&&/Daeris/.test(n))?true:"the exchange note still reads the exact-spot list until B3 gives it its own gate: "+n.slice(0,200);
+    var n=buildResidentExchangeNote();return n===""?true:"present by B4 is not on stage by B3 (neither spoke in the latest reply): "+n.slice(0,200);
   });
 
 }

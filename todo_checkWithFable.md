@@ -94,6 +94,11 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Fixtures updated (assertions unchanged):** `carriedEF` (Nyla and Silas) and the #317 whispers fixture (Old Maud) had "present" residents with UNDATED `lastSeenAt` beside an active frame. They now carry `lastSeenTurn`, as every live writer does (#175bR). The #434 and #460 roster tests and #317 went red on the old shape, green on the dated one.
   - **Real-save evidence:** on the t205 save (hero in the tavern, frame since t204), local went from Thessa, Sable, The Entity (t197), Victor Marlow (t28), Pirindel to Thessa, Sable, Pirindel. RESIDENTS ABOUT names Victor again.
   - **Proof:** 5 red-first tests in "#481 B4" (all 5 red before the build; incl. (c): Victor not local, in RESIDENTS ABOUT, no plays-as; a keeper last seen 100 turns ago still trades; the exchange note is not on this predicate). Full suite green (2,434); four replay baselines unchanged; `dev/sabotage-481-b4-scene-present.js` 5/5 caught; `dev/sabotage-392-local-scene.js` 4/4 after the retarget.
+- 2026-09-29 · #481 B3 · v1.1031 · Opus 5.5 · The exchange note amplifies a real pair, never summons one.
+  - **Gate (a):** `sceneOnStageNow(name)` (identity.js, beside B4's predicate) is true only if the name was observed in the active frame at this node by the latest reply (`lastTurn === worldState.turn`). `buildResidentExchangeNote` gates on it, iterating the roster; it is off B4's consumer list (b).
+  - **Tests:** B4's interim pin moved into the B3 section and now asserts "present by B4 is not on stage". The #6D2 fixture (a pair "present" by stale sighting) now stages both in the frame. Its assertions are unchanged, including the one-resident case (only Frizwick staged).
+  - **Real-save evidence:** the t218 state with the hero walked home. The stale list still holds Nyla, Silas and Sable (the audit's re-summoned pair plus one), B4's local is empty, and the note is silent.
+  - **Proof:** 4 tests in "#481 B3" (3 red before the build). Full suite green (2,437); four replay baselines unchanged; `dev/sabotage-481-b3-on-stage.js` 3/3 caught, including Fable's named "revert to manifest.local".
 
 ## Off-Fable log
 
