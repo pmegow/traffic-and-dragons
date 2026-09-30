@@ -41,7 +41,8 @@ test('the game\'s two library slug sites go through the one contract', () => {
   assert.ok(/"\/library-slug\.js"/.test(fs.readFileSync(path.join(root, 'sw.js'), 'utf8')), 'the service worker app shell must carry library-slug.js');
 });
 test('the vendoring pin: the file\'s bytes match the hash both repos pin (update the server\'s library-slug.cjs with it)', () => {
-  const sha = crypto.createHash('sha256').update(fs.readFileSync(path.join(root, 'library-slug.js'))).digest('hex');
+  /* line endings normalized: the server repo has no eol=lf, so a Windows checkout of its copy is CRLF — same contract */
+  const sha = crypto.createHash('sha256').update(fs.readFileSync(path.join(root, 'library-slug.js'), 'utf8').replace(/\r\n/g, '\n')).digest('hex');
   assert.equal(sha, LIBRARY_SLUG_SHA256, 'library-slug.js changed: copy it byte-for-byte to the server as library-slug.cjs, then update LIBRARY_SLUG_SHA256 here AND in the server\'s test-library-slug.mjs');
 });
 console.log('#481 F5 LIBRARY SLUG: ' + failed + ' failed, ' + passed + ' passed');
