@@ -1320,6 +1320,18 @@ function campLocalTurn(id){
   try{var w=JSON.parse(raw);return typeof w.turn==="number"?w.turn:-1;}
   catch(e){console.warn("[camps] the local copy of "+campDisplayName(id)+" could not be read for the turn comparison ("+(e&&e.message)+") — treating this device as possibly AHEAD");return -1;}
 }
+/* #481 F9: the campaign ON SCREEN leaves this device — the player chose "remove" after another device deleted it. Its live
+   keys, its slots and sync markers, its picker row, and the active id go; the caller shows the wizard and the picker. */
+function removeActiveCampaignLocally(id){
+  if(!id||getActiveCampId()!==id)return false;
+  store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+  removeCampaignLocalCopy(id,{teardown:true});
+  setCampMeta(getCampMeta().filter(function(c){return c.id!==id;}));
+  forgetCampaignSyncMarkers(id);
+  setActiveCampId(null);
+  worldState=null;sessionLog=[];memory=blankMemory();
+  return true;
+}
 function deleteCampaign(id){
   store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
   setCampMeta(getCampMeta().filter(function(c){return c.id!==id;}));

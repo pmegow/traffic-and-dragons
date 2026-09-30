@@ -1014,7 +1014,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <p class="ttl">A campaign deleted on one device is quietly put back by another <span class="lean low">low</span><span class="lean">sync</span></p>
 <p class="tldr"><b>TLDR:</b> Delete a campaign on your phone while it's open on your desktop, and the desktop reads the missing row as "not uploaded yet" and re-uploads it.</p>
 <p><span class="k">Fix</span>A 404 for a campaign whose <code>onServer</code> flag is set asks: keep and re-upload, or remove locally. Compare the reconcile id with the currently active campaign before blaming "a server-side id mismatch". <code>storage-adapter.js:846-855, 889</code>.</p>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1074: a 404 for a campaign the server once held (or the list sync no longer naming the campaign on screen) records one persisted question and pauses that campaign's pushes; a forced choice (Keep first) keeps and re-uploads, or removes it from this device; a reconcile answer after a campaign switch is ignored as stale instead of blamed on the server. Not covered: a delete elsewhere mid-session (needs a server tombstone). Proof: dev/tests-481-f9-deleted-elsewhere.js 8 groups (repro red first), dev/sabotage-481-f9-deleted-elsewhere.js 9/9; probation log entry.</td></tr>
 
 <tr id="F10"><td class="n">F10</td><td>
 <p class="ttl">A signed-out device gets no visible signal <span class="lean low">low</span><span class="lean">silent failure</span></p>

@@ -570,6 +570,8 @@ var storageAdapter = (function() {
     if (_conflict) { _fin("sync paused — another device is ahead"); return; } // CAS 409 landed — never POST over a newer device; reload/switch clears via resetSyncState
     if (_syncing && !beacon) { _pendingSync = true; _fin("a sync was already in flight"); return; }
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
+    var _de = _delElsewhere();   /* #481 F9: never re-upload a campaign another device deleted until the player answers */
+    if (_de && campId && _de.id === campId) { console.info("[storage] sync paused — " + campId + " was deleted on another device; answer the question to keep or remove it"); _fin("sync paused — deleted on another device"); return; }
     if (!beacon) { _syncing = true; _pendingSync = false; }
     var turnAt   = worldState.turn || 0; // the turn this payload carries — ACKed on 2xx
     var wsStripped = _stripNpcPortraits(worldState); // PC portrait stays inline — see _stripNpcPortraits
@@ -750,6 +752,16 @@ var storageAdapter = (function() {
       // alive on a quota-full device, and the _mKeys shadow that stops a stale disk copy being served.
       var local = (typeof getCampMeta === "function") ? getCampMeta() : [];
       var merged = mergeCampaignLists(local, serverList);
+      /* #481 F9: the list no longer names the campaign ON SCREEN that it once did — the reconcile's 404 by another road (the
+         picker's list sync can run first and prune the only record that the server held it). Same question, same pause. */
+      var _act = (typeof getActiveCampId === "function") ? getActiveCampId() : null, _was = null, _k;
+      for (_k = 0; _act && _k < local.length; _k++) if (local[_k] && local[_k].id === _act && local[_k].onServer) _was = local[_k];
+      if (_was && !merged.some(function (m) { return m && m.id === _act; }) && !_delElsewhere()) {
+        _delElsewhereSet({ id: _act, name: _was.name || _act, at: Date.now() });
+        console.warn("[storage] campaign list: " + _act + " (on screen) is no longer on the server (deleted on another device?) — its uploads are paused until you answer");
+        if (typeof onCampaignDeletedElsewhere === "function") onCampaignDeletedElsewhere(_act, _was.name || _act);
+        else if (typeof showToast === "function") showToast("&#9729; This campaign was deleted on another device — its uploads are paused.", 8000);
+      }
       try { if (typeof setCampMeta === "function") setCampMeta(merged); }
       catch (e) { console.error("[storage] the merged campaign list could not be persisted (storage full?) — the picker shows it this session only:", e); }
       done(merged);
@@ -834,6 +846,35 @@ var storageAdapter = (function() {
     });/* #377 probe */
   }
 
+  // #481 F9 (audit 2026-09-29, Fable-approved): a campaign deleted on ANOTHER device. Its row answers 404 here, and #449's
+  // 404 rule ("a local-only campaign whose first push is still pending") re-uploaded it on the next save — the delete undone
+  // without a word. A 404 for a campaign the server once held (its list row says onServer, or the question is already
+  // pending) records ONE pending question, persisted so it survives the list sync's prune and a reload; pushes of that
+  // campaign pause until the player answers (resolveDeletedElsewhere: keep = upload it again; remove = the UI clears it).
+  var DELETED_ELSEWHERE_K = "tnd_deleted_elsewhere_v1";   /* through state.js's store: a quota-full device keeps it in memory for the page */
+  function _delElsewhere() { try { var r = JSON.parse(store.get(DELETED_ELSEWHERE_K) || "null"); return (r && typeof r.id === "string") ? r : null; } catch (e) { console.warn("[storage] the deleted-elsewhere record is unreadable — ignored: " + ((e && e.message) || e)); return null; } }
+  function _delElsewhereSet(rec) {
+    try { if (rec) store.set(DELETED_ELSEWHERE_K, JSON.stringify(rec)); else store.del(DELETED_ELSEWHERE_K); }
+    catch (e) { console.warn("[storage] could not persist the deleted-elsewhere question (" + ((e && e.message) || e) + ") — it holds for this page only"); }
+  }
+  function _campOnceOnServer(id) {
+    var p = _delElsewhere(); if (p && p.id === id) return p;
+    var meta = (typeof getCampMeta === "function") ? getCampMeta() : [], i;
+    for (i = 0; i < meta.length; i++) if (meta[i] && meta[i].id === id && meta[i].onServer) return { id: id, name: meta[i].name || id };
+    return null;
+  }
+  function resolveDeletedElsewhere(id, keep) {
+    var p = _delElsewhere(); if (!p || p.id !== id) return false;
+    _delElsewhereSet(null);
+    if (keep) {   /* the local copy is the only copy now: it is local-only until its upload lands, then the list marks it again */
+      try { var meta = getCampMeta(), i; for (i = 0; i < meta.length; i++) if (meta[i] && meta[i].id === id) delete meta[i].onServer; setCampMeta(meta); }
+      catch (e) { console.warn("[storage] could not clear the stale onServer flag for " + id + ": " + ((e && e.message) || e)); }
+      console.info("[storage] " + id + " kept after a delete on another device — uploading it again");
+      syncToServer();
+    } else console.info("[storage] " + id + " — removal from this device chosen after a delete on another device");
+    return true;
+  }
+
   function _reconcileFromServer(localOk) {
     // Timed (audit E76): the reconcile GET had no timeout and its failure was only console.warn'd —
     // a dead host or expired token left the user silently reading stale local state while believing
@@ -853,7 +894,20 @@ var storageAdapter = (function() {
       if (!r.ok) { var _e = new Error("HTTP " + r.status); _e.status = r.status; throw _e; }
       return r.json();
     }).then(function(data) {
-      if (data === null) { console.info("[storage] reconcile: " + _rcId + " has no cloud copy yet — keeping local state until its first push lands"); syncCampaignList(null); return; }
+      var _nowActive = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
+      /* #481 F9: an answer for a campaign this device has since switched away from is stale — ignored, never blamed on the server */
+      if (_rcId && _nowActive && _nowActive !== _rcId) { console.info("[storage] reconcile: the answer for " + _rcId + " arrived after this device switched to " + _nowActive + " — ignored"); syncCampaignList(null); return; }
+      if (data === null) {
+        var _gone = _campOnceOnServer(_rcId);
+        if (_gone) {   /* #481 F9: the server once held it — deleted on another device (or lost): ask, and pause its pushes */
+          _delElsewhereSet({ id: _rcId, name: _gone.name || _rcId, at: Date.now() });
+          console.warn("[storage] reconcile: " + _rcId + " was on the server and is gone (deleted on another device?) — its uploads are paused until you answer");
+          if (typeof onCampaignDeletedElsewhere === "function") onCampaignDeletedElsewhere(_rcId, _gone.name || _rcId);
+          else if (typeof showToast === "function") showToast("&#9729; This campaign was deleted on another device — its uploads are paused.", 8000);
+          syncCampaignList(null); return;
+        }
+        console.info("[storage] reconcile: " + _rcId + " has no cloud copy yet — keeping local state until its first push lands"); syncCampaignList(null); return;
+      }
       if (!data || !data.worldState) {
         syncCampaignList(null);
         return;
@@ -1255,6 +1309,7 @@ var storageAdapter = (function() {
     pushCampaignState:     pushCampaignState,
     putCampaignPortrait:   putCampaignPortrait,
     listBlueprintCatalog:       listBlueprintCatalog,
+    resolveDeletedElsewhere:    resolveDeletedElsewhere,   /* #481 F9: the player's answer — keep (upload again) or remove */
     publishBlueprintToCatalog:  publishBlueprintToCatalog,
     listBlueprintLibrary:       listBlueprintLibrary,
     saveBlueprintToLibrary:     saveBlueprintToLibrary,

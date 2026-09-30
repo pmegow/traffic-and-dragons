@@ -462,6 +462,30 @@ function campRemoveLocal(id){
    copy goes only once the server agreed (or says it never had the campaign), so a failed cloud delete never leaves a
    row that vanishes locally and comes back on the next list sync; the reason reaches the player and deleting again is
    the retry. Unconnected, the local delete is the whole operation, as before. */
+/* #481 F9: another device deleted the campaign on screen. The adapter paused its uploads and asks here — a forced choice
+   (no Escape, no outside click), Keep first so the default focus is the safe answer: keep it (upload it again), or remove it
+   from this device too. */
+function onCampaignDeletedElsewhere(id,name){
+  var nm=name||id;
+  if(typeof modalShell!=="function"){showToast("&#9729; "+escHtml(nm)+" was deleted on another device — its uploads are paused.",8000);return;}
+  var m=modalShell("deleted-elsewhere-modal",
+    "<div style='font-size:16px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>"+escHtml(nm)+" was deleted on another device</div>"
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>The cloud copy is gone, but this device still has it. Keep it here and upload it again, or remove it from this device too.</div>"
+    +"<div style='display:flex;gap:10px;margin-top:18px;'><button id='de-keep' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Keep and upload again</button>"
+    +"<button id='de-remove' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Remove from this device</button></div>",
+    {maxWidth:460,wireClose:false});
+  document.getElementById("de-keep").onclick=function(){m.remove();storageAdapter.resolveDeletedElsewhere(id,true);showToast("&#9729; Kept — "+escHtml(nm)+" will upload again.");};
+  document.getElementById("de-remove").onclick=function(){
+    if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}
+    m.remove();storageAdapter.resolveDeletedElsewhere(id,false);
+    if(getActiveCampId()===id){
+      removeActiveCampaignLocally(id);
+      var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");if(sn)sn.innerHTML="";if(st)st.innerHTML="";
+      showChar();
+    }else deleteCampaign(id);
+    showCampaignPicker();showToast("Removed "+escHtml(nm)+" from this device.");
+  };
+}
 function campDeleteRemoteOutcome(err){
   if(!err)return "deleted";
   if(/\b404\b|not found/i.test(String(err)))return "absent";/* nothing to delete on the server — a local-only campaign */
