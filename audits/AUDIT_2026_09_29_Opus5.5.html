@@ -1008,7 +1008,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <p class="tldr"><b>TLDR:</b> If the character sheet stayed open through a GM turn that removed an item, the first × can mark, and then delete, the neighbouring item.</p>
 <p><span class="k">Fix</span>The × carries the row's name as well as its index. The mark resolves by name when the two disagree. Add a tests-429 case.</p>
 <details><summary>Evidence</summary><p><code>ui-sheets.js:57-58</code>. Inventory [Rope, Torch, Waterskin]; the Torch × carries index 1. After <code>[ITEM_LOST:Rope]</code>, clicking Torch's × and then Delete gives "Deleted 1 item: Waterskin".</p></details>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1068: the inventory × carries its row's name beside its index; invMarkResolve (helpers.js, pure) prefers the name when a GM turn moved the pack under an open sheet, and a × whose item is gone marks nothing and says so. Repro (red first): [Rope, Torch, Waterskin], the rope lost, the stale Torch × then Delete — deleted Waterskin, now Torch. Proof: tests-429 +2 cases; dev/sabotage-481-f8-mark-by-name.js 3/3; #429 battery re-anchored and green.</td></tr>
 
 <tr id="F9"><td class="n">F9</td><td>
 <p class="ttl">A campaign deleted on one device is quietly put back by another <span class="lean low">low</span><span class="lean">sync</span></p>

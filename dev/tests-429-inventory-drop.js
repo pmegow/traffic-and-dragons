@@ -139,6 +139,34 @@ test("a stale mark beside live ones is reported in the same toast, the live ones
   assert(/Deleted 1 item: Rope/.test(__toasts[0]) && /no longer carried: Potion/.test(__toasts[0]), "toast: " + __toasts[0]);
 });
 
+// ── #481 F8 (audit 2026-09-29): the × carried only its row's INDEX, read against the live pack at click time — a sheet left
+// open through a GM turn that removed an item marked, and then deleted, the NEIGHBOUR. Inventory [Rope, Torch, Waterskin];
+// the Torch × carries index 1; after [ITEM_LOST:Rope], clicking it and then Delete said "Deleted 1 item: Waterskin".
+test("#481 F8 the repro: a × rendered before a GM turn marks ITS item, never the one that slid into its index", function () {
+  fresh();
+  var c = worldState.character;
+  c.inventory = ["Rope", "Torch", "Waterskin"];
+  c.inventory.splice(0, 1);                                         /* the GM's [ITEM_LOST:Rope], while the sheet stays open */
+  __toasts.length = 0;
+  markInvItem("", 1, null, "Torch");                                /* the Torch row's ×, as rendered before the turn */
+  dropMarkedItems("", null);
+  assert.deepEqual(c.inventory, ["Waterskin"], "the neighbour was deleted: " + JSON.stringify(c.inventory));
+  assert(/Deleted 1 item: Torch/.test(__toasts[__toasts.length - 1]), "toast: " + __toasts[__toasts.length - 1]);
+});
+test("#481 F8 the × carries its row's name; a × whose item is gone marks nothing and says so", function () {
+  fresh();
+  var c = worldState.character;
+  c.inventory = ["Rope", "Torch", "Waterskin"];
+  var html = csSheetSections(c, ""), torch = /data-idx="(\d+)"[^>]*data-name="Torch"/.exec(html);
+  assert(torch && torch[1] === "1", "the Torch × does not carry its name beside its index");
+  assert(/markInvItem\(this\.dataset\.own,this\.dataset\.idx,event,this\.dataset\.name\)/.test(html), "the × does not pass its name");
+  c.inventory = ["Waterskin"];                                      /* rope and torch both went on the GM's turn */
+  __toasts.length = 0;
+  markInvItem("", 1, null, "Torch");
+  assert.equal(invDropCount(marksFor("")), 0, "a gone item was marked (or its neighbour was)");
+  assert(/Torch/.test(__toasts[0] || "") && /no longer carried/.test(__toasts[0] || ""), "the miss was silent: " + JSON.stringify(__toasts));
+});
+
 // ── the render ───────────────────────────────────────────────────────────────
 test("the render: marked rows read red with the un-mark ×, the button carries the live count at the foot of the list, no marks → no button", function () {
   fresh();
@@ -147,7 +175,7 @@ test("the render: marked rows read red with the un-mark ×, the button carries t
   var plain = csSheetSections(c, "");
   assert(plain.indexOf("inv-drop-btn") < 0, "the button renders with nothing marked");
   assert(plain.indexOf("inv-marked") < 0, "a row reads marked with nothing marked");
-  assert(/markInvItem\(this\.dataset\.own,this\.dataset\.idx,event\)/.test(plain), "the × no longer calls markInvItem");
+  assert(/markInvItem\(this\.dataset\.own,this\.dataset\.idx,event,this\.dataset\.name\)/.test(plain), "the × no longer calls markInvItem with its row's name (#481 F8)");
   assert(!/dropInvItem\(/.test(plain), "the × still calls the dead per-item drop");
   markInvItem("", 0, null); markInvItem("", 2, null);
   var marked = csSheetSections(c, "");

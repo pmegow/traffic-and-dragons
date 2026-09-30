@@ -1951,6 +1951,17 @@ function invDropToggle(marks,idx,name){
   return out;
 }
 function invDropCount(marks){var n=0,m;if(!marks)return 0;for(m in marks){if(marks.hasOwnProperty(m)&&marks[m])n++;}return n;}
+/* #481 F8: the row a × means. The × carries its row's index AND name, but a GM turn between the render and the click can
+   splice the pack, so the index alone may now name the neighbour ("Deleted 1 item: Waterskin" for the Torch ×). The name
+   wins when the two disagree — the row carrying it nearest the old index; no name (a render from before) keeps the index;
+   -1 = the item is gone. Pure. */
+function invMarkResolve(inv,idx,name){
+  inv=inv||[];idx=idx|0;
+  if(name==null||name==="")return idx>=0&&idx<inv.length?idx:-1;
+  if(idx>=0&&idx<inv.length&&inv[idx]===name)return idx;
+  var best=-1,i;for(i=0;i<inv.length;i++){if(inv[i]===name&&(best<0||Math.abs(i-idx)<Math.abs(best-idx)))best=i;}
+  return best;
+}
 function invDropPlan(inv,marks){
   inv=inv||[];marks=marks||{};var live=[],stale=[],seen={},k,i;
   for(k in marks){
