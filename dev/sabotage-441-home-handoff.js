@@ -9,7 +9,8 @@ rc|=sabotage.prove({
   cases:[
     { label:"#441: Start with a blueprint skips the picker's reset (the current campaign is never snapshotted)",
       mustFail:"Start with a blueprint: the picker's New reset runs FIRST",
-      find:'  if(typeof campNew==="function")campNew();/* the picker\'s New: snapshot the current campaign, fresh id, the wizard */\n',
+      /* #481 F11 re-anchor: the reset line now also stops on a refusal */
+      find:'  if(typeof campNew==="function"&&!campNew())return "failed";\n',
       replace:'' },
     { label:"#441: a stale payload is offered again",
       mustFail:"a stale (>1h) or malformed payload is not offered",

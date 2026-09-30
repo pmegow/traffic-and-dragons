@@ -1026,7 +1026,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <p class="ttl">"Start" ignores a refused campaign creation <span class="lean low">low</span><span class="lean">wrong outcome</span></p>
 <p class="tldr"><b>TLDR:</b> If storage is full when you pick "Start", the app says the blueprint loaded but keeps you in the old campaign, and your pick from the home page is gone.</p>
 <p><span class="k">Fix</span><code>campNew</code> returns a boolean, checked before the payload is consumed. The quick start runs its guards before <code>removeItem</code>. <code>ui-browsers.js:19-46, 85-86</code>, <code>ui-campaigns.js:525</code>.</p>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1073: campNew returns whether it reset; the Home chooser stops on a refusal before it consumes the pick (no more &quot;Blueprint loaded&quot; over the old campaign); the quick start runs its busy / storage refusals before it consumes its payload. Proof: dev/tests-481-f11-start-refused.js (real campNew / consumers, red first), dev/sabotage-481-f11-start-refused.js 4/4; #441 re-anchored and green.</td></tr>
 
 <tr id="F12"><td class="n">F12</td><td>
 <p class="ttl">The sync contract still describes the library before #427 and #470 <span class="lean low">low</span><span class="lean">doc rot</span></p>

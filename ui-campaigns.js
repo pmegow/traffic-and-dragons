@@ -521,13 +521,15 @@ function campSaveRename(id){
   }
   showCampaignPicker();
 }
+/* #481 F11: returns whether it reset — a caller that goes on to consume something (the Home pick) must stop on a refusal */
 function campNew(){
-  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}// audit E23
   var modal=document.getElementById("camp-modal");if(modal)modal.remove();
-  if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
+  if(!snapshotActiveCamp())return false;/* B4: storage full — don't wipe the only local copy of the current campaign */
   store.del(WSK);store.del(SLK);store.del(MEM_KEY);
   var nid=newCampaignId();setActiveCampId(nid);
   worldState=null;sessionLog=[];memory=blankMemory();
   document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
   showChar();
+  return true;
 }

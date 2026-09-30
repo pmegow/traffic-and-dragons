@@ -34,17 +34,20 @@ function consumeHomeBlueprint(){
 function consumeHomeQuickStart(){
   var raw=null;try{raw=localStorage.getItem(HOME_PENDING_QS_K);}catch(e){/* storage PROBE: a blocked localStorage means there is no handoff — nothing is lost */}
   if(!raw)return false;
-  try{localStorage.removeItem(HOME_PENDING_QS_K);}catch(e){console.warn("[home] could not clear the pending quick-start handoff — it may replay: "+((e&&e.message)||e));}
+  function consume(){try{localStorage.removeItem(HOME_PENDING_QS_K);}catch(e){console.warn("[home] could not clear the pending quick-start handoff — it may replay: "+((e&&e.message)||e));}}
   var rec=null,_qsErr=null;try{rec=JSON.parse(raw);}catch(e){_qsErr=(e&&e.message)||String(e);}/* audit E15 */
   var bad=quickStartPayloadValid(rec);
-  if(bad){console.warn("[home] quick start dropped — "+bad+(_qsErr?" ("+_qsErr+")":"")+"; "+String(raw).length+" chars discarded");showToast("Quick start could not begin: "+bad);return false;}
+  if(bad){consume();console.warn("[home] quick start dropped — "+bad+(_qsErr?" ("+_qsErr+")":"")+"; "+String(raw).length+" chars discarded");showToast("Quick start could not begin: "+bad);return false;}
+  /* #481 F11: the TRANSIENT refusals — a turn in flight, storage too full to snapshot the live campaign — run BEFORE the
+     payload is consumed, so the pick survives for the next try (it used to be removed first and lost with the refusal) */
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}
+  if(worldState&&!snapshotActiveCamp())return false;/* B4: never wipe the only local copy of a live campaign */
+  consume();
   var bp=normalizeBlueprint(rec.bp),char=rec.char,tone=null,ti;
   if(typeof clampImportedCharacter==="function")clampImportedCharacter(char);/* #315 */
   if(typeof portraitAdmit==="function"&&portraitAdmit(char,"quick start"))showToast("⚠ The quick-start hero's portrait was dropped — not an image");/* #481 F2 */
   for(ti=0;ti<TONES.length;ti++)if(TONES[ti].id===bp.tone)tone=TONES[ti];
   tone=tone||TONES.filter(function(t){return t.id==="swords";})[0]||TONES[0];
-  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}
-  if(worldState&&!snapshotActiveCamp())return false;/* B4: never wipe the only local copy of a live campaign */
   store.del(WSK);store.del(SLK);store.del(MEM_KEY);
   var nid=newCampaignId();setActiveCampId(nid);
   worldState=null;sessionLog=[];memory=blankMemory();
@@ -83,7 +86,9 @@ function homeHandoffChoose(choice,pending){
   if(choice!=="start"){homeHandoffClear();if(typeof showToast==="function")showToast("Continuing "+((worldState&&worldState.campName)||"your campaign")+" — "+pending.name+" is still on the Home shelf.");return "continued";}
   if(typeof busy!=="undefined"&&busy){if(typeof showToast==="function")showToast("Finish the current turn first.");return "busy";}
   if(pending.kind==="qs")return consumeHomeQuickStart()?"started":"failed";/* the quick start does its own reset + start */
-  if(typeof campNew==="function")campNew();/* the picker's New: snapshot the current campaign, fresh id, the wizard */
+  /* the picker's New: snapshot the current campaign, fresh id, the wizard. #481 F11: a refused reset (storage full) stops
+     HERE — the pick is not consumed and nothing says "loaded" over the campaign still on screen */
+  if(typeof campNew==="function"&&!campNew())return "failed";
   return consumeHomeBlueprint()?"started":"failed";
 }
 function offerHomeHandoff(){

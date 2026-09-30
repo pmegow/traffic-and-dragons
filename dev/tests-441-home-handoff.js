@@ -12,7 +12,7 @@ global.document = { getElementById: function () { return null; }, createElement:
 var geval = eval; geval(fs.readFileSync(path.join(ROOT, "ui-browsers.js"), "utf8"));
 var calls = [], toasts = [];
 showToast = function (m) { toasts.push(String(m)); };
-campNew = function () { calls.push("campNew"); };
+campNew = function () { calls.push("campNew"); return true; };/* #481 F11: campNew now says whether it reset */
 consumeHomeBlueprint = function () { calls.push("consumeBp"); return true; };
 consumeHomeQuickStart = function () { calls.push("consumeQs"); return true; };
 busy = false;
