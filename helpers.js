@@ -257,7 +257,10 @@ var SHEET_REGISTER_FIELDS=[["backstory","backstory"],["trait","trait"],["flaw","
 function sheetRegisterReport(ws){
   ws=ws||(typeof worldState!=="undefined"?worldState:null);var out=[];if(!ws)return out;
   function scanSheet(name,s){if(!s)return;var i;for(i=0;i<SHEET_REGISTER_FIELDS.length;i++){var f=SHEET_REGISTER_FIELDS[i],v=s[f[0]];if(typeof v==="string"&&v){var h=wordListScan(v,LABEL_RE);if(h.length)out.push({name:name,field:f[1],words:h});}}
-    var w=s.agenda&&s.agenda.want;if(typeof w==="string"&&w){var hw=wordListScan(w,LABEL_RE);if(hw.length)out.push({name:name,field:"want",words:hw});}}
+    var w=s.agenda&&s.agenda.want;if(typeof w==="string"&&w){var hw=wordListScan(w,LABEL_RE);if(hw.length)out.push({name:name,field:"want",words:hw});}
+    /* #481 C9: the names a sheet carries — an ability ("Ledger Memory") or an item ("Ledger fragment") — are reported too */
+    (s.abilities||[]).forEach(function(a){var an=String((a&&a.name!=null)?a.name:(a||"")).trim();if(!an)return;var ha=wordListScan(an,LABEL_RE);if(ha.length)out.push({name:name,field:"ability",words:ha,text:an});});
+    (s.inventory||[]).forEach(function(it){var inm=String((typeof _invBase==="function")?_invBase(it):(it||"")).split(/\s+[\u2014\u2013]\s+/)[0].trim();if(!inm)return;var hi=wordListScan(inm,LABEL_RE);if(hi.length)out.push({name:name,field:"item",words:hi,text:inm});});}
   if(ws.character)scanSheet(ws.character.name||"the player",ws.character);
   var n=ws.npcs||[],i;for(i=0;i<n.length;i++)if(n[i]&&n[i].charSheet)scanSheet(n[i].name,n[i].charSheet);
   return out;
@@ -900,7 +903,7 @@ function detectMomentRetelling(raw,moments,exempt){
     for(j=0;j<exl.length&&!own;j++)if(exl[j]&&(exl[j]===spl||firstOf(exl[j])===firstOf(spl)))own=true;
     if(own)continue;/* the party's own telling is theirs to give */
     var hit=momentEchoWords(s.text,moments,ex.concat([s.speaker]));
-    if(hit&&(!best||hit.words>best.words))best={speaker:s.speaker,who:hit.who,gist:hit.gist,words:hit.words};
+    if(hit&&(!best||hit.words>best.words))best={speaker:s.speaker,who:hit.who,gist:hit.gist,words:hit.words,camp:hit.camp||null};
   }
   return best;
 }
@@ -913,7 +916,7 @@ function momentEchoWords(text,moments,exempt){
     var mo=moments[j];if(!mo||!mo.text)continue;
     var mw=motifWords(mo.text,ex.concat([mo.who||""])),shared=0;
       var strong=false;for(k in mw)if(lineWords[k]){shared++;if(k.length>=MOTIF_STRONG_MIN)strong=true;}
-      if(shared>=MOTIF_MIN_WORDS&&strong&&(!best||shared>best.words))best={who:mo.who||"",gist:String(mo.text).slice(0,MOTIF_GIST_CHARS),words:shared};
+      if(shared>=MOTIF_MIN_WORDS&&strong&&(!best||shared>best.words))best={who:mo.who||"",gist:String(mo.text).slice(0,MOTIF_GIST_CHARS),words:shared,camp:mo.camp||null};/* #481 C9: the note names the campaign */
   }
   return best;
 }

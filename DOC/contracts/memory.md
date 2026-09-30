@@ -120,3 +120,11 @@ Two-tier location graph stored in `memory.map`: `{nodes:{}, edges:[], lastArriva
 - **Deferral:** a line past `RECORD_REGISTER_REASK_MAX` is DEFERRED, not dropped. It goes to `worldState.recordDeferred` (bounded at `RECORD_DEFER_CAP`=24, loud eviction), is re-guarded FIRST at the next summarize (a clean line files through the extraction), and is counted on the census as `deferred` / `evicted`.
 - **Measured on the Necrotic t35 record (40 lines):** 15 carry register words, 8 are names-only and now file as written, and 7 are re-asked with the names protected.
 - **Proof:** `dev/tests-481-c7-record-names.js` (6 async groups) and `dev/sabotage-481-c7-record-names.js` (7 clauses, incl. "skip the mask").
+
+**#481 C9 — the engine's own words (v1.1055).**
+- **The narration scan:** `registerFile` reads free prose through C7's mask — "Daeris calls on Ledger Memory" is no slip. On Necrotic t35, 10 of 17 narration hits were the campaign's own names.
+- **The DEFINING MOMENTS header:** its passing-handle example is "all that business", no longer "that business with the lien".
+- **The RETOLD MEMORY note:** it names the moment by owner and campaign (`motifPing.camp`, carried from the matched moment) and never quotes it back; the gist stays the `motifNudged` key.
+- **`sheetRegisterReport`:** also lists ability and item NAMES that carry the register.
+- **`dev/register-scrub.js`:** walks `worldState.questLog` and the archived `memory.quests` (it walked `worldState.quests`, which does not exist). On Necrotic t35 it lists 99 lines, 4 of them quest objectives (was 91 and zero).
+- **Proof:** `dev/sabotage-481-c9-own-words.js` (7 clauses).

@@ -41,7 +41,8 @@ function list(data) {
   if (ws && typeof ws === "object") {
     sheet("worldState.character", ws.character);
     (ws.npcs || []).forEach(function (n, i) { if (n && n.charSheet) sheet("worldState.npcs[" + i + "].charSheet", n.charSheet); });
-    (ws.quests || []).forEach(function (q, i) { if (!q) return; var qp = "worldState.quests[" + i + "]"; chk(qp + ".title", q.title); chk(qp + ".desc", q.desc); (q.objectives || []).forEach(function (o, j) { chk(qp + ".objectives[" + j + "].text", o && o.text); }); });
+    /* #481 C9: the live quest log (it walked worldState.quests, which does not exist — zero quest paths on Necrotic t35) */
+    (ws.questLog || []).forEach(function (q, i) { if (!q) return; var qp = "worldState.questLog[" + i + "]"; chk(qp + ".title", q.title); chk(qp + ".desc", q.desc); (q.objectives || []).forEach(function (o, j) { chk(qp + ".objectives[" + j + "].text", o && o.text); }); });
     var sk = ws.skeleton;
     if (sk && typeof sk === "object") {
       chk("worldState.skeleton.premise", sk.premise);
@@ -50,6 +51,8 @@ function list(data) {
     }
   }
   if (mem && typeof mem === "object") {
+    /* #481 C9: the archived quests, keyed by title (the key itself is an identity, never rewritten here) */
+    Object.keys(mem.quests || {}).forEach(function (k) { var q = mem.quests[k]; if (!q || typeof q !== "object") return; var qp = "memory.quests[" + JSON.stringify(k) + "]"; chk(qp + ".title", q.title); chk(qp + ".desc", q.desc); (q.objectives || []).forEach(function (o, j) { chk(qp + ".objectives[" + j + "].text", o && o.text); }); });
     Object.keys(mem.npcs || {}).forEach(function (nm) { var n = mem.npcs[nm]; if (!n) return; var np = "memory.npcs" + pathKey(nm);
       (n.knowledge || []).forEach(function (k, i) { chk(np + ".knowledge[" + i + "]", k); });
       (n.events || []).forEach(function (e, i) { chk(np + ".events[" + i + "].note", e && e.note); });

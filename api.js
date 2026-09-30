@@ -365,7 +365,7 @@ function buildCoreMemoryBlock(){
     for(i=0;i<cur.length;i++)Lc.push("- (turn "+cur[i].turn+") "+cur[i].text);
     return Lc.join("\n")+"\n\n";
   }
-  var L=["DEFINING MOMENTS — permanent party history the whole party carries forever. These are canon: recall them naturally when relevant, never contradict them, and let them shade tone and relationships. They are the party's own memories in the party's own words — the people who lived them may recall them in detail; anyone OUTSIDE the party who has heard of one knows it only as a passing handle (\"that business with the lien\"), never the record's wording or its particulars, and a bystander remarks on a moment once, not every meeting:"];/* #469 ①: whose words these are */
+  var L=["DEFINING MOMENTS — permanent party history the whole party carries forever. These are canon: recall them naturally when relevant, never contradict them, and let them shade tone and relationships. They are the party's own memories in the party's own words — the people who lived them may recall them in detail; anyone OUTSIDE the party who has heard of one knows it only as a passing handle (\"all that business\"), never the record's wording or its particulars, and a bystander remarks on a moment once, not every meeting:"];/* #469 ①: whose words these are */
   for(i=0;i<prior.length;i++)L.push("- ("+prior[i].camp+" — an earlier adventure) "+prior[i].text);
   for(i=0;i<cur.length;i++)L.push("- (turn "+cur[i].turn+") "+cur[i].text);
   return L.join("\n")+"\n\n";
@@ -915,7 +915,7 @@ function buildRecklessNote(){
 // outranks a style correction; the record still files). Latch declared in NOTE_LATCH_FIELDS.
 function registerFile(clean,turn){
   if(!worldState||typeof registerScan!=="function")return [];
-  var hits=registerScan(clean);if(!hits.length)return hits;
+  var hits=(typeof registerScanProse==="function"&&typeof recordCanonNames==="function")?registerScanProse(clean,recordCanonNames()):registerScan(clean);/* #481 C9: a canonical name ("Ledger Memory") is no slip — C7's one mask */if(!hits.length)return hits;
   if(!(worldState.registerSlips instanceof Array))worldState.registerSlips=[];
   var i;for(i=0;i<hits.length;i++)worldState.registerSlips.push({turn:turn,word:hits[i]});
   while(worldState.registerSlips.length>REGISTER_LOG_MAX)worldState.registerSlips.shift();
@@ -1582,7 +1582,7 @@ function buildMotifNudge(){
   var key=String(q.gist||""),rec=worldState.motifNudged[key]||(worldState.motifNudged[key]={count:0,turn:0});
   rec.count++;rec.turn=worldState.turn;
   var nth=rec.count===2?"the second time":rec.count===3?"the third time":rec.count>3?"the "+rec.count+"th time":"";
-  return "[ENGINE NOTE — RETOLD MEMORY (not a player action): last turn "+q.speaker+" retold "+q.who+"'s own memory in the record's words (\""+key+"…\")"+(nth?" — "+nth+" a bystander has done so":"")+". That story is "+q.who+"'s to tell. Anyone outside the party who has heard of it knows it only as a passing handle — \"all that business\", a phrase and no more — never the record's words, its names or its particulars. Let it rest now unless the hero raises it; if it must be touched, one vague clause and on to today.]";
+  return "[ENGINE NOTE — RETOLD MEMORY (not a player action): last turn "+q.speaker+" retold "+q.who+"'s own memory"+(q.camp?" from "+q.camp:"")+" in the record's words (this note does not repeat them)"/* #481 C9: the gist is the nudge KEY, never quoted back */+(nth?" — "+nth+" a bystander has done so":"")+". That story is "+q.who+"'s to tell. Anyone outside the party who has heard of it knows it only as a passing handle — \"all that business\", a phrase and no more — never the record's words, its names or its particulars. Let it rest now unless the hero raises it; if it must be touched, one vague clause and on to today.]";
 }
 function buildRecurringNameNudge(){
   if(!worldState||worldState.combat)return"";

@@ -26438,7 +26438,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return r2&&r2.how==="the engines below are broken and she walks free"?true:"a plain how is kept: "+JSON.stringify(r2);
   });
   t("#459 ⑤ dev/register-scrub.js (source pin; the behaviour rides dev/tests-459-register-gate.js): the walker covers knowledge, events, attitude, lore, decisions, chapters, core memories, motivationHistory, quests and the skeleton; the CLI gates writes on --apply, keeps a .bak, exports its pure pieces, and loads the engine lazily",function(){
-    var src=__fsForTests.readFileSync(__rootForTests+"/dev/register-scrub.js","utf8"),need=[".coreMemories[",".motivationHistory[",".knowledge[",".events[",".attitude","memory.lore[","memory.keyDecisions[","memory.chapters[","worldState.quests[","worldState.skeleton.premise",".arcs[","--apply",".bak","module.exports","require.main === module","typeof wordListScan !== \"function\""],i;
+    var src=__fsForTests.readFileSync(__rootForTests+"/dev/register-scrub.js","utf8"),need=[".coreMemories[",".motivationHistory[",".knowledge[",".events[",".attitude","memory.lore[","memory.keyDecisions[","memory.chapters[","worldState.questLog[","memory.quests[","worldState.skeleton.premise",".arcs[","--apply",".bak","module.exports","require.main === module","typeof wordListScan !== \"function\""],i;
     for(i=0;i<need.length;i++)if(src.indexOf(need[i])<0)return "source lacks "+JSON.stringify(need[i]);
     return true;
   });
@@ -27894,6 +27894,40 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var bsp=ap.slice(ap.indexOf("function buildSysPrompt("));if(!/carriedHeldNow\(/.test(bsp))return "the splice does not ask the gate";
     var rr=me.slice(me.indexOf("function ragCarriedRetrieve("),me.indexOf("function _ragCarriedScore("));
     return /carriedHeldNow/.test(rr)?"the gate sits inside the memoized retriever":true;
+  });
+
+  // ── #481 C9 (audit 2026-09-29, Fable-approved with changes): the register cleanup could not finish and the engine's own words
+  // tripped it. (a) The narration scan exempts exact canonical names through C7's mask ("Daeris calls on Ledger Memory" is
+  // no slip). (b) The scrub walks worldState.questLog AND memory.quests (it walked a field that does not exist). The sheet
+  // report lists ability and item names. The DEFINING MOMENTS header's example is register-free ("all that business").
+  // (c) The RETOLD MEMORY note keeps the gist as its motifNudged KEY but names the moment by owner and campaign, never quotes it.
+  section("#481 C9 the engine's own words");
+  t("#481 C9 the narration scan: a canonical name is no slip; the free word still is",function(){
+    makeWorld();worldState.npcs.push({name:"Daeris",status:"ally",rel:"companion",partyMember:true,pronouns:"she/her",charSheet:{name:"Daeris",inventory:[],abilities:[{name:"Ledger Memory"}]}});
+    delete worldState.registerSlips;delete worldState.registerPing;
+    if(registerFile("Daeris calls on Ledger Memory and the room goes still.",5).length)return "an ability's own name was filed as a register slip";
+    var h=registerFile("Daeris calls on Ledger Memory, then drafts an invoice.",6);
+    return (h.length===1&&h[0]==="invoice")?true:"the free word still counts: "+JSON.stringify(h);
+  });
+  t("#481 C9 the DEFINING MOMENTS header's own example is register-free",function(){
+    makeWorld();worldState.character.coreMemories=[{text:"Ammut carried Daeris out of the vault.",turn:3,kind:"gm",who:"Daeris"}];
+    var v=buildSysPrompt().volatile,i0=v.indexOf("DEFINING MOMENTS"),hdr=i0<0?"":v.slice(i0,v.indexOf("\n",i0));
+    if(!hdr)return "fixture: no moments header";
+    if(registerScan(hdr).length)return "the header teaches a register word: "+JSON.stringify(registerScan(hdr));
+    return /all that business/.test(hdr)?true:"the passing-handle example: "+hdr.slice(0,200);
+  });
+  t("#481 C9 the RETOLD MEMORY note names the moment by owner and campaign, never quotes it; the gist stays the nudge key",function(){
+    makeWorld();delete worldState.motifNudged;worldState.motifPing={speaker:"Old Maud",who:"Daeris",gist:"Her soul-tax lien and necrotic tether to the Reach",camp:"The Necrotic Dungeon",turn:worldState.turn};
+    var n=buildMotifNudge();if(!n)return "fixture: no note";
+    if(n.indexOf("soul-tax lien")>=0||n.indexOf("necrotic tether")>=0)return "the note quotes the record it asks the GM not to repeat: "+n.slice(0,240);
+    if(!/Daeris/.test(n)||!/The Necrotic Dungeon/.test(n))return "the note names the owner and the campaign: "+n.slice(0,240);
+    return (worldState.motifNudged&&worldState.motifNudged["Her soul-tax lien and necrotic tether to the Reach"])?true:"the gist stays the nudge key: "+JSON.stringify(worldState.motifNudged);
+  });
+  t("#481 C9 the sheet report lists ability and item names that carry the register",function(){
+    makeWorld();worldState.npcs.push({name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",inventory:["Ledger fragment — three pages","Rope"],abilities:[{name:"Ledger Memory"},{name:"Second Wind"}]}});
+    var r=sheetRegisterReport(),ab=r.filter(function(x){return x.name==="Daeris"&&x.field==="ability";}),it=r.filter(function(x){return x.name==="Daeris"&&x.field==="item";});
+    if(ab.length!==1||ab[0].text!=="Ledger Memory")return "the ability is reported: "+JSON.stringify(r);
+    return (it.length===1&&/Ledger fragment/.test(it[0].text))?true:"the item is reported: "+JSON.stringify(r);
   });
 
 }

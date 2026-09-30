@@ -221,6 +221,11 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Changed shape:** the guard's return gained a `deferred` count, so the #459 suite's three deep-equal expectations were updated (additive). Two clauses re-anchored (#372 decide, #459 census).
   - **Real save:** Necrotic t35 — of 40 record lines, 15 carry register words; 8 are names-only and now file as written; 7 are re-asked with the names protected. Before, the audit replay dropped 12.
   - **Proof:** `dev/tests-481-c7-record-names.js` 6/6 (all red before the build), registered in the standalone runner. Full suite green; four replay baselines unchanged; `dev/sabotage-481-c7-record-names.js` 7/7 caught.
+- 2026-09-29 · #481 C9 · v1.1055 · Opus 5.5 · The register cleanup can finish, and the engine's own words stop tripping it.
+  - **Touches:** `registerFile` (api.js, the narration census, via C7's mask — Fable (a)), the DEFINING MOMENTS header example (volatile text), the RETOLD MEMORY note (it names owner and campaign; the gist stays the key — Fable (c); the camp rides from `momentEchoWords` through `detectMomentRetelling` to `motifPing`), `sheetRegisterReport` (ability and item names), and `dev/register-scrub.js` (questLog plus memory.quests — Fable (b)).
+  - **The pin moved in the same commit:** the #459 ⑤ fixture now uses the real `questLog` field and adds an archived quest; the engine-test source pin names `worldState.questLog[` and `memory.quests[`.
+  - **Real save:** Necrotic t35 — the scrub lists 99 lines, 4 of them quest objectives (was 91 and zero). 10 of 17 narration hits were canonical names, no longer slips.
+  - **Proof:** 4 tests in "#481 C9" (all red before the build). Full suite green (2,495); four replay baselines unchanged; `dev/sabotage-481-c9-own-words.js` 7/7 caught.
 
 ## Off-Fable log
 
