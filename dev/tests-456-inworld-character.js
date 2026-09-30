@@ -9,6 +9,9 @@ var ROOT = path.join(__dirname, "..");
 
 loader.loadEngine();
 loader.makeTestWorld({ kind: "adventure" });
+/* #481 E6: the direction and speed rows show only where the PRIMARY reader honours them — these tests are about the Inworld
+   controls, so Inworld is the primary (dev/tests-481-e6-voice-caps.js covers every other primary hiding them). */
+store.set("tnd_voice_settings_v1", JSON.stringify({ primary: "inworld" }));
 
 var __els = {}, __saves = 0, __toasts = [];
 function el(id) {

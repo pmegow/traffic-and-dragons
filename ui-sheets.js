@@ -130,13 +130,23 @@ function csVoiceControlHtml(char){
       +"<button id='"+slot.testId+"' type='button' style='flex-shrink:0;min-height:36px;padding:5px 10px;font-family:var(--font);font-size:12px;background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;'>&#9654; Test</button></div></div>";
   }).join("")+csVoiceDirectionHtml(char)+"<div style='font-size:11px;color:var(--t2);margin-top:6px;'>Cloud voice tests use your API keys.</div>";
 }
-/* #456 (owner 2026-09-25): ONE delivery direction per character — Inworld's per-request instruction (OpenAI's too); Speechify
-   ignores it. Saved on change like the voice selects; the Inworld slot's Test reads with it. */
+/* #456 (owner 2026-09-25): ONE delivery direction per character — the reader's per-request instruction. Saved on change like the
+   voice selects; the Inworld slot's Test reads with it. #481 E6 (audit 2026-09-29): a row shows only where the PRIMARY reader
+   honours it (TTS.characterVoiceCaps, derived from the model table); a hidden row leaves a one-line hint naming who does honour
+   it, and a saved value is kept (never deleted), so switching back restores it. */
 function csVoiceDirectionHtml(char){
-  return "<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'><label for='cs-voice-direction' style='display:block;margin-bottom:5px;'>Delivery direction · Inworld</label>"
+  var caps=(typeof TTS!=="undefined"&&TTS.characterVoiceCaps)?TTS.characterVoiceCaps():{rate:true,direction:true,label:"",rateBy:[],directionBy:[]};
+  return (caps.direction?"<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'><label for='cs-voice-direction' style='display:block;margin-bottom:5px;'>Delivery direction · "+escHtml(caps.label)+"</label>"
     +"<textarea id='cs-voice-direction' rows='2' maxlength='300' placeholder='How this character speaks — e.g. gruff and impatient; low, unhurried' style='width:100%;box-sizing:border-box;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:8px;resize:vertical;'>"+escHtml(char.voiceDirection||"")+"</textarea></div>"
-    +"<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'><label for='cs-voice-rate' style='display:block;margin-bottom:5px;'>Speed <span id='cs-voice-rate-value'>"+csVoiceRateLabel(char.voiceRate)+"</span> <button type='button' id='cs-voice-rate-reset' title='Follow the provider rate' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:12px;padding:0 4px;'>&times;</button></label>"
-    +"<input id='cs-voice-rate' type='range' min='0.8' max='1.3' step='0.05' value='"+csVoiceRateValue(char.voiceRate)+"' style='width:100%;'/></div>";/* #457 */
+    :csVoiceCapHint("Delivery direction",caps.label,caps.directionBy,!!char.voiceDirection))
+    +(caps.rate?"<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'><label for='cs-voice-rate' style='display:block;margin-bottom:5px;'>Speed <span id='cs-voice-rate-value'>"+csVoiceRateLabel(char.voiceRate)+"</span> <button type='button' id='cs-voice-rate-reset' title='Follow the provider rate' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:12px;padding:0 4px;'>&times;</button></label>"
+    +"<input id='cs-voice-rate' type='range' min='0.8' max='1.3' step='0.05' value='"+csVoiceRateValue(char.voiceRate)+"' style='width:100%;'/></div>"/* #457 */
+    :csVoiceCapHint("Speed",caps.label,caps.rateBy,!!Number(char.voiceRate)));
+}
+/* #481 E6: the one line a hidden voice row leaves — what it is, that this reader ignores it, who reads it, and that yours is kept */
+function csVoiceCapHint(what,label,by,kept){
+  var who=by.length>1?by.slice(0,-1).join(", ")+" and "+by[by.length-1]:(by[0]||"");
+  return "<div class='cs-voice-hint' style='margin-top:8px;font-size:11px;color:var(--t2);'>"+escHtml(what+": "+label+" does not use it"+(who?"; "+who+(by.length>1?" do":" does"):"")+"."+(kept?" Yours is kept.":""))+"</div>";
 }
 /* #457 (owner ruling 2026-09-25: no silent multiplier): an assigned speed IS that character's rate; unassigned shows and
    reads the provider rate (TTS.providerRate — 1.1× until saved). The × deletes the assignment. */

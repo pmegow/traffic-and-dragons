@@ -877,7 +877,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>A group direction goes only to readers with an instruction field.</li>
 </ul>
 <details><summary>Evidence</summary><p><code>ui-sheets.js:133-137</code>. <code>tts.js:688</code> (<code>_effRate</code> is used only by the Inworld and Speechify builders), <code>tts.js:3078, 2974</code> (Gemini's body is <code>direction + "\n\n" + text</code>, so a directed group loses the narrator instruction). Whether Gemini reads the direction aloud is unverified (no spend). Owner #454: "A control that does nothing is a silent failure dressed as a feature."</p></details>
-</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1062: VOICE_MODELS declares unitRate / unitDirection (markups already); every cloud reader's grouper splits on and stamps only what it declares, so a character's direction never becomes Gemini's whole prompt and a mood never splits Speechify or Gemini; the sheet shows the direction and Speed rows only where the primary honours them, a hidden row leaving a one-line hint (saved value kept). Proof: dev/tests-481-e6-voice-caps.js (request-body repro), dev/sabotage-481-e6-voice-caps.js 10/10.</td></tr>
 
 <tr id="E7"><td class="n">E7</td><td>
 <p class="ttl">A stale soundscape silences your own house <span class="lean low">low</span><span class="lean">wrong outcome</span></p>

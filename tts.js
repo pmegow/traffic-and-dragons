@@ -581,15 +581,18 @@ var TTS = (function() {
   // read with Schedar selected came back in Umbriel. Only CAST units consult the mapping.
   // forceVoice (4th param) exists for the audition button: a Test press must speak the voice being
   // AUDITIONED, not the saved narrator, and must not require saving first.
-  function _geminiGroupUnits(units, voiceId, voices, forceVoice, voiceFor) {
+  /* #481 E6: `caps` (from _unitCaps — the reader's own declaration) says which per-unit fields the reader reads; a field it does
+     not read neither splits a group nor rides on one. No caps = every field (the raw grouper the #456–#458 tests drive); every
+     production reader passes its own (_voiceReader). */
+  function _geminiGroupUnits(units, voiceId, voices, forceVoice, voiceFor, caps) {
     voiceFor = voiceFor || _geminiVoiceFor;
-    var groups = [], cur = null;
+    var groups = [], cur = null, useDir = !caps || caps.direction, useRate = !caps || caps.rate, useMood = !caps || caps.mood;
     for (var i = 0; i < units.length; i++) {
       var v = forceVoice || voiceFor((voices && voices[i]) || "", i);
       var t = units[i].text || "";
-      var dir = (voices && voices.directions && voices.directions[i]) || "";/* #456: a character's delivery direction — a group never spans two */
-      var rt = (voices && ((voices.rates && voices.rates[i]) || voices.rate)) || 0;/* #457: a character's speed — likewise; `voices.rate` is the audition's uniform speed */
-      var md = (voices && voices.moods && voices.moods[i]) || "";/* #458: the line's mood — a group never spans two */
+      var dir = (useDir && voices && voices.directions && voices.directions[i]) || "";/* #456: a character's delivery direction — a group never spans two */
+      var rt = (useRate && voices && ((voices.rates && voices.rates[i]) || voices.rate)) || 0;/* #457: a character's speed — likewise; `voices.rate` is the audition's uniform speed */
+      var md = (useMood && voices && voices.moods && voices.moods[i]) || "";/* #458: the line's mood — a group never spans two */
       // #41b fast start: while building the FIRST group, the accumulation cap is small — the cold
       // open is gated on group 1's whole non-streaming synthesis, so a big opener means many
       // seconds of silence before the first sound. Later groups keep the big cap (call count).
@@ -655,7 +658,7 @@ var TTS = (function() {
   // transport, voice selection and provider-specific startup policy differ.
   var _cloudAbort = null;   // the active cloud conveyor's abort-all (Stop/Skip reach every prefetched request through it)
   var CLOUD_READERS = {
-    gemini: { label: "Gemini TTS", key: _geminiKey, direction: geminiDirection, group: _geminiGroupUnits,
+    gemini: { label: "Gemini TTS", key: _geminiKey, direction: geminiDirection, group: function(units, voiceId, voices, force) { return _geminiGroupUnits(units, voiceId, voices, force, null, _unitCaps("gemini")); },/* #481 E6 */
       fetch: _geminiFetchGroup, degrade: _geminiTtsDegrade, depth: GEMINI_TTS_PREFETCH, prime: _geminiPrimeReady }
   };
 
@@ -690,11 +693,16 @@ var TTS = (function() {
      a sound sharing a bracket with a mood reads as delivery steering and is silently lost. ONE table beside the entry — adding a
      sound is adding an entry; the prefix builder (_markupPrefix) gives each its own bracket after the steering words. */
   var INWORLD_SOUNDS = ["laugh", "giggle", "chuckle", "sigh", "breathe", "gasp", "clear throat", "cough", "yawn", "sob", "groan"];
+  /* #481 E6 (audit 2026-09-29): what a reader does with a CHARACTER's own fields, declared per model — the one table the grouper
+     and the sheet both read (_unitCaps). unitRate: the request carries a per-character speed (Inworld's speakingRate, Speechify's
+     prosody rate); unitDirection: the request has an instruction field for a per-character delivery direction (Inworld); markups
+     (#458): a mood rides as a steering tag (Inworld). The model-level `rate`/`direction` flags are the Voice Settings fields — a
+     different thing: Piper and device voices take ONE rate for every line, and Gemini's direction is the narrator's prompt. */
   var VOICE_MODELS = {
     gemini: { label: "Google · Gemini TTS", key: true, direction: true, languages: [""],
       note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
       defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
-    inworld: { label: "Inworld · TTS-2", depth: 4,/* #463 (owner on the Builder plan, 2026-09-25): 50 concurrent requests — four groups in flight hide the seam at a voice change; a skip aborts them all */ key: true, direction: true, rate: true, markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
+    inworld: { label: "Inworld · TTS-2", depth: 4,/* #463 (owner on the Builder plan, 2026-09-25): 50 concurrent requests — four groups in flight hide the seam at a voice change; a skip aborts them all */ key: true, direction: true, rate: true, unitRate: true, unitDirection: true,/* #481 E6 */ markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
       delivery: ["STABLE", "BALANCED", "CREATIVE"],
       note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Test bills your Inworld key.",
       defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },
@@ -704,7 +712,7 @@ var TTS = (function() {
       audio: function(r) { return r.json().then(function(j) { return _voiceDecode64(j.audioContent); }); },
       page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
       actor: function(v) { return { id: v.voiceId, label: v.displayName || v.voiceId, g: _voiceGender(v.gender), note: v.description || "", language: v.langCode || "" }; } },
-    speechify: { label: "Speechify · Simba 3.2", compactActors: true, actorNote: _speechifyActorNote, depth: 1, key: true, rate: true, languages: ["en-US"],
+    speechify: { label: "Speechify · Simba 3.2", compactActors: true, actorNote: _speechifyActorNote, depth: 1, key: true, rate: true, unitRate: true,/* #481 E6 */ languages: ["en-US"],
       /* #454 (owner 2026-09-24): no `emotions` — Simba 3 ignores <speechify:style>; the Emotion control was theatre and is gone */
       note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate. Simba 3.2 honours speaking rate but not emotion tags, so there is no Emotion control here.",
       defaults: function() { return { narrator: "", language: "en-US", emotion: "" }; },
@@ -735,6 +743,8 @@ var TTS = (function() {
       catalog: function() { return _voiceList().map(function(v) { return { id: v.name, label: v.name, note: v.lang }; }); },
       defaults: function() { return { narrator: getNativeVoice(), rate: getRate() }; } }
   };
+  function _unitCaps(id) { var m = VOICE_MODELS[id]; return { rate: !!(m && m.unitRate), direction: !!(m && m.unitDirection), mood: !!(m && m.markups) }; }/* #481 E6 */
+  function _unitReaders(flag) { return Object.keys(VOICE_MODELS).filter(function(id) { return !!VOICE_MODELS[id][flag]; }).map(function(id) { return VOICE_MODELS[id].label; }); }
   function _voiceGender(g) { return g === "male" || g === "M" ? "M" : g === "female" || g === "F" ? "F" : ""; }
   function _voiceRead(k) {
     var raw = store.get(k), cached = _voiceReadCache[k];
@@ -916,7 +926,7 @@ var TTS = (function() {
   function _voiceReader(id, c, key, audition) {
     var base = CLOUD_READERS[id], r = Object.assign({}, base), bank = _voiceCatalog(id, c), resolved = {};
     r.key = function() { return key; }; r.direction = function() { return c.direction; };
-    r.group = function(units, voiceId, voices, force) { var pins = voices && voices.providers && voices.providers[id]; return _geminiGroupUnits(units, voiceId, voices, force, function(v, ix) { if (pins && typeof pins[ix] === "string" && pins[ix]) return pins[ix]; var key = "voice:" + v; if (!Object.prototype.hasOwnProperty.call(resolved, key)) resolved[key] = _voiceActor(id, v, c, bank); return resolved[key]; }); };
+    r.group = function(units, voiceId, voices, force) { var pins = voices && voices.providers && voices.providers[id]; return _geminiGroupUnits(units, voiceId, voices, force, function(v, ix) { if (pins && typeof pins[ix] === "string" && pins[ix]) return pins[ix]; var key = "voice:" + v; if (!Object.prototype.hasOwnProperty.call(resolved, key)) resolved[key] = _voiceActor(id, v, c, bank); return resolved[key]; }, _unitCaps(id)); };/* #481 E6: the reader's own declaration — a field it does not read never splits or rides */
     r.fetch = function(g, first, k, direction, regCtrl) { return base.fetch(g, first, k, direction, regCtrl, c); };
     if (audition) {
       r.audition = true;
@@ -4508,6 +4518,10 @@ var TTS = (function() {
     filterCharacterVoices: filterCharacterVoices,
     castGenderMatches: castGenderMatches,
     characterVoiceSlots: function() { return CHARACTER_VOICE_SLOTS.slice(); },
+    /* #481 E6: what the PRIMARY reader does with a character's own speed and direction — the sheet shows a row only where it is
+       honoured — and who does honour each (derived from the flags, never a hand list). */
+    characterVoiceCaps: function() { var id = _voicePrimary(), k = _unitCaps(id); return { label: VOICE_MODELS[id].label, rate: k.rate, direction: k.direction, rateBy: _unitReaders("unitRate"), directionBy: _unitReaders("unitDirection") }; },
+    _voiceReaderGroup: function(id, units, voices) { return _voiceReader(id, _voiceConfig(id), "", false).group(units, "", voices); },/* #481 E6: exported ONLY for dev/tests-481-e6-voice-caps.js — the production reader's own grouping */
     providerRate:      function() { var id = _voicePrimary(), c = _voiceConfig(id); return Math.round((Number(c && c.rate) || getRate()) * 100) / 100; },/* #457: what an unassigned character reads at */
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
