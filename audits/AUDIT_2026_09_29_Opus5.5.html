@@ -911,7 +911,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>Delete Speechify's dead emotion branches (<code>tts.js:710, 751, 775</code>; <code>ui-voice-settings.js:42</code>).</li>
 </ul>
 <p>All 13 current catalog assets are valid.</p>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1063: the catalog builder checks every asset's enclosures, settings and biomes against AUDIO_PROFILE_FIELDS, from/to as whole minutes 0–1440 (and different), and defaultFor against the known roles (all 13 shipped assets pass; catalog byte-identical). The two stale voice comments are fixed, the #477 line is in tts-stt.md, and Speechify's dead Emotion branches are gone (#454 still passes by absence). Proof: ten break cases in tests-accent-layer, a pin in the engine suite, dev/sabotage-481-e10-catalog-checks.js 6/6.</td></tr>
 </tbody></table>
 
 <h2 id="secF">F · UI, sync, library and satellites</h2>

@@ -39,7 +39,6 @@ var VoiceSettings = (function() {
     else html += "<p class='tts-help'>Language: " + (m.languages[0] ? e(LANG[m.languages[0]]) : "detected from text / selected voice") + "</p>";
     if (m.direction) html += field("tts-direction", "Delivery direction" + (ctx.id === "inworld" ? " (write in English)" : ""), "<textarea id='tts-direction' rows='2' maxlength='1200'>" + e(c.direction) + "</textarea>");
     if (m.delivery) html += field("tts-delivery", "Performance variation", select("tts-delivery", m.delivery, c.delivery, { STABLE: "Stable · consistent reading", BALANCED: "Balanced", CREATIVE: "Creative · more variation" }));
-    if (m.emotions) html += field("tts-emotion", "Emotion", select("tts-emotion", m.emotions, c.emotion));
     if (m.rate) html += field("tts-speed", "Speech rate <span id='tts-speed-value'>" + Number(c.rate).toFixed(2) + "×</span>", "<input id='tts-speed' type='range' min='0.8' max='1.3' step='0.05' value='" + c.rate + "'/>");
     ctx.panel.innerHTML = html;
     ctx.bind("tts-api-key", "input", function(el) { if (el.value.trim()) ctx.d.keys[ctx.id] = el.value.trim().replace(/^(Bearer|Basic)\s+/i, ""); });
@@ -50,7 +49,6 @@ var VoiceSettings = (function() {
     ctx.bind("tts-language", "change", function(el) { c.language = el.value; });
     ctx.bind("tts-direction", "input", function(el) { c.direction = el.value; });
     ctx.bind("tts-delivery", "change", function(el) { c.delivery = el.value; });
-    ctx.bind("tts-emotion", "change", function(el) { c.emotion = el.value; });
     ctx.bind("tts-speed", "input", function(el) { c.rate = Number(el.value); ctx.el("tts-speed-value").textContent = c.rate.toFixed(2) + "×"; });
     function describe() { var v = ctx.catalog().filter(function(a) { return a.id === c.narrator; })[0]; ctx.el("tts-actor-note").textContent = v ? actorLabel(v) : ""; }
     describe();

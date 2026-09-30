@@ -23706,6 +23706,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var fast=m.request({text:"The lamps gutter.",voice:"alicia"},{rate:1.2,emotion:""}).input;
     return fast==='<speak><prosody rate="+20%">The lamps gutter.</prosody></speak>'?true:"rate regressed: "+fast;
   });
+  t("#481 E10 the dead Emotion branches are gone — no model default, no config default, no validation, no settings field; #454 still holds by absence",function(){
+    var ts=__fsForTests.readFileSync(__rootForTests+"/tts.js","utf8"),vs=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8");
+    var code=ts.replace(/\/\*[\s\S]*?\*\//g,"").replace(/\/\/[^\n]*/g,"").replace(/"(?:[^"\\\n]|\\.)*"/g,'""');   /* code only: comments and strings out */
+    var hits=(code.match(/\bemotions?\b/g)||[]).length;
+    if(hits)return "tts.js code still reads or writes an emotion ("+hits+" hit(s)) — nothing honours it since #454";
+    if(/tts-emotion|\.emotions\b|\.emotion\b/.test(vs))return "the Voice Settings modal still carries an Emotion field";
+    var m=TTS.settings.models;
+    return Object.keys(m).some(function(id){return m[id].emotions;})?"a model still declares emotions":true;
+  });
   t("#401 Speechify declares free-tier-safe concurrency independently of Inworld",function(){
     var m=TTS.settings.models;
     var requested=[],q=TTS._gemini.conveyor(2,m.speechify.depth,function(i){requested.push(i);});q.pump();

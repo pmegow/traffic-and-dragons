@@ -74,6 +74,26 @@ function builder(){
  }
  const mislabeled=JSON.parse(JSON.stringify(input));mislabeled.assets.find(x=>x.role==='accent').role='feature';
  assert.throws(()=>build(mislabeled),/only they/,'a sprite must be an accent');
+ /* #481 E10 (audit 2026-09-29): a typo in an asset's place types or time window made it silently unmatchable — every asset,
+    bed or accent, is checked against the ONE profile vocabulary (audio-profile.js), each refusal naming its field */
+ const placement={
+  'enclosure typo':[a=>{a.enclosures=['opne'];},/enclosures/],
+  'no enclosures':[a=>{a.enclosures=[];},/enclosures/],
+  'setting typo':[a=>{a.settings=['settlement','interor'];},/settings/],
+  'biome typo':[a=>{a.biomes=['temprate'];},/biomes/],
+  'from past the day':[a=>{a.from=1500;},/from\/to/],
+  'to before the day':[a=>{a.to=-5;},/from\/to/],
+  'a clock string':[a=>{a.from='06:00';},/from\/to/],
+  'a fractional minute':[a=>{a.to=1080.5;},/from\/to/],
+  'an empty window':[a=>{a.from=600;a.to=600;},/from\/to/],
+  'defaultFor typo':[a=>{a.defaultFor='habitable_interior';},/defaultFor/]
+ };
+ for(const [why,[mutate,field]] of Object.entries(placement)){
+  for(const pick of [x=>x.id==='village-day',x=>x.role==='accent']){
+   const bad=JSON.parse(JSON.stringify(input)),a=bad.assets.find(pick);mutate(a);
+   assert.throws(()=>build(bad),field,'builder accepted a broken placement on '+a.id+': '+why);
+  }
+ }
 }
 
 async function delivery(){

@@ -715,12 +715,12 @@ var TTS = (function() {
     speechify: { label: "Speechify · Simba 3.2", compactActors: true, actorNote: _speechifyActorNote, depth: 1, key: true, rate: true, unitRate: true,/* #481 E6 */ languages: ["en-US"],
       /* #454 (owner 2026-09-24): no `emotions` — Simba 3 ignores <speechify:style>; the Emotion control was theatre and is gone */
       note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate. Simba 3.2 honours speaking rate but not emotion tags, so there is no Emotion control here.",
-      defaults: function() { return { narrator: "", language: "en-US", emotion: "" }; },
+      defaults: function() { return { narrator: "", language: "en-US" }; },/* #481 E10: the dead emotion default is gone (#454) */
       auth: "Bearer", accept: "audio/pcm", endpoint: "https://api.speechify.ai/v1/audio/stream", catalogUrl: "https://api.speechify.ai/v1/voices?locale=en&model=simba-3.2&limit=200",
       request: function(g, c) {
         var text = escHtml(g.text);
         // Speechify percentages are adjustments to normal speed, not multipliers.
-        var adjustment = Math.round((_effRate(c, g) - 1) * 100);/* #457: × the character's speed */
+        var adjustment = Math.round((_effRate(c, g) - 1) * 100);/* #457: the character's own speed when assigned (it REPLACES the provider rate, never multiplies it), else the provider rate */
         var rate = adjustment === 0 ? "medium" : (adjustment > 0 ? "+" : "") + adjustment + "%";
         var body = '<prosody rate="' + rate + '">' + text + '</prosody>';
         /* #454 (owner 2026-09-24): no emotion — Simba 3 ignores <speechify:style> (three emotions identical on Geffen in the
@@ -758,7 +758,7 @@ var TTS = (function() {
   }
   function _voiceConfig(id) {
     var m = VOICE_MODELS[id], saved = _voiceRead(VOICE_SETTINGS_K).models || {};
-    var result = Object.assign({ narrator: "", direction: "", language: "", rate: 1.1,/* #457: 1.1× default */ emotion: "", delivery: "STABLE", cast: {}, voices: [] }, m.defaults(), saved[id] || {});
+    var result = Object.assign({ narrator: "", direction: "", language: "", rate: 1.1,/* #457: 1.1× default */ delivery: "STABLE", cast: {}, voices: [] }, m.defaults(), saved[id] || {});
     if (id === "local") result.narrator = resolvePiperVoice();
     if (id === "native") result.narrator = getNativeVoice();
     return result;
@@ -782,7 +782,6 @@ var TTS = (function() {
     if (!c || m.languages.indexOf(c.language) < 0) return "Select a supported speech language.";
     if (m.rate && (!isFinite(c.rate) || c.rate < 0.8 || c.rate > 1.3)) return "Speech rate must be between 0.8 and 1.3.";
     if (m.delivery && m.delivery.indexOf(c.delivery) < 0) return "Select a delivery mode.";
-    if (m.emotions && m.emotions.indexOf(c.emotion) < 0) return "Select a supported emotion.";
     var voices = _voiceCatalog(d.primary, c);
     if (d.primary !== "native" && !voices.some(function(v) { return v.id === c.narrator; })) return "Load voices and choose a narrator.";
     return "";
@@ -870,7 +869,8 @@ var TTS = (function() {
       })(), cancelled]);
     } finally { clearTimeout(timer); ctrl.signal.removeEventListener("abort", onAbort); }
   }
-  /* #458 (owner ask 2026-09-25): a group's mood becomes an Inworld steering markup — "[weary] " before the text — ONLY for
+  /* #458 (owner ask 2026-09-25): a group's mood becomes Inworld steering markup before the text — "[speak weary] ", with a
+     non-verbal sound in its own bracket ("[speak surprised] [laugh] ", #462; a manner of speaking is dropped, #477) — ONLY for
      a reader that declares `markups` (Inworld's TTS-2 reads square-bracket tags; Speechify's Simba would read them aloud,
      so it never sees one). The shape is re-checked through sayMoodShape (helpers.js; absent on the standalone voice pages,
      where no mood ever rides), so nothing hand-edited into a save reaches a provider. The group is COPIED, never mutated:

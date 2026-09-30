@@ -15,6 +15,23 @@ function validateAccent(a) {
   if (!Array.isArray(a.needsAny) || !(pair(s.gain, 0) && s.gain[0] > 0 && s.gain[1] <= 1) || s.channels !== 1) bad('needsAny/gain/channels');
   if ('loop' in a.approval) bad('accents have no loop approval');
 }
+// #481 E10 (audit 2026-09-29): where and when an asset may play — its place types and its time window — checked against the
+// ONE profile vocabulary (audio-profile.js's AUDIO_PROFILE_FIELDS). A typo used to make an asset silently unmatchable.
+// defaultFor names a fallback role ambient.js reads; adding a role is an entry here AND its reader there.
+const DEFAULT_FOR = ['habitable-interior'];   /* ambient.js: the hearth of a habitable interior */
+function validatePlacement(a, fields) {
+  const bad = why => { throw Error('Invalid audio placement ' + a.id + ': ' + why); };
+  for (const [key, field] of [['enclosures', 'enclosure'], ['settings', 'setting'], ['biomes', 'biome']])
+    if (!Array.isArray(a[key]) || !a[key].length || a[key].some(x => !fields[field].includes(x))) bad(key + ' (each one of ' + fields[field].join(', ') + ')');
+  const minute = x => Number.isInteger(x) && x >= 0 && x <= 1440;
+  if (!minute(a.from) || !minute(a.to) || a.from === a.to) bad('from/to (whole minutes 0-1440; the whole day is 0 to 1440)');
+  if (a.defaultFor !== undefined && !DEFAULT_FOR.includes(a.defaultFor)) bad('defaultFor (one of ' + DEFAULT_FOR.join(', ') + ')');
+}
+function profileFields() {
+  const vm = require('vm'), scope = {}; vm.createContext(scope);
+  vm.runInContext(fs.readFileSync(path.join(root, 'audio-profile.js'), 'utf8'), scope);
+  return scope.AUDIO_PROFILE_FIELDS;
+}
 // The content words every asset may claim are the SOUNDSCAPE vocabulary the GM is taught (audio-profile.js) — one list.
 function contentVocabulary() {
   const vm = require('vm'), scope = {}; vm.createContext(scope);
@@ -22,7 +39,7 @@ function contentVocabulary() {
   return scope.AUDIO_CONTENTS;
 }
 function build(override) {
-  const words = contentVocabulary();   /* override: a delivery object, so tests can prove each refusal without touching the file */
+  const words = contentVocabulary(), fields = profileFields();   /* override: a delivery object, so tests can prove each refusal without touching the file */
   const input = override ? JSON.parse(JSON.stringify(override)) : JSON.parse(fs.readFileSync(path.join(__dirname, 'audio-delivery.json'), 'utf8'));
   const seen = new Set();
   for (const asset of input.assets) {
@@ -31,6 +48,7 @@ function build(override) {
     if (!!asset.bed === !!asset.sprite) throw Error('An audio asset carries exactly one of bed or sprite: ' + asset.id);
     if ((asset.role === 'accent') !== !!asset.sprite) throw Error('Accent sets (and only they) are sprites: ' + asset.id);
     for (const w of (asset.contains || []).concat(asset.needsAny || [])) if (!words.includes(w)) throw Error('Unknown content word "' + w + '" on ' + asset.id + ' (not in AUDIO_CONTENTS)');
+    validatePlacement(asset, fields);   /* #481 E10 */
     if (asset.sprite) validateAccent(asset);
     const media = asset.bed || asset.sprite;
     if (!/^sfx\/[a-z0-9-]+\.mp3$/.test(media.url)) throw Error('Invalid audio URL');
