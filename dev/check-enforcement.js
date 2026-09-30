@@ -90,6 +90,26 @@ function coverageProblems(workflow, hook) {
   });
   return problems;
 }
+// #481 G6 class (second instance): a real-browser suite that only a sabotage battery calls gates nothing — G6 pinned the three
+// blueprint suites by hand, then the F4, F10 and G3 browser halves landed with the same gap. The list is DERIVED now: every
+// dev/tests-*.js with a real require of the CDP driver must be a CI step, after the Chrome check. A mention is not a require.
+var DRIVER_REQUIRE_RE = /require\(\s*["']\.\/cdp-browser\.js["']\s*\)/;
+function browserSuiteNames(root) {
+  var dir = path.join(root, "dev");
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter(function (n) {
+    return /^tests-.*\.js$/.test(n) && DRIVER_REQUIRE_RE.test(fs.readFileSync(path.join(dir, n), "utf8"));
+  }).sort();
+}
+function browserSuiteProblems(workflow, names) {
+  var text = String(workflow || ""), check = text.search(/run:\s*node dev\/cdp-browser\.js\s+--check(?:\s|$)/), problems = [];
+  (names || []).forEach(function (n) {
+    var at = text.search(new RegExp("run:\\s*node dev\\/" + n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?:\\s|$)"));
+    if (at < 0) problems.push("engine-tests.yml never runs dev/" + n + ", a real-browser suite — one that only a sabotage battery calls gates nothing (#481 G6). Add it as a step after the Chrome check.");
+    else if (check < 0 || at < check) problems.push("engine-tests.yml runs dev/" + n + " before the Chrome check — a missing Chrome must fail by name first (#481 G6).");
+  });
+  return problems;
+}
 function preCommitProblems(source) {
   return orderedProblems(String(source || ""), [
     { label: "check-hook-parity.js", pattern: /dev\/check-hook-parity\.js/ },
@@ -106,7 +126,8 @@ function realProblems(root) {
   var hook = fs.readFileSync(path.join(root, "dev", "pre-commit"), "utf8");
   var weeklyFile = path.join(root, ".github", "workflows", "sabotage-weekly.yml");   /* #481 G6 */
   var weekly = fs.existsSync(weeklyFile) ? weeklyProblems(fs.readFileSync(weeklyFile, "utf8")) : ["sabotage-weekly.yml is missing (#481 G6: the weekly mutation proof)"];
-  return workflowProblems(workflow).concat(preCommitProblems(hook)).concat(coverageProblems(workflow, hook)).concat(weekly);
+  var problems = workflowProblems(workflow).concat(preCommitProblems(hook)).concat(coverageProblems(workflow, hook)).concat(weekly);
+  return problems.concat(browserSuiteProblems(workflow, browserSuiteNames(root)));   /* #481 G6 class: derived from dev/ */
 }
 
-module.exports = { workflowProblems: workflowProblems, weeklyProblems: weeklyProblems, preCommitProblems: preCommitProblems, coverageProblems: coverageProblems, hookGateNames: hookGateNames, HOOK_ONLY: HOOK_ONLY, realProblems: realProblems };
+module.exports = { workflowProblems: workflowProblems, weeklyProblems: weeklyProblems, preCommitProblems: preCommitProblems, coverageProblems: coverageProblems, hookGateNames: hookGateNames, HOOK_ONLY: HOOK_ONLY, browserSuiteNames: browserSuiteNames, browserSuiteProblems: browserSuiteProblems, realProblems: realProblems };

@@ -89,6 +89,14 @@ jobs:
         run: node dev/tests-blueprint-editions-browser.js
       - name: Blueprint publication in a real browser
         run: node dev/tests-blueprint-publish-browser.js
+      # The same class, derived since: every dev/tests-*.js that requires dev/cdp-browser.js must be a step here, after the
+      # Chrome check (check-enforcement.js browserSuiteProblems) — the three below had landed gating nothing.
+      - name: Home page tab return in a real browser (#481 F4)
+        run: node dev/tests-481-f4-home-return.js
+      - name: Character editor signed out in a real browser (#481 F10)
+        run: node dev/tests-481-f10-editor-browser.js
+      - name: TODO viewer read-only in a real browser (#481 G3)
+        run: node dev/tests-481-g3-todo-viewer-browser.js
       # #312 ①: a battery whose target file changed in this push runs in this push (the weekly
       # job proves all 63; this keeps a guard's own edit honest the day it lands). #481 G2: the
       # WHOLE push's range, once — not just its last commit.

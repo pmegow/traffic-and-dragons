@@ -360,12 +360,14 @@ class Route {
     return { url: () => r.url, method: () => r.method, headers: () => lowerKeys(r.headers || {}), postData: body, postDataJSON: () => { const b = body(); return b == null ? null : JSON.parse(b); } };
   }
   // A request the page already abandoned (navigation, closed fetch) can no longer be answered — Playwright treats that as benign.
+  // So is a page that closed under it: its session is gone ("Session with given id not found" — a browser.close() while a
+  // handler was still reading its file; --check proves it stays quiet).
   async _settle(method, params) {
     if (this.done) throw new Error("cdp-browser: route already handled: " + this.p.request.url);
     this.done = true;
     if (DEBUG) console.error("[cdp " + this.page.targetId.slice(0, 6) + "] ← " + (params.responseCode || params.errorReason || "continue") + " " + this.p.request.url.slice(0, 120));
     try { await this.page._send(method, params); }
-    catch (e) { if (!/Invalid InterceptionId|Invalid state|No such request|closed/i.test(e.message)) throw e; }
+    catch (e) { if (!/Invalid InterceptionId|Invalid state|No such request|closed|Session with given id not found/i.test(e.message)) throw e; }
   }
   fulfill(opts) {
     opts = opts || {};
@@ -422,7 +424,20 @@ if (require.main === module) {
       const page = await (await browser.newContext({})).newPage();
       const two = await page.evaluate(() => 1 + 1);
       if (two !== 2) throw new Error("page evaluation returned " + JSON.stringify(two));
-      console.log("cdp-browser --check: OK — " + v.product + " at " + c.path);
+      // Teardown: a page that closes while a route handler is still answering. The late fulfill finds the page's session gone,
+      // which is the page closing, not a failure (the F4 suite printed one stack per in-flight request when its browser closed).
+      const lateCtx = await browser.newContext({}), routeErrs = [], origErr = console.error;
+      let started, release, settled;
+      const inFlight = new Promise(r => { started = r; }), gate = new Promise(r => { release = r; }), answered = new Promise(r => { settled = r; });
+      await lateCtx.route("**/*", async route => { started(); await gate; try { await route.fulfill({ status: 200, contentType: "text/html", body: "<p>late</p>" }); } finally { settled(); } });
+      const late = await lateCtx.newPage();
+      late._send("Page.navigate", { url: "http://late.test/" }).catch(() => {});
+      await inFlight;
+      console.error = function () { const line = Array.prototype.join.call(arguments, " "); if (/route handler threw/.test(line)) routeErrs.push(line.split("\n")[0]); origErr.apply(console, arguments); };
+      try { await browser.conn.send("Target.closeTarget", { targetId: late.targetId }); release(); await answered; await sleep(100); }
+      finally { console.error = origErr; }
+      if (routeErrs.length) throw new Error("a page closed mid-request printed a route error: " + routeErrs[0]);
+      console.log("cdp-browser --check: OK — " + v.product + " at " + c.path + " (a page closed mid-request stays quiet)");
     } finally { await browser.close(); }
   })().catch(e => { console.error("cdp-browser --check: FAILED — " + (e && e.message || e)); process.exit(1); });
 }

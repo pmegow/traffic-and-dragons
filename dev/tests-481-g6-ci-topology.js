@@ -68,5 +68,34 @@ test('the hook and CI both call dev/check-identity.js; the inline case block is 
   assert.deepEqual(enf.coverageProblems(wf, hook), [], 'every hook gate must also run in CI');
   assert.deepEqual(enf.preCommitProblems(hook), [], 'the hook pins must hold');
 });
+// The G6 class, second instance: the F4, F10 and G3 browser halves landed after G6 and ran only inside their batteries — the very
+// gap G6 closed for the blueprint suites. Enumerate the class instead of pinning a fourth, fifth and sixth name by hand: every
+// dev/tests-*.js that really requires the CDP driver must be a CI step after the Chrome check.
+const DRIVER_REQUIRE = "require('./cdp-" + "browser.js')";   /* built, so this file's own text is never a real require */
+test('every real-browser suite is a CI step after the Chrome check, derived from the source (the G6 class)', () => {
+  assert.equal(typeof enf.browserSuiteNames, 'function', 'browserSuiteNames is missing');
+  assert.equal(typeof enf.browserSuiteProblems, 'function', 'browserSuiteProblems is missing');
+  const names = enf.browserSuiteNames(root);
+  ['tests-blueprint-catalog-browser.js', 'tests-blueprint-editions-browser.js', 'tests-blueprint-publish-browser.js', 'tests-481-f4-home-return.js', 'tests-481-f10-editor-browser.js', 'tests-481-g3-todo-viewer-browser.js']
+    .forEach(n => assert.ok(names.indexOf(n) >= 0, 'the derivation missed the browser suite ' + n + ': ' + JSON.stringify(names)));
+  ['tests-252-retained-proof-wiring.js', 'tests-verification-enforcement.js', 'tests-481-g6-ci-topology.js']
+    .forEach(n => assert.ok(names.indexOf(n) < 0, 'a file that only mentions the driver is not a browser suite: ' + n));
+  assert.deepEqual(enf.browserSuiteProblems(wf, names), [], 'the live workflow must run every browser suite');
+  names.forEach(n => {
+    const p = enf.browserSuiteProblems(wf.replace('run: node dev/' + n, 'run: echo gone'), names);
+    assert.ok(p.some(x => x.indexOf(n) >= 0), 'removing ' + n + ' from CI must be named: ' + JSON.stringify(p));
+  });
+  const early = wf.replace('\n      - name: Chrome launches', '\n      - run: node dev/tests-zz-early-browser.js\n      - name: Chrome launches');
+  assert.ok(enf.browserSuiteProblems(early, ['tests-zz-early-browser.js']).some(x => /before the Chrome check/.test(x)), 'a browser suite before the Chrome check must be named');
+  const fake = fs.mkdtempSync(path.join(os.tmpdir(), 'tnd-g6-browser-'));
+  fs.mkdirSync(path.join(fake, '.github', 'workflows'), { recursive: true }); fs.mkdirSync(path.join(fake, 'dev'));
+  fs.writeFileSync(path.join(fake, '.github/workflows/engine-tests.yml'), wf); fs.writeFileSync(path.join(fake, 'dev/pre-commit'), hook);
+  fs.writeFileSync(path.join(fake, '.github/workflows/sabotage-weekly.yml'), weekly);
+  fs.writeFileSync(path.join(fake, 'dev/tests-zz-new-browser.js'), 'const { chromium } = ' + DRIVER_REQUIRE + ';\n');
+  fs.writeFileSync(path.join(fake, 'dev/tests-zz-mention.js'), '// drives nothing; names dev/cdp-browser.js in prose only\n');
+  const real = enf.realProblems(fake);
+  assert.ok(real.some(p => /tests-zz-new-browser\.js/.test(p)), 'realProblems must fold the browser-suite check in: ' + JSON.stringify(real));
+  assert.ok(!real.some(p => /tests-zz-mention\.js/.test(p)), 'a prose mention is not a suite: ' + JSON.stringify(real));
+});
 console.log('#481 G6 CI TOPOLOGY: ' + failed + ' failed, ' + passed + ' passed');
 process.exit(failed ? 1 : 0);
