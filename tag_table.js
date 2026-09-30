@@ -931,6 +931,7 @@ var TAG_TABLE=[
     var _rg=text.match(/\[GOLD:\s*\+?(\d+)/);if(_rg)_rw.push("+"+_rg[1]+" gp");/* \+?(\d+) cannot match a minus — deductions never read as rewards */
     var _ri=(text.match(/\[ITEM_GAINED:[^\]]+\]/g)||[]).length;if(_ri)_rw.push(_ri+" item"+(_ri>1?"s":""));
     if(typeof showToast==="function")showToast((qStat==="completed"?"✓ Quest completed: ":"✗ Quest failed: ")+qTitle+(_rw.length?" — "+_rw.join(", "):""));
+    (R.questsClosed=R.questsClosed||{})[String(qTitle).toLowerCase()]=true;/* #481 C3: closed in THIS reply — a same-reply final tick may still land */
     archiveQuest(qTitle,qStat);
     // P3-F2: record what this close paid (reusing the UA42 parse above) so the reopen guard
     // can recognize a reward re-emission later. Case-insensitive key scan mirrors the guard's.
@@ -940,6 +941,12 @@ var TAG_TABLE=[
    and fourth fields in either order ([...|optional], [...|true|optional], [...|false|required]).
    A flagless re-emission leaves optionality alone (checking a box must not strip the flag). */
    var qsToks=(qsp[3]||"").split("|"),qsDone=false,qsOpt=null,qti;for(qti=0;qti<qsToks.length;qti++){var qtv=qsToks[qti].trim();if(/^(true|done|1|yes|x)$/i.test(qtv))qsDone=true;else if(/^optional$/i.test(qtv))qsOpt=true;else if(/^required$/i.test(qtv))qsOpt=false;}var qsq=null,qk;for(qk=0;qk<worldState.questLog.length;qk++){if(worldState.questLog[qk].title.toLowerCase()===qsTitle.toLowerCase()){qsq=worldState.questLog[qk];break;}}if(!qsq){var _qsArch=(memory&&memory.quests)?memory.quests[qsTitle]:null;if(!_qsArch&&memory&&memory.quests){var _qsk;for(_qsk in memory.quests){if(_qsk.toLowerCase()===qsTitle.toLowerCase()){_qsArch=memory.quests[_qsk];break;}}}
+   /* #481 C3 (audit 2026-09-29, Fable-approved): the GM ticks the final objective and completes the quest in ONE reply; QUEST runs first
+      and archives, so the tick used to be refused and the Journal kept the "how" unticked (16 of 17 completions this fortnight). A TICK
+      of an EXISTING objective on a quest closed in THIS reply (R.questsClosed) lands on the archived record with the ordinary
+      receipt; a new objective, or any step on a quest closed at an earlier reply, stays refused (#265②). */
+   if(_qsArch&&qsDone&&R.questsClosed&&R.questsClosed[qsTitle.toLowerCase()]){var _qso=null,_qsi;for(_qsi=0;_qsi<(_qsArch.objectives||[]).length;_qsi++)if(String(_qsArch.objectives[_qsi].text).toLowerCase()===qsObj.toLowerCase()){_qso=_qsArch.objectives[_qsi];break;}
+     if(_qso){_qso.done=true;R.muts.push(qsTitle+" ✓ "+qsObj);continue;}}
    if(_qsArch){if(typeof console!=="undefined")console.warn("[quest] QUEST_STEP on archived quest '"+qsTitle+"' ("+_qsArch.status+") — objective '"+qsObj+"' not recorded; closed quests do not gain objectives (#265②)");R.muts.push("⚠ '"+qsTitle+"' is already "+_qsArch.status+" — objective not recorded");}
    else{if(typeof console!=="undefined")console.warn("[quest] QUEST_STEP names no known quest: '"+qsTitle+"' — objective '"+qsObj+"' dropped (mis-title? the ACTIVE block's titles are authoritative) (#265②)");R.muts.push("⚠ Objective dropped — no quest titled '"+qsTitle+"'");}
    continue;}/* #265② (Fable f52): the silent fall-through starved the checklist the completion machinery reads; the adjacent offered-skip below stays a SILENT deliberate gate (pinned, v1.144) */qsq.lastTouch=R.turn;delete qsq.staleNudged;/* #191ⓑ: objective activity is a touch */if(qsq.status==="offered")continue;if(!qsq.objectives)qsq.objectives=[];var ofound=false,oj2;for(oj2=0;oj2<qsq.objectives.length;oj2++){if(qsq.objectives[oj2].text.toLowerCase()===qsObj.toLowerCase()){qsq.objectives[oj2].done=qsDone;if(qsOpt===true)qsq.objectives[oj2].optional=true;else if(qsOpt===false)delete qsq.objectives[oj2].optional;ofound=true;break;}}if(!ofound){var qsNew={text:qsObj,done:qsDone};if(qsOpt===true)qsNew.optional=true;qsq.objectives.push(qsNew);}R.muts.push(qsTitle+(qsDone?" ✓ ":" + ")+qsObj+(qsOpt===true?" (optional)":""));}}},

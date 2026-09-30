@@ -27329,6 +27329,29 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.world.sublocation="the tavern";return sceneOnStageNow("Frizwick")?"on stage elsewhere: a frame at another place is not this scene":true;
   });
 
+  section("#481 C3 the last step lands with the completion");
+  t("#481 C3 a final objective ticked in the SAME reply that completes the quest lands on the archived record, with the ordinary receipt and no false alarm",function(){
+    makeWorld();worldState.turn=40;
+    applyMuts("[QUEST:The Lost Bell|active|Find the stolen bell][QUEST_STEP:The Lost Bell|Find the bell|true][QUEST_STEP:The Lost Bell|Return the bell to the priest|false]");
+    worldState.turn=41;var R=quiet(function(){return applyMuts("[QUEST_STEP:The Lost Bell|Return the bell to the priest|true][QUEST:The Lost Bell|completed]");}).r;
+    var q=memory.quests["The Lost Bell"];if(!q)return "the quest is archived";
+    var ob=(q.objectives||[]).filter(function(o){return /Return the bell/.test(o.text);})[0];
+    if(!ob||ob.done!==true)return "the final step lands on the archived record: "+JSON.stringify(q.objectives);
+    if(R.muts.some(function(m){return /already completed/.test(m)||/^⚠/.test(m);}))return "no false alarm on the completion: "+JSON.stringify(R.muts);
+    return R.muts.indexOf("The Lost Bell ✓ Return the bell to the priest")>=0?true:"the ordinary receipt: "+JSON.stringify(R.muts);
+  });
+  t("#481 C3 a step on a quest closed at an EARLIER reply still refuses, and so does a NEW objective in the closing reply (#265②)",function(){
+    makeWorld();worldState.turn=40;applyMuts("[QUEST:The Lost Bell|active|Find the bell][QUEST_STEP:The Lost Bell|Find the bell|false]");
+    worldState.turn=41;var R1=quiet(function(){return applyMuts("[QUEST_STEP:The Lost Bell|A brand-new afterthought|true][QUEST:The Lost Bell|completed]");}).r;
+    if(!R1.muts.some(function(m){return /already completed/.test(m);}))return "a NEW objective in the closing reply is refused: "+JSON.stringify(R1.muts);
+    if((memory.quests["The Lost Bell"].objectives||[]).some(function(o){return /afterthought/.test(o.text);}))return "the new objective must not be recorded";
+    worldState.turn=42;var R2=quiet(function(){return applyMuts("[QUEST_STEP:The Lost Bell|Find the bell|true]");}).r;
+    if(!R2.muts.some(function(m){return /already completed/.test(m);}))return "a step a reply LATER is refused: "+JSON.stringify(R2.muts);
+    /* the documented limit (Fable C3 b): the exemption lives on ONE applyMutsTable call's R — a QUEST inside a CANON_TXN envelope and a
+       QUEST_STEP in the ordinary stream are separate calls, so a tick crossing the envelope boundary is still refused (loudly). */
+    return true;
+  });
+
   section("#481 F2 a portrait is an image, never markup");
   t("#481 F2 safeImgSrc admits an image data URL, https: and blob:, escaped; anything else is empty and said once",function(){
     var png="data:image/png;base64,iVBORw0KGgo=",jpg="data:image/jpeg;base64,/9j/4AAQ+/=";

@@ -120,6 +120,11 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Doc (2):** the SAY doc line (STABLE half) is NOT in this commit, per Fable.
   - **Real evidence:** all 16 distinct labelled moods in the owner's saves (t202–t218) now pass; before, 0 of 16 did.
   - **Proof:** 2 tests (both red before the build). Full suite green (2,446); four replay baselines unchanged; `dev/sabotage-481-e1-mood-label.js` 3/3 caught, incl. the strip line; the #458 battery green.
+- 2026-09-29 · #481 C3 · v1.1039 · Opus 5.5 · The last step lands with the completion.
+  - **Fix:** the QUEST handler records what it closed this reply (`R.questsClosed`). A QUEST_STEP that TICKS an EXISTING objective of a quest closed in the SAME reply lands on the archived record with the ordinary receipt ("X ✓ objective", no ⚠ — Fable (a)).
+  - **Still refused (#265②):** a new objective in the closing reply, and any step a reply later. The test documents the cross-envelope limit (b): the exemption lives on one `applyMutsTable` call's R.
+  - **Field evidence:** 16 of 17 completions this fortnight had the final step unticked, with a false ⚠ on every completion turn.
+  - **Proof:** 2 tests in "#481 C3" (the same-reply one red before the build). Full suite green (2,450); four replay baselines unchanged; `dev/sabotage-481-c3-final-step.js` 3/3 caught, incl. Fable's "ignore R.questsClosed"; the #271 battery green.
 
 ## Off-Fable log
 
