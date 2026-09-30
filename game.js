@@ -838,13 +838,16 @@ function _saySegScan(rawSlice,state){
   while(text.charAt(text.length-1)===" "){text=text.slice(0,-1);mask.pop();para.pop();}
   return {text:text,mask:mask,para:para};
 }
+/* #481 E1: a dropped mood is SAID — one toast per session with the count; every drop still warns in the console. */
+var _sayMoodToasted=false;
+function _sayMoodToastReset(){_sayMoodToasted=false;}
 function deriveSpeakerMapFromTags(raw,clean){
   if(!raw||typeof TTS==="undefined"||!TTS._textPrep)return null;
   SAY_TAG_RE.lastIndex=0;
   // Segment text must pass through the SAME character rewrites the units underwent (splitSentences
   // runs normalizeForTTS: emphasis stripped, em/en-dash -> ", ", "..." -> "…") or a dash/markdown
   // inside a quoted line makes its 48-char key unfindable and the line narrates flat.
-  var segs=[],m,prevEnd=0,prevName=null,prevMood="",sawTag=false,qs={inQ:false};
+  var segs=[],m,prevEnd=0,prevName=null,prevMood="",sawTag=false,qs={inQ:false},moodDrops=0;
   while((m=SAY_TAG_RE.exec(raw))){
     sawTag=true;
     segs.push(_sayCarry({name:prevName,mood:prevMood},_saySegScan(raw.slice(prevEnd,m.index),qs)));
@@ -853,9 +856,10 @@ function deriveSpeakerMapFromTags(raw,clean){
     /* #458: a mood rides ITS tag's segment only — the next tag without one carries none (Inworld's own carry-forward
        rule, made explicit per tag). A mood failing the shape is dropped LOUDLY; the speaker binding is untouched. */
     prevMood="";
-    if(m[2]!==undefined&&/\S/.test(m[2])){prevMood=sayMoodShape(m[2]);if(!prevMood)console.warn("[speakers] mood dropped for "+(nm||"(narrator)")+" — not a short phrase (letters, spaces, commas, hyphens; up to "+SAY_MOOD_MAX+" characters): "+String(m[2]).slice(0,60));}
+    if(m[2]!==undefined&&/\S/.test(m[2])){prevMood=sayMoodShape(m[2]);if(!prevMood){moodDrops++;}if(!prevMood)console.warn("[speakers] mood dropped for "+(nm||"(narrator)")+" — not a short phrase (letters, spaces, commas, hyphens; up to "+SAY_MOOD_MAX+" characters): "+String(m[2]).slice(0,60));}
     prevEnd=SAY_TAG_RE.lastIndex;
   }
+  if(moodDrops&&!_sayMoodToasted&&typeof showToast==="function"){_sayMoodToasted=true;showToast("⚠ "+moodDrops+" voice mood"+(moodDrops>1?"s":"")+" dropped — the GM wrote more than a short phrase (details in the console; shown once per session)");}
   if(!sawTag)return null;
   segs.push(_sayCarry({name:prevName,mood:prevMood},_saySegScan(raw.slice(prevEnd),qs)));
   var units=TTS._textPrep.splitSentences(clean,null,true);

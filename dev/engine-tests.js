@@ -13256,6 +13256,27 @@ function runEngineTests(R){
     for(i=0;i<bad.length;i++)if(sayMoodShape(bad[i])!=="")return "must refuse "+JSON.stringify(bad[i])+" -> "+JSON.stringify(sayMoodShape(bad[i]));
     return sayMoodShape(new Array(41).join("a"))===new Array(41).join("a")&&sayMoodShape(new Array(42).join("a"))===""?true:"the cap is 40";
   });
+  t("#458 #481 E1 a labelled mood keeps its words: the four real forms (mood:bright, mood:bright, giggle, mood:tender, sigh, mood:slow and measured, echoing) strip the label before the shape test and reach Inworld; the refusals stay refused",function(){
+    var F=[["mood:bright","bright"],["mood:bright, giggle","bright, giggle"],["mood:tender, sigh","tender, sigh"],["mood:slow and measured, echoing","slow and measured, echoing"],["Mood: warm","warm"],["emotion=wary","wary"],["tone : soft","soft"]],i;
+    for(i=0;i<F.length;i++)if(sayMoodShape(F[i][0])!==F[i][1])return F[i][0]+" -> "+JSON.stringify(sayMoodShape(F[i][0]))+", want "+F[i][1];
+    var R=["mood:","mood:bright!","mood:[giggle]","mood:3 sighs","mood:"+new Array(42).join("a"),"feeling:bright"],j;
+    for(j=0;j<R.length;j++)if(sayMoodShape(R[j])!=="")return "the #458 refusals stay refused: "+R[j]+" -> "+JSON.stringify(sayMoodShape(R[j]));
+    var iw=TTS.settings.models.inworld,mg=TTS._markupGroup(iw,{text:"Hold the door.",voice:"a",mood:"mood:bright, giggle"});
+    if(mg.text!=="[speak bright] [giggle] Hold the door.")return "the Inworld prefix: "+JSON.stringify(mg.text);
+    _mkSpeakerWorld();var r1="[SAY:Frizwick|mood:tender, sigh]\"Stay a while,\" she says.";
+    var map=quiet(function(){return deriveSpeakerMapFromTags(r1,cleanTxt(r1));}).r,has=false,k;
+    for(k in (map&&map.m)||{})if(map.m[k]==="tender, sigh")has=true;
+    return has?true:"the parser keeps the mood on the span: "+JSON.stringify(map);
+  });
+  t("#481 E1 a dropped mood is said once per session with the count, not only in the console",function(){
+    _mkSpeakerWorld();var n0=__toasts.length;_sayMoodToastReset();
+    var r2="[SAY:Frizwick|bright!]\"A,\" she says. [SAY:Daeris|3 sighs]\"B,\" she says.";
+    quiet(function(){deriveSpeakerMapFromTags(r2,cleanTxt(r2));});
+    var t1=__toasts.slice(n0).filter(function(x){return /mood/i.test(String(x));});
+    if(t1.length!==1||!/\b2\b/.test(String(t1[0])))return "one toast naming the count: "+JSON.stringify(__toasts.slice(n0));
+    var r3="[SAY:Frizwick|bright!]\"C,\" she says.";quiet(function(){deriveSpeakerMapFromTags(r3,cleanTxt(r3));});
+    return __toasts.slice(n0).filter(function(x){return /mood/i.test(String(x));}).length===1?true:"once per session";
+  });
   t("#458 speakerVoiceMap carries the persisted mood under moods for a resolved speaker, beside directions and rates; a map without m yields no moods; an unresolved speaker carries neither voice nor mood",function(){
     _mkSpeakerWorld();
     var units=TTS._textPrep.splitSentences(_SPK_LINE,null,true);

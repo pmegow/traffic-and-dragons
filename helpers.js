@@ -2906,6 +2906,10 @@ function sayMoodSteer(part){
 }
 function sayMoodShape(raw){
   var s=String(raw==null?"":raw).replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
+  /* #481 E1 (audit 2026-09-29, Fable-approved): since t202 the GM writes a LABEL in front of the mood — "mood:bright, giggle" —
+     and the colon failed the shape, so every mood (and every laugh, giggle and sigh) was dropped. The label is stripped
+     BEFORE the cap and the shape test; everything else the #458 gate refuses stays refused. */
+  s=s.replace(/^(?:mood|emotion|tone)\s*[:=]\s*/i,"");
   if(!s||s.length>SAY_MOOD_MAX)return "";
   return /^[A-Za-z][A-Za-z ,-]*$/.test(s)?s:"";
 }

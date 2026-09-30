@@ -113,6 +113,13 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Real-field evidence:** all six field lines — Village t74, t115, t144, t173, t194 and fae t9, extracted from the owner's saves — alarmed before and are silent after. The t144 line is paraphrased in the public test to the same grammatical shape.
   - **Proof:** 2 tests in "#481 B5" (the negatives red before the build; the positives are regression guards: left the / left for / has left / quietly left the). Full suite green (2,443); four replay baselines unchanged; `dev/sabotage-481-b5-left-side.js` 3/3 caught.
 - 2026-09-29 · #481 B7 · v1.1034 · Opus 5.5 · `presenceObserve` (identity.js) runs the player check BEFORE the roster check. The hero named in every cast no longer prints "[presence] 'Ammut' (cast) is not on the roster" every turn (24 of 24 replayed turns), which buried the [motif] line #469 reads. Behaviour is unchanged (the hero was refused either way; only the log line goes). Proof: 1 red-first test; full suite green (2,444); replays unchanged; `dev/sabotage-481-b7-hero-roster.js` 1/1; presence and B1 batteries green.
+- 2026-09-29 · #481 E1 · v1.1035 · Opus 5.5 · A labelled mood keeps its words.
+  - **Gate:** `sayMoodShape` (helpers.js, the ONE gate the parser and the Inworld request builder both call) strips a leading `mood|emotion|tone` with `:` or `=` BEFORE the 40-character cap and the shape test (1). The #458 refusals stay refused ("mood:bright!", "mood:[giggle]", "feeling:bright", …).
+  - **Tests:** the four real forms joined the #458 group, with the Inworld prefix asserted: "mood:bright, giggle" → "[speak bright] [giggle]".
+  - **Loud drops (3):** one toast per session with the count (`deriveSpeakerMapFromTags`, game.js); the console warn stays per drop.
+  - **Doc (2):** the SAY doc line (STABLE half) is NOT in this commit, per Fable.
+  - **Real evidence:** all 16 distinct labelled moods in the owner's saves (t202–t218) now pass; before, 0 of 16 did.
+  - **Proof:** 2 tests (both red before the build). Full suite green (2,446); four replay baselines unchanged; `dev/sabotage-481-e1-mood-label.js` 3/3 caught, incl. the strip line; the #458 battery green.
 
 ## Off-Fable log
 
