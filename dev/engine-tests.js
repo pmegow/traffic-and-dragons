@@ -27863,4 +27863,37 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var fe=(memory.npcs["Vessa Crane"]||{}).firstEncounter;return fe==="The door groans open onto a hall of cold stone and old banners."?true:"the filed snippet ends at its sentence: "+JSON.stringify(fe);
   });
 
+  // ── #481 C6 (audit 2026-09-29, Fable-approved with changes): in the village, buying honey cakes from a neighbour pulled
+  // ~1,200 characters of that neighbour's old-adventure record into the prompt as canon, and a note told the GM to have them
+  // correct their past. (a) ONE gate — carriedHeldNow — asked by BOTH the CARRIED HISTORY splice and the CARRIED RECORD note,
+  // OUTSIDE the memoized retriever. (b) Held in a small-talk kind, outside the Hall, unless the hero raises the past
+  // (pastRaisedByHero with the named residents and their records). (c) Adventure kinds are byte-identical.
+  section("#481 C6 the carried record waits to be asked");
+  function c6Run(action,log){var _la=lastAction,_sl=sessionLog;try{lastAction=action;sessionLog=log||[{role:"user",content:"x"},{role:"assistant",content:"Nyla sets out the cakes; Silas watches the door."}];ragCarriedRetrieve._memo=null;return {vol:buildSysPrompt().volatile,note:buildCarriedRecordNote()};}finally{lastAction=_la;sessionLog=_sl;}}
+  t("#481 C6 buying cakes from Nyla serves neither the record nor the note; asking how she and Silas met serves both",function(){
+    carriedEF();var buy=c6Run("Buy four warm spiced honey cakes from Nyla for 1 gp");
+    if(/CARRIED HISTORY/.test(buy.vol))return "the neighbour's old record rode a purchase (Village t198)";
+    if(buy.note!=="")return "the CARRIED RECORD note rode a purchase: "+buy.note.slice(0,100);
+    var ask=c6Run("How did you and Silas meet, Nyla?");
+    if(!/CARRIED HISTORY/.test(ask.vol))return "the past, asked, is served";
+    if(!/CARRIED RECORD/.test(ask.note))return "the note rides the asked past";
+    var t92=c6Run("Ask Silas how he first met Nyla");if(!/CARRIED HISTORY/.test(t92.vol))return "the owner's t92 question is a past question";
+    /* a word from HER record raises her past, with no cue at all (the gate reads the named residents' records) */
+    var rec=c6Run("Ask Nyla about the Morne sanctum");return /CARRIED HISTORY/.test(rec.vol)?true:"a word from the named resident's own record raises the past";
+  });
+  t("#481 C6 the Hall serves the record unasked; the adventure is unchanged (no small talk, no hold)",function(){
+    carriedEF();worldState.world.sublocation="the Village Hall";var h=c6Run("Ask Nyla what keeps her here");
+    if(!/CARRIED HISTORY/.test(h.vol))return "the Hall serves everything";
+    carriedEF();delete worldState.kind;var a=c6Run("Buy four warm spiced honey cakes from Nyla for 1 gp");
+    return /CARRIED HISTORY/.test(a.vol)?true:"the adventure serves a named carrier as before";
+  });
+  t("#481 C6 source: the splice and the note ask the ONE gate; the memoized retriever does not",function(){
+    var ap=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),me=__fsForTests.readFileSync(__rootForTests+"/memory.js","utf8");
+    var note=ap.slice(ap.indexOf("function buildCarriedRecordNote("),ap.indexOf("var buildTravelPriceNudge="));
+    if(!/carriedHeldNow\(/.test(note))return "the note does not ask the gate";
+    var bsp=ap.slice(ap.indexOf("function buildSysPrompt("));if(!/carriedHeldNow\(/.test(bsp))return "the splice does not ask the gate";
+    var rr=me.slice(me.indexOf("function ragCarriedRetrieve("),me.indexOf("function _ragCarriedScore("));
+    return /carriedHeldNow/.test(rr)?"the gate sits inside the memoized retriever":true;
+  });
+
 }

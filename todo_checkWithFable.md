@@ -208,6 +208,13 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Existing saves keep their start place's "KNOWN OF"** (Fable (c): startGame only; village saves are disposable).
   - **Split out:** the ~730-character duplication is filed as #483 (Fable (d)).
   - **Proof:** 3 new tests in "#481 C11" (red first; the paragraph-break and real-filing cases added so every guard has a test). Full suite green; `dev/sabotage-481-c11-prompt-text.js` 12/12 caught across both parts.
+- 2026-09-29 · #481 C6 · v1.1053 · Opus 5.5 · The carried record waits to be asked in the village.
+  - **Touches:** helpers.js (`carriedHeldNow`, plus `_standingInHall` / `_heroUserTurns` extracted from `pastHeldNow` with identical behavior), the carried splice in `buildSysPrompt`, and `buildCarriedRecordNote` (api.js). This is canon injection, a drift-surface item.
+  - **Fable (a)/(b):** one gate, asked outside the memoized retriever. It adds the named residents' names and records to `pastRaisedByHero`'s inputs.
+  - **Found in review:** the shared `PAST_CUE_RE` did not count "Ask Silas how he first met Nyla" (the owner's t92 question) as raising the past. The gate would have held exactly the case #433 was built for, and the #433 tests would have broken. The cue list gained "first met" / "how … meet/met". That also widens the moments gate, by design (one cue list).
+  - **Fable (c):** adventure kinds are never held; the #433 adventure behavior is unchanged.
+  - **Real save:** village, from the square — 33 → 11 served. The remainder is the shared #469 record-word rule and its two-turn carry, reported rather than forked.
+  - **Proof:** 3 tests in "#481 C6" (two red before the build). Full suite green (2,491); the #469 battery 19/19 with two clauses re-anchored; `dev/sabotage-481-c6-carried-gate.js` 8/8 caught.
 
 ## Off-Fable log
 

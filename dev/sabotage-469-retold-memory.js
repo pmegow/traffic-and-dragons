@@ -42,11 +42,11 @@ rc |= sabotage.prove({
       replace: "      if(shared>=MOTIF_MIN_WORDS&&(!best||shared>best.words))best=" },
     { label: "#469 ④/⑥ — the gate never holds: the village serves the earlier adventures on a walk to the well",
       mustFail: "the village served the earlier adventure on a walk to the well",
-      find: "  return !pastRaisedByHero(typeof lastAction===\"string\"?lastAction:\"\",ut,names,prior);\n}",
+      find: "  return !pastRaisedByHero(typeof lastAction===\"string\"?lastAction:\"\",_heroUserTurns(),names,prior);\n}",/* #481 C6 re-anchor: the user turns come from the shared helper */
       replace: "  return false;\n}" },
     { label: "#469 ④/⑥ — the Hall no longer serves the past",
       mustFail: "standing in the Hall did not serve the past",
-      find: "  if(hk&&ak===hk)return false;/* the Hall serves everything */\n",
+      find: "  if(_standingInHall())return false;/* the Hall serves everything */\n",/* #481 C6 re-anchor: the Hall check is shared with the carried gate */
       replace: "" }
   ]
 });

@@ -1812,6 +1812,7 @@ function buildResidentExchangeNote(){
 function buildCarriedRecordNote(){
   if(!worldState||worldState.combat||typeof ragCarriedRetrieve!=="function")return "";
   var act=(typeof lastAction==="string")?lastAction:"";if(!act)return "";
+  if(typeof carriedHeldNow==="function"&&carriedHeldNow(act))return "";/* #481 C6: the ONE gate the splice asks */
   if(!ragCarriedRetrieve(act))return "";/* memoized — buildSysPrompt's own call a moment later is a hit, not a second scoring pass */
   var q=ragQueryEntities(act),named=[],k;
   for(k in q.input){var n=(typeof wsNpcByName==="function")?wsNpcByName(k):null;if(n&&!n.partyMember&&n.charSheet)named.push(k);}
@@ -2530,7 +2531,8 @@ function buildSysPrompt(){
   // #433: CARRIED HISTORY — what a NON-PARTY character lived before this campaign (their library sheet's beats, moments,
   // bonds, motivation), served only when the action NAMES them. Same flag, same volatile-only discipline; "" otherwise,
   // so every prompt that names no carrier is byte-identical to before.
-  var carriedRagBlock=typeof ragCarriedRetrieve==="function"?ragCarriedRetrieve(typeof lastAction==="string"&&lastAction?lastAction:""):"";
+  var _cAct=typeof lastAction==="string"&&lastAction?lastAction:"";
+  var carriedRagBlock=(typeof ragCarriedRetrieve==="function"&&!(typeof carriedHeldNow==="function"&&carriedHeldNow(_cAct)))?ragCarriedRetrieve(_cAct):"";/* #481 C6: the ONE gate, outside the memo */
   var legacyBlock="";
   if(worldState.pendingLegacy){
     var _lc=worldState.pendingLegacy;

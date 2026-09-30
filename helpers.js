@@ -836,7 +836,7 @@ function motifWords(text,exempt){
    own past by cue ("my old days"). Her name alone ("Ask Daeris about the weather") raises nothing. The raise carries
    across the window so a conversation about the past keeps its record mid-story. Names never count as record words. */
 var PAST_RAISED_TURNS=2,PAST_WORD_MIN=5;
-var PAST_CUE_RE=/\b(remember|recall|back then|back when|before (we|you|this|all this)|(your|her|his|their|my|our) (past|old life|old days|story|tale|earlier|last) ?(adventure|life|days|campaign)?|the old days|what happened (to|with|back|before|in)|tell (me|us) (about|of)|how did you|when you were|used to|earlier adventure)\b/i;
+var PAST_CUE_RE=/\b(remember|recall|back then|back when|before (we|you|this|all this)|(your|her|his|their|my|our) (past|old life|old days|story|tale|earlier|last) ?(adventure|life|days|campaign)?|the old days|what happened (to|with|back|before|in)|tell (me|us) (about|of)|how did you|when you were|used to|earlier adventure|first met|how (did |do )?(you|they|he|she|we)( two| both| all)? (first )?(meet|met))\b/i;/* #481 C6: how people met is the past (t92) */
 function pastWords(text,ex){var out={};String(text||"").toLowerCase().replace(/[\u2019']s\b/g,"").split(/[^a-z]+/).forEach(function(w){if(w.length>=PAST_WORD_MIN&&!MOTIF_STOP[w]&&!ex[w])out[w]=1;});return out;}
 function pastRaisedByHero(action,userTurns,memberNames,priorMoments){
   var texts=[String(action||"")].concat((PAST_RAISED_TURNS>0?(userTurns||[]).slice(-PAST_RAISED_TURNS):[]).map(function(t){return String(t||"");})),i,j,k;/* slice(-0) is slice(0): a zero window must mean none */
@@ -894,14 +894,35 @@ function heldPastParty(){
   for(i=0;i<party.length;i++){names.push(party[i].name);take(party[i].charSheet&&party[i].charSheet.coreMemories);}
   return prior.length?{names:names,prior:prior}:null;
 }
+function _standingInHall(){
+  var w=(typeof worldState!=="undefined"&&worldState&&worldState.world)||{},res=(typeof locResolve==="function")?locResolve:function(x){return x;};
+  var hk=(typeof kindDef==="function"&&kindDef().hall&&typeof villageHallKey==="function")?res(villageHallKey()):null;
+  var ak=w.sublocation?res(w.location+"|"+w.sublocation):res(w.location||"");
+  return !!(hk&&ak===hk);
+}
+function _heroUserTurns(){var ut=[],i,sl=(typeof sessionLog!=="undefined"&&sessionLog)||[];for(i=0;i<sl.length;i++){var m=sl[i];if(m&&m.role==="user"&&!m.bk)ut.push(typeof stripEngineNotes==="function"?stripEngineNotes(m.content):m.content);}return ut;}
 function pastHeldNow(names,prior){
   if(!prior||!prior.length||typeof kindDef!=="function"||!kindDef().smallTalk)return false;
-  var w=(typeof worldState!=="undefined"&&worldState&&worldState.world)||{},res=(typeof locResolve==="function")?locResolve:function(x){return x;};
-  var hk=(kindDef().hall&&typeof villageHallKey==="function")?res(villageHallKey()):null;
-  var ak=w.sublocation?res(w.location+"|"+w.sublocation):res(w.location||"");
-  if(hk&&ak===hk)return false;/* the Hall serves everything */
-  var ut=[],i,sl=(typeof sessionLog!=="undefined"&&sessionLog)||[];for(i=0;i<sl.length;i++){var m=sl[i];if(m&&m.role==="user"&&!m.bk)ut.push(typeof stripEngineNotes==="function"?stripEngineNotes(m.content):m.content);}
-  return !pastRaisedByHero(typeof lastAction==="string"?lastAction:"",ut,names,prior);
+  if(_standingInHall())return false;/* the Hall serves everything */
+  return !pastRaisedByHero(typeof lastAction==="string"?lastAction:"",_heroUserTurns(),names,prior);
+}
+/* #481 C6 (audit 2026-09-29, Fable-approved): the ONE gate for the CARRIED record — the CARRIED HISTORY splice and the
+   CARRIED RECORD note both ask it, outside the memoized retriever, so they can never disagree (the #479 lesson). HELD (true)
+   in a small-talk kind, outside the Hall, unless the hero raises the past: pastRaisedByHero over the action and the recent
+   user turns, with the party's names AND the residents the action names, and the party's prior moments AND those
+   residents' carried records. Buying cakes from Nyla holds her record; "How did you and Silas meet?" serves it. An
+   adventure kind is never held (byte-identical). */
+function carriedHeldNow(action){
+  if(typeof kindDef!=="function"||!kindDef().smallTalk||typeof worldState==="undefined"||!worldState||!worldState.character)return false;
+  if(_standingInHall())return false;
+  var act=String(action==null?"":action),q=(typeof ragQueryEntities==="function")?ragQueryEntities(act):{input:{}},named=[],k,i;
+  for(k in q.input){var n=(typeof wsNpcByName==="function")?wsNpcByName(k):null;if(n&&!n.partyMember&&n.charSheet&&named.indexOf(n.name)<0)named.push(n.name);}
+  if(!named.length)return false;/* nobody carried is named — the retriever serves nothing anyway */
+  var hp=heldPastParty(),names=hp?hp.names.slice():[worldState.character.name],prior=hp?hp.prior.slice():[];
+  if(!hp){var pc=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];for(i=0;i<pc.length;i++)names.push(pc[i].name);}
+  names=names.concat(named);
+  var pool=(typeof _ragCarriedPool==="function")?_ragCarriedPool():[];for(i=0;i<pool.length;i++)if(named.indexOf(pool[i].who)>=0)prior.push({who:pool[i].who,text:pool[i].text});
+  return !pastRaisedByHero(act,_heroUserTurns(),names,prior);
 }
 function ragEchoGate(){var p=heldPastParty();return (p&&pastHeldNow(p.names,p.prior))?p:null;}
 function droll(s){return Math.floor(Math.random()*s)+1;}
