@@ -27599,4 +27599,82 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return a5Notes("The Village|the tavern").indexOf("The fire burns low.")>=0?true:"a plain note files where the party stands: "+JSON.stringify(a5Notes("The Village|the tavern"));
   });
 
+  // ── #481 D5 (audit 2026-09-29, Fable-approved with changes): prices in silver or copper were invisible to the economy
+  // (itemValueGp read only "N gp"), "1 gp per 20" read as 1 gp EACH, and [GOLD:-25 cp] charged 25 gold. ONE parseCoin
+  // (gp/sp/cp/pp, "per N", "each") feeds itemValueGp, the GOLD handler, price pinning, the price-band warning, the
+  // counter and the quest-reward parses. (a) GOLD refuses a non-gold unit with a receipt and never converts. (c) A
+  // bundle price is per unit; the counter multiplies by quantity. (d) The overspend receipt states what actually moved.
+  section("#481 D5 one coin parser");
+  t("#481 D5 parseCoin reads gold, silver, copper and platinum, a bundle and each; a price without a coin is null; a GOLD body is read by its LEADING number",function(){
+    function u(s,lead){var c=parseCoin(s,lead);return c?Math.round(c.unitGp*10000)/10000:null;}
+    var cases=[["25 cp",0.25],["5 sp",0.5],["2 sp",0.2],["1 cp",0.01],["1 gp per 20",0.05],["1 gp for 20 arrows",0.05],["2 gp each",2],["50 gp",50],["1,000 gp",1000],["12 gold pieces",12],["3 silver",0.3],["2 pp",20],["about 2-3 gp",3],["N/A",null],["beyond price — a Runelord's personal signet",null],["a handful of copper",null]],bad=[],i;
+    for(i=0;i<cases.length;i++){var got=u(cases[i][0]);if(got!==cases[i][1])bad.push(cases[i][0]+" → "+got+" (want "+cases[i][1]+")");}
+    var g1=parseCoin("-25 cp",true),g2=parseCoin("+5",true),g3=parseCoin("-2 (2 sp change)",true);
+    if(!g1||g1.unit!=="cp"||g1.amount!==-25)bad.push("lead -25 cp: "+JSON.stringify(g1));
+    if(!g2||g2.unit!==null||g2.amount!==5)bad.push("lead +5 is a bare number: "+JSON.stringify(g2));
+    if(!g3||g3.unit!==null||g3.amount!==-2)bad.push("lead -2 keeps its own (absent) unit; the note's sp is not it: "+JSON.stringify(g3));
+    if(parseCoin("25 cp").per!==1||parseCoin("1 gp per 20").per!==20)bad.push("per");
+    return bad.length?bad.join("; "):true;
+  });
+  t("#481 D5 itemValueGp prices ONE unit from the item bible: travel rations 5 sp, a torch 1 cp, an arrow 1 gp per 20, a silvered arrow 1 gp each",function(){
+    makeWorld();var want={"Travel rations":0.5,"Torch":0.01,"Bottle of wine":0.2,"Arrow":0.05,"Silvered arrow":1,"Throwing knives":2},bad=[];
+    Object.keys(want).forEach(function(n){var v=itemValueGp(itemLookup(n));if(v==null||Math.abs(v-want[n])>1e-9)bad.push(n+" → "+v+" (want "+want[n]+")");});
+    if(itemValueGp({value:"N/A"})!==null)bad.push("N/A must stay unpriced");
+    return bad.length?bad.join("; "):true;
+  });
+  t("#481 D5 [GOLD:] refuses a coin that is not gold and never converts; the overspend receipt states what moved and says what it could not",function(){
+    makeWorld();delete worldState.kind;var c=worldState.character;c.gold=100;
+    var r=quiet(function(){return applyMuts("[GOLD:-25 cp]");}).r;
+    if(c.gold!==100)return "25 copper charged "+(100-c.gold)+" gold";
+    if(!(r.muts||[]).some(function(m){return mutLineWarns(m)&&/Gold refused/.test(m)&&/cp/.test(m);}))return "the refusal is loud and names the unit: "+JSON.stringify(r.muts);
+    c.gold=3;r=quiet(function(){return applyMuts("[GOLD:-10]");}).r;
+    if(c.gold!==0)return "the floor stays: "+c.gold;
+    if((r.muts||[]).indexOf("-3 gp")<0)return "the receipt states what moved (-3 gp): "+JSON.stringify(r.muts);
+    if(!(r.muts||[]).some(function(m){return mutLineWarns(m)&&/10/.test(m)&&/3/.test(m);}))return "the shortfall is said (asked 10, held 3): "+JSON.stringify(r.muts);
+    r=quiet(function(){return applyMuts("[GOLD:-4]");}).r;
+    if((r.muts||[]).some(function(m){return /^-\d+ gp$|^-0 gp$/.test(m);}))return "an empty purse moves nothing, so no receipt claims a spend: "+JSON.stringify(r.muts);
+    c.gold=10;quiet(function(){applyMuts("[GOLD:+5 gp][GOLD:+2 gold pieces][GOLD:-2 (2 sp change)]");});
+    return c.gold===15?true:"gold units and a note's silver are read as gold: "+c.gold;
+  });
+  t("#481 D5 in the village a coin in the wrong unit refuses the trade it rode with: nothing is gained for free",function(){
+    shopFixture();var c=worldState.character,g=c.gold,n=c.inventory.length;
+    var r=quiet(function(){return applyMuts("[GOLD:-5 sp][ITEM_GAINED:Bread]");}).r;
+    if(c.gold!==g||c.inventory.length!==n||c.inventory.some(function(x){return /bread/i.test(x);}))return "no coin and no bread may move: "+c.gold+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
+    return (r.muts||[]).filter(mutLineWarns).length>=2?true:"the coin and its rider are both refused out loud: "+JSON.stringify(r.muts);
+  });
+  t("#481 D5 the counter trades in silver and copper: rations sell by the unit, a 25 cp cake is buyable, a bundle of arrows buys by the arrow; small sums read as sp/cp",function(){
+    shopFixture();var node=memory.map.nodes["The Village|the trading post"];
+    node.wares.push({item:"Honey cake",price:"25 cp",note:"",t:1,min:clockNow(),at:"the trading post"},{item:"Arrows",price:"1 gp per 20",note:"",t:1,min:clockNow(),at:"the trading post"});
+    worldState.character.inventory.push("Travel rations x4");
+    var cat=shopTradeCatalog(),by={},bb={};cat.sell.forEach(function(r){by[r.name]=r;});cat.buy.forEach(function(b){bb[b.name]=b;});
+    if(!by["Travel rations"]||Math.abs(by["Travel rations"].sellGp-0.25)>1e-9)return "rations sell at half of 5 sp: "+JSON.stringify(by["Travel rations"]);
+    if(!bb["Honey cake"]||Math.abs(bb["Honey cake"].buyGp-0.25)>1e-9)return "a 25 cp cake is priced: "+JSON.stringify(bb["Honey cake"]);
+    var rows=shopLedgerRows(cat),arrowRow=rows.right.filter(function(x){return x.label==="Arrows";})[0];
+    if(!arrowRow||arrowRow.max!==20)return "a bundle ware buys up to its bundle: "+JSON.stringify(arrowRow);
+    var p=shopTradePlan(cat,{sell:{"travel rations":4},buy:{}});if(p.netGp!==-1)return "four rations pay 1 gp: "+JSON.stringify(p);
+    var p2=shopTradePlan(cat,{sell:{},buy:{"arrows":20}});if(p2.netGp!==1||!p2.lines[0]||p2.lines[0].qty!==20)return "twenty arrows cost 1 gp: "+JSON.stringify(p2);
+    if(shopTradeTagText(p2).indexOf("[ITEM_GAINED:Arrows x20]")<0)return "the tag carries the count: "+shopTradeTagText(p2);
+    var fm=[[0.25,"25 cp"],[0.5,"5 sp"],[0.05,"5 cp"],[12,"12 gp"],[1.5,"1.5 gp"]],i;for(i=0;i<fm.length;i++)if(shopFmtGp(fm[i][0])!==fm[i][1])return "shopFmtGp("+fm[i][0]+") → "+shopFmtGp(fm[i][0]);
+    return true;
+  });
+  t("#481 D5 the quest reward parses read the same coin: a reward in silver is no paid gold, and the payout verifier gives it its own (missed) group",function(){
+    makeWorld();delete worldState.kind;worldState.character.gold=10;
+    worldState.questLog=[{title:"The Toll",status:"active",desc:"",objectives:[]}];
+    quiet(function(){applyMuts("[QUEST:The Toll|completed][GOLD:+50 sp]");});
+    var q=memory.quests&&(memory.quests["The Toll"]||null);if(!q)return "fixture: the quest archives: "+JSON.stringify(Object.keys(memory.quests||{}));
+    if(worldState.character.gold!==10)return "silver never lands as gold: "+worldState.character.gold;
+    if(q.paid&&q.paid.gold)return "a refused coin is no paid reward: "+JSON.stringify(q.paid);
+    var gr=rewardAwardTargets(["[GOLD:+5]","[GOLD:+2 gp]","[GOLD:+50 sp]"]),gold=gr.filter(function(x){return x.kind==="gold";});
+    if(gold.length!==1||gold[0].expect!==7)return "gold tokens group with their gold sum: "+JSON.stringify(gr);
+    return gr.some(function(x){return x.kind!=="gold"&&x.tokens[0]==="[GOLD:+50 sp]";})?true:"the silver token is its own group, so the +7 can still land: "+JSON.stringify(gr);
+  });
+  t("#481 D5 a pinned ware keeps canon's own words, and the price band quotes them: rations pin to 5 sp; wine at 2 gp is ten times its 2 sp",function(){
+    shopFixture();quiet(function(){applyMuts("[WARES:Travel rations|1 gp]");});
+    var w=(memory.map.nodes["The Village|the trading post"].wares||[]).filter(function(x){return x.item==="Travel rations";})[0];
+    if(!w||w.price!=="5 sp")return "the village pins rations to canon's 5 sp: "+JSON.stringify(w);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation=null;memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    var r=quiet(function(){return applyMuts("[WARES:Bottle of wine|2 gp]");}).r;
+    return (r.muts||[]).some(function(m){return /Bottle of wine/.test(m)&&/(canon 2 sp)/.test(m);})?true:"the band receipt quotes canon: "+JSON.stringify(r.muts);
+  });
+
 }

@@ -1653,7 +1653,41 @@ function nameContains(hay,needle){
   }
   return false;
 }
-function itemValueGp(entry){if(!entry||!entry.value)return null;var m=String(entry.value).replace(/,/g,"").match(/(\d+(?:\.\d+)?)\s*gp/i);return m?parseFloat(m[1]):null;}
+/* #481 D5 (audit 2026-09-29, Fable-approved): ONE coin parser for every price the economy reads — the item bible's value,
+   a ware's price, a wanted offer, the [GOLD:] tag and the quest-reward parses. Gold, silver, copper, platinum (1 gp = 10 sp
+   = 100 cp; 1 pp = 10 gp; "gp"/"gold"/"gold pieces"…), thousands commas, and a BUNDLE: "1 gp per 20" / "for 20" prices one
+   of twenty; "each" prices one. A price is the first number that carries a unit (a sign is no part of it — "2-3 gp" is 3);
+   `lead` reads a [GOLD:] body by its LEADING signed number and only the unit written right after it ("-2 (2 sp change)" is
+   -2, unit-less). → {amount, unit: "gp"|"sp"|"cp"|"pp"|null, gp: the amount in gold, per, unitGp: gold for ONE unit}, or
+   null when there is no number at all ("N/A", "beyond price"). Pure. */
+var COIN_UNIT_KEY={gp:"gp",gold:"gp",sp:"sp",silver:"sp",cp:"cp",copper:"cp",pp:"pp",platinum:"pp"};
+function parseCoin(str,lead){
+  var s=String(str==null?"":str).toLowerCase().replace(/(\d),(?=\d{3}(?!\d))/g,"$1");
+  if(lead&&!/^\s*[+-]?\d/.test(s))return null;
+  var re=/([+-]?\d+(?:\.\d+)?)(?:\s*(gp|sp|cp|pp|gold|silver|copper|platinum)(?![a-z])(?:\s+(?:pieces?|coins?)(?![a-z]))?)?/g,m,first=null,hit=null;
+  while((m=re.exec(s))){if(!first)first=m;if(lead)break;if(m[2]){hit=m;break;}}
+  hit=(lead||!hit)?first:hit;if(!hit)return null;
+  var amount=parseFloat(hit[1]);if(!lead)amount=Math.abs(amount);
+  var unit=hit[2]?COIN_UNIT_KEY[hit[2]]:null,gp=unit==="sp"?amount/10:unit==="cp"?amount/100:unit==="pp"?amount*10:amount;
+  var pm=s.slice(hit.index+hit[0].length).match(/^\s*(?:per|for|\/)\s*(\d+)(?![\d.])/),per=pm?Math.max(1,parseInt(pm[1],10)):1;
+  return {amount:amount,unit:unit,gp:gp,per:per,unitGp:gp/per};
+}
+/* #481 D5: a [GOLD:] tag as the purse reads it — whole gold pieces (the leading number, truncated as before). A coin in
+   another unit is NOT gold: {ok:false} and the GOLD handler refuses it (never converts). */
+function goldTagParse(tag){
+  var raw=String(tag==null?"":tag),body=raw.replace(/^\s*\[GOLD:/i,"").replace(/\]\s*$/,""),c=parseCoin(body,true);
+  if(!c)return {ok:false,raw:raw,unit:null,n:0};
+  var n=c.amount<0?Math.ceil(c.amount):Math.floor(c.amount);
+  return {ok:!c.unit||c.unit==="gp",raw:raw,unit:c.unit,n:n};
+}
+/* #481 D5: the reward a reply pays — the first [GOLD:+N] the purse would accept (a deduction or a coin in another unit is
+   no reward). One reader for the completion toast, the archive's paid record and the re-completion double-pay check. */
+function goldRewardIn(text){
+  var tags=String(text==null?"":text).match(/\[GOLD:\s*\+?\d[^\]]*\]/gi)||[],i;
+  for(i=0;i<tags.length;i++){var g=goldTagParse(tags[i]);if(g.ok&&g.n>0)return g.n;}
+  return 0;
+}
+function itemValueGp(entry){if(!entry||!entry.value)return null;var c=parseCoin(entry.value);return (c&&c.unit)?c.unitGp:null;}/* #481 D5: ONE unit, in gold */
 // #303: LOCATION_SIZE text → the wares-cap tier. The GM's vocabulary is physical scale (small /
 // medium / large / vast — measured on the t2097 map); settlement words are folded in as a courtesy.
 // null when the node carries no size at all — an unsized place never gets a market ask.
@@ -2688,14 +2722,15 @@ function shopTradeCatalog(){
     else if(w){var og=(typeof itemValueGp==="function")?itemValueGp({value:w.offer}):null;if(og)r.sellGp=og;}
     sell.push(r);}
   var live=(typeof nodeWaresLive==="function")?nodeWaresLive(vtc.node):(vtc.node.wares||[]),buy=[];
-  for(i=0;i<live.length;i++){var ware=live[i],bg=(typeof itemValueGp==="function")?itemValueGp({value:ware.price}):null;buy.push({name:ware.item,price:ware.price,buyGp:bg,note:ware.note||""});}
+  for(i=0;i<live.length;i++){var ware=live[i],bg=(typeof itemValueGp==="function")?itemValueGp({value:ware.price}):null,pc=(typeof parseCoin==="function")?parseCoin(ware.price):null;
+    buy.push({name:ware.item,price:ware.price,buyGp:bg,per:(bg!=null&&pc&&pc.per>1)?pc.per:1,note:ware.note||""});}/* #481 D5: "1 gp per 20" sells by the one, up to twenty */
   return {ok:true,keeper:vtc.keeper,shop:vtc.shop,key:vtc.key,node:vtc.node,gold:Number(c.gold)||0,sell:sell,buy:buy};
 }
 /* marks = {sell:{<lowercase name>:qty}, buy:{<lowercase name>:1}} — what the player has clicked. */
 function shopTradePlan(cat,marks){
   marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellGp=0,buyGp=0,i,k;
   for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellGp==null)continue;q=Math.min(q,r.qty);lines.push({kind:"sell",name:r.name,qty:q,unitGp:r.sellGp,gp:r.sellGp*q});sellGp+=r.sellGp*q;}
-  for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();if(!(mb[k]|0)||b.buyGp==null)continue;lines.push({kind:"buy",name:b.name,qty:1,unitGp:b.buyGp,gp:b.buyGp,price:b.price});buyGp+=b.buyGp;}
+  for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();var bq=Math.min(mb[k]|0,b.per||1);if(bq<=0||b.buyGp==null)continue;lines.push({kind:"buy",name:b.name,qty:bq,unitGp:b.buyGp,gp:b.buyGp*bq,price:b.price});buyGp+=b.buyGp*bq;}/* #481 D5: the line is the unit price times the count */
   var net=buyGp-sellGp,rounded=net>=0?Math.round(net):-Math.round(-net);/* whole gp, halves away from zero: a half-gp sale still pays 1 gp */
   if(buyGp>0&&net>0&&rounded===0)rounded=1;/* the keeper never gives a thing away */
   var goldAfter=cat.gold-rounded,ok=lines.length>0&&goldAfter>=0;
@@ -2707,7 +2742,9 @@ function shopTradeTagText(plan){
   for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];if(l.qty>0)t+="["+(l.kind==="sell"?"ITEM_LOST":"ITEM_GAINED")+":"+l.name+(l.qty>1?" x"+l.qty:"")+"]";}/* #481 D3: the parser reads any count — no x9 chunking */
   return t;
 }
-function shopFmtGp(gp){var v=Math.round(gp*10)/10;return (v%1===0?String(v):v.toFixed(1))+" gp";}
+function shopFmtGp(gp){
+  var a=Math.abs(gp);if(a>0&&a<1){var sp=a*10;return (gp<0?"-":"")+(Math.abs(sp-Math.round(sp))<1e-9?Math.round(sp)+" sp":Math.max(1,Math.round(a*100))+" cp");}/* #481 D5: under a gold piece, in silver or copper */
+  var v=Math.round(gp*10)/10;return (v%1===0?String(v):v.toFixed(1))+" gp";}
 
 /* #407 ⑤ (owner 2026-09-16): ONE two-column LEDGER shape, used by the shop and the stash (and whatever comes next).
    A spec is data: two titled columns of rows {key,label,max,worn,off,offReason,tag,sub}, an amount rule, a plan and a
@@ -2717,7 +2754,7 @@ function shopLedgerRows(cat){
   var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.qty,worn:r.worn,off:r.worn||r.sellGp==null,unit:r.sellGp,
     offReason:r.worn?"Worn \u2014 take it off first":(r.sellGp==null?"No price on record here \u2014 ask "+cat.keeper:""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: full price":"Half its listed value"};});
   sell.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});/* stable in ES2019+; a priced row never sinks below an unpriced one */
-  var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:1,worn:false,off:b.buyGp==null,unit:b.buyGp,offReason:b.buyGp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
+  var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */worn:false,off:b.buyGp==null,unit:b.buyGp,offReason:b.buyGp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
   buy.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});
   return {left:sell,right:buy};
 }

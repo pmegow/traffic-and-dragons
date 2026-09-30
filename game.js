@@ -379,7 +379,7 @@ function shopTradeApply(marks){
   if(refused.length){if(typeof console!=="undefined")console.warn("[shop] "+refused[0]);return {ok:false,reason:refused[0],muts:muts};}
   var i,node=cat.node,sold=[],bought=[],hero=(worldState.character&&worldState.character.name)||"the hero";
   for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];
-    if(l.kind==="buy"){bought.push(l.name+" ("+l.price+")");var wi;for(wi=0;wi<(node.wares||[]).length;wi++)if(String(node.wares[wi].item).toLowerCase()===l.name.toLowerCase()){node.wares.splice(wi,1);break;}}
+    if(l.kind==="buy"){bought.push(l.qty>1?l.name+" x"+l.qty+" ("+shopFmtGp(l.gp)+")":l.name+" ("+l.price+")");/* #481 D5: a bundle buy names its count */var wi;for(wi=0;wi<(node.wares||[]).length;wi++)if(String(node.wares[wi].item).toLowerCase()===l.name.toLowerCase()){node.wares.splice(wi,1);break;}}
     else{sold.push(l.name+(l.qty>1?" x"+l.qty:"")+" ("+shopFmtGp(l.gp)+")");if(typeof fileWare==="function"){var out={};fileWare(l.name,shopFmtGp(l.unitGp),"sold by "+hero,worldState.turn,out);if(out.evicted&&out.evicted.length)muts.push("Shelf full — dropped: "+out.evicted.join(", "));}}}
   var line=hero+(sold.length?" sold "+sold.join(", "):"")+(sold.length&&bought.length?" and":"")+(bought.length?" bought "+bought.join(", "):"")+" — "+(plan.netGp>0?"-":plan.netGp<0?"+":"")+Math.abs(plan.netGp)+" gp, with "+cat.keeper+" at "+cat.shop+".";
   worldState.tradePing={turn:worldState.turn,keeper:cat.keeper,shop:cat.shop,hero:hero,sold:sold,bought:bought,netGp:plan.netGp};

@@ -3143,7 +3143,7 @@ function rewardAwardTargets(tokens){
     tk=String(tokens[i]==null?"":tokens[i]);
     kind="unknown";key=tk;expect=0;
     if((m=tk.match(/\[XP:\s*\+?(\d+)/i))){kind="xp";key="xp";expect=parseInt(m[1],10);}
-    else if((m=tk.match(/\[GOLD:\s*([+-]?\d+)/i))){kind="gold";key="gold";expect=parseInt(m[1],10);}
+    else if((m=tk.match(/\[GOLD:\s*[+-]?\d[^\]]*\]/i))){var _gt=goldTagParse(m[0]);if(_gt.ok){kind="gold";key="gold";expect=_gt.n;}}/* #481 D5: a coin the GOLD handler refuses can never land — it keeps its own group and reports missed */
     else if((m=tk.match(/\[ITEM_GAINED:([^\]]+)\]/i))){q=_qtyParse(m[1]);kind="item";key=q.base;expect=q.n;}
     /* Tokens sharing one target are ONE group with a summed expectation — two [ITEM_GAINED:Rope]
        must move the count by 2, not merely "move it". */

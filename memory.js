@@ -521,7 +521,7 @@ function fileWare(item,price,note,turn,out,at){
   var prior=row?row.price:null,def=(typeof kindDef==="function")?kindDef():null;
   if(def&&def.pinPrices){/* #6 F4: canon pins the price; without canon the first quote anchors */
     var _pc=(typeof itemLookup==="function")?itemLookup(it):null,_pg=(typeof itemValueGp==="function")?itemValueGp(_pc):null;
-    if(_pg){var _pinTo=_pg+" gp";if(out&&(typeof itemValueGp!=="function"||itemValueGp({value:pr})!==_pg))out.pinned={from:pr,to:_pinTo};pr=_pinTo;}
+    if(_pg!=null){var _pinTo=String(_pc.value).trim(),_qg=itemValueGp({value:pr});if(out&&(_qg==null||Math.abs(_qg-_pg)>1e-9))out.pinned={from:pr,to:_pinTo};pr=_pinTo;}/* #481 D5: canon's own words ("5 sp", "1 gp per 20"), compared by the unit price */
     else if(prior&&prior!==pr){if(out)out.anchored={kept:prior,quoted:pr};pr=prior;}
   }
   if(!row)row={item:it};row.item=it;row.price=pr;row.note=String(note||"").trim().slice(0,120);row.t=turn;row.min=now;

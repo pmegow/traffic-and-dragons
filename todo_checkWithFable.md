@@ -155,6 +155,14 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Judgement call:** the operand may also name the world node itself ("|The Village"), which is the field shape. The resolver answers only for children, so without this the GM's own t191/t195 notes would be refused.
   - **Real save:** both field notes ("…on the tavern counter.|The Village") replay onto the village node with clean text. Before, they were stored on Ammut's house with the pipe (those two stay, per C2(c): no migration).
   - **Proof:** 2 tests in "#481 A5" (red first). Full suite green (2,463); four replay baselines unchanged; `dev/sabotage-481-a5-state-place.js` 5/5 caught (the house-mint clause MISSED at first — the fixture's house already existed; the test now deletes it); the A4 state-note clause re-anchored and caught.
+- 2026-09-29 · #481 D5 · v1.1045 · Opus 5.5 · One coin parser; [GOLD:] refuses a non-gold unit and says what an overspend moved.
+  - **Touches:** helpers.js (`parseCoin`, `goldTagParse`, `goldRewardIn`, `itemValueGp`, `shopFmtGp`, the counter's catalog/rows/plan), tag_table.js (the GOLD handler, the QUEST reward parses, the band receipt), memory.js (`fileWare` pinning), api.js (`rewardAwardTargets`), game.js (the buy receipt).
+  - **Fable (a):** a non-gold unit is refused with a ⚠ receipt and never converted. **Judgement call:** in a gated kind it refuses the whole exchange through the trade gate's channel, because otherwise its riders land for free (a free loaf, tested).
+  - **Fable (b):** the QUEST parses and `rewardAwardTargets` read the same parser. A refused coin gets its own group in the #273 verifier, so a +7 beside it can still land.
+  - **Fable (c):** a bundle is per unit; the buy row offers up to the bundle and the line multiplies.
+  - **Fable (d):** the floor stays; the receipt states what moved, plus a ⚠ line for the shortfall. No spend receipt from an empty purse, which keeps `turnsSinceRisk`'s "gold spent" pattern honest.
+  - **Real save:** the t218 pack held six mispriced canon items — five read as unsellable (rations x2, wine, bolt, honey cake) and the arrow at 20× — all priced now. The 18 raw [GOLD:] tags in the saved windows were all gold (the audit's "zero field instances").
+  - **Proof:** 7 tests in "#481 D5" (six red before the build; the seventh added for pinning and the band). Full suite green (2,470); four replay baselines unchanged (no existing pin changed); `dev/sabotage-481-d5-coin.js` 14/14 caught.
 
 ## Off-Fable log
 
