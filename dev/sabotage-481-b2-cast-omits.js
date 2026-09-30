@@ -22,7 +22,7 @@ prove("identity.js", [
 ]);
 prove("tag_table.js", [
   { label: "the withheld stamps are silent",
-    find: "  if(_held&&_held.length)R.muts.push(\"Cast omits \"+", replace: "  if(false)R.muts.push(\"Cast omits \"+",
+    find: "  if(_held&&_held.length)R.muts.push(\"⚠ Cast omits \"+", replace: "  if(false)R.muts.push(\"⚠ Cast omits \"+",
     mustFail: "the t213 shape" },
   { label: "the ask re-arms every turn (no cooldown)",
     find: "if(!_ol||_ol.key!==_ok||R.turn-_ol.turn>=PRESENCE_AUDIT_TURNS){", replace: "if(true){",

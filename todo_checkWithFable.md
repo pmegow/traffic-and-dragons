@@ -135,6 +135,14 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Re-baselined pins (Fable (b)):** the #431 village pins now read "Here: chest (3 items)" / "(1 item)"; the #6E8 tavern pin now reads "Here: Lantern".
   - **Real save:** t218 — a relic placed in the Hall reads "Here: Brass lantern" (was "Item stash (1 item)"); Ammut's house reads "Here: chest (17 items)".
   - **Proof:** the A6 test (red before the build). Full suite green (2,454); four replay baselines unchanged; `sabotage-431-here-line.js` 8/8 caught, incl. "decide by kind again" and "any owned house shows a chest".
+- 2026-09-29 · #481 A7 · v1.1042 · Opus 5.5 · A refusal is marked where it is written; one "Sub:" line per arrival.
+  - **Glyph at the source (a):** 50 refusal pushes gained the leading "⚠ " (tag_table.js 28, identity.js 16, api.js 6). **Scope note:** Fable named tag_table.js; identity.js and api.js refusals land in the same summary line, so they got the glyph too.
+  - **One predicate:** `mutLineWarns` (helpers.js, leading glyph only). The renderer wraps a glyph line in `.sum-warn` (`--warn`); every other line stays byte-identical, so no #431/#452 pin changed (b). The chest, the counter, the undo and the sheet sync now filter on it instead of words.
+  - **Sub (c):** one line per arrival; the arrow form only when the resolver changed more than case or article. `dev/replay-t1742-blackout.js` reads the name after the arrow.
+  - **Re-baselined:** three replay end states (v1238, v1271, v1276), glyph-only — a scripted diff shows exactly 7 labels gaining "⚠ " and nothing else. 9 sabotage anchors quoted the old text; re-anchored.
+  - **Guard:** the "#481 A7 source" test lints every `muts.push(` in the engine files, so a new refusal without the glyph fails the suite.
+  - **Real saves:** the owner's rings held 13 unglyphed refusal lines (6 clock skips, 3 "mood kept", 2 canon quarantines, 1 trade, 1 stash) and 2 doubled Sub arrivals. The render was screenshot on the real t218 state (amber, computed `rgb(216,160,74)`).
+  - **Proof:** 5 tests in "#481 A7" (all red before the build). Full suite green (2,459); four replay checks green; `dev/sabotage-481-a7-refusal-glyph.js` 10/10 caught.
 
 ## Off-Fable log
 

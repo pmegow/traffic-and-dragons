@@ -2791,10 +2791,18 @@ function layoutAskOfferFor(question,key){
    knows becomes a link — an unknown name stays text; every other line is escaped exactly as before (the #431 byte
    pins hold). The link is a data-npc span (audit E69: never a name inside an inline onclick); ui-shell.js binds ONE
    delegated click on the story pane (wireSummaryNpcLinks). */
+/* #481 A7 (audit 2026-09-29, Fable-approved): a mutation line that did NOT land as written — refused, ignored, withheld or
+   kept — starts with "⚠ " where it is WRITTEN (tag_table.js, identity.js, api.js; the "#481 A7 source" test lints every
+   push). Everything that sorts refusals from receipts keys on that leading glyph through this one predicate, never on
+   the words: the summary renderer, the chest, the counter, the undo and the sheet sync. A ⚠ inside a receipt
+   ("+Rope (⚠ count clamped …)") is not a refusal. */
+var MUT_WARN_GLYPH="⚠ ";
+function mutLineWarns(line){return line!=null&&String(line).indexOf(MUT_WARN_GLYPH)===0;}
 function summaryLineHTML(lines){
   var out=[],i;
   for(i=0;i<lines.length;i++){
     var line=String(lines[i]);
+    if(mutLineWarns(line)){out.push("<span class=\"sum-warn\">"+escHtml(line)+"</span>");continue;}/* #481 A7: only a glyph line changes */
     if(line.indexOf("Present: ")!==0){out.push(escHtml(line));continue;}
     var labels=line.slice(9).split(", "),parts=[],j;
     for(j=0;j<labels.length;j++){

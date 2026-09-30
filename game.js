@@ -359,7 +359,7 @@ function stashTradeApply(marks){
   if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[stash] move refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and its saveAll)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1: every other state-mutating entry point is busy-gated; this one was not */
   var cat=(typeof stashTradeCatalog==="function")?stashTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=stashTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
-  var R=applyMuts(stashTradeTagText(plan),{deferSave:true,source:"ledger"}),/* #481 D6: the player's own hand — no duplicate alarm, no define ask */muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Stash refused|kept/.test(String(m));});
+  var R=applyMuts(stashTradeTagText(plan),{deferSave:true,source:"ledger"}),/* #481 D6: the player's own hand — no duplicate alarm, no define ask */muts=(R&&R.muts)||[],refused=muts.filter(mutLineWarns);/* #481 A7: the glyph, never the words */
   if(typeof saveAll==="function")saveAll();
   var i,st=[],tk=[];for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];(l.kind==="stow"?st:tk).push(l.name+(l.qty>1?" x"+l.qty:""));}
   var line=cat.hero+(st.length?" stowed "+st.join(", "):"")+(st.length&&tk.length?" and":"")+(tk.length?" took "+tk.join(", "):"")+" at "+cat.house+"."+(refused.length?" Refused: "+refused.join("; "):"");
@@ -375,7 +375,7 @@ function shopTradeApply(marks){
   if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[shop] trade refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and overwrite the one-shot tradePing)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1 */
   var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=shopTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
-  var R=applyMuts(shopTradeTagText(plan),{deferSave:true,source:"ledger"}),/* #481 D6 */muts=(R&&R.muts)||[],refused=muts.filter(function(m){return /^Trade refused/.test(String(m));});
+  var R=applyMuts(shopTradeTagText(plan),{deferSave:true,source:"ledger"}),/* #481 D6 */muts=(R&&R.muts)||[],refused=muts.filter(mutLineWarns);/* #481 A7 */
   if(refused.length){if(typeof console!=="undefined")console.warn("[shop] "+refused[0]);return {ok:false,reason:refused[0],muts:muts};}
   var i,node=cat.node,sold=[],bought=[],hero=(worldState.character&&worldState.character.name)||"the hero";
   for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];
@@ -1709,7 +1709,7 @@ function undoLastItemMove(){
   var cur=currentNodeKey(),curKey=(typeof locResolve==="function")?locResolve(cur):cur,curWorld=(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location;
   var text="";for(i=0;i<grp.length;i++){var inv=_stashUndoInverse(grp[i],curKey,curWorld);if(!inv.ok){if(typeof console!=="undefined")console.warn("[stash] undo refused — "+inv.reason+"; nothing moved (#481 D1)");return {ok:false,reason:inv.reason};}text+=inv.tags;}
   ring.splice(ring.length-grp.length,grp.length);/* the undone moves leave the record — a refresh must not re-apply them */
-  var R=applyMuts(text,{source:"undo",deferSave:true}),bad=((R&&R.muts)||[]).filter(function(m){return /^Stash refused|^⚠/.test(String(m));});
+  var R=applyMuts(text,{source:"undo",deferSave:true}),bad=((R&&R.muts)||[]).filter(mutLineWarns);/* #481 A7 */
   if(bad.length){if(typeof console!=="undefined")console.error("[stash] undo partly refused after its checks passed — "+bad.join("; ")+" (#481 D1)");return {ok:false,reason:"the undo was partly refused: "+bad[0]};}
   return {ok:true,name:grp.map(function(e){return e.name;}).reverse().join(", "),action:tail.action,key:tail.key,units:tail.units};
 }

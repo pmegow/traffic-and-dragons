@@ -69,7 +69,7 @@ function tagsFor(t){
     if((m=lab.match(/^([+-]\d+) gp$/)))out.push("[GOLD:"+m[1]+"]");
     else if((m=lab.match(/^\+(.+)$/))&&e.tags.indexOf("ITEM_GAINED")>=0)out.push("[ITEM_GAINED:"+m[1]+"]");
     else if((m=lab.match(/^(.+?): \+(.+)$/))&&e.tags.indexOf("ITEM_GAINED")>=0)out.push("[COMPANION_ITEM_GAINED:"+m[1]+"|"+m[2]+"]");
-    else if((m=lab.match(/^Sub: (.+)$/)))out.push("[SUBLOCATION:"+m[1]+"]");
+    else if((m=lab.match(/^Sub: (?:.+? → )?(.+?)(?: \(the Hall\))?$/)))out.push("[SUBLOCATION:"+m[1]+"]");/* #481 A7: one Sub line per arrival — the arrow form names the canonical place after the arrow */
     else if(lab==="Left sub-location")out.push("[SUBLOCATION_LEAVE]");
     else if((m=lab.match(/^Time \+(\d+)m/)))out.push("[TIME_ADVANCE:"+m[1]+"m]");
     else if((m=lab.match(/^Time: (.+)$/)))out.push("[TIME:"+m[1]+"]");

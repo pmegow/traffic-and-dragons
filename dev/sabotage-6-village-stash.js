@@ -62,7 +62,7 @@ prove("tag_table.js", [
     find: 'if(_lact==="taken"&&!mutPolicy(R).handTake&&typeof kindDef==="function"&&kindDef().stashQuantities){', replace: 'if(false){',
     mustFail: "#6E4 `taken` carries no actor" },
   { label: "the stash refusal leaves the mutation log",
-    find: 'R.muts.push("Stash refused — "+_lnm+" ("+(_lplace||"here")+"): "+_lwhy);', replace: '',
+    find: 'R.muts.push("⚠ Stash refused — "+_lnm+" ("+(_lplace||"here")+"): "+_lwhy);', replace: '',
     mustFail: "#6E3 a missing node refuses LOUDLY" },
   { label: "the move is not recorded for the undo (#481 D1: the move record replaced lastItemMove)",
     find: 'if(!_lst.noop&&mutPolicy(R).record){', replace: 'if(false){',

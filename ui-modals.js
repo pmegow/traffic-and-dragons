@@ -232,7 +232,7 @@ function showSyncModal(){
          #264 whitelist is belt-and-braces: this text is engine-built, and nothing else may ride it. */
       var _locTags=syncLocationPatchTags(w2,loc2,sub2);
       if(_locTags){var _lr=applyMuts(_locTags,{allow:["LOCATION","SUBLOCATION","SUBLOCATION_LEAVE"]}),_lm=(_lr&&_lr.muts)||[],_li;
-        for(_li=0;_li<_lm.length;_li++)if(/REFUSED/i.test(String(_lm[_li])))notes.push(String(_lm[_li]));}
+        for(_li=0;_li<_lm.length;_li++)if(mutLineWarns(_lm[_li]))notes.push(String(_lm[_li]));}/* #481 A7: the glyph marks a refusal */
       if(tm2)w2.time=tm2;if(wx2)w2.weather=wx2;
       var _scMana=document.getElementById("sc-mana");if(_scMana){var mn2=parseInt(_scMana.value);if(!isNaN(mn2))c2.mana=Math.max(0,Math.min(manaMax(c2),mn2));}/* #110 */
       c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63) */

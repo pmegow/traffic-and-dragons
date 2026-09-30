@@ -3159,7 +3159,7 @@ function duplicateItemGrantWarning(inv,name,incoming,owner,R,raw){
   for(i=0;i<losses.length;i++){var lm=owner?losses[i].match(/\[COMPANION_ITEM_LOST:([^|\]]+)\|([^\]]+)\]/):losses[i].match(/\[ITEM_LOST:([^\]]+)\]/);if(lm&&(!owner||String(lm[1]).trim()===owner)&&itemBaseName(owner?lm[2]:lm[1])===key)return false;}
   for(i=0;i<(inv||[]).length;i++)if(_invCount(inv[i])===1&&itemBaseName(inv[i])===key){
     var who=owner?owner+"'s ":"player ",msg="DUPLICATE ITEM: "+who+"sheet already had uncounted '"+_invBase(inv[i])+"'; grant stacked, verify acquisition/rename";
-    if(typeof console!=="undefined")console.warn("[items] "+msg);if(R&&R.muts)R.muts.push(msg);
+    if(typeof console!=="undefined")console.warn("[items] "+msg);if(R&&R.muts)R.muts.push("⚠ "+msg);
     /* #176: the warning above lives only in console+muts — invisible to the GM, so the rename
        path it asks for was never taken (the Cleaver class). Stamp ONE pending record (latest
        wins, the W4 one-record-per-axis discipline) for buildDupItemNudge to deliver. */
@@ -3178,11 +3178,11 @@ function renameInventoryItem(inv,oldName,newName,R,who){
   if(hit<0){for(i=0;i<(inv||[]).length;i++){if(itemBaseName(inv[i])===itemBaseName(oldName)){hit=i;break;}}}
   if(hit<0){
     var m1="RENAME refused: no '"+oldName+"' on the "+(who||"player")+" sheet";
-    if(typeof console!=="undefined")console.warn("[items] "+m1);if(R&&R.muts)R.muts.push(label+m1);return false;
+    if(typeof console!=="undefined")console.warn("[items] "+m1);if(R&&R.muts)R.muts.push("⚠ "+label+m1);return false;
   }
   for(i=0;i<inv.length;i++){if(i!==hit&&_invNorm(inv[i])===nk){
     var m2="RENAME refused: '"+newName+"' already on the sheet — if the two are one item, emit [ITEM_LOST:"+oldName+"] instead";
-    if(typeof console!=="undefined")console.warn("[items] "+m2);if(R&&R.muts)R.muts.push(label+m2);return false;
+    if(typeof console!=="undefined")console.warn("[items] "+m2);if(R&&R.muts)R.muts.push("⚠ "+label+m2);return false;
   }}
   var c=_invCount(inv[hit]);inv[hit]=newName+(c>1?" x"+c:"");
   if(R&&R.muts)R.muts.push(label+oldName+" → "+newName);
@@ -3373,7 +3373,7 @@ function applyMuts(text,opts){
   if(_rvStripped&&_rvStripped.length)R.muts.push("⚠ review-call whitelist: out-of-scope tags stripped — "+_rvStripped.join(", "));/* #264: loud at the player, not just the console */
   for(_w2i=0;_w2i<_w2Plan.txns.length;_w2i++){
     var _w2t=_w2Plan.txns[_w2i];
-    if(!_w2t.valid){R.muts.push("Canon claim "+(_w2t.meta.id||"?")+" quarantined");continue;}
+    if(!_w2t.valid){R.muts.push("⚠ Canon claim "+(_w2t.meta.id||"?")+" quarantined");continue;}
     if(!_w2t.body)continue;/* exact replay: receipt already owns every operation */
     var _w2Ws=worldState,_w2Mem=memory;/* #284: the owed level-up queues live ON worldState now, so the clone-and-replace below rolls them back with everything else — the old module-var snapshot is retired */
     var _w2TrShared=_w2Ws.transcript,_w2TrLen=_w2TrShared?_w2TrShared.length:0;/* #272 D4: the tripwire baseline */
@@ -3396,13 +3396,13 @@ function applyMuts(text,opts){
     if(_w2r.errors.length){
       worldState=_w2Ws;memory=_w2Mem;
       w2TxnQuarantine(_w2t.meta,"transaction handler failed: "+_w2r.errors.join("; "),_w2t.ops,_w2t.tokens);
-      R.errors=R.errors.concat(_w2r.errors);R.muts.push("Canon claim "+_w2t.meta.id+" rolled back and quarantined");
+      R.errors=R.errors.concat(_w2r.errors);R.muts.push("⚠ Canon claim "+_w2t.meta.id+" rolled back and quarantined");
       continue;
     }
     if(!w2TxnCommit(_w2t.meta,_w2t.ops,_w2t.tokens)){
       worldState=_w2Ws;memory=_w2Mem;
       w2TxnQuarantine(_w2t.meta,"transaction receipt could not be persisted",_w2t.ops,_w2t.tokens);
-      R.errors.push("CANON_TXN: receipt persistence failed");R.muts.push("Canon claim "+_w2t.meta.id+" rolled back and quarantined");
+      R.errors.push("CANON_TXN: receipt persistence failed");R.muts.push("⚠ Canon claim "+_w2t.meta.id+" rolled back and quarantined");
       continue;
     }
     R.muts=R.muts.concat(_w2r.muts);

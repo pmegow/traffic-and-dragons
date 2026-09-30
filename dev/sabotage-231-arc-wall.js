@@ -53,8 +53,8 @@ rc |= sabotage.prove({
 
     { label: "#256: the reopen guard goes back to hardcoding player agency for BOTH authors",
       mustFail: "calls a wall sweep the player's drop",
-      find: 'R.muts.push("Quest \'"+qTitle+"\' "+_aw.phrase+" — not re-registered',
-      replace: 'R.muts.push("Quest \'"+qTitle+"\' was abandoned by the player — not re-registered' },
+      find: 'R.muts.push("⚠ Quest \'"+qTitle+"\' "+_aw.phrase+" — not re-registered',
+      replace: 'R.muts.push("⚠ Quest \'"+qTitle+"\' was abandoned by the player — not re-registered' },
 
     { label: "the emergent test is dropped at stamp time — a SPINE quest gets stamped and its own arc sweeps it",
       /* #265 re-point: stamping moved to the post-handler seam (deferred past arc transitions);

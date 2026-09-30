@@ -358,8 +358,8 @@ function _locCompactEdges(R){
 function locMerge(canonical,duplicate,R){
   canonical=locResolve(canonical);duplicate=locResolve(duplicate);
   if(canonical===duplicate){if(typeof console!=="undefined")console.warn("[identity] location merge no-op — '"+duplicate+"' already resolves to '"+canonical+"'");return false;}
-  if(!memory.map.nodes[duplicate]){if(typeof console!=="undefined")console.warn("[identity] location merge refused — duplicate node '"+duplicate+"' not on the map");R.muts.push("location merge refused (unknown duplicate)");return false;}
-  if(!memory.map.nodes[canonical]){if(typeof console!=="undefined")console.warn("[identity] location merge refused — canonical node '"+canonical+"' not on the map (locations are never created by merge)");R.muts.push("location merge refused (unknown canonical)");return false;}
+  if(!memory.map.nodes[duplicate]){if(typeof console!=="undefined")console.warn("[identity] location merge refused — duplicate node '"+duplicate+"' not on the map");R.muts.push("⚠ location merge refused (unknown duplicate)");return false;}
+  if(!memory.map.nodes[canonical]){if(typeof console!=="undefined")console.warn("[identity] location merge refused — canonical node '"+canonical+"' not on the map (locations are never created by merge)");R.muts.push("⚠ location merge refused (unknown canonical)");return false;}
   var entries=_locEntriesEnsure();
   memArchive().identityMerges.push({domain:"location",op:"merge",canonical:canonical,duplicate:duplicate,turn:R.turn,
     records:{node:JSON.parse(JSON.stringify(memory.map.nodes[duplicate])),identity:entries[duplicate]?JSON.parse(JSON.stringify(entries[duplicate])):null,locations:memory.locations[duplicate]?JSON.parse(JSON.stringify(memory.locations[duplicate])):null}});
@@ -478,8 +478,8 @@ function locSplit(fusedKey,spec,R){
 }
 function locAliasRegister(canonical,alias,R){
   canonical=locResolve(canonical);
-  if(!memory.map.nodes[canonical]){if(typeof console!=="undefined")console.warn("[identity] location alias refused — canonical '"+canonical+"' not on the map");R.muts.push("location alias refused (unknown canonical)");return false;}
-  if(memory.map.nodes[alias]){if(typeof console!=="undefined")console.warn("[identity] location alias refused — '"+alias+"' is a LIVE map node (exact-key beats alias; merge instead)");R.muts.push("location alias refused (live key)");return false;}
+  if(!memory.map.nodes[canonical]){if(typeof console!=="undefined")console.warn("[identity] location alias refused — canonical '"+canonical+"' not on the map");R.muts.push("⚠ location alias refused (unknown canonical)");return false;}
+  if(memory.map.nodes[alias]){if(typeof console!=="undefined")console.warn("[identity] location alias refused — '"+alias+"' is a LIVE map node (exact-key beats alias; merge instead)");R.muts.push("⚠ location alias refused (live key)");return false;}
   var entries=_locEntriesEnsure();
   var e=entries[canonical]||(entries[canonical]={});
   e.aliases=e.aliases||[];
@@ -519,7 +519,7 @@ function _relationshipValue(raw,label,R){
   var val=String(raw||"").trim();
   if(val.length<=REL_VALUE_MAX)return val;
   _relationshipWarn((label||"relationship value")+" is "+val.length+" characters (max "+REL_VALUE_MAX+") — refused without changing canon");
-  if(R)R.muts.push("Relationship value REFUSED ("+val.length+" > "+REL_VALUE_MAX+")");
+  if(R)R.muts.push("⚠ Relationship value REFUSED ("+val.length+" > "+REL_VALUE_MAX+")");
   return null;
 }
 function _relationshipQueueAxis(who,entity,value,kind,R){
@@ -527,7 +527,7 @@ function _relationshipQueueAxis(who,entity,value,kind,R){
   var own=who?resolveNpcName(who):null,ent=relationshipEntityKey(entity),val=_relationshipValue(value,"relationship proposal",R),i;if(val===null)return false;
   var q=worldState.relAxisChoices||(worldState.relAxisChoices=[]);
   for(i=0;i<q.length;i++)if((q[i].who||null)===(own||null)&&q[i].entity===ent&&q[i].value===val&&q[i].kind===kind)return true;
-  if(q.length>=REL_AXIS_CHOICE_CAP){_relationshipWarn("axis-choice queue full ("+REL_AXIS_CHOICE_CAP+") — '"+ent+"' was refused without changing canon");if(R)R.muts.push("Relationship axis proposal REFUSED (queue full): "+ent);return false;}
+  if(q.length>=REL_AXIS_CHOICE_CAP){_relationshipWarn("axis-choice queue full ("+REL_AXIS_CHOICE_CAP+") — '"+ent+"' was refused without changing canon");if(R)R.muts.push("⚠ Relationship axis proposal REFUSED (queue full): "+ent);return false;}
   q.push({who:own,entity:ent,value:val,kind:kind,turn:worldState.turn||0,lastFire:null});
   if(R)R.muts.push("Relationship axis review queued: "+(own?own+" → ":"")+ent);
   return true;
@@ -642,13 +642,13 @@ function relationshipWrite(who,entity,axis,value,R){
   else if(row&&row.bond===raw&&(axis==="bond"||row.axisReview))next=raw;/* #168R4 (entry-13 review): verbatim migration is lossless BY DESIGN and may exceed REL_VALUE_MAX; re-emitting that EXACT text classifies/confirms EXISTING canon rather than minting new — refusing it left the migrated row permanently unconfirmable by the very tag the nudge prints */
   else{next=_relationshipValue(value,"relationship "+axis,R);if(next===null)return false;}
   if(!row){
-    if(!next){var absentResolved=_relationshipClearAxis(who,ent,"");if(absentResolved){R.muts.push("Legacy relationship removal resolved: "+(who?who+" → ":"")+ent+" is already absent");return true;}_relationshipWarn("no relationship edge "+(who?who+" → ":"")+ent+" exists — removal refused");if(R)R.muts.push("Relationship removal REFUSED (pair absent): "+(who?who+" → ":"")+ent);return false;}
+    if(!next){var absentResolved=_relationshipClearAxis(who,ent,"");if(absentResolved){R.muts.push("Legacy relationship removal resolved: "+(who?who+" → ":"")+ent+" is already absent");return true;}_relationshipWarn("no relationship edge "+(who?who+" → ":"")+ent+" exists — removal refused");if(R)R.muts.push("⚠ Relationship removal REFUSED (pair absent): "+(who?who+" → ":"")+ent);return false;}
     row={entity:ent,bond:"",bondTurn:null,dynamic:"",dynamicTurn:null};rows.push(row);
   }
   var guard=_relationshipGuard(who,ent);
   if(axis==="dynamic"){
     var oldDynamic=row.dynamic||"";
-    if(!next&&!oldDynamic&&!guard){var emptyDynamicResolved=_relationshipClearAxis(who,ent,"");if(emptyDynamicResolved){R.muts.push("Legacy relationship removal resolved on empty dynamic: "+(who?who+" → ":"")+ent);return true;}_relationshipWarn("no dynamic on "+(who?who+" → ":"")+ent+" exists — removal refused");if(R)R.muts.push("Dynamic removal REFUSED (axis already empty): "+(who?who+" → ":"")+ent);return false;}
+    if(!next&&!oldDynamic&&!guard){var emptyDynamicResolved=_relationshipClearAxis(who,ent,"");if(emptyDynamicResolved){R.muts.push("Legacy relationship removal resolved on empty dynamic: "+(who?who+" → ":"")+ent);return true;}_relationshipWarn("no dynamic on "+(who?who+" → ":"")+ent+" exists — removal refused");if(R)R.muts.push("⚠ Dynamic removal REFUSED (axis already empty): "+(who?who+" → ":"")+ent);return false;}
     if(guard){var corruptBond=row.bond||"";row.bond=String(guard.prev||"");row.bondTurn=guard.prevTurn||guard.turn||null;row.axisReview=false;_relationshipReceipt(who,ent,corruptBond,row.bond,worldState.turn);R.muts.push("Protected bond restored before dynamic write: "+(who?who+" → ":"")+ent+" ("+row.bond+")");}
     else if(row.axisReview&&row.bond===next){row.bond="";row.bondTurn=null;row.axisReview=false;if(worldState.relAxisReviewFired)delete worldState.relAxisReviewFired[relationshipEdgeKey(who,ent)];}
     row.dynamic=next;row.dynamicTurn=worldState.turn;delete row.axisConflict;
@@ -660,18 +660,18 @@ function relationshipWrite(who,entity,axis,value,R){
   var prev=row.bond||"";
   if(guard){var guardedCurrent=prev,protectedPrev=String(guard.prev||"");row.bond=protectedPrev;row.bondTurn=guard.prevTurn||guard.turn||null;prev=protectedPrev;_relationshipReceipt(who,ent,guardedCurrent,protectedPrev,worldState.turn);R.muts.push("Protected bond preimage restored: "+(who?who+" → ":"")+ent+" ("+protectedPrev+")");if(next===protectedPrev&&axis==="bond"){row.axisReview=false;delete row.axisConflict;_relationshipClearAxis(who,ent,next);_relationshipClearDowngrade(who,ent);return true;}}
   if(axis==="pair"&&!prev){var pd=row.dynamic||"";if(!pd){var emptyPairResolved=_relationshipClearAxis(who,ent,"");if(emptyPairResolved){R.muts.push("Legacy relationship removal resolved: "+(who?who+" → ":"")+ent+" is already empty");return true;}_relationshipWarn("relationship pair "+ent+" is already empty — removal refused");return false;}row.dynamic="";row.dynamicTurn=worldState.turn;_relationshipReceipt(who,ent,"","",worldState.turn,pd,"");_relationshipClearAxis(who,ent,"");R.muts.push((who?who+": ":"")+"relationship pair "+ent+" removed");return true;}
-  if(!next&&!prev){var emptyBondResolved=_relationshipClearAxis(who,ent,"");if(emptyBondResolved){R.muts.push("Legacy relationship removal resolved on empty bond: "+(who?who+" → ":"")+ent);return true;}_relationshipWarn("no bond on "+(who?who+" → ":"")+ent+" exists — removal refused");if(R)R.muts.push("Bond removal REFUSED (axis already empty): "+(who?who+" → ":"")+ent);return false;}
+  if(!next&&!prev){var emptyBondResolved=_relationshipClearAxis(who,ent,"");if(emptyBondResolved){R.muts.push("Legacy relationship removal resolved on empty bond: "+(who?who+" → ":"")+ent);return true;}_relationshipWarn("no bond on "+(who?who+" → ":"")+ent+" exists — removal refused");if(R)R.muts.push("⚠ Bond removal REFUSED (axis already empty): "+(who?who+" → ":"")+ent);return false;}
   if(prev===next&&axis==="bond"){delete row.axisConflict;if(row.axisReview){row.axisReview=false;if(worldState.relAxisReviewFired)delete worldState.relAxisReviewFired[relationshipEdgeKey(who,ent)];R.muts.push((who?who+": ":"")+"bond axis confirmed: "+ent+" ("+next+")");}_relationshipClearAxis(who,ent,next);if(guard)_relationshipClearDowngrade(who,ent);return true;}
   if(!prev&&axis==="bond"){row.bond=next;row.bondTurn=worldState.turn;row.axisReview=false;_relationshipClearAxis(who,ent,next);_relationshipClearDowngrade(who,ent);R.muts.push((who?who+": ":"")+"bond "+ent+" ("+next+")");if(typeof bondToast==="function")bondToast(who,ent,next,"new");return true;}
   var key=relationshipEdgeKey(who,ent),pending=_relationshipPending(who,ent,next,axis==="pair");
   if(pending){
-    if(pending.turn>=worldState.turn){/* #171④ (owner-ruled LOUD): the dedupe stays, the silence goes */_relationshipWarn("bond change for "+ent+" ignored — a same-response duplicate cannot confirm itself");if(R)R.muts.push("Bond change NOT confirmed (same-response duplicate): "+(who?who+" → ":"")+ent);return false;}
-    if((row.bond||"")!==String(pending.prev||"")){/* #171⑥: the staged preimage moved — confirming would clobber a value nobody reviewed */_relationshipWarn("bond confirmation for "+ent+" refused — the bond moved since staging ('"+pending.prev+"' is no longer current); restage if still intended");if(R)R.muts.push("Bond change DROPPED (preimage moved — restage to proceed): "+(who?who+" → ":"")+ent);_relationshipRemovePending(relationshipEdgeKey(who,ent));return false;}
+    if(pending.turn>=worldState.turn){/* #171④ (owner-ruled LOUD): the dedupe stays, the silence goes */_relationshipWarn("bond change for "+ent+" ignored — a same-response duplicate cannot confirm itself");if(R)R.muts.push("⚠ Bond change NOT confirmed (same-response duplicate): "+(who?who+" → ":"")+ent);return false;}
+    if((row.bond||"")!==String(pending.prev||"")){/* #171⑥: the staged preimage moved — confirming would clobber a value nobody reviewed */_relationshipWarn("bond confirmation for "+ent+" refused — the bond moved since staging ('"+pending.prev+"' is no longer current); restage if still intended");if(R)R.muts.push("⚠ Bond change DROPPED (preimage moved — restage to proceed): "+(who?who+" → ":"")+ent);_relationshipRemovePending(relationshipEdgeKey(who,ent));return false;}
     _relationshipCommitBond(who,row,next,R,axis==="pair");return true;
   }
   if(_relationshipPending(who,ent)!==null){_relationshipWarn("bond change for "+ent+" refused — a different proposal is already awaiting confirmation");return false;}
   var q=worldState.relBondChanges||(worldState.relBondChanges=[]);
-  if(q.length>=REL_BOND_CHANGE_CAP){_relationshipWarn("bond-change queue full ("+REL_BOND_CHANGE_CAP+") — "+ent+" stayed '"+prev+"'");if(R)R.muts.push("Bond change REFUSED (queue full): "+ent);return false;}
+  if(q.length>=REL_BOND_CHANGE_CAP){_relationshipWarn("bond-change queue full ("+REL_BOND_CHANGE_CAP+") — "+ent+" stayed '"+prev+"'");if(R)R.muts.push("⚠ Bond change REFUSED (queue full): "+ent);return false;}
   q.push({key:key,who:who?resolveNpcName(who):null,entity:ent,prev:prev,next:next,pair:axis==="pair",turn:worldState.turn,lastFire:null});if(guard)_relationshipClearDowngrade(who,ent);
   R.muts.push((axis==="pair"?"Pair removal":"Bond change")+" staged: "+(who?who+" → ":"")+ent+" (\""+prev+"\" → "+(next?'"'+next+'"':"removed")+"; canon unchanged)");return true;
 }
@@ -733,20 +733,20 @@ function _identityActionTag(kind,text,R){
     var parts=m[1].split("|");
     if(parts.length!==3){
       if(typeof console!=="undefined")console.warn("[identity] ["+kind+":] REFUSED — expected domain|a|b, got "+parts.length+" segment(s) in \""+m[1].slice(0,80)+"\" (pipe-bearing operands route through the cleanup tool, never tag grammar — Sol §5)");
-      R.muts.push(kind+" refused (malformed operand)");
+      R.muts.push("⚠ "+kind+" refused (malformed operand)");
       continue;
     }
     var domain=parts[0].trim().toLowerCase(),a=parts[1].trim(),b=parts[2].trim();
     var d=IDENTITY_DOMAINS[domain];
     if(!d){
       if(typeof console!=="undefined")console.warn("[identity] ["+kind+":"+domain+"|…] REFUSED — unknown domain (Phase A registry: "+Object.keys(IDENTITY_DOMAINS).join(", ")+")");
-      R.muts.push(kind+" refused (unknown domain '"+domain+"')");
+      R.muts.push("⚠ "+kind+" refused (unknown domain '"+domain+"')");
       continue;
     }
     var op=kind==="MERGE"?d.merge:d.registerAlias;
     if(!op){
       if(typeof console!=="undefined")console.warn("[identity] ["+kind+":"+domain+"|…] REFUSED — the "+domain+" domain is not "+(kind==="MERGE"?"merge":"alias")+"-capable (type domains collapse by normalization; structural repairs ride the cleanup tool)");
-      R.muts.push(kind+" refused ("+domain+" not capable)");
+      R.muts.push("⚠ "+kind+" refused ("+domain+" not capable)");
       continue;
     }
     op(a,b,R);
@@ -1901,7 +1901,7 @@ function plotArmorRefuse(name,R,how){
   if(!worldState.plotArmor)worldState.plotArmor={};var rec=worldState.plotArmor[canon]||{escapes:0};rec.escapes++;rec.turn=worldState.turn;worldState.plotArmor[canon]=rec;
   worldState.plotArmorPing={name:canon,turn:worldState.turn,act:a.act,arc:a.arc,escapes:rec.escapes,max:a.max,how:how||""};
   var line=canon+": death refused \u2014 plot armor until Act "+a.act+(a.arc?" \u201c"+a.arc+"\u201d":"")+" (escape "+rec.escapes+" of "+a.max+")";
-  if(R&&R.muts)R.muts.push(line);
+  if(R&&R.muts)R.muts.push("⚠ "+line);
   if(typeof console!=="undefined")console.warn("[identity] #319 "+line+(how?" ["+how+"]":""));
   if(typeof showToast==="function")showToast("\u26e8 "+canon+" got away \u2014 load-bearing until Act "+a.act+" (escape "+rec.escapes+" of "+a.max+")");
   return true;

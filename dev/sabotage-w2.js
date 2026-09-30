@@ -66,7 +66,7 @@ rc|=sabotage.prove({
   cases:[
     {label:"combat-close propagation bypasses the scene ledger",
     mustFail:"W2 combat-close propagation cannot bypass a scene exclusion, but a pri",
-      find:"    if(worldState.sceneRefs&&typeof w2DeathAuthorized===\"function\"&&!w2DeathAuthorized(cn,null)){\n      if(typeof _w2Conflict===\"function\")_w2Conflict(cn,\"-\",\"registered combat foe lacks a prior positive scene binding\");\n      R.muts.push(w.name+\": combat death quarantined (identity unproven)\");\n      continue;\n    }\n",
+      find:"    if(worldState.sceneRefs&&typeof w2DeathAuthorized===\"function\"&&!w2DeathAuthorized(cn,null)){\n      if(typeof _w2Conflict===\"function\")_w2Conflict(cn,\"-\",\"registered combat foe lacks a prior positive scene binding\");\n      R.muts.push(\"⚠ \"+w.name+\": combat death quarantined (identity unproven)\");\n      continue;\n    }\n",
       replace:""}
   ]
 });
@@ -198,7 +198,7 @@ rc|=sabotage.prove({
     {
         "label": "the same-turn duplicate confirm goes silent again (owner ruled it loud)",
         "mustFail": "#171④ (ruled loud): a same-turn duplicate bond confirmation refuses wi",
-        "find": "if(R)R.muts.push(\"Bond change NOT confirmed (same-response duplicate): \"+(who?who+\" → \":\"\")+ent);",
+        "find": "if(R)R.muts.push(\"⚠ Bond change NOT confirmed (same-response duplicate): \"+(who?who+\" → \":\"\")+ent);",
         "replace": ";"
     },
     {

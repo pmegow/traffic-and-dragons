@@ -27489,4 +27489,60 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return detectStayBehind("Morwen quietly left the room without a word.",names)==="Morwen Zethran"?true:"an adverb before left the";
   });
 
+  // ── #481 A7 (audit 2026-09-29, Fable-approved with changes): a refusal looked like routine news in the turn's summary
+  // line ("Stash refused" in the same grey capitals as "Time +10m"). (a) Refusals are marked at the SOURCE: every refused,
+  // ignored, withheld or kept push starts with "⚠ ", and the renderer keys on that leading glyph, never on vocabulary.
+  // (b) summaryLineHTML changes only glyph lines. (c) One "Sub:" line per arrival; no arrow for a case-only rename.
+  section("#481 A7 a refusal is marked where it is written");
+  function a7PushArgs(src){var out=[],re=/muts\.push\(/g,m;
+    while((m=re.exec(src))){var i=m.index+10,d=1,q=null,s=i;
+      for(;i<src.length&&d>0;i++){var ch=src[i];if(q){if(ch==="\\"){i++;continue;}if(ch===q)q=null;continue;}
+        if(ch==='"'||ch==="'")q=ch;else if(ch==="(")d++;else if(ch===")")d--;}
+      out.push({at:src.slice(0,m.index).split("\n").length,arg:src.slice(s,i-1).trim()});}
+    return out;}
+  var A7_VOCAB=/\b(?:refused|REFUSED|ignored|SKIPPED|withheld|not stamped|not reopened|not re-registered|NOT confirmed|DROPPED|quarantined|not added|not applied|not recorded|kept)\b/;
+  var A7_ROUTINE={"\"Hours: none kept here\"":"the honest no-hours record (#207)","rec":"For sale: … (WARES receipt)"};
+  t("#481 A7 source: every mutation line whose words refuse, ignore, withhold or keep starts with the ⚠ glyph; a push with no words of its own is glyphed or listed",function(){
+    var files=["tag_table.js","identity.js","memory.js","api.js","clock.js","helpers.js"],bad=[],fi,j;
+    for(fi=0;fi<files.length;fi++){var src=__fsForTests.readFileSync(__rootForTests+"/"+files[fi],"utf8"),args=a7PushArgs(src);
+      for(j=0;j<args.length;j++){var a=args[j].arg,glyph=/^"(?:⚠|\\u26a0) /.test(a),lit=/["']/.test(a);
+        if(glyph||A7_ROUTINE[a])continue;
+        if(!lit){bad.push(files[fi]+":"+args[j].at+" pushes "+a+" (no words of its own: glyph it or list it as routine)");continue;}
+        var words=(a.match(/"(?:[^"\\]|\\.)*"/g)||[]).join(" ");
+        if(A7_VOCAB.test(words))bad.push(files[fi]+":"+args[j].at+" "+a.slice(0,90));}}
+    return bad.length?"refusal lines without the leading ⚠ (the summary renders them as routine news): "+bad.join(" | "):true;
+  });
+  t("#481 A7 at runtime: the village's refusals and the adventure's lead with the glyph; a routine receipt does not",function(){
+    villageEF();worldState.world.sublocation=null;
+    var r=quiet(function(){return applyMuts("[XP:+10][GOLD:+5][COMBAT_START:Wolf|10|12][LOCATION_ITEM:Rope|taken]");}).r,need=[/XP refused/,/Trade refused/,/Combat refused/,/Stash refused/],i;
+    for(i=0;i<need.length;i++){var hit=(r.muts||[]).filter(function(x){return need[i].test(x);});if(!hit.length)return "fixture: no line for "+need[i]+" in "+JSON.stringify(r.muts);
+      if(!hit.every(mutLineWarns))return "a village refusal without the glyph: "+JSON.stringify(hit);}
+    makeWorld();delete worldState.kind;var hero=worldState.character.name;
+    memory.quests=memory.quests||{};memory.quests["The Old Debt"]={title:"The Old Debt",status:"completed",objectives:[]};
+    var r2=quiet(function(){return applyMuts("[GOLD:+5][NPC:"+hero+"|pacing][QUEST:The Old Debt|completed]");}).r;
+    var ref=(r2.muts||[]).filter(function(x){return /refused|not reopened/.test(x);});if(ref.length<2)return "fixture: "+JSON.stringify(r2.muts);
+    if(!ref.every(mutLineWarns))return "an adventure refusal without the glyph: "+JSON.stringify(ref);
+    return (r2.muts||[]).indexOf("+5 gp")>=0?true:"the routine coin receipt must stay plain: "+JSON.stringify(r2.muts);
+  });
+  t("#481 A7 the renderer marks a glyph line and nothing else: escaped inside a warning span, every other line byte-identical",function(){
+    if(typeof mutLineWarns!=="function")return "mutLineWarns missing";
+    if(!mutLineWarns("⚠ Stash refused — x")||mutLineWarns("Stash refused — x")||mutLineWarns("+Rope (⚠ count clamped to 999)")||mutLineWarns(null))return "the predicate keys on the LEADING glyph only";
+    var h=summaryLineHTML(["Time +10m (8:10)","⚠ Stash refused — <b>","Here: Lantern"]);
+    return h==="Time +10m (8:10) | <span class=\"sum-warn\">⚠ Stash refused — &lt;b&gt;</span> | Here: Lantern"?true:"render: "+h;
+  });
+  t("#481 A7 the consumers that sort refusals from receipts key on the glyph, not on words: the chest, the counter, the undo, the sheet sync",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),u=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
+    if(/\/\^Stash refused|\/\^Trade refused/.test(g))return "game.js still sorts refusals by their words";
+    if((g.match(/filter\(mutLineWarns\)/g)||[]).length<3)return "the chest, the counter and the undo must filter with mutLineWarns";
+    if(/\/REFUSED\/i\.test/.test(u))return "the sheet sync still sorts by the word REFUSED";
+    return /mutLineWarns\(/.test(u)?true:"the sheet sync must key on the glyph";
+  });
+  t("#481 A7 one Sub line per arrival: a real canonicalisation shows its arrow once, a plain arrival its name once",function(){
+    villageEF();var r=quiet(function(){return applyMuts("[SUBLOCATION:the hall]");}).r,subs=(r.muts||[]).filter(function(x){return /^Sub/.test(x);});
+    if(worldState.world.sublocation!=="the Village Hall")return "fixture: the hall resolves to the Hall: "+worldState.world.sublocation;
+    if(subs.length!==1||subs[0]!=="Sub: the hall → the Village Hall (the Hall)")return "one arrow line for the arrival: "+JSON.stringify(subs);
+    r=quiet(function(){return applyMuts("[SUBLOCATION:the tavern]");}).r;subs=(r.muts||[]).filter(function(x){return /^Sub/.test(x);});
+    return (subs.length===1&&subs[0]==="Sub: the tavern")?true:"a plain arrival: "+JSON.stringify(subs);
+  });
+
 }
