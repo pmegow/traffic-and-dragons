@@ -2,7 +2,8 @@
 // used once. Two different archived rows are both #264 today, and last week's double #463 was caught by a person a day later —
 // a fixture with two | 463 | rows passed lint-todo --git-aware --cap with exit 0. Now an id pass in lint-todo (the hook and CI):
 // a row id must be unique across TODO.md and DOC/TODO_ARCHIVE.md, except the EXPLICIT grandfather list — the legacy #1–#30
-// numbering (pinned at today's counts, so a new copy still fails) and #264 (with a note: the owner's renumber ruling is pending).
+// numbering (pinned at today's counts, so a new copy still fails). The double #264 was resolved by owner ruling 2026-09-30: the
+// quest-journal row (cited by no code) became #486; the review-call whitelist, which api.js and the engine tests cite, keeps #264.
 //   node dev/tests-481-g4-row-ids.js
 const cp = require('child_process'), fs = require('fs'), path = require('path'), os = require('os'), assert = require('assert/strict');
 const root = path.join(__dirname, '..'), LINT = path.join(root, 'dev', 'lint-todo.js');
@@ -28,13 +29,15 @@ test('an open row that reuses an ARCHIVED id fails too — the numbers are globa
   assert.notEqual(r.code, 0, 'an id already in the archive was reused: ' + r.out);
   assert.match(r.out, /#500/);
 });
-test('the grandfather list is explicit: #264 twice passes (owner ruling pending), a third #264 or a new copy of a legacy id fails', () => {
-  assert.equal(lint(table([[264, 'a'], [264, 'b']]), '').code, 0, 'the grandfathered #264 pair must pass');
-  assert.notEqual(lint(table([[264, 'a'], [264, 'b'], [264, 'c']]), '').code, 0, 'a THIRD #264 must fail');
+test('the grandfather list is explicit: a new copy of a legacy id fails, and #264 is no longer grandfathered (owner ruling 2026-09-30: the quest-journal row became #486)', () => {
+  assert.notEqual(lint(table([[264, 'a'], [264, 'b']]), '').code, 0, 'a doubled #264 must fail now');
   assert.equal(lint(table([[1, 'a'], [1, 'b']]), '').code, 0, 'the legacy #1 pair must pass');
   assert.notEqual(lint(table([[1, 'a'], [1, 'b'], [1, 'c']]), '').code, 0, 'a new copy of a legacy id must fail');
   const src = fs.readFileSync(LINT, 'utf8');
-  assert.match(src, /264:\s*\{\s*count:\s*2,\s*why:\s*"[^"]*owner/, 'the #264 entry must carry its note (the owner\'s renumber ruling is pending)');
+  assert.ok(!/\b264:\s*\{/.test(src), 'the #264 grandfather entry must be gone');
+  const arch = fs.readFileSync(path.join(root, 'DOC/TODO_ARCHIVE.md'), 'utf8');
+  assert.equal((arch.match(/^\|\s*264\s*\|/gm) || []).length, 1, 'exactly one #264 row remains: the review-call whitelist, which the code cites');
+  assert.ok(/^\|\s*486\s*\|\s*\*\*QUEST JOURNAL ACTIONS WAIT FOR THE GM TURN/m.test(arch), 'the quest-journal row is #486');
 });
 test('the real TODO.md and archive pass; the CI per-commit line hands the lint each commit\'s archive', () => {
   const r = cp.spawnSync(process.execPath, [LINT, '--git-aware', '--cap', '--file', path.join(root, 'TODO.md'), '--head-file', path.join(root, 'TODO.md'), '--archive-file', path.join(root, 'DOC/TODO_ARCHIVE.md')], { encoding: 'utf8' });

@@ -79,7 +79,8 @@ function rowSizeErrors(text, max, unchangedAgainst) {
 }
 // #481 G4 (audit 2026-09-29): a row id is used ONCE across TODO.md and DOC/TODO_ARCHIVE.md — the numbers are global across both
 // files (the 2026-09-01 archive rule). The grandfather list is EXPLICIT and pinned at today's counts, so a new copy of any of
-// these ids still fails: the legacy #1–#30 numbering predates the global rule, and #264 is two archived rows.
+// these ids still fails: the legacy #1–#30 numbering predates the global rule. (The double #264 was resolved by owner ruling
+// 2026-09-30: the quest-journal row, cited by no code, became #486.)
 var LEGACY_ID = "legacy numbering, before the global row-number rule";
 var ROW_ID_GRANDFATHER = {
   1: { count: 2, why: LEGACY_ID }, 2: { count: 2, why: LEGACY_ID }, 3: { count: 3, why: LEGACY_ID }, 4: { count: 2, why: LEGACY_ID },
@@ -90,7 +91,6 @@ var ROW_ID_GRANDFATHER = {
   22: { count: 3, why: LEGACY_ID }, 23: { count: 5, why: LEGACY_ID }, 24: { count: 3, why: LEGACY_ID }, 25: { count: 6, why: LEGACY_ID },
   26: { count: 4, why: LEGACY_ID }, 27: { count: 5, why: LEGACY_ID }, 28: { count: 4, why: LEGACY_ID }, 29: { count: 2, why: LEGACY_ID },
   30: { count: 2, why: LEGACY_ID },
-  264: { count: 2, why: "two archived rows (quest-journal actions; the review-call tag whitelist, which api.js and engine-tests.js cite) — the owner's renumber ruling is pending: renumber the quest-journal one (the b4d034d way) and drop this entry" }
 };
 function rowIdErrors(todoText, archiveText) {
   var n = {}, where = {}, max = 0, errs = [];
