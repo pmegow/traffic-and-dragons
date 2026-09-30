@@ -169,6 +169,14 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Rule (Fable (a)):** the floor is on the LINE total. **Judgement call:** a refused line holds the whole plan, because a partial trade would leave that mark silently unsold.
   - **Browser proof:** `dev/qa-481-d5-d7-counter.js` (new, manual; CDP driver serving the repo from disk, fresh profile). Real modal screenshots: the lone whistle's reason in red with Complete locked; the pair at +1 gp; D5's silver/copper prices on the rows.
   - **Proof:** 2 tests in "#481 D7" (the lone case red first; the mixed case added when the battery MISSED "a refused line lets the rest through"). Full suite green; four replay baselines unchanged; `dev/sabotage-481-d7-sale-floor.js` 4/4 caught; the #407 affordability clause re-anchored and caught.
+- 2026-09-29 · #481 D4 · v1.1047 · Opus 5.5 · A met want retires; the counter pays the keeper's stated offer.
+  - **Touches:** memory.js (`nodeWantedLive`, `wantedNodeAt`, `retireWantedAt`), the ITEM_LOST handler (retires where the loss happened), api.js's geo block (live wants only — a volatile-half change), helpers.js (the counter: the offer, one unit, the words reason), and game.js (the fourth-button rungs read live wants; wording untouched).
+  - **One path:** the counter's sale rides the same [ITEM_LOST:] as a GM sale, so one retirement covers both.
+  - **Judgement call:** a want sells ONE unit at the offer (row max 1), so the remaining copies aren't paid the offer too.
+  - **Re-baselined under Fable (c):** the #407 ① knife pays its 3 gp offer instead of 2 gp canon, and the ②/③ totals follow (−4→−5, 47→46). The #407 wanted clause was re-anchored; the manual `qa-407-shop.js` numbers were updated; ruling ① is amended in the archived #407 row.
+  - **Owner-visible consequence:** a lowball offer pays less than an unwanted sale would (Gazz's 40 gp for a 200 gp ring). That is the ruling as written; `max(offer, half canon)` is a one-line change if wanted.
+  - **Replay on t218 (the audit's scenario):** sale 1 +40 gp with "Want met: Warded ring (Gazz Quickfuse)", and the WANTED line is gone from the geo block; sale 2 +100 (half canon). Before, both sales paid +200 and the want survived.
+  - **Proof:** 5 tests in "#481 D4" (four red before the build; the rung test rewritten when the battery MISSED — an expired want alone never reaches the sell rung). Full suite green; four replay baselines unchanged; `dev/sabotage-481-d4-want-met.js` 7/7 caught.
 
 ## Off-Fable log
 

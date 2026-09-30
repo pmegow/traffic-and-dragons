@@ -25912,12 +25912,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.character.inventory=["Rope x3","Bone-handled knife","Longsword","Healing potion"];worldState.character.gold=25;
     applyMuts("[WORN:Silas|Longsword|on]");
   }
-  t("#407 ① the catalog reads the village teeth: only in a shop with its keeper; sell = half canon, FULL when WANTED, unsellable without either; worn items flagged; buy rows = the shop's live wares with their pinned price, word-priced wares unbuyable",function(){
+  t("#407 ① the catalog reads the village teeth: only in a shop with its keeper; sell = half canon, the keeper's STATED offer when WANTED (#481 D4 amends ruling ①), unsellable without either; worn items flagged; buy rows = the shop's live wares with their pinned price, word-priced wares unbuyable",function(){
     shopFixture();var cat=shopTradeCatalog();if(!cat.ok)return "catalog: "+cat.reason;
     if(cat.keeper!=="Frizwick"||cat.shop!=="the trading post"||cat.gold!==25)return "header: "+JSON.stringify([cat.keeper,cat.shop,cat.gold]);
     var by={};cat.sell.forEach(function(r){by[r.name]=r;});
     if(!by["Rope"]||by["Rope"].qty!==3||by["Rope"].sellGp!==0.5)return "rope: half of 1 gp canon, stack of 3: "+JSON.stringify(by["Rope"]);
-    if(!by["Bone-handled knife"]||!by["Bone-handled knife"].wanted||by["Bone-handled knife"].sellGp!==2)return "the WANTED knife sells at FULL canon (2 gp): "+JSON.stringify(by["Bone-handled knife"]);
+    if(!by["Bone-handled knife"]||!by["Bone-handled knife"].wanted||by["Bone-handled knife"].sellGp!==3)return "the WANTED knife sells at the keeper's offer (3 gp; #481 D4 re-baseline from full canon 2 gp): "+JSON.stringify(by["Bone-handled knife"]);
     if(!by["Longsword"]||by["Longsword"].sellGp!==null)return "no canon and not wanted = not sellable here: "+JSON.stringify(by["Longsword"]);
     if(!by["Longsword"].worn)return "the worn longsword must be flagged";
     if(!by["Healing potion"]||by["Healing potion"].sellGp!==25)return "potion: half of 50";
@@ -25932,7 +25932,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     shopFixture();var cat=shopTradeCatalog();
     var p=shopTradePlan(cat,{sell:{"rope":9,"longsword":1,"bone-handled knife":1},buy:{}});
     var names=p.lines.map(function(l){return l.name+":"+l.qty;}).join(",");if(names!=="Rope:3,Bone-handled knife:1")return "lines: "+names;
-    if(p.sellGp!==3.5||p.netGp!==-4||p.goldAfter!==29||!p.ok)return "sell 1.5 + 2 = 3.5 → the hero is paid 4 (halves away from zero): "+JSON.stringify([p.sellGp,p.netGp,p.goldAfter,p.ok]);
+    if(p.sellGp!==4.5||p.netGp!==-5||p.goldAfter!==30||!p.ok)return "sell 1.5 + 3 (the knife's offer, #481 D4) = 4.5 → the hero is paid 5 (halves away from zero): "+JSON.stringify([p.sellGp,p.netGp,p.goldAfter,p.ok]);
     p=shopTradePlan(cat,{sell:{"rope":1},buy:{}});if(p.netGp!==-1)return "a half-gp sale still pays 1 gp: "+p.netGp;
     p=shopTradePlan(cat,{sell:{},buy:{"healing potion":1}});if(p.ok||!/short 25 gp/.test(p.reason)||p.netGp!==50)return "50 gp potion on 25 gp: locked, shortfall named: "+JSON.stringify(p);
     p=shopTradePlan(cat,{sell:{"healing potion":1},buy:{"healing potion":1}});if(!p.ok||p.netGp!==25)return "sell the potion (25) and buy one (50): net 25: "+JSON.stringify(p);
@@ -25941,19 +25941,19 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     p=shopTradePlan(cat,{sell:{},buy:{"lantern oil":1}});if(p.ok||p.reason!=="nothing marked")return "an unbuyable ware marks nothing: "+JSON.stringify(p);
     p=shopTradePlan(cat,{sell:{},buy:{}});if(p.ok||p.reason!=="nothing marked")return "empty plan is not completable";
     var tags=shopTradeTagText(shopTradePlan(cat,{sell:{"rope":3,"bone-handled knife":1},buy:{"rope":1}}));
-    if(tags!=="[GOLD:+3][ITEM_LOST:Rope x3][ITEM_LOST:Bone-handled knife][ITEM_GAINED:Rope]")return "tag text: "+tags;
+    if(tags!=="[GOLD:+4][ITEM_LOST:Rope x3][ITEM_LOST:Bone-handled knife][ITEM_GAINED:Rope]")return "tag text (1 − 4.5 = −3.5 → +4; #481 D4): "+tags;
     var big=shopTradeTagText({netGp:0,lines:[{kind:"sell",name:"Arrow",qty:12}]});if(big!=="[ITEM_LOST:Arrow x12]")return "a stack of twelve rides ONE tag now (#481 D3: the parser reads any count; re-baselined from the x9 chunking): "+big;
     return true;
   });
   t("#407 ③ Complete lands through the trade gate: gold and inventory move as tags in the mutation log, bought wares leave the shelf, sold items join it at canon, tradePing arms once and buildTradeNote speaks ONCE with 'ALREADY updated'; a stale plan against a closed gate moves nothing",function(){
     shopFixture();worldState.character.gold=60;var res=shopTradeApply({sell:{"rope":3,"bone-handled knife":1},buy:{"healing potion":1}});
     if(!res.ok)return "apply: "+res.reason;
-    if(worldState.character.gold!==60-47)return "gold 60 − (50 − 3.5 = 46.5 → 47): "+worldState.character.gold;
+    if(worldState.character.gold!==60-46)return "gold 60 − (50 − 4.5 = 45.5 → 46; the knife at its 3 gp offer, #481 D4): "+worldState.character.gold;
     var inv=worldState.character.inventory.join("|");if(/Rope|Bone-handled/.test(inv)||!/Healing potion x2/.test(inv))return "inventory after: "+inv;
     var node=memory.map.nodes["The Village|the trading post"],wn=node.wares.map(function(w){return w.item+"@"+w.price;}).join(",");
     if(/Healing potion/.test(wn))return "the bought potion must leave the shelf: "+wn;
     if(!/Rope@1 gp/.test(wn)||!/Bone-handled knife@2 gp/.test(wn))return "sold items join the shelf at canon: "+wn;
-    if(!worldState.tradePing||worldState.tradePing.keeper!=="Frizwick"||worldState.tradePing.netGp!==47)return "tradePing: "+JSON.stringify(worldState.tradePing);
+    if(!worldState.tradePing||worldState.tradePing.keeper!=="Frizwick"||worldState.tradePing.netGp!==46)return "tradePing: "+JSON.stringify(worldState.tradePing);
     if(!/Silas sold Rope x3/.test(res.line)||!/with Frizwick at the trading post/.test(res.line))return "the system line names hero and keeper: "+res.line;
     var note=buildTradeNote();if(!/TRADE DONE/.test(note)||!/ALREADY updated/.test(note)||!/ONE in-character sentence/.test(note)||!/Frizwick/.test(note))return "note: "+note.slice(0,300);
     if(buildTradeNote()!=="")return "the note speaks once";
@@ -27700,6 +27700,53 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var res=quiet(function(){return shopTradeApply({sell:{"carved whistle":2},buy:{}});}).r;
     if(!res.ok)return "the pair sells: "+res.reason;
     return (c.gold===g+1&&!c.inventory.some(function(x){return /whistle/i.test(x);}))?true:"+1 gp and the whistles gone: "+c.gold+" "+JSON.stringify(c.inventory);
+  });
+
+  // ── #481 D4 (audit 2026-09-29, ruled): a met "wanted" offer was never retired — the GM kept being told the keeper wants
+  // it and the counter paid full price for every further copy. Ruled: a met want retires, and the counter pays the
+  // keeper's STATED offer (amends #407 ruling ①). (a) The offer is parsed by parseCoin; an offer in words is unsellable at
+  // the counter with the reason. (b) A counter sale or a GM [ITEM_LOST:] of the wanted item in that shop retires the row,
+  // receipted "Want met: X (keeper)"; wants expire on the clock like wares (nodeWantedLive).
+  section("#481 D4 a met want retires");
+  function d4Fixture(offer){shopFixture();var n=memory.map.nodes["The Village|the trading post"];n.wanted.push({item:"Warded ring",offer:offer||"40 gp",by:"Frizwick",t:1,min:clockNow()});worldState.character.inventory.push("Warded ring x2");return n;}
+  function d4Wants(n){return (n.wanted||[]).map(function(w){return w.item;});}
+  t("#481 D4 the counter pays the keeper's offer for ONE ring, the want retires with a receipt, and the GM is no longer told it; the second ring has no price",function(){
+    var n=d4Fixture(),c=worldState.character,g=c.gold,cat=shopTradeCatalog(),row=cat.sell.filter(function(r){return r.name==="Warded ring";})[0];
+    if(!row||!row.wanted||row.sellGp!==40)return "the ring sells at the offer: "+JSON.stringify(row);
+    var lr=shopLedgerRows(cat).left.filter(function(r){return r.label==="Warded ring";})[0];if(!lr||lr.max!==1)return "the want buys one: "+JSON.stringify(lr);
+    var cap=[],_am=addMsg;addMsg=function(ty,h){if(ty==="system")cap.push(String(h));return _am(ty,h);};
+    var res;try{res=quiet(function(){return shopTradeApply({sell:{"warded ring":1},buy:{}});}).r;}finally{addMsg=_am;}
+    if(!res.ok||c.gold!==g+40)return "+40 gp for one ring: "+c.gold+" "+JSON.stringify(res);
+    if(d4Wants(n).indexOf("Warded ring")>=0)return "the met want retires: "+JSON.stringify(n.wanted);
+    if(!(res.muts||[]).some(function(m){return m==="Want met: Warded ring (Frizwick)";}))return "the receipt: "+JSON.stringify(res.muts);
+    var _geo=buildGeoBlock();if(/WANTED HERE:[^\n]*Warded ring/.test(_geo))return "the GM is still told the keeper wants it: "+_geo;/* the sold ring joins the shelf as a ware (#407) — only the WANT must go */
+    var r2=shopTradeCatalog().sell.filter(function(r){return r.name==="Warded ring";})[0];
+    return (r2&&!r2.wanted&&r2.sellGp==null)?true:"the second ring is priced like any other (no canon: none): "+JSON.stringify(r2);
+  });
+  t("#481 D4 a GM-narrated sale in the shop retires the want too",function(){
+    var n=d4Fixture();var r=quiet(function(){return applyMuts("Frizwick turns the ring in the light and counts out the coin. [SAY:Frizwick|pleased]Done.[/SAY] [GOLD:+40][ITEM_LOST:Warded ring]");}).r;
+    if(d4Wants(n).indexOf("Warded ring")>=0)return "the GM's sale retires it: "+JSON.stringify(r.muts);
+    return (r.muts||[]).indexOf("Want met: Warded ring (Frizwick)")>=0?true:"the receipt: "+JSON.stringify(r.muts);
+  });
+  t("#481 D4 an offer in words is unsellable at the counter, with the reason; the knife's 3 gp offer beats its 2 gp canon",function(){
+    d4Fixture("a fair price, he says");var cat=shopTradeCatalog(),rows=shopLedgerRows(cat).left,ring=rows.filter(function(r){return r.label==="Warded ring";})[0],knife=cat.sell.filter(function(r){return r.name==="Bone-handled knife";})[0];
+    if(!ring||!ring.off||!/a fair price/.test(ring.offReason))return "the words offer is refused with its text: "+JSON.stringify(ring);
+    return (knife&&knife.sellGp===3)?true:"the stated offer is paid (3 gp), not canon: "+JSON.stringify(knife);
+  });
+  t("#481 D4 a want expires on the clock like a ware: after a week the GM is not told and the counter pays no offer",function(){
+    var n=d4Fixture();n.wanted.forEach(function(w){w.min=clockNow()-8*1440;});
+    if(nodeWantedLive(n).length)return "an eight-day-old want is not live: "+JSON.stringify(nodeWantedLive(n));
+    if(/WANTED HERE/.test(buildGeoBlock()))return "the geo block serves an expired want";
+    var ring=shopTradeCatalog().sell.filter(function(r){return r.name==="Warded ring";})[0];
+    return (ring&&!ring.wanted)?true:"the counter pays no expired offer: "+JSON.stringify(ring);
+  });
+  t("#481 D4 the fourth button's sell rung offers only a live want",function(){
+    villageEF();var c=worldState.character;c.hp=c.maxHp;c.inventory=["Longsword"];worldState.questLog=[];worldState.turn=3;c.gold=0;
+    applyMuts("[WANTED:Longsword|4 gp|Frizwick]");var s=engineFourthAction();if(!s||s.kind!=="sell")return "fixture: the live want offers the sale: "+JSON.stringify(s);
+    /* beside a live want an expired one is reachable (a live want makes it a commerce turn): the rung must offer the live one */
+    c.inventory=["Longsword","Old boots"];applyMuts("[WANTED:Old boots|2 gp|Frizwick]");
+    memory.map.nodes["The Village|the tavern"].wanted.forEach(function(w){if(w.item==="Longsword")w.min=clockNow()-8*1440;});
+    var s2=engineFourthAction();return (s2&&s2.kind==="sell"&&/Old boots/.test(s2.text))?true:"only the live want is offered: "+JSON.stringify(s2);
   });
 
 }

@@ -29,15 +29,15 @@ const fixture=JSON.parse(JSON.stringify({world:worldState,memory})),url=process.
  await page.click('#shop-modal .shop-row[data-side="left"][data-key="rope"]');await page.click('#shop-modal .shop-row[data-side="left"][data-key="rope"]');
  await page.click('#shop-modal .shop-row[data-side="left"][data-key="bone-handled knife"]');await page.click('#shop-modal .shop-row[data-side="right"][data-key="healing potion"]');
  const marked=await page.evaluate(()=>({sell:[...document.querySelectorAll('#shop-modal .sel-sell')].map(e=>e.textContent.trim()),buy:[...document.querySelectorAll('#shop-modal .sel-buy')].map(e=>e.textContent.trim()),total:document.querySelector('#shop-modal .shop-total').innerText,go:document.querySelector('#ledger-go').disabled}));
- assert.equal(marked.sell.length,2);assert.match(marked.sell[0],/Rope.*2\/3.*\+1 gp/s);assert.match(marked.sell[1],/knife.*wanted.*\+2 gp/s);
- assert.equal(marked.buy.length,1);assert.match(marked.buy[0],/Healing potion.*−50 gp/s);assert.match(marked.total,/−47 gp/);assert.equal(marked.go,false);
+ assert.equal(marked.sell.length,2);assert.match(marked.sell[0],/Rope.*2\/3.*\+1 gp/s);assert.match(marked.sell[1],/knife.*wanted.*\+3 gp/s);/* #481 D4: the keeper's 3 gp offer */
+ assert.equal(marked.buy.length,1);assert.match(marked.buy[0],/Healing potion.*−50 gp/s);assert.match(marked.total,/−46 gp/);assert.equal(marked.go,false);
  await page.screenshot({path:path.join(out,'shop-desktop.png')});
- await page.click('#shop-modal .shop-row[data-side="left"][data-key="rope"] .shop-qty');assert.match(await page.evaluate(()=>document.querySelector('#shop-modal .shop-total').innerText),/−48 gp/,'clicking the count clears the stack');
+ await page.click('#shop-modal .shop-row[data-side="left"][data-key="rope"] .shop-qty');assert.match(await page.evaluate(()=>document.querySelector('#shop-modal .shop-total').innerText),/−47 gp/,'clicking the count clears the stack');
  await page.click('#shop-modal .shop-row[data-side="left"][data-key="rope"]');await page.click('#shop-modal .shop-row[data-side="left"][data-key="rope"]');
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'shop-mobile.png')});await page.setViewportSize({width:1280,height:900});
  await page.click('#ledger-go');await page.waitForFunction(()=>!document.querySelector('#shop-modal'));
  const after=await page.evaluate(()=>({gold:worldState.character.gold,inv:worldState.character.inventory.slice(),wares:memory.map.nodes['The Village|the trading post'].wares.map(w=>w.item+'@'+w.price),ping:worldState.tradePing,log:[...document.querySelectorAll('#story-narrative .msg, #story-narrative div')].map(e=>e.textContent).filter(t=>/sold Rope/.test(t)).slice(-1)}));
- assert.equal(after.gold,13,'60 − 47');assert.deepEqual(after.inv.sort(),['Healing potion x2','Rope']);
+ assert.equal(after.gold,14,'60 − 46');assert.deepEqual(after.inv.sort(),['Healing potion x2','Rope']);
  assert.deepEqual(after.wares,['Rope@1 gp','Bone-handled knife@2 gp'],'the potion left the shelf; the sold items joined it at canon');
  assert.equal(after.ping&&after.ping.keeper,'Frizwick');assert.equal(after.log.length,1,'one system line in the log');
  assert.deepEqual(errors,[]);

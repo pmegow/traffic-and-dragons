@@ -2714,12 +2714,14 @@ function shopTradeCatalog(){
   for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=base.toLowerCase();
     if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonGp:null,wanted:false,sellGp:null};order.push(k);}
     hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))hero[k].worn=true;}
-  var wanted={},wl=vtc.node.wanted||[];for(i=0;i<wl.length;i++)wanted[String(wl[i].item||"").toLowerCase()]=wl[i];
+  var wanted={},wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++)wanted[String(wl[i].item||"").toLowerCase()]=wl[i];
   var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,gp=(typeof itemValueGp==="function")?itemValueGp(canon):null;
     var w=wanted[order[i]]||wanted[String((typeof itemBaseName==="function")?itemBaseName(r.name):r.name).toLowerCase()]||null;
     r.canonGp=gp;r.wanted=!!w;
-    if(gp)r.sellGp=w?gp:gp*SHOP_SELL_FRACTION;
-    else if(w){var og=(typeof itemValueGp==="function")?itemValueGp({value:w.offer}):null;if(og)r.sellGp=og;}
+    /* #481 D4 (ruled 2026-09-29; amends #407 ruling ①): a WANTED item sells at the keeper's STATED offer, parsed by the one
+       coin parser, for ONE unit (the want retires when met); an offer in words is no counter price — ask the keeper. */
+    if(w){var oc=(typeof parseCoin==="function")?parseCoin(w.offer):null;r.offer=String(w.offer||"");if(oc&&oc.unit)r.sellGp=oc.unitGp;else r.offerWords=true;}
+    else if(gp)r.sellGp=gp*SHOP_SELL_FRACTION;
     sell.push(r);}
   var live=(typeof nodeWaresLive==="function")?nodeWaresLive(vtc.node):(vtc.node.wares||[]),buy=[];
   for(i=0;i<live.length;i++){var ware=live[i],bg=(typeof itemValueGp==="function")?itemValueGp({value:ware.price}):null,pc=(typeof parseCoin==="function")?parseCoin(ware.price):null;
@@ -2754,8 +2756,8 @@ function shopFmtGp(gp){
    complete function. showLedgerModal (ui-modals) renders any spec; the builders below stay pure and engine-tested.
    Rows without a price sort to the bottom of their column (owner ask); worn rows keep their place, greyed. */
 function shopLedgerRows(cat){
-  var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.qty,worn:r.worn,off:r.worn||r.sellGp==null,unit:r.sellGp,
-    offReason:r.worn?"Worn \u2014 take it off first":(r.sellGp==null?"No price on record here \u2014 ask "+cat.keeper:""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: full price":"Half its listed value"};});
+  var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(1,r.qty):r.qty,/* #481 D4: a want buys one */worn:r.worn,off:r.worn||r.sellGp==null,unit:r.sellGp,
+    offReason:r.worn?"Worn \u2014 take it off first":(r.sellGp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});
   sell.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});/* stable in ES2019+; a priced row never sinks below an unpriced one */
   var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */worn:false,off:b.buyGp==null,unit:b.buyGp,offReason:b.buyGp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
   buy.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});

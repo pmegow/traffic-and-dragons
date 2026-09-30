@@ -553,6 +553,29 @@ function nodeWaresLive(node){
   var now=(typeof clockNow==="function")?clockNow():0,win=((typeof WARES_RESTOCK_DAYS!=="undefined")?WARES_RESTOCK_DAYS:7)*((typeof MIN_PER_DAY!=="undefined")?MIN_PER_DAY:1440);
   return node.wares.filter(function(w){return typeof w.min!=="number"||now-w.min<win;});
 }
+/* #481 D4 (audit 2026-09-29, ruled): a want lives on the clock like a ware (the same restock window) and RETIRES when met.
+   Every reader of a node's wants goes through nodeWantedLive — the geo block, the counter and the fourth-button rungs — so
+   an expired or met want is never served again. Stored rows are not pruned here (the fold and the cap own storage). */
+function nodeWantedLive(node){
+  if(!node||!node.wanted||!node.wanted.length)return [];
+  var now=(typeof clockNow==="function")?clockNow():0,win=((typeof WARES_RESTOCK_DAYS!=="undefined")?WARES_RESTOCK_DAYS:7)*((typeof MIN_PER_DAY!=="undefined")?MIN_PER_DAY:1440);
+  return node.wanted.filter(function(w){return typeof w.min!=="number"||now-w.min<win;});
+}
+/* The node whose wants a place sees — the read-only twin of waresNodeFor (the shop in a waresPerShop kind, else the
+   settlement); it never mints. `at` = {key, world} from R.placeAt, absent = the live pointer. */
+function wantedNodeAt(at){
+  if(typeof memory==="undefined"||!memory||!memory.map||!worldState||!worldState.world)return null;
+  var key;
+  if(typeof kindDef==="function"&&kindDef().waresPerShop){key=(at&&at.key)?at.key:((typeof currentNodeKey==="function")?currentNodeKey():null);if(!key)return null;if(typeof locResolve==="function")key=locResolve(key);var n=memory.map.nodes[key];return (n&&typeof isShopNode==="function"&&isShopNode(key,n))?n:null;}
+  key=(at&&at.world)?at.world:worldState.world.location;if(!key)return null;if(typeof locResolve==="function")key=locResolve(key);return memory.map.nodes[key]||null;
+}
+/* A met want leaves the list: the live want for `item` (base-name match) at the place `at`. Returns the row, or null. */
+function retireWantedAt(at,item){
+  var node=wantedNodeAt(at);if(!node)return null;
+  var live=nodeWantedLive(node),base=(typeof itemBaseName==="function")?itemBaseName(item):String(item).toLowerCase(),i;
+  for(i=0;i<live.length;i++){if(((typeof itemBaseName==="function")?itemBaseName(live[i].item):String(live[i].item).toLowerCase())!==base)continue;var ix=node.wanted.indexOf(live[i]);if(ix>=0)node.wanted.splice(ix,1);return live[i];}
+  return null;
+}
 function fileWanted(item,offer,by,turn,at){
   var node=waresNodeFor(turn,at);if(!node)return null;
   var it=String(item||"").trim();if(!it)return null;

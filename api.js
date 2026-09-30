@@ -43,7 +43,8 @@ function buildGeoBlock(){
   var mkt=(mktNode&&typeof nodeWaresLive==="function")?nodeWaresLive(mktNode):[];
   if(mkt.length)lines.push("FOR SALE HERE: "+mkt.map(function(x){return x.item+" — "+x.price+(x.note?" ("+x.note+")":"");}).join("; ")+(_perShop?" — this shop's shelf: name the keeper in every sale, and the buyer.":" — the settlement's record, not a stall in front of the party: offer a purchase only when the seller or their shop is in the scene."));
   else if(mktNode&&mktNode.waresNone&&typeof clockNow==="function"&&clockNow()-(mktNode.waresNone.min||0)<WARES_RESTOCK_DAYS*MIN_PER_DAY)lines.push("Market: nothing for sale here on record (t"+mktNode.waresNone.t+")");
-  if(mktNode&&mktNode.wanted&&mktNode.wanted.length)lines.push("WANTED HERE: "+mktNode.wanted.map(function(x){return x.item+(x.by?" — "+x.by:"")+(x.offer?" offers "+x.offer:"");}).join("; "));
+  var _wLive=(mktNode&&typeof nodeWantedLive==="function")?nodeWantedLive(mktNode):[];/* #481 D4: an expired or met want is never served */
+  if(_wLive.length)lines.push("WANTED HERE: "+_wLive.map(function(x){return x.item+(x.by?" — "+x.by:"")+(x.offer?" offers "+x.offer:"");}).join("; "));
   // Items
   var _stashKind=!!(typeof kindDef==="function"&&kindDef().stashQuantities),_activeKey=rsubKey||rwKey;
   if(activeNode&&activeNode.items.length&&!_stashKind){

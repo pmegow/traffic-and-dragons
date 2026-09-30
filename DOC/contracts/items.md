@@ -43,6 +43,8 @@ The canonical skills reference. `SKILL_LEVEL_MECHANICS` = ONE global ladder (ind
 - **The purse stays whole gold:** a single sub-gold buy still rounds up to 1 gp ("the keeper never gives a thing away"); a sub-half-gold SALE is #481 D7.
 - **Proof:** `dev/sabotage-481-d5-coin.js` (14 clauses).
 
+**#481 D4 — the keeper's offer, and a want that retires (v1.1047; ruled 2026-09-29, amends #407 ruling ①).** A WANTED item sells at the keeper's STATED offer (parsed by `parseCoin`), for ONE unit (the row's max is 1), and the want retires when met (tags.md ▸ WANTED). An offer in words is no counter price: the row is off with the reason quoting the offer ("Wanted, but the offer is in words (“a fair price”) — ask <keeper>"). The offer is paid as stated even below half canon (Gazz's 40 gp for a 200 gp ring pays 40; the second ring, unwanted, 100) — the ruling as written; `max(offer, half canon)` would be a one-line change. Proof: `dev/sabotage-481-d4-want-met.js` (7 clauses).
+
 **#481 D7 — the sale floor (v1.1046; ruled 2026-09-29).** `shopTradePlan` floors the LINE total (count × unit price): a sale line worth under half a gold piece would round to 0 gp while the item left the pack, so it is refused. The plan names it (`plan.under`, the reason "the keeper pays nothing for 1 Carved whistle (3 sp) — under half a gold piece; mark more of it, or keep it"), holds the WHOLE plan (a partial trade would leave the mark silently unsold), and nothing moves. Two 3 sp whistles (6 sp) sell for 1 gp. The counter shows the reason while only a refused line is marked. Proof: `dev/sabotage-481-d7-sale-floor.js` (4 clauses); browser QA `dev/qa-481-d5-d7-counter.js` (manual, CDP, no server).
 
 ## Item canon travels with the sheet (#81b, v1.916)
