@@ -22,8 +22,8 @@ rc|=sabotage.prove({
       replace:"" },
     { label:"#294B ①: the latch is ALSO stamped at arming — a dead provider turn restores an already-asked item and the note is never delivered",
       mustFail:"asked ONCE per item per campaign",
-      find:"  worldState.itemDefCandidate={key:key,turn:worldState.turn||0};\n}",
-      replace:"  worldState.itemDefCandidate={key:key,turn:worldState.turn||0};_itemDefMarkAsked(key,worldState.turn||0);\n}" },
+      find:"  if(!cur||!cur.key){worldState.itemDefCandidate={key:key,turn:worldState.turn||0};return;}",/* #481 D8 re-anchor: the arming site of the queue head */
+      replace:"  if(!cur||!cur.key){worldState.itemDefCandidate={key:key,turn:worldState.turn||0};_itemDefMarkAsked(key,worldState.turn||0);return;}" },
     { label:"#294B ①: the asked map loses its bound (monotonic-resources rule)",
       mustFail:"asked ONCE per item per campaign",
       find:"  while(ks.length>ITEM_DEF_ASKED_CAP){",

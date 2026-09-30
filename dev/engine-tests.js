@@ -27761,4 +27761,38 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var s2=engineFourthAction();return (s2&&s2.kind==="sell"&&/Old boots/.test(s2.text))?true:"only the live want is offered: "+JSON.stringify(s2);
   });
 
+  // ── #481 D8 (audit 2026-09-29, Fable-approved): the undefined-item question kept ONE slot per reply (the last item won),
+  // and a sixth [ITEM_DEF:] proposal was dropped with only a console line. The candidate is now a queue — still one ask
+  // per turn, in the order the items arrived — and a full-queue drop is said in the summary line without consuming the ask.
+  section("#481 D8 every new item gets its question");
+  function d8World(){makeWorld();worldState.combat=null;delete worldState.itemDefCandidate;delete worldState.itemDefQueue;delete worldState.itemDefAsked;worldState.pendingItemDefs=[];worldState.character.inventory=[];}
+  t("#481 D8 two new items in one reply: the first is asked this turn, the second the next turn, then nothing",function(){
+    d8World();quiet(function(){applyMuts("[ITEM_GAINED:Ring of the drowned king][ITEM_GAINED:Heel of rye bread]");});
+    var n1=buildUndefinedItemNudge(),n2=buildUndefinedItemNudge(),n3=buildUndefinedItemNudge();
+    if(!/drowned king/i.test(n1))return "the first item is asked first: "+n1.slice(0,160);
+    if(!/rye bread/i.test(n2))return "the second item waits its turn and is asked next (it was lost): "+JSON.stringify(n2.slice(0,160));
+    return n3===""?true:"one ask per item: "+n3.slice(0,120);
+  });
+  t("#481 D8 a waiting item the GM defines meanwhile is not asked again; a dead turn restores the queue as it was",function(){
+    d8World();quiet(function(){applyMuts("[ITEM_GAINED:Ring of the drowned king][ITEM_GAINED:Heel of rye bread]");});
+    var snap=snapshotNoteLatches(),n1=buildUndefinedItemNudge();restoreNoteLatches(snap);
+    if(!worldState.itemDefCandidate||!/drowned king/.test(worldState.itemDefCandidate.key)||!(worldState.itemDefQueue||[]).length)return "a dead turn must restore the head and the queue: "+JSON.stringify([worldState.itemDefCandidate,worldState.itemDefQueue]);
+    buildUndefinedItemNudge();quiet(function(){applyMuts("[ITEM_DEF:Heel of rye bread|category=consumable|effect=a meal]");});
+    var n2=buildUndefinedItemNudge();return n2===""?true:"an item already proposed is not asked: "+n2.slice(0,120);
+  });
+  t("#481 D8 a queued item that waited past its moment is not asked as 'just acquired'",function(){
+    d8World();quiet(function(){applyMuts("[ITEM_GAINED:Ring of the drowned king][ITEM_GAINED:Heel of rye bread]");});
+    worldState.turn=(worldState.turn||0)+12;var n1=buildUndefinedItemNudge(),n2=buildUndefinedItemNudge();
+    if(!/drowned king/i.test(n1))return "the head is asked as before: "+n1.slice(0,120);
+    return n2===""?true:"a twelve-turn-old queued item is asked as just acquired: "+n2.slice(0,120);
+  });
+  t("#481 D8 a sixth proposal is refused out loud in the summary line and the item's ask is not consumed",function(){
+    d8World();var i;for(i=0;i<5;i++)worldState.pendingItemDefs.push({key:"thing "+i,name:"Thing "+i,entry:{category:"tool",effect:"x",uses:"N/A",value:"N/A"},turn:1});
+    worldState.itemDefAsked={"lantern of sighs":3};
+    var r=quiet(function(){return applyMuts("[ITEM_DEF:Lantern of sighs|category=tool|effect=shows the dead]");}).r;
+    if(!(r.muts||[]).some(function(m){return mutLineWarns(m)&&/Lantern of sighs/.test(m);}))return "the drop is said: "+JSON.stringify(r.muts);
+    if(worldState.pendingItemDefs.length!==5)return "the queue stays at five";
+    return (worldState.itemDefAsked["lantern of sighs"]==null)?true:"the ask is not consumed by a dropped proposal: "+JSON.stringify(worldState.itemDefAsked);
+  });
+
 }

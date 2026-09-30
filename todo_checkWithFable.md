@@ -180,6 +180,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 - 2026-09-29 · #481 D10 · v1.1048 · Opus 5.5 · Replace from library clears the old sheet's owed level-up choices and delete-marks.
   - **Touches:** `adoptLibraryHero` (game.js) plus a one-line hook in ui-sheets.js (`invDropMarksForget`). This is sheet adoption — not the drift surface — but it is logged for completeness.
   - **Proof:** the assertion in the #428 group (red first; its "forgotten" check was tightened, since `[""]` and `[]` both join to ""). Full suite green; four replay baselines unchanged; `dev/sabotage-481-d10-replace-owed.js` 3/3 caught.
+- 2026-09-29 · #481 D8 · v1.1049 · Opus 5.5 · Every new undefined item gets its question; a sixth proposal is refused out loud.
+  - **Touches:** `_itemDefCandidate` / `buildUndefinedItemNudge` (api.js), with a new registered latch `itemDefQueue` (the #151 census enforces the registration), and the ITEM_DEF handler's queue-full path (tag_table.js).
+  - **Design:** `itemDefCandidate` stays the next ask (existing pins unchanged); the queue waits behind it.
+  - **Judgement call:** promotion drops an entry more than 10 turns old, because the note says "just acquired". Found by reading the v1258 replay: it delivers no notes, so a t10 head sat in front of t63/t93 items.
+  - **Re-baselined:** v1258's end state — exactly `itemDefCandidate` and `itemDefQueue` (walker diff against HEAD); the other three replays are unchanged. The #294 "stamped at arming" clause was re-anchored to the new arming site and caught.
+  - **Proof:** 4 tests in "#481 D8" (three red before the build; the stale test added with the window). Full suite green (2,482); `dev/sabotage-481-d8-item-ask-queue.js` 7/7 caught (the unregistered-latch clause is caught first by the #151 census, so its mustFail names the field).
 
 ## Off-Fable log
 

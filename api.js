@@ -1866,7 +1866,7 @@ var buildLocationTwinNudge=oneShotPing("locationTwinConflicts",{name:"buildLocat
    entry (#157 — effect "N/A" outside mundane/treasure sorts the item in the inventory UI and
    injects nothing, which is precisely why "vial of giant's bane" felt tracked and was not).
    The engine NEVER mints item canon: [ITEM_DEF:] is a PROPOSAL the player confirms (#81). */
-function _itemDefCandidate(rawName){
+function _itemDefCandidate(rawName,R){
   if(typeof worldState==="undefined"||!worldState)return;
   if(typeof itemBaseName!=="function"||typeof itemLookup!=="function")return;
   var key=itemBaseName(rawName);
@@ -1882,7 +1882,33 @@ function _itemDefCandidate(rawName){
   var pend=worldState.pendingItemDefs||[],i;
   for(i=0;i<pend.length;i++)if(pend[i].key===key)return;/* a proposal already awaits the player */
   if(worldState.itemDefAsked&&worldState.itemDefAsked[key]!=null)return;/* #294B: asked ONCE per item per campaign — the latch is stamped when the note is delivered */
-  worldState.itemDefCandidate={key:key,turn:worldState.turn||0};
+  /* #481 D8 (audit 2026-09-29, Fable-approved): the slot was last-wins, so two new items in one reply asked only about the
+     second. itemDefCandidate stays the NEXT ask; a later item waits in itemDefQueue (arrival order, bounded, one ask per
+     turn) and buildUndefinedItemNudge promotes the next still-open one when it delivers. Overflow is said, never silent. */
+  var cur=worldState.itemDefCandidate,q=worldState.itemDefQueue||[];
+  if(cur&&cur.key===key)return;for(i=0;i<q.length;i++)if(q[i].key===key)return;
+  if(!cur||!cur.key){worldState.itemDefCandidate={key:key,turn:worldState.turn||0};return;}
+  if(q.length>=ITEM_DEF_QUEUE_CAP){if(R&&R.muts)R.muts.push("⚠ Too many new items at once — '"+key+"' will not be asked about (define it from the item sheet, or ask in Table Talk)");if(typeof console!=="undefined")console.warn("[items] #481 D8: the undefined-item queue is full ("+ITEM_DEF_QUEUE_CAP+") — '"+key+"' not queued");return;}
+  q.push({key:key,turn:worldState.turn||0});worldState.itemDefQueue=q;
+}
+var ITEM_DEF_QUEUE_CAP=8;
+/* #481 D8: still worth asking — not proposed, not already asked, no canon effect (the GM may have defined it meanwhile). */
+function _itemDefOpen(key){
+  var pend=worldState.pendingItemDefs||[],i;for(i=0;i<pend.length;i++)if(pend[i].key===key)return false;
+  if(worldState.itemDefAsked&&worldState.itemDefAsked[key]!=null)return false;
+  var e=(typeof itemLookup==="function")?itemLookup(key):null;if(e&&(e.category==="mundane"||e.category==="treasure"))return false;if(e&&e.effect&&e.effect!=="N/A")return false;
+  return true;
+}
+/* #481 D8: the next waiting item that is still open becomes the next ask; closed ones leave the queue. The note says "just
+   acquired", so an entry older than ITEM_DEF_QUEUE_STALE_TURNS (asks deferred by combat or the note cap) has missed its
+   moment and leaves too — said in the console; the item stays definable from the item sheet. */
+var ITEM_DEF_QUEUE_STALE_TURNS=10;
+function _itemDefPromote(){
+  var q=worldState.itemDefQueue,now=worldState.turn||0;
+  while(q&&q.length){var nx=q.shift();if(!nx||!nx.key||!_itemDefOpen(nx.key))continue;
+    if(now-(nx.turn||0)>ITEM_DEF_QUEUE_STALE_TURNS){if(typeof console!=="undefined")console.info("[items] #481 D8: '"+nx.key+"' waited "+(now-(nx.turn||0))+" turns for its question — the moment passed; define it from the item sheet");continue;}
+    worldState.itemDefCandidate=nx;break;}
+  if(q&&!q.length)delete worldState.itemDefQueue;
 }
 /* #294B: the per-item asked latch. Stamped at DELIVERY (not at arming) so a dead provider turn
    restores both the candidate and the latch through NOTE_LATCH_FIELDS (#151). Bounded at
@@ -1897,9 +1923,11 @@ function _itemDefMarkAsked(key,turn){
 function buildUndefinedItemNudge(){
   if(!worldState||worldState.combat)return"";
   var cand=worldState.itemDefCandidate;
+  while(cand&&cand.key&&!_itemDefOpen(cand.key)){delete worldState.itemDefCandidate;_itemDefPromote();cand=worldState.itemDefCandidate;}/* #481 D8: defined or proposed meanwhile — skip it */
   if(!cand||!cand.key)return"";
   delete worldState.itemDefCandidate;
   _itemDefMarkAsked(cand.key,worldState.turn||0);
+  _itemDefPromote();/* #481 D8: the next waiting item is next turn's ask */
   return "[ENGINE NOTE — UNDEFINED ITEM (not a player action): the party just acquired \""+cand.key+"\" and the item "
     +"bible records no effect for it, so neither you nor the engine has canon for what it does — anything you narrate "
     +"about its properties is invention the record cannot keep. If it is mechanically meaningful, propose its definition "
@@ -2105,7 +2133,7 @@ function buildArcWallNudge(){
 // per companion) and questLog[].staleNudged (buildQuestStaleNudge — entry-30 ruling 2026-08-29:
 // the NARROW title-keyed snapshot, never questLog wholesale in the flat registry, which would
 // silently revert any future mid-flight quest write and deep-copy the whole log per turn).
-var NOTE_LATCH_FIELDS=["audioAsk","subLeavePing",/* #393 */"tradeRefusedPing",/* #6 F9 */"itemNotHeldPing",/* #481 A2 */"stashRefusedPing",/* #481 A3 */"castSpeakerPing",/* #481 B1 */"castOmitPing",/* #481 B2 */"skelTitlePing",/* #481 C4 */"tradePing",/* #407 */"returnPing",/* #6 C2 */"exchangeAsk",/* #6 D2 */"moneyAsk",/* #375 */"agendaOfferAsk",/* #373 */"checkWithdrawnPing",/* #391 */"suggestMissPing",/* #344 */"registerPing",/* #355 */"agendaBirth","agendaAnnounce",/* #330 */"hoursAsk",/* #207 ③ */"layoutAsk","layoutAskArmed",/* #408 ② */"plotArmorPing",/* #319 */"whisperAsk",/* #317 */"impulseAsk",/* #386/#370 */"montagePing","wrapUpPing",/* #308 */"recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing",/* #469 */"motifPing","motifNudged","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["audioAsk","subLeavePing",/* #393 */"tradeRefusedPing",/* #6 F9 */"itemNotHeldPing",/* #481 A2 */"stashRefusedPing",/* #481 A3 */"castSpeakerPing",/* #481 B1 */"castOmitPing",/* #481 B2 */"skelTitlePing",/* #481 C4 */"tradePing",/* #407 */"returnPing",/* #6 C2 */"exchangeAsk",/* #6 D2 */"moneyAsk",/* #375 */"agendaOfferAsk",/* #373 */"checkWithdrawnPing",/* #391 */"suggestMissPing",/* #344 */"registerPing",/* #355 */"agendaBirth","agendaAnnounce",/* #330 */"hoursAsk",/* #207 ③ */"layoutAsk","layoutAskArmed",/* #408 ② */"plotArmorPing",/* #319 */"whisperAsk",/* #317 */"impulseAsk",/* #386/#370 */"montagePing","wrapUpPing",/* #308 */"recklessPing",/* #305 */"deathScene",/* #301 */"respawnNote",/* #300 */"marketAsk",/* #303 */"arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","castAsk","combatStalePing","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deathEvidenceNudged","deathEvidencePing","deityDriftNudged","dupItemPending","futureResolveHints","hpZero","canonContraNudged","canonContradiction","recurringNameNudged","recurringNamePing",/* #469 */"motifPing","motifNudged","identityConflictOverflow","identityConflicts","itemDefAsked","itemDefCandidate","itemDefQueue",/* #481 D8 */"itemMisPing","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","orphanCombat","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","playerSplitPing","presencePing","principalNudged","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
 var NOTE_NESTED_LATCHES=["questLog[].staleNudged","questLog[].escalateNudged","questLog[].objectiveNudged",/* audit B1: the two quest nudges latch per quest now */"charSheet.splitLoc.audited","charSheet.agenda.lastBeat",/* #330; the agendaAsked latch retired with the recruitment ask (#347) */"conditions[].until","memory.futureEvents[]._asked","memory.futureEvents[]._askPending"];/* audit B14: sessionLog is read, never latched — removed */
 function snapshotNoteLatches(){
@@ -2190,7 +2218,7 @@ var NOTE_SHAPES={
   buildArcWallNudge:{shape:"cooldown-reminder",latch:["arcWallWarned"],combat:"silent",village:"silent",ack:["QUEST"]},
   buildOrphanCombatNudge:{shape:"one-shot-ask",latch:["orphanCombat"],combat:"fires",village:"fires",ack:["COMBAT_START"]},
   buildCombatStaleNudge:{shape:"cooldown-reminder",latch:["combatStalePing"],combat:"fires",village:"fires",ack:["ENEMY_SLAIN","ENEMY_HP","COMBAT_END"]},
-  buildUndefinedItemNudge:{shape:"one-shot-ask",latch:["itemDefCandidate","itemDefAsked"],combat:"silent",village:"fires",ack:["ITEM_DEF"]},
+  buildUndefinedItemNudge:{shape:"one-shot-ask",latch:["itemDefCandidate","itemDefQueue","itemDefAsked"],combat:"silent",village:"fires",ack:["ITEM_DEF"]},
   buildQuestEscalation:{shape:"cooldown-reminder",latch:["questLog[].escalateNudged"],combat:"silent",village:"silent",ack:["QUEST","QUEST_STEP"]},/* audit B1: latched — was an every-turn note above every audit */
   buildQuestObjectiveNudge:{shape:"cooldown-reminder",latch:["questLog[].objectiveNudged"],combat:"silent",village:"silent",ack:["QUEST_STEP"]},
   buildQuestStaleNudge:{shape:"cooldown-reminder",latch:["questLog[].staleNudged"],combat:"silent",village:"silent",ack:["QUEST_STEP","QUEST"]},
