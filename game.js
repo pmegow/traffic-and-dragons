@@ -1451,7 +1451,7 @@ function inheritVoicePins(sheet,wsNpc,prior){
   return sheet;
 }
 /* #6 THE VILLAGE — phase A: residents. Every library character moves in as a NON-party NPC with a full sheet (a COPY —
-   the village never mutates the library object; the library is the source of truth and gets written back), a
+   the village never mutates the library object; the library is the source of truth and nothing is written back — #427), a
    memory.npcs entry, and a house node under the village keyed "<village>|<Name>'s house" that carries its owner. The
    hero and anyone already on the roster are skipped, so re-import is idempotent. The party cap is never consulted:
    residency is not membership (the panel's finding — "every saved character is a resident" and a four-slot party
@@ -1755,8 +1755,8 @@ function stashMovesReplay(sheet,copyMark){
    the old hero where the kind says (kindDef().swapDemotesTo): "party" = the adventure shape that shipped (a companion
    travelling with you, a GM handoff turn follows); "resident" = the village shape (a villager with their own house, never
    in the party, no GM turn — the encounter is narrated on the player's next turn through the kind's switch-POV block).
-   ui-sheets.js _switchPlayerCharacter is the DOM shell: toast, panels, the handoff turn when the kind wants one, the
-   library write-back when the old hero became a resident. Returns {ok,from,to,handoff,demotedTo} or {ok:false,reason}. */
+   ui-sheets.js _switchPlayerCharacter is the DOM shell: toast, panels, and the handoff turn when the kind wants one (the
+   old library write-back for a demoted hero is gone — #427). Returns {ok,from,to,handoff,demotedTo} or {ok:false,reason}. */
 function swapPlayerCharacter(name){
   if(!worldState)return {ok:false,reason:"No active campaign."};
   var npcIdx=-1,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name){npcIdx=i;break;}}
@@ -1780,7 +1780,8 @@ function swapPlayerCharacter(name){
   return {ok:true,from:oldChar.name,to:newChar.name,handoff:!!def.swapHandoff,demotedTo:def.swapDemotesTo};
 }
 /* #6 THE VILLAGE — phase A's library write-back was DELETED in #427 (owner ruling 2026-09-21): the library is UPSTREAM of
-   the village and the only road into it is Export Character → Save to library (ui-browsers.js). The write-back on a
+   the village and the only roads into it are the player's manual saves (Export Character's two branches and Upload party
+   members in ui-browsers.js; the character editor satellite). The write-back on a
    campaign switch could overwrite a level-18 export with the village's level-17 copy — last writer by name; the swap and
    Hall-line write-backs shared the hazard. Village changes stay in the village save unless the player exports. */
 function attachCompanionSheet(npcName,sheet){

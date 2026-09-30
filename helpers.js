@@ -1803,7 +1803,7 @@ function waresSizeTier(size){var s=String(size||"").toLowerCase().trim();if(!s)r
    worldState.itemBible; a character sheet is only a list of item names, so an exported hero arrived in the next campaign
    with his runeforged Cleaver filed Unclassified. portableSheet attaches the origin campaign's definitions for the items
    the sheet carries; adoptSheetItemDefs merges them into the destination's canon, missing keys only (canon is write-once,
-   #81). Every export (the .char file, the library save, the village write-back) and every import (startGame, a resident
+   #81). Every export (the .char file, the library saves, the party upload) and every import (startGame, a resident
    moving in, an imported companion) goes through these two. Pure over worldState.itemBible; never throws. */
 function sheetItemDefs(sheet){
   var out={},n=0,ovs=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)||null;if(!sheet||!ovs)return out;
