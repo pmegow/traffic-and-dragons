@@ -191,6 +191,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Rule:** the volatile block's `cache_control` is present when `suggestInband` is OFF and absent when ON. Only Claude is affected; the owner plays on Gemini.
   - **Amendment (Fable (c)):** recorded on #304 C, in its archived row and in prompt.md.
   - **Proof:** the new C10 test (red first) plus the #304 C buildBody test, now pinned to the OFF case. Full suite green (2,483); four replay baselines unchanged; `dev/sabotage-481-c10-volatile-cache.js` 2/2 (both directions).
+- 2026-09-29 · #481 C11 part 1 (stable text + notes) · v1.1051 · Opus 5.5 · The village's crisis rule, the tag-doc glue, and "emit nothing" in three notes.
+  - **Stable-half touch (Fable (a)):** the village's cached prefix changes once. A real-save capture diff (HEAD worktree vs the working tree) shows exactly two hunks on t218 — rule 18's slot, and NAMING on its own line.
+  - **Byte-identical:** both halves on four real adventure campaigns (Necrotic, fae, Runelords, Princess).
+  - **Deviation from the audit's wording:** "gate rule 18 out" became a SUBSTITUTION in the same slot — GOALS THE PLAYER TAKES ON ARE QUESTS, keeping the rule's quest-registration initiative and cutting the danger. **Why:** the #6B pin encodes the village principle "substitute, never subtract; cut on danger, not initiative". The #6B test was re-baselined to allow this second substituted slot; every other slot is still pinned identical. **Owner or Fable may prefer a different wording.**
+  - **Notes:** PRESENCE CHECK, SEPARATION UNRECORDED and PLAYER-DECLARED SEPARATION now say "emit [NO_CHANGE]"; the two separation notes gained NO_CHANGE in their registered acks. The #309 byte fixtures were re-baselined for that wording only.
+  - **Proof:** 2 tests in "#481 C11" (red first). Full suite green (2,485); four replay baselines unchanged; `dev/sabotage-481-c11-prompt-text.js` 4/4 caught; the #6 village-mode doc clause re-anchored and caught.
 
 ## Off-Fable log
 

@@ -36,7 +36,7 @@ prove("tag_table.js", [
     find: 'if(_vcs.length){R.muts.push("⚠ Combat refused — "+kindDef().combatRefusal);if(typeof console!=="undefined")console.warn("[tags] COMBAT_START refused in the village (no dangers): "+_vcs[0]);}return;', replace: 'return;',
     mustFail: "#6B combat is refused in the village" },
   { label: "the STATE TAGS doc drops the village line",
-    find: '+((typeof kindDef==="function"&&kindDef().tagDocNote)||"")', replace: '+""',
+    find: 'var _tdn=(typeof kindDef==="function"&&kindDef().tagDocNote)||"";', replace: 'var _tdn="";',/* #481 C11 re-anchor: the note now ends its own line */
     mustFail: "#6B combat is refused in the village" },
   /* the peace of Pax (owner, 2026-09-12) */
   { label: "Pax never intercedes — the harm helper always says no refusal",

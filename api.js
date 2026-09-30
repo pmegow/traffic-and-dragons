@@ -1099,7 +1099,7 @@ function buildPresenceAudit(){
   for(i=0;i<all.length;i++){if(_reun.indexOf(all[i].name)>=0)continue;if(!(all[i].charSheet&&all[i].charSheet.splitLoc&&all[i].charSheet.splitLoc.location))withParty.push(all[i].name);}
   if(!withParty.length)return"";
   worldState.lastPresenceAudit=worldState.turn;
-  return"[ENGINE NOTE — PRESENCE CHECK (not a player action): the tracker records these party members as WITH the player in the current scene: "+withParty.join(", ")+". For EACH one who is NOT physically present where you are narrating (stayed behind, waiting elsewhere, separated for any reason), emit [PARTY_SPLIT:Name|Location] or [PARTY_SPLIT:Name|Location|Sublocation] NOW — the record cannot heal itself, and an unrecorded separation eventually makes the engine assert their presence until the story breaks. If everyone listed is genuinely present, emit nothing.]";
+  return"[ENGINE NOTE — PRESENCE CHECK (not a player action): the tracker records these party members as WITH the player in the current scene: "+withParty.join(", ")+". For EACH one who is NOT physically present where you are narrating (stayed behind, waiting elsewhere, separated for any reason), emit [PARTY_SPLIT:Name|Location] or [PARTY_SPLIT:Name|Location|Sublocation] NOW — the record cannot heal itself, and an unrecorded separation eventually makes the engine assert their presence until the story breaks. If everyone listed is genuinely present, emit [NO_CHANGE].]";
 }
 // #140③ (user go 2026-08-07): the deity-drift nudge — a divine-class character whose ACTUAL
 // alignment has walked off their god's grid. State-based with a cooldown (the #29 lesson:
@@ -1232,7 +1232,7 @@ var buildReconcileSkipNudge=shelfPing("reconcileSkip",2,{name:"buildReconcileSki
 // stay-behind (detectStayBehind, helpers.js) with no [PARTY_SPLIT:] in the same response. One
 // shot, 2-turn shelf life (the recentSwitch pattern) — consumed on fire, expired silently.
 var buildStayBehindNudge=shelfPing("presencePing",2,{name:"buildStayBehindNudge",combatSilent:false,del:false,text:function(p){
-  return"[ENGINE NOTE — SEPARATION UNRECORDED (not a player action): your recent narration described "+p.name+" staying behind or separating from the party, but no [PARTY_SPLIT:] was recorded — the engine still treats them as present in every scene. If they truly separated, emit [PARTY_SPLIT:"+p.name+"|Location] (add |Sublocation if known) NOW; if they are actually with the party, emit nothing and keep narrating them present.]";
+  return"[ENGINE NOTE — SEPARATION UNRECORDED (not a player action): your recent narration described "+p.name+" staying behind or separating from the party, but no [PARTY_SPLIT:] was recorded — the engine still treats them as present in every scene. If they truly separated, emit [PARTY_SPLIT:"+p.name+"|Location] (add |Sublocation if known) NOW; if they are actually with the party, emit [NO_CHANGE] and keep narrating them present.]";
 }});
 // #189ⓑ: the item-attribution nudge — GM-decides, never rewrites prose. One shot, 2-turn shelf.
 var buildItemMisNudge=shelfPing("itemMisPing",2,{name:"buildItemMisNudge",combatSilent:true,del:false,text:function(p){/* combat-silent WITHOUT consuming (deadStatusNudge discipline) */
@@ -1243,7 +1243,7 @@ var buildItemMisNudge=shelfPing("itemMisPing",2,{name:"buildItemMisNudge",combat
 // names may be empty: a nameless subgroup directive ("you two stay") leaves WHO to the GM.
 var buildPlayerSplitNudge=shelfPing("playerSplitPing",2,{name:"buildPlayerSplitNudge",combatSilent:false,del:false,text:function(p){
   var who=(p.names&&p.names.length)?p.names.join(", "):"part of the party";
-  return"[ENGINE NOTE — PLAYER-DECLARED SEPARATION UNRECORDED (not a player action): the player's own instruction had "+who+" staying behind or splitting off, but no [PARTY_SPLIT:] was recorded — the engine still treats everyone as present in every scene. Decide from the STORY: if a subgroup truly separated, emit [PARTY_SPLIT:<Name>|<Location>|<Sublocation>] NOW for EACH member who is elsewhere; if the group actually stayed together, emit nothing and keep narrating them present.]";
+  return"[ENGINE NOTE — PLAYER-DECLARED SEPARATION UNRECORDED (not a player action): the player's own instruction had "+who+" staying behind or splitting off, but no [PARTY_SPLIT:] was recorded — the engine still treats everyone as present in every scene. Decide from the STORY: if a subgroup truly separated, emit [PARTY_SPLIT:<Name>|<Location>|<Sublocation>] NOW for EACH member who is elsewhere; if the group actually stayed together, emit [NO_CHANGE] and keep narrating them present.]";
 }});
 // #129: the escalation half of the schedule teeth (expiry lives in clock.js scheduleSweepExpired).
 // The HAPPENING NOW line in buildClockBlock is a mid-prompt instruction, and the field showed the
@@ -2225,8 +2225,8 @@ var NOTE_SHAPES={
   buildSplitAudit:{shape:"audit",latch:["charSheet.splitLoc.audited"],combat:"silent",village:"fires",ack:["PARTY_SPLIT"]},
   buildReunionNote:{shape:"transient",latch:["pendingReunion"],combat:"silent",village:"fires",ack:["PARTY_SPLIT"]},
   buildPresenceAudit:{shape:"audit",latch:["lastPresenceAudit"],combat:"silent",village:"fires",ack:["PARTY_SPLIT","NO_CHANGE"]},
-  buildStayBehindNudge:{shape:"transient",latch:["presencePing"],combat:"fires",village:"fires",ack:["PARTY_SPLIT"]},
-  buildPlayerSplitNudge:{shape:"transient",latch:["playerSplitPing"],combat:"fires",village:"fires",ack:["PARTY_SPLIT"]},
+  buildStayBehindNudge:{shape:"transient",latch:["presencePing"],combat:"fires",village:"fires",ack:["PARTY_SPLIT","NO_CHANGE"]},/* #481 C11 */
+  buildPlayerSplitNudge:{shape:"transient",latch:["playerSplitPing"],combat:"fires",village:"fires",ack:["PARTY_SPLIT","NO_CHANGE"]},/* #481 C11 */
   buildDeityDriftNudge:{shape:"cooldown-reminder",latch:["deityDriftNudged"],combat:"silent",village:"fires",ack:["NO_CHANGE"]},
   buildReconcileSkipNudge:{shape:"transient",latch:["reconcileSkip"],combat:"fires",village:"fires",ack:["REST","TIME_ADVANCE","TIME"]},
   buildPhaseMismatchNudge:{shape:"one-shot-ask",latch:["phaseMismatch"],combat:"silent",village:"fires",ack:["TIME"]},

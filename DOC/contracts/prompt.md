@@ -47,7 +47,7 @@ Assembled fresh on every request from live state. **Returns `{stable, volatile}`
 
 **STABLE half (cached), in order:**
 
-1. `getRulesBlock()` — default + custom narrative rules
+1. `getRulesBlock()` — default + custom narrative rules. A kind SUBSTITUTES a rule in its slot, never subtracts (`kindDef().ruleOverrides`, keyed by the rule's title; the count and every other slot stay identical — pinned by #6B). The village substitutes two: DRIVE THE ADVENTURE → DRIVE THE VILLAGE, and **#481 C11 (v1.1051)** ACTIVE CRISES ARE QUESTS TOO → GOALS THE PLAYER TAKES ON ARE QUESTS (the danger cut, the initiative kept). The kind's `tagDocNote` always ends its own line (it glued "…escalate.NAMING" in the village). The presence and separation notes answer "all present / stayed together" with `[NO_CHANGE]` (registered in their acks), never "emit nothing". Adventure prompts are byte-identical (four real campaigns, both halves).
 2. Adult-content block (when enabled)
 3. GM role declaration + tone directive + tone-subordination note + narrative-design DNA
 4. MECHANICS/dice format + full STATE TAGS instructions + companion-tag instructions + the NAMING clause (#156 — `buildNamingClause`, identity.js: names ARE keys, never reuse an on-file name, the unordered endpoint-pair road form, sublocation-not-parent-baked; campaign-constant by construction, assembled from `IDENTITY_DOMAINS` namingRules)

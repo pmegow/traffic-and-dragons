@@ -2636,11 +2636,11 @@ function runEngineTests(R){
     worldState.combat=null;
     /* the shelf family */
     worldState.presencePing={name:"Frizwick",turn:50};out=buildStayBehindNudge();
-    if(out!=="[ENGINE NOTE — SEPARATION UNRECORDED (not a player action): your recent narration described Frizwick staying behind or separating from the party, but no [PARTY_SPLIT:] was recorded — the engine still treats them as present in every scene. If they truly separated, emit [PARTY_SPLIT:Frizwick|Location] (add |Sublocation if known) NOW; if they are actually with the party, emit nothing and keep narrating them present.]")return "stay: "+out;
+    if(out!=="[ENGINE NOTE — SEPARATION UNRECORDED (not a player action): your recent narration described Frizwick staying behind or separating from the party, but no [PARTY_SPLIT:] was recorded — the engine still treats them as present in every scene. If they truly separated, emit [PARTY_SPLIT:Frizwick|Location] (add |Sublocation if known) NOW; if they are actually with the party, emit [NO_CHANGE] and keep narrating them present.]")return "stay: "+out;
     if(worldState.presencePing!==null)return "stay ping should be nulled, not deleted";
     worldState.presencePing={name:"F",turn:47};if(buildStayBehindNudge()!==""||worldState.presencePing!==null)return "2-turn shelf not honoured";
     worldState.playerSplitPing={names:[],turn:50};out=buildPlayerSplitNudge();
-    if(out!=="[ENGINE NOTE — PLAYER-DECLARED SEPARATION UNRECORDED (not a player action): the player's own instruction had part of the party staying behind or splitting off, but no [PARTY_SPLIT:] was recorded — the engine still treats everyone as present in every scene. Decide from the STORY: if a subgroup truly separated, emit [PARTY_SPLIT:<Name>|<Location>|<Sublocation>] NOW for EACH member who is elsewhere; if the group actually stayed together, emit nothing and keep narrating them present.]")return "player split: "+out;
+    if(out!=="[ENGINE NOTE — PLAYER-DECLARED SEPARATION UNRECORDED (not a player action): the player's own instruction had part of the party staying behind or splitting off, but no [PARTY_SPLIT:] was recorded — the engine still treats everyone as present in every scene. Decide from the STORY: if a subgroup truly separated, emit [PARTY_SPLIT:<Name>|<Location>|<Sublocation>] NOW for EACH member who is elsewhere; if the group actually stayed together, emit [NO_CHANGE] and keep narrating them present.]")return "player split: "+out;
     worldState.reconcileSkip={label:"morning",delta:600,turn:50};out=buildReconcileSkipNudge();
     if(out!=="[ENGINE NOTE — CLOCK LABEL MISMATCH (not a player action): you declared the time as 'morning', but that phase already passed this day — the clock was NOT advanced (10h would have jumped to tomorrow). Resolve it now: if a night's sleep genuinely passed, emit [REST:long]; if days passed, emit [TIME_ADVANCE:Nd]; if it is actually still the same day, re-declare the correct time of day with [TIME:...]. Never restate elapsed totals yourself — the engine does all arithmetic.]")return "reconcile: "+out;
     worldState.itemMisPing={item:"the lantern",wrong:"Daeris",owner:"Ammut",turn:50};worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:1,maxHp:1}]};
@@ -23892,7 +23892,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(vil.indexOf("DRIVE THE ADVENTURE")>=0||vil.indexOf("a scene with no stakes is a failed scene")>=0||/death must remain possible/.test(vil))return "the adventure DRIVE text leaked into the village block";
     var v=vilLines[iAdv];if(!/person/i.test(v)||!/change/i.test(v)||!/cost/i.test(v)||!/motion|threshold|door/i.test(v)||!/never (a )?(danger|threat)|no dangers|never danger/i.test(v))return "the village DRIVE rule must name a person, a change, a cost, end on motion, and forbid danger: "+v.slice(0,200);
     if(!/refuse|busy|elsewhere|bargain/i.test(v))return "the village DRIVE rule must let residents say no";
-    for(i=0;i<advLines.length;i++)if(i!==iAdv&&advLines[i]!==vilLines[i])return "a rule other than DRIVE changed in the village block at slot "+(i+1);
+    var iCr=-1;for(i=0;i<advLines.length;i++)if(advLines[i].indexOf("ACTIVE CRISES ARE QUESTS TOO")>=0)iCr=i;/* #481 C11 re-baseline: the crisis slot is the village's second substitution */
+    if(iCr<0||vilLines[iCr].indexOf("GOALS THE PLAYER TAKES ON ARE QUESTS")<0)return "the crisis slot must hold the village goals rule (#481 C11): "+(vilLines[iCr]||"").slice(0,80);
+    for(i=0;i<advLines.length;i++)if(i!==iAdv&&i!==iCr&&advLines[i]!==vilLines[i])return "a rule other than DRIVE and the crisis slot changed in the village block at slot "+(i+1);
     return true;
   });
   t("#6B the stable preamble has a kind variant: adventure keeps the literal byte-identical ('keeps the player in danger'); the village preamble names the village and forbids the threat, and the adventure stable half carries no village text",function(){
@@ -27802,6 +27804,28 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!(r.muts||[]).some(function(m){return mutLineWarns(m)&&/Lantern of sighs/.test(m);}))return "the drop is said: "+JSON.stringify(r.muts);
     if(worldState.pendingItemDefs.length!==5)return "the queue stays at five";
     return (worldState.itemDefAsked["lantern of sighs"]==null)?true:"the ask is not consumed by a dropped proposal: "+JSON.stringify(worldState.itemDefAsked);
+  });
+
+  // ── #481 C11 (audit 2026-09-29, Fable-approved with changes): small prompt defects, split by surface. Part 1 — the STABLE
+  // text and the notes: the village drops the adventure's ACTIVE CRISES rule (no dangers there), the kind's tag-doc note
+  // ends on its own line ("…push or escalate.NAMING" glued two sections), and three notes answer with [NO_CHANGE] instead of
+  // "emit nothing". The adventure's stable half is byte-identical (checked on real saves).
+  section("#481 C11 prompt text");
+  t("#481 C11 the village's stable half: no ACTIVE CRISES rule (the rules still number 1..N), and the tag-doc note ends its line; the adventure keeps the rule",function(){
+    villageEF();var st=buildSysPrompt().stable;
+    if(/ACTIVE CRISES ARE QUESTS TOO/.test(st))return "the village has no dangers, so no crisis rule";
+    var vr=getRulesBlock().split("\n").filter(function(l){return /^\d+\. /.test(l);});
+    makeWorld();delete worldState.kind;var ar=getRulesBlock().split("\n").filter(function(l){return /^\d+\. /.test(l);}),ic=-1,i;for(i=0;i<ar.length;i++)if(ar[i].indexOf("ACTIVE CRISES ARE QUESTS TOO")>=0)ic=i;
+    if(vr.length!==ar.length||ic<0||vr[ic].indexOf("GOALS THE PLAYER TAKES ON ARE QUESTS")<0)return "the crisis slot holds the village goals rule, the count unchanged (#6B: substitute, never subtract): "+(vr[ic]||"").slice(0,80);
+    villageEF();st=buildSysPrompt().stable;
+    if(/escalate\.NAMING/.test(st)||!/escalate\.\n/.test(st))return "the village tag-doc note must end on its own line: "+(st.match(/.{40}NAMING \(identity/)||["?"])[0];
+    makeWorld();delete worldState.kind;return /ACTIVE CRISES ARE QUESTS TOO/.test(buildSysPrompt().stable)?true:"the adventure keeps its crisis rule";
+  });
+  t("#481 C11 the presence and separation notes answer with [NO_CHANGE], never 'emit nothing', and register it as an ack",function(){
+    var ap=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),bad=[];
+    ["PRESENCE CHECK (not a player action)","SEPARATION UNRECORDED (not a player action)","PLAYER-DECLARED SEPARATION UNRECORDED (not a player action)"].forEach(function(h){var i=ap.indexOf(h),line=i<0?"":ap.slice(i,ap.indexOf("\n",i));if(!line)bad.push("missing: "+h);else if(/emit nothing/.test(line)||!/emit \[NO_CHANGE\]/.test(line))bad.push(h);});
+    ["buildPresenceAudit","buildStayBehindNudge","buildPlayerSplitNudge"].forEach(function(b){var sh=NOTE_SHAPES[b];if(!sh||(sh.ack||[]).indexOf("NO_CHANGE")<0)bad.push(b+" ack");});
+    return bad.length?"still 'emit nothing' or no [NO_CHANGE] ack: "+bad.join("; "):true;
   });
 
 }
