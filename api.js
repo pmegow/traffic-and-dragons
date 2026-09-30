@@ -2656,7 +2656,7 @@ function buildSysPrompt(){
     +buildItemBibleBlock()/* #81: carried-item canon — volatile only, ""-clean when nothing carried resolves */
     +partyBlock
     +partyCapBlock
-    +"Location: "+w.location+", "+w.region+" | Time: "+clockFmt()+" (clock-derived) | Weather: "+w.weather+"\n"
+    +"Location: "+w.location+((w.region&&String(w.region).trim().toLowerCase()!==String(w.location).trim().toLowerCase())?", "+w.region:"")+" | Time: "/* #481 C11: "The Village, The Village" said the place twice */+clockFmt()+" (clock-derived) | Weather: "+w.weather+"\n"
     +"NPCs: "+nstr+"\n\n"+questBlock+buildSkeletonBlock()
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
     +buildChangedLocationsBlock()/* #105: remote changed-locations roll-up — volatile only, ""-clean when nothing changed */

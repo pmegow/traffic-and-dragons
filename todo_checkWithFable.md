@@ -197,6 +197,17 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Deviation from the audit's wording:** "gate rule 18 out" became a SUBSTITUTION in the same slot — GOALS THE PLAYER TAKES ON ARE QUESTS, keeping the rule's quest-registration initiative and cutting the danger. **Why:** the #6B pin encodes the village principle "substitute, never subtract; cut on danger, not initiative". The #6B test was re-baselined to allow this second substituted slot; every other slot is still pinned identical. **Owner or Fable may prefer a different wording.**
   - **Notes:** PRESENCE CHECK, SEPARATION UNRECORDED and PLAYER-DECLARED SEPARATION now say "emit [NO_CHANGE]"; the two separation notes gained NO_CHANGE in their registered acks. The #309 byte fixtures were re-baselined for that wording only.
   - **Proof:** 2 tests in "#481 C11" (red first). Full suite green (2,485); four replay baselines unchanged; `dev/sabotage-481-c11-prompt-text.js` 4/4 caught; the #6 village-mode doc clause re-anchored and caught.
+- 2026-09-29 · #481 C11 part 2 (volatile text + the start stamp) · v1.1052 · Opus 5.5 · The location line, "First met", and the start place.
+  - **Touches:** the Location line (api.js), `snippetAtSentence` (helpers.js, one cutter for filing and display), `R.feGet` (tag_table.js, where first encounters are filed), `memoryNpcDetail` (memory.js), and `startNodeStamp` (game.js). The volatile half only; stable is unchanged.
+  - **Real saves (HEAD worktree vs the working tree):**
+    - Village: "Location: The Village" once; the two residents' narration "First met" lines are gone.
+    - Necrotic: three companions lose the "…to the rightmo" tail.
+    - The other three adventures are byte-identical.
+  - **Judgement call:** the sentence threshold is 20 characters (the old cutter's 60 fell back to a cut word).
+  - **Re-baselined:** three replay end states (v1258/v1271/v1276), `firstEncounter` only (walker diff). New snippets end at later sentence ends inside the same 280 cap, because the old cutter missed ".\n" and quotes.
+  - **Existing saves keep their start place's "KNOWN OF"** (Fable (c): startGame only; village saves are disposable).
+  - **Split out:** the ~730-character duplication is filed as #483 (Fable (d)).
+  - **Proof:** 3 new tests in "#481 C11" (red first; the paragraph-break and real-filing cases added so every guard has a test). Full suite green; `dev/sabotage-481-c11-prompt-text.js` 12/12 caught across both parts.
 
 ## Off-Fable log
 

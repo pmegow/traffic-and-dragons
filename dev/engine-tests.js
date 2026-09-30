@@ -27827,5 +27827,40 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     ["buildPresenceAudit","buildStayBehindNudge","buildPlayerSplitNudge"].forEach(function(b){var sh=NOTE_SHAPES[b];if(!sh||(sh.ack||[]).indexOf("NO_CHANGE")<0)bad.push(b+" ack");});
     return bad.length?"still 'emit nothing' or no [NO_CHANGE] ack: "+bad.join("; "):true;
   });
+  // Part 2 — the VOLATILE text and the start stamp: the start place a village or blueprint pre-minted was "KNOWN OF (not
+  // yet visited)" beside "Location:" of itself; the location line repeated a region equal to the place; "First met" gave
+  // an imported resident a narration snippet, cut mid-word ("to the rightmo").
+  t("#481 C11 the start place is visited from turn 0 even when a village or blueprint minted it first",function(){
+    villageEF();var v=memory.map.nodes["The Village"];v.visits=0;v.firstVisit=null;
+    startNodeStamp();if(!(memory.map.nodes["The Village"].visits>0))return "a pre-minted start node must be stamped visited: "+JSON.stringify(memory.map.nodes["The Village"]);
+    if(/KNOWN OF \(not yet visited\):[^\n]*The Village/.test(buildSysPrompt().volatile))return "the start place is still 'known of, not yet visited'";
+    delete memory.map.nodes["The Village"];startNodeStamp();if(!memory.map.nodes["The Village"]||memory.map.nodes["The Village"].visits!==1)return "a missing start node is minted visited (audit E15)";
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),sg=g.slice(g.indexOf("function startGame("),g.indexOf("function startGame(")+6000);
+    return /startNodeStamp\(\)/.test(sg)?true:"startGame must stamp through startNodeStamp";
+  });
+  t("#481 C11 the location line names a region only when it differs from the place",function(){
+    villageEF();worldState.world.region="The Village";var vol=buildSysPrompt().volatile;
+    if(/Location: The Village, The Village/.test(vol))return "the region repeats the place";
+    if(!/Location: The Village \| Time:/.test(vol))return "the village line: "+(vol.match(/Location:[^\n]{0,60}/)||["?"])[0];
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.region="Varisia";
+    return /Location: Sandpoint, Varisia \| Time:/.test(buildSysPrompt().volatile)?true:"an adventure region that differs is kept";
+  });
+  t("#481 C11 'First met' is a sentence, never a cut word, and an imported resident gets none",function(){
+    if(snippetAtSentence("You step into the hall. Torches gutter along the wall to the rightmo",280)!=="You step into the hall.")return "cut at the last sentence end: "+snippetAtSentence("You step into the hall. Torches gutter along the wall to the rightmo",280);
+    var _ss=snippetAtSentence("She smiles. \"Welcome home,\" she says, and turns toward the door on the left side of the cold stone hall where",280);
+    if(_ss!=="She smiles. \"Welcome home,\" she says, and turns toward the door on the left side of the cold stone hall…")return "a sentence-less tail past the opening ends at a word with an ellipsis: "+_ss;
+    if(snippetAtSentence("She smiles.",280)!=="She smiles.")return "a whole sentence stays as it is";
+    if(snippetAtSentence("The gate creaks open onto a courtyard of wet cobbles and a fountain that has not run for years and the",280)!=="The gate creaks open onto a courtyard of wet cobbles and a fountain that has not run for years and…")return "no sentence end past the opening: a word boundary and an ellipsis: "+snippetAtSentence("The gate creaks open onto a courtyard of wet cobbles and a fountain that has not run for years and the",280);
+    villageEF();memory.npcs["Frizwick"].firstEncounter="You step into the cool gloom of the riverside tavern.";
+    if(/First met/.test(memoryNpcDetail("Frizwick")))return "an imported resident has no first meeting in this campaign";
+    worldState.npcs.push({name:"Brannoc",status:"",statusTurn:0,rel:"neutral",met:3,pronouns:"he/him"});memory.npcs["Brannoc"]={attitude:"",knowledge:[],events:[],aliases:[],firstEncounter:"A tall man waves you over. The fire crackles to the rightmo"};
+    var d=memoryNpcDetail("Brannoc");if(!/First met: A tall man waves you over\.(\n|$)/.test(d))return "a met NPC's line ends at its sentence: "+d;
+    /* the field shape: a paragraph break after the sentence (the old cutter knew only ". ") */
+    var pb=snippetAtSentence("You enter the long hall. Candles gutter in the draught.\n\nA voice calls out from the dark to the rightmo",280);
+    if(pb!=="You enter the long hall. Candles gutter in the draught.")return "a sentence before a paragraph break is a sentence end: "+JSON.stringify(pb);
+    /* and where it is FILED: a first encounter from a real reply ends at its sentence */
+    makeWorld();delete worldState.kind;quiet(function(){applyMuts("The door groans open onto a hall of cold stone and old banners.\n\nA woman steps out of the shadows by the far wall, her hand resting on the hilt of a long knife that has seen more use than polish in the years since the war ended and the garrisons emptied and nobody came back to [NPC:Vessa Crane|wary|stranger]");});
+    var fe=(memory.npcs["Vessa Crane"]||{}).firstEncounter;return fe==="The door groans open onto a hall of cold stone and old banners."?true:"the filed snippet ends at its sentence: "+JSON.stringify(fe);
+  });
 
 }

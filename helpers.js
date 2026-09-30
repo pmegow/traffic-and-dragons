@@ -1687,6 +1687,18 @@ function goldRewardIn(text){
   for(i=0;i<tags.length;i++){var g=goldTagParse(tags[i]);if(g.ok&&g.n>0)return g.n;}
   return 0;
 }
+/* #481 C11: a narration snippet as a SENTENCE, never a cut word (the Necrotic t35 "First met: … to the rightmo"). Text
+   that already ends a sentence stands; otherwise it ends at the last sentence end — a closing quote rides with its period,
+   and a paragraph break counts (the old cutter knew only ". " and sliced mid-sentence at 280) — when that end is past 20
+   characters (a real sentence, not a bare "Hi."), else at a word boundary with an ellipsis. Used where a first encounter
+   is filed (R.feGet) and where one is shown (memoryNpcDetail, the companion-sheet prompt). Pure. */
+function snippetAtSentence(text,max){
+  var s=String(text==null?"":text).trim();if(max&&s.length>max)s=s.slice(0,max);
+  if(!s||/[.!?]["'\u201d\u2019)\]]*$/.test(s))return s;
+  var re=/[.!?]["'\u201d\u2019)\]]*(?=\s)/g,m,end=-1;while((m=re.exec(s)))end=m.index+m[0].length;
+  if(end>20)return s.slice(0,end);/* a real sentence, not a bare "Hi." */
+  var sp=s.lastIndexOf(" ");return (sp>0?s.slice(0,sp):s).replace(/[\s,;:\u2014\u2013-]+$/,"")+"\u2026";
+}
 function itemValueGp(entry){if(!entry||!entry.value)return null;var c=parseCoin(entry.value);return (c&&c.unit)?c.unitGp:null;}/* #481 D5: ONE unit, in gold */
 // #303: LOCATION_SIZE text → the wares-cap tier. The GM's vocabulary is physical scale (small /
 // medium / large / vast — measured on the t2097 map); settlement words are folded in as a courtesy.

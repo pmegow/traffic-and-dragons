@@ -1736,7 +1736,7 @@ function applyMutsTable(text,opts){
   _sheetlessWarned={};
   if(typeof guestbookBeginResponse==="function")guestbookBeginResponse();/* #173: arrivals QUEUE during the parse; the attendance snapshot commits at the post-handler seam below (amendment ③) */
   var feSnip=null;
-  R.feGet=function(){if(feSnip===null){var ft=cleanTxt(text).replace(/\*You could[\s\S]*$/,"").trim().slice(0,280);var fb=Math.max(ft.lastIndexOf(". "),ft.lastIndexOf("! "),ft.lastIndexOf("? "));if(fb>60)ft=ft.slice(0,fb+1);feSnip=ft;}return feSnip;};
+  R.feGet=function(){if(feSnip===null){var ft=cleanTxt(text).replace(/\*You could[\s\S]*$/,"").trim();feSnip=(typeof snippetAtSentence==="function")?snippetAtSentence(ft,280):ft.slice(0,280);/* #481 C11: a sentence, never a cut word */}return feSnip;};
   // Audit #8: combatStartPositions(text) is pure over the fixed response text, but was
   // recomputed by each of the 4 combat-attribute handlers — lazy-cache it once per response,
   // the exact R.feGet pattern above.

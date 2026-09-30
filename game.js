@@ -1,3 +1,12 @@
+/* #481 C11 (audit 2026-09-29, Fable-approved): the party STANDS at the start place, so it is visited from turn 0. A village
+   or blueprint that minted the node first left visits 0, and every turn's prompt said "KNOWN OF (not yet visited): The
+   Village" beside "Location: The Village". A missing node is minted as before (audit E15). */
+function startNodeStamp(){
+  if(!memory||!memory.map||!worldState||!worldState.world||!worldState.world.location)return;
+  var k=worldState.world.location,n=memory.map.nodes[k];
+  if(!n){memory.map.nodes[k]=newMapNode(0,null,{visits:1});return;}
+  if(!(n.visits>0))n.visits=1;if(n.firstVisit==null)n.firstVisit=0;
+}
 function startGame(char,toneName,toneVoice,authorId){
   // Ensure all v10 character fields are initialised
   if(!char.gender)char.gender="M";
@@ -33,9 +42,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // Seed a map node for the STARTING location (audit E15) — nodes are otherwise created only on
   // travel, so first-visit [LOCATION_DESC/SIZE/ITEM] and NPC last-seen stamps at the opening
   // location were silently dropped (fileLocationDesc/etc. early-return with no node).
-  if(memory.map&&worldState.world&&worldState.world.location&&!memory.map.nodes[worldState.world.location]){
-    memory.map.nodes[worldState.world.location]=newMapNode(0,null,{visits:1});
-  }
+  startNodeStamp();/* #481 C11: visited from turn 0 even when a village or blueprint minted the node first */
   if(typeof guestbookSeedStart==="function")guestbookSeedStart();/* #173: the creation-time party stands at the opening node — turn-0 provenance (runs even when a blueprint pre-seeded the node: the party is there either way) */
   saveAll();showGame();syncUI();initAbilities();initSpells();
   if(typeof takeCheckpoint==="function")takeCheckpoint("campaign start");/* #300: the campaign start is the first camp — a hero who dies before ever resting has somewhere to wake */
@@ -1322,7 +1329,7 @@ function buildCompanionSheetPrompt(npcName){
   var mem=(memory&&memory.npcs&&memory.npcs[npcName])||{};
   var c=worldState.character;
   var known="Status: "+(npc.status||mem.attitude||"unknown")+" | Relation to the player: "+(npc.rel||"unknown")+(npc.pronouns?" | Pronouns: "+npc.pronouns:"")+"\n";
-  if(mem.firstEncounter)known+="First met: "+mem.firstEncounter+"\n";
+  if(mem.firstEncounter)known+="First met: "+((typeof snippetAtSentence==="function")?snippetAtSentence(mem.firstEncounter):mem.firstEncounter)+"\n";/* #481 C11 */
   var kn=npcKnowledgeContext(mem);if(kn.length>3000)kn=kn.slice(0,3000)+"…";
   if(kn)known+="Known facts: "+kn+"\n";
   var ev=(mem.events||[]).slice(-8).join("; ");if(ev.length>1500)ev=ev.slice(0,1500)+"…";
