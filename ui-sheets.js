@@ -339,7 +339,7 @@ function showCharSheet(){
 
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
-    +"<div class='cs-avatar' id='cs-avatar-btn' title='Drag to reframe · Click to edit'>"+(c.portrait?"<img id='cs-portrait-img' src='"+c.portrait+"' alt='"+escHtml(c.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
+    +"<div class='cs-avatar' id='cs-avatar-btn' title='Drag to reframe · Click to edit'>"+(c.portrait?"<img id='cs-portrait-img' src='"+safeImgSrc(c.portrait)+"' alt='"+escHtml(c.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
     +"</div>"
     +"<div class='cs-hero-info'>"
     +"<div class='cs-hero-name'>"+escHtml(c.name)+"</div>"
@@ -408,7 +408,7 @@ function showCharSheet(){
   function refreshAvatar(){
     var av=document.getElementById("cs-avatar-btn");if(!av)return;
     var c2=worldState.character;
-    av.innerHTML=(c2.portrait?"<img id='cs-portrait-img' src='"+c2.portrait+"' alt='"+escHtml(c2.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+    av.innerHTML=(c2.portrait?"<img id='cs-portrait-img' src='"+safeImgSrc(c2.portrait)+"' alt='"+escHtml(c2.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
     wireAvatarDrag();
   }
   function wireAvatarDrag(){
@@ -532,7 +532,7 @@ function showNpcSheet(name){
      existing portrait (every Village resident carries one) and left townsfolk with no way to get a face; the
      portrait modal already handled a sheet-less subject (setPortrait → npc.portrait, setAppearance refused with a
      toast). A render is spent only when Generate is clicked, against the weekly allowance (#381). */
-  var avatarHtml="<div class='cs-avatar' id='npc-avatar-btn' title='Drag to reframe · Click to edit'>"+(portrait?"<img id='npc-portrait-img' src='"+portrait+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>";
+  var avatarHtml="<div class='cs-avatar' id='npc-avatar-btn' title='Drag to reframe · Click to edit'>"+(portrait?"<img id='npc-portrait-img' src='"+safeImgSrc(portrait)+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>";
 
   // ── Hero info block ───────────────────────────────────────────────────────
   var heroInfo;
@@ -710,7 +710,7 @@ function showNpcSheet(name){
     function refreshNpcAvatar(){
       var av=document.getElementById("npc-avatar-btn");if(!av)return;
       var port=npcPortrait(wsNpc);
-      av.innerHTML=(port?"<img id='npc-portrait-img' src='"+port+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+      av.innerHTML=(port?"<img id='npc-portrait-img' src='"+safeImgSrc(port)+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
       wireNpcAvatarDrag();
     }
     wireNpcAvatarDrag(); // apply saved offset on initial render
@@ -781,7 +781,7 @@ function showReadOnlyCharSheet(c,opts){
     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><span style='font-size:11px;color:var(--t2);font-style:italic;'>Character library snapshot &middot; read-only</span><div style='display:flex;gap:8px;align-items:center;'>"+importBtn+"<button id='ro-cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
-    +"<div class='cs-avatar'>"+(c.portrait?"<img src='"+c.portrait+"' alt='"+escHtml(c.name||"")+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"</div>"
+    +"<div class='cs-avatar'>"+(c.portrait?"<img src='"+safeImgSrc(c.portrait)+"' alt='"+escHtml(c.name||"")+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"</div>"
     +"</div>"
     +"<div class='cs-hero-info'>"
     +"<div class='cs-hero-name'>"+escHtml(c.name||"—")+"</div>"

@@ -3751,25 +3751,26 @@ function runEngineTests(R){
       {name:"Morwen",partyMember:true,portrait:null,charSheet:{name:"Morwen",portrait:"LOCAL_EDIT"}},
       {name:"Sheetless",portrait:"HAS_OWN"}
     ];
-    var blob={character:{name:"Tess",portrait:"PC_IMG"},npcs:[
-      {name:"Friz",charSheet:{portrait:"SERVER_FRIZ"}},
-      {name:"Morwen",charSheet:{portrait:"SERVER_MORWEN"}},
+    var blob={character:{name:"Tess",portrait:"data:image/jpeg;base64,UENfSU1H"},npcs:[
+      {name:"Friz",charSheet:{portrait:"data:image/jpeg;base64,U0VSVkVSX0ZSSVo="}},
+      {name:"Morwen",charSheet:{portrait:"data:image/jpeg;base64,U0VSVkVSX01PUldFTg=="}},
       {name:"Sheetless",charSheet:null}
     ]};
+    /* #481 F2: blob portraits are image data URLs — a non-image one is dropped by the gate before any fill */
     var changed=storageAdapter.fillPortraitsFromBlob(blob);
     if(!changed)return "reported no change";
-    if(worldState.npcs[0].charSheet.portrait!=="SERVER_FRIZ")return "missing portrait not filled";
+    if(worldState.npcs[0].charSheet.portrait!=="data:image/jpeg;base64,U0VSVkVSX0ZSSVo=")return "missing portrait not filled";
     if(worldState.npcs[1].charSheet.portrait!=="LOCAL_EDIT")return "local image overwritten";
-    if(worldState.character.portrait!=="PC_IMG")return "player fill-only missed";
+    if(worldState.character.portrait!=="data:image/jpeg;base64,UENfSU1H")return "player fill-only missed";
     var again=storageAdapter.fillPortraitsFromBlob(blob);
     return again===false?true:"second pass not a no-op";
   });
   t("fillPortraitsFromBlob never fills the PC portrait from a DIFFERENT character (E79)",function(){
     makeWorld();worldState.character.portrait=null;
-    storageAdapter.fillPortraitsFromBlob({character:{name:"SomeoneElse",portrait:"WRONG_FACE"},npcs:[]});
+    storageAdapter.fillPortraitsFromBlob({character:{name:"SomeoneElse",portrait:"data:image/jpeg;base64,V1JPTkc="},npcs:[]});
     if(worldState.character.portrait)return "filled the wrong character's portrait: "+worldState.character.portrait;
-    storageAdapter.fillPortraitsFromBlob({character:{name:"Tess",portrait:"RIGHT_FACE"},npcs:[]}); // same name DOES fill
-    return worldState.character.portrait==="RIGHT_FACE"?true:"same-name fill failed: "+worldState.character.portrait;
+    storageAdapter.fillPortraitsFromBlob({character:{name:"Tess",portrait:"data:image/jpeg;base64,UklHSFQ="},npcs:[]}); // same name DOES fill
+    return worldState.character.portrait==="data:image/jpeg;base64,UklHSFQ="?true:"same-name fill failed: "+worldState.character.portrait;
   });
 
   // ── UA20: campaign-list merge — deletions propagate ──────────────────────────
@@ -27326,6 +27327,25 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(sceneOnStageNow("Frizwick"))return "present is not on stage";
     f.observed[0].lastTurn=85;if(!sceneOnStageNow("Frizwick"))return "observed by the latest reply is on stage";
     worldState.world.sublocation="the tavern";return sceneOnStageNow("Frizwick")?"on stage elsewhere: a frame at another place is not this scene":true;
+  });
+
+  section("#481 F2 a portrait is an image, never markup");
+  t("#481 F2 safeImgSrc admits an image data URL, https: and blob:, escaped; anything else is empty and said once",function(){
+    var png="data:image/png;base64,iVBORw0KGgo=",jpg="data:image/jpeg;base64,/9j/4AAQ+/=";
+    if(safeImgSrc(png)!==png||safeImgSrc(jpg)!==jpg)return "an image data URL passes: "+safeImgSrc(png);
+    if(safeImgSrc("https://example.test/a.png")!=="https://example.test/a.png")return "https passes";
+    if(safeImgSrc("blob:https://example.test/1234")!=="blob:https://example.test/1234")return "blob passes";
+    var bad=["x' onerror='alert(1)","javascript:alert(1)","data:text/html;base64,PHNjcmlwdD4=","data:image/svg+xml;base64,PHN2Zz4=","http://example.test/a.png","data:image/png;base64,abc' onerror='x"],i;
+    for(i=0;i<bad.length;i++){var q=quiet(function(){return safeImgSrc(bad[i]);});if(q.r!=="")return "refused: "+bad[i]+" -> "+q.r;if(!q.warns.length)return "a refusal is said: "+bad[i];}
+    return (safeImgSrc(null)===""&&safeImgSrc("")==="")?true:"empty stays empty";
+  });
+  t("#481 F2 a crafted portrait never reaches the page: the NPC sheet renders no handler, and the import boundary drops it with a toast",function(){
+    makeWorld();var evil="x' onerror='window.__f2=1";worldState.npcs.push({name:"Vex",rel:"neutral",status:"",statusTurn:0,portrait:evil,charSheet:{name:"Vex",portrait:evil,inventory:[],stats:{}}});memory.npcs["Vex"]={knowledge:[],events:[],aliases:[]};
+    var n=quiet(function(){return portraitAdmit({name:"Vex",portrait:evil},"test");});if(n.r!==1)return "the boundary drops a crafted portrait: "+JSON.stringify(n);
+    var data=JSON.parse(JSON.stringify({worldState:worldState,memory:memory}));data.worldState.character.portrait=evil;var t0=__toasts.length;
+    var q=quiet(function(){return portraitsSanitizeWorld(data.worldState);});if(q.r<3)return "every crafted portrait in the save is dropped (hero, npc, sheet): "+q.r;
+    if(data.worldState.character.portrait||data.worldState.npcs.filter(function(x){return x.name==="Vex";})[0].portrait)return "the dropped portraits are gone from the save";
+    return true;
   });
 
   section("#481 B7 the hero is not a stranger to the roster");

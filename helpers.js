@@ -1,3 +1,16 @@
+/* #481 F2 (audit 2026-09-29, Fable-approved): the ONE image-source gate. A portrait string was pasted into src='…' unescaped,
+   so a crafted save could close the attribute and add an event handler (the stored API key and session token are one read
+   away). Admits an image data URL (png/jpeg/jpg/gif/webp, base64), https: and blob: — anything else is "" with one console
+   line — and returns it HTML-escaped, safe inside a quoted src. Every portrait src= goes through safeImgSrc (the IMAGE SRC
+   CONTRACT in run-tests.js forbids a raw one); every import boundary drops a failing portrait through portraitAdmit. */
+var SAFE_IMG_DATA_RE=/^data:image\/(?:png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+\/=]+$/,SAFE_IMG_URL_RE=/^(?:https:\/\/|blob:)[^\s"'<>`]+$/i;
+function safeImgSrcOk(url){var s=String(url==null?"":url);return !!s&&(SAFE_IMG_DATA_RE.test(s)||SAFE_IMG_URL_RE.test(s));}
+function safeImgSrc(url){if(url==null||url==="")return "";var s=String(url);if(!safeImgSrcOk(s)){if(typeof console!=="undefined")console.warn("[portrait] refused an image source that is not an image data URL, https: or blob: — "+s.slice(0,60));return "";}return escHtml(s);}
+/* the import boundary: a sheet whose portrait fails the gate loses it (loud); returns 1 when one was dropped */
+function portraitAdmit(sheet,where){if(!sheet||typeof sheet!=="object"||!sheet.portrait)return 0;if(safeImgSrcOk(sheet.portrait))return 0;
+  if(typeof console!=="undefined")console.warn("[portrait] dropped a portrait that is not an image ("+(where||"import")+"): "+(sheet.name||"?")+" — "+String(sheet.portrait).slice(0,60));delete sheet.portrait;return 1;}
+/* a whole worldState at an import boundary: the hero, every npc wrapper and every npc sheet; returns the count dropped */
+function portraitsSanitizeWorld(ws){var n=0,i;if(!ws)return 0;n+=portraitAdmit(ws.character,"save");var np=ws.npcs||[];for(i=0;i<np.length;i++){n+=portraitAdmit(np[i],"save");n+=portraitAdmit(np[i]&&np[i].charSheet,"save");}return n;}
 function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
 // Render model/user prose as SAFE story-DOM HTML (audit E11): escape FIRST, then apply the intentional
 // *emphasis* and blank-line-to-paragraph transforms — so markup in GM output or player input can't

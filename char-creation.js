@@ -101,7 +101,7 @@ function refreshFtPortrait(){
   var prev=document.getElementById("ft-portrait-preview");if(!prev)return;
   var derive=document.getElementById("ft-derive");
   if(cs.portrait){
-    prev.innerHTML="<img id='ft-portrait-img' src='"+cs.portrait+"' style='width:100%;height:100%;object-fit:cover;display:block;cursor:grab;'/>";
+    prev.innerHTML="<img id='ft-portrait-img' src='"+safeImgSrc(cs.portrait)+"' style='width:100%;height:100%;object-fit:cover;display:block;cursor:grab;'/>";
     if(derive)derive.style.display="block";
     var img=document.getElementById("ft-portrait-img");
     if(img){
@@ -180,7 +180,7 @@ function buildReview(){
     var ch=pendingImportChar,nameEl=document.getElementById("char-name");
     var dispName=nameEl&&nameEl.value.trim()?nameEl.value.trim():ch.name;
     var init2=csInitials(dispName);/* #15③: canonical (helpers.js) */
-    var avHtml2=ch.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+ch.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init2+'</div>';
+    var avHtml2=ch.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+safeImgSrc(ch.portrait)+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init2+'</div>';
     var fs2=ch.stats||{};
     el.innerHTML='<div class="rv-head">'+avHtml2+'<div><div class="rv-nm">'+(dispName?escHtml(dispName):'<span style="color:var(--t2)">Enter a name below</span>')+'</div>'/* imported-file name (#22/UA18) */
       +'<div class="rv-sub">'+(ch.subraceNm||ch.subrace||ch.ancestry||"")+" "+(ch.cls||"")+" &middot; Lv"+(ch.level||1)+" &middot; "+genderLabel(ch.gender)+'</div></div></div>'
@@ -200,7 +200,7 @@ function buildReview(){
   var subnm=getSubNm();
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
   var genderLbl=genderLabel(cs.gender);/* #11③: shared mapping */
-  var avHtml='<div class="rv-avwrap">'+(cs.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+cs.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init+'</div>')+'<button type="button" class="rv-quill" id="rv-portrait-btn" title="'+(cs.portrait?"Render a new portrait":"Render a portrait")+'">\u270E</button></div>';/* #380: the quill renders in place — no trip back to step 5 */
+  var avHtml='<div class="rv-avwrap">'+(cs.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+safeImgSrc(cs.portrait)+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init+'</div>')+'<button type="button" class="rv-quill" id="rv-portrait-btn" title="'+(cs.portrait?"Render a new portrait":"Render a portrait")+'">\u270E</button></div>';/* #380: the quill renders in place — no trip back to step 5 */
   el.innerHTML='<div class="rv-head">'+avHtml+'<div><div class="rv-nm">'+(dispNm?escHtml(dispNm):'<span style="color:var(--t2)">Enter a name below</span>')+'</div><div class="rv-sub">'+(subnm||(anc?anc.nm:"?"))+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div><div class="rv-portrait-status" id="rv-portrait-status"></div></div></div>'/* user-typed name (#22/UA18) */
     +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+fs[s]+'</div><div class="rm">'+smod(fs[s])+'</div></div>';}).join("")+'</div>'
     +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+hp+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+rvGold+' gp</span></div><div class="rv-row"><span class="rk">Prime</span><span class="rv">'+(cls?cls.prime:"?")+'</span></div><div class="rv-row"><span class="rk">Hit die</span><span class="rv">'+(cls?"d"+cls.hd:"?")+'</span></div></div>'

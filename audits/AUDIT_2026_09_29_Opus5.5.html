@@ -951,7 +951,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>A contract scan forbids a raw <code>src='"+</code>.</li>
 </ul>
 <details><summary>Evidence</summary><p><code>ui-sheets.js:535, 713</code> (<code>src='"+portrait+"'</code>). The same class appears at <code>ui-sheets.js:342, 411, 784</code>, <code>ui-browsers.js:367, 885</code>, <code>char-creation.js:104, 183, 203</code> and <code>ui-portrait.js:213</code>. With the real <code>showNpcSheet</code>, a portrait value that contains a single quote closes the <code>src</code> attribute early, and the rest of the value becomes an event-handler attribute on the <code>&lt;img&gt;</code>. The payload is left out here on purpose: this file is public. #423 makes importing a friend's save a supported flow.</p></details>
-</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S–M</td><td class="c">Off-Fable</td><td class="s">◉ ready to test — v1.1036</td></tr>
 
 <tr id="F3"><td class="n">F3</td><td>
 <p class="ttl">Keyboard focus falls back to the story box behind an open dialog, so Enter can send a turn <span class="lean med">medium</span><span class="lean">broken contract (#442)</span></p>

@@ -221,7 +221,7 @@ table.list td.x button:hover{color:var(--dng);}
     var m=$("main"),h="";
     h+="<section><h2>Identity</h2>"+FIELDS.identity.map(fieldHtml).join("")+"</section>";
     h+="<section><h2>Build <span class='derived'>"+esc(derived())+"</span></h2>"+FIELDS.build.map(fieldHtml).join("")+"<h2 style='margin-top:12px'>Attributes</h2>"+statsHtml()+"</section>";
-    h+="<section class='wide'><h2>Portrait</h2><div id='portrait-wrap'><div id='portrait-box'>"+(ch.portrait?"<img src='"+ch.portrait+"' alt='portrait'/>":"<div class='none'>no portrait</div>")+"</div><div><label class='file'>Upload image<input type='file' id='f-portrait' accept='image/*'/></label> <button class='b' id='b-portrait-clear'"+(ch.portrait?"":" disabled")+">Remove</button><div class='hint'>Stored at max 400×600 JPEG like the game does; pan/zoom framing is set in-game.</div></div></div></section>";
+    h+="<section class='wide'><h2>Portrait</h2><div id='portrait-wrap'><div id='portrait-box'>"+(ch.portrait?"<img src='"+safeImgSrc(ch.portrait)+"' alt='portrait'/>":"<div class='none'>no portrait</div>")+"</div><div><label class='file'>Upload image<input type='file' id='f-portrait' accept='image/*'/></label> <button class='b' id='b-portrait-clear'"+(ch.portrait?"":" disabled")+">Remove</button><div class='hint'>Stored at max 400×600 JPEG like the game does; pan/zoom framing is set in-game.</div></div></div></section>";
     LISTS.forEach(function(L){h+="<section"+(L.k==="inventory"||L.k==="relationships"||L.k==="coreMemories"?" class='wide'":"")+"><h2>"+esc(L.title)+"</h2>"+listHtml(L)+"</section>";});
     h+="<section class='wide'><h2>Skills</h2>"+skillsHtml()+"</section>";
     m.innerHTML=h;

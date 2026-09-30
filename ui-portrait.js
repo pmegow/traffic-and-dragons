@@ -210,7 +210,7 @@ async function showPortraitModal(refreshFn,opts){
     +"<button id='pm-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1;'>&#215;</button>"
     +"</div>"
     // ── Current portrait preview ───────────────────────────────────────────
-    +(hasPortrait?"<div style='text-align:center;margin-bottom:8px;'><div style='width:90px;height:135px;border-radius:50%;border:2px solid var(--acc);display:inline-block;overflow:hidden;position:relative;'><img id='pm-preview-img' src='"+getPort()+"' style='width:100%;height:100%;object-fit:cover;display:block;cursor:grab;'></div></div>"
+    +(hasPortrait?"<div style='text-align:center;margin-bottom:8px;'><div style='width:90px;height:135px;border-radius:50%;border:2px solid var(--acc);display:inline-block;overflow:hidden;position:relative;'><img id='pm-preview-img' src='"+safeImgSrc(getPort())+"' style='width:100%;height:100%;object-fit:cover;display:block;cursor:grab;'></div></div>"
     +"<div style='text-align:center;margin-bottom:18px;font-size:11px;color:var(--t2);'>drag to reframe &middot; scroll / pinch to zoom &nbsp; <button id='pm-zoom-out' style='font-family:var(--font);font-size:14px;line-height:1;padding:2px 10px;background:var(--bg3);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);cursor:pointer;'>&minus;</button> <button id='pm-zoom-in' style='font-family:var(--font);font-size:14px;line-height:1;padding:2px 9px;background:var(--bg3);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);cursor:pointer;'>+</button></div>":"")
     // ── 1. Upload / Save / Remove (same row) ──────────────────────────────
     +"<div style='display:flex;gap:6px;margin-bottom:4px;'>"

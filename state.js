@@ -1020,6 +1020,8 @@ function rehomeCampaign(reason){
    path in dev/tests-423-import-ownership.js. Throws the same Errors the shell used to surface as "Import failed: …";
    returns the id plan ({id, reminted, fileId}). */
 function importSaveData(data){
+  /* #481 F2: a portrait that is not an image never enters the campaign (loud, one toast) */
+  if(data&&data.worldState&&typeof portraitsSanitizeWorld==="function"){var _pd=portraitsSanitizeWorld(data.worldState);if(_pd&&typeof showToast==="function")showToast("⚠ "+_pd+" portrait"+(_pd>1?"s were":" was")+" dropped from the save — not an image");}
   if(!data||!data.worldState||!data.worldState.character)throw new Error("Invalid save.");
   var ws=data.worldState,ch=ws.character;
   if(typeof ch.name!=="string")throw new Error("Invalid character data.");

@@ -40,6 +40,7 @@ function consumeHomeQuickStart(){
   if(bad){console.warn("[home] quick start dropped — "+bad+(_qsErr?" ("+_qsErr+")":"")+"; "+String(raw).length+" chars discarded");showToast("Quick start could not begin: "+bad);return false;}
   var bp=normalizeBlueprint(rec.bp),char=rec.char,tone=null,ti;
   if(typeof clampImportedCharacter==="function")clampImportedCharacter(char);/* #315 */
+  if(typeof portraitAdmit==="function"&&portraitAdmit(char,"quick start"))showToast("⚠ The quick-start hero's portrait was dropped — not an image");/* #481 F2 */
   for(ti=0;ti<TONES.length;ti++)if(TONES[ti].id===bp.tone)tone=TONES[ti];
   tone=tone||TONES.filter(function(t){return t.id==="swords";})[0]||TONES[0];
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}
@@ -364,7 +365,7 @@ function showCharacterBrowser(initialMode){
   // small round avatar — portrait if present, otherwise initials (matches the Library look)
   function avatarHtml(name,portrait){
     var ini=csInitials(name);/* #15③: canonical (helpers.js) */
-    return portrait?"<img src='"+portrait+"' style='width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;'>"
+    return portrait?"<img src='"+safeImgSrc(portrait)+"' style='width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;'>"
       :"<div style='width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--acc);font-weight:bold;flex-shrink:0;'>"+ini+"</div>";
   }
   // a clickable, gently-highlighting row (click anywhere = inspect)
@@ -475,11 +476,12 @@ function showCharacterBrowser(initialMode){
 // ── Character import preview modal ───────────────────────────────────────────
 function showCharImportPreview(char, onAccept, onCancel){
   migrateCharClassNames(char);/* #100: .char files + library entries may predate the Berserker→Primal rename; every import path funnels through this preview, so heal here once */
+  if(typeof portraitAdmit==="function"&&portraitAdmit(char,"character import")&&typeof showToast==="function")showToast("⚠ "+(char.name||"The character")+"'s portrait was dropped — not an image");/* #481 F2 */
   if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(char);/* #221: a portable sheet may carry a renamed capability's old name */
   migrateSpellDisplayNames(char);/* same funnel: spell labels that drifted from the capability-bible canon (v1.478 Fire Bolt d10→d8) */
   if(typeof clampImportedCharacter==="function")clampImportedCharacter(char);/* #315: every import path funnels here — over-long prose is cut before it can reach a prompt */
   var initials=csInitials(char.name);/* #15③: canonical — this copy lacked the w[0] guard and rendered "undefined" on double-space names (sanctioned fix) */
-  var portrait=char.portrait?"<img src='"+char.portrait+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
+  var portrait=char.portrait?"<img src='"+safeImgSrc(char.portrait)+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
   var stats=char.stats||{};
   var statRow=["STR","DEX","CON","INT","WIS","CHA"].map(function(s){
     return "<div style='text-align:center;'><div style='font-size:10px;color:var(--t2);'>"+s+"</div><div style='font-size:14px;color:var(--t0);font-weight:bold;'>"+(stats[s]||"—")+"</div></div>";
@@ -793,7 +795,7 @@ function _showCharOverwriteConfirm(char,existing){
 // after a successful apply — callers re-render their sheet, and the companion caller mirrors
 // portraitOffset onto wsNpc (its §19 canonical home).
 function _libDiffCell(kind,v){
-  if(kind==="image")return v?"<img src='"+escHtml(v)+"' style='width:44px;height:66px;object-fit:cover;border-radius:6px;border:1px solid var(--brd);display:block;'>":"<span style='color:var(--t2);font-style:italic;'>none</span>";
+  if(kind==="image")return v?"<img src='"+safeImgSrc(v)+"' style='width:44px;height:66px;object-fit:cover;border-radius:6px;border:1px solid var(--brd);display:block;'>":"<span style='color:var(--t2);font-style:italic;'>none</span>";
   if(kind==="json")return "<span style='color:var(--t2);font-style:italic;'>"+(v?"custom framing":"default framing")+"</span>";
   var s=(v==null||v==="")?"—":String(v);
   if(s.length>140)s=s.slice(0,140)+"…";
@@ -884,7 +886,7 @@ function _renderCompanionSlots(){
     for(var i=0;i<pendingCompanions.length;i++){
       var comp=pendingCompanions[i];
       var ini=csInitials(comp.name);/* #15③: canonical (helpers.js) */
-      var av=comp.portrait?"<img src='"+comp.portrait+"' style='width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;'>"
+      var av=comp.portrait?"<img src='"+safeImgSrc(comp.portrait)+"' style='width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;'>"
         :"<div style='width:32px;height:32px;border-radius:50%;background:var(--bg3);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--acc);font-weight:bold;flex-shrink:0;'>"+ini+"</div>";
       h+="<div style='display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--r);'>"+av
         +"<div style='flex:1;min-width:0;'><div style='font-size:13px;color:var(--t0);font-weight:bold;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;'>"+escHtml(comp.name)+"</div>"

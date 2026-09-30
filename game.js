@@ -1486,6 +1486,7 @@ function ensureV10Arrays(s){
 function adoptLibraryHero(c,at){
   var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);
   hero.name=worldState.character.name;
+  if(typeof portraitAdmit==="function"&&portraitAdmit(hero,"library")&&typeof showToast==="function")showToast("⚠ "+hero.name+"'s library portrait was dropped — not an image");/* #481 F2 */
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(hero);
   ensureV10Arrays(hero);
   hero.portraitOffset=hero.portraitOffset||worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};
@@ -1495,7 +1496,7 @@ function adoptLibraryHero(c,at){
   return hero;
 }
 function adoptLibraryCompanion(n,c,at){
-  var sheet=JSON.parse(JSON.stringify(c));sheet.name=n.name;
+  var sheet=JSON.parse(JSON.stringify(c));sheet.name=n.name;if(typeof portraitAdmit==="function"&&portraitAdmit(sheet,"library")&&typeof showToast==="function")showToast("⚠ "+n.name+"'s library portrait was dropped — not an image");/* #481 F2 */
   if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,n.name);
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);
   ensureV10Arrays(sheet);

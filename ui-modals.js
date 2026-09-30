@@ -985,7 +985,7 @@ function showBugReportModal(){
 function _bugReportModal(shot){
   var inner="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><h3 style='color:var(--acc);font-size:15px;font-weight:bold;'>⚠ Report a problem</h3><button id='bug-close' style='background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;line-height:1;'>&times;</button></div>"
     +(shot
-      ?"<img src='"+shot+"' alt='screenshot' style='display:block;max-width:100%;max-height:120px;border:1px solid var(--brd);border-radius:6px;margin:0 auto 10px;'/>"
+      ?"<img src='"+safeImgSrc(shot)+"' alt='screenshot' style='display:block;max-width:100%;max-height:120px;border:1px solid var(--brd);border-radius:6px;margin:0 auto 10px;'/>"
       :"<div style='font-size:11px;color:var(--t2);margin-bottom:10px;'>(screenshot unavailable — the report will be text-only)</div>")
     +"<textarea id='bug-text' rows='5' placeholder='What happened? A nonsense suggestion, a hallucination, drift, a broken screen — describe what you saw and what you expected.' style='width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:1px solid var(--brd2);border-radius:6px;color:var(--t0);font-size:13px;font-family:var(--font);resize:vertical;'></textarea>"
     +(shot?"<label style='display:flex;gap:6px;align-items:center;font-size:11px;color:var(--t1);margin:0 0 8px;cursor:pointer;'><input type='checkbox' id='bug-shot-ok' checked style='margin:0;'/> Include the screenshot</label>":"")

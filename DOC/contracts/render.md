@@ -2,6 +2,8 @@
 
 **Read this when** you touch doRender, the fal.ai models, portrait paths or the sheet modal.
 
+**A portrait is an image, never markup (#481 F2, v1.1036).** Every `<img>` whose `src` is concatenated goes through `safeImgSrc(url)` (helpers.js): it admits an image data URL (`png|jpeg|jpg|gif|webp`, base64), `https:` or `blob:`, returns it HTML-escaped, and returns "" with one console line for anything else — a crafted save could otherwise close `src` and add an event handler. The IMAGE SRC CONTRACT in run-tests.js scans root `*.js` AND `*.html` and fails on a raw concatenated `<img>` src. The import boundaries drop a failing portrait with a toast through `portraitAdmit` / `portraitsSanitizeWorld`: `importSaveData`, the `.char`/library preview funnel (`showCharImportPreview`), both library adopters, `fillPortraitsFromBlob` and the quick start. All 318 real portraits in the owner saves (JPEG data URLs) pass unchanged. Pinned by `#481 F2` + `dev/sabotage-481-f2-safe-img.js`.
+
 Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version stamps and history links inside are the record as written — the contract lines are current unless a newer commit says otherwise.
 
 ## 18. Render feature

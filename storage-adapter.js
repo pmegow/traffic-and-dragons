@@ -775,6 +775,7 @@ var storageAdapter = (function() {
     // Only fill the PC portrait from a blob for the SAME character (audit E79) — after a mid-game
     // character swap or a cross-campaign GET, the blob's PC may be a different person, and filling
     // its portrait onto the current PC would land the wrong face.
+    if (typeof portraitsSanitizeWorld === "function") portraitsSanitizeWorld(sws); /* #481 F2: the blob's portraits pass the image gate first (loud per drop) */
     if (sws.character && sws.character.portrait && worldState.character && !worldState.character.portrait
         && sws.character.name === worldState.character.name) {
       worldState.character.portrait = sws.character.portrait;

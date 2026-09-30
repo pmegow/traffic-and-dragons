@@ -189,6 +189,23 @@ try {
   }
 } catch (_tiE) { console.error("TESTRUNS IGNORE CONTRACT could not run: " + (_tiE && _tiE.message)); process.exitCode = 1; }
 
+// ── IMAGE SRC CONTRACT (#481 F2, audit 2026-09-29) ───────────────────────────────────────
+// A portrait string pasted into <img src='…'> unescaped let a crafted save close the attribute and add an event handler (the
+// stored API key and session token one read away). Every <img> whose src is CONCATENATED goes through safeImgSrc (helpers.js);
+// a raw one fails the build. Root *.js AND *.html are scanned (character_editor.html:224 was one).
+try {
+  var _isRoot = _rtPath.join(__dirname, ".."), _isBad = [], _isN = 0;
+  _rtFs.readdirSync(_isRoot).filter(function (f) { return /\.(js|html)$/.test(f); }).forEach(function (f) {
+    _rtFs.readFileSync(_rtPath.join(_isRoot, f), "utf8").split("\n").forEach(function (ln, li) {
+      var re = /<img\b[^<>]*?\bsrc=(?:'"|"')\+\s*([A-Za-z_$][\w$]*)?/g, m;
+      while ((m = re.exec(ln))) { _isN++; if (m[1] !== "safeImgSrc") _isBad.push(f + ":" + (li + 1)); }
+    });
+  });
+  if (!_isN) { console.error("IMAGE SRC CONTRACT BROKEN (#481 F2): the scan found no concatenated <img> src at all — the pattern or the tree moved"); process.exitCode = 1; }
+  else if (_isBad.length) { console.error("IMAGE SRC CONTRACT BROKEN (#481 F2): an <img> src is concatenated without safeImgSrc — " + _isBad.join(", ")); process.exitCode = 1; }
+  else console.log("[#481 F2] image src contract OK — " + _isN + " concatenated <img> src sites, all through safeImgSrc");
+} catch (_isE) { console.error("IMAGE SRC CONTRACT could not run: " + (_isE && _isE.message)); process.exitCode = 1; }
+
 // ── REFUSAL COPY CONTRACT (#213, v1.698) ────────────────────────────
 // The two W2 withhold toasts ship to PLAYERS (owner ruling 2026-08-22) and must say why in
 // language a player owns. A SOURCE CONTRACT because the failure is silent: add a refusal reason
