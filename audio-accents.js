@@ -144,7 +144,7 @@ function createAccentController(driver, catalog, registry) {
       buffers[set.id] = buffer; plan();
     }, function(e) {
       if (loading === job) loading = null;
-      if (disposed || job.key !== key) return;
+      if (disposed || job.key !== key || job.abort.signal.aborted) return;   /* #481 E3: a block's abort is no failure — the set reloads once unblocked */
       failed[set.id] = true;
       /* Optional layer: a memory refusal quiets the accents and keeps the bed; any other failure is reported loudly. */
       if (/budget/.test(e && e.message)) driver.warn("Accents paused for this place: " + e.message); else driver.error(e);
@@ -156,6 +156,7 @@ function createAccentController(driver, catalog, registry) {
   function plan() {
     clearTimer();
     if (disposed || !key) return;
+    if (blocked(snapshot)) return;   /* #481 E3: a load that settles while the layer is blocked schedules nothing (§21.4: blocked states cancel at once) */
     var waiting = load(), ready = loaded(), now = driver.now(), retry = waiting ? now + ACCENT_RETRY_MS : Infinity;
     if (!ready.length) { if (waiting) timer = driver.later(tick, ACCENT_RETRY_MS); return; }
     if (!st) st = accentStart(ready, now, driver.rng); else ready.forEach(function(set) { accentAdmit(st, set, now, driver.rng); });
@@ -173,7 +174,10 @@ function createAccentController(driver, catalog, registry) {
       if (!speaking && env.speaking) env.quietSince = now;
       env.speaking = speaking; env.raining = !!snapshot.raining;
       if (blocked(snapshot)) {                     /* mic, pause, hidden, OFF: cut now; the gap timer starts over after */
-        clearTimer(); hush(0); st = null; return;
+        clearTimer(); hush(0);
+        if (loading) { loading.abort.abort(); loading = null; }   /* #481 E3: the in-flight load is aborted, as the bed's invalidate() does */
+        if (st) st.due = {};                       /* #481 E3: only the due times reset — lastPlay stays, so the 30 s spacing survives a short capture */
+        return;
       }
       var seed = accentSeedFor(snapshot, registry);/* #481 E2: the seed the plan chose, classified or not */
       var next = audioSelectAccents(snapshot, catalog, seed);

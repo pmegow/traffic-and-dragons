@@ -25,7 +25,7 @@ rc|=sabotage.prove({also,file:'api.js',command:engine,cases:[
  {label:'the note teaches a hand-copied list',mustFail:'L7 accent vocabulary',find:'comma lists of "+AUDIO_CONTENTS.join(",")+", or none.',replace:'comma lists of birds,insects,wind,water,fire,crowd,voices,rain,thunder,animals,machinery,music, or none.'}
 ]});
 rc|=sabotage.prove({also,file:'audio-accents.js',command:standalone,cases:[
- {label:'the mic leaves accents scheduled',mustFail:'the mic cancels the schedule',find:'clearTimer(); hush(0); st = null; return;',replace:'return;'},
+ {label:'the mic leaves accents scheduled',mustFail:'the mic cancels the schedule',find:'        clearTimer(); hush(0);\n        if (loading) { loading.abort.abort(); loading = null; }',replace:'        if (loading) { loading.abort.abort(); loading = null; }'},/* #481 E3 re-anchor: the block branch now aborts the load and keeps lastPlay */
  {label:'leaving a place keeps its buffers',mustFail:'leaving releases the buffer',find:'releaseAll(); st = null; failed = {}; key = nextKey;',replace:'st = null; failed = {}; key = nextKey;'},
  {label:'accents race the bed decode',mustFail:'accents never load while the bed is still decoding',find:'if ((driver.bedPending && driver.bedPending()) || !driver.idle()) return true;',replace:'if (!driver.idle()) return true;'},
  {label:'a load deferred behind the bed waits forever',mustFail:'a deferred accent load retries once the bed settles',find:'if (waiting) timer = driver.later(tick, ACCENT_RETRY_MS);',replace:''},

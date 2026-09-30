@@ -837,7 +837,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <li>A blocked reset clears only the due times and keeps <code>lastPlay</code>.</li>
 </ul>
 <details><summary>Evidence</summary><p><code>audio-accents.js:130-163</code>. With the real controller and a fake driver: arrival → load in flight → <code>enabled:false</code> → load settles → 15 minutes with no update gives 4 plays, the first at +42 s. Same result when hidden, capturing, paused or held. After a 1 s capture: plays at 20 s and 42 s, 22 s apart against the 30 s rule. §21.4 says these states "cancel the schedule at once".</p></details>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">◉ ready to test — v1.1059</td></tr>
 
 <tr id="E4"><td class="n">E4</td><td>
 <p class="ttl">Switching campaigns keeps the old narration playing, and "repeat" replays the old campaign <span class="lean med">medium</span><span class="lean">state across a switch</span></p>

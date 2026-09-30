@@ -94,7 +94,43 @@ async function delivery(){
  await api.fetch(req);await api.fetch(req);assert.equal(fetches,1,'the service-worker audio cache serves a sprite offline after one fetch');
 }
 
+/* #481 E3 (audit 2026-09-29): an accent that finished loading while the layer was BLOCKED (ambience off, page hidden, mic open,
+   narration paused, held) played anyway — footsteps about 20 s later, repeating; and a 1 s mic capture reset the 30 s spacing
+   (plays 22 s apart). plan() returns early while blocked; the block aborts the in-flight load (an aborted set is not marked
+   failed, so it reloads once unblocked); a blocked reset clears only the due times and keeps lastPlay. */
+async function blockedRace(){
+ const kinds=[['enabled',false],['hidden',true],['capturing',true],['paused',true],['held',true]];
+ for(const [k,v] of kinds){
+  let now=0;const timers=[],loads=[],plays=[],released=[];
+  const driver={now:()=>now,later:(fn,ms)=>{const h={at:now+ms,fn};timers.push(h);return h;},cancel:h=>{h.cancelled=true;},abort:()=>new AbortController(),idle:()=>true,bedPending:()=>false,
+   load:(set,signal)=>{const j={set,signal};j.p=new Promise((ok,no)=>{j.ok=ok;j.no=no;});loads.push(j);return j.p;},release:b=>released.push(b),rng:rng(7),error:()=>{},warn:()=>{},
+   play:(buffer,set,steps,gain)=>{const pv={buffer,steps,gain};plays.push({at:now,...pv});return pv;},stop:()=>{}};
+  function advance(ms){const end=now+ms;for(;;){const due=timers.filter(h=>!h.cancelled&&!h.fired&&h.at<=end).sort((a,b)=>a.at-b.at)[0];if(!due)break;now=due.at;due.fired=true;due.fn();}now=end;}
+  const c=scope.createAccentController(driver,catalog(),scope.AUDIO_SCENES);
+  const tavern={enabled:true,unlocked:true,visible:true,volume:0.8,campaignKind:'village',campaignId:'one',generation:1,nodeKey:'The Village|the tavern',common:'the tavern',open:true,minuteOfDay:1200};
+  c.update(tavern);await flush();assert.equal(loads.length,1,k+': the load is in flight');
+  c.update({...tavern,[k]:v});assert(loads[0].signal.aborted,k+': the block aborts the in-flight load');
+  if(k==='enabled'||k==='paused'||k==='held')loads[0].no(Object.assign(new Error('The operation was aborted.'),{name:'AbortError'}));else loads[0].ok({id:'late-'+k});await flush();await flush();/* a real abort REJECTS; a load that raced it may still resolve */
+  advance(15*60000);assert.equal(plays.length,0,k+': nothing plays while blocked (the audit: 4 plays in 15 minutes, the first at +42 s)');
+  c.update(tavern);await flush();assert.equal(loads.length,2,k+': unblocked, the aborted set reloads (it was never marked failed)');
+  loads[1].ok({id:'fresh-'+k});await flush();await flush();advance(10*60000);assert(plays.length>=1,k+': accents resume once unblocked');
+ }
+ /* the spacing rule survives a short capture */
+ let now2=0;const timers2=[],loads2=[],plays2=[];
+ const driver2={now:()=>now2,later:(fn,ms)=>{const h={at:now2+ms,fn};timers2.push(h);return h;},cancel:h=>{h.cancelled=true;},abort:()=>new AbortController(),idle:()=>true,bedPending:()=>false,
+  load:(set,signal)=>{const j={set,signal};j.p=new Promise((ok,no)=>{j.ok=ok;j.no=no;});loads2.push(j);return j.p;},release:()=>{},rng:()=>0,/* the shortest gaps: the audit's 21 s case, deterministically */error:()=>{},warn:()=>{},
+  play:(buffer,set,steps,gain)=>{plays2.push(now2);return {};},stop:()=>{}};
+ const advance2=(ms)=>{const end=now2+ms;for(;;){const due=timers2.filter(h=>!h.cancelled&&!h.fired&&h.at<=end).sort((a,b)=>a.at-b.at)[0];if(!due)break;now2=due.at;due.fired=true;due.fn();}now2=end;}
+ const c2=scope.createAccentController(driver2,catalog(),scope.AUDIO_SCENES);
+ const tavern2={enabled:true,unlocked:true,visible:true,volume:0.8,campaignKind:'village',campaignId:'one',generation:1,nodeKey:'The Village|the tavern',common:'the tavern',open:true,minuteOfDay:1200};
+ c2.update(tavern2);await flush();loads2[0].ok({id:'sp'});await flush();await flush();
+ for(let i=0;i<120&&!plays2.length;i++)advance2(5000);assert(plays2.length===1,'fixture: one play');const first=plays2[0];
+ c2.update({...tavern2,capturing:true});advance2(1000);c2.update(tavern2);
+ advance2(10*60000);assert(plays2.length>=2,'a second play after the capture');
+ assert(plays2[1]-first>=scope.ACCENT_SPACING_MS,'the 30 s spacing survives a 1 s capture: '+(plays2[1]-first)+' ms');
+}
+
 (async()=>{
- await controller();builder();await delivery();
+ await controller();await blockedRace();builder();await delivery();
  console.log('ACCENT LAYER GREEN: controller (bed first, narration, mic, leaving, memory), catalog refusals, sprite loader and cache');
 })().catch(e=>{console.error(e);process.exitCode=1});
