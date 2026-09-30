@@ -240,7 +240,12 @@ function _carPreviously(force) {
 // skips the brief (the driver just heard that scene) and goes straight to the options. The full recap stays on the
 // spoken "previously" / "catch me up" (_carPreviously(true)). Pinned by dev/tests-19b-carmode-transport.js.
 function _carOpen() {
-  var warm = (typeof STT !== "undefined" && typeof STT.warmMic === "function") ? STT.warmMic() : null;
+  /* #481 E9 (Fable: skip, never defer — a deferred warm-up would fall outside the gesture): the warm-up opens a recognizer,
+     which switches the phone's audio route mid-sentence, so it is SKIPPED while the narrator speaks, as every other Car Mode
+     mic path refuses then. The first listen asks for the permission instead. A paused read is not speaking. */
+  var reading = typeof TTS !== "undefined" && TTS.isPlaying();
+  if (reading) console.info("[car] mic warm-up skipped — the narrator is speaking (it would switch the audio route mid-read); the first listen asks instead");
+  var warm = (!reading && typeof STT !== "undefined" && typeof STT.warmMic === "function") ? STT.warmMic() : null;
   var go = function() {
     if (!carMode) return;
     var stale = !worldState || !worldState.lastTurnAt || (Date.now() - worldState.lastTurnAt) >= PREVIOUSLY_AFTER_MS;

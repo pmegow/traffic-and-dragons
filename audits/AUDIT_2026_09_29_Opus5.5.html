@@ -898,7 +898,7 @@ sayMoodShape("mood:bright, giggle")  → ""                   → no mood at all
 <p class="ttl">Opening Car Mode mid-narration opens the microphone mid-read <span class="lean low">low</span><span class="lean">race</span></p>
 <p class="tldr"><b>TLDR:</b> Car Mode's entry warms the mic even while narration is playing, which switches the phone's audio route mid-sentence. Every other Car Mode mic path refuses to do that while narration plays.</p>
 <p><span class="k">Fix</span>Skip the warm-up while <code>TTS.isPlaying()</code>, or defer it to the first gap after narration. Add a tests-19 group. <code>ui-carmode.js:242-243</code>, <code>stt.js:407-408, 18-22</code>. Not verified on a device.</p>
-</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">○ not started</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable</td><td class="s">✅ complete — v1.1066: Car Mode's entry skips the mic warm-up while the narrator speaks (a console.info says so; the first listen asks instead; a paused read is not speaking). Verified in the real game by dev/car-driver.js e9-open-mid-read (the recognizer opened DURING narration at the pre-fix code); tests-19b +1 group; dev/sabotage-481-e9-entry-warmup.js 3/3.</td></tr>
 
 <tr id="E10"><td class="n">E10</td><td>
 <p class="ttl">The audio catalog builder checks only content words; voice doc rot <span class="lean low">low</span><span class="lean">test gap · doc rot</span></p>

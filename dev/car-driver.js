@@ -132,6 +132,16 @@ const SCENARIOS = {
     expect(await car.say("pause"), { tts: "paused", held: true }, fail, "e8-paused-read");
     expect(await car.press("play"), { tts: "paused", held: true, crumb: "media-action play held" }, fail, "e8-paused-read");
     expect(await car.tap(), { held: false, tts: "playing" }, fail, "e8-paused-read");   /* #484: the ack earcon no longer un-pauses the read, so the tap resumes it */
+  },
+  /* #481 E9: opening Car Mode while the narrator speaks must not open the microphone (the warm-up's recognizer switches the
+     phone's audio route mid-sentence). The first mic open waits for the read to end. */
+  "e9-open-mid-read": async (car, fail) => {
+    await car.step("narrate before Car Mode", "TTS.speak(" + JSON.stringify("The guard lifts his lantern. Beyond him the road bends into the dark. Somewhere a dog barks twice and stops.") + ")", true);
+    const entry = await car.enter();
+    if (entry.micOpens.some(m => m.ttsPlaying)) fail.push("e9-open-mid-read / enter Car Mode: the mic opened DURING narration");
+    const first = await car.until("read done, first listen", "STT.isListening()");
+    if (first.micOpens.some(m => m.ttsPlaying)) fail.push("e9-open-mid-read / first listen: the mic opened DURING narration");
+    if (!first.micOpens.length && !entry.micOpens.length) fail.push("e9-open-mid-read: the mic never opened");
   }
 };
 

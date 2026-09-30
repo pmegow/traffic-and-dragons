@@ -169,6 +169,19 @@ async function atest(name, fn) {
     assert.deepEqual(g.calls.filter(s => s.startsWith('speak:')), []);
     assert.equal(g.els['car-status'].textContent, 'Getting your options…');
   });
+  /* #481 E9 (Fable: SKIP the warm-up while the narrator speaks — a deferred warm-up would fall outside the gesture — with a
+     console.info): the warm-up opens a recognizer, which switches the phone's audio route mid-sentence; every other Car
+     Mode mic path already refuses while narration plays. The first listen asks for the permission instead. */
+  await atest('an entry mid-read skips the mic warm-up (said in the console) and still reaches the brief', async () => {
+    const f = fixture(); f.tts._playing = true; f.c.worldState.lastTurnAt = 0;
+    const said = []; f.c.console.info = m => said.push(String(m));
+    f.c.showCarMode(); await flush();
+    assert(!f.calls.includes('warm'), 'the warm-up opened the mic while the narrator was speaking: ' + JSON.stringify(f.calls));
+    assert(said.some(m => /warm-up skipped/.test(m)), 'the skip is said in the console: ' + JSON.stringify(said));
+    assert(f.calls.includes('speak:You are at the gate. The guard waits.'), 'the entry still proceeds to the brief (queued behind the read)');
+    const g = fixture(); g.tts._playing = true; g.tts._paused = true; g.c.showCarMode(); await flush();
+    assert(g.calls.includes('warm'), 'a PAUSED read is not speaking — the warm-up runs, as every other mic path allows');
+  });
   await atest('the spoken "previously" command still reads the full recap', async () => {
     const f = fixture(); f.c.showCarMode(); await flush();
     f.c._carPreviously(true);
