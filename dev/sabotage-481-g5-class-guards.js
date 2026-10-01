@@ -58,7 +58,7 @@ failed += sabotage.prove({ file: "dev/class-guards.js", command: NODE, cases: [
 // The stop-before-result discipline, in a real browser.
 failed += sabotage.prove({ file: "blueprint-designer.html", skip: !chrome.path, command: BROWSER, cases: [
   { label: "the creature ticker is not stopped before the result",
-    find: "    _ct.stop();\n    var c=JSON.parse(repairModelJson(resp));", replace: "    var c=JSON.parse(repairModelJson(resp));",
+    find: "      timer.stop();modal.remove();", replace: "      modal.remove();",
     mustFail: "the result stays once it lands" },
   { label: "the Generate button's ticker is not stopped before the label returns",
     find: "    _gt.stop();btn.disabled=false;btn.textContent=\"✨ Generate\";", replace: "    btn.disabled=false;btn.textContent=\"✨ Generate\";",

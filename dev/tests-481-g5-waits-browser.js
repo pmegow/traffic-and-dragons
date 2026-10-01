@@ -27,24 +27,28 @@ const STUB = `window.__calls=[];window.__model=function(){var c={};c.p=new Promi
     const sample = JSON.parse(fs.readFileSync(path.join(root, 'samples/the_iron_meridian.blueprint'), 'utf8'));
     await bpd.evaluate(b => { __bpdTest.load(b); }, sample);
     await bpd.evaluate(STUB + 'llmReady=function(){return true;};callGM=function(){return window.__model();};generateBlueprintDraft=function(){return window.__model();};reviewChunk=function(){return window.__model();};');
+    await bpd.evaluate(() => { window.__creatureTimers=[];const original=elapsedTicker;elapsedTicker=function(el,base,opts){const timer=original(el,base,opts);if(el.id==='creature-gen-status'){__creatureTimers.push(timer);const stop=timer.stop;timer.stop=function(){timer.stopped=true;stop();};}return timer;}; });
+    const creatureLine=()=>bpd.evaluate(()=>document.getElementById('creature-gen-status').textContent);
     const line = () => bpd.evaluate(() => { const s = document.getElementById('statusline'); return { text: s.textContent, cls: s.className }; });
     const tick = ms => bpd.waitForTimeout(ms);
 
-    await test('the creature wait counts seconds on the statusline; the result stays once it lands', async () => {
-      await bpd.evaluate(() => { genCreature(document.querySelector("[data-op='gencreature']") || document.createElement('button')); });
+    await test('the creature wait counts seconds in the modal; the result stays once it lands', async () => {
+      await bpd.evaluate(() => { openCreatureGenerator();document.getElementById('creature-gen-go').click(); });
       await tick(1250);
-      assert.match((await line()).text, /^Generating a creature in service to the story… [1-3]s$/, 'while waiting');
+      assert.match(await creatureLine(), /^Generating creature 1 of 1… [1-3]s$/, 'while waiting');
       await bpd.evaluate(() => __settle(true, '{"name":"Lamp Rat","kind":"beast","threat":"low","notes":"It eats wicks."}'));
       await tick(1300);
-      const l = await line(); assert.match(l.text, /^Added “Lamp Rat”/, 'the result, a tick later: ' + l.text); assert.equal(l.cls, 'ok');
+      const l = await line(); assert.match(l.text, /^Added 1 new creature/, 'the result, a tick later: ' + l.text); assert.equal(l.cls, 'ok');assert(await bpd.evaluate(()=>__creatureTimers.every(t=>t.stopped)), 'the completed modal owns no ticking timer');
     });
     await test('a failed creature wait says why, and no tick overwrites it', async () => {
-      await bpd.evaluate(() => { genCreature(document.createElement('button')); });
+      await bpd.evaluate(() => { openCreatureGenerator();document.getElementById('creature-gen-go').click(); });
       await tick(1100);
-      assert.match((await line()).text, /^Generating a creature in service to the story… [1-3]s$/);
+      assert.match(await creatureLine(), /^Generating creature 1 of 1… [1-3]s$/);
       await bpd.evaluate(() => __settle(false, 'fixture outage'));
       await tick(1300);
-      assert.deepEqual(await line(), { text: 'Creature generation failed: fixture outage', cls: 'err' });
+      assert.deepEqual(await line(), { text: 'Generation failed: fixture outage', cls: 'err' });
+      assert.equal(await creatureLine(),'Generation failed: fixture outage');assert(await bpd.evaluate(()=>__creatureTimers.every(t=>t.stopped)));
+      await bpd.locator('#creature-gen-cancel').click();
     });
     await test('the Generate modal: its button counts seconds (the modal covers the statusline); a failure restores the label for good', async () => {
       await bpd.evaluate(() => { openGenerate(); document.getElementById('gen-go').click(); });

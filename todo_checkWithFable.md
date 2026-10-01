@@ -264,6 +264,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-01 · #508 (Designer v0.55) · Codex: owner-requested creature batch modal and per-creature portrait buttons. Designer-only state and helpers; existing engine portrait renderer reused. Frequency lands in notes; portable portraits are omitted from text LLM payloads and preserved through Apply. Atomic batch, invalid inputs, duplicate names, stale/cancelled responses and persistence covered. Existing wait-ticker proof follows the modal and additionally checks timer disposal. No engine changes.
+
 - 2026-10-01 · #500 (v1.1088) · Codex: owner explicitly requested tripling the rule limit. Root cause is IMPORT_CAPS.rule=400, shared by blueprint normalization and prompt assembly; raised the single numeric entry to 1200. Review: only longer rules expand; other caps and authored-text wrappers remain intact, no parser/prompt assembly code changed. Three boundary tests cover 399/400/401/1199/1200/1201, prompt delivery and byte-identical short-rule prompts. Chrome reproduces the old mid-word cut and verifies full rule import/export.
 
 - 2026-10-01 · #499 follow-up (Designer v0.54) · Codex: owner reduced the picker to Fable 5.1, GPT-6 Astra and Gemini 3.8 Flash only. Removed inherited gameplay/custom options and resolve retired saved choices to the provider's retained model. Eight focused checks, four mutation proofs and actual Chrome review requests verified with fixture responses.

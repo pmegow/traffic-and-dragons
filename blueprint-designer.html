@@ -80,6 +80,16 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 #counts{font-size:11px;color:var(--t2);}
 .empty{font-size:12px;color:var(--t2);font-style:italic;padding:6px 0 10px;}
 ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--bg0);}::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+.creature-help{color:var(--t2);line-height:1.5;}
+.creature-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;}
+.creature-portrait{display:block;width:160px;max-width:100%;height:auto;border-radius:var(--r);margin-top:12px;}
+#creature-gen-modal label{display:flex;flex-direction:column;gap:6px;}
+#creature-gen-modal input,#creature-gen-modal select{width:100%;min-width:0;padding:9px 10px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd2);border-radius:var(--r);font:inherit;}
+#creature-gen-modal small{color:var(--t2);font-size:12px;line-height:1.4;text-transform:none;font-variant:normal;letter-spacing:normal;}
+#creature-gen-modal .creature-actions{position:sticky;bottom:-24px;background:var(--bg1);padding:12px 0;margin-bottom:-12px;}
+#creature-gen-modal input,#creature-gen-modal select,#creature-gen-modal button{min-height:44px;font-size:14px;}
+#creature-gen-status{color:var(--acc);min-height:20px;line-height:1.5;}
+@media(max-width:540px){#creature-gen-modal .grid2{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -125,11 +135,14 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="game.js"></script>
 <script src="audio-events.js"></script>
 <script src="tts.js"></script>
+<script src="ui-shell.js"></script>
+<script src="ui-portrait.js"></script>
+<script src="designer-creatures.js"></script>
 <script>
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.54";/* Designer-only frontier catalog and request compatibility. */
+var BP_DESIGNER_VERSION="v0.55";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -139,7 +152,7 @@ var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 var DRAFT_K="bpd_draft_v1",_draftT=null;
 function saveDraft(){
   if(_draftT)clearTimeout(_draftT);
-  _draftT=setTimeout(function(){_draftT=null;try{localStorage.setItem(DRAFT_K,JSON.stringify({bp:bp,dirty:dirty,editionBaseline:editionBaseline,at:Date.now()}));}catch(e){/* quota — draft is a convenience, never block editing */}},400);
+  _draftT=setTimeout(function(){_draftT=null;try{localStorage.setItem(DRAFT_K,JSON.stringify({bp:bp,dirty:dirty,editionBaseline:editionBaseline,at:Date.now()}));}catch(e){console.warn("[designer draft] "+e.message);setStatus("Draft could not be saved on this device: "+e.message+". Save a .blueprint file to keep your changes.","err");}},400);
 }
 function clearDraft(){if(_draftT){clearTimeout(_draftT);_draftT=null;}try{localStorage.removeItem(DRAFT_K);}catch(e){}}
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -372,7 +385,7 @@ function render(){
   // Creatures (v1.176 — the campaign bestiary; monster-manual-inspired fields)
   h+="<div class='sect'>"+secH("creatures","Seeded Creatures ("+bp.creatures.length+")");
   if(secOpen.creatures!==false){
-  h+="<button class='addbtn' data-op='gencreature' data-i='0' data-j='0' style='margin-bottom:10px;'>&#10024; Generate creature from story</button>";
+  h+="<button class='addbtn' data-op='gencreature' data-i='0' data-j='0' style='margin-bottom:10px;'>&#10024; Generate creatures…</button>";
   if(!bp.creatures.length)h+="<div class='empty'>None — the GM will invent the wildlife.</div>";
   for(i=0;i<bp.creatures.length;i++){
     var C=bp.creatures[i];
@@ -381,6 +394,11 @@ function render(){
       h+="<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
       +fld("Threat",txt("creature",i,0,"threat",C.threat||"","low / moderate / deadly / apex — or a CR"))
       +fldB("Notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"));
+      var portraitSrc=safeImgSrc(C.portrait);
+      if(portraitSrc)h+="<img class='creature-portrait' src='"+safeImgSrc(C.portrait)+"' alt='Portrait of "+esc(C.name||"creature")+"'>";
+      h+="<div class='creature-actions'><button class='mini' data-op='creatureportrait' data-i='"+i+"'"+(creaturePortraitBusy(C)?" disabled":"")+">"+(C.portrait?"Regenerate portrait":"Generate portrait")+"</button>";
+      if(C.portrait)h+="<button class='mini' data-op='creatureportraitremove' data-i='"+i+"'"+(creaturePortraitBusy(C)?" disabled":"")+">Remove portrait</button>";
+      h+="</div>";
     }
     h+="</div>";
   }
@@ -596,7 +614,9 @@ document.addEventListener("click",function(e){
   var t=e.target,op=t.getAttribute&&t.getAttribute("data-op");if(!op)return;
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0;
   if(op==="breakout"){openBreakout(t);return;}
-  if(op==="gencreature"){genCreature(t);return;}
+  if(op==="gencreature"){openCreatureGenerator();return;}
+  if(op==="creatureportrait"){generateCreaturePortrait(bp.creatures[i],t);return;}
+  if(op==="creatureportraitremove"){if(bp.creatures[i]&&!creaturePortraitBusy(bp.creatures[i])){delete bp.creatures[i].portrait;markDirty();render();}return;}
   // Selection toggle — pure view state (_sel is stripped from files), so no markDirty.
   // _sel = the chosen OPTION INDEX (radio: re-click deselects, picking a sibling replaces).
   // NB: index 0 is falsy — every _sel check must be typeof === "number", never truthiness.
@@ -866,32 +886,90 @@ function storyContext(){
   for(i=0;i<bp.acts.length;i++){var a=bp.acts[i],arcs=[];
     for(j=0;j<(a.arcs||[]).length;j++)arcs.push(a.arcs[j].title+(a.arcs[j].objective?" ("+a.arcs[j].objective+")":""));
     L.push("Act "+(i+1)+": "+a.title+" — "+a.goal+(arcs.length?" | Arcs: "+arcs.join("; "):""));}
-  if(bp.locations.length)L.push("Locations: "+bp.locations.map(function(x){return x.name;}).join(", "));
-  if(bp.creatures.length)L.push("Existing bestiary (do NOT duplicate): "+bp.creatures.map(function(c){return c.name+(c.kind?" ("+c.kind+(c.threat?", "+c.threat:"")+")":"");}).join("; "));
+  if(bp.rules&&bp.rules.length)L.push("HARD CAMPAIGN RULES:\n"+bp.rules.join("\n"));
+  if(bp.npcs&&bp.npcs.length)L.push("Established NPCs: "+bp.npcs.map(function(n){return n.name+": "+(n.role||"")+" — "+(n.notes||"");}).join("; "));
+  if(bp.locations.length)L.push("Locations: "+bp.locations.map(function(x){return x.name+": "+(x.description||"");}).join("; "));
+  if(bp.creatures.length)L.push("Existing bestiary (do NOT duplicate): "+bp.creatures.map(function(c){return c.name+(c.kind?" ("+c.kind+(c.threat?", "+c.threat:"")+")":"")+(c.notes?" — "+c.notes:"");}).join("; "));
   return L.join("\n");
 }
-async function genCreature(btn){
-  if(!llmReady())return;
-  btn.disabled=true;var _ct=statusTicker("Generating a creature in service to the story…");/* #481 G5: one status, and it counts */
+var creatureGeneration=null,creaturePortraitJobs=[];
+async function genCreatureBatch(input,progress){
+  if(creatureGeneration)throw new Error("A creature batch is still running.");
+  var plans=DesignerCreatures.plan(input),target=bp,original=JSON.stringify(bp.creatures),entries=[],job={cancelled:false};
+  creatureGeneration=job;
   try{
-    var msg=storyContext()
-      +"\n\nTASK: Invent exactly ONE new creature for this campaign's bestiary, IN SERVICE to the story above."
-      +"\n- It must plausibly belong to this campaign's regions, factions, tone, and conflicts. Never inject an off-theme creature because it is cool: no named tyrannosaur in a goblin-centric dungeon crawl."
-      +"\n- It may be humble (a rodent of unusual size that plagues the same cellars the plot visits) or unique and mythic (a rodent of mythic proportions) — pick the scale the story most lacks right now, considering the existing bestiary."
-      +"\n- notes = its nature, behaviour, tactics, and weaknesses/how it dies, 2-4 sentences, written as GM guidance. CHARACTER, not stats — the engine handles stats separately."
-      +"\n- kind = one or two words (beast/undead/aberration/construct/monstrosity/...); threat = low/moderate/deadly/apex or a CR."
-      +"\nOutput ONLY this JSON object: {\"name\":\"\",\"kind\":\"\",\"threat\":\"\",\"notes\":\"\"}";
-    var resp=await callGM(msg,"You design bestiary entries for tabletop RPG campaign blueprints. Output ONLY one valid JSON object — no markdown, no prose, no code fences.",500,designerModel(),{noHistory:true,kind:"other"});
-    _ct.stop();
-    var c=JSON.parse(repairModelJson(resp));
-    if(!c||!c.name)throw new Error("model returned no usable creature");
-    bp.creatures.push({name:String(c.name),kind:String(c.kind||""),threat:String(c.threat||""),notes:String(c.notes||"")});
-    markDirty();render();
-    setStatus("Added “"+c.name+"” to the bestiary — it's yours now: review, edit, or delete freely.","ok");
-  }catch(e){_ct.stop();setStatus("Creature generation failed: "+e.message,"err");}
-  var b2=document.querySelector("[data-op='gencreature']");
-  if(b2){b2.disabled=false;b2.innerHTML="✨ Generate creature from story";}
+    for(var i=0;i<plans.length;i++){
+      progress(i+1,plans.length);
+      var msg=DesignerCreatures.prompt(storyContext(),plans[i],entries.map(function(c){return c.name;}));
+      var response=await callGM(msg,"You design campaign bestiary entries. Return only valid JSON, without code fences.",1200,designerModel(),{noHistory:true,kind:"other"});
+      if(job.cancelled)throw new Error("Generation cancelled; no creatures were added.");
+      if(bp!==target||JSON.stringify(target.creatures)!==original)throw new Error("The bestiary changed during generation; no creatures were added.");
+      entries.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries)));
+    }
+    Array.prototype.push.apply(target.creatures,entries);
+    markDirty();render();return entries;
+  }finally{if(creatureGeneration===job)creatureGeneration=null;}
 }
+function openCreatureGenerator(){
+  if(creatureGeneration){setStatus("The previous creature request is still finishing. Please wait before starting another.","warn");return;}
+  var h="<h2 id='creature-gen-title' style='margin-top:0;'>Generate creatures</h2>"
+    +"<p class='creature-help'>Grow this story’s bestiary. Random is chosen separately for each creature.</p>"
+    +"<p class='creature-help'>Creatures are added together when the batch finishes. Cancel or failure adds none.</p>"
+    +"<form id='creature-gen-form'><div class='grid2'>"
+    +"<label>Number of new creatures<input id='creature-count' type='number' min='1' max='"+DesignerCreatures.maxCount+"' step='1' value='1' required><small>1–"+DesignerCreatures.maxCount+" creatures</small></label>";
+  Object.keys(DesignerCreatures.fields).forEach(function(key){var f=DesignerCreatures.fields[key];
+    h+="<label"+(key==="treasure"?" style='grid-column:1/-1;'":"")+">"+f.label+"<select id='creature-"+key+"'><option value='random'>Random</option>";
+    f.values.forEach(function(v){h+="<option value='"+esc(v)+"'"+(f.default===v?" selected":"")+">"+esc(v)+"</option>";});h+="</select>"+(f.help?"<small"+(key==="kind"?" id='creature-kind-help' hidden":"")+">"+esc(f.help)+"</small>":"")+"</label>";
+  });
+  h+="</div><p class='creature-help'>Optional portraits use your image provider separately, from each creature’s card.</p>"
+    +"<div id='creature-gen-status' role='status' aria-live='polite'></div>"
+    +"<div class='creature-actions'><button type='button' class='tbtn' id='creature-gen-cancel'>Cancel</button><button type='submit' class='tbtn primary' id='creature-gen-go'>Generate</button></div></form>";
+  var timer=null;
+  var modal=modalShell("creature-gen-modal",h,{maxWidth:540,boxBg:"var(--bg1)",boxExtra:"max-height:90vh;overflow:auto;",closeId:"creature-gen-cancel",onClose:function(){if(creatureGeneration){creatureGeneration.cancelled=true;if(timer)timer.stop();setStatus("Creature batch cancelled; no creatures were added. The current request may still finish.","");}modal.remove();}});
+  modal.setAttribute("aria-labelledby","creature-gen-title");
+  document.getElementById("creature-kind").addEventListener("change",function(){document.getElementById("creature-kind-help").hidden=this.value!=="Pack";});
+  var form=document.getElementById("creature-gen-form"),status=document.getElementById("creature-gen-status"),go=document.getElementById("creature-gen-go");
+  form.addEventListener("submit",async function(e){
+    e.preventDefault();if(!llmReady()){status.textContent=document.getElementById("statusline").textContent;return;}
+    var input={count:document.getElementById("creature-count").value};
+    Object.keys(DesignerCreatures.fields).forEach(function(k){input[k]=document.getElementById("creature-"+k).value;});
+    try{DesignerCreatures.plan(input);}catch(err){status.textContent=err.message;return;}
+    go.disabled=true;var controls=form.querySelectorAll("input,select");Array.prototype.forEach.call(controls,function(el){el.disabled=true;});document.getElementById("creature-gen-cancel").textContent="Cancel batch";timer=elapsedTicker(status,"Generating creatures…",{text:true});
+    try{
+      var entries=await genCreatureBatch(input,function(n,total){timer.set("Generating creature "+n+" of "+total+"…");});
+      timer.stop();modal.remove();
+      var opener=document.querySelector("[data-op='gencreature']");if(opener)opener.focus();
+      setStatus("Added "+entries.length+" new creature"+(entries.length===1?"":"s")+" — review the cards and add portraits as you like.","ok");
+    }catch(err){timer.stop();if(document.body.contains(modal)){console.warn("[designer creatures] "+err.message);status.textContent="Generation failed: "+err.message;setStatus(status.textContent,"err");}}
+    finally{go.disabled=false;Array.prototype.forEach.call(controls,function(el){el.disabled=false;});var cancel=modal.querySelector("#creature-gen-cancel");if(cancel)cancel.textContent="Cancel";}
+  });
+}
+function creaturePortraitBusy(c){return creaturePortraitJobs.indexOf(c)>=0;}
+async function creaturePortraitData(url){
+  if(!safeImgSrcOk(url))throw new Error("The image provider returned an invalid image URL.");
+  var ctl=new AbortController(),timer=setTimeout(function(){ctl.abort();},30000);
+  try{
+    var response=await fetch(url,{signal:ctl.signal});if(!response.ok)throw new Error("Portrait download failed: HTTP "+response.status);
+    var blob=await response.blob();if(!/^image\/(png|jpe?g|webp|gif)$/i.test(blob.type))throw new Error("The image provider did not return an image.");
+    var data=await new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(reader.result);};reader.onerror=function(){reject(new Error("Could not read the portrait."));};reader.readAsDataURL(blob);});
+    return await new Promise(function(resolve){compressPortrait(data,resolve);});
+  }finally{clearTimeout(timer);}
+}
+async function generateCreaturePortrait(c,btn){
+  if(!c||creaturePortraitBusy(c))return;
+  if(!falAvailable()){setStatus("Sign in from the game or configure an image key before generating a portrait.","err");return;}
+  if(!c.name||!c.notes){setStatus("Give this creature a name and notes before generating its portrait.","err");return;}
+  var target=bp,identity=JSON.stringify([c.name,c.kind,c.threat,c.notes]);creaturePortraitJobs.push(c);btn.disabled=true;
+  var timer=elapsedTicker(btn,"Drawing portrait…",{text:true});
+  try{
+    var url=await generatePortraitImage("Bestiary illustration of "+c.name+". Kind: "+(c.kind||"creature")+". Threat: "+(c.threat||"unspecified")+". "+c.notes+" Show the creature clearly in a fitting habitat; no lettering or stat blocks.");
+    var portrait=await creaturePortraitData(url);
+    if(bp!==target||target.creatures.indexOf(c)<0||identity!==JSON.stringify([c.name,c.kind,c.threat,c.notes]))throw new Error("The creature or blueprint changed; the portrait was not attached.");
+    c.portrait=portrait;markDirty();setStatus("Portrait added for “"+c.name+"”. Save the blueprint to keep a portable copy.","ok");
+  }catch(err){console.warn("[designer portrait] "+err.message);setStatus("Portrait generation failed: "+err.message,"err");}
+  finally{timer.stop();creaturePortraitJobs.splice(creaturePortraitJobs.indexOf(c),1);render();}
+}
+
 // ── Generate campaign from scratch (v0.33, TODO #59 / R-GEN one-click) ─────────
 // One click fills the editor with a complete draft blueprint via the shared generator
 // (campaign_generator.js — the SAME acts schema/rules the game's on-the-fly skeleton uses).
@@ -1033,7 +1111,7 @@ document.getElementById("btn-review").addEventListener("click",async function(){
   if(bp.review&&bp.review.findings&&bp.review.findings.some(function(f){return !f.status;})&&!confirm("A review with open findings exists — replace it with a fresh review?"))return;
   var btn=this;btn.disabled=true;var _rt=null;
   try{
-    var payload=stripView(bp);delete payload.review;
+    var payload=DesignerCreatures.textBlueprint(bp);delete payload.review;
     var payloadJson=JSON.stringify(payload,null,1);
     // Chunks are READ-ONLY (each just reads the blueprint and returns findings — no bp mutation),
     // so they run fully concurrently: no grouping, no ordering, no race. Bounded by the slowest
@@ -1076,6 +1154,7 @@ var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all 
 // items it changed, matched into place by identity (name for npcs/locations/creatures, title for
 // acts/arcs, substring for the string rules). Arrays never shrink here — items are replaced in place
 // or appended — so the old shrink guards are obsolete; validateBlueprint is still the backstop.
+var _PATCH_PRESERVE={creatures:DesignerCreatures.preservePortrait};
 var _PATCH_BYNAME={npcs:1,locations:1,creatures:1}; // arrays of objects keyed by .name
 var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,narratorVoice:1,premise:1,startingLocation:1,startingRegion:1,startingTime:1}; // top-level strings
 function _findByName(arr,nm){var i;nm=String(nm||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].name||"").toLowerCase()===nm)return i;}return -1;}
@@ -1101,6 +1180,7 @@ function applyPatches(bp,patches){
         else labels.push(sec+": "+nm+" already absent");
       }else{
         if(!p.item||typeof p.item!=="object")throw new Error(sec+" patch missing an item object");
+        if(_PATCH_PRESERVE[sec])p.item=_PATCH_PRESERVE[sec](ai>=0?bp[sec][ai]:null,p.item);
         if(ai>=0){bp[sec][ai]=p.item;labels.push(sec+": "+nm);}
         else if(_batchDeleted[_delKey(sec,nm)])labels.push(sec+": skipped "+nm+" (removed earlier this run)");
         else{bp[sec].push(p.item);labels.push(sec+": "+nm+" (new)");}
@@ -1161,7 +1241,7 @@ async function applyFinding(idx){
   var _at=_applyingAll?null:statusTicker("Applying fix: "+f.issue.slice(0,60)+"…");
   var snapshot=null;
   try{
-    var payload=stripView(bp);delete payload.review;
+    var payload=DesignerCreatures.textBlueprint(bp);delete payload.review;
     var msg="Here is a TTRPG campaign blueprint:\n"+JSON.stringify(payload,null,1)
       +"\n\nAPPLY THIS REVIEW FINDING:\nSection: "+f.section+"\nIssue: "+f.issue+"\nFix to apply: "+fixText
       +"\n\nReturn ONLY the individual ITEMS you changed — NEVER whole sections — as this JSON object:"
@@ -1315,7 +1395,7 @@ function openAsk(seedFinding){
     _askLog.push({q:q,a:null});renderAskLog();
     var btn=document.getElementById("ask-send");if(btn)btn.disabled=true;
     try{
-      var payload=stripView(bp);delete payload.review;
+      var payload=DesignerCreatures.textBlueprint(bp);delete payload.review;
       var msg="BLUEPRINT UNDER DISCUSSION:\n"+JSON.stringify(payload,null,1)
         +(seedFinding?"\n\nREVIEW FINDING UNDER DISCUSSION:\n["+seedFinding.sev+"] "+seedFinding.section+"\nIssue: "+seedFinding.issue+"\nFix option(s): "+(seedFinding.fixes||[seedFinding.fix||""]).join(" | "):"");
       var x;for(x=0;x<_askLog.length-1;x++){msg+="\n\nUSER ASKED: "+_askLog[x].q+"\nYOU ANSWERED: "+_askLog[x].a;}
@@ -1507,6 +1587,7 @@ window.__bpdTest={
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 if(typeof loadProviderSettings==="function")loadProviderSettings(); // API key/provider for the LLM features
+falKey=store.get(FAL_KEY_K)||"";renderModel=resolveRenderModel(store.get(RENDER_MDL_K));
 wireLlmSelect(); // after loadProviderSettings — the choices come from the loaded keys/overrides
 document.getElementById("ver").textContent=BP_DESIGNER_VERSION+(typeof APP_VERSION!=="undefined"?" · engine "+APP_VERSION:"");
 // Boot: restore the working draft if one exists — reload continues where you were (New = blank).

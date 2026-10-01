@@ -89,6 +89,8 @@ jobs:
         run: node dev/tests-blueprint-catalog-browser.js
       - name: Blueprint editions in a real browser
         run: node dev/tests-blueprint-editions-browser.js
+      - name: Designer creatures in a real browser
+        run: node dev/tests-designer-creatures-browser.js
       - name: Blueprint publication in a real browser
         run: node dev/tests-blueprint-publish-browser.js
       # The same class, derived since: every dev/tests-*.js that requires dev/cdp-browser.js must be a step here, after the
