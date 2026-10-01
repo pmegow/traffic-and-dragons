@@ -16,8 +16,30 @@ audit file BEFORE the analysis gets long — a closed window must never cost the
 corpus (prose drift, tag fidelity, invariant breaks) is **Fable** — the intelligence lives in the
 protocol and the evaluator, never the runner.
 
-**Never type or paste an API key.** If `tnd_ak_v1` is unset, stop and ask the user to enter it in
-the visible preview themselves.
+**Never type or paste an API key, and never sign in.** Credentials are the owner's: if the preflight
+says the page can't reach a model, stop and relay its `ask` (sign in, or paste a key, in the visible
+preview themselves).
+
+## Signed-in runs (server mode — the app's default now)
+
+The app starts in server mode: a signed-in, entitled account's GM calls ride the server with the
+page's own provider and model, so no key is needed. But the sign-in and the owner's other campaigns
+share the browser storage, and every save syncs to the owner's cloud. So a signed-in run:
+
+- **never wipes storage** (step 1's wipe is for key-only runs);
+- installs the harness first, then `await __ptPreflight()` → `{ok, route, ask, provider, model}`;
+  not ok → relay `ask` and stop;
+- saves any unsaved previous corpus (`__ptLoad().log.length > 0`) to `dev/` before `__ptClear()`;
+- sets the model with `__ptUseModel("gemini","gemini-3.7-flash")` (in memory only; the owner's
+  saved choice is untouched);
+- starts with `__ptStart(char, toneId, authorId)` instead of `startGame` — `char._campName` must
+  start with `PlaytestHarness` (or `modelTestCampaign_` after setting `pendingBlueprint`). It
+  records the campaign's id and refuses while a previous signed-in run's campaign is undeleted;
+- ends, after the corpus and the audit are on disk, with `await __ptDeleteRun()`: it deletes exactly
+  the run's campaign — this device's copy first (nothing can push it again), then the cloud copy,
+  checked gone (the server keeps no tombstone). Put its result in the audit's Run header.
+
+Pinned by `dev/tests-playtest-server-mode.js` and `dev/sabotage-playtest-server-mode.js`.
 
 ## Model-comparison runs — the standard campaign (owner ruling 2026-08-15)
 
@@ -48,9 +70,10 @@ When a run's purpose is comparing MODELS/PROVIDERS (not exercising fresh skeleto
 
 Default N = 10. Turns cost real money — state the estimate and confirm before a run over ~25.
 
-1. `preview_start` the app (`.claude/launch.json`), then via `javascript_tool`: wipe `tnd_*` keys
-   EXCEPT the provider keys (`tnd_ak_v1`, `tnd_provider_*`), reload, and confirm you land on
-   `#char-screen` — a stale `#game-screen` means the wipe didn't take.
+1. `preview_start` the app (`.claude/launch.json`). **Signed in?** (`storageAdapter.hasToken()`) →
+   follow "Signed-in runs" above instead of this step and step 2. Otherwise, via `javascript_tool`:
+   wipe `tnd_*` keys EXCEPT the provider keys (`tnd_ak_v1`, `tnd_provider_*`), reload, and confirm
+   you land on `#char-screen` — a stale `#game-screen` means the wipe didn't take.
 2. Build a minimal valid v10 character and `startGame(char, tone.nm, tone.vc, "<authorId>")` —
    the file header (lines 20–38) has the working template. Read `AUTHORS`/`TONES`/`CLSS`/`ANCS`
    live from the page for valid ids; ask the user for tone + author if they didn't say.

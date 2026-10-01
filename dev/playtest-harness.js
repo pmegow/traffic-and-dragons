@@ -17,6 +17,18 @@
 //    If tnd_ak_v1 isn't already set, ask the user to enter their API key in the visible
 //    preview themselves — never type or paste a real key into eval yourself.
 //
+//    SIGNED IN (server mode, the app's default now): SKIP the wipe above. The sign-in and the owner's other campaigns live
+//    in the same storage, and every save syncs to the owner's cloud. Instead:
+//      a. paste this file to install, then `await __ptPreflight()` → {ok, route, ask, provider, model}. Not ok → relay
+//         `ask` to the owner (they sign in in the visible preview; never type credentials) and stop.
+//      b. `__ptLoad().log.length` > 0 → a previous run's corpus is unsaved: write it to dev/ first, then `__ptClear()`.
+//      c. `__ptUseModel("gemini","gemini-3.7-flash")` — the playtest default, in memory only (the owner's choice is kept).
+//      d. `__ptStart(char, "gritty", "abercrombie")` in place of step 2's startGame — char._campName must start with
+//         "PlaytestHarness" (or "modelTestCampaign_", after setting pendingBlueprint). It records the campaign's id and
+//         refuses while a previous signed-in run's campaign is undeleted.
+//      e. drive turns (step 4); persist the corpus and write the audit; then `await __ptDeleteRun()` deletes exactly the
+//         run's campaign — this device's copy, then the cloud copy, checked gone. Its result goes in the audit.
+//
 // 2. Build a minimal valid v10 character and start the game directly (skips the 7-step wizard).
 //    Inspect AUTHORS / TONES / CLASS_BIBLE (via classDefs()) / ANCS live in the page to pick valid ids. Example:
 //      (function(){
@@ -106,7 +118,51 @@ function __ptChoose(acts, st, prev){
   if(!pool.length)return {text:acts[0]||"I take stock of my surroundings and press on.",kind:"random",skipped:skipped};
   return {text:pool[Math.floor(Math.random()*pool.length)],kind:"random",skipped:skipped};
 }
-if(typeof module!=="undefined"&&module.exports)module.exports={choose:__ptChoose};
+// SIGNED-IN RUNS (server mode, owner 2026-09-30). The app now starts in server mode: a signed-in, entitled account's GM
+// calls ride the server gateway (gmViaServer, api.js) with the page's own provider and model, so a run needs no key. But
+// the sign-in and the owner's other campaigns live in the same browser storage, and every save syncs to the owner's
+// cloud. So a signed-in run never wipes storage, starts only a campaign whose name marks it as the harness's own, records
+// that campaign's id, and deletes exactly that campaign afterwards. The decisions are PURE and node-tested
+// (dev/tests-playtest-server-mode.js); the page wrappers below only gather facts and call the app's own functions.
+var __PT_CAMP_PREFIXES=["PlaytestHarness","modelTestCampaign_"];
+function __ptIsHarnessName(name){name=String(name||"");for(var i=0;i<__PT_CAMP_PREFIXES.length;i++)if(name.indexOf(__PT_CAMP_PREFIXES[i])===0)return true;return false;}
+// May a run start? env: {busy, viaServer (the app's own gmViaServer()), token, entitled, hasKey, serverMode}. The route is
+// the app's decision; this only refuses the routes that would fail every turn, and says what the OWNER must do — the
+// harness never handles credentials.
+function __ptPreflightVerdict(env){
+  env=env||{};
+  if(env.busy)return {ok:false,ask:"A GM turn is in flight in the preview — wait for it to finish."};
+  if(env.viaServer){
+    if(!env.token)return {ok:false,ask:"Sign in in the preview (File ▸ Account) — the harness never handles credentials."};
+    if(!env.entitled)return {ok:false,ask:"The signed-in account has no subscription, so the server would refuse every turn. Sign in with the owner account."};
+    return {ok:true,route:"server"};
+  }
+  if(env.hasKey)return {ok:true,route:"byok"};
+  return {ok:false,ask:env.serverMode?"Sign in in the preview (File ▸ Account), or paste a provider key via File ▸ 🧠 Language Model — the harness never handles credentials.":"Paste a provider key in the preview via File ▸ 🧠 Language Model — the harness never handles credentials."};
+}
+// What the run records about its campaign, or null when the new campaign cannot be confirmed (startGame refused, or the
+// active campaign is someone else's). A null record means the cleanup can never target anything.
+function __ptRunRecord(activeId,ws,campName){
+  if(!activeId||!ws||ws.campId!==activeId||ws.campName!==campName||!__ptIsHarnessName(campName))return null;
+  return {campId:activeId,campName:campName};
+}
+// Which campaign may the cleanup delete? Only the recorded run's own: on this device's list exactly once, under the
+// recorded harness name, with no turn in flight. Once the harness has removed this device's copy (localGone), a retry may
+// delete the cloud copy alone.
+function __ptCleanupPlan(meta,run,busy){
+  if(!run||!run.campId)return {ok:false,why:"no harness run is recorded, so nothing here is the harness's to delete"};
+  if(busy)return {ok:false,why:"a GM turn is in flight — wait for it"};
+  if(!__ptIsHarnessName(run.campName))return {ok:false,why:"the recorded campaign \""+run.campName+"\" is not a harness campaign"};
+  var hits=(meta||[]).filter(function(c){return c&&c.id===run.campId;});
+  if(hits.length>1)return {ok:false,why:"more than one campaign carries the run's id"};
+  if(hits.length===1){
+    if(hits[0].campName!==run.campName)return {ok:false,why:"the campaign with the run's id is named \""+hits[0].campName+"\", not \""+run.campName+"\" — refusing"};
+    return {ok:true,id:run.campId,local:true};
+  }
+  if(run.localGone)return {ok:true,id:run.campId,local:false};
+  return {ok:false,why:"the run's campaign is not on this device's list, and the harness never removed it — refusing to delete by id alone"};
+}
+if(typeof module!=="undefined"&&module.exports)module.exports={choose:__ptChoose,isHarnessName:__ptIsHarnessName,preflightVerdict:__ptPreflightVerdict,runRecord:__ptRunRecord,cleanupPlan:__ptCleanupPlan};
 if(typeof window!=="undefined")(function(){
   var PT_KEY="tnd_pt_corpus_v1";
   // DURABILITY (a test run must ALWAYS be auditable — its evidence must survive the tab). The corpus
@@ -120,7 +176,8 @@ if(typeof window!=="undefined")(function(){
     catch(e){ try{ window.__pt.raw=window.__pt.raw.slice(-40); localStorage.setItem(PT_KEY, JSON.stringify(window.__pt)); }catch(e2){} }
   }
   window.__ptSave=persist; window.__ptLoad=load;
-  window.__ptClear=function(){window.__pt={log:[],errors:[],raw:[]};try{localStorage.removeItem(PT_KEY);}catch(e){}return "cleared";};
+  /* a signed-in run's record survives a clear until its campaign is deleted: it is the only pointer the cleanup trusts */
+  window.__ptClear=function(){var keep=window.__pt&&window.__pt.run&&window.__pt.run.route==="server"&&!window.__pt.run.deleted?window.__pt.run:null;window.__pt={log:[],errors:[],raw:[]};if(keep)window.__pt.run=keep;try{localStorage.removeItem(PT_KEY);if(keep)persist();}catch(e){}return keep?"cleared — the undeleted signed-in run's record is kept (campaign "+keep.campId+"): run __ptDeleteRun() before the next start":"cleared";};
   // Bake in raw-GM-response capture (the tag-level audit source: [SPELL_USED:]/[COMBAT_*:]/[QUEST:]…) so
   // EVERY run records it by default — wrap logTranscript once, idempotently, and persist on each capture.
   if(!window.__ptRawPatched && typeof logTranscript==="function"){
@@ -204,6 +261,66 @@ if(typeof window!=="undefined")(function(){
       }
     }
     return {count: window.__pt.log.length, turn: worldState.turn, errors: window.__pt.errors.length};
+  };
+  // ── signed-in runs (see the block above __ptIsHarnessName) ──
+  function currentModel(){return (providerModels&&providerModels[activeProvider])||(PROVIDERS[activeProvider]&&PROVIDERS[activeProvider].defaultModel)||null;}
+  // Facts → the pure verdict. Refreshes the account readout first (a read); changes nothing else.
+  window.__ptPreflight=async function(){
+    var sa=(typeof storageAdapter!=="undefined")?storageAdapter:null;
+    var env={serverMode:!!(sa&&sa.isServerMode()),token:!!(sa&&sa.hasToken()),busy:isBusy()};
+    if(env.serverMode&&env.token&&typeof sa.fetchAccount==="function")await new Promise(function(r){sa.fetchAccount(function(){r();});});
+    env.entitled=!!(typeof serverAccount!=="undefined"&&serverAccount&&serverAccount.entitled);
+    env.viaServer=(typeof gmViaServer==="function")&&gmViaServer();
+    env.hasKey=!!((typeof providerKeys!=="undefined"&&providerKeys[activeProvider])||(typeof apiKey!=="undefined"&&apiKey));
+    env.provider=activeProvider;env.model=currentModel();
+    var v=__ptPreflightVerdict(env);for(var k in v)env[k]=v[k];
+    return env;
+  };
+  // The run's model, IN MEMORY ONLY: the owner's saved choice is never written, and a reload restores it.
+  window.__ptUseModel=function(provider,model){
+    if(typeof PROVIDERS==="undefined"||!PROVIDERS[provider])return "refused: unknown provider "+provider;
+    var was={provider:activeProvider,model:providerModels[provider]||null};
+    activeProvider=provider;providerModels[provider]=model;
+    return {now:{provider:provider,model:model},was:was};
+  };
+  // Start the run's campaign and record it. The name must mark it as the harness's own: the cleanup deletes nothing else.
+  window.__ptStart=function(char,toneId,authorId){
+    var prev=window.__pt.run;
+    if(prev&&prev.route==="server"&&!prev.deleted)return "refused: the previous signed-in run's campaign ("+prev.campName+", "+prev.campId+") is still in the cloud — run __ptDeleteRun() first";
+    if(isBusy())return "refused: a GM turn is in flight";
+    if(!char||!__ptIsHarnessName(char._campName))return "refused: char._campName must start with "+__PT_CAMP_PREFIXES.join(" or ")+" (the cleanup deletes only harness campaigns)";
+    var tone=TONES.filter(function(t){return t.id===toneId;})[0];if(!tone)return "refused: unknown tone "+toneId;
+    startGame(char,tone.nm,tone.vc,authorId||"");
+    var rec=__ptRunRecord(getActiveCampId(),(typeof worldState!=="undefined")?worldState:null,char._campName);
+    if(!rec)return "refused: the new campaign could not be confirmed — nothing recorded, so the cleanup can never target anything";
+    rec.startedAt=Date.now();rec.ver=APP_VERSION;rec.route=((typeof gmViaServer==="function")&&gmViaServer())?"server":"byok";
+    rec.provider=activeProvider;rec.model=currentModel();
+    window.__pt.run=rec;persist();
+    return rec;
+  };
+  // Delete the run's own campaign. This device's copy goes FIRST, through the app's own teardown: with the campaign out of
+  // memory and storage, nothing can push it again. Then the cloud copy — verified gone, because the server keeps no
+  // tombstone and a push already in flight could re-create it. opts.waitMs: the settle before each check (tests use 1).
+  window.__ptDeleteRun=async function(opts){
+    var waitMs=(opts&&opts.waitMs)||5000,run=window.__pt.run;
+    var plan=__ptCleanupPlan(getCampMeta(),run,isBusy());
+    if(!plan.ok)return {deleted:false,why:plan.why};
+    var id=plan.id,sa=(typeof storageAdapter!=="undefined")?storageAdapter:null;
+    if(plan.local){
+      if(getActiveCampId()===id){removeActiveCampaignLocally(id);var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");if(sn)sn.innerHTML="";if(st)st.innerHTML="";if(typeof showChar==="function")showChar();}
+      else deleteCampaign(id);
+    }
+    run.localGone=true;persist();
+    if(!sa||!sa.isServerMode()||!sa.hasToken()){run.deleted={at:Date.now(),cloud:"not signed in — this device only"};persist();return {deleted:true,id:id,cloud:run.deleted.cloud};}
+    async function cloudHas(){var r=await fetch(sa.getServerUrl()+"/api/campaigns",{headers:sa.authHeader()});if(!r.ok)throw new Error("HTTP "+r.status);var l=await r.json();return Array.isArray(l)&&l.some(function(c){return c&&c.id===id;});}
+    for(var attempt=1;attempt<=3;attempt++){
+      var err=await new Promise(function(res){sa.deleteCampaignFromServer(id,function(e){res(e||null);});});
+      if(err&&campDeleteRemoteOutcome(err)==="failed")return {deleted:false,id:id,why:"the cloud delete failed ("+err+"); this device's copy is already gone — run __ptDeleteRun() again"};
+      await sleep(waitMs*attempt);
+      var still;try{still=await cloudHas();}catch(e){return {deleted:false,id:id,why:"could not check the cloud list ("+(e&&e.message)+") — run __ptDeleteRun() again"};}
+      if(!still){run.deleted={at:Date.now(),cloud:"deleted, checked absent",attempts:attempt};persist();return {deleted:true,id:id,cloud:run.deleted.cloud,attempts:attempt};}
+    }
+    return {deleted:false,id:id,why:"the cloud copy came back after three deletes — something is still pushing it; stop and investigate"};
   };
   return "harness installed (durable: corpus persists to localStorage['"+PT_KEY+"'] every turn + every GM response; recover with __ptLoad())";
 })();
