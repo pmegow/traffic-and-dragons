@@ -28966,4 +28966,34 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return JSON.stringify(c.inventory)==='["Rope"]'?true:"both items leave: "+JSON.stringify(c.inventory);
   });
 
+
+  section("#513 the scene turns over when the party arrives");
+  function w512(){villageEF();worldState.world.sublocation="the Village Hall";worldState.turn=49;sceneRefsEnsure();
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";memory.npcs["Frizwick"].lastSeenTurn=3;
+    memory.npcs["Daeris"].lastSeenAt="The Village|the tavern";delete memory.npcs["Daeris"].lastSeenTurn;worldState.turn=50;}
+  t("#513 the repro: a silent arrival at the tavern does not make an old sighting present — the notes and the buttons read the new scene, not the Hall's",function(){
+    w512();quiet(function(){applyMuts("You cross the square and push the tavern door open. The room is empty. [SUBLOCATION:the tavern]");});
+    var f=worldState.sceneRefs.active;
+    if(locResolve(String(f.node))!==locResolve(currentNodeKey()))return "the frame still stands at "+f.node+" after the arrival";
+    if(scenePresentNow("Frizwick"))return "Frizwick (last seen there at t3) reads as present";
+    if(scenePresentNow("Daeris"))return "Daeris (an undated sighting) reads as present";
+    var loc=buildSceneManifest().local||[];
+    if(loc.length)return "the manifest the buttons read names "+loc.join(", ");
+    var n=String(quiet(function(){return buildEngineNotes();}).r||"");
+    return /SMALL TALK[^\]]*(Frizwick|Daeris)/.test(n)?"the next SMALL TALK note names an absent resident: "+n.slice(0,400):true;
+  });
+  t("#513 a world without scene refs (a save from before #168) is not given them by a reply: its summaries stay legacy-trusted",function(){
+    villageEF();delete worldState.sceneRefs;worldState.turn=50;
+    quiet(function(){applyMuts("You walk to the tavern. [SUBLOCATION:the tavern] [SAY:Frizwick]\"Evening.\"");});
+    return worldState.sceneRefs===undefined?true:"a reply created scene refs: "+JSON.stringify(worldState.sceneRefs).slice(0,200);
+  });
+  t("#513 someone who speaks on arrival is present at once, and the departing scene's evidence is sealed for the summary, not lost",function(){
+    w512();quiet(function(){applyMuts("A hooded figure watches from the corner. [SCENE_REF:h1|hooded figure|observed]");});
+    var hall=worldState.sceneRefs.active;if(!(hall.actors||[]).length)return "fixture: the Hall frame holds an actor";
+    worldState.turn=51;
+    quiet(function(){applyMuts("[SUBLOCATION:the tavern] [SAY:Frizwick]\"You took your time.\"");});
+    if(!scenePresentNow("Frizwick"))return "the speaker is present where the reply ends";
+    return (worldState.sceneRefs.sealed||[]).some(function(fr){return fr.node===hall.node;})?true:"the Hall's frame (with its actor) must be sealed, not dropped";
+  });
+
 }

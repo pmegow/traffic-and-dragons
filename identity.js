@@ -1051,6 +1051,11 @@ function derivePresenceFromResponse(text,R){
     if(!wn&&!wm)continue;if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(w))continue;if((wn&&typeof npcIsDead==="function"&&npcIsDead(wn))||(wm&&wm.dead))continue;wl.push(w);labels.push(w+" (spoke, not in cast)");}
   if(wl.length)worldState.castSpeakerPing={turn:(R&&R.turn!=null)?R.turn:worldState.turn,names:wl.slice(0,6)};
   if(labels.length&&R&&R.muts)R.muts.push("Present: "+labels.join(", "));
+  /* #513: the scene frame turns over where the reply ENDS. It used to turn only when someone was observed or the next prompt
+     was built, and the next send builds its notes first: after a silent arrival "who is here" still read the departed scene,
+     so any old sighting at the new place counted (SMALL TALK asked absent residents to greet; the buttons offered them).
+     The departing frame is sealed exactly as the next send would seal it. */
+  if(worldState.sceneRefs&&typeof sceneRefsEnsure==="function")sceneRefsEnsure();
 }
 /* #194: the death gate's speech limb — transcript speaker maps (entry.sp) the engine wrote
    itself at narration time. This is NOT a prose scan and NOT RAG: the maps are structured,
