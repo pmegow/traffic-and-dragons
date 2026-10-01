@@ -37,12 +37,12 @@ prove("tag_table.js", [
     find: 'var _tpb=itemPairTake(R,"igHits",cIlm[2]);if(_tpb){', replace: 'var _tpb=null;if(_tpb){',
     mustFail: "a take from a companion whose loss misses" },
   { label: "the village mints coin for a sale of nothing",
-    find: 'if(typeof kindDef==="function"&&kindDef().tradeOnlyInShops){worldState.character.gold=Math.max(0,worldState.character.gold-R.goldIn);',
-    replace: 'if(false){worldState.character.gold=Math.max(0,worldState.character.gold-R.goldIn);',
+    find: 'if(R.goldIn>0&&typeof kindDef==="function"&&kindDef().tradeOnlyInShops){var _sSim=',
+    replace: 'if(false){var _sSim=',
     mustFail: "the village sale pair" },
   { label: "the adventure's missed sale is silent again",
-    find: 'else{R.muts.push("⚠ \'"+ilq.base+"\' is not on the sheet — coin kept");worldState.itemNotHeldPing={turn:R.turn,item:ilq.base};}',
-    replace: 'else{}',
+    find: 'if(R.goldIn>0){R.muts.push("⚠ \'"+ilq.base+"\' is not on the sheet — coin kept");worldState.itemNotHeldPing={turn:R.turn,item:ilq.base};}',
+    replace: 'if(R.goldIn>0){}',
     mustFail: "the adventure never withholds a reward" }
 ]);
 process.exit(code);

@@ -28923,4 +28923,47 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return o.camp==="The Long Road"&&o.campId===worldState.campId?true:"the outfit was left behind by the rename: "+JSON.stringify(o);
   });
 
+
+  section("#510 a withheld village sale takes nothing from the pack");
+  t("#510 the repro: one item held and one not — the held one stays, the coin goes back, and the GM's 'pack unchanged' is true (either tag order)",function(){
+    var orders=["[GOLD:+10][ITEM_LOST:Dagger][ITEM_LOST:Old boot]","[GOLD:+10][ITEM_LOST:Old boot][ITEM_LOST:Dagger]"],i;
+    for(i=0;i<orders.length;i++){
+      villageEF();var c=worldState.character;c.inventory=["Dagger","Lantern"];var g0=c.gold;
+      var q=quiet(function(){return applyMuts("You sell them to Frizwick at the counter. "+orders[i]);});
+      if(c.inventory.indexOf("Dagger")<0)return "order "+i+": the Dagger left the pack for nothing: "+JSON.stringify(c.inventory)+" "+JSON.stringify(q.r.muts);
+      if(c.gold!==g0)return "order "+i+": the coin must go back: "+g0+" -> "+c.gold;
+      var m=JSON.stringify(q.r.muts);
+      if(!/Sale withheld/.test(m)||!/Old boot/.test(m))return "order "+i+": the withheld sale names the missing item: "+m;
+      if(/-Dagger/.test(m))return "order "+i+": the summary must not say the Dagger left: "+m;
+      if(!worldState.tradeRefusedPing||!/Old boot/.test(worldState.tradeRefusedPing.reason))return "order "+i+": the GM is told why";
+    }
+    return true;
+  });
+  t("#510 a count the pack cannot cover refuses the sale whole: ten arrows held, twelve sold — all ten stay",function(){
+    villageEF();var c=worldState.character;c.inventory=["Arrow x10"];var g0=c.gold;
+    var q=quiet(function(){return applyMuts("[GOLD:+1][ITEM_LOST:Arrow x12]");});
+    if(c.inventory[0]!=="Arrow x10"||c.gold!==g0)return "the pack and the purse must be as before: "+JSON.stringify(c.inventory)+" gold "+c.gold;
+    var m=JSON.stringify(q.r.muts);return /Arrow x12. is more than the sheet holds/.test(m)?true:"a short count is said as one: "+m;
+  });
+  t("#510 the refused sale's items are misses for pairing: a gift riding with it does not mint the item for the companion",function(){
+    villageEF();var c=worldState.character;c.inventory=["Dagger"];
+    worldState.npcs.push({name:"Bram",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:3,inventory:[]}});
+    var q=quiet(function(){return applyMuts("[GOLD:+10][ITEM_LOST:Dagger][ITEM_LOST:Old boot][COMPANION_ITEM_GAINED:Bram|Dagger]");});
+    var b=wsNpcByName("Bram").charSheet.inventory;
+    if(b.indexOf("Dagger")>=0)return "the companion was given a Dagger that never left the hero: "+JSON.stringify(b)+" "+JSON.stringify(q.r.muts);
+    return c.inventory.indexOf("Dagger")>=0?true:"the hero keeps the Dagger";
+  });
+  t("#510 an ambiguous name in a village sale is said, and the sale is withheld whole",function(){
+    villageEF();var c=worldState.character;c.inventory=["Dagger (silver)","Dagger (bone)","Lantern"];var g0=c.gold;
+    var q=quiet(function(){return applyMuts("[GOLD:+12][ITEM_LOST:Lantern][ITEM_LOST:Dagger]");});
+    if(c.inventory.length!==3||c.gold!==g0)return "nothing leaves and no coin moves: "+JSON.stringify(c.inventory)+" gold "+c.gold;
+    var m=JSON.stringify(q.r.muts);return /Dagger.{0,4} is ambiguous/.test(m)?true:"the ambiguity is said: "+m;
+  });
+  t("#510 a sale the pack covers still lands whole: both items leave, the coin arrives",function(){
+    villageEF();var c=worldState.character;c.inventory=["Dagger","Lantern","Rope"];var g0=c.gold;
+    var q=quiet(function(){return applyMuts("[GOLD:+10][ITEM_LOST:Dagger][ITEM_LOST:Lantern]");});
+    if(c.gold!==g0+10)return "the coin must arrive: "+g0+" -> "+c.gold+" "+JSON.stringify(q.r.muts);
+    return JSON.stringify(c.inventory)==='["Rope"]'?true:"both items leave: "+JSON.stringify(c.inventory);
+  });
+
 }
