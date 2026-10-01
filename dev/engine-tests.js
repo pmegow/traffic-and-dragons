@@ -28781,4 +28781,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return npcSexOfPronouns("he/they")===null&&npcSexOfPronouns("she/her")==="f"&&npcSexOfPronouns("")===null?true:"pronouns: a mixed pair and nothing at all are no claim";
   });
 
+
+  section("#505 a sheeted NPC dies by the standing tag");
+  function w505(party){makeWorld();worldState.turn=9;delete worldState.kind;
+    worldState.npcs.push({name:"Bram",status:"watching",rel:"former companion",partyMember:!!party,pronouns:"he/him",met:1,portrait:null,aliases:[],
+      charSheet:{name:"Bram",cls:"Warrior",level:3,trait:"Blunt and loyal",inventory:[],abilities:[]}});
+    memory.npcs.Bram={attitude:"",knowledge:[],events:[],aliases:[]};return wsNpcByName("Bram");}
+  t("#505 the repro: a former companion with a sheet, [NPC:Bram|dead|former companion], is recorded dead (the #460 mood trim had wiped the death first)",function(){
+    var n=w505(false),r=quiet(function(){return applyMuts("The ogre's club falls. [NPC:Bram|dead|former companion]");});
+    if(n.dead!==9||!npcIsDead(n))return "not recorded dead: dead="+n.dead+" status="+JSON.stringify(n.status);
+    if(memory.npcs.Bram.dead!==9)return "the memory side must mirror the stamp";
+    var muts=JSON.stringify(r.r.muts);
+    if(/mood kept/.test(muts))return "a death is not a mood — the trim must not touch it: "+muts;
+    return /Bram: dead \(t9\)/.test(muts)?true:"the summary says it: "+muts;
+  });
+  t("#505 every death word the engine knows lands on a sheeted NPC, whole ('slain, bleeding into the snow' is kept as written)",function(){
+    var w=["slain","deceased","perished","slain, bleeding into the snow"],i;
+    for(i=0;i<w.length;i++){var n=w505(false);quiet(function(){applyMuts("[NPC:Bram|"+w[i]+"|former companion]");});
+      if(n.dead!==9)return "'"+w[i]+"' did not land";if(n.status!==w[i])return "'"+w[i]+"' stored as "+JSON.stringify(n.status);}
+    return true;
+  });
+  t("#505 in the Village a sheeted resident's death is refused by the peace rule, said as a refusal (it used to vanish as 'mood kept')",function(){
+    villageEF();var f=wsNpcByName("Frizwick");f.charSheet.trait="Sharp-tongued and quick";f.status="pouring ale";
+    var r=quiet(function(){return applyMuts("[NPC:Frizwick|dead|friend]");});
+    if(f.dead||npcIsDead(f))return "the village is under the peace rule — no death lands: dead="+f.dead+" status="+JSON.stringify(f.status);
+    var muts=JSON.stringify(r.r.muts);
+    if(/mood kept/.test(muts))return "a refused death is a refusal, not a mood note: "+muts;
+    return /Harm refused/.test(muts)?true:"the peace rule says it: "+muts;
+  });
+  t("#505 a living sheeted NPC's disposition words are still dropped (#460 holds), and 'dead tired' is still not a death",function(){
+    var n=w505(false);quiet(function(){applyMuts("[NPC:Bram|cheerful, sweeping the step|former companion]");});
+    if(n.status!=="sweeping the step")return "the #460 trim must still run on a living mood: "+JSON.stringify(n.status);
+    n=w505(false);quiet(function(){applyMuts("[NPC:Bram|dead tired, mending a net|former companion]");});
+    return !n.dead&&n.status==="mending a net"?true:"'dead tired' is a mood, trimmed as one: dead="+n.dead+" status="+JSON.stringify(n.status);
+  });
+
 }
