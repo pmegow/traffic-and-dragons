@@ -31,9 +31,4 @@ prove("helpers.js", [
     find: "if(oc&&oc.unit)r.sellGp=oc.unitGp;else r.offerWords=true;}", replace: "if(oc&&oc.unit)r.sellGp=oc.unitGp;}",
     mustFail: "an offer in words is unsellable at the counter" }
 ]);
-prove("game.js", [
-  { label: "the sell rung reads stored wants",
-    find: "var _wlv=(_tk&&_tk.sellRung&&_vt&&_vt.ok&&typeof nodeWantedLive===\"function\")?nodeWantedLive(_vt.node):[];", replace: "var _wlv=(_tk&&_tk.sellRung&&_vt&&_vt.ok&&_vt.node.wanted)||[];",
-    mustFail: "the fourth button's sell rung offers only a live want" }
-]);
 process.exit(code);

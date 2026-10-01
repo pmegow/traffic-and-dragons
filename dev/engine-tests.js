@@ -24343,23 +24343,62 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();delete worldState.kind;worldState.character.gold=25;applyMuts("[GOLD:-5]");if(worldState.character.gold!==20)return "adventure gold must still move";
     return true;
   });
-  t("#6F6 the fourth button names both parties: the village buy rung reads 'Buy the X (price) from Y.' only in a shop with a keeper present; a village-only sell rung offers 'Sell your X to Y (offer).'; the adventure ladder is byte-identical",function(){
-    villageEF();var c=worldState.character;c.hp=c.maxHp;c.inventory=["Longsword"];worldState.questLog=[];worldState.turn=3;
+  t("#496 in a village shop where trade is possible the fourth button is ALWAYS \"Shop at <place>.\" and opens the counter: it outranks healing, a quest offer and the village rung; no keeper, the Hall and the adventure get no Shop; a tap or a hold opens the counter instead of sending a turn",function(){
+    /* Owner 2026-09-30: "We need an easily accessible 'shop' button. Maybe make a rule that the fourth button is always 'shop $location'?"
+       Ruled the same day: the fourth button, always; it replaces the village's Buy and Sell buttons (#6 F6), whose choices are inside
+       the counter (#407). The counter used to open only from a small row in the inventory panel. */
+    villageEF();var c=worldState.character,a;c.hp=c.maxHp;c.inventory=["Longsword"];worldState.questLog=[];worldState.turn=3;
     applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
-    var a=engineFourthAction();if(!a||a.kind!=="buy"||!/^Buy the Smoked fish \(1 gp\) from Frizwick\.$/.test(a.text))return "the village buy rung must name the keeper: "+JSON.stringify(a);
-    memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");var b=engineFourthAction();if(b&&b.kind==="buy")return "no keeper present, no buy rung: "+JSON.stringify(b);
-    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";applyMuts("[WANTED:Longsword|4 gp|Frizwick]");c.gold=0;
-    var s=engineFourthAction();if(!s||s.kind!=="sell"||!/^Sell your Longsword to Frizwick \(4 gp\)\.$/.test(s.text))return "the sell rung must offer the wanted item to the keeper: "+JSON.stringify(s);
-    worldState.world.sublocation="the Village Hall";var h=engineFourthAction();if(h&&(h.kind==="buy"||h.kind==="sell"))return "no trade rung at the Hall: "+JSON.stringify(h);
+    a=engineFourthAction();if(!a||a.kind!=="shop"||a.text!=="Shop at the tavern.")return "in a shop with its keeper present the button is Shop: "+JSON.stringify(a);
+    memory.map.nodes["The Village|the tavern"].wares=[];a=engineFourthAction();if(!a||a.kind!=="shop")return "an empty shelf still opens the counter (the hero may sell): "+JSON.stringify(a);
+    /* always: it outranks the hurt hero's potion and rest, and an offered quest */
+    worldState.itemBible={"healing potion":{category:"consumable",effect:"Restores 2d4+2 hit points.",uses:"single use"}};c.inventory=["Longsword","Healing potion"];c.hp=c.maxHp-1;
+    a=engineFourthAction();if(!a||a.kind!=="shop")return "hurt with a potion: still Shop: "+JSON.stringify(a);
+    c.hp=1;a=engineFourthAction();if(!a||a.kind!=="shop")return "badly hurt: still Shop: "+JSON.stringify(a);
+    c.hp=c.maxHp;worldState.questLog=[{title:"The Bell Below",status:"offered",desc:"",objectives:[],started:1}];
+    a=engineFourthAction();if(!a||a.kind!=="shop")return "an offered quest: still Shop: "+JSON.stringify(a);
+    worldState.questLog=[];for(var tn=2;tn<=5;tn++){worldState.turn=tn;a=engineFourthAction();if(!a||a.kind!=="shop")return "every turn, not every other: turn "+tn+" "+JSON.stringify(a);}
+    /* the click: decided against the LIVE state, so a rebuilt or stale button behaves */
+    if(typeof engineActionOpener!=="function")return "engineActionOpener missing";
+    if(engineActionOpener("Shop at the tavern.")!=="showShopModal")return "the Shop button must open the counter: "+engineActionOpener("Shop at the tavern.");
+    if(engineActionOpener("Ask Frizwick about the fish.")!==null)return "an ordinary suggestion opens nothing";
+    var opened=[],sent=[],_il=(typeof invLedgerOpen!=="undefined")?invLedgerOpen:undefined,_sa=sendAction;invLedgerOpen=function(n){opened.push(n);return true;};sendAction=function(t){sent.push(t);};
+    try{
+      var btn={getAttribute:function(k){return k==="data-action"?"Shop at the tavern.":null;}};
+      sendSuggestedAction(btn,{});sendSuggestedAction(btn,{ctrlKey:true});
+      if(opened.join(",")!=="showShopModal,showShopModal"||sent.length)return "a tap and a Ctrl-click must both open the counter and send nothing: opened "+JSON.stringify(opened)+" sent "+JSON.stringify(sent);
+      /* no keeper in the shop: no Shop button, and the old button text is an ordinary action again. A ware is on the shelf, so a
+         returning buy rung would show itself here. */
+      applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");
+      a=engineFourthAction();if(a&&(a.kind==="shop"||a.kind==="buy"||a.kind==="sell"))return "no keeper present: no trade button: "+JSON.stringify(a);
+      if(engineActionOpener("Shop at the tavern.")!==null)return "a stale Shop button must not open a counter nobody stands behind";
+      opened.length=0;sendSuggestedAction(btn,{ctrlKey:true});if(opened.length||sent.length!==1||!/hop at the tavern.$/.test(sent[0]))return "a stale Shop button sends its text like any suggestion: opened "+JSON.stringify(opened)+" sent "+JSON.stringify(sent);
+    }finally{invLedgerOpen=_il;sendAction=_sa;}
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";worldState.world.sublocation="the Village Hall";
+    a=engineFourthAction();if(a&&(a.kind==="shop"||a.kind==="buy"||a.kind==="sell"))return "no trade button at the Hall: "+JSON.stringify(a);
+    /* a kind that trades only in shops never gets the adventure's Buy button — even with a ware on the village's own record (a
+       pre-#6 save), its seller in the square, coin in the purse and nobody left to call on */
+    worldState.world.sublocation=null;memory.npcs["Frizwick"].lastSeenAt="The Village";
+    memory.map.nodes["The Village"].wares=[{item:"Old stock",price:"1 gp",note:"sold by Frizwick",t:worldState.turn,min:(typeof clockNow==="function")?clockNow():0}];
+    var _vrg=villageRung;villageRung=function(){return null;};
+    try{a=engineFourthAction();}finally{villageRung=_vrg;}
+    if(a&&a.kind==="buy")return "a kind that trades only in shops must never show the adventure's Buy button: "+JSON.stringify(a);
+    memory.map.nodes["The Village"].wares=[];
+    if(suggestionTitle("Shop at the tavern.",{kind:"shop",text:"Shop at the tavern."})!=="Tap to open"||suggestionTitle("Look around.",{kind:"shop",text:"Shop at the tavern."})!=="Tap to edit · hold or Ctrl-click to send"||suggestionTitle("Look around.",null)!=="Tap to edit · hold or Ctrl-click to send")return "the tooltip must say what a tap does";
+    /* the hold: the long-press handler asks the same question (a DOM-wiring file, so pinned at the source) */
+    var ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8");
+    if(ub.indexOf("var _op=engineActionOpener(a);if(_op){invLedgerOpen(_op);return;}")<0)return "a hold on the Shop button must open the counter too (ui-boot.js long-press)";
+    /* the adventure: no counter, no Shop; its buy text and its ladder are unchanged */
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";var ac=worldState.character;ac.hp=ac.maxHp;ac.inventory=["Longsword"];ac.gold=10;worldState.questLog=[];worldState.turn=3;
     memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};memory.map.nodes["Sandpoint|the market"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null};
     worldState.npcs.push({name:"Ameiko",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Ameiko"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint|the market"};
     applyMuts("[WARES:Ale|1 gp|Ameiko][WANTED:Longsword|4 gp|Ameiko]");
     var adv=engineFourthAction();if(!adv||adv.kind!=="buy"||adv.text!=="Buy the Ale (1 gp).")return "the adventure buy text must not change: "+JSON.stringify(adv);
-    ac.gold=0;var adv2=engineFourthAction();if(adv2&&adv2.kind==="sell")return "the adventure ladder has no sell rung";
+    if(engineActionOpener("Buy the Ale (1 gp).")!==null)return "an adventure button opens nothing";
+    ac.gold=0;var adv2=engineFourthAction();if(adv2&&(adv2.kind==="sell"||adv2.kind==="shop"))return "the adventure ladder has no sell or shop rung";
     return true;
   });
-  t("#492 the Buy button names the first ware the hero does not hold: a just-bought item is not offered again, and when every ware is held the buy rung steps aside; the village rung follows the same rule",function(){
+  t("#492 the Buy button names the first ware the hero does not hold: a just-bought item is not offered again, and when every ware is held the buy rung steps aside",function(){
     /* Playtest v1.1078, 2 of 2 runs. The hero bought the dagger at t9 and the button offered "Buy the Dagger (2 gp)" again at
        t10 while leather armor was also for sale; in the second run it was the buckler. The rung named the first ware on the
        list without looking in the pack. The button's wording and triggers are owner-validated and unchanged. */
@@ -24376,20 +24415,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     a=engineFourthAction();if(!a||a.text!=="Buy the Dagger (2 gp).")return "a different item that merely starts with the ware's name is not the ware: "+JSON.stringify(a);
     if(typeof firstWareNotHeld!=="function")return "the picker must be ONE shared function (firstWareNotHeld) for both branches";
     if(firstWareNotHeld([],["x"])!==null||firstWareNotHeld([{item:"Ale"}],[]).item!=="Ale"||firstWareNotHeld([{item:"Ale"}],null).item!=="Ale")return "the picker's edges: no wares, an empty pack, a missing pack";
-    /* the village rung: same rule, the keeper still named */
-    villageEF();c=worldState.character;c.hp=c.maxHp;c.inventory=["Longsword"];worldState.questLog=[];worldState.turn=3;
-    applyMuts("[WARES:Smoked fish|1 gp|Frizwick][WARES:Rye loaf|1 gp|Frizwick]");
-    a=engineFourthAction();if(!a||a.kind!=="buy"||a.text!=="Buy the Smoked fish (1 gp) from Frizwick.")return "village, nothing held: "+JSON.stringify(a);
-    c.inventory.push("Smoked fish");
-    a=engineFourthAction();if(!a||a.kind!=="buy"||a.text!=="Buy the Rye loaf (1 gp) from Frizwick.")return "village: the fish is in the pack, so the button must name the loaf: "+JSON.stringify(a);
-    c.inventory.push("Rye loaf");
-    a=engineFourthAction();if(a&&a.kind==="buy")return "village: every ware is held, no buy button: "+JSON.stringify(a);
-    /* a shop whose every ware is held behaves like a shop with nothing for sale: the village rung is not made to alternate with a buy that will not come */
-    var vt=villageTradeContext(),held=[],none=[],tn,saved=vt.node.wares;
-    for(tn=2;tn<=5;tn++){worldState.turn=tn;held.push(JSON.stringify(engineFourthAction()));}
-    vt.node.wares=[];for(tn=2;tn<=5;tn++){worldState.turn=tn;none.push(JSON.stringify(engineFourthAction()));}vt.node.wares=saved;
-    if(held.join("|")!==none.join("|"))return "every ware held must read like nothing for sale, turn by turn: "+held.join(" | ")+" vs "+none.join(" | ");
-    if(held.every(function(x){return x==="null";}))return "the fixture must offer a village rung here, or the alternation is not exercised: "+held.join(" | ");
+    /* #496: the village has no buy rung any more (the Shop button opens the counter), so this rule is the adventure's alone */
     return true;
   });
   t("#6F7 suggestions obey the same rule: the validator rejects a buy/sell/pay suggestion outside a shop with a keeper in the village (trade-outside-shop); the adventure keeps buy-without-seller",function(){
@@ -24486,12 +24512,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(carRecapText()!=="Previously: The road climbed. You are at Sandpoint.")return "the adventure recap changed: "+carRecapText();
     return true;
   });
-  t("#6D1 the village rung sits ABOVE buy: with coin and a stocked shop in the scene the fourth button still offers a resident call or a commons look-in first, rotating by turn, never the resident already in the scene; the adventure ladder is unchanged",function(){
+  t("#6D1 the village rung sits ABOVE buy: with coin and a stocked shop in the scene the fourth button offers a resident call or a commons look-in, rotating by turn, never the resident already in the scene — except in a shop with its keeper, where the Shop button leads (#496); the adventure ladder is unchanged",function(){
     villageCD();var c=worldState.character;c.hp=c.maxHp;c.inventory=[];worldState.questLog=[];worldState.world.sublocation="the tavern";applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
-    var a=engineFourthAction();if(!a||a.kind!=="village")return "the village rung must outrank buy: "+JSON.stringify(a);
+    var sh=engineFourthAction();if(!sh||sh.kind!=="shop")return "in the tavern with its keeper the Shop button leads (#496): "+JSON.stringify(sh);
+    worldState.world.sublocation=null;memory.npcs["Frizwick"].lastSeenAt="The Village";memory.npcs["Daeris"].lastSeenAt="The Village";/* out in the square, the two residents alongside: no counter here, so the village rung has the slot */
+    var a=engineFourthAction();if(!a||a.kind!=="village")return "outside a shop the village rung holds the slot: "+JSON.stringify(a);
     if(/Frizwick|Daeris/.test(a.text)&&!/Call on/.test(a.text))return "a resident call reads 'Call on …': "+a.text;
     if(/Call on (Frizwick|Daeris)/.test(a.text))return "never call on a resident already in the scene: "+a.text;
-    worldState.turn=13;var b=engineFourthAction();if(!b||b.kind!=="buy")return "when a purchase is possible right here the two rungs alternate — the odd turn is commerce: "+JSON.stringify(b);
+    worldState.turn=13;var b=engineFourthAction();if(!b||b.kind!=="village")return "the village rung no longer takes turns with a buy rung — every turn is its own (#496): "+JSON.stringify(b);
     worldState.turn=14;var b2=engineFourthAction();if(!b2||b2.kind!=="village"||b2.text===a.text)return "the village rung rotates its offer by turn: "+JSON.stringify([a,b2]);
     memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");worldState.turn=14;var seen={},i;for(i=0;i<6;i++){worldState.turn=14+i;var x=engineFourthAction();if(x&&x.kind==="village")seen[x.text]=1;}
     if(!Object.keys(seen).some(function(k){return /Call on Daeris/.test(k);}))return "an absent resident must come up for a call within a few turns: "+JSON.stringify(seen);
@@ -28130,14 +28158,6 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(/WANTED HERE/.test(buildGeoBlock()))return "the geo block serves an expired want";
     var ring=shopTradeCatalog().sell.filter(function(r){return r.name==="Warded ring";})[0];
     return (ring&&!ring.wanted)?true:"the counter pays no expired offer: "+JSON.stringify(ring);
-  });
-  t("#481 D4 the fourth button's sell rung offers only a live want",function(){
-    villageEF();var c=worldState.character;c.hp=c.maxHp;c.inventory=["Longsword"];worldState.questLog=[];worldState.turn=3;c.gold=0;
-    applyMuts("[WANTED:Longsword|4 gp|Frizwick]");var s=engineFourthAction();if(!s||s.kind!=="sell")return "fixture: the live want offers the sale: "+JSON.stringify(s);
-    /* beside a live want an expired one is reachable (a live want makes it a commerce turn): the rung must offer the live one */
-    c.inventory=["Longsword","Old boots"];applyMuts("[WANTED:Old boots|2 gp|Frizwick]");
-    memory.map.nodes["The Village|the tavern"].wanted.forEach(function(w){if(w.item==="Longsword")w.min=clockNow()-8*1440;});
-    var s2=engineFourthAction();return (s2&&s2.kind==="sell"&&/Old boots/.test(s2.text))?true:"only the live want is offered: "+JSON.stringify(s2);
   });
 
   // ── #481 D8 (audit 2026-09-29, Fable-approved): the undefined-item question kept ONE slot per reply (the last item won),

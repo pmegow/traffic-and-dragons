@@ -297,7 +297,9 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
       timer=setTimeout(function(){
         timer=null;if(!armed)return;var b=armed;armed=null;b.classList.remove("qa-hold");
         _qaSuppressUntil=Date.now()+900;          // swallow the trailing click
-        var a=b.getAttribute("data-action");if(a&&!busy)sendAction(toFirstPerson(a));
+        var a=b.getAttribute("data-action");if(!a)return;
+        var _op=engineActionOpener(a);if(_op){invLedgerOpen(_op);return;}/* #496: a hold on the Shop button opens the counter too */
+        if(!busy)sendAction(toFirstPerson(a));
       },500);
     });
     area.addEventListener("pointermove",function(e){if(timer&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))clear();});

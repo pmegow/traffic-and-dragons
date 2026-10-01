@@ -312,7 +312,7 @@ var CAMPAIGN_KINDS={
        "no override": the adventure prompt stays byte-identical (pinned). */
     ruleOverrides:null,preamble:null,chapterNote:"",tagDocNote:"",noCombat:false,combatRefusal:"",noHarm:false,harmRefusal:"",whisperSubject:null,montage:true,wildcard:true,whisperResidentPool:false,smallTalk:false,
     /* phase E/F fields — the adventure keeps the world-node market, toggle item rows and the shipped buy rung */
-    stashQuantities:false,tradeOnlyInShops:false,waresPerShop:false,pinPrices:false,sellRung:false,shopWords:null,hallWords:null,placeCanon:null,/* #481 A1: no kind canonicalisers — the place resolver's identity and case/article steps only */
+    stashQuantities:false,tradeOnlyInShops:false,waresPerShop:false,pinPrices:false,shopWords:null,hallWords:null,placeCanon:null,/* #481 A1: no kind canonicalisers — the place resolver's identity and case/article steps only */
     /* phase C/D/G/H — no override: the adventure recaps a chapter, its ladder goes straight to buy, it can be closed, its GM pays XP */
     returnGreeting:false,villageRung:false,residentExchange:false,roam:false,hall:false,xp:"gm",commons:null,recap:"chapter",closable:true,openingAsk:null,openingWeather:null},
   village:{label:"Village",skeleton:false,swapDemotesTo:"resident",swapHandoff:false,populateFromLibrary:true,
@@ -333,8 +333,8 @@ var CAMPAIGN_KINDS={
     whisperSubject:"small talk about the day — the weather, the hour, an errand, what someone is carrying or making, something that changed since the hero was last here — ",
     /* #6 D5 (owner field report 2026-09-16, "I can't walk across the street without being called out for a defining moment"): the street talks small; the past belongs to the Hall and to the player's asking. smallTalk swaps the whisper facts and the exchange seed from the residents' defining moments to today. */
     montage:false,wildcard:false,whisperResidentPool:true,smallTalk:true,
-    /* #6 phase E/F (Fable, 2026-09-12; list I in audits/RECORD_6_village_design.md). stashQuantities: item rows carry qty + provenance, two stay two, `taken` has no actor, auto-take only from the hero's own house. tradeOnlyInShops: [GOLD:] lands only in a shop with a keeper present (the trade gate, villageTradeContext). waresPerShop: [WARES:]/[WANTED:] file on the shop sub-location under WARES_CAP_SHOP. pinPrices: a ware with bible canon is recorded at canon; a re-stated ware keeps its first quote. sellRung: the fourth button's village-only sell rung. shopWords/hallWords: what makes a sub-location a shop (data, never a name check at a call site); a house (owner) and the Hall never are. */
-    stashQuantities:true,tradeOnlyInShops:true,waresPerShop:true,pinPrices:true,sellRung:true,
+    /* #6 phase E/F (Fable, 2026-09-12; list I in audits/RECORD_6_village_design.md). stashQuantities: item rows carry qty + provenance, two stay two, `taken` has no actor, auto-take only from the hero's own house. tradeOnlyInShops: [GOLD:] lands only in a shop with a keeper present (the trade gate, villageTradeContext). waresPerShop: [WARES:]/[WANTED:] file on the shop sub-location under WARES_CAP_SHOP. pinPrices: a ware with bible canon is recorded at canon; a re-stated ware keeps its first quote. (#496: the sellRung flag is retired with its rung — the fourth button opens the counter, where selling lives.) shopWords/hallWords: what makes a sub-location a shop (data, never a name check at a call site); a house (owner) and the Hall never are. */
+    stashQuantities:true,tradeOnlyInShops:true,waresPerShop:true,pinPrices:true,
     shopWords:/tavern|inn\b|smith|forge|trading post|trader|store|shop|market|stall|alchemist|apothecary|healer|guild|yard|handler|stable|bakery|baker|brewer|tailor|tanner|mill\b/i,
     hallWords:/village hall|\bthe hall\b/i,
     /* #481 A1: the place resolver's kind table, in precedence order (identity.js PLACE_CANONICALISERS) — was an if-chain
