@@ -1066,6 +1066,15 @@ var TTS = (function() {
   // exactly as before.
   var TTS_LADDER = ["gemini", "server", "piper", "native"];
   TTS_LADDER.unshift("inworld", "speechify");
+  // #498: did this read SKIP the server's tier? Only a read that landed BELOW it in the ladder did (piper, the device voice),
+  // and not when the device voice is the player's own choice. A paid voice sits above the tier: nothing was skipped. Returns
+  // the reason, or null. Pure. (The #90 check was `engine !== "server"`, written when that tier was the top of the ladder; the
+  // paid tiers above it made the line fire on every read, with a reason that never happened, into every bug report's crumbs.)
+  function _serverSkipWhy(engine, primary, serverErr, online) {
+    if (TTS_LADDER.indexOf(engine) <= TTS_LADDER.indexOf("server")) return null;
+    if (primary === "native") return null;
+    return serverErr || (online === false ? "navigator.onLine=false" : "availability re-check failed");
+  }
   ["inworld", "speechify"].forEach(function(id) {
     var m = VOICE_MODELS[id];
     CLOUD_READERS[id] = { label: m.label, depth: m.depth, prime: function() { return true; },
@@ -2099,10 +2108,11 @@ var TTS = (function() {
     // #90 (v1.436): a CONNECTED page reading below the server tier must be ATTRIBUTABLE — the
     // field lesson: silently-local reads (offline blip, degrade memo) climbed the governor budget
     // to the 🔋 latch with no signal anywhere. info + crumb, never a toast (D3 owns the toast).
-    if (engine !== "server" && typeof storageAdapter !== "undefined" &&
+    // #498: only a read that actually fell below the tier (_serverSkipWhy) — a voice the player chose skipped nothing.
+    var _skipWhy = _serverSkipWhy(engine, _voicePrimary(), _serverTtsErr, (typeof navigator !== "undefined") ? navigator.onLine : undefined);
+    if (_skipWhy && typeof storageAdapter !== "undefined" &&
         typeof storageAdapter.isServerMode === "function" && storageAdapter.isServerMode() &&
         typeof storageAdapter.hasToken === "function" && storageAdapter.hasToken()) {
-      var _skipWhy = _serverTtsErr || ((typeof navigator !== "undefined" && navigator.onLine === false) ? "navigator.onLine=false" : "availability re-check failed");
       console.info("[tts] connected page reading on '" + engine + "' (server tier skipped: " + _skipWhy + ")");
       if (typeof erCrumb === "function") erCrumb("tts-server-skip", engine + " " + String(_skipWhy).slice(0, 60));
     }
@@ -4563,6 +4573,7 @@ var TTS = (function() {
     // _textPrep). backdate() exists because the retry-window test can't wait a real 60s.
     _serverTest: {
       ok:       function() { return _serverTtsOk(); },
+      skipWhy:  _serverSkipWhy,                                            // #498
       degrade:  function(reason) { _serverTtsDegrade(reason); },
       backdate: function(ms) { _serverTtsErrAt -= ms; },
       reset:    function() { _serverTtsErr = ""; _serverTtsErrAt = 0; _serverTtsToasted = false; },

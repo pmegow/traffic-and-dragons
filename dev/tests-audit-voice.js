@@ -454,5 +454,55 @@ function sttFixture(options = {}) {
     assert.equal(timers.pending(300).length, 0, 'hideCarMode could not revoke the options poll');
   });
 
+  // ── #498 ────────────────────────────────────────────────────────────────────────────────
+  // Owner's console 2026-09-30, and every bug report filed with a paid voice (DOC/BUGS.md: "tts-server-skip speechify
+  // availability re-check failed", once per read): the #90 attribution line was written when the server's own tier was the top
+  // of the ladder, so it fired for ANY engine that was not "server" — and, with no failure on record, gave a reason that never
+  // happened. A voice the player chose skipped nothing.
+  function skipFixture(primary, keys) {
+    const f = ttsFixture({ primary });
+    const infos = [], crumbs = [];
+    f.c.console.info = (...v) => infos.push(v.join(' '));
+    f.c.erCrumb = (k, v) => crumbs.push(k + ' ' + v);
+    f.c.escHtml = s => String(s);                       // helpers.js is not in this fixture; the paid request builds its SSML with it
+    f.c.storageAdapter = { isServerMode: () => true, hasToken: () => true, authHeader: () => ({ Authorization: 'Bearer test-token' }) };
+    if (keys) f.c.store.set('tnd_voice_keys_v1', JSON.stringify(keys));
+    const skips = () => ({ lines: infos.filter(l => l.indexOf('server tier skipped') >= 0), crumbs: crumbs.filter(l => l.indexOf('tts-server-skip') === 0) });
+    return { f, skips };
+  }
+  await test('#498 a signed-in page reading on a voice the player chose reports no skipped server tier (no line, no crumb)', () => {
+    const paid = skipFixture('speechify', { speechify: 'test-key' });
+    assert.equal(paid.f.TTS.getEngine(), 'speechify', 'the fixture must read on the paid voice');
+    paid.f.TTS.speak('One sentence.');
+    assert.deepEqual(paid.skips(), { lines: [], crumbs: [] }, 'a paid voice sits ABOVE the server tier: nothing was skipped');
+    const own = skipFixture('native');
+    assert.equal(own.f.TTS.getEngine(), 'native');
+    own.f.TTS.speak('One sentence.');
+    assert.deepEqual(own.skips(), { lines: [], crumbs: [] }, 'the device voice by the player\'s own choice skipped nothing');
+  });
+  await test('#498 the rule: at or above the server tier nothing was skipped; below it the reason is the recorded failure, else offline, else the re-check', () => {
+    const w = ttsFixture().TTS._serverTest.skipWhy;
+    assert.equal(typeof w, 'function', 'the rule is one function (_serverSkipWhy)');
+    ['inworld', 'speechify', 'gemini', 'server'].forEach(e => assert.equal(w(e, e, 'HTTP 503', true), null, e + ' is at or above the server tier'));
+    assert.equal(w('piper', 'local', 'HTTP 503 from /api/tts', true), 'HTTP 503 from /api/tts', 'a recorded failure is the reason');
+    assert.equal(w('piper', 'local', '', false), 'navigator.onLine=false', 'offline is the reason when nothing is on record');
+    assert.equal(w('piper', 'local', '', true), 'availability re-check failed');
+    assert.equal(w('piper', 'speechify', '', true), 'availability re-check failed', 'a paid voice that fell to the device DID skip the server tier');
+    assert.equal(w('native', 'local', '', true), 'availability re-check failed', 'a read that fell all the way down is attributable');
+    assert.equal(w('native', 'native', 'HTTP 503', true), null, 'the device voice by choice skipped nothing, whatever the server did');
+  });
+  await test('#498 a read that FELL below the server tier still says so, with the recorded reason', () => {
+    const fell = skipFixture('local');
+    assert.equal(fell.f.TTS.getEngine(), 'server', 'signed in with the local model: the server tier is the choice');
+    fell.f.TTS._serverTest.degrade('HTTP 503 from /api/tts');
+    assert.notEqual(fell.f.TTS.getEngine(), 'server', 'a degraded server tier steers the read below it');
+    fell.f.TTS.speak('One sentence.');
+    const got = fell.skips();
+    assert.equal(got.lines.length, 1, 'one attribution line: ' + JSON.stringify(got));
+    assert.ok(/server tier skipped: HTTP 503 from \/api\/tts/.test(got.lines[0]), 'the line carries the recorded reason: ' + got.lines[0]);
+    assert.equal(got.crumbs.length, 1, 'one crumb for the report: ' + JSON.stringify(got));
+    assert.ok(/HTTP 503/.test(got.crumbs[0]), 'the crumb carries the reason: ' + got.crumbs[0]);
+  });
+
   console.log((process.exitCode ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' audit section-F voice checks');
 })();
