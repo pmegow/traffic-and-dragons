@@ -2904,6 +2904,10 @@ function shopFmtGp(gp){
    A spec is data: two titled columns of rows {key,label,max,worn,off,offReason,tag,sub}, an amount rule, a plan and a
    complete function. showLedgerModal (ui-modals) renders any spec; the builders below stay pure and engine-tested.
    Rows without a price sort to the bottom of their column (owner ask); worn rows keep their place, greyed. */
+/* #497 (owner 2026-09-30): how a tap steps a ledger row's count — the shop's counter and the chest share it. Up by one to the
+   row's maximum, then back to none: "14/14" used to be a dead end, cleared only by a tap on the small count badge. A single
+   item toggles. A count above the maximum (the stock shrank under an open modal) resets to none. Pure. */
+function ledgerNextMark(cur,max){cur=cur|0;max=Math.max(1,max|0);return cur>=max?0:cur+1;}
 function shopLedgerRows(cat){
   var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(1,r.qty):r.qty,/* #481 D4: a want buys one */worn:r.worn,off:r.worn||r.sellGp==null,unit:r.sellGp,
     offReason:r.worn?"Worn \u2014 take it off first":(r.sellGp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});

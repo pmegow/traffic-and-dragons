@@ -33,7 +33,7 @@ function radioRowsRefresh(container,cls,selId,labelSel){
 
 /* #407 ⑤ THE LEDGER MODAL — ONE renderer for every two-column "mark rows, complete once" surface (owner 2026-09-16: "abstract
    that UI so we can use it in a number of places"). The spec is data from an engine builder; this shell only paints and
-   collects marks. Left marks glow green, right marks pink; a stacked row adds one per tap and its count clears it; the
+   collects marks. Left marks glow green, right marks pink; a stacked row adds one per tap up to its maximum and the next tap puts it back to none (#497, ledgerNextMark in helpers.js), its count clears it too; the
    amount rides the marked row's right edge (no middle strip, one page on every screen); a centre rule divides the halves;
    each party is centred over their own column with the hero's gold in the gold style. */
 function showLedgerModal(spec){
@@ -65,7 +65,7 @@ function showLedgerModal(spec){
     for(n=0;n<rows.length;n++)(function(row){row.addEventListener("click",function(ev){if(row.classList.contains("off"))return;var side=row.getAttribute("data-side"),key=row.getAttribute("data-key");
       if(ev.target&&ev.target.getAttribute&&ev.target.getAttribute("data-clear")){delete marks[side][key];render();return;}
       var max=1,ii,list=spec.rows[side];for(ii=0;ii<list.length;ii++)if(list[ii].key===key)max=list[ii].max;
-      var cur=marks[side][key]|0;if(max<=1){if(cur)delete marks[side][key];else marks[side][key]=1;}else marks[side][key]=Math.min(max,cur+1);render();});})(rows[n]);
+      var nx=ledgerNextMark(marks[side][key]|0,max);if(nx)marks[side][key]=nx;else delete marks[side][key];render();});})(rows[n]);/* #497: the count wraps to none after the last unit */
     var go=box.querySelector("#ledger-go");if(go&&plan.ok)go.addEventListener("click",function(){var res=spec.complete(marks);if(!res.ok){showToast(spec.refusedPrefix+res.reason,6000);return;}showToast(res.line,5000);
       if(spec.afterComplete&&spec.afterComplete()){marks={left:{},right:{}};render();return;}/* a spec that stays open rebuilds its rows and repaints */
       modal.remove();});

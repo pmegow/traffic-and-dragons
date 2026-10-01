@@ -26294,6 +26294,23 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  t("#497 a row's count wraps: tapping a stack past its last unit puts it back to none marked (14 of 14, then none); a single item still toggles; the shop and the chest share the rule",function(){
+    /* Owner 2026-09-30: "there's no way to reduce the number of an item being sold … if I have 14 bottles of wine, if I click the
+       item again once it's 14/14, I'd expect it to reset". The row stopped at its maximum; only a tap on the small "14/14" badge
+       cleared it. */
+    if(typeof ledgerNextMark!=="function")return "ledgerNextMark missing";
+    var q=0,seen=[],i;for(i=0;i<16;i++){q=ledgerNextMark(q,14);seen.push(q);}
+    if(seen.join(",")!=="1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,1")return "a stack of 14 must count up to 14, then wrap to none: "+seen.join(",");
+    if(ledgerNextMark(0,1)!==1||ledgerNextMark(1,1)!==0)return "a single item toggles";
+    if(ledgerNextMark(0,2)!==1||ledgerNextMark(1,2)!==2||ledgerNextMark(2,2)!==0)return "a pair: one, both, none";
+    if(ledgerNextMark(5,3)!==0)return "a count above the row's maximum (the stock shrank under an open modal) resets to none";
+    if(ledgerNextMark(undefined,3)!==1||ledgerNextMark(0,0)!==1||ledgerNextMark(1,0)!==0)return "missing or zero inputs behave like an unmarked single";
+    /* the one click handler of the shared ledger (the shop AND the chest) uses it: a thin DOM shell */
+    var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
+    if(um.indexOf("var nx=ledgerNextMark(marks[side][key]|0,max);if(nx)marks[side][key]=nx;else delete marks[side][key];render();")<0)return "showLedgerModal's row click must step through ledgerNextMark";
+    if(um.indexOf("Math.min(max,cur+1)")>=0)return "the old stop-at-maximum step survives in ui-modals.js";
+    return true;
+  });
   section("#407 the shop interface — the stash ledger (#6 E11)");
   t("#6 E11 ① the chest opens only in the hero's OWN house: carried rows (stacked, worn flagged) on one side, the house's stash (qty, room) on the other; another resident's house and a shop are refused with the reason",function(){
     villageEF();memory.map.nodes[villageHouseKey("Silas")]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};
