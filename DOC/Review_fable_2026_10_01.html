@@ -33,17 +33,62 @@ ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
 </head>
 <body><main>
 <h1>Fable review — 2026-10-01 (Thursday ladder)</h1>
-<p class="sub">Traffic and Dragons · the weekly Fable burn ladder (TODO #448, <code>/thursday</code>) · judged by Fable 5.1 · receipt opened before any analysis</p>
+<p class="sub">Traffic and Dragons · the weekly Fable burn ladder (TODO #448, <code>/thursday</code>) · judged by Fable 5.1, finished by Opus 5.5 under the probation · receipt opened before any analysis</p>
 
 <h2 id="method">1 Method</h2>
-<p>Range under review: <code>f53dc5d..f023502</code> — 235 commits, 362 files, +24,443 / −2,141 lines, engine v1.981 → v1.1096. The anchor is the commit that landed the previous receipt (<a href="Review_fable_2026_09_24.html">2026-09-24</a>); it carried no anchor meta, so the anchor is the 7-day rule's commit, which is that same commit.</p>
-<p class="small" data-state="not-run">not run</p>
+<p>Range under review: <code>f53dc5d..f023502</code> — 235 commits, 362 files, +24,443 / −2,141 lines, engine v1.981 → v1.1096. The anchor is the commit that landed the previous receipt (<a href="Review_fable_2026_09_24.html">2026-09-24</a>).</p>
+<p><b>Who judged.</b> Fable 5.1 ran rung 0, the rung-1 censuses, the rung-2 reading and the #503 fix. Its credit ran out at about 12:50 Pacific. Opus 5.5 finished the ladder under the probation in CLAUDE.md. Each drift-surface fix it landed (#505, #507, #509, #510) has its own entry in <code>todo_checkWithFable.md</code> ▸ Opus probation log, for Fable's next skim.</p>
+<p><b>How the diffs were read.</b> Five reviewers each read one file group's diffs across the range: <code>tag_table.js</code>; <code>api.js</code> with <code>state.js</code> and <code>campaign_generator.js</code>; <code>memory.js</code> with <code>identity.js</code>; <code>game.js</code>; <code>helpers.js</code>. Each reproduced its candidates through the real engine on a byte-checked copy of the commit the receipt opened at. Each also mutated the week's changed lines in memory to find behaviour no test pins. The <code>tag_table.js</code> reviewer ran out of credit after saving its report, so all five reports were used. Every HIGH and MEDIUM candidate was then reproduced again on a clean checkout of master by the lead before it became a row. The 28 smaller candidates are filed as leads (#527), to be hand-checked first.</p>
+<p><b>Not run.</b> The Opus probation-log skim: it is Fable's job, and Fable's credit had run out. The 40 entries of 2026-09-29 and 2026-09-30 and today's four carry to the next Thursday. No funded playtest; no owner save was written to (every read was an in-memory copy).</p>
 
 <h2 id="rung1">2 Rung 1 — commit review</h2>
-<p class="small" data-state="not-run">not run</p>
+<div class="verdict">The week was big (235 commits) and mostly test-led, but four defects that lose data or canon shipped in it and were not caught. A character with a generated sheet could not die by the standard death tag. The pre-turn ability heal deleted a GM's variant of a class ability and stepped a Druid down. An imported save's own moments read as "an earlier adventure". A Village sale with one wrong name took the right items anyway. All four are fixed today. Ten more verified defects are filed. One process gap repeats from last week: its suggestions never became rows.</div>
+<h3>Censuses (scripted, read-only)</h3>
+<table><tr><th>Census</th><th>Result</th><th>Action</th></tr>
+<tr><td>Churn</td><td>The largest blocks are tests and the tag table; no file grew without a row.</td><td>—</td></tr>
+<tr><td>Dead definitions</td><td>7 names occur once in the whole tree: identity.js <code>relationshipBond</code>, <code>relationshipDynamic</code>, <code>w2MergeCommitted</code>; tts.js <code>_geminiVoiceOptions</code>, <code>QUOTE_GLYPH_G</code>, <code>_testNativeVoice</code>; ui-files.js <code>campaignFolderSlug</code>. The first six were in last week's receipt and were never filed.</td><td>#522</td></tr>
+<tr><td>Empty catches · <code>setInterval</code></td><td>184 · 8; none added this week.</td><td>—</td></tr>
+<tr><td>CLAUDE.md file table</td><td>Every root file is named (two prose mentions are false positives).</td><td>—</td></tr>
+<tr><td><code>tnd_*</code> storage keys</td><td>58 of 75 appear in no contract; the convention line ("all keys end in <code>_v10</code>") is false: 66 end in <code>_v1</code>.</td><td>#523</td></tr>
+<tr><td>TODO glyphs</td><td>◉ 27 · ○ 19 · ◐ 7 at the anchor; ten glyph-less rows are the L-series and two sub-rows, by design.</td><td>—</td></tr>
+<tr><td>DOC/BUGS.md</td><td><code>/bugs sync</code> run: B29 rose to 32 with two arrivals after its source fix; the B40 session's own repro added to the skipped ledger.</td><td>#526</td></tr>
+<tr><td>Server</td><td><code>/health</code> still has no version. Fly v47–v52 are 1.5.3 → 1.7.2, each with a receipt. <code>GEMINI_EXPLICIT_CACHE = 1</code> (the owner's ruling holds).</td><td>#523</td></tr>
+</table>
+<h3>Findings from the drift-surface diffs</h3>
+<table><tr><th>Row</th><th>Severity</th><th>Finding</th><th>Status</th></tr>
+<tr><td class="n">#505</td><td><span class="lean high">high</span></td><td>A non-party NPC with a sheet trait could not die by <code>[NPC:name|dead|…]</code>: the #460 mood trim ran before the death stamp. Former companions, Sheriff Hemlock, every Village resident.</td><td>fixed v1.1098</td></tr>
+<tr><td class="n">#507</td><td><span class="lean high">high</span></td><td>The pre-turn ability heal (#487) compared names by base name: it deleted "Sneak Attack (venomed blade)" and healed a level-9 Druid down to Wild Shape (CR 1/4). Three reviewers found it independently.</td><td>fixed v1.1099</td></tr>
+<tr><td class="n">#509</td><td><span class="lean high">high</span></td><td>An imported save given a new campaign id (#423), or a re-homed campaign, read its own defining moments as "an earlier adventure" (C8 compares by id); the Village held them back.</td><td>fixed v1.1100</td></tr>
+<tr><td class="n">#510</td><td><span class="lean med">medium</span></td><td>A withheld Village sale had already taken the matching items; a short count took every unit and kept the coin. The GM was told the pack was unchanged.</td><td>fixed v1.1101</td></tr>
+<tr><td class="n">#511</td><td><span class="lean med">medium</span></td><td>A tag block ahead of a move is read at the old place (A4); a Village footer re-stating the world loses the sub-location. 2 of 1,381 replies, none in your saves.</td><td>filed</td></tr>
+<tr><td class="n">#513</td><td><span class="lean med">medium</span></td><td>On the arrival turn "who is here" reads the old scene, so SMALL TALK asks absent residents to greet.</td><td>filed</td></tr>
+<tr><td class="n">#514</td><td><span class="lean med">medium</span></td><td><code>[SCENE_CAST:none]</code> never ends presence, against its doc line.</td><td>ruling</td></tr>
+<tr><td class="n">#515</td><td><span class="lean med">medium</span></td><td>The motivation fallback files a tagged change twice; "none" becomes a purpose; the settle keyword matches without its colon.</td><td>filed</td></tr>
+<tr><td class="n">#516</td><td><span class="lean low">low</span></td><td>A deferred memory line is lost when the next extraction fails validation.</td><td>filed</td></tr>
+<tr><td class="n">#517</td><td><span class="lean med">medium</span></td><td>The counter's arithmetic: a sale bundled with a purchase gives the sale away; plural coin words; doubled ware counts; a want paid per row.</td><td>filed</td></tr>
+<tr><td class="n">#518</td><td><span class="lean med">medium</span></td><td>Item moves with a count, and gifts at home, move the wrong number of units.</td><td>filed</td></tr>
+<tr><td class="n">#519</td><td><span class="lean med">medium</span></td><td>The spoken undo after a hero swap destroys the stowed item and reports success.</td><td>filed</td></tr>
+<tr><td class="n">#520</td><td><span class="lean low">low</span></td><td>A hero ability whose description opens with a member's name is re-filed onto them ("Daeris showed how…").</td><td>filed</td></tr>
+<tr><td class="n">#521</td><td><span class="lean med">medium</span></td><td>"Daeris left." is no longer read as a departure (fc63ae9).</td><td>filed</td></tr>
+<tr><td class="n">#527</td><td><span class="lean info">leads</span></td><td>28 smaller candidates, reviewer-reproduced, to hand-check.</td><td>filed</td></tr>
+<tr><td class="n">#528</td><td><span class="lean info">gaps</span></td><td>Behaviour the week's commit messages state that no test pins. One message claims a check its diff lacks: c51d052's "1,323 replies, every one reads right" has no script, and a committed corpus reply does not read right (#511).</td><td>filed</td></tr>
+</table>
+<p class="small">Process finding: last week's receipt suggested deleting six dead definitions and turning the dead-symbol census into a dev tool. Neither became a row, so neither happened. Suggestions now go straight to rows (#522).</p>
 
 <h2 id="rung2">3 Rung 2 — the week's play</h2>
-<p class="small" data-state="not-run">not run</p>
+<p><b>Saves read</b> (newest per campaign that moved since the anchor; windows from the newest save older than the anchor): The Necrotic Dungeon t11–t35, The Princess Is Not In Danger t1–t89, The Village t89–t254. Tag fidelity was strong in all three. Afterwards the rung-1 findings were checked against all eight latest saves, in memory only.</p>
+<div class="f"><h3><span class="lean high">high</span> Two family members fused into one record — fixed as #503 (v1.1097)</h3>
+<p><span class="k">Seen</span>The Princess t85 and t89: <code>[NPC:King Underbough|hungover, asleep|acquaintance]</code> with <code>[NPC_PRONOUN:King Underbough|he/him]</code> rewrote "Wilhelmina Underbough", her mood and her pronouns. Nothing was shown.</p>
+<p><span class="k">Cause</span><code>resolveNpcName</code> drops titles as not identifying, so the surname alone matched the one Underbough on file. The same fusion sits in a committed corpus's first turn ("Refugee woman" and "Refugee man").</p>
+<p><span class="k">Fix</span>A name is never matched to a record it contradicts: by sex, by age, or by a crown's generation. The residue (same-sex relatives under a bare title) is #504, for a ruling.</p></div>
+<div class="f"><h3><span class="lean med">medium</span> Dialogue with no speaker since #458 — #524, needs a ruling</h3>
+<p>Since <code>[SAY:Name|mood]</code> carries the speaker, the GM writes no attribution. Unattributed quote paragraphs rose from 0–8% to about 100% (the Village from t130, The Princess from t15). The mood rides on almost every line.</p></div>
+<div class="f"><h3><span class="lean low">low</span> The Princess's ending in the hero's first person, with game words — #525, needs a ruling</h3>
+<p>"level one", "nineteen levels", "the narrator", modern idiom. <code>DENOUEMENT_SYS</code> pins no person and passes level numbers.</p></div>
+<div class="f"><h3><span class="lean med">medium</span> A town's description filed on the inn — #512</h3>
+<p>Found while checking a rung-1 candidate against your saves. In Rise of the Runelords the Silk and Steam Bathhouse's permanent description is Magnimar's city description (t2477). The GM described the city, then moved into the bathhouse in the same reply. This predates the week.</p></div>
+<p><b>Smaller:</b> the W2 death guard working as designed files as a crash report (#526); <code>[HP:+0]</code> prints "Took 0 damage" (lead 28 in #527).</p>
+<p><b>Watches</b> (not rows): the #460 "mood kept to what they are doing" line fired on 5 of 40 Village turns, which is working but noisy. One third-person lapse at The Necrotic Dungeon t27, the B28 class; watch for a second.</p>
 
 <h2 id="rung3">4 Rung 3 — prompt diff</h2>
 <p class="small" data-state="not-run">not run</p>
@@ -52,7 +97,19 @@ ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
 <p class="small" data-state="not-run">not run</p>
 
 <h2 id="clean">6 Checked and clean</h2>
-<p class="small" data-state="not-run">not run</p>
+<p>Each was checked and found correct as designed; recorded so nobody re-litigates it.</p>
+<ul>
+<li><b>Quest "already completed — objective not recorded" warnings</b> in The Princess were all at v1.1016–17, before #481 C3. C3 checked on master: a step in the same reply as the completion lands; a new or unflagged restated objective still warns, as documented.</li>
+<li><b>The carried mask and outfit</b> is #481 C5 (v1.1056). <b>The Silas/Nyla background loop</b> is B3. <b>Defining-moment callouts</b> are C1, C2 and C6. <b>The Necrotic Dungeon's ledger plot</b> predates the skeleton register gate.</li>
+<li><b>The Village after the fixes</b> (t221–t254, v1.1076–v1.1078) is clean apart from the bare quotes (#524).</li>
+<li><b>The stable half of the prompt</b> is byte-identical across turns when only turn, clock or gold change (adventure, party and Village worlds), and across 201 replayed GM turns from seven corpora. It moves only on a flaw outgrown, a motivation settled or born, a companion's death or a rename.</li>
+<li><b>Bare canon markers (#491)</b>: LF, CRLF and same-line tags restore; markdown, bullets and half brackets fail closed. <b>The summary repeat line (#495)</b> is display only. <b>The glyph rule (A7)</b>: all four consumers use <code>mutLineWarns</code>, and the lint catches a removed glyph.</li>
+<li><b>Coin parsing (D5)</b>: 18–27 GOLD shapes behave, including "+1,250" and "-2 (2 sp change)"; sp, cp and pp are refused by design. Plural unit words are the exception (#517).</li>
+<li><b>Shops</b>: <code>shopTradeApply</code> never moved gold without the item over 14 adversarial inputs; <code>ledgerNextMark</code>, <code>invMarkResolve</code> and <code>invDropPlan</code> held over malformed input; <code>nodeOpenAtHour</code> is right for overnight and 24-hour spans.</li>
+<li><b>The ability heal</b> is idempotent: five runs and a 6,000-sheet fuzz show no second-run change. On your eight latest saves it does exactly the same before and after #507.</li>
+<li><b>Latches</b>: all ten new ones are registered, and a budget-dropped note's latch is restored. <b>The save boundary</b> round-trips the week's new fields.</li>
+<li><b>Sabotage claims</b>: every "N/N" in a commit message equals the battery's clause count at that commit, except one: 1fe790d says sabotage-431 "8/8" and the battery holds 9 (#528). All 91 of the week's tag_table.js clauses kill their named test when applied.</li>
+</ul>
 
 <h2 id="files">7 Files changed</h2>
 <p class="small" data-state="not-run">not run</p>
