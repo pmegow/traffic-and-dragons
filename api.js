@@ -3579,7 +3579,7 @@ function usageCost(u,model){
 }
 // Accumulate one response's usage onto worldState.usage (total + per-kind bucket).
 // Not persisted here — every calling flow saves shortly after (saveAll/saveCore).
-function recordUsage(u,kind,model,retries){/* retries: #29 — absorbed transient auto-retries on this call (optional; only callGM passes it) */
+function recordUsage(u,kind,model,retries,viaServer){/* retries: #29 — absorbed transient auto-retries on this call (optional; only callGM passes it); viaServer: #334 — true when THIS call rode the server gateway (callGM passes the transport it used) */
   if(!worldState)return;
   if(!worldState.usage)worldState.usage=blankUsage();
   var t=worldState.usage;
@@ -3602,6 +3602,7 @@ function recordUsage(u,kind,model,retries){/* retries: #29 — absorbed transien
       // #29: absorbed transient retries are stamped, not hidden — the transport indicator
       // (healthIndicators ⑥) reads rt so a degrading provider is visible before it fails loud.
       if(retries)_he.rt=retries;
+      if(viaServer)_he.gw=1;/* #334: the server route — the health dot judges the server's Gemini cache only on these (CACHE_JUDGES, helpers.js) */
       worldState.healthLog.push(_he);
       if(worldState.healthLog.length>HEALTH_LOG_CAP)worldState.healthLog=worldState.healthLog.slice(worldState.healthLog.length-HEALTH_LOG_CAP);
     }catch(_hle){if(typeof console!=="undefined")console.warn("[health] ring write failed:",_hle&&_hle.message);}
@@ -3917,7 +3918,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw providerHttpError(prov,res.status,_em);}
   // Record usage BEFORE parseResponse — an empty-content response still billed input tokens.
   // _retries rides along so absorbed transients reach the #17 ring (visible, never hidden).
-  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,_kind,model,_retries);}catch(e){console.warn("[usage] telemetry parse failed — this call is uncounted (pricing dataset undercounts, TODO #30):",e.message);}}
+  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,_kind,model,_retries,_tp.server);}catch(e){console.warn("[usage] telemetry parse failed — this call is uncounted (pricing dataset undercounts, TODO #30):",e.message);}}
   // #132: length-cap truncation is LOUD — a cut response may have been mid-tag, and that tag's
   // mutation is lost (handlers only match complete tags; cleanTxt drops the ragged fragment from
   // display). The transcript/sessionLog keep the raw truth; this is the only warning channel.

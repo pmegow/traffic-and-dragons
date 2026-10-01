@@ -2565,6 +2565,21 @@ function stakesFiledTurns(ws){
   for(i=0;i<logs.length;i++)for(j=logs[i].length-1;j>=0;j--){e=logs[i][j];if(e&&typeof e.t==="number"&&e.t<=ws.turn&&!seen[e.t]){seen[e.t]=true;n++;if(n>=3)return n;}}
   return n;
 }
+// The caches the health dot can judge — ONE row each; a ring entry with no row is not judged (cacheJudgeKey). Adding a cache
+// means adding a row, not another branch in healthIndicators.
+//   anthropic      by RATIO: its input count EXCLUDES cached tokens, so cr/(cr+in) is a real hit ratio (under 20% warns).
+//   gemini-server  by PRESENCE (#334): the server's explicit cache serves the same cached tokens on every turn, so three recent
+//                  turns reading ZERO mean its switch is off or it is failing. That was the 2026-09-10 → 09-30 outage, and the
+//                  dot said "not enough Anthropic gameplay calls to judge". A mature campaign caches about 30% of its input, so
+//                  the share is no signal. The entry's gw stamp (recordUsage) marks the server route.
+// Not judged: own-key Gemini (no explicit cache) and the OpenAI shape (its input count INCLUDES cached tokens).
+var CACHE_JUDGES={
+  "anthropic":{label:"Anthropic",byRatio:true,counts:function(he){return ((he.in||0)+(he.cr||0))>1000;},
+    dead:"turns read ZERO cached tokens — the stable half is not caching"},
+  "gemini-server":{label:"Gemini",byRatio:false,counts:function(he){return (he.in||0)>1000;},
+    dead:"Gemini turns through the server read ZERO cached tokens — the server's explicit cache is off or failing"}
+};
+function cacheJudgeKey(he){return !he?null:he.prov==="anthropic"?"anthropic":(he.prov==="gemini"&&he.gw)?"gemini-server":null;}
 function healthIndicators(ws,mem,withGrowth){
   var items=[],i,j;
   function push(id,label,level,detail){items.push({id:id,label:label,level:level,detail:detail});}
@@ -2581,17 +2596,17 @@ function healthIndicators(ws,mem,withGrowth){
     push("rag","Episodic recall (RAG)",served>0?"ok":(ragSamples.length>=12?"bad":"warn"),
       served+" of last "+ragSamples.length+" turns served past-scene excerpts"+(served===0?" — a mature campaign serving nothing may mean retrieval is broken":""));
   }
-  // ② prompt cache — the #11 killer: a perturbed stable half silently pays full price every
-  // turn. Judged for Anthropic only (its input count EXCLUDES cached tokens, so cr/(cr+in)
-  // is a real hit ratio; the OpenAI shape INCLUDES them and cannot be judged this way).
-  var cs=[];
-  for(i=hl.length-1;i>=0&&cs.length<6;i--){var he=hl[i];if(he.prov==="anthropic"&&((he.in||0)+(he.cr||0))>1000)cs.push(he);}
-  if(cs.length<2)push("cache","Prompt cache","na","not enough Anthropic gameplay calls to judge");
+  // ② prompt cache — the #11 killer: a perturbed stable half silently pays full price every turn. The cache NOW in play is
+  // the one judged: the newest ring entry picks its CACHE_JUDGES row (below), and that row's last six entries are read.
+  var _cjKey=cacheJudgeKey(hl.length?hl[hl.length-1]:null),_cj=_cjKey?CACHE_JUDGES[_cjKey]:null,cs=[];
+  for(i=hl.length-1;_cj&&i>=0&&cs.length<6;i--){var he=hl[i];if(cacheJudgeKey(he)===_cjKey&&_cj.counts(he))cs.push(he);}
+  if(!_cj)push("cache","Prompt cache","na",!hl.length?"no gameplay calls recorded yet":hl[hl.length-1].prov==="gemini"?"not judged: own-key Gemini has no explicit cache":"not judged for this provider (its input count includes cached tokens)");
+  else if(cs.length<2)push("cache","Prompt cache","na","not enough "+_cj.label+" gameplay calls to judge");
   else{
     var dead=0,low=0;
-    for(i=0;i<cs.length;i++){var ratio=(cs[i].cr||0)/((cs[i].cr||0)+(cs[i].in||0));if((cs[i].cr||0)===0)dead++;if(ratio<0.2)low++;}
+    for(i=0;i<cs.length;i++){var ratio=(cs[i].cr||0)/((cs[i].cr||0)+(cs[i].in||0));if((cs[i].cr||0)===0)dead++;if(_cj.byRatio&&ratio<0.2)low++;}
     push("cache","Prompt cache",dead>=3?"bad":(low>cs.length/2?"warn":"ok"),
-      dead>=3?dead+" recent turns read ZERO cached tokens — the stable half is not caching; every turn pays full input price":"cache reads healthy on recent turns");
+      dead>=3?dead+" recent "+_cj.dead+"; every turn pays full input price":"cache reads healthy on recent turns");
   }
   // ③ tag discipline — consecutive tagless responses are the gpt-4o desync class: narration
   // moves the story while the sheet stands still.

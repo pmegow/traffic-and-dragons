@@ -22805,6 +22805,38 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="cache")c=h.items[i];
     return c.level==="na"?true:"non-Anthropic entries must not be judged (their input counts include cached), got "+c.level;
   });
+  t("healthIndicators (#334): a dead Gemini cache on the server route goes RED; a healthy or mature share is ok; own-key Gemini is not judged; the provider now in play is the one judged; the ring records the route",function(){
+    /* The server's Gemini cache was off by mistake from 2026-09-10 to 09-30. Every turn read zero cached tokens, and the dot said
+       "not enough Anthropic gameplay calls to judge". The ring now stamps the server route (gw), and a server-route Gemini turn is
+       judged by PRESENCE: the explicit cache serves the same tokens on every turn, so three zero reads mean it is off or failing. */
+    makeWorld();var h,c,i;
+    function cache(log){worldState.healthLog=log;h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="cache")return h.items[i];return {level:"(missing)",detail:""};}
+    function g(t,cr,gw,inp){var e={t:t,in:inp||18000,cr:cr,rag:1,prov:"gemini"};if(gw)e.gw=1;return e;}
+    function a(t,cr){return {t:t,in:2000,cr:cr,rag:1,prov:"anthropic"};}
+    c=cache([g(1,0,1),g(2,0,1),g(3,0,1)]);
+    if(c.level!=="bad")return "3 server-route Gemini turns reading zero must be bad (the 20-day outage), got "+c.level;
+    if(!/Gemini/.test(c.detail)||!/server/.test(c.detail)||!/full input price/.test(c.detail))return "the detail must name Gemini, the server's cache and the cost: "+c.detail;
+    c=cache([g(1,13614,1),g(2,13614,1),g(3,13614,1)]);if(c.level!=="ok")return "a read on every turn is healthy, got "+c.level;
+    c=cache([g(1,13614,1,80000),g(2,13614,1,80000),g(3,13614,1,80000)]);if(c.level!=="ok")return "a long campaign's small cached share (17% here) is its normal shape, never a warning — Gemini is judged by presence, not ratio: "+c.level;
+    c=cache([g(1,13614,1),g(2,0,1),g(3,13614,1),g(4,0,1),g(5,13614,1)]);if(c.level!=="ok")return "two uncached turns among reads (a cooldown) must not alarm, got "+c.level;
+    c=cache([g(1,0,0),g(2,0,0),g(3,0,0)]);if(c.level!=="na")return "own-key Gemini has no explicit cache and must not be judged, got "+c.level;
+    c=cache([g(1,0,1)]);if(c.level!=="na")return "one sample is not enough to judge, got "+c.level;
+    c=cache([a(1,8000),a(2,8000),a(3,8000),g(4,0,1),g(5,0,1),g(6,0,1)]);if(c.level!=="bad")return "old healthy Anthropic turns must not mask a dead Gemini cache: "+c.level;
+    c=cache([g(1,0,1),g(2,0,1),g(3,0,1),a(4,8000),a(5,8000)]);if(c.level!=="ok")return "old dead Gemini turns must not condemn healthy Anthropic turns: "+c.level;
+    c=cache([a(1,0),a(2,0),a(3,0),g(4,0,0),g(5,0,0)]);if(c.level!=="na")return "after a switch to own-key Gemini the cache is not judged: "+c.level;
+    c=cache([a(1,100),a(2,100),a(3,100)]);if(c.level!=="warn")return "a low Anthropic hit ratio still warns (the table kept the ratio rule): "+c.level;
+    /* the ring: recordUsage stamps gw only for a call that rode the server, and callGM passes the transport it actually used */
+    var _ap=activeProvider;activeProvider="gemini";worldState.healthLog=[];worldState.turn=7;
+    recordUsage({in:18000,out:300,cacheRead:13614,cacheWrite:0},"turn","gemini-3.7-flash",0,true);
+    recordUsage({in:18000,out:300,cacheRead:0,cacheWrite:0},"turn","gemini-3.7-flash",0,false);
+    recordUsage({in:900,out:200,cacheRead:0,cacheWrite:0},"summarize","gemini-3.7-flash",0,true);
+    activeProvider=_ap;
+    var hl=worldState.healthLog;if(hl.length!==2)return "only gameplay turns enter the ring: "+hl.length;
+    if(hl[0].gw!==1||hl[0].cr!==13614||hl[0].prov!=="gemini")return "a server-route turn must be stamped gw:1: "+JSON.stringify(hl[0]);
+    if("gw" in hl[1])return "an own-key turn must carry no gw stamp: "+JSON.stringify(hl[1]);
+    if(__fsForTests.readFileSync(__rootForTests+"/api.js","utf8").indexOf("recordUsage(_u,_kind,model,_retries,_tp.server)")<0)return "callGM must pass the transport it used (_tp.server) to recordUsage";
+    return true;
+  });
   t("healthIndicators: RAG silence — n/a young or flag-off, RED only when a mature campaign serves nothing all window",function(){
     makeWorld();delete worldState.ragMemory;/* production default ON — the explicit-false case is the test's own last leg */
     var i;worldState.transcript=[];for(i=0;i<40;i++)worldState.transcript.push({r:"gm",x:"scene "+i});

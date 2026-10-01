@@ -177,7 +177,7 @@ var CHECKPOINT_VER=1;
 // gentle no), and the answer is MANDATORY CANON carried back through the dead branch. Onward ends the
 // campaign; the fourth death ends it without a walk — the GM writes the DENOUEMENT.
 var DEATH_VOICE="Death is present as a character: courteous, unhurried, exact. Speaks little and plainly; never lies, never mocks, never bargains; has all the time there is. Not the prose voice's narrator — a second presence the narration makes room for.";    // #309: the engine-notes ring beside tagLog — {t, n:[builder names], c:chars} per DELIVERED gameplay turn, so an audit can say which notes the engine fired and when
-var HEALTH_LOG_CAP=40; // #17 drift-health ring (worldState.healthLog): ONE observational {t,in,cr,rag,prov} per gameplay-turn call, written only by recordUsage, read only by healthIndicators (helpers.js) — never by any prompt or parser path
+var HEALTH_LOG_CAP=40; // #17 drift-health ring (worldState.healthLog): ONE observational {t,in,cr,rag,prov[,rt][,gw]} per gameplay-turn call, written only by recordUsage, read only by healthIndicators (helpers.js) — never by any prompt or parser path
 var RETCON_PIN_SHELF=15;    // #147 (drift pass order 4): turns a CORRECTION IN FORCE pin survives un-filed before it archives LOUDLY — bounded so a stuck pin can never become permanent prompt noise (the one-shot-shelf discipline); a completed summarize extraction archives it earlier
 var DEITY_DRIFT_COOLDOWN=25;
 var HP_ZERO_NOTE_TURNS=3;    /* #196: turns the player must sit at exactly 0 HP before the observer fires (combat excluded from firing, not from counting) */
@@ -409,7 +409,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.1079";
+var APP_VERSION="v1.1080";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
