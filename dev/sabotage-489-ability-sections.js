@@ -37,4 +37,21 @@ prove("ui-sheets.js", [
     find: "style=\"font-size:10px;text-transform:uppercase;color:var(--t1);letter-spacing:.12em;margin:'", replace: "style=\"border:1px solid var(--brd);border-radius:12px;font-size:11px;color:var(--t2);letter-spacing:.06em;margin:'",
     mustFail: "plain text, never a pill" }
 ]);
+prove("ui-panels.js", [
+  { label: "the play panel prints no headings (the flat list comes back)",
+    find: "    h+='<div class=\"ab-grp\" data-grp=\"'+gs[g].key+'\"", replace: "    if(false)h+='<div class=\"ab-grp\" data-grp=\"'+gs[g].key+'\"",
+    mustFail: "the same headings in the same order" },
+  { label: "the panel repeats the racial prefix and prints an old label as a name",
+    find: "nm=gs[g].key===\"racial\"?p.nm.replace(/^\\s*\\[racial\\]\\s*/i,\"\"):p.nm;", replace: "nm=abs[i].nm;",
+    mustFail: "the same headings in the same order" },
+  { label: "an old-format ability clicks as 'Use Lv5.'",
+    find: "q=capabilityQuickText(p.nm,p.ds);", replace: "q=capabilityQuickText(abs[i].nm,abs[i].ds);",
+    mustFail: "the same headings in the same order" },
+  { label: "the highlight marks the last ability on screen instead of the newest",
+    find: "(hl&&i===abs.length-1?\" nw\":\"\")", replace: "(hl&&g===gs.length-1&&k===gs[g].items.length-1?\" nw\":\"\")",
+    mustFail: "the newest ability is the one highlighted" },
+  { label: "the panel is painted by something other than abPanelHTML",
+    find: "document.getElementById(\"ab-list\").innerHTML=abPanelHTML(c,hl);", replace: "document.getElementById(\"ab-list\").innerHTML=\"\";",
+    mustFail: "the newest ability is the one highlighted" }
+]);
 process.exit(code);

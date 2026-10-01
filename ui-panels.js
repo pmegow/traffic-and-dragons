@@ -340,11 +340,23 @@ function updateInvPanel(){
   document.getElementById("inv-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">Empty</div>';
 }
 function updateAbPanel(hl){
-  if(!worldState)return;var abs=activePlayer().abilities||[];/* P2: follows the spotlight PC */document.getElementById("ab-cnt").textContent=abs.length;
-  var h="",i,q;for(i=0;i<abs.length;i++){
-    q=capabilityQuickText(abs[i].nm,abs[i].ds);/* owner call 2026-09-03: an ACTIVE ability clicks into the input like a spell ("Use X."); passives stay inert */
-    h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+(q?" act":"")+'"'+(q?' data-quick="'+escHtml(q)+'" onclick="panelQuickAction(this)" title="Click to use" style="cursor:pointer;"':'')+'><span class="an">'+escHtml(abs[i].nm)+'</span><span class="ad">'+escHtml(abs[i].ds)+'</span></div>';}/* GM-authored ability text (audit E11) */
-  document.getElementById("ab-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">None yet</div>';
+  if(!worldState)return;var c=activePlayer(),abs=c.abilities||[];/* P2: follows the spotlight PC */document.getElementById("ab-cnt").textContent=abs.length;
+  document.getElementById("ab-list").innerHTML=abPanelHTML(c,hl);
+}
+/* #489 (owner 2026-10-01): the panel groups like the sheet — Racial / Class / Archetype / Story, by the
+   same abilityGroups (helpers.js), so the two can never disagree. A heading is plain text; an empty group
+   has none. hl marks the NEWEST ability (the last stored), wherever its group puts it. */
+function abPanelHTML(c,hl){
+  var abs=(c&&c.abilities)||[],gs=abilityGroups(c),h="",g,k,i,q,p,nm;
+  for(g=0;g<gs.length;g++){
+    h+='<div class="ab-grp" data-grp="'+gs[g].key+'" style="font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--t2);margin-top:'+(g?"6px":"0")+';">'+escHtml(gs[g].label)+'</div>';
+    for(k=0;k<gs[g].items.length;k++){
+      i=gs[g].items[k];p=abilityParts(abs[i]);nm=gs[g].key==="racial"?p.nm.replace(/^\s*\[racial\]\s*/i,""):p.nm;
+      q=capabilityQuickText(p.nm,p.ds);/* owner call 2026-09-03: an ACTIVE ability clicks into the input like a spell ("Use X."); passives stay inert */
+      h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+(q?" act":"")+'"'+(q?' data-quick="'+escHtml(q)+'" onclick="panelQuickAction(this)" title="Click to use" style="cursor:pointer;"':'')+'><span class="an">'+escHtml(nm)+'</span><span class="ad">'+escHtml(p.ds)+'</span></div>';/* GM-authored ability text (audit E11) */
+    }
+  }
+  return h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">None yet</div>';
 }
 // #8: side-panel spell tooltip — the description pulled from the capability bible (the SAME
 // canon the GM is fed and the click-card shows; one data source). #83: a spell with no bible

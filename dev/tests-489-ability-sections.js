@@ -104,5 +104,36 @@ test("the render: a heading is plain text, never a pill, and a sheet with no abi
   assert(fs.readFileSync(path.join(ROOT, "dev/run-standalone-suites.js"), "utf8").indexOf("dev/tests-489-ability-sections.js") >= 0, "this battery is not registered in run-standalone-suites.js");
 });
 
+// ── the play panel (owner 2026-10-01: section it like the sheet) ─────────────────────────────────
+function panelHeads(html) {
+  var out = [], re = /class="ab-grp" data-grp="([a-z]+)"[^>]*>([^<]*)</g, m;
+  while ((m = re.exec(html))) out.push(m[1] + "=" + m[2]);
+  return out;
+}
+test("the panel: the same headings in the same order as the sheet, each ability once, the racial prefix dropped, an old 'LvN' entry by its real name", function () {
+  var c = hero(), html = abPanelHTML(c, false);
+  assert.deepEqual(panelHeads(html), headings(csSheetSections(c, "")).map(function (h) { return h; }), "the panel and the sheet disagree about the sections");
+  assert.equal(html.split('class="ai').length - 1, c.abilities.length, "an ability is printed twice or dropped");
+  var hClass = html.indexOf('data-grp="class"'), hArch = html.indexOf('data-grp="archetype"'), sneak = html.indexOf(">Sneak Attack<");
+  assert(sneak > hClass && sneak < hArch, "Sneak Attack is not under Class in the panel");
+  assert(html.indexOf(">One parent trait<") > 0 && html.indexOf("[Racial] One parent trait<") < 0, "the racial name repeats its heading");
+  assert(html.indexOf(">Uncanny Dodge<") > 0 && html.indexOf(">Lv5<") < 0, "an old 'Lv5' label is printed as a name");
+  assert(html.indexOf('data-quick="Use Uncanny Dodge."') > 0, "the old-format ability clicks as 'Use Lv5.'");
+});
+test("the panel: the newest ability is the one highlighted, whatever group it lands in; a heading is plain text; no abilities says so", function () {
+  var c = hero();
+  c.abilities.push({ nm: "Cunning Action", ds: "Dash, Disengage, or Hide as a bonus action." });   /* newest, and it files under Class — not last on screen */
+  var html = abPanelHTML(c, true), nw = html.split('class="ai nw');
+  assert.equal(nw.length - 1, 1, "exactly one ability is highlighted");
+  assert(/^[^>]*><span class="an">Cunning Action</.test(nw[1]), "the highlight is not on the newest ability: " + nw[1].slice(0, 80));
+  assert.equal(abPanelHTML(c, false).split('class="ai nw').length - 1, 0, "a highlight with no new ability");
+  var h = html.slice(html.indexOf('class="ab-grp"'), html.indexOf(">", html.indexOf('class="ab-grp"')));
+  assert(!/border|background|border-radius/.test(h), "a panel heading must not look clickable: " + h);
+  c.abilities = [];
+  assert(/None yet/.test(abPanelHTML(c, false)), "the empty panel lost its 'None yet'");
+  var up = fs.readFileSync(path.join(ROOT, "ui-panels.js"), "utf8");
+  assert(/getElementById\("ab-list"\)\.innerHTML=abPanelHTML\(c,hl\)/.test(up), "updateAbPanel does not paint through abPanelHTML");
+});
+
 if (failed) { console.error("#489 ability sections: " + failed + " FAILED"); process.exit(1); }
 console.log("#489 ability sections: all green");
