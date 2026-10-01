@@ -2115,7 +2115,9 @@ function runEngineTests(R){
     /* #481 G5: the class is DERIVED now (dev/class-guards.js — every model/image wait's status ticks), so this pins the scene
        render's own ticker by name instead of counting game.js's tickers (the Enhance pass added a second one) */
     if(gm.indexOf("var _rTick=elapsedTicker(imgStatus,")===-1||gm.indexOf("_rTick=setInterval(")!==-1)return "the scene render must ride the shared ticker, not its own interval";
-    if(sh.indexOf("lm-secs")===-1||sh.split("elapsedTicker(").length!==2||sh.indexOf("_lmT.stop();var m=document.getElementById(\"loading-modal\")")===-1)return "the loading modal must tick and stop on removal";
+    /* #481 G5 follow-up (owner ruling 2026-09-30): addMsg's thinking markers tick too (pinned by dev/tests-481-g5-helper-waits.js),
+       so the loading modal's ticker is pinned by name instead of counting ui-shell.js's tickers */
+    if(sh.indexOf("var _lmT=elapsedTicker(document.getElementById(\"lm-secs\"),\"\",{text:true});")===-1||sh.indexOf("_lmT.stop();var m=document.getElementById(\"loading-modal\")")===-1)return "the loading modal must tick and stop on removal";
     if(/status\.innerHTML="<span[^"]*>(?:Generating portrait|Writing portrait prompt|Reading the portrait)/.test(up+cc))return "a frozen in-flight status survives somewhere";
     if(up.indexOf("_gt.stop();showResult(")===-1||up.indexOf("}catch(err){_gt.stop();")===-1||up.indexOf("}catch(err){_dt.stop();")===-1)return "every terminal write in the portrait modal must stop the ticker first";
     /* Fable review 2026-09-11 (Brief E): the scan stopped at four files, so the voice surfaces (#401/#402) were unpinned —

@@ -68,6 +68,7 @@ var SUITES = [
   "dev/tests-481-g8-doc-links.js",/* #481 G8: every relative link in the live contract docs lands */
   "dev/tests-481-g9-doc-facts.js",/* #481 G9: CLAUDE.md's load order is index.html's; its prose facts stay corrected */
   "dev/tests-481-g5-class-guards.js",/* #481 G5: waits tick, pages share the palette and are network-first — derived from the source (browser half: tests-481-g5-waits-browser.js) */
+  "dev/tests-481-g5-helper-waits.js",/* #481 G5 follow-up (owner ruling 2026-09-30): the story's thinking markers and Car Mode's waiting statuses count seconds */
   "dev/tests-441-home-handoff.js",
   "dev/tests-442-modal-focus.js",
   "dev/tests-336-campaign-root.js",

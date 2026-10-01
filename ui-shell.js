@@ -323,6 +323,7 @@ if(type==="narrator"&&opts&&opts.turn!=null){
   html="<div class='msg-turn'>Turn "+opts.turn+_stamp+"</div>"+html;// #23: subtle turn marker above narrative frames — helps backtracking
   div.setAttribute("data-turn",opts.turn);}/* #30: machine-readable twin of the marker above — restoreSavedRenders finds a turn's frame by attribute instead of parsing "Turn N" out of display text */
 div.innerHTML=html;
+if(type==="thinking"&&typeof elapsedTicker==="function")div._tick=elapsedTicker(div,div.textContent,{text:true});/* #481 G5 follow-up (owner ruling 2026-09-30): every story wait counts seconds like the renders (#356) — "The world turns... 7s". The count stops itself when the marker is removed; its words change only through setThinking */
 if(opts&&opts.sp)div._sp=opts.sp;/* #9: speaker map for this passage; also assignable later, once the post-pass resolves */
 if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=document.createElement("button");rb.className="tts-replay";rb.title="Replay";rb.innerHTML="&#128266;";rb.onclick=function(){
   /* resolved HERE, not at render: names -> voices at click time means rebinding a character's voice re-voices every past turn they speak in. */
@@ -337,6 +338,9 @@ var _wasBottom=!(opts&&opts.keepPlace)&&(storyAtBottom(story)||type==="player"||
 // Bidirectional badge (audit E68 / CLAUDE.md §14): flag the STORY tab when narration arrives while
 // the player is on Table Talk. The narrative tab has no static badge element, so create one lazily.
 if(type==="narrator"&&activeChatTab==="tabletalk"){var tnb=document.getElementById("tab-narrative");if(tnb){var _nb=tnb.querySelector(".tab-narr-badge");if(!_nb){_nb=document.createElement("span");tnb.appendChild(_nb);}_nb.className="tab-badge on tab-narr-badge";}}
-if(typeof carMode!=="undefined"&&carMode){if(type==="thinking"){_carSetStatus("Thinking…");_carSyncBtn();}else if(type==="narrator"){if(typeof carNotify==="function")carNotify("response");/* round-2 #26: clears the tap-to-retry arm on ANY successful narration (a stale arm re-fired retryLast = duplicate GM turn) + plays the ready earcon */_carSetStatus("Narrator speaking…");setTimeout(function(){if(carMode)_carSyncBtn();},100);}}
+if(typeof carMode!=="undefined"&&carMode){if(type==="thinking"){_carSetStatus(CAR_STR.thinking);_carSyncBtn();}else if(type==="narrator"){if(typeof carNotify==="function")carNotify("response");/* round-2 #26: clears the tap-to-retry arm on ANY successful narration (a stale arm re-fired retryLast = duplicate GM turn) + plays the ready earcon */_carSetStatus("Narrator speaking…");setTimeout(function(){if(carMode)_carSyncBtn();},100);}}
 return div;}
+/* #481 G5 follow-up: a thinking marker's words change only here — the count keeps running from the start of the wait. A
+   direct write to the marker is repainted by the next tick (dev/class-guards.js finds one). */
+function setThinking(div,text){if(!div)return;if(div._tick)div._tick.set(text);else div.textContent=text;}
 function closeAllMenus(){eachMenuEl("file-menu",function(el){el.style.display="none";},MENU_ID_PREFIXES);}

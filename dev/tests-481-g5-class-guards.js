@@ -47,6 +47,14 @@ test('the network-first class: every page outside APP_SHELL must match sw.js\'s 
   assert.equal(probs.length, 1, JSON.stringify(probs)); assert.match(probs[0], /^rogue\.html is outside APP_SHELL/);
   assert.throws(() => cg.networkFirstProblems(null, { pages: pages, sw: sw.replace('if(/blueprint-designer|', 'if(/other|'), exempt: {} }), /network-first regex line/, 'a reshaped fetch handler fails loudly, never passes');
 });
+test('a thinking marker\'s words change only through setThinking: a direct write in the function that painted it is found (its callbacks included)', () => {
+  const writes = list => cg.thinkingMarkerWrites(null, { sources: cg.sourcesOf(list) }).map(p => p.fn + ':' + p.name);
+  assert.deepEqual(writes([{ file: 'a.js', text: 'function f(){var th=addMsg("thinking","Working...");gen(function(t){th.innerHTML=t;});}' }]), ['f:th'], 'a progress callback');
+  assert.deepEqual(writes([{ file: 'a.js', text: 'async function g(){var m;m=addMsg(\'thinking\',"A...");await callGM("x");m.textContent="B...";}' }]), ['g:m'], 'a later assignment, single quotes');
+  assert.deepEqual(writes([{ file: 'a.js', text: 'function f(){var th=addMsg("thinking","Working...");setThinking(th,"Next...");th.remove();}' }]), [], 'setThinking is the sanctioned path');
+  assert.deepEqual(writes([{ file: 'a.js', text: 'function a(){var th=addMsg("thinking","W...");th.remove();}\nfunction b(th){th.textContent="a table cell";}' }]), [], 'another function\'s th is another variable');
+  assert.deepEqual(writes([{ file: 'a.js', text: 'function f(){var n=addMsg("narrator","x");n.innerHTML="y";var th=addMsg("thinking","W...");log("th.innerHTML=z");}' }]), [], 'a narration, and a write inside a string, are not marker writes');
+});
 test('every exemption carries a reason', () => {
   cg.EXEMPT.paints.forEach(e => assert.ok(e.file && e.literal && e.why && e.why.length > 20, 'paint exemption without a reason: ' + JSON.stringify(e)));
   Object.keys(cg.EXEMPT.palette).concat(Object.keys(cg.EXEMPT.networkFirst)).forEach(f => assert.ok(String(cg.EXEMPT.palette[f] || cg.EXEMPT.networkFirst[f]).length > 20, 'exemption without a reason: ' + f));

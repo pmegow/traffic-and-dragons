@@ -37,6 +37,8 @@ var CAR_STR = {
   narratorSpeaking: "Narrator speaking…",
   voiceUnavailable: "Voice input not available in this browser",
   retrying: "Retrying…",
+  thinking: "Thinking…",                      // #481 G5 follow-up — a GM turn in flight (ui-shell.js addMsg paints it)
+  transcribing: "Transcribing…",              // must match the literal stt.js sends via carNotify — the cloud speech model's wait
   sending: "Sending…",
   errorPrefix: "⚠ ",
   // #77 — confirm gate (DOC/Research/DOC_nonsense_filter.html §4 Layer 2)
@@ -47,6 +49,10 @@ var CAR_STR = {
   noOptions: "No suggestions — just say what you do",
   noOptionsYet: "No options to repeat yet"
 };
+// #481 G5 follow-up (owner ruling 2026-09-30, "yes. count the seconds."): the statuses that wait on a model count seconds
+// like every other wait (#356) — "Thinking… 7s". _carSetStatus ticks exactly these; any other status stops the count first.
+var CAR_WAIT_STR = [CAR_STR.thinking, CAR_STR.retrying, CAR_STR.gettingOptions, CAR_STR.transcribing];
+var _carStatusTick = null;   // the running count on a waiting status — at most one
 // #78 — how long the mic is HELD after narration while the suggestions (a SECOND, async LLM call
 // — see generateActions) are still in flight. The doc's Phase 2 predates #14/v1.110, which moved
 // the options out of GM prose entirely, so on a short turn the read would otherwise be asked for
@@ -315,6 +321,7 @@ function hideCarMode() {
   // have latched on an intent whose _carHeld was already cleared by another path.
   _carIntent("resume");
   _carOptReset();   // audit F13 — revoke the deferred mic open and the options poll; neither may outlive the overlay
+  _carSetStatus("");   // #481 G5 follow-up — nor may a running count (the overlay is hidden, not removed)
   _carReleaseWakeLock(); // rank 5 — normal play must never hold the lock
   try { store.del("tnd_carmode_v1"); } catch (e) {} // rank 13 — × is always the escape hatch; clearing the flag is what makes it stick
   if (typeof TTS !== "undefined") {
@@ -389,8 +396,15 @@ function _carUpdateParty() {
 }
 
 function _carSetStatus(text) {
+  var waits = CAR_WAIT_STR.indexOf(text) >= 0;
+  if (_carStatusTick) {
+    if (waits && _carStatusTick.base() === text) return;   // the same wait painted again (the options poll) — keep counting
+    _carStatusTick.stop(); _carStatusTick = null;           // stop BEFORE the next text lands, or the next tick overwrites it (#356)
+  }
   var el = document.getElementById("car-status");
-  if (el) el.textContent = text;
+  if (!el) return;
+  if (waits && typeof elapsedTicker === "function") _carStatusTick = elapsedTicker(el, text, { text: true });
+  else el.textContent = text;
 }
 
 function _carSyncBtn() {

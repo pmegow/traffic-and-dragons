@@ -68,7 +68,7 @@ function startGame(char,toneName,toneVoice,authorId){
        a modal at Begin; blank means the generator decides under the #425 guards. A DOM-less host forges straight away. */
     var _forge=function(){
       var _skMsg=addMsg("thinking","Forging the campaign...");
-      generateSkeleton(function(tx){try{_skMsg.innerHTML=tx;}catch(_e){}}).then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);if(typeof reportError==="function")reportError("skeleton",reason,(e&&e.stack)||"");beginAdventure();});
+      generateSkeleton(function(tx){try{setThinking(_skMsg,tx);}catch(_e){}}).then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);if(typeof reportError==="function")reportError("skeleton",reason,(e&&e.stack)||"");beginAdventure();});
     };
     if(typeof showStakeModal==="function"&&stakeAskWanted(worldState.character))showStakeModal(_forge);else _forge();
   }

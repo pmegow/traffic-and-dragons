@@ -11,10 +11,15 @@
 //   paletteProblems(root)    — every tracked root page links satellite.css, or has a reasoned palette exemption.
 //   networkFirstProblems(root) — every tracked root page outside APP_SHELL matches sw.js's network-first regex.
 //
-// BOUNDARY (known, deliberate): a status painted by a HELPER called before the wait — addMsg("thinking","The world turns...")
-// in the GM turn, Car Mode's "Thinking…" — is outside this scan: the paint is not in the waiting function's own flow. The
-// story's thinking marker pulses (CSS animation) rather than freezing; whether it should also count seconds is an owner call
-// (audit G5 annotation), not something this guard decides.
+// HELPER-PAINTED WAITS (owner ruling 2026-09-30, "yes. count the seconds."): a status painted by a HELPER before the wait
+// starts — the story's thinking marker, Car Mode's status line — is outside the frozenWaitPaints scan, because the paint is
+// not in the waiting function's own flow. So the helpers tick on their own: addMsg ticks every "thinking" marker, and
+// _carSetStatus ticks the Car Mode waits declared in CAR_WAIT_STR (ui-carmode.js). Pinned by dev/tests-481-g5-helper-waits.js.
+// The one rule the source can still break is checked here:
+//   thinkingMarkerWrites(root) — a thinking marker's words change only through setThinking (ui-shell.js); a direct write to
+//                              one is repainted by the next tick, so the new words vanish within a second.
+// Still outside, deliberately: memory.js's "Filing memories..." is a system LOG line that stays in the story as a record,
+// not a live status; Car Mode's voice download reports its own percentage.
 //
 //   node dev/class-guards.js        (prints every problem; exit 1 when any)
 var fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -186,6 +191,28 @@ function frozenWaitPaints(root, opts) {
   });
   return found.filter(function (p) { return !exempt.some(function (e) { return e.file === p.file && e.literal === p.literal; }); });
 }
+// Every variable a function assigns from addMsg("thinking", …), followed through that function's body (its callbacks
+// included): a .textContent/.innerHTML/.innerText write to it bypasses setThinking.
+var THINKING_ASSIGN_RE = /([A-Za-z_$][\w$]*)\s*=\s*addMsg\(\s*(["'])thinking\2/g;
+function thinkingMarkerWrites(root, opts) {
+  var sources = (opts && opts.sources) || loadSources(root), found = [], seen = {};
+  sources.forEach(function (s) {
+    var code = codeOnly(s.src), m; THINKING_ASSIGN_RE.lastIndex = 0;
+    while ((m = THINKING_ASSIGN_RE.exec(s.src))) {
+      if (code.slice(m.index, m.index + m[1].length) !== m[1]) continue;   // inside a string or a comment
+      var at = m.index, inner = -1;
+      s.fns.forEach(function (fn, k) { if (fn.open < at && fn.close > at && (inner < 0 || fn.open > s.fns[inner].open)) inner = k; });
+      if (inner < 0) continue;
+      var fn = s.fns[inner], body = code.slice(fn.open, fn.close + 1), x;
+      var w = new RegExp("(?:^|[^.\\w$])" + m[1].replace(/\$/g, "\\$") + "\\s*\\.\\s*(?:textContent|innerHTML|innerText)\\s*=(?!=)", "g");
+      while ((x = w.exec(body))) {
+        var line = s.src.slice(0, fn.open + x.index + 1).split("\n").length, key = s.file + ":" + line + ":" + m[1];
+        if (!seen[key]) { seen[key] = true; found.push({ file: s.file, line: line, name: m[1], fn: fn.name || "(anonymous)" }); }
+      }
+    }
+  });
+  return found;
+}
 // In-memory sources for fixtures: [{file, text}] → the same shape loadSources returns.
 function sourcesOf(list) {
   return list.map(function (x) { var src = scriptText(x.file, x.text); return { file: x.file, src: src, fns: functionsOf(src) }; });
@@ -232,11 +259,12 @@ function staleExemptions(root, opts) {
 }
 function allProblems(root) {
   return frozenWaitPaints(root).map(function (p) { return p.file + ":" + p.line + " paints \"" + p.literal + "\" in " + p.fn + ", which waits on a model or an image — ride elapsedTicker (#356), or add a reasoned EXEMPT.paints entry"; })
+    .concat(thinkingMarkerWrites(root).map(function (p) { return p.file + ":" + p.line + " writes the thinking marker " + p.name + " directly in " + p.fn + " — the next tick repaints it; use setThinking(" + p.name + ", text) (#481 G5 follow-up)"; }))
     .concat(paletteProblems(root)).concat(networkFirstProblems(root)).concat(staleExemptions(root));
 }
 
 module.exports = { WAIT_PRIMITIVES: WAIT_PRIMITIVES, EXEMPT: EXEMPT, scriptText: scriptText, functionsOf: functionsOf, codeOnly: codeOnly, loadSources: loadSources, sourcesOf: sourcesOf,
-  waitingNames: waitingNames, frozenWaitPaints: frozenWaitPaints, paletteProblems: paletteProblems, networkFirstProblems: networkFirstProblems, staleExemptions: staleExemptions, allProblems: allProblems };
+  waitingNames: waitingNames, frozenWaitPaints: frozenWaitPaints, thinkingMarkerWrites: thinkingMarkerWrites, paletteProblems: paletteProblems, networkFirstProblems: networkFirstProblems, staleExemptions: staleExemptions, allProblems: allProblems };
 
 if (require.main === module) {
   var probs = allProblems(path.join(__dirname, ".."));
