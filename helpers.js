@@ -3039,6 +3039,15 @@ function villageTradeContext(text,R){
   if(!keeper)return {ok:false,reason:(_kName&&!_kOpen)?leaf+" is closed at this hour ("+_kName+" keeps it) and nobody in the scene can trade":"no counterparty present in "+leaf};
   return {ok:true,keeper:keeper,shop:leaf,node:node,key:rk};
 }
+/* #501 (owner 2026-10-01): is there a counter to open RIGHT NOW? The ONE rule both doors to the counter read — the
+   narration's Shop button (syncShopButton, ui-shell.js) and the inventory panel's Trade row (ui-panels.js): the trade gate
+   is open AND names a shop (villageTradeContext: a shop node, someone to trade with). Only a kind with a counter has shop
+   nodes (isShopNode), and the adventure's always-open gate names none, so no kind test is needed here. Returns
+   {shop,keeper}, or null. Pure over the live state, so nothing about it is stored with a turn. */
+function shopOpportunity(){
+  var t=(typeof villageTradeContext==="function")?villageTradeContext():null;
+  return (t&&t.ok&&t.shop)?{shop:t.shop,keeper:t.keeper}:null;
+}
 
 /* #407 THE SHOP INTERFACE (owner drawing 2026-09-16; four rulings in the TODO row). A pure view model and plan over the
    village's own teeth: villageTradeContext (a shop with its keeper present), the shop node's LIVE wares and WANTED list,

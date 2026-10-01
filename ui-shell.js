@@ -339,8 +339,33 @@ var _wasBottom=!(opts&&opts.keepPlace)&&(storyAtBottom(story)||type==="player"||
 // the player is on Table Talk. The narrative tab has no static badge element, so create one lazily.
 if(type==="narrator"&&activeChatTab==="tabletalk"){var tnb=document.getElementById("tab-narrative");if(tnb){var _nb=tnb.querySelector(".tab-narr-badge");if(!_nb){_nb=document.createElement("span");tnb.appendChild(_nb);}_nb.className="tab-badge on tab-narr-badge";}}
 if(typeof carMode!=="undefined"&&carMode){if(type==="thinking"){_carSetStatus(CAR_STR.thinking);_carSyncBtn();}else if(type==="narrator"){if(typeof carNotify==="function")carNotify("response");/* round-2 #26: clears the tap-to-retry arm on ANY successful narration (a stale arm re-fired retryLast = duplicate GM turn) + plays the ready earcon */_carSetStatus("Narrator speaking…");setTimeout(function(){if(carMode)_carSyncBtn();},100);}}
+if(type==="narrator")syncShopButton();/* #501: a new scene takes the Shop button from the one before it */
 return div;}
 /* #481 G5 follow-up: a thinking marker's words change only here — the count keeps running from the start of the wait. A
    direct write to the marker is repainted by the next tick (dev/class-guards.js finds one). */
 function setThinking(div,text){if(!div)return;if(div._tick)div._tick.set(text);else div.textContent=text;}
+/* #501 (owner 2026-10-01, "add an explicit shop button to the narrative window … on the bottom row where the 'render' button
+   is, but connect it to the right side of the panel. Only draw the button if there's a shopping opportunity … and turn the
+   button off once a new scene is written"). ONE Shop button, on the Render row of the NEWEST scene (a narrator frame with
+   a turn), while there is a counter to open (shopOpportunity, helpers.js); every other frame loses it. Decided from the
+   LIVE state on every repaint (syncUI) and whenever a narration lands (addMsg) — never stored with the turn: the fourth
+   suggestion button was written once per turn, so a reload repainted its old words and the counter looked unreachable.
+   The click goes through the one click-time gate (invLedgerOpen, #430): a turn in flight answers with a toast. */
+function syncShopButton(){
+  var story=document.getElementById("story-narrative");if(!story)return;
+  var frames=story.querySelectorAll(".msg.narrator[data-turn]"),newest=frames.length?frames[frames.length-1]:null;
+  var op=(typeof shopOpportunity==="function"&&typeof worldState!=="undefined"&&worldState)?shopOpportunity():null;
+  var old=story.querySelectorAll(".frame-shop-wrap"),i;
+  for(i=0;i<old.length;i++)if(!op||old[i].parentNode!==newest)old[i].parentNode.removeChild(old[i]);
+  if(!op||!newest)return;
+  var b=newest.querySelector(".frame-shop");
+  if(!b){/* the wrapper floats to the panel's right edge and inherits the frame's line, so the button centres in the same
+       line box as Render at any text size (a bare floated button sat 4px high) */
+    var wrap=document.createElement("span");wrap.className="frame-shop-wrap";
+    b=document.createElement("button");b.className="ib frame-shop";b.textContent="Shop";
+    b.onclick=function(ev){ev.stopPropagation();invLedgerOpen("showShopModal");};wrap.appendChild(b);
+    var row=newest.querySelector(".frame-render")||newest.querySelector(".tts-replay");/* the Render row */
+    if(row&&row.parentNode===newest)newest.insertBefore(wrap,row.nextSibling);else newest.appendChild(wrap);}
+  b.title="Buy and sell with "+op.keeper+" \u2014 "+op.shop;
+}
 function closeAllMenus(){eachMenuEl("file-menu",function(el){el.style.display="none";},MENU_ID_PREFIXES);}

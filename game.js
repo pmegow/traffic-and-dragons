@@ -182,12 +182,9 @@ function buildSuggestionSys(prevActs){
 function engineFourthAction(){
   if(!worldState||!worldState.character)return null;
   var c=worldState.character,i;
-  /* #496 (owner ruling 2026-09-30, "the fourth button is always 'shop $location'"): in a kind with a counter (waresPerShop),
-     in a shop where trade is possible (villageTradeContext: its keeper at the counter), the fourth button ALWAYS opens the
-     counter (#407). "Always" is the ruling: it outranks rest, healing, a quest offer and the village rung until the hero
-     leaves. The click opens the counter instead of sending a turn (engineActionOpener, decided at click time). */
-  var _sk=(typeof kindDef==="function")?kindDef():null;
-  if(_sk&&_sk.waresPerShop&&!worldState.combat&&typeof villageTradeContext==="function"){var _sv=villageTradeContext();if(_sv.ok&&_sv.shop)return {kind:"shop",text:"Shop at "+_sv.shop+"."};}
+  /* #501 (owner ruling 2026-10-01): the counter is reached from the narration's own Shop button (syncShopButton), so this
+     slot is the ladder's again in a shop. The #496 "Shop at <place>." rung is withdrawn: it was written once per turn and
+     stored, so a reload repainted the old words. */
   if(!worldState.combat&&typeof c.hp==="number"&&typeof c.maxHp==="number"&&c.hp<c.maxHp/2)return {kind:"rest",text:"Rest and recover — you are badly hurt."};
   /* #364: the ending offer no longer rides this button — it lives in File ▸ Write the ending… (endingMenuVisible) and the journal; the beat slot is the ladder's again */
   /* #305c (owner field report 2026-09-11, Silas Morne t110): "Use your Vial of distilled panic" held the button for twenty-plus
@@ -199,14 +196,14 @@ function engineFourthAction(){
   if((wounded||conds.length>0)&&typeof itemLookup==="function"){var cands=[];for(i=0;i<(c.inventory||[]).length;i++){var it=c.inventory[i],e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A"&&consumableAnswersNeed(e.effect,wounded,conds))cands.push(it);}
     if(cands.length){var pick=cands[(worldState.turn||0)%cands.length];return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(pick):pick)+"."};}}
   var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
-  /* #6 D1: the village rung (a resident call or a commons look-in). #496: it no longer takes turns with a buy or a sell rung —
-     in a shop where trade is possible the Shop button above already holds the slot, and nowhere else can coin move. */
+  /* #6 D1: the village rung (a resident call or a commons look-in). It takes turns with nothing: the village's buy and sell
+     rungs are retired (#496), their choices are inside the counter. */
   if(typeof kindDef==="function"&&kindDef().villageRung){
     if(typeof montageDue==="function"&&montageDue()&&!kindDef().montage&&typeof console!=="undefined")console.info("[village] montage would be due at t"+worldState.turn+" — off in v1 for the village kind, logged for the measure");/* #6 phase B: the measure survives the rung */
     var _vr=villageRung();if(_vr)return _vr;
   }
-  /* The buy rung — a kind WITHOUT a counter only (the adventure). A tradeOnlyInShops kind trades through the counter (#496): its
-     "Buy the X (price) from Y." and "Sell your X to Y" rungs (#6 F6, #481 D4) are retired, their choices are inside it. */
+  /* The buy rung — a kind WITHOUT a counter only (the adventure). A tradeOnlyInShops kind trades through the counter: its
+     "Buy the X (price) from Y." and "Sell your X to Y" rungs (#6 F6, #481 D4) were retired by #496, their choices are inside it. */
   var _tk=(typeof kindDef==="function")?kindDef():null;
   if(!(_tk&&_tk.tradeOnlyInShops)&&(c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){
     var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof waresOfferedHere==="function")?waresOfferedHere(node,buildSceneManifest().local):[];/* a seller or their shop must be IN the scene (2026-09-03); #392: the SCENE, not the town */var _ab=firstWareNotHeld(live,c.inventory);/* #492: never the item just bought */if(_ab)return {kind:"buy",text:"Buy the "+_ab.item+" ("+_ab.price+")."};}
@@ -215,17 +212,6 @@ function engineFourthAction(){
   if(kindDef().wildcard&&typeof WILDCARD_EVERY==="number"&&WILDCARD_EVERY>0&&worldState.turn>0&&worldState.turn%WILDCARD_EVERY===0)return {kind:"wild",text:"Do something reckless."};
   return null;
 }
-/* #496: an engine button that OPENS something instead of sending a turn — ONE row per kind. Decided at CLICK time against the
-   live state (the #430 lesson: nothing is baked into the paint). The button is a plain .qa with its text, so a button rebuilt
-   after a reload, Car Mode's spoken menu and a stale button all behave: when the live fourth action is no longer this one,
-   the text is an ordinary action for the GM. */
-var ENGINE_ACTION_OPENERS={shop:"showShopModal"};
-function engineActionOpener(action,fa){
-  if(fa===undefined)fa=engineFourthAction();/* a caller painting several buttons passes the ladder's answer once */
-  if(!fa||!ENGINE_ACTION_OPENERS[fa.kind]||punctuateAction(fa.text)!==action)return null;
-  return ENGINE_ACTION_OPENERS[fa.kind];
-}
-function suggestionTitle(action,fa){return engineActionOpener(action,fa)?"Tap to open":"Tap to edit · hold or Ctrl-click to send";}
 // #305c: does a consumable's canon effect answer the hero's present need? Wounded → the effect restores or heals HP,
 // closes wounds or stops bleeding. Afflicted → the effect names the condition's stem ("Poisoned" → poison, "Bleeding" →
 // bleed, "Stunned" → stunn). Pure; a fear vial answers neither, so it never fills the slot for a bruise.
@@ -771,7 +757,7 @@ async function generateActions(msgEl){
     /* #305 ②: the fourth, engine-authored button — appended after the model's three, no token, and
        exempt from the affordance gate (it names sheet, quest, and market facts, never scene entities). */
     var _fa=(typeof engineFourthAction==="function")?engineFourthAction():null;
-    if(_fa&&_fa.text){var _fb=document.createElement("button");_fb.className="qa";var _fat=punctuateAction(_fa.text);_fb.textContent=_mpPfx+_fat;_fb.setAttribute("data-action",_fat);_fb.setAttribute("title",suggestionTitle(_fat,_fa));_fb.setAttribute("onclick","sendSuggestedAction(this,event)");_fb.style.borderStyle="dashed";btnDiv.appendChild(_fb);worldState.lastActions.push(_fat);}
+    if(_fa&&_fa.text){var _fb=document.createElement("button");_fb.className="qa";var _fat=punctuateAction(_fa.text);_fb.textContent=_mpPfx+_fat;_fb.setAttribute("data-action",_fat);_fb.setAttribute("title","Tap to edit · hold or Ctrl-click to send");_fb.setAttribute("onclick","sendSuggestedAction(this,event)");_fb.style.borderStyle="dashed";btnDiv.appendChild(_fb);worldState.lastActions.push(_fat);}
   }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);if(typeof reportError==="function")reportError("actions",e.message,(e&&e.stack)||"");_cleanup();}
   finally{saveAll();}/* #280b: the turn's ONE cloud sync — EVERY exit (fresh buttons, the empty result, the failure's honest E26 null, the stale race) converges the server to the truth. R4's local-only save here left the E26 null on the wire while the fresh buttons stayed stranded on this device (the JP0-11 cap skips the mature-save flush), so the other device rendered the newest narration buttonless — the 2026-08-29 field report. One POST per turn, unchanged: the commit no longer arms one. */
 }
@@ -1065,8 +1051,8 @@ function narrateWithSpeakers(clean,raw,narEl,entry,trOwn){
 }
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
-  var h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">',i,_bfa=engineFourthAction();/* #496: one ladder walk for the set */
-  for(i=0;i<acts.length;i++){var _ea=escHtml(punctuateAction(acts[i]));h+='<button class="qa" title="'+suggestionTitle(punctuateAction(acts[i]),_bfa)+'" onclick="sendSuggestedAction(this,event)" data-action="'+_ea+'">'+_ea+'</button>';}/* escape model-authored action text (audit E81); #88: punctuate here too, so reload/campLoad also covers pre-#88 stored worldState.lastActions */
+  var h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">',i;
+  for(i=0;i<acts.length;i++){var _ea=escHtml(punctuateAction(acts[i]));h+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+_ea+'">'+_ea+'</button>';}/* escape model-authored action text (audit E81); #88: punctuate here too, so reload/campLoad also covers pre-#88 stored worldState.lastActions */
   return h+"</div>";
 }
 // Fetch the Character Library once and cache it; legacy candidates are drawn from this (server-side)
@@ -1966,7 +1952,6 @@ function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.len
 function sendSuggestedAction(btn,ev){
   var action=btn.getAttribute("data-action");if(!action)return;
   if(Date.now()<_qaSuppressUntil){_qaSuppressUntil=0;return;} // a long-press already executed this; swallow the trailing click
-  var _op=engineActionOpener(action);if(_op){invLedgerOpen(_op);return;}/* #496: the Shop button opens the counter (the one click-time gate, #430) — no turn, nothing typed */
   if(ev&&(ev.ctrlKey||ev.metaKey)){if(!busy)sendAction(toFirstPerson(action));return;}
   var inp=document.getElementById("action-input");if(!inp)return;
   // APPEND to whatever's already typed (#33) — the player may have started a partial thought

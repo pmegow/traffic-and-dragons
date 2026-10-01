@@ -38,8 +38,10 @@ var geval = eval;
 ["ui-shell.js", "ui-panels.js"].forEach(function (f) { geval(fs.readFileSync(path.join(ROOT, f), "utf8")); });
 showToast = function (m) { __toasts.push(String(m)); };
 saveAll = function () {}; saveCore = function () {}; saveMem = function () {};
-/* The two ledger predicates are pure engine reads; here they are stubbed OPEN so the rows paint. */
-villageTradeContext = function () { return { ok: true, keeper: "Frizwick" }; };
+/* The two ledger predicates are pure engine reads; here they are stubbed OPEN so the rows paint. #501: the counter's
+   predicate is the one rule, shopOpportunity (helpers.js, not loaded here) — the panel no longer tests the gate inline. */
+shopOpportunity = function () { return { shop: "the tavern", keeper: "Frizwick" }; };
+villageTradeContext = function () { return { ok: true, keeper: "Frizwick", shop: "the tavern" }; };
 stashTradeCatalog = function () { return { ok: true, carried: [], stored: [] }; };
 kindDef = function () { return { id: "village", waresPerShop: true, stashQuantities: true }; };
 var __opened = [];
