@@ -1056,6 +1056,47 @@ function runEngineTests(R){
     if(__fsForTests.readFileSync(__rootForTests+"/game.js","utf8").indexOf("seedArmor(")<0)return "the seed path does not carry the override onto the roster";
     return true;
   });
+  // ── #491 a canon envelope whose markers lost their brackets (playtest v1.1078, the cache-on run, turn 2) ──
+  t("#491 a canon envelope whose two markers lost their brackets is read as written: the death, the quest close and the loot commit as ONE transaction, and no marker shows in the story; a marker inside a sentence is left alone",function(){
+    /* The turn-2 response, verbatim. The GM wrote CANON_TXN_BEGIN and CANON_TXN_END as bare lines. The envelope match needs the
+       brackets, so the death read as "outside a transaction", the key and the 8 gold were withheld, and both lines printed in
+       the story. The first bare marker in 62 transactions across 19 corpora. */
+    var T0="[TIME_CHECK:evening]\n[TIME_ADVANCE:10m]\n[SCENE_CAST:none]\n[QUEST:An Unwanted Reunion|active]\n[QUEST_STEP:An Unwanted Reunion|Survive the ambush and identify the attackers|false]\n\nThe lead raider turns, lowering his notched broadsword.";
+    var T1="[TIME_CHECK:evening]\n[TIME_ADVANCE:2m]\n[SCENE_REF:lead_slaver|Aldric Saltborn]\n[NPC:Aldric Saltborn|hostile, mocking|enemy]\n[NPC_PRONOUN:Aldric Saltborn|he/him]\n[COMBAT_START:Aldric Saltborn|18|13|4|1d8+2|7]\n[COMBAT_STATS:STR:15|DEX:12|CON:14|INT:10|WIS:10|CHA:12|CR:1/2]\n\nYou launch yourself across the blood-soaked ash.\n\n[DICE:Strength check|17|success]\n[SKILL_SUCCESS:Sprinting]\n[ENEMY_HP:Aldric Saltborn|-7]\n\nYour iron shoulder crashes into his chest.";
+    var T2="[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[COMBAT_ROUND:2]\n[SKILL_SUCCESS:Lore]\n\nYou put all the weight of your shoulders into a murderous overhead cut. If your edge goes wide, his counterstroke will split your ribs.\n\n[DICE:Strength attack roll|16|success]\n[ENEMY_HP:Aldric Saltborn|-12]\n\nCANON_TXN_BEGIN:txn_aldric_death_001|npc-death|Aldric Saltborn|lead_slaver|An Unwanted Reunion\n[SCENE_DEATH:lead_slaver]\n[NPC:Aldric Saltborn|dead|enemy]\n[QUEST_STEP:An Unwanted Reunion|Survive the ambush and identify the attackers|true]\n[QUEST:An Unwanted Reunion|completed]\n[ARC_COMPLETE:An Unwanted Reunion]\n[ITEM_GAINED:Iron Slaver's Key]\n[GOLD:+8]\nCANON_TXN_END:txn_aldric_death_001\n[COMBAT_END:victory]\n[QUEST:The Gilded Cage|offered|Investigate the fighting arena in Ashenveil to trace the sorcerous brands]\n\nThe heavy steel shears through Aldric's raised guard and bites deep into his neck. He collapses into the churned dirt with a wet gasp, the unholy glow in his brand flickering out like drowned embers. The remaining raiders scatter into the gathering dark at the sight of their fallen captain. You tear an iron key from his belt and kick over his body, finding a purse of heavy coin stamped with the mark of Ashenveil's fighting pits. \n\n[SUGGEST:Search the ruined merchant wagon|Examine the dead slavers' gear|Take the South Road toward Ashenveil]";
+    makeWorld();worldState.turn=0;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];worldState.character.gold=40;
+    applyMuts(T0);worldState.turn=1;applyMuts(T1);worldState.turn=2;
+    var _w=console.warn,warned=[],r;console.warn=function(){warned.push(Array.prototype.join.call(arguments," "));};
+    try{r=applyMuts(T2);}finally{console.warn=_w;}
+    var tx=(worldState.canonTxns||[]).filter(function(x){return x.id==="txn_aldric_death_001";})[0];
+    if(!tx||tx.status!=="committed")return "the envelope did not commit: "+JSON.stringify(tx)+" | "+warned.join(" / ").slice(0,260);
+    if(worldState.character.gold!==48)return "the purse did not land: gold "+worldState.character.gold;
+    if(worldState.character.inventory.indexOf("Iron Slaver's Key")<0)return "the key did not land: "+JSON.stringify(worldState.character.inventory);
+    if((worldState.questLog||[]).some(function(q){return q.title==="An Unwanted Reunion"&&q.status==="active";}))return "the quest is still active";
+    var ald=wsNpcByName("Aldric Saltborn");if(!ald||!ald.dead)return "Aldric is not dead on the record: "+JSON.stringify(ald&&{status:ald.status,dead:ald.dead});
+    if((worldState.identityConflicts||[]).length)return "a conflict was minted: "+JSON.stringify(worldState.identityConflicts).slice(0,200);
+    if((r.muts||[]).some(function(m){return /quarantin|withheld/i.test(m);}))return "a refusal on the summary line: "+JSON.stringify(r.muts);
+    if(r.errors&&r.errors.length)return "errors: "+r.errors.join("; ");
+    if(!warned.some(function(w){return /#491/.test(w)&&/2 canon markers/.test(w);}))return "the slip must be said once on the console (never silent): "+warned.join(" / ").slice(0,260);
+    /* the story: no marker, the prose intact, and no second console line (the display is rebuilt often; the parse said it once) */
+    var shown,quietWarned=[];console.warn=function(){quietWarned.push(Array.prototype.join.call(arguments," "));};
+    try{shown=cleanTxt(T2);}finally{console.warn=_w;}
+    if(quietWarned.some(function(w){return /#491/.test(w);}))return "the display strip must be quiet about a restored marker";
+    if(tagRestoreBareMarkers(undefined)!==undefined||tagRestoreBareMarkers(null)!==null||tagRestoreBareMarkers("")!=="")return "a non-string or empty input must pass through untouched";
+    if(/CANON_TXN/.test(shown))return "a marker printed in the story: "+shown.slice(shown.indexOf("CANON_TXN")-20,shown.indexOf("CANON_TXN")+60);
+    if(shown.indexOf("split your ribs.")<0||shown.indexOf("You tear an iron key from his belt")<0)return "the prose around the markers was damaged";
+    /* a bracketed envelope is untouched, byte for byte; so is text with no marker */
+    var good=T2.replace("CANON_TXN_BEGIN:txn_aldric_death_001|npc-death|Aldric Saltborn|lead_slaver|An Unwanted Reunion","[CANON_TXN_BEGIN:txn_aldric_death_001|npc-death|Aldric Saltborn|lead_slaver|An Unwanted Reunion]").replace("CANON_TXN_END:txn_aldric_death_001","[CANON_TXN_END:txn_aldric_death_001]");
+    if(tagRestoreBareMarkers(good,true)!==good||tagRestoreBareMarkers(T1,true)!==T1)return "a well-formed response must pass through unchanged";
+    if(tagRestoreBareMarkers(T2,true)!==good)return "the restored text must equal the bracketed form exactly";
+    /* what is NOT a marker line stays as written */
+    var keep=["He muttered CANON_TXN_BEGIN:x|npc-death|A|b|C under his breath.","The ledger read CANON_TXN_END:x and nothing more.","CANON_TXN_BEGIN:only|three|fields","CANON_TXN_END:x then he fell.","CANON_TXN_END:"],k;
+    for(k=0;k<keep.length;k++)if(tagRestoreBareMarkers(keep[k],true)!==keep[k])return "not a marker line, must be left alone: "+keep[k];
+    /* same line as a tag, indented, a '-' quest, CRLF: still markers */
+    if(tagRestoreBareMarkers("  CANON_TXN_BEGIN:a|quest-outcome|-|-|The Open Wake \r\n[QUEST:The Open Wake|completed]\r\nCANON_TXN_END:a [COMBAT_END:victory]",true)!=="  [CANON_TXN_BEGIN:a|quest-outcome|-|-|The Open Wake] \r\n[QUEST:The Open Wake|completed]\r\n[CANON_TXN_END:a] [COMBAT_END:victory]")return "indented, CRLF and tag-adjacent marker lines must be restored";
+    if(tagRestoreBareMarkers("CANON_TXN_BEGIN:a|npc-death|X|h|-",true)!=="[CANON_TXN_BEGIN:a|npc-death|X|h|-]")return "a '-' quest field is a whole marker";
+    return true;
+  });
   // ── #318 a canon envelope around a COMBAT kill is combat canon (Iron Meridian t17, the Tag-Shrike) ──
   t("#318 [CANON_TXN npc-death] on a rostered combat foe slain in the same response COMMITS (no quarantine toast, no identity conflict, fight closes, ring stamped); a foe still standing with no kill in the response, and a stranger, still refuse",function(){
     makeWorld();worldState.turn=17;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];

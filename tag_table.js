@@ -96,6 +96,21 @@ TAG_STRIP_NAMES=["SCENE_REF","SCENE_NOT","SCENE_REVEAL","SCENE_DEATH","CANON_TXN
 var TAG_NO_HANDLER=["ACTIONS","RETCON","SAY","CANON_TXN_BEGIN","CANON_TXN_END","SCENE_CAST","NO_CHANGE"];
 function buildCtTags(){return new RegExp("\\[("+TAG_STRIP_NAMES.join("|")+"):[^\\]]*\\]","g");}/* audit A10: an EMPTY body ([HP:]) is stripped too — it used to fall through both nets for the two-letter names */
 function buildCtBare(){return new RegExp("\\[("+TAG_STRIP_BARE.join("|")+")\\]","g");}
+// ── #491 a canon envelope marker written WITHOUT its brackets (playtest v1.1078, gemini-3.7-flash, the first in 62) ──
+// The GM wrote "CANON_TXN_BEGIN:id|npc-death|name|handle|quest" and "CANON_TXN_END:id" as bare lines. The envelope match
+// (w2PrepareResponse) needs the brackets, so the death read as "outside a transaction", its loot was withheld, and both lines
+// printed in the story. A marker LINE can never be prose, so its brackets are restored — for the parser (applyMuts) and the
+// strip (cleanTxt) alike, through this ONE function, before either looks at the text. The transcript keeps what the GM wrote.
+// What counts: the marker starts its line (indent allowed) and nothing follows it but spaces or another tag. BEGIN has exactly
+// five fields, the last at most 100 characters (a longer tail is prose, and is left alone: it fails closed as before). END is
+// one id. A marker inside a sentence is left alone.
+var TAG_BARE_MARKER_RE=/^([ \t]*)(CANON_TXN_BEGIN:(?:[^|\[\]\r\n]+\|){4}[^|\[\]\r\n]{0,99}[^|\[\]\r\n \t]|CANON_TXN_END:[^\s|\[\]]+)(?=[ \t]*(?:\[|$))/gm;
+function tagRestoreBareMarkers(text,quiet){
+  if(typeof text!=="string"||text.indexOf("CANON_TXN_")<0)return text;/* anything without a marker passes through untouched, type and bytes */
+  var n=0,out=text.replace(TAG_BARE_MARKER_RE,function(m,lead,marker){n++;return lead+"["+marker+"]";});
+  if(n&&!quiet&&typeof console!=="undefined")console.warn("[tags] #491: "+n+" canon marker"+(n>1?"s":"")+" written without brackets — read as bracketed (the GM dropped the [ ] on its transaction envelope)");
+  return out;
+}
 
 // ── Doc registry (derives the STATE TAGS block in buildSysPrompt's STABLE half) ─────────────────
 // BYTE-IDENTITY IS THE CONTRACT: buildStateTagsDoc() must reproduce the battle-tested prompt text

@@ -2996,6 +2996,7 @@ var _CT_BARE=buildCtBare();
 var _CT_DASH=/[ \t]*[—–][ \t]*/g;
 var _CT_NL=/\n{3,}/g;
 function cleanTxt(t){
+  t=tagRestoreBareMarkers(t,true);/* #491: a canon marker line written without brackets is a marker — the strip below removes it like any other (quiet: applyMuts already said it once) */
   // #132: a response cut at the output cap can end mid-tag ("…listening. [SCH" — B21). The strip
   // regexes above need the closing ], so the ragged fragment used to render raw. End-anchored
   // (and ≥3 leading caps, the __tagUnknownScan shape) so complete tags and lowercase bracket
@@ -3396,6 +3397,7 @@ function _w2CopyWorldStateDetached(ws){
   return clone;
 }
 function applyMuts(text,opts){
+  text=tagRestoreBareMarkers(text);/* #491: before EVERYTHING (the #264 whitelist, W2 preparation, the table) — a bare CANON_TXN_BEGIN/END line gets its brackets back, so the envelope is one transaction instead of a refused death with its loot withheld. Text with no bare marker passes through byte-identical. */
   /* #264 (owner ruling 2026-08-28, Fable f14+f2): the review-call whitelist. Suggest-completion
      and Define-item reuse the full gameplay prompt — which actively solicits out-of-scope tags —
      and their responses run through this one parser, so a hallucinated [LOCATION:] teleported the
