@@ -77,12 +77,23 @@ fallback `gmTransport` calls carry the same reinforced split. No client creates 
 (`transportCapabilities.geminiStableCacheV1:1`) before attaching this header: old/unknown
 gateways retain their supported header set and do not fail CORS before deployment.
 
-Server v1.4.0 can opt into a different prompt-role layout using `GEMINI_EXPLICIT_CACHE=1`;
-**the flag is off and live enablement is pending**. Stable rules plus a fixed layout directive
+The server uses a different prompt-role layout when its `GEMINI_EXPLICIT_CACHE` switch is `"1"`.
+**The switch is ON in production, by owner ruling.**
+- **One source of truth:** the server's `fly.toml` `[env]`, pinned by the server's
+  `test-deploy-config.mjs`. Read the state there. `dev/check-doc-facts.js` pins the sentence above
+  and this pointer (here and in DESIGN_334), so the docs cannot drift back to "off" unnoticed.
+- **Why that rule exists:** the cache was enabled on 2026-09-06. This paragraph went on saying
+  "the flag is off", a deployer believed it, and the 2026-09-10 deploy turned the cache off. Nobody
+  noticed for twenty days. It was restored on 2026-09-30
+  ([receipt](../../audits/DEPLOY_server_v1.7.1_2026-09-30.md)).
+- **Turning it off** is an owner decision, made in the server repo.
+
+With the switch on, stable rules plus a fixed layout directive
 become cached system instructions; live state moves into the first JSON text part of the latest
 user message. This changes the system-tail STYLE position and instruction role: byte retention
-alone does not prove prose/canon equivalence. Owner-approved build and live gate:
-[DESIGN_334](../DESIGN_334_gemini_explicit_cache.md). Disabled, ineligible or cache-preparation
+alone does not prove prose/canon equivalence. The design and its gates:
+[DESIGN_334](../DESIGN_334_gemini_explicit_cache.md). The paired live check (cache off, then on,
+same campaign): [audit](../../audits/AUDIT_playtest_v11078_gemini37_cache.md). Disabled, ineligible or cache-preparation
 failure paths retain the original body byte-for-byte. Cached generation usage remains metered;
 storage exposure is recorded separately on the server. An ambiguous gateway generation loss
 returns `retryable:false`, which `callGM` honors before either automatic retry or model fallback.

@@ -1,6 +1,17 @@
 # #334 — Gemini stable-half explicit cache (design, 2026-09-04)
 
-Status: built as game v1.815 / server v1.4.0, schema 5; server deployed 2026-09-04 PDT,
+**Live state (2026-09-30): the cache is ON in production, by owner ruling.** The one switch is the
+server's `fly.toml` `[env]`, pinned by the server's `test-deploy-config.mjs`.
+- Enabled 2026-09-06 by owner-authorized rollout; the owner closed #334 on 2026-09-07.
+- Turned off by mistake on 2026-09-10: this doc and the prompt contract still said "flag 0", and a
+  deployer believed them.
+- Restored 2026-09-30 ([receipt](../audits/DEPLOY_server_v1.7.1_2026-09-30.md),
+  [paired live check](../audits/AUDIT_playtest_v11078_gemini37_cache.md)).
+
+Everything below is the design record as written on 2026-09-04. Its "flag 0", "not deployed" and
+"keep the feature off" statements describe that week, not today.
+
+Status (2026-09-04): built as game v1.815 / server v1.4.0, schema 5; server deployed 2026-09-04 PDT,
 with `GEMINI_EXPLICIT_CACHE=0` explicitly verified. [Deployment receipt](../audits/DEPLOY_server_v1.4.0_2026-09-04.md).
 Owner approved the disabled-flag build on 2026-09-04; implementation follows this design.
 Production enablement is not authorized by that approval. The first isolated live probe on

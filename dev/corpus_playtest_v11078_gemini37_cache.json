@@ -1,0 +1,209 @@
+{
+ "log": [
+  {
+   "turn": 1,
+   "action": "Charge the lead slaver.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 1 | Day 1, 6:12 pmStrength checkd20: 17 -- successYou launch yourself across the blood-soaked ash, longsword clearing its scabbard with a hiss of cold steel. If your rush falters, his notched blade will take your throat before your boots find traction. Your iron shoulder crashes into his chest, knocking him stumbling into the splintered wagon wheel. The raider spits red mud and heaves his broadsword high, the bronze viper branded into his forearm pulsing with a dull, sickly light.\"Still fight like a mad dog, Korrag!\" Aldric barks, parrying your return stroke with jarring force. \"Master Valerius always said you'd crawl back to the pits once your silver ran dry!\"🔊RenderUse Power Strike on Aldric.Activate Shield Wall and brace.Kick him into the burning wagon.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 0,
+   "combat": {
+    "engaged": "Aldric Saltborn",
+    "foes": [
+     {
+      "name": "Aldric Saltborn",
+      "hp": 11,
+      "down": null
+     }
+    ]
+   },
+   "sessionTokensApprox": 1070,
+   "t": 1790832591147
+  },
+  {
+   "turn": 2,
+   "action": "Use Power Strike on Aldric.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 2 | Day 1, 6:13 pmStrength attack rolld20: 16 -- successYou put all the weight of your shoulders into a murderous overhead cut. If your edge goes wide, his counterstroke will split your ribs.CANON_TXN_BEGIN:txn_aldric_death_001|npc-death|Aldric Saltborn|lead_slaver|An Unwanted ReunionCANON_TXN_END:txn_aldric_death_001The heavy steel shears through Aldric's raised guard and bites deep into his neck. He collapses into the churned dirt with a wet gasp, the unholy glow in his brand flickering out like drowned embers. The remaining raiders scatter into the gathering dark at the sight of their fallen captain. You tear an iron key from his belt and kick over his body, finding a purse of heavy coin stamped with the mark of Ashenveil's fighting pits.🔊RenderSearch the ruined merchant wagon.Examine the dead slavers' gear.Take the South Road toward Ashenveil.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 100,
+   "combat": null,
+   "sessionTokensApprox": 1414,
+   "t": 1790832593622
+  },
+  {
+   "turn": 3,
+   "action": "Examine the dead slavers' gear.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 3 | Day 1, 6:28 pmYou haul Aldric's corpse over with the toe of your boot. Hidden beneath his spiked leather harness lies a padded leather case containing a stoppered glass phial. The thick fluid inside swirls with iridescent grease, reeking of sulfur, distilled venom, and dark sorcery. Tucked into his belt rests an arena token stamped with a snarling pit beast, marked for the under-city vaults beneath Ashenveil's eastern district.🔊RenderStash the strange vial and take the South Road.Smash the sorcerous vial in the dirt.Search the ruined merchant wagon for supplies.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 2237,
+   "t": 1790832595609
+  },
+  {
+   "turn": 4,
+   "action": "Stash the strange vial and take the South Road.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 4 | Day 1, 8:28 pmYou shove the cursed phial deep into your belt pouch with a grimace of disgust. Leaving the dead raiders to the crows, you turn south along the rutted highway. Two leagues under an iron sky bring you to the jagged walls of Ashenveil, where soot coats the stone like dried blood. Torchlight flickers over armed mercenaries guarding the massive iron-banded gates, while the muffled roar of a blood-hungry arena crowd drifts on the foul night air.🔊RenderApproach the High Gate guards.Slip through the beggar's postern.Listen to the crowd near the wall.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 3100,
+   "t": 1790832598443
+  },
+  {
+   "turn": 5,
+   "action": "Approach the High Gate guards.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 5 | Day 1, 8:38 pmYou stride out of the shadows toward the glare of the torchlight. Heavy iron plates rattle on the gate guards as their captain steps forward, his hand resting on the hilt of a broad-bladed falchion. A crude viper tattoo crawls up his scarred jaw.\"State your business in Ashenveil, outlander,\" Draven Ashvane barks, his cold eyes taking in your blood-spattered chainmail and longsword. \"The streets after dark are no place for wandering mercenaries, unless you carry iron for the pits or coin for the masters.\"🔊RenderPress on toward The Crossroads of Ashenveil.Bribe Draven for passage.Demand entry into the city.Buy the Iron-Spiked Buckler (15 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 773,
+   "t": 1790832609282
+  },
+  {
+   "turn": 6,
+   "action": "Bribe Draven for passage.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 6 | Day 1, 8:48 pmYou toss a heavy purse of five gold pieces into the captain's calloused palm. Draven catches the coin with practiced speed, testing the weight against his armored thumb. A grim smirk cuts across his scarred lips.\"A generous man finds open gates,\" Draven rumbles, gesturing with his gauntlet to the guardsmen behind him. \"Word rode in from the north that a lone madman butchered a score of caravan riders for their black witch-brew, but your gold buys silence here. Seek the Low Quarter down the eastern stairs if you want the blood-pits.\"The heavy iron portcullis groans upward into the granite arch, opening the soot-choked maw of Ashenveil before you.🔊RenderHead down the eastern stairs.Ask Draven about the blood-pits.Buy weapons from Draven's guardhouse.Buy the Iron-Spiked Buckler (15 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 35,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 1564,
+   "t": 1790832612076
+  },
+  {
+   "turn": 7,
+   "action": "Buy weapons from Draven's guardhouse.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 7 | Day 1, 8:58 pm\"Good steel for a man who knows how to spill guts,\" Draven grunts. The guard captain kicks open a banded oak armory chest beneath the gatehouse torches. You fling twenty gold pieces upon the lid and haul out a stout iron-spiked buckler along with a heavy, well-balanced throwing axe. \"Take them and make your way down to the fighting dens. The pits crave fresh meat tonight.\"🔊RenderHead down the eastern stairs.Ask Draven about the Shadow Alchemist.Strap on the buckler and enter the city.Buy the Iron-Spiked Buckler (15 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 15,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 1740,
+   "t": 1790832614210
+  },
+  {
+   "turn": 8,
+   "action": "Buy the Iron-Spiked Buckler (15 gp).",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 8 | Day 1, 9:03 pmYou wrench the thick leather straps tight across your left forearm. The iron boss bristles with crude, heavy spikes, built for smashing teeth and turning heavy blades in the bloody press of close combat. Draven grins savagely and gestures with his chin toward the descending stairs of the eastern district.\"You look ready for the slaughter, Northlander. Follow the smoke down into the Low Quarter if you seek the fighting pits. The beasts are already screaming.\"🔊RenderHead down the eastern stairs.Ask Draven about the fighting pits.Enter the Low Quarter alleys.Buy the Iron-Spiked Buckler (15 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 15,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 2328,
+   "t": 1790832616457
+  },
+  {
+   "turn": 9,
+   "action": "Ask Draven about the fighting pits.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 9 | Day 1, 9:13 pm\"The Pit of Scars festers beneath the Low Quarter,\" Draven rumbles, spitting into the soot at his boots. \"The slavers throw broken captives into the sand to tear each other apart for gold. But something darker rots the sand these days.\"He leans close, his eyes darting toward the shadows along the ramparts. \"Fighters swallow foul black rot peddled by a hooded fiend called the Shadow Alchemist. It turns scrawny thralls into raging devils of unnatural muscle, yet burns their minds to cinders. Take the eastern stairs down into the stink if you hunger for blood.\"🔊RenderDescend the eastern stairs.Ask about the Shadow Alchemist.Draw steel and threaten Draven.Buy the Iron-Spiked Buckler (15 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 15,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 2953,
+   "t": 1790832619021
+  },
+  {
+   "turn": 10,
+   "action": "Draw steel and threaten Draven.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 10 | Day 1, 9:15 pmYour longsword leaves the scabbard with a wicked hiss of oiled iron. Before Draven can blink, the cold point bites into the soft flesh beneath his scarred jaw, drawing a single bead of dark crimson. \"You know the viper mark, gatekeeper. Tell me who brews the filth, or your guts spill on these flagstones.\"Draven freezes, the greedy arrogance draining from his face to leave him pale as curdled tallow. His hands spread wide and empty, far from the hilt of his falchion.\"Hold your blade, Northlander! It is Valerius! The old master from the southern arenas! He calls himself the Shadow Alchemist now, hiding in the vaults beneath the Pit of Scars. He buys the flesh, and he feeds them the black rot.\"🔊RenderDemand the way into Valerius's vault.Sheathe your sword and head to the pits.Strike Draven down where he stands.Buy the Iron-Spiked Buckler (15 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 15,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 272,
+   "t": 1790832624690
+  }
+ ],
+ "errors": [],
+ "raw": [
+  {
+   "turn": 0,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:10m]\n[SCENE_CAST:none]\n[QUEST:An Unwanted Reunion|active]\n[QUEST_STEP:An Unwanted Reunion|Survive the ambush and identify the attackers|false]\n\nThe northern wind bites raw across the junction, thick with the stench of charred bone and old iron. Before you lies a smashed merchant wagon, its draft beasts butchered in their traces and its cargo trampled into the gray dust. Men in spiked boiled leather move among the corpses with cruel efficiency, their brand of a coiled viper familiar to the scars across your own back. The lead raider turns, lowering his notched broadsword with a wolfish grin as his eyes lock onto your face.\n\n[SUGGEST:Draw your longsword and brace|Demand to know who leads them|Charge the lead slaver]"
+  },
+  {
+   "turn": 1,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:2m]\n[SCENE_REF:lead_slaver|Aldric Saltborn]\n[NPC:Aldric Saltborn|hostile, mocking|enemy]\n[NPC_PRONOUN:Aldric Saltborn|he/him]\n[SOUNDSCAPE:The Crossroads of Ashenveil|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=wind,fire;forbid=birds,insects]\n[COMBAT_START:Aldric Saltborn|18|13|4|1d8+2|7]\n[COMBAT_STATS:STR:15|DEX:12|CON:14|INT:10|WIS:10|CHA:12|CR:1/2]\n\nYou launch yourself across the blood-soaked ash, longsword clearing its scabbard with a hiss of cold steel. If your rush falters, his notched blade will take your throat before your boots find traction. \n\n[DICE:Strength check|17|success]\n[SKILL_SUCCESS:Sprinting]\n[ENEMY_HP:Aldric Saltborn|-7]\n\nYour iron shoulder crashes into his chest, knocking him stumbling into the splintered wagon wheel. The raider spits red mud and heaves his broadsword high, the bronze viper branded into his forearm pulsing with a dull, sickly light.\n\n[SAY:Aldric Saltborn|sneering, loud]\"Still fight like a mad dog, Korrag!\" Aldric barks, parrying your return stroke with jarring force. \"Master Valerius always said you'd crawl back to the pits once your silver ran dry!\"\n\n[SUGGEST:Use Power Strike on Aldric|Activate Shield Wall and brace|Kick him into the burning wagon]"
+  },
+  {
+   "turn": 2,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[COMBAT_ROUND:2]\n[SKILL_SUCCESS:Lore]\n\nYou put all the weight of your shoulders into a murderous overhead cut. If your edge goes wide, his counterstroke will split your ribs.\n\n[DICE:Strength attack roll|16|success]\n[ENEMY_HP:Aldric Saltborn|-12]\n\nCANON_TXN_BEGIN:txn_aldric_death_001|npc-death|Aldric Saltborn|lead_slaver|An Unwanted Reunion\n[SCENE_DEATH:lead_slaver]\n[NPC:Aldric Saltborn|dead|enemy]\n[QUEST_STEP:An Unwanted Reunion|Survive the ambush and identify the attackers|true]\n[QUEST:An Unwanted Reunion|completed]\n[ARC_COMPLETE:An Unwanted Reunion]\n[ITEM_GAINED:Iron Slaver's Key]\n[GOLD:+8]\nCANON_TXN_END:txn_aldric_death_001\n[COMBAT_END:victory]\n[QUEST:The Gilded Cage|offered|Investigate the fighting arena in Ashenveil to trace the sorcerous brands]\n\nThe heavy steel shears through Aldric's raised guard and bites deep into his neck. He collapses into the churned dirt with a wet gasp, the unholy glow in his brand flickering out like drowned embers. The remaining raiders scatter into the gathering dark at the sight of their fallen captain. You tear an iron key from his belt and kick over his body, finding a purse of heavy coin stamped with the mark of Ashenveil's fighting pits. \n\n[SUGGEST:Search the ruined merchant wagon|Examine the dead slavers' gear|Take the South Road toward Ashenveil]"
+  },
+  {
+   "turn": 3,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:15m]\n[QUEST:An Unwanted Reunion|completed]\n[QUEST:The Gilded Cage|active]\n[QUEST_STEP:The Gilded Cage|Investigate the clandestine arena in Ashenveil|false]\n[LOCATION_STATE:Blood and dead slavers litter the crossroads around a smashed wagon]\n[ITEM_GAINED:Vial of Black Draught]\n\nYou haul Aldric's corpse over with the toe of your boot. Hidden beneath his spiked leather harness lies a padded leather case containing a stoppered glass phial. The thick fluid inside swirls with iridescent grease, reeking of sulfur, distilled venom, and dark sorcery. Tucked into his belt rests an arena token stamped with a snarling pit beast, marked for the under-city vaults beneath Ashenveil's eastern district. \n\n[SUGGEST:Stash the strange vial and take the South Road|Smash the sorcerous vial in the dirt|Search the ruined merchant wagon for supplies]"
+  },
+  {
+   "turn": 4,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:2h]\n[ITEM_KEPT:Vial of Black Draught]\n[ITEM_DEF:Vial of Black Draught|category=consumable|effect=Grants unnatural brute strength but induces violent frenzy and corrupts the spirit|uses=single use|value=25 gp]\n[LOCATION:Ashenveil]\n[LOCATION_DESC:A brooding, walled city choked by black soot and towering iron bastions. The High Gate opens into the squalid outer tenements, while cobblestone alleys descend toward the lower fighting pits and shadowed markets.]\n[LOCATION_SIZE:large|45]\n[WEATHER:soot-choked mist and chill wind]\n[SOUNDSCAPE:Ashenveil|enclosure=open;setting=settlement;biome=temperate;quiet=normal;allows=wind,crowd,voices,fire;forbid=birds]\n\nYou shove the cursed phial deep into your belt pouch with a grimace of disgust. Leaving the dead raiders to the crows, you turn south along the rutted highway. \n\nTwo leagues under an iron sky bring you to the jagged walls of Ashenveil, where soot coats the stone like dried blood. Torchlight flickers over armed mercenaries guarding the massive iron-banded gates, while the muffled roar of a blood-hungry arena crowd drifts on the foul night air.\n\n[SUGGEST:Approach the High Gate guards|Slip through the beggar's postern|Listen to the crowd near the wall]"
+  },
+  {
+   "turn": 5,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[SCENE_REF:gate_captain|Draven Ashvane]\n[NPC:Draven Ashvane|stern, watchful|acquaintance]\n[NPC_PRONOUN:Draven Ashvane|he/him]\n[SCENE_CAST:Draven Ashvane]\n[LOCATION_RESIDENT:Draven Ashvane]\n[WARES:Iron-Spiked Buckler|15 gp|Draven Ashvane sells surplus arms at the guardhouse]\n[WARES:Throwing Axe|5 gp|Draven Ashvane sells surplus arms at the guardhouse]\n[LOCATION_HOURS:none]\n[FUTURE_EVENT_RESOLVED:Investigate the clandestine arena beneath Ashenveil to trace the sorcerous brands]\n\nYou stride out of the shadows toward the glare of the torchlight. Heavy iron plates rattle on the gate guards as their captain steps forward, his hand resting on the hilt of a broad-bladed falchion. A crude viper tattoo crawls up his scarred jaw.\n\n[SAY:Draven Ashvane|growling]\"State your business in Ashenveil, outlander,\" Draven Ashvane barks, his cold eyes taking in your blood-spattered chainmail and longsword. \"The streets after dark are no place for wandering mercenaries, unless you carry iron for the pits or coin for the masters.\"\n\n[SUGGEST:Show Aldric's arena token|Bribe Draven for passage|Demand entry into the city]"
+  },
+  {
+   "turn": 6,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[GOLD:-5]\n[RELATIONSHIP_DYNAMIC:Draven Ashvane|bribed and accommodating]\n[WHISPER:Word on the north road is an entire vanguard of highwaymen was slaughtered by a rogue sellsword who stole their cursed witch-brew.]\n[NPC:Draven Ashvane|greedy, amused|acquaintance]\n\nYou toss a heavy purse of five gold pieces into the captain's calloused palm. Draven catches the coin with practiced speed, testing the weight against his armored thumb. A grim smirk cuts across his scarred lips.\n\n[SAY:Draven Ashvane|low and amused]\"A generous man finds open gates,\" Draven rumbles, gesturing with his gauntlet to the guardsmen behind him. \"Word rode in from the north that a lone madman butchered a score of caravan riders for their black witch-brew, but your gold buys silence here. Seek the Low Quarter down the eastern stairs if you want the blood-pits.\"\n\nThe heavy iron portcullis groans upward into the granite arch, opening the soot-choked maw of Ashenveil before you.\n\n[SUGGEST:Head down the eastern stairs|Ask Draven about the blood-pits|Buy weapons from Draven's guardhouse]"
+  },
+  {
+   "turn": 7,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[GOLD:-20]\n[ITEM_GAINED:Iron-Spiked Buckler]\n[ITEM_GAINED:Throwing Axe]\n\n[SAY:Draven Ashvane|low and gravelly]\"Good steel for a man who knows how to spill guts,\" Draven grunts. \n\nThe guard captain kicks open a banded oak armory chest beneath the gatehouse torches. You fling twenty gold pieces upon the lid and haul out a stout iron-spiked buckler along with a heavy, well-balanced throwing axe. \n\n[SAY:Draven Ashvane]\"Take them and make your way down to the fighting dens. The pits crave fresh meat tonight.\"\n\n[SUGGEST:Head down the eastern stairs|Ask Draven about the Shadow Alchemist|Strap on the buckler and enter the city]"
+  },
+  {
+   "turn": 8,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:5m]\n[WORN:Korrag|Iron-Spiked Buckler|on]\n[ITEM_DEF:Iron-Spiked Buckler|category=armor|effect=+1 AC, can be used to make a spiked shield bash attack dealing 1d4 piercing damage|uses=passive|value=15 gp]\n\nYou wrench the thick leather straps tight across your left forearm. The iron boss bristles with crude, heavy spikes, built for smashing teeth and turning heavy blades in the bloody press of close combat. \n\nDraven grins savagely and gestures with his chin toward the descending stairs of the eastern district.\n\n[SAY:Draven Ashvane]\"You look ready for the slaughter, Northlander. Follow the smoke down into the Low Quarter if you seek the fighting pits. The beasts are already screaming.\"\n\n[SUGGEST:Head down the eastern stairs|Ask Draven about the fighting pits|Enter the Low Quarter alleys]"
+  },
+  {
+   "turn": 9,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[ITEM_DEF:Throwing Axe|category=weapon|effect=1d6 slashing damage, thrown (range 20/60)|uses=passive|value=5 gp]\n[EXIT:Low Quarter Eastern Stairs|Steep granite stairs descending into the smoke-choked fighting pits]\n\n[SAY:Draven Ashvane|low and gravelly]\"The Pit of Scars festers beneath the Low Quarter,\" Draven rumbles, spitting into the soot at his boots. \"The slavers throw broken captives into the sand to tear each other apart for gold. But something darker rots the sand these days.\"\n\nHe leans close, his eyes darting toward the shadows along the ramparts. \n\n[SAY:Draven Ashvane|whispering]\"Fighters swallow foul black rot peddled by a hooded fiend called the Shadow Alchemist. It turns scrawny thralls into raging devils of unnatural muscle, yet burns their minds to cinders. Take the eastern stairs down into the stink if you hunger for blood.\"\n\n[SUGGEST:Descend the eastern stairs|Ask about the Shadow Alchemist|Draw steel and threaten Draven]"
+  },
+  {
+   "turn": 10,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:2m]\n[NPC:Draven Ashvane|terrified, cornered|enemy]\n[RELATIONSHIP_DYNAMIC:Draven Ashvane|hostile and terrified]\n[SKILL_SUCCESS:Intimidation]\n\nYour longsword leaves the scabbard with a wicked hiss of oiled iron. Before Draven can blink, the cold point bites into the soft flesh beneath his scarred jaw, drawing a single bead of dark crimson. \n\n[SAY:Korrag]\"You know the viper mark, gatekeeper. Tell me who brews the filth, or your guts spill on these flagstones.\"\n\nDraven freezes, the greedy arrogance draining from his face to leave him pale as curdled tallow. His hands spread wide and empty, far from the hilt of his falchion.\n\n[SAY:Draven Ashvane|terrified, whispering]\"Hold your blade, Northlander! It is Valerius! The old master from the southern arenas! He calls himself the Shadow Alchemist now, hiding in the vaults beneath the Pit of Scars. He buys the flesh, and he feeds them the black rot.\"\n\n[SUGGEST:Demand the way into Valerius's vault|Sheathe your sword and head to the pits|Strike Draven down where he stands]"
+  }
+ ],
+ "run": {
+  "campId": "camp_1790832568914_3836",
+  "campName": "modelTestCampaign_gemini37flash_v11078_cache",
+  "startedAt": 1790832568930,
+  "ver": "v1.1078",
+  "route": "server",
+  "provider": "gemini",
+  "model": "gemini-3.7-flash"
+ }
+}
