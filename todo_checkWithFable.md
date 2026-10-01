@@ -255,6 +255,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-01 · #494 (dev tooling only, no version bump) · Codex: raw prose pipes split TODO #480 into extra columns. Escaped those pipes; added header-width validation using the viewer boundary rules to the staged commit gate, per-commit CI and standalone suite. Ten focused fixtures, four named mutation proofs, hook parity, and full regression gate passed. No game code changed.
+
 - 2026-09-28 · #478 (v1.1016) · Codex: owner-requested tavern chatter/hearth delivery and default interior fire. Shared audio-only profile compatibility retains explicit silence/prohibitions; snapshot adds read-only habitable flag from canonical village house ownership. No parser, prompt, persisted metadata or state-write changes. One existing bed controller/loader, no additional timers or audio contexts. Turn-205 saved profile reproduced silent before fix; tests written first, exact-save browser and named mutation proofs. Owner listening pending.
 
 - 2026-09-28 · #471 (v1.1015) · Codex: turn-202 save reproduced profile-first selection skipping seed-only Noctina; added explicit authored profile policy for owner-selected dusk/night village bindings in ambient.js/audio-scenes.js only. No parser, prompt or state writes. Valid profile required; explicit silence/prohibitions and enclosure/setting/biome/cohort limits retained, general observed profiles unchanged. Dusk delivery uses music+crickets only; old general evening breeze retained. Exact save browser repro passed with source hash unchanged; headless/mutation/full verification recorded in TODO.

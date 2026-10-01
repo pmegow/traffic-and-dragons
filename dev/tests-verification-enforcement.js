@@ -195,7 +195,7 @@ try {
   test("#G1 hookGateNames reads the gates out of the REAL pre-commit, in order", function () {
     var guard = require(ENFORCE);
     var names = guard.hookGateNames(fs.readFileSync(path.join(ROOT, "dev", "pre-commit"), "utf8"));
-    var want = ["check-hook-parity.js", "check-identity.js"/* #481 G6 */, "lint-todo.js", "tests-todo-hygiene.js", "check-es5.js"/* #481 G10 */, "check-shell-markers.js", "run-tests.js"];
+    var want = ["check-hook-parity.js", "check-identity.js"/* #481 G6 */, "lint-todo.js", "check-todo-columns.js", "tests-todo-hygiene.js", "check-es5.js"/* #481 G10 */, "check-shell-markers.js", "run-tests.js"];
     if (names.join(",") !== want.join(",")) return "got [" + names.join(",") + "], want [" + want.join(",") + "]";
     return "";
   });
