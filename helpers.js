@@ -344,15 +344,34 @@ function campIsCurrent(rec){
   if(!rec.campId&&/^camp_\d/.test(rec.camp))return !!(ws&&rec.camp===ws.campId);/* a legacy stamp that holds the id itself */
   return rec.camp===String((ws&&ws.campName)||"");
 }
-function campRestamp(ws,oldName,newName,id){
-  if(!ws)return 0;
-  var n=0,sheets=[ws.character],i;
+/* #509: every record campStampOn stamps — the three moment lists on every sheet (the hero and every charSheet), and each
+   sheet's outfit. ONE walk, read by both re-stamps below. */
+var CAMP_STAMPED_LISTS=["coreMemories","storyBeats","motivationHistory"];
+function campStampedEach(ws,fn){
+  if(!ws)return;
+  var sheets=[ws.character],i;
   for(i=0;i<(ws.npcs||[]).length;i++)if(ws.npcs[i]&&ws.npcs[i].charSheet)sheets.push(ws.npcs[i].charSheet);
-  sheets.forEach(function(cs){if(!cs)return;["coreMemories","storyBeats","motivationHistory"].forEach(function(f){(cs[f]||[]).forEach(function(r){
-    if(!r)return;
+  sheets.forEach(function(cs){if(!cs)return;
+    CAMP_STAMPED_LISTS.forEach(function(f){(cs[f]||[]).forEach(function(r){if(r)fn(r);});});
+    if(cs.outfit&&typeof cs.outfit==="object")fn(cs.outfit);
+  });
+}
+function campRestamp(ws,oldName,newName,id){
+  var n=0;
+  campStampedEach(ws,function(r){
     if(r.campId&&id&&r.campId===id){if(r.camp!==newName){r.camp=newName;n++;}}
     else if(!r.campId&&oldName&&r.camp===oldName){r.camp=newName;if(id)r.campId=id;n++;}
-  });});});
+  });
+  return n;
+}
+/* #509: the campaign's ID changed under it — a re-minted import (#423: the file's id is not one this device owns) or the
+   re-home after a cloud save was refused for another account. campIsCurrent compares by id first (C8), so without this the
+   campaign's own moments read as "an earlier adventure" and the Village held them back. Every record stamped with the old
+   id follows; another campaign's records keep their own ids. Returns the count. */
+function campRestampId(ws,oldId,newId){
+  var n=0;
+  if(!oldId||!newId||oldId===newId)return 0;
+  campStampedEach(ws,function(r){if(r.campId===oldId){r.campId=newId;n++;}});
   return n;
 }
 function motivationSettle(cs,how,turn,camp){

@@ -28873,4 +28873,54 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return abilityGroup(r9,{nm:"Sneak Attack (venomed blade)",ds:"x"})==="story"?true:"a GM's variant is listed under Story: "+abilityGroup(r9,{nm:"Sneak Attack (venomed blade)",ds:"x"});
   });
 
+
+  section("#509 a campaign's own moments follow it to a new id");
+  function w508(){makeWorld();worldState.campId="camp_1700000000000_1234";worldState.campName="The Long Walk";setActiveCampId(worldState.campId);worldState.turn=5;
+    quiet(function(){fileCoreMemory("quest","Tess","Tess held the bridge at Ashfen against the tide.");});worldState.turn=9;
+    quiet(function(){fileCoreMemory("quest","Tess","Tess buried the ferryman and took his lantern.");});
+    worldState.character.outfit=campStampOn({worn:"a salt-stained cloak",turn:9});
+    worldState.character.coreMemories.push({text:"Tess crossed the Grey Fen.",turn:3,kind:"quest",who:"Tess",camp:"The Old Road",campId:"camp_1600000000000_5555"});
+    return worldState;}
+  function own508(){return worldState.character.coreMemories.filter(function(m){return m.camp==="The Long Walk";});}
+  t("#509 the repro: a save imported on a device that does not hold its id keeps its own moments as THIS campaign's (they read as 'an earlier adventure')",function(){
+    w508();var ex=JSON.parse(JSON.stringify({worldState:worldState,sessionLog:sessionLog,memory:memory}));
+    ex.worldState.campId="camp_1650000000000_7777";ex.worldState.character.coreMemories.forEach(function(m){if(m.camp==="The Long Walk")m.campId="camp_1650000000000_7777";});ex.worldState.character.outfit.campId="camp_1650000000000_7777";
+    makeWorld();setActiveCampId(null);
+    var plan=quiet(function(){return importSaveData(ex);}).r;
+    if(!plan||!plan.reminted)return "fixture: the import must re-mint: "+JSON.stringify(plan);
+    var bad=own508().filter(function(m){return m.campId!==worldState.campId;});
+    if(bad.length)return "the campaign's own moments kept the sender's id: "+JSON.stringify(bad.map(function(m){return m.campId;}));
+    var b=buildCoreMemoryBlock();
+    if(/The Long Walk — an earlier adventure/.test(b))return "the campaign's own moments read as an earlier adventure: "+b.slice(0,400);
+    if(!/\(turn 5\) Tess held the bridge/.test(b))return "they read as this campaign's: "+b.slice(0,400);
+    return worldState.character.outfit.campId===worldState.campId?true:"the outfit follows too: "+JSON.stringify(worldState.character.outfit);
+  });
+  t("#509 the re-home (a cloud save refused for another account) carries the moments to the new id, and the Village no longer holds them back",function(){
+    w508();var old=worldState.campId,nid=quiet(function(){return rehomeCampaign("test");}).r;
+    if(!nid||nid===old)return "fixture: a new id";
+    if(own508().some(function(m){return m.campId!==nid;}))return "a moment kept the old id: "+JSON.stringify(own508().map(function(m){return m.campId;}));
+    if(worldState.character.outfit.campId!==nid)return "the outfit kept the old id";
+    worldState.kind="village";
+    var h=heldPastParty();
+    return !(h.prior||[]).some(function(m){return m.camp==="The Long Walk";})?true:"the Village holds the campaign's own moments back: "+JSON.stringify(h.prior);
+  });
+  t("#509 only THIS campaign's records move: another campaign's moment keeps its own id and stays 'an earlier adventure'",function(){
+    w508();quiet(function(){rehomeCampaign("test");});
+    var o=worldState.character.coreMemories.filter(function(m){return m.camp==="The Old Road";})[0];
+    if(!o||o.campId!=="camp_1600000000000_5555")return "another campaign's id was rewritten: "+JSON.stringify(o);
+    if(campRestampId(worldState,"camp_x","camp_x")!==0||campRestampId(worldState,null,"camp_y")!==0)return "no id, or the same id, moves nothing";
+    return /The Old Road — an earlier adventure/.test(buildCoreMemoryBlock())?true:"it still reads as an earlier adventure";
+  });
+  t("#509 a companion's moments follow the campaign too (every sheet in the campaign, not only the hero's)",function(){
+    w508();var old=worldState.campId;
+    worldState.npcs.push({name:"Bram",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:3,coreMemories:[{text:"Bram held the gate.",turn:7,kind:"quest",who:"Bram",camp:"The Long Walk",campId:old}],storyBeats:[{text:"Bram swore the oath.",turn:8,camp:"The Long Walk",campId:old}]}});
+    var nid=quiet(function(){return rehomeCampaign("test");}).r,b=wsNpcByName("Bram").charSheet;
+    return b.coreMemories[0].campId===nid&&b.storyBeats[0].campId===nid?true:"the companion's records kept the old id: "+JSON.stringify([b.coreMemories[0].campId,b.storyBeats[0].campId]);
+  });
+  t("#509 a rename re-stamps the outfit too (one list of stamped records serves both re-stamps)",function(){
+    w508();var o=worldState.character.outfit;o.campId=undefined;delete o.campId;
+    campRestamp(worldState,"The Long Walk","The Long Road",worldState.campId);
+    return o.camp==="The Long Road"&&o.campId===worldState.campId?true:"the outfit was left behind by the rename: "+JSON.stringify(o);
+  });
+
 }

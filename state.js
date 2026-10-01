@@ -1010,7 +1010,9 @@ function rehomeCampaign(reason){
   var held=_checkpointMem;
   setActiveCampId(nid);/* D1 clears the holder on an id change — restored below under the new stamp */
   if(held){held.campId=nid;_checkpointMem=held;}
-  if(typeof worldState!=="undefined"&&worldState)worldState.campId=nid;
+  if(typeof worldState!=="undefined"&&worldState){worldState.campId=nid;
+    /* #509: the campaign's own stamped moments follow it, or they read as "an earlier adventure" */
+    var _rs=(old&&typeof campRestampId==="function")?campRestampId(worldState,old,nid):0;if(_rs)console.info("[camps] re-home: "+_rs+" stamped record(s) follow the campaign to "+nid+" (#509)");}
   if(typeof memory!=="undefined"&&memory&&old&&memory.campId===old)memory.campId=nid;
   console.warn("[camps] campaign re-homed "+(old||"(none)")+" → "+nid+(reason?" — "+reason:""));
   if(old&&typeof campaignFolderRestamp==="function")campaignFolderRestamp(old,nid);/* #481 F1: the folder's marker follows the new id (loud on failure) */
@@ -1041,6 +1043,8 @@ function importSaveData(data){
   // Resolve the campaign slot (#423): the file's own id only when this device owns it; a foreign id is re-minted.
   var plan=resolveImportedCampaignId(ws.campId);
   setActiveCampId(plan.id);worldState.campId=plan.id;
+  /* #509: a re-minted import takes its own stamped moments with it, or they read as "an earlier adventure" */
+  if(plan.reminted&&typeof campRestampId==="function"){var _rn=campRestampId(worldState,plan.fileId,plan.id);if(_rn)console.info("[import] "+_rn+" stamped record(s) follow the campaign to "+plan.id+" (#509)");}
   sessionLog=Array.isArray(data.sessionLog)?data.sessionLog:[];
   var mm=data.memory||{};
   /* attitudeSpec carried through (v1.439, F7 — brief D): this whitelist silently DROPPED the
