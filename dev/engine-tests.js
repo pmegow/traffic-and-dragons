@@ -24348,6 +24348,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     ac.gold=0;var adv2=engineFourthAction();if(adv2&&adv2.kind==="sell")return "the adventure ladder has no sell rung";
     return true;
   });
+  t("#492 the Buy button names the first ware the hero does not hold: a just-bought item is not offered again, and when every ware is held the buy rung steps aside; the village rung follows the same rule",function(){
+    /* Playtest v1.1078, 2 of 2 runs. The hero bought the dagger at t9 and the button offered "Buy the Dagger (2 gp)" again at
+       t10 while leather armor was also for sale; in the second run it was the buckler. The rung named the first ware on the
+       list without looking in the pack. The button's wording and triggers are owner-validated and unchanged. */
+    makeWorld();delete worldState.kind;var c=worldState.character,a,now=(typeof clockNow==="function")?clockNow():0;
+    c.hp=c.maxHp;c.conditions=[];c.inventory=["Longsword","Chainmail"];c.gold=30;worldState.questLog=[];worldState.turn=1;worldState.world.location="Ashenveil";worldState.world.sublocation=null;
+    memory.map.nodes["Ashenveil"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"large",travelMins:null,wares:[{item:"Dagger",price:"2 gp",note:"sold by Torvan Urnvale",t:1,min:now},{item:"Leather Armor",price:"10 gp",note:"sold by Torvan Urnvale",t:1,min:now}]};
+    worldState.npcs.push({name:"Torvan Urnvale",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"he/him"});memory.npcs["Torvan Urnvale"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Ashenveil"};
+    a=engineFourthAction();if(!a||a.kind!=="buy"||a.text!=="Buy the Dagger (2 gp).")return "nothing held: the first ware, as before: "+JSON.stringify(a);
+    c.inventory.push("Dagger");
+    a=engineFourthAction();if(!a||a.kind!=="buy"||a.text!=="Buy the Leather Armor (10 gp).")return "the dagger is in the pack, so the button must name the armor: "+JSON.stringify(a);
+    c.inventory=["Longsword","Dagger x2 — bought from Torvan","leather armor"];
+    a=engineFourthAction();if(a&&a.kind==="buy")return "every ware is held (a count, a provenance note and letter case must not hide that): no buy button: "+JSON.stringify(a);
+    c.inventory=["Longsword","Dagger of Venom"];
+    a=engineFourthAction();if(!a||a.text!=="Buy the Dagger (2 gp).")return "a different item that merely starts with the ware's name is not the ware: "+JSON.stringify(a);
+    if(typeof firstWareNotHeld!=="function")return "the picker must be ONE shared function (firstWareNotHeld) for both branches";
+    if(firstWareNotHeld([],["x"])!==null||firstWareNotHeld([{item:"Ale"}],[]).item!=="Ale"||firstWareNotHeld([{item:"Ale"}],null).item!=="Ale")return "the picker's edges: no wares, an empty pack, a missing pack";
+    /* the village rung: same rule, the keeper still named */
+    villageEF();c=worldState.character;c.hp=c.maxHp;c.inventory=["Longsword"];worldState.questLog=[];worldState.turn=3;
+    applyMuts("[WARES:Smoked fish|1 gp|Frizwick][WARES:Rye loaf|1 gp|Frizwick]");
+    a=engineFourthAction();if(!a||a.kind!=="buy"||a.text!=="Buy the Smoked fish (1 gp) from Frizwick.")return "village, nothing held: "+JSON.stringify(a);
+    c.inventory.push("Smoked fish");
+    a=engineFourthAction();if(!a||a.kind!=="buy"||a.text!=="Buy the Rye loaf (1 gp) from Frizwick.")return "village: the fish is in the pack, so the button must name the loaf: "+JSON.stringify(a);
+    c.inventory.push("Rye loaf");
+    a=engineFourthAction();if(a&&a.kind==="buy")return "village: every ware is held, no buy button: "+JSON.stringify(a);
+    /* a shop whose every ware is held behaves like a shop with nothing for sale: the village rung is not made to alternate with a buy that will not come */
+    var vt=villageTradeContext(),held=[],none=[],tn,saved=vt.node.wares;
+    for(tn=2;tn<=5;tn++){worldState.turn=tn;held.push(JSON.stringify(engineFourthAction()));}
+    vt.node.wares=[];for(tn=2;tn<=5;tn++){worldState.turn=tn;none.push(JSON.stringify(engineFourthAction()));}vt.node.wares=saved;
+    if(held.join("|")!==none.join("|"))return "every ware held must read like nothing for sale, turn by turn: "+held.join(" | ")+" vs "+none.join(" | ");
+    if(held.every(function(x){return x==="null";}))return "the fixture must offer a village rung here, or the alternation is not exercised: "+held.join(" | ");
+    return true;
+  });
   t("#6F7 suggestions obey the same rule: the validator rejects a buy/sell/pay suggestion outside a shop with a keeper in the village (trade-outside-shop); the adventure keeps buy-without-seller",function(){
     villageEF();applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
     var ok=validateSuggestion("Buy the smoked fish from Frizwick.",buildSceneManifest());if(ok)return "a buy in the shop with the keeper must pass: "+JSON.stringify(ok);

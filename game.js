@@ -199,15 +199,15 @@ function engineFourthAction(){
   if(typeof kindDef==="function"&&kindDef().villageRung){
     if(typeof montageDue==="function"&&montageDue()&&!kindDef().montage&&typeof console!=="undefined")console.info("[village] montage would be due at t"+worldState.turn+" — off in v1 for the village kind, logged for the measure");/* #6 phase B: the measure survives the rung */
     var _vr=villageRung(),_vtc0=(typeof villageTradeContext==="function")?villageTradeContext():{ok:false},_commerce=false;
-    if(_vtc0.ok){var _live0=(typeof nodeWaresLive==="function")?nodeWaresLive(_vtc0.node):[];if((c.gold||0)>0&&_live0.length)_commerce=true;
+    if(_vtc0.ok){var _live0=(typeof nodeWaresLive==="function")?nodeWaresLive(_vtc0.node):[];if((c.gold||0)>0&&firstWareNotHeld(_live0,c.inventory))_commerce=true;/* #492: a purchase is possible only for a ware the hero does not hold */
       var _wl0=(typeof nodeWantedLive==="function")?nodeWantedLive(_vtc0.node):[];/* #481 D4 */if(!_commerce&&_wl0.length){var _inv0=c.inventory||[],_a,_b;for(_a=0;_a<_wl0.length&&!_commerce;_a++)for(_b=0;_b<_inv0.length;_b++)if(itemBaseName(_inv0[_b])===itemBaseName(_wl0[_a].item)){_commerce=true;break;}}}
     if(_vr&&(!_commerce||(worldState.turn||0)%2===0))return _vr;/* #6 D1: the village rung leads; when a purchase or sale is possible right here, the two alternate by turn so neither starves */
   }
   var _tk=(typeof kindDef==="function")?kindDef():null,_vt=null;
   if(_tk&&(_tk.tradeOnlyInShops||_tk.sellRung)&&typeof villageTradeContext==="function")_vt=villageTradeContext();
   if((c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){
-    if(_tk&&_tk.tradeOnlyInShops){if(_vt&&_vt.ok){var _vl=(typeof nodeWaresLive==="function")?nodeWaresLive(_vt.node):[];if(_vl.length)return {kind:"buy",text:"Buy the "+_vl[0].item+" ("+_vl[0].price+") from "+_vt.keeper+"."};}}
-    else{var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof waresOfferedHere==="function")?waresOfferedHere(node,buildSceneManifest().local):[];/* a seller or their shop must be IN the scene (2026-09-03); #392: the SCENE, not the town */if(live.length)return {kind:"buy",text:"Buy the "+live[0].item+" ("+live[0].price+")."};}}
+    if(_tk&&_tk.tradeOnlyInShops){if(_vt&&_vt.ok){var _vl=(typeof nodeWaresLive==="function")?nodeWaresLive(_vt.node):[],_vb=firstWareNotHeld(_vl,c.inventory);/* #492 */if(_vb)return {kind:"buy",text:"Buy the "+_vb.item+" ("+_vb.price+") from "+_vt.keeper+"."};}}
+    else{var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof waresOfferedHere==="function")?waresOfferedHere(node,buildSceneManifest().local):[];/* a seller or their shop must be IN the scene (2026-09-03); #392: the SCENE, not the town */var _ab=firstWareNotHeld(live,c.inventory);/* #492: never the item just bought */if(_ab)return {kind:"buy",text:"Buy the "+_ab.item+" ("+_ab.price+")."};}}
   var _wlv=(_tk&&_tk.sellRung&&_vt&&_vt.ok&&typeof nodeWantedLive==="function")?nodeWantedLive(_vt.node):[];/* #481 D4: live wants only */
   if(_wlv.length){var _inv=c.inventory||[],_wi,_wj;for(_wi=0;_wi<_wlv.length;_wi++){var _want=_wlv[_wi];for(_wj=0;_wj<_inv.length;_wj++){if(itemBaseName(_inv[_wj])===itemBaseName(_want.item))return {kind:"sell",text:"Sell your "+_invBase(_inv[_wj])+" to "+_vt.keeper+(_want.offer?" ("+_want.offer+")":"")+"."};}}}
   if(montageDue()){if(kindDef().montage)return {kind:"montage",text:"Skip ahead — a montage to the next real decision."};/* #308 */

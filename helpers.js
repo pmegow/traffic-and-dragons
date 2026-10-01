@@ -1609,6 +1609,15 @@ function itemBaseName(nm){
   s=s.replace(/\s+x\d+\s*$/i,"");        // count that sat before a stripped clause
   return s.toLowerCase().replace(/\s+/g," ").trim();
 }
+// #492 (playtest v1.1078, 2 of 2 runs): the fourth button's buy rung named the first ware on the list without looking in the
+// pack, so it offered the dagger the hero had just bought. ONE picker for both branches (village and adventure): the first
+// ware whose base name the hero does not hold (itemBaseName: a count, a provenance note and letter case do not hide an item),
+// or null when every ware is held — the rung then steps aside.
+function firstWareNotHeld(wares,inventory){
+  var held={},i;for(i=0;i<(inventory||[]).length;i++)held[itemBaseName(inventory[i])]=true;
+  for(i=0;i<(wares||[]).length;i++)if(wares[i]&&!held[itemBaseName(wares[i].item)])return wares[i];
+  return null;
+}
 // ── #157: the inventory category registry — ONE ordered list (Sol's spec §3.1) ─────────────
 // Array position IS the display priority; the classifier, editor, renderers, validation, and
 // tests all consume this registry. Never store separate numeric ranks that could disagree.
