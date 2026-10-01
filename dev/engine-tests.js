@@ -10788,6 +10788,17 @@ function runEngineTests(R){
     var ok=validateSuggestion("Search the wreckage Nualia left behind",man);
     return ok===null?true:"mention-only false positive: "+JSON.stringify(ok);
   });
+  t("#493 a possessive names the thing, not its dead owner: \"Show Nualia's arena token\" passes; showing, giving and asking the dead stay rejected",function(){
+    /* Playtest v1.1078 (the cache-on run): "Show Aldric's arena token" was rejected as an interaction with the dead Aldric and
+       replaced with a walk back the way the hero came. Rule ③ matched a verb, then the name; a possessive reads the same. */
+    __gateWorld();
+    var man=buildSceneManifest(),i,v;
+    var pass=["Show Nualia's arena token","Show Nualia’s arena token to Ameiko","Show Nualia Tobyn's arena token","Give Nualia's sword to Ameiko","Question Nualia Tobyn’s lieutenant about the raid","Approach Nualia's body and search it"];
+    for(i=0;i<pass.length;i++){v=validateSuggestion(pass[i],man);if(v&&v.rule==="dead-npc-interaction")return "a possessive was read as the dead owner: "+pass[i];}
+    var block=["Show the token to Nualia","Show Nualia the arena token","Give Nualia the sword","Ask Nualia about the pits","Ask Nualia Tobyn about the pits","Give Nualia's sword to Nualia","Confront Nualia about Nualia's raid"];
+    for(i=0;i<block.length;i++){v=validateSuggestion(block[i],man);if(!v||v.rule!=="dead-npc-interaction")return "a direct interaction with the dead must stay rejected: "+block[i]+" -> "+JSON.stringify(v);}
+    return true;
+  });
   // ── B24 — the gate's own fallback composed an impossible travel button (t1459 field case):
   // "valid by construction" was the bug — manifest exits are world-map edges served
   // sublocation-blind and combat-blind, and fallbacks bypassed validation entirely.
