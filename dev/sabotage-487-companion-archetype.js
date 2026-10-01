@@ -30,7 +30,7 @@ prove("helpers.js", [
     find: "    if(!p.old)continue;\n    var row=abilityBibleRow(c,p.nm);", replace: "    continue;\n    var row=abilityBibleRow(c,p.nm);",
     mustFail: "old-format names" },
   { label: "the dedupe merges abilities the bible does not know",
-    find: "var k=capBaseName(c.abilities[i].nm),r2=abilityBibleRow(c,c.abilities[i].nm);", replace: "var k=capBaseName(c.abilities[i].nm),r2=abilityBibleRow(c,c.abilities[i].nm)||{nm:c.abilities[i].nm,ds:c.abilities[i].ds};",
+    find: "    if(ra){for(j=0;j<keep.length;j++){if(abilitySame(c,keep[j].nm,a.nm)){dup=j;break;}}}\n    if(dup<0){keep.push(a);continue;}\n    var rk=abilityBibleRow(c,keep[dup].nm),w=", replace: "    {for(j=0;j<keep.length;j++){if(abilitySame(c,keep[j].nm,a.nm)){dup=j;break;}}}\n    if(dup<0){keep.push(a);continue;}\n    var rk=abilityBibleRow(c,keep[dup].nm)||{nm:keep[dup].nm,ds:keep[dup].ds,lv:0};ra=ra||{nm:a.nm,ds:a.ds,lv:0};var w=",
     mustFail: "old-format names" },
   { label: "a spell-casting Rogue is no longer read as the casting archetype",
     find: "    if(!casterClass&&ownSpells&&a.spellTiers)score+=20;\n", replace: "",

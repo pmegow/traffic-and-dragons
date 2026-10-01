@@ -1159,26 +1159,52 @@ function abilityParts(ab){
   if(/^Lv\d+$/.test(nm)){var m=ds.match(/^(.+?)\s+--\s+([\s\S]*)$/);if(m)return {nm:m[1].trim(),ds:m[2].trim(),old:true};}
   return {nm:nm,ds:ds,old:false};
 }
-// The class bible's row for an ability name on THIS sheet: a class level row first (the later,
-// fuller wording — Rogue's level-7 Evasion over the starting one), then a starting ability, then
-// the committed archetype's rows and the archetype itself. null = the bible has no such ability
+// The class bible's row for an ability name on THIS sheet: the row with that EXACT name (case and
+// outer spaces aside) among the starting abilities, the class level rows, and the committed
+// archetype's rows and the archetype itself. #507: never a base-name match — "Sneak Attack (venomed
+// blade)" is a GM's own ability, not the bible's Sneak Attack (the heal deleted it as a duplicate),
+// and "Wild Shape (CR 1)" is the level-7 row, not the level-2 one (a level-9 Druid was healed down
+// to CR 1/4). Of several rows with one exact name (Rogue's Evasion at 1 and 7) the highest at or
+// below the sheet's level wins. Returns {nm,ds,group,lv}; null = the bible has no such ability
 // for this class/archetype (a GM-granted or model-written one).
 function abilityBibleRow(c,nm){
-  var d=classDef(c&&c.cls),k=capBaseName(nm),lv,i,j,rows;
+  var d=classDef(c&&c.cls),k=abilityNameKey(nm),lvl=(c&&c.level)||1,best=null,lv,i,j,rows;
   if(!d||!k)return null;
-  if(d.levels){for(lv=1;lv<=20;lv++){rows=(d.levels[lv]&&d.levels[lv].features)||[];for(i=0;i<rows.length;i++){if(capBaseName(rows[i].nm)===k)return {nm:rows[i].nm,ds:rows[i].ds,group:"class"};}}}
-  rows=d.abilities||[];for(i=0;i<rows.length;i++){if(capBaseName(rows[i].nm)===k)return {nm:rows[i].nm,ds:rows[i].ds,group:"class"};}
+  function take(rn,ds,group,at){
+    if(abilityNameKey(rn)!==k)return;
+    var cand={nm:rn,ds:ds,group:group,lv:at};
+    if(!best||abilityRowFor(lvl,cand,best)===cand)best=cand;
+  }
+  rows=d.abilities||[];for(i=0;i<rows.length;i++)take(rows[i].nm,rows[i].ds,"class",1);
+  if(d.levels){for(lv=1;lv<=20;lv++){rows=(d.levels[lv]&&d.levels[lv].features)||[];for(i=0;i<rows.length;i++)take(rows[i].nm,rows[i].ds,"class",lv);}}
   var archs=d.archetypes||[];
   for(j=0;j<archs.length;j++){
     if(archs[j].id!==c.archetype)continue;
-    if(capBaseName(archs[j].nm)===k)return {nm:archs[j].nm,ds:archs[j].desc,group:"archetype"};
-    for(lv=1;lv<=20;lv++){rows=(archs[j].levels&&archs[j].levels[lv]&&archs[j].levels[lv].features)||[];for(i=0;i<rows.length;i++){if(capBaseName(rows[i].nm)===k)return {nm:rows[i].nm,ds:rows[i].ds,group:"archetype"};}}
+    take(archs[j].nm,archs[j].desc,"archetype",3);
+    for(lv=1;lv<=20;lv++){rows=(archs[j].levels&&archs[j].levels[lv]&&archs[j].levels[lv].features)||[];for(i=0;i<rows.length;i++)take(rows[i].nm,rows[i].ds,"archetype",lv);}
   }
-  return null;
+  return best;
+}
+// #507: the ONE name key the ability layer compares by (abilityHeldAs, #490, uses the same).
+function abilityNameKey(nm){return String(nm||"").trim().toLowerCase();}
+// #507: of two bible rows, the one a sheet at level lvl should hold — the highest at or below its
+// level; when neither is reached yet, the lower.
+function abilityRowFor(lvl,a,b){
+  var ao=a.lv<=lvl,bo=b.lv<=lvl;
+  if(ao!==bo)return ao?a:b;
+  return ao?(a.lv>=b.lv?a:b):(a.lv<=b.lv?a:b);
+}
+// #507: are two ability names ONE ability on this sheet? The same name (case and outer spaces
+// aside), or two rows of one class-bible family that share a base name (Wild Shape, Wild Shape
+// (CR 1/4) and Wild Shape (CR 1)). A name the bible does not hold is only ever itself.
+function abilitySame(c,a,b){
+  if(abilityNameKey(a)===abilityNameKey(b))return true;
+  if(capBaseName(a)!==capBaseName(b))return false;
+  return !!(abilityBibleRow(c,a)&&abilityBibleRow(c,b));
 }
 function abilityHas(c,nm){
-  var k=capBaseName(nm),L=(c&&c.abilities)||[],i;
-  for(i=0;i<L.length;i++){if(capBaseName(abilityParts(L[i]).nm)===k)return true;}
+  var L=(c&&c.abilities)||[],i;
+  for(i=0;i<L.length;i++){if(abilitySame(c,abilityParts(L[i]).nm,nm))return true;}
   return false;
 }
 // #490: does the sheet hold this name under ANY spelling a GM tag could collide with — another
@@ -1219,10 +1245,13 @@ function abilityTagSubject(ds,heroName,names){
 // sheet changed, so the caller announces only what is new.
 function abilityGrant(c,row,turn){
   if(!c.abilities)c.abilities=[];
-  var k=capBaseName(row.nm),i;
+  var i,held,hr,rr;
   for(i=0;i<c.abilities.length;i++){
-    if(capBaseName(abilityParts(c.abilities[i]).nm)!==k)continue;
+    held=abilityParts(c.abilities[i]).nm;
+    if(!abilitySame(c,held,row.nm))continue;/* #507: a GM's variant is never this row */
     if(c.abilities[i].nm===row.nm&&c.abilities[i].ds===row.ds)return false;
+    /* #507: a family is never stepped DOWN — a late level-2 Wild Shape on a sheet holding the level-7 row changes nothing */
+    if(abilityNameKey(held)!==abilityNameKey(row.nm)){hr=abilityBibleRow(c,held);rr=abilityBibleRow(c,row.nm);if(hr&&rr&&hr.lv>rr.lv)return false;}
     c.abilities[i].nm=row.nm;c.abilities[i].ds=row.ds;return true;
   }
   c.abilities.push({nm:row.nm,ds:row.ds,gained:turn||0});return true;
@@ -1314,12 +1343,16 @@ function abilitySheetHeal(c,opts){
     var row=abilityBibleRow(c,p.nm);
     c.abilities[i].nm=row?row.nm:p.nm;c.abilities[i].ds=row?row.ds:p.ds;rep.renamed.push(c.abilities[i].nm);
   }
-  var first={},keep=[];
+  /* #507: "held twice" is abilitySame — one exact name, or two rows of one bible family — never a base-name match, so a
+     GM's "Sneak Attack (venomed blade)" survives beside the bible's Sneak Attack. The kept entry holds the first position
+     and takes the wording of the row the sheet's level reaches (a level-9 Druid ends on Wild Shape (CR 1)). */
+  var keep=[],lvl=c.level||1;
   for(i=0;i<c.abilities.length;i++){
-    var k=capBaseName(c.abilities[i].nm),r2=abilityBibleRow(c,c.abilities[i].nm);
-    if(r2&&first[k]){first[k].nm=r2.nm;first[k].ds=r2.ds;rep.removed.push(r2.nm);continue;}
-    if(r2)first[k]=c.abilities[i];
-    keep.push(c.abilities[i]);
+    var a=c.abilities[i],ra=abilityBibleRow(c,a.nm),dup=-1;
+    if(ra){for(j=0;j<keep.length;j++){if(abilitySame(c,keep[j].nm,a.nm)){dup=j;break;}}}
+    if(dup<0){keep.push(a);continue;}
+    var rk=abilityBibleRow(c,keep[dup].nm),w=abilityRowFor(lvl,rk,ra),gone=(w===rk)?a.nm:keep[dup].nm;
+    keep[dup].nm=w.nm;keep[dup].ds=w.ds;rep.removed.push(gone);
   }
   if(keep.length!==c.abilities.length)c.abilities=keep;
   /* The class's STARTING abilities count as its level-1 rows. One of them can share a name with a

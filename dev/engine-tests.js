@@ -28816,4 +28816,61 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return !n.dead&&n.status==="mending a net"?true:"'dead tired' is a mood, trimmed as one: dead="+n.dead+" status="+JSON.stringify(n.status);
   });
 
+
+  section("#507 the ability heal keeps a GM's variant and a Druid's highest Wild Shape");
+  function rogue507(level,abs){makeWorld();var c=worldState.character;c.cls="Rogue";c.level=level;c.xp=CLASS_XP_LEVELS[level-1];c.archetype="thief";c.archetypeNm="Thief";c.abilities=abs||[];return c;}
+  function nm507(c){return c.abilities.map(function(a){return a.nm;});}
+  function ws507(lv){return classFeaturesAt("Druid",lv).filter(function(r){return capBaseName(r.nm)==="wild shape";})[0];}
+  t("#507 the repro: a GM's 'Sneak Attack (venomed blade)' survives the heal that runs before every turn (it was deleted as a duplicate of Sneak Attack)",function(){
+    var c=rogue507(5);quiet(function(){healAbilitySheets();});
+    quiet(function(){applyMuts("[ABILITY_GAINED:Sneak Attack (venomed blade)|Your blade carries the marsh adder's venom]");});
+    if(nm507(c).indexOf("Sneak Attack (venomed blade)")<0)return "fixture: the tag must land: "+nm507(c).join(", ");
+    var said=[],oa=addMsg;addMsg=function(ty,m){said.push(String(m));return __stubEl();};
+    try{quiet(function(){healAbilitySheets();});}finally{addMsg=oa;}
+    if(nm507(c).indexOf("Sneak Attack (venomed blade)")<0)return "the heal deleted the GM's ability: "+nm507(c).join(", ")+" | "+said.join(" / ");
+    if(nm507(c).indexOf("Sneak Attack")<0)return "the bible's Sneak Attack is kept beside it: "+nm507(c).join(", ");
+    var snap=JSON.stringify(c.abilities);quiet(function(){healAbilitySheets();});
+    if(JSON.stringify(c.abilities)!==snap)return "a second heal changed the sheet";
+    var v=rogue507(5,[{nm:"Sneak Attack (venomed blade)",ds:"Her own poison."}]);quiet(function(){healAbilitySheets();});
+    return nm507(v).indexOf("Sneak Attack")>=0&&nm507(v).indexOf("Sneak Attack (venomed blade)")>=0?true:"a sheet holding only the variant still lacks the bible's Sneak Attack and is granted it: "+nm507(v).join(", ");
+  });
+  t("#507 a level-9 Druid holding Wild Shape, Wild Shape (CR 1/4) and Wild Shape (CR 1) keeps the level-7 row, not the level-2 one (old 'LvN' entries and any order too)",function(){
+    var L2=ws507(2),L7=ws507(7),st=classDef("Druid").abilities.filter(function(a){return a.nm==="Wild Shape";})[0];
+    if(!L2||!L7||!st)return "fixture: the Druid's Wild Shape rows";
+    var shapes=[[{nm:st.nm,ds:st.ds},{nm:L2.nm,ds:L2.ds},{nm:L7.nm,ds:L7.ds}],[{nm:st.nm,ds:st.ds},{nm:"Lv2",ds:L2.nm+" -- "+L2.ds},{nm:"Lv7",ds:L7.nm+" -- "+L7.ds}],[{nm:L7.nm,ds:L7.ds},{nm:L2.nm,ds:L2.ds}],[{nm:L2.nm,ds:L2.ds},{nm:st.nm,ds:st.ds},{nm:L7.nm,ds:L7.ds}]],i;
+    for(i=0;i<shapes.length;i++){
+      makeWorld();var c=worldState.character;c.cls="Druid";c.level=9;c.xp=CLASS_XP_LEVELS[8];c.archetype="";c.abilities=shapes[i];
+      quiet(function(){healAbilitySheets();});
+      var w=c.abilities.filter(function(a){return capBaseName(a.nm)==="wild shape";});
+      if(w.length!==1)return "shape "+i+": one Wild Shape, not "+w.length+": "+nm507(c).join(", ");
+      if(w[0].nm!==L7.nm||w[0].ds!==L7.ds)return "shape "+i+": a level-9 Druid keeps the level-7 row, got "+w[0].nm;
+      var snap=JSON.stringify(c.abilities);quiet(function(){healAbilitySheets();});
+      if(JSON.stringify(c.abilities)!==snap)return "shape "+i+": a second heal changed the sheet";
+    }
+    return true;
+  });
+  t("#507 a level-up row never steps a held row down, and never renames a GM's variant into the bible's name",function(){
+    var L2=ws507(2),L7=ws507(7);
+    makeWorld();var c=worldState.character;c.cls="Druid";c.level=9;c.abilities=[{nm:L7.nm,ds:L7.ds}];
+    abilityGrant(c,L2,10);
+    if(c.abilities.length!==1||c.abilities[0].nm!==L7.nm)return "a late level-2 row stepped the level-7 one down: "+nm507(c).join(", ");
+    abilityGrant(c,L7,11);
+    if(c.abilities.length!==1)return "the held row granted again doubled it";
+    c.abilities=[{nm:L2.nm,ds:L2.ds}];abilityGrant(c,L7,12);
+    if(c.abilities.length!==1||c.abilities[0].nm!==L7.nm)return "reaching 7 steps the level-2 row UP: "+nm507(c).join(", ");
+    var r=rogue507(7,[{nm:"Evasion (improved)",ds:"Taught by a fencing master."}]);
+    abilityGrant(r,classFeaturesAt("Rogue",7).filter(function(x){return x.nm==="Evasion";})[0],10);
+    if(nm507(r).indexOf("Evasion (improved)")<0)return "the GM's variant was renamed: "+nm507(r).join(", ");
+    return nm507(r).indexOf("Evasion")>=0?true:"the bible's Evasion is granted beside it: "+nm507(r).join(", ");
+  });
+  t("#507 the bible's row for a name is the EXACT name (any case), the highest at or below the sheet's level; a variant is nobody's row and sits under Story",function(){
+    var st=classDef("Rogue").abilities.filter(function(a){return a.nm==="Evasion";})[0],l7=classFeaturesAt("Rogue",7).filter(function(a){return a.nm==="Evasion";})[0];
+    var r4=rogue507(4);
+    if(abilityBibleRow(r4,"Evasion").ds!==st.ds)return "level 4 holds the starting Evasion: "+abilityBibleRow(r4,"Evasion").ds;
+    var r9=rogue507(9);
+    if(abilityBibleRow(r9,"evasion").ds!==l7.ds)return "level 9 (any case) holds the level-7 Evasion: "+abilityBibleRow(r9,"evasion").ds;
+    if(abilityBibleRow(r9,"Sneak Attack (venomed blade)")!==null)return "a variant is not the bible's row";
+    return abilityGroup(r9,{nm:"Sneak Attack (venomed blade)",ds:"x"})==="story"?true:"a GM's variant is listed under Story: "+abilityGroup(r9,{nm:"Sneak Attack (venomed blade)",ds:"x"});
+  });
+
 }
