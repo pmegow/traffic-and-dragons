@@ -28887,7 +28887,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     ex.worldState.campId="camp_1650000000000_7777";ex.worldState.character.coreMemories.forEach(function(m){if(m.camp==="The Long Walk")m.campId="camp_1650000000000_7777";});ex.worldState.character.outfit.campId="camp_1650000000000_7777";
     makeWorld();setActiveCampId(null);
     var plan=quiet(function(){return importSaveData(ex);}).r;
-    if(!plan||!plan.reminted)return "fixture: the import must re-mint: "+JSON.stringify(plan);
+    if(!plan||!plan.reminted)return "a file id this device has never seen must be RE-MINTED (#423) — this test stands on it: "+JSON.stringify(plan);
     var bad=own508().filter(function(m){return m.campId!==worldState.campId;});
     if(bad.length)return "the campaign's own moments kept the sender's id: "+JSON.stringify(bad.map(function(m){return m.campId;}));
     var b=buildCoreMemoryBlock();
