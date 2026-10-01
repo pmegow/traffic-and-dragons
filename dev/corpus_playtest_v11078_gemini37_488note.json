@@ -1,0 +1,178 @@
+{
+ "log": [
+  {
+   "turn": 1,
+   "action": "I take the South Road to the city of Ashenveil.",
+   "kind": "scripted",
+   "narration": "Turn 1 | Day 1, 6:12 pmBefore you can wheel toward the South Road, the scarred brute lunges to bar your path. Iron rings rattle at his wrists as he brings his notched blade up in a swift salute. \"Run south if you like, pit-dog, but the master's coin bought the road too,\" he sneers, his yellow teeth bared in a cruel grin. \"Throw down that Northlander steel and take the collar again, or we feed your carcass to the crows.\"Behind him, two raiders level their heavy crossbows directly at your chest. If you turn your back now, their bolts will take you between the shoulder blades.🔊RenderDraw steel and strike Cavin.Brace behind a Shield Wall.Demand who bought the road.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 0,
+   "combat": {
+    "foes": [
+     {
+      "name": "Cavin Tharwick",
+      "hp": 18
+     }
+    ]
+   },
+   "sessionTokensApprox": 1139,
+   "t": 1790833162189,
+   "node": "The Crossroads of Ashenveil"
+  },
+  {
+   "turn": 2,
+   "action": "I strike to kill the nearest foe with my longsword.",
+   "kind": "scripted",
+   "narration": "Turn 2 | Day 1, 6:13 pmStrength attack rolld20: 17 -- successFailure means meeting his notched blade with your bare flesh. Your heavy northern steel cleaves the chill air in a whistling arc. The blow shatters Cavin's hasty guard, biting deep into the meat of his collarbone and spraying dark crimson across the gray ash. He stumbles back with a choked snarl, clutching the gash as blood pumps between his fingers. His eyes widen in savage fury rather than retreat, and he shifts his weight to thrust violently back at your throat.🔊RenderFinish Cavin with a Power Strike.Sever his sword arm.Brace against his counterattack.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 0,
+   "combat": {
+    "foes": [
+     {
+      "name": "Cavin Tharwick",
+      "hp": 9
+     }
+    ]
+   },
+   "sessionTokensApprox": 1324,
+   "t": 1790833164308,
+   "node": "The Crossroads of Ashenveil"
+  },
+  {
+   "turn": 3,
+   "action": "I strike to kill the nearest foe with my longsword.",
+   "kind": "scripted",
+   "narration": "Turn 3 | Day 1, 6:14 pmStrength attack rolld20: 19 -- successFailure means taking Cavin's wild thrust in your throat.You pivot inside the arc of his thrust, your heavy blade screaming through the chill air. The northern steel shears through Cavin's throat, severing muscle and spine in a single terrible burst of crimson. His lifeless body crashes into the ash. Across his exposed chest sits the fresh, jagged brand of Valerius, your old master from the fighting pits of Ashenveil. The two surviving crossbowmen drop their weapons and bolt into the choking murk of the Blighted Reach.🔊RenderSearch Cavin's corpse for coin.Examine the brand closely.Take the South Road to Ashenveil.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 1644,
+   "t": 1790833167105,
+   "node": "The Crossroads of Ashenveil"
+  },
+  {
+   "turn": 4,
+   "action": "I take the South Road to the city of Ashenveil.",
+   "kind": "scripted",
+   "narration": "Turn 4 | Day 1, 8:14 pmYou leave the dead slaver to rot beneath the gray sky and stride down the South Road. Night falls like an iron shutter over the squalid expanse of Ashenveil, its towering basalt battlements belching soot into the freezing air. Through the open High Gate, the raucous roar of a bloodthirsty mob echoes up from the subterranean fighting dens of the lower slums. Brawlers in the tavern doorways mutter darkly of the Crimson Arena, where broken men drink foul draughts to grow muscles like iron before tearing their foes to ribbons.🔊RenderHead into the lower slums toward the arena.Enter a crowded tavern to question the patrons.Seek out an apothecary to ask about the draughts.Accept the offer: The Gilded Cage.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 2478,
+   "t": 1790833169732,
+   "node": "Ashenveil"
+  },
+  {
+   "turn": 5,
+   "action": "I find the nearest tavern and step inside.",
+   "kind": "scripted",
+   "narration": "Turn 5 | Day 1, 8:34 pmYou push past a greasy leather curtain into the stifling heat of The Iron Cauldron. Stale ale and charred mutton fill the smoke-thickened den. Hard-eyed cutthroats and scarred pit veterans hunch over timber tables, glaring into their cups. Behind the stained oak bar, a broad woman named Maeve Yarwick wipes a horn flagon with a greasy rag, her calculating gaze tracking your heavy step.🔊RenderOrder a drink from Maeve.Ask Maeve about the Crimson Arena.Listen to the patrons' whispers.Accept the offer: The Gilded Cage.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 700,
+   "t": 1790833175744,
+   "node": "Ashenveil|The Iron Cauldron"
+  },
+  {
+   "turn": 6,
+   "action": "I take a seat near the hearth, order an ale, and listen to the room.",
+   "kind": "scripted",
+   "narration": "Turn 6 | Day 1, 8:59 pmFailure means missing the quiet slip of vital words beneath the tavern's roar.You drop a heavy coin onto the rough board. Maeve Yarwick slams down a tankard of spiced grog with a curt nod, leaning across the counter.\"Keep your steel loose in its sheath, stranger. Word on the road says a demon broke loose of an iron cage up north and butchered twenty slavers in the ash.\"She turns away to tend the hearth fire. Near the crackling coals, two scarred pit-fighters lean over their cups, their voices dropping into hushed urgency. They mutter of the Crimson Arena down in the gut of the Low Quarter. They speak of a figure called the Shadow Alchemist, who peddles dark draughts that turn starving wretches into raving giants of blood and iron.🔊RenderQuestion Maeve about the Shadow Alchemist.Leave the tavern for the Low Quarter.Confront the two fighters near the hearth.Buy the Iron-banded roundshield (10 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 39,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 1543,
+   "t": 1790833179698,
+   "node": "Ashenveil|The Iron Cauldron"
+  },
+  {
+   "turn": 7,
+   "action": "I take a seat near the hearth, order an ale, and listen to the room.",
+   "kind": "scripted",
+   "narration": "Turn 7 | Day 1, 9:09 pmYou sit by the roaring fire, your fingers wrapped around the iron tankard. Across the hearth, a scarred fighter named Torvan Urnvale leans toward his companion, spitting into the embers.\"They pour the black draught down their gullets before every match. It swells their veins with molten ruin, but the strength is unholy. It comes straight from the Shadow Alchemist down in the pits.\"Torvan taps his notched knuckle against his iron hilt. The man looks up, catching your hard northern stare across the flames.🔊RenderAsk Torvan where to find the arena.Offer Torvan a tankard of grog.Leave the tavern for the Low Quarter.Buy the Iron-banded roundshield (10 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 39,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 2303,
+   "t": 1790833182584,
+   "node": "Ashenveil|The Iron Cauldron"
+  },
+  {
+   "turn": 8,
+   "action": "I drink slowly and watch the door.",
+   "kind": "scripted",
+   "narration": "Turn 8 | Day 1, 9:24 pmYou nurse the bitter grog, your back wedged firmly against the soot-crusted granite of the hearth. Your gaze never leaves the heavy iron-banded door to the street. Outside, the freezing gale howls through the alleys of Ashenveil, rattling the thick oak timbers on their iron hinges. Hard men mutter over their dice, but no new shadows cross the threshold to disturb the gloom.🔊RenderAsk Torvan where to find the Crimson Arena.Buy another tankard of spiced grog.Leave the tavern for the Low Quarter.Buy the Iron-banded roundshield (10 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 39,
+   "xp": 150,
+   "combat": null,
+   "sessionTokensApprox": 3004,
+   "t": 1790833233873,
+   "node": "Ashenveil|The Iron Cauldron"
+  }
+ ],
+ "errors": [],
+ "raw": [
+  {
+   "turn": 0,
+   "raw": "[TIME_CHECK:evening]\n[SCENE_CAST:none]\n[LOCATION_HOURS:none]\n[WARES:none]\n[TIME_ADVANCE:10m]\n[QUEST:An Unwanted Reunion|active]\n[QUEST_STEP:An Unwanted Reunion|Survive the ambush and identify the attackers|false]\n\nA biting wind whips gray ash across the cracked earth of the crossroads, carrying the raw stench of spilled blood and frightened beasts. Before you, a merchant wagon lies splintered on its side, its draft oxen slaughtered in their traces by heavy, barbed crossbow bolts. Iron-shackled raiders step from the gloom of the Blighted Reach, blades drawn and teeth bared, circling the wreckage with ruthless purpose. Their scarred leader halts in mid-stride, lowering his notched broadsword as his cold eyes lock onto your face with a vicious grin of sudden recognition.\n\n[SUGGEST:Draw your longsword and brace|Demand to know the leader's purpose|Charge the raiders before they surround you]"
+  },
+  {
+   "turn": 1,
+   "raw": "[TIME_CHECK:evening]\n[SCENE_REF:slaver_leader|Cavin Tharwick]\n[TIME_ADVANCE:2m]\n[COMBAT_START:Cavin Tharwick|18|13|4|1d8+2|normal]\n[COMBAT_STATS:STR:14|DEX:12|CON:14|INT:10|WIS:10|CHA:10|CR:1]\n\nBefore you can wheel toward the South Road, the scarred brute lunges to bar your path. Iron rings rattle at his wrists as he brings his notched blade up in a swift salute. \n\n[SAY:Cavin Tharwick|low and gravelly]\"Run south if you like, pit-dog, but the master's coin bought the road too,\" he sneers, his yellow teeth bared in a cruel grin. \"Throw down that Northlander steel and take the collar again, or we feed your carcass to the crows.\"\n\nBehind him, two raiders level their heavy crossbows directly at your chest. If you turn your back now, their bolts will take you between the shoulder blades.\n\n[SOUNDSCAPE:The Crossroads of Ashenveil|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=wind,voices;forbid=birds,insects,water,machinery,music,chimes,bells]\n[SUGGEST:Draw steel and strike Cavin|Brace behind a Shield Wall|Demand who bought the road]"
+  },
+  {
+   "turn": 2,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[COMBAT_ROUND:2]\n[DICE:Strength attack roll|17|success]\n[ENEMY_HP:Cavin Tharwick|-9]\n\nFailure means meeting his notched blade with your bare flesh. \n\nYour heavy northern steel cleaves the chill air in a whistling arc. The blow shatters Cavin's hasty guard, biting deep into the meat of his collarbone and spraying dark crimson across the gray ash. He stumbles back with a choked snarl, clutching the gash as blood pumps between his fingers. His eyes widen in savage fury rather than retreat, and he shifts his weight to thrust violently back at your throat.\n\n[SUGGEST:Finish Cavin with a Power Strike|Sever his sword arm|Brace against his counterattack]"
+  },
+  {
+   "turn": 3,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[COMBAT_ROUND:3]\n[DICE:Strength attack roll|19|success]\n[CANON_TXN_BEGIN:cavin_slain_t3|npc-death|Cavin Tharwick|slaver_leader|An Unwanted Reunion]\n[SCENE_DEATH:slaver_leader]\n[NPC:Cavin Tharwick|dead|enemy]\n[ENEMY_SLAIN:Cavin Tharwick]\n[QUEST_STEP:An Unwanted Reunion|Survive the ambush and identify the attackers|true]\n[QUEST:An Unwanted Reunion|completed]\n[ARC_COMPLETE:An Unwanted Reunion]\n[CANON_TXN_END:cavin_slain_t3]\n[COMBAT_END:victory]\n[STORY_BEAT:Korrag cuts down Cavin Tharwick and identifies the attackers as slavers sent by his former master.]\n\nFailure means taking Cavin's wild thrust in your throat.\n\nYou pivot inside the arc of his thrust, your heavy blade screaming through the chill air. The northern steel shears through Cavin's throat, severing muscle and spine in a single terrible burst of crimson. His lifeless body crashes into the ash. \n\nAcross his exposed chest sits the fresh, jagged brand of Valerius, your old master from the fighting pits of Ashenveil. The two surviving crossbowmen drop their weapons and bolt into the choking murk of the Blighted Reach.\n\n[SUGGEST:Search Cavin's corpse for coin|Examine the brand closely|Take the South Road to Ashenveil]"
+  },
+  {
+   "turn": 4,
+   "raw": "[TIME_CHECK:evening]\n[LOCATION_STATE:Cavin Tharwick's headless corpse and the splintered wagon lie abandoned in the ash]\n[TIME_ADVANCE:2h]\n[TIME:dusk]\n[LOCATION:Ashenveil]\n[LOCATION_DESC:A brooding city of black basalt walls and jagged iron spires, choked by the stench of burning pitch and cheap tallow. The High Gate stands open to the North Road, while narrow alleys wind down into the smog-choked lower slums and blood-sports district.]\n[LOCATION_SIZE:large|40]\n[LOCATION_HOURS:0-24|The basalt gates of Ashenveil stand open day and night]\n[QUEST:The Gilded Cage|offered|Investigate the underground fighting pits of Ashenveil to uncover the source of the fighters' monstrous strength.]\n\nYou leave the dead slaver to rot beneath the gray sky and stride down the South Road. Night falls like an iron shutter over the squalid expanse of Ashenveil, its towering basalt battlements belching soot into the freezing air. Through the open High Gate, the raucous roar of a bloodthirsty mob echoes up from the subterranean fighting dens of the lower slums. Brawlers in the tavern doorways mutter darkly of the Crimson Arena, where broken men drink foul draughts to grow muscles like iron before tearing their foes to ribbons.\n\n[SUGGEST:Head into the lower slums toward the arena|Enter a crowded tavern to question the patrons|Seek out an apothecary to ask about the draughts]"
+  },
+  {
+   "turn": 5,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:20m]\n[WARES:Iron-banded roundshield|10 gp|Maeve Yarwick behind the counter]\n[WARES:Spiced grog|1 gp|Maeve Yarwick behind the counter]\n[SUBLOCATION:The Iron Cauldron]\n[SCENE_REF:barkeep|Maeve Yarwick]\n[NPC:Maeve Yarwick|shrewd, watchful|acquaintance]\n[NPC_PRONOUN:Maeve Yarwick|she/her]\n[SCENE_CAST:Korrag, Maeve Yarwick]\n\nYou push past a greasy leather curtain into the stifling heat of The Iron Cauldron. Stale ale and charred mutton fill the smoke-thickened den. Hard-eyed cutthroats and scarred pit veterans hunch over timber tables, glaring into their cups. Behind the stained oak bar, a broad woman named Maeve Yarwick wipes a horn flagon with a greasy rag, her calculating gaze tracking your heavy step.\n\n[SUGGEST:Order a drink from Maeve|Ask Maeve about the Crimson Arena|Listen to the patrons' whispers]"
+  },
+  {
+   "turn": 6,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:25m]\n[GOLD:-1]\n[QUEST:The Gilded Cage|active]\n[QUEST_STEP:The Gilded Cage|Discover the source of the pit-fighters' unnatural strength|false]\n[WHISPER:Word from the northern trail says a demon broke free of an iron cage and slaughtered twenty slavers in the ash.]\n\nFailure means missing the quiet slip of vital words beneath the tavern's roar.\n\nYou drop a heavy coin onto the rough board. Maeve Yarwick slams down a tankard of spiced grog with a curt nod, leaning across the counter.\n\n[SAY:Maeve Yarwick|low and gravelly]\"Keep your steel loose in its sheath, stranger. Word on the road says a demon broke loose of an iron cage up north and butchered twenty slavers in the ash.\"\n\nShe turns away to tend the hearth fire. Near the crackling coals, two scarred pit-fighters lean over their cups, their voices dropping into hushed urgency. They mutter of the Crimson Arena down in the gut of the Low Quarter. They speak of a figure called the Shadow Alchemist, who peddles dark draughts that turn starving wretches into raving giants of blood and iron.\n\n[SUGGEST:Question Maeve about the Shadow Alchemist|Leave the tavern for the Low Quarter|Confront the two fighters near the hearth]"
+  },
+  {
+   "turn": 7,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[LOCATION_DESC:A low-ceilinged cellar tavern of soot-blackened stone, furnished with four scarred oak benches, a central stone hearth, and a thick oak bar. A heavy iron-banded door to the west opens into the street, while a curtained archway in the southern wall leads to a cellar storeroom.]\n[LOCATION_HOURS:16-4|Maeve keeps the taproom open from dusk until the early morning hours]\n[SCENE_REF:veteran_pitfighter|Torvan Urnvale]\n[NPC:Torvan Urnvale|scarred, brooding|neutral]\n[NPC_PRONOUN:Torvan Urnvale|he/him]\n[SCENE_CAST:Korrag, Maeve Yarwick, Torvan Urnvale]\n\nYou sit by the roaring fire, your fingers wrapped around the iron tankard. \n\nAcross the hearth, a scarred fighter named Torvan Urnvale leans toward his companion, spitting into the embers.\n\n[SAY:Torvan Urnvale|low and gravelly]\"They pour the black draught down their gullets before every match. It swells their veins with molten ruin, but the strength is unholy. It comes straight from the Shadow Alchemist down in the pits.\"\n\nTorvan taps his notched knuckle against his iron hilt. The man looks up, catching your hard northern stare across the flames.\n\n[SUGGEST:Ask Torvan where to find the arena|Offer Torvan a tankard of grog|Leave the tavern for the Low Quarter]"
+  },
+  {
+   "turn": 8,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:15m]\n[SOUNDSCAPE:The Iron Cauldron|enclosure=sealed;setting=interior;biome=temperate;quiet=normal;allows=fire,crowd,voices;forbid=birds,insects,wind,rain,thunder]\n\nYou nurse the bitter grog, your back wedged firmly against the soot-crusted granite of the hearth. Your gaze never leaves the heavy iron-banded door to the street. Outside, the freezing gale howls through the alleys of Ashenveil, rattling the thick oak timbers on their iron hinges. Hard men mutter over their dice, but no new shadows cross the threshold to disturb the gloom.\n\n[SUGGEST:Ask Torvan where to find the Crimson Arena|Buy another tankard of spiced grog|Leave the tavern for the Low Quarter]"
+  }
+ ],
+ "run": {
+  "campId": "camp_1790833150391_7214",
+  "campName": "PlaytestHarness_488note_v11078",
+  "startedAt": 1790833150403,
+  "ver": "v1.1078",
+  "route": "server",
+  "provider": "gemini",
+  "model": "gemini-3.7-flash"
+ }
+}

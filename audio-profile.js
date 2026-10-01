@@ -5,6 +5,21 @@ var AUDIO_PROFILE_FIELDS = {
   biome:["temperate","arid","tropical","frozen","unspecified"],
   quiet:["normal","hushed","silent"]
 };
+/* #488 (playtest v1.1078, owner 2026-09-30: "sharpen the GM's instructions"): what the ambiguous words MEAN. The SOUNDSCAPE note
+   listed the words bare, so the GM read "setting" as the surrounding town, found no word for indoors, and wrote
+   enclosure=indoor;setting=settlement for a tavern — refused, and silent even when spelled validly (an interior bed needs
+   setting=interior). The note's teaching sentence DERIVES from the vocabulary above plus these glosses (audioFieldTeaching), so
+   a word can never be accepted but untaught. A word with no gloss is taught bare. No gloss may say "indoor"/"outdoor". */
+var AUDIO_FIELD_GLOSS = {
+  enclosure:{open:"under the sky",covered:"a roof, open sides",sealed:"walls and a roof"},
+  setting:{settlement:"the streets and squares of a town or village",interior:"inside any building",subterranean:"caves, mines, sewers"}
+};
+function audioFieldTeaching(){
+  return Object.keys(AUDIO_PROFILE_FIELDS).map(function(f){
+    var g=AUDIO_FIELD_GLOSS[f];
+    return f+" "+AUDIO_PROFILE_FIELDS[f].map(function(v){return g&&g[v]?v+" ("+g[v]+")":v;}).join(g?" / ":"/");
+  }).join("; ");
+}
 /* The SOUNDSCAPE content vocabulary — the ONE list the parser accepts and the engine note teaches (buildSoundscapeNote derives
    from it). chimes/bells added 2026-09-23 for the accent layer (Fable review; owner ruling: chimes hang where the GM says, bells ring outdoors). */
 var AUDIO_CONTENTS = ["birds","insects","wind","water","fire","crowd","voices","rain","thunder","animals","machinery","music","chimes","bells"];

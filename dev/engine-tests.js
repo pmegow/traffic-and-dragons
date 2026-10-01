@@ -26007,6 +26007,38 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(buildStateTagsDoc().indexOf("chimes")>=0)return "the standing STATE TAGS doc must stay byte-unchanged (engine-only tier)";
     return true;
   });
+  t("#488 SOUNDSCAPE note: every profile word comes from the ONE vocabulary and the ambiguous ones carry their meaning; a room inside a building is taught as sealed + interior; nothing invents 'indoor'",function(){
+    /* Playtest v1.1078 (gemini-3.7-flash): both tavern scenes wrote enclosure=indoor;setting=settlement. The note listed the
+       words bare ("enclosure open/covered/sealed/unspecified; setting settlement/…/interior/…"), so the GM took "setting" for
+       the surrounding town and had no word for indoors. The engine refused both, and the tavern got no ambience. */
+    makeWorld();memory.map.nodes.Ashfen={parent:null,visits:1};
+    var note=buildSoundscapeNote(),f,i,k;if(note.indexOf("[SOUNDSCAPE:")<0)return "note did not fire";
+    if(typeof audioFieldTeaching!=="function"||typeof AUDIO_FIELD_GLOSS!=="object")return "the teaching sentence must derive from the vocabulary (audioFieldTeaching over AUDIO_PROFILE_FIELDS + AUDIO_FIELD_GLOSS)";
+    if(note.indexOf("Values, these exact words only: "+audioFieldTeaching()+".")<0)return "the note must carry the derived teaching sentence, not a hand copy";
+    var segs={};audioFieldTeaching().split("; ").forEach(function(seg){var sp=seg.indexOf(" ");segs[seg.slice(0,sp)]=seg.slice(sp+1).split(/ ?\/ ?/);});
+    for(f in AUDIO_PROFILE_FIELDS){
+      var want=AUDIO_PROFILE_FIELDS[f].map(function(v){var g=(AUDIO_FIELD_GLOSS[f]||{})[v];return g?v+" ("+g+")":v;});
+      if(JSON.stringify(segs[f])!==JSON.stringify(want))return "the sentence must teach "+f+" as exactly the parser's words, each with its meaning where one is given: "+JSON.stringify(segs[f]);
+    }
+    if(Object.keys(segs).join(",")!==Object.keys(AUDIO_PROFILE_FIELDS).join(","))return "the sentence teaches a field the parser does not have, or misses one: "+Object.keys(segs).join(",");
+    for(f in AUDIO_FIELD_GLOSS){if(!AUDIO_PROFILE_FIELDS[f])return "a gloss names an unknown field: "+f;for(k in AUDIO_FIELD_GLOSS[f])if(AUDIO_PROFILE_FIELDS[f].indexOf(k)<0)return "a gloss names a word the parser refuses: "+f+"="+k;}
+    var need={enclosure:["open","covered","sealed"],setting:["interior","settlement"]};
+    for(f in need)for(i=0;i<need[f].length;i++)if(!(AUDIO_FIELD_GLOSS[f]||{})[need[f][i]])return "the ambiguous word "+f+"="+need[f][i]+" must carry its meaning";
+    if(note.indexOf("A room inside a building (a taproom, a shop, a house) is enclosure=sealed;setting=interior")<0)return "the note must say what a room inside a building is";
+    if(/indoor|outdoor/i.test(note))return "the note must not use the words 'indoor'/'outdoor' — the GM turned 'indoor' into a value";
+    if(note.length>1700)return "the note grew to "+note.length+" characters — it shares a 2,500-character budget with two other notes";
+    /* the taught pair validates and plays a bed; the live pair stays refused (the vocabulary did not grow), and its nearest valid spelling plays nothing */
+    var room=audioParseProfile("The Iron Cauldron|enclosure=sealed;setting=interior;biome=unspecified;quiet=normal;allows=fire,voices;forbid=none");
+    if(!room.ok)return "the taught room classification was refused: "+room.reason;
+    var live=audioParseProfile("The Iron Cauldron|enclosure=indoor;setting=settlement;biome=arid;quiet=normal;allows=voices;forbid=none");
+    if(live.ok||live.reason!=="invalid enclosure")return "enclosure=indoor must stay refused as an invalid enclosure: "+JSON.stringify(live);
+    function bed(enc,set){var p={enclosure:enc,setting:set,biome:"arid",quiet:"normal",allows:["voices","fire"],forbid:[],schema:1,source:"gm",cohort:AUDIO_CATALOG.cohort,variant:"v",revision:1,stamp:"s"};
+      var r=ambientPlan({enabled:true,unlocked:true,visible:true,campaignId:"c",nodeKey:"Ashenveil|The Iron Cauldron",exterior:false,classified:true,habitable:true,minuteOfDay:1260,profile:p},AUDIO_SCENES);return r.scene?r.scene.id:null;}
+    if(!bed("sealed","interior"))return "a sealed interior must play a bed";
+    if(bed("sealed","settlement"))return "a sealed 'settlement' plays nothing today — if that changed, the room sentence may no longer be load-bearing";
+    if(buildStateTagsDoc().indexOf("under the sky")>=0||buildStateTagsDoc().indexOf("inside any building")>=0)return "the standing STATE TAGS doc must stay byte-unchanged (engine-only tier)";
+    return true;
+  });
   t("L7 accent chime and bell sets: chimes hang where the GM allowed them, the bell rings only in the open settlement, unheard mixes stay silent",function(){
     var cat=accentCatalog(),s={minuteOfDay:600,nodeKey:"Vale|the shrine",campaignId:"c"};
     function ids(profile){return audioSelectAccents(Object.assign({},s,{profile:profile}),cat,null).map(function(a){return a.id;}).sort().join(",");}
