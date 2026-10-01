@@ -1,0 +1,257 @@
+{
+ "log": [
+  {
+   "turn": 1,
+   "action": "Demand what Valerius is doing here.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 1 | Day 1, 6:12 pm\"Valerius is dead to me, and Ashenveil is far from the north,\" you say, fingers tightening on the grip of your longsword. \"Speak your piece before I take your head from your shoulders. What is he doing in these lands?\"Kadrun spits a mouthful of dark phlegm into the dirt, the sneer hardening on his scarred face.\"The master buys and sells more than flesh now, pit-dog. He needs blood for the altars in the Reach, and strong arms to haul the cages into Ashenveil.\"He lowers his broadsword, leveling the notched steel straight at your throat. Behind him, two hooded reavers step out from the smoke of the burning wagons, heavy iron chains rattling in their bloodstained fists.🔊RenderUnleash Power Strike on Kadrun.Brace with Shield Wall against the rush.Disarm Kadrun with a sweeping strike.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 0,
+   "combat": {
+    "engaged": null,
+    "foes": [
+     {
+      "name": "Kadrun Zethran",
+      "hp": 18,
+      "down": null
+     },
+     {
+      "name": "Slaver Reaver",
+      "hp": 11,
+      "down": null
+     }
+    ]
+   },
+   "sessionTokensApprox": 1159,
+   "t": 1790829771263
+  },
+  {
+   "turn": 2,
+   "action": "Disarm Kadrun with a sweeping strike.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 2 | Day 1, 6:13 pmStrength checkd20: 17 -- successFailure leaves your ribs open to his thrust.Your blade arcs upward in a sharp, clanging sweep, catching the hilt of his broadsword and levering it violently from his grasp. The heavy weapon spins through the air and embeds itself point-first into the churned ash. Kadrun stumbles back with a roar of fury, grasping for the hunting knife at his hip as the reaver lunges forward with a spiked club.🔊RenderSlash Kadrun with a Power Strike.Kick Kadrun into the approaching reaver.Drive your blade into the reaver.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 0,
+   "combat": {
+    "engaged": "Kadrun Zethran",
+    "foes": [
+     {
+      "name": "Kadrun Zethran",
+      "hp": 15,
+      "down": null
+     },
+     {
+      "name": "Slaver Reaver",
+      "hp": 11,
+      "down": null
+     }
+    ]
+   },
+   "sessionTokensApprox": 1369,
+   "t": 1790829774122
+  },
+  {
+   "turn": 3,
+   "action": "Kick Kadrun into the approaching reaver.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 3 | Day 1, 6:14 pmStrength checkd20: 18 -- successFailure means Kadrun catches your leg and pulls you to the dirt.You drive your iron-shod boot straight into Kadrun's chest with the force of a battering ram. The breath explodes from the slaver leader in a bloody spray as he flies backward into the charging reaver. Both men crash into the burning wreckage of a wagon wheel in a tangle of flailing limbs and iron studs.🔊RenderFinish Kadrun with a Power Strike.Cut down the tangled reaver.Interrogate the pinned slaver leader.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 0,
+   "combat": {
+    "engaged": "Slaver Reaver",
+    "foes": [
+     {
+      "name": "Kadrun Zethran",
+      "hp": 11,
+      "down": null
+     },
+     {
+      "name": "Slaver Reaver",
+      "hp": 7,
+      "down": null
+     }
+    ]
+   },
+   "sessionTokensApprox": 1572,
+   "t": 1790829776341
+  },
+  {
+   "turn": 4,
+   "action": "Finish Kadrun with a Power Strike.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 4 | Day 1, 6:15 pmStrength checkd20: 16 -- successFailure leaves your recovery slow as the reaver scrambles free.You surge forward and bring your longsword down with both hands, channeling all the fury of the northern wastes into a single cleaving arc. Steel splits leather and bone, biting deep into Kadrun's neck and ending his snarl in a crimson torrent. The dying slaver collapses into the ash, his eyes rolling back in his skull as life empties into the dirt. Across the burning debris, the surviving reaver scrambles to his feet, terror draining the blood from his soot-stained face as he looks from the corpse to your bloody blade.🔊RenderCut down the surviving reaver.Demand the reaver surrender and talk.Search Kadrun's corpse for orders.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 40,
+   "xp": 0,
+   "combat": {
+    "engaged": "Kadrun Zethran",
+    "foes": [
+     {
+      "name": "Kadrun Zethran",
+      "hp": 3,
+      "down": null
+     },
+     {
+      "name": "Slaver Reaver",
+      "hp": 7,
+      "down": null
+     }
+    ]
+   },
+   "sessionTokensApprox": 1866,
+   "t": 1790829778801
+  },
+  {
+   "turn": 5,
+   "action": "Interrogate the pinned slaver leader.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 5 | Day 1, 6:16 pmKadrun lies lifeless in the crimson-soaked ash, his neck severed to the spine, beyond the reach of any question. You plant your boot firmly on the chest of the surviving slaver reaver, pinning him flat against the dirt with the tip of your blood-slick longsword pricking his trembling throat.\"Your leader is dead in the dirt,\" you growl, pressing the steel until a bead of dark blood wells. \"Speak fast, dog. Where is Valerius holding his stock in Ashenveil, and what altars does he feed in the Reach?\"\"The Vaults beneath the fighting pits!\" the reaver chokes out, clawing desperately at the packed earth. \"By the South Gate in Ashenveil! He's marking the strongest captives with witch-iron, sending the weak into the wastes for the black stones! Spare me, warrior, by the gods, spare me!\"You wrench an iron medallion stamped with a coiled viper from Kadrun's neck and strip a heavy purse of southern silver and gold from his belt.🔊RenderExecute the kneeling reaver.Leave the reaver tied to the wagon.Take the South Road to Ashenveil.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 55,
+   "xp": 50,
+   "combat": null,
+   "sessionTokensApprox": 2275,
+   "t": 1790829782629
+  },
+  {
+   "turn": 6,
+   "action": "Take the South Road to Ashenveil.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 6 | Day 1, 8:16 pmLeaving the burning timber and the dead slaver behind, you march south through the gathering dark along the rutted highway. Two hours under a choking sky bring you before the towering ironbound ramparts of Ashenveil, where black chimneys belch greasy soot into the cold night air. You slip past the weary gate watch unnoticed, stepping into the foul alleys of the lower quarters where torches flicker against damp stone and the distant roar of a blood-hungry arena crowd rumbles through the earth.🔊RenderSeek a tavern to hear arena rumors.Head directly toward the roaring fighting pits.Examine the iron token under torchlight.",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 55,
+   "xp": 50,
+   "combat": null,
+   "sessionTokensApprox": 3142,
+   "t": 1790829785766
+  },
+  {
+   "turn": 7,
+   "action": "Seek a tavern to hear arena rumors.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 7 | Day 1, 8:46 pmYou shoulder through the heavy timber door of the Iron Cauldron, where sour ale and charred fat scent the thick air. Behind the scarred counter, a one-eyed barkeep named Torvan Urnvale wipes a chipped clay mug, eyeing your blood-speckled mail with practiced indifference. In the corner near the hearth, a scarred woman, Sylvie Pallwick, leans over her cup, speaking in hushed, frightened tones of men in the pits surviving fatal blade-thrusts as if their veins ran with liquid fire rather than mortal blood.\"Looking for a draught, stranger, or looking to wager your skin in the sunken circle?\" Torvan asks, nodding toward the lower alleys.🔊RenderAsk Torvan how to enter the pits.Question Sylvie about the unnaturally strong fighters.Order ale and listen to room chatter.Buy the Dagger (2 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 55,
+   "xp": 50,
+   "combat": null,
+   "sessionTokensApprox": 877,
+   "t": 1790829791529
+  },
+  {
+   "turn": 8,
+   "action": "Ask Torvan how to enter the pits.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 8 | Day 1, 8:56 pmTorvan sets his chipped mug down with a dull clatter, leaning over the scarred wood of the counter.\"They say a mountain monster smashed Kadrun's whole slaver outfit out on the road an hour ago, but the pits don't care about northern blood,\" Torvan murmurs, squinting his single milky eye at you. \"The eastern grate down in the Low Quarter opens for two things only, fighter: a purse of thirty gold pieces, or one of Valerius's iron viper tokens.\"Across the hearth, Sylvie Pallwick stiffens at the slaver's name, her knuckles whitening around her clay cup.🔊RenderShow Torvan the Iron Token.Pay 30 gold to buy entry.Question Sylvie about what Valerius does below.Buy the Dagger (2 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 55,
+   "xp": 50,
+   "combat": null,
+   "sessionTokensApprox": 1633,
+   "t": 1790829793884
+  },
+  {
+   "turn": 9,
+   "action": "Buy the Dagger (2 gp).",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 9 | Day 1, 9:01 pmYou toss two gold pieces onto the scarred wood, the coin ringing sharp against the din of the room. Torvan sweeps the metal away with a grimy hand and pulls a broad, blackened iron dagger from beneath the counter, sliding it across the boards to your grip. \"Good steel for a slit throat in the dark,\" the barkeep mutters, racking the coins beneath the shelf. You test the heft of the blade before thrusting it into your belt, ready for close slaughter.🔊RenderShow Torvan the Iron Token.Question Sylvie about the pit fighters.Leave the tavern for the eastern grate.Buy the Dagger (2 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 53,
+   "xp": 50,
+   "combat": null,
+   "sessionTokensApprox": 2299,
+   "t": 1790829796292
+  },
+  {
+   "turn": 10,
+   "action": "Show Torvan the Iron Token.",
+   "kind": "random",
+   "skipped": null,
+   "narration": "Turn 10 | Day 1, 9:11 pmYou unhook the heavy viper medallion from your belt and slam it flat against the timber counter. The one-eyed barkeep flinches, his good eye widening as he traces the crude strike of the serpent brand.\"Keep that out of sight, fool,\" Torvan hisses, darting a nervous glance toward the tavern door. \"If you hold Valerius's iron, you don't wait in the crowd. Take the alley behind the smithy to the drowned drain. Knock three times on the iron hatch, show them the mark, and the kennel masters will let you into the under-pits where they feed the beasts before the blood sport.\"Near the hearth, Sylvie shudders, pulling her rough wool cloak tight around her shoulders.🔊RenderLeave for the alley behind the smithy.Demand Torvan explain what the fighters are fed.Question Sylvie before heading into the pits.Buy the Dagger (2 gp).",
+   "hp": 14,
+   "maxHp": 14,
+   "gold": 53,
+   "xp": 50,
+   "combat": null,
+   "sessionTokensApprox": 3191,
+   "t": 1790829798762
+  }
+ ],
+ "errors": [],
+ "raw": [
+  {
+   "turn": 0,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:10m]\n[SCENE_CAST:none]\n[SCENE_REF:lead_raider|Kadrun Zethran]\n[QUEST:An Unwanted Reunion|active]\n[QUEST_STEP:An Unwanted Reunion|Survive the slaver ambush and uncover their tie to your past]\n\nThe bitter southern gale drives gray ash across the crossroad, stinging your cracked lips and coating the links of your mail. Beside you, the merchant caravan is already a slaughterhouse of splintered timber, spilled grain, and dying draught-oxen. Out of the swirling dust strides a scarred giant in spiked leather, his iron broadsword dripping crimson into the dirt. He stops three paces away, baring blackened teeth as his cold eyes fix upon your face.\n\n[SAY:Kadrun Zethran|laugh, sneering]\"Look what crawled south from the pits,\" Kadrun rasps, resting the flat of his bloody blade on his shoulder. [SAY:Kadrun Zethran]\"Valerius pays a handsome bounty for runaways, Korrag, but I might let you hold a whip again if you drop that steel.\"\n\n[SUGGEST:Draw your longsword and strike|Demand what Valerius is doing here|Brace into a Shield Wall stance]"
+  },
+  {
+   "turn": 1,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:2m]\n[SOUNDSCAPE:The Crossroads of Ashenveil|enclosure=open;setting=wilderness;biome=arid;quiet=normal;allows=wind,fire,voices;forbid=birds,water]\n\n[SAY:Korrag|cold]\"Valerius is dead to me, and Ashenveil is far from the north,\" you say, fingers tightening on the grip of your longsword. [SAY:Korrag]\"Speak your piece before I take your head from your shoulders. What is he doing in these lands?\"\n\nKadrun spits a mouthful of dark phlegm into the dirt, the sneer hardening on his scarred face.\n\n[SAY:Kadrun Zethran|low and gravelly]\"The master buys and sells more than flesh now, pit-dog. He needs blood for the altars in the Reach, and strong arms to haul the cages into Ashenveil.\"\n\nHe lowers his broadsword, leveling the notched steel straight at your throat. Behind him, two hooded reavers step out from the smoke of the burning wagons, heavy iron chains rattling in their bloodstained fists.\n\n[COMBAT_START:Kadrun Zethran|18|13|+4|1d8+2|high]\n[COMBAT_STATS:STR:15|DEX:12|CON:14|INT:10|WIS:11|CHA:10|CR:1/2]\n[COMBAT_START:Slaver Reaver|11|11|+3|1d6+1|normal]\n[COMBAT_STATS:STR:13|DEX:11|CON:12|INT:9|WIS:10|CHA:8|CR:1/4]\n[COMBAT_ROUND:1]\n\n[SUGGEST:Unleash Power Strike on Kadrun|Brace with Shield Wall against the rush|Disarm Kadrun with a sweeping strike]"
+  },
+  {
+   "turn": 2,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[SOUNDSCAPE:The Crossroads of Ashenveil|enclosure=open;setting=wilderness;biome=arid;quiet=normal;allows=wind,fire,voices;forbid=birds,water]\n\nFailure leaves your ribs open to his thrust.\n\n[DICE:Strength check|17|success]\n[SKILL_SUCCESS:Grappling]\n\nYour blade arcs upward in a sharp, clanging sweep, catching the hilt of his broadsword and levering it violently from his grasp. The heavy weapon spins through the air and embeds itself point-first into the churned ash. Kadrun stumbles back with a roar of fury, grasping for the hunting knife at his hip as the reaver lunges forward with a spiked club.\n\n[ENEMY_HP:Kadrun Zethran|-3]\n[COMBAT_ROUND:2]\n\n[SUGGEST:Slash Kadrun with a Power Strike|Kick Kadrun into the approaching reaver|Drive your blade into the reaver]"
+  },
+  {
+   "turn": 3,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[SOUNDSCAPE:The Crossroads of Ashenveil|enclosure=open;setting=wilderness;biome=arid;quiet=normal;allows=wind,fire,voices;forbid=birds,water]\n\nFailure means Kadrun catches your leg and pulls you to the dirt.\n\n[DICE:Strength check|18|success]\n\nYou drive your iron-shod boot straight into Kadrun's chest with the force of a battering ram. The breath explodes from the slaver leader in a bloody spray as he flies backward into the charging reaver. Both men crash into the burning wreckage of a wagon wheel in a tangle of flailing limbs and iron studs.\n\n[ENEMY_HP:Kadrun Zethran|-4]\n[ENEMY_HP:Slaver Reaver|-4]\n[COMBAT_ROUND:3]\n\n[SUGGEST:Finish Kadrun with a Power Strike|Cut down the tangled reaver|Interrogate the pinned slaver leader]"
+  },
+  {
+   "turn": 4,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[SOUNDSCAPE:The Crossroads of Ashenveil|enclosure=open;setting=wilderness;biome=arid;quiet=normal;allows=wind,fire,voices;forbid=birds,water]\n\nFailure leaves your recovery slow as the reaver scrambles free.\n\n[DICE:Strength check|16|success]\n[ENEMY_HP:Kadrun Zethran|-8]\n\n[CANON_TXN_BEGIN:kadrun_slain|npc-death|Kadrun Zethran|lead_raider|An Unwanted Reunion]\n[SCENE_DEATH:lead_raider]\n[NPC:Kadrun Zethran|dead|enemy]\n[CANON_TXN_END:kadrun_slain]\n\nYou surge forward and bring your longsword down with both hands, channeling all the fury of the northern wastes into a single cleaving arc. Steel splits leather and bone, biting deep into Kadrun's neck and ending his snarl in a crimson torrent. The dying slaver collapses into the ash, his eyes rolling back in his skull as life empties into the dirt. \n\nAcross the burning debris, the surviving reaver scrambles to his feet, terror draining the blood from his soot-stained face as he looks from the corpse to your bloody blade.\n\n[COMBAT_ROUND:4]\n\n[SUGGEST:Cut down the surviving reaver|Demand the reaver surrender and talk|Search Kadrun's corpse for orders]"
+  },
+  {
+   "turn": 5,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[SOUNDSCAPE:The Crossroads of Ashenveil|enclosure=open;setting=wilderness;biome=arid;quiet=normal;allows=wind,fire,voices;forbid=birds,water]\n\nKadrun lies lifeless in the crimson-soaked ash, his neck severed to the spine, beyond the reach of any question. \n\nYou plant your boot firmly on the chest of the surviving slaver reaver, pinning him flat against the dirt with the tip of your blood-slick longsword pricking his trembling throat.\n\n[SAY:Korrag|cold]\"Your leader is dead in the dirt,\" you growl, pressing the steel until a bead of dark blood wells. [SAY:Korrag]\"Speak fast, dog. Where is Valerius holding his stock in Ashenveil, and what altars does he feed in the Reach?\"\n\n[SAY:Slaver Reaver|terrified, gasping]\"The Vaults beneath the fighting pits!\" the reaver chokes out, clawing desperately at the packed earth. [SAY:Slaver Reaver]\"By the South Gate in Ashenveil! He's marking the strongest captives with witch-iron, sending the weak into the wastes for the black stones! Spare me, warrior, by the gods, spare me!\"\n\n[ENEMY_SURRENDERS:Slaver Reaver]\n[COMBAT_END:truce]\n[QUEST_STEP:An Unwanted Reunion|Survive the slaver ambush and uncover their tie to your past|true]\n[QUEST:An Unwanted Reunion|completed]\n[ARC_COMPLETE:An Unwanted Reunion]\n[ITEM_GAINED:Iron Token (Valerius's Mark)]\n[GOLD:+15 gp]\n\nYou wrench an iron medallion stamped with a coiled viper from Kadrun's neck and strip a heavy purse of southern silver and gold from his belt.\n\n[SUGGEST:Execute the kneeling reaver|Leave the reaver tied to the wagon|Take the South Road to Ashenveil]"
+  },
+  {
+   "turn": 6,
+   "raw": "[TIME_CHECK:evening]\n[ITEM_DEF:Iron Token (Valerius's Mark)|category=quest|effect=Pass token into Valerius's clandestine fighting pits in Ashenveil|uses=permanent|value=10 gp]\n[LOCATION_STATE:Burning wreckage of merchant wagons and the bloodied corpse of Kadrun Zethran litter the crossing]\n[LOCATION:Ashenveil]\n[LOCATION_DESC:A brooding, walled city of black stone and soot-choked chimneys beneath a canopy of greasy smoke. The High Gate to the north opens into the bustling, squalid Low District, while the sunken amphitheater of the fighting pits looms over the eastern slums.]\n[LOCATION_SIZE:large|45]\n[TIME_ADVANCE:2h]\n[WEATHER:heavy soot and cold fog]\n[SOUNDSCAPE:Ashenveil|enclosure=open;setting=settlement;biome=arid;quiet=normal;allows=crowd,voices,fire,machinery;forbid=birds,water]\n[QUEST:The Gilded Cage|active]\n[QUEST_STEP:The Gilded Cage|Infiltrate the clandestine fighting arena and discover the source of the fighters' unnatural strength]\n\nLeaving the burning timber and the dead slaver behind, you march south through the gathering dark along the rutted highway. Two hours under a choking sky bring you before the towering ironbound ramparts of Ashenveil, where black chimneys belch greasy soot into the cold night air. You slip past the weary gate watch unnoticed, stepping into the foul alleys of the lower quarters where torches flicker against damp stone and the distant roar of a blood-hungry arena crowd rumbles through the earth.\n\n[SUGGEST:Seek a tavern to hear arena rumors|Head directly toward the roaring fighting pits|Examine the iron token under torchlight]"
+  },
+  {
+   "turn": 7,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:30m]\n[WARES:Dagger|2 gp|Sold by Torvan Urnvale at the alley bazaar]\n[WARES:Leather Armor|10 gp|Sold by Torvan Urnvale at the alley bazaar]\n[WANTED:Iron Token (Valerius's Mark)|20 gp|Offered by discreet arena scouts looking for proof of faction entry]\n[SUBLOCATION:The Iron Cauldron]\n[SCENE_REF:barkeeper|Torvan Urnvale]\n[NPC:Torvan Urnvale|wary, pouring ale|acquaintance]\n[NPC_PRONOUN:Torvan Urnvale|he/him]\n[SCENE_REF:patron|Sylvie Pallwick]\n[NPC:Sylvie Pallwick|nervous, nursing drink|acquaintance]\n[NPC_PRONOUN:Sylvie Pallwick|she/her]\n[SCENE_CAST:Korrag, Torvan Urnvale, Sylvie Pallwick]\n[SOUNDSCAPE:The Iron Cauldron|enclosure=indoor;setting=settlement;quiet=normal;allows=voices,crowd,fire;forbid=wind,birds]\n\nYou shoulder through the heavy timber door of the Iron Cauldron, where sour ale and charred fat scent the thick air. Behind the scarred counter, a one-eyed barkeep named Torvan Urnvale wipes a chipped clay mug, eyeing your blood-speckled mail with practiced indifference. In the corner near the hearth, a scarred woman, Sylvie Pallwick, leans over her cup, speaking in hushed, frightened tones of men in the pits surviving fatal blade-thrusts as if their veins ran with liquid fire rather than mortal blood.\n\n[SAY:Torvan Urnvale|low and gravelly]\"Looking for a draught, stranger, or looking to wager your skin in the sunken circle?\" Torvan asks, nodding toward the lower alleys.\n\n[SUGGEST:Ask Torvan how to enter the pits|Question Sylvie about the unnaturally strong fighters|Order ale and listen to room chatter]"
+  },
+  {
+   "turn": 8,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[WHISPER:Word from the northern crossing says an entire slaver gang was butchered by an eight-foot hill giant wielding a tree trunk.]\n\nTorvan sets his chipped mug down with a dull clatter, leaning over the scarred wood of the counter.\n\n[SAY:Torvan Urnvale|whispering, low and gravelly]\"They say a mountain monster smashed Kadrun's whole slaver outfit out on the road an hour ago, but the pits don't care about northern blood,\" Torvan murmurs, squinting his single milky eye at you. [SAY:Torvan Urnvale]\"The eastern grate down in the Low Quarter opens for two things only, fighter: a purse of thirty gold pieces, or one of Valerius's iron viper tokens.\"\n\nAcross the hearth, Sylvie Pallwick stiffens at the slaver's name, her knuckles whitening around her clay cup.\n\n[SUGGEST:Show Torvan the Iron Token|Pay 30 gold to buy entry|Question Sylvie about what Valerius does below]"
+  },
+  {
+   "turn": 9,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:5m]\n[LOCATION_DESC:A cramped taproom with low soot-stained rafters, four round timber tables, and a heavy ironbound door to the street. A single curtained doorway behind the counter leads down to the cellar.]\n[LOCATION_HOURS:12-4|Tavern open through the night]\n[GOLD:-2]\n[ITEM_GAINED:Dagger]\n\nYou toss two gold pieces onto the scarred wood, the coin ringing sharp against the din of the room. Torvan sweeps the metal away with a grimy hand and pulls a broad, blackened iron dagger from beneath the counter, sliding it across the boards to your grip. \n\n[SAY:Torvan Urnvale|low and gravelly]\"Good steel for a slit throat in the dark,\" the barkeep mutters, racking the coins beneath the shelf. \n\nYou test the heft of the blade before thrusting it into your belt, ready for close slaughter.\n\n[SUGGEST:Show Torvan the Iron Token|Question Sylvie about the pit fighters|Leave the tavern for the eastern grate]"
+  },
+  {
+   "turn": 10,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[ITEM_DEF:Dagger|category=weapon|effect=A sharp iron thrusting blade dealing 1d4 piercing damage|uses=permanent|value=2 gp]\n[SOUNDSCAPE:The Iron Cauldron|enclosure=indoor;setting=settlement;quiet=normal;allows=voices,crowd,fire;forbid=wind,birds]\n\nYou unhook the heavy viper medallion from your belt and slam it flat against the timber counter. The one-eyed barkeep flinches, his good eye widening as he traces the crude strike of the serpent brand.\n\n[SAY:Torvan Urnvale|whispering, terrified]\"Keep that out of sight, fool,\" Torvan hisses, darting a nervous glance toward the tavern door. [SAY:Torvan Urnvale]\"If you hold Valerius's iron, you don't wait in the crowd. Take the alley behind the smithy to the drowned drain. Knock three times on the iron hatch, show them the mark, and the kennel masters will let you into the under-pits where they feed the beasts before the blood sport.\"\n\nNear the hearth, Sylvie shudders, pulling her rough wool cloak tight around her shoulders.\n\n[SUGGEST:Leave for the alley behind the smithy|Demand Torvan explain what the fighters are fed|Question Sylvie before heading into the pits]"
+  }
+ ],
+ "run": {
+  "campId": "camp_1790829718981_5756",
+  "campName": "modelTestCampaign_gemini37flash_v11078",
+  "startedAt": 1790829746443,
+  "ver": "v1.1078",
+  "route": "server",
+  "provider": "gemini",
+  "model": "gemini-3.7-flash",
+  "note": "recorded after __ptStart's confirmation read char._campName after startGame deleted it (harness bug, fixed in the repo)"
+ }
+}
