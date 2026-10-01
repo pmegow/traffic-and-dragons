@@ -26394,6 +26394,32 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     }finally{addMsg=_am;}
     return true;
   });
+  t("#495 the summary line says a repeated label once with its count: 24 separate bolt gains read \"+Crossbow bolt (x24)\"; the pack still stacks to x24; R.muts and the provenance ring keep every label",function(){
+    /* Owner 2026-09-30, the Village t241: "we need to use crossbow bolt (x24) here rather than listing them all out". The GM
+       wrote 24 separate [ITEM_GAINED:Crossbow bolt] tags, so the line printed "+CROSSBOW BOLT" 24 times. */
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    var c=worldState.character;c.gold=10;c.inventory=["Longsword"];
+    var text="He slides the bundles over. [GOLD:-2]",i;for(i=0;i<24;i++)text+="[ITEM_GAINED:Crossbow bolt]";
+    var _am=addMsg,cap=[],r;addMsg=function(ty,h){if(ty==="system")cap.push(String(h));return _am(ty,h);};
+    try{r=applyMuts(text);}finally{addMsg=_am;}
+    if(c.inventory.join("|")!=="Longsword|Crossbow bolt x24")return "the pack must stack the 24 gains: "+JSON.stringify(c.inventory);
+    if(r.muts.filter(function(m){return m==="+Crossbow bolt";}).length!==24)return "R.muts must keep every label (the provenance ring reads it): "+r.muts.length;
+    var line=cap[cap.length-1]||"";
+    if(line.indexOf("+Crossbow bolt (x24)")<0)return "the line must say the gain once with its count: "+line.slice(0,160);
+    if(line.split("+Crossbow bolt").length!==2)return "the label must appear once: "+line.slice(0,160);
+    if(line.indexOf("-2 gp | +Crossbow bolt (x24)")!==0)return "order is kept, the count sits at the first one's place: "+line.slice(0,160);
+    /* the pure collapser */
+    if(typeof mutsCollapseRepeats!=="function")return "mutsCollapseRepeats missing";
+    var src=["+Arrow","-2 gp","+Arrow","Time +10m","+Arrow","⚠ Stash refused: no chest here","⚠ Stash refused: no chest here"],out=mutsCollapseRepeats(src);
+    if(out.join(" | ")!=="+Arrow (x3) | -2 gp | Time +10m | ⚠ Stash refused: no chest here (x2)")return "collapse: "+out.join(" | ");
+    if(src.length!==7)return "the input list must not be changed";
+    if(mutsCollapseRepeats(["Gold +5","Here: Lantern"]).join(" | ")!=="Gold +5 | Here: Lantern")return "a line with no repeat must be untouched";
+    if(mutsCollapseRepeats([]).length!==0)return "an empty list stays empty";
+    if(!mutLineWarns(out[3]))return "a collapsed refusal must still read as a warning (its glyph leads)";
+    if(mutsCollapseRepeats(["+Arrow x12","+Arrow x12"]).join("")!=="+Arrow x12 (x2)")return "a label that carries its own quantity keeps it, with the repeat count after";
+    return true;
+  });
   t("#386/#370 the companion impulse ask (owner 2026-09-24): fires once per COMPANION_INITIATIVE_EVERY turns when a flawed companion is at the player's side, names each flaw and both tags, yields in combat, to a split companion, to a recent unbidden act and inside the window; registered with its latch",function(){
     makeWorld();worldState.turn=100;worldState.combat=null;
     if(typeof buildCompanionImpulseNote!=="function")return "buildCompanionImpulseNote missing";

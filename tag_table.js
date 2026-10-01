@@ -1673,8 +1673,21 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
    in api.js after the W2 pass) — they used to be two byte-identical joins. It appends the HERE readout (hereItemsLine,
    helpers.js — what lies at the current node, every kind) to the DISPLAYED line only: R.muts stays what the tags did,
    so the provenance ring and every caller see the mutations alone. UI only — never the transcript, never the prompt. */
+/* #495 (owner 2026-09-30, the Village t241: "we need to use crossbow bolt (x24) here rather than listing them all out"): the
+   GM granted two dozen bolts as 24 separate [ITEM_GAINED:] tags, and the line printed "+CROSSBOW BOLT" 24 times. The DISPLAY
+   says a repeated label once, with its count, where the first one stood. Pure: the input list is untouched, so R.muts and the
+   provenance ring keep every label. A label that carries its own quantity keeps it ("+Arrow x12 (x2)"). */
+function mutsCollapseRepeats(lines){
+  var out=[],at={},i;
+  for(i=0;i<(lines||[]).length;i++){
+    var s=String(lines[i]);
+    if(Object.prototype.hasOwnProperty.call(at,s)){out[at[s]].n++;continue;}
+    at[s]=out.length;out.push({s:s,n:1});
+  }
+  return out.map(function(o){return o.n>1?o.s+" (x"+o.n+")":o.s;});
+}
 function mutsSummaryEmit(R){
-  var lines=(R&&R.muts)?R.muts.slice():[],here=(typeof hereItemsLine==="function")?hereItemsLine():"";
+  var lines=mutsCollapseRepeats((R&&R.muts)?R.muts:[]),here=(typeof hereItemsLine==="function")?hereItemsLine():"";
   if(here)lines.push(here);
   if(lines.length&&typeof addMsg==="function")addMsg("system",(typeof summaryLineHTML==="function")?summaryLineHTML(lines):escHtml(lines.join(" | ")));/* #452: Present names link to their sheets (helpers.js) */
 }

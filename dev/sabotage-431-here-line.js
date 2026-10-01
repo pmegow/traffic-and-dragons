@@ -26,7 +26,7 @@ prove("helpers.js", [
 ]);
 prove("tag_table.js", [
   { label: "the here line is written into R.muts (the provenance ring and every caller would see it)",
-    find: 'var lines=(R&&R.muts)?R.muts.slice():[],here=', replace: 'var lines=(R&&R.muts)?R.muts:[],here=',
+    find: '  if(here)lines.push(here);', replace: '  if(here){lines.push(here);if(R&&R.muts)R.muts.push(here);}',/* #495 re-anchor: the copy is now made by mutsCollapseRepeats, so the same fault (the here line reaching R.muts) is written at the push */
     mustFail: "mutsSummaryEmit appends" },
   { label: "the summary drops the here line",
     find: '  if(here)lines.push(here);\n', replace: '',
