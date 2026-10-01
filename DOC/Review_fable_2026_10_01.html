@@ -91,7 +91,31 @@ ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
 <p><b>Watches</b> (not rows): the #460 "mood kept to what they are doing" line fired on 5 of 40 Village turns, which is working but noisy. One third-person lapse at The Necrotic Dungeon t27, the B28 class; watch for a second.</p>
 
 <h2 id="rung3">4 Rung 3 — prompt diff</h2>
-<p class="small" data-state="not-run">not run</p>
+<p><code>dev/capture-prompt.js</code> on three of your saves: master (v1.1101, today's fixes included) against the anchor engine (v1.981, a worktree at <code>f53dc5d</code>). The captures are deterministic: two captures of the Village are byte-identical.</p>
+<table><tr><th>Save</th><th>Stable then → now</th><th>Volatile then → now</th></tr>
+<tr><td>The Necrotic Dungeon t35</td><td>55,678 → 57,183 (+1,505)</td><td>63,643 → 63,126 (−517)</td></tr>
+<tr><td>The Princess t89</td><td>58,159 → 59,841 (+1,682)</td><td>70,401 → 70,044 (−357)</td></tr>
+<tr><td>The Village t254</td><td>57,064 → 58,304 (+1,240)</td><td>67,599 → 62,958 (−4,641)</td></tr>
+</table>
+<h3>Stable half — every hunk attributed</h3>
+<table><tr><th>Hunk</th><th>Chars</th><th>Row</th></tr>
+<tr><td>The <code>[COMPANION_GROWTH:]</code> doc gains the motivation lifecycle (settled, a new purpose)</td><td>+570</td><td>#437 (5e9a116)</td></tr>
+<tr><td>The <code>[SAY:]</code> doc gains <code>[SAY:Name|mood]</code> and its rules</td><td>+808</td><td>#458 (3f6801e)</td></tr>
+<tr><td>The <code>[SCENE_CAST:]</code> doc: "where THIS reply ENDS, party members included" and "none means…"</td><td>+127</td><td>#481 B1/B2 (ea3c84e, 970a2bf)</td></tr>
+<tr><td>A companion's roster line: "motivation — none standing (settled in …)" (the Village cuts the reason)</td><td>+177 / +62</td><td>#437; the Village cut #469 (b6ee35e)</td></tr>
+<tr><td>The Village: "ACTIVE CRISES ARE QUESTS TOO" becomes "GOALS THE PLAYER TAKES ON ARE QUESTS"; a glued tag-doc line gets its newline</td><td>−328, +1</td><td>#481 C11 part 1 (f1da560)</td></tr>
+</table>
+<p>No unattributed hunk. The growth is deliberate tag documentation from shipped rows; each row shipped its doc text on purpose. The cached half is about 2.7% larger. That is cache cost, not drift. #524 (bare quotes) is the one hunk whose effect on play is in question: the <code>[SAY:|mood]</code> text is where the GM learned to drop attributions.</p>
+<h3>Volatile half — every hunk attributed</h3>
+<table><tr><th>Hunk</th><th>Row</th></tr>
+<tr><td>"Current dynamic" lines and a turn-169 outfit, carried from earlier campaigns, no longer render</td><td>#481 C5 (f1265cd)</td></tr>
+<tr><td>"First met" cut at a sentence; the old cut spilled the next narration paragraph into three NPC entries; "Location: The Village, The Village" becomes one name</td><td>#481 C11 part 2 (36f6139)</td></tr>
+<tr><td>The DEFINING MOMENTS block extension (an outsider knows a moment only as a passing handle)</td><td>#469 (71a6e3d)</td></tr>
+<tr><td>STYLE: "THE RECORD IS YOURS, NOT THEIRS" and "NO STOCK BLESSINGS OR RITUAL GREETINGS"</td><td>#459, #460 (172a202)</td></tr>
+<tr><td>The Village: 25 earlier-adventure moments held back behind a one-line notice (−4,282 chars every turn)</td><td>#469 ④ (71a6e3d)</td></tr>
+<tr><td>The Village: a sheeted resident's "toward you" line omitted — for Thessa and Peet too, though the #460 ruling covered PRESENT residents (lead 2 in #527 is visible in your real prompt)</td><td>#460 (172a202)</td></tr>
+<tr><td>The Village: the shop's "Keeper:" line; residents' whereabouts by the hour</td><td>#481 B4 (91e50ea), B6 (605b557)</td></tr>
+</table>
 
 <h2 id="rung4">5 Rung 4 — smalls</h2>
 <p class="small" data-state="not-run">not run</p>
