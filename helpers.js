@@ -1147,6 +1147,154 @@ function spellUnlocksCrossed(clsId,archId,fromLvl,toLvl){
   out.sort(function(a,b){return a.level-b.level||a.tier-b.tier;});
   return out;
 }
+// ── #487 / #489 / #490: THE ability-name layer ────────────────────────────────────────
+// An ability record is {nm,ds,gained} — no source field. Everything that needs to know WHAT an
+// entry is (the sheet's sections, the duplicate check at a grant, the heal on load, the hero-tag
+// guard) reads it through these pure functions, so the rule lives once.
+// abilityParts: the pre-C6 engine wrote level features as {nm:"Lv5",ds:"Uncanny Dodge -- halve…"}
+// (the level label in the name, the real name in the description). Unwrapped here, so a reader
+// never has to know the old form existed.
+function abilityParts(ab){
+  var nm=String((ab&&ab.nm)||""),ds=String((ab&&ab.ds)||"");
+  if(/^Lv\d+$/.test(nm)){var m=ds.match(/^(.+?)\s+--\s+([\s\S]*)$/);if(m)return {nm:m[1].trim(),ds:m[2].trim(),old:true};}
+  return {nm:nm,ds:ds,old:false};
+}
+// The class bible's row for an ability name on THIS sheet: a class level row first (the later,
+// fuller wording — Rogue's level-7 Evasion over the starting one), then a starting ability, then
+// the committed archetype's rows and the archetype itself. null = the bible has no such ability
+// for this class/archetype (a GM-granted or model-written one).
+function abilityBibleRow(c,nm){
+  var d=classDef(c&&c.cls),k=capBaseName(nm),lv,i,j,rows;
+  if(!d||!k)return null;
+  if(d.levels){for(lv=1;lv<=20;lv++){rows=(d.levels[lv]&&d.levels[lv].features)||[];for(i=0;i<rows.length;i++){if(capBaseName(rows[i].nm)===k)return {nm:rows[i].nm,ds:rows[i].ds,group:"class"};}}}
+  rows=d.abilities||[];for(i=0;i<rows.length;i++){if(capBaseName(rows[i].nm)===k)return {nm:rows[i].nm,ds:rows[i].ds,group:"class"};}
+  var archs=d.archetypes||[];
+  for(j=0;j<archs.length;j++){
+    if(archs[j].id!==c.archetype)continue;
+    if(capBaseName(archs[j].nm)===k)return {nm:archs[j].nm,ds:archs[j].desc,group:"archetype"};
+    for(lv=1;lv<=20;lv++){rows=(archs[j].levels&&archs[j].levels[lv]&&archs[j].levels[lv].features)||[];for(i=0;i<rows.length;i++){if(capBaseName(rows[i].nm)===k)return {nm:rows[i].nm,ds:rows[i].ds,group:"archetype"};}}
+  }
+  return null;
+}
+function abilityHas(c,nm){
+  var k=capBaseName(nm),L=(c&&c.abilities)||[],i;
+  for(i=0;i<L.length;i++){if(capBaseName(abilityParts(L[i]).nm)===k)return true;}
+  return false;
+}
+// THE level-row grant (#487): a row the sheet already holds under the same name is not pushed a
+// second time — the held entry takes the row's wording instead (Rogue's level-7 Evasion replaces
+// the starting one; a model-written "Uncanny Dodge" becomes the bible's). Returns whether the
+// sheet changed, so the caller announces only what is new.
+function abilityGrant(c,row,turn){
+  if(!c.abilities)c.abilities=[];
+  var k=capBaseName(row.nm),i;
+  for(i=0;i<c.abilities.length;i++){
+    if(capBaseName(abilityParts(c.abilities[i]).nm)!==k)continue;
+    if(c.abilities[i].nm===row.nm&&c.abilities[i].ds===row.ds)return false;
+    c.abilities[i].nm=row.nm;c.abilities[i].ds=row.ds;return true;
+  }
+  c.abilities.push({nm:row.nm,ds:row.ds,gained:turn||0});return true;
+}
+// #489: which section of the sheet an ability belongs under. Derived at render — no schema field.
+function abilityGroup(c,ab){
+  var p=abilityParts(ab);
+  if(/^\s*\[racial\]/i.test(p.nm))return "racial";
+  var row=abilityBibleRow(c,p.nm);
+  return row?row.group:"story";
+}
+// The sheet's sections in reading order, empty ones left out: [{key,label,items:[index…]}].
+// items are indexes into c.abilities, in stored order within a section.
+function abilityGroups(c){
+  var L=(c&&c.abilities)||[],by={racial:[],"class":[],archetype:[],story:[]},i,d=classDef(c&&c.cls),archNm="",j;
+  for(i=0;i<L.length;i++)by[abilityGroup(c,L[i])].push(i);
+  if(d&&c.archetype){for(j=0;j<(d.archetypes||[]).length;j++){if(d.archetypes[j].id===c.archetype)archNm=d.archetypes[j].nm;}}
+  var order=[["racial","Racial"],["class","Class"+(d?" — "+d.nm:"")],["archetype","Archetype"+(archNm?" — "+archNm:"")],["story","Story"]],out=[];
+  for(i=0;i<order.length;i++){if(by[order[i][0]].length)out.push({key:order[i][0],label:order[i][1],items:by[order[i][0]]});}
+  return out;
+}
+// #487 (owner ruling 2026-09-30, option a): a companion's archetype is picked by the ENGINE — the
+// class's archetype that best matches what the sheet already says about them. A companion sheet
+// carries a model-written archetype NAME ("Infiltrator") and never a bible id, so every archetype
+// level granted nothing. Deterministic: the sheet's own words (the archetype name counts triple,
+// then abilities, spells, trait, flaw, motivation) scored against each archetype's bible text by
+// shared word stems; a spell on the archetype's own bench counts double. Ties and a sheet that
+// matches nothing fall to bible order — so the answer never depends on the turn or the device.
+// Returns the archetype id, or null for a class with no archetypes (#192 customs).
+var ARCH_MATCH_STOP={the:1,and:1,with:1,that:1,this:1,from:1,your:1,their:1,they:1,them:1,when:1,once:1,have:1,into:1,than:1,then:1,will:1,can:1,cannot:1,each:1,every:1,until:1,while:1,which:1,what:1,where:1,whose:1,been:1,being:1,does:1,make:1,makes:1,made:1,take:1,takes:1,within:1,without:1,after:1,before:1,against:1,other:1,also:1,only:1,more:1,most:1,must:1,next:1,first:1,time:1,turn:1,rest:1,level:1,check:1,save:1,bonus:1,action:1,reaction:1,damage:1,target:1,creature:1,ability:1,spell:1,spells:1,feet:1,round:1,rounds:1,minute:1,minutes:1,hour:1,hours:1,long:1,short:1,about:1,knows:1,know:1};
+function archMatchStems(text){
+  var w=String(text||"").toLowerCase().split(/[^a-z]+/),out={},i;
+  for(i=0;i<w.length;i++){if(w[i].length<4||ARCH_MATCH_STOP[w[i]])continue;out[w[i].slice(0,5)]=1;}
+  return out;
+}
+function archetypeBestMatch(c){
+  var d=classDef(c&&c.cls),archs=(d&&d.archetypes)||[];
+  if(!archs.length)return null;
+  var i,j,lv,k,nm=String(c.archetypeNm||"").toLowerCase().trim();
+  for(i=0;i<archs.length;i++){if(nm&&(nm===String(archs[i].nm).toLowerCase()||nm===String(archs[i].id).toLowerCase()))return archs[i].id;}
+  var nameStems=archMatchStems(c.archetypeNm),bodyTxt=[c.trait,c.flaw,c.motivation],spellKeys={},ownSpells=0;
+  /* Only what the sheet says in its OWN words is evidence: an ability the class bible granted says
+     the same thing about every member of the class, and it arrives level by level — counting it
+     made one companion's answer differ between two campaigns a level apart. */
+  for(i=0;i<(c.abilities||[]).length;i++){var p=abilityParts(c.abilities[i]);if(p.old||abilityBibleRow(c,p.nm))continue;bodyTxt.push(p.nm,p.ds);}
+  for(i=0;i<(c.spells||[]).length;i++){spellKeys[capBaseName(c.spells[i].nm)]=1;if(!c.spells[i].racial)ownSpells++;}
+  var bodyStems=archMatchStems(bodyTxt.join(" ")),best=archs[0].id,bestScore=0,casterClass=!!(d.spellTiers);
+  for(i=0;i<archs.length;i++){
+    var a=archs[i],txt=[a.nm,a.desc],bench=[],score=0;
+    for(lv=1;lv<=20;lv++){var rows=(a.levels&&a.levels[lv]&&a.levels[lv].features)||[];for(j=0;j<rows.length;j++)txt.push(rows[j].nm,rows[j].ds);}
+    for(k in (a.spells||{}))bench=bench.concat(a.spells[k]||[]);
+    var legacy=(typeof ARCH_SPELLS!=="undefined"&&ARCH_SPELLS[a.id])||{};for(k in legacy)bench=bench.concat(legacy[k]||[]);
+    var aStems=archMatchStems(txt.join(" ")),aNameStems=archMatchStems(a.nm+" "+a.desc);
+    for(k in nameStems){if(aNameStems[k])score+=20;else if(aStems[k])score+=6;}
+    for(k in bodyStems){if(aStems[k])score+=1;}
+    var seen={};for(j=0;j<bench.length;j++){var bk=capBaseName(bench[j]);if(spellKeys[bk]&&!seen[bk]){seen[bk]=1;score+=2;}}
+    /* A spell-less class's member who casts anyway is its casting archetype (the Rogue with a
+       spell list is the Arcane Trickster, the Warrior with one the Eldritch Knight). */
+    if(!casterClass&&ownSpells&&a.spellTiers)score+=20;
+    if(score>bestScore){bestScore=score;best=a.id;}
+  }
+  return best;
+}
+// #487: heal ONE sheet, in place, and say what changed. Idempotent — a healed sheet returns an
+// empty report. opts.pickArchetype (companions): a level-3+ sheet with no archetype id gets one
+// from archetypeBestMatch (the hero's missing archetype stays the forced modal's job, #284).
+//   ① old "LvN" entries become the ability they always were (bible wording when the bible has it)
+//   ② an ability the class bible knows, held twice, is held once — first position, bible wording.
+//      An ability the bible does NOT know is never touched, however it is worded.
+//   ③ every archetype row from 3 to the current level that the sheet lacks is granted (owner
+//      ruling 2026-09-30: the hero too — this retires the C6 "no retroactive grants" rule for
+//      archetype rows, which had left Ammut with his 14 and 18 rows and none of 3, 6 or 10).
+// Returns {archetype:null|{id,nm}, renamed:[names], removed:[names], granted:[names]}.
+function abilitySheetHeal(c,opts){
+  var rep={archetype:null,renamed:[],removed:[],granted:[]},i,j,lv;
+  if(!c)return rep;
+  var d=classDef(c.cls),turn=(opts&&opts.turn)||0;
+  if(!c.abilities)c.abilities=[];
+  if(opts&&opts.pickArchetype&&!c.archetype&&(c.level||1)>=3&&d&&(d.archetypes||[]).length){
+    var id=archetypeBestMatch(c);
+    for(i=0;i<d.archetypes.length;i++){if(d.archetypes[i].id===id){c.archetype=id;if(!c.archetypeNm)c.archetypeNm=d.archetypes[i].nm;rep.archetype={id:id,nm:d.archetypes[i].nm};}}
+  }
+  for(i=0;i<c.abilities.length;i++){
+    var p=abilityParts(c.abilities[i]);
+    if(!p.old)continue;
+    var row=abilityBibleRow(c,p.nm);
+    c.abilities[i].nm=row?row.nm:p.nm;c.abilities[i].ds=row?row.ds:p.ds;rep.renamed.push(c.abilities[i].nm);
+  }
+  var first={},keep=[];
+  for(i=0;i<c.abilities.length;i++){
+    var k=capBaseName(c.abilities[i].nm),r2=abilityBibleRow(c,c.abilities[i].nm);
+    if(r2&&first[k]){first[k].nm=r2.nm;first[k].ds=r2.ds;rep.removed.push(r2.nm);continue;}
+    if(r2)first[k]=c.abilities[i];
+    keep.push(c.abilities[i]);
+  }
+  if(keep.length!==c.abilities.length)c.abilities=keep;
+  if(c.archetype){
+    for(lv=3;lv<=(c.level||1);lv++){
+      var rows=archFeaturesAt(c.cls,c.archetype,lv);
+      for(j=0;j<rows.length;j++){if(abilityHas(c,rows[j].nm))continue;c.abilities.push({nm:rows[j].nm,ds:rows[j].ds,gained:turn});rep.granted.push(rows[j].nm);}
+    }
+  }
+  return rep;
+}
 function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((getFin().CON-10)/2);}
 /* ── mana pool (#110) ──────────────────────────────────────────────────────────────────
    The spend-by-tier casting economy, design ruled 2026-07-31 (full spec in the TODO row).

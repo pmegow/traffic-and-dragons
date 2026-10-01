@@ -1157,6 +1157,7 @@ function levelUpArchetypeDue(){
 function relevelOnLoad(){
   if(!worldState||!worldState.character)return;
   var c=worldState.character;
+  healAbilitySheets();/* #487: the sheets are whole before any level lands on them */
   if(typeof c.xp==="number"&&typeof getLvl==="function"&&getLvl(c.xp)>(c.level||1))checkLevelUp();
   var i,ns=worldState.npcs||[];
   for(i=0;i<ns.length;i++){var n=ns[i];if(!n||!n.partyMember||!n.charSheet)continue;if(typeof npcIsDead==="function"&&npcIsDead(n))continue;checkCompanionLevelUp(n.charSheet);}
@@ -1202,10 +1203,11 @@ function checkLevelUp(opts){
     c.maxHp+=hpGain;c.hp+=hpGain;totalHp+=hpGain;
     // C6 ②: level rows come from the class bible — class rows (2/5/7/9/11/13/15/17) plus, once
     // an archetype is committed, its rows (6/10/14/18 + capstone 20). Features are NAMED
-    // ({nm,ds}), not the legacy "Lv5" string blobs. No retroactive grants: only the level being
-    // crossed RIGHT NOW is read (the C6 invariant — Ammut sees the new world at his next level).
+    // ({nm,ds}), not the legacy "Lv5" string blobs. Only the level being crossed RIGHT NOW is
+    // read here; archetype rows a sheet missed are healAbilitySheets' job (#487 retired the C6
+    // "no retroactive grants" rule for them). abilityGrant never pushes a name the sheet holds.
     var _lvFeats=classFeaturesAt(c.cls,c.level).concat(archFeaturesAt(c.cls,c.archetype,c.level)),_lf;
-    for(_lf=0;_lf<_lvFeats.length;_lf++){c.abilities.push({nm:_lvFeats[_lf].nm,ds:_lvFeats[_lf].ds,gained:worldState.turn});newFeatures.push(_lvFeats[_lf].nm+" — "+_lvFeats[_lf].ds);newFeatNames.push(_lvFeats[_lf].nm);}
+    for(_lf=0;_lf<_lvFeats.length;_lf++){if(!abilityGrant(c,_lvFeats[_lf],worldState.turn))continue;newFeatures.push(_lvFeats[_lf].nm+" — "+_lvFeats[_lf].ds);newFeatNames.push(_lvFeats[_lf].nm);}
     if(STAT_BUMP_LEVELS.indexOf(c.level)>=0)bumpsOwed++;
   }
   // #72 C2: queue the picks for every tier unlocked by this level change. A fill-phase blank
@@ -1292,6 +1294,59 @@ function spuConfirm(){
   initSpells();syncUI();saveAll();
   maybeShowSpellUnlock();/* drain the next queued unlock (a multi-level jump can owe several) */
 }
+// #72 C2 companion twin, shared since #487: each unlock takes the first N bench spells the sheet
+// does not already know (base-name dedupe). Returns the names learned. An empty fill-phase bench
+// is skipped. Used by the level-up and by the archetype catch-up, so the two can never disagree.
+function companionAutoPickSpells(cs,unlocks){
+  var learned=[],u,p,h;
+  for(u=0;u<unlocks.length;u++){
+    if(!unlocks[u].pool.length)continue;
+    var have={};if(!cs.spells)cs.spells=[];
+    for(h=0;h<cs.spells.length;h++)have[capBaseName(cs.spells[h].nm)]=1;
+    var need=SPELL_UNLOCK_PICKS[String(unlocks[u].tier)]||1;
+    for(p=0;p<unlocks[u].pool.length&&need>0;p++){
+      var nm=unlocks[u].pool[p];
+      if(have[capBaseName(nm)])continue;
+      cs.spells.push({nm:nm,lvl:unlocks[u].tier,used:false});have[capBaseName(nm)]=1;learned.push(nm);need--;
+    }
+  }
+  return learned;
+}
+// #487 (owner 2026-09-30, The Princess Is Not In Danger: three companions reached 18 and gained
+// nothing): every class puts its 3/6/10/14/18/20 rows on the ARCHETYPE, and a companion sheet had
+// a model-written archetype name but never a bible id — so those levels were silently empty for
+// every companion, at every archetype level. This is the heal, for the hero and every sheet in
+// the campaign: the engine picks a companion's archetype (owner ruling: option a), old "LvN"
+// entries are renamed, doubles are removed, and the archetype rows a sheet missed are granted.
+// The pure half is abilitySheetHeal (helpers.js). A companion whose archetype is picked here also
+// gets the archetype's own spell bench and the tiers it has crossed, exactly as a level-up would
+// have given them. Idempotent; runs from relevelOnLoad (boot + before every turn), so a companion
+// who joins tomorrow is healed before their first level. Says what it did — never silent.
+function healAbilitySheets(){
+  if(!worldState||!worldState.character||typeof abilitySheetHeal!=="function")return 0;
+  var turn=worldState.turn||0,changed=0,i,ns=worldState.npcs||[];
+  function one(cs,isCompanion){
+    if(!cs)return;
+    var mxB=manaMax(cs),rep=abilitySheetHeal(cs,{turn:turn,pickArchetype:isCompanion}),learned=[],who=cs.name||"Companion";
+    if(rep.archetype){
+      learned=archetypeSpellGrant(cs,rep.archetype.id);
+      var unl=spellUnlocksCrossed(cs.cls,rep.archetype.id,2,cs.level||1).filter(function(u){return u.source==="arch";});
+      learned=learned.concat(companionAutoPickSpells(cs,unl));
+      manaGrowWithMax(cs,mxB);
+    }
+    if(!rep.archetype&&!rep.renamed.length&&!rep.removed.length&&!rep.granted.length)return;
+    changed++;
+    if(rep.archetype)addMsg("system",who+" — archetype: "+rep.archetype.nm+".");
+    if(rep.granted.length){addMsg("system",who+" gains: "+rep.granted.join(", "));showToast("★ "+who+" gained "+(rep.granted.length>1?"abilities owed from earlier levels: ":"an ability owed from an earlier level: ")+rep.granted.join(", "));}
+    if(learned.length)addMsg("system",who+" learns: "+learned.join(", "));
+    if(rep.renamed.length||rep.removed.length)addMsg("system",who+"'s ability list tidied — "+rep.renamed.length+" old-format name"+(rep.renamed.length===1?"":"s")+" restored"+(rep.removed.length?", duplicate"+(rep.removed.length===1?"":"s")+" removed: "+rep.removed.join(", "):"")+".");
+    if(typeof console!=="undefined")console.info("[#487 heal] "+who+" "+JSON.stringify(rep)+(learned.length?" spells "+JSON.stringify(learned):""));
+  }
+  one(worldState.character,false);
+  for(i=0;i<ns.length;i++){if(ns[i]&&ns[i].charSheet)one(ns[i].charSheet,true);}
+  if(changed){if(typeof updateAbPanel==="function"&&typeof document!=="undefined")updateAbPanel(true);if(typeof saveAll==="function")saveAll();}
+  return changed;
+}
 function checkCompanionLevelUp(cs,opts){
   // Companion auto-level: HP + class features only. No archetype/stat-bump modals —
   // companions level silently; the GM narrates growth if it matters.
@@ -1307,24 +1362,13 @@ function checkCompanionLevelUp(cs,opts){
     var hpGain=cls?hpGainPerLevel(cls.hd,conMod):3;/* #11②: shared formula (unknown-class fallback 3 unchanged) */
     cs.maxHp=(cs.maxHp||0)+hpGain;cs.hp=(cs.hp||0)+hpGain;
     var _cFeats=classFeaturesAt(cs.cls,cs.level).concat(archFeaturesAt(cs.cls,cs.archetype,cs.level)),_cf;/* C6 ②: bible rows, companion twin of checkLevelUp */
-    for(_cf=0;_cf<_cFeats.length;_cf++){if(!cs.abilities)cs.abilities=[];cs.abilities.push({nm:_cFeats[_cf].nm,ds:_cFeats[_cf].ds,gained:worldState?worldState.turn:0});_cFeatNames.push(_cFeats[_cf].nm);}
+    for(_cf=0;_cf<_cFeats.length;_cf++){if(abilityGrant(cs,_cFeats[_cf],worldState?worldState.turn:0))_cFeatNames.push(_cFeats[_cf].nm);}/* #487: never a second copy of a held name */
   }
   // #72 C2 companion twin: silent AUTO-PICK — companions level without modals, so each crossed
   // unlock takes the first N bench spells not already known (base-name dedupe). The bench is
   // canon (bible-authored), so an auto-pick can never introduce off-canon content; the mana
   // pool grows with the picks automatically (#110 derives it from the known bench).
-  var _cUnl=spellUnlocksCrossed(cs.cls,cs.archetype,oldLvl,newLvl),_cu,_cp,_learned=[],_cMxB=manaMax(cs);/* #110b: the pool grows with the max */
-  for(_cu=0;_cu<_cUnl.length;_cu++){
-    if(!_cUnl[_cu].pool.length)continue;
-    var _cHave={},_ch;if(!cs.spells)cs.spells=[];
-    for(_ch=0;_ch<cs.spells.length;_ch++)_cHave[capBaseName(cs.spells[_ch].nm)]=1;
-    var _cNeed=SPELL_UNLOCK_PICKS[String(_cUnl[_cu].tier)]||1;
-    for(_cp=0;_cp<_cUnl[_cu].pool.length&&_cNeed>0;_cp++){
-      var _cNm=_cUnl[_cu].pool[_cp];
-      if(_cHave[capBaseName(_cNm)])continue;
-      cs.spells.push({nm:_cNm,lvl:_cUnl[_cu].tier,used:false});_cHave[capBaseName(_cNm)]=1;_learned.push(_cNm);_cNeed--;
-    }
-  }
+  var _cMxB=manaMax(cs),_learned=companionAutoPickSpells(cs,spellUnlocksCrossed(cs.cls,cs.archetype,oldLvl,newLvl));/* #110b: the pool grows with the max */
   manaGrowWithMax(cs,_cMxB);/* #110b: the auto-picked spells arrive with their own mana */
   if(_learned.length)addMsg("system",(cs.name||"Companion")+" learns: "+_learned.join(", "));
   if(_cFeatNames.length)addMsg("system",(cs.name||"Companion")+" gains: "+_cFeatNames.join(", "));/* owner 2026-08-24: gained features had NO visible line at all */

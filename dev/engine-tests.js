@@ -28484,4 +28484,103 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return Object.keys(audioRefusalToastAt).length===3?true:"three reasons, three keys: "+JSON.stringify(audioRefusalToastAt);
   });
 
+  // ── #487 (owner 2026-09-30, The Princess Is Not In Danger): three companions reached level 18 and gained nothing. Every
+  // class puts its 3/6/10/14/18/20 rows on the ARCHETYPE; a companion sheet had a model-written archetype NAME and never a
+  // bible id, so archFeaturesAt returned [] for every companion at every archetype level. The heal picks the archetype
+  // (owner ruling: the engine, by best match), grants the rows the sheet missed — the hero's too — renames the old "LvN"
+  // entries and removes doubles. Fixtures are the shapes of the owner's sheets, with invented wording.
+  section("#487 companions get an archetype, and every sheet gets the rows it missed");
+  function c487(over){
+    var cs={name:"Frizwick",gender:"F",cls:"Rogue",level:17,xp:CLASS_XP_LEVELS[16],maxHp:90,hp:90,stats:{CON:12,DEX:18},archetypeNm:"Infiltrator",
+      trait:"watchful",flaw:"trusts no one",motivation:"stay free",spells:[],
+      abilities:[{nm:"Sneak Attack",ds:"Deals an extra 2d6 damage with advantage."},{nm:"Uncanny Dodge",ds:"When an attacker she can see hits her, she halves it."},
+        {nm:"Layout Memory",ds:"After one pass through a building she keeps an accurate map of its entry points and guard rhythms."},
+        {nm:"Lv5",ds:"Uncanny Dodge -- halve an attack's damage as reaction.",gained:981},{nm:"Lv7",ds:"Evasion -- no damage on successful DEX saves, half on fail.",gained:844},
+        {nm:"Blindsense",ds:"know location of hidden creatures within 10ft.",gained:1648}]},k;
+    for(k in (over||{}))cs[k]=over[k];
+    worldState.npcs.push({name:cs.name,status:"steady",rel:"ally",partyMember:true,charSheet:cs});
+    return cs;
+  }
+  function names487(cs){return cs.abilities.map(function(a){return a.nm;});}
+  function count487(cs,nm){return names487(cs).filter(function(n){return n===nm;}).length;}
+  t("#487 the repro: a level-17 companion with an archetype NAME and no id reaches 18 and gains the archetype's 18 row",function(){
+    makeWorld();var cs=c487();
+    cs.xp=CLASS_XP_LEVELS[17];relevelOnLoad();/* the boot and pre-turn seam: heals, then marks the level (#349) */
+    checkCompanionLevelUp(cs,{land:true});
+    if(cs.level!==18)return "level "+cs.level;
+    if(cs.archetype!=="assassin")return "the engine picks the archetype the sheet describes (Infiltrator → Assassin's 'Infiltration'): "+cs.archetype;
+    if(cs.archetypeNm!=="Infiltrator")return "the sheet's own archetype name stays as display: "+cs.archetypeNm;
+    return count487(cs,"Angel of Death")===1?true:"the level-18 archetype row lands: "+names487(cs).join(", ");
+  });
+  t("#487 the rows a sheet missed are granted once: 3, 6, 10 and 14 arrive with the pick, and a second heal changes nothing",function(){
+    makeWorld();var cs=c487(),want=["The First Blow Is the Last","Master Poisoner","Sure Shot","A Natural Death"],i;
+    if(healAbilitySheets()!==1)return "one sheet healed";
+    for(i=0;i<want.length;i++){if(count487(cs,want[i])!==1)return want[i]+" ×"+count487(cs,want[i])+": "+names487(cs).join(", ");}
+    if(count487(cs,"Angel of Death")!==0)return "a row above the sheet's level is not granted early";
+    var snap=JSON.stringify(cs);
+    if(healAbilitySheets()!==0)return "a healed sheet heals to nothing";
+    return JSON.stringify(cs)===snap?true:"the second heal changed the sheet";
+  });
+  t("#487 old-format names are restored and a double is held once, bible-worded; an ability the bible does not know is never touched",function(){
+    makeWorld();var cs=c487({abilities:c487Dup()});
+    healAbilitySheets();
+    if(names487(cs).some(function(n){return /^Lv\d+$/.test(n);}))return "an old 'LvN' name survives: "+names487(cs).join(", ");
+    if(count487(cs,"Uncanny Dodge")!==1)return "Uncanny Dodge ×"+count487(cs,"Uncanny Dodge");
+    var ud=cs.abilities.filter(function(a){return a.nm==="Uncanny Dodge";})[0];
+    if(ud.ds!==classFeaturesAt("Rogue",5)[0].ds)return "the kept entry carries the bible's wording: "+ud.ds;
+    if(names487(cs).indexOf("Uncanny Dodge")!==0)return "the kept entry holds the first position: "+names487(cs).join(", ");
+    if(count487(cs,"Evasion")!==1)return "the old-format Evasion is one named entry";
+    if(count487(cs,"Layout Memory")!==2)return "a model-written ability held twice is NOT the engine's to merge: ×"+count487(cs,"Layout Memory");
+    return cs.abilities.filter(function(a){return a.nm==="Layout Memory";})[0].ds==="Her own words."?true:"a model-written description was rewritten";
+  });
+  function c487Dup(){return [{nm:"Uncanny Dodge",ds:"When an attacker she can see hits her, she halves it."},{nm:"Layout Memory",ds:"Her own words."},{nm:"Layout Memory",ds:"Said again."},
+    {nm:"Lv5",ds:"Uncanny Dodge -- halve an attack's damage as reaction.",gained:981},{nm:"Lv7",ds:"Evasion -- no damage on successful DEX saves, half on fail.",gained:844}];}
+  t("#487 the hero is caught up too: an Arcane Trickster holding only the 14 and 18 rows gains 3, 6 and 10 — and a hero with no archetype is left to the modal",function(){
+    makeWorld();var c=worldState.character;
+    c.cls="Rogue";c.level=19;c.xp=CLASS_XP_LEVELS[18];c.archetype="arcanetrickster";c.archetypeNm="Arcane Trickster";
+    c.abilities=[{nm:"Arcane Trickster",ds:"Illusion and enchantment spells."},{nm:"Never Caught",ds:archFeaturesAt("Rogue","arcanetrickster",14)[0].ds,gained:2415},{nm:"The Story Runs Ahead",ds:archFeaturesAt("Rogue","arcanetrickster",18)[0].ds,gained:50}];
+    healAbilitySheets();
+    var want=["The Old Switcheroo","It Was Their Idea","Seventy-Two Shapes","Never Caught","The Story Runs Ahead"],i;
+    for(i=0;i<want.length;i++){if(count487(c,want[i])!==1)return want[i]+" ×"+count487(c,want[i]);}
+    makeWorld();c=worldState.character;c.cls="Rogue";c.level=6;c.archetype="";c.archetypeNm="";c.abilities=[];
+    healAbilitySheets();
+    return (!c.archetype&&!c.abilities.length)?true:"the hero's archetype is the forced modal's to ask (#284), never the engine's to pick: "+c.archetype;
+  });
+  t("#487 the pick reads the sheet's own words: an exact name wins, a spell-casting Rogue is the Arcane Trickster, and a level later the answer is the same",function(){
+    makeWorld();
+    if(archetypeBestMatch({cls:"Rogue",archetypeNm:"Assassin",abilities:[{nm:"Parlour Tricks",ds:"Illusion and enchantment, a mage hand for theft, to distract and confuse."}],spells:[{nm:"Silence",lvl:2}]})!=="assassin")return "an exact archetype name is that archetype, whatever else the sheet says";
+    var arc={cls:"Rogue",level:16,archetypeNm:"Whisperer",abilities:[{nm:"Sigil Reading",ds:"Deciphers ritual markings and ward anchors."}],spells:[{nm:"Arcane Lock",lvl:2},{nm:"Silence",lvl:2}]};
+    if(archetypeBestMatch(arc)!=="arcanetrickster")return "a Rogue with a spell list: "+archetypeBestMatch(arc);
+    var a=c487(),first=archetypeBestMatch(a),k;
+    a.abilities.push({nm:"Silent Stalker",ds:classFeaturesAt("Rogue",11)[0].ds},{nm:"Summon Item",ds:classFeaturesAt("Rogue",17)[0].ds});
+    if(archetypeBestMatch(a)!==first)return "class rows the bible granted are not evidence — the same companion must not differ between two campaigns a level apart";
+    var cl={cls:"Cleric",level:3,archetypeNm:"Arbiter",abilities:[],spells:[]},bare=archetypeBestMatch(cl),lv,rw;
+    for(lv=2;lv<=17;lv++){rw=classFeaturesAt("Cleric",lv);for(k=0;k<rw.length;k++)cl.abilities.push({nm:rw[k].nm,ds:rw[k].ds});}
+    if(archetypeBestMatch(cl)!==bare)return "a sheet that says nothing in its own words answers the same at 3 and at 17 (bible order): "+bare+" → "+archetypeBestMatch(cl);
+    return archetypeBestMatch({cls:"Nobody",archetypeNm:"x"})===null?true:"a class with no archetypes has none to pick";
+  });
+  t("#487 a companion picked as a casting archetype gets its bench and the tiers it has crossed, with the mana to cast them",function(){
+    makeWorld();var cs=c487({name:"Morwen",level:10,xp:CLASS_XP_LEVELS[9],archetypeNm:"Arcanist",abilities:[],spells:[{nm:"Detect Magic",lvl:1,used:false}]});
+    var m0=manaMax(cs);
+    healAbilitySheets();
+    if(cs.archetype!=="arcanetrickster")return "archetype "+cs.archetype;
+    var nm=cs.spells.map(function(s){return capBaseName(s.nm);});
+    if(nm.indexOf("mage hand")<0)return "the archetype's cantrips: "+nm.join(", ");
+    if(cs.spells.filter(function(s){return s.lvl===2;}).length!==SPELL_UNLOCK_PICKS[2])return "the tier-2 unlock crossed at 10 auto-picks: "+nm.join(", ");
+    var seen={},i;for(i=0;i<nm.length;i++){if(seen[nm[i]])return "duplicate spell "+nm[i];seen[nm[i]]=1;}
+    return manaMax(cs)>m0?true:"the pool grows with the picks";
+  });
+  t("#487 a level-up never adds a second copy of a held name, and the heal says what it did",function(){
+    makeWorld();var cs=c487({level:4,xp:CLASS_XP_LEVELS[3],archetype:"assassin",abilities:[{nm:"Uncanny Dodge",ds:"Her own wording."},{nm:"The First Blow Is the Last",ds:archFeaturesAt("Rogue","assassin",3)[0].ds}]});
+    cs.xp=CLASS_XP_LEVELS[4];checkCompanionLevelUp(cs,{land:true});
+    if(count487(cs,"Uncanny Dodge")!==1)return "the level-5 row doubled a held ability: ×"+count487(cs,"Uncanny Dodge");
+    makeWorld();c487();
+    var said=[],oa=addMsg;addMsg=function(ty,m){said.push(String(m));return __stubEl();};
+    try{quiet(function(){healAbilitySheets();});}finally{addMsg=oa;}
+    var all=said.join("\n");
+    if(!/Frizwick — archetype: Assassin/.test(all))return "the pick is announced: "+all;
+    if(!/Frizwick gains: .*Master Poisoner/.test(all))return "the granted rows are named: "+all;
+    return /tidied/.test(all)?true:"the cleanup is announced: "+all;
+  });
+
 }
