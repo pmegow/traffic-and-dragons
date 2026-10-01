@@ -28544,7 +28544,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     for(i=0;i<want.length;i++){if(count487(c,want[i])!==1)return want[i]+" ×"+count487(c,want[i]);}
     makeWorld();c=worldState.character;c.cls="Rogue";c.level=6;c.archetype="";c.archetypeNm="";c.abilities=[];
     healAbilitySheets();
-    return (!c.archetype&&!c.abilities.length)?true:"the hero's archetype is the forced modal's to ask (#284), never the engine's to pick: "+c.archetype;
+    if(c.archetype)return "the hero's archetype is the forced modal's to ask (#284), never the engine's to pick: "+c.archetype;
+    return c.abilities.some(function(a){return abilityBibleRow({cls:"Rogue",archetype:"thief"},a.nm)&&!abilityBibleRow({cls:"Rogue"},a.nm);})?"an archetype row landed with no archetype committed":true;
+  });
+  t("#487 class rows a companion joined above are granted too (owner 2026-10-01): a level-17 Rogue holding none of 2, 5 or 7 gains them, once, in level order",function(){
+    makeWorld();var cs=c487({name:"Morwen",archetypeNm:"Arcanist",spells:[{nm:"Detect Magic",lvl:1,used:false}],abilities:[{nm:"Sigil Reading",ds:"Deciphers ritual markings."},{nm:"Lv9",ds:"Blindsense -- know location of hidden creatures within 10ft.",gained:1244},{nm:"Summon Item",ds:classFeaturesAt("Rogue",17)[0].ds,gained:50}]});
+    healAbilitySheets();
+    var want=["Cunning Action","Uncanny Dodge","Evasion","Blindsense","Silent Stalker","Hide in Plain Sight","Escape Artist","Summon Item"],i,n=names487(cs);
+    for(i=0;i<want.length;i++){if(count487(cs,want[i])!==1)return want[i]+" ×"+count487(cs,want[i])+": "+n.join(", ");}
+    if(n.indexOf("Cunning Action")>n.indexOf("The Old Switcheroo")||n.indexOf("The Old Switcheroo")>n.indexOf("Uncanny Dodge"))return "granted rows arrive in level order (2, then 3, then 5): "+n.join(", ");
+    if(count487(cs,"Sigil Reading")!==1)return "her own ability is untouched";
+    var snap=JSON.stringify(cs);healAbilitySheets();
+    return JSON.stringify(cs)===snap?true:"the second heal changed the sheet";
   });
   t("#487 the pick reads the sheet's own words: an exact name wins, a spell-casting Rogue is the Arcane Trickster, and a level later the answer is the same",function(){
     makeWorld();

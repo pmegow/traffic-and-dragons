@@ -1292,9 +1292,11 @@ function archetypeBestMatch(c){
 //   ① old "LvN" entries become the ability they always were (bible wording when the bible has it)
 //   ② an ability the class bible knows, held twice, is held once — first position, bible wording.
 //      An ability the bible does NOT know is never touched, however it is worded.
-//   ③ every archetype row from 3 to the current level that the sheet lacks is granted (owner
-//      ruling 2026-09-30: the hero too — this retires the C6 "no retroactive grants" rule for
-//      archetype rows, which had left Ammut with his 14 and 18 rows and none of 3, 6 or 10).
+//   ③ every level row from 2 to the current level that the sheet lacks is granted, in level
+//      order — the committed archetype's rows (owner ruling 2026-09-30: the hero too; Ammut held
+//      his 14 and 18 rows and none of 3, 6 or 10) AND the class's own rows (owner ruling
+//      2026-10-01: a companion who joined at 9 held nothing from 2, 5 or 7). This retires the C6
+//      "no retroactive grants" rule for ability rows; a row held under its name is never doubled.
 // Returns {archetype:null|{id,nm}, renamed:[names], removed:[names], granted:[names]}.
 function abilitySheetHeal(c,opts){
   var rep={archetype:null,renamed:[],removed:[],granted:[]},i,j,lv;
@@ -1319,11 +1321,9 @@ function abilitySheetHeal(c,opts){
     keep.push(c.abilities[i]);
   }
   if(keep.length!==c.abilities.length)c.abilities=keep;
-  if(c.archetype){
-    for(lv=3;lv<=(c.level||1);lv++){
-      var rows=archFeaturesAt(c.cls,c.archetype,lv);
-      for(j=0;j<rows.length;j++){if(abilityHas(c,rows[j].nm))continue;c.abilities.push({nm:rows[j].nm,ds:rows[j].ds,gained:turn});rep.granted.push(rows[j].nm);}
-    }
+  for(lv=2;lv<=(c.level||1);lv++){
+    var rows=classFeaturesAt(c.cls,lv).concat(archFeaturesAt(c.cls,c.archetype,lv));
+    for(j=0;j<rows.length;j++){if(abilityHas(c,rows[j].nm))continue;c.abilities.push({nm:rows[j].nm,ds:rows[j].ds,gained:turn});rep.granted.push(rows[j].nm);}
   }
   return rep;
 }
