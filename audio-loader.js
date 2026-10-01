@@ -21,6 +21,7 @@ function createAudioLoader(context,catalog){
   function drop(record){var i=records.indexOf(record);if(i>=0)records.splice(i,1);}
   return {
     load:function(scene,signal){
+      var cannot=audioPageRefusal();if(cannot)return Promise.reject(new Error(cannot));/* #502: refuse BEFORE the download — a page that cannot verify fetched every scene's audio only to fail at the checksum */
       var bed=audioAssetMedia(scene),asset=catalog.assets.filter(function(a){return audioAssetMedia(a).url===bed.url;})[0];
       if(!asset)return Promise.reject(new Error("Audio asset is absent from the delivery catalog"));
       if(records.some(function(r){return !r.buffer;}))return Promise.reject(new Error("Another audio decode is still settling"));
@@ -46,7 +47,18 @@ function createAudioLoader(context,catalog){
   };
 }
 
+/* #502: can a page verify an audio download? The checksum needs SubtleCrypto, which a browser exposes only in a secure
+   context (https, or localhost). On plain http — the game served to a phone over the LAN — `crypto.subtle` is undefined: the
+   checksum threw "Cannot read properties of undefined (reading 'digest')" and that is what the player was told, after every
+   scene had downloaded its audio for nothing. ONE rule, three readers: the loader refuses before it downloads, the checksum
+   refuses on its own (a rejected promise in plain words — never a TypeError, never a pass), and the ambience shell says it
+   once and starts nothing (ui-ambient.js). audioVerifyRefusal is pure over the crypto object it is handed; audioPageRefusal
+   asks it about THIS page. Both return null, or the reason. */
+var AUDIO_INSECURE_PAGE="This page is not secure (plain http), so the audio cannot be verified. Open the hosted game or localhost.";
+function audioVerifyRefusal(c){return (c&&c.subtle&&typeof c.subtle.digest==="function")?null:AUDIO_INSECURE_PAGE;}
+function audioPageRefusal(){return audioVerifyRefusal(typeof crypto!=="undefined"?crypto:null);}
 function audioVerifyBytes(bytes,asset){
+  var cannot=audioPageRefusal();if(cannot)return Promise.reject(new Error(cannot));
   return crypto.subtle.digest("SHA-256",bytes).then(function(hash){
     var hex=Array.prototype.map.call(new Uint8Array(hash),function(b){return (b<16?"0":"")+b.toString(16);}).join("");
     if(hex!==asset.sha256)throw new Error("Ambience asset checksum does not match the catalog");

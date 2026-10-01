@@ -33,13 +33,20 @@ var Ambient = (function() {
       eachMenuEl("ambient-unlock", function(el) { el.style.display = enabled && (!unlocked || lastError) ? "inline-block" : "none"; });
     }
   }
+  /* #502: ONE rule for "this page cannot play ambience at all" — a local file (its audio cannot be fetched) or a page that
+     is not secure (its audio cannot be verified: audioPageRefusal, audio-loader.js). sync() says it once, in the status line
+     and one toast; unlock() starts nothing, so no scene downloads audio it could only throw away. */
+  function pageRefusal() {
+    if (location.protocol === "file:") return "Open the hosted game or localhost to use ambience";
+    return typeof audioPageRefusal === "function" ? audioPageRefusal() : null;
+  }
   function sync() {
     if (!initialized) return;
-    var s = snapshot(), p = ambientPlan(s, AUDIO_SCENES);
+    var s = snapshot(), p = ambientPlan(s, AUDIO_SCENES), refused = pageRefusal();
     if (controller) controller.update(s);
     if (accents) accents.update(s);
     if (!enabled) status = "Off";
-    else if (location.protocol === "file:") { report(new Error("Open the hosted game or localhost to use ambience")); return; }
+    else if (refused) { report(new Error(refused)); return; }
     else if (!unlocked) status = "Tap anywhere to start ambience";
     else if (held || s.paused) status = "Paused";
     else if (!p.scene) status = s.common && s.open === null ? "Hours for " + s.common + " are not recorded" : "No ambience for this location";
@@ -129,7 +136,7 @@ var Ambient = (function() {
   function unlock(fromGesture) {
     // A blocked startup resume can stay pending until another resume runs inside a gesture.
     if (!enabled || (gesturePending && !fromGesture)) return;
-    if (location.protocol === "file:") { sync(); return; }
+    if (pageRefusal()) { sync(); return; }
     ctx = Sound.context();
     if (!ctx) { report(new Error("This browser has no Web Audio support")); return; }
     gesturePending = true;
