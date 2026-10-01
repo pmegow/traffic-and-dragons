@@ -28,6 +28,116 @@ function npcCoreTokens(name){
   return out;
 }
 npcCoreTokens._misses=0; // test hook (dev/_tests_A2.js): counts real computations, not hits
+
+// ── #503: what a name SAYS about the person — the one veto on consolidation ─────────────────
+// Field case (The Princess, t85 and t89): [NPC:King Underbough|hungover, asleep|acquaintance] with
+// [NPC_PRONOUN:King Underbough|he/him] landed on "Wilhelmina Underbough". "king" is a stop word, so the
+// name's only distinctive token was the family's surname, the princess was the one Underbough on file,
+// and her mood and her pronouns were overwritten — silently, twice. The words consolidation throws away
+// as "not identifying" still say things that can CONTRADICT a candidate: a sex (king, lady, mother), an
+// age (old, young), a generation of a crown (king, prince). A contradiction means two people.
+// ONLY a positive contradiction keeps two names apart. No signal on either side, or the same signal,
+// consolidates exactly as before — same-sex relatives under a bare title ("Queen Underbough" beside a
+// "Wilhelmina Underbough" with no rank on file) still merge; that residue is a TODO row, not a guess here.
+var _NPC_SEX_WORDS={king:"m",prince:"m",lord:"m",sir:"m",father:"m",brother:"m",mr:"m",mister:"m",duke:"m",baron:"m",count:"m",earl:"m",
+  emperor:"m",uncle:"m",grandfather:"m",husband:"m",man:"m",boy:"m",lad:"m",son:"m",widower:"m",
+  queen:"f",princess:"f",lady:"f",dame:"f",mother:"f",sister:"f",mrs:"f",miss:"f",mistress:"f",madam:"f",madame:"f",duchess:"f",baroness:"f",
+  countess:"f",empress:"f",aunt:"f",grandmother:"f",wife:"f",woman:"f",girl:"f",lass:"f",daughter:"f",widow:"f",priestess:"f"};
+/* "master" and "ser" are left out on purpose: both are worn by either sex in this genre */
+var _NPC_RANK_WORDS={king:"crown:monarch",queen:"crown:monarch",emperor:"crown:monarch",empress:"crown:monarch",prince:"crown:heir",princess:"crown:heir",
+  old:"age:old",elder:"age:old",older:"age:old",senior:"age:old",sr:"age:old",young:"age:young",younger:"age:young",junior:"age:young",jr:"age:young"};
+/* kin and role nouns are the HEAD of a description ("the scarred man", "Tam's mother") — never a surname */
+var _NPC_KIN_NOUNS={man:1,woman:1,boy:1,girl:1,lad:1,lass:1,wife:1,husband:1,son:1,daughter:1,widow:1,widower:1,mother:1,father:1,
+  brother:1,sister:1,uncle:1,aunt:1,grandmother:1,grandfather:1,priestess:1};
+// Pure. {sex:"m"|"f"|null, crown:"monarch"|"heir"|null, age:"old"|"young"|null} — null = the name does not say, or says both.
+// Two readings it refuses: a title word that closes the name straight after a plain name word is the person's SURNAME
+// ("Marla King", "Tom Young"); a possessive is someone else's title ("the Queen's Champion Aldric") — "queen's" is not
+// "queen", so it never matches. Parentheticals describe, they do not title ("Morwen (the king's sister)").
+function npcNameSays(name){
+  var raw=String(name||"").toLowerCase().replace(/\(.*?\)/g," ").split(/\s+/),ws=[],i;
+  for(i=0;i<raw.length;i++){var w=raw[i].replace(/[^a-z]/g,"");if(w)ws.push(w);}
+  var out={sex:null,crown:null,age:null},last=ws.length-1;
+  for(i=0;i<ws.length;i++){
+    var t=ws[i],sx=_NPC_SEX_WORDS[t],rk=_NPC_RANK_WORDS[t];
+    if(!sx&&!rk)continue;
+    if(i===last&&i>0&&!_NPC_KIN_NOUNS[t]){var p=ws[i-1];if(p!=="the"&&!_NPC_SEX_WORDS[p]&&!_NPC_RANK_WORDS[p])continue;}
+    if(sx)out.sex=(out.sex&&out.sex!==sx)?"?":(out.sex||sx);
+    if(rk){var g=rk.split(":");out[g[0]]=(out[g[0]]&&out[g[0]]!==g[1])?"?":(out[g[0]]||g[1]);}
+  }
+  if(out.sex==="?")out.sex=null;if(out.crown==="?")out.crown=null;if(out.age==="?")out.age=null;
+  return out;
+}
+// Pure. "he/him" -> "m", "she/her" -> "f"; they/them, it/its, a mixed pair and nothing at all -> null (no claim).
+function npcSexOfPronouns(p){
+  var w=String(p||"").toLowerCase().split(/[^a-z]+/),m=0,f=0,o=0,i;
+  for(i=0;i<w.length;i++){if(!w[i])continue;if(w[i]==="he"||w[i]==="him"||w[i]==="his")m++;else if(w[i]==="she"||w[i]==="her"||w[i]==="hers")f++;else o++;}
+  return (m&&!f&&!o)?"m":(f&&!m&&!o)?"f":null;
+}
+// What the RECORD says: its key and its aliases (an alias "Princess Wilhelmina" states her rank), then its own
+// pronouns on either store — stated pronouns outrank whatever a title suggests.
+function npcRecordSays(k){
+  var s=npcNameSays(k),m=memory.npcs[k]||{},w=(typeof wsNpcByName==="function")?wsNpcByName(k):null;
+  var al=(m.aliases||[]).concat((w&&w.aliases)||[]),F=["sex","crown","age"],i,f;
+  for(i=0;i<al.length;i++){var x=npcNameSays(al[i]);for(f=0;f<3;f++){if(!x[F[f]])continue;if(!s[F[f]])s[F[f]]=x[F[f]];else if(s[F[f]]!==x[F[f]])s[F[f]]="?";}}
+  for(f=0;f<3;f++){if(s[F[f]]==="?")s[F[f]]=null;}
+  var px=npcSexOfPronouns((w&&w.pronouns)||m.pronouns);if(px)s.sex=px;
+  return s;
+}
+// The pronouns ONE reply states for the names it tags — [NPC_PRONOUN:Name|he/him], or the pronoun operand of
+// [NPC:Name|…]. Response-scoped (set and restored by applyMuts): it is what lets a name with no title be told apart
+// ("Wilhelmina Underbough", she/her, arriving beside a "King Underbough" on file), and it reaches EVERY handler of
+// the reply through the one resolver, whatever the table order. Null-prototype map: names are untrusted keys.
+var _npcSaid=null;
+function npcStatedPronouns(text){
+  var out=Object.create(null),t=String(text||""),re=/\[NPC_PRONOUN:([^|\]]+)\|([^\]]+)\]/g,m;
+  while((m=re.exec(t)))out[m[1].trim()]=m[2].trim();
+  re=/\[NPC:([^|\]]+)\|([^|\]]*)(?:\|([^|\]]*))?\]/g;
+  while((m=re.exec(t))){var n=m[1].trim(),a=(m[2]||"").trim(),b=(m[3]||"").trim(),p=(typeof isPronounStr!=="function")?"":isPronounStr(b)?b:isPronounStr(a)?a:"";if(p&&!out[n])out[n]=p;}
+  return out;
+}
+function npcBeginResponse(text){var prev=_npcSaid;_npcSaid=text?npcStatedPronouns(text):null;return prev;}
+function npcEndResponse(prev){_npcSaid=prev||null;}
+// "" = nothing contradicts; otherwise the reason in plain words, for the receipt. The crown clause asks for a
+// surname-only overlap (one shared token, and it closes the longer name): "King Underbough" beside "Prince Aldric
+// Underbough" is father and son, but "King Aldric" beside him is the same man, crowned.
+function npcKeptApart(name,k,shortT,longT){
+  var a=npcNameSays(name),b=npcRecordSays(k),said=_npcSaid?npcSexOfPronouns(_npcSaid[String(name).trim()]):null;
+  if(said)a.sex=said;
+  if(a.sex&&b.sex&&a.sex!==b.sex)return (a.sex==="m"?"he":"she")+", not "+(b.sex==="m"?"he":"she");
+  if(a.age&&b.age&&a.age!==b.age)return a.age+", not "+b.age;
+  if(a.crown&&b.crown&&a.crown!==b.crown&&shortT.length===1&&longT.length>1&&longT[longT.length-1]===shortT[0])return a.crown+", not "+b.crown;
+  return "";
+}
+// THE consolidation scan (one copy — the resolver and the receipt both read it). key = the single candidate nothing
+// contradicts; apart = the single candidate a contradiction ruled out. A ruled-out candidate still COUNTS: with two
+// people on file the name was ambiguous before #503 and stays ambiguous — the veto never steers a name onto the survivor.
+function npcConsolidation(name){
+  var out={key:null,apart:null,why:""},inCore=npcCoreTokens(name);
+  if(!inCore.length)return out;
+  var k,cnt=0,match=null,apart=null,why="";
+  for(k in memory.npcs){
+    if(k===name)continue;
+    var kCore=npcCoreTokens(k);
+    if(!kCore.length)continue;
+    var shortT=inCore.length<=kCore.length?inCore:kCore;
+    var longT=inCore.length<=kCore.length?kCore:inCore;
+    var subset=true,ti;
+    for(ti=0;ti<shortT.length;ti++){if(longT.indexOf(shortT[ti])<0){subset=false;break;}}
+    if(!subset)continue;
+    cnt++;if(cnt>1)break;
+    var w=npcKeptApart(name,k,shortT,longT);
+    if(w){apart=k;why=w;}else match=k;
+  }
+  if(cnt===1){out.key=match;out.apart=apart;out.why=why;}
+  return out;
+}
+// The receipt for a write that the veto turned into a NEW person — "" when the name was simply new. Ask BEFORE the
+// record is created (afterwards the name is an exact hit and there is nothing to say).
+function npcApartLine(raw){
+  if(!memory.npcs||memory.npcs[raw])return "";
+  var c=npcConsolidation(raw);
+  return c.apart?raw+" is not "+c.apart+" ("+c.why+") — filed as a separate person":"";
+}
 function resolveNpcName(name){
   if(!memory.npcs)return name;
   if(memory.npcs[name])return name;
@@ -37,22 +147,9 @@ function resolveNpcName(name){
   // "Sheriff Belor Hemlock" — which otherwise forks one person into several memory.npcs entries. If the
   // incoming name's distinctive tokens are a subset (either direction) of EXACTLY ONE existing entry's,
   // resolve to that entry. The single-candidate guard keeps distinct people who share a token (e.g.
-  // sibling surname "Kaijitsu") separate rather than wrongly merging them.
-  var inCore=npcCoreTokens(name);
-  if(!inCore.length)return name;
-  var match=null,cnt=0;
-  for(k in memory.npcs){
-    if(k===name)continue;
-    var kCore=npcCoreTokens(k);
-    if(!kCore.length)continue;
-    var shortT=inCore.length<=kCore.length?inCore:kCore;
-    var longT=inCore.length<=kCore.length?kCore:inCore;
-    var subset=true,ti;
-    for(ti=0;ti<shortT.length;ti++){if(longT.indexOf(shortT[ti])<0){subset=false;break;}}
-    if(subset){match=k;cnt++;if(cnt>1)break;}
-  }
-  if(cnt===1)return match;
-  return name;
+  // sibling surname "Kaijitsu") separate rather than wrongly merging them. #503: and a candidate the
+  // name CONTRADICTS (npcKeptApart) is never the answer — the name stays its own.
+  return npcConsolidation(name).key||name;
 }
 
 // ── #128: deterministic name-variant scan → the #57 merge-confirm channel ──────────────────

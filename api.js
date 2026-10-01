@@ -3416,6 +3416,10 @@ function applyMuts(text,opts){
     });
     if(_rvStripped.length&&typeof console!=="undefined")console.warn("[tags] #264 review-call whitelist stripped "+_rvStripped.length+" out-of-scope tag name(s): "+_rvStripped.join(", ")+" (allowed: "+opts.allow.join(", ")+")");
   }
+  /* #503: the pronouns THIS reply states for the names it tags, for the one resolver — set before W2 preparation and
+     the table (every handler resolves through it, whatever the table order), over the text the whitelist left; restored
+     at the single return below, so nothing a finished reply said can steer a later resolve. */
+  var _npcSaidPrev=(typeof npcBeginResponse==="function")?npcBeginResponse(text):null;
   var _w2Plan=(typeof w2PrepareResponse==="function")?w2PrepareResponse(text):{ordinary:text,txns:[]};
   var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true,source:(opts&&opts.source)||null}):{muts:[],turn:worldState.turn,errors:[]},_w2i;/* #481 D6: the source rides into the table */
   if(_rvStripped&&_rvStripped.length)R.muts.push("⚠ review-call whitelist: out-of-scope tags stripped — "+_rvStripped.join(", "));/* #264: loud at the player, not just the console */
@@ -3495,6 +3499,7 @@ function applyMuts(text,opts){
      after the transcript pair and the speaker stamp land (three full-transcript LZ passes per
      turn collapse to one; the f70 mechanism). Every other caller keeps the immediate save. UA6
      is intact either way: the commit save still runs before any display step. */
+  if(typeof npcEndResponse==="function")npcEndResponse(_npcSaidPrev);/* #503: the reply is over — what it stated is forgotten */
   syncUI();if(!(opts&&opts.deferSave))saveAll();
   return R;
 }

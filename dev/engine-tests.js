@@ -28659,4 +28659,126 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return hero490().indexOf("Mudwalk (greater)")>=0?true:"a parenthetical variant is a different ability, as before: "+hero490().join(", ");
   });
 
+
+  section("#503 a name that contradicts the record is another person");
+  function w503(){makeIdWorld();worldState.turn=78;worldState.npcs=[];memory.npcs={};}
+  function roster503(){return worldState.npcs.map(function(n){return n.name+" ["+(n.status||"")+"|"+(n.pronouns||"?")+"]";}).join("; ");}
+  function on503(key,pron){memory.npcs[key]={attitude:"",knowledge:[],events:[],aliases:[]};worldState.npcs.push({name:key,status:"present",rel:"neutral",pronouns:pron||null,met:1,partyMember:false,portrait:null,aliases:[]});if(pron)memory.npcs[key].pronouns=pron;}
+  t("#503 the field case (The Princess, t85): [NPC:King Underbough] + his pronouns no longer overwrite Wilhelmina Underbough",function(){
+    w503();quiet(function(){applyMuts("The princess looks up. [NPC:Wilhelmina Underbough|bored, captive|ally] [NPC_PRONOUN:Wilhelmina Underbough|she/her]");});
+    worldState.turn=85;
+    var r=quiet(function(){return applyMuts("The King stammers. [NPC:King Underbough|hungover, asleep|acquaintance] [NPC_PRONOUN:King Underbough|he/him]");});
+    var w=wsNpcByName("Wilhelmina Underbough"),k=wsNpcByName("King Underbough");
+    if(!w||!k)return "two people, two roster rows: "+roster503();
+    if(w.status!=="bored, captive"||w.pronouns!=="she/her")return "the princess's own record was rewritten: "+roster503();
+    if(k.pronouns!=="he/him"||k.status!=="hungover, asleep")return "the king's record did not take his own tags: "+roster503();
+    if(!memory.npcs["King Underbough"]||memory.npcs["Wilhelmina Underbough"].pronouns!=="she/her")return "the memory side must split the same way";
+    var muts=JSON.stringify(r.r&&r.r.muts);
+    if(!(/King Underbough/.test(muts)&&/Wilhelmina Underbough/.test(muts)&&/separate/.test(muts)))return "the split is said in the turn's summary (and so in the provenance ring): "+muts;
+    var again=quiet(function(){return applyMuts("He wakes. [NPC:King Underbough|awake, sour|neutral] [NPC_PRONOUN:King Underbough|he/him]");});
+    if(/separate/.test(JSON.stringify(again.r.muts)))return "said ONCE, when he is filed — never on every later tag: "+JSON.stringify(again.r.muts);
+    return wsNpcByName("King Underbough").status==="awake, sour"&&worldState.npcs.length===2?true:"later tags land on his own record: "+roster503();
+  });
+  t("#503 a title that states the other sex keeps two names apart: Lord/Lady, Mother/Father, Brother/Sister, the Scarred Man/Woman",function(){
+    var pairs=[["Lord Bramble","Lady Bramble"],["Lady Bramble","Lord Bramble"],["Father Vane","Mother Vane"],["Sister Osric","Brother Osric"],["The Scarred Man","The Scarred Woman"],["Queen Underbough","King Underbough"]],i;
+    for(i=0;i<pairs.length;i++){w503();on503(pairs[i][1],null);
+      if(resolveNpcName(pairs[i][0])!==pairs[i][0])return "'"+pairs[i][0]+"' resolved to '"+resolveNpcName(pairs[i][0])+"'";}
+    return true;
+  });
+  t("#503 the record's pronouns answer when its name says nothing: King vs she/her, Lady vs he/him; they/them and no pronouns are no contradiction",function(){
+    w503();on503("Wilhelmina Underbough","she/her");
+    if(resolveNpcName("King Underbough")!=="King Underbough")return "king onto she/her";
+    if(resolveNpcName("Queen Underbough")!=="Wilhelmina Underbough")return "the same sex is no contradiction — consolidates as before";
+    w503();on503("Aldous Underbough","he/him");
+    if(resolveNpcName("Lady Underbough")!=="Lady Underbough")return "lady onto he/him";
+    w503();on503("Wil Underbough","they/them");
+    if(resolveNpcName("King Underbough")!=="Wil Underbough")return "they/them states no sex — consolidates as before";
+    w503();on503("Wil Underbough",null);
+    return resolveNpcName("King Underbough")==="Wil Underbough"?true:"no pronouns on record states no sex — consolidates as before (the recorded limit)";
+  });
+  t("#503 the same person under a new title still consolidates: Sheriff Hemlock, Morwen, Sir Wendel, Lady Threnna Voss, Father Zantus",function(){
+    var same=[["Hemlock","Sheriff Belor Hemlock","he/him"],["Sheriff Hemlock","Belor Hemlock","he/him"],["Morwen","Morwen Zethran","she/her"],["Morwen (Ammut's wife)","Morwen Zethran","she/her"],
+      ["Sir Wendel the Undefeated","Wendel","he/him"],["Lady Threnna Voss","Threnna Voss","she/her"],["Father Zantus","Abstalar Zantus","he/him"],["Captain Voss","Threnna Voss","she/her"]],i;
+    for(i=0;i<same.length;i++){w503();on503(same[i][1],same[i][2]);
+      if(resolveNpcName(same[i][0])!==same[i][1])return "'"+same[i][0]+"' no longer resolves to '"+same[i][1]+"' (got '"+resolveNpcName(same[i][0])+"')";}
+    return true;
+  });
+  t("#503 a title word that is the person's SURNAME says nothing; someone else's title (a possessive) says nothing",function(){
+    w503();on503("Marla King",null);
+    if(resolveNpcName("Lady Marla")!=="Marla King")return "'King' is Marla's surname, not a man's title: "+resolveNpcName("Lady Marla");
+    w503();on503("Tom Young",null);
+    if(resolveNpcName("Old Tom")!=="Tom Young")return "'Young' is Tom's surname: "+resolveNpcName("Old Tom");
+    w503();on503("Aldric","he/him");
+    if(resolveNpcName("The Queen's Champion Aldric")!=="Aldric")return "the Queen's champion is not a queen: "+resolveNpcName("The Queen's Champion Aldric");
+    w503();on503("Morwen Zethran","she/her");
+    return resolveNpcName("Morwen (King Aldric's court)")==="Morwen Zethran"?true:"a parenthetical describes, it does not title: "+resolveNpcName("Morwen (King Aldric's court)");
+  });
+  t("#503 old and young are two people; a crown's two generations are two people when only the surname is shared",function(){
+    w503();on503("Young Garrow",null);
+    if(resolveNpcName("Old Garrow")!=="Old Garrow")return "Old Garrow onto Young Garrow";
+    w503();on503("Garrow the Younger",null);
+    if(resolveNpcName("Garrow the Elder")!=="Garrow the Elder")return "the Elder onto the Younger";
+    w503();on503("Prince Aldric Underbough","he/him");
+    if(resolveNpcName("King Underbough")!=="King Underbough")return "the king onto his son";
+    if(resolveNpcName("King Aldric")!=="Prince Aldric Underbough")return "a crowned prince is the same man — the given name is shared: "+resolveNpcName("King Aldric");
+    w503();on503("Wilhelmina Underbough","she/her");memory.npcs["Wilhelmina Underbough"].aliases=["Princess Wilhelmina"];
+    return resolveNpcName("Queen Underbough")==="Queen Underbough"?true:"the record's aliases state her rank — the queen is her mother";
+  });
+  t("#503 the reverse order: the king is on file, the princess arrives with her own pronouns — two people, his pronouns untouched",function(){
+    w503();quiet(function(){applyMuts("[NPC:King Underbough|hungover|neutral] [NPC_PRONOUN:King Underbough|he/him]");});
+    worldState.turn=80;
+    var r=quiet(function(){return applyMuts("She does not look up. [NPC:Wilhelmina Underbough|bored, captive|ally] [NPC_PRONOUN:Wilhelmina Underbough|she/her]");});
+    var w=wsNpcByName("Wilhelmina Underbough"),k=wsNpcByName("King Underbough");
+    if(!w||!k)return "two roster rows: "+roster503();
+    if(k.pronouns!=="he/him"||k.status!=="hungover")return "the king's record was rewritten: "+roster503();
+    return w.pronouns==="she/her"&&/separate/.test(JSON.stringify(r.r.muts))?true:"her record, her pronouns, and the summary says so: "+roster503()+" | "+JSON.stringify(r.r.muts);
+  });
+  t("#503 a pronoun tag never flips another person's record: [NPC_PRONOUN:Captain Voss|he/him] beside Threnna Voss (she/her), alone or as an [NPC:] operand",function(){
+    w503();on503("Threnna Voss","she/her");
+    var r=quiet(function(){return applyMuts("The captain grunts. [NPC_PRONOUN:Captain Voss|he/him]");});
+    if(wsNpcByName("Threnna Voss").pronouns!=="she/her"||memory.npcs["Threnna Voss"].pronouns!=="she/her")return "her pronouns were flipped: "+roster503();
+    if(!wsNpcByName("Captain Voss")||wsNpcByName("Captain Voss").pronouns!=="he/him")return "the captain is his own row: "+roster503();
+    if(!/separate/.test(JSON.stringify(r.r.muts)))return "said in the summary: "+JSON.stringify(r.r.muts);
+    w503();on503("Threnna Voss","she/her");
+    quiet(function(){applyMuts("[NPC:Captain Voss|stern|he/him]");});
+    if(wsNpcByName("Threnna Voss").pronouns!=="she/her"||!wsNpcByName("Captain Voss"))return "the operand form: "+roster503();
+    w503();on503("Threnna Voss","she/her");
+    quiet(function(){applyMuts("[NPC_PRONOUN:Captain Voss|she/her]");});
+    return worldState.npcs.length===1?true:"agreeing pronouns are the same woman, as before: "+roster503();
+  });
+  t("#503 what one reply states is forgotten when the reply ends; an exact name and a registered alias always win",function(){
+    w503();on503("Threnna Voss","she/her");worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];
+    /* a reply whose pronoun never lands (the death tag sits in a refused envelope) files nobody — so only a leftover could keep "Voss" apart afterwards */
+    quiet(function(){applyMuts("A rumour. [CANON_TXN_BEGIN:voss_dies|npc-death|-|Nobody Slain|-][SCENE_DEATH:nobody slain][NPC:Voss|dead|he/him][CANON_TXN_END:voss_dies]");});
+    if(memory.npcs["Voss"])return "fixture: the refused envelope must file nobody";
+    if(resolveNpcName("Voss")!=="Threnna Voss")return "a finished reply left its pronouns behind: "+resolveNpcName("Voss");
+    var prev=npcBeginResponse("[NPC_PRONOUN:Voss|he/him]");
+    if(resolveNpcName("Voss")!=="Voss")return "inside the reply the stated pronoun counts";
+    var inner=npcBeginResponse("Rain.");
+    if(resolveNpcName("Voss")!=="Threnna Voss")return "a nested reply reads its own text, not the outer one's";
+    npcEndResponse(inner);
+    if(resolveNpcName("Voss")!=="Voss")return "the outer reply gets its own statements back";
+    npcEndResponse(prev);
+    if(resolveNpcName("Voss")!=="Threnna Voss")return "the end restores what stood before the reply";
+    memory.npcs["Threnna Voss"].aliases=["King Voss"];
+    if(resolveNpcName("King Voss")!=="Threnna Voss")return "a registered alias is the GM's own word — it wins";
+    return resolveNpcName("Threnna Voss")==="Threnna Voss"?true:"exact";
+  });
+  t("#503 two candidates stay ambiguous even when one is ruled out — a third name is never steered onto the survivor",function(){
+    w503();on503("Wilhelmina Underbough","she/her");on503("Aldous Underbough","he/him");
+    if(resolveNpcName("King Underbough")!=="King Underbough")return "steered onto "+resolveNpcName("King Underbough")+" — two Underboughs on file was ambiguous before and still is";
+    return resolveNpcName("Underbough")==="Underbough"?true:"the bare surname with two on file stays its own, as before";
+  });
+  t("#503 resolveEntity keeps parity on a contradicted name; npcNameSays is pure",function(){
+    w503();on503("Wilhelmina Underbough","she/her");
+    if(resolveEntity("npc","King Underbough")!==resolveNpcName("King Underbough"))return "parity";
+    var a=JSON.stringify(npcNameSays("Old King Underbough")),b=JSON.stringify(npcNameSays("Old King Underbough"));
+    if(a!==b)return "not pure";
+    var s=npcNameSays("Old King Underbough");
+    if(!(s.sex==="m"&&s.crown==="monarch"&&s.age==="old"))return "reads sex, crown and age: "+a;
+    if(npcNameSays("the Old King").sex!=="m")return "a title after a title is a title, not a surname: "+JSON.stringify(npcNameSays("the Old King"));
+    if(npcNameSays("Lord and Lady Bramble").sex!==null)return "a name that states both states neither";
+    return npcSexOfPronouns("he/they")===null&&npcSexOfPronouns("she/her")==="f"&&npcSexOfPronouns("")===null?true:"pronouns: a mixed pair and nothing at all are no claim";
+  });
+
 }
