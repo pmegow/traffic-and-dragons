@@ -36,10 +36,11 @@ ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
 <p class="sub">Traffic and Dragons · the weekly Fable burn ladder (TODO #448, <code>/thursday</code>) · judged by Fable 5.1, finished by Opus 5.5 under the probation · receipt opened before any analysis</p>
 
 <h2 id="method">1 Method</h2>
+<div class="verdict"><b>Summary.</b> Rungs 0–3 ran in full. Rung 4 gave way to rung 1's confirmed small fixes. <b>Fixed (7):</b> #503 two family members fused into one record (v1.1097, Fable); #505 a sheeted NPC could not die by the death tag; #507 the ability heal deleted a GM's variant and stepped a Druid down; #509 an imported save's own moments read as an earlier adventure; #510 a withheld Village sale took the items anyway; #513 an arrival read the old scene; #516 a deferred memory line was lost on a failed extraction (v1.1098–v1.1103, Opus 5.5 under the probation). <b>Filed (20 rows):</b> #504, #506, #511–#528. Five need your ruling: #504, #506, #514, #524, #525. #527 holds 28 leads to hand-check and #528 the proof gaps. <b>For your eyes:</b> the seven fixed rows are ◉. #513 has a play check: in the Village, walk somewhere quiet and see that the next turn's small talk comes from people actually there. Your Rise of the Runelords save gives the Silk and Steam Bathhouse Magnimar's description (#512). The 46 Opus probation entries await Fable's skim.</div>
 <p>Range under review: <code>f53dc5d..f023502</code> — 235 commits, 362 files, +24,443 / −2,141 lines, engine v1.981 → v1.1096. The anchor is the commit that landed the previous receipt (<a href="Review_fable_2026_09_24.html">2026-09-24</a>).</p>
-<p><b>Who judged.</b> Fable 5.1 ran rung 0, the rung-1 censuses, the rung-2 reading and the #503 fix. Its credit ran out at about 12:50 Pacific. Opus 5.5 finished the ladder under the probation in CLAUDE.md. Each drift-surface fix it landed (#505, #507, #509, #510) has its own entry in <code>todo_checkWithFable.md</code> ▸ Opus probation log, for Fable's next skim.</p>
+<p><b>Who judged.</b> Fable 5.1 ran rung 0, the rung-1 censuses, the rung-2 reading and the #503 fix. Its credit ran out at about 12:50 Pacific. Opus 5.5 finished the ladder under the probation in CLAUDE.md. Each drift-surface fix it landed (#505, #507, #509, #510, #513, #516) has its own entry in <code>todo_checkWithFable.md</code> ▸ Opus probation log, for Fable's next skim.</p>
 <p><b>How the diffs were read.</b> Five reviewers each read one file group's diffs across the range: <code>tag_table.js</code>; <code>api.js</code> with <code>state.js</code> and <code>campaign_generator.js</code>; <code>memory.js</code> with <code>identity.js</code>; <code>game.js</code>; <code>helpers.js</code>. Each reproduced its candidates through the real engine on a byte-checked copy of the commit the receipt opened at. Each also mutated the week's changed lines in memory to find behaviour no test pins. The <code>tag_table.js</code> reviewer ran out of credit after saving its report, so all five reports were used. Every HIGH and MEDIUM candidate was then reproduced again on a clean checkout of master by the lead before it became a row. The 28 smaller candidates are filed as leads (#527), to be hand-checked first.</p>
-<p><b>Not run.</b> The Opus probation-log skim: it is Fable's job, and Fable's credit had run out. The 40 entries of 2026-09-29 and 2026-09-30 and today's four carry to the next Thursday. No funded playtest; no owner save was written to (every read was an in-memory copy).</p>
+<p><b>Not run.</b> The Opus probation-log skim: it is Fable's job, and Fable's credit had run out. The 40 entries of 2026-09-29 and 2026-09-30 and today's six carry to the next Thursday. No funded playtest; no owner save was written to (every read was an in-memory copy).</p>
 
 <h2 id="rung1">2 Rung 1 — commit review</h2>
 <div class="verdict">The week was big (235 commits) and mostly test-led, but four defects that lose data or canon shipped in it and were not caught. A character with a generated sheet could not die by the standard death tag. The pre-turn ability heal deleted a GM's variant of a class ability and stepped a Druid down. An imported save's own moments read as "an earlier adventure". A Village sale with one wrong name took the right items anyway. All four are fixed today. Ten more verified defects are filed. One process gap repeats from last week: its suggestions never became rows.</div>
@@ -118,7 +119,12 @@ ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
 </table>
 
 <h2 id="rung4">5 Rung 4 — smalls</h2>
-<p class="small" data-state="not-run">not run</p>
+<p><b>Not run as written.</b> Rung 4 is the fall-through for when rungs 1–3 come up clean, and they did not. Rung 1's own rule (confirmed, S-sized, no ruling needed: fix now) came first. After the four HIGH and MEDIUM data-loss fixes, two more confirmed findings were fixed:</p>
+<table><tr><th>Row</th><th>Fix</th><th>Version</th></tr>
+<tr><td class="n">#513</td><td>The scene frame turns over where each reply ends, so the notes and buttons built before the next prompt read the new scene. On your Village t254 save a silent return to the tavern read Thessa as present from a turn-254 sighting; now nobody is present until someone is seen.</td><td>v1.1102</td></tr>
+<tr><td class="n">#516</td><td>A deferred memory line survives a failed extraction; a failed attempt's own deferrals no longer leak into the next window.</td><td>v1.1103</td></tr>
+</table>
+<p class="small">The deferred smalls (#420, #421, #387, #405, #419, #403, #404, #417, #418, #65) carry to the next Thursday, behind #511–#521.</p>
 
 <h2 id="clean">6 Checked and clean</h2>
 <p>Each was checked and found correct as designed; recorded so nobody re-litigates it.</p>
@@ -136,7 +142,19 @@ ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
 </ul>
 
 <h2 id="files">7 Files changed</h2>
-<p class="small" data-state="not-run">not run</p>
+<table><tr><th>Commit</th><th>What</th></tr>
+<tr><td class="n">5cf7120</td><td>This receipt, opened (rung 0).</td></tr>
+<tr><td class="n">f11e4e7</td><td>#503 (v1.1097, Fable): a name that contradicts the record is another person — memory.js, api.js, tag_table.js; <code>dev/sabotage-503-npc-kept-apart.js</code>; the v1271 replay baseline regenerated (its turn-1 fusion is gone); #504 filed.</td></tr>
+<tr><td class="n">2e39b84</td><td>#505 (v1.1098): a sheeted NPC dies by the standing tag — tag_table.js; <code>dev/sabotage-505-sheeted-death.js</code>; #506 filed.</td></tr>
+<tr><td class="n">eaf96e3</td><td>#507 (v1.1099): one ability-name rule — helpers.js; <code>dev/sabotage-507-ability-names.js</code>; the #487 battery's dedupe clause re-anchored.</td></tr>
+<tr><td class="n">89c9a4f</td><td>#509 (v1.1100): stamped moments follow a new campaign id — helpers.js, state.js; <code>dev/sabotage-509-campaign-id-restamp.js</code>.</td></tr>
+<tr><td class="n">3cd9e04</td><td>#510 (v1.1101): a withheld Village sale is withheld whole — tag_table.js; <code>dev/sabotage-510-withheld-sale.js</code>; two A2 battery clauses re-anchored.</td></tr>
+<tr><td class="n">f9a9fb5</td><td>Rows #511–#528 filed; DOC/BUGS.md synced (B29 → 32, pointed at #526).</td></tr>
+<tr><td class="n">24716b8</td><td>#513 (v1.1102): the scene turns over on arrival — identity.js; <code>dev/sabotage-513-arrival-frame.js</code>.</td></tr>
+<tr><td class="n">87df568</td><td>The #509 repro names the #423 re-mint it stands on (the #423 battery attributes by that word).</td></tr>
+<tr><td class="n">16e85c9</td><td>#516 (v1.1103): the deferred queue survives a failed extraction — memory.js; <code>dev/tests-516-deferred-queue.js</code>, <code>dev/sabotage-516-deferred-queue.js</code>.</td></tr>
+</table>
+<p>Every fix carries its own TODO row, contract line and APP_VERSION/CACHE bump. Each of the Opus fixes also has an Opus probation log entry. Each fix commit passed the full suite in the hook. Before the push: the standalone suites, the four replay baselines, and <code>run-sabotage-diff</code> over every battery each commit's files reach.</p>
 
 </main></body>
 </html>
