@@ -78,7 +78,9 @@ function page(opts) {
     removeActiveCampaignLocally: function (id) { calls.push("local-active:" + id); meta = meta.filter(function (c) { return c.id !== id; }); ctx._active = null; ctx.worldState = null; return true; },
     deleteCampaign: function (id) { calls.push("local:" + id); meta = meta.filter(function (c) { return c.id !== id; }); },
     showChar: function () { calls.push("showChar"); },
-    startGame: function (ch) { calls.push("startGame"); if (opts.startRefuses) return; ctx._active = "c9"; meta.push({ id: "c9", campName: ch._campName }); ctx.worldState = { campId: "c9", campName: ch._campName, turn: 0 }; },
+    /* like the real startGame (game.js): the character object becomes worldState.character and its transient _campName is
+       DELETED — a harness that reads char._campName after the call reads undefined (the first signed-in run, 2026-09-30) */
+    startGame: function (ch) { calls.push("startGame"); if (opts.startRefuses) return; ctx._active = "c9"; meta.push({ id: "c9", campName: ch._campName }); ctx.worldState = { campId: "c9", campName: ch._campName, turn: 0, character: ch }; delete ch._campName; },
     worldState: { campId: opts.active || "c9", campName: "PlaytestHarness x", turn: 3 },
     store: { set: function (k) { calls.push("store.set:" + k); } },
     storageAdapter: {

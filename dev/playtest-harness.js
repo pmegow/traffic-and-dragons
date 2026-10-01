@@ -290,8 +290,9 @@ if(typeof window!=="undefined")(function(){
     if(isBusy())return "refused: a GM turn is in flight";
     if(!char||!__ptIsHarnessName(char._campName))return "refused: char._campName must start with "+__PT_CAMP_PREFIXES.join(" or ")+" (the cleanup deletes only harness campaigns)";
     var tone=TONES.filter(function(t){return t.id===toneId;})[0];if(!tone)return "refused: unknown tone "+toneId;
+    var campName=char._campName;/* read BEFORE startGame: it deletes the transient field from the character (game.js) */
     startGame(char,tone.nm,tone.vc,authorId||"");
-    var rec=__ptRunRecord(getActiveCampId(),(typeof worldState!=="undefined")?worldState:null,char._campName);
+    var rec=__ptRunRecord(getActiveCampId(),(typeof worldState!=="undefined")?worldState:null,campName);
     if(!rec)return "refused: the new campaign could not be confirmed — nothing recorded, so the cleanup can never target anything";
     rec.startedAt=Date.now();rec.ver=APP_VERSION;rec.route=((typeof gmViaServer==="function")&&gmViaServer())?"server":"byok";
     rec.provider=activeProvider;rec.model=currentModel();
