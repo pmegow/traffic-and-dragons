@@ -1295,8 +1295,9 @@ function archetypeBestMatch(c){
 //   ③ every level row from 2 to the current level that the sheet lacks is granted, in level
 //      order — the committed archetype's rows (owner ruling 2026-09-30: the hero too; Ammut held
 //      his 14 and 18 rows and none of 3, 6 or 10) AND the class's own rows (owner ruling
-//      2026-10-01: a companion who joined at 9 held nothing from 2, 5 or 7). This retires the C6
-//      "no retroactive grants" rule for ability rows; a row held under its name is never doubled.
+//      2026-10-01: a companion who joined at 9 held nothing from 2, 5 or 7), and before them the
+//      class's STARTING abilities (same day: a level-18 Rogue companion had no Sneak Attack). This
+//      retires the C6 "no retroactive grants" rule for abilities; a held name is never doubled.
 // Returns {archetype:null|{id,nm}, renamed:[names], removed:[names], granted:[names]}.
 function abilitySheetHeal(c,opts){
   var rep={archetype:null,renamed:[],removed:[],granted:[]},i,j,lv;
@@ -1321,8 +1322,18 @@ function abilitySheetHeal(c,opts){
     keep.push(c.abilities[i]);
   }
   if(keep.length!==c.abilities.length)c.abilities=keep;
-  for(lv=2;lv<=(c.level||1);lv++){
+  /* The class's STARTING abilities count as its level-1 rows. One of them can share a name with a
+     later level row (Rogue's Evasion is restated, fuller, at 7): a sheet at or past that level is
+     given the level row's wording, so the grant below never leaves the weaker text in its place. */
+  var start=[],sa=(d&&d.abilities)||[],w,lr;
+  for(i=0;i<sa.length;i++){
+    w=sa[i];
+    for(lv=2;lv<=(c.level||1);lv++){lr=classFeaturesAt(c.cls,lv);for(j=0;j<lr.length;j++){if(capBaseName(lr[j].nm)===capBaseName(w.nm))w=lr[j];}}
+    start.push(w);
+  }
+  for(lv=1;lv<=(c.level||1);lv++){
     var rows=classFeaturesAt(c.cls,lv).concat(archFeaturesAt(c.cls,c.archetype,lv));
+    if(lv===1)rows=start.concat(rows);
     for(j=0;j<rows.length;j++){if(abilityHas(c,rows[j].nm))continue;c.abilities.push({nm:rows[j].nm,ds:rows[j].ds,gained:turn});rep.granted.push(rows[j].nm);}
   }
   return rep;

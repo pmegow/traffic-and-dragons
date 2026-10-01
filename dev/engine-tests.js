@@ -28514,6 +28514,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#487 the rows a sheet missed are granted once: 3, 6, 10 and 14 arrive with the pick, and a second heal changes nothing",function(){
     makeWorld();var cs=c487(),want=["The First Blow Is the Last","Master Poisoner","Sure Shot","A Natural Death"],i;
+    worldState.character.abilities=classDef("Warrior").abilities.map(function(x){return {nm:x.nm,ds:x.ds};});/* a hero as the wizard makes one: nothing owed */
     if(healAbilitySheets()!==1)return "one sheet healed";
     for(i=0;i<want.length;i++){if(count487(cs,want[i])!==1)return want[i]+" ×"+count487(cs,want[i])+": "+names487(cs).join(", ");}
     if(count487(cs,"Angel of Death")!==0)return "a row above the sheet's level is not granted early";
@@ -28556,6 +28557,20 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(count487(cs,"Sigil Reading")!==1)return "her own ability is untouched";
     var snap=JSON.stringify(cs);healAbilitySheets();
     return JSON.stringify(cs)===snap?true:"the second heal changed the sheet";
+  });
+  t("#487 the class's starting abilities are granted too (owner 2026-10-01): missing ones arrive first, a held one keeps its own wording, and a name a level row also carries takes the level row's wording once that level is reached",function(){
+    makeWorld();var st=classDef("Rogue").abilities.map(function(a){return a.nm;}),i;
+    var cs=c487({name:"Morwen",level:9,xp:CLASS_XP_LEVELS[8],archetype:"thief",abilities:[{nm:"Sneak Attack",ds:"Her own wording."},{nm:"Sigil Reading",ds:"Deciphers ritual markings."}]});
+    healAbilitySheets();
+    for(i=0;i<st.length;i++){if(count487(cs,st[i])!==1)return st[i]+" ×"+count487(cs,st[i])+": "+names487(cs).join(", ");}
+    if(cs.abilities.filter(function(a){return a.nm==="Sneak Attack";})[0].ds!=="Her own wording.")return "a starting ability she already held was reworded";
+    if(cs.abilities.filter(function(a){return a.nm==="Evasion";})[0].ds!==classFeaturesAt("Rogue",7)[0].ds)return "at level 9 Evasion carries the level-7 wording, not the starting one";
+    if(names487(cs).indexOf("Lockpick")>names487(cs).indexOf("Cunning Action"))return "starting abilities are granted before the level rows: "+names487(cs).join(", ");
+    var snap=JSON.stringify(cs);healAbilitySheets();
+    if(JSON.stringify(cs)!==snap)return "the second heal changed the sheet";
+    makeWorld();var low=c487({name:"Nyla",level:3,xp:CLASS_XP_LEVELS[2],archetype:"thief",abilities:[]});
+    healAbilitySheets();
+    return low.abilities.filter(function(a){return a.nm==="Evasion";})[0].ds===classDef("Rogue").abilities.filter(function(a){return a.nm==="Evasion";})[0].ds?true:"below level 7 Evasion carries the starting wording";
   });
   t("#487 the pick reads the sheet's own words: an exact name wins, a spell-casting Rogue is the Arcane Trickster, and a level later the answer is the same",function(){
     makeWorld();
