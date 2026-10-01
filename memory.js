@@ -2665,6 +2665,7 @@ async function summarize(){
     addMsg("system",note);
     return true;
   }
+  var _deferSnap=null;/* #516: the deferred record queue as it stood before this attempt (set at the guard) */
   try{
     var _sumVc="";var _sumPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:"";if(_sumPaId&&typeof AUTHORS!=="undefined"){var _spi;for(_spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_sumPaId&&AUTHORS[_spi].vc){_sumVc=AUTHORS[_spi].vc;break;}}}
     var _chapterDesc=(_sumVc?"5-8 sentence narrative summary written in this prose voice — "+_sumVc:"5-8 sentence narrative summary")+"; third person, past tense, the hero by name (never 'I' or 'we'); what bystanders say about the party's past is recorded as an attitude ('Nyla was glad for Daeris'), never quoted or restated in its particulars"/* #469 ③: chapters 3 and 8 of the Village carried a resident's retelling verbatim, and every later prompt re-served it */+((typeof kindDef==="function"&&kindDef().chapterNote)||"");/* #6 phase B: the kind may add a chapter clause (the village: who was seen, said, decided) *//* #327: one voice across chapters — the t147 comb found ch4/ch8 in first person beside ch0-3 in third */
@@ -2714,6 +2715,7 @@ async function summarize(){
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
     if(_withheld&&extracted&&typeof extracted==="object")extracted.chapterSummary=String(extracted.chapterSummary||"")+" "+withheldChapterNote(_withheld.withheld,_withheld.total);/* B38: the chapter itself says a share was withheld */
     await chapterRegisterGuard(extracted,worldState.turn);/* #372 ①: a register word in the chapter is re-asked ONCE before anything files */
+    _deferSnap=(worldState&&Array.isArray(worldState.recordDeferred))?worldState.recordDeferred.slice():[];
     await recordRegisterGuard(extracted,worldState.turn);/* #459 ③: a knowledge or lore line in the register is re-asked ONCE, else dropped — never filed */
     var _exStats=applySummaryExtract(extracted,_identityTable);
     _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":"")+(_withheld?" ("+_withheld.withheld+" of "+_withheld.total+" exchanges withheld by the provider's content filter — extracted around them; B38)":_reframed?" (extracted in the reframed, shortened shape after the provider blocked the full window — B38)":""));
@@ -2722,6 +2724,10 @@ async function summarize(){
     // Do NOT discard the session log on a transient failure — that permanently erased up to a
     // chapter's worth of events from long-term memory (audit #5). Keep it and retry next turn;
     // only after 3 consecutive failures archive the raw text as a degraded chapter and clear.
+    /* #516: a failed extraction files nothing, so the deferred queue goes back to what it held before this attempt: the lines it
+       took into the extraction wait for the retry, and the lines it deferred are dropped (the retry's own extraction reads them
+       again, and a quarantined extraction leaks nothing into the next window). */
+    if(_deferSnap){if(_deferSnap.length)worldState.recordDeferred=_deferSnap;else delete worldState.recordDeferred;}
     _sumFails=summaryFailureBump(e);saveCore();/* the retry ceiling survives reloads; saveCore reports storage failure loudly */
     if(typeof sceneRefsSummaryFailure==="function")sceneRefsSummaryFailure(_sumFails>=3);
     // #16c (user policy call 2026-07-22: crash detail MAY carry app-generated content).

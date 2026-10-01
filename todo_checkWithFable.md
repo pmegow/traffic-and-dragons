@@ -274,6 +274,10 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
   - **Touches:** presence (identity.js `derivePresenceFromResponse`, the post-handler seam of every reply): one call to `sceneRefsEnsure()` at its end when the world has scene refs.
   - **Critical review (before code):** the silent failures are an absent character read as present (the bug) or W2 death evidence lost when the frame turns over early. W2 handles are already registered in the end place's frame, because the SCENE_REF handler runs after the move handlers in table order. Summarize rotates the frame itself (`sceneRefsEvidence`), and the departing frame is sealed exactly as the next send would seal it (tested). A world without scene refs is not given them (tested). The owner's Village t254 save, in memory: the one-turn leak (Thessa read present from a t254 sighting) closes, matching the #481 B4 ruling.
   - **Proof:** 3 tests in "#513" (1 red first); dev/sabotage-513-arrival-frame.js 2/2; presence, B1, B3, B4, W2, #168 and #194 sections green; full suite; 90 standalone suites; the four replays unchanged.
+- 2026-10-01 · #516 · v1.1103 · Opus 5.5 · a deferred memory line survives a failed extraction.
+  - **Touches:** the summarize tier (memory.js `summarize`): a snapshot of `worldState.recordDeferred` before `recordRegisterGuard`, restored at the top of the failure path, before the save.
+  - **Critical review (before code):** the silent failures are a deferred line lost (the bug), a line filed twice, or a quarantined extraction's lines leaking into the next window. A failed attempt files nothing, so its pre-attempt queue is exactly right to restore. Dropping the attempt's own deferrals cannot lose a line: the retry re-extracts the same window and re-guards it. The `_sumCommit` storage-failure path (no throw) is unchanged.
+  - **Proof:** dev/tests-516-deferred-queue.js 2 (both red first, through the real summarize); dev/sabotage-516-deferred-queue.js 3/3; #372, B38 and audit-sync suites green; full suite; 91 standalone suites; the four replays unchanged.
 
 ## Off-Fable log
 
