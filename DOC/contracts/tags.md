@@ -51,7 +51,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[ENEMY_SURRENDERS:Name]` / bare | Mark foe(s) surrendered (bare = all living); a surrendered foe stays in `foes[]` |
 | `[COMBAT_ROUND:N]` | Set encounter round |
 | `[COMBAT_END:outcome]` | Close the whole encounter (all-foes-down auto-closes even without it) |
-| `[ABILITY_GAINED:Name\|Desc]` | Append to `character.abilities` (deduplicated) |
+| `[ABILITY_GAINED:Name\|Desc]` | Append to `character.abilities`, deduplicated by `abilityHeldAs` (case, spacing, an old `LvN` entry holding the name; a parenthetical variant is a different ability). **#490:** a Desc that OPENS with a party member's name as the subject and never addresses or names the hero is that companion's ability (`abilityTagSubject`, helpers.js) — it is filed on their sheet, or nowhere when they hold it, and the summary line says whose it is. A possessive opening, "you/your", or the hero's name keeps it the hero's |
 | `[ALIGNMENT:law+1]` / `[ALIGNMENT:good-1]` | Shift the axes (−3..3), recompute the label (#139 seed-from-label; #140 label flips file defining moments + deity-drift nudges) |
 | `[ITEM_DEF:name\|…]` | #81 PROPOSAL — queues a player confirm (cap 5, dedupe); Accept = write-once `worldState.itemBible`. **#298 (v1.769): both grammars parse — `key=value` parts AND the positional `category\|effect\|uses\|value` order** (the engine note used to teach positional while the parser read only key=value, so empty definitions reached the confirm modal) |
 | `[SPELL_USED:name]` | #110 mana spend via `manaPayCast`; racial 1/day keeps the hard `used` gate; a Necromancer overdraws as blood-HP, engine-deducted |

@@ -28583,4 +28583,43 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return /tidied/.test(all)?true:"the cleanup is announced: "+all;
   });
 
+  // ── #490 (owner's sheet 2026-09-30; written at Rise of the Runelords t2045): Ammut carried "Blindsense: Frizwick locates
+  // nearby creatures without relying on sight". The player said "Use blind sense", the GM narrated the companion using it
+  // and filed it with the HERO's tag. [ABILITY_GAINED:] wrote to worldState.character unconditionally and deduped on the
+  // exact name — and the hero's own Blindsense was stored as "Lv9", so nothing stopped it. A description that opens with a
+  // party member's name and never addresses the hero is that companion's ability.
+  section("#490 a hero ability tag that describes a companion lands on the companion");
+  function w490(){makeWorld();worldState.character.name="Ammut";return c487({archetype:"assassin",abilities:[{nm:"Blindsense",ds:"know location of hidden creatures within 10ft.",gained:1648}]});}
+  function hero490(){return worldState.character.abilities.map(function(a){return a.nm;});}
+  t("#490 the repro: [ABILITY_GAINED:Blindsense|Frizwick locates…] is not written to the hero; the companion already has it; the summary says whose it is",function(){
+    var cs=w490(),r=quiet(function(){return applyMuts("She tilts her head. [ABILITY_GAINED:Blindsense|Frizwick locates nearby creatures without relying on sight]");});
+    if(hero490().indexOf("Blindsense")>=0)return "a companion's ability landed on the hero: "+hero490().join(", ");
+    if(count487(cs,"Blindsense")!==1)return "the companion's copy is neither doubled nor lost: ×"+count487(cs,"Blindsense");
+    var muts=JSON.stringify(r.r&&r.r.muts||r.r);
+    return /Frizwick/.test(muts)&&/Blindsense/.test(muts)?true:"never a silent drop — the summary names the ability and whose it is: "+muts;
+  });
+  t("#490 a companion who lacks the ability gets it, with the tag's wording",function(){
+    var cs=w490();quiet(function(){applyMuts("[ABILITY_GAINED:Wall Sense|Frizwick reads a wall for hollows by touch]");});
+    if(hero490().indexOf("Wall Sense")>=0)return "landed on the hero";
+    var got=cs.abilities.filter(function(a){return a.nm==="Wall Sense";})[0];
+    return got&&got.ds==="Frizwick reads a wall for hollows by touch"&&got.gained===worldState.turn?true:"the companion's sheet holds it as written: "+JSON.stringify(got);
+  });
+  t("#490 the hero keeps what is the hero's: taught by a companion, named for one, about an outsider, or about nobody",function(){
+    var cs=w490(),before=cs.abilities.length,want=["Knife Palm","Frizwick's Gift","Borin's Read","Deep Listening","Twin Step"],i;
+    worldState.npcs.push({name:"Borin",status:"gruff",rel:"acquaintance"});
+    quiet(function(){applyMuts("[ABILITY_GAINED:Knife Palm|Frizwick taught you to palm a blade unseen]"
+      +"[ABILITY_GAINED:Frizwick's Gift|Frizwick's parting lesson: sense a hidden door]"
+      +"[ABILITY_GAINED:Borin's Read|Borin reads the grain of any stone]"
+      +"[ABILITY_GAINED:Deep Listening|Hear a heartbeat through a wall]"
+      +"[ABILITY_GAINED:Twin Step|Frizwick and Ammut move as one when flanking]");});
+    for(i=0;i<want.length;i++){if(hero490().indexOf(want[i])<0)return want[i]+" must stay the hero's: "+hero490().join(", ");}
+    return cs.abilities.length===before?true:"the companion gained an ability that was the hero's";
+  });
+  t("#490 a second copy under another spelling is refused: a different case, or an old 'LvN' entry holding the name",function(){
+    w490();var c=worldState.character;c.abilities=[{nm:"Lv9",ds:"Blindsense -- know location of hidden creatures within 10ft."},{nm:"Mudwalk",ds:"Move over marsh."}];
+    quiet(function(){applyMuts("[ABILITY_GAINED:Blindsense|Sense hidden creatures nearby][ABILITY_GAINED:mudwalk|Move over marsh without sinking][ABILITY_GAINED:Mudwalk (greater)|Cross open water]");});
+    if(c.abilities.length!==3)return "two refused, one added: "+hero490().join(", ");
+    return hero490().indexOf("Mudwalk (greater)")>=0?true:"a parenthetical variant is a different ability, as before: "+hero490().join(", ");
+  });
+
 }

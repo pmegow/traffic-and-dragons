@@ -1181,6 +1181,38 @@ function abilityHas(c,nm){
   for(i=0;i<L.length;i++){if(capBaseName(abilityParts(L[i]).nm)===k)return true;}
   return false;
 }
+// #490: does the sheet hold this name under ANY spelling a GM tag could collide with — another
+// case, stray spaces, or an old "LvN" entry carrying it in the description. Deliberately NOT
+// capBaseName: "Mudwalk (greater)" is a different ability from "Mudwalk" and always was.
+function abilityHeldAs(c,nm){
+  var k=String(nm||"").trim().toLowerCase(),L=(c&&c.abilities)||[],i;
+  for(i=0;i<L.length;i++){if(String(abilityParts(L[i]).nm).trim().toLowerCase()===k)return true;}
+  return false;
+}
+// #490 (Rise of the Runelords t2045): WHOSE ability does a hero-form [ABILITY_GAINED:name|desc]
+// describe? The GM narrated a companion using Blindsense and filed "Frizwick locates nearby
+// creatures without relying on sight" with the hero's tag; it landed on the hero. Returns the
+// party member's name when the description OPENS with it as the subject of the sentence
+// ("Frizwick locates…"), else null (the hero's). Conservative on purpose — every doubtful shape
+// stays the hero's, as before: a possessive ("Frizwick's lesson: …"), a description that
+// addresses the hero ("Frizwick taught you…") or names the hero ("Frizwick and Ammut…").
+// names = the party members with sheets; a first name alone counts (the GM writes "Morwen" for
+// "Morwen Zethran"), a leading title or article never does ("The Entity" is not "the").
+function abilityTagSubject(ds,heroName,names){
+  var low=String(ds||"").trim().toLowerCase(),i,j;
+  if(!low||/(^|[^a-z])(you|your|yours|yourself)([^a-z]|$)/.test(low))return null;
+  var hero=String(heroName||"").trim().toLowerCase();
+  if(hero&&new RegExp("(^|[^a-z0-9])"+hero.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([^a-z0-9]|$)").test(low))return null;
+  for(i=0;i<(names||[]).length;i++){
+    var full=String(names[i]||"").trim().toLowerCase(),forms=[full],first=full.split(/\s+/)[0];
+    if(!full)continue;
+    if(first!==full&&first.length>=3&&!/^(the|old|young|sir|lady|lord|captain|sheriff|brother|sister|father|mother|master|mistress)$/.test(first))forms.push(first);
+    for(j=0;j<forms.length;j++){
+      if(low.indexOf(forms[j])===0&&/^\s+[a-z]/.test(low.slice(forms[j].length)))return names[i];
+    }
+  }
+  return null;
+}
 // THE level-row grant (#487): a row the sheet already holds under the same name is not pushed a
 // second time — the held entry takes the row's wording instead (Rogue's level-7 Evasion replaces
 // the starting one; a model-written "Uncanny Dodge" becomes the bible's). Returns whether the
