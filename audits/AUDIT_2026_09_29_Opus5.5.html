@@ -226,7 +226,7 @@ details[open] summary{margin-bottom:8px}
 <p><span class="k">Purpose</span>The #6G6 test (engine-tests.js:24426) pins hall-word canonicalisation for SUBLOCATION only. No test sends an alias through LOCATION_ITEM's place operand; #6E2 uses the exact key "Frizwick's house".</p>
 <p><span class="k">Test first</span>On the village fixture, <code>[LOCATION_ITEM:Pebble|placed|The Village Hall]</code>, <code>…|the hall]</code> and <code>…|my house]</code> each file on the canonical node. A genuinely unknown place is still refused loudly. Sabotage clause: bypass the resolver in <code>fileLocationItem</code>.</p>
 </details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ built v1.1020 — ready to test: leave an item in the Hall (or any place named loosely) and it files there; 8 of 9 namings now file</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">✅ complete — owner-verified in play 2026-09-30: "A1 is good"; crossbow bolts left on window sills around the village all stayed put. Built: v1.1020 — ready to test: leave an item in the Hall (or any place named loosely) and it files there; 8 of 9 namings now file</td></tr>
 
 <tr id="A2"><td class="n">A2</td><td>
 <p class="ttl">Moves written as two tags land by halves: the core destroyed, gold minted, items copied <span class="lean high">high</span><span class="lean">silent failure</span></p>
@@ -258,7 +258,7 @@ details[open] summary{margin-bottom:8px}
 </ul>
 <p>Sabotage clause: the partner ignores the miss.</p>
 </details>
-</td><td class="c">M</td><td class="c">Fable</td><td class="s">◉ built v1.1021 — ready to test: a refused placement keeps the item in your pack; sales, gifts and takes of items not on the sheet move nothing (⚠ lines say so)</td></tr>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">✅ complete — closed on the automated proof by owner ruling 2026-09-30 (it cannot be tested by playing: its test forces the failure, and its sabotage battery proves the test). Built: v1.1021 — ready to test: a refused placement keeps the item in your pack; sales, gifts and takes of items not on the sheet move nothing (⚠ lines say so)</td></tr>
 
 <tr id="A3"><td class="n">A3</td><td>
 <p class="ttl">A refused placement or take never reaches the GM <span class="lean med">medium</span><span class="lean">drift hole</span></p>
@@ -274,7 +274,7 @@ details[open] summary{margin-bottom:8px}
 </ul>
 <p><span class="k">Test first</span>A refused <code>placed</code> and a refused <code>taken</code> each arm the ping; the next turn's notes carry it once.</p>
 </details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ built v1.1022 — ready to test: a refused item move is told to the GM next turn; a companion who lives with you can take from your chest</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">✅ complete — closed on the automated proof by owner ruling 2026-09-30 (it cannot be tested by playing: its test forces the failure, and its sabotage battery proves the test). Built: v1.1022 — ready to test: a refused item move is told to the GM next turn; a companion who lives with you can take from your chest</td></tr>
 
 <tr id="A4"><td class="n">A4</td><td>
 <p class="ttl">One reply, one place: every tag is judged where the reply ends, not where it happens <span class="lean high">high</span><span class="lean">wrong outcome</span></p>
@@ -322,7 +322,7 @@ details[open] summary{margin-bottom:8px}
 </ul>
 <p><span class="k">Test first</span>Each composer, fed "The Village Hall" on the village fixture, lands on <code>The Village|the Village Hall</code>. No node count grows. No note text contains a pipe.</p>
 </details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1044 (v1.1020 shipped the key, pass-through and soundscape parts; v1.1044 the LOCATION_STATE place operand)</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">✅ complete — closed on the automated proof by owner ruling 2026-09-30 (it cannot be tested by playing: its test forces the failure, and its sabotage battery proves the test). Built: v1.1044 (v1.1020 shipped the key, pass-through and soundscape parts; v1.1044 the LOCATION_STATE place operand)</td></tr>
 
 <tr id="A6"><td class="n">A6</td><td>
 <p class="ttl">"Here: Item stash (N items)" at places whose contents cannot be opened <span class="lean low">low</span><span class="lean">UX · ruled</span></p>
@@ -351,7 +351,7 @@ details[open] summary{margin-bottom:8px}
 <p><span class="k">Evidence</span>The t216 line was "Stash refused — …", with no ⚠. The provenance rings show "⚠ '…' is already completed — objective not recorded" on 16 of 17 quest completions (C3).</p>
 <p><span class="k">Test first</span><code>summaryLineHTML</code> marks a line matching the refusal vocabulary; an arrival emits one "Sub:" line; a case-only rename emits no arrow.</p>
 </details>
-</td><td class="c">S</td><td class="c">Off-Fable + Fable</td><td class="s">◉ ready to test — v1.1042</td></tr>
+</td><td class="c">S</td><td class="c">Off-Fable + Fable</td><td class="s">✅ complete — closed on the automated proof by owner ruling 2026-09-30 (it cannot be tested by playing: its test forces the failure, and its sabotage battery proves the test). Built: v1.1042</td></tr>
 </tbody></table>
 
 <h2 id="secB">B · Who is where — presence and scene</h2>
@@ -393,7 +393,7 @@ details[open] summary{margin-bottom:8px}
 <p><span class="k">Corpus check</span>Out of 139 cast-bearing replies, 15 SAY speakers were missing from their own reply's cast. 12 were truly elsewhere (at the origin of a move, behind shutters, across the gravel). 3 were present but left out of the cast (Silas t121; Iron Meridian t202, t207). The rule would under-record those 3, which is the safe direction, and the note heals them.</p>
 <p><span class="k">Test first</span>The exact t218 reply on the t213-save chain: Thessa and The Entity not local in the Hall, lastSeenAt still the tavern (red at HEAD). The t2428 shape (the cast names the keeper, the keeper speaks): keeper local (green, must stay). No cast: today's behaviour. Sabotage clause: drop the <code>R.castSet</code> check.</p>
 </details>
-</td><td class="c">M</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1028</td></tr>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">✅ complete — owner-verified in play 2026-09-30: "seems fixed". Built: v1.1028</td></tr>
 
 <tr id="B2"><td class="n">B2</td><td>
 <p class="ttl">Your wives stayed in bed; the record says they walked to the Hall and the tavern <span class="lean high">high</span><span class="lean">silent failure</span></p>
@@ -423,7 +423,7 @@ details[open] summary{margin-bottom:8px}
 </ul>
 <p><span class="k">Test first</span>The t213 exchange on the reconstructed pre-state: no Hall stamps for the wives, and a ping names all three (red at HEAD). A full cast gives no ping; <code>[SCENE_CAST:none]</code> gives no ping.</p>
 </details>
-</td><td class="c">M</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1029</td></tr>
+</td><td class="c">M</td><td class="c">Fable</td><td class="s">✅ complete — owner-verified in play 2026-09-30: "seems fixed". Built: v1.1029</td></tr>
 
 <tr id="B3"><td class="n">B3</td><td>
 <p class="ttl">The RESIDENTS note re-summons the same two neighbours every eight turns <span class="lean high">high</span><span class="lean">wrong outcome</span></p>
@@ -440,7 +440,7 @@ details[open] summary{margin-bottom:8px}
 </ul>
 <p><span class="k">Test first</span>The t85-shaped state (hero at home, Nyla and Silas last stamped 3–6 turns earlier, not in the last reply) produces no note (red at HEAD). Both speaking in the last reply fires it. Sabotage clause: revert to <code>manifest.local</code>.</p>
 </details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1031</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">✅ complete — owner-verified in play 2026-10-01 ("B3 seems fine now"), with the t254 save: over turns 219 to 254 the pair note last fired at t247 naming The Entity and Pirindel Farrenholt, both in that scene, and Nyla and Silas shared a turn 3 times in 36 (they were re-summoned every eight before). Built: v1.1031</td></tr>
 
 <tr id="B4"><td class="n">B4</td><td>
 <p class="ttl">"In the scene" never expires <span class="lean med">medium</span><span class="lean">wrong outcome · ruled</span></p>
@@ -462,7 +462,7 @@ details[open] summary{margin-bottom:8px}
 <p><span class="k">Evidence</span><code>detectStayBehind("Daeris settles in along your left side, warm and quiet.")</code> returns <code>"Daeris"</code>. Six of six field hits were false: Village t74, t115, t144, t173 and t194, plus fae t9 ("the residue left along the plinth"). Five SEPARATION UNRECORDED notes were delivered, and the GM spent a <code>[NO_CHANGE]</code> on one at t116.</p>
 <p><span class="k">Test first</span>The six field lines as negatives; "Daeris left the tavern" as a positive.</p>
 </details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1033</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">✅ complete — closed on the automated proof by owner ruling 2026-09-30 (it cannot be tested by playing: its test forces the failure, and its sabotage battery proves the test). Built: v1.1033</td></tr>
 
 <tr id="B6"><td class="n">B6</td><td>
 <p class="ttl">The RESIDENTS note says "Thessa Saltborn is the animal handler's yard", and fires as you walk out <span class="lean low">low</span><span class="lean">wrong text</span></p>
@@ -485,7 +485,7 @@ details[open] summary{margin-bottom:8px}
 </ul>
 <p><span class="k">Test first</span>The note never matches <code>/\b(?:is|are) the /</code> after a resident's name, and carries no whereabouts for present residents.</p>
 </details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1032</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">✅ complete — closed on the automated proof by owner ruling 2026-09-30 (it cannot be tested by playing: its test forces the failure, and its sabotage battery proves the test). Built: v1.1032</td></tr>
 
 <tr id="B7"><td class="n">B7</td><td>
 <p class="ttl">The console says the hero is "not on the roster" every turn <span class="lean low">low</span><span class="lean">noise</span></p>
@@ -494,7 +494,7 @@ details[open] summary{margin-bottom:8px}
 <details><summary>Evidence</summary>
 <p>"[presence] 'Ammut' (cast) is not on the roster…" appeared on 24 of 24 replayed turns.</p>
 </details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1034</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">✅ complete — owner-verified in play 2026-09-30: the owner's console (46 messages, 0 errors) no longer carries the hero's "not on the roster" line. Built: v1.1034</td></tr>
 </tbody></table>
 
 <h2 id="secC">C · Engine notes, memory and the prompt</h2>
@@ -751,7 +751,7 @@ three chest takes → pack x2 → x4 → x6, row unchanged, each "Ammut took Hem
 <p class="tldr"><b>TLDR:</b> Taking an Iron ring from your own chest, or buying a second salve at the counter, logs "DUPLICATE ITEM". The next turn tells the GM to delete it if it was "the same item re-described".</p>
 <p><span class="k">Fix</span>Ledger plans apply with <code>applyMuts(text, {source:"ledger"})</code>. ITEM_GAINED then skips the duplicate warning and the undefined-item candidate.</p>
 <details><summary>Evidence</summary><p><code>stashTradeApply({take:{"iron ring":1}})</code> gives "DUPLICATE ITEM: player sheet already had uncounted 'Iron ring'…" and sets <code>dupItemPending</code>, so the next notes include "DUPLICATE ITEM GRANT" (api.js:1861-1869).</p></details>
-</td><td class="c">S</td><td class="c">Fable</td><td class="s">◉ ready to test — v1.1025</td></tr>
+</td><td class="c">S</td><td class="c">Fable</td><td class="s">✅ complete — owner-verified in play 2026-09-30: a second loaf bought at the counter stacked to "x2" with no fuss ("works perfectly"); the chest half stays on its tests. Built: v1.1025</td></tr>
 
 <tr id="D7"><td class="n">D7</td><td>
 <p class="ttl">A counter sale worth under half a gold deletes the item and pays nothing <span class="lean low">low</span><span class="lean">ruled</span></p>

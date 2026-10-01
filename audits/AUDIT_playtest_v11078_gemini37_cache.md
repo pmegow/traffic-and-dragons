@@ -7,6 +7,7 @@
 - **Baseline:** [the flag-off run an hour earlier](AUDIT_playtest_v11078_gemini37.md), on the same campaign, character, model and client.
 - **Tokens:** 212,995 in and 3,938 out over 13 calls. The 11 turn calls carried 208,026 input tokens, of which **149,754 were read from the cache**.
 - **Cost:** the game's estimate is $0.175, the same as the baseline's $0.173. That estimate prices cached Gemini tokens at the full input rate on purpose (an upper bound), so it cannot show the saving. The invoice is the real check.
+- **The day’s third run:** the #488 note check (9 turn calls, 170,279 input tokens, 122,526 of them read from the cache) is estimated at $0.139 on the same upper-bound pricing. The three runs of 2026-09-30 total an estimated $0.49, inside the weekly allowance.
 - **Files:** corpus [`dev/corpus_playtest_v11078_gemini37_cache.json`](../dev/corpus_playtest_v11078_gemini37_cache.json); save `testRuns/modelTestCampaign_gemini37flash_v11078_cache.tnd` (local, gitignored).
 - **Judged by** Fable 5.1.
 - **Cleanup:** `__ptDeleteRun()` deleted exactly the run's campaign; the cloud copy was checked absent.
