@@ -195,13 +195,19 @@ if(typeof window!=="undefined")(function(){
   function ptPick(acts){var ch=__ptChoose(acts,ptState(),window.__ptPrev);window.__ptPrev=ch;if(ch.kind==="use"&&ch.item)window.__ptUsed[ch.item]=true;/* #363 */var t=ch.text;if(ch.kind==="random"&&typeof toFirstPerson==="function")t=toFirstPerson(t);return {text:t,kind:ch.kind,skipped:ch.skipped||null};}
   function isBusy(){return typeof busy!=="undefined" && busy;}
   async function waitIdle(maxMs){var start=Date.now();while(isBusy() && Date.now()-start<maxMs) await sleep(300);}
+  // The live options: the NEWEST narration's buttons only, as Car Mode's _carActions reads them (#305: the engine's fourth
+  // button rides inside it). The old read took the last four .qa buttons in the WHOLE story, so a three-button turn let the
+  // previous turn's last button into the pool — the v1.1078 run sent a t3 option at t5, after its target died at t4.
+  // null = not ready: no buttons on the newest narration yet, or its last one still disabled.
+  window.__ptLiveActions=function(){
+    var nars=document.querySelectorAll("#story-narrative .msg.narrator");if(!nars.length)return null;
+    var btns=nars[nars.length-1].querySelectorAll(".qa[data-action]");
+    if(!btns.length||btns[btns.length-1].disabled)return null;
+    return Array.prototype.map.call(btns,function(b){return b.getAttribute("data-action");});
+  };
   async function waitForActions(maxMs){
     var start=Date.now();
-    while(Date.now()-start<maxMs){
-      var btns=document.querySelectorAll("#story-narrative .qa[data-action]");
-      if(btns.length>=1 && !btns[btns.length-1].disabled) return Array.prototype.map.call(btns,function(b){return b.getAttribute("data-action");}).slice(-4);/* #305: the engine's fourth button rides along */
-      await sleep(300);
-    }
+    while(Date.now()-start<maxMs){var a=window.__ptLiveActions();if(a)return a;await sleep(300);}
     return [];
   }
   // #22 model-sweep graduation (2026-08-16): the COMMITTED-TURN driver. __ptRunBatch counts

@@ -172,6 +172,29 @@ test("the cleanup refuses a record that names the owner's campaign, and touches 
   assert.deepEqual(p.cloud(), ["c1", "c9"]);
 });
 
+// ── the action pool: the newest narration's buttons only ──
+function storyDoc(narrations) {   // narrations: [[{action, disabled}], …], oldest first
+  var nars = narrations.map(function (btns) {
+    var els = btns.map(function (b) { return { disabled: !!b.disabled, getAttribute: function (k) { return k === "data-action" ? b.action : null; } }; });
+    return { querySelectorAll: function (sel) { return sel === ".qa[data-action]" ? els : []; } };
+  });
+  var all = []; nars.forEach(function (n) { all = all.concat(n.querySelectorAll(".qa[data-action]")); });
+  return { getElementById: function () { return null; }, querySelectorAll: function (sel) { return sel === "#story-narrative .msg.narrator" ? nars : sel === "#story-narrative .qa[data-action]" ? all : []; } };
+}
+test("the action pool is the newest narration's buttons only — never the previous turn's last button (the v1.1078 t5 pick)", function () {
+  var p = page(); var B = function (a) { return { action: a }; };
+  p.ctx.document = storyDoc([[B("Interrogate the pinned slaver leader."), B("Cut down the reaver."), B("Finish Kadrun.")], [B("Cut down the surviving reaver."), B("Demand the reaver surrender."), B("Search Kadrun's corpse.")]]);
+  assert.deepEqual(Array.from(p.ctx.__ptLiveActions()), ["Cut down the surviving reaver.", "Demand the reaver surrender.", "Search Kadrun's corpse."]);
+  p.ctx.document = storyDoc([[B("a"), B("b"), B("c")], [B("d"), B("e"), B("f"), B("Buy the Dagger (2 gp).")]]);
+  assert.deepEqual(Array.from(p.ctx.__ptLiveActions()), ["d", "e", "f", "Buy the Dagger (2 gp)."], "the engine's fourth button rides along");
+  p.ctx.document = storyDoc([[B("a")], [B("d"), { action: "e", disabled: true }]]);
+  assert.equal(p.ctx.__ptLiveActions(), null, "not ready while the newest buttons are disabled");
+  p.ctx.document = storyDoc([[B("a")], []]);
+  assert.equal(p.ctx.__ptLiveActions(), null, "not ready before the newest narration has its buttons — an older turn's never stand in");
+  p.ctx.document = storyDoc([]);
+  assert.equal(p.ctx.__ptLiveActions(), null);
+});
+
 Promise.all(pending).then(function () {
   console.log((failed ? "FAIL" : "PASS") + " playtest server mode: " + passed + " passed, " + failed + " failed");
   process.exit(failed ? 1 : 0);

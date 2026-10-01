@@ -37,6 +37,10 @@ process.exit(sabotage.prove({ file: "dev/playtest-harness.js", command: CMD, cas
   { label: "a clear drops the undeleted run's record",
     find: "window.__pt={log:[],errors:[],raw:[]};if(keep)window.__pt.run=keep;", replace: "window.__pt={log:[],errors:[],raw:[]};",
     mustFail: "a new run waits until the previous signed-in run's campaign is deleted" },
+  { label: "the action pool reads the whole story's last four buttons again (a previous turn's button gets picked)",
+    find: "    var btns=nars[nars.length-1].querySelectorAll(\".qa[data-action]\");\n    if(!btns.length||btns[btns.length-1].disabled)return null;\n    return Array.prototype.map.call(btns,function(b){return b.getAttribute(\"data-action\");});",
+    replace: "    var btns=document.querySelectorAll(\"#story-narrative .qa[data-action]\");\n    if(!btns.length||btns[btns.length-1].disabled)return null;\n    return Array.prototype.map.call(btns,function(b){return b.getAttribute(\"data-action\");}).slice(-4);",
+    mustFail: "the action pool is the newest narration's buttons only" },
   { label: "the run's model is saved over the owner's choice",
     find: "    activeProvider=provider;providerModels[provider]=model;\n", replace: "    activeProvider=provider;providerModels[provider]=model;store.set(\"tnd_provider_v1\",provider);\n",
     mustFail: "the run's model is set in memory only" }
