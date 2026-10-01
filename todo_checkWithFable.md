@@ -255,6 +255,12 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-01 · #500 (v1.1088) · Codex: owner explicitly requested tripling the rule limit. Root cause is IMPORT_CAPS.rule=400, shared by blueprint normalization and prompt assembly; raised the single numeric entry to 1200. Review: only longer rules expand; other caps and authored-text wrappers remain intact, no parser/prompt assembly code changed. Three boundary tests cover 399/400/401/1199/1200/1201, prompt delivery and byte-identical short-rule prompts. Chrome reproduces the old mid-word cut and verifies full rule import/export.
+
+- 2026-10-01 · #499 follow-up (Designer v0.54) · Codex: owner reduced the picker to Fable 5.1, GPT-6 Astra and Gemini 3.8 Flash only. Removed inherited gameplay/custom options and resolve retired saved choices to the provider's retained model. Eight focused checks, four mutation proofs and actual Chrome review requests verified with fixture responses.
+
+- 2026-10-01 · #499 (Designer v0.53) · Codex: authoring-only frontier catalog, with page-local provider copies for mandatory Claude thinking and GPT-6 completion limits. Existing shared adapters and gameplay settings unchanged. Model IDs checked against official provider catalogs; seven focused checks, four mutation proofs, real Chrome review-request interception and full gate passed. No live model calls.
+
 - 2026-10-01 · #494 (dev tooling only, no version bump) · Codex: raw prose pipes split TODO #480 into extra columns. Escaped those pipes; added header-width validation using the viewer boundary rules to the staged commit gate, per-commit CI and standalone suite. Ten focused fixtures, four named mutation proofs, hook parity, and full regression gate passed. No game code changed.
 
 - 2026-09-28 · #478 (v1.1016) · Codex: owner-requested tavern chatter/hearth delivery and default interior fire. Shared audio-only profile compatibility retains explicit silence/prohibitions; snapshot adds read-only habitable flag from canonical village house ownership. No parser, prompt, persisted metadata or state-write changes. One existing bed controller/loader, no additional timers or audio contexts. Turn-205 saved profile reproduced silent before fix; tests written first, exact-save browser and named mutation proofs. Owner listening pending.

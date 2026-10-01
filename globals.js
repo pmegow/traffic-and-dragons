@@ -118,7 +118,7 @@ var SPELL_CANON_WINDOW=30;  // #311 ②: canonical spell rules inject only for s
 // #315 (review C5): every untrusted string that reaches the GM prompt is capped at import. The fence RULE
 // lives in DEFAULT_RULES; these are the sizes. Generous — a real premise is under 1,500 chars — so an honest
 // author never meets them and a hostile file cannot smuggle a second system prompt.
-var IMPORT_CAPS={premise:2500,backstory:2500,field:800,rule:400};
+var IMPORT_CAPS={premise:2500,backstory:2500,field:800,rule:1200};
 // #317 (review B11, owner taste: whispers over ledgers): reputation as RUMOUR. At a sized settlement the
 // engine asks, every WHISPERS_EVERY turns, for one line of what is said about the party — authored by the
 // GM from the recent decisions and finished quests — filed by [WHISPER:] on a ring and served back as
@@ -409,7 +409,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.1087";
+var APP_VERSION="v1.1088";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

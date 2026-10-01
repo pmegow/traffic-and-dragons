@@ -129,7 +129,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.52";/* v0.52: #481 G5 — every model wait's status counts seconds (creature, generate, review, apply) */
+var BP_DESIGNER_VERSION="v0.54";/* Designer-only frontier catalog and request compatibility. */
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -770,19 +770,61 @@ function llmReady(){
 }
 // ── LLM picker (v0.32) ─────────────────────────────────────────────────────────
 // Topbar dropdown showing WHICH model the designer's LLM features (Review / Apply fix /
-// Ask / Generate) use. Choices = every model of every provider that has a key on this
+// Ask / Generate) use. Choices = one authoring model per provider that has a key on this
 // device (keys ride in via loadProviderSettings, same as llmReady). The pick is persisted
 // DESIGNER-SIDE (bpd_llm_v1) and only flips the in-memory activeProvider for this page's
 // calls — the GAME's stored provider settings are never written (hard rule: this page
 // never writes the game's state keys).
 var LLM_PICK_K="bpd_llm_v1";
+// Authoring has a separate catalog from the sweep-certified gameplay menu.
+// IDs verified 2026-10-01 against developers.openai.com/api/docs/models,
+// platform.claude.com/docs/en/models/overview and ai.google.dev/gemini-api/docs/models.
+var DESIGNER_MODELS={
+  anthropic:{
+    models:["claude-fable-5-1"],
+    prepare:function(body){
+      body.thinking={type:"adaptive"};
+      body.max_tokens=Math.max(body.max_tokens||0,8192); // thinking shares the output ceiling
+      return body;
+    }
+  },
+  openai:{
+    models:["gpt-6-astra"],
+    prepare:function(body){
+      body.max_completion_tokens=Math.max(body.max_completion_tokens||body.max_tokens||0,8192);
+      delete body.max_tokens;
+      body.reasoning_effort="low";
+      return body;
+    }
+  },
+  gemini:{models:["gemini-3.8-flash"],prepare:function(body){return body;}}
+};
+function designerProviders(providers){
+  var out={};
+  Object.keys(providers).forEach(function(id){
+    var base=providers[id],spec=DESIGNER_MODELS[id],copy=Object.assign({},base);
+    if(spec){
+      copy.models=spec.models.slice();
+      copy.defaultModel=spec.models[0];
+      copy.buildBody=function(msgs,sys,maxTok,model){
+        var body=base.buildBody(msgs,sys,maxTok,model);
+        return spec.models.indexOf(model)>=0?spec.prepare(body):body;
+      };
+    }
+    out[id]=copy;
+  });
+  return out;
+}
+// This page owns its provider copies; no game settings or shared adapter definitions are written.
+PROVIDERS=designerProviders(PROVIDERS);
+
 function llmChoices(){
-  var out=[],ids=Object.keys(PROVIDERS),i,j,_viaServer=(typeof gmViaServer==="function"&&gmViaServer());
+  var out=[],ids=Object.keys(DESIGNER_MODELS),i,j,_viaServer=(typeof gmViaServer==="function"&&gmViaServer());
   for(i=0;i<ids.length;i++){
     var id=ids[i],p=PROVIDERS[id];
     if(!(providerKeys[id]||(id==="anthropic"&&apiKey)||_viaServer))continue; // same key test as llmReady; the gateway serves every listed provider
-    // The app's per-provider model override leads (it may be a custom id not in models[]).
-    var seen={},ms=[].concat(providerModels[id]?[providerModels[id]]:[],p.models||[]);
+    // Gameplay overrides cannot add choices to the authoring catalog.
+    var seen={},ms=p.models||[];
     for(j=0;j<ms.length;j++){if(!seen[ms[j]]){seen[ms[j]]=1;out.push({provider:id,label:p.label||id,model:ms[j]});}}
   }
   return out;
@@ -804,10 +846,10 @@ function wireLlmSelect(){
   }
   s.innerHTML=h;
   // Restore the persisted pick if its provider still has a key; else default to the app's
-  // current provider+model (what the calls would have used before this dropdown existed).
+  // current provider's authoring model when an older selection is no longer listed.
   var want="";try{want=localStorage.getItem(LLM_PICK_K)||"";}catch(e){}
   var valid=false;for(i=0;i<ch.length;i++)if(ch[i].provider+"|"+ch[i].model===want){valid=true;break;}
-  if(!valid)want=activeProvider+"|"+(providerModels[activeProvider]||(PROVIDERS[activeProvider]||{}).defaultModel||"");
+  if(!valid)want=activeProvider+"|"+((PROVIDERS[activeProvider]||{}).defaultModel||"");
   for(i=0;i<ch.length;i++)if(ch[i].provider+"|"+ch[i].model===want){s.value=want;break;}
   if(!s.value)s.value=ch[0].provider+"|"+ch[0].model;
   activeProvider=s.value.split("|")[0]; // in-memory only — keys/endpoint must match the picked model

@@ -105,6 +105,34 @@ function runEngineTests(R){
   });
 
   // ── 1. Model-output JSON repair (the generateSkeleton/summarize failure class) ──
+  section("#500 blueprint rule length");
+  t("#500 imported rules preserve 401 through 1200 characters and cap at 1200",function(){
+    var sizes=[399,400,401,1199,1200,1201],rules=sizes.map(function(n){return new Array(n).join("x")+".";});
+    var bp={rules:rules.slice(),acts:[],npcs:[],locations:[],creatures:[]};
+    normalizeBlueprint(bp);
+    for(var i=0;i<sizes.length;i++){
+      var want=rules[i].slice(0,1200);
+      if(bp.rules[i]!==want)return "length "+sizes[i]+" became "+bp.rules[i].length+"; expected "+want.length;
+    }
+    return IMPORT_CAPS.rule===1200?true:"rule cap must be 1200";
+  });
+  t("#500 the campaign prompt preserves the same 1200-character rule boundary",function(){
+    makeWorld();var saved=customRules.slice(),rule=new Array(1200).join("q")+"!";
+    try{
+      customRules=[rule+"Z"];var block=getRulesBlock();
+      if(block.indexOf(rule)<0)return "rule ending clipped from the prompt";
+      return block.indexOf(rule+"Z")<0?true:"over-limit character reached the prompt";
+    }finally{customRules=saved;}
+  });
+  t("#500 short-rule prompts stay byte-identical when the cap grows",function(){
+    makeWorld();var saved=customRules.slice(),cap=IMPORT_CAPS.rule;
+    try{
+      customRules=["The moon is always visible."];IMPORT_CAPS.rule=400;
+      var old=buildSysPrompt();IMPORT_CAPS.rule=1200;var current=buildSysPrompt();
+      return old.stable===current.stable&&old.volatile===current.volatile?true:"short-rule prompt changed";
+    }finally{customRules=saved;IMPORT_CAPS.rule=cap;}
+  });
+
   section("repairModelJson / stripCodeFences");
   t("fenced object parses",function(){var o=JSON.parse(repairModelJson("```json\n{\"a\":1}\n```"));return eq(o.a,1);});
   t("preamble + postamble prose stripped",function(){var o=JSON.parse(repairModelJson("Here is your JSON:\n{\"a\":1}\nHope that helps!"));return eq(o.a,1);});
