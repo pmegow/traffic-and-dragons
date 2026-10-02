@@ -29449,4 +29449,24 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return !memory.npcs[K504]&&Object.keys(memory.npcs).length===1?true:"after the GM aliased the title to her, the same-person answer by the called name must still fold the provisional: "+keys534();
   });
 
+
+  section("#535 the merge gate reads the tag the way the parser does");
+  t("#535 the repro: [MERGE:NPC|a|b], [MERGE: npc |a|b] and [MERGE:Npc|a|b] are proposals like [MERGE:npc|a|b] — never an unconfirmed fusion of two established people",function(){
+    var forms=["[MERGE:NPC|Isolde Marsh|Wilhelmina Underbough]","[MERGE: npc |Isolde Marsh|Wilhelmina Underbough]","[MERGE:Npc|Isolde Marsh|Wilhelmina Underbough]","[MERGE:npc|Isolde Marsh|Wilhelmina Underbough]"],i;
+    for(i=0;i<forms.length;i++){w504();on503("Isolde Marsh","she/her");sceneRefsEnsure();
+      quiet(function(){applyMuts("They are one woman. "+forms[i]);});
+      if(!memory.npcs["Wilhelmina Underbough"]||!wsNpcByName("Wilhelmina Underbough"))return forms[i]+" fused two established people with no confirmation (the gate looked for the lower-case, unspaced spelling only; the parser accepts any)";
+      if(!(worldState.pendingMergeHints||[]).some(function(h){return h.canonical==="Isolde Marsh"&&h.duplicate==="Wilhelmina Underbough";}))return forms[i]+" must reach the confirmation queue: "+JSON.stringify(worldState.pendingMergeHints);}
+    return true;
+  });
+  t("#535 a confirmed merge still lands under any spelling, and other domains are untouched",function(){
+    w504();on503("Isolde Marsh","she/her");sceneRefsEnsure();
+    quiet(function(){applyMuts("[MERGE:NPC|Isolde Marsh|Wilhelmina Underbough]");});
+    worldState.turn++;if(buildMergeConfirmNudge().indexOf("[NPC_MERGE:Isolde Marsh|Wilhelmina Underbough]")<0)return "fixture: the confirmation note";
+    worldState.turn++;quiet(function(){applyMuts("[MERGE:NPC|Isolde Marsh|Wilhelmina Underbough]");});
+    if(memory.npcs["Wilhelmina Underbough"])return "the confirmed merge must land in the armed turn, whatever the spelling";
+    var r=quiet(function(){return applyMuts("[MERGE:item|Rope|Hemp Rope]");});
+    return r.warns.some(function(x){return /REFUSED/.test(x);})?true:"an item merge is still refused by the registry, not swallowed by the npc gate: "+JSON.stringify(r.warns);
+  });
+
 }

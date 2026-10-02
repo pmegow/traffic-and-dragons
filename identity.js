@@ -1851,7 +1851,9 @@ function w2PrepareResponse(text){
     }
   }
   var merges=ordinary.match(/\[NPC_MERGE:([^|\]]+)\|([^\]]+)\]/g)||[],mi;for(mi=0;mi<merges.length;mi++){var mp=merges[mi].match(/\[NPC_MERGE:([^|\]]+)\|([^\]]+)\]/),mc=mp[1].trim(),md=mp[2].trim();if(_w2MergeStrip(merges[mi],mc,md))ordinary=ordinary.replace(merges[mi],"");}
-  var gen=ordinary.match(/\[MERGE:npc\|([^|\]]+)\|([^\]]+)\]/g)||[];for(mi=0;mi<gen.length;mi++){var gp=gen[mi].match(/\[MERGE:npc\|([^|\]]+)\|([^\]]+)\]/),gc=gp[1].trim(),gd=gp[2].trim();if(_w2MergeStrip(gen[mi],gc,gd))ordinary=ordinary.replace(gen[mi],"");}
+  /* #535: _identityActionTag trims and lower-cases the domain, so [MERGE:NPC|a|b] and [MERGE: npc |a|b] are npc merges to the parser. The gate
+     looked for the exact spelling only, and those passed it unseen: two established people fused with no confirmation. */
+  var gen=ordinary.match(/\[MERGE:\s*npc\s*\|([^|\]]+)\|([^\]]+)\]/gi)||[];for(mi=0;mi<gen.length;mi++){var gp=gen[mi].match(/\[MERGE:\s*npc\s*\|([^|\]]+)\|([^\]]+)\]/i),gc=gp[1].trim(),gd=gp[2].trim();if(_w2MergeStrip(gen[mi],gc,gd))ordinary=ordinary.replace(gen[mi],"");}
   return {ordinary:ordinary,txns:txns};
 }
 function _w2ChapterDeath(name,summary){var esc=String(name).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),n="\\b"+esc+"\\b",s=String(summary||"");return new RegExp(n+"\\s+(?:died|perished)\\b","i").test(s)||new RegExp(n+"\\s+(?:(?:was|is|had been|has been|lay|lies|fell|falls|dropped|drops|remained|remains)\\s+)(?:dead|slain|killed|deceased)\\b","i").test(s)||new RegExp("\\b(?:the\\s+)?death\\s+of\\s+"+n,"i").test(s)||new RegExp(n+"'s\\s+(?:corpse|remains)\\b","i").test(s)||new RegExp(n+"\\s+bled\\s+out\\b","i").test(s);/* #168R6c: "X's corpse cooled" / "X bled out" are death-shaped chapter claims too (entry-13 review) */}
