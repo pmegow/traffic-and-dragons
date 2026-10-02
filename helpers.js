@@ -44,6 +44,46 @@ function wsNpcByName(name){
   var i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name)return worldState.npcs[i];}
   return null;
 }
+/* #543: the fields that pin how a character sounds: every slot of the ONE table (TTS.characterVoiceSlots, tts.js: the Piper
+   backup and each cloud voice), the delivery direction and the speed. A host that loads no voice module finds the slot
+   fields by their names on the objects it is given: voiceId, and any field that ends in VoiceId. The bodies of this and the
+   next two helpers match the parked #532 branch (claude/532-538-voice-hero), where they were written first; its rebase
+   keeps one copy. */
+function voicePinFields(objs){
+  var f=["voiceDirection","voiceRate"],s,i,k;
+  if(typeof TTS!=="undefined"&&TTS&&TTS.characterVoiceSlots){s=TTS.characterVoiceSlots();for(i=0;i<s.length;i++)f.push(s[i].field);return f;}
+  f.push("voiceId");
+  for(i=0;i<(objs||[]).length;i++)for(k in (objs[i]||{}))if(k.length>7&&k.slice(-7)==="VoiceId"&&f.indexOf(k)<0)f.push(k);
+  return f;
+}
+/* #543: fills each voice field the OWNER lacks from the first source that holds a value that fits, and returns how many it
+   filled. The owner's own pin always wins, and a field no source holds is not written at all. fits(field,value) is optional. */
+function voicePinsFill(owner,sources,fits){
+  var f=voicePinFields([owner].concat(sources)),n=0,i,j,src;
+  for(i=0;i<f.length;i++){
+    if(owner[f[i]])continue;
+    for(j=0;j<sources.length;j++){src=sources[j];if(src&&src[f[i]]&&(!fits||fits(f[i],src[f[i]]))){owner[f[i]]=src[f[i]];n++;break;}}
+  }
+  return n;
+}
+/* #543: a kept voice follows a person only when it fits them. M and F match exactly, as in casting (castGenderMatches,
+   tts.js). Only a KNOWN mismatch refuses: a voice the catalog does not list, a person of unknown sex, the direction and the
+   speed all pass. A refused slot stays empty and is cast again, matched. */
+function voicePinFitsGender(gender){
+  return function(field,value){
+    var vg;
+    if((gender!=="M"&&gender!=="F")||typeof TTS==="undefined"||!TTS||!TTS.pinnedVoiceGender)return true;
+    vg=TTS.pinnedVoiceGender(field,value);
+    return !vg||vg===gender;
+  };
+}
+/* #543: the fallen companion's rejoin. The parked copy predates anything set on the card while he was down, so the live card
+   is the authority for every voice field: its value is copied, and a field it lacks (a speed or direction cleared) is removed. */
+function voicePinsMirror(target,source){
+  var f=voicePinFields([target,source]),i;
+  for(i=0;i<f.length;i++){if(source[f[i]])target[f[i]]=source[f[i]];else delete target[f[i]];}
+  return target;
+}
 // AUDIT_FABLE_07_16 #11①: conservative arc↔quest title match — exact or one-contains-the-other,
 // case-insensitive (the findCompanionNpc discipline, no fuzzy scoring). Shared by
 // buildArcQuestNudge and buildArcDriftNudge (api.js), which defined it twice char-identically.

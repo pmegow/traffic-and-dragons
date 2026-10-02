@@ -981,6 +981,17 @@ var TTS = (function() {
   function castGenderMatches(gender, actorGender) {
     return (gender === "M" || gender === "F") ? actorGender === gender : true;
   }
+  /* #543: the sex of a voice a character is pinned to, read from that slot's own catalog (the star bench for the Piper
+     backup, the loaded actors for a cloud slot): "M", "F", or "" when the catalog does not list the voice, lists it with no
+     single sex, or the field is not a voice slot. A library replace asks it before a kept voice stays (voicePinFitsGender). */
+  function pinnedVoiceGender(field, id) {
+    var gender = "";
+    CHARACTER_VOICE_SLOTS.forEach(function(slot) {
+      if (slot.field !== field) return;
+      (slot.catalog() || []).forEach(function(v) { if (v && v.id === id && (v.g === "M" || v.g === "F")) gender = v.g; });
+    });
+    return gender;
+  }
   function filterCharacterVoices(char, voices) {
     var gender = _autoCastGender(char);
     return voices.filter(function(v) { return castGenderMatches(gender, v.g); });
@@ -4531,6 +4542,7 @@ var TTS = (function() {
     assignCharacterVoices: assignCharacterVoices,
     filterCharacterVoices: filterCharacterVoices,
     castGenderMatches: castGenderMatches,
+    pinnedVoiceGender: pinnedVoiceGender,
     characterVoiceSlots: function() { return CHARACTER_VOICE_SLOTS.slice(); },
     /* #481 E6: what the PRIMARY reader does with a character's own speed and direction — the sheet shows a row only where it is
        honoured — and who does honour each (derived from the flags, never a hand list). */

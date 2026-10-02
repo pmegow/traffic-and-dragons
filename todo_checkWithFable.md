@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-02 · #543 voice settings across a sheet swap (v1.1112) · Opus 5.5, on the owner's explicit instruction: engine code in game.js/helpers.js/tts.js, OUTSIDE the safe-changes map (not drift surface: the five voice fields are read only by the sheet's Voice section and TTS casting). Owner ruled Keep: a library value replaces, a field the copy lacks keeps the live value. `adoptLibraryHero`/`adoptLibraryCompanion` call `voicePinsFill` with the `voicePinFitsGender` fit (hero before `assignCharacterVoices`); `mpRejoinFallen` calls `voicePinsMirror`. The helpers and `TTS.pinnedVoiceGender` share bodies with the parked #532 branch. 5 tests failed first; battery 9/9. Re-check: the rejoin's "live card wins, a clear included" rule, and the rebase of `claude/532-538-voice-hero` over these helpers.
+
 - 2026-10-01 · #508 NPC portraits (Designer v0.57) · Codex: owner-requested extension of Designer card portraits to NPCs. One card-type registry, shared generation and controls; NPC prompts use public name/role/pronouns/notes only. Image data remains portable and survives text Apply, and stale edits/deletions/replaced drafts preserve prior images. No engine changes. Browser and focused failure tests, with secret-leak and NPC Apply mutation proofs.
 
 - 2026-10-01 · #508 follow-up (Designer v0.56) · Codex: owner-requested creature card layout and saved-image viewer; UI-only, image storage and engine untouched. Real Chrome screenshots cover desktop, phone and enlargement; keyboard focus restoration and three layout/viewer mutation clauses added.

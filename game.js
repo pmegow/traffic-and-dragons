@@ -1537,7 +1537,9 @@ function ensureV10Arrays(s){
 /* #427/#428: ONE adopter per host for a library copy — the village's stamp-gated refresh and the sheet's explicit
    "Replace from library" both come here, so they can never disagree. Wholesale COPY, the local NAME kept (it is the
    identity key everywhere), relationships through the axis adapter, item canon adopted, v10 arrays ensured, framing
-   kept when the copy has none, voices reassigned, the stamp set (null when the entry is undated). */
+   kept when the copy has none, the stamp set (null when the entry is undated). #543 (owner ruling 2026-10-02): the voice
+   settings are the one exception to wholesale — a voice field the copy carries replaces the live one, a field it lacks keeps
+   the live value when it fits the copy's sex; the hero's empty slots are then cast. */
 function adoptLibraryHero(c,at){
   var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross==="function")sceneFieldsCross(hero);/* #481 C5 */
   hero.name=worldState.character.name;
@@ -1545,6 +1547,7 @@ function adoptLibraryHero(c,at){
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(hero);
   ensureV10Arrays(hero);
   hero.portraitOffset=hero.portraitOffset||worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};
+  voicePinsFill(hero,[worldState.character],voicePinFitsGender(hero.gender));/* #543: before the cast, so only a slot still empty is cast */
   if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(hero);
   worldState.character=hero;worldState.heroLibraryAt=(typeof at==="number")?at:null;
   /* #481 D10: the OLD sheet's owed level-up choices and pending delete-marks go with it — the queue is keyed by the kept
@@ -1560,6 +1563,7 @@ function adoptLibraryCompanion(n,c,at){
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);
   ensureV10Arrays(sheet);
   sheet.portraitOffset=sheet.portraitOffset||(n.charSheet&&n.charSheet.portraitOffset)||n.portraitOffset||null;
+  if(n.charSheet)voicePinsFill(sheet,[n.charSheet],voicePinFitsGender(sheet.gender));/* #543: a refused slot is cast at the next line (pinAutoCastVoices) */
   n.charSheet=sheet;n.libraryAt=(typeof at==="number")?at:null;n.pronouns=pronounsForGender(sheet.gender);
   if(sheet.portraitOffset)n.portraitOffset=JSON.parse(JSON.stringify(sheet.portraitOffset));/* §19: the wrapper's copy is what display reads */
   adoptLibraryCompanion.lastReplay=(typeof stashMovesReplay==="function")?stashMovesReplay(sheet,c&&c.stashMarks?c.stashMarks[stashMarkKey()]:null):null;/* #481 D9: the household's takes too */
@@ -4091,7 +4095,7 @@ function mpFallPC(name,cause){
 function mpRejoinFallen(){
   var f=worldState&&worldState.mpFallen;if(!f||!f.length)return 0;var k=0;
   while(f.length){var rec=f.shift();var n=wsNpcByName(rec.name);if(!n)continue;
-    delete n.dead;n.status="alive";n.charSheet=rec.sheet;n.charSheet.hp=n.charSheet.maxHp;
+    delete n.dead;n.status="alive";if(n.charSheet)voicePinsMirror(rec.sheet,n.charSheet);/* #543 */n.charSheet=rec.sheet;n.charSheet.hp=n.charSheet.maxHp;
     if(memory.npcs&&memory.npcs[n.name])delete memory.npcs[n.name].dead;
     if(typeof fileCoreMemory==="function")fileCoreMemory("death",n.name,n.name+" fell"+(rec.cause?" to "+rec.cause:"")+" and returned to the party at camp.");k++;}
   delete worldState.mpFallen;

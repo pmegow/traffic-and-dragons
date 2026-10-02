@@ -24936,6 +24936,63 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #543 — the voice settings across a whole-sheet swap (owner ruling 2026-10-02: Keep) ──
+  // "Replace from library" and the Village refresh replace a sheet wholesale (#427/#428), and a fallen companion's
+  // rejoin puts back the copy parked at the fall. None of them handed the five per-character voice fields over, so a
+  // companion lost her actor, direction and speed, and the hero was cast again. The ruling: a value on the library
+  // copy replaces the live one; a field the copy lacks keeps the live value. The rejoin needs no ruling: the live
+  // card is the authority for its voice, a clear included.
+  section("#543 voice settings across a sheet swap");
+  function __voicePins(s){return JSON.stringify([s.voiceId||"",s.speechifyVoiceId||"",s.inworldVoiceId||"",s.voiceDirection||"",Number(s.voiceRate)||0]);}
+  t("#543 Replace from library on a companion: a voice field the copy lacks keeps the live value (an empty one counts as lacking); a value the copy carries replaces it",function(){
+    villageCD();
+    worldState.npcs.push({name:"Gazz",status:"ally",rel:"companion",met:1,partyMember:true,pronouns:"he/him",charSheet:{name:"Gazz",gender:"M",level:5,voiceId:"live-piper",speechifyVoiceId:"live-sp",inworldVoiceId:"live-inw",voiceDirection:"gruff and impatient",voiceRate:0.9}});
+    var r=libReplaceApply("Gazz",__libCopy("Gazz",{gender:"M",speechifyVoiceId:"lib-sp",voiceRate:1.1,voiceDirection:""}),5);if(!r.ok||r.host!=="companion")return "apply: "+JSON.stringify(r);
+    var s=wsNpcByName("Gazz").charSheet;if(s.level!==18)return "the sheet was not replaced wholesale";
+    var want=JSON.stringify(["live-piper","lib-sp","live-inw","gruff and impatient",1.1]);
+    return __voicePins(s)===want?true:"voice fields after Replace: "+__voicePins(s)+" (want "+want+")";
+  });
+  t("#543 the Village refresh keeps a resident's voice settings when the newer library copy carries none",function(){
+    villageCD();var fz=wsNpcByName("Frizwick");if(!fz||!fz.charSheet)return "fixture: Frizwick has no sheet";
+    fz.libraryAt=1;fz.charSheet.speechifyVoiceId="fz-sp";fz.charSheet.voiceDirection="warm, unhurried";fz.charSheet.voiceRate=0.95;
+    var out=villageRefreshFromLibrary([{character:__libCopy("Frizwick",{gender:"NB"}),updatedAt:999}]);if(out.refreshed.indexOf("Frizwick")<0)return "fixture: the refresh did not run: "+JSON.stringify(out);
+    var s=wsNpcByName("Frizwick").charSheet;if(s.level!==18)return "the sheet was not refreshed";
+    return s.speechifyVoiceId==="fz-sp"&&s.voiceDirection==="warm, unhurried"&&s.voiceRate===0.95?true:"the refresh dropped the voice settings: "+__voicePins(s);
+  });
+  t("#543 Replace from library on the hero keeps the hero's voices (never cast again) when the copy has none, and takes the copy's own where it has one",function(){
+    villageCD();var c=worldState.character,nm=c.name;c.gender="F";c.voiceId="hero-piper";c.speechifyVoiceId="hero-sp";c.inworldVoiceId="hero-inw";c.voiceDirection="dry, amused";c.voiceRate=1.05;
+    var r=libReplaceApply(nm,__libCopy(nm,{gender:"F"}),4244);if(!r.ok||r.host!=="hero")return "apply: "+JSON.stringify(r);
+    var want=JSON.stringify(["hero-piper","hero-sp","hero-inw","dry, amused",1.05]);if(__voicePins(worldState.character)!==want)return "the hero's voices after Replace: "+__voicePins(worldState.character)+" (want "+want+")";
+    r=libReplaceApply(nm,__libCopy(nm,{gender:"F",voiceId:"lib-piper",voiceDirection:"bright"}),4245);
+    want=JSON.stringify(["lib-piper","hero-sp","hero-inw","bright",1.05]);
+    return __voicePins(worldState.character)===want?true:"the copy's own voice values must replace: "+__voicePins(worldState.character)+" (want "+want+")";
+  });
+  t("#543 a kept voice of the known other sex is not carried onto a copy whose sex changed: the hero is cast again matched, a companion's slot is left for the next line's cast; direction and speed still carry",function(){
+    var K=TTS.settings._keys.settings,old=store.get(K),stars=store.get("tnd_speaker_stars_v1");
+    try{
+      store.set(K,JSON.stringify({models:{speechify:{voices:[{id:"f1",label:"One",g:"F"},{id:"m1",label:"Two",g:"M"}],narrator:"m1"}}}));
+      store.set("tnd_speaker_stars_v1",JSON.stringify([{id:"en_GB-alba-medium",label:"F",g:"F"},{id:"en_US-ryan-high",label:"M",g:"M"}]));
+      if(TTS.pinnedVoiceGender("speechifyVoiceId","m1")!=="M"||TTS.pinnedVoiceGender("voiceId","en_GB-alba-medium")!=="F"||TTS.pinnedVoiceGender("voiceId","not-listed")!=="")return "pinnedVoiceGender must read each slot's own catalog";
+      villageCD();var c=worldState.character,nm=c.name;c.gender="M";c.voiceId="en_US-ryan-high";c.speechifyVoiceId="m1";c.voiceDirection="low";c.voiceRate=0.9;
+      libReplaceApply(nm,__libCopy(nm,{gender:"F"}),4246);c=worldState.character;
+      if(c.voiceId!=="en_GB-alba-medium"||c.speechifyVoiceId!=="f1")return "the hero kept a man's voice as a woman, or was not cast again: "+__voicePins(c);
+      if(c.voiceDirection!=="low"||c.voiceRate!==0.9)return "direction and speed must carry: "+__voicePins(c);
+      worldState.npcs.push({name:"Gazz",status:"ally",rel:"companion",met:1,partyMember:true,pronouns:"he/him",charSheet:{name:"Gazz",gender:"M",level:5,voiceId:"en_US-ryan-high",speechifyVoiceId:"m1",voiceDirection:"gruff"}});
+      libReplaceApply("Gazz",__libCopy("Gazz",{gender:"F"}),6);var s=wsNpcByName("Gazz").charSheet;
+      return !s.voiceId&&!s.speechifyVoiceId&&s.voiceDirection==="gruff"?true:"a companion carried a voice of the other sex: "+__voicePins(s);
+    }finally{if(old===null)store.del(K);else store.set(K,old);if(stars===null)store.del("tnd_speaker_stars_v1");else store.set("tnd_speaker_stars_v1",stars);}
+  });
+  t("#543 a fallen companion rejoins with the voice settings on his card, set or cleared while he was down; the rest of the parked sheet comes back as before",function(){
+    makeWorld();worldState.turn=20;
+    worldState.npcs.push({name:"Bram",status:"alive",rel:"ally",partyMember:true,isPC:true,charSheet:{name:"Bram",gender:"M",cls:"Warrior",level:3,hp:0,maxHp:20,stats:{},abilities:[],spells:[],inventory:["axe"],conditions:[],voiceId:"old-piper",voiceDirection:"old direction",voiceRate:0.9}});
+    mpFallPC("Bram","a troll");
+    var live=wsNpcByName("Bram").charSheet;live.speechifyVoiceId="picked-while-down";live.voiceDirection="hoarse, tired";delete live.voiceRate;live.inventory=[];
+    mpRejoinFallen();var s=wsNpcByName("Bram").charSheet;
+    if(s.hp!==20||s.inventory[0]!=="axe")return "the parked sheet must come back: "+JSON.stringify({hp:s.hp,inv:s.inventory});
+    var want=JSON.stringify(["old-piper","picked-while-down","","hoarse, tired",0]);
+    return __voicePins(s)===want?true:"voice fields after the rejoin: "+__voicePins(s)+" (want "+want+")";
+  });
+
   // ── B38 — a NAMED provider block on the chapter extractor is never replayed unchanged (2026-09-21) ──
   // Gemini answered the extractor with promptFeedback.blockReason=PROHIBITED_CONTENT; the adapter names it
   // (e.modelRefusal) but summarize() treated it as a transient: strike, keep the window, replay the IDENTICAL
