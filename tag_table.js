@@ -722,6 +722,14 @@ var TAG_TABLE=[
     if(_mgDupN.portrait&&!_mgCanN.portrait)_mgCanN.portrait=_mgDupN.portrait;
     if(_mgDupN.portraitOffset&&!_mgCanN.portraitOffset)_mgCanN.portraitOffset=_mgDupN.portraitOffset;
     if(_mgDupN.pronouns&&!_mgCanN.pronouns)_mgCanN.pronouns=_mgDupN.pronouns;
+    /* #532: the voice a character first spoke in follows the person. A sheetless speaker's pins live on the roster row (pinAutoCastVoices,
+       game.js) and the fold never carried them, so a provisional who turned out to be another person (#504) was re-cast on her next line.
+       Each field the canonical lacks is filled; its own pin always wins. A sheet owns its character's pins (the row's were deleted when
+       the sheet was made), so a SHEETED canonical takes nothing — a row pin there would be a stale duplicate; a sheeted duplicate needs
+       nothing either, its pins ride on the sheet the fold already carries. */
+    var _mgVf=["voiceDirection","voiceRate"],_mgVs=(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)?TTS.characterVoiceSlots():[{field:"voiceId"}],_mgVi;
+    for(_mgVi=0;_mgVi<_mgVs.length;_mgVi++)_mgVf.push(_mgVs[_mgVi].field);
+    if(!_mgCanN.charSheet)for(_mgVi=0;_mgVi<_mgVf.length;_mgVi++)if(_mgDupN[_mgVf[_mgVi]]&&!_mgCanN[_mgVf[_mgVi]])_mgCanN[_mgVf[_mgVi]]=_mgDupN[_mgVf[_mgVi]];
     if(_mgDupN.dead&&!_mgCanN.dead)_mgCanN.dead=_mgDupN.dead;/* B3: a merge must not lose the dupe's death */
     if((!_mgCanN.status||_mgCanN.status==="unknown")&&_mgDupN.status)_mgCanN.status=_mgDupN.status;
     if((!_mgCanN.rel||_mgCanN.rel==="unknown")&&_mgDupN.rel)_mgCanN.rel=_mgDupN.rel;

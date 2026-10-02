@@ -29311,4 +29311,33 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return npcConsolidation("Queen Vess").ask==="queen"?true:"a parenthetical describes — it does not make the record carry the title";
   });
 
+
+  section("#532 a merge carries the voice a character was pinned with");
+  function v532(name,pins){on503(name,"she/her");var r=wsNpcByName(name),k;for(k in pins)r[k]=pins[k];return r;}
+  t("#532 the repro: a titled relative speaks while provisional, the GM answers 'another person', and she keeps the voice she first spoke in",function(){
+    w504();quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    var row=wsNpcByName(K504);row.voiceId="en_GB-vctk-medium#13";row.speechifyVoiceId="carter";row.voiceDirection="clipped, cold";row.voiceRate=1.1;
+    quiet(function(){applyMuts("Her mother. [MERGE:npc|Queen Underbough|"+K504+"]");});
+    var q=wsNpcByName("Queen Underbough");
+    if(!q)return "fixture: the answer must land";
+    if(q.voiceId!=="en_GB-vctk-medium#13")return "her pinned voice was dropped by the merge — she would be re-cast on her next line: "+JSON.stringify(q.voiceId);
+    if(q.speechifyVoiceId!=="carter")return "every cloud slot's pin follows her too: "+JSON.stringify(q.speechifyVoiceId);
+    return q.voiceDirection==="clipped, cold"&&q.voiceRate===1.1?true:"the delivery direction and the speed follow her: "+JSON.stringify([q.voiceDirection,q.voiceRate]);
+  });
+  t("#532 the canonical's own pin always wins; only a field it lacks is filled; a sheeted canonical takes nothing; an unpinned pair stays unpinned",function(){
+    w503();v532("Belor Hemlock",{voiceId:"keep-me",voiceRate:0.9});v532("Hemlock the Elder",{voiceId:"dupe-voice",speechifyVoiceId:"dupe-cloud",voiceRate:1.3});
+    quiet(function(){applyMuts("[NPC_MERGE:Belor Hemlock|Hemlock the Elder]");});
+    var c=wsNpcByName("Belor Hemlock");
+    if(c.voiceId!=="keep-me"||c.voiceRate!==0.9)return "the canonical's own voice was overwritten: "+JSON.stringify([c.voiceId,c.voiceRate]);
+    if(c.speechifyVoiceId!=="dupe-cloud")return "a slot the canonical never had is filled from the duplicate: "+JSON.stringify(c.speechifyVoiceId);
+    w503();var sh=v532("Belor Hemlock",{});sh.charSheet={name:"Belor Hemlock",voiceId:"sheet-voice",inventory:[],abilities:[]};v532("Hemlock the Elder",{voiceId:"dupe-voice",speechifyVoiceId:"dupe-cloud"});
+    quiet(function(){applyMuts("[NPC_MERGE:Belor Hemlock|Hemlock the Elder]");});
+    c=wsNpcByName("Belor Hemlock");
+    if(c.voiceId||c.speechifyVoiceId||c.charSheet.voiceId!=="sheet-voice")return "a sheet owns its character's pins — nothing stale may land on the sheeted canonical's row: "+JSON.stringify([c.voiceId,c.speechifyVoiceId,c.charSheet.voiceId]);
+    w503();v532("Belor Hemlock",{});v532("Hemlock the Elder",{});
+    quiet(function(){applyMuts("[NPC_MERGE:Belor Hemlock|Hemlock the Elder]");});
+    c=wsNpcByName("Belor Hemlock");
+    return !("voiceId" in c)&&!("voiceRate" in c)&&!("voiceDirection" in c)?true:"an unpinned merge must not write empty voice fields: "+JSON.stringify(c);
+  });
+
 }
