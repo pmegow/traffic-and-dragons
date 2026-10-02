@@ -29288,4 +29288,70 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return memory.npcs["Bram"].events.length===2?true:"an ordinary note must still be filed";
   });
 
+  section("#536 a tag whose operand is a reserved word is refused");
+  var BASE536=(function(){var o={proto:Object.getOwnPropertyNames(Object.prototype),obj:Object.getOwnPropertyNames(Object),fns:{}},i;for(i=0;i<o.proto.length;i++){var d=Object.getOwnPropertyDescriptor(Object.prototype,o.proto[i]);if(d&&typeof d.value==="function")o.fns[o.proto[i]]=Object.getOwnPropertyNames(d.value);}return o;})();
+  /* what a tag left behind on the built-ins: a field on Object.prototype (every object then reads it), on the Object function, or on one of the prototype's own functions. It also REMOVES what it finds, so one poisoned run cannot fail the tests after it. */
+  function poison536(){
+    var out=[],n,i,k,fn,fnNames;
+    n=Object.getOwnPropertyNames(Object.prototype);for(i=0;i<n.length;i++)if(BASE536.proto.indexOf(n[i])<0){out.push("Object.prototype."+n[i]);delete Object.prototype[n[i]];}
+    n=Object.getOwnPropertyNames(Object);for(i=0;i<n.length;i++)if(BASE536.obj.indexOf(n[i])<0){out.push("Object."+n[i]);delete Object[n[i]];}
+    for(k in BASE536.fns){fn=Object.getOwnPropertyDescriptor(Object.prototype,k).value;fnNames=Object.getOwnPropertyNames(fn);for(i=0;i<fnNames.length;i++)if(BASE536.fns[k].indexOf(fnNames[i])<0){out.push(k+"."+fnNames[i]);delete fn[fnNames[i]];}}
+    return out;
+  }
+  function w536(){w503();on503("Bram","he/him");worldState.character.gold=10;}
+  function run536(text,opts){var q=quiet(function(){return applyMuts(text,opts);});return {muts:(q.r&&q.r.muts)||[],errors:(q.r&&q.r.errors)||[],warns:q.warns,poison:poison536()};}
+  function refused536(r,word){return r.muts.some(function(m){return m.indexOf("⚠ Tag refused")===0&&m.indexOf("'"+word+"'")>=0;});}
+  var SHAPES536=["[NPC:W|grim|neutral]","[NPC_PRONOUN:W|he/him]","[NPC_NOTE:W|a fact]","[NPC_ALIAS:W|Other]","[NPC_ALIAS:Bram|W]","[SCENE_CAST:W]","[SCENE_REF:h|W]","[ITEM_GAINED:W]","[ITEM_LOST:W]","[LOCATION:W]","[SUBLOCATION:W]","[LOCATION_ITEM:W|here]","[QUEST:W|active|do it]","[QUEST_STEP:W|a step|true]","[SPELL_USED:W]","[ABILITY_GAINED:W]","[CONDITION:W]","[CONDITION_REMOVED:W]","[FACTION:W|a group]","[NPC_FACTION:Bram|W|member]","[NPC_LINK:Bram|W|kin]","[LORE:W|a thing]","[LANGUAGE:W]","[SKILL_SUCCESS:W]","[RELATIONSHIP:W|ally]","[PARTY_MEMBER:W|true]","[COMPANION_HP:W|-1]","[WARES:W|5]","[ITEM_DEF:W|a thing]","[SPELL_DEF:W|a thing]","[FUTURE_EVENT:W|soon]","[DECISION:W|chosen]","[EXIT:W|north]","[LOCATION_RESIDENT:W]","[NPC_DEATH_REPORTED:W|a rider]","[WORN:W]","[SHOP_KEEPER:W]","[COMBAT_START:W|10|12|3|1d6|steady]","[NPC_MERGE:Bram|W]"];
+  t("#536 the repro: [NPC:__proto__|dead|enemy] no longer marks every NPC dead; the tag is refused and said so",function(){
+    w536();var r=run536("A shape in the dark. [NPC:__proto__|dead|enemy]"),bram=wsNpcByName("Bram");
+    if(r.poison.length)return "the tag wrote on the built-in objects, so every record reads it: "+r.poison.join(", ");
+    if(bram.dead||({}).dead)return "an NPC that was never touched reads as dead";
+    if(!refused536(r,"__proto__"))return "the refusal must be said in the turn's summary, naming the word: "+JSON.stringify(r.muts);
+    return r.warns.some(function(w){return w.indexOf("reserved word")>=0;})?true:"the refusal must reach the console too: "+JSON.stringify(r.warns);
+  });
+  t("#536 the census: every built-in object key, through every tag shape, is refused with no handler error, no write on a built-in, and a prompt that still builds",function(){
+    var words=["constructor","__proto__","toString","hasOwnProperty","valueOf","isPrototypeOf","Constructor","__PROTO__"],wi,si,tag,r;
+    if(!Object.getOwnPropertyNames(Object.prototype).every(function(n){return tagReservedWord(n)===n;}))return "every own name of Object.prototype is reserved, derived from the object itself: "+JSON.stringify(Object.getOwnPropertyNames(Object.prototype).filter(function(n){return tagReservedWord(n)!==n;}));
+    for(wi=0;wi<words.length;wi++)for(si=0;si<SHAPES536.length;si++){
+      w536();tag=SHAPES536[si].split(":W").join(":"+words[wi]).split("|W").join("|"+words[wi]);r=run536("It happens. "+tag);
+      if(r.poison.length)return tag+" wrote on a built-in: "+r.poison.join(", ");
+      if(r.errors.length)return tag+" reached a handler and it threw: "+r.errors.join("; ");
+      if(!refused536(r,words[wi]))return tag+" was not refused: "+JSON.stringify(r.muts);
+      try{buildSysPrompt();}catch(e){poison536();return tag+" left a state the next prompt cannot be built from: "+e.message;}
+      poison536();
+    }
+    return true;
+  });
+  t("#536 a reserved word inside a comma list, with spaces around it, or under the review-call whitelist is refused the same way",function(){
+    var cases=[["[SCENE_CAST:Bram, __proto__]","__proto__"],["[SCENE_CAST:Bram, constructor]","constructor"],["[NPC: constructor |grim|neutral]","constructor"],["[NPC_NOTE:Bram|she is his __proto__ now]","__proto__"]],i,r;
+    for(i=0;i<cases.length;i++){w536();r=run536("x "+cases[i][0]);if(r.poison.length||r.errors.length||!refused536(r,cases[i][1]))return cases[i][0]+": "+JSON.stringify([r.poison,r.errors,r.muts]);}
+    w536();r=run536("x [ITEM_GAINED:constructor]",{allow:["ITEM_GAINED"]});
+    return !r.poison.length&&!r.errors.length&&refused536(r,"constructor")?true:"the whitelist path must refuse it too: "+JSON.stringify([r.poison,r.errors,r.muts]);
+  });
+  t("#536 a name that only contains a reserved word is an ordinary operand, and so is the rest of the reply",function(){
+    w536();var r=run536("The mason nods. [NPC:Malrik the Constructor|grim|neutral] [ITEM_GAINED:Constructor's hammer] [NPC_NOTE:Bram|knew the constructor of the old bridge] [GOLD:5] [NPC:toString|x|y]");
+    if(r.poison.length||r.errors.length)return "an ordinary reply broke: "+JSON.stringify([r.poison,r.errors]);
+    if(!wsNpcByName("Malrik the Constructor"))return "a name that contains the word was refused: "+JSON.stringify(r.muts);
+    if(worldState.character.inventory.indexOf("Constructor's hammer")<0)return "an item whose name contains the word was refused: "+JSON.stringify(worldState.character.inventory);
+    if(!memory.npcs["Bram"].events.some(function(e){return e.note==="knew the constructor of the old bridge";}))return "a note that uses the word in a sentence was refused";
+    if(worldState.character.gold!==15)return "the other tags of a reply with one refused tag must still land: gold "+worldState.character.gold;
+    return r.muts.filter(function(m){return m.indexOf("⚠ Tag refused")===0;}).length===1&&refused536(r,"toString")?true:"exactly the one reserved tag is refused: "+JSON.stringify(r.muts);
+  });
+  t("#536 a canon claim whose marker carries a reserved word is refused whole, a reserved tag in its body alone; the rest of the reply still lands",function(){
+    w536();var r=run536("He falls. [GOLD:5] [CANON_TXN_BEGIN:constructor|npc-death|Bram|-|-][NPC:Bram|dead|enemy][XP:50][CANON_TXN_END:constructor] [ITEM_GAINED:rope]");
+    if(r.poison.length||r.errors.length)return "the envelope broke something: "+JSON.stringify([r.poison,r.errors]);
+    if((worldState.canonTxns||[]).length)return "a claim under a reserved id was recorded: "+JSON.stringify(worldState.canonTxns);
+    if(npcIsDead(wsNpcByName("Bram"))||worldState.character.xp)return "the body of a refused claim was applied as ordinary tags (a death with no claim around it): "+JSON.stringify([wsNpcByName("Bram").status,worldState.character.xp]);
+    if(worldState.character.gold!==15||worldState.character.inventory.indexOf("rope")<0)return "the tags around the refused claim must land: "+JSON.stringify([worldState.character.gold,worldState.character.inventory]);
+    if(!r.muts.some(function(m){return m.indexOf("⚠ Canon claim refused")===0&&m.indexOf("'constructor'")>=0;}))return "the refusal must be said: "+JSON.stringify(r.muts);
+    var halves=[["[CANON_TXN_BEGIN:c1|npc-death|constructor|-|-][NPC:Bram|dead|enemy][XP:50][CANON_TXN_END:c1]","the BEGIN marker"],["[CANON_TXN_BEGIN:c2|npc-death|Bram|-|-][NPC:Bram|dead|enemy][XP:50][CANON_TXN_END:toString]","the END marker"]],hi;
+    for(hi=0;hi<halves.length;hi++){
+      w536();r=run536("He falls. "+halves[hi][0]+" [GOLD:5]");
+      if(r.poison.length||r.errors.length||(worldState.canonTxns||[]).length||npcIsDead(wsNpcByName("Bram"))||worldState.character.xp||worldState.character.gold!==15)return "a reserved word in "+halves[hi][1]+" alone must refuse the whole claim and nothing else: "+JSON.stringify([r.poison,r.errors,worldState.canonTxns,wsNpcByName("Bram").status,worldState.character.xp,worldState.character.gold]);
+      if(!r.muts.some(function(m){return m.indexOf("⚠ Canon claim refused")===0;}))return "the refusal of a claim with a reserved word in "+halves[hi][1]+" must be said: "+JSON.stringify(r.muts);
+    }
+    w536();r=run536("He pays. [CANON_TXN_BEGIN:paid_1|quest-outcome|-|-|No Such Quest][ITEM_GAINED:constructor][GOLD:7][CANON_TXN_END:paid_1]");
+    return !r.poison.length&&refused536(r,"constructor")?true:"a reserved tag inside a claim's body is refused on its own: "+JSON.stringify([r.poison,r.muts]);
+  });
+
 }

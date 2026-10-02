@@ -3405,6 +3405,9 @@ function applyMuts(text,opts){
      opts.allow strips every non-whitelisted tag BEFORE W2 preparation (a stripped death must
      never mint a conflict or a receipt), loudly, with ring provenance. Plain applyMuts(text) is
      byte-identically unrestricted; syncCharSheet keeps the full vocabulary by explicit ruling. */
+  /* #536: a tag whose operand is one of JavaScript's built-in object keys never reaches a parser: not the whitelist, not W2
+     preparation, not the table, not a transaction body. Said in the turn's summary (pushed below, once R exists) and on the console. */
+  var _rsv=tagStripReserved(text);text=_rsv.text;
   var _rvStripped=null;
   if(opts&&opts.allow&&opts.allow.length){
     var _rvAllow={},_rvi;for(_rvi=0;_rvi<opts.allow.length;_rvi++)_rvAllow[opts.allow[_rvi]]=1;
@@ -3422,6 +3425,7 @@ function applyMuts(text,opts){
   var _npcSaidPrev=(typeof npcBeginResponse==="function")?npcBeginResponse(text):null;
   var _w2Plan=(typeof w2PrepareResponse==="function")?w2PrepareResponse(text):{ordinary:text,txns:[]};
   var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true,source:(opts&&opts.source)||null}):{muts:[],turn:worldState.turn,errors:[]},_w2i;/* #481 D6: the source rides into the table */
+  if(_rsv.refused.length){var _rsi;for(_rsi=0;_rsi<_rsv.refused.length;_rsi++){var _rsx=_rsv.refused[_rsi],_rsl=(_rsx.claim?"Canon claim refused":"Tag refused")+" (reserved word '"+_rsx.word+"'): "+(_rsx.claim?"the claim and everything inside it":_rsx.name);R.muts.push("\u26a0 "+_rsl);if(typeof console!=="undefined")console.warn("[tags] #536: "+_rsl+" \u2014 a built-in object key cannot name a person, a place or a thing");}}
   if(_rvStripped&&_rvStripped.length)R.muts.push("⚠ review-call whitelist: out-of-scope tags stripped — "+_rvStripped.join(", "));/* #264: loud at the player, not just the console */
   for(_w2i=0;_w2i<_w2Plan.txns.length;_w2i++){
     var _w2t=_w2Plan.txns[_w2i];

@@ -105,6 +105,40 @@ function buildCtBare(){return new RegExp("\\[("+TAG_STRIP_BARE.join("|")+")\\]",
 // five fields, the last at most 100 characters (a longer tail is prose, and is left alone: it fails closed as before). END is
 // one id. A marker inside a sentence is left alone.
 var TAG_BARE_MARKER_RE=/^([ \t]*)(CANON_TXN_BEGIN:(?:[^|\[\]\r\n]+\|){4}[^|\[\]\r\n]{0,99}[^|\[\]\r\n \t]|CANON_TXN_END:[^\s|\[\]]+)(?=[ \t]*(?:\[|$))/gm;
+/* #536: the words a tag operand may never be: every own name of Object.prototype (constructor, toString, __proto__ and the
+   rest), read from the object itself. The engine files people, places and items in plain objects keyed by what the GM writes,
+   and such a key reads the object machinery instead of a record: [NPC:__proto__|dead|enemy] stamped a death on Object.prototype
+   and every NPC read as dead until reload; [LOCATION:constructor] made every later prompt build throw. */
+var TAG_RESERVED_WORDS=(function(){var o=Object.create(null),n=Object.getOwnPropertyNames(Object.prototype),i;for(i=0;i<n.length;i++)o[n[i]]=1;return o;})();
+/* The reserved word a tag payload carries, else "". Operands are the pieces between pipes and commas (the two separators the
+   handlers split names on), trimmed; a piece counts as written or lower-cased (item keys are lower-cased). __proto__ is refused
+   anywhere in the payload, in any case: it is never a word of the fiction, and it is the one that reaches every object. */
+function tagReservedWord(payload){
+  var s=String(payload||""),p=s.match(/__proto__/i),parts,i,w;
+  if(p)return p[0];
+  parts=s.split(/[|,]/);
+  for(i=0;i<parts.length;i++){w=parts[i].trim();if(w&&(TAG_RESERVED_WORDS[w]||TAG_RESERVED_WORDS[w.toLowerCase()]))return w;}
+  return "";
+}
+/* #536: takes every tag with a reserved operand out of a reply BEFORE anything parses it, and reports what it took. A canon
+   claim whose BEGIN or END marker carries one goes whole, marker to marker: its body must never run as ordinary tags. Text
+   with no such tag comes back byte-identical. */
+function tagStripReserved(text){
+  var out={text:text,refused:[]};
+  if(typeof text!=="string"||text.indexOf("[")<0)return out;
+  out.text=text.replace(/\[CANON_TXN_BEGIN:([^\]]+)\]([\s\S]*?)\[CANON_TXN_END:([^\]]+)\]/g,function(m,begin,body,end){
+    var w=tagReservedWord(begin)||tagReservedWord(end);
+    if(!w)return m;
+    out.refused.push({claim:true,word:w,name:"CANON_TXN"});
+    return "";
+  }).replace(/\[([A-Z][A-Z_]{1,}):([^\]]*)\]/g,function(m,name,payload){
+    var w=tagReservedWord(payload);
+    if(!w)return m;
+    out.refused.push({claim:false,word:w,name:name});
+    return "";
+  });
+  return out;
+}
 function tagRestoreBareMarkers(text,quiet){
   if(typeof text!=="string"||text.indexOf("CANON_TXN_")<0)return text;/* anything without a marker passes through untouched, type and bytes */
   var n=0,out=text.replace(TAG_BARE_MARKER_RE,function(m,lead,marker){n++;return lead+"["+marker+"]";});
