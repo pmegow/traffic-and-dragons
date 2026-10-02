@@ -976,16 +976,11 @@ function _speakerVoiceSubject(name){
   if(!worldState)return null;
   var c=worldState.character;
   if(c&&c.name===nm)return {char:c,owner:c};
-  var ns=worldState.npcs||[],i,p,g,owner;
-  for(i=0;i<ns.length;i++)if(ns[i]&&ns[i].name===nm){
-    owner=ns[i].charSheet||ns[i];
-    p=String(owner.pronouns||ns[i].pronouns||((typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[nm])?memory.npcs[nm].pronouns:"")||"").toLowerCase().replace(/\s+/g,"");
-    g=owner.gender;
-    if(g!=="M"&&g!=="F"&&g!=="NB")g=/^she\//.test(p)?"F":(/^he\//.test(p)?"M":(/^they\//.test(p)?"NB":"ANY"));
-    var _sc={name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||"",speechifyVoiceId:owner.speechifyVoiceId||"",voiceDirection:owner.voiceDirection||"",voiceRate:Number(owner.voiceRate)||0};
-    var _scs=(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)?TTS.characterVoiceSlots():[],_sci;for(_sci=0;_sci<_scs.length;_sci++)if(!(_scs[_sci].field in _sc))_sc[_scs[_sci].field]=owner[_scs[_sci].field]||"";/* #456: every slot field, never a hand list */
-    return {char:_sc,owner:owner};
-  }
+  var ns=worldState.npcs||[],i;
+  /* #532 review: the row is found by its name OR by the sheet the companion lookup returned. A merge hands a companion's sheet to
+     the survivor without renaming it, so the sheet's name no longer names any row; the lookup found nobody and the lines went to
+     the narrator. (The row's subject itself lives in helpers.js, so the merge fold asks the same rule.) */
+  for(i=0;i<ns.length;i++)if(ns[i]&&(ns[i].name===nm||(_spc&&ns[i].charSheet===_spc)))return speakerSubjectOfRow(ns[i],ns[i].name);
   return null;
 }
 function _speakerChar(name){var s=_speakerVoiceSubject(name);return s?s.char:null;}
@@ -1003,6 +998,9 @@ function pinAutoCastVoices(sp){
     sub=_speakerVoiceSubject(nm);
     ch=sub&&sub.char;
     if(!sub||!ch)continue;
+    /* #532 review: a name whose merge with another is pending (the GM proposed it, the gate has not applied it yet) speaks in the
+       voice the other was heard in. Cast afresh on the reveal turn, it kept that new voice as "its own" when the merge landed. */
+    if(sub.row&&voicePinsFromPendingMerge(sub.owner,sub.row.name,ch.gender))pinned=true;
     /* Fable review 2026-09-11 (Brief A): the Speechify fill runs BEFORE the Piper guard — it used to sit below
        `continue`-on-voiceId, so a speaker who already had a Piper backup (every character of every pre-v1.905
        campaign) never received a Speechify pin, and two speakers sharing a backup collapsed onto one actor. */
@@ -1498,11 +1496,6 @@ function inheritVoicePins(sheet,wsNpc,prior){
   });
   return sheet;
 }
-/* #539: the sheet owns the pins from the moment it is attached, so the row's copies go: all of them, by the same list. */
-function releaseRowVoicePins(row){
-  if(row&&typeof TTS!=="undefined"&&TTS.characterVoiceSlots)voicePinFields().forEach(function(f){delete row[f];});
-  return row;
-}
 /* #6 THE VILLAGE — phase A: residents. Every library character moves in as a NON-party NPC with a full sheet (a COPY —
    the village never mutates the library object; the library is the source of truth and nothing is written back — #427), a
    memory.npcs entry, and a house node under the village keyed "<village>|<Name>'s house" that carries its owner. The
@@ -1842,7 +1835,7 @@ function attachCompanionSheet(npcName,sheet){
   if(!npc||npc.charSheet)return null;
   inheritVoicePins(sheet,npc,null);
   npc.charSheet=sheet;delete npc.sheetPending;
-  releaseRowVoicePins(npc);/* the sheet owns the pins now */
+  if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)releaseRowVoicePins(npc);/* the sheet owns the pins now (only where inheritVoicePins above carried them: with the voice module loaded) */
   if(memory&&memory.npcs&&memory.npcs[npcName])memory.npcs[npcName].partyMember=true;
   return npc;
 }

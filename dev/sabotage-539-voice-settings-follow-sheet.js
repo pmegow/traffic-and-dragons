@@ -18,11 +18,8 @@ prove("game.js", ["dev/run-tests.js", "#539"], [
   { label: "the row outranks an earlier sheet",
     find: 'var pinned=(prior&&prior[f])||(wsNpc&&wsNpc[f]);', replace: 'var pinned=(wsNpc&&wsNpc[f])||(prior&&prior[f]);',
     mustFail: MODEL },
-  { label: "the release walks the slot table only (a stale direction and speed stay on the row)",
-    find: 'voicePinFields().forEach(function(f){delete row[f];});', replace: 'TTS.characterVoiceSlots().forEach(function(s){delete row[s.field];});',
-    mustFail: REPRO },
   { label: "the automatic attach skips the release",
-    find: '  releaseRowVoicePins(npc);/* the sheet owns the pins now */', replace: '',
+    find: '  if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)releaseRowVoicePins(npc);/* the sheet owns the pins now', replace: '  /* the sheet owns the pins now',
     mustFail: REPRO }
 ]);
 prove("game.js", ["dev/tests-402-character-voices.js"], [
@@ -30,9 +27,14 @@ prove("game.js", ["dev/tests-402-character-voices.js"], [
     find: 'var pinned=(prior&&prior[f])||(wsNpc&&wsNpc[f]);', replace: 'var pinned=(wsNpc&&wsNpc[f]);',
     mustFail: MANUAL }
 ]);
+prove("helpers.js", ["dev/run-tests.js", "#539"], [
+  { label: "the release walks the slot table only (a stale direction and speed stay on the row)",
+    find: 'if(row)voicePinFields([row]).forEach(function(f){delete row[f];});', replace: 'if(row)TTS.characterVoiceSlots().forEach(function(s){delete row[s.field];});',
+    mustFail: REPRO }
+]);
 prove("ui-sheets.js", ["dev/tests-402-character-voices.js"], [
   { label: "the manual sheet keeps the row's copies",
-    find: 'releaseRowVoicePins(wsNpc);', replace: '',
+    find: 'if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)releaseRowVoicePins(wsNpc);', replace: '',
     mustFail: MANUAL }
 ]);
 process.exit(code ? 1 : 0);

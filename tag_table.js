@@ -753,9 +753,12 @@ var TAG_TABLE=[
     /* #532: the voice a character was heard in follows the person. A sheetless speaker's pins sit on the roster row
        (pinAutoCastVoices, game.js) and the fold never carried them: "the hooded man" spoke, the GM named him, and the survivor
        was re-cast on his next line. The survivor's pin OWNER (its sheet when it has one, else its row) takes each voice field it
-       lacks: from its own row when this merge just gave it the duplicate's sheet, then from the duplicate's sheet, then from the
-       duplicate's row. Its own pin always wins, and a sheeted survivor's row takes nothing (a row pin beside a sheet is a stale copy). */
-    var _mgVn=voicePinsFill(_mgCanN.charSheet||_mgCanN,[_mgCanN.charSheet&&_mgCanN.charSheet===_mgDupN.charSheet?_mgCanN:null,_mgDupN.charSheet,_mgDupN]);
+       lacks: from its own row when it has a sheet, then from the duplicate's sheet, then from the duplicate's row. Its own pin
+       always wins. A voice of the other sex is not carried (voicePinFitsGender: the stranger was cast before their sex was
+       known). A sheeted survivor's row then keeps no copy: the sheet owns the pins on this attach path too, and a copy left on
+       the row came back when a sheet was regenerated after the player had cleared the setting. */
+    var _mgVo=_mgCanN.charSheet||_mgCanN,_mgVn=voicePinsFill(_mgVo,[_mgCanN.charSheet?_mgCanN:null,_mgDupN.charSheet,_mgDupN],voicePinFitsGender(speakerSubjectOfRow(_mgCanN,mgCanon).char.gender));
+    if(_mgCanN.charSheet)releaseRowVoicePins(_mgCanN);
     if(_mgVn&&typeof console!=="undefined")console.info("[speakers] "+mgCanon+" keeps the voice heard as '"+mgDupe+"' ("+_mgVn+" voice setting(s) carried by the merge)");
     if(_mgDupN.dead&&!_mgCanN.dead)_mgCanN.dead=_mgDupN.dead;/* B3: a merge must not lose the dupe's death */
     if((!_mgCanN.status||_mgCanN.status==="unknown")&&_mgDupN.status)_mgCanN.status=_mgDupN.status;

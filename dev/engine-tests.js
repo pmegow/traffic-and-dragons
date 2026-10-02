@@ -29288,4 +29288,110 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return memory.npcs["Bram"].events.length===2?true:"an ordinary note must still be filed";
   });
 
+  section("#532 review: the voice survives the reveal as play runs it, fits the person, and leaves no stale copy");
+  function turn532(resp){return quiet(function(){return commitGmTurn(resp,{userMsg:"x",playerTxt:"go on"});});}
+  function voice532(name){var m=quiet(function(){return speakerVoiceMap({n:1,s:{0:name}},'"Hold there."');}).r;return m?m[0]:null;}
+  function bench532(){var piper=TTS.characterVoiceSlots().filter(function(s){return s.provider==="piper";})[0],b=piper.defaultCatalog(),m=b.filter(function(v){return v.g==="M";});return {F:b.filter(function(v){return v.g==="F";})[0].id,M:m[0].id,M2:m[1].id};}
+  function pins532(o){var f=voicePinFields(),r={},i;for(i=0;i<f.length;i++)if(f[i] in o)r[f[i]]=o[f[i]];return JSON.stringify(r);}
+  t("#532 the reveal as play runs it: the merge is only proposed on the reveal turn and the new name speaks at once, in the voice already heard; it keeps that voice when the merge lands",function(){
+    var B=bench532(),oldAuto=TTS.autoCastVoiceId;
+    makeWorld();worldState.npcs=[];memory.npcs={};quiet(function(){sceneRefsEnsure();});
+    try{
+      TTS.autoCastVoiceId=function(ch){return ch&&ch.name==="the hooded man"?B.M:B.M2;};
+      turn532('A hooded man steps out of the alley. [NPC:the hooded man|wary|neutral] [NPC_PRONOUN:the hooded man|he/him] [SAY:the hooded man] "Hold there," he says.');
+      if(voice532("the hooded man")!==B.M)return "fixture: his first line pins a voice: "+voice532("the hooded man");
+      turn532('He lowers the hood. [NPC:Aldern Foxglove|friendly|neutral] [NPC_PRONOUN:Aldern Foxglove|he/him] [NPC_MERGE:Aldern Foxglove|the hooded man] [SAY:Aldern Foxglove] "Aldern Foxglove, at your service," he says.');
+      if(!wsNpcByName("the hooded man")||!wsNpcByName("Aldern Foxglove"))return "fixture: with scene refs live the merge is only PROPOSED on the reveal turn, so two rows remain";
+      if(voice532("Aldern Foxglove")!==B.M)return "on the reveal turn the new name was cast afresh instead of speaking in the voice already heard: "+voice532("Aldern Foxglove");
+      quiet(function(){buildMergeConfirmNudge();});
+      turn532('He bows. [NPC_MERGE:Aldern Foxglove|the hooded man] [SAY:Aldern Foxglove] "Shall we?"');
+      if(wsNpcByName("the hooded man"))return "fixture: the confirmed merge must land";
+      if(voice532("Aldern Foxglove")!==B.M)return "after the merge landed the survivor speaks in another voice: "+voice532("Aldern Foxglove");
+      return voice532("the hooded man")===B.M?true:"an earlier line stored under the old name must replay in the same voice: "+voice532("the hooded man");
+    }finally{TTS.autoCastVoiceId=oldAuto;}
+  });
+  t("#532 a pending merge lends the voice whichever name is to survive, and while its confirmation is armed; a lapsed confirmation and a name outside the merge lend nothing",function(){
+    var B=bench532(),oldAuto=TTS.autoCastVoiceId,a;
+    try{
+      TTS.autoCastVoiceId=function(){return B.M2;};
+      w503();v532("the hooded man",{voiceId:B.M,speechifyVoiceId:"heard-cloud",voiceDirection:"low, unhurried",voiceRate:0.9});on503("Aldern Foxglove","he/him");
+      worldState.pendingMergeHints=[{canonical:"the hooded man",duplicate:"Aldern Foxglove",turn:worldState.turn}];
+      if(!pinAutoCastVoices({n:1,s:{0:"Aldern Foxglove"}}))return "a loan is a change to save";
+      a=wsNpcByName("Aldern Foxglove");
+      if(a.voiceId!==B.M||a.speechifyVoiceId!=="heard-cloud"||a.voiceDirection!=="low, unhurried"||a.voiceRate!==0.9)return "named as the duplicate of a pending merge, the new name must still take every voice setting already heard: "+pins532(a);
+      w503();v532("the hooded man",{voiceId:B.M});on503("Aldern Foxglove","he/him");
+      worldState.mergeConfirmArmed={canonical:"Aldern Foxglove",duplicate:"the hooded man",turn:worldState.turn};
+      pinAutoCastVoices({n:1,s:{0:"Aldern Foxglove"}});
+      if(wsNpcByName("Aldern Foxglove").voiceId!==B.M)return "an armed confirmation is a pending merge too: "+pins532(wsNpcByName("Aldern Foxglove"));
+      w503();v532("the hooded man",{voiceId:B.M});on503("Aldern Foxglove","he/him");
+      worldState.mergeConfirmArmed={canonical:"Aldern Foxglove",duplicate:"the hooded man",turn:worldState.turn-1};
+      pinAutoCastVoices({n:1,s:{0:"Aldern Foxglove"}});
+      if(wsNpcByName("Aldern Foxglove").voiceId!==B.M2)return "a confirmation that has lapsed lends nothing: "+pins532(wsNpcByName("Aldern Foxglove"));
+      w503();v532("the hooded man",{voiceId:B.M});on503("Aldern Foxglove","he/him");on503("Bram","he/him");
+      worldState.pendingMergeHints=[{canonical:"Aldern Foxglove",duplicate:"the hooded man",turn:worldState.turn}];
+      pinAutoCastVoices({n:1,s:{0:"Bram"}});
+      return wsNpcByName("Bram").voiceId===B.M2&&wsNpcByName("the hooded man").voiceId===B.M?true:"a name outside the pending merge is cast as before: "+pins532(wsNpcByName("Bram"));
+    }finally{TTS.autoCastVoiceId=oldAuto;}
+  });
+  t("#532 a voice that does not fit the person is not carried: a stranger cast before their sex was known is cast again when a man takes the record; a fitting voice, an unknown voice, the direction and the speed are carried",function(){
+    var B=bench532(),oldAuto=TTS.autoCastVoiceId,c,d;
+    function merge(){quiet(function(){applyMuts("He lowers the hood. [NPC_MERGE:Aldern Foxglove|the hooded figure]");});return worldState.npcs.length===1?wsNpcByName("Aldern Foxglove"):null;}
+    if(TTS.pinnedVoiceGender("voiceId",B.F)!=="F"||TTS.pinnedVoiceGender("voiceId",B.M)!=="M"||TTS.pinnedVoiceGender("voiceId","no-such-voice")!==""||TTS.pinnedVoiceGender("voiceDirection",B.F)!=="")return "fixture: the bench knows the sex of its own voices and of nothing else";
+    w503();on503("Aldern Foxglove","he/him");on503("the hooded figure",null);d=wsNpcByName("the hooded figure");d.voiceId=B.F;d.voiceDirection="hoarse";d.voiceRate=0.9;
+    c=merge();if(!c)return "fixture: the merge must land";
+    if(c.voiceId)return "a woman's voice, cast while the stranger's sex was unknown, followed a man: "+pins532(c);
+    if(c.voiceDirection!=="hoarse"||c.voiceRate!==0.9)return "the direction and the speed fit anyone and must follow: "+pins532(c);
+    w503();on503("Aldern Foxglove","he/him");on503("the hooded figure",null);wsNpcByName("the hooded figure").voiceId=B.M;
+    c=merge();if(!c||c.voiceId!==B.M)return "a voice that fits must follow: "+(c&&pins532(c));
+    w503();on503("Aldern Foxglove","he/him");on503("the hooded figure",null);wsNpcByName("the hooded figure").voiceId="a-voice-the-bench-does-not-list";
+    c=merge();if(!c||c.voiceId!=="a-voice-the-bench-does-not-list")return "a voice of unknown sex contradicts nothing and must follow: "+(c&&pins532(c));
+    w503();on503("Aldern Foxglove",null);on503("the hooded figure",null);wsNpcByName("the hooded figure").voiceId=B.F;
+    c=merge();if(!c||c.voiceId!==B.F)return "a survivor whose sex is unknown takes the voice heard: "+(c&&pins532(c));
+    try{
+      TTS.autoCastVoiceId=function(){return B.M2;};
+      w503();on503("Aldern Foxglove","he/him");on503("the hooded figure",null);wsNpcByName("the hooded figure").voiceId=B.F;
+      worldState.pendingMergeHints=[{canonical:"Aldern Foxglove",duplicate:"the hooded figure",turn:worldState.turn}];
+      pinAutoCastVoices({n:1,s:{0:"Aldern Foxglove"}});
+      return wsNpcByName("Aldern Foxglove").voiceId===B.M2?true:"a pending merge must not lend a voice that does not fit either: "+pins532(wsNpcByName("Aldern Foxglove"));
+    }finally{TTS.autoCastVoiceId=oldAuto;}
+  });
+  t("#532 a survivor that has a sheet keeps no voice setting on its row: what the row held moves to the sheet, so a setting cleared later cannot come back",function(){
+    var f=voicePinFields(),i,c,d,s;
+    w503();v532("Aldern Foxglove",{voiceId:"row-voice",voiceDirection:"gruff and impatient",voiceRate:0.9});d=v532("the hooded man",{});d.charSheet=sheet532("the hooded man",{voiceId:"companion-voice"});
+    c=m532();if(!c)return "fixture: the merge that hands over a sheet must land";
+    for(i=0;i<f.length;i++)if(f[i] in c)return "the row kept a copy of "+f[i]+" beside the sheet it was just given";
+    if(c.charSheet.voiceId!=="companion-voice"||c.charSheet.voiceDirection!=="gruff and impatient"||c.charSheet.voiceRate!==0.9)return "the sheet did not take what the row held: "+pins532(c.charSheet);
+    w503();s=v532("Aldern Foxglove",{inworldVoiceId:"own-row-inworld"});s.charSheet=sheet532("Aldern Foxglove",{voiceId:"sheet-voice"});v532("the hooded man",{inworldVoiceId:"dupe-inworld"});
+    c=m532();if(!c)return "fixture: the merge onto a sheeted survivor must land";
+    return c.charSheet.inworldVoiceId==="own-row-inworld"&&!("inworldVoiceId" in c)?true:"an already sheeted survivor: its own row copy fills its sheet first and then leaves the row: "+pins532(c.charSheet)+" / "+pins532(c);
+  });
+  t("#532 the order of the sources: the survivor's own row, then the duplicate's sheet, then the duplicate's row",function(){
+    var c,d,s;
+    w503();v532("Aldern Foxglove",{inworldVoiceId:"own-row"});d=v532("the hooded man",{inworldVoiceId:"dupe-row"});d.charSheet=sheet532("the hooded man",{voiceId:"companion-voice"});
+    c=m532();if(!c||c.charSheet.inworldVoiceId!=="own-row")return "the survivor's own row outranks the duplicate's row: "+(c&&pins532(c.charSheet));
+    w503();s=v532("Aldern Foxglove",{});s.charSheet=sheet532("Aldern Foxglove",{voiceId:"sheet-voice"});d=v532("the hooded man",{speechifyVoiceId:"dupe-row"});d.charSheet=sheet532("the hooded man",{voiceId:"other",speechifyVoiceId:"dupe-sheet"});
+    c=m532();
+    return c&&c.charSheet.speechifyVoiceId==="dupe-sheet"?true:"the duplicate's sheet outranks the duplicate's row: "+(c&&pins532(c.charSheet));
+  });
+  t("#532 a host without the voice module finds the fields by their names: every slot field is voiceId or ends in VoiceId, and a merge there still carries the cloud pins",function(){
+    var slots=TTS.characterVoiceSlots(),i,T=TTS,c;
+    for(i=0;i<slots.length;i++)if(slots[i].field!=="voiceId"&&slots[i].field.slice(-7)!=="VoiceId")return "a slot field breaks the naming rule the fallback relies on: "+slots[i].field;
+    w503();v532("Aldern Foxglove",{});v532("the hooded man",{voiceId:"heard",speechifyVoiceId:"heard-cloud",inworldVoiceId:"heard-inworld",voiceDirection:"low",voiceRate:0.9});
+    try{TTS=undefined;c=m532();}finally{TTS=T;}
+    return c&&c.voiceId==="heard"&&c.speechifyVoiceId==="heard-cloud"&&c.inworldVoiceId==="heard-inworld"&&c.voiceDirection==="low"&&c.voiceRate===0.9?true:"a merge run by a tool that loads no voice module dropped a pin: "+(c&&JSON.stringify([c.voiceId,c.speechifyVoiceId,c.inworldVoiceId,c.voiceDirection,c.voiceRate]));
+  });
+
+  section("#532 review 2: a companion merged under a new name still speaks in their own voice");
+  t("#532 a companion with a sheet is merged under a new name: the sheet keeps its old name, and the new name, the old name and the sheet all reach the same voice (it was the narrator's)",function(){
+    var B=bench532(),d,c,vm;
+    w503();on503("Aldern Foxglove","he/him");d=v532("the hooded man",{});d.partyMember=true;d.charSheet=sheet532("the hooded man",{voiceId:B.M,gender:"M"});memory.npcs["the hooded man"].partyMember=true;
+    c=m532();if(!c||!c.charSheet)return "fixture: the merge hands the survivor the companion's sheet";
+    if(c.charSheet.name!=="the hooded man")return "fixture: the sheet keeps the name it was made under (the mismatch this test is about): "+c.charSheet.name;
+    if(!_speakerVoiceSubject("Aldern Foxglove"))return "the survivor has no voice subject at all, so his lines go to the narrator";
+    vm=speakerVoiceMap({n:1,s:{0:"Aldern Foxglove"}},'"Hold there."');
+    if(!vm||vm[0]!==B.M)return "the new name does not reach the companion's voice: "+JSON.stringify(vm);
+    vm=speakerVoiceMap({n:1,s:{0:"the hooded man"}},'"Hold there."');
+    return vm&&vm[0]===B.M?true:"an earlier line stored under the old name does not reach it either: "+JSON.stringify(vm);
+  });
+
 }

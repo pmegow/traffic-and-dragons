@@ -46,19 +46,72 @@ function wsNpcByName(name){
 }
 /* #532: the fields that pin how a character sounds: every slot of the ONE table (TTS.characterVoiceSlots, tts.js: the Piper
    backup and each cloud voice), the delivery direction and the speed. A sheetless speaker carries them on the roster row, a
-   sheeted one on the sheet (the pin OWNER, as _speakerVoiceSubject reads it). Without tts.js only the Piper field is known. */
-function voicePinFields(){
-  var f=["voiceDirection","voiceRate"],s=(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)?TTS.characterVoiceSlots():[{field:"voiceId"}],i;
-  for(i=0;i<s.length;i++)f.push(s[i].field);
+   sheeted one on the sheet (the pin OWNER, as speakerSubjectOfRow reads it). A host that loads no voice module (the offline
+   merge tool) finds the slot fields by their names on the objects it is given: voiceId, and any field that ends in VoiceId.
+   A test holds every slot of the table to that naming rule. */
+function voicePinFields(objs){
+  var f=["voiceDirection","voiceRate"],s,i,k;
+  if(typeof TTS!=="undefined"&&TTS&&TTS.characterVoiceSlots){s=TTS.characterVoiceSlots();for(i=0;i<s.length;i++)f.push(s[i].field);return f;}
+  f.push("voiceId");
+  for(i=0;i<(objs||[]).length;i++)for(k in (objs[i]||{}))if(k.length>7&&k.slice(-7)==="VoiceId"&&f.indexOf(k)<0)f.push(k);
   return f;
 }
-/* #532: fills each voice field the OWNER lacks from the first source that holds it, and returns how many it filled. The owner's
-   own pin always wins, and a field no source holds is not written at all. */
-function voicePinsFill(owner,sources){
-  var f=voicePinFields(),n=0,i,j,src;
+/* #532: fills each voice field the OWNER lacks from the first source that holds a value that fits, and returns how many it
+   filled. The owner's own pin always wins, and a field no source holds is not written at all. fits(field,value) is optional. */
+function voicePinsFill(owner,sources,fits){
+  var f=voicePinFields([owner].concat(sources)),n=0,i,j,src;
   for(i=0;i<f.length;i++){
     if(owner[f[i]])continue;
-    for(j=0;j<sources.length;j++){src=sources[j];if(src&&src[f[i]]){owner[f[i]]=src[f[i]];n++;break;}}
+    for(j=0;j<sources.length;j++){src=sources[j];if(src&&src[f[i]]&&(!fits||fits(f[i],src[f[i]]))){owner[f[i]]=src[f[i]];n++;break;}}
+  }
+  return n;
+}
+/* #532 review: a voice follows a person only when it fits them. M and F match exactly, as in casting (castGenderMatches, tts.js).
+   A stranger cast before their sex was known may hold a voice of the other sex; it is not carried onto a man or a woman, who is
+   cast again, matched, at the next line. Only a KNOWN mismatch refuses: a voice the catalog does not list, a person of unknown
+   sex, the direction and the speed all pass. */
+function voicePinFitsGender(gender){
+  return function(field,value){
+    var vg;
+    if((gender!=="M"&&gender!=="F")||typeof TTS==="undefined"||!TTS||!TTS.pinnedVoiceGender)return true;
+    vg=TTS.pinnedVoiceGender(field,value);
+    return !vg||vg===gender;
+  };
+}
+/* #539: the sheet owns the pins from the moment it is attached, so the row's copies go: all of them, by the same list. The two
+   sheet-attach sites call it only with the voice module loaded (where inheritVoicePins carried the pins); the merge fold calls
+   it in every host, because its own fill ran there. */
+function releaseRowVoicePins(row){
+  if(row)voicePinFields([row]).forEach(function(f){delete row[f];});
+  return row;
+}
+/* The voice subject of one roster row: its pin owner (the sheet when it has one, else the row) and the character the caster
+   reads (name, sex from the sheet or from the pronouns on record, every pin). Lifted from _speakerVoiceSubject (game.js) by the
+   #532 review, so the merge fold asks the SAME rule for the survivor's sex that casting uses. */
+function speakerSubjectOfRow(row,nm){
+  var owner,p,g;
+  owner=row.charSheet||row;
+  p=String(owner.pronouns||row.pronouns||((typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[nm])?memory.npcs[nm].pronouns:"")||"").toLowerCase().replace(/\s+/g,"");
+  g=owner.gender;
+  if(g!=="M"&&g!=="F"&&g!=="NB")g=/^she\//.test(p)?"F":(/^he\//.test(p)?"M":(/^they\//.test(p)?"NB":"ANY"));
+  var _sc={name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||"",speechifyVoiceId:owner.speechifyVoiceId||"",voiceDirection:owner.voiceDirection||"",voiceRate:Number(owner.voiceRate)||0};
+  var _scs=(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)?TTS.characterVoiceSlots():[],_sci;for(_sci=0;_sci<_scs.length;_sci++)if(!(_scs[_sci].field in _sc))_sc[_scs[_sci].field]=owner[_scs[_sci].field]||"";/* #456: every slot field, never a hand list */
+  return {char:_sc,owner:owner,row:row};
+}
+/* #532 review: while a merge of two names is pending they are one person as far as the ear is concerned. With scene refs live
+   (every campaign) the first [NPC_MERGE:] is only a proposal: it waits in worldState.pendingMergeHints, then in
+   worldState.mergeConfirmArmed for the one turn its confirmation is asked. The revealed name usually speaks on that same turn.
+   Whichever of the two names has no voice yet takes the voice settings the other was heard in (those that fit). Returns how
+   many it took. */
+function voicePinsFromPendingMerge(owner,name,gender){
+  var ws=(typeof worldState!=="undefined"&&worldState)||null,hints,a,i,other,row,n=0;
+  if(!ws)return 0;
+  hints=(ws.pendingMergeHints||[]).slice();a=ws.mergeConfirmArmed;
+  if(a&&a.turn>=ws.turn)hints.push(a);
+  for(i=0;i<hints.length;i++){
+    other=hints[i].canonical===name?hints[i].duplicate:(hints[i].duplicate===name?hints[i].canonical:"");
+    row=other?wsNpcByName(other):null;
+    if(row)n+=voicePinsFill(owner,[row.charSheet,row],voicePinFitsGender(gender));
   }
   return n;
 }

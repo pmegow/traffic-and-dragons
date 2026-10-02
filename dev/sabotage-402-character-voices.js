@@ -10,7 +10,7 @@ prove('tts.js',['dev/tests-402-character-voices.js'],[
  /* Fable review 2026-09-11 (Brief F, mutation IX1 survived the tree): the audition guard on the remainder hand-off */
  {label:'a failed audition hands its remainder to the read queue',find:'if (rem && !cloud.audition) _queue.unshift(_cloudFallbackItem(units, groups, i, voiceId, voices));',replace:'if (rem) _queue.unshift(_cloudFallbackItem(units, groups, i, voiceId, voices));',mustFail:'#402 a failed cloud audition never hands a fallback item to the read queue'}
 ]);
-prove('game.js',['dev/run-tests.js','Character primary and backup voices'],[
+prove('helpers.js',['dev/run-tests.js','Character primary and backup voices'],[/* #532 review: the row's voice subject moved to helpers.js (speakerSubjectOfRow) */
  {label:'drop primary pin from resolved NPC',find:'speechifyVoiceId:owner.speechifyVoiceId||""',replace:'speechifyVoiceId:""',mustFail:'#402 replay keeps distinct primary actors even when characters share a backup'}
 ]);
 prove('game.js',['dev/tests-402-character-voices.js'],[
