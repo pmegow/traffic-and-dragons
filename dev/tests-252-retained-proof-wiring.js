@@ -182,7 +182,7 @@ test("diff runner schedules a quoted \"file\" key, ignores a profile: key, print
 // with its own temp dir that is gone afterwards; a battery that fails only on its first run (re-run alone, passes, and is
 // NAMED as flaky under load); a battery that always fails (re-run alone, still fails the gate); and one job at a time,
 // where the first verdict is final and nothing is re-run.
-test("battery pool: batteries run at once, each in its own temp dir; a failure beside others is re-run alone, a real failure still fails the gate, a load flake is named; one job keeps the first verdict", function () {
+test("battery pool: batteries run at once, each in its own temp dir; a failure beside others is re-run alone, a real failure still fails the gate, a load flake is named; one job keeps the first verdict; the battery with the most clauses starts first", function () {
   var tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-battery-pool-"));
   var marks = path.join(tmp, "marks");
   var env = {};
@@ -240,6 +240,15 @@ test("battery pool: batteries run at once, each in its own temp dir; a failure b
     // ④ a malformed job count is refused out loud, never read as a commit range
     r = run("run-sabotage-diff.js", ["--jobs=many"]);
     if (r.status === 0 || !/jobs/.test(r.out)) return "a malformed --jobs passed: " + r.out;
+
+    // ⑤ slowest first: the battery with the most clauses (find: anchors) starts first, whatever its name. A run ends when
+    // its slowest battery does, and alphabetical order had started the 96-clause sabotage-w2.js last (13.5 min, not 8).
+    function ordered(name, finds) { return "// " + new Array(finds + 1).join("find: \"x\", ") + "\nrequire(\"fs\").appendFileSync(require(\"path\").join(process.env.POOL_FIXTURE_DIR,\"order\"),\"" + name + "\\n\");\n"; }
+    battery("sabotage-aa-small.js", ordered("small", 1)); battery("sabotage-mm-mid.js", ordered("mid", 2)); battery("sabotage-zz-big.js", ordered("big", 3));
+    git(["add", "-A"]); git(["commit", "-q", "-m", "three batteries of different sizes"]);
+    w = run("run-sabotage-all.js", ["--jobs=1", "small", "mid", "big"]);
+    var order = fs.existsSync(path.join(marks, "order")) ? fs.readFileSync(path.join(marks, "order"), "utf8").trim().split(/\r?\n/).join(",") : "";
+    if (w.status !== 0 || order !== "big,mid,small") return "the slowest battery did not start first (ran " + order + ", want big,mid,small): " + w.out;
     return "";
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });

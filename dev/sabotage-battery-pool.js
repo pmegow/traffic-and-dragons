@@ -27,6 +27,12 @@ prove("dev/battery-pool.js", [
   { label: "one job at a time re-runs a failure too",
     find: "&& jobs > 1 && !lone", replace: "&& !lone",
     mustFail: "one job at a time re-ran a failure" },
+  { label: "the pool starts batteries in the order it was given, not slowest first",
+    find: "var queue = slowestFirst(files, opts.cwd)", replace: "var queue = files.slice()",
+    mustFail: "the slowest battery did not start first" },
+  { label: "the clause count reads nothing, so every battery ties and name order wins",
+    find: "return (String(src).match(/(^|[^\\w$])[\"']?find[\"']?\\s*:/g) || []).length;", replace: "return 0;",
+    mustFail: "the slowest battery did not start first" },
   { label: "a malformed --jobs is passed on as a commit range",
     find: "if (!m) throw new Error(", replace: "if (!m) { rest.push(argv[i]); continue; } if (0) throw new Error(",
     mustFail: "a malformed --jobs passed" }

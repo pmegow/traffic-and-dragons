@@ -5,12 +5,18 @@
 //   jobsFrom(argv, env, cpus) → { jobs, rest }   --jobs=N on the command line, else SABOTAGE_JOBS, else half the cores
 //                                                (at most 8). rest is argv without the flag. A malformed count THROWS:
 //                                                it must never be read as a commit range or a filter word.
-//   run(files, opts, onResult, onDone)           opts: { cwd, jobs, log }. onResult(r) once per battery, when its FINAL
+//   run(files, opts, onResult, onDone)           opts: { cwd, jobs, log }. Starts them slowest first (below).
+//                                                onResult(r) once per battery, when its FINAL
 //                                                verdict lands (completion order); onDone(results) in the input order.
 //                                                r = { file, status, out, verdict, skipLines, secs, flake }
 //
 // Isolation: each battery is its own process with its own TEMP/TMP/TMPDIR, a fresh directory removed after it, so a fixed
 // temp name (a browser suite's artifact folder, a pid file) can never collide between two batteries running at once.
+// Order: slowest first (#548). A run ends when its slowest battery does, so the batteries with the most clauses (find:
+// anchors, one per mutation, each a test run) start first; ties go by name. On the #543 range the alphabetical order
+// started the 96-clause sabotage-w2.js last and ran 13.5 min; slowest first ran 7.2 min, which is w2's own length, so
+// no order can do better. A simulation over the measured times put clause order level with ordering by real time, so
+// there is no timing file to keep, and CI orders the same way.
 // Load: with more than one job, a battery that fails is re-run ALONE after the rest finish, and only that verdict counts.
 // A real failure fails twice. One that passes alone comes back with flake:true, and the runners name it; it is never
 // folded silently into green. With one job nothing is re-run: the first verdict is final, as in the old serial loop.
@@ -57,9 +63,20 @@ function runOne(file, cwd, done) {
   child.on("close", function (code) { finish(code, ""); });
 }
 
+// How many clauses a battery's source declares: its find: anchors (quoted keys too). An unreadable file counts 0 and
+// simply starts last; running it is what reports it.
+function clauseCount(src) {
+  return (String(src).match(/(^|[^\w$])["']?find["']?\s*:/g) || []).length;
+}
+function slowestFirst(files, cwd) {
+  var size = {};
+  files.forEach(function (f) { try { size[f] = clauseCount(fs.readFileSync(path.join(cwd, "dev", f), "utf8")); } catch (e) { size[f] = 0; } });
+  return files.slice().sort(function (a, b) { return size[b] - size[a] || (a < b ? -1 : a > b ? 1 : 0); });
+}
+
 function run(files, opts, onResult, onDone) {
   var jobs = Math.max(1, Math.min(opts.jobs || 1, files.length)), log = opts.log || console.log;
-  var queue = files.slice(), running = 0, retry = [], results = {}, drained = false;
+  var queue = slowestFirst(files, opts.cwd), running = 0, retry = [], results = {}, drained = false;
   function settle(raw, lone) {
     var v = verdict.classify(raw.status, raw.out);
     if (raw.cleanup) log(raw.cleanup);
@@ -87,4 +104,4 @@ function run(files, opts, onResult, onDone) {
   pump();
 }
 
-module.exports = { jobsFrom: jobsFrom, run: run, MAX_DEFAULT_JOBS: MAX_DEFAULT_JOBS };
+module.exports = { jobsFrom: jobsFrom, run: run, clauseCount: clauseCount, slowestFirst: slowestFirst, MAX_DEFAULT_JOBS: MAX_DEFAULT_JOBS };
