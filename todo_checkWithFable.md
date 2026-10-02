@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-02 · #550 copy · Codex, owner-requested website v1.0.2: “Continue your Campaign” avoids repeating adventure above the signup line. Website copy and version markers only; no engine changes.
+
 - 2026-10-02 · #550 refinement · Codex, owner-requested website v1.0.1: removed duplicate header sign-in, changed entry copy, and constrained the formerly widening border to portrait letter proportions with content growth on phones. Desktop/phone screenshot and link checks passed; no engine changes.
 
 - 2026-10-02 · #550 deployment · Codex, owner-authorized hosting: separate Git-connected Cloudflare Pages project publishes website/; both domains and www aliases connected; scoped DNS and Single Redirect rules canonicalize HTTPS. Live browser and 16 native HTTP checks passed; no engine changes. Earlier unrelated GitHub designer-wait failures were reported and left untouched. Receipt and settings: website/README.md.

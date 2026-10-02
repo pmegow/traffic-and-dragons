@@ -1,12 +1,12 @@
 # Traffic & Dragons website
 
-Standalone public landing page, version 1.0.1. Open `index.html` to preview it locally.
+Standalone public landing page, version 1.0.2. Open `index.html` to preview it locally.
 No build, package installation, API keys, game files, or Codex runtime are required.
 
 The approved design uses parchment, brick-red lettering, the original dragon-on-Beetle
 artwork, and “Add a little fantasy to your gridlock.” The cover favors portrait
 8.5:11 proportions, growing vertically on small screens to keep content readable.
-“Continue your adventure” and “New Adventurer? Sign up” are the two entry links to the
+“Continue your Campaign” and “New Adventurer? Sign up” are the two entry links to the
 existing game at https://traffic-and-dragons.pages.dev/, which handles play and sign-in.
 There is no separate sign-in endpoint on this website.
 
