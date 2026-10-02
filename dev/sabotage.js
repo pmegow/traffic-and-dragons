@@ -86,16 +86,54 @@ function mirrorWorkingSet(scratch) {
     console.log("sabotage: the scratch clone mirrors the working set except " + said.map(function (w) { return skipped[w] + " untracked " + w; }).join(" and ") + " (never test inputs)");
   }
 }
-function proveScratch(opts) {
+/* #551 (2026-10-02) — ONE CLONE PER BATTERY, reused by every prove() group. A fresh clone per group cost ~10 s on
+   Windows: the first read of each freshly written file is scanned, so the first test run in a new clone took 10 s and
+   the second 0.5 s. A full sweep made 698 clones (sabotage-w2 alone 32, ~5 of its 7 minutes). Reuse keeps the fresh-clone
+   guarantee: before each group the clone is reset to HEAD (a tracked file a run changed comes back, a file it left is
+   removed) and the working set is mirrored as it is at that moment; a moved HEAD gets a new clone. The clone is removed
+   when the battery exits. */
+var _scratch = null;   // { dir, head }
+function gitIn(cwd, args) {
+  var env = {};   // a git hook's GIT_DIR / GIT_INDEX_FILE must never steer these calls (the TODO #27 class)
+  Object.keys(process.env).forEach(function (k) { if (k.indexOf("GIT_") !== 0) env[k] = process.env[k]; });
+  return cp.spawnSync("git", ["-c", "safe.directory=" + cwd, "-c", "safe.directory=" + ROOT,
+    "-c", "safe.directory=" + path.join(ROOT, ".git")].concat(args), { cwd: cwd, env: env, encoding: "utf8" });
+}
+function dropScratch() {
+  if (!_scratch) return;
+  var dir = _scratch.dir;
+  _scratch = null;
+  try { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }
+  catch (e) { console.error("sabotage: could not remove the scratch clone " + dir + " — " + e.message + " (left on disk)"); }
+}
+process.on("exit", dropScratch);
+function scratchClone() {
+  var head = gitIn(ROOT, ["rev-parse", "HEAD"]), reset;
+  if (head.status !== 0) { console.error("sabotage: could not read HEAD — " + String(head.stderr || head.stdout).trim()); return null; }
+  head = head.stdout.trim();
+  if (_scratch && _scratch.head === head) {
+    reset = gitIn(_scratch.dir, ["checkout", "--quiet", "--", "."]);
+    if (reset.status === 0) reset = gitIn(_scratch.dir, ["clean", "-fdxq"]);
+    if (reset.status === 0) return _scratch.dir;
+    console.error("sabotage: could not reset the scratch clone (" + String(reset.stderr || reset.stdout).trim() + ") — cloning afresh");
+  }
+  dropScratch();
   var scratch = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-sabotage-proof-"));
-  try {
-    var clone = cp.spawnSync("git", ["-c", "safe.directory=" + ROOT,
-      "-c", "safe.directory=" + path.join(ROOT, ".git"), "clone", "--quiet", "--no-hardlinks", ROOT, scratch],
-      { encoding: "utf8" });
-    if (clone.status !== 0) {
-      console.error("sabotage: scratch clone failed: " + String(clone.stderr || clone.stdout || "unknown git error"));
-      return 1;
-    }
+  var clone = cp.spawnSync("git", ["-c", "safe.directory=" + ROOT,
+    "-c", "safe.directory=" + path.join(ROOT, ".git"), "clone", "--quiet", "--no-hardlinks", ROOT, scratch],
+    { encoding: "utf8" });
+  if (clone.status !== 0) {
+    console.error("sabotage: scratch clone failed: " + String(clone.stderr || clone.stdout || "unknown git error"));
+    fs.rmSync(scratch, { recursive: true, force: true });
+    return null;
+  }
+  _scratch = { dir: scratch, head: head };
+  return scratch;
+}
+function proveScratch(opts) {
+  var scratch = scratchClone();
+  if (!scratch) return 1;
+  try {   /* a group that throws leaves a clone nobody can vouch for: the next group gets a fresh one */
     function copyWorking(rel) {
       if (!rel || path.isAbsolute(rel)) return;
       var src = path.join(ROOT, rel), dst = path.join(scratch, rel);
@@ -115,9 +153,7 @@ function proveScratch(opts) {
       cwd: scratch,
       inPlace: true
     });
-  } finally {
-    fs.rmSync(scratch, { recursive: true, force: true });
-  }
+  } catch (e) { dropScratch(); throw e; }
 }
 
 // OneDrive-resilient write (2026-08-09, #156 Phase B verification): the sync client's filter

@@ -120,7 +120,7 @@
 <dl>
   <div class="term"><dt>anchor <span class="full">find:</span></dt><dd>The exact snippet of code a clause breaks. It must appear exactly once in its file, or the break could land on the wrong line.</dd></div>
   <div class="term"><dt>applicability scan</dt><dd>A seconds-long dry check that every anchor still matches its file exactly once, without breaking anything. Catches stale clauses before a slow sweep would.</dd></div>
-  <div class="term"><dt>battery pool</dt><dd>Runs several sabotage batteries at once, biggest first (8 at a time here). Cut a 72-battery sweep from about 55 minutes to 7.
+  <div class="term"><dt>battery pool</dt><dd>Runs several sabotage batteries at once, biggest first (8 at a time here). With one scratch clone per battery, a 73-battery sweep went from about 55 minutes to 4.
     <span class="use"><b>Knobs:</b> <code>--jobs=N</code> or <code>SABOTAGE_JOBS=N</code>; <code>--jobs=1</code> runs them one by one.</span></dd></div>
   <div class="term"><dt>clause</dt><dd>One deliberate break in a sabotage battery: change this line, run the tests, and this named test must turn red. “12 of 12 caught” counts clauses.</dd></div>
   <div class="term"><dt>golden</dt><dd>A frozen copy of generated prompt text (the tag doc, the strip regex). The build fails if the bytes change — so every prompt change is a deliberate commit, never an accident.</dd></div>
@@ -131,7 +131,7 @@
   <div class="term"><dt>red-first <span class="full">failing test first</span></dt><dd>Write the test before the fix and watch it fail for the reported reason. A test that never failed proves nothing.</dd></div>
   <div class="term"><dt>replay baseline</dt><dd>A recorded playtest fed back through today's engine, compared with the saved end state. Any difference fails, unless someone re-records it on purpose.</dd></div>
   <div class="term"><dt>sabotage battery</dt><dd>A script that breaks a guarded line on purpose and proves a test turns red. A green test that nothing can break is worth nothing; the harness restores the file byte-identical.</dd></div>
-  <div class="term"><dt>scratch clone</dt><dd>A throwaway copy of the repo each battery breaks instead of your real files, so a crash mid-test can never leave the game sabotaged.</dd></div>
+  <div class="term"><dt>scratch clone</dt><dd>A throwaway copy of the repo each battery breaks instead of your real files, so a crash mid-test can never leave the game sabotaged. One per battery, reset before each group of clauses.</dd></div>
   <div class="term"><dt>seam</dt><dd>A hook a page exposes (<code>window.__bibleTest</code>) so tests can press its buttons and read its state without a person clicking. Every page with logic needs one.</dd></div>
 </dl>
 

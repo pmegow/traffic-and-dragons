@@ -135,6 +135,51 @@ try {
       fs.rmSync(repo, { recursive: true, force: true }); fs.rmSync(skewFile, { force: true });
     }
   });
+  // #551: a battery proves in ONE scratch clone, reused by every prove() group. A fresh clone per group cost ~10 s on
+  // Windows (the first read of every freshly written file is scanned) — 32 clones were ~5 of sabotage-w2's 7 minutes. A
+  // reused clone must still start each group as a fresh one would: reset to HEAD (a file a run left behind is gone, a
+  // tracked file a run changed is back), then the working set mirrored AS IT IS NOW; a moved HEAD gets a new clone; the
+  // clone is removed when the battery exits.
+  test("one scratch clone serves every prove group: reused, reset to HEAD and re-mirrored per group, re-cloned when HEAD moves, removed at exit", function () {
+    var repo = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-sabotage-reuse-")), log = repo + "-groups.txt";
+    var env = {};
+    Object.keys(process.env).forEach(function (k) { if (k.indexOf("GIT_") !== 0) env[k] = process.env[k]; });
+    function git(args) { var r = cp.spawnSync("git", ["-c", "user.email=fixture@test", "-c", "user.name=fixture", "-c", "commit.gpgsign=false"].concat(args), { cwd: repo, env: env, encoding: "utf8" }); if (r.status !== 0) throw new Error("git " + args.join(" ") + ": " + out(r)); }
+    function put(rel, text) { fs.mkdirSync(path.dirname(path.join(repo, rel)), { recursive: true }); fs.writeFileSync(path.join(repo, rel), text, "utf8"); }
+    try {
+      ["sabotage.js", "capture-run.js"].forEach(function (f) { put("dev/" + f, fs.readFileSync(path.join(path.dirname(SABOTAGE), f), "utf8")); });
+      put("target.txt", "ORIGINAL\n"); put("data/kept.txt", "HEAD\n");
+      // Each group's run logs where it ran and what it saw, then dirties the clone the way a test might, then reds by NAME.
+      put("check.js", [
+        'var fs=require("fs"),seen=[process.cwd(),fs.existsSync("stray.txt")?"stray":"-",fs.readFileSync("data/kept.txt","utf8").trim(),fs.existsSync("data/late.txt")?"late":"-"];',
+        'fs.appendFileSync(' + JSON.stringify(log) + ',seen.join("|")+"\\n");',
+        'fs.writeFileSync("stray.txt","left by a run");fs.writeFileSync("data/kept.txt","CHANGED BY A RUN\\n");',
+        'if(fs.readFileSync("target.txt","utf8").indexOf("BROKEN")>=0){console.error("NAMED CATCH");process.exit(1);}'
+      ].join("\n"));
+      git(["init", "-q"]); git(["add", "-A"]); git(["commit", "-q", "-m", "fixture base"]);
+      var battery = path.join(tmp, "reuse-battery.js"), group = 'sabotage.prove({file:"target.txt",command:[process.execPath,["check.js"]],cases:[{label:"reuse fixture",find:"ORIGINAL",replace:"BROKEN",mustFail:"NAMED CATCH"}]})';
+      fs.writeFileSync(battery, 'var fs=require("fs"),path=require("path"),cp=require("child_process"),repo=' + JSON.stringify(repo) + ';' +
+        'var sabotage=require(path.join(repo,"dev","sabotage.js")),rc=0;' +
+        'rc|=' + group + ';' +
+        'fs.writeFileSync(path.join(repo,"data","late.txt"),"untracked, written between groups\\n");' +
+        'rc|=' + group + ';' +
+        'fs.writeFileSync(path.join(repo,"data","kept.txt"),"COMMITTED LATER\\n");' +
+        'cp.spawnSync("git",["-c","user.email=fixture@test","-c","user.name=fixture","-c","commit.gpgsign=false","commit","-q","-am","move HEAD"],{cwd:repo});' +
+        'rc|=' + group + ';process.exit(rc);', "utf8");
+      var result = cp.spawnSync(process.execPath, [battery], { cwd: tmp, env: env, encoding: "utf8" }), o = out(result);
+      if (result.status !== 0 || (o.match(/caught/g) || []).length !== 3) return "the three groups were not all caught: " + o.slice(0, 600);
+      var rows = fs.readFileSync(log, "utf8").trim().split(/\r?\n/).map(function (l) { return l.split("|"); });
+      if (rows.length !== 3) return "expected three group runs, got " + rows.length;
+      if (rows[0][0] !== rows[1][0]) return "the second group cloned again instead of reusing the battery's clone: " + rows[0][0] + " vs " + rows[1][0];
+      if (rows[1][1] !== "-" || rows[1][2] !== "HEAD") return "a reused clone was not reset to HEAD before the next group (stray file / changed tracked file survived): " + rows[1].join("|");
+      if (rows[1][3] !== "late") return "a reused clone was not re-mirrored at the group's start (an untracked file written between groups is missing)";
+      if (rows[2][2] !== "COMMITTED LATER") return "a moved HEAD did not give the next group a clone of the new commit: " + rows[2].join("|");
+      var leftover = rows.map(function (r) { return r[0]; }).filter(function (d) { return fs.existsSync(d); });
+      return leftover.length ? "a scratch clone was left on disk after the battery exited: " + leftover.join(", ") : "";
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true }); fs.rmSync(log, { force: true });
+    }
+  });
   test("repo-relative mutations stay inside a disposable clone", function () {
     // proveScratch clones the repo, so this case needs one. The standalone-sabotage battery
     // re-runs this whole suite inside a SYNTHETIC tree (no .git) to prove the newline
