@@ -9,13 +9,13 @@ engine.loadEngine("game.js");
 
 var shown = [], calls = [];
 addMsg = function (kind, html, opts) { shown.push({ kind: kind, html: String(html), opts: opts || {} }); return { remove: function () {} }; };
-showToast = function () {}; syncUI = function () {}; saveAll = function () {}; saveCore = function () { return true; }; saveMem = function () { return true; };
+var toasts = []; showToast = function (m) { toasts.push(String(m)); }; syncUI = function () {}; saveAll = function () {}; saveCore = function () { return true; }; saveMem = function () { return true; };
 showCampaignEndedModal = function () {};
 var ow = console.warn, oi = console.info; console.warn = function () {}; console.info = function () {};
 
 var REPLY = "You walk out of the palace and the rain feels like a joke at your expense.\n\nYou learned to stay.\nRECORD: Ammut learned to stay when leaving was easier.";
 function seed() {
-  worldState = engine.makeTestWorld(); memory = blankMemory(); sessionLog = []; shown = []; calls = [];
+  worldState = engine.makeTestWorld(); memory = blankMemory(); sessionLog = []; shown = []; calls = []; toasts = [];
   var c = worldState.character; c.name = "Ammut"; c.coreMemories = []; worldState.turn = 89; worldState.transcript = [];
   worldState.ended = { turn: 89, cause: "the tale is told", at: 1, spine: true }; worldState.denouementOwed = true; busy = false;
   callGM = function (msg, sys) { calls.push({ msg: String(msg), sys: String(sys) }); return Promise.resolve(REPLY); };
@@ -35,6 +35,26 @@ function check(name, r) { if (r === true) { pass++; console.log("PASS " + name);
   var e = (worldState.character.coreMemories || []).filter(function (m) { return m.kind === "ending"; });
   check("#525 the defining moment is the record sentence", e.length === 1 && e[0].text === "Ammut learned to stay when leaving was easier." ? true : JSON.stringify(e));
   check("#525 the owed flag is cleared and the call is not repeated", !worldState.denouementOwed && busy === false ? true : "owed " + worldState.denouementOwed + " busy " + busy);
+  // review 2026-10-02: other shapes of the RECORD line must not reach the screen either
+  var SHAPES = [
+    ["the label alone, the sentence below", "You walk out.\n\nYou learned to stay.\nRECORD:\nAmmut learned to stay when leaving was easier."],
+    ["a rule after the line", "You walk out.\n\nYou learned to stay.\nRECORD: Ammut learned to stay when leaving was easier.\n\n---"],
+    ["the line written twice", "You walk out.\n\nYou learned to stay.\nRECORD: Ammut stayed.\nRECORD: Ammut learned to stay when leaving was easier."]
+  ], si;
+  for (si = 0; si < SHAPES.length; si++) {
+    seed(); callGM = (function (r) { return function () { return Promise.resolve(r); }; })(SHAPES[si][1]);
+    await campaignDenouement();
+    f = shown.filter(function (m) { return m.kind === "narrator"; })[0];
+    e = (worldState.character.coreMemories || []).filter(function (m) { return m.kind === "ending"; });
+    check("#525 review: " + SHAPES[si][0] + " — the screen, the replay and the transcript hold the prose only, and the record is filed",
+      f && !/RECORD|---/.test(f.html) && !/RECORD/.test(String(f.opts && f.opts.replayText)) && !/RECORD/.test(JSON.stringify(worldState.transcript)) && e.length === 1 && e[0].text === "Ammut learned to stay when leaving was easier."
+        ? true : "frame: " + JSON.stringify(f && f.html).slice(0, 200) + " | ending: " + JSON.stringify(e.map(function (m) { return m.text; })));
+  }
+  seed(); callGM = function () { return Promise.resolve("RECORD: Ammut learned to stay when leaving was easier."); };
+  await campaignDenouement();
+  check("#525 review: a reply that is only the RECORD line shows nothing, files nothing, stays owed and says it will be tried again",
+    shown.filter(function (m) { return m.kind === "narrator"; }).length === 0 && worldState.denouementOwed === true && busy === false && !(worldState.character.coreMemories || []).length && toasts.some(function (x) { return /tried again/.test(x); })
+      ? true : "shown " + JSON.stringify(shown.map(function (m) { return m.html; })).slice(0, 200) + " owed " + worldState.denouementOwed + " toasts " + JSON.stringify(toasts));
   console.warn = ow; console.info = oi;
   if (fails.length) { console.error("#525 ending screen: " + fails.length + " FAILED\n  " + fails.join("\n  ")); process.exit(1); }
   console.log("#525 ending screen: all green (" + pass + ")");

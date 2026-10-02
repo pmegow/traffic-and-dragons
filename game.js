@@ -1726,8 +1726,11 @@ function stampCampaignFates(text,heroLine){
   if(!worldState||(typeof kindDef==="function"&&!kindDef().closable))return 0;
   var t=String(text||"").replace(/\s+/g," "),sent=t.match(/[^.!?]+[.!?]+/g)||[t],camp=worldState.campName||"",cause=(worldState.ended&&worldState.ended.cause)||"",turn=worldState.turn;
   var open=(worldState.questLog||[]).filter(function(q){return q&&q.title&&q.status!=="completed"&&q.status!=="failed";}).map(function(q){return q.title;});
-  function line(name){var first=String(name||"").split(/\s+/)[0],i;if(!first)return "";for(i=0;i<sent.length;i++)if(sent[i].indexOf(first)>=0)return sent[i].trim();return "";}
-  var n=0;function stamp(sheet,fallback){if(!sheet||!sheet.name)return;sheet.fate={campaign:camp,turn:turn,cause:cause,line:line(sheet.name)||fallback||"",unresolved:open.slice(0,3)};n++;}
+  var _fHero=worldState.character&&worldState.character.name;
+  function line(name){var i;if(!name)return "";for(i=0;i<sent.length;i++)if(textNamesPerson(sent[i],name))return sent[i].trim();return "";}/* review: a whole word of the name — "Tom" is not in "Tomorrow" */
+  var n=0;function stamp(sheet,fallback){if(!sheet||!sheet.name)return;var ln=line(sheet.name);
+    if(ln&&sheet!==worldState.character)ln=endingMomentText(_fHero,ln);/* review: a companion's sentence comes from prose written to "you" — the Hall quotes it to another hero's GM, so it says whose "you" it is */
+    sheet.fate={campaign:camp,turn:turn,cause:cause,line:ln||fallback||"",unresolved:open.slice(0,3)};n++;}
   stamp(worldState.character,heroLine);/* #525: an ending written to "you" never names the hero — his line is the record sentence */var comps=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],j;for(j=0;j<comps.length;j++)stamp(comps[j].charSheet||comps[j]);
   return n;
 }
@@ -4031,7 +4034,8 @@ async function campaignDenouement(){
   try{
     var text=await callGM(buildDenouementPrompt(),denouementSys(),1500,null,{kind:"other",noHistory:true});/* #325: the living-hero variant when the spine ended the tale */
     var _shown=fileDenouement(String(text||"").trim());/* #525: the prose without its RECORD line */
-    if(typeof addMsg==="function"){var _df=denouementFrame(_shown||text);addMsg("narrator",_df.html,_df.opts);}
+    if(!_shown)throw new Error("the ending came back with no prose");/* review: nothing was filed and the ending stays owed — the raw reply (a bare RECORD line) must not reach the screen; the catch below says it will be tried again */
+    if(typeof addMsg==="function"){var _df=denouementFrame(_shown);addMsg("narrator",_df.html,_df.opts);}
     if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(worldState.ended&&worldState.ended.cause);
   }catch(e){console.warn("[denouement] not written yet — will retry at next boot:",e&&e.message);if(typeof showToast==="function")showToast("The denouement could not be written yet — it will be tried again next time");}
   finally{busy=false;}
@@ -4066,8 +4070,10 @@ function fileDenouement(text){
   if(!worldState)return "";
   /* #525: the RECORD line leaves the prose here — the transcript, the chapter, the fates and the screen get the prose only */
   var _ds=denouementSplit(text),t=_ds.prose;if(!t)return "";
-  var _hero=worldState.character&&worldState.character.name,_rec=_ds.record?snippetAtSentence(endingMomentText(_hero,_ds.record),240):"";
-  if(!_rec){var _paras=t.split(/\n\s*\n/),_lastP=String(_paras[_paras.length-1]||"").trim();_rec=_lastP?endingMomentText(_hero,snippetAtSentence(_lastP,220)):"";
+  var _hero=worldState.character&&worldState.character.name,_recS=_ds.record;
+  if(_recS&&!/[.!?]["'\u201d\u2019)\]]*$/.test(_recS))_recS+=".";/* review: a sentence with no full stop is still one sentence — the snippet cutter read it as cut off and dropped its last word */
+  var _rec=_recS?snippetAtSentence(endingMomentText(_hero,_recS),240):"";
+  if(!_rec){var _paras=t.split(/\n\s*\n/),_lastP=String(_paras[_paras.length-1]||"").trim();_rec=_lastP?(_hero?_hero+"'s ending: ":"")+snippetAtSentence(_lastP,220):"";/* review: prose written to "you" is ALWAYS filed under the hero's name — a vocative ("…, Ammut.") does not make it a third-person record */
     if(typeof console!=="undefined")console.warn("[denouement] the ending carried no RECORD line — the closing paragraph is filed under the hero's name instead (#525)");}
   if(typeof logTranscript==="function")logTranscript("gm",t,t,undefined,{denouement:true});
   if(typeof stampCampaignFates==="function")stampCampaignFates(t,_rec);/* #6 G1: the fates ride the sheets into the library */

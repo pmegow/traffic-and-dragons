@@ -29216,4 +29216,85 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return memory.npcs["Bram"]&&wsNpcByName("Bram")&&!(r.r.errors||[]).length?true:"[MERGE:npc|Bram|Bram] routes into the same handler and must be ignored the same way";
   });
 
+
+  section("#525 review: any hero name, any shape of the RECORD line, every way a sheet arrives");
+  var NAMES525=["José","Zoë","Éowyn","Иван","アムト","Mr. Fox","Dr. Vex","St. Aldous","J. Smith","\"Lucky\" Jack","(Rook)","$ilver","The Gray Fox","The Entity","Silas Morne","Tom"];
+  t("#525r the heal names an ending ONCE whatever the hero is called — accents, other scripts, titles, quotes — through the real load path too",function(){
+    var i,k,old="I spent nineteen levels pulling the pin on every grenade in the realm.";
+    for(i=0;i<NAMES525.length;i++){var nm=NAMES525[i],c=w525();c.name=nm;c.coreMemories=[{text:old,turn:89,kind:"ending",who:nm}];
+      for(k=0;k<3;k++)healEndingMoments(worldState);
+      if(c.coreMemories[0].text!==nm+"'s ending: "+old)return "'"+nm+"': the prefix was stacked or missing after three heals: "+c.coreMemories[0].text.slice(0,90);
+      quiet(function(){migrateWorldState();migrateWorldState();});
+      if(c.coreMemories[0].text!==nm+"'s ending: "+old)return "'"+nm+"': a load changed it again: "+c.coreMemories[0].text.slice(0,90);}
+    return true;
+  });
+  t("#525r a text names the hero by any identifying word of the name, as a whole word, in any script; a title or an article never counts",function(){
+    if(endingMomentText("José","José learned to stay.")!=="José learned to stay.")return "an accented name is found: "+endingMomentText("José","José learned to stay.");
+    if(endingMomentText("Иван","Иван остался.")!=="Иван остался.")return "another script is found";
+    if(endingMomentText("Silas Morne","Morne learned to stay.")!=="Morne learned to stay.")return "the surname alone names him";
+    if(endingMomentText("Mr. Fox","Fox learned to stay.")!=="Fox learned to stay.")return "'Mr. Fox' is named by 'Fox': "+endingMomentText("Mr. Fox","Fox learned to stay.");
+    if(endingMomentText("The Gray Fox","The tale refused to change him.")!=="The Gray Fox's ending: The tale refused to change him.")return "'The' is not his name: "+endingMomentText("The Gray Fox","The tale refused to change him.");
+    if(endingMomentText("The Entity","The road went on.")!=="The Entity's ending: The road went on.")return "'The' is not its name either";
+    if(endingMomentText("Tom","Tomorrow the bells will ring.")!=="Tom's ending: Tomorrow the bells will ring.")return "'Tom' is not in 'Tomorrow': "+endingMomentText("Tom","Tomorrow the bells will ring.");
+    if(endingMomentText("José","Joséphine learned to stay.")!=="José's ending: Joséphine learned to stay.")return "'José' is not in 'Joséphine' (an accented letter is a letter): "+endingMomentText("José","Joséphine learned to stay.");
+    if(endingMomentText("Mr. Fox","Mr. Wolf left the den.")!=="Mr. Fox's ending: Mr. Wolf left the den.")return "a title with its full stop is still a title: "+endingMomentText("Mr. Fox","Mr. Wolf left the den.");
+    if(endingMomentText("アムト","アムトは残った。")!=="アムトは残った。")return "a name in a script without spaces is found where it stands";
+    return textNamesPerson("\"Lucky\" Jack kept the coin.","\"Lucky\" Jack")&&!textNamesPerson("A lucky man kept the coin.","\"Lucky\" Jack")?true:"a quoted nickname is found by its word, in its own case";
+  });
+  t("#525r denouementSplit: the label alone with the sentence below, a rule after it, the line twice, brackets, quotes, a bullet, 'THE RECORD', a cut-off label — and 'Record-keepers…' is prose",function(){
+    var S="Ammut learned to stay when leaving was easier.",P="You walk out.\n\nYou learned to stay.",shapes=[
+      ["label alone",P+"\nRECORD:\n"+S],["a rule after it",P+"\nRECORD: "+S+"\n\n---"],["a rule before it",P+"\n\n---\nRECORD: "+S],["written twice",P+"\nRECORD: Ammut stayed.\nRECORD: "+S],
+      ["brackets",P+"\n[RECORD: "+S+"]"],["quotes",P+"\n\"RECORD: "+S+"\""],["a bullet",P+"\n- RECORD: "+S],["the record",P+"\nTHE RECORD: "+S],["bold label",P+"\n**RECORD**: "+S]],i,a;
+    for(i=0;i<shapes.length;i++){a=denouementSplit(shapes[i][1]);
+      if(a.prose!==P||a.record!==S)return shapes[i][0]+": "+JSON.stringify(a);}
+    a=denouementSplit(P+"\nRECORD:");
+    if(a.prose!==P||a.record!=="")return "a reply cut off at the label shows no label and files no record: "+JSON.stringify(a);
+    a=denouementSplit(P+"\n\n---\nRECORD:");
+    if(a.prose!==P)return "a rule left above a cut-off label goes too: "+JSON.stringify(a);
+    a=denouementSplit("あなたは歩き去る。\n\nあなたは残ることを学んだ。\nRECORD: アムトは残ることを学んだ。");
+    if(a.prose!=="あなたは歩き去る。\n\nあなたは残ることを学んだ。"||a.record!=="アムトは残ることを学んだ。")return "an ending in a script without case is text, not a rule to trim: "+JSON.stringify(a);
+    a=denouementSplit("RECORD: "+S);
+    if(a.prose!==""||a.record!==S)return "a reply that is only the line has no prose: "+JSON.stringify(a);
+    a=denouementSplit("You walk out.\n\nRecord-keepers in the capital wrote it down wrong, and you let them.");
+    if(a.record!==""||!/Record-keepers in the capital wrote it down wrong, and you let them\.$/.test(a.prose))return "a closing paragraph that begins with the word is prose, and stays on the page: "+JSON.stringify(a);
+    a=denouementSplit("You walk out.\r\n\r\nYou learned to stay.\r\nRECORD: "+S+"\r\n");
+    return a.record===S&&!/RECORD/.test(a.prose)?true:"CRLF: "+JSON.stringify(a);
+  });
+  t("#525r filing: a record with no full stop keeps its last word; a closing paragraph is always filed under the hero's name; a non-array record never breaks the heal",function(){
+    var c=w525();quiet(function(){fileDenouement("You walk out.\nRECORD: Ammut stayed");});
+    if(ending525(c)[0]!=="Ammut stayed.")return "the last word was cut: "+JSON.stringify(ending525(c));
+    c=w525();quiet(function(){fileDenouement("You walk out.\nRECORD: Ammut learned to stay when leaving was easier");});
+    if(ending525(c)[0]!=="Ammut learned to stay when leaving was easier.")return "a longer one too: "+JSON.stringify(ending525(c));
+    c=w525();quiet(function(){fileDenouement("You walk out.\n\nYou learned to stay, Ammut. It cost you the road.");});
+    if(ending525(c)[0]!=="Ammut's ending: You learned to stay, Ammut. It cost you the road.")return "prose written to 'you' is never a bare memory on a companion's sheet, even when it says his name: "+JSON.stringify(ending525(c));
+    c=w525();wsNpcByName("Daeris").charSheet.coreMemories={};worldState.npcs.push({name:"Odd",charSheet:{name:"Odd",coreMemories:"x"}});c.coreMemories=[{text:"I left.",turn:1,kind:"ending",who:"Ammut"}];
+    var n=-1,threw="";try{n=healEndingMoments(worldState);}catch(e){threw=String(e&&e.message);}
+    var keepHeal=healEndingMoments,loadThrew="";healEndingMoments=function(){throw new Error("boom");};
+    try{quiet(function(){migrateWorldState();});}catch(e2){loadThrew=String(e2&&e2.message);}finally{healEndingMoments=keepHeal;}
+    if(loadThrew)return "a heal that throws must never fail the load: "+loadThrew;
+    return !threw&&n===1?true:"a sheet whose record is not a list must not stop the heal (a throw here failed the whole load): "+threw+" n="+n;
+  });
+  t("#525r fates: a companion's line from prose written to 'you' is put under the hero's name; a hero called Tom does not take 'Tomorrow…' as his line",function(){
+    var c=w525(),d=wsNpcByName("Daeris").charSheet;worldState.ended={turn:89,cause:"the tale is told"};
+    quiet(function(){fileDenouement("You walk out of the palace.\n\nDaeris has her arm thrown over your chest, and she never asks where you buried the crown.\nRECORD: Ammut learned to stay when leaving was easier.");});
+    if(!d.fate||d.fate.line!=="Ammut's ending: Daeris has her arm thrown over your chest, and she never asks where you buried the crown.")return "her line says whose 'you' it is: "+JSON.stringify(d.fate&&d.fate.line);
+    if(c.fate.line!=="Ammut learned to stay when leaving was easier.")return "the hero's line is the record";
+    c=w525();c.name="Tom";worldState.ended={turn:89,cause:"the tale is told"};
+    quiet(function(){fileDenouement("Tomorrow the bells will ring without you.\nRECORD: Tom left before the bells.");});
+    return c.fate&&c.fate.line==="Tom left before the bells."?true:"'Tomorrow' is not 'Tom': "+JSON.stringify(c.fate&&c.fate.line);
+  });
+  t("#525r a sheet that arrives mid-session: the GM reads an old first-person ending under the hero's name at once, and two copies of one ending read as one line",function(){
+    var c=w525(),d=wsNpcByName("Daeris").charSheet,old="I spent nineteen levels pulling the pin on every grenade in the realm.";
+    c.coreMemories=[{text:"Ammut's ending: "+old,turn:89,kind:"ending",who:"Ammut",camp:"An Older Tale"}];
+    d.coreMemories=[{text:old,turn:89,kind:"ending",who:"Ammut",camp:"An Older Tale"}];/* a library copy from before the fix, adopted this session */
+    var b=buildCoreMemoryBlock();
+    if(b.indexOf(") "+old)>=0)return "the GM was shown the bare first-person line: "+b.slice(-260);
+    if(b.split("Ammut's ending: "+old).length!==2)return "one ending, one line (the healed copy and the old copy are the same moment): "+b.slice(-320);
+    return d.coreMemories[0].text===old?true:"building the prompt must not change the record";
+  });
+  t("#525r the ending is written in the voice the game was played in: a campaign with no pinned voice uses the device's, as play does",function(){
+    w525();delete worldState.proseAuthor;var keep=proseAuthor;proseAuthor="dinniman";
+    try{var p=buildDenouementPrompt();return /VOICE: Matt Dinniman/.test(p)?true:"no VOICE line, so the prompt's own rule said 'use none' for a campaign played in that voice";}finally{proseAuthor=keep;}
+  });
+
 }

@@ -21,7 +21,7 @@ Before this work the two merged in silence: consolidation drops titles, and one 
 | `8d31679e` | #534 | Fixes for the first review: provisional keys out of name resolution, one reading of a merge's operands |
 | `84dda630` | #535 | The merge gate reads `[MERGE:NPC\|…]` like the parser |
 
-Every commit passed the full suite, the standalone suites, the four replays and its own sabotage battery. The branch tip passed the range-wide battery sweep. None of that caught what the reviews caught.
+Every commit passed the full suite, the standalone suites, the four replays and its own sabotage battery. The range-wide battery sweep was green after the first six commits; at the final tip one older clause of `dev/sabotage-w2.js` no longer attributes, because #534 moved the merge gate out of the function that clause mutates. None of that caught what the reviews caught.
 
 ## 3. First review (of #530 and #504)
 
@@ -80,7 +80,7 @@ Not built; these are the conclusions the two reviews support.
 
 | Row | What | State |
 |---|---|---|
-| #525, #514, #506 | The three other rulings of 2026-10-01 | Built; an independent review of the three ran the same night (see their rows) |
+| #525, #514, #506 | The three other rulings of 2026-10-01 | Built. A third independent review the same night cleared #514 and #506 and found one serious defect in #525 (its load-time repair stacked a prefix on every load for a hero name with an accent or a title); #525 was corrected before the push (v1.1110) |
 | #533 | The "constructor" crash and its class in the word tables | Fixed |
 | #535 | The merge gate's spelling hole | Fixed |
 | #537 | The self-merge blow-up | Fixed |
@@ -93,5 +93,5 @@ Not built; these are the conclusions the two reviews support.
 
 ## 8. Evidence
 
-- The branch `claude/504-titled-relative` carries the build, its tests and batteries, and both reviewers' probes and fuzzers under `audits/reviews/504_titled_relative/` (paths inside them point at the review session's scratch folder and need adjusting to run).
+- The branch `claude/504-titled-relative` (on origin; its last commit is marked to skip CI) carries the build, its tests and batteries, and both reviewers' probes and fuzzers under `audits/reviews/504_titled_relative/` (paths inside them point at the review session's scratch folder and need adjusting to run).
 - Field: of 208 names across the owner's eight campaigns, none raises the #504 question today; none of 850 NPC names holds the word "constructor"; no save has ever held a provisional record.

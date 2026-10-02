@@ -347,8 +347,13 @@ function buildCoreMemoryBlock(){
     var j;for(j=0;j<(list||[]).length;j++){var m=list[j];if(!m||!m.text)continue;
       var _mPrior=!campIsCurrent(m);/* #481 C8: by id when both sides carry one — a rename no longer makes this campaign's moments "earlier" */
       if(_mPrior&&owner&&carriers.indexOf(owner)<0)carriers.push(owner);/* before the dedupe: a moment shared across sheets is carried by every sheet that holds it */
-      var k=(m.camp||"")+"|"+m.turn+"|"+m.text;if(seen[k])continue;seen[k]=1;
-      if(_mPrior)prior.push(m);else cur.push(m);}
+      /* #525 review: a sheet can arrive mid-session (a library companion, a Village move-in) with an ending filed before the heal, and
+         the load-time heal has not seen it. The GM never reads it bare: the block reads every ending through endingMomentText. Pure —
+         the record itself is healed at the next load. The dedupe key uses the read text, so a healed copy and an old copy are one line. */
+      var _mt=(m.kind==="ending"&&m.who&&typeof endingMomentText==="function")?endingMomentText(m.who,m.text):m.text;
+      var k=(m.camp||"")+"|"+m.turn+"|"+_mt;if(seen[k])continue;seen[k]=1;
+      var _mv=(_mt===m.text)?m:{text:_mt,turn:m.turn,camp:m.camp,campId:m.campId,kind:m.kind,who:m.who};
+      if(_mPrior)prior.push(_mv);else cur.push(_mv);}
   }
   collect(worldState.character.coreMemories,worldState.character.name);names.push(worldState.character.name);
   var _cmParty=livingPartyCompanions();/* #6: shared party scan */
@@ -861,7 +866,8 @@ function buildDenouementPrompt(){
   var cb=buildDenouementCompanions();if(cb)lines.push(cb);
   var pb=buildDenouementPending();if(pb)lines.push(pb);
   var d=worldState.deaths||[];if(d.length||worldState.ended){lines.push("DEATHS:");for(i=0;i<d.length;i++)lines.push("- t"+d[i].turn+": "+(d[i].cause||"slain"));if(worldState.ended)lines.push("- t"+worldState.ended.turn+": "+(worldState.ended.cause||"slain")+" — the last.");}
-  var pa=(typeof AUTHORS!=="undefined"&&worldState.proseAuthor)?AUTHORS.filter(function(a){return a.id===worldState.proseAuthor;})[0]:null;
+  var _dvId=(worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");/* #525 review: the voice the game was PLAYED in — the campaign's, else the device's, exactly as buildSysPrompt resolves it. With no VOICE line the rule above says "use none". */
+  var pa=(typeof AUTHORS!=="undefined"&&_dvId)?AUTHORS.filter(function(a){return a.id===_dvId;})[0]:null;
   if(pa&&pa.vc)lines.push("VOICE: "+pa.vc);
   lines.push("Write the denouement now.");
   return lines.join("\n");

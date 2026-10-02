@@ -75,7 +75,7 @@ prove("game.js", [
     find: 'if(typeof campaignEnded==="function"&&campaignEnded())return {action:"refused",reason:"already ended"};', replace: '',
     mustFail: "#6G4 close this campaign" },
   { label: "the fate forgets the unresolved threads",
-    find: 'sheet.fate={campaign:camp,turn:turn,cause:cause,line:line(sheet.name)||fallback||"",unresolved:open.slice(0,3)};', replace: 'sheet.fate={campaign:camp,turn:turn,cause:cause,line:line(sheet.name)||fallback||"",unresolved:[]};',
+    find: 'sheet.fate={campaign:camp,turn:turn,cause:cause,line:ln||fallback||"",unresolved:open.slice(0,3)};', replace: 'sheet.fate={campaign:camp,turn:turn,cause:cause,line:ln||fallback||"",unresolved:[]};',
     mustFail: "#6G1 fates are stamped at the ending" },
   { label: "import stops seeding the Hall",
     find: 'if(typeof villageCommonsSeed==="function")villageCommonsSeed();/* #6 E11 + G2: the commons and the Hall (mementos + the wall from the residents just added), idempotent, on day one and on every move-in */', replace: '',
