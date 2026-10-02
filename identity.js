@@ -1281,18 +1281,18 @@ function w2NamedPresenceEvidence(name,sourceTurn){
    descriptor ("The Caul Of Mist") would pass RA; the probes came from real GM output, which
    cases common nouns naturally. Callers must REFUSE on null/mismatch, never redirect — the
    entry-17 wrong-victim lesson. */
-var W2_TITLE_STOPSET={brother:1,sister:1,father:1,mother:1,lord:1,lady:1,sir:1,dame:1,master:1,mistress:1,captain:1,sheriff:1,king:1,queen:1,prince:1,princess:1,elder:1,saint:1,the:1,of:1,order:1,guild:1,house:1};
+var W2_TITLE_STOPSET=npcWordTable({brother:1,sister:1,father:1,mother:1,lord:1,lady:1,sir:1,dame:1,master:1,mistress:1,captain:1,sheriff:1,king:1,queen:1,prince:1,princess:1,elder:1,saint:1,the:1,of:1,order:1,guild:1,house:1});/* #533: word-keyed — never a plain object (memory.js) */
 function _w2RawTokens(s){var out=[],m,re=/[A-Za-z]+/g,str=String(s||"");while((m=re.exec(str)))out.push({t:m[0].toLowerCase(),cap:/[A-Z]/.test(m[0].charAt(0))});return out;}
 function w2SelfNamingCanon(raw){
   var rt=_w2RawTokens(raw);if(!rt.length)return null;
-  var rset={},i;for(i=0;i<rt.length;i++)rset[rt[i].t]=rt[i].cap||rset[rt[i].t]||false;
+  var rset=Object.create(null),i;/* #533: `in` on a plain object finds "constructor" on the prototype — a word the operand never held */for(i=0;i<rt.length;i++)rset[rt[i].t]=rt[i].cap||rset[rt[i].t]||false;
   var names={},k;
   if(worldState&&worldState.npcs)for(i=0;i<worldState.npcs.length;i++)names[worldState.npcs[i].name]=1;
   if(typeof memory!=="undefined"&&memory&&memory.npcs)for(k in memory.npcs){names[k]=1;
     var _al=memory.npcs[k].aliases;if(_al)for(i=0;i<_al.length;i++)names[_al[i]]=1;/* #193: long-form aliases are candidates too — they resolve to their canonical, and the tie-forgiveness clause treats an alias and its owner as ONE claim */}
   var best=null,bestScore=0,tied=false;
   for(k in names){
-    var ct=_w2RawTokens(k),cset={},j;for(j=0;j<ct.length;j++)cset[ct[j].t]=1;
+    var ct=_w2RawTokens(k),cset=Object.create(null),j;for(j=0;j<ct.length;j++)cset[ct[j].t]=1;
     /* R0: exact set equality */
     var exact=ct.length===rt.length;
     if(exact){for(j=0;j<ct.length;j++)if(!(ct[j].t in rset)){exact=false;break;}}

@@ -2,11 +2,19 @@
 // role nouns so only the words that actually identify a person remain. "Sheriff Belor Hemlock" ->
 // [belor,hemlock]; "The Scarred Man" -> [scarred]; "Barkeep (Rusty Dragon)" -> [] (role-only, no
 // distinctive name — deliberately unmergeable so anonymous functionaries never absorb a real NPC).
-var _NPC_STOP={sheriff:1,father:1,mother:1,lord:1,lady:1,ser:1,sir:1,captain:1,master:1,mistress:1,
+// #533: a table keyed by WORDS THE GM WRITES must not inherit Object.prototype. "constructor" is such a word ("Malrik the
+// Constructor"), and on a plain object it looks up Object's own constructor: a truthy function. As a stop word it silently vanished
+// from the name; in npcNameSays it was read as a rank and threw ("rk.split is not a function") inside every resolve that scanned his
+// record — the [NPC:] handler lost its tags, and a death tag, which resolves outside any handler, threw out of applyMuts. Every word
+// table and every per-text token set here, in the death gate (identity.js) and in the button filter (game.js) is built through this,
+// or on Object.create(null). (It is the one reachable word: the tokenizers lower-case and keep letters and digits only, and no
+// other Object.prototype key is all lower-case letters.)
+function npcWordTable(o){var m=Object.create(null),k;for(k in o)m[k]=o[k];return m;}
+var _NPC_STOP=npcWordTable({sheriff:1,father:1,mother:1,lord:1,lady:1,ser:1,sir:1,captain:1,master:1,mistress:1,
   brother:1,sister:1,saint:1,st:1,king:1,queen:1,prince:1,princess:1,dame:1,elder:1,dr:1,doctor:1,
   professor:1,the:1,old:1,young:1,a:1,an:1,man:1,woman:1,girl:1,boy:1,child:1,lad:1,lass:1,
   stranger:1,guard:1,barkeep:1,keeper:1,innkeeper:1,merchant:1,wife:1,husband:1,soldier:1,priest:1,
-  priestess:1,mage:1,wizard:1,knight:1,thief:1,beggar:1,drunk:1,unnamed:1};
+  priestess:1,mage:1,wizard:1,knight:1,thief:1,beggar:1,drunk:1,unnamed:1});
 // Memoized (AUDIT_FABLE_07_16 #3): pure function of an immutable string, recomputed O(N) per
 // resolveNpcName all-keys scan and O(N) per ragKnownNames rebuild. Map growth is bounded by the
 // distinct NPC-name vocabulary; no eviction. Null-prototype map so hostile keys ("__proto__",
@@ -39,16 +47,16 @@ npcCoreTokens._misses=0; // test hook (dev/_tests_A2.js): counts real computatio
 // ONLY a positive contradiction keeps two names apart. No signal on either side, or the same signal,
 // consolidates exactly as before — same-sex relatives under a bare title ("Queen Underbough" beside a
 // "Wilhelmina Underbough" with no rank on file) still merge; that residue is a TODO row, not a guess here.
-var _NPC_SEX_WORDS={king:"m",prince:"m",lord:"m",sir:"m",father:"m",brother:"m",mr:"m",mister:"m",duke:"m",baron:"m",count:"m",earl:"m",
+var _NPC_SEX_WORDS=npcWordTable({king:"m",prince:"m",lord:"m",sir:"m",father:"m",brother:"m",mr:"m",mister:"m",duke:"m",baron:"m",count:"m",earl:"m",
   emperor:"m",uncle:"m",grandfather:"m",husband:"m",man:"m",boy:"m",lad:"m",son:"m",widower:"m",
   queen:"f",princess:"f",lady:"f",dame:"f",mother:"f",sister:"f",mrs:"f",miss:"f",mistress:"f",madam:"f",madame:"f",duchess:"f",baroness:"f",
-  countess:"f",empress:"f",aunt:"f",grandmother:"f",wife:"f",woman:"f",girl:"f",lass:"f",daughter:"f",widow:"f",priestess:"f"};
+  countess:"f",empress:"f",aunt:"f",grandmother:"f",wife:"f",woman:"f",girl:"f",lass:"f",daughter:"f",widow:"f",priestess:"f"});
 /* "master" and "ser" are left out on purpose: both are worn by either sex in this genre */
-var _NPC_RANK_WORDS={king:"crown:monarch",queen:"crown:monarch",emperor:"crown:monarch",empress:"crown:monarch",prince:"crown:heir",princess:"crown:heir",
-  old:"age:old",elder:"age:old",older:"age:old",senior:"age:old",sr:"age:old",young:"age:young",younger:"age:young",junior:"age:young",jr:"age:young"};
+var _NPC_RANK_WORDS=npcWordTable({king:"crown:monarch",queen:"crown:monarch",emperor:"crown:monarch",empress:"crown:monarch",prince:"crown:heir",princess:"crown:heir",
+  old:"age:old",elder:"age:old",older:"age:old",senior:"age:old",sr:"age:old",young:"age:young",younger:"age:young",junior:"age:young",jr:"age:young"});
 /* kin and role nouns are the HEAD of a description ("the scarred man", "Tam's mother") — never a surname */
-var _NPC_KIN_NOUNS={man:1,woman:1,boy:1,girl:1,lad:1,lass:1,wife:1,husband:1,son:1,daughter:1,widow:1,widower:1,mother:1,father:1,
-  brother:1,sister:1,uncle:1,aunt:1,grandmother:1,grandfather:1,priestess:1};
+var _NPC_KIN_NOUNS=npcWordTable({man:1,woman:1,boy:1,girl:1,lad:1,lass:1,wife:1,husband:1,son:1,daughter:1,widow:1,widower:1,mother:1,father:1,
+  brother:1,sister:1,uncle:1,aunt:1,grandmother:1,grandfather:1,priestess:1});
 // Pure. {sex:"m"|"f"|null, crown:"monarch"|"heir"|null, age:"old"|"young"|null} — null = the name does not say, or says both.
 // Two readings it refuses: a title word that closes the name straight after a plain name word is the person's SURNAME
 // ("Marla King", "Tom Young"); a possessive is someone else's title ("the Queen's Champion Aldric") — "queen's" is not
@@ -164,7 +172,7 @@ function resolveNpcName(name){
 // of its exactly-one-candidate guard on an unregistered name — at PROPOSAL time those words are
 // identity-bearing ("The Scarred Man" vs "The Scarred Woman" must never read as equal).
 // Here only articles/conjunctions and parenthetical descriptors are identity-neutral.
-var _VARIANT_STOP={the:1,a:1,an:1,of:1,and:1,or:1};
+var _VARIANT_STOP=npcWordTable({the:1,a:1,an:1,of:1,and:1,or:1});
 function npcVariantTokens(name){
   var s=String(name||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[^a-z0-9\s']/g," ");
   var raw=s.split(/\s+/),out=[],i;
@@ -181,7 +189,7 @@ function npcVariantTokens(name){
 function npcVariantPairs(names){
   var sets=[],i,j,ti;
   for(i=0;i<names.length;i++){
-    var tk=npcVariantTokens(names[i]),set={},n=0,sub=false;
+    var tk=npcVariantTokens(names[i]),set=Object.create(null),n=0,sub=false;/* #533 */
     for(ti=0;ti<tk.length;ti++){if(!set[tk[ti]]){set[tk[ti]]=1;n++;}if(tk[ti].length>=3)sub=true;}
     sets.push({name:names[i],set:set,n:n,ok:n>0&&sub});
   }
@@ -269,7 +277,7 @@ function getNameSuggestions(count,peek){
   // the npc domain only (Sol §6: a person, quest, and spell may all legitimately be called
   // "Hope"; cross-domain token ownership is not identity). Filtered candidates are skipped, not
   // logged — the window scans forward so the GM still gets a full list.
-  var onFile={},ok,ti;
+  var onFile=Object.create(null),ok,ti;/* #533 */
   if(memory.npcs){for(k in memory.npcs){
     var kt=npcCoreTokens(k);for(ti=0;ti<kt.length;ti++)onFile[kt[ti]]=1;
     var als=memory.npcs[k].aliases||[],ai;
@@ -1099,7 +1107,7 @@ function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc})
 // Significant stemmed tokens of an event's `what` — the near-duplicate fingerprint. Light suffix
 // stem so "find Shalelu"/"finding Shalelu"/"finds Shalelu" collapse; RAG_STOP + <4 chars dropped.
 function feTokens(s){
-  var out=[],seen={},w=String(s||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/),i;
+  var out=[],seen=Object.create(null),w=String(s||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/),i;
   for(i=0;i<w.length;i++){
     var t=w[i];
     if(t.length<4||RAG_STOP[t])continue;
@@ -1358,7 +1366,7 @@ function ragScanNames(lowText,names,addFn){
 // flag flips on. Additive fields only — nothing else reads .e (no schema bump, no migration).
 function ragEntitiesFromRaw(raw){
   raw=String(raw||"");
-  var e={n:[],l:null,q:[]},seen={},i;
+  var e={n:[],l:null,q:[]},seen=Object.create(null),i;
   if(typeof worldState!=="undefined"&&worldState&&worldState.world)e.l=worldState.world.location||null;
   function addN(nm){nm=resolveNpcName(String(nm).trim());if(nm&&!seen[nm]&&e.n.length<12){seen[nm]=1;e.n.push(nm);}}
   var tags=raw.match(/\[(?:NPC|NPC_NOTE|PARTY_MEMBER):([^|\]]+)\|/g)||[];
@@ -1405,9 +1413,9 @@ function ragQueryEntities(inputText){
 // Topical terms from the player's input — the signal entity scoring can't see (the t162 pin
 // quiz: "pin"/"clasp"/"retrieve" are what identify the right scene; every Glassworks turn had
 // the same entities). Rare-ish words ≥4 chars, structural stopwords dropped, capped at 8.
-var RAG_STOP={"about":1,"after":1,"again":1,"back":1,"been":1,"before":1,"come":1,"could":1,"did":1,"does":1,"down":1,"from":1,"gets":1,"goes":1,"going":1,"have":1,"here":1,"into":1,"just":1,"know":1,"like":1,"look":1,"make":1,"more":1,"most":1,"much":1,"over":1,"should":1,"some":1,"take":1,"tell":1,"that":1,"them":1,"then":1,"there":1,"they":1,"this":1,"through":1,"want":1,"were":1,"what":1,"when":1,"where":1,"which":1,"while":1,"will":1,"with":1,"would":1,"your":1};
+var RAG_STOP=npcWordTable({"about":1,"after":1,"again":1,"back":1,"been":1,"before":1,"come":1,"could":1,"did":1,"does":1,"down":1,"from":1,"gets":1,"goes":1,"going":1,"have":1,"here":1,"into":1,"just":1,"know":1,"like":1,"look":1,"make":1,"more":1,"most":1,"much":1,"over":1,"should":1,"some":1,"take":1,"tell":1,"that":1,"them":1,"then":1,"there":1,"they":1,"this":1,"through":1,"want":1,"were":1,"what":1,"when":1,"where":1,"which":1,"while":1,"will":1,"with":1,"would":1,"your":1});/* #533: word-keyed */
 function ragQueryTerms(inputText){
-  var out=[],seen={},i;
+  var out=[],seen=Object.create(null),i;
   var words=String(inputText||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/);
   for(i=0;i<words.length;i++){
     var w=words[i];
@@ -1427,7 +1435,7 @@ function ragQueryTerms(inputText){
    "merchant's wine cellar" yields "merchant wine"+"wine cellar" — close enough for prose that
    says the same thing. Cap 6 bigrams per input. */
 function ragQueryBigrams(inputText){
-  var out=[],seen={},kept=[],i;
+  var out=[],seen=Object.create(null),kept=[],i;
   var words=String(inputText||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/);
   for(i=0;i<words.length;i++){var w=words[i];if(w.length>=4&&!RAG_STOP[w])kept.push({w:w,pos:i});}
   for(i=1;i<kept.length;i++){
@@ -1516,7 +1524,7 @@ function _ragRetrieveScore(inputText){
   // Entity names already score as entities — their tokens double-dipping as lexical terms
   // just flattens the ranking ("hemlock" +3 entity AND +2 term on every mention).
   (function(){
-    var ent={},k,i2,keepT=[];
+    var ent=Object.create(null),k,i2,keepT=[];
     for(k in q.input){var tk=npcCoreTokens(k);for(i2=0;i2<tk.length;i2++)ent[tk[i2]]=1;}
     for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}
     terms=keepT;
@@ -1713,7 +1721,7 @@ function _ragChapterScore(inputText,pool){
   var terms=ragQueryTerms(inputText||"");
   // Entity tokens don't double-dip as lexical terms (same rule as the transcript pass).
   (function(){
-    var ent={},k2,i2,keepT=[];
+    var ent=Object.create(null),k2,i2,keepT=[];
     for(k2 in q.input){var tk=npcCoreTokens(k2);for(i2=0;i2<tk.length;i2++)ent[tk[i2]]=1;}
     for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}
     terms=keepT;
@@ -1781,7 +1789,7 @@ var RAG_CARRIED_MAX=6;       // facts served per turn
 var RAG_CARRIED_BUDGET=1400; // chars — a garnish, never a second prompt
 var RAG_CARRIED_HEADER="CARRIED HISTORY — what these people lived BEFORE this campaign, from their own records. This is CANON: answer from it and build on it; if narration earlier in this session told any of these events differently, the record wins and the earlier telling was an error — correct it in character; where the record is silent, invent nothing that contradicts it. Oldest first:";
 function _ragCarriedPool(){
-  var pool=[],seen={},i,j,n=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[];
+  var pool=[],seen=Object.create(null),i,j,n=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[];
   function add(who,text,camp,turn,kind){var t=String(text||"").trim();if(!t)return;var key=t.toLowerCase();if(seen[key])return;seen[key]=1;pool.push({who:who,text:t,camp:camp||null,turn:(typeof turn==="number")?turn:0,kind:kind});}
   for(i=0;i<n.length;i++){
     var r=n[i];if(!r||r.partyMember||!r.charSheet||!r.name)continue;var cs=r.charSheet;
@@ -1827,7 +1835,7 @@ function _ragCarriedScore(inputText,pool,fp){
   if(!any)return "";/* the action named nobody: nothing is served — presence never spams the prompt */
   var gRoot={};
   for(k in q.groups){gRoot[k]=k;var gi;for(gi=0;gi<q.groups[k].length;gi++){gRoot[q.groups[k][gi]]=k;if(w[k]&&!w[q.groups[k][gi]])w[q.groups[k][gi]]=w[k];}}
-  (function(){var ent={},k2,i2,keepT=[];for(k2 in q.input){var tk=npcCoreTokens(k2);for(i2=0;i2<tk.length;i2++)ent[tk[i2]]=1;}for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}terms=keepT;})();
+  (function(){var ent=Object.create(null),k2,i2,keepT=[];for(k2 in q.input){var tk=npcCoreTokens(k2);for(i2=0;i2<tk.length;i2++)ent[tk[i2]]=1;}for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}terms=keepT;})();
   var ents=_ragCarriedEnts(pool,fp),lows=[],df=[],i,j;
   for(j=0;j<terms.length;j++)df.push(0);
   for(i=0;i<pool.length;i++){var lo=pool[i].text.toLowerCase();lows.push(lo);for(j=0;j<terms.length;j++){if(lo.indexOf(terms[j])>=0)df[j]++;}}

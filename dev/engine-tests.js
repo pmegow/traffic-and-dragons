@@ -29146,4 +29146,33 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return f.status==="pouring ale"?true:"a Village resident keeps only what she is doing: "+JSON.stringify(f.status);
   });
 
+
+  section("#533 the word 'constructor' in a name is a word, not Object's constructor");
+  t("#533 the repro: with 'Malrik the Constructor' on file, tags by his short name land, the tags beside them land, and a death tag does not throw",function(){
+    w503();on503("Malrik the Constructor","he/him");worldState.turn=85;
+    var r=quiet(function(){return applyMuts("[NPC:Malrik|grim|neutral] [NPC:Vessa|calm|ally]");});
+    if((r.r.errors||[]).length)return "the NPC handler threw and both tags were lost: "+JSON.stringify(r.r.errors);
+    if(wsNpcByName("Malrik the Constructor").status!=="grim"||!wsNpcByName("Vessa"))return "the short name finds him and the tag beside it lands: "+roster503();
+    var threw="";try{quiet(function(){applyMuts("[NPC:Malrik|dead|enemy] [XP:50]");});}catch(e){threw=String(e&&e.message);}
+    if(threw)return "applyMuts itself threw on the death tag (it resolves the name outside any handler): "+threw;
+    return wsNpcByName("Malrik the Constructor").dead?true:"the death lands on him: "+roster503();
+  });
+  t("#533 the name readers treat it as a plain name word: it states nothing, it is distinctive, and it never stands in for a missing word",function(){
+    var s=npcNameSays("Malrik the Constructor");
+    if(s.sex!==null||s.crown!==null||s.age!==null)return "the word states no sex, crown or age: "+JSON.stringify(s);
+    if(npcCoreTokens("Malrik the Constructor").join(",")!=="malrik,constructor")return "it is a distinctive word of the name, not a stop word: "+npcCoreTokens("Malrik the Constructor").join(",");
+    if(npcVariantTokens("the Constructor").join(",")!=="constructor")return "the variant scan keeps it: "+npcVariantTokens("the Constructor").join(",");
+    if(npcVariantPairs(["Bram Constructor","Bram Vale"]).length)return "two names that share one word are not variants of each other — 'constructor' matched a word that is not there: "+JSON.stringify(npcVariantPairs(["Bram Constructor","Bram Vale"]));
+    w503();on503("Malrik the Constructor","he/him");
+    if(w2SelfNamingCanon("The Constructor")!=="Malrik the Constructor")return "the death gate knows him by that word — it is his distinctive word, not a title to drop: "+w2SelfNamingCanon("The Constructor");
+    w503();on503("Malrik Constructor","he/him");on503("Malrik Stone","he/him");
+    var who=w2SelfNamingCanon("Malrik Vale");
+    return who===null?true:"two Malriks each share one word with 'Malrik Vale' — a tie, so the death gate is told nobody is named; got "+who+" (the missing word was found on Object.prototype and read as an exact match)";
+  });
+  t("#533 the same class outside the name code: retrieval terms, future-event fingerprints and button names keep the word",function(){
+    if(ragQueryTerms("ask the constructor about the bridge").indexOf("constructor")<0)return "retrieval dropped the word as if it were a stop word: "+JSON.stringify(ragQueryTerms("ask the constructor about the bridge"));
+    if(feTokens("meet the constructor at dawn").indexOf("constructor")<0)return "the future-event fingerprint dropped it: "+JSON.stringify(feTokens("meet the constructor at dawn"));
+    return suggestionNameAlt("Malrik the Constructor")==="(Malrik|Constructor)"?true:"a button may name him by that word too: "+suggestionNameAlt("Malrik the Constructor");
+  });
+
 }

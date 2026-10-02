@@ -287,7 +287,7 @@ function parseSuggestionArray(resp){
 // style): a tapped suggestion becomes player intent, so a false reject costs a legitimate
 // creative option — the fuzzy off-scene-mention class LOGS but passes until field telemetry
 // earns it a promotion.
-var SUGGESTION_NAME_STOP={the:1,old:1,young:1,lady:1,lord:1,sir:1,sheriff:1,father:1,mother:1,brother:1,sister:1,master:1,captain:1,guard:1};
+var SUGGESTION_NAME_STOP=npcWordTable({the:1,old:1,young:1,lady:1,lord:1,sir:1,sheriff:1,father:1,mother:1,brother:1,sister:1,master:1,captain:1,guard:1});/* #533: word-keyed */
 // Distinctive-token alternation for an NPC name: buttons say "Ameiko", the roster says "Ameiko
 // Kaijitsu" — match any name token ≥4 chars that isn't a title/stop word.
 function suggestionNameAlt(nm){
