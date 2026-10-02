@@ -27703,11 +27703,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.castLast={turn:203,node:"The Village|the tavern",names:["Frizwick","Daeris"]};
     return buildSceneManifest().local.indexOf("Daeris")>=0?true:"a cast that names her keeps her";
   });
-  t("#481 B4 a non-none cast is remembered where the reply ends; none leaves the last one standing",function(){
+  t("#481 B4 a non-none cast is remembered where the reply ends; a none-only cast replaces it with the party alone (#514, owner ruling 2026-10-01)",function(){
     b4Tavern();quiet(function(){applyMuts("[SCENE_CAST:Frizwick]");});var cl=worldState.castLast;
     if(!cl||cl.node!=="The Village|the tavern"||cl.names.indexOf("Frizwick")<0||cl.turn!==205)return "the cast is recorded: "+JSON.stringify(cl);
-    worldState.turn++;quiet(function(){applyMuts("[SCENE_CAST:none]");});
-    return worldState.castLast.turn===205?true:"none records no cast: "+JSON.stringify(worldState.castLast);
+    worldState.turn++;quiet(function(){applyMuts("[SCENE_CAST:none]");});cl=worldState.castLast;
+    return cl.turn===206&&cl.none===true&&cl.names.indexOf("Frizwick")<0&&cl.names.indexOf("Silas")>=0?true:"none is recorded as the party alone: "+JSON.stringify(cl);
   });
 
   section("#481 B4 keeper of record: a shop's keeper counts at the counter while the shop is open");
@@ -29069,6 +29069,50 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     c.coreMemories=[{text:old,turn:89,kind:"ending",who:"Ammut"}];
     quiet(function(){migrateWorldState();});
     return c.coreMemories[0].text==="Ammut's ending: "+old?true:"the load path left it: "+c.coreMemories[0].text;
+  });
+
+
+  section("#514 a none-only cast clears the room");
+  function w514(){b4Tavern();worldState.world.sublocation="the tavern";worldState.turn=205;
+    worldState.npcs.push({name:"Bram",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:3,inventory:[],abilities:[]}});memory.npcs.Bram={attitude:"",knowledge:[],events:[],aliases:[]};}
+  t("#514 the repro: Frizwick is named in a cast, then the GM answers [SCENE_CAST:none] — she is no longer in the scene, and the cast on record is the party alone",function(){
+    w514();quiet(function(){applyMuts("[SAY:Frizwick]\"Pour it yourself.\" [SCENE_CAST:Silas, Bram, Frizwick]");});
+    if(!scenePresentNow("Frizwick"))return "fixture: she is present after the named cast";
+    worldState.turn=206;quiet(function(){applyMuts("The room empties. [SCENE_CAST:none]");});
+    if(scenePresentNow("Frizwick"))return "none left her standing in the scene";
+    if((buildSceneManifest().local||[]).indexOf("Frizwick")>=0)return "the manifest the buttons read still lists her";
+    var cl=worldState.castLast;
+    if(!cl||cl.turn!==206||!cl.none)return "the none cast is on record: "+JSON.stringify(cl);
+    return cl.names.indexOf("Silas")>=0&&cl.names.indexOf("Bram")>=0&&cl.names.indexOf("Frizwick")<0?true:"none is the whole party and no one else: "+JSON.stringify(cl.names);
+  });
+  t("#514 she comes back the moment she speaks again; thirty quiet turns of none do not bring her back",function(){
+    w514();quiet(function(){applyMuts("[SCENE_CAST:Silas, Bram, Frizwick]");});
+    var i;for(i=206;i<236;i++){worldState.turn=i;quiet(function(){applyMuts("[SCENE_CAST:none]");});}
+    if(scenePresentNow("Frizwick"))return "present after thirty none replies";
+    worldState.turn=236;quiet(function(){applyMuts("[SAY:Frizwick]\"Still open?\"");});
+    return scenePresentNow("Frizwick")?true:"a later line must bring her back";
+  });
+  t("#514 someone who speaks in the none reply itself is placed: the GM writes the cast in the header, before the prose where they speak (B1's rule for none stands)",function(){
+    w514();quiet(function(){applyMuts("[SCENE_CAST:Silas, Bram, Frizwick]");});worldState.turn=206;delete worldState.castSpeakerPing;
+    var r=quiet(function(){return applyMuts("[TIME_CHECK:evening]\n[SCENE_CAST:none]\nThe door bangs. [SAY:Victor Marlow]\"Any ale left?\"");}).r;
+    if(!scenePresentNow("Victor Marlow"))return "the one who speaks in the none reply is here at its end";
+    if(scenePresentNow("Frizwick"))return "the one from the earlier cast is not";
+    if((r.muts||[]).some(function(m){return /spoke, not in cast/.test(m);})||worldState.castSpeakerPing)return "none withholds no speaker and asks nothing: "+JSON.stringify(r.muts);
+    worldState.turn=207;quiet(function(){applyMuts("[SCENE_CAST:none]");});
+    return scenePresentNow("Victor Marlow")?"the next none clears him too":true;
+  });
+  t("#514 the party is the cast: a companion who speaks under none is with the party, and nobody is asked whether she stayed behind",function(){
+    w514();worldState.turn=206;delete worldState.castSpeakerPing;delete worldState.castOmitPing;
+    var r=quiet(function(){return applyMuts("[SAY:Bram]\"Quiet tonight.\" [SCENE_CAST:none]");}).r;
+    if((r.muts||[]).some(function(m){return /Bram \(spoke, not in cast\)/.test(m);}))return "a companion is in a none cast by definition: "+JSON.stringify(r.muts);
+    if(worldState.castSpeakerPing)return "no cast check for a companion: "+JSON.stringify(worldState.castSpeakerPing);
+    return worldState.castOmitPing?"none never asks whether a companion stayed behind: "+JSON.stringify(worldState.castOmitPing):true;
+  });
+  t("#514 a named cast in the same reply wins over none, and a reply with no cast changes nothing",function(){
+    w514();quiet(function(){applyMuts("[SCENE_CAST:none] [SCENE_CAST:Silas, Bram, Frizwick]");});
+    if(!worldState.castLast||worldState.castLast.none||worldState.castLast.names.indexOf("Frizwick")<0)return "the named cast is the reply's authority: "+JSON.stringify(worldState.castLast);
+    var snap=JSON.stringify(worldState.castLast);worldState.turn=206;quiet(function(){applyMuts("Rain on the shutters.");});
+    return JSON.stringify(worldState.castLast)===snap?true:"a reply with no cast rewrote the record";
   });
 
 }

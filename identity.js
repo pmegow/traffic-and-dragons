@@ -1013,6 +1013,16 @@ function derivePresenceFromResponse(text,R){
      line. Party members are B2's (the hero is never withheld). A combatant is seen at the fight's own place (A4). */
   var castCanon=null,ck;if(R&&R.castSet){castCanon={};for(ck in R.castSet)castCanon[resolveNpcName(ck)]=1;
     worldState.castLast={turn:(R.turn!=null)?R.turn:worldState.turn,node:locResolve(currentNodeKey()),names:Object.keys(castCanon)};/* #481 B4: the latest non-none cast, where the reply ends — scenePresentNow reads it */}
+  /* #514 (owner ruling 2026-10-01: "none" clears the room): a none-only cast IS a cast — the whole party and no one else, as
+     the doc tells the GM. It used to change nothing, so someone named in an earlier cast stayed "in the scene" for as long as
+     the party stayed put. The cast on record becomes the party alone, and B4's own rule (scenePresentNow) leaves out everyone
+     last seen BEFORE it. A speaker of this very reply is still placed (B1's rule for none stands; castCanon stays null): in
+     every real none-with-speech reply the cast sits in the header, written before the prose where that person then speaks.
+     The party is never "left out" of none: B2's stay-behind ask reads R.castSet, which stays null. */
+  else if(/\[SCENE_CAST:\s*none\s*\]/i.test(text)){
+    var _nn=[],_nh=worldState.character&&worldState.character.name,_np=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],_ni;
+    if(_nh)_nn.push(_nh);for(_ni=0;_ni<_np.length;_ni++)if(_np[_ni]&&_np[_ni].name)_nn.push(_np[_ni].name);
+    worldState.castLast={turn:(R&&R.turn!=null)?R.turn:worldState.turn,node:locResolve(currentNodeKey()),names:_nn,none:true};}
   function take(nm,ch,atKey){
     var key=String(nm||"").trim();if(!key)return;
     var canon=resolveNpcName(key);
