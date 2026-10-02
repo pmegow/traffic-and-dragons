@@ -29146,4 +29146,43 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return f.status==="pouring ale"?true:"a Village resident keeps only what she is doing: "+JSON.stringify(f.status);
   });
 
+
+  section("#530 the 'different person' answer to a name-collision note lands while scene tracking is on");
+  function w530(){makeIdWorld();sceneRefsEnsure();worldState.turn=140;quiet(function(){applyMuts("[NPC:Savah|counting vials|unknown, not yet met]");});return "Savah °t140";}
+  t("#530 the repro: with scene refs active, [MERGE:npc|Vessa Thorn|<provisional>] renames the provisional in ONE step and the note stops",function(){
+    var key=w530();if(!memory.npcs[key])return "fixture: the provisional must be minted";
+    var note=buildProvisionalNudge();if(note.indexOf("[MERGE:npc|")<0)return "fixture: the note offers the answer: "+note;
+    var pre=JSON.stringify(memory.npcs["Savah"]),r=quiet(function(){return applyMuts("She is someone else. [MERGE:npc|Vessa Thorn|"+key+"]");});
+    if(memory.npcs[key])return "the provisional is still on file — the note's own answer was dropped: "+JSON.stringify(r.warns);
+    if(!memory.npcs["Vessa Thorn"]||!wsNpcByName("Vessa Thorn"))return "the new person was not created on both stores: "+Object.keys(memory.npcs).join(", ");
+    if(JSON.stringify(memory.npcs["Savah"])!==pre)return "the established record was disturbed";
+    if((worldState.pendingMergeHints||[]).length)return "an answered question must not queue a merge proposal: "+JSON.stringify(worldState.pendingMergeHints);
+    if(!(r.r.muts||[]).some(function(m){return /Merged: /.test(m);}))return "the turn's summary says the merge landed: "+JSON.stringify(r.r.muts);
+    worldState.turn+=PROVISIONAL_NUDGE_COOLDOWN+1;
+    return buildProvisionalNudge()===""?true:"the note fired again after its answer";
+  });
+  t("#530 the gate is not widened: a provisional into ANOTHER established person, and an ordinary rename, are still proposals first",function(){
+    var key=w530();w2Npc("Canon","ally");
+    quiet(function(){applyMuts("[MERGE:npc|Canon|"+key+"]");});
+    if(!memory.npcs[key])return "a provisional was folded into a third established person without confirmation";
+    if(!(worldState.pendingMergeHints||[]).some(function(h){return h.canonical==="Canon"&&h.duplicate===key;}))return "that merge must reach the confirmation queue: "+JSON.stringify(worldState.pendingMergeHints);
+    key=w530();w2Npc("Duplicate","ally");
+    quiet(function(){applyMuts("[NPC_MERGE:Brand New Name|Duplicate]");});
+    if(!memory.npcs["Duplicate"]||memory.npcs["Brand New Name"])return "an established record was renamed without confirmation — only a provisional may take a new name directly";
+    key=w530();
+    quiet(function(){applyMuts("[MERGE:npc|Tess|"+key+"]");});
+    return memory.npcs[key]&&!memory.npcs["Tess"]?true:"a provisional was merged into the PLAYER's name";
+  });
+  t("#530 the same-person answer still lands in one step; the provisional's own alias is a free name; another record's alias is not",function(){
+    var key=w530();
+    quiet(function(){applyMuts("[NPC_MERGE:Savah|"+key+"]");});
+    if(memory.npcs[key])return "the same-person fold-back was blocked";
+    key=w530();memory.npcs[key].aliases=["Lady Vane"];
+    quiet(function(){applyMuts("[MERGE:npc|Lady Vane|"+key+"]");});
+    if(memory.npcs[key]||!memory.npcs["Lady Vane"])return "a name that is the provisional's OWN alias is held by nobody else — it must pass";
+    key=w530();w2Npc("Odo Marsh","ally");memory.npcs["Odo Marsh"].aliases=["The Ferryman"];
+    quiet(function(){applyMuts("[MERGE:npc|The Ferryman|"+key+"]");});
+    return memory.npcs[key]&&!memory.npcs["The Ferryman"]?true:"'The Ferryman' is Odo Marsh's alias — folding the provisional into it is a merge into an established person";
+  });
+
 }

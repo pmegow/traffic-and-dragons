@@ -1400,7 +1400,17 @@ function _w2ResolveConflicts(subject,handle){var q=worldState&&worldState.identi
    named a conflicted subject (making the nudge's own re-emit advice unfollowable) and stripped
    quest/reward tags from every response saying the name, forever. Same-response refusals key on
    refusedVictim; standing disputes key on _w2DisputedQuests — receipt-scoped, never prose-scoped.) */
-function w2MergeAllowed(canonical,duplicate){if(!worldState||!worldState.sceneRefs)return true;var c=resolveNpcName(canonical),m=memory.npcs&&memory.npcs[duplicate];if(m&&m.provisional&&resolveNpcName(m.provisional.of)===c)return true;var a=worldState.mergeConfirmArmed;return !!(a&&a.turn===worldState.turn&&a.canonical===canonical&&a.duplicate===duplicate);}
+/* #530: the name-collision note (buildProvisionalNudge) offers two answers, and only "the SAME person" used to pass this gate. "A DIFFERENT
+   person" — [MERGE:npc|<Their Proper Name>|<provisional>] — was stripped as a proposal, and the confirmation note then discarded it because
+   the new name is on no record: the answer never landed, with a console line only, and the note re-fired forever. A provisional taking a
+   name NOBODY holds fuses no two people, so it passes. Nobody holds a name that is no record on either store, is not the player, and
+   resolves to itself (or to the provisional itself, whose own alias it may be). A name that is an established person stays a proposal. */
+function w2NameIsFree(name,duplicate){
+  if(memory.npcs[name]||(typeof wsNpcByName==="function"&&wsNpcByName(name)))return false;
+  if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(name))return false;
+  var c=resolveNpcName(name);return c===name||c===duplicate;
+}
+function w2MergeAllowed(canonical,duplicate){if(!worldState||!worldState.sceneRefs)return true;var c=resolveNpcName(canonical),m=memory.npcs&&memory.npcs[duplicate];if(m&&m.provisional&&resolveNpcName(m.provisional.of)===c)return true;if(m&&m.provisional&&w2NameIsFree(canonical,duplicate))return true;/* #530: a different person, under a new name */var a=worldState.mergeConfirmArmed;return !!(a&&a.turn===worldState.turn&&a.canonical===canonical&&a.duplicate===duplicate);}
 function w2MergePropose(canonical,duplicate){if(typeof _queueMergeHint==="function")_queueMergeHint(canonical,duplicate);if(typeof console!=="undefined")console.warn("[identity] merge proposed, not applied: "+duplicate+" -> "+canonical+" (awaiting exact-pair confirmation)");}
 function w2MergeCommitted(canonical,duplicate){var a=worldState&&worldState.mergeConfirmArmed;if(a&&a.canonical===canonical&&a.duplicate===duplicate)delete worldState.mergeConfirmArmed;}
 function _w2TxnFind(id){var a=worldState&&worldState.canonTxns||[],i;for(i=0;i<a.length;i++)if(a[i].id===id)return a[i];return null;}
