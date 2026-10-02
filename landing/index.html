@@ -20,27 +20,29 @@
   adding one entry to ART below. PLAY_URL is the one place the game's address lives.
 -->
 <style>
+/* the game's palette: these tokens are index.html's :root values, so the landing page and the game read as one place */
+:root{--font:Georgia,serif;--bg0:#0c0d11;--bg1:#13151c;--brd:#2c2f3a;--t0:#e4e8ee;--t1:#96a0ae;--acc:#9ab0c8;--on-acc:#000;--r:6px;--rl:10px}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:#0c0d11;color:#e4e8ee;font-family:Georgia,serif}
+html,body{margin:0;min-height:100%;background:var(--bg0);color:var(--t0);font-family:var(--font)}
 main{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px 16px}
-h1{margin:0;font-size:clamp(20px,4.2vw,34px);font-weight:normal;letter-spacing:.16em;text-transform:uppercase;text-align:center}
-h1 span{color:#c8a84a}
+h1{margin:0;font-size:clamp(20px,3.6vw,32px);color:var(--acc);letter-spacing:.06em;text-transform:uppercase;text-align:center;text-wrap:balance}
 /* the frame takes each picture's own shape (ART carries its width and height), is never cropped, and is never
    taller than about 62% of the window, so the button stays on the first screen */
-#art{margin:0;max-width:100%;border:1px solid #2c2f3a;border-radius:10px;overflow:hidden;background:#13151c}
+#art{margin:0;max-width:100%;border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;background:var(--bg1)}
 #art img{display:block;width:auto;height:auto;max-width:min(1100px,100%);max-height:62vh}
-.play{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:14px 34px;border-radius:8px;background:#c8a84a;color:#000;font-size:clamp(18px,2.6vw,22px);font-weight:bold;text-decoration:none;text-align:center;transition:background .15s}
-.play:hover{background:#dcbd60}
-.play:focus-visible{outline:3px solid #e4e8ee;outline-offset:3px}
-.note{margin:0;font-size:13px;color:#96a0ae}
+/* the game's primary button (.btn-p), at landing-page size */
+.play{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:14px 44px;border-radius:var(--r);background:var(--acc);color:var(--on-acc);font-family:var(--font);font-size:clamp(18px,2.6vw,22px);font-weight:bold;text-decoration:none;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -2px 0 rgba(0,0,0,0.25);transition:opacity .15s}
+.play:hover{opacity:.9}
+.play:focus-visible{outline:3px solid var(--t0);outline-offset:3px}
+.note{margin:0;font-size:13px;color:var(--t1)}
 @media (prefers-reduced-motion:reduce){.play{transition:none}}
 </style>
 </head>
 <body>
 <main>
-  <h1>Traffic <span>and</span> Dragons</h1>
+  <h1>Welcome to Traffic and Dragons</h1>
   <figure id="art"><img id="art-img" src="art/dragon-on-beetle.webp" width="1200" height="896" alt="A green dragon rides on the roof of a yellow car full of adventurers, stuck in city traffic."/></figure>
-  <a id="play" class="play" href="https://traffic-and-dragons.pages.dev/">Play Traffic and Dragons</a>
+  <a id="play" class="play" href="https://traffic-and-dragons.pages.dev/">Play / Sign In</a>
   <p id="art-note" class="note" hidden></p>
 </main>
 <script>
