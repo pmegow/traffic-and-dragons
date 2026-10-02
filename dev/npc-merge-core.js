@@ -201,7 +201,10 @@ function nmcMergePair(canonical,dupe,log){
   if(!handler)throw new Error("NPC_MERGE handler not found in TAG_TABLE — tag_table.js changed shape?");
   var R={turn:worldState.turn||0,muts:[]};
   handler.apply("[NPC_MERGE:"+canonical+"|"+dupe+"]",R);
-  if(!R.muts.length)throw new Error("live NPC_MERGE handler reported no mutation for \""+dupe+"\" ⇒ \""+canonical+"\"");
+  /* #538 review: the handler MERGED only when it says so. A refusal (the player's name, #538) or an ignored self-merge (#537) leaves a
+     warning line in R.muts; "any line at all" used to pass and the residue surgery below ran on a merge that never happened. */
+  var nmcMerged=false,nmcMi;for(nmcMi=0;nmcMi<R.muts.length;nmcMi++)if(String(R.muts[nmcMi]).indexOf("Merged: ")===0)nmcMerged=true;
+  if(!nmcMerged)throw new Error("live NPC_MERGE handler did not merge \""+dupe+"\" into \""+canonical+"\": "+(R.muts.length?R.muts.join("; "):"no mutation reported"));
   log("info","handler: "+R.muts.join("; "));
   var can=memory.npcs[canonical];
   // spec §7.1: pre-trim events to the newest 8 by turn (steady-state shape)

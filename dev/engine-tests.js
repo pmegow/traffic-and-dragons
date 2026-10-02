@@ -29394,4 +29394,83 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return vm&&vm[0]===B.M?true:"an earlier line stored under the old name does not reach it either: "+JSON.stringify(vm);
   });
 
+  section("#538 review: the hero's exact name never lands on a relative, and only the hero's exact name is the hero");
+  function muts538(text){var q=quiet(function(){return applyMuts(text);});return {muts:(q.r&&q.r.muts)||[],warns:q.warns};}
+  t("#538 the hero's exact name is never guessed onto a relative: with \"Tess's mother\" on file, a death, a reported death, a summary's death and a note that name the hero are refused and she is untouched",function(){
+    var h,r,m,cases,i;
+    cases=["It ends. [NPC:HERO|dead|ally]","Word comes. [NPC_DEATH_REPORTED:HERO|a rider from the pass]","A note. [NPC_NOTE:HERO|owes Bram a favour]","A ban. [NPC_FORGET:HERO|worried]"];
+    for(i=0;i<cases.length;i++){
+      h=w538();quiet(function(){applyMuts("She waits. [NPC:"+h+"'s mother|worried|ally] [NPC_NOTE:"+h+"'s mother|worried about the road]");});m=h+"'s mother";
+      if(!memory.npcs[m]||!wsNpcByName(m))return "fixture: the relative is filed under a possessive handle";
+      if(resolveNpcName(h)!==h)return "the hero's exact name resolves to "+resolveNpcName(h)+" (the one record that shares a word with it)";
+      r=muts538(cases[i].split("HERO").join(h));
+      if(npcIsDead(wsNpcByName(m))||memory.npcs[m].dead||wsNpcByName(m).status!=="worried"||memory.npcs[m].events.length!==1)return cases[i]+" landed on the relative: "+JSON.stringify([wsNpcByName(m).status,memory.npcs[m].dead||null,memory.npcs[m].events,r.muts]);
+      if(bad538().length)return cases[i]+" filed the hero: "+bad538().join("; ");
+    }
+    h=w538();quiet(function(){applyMuts("She waits. [NPC:"+h+"'s mother|worried|ally]");});m=h+"'s mother";
+    quiet(function(){applySummaryExtract({chapterSummary:"A day passes.",npcDeaths:[h],npcUpdates:[{name:h,attitude:"grim",knowledgeGained:"a fact"}]},null);});
+    if(memory.npcs[m].dead||npcIsDead(wsNpcByName(m))||memory.npcs[m].attitude==="grim"||(memory.npcs[m].knowledge||[]).length)return "the summary's extraction landed the hero's name on the relative: "+JSON.stringify(memory.npcs[m]);
+    h=w538();on503("Lute Player","she/her");r=muts538("x [NPC:player|dead|ally]");
+    if(npcIsDead(wsNpcByName("Lute Player"))||!r.muts.some(function(x){return x.indexOf("refused (player)")>=0;}))return "the literal 'player' landed on an NPC whose name contains the word: "+JSON.stringify(r.muts);
+    h=w538();quiet(function(){applyMuts("She waits. [NPC:"+h+"'s mother|worried|ally]");});r=muts538("Kin. [NPC_LINK:"+h+"|Bram|kin]");
+    return JSON.stringify(memory.npcGraph||{}).indexOf(h+"'s mother")<0?true:"a link that names the hero was drawn to the relative: "+JSON.stringify((memory.npcGraph||{}).edges);
+  });
+  t("#538 an alias tag whose FIRST name is one of the hero's epithets is the hero's too: no record is made under the epithet and the other name stays its own",function(){
+    var h=w538(),r;worldState.character.aliases=["the Butcher"];
+    r=run538("[NPC_ALIAS:the Butcher|Bram]","Epithet");if(r)return r;
+    if(memory.npcs["the Butcher"]||wsNpcByName("the Butcher"))return "a record was made under the hero's epithet";
+    h=w538();worldState.character.aliases=["the Butcher"];r=run538("[ALIAS:npc|the Butcher|Bram]","Epithet");if(r)return r;
+    h=w538();worldState.character.aliases=["the Butcher"];r=muts538("They cheer. [NPC_ALIAS:the Butcher|the Red Hand]");
+    return worldState.character.aliases.indexOf("the Red Hand")>=0&&!memory.npcs["the Butcher"]&&!bad538().filter(function(b){return b.indexOf("resolves")<0;}).length?true:"the hero, named by an epithet, earns another one: "+JSON.stringify([worldState.character.aliases,Object.keys(memory.npcs),r.muts]);
+  });
+  t("#538 after a hero swap only the new hero's exact names are the hero: a relative who shares the surname is filed, aliased and merged as an ordinary NPC, and the hero keeps their own older name",function(){
+    var r,q;
+    w503();on503("Mara","she/her");on503("the old smith","he/him");
+    worldState.npcs.push({name:"Bram Stoneheart",status:"ally",rel:"companion",met:1,partyMember:true,pronouns:"he/him",portrait:null,aliases:["Stoneheart the smith"],charSheet:{name:"Bram Stoneheart",gender:"M",cls:"Warrior",level:1,hp:9,maxHp:9,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},inventory:[],abilities:[],spells:[],conditions:[],relationships:[],aliases:[]}});
+    memory.npcs["Bram Stoneheart"]={attitude:"ally",knowledge:["forged the gate"],events:[],aliases:["Stoneheart the smith"],pronouns:"he/him",partyMember:true};
+    q=quiet(function(){return swapPlayerCharacter("Bram Stoneheart");});
+    if(worldState.character.name!=="Bram Stoneheart"||!memory.npcs["Bram Stoneheart"])return "fixture: the swap makes Bram the hero and leaves his old record behind: "+JSON.stringify([worldState.character.name,Object.keys(memory.npcs)]);
+    on503("Garrick","he/him");memory.npcs["Garrick"].aliases.push("Stoneheart");
+    r=muts538("x [NPC_NOTE: Stoneheart |paid the toll] [NPC_PRONOUN: Stoneheart |they/them]");
+    if(Object.keys(memory.npcs).some(function(k){return k!==k.trim();})||worldState.npcs.some(function(n){return n.name!==n.name.trim();}))return "a name written with spaces around it made a record of its own: "+JSON.stringify(Object.keys(memory.npcs));
+    if(memory.npcs["Garrick"].events.length!==1||wsNpcByName("Garrick").pronouns!=="they/them"||memory.npcs["Bram Stoneheart"].events.length)return "the note and the pronoun, written with spaces, did not land on the NPC who holds that exact alias: "+JSON.stringify([memory.npcs["Garrick"].events,wsNpcByName("Garrick").pronouns,r.muts]);
+    r=muts538("His uncle arrives. [NPC:Old Stoneheart|gruff|ally] [NPC_NOTE:Old Stoneheart|raised Bram at the forge] [NPC_PRONOUN:Old Stoneheart|he/him]");
+    if(!memory.npcs["Old Stoneheart"]||!wsNpcByName("Old Stoneheart")||wsNpcByName("Old Stoneheart").pronouns!=="he/him"||!memory.npcs["Old Stoneheart"].events.length)return "a relative who shares the new hero's surname was not filed as himself: "+JSON.stringify([Object.keys(memory.npcs),r.muts]);
+    if(r.muts.some(function(x){return x.indexOf("refused (player)")>=0;})||memory.npcs["Bram Stoneheart"].events.length)return "the relative was read as the hero: "+JSON.stringify([r.muts,memory.npcs["Bram Stoneheart"].events]);
+    r=muts538("A nickname. [NPC_ALIAS:Mara|Stoneheart's girl]");
+    if((memory.npcs["Mara"].aliases||[]).indexOf("Stoneheart's girl")<0)return "an alias that shares a word with the new hero was refused on a guess: "+JSON.stringify(r.muts);
+    r=muts538("The same man. [NPC_MERGE:Old Stoneheart|the old smith]");
+    if(wsNpcByName("the old smith")||!wsNpcByName("Old Stoneheart"))return "a merge whose survivor shares a word with the new hero was refused on a guess: "+JSON.stringify(r.muts);
+    r=muts538("They remember. [NPC_ALIAS:Bram Stoneheart|Stoneheart the smith]");
+    if(worldState.character.aliases.indexOf("Stoneheart the smith")<0)return "the hero's own older name was refused as 'an NPC's name': "+JSON.stringify(r.muts);
+    r=muts538("A note. [NPC_NOTE:Stoneheart the smith|a fact]");
+    return r.muts.some(function(x){return x.indexOf("refused (player)")>=0;})&&!memory.npcs["Bram Stoneheart"].events.length?true:"an exact alias of the hero's old record is the hero, and a note for it is refused: "+JSON.stringify(r.muts);
+  });
+  t("#538 a title on a companion's sheet is that companion's: the hero cannot take it",function(){
+    var h=w538(),r;wsNpcByName("Frizwick").charSheet.aliases=["the Gravewalker"];
+    r=run538("[NPC_ALIAS:"+h+"|the Gravewalker]","Epithet");if(r)return r;
+    if((worldState.character.aliases||[]).length)return "the hero took a companion's title: "+JSON.stringify(worldState.character.aliases);
+    h=w538();wsNpcByName("Frizwick").charSheet.name="Frizwick Quickfingers";r=run538("[NPC_ALIAS:"+h+"|Frizwick Quickfingers]","Epithet");if(r)return r;
+    return (worldState.character.aliases||[]).length?"the hero took the name a companion's sheet is kept under: "+JSON.stringify(worldState.character.aliases):true;
+  });
+  t("#538 a name written with spaces around it is the same name: a note and a pronoun land on the person, and the hero is still refused",function(){
+    var h=w538(),r=muts538("x [NPC_NOTE: Bram |paid the toll] [NPC_PRONOUN: Bram |they/them]"),keys=Object.keys(memory.npcs).filter(function(k){return k!==k.trim();});
+    if(keys.length||worldState.npcs.some(function(n){return n.name!==n.name.trim();}))return "a record was made under a name with spaces: "+JSON.stringify(keys);
+    if(memory.npcs["Bram"].events.length!==2||wsNpcByName("Bram").pronouns!=="they/them")return "the note or the pronoun did not land on Bram: "+JSON.stringify([memory.npcs["Bram"].events,wsNpcByName("Bram").pronouns,r.muts]);
+    h=w538();r=muts538("x [NPC_NOTE: "+h+" |a fact] [NPC_PRONOUN: "+h+" |she/her]");
+    return !bad538().length&&r.muts.filter(function(x){return x.indexOf("refused (player)")>=0;}).length===2?true:"the hero written with spaces was filed: "+JSON.stringify([bad538(),r.muts]);
+  });
+  t("#538 a companion who shares the hero's name can still leave the party; with no such companion the tag is refused as a leave",function(){
+    var h=w538(),r;
+    worldState.npcs.push({name:h,status:"ally",rel:"companion",met:1,partyMember:true,portrait:null,aliases:[],charSheet:{name:h,hp:9,maxHp:9,inventory:[],conditions:[],relationships:[]}});
+    r=muts538("They part ways. [PARTY_MEMBER:"+h+"|false]");
+    if(wsNpcByName(h).partyMember!==false)return "a namesake companion (an imported sheet with the hero's name) cannot leave the party any more: "+JSON.stringify(r.muts);
+    h=w538();r=muts538("x [PARTY_MEMBER:"+h+"|false]");
+    return !bad538().length&&r.muts.some(function(x){return x.indexOf("Party leave refused (player)")>=0;})?true:"with no namesake on the roster the leave is refused, and called a leave: "+JSON.stringify([bad538(),r.muts]);
+  });
+  t("#538 the note writer tells its caller what happened: true when it filed, false when it refused",function(){
+    var h=w538();
+    return quiet(function(){return fileNpcEvent("Bram","hammered the hinge",5);}).r===true&&quiet(function(){return fileNpcEvent(h,"a fact",5);}).r===false?true:"a caller cannot tell a filed note from a refused one";
+  });
+
 }

@@ -124,7 +124,7 @@ function npcConsolidation(name){
   if(!inCore.length)return out;
   var k,cnt=0,match=null,apart=null,why="";
   for(k in memory.npcs){
-    if(k===name)continue;
+    if(k===name||memoryNpcIsPlayer(k))continue;/* #538 review: a record named like the player is the hero's own older one (a hero swap leaves it behind); a relative's name is never guessed onto it, and it does not make a name ambiguous */
     var kCore=npcCoreTokens(k);
     if(!kCore.length)continue;
     var shortT=inCore.length<=kCore.length?inCore:kCore;
@@ -148,6 +148,10 @@ function npcApartLine(raw){
 }
 function resolveNpcName(name){
   if(!memory.npcs)return name;
+  /* #538 review: the player's exact name ("player", the sheet's name, an earned epithet) is the player's and resolves to itself.
+     Consolidation used to guess it onto the ONE record that shares a word with it, so with "Tess's mother" on file
+     [NPC:Tess|dead|ally] passed every player check (each asks the RESOLVED name) and killed the mother. */
+  if(memoryNpcIsPlayer(name))return name;
   if(memory.npcs[name])return name;
   var k;for(k in memory.npcs){if(memory.npcs[k].aliases&&memory.npcs[k].aliases.indexOf(name)>=0)return k;}
   // Distinctive-token consolidation (bidirectional, honorific/parenthetical-tolerant). The GM freely
@@ -296,7 +300,7 @@ function getNameSuggestions(count,peek){
   if(!peek)memory.nameIdx=idx;
   return result;
 }
-function fileNpcEvent(name,note,turn){if(memoryNpcNamesPlayer(name)){/* #538: the one writer of notes refuses the hero, whoever calls it */if(typeof console!=="undefined")console.warn("[memory] a note for the player identity '"+name+"' refused: player canon never enters memory.npcs (#538)");return false;}name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8){var _evD=memory.npcs[name].events.splice(0,memory.npcs[name].events.length-8),_evi;for(_evi=0;_evi<_evD.length;_evi++)memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn});}/* multi-shrink like the old slice(-8) so an NPC_MERGE overfill converges (audit E50); evicted events archive, never the void (#144A) */}
+function fileNpcEvent(name,note,turn){if(memoryNpcNamesPlayer(name)){/* #538: the one writer of notes refuses the hero, whoever calls it */if(typeof console!=="undefined")console.warn("[memory] a note for the player identity '"+name+"' refused: player canon never enters memory.npcs (#538)");return false;}name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8){var _evD=memory.npcs[name].events.splice(0,memory.npcs[name].events.length-8),_evi;for(_evi=0;_evi<_evD.length;_evi++)memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn});}/* multi-shrink like the old slice(-8) so an NPC_MERGE overfill converges (audit E50); evicted events archive, never the void (#144A) */return true;}
 // #269① (f37): THE one knowledge-filing path — the three exact-indexOf sites (summary extract,
 // summary supersede, the NPC_SUPERSEDE tag) each deduped byte-exact only, so the extractor's
 // fresh-worded re-statements accumulated as paraphrase twins and every cap-12 admission evicted
@@ -1268,12 +1272,11 @@ function _ragDjb2(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeA
 // alias count + djb2 over the joined names catch adds, deletes, merges, renames, and alias
 // registrations, including mid-response ones. Shared by the ragKnownNames memo and the
 // ragRetrieve result memo (whose scoring consumes ragKnownNames' output).
-/* #538: a name a TAG wrote is the player's when it is the player's as written, or when it resolves to the player (an alias on
-   an old hero-named record). The first half alone would file a note on such a record; the second alone would let the hero's
-   name through wherever it had become someone's alias. */
+/* #538: a name a TAG wrote is the player's when it RESOLVES to the player: the player's exact name resolves to itself (the
+   resolver's first step), and so does an exact alias on an older hero-named record. Nothing is guessed: consolidation never
+   targets a player-named record. */
 function memoryNpcNamesPlayer(name){
-  var nm=String(name||"").trim();
-  return memoryNpcIsPlayer(nm)||memoryNpcIsPlayer(resolveNpcName(nm));
+  return memoryNpcIsPlayer(resolveNpcName(String(name||"").trim()));
 }
 function memoryNpcIsPlayer(name){
   var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||null;
