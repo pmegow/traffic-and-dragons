@@ -409,7 +409,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.1114";
+var APP_VERSION="v1.1115";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
@@ -533,7 +533,7 @@ var pendingImportChar=null;
 var pendingBlueprint=null; // loaded .campaign blueprint; consumed by startGame
 var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted by racial spells
 var adultMode=false;
-var proseAuthor=""; // selected prose-inspiration author id ("" = house default); see AUTHORS in data.js
+var proseAuthor=""; // selected prose-style voice id ("" = house default); see AUTHORS in data.js
 var PARTY_MAX=4;    // total party cap = players + companions. Companion cap = PARTY_MAX - playerCount (1 today; multiplayer #1 will subtract the real count)
 var allowModelUpgrade=true;
 var legacyCharsOn=false;

@@ -29221,7 +29221,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#104 the shipped table: seven voices offered, every retired voice still resolvable by id, no entry without a directive",function(){
     var shown=visibleAuthors(AUTHORS,"").filter(function(a){return a.id;}).map(function(a){return a.nm;});
-    if(shown.join("|")!=="Grimdark|Dungeon Crawl|Spare & Mythic|Blood & Thunder|Gothic Wit|Cosmic Dread|Doomed Romance")return "the owner's seven, in table order: "+shown.join("|");
+    if(shown.join("|")!=="Grimdark|LitRPG|Spare & Mythic|Blood & Thunder|Gothic Wit|Cosmic Dread|Doomed Romance")return "the owner's seven, in table order: "+shown.join("|");
     var i,bad=[];for(i=0;i<AUTHORS.length;i++){var a=AUTHORS[i];if(a.id&&(!a.vc||a.vc.length<100))bad.push(a.id);}
     if(bad.length)return "every voice, retired or not, keeps a directive for the saves that carry it: "+bad.join(",");
     var retired=AUTHORS.filter(function(a){return a.hidden;}).map(function(a){return a.id;});

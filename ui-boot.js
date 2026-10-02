@@ -64,7 +64,7 @@ function buildFileMenus(){
     h+=g?btn(p+"bugreport","⚠ Report bug&hellip;",0):btn(null,"⚠ Report bug&hellip;",0,{dim:true});/* #16b: game screen only — it reports on live play */
     h+=sep();
     var narr=btn(p+"rules","Narrative rules",0)
-      +btn(p+"prose","✍ Prose inspiration&hellip;",0)
+      +btn(p+"prose","✍ Prose style&hellip;",0)
       +chk(p+"adult-cb","18+ Adult content",0,p+"adult-label")
       +chk(p+"inband-cb","Buttons ride the GM's turn",0,p+"inband-label")/* #328 — off = the separate suggestion call (rollback) */
       +chk(p+"dice-cb","Player rolls own dice",0,p+"dice-label")/* #329 — off (default) = the GM rolls */

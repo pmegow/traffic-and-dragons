@@ -498,7 +498,7 @@ function showAccountModal(){
 // memory is standard behavior, not a setting. ragEnabled()'s flag machinery + the engine-tested
 // flag-off prompt path survive intact (console `worldState.ragMemory=false` = diagnosis-only escape
 // hatch; migrateWorldState clears it on next load so it can never silently stick).
-// ── Prose inspiration (TODO #23) ───────────────────────────────────────────────
+// ── Prose style (TODO #23; "Prose Style" since #104 — no author is being imitated) ───────────────────────────────────────────────
 function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="string")?v:"";}
 // TODO #7 audition surface — the Sound Library modal. Built because the console/one-button route
 // was unusable for actually JUDGING these: a 50ms blip you have to wait 45 seconds for and might
@@ -644,7 +644,7 @@ function showProseModal(){
       +(a.blurb?"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(a.blurb)+"</div>":"")+"</div>";
   },{align:"flex-start",dotTop:true});}
   var modal=modalShell("prose-modal",/* #14 */
-    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>✍ Prose Inspiration</span><button id='pr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>✍ Prose Style</span><button id='pr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'>The GM writes every line in this voice. Takes effect on the next turn — switch any time.</p>"
     +"<div id='pr-rows'>"+rows()+"</div>"
     +"<button id='pr-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-top:8px;'>Save</button>",

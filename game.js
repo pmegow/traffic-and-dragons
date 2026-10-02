@@ -2906,7 +2906,7 @@ function reconsiderPendingCheck(){
 }
 function retryLast(){if(lastAction)sendAction(lastAction,lastActionOpts?{mpBypass:true,silent:true,rollTag:lastActionOpts.rollTag}:{mpBypass:true});}/* P3: a retried multi-PC round is already an assembled block — re-queueing it as one PC's action would corrupt the round */
 // Re-roll the last GM narration in the CURRENT prose voice WITHOUT advancing the turn
-// or re-applying state tags — a clean A/B tool for trying Prose Inspiration voices on the
+// or re-applying state tags — a clean A/B tool for trying Prose Style voices on the
 // same scene. Pops the last exchange so the GM regenerates in the original context, then
 // swaps the displayed narration + the sessionLog assistant entry for the new one.
 // Deliberately NOT unified into commitGmTurn (audit 07-16 #5): it swaps/replaces instead of

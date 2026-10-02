@@ -439,7 +439,7 @@ again on the deployed Cloudflare page after push. Test with a real mature campai
 - ● All three File menus open, every drawer flies out (desktop) / accordions (≤768px), version
   line shows APP_VERSION in all three.
 - Each Admin modal opens and saves: Voice Settings, Narrative rules (add/remove custom rule),
-  Prose inspiration, Language Model (provider switch + staged keys), Usage & cost (+ reset),
+  Prose style, Language Model (provider switch + staged keys), Usage & cost (+ reset),
   Episodic memory toggle, Render Options (model pick + strength slider), Large text, legacy
   toggles, campaign folder set/clear.
 - Sync modal: Game→UI shows live values; UI→Game APPLY mutates and syncs.
