@@ -42,6 +42,8 @@
   <a href="#browser">Browser &amp; plumbing</a>
   <a href="#ai">AI &amp; the prompt</a>
   <a href="#jargon">Words we coined</a>
+  <a href="#proof">Testing &amp; proof</a>
+  <a href="#work">How we work</a>
   <a href="#story">Story engine</a>
   <a href="#state">Save &amp; state</a>
   <a href="#chars">Characters</a>
@@ -90,9 +92,7 @@
   <div class="term"><dt>dnaHint</dt><dd>A one-line "how to run this bit" note that keeps each arc in the author's voice instead of drifting into generic procedure.</dd></div>
   <div class="term"><dt>dossier</dt><dd>The authored notes a blueprint seeds for an NPC — who they really are, their secret, when it surfaces, the fallback. GM-eyes only; the summarizer may add beside it, never retire it.</dd></div>
   <div class="term"><dt>drift</dt><dd>The core enemy: the AI slowly reinventing a fact or rule over many turns — a spell's range creeping up, a character's backstory quietly mutating.</dd></div>
-  <div class="term"><dt>Fable-review queue</dt><dd>Drift-surface work done by a lighter model is logged in <code>todo_checkWithFable.md</code> for the top-tier model to check later. Drained to zero on 2026-09-03.</dd></div>
   <div class="term"><dt>fold</dt><dd>Weaving a player's action into the following narration so a story reads smoothly, instead of "I do X." then "X happens."</dd></div>
-  <div class="term"><dt>golden</dt><dd>A frozen copy of generated prompt text (the tag doc, the strip regex). The build fails if the bytes change — so every prompt change is a deliberate commit, never an accident.</dd></div>
   <div class="term"><dt>harness</dt><dd>A script that auto-plays the game for many turns (real AI calls) so we can stress-test and gather a corpus without hand-clicking.</dd></div>
   <div class="term"><dt>latch <span class="full">the latch registry</span></dt><dd>A one-shot memory an engine note keeps so it does not nag: “I asked about the market at this node on turn 40.” Firing the note flips the latch; if the AI call then fails, the note was never delivered, so the engine restores every latch from a snapshot and asks again next turn. The registry (<code>NOTE_LATCH_FIELDS</code>) is the list of every latch the engine may restore — a note that writes state outside it fails the build, because a latch nobody restores burns its own ask.</dd></div>
   <div class="term"><dt>money test</dt><dd>The real question a feature exists to answer, tested under pressure — e.g. "does the AI actually obey the spell bible mid-fight?"</dd></div>
@@ -101,7 +101,6 @@
   <div class="term"><dt>palimpsest</dt><dd>Something written over so many times old and new layers mix — like a 300-turn save built across many engine versions, part current, part fossil.</dd></div>
   <div class="term"><dt>provenance <span class="full">the provenance ring</span></dt><dd>Where a fact came from and when — which turn, which tag, which claim. The ring (<code>worldState.tagLog</code>) records every turn's applied, refused and stripped tags, so any change on the sheet traces back to the response that made it. Provenance is a record, never a lever: restoring it after a failed turn would erase history, so it sits outside the latch registry.</dd></div>
   <div class="term"><dt>rollback switch</dt><dd>A settings checkbox that returns a feature to the old path byte-for-byte, no deploy needed. The in-band buttons and the player-rolled dice both have one.</dd></div>
-  <div class="term"><dt>sabotage battery</dt><dd>A script that breaks a guarded line on purpose and proves a test turns red. A green test that nothing can break is worth nothing; the harness restores the file byte-identical.</dd></div>
   <div class="term"><dt>satellite page</dt><dd>A standalone HTML page opened on its own (the Blueprint Designer, this glossary) — NOT part of the cached main app.</dd></div>
   <div class="term"><dt>satellite palette</dt><dd><code>satellite.css</code>: one colour set every side page links, defining no colours of its own — so the home page, editors and reference match the game.</dd></div>
   <div class="term"><dt>shadow mode</dt><dd>Running replacement code on a throwaway copy of the data while the old code stays in charge — differences get logged, players see nothing.</dd></div>
@@ -112,6 +111,37 @@
   <div class="term"><dt>teeth</dt><dd>A rule the ENGINE enforces itself so we don't trust the AI to remember — e.g. "all objectives done → nudge it to close the quest."</dd></div>
   <div class="term"><dt>the bible <span class="full">capability_bible</span></dt><dd>One master list of what every spell and ability actually does, fed to the AI each turn so it can't rule them differently every time. Anti-drift.</dd></div>
   <div class="term"><dt>thrash</dt><dd>A system spinning uselessly — like the memory summarizer firing every two turns and never getting ahead. A sign something's tuned wrong.</dd></div>
+</dl>
+
+<h2 id="proof">Testing &amp; proof</h2>
+<dl>
+  <div class="term"><dt>anchor <span class="full">find:</span></dt><dd>The exact snippet of code a clause breaks. It must appear exactly once in its file, or the break could land on the wrong line.</dd></div>
+  <div class="term"><dt>applicability scan</dt><dd>A seconds-long dry check that every anchor still matches its file exactly once, without breaking anything. Catches stale clauses before a slow sweep would.</dd></div>
+  <div class="term"><dt>battery pool</dt><dd>Runs several sabotage batteries at once, biggest first (8 at a time here). Cut a 72-battery sweep from about 55 minutes to 7.
+    <span class="use"><b>Knobs:</b> <code>--jobs=N</code> or <code>SABOTAGE_JOBS=N</code>; <code>--jobs=1</code> runs them one by one.</span></dd></div>
+  <div class="term"><dt>clause</dt><dd>One deliberate break in a sabotage battery: change this line, run the tests, and this named test must turn red. “12 of 12 caught” counts clauses.</dd></div>
+  <div class="term"><dt>golden</dt><dd>A frozen copy of generated prompt text (the tag doc, the strip regex). The build fails if the bytes change — so every prompt change is a deliberate commit, never an accident.</dd></div>
+  <div class="term"><dt>load flake</dt><dd>A battery that failed beside others but passed when re-run alone. The runner names it instead of hiding it: something in it depends on timing.</dd></div>
+  <div class="term"><dt>missed / misattributed</dt><dd>The two ways a clause fails. Missed: the break went unnoticed, every test stayed green. Misattributed: something turned red, but not the test that guards that line.</dd></div>
+  <div class="term"><dt>pre-commit hook</dt><dd>Checks git runs on your machine before every commit: the full test suite, the TODO table lint, the ES5 check, the version stamps. A red one blocks the commit.</dd></div>
+  <div class="term"><dt>range sweep</dt><dd>Running every sabotage battery whose target files changed anywhere in a set of commits, not just the last one: <code>node dev/run-sabotage-diff.js origin/master..HEAD</code>.</dd></div>
+  <div class="term"><dt>red-first <span class="full">failing test first</span></dt><dd>Write the test before the fix and watch it fail for the reported reason. A test that never failed proves nothing.</dd></div>
+  <div class="term"><dt>replay baseline</dt><dd>A recorded playtest fed back through today's engine, compared with the saved end state. Any difference fails, unless someone re-records it on purpose.</dd></div>
+  <div class="term"><dt>sabotage battery</dt><dd>A script that breaks a guarded line on purpose and proves a test turns red. A green test that nothing can break is worth nothing; the harness restores the file byte-identical.</dd></div>
+  <div class="term"><dt>scratch clone</dt><dd>A throwaway copy of the repo each battery breaks instead of your real files, so a crash mid-test can never leave the game sabotaged.</dd></div>
+  <div class="term"><dt>seam</dt><dd>A hook a page exposes (<code>window.__bibleTest</code>) so tests can press its buttons and read its state without a person clicking. Every page with logic needs one.</dd></div>
+</dl>
+
+<h2 id="work">How we work</h2>
+<dl>
+  <div class="term"><dt>drift surface</dt><dd>The code that guards the story's facts: tag handling, memory, prompt building, the transcript. Its failures are silent, so only the top model touches it.</dd></div>
+  <div class="term"><dt>Fable-review queue</dt><dd>Work a lighter model did on risky ground, logged in <code>todo_checkWithFable.md</code> so the top model can check it later. The Thursday run skims it.</dd></div>
+  <div class="term"><dt>Off-Fable log</dt><dd>One line per change a lighter model shipped under the safe-changes map, so the top model can skim the batch later instead of reviewing each.</dd></div>
+  <div class="term"><dt>owner ruling</dt><dd>A design choice only the owner makes — asked as a multiple-choice question, recorded on the TODO row with its date. Claude never decides one silently.</dd></div>
+  <div class="term"><dt>parked branch / held build</dt><dd>Finished-looking work kept off the live game on its own git branch because a review or a redesign is still owed. Never pushed until that's done.</dd></div>
+  <div class="term"><dt>safe-changes map</dt><dd>The whitelist of changes a lighter model may ship alone: new bible entries, read-only pages, dev tools and tests, docs, layout. Anything else defaults to Fable.</dd></div>
+  <div class="term"><dt>status glyphs</dt><dd>A TODO row's state: ○ not started · ◐ partly done · ◉ ready to test · ✅ complete. Any unfinished work means never ✅.</dd></div>
+  <div class="term"><dt>tier <span class="full">Fable · Opus · Sonnet · Any</span></dt><dd>Which model a task needs, by how costly a mistake would be. Fable for high-judgment and drift work; Sonnet or Any for well-specified or mechanical jobs.</dd></div>
 </dl>
 
 <h2 id="story">Story engine (the game's own machinery)</h2>
@@ -155,16 +185,20 @@
 
 <h2 id="chars">Characters</h2>
 <dl>
+  <div class="term"><dt>auto-cast <span class="full">voice pin</span></dt><dd>The first time a character speaks, the engine picks a voice matching their sex and saves it on their sheet, so they always sound the same.</dd></div>
+  <div class="term"><dt>character library</dt><dd>Your exported characters, kept on the sync server. “Update from library” pulls who they are (looks, backstory, portrait), never levels or gear; “Replace from library” swaps the whole sheet, keeping voices the copy lacks.</dd></div>
   <div class="term"><dt>companion / charSheet</dt><dd>An NPC travelling with you who has a full character sheet (their <code>charSheet</code>) and levels up alongside your hero.</dd></div>
   <div class="term"><dt>NPC <span class="full">Non-Player Character</span></dt><dd>Everyone else the AI runs — allies, enemies, shopkeepers, the villain.</dd></div>
   <div class="term"><dt>PC <span class="full">Player Character</span></dt><dd>The character you control — the "you" the story is told to.</dd></div>
   <div class="term"><dt>racial_caps</dt><dd>A race's abilities pointed at the shared bible instead of re-written on the race — so "what Darkvision does" lives in exactly one place.</dd></div>
+  <div class="term"><dt>Village</dt><dd>The home-base campaign where your library characters live as residents between adventures. Entering it refreshes each resident from a newer library copy.</dd></div>
 </dl>
 
 <h2 id="infra">Infra &amp; releases</h2>
 <dl>
   <div class="term"><dt>APP_VERSION / CACHE</dt><dd>Two stamps we bump every release so you (and we) can confirm the newest code is actually live and the old cache got cleared.</dd></div>
-  <div class="term"><dt>CI <span class="full">Continuous Integration</span></dt><dd>Automatically checking shared code changes with tests, so problems are caught early when everyone's work comes together.</dd></div>
+  <div class="term"><dt>CI <span class="full">Continuous Integration</span></dt><dd>GitHub's robot re-checks every push on a clean Linux machine, so a mistake your own computer missed still gets caught before anyone plays it. It checks the whole push, every commit since the last one, not just the newest: the full test suite, the TODO table and version stamps per commit, the four replay baselines, the real-browser suites, and every sabotage battery whose files the push touched. Every Monday it runs all the batteries. A red run means the push broke something, even if your machine was green: a Chrome timing race once failed only on Linux.
+    <span class="use"><b>Where:</b> <code>.github/workflows/engine-tests.yml</code> (every push) and <code>sabotage-weekly.yml</code> (Mondays). GitHub's 4-core machine runs the batteries 2 at a time.</span></dd></div>
   <div class="term"><dt>Cloudflare Pages</dt><dd>Where the app itself is hosted — plain static files, auto-published every time we push to the main branch.</dd></div>
   <div class="term"><dt>Fly.dev</dt><dd>Where the sync server lives — it handles logins and stores your cloud saves so a campaign follows you across devices.</dd></div>
   <div class="term"><dt>GAS <span class="full">Google Apps Script</span></dt><dd>A tiny program hosted free inside your Google account. Ours receives the game's crash reports and emails them to you.</dd></div>
@@ -173,16 +207,20 @@
 <h2 id="skills">Skills</h2>
 <p style="color:var(--dim);font-size:13.5px;margin:0 0 10px;max-width:62ch;">Rituals we kept re-explaining from scratch each session, written down once so Claude runs them the same way every time. Each lives in <code>.claude/skills/&lt;name&gt;/SKILL.md</code>.</p>
 <dl>
-  <div class="term"><dt><code>/bugs</code></dt><dd>Triage for crash reports the game emailed itself — pull new ones, investigate a chosen one, then fix it.
-    <span class="use"><b>Use it when:</b> reports have piled up and you want them filed, explained, or fixed. <b>Say:</b> <code>/bugs sync</code>, then <code>/bugs investigate B7</code>, then <code>/bugs act B7</code>.</span></dd></div>
+  <div class="term"><dt><code>/bugs</code></dt><dd>Triage for crash reports the game emailed itself — pull new ones, investigate a chosen one, then fix it or set it aside.
+    <span class="use"><b>Use it when:</b> reports have piled up and you want them filed, explained, or fixed. <b>Say:</b> <code>/bugs sync</code>, then <code>/bugs investigate B7</code>, then <code>/bugs act B7</code>; <code>/bugs ignore B7</code> archives one that needs nothing.</span></dd></div>
+  <div class="term"><dt><code>/fable-review</code></dt><dd>A top-model review that sends helper agents to gather evidence in parallel, then judges it, fixes what it finds test-first, and writes receipts.
+    <span class="use"><b>Use it when:</b> work in the Fable-review queue, or any change to the drift surface, needs a proper review. <b>Say:</b> <code>/fable-review 12</code> (a queue entry) or <code>/fable-review the merge gate</code>.</span></dd></div>
   <div class="term"><dt><code>/field-finding</code></dt><dd>Turns "the GM did something wrong in my game" into a proven cause and a backlog row. Never edits code.
     <span class="use"><b>Use it when:</b> you saw it happen while playing, and there's no crash report — just your eyes on a turn. <b>Say:</b> <code>/field-finding my healing potion vanished from the pack around t612</code>. A turn number makes it far stronger.</span></dd></div>
   <div class="term"><dt><code>/playtest</code></dt><dd>Auto-plays real turns against a throwaway hero, then judges the corpus for broken rules, missing state tags, and prose drift.
     <span class="use"><b>Use it when:</b> a risky change needs proof it survives real play. Costs real API money — it asks first past ~25 turns. <b>Say:</b> <code>/playtest run 20</code>, then <code>/playtest audit</code>; <code>/playtest recover</code> rescues a run whose window you closed.</span></dd></div>
+  <div class="term"><dt><code>/thursday</code></dt><dd>Spends leftover weekly Fable budget on review work that needs no decisions from you, in a fixed order, writing a receipt after each step.
+    <span class="use"><b>Use it when:</b> Fable budget is left before the Thursday reset. Steps: review the week's commits, read the week's play, diff the prompt, then small Fable fixes. <b>Say:</b> <code>/thursday</code>.</span></dd></div>
 </dl>
 
 <footer>
-  Traffic and Dragons — living glossary (#24). Refreshed 2026-09-22 (CI: Continuous Integration). Found a term explained twice in the docs? Add it here.
+  Traffic and Dragons — living glossary (#24). Refreshed 2026-10-02 (CI in full; testing &amp; proof; how we work; /fable-review and /thursday). Found a term explained twice in the docs? Add it here.
   Companion reading: <code>CLAUDE.md</code> (architecture), <code>TODO.md</code> (backlog), the <code>AUDIT_*.md</code> files.
 </footer>
 </div>
