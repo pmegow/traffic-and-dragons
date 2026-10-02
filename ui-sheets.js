@@ -509,7 +509,7 @@ async function generateNpcSheet(name,doneCb){
     // NPC stance and a directed character bond are different authorities. Model-authored rows
     // migrate through the adapter; wsNpc.rel never seeds or overwrites a bond.
     relationshipMigrateSheet(sheet,wsNpc.name);
-    wsNpc.charSheet=sheet;if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)TTS.characterVoiceSlots().forEach(function(slot){delete wsNpc[slot.field];});
+    wsNpc.charSheet=sheet;releaseRowVoicePins(wsNpc);/* #539: the one release step, shared with attachCompanionSheet (game.js) */
     saveAll();removeLoader();showToast("Character sheet ready!");
     if(doneCb)doneCb();
   }catch(err){removeLoader();showToast("Sheet generation failed: "+err.message);}

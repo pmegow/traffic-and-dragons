@@ -29191,4 +29191,23 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return c.charSheet.voiceId==="sheet-voice"&&c.charSheet.speechifyVoiceId==="other-sheet-cloud"?true:"two sheets: the survivor's own pin wins and a slot it lacks is filled from the duplicate's sheet: "+JSON.stringify([c.charSheet.voiceId,c.charSheet.speechifyVoiceId]);
   });
 
+  section("#539 a character's delivery direction and speed follow them onto their sheet");
+  t("#539 the repro: a companion's sheet is attached and the direction and speed set on their card are still theirs; the row keeps no copy",function(){
+    makeWorld();worldState.npcs.push({name:"Vane",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"he/him",voiceId:"en_GB-vctk-medium#13",voiceDirection:"gruff and impatient",voiceRate:0.9,sheetPending:true});
+    var sheet=buildCompanionSheetStub("Vane");sheet.voiceDirection="MODEL-INVENTED";sheet.voiceRate=1.3;
+    var npc=attachCompanionSheet("Vane",sheet);if(!npc)return "attach refused";
+    if(npc.charSheet.voiceDirection!=="gruff and impatient"||npc.charSheet.voiceRate!==0.9)return "the direction and the speed stayed behind on the row, where nothing reads them once a sheet exists: "+JSON.stringify([npc.charSheet.voiceDirection,npc.charSheet.voiceRate]);
+    if("voiceDirection" in npc||"voiceRate" in npc||"voiceId" in npc)return "the row kept a stale copy: "+JSON.stringify([npc.voiceDirection,npc.voiceRate,npc.voiceId]);
+    var ch=_speakerChar("Vane");
+    return ch&&ch.voiceDirection==="gruff and impatient"&&ch.voiceRate===0.9?true:"the speaker does not resolve to the settings: "+JSON.stringify(ch);
+  });
+  t("#539 a new sheet's own direction and speed are the model's, never the player's: with nothing set on the card the sheet carries neither; an earlier sheet outranks the row",function(){
+    makeWorld();worldState.npcs.push({name:"Vane",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"he/him",sheetPending:true});
+    var sheet=buildCompanionSheetStub("Vane");sheet.voiceDirection="MODEL-INVENTED";sheet.voiceRate=1.3;
+    var npc=attachCompanionSheet("Vane",sheet);if(!npc)return "attach refused";
+    if("voiceDirection" in npc.charSheet||"voiceRate" in npc.charSheet)return "a model-authored direction or speed reached the sheet: "+JSON.stringify([npc.charSheet.voiceDirection,npc.charSheet.voiceRate]);
+    var next=inheritVoicePins({name:"Vane",voiceDirection:"MODEL-INVENTED"},{name:"Vane",voiceDirection:"from the row",voiceRate:1.2},{name:"Vane",voiceDirection:"from the earlier sheet"});
+    return next.voiceDirection==="from the earlier sheet"&&next.voiceRate===1.2?true:"an earlier sheet's setting outranks the row's, and the row fills what the earlier sheet lacks: "+JSON.stringify([next.voiceDirection,next.voiceRate]);
+  });
+
 }

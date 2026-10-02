@@ -36,6 +36,20 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   worldState.npcs.push({name:'Bera',pronouns:'she/her'});await generateNpcSheet('Bera');assert(['a','c'].includes(worldState.npcs[1].charSheet.speechifyVoiceId));assert(TTS.voiceKnown(worldState.npcs[1].charSheet.voiceId));
  });
 
+ await test('#539 NPC sheet generation keeps the delivery direction and the speed set on the card, through the first sheet and a regeneration',async()=>{
+  require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-sheets.js'),'utf8'));
+  const d=draft('speechify');S.save(d);global.showLoadingModal=()=>()=>{};global.saveAll=()=>{};global.relationshipMigrateSheet=()=>{};global.busy=false;
+  worldState={character:{name:'Hero'},npcs:[{name:'Lysa',pronouns:'she/her',voiceId:'en_GB-alba-medium',voiceDirection:'low, unhurried',voiceRate:0.9}]};memory={npcs:{}};
+  global.callGM=async()=>JSON.stringify({gender:'F',stats:{},voiceDirection:'model-invented',voiceRate:1.3});
+  await generateNpcSheet('Lysa');const npc=worldState.npcs[0];
+  assert.equal(npc.charSheet.voiceDirection,'low, unhurried','the first sheet takes the direction set on the card');assert.equal(npc.charSheet.voiceRate,0.9,'the first sheet takes the speed set on the card');
+  assert.equal(npc.voiceDirection,undefined,'the row keeps no stale direction');assert.equal(npc.voiceRate,undefined,'the row keeps no stale speed');
+  npc.charSheet.voiceDirection='clipped, cold';npc.charSheet.voiceRate=1.1;await generateNpcSheet('Lysa');
+  assert.equal(npc.charSheet.voiceDirection,'clipped, cold','a regenerated sheet keeps the direction');assert.equal(npc.charSheet.voiceRate,1.1,'a regenerated sheet keeps the speed');
+  worldState.npcs.push({name:'Bera',pronouns:'she/her'});await generateNpcSheet('Bera');
+  assert.equal(worldState.npcs[1].charSheet.voiceDirection,undefined,'a model-authored direction never reaches a sheet');assert.equal(worldState.npcs[1].charSheet.voiceRate,undefined,'a model-authored speed never reaches a sheet');
+ });
+
  await test('#402 campaign creation assigns player and companion voices before saving and preserves imported pins',async()=>{
   const d=draft('speechify');S.save(d);engine.makeTestWorld();const hero=JSON.parse(JSON.stringify(worldState.character));const comp=Object.assign({},hero,{name:'Bram',gender:'M'});
   let snapshots=[];const names=['saveAll','showGame','syncUI','initAbilities','initSpells','takeCheckpoint','addMsg','initCampaignFolderForGame','generateSkeleton','beginAdventure','guestbookSeedStart','npcLinkUpsert','relationshipMigrateWorld'];

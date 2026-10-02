@@ -1488,12 +1488,20 @@ function canonizeCompanionSpellDefs(resp,cls,npcName){
    Model-authored voice fields are discarded first: voices belong to the player, never the generated response. */
 function inheritVoicePins(sheet,wsNpc,prior){
   if(!sheet||typeof TTS==="undefined"||!TTS.characterVoiceSlots)return sheet;
-  TTS.characterVoiceSlots().forEach(function(slot){
-    delete sheet[slot.field];
-    var pinned=(prior&&prior[slot.field])||(wsNpc&&wsNpc[slot.field]);
-    if(pinned)sheet[slot.field]=pinned;
+  /* #539: EVERY voice field (voicePinFields, helpers.js), the delivery direction and the speed included. The loop used to walk
+     the slot table only, so a direction or a speed set on a sheetless character's card stayed behind on the row when the sheet
+     was made, a regenerated sheet dropped the ones set on the earlier sheet, and a model-authored one reached the sheet. */
+  voicePinFields().forEach(function(f){
+    delete sheet[f];
+    var pinned=(prior&&prior[f])||(wsNpc&&wsNpc[f]);
+    if(pinned)sheet[f]=pinned;
   });
   return sheet;
+}
+/* #539: the sheet owns the pins from the moment it is attached, so the row's copies go: all of them, by the same list. */
+function releaseRowVoicePins(row){
+  if(row&&typeof TTS!=="undefined"&&TTS.characterVoiceSlots)voicePinFields().forEach(function(f){delete row[f];});
+  return row;
 }
 /* #6 THE VILLAGE — phase A: residents. Every library character moves in as a NON-party NPC with a full sheet (a COPY —
    the village never mutates the library object; the library is the source of truth and nothing is written back — #427), a
@@ -1834,7 +1842,7 @@ function attachCompanionSheet(npcName,sheet){
   if(!npc||npc.charSheet)return null;
   inheritVoicePins(sheet,npc,null);
   npc.charSheet=sheet;delete npc.sheetPending;
-  if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)TTS.characterVoiceSlots().forEach(function(slot){delete npc[slot.field];});/* the sheet owns the pins now */
+  releaseRowVoicePins(npc);/* the sheet owns the pins now */
   if(memory&&memory.npcs&&memory.npcs[npcName])memory.npcs[npcName].partyMember=true;
   return npc;
 }

@@ -19,7 +19,7 @@ prove('game.js',['dev/tests-402-character-voices.js'],[
 /* Fable review 2026-09-11 (Brief D hop 19): the inheritance step moved to ONE helper in game.js (inheritVoicePins),
    shared by generateNpcSheet (ui-sheets.js) and attachCompanionSheet (game.js) — both batteries below target it. */
 prove('game.js',['dev/tests-402-character-voices.js'],[
- {label:'discard inherited voice settings during generation',find:'var pinned=(prior&&prior[slot.field])||(wsNpc&&wsNpc[slot.field]);',replace:'var pinned="";',mustFail:'#402 NPC sheet generation inherits both pins and ignores model-authored voice settings'}
+ {label:'discard inherited voice settings during generation',find:'var pinned=(prior&&prior[f])||(wsNpc&&wsNpc[f]);',replace:'var pinned="";',mustFail:'#402 NPC sheet generation inherits both pins and ignores model-authored voice settings'}
 ]);
 prove('game.js',['dev/run-tests.js','companion sheets (audit P2)'],[
  {label:'auto companion sheet skips the inheritance step',find:'  inheritVoicePins(sheet,npc,null);',replace:'  /* inheritance skipped */',mustFail:'attachCompanionSheet inherits the roster'}
