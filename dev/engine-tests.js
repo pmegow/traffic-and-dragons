@@ -29175,4 +29175,26 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return suggestionNameAlt("Malrik the Constructor")==="(Malrik|Constructor)"?true:"a button may name him by that word too: "+suggestionNameAlt("Malrik the Constructor");
   });
 
+
+  section("#535 the merge gate reads the tag the way the parser does");
+  function w535(){w503();on503("Wilhelmina Underbough","she/her");on503("Isolde Marsh","she/her");sceneRefsEnsure();worldState.turn=85;}
+  t("#535 the repro: [MERGE:NPC|a|b], [MERGE: npc |a|b] and [MERGE:Npc|a|b] are proposals like [MERGE:npc|a|b] — never an unconfirmed fusion of two established people",function(){
+    var forms=["[MERGE:NPC|Isolde Marsh|Wilhelmina Underbough]","[MERGE: npc |Isolde Marsh|Wilhelmina Underbough]","[MERGE:Npc|Isolde Marsh|Wilhelmina Underbough]","[MERGE:npc|Isolde Marsh|Wilhelmina Underbough]"],i;
+    for(i=0;i<forms.length;i++){w535();
+      quiet(function(){applyMuts("They are one woman. "+forms[i]);});
+      if(!memory.npcs["Wilhelmina Underbough"]||!wsNpcByName("Wilhelmina Underbough"))return forms[i]+" fused two established people with no confirmation (the gate looked for the lower-case, unspaced spelling only; the parser accepts any)";
+      if(!(worldState.pendingMergeHints||[]).some(function(h){return h.canonical==="Isolde Marsh"&&h.duplicate==="Wilhelmina Underbough";}))return forms[i]+" must reach the confirmation queue: "+JSON.stringify(worldState.pendingMergeHints);}
+    return true;
+  });
+  t("#535 a confirmed merge still lands under any spelling; other domains and a lower-case tag name are not the gate's",function(){
+    w535();quiet(function(){applyMuts("[MERGE:NPC|Isolde Marsh|Wilhelmina Underbough]");});
+    worldState.turn++;if(buildMergeConfirmNudge().indexOf("[NPC_MERGE:Isolde Marsh|Wilhelmina Underbough]")<0)return "fixture: the confirmation note";
+    worldState.turn++;quiet(function(){applyMuts("[MERGE:NPC|Isolde Marsh|Wilhelmina Underbough]");});
+    if(memory.npcs["Wilhelmina Underbough"])return "the confirmed merge must land in the armed turn, whatever the spelling";
+    w535();var r=quiet(function(){return applyMuts("[MERGE:item|Rope|Hemp Rope]");});
+    if(!r.warns.some(function(x){return /REFUSED/.test(x);}))return "an item merge is still refused by the registry, not swallowed by the npc gate: "+JSON.stringify(r.warns);
+    w535();quiet(function(){applyMuts("[merge:npc|Isolde Marsh|Wilhelmina Underbough]");});
+    return memory.npcs["Wilhelmina Underbough"]&&!(worldState.pendingMergeHints||[]).length?true:"a lower-case tag name is no tag: no handler reads it, so the gate must not queue a proposal for it: "+JSON.stringify(worldState.pendingMergeHints);
+  });
+
 }
