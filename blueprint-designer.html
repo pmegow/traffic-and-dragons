@@ -154,7 +154,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.56";
+var BP_DESIGNER_VERSION="v0.57";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -377,8 +377,8 @@ function render(){
   if(secOpen.npcs!==false){
   if(!bp.npcs.length)h+="<div class='empty'>None — the GM will invent everyone.</div>";
   for(i=0;i<bp.npcs.length;i++){
-    var n=bp.npcs[i];
-    h+="<div class='card'>"+cardHead("npc",i,0,esc(n.name||("NPC "+(i+1))),n.role,movBtns("npc",i,0));
+    var n=bp.npcs[i],npcPortrait=!n._c&&safeImgSrc(n.portrait);
+    h+="<div class='card'>"+(npcPortrait?"<div class='creature-card-grid'><div class='creature-editor'>":"")+cardHead("npc",i,0,esc(n.name||("NPC "+(i+1))),n.role,movBtns("npc",i,0));
     if(!n._c){
       h+="<div class='grid2'>"+fld("Name *",txt("npc",i,0,"name",n.name,""))+fld("Role",txt("npc",i,0,"role",n.role,"ally / enemy / neutral / …"))
       +fld("Pronouns",txt("npc",i,0,"pronouns",n.pronouns,"they/them"))
@@ -387,8 +387,9 @@ function render(){
       +fld("Agenda kind",txt("npc",i,0,"agendaKind",n.agendaKind,"violent \u00b7 peaceful"))+"</div>"
       +fldB("Notes (available immediately; no gated secrets)","npc",i,0,"notes","NPC: "+(n.name||"notes"),ta("npc",i,0,"notes",n.notes,"Public identity, motives, and early-act behavior"))
       +fldB("Secret (withheld until its reveal act opens)","npc",i,0,"secret","Secret: "+(n.name||"NPC"),ta("npc",i,0,"secret",n.secret||"","The hidden truth and how it surfaces — keep it out of early-visible fields"))
-      +fld("Reveal act (1-based act number; required for a secret)",txt("npc",i,0,"revealAct",String(n.revealAct==null?"":n.revealAct),"e.g. 3"));
+      +fld("Reveal act (1-based act number; required for a secret)",txt("npc",i,0,"revealAct",String(n.revealAct==null?"":n.revealAct),"e.g. 3"))+designerPortraitActions("npc",n,i);
     }
+    if(npcPortrait)h+="</div>"+designerPortraitAside("npc",n,i)+"</div>";
     h+="</div>";
   }
   h+="<button class='addbtn' data-op='addnpc' data-i='0' data-j='0'>+ Add NPC</button>";
@@ -406,11 +407,9 @@ function render(){
       h+="<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
       +fld("Threat",txt("creature",i,0,"threat",C.threat||"","low / moderate / deadly / apex — or a CR"))
       +fldB("Notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"));
-      h+="<div class='creature-actions'><button class='mini' data-op='creatureportrait' data-i='"+i+"'"+(creaturePortraitBusy(C)?" disabled":"")+">"+(C.portrait?"Regenerate portrait":"Generate portrait")+"</button>";
-      if(C.portrait)h+="<button class='mini' data-op='creatureportraitremove' data-i='"+i+"'"+(creaturePortraitBusy(C)?" disabled":"")+">Remove portrait</button>";
-      h+="</div>";
+      h+=designerPortraitActions("creature",C,i);
     }
-    if(sidePortrait)h+="</div><button type='button' class='creature-portrait-open' data-op='creatureportraitview' data-i='"+i+"' aria-label='Enlarge portrait of "+esc(C.name||"creature")+"'><img class='creature-portrait' src='"+safeImgSrc(C.portrait)+"' alt='Portrait of "+esc(C.name||"creature")+"'><span>Click to enlarge</span></button></div>";
+    if(sidePortrait)h+="</div>"+designerPortraitAside("creature",C,i)+"</div>";
     h+="</div>";
   }
   h+="<button class='addbtn' data-op='addcreature' data-i='0' data-j='0'>+ Add creature</button>";
@@ -626,9 +625,14 @@ document.addEventListener("click",function(e){
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0;
   if(op==="breakout"){openBreakout(t);return;}
   if(op==="gencreature"){openCreatureGenerator();return;}
-  if(op==="creatureportraitview"){openCreaturePortrait(bp.creatures[i]);return;}
-  if(op==="creatureportrait"){generateCreaturePortrait(bp.creatures[i],t);return;}
-  if(op==="creatureportraitremove"){if(bp.creatures[i]&&!creaturePortraitBusy(bp.creatures[i])){delete bp.creatures[i].portrait;markDirty();render();}return;}
+  var portraitAction=t.getAttribute("data-portrait-action"),portraitType=t.getAttribute("data-portrait-type");
+  if(portraitAction&&DESIGNER_PORTRAITS[portraitType]){
+    var subject=bp[DESIGNER_PORTRAITS[portraitType].section][i];
+    if(portraitAction==="view")openCreaturePortrait(subject);
+    else if(portraitAction==="generate")generateDesignerPortrait(portraitType,subject,t);
+    else if(portraitAction==="remove"&&subject&&!creaturePortraitBusy(subject)){delete subject.portrait;markDirty();render();}
+    return;
+  }
   // Selection toggle — pure view state (_sel is stripped from files), so no markDirty.
   // _sel = the chosen OPTION INDEX (radio: re-click deselects, picking a sibling replaces).
   // NB: index 0 is falsy — every _sel check must be typeof === "number", never truthiness.
@@ -905,6 +909,20 @@ function storyContext(){
   return L.join("\n");
 }
 var creatureGeneration=null,creaturePortraitJobs=[];
+// Each card type supplies only its public visual identity; persistence and UI share one path.
+var DESIGNER_PORTRAITS={
+  creature:{section:"creatures",label:"creature",identity:function(c){return JSON.stringify([c.name,c.kind,c.threat,c.notes]);},prompt:function(c){return "Bestiary illustration of "+c.name+". Kind: "+(c.kind||"creature")+". Threat: "+(c.threat||"unspecified")+". "+c.notes+" Show the creature clearly in a fitting habitat; no lettering or stat blocks.";}},
+  npc:{section:"npcs",label:"NPC",identity:function(c){return JSON.stringify([c.name,c.role,c.pronouns,c.notes]);},prompt:function(c){return "Character portrait of "+c.name+". Role: "+(c.role||"unspecified")+". Pronouns: "+(c.pronouns||"unspecified")+". Public description: "+c.notes+" Depict their described appearance and clothing in a fitting setting. Do not invent hidden identities or transformations. No lettering or stat blocks.";}}
+};
+function designerPortraitAttrs(type,action,i){return " data-op='"+type+"portrait"+({generate:"",view:"view",remove:"remove"}[action])+"' data-portrait-type='"+type+"' data-portrait-action='"+action+"' data-i='"+i+"'";}
+function designerPortraitActions(type,c,i){
+  var disabled=creaturePortraitBusy(c)?" disabled":"";
+  return "<div class='creature-actions'><button class='mini'"+designerPortraitAttrs(type,"generate",i)+disabled+">"+(c.portrait?"Regenerate portrait":"Generate portrait")+"</button>"+(c.portrait?"<button class='mini'"+designerPortraitAttrs(type,"remove",i)+disabled+">Remove portrait</button>":"")+"</div>";
+}
+function designerPortraitAside(type,c,i){
+  var label=esc(c.name||DESIGNER_PORTRAITS[type].label);
+  return "<button type='button' class='creature-portrait-open'"+designerPortraitAttrs(type,"view",i)+" aria-label='Enlarge portrait of "+label+"'><img class='creature-portrait' src='"+safeImgSrc(c.portrait)+"' alt='Portrait of "+label+"'><span>Click to enlarge</span></button>";
+}
 async function genCreatureBatch(input,progress){
   if(creatureGeneration)throw new Error("A creature batch is still running.");
   var plans=DesignerCreatures.plan(input),target=bp,original=JSON.stringify(bp.creatures),entries=[],job={cancelled:false};
@@ -957,8 +975,8 @@ function openCreatureGenerator(){
   });
 }
 function openCreaturePortrait(c){
-  if(!c||!safeImgSrc(c.portrait)){setStatus("This creature has no viewable portrait.","err");return;}
-  var modal=modalShell("creature-image-modal","<div class='creature-image-heading'><h2 id='creature-image-title'>"+esc(c.name||"Creature portrait")+"</h2><button type='button' class='tbtn' id='creature-image-close'>Close</button></div><img alt='Portrait of "+esc(c.name||"creature")+"'><p id='creature-image-size' aria-live='polite'>Loading saved portrait…</p>",{maxWidth:900,boxBg:"var(--bg1)",boxExtra:"max-height:90vh;overflow:auto;",closeId:"creature-image-close",outside:true});
+  if(!c||!safeImgSrc(c.portrait)){setStatus("This card has no viewable portrait.","err");return;}
+  var modal=modalShell("creature-image-modal","<div class='creature-image-heading'><h2 id='creature-image-title'>"+esc(c.name||"Portrait")+"</h2><button type='button' class='tbtn' id='creature-image-close'>Close</button></div><img alt='Portrait of "+esc(c.name||"character")+"'><p id='creature-image-size' aria-live='polite'>Loading saved portrait…</p>",{maxWidth:900,boxBg:"var(--bg1)",boxExtra:"max-height:90vh;overflow:auto;",closeId:"creature-image-close",outside:true});
   modal.setAttribute("aria-labelledby","creature-image-title");
   var img=modal.querySelector("img"),size=modal.querySelector("#creature-image-size");
   img.onload=function(){size.textContent="Saved portrait: "+img.naturalWidth+" × "+img.naturalHeight+" pixels";};
@@ -976,16 +994,18 @@ async function creaturePortraitData(url){
     return await new Promise(function(resolve){compressPortrait(data,resolve);});
   }finally{clearTimeout(timer);}
 }
-async function generateCreaturePortrait(c,btn){
+async function generateCreaturePortrait(c,btn){return generateDesignerPortrait("creature",c,btn);}
+async function generateDesignerPortrait(type,c,btn){
+  var cfg=DESIGNER_PORTRAITS[type];if(!cfg)return;
   if(!c||creaturePortraitBusy(c))return;
   if(!falAvailable()){setStatus("Sign in from the game or configure an image key before generating a portrait.","err");return;}
-  if(!c.name||!c.notes){setStatus("Give this creature a name and notes before generating its portrait.","err");return;}
-  var target=bp,identity=JSON.stringify([c.name,c.kind,c.threat,c.notes]);creaturePortraitJobs.push(c);btn.disabled=true;
+  if(!c.name||!c.notes){setStatus("Give this "+cfg.label+" a name and notes before generating its portrait.","err");return;}
+  var target=bp,identity=cfg.identity(c);creaturePortraitJobs.push(c);btn.disabled=true;
   var timer=elapsedTicker(btn,"Drawing portrait…",{text:true});
   try{
-    var url=await generatePortraitImage("Bestiary illustration of "+c.name+". Kind: "+(c.kind||"creature")+". Threat: "+(c.threat||"unspecified")+". "+c.notes+" Show the creature clearly in a fitting habitat; no lettering or stat blocks.");
+    var url=await generatePortraitImage(cfg.prompt(c));
     var portrait=await creaturePortraitData(url);
-    if(bp!==target||target.creatures.indexOf(c)<0||identity!==JSON.stringify([c.name,c.kind,c.threat,c.notes]))throw new Error("The creature or blueprint changed; the portrait was not attached.");
+    if(bp!==target||target[cfg.section].indexOf(c)<0||identity!==cfg.identity(c))throw new Error("The "+cfg.label+" or blueprint changed; the portrait was not attached.");
     c.portrait=portrait;markDirty();setStatus("Portrait added for “"+c.name+"”. Save the blueprint to keep a portable copy.","ok");
   }catch(err){console.warn("[designer portrait] "+err.message);setStatus("Portrait generation failed: "+err.message,"err");}
   finally{timer.stop();creaturePortraitJobs.splice(creaturePortraitJobs.indexOf(c),1);render();}
@@ -1175,7 +1195,7 @@ var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all 
 // items it changed, matched into place by identity (name for npcs/locations/creatures, title for
 // acts/arcs, substring for the string rules). Arrays never shrink here — items are replaced in place
 // or appended — so the old shrink guards are obsolete; validateBlueprint is still the backstop.
-var _PATCH_PRESERVE={creatures:DesignerCreatures.preservePortrait};
+var _PATCH_PRESERVE={creatures:DesignerCreatures.preservePortrait,npcs:DesignerCreatures.preservePortrait};
 var _PATCH_BYNAME={npcs:1,locations:1,creatures:1}; // arrays of objects keyed by .name
 var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,narratorVoice:1,premise:1,startingLocation:1,startingRegion:1,startingTime:1}; // top-level strings
 function _findByName(arr,nm){var i;nm=String(nm||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].name||"").toLowerCase()===nm)return i;}return -1;}

@@ -11,16 +11,18 @@ failed+=sabotage.prove({file:'designer-creatures.js',command:command,cases:[
  {label:'text fix drops portrait',find:'if(previous&&previous.portrait)next.portrait=previous.portrait;',replace:'',mustFail:'text fixes retain existing portraits and cannot invent image attachments'}
 ]});
 failed+=sabotage.prove({file:'blueprint-designer.html',command:command,cases:[
+ {label:'NPC secret leaks into portrait prompt',find:'". Public description: "+c.notes+',replace:'". Public description: "+c.secret+c.notes+',mustFail:'NPC portrait uses public details and ignores secret fields'},
  {label:'canonical rules omitted',find:'if(bp.rules&&bp.rules.length)L.push("HARD CAMPAIGN RULES:\\n"+bp.rules.join("\\n"));',replace:'',mustFail:'creature context includes hard rules and established setting details without images'},
- {label:'stale portrait attaches after text edits',find:'||identity!==JSON.stringify([c.name,c.kind,c.threat,c.notes])',replace:'',mustFail:'portrait text edits during generation preserve the prior image'},
+ {label:'stale portrait attaches after text edits',find:'||identity!==cfg.identity(c)',replace:'',mustFail:'portrait text edits during generation preserve the prior image'},
  {label:'cancelled request applies late',find:'if(job.cancelled)throw new Error("Generation cancelled; no creatures were added.");',replace:'',mustFail:'cancelled or replaced drafts never receive late creatures'},
  {label:'replacement draft receives stale creatures',find:'if(bp!==target||JSON.stringify(target.creatures)!==original)',replace:'if(false)',mustFail:'cancelled or replaced drafts never receive late creatures'},
  {label:'partial batch leaks before a failure',find:'entries.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries)));',replace:'target.creatures.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries)));',mustFail:'a failed batch preserves the original bestiary'}
 ]});
 failed+=sabotage.prove({file:'blueprint-designer.html',skip:!chrome.path,command:['node',['dev/tests-designer-creatures-browser.js']],cases:[
+ {label:'NPC text fix drops saved image',find:',npcs:DesignerCreatures.preservePortrait',replace:'',mustFail:'NPC text fixes preserve portraits and exclude image bytes'},
  {label:'portrait moves below desktop fields',find:'.creature-card-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(140px,25%);',replace:'.creature-card-grid{display:grid;grid-template-columns:minmax(0,1fr);',mustFail:'portrait sits beside the full editor on desktop'},
  {label:'enlargement remains a thumbnail',find:'#creature-image-modal img{display:block;width:auto;',replace:'#creature-image-modal img{display:block;width:160px;',mustFail:'enlargement uses actual saved pixels'},
  {label:'phone keeps two columns',find:'@media(max-width:640px){.creature-card-grid{grid-template-columns:minmax(0,1fr);}',replace:'@media(max-width:640px){.creature-card-grid{grid-template-columns:minmax(0,1fr) minmax(140px,25%);}',mustFail:'portrait stacks below the editor on phones'}
 ]});
-if(!chrome.path&&!failed){verdict.reportSkip('sabotage-508-designer-creatures.js',3,chrome.why);process.exit(verdict.SKIP_EXIT);}
+if(!chrome.path&&!failed){verdict.reportSkip('sabotage-508-designer-creatures.js',4,chrome.why);process.exit(verdict.SKIP_EXIT);}
 process.exit(failed?1:0);
