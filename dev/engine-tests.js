@@ -29197,4 +29197,23 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return memory.npcs["Wilhelmina Underbough"]&&!(worldState.pendingMergeHints||[]).length?true:"a lower-case tag name is no tag: no handler reads it, so the gate must not queue a proposal for it: "+JSON.stringify(worldState.pendingMergeHints);
   });
 
+
+  section("#537 a merge of a person into themselves is nothing to do");
+  t("#537 the repro: [NPC_MERGE:Bram|Bram] leaves Bram exactly as he was — no runaway record, no deletion, no handler error — and says it was ignored",function(){
+    w503();on503("Bram","he/him");memory.npcs["Bram"].events=[{turn:1,note:"met at the ford"}];memory.npcs["Bram"].knowledge=["keeps bees"];worldState.turn=85;
+    var pre=JSON.stringify([memory.npcs["Bram"],wsNpcByName("Bram")]),r=quiet(function(){return applyMuts("[NPC_MERGE:Bram|Bram]");});
+    if((r.r.errors||[]).length)return "the handler threw: "+JSON.stringify(r.r.errors);
+    if(!memory.npcs["Bram"]||!wsNpcByName("Bram"))return "Bram was deleted by a merge into himself";
+    if(JSON.stringify([memory.npcs["Bram"],wsNpcByName("Bram")])!==pre)return "his record changed: "+(memory.npcs["Bram"].events||[]).length+" events";
+    if((r.r.muts||[]).some(function(m){return /^Merged: /.test(m);}))return "no merge happened, so no 'Merged' receipt: "+JSON.stringify(r.r.muts);
+    return (r.r.muts||[]).some(function(m){return /ignored/.test(m)&&/Bram/.test(m);})?true:"the turn's summary says the tag was ignored: "+JSON.stringify(r.r.muts);
+  });
+  t("#537 an ordinary merge is untouched, and the generic form of a self-merge is ignored too",function(){
+    w503();on503("Bram","he/him");on503("Bram the Beekeeper","he/him");memory.npcs["Bram the Beekeeper"].knowledge=["keeps bees"];worldState.turn=85;
+    quiet(function(){applyMuts("[NPC_MERGE:Bram|Bram the Beekeeper]");});
+    if(memory.npcs["Bram the Beekeeper"]||memory.npcs["Bram"].knowledge.indexOf("keeps bees")<0||(memory.npcs["Bram"].aliases||[]).indexOf("Bram the Beekeeper")<0)return "an ordinary merge must fold, alias and delete as before: "+Object.keys(memory.npcs).join(", ");
+    var r=quiet(function(){return applyMuts("[MERGE:npc|Bram|Bram]");});
+    return memory.npcs["Bram"]&&wsNpcByName("Bram")&&!(r.r.errors||[]).length?true:"[MERGE:npc|Bram|Bram] routes into the same handler and must be ignored the same way";
+  });
+
 }
