@@ -1,0 +1,14 @@
+require("./b.js");
+hdr("fixture");
+q(); dump();
+show("resolve Queen Underbough", resolveNpcName("Queen Underbough"));
+show("resolve queen underbough", resolveNpcName("queen underbough"));
+show("resolve Underbough", resolveNpcName("Underbough"));
+show("resolve K", resolveNpcName(K));
+show("archive", (memory.archive && memory.archive.identityMerges) || null);
+show("sceneRefs", !!worldState.sceneRefs);
+show("character", worldState.character.name);
+hdr("same answer");
+go("[NPC_MERGE:Wilhelmina Underbough|" + K + "]"); dump();
+show("resolve K after", resolveNpcName(K));
+show("archive", (memory.archive.identityMerges || []).map(function (e) { return e.domain + ":" + e.duplicate + "->" + e.canonical; }));
