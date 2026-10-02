@@ -63,5 +63,42 @@ await page.evaluate(()=>{const out=__bpdTest.out();__bpdTest.load(out);secOpen.n
 await page.screenshot({path:path.join(out,'npc-card-desktop.png')});await page.locator('[data-op="npcportraitview"]').click();await page.waitForFunction(()=>document.querySelector('#creature-image-size').textContent.includes('400 × 533'));await page.locator('#creature-image-close').click();
 await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{document.querySelector('[data-op="npcportrait"]').closest('.card').scrollIntoView({block:'start'});window.scrollBy(0,-document.getElementById('topbar').getBoundingClientRect().height-12);});await page.evaluate(()=>document.querySelector('[data-op="npcportraitview"]').scrollIntoView({block:'center'}));await page.screenshot({path:path.join(out,'npc-card-mobile.png')});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'NPC card fits phone viewport');
 await page.locator('[data-op="npcportraitremove"]').click();assert(await page.evaluate(()=>!bp.npcs[0].portrait&&!document.querySelector('[data-op="npcportraitview"]')),'NPC portrait removal updates card and saved data');
+
+await page.setViewportSize({width:1050,height:900});
+await page.evaluate(()=>{
+  window.proseOriginal="The employer who hired the Red Ledger, a vault-city magistrate of Two Thrones. Her official story is that the reliquary is an ancestral relic she recovered at Kalgra's Rest and is returning for reburial in the lower reliquary-vault beneath the eastern mesa, which she names as the delivery destination from the outset. In public introductions and documents, use only Consul Y. Marrow. She accompanies the caravan through the first ambush. When the cracked reliquary addresses her as 'Ysbet,' she visibly flinches and demands to know how it knows her. She surfaces as untrustworthy the moment the company asks pointed questions about what's actually inside: under such questioning she drops the cover story and admits the truth (see secret), but she continues to honor the contract's payment and, in particular, its safe-passage promise.";
+  window.proseRevision="Consul Y. Marrow, a Two Thrones magistrate, hires the Red Ledger and joins them through the first ambush. She claims the ancestral reliquary came from Kalgra's Rest and names the lower reliquary-vault beneath the eastern mesa as its reburial destination. Introductions and documents use only Consul Y. Marrow. Called 'Ysbet' by the cracked reliquary, she flinches and demands how it knows her. Pressed about its contents, she abandons her cover story and admits the truth (see secret), while honoring payment and safe passage.";
+  __bpdTest.load({format:'tnd-blueprint-v1',name:'Full prose',premise:'A caravan journey.',acts:[{title:'The road',goal:'Reach the mesa.',arcs:[{title:'Journey',objective:'Travel safely.'}]}],npcs:[{name:'Consul Y. Marrow',notes:proseOriginal}],creatures:[],rules:[]});secOpen.npcs=true;bp.npcs[0]._c=false;__bpdTest.rerender();
+});
+assert.equal(await page.evaluate(()=>bp.npcs[0].notes.length),836,'loaded NPC notes preserve the exact reported tail beyond 800');
+assert(await page.evaluate(()=>designerValidate().includes('text limits')),'overlong drafts cannot be published as ready');
+await page.locator('[data-op="breakout"][data-bsec="npc"][data-bk="notes"]').click();
+assert(await page.evaluate(()=>document.querySelector('#bo-ta').value.endsWith('safe-passage promise.')),'breakout retains the complete final sentence');
+await page.screenshot({path:path.join(out,'full-npc-before-shortening.png')});await page.locator('#bo-done').click();
+await page.evaluate(()=>{window.proseCalls=0;callGM=async(msg,sys,tokens,model,opts)=>{proseCalls++;if(!msg.includes(proseOriginal)||!opts.noHistory)throw Error('Missing full original or utility isolation');return JSON.stringify({text:proseRevision});};});
+await page.locator('#btn-fit-text').click();await page.waitForFunction(()=>!proseFitJob&&bp.npcs[0].notes===proseRevision);
+assert.equal(await page.evaluate(()=>proseCalls),1);assert(await page.evaluate(()=>bp._textOriginal[0].text===proseOriginal&&!JSON.stringify(__bpdTest.out()).includes('_textOriginal')),'full originals retained locally and excluded from playable files');
+await page.locator('[data-op="breakout"][data-bsec="npc"][data-bk="notes"]').click();await page.screenshot({path:path.join(out,'complete-npc-after-shortening.png')});await page.locator('#bo-done').click();
+await page.evaluate(()=>{bp.npcs[0].notes=proseOriginal;callGM=async()=>JSON.stringify({text:'This revision ends in p'});markDirty();});await page.locator('#btn-fit-text').click();await page.waitForFunction(()=>!proseFitJob&&document.querySelector('#statusline').textContent.includes('kept in full'));
+assert(await page.evaluate(()=>bp.npcs[0].notes===proseOriginal),'failed revision never clips the draft');
+await page.evaluate(()=>{callGM=()=>new Promise(r=>window.releaseProse=r);});await page.locator('#btn-fit-text').click();await page.waitForFunction(()=>!!window.releaseProse);
+await page.evaluate(()=>{bp.npcs[0].notes='An intentional manual edit.';markDirty();releaseProse(JSON.stringify({text:proseRevision}));});await page.waitForFunction(()=>!proseFitJob);
+assert.equal(await page.evaluate(()=>bp.npcs[0].notes),'An intentional manual edit.','late revision never replaces a newer manual edit');
+await page.evaluate(()=>{bp.npcs[0].notes=proseOriginal;markDirty();});await page.waitForFunction(()=>JSON.parse(localStorage.getItem('bpd_draft_v1')).bp.npcs[0].notes===proseOriginal);
+await page.goto('http://creature.test/blueprint-designer.html');await page.waitForFunction(()=>window.__bpdTest);
+assert(await page.evaluate(()=>bp.npcs[0].notes.endsWith('safe-passage promise.')&&bp.npcs[0].notes.length===836),'reopening the auto-saved draft never clips it');
+
+
+await page.evaluate(async()=>{
+  window.fullApplyText=bp.npcs[0].notes;bp.npcs[0].notes='An employer.';bp.review={findings:[{section:'npcs',issue:'Preserve the full magistrate description',fixes:['Write the full description.'],_sel:0}]};window.applyCalls=0;
+  callGM=async(msg,sys)=>{applyCalls++;return JSON.stringify(sys.indexOf('You edit TTRPG')===0?{patches:[{section:'npcs',name:'Consul Y. Marrow',item:{name:'Consul Y. Marrow',notes:fullApplyText}}]}:{text:'Consul Y. Marrow pays the caravan and guarantees safe passage.'});};
+  await applyFinding(0);
+});
+assert(await page.evaluate(()=>applyCalls===2&&bp.npcs[0].notes==='Consul Y. Marrow pays the caravan and guarantees safe passage.'&&bp._textOriginal[0].text===fullApplyText),'AI fixes draft in full then revise before finalizing');
+await page.evaluate(()=>{window.catalogWrites=0;storageAdapter.listBlueprintCatalog=cb=>cb(null,[]);storageAdapter.publishBlueprintToCatalog=()=>catalogWrites++;openCatalogPublish();});
+await page.waitForSelector('#catalog-publish-dialog');await page.locator('#catalog-blurb').fill('A caravan journey.');
+await page.evaluate(()=>{bp.npcs[0].notes=fullApplyText;});await page.locator('#catalog-confirm').click();
+assert(await page.evaluate(()=>catalogWrites===0&&document.querySelector('#catalog-publish-error').textContent.includes('text limits')),'catalog rechecks text limits at confirmation after a draft changes');
+await page.locator('#catalog-cancel').click();
 assert.deepEqual(errors,[]);console.log('PASS CREATURE BROWSER: controls, mobile, count rejection, batch, portrait layout and enlargement, focus, reload, Apply preservation, failure, cancel, and NPC generation/view/reload/removal. Screenshots: '+out);
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

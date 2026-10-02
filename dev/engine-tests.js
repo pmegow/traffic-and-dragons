@@ -901,6 +901,14 @@ function runEngineTests(R){
     var small={format:"tnd-blueprint-v1",name:"X",tone:"swords",premise:"short",acts:[{title:"A",goal:"g",arcs:[{title:"a",objective:"o"}]}]};normalizeBlueprint(small);
     return small.premise==="short"&&small.acts[0].goal==="g"?true:"short fields changed";
   });
+  t("blueprint authoring preserves overlong drafts while runtime normalization still caps them",function(){
+    var text=new Array(799).join("x")+" in particular, its safe-passage promise.",draft={format:"tnd-blueprint-v1",name:"Marrow",premise:"Story.",npcs:[{name:"Consul Y. Marrow",notes:text}],rules:[new Array(1300).join("r")]};
+    normalizeBlueprint(draft,{preserveProse:true});
+    if(draft.npcs[0].notes!==text||draft.rules[0].length!==1299)return "authoring amputated the full original";
+    var fields=blueprintTextFields(draft),note=fields.filter(function(f){return f.path==="npcs.0.notes";})[0];
+    if(!note||note.limit!==IMPORT_CAPS.field||note.owner[note.key]!==text)return "shared field registry lost the NPC cap";
+    normalizeBlueprint(draft);return draft.npcs[0].notes.length===IMPORT_CAPS.field?true:"runtime bound lost";
+  });
   t("#315 clampImportedCharacter caps a .char's backstory and appearance and every list string, and is a no-op on a sane sheet",function(){
     var big=new Array(9000).join("z");
     var c={name:"Q",cls:"Rogue",backstory:big,appear:big,trait:big,inventory:[big,"Rope"],abilities:[{nm:"A",ds:big}],storyBeats:[{text:big,turn:1}]};
@@ -26796,7 +26804,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!skeletonRegisterFindings({premise:"Clean.",acts:[]}).length===false)return "";
     var page=__fsForTests.readFileSync(__rootForTests+"/blueprint-designer.html","utf8"),gen=page.slice(page.indexOf('document.getElementById("gen-go")'),page.indexOf('document.getElementById("gen-concept").focus()'));
     if(gen.indexOf("skeletonRegisterFindings(draft)")<0||gen.indexOf("draft.review=")<0)return "the Generate handler must scan the draft and seed draft.review before normalizeBlueprint";
-    return gen.indexOf("skeletonRegisterFindings(draft)")<gen.indexOf("bp=normalizeBlueprint(draft)")?true:"the seed must precede normalizeBlueprint";
+    return gen.indexOf("skeletonRegisterFindings(draft)")<gen.indexOf("bp=normalizeBlueprint(draft,{preserveProse:true})")?true:"the seed must precede normalizeBlueprint";
   });
   t("#459 ① generateSkeleton source contract: the gate runs BEFORE the model review and its findings lead the correction; the corrected skeleton is re-scanned; a still-dirty skeleton is regenerated ONCE; a second failure throws OUTSIDE the review's catch (a loud toast at Begin, freeform play — never a silent dirty skeleton)",function(){
     var gm=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),fn=gm.slice(gm.indexOf("async function generateSkeleton("),gm.indexOf("function buildOpeningIntro("));

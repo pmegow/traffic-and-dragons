@@ -3086,7 +3086,7 @@ function normalizeToneId(t){
   for(i=0;i<TONES.length;i++){if(TONES[i].nm.toLowerCase().indexOf(norm)===0)return TONES[i].id;}
   return "";
 }
-function normalizeBlueprint(bp){
+function normalizeBlueprint(bp,opts){
   if(!bp||typeof bp!=="object")return bp;
   BlueprintEdition.adopt(bp);
   if(bp.format==="tnd-campaign-v1")bp.format="tnd-blueprint-v1";
@@ -3131,17 +3131,20 @@ function normalizeBlueprint(bp){
     }
     bp.availableClasses=_avList; // an authored-empty list survives to validation, which refuses it LOUDLY
   }
-  /* #315 (review C5): every prose field an author can type is capped here, at the ONE choke point every
-     blueprint passes through. Short fields are untouched byte-for-byte (legacy prompts stay identical). */
-  if(typeof clampStr==="function"&&typeof IMPORT_CAPS!=="undefined"){
-    var _cp=IMPORT_CAPS,_ci,_cj;
-    bp.premise=clampStr(bp.premise,_cp.premise);["startingLocation","startingRegion","startingTime","author","name"].forEach(function(k){bp[k]=clampStr(bp[k],_cp.field);});
-    for(_ci=0;_ci<bp.acts.length;_ci++){var _a=bp.acts[_ai=_ci];if(!_a)continue;["title","goal","dnaHint","desc"].forEach(function(k){_a[k]=clampStr(_a[k],_cp.field);});
-      for(_cj=0;_cj<(_a.arcs||[]).length;_cj++){var _r=_a.arcs[_cj];if(_r)["title","objective","dnaHint","desc"].forEach(function(k){_r[k]=clampStr(_r[k],_cp.field);});}}
-    [bp.npcs,bp.locations,bp.creatures].forEach(function(list){for(var _k=0;_k<list.length;_k++){var _o=list[_k];if(_o&&typeof _o==="object")["name","notes","secret","desc","role","status","relation","sizeNote"].forEach(function(f){_o[f]=clampStr(_o[f],_cp.field);});}});
-    for(_ci=0;_ci<bp.rules.length;_ci++)bp.rules[_ci]=clampStr(bp.rules[_ci],_cp.rule);
+  // Runtime imports remain bounded; the authoring editor keeps complete text for revision.
+  if(!(opts&&opts.preserveProse)&&typeof clampStr==="function"&&typeof IMPORT_CAPS!=="undefined"){
+    blueprintTextFields(bp).forEach(function(f){f.owner[f.key]=clampStr(f.owner[f.key],f.limit);});
   }
   return bp;
+}
+// The runtime clamp and the Designer revision pass read the same field limits.
+function blueprintTextFields(bp){
+  var out=[],caps=IMPORT_CAPS;
+  function add(obj,keys,prefix,limit){if(!obj||typeof obj!=="object")return;keys.forEach(function(key){out.push({owner:obj,key:key,path:prefix+key,limit:limit,identity:/^(name|title|author|startingLocation|startingRegion|startingTime)$/.test(key)});});}
+  add(bp,["premise"],"",caps.premise);add(bp,["startingLocation","startingRegion","startingTime","author","name"],"",caps.field);
+  (bp.acts||[]).forEach(function(a,i){if(!a)return;add(a,["title","goal","dnaHint","desc"],"acts."+i+".",caps.field);(a.arcs||[]).forEach(function(r,j){add(r,["title","objective","dnaHint","desc"],"acts."+i+".arcs."+j+".",caps.field);});});
+  ["npcs","locations","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){add(o,["name","notes","secret","desc","role","status","relation","sizeNote"],section+"."+i+".",caps.field);});});
+  (bp.rules||[]).forEach(function(rule,i){add(bp.rules,[i],"rules.",caps.rule);});return out;
 }
 // ── #192 — blueprint class roster: custom classes + curated availability ───────
 // A blueprint may carry campaign-specific classes (customClasses — the steampunk Tinkerer

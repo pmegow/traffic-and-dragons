@@ -1,0 +1,13 @@
+const assert=require('assert/strict');const P=require('../designer-prose.js');
+let passed=0;async function test(name,fn){try{await fn();passed++;console.log('PASS PROSE '+name);}catch(e){console.error('FAIL PROSE '+name+': '+e.message);throw e;}}
+function field(text,limit=80,path='npcs.0.notes'){return {owner:{notes:text},key:'notes',path,limit};}
+(async()=>{
+await test('complete drafts are revised without slicing or mutating the original',async()=>{const f=field('The magistrate pays the caravan and promises safe passage. '.repeat(8));let seen;const r=await P.revise([f],async prompt=>{seen=prompt;return {text:'The magistrate pays the caravan and promises safe passage.'};});assert(seen.includes(f.owner.notes));assert(r[0].text.endsWith('safe passage.'));assert(f.owner.notes.length>80);});
+await test('within-limit prose is byte-identical and needs no model call',async()=>{let calls=0;const f=field('A guide.');assert.deepEqual(await P.revise([f],async()=>{calls++;}),[]);assert.equal(calls,0);assert.equal(f.owner.notes,'A guide.');});
+await test('overlong empty and unfinished revisions fail without partial writes',async()=>{for(const text of ['x'.repeat(81)+'.','','The magistrate promises safe']){const f=field('Long complete original. '.repeat(6));let calls=0;await assert.rejects(P.revise([f],async()=>{calls++;return {text};}),/revision/i);assert.equal(calls,2);assert(f.owner.notes.endsWith('original. '));}});
+await test('failure on a later field leaves all originals unchanged',async()=>{const a=field('First original. '.repeat(8)),b=field('Second original. '.repeat(8),80,'rules.0');let calls=0;await assert.rejects(P.revise([a,b],async()=>{if(++calls>1)throw Error('provider unavailable');return {text:'First original.'};}),/provider unavailable/);assert(a.owner.notes.length>80&&b.owner.notes.length>80);});
+await test('cancellation rejects late model results',async()=>{let live=true;const f=field('Original. '.repeat(12));await assert.rejects(P.revise([f],async()=>{live=false;return {text:'Shortened.'};},null,()=>live),/cancelled|changed/);assert(f.owner.notes.length>80);});
+await test('identity labels are never silently renamed by shortening',async()=>{const f=field('Long name '.repeat(20));f.identity=true;let calls=0;await assert.rejects(P.revise([f],async()=>{calls++;}),/name|identity/i);assert.equal(calls,0);});
+await test('revisions accept sentence punctuation followed by a closing quote',async()=>{const f=field('A long quotation. '.repeat(10));const r=await P.revise([f],async()=>({text:'She says, “I will pay.”'}));assert.equal(r[0].text,'She says, “I will pay.”');});
+console.log('ALL GREEN — '+passed+' prose revision checks');
+})().catch(e=>{console.error(e);process.exitCode=1;});

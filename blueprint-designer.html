@@ -117,6 +117,9 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
   <button class="tbtn" id="btn-publish">&#9729; Save to My Library</button>
   <button class="tbtn" id="btn-publish-catalog" hidden>Publish to Catalog</button>
   <button class="tbtn primary" id="btn-save">&#8595; Save .blueprint</button>
+  <button class="tbtn" id="btn-fit-text" hidden>Shorten long text</button>
+  <button class="tbtn" id="btn-original-text" hidden>Download original text</button>
+  <div id="text-limit-status" style="width:100%;font-size:12px;color:var(--wrn);" hidden></div>
   <div id="statusline"></div>
 </div>
 <main id="app"></main>
@@ -150,11 +153,12 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="ui-shell.js"></script>
 <script src="ui-portrait.js"></script>
 <script src="designer-creatures.js"></script>
+<script src="designer-prose.js"></script>
 <script>
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.57";
+var BP_DESIGNER_VERSION="v0.58";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -255,7 +259,7 @@ function statusTicker(base){setStatus(base,"");return elapsedTicker(document.get
 // Dirty marker keeps the blueprint's NAME in the statusline and appends the flag (bug fix
 // 2026-07-05: it used to replace the name with just "Unsaved changes"). Runs on every edit,
 // so a rename updates the shown name live.
-function markDirty(){dirty=true;updateEdition();setStatus((bp&&bp.name?bp.name:"Untitled blueprint")+" — unsaved changes","");saveDraft();}
+function markDirty(){updateTextLimits();dirty=true;updateEdition();setStatus((bp&&bp.name?bp.name:"Untitled blueprint")+" — unsaved changes","");saveDraft();}
 
 // ── Rendering ──────────────────────────────────────────────────────────────────
 function fld(label,inner){return "<div class='fld'><label>"+label+"</label>"+inner+"</div>";}
@@ -313,6 +317,7 @@ function cardHead(tsec,i,j,label,summary,btns){
     +" "+label+(summary?" &mdash; "+esc(summary):"")+"</span>"+btns+"</div>";
 }
 function render(){
+  updateTextLimits();
   saveDraft(); // every interaction rerenders, so this keeps the draft mirroring the screen — including view-only state (collapse flags, fix selections) that never calls markDirty. Debounced, so bursts cost one write.
   var h="",i,j;
   // Metadata
@@ -743,7 +748,7 @@ function openBreakout(btn){
 
 // ── Load / New / Save ──────────────────────────────────────────────────────────
 function loadBlueprintObject(obj){
-  bp=normalizeBlueprint(obj);editionBaseline=BlueprintEdition.baseline(bp);
+  bp=normalizeBlueprint(obj,{preserveProse:true});editionBaseline=BlueprintEdition.baseline(bp);
   // Legacy review shape (pre-v0.19): findings carried a single `fix` string — lift into fixes[].
   if(bp.review&&bp.review.findings){bp.review.findings.forEach(function(f){if(!f.fixes||!f.fixes.length)f.fixes=f.fix!=null?[String(f.fix)]:[""];delete f.fix;});}
   var err=validateBlueprint(bp);
@@ -772,6 +777,7 @@ function designerValidate(){
   if(!bp.name||!bp.name.trim())return "Blueprint needs a name.";
   if(!bp.premise||!bp.premise.trim())return "Blueprint needs a premise.";
   if(!bp.acts.length)return "Blueprint needs at least one act.";
+  var long=DesignerProse.overflows(blueprintTextFields(bp));if(long.length)return long.length+" field(s) exceed their text limits. Use Shorten long text; the full draft is preserved.";
   return validateBlueprint(fileOut()); // engine validation: act/arc titles, goals, objectives
 }
 // Save NEVER blocks (v0.39, owner call 2026-09-01): a blueprint is authored over several
@@ -792,6 +798,47 @@ document.getElementById("btn-save").addEventListener("click",function(){
   editionSaved(snapshot,bp,bp.releaseStatus);setStatus(err?("Saved "+fname+" — not publish-ready: "+err):("Saved "+fname+" — publish-ready"),err?"warn":"ok");
 });
 window.addEventListener("beforeunload",function(e){if(dirty){e.preventDefault();e.returnValue="";}});
+
+// Full originals live in the local draft; the downloadable backup holds only the last revision's fields.
+var proseFitJob=null;
+function updateTextLimits(){
+  if(!bp)return;
+  var long=DesignerProse.overflows(blueprintTextFields(bp)),button=document.getElementById("btn-fit-text"),note=document.getElementById("text-limit-status");
+  button.hidden=!long.length&&!proseFitJob;button.textContent=proseFitJob?"Cancel shortening":"Shorten long text";
+  note.hidden=!long.length;note.textContent=long.length+" field(s) exceed their text limits. Full text is preserved; shorten before publishing.";
+  document.getElementById("btn-original-text").hidden=!bp._textOriginal;
+}
+async function fitDesignerText(){
+  var fields=DesignerProse.overflows(blueprintTextFields(bp));if(!fields.length)return true;
+  if(proseFitJob){setStatus("Text shortening is already running; the full draft is preserved.","warn");return false;}
+  if(!llmReady())return false;
+  var target=bp,stamp=JSON.stringify(DesignerCreatures.textBlueprint(bp)),job={cancelled:false},ticker=null;
+  function current(){return !job.cancelled&&bp===target&&stamp===JSON.stringify(DesignerCreatures.textBlueprint(bp));}
+  target._textOriginal=fields.map(function(f){return {field:f.path,limit:f.limit,text:f.owner[f.key]};});saveDraft();
+  proseFitJob=job;updateTextLimits();
+  try{
+    ticker=statusTicker("Shortening long text…");
+    var revisions=await DesignerProse.revise(fields,async function(prompt){
+      return JSON.parse(repairModelJson(await callGM(prompt,"You revise blueprint prose without changing its meaning. Return only the requested JSON.",4000,designerModel(),{noHistory:true,kind:"other"})));
+    },function(n,total,path){ticker.set("Shortening "+n+"/"+total+" — "+path+"…");},current);
+    if(!current())throw new Error("The draft changed; shortened text was not applied.");
+    revisions.forEach(function(r){r.field.owner[r.field.key]=r.text;});
+    markDirty();render();setStatus("Shortened "+revisions.length+" field(s) into complete sentences. The original text is available to download.","ok");return true;
+  }catch(e){
+    console.warn("[designer text] "+e.message);
+    setStatus("Text was kept in full: "+e.message+" You can edit it, retry shortening, or save the draft.","warn");return false;
+  }finally{if(ticker)ticker.stop();if(proseFitJob===job)proseFitJob=null;updateTextLimits();}
+}
+document.getElementById("btn-fit-text").addEventListener("click",function(){
+  if(proseFitJob){proseFitJob.cancelled=true;setStatus("Shortening cancelled; the full draft is preserved.","warn");return;}
+  fitDesignerText();
+});
+document.getElementById("btn-original-text").addEventListener("click",function(){
+  if(!bp._textOriginal)return;
+  var url=URL.createObjectURL(new Blob([JSON.stringify({blueprint:bp.name,fields:bp._textOriginal},null,2)],{type:"application/json"})),a=document.createElement("a");
+  a.href=url;a.download="blueprint-original-text.json";a.click();URL.revokeObjectURL(url);
+});
+
 
 // ── LLM features (v1.180): generate creature + review ─────────────────────────
 // Both use callGM with sysOverride + noHistory — one self-contained message, no game
@@ -970,6 +1017,7 @@ function openCreatureGenerator(){
       timer.stop();modal.remove();
       var opener=document.querySelector("[data-op='gencreature']");if(opener)opener.focus();
       setStatus("Added "+entries.length+" new creature"+(entries.length===1?"":"s")+" — review the cards and add portraits as you like.","ok");
+      await fitDesignerText();
     }catch(err){timer.stop();if(document.body.contains(modal)){console.warn("[designer creatures] "+err.message);status.textContent="Generation failed: "+err.message;setStatus(status.textContent,"err");}}
     finally{go.disabled=false;Array.prototype.forEach.call(controls,function(el){el.disabled=false;});var cancel=modal.querySelector("#creature-gen-cancel");if(cancel)cancel.textContent="Cancel";}
   });
@@ -1061,12 +1109,13 @@ function openGenerate(){
       draft.format="tnd-blueprint-v1";draft.author="";draft.proseAuthor=voiceId||"";draft.narratorVoice=bp.narratorVoice||""; // #9: a generated draft must not silently drop an already-chosen narrator
       if(toneId)draft.tone=toneId; // the author's pick is authoritative over the model's echo
       draft.version="0.01";draft.releaseStatus="draft";
-      bp=normalizeBlueprint(draft);editionBaseline=null;
+      bp=normalizeBlueprint(draft,{preserveProse:true});editionBaseline=null;
       var err=validateBlueprint(bp);
       secOpen={}; // fresh content the author must actually read — start open, like New (loads collapse)
       markDirty();render();
       closeGenerate();
       setStatus(err?("Generated with issues — "+err):("Generated “"+(bp.name||"untitled")+"” — a DRAFT, not a finished blueprint: edit freely, then 🔍 Review it."+(_regF.length?" "+_regF.length+" line"+(_regF.length===1?"":"s")+" in accountant's language flagged in Review — apply those fixes first.":"")),err?"err":"ok");
+      _gt.stop();await fitDesignerText();
     }catch(e){setStatus("Generation failed: "+e.message,"err");}
     _gt.stop();btn.disabled=false;btn.textContent="✨ Generate";
   });
@@ -1309,7 +1358,7 @@ async function applyFinding(idx){
     if(!patch||!patch.patches||!patch.patches.length)throw new Error("model returned no patches");
     snapshot=JSON.parse(JSON.stringify(bp));
     var res=applyPatches(bp,patch.patches); // in-place merge by identity; throws (→ rollback) on a bad patch
-    normalizeBlueprint(bp);
+    normalizeBlueprint(bp,{preserveProse:true});
     var err=validateBlueprint(bp);
     if(err)throw new Error("fix produced an invalid blueprint ("+err+") — rolled back");
     var di;for(di=0;di<res.deleted.length;di++)_batchDeleted[res.deleted[di]]=1; // commit deletions only now (survived validation) so later findings won't resurrect them
@@ -1318,6 +1367,7 @@ async function applyFinding(idx){
     if(patch.note)bp.review.findings[idx].note=String(patch.note);
     markDirty();render();
     setStatus("Applied ("+res.labels.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
+    snapshot=null;if(!_applyingAll)await fitDesignerText();
   }catch(e){
     if(_at)_at.stop();
     if(snapshot)bp=snapshot; // undo any partial in-place merge
@@ -1396,6 +1446,7 @@ async function applyAllFindings(){
   var sum="Applied "+ok+" selected fix"+(ok===1?"":"es");
   if(fails.length)sum+="; "+fails.length+" failed and stayed selected — "+((bp.review.findings[fails[0].idx].section||"")+": "+fails[0].err).slice(0,140);
   setStatus(sum+".",fails.length?"err":"ok");
+  if(ok)await fitDesignerText();
 }
 
 // ── Consult / Ask (v0.16) ──────────────────────────────────────────────────────
@@ -1519,6 +1570,7 @@ function openCatalogPublish(){
     publish.addEventListener("click",function(){
       if(editionSaveBusy())return;
       var error=dialog.querySelector("#catalog-publish-error"),pitch=blurb.value.trim();
+      var readiness=designerValidate();if(readiness){error.textContent=readiness;return;}
       if(!pitch||pitch.length>240){error.textContent="Write a spoiler-free description of 1–240 characters.";return;}
       var entry=selected(),snapshot=publishSnapshot(),draft=bp,requestedStatus=bp.releaseStatus;
       var id=entry?entry.id:(snapshot.name.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,120)||("campaign_"+Date.now().toString(36)));
@@ -1652,7 +1704,7 @@ if(_incoming){
   else if(_dec.action==="keep")_keptMsg="Kept your unsaved draft \""+_dec.draftName+"\" — "+_dec.incomingName+" stays on the Home shelf; open it again when you are ready.";
 }
 if(_draft&&_draft.bp&&_draft.bp.format){
-  bp=normalizeBlueprint(_draft.bp);editionBaseline=Object.prototype.hasOwnProperty.call(_draft,"editionBaseline")?_draft.editionBaseline:BlueprintEdition.baseline(bp);dirty=!!_draft.dirty;render();
+  bp=normalizeBlueprint(_draft.bp,{preserveProse:true});editionBaseline=Object.prototype.hasOwnProperty.call(_draft,"editionBaseline")?_draft.editionBaseline:BlueprintEdition.baseline(bp);dirty=!!_draft.dirty;render();
   if(_fromHome){saveDraft();setStatus((bp.name||"Untitled blueprint")+" — opened from the Home shelf","");}
   else setStatus(_keptMsg||((bp.name||"Untitled blueprint")+" — restored from draft"+(dirty?" (unsaved changes)":"")),_keptMsg?"warn":"");
 }else{
