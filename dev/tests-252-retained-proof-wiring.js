@@ -151,7 +151,7 @@ test("diff runner schedules a quoted \"file\" key, ignores a profile: key, print
   function battery(name, body) { fs.writeFileSync(path.join(tmp, "dev", name), body, "utf8"); }
   try {
     fs.mkdirSync(path.join(tmp, "dev"));
-    ["run-sabotage-diff.js", "battery-verdict.js"].forEach(function (f) { fs.copyFileSync(path.join(ROOT, "dev", f), path.join(tmp, "dev", f)); });
+    ["run-sabotage-diff.js", "battery-verdict.js", "battery-pool.js"].forEach(function (f) { fs.copyFileSync(path.join(ROOT, "dev", f), path.join(tmp, "dev", f)); });
     battery("sabotage-quoted.js", '// {"file": "target.js"}\nconsole.log("QUOTED RAN");\n');
     battery("sabotage-profile.js", '// {profile: "target.js"}\nconsole.log("PROFILE RAN");\n');
     battery("sabotage-skip.js", '// {file: "target.js"}\nconsole.log("SABOTAGE SKIPPED (sabotage-skip.js): 2 clause(s) NOT proven on this machine — fixture");process.exit(78);\n');
@@ -174,6 +174,73 @@ test("diff runner schedules a quoted \"file\" key, ignores a profile: key, print
     run = cp.spawnSync(process.execPath, ["dev/run-sabotage-diff.js"], { cwd: tmp, env: env, encoding: "utf8" }); out = output(run);
     if (run.status === 0) return "an unannounced exit 78 passed the gate: " + out;
     return /FAIL sabotage-skip\.js/.test(out) ? "" : "the unannounced 78 was not named as the failure: " + out;
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+// The battery pool (dev/battery-pool.js, 2026-10-02): both runners run batteries several at a time. Proven on fixture
+// batteries in a disposable repo: two that can only pass if they run AT ONCE (each waits for the other's marker), each
+// with its own temp dir that is gone afterwards; a battery that fails only on its first run (re-run alone, passes, and is
+// NAMED as flaky under load); a battery that always fails (re-run alone, still fails the gate); and one job at a time,
+// where the first verdict is final and nothing is re-run.
+test("battery pool: batteries run at once, each in its own temp dir; a failure beside others is re-run alone, a real failure still fails the gate, a load flake is named; one job keeps the first verdict", function () {
+  var tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-battery-pool-"));
+  var marks = path.join(tmp, "marks");
+  var env = {};
+  Object.keys(process.env).forEach(function (k) { if (k.indexOf("GIT_") !== 0 && k !== "SABOTAGE_JOBS") env[k] = process.env[k]; });
+  env.GITHUB_ACTIONS = ""; env.POOL_FIXTURE_DIR = marks;
+  function git(args) { var r = cp.spawnSync("git", ["-c", "user.email=fixture@test", "-c", "user.name=fixture", "-c", "commit.gpgsign=false"].concat(args), { cwd: tmp, env: env, encoding: "utf8" }); if (r.status !== 0) throw new Error("git " + args.join(" ") + ": " + output(r)); }
+  function battery(name, body) { fs.writeFileSync(path.join(tmp, "dev", name), body, "utf8"); }
+  function runs(name) { var f = path.join(marks, name + ".runs"); return fs.existsSync(f) ? Number(fs.readFileSync(f, "utf8")) : 0; }
+  function run(script, args, jobs) { var e = Object.assign({}, env); if (jobs) e.SABOTAGE_JOBS = jobs; var r = cp.spawnSync(process.execPath, ["dev/" + script].concat(args), { cwd: tmp, env: e, encoding: "utf8" }); return { status: r.status, out: output(r) }; }
+  function rendezvous(me, other) {
+    return '// {file: "t1.js"}\nvar fs=require("fs"),path=require("path"),os=require("os"),d=process.env.POOL_FIXTURE_DIR;\n' +
+      'fs.writeFileSync(path.join(d,"' + me + '.tmp"),os.tmpdir());\nvar until=Date.now()+20000,nap=new Int32Array(new SharedArrayBuffer(4));\n' +
+      'while(!fs.existsSync(path.join(d,"' + other + '.tmp"))){if(Date.now()>until){console.log("RENDEZVOUS TIMEOUT ' + me + '");process.exit(1);}Atomics.wait(nap,0,0,50);}\nconsole.log("RENDEZVOUS ' + me + '");\n';
+  }
+  function counted(name, failWhen) {
+    return '// {file: "t2.js"}\nvar fs=require("fs"),path=require("path"),f=path.join(process.env.POOL_FIXTURE_DIR,"' + name + '.runs");\n' +
+      'var n=fs.existsSync(f)?Number(fs.readFileSync(f,"utf8")):0;fs.writeFileSync(f,String(n+1));\nif(' + failWhen + '){console.log("' + name + ' run "+(n+1)+" fails");process.exit(1);}\nconsole.log("' + name + ' run "+(n+1)+" passes");\n';
+  }
+  try {
+    fs.mkdirSync(path.join(tmp, "dev")); fs.mkdirSync(marks);
+    ["run-sabotage-diff.js", "run-sabotage-all.js", "battery-verdict.js", "battery-pool.js"].forEach(function (f) { fs.copyFileSync(path.join(ROOT, "dev", f), path.join(tmp, "dev", f)); });
+    battery("sabotage-aa-rendezvous.js", rendezvous("aa", "ab"));
+    battery("sabotage-ab-rendezvous.js", rendezvous("ab", "aa"));
+    battery("sabotage-flaky.js", counted("flaky", "n===0"));
+    battery("sabotage-broken.js", counted("broken", "true"));
+    fs.writeFileSync(path.join(tmp, "t1.js"), "var a = 1;\n", "utf8"); fs.writeFileSync(path.join(tmp, "t2.js"), "var b = 1;\n", "utf8");
+    git(["init", "-q"]); git(["add", "-A"]); git(["commit", "-q", "-m", "base"]);
+
+    // ① two batteries at once (the --jobs flag, the range left to its default), each with its own temp dir, both gone after
+    fs.writeFileSync(path.join(tmp, "t1.js"), "var a = 2;\n", "utf8"); git(["commit", "-q", "-am", "touch t1"]);
+    var r = run("run-sabotage-diff.js", ["--jobs=2"]);
+    if (r.status !== 0 || !/ok   sabotage-aa-rendezvous\.js/.test(r.out) || !/ok   sabotage-ab-rendezvous\.js/.test(r.out)) return "the pool did not run two batteries at once (each waits for the other): " + r.out;
+    var ta = fs.readFileSync(path.join(marks, "aa.tmp"), "utf8"), tb = fs.readFileSync(path.join(marks, "ab.tmp"), "utf8");
+    if (ta === tb || ta === os.tmpdir() || tb === os.tmpdir()) return "two batteries shared a temp dir: " + JSON.stringify([ta, tb, os.tmpdir()]);
+    if (fs.existsSync(ta) || fs.existsSync(tb)) return "a battery's temp dir was left on disk: " + JSON.stringify([ta, tb]);
+    if (/flaky under load/.test(r.out)) return "a clean run named a flake: " + r.out;
+    fs.unlinkSync(path.join(marks, "aa.tmp")); fs.unlinkSync(path.join(marks, "ab.tmp"));
+    var w = run("run-sabotage-all.js", ["--jobs=2", "rendezvous"]);
+    if (w.status !== 0 || !/SABOTAGE ALL: 2 batteries green/.test(w.out)) return "the weekly runner did not run two batteries at once: " + w.out;
+
+    // ② beside each other: the flaky one fails once, is re-run alone and passes, NAMED; the broken one is re-run alone and fails the gate
+    fs.writeFileSync(path.join(tmp, "t2.js"), "var b = 2;\n", "utf8"); git(["commit", "-q", "-am", "touch t2"]);
+    r = run("run-sabotage-diff.js", [], "2");
+    if (r.status === 0) return "a real failure passed the gate: " + r.out;
+    if (runs("broken") !== 2 || !/FAIL sabotage-broken\.js/.test(r.out)) return "the always-failing battery was not re-run alone and named (runs " + runs("broken") + "): " + r.out;
+    if (runs("flaky") !== 2 || /FAIL sabotage-flaky\.js/.test(r.out)) return "a load flake failed the gate instead of being re-run alone (runs " + runs("flaky") + "): " + r.out;
+    if (!/flaky under load[^\n]*sabotage-flaky\.js/.test(r.out)) return "the flake was not named in the summary: " + r.out;
+    if (!/run-sabotage-diff: FAILED — sabotage-broken\.js(\n|$)/.test(r.out)) return "the failure summary must name only the real failure: " + r.out;
+
+    // ③ one job at a time: the first verdict is final, nothing is re-run
+    fs.writeFileSync(path.join(marks, "flaky.runs"), "0"); fs.writeFileSync(path.join(marks, "broken.runs"), "0");
+    r = run("run-sabotage-diff.js", [], "1");
+    if (runs("flaky") !== 1 || runs("broken") !== 1 || !/FAIL sabotage-flaky\.js/.test(r.out)) return "one job at a time re-ran a failure, or did not keep its first verdict (flaky runs " + runs("flaky") + ", broken runs " + runs("broken") + "): " + r.out;
+
+    // ④ a malformed job count is refused out loud, never read as a commit range
+    r = run("run-sabotage-diff.js", ["--jobs=many"]);
+    if (r.status === 0 || !/jobs/.test(r.out)) return "a malformed --jobs passed: " + r.out;
+    return "";
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 
