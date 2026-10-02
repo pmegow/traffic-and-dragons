@@ -1,10 +1,12 @@
 # Traffic & Dragons website
 
-Standalone public landing page, version 1.0.0. Open `index.html` to preview it locally.
+Standalone public landing page, version 1.0.1. Open `index.html` to preview it locally.
 No build, package installation, API keys, game files, or Codex runtime are required.
 
 The approved design uses parchment, brick-red lettering, the original dragon-on-Beetle
-artwork, and “Add a little fantasy to your gridlock.” All three entry links open the
+artwork, and “Add a little fantasy to your gridlock.” The cover favors portrait
+8.5:11 proportions, growing vertically on small screens to keep content readable.
+“Continue your adventure” and “New Adventurer? Sign up” are the two entry links to the
 existing game at https://traffic-and-dragons.pages.dev/, which handles play and sign-in.
 There is no separate sign-in endpoint on this website.
 
@@ -32,8 +34,9 @@ the canonical address; its stable rule reference is `tnd_landing_canonical`.
 The primary zone redirects `www` and HTTP requests. The hyphenated zone redirects
 both hostnames. Unrelated DNS records and rules are retained.
 
-Live verification: desktop 1024px and phone 320px screenshots inspected; artwork,
-copy, all three game links and lack of horizontal overflow checked. Sixteen HTTP/
+Layout verification for v1.0.1: screenshots from 320px through 1440px inspected;
+artwork, revised copy, both game links, portrait letter proportions on desktop and
+lack of horizontal overflow checked. Initial domain verification: Sixteen HTTP/
 HTTPS checks cover the four hostnames at the root and an asset path with query
 parameters. The primary page and artwork hashes match the local files. One Python
 HTTP client received 403; the real browser and native curl checks passed without
@@ -58,6 +61,6 @@ scoped permissions. Never store credentials in this repository.
 The layout and styles are in `index.html`; the original artwork is in
 `art/dragon-on-beetle.webp`. Update the `website-version` meta value and the matching
 asset query versions whenever this website changes. No game service worker is used.
-If the game's destination changes, update the three ordinary anchor links together.
+If the game's destination changes, update both ordinary anchor links together.
 The illustration failure handler reports to the page and console without blocking
 the entry links. This version uses one fixed illustration.
