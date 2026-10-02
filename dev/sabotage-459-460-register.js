@@ -35,7 +35,7 @@ prove('api.js',['dev/run-tests.js',SEC],[
  {label:'STYLE loses the greetings clause',find:'NO STOCK BLESSINGS OR RITUAL GREETINGS: no formula hellos and no invented rites of welcome; people greet the way their trait says they would, or not at all. ',replace:'',mustFail:'#460 ② STYLE carries NO STOCK BLESSINGS'}
 ]);
 prove('tag_table.js',['dev/run-tests.js',SEC],[
- {label:'the mood write keeps the GM\'s adjectives',find:'var _mdo=moodDoingOnly(npStatus);\n      if(_mdo!==npStatus){',replace:'var _mdo=moodDoingOnly(npStatus);\n      if(false){',mustFail:'#460 ① a sheeted resident\'s GM-written mood is kept to what they are DOING'}
+ {label:'the mood write keeps the GM\'s adjectives',find:'\n      if(_mdo!==npStatus){R.muts.push(',replace:'\n      if(false){R.muts.push(',mustFail:'#460 ① a sheeted resident\'s GM-written mood is kept to what they are DOING'}
 ]);
 prove('blueprint-designer.html',['dev/run-tests.js',SEC],[
  {label:'Generate stops seeding the review',find:'      if(_regF.length)draft.review={findings:_regF,sections:0,failedSections:0};\n',replace:'',mustFail:'#459 ① the designer\'s Generate takes the same gate'}

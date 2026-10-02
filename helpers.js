@@ -3440,10 +3440,16 @@ function sayMoodShape(raw){
 // bare disposition words ("pleasant", "cheerful, warm") are dropped by the tag handler, loudly. A proxy, not a judge:
 // an adjective ending in -ing ("charming") passes as a doing — accepted, recorded on the row.
 var MOOD_PLACE_RE=/^(?:at|in|on|by|with|behind|before|beside|near|under|over|inside|outside|out|up|down|to|from|among|beneath|atop|toward|towards|about|around|through|across|against|along|between|into|onto|upon|off|back|away|home|abroad|alone)\b/i;
-function moodDoingOnly(mood){
+/* #506 (owner ruling 2026-10-01): a CONDITION is not a disposition. Where the kind says so (moodConditions: the adventure, never
+   the Village) a part that names one of these survives beside the doing words — "terrified, captured by the slavers" keeps
+   "captured by the slavers" — so the roster tells the GM a sheeted character is unconscious or held, and it cannot play them
+   free the next turn. ONE list; each entry is a regex source ("sick of your excuses" is a disposition, so "sick" refuses "of"). */
+var MOOD_CONDITION_WORDS=["unconscious","comatose","asleep","captured","captive","hostage","prisoner","imprisoned","bound","restrained","chained","wounded","injured","poisoned","sick(?!\\s+of\\b)","missing","fled","petrified","paralyzed","paralysed"];
+var MOOD_CONDITION_RE=new RegExp("\\b(?:"+MOOD_CONDITION_WORDS.join("|")+")\\b","i");
+function moodDoingOnly(mood,keepConditions){
   var parts=String(mood||"").split(/[,;]/),out=[],i,p;
   for(i=0;i<parts.length;i++){p=parts[i].replace(/^\s+|\s+$/g,"");if(!p)continue;
-    if(/\b[a-z]{2,}ing\b/i.test(p)||MOOD_PLACE_RE.test(p))out.push(p);}
+    if(/\b[a-z]{2,}ing\b/i.test(p)||MOOD_PLACE_RE.test(p)||(keepConditions&&MOOD_CONDITION_RE.test(p)))out.push(p);}
   return out.join(", ");
 }
 // #460 ①: does the SHEET lead this character's entry? A present-or-absent non-party resident with a sheet trait — the

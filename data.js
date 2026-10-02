@@ -310,7 +310,7 @@ var CAMPAIGN_KINDS={
   adventure:{label:"Adventure",skeleton:true,swapDemotesTo:"party",swapHandoff:true,populateFromLibrary:false,switchPovBlock:null,
     /* phase B fields — the adventure carries the literals in api.js / tag_table.js / game.js, so every one of these is
        "no override": the adventure prompt stays byte-identical (pinned). */
-    ruleOverrides:null,preamble:null,chapterNote:"",tagDocNote:"",noCombat:false,combatRefusal:"",noHarm:false,harmRefusal:"",whisperSubject:null,montage:true,wildcard:true,whisperResidentPool:false,smallTalk:false,
+    ruleOverrides:null,preamble:null,chapterNote:"",tagDocNote:"",noCombat:false,combatRefusal:"",noHarm:false,harmRefusal:"",whisperSubject:null,montage:true,wildcard:true,whisperResidentPool:false,smallTalk:false,moodConditions:true,/* #506: a sheeted character's status keeps condition words (unconscious, captured…) */
     /* phase E/F fields — the adventure keeps the world-node market, toggle item rows and the shipped buy rung */
     stashQuantities:false,tradeOnlyInShops:false,waresPerShop:false,pinPrices:false,shopWords:null,hallWords:null,placeCanon:null,/* #481 A1: no kind canonicalisers — the place resolver's identity and case/article steps only */
     /* phase C/D/G/H — no override: the adventure recaps a chapter, its ladder goes straight to buy, it can be closed, its GM pays XP */
@@ -330,6 +330,7 @@ var CAMPAIGN_KINDS={
       +"\nTHE VILLAGE PAYS NOTHING: [XP:] is refused here — a day among friends earns no experience; a [QUEST:] may hold a village goal (an errand, a favour, a promise) that nothing here will ever push or escalate.",
     noCombat:true,combatRefusal:"the village has no dangers (kind: village); write a person, a change, or a cost instead of a fight",
     noHarm:true,harmRefusal:"the peace of Pax holds — no harm may befall anyone within the village, nor be done by anyone here (kind: village)",
+    moodConditions:false,/* #506 (owner ruling 2026-10-01): the Village is peaceful — a resident's status stays what they are DOING */
     whisperSubject:"small talk about the day — the weather, the hour, an errand, what someone is carrying or making, something that changed since the hero was last here — ",
     /* #6 D5 (owner field report 2026-09-16, "I can't walk across the street without being called out for a defining moment"): the street talks small; the past belongs to the Hall and to the player's asking. smallTalk swaps the whisper facts and the exchange seed from the residents' defining moments to today. */
     montage:false,wildcard:false,whisperResidentPool:true,smallTalk:true,

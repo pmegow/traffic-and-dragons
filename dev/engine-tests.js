@@ -29115,4 +29115,35 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return JSON.stringify(worldState.castLast)===snap?true:"a reply with no cast rewrote the record";
   });
 
+
+  section("#506 a sheeted character's condition survives in an adventure");
+  function w506(){makeWorld();delete worldState.kind;worldState.turn=30;
+    worldState.npcs.push({name:"Bram",status:"watching the road",rel:"former companion",partyMember:false,pronouns:"he/him",met:1,portrait:null,aliases:[],
+      charSheet:{name:"Bram",cls:"Warrior",level:3,trait:"Blunt and loyal",inventory:[],abilities:[]}});
+    memory.npcs.Bram={attitude:"",knowledge:[],events:[],aliases:[]};return wsNpcByName("Bram");}
+  t("#506 the repro: [NPC:Bram|terrified, captured by the slavers|ally] keeps the condition and drops the disposition; the GM is told he is captured",function(){
+    var n=w506(),r=quiet(function(){return applyMuts("They drag him off. [NPC:Bram|terrified, captured by the slavers|former companion]");}).r;
+    if(n.status!=="captured by the slavers")return "the condition must survive, the disposition must not: "+JSON.stringify(n.status);
+    if(!(r.muts||[]).some(function(m){return /Bram: mood kept/.test(m);}))return "the dropped word is still said: "+JSON.stringify(r.muts);
+    quiet(function(){applyMuts("[NPC:Bram|unconscious|former companion]");});
+    if(n.status!=="unconscious")return "a bare condition is the whole status: "+JSON.stringify(n.status);
+    var v=buildSysPrompt().volatile;
+    return /Bram[^\n]*unconscious/.test(v)?true:"the roster the GM reads says so: "+(v.match(/Bram[^\n]*/)||[""])[0].slice(0,200);
+  });
+  t("#506 every condition on the ruled list is kept in an adventure; a disposition alone is still dropped; 'sick of' is a disposition",function(){
+    var keep=["unconscious","asleep","captured","imprisoned","bound","chained","wounded","injured","poisoned","sick","missing","fled","petrified","paralyzed","captive","hostage"],i;
+    for(i=0;i<keep.length;i++){if(moodDoingOnly("grim, "+keep[i],true)!==keep[i])return "'"+keep[i]+"' is not kept: "+JSON.stringify(moodDoingOnly("grim, "+keep[i],true));}
+    if(moodDoingOnly("cheerful, warm",true)!=="")return "dispositions are still dropped";
+    if(moodDoingOnly("sick of your excuses",true)!=="")return "'sick of' is a disposition: "+moodDoingOnly("sick of your excuses",true);
+    if(moodDoingOnly("sick with marsh fever",true)!=="sick with marsh fever")return "'sick with' is a condition";
+    return moodDoingOnly("badly wounded, mending a net",true)==="badly wounded, mending a net"?true:"a condition and a doing both survive";
+  });
+  t("#506 the Village stays doing-only (owner ruling): a resident's condition is dropped there, and the kind table carries the switch",function(){
+    if(CAMPAIGN_KINDS.adventure.moodConditions!==true||CAMPAIGN_KINDS.village.moodConditions!==false)return "the switch is the kind's: "+CAMPAIGN_KINDS.adventure.moodConditions+" / "+CAMPAIGN_KINDS.village.moodConditions;
+    if(moodDoingOnly("grim, captured",false)!==""||moodDoingOnly("grim, captured")!=="")return "without the switch the trim is doing-only";
+    villageEF();var f=wsNpcByName("Frizwick");f.charSheet.trait="Sharp-tongued and quick";
+    quiet(function(){applyMuts("[NPC:Frizwick|unconscious, pouring ale|friend]");});
+    return f.status==="pouring ale"?true:"a Village resident keeps only what she is doing: "+JSON.stringify(f.status);
+  });
+
 }

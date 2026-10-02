@@ -778,7 +778,7 @@ var TAG_TABLE=[
        GM's own adjectives ("pleasant", "cheerful") are dropped here, loudly (mutation line + console), before they can feed the
        roster back to the GM next turn. Party members keep their moods (their block is their own); an unsheeted NPC is unchanged. */
     /* #505: a death is canon (B3), never a mood — this trim ran before the death stamp below and wiped "dead", so a sheeted NPC could not die by the standing tag */
-    if(!npcDeadStatus(npStatus)&&!_npN.partyMember&&_npN.charSheet&&typeof _npN.charSheet.trait==="string"&&_npN.charSheet.trait.trim()&&typeof moodDoingOnly==="function"){var _mdo=moodDoingOnly(npStatus);
+    if(!npcDeadStatus(npStatus)&&!_npN.partyMember&&_npN.charSheet&&typeof _npN.charSheet.trait==="string"&&_npN.charSheet.trait.trim()&&typeof moodDoingOnly==="function"){var _mdo=moodDoingOnly(npStatus,!!(typeof kindDef==="function"&&kindDef().moodConditions));/* #506: conditions survive where the kind says so */
       if(_mdo!==npStatus){R.muts.push("⚠ "+npName+": mood kept to what they are doing"+(_mdo?" — "+_mdo:" (nothing doing; the sheet plays them)"));if(typeof console!=="undefined")console.warn("[npc] #460 "+npName+": disposition words dropped from the mood — \""+npStatus+"\" -> \""+_mdo+"\" (plays as: "+String(_npN.charSheet.trait).slice(0,60)+")");npStatus=_mdo;}}
     _npN.status=npStatus;_npN.statusTurn=R.turn;}}
   /* v1.372: a new NPC's MOOD seeds EMPTY, not "unknown" — "unknown" is not a mood, and the field
