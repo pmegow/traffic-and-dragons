@@ -722,6 +722,13 @@ var TAG_TABLE=[
     if(_mgDupN.portrait&&!_mgCanN.portrait)_mgCanN.portrait=_mgDupN.portrait;
     if(_mgDupN.portraitOffset&&!_mgCanN.portraitOffset)_mgCanN.portraitOffset=_mgDupN.portraitOffset;
     if(_mgDupN.pronouns&&!_mgCanN.pronouns)_mgCanN.pronouns=_mgDupN.pronouns;
+    /* #532: the voice a character was heard in follows the person. A sheetless speaker's pins sit on the roster row
+       (pinAutoCastVoices, game.js) and the fold never carried them: "the hooded man" spoke, the GM named him, and the survivor
+       was re-cast on his next line. The survivor's pin OWNER (its sheet when it has one, else its row) takes each voice field it
+       lacks: from its own row when this merge just gave it the duplicate's sheet, then from the duplicate's sheet, then from the
+       duplicate's row. Its own pin always wins, and a sheeted survivor's row takes nothing (a row pin beside a sheet is a stale copy). */
+    var _mgVn=voicePinsFill(_mgCanN.charSheet||_mgCanN,[_mgCanN.charSheet&&_mgCanN.charSheet===_mgDupN.charSheet?_mgCanN:null,_mgDupN.charSheet,_mgDupN]);
+    if(_mgVn&&typeof console!=="undefined")console.info("[speakers] "+mgCanon+" keeps the voice heard as '"+mgDupe+"' ("+_mgVn+" voice setting(s) carried by the merge)");
     if(_mgDupN.dead&&!_mgCanN.dead)_mgCanN.dead=_mgDupN.dead;/* B3: a merge must not lose the dupe's death */
     if((!_mgCanN.status||_mgCanN.status==="unknown")&&_mgDupN.status)_mgCanN.status=_mgDupN.status;
     if((!_mgCanN.rel||_mgCanN.rel==="unknown")&&_mgDupN.rel)_mgCanN.rel=_mgDupN.rel;

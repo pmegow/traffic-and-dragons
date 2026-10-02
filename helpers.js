@@ -44,6 +44,24 @@ function wsNpcByName(name){
   var i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name)return worldState.npcs[i];}
   return null;
 }
+/* #532: the fields that pin how a character sounds: every slot of the ONE table (TTS.characterVoiceSlots, tts.js: the Piper
+   backup and each cloud voice), the delivery direction and the speed. A sheetless speaker carries them on the roster row, a
+   sheeted one on the sheet (the pin OWNER, as _speakerVoiceSubject reads it). Without tts.js only the Piper field is known. */
+function voicePinFields(){
+  var f=["voiceDirection","voiceRate"],s=(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)?TTS.characterVoiceSlots():[{field:"voiceId"}],i;
+  for(i=0;i<s.length;i++)f.push(s[i].field);
+  return f;
+}
+/* #532: fills each voice field the OWNER lacks from the first source that holds it, and returns how many it filled. The owner's
+   own pin always wins, and a field no source holds is not written at all. */
+function voicePinsFill(owner,sources){
+  var f=voicePinFields(),n=0,i,j,src;
+  for(i=0;i<f.length;i++){
+    if(owner[f[i]])continue;
+    for(j=0;j<sources.length;j++){src=sources[j];if(src&&src[f[i]]){owner[f[i]]=src[f[i]];n++;break;}}
+  }
+  return n;
+}
 // AUDIT_FABLE_07_16 #11①: conservative arc↔quest title match — exact or one-contains-the-other,
 // case-insensitive (the findCompanionNpc discipline, no fuzzy scoring). Shared by
 // buildArcQuestNudge and buildArcDriftNudge (api.js), which defined it twice char-identically.

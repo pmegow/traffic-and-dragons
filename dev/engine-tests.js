@@ -29141,4 +29141,54 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return memory.npcs["Bram"]&&wsNpcByName("Bram")&&!(r.r.errors||[]).length?true:"[MERGE:npc|Bram|Bram] routes into the same handler and must be ignored the same way";
   });
 
+  section("#532 a merge carries the voice a character was pinned with");
+  function v532(name,pins){on503(name,"he/him");var r=wsNpcByName(name),k;for(k in pins)r[k]=pins[k];return r;}
+  function sheet532(name,pins){var s={name:name,inventory:[],abilities:[]},k;for(k in pins)s[k]=pins[k];return s;}
+  function m532(){quiet(function(){applyMuts("He lowers the hood: Aldern Foxglove. [NPC_MERGE:Aldern Foxglove|the hooded man]");});var a=wsNpcByName("Aldern Foxglove");return worldState.npcs.length===1&&a?a:null;}
+  t("#532 the repro: the hooded man speaks, the GM names him as Aldern Foxglove, and Aldern's next line is in the voice already heard",function(){
+    w503();on503("Aldern Foxglove","he/him");on503("the hooded man","he/him");
+    var oldAuto=TTS.autoCastVoiceId;
+    try{
+      TTS.autoCastVoiceId=function(ch){return ch&&ch.name==="the hooded man"?"en_US-ryan-high":"en_GB-alba-medium";};
+      if(!pinAutoCastVoices({n:1,s:{0:"the hooded man"}}))return "fixture: his first line pins a voice";
+      var row=wsNpcByName("the hooded man"),slots=TTS.characterVoiceSlots(),i;
+      if(row.voiceId!=="en_US-ryan-high")return "fixture: the pin sits on his roster row: "+JSON.stringify(row.voiceId);
+      for(i=0;i<slots.length;i++)if(!row[slots[i].field])row[slots[i].field]="heard-"+slots[i].provider;
+      row.voiceDirection="low, unhurried";row.voiceRate=0.9;
+      var a=m532();if(!a)return "fixture: the merge must land";
+      pinAutoCastVoices({n:1,s:{0:"Aldern Foxglove"}});
+      if(a.voiceId!=="en_US-ryan-high")return "the merge dropped the voice he was heard in, so Aldern was re-cast on his next line: "+JSON.stringify(a.voiceId);
+      for(i=0;i<slots.length;i++)if(slots[i].provider!=="piper"&&a[slots[i].field]!=="heard-"+slots[i].provider)return "every slot of the one table follows him, the "+slots[i].provider+" pin did not: "+JSON.stringify(a[slots[i].field]);
+      var vm=speakerVoiceMap({n:1,s:{0:"the hooded man"}},'"Hold there."');
+      if(!vm||vm[0]!=="en_US-ryan-high")return "an earlier line stored under the old name must replay in the same voice: "+JSON.stringify(vm);
+      return a.voiceDirection==="low, unhurried"&&a.voiceRate===0.9?true:"the delivery direction and the speed follow him too: "+JSON.stringify([a.voiceDirection,a.voiceRate]);
+    }finally{TTS.autoCastVoiceId=oldAuto;}
+  });
+  t("#532 the survivor's own pin always wins; only a field it lacks is filled; an unpinned pair stays unpinned",function(){
+    w503();v532("Aldern Foxglove",{voiceId:"keep-me",voiceRate:0.9});v532("the hooded man",{voiceId:"dupe-voice",speechifyVoiceId:"dupe-cloud",voiceRate:1.3,voiceDirection:"dupe-direction"});
+    var c=m532();if(!c)return "fixture: the merge must land";
+    if(c.voiceId!=="keep-me"||c.voiceRate!==0.9)return "the survivor's own voice was overwritten: "+JSON.stringify([c.voiceId,c.voiceRate]);
+    if(c.speechifyVoiceId!=="dupe-cloud"||c.voiceDirection!=="dupe-direction")return "a field the survivor never had is filled from the duplicate: "+JSON.stringify([c.speechifyVoiceId,c.voiceDirection]);
+    w503();v532("Aldern Foxglove",{});v532("the hooded man",{});
+    c=m532();if(!c)return "fixture: the unpinned merge must land";
+    var f=voicePinFields(),i;
+    if(f.indexOf("voiceId")<0||f.indexOf("voiceDirection")<0||f.indexOf("voiceRate")<0||f.length!==TTS.characterVoiceSlots().length+2)return "the field list is every slot of the one table plus the direction and the speed: "+JSON.stringify(f);
+    for(i=0;i<f.length;i++)if(f[i] in c)return "an unpinned merge must not write an empty voice field: "+f[i];
+    return true;
+  });
+  t("#532 a sheet owns its character's pins: a sheeted survivor's sheet takes what it lacks and its row takes nothing; an adopted sheet keeps its own voice",function(){
+    w503();var s=v532("Aldern Foxglove",{});s.charSheet=sheet532("Aldern Foxglove",{voiceId:"sheet-voice"});v532("the hooded man",{voiceId:"dupe-voice",speechifyVoiceId:"dupe-cloud"});
+    var c=m532();if(!c)return "fixture: the merge onto a sheeted survivor must land";
+    if(c.charSheet.voiceId!=="sheet-voice")return "the sheet's own pin was overwritten: "+JSON.stringify(c.charSheet.voiceId);
+    if(c.charSheet.speechifyVoiceId!=="dupe-cloud")return "the sheet had no pin for that slot, so the voice he was heard in must fill it: "+JSON.stringify(c.charSheet.speechifyVoiceId);
+    if(c.voiceId||c.speechifyVoiceId)return "nothing may land on a sheeted survivor's row (the sheet owns the pins; a row pin there is a stale copy): "+JSON.stringify([c.voiceId,c.speechifyVoiceId]);
+    w503();v532("Aldern Foxglove",{voiceId:"row-voice",inworldVoiceId:"row-inworld"});var d=v532("the hooded man",{});d.charSheet=sheet532("the hooded man",{voiceId:"companion-voice"});
+    c=m532();if(!c)return "fixture: the merge that adopts a sheet must land";
+    if(!c.charSheet||c.charSheet.voiceId!=="companion-voice")return "an adopted sheet keeps the voice it was heard in: "+JSON.stringify(c.charSheet&&c.charSheet.voiceId);
+    if(c.charSheet.inworldVoiceId!=="row-inworld")return "the adopted sheet had no pin for that slot, so the survivor's own row pin must fill it: "+JSON.stringify(c.charSheet.inworldVoiceId);
+    w503();s=v532("Aldern Foxglove",{});s.charSheet=sheet532("Aldern Foxglove",{voiceId:"sheet-voice"});d=v532("the hooded man",{});d.charSheet=sheet532("the hooded man",{voiceId:"other-sheet-voice",speechifyVoiceId:"other-sheet-cloud"});
+    c=m532();if(!c)return "fixture: the merge of two sheeted records must land";
+    return c.charSheet.voiceId==="sheet-voice"&&c.charSheet.speechifyVoiceId==="other-sheet-cloud"?true:"two sheets: the survivor's own pin wins and a slot it lacks is filled from the duplicate's sheet: "+JSON.stringify([c.charSheet.voiceId,c.charSheet.speechifyVoiceId]);
+  });
+
 }
