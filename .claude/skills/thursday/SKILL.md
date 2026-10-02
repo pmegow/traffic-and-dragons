@@ -131,6 +131,8 @@ one, the Village). Rules:
 The fall-through list when rungs 1–3 came up clean and budget remains. Re-read each row first (it
 may have closed or changed). Suggested order, smallest and most self-contained first:
 
+**Carried over from the 2026-10-02 run (first, before the list below; each row says what remains; delete an item here when its row closes):** branch `claude/532-538-voice-hero` (`#532`, `#539`, `#538`): built and reworked after a first independent review; ONE second review round and `node dev/run-sabotage-diff.js origin/master..HEAD` are owed before it is pushed (record: `audits/AUDIT_2026_10_02_532_538_reviews.md`) · `#543` the fallen-rejoin half (the library half needs a ruling) · `#546` · `#542` after `#538` lands · not smalls, and not to be started without the owner: `#534` (covers `#504`, `#530`, `#531`, `#544`), `#525`, `#545` (covers `#536`, `#540`, `#541`).
+
 `#420` dedupe the never-emit-MANA rule in the frozen STATE TAGS doc · `#421` lazy latch
 snapshots in `buildEngineNotes` · `#387` the clock block speaks the phase word · `#405` voice
 test-coverage residues · `#419` stt · `#403` cloud fallback routing and the Piper ceiling ·
