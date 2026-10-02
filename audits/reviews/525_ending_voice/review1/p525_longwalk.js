@@ -1,0 +1,15 @@
+require("./h.js");
+var fs = require("fs");
+var f = process.argv[2];
+var save = JSON.parse(fs.readFileSync(f, "utf8"));
+worldState = inflateWorldStateSnapshot(save.worldState); memory = save.memory || blankMemory();
+var c = worldState.character;
+console.log("hero " + c.name + " coreMemories " + (c.coreMemories || []).length + " fate " + J(c.fate));
+(c.coreMemories || []).slice(-6).forEach(function (m) { console.log("  hero: t" + m.turn + " " + m.kind + " who=" + m.who + " camp=" + J(m.camp) + " :: " + String(m.text).slice(0, 140)); });
+(worldState.npcs || []).forEach(function (n) { if (!n.charSheet) return; console.log(n.name + " party=" + !!n.partyMember + " resident=" + !!n.resident + " cm=" + (n.charSheet.coreMemories || []).length + " fate=" + String(J(n.charSheet.fate)).slice(0, 300)); (n.charSheet.coreMemories || []).slice(-3).forEach(function (m) { console.log("    t" + m.turn + " " + m.kind + " who=" + m.who + " :: " + String(m.text).slice(0, 120)); }); });
+var tr = worldState.transcript || [];
+var den = tr.filter(function (e) { return e && e.denouement; });
+console.log("transcript entries " + tr.length + ", denouement entries " + den.length);
+den.forEach(function (e) { console.log("  DEN keys " + Object.keys(e).join(",") + " :: " + String(e.clean || e.text || e.c || "").slice(0, 300) + " ... " + String(e.clean || e.text || e.c || "").slice(-300)); });
+console.log("chapters tail: " + J((memory.chapters || []).slice(-1)).slice(0, 400));
+console.log("ended " + J(worldState.ended) + " owed " + worldState.denouementOwed + " archive cm " + ((memory.archive && memory.archive.coreMemories) || []).length);

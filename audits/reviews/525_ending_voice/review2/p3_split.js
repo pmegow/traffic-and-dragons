@@ -1,0 +1,108 @@
+// Probe 3: denouementSplit shapes.
+require("./h.js");
+
+var P = "You walked out of the valley.\n\nThe mill still turns.";
+var cases = {
+  "sanity": P + "\n\nRECORD: Ammut learned to stay.",
+  "sanity migrate heal reached": null,
+  // --- legit prose that starts with the label
+  "last para 'Record: ...' no RECORD line": P + "\n\nRecord: nine winters, and you counted every one.",
+  "last para 'The record \u2014 such as it is \u2014 ...' no RECORD line": P + "\n\nThe record \u2014 such as it is \u2014 will say you died at the ford.",
+  "last para 'The record \u2014 ...' THEN a real RECORD line": P + "\n\nThe record \u2014 such as it is \u2014 will say you died at the ford.\n\nRECORD: Ammut died at the ford and was not sorry.",
+  "last para 'The record: nothing.' THEN real RECORD line": P + "\n\nThe record: nothing. The valley keeps none.\n\nRECORD: Ammut left no mark.",
+  "last para 'Record - a broken one' THEN RECORD": P + "\n\nRecord - a broken one, like the fiddle - still played in the tavern.\n\nRECORD: Ammut left.",
+  "prose para begins 'The record:' mid, more prose, RECORD": "The record: one hero, four deaths.\n\n" + P + "\n\nRECORD: Ammut left.",
+  // --- RECORD in the middle followed by prose
+  "RECORD mid then prose": P + "\n\nRECORD: Ammut learned to stay.\n\nAnd the mill turned on.",
+  "RECORD then THE END": P + "\n\nRECORD: Ammut learned to stay.\n\nTHE END",
+  "RECORD then *The End.*": P + "\n\nRECORD: Ammut learned to stay.\n\n*The End.*",
+  "RECORD then (word count)": P + "\n\nRECORD: Ammut learned to stay.\n\n(412 words)",
+  "RECORD then --- then note": P + "\n\nRECORD: Ammut learned to stay.\n\n---\nWord count: 412",
+  // --- three RECORD lines
+  "three RECORD lines": P + "\n\nRECORD: one.\nRECORD: two.\nRECORD: three.",
+  "RECORD, prose, RECORD": P + "\n\nRECORD: first.\n\nMore prose here.\n\nRECORD: second.",
+  // --- label alone
+  "label alone + 1 line": P + "\n\nRECORD:\nAmmut learned to stay.",
+  "label alone + 2 lines": P + "\n\nRECORD:\nAmmut learned to stay.\nHe never left again.",
+  "label alone + blank + line": P + "\n\nRECORD:\n\nAmmut learned to stay.",
+  "label alone + rule + line": P + "\n\nRECORD:\n---\nAmmut learned to stay.",
+  "label alone at end (cut off)": P + "\n\nRECORD:",
+  "label alone at end, 'The record:' above": P + "\n\nThe record:\n\nRECORD:",
+  "label alone + wrapped 2-line sentence": P + "\n\nRECORD:\nAmmut learned to stay,\nand never left again.",
+  // --- fences / markdown
+  "fenced record": P + "\n\n```\nRECORD: Ammut learned to stay.\n```",
+  "fenced text": "```text\n" + P + "\n\nRECORD: Ammut learned to stay.\n```",
+  "bold label": P + "\n\n**RECORD:** Ammut learned to stay.",
+  "bold all": P + "\n\n**RECORD: Ammut learned to stay.**",
+  "italic underscore": P + "\n\n_RECORD: Ammut learned to stay._",
+  "heading": P + "\n\n## RECORD\nAmmut learned to stay.",
+  "heading colon": P + "\n\n### RECORD:\nAmmut learned to stay.",
+  "blockquote": P + "\n\n> RECORD: Ammut learned to stay.",
+  "bullet": P + "\n\n- RECORD: Ammut learned to stay.",
+  "numbered": P + "\n\n1. RECORD: Ammut learned to stay.",
+  "angle": P + "\n\n<RECORD: Ammut learned to stay.>",
+  "bracket": P + "\n\n[RECORD: Ammut learned to stay.]",
+  "paren": P + "\n\n(RECORD: Ammut learned to stay.)",
+  "quote": P + "\n\n\"RECORD: Ammut learned to stay.\"",
+  "equals": P + "\n\nRECORD = Ammut learned to stay.",
+  "no colon": P + "\n\nRECORD Ammut learned to stay.",
+  "em dash unspaced": P + "\n\nRECORD\u2014Ammut learned to stay.",
+  "hyphen unspaced": P + "\n\nRECORD-Ammut learned to stay.",
+  "fullwidth colon": P + "\n\nRECORD\uFF1A Ammut learned to stay.",
+  "RECORD LINE:": P + "\n\nRECORD LINE: Ammut learned to stay.",
+  "Hero record:": P + "\n\nAmmut's RECORD: Ammut learned to stay.",
+  "FINAL RECORD:": P + "\n\nFINAL RECORD: Ammut learned to stay.",
+  "Record (hidden):": P + "\n\nRECORD (not shown): Ammut learned to stay.",
+  "RECORD on same line as prose": "You walked out. The mill still turns. RECORD: Ammut learned to stay.",
+  "RECORD after single newline": "You walked out.\nRECORD: Ammut learned to stay.",
+  // --- line endings
+  "CRLF": P.replace(/\n/g, "\r\n") + "\r\n\r\nRECORD: Ammut learned to stay.\r\n",
+  "CR only": P.replace(/\n/g, "\r") + "\r\rRECORD: Ammut learned to stay.",
+  "LS separator": P + "\u2028\u2028RECORD: Ammut learned to stay.",
+  "NEL": P + "\u0085RECORD: Ammut learned to stay.",
+  "sentence with LS inside": P + "\n\nRECORD: Ammut learned\u2028to stay.",
+  "label alone CRLF": P + "\r\n\r\nRECORD:\r\nAmmut learned to stay.\r\n",
+  // --- degenerate
+  "only whitespace": "  \n \t \n",
+  "only rules": "---\n***\n___",
+  "only record": "RECORD: Ammut learned to stay.",
+  "only label": "RECORD:",
+  "empty": "",
+  "null": null,
+  "undefined": undefined,
+  "number": 42,
+  "mid-line RECORD:": "You kept the RECORD: nine winters.\n\nThe mill still turns.",
+  "sentence containing record: lowercase mid": "You said it plainly, for the record: you were done.",
+  "prose then mid-line then RECORD": "You said, for the record: done.\n\nRECORD: Ammut was done.",
+  // --- non-Latin prose
+  "Arabic prose + RECORD": "\u0643\u0627\u0646 \u064a\u0627 \u0645\u0627 \u0643\u0627\u0646.\n\u062e\u0631\u062c\u062a \u0645\u0646 \u0627\u0644\u0648\u0627\u062f\u064a.\n\nRECORD: Ammut learned to stay.",
+  "Hebrew prose no record": "\u05d9\u05e6\u05d0\u05ea \u05de\u05d4\u05e2\u05de\u05e7.\n\n\u05d4\u05d8\u05d7\u05e0\u05d4 \u05e2\u05d5\u05d3 \u05de\u05e1\u05ea\u05d5\u05d1\u05d1\u05ea.",
+  "Hindi prose + RECORD": "\u0906\u092a \u0918\u093e\u091f\u0940 \u0938\u0947 \u092c\u093e\u0939\u0930 \u0906\u090f\u0964\n\nRECORD: Ammut learned to stay.",
+  "Thai prose": "\u0e04\u0e38\u0e13\u0e40\u0e14\u0e34\u0e19\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e2b\u0e38\u0e1a\u0e40\u0e02\u0e32",
+  "Japanese prose + RECORD": "\u3042\u306a\u305f\u306f\u8c37\u3092\u51fa\u305f\u3002\n\nRECORD: Ammut learned to stay.",
+  "Greek prose + RECORD": "\u0392\u03b3\u03ae\u03ba\u03b5\u03c2 \u03b1\u03c0\u03cc \u03c4\u03b7\u03bd \u03ba\u03bf\u03b9\u03bb\u03ac\u03b4\u03b1.\n\nRECORD: Ammut learned to stay.",
+  "last prose line is only an ellipsis": P + "\n\n\u2026\n\nRECORD: Ammut learned to stay.",
+  "prose ends with a line of only quotes/emoji": P + "\n\n\uD83D\uDD25\n\nRECORD: Ammut learned to stay.",
+  "last prose line a lone quote mark close": "\"You left,\" she said,\n\"\n\nRECORD: Ammut left.",
+  "prose's last line is a dialogue dash line '\u2014'": P + "\n\u2014\nRECORD: Ammut left.",
+  // --- sentence shapes
+  "record with quotes inside": P + "\n\nRECORD: \"Ammut learned to stay.\"",
+  "record ends with paren": P + "\n\nRECORD: Ammut learned to stay (at last).",
+  "record ends with quote word": P + "\n\nRECORD: Ammut learned the word \"stay\"",
+  "record ends with bracket": P + "\n\nRECORD: Ammut kept the oath [sic]",
+  "record with name O'Brien'": P + "\n\nRECORD: The valley kept O'Brien'",
+  "record begins with star name": P + "\n\nRECORD: *Ammut* learned to stay.",
+  "record all caps label lower": P + "\n\nrecord: ammut learned to stay.",
+  "label 'The Record:'": P + "\n\nThe Record: Ammut learned to stay.",
+  "double colon": P + "\n\nRECORD:: Ammut learned to stay.",
+  "record time 'RECORD: 3:15 ...'": P + "\n\nRECORD: At 3:15 Ammut left.",
+  "label alone then label-ish sentence": P + "\n\nRECORD:\nRecord-keepers will say Ammut stayed.",
+  "label alone above prose last line (heading style)": "RECORD:\n\nYou walked out of the valley.",
+  "label alone above last prose para, prose before": "You walked.\n\nThe record:\nYou stayed and that was all.",
+  "prose 'For the record:' label alone above last line": "You walked.\n\nRecord:\n\nThe mill still turns.",
+};
+Object.keys(cases).forEach(function (k) {
+  if (cases[k] === null && k.indexOf("sanity migrate") === 0) return;
+  var r = denouementSplit(cases[k]);
+  console.log("== " + k + "\n   in:     " + JSON.stringify(cases[k]) + "\n   prose:  " + JSON.stringify(r.prose) + "\n   record: " + JSON.stringify(r.record));
+});
