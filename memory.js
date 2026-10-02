@@ -154,11 +154,12 @@ function npcTitleQuestion(name,k,inCore){
 // contradicts; apart = the single candidate a contradiction ruled out. A ruled-out candidate still COUNTS: with two
 // people on file the name was ambiguous before #503 and stays ambiguous — the veto never steers a name onto the survivor.
 function npcConsolidation(name){
-  var out={key:null,apart:null,why:"",ask:""},inCore=npcCoreTokens(name);
+  var out={key:null,apart:null,why:"",ask:"",count:0},inCore=npcCoreTokens(name);
   if(!inCore.length)return out;
   var k,cnt=0,match=null,apart=null,why="";
   for(k in memory.npcs){
     if(k===name)continue;
+    if(memory.npcs[k].provisional)continue;/* #534: a provisional's key is bookkeeping ("Queen Underbough °t85"), not a second Underbough — counted, it made every other form of the family name ambiguous */
     var kCore=npcCoreTokens(k);
     if(!kCore.length)continue;
     var shortT=inCore.length<=kCore.length?inCore:kCore;
@@ -170,6 +171,7 @@ function npcConsolidation(name){
     var w=npcKeptApart(name,k,shortT,longT);
     if(w){apart=k;why=w;}else match=k;
   }
+  out.count=cnt;/* #534: 0 = nobody, 1 = one candidate (key or apart), 2 = more than one — a merge reads "names nobody" apart from "ambiguous" */
   if(cnt===1){out.key=match;out.apart=apart;out.why=why;if(match)out.ask=npcTitleQuestion(name,match,inCore);/* #504 */}
   return out;
 }
@@ -190,10 +192,49 @@ function npcTitleAsk(name){
   if(!memory.npcs||memory.npcs[name]||npcAliasOwner(name))return "";
   return npcConsolidation(name).ask;
 }
+// ── #534: a provisional's own key stays out of name resolution ──────────────────────────────
+// Found by the independent review of #504/#530. A provisional is "the person CALLED <name>, identity pending"; its key is
+// that name plus a ° suffix. Three rules keep the key from steering names:
+//   1. It is never a consolidation candidate (npcConsolidation skips provisionals).
+//   2. The CALLED name of an open question finds that provisional however it is written — case, a leading article, a
+//      parenthetical ("The Queen Underbough", "queen underbough (her mother)"). The exact alias alone forked each variant.
+//   3. After the answer the ° key still finds the person: the merge archive remembers where the provisional was folded. The
+//      GM read that key in the roster and writes it in the answering reply, after the merge tag (MERGE runs before NPC).
+//      A ° suffix nothing was ever filed under is noise: the name without it decides.
+function npcCalledKey(name){
+  var ws=npcNameWords(name),out=[],i;
+  for(i=0;i<ws.length;i++)if(ws[i]!=="the"&&ws[i]!=="a"&&ws[i]!=="an")out.push(ws[i]);
+  return out.join(" ");
+}
+function npcOpenQuestion(name){
+  var want=null,k,p;
+  for(k in memory.npcs){p=memory.npcs[k].provisional;if(!p||!p.called)continue;
+    if(want===null)want=npcCalledKey(name);
+    if(want&&npcCalledKey(p.called)===want)return k;}
+  return null;
+}
+function npcFoldedInto(name){
+  var a=(memory.archive&&memory.archive.identityMerges)||[],i;
+  for(i=a.length-1;i>=0;i--)if(a[i]&&a[i].domain==="npc"&&a[i].duplicate===name)return a[i].canonical;
+  return null;
+}
+// A ° name that is no live record. Never recurses into resolveNpcName: the hops are bounded here.
+function npcFormerKey(name){
+  var to=name,hops=0,nx;
+  while(hops++<4){nx=npcFoldedInto(to);if(!nx||nx===to)break;to=nx;if(memory.npcs[to])return to;}
+  if(to===name)to=name.slice(0,name.lastIndexOf(" °t"));
+  if(!to||to===name)return name;
+  if(memory.npcs[to])return to;
+  var al=npcAliasOwner(to);if(al)return al;
+  var o2=npcOpenQuestion(to);if(o2)return o2;
+  return npcConsolidation(to).key||to;
+}
 function resolveNpcName(name){
   if(!memory.npcs)return name;
   if(memory.npcs[name])return name;
   var own=npcAliasOwner(name);if(own)return own;
+  var open=npcOpenQuestion(name);if(open)return open;
+  if(typeof npcIsProvisional==="function"&&npcIsProvisional(name))return npcFormerKey(name);
   // Distinctive-token consolidation (bidirectional, honorific/parenthetical-tolerant). The GM freely
   // varies a name across turns — "Morwen" / "Morwen Zethran" / "Morwen (Ammut's wife)", or "Hemlock" /
   // "Sheriff Belor Hemlock" — which otherwise forks one person into several memory.npcs entries. If the
