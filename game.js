@@ -3013,6 +3013,10 @@ function validateBlueprint(bp){
   if(bp.format!=="tnd-blueprint-v1"&&bp.format!=="tnd-campaign-v1")return"Unrecognised blueprint format.";
   var editionError=BlueprintEdition.problem(BlueprintEdition.adopt({version:bp.version,releaseStatus:bp.releaseStatus}));
   if(editionError)return editionError;
+  /* #540: a blueprint's names become keys (a starting place named "constructor" made every prompt build throw from turn one).
+     Any text value that IS a reserved word, any value that carries __proto__, and any such key refuses the file, by word and place. */
+  var _bpRw=reservedWordIn(bp,"");
+  if(_bpRw)return "Blueprint uses the reserved word \""+_bpRw.word+"\" at "+_bpRw.path+". Rename it: the engine cannot file a name that is one of JavaScript's built-in object keys.";
   if(!bp.name)return"Blueprint has no name.";
   if(!bp.premise&&(!bp.acts||!bp.acts.length))return"Blueprint has no premise or acts.";
   if(bp.acts){

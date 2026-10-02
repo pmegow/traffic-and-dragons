@@ -105,19 +105,14 @@ function buildCtBare(){return new RegExp("\\[("+TAG_STRIP_BARE.join("|")+")\\]",
 // five fields, the last at most 100 characters (a longer tail is prose, and is left alone: it fails closed as before). END is
 // one id. A marker inside a sentence is left alone.
 var TAG_BARE_MARKER_RE=/^([ \t]*)(CANON_TXN_BEGIN:(?:[^|\[\]\r\n]+\|){4}[^|\[\]\r\n]{0,99}[^|\[\]\r\n \t]|CANON_TXN_END:[^\s|\[\]]+)(?=[ \t]*(?:\[|$))/gm;
-/* #536: the words a tag operand may never be: every own name of Object.prototype (constructor, toString, __proto__ and the
-   rest), read from the object itself. The engine files people, places and items in plain objects keyed by what the GM writes,
-   and such a key reads the object machinery instead of a record: [NPC:__proto__|dead|enemy] stamped a death on Object.prototype
-   and every NPC read as dead until reload; [LOCATION:constructor] made every later prompt build throw. */
-var TAG_RESERVED_WORDS=(function(){var o=Object.create(null),n=Object.getOwnPropertyNames(Object.prototype),i;for(i=0;i<n.length;i++)o[n[i]]=1;return o;})();
-/* The reserved word a tag payload carries, else "". Operands are the pieces between pipes and commas (the two separators the
-   handlers split names on), trimmed; a piece counts as written or lower-cased (item keys are lower-cased). __proto__ is refused
-   anywhere in the payload, in any case: it is never a word of the fiction, and it is the one that reaches every object. */
+/* #536: the reserved word a tag payload carries, else "". The words and the per-piece test are reservedKeyWord (helpers.js: the
+   own names of Object.prototype). The engine files people, places and items in plain objects keyed by what the GM writes, and such
+   a key reads the object machinery instead of a record: [NPC:__proto__|dead|enemy] stamped a death on Object.prototype and every
+   NPC read as dead until reload; [LOCATION:constructor] made every later prompt build throw. Operands are the pieces between pipes
+   and commas, the two separators the handlers split names on. */
 function tagReservedWord(payload){
-  var s=String(payload||""),p=s.match(/__proto__/i),parts,i,w;
-  if(p)return p[0];
-  parts=s.split(/[|,]/);
-  for(i=0;i<parts.length;i++){w=parts[i].trim();if(w&&(TAG_RESERVED_WORDS[w]||TAG_RESERVED_WORDS[w.toLowerCase()]))return w;}
+  var parts=String(payload||"").split(/[|,]/),i,w;
+  for(i=0;i<parts.length;i++){w=reservedKeyWord(parts[i]);if(w)return w;}
   return "";
 }
 /* #536: takes every tag with a reserved operand out of a reply BEFORE anything parses it, and reports what it took. A canon

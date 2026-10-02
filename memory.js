@@ -2298,6 +2298,26 @@ function canonContradictionScan(){
     }
   }
 }
+/* #540: a name the summary's extraction wrote is a key the same way a tag operand is (#536): npcUpdates with the name __proto__
+   wrote its fields on Object.prototype. Every entry of every LIST that carries a reserved word as one of its own text fields
+   (or is one, in a list of sentences) is dropped before validation and filing, and said on the console. A sentence that merely
+   uses such a word, a nested list and the prose tiers are not touched. Returns how many entries it dropped. */
+function summaryDropReserved(extracted){
+  var n=0,k,list,i,e,f,w;
+  if(!extracted||typeof extracted!=="object")return 0;
+  for(k in extracted){
+    list=extracted[k];if(!Array.isArray(list))continue;
+    for(i=list.length-1;i>=0;i--){
+      e=list[i];w="";
+      if(typeof e==="string")w=reservedKeyWord(e);
+      else if(e&&typeof e==="object"){for(f in e){if(typeof e[f]==="string"){w=reservedKeyWord(e[f]);if(w)break;}}}
+      if(!w)continue;
+      list.splice(i,1);n++;
+      if(typeof console!=="undefined")console.warn("[memory] #540: summary extraction "+k+" entry dropped, not filed: it carries the reserved word '"+w+"' (a built-in object key cannot name a person, a place or a thing)");
+    }
+  }
+  return n;
+}
 function applySummaryExtract(extracted,identityTable){
   /* #168R2 (entry-13 review): the extractor may return prose tiers as ARRAYS; _w6SummaryTexts validates only
      strings, so an array-valued chapterSummary skipped identity validation entirely and filed the raw t1644
@@ -2311,6 +2331,7 @@ function applySummaryExtract(extracted,identityTable){
     for(_snf=0;_snf<_snLists.length;_snf++){_snv=extracted[_snLists[_snf]];if(Array.isArray(_snv))for(_sni=0;_sni<_snv.length;_sni++)if(_snv[_sni]!=null&&typeof _snv[_sni]!=="string"){_snn=_snProse(_snv[_sni]);if(_snn!=null)_snv[_sni]=_snn;else{if(typeof console!=="undefined")console.warn("[memory] "+_snLists[_snf]+"["+_sni+"] had an unusable shape — dropped, not filed (#168R2)");_snv.splice(_sni,1);_sni--;}}}
     var _snFE=extracted.futureEvents;if(Array.isArray(_snFE))for(_sni=0;_sni<_snFE.length;_sni++)if(_snFE[_sni]&&typeof _snFE[_sni]==="object"){if(_snFE[_sni].what!=null&&typeof _snFE[_sni].what!=="string"){_snn=_snProse(_snFE[_sni].what);if(_snn!=null)_snFE[_sni].what=_snn;}if(_snFE[_sni].when!=null&&typeof _snFE[_sni].when!=="string"){_snn=_snProse(_snFE[_sni].when);if(_snn!=null)_snFE[_sni].when=_snn;}}
   }
+  summaryDropReserved(extracted);/* #540: before the preflight, so validation and filing see exactly what may be written */
   if(typeof validateSummaryExtract==="function")validateSummaryExtract(extracted,identityTable);/* #168 W2/W6: whole-extraction preflight before any tier can ratchet disputed identity */
   var i;
   var stats={superseded:0,supersededNames:[]};

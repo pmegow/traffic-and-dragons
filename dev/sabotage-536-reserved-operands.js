@@ -1,30 +1,32 @@
 // dev/sabotage-536-reserved-operands.js — proves the #536 guards are guarded. The engine files people, places and items in
 // plain objects keyed by what the GM writes, so an operand that is one of JavaScript's built-in object keys read the object
 // machinery instead of a record: [NPC:__proto__|dead|enemy] stamped a death every NPC then read, [LOCATION:constructor] made
-// every later prompt build throw. applyMuts now takes such a tag out of the reply before anything parses it. Each mutation
-// runs in a disposable clone.
+// every later prompt build throw. applyMuts now takes such a tag out of the reply before anything parses it. The word list and
+// the per-piece test live in helpers.js since #540 (every door shares them). Each mutation runs in a disposable clone.
 //   node dev/sabotage-536-reserved-operands.js
 var sabotage = require("./sabotage.js");
 var CMD = ["node", ["dev/run-tests.js", "#536"]];
 var code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 var REPRO = "#536 the repro", CENSUS = "#536 the census", LIST = "#536 a reserved word inside a comma list", CLAIM = "#536 a canon claim whose marker";
-prove("tag_table.js", [
+prove("helpers.js", [
   { label: "the reserved words are a hand list (a built-in key is missed)",
     find: 'n=Object.getOwnPropertyNames(Object.prototype),i;for(i=0;i<n.length;i++)o[n[i]]=1;return o;})();', replace: 'n=["constructor","__proto__"],i;for(i=0;i<n.length;i++)o[n[i]]=1;return o;})();',
     mustFail: CENSUS },
   { label: "__proto__ inside a sentence passes",
     find: '  if(p)return p[0];\n', replace: '',
     mustFail: LIST },
-  { label: "a comma list is read as one operand",
-    find: 'parts=s.split(/[|,]/);', replace: 'parts=s.split("|");',
-    mustFail: LIST },
   { label: "an operand with spaces around it passes",
-    find: 'w=parts[i].trim();if(w&&', replace: 'w=parts[i];if(w&&',
+    find: 'p=s.match(/__proto__/i),w=s.trim();', replace: 'p=s.match(/__proto__/i),w=s;',
     mustFail: LIST },
   { label: "a capitalised built-in key passes (item keys are lower-cased)",
-    find: 'if(w&&(TAG_RESERVED_WORDS[w]||TAG_RESERVED_WORDS[w.toLowerCase()]))return w;', replace: 'if(w&&TAG_RESERVED_WORDS[w])return w;',
-    mustFail: CENSUS },
+    find: 'return w&&(RESERVED_KEY_WORDS[w]||RESERVED_KEY_WORDS[w.toLowerCase()])?w:"";', replace: 'return w&&RESERVED_KEY_WORDS[w]?w:"";',
+    mustFail: CENSUS }
+]);
+prove("tag_table.js", [
+  { label: "a comma list is read as one operand",
+    find: 'var parts=String(payload||"").split(/[|,]/),i,w;', replace: 'var parts=String(payload||"").split("|"),i,w;',
+    mustFail: LIST },
   { label: "a claim under a reserved marker loses its markers only (its body runs as ordinary tags)",
     find: '    if(!w)return m;\n    out.refused.push({claim:true,', replace: '    return m;\n    out.refused.push({claim:true,',
     mustFail: CLAIM },

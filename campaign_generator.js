@@ -61,6 +61,8 @@ function skelDeepTimeRule(){
 // worldState write either way). validate throws; stamp mutates in place and returns the skel.
 function validateSkeletonStructure(skel){
   if(!skel||!skel.premise||!skel.acts||skel.acts.length!==3)throw new Error("Invalid skeleton structure");
+  var _skRw=reservedWordIn(skel,"");/* #540: the same names become the same keys */
+  if(_skRw)throw new Error("Skeleton uses the reserved word \""+_skRw.word+"\" at "+_skRw.path);
   var i;for(i=0;i<skel.acts.length;i++){if(!skel.acts[i].arcs||!skel.acts[i].arcs.length)throw new Error("Act "+(i+1)+" has no arcs");}
   return skel;
 }

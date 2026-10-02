@@ -29354,4 +29354,58 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return !r.poison.length&&refused536(r,"constructor")?true:"a reserved tag inside a claim's body is refused on its own: "+JSON.stringify([r.poison,r.muts]);
   });
 
+  section("#540 a reserved word never arrives as a name by another door");
+  function bp540(){return {format:"tnd-blueprint-v1",name:"The Collar",tone:"swords",premise:"A caravan, a debt, a road north.",acts:[{title:"Act 1",goal:"Reach the pass",arcs:[{title:"The Toll",objective:"Pay or fight"}]}],npcs:[{name:"Theron Wyndfall",role:"constructor of the old bridge",notes:"Gruff."}],locations:[{name:"The Crossroads",desc:"Four roads."}],creatures:[{name:"Road wolf"}],startingRegion:"The Reach",startingLocation:"The Crossroads"};}
+  t("#540 the repro: the summary's extraction names an NPC __proto__; nothing is written on the built-ins, that entry is dropped, and the rest of the extraction is filed",function(){
+    w536();
+    var ex={chapterSummary:"A day passes at the forge.",npcUpdates:[{name:"__proto__",knowledgeGained:"a fact",attitude:"wary"},{name:"Bram",knowledgeGained:"shod the grey mare",attitude:"warm"}],loreDiscovered:["constructor","The bridge is older than the town."]},threw="";
+    var q=quiet(function(){try{return applySummaryExtract(ex,null);}catch(e){threw=String(e&&e.message||e);return null;}}),p=poison536();
+    if(p.length)return "the extraction wrote on the built-in objects, so every record reads it: "+p.join(", ");
+    if(threw)return "the extraction threw: "+threw;
+    if((memory.npcs["Bram"].knowledge||[]).indexOf("shod the grey mare")<0)return "the ordinary entry beside the reserved one was not filed: "+JSON.stringify(memory.npcs["Bram"]);
+    if(JSON.stringify(memory.lore||[]).indexOf("older than the town")<0)return "the ordinary lore beside the reserved word was not filed: "+JSON.stringify(memory.lore);
+    if(JSON.stringify(memory.lore||[]).indexOf("constructor")>=0)return "a lore entry that is exactly a reserved word was filed";
+    return q.warns.some(function(w){return w.indexOf("#540")>=0&&w.indexOf("__proto__")>=0;})?true:"each dropped entry must be said on the console, with the word: "+JSON.stringify(q.warns);
+  });
+  t("#540 every list of the extraction, with every kind of reserved word: no write on a built-in, no throw, and the next prompt builds",function(){
+    var words=["constructor","__proto__","toString","Constructor"," valueOf "],wi,li,threw,p,ex;
+    var lists=[["npcUpdates",function(w){return {name:w,knowledgeGained:"a fact",attitude:"wary"};}],["npcDeaths",function(w){return {name:w,cause:"a fall",sourceTurn:70};}],["sameNpc",function(w){return {canonical:"Bram",duplicate:w};}],["sameNpc",function(w){return {canonical:w,duplicate:"Bram"};}],["supersededFacts",function(w){return {npc:w,outdated:"old",truth:"new"};}],["attire",function(w){return {name:w,wearing:"a grey cloak"};}],["motivationChanges",function(w){return {name:w,status:"fulfilled"};}],["futureEvents",function(w){return {what:w,when:"soon"};}],["resolvedEvents",function(w){return w;}],["decisionsMade",function(w){return w;}],["loreDiscovered",function(w){return w;}]];
+    for(wi=0;wi<words.length;wi++)for(li=0;li<lists.length;li++){
+      w536();ex={chapterSummary:"A day passes."};ex[lists[li][0]]=[lists[li][1](words[wi])];threw="";
+      quiet(function(){try{applySummaryExtract(ex,null);}catch(e){threw=String(e&&e.message||e);}});p=poison536();
+      if(p.length)return lists[li][0]+" with '"+words[wi]+"' wrote on a built-in: "+p.join(", ");
+      if(threw)return lists[li][0]+" with '"+words[wi]+"' threw: "+threw;
+      if(ex[lists[li][0]].length)return lists[li][0]+" with '"+words[wi]+"': the entry was not dropped";
+      try{buildSysPrompt();}catch(e2){poison536();return lists[li][0]+" with '"+words[wi]+"' left a state the next prompt cannot be built from: "+e2.message;}
+      poison536();
+    }
+    return true;
+  });
+  t("#540 the drop is exact: a sentence that uses the word, a nested list and an ordinary entry stay; __proto__ goes wherever it stands in a text field",function(){
+    var ex={npcUpdates:[{name:"Bram",knowledge:["constructor","knew the constructor of the bridge"],attitude:"warm"},{name:"Malrik the Constructor",knowledge:[],attitude:""},{name:"Old __proto__ Ned",knowledge:[],attitude:""}],decisionsMade:["Hired the constructor of the bridge.","toString"],chapterSummary:"constructor"};
+    var q=quiet(function(){return summaryDropReserved(ex);});
+    if(q.r!==2)return "exactly two entries carry a reserved word as a text field of their own: "+q.r;
+    if(ex.npcUpdates.length!==2||ex.npcUpdates[0].name!=="Bram"||ex.npcUpdates[0].knowledge.length!==2||ex.npcUpdates[1].name!=="Malrik the Constructor")return "an ordinary entry, a nested list or a name that only contains the word was touched: "+JSON.stringify(ex.npcUpdates);
+    if(ex.decisionsMade.length!==1||ex.decisionsMade[0]!=="Hired the constructor of the bridge.")return "a sentence that uses the word must stay and the bare word must go: "+JSON.stringify(ex.decisionsMade);
+    return ex.chapterSummary==="constructor"&&summaryDropReserved(null)===0&&summaryDropReserved("x")===0?true:"only lists are walked, and a missing extraction is nothing to do";
+  });
+  t("#540 a blueprint that uses a reserved word as a value or a key is refused by name and place; a role that merely contains the word is fine",function(){
+    var bp=bp540(),err=validateBlueprint(bp),cases,i,b;
+    if(err)return "fixture: the clean blueprint must validate (its NPC's role contains the word 'constructor' in a sentence): "+err;
+    cases=[[function(x){x.startingLocation="constructor";},"constructor","startingLocation"],[function(x){x.npcs[0].name="__proto__";},"__proto__","npcs[0].name"],[function(x){x.locations[0].name="toString";},"toString","locations[0].name"],[function(x){x.creatures[0].name="Constructor";},"Constructor","creatures[0].name"],[function(x){x.acts[0].arcs[0].title=" hasOwnProperty ";},"hasOwnProperty","acts[0].arcs[0].title"],[function(x){x.npcs[0].notes="He keeps a __proto__ in his pack.";},"__proto__","npcs[0].notes"]];
+    for(i=0;i<cases.length;i++){b=bp540();cases[i][0](b);err=validateBlueprint(b);if(!err||err.indexOf('"'+cases[i][1]+'"')<0||err.indexOf(cases[i][2])<0)return "a blueprint with '"+cases[i][1]+"' at "+cases[i][2]+" must be refused, naming both: "+JSON.stringify(err);}
+    b=JSON.parse('{"format":"tnd-blueprint-v1","name":"Keyed","premise":"Story","acts":[],"rules":{"constructor":"x"}}');err=validateBlueprint(b);
+    if(!err||err.indexOf('"constructor"')<0||err.indexOf("rules")<0)return "a reserved word as a KEY must be refused too: "+JSON.stringify(err);
+    b=JSON.parse('{"format":"tnd-blueprint-v1","name":"Keyed","premise":"Story","acts":[],"npcs":[{"name":"N","__proto__":{"dead":1}}]}');err=validateBlueprint(b);
+    return err&&err.indexOf("__proto__")>=0?true:"an own key named __proto__ (JSON makes it an ordinary key) must be refused: "+JSON.stringify(err);
+  });
+  t("#540 a generated skeleton that uses a reserved word is refused before anything is written",function(){
+    function sk(){return {premise:"Story",acts:[{title:"One",goal:"g",arcs:[{title:"a",objective:"o"}]},{title:"Two",goal:"g",arcs:[{title:"b",objective:"o"}]},{title:"Three",goal:"g",arcs:[{title:"c",objective:"o"}]}],npcs:[{name:"Theron"}]};}
+    var ok=sk(),bad=sk(),msg="";
+    if(validateSkeletonStructure(ok)!==ok)return "fixture: a clean skeleton passes";
+    bad.npcs[0].name="constructor";
+    try{validateSkeletonStructure(bad);}catch(e){msg=String(e&&e.message||e);}
+    return msg.indexOf('"constructor"')>=0&&msg.indexOf("npcs[0].name")>=0?true:"a skeleton with a reserved name must throw, naming the word and the place: "+JSON.stringify(msg);
+  });
+
 }

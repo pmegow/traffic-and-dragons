@@ -44,6 +44,30 @@ function wsNpcByName(name){
   var i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name)return worldState.npcs[i];}
   return null;
 }
+/* #536/#540: the words no NAME may be: every own name of Object.prototype (constructor, toString, __proto__ and the rest), read
+   from the object itself. The engine files people, places and items in plain objects keyed by names the GM, the summary or a
+   blueprint wrote, and such a key reads the object machinery instead of a record. Lives here so every door (the tag boundary,
+   the summary's extraction, the blueprint and skeleton validators) shares ONE list and ONE test. */
+var RESERVED_KEY_WORDS=(function(){var o=Object.create(null),n=Object.getOwnPropertyNames(Object.prototype),i;for(i=0;i<n.length;i++)o[n[i]]=1;return o;})();
+/* The reserved word a single piece of text IS (trimmed; as written or lower-cased, because item keys are lower-cased), or the
+   __proto__ it carries anywhere, in any case (never a word of the fiction, and the one that reaches every object). Else "". */
+function reservedKeyWord(v){
+  var s=String(v==null?"":v),p=s.match(/__proto__/i),w=s.trim();
+  if(p)return p[0];
+  return w&&(RESERVED_KEY_WORDS[w]||RESERVED_KEY_WORDS[w.toLowerCase()])?w:"";
+}
+/* #540: the first reserved word in a parsed JSON value: a text value that is one, or an own key that is one. Returns
+   {word, path} or null. */
+function reservedWordIn(v,path){
+  var i,k,ks,r;
+  if(typeof v==="string"){r=reservedKeyWord(v);return r?{word:r,path:path||"the value"}:null;}
+  if(Array.isArray(v)){for(i=0;i<v.length;i++){r=reservedWordIn(v[i],(path||"")+"["+i+"]");if(r)return r;}return null;}
+  if(v&&typeof v==="object"){
+    ks=Object.keys(v);
+    for(i=0;i<ks.length;i++){k=ks[i];if(reservedKeyWord(k))return {word:k.trim(),path:(path?path+".":"")+"(the key itself)"};r=reservedWordIn(v[k],(path?path+".":"")+k);if(r)return r;}
+  }
+  return null;
+}
 /* #532: the fields that pin how a character sounds: every slot of the ONE table (TTS.characterVoiceSlots, tts.js: the Piper
    backup and each cloud voice), the delivery direction and the speed. A sheetless speaker carries them on the roster row, a
    sheeted one on the sheet (the pin OWNER, as _speakerVoiceSubject reads it). Without tts.js only the Piper field is known. */
