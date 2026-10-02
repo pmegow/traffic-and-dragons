@@ -325,6 +325,16 @@ least-churn reading of what the folder already held.
 
 ---
 
+### The Opus probation (2026-09-29 to 2026-10-01)
+
+On 2026-09-29 the owner let Opus 5.5 or newer count as Fable-tier for drift-surface work, on probation. The reason: an Opus 5.5 audit (audits/AUDIT_2026_09_29_Opus5.5.html, 68 rows) had found root causes that earlier passes missed, so the risk seemed to sit in the review step and not in the tier label. The rules: the whole drift decree still applied; every drift-surface commit got a line in todo_checkWithFable.md ▸ "Opus probation log"; Fable skimmed the log on Thursdays; ten entries across two clean skims would end the probation; one silent defect would put the surface back to Fable-only.
+
+Opus sessions then built the audit's remediation, 40 logged commits in two days (v1.1018 to v1.1077). The first skim ran on Thursday 2026-10-01 (DOC/Review_fable_2026_10_01.html). Five reviewers read the week's diffs file by file and Fable reproduced each finding on master: 12 of the 46 logged entries were defects, most of them silent. A campaign's own moments read as an earlier adventure after an import (C8). A refused Village sale had already taken the items (A2). A gift at home destroyed a unit (A3). Counted item moves minted units (D3). The spoken undo destroyed an item and reported success (D1). A tag block ahead of a move was filed at the old place (A4). The scene did not turn over on a quiet arrival (B4). Plural coin words passed as gold (D5). A small sale bundled with a purchase was given away (D7). A want retired when its item was merely used (D4). A deferred memory line was lost on a failed summary (C7). A repaired map pointed arrivals at a twin (A1).
+
+Most of these were not wrong ideas. Each built the audit row's approved design and missed one interaction with something that already existed: the two places an id changes, the order of tags in a reply, a count riding a pair. The review before code did not ask "what else touches this?" widely enough, and the tests exercised the new path, not its neighbours. Six later Opus fixes, made one at a time with the full gate on the same day, read clean.
+
+The owner applied the revert rule the same evening. The lesson kept: a tier is trusted for the drift surface by its skims, not by its best audit.
+
 ## Version stamps of record
 
 Feature→version stamps that were dropped from CLAUDE.md prose in the distillation (everything
