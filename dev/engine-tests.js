@@ -29210,4 +29210,82 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return next.voiceDirection==="from the earlier sheet"&&next.voiceRate===1.2?true:"an earlier sheet's setting outranks the row's, and the row fills what the earlier sheet lacks: "+JSON.stringify([next.voiceDirection,next.voiceRate]);
   });
 
+  section("#538 the hero is never filed as an NPC");
+  function w538(){
+    w503();on503("Bram","he/him");memory.npcs["Bram"].aliases.push("the smith");wsNpcByName("Bram").aliases.push("the smith");memory.npcs["Bram"].events.push({turn:1,note:"met at the forge"});
+    var h=worldState.character.name;
+    worldState.npcs.push({name:"Frizwick",status:"warm",rel:"companion",partyMember:true,met:1,aliases:[],charSheet:{name:"Frizwick",hp:9,maxHp:9,inventory:[],conditions:[],relationships:[{entity:"Bram",bond:"Friend",bondTurn:1,dynamic:"",dynamicTurn:null},{entity:h,bond:"Sworn",bondTurn:1,dynamic:"",dynamicTurn:null}]}});
+    memory.npcs["Frizwick"]={attitude:"",knowledge:[],events:[],aliases:[],partyMember:true};
+    return h;
+  }
+  function bad538(){
+    var h=worldState.character.name,out=[],fz=wsNpcByName("Frizwick"),bonds;
+    Object.keys(memory.npcs).forEach(function(k){if(memoryNpcIsPlayer(k))out.push("a memory record named '"+k+"'");(memory.npcs[k].aliases||[]).forEach(function(a){if(memoryNpcIsPlayer(a))out.push("the hero's name is an alias of "+k);});});
+    worldState.npcs.forEach(function(n){if(memoryNpcIsPlayer(n.name))out.push("a roster row named '"+n.name+"'");(n.aliases||[]).forEach(function(a){if(memoryNpcIsPlayer(a))out.push("the hero's name is a roster alias of "+n.name);});});
+    if(resolveNpcName(h)!==h)out.push("the hero's name resolves to "+resolveNpcName(h));
+    bonds=fz?fz.charSheet.relationships.map(function(r){return r.entity+":"+r.bond;}).sort().join(","):"(Frizwick gone)";
+    if(bonds!=="Bram:Friend,"+h+":Sworn")out.push("a companion's bonds changed: "+bonds);
+    if(!memory.npcs["Bram"]||!wsNpcByName("Bram"))out.push("Bram is gone");
+    else if(memory.npcs["Bram"].events.length!==1||wsNpcByName("Bram").status!=="present")out.push("Bram's record changed: "+JSON.stringify([memory.npcs["Bram"].events,wsNpcByName("Bram").status]));
+    return out;
+  }
+  function run538(tag,word){
+    var q=quiet(function(){return applyMuts("It happens. "+tag);}),muts=(q.r&&q.r.muts)||[],bad=bad538(),h=worldState.character.name;
+    if(bad.length)return tag+" filed the hero: "+bad.join("; ");
+    if(!muts.some(function(m){return m.indexOf("⚠")===0&&m.indexOf(word)>=0&&m.indexOf("refused")>=0;}))return tag+" must be refused in the turn's summary (a line with '"+word+"' and 'refused'): "+JSON.stringify(muts);
+    if(!q.warns.some(function(w){return w.indexOf("refused")>=0;}))return tag+" must say so on the console too: "+JSON.stringify(q.warns);
+    return "";
+  }
+  function all538(list){var i,r;for(i=0;i<list.length;i++){w538();r=run538(list[i][0].split("HERO").join(worldState.character.name),list[i][1]);if(r)return r;}return true;}
+  t("#538 the repro: a note, a correction and a pronoun that name the hero file nothing, and each refusal is said",function(){
+    return all538([["[NPC_NOTE:HERO|owes Bram a favour]","NPC note"],["[NPC_SUPERSEDE:HERO|owes Bram a favour|the favour is repaid]","NPC correction"],["[NPC_PRONOUN:HERO|she/her]","NPC pronoun"],["[NPC_NOTE:player|owes Bram a favour]","NPC note"]]);
+  });
+  t("#538 the hero cannot join their own party",function(){
+    return all538([["[PARTY_MEMBER:HERO|true]","Party"],["[PARTY_MEMBER:HERO|false]","Party"]]);
+  });
+  t("#538 a merge that names the hero on either side is refused: Bram stays, and a companion's bond with the hero is not pointed at him",function(){
+    return all538([["[NPC_MERGE:HERO|Bram]","NPC merge"],["[NPC_MERGE:Bram|HERO]","NPC merge"],["[MERGE:npc|HERO|Bram]","NPC merge"],["[MERGE:npc|Bram|HERO]","NPC merge"]]);
+  });
+  t("#538 the hero's own name or epithet is never registered as someone else's alias",function(){
+    var r=all538([["[NPC_ALIAS:Bram|HERO]","NPC alias"],["[ALIAS:npc|Bram|HERO]","NPC alias"]]);if(r!==true)return r;
+    w538();worldState.character.aliases=["the Stranger"];r=run538("[NPC_ALIAS:Bram|the Stranger]","NPC alias");if(r)return r;
+    return (memory.npcs["Bram"].aliases||[]).indexOf("the Stranger")<0?true:"the hero's epithet became Bram's alias";
+  });
+  t("#538 the hero cannot take an epithet that is an NPC's name or alias, on either store and in any case: that NPC stays writable and its bonds stay its own",function(){
+    function w(){w538();memory.npcs["Old Maren"]={attitude:"",knowledge:[],events:[],aliases:["the midwife"]};worldState.npcs.push({name:"Dockhand",status:"present",rel:"neutral",met:1,partyMember:false,portrait:null,aliases:["Pike"]});}
+    var cases=[["[NPC_ALIAS:HERO|Bram]","Bram","Bram"],["[NPC_ALIAS:player|Old Maren]","Old Maren","Old Maren"],["[NPC_ALIAS:player|the midwife]","the midwife","Old Maren"],["[NPC_ALIAS:player|Dockhand]","Dockhand","Dockhand"],["[NPC_ALIAS:player|Pike]","Pike","Dockhand"],["[NPC_ALIAS:HERO|old maren]","old maren","Old Maren"]],i,r,q;
+    for(i=0;i<cases.length;i++){
+      w();r=run538(cases[i][0].split("HERO").join(worldState.character.name),"Epithet");if(r)return r;
+      if((worldState.character.aliases||[]).length)return cases[i][0]+": the hero took the epithet '"+cases[i][1]+"', which is "+cases[i][2]+"'s: "+JSON.stringify(worldState.character.aliases);
+    }
+    w();quiet(function(){applyMuts("x [NPC_ALIAS:"+worldState.character.name+"|Bram]");});q=quiet(function(){return applyMuts("He scowls. [NPC:Bram|angry|hostile]");});
+    if(wsNpcByName("Bram").status!=="angry")return "after the refused epithet Bram can no longer be written (his name reads as the player's): "+JSON.stringify(q.r.muts);
+    w538();q=quiet(function(){return applyMuts("They cheer. [NPC_ALIAS:"+worldState.character.name+"|the Stranger]");});
+    return (worldState.character.aliases||[]).indexOf("the Stranger")>=0&&q.r.muts.indexOf("Epithet: the Stranger")>=0?true:"an epithet nobody holds is still earned: "+JSON.stringify([worldState.character.aliases,q.r.muts]);
+  });
+  t("#538 a name that only resolves to the player is refused too, and so is the player's name where an old alias points it at someone else",function(){
+    var h=w538(),q;memory.npcs[h]={attitude:"",knowledge:[],events:[],aliases:["Tessa of the Fen"]};
+    q=quiet(function(){return applyMuts("x [NPC_NOTE:Tessa of the Fen|a fact]");});
+    if(memory.npcs[h].events.length||!q.r.muts.some(function(m){return m.indexOf("refused (player)")>=0;}))return "a name that resolves to an old hero-named record was filed on it: "+JSON.stringify([memory.npcs[h].events,q.r.muts]);
+    h=w538();memory.npcs["Bram"].aliases.push(h);
+    q=quiet(function(){return applyMuts("x [NPC_NOTE:"+h+"|a fact]");});
+    return memory.npcs["Bram"].events.length===1&&q.r.muts.some(function(m){return m.indexOf("refused (player)")>=0;})?true:"the player's name, pointed at Bram by an old alias, filed the note on Bram: "+JSON.stringify([memory.npcs["Bram"].events,q.r.muts]);
+  });
+  t("#538 only the hero's exact name is the hero: a relative who shares the surname is an ordinary NPC, and a note is still filed for anyone else",function(){
+    w538();worldState.character.name="Silas Morne";wsNpcByName("Frizwick").charSheet.relationships[1].entity="Silas Morne";
+    var q=quiet(function(){return applyMuts("His uncle arrives. [NPC:Aldus Morne|gruff|ally] [NPC_NOTE:Aldus Morne|raised Silas after the fire] [NPC_PRONOUN:Aldus Morne|he/him] [NPC_NOTE:Bram|shod the uncle's horse]");});
+    var a=memory.npcs["Aldus Morne"],row=wsNpcByName("Aldus Morne");
+    if(!a||!row)return "the uncle was not filed: "+JSON.stringify(q.r.muts);
+    if(!a.events.some(function(e){return e.note==="raised Silas after the fire";})||row.pronouns!=="he/him")return "the uncle's note or pronouns were refused: "+JSON.stringify([a.events,row.pronouns,q.r.muts]);
+    if(q.r.muts.some(function(m){return m.indexOf("refused (player)")>=0;}))return "a relative was read as the hero: "+JSON.stringify(q.r.muts);
+    return memory.npcs["Bram"].events.length===2?true:"an ordinary note was not filed: "+JSON.stringify(memory.npcs["Bram"].events);
+  });
+  t("#538 the note writer itself refuses the hero, whoever calls it",function(){
+    var h=w538(),q=quiet(function(){return fileNpcEvent(h,"a fact",5);});
+    if(memory.npcs[h])return "fileNpcEvent filed a record under the hero's name";
+    if(q.r!==false||!q.warns.length)return "the refusal must be reported to the caller and the console: "+JSON.stringify([q.r,q.warns]);
+    fileNpcEvent("Bram","hammered the hinge",5);
+    return memory.npcs["Bram"].events.length===2?true:"an ordinary note must still be filed";
+  });
+
 }

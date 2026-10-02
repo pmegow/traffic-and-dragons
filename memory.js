@@ -296,7 +296,7 @@ function getNameSuggestions(count,peek){
   if(!peek)memory.nameIdx=idx;
   return result;
 }
-function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8){var _evD=memory.npcs[name].events.splice(0,memory.npcs[name].events.length-8),_evi;for(_evi=0;_evi<_evD.length;_evi++)memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn});}/* multi-shrink like the old slice(-8) so an NPC_MERGE overfill converges (audit E50); evicted events archive, never the void (#144A) */}
+function fileNpcEvent(name,note,turn){if(memoryNpcNamesPlayer(name)){/* #538: the one writer of notes refuses the hero, whoever calls it */if(typeof console!=="undefined")console.warn("[memory] a note for the player identity '"+name+"' refused: player canon never enters memory.npcs (#538)");return false;}name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8){var _evD=memory.npcs[name].events.splice(0,memory.npcs[name].events.length-8),_evi;for(_evi=0;_evi<_evD.length;_evi++)memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn});}/* multi-shrink like the old slice(-8) so an NPC_MERGE overfill converges (audit E50); evicted events archive, never the void (#144A) */}
 // #269① (f37): THE one knowledge-filing path — the three exact-indexOf sites (summary extract,
 // summary supersede, the NPC_SUPERSEDE tag) each deduped byte-exact only, so the extractor's
 // fresh-worded re-statements accumulated as paraphrase twins and every cap-12 admission evicted
@@ -1268,6 +1268,13 @@ function _ragDjb2(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeA
 // alias count + djb2 over the joined names catch adds, deletes, merges, renames, and alias
 // registrations, including mid-response ones. Shared by the ragKnownNames memo and the
 // ragRetrieve result memo (whose scoring consumes ragKnownNames' output).
+/* #538: a name a TAG wrote is the player's when it is the player's as written, or when it resolves to the player (an alias on
+   an old hero-named record). The first half alone would file a note on such a record; the second alone would let the hero's
+   name through wherever it had become someone's alias. */
+function memoryNpcNamesPlayer(name){
+  var nm=String(name||"").trim();
+  return memoryNpcIsPlayer(nm)||memoryNpcIsPlayer(resolveNpcName(nm));
+}
 function memoryNpcIsPlayer(name){
   var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||null;
   var low=String(name||"").replace(/^\s+|\s+$/g,"").toLowerCase(),i;
