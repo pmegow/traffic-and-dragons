@@ -28,6 +28,9 @@
   dd{margin:3px 0 0;color:#4a443b;}
   dd .use{display:block;margin-top:5px;color:var(--dim);font-size:13px;}
   dd .use b{color:var(--code);font-weight:600;}
+  dd ul.opts{margin:6px 0 2px;padding-left:20px;}
+  dd ul.opts li{margin:3px 0;}
+  dd ul.opts code{background:#f0e9db;color:var(--code);padding:1px 5px;border-radius:4px;font-size:13px;}
   footer{margin-top:52px;padding-top:16px;border-top:1px solid var(--line);color:var(--dim);font-size:12px;}
 </style>
 </head>
@@ -207,16 +210,40 @@
 <h2 id="skills">Skills</h2>
 <p style="color:var(--dim);font-size:13.5px;margin:0 0 10px;max-width:62ch;">Rituals we kept re-explaining from scratch each session, written down once so Claude runs them the same way every time. Each lives in <code>.claude/skills/&lt;name&gt;/SKILL.md</code>.</p>
 <dl>
-  <div class="term"><dt><code>/bugs</code></dt><dd>Triage for crash reports the game emailed itself — pull new ones, investigate a chosen one, then fix it or set it aside.
-    <span class="use"><b>Use it when:</b> reports have piled up and you want them filed, explained, or fixed. <b>Say:</b> <code>/bugs sync</code>, then <code>/bugs investigate B7</code>, then <code>/bugs act B7</code>; <code>/bugs ignore B7</code> archives one that needs nothing.</span></dd></div>
-  <div class="term"><dt><code>/fable-review</code></dt><dd>A top-model review that sends helper agents to gather evidence in parallel, then judges it, fixes what it finds test-first, and writes receipts.
-    <span class="use"><b>Use it when:</b> work in the Fable-review queue, or any change to the drift surface, needs a proper review. <b>Say:</b> <code>/fable-review 12</code> (a queue entry) or <code>/fable-review the merge gate</code>.</span></dd></div>
+  <div class="term"><dt><code>/bugs</code></dt><dd>Triage for crash reports the game emailed itself.
+    <ul class="opts">
+      <li><code>sync</code>: pulls the latest bug reports from the web and files each as a row (B1, B2, …).</li>
+      <li><code>investigate B87</code>: diagnoses what causes bug B87. Read-only, it never edits code.</li>
+      <li><code>act B87</code>: builds the fix for bug B87, once the investigation has found the cause.</li>
+      <li><code>ignore B87</code>: archives bug B87 as needing nothing.</li>
+    </ul>
+    <span class="use"><b>Use it when:</b> reports have piled up and you want them filed, explained, or fixed.</span></dd></div>
+  <div class="term"><dt><code>/fable-review</code></dt><dd>A top-model review: helper agents gather evidence in parallel, then Fable judges it, fixes what it finds test-first, and writes receipts.
+    <ul class="opts">
+      <li><code>12</code>: reviews entry 12 of the Fable-review queue (<code>todo_checkWithFable.md</code>).</li>
+      <li><code>the merge gate</code>: reviews any surface you describe in words.</li>
+    </ul>
+    <span class="use"><b>Use it when:</b> work in the queue, or any change to the drift surface, needs a proper review.</span></dd></div>
   <div class="term"><dt><code>/field-finding</code></dt><dd>Turns "the GM did something wrong in my game" into a proven cause and a backlog row. Never edits code.
-    <span class="use"><b>Use it when:</b> you saw it happen while playing, and there's no crash report — just your eyes on a turn. <b>Say:</b> <code>/field-finding my healing potion vanished from the pack around t612</code>. A turn number makes it far stronger.</span></dd></div>
-  <div class="term"><dt><code>/playtest</code></dt><dd>Auto-plays real turns against a throwaway hero, then judges the corpus for broken rules, missing state tags, and prose drift.
-    <span class="use"><b>Use it when:</b> a risky change needs proof it survives real play. Costs real API money — it asks first past ~25 turns. <b>Say:</b> <code>/playtest run 20</code>, then <code>/playtest audit</code>; <code>/playtest recover</code> rescues a run whose window you closed.</span></dd></div>
-  <div class="term"><dt><code>/thursday</code></dt><dd>Spends leftover weekly Fable budget on review work that needs no decisions from you, in a fixed order, writing a receipt after each step.
-    <span class="use"><b>Use it when:</b> Fable budget is left before the Thursday reset. Steps: review the week's commits, read the week's play, diff the prompt, then small Fable fixes. <b>Say:</b> <code>/thursday</code>.</span></dd></div>
+    <ul class="opts">
+      <li><code>my healing potion vanished around t612</code>: what you saw, in your own words. A turn number makes it far stronger.</li>
+    </ul>
+    <span class="use"><b>Use it when:</b> you saw it happen while playing and there's no crash report, just your eyes on a turn.</span></dd></div>
+  <div class="term"><dt><code>/playtest</code></dt><dd>Auto-plays real turns against a throwaway hero, then judges them for broken rules, missing state tags and prose drift. Costs real API money.
+    <ul class="opts">
+      <li><code>run 20</code>: plays 20 real GM turns. It asks first past about 25.</li>
+      <li><code>audit</code>: judges the turns just played and writes the audit file.</li>
+      <li><code>recover</code>: rescues a run whose browser window you closed.</li>
+    </ul>
+    <span class="use"><b>Use it when:</b> a risky change needs proof it survives real play.</span></dd></div>
+  <div class="term"><dt><code>/thursday</code></dt><dd>Spends leftover weekly Fable budget on review work that needs no decisions from you, writing a receipt after each step. No options; it runs four steps in order:
+    <ul class="opts">
+      <li>Reviews every commit since the last run.</li>
+      <li>Reads the week's play in your saves, looking for drift nobody reported.</li>
+      <li>Compares the prompt your saves get today with last Thursday's.</li>
+      <li>Fixes small Fable-tier items from its list.</li>
+    </ul>
+    <span class="use"><b>Use it when:</b> Fable budget is left before the Thursday reset.</span></dd></div>
 </dl>
 
 <footer>
