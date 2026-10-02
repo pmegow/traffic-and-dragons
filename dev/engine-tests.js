@@ -28996,4 +28996,79 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (worldState.sceneRefs.sealed||[]).some(function(fr){return fr.node===hall.node;})?true:"the Hall's frame (with its actor) must be sealed, not dropped";
   });
 
+
+  section("#525 the ending is written to you, and its record names the hero");
+  function w525(){makeWorld();var c=worldState.character;c.name="Ammut";c.cls="Rogue";c.level=19;c.coreMemories=[];worldState.campName="The Princess Is Not In Danger";worldState.turn=89;
+    worldState.npcs.push({name:"Daeris",status:"steady",rel:"wife",partyMember:true,charSheet:{name:"Daeris",cls:"Cleric",level:18,coreMemories:[]}});
+    memory.chapters=[];worldState.transcript=[];delete worldState.ended;worldState.spineComplete={turn:88};return c;}
+  function ending525(cs){return (cs.coreMemories||[]).filter(function(m){return m.kind==="ending";}).map(function(m){return m.text;});}
+  t("#525 both ending prompts ask for the second person, leave game words and modern idiom to the campaign's VOICE, and ask for a RECORD line",function(){
+    var both=[DENOUEMENT_SYS,DENOUEMENT_SYS_TOLD],i;
+    for(i=0;i<both.length;i++){var s=both[i];
+      if(!/second person/i.test(s)||!/["“']you["”']/i.test(s))return "prompt "+i+" does not ask for the second person: "+s.slice(0,200);
+      if(!/only (?:if|when|where) the VOICE/i.test(s))return "prompt "+i+" does not leave game words and idiom to the VOICE";
+      if(!/RECORD: /.test(s)||!/third person/i.test(s)||!/by name/i.test(s))return "prompt "+i+" does not ask for the third-person RECORD line naming the hero";
+      if(!/what the tale changed in the hero/.test(s))return "prompt "+i+" lost the closing paragraph";}
+    w525();worldState.proseAuthor="dinniman";
+    var p=buildDenouementPrompt();
+    return /VOICE: Matt Dinniman/.test(p)&&/level 19/.test(p)?true:"the voice and the hero's level still reach the prompt (a game-native voice may use them): "+p.slice(0,200);
+  });
+  t("#525 denouementSplit takes the RECORD line out of the prose: plain, bold, a dash, trailing blank lines; a sentence that merely says 'record:' is prose",function(){
+    var a=denouementSplit("You walk out.\n\nYou learned to stay.\nRECORD: Ammut learned to stay when leaving was easier.\n\n");
+    if(a.prose!=="You walk out.\n\nYou learned to stay."||a.record!=="Ammut learned to stay when leaving was easier.")return "plain: "+JSON.stringify(a);
+    a=denouementSplit("You walk out.\n\n**RECORD:** Ammut learned to stay.");
+    if(a.record!=="Ammut learned to stay."||/RECORD/.test(a.prose))return "bold: "+JSON.stringify(a);
+    a=denouementSplit("You walk out.\nRecord — Ammut learned to stay.");
+    if(a.record!=="Ammut learned to stay.")return "dash: "+JSON.stringify(a);
+    a=denouementSplit("You broke the record: nobody had crossed the fen alive.\n\nYou walk out.");
+    if(a.record!==""||a.prose.indexOf("You broke the record: nobody")!==0)return "a sentence is not the line: "+JSON.stringify(a);
+    a=denouementSplit("You walk out.\n\nYou broke the record: nobody had crossed the fen alive.");
+    if(a.record!==""||!/nobody had crossed the fen alive\.$/.test(a.prose))return "a closing sentence that says 'record:' is prose: "+JSON.stringify(a);
+    a=denouementSplit("You walk out.");
+    return a.record===""&&a.prose==="You walk out."?true:"no line: "+JSON.stringify(a);
+  });
+  t("#525 the repro: the hero's defining moment is the third-person RECORD sentence, on the hero and on every companion; the story, the chapter and the screen never show the line",function(){
+    var c=w525(),d=wsNpcByName("Daeris").charSheet;
+    var shown=quiet(function(){return fileDenouement("You walk out of the palace and the rain feels like a joke at your expense.\n\nYou learned to stay.\nRECORD: Ammut learned to stay when leaving was easier.");}).r;
+    if(typeof shown!=="string"||/RECORD/.test(shown)||shown.indexOf("You learned to stay.")<0)return "fileDenouement returns the prose the screen shows: "+JSON.stringify(shown);
+    var e=ending525(c);
+    if(e.length!==1||e[0]!=="Ammut learned to stay when leaving was easier.")return "the hero's moment is the record sentence: "+JSON.stringify(e);
+    if(JSON.stringify(ending525(d))!==JSON.stringify(e))return "a companion carries the same third-person sentence, never 'You…' as her own memory: "+JSON.stringify(ending525(d));
+    var tr=worldState.transcript[worldState.transcript.length-1],tx=JSON.stringify(tr);
+    if(/RECORD/.test(tx))return "the transcript holds the RECORD line: "+tx.slice(0,200);
+    if(/RECORD/.test(memory.chapters[memory.chapters.length-1].summary))return "the chapter holds the RECORD line";
+    return c.fate&&c.fate.line==="Ammut learned to stay when leaving was easier."?true:"a second-person ending never names the hero, so his fate line is the record: "+JSON.stringify(c.fate);
+  });
+  t("#525 no RECORD line: the moment is never a bare 'You…' or 'I…' — it is filed under the hero's name, cut at a sentence, and the miss is said",function(){
+    var c=w525(),d=wsNpcByName("Daeris").charSheet;
+    var q=quiet(function(){return fileDenouement("You walk out.\n\nYou learned to stay. It cost you the road.");});
+    var e=ending525(c);
+    if(e.length!==1||e[0]!=="Ammut's ending: You learned to stay. It cost you the road.")return "named fallback: "+JSON.stringify(e);
+    if(ending525(d)[0]!==e[0])return "the companion's copy is named too";
+    if(!q.warns.some(function(w){return /RECORD/.test(w);}))return "the missing line is said on the console: "+JSON.stringify(q.warns).slice(0,200);
+    c=w525();quiet(function(){fileDenouement("You walk out.\nRECORD: The hero learned to stay.");});
+    if(ending525(c)[0]!=="Ammut's ending: The hero learned to stay.")return "a record that does not name the hero is filed under the name: "+JSON.stringify(ending525(c));
+    var long="",i;for(i=0;i<30;i++)long+="You kept walking past the well. ";
+    c=w525();quiet(function(){fileDenouement("You walk out.\n\n"+long.trim());});
+    var m=ending525(c)[0];if(m.length>245||!/[.!?\u2026]$/.test(m))return "a long closing is cut at a sentence, never mid-word: ("+m.length+") "+m.slice(-40);
+    c=w525();quiet(function(){fileDenouement("You walk out.\nRECORD: Ammut "+long.trim());});
+    m=ending525(c)[0];return m.length<=241&&/[.!?\u2026]$/.test(m)?true:"a long record is cut at a sentence too: ("+m.length+") "+m.slice(-40);
+  });
+  t("#525 the heal: an old ending filed in the hero's own person is put under the hero's name on every sheet, once; a moment that names the hero and every other kind are untouched",function(){
+    var c=w525(),d=wsNpcByName("Daeris").charSheet,old="I spent nineteen levels pulling the pin on every grenade in the realm.";
+    c.coreMemories=[{text:old,turn:89,kind:"ending",who:"Ammut",camp:"The Princess Is Not In Danger"},{text:"The bridge was held against the tide.",turn:40,kind:"quest",who:"Ammut"},{text:"Ammut learned that home was a thing you could choose.",turn:60,kind:"ending",who:"Ammut"}];
+    d.coreMemories=[{text:old,turn:89,kind:"ending",who:"Ammut",camp:"The Princess Is Not In Danger"}];
+    var n=healEndingMoments(worldState);
+    if(n!==2)return "two records healed, got "+n;
+    if(c.coreMemories[0].text!=="Ammut's ending: "+old||d.coreMemories[0].text!=="Ammut's ending: "+old)return "the first-person line is named: "+c.coreMemories[0].text;
+    if(c.coreMemories[1].text!=="The bridge was held against the tide."||c.coreMemories[2].text!=="Ammut learned that home was a thing you could choose.")return "another kind, or a moment that names him, was rewritten";
+    return healEndingMoments(worldState)===0&&c.coreMemories[0].text==="Ammut's ending: "+old?true:"a second heal changed it again";
+  });
+  t("#525 the load path runs the heal: migrateWorldState puts an old first-person ending under the hero's name",function(){
+    var c=w525(),old="I spent nineteen levels pulling the pin on every grenade in the realm.";
+    c.coreMemories=[{text:old,turn:89,kind:"ending",who:"Ammut"}];
+    quiet(function(){migrateWorldState();});
+    return c.coreMemories[0].text==="Ammut's ending: "+old?true:"the load path left it: "+c.coreMemories[0].text;
+  });
+
 }

@@ -631,6 +631,9 @@ function migrateWorldState(){
         if(_fdc){_mig=true;if(typeof console!=="undefined")console.warn("[migrate] #50d: folded "+_fdc+" duplicate inventory entr"+(_fdc===1?"y":"ies")+" on "+_fdn.name);}
       }}
   }
+  /* #525: an ending filed before the RECORD line carried the prose's own person ("I spent nineteen levels…") onto every sheet of
+     the party; put it under the hero's name, once (healEndingMoments is idempotent). */
+  if(typeof healEndingMoments==="function"){var _hem=healEndingMoments(worldState);if(_hem){_mig=true;if(typeof console!=="undefined")console.info("[migrate] #525: "+_hem+" ending moment"+(_hem===1?"":"s")+" filed under the hero's name");}}
   // B3 (v1.361): NPC death became a first-class flag — stamp it from legacy death statuses so old
   // saves' dead NPCs join the DECEASED canon (they were roster-hidden by a status regex before).
   // dead=true means "died before the flag existed" (turn unknown). Statuses the new detection

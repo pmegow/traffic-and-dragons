@@ -2039,6 +2039,34 @@ function goldRewardIn(text){
    and a paragraph break counts (the old cutter knew only ". " and sliced mid-sentence at 280) — when that end is past 20
    characters (a real sentence, not a bare "Hi."), else at a word boundary with an ellipsis. Used where a first encounter
    is filed (R.feGet) and where one is shown (memoryNpcDetail, the companion-sheet prompt). Pure. */
+/* #525: the ending's RECORD line. The ending is prose written to "you"; its last line, "RECORD: <one third-person sentence naming the
+   hero>", is the defining moment the party carries. denouementSplit takes that line out of the prose (only the LAST non-empty line
+   counts; markdown and a dash for the colon are tolerated; a sentence that merely says "record:" is prose). */
+function denouementSplit(text){
+  var L=String(text==null?"":text).split("\n"),i,m=null;
+  for(i=L.length-1;i>=0;i--){if(!L[i].trim())continue;m=L[i].match(/^[\s*_`>#]*record[\s*_`]*[:\u2014\u2013-][\s*_`]*(.+?)[\s*_`]*$/i);break;}
+  if(!m)return {prose:L.join("\n").trim(),record:""};
+  L.splice(i,1);
+  return {prose:L.join("\n").trim(),record:m[1].trim()};
+}
+/* An ending moment is read on the hero's sheet AND on every companion's, in later campaigns too. A text that never names the hero
+   ("You learned to stay.", "I spent nineteen levels…") is put under the hero's name, so nobody carries it as their own memory. */
+function endingMomentText(who,text){
+  var t=String(text==null?"":text).trim(),w=String(who||"").trim();if(!t||!w)return t;
+  var first=w.split(/\s+/)[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  if(new RegExp("\\b"+first+"\\b").test(t))return t;
+  return w+"'s ending: "+t;
+}
+/* The heal for endings filed before #525 (The Princess filed the hero's first-person closing on four sheets). Idempotent; returns the count. */
+function healEndingMoments(ws){
+  var n=0;if(!ws)return 0;
+  var sheets=[ws.character],i;for(i=0;i<(ws.npcs||[]).length;i++)if(ws.npcs[i]&&ws.npcs[i].charSheet)sheets.push(ws.npcs[i].charSheet);
+  sheets.forEach(function(cs){if(!cs)return;(cs.coreMemories||[]).forEach(function(m){
+    if(!m||m.kind!=="ending"||!m.who||typeof m.text!=="string")return;
+    var t=endingMomentText(m.who,m.text);if(t!==m.text){m.text=t;n++;}
+  });});
+  return n;
+}
 function snippetAtSentence(text,max){
   var s=String(text==null?"":text).trim();if(max&&s.length>max)s=s.slice(0,max);
   if(!s||/[.!?]["'\u201d\u2019)\]]*$/.test(s))return s;

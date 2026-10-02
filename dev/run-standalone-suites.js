@@ -20,6 +20,7 @@ var SUITES = [
   "dev/tests-accent-layer.js",
   "dev/tests-502-ambience-insecure-page.js",
   "dev/tests-516-deferred-queue.js",
+  "dev/tests-525-ending-screen.js",
   "dev/tests-l7-ambient.js",
   "dev/tests-l7-transitions.js",
   "dev/tests-23-onboarding.js",
