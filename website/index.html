@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="website-version" content="1.0.0">
+<title>Traffic &amp; Dragons — Add a little fantasy to your gridlock</title>
+<meta name="description" content="Add a little fantasy to your gridlock. Traffic and Dragons is a browser-based sword and sorcery adventure.">
+<meta name="theme-color" content="#eaddb9">
+<meta property="og:title" content="Traffic &amp; Dragons">
+<meta property="og:description" content="Add a little fantasy to your gridlock">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://trafficanddragons.com/">
+<meta property="og:image" content="https://trafficanddragons.com/art/dragon-on-beetle.webp">
+<link rel="icon" href="icon.svg?v=1.0.0" type="image/svg+xml">
+<style>
+html,body { margin:0; background:#eaddb9; }
+
+#td-module { --module-paper:#eaddb9; --module-ink:#302a20; --module-red:#883c2d; --module-rule:#766548; color:var(--module-ink); background:var(--module-paper); font-family:Georgia,'Times New Roman',serif; padding:22px; color-scheme:light; }
+#td-module * { box-sizing:border-box; }
+#td-module .module-frame { position:relative; border:1px solid var(--module-rule); padding:0 31px 20px; background:radial-gradient(ellipse at 50% 30%,#fff7de66,transparent 78%); }
+#td-module .module-frame:before { content:''; position:absolute; inset:5px; border:1px solid #76654855; pointer-events:none; }
+#td-module .module-nav { display:flex; justify-content:space-between; align-items:center; gap:20px; border-bottom:1px solid var(--module-rule); padding:13px 0 11px; }
+#td-module .module-kicker { margin:0; font:11px/1.5 Arial,sans-serif; letter-spacing:.15em; text-transform:uppercase; }
+#td-module a { font-family:Arial,sans-serif; }
+#td-module .module-link { border:0; background:transparent; color:var(--module-ink); font-size:12px; padding:10px 4px; text-decoration:underline; text-underline-offset:4px; white-space:nowrap; }
+#td-module .module-main { max-width:660px; margin:0 auto; text-align:center; padding-top:22px; }
+#td-module .module-title { color:var(--module-red); font-family:Georgia,'Times New Roman',serif; font-size:clamp(38px,7.1vw,76px); font-weight:700; letter-spacing:-.055em; line-height:.89; text-transform:uppercase; margin:0; text-shadow:1px 1px 0 #f8edcf; }
+#td-module .module-title span { display:block; }
+#td-module .module-title .module-title-top { font-size:.76em; letter-spacing:.012em; line-height:1.15; }
+#td-module .module-tagline { margin:21px 0 23px; font-size:23px; line-height:1.35; font-style:italic; text-wrap:balance; }
+#td-module .module-picture-frame { border:1px solid var(--module-ink); padding:5px; max-width:590px; margin:0 auto; position:relative; }
+#td-module .module-art { position:relative; width:100%; aspect-ratio:798/596; overflow:hidden; background:#656c55; }
+#td-module .module-art img { display:block; width:100%; height:auto; }
+#td-module .module-actions { padding:23px 0 3px; }
+#td-module .module-play { background:var(--module-red); color:#fff5d9; border:1px solid #572c22; border-radius:2px; padding:16px 27px; min-width:220px; display:inline-flex; justify-content:space-between; align-items:center; gap:30px; font-size:14px; font-weight:600; box-shadow:inset 0 0 0 3px #ffffff15,0 2px 0 #482619; }
+#td-module .module-play:hover { filter:brightness(1.12); }
+#td-module .module-return { margin:8px 0 0; font:12px/1.5 Arial,sans-serif; color:#5e513b; }
+#td-module .module-return a { padding:10px 4px; }
+#td-module .module-bottom-rule { display:flex; align-items:center; gap:16px; max-width:180px; margin:15px auto 0; color:var(--module-red); }
+#td-module .module-bottom-rule:before,#td-module .module-bottom-rule:after { content:''; flex:1; height:1px; background:var(--module-rule); }
+#td-module .module-bottom-rule span { font-size:14px; }
+#td-module .module-notice { margin:14px auto 0; max-width:400px; font:12px/1.5 Arial,sans-serif; color:var(--module-red); }
+@media(max-width:600px) {
+ #td-module { padding:12px; }
+ #td-module .module-frame { padding:0 16px 19px; }
+ #td-module .module-nav { gap:12px; }
+ #td-module .module-kicker { font-size:11px; letter-spacing:.06em; max-width:175px; }
+ #td-module .module-main { padding-top:25px; }
+ #td-module .module-title { font-size:clamp(36px,10vw,59px); }
+ #td-module .module-tagline { font-size:20px; margin:20px auto; max-width:290px; }
+ #td-module .module-actions { padding-top:23px; }
+ #td-module .module-play { min-width:200px; }
+ #td-module .module-return { max-width:230px; margin:9px auto 0; }
+}
+@media(pointer:coarse) { #td-module .module-link { min-height:44px; } }
+
+#td-module { max-width:1100px; margin:0 auto; }
+#td-module .module-play { text-decoration:none; }
+#td-module .module-link { display:inline-block; }
+#td-module a:focus-visible { outline:3px solid var(--module-red); outline-offset:4px; }
+#td-module [hidden] { display:none; }
+
+</style>
+</head>
+<body>
+<div id="td-module" aria-label="Traffic and Dragons adventure module landing page">
+ <div class="module-frame">
+  <header class="module-nav"><p class="module-kicker">Fantasy meets the everyday</p><a class="module-link" href="https://traffic-and-dragons.pages.dev/">Sign in</a></header>
+  <main class="module-main">
+   <h1 class="module-title"><span class="module-title-top">Traffic &amp;</span><span>Dragons</span></h1>
+   <p class="module-tagline">Add a little fantasy to your gridlock</p>
+   <div class="module-picture-frame"><div class="module-art"><img id="landing-art" src="art/dragon-on-beetle.webp?v=1.0.0" width="1200" height="896" fetchpriority="high" alt="A dragon rides atop a yellow Beetle filled with adventurers in city traffic."></div></div>
+   <div class="module-actions"><a class="module-play" href="https://traffic-and-dragons.pages.dev/">Start your adventure <span aria-hidden="true">→</span></a><p class="module-return">Already adventuring? <a class="module-link" href="https://traffic-and-dragons.pages.dev/">Sign in</a></p></div>
+   <div class="module-bottom-rule" aria-hidden="true"><span>◆</span></div>
+   <p id="art-error" class="module-notice" role="status" hidden>The illustration could not load. You can still start your adventure above.</p>
+  </main>
+ </div>
+</div>
+<script>
+(function () {
+  var image = document.getElementById('landing-art');
+  function failed() {
+    console.warn('website: illustration could not load: ' + image.getAttribute('src'));
+    document.getElementById('art-error').hidden = false;
+  }
+  image.addEventListener('error', failed);
+  if (image.complete && !image.naturalWidth) failed();
+})();
+</script>
+</body>
+</html>
