@@ -773,12 +773,21 @@ function npcUpsertTarget(rawName,rawRel,R){
   var resolved=resolveNpcName(rawName);
   var mem=memory.npcs&&memory.npcs[resolved];
   if(!mem)return resolved;
-  if(!NPC_INTRO_REL_RE.test(rawRel||""))return resolved;
-  var wsN=(typeof wsNpcByName==="function")?wsNpcByName(resolved):null;
-  if(wsN&&wsN.partyMember)return resolved;
-  if(mem.dead||(wsN&&wsN.dead))return resolved;
-  if(((mem.knowledge||[]).length+(mem.events||[]).length)<2)return resolved;
-  var key=resolved+" °t"+R.turn;
+  if(mem.provisional)return resolved;/* #504: a question already open is never split again — later tags gather on the one provisional */
+  /* #504 (owner ruling 2026-10-01): a kin or rank title plus a surname only, landing on the one record with a given name that does not
+     carry that title, is that person under a title or a relative — the names cannot say (npcTitleQuestion, memory.js). It is asked
+     whatever the relation slot says, and of a companion, a thin record and a dead one too: a relative's tags are never theirs to take.
+     The provisional is keyed by the name as CALLED and carries it as its alias, so every later tag for that name — any handler,
+     any turn — gathers on it until the GM answers; the merge then hands the alias to whoever she turns out to be. */
+  var title=(typeof npcTitleAsk==="function")?npcTitleAsk(rawName):"";
+  if(!title){/* the #156 predicate: an introduction-shaped write into a history-rich, living, non-party record */
+    if(!NPC_INTRO_REL_RE.test(rawRel||""))return resolved;
+    var wsN=(typeof wsNpcByName==="function")?wsNpcByName(resolved):null;
+    if(wsN&&wsN.partyMember)return resolved;
+    if(mem.dead||(wsN&&wsN.dead))return resolved;
+    if(((mem.knowledge||[]).length+(mem.events||[]).length)<2)return resolved;
+  }
+  var key=(title?rawName:resolved)+" °t"+R.turn;
   if(memory.npcs[key])return key; /* same-response re-tag accumulates on the one provisional */
   var k,outstanding=0;
   for(k in memory.npcs){if(memory.npcs[k].provisional)outstanding++;}
@@ -786,13 +795,22 @@ function npcUpsertTarget(rawName,rawRel,R){
     if(typeof console!=="undefined")console.warn("[identity] provisional cap ("+PROVISIONAL_CAP+") reached — '"+rawName+"' written to the existing record (pre-#156 behavior). Resolve outstanding provisionals via their nudges.");
     return resolved;
   }
-  memory.npcs[key]={attitude:"",knowledge:[],events:[],aliases:[],provisional:{of:resolved,turn:R.turn}};
-  R.muts.push("⚠ possible name collision: '"+rawName+"' filed as PROVISIONAL '"+key+"'");
-  if(typeof console!=="undefined")console.warn("[identity] '"+rawName+"' resolves to a history-rich record but this write is introduction-shaped (\""+rawRel+"\") — filed PROVISIONALLY as '"+key+"' so the established record cannot fuse; the GM decides same/distinct via the next engine note (#156)");
+  memory.npcs[key]={attitude:"",knowledge:[],events:[],aliases:title?[rawName]:[],provisional:title?{of:resolved,turn:R.turn,called:rawName}:{of:resolved,turn:R.turn}};
+  R.muts.push("⚠ possible name collision: '"+rawName+"'"+(title?" may be "+resolved+" under a title, or another person —":"")+" filed as PROVISIONAL '"+key+"'");
+  if(title){if(typeof console!=="undefined")console.warn("[identity] '"+rawName+"' is a title (\""+title+"\") and a family name: "+resolved+" under that title, or a relative — filed PROVISIONALLY as '"+key+"' so neither record can fuse; the GM decides same/distinct via the next engine note (#504)");}
+  else if(typeof console!=="undefined")console.warn("[identity] '"+rawName+"' resolves to a history-rich record but this write is introduction-shaped (\""+rawRel+"\") — filed PROVISIONALLY as '"+key+"' so the established record cannot fuse; the GM decides same/distinct via the next engine note (#156)");
   if(typeof showToast==="function")showToast("⚠ Possible name collision: "+rawName+" — filed separately pending confirmation");
   return key;
 }
 
+// #504: the answer to a title question may name the provisional by the name it was CALLED ("Queen Underbough") instead of its ° key —
+// the natural way to write "they are the same". Only a PROVISIONAL's alias is read this way; an established person's alias stays the
+// operand as written. Both readers of a merge's duplicate operand call this: the W2 gate and the NPC_MERGE handler.
+function npcProvisionalOperand(name){
+  if(!memory.npcs||memory.npcs[name])return name;
+  var own=npcAliasOwner(name);
+  return (own&&memory.npcs[own].provisional)?own:name;
+}
 // The one-shot decision channel: while any provisional is outstanding, ask the GM to settle it —
 // SAME person (fold back via the battle-tested [NPC_MERGE:]) or DIFFERENT person (rename via
 // [MERGE:npc|Proper Name|provisional], which creates the new canonical and folds the provisional
@@ -814,8 +832,10 @@ function buildProvisionalNudge(){
   if(!best)return"";
   if(!worldState.provisionalNudged)worldState.provisionalNudged={};
   worldState.provisionalNudged[best]=worldState.turn;
-  var of=memory.npcs[best].provisional.of,cm=memory.npcs[of],ev="";
+  var pv=memory.npcs[best].provisional,of=pv.of,cm=memory.npcs[of],ev="";
   if(cm&&cm.lastSeenAt)ev=" The established "+of+" was last seen at "+cm.lastSeenAt+".";
+  /* #504: the title question has its own words — nobody introduced "a new Wilhelmina"; a title was used, and it is hers or a relative's */
+  if(pv.called)return "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \""+pv.called+"\" was named, and the names alone cannot say whether that is the established \""+of+"\" under a title or another person of the same family. It is filed PROVISIONALLY as \""+best+"\" so the established record stays clean."+ev+" Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:"+of+"|"+best+"]. If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|"+best+"] — \""+pv.called+"\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]";
   return "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): a new \""+of+"\" was introduced and is filed PROVISIONALLY as \""+best+"\" so the established record stays clean."+ev+" Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:"+of+"|"+best+"]. If they are a DIFFERENT person, give them their own name and emit [MERGE:npc|<Their Proper Name>|"+best+"] — pick a name not already in KNOWN NPCs. This note re-fires until one tag lands.]";
 }
 
@@ -1410,7 +1430,7 @@ function w2NameIsFree(name,duplicate){
   if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(name))return false;
   var c=resolveNpcName(name);return c===name||c===duplicate;
 }
-function w2MergeAllowed(canonical,duplicate){if(!worldState||!worldState.sceneRefs)return true;var c=resolveNpcName(canonical),m=memory.npcs&&memory.npcs[duplicate];if(m&&m.provisional&&resolveNpcName(m.provisional.of)===c)return true;if(m&&m.provisional&&w2NameIsFree(canonical,duplicate))return true;/* #530: a different person, under a new name */var a=worldState.mergeConfirmArmed;return !!(a&&a.turn===worldState.turn&&a.canonical===canonical&&a.duplicate===duplicate);}
+function w2MergeAllowed(canonical,duplicate){if(!worldState||!worldState.sceneRefs)return true;duplicate=npcProvisionalOperand(duplicate);/* #504: the provisional, by the name it was called */var c=resolveNpcName(canonical),m=memory.npcs&&memory.npcs[duplicate];if(m&&m.provisional&&resolveNpcName(m.provisional.of)===c)return true;if(m&&m.provisional&&w2NameIsFree(canonical,duplicate))return true;/* #530: a different person, under a new name */var a=worldState.mergeConfirmArmed;return !!(a&&a.turn===worldState.turn&&a.canonical===canonical&&a.duplicate===duplicate);}
 function w2MergePropose(canonical,duplicate){if(typeof _queueMergeHint==="function")_queueMergeHint(canonical,duplicate);if(typeof console!=="undefined")console.warn("[identity] merge proposed, not applied: "+duplicate+" -> "+canonical+" (awaiting exact-pair confirmation)");}
 function w2MergeCommitted(canonical,duplicate){var a=worldState&&worldState.mergeConfirmArmed;if(a&&a.canonical===canonical&&a.duplicate===duplicate)delete worldState.mergeConfirmArmed;}
 function _w2TxnFind(id){var a=worldState&&worldState.canonTxns||[],i;for(i=0;i<a.length;i++)if(a[i].id===id)return a[i];return null;}

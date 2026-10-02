@@ -29185,4 +29185,130 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return memory.npcs[key]&&!memory.npcs["The Ferryman"]?true:"'The Ferryman' is Odo Marsh's alias — folding the provisional into it is a merge into an established person";
   });
 
+
+  section("#504 a titled relative is asked about, not merged");
+  function w504(key,pron){w503();on503(key||"Wilhelmina Underbough",pron===undefined?"she/her":pron);worldState.turn=85;}
+  var K504="Queen Underbough °t85";
+  t("#504 the repro: [NPC:Queen Underbough] beside Wilhelmina Underbough is filed provisionally — her record is untouched and the summary says so",function(){
+    w504();var pre=JSON.stringify([memory.npcs["Wilhelmina Underbough"],wsNpcByName("Wilhelmina Underbough")]);
+    var r=quiet(function(){return applyMuts("The Queen sweeps in. [NPC:Queen Underbough|furious|hostile] [NPC_PRONOUN:Queen Underbough|she/her]");});
+    var p=memory.npcs[K504],row=wsNpcByName(K504);
+    if(JSON.stringify([memory.npcs["Wilhelmina Underbough"],wsNpcByName("Wilhelmina Underbough")])!==pre)return "the princess's record was written: "+roster503();
+    if(!p||!p.provisional||p.provisional.of!=="Wilhelmina Underbough"||p.provisional.called!=="Queen Underbough")return "no provisional record for the queen: "+Object.keys(memory.npcs).join(", ")+" "+JSON.stringify(p&&p.provisional);
+    if(!row||row.status!=="furious"||row.rel!=="hostile"||row.pronouns!=="she/her")return "her own tags land on her own row: "+roster503();
+    if(!(r.r.muts||[]).some(function(m){return /Queen Underbough/.test(m)&&/Wilhelmina Underbough/.test(m)&&/PROVISIONAL/.test(m);}))return "the turn's summary names both and says provisional: "+JSON.stringify(r.r.muts);
+    return resolveNpcName("Queen Underbough")===K504?true:"until the GM answers, the name is the provisional's: "+resolveNpcName("Queen Underbough");
+  });
+  t("#504 the note asks 'the same person or another?' with both exact tags; SAME folds her back and the title becomes her alias — asked once",function(){
+    w504();quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    var note=buildProvisionalNudge();
+    if(note.indexOf('"Queen Underbough"')<0||note.indexOf('"Wilhelmina Underbough"')<0||!/under a title/.test(note))return "the note names the title and the person and says what the question is: "+note;
+    if(note.indexOf("[NPC_MERGE:Wilhelmina Underbough|"+K504+"]")<0||note.indexOf("[MERGE:npc|<Their Proper Name>|"+K504+"]")<0)return "both answers, exact: "+note;
+    if(/a new "Wilhelmina Underbough" was introduced/.test(note))return "nobody introduced a new Wilhelmina — the introduction wording is the other question's: "+note;
+    worldState.turn=86;quiet(function(){applyMuts("It is her. [NPC_MERGE:Wilhelmina Underbough|"+K504+"]");});
+    if(memory.npcs[K504]||wsNpcByName(K504))return "the provisional survived its answer";
+    if((memory.npcs["Wilhelmina Underbough"].aliases||[]).indexOf("Queen Underbough")<0)return "the title is now her alias: "+JSON.stringify(memory.npcs["Wilhelmina Underbough"].aliases);
+    worldState.turn=90;quiet(function(){applyMuts("[NPC:Queen Underbough|calm|ally]");});
+    return Object.keys(memory.npcs).length===1&&wsNpcByName("Wilhelmina Underbough").status==="calm"?true:"asked once: the next tag lands on her, with no new provisional — "+Object.keys(memory.npcs).join(", ")+" | "+roster503();
+  });
+  t("#504 ANOTHER person, scene refs active: [MERGE:npc|Queen Underbough|<provisional>] keeps the name — her own record, not her own alias; a proper name works too",function(){
+    w504();sceneRefsEnsure();
+    quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile] [NPC_PRONOUN:Queen Underbough|she/her]");});
+    worldState.turn=86;var r=quiet(function(){return applyMuts("Her mother. [MERGE:npc|Queen Underbough|"+K504+"]");});
+    var q=memory.npcs["Queen Underbough"],row=wsNpcByName("Queen Underbough");
+    if(memory.npcs[K504]||!q||!row)return "the answer did not land: "+Object.keys(memory.npcs).join(", ")+" "+JSON.stringify(r.warns);
+    if(q.provisional)return "she is a person of her own now, not a provisional";
+    if((q.aliases||[]).indexOf("Queen Underbough")>=0)return "a record is not its own alias: "+JSON.stringify(q.aliases);
+    if(row.status!=="furious"||row.pronouns!=="she/her")return "what was filed while provisional is hers: "+roster503();
+    worldState.turn=87;quiet(function(){applyMuts("[NPC:Queen Underbough|cold|hostile]");});
+    if(wsNpcByName("Queen Underbough").status!=="cold"||wsNpcByName("Wilhelmina Underbough").status!=="present"||Object.keys(memory.npcs).length!==2)return "later tags land on the queen, never the princess, and nobody is asked again: "+roster503();
+    w504();sceneRefsEnsure();quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    quiet(function(){applyMuts("[MERGE:npc|Queen Isolde Underbough|"+K504+"]");});
+    return memory.npcs["Queen Isolde Underbough"]&&resolveNpcName("Queen Underbough")==="Queen Isolde Underbough"?true:"under a proper name, the title she was first called by still finds her: "+resolveNpcName("Queen Underbough");
+  });
+  t("#504 the answer may name her as she was called — the ° key dropped — for either answer; an established person's alias is never read that way",function(){
+    w504();sceneRefsEnsure();quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    worldState.turn=86;quiet(function(){applyMuts("It is her. [NPC_MERGE:Wilhelmina Underbough|Queen Underbough]");});
+    if(memory.npcs[K504]||(memory.npcs["Wilhelmina Underbough"].aliases||[]).indexOf("Queen Underbough")<0)return "SAME by the plain name did not land: "+Object.keys(memory.npcs).join(", ");
+    w504();sceneRefsEnsure();quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    worldState.turn=86;quiet(function(){applyMuts("Her mother. [MERGE:npc|Queen Isolde Underbough|Queen Underbough]");});
+    if(memory.npcs[K504]||!memory.npcs["Queen Isolde Underbough"])return "ANOTHER by the plain name did not land: "+Object.keys(memory.npcs).join(", ");
+    w504();on503("Isolde Marsh","she/her");memory.npcs["Isolde Marsh"].aliases=["The Ferryman"];
+    quiet(function(){applyMuts("[NPC_MERGE:Wilhelmina Underbough|The Ferryman]");});
+    return memory.npcs["Isolde Marsh"]&&npcProvisionalOperand("The Ferryman")==="The Ferryman"?true:"an established person's alias is not a provisional — the operand stays as written (Isolde Marsh was folded into the princess)";
+  });
+  t("#504 who is NOT asked: an office, a record that carries the title, a title with a GIVEN name, a full name, a bare surname, an age word, a record with no given name, a registered alias, a contradiction",function(){
+    var same=[["Sheriff Hemlock","Belor Hemlock","he/him",[]],["Captain Voss","Threnna Voss","she/her",[]],["Father Zantus","Father Abstalar Zantus","he/him",[]],
+      ["Princess Underbough","Wilhelmina Underbough","she/her",["Princess Wilhelmina"]],["Princess Wilhelmina","Wilhelmina Underbough","she/her",[]],["Lady Threnna Voss","Threnna Voss","she/her",[]],
+      ["Underbough","Wilhelmina Underbough","she/her",[]],["Old Underbough","Wilhelmina Underbough","she/her",[]],["Queen Underbough","Wilhelmina Underbough","she/her",["Queen Underbough"]],
+      ["Lady Vane","Mother Vane","she/her",[]]],i;
+    for(i=0;i<same.length;i++){w504(same[i][1],same[i][2]);memory.npcs[same[i][1]].aliases=same[i][3];
+      quiet(function(){applyMuts("[NPC:"+same[i][0]+"|waiting|neutral]");});
+      if(Object.keys(memory.npcs).length!==1||wsNpcByName(same[i][1]).status!=="waiting")return "'"+same[i][0]+"' must land on '"+same[i][1]+"' without a question: "+Object.keys(memory.npcs).join(", ");}
+    w504();on503("Isolde Marsh","she/her");memory.npcs["Isolde Marsh"].aliases=["Queen Underbough"];
+    quiet(function(){applyMuts("[NPC:Queen Underbough|waiting|neutral]");});
+    if(Object.keys(memory.npcs).length!==2||wsNpcByName("Isolde Marsh").status!=="waiting")return "a registered alias is the GM's own answer — it lands on its owner and nobody is asked: "+Object.keys(memory.npcs).join(", ");
+    w504();quiet(function(){applyMuts("[NPC:King Underbough|hungover|neutral] [NPC_PRONOUN:King Underbough|he/him]");});
+    if(!memory.npcs["King Underbough"]||memory.npcs["King Underbough"].provisional||Object.keys(memory.npcs).length!==2)return "a contradiction is another person outright (#503) — nothing to ask: "+Object.keys(memory.npcs).join(", ");
+    return buildProvisionalNudge()===""?true:"no note for a contradiction";
+  });
+  t("#504 the table: kin and rank titles only — every one is a word consolidation drops, each raises the question, and no office is on it",function(){
+    var ks=Object.keys(_NPC_ASK_TITLES),i,need=["king","queen","prince","princess","lord","lady","mother","father","brother","sister"],office=["sheriff","captain","priest","priestess","doctor","guard","innkeeper","elder","saint"];
+    for(i=0;i<ks.length;i++)if(!_NPC_STOP[ks[i]])return "'"+ks[i]+"' is not a stop word — consolidation never drops it, so it can never raise the question (a dead entry)";
+    for(i=0;i<need.length;i++)if(!_NPC_ASK_TITLES[need[i]])return "the ruled title '"+need[i]+"' is missing";
+    for(i=0;i<office.length;i++)if(_NPC_ASK_TITLES[office[i]])return "'"+office[i]+"' is an office or an age — it must keep merging";
+    for(i=0;i<ks.length;i++){w504("Wil Underbough",null);var T=ks[i].charAt(0).toUpperCase()+ks[i].slice(1);
+      if(npcConsolidation(T+" Underbough").ask!==ks[i])return "'"+T+" Underbough' raises no question: "+JSON.stringify(npcConsolidation(T+" Underbough"));}
+    return true;
+  });
+  t("#504 while the question is open: later tags gather on the one provisional, and an introduction-shaped tag never splits it again",function(){
+    w504();quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    worldState.turn=86;quiet(function(){applyMuts("[NPC:Queen Underbough|pacing|hostile] [NPC_NOTE:Queen Underbough|wants the wedding called off] [NPC_NOTE:Queen Underbough|distrusts the hero]");});
+    if(Object.keys(memory.npcs).length!==2||wsNpcByName(K504).status!=="pacing")return "the next turn's tag lands on the same provisional: "+Object.keys(memory.npcs).join(", ");
+    if((memory.npcs[K504].events||[]).length!==2||(memory.npcs["Wilhelmina Underbough"].events||[]).length)return "her notes gather on the provisional, not on the princess";
+    worldState.turn=87;quiet(function(){applyMuts("[NPC:Queen Underbough|watching|unknown, not yet met]");});
+    return Object.keys(memory.npcs).length===2&&wsNpcByName(K504).status==="watching"?true:"a provisional is never split again: "+Object.keys(memory.npcs).join(", ");
+  });
+  t("#504 a death under the title never kills the relative; a dead relative's titled kin is asked about, not refused as the dead woman's status",function(){
+    w504();quiet(function(){applyMuts("[NPC:Queen Underbough|dead|hostile]");});
+    var w=wsNpcByName("Wilhelmina Underbough");
+    if(w.dead||memory.npcs["Wilhelmina Underbough"].dead||npcDeadStatus(w.status))return "the princess was killed by her mother's death tag";
+    if(!wsNpcByName(K504)||!wsNpcByName(K504).dead)return "the death is the provisional's: "+roster503();
+    w504();w=wsNpcByName("Wilhelmina Underbough");w.dead=60;w.status="dead";memory.npcs["Wilhelmina Underbough"].dead=60;
+    var r=quiet(function(){return applyMuts("[NPC:Queen Underbough|grieving|hostile]");});
+    if(worldState.deadStatusConflicts&&worldState.deadStatusConflicts.length)return "the queen's mood was refused as the dead princess's status: "+JSON.stringify(r.r.muts);
+    return wsNpcByName(K504)&&wsNpcByName(K504).status==="grieving"?true:"the grieving queen is filed provisionally: "+roster503();
+  });
+  t("#504 a companion is asked about too — a relative's tags never land on a party member; a thin record is asked about too",function(){
+    w504("Daeris Vane","she/her");wsNpcByName("Daeris Vane").partyMember=true;
+    quiet(function(){applyMuts("[NPC:Mother Vane|stern|acquaintance]");});
+    if(!memory.npcs["Mother Vane °t85"]||wsNpcByName("Daeris Vane").status!=="present")return "the companion's mood was overwritten: "+roster503();
+    w504();if(((memory.npcs["Wilhelmina Underbough"].knowledge||[]).length+(memory.npcs["Wilhelmina Underbough"].events||[]).length)!==0)return "fixture: a thin record";
+    quiet(function(){applyMuts("[NPC:Lady Underbough|stern|acquaintance]");});
+    return memory.npcs["Lady Underbough °t85"]?true:"a record with no history yet is still another person's to keep";
+  });
+  t("#504 the cap holds: with PROVISIONAL_CAP questions open the write degrades to the record, loudly, as #156 does",function(){
+    w504();var i;for(i=0;i<PROVISIONAL_CAP;i++)memory.npcs["Filler"+i+" °t"+(70+i)]={attitude:"",knowledge:[],events:[],aliases:[],provisional:{of:"Filler"+i,turn:70+i}};
+    var r=quiet(function(){return applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    if(memory.npcs[K504])return "minted past the cap";
+    return r.warns.some(function(x){return /provisional cap/.test(x);})&&wsNpcByName("Wilhelmina Underbough").status==="furious"?true:"the degrade is loud and lands on the record: "+JSON.stringify(r.warns);
+  });
+  t("#504 readers are unchanged: the resolver still answers 'the same person' until the [NPC:] boundary asks; the question is pure and reads the record's aliases",function(){
+    w504();
+    if(resolveNpcName("Queen Underbough")!=="Wilhelmina Underbough")return "the resolver must not fork a name on its own (a silent fork is the #128 class)";
+    var a=JSON.stringify(npcConsolidation("Queen Underbough")),b=JSON.stringify(npcConsolidation("Queen Underbough")),c=npcConsolidation("Queen Underbough");
+    if(a!==b||Object.keys(memory.npcs).length!==1)return "asking is pure";
+    if(c.key!=="Wilhelmina Underbough"||c.ask!=="queen")return "the scan reports the question: "+a;
+    if(npcTitleAsk("Queen Underbough")!=="queen"||npcTitleAsk("Wilhelmina Underbough")!==""||npcTitleAsk("Nobody Atall")!=="")return "npcTitleAsk: the title, or nothing for an exact name and a new name";
+    wsNpcByName("Wilhelmina Underbough").aliases=["Queen Wilhelmina"];
+    if(npcConsolidation("Queen Underbough").ask!=="")return "a record whose roster alias carries the title raises no question";
+    if(npcConsolidation("Queen Mother Underbough").ask!=="mother")return "the Queen Mother is not the Queen: "+JSON.stringify(npcConsolidation("Queen Mother Underbough"));
+    w504("Brigid Vess","she/her");
+    if(npcConsolidation("Vess King").key!=="Brigid Vess"||npcConsolidation("Vess King").ask!=="")return "a title word AFTER the family name is a surname (as in npcNameSays), not a title: "+JSON.stringify(npcConsolidation("Vess King"));
+    w504("Rose Underbough","she/her");
+    if(npcConsolidation("Queen Underbough Rose").key!=="Rose Underbough"||npcConsolidation("Queen Underbough Rose").ask!=="")return "two distinctive words are a name of their own, not a bare family name: "+JSON.stringify(npcConsolidation("Queen Underbough Rose"));
+    w504("Brigid Vess (the queen's sister)","she/her");
+    return npcConsolidation("Queen Vess").ask==="queen"?true:"a parenthetical describes — it does not make the record carry the title";
+  });
+
 }

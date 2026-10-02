@@ -53,9 +53,15 @@ var _NPC_KIN_NOUNS={man:1,woman:1,boy:1,girl:1,lad:1,lass:1,wife:1,husband:1,son
 // Two readings it refuses: a title word that closes the name straight after a plain name word is the person's SURNAME
 // ("Marla King", "Tom Young"); a possessive is someone else's title ("the Queen's Champion Aldric") — "queen's" is not
 // "queen", so it never matches. Parentheticals describe, they do not title ("Morwen (the king's sister)").
-function npcNameSays(name){
+// The plain words of a name: lower case, parentheticals dropped, letters only. ONE tokenizer for what a name SAYS (#503) and for the
+// title question (#504).
+function npcNameWords(name){
   var raw=String(name||"").toLowerCase().replace(/\(.*?\)/g," ").split(/\s+/),ws=[],i;
   for(i=0;i<raw.length;i++){var w=raw[i].replace(/[^a-z]/g,"");if(w)ws.push(w);}
+  return ws;
+}
+function npcNameSays(name){
+  var ws=npcNameWords(name),i;
   var out={sex:null,crown:null,age:null},last=ws.length-1;
   for(i=0;i<ws.length;i++){
     var t=ws[i],sx=_NPC_SEX_WORDS[t],rk=_NPC_RANK_WORDS[t];
@@ -108,11 +114,40 @@ function npcKeptApart(name,k,shortT,longT){
   if(a.crown&&b.crown&&a.crown!==b.crown&&shortT.length===1&&longT.length>1&&longT[longT.length-1]===shortT[0])return a.crown+", not "+b.crown;
   return "";
 }
+// ── #504 (owner ruling 2026-10-01): the one question the names cannot answer ────────────────
+// A kin or rank title plus a SURNAME only ("Queen Underbough"), beside the one record that has a given name and does not
+// carry that title ("Wilhelmina Underbough"), is the same woman under a new title, or her mother. Nothing contradicts —
+// #503 keeps a king off a princess; it cannot keep a queen off one — so the names alone merged them, silently.
+// The scan REPORTS the question (ask = the title) and still answers "the same person" to every reader: a resolver that
+// forked the name on its own would split one person's history wherever nobody is there to ask (the #128 class).
+// The [NPC:] boundary is where it is asked (npcUpsertTarget, identity.js): the name is filed provisionally and the #156
+// note puts "the same person, or another?" to the GM.
+// ONE table. Kin and rank only — an office (sheriff, captain, priest) is one person's at a time and keeps merging; an age
+// word (old, elder) is not a title. Every word here is also in _NPC_STOP: a title that consolidation does not drop never
+// reaches the question.
+var _NPC_ASK_TITLES={king:1,queen:1,prince:1,princess:1,lord:1,lady:1,sir:1,ser:1,dame:1,master:1,mistress:1,
+  father:1,mother:1,brother:1,sister:1,husband:1,wife:1};
+// The words a record is known by: its key and its aliases on both stores. Null-prototype: names are untrusted keys.
+function npcRecordWords(k){
+  var m=memory.npcs[k]||{},w=(typeof wsNpcByName==="function")?wsNpcByName(k):null,all=[k].concat(m.aliases||[],(w&&w.aliases)||[]),out=Object.create(null),i,j;
+  for(i=0;i<all.length;i++){var ws=npcNameWords(all[i]);for(j=0;j<ws.length;j++)out[ws[j]]=1;}
+  return out;
+}
+// Pure. "" = no question; otherwise the title that raises it. The name must be BARE — one distinctive word, and it closes a
+// candidate that has more (a surname shared with someone who has a given name) — and the title must stand before that word
+// ("Marla King" is a surname, as in npcNameSays) and be one the record is not already known by.
+function npcTitleQuestion(name,k,inCore){
+  var kCore=npcCoreTokens(k);
+  if(inCore.length!==1||kCore.length<2||kCore[kCore.length-1]!==inCore[0])return "";
+  var ws=npcNameWords(name),at=ws.indexOf(inCore[0]),known=npcRecordWords(k),i;
+  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1&&!known[ws[i]])return ws[i];
+  return "";
+}
 // THE consolidation scan (one copy — the resolver and the receipt both read it). key = the single candidate nothing
 // contradicts; apart = the single candidate a contradiction ruled out. A ruled-out candidate still COUNTS: with two
 // people on file the name was ambiguous before #503 and stays ambiguous — the veto never steers a name onto the survivor.
 function npcConsolidation(name){
-  var out={key:null,apart:null,why:""},inCore=npcCoreTokens(name);
+  var out={key:null,apart:null,why:"",ask:""},inCore=npcCoreTokens(name);
   if(!inCore.length)return out;
   var k,cnt=0,match=null,apart=null,why="";
   for(k in memory.npcs){
@@ -128,7 +163,7 @@ function npcConsolidation(name){
     var w=npcKeptApart(name,k,shortT,longT);
     if(w){apart=k;why=w;}else match=k;
   }
-  if(cnt===1){out.key=match;out.apart=apart;out.why=why;}
+  if(cnt===1){out.key=match;out.apart=apart;out.why=why;if(match)out.ask=npcTitleQuestion(name,match,inCore);/* #504 */}
   return out;
 }
 // The receipt for a write that the veto turned into a NEW person — "" when the name was simply new. Ask BEFORE the
@@ -138,10 +173,20 @@ function npcApartLine(raw){
   var c=npcConsolidation(raw);
   return c.apart?raw+" is not "+c.apart+" ("+c.why+") — filed as a separate person":"";
 }
+// The record a name is a REGISTERED alias of, or null. An alias is the GM's own word — it outranks every guess below it.
+function npcAliasOwner(name){
+  var k;for(k in memory.npcs){if(memory.npcs[k].aliases&&memory.npcs[k].aliases.indexOf(name)>=0)return k;}
+  return null;
+}
+// #504: the title that makes this name a question for the GM, or "". An exact name and a registered alias are answers already.
+function npcTitleAsk(name){
+  if(!memory.npcs||memory.npcs[name]||npcAliasOwner(name))return "";
+  return npcConsolidation(name).ask;
+}
 function resolveNpcName(name){
   if(!memory.npcs)return name;
   if(memory.npcs[name])return name;
-  var k;for(k in memory.npcs){if(memory.npcs[k].aliases&&memory.npcs[k].aliases.indexOf(name)>=0)return k;}
+  var own=npcAliasOwner(name);if(own)return own;
   // Distinctive-token consolidation (bidirectional, honorific/parenthetical-tolerant). The GM freely
   // varies a name across turns — "Morwen" / "Morwen Zethran" / "Morwen (Ammut's wife)", or "Hemlock" /
   // "Sheriff Belor Hemlock" — which otherwise forks one person into several memory.npcs entries. If the
