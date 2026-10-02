@@ -25,9 +25,10 @@ html,body{margin:0;min-height:100%;background:#0c0d11;color:#e4e8ee;font-family:
 main{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px 16px}
 h1{margin:0;font-size:clamp(20px,4.2vw,34px);font-weight:normal;letter-spacing:.16em;text-transform:uppercase;text-align:center}
 h1 span{color:#c8a84a}
-/* the picture is 16:9 and never taller than about 60% of the window, so the button stays on the first screen */
-#art{margin:0;width:100%;max-width:min(1100px,calc(60vh * 16 / 9));aspect-ratio:16/9;border:1px solid #2c2f3a;border-radius:10px;overflow:hidden;background:#13151c}
-#art img{display:block;width:100%;height:100%;object-fit:cover}
+/* the frame takes each picture's own shape (ART carries its width and height), is never cropped, and is never
+   taller than about 62% of the window, so the button stays on the first screen */
+#art{margin:0;max-width:100%;border:1px solid #2c2f3a;border-radius:10px;overflow:hidden;background:#13151c}
+#art img{display:block;width:auto;height:auto;max-width:min(1100px,100%);max-height:62vh}
 .play{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:14px 34px;border-radius:8px;background:#c8a84a;color:#000;font-size:clamp(18px,2.6vw,22px);font-weight:bold;text-decoration:none;text-align:center;transition:background .15s}
 .play:hover{background:#dcbd60}
 .play:focus-visible{outline:3px solid #e4e8ee;outline-offset:3px}
@@ -38,7 +39,7 @@ h1 span{color:#c8a84a}
 <body>
 <main>
   <h1>Traffic <span>and</span> Dragons</h1>
-  <figure id="art"><img id="art-img" src="art/dragon-in-traffic.svg" width="1600" height="900" alt="A dragon squeezed into a small car, stuck in evening traffic."/></figure>
+  <figure id="art"><img id="art-img" src="art/dragon-on-beetle.webp" width="1200" height="896" alt="A green dragon rides on the roof of a yellow car full of adventurers, stuck in city traffic."/></figure>
   <a id="play" class="play" href="https://traffic-and-dragons.pages.dev/">Play Traffic and Dragons</a>
   <p id="art-note" class="note" hidden></p>
 </main>
@@ -46,8 +47,9 @@ h1 span{color:#c8a84a}
 // Where the Play button goes — the one place the game's address lives.
 var PLAY_URL="https://traffic-and-dragons.pages.dev/";
 // The pictures, one per day in this order. A new picture is a new entry here plus its file in art/.
+// w and h are the file's own pixel size: they give the frame its shape before the picture arrives.
 var ART=[
-  {src:"art/dragon-in-traffic.svg",alt:"A dragon squeezed into a small car, stuck in evening traffic."}
+  {src:"art/dragon-on-beetle.webp",w:1200,h:896,alt:"A green dragon rides on the roof of a yellow car full of adventurers, stuck in city traffic."}
 ];
 // Pure: the picture for a given day number (days since 1970, UTC). Same day, same picture, for everyone.
 function artForDay(list,dayNumber){
@@ -66,6 +68,7 @@ function artForDay(list,dayNumber){
   var pick=artForDay(ART,Math.floor(Date.now()/86400000));
   if(!pick){failed();return;}
   img.alt=pick.alt;
+  if(pick.w&&pick.h){img.setAttribute("width",pick.w);img.setAttribute("height",pick.h);}
   if(img.getAttribute("src")!==pick.src)img.setAttribute("src",pick.src);
   else if(img.complete&&!img.naturalWidth)failed();
 })();
