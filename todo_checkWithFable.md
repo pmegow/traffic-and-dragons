@@ -281,6 +281,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-01 · #508 follow-up (Designer v0.56) · Codex: owner-requested creature card layout and saved-image viewer; UI-only, image storage and engine untouched. Real Chrome screenshots cover desktop, phone and enlargement; keyboard focus restoration and three layout/viewer mutation clauses added.
+
 - 2026-10-01 · #508 (Designer v0.55) · Codex: owner-requested creature batch modal and per-creature portrait buttons. Designer-only state and helpers; existing engine portrait renderer reused. Frequency lands in notes; portable portraits are omitted from text LLM payloads and preserved through Apply. Atomic batch, invalid inputs, duplicate names, stale/cancelled responses and persistence covered. Existing wait-ticker proof follows the modal and additionally checks timer disposal. No engine changes.
 
 - 2026-10-01 · #500 (v1.1088) · Codex: owner explicitly requested tripling the rule limit. Root cause is IMPORT_CAPS.rule=400, shared by blueprint normalization and prompt assembly; raised the single numeric entry to 1200. Review: only longer rules expand; other caps and authored-text wrappers remain intact, no parser/prompt assembly code changed. Three boundary tests cover 399/400/401/1199/1200/1201, prompt delivery and byte-identical short-rule prompts. Chrome reproduces the old mid-word cut and verifies full rule import/export.

@@ -82,7 +82,19 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--bg0);}::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--acc);}
 .creature-help{color:var(--t2);line-height:1.5;}
 .creature-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;}
-.creature-portrait{display:block;width:160px;max-width:100%;height:auto;border-radius:var(--r);margin-top:12px;}
+.creature-card-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(140px,25%);gap:16px;align-items:start;}
+.creature-editor{min-width:0;}
+.creature-portrait-open{display:block;width:100%;padding:0;border:0;background:none;color:var(--t2);font:inherit;cursor:zoom-in;text-align:center;}
+.creature-portrait-open:focus-visible{outline:2px solid var(--acc);outline-offset:4px;}
+.creature-portrait{display:block;width:100%;height:auto;border-radius:var(--r);}
+.creature-portrait-open img,.creature-portrait-open span{pointer-events:none;}
+.creature-portrait-open span{display:block;margin-top:6px;font-size:11px;}
+.creature-image-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;}
+.creature-image-heading h2{margin:0;font-size:16px;color:var(--acc);}
+#creature-image-close{min-height:44px;}
+#creature-image-modal img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(85vh - 150px);margin:0 auto;object-fit:contain;}
+#creature-image-size{text-align:center;font-size:12px;color:var(--t2);margin:12px 0 0;}
+@media(max-width:640px){.creature-card-grid{grid-template-columns:minmax(0,1fr);}.creature-portrait-open{max-width:240px;margin:0 auto;}}
 #creature-gen-modal label{display:flex;flex-direction:column;gap:6px;}
 #creature-gen-modal input,#creature-gen-modal select{width:100%;min-width:0;padding:9px 10px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd2);border-radius:var(--r);font:inherit;}
 #creature-gen-modal small{color:var(--t2);font-size:12px;line-height:1.4;text-transform:none;font-variant:normal;letter-spacing:normal;}
@@ -142,7 +154,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.55";
+var BP_DESIGNER_VERSION="v0.56";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -388,18 +400,17 @@ function render(){
   h+="<button class='addbtn' data-op='gencreature' data-i='0' data-j='0' style='margin-bottom:10px;'>&#10024; Generate creatures…</button>";
   if(!bp.creatures.length)h+="<div class='empty'>None — the GM will invent the wildlife.</div>";
   for(i=0;i<bp.creatures.length;i++){
-    var C=bp.creatures[i];
-    h+="<div class='card'>"+cardHead("creature",i,0,esc(C.name||("Creature "+(i+1))),C.kind,movBtns("creature",i,0));
+    var C=bp.creatures[i],portraitSrc=safeImgSrc(C.portrait),sidePortrait=!C._c&&portraitSrc;
+    h+="<div class='card'>"+(sidePortrait?"<div class='creature-card-grid'><div class='creature-editor'>":"")+cardHead("creature",i,0,esc(C.name||("Creature "+(i+1))),C.kind,movBtns("creature",i,0));
     if(!C._c){
       h+="<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
       +fld("Threat",txt("creature",i,0,"threat",C.threat||"","low / moderate / deadly / apex — or a CR"))
       +fldB("Notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"));
-      var portraitSrc=safeImgSrc(C.portrait);
-      if(portraitSrc)h+="<img class='creature-portrait' src='"+safeImgSrc(C.portrait)+"' alt='Portrait of "+esc(C.name||"creature")+"'>";
       h+="<div class='creature-actions'><button class='mini' data-op='creatureportrait' data-i='"+i+"'"+(creaturePortraitBusy(C)?" disabled":"")+">"+(C.portrait?"Regenerate portrait":"Generate portrait")+"</button>";
       if(C.portrait)h+="<button class='mini' data-op='creatureportraitremove' data-i='"+i+"'"+(creaturePortraitBusy(C)?" disabled":"")+">Remove portrait</button>";
       h+="</div>";
     }
+    if(sidePortrait)h+="</div><button type='button' class='creature-portrait-open' data-op='creatureportraitview' data-i='"+i+"' aria-label='Enlarge portrait of "+esc(C.name||"creature")+"'><img class='creature-portrait' src='"+safeImgSrc(C.portrait)+"' alt='Portrait of "+esc(C.name||"creature")+"'><span>Click to enlarge</span></button></div>";
     h+="</div>";
   }
   h+="<button class='addbtn' data-op='addcreature' data-i='0' data-j='0'>+ Add creature</button>";
@@ -615,6 +626,7 @@ document.addEventListener("click",function(e){
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0;
   if(op==="breakout"){openBreakout(t);return;}
   if(op==="gencreature"){openCreatureGenerator();return;}
+  if(op==="creatureportraitview"){openCreaturePortrait(bp.creatures[i]);return;}
   if(op==="creatureportrait"){generateCreaturePortrait(bp.creatures[i],t);return;}
   if(op==="creatureportraitremove"){if(bp.creatures[i]&&!creaturePortraitBusy(bp.creatures[i])){delete bp.creatures[i].portrait;markDirty();render();}return;}
   // Selection toggle — pure view state (_sel is stripped from files), so no markDirty.
@@ -943,6 +955,15 @@ function openCreatureGenerator(){
     }catch(err){timer.stop();if(document.body.contains(modal)){console.warn("[designer creatures] "+err.message);status.textContent="Generation failed: "+err.message;setStatus(status.textContent,"err");}}
     finally{go.disabled=false;Array.prototype.forEach.call(controls,function(el){el.disabled=false;});var cancel=modal.querySelector("#creature-gen-cancel");if(cancel)cancel.textContent="Cancel";}
   });
+}
+function openCreaturePortrait(c){
+  if(!c||!safeImgSrc(c.portrait)){setStatus("This creature has no viewable portrait.","err");return;}
+  var modal=modalShell("creature-image-modal","<div class='creature-image-heading'><h2 id='creature-image-title'>"+esc(c.name||"Creature portrait")+"</h2><button type='button' class='tbtn' id='creature-image-close'>Close</button></div><img alt='Portrait of "+esc(c.name||"creature")+"'><p id='creature-image-size' aria-live='polite'>Loading saved portrait…</p>",{maxWidth:900,boxBg:"var(--bg1)",boxExtra:"max-height:90vh;overflow:auto;",closeId:"creature-image-close",outside:true});
+  modal.setAttribute("aria-labelledby","creature-image-title");
+  var img=modal.querySelector("img"),size=modal.querySelector("#creature-image-size");
+  img.onload=function(){size.textContent="Saved portrait: "+img.naturalWidth+" × "+img.naturalHeight+" pixels";};
+  img.onerror=function(){console.warn("[designer portrait] Saved image could not be loaded.");size.textContent="This saved portrait could not be loaded.";};
+  img.src=safeImgSrc(c.portrait);
 }
 function creaturePortraitBusy(c){return creaturePortraitJobs.indexOf(c)>=0;}
 async function creaturePortraitData(url){
