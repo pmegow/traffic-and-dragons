@@ -2,11 +2,18 @@
 // role nouns so only the words that actually identify a person remain. "Sheriff Belor Hemlock" ->
 // [belor,hemlock]; "The Scarred Man" -> [scarred]; "Barkeep (Rusty Dragon)" -> [] (role-only, no
 // distinctive name — deliberately unmergeable so anonymous functionaries never absorb a real NPC).
-var _NPC_STOP={sheriff:1,father:1,mother:1,lord:1,lady:1,ser:1,sir:1,captain:1,master:1,mistress:1,
+// #533: a table keyed by WORDS FROM A NAME must not inherit Object.prototype. "constructor" is a word a GM can write ("Malrik the
+// Constructor"), and on a plain object it looks up Object's own constructor: a truthy function. As a stop word it silently vanished
+// from the name; in npcNameSays it was read as a rank and threw ("rk.split is not a function") inside every resolve that scanned his
+// record — the [NPC:] handler lost its tags, and a death tag, which resolves outside any handler, threw out of applyMuts. Every word
+// table and every per-name token set in the name code is built through this, or on Object.create(null). (It is the one reachable
+// word: the tokenizers lower-case and keep letters only, and no other Object.prototype key is all lower-case letters.)
+function npcWordTable(o){var m=Object.create(null),k;for(k in o)m[k]=o[k];return m;}
+var _NPC_STOP=npcWordTable({sheriff:1,father:1,mother:1,lord:1,lady:1,ser:1,sir:1,captain:1,master:1,mistress:1,
   brother:1,sister:1,saint:1,st:1,king:1,queen:1,prince:1,princess:1,dame:1,elder:1,dr:1,doctor:1,
   professor:1,the:1,old:1,young:1,a:1,an:1,man:1,woman:1,girl:1,boy:1,child:1,lad:1,lass:1,
   stranger:1,guard:1,barkeep:1,keeper:1,innkeeper:1,merchant:1,wife:1,husband:1,soldier:1,priest:1,
-  priestess:1,mage:1,wizard:1,knight:1,thief:1,beggar:1,drunk:1,unnamed:1};
+  priestess:1,mage:1,wizard:1,knight:1,thief:1,beggar:1,drunk:1,unnamed:1});
 // Memoized (AUDIT_FABLE_07_16 #3): pure function of an immutable string, recomputed O(N) per
 // resolveNpcName all-keys scan and O(N) per ragKnownNames rebuild. Map growth is bounded by the
 // distinct NPC-name vocabulary; no eviction. Null-prototype map so hostile keys ("__proto__",
@@ -39,16 +46,16 @@ npcCoreTokens._misses=0; // test hook (dev/_tests_A2.js): counts real computatio
 // ONLY a positive contradiction keeps two names apart. No signal on either side, or the same signal,
 // consolidates exactly as before — same-sex relatives under a bare title ("Queen Underbough" beside a
 // "Wilhelmina Underbough" with no rank on file) still merge; that residue is a TODO row, not a guess here.
-var _NPC_SEX_WORDS={king:"m",prince:"m",lord:"m",sir:"m",father:"m",brother:"m",mr:"m",mister:"m",duke:"m",baron:"m",count:"m",earl:"m",
+var _NPC_SEX_WORDS=npcWordTable({king:"m",prince:"m",lord:"m",sir:"m",father:"m",brother:"m",mr:"m",mister:"m",duke:"m",baron:"m",count:"m",earl:"m",
   emperor:"m",uncle:"m",grandfather:"m",husband:"m",man:"m",boy:"m",lad:"m",son:"m",widower:"m",
   queen:"f",princess:"f",lady:"f",dame:"f",mother:"f",sister:"f",mrs:"f",miss:"f",mistress:"f",madam:"f",madame:"f",duchess:"f",baroness:"f",
-  countess:"f",empress:"f",aunt:"f",grandmother:"f",wife:"f",woman:"f",girl:"f",lass:"f",daughter:"f",widow:"f",priestess:"f"};
+  countess:"f",empress:"f",aunt:"f",grandmother:"f",wife:"f",woman:"f",girl:"f",lass:"f",daughter:"f",widow:"f",priestess:"f"});
 /* "master" and "ser" are left out on purpose: both are worn by either sex in this genre */
-var _NPC_RANK_WORDS={king:"crown:monarch",queen:"crown:monarch",emperor:"crown:monarch",empress:"crown:monarch",prince:"crown:heir",princess:"crown:heir",
-  old:"age:old",elder:"age:old",older:"age:old",senior:"age:old",sr:"age:old",young:"age:young",younger:"age:young",junior:"age:young",jr:"age:young"};
+var _NPC_RANK_WORDS=npcWordTable({king:"crown:monarch",queen:"crown:monarch",emperor:"crown:monarch",empress:"crown:monarch",prince:"crown:heir",princess:"crown:heir",
+  old:"age:old",elder:"age:old",older:"age:old",senior:"age:old",sr:"age:old",young:"age:young",younger:"age:young",junior:"age:young",jr:"age:young"});
 /* kin and role nouns are the HEAD of a description ("the scarred man", "Tam's mother") — never a surname */
-var _NPC_KIN_NOUNS={man:1,woman:1,boy:1,girl:1,lad:1,lass:1,wife:1,husband:1,son:1,daughter:1,widow:1,widower:1,mother:1,father:1,
-  brother:1,sister:1,uncle:1,aunt:1,grandmother:1,grandfather:1,priestess:1};
+var _NPC_KIN_NOUNS=npcWordTable({man:1,woman:1,boy:1,girl:1,lad:1,lass:1,wife:1,husband:1,son:1,daughter:1,widow:1,widower:1,mother:1,father:1,
+  brother:1,sister:1,uncle:1,aunt:1,grandmother:1,grandfather:1,priestess:1});
 // Pure. {sex:"m"|"f"|null, crown:"monarch"|"heir"|null, age:"old"|"young"|null} — null = the name does not say, or says both.
 // Two readings it refuses: a title word that closes the name straight after a plain name word is the person's SURNAME
 // ("Marla King", "Tom Young"); a possessive is someone else's title ("the Queen's Champion Aldric") — "queen's" is not
@@ -125,8 +132,8 @@ function npcKeptApart(name,k,shortT,longT){
 // ONE table. Kin and rank only — an office (sheriff, captain, priest) is one person's at a time and keeps merging; an age
 // word (old, elder) is not a title. Every word here is also in _NPC_STOP: a title that consolidation does not drop never
 // reaches the question.
-var _NPC_ASK_TITLES={king:1,queen:1,prince:1,princess:1,lord:1,lady:1,sir:1,ser:1,dame:1,master:1,mistress:1,
-  father:1,mother:1,brother:1,sister:1,husband:1,wife:1};
+var _NPC_ASK_TITLES=npcWordTable({king:1,queen:1,prince:1,princess:1,lord:1,lady:1,sir:1,ser:1,dame:1,master:1,mistress:1,
+  father:1,mother:1,brother:1,sister:1,husband:1,wife:1});
 // The words a record is known by: its key and its aliases on both stores. Null-prototype: names are untrusted keys.
 function npcRecordWords(k){
   var m=memory.npcs[k]||{},w=(typeof wsNpcByName==="function")?wsNpcByName(k):null,all=[k].concat(m.aliases||[],(w&&w.aliases)||[]),out=Object.create(null),i,j;
@@ -209,7 +216,7 @@ function resolveNpcName(name){
 // of its exactly-one-candidate guard on an unregistered name — at PROPOSAL time those words are
 // identity-bearing ("The Scarred Man" vs "The Scarred Woman" must never read as equal).
 // Here only articles/conjunctions and parenthetical descriptors are identity-neutral.
-var _VARIANT_STOP={the:1,a:1,an:1,of:1,and:1,or:1};
+var _VARIANT_STOP=npcWordTable({the:1,a:1,an:1,of:1,and:1,or:1});
 function npcVariantTokens(name){
   var s=String(name||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[^a-z0-9\s']/g," ");
   var raw=s.split(/\s+/),out=[],i;
@@ -226,7 +233,7 @@ function npcVariantTokens(name){
 function npcVariantPairs(names){
   var sets=[],i,j,ti;
   for(i=0;i<names.length;i++){
-    var tk=npcVariantTokens(names[i]),set={},n=0,sub=false;
+    var tk=npcVariantTokens(names[i]),set=Object.create(null),n=0,sub=false;/* #533 */
     for(ti=0;ti<tk.length;ti++){if(!set[tk[ti]]){set[tk[ti]]=1;n++;}if(tk[ti].length>=3)sub=true;}
     sets.push({name:names[i],set:set,n:n,ok:n>0&&sub});
   }
@@ -314,7 +321,7 @@ function getNameSuggestions(count,peek){
   // the npc domain only (Sol §6: a person, quest, and spell may all legitimately be called
   // "Hope"; cross-domain token ownership is not identity). Filtered candidates are skipped, not
   // logged — the window scans forward so the GM still gets a full list.
-  var onFile={},ok,ti;
+  var onFile=Object.create(null),ok,ti;/* #533 */
   if(memory.npcs){for(k in memory.npcs){
     var kt=npcCoreTokens(k);for(ti=0;ti<kt.length;ti++)onFile[kt[ti]]=1;
     var als=memory.npcs[k].aliases||[],ai;
