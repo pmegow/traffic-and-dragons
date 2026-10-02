@@ -639,13 +639,13 @@ function showHouseDesignModal(){
 function showProseModal(){
   closeAllMenus();/* #15④ */
   var sel=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(proseAuthor||"");
-  function rows(){return radioRowsHTML("pr-row",AUTHORS,sel,function(a,s){
+  function rows(){return radioRowsHTML("pr-row",visibleAuthors(AUTHORS,sel),sel,function(a,s){/* #104: retired voices stay off the list unless this campaign already runs in one */
     return "<div><div style='font-size:13px;color:"+(s?"var(--acc)":"var(--t1)")+";'>"+escHtml(a.nm)+(a.profane?" <span style=\"font-size:10px;color:var(--t2);\">· 18+ for full voice</span>":"")+"</div>"
       +(a.blurb?"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(a.blurb)+"</div>":"")+"</div>";
   },{align:"flex-start",dotTop:true});}
   var modal=modalShell("prose-modal",/* #14 */
     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>✍ Prose Inspiration</span><button id='pr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-    +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'>The GM imitates this author's voice. Takes effect on the next turn — switch any time.</p>"
+    +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'>The GM writes every line in this voice. Takes effect on the next turn — switch any time.</p>"
     +"<div id='pr-rows'>"+rows()+"</div>"
     +"<button id='pr-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-top:8px;'>Save</button>",
     {align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:440,boxExtra:"margin-top:40px;",closeId:"pr-x",outside:true});

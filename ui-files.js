@@ -614,8 +614,8 @@ function exportBlueprint(){
   document.getElementById("file-menu").style.display="none";
   var bp=buildBlueprintFromGame();
   var connected=storageAdapter.isServerMode();
-  var voiceOpts="",vCur=bp.proseAuthor||"",vi;
-  for(vi=0;vi<AUTHORS.length;vi++){voiceOpts+="<option value='"+AUTHORS[vi].id+"'"+(AUTHORS[vi].id===vCur?" selected":"")+">"+escHtml(AUTHORS[vi].nm)+(AUTHORS[vi].blurb?" — "+escHtml(AUTHORS[vi].blurb):"")+"</option>";}
+  var voiceOpts="",vCur=bp.proseAuthor||"",vi,vList=visibleAuthors(AUTHORS,vCur);/* #104: a retired voice is offered only when this blueprint already carries it */
+  for(vi=0;vi<vList.length;vi++){voiceOpts+="<option value='"+vList[vi].id+"'"+(vList[vi].id===vCur?" selected":"")+">"+escHtml(vList[vi].nm)+(vList[vi].blurb?" — "+escHtml(vList[vi].blurb):"")+"</option>";}
   // #9 narrator voice — the audio twin of the prose voice. "" ships no opinion, so the player's own
   // narrator survives the import (applyBlueprint's E20 rule). TTS.voices() is the shared catalog.
   var nvOpts="<option value=''>— none (player's own narrator) —</option>",nvCur=bp.narratorVoice||"",nvList=(typeof TTS!=="undefined"&&TTS.voices)?TTS.voices():[],nvi;

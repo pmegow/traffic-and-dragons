@@ -29206,4 +29206,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return memory.npcs["Bram"]&&wsNpcByName("Bram")&&!(r.r.errors||[]).length?true:"[MERGE:npc|Bram|Bram] routes into the same handler and must be ignored the same way";
   });
 
+  section("#104 the prose voices ship name-free; retired voices stay on the campaigns that carry them");
+  t("#104 visibleAuthors offers every unhidden voice, and a hidden one only when it is already the selection",function(){
+    if(typeof visibleAuthors!=="function")return "visibleAuthors missing";
+    var list=[{id:"",nm:"None"},{id:"a",nm:"A"},{id:"b",nm:"B",hidden:true},{id:"c",nm:"C"}];
+    var ids=function(l){return l.map(function(x){return x.id;}).join(",");};
+    if(ids(visibleAuthors(list,""))!==",a,c")return "a hidden voice is off the list: "+ids(visibleAuthors(list,""));
+    if(ids(visibleAuthors(list,"b"))!==",a,b,c")return "the campaign's own retired voice is shown in its place: "+ids(visibleAuthors(list,"b"));
+    if(ids(visibleAuthors(list,null))!==",a,c"||ids(visibleAuthors(list,undefined))!==",a,c")return "no selection hides every retired voice";
+    if(ids(visibleAuthors(list,"zzz"))!==",a,c")return "an unknown selection changes nothing";
+    if(visibleAuthors(null,"a").length!==0)return "a missing list is an empty list";
+    if(visibleAuthors(list,"b")===list)return "the filter returns a new array, never the table itself";
+    return true;
+  });
+  t("#104 the shipped table: seven voices offered, every retired voice still resolvable by id, no entry without a directive",function(){
+    var shown=visibleAuthors(AUTHORS,"").filter(function(a){return a.id;}).map(function(a){return a.nm;});
+    if(shown.join("|")!=="Grimdark|Dungeon Crawl|Spare & Mythic|Blood & Thunder|Gothic Wit|Cosmic Dread|Doomed Romance")return "the owner's seven, in table order: "+shown.join("|");
+    var i,bad=[];for(i=0;i<AUTHORS.length;i++){var a=AUTHORS[i];if(a.id&&(!a.vc||a.vc.length<100))bad.push(a.id);}
+    if(bad.length)return "every voice, retired or not, keeps a directive for the saves that carry it: "+bad.join(",");
+    var retired=AUTHORS.filter(function(a){return a.hidden;}).map(function(a){return a.id;});
+    if(retired.join(",")!=="gaiman,clines,cook,wells,abnett,rice,poe")return "the seven retired ids: "+retired.join(",");
+    /* the three pickers are thin shells over the one filter */
+    var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),uf=__fsForTests.readFileSync(__rootForTests+"/ui-files.js","utf8"),bd=__fsForTests.readFileSync(__rootForTests+"/blueprint-designer.html","utf8");
+    if(um.indexOf('radioRowsHTML("pr-row",visibleAuthors(AUTHORS,sel),sel')<0)return "the prose modal must list visibleAuthors(AUTHORS,sel)";
+    if(uf.indexOf("vList=visibleAuthors(AUTHORS,vCur)")<0)return "the blueprint export must list visibleAuthors(AUTHORS,vCur)";
+    if(bd.split("visibleAuthors(AUTHORS,").length!==3)return "the designer's two voice lists must both read visibleAuthors(AUTHORS,…)";
+    if(/for\(\w+=0;\w+<AUTHORS\.length;\w+\+\+\)[^\n]*<option/.test(um+uf+bd))return "a voice picker still walks AUTHORS directly";
+    return true;
+  });
+  t("#104 the STYLE sentence asks the reader to recognise the voice, never the author",function(){
+    var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
+    if(api.indexOf("a reader should recognise the voice from rhythm, sentence length, and word choice alone")<0)return "the STYLE sentence lost its wording";
+    if(api.indexOf("recognise the author")>=0)return "\"recognise the author\" is back in the prompt";
+    return true;
+  });
+
 }

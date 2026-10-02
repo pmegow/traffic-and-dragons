@@ -1146,6 +1146,11 @@ try {
 // with NO author name in the prompt (DOC/Research/DOC_author_voice.md). The page's pure core (attrs,
 // baselines, prompt builders) is marker-delimited and evaluated here; the clauses below keep the
 // lab in lockstep with data.js AUTHORS and keep the dial prompt genuinely name-free.
+// #104 (2026-10-02, owner ruling: no author or series name anywhere): the distilled directives SHIP as
+// data.js AUTHORS[].vc under neutral labels; the research names, the words that must never ship and the
+// original name-bearing directives live in dev/author-controls.js (AUTHOR_CONTROLS), loaded by the lab
+// only. Clause ④ now reads its forbidden words from THERE and scans the shipped table itself (⑧), and
+// ⑨ keeps the controls file out of the app shell.
 try {
   var _failVL = function (msg) { console.error("VOICE LAB CONTRACT: " + msg); process.exit(1); };
   var _pageVL = _src("author_voice_lab.html");
@@ -1155,7 +1160,7 @@ try {
   var _coreVL = _mVL[1];
   if (/document\.|window\.|fetch\(|localStorage/.test(_coreVL)) _failVL("core block touches DOM/fetch/localStorage — it must stay pure so this contract can execute it.");
   var _labVL = (new Function(_coreVL +
-    "; return {attrs: VOICE_ATTRS, base: VOICE_BASELINES, dev: VOICE_DEVICES, flavor: VOICE_FLAVOR, dist: VOICE_DISTILLED, passage: TEST_PASSAGE, band: voiceBand, directive: buildStyleDirective, rewrite: buildRewritePrompt, control: buildControlPrompt, distPrompt: buildDistilledPrompt};"))();
+    "; return {attrs: VOICE_ATTRS, base: VOICE_BASELINES, dev: VOICE_DEVICES, flavor: VOICE_FLAVOR, passage: TEST_PASSAGE, band: voiceBand, directive: buildStyleDirective, rewrite: buildRewritePrompt, control: buildControlPrompt, distPrompt: buildDistilledPrompt};"))();
   // ② 12 attributes, 5 non-empty bands each; band mapping covers 1..10.
   if (_labVL.attrs.length !== 12) _failVL("expected 12 attributes, found " + _labVL.attrs.length + " — update DOC/Research/DOC_author_voice.md and this contract together if the space changes.");
   _labVL.attrs.forEach(function (a) {
@@ -1168,6 +1173,11 @@ try {
   var _idsVL = [], _namesVL = [], _reVL = /\{id:"(\w+)",nm:"([^"]+)"/g, _mmVL;
   while ((_mmVL = _reVL.exec(_segVL))) { _idsVL.push(_mmVL[1]); _namesVL.push(_mmVL[2]); }
   if (_idsVL.length < 10) _failVL("could not parse AUTHORS from data.js (found " + _idsVL.length + " ids) — the parse regex needs updating.");
+  // #104: the shipped table (data.js executes clean in node: constants only) and the dev-only controls.
+  var _authorsVL = (new Function(_dataVL + "; return AUTHORS;"))();
+  var _ctlSrcVL = _src("dev/author-controls.js");
+  var _ctlVLmap = (new Function(_ctlSrcVL + "; return AUTHOR_CONTROLS;"))();
+  _labVL.dist = {}; _authorsVL.forEach(function (a) { if (a.id) _labVL.dist[a.id] = a.vc; });
   _idsVL.forEach(function (id) {
     var b = _labVL.base[id];
     if (!b) _failVL("author '" + id + "' (data.js) has NO baseline — a new author needs ratings in the same commit.");
@@ -1177,22 +1187,46 @@ try {
     });
     if (Object.keys(b).length !== 12) _failVL("baseline '" + id + "' has stray keys beyond the 12 attributes.");
     if (!_labVL.flavor[id] || _labVL.flavor[id].length < 80) _failVL("author '" + id + "' has no flavor reference passage.");
-    if (!_labVL.dist[id] || _labVL.dist[id].length < 100) _failVL("author '" + id + "' has no DISTILLED directive — the third arm needs one per author (same-commit rule).");
+    if (!_labVL.dist[id] || _labVL.dist[id].length < 100) _failVL("author '" + id + "' has no shipped directive (data.js vc under 100 chars) — the distilled directive IS the voice now (#104).");
   });
   Object.keys(_labVL.base).forEach(function (id) { if (_idsVL.indexOf(id) < 0) _failVL("baseline '" + id + "' has no matching author in data.js — remove it or fix the id."); });
   // ④ The dial prompt is genuinely name-free for EVERY author at baseline (the whole point).
-  var _tokensVL = [];
-  _namesVL.forEach(function (nm) { nm.split(/[^A-Za-z]+/).forEach(function (t) { if (t.length >= 3) _tokensVL.push(t.toLowerCase()); }); });
+  //    #104: the forbidden words come from dev/author-controls.js — each research name split into its
+  //    words, plus that voice's `marks` (series titles, signature characters) as whole phrases. The
+  //    shipped labels (data.js nm) are no longer the source: they are neutral by design, and a guard
+  //    that read them would guard nothing.
+  var _tokensVL = [], _ctlIdsVL = Object.keys(_ctlVLmap);
+  if (_ctlIdsVL.length < 10) _failVL("dev/author-controls.js holds " + _ctlIdsVL.length + " entries — the research record is the forbidden-word source and cannot be thin.");
+  _ctlIdsVL.forEach(function (id) {
+    var c = _ctlVLmap[id];
+    if (_idsVL.indexOf(id) < 0) _failVL("author-controls entry '" + id + "' has no matching voice in data.js — remove it or fix the id.");
+    if (!c || !c.nm || !c.vc || c.vc.length < 50 || !Array.isArray(c.marks) || !c.marks.length) _failVL("author-controls entry '" + id + "' needs nm, marks[] and the original vc.");
+    c.nm.split(/[^A-Za-z]+/).forEach(function (t) { if (t.length >= 3) _tokensVL.push(t.toLowerCase()); });
+    c.marks.forEach(function (m) { _tokensVL.push(String(m).toLowerCase()); });
+  });
+  var _escVL = function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); };
+  var _carriesVL = function (text) { var low = String(text).toLowerCase(), hit = null; _tokensVL.some(function (t) { if (new RegExp("\\b" + _escVL(t) + "\\b").test(low)) { hit = t; return true; } }); return hit; };
+  // ⑧ (#104) THE SHIPPING GUARANTEE: no field of any data.js AUTHORS entry carries a research name or a
+  //    mark — label, blurb, directive, content DNA. This is the clause the Clear-for-Release row closed on.
+  _authorsVL.forEach(function (a) {
+    ["nm", "blurb", "vc", "contentDNA"].forEach(function (k) {
+      var hit = _carriesVL(a[k] || "");
+      if (hit) _failVL("data.js AUTHORS '" + (a.id || "(default)") + "'." + k + " carries '" + hit + "' — an author or series name is shipping in the prose-voice table (#104).");
+    });
+  });
+  // ⑨ (#104) The controls file is the lab's alone: never in index.html, never in the engine manifest.
+  if (_src("index.html").indexOf("author-controls") >= 0) _failVL("index.html loads dev/author-controls.js — the research names would ship in the app shell (#104).");
+  if (_src("dev/engine-manifest.js").indexOf("author-controls") >= 0) _failVL("dev/engine-manifest.js lists author-controls.js — it is not engine code and must not load with it (#104).");
+  if (_pageVL.indexOf('<script src="dev/author-controls.js">') < 0) _failVL("author_voice_lab.html no longer loads dev/author-controls.js — the control arm has no directives (#104).");
+  //    ④ continued: the lab's two name-free arms, scanned with the same words.
   _idsVL.forEach(function (id) {
     var _arms = [
       { kind: "dial", p: _labVL.rewrite(_labVL.directive(_labVL.base[id]), _labVL.passage, _labVL.dev[id] || []) },
       { kind: "distilled", p: _labVL.distPrompt(_labVL.dist[id], _labVL.passage) }
     ];
     _arms.forEach(function (arm) {
-      var low = (arm.p.system + "\n" + arm.p.user).toLowerCase();
-      _tokensVL.forEach(function (t) {
-        if (new RegExp("\\b" + t + "\\b").test(low)) _failVL(arm.kind + " prompt for '" + id + "' contains author-name token '" + t + "' — the no-name guarantee is broken.");
-      });
+      var low = (arm.p.system + "\n" + arm.p.user).toLowerCase(), _hitVL = _carriesVL(low);
+      if (_hitVL) _failVL(arm.kind + " prompt for '" + id + "' contains author-name token '" + _hitVL + "' — the no-name guarantee is broken.");
       if (low.indexOf("never name, reference, or imitate-by-name") < 0) _failVL(arm.kind + " prompt lost the never-name guard clause.");
       if (arm.p.user.indexOf(_labVL.passage) < 0) _failVL(arm.kind + " prompt does not embed the passage verbatim.");
     });
@@ -1208,7 +1242,7 @@ try {
   // ⑦ The browser seam + stub mode exist (satellite testability rule, 2026-07-29).
   if (_pageVL.indexOf("__voiceLabTest") < 0) _failVL("the window.__voiceLabTest seam is gone — satellites with logic must stay drivable.");
   if (_pageVL.indexOf("stub=1") < 0) _failVL("stub mode (?stub=1) is gone — UI verification without a key depends on it.");
-  console.log("[voice-lab] contract OK — " + _idsVL.length + " authors × 12 dials, prompts name-free");
+  console.log("[voice-lab] contract OK — " + _idsVL.length + " voices × 12 dials, prompts and the shipped table name-free (" + _tokensVL.length + " forbidden words)");
 } catch (e) { console.error("VOICE LAB CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── BLUEPRINT DESIGNER CONTRACT (#192, class roster — v1.637) ────────────────────────────

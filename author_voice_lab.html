@@ -98,6 +98,7 @@ button:disabled{opacity:.4;cursor:default}
 
 <script src="globals.js"></script>
 <script src="data.js"></script>
+<script src="dev/author-controls.js"></script><!-- #104: research names + the original name-bearing directives, the control arm; dev-only, never in the app shell -->
 <script>
 /* >>> VOICE LAB CORE — pure logic, node-tested by run-tests.js (VOICE LAB CONTRACT). No DOM, no fetch, no window here. */
 
@@ -219,22 +220,6 @@ var VOICE_DEVICES={
    into the model's absorbed corpus; a dial list is a DESCRIPTION it must average. This arm tests
    description-as-gestalt: one coherent name-free paragraph per voice, written to carry what the
    name carries. Hand-authored; deliberately richer than the dial bands. */
-var VOICE_DISTILLED={
- gaiman:"Write in plain, quiet sentences that carry one strange thing at a time. State the impossible as flatly as the ordinary — no astonishment, no exclamation; the uncanny is simply true, and explaining it would break it. Dry, gentle wit, more raised eyebrow than joke. Short paragraphs. Allow at most one metaphor per scene and let it stand alone, doing all the work. The tone of a bedtime story that knows something it isn't telling you.",
- abercrombie:"Short, hard sentences — most under twelve words. Deliberate fragments for impact. A cynical, world-weary inner voice that expects the worst and is rarely disappointed; a bleak joke in the grimmest moment, because what else is there. No similes, no lyricism, no grandeur — if a word isn't pulling weight, cut it. Violence is fast, ugly, and matter-of-fact. Heroism is a story people tell afterward, and the viewpoint knows it.",
- dinniman:"Fast, punchy, irreverent, and aggressively modern in register even in a fantasy world. Undercut every dramatic beat with a wisecrack or gallows joke; the narrator copes by being funny about it. Treat the game's own stats, rules, and interface as fair targets for sarcasm. Short paragraphs, snappy rhythm, breakneck pace. Be funny first and let the horror sneak up underneath — the laugh should curdle a half-second later.",
- clines:"Clean, transparent, contemporary prose — short declarative sentences that pull the reader forward. Ground everything in plain, concrete detail; no archaic words, no flourish. Reveal the strange one piece at a time, never all at once, and let each new fact quietly recontextualize the last. Pace like a thriller: every paragraph earns the next, and the scene ends on a small hook that makes the next move feel urgent.",
- leguin:"Measured, elegant sentences with a calm, deliberate rhythm — plain words chosen with great care. Weight through simplicity, not ornament; restraint and silence carry the meaning. Develop one quiet extended metaphor across the whole scene and trust it. Mythic, timeless tone, as if the story had always existed and is only now being told. No melodrama, no exclamation, never hurried.",
- howard:"Muscular, driving prose powered by strong concrete verbs of motion and violence. Sweep and momentum — one vivid image per sentence, never stacked clauses. Intensely physical and sensory: heat, blood, muscle, steel, dust. Bold and a little grandiose, unashamed of thunder. Keep it relentlessly propulsive — the prose itself should feel like something advancing on you.",
- cook:"Terse, flat, tired-soldier narration. Short clipped sentences, plain words, hard edges, low affect. Understate everything: report horror and sorcery like a bored veteran who has seen worse and expects to again. Dry, deadpan asides in place of feeling. No romance, no grandeur, no similes — sentiment is a luxury for people who haven't buried friends.",
- wells:"Tight, close interiority with a dry, deadpan inner voice — economical modern sentences with a conversational rhythm. Convey feeling only through observation and understatement, never by naming the emotion. Wry, self-aware, faintly anxious asides, often in a quick parenthetical. Puncture every intense moment with practicality; competence is the coping mechanism and the comedy.",
- muir:"Baroque, gothic, lush imagery — then puncture it with one sudden crude or anachronistic joke, slamming the sublime and the profane together in the same breath. Swaggering, theatrical, a little too much on purpose, and aware of it. Ornate sentences, but each one clear and complete — never a run-on. The narration performs its own grandeur with a straight face, then breaks it deliberately — a cathedral with a whoopee cushion in the crypt.",
- abnett:"Cinematic, tactical prose with a hard military edge. Track space precisely — distances, angles, who moves where and what they can see. Short punchy sentences and fragments for impact. Grimdark martial texture: concrete sensory hits, no lyricism, controlled and disciplined even when everything is on fire. Strong sense of scale and momentum — a war report written by someone with excellent nerves.",
- rice:"Lush, sensual, decadent prose steeped in sensory detail — candlelight, velvet, skin, blood, the texture of centuries. Flowing, romantic sentences with a confessional, intimate ache; the viewpoint feels everything intensely and remembers everything. Beauty and horror are the same thing, described with the same reverence. Longer sentences are welcome but must stay musical and controlled, never merely piled.",
- poe:"Ornate, rhythmic, dread-soaked prose with obsessive psychological interiority — the narration fixates, rationalizes, and slowly unravels. Gothic, macabre imagery: decay, shadow, a heartbeat in the silence. Build unease through repetition and mounting cadence, the same fear returning in tighter circles. Long sentences are welcome but must stay musical and deliberate, never a heap of clauses.",
- lovecraft:"Cosmic dread — vast, indifferent, unknowable forces, with humanity small and doomed before them. Formal, antiquarian diction, scholarly and slightly archaic. Describe by implication: hint at the unnamable rather than showing it; things glimpsed at the edge of comprehension are worse than anything stated. Mounting wrongness as the narrator's composure erodes. One archaic weird adjective per beat at most, never stacked.",
- moorcock:"Melancholy, fatalistic grandeur — beauty and doom in the same breath. Rich, formal, slightly archaic diction that stays swift; ornate but never sluggish. The world is vast, old, and indifferent, and fate presses on every choice like weather. Moments of feverish, dreamlike intensity at sorcery. Let every triumph carry the visible seed of its price; write victory in the same ink as elegy."
-};
 
 var TEST_PASSAGE="You follow the sergeant down the stairs into the cellar. The air is cold and smells of earth. Three barrels stand against the far wall, and one of them has been opened. Inside it there is salt, and under the salt there is a hand, severed at the wrist, wearing a silver ring. The sergeant looks at it for a while. \"That ring belonged to the magistrate,\" she says. \"He was wearing it at the festival two nights ago.\" Something moves behind the barrels — a rat, probably, though it sounds heavier. You draw your sword. The sergeant lifts her lantern, and the light reaches the back of the cellar, where someone has drawn a spiral on the stone in chalk. The chalk is still wet. You hear the door close at the top of the stairs.";
 
@@ -313,6 +298,11 @@ function buildControlPrompt(vc,passage){
   return {system:sys,user:user};
 }
 /* <<< VOICE LAB CORE */
+/* #104 (2026-10-02): the distilled directives SHIP — data.js AUTHORS[].vc is the one copy, read here, never
+   duplicated. The control arm's name-bearing originals come from dev/author-controls.js (AUTHOR_CONTROLS),
+   which only this page loads. A voice with no control entry has no control arm, and says so. */
+var VOICE_DISTILLED={};AUTHORS.forEach(function(a){if(a.id)VOICE_DISTILLED[a.id]=a.vc;});
+function voiceControl(id){return (typeof AUTHOR_CONTROLS!=="undefined"&&AUTHOR_CONTROLS[id])||null;}
 
 /* ── UI + transport (browser only) ─────────────────────────────────────────── */
 (function(){
@@ -378,7 +368,11 @@ function buildControlPrompt(vc,passage){
     var passage=document.getElementById("passage").value;
     var model=document.getElementById("model-sel").value;
     var prompt,outSel;
-    if(mode==="control"){prompt=buildControlPrompt(author.vc,passage);outSel="ctl";}
+    if(mode==="control"){
+      var ctl=voiceControl(id);
+      if(!ctl){alert("No control directive for \""+author.nm+"\" — this voice was written name-free from the start (dev/author-controls.js has no entry).");return;}
+      prompt=buildControlPrompt(ctl.vc,passage);outSel="ctl";
+    }
     else if(mode==="distilled"){prompt=buildDistilledPrompt(VOICE_DISTILLED[id],passage);outSel="dist";}
     else{
       var devEl=document.getElementById("dev-"+id);
@@ -419,7 +413,10 @@ function buildControlPrompt(vc,passage){
     var vals=valsFor(id);
     var d=document.createElement("details");d.className="author";d.id="row-"+id;
     var html="";
+    var ctlInfo=isCustom?null:voiceControl(id);
     html+='<summary><span class="chev">▶</span><span class="nm">'+author.nm+'</span>';
+    if(ctlInfo)html+='<span class="blurb" title="the research name — dev-only, never shipped">← '+ctlInfo.nm+'</span>';
+    if(author.hidden)html+='<span class="prof" title="retired from the pickers; saves that carry it keep the voice">retired</span>';
     if(author.profane)html+='<span class="prof">18+</span>';
     html+='<span class="blurb">'+author.blurb+'</span></summary>';
     html+='<div class="body">';
@@ -439,7 +436,7 @@ function buildControlPrompt(vc,passage){
     html+='<button class="primary" id="test-'+id+'" title="'+TIPS.test+'">Test prose</button>';
     if(!isCustom)html+='<label title="'+TIPS.dev+'"><input type="checkbox" id="dev-'+id+'"> + signature devices</label>';
     if(!isCustom)html+='<button class="ghost" id="distbtn-'+id+'" title="'+TIPS.dist+'">Distilled (name-free)</button>';
-    if(!isCustom)html+='<button class="ghost" id="ctlbtn-'+id+'" title="'+TIPS.ctl+'">Author-name control</button>';
+    if(ctlInfo)html+='<button class="ghost" id="ctlbtn-'+id+'" title="'+TIPS.ctl+'">Author-name control</button>';
     html+='<span class="reset" id="reset-'+id+'" title="'+TIPS.reset+'">'+(isCustom?'reset dials to 5':'reset sliders to baseline')+'</span>';
     html+='</div></div>';
     var devs=isCustom?[]:(VOICE_DEVICES[id]||[]);
@@ -447,7 +444,7 @@ function buildControlPrompt(vc,passage){
     html+='<div class="outs">';
     html+='<div class="out"><div class="cap">Dial rewrite (no name in prompt)</div><div class="txt empty" id="dial-'+id+'">(not run yet)</div><div class="stat" id="dial-stat-'+id+'"></div></div>';
     if(!isCustom)html+='<div class="out"><div class="cap">Distilled directive (name-free)</div><div class="txt empty" id="dist-'+id+'">(not run yet)</div><div class="stat" id="dist-stat-'+id+'"></div></div>';
-    if(!isCustom)html+='<div class="out"><div class="cap">Author-name control</div><div class="txt empty" id="ctl-'+id+'">(not run yet)</div><div class="stat" id="ctl-stat-'+id+'"></div></div>';
+    if(ctlInfo)html+='<div class="out"><div class="cap">Author-name control</div><div class="txt empty" id="ctl-'+id+'">(not run yet)</div><div class="stat" id="ctl-stat-'+id+'"></div></div>';
     html+='</div></div>';
     d.innerHTML=html;
     document.getElementById("rows").appendChild(d);

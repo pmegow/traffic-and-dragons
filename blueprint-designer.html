@@ -158,7 +158,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.58";
+var BP_DESIGNER_VERSION="v0.59";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -322,7 +322,8 @@ function render(){
   var h="",i,j;
   // Metadata
   var toneOpts="<option value=''>(none)</option>";for(i=0;i<TONES.length;i++){toneOpts+="<option value='"+TONES[i].id+"'"+(bp.tone===TONES[i].id?" selected":"")+">"+esc(TONES[i].nm)+"</option>";}
-  var voiceOpts="";for(i=0;i<AUTHORS.length;i++){voiceOpts+="<option value='"+AUTHORS[i].id+"'"+(bp.proseAuthor===AUTHORS[i].id?" selected":"")+">"+esc(AUTHORS[i].nm)+"</option>";}
+  var voiceOpts="",vList=visibleAuthors(AUTHORS,bp.proseAuthor);/* #104: a retired voice is offered only when this blueprint already carries it */
+  for(i=0;i<vList.length;i++){voiceOpts+="<option value='"+vList[i].id+"'"+(bp.proseAuthor===vList[i].id?" selected":"")+">"+esc(vList[i].nm)+"</option>";}
   // #9 narrator voice — the audio twin of the prose voice, from the shared TTS catalog. Empty ships
   // no opinion so the player's own narrator survives the import (applyBlueprint only pins non-empty).
   var nvList=(typeof TTS!=="undefined"&&TTS.voices)?TTS.voices():[],nVoiceOpts="<option value=''>(player's own narrator)</option>";
@@ -1072,7 +1073,8 @@ function openGenerate(){
   var tOpts="<option value=''>Surprise me</option>",i;
   for(i=0;i<TONES.length;i++){if(TONES[i].id==="custom")continue;tOpts+="<option value='"+esc(TONES[i].id)+"'>"+esc(TONES[i].nm)+"</option>";}
   var vOpts="";
-  for(i=0;i<AUTHORS.length;i++)vOpts+="<option value='"+esc(AUTHORS[i].id)+"'>"+esc(AUTHORS[i].nm)+"</option>";
+  var gList=visibleAuthors(AUTHORS,null);/* #104 */
+  for(i=0;i<gList.length;i++)vOpts+="<option value='"+esc(gList[i].id)+"'>"+esc(gList[i].nm)+"</option>";
   var wrap=document.createElement("div");
   wrap.id="gen-modal";
   wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;";
