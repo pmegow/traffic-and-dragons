@@ -8,17 +8,50 @@ artwork, and “Add a little fantasy to your gridlock.” All three entry links 
 existing game at https://traffic-and-dragons.pages.dev/, which handles play and sign-in.
 There is no separate sign-in endpoint on this website.
 
-## Publishing later
+## Live hosting
 
-Publish the **contents of this folder**, keeping `index.html`, `icon.svg`, and `art/`
-together. For the planned separate Cloudflare Pages landing project, use `website`
-as the build output directory with no build command. The previous `landing/` folder
-is retained for reference; `website/` is the approved replacement source.
+Published 2026-10-02 at **https://trafficanddragons.com/**.
+The hyphenated domain https://traffic-and-dragons.com/ and both `www` aliases
+permanently redirect (301) to the primary HTTPS address, retaining paths and query
+strings. Plain HTTP also redirects to that address.
 
-Attach `trafficanddragons.com` (and optionally `www.trafficanddragons.com`) to that
-landing project, then verify the domain, HTTPS, artwork, and entry links. This save
-does not create a deployment or change DNS. Keep the game's deployment separate;
-the links deliberately retain its current origin and player storage.
+Cloudflare Pages project: `traffic-and-dragons-website`.
+Fallback address: https://traffic-and-dragons-website.pages.dev/.
+Git source: `pmegow/traffic-and-dragons`, production branch `master`, output directory
+`website`, no build command. Production builds watch `website/*`; preview builds are
+disabled. Future pushed changes in this folder deploy automatically.
+
+The initial approved deployment is `dbdcc755`, source commit `8f980160`, website
+version 1.0.0. The previous `landing/` folder is retained for reference; `website/`
+is the source for the public site. The game remains a separate Pages project at its
+original address, preserving existing player storage.
+
+Each domain has proxied CNAMEs for its apex and `www`, targeting
+`traffic-and-dragons-website.pages.dev`. A Single Redirect rule in each zone handles
+the canonical address; its stable rule reference is `tnd_landing_canonical`.
+The primary zone redirects `www` and HTTP requests. The hyphenated zone redirects
+both hostnames. Unrelated DNS records and rules are retained.
+
+Live verification: desktop 1024px and phone 320px screenshots inspected; artwork,
+copy, all three game links and lack of horizontal overflow checked. Sixteen HTTP/
+HTTPS checks cover the four hostnames at the root and an asset path with query
+parameters. The primary page and artwork hashes match the local files. One Python
+HTTP client received 403; the real browser and native curl checks passed without
+disabling TLS verification or changing site security settings.
+
+## Publishing updates
+
+Commit and push the intended `website/` changes to `master`, then check the landing
+project's deployment and live page. For a manual upload to the same project:
+
+```powershell
+npx wrangler pages deploy website --project-name traffic-and-dragons-website --branch master
+```
+
+Upload the whole folder, keeping `index.html`, `icon.svg`, and `art/` together.
+No game deployment or DNS changes are required for ordinary page edits. Use a
+Cloudflare login for Pages publishing; DNS/redirect administration requires separate
+scoped permissions. Never store credentials in this repository.
 
 ## Editing
 

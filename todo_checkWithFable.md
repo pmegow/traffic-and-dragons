@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-02 · #550 deployment · Codex, owner-authorized hosting: separate Git-connected Cloudflare Pages project publishes website/; both domains and www aliases connected; scoped DNS and Single Redirect rules canonicalize HTTPS. Live browser and 16 native HTTP checks passed; no engine changes. Earlier unrelated GitHub designer-wait failures were reported and left untouched. Receipt and settings: website/README.md.
+
 - 2026-10-02 · #550 · Codex, owner-requested standalone website: approved adventure-module landing design saved in website/ with original art, real game links, website v1.0.0 and publishing notes. No engine files or deployment changed. Desktop/phone screenshots, navigation, missing-art failure, local-file and JavaScript-disabled checks passed.
 
 - 2026-10-02 · #551 one scratch clone per battery · Opus 5.5, dev tooling (safe-changes map): `dev/sabotage.js` reuses one clone across a battery's prove groups — reset to HEAD (checkout, clean -fdx) and re-mirrored per group, re-cloned on a moved HEAD, dropped when a group throws, removed at exit. Measured first: a cold clone's first run ~10 s vs 0.5 s warm (first-read scan); narrowing the full-suite batteries was measured at ~1 s/clause and dropped by the owner. Meta case red-first; battery 6/6; #475 and #473 batteries green. #543 range: 7.2 → 4.2 min. Re-check: that per-group reset is equivalent to a fresh clone for every battery's assumptions.
