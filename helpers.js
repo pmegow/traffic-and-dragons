@@ -2039,69 +2039,6 @@ function goldRewardIn(text){
    and a paragraph break counts (the old cutter knew only ". " and sliced mid-sentence at 280) — when that end is past 20
    characters (a real sentence, not a bare "Hi."), else at a word boundary with an ellipsis. Used where a first encounter
    is filed (R.feGet) and where one is shown (memoryNpcDetail, the companion-sheet prompt). Pure. */
-/* #525: the ending's RECORD line. The ending is prose written to "you"; after it the model writes "RECORD: <one third-person sentence
-   naming the hero>", the defining moment the party carries. denouementSplit takes that line out of the prose.
-   What counts as the line (review 2026-10-02: the first version took one shape only, and every other shape reached the screen, the
-   voice replay, the transcript and the keepsake): the label RECORD in any case, with markdown, a bullet, a bracket or a quote around
-   it and an optional "the" before it, then a COLON or a spaced dash, then the sentence — as the reply's last line of text, or the
-   label alone with the sentence on the line below. Lines after it that hold no letter or digit ("---") go; so does a rule left
-   above it, and an earlier RECORD line when the model wrote it twice. A label at the very end with nothing after it (a cut-off
-   reply) goes too, with no record. A paragraph that merely begins with the word ("Record-keepers in the capital…") is prose. */
-var DENOUEMENT_RECORD_RE=/^[\s*_`>#\[("'\u201c\u2018\u2022-]*(?:the\s+)?record[\s*_`\]]*(?::|\s[\u2014\u2013-]\s)[\s*_`]*(.*?)[\s*_`\])"'\u201d\u2019]*$/i;
-/* A word boundary that knows more than ASCII: a cased letter of any alphabet, or a digit. Scripts with no case (Japanese, Chinese)
-   have no spaces between words either, so there a name is found wherever it stands. */
-function wordCh(c){return !!c&&(c.toLowerCase()!==c.toUpperCase()||(c>="0"&&c<="9"));}
-/* Does a line hold any text — a letter or a digit of any script? A rule ("---") and a blank line do not. */
-function hasWordCh(s){var i,c;s=String(s||"");for(i=0;i<s.length;i++){c=s.charAt(i);if(wordCh(c)||c.charCodeAt(0)>0x2e7f)return true;}return false;}
-function denouementSplit(text){
-  var L=String(text==null?"":text).split("\n"),rec="",i,j,m;
-  function trimEnd(){while(L.length&&!hasWordCh(L[L.length-1]))L.pop();}
-  for(;;){trimEnd();i=L.length-1;if(i<0)break;
-    m=L[i].match(DENOUEMENT_RECORD_RE);
-    if(m){if(!rec)rec=m[1].trim();L.splice(i,1);continue;}/* the line — and, above it, the same line written twice; the LAST one's sentence is the record */
-    if(rec)break;/* text above the line: the prose */
-    j=i-1;while(j>=0&&!L[j].trim())j--;m=j>=0?L[j].match(DENOUEMENT_RECORD_RE):null;
-    if(m&&!m[1].trim()){rec=L[i].replace(/^[\s*_`\[("'\u201c\u2018]+|[\s*_`\])"'\u201d\u2019]+$/g,"");L.splice(j,L.length-j);continue;}/* the label alone, the sentence below it */
-    break;}
-  return {prose:L.join("\n").trim(),record:rec};
-}
-/* Does a text NAME this person? By any identifying word of the name, standing as a whole word, in the name's own case. Titles and
-   articles are not the name ("The Gray Fox" is named by Gray or Fox, never by "The"); punctuation at either end of a word is not
-   part of it ("Mr.", "(Rook)", '"Lucky"'); a one-letter initial is skipped; a name made only of such words stands whole.
-   Review 2026-10-02: the first version tested the name's FIRST word between JavaScript's \b, which is ASCII-only. "José" was never
-   found — not even inside the prefix this code had just written — so every load stacked another "José's ending: " on every sheet and
-   saved it; and "Tom" was found inside "Tomorrow" by the fate stamp's substring test. */
-var PERSON_NAME_SKIP={the:1,a:1,an:1,of:1,mr:1,mrs:1,ms:1,miss:1,dr:1,st:1,sir:1,ser:1,lady:1,lord:1,dame:1,master:1,mistress:1,captain:1,father:1,mother:1,brother:1,sister:1,king:1,queen:1,prince:1,princess:1};
-function personNameWords(who){
-  var raw=String(who||"").trim().split(/\s+/),out=[],i;
-  for(i=0;i<raw.length;i++){var w=raw[i],a=0,b=w.length;while(a<b&&!wordCh(w.charAt(a)))a++;while(b>a&&!wordCh(w.charAt(b-1)))b--;w=w.slice(a,b);
-    if(w.length>1&&PERSON_NAME_SKIP[w.toLowerCase()]!==1)out.push(w);}
-  return out.length?out:[String(who||"").trim()];
-}
-function textHasWord(text,word){
-  var t=String(text==null?"":text),w=String(word||""),i=-1;if(!w)return false;
-  while((i=t.indexOf(w,i+1))>=0){if(!wordCh(t.charAt(i-1))&&!wordCh(t.charAt(i+w.length)))return true;}
-  return false;
-}
-function textNamesPerson(text,who){var ws=personNameWords(who),i;for(i=0;i<ws.length;i++)if(textHasWord(text,ws[i]))return true;return false;}
-/* An ending moment is read on the hero's sheet AND on every companion's, in later campaigns too. A text that never names the hero
-   ("You learned to stay.", "I spent nineteen levels…") is put under the hero's name, so nobody carries it as their own memory. The
-   result always names the hero, so applying it again changes nothing. */
-function endingMomentText(who,text){
-  var t=String(text==null?"":text).trim(),w=String(who||"").trim();if(!t||!w)return t;
-  return textNamesPerson(t,w)?t:w+"'s ending: "+t;
-}
-/* The heal for endings filed before #525 (The Princess filed the hero's first-person closing on four sheets). Idempotent for every
-   name; returns the count. A sheet whose record is not a list is skipped: this runs inside the load, and a throw there fails it. */
-function healEndingMoments(ws){
-  var n=0;if(!ws)return 0;
-  var sheets=[ws.character],i;for(i=0;i<(ws.npcs||[]).length;i++)if(ws.npcs[i]&&ws.npcs[i].charSheet)sheets.push(ws.npcs[i].charSheet);
-  sheets.forEach(function(cs){if(!cs||!Array.isArray(cs.coreMemories))return;cs.coreMemories.forEach(function(m){
-    if(!m||m.kind!=="ending"||!m.who||typeof m.text!=="string")return;
-    var t=endingMomentText(m.who,m.text);if(t!==m.text){m.text=t;n++;}
-  });});
-  return n;
-}
 function snippetAtSentence(text,max){
   var s=String(text==null?"":text).trim();if(max&&s.length>max)s=s.slice(0,max);
   if(!s||/[.!?]["'\u201d\u2019)\]]*$/.test(s))return s;

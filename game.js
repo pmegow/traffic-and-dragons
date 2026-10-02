@@ -1722,16 +1722,13 @@ function closeCampaign(){
 /* #6 G1: fates are stamped at the ending — on the hero and every living party companion: the campaign, the cause, the
    denouement sentence that names them, the open quest titles. Rides the sheet into the library; the Hall reads it. A kind
    that never closes (the village) never stamps. */
-function stampCampaignFates(text,heroLine){
+function stampCampaignFates(text){
   if(!worldState||(typeof kindDef==="function"&&!kindDef().closable))return 0;
   var t=String(text||"").replace(/\s+/g," "),sent=t.match(/[^.!?]+[.!?]+/g)||[t],camp=worldState.campName||"",cause=(worldState.ended&&worldState.ended.cause)||"",turn=worldState.turn;
   var open=(worldState.questLog||[]).filter(function(q){return q&&q.title&&q.status!=="completed"&&q.status!=="failed";}).map(function(q){return q.title;});
-  var _fHero=worldState.character&&worldState.character.name;
-  function line(name){var i;if(!name)return "";for(i=0;i<sent.length;i++)if(textNamesPerson(sent[i],name))return sent[i].trim();return "";}/* review: a whole word of the name — "Tom" is not in "Tomorrow" */
-  var n=0;function stamp(sheet,fallback){if(!sheet||!sheet.name)return;var ln=line(sheet.name);
-    if(ln&&sheet!==worldState.character)ln=endingMomentText(_fHero,ln);/* review: a companion's sentence comes from prose written to "you" — the Hall quotes it to another hero's GM, so it says whose "you" it is */
-    sheet.fate={campaign:camp,turn:turn,cause:cause,line:ln||fallback||"",unresolved:open.slice(0,3)};n++;}
-  stamp(worldState.character,heroLine);/* #525: an ending written to "you" never names the hero — his line is the record sentence */var comps=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],j;for(j=0;j<comps.length;j++)stamp(comps[j].charSheet||comps[j]);
+  function line(name){var first=String(name||"").split(/\s+/)[0],i;if(!first)return "";for(i=0;i<sent.length;i++)if(sent[i].indexOf(first)>=0)return sent[i].trim();return "";}
+  var n=0;function stamp(sheet){if(!sheet||!sheet.name)return;sheet.fate={campaign:camp,turn:turn,cause:cause,line:line(sheet.name),unresolved:open.slice(0,3)};n++;}
+  stamp(worldState.character);var comps=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],j;for(j=0;j<comps.length;j++)stamp(comps[j].charSheet||comps[j]);
   return n;
 }
 /* #6 E9 → #481 D1 (audit 2026-09-29, Fable-approved): Car Mode's spoken undo reverses the LAST group of item moves — the tail
@@ -4033,9 +4030,8 @@ async function campaignDenouement(){
   busy=true;
   try{
     var text=await callGM(buildDenouementPrompt(),denouementSys(),1500,null,{kind:"other",noHistory:true});/* #325: the living-hero variant when the spine ended the tale */
-    var _shown=fileDenouement(String(text||"").trim());/* #525: the prose without its RECORD line */
-    if(!_shown)throw new Error("the ending came back with no prose");/* review: nothing was filed and the ending stays owed — the raw reply (a bare RECORD line) must not reach the screen; the catch below says it will be tried again */
-    if(typeof addMsg==="function"){var _df=denouementFrame(_shown);addMsg("narrator",_df.html,_df.opts);}
+    fileDenouement(String(text||"").trim());
+    if(typeof addMsg==="function"){var _df=denouementFrame(text);addMsg("narrator",_df.html,_df.opts);}
     if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(worldState.ended&&worldState.ended.cause);
   }catch(e){console.warn("[denouement] not written yet — will retry at next boot:",e&&e.message);if(typeof showToast==="function")showToast("The denouement could not be written yet — it will be tried again next time");}
   finally{busy=false;}
@@ -4067,19 +4063,13 @@ function denouementFrame(text){
   return {html:"<p>"+escProse(t)+"</p>",opts:{replayText:t,turn:worldState?worldState.turn:null,ck:(typeof clockNow==="function")?clockNow():null}};
 }
 function fileDenouement(text){
-  if(!worldState)return "";
-  /* #525: the RECORD line leaves the prose here — the transcript, the chapter, the fates and the screen get the prose only */
-  var _ds=denouementSplit(text),t=_ds.prose;if(!t)return "";
-  var _hero=worldState.character&&worldState.character.name,_recS=_ds.record;
-  if(_recS&&!/[.!?]["'\u201d\u2019)\]]*$/.test(_recS))_recS+=".";/* review: a sentence with no full stop is still one sentence — the snippet cutter read it as cut off and dropped its last word */
-  var _rec=_recS?snippetAtSentence(endingMomentText(_hero,_recS),240):"";
-  if(!_rec){var _paras=t.split(/\n\s*\n/),_lastP=String(_paras[_paras.length-1]||"").trim();_rec=_lastP?(_hero?_hero+"'s ending: ":"")+snippetAtSentence(_lastP,220):"";/* review: prose written to "you" is ALWAYS filed under the hero's name — a vocative ("…, Ammut.") does not make it a third-person record */
-    if(typeof console!=="undefined")console.warn("[denouement] the ending carried no RECORD line — the closing paragraph is filed under the hero's name instead (#525)");}
+  if(!worldState)return;
+  var t=String(text||"").trim();if(!t)return;
   if(typeof logTranscript==="function")logTranscript("gm",t,t,undefined,{denouement:true});
-  if(typeof stampCampaignFates==="function")stampCampaignFates(t,_rec);/* #6 G1: the fates ride the sheets into the library */
+  if(typeof stampCampaignFates==="function")stampCampaignFates(t);/* #6 G1: the fates ride the sheets into the library */
   if(memory){if(!memory.chapters)memory.chapters=[];memory.chapters.push({turn:worldState.turn,summary:"DENOUEMENT: "+t.slice(0,600)});}
   /* #367: the closing paragraph names what the tale changed in the hero — filed as a defining moment, so a legacy hero carries it into the next campaign */
-  if(_rec&&typeof fileCoreMemory==="function")fileCoreMemory("ending",_hero,_rec);/* #525: the third-person record, never the prose's own person */
+  var _paras=t.split(/\n\s*\n/),_lastP=String(_paras[_paras.length-1]||"").trim();if(_lastP&&typeof fileCoreMemory==="function")fileCoreMemory("ending",worldState.character&&worldState.character.name,_lastP.slice(0,240));
   delete worldState.denouementOwed;
   if(!worldState.ended)worldState.ended={turn:worldState.turn,cause:"the story closed",at:Date.now()};
   if(typeof saveAll==="function")saveAll();
@@ -4087,7 +4077,6 @@ function fileDenouement(text){
      gone", but the story save was a menu item nobody reaches at the end (The Long Walk: finished, nothing on the home
      page). Signed in → save the story now; signed out → nothing, the menu item remains. */
   if(typeof saveNarrativeMemento==="function"&&typeof storageAdapter!=="undefined"&&storageAdapter&&typeof storageAdapter.hasToken==="function"&&storageAdapter.hasToken())saveNarrativeMemento();
-  return t;
 }
 // #300 multiplayer — death is personal. A fallen PC companion is parked with its sheet; the party
 // continues; at the next camp they rejoin whole.

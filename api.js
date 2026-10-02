@@ -347,13 +347,8 @@ function buildCoreMemoryBlock(){
     var j;for(j=0;j<(list||[]).length;j++){var m=list[j];if(!m||!m.text)continue;
       var _mPrior=!campIsCurrent(m);/* #481 C8: by id when both sides carry one — a rename no longer makes this campaign's moments "earlier" */
       if(_mPrior&&owner&&carriers.indexOf(owner)<0)carriers.push(owner);/* before the dedupe: a moment shared across sheets is carried by every sheet that holds it */
-      /* #525 review: a sheet can arrive mid-session (a library companion, a Village move-in) with an ending filed before the heal, and
-         the load-time heal has not seen it. The GM never reads it bare: the block reads every ending through endingMomentText. Pure —
-         the record itself is healed at the next load. The dedupe key uses the read text, so a healed copy and an old copy are one line. */
-      var _mt=(m.kind==="ending"&&m.who&&typeof endingMomentText==="function")?endingMomentText(m.who,m.text):m.text;
-      var k=(m.camp||"")+"|"+m.turn+"|"+_mt;if(seen[k])continue;seen[k]=1;
-      var _mv=(_mt===m.text)?m:{text:_mt,turn:m.turn,camp:m.camp,campId:m.campId,kind:m.kind,who:m.who};
-      if(_mPrior)prior.push(_mv);else cur.push(_mv);}
+      var k=(m.camp||"")+"|"+m.turn+"|"+m.text;if(seen[k])continue;seen[k]=1;
+      if(_mPrior)prior.push(m);else cur.push(m);}
   }
   collect(worldState.character.coreMemories,worldState.character.name);names.push(worldState.character.name);
   var _cmParty=livingPartyCompanions();/* #6: shared party scan */
@@ -838,15 +833,9 @@ function buildLayoutNote(){
 }
 // #301: the DENOUEMENT — the campaign's closing chapter, asked of the GM when the fourth death lands or the
 // player walks onward. Drawn from what the campaign actually recorded; written in the campaign's voice.
-/* #525 (owner rulings 2026-10-01): the ending is written to "you", like the game. Game words and modern idiom are the campaign
-   VOICE's to use or not (a Dinniman campaign may joke about levels; a Le Guin one never does) — The Princess's "nineteen levels"
-   was its chosen voice at work; only the first person was unasked for. The RECORD line is the hero's defining moment in plain third
-   person, by name: the prose's own person ("You…", once "I…") must never be filed as a memory the whole party carries. */
-var DENOUEMENT_VOICE_RULE=" Write it in the second person, to the hero as \"you\", as the game's narration does: never as the hero (\"I\") and never about the hero from outside. Use game terms (levels, classes, stats, dice, the narrator) and modern idiom only if the VOICE below calls for them; otherwise use none.";
-var DENOUEMENT_RECORD_RULE=" After the prose, on its own final line, write \"RECORD: \" and ONE plain sentence in the third person, past tense, naming the hero by name, that says what the tale changed in the hero or refused to change. That line goes on the hero's record and is not shown; write it in no voice.";
-var DENOUEMENT_SYS="You are the Game Master closing a FINISHED campaign. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words."+DENOUEMENT_VOICE_RULE+" Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. End on the world going on without the hero. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero's recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played."+DENOUEMENT_RECORD_RULE;
+var DENOUEMENT_SYS="You are the Game Master closing a FINISHED campaign. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. End on the world going on without the hero. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero's recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played.";
 // #325: the spine's own ending — the hero LIVES. Same denouement, a different last line.
-var DENOUEMENT_SYS_TOLD="You are the Game Master closing a FINISHED campaign whose authored tale has been told to its last act. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words."+DENOUEMENT_VOICE_RULE+" Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. The hero lives: end on the hero and the world they made, the story's threads at rest. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero's recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played."+DENOUEMENT_RECORD_RULE;
+var DENOUEMENT_SYS_TOLD="You are the Game Master closing a FINISHED campaign whose authored tale has been told to its last act. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. The hero lives: end on the hero and the world they made, the story's threads at rest. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero's recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played.";
 function denouementSys(){return (worldState&&worldState.ended&&worldState.ended.spine)?DENOUEMENT_SYS_TOLD:DENOUEMENT_SYS;}
 function buildDenouementPrompt(){
   var c=worldState.character,lines=[],i;
@@ -866,8 +855,7 @@ function buildDenouementPrompt(){
   var cb=buildDenouementCompanions();if(cb)lines.push(cb);
   var pb=buildDenouementPending();if(pb)lines.push(pb);
   var d=worldState.deaths||[];if(d.length||worldState.ended){lines.push("DEATHS:");for(i=0;i<d.length;i++)lines.push("- t"+d[i].turn+": "+(d[i].cause||"slain"));if(worldState.ended)lines.push("- t"+worldState.ended.turn+": "+(worldState.ended.cause||"slain")+" — the last.");}
-  var _dvId=(worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");/* #525 review: the voice the game was PLAYED in — the campaign's, else the device's, exactly as buildSysPrompt resolves it. With no VOICE line the rule above says "use none". */
-  var pa=(typeof AUTHORS!=="undefined"&&_dvId)?AUTHORS.filter(function(a){return a.id===_dvId;})[0]:null;
+  var pa=(typeof AUTHORS!=="undefined"&&worldState.proseAuthor)?AUTHORS.filter(function(a){return a.id===worldState.proseAuthor;})[0]:null;
   if(pa&&pa.vc)lines.push("VOICE: "+pa.vc);
   lines.push("Write the denouement now.");
   return lines.join("\n");

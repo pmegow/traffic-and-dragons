@@ -80,7 +80,8 @@ Not built; these are the conclusions the two reviews support.
 
 | Row | What | State |
 |---|---|---|
-| #525, #514, #506 | The three other rulings of 2026-10-01 | Built. A third independent review the same night cleared #514 and #506 and found one serious defect in #525 (its load-time repair stacked a prefix on every load for a hero name with an accent or a title); #525 was corrected before the push (v1.1110) |
+| #514, #506 | Two of the three other rulings of 2026-10-01 | Built; a third independent review found no new defect in either |
+| #525 | The third ruling (the ending) | Built, reviewed twice, taken out before the push and held on its own branch: [AUDIT_2026_10_02_525_ending_voice.md](AUDIT_2026_10_02_525_ending_voice.md) |
 | #533 | The "constructor" crash and its class in the word tables | Fixed |
 | #535 | The merge gate's spelling hole | Fixed |
 | #537 | The self-merge blow-up | Fixed |
