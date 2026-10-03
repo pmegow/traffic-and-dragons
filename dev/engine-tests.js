@@ -29060,15 +29060,28 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return got&&got.ds==="Frizwick reads a wall for hollows by touch"&&got.gained===worldState.turn?true:"the companion's sheet holds it as written: "+JSON.stringify(got);
   });
   t("#490 the hero keeps what is the hero's: taught by a companion, named for one, about an outsider, or about nobody",function(){
-    var cs=w490(),before=cs.abilities.length,want=["Knife Palm","Frizwick's Gift","Borin's Read","Deep Listening","Twin Step"],i;
+    var cs=w490(),before=cs.abilities.length,want=["Knife Palm","Frizwick's Gift","Borin's Read","Deep Listening","Twin Step","Guided Step","Shared Trust"],i;
     worldState.npcs.push({name:"Borin",status:"gruff",rel:"acquaintance"});
     quiet(function(){applyMuts("[ABILITY_GAINED:Knife Palm|Frizwick taught you to palm a blade unseen]"
       +"[ABILITY_GAINED:Frizwick's Gift|Frizwick's parting lesson: sense a hidden door]"
       +"[ABILITY_GAINED:Borin's Read|Borin reads the grain of any stone]"
       +"[ABILITY_GAINED:Deep Listening|Hear a heartbeat through a wall]"
-      +"[ABILITY_GAINED:Twin Step|Frizwick and Ammut move as one when flanking]");});
+      +"[ABILITY_GAINED:Twin Step|Frizwick and Ammut move as one when flanking]"
+      +"[ABILITY_GAINED:Guided Step|Frizwick guides you through the dark by the hand]"
+      +"[ABILITY_GAINED:Shared Trust|Frizwick trusts Ammut with the second blade]");});
     for(i=0;i<want.length;i++){if(hero490().indexOf(want[i])<0)return want[i]+" must stay the hero's: "+hero490().join(", ");}
     return cs.abilities.length===before?true:"the companion gained an ability that was the hero's";
+  });
+  t("#520 a description that merely OPENS with a member's name stays the hero's: a teaching verb (showed, gave, teaches), a first name that is also a word (Sable cloak…, Will saves…), a noun after the name; a third-person verb still routes",function(){
+    var cs=w490();worldState.npcs.push({name:"Sable Vey",partyMember:true,status:"ally",charSheet:{name:"Sable Vey",cls:"Rogue",level:2,hp:10,maxHp:10,inventory:[],abilities:[],spells:[]}},{name:"Will Harrow",partyMember:true,status:"ally",charSheet:{name:"Will Harrow",cls:"Warrior",level:2,hp:10,maxHp:10,inventory:[],abilities:[],spells:[]}});
+    var names=["Frizwick","Sable Vey","Will Harrow"],hero="Ammut";
+    var stay=["Daeris showed how to bank a fire so it lasts the night","Frizwick showed how to bank a fire","Frizwick gives a lesson in reading tracks","Frizwick teaches the knife-palm","Sable cloak of woven dusk grants a shadowed step","Will saves against fear with iron resolve","Frizwick lesson: a hidden door is felt before it is seen"],i;
+    for(i=0;i<stay.length;i++)if(abilityTagSubject(stay[i],hero,names)!==null)return "must stay the hero's: "+stay[i]+" → "+abilityTagSubject(stay[i],hero,names);
+    if(abilityTagSubject("Frizwick locates nearby creatures without relying on sight",hero,names)!=="Frizwick")return "a third-person verb still routes to the member";
+    if(abilityTagSubject("Sable Vey melts into shadow between heartbeats",hero,names)!=="Sable Vey")return "the full name routes even when the first name is a word";
+    if(abilityTagSubject("Will Harrow shrugs off fear",hero,names)!=="Will Harrow")return "the full name routes: Will Harrow";
+    quiet(function(){applyMuts("[ABILITY_GAINED:Banked Fire|Frizwick showed how to bank a fire so it lasts the night]");});
+    return hero490().indexOf("Banked Fire")>=0&&!cs.abilities.some(function(x){return x.nm==="Banked Fire";})?true:"the taught ability lands on the hero, not the teacher: "+hero490().join(", ");
   });
   t("#490 a second copy under another spelling is refused: a different case, or an old 'LvN' entry holding the name",function(){
     w490();var c=worldState.character;c.abilities=[{nm:"Lv9",ds:"Blindsense -- know location of hidden creatures within 10ft."},{nm:"Mudwalk",ds:"Move over marsh."}];

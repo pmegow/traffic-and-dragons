@@ -1285,6 +1285,12 @@ function abilityHeldAs(c,nm){
 // addresses the hero ("Frizwick taught you…") or names the hero ("Frizwick and Ammut…").
 // names = the party members with sheets; a first name alone counts (the GM writes "Morwen" for
 // "Morwen Zethran"), a leading title or article never does ("The Entity" is not "the").
+// #520 (Thursday review 2026-10-01): the name must be the SUBJECT of a third-person verb — "Frizwick locates…",
+// "Sable Vey melts…" — not merely the first word: "Daeris showed how to bank a fire" is a lesson the HERO learned
+// (a teaching verb keeps it the hero's), "Sable cloak of woven dusk grants…" is an item, "Will saves against fear" is a
+// save; a first name that is also an English word (Will, Sable, Grace, Hope…) only counts as the full name.
+var ABILITY_TEACH_VERB_RE=/^(?:show(?:s|ed)?|teach(?:es)?|taught|giv(?:es|e)|gave|lend(?:s)?|lent|hand(?:s|ed)?|offer(?:s|ed)?|explain(?:s|ed)?|demonstrat(?:es|ed)|train(?:s|ed)?|coach(?:es|ed)?|tell(?:s)?|told|pass(?:es|ed)?|impart(?:s|ed)?|instruct(?:s|ed)?)\b/;
+var FIRST_NAME_WORD_RE=/^(?:will|sable|grace|hope|faith|rose|dawn|may|june|art|mark|bill|rob|pat|sue|ray|jack|chase|hunter|jade|ash|sage|reed|lance|pierce|wade|flint|ember|frost|storm|hazel|ivy|olive|ruby|pearl|amber|coral|brook|dale|glen|cliff|rock|stone|iron|steel|silver)$/;
 function abilityTagSubject(ds,heroName,names){
   var low=String(ds||"").trim().toLowerCase(),i,j;
   if(!low||/(^|[^a-z])(you|your|yours|yourself)([^a-z]|$)/.test(low))return null;
@@ -1293,9 +1299,13 @@ function abilityTagSubject(ds,heroName,names){
   for(i=0;i<(names||[]).length;i++){
     var full=String(names[i]||"").trim().toLowerCase(),forms=[full],first=full.split(/\s+/)[0];
     if(!full)continue;
-    if(first!==full&&first.length>=3&&!/^(the|old|young|sir|lady|lord|captain|sheriff|brother|sister|father|mother|master|mistress)$/.test(first))forms.push(first);
+    if(first!==full&&first.length>=3&&!/^(the|old|young|sir|lady|lord|captain|sheriff|brother|sister|father|mother|master|mistress)$/.test(first)&&!FIRST_NAME_WORD_RE.test(first))forms.push(first);
     for(j=0;j<forms.length;j++){
-      if(low.indexOf(forms[j])===0&&/^\s+[a-z]/.test(low.slice(forms[j].length)))return names[i];
+      if(low.indexOf(forms[j])!==0)continue;
+      var vm=low.slice(forms[j].length).match(/^\s+([a-z][a-z'-]*)/);if(!vm)continue;
+      var verb=vm[1];if(ABILITY_TEACH_VERB_RE.test(verb))continue;/* a lesson the hero learned */
+      if(!/(?:[^s]s|es)$/.test(verb)||/^(?:this|his|has|was|is|as|its|us|plus|minus|yes|thus|lens|bus|gas|dusk|cloak)$/.test(verb))continue;/* a third-person present verb ends in -s; a noun or a past tense does not */
+      return names[i];
     }
   }
   return null;
