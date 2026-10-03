@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-03 · #559 · Codex: catalog compatibility correction v1.1134; actual Ammut t279 covered/interior profile rejected sealed-only alchemist assets and fell back to hearth. Two catalog entries widened; no scene-policy or live-save changes. Failing-first regression, copied-save browser playback and full gate pass. [Receipt](audits/VERIFY_559_covered_alchemist.md).
+
 - 2026-10-03 · #511 #517 #518 #519 recheck · Codex, read/run only: five repaired cases verified, eleven remaining-case probes reproduce defects. All four stay partial. Full gate 2,616 assertions + 93 standalone suites; quartet sabotage 10/10; four replay baselines unchanged. [Receipt](audits/VERIFY_ledger_quartet_2026-10-03.md). No runtime edits or live-save writes.
 
 - 2026-10-02 · Known-issues verification · Codex, owner-authorized read/run and archival: 76 rows reviewed, 36 verified complete, 40 retained; #527(26) graduated to #591 and conflicting counter QA filed #592. Engine unchanged; full gate 2,611 assertions + 93 standalone suites, four CI replays, isolated browser and mutation checks. [Receipt](audits/VERIFY_known_issues_2026-10-02.md).

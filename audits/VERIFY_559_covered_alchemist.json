@@ -1,0 +1,62 @@
+{
+  "result": "PASS",
+  "version": "v1.1134",
+  "scene": {
+    "campaignId": "camp_1789338232587_9271",
+    "campaignKind": "village",
+    "nodeKey": "The Village|the alchemist's",
+    "common": "the alchemist's",
+    "open": true,
+    "minuteOfDay": 835,
+    "exterior": false,
+    "habitable": false,
+    "profile": {
+      "enclosure": "covered",
+      "setting": "interior",
+      "biome": "temperate",
+      "quiet": "normal",
+      "allows": [
+        "fire",
+        "machinery",
+        "voices"
+      ],
+      "forbid": [
+        "rain",
+        "thunder"
+      ],
+      "schema": 1,
+      "cohort": "starter-1",
+      "variant": "b9746875",
+      "revision": 1,
+      "stamp": "c25c0657",
+      "source": "gm"
+    },
+    "classified": true,
+    "stale": false,
+    "generation": 2
+  },
+  "playback": {
+    "key": "camp_1789338232587_9271|feature|alchemist",
+    "sources": 1,
+    "buffers": 1,
+    "pending": 0,
+    "failed": false,
+    "transitioning": false,
+    "decodedBytes": 2958740,
+    "reservedDecodes": 0,
+    "bufferRecords": 2,
+    "accents": {
+      "key": "camp_1789338232587_9271|The Village|the alchemist's|2|alchemist-glass",
+      "sets": [
+        "alchemist-glass"
+      ],
+      "buffers": 1,
+      "loading": 0,
+      "playing": 0,
+      "scheduled": 1,
+      "due": {
+        "alchemist-glass": 1791068162251.5957
+      }
+    }
+  }
+}

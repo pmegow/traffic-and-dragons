@@ -794,7 +794,8 @@
     {
       "cohort": "starter-1",
       "enclosures": [
-        "sealed"
+        "sealed",
+        "covered"
       ],
       "settings": [
         "interior"
@@ -843,7 +844,8 @@
     {
       "cohort": "starter-1",
       "enclosures": [
-        "sealed"
+        "sealed",
+        "covered"
       ],
       "settings": [
         "interior"

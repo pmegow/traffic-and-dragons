@@ -68,3 +68,11 @@ Installation verification: the real browser loader verified and decoded both cat
 started the simmer and one scheduled clink, suppressed accents during narration and mic
 capture, stopped on mute/pause, resumed, and released both buffers when the shop closed.
 Selection checks also cover wrong campaign/shop, unknown hours and profile prohibitions.
+
+Covered-interior correction (v1.1134, 2026-10-03): the owner's Ammut t279 save
+classifies the open alchemist as covered/interior. The sealed-only catalog entries
+rejected that valid scene and selected the generic hearth. Both alchemist entries
+accept sealed and covered interiors. A failing-first regression covers this exact
+profile, sealed compatibility and closure/campaign/shop/quiet/prohibition gates.
+Isolated Chromium verified the copied save starts the simmer and decodes/schedules
+the glass sprite. See [verification receipt](../audits/VERIFY_559_covered_alchemist.md).

@@ -821,7 +821,8 @@ var AUDIO_CATALOG = {
     {
       "cohort": "starter-1",
       "enclosures": [
-        "sealed"
+        "sealed",
+        "covered"
       ],
       "settings": [
         "interior"
@@ -872,7 +873,8 @@ var AUDIO_CATALOG = {
     {
       "cohort": "starter-1",
       "enclosures": [
-        "sealed"
+        "sealed",
+        "covered"
       ],
       "settings": [
         "interior"
@@ -947,5 +949,5 @@ var AUDIO_CATALOG = {
       "bytes": 57984
     }
   ],
-  "version": "344ed1810789acccf6fc"
+  "version": "ffc9b7074d980fed7765"
 };

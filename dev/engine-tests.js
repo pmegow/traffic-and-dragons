@@ -25460,6 +25460,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return {enabled:true,unlocked:true,visible:true,volume:0.45,campaignKind:"village",campaignId:"hearth-save",nodeKey:"The Village|the tavern",common:"the tavern",open:true,exterior:false,minuteOfDay:1195,classified:true,
       profile:{enclosure:"covered",setting:"interior",biome:"temperate",quiet:"normal",allows:["fire","voices"],forbid:["machinery","rain","thunder"],schema:1,cohort:"starter-1"}};
   }
+  t("#559 the t279 covered alchemist selects simmer and glass, while closure and profile vetoes still win",function(){
+    var s=hearthSavedScene();s.nodeKey="The Village|the alchemist's";s.common="the alchemist's";s.minuteOfDay=835;
+    s.profile={enclosure:"covered",setting:"interior",biome:"temperate",quiet:"normal",allows:["fire","machinery","voices"],forbid:["rain","thunder"],schema:1,cohort:"starter-1"};
+    var before=JSON.stringify(s),p=ambientPlan(s,AUDIO_SCENES),sets=audioSelectAccents(s,AUDIO_CATALOG,accentSeedFor(s,AUDIO_SCENES));
+    if(!p.scene||p.scene.id!=="alchemist")return "saved covered shop plays "+(p.scene&&p.scene.id)+", not the approved simmer";
+    if(sets.length!==1||sets[0].id!=="alchemist-glass")return "saved covered shop loses its glass: "+JSON.stringify(sets.map(function(a){return a.id;}));
+    if(JSON.stringify(s)!==before)return "selection must never rewrite the saved classification";
+    var cases=[{open:false},{open:null},{campaignKind:"adventure"},{common:"the healer's"},{profile:Object.assign({},s.profile,{quiet:"silent"})},{profile:Object.assign({},s.profile,{forbid:["water"]})},{profile:Object.assign({},s.profile,{enclosure:"open"})}];
+    for(var i=0;i<cases.length;i++){var n=Object.assign({},s,cases[i]);p=ambientPlan(n,AUDIO_SCENES);if(p.scene&&p.scene.id==="alchemist")return "alchemist ignores gate "+i;if(audioSelectAccents(n,AUDIO_CATALOG,accentSeedFor(n,AUDIO_SCENES)).some(function(a){return a.id==="alchemist-glass";}))return "glass ignores gate "+i;}
+    s.profile.enclosure="sealed";p=ambientPlan(s,AUDIO_SCENES);return p.scene&&p.scene.id==="alchemist"?true:"sealed interior stopped matching";
+  });
   t("Hearth saved tavern profile selects chatter and fire despite its observed allows list",function(){
     var s=hearthSavedScene(),p=ambientPlan(s,AUDIO_SCENES);
     if(!p.scene||p.scene.id!=="tavern")return "turn-205 tavern profile selected silence";
