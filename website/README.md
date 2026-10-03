@@ -1,9 +1,9 @@
 # Traffic & Dragons website
 
-Standalone public landing page, version 1.0.2. Open `index.html` to preview it locally.
+Standalone public landing page, version 1.0.3. Open `index.html` to preview it locally.
 No build, package installation, API keys, game files, or Codex runtime are required.
 
-The approved design uses parchment, brick-red lettering, the original dragon-on-Beetle
+The approved design uses parchment, brick-red lettering, the coffee version of the dragon-on-Beetle
 artwork, and “Add a little fantasy to your gridlock.” The cover favors portrait
 8.5:11 proportions, growing vertically on small screens to keep content readable.
 “Continue your Campaign” and “New Adventurer? Sign up” are the two entry links to the
@@ -58,8 +58,8 @@ scoped permissions. Never store credentials in this repository.
 
 ## Editing
 
-The layout and styles are in `index.html`; the original artwork is in
-`art/dragon-on-beetle.webp`. Update the `website-version` meta value and the matching
+The layout and styles are in `index.html`; the displayed artwork is in
+`art/Dragon-on-beetle_coffee.jpeg`. Update the `website-version` meta value and the matching
 asset query versions whenever this website changes. No game service worker is used.
 If the game's destination changes, update both ordinary anchor links together.
 The illustration failure handler reports to the page and console without blocking

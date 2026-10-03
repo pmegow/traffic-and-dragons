@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-02 · #553 · Codex, owner-requested website v1.0.3: swapped page and link-preview artwork to the supplied coffee image, matching its dimensions and updating website cache markers. No engine changes.
+
 - 2026-10-02 · #550 copy · Codex, owner-requested website v1.0.2: “Continue your Campaign” avoids repeating adventure above the signup line. Website copy and version markers only; no engine changes.
 
 - 2026-10-02 · #550 refinement · Codex, owner-requested website v1.0.1: removed duplicate header sign-in, changed entry copy, and constrained the formerly widening border to portrait letter proportions with content growth on phones. Desktop/phone screenshot and link checks passed; no engine changes.
