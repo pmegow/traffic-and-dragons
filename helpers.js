@@ -713,11 +713,13 @@ function _partyClauseSeparation(clause,partyNames){
     h=hits[i];
     if(/^['’]s\b/i.test(clause.slice(h.end)))continue;
     tail=clause.slice(h.end);
-    vm=tail.match(/^([^.!?;]{0,45}?)(?:(?:stay(?:s|ing)|remain(?:s|ing)|wait(?:s|ing))[\s,]+(?:behind|here|there|put|at\b|outside|below|above|by\b)|hang(?:s|ing)?\s+back|keep(?:s|ing)?\s+watch|left\s+behind|isn['’]?t\s+coming|is\s+not\s+coming|not\s+coming\s+(?:along|down|inside)|leaves|left(?=\s+(?:the|for)\b)|(?:has|had)\s+left\b|depart(?:s|ed)|is\s+gone|(?:rides|rode)\s+ahead|heads\s+back|goes\s+ahead)/i);
+    vm=tail.match(/^([^.!?;]{0,45}?)(?:(?:stay(?:s|ing)|remain(?:s|ing)|wait(?:s|ing))[\s,]+(?:behind|here|there|put|at\b|outside|below|above|by\b)|hang(?:s|ing)?\s+back|keep(?:s|ing)?\s+watch|left\s+behind|isn['’]?t\s+coming|is\s+not\s+coming|not\s+coming\s+(?:along|down|inside)|leaves|left\b(?!-)(?!\s+(?:side|hand|her|his|their|a|an|my|your)\b)|(?:has|had)\s+left\b|depart(?:s|ed)|is\s+gone|(?:rides|rode)\s+ahead|heads\s+back|goes\s+ahead)/i);
     /* #481 B5 (audit 2026-09-29): a bare "left" is a SIDE, not a departure — "settles in along your left", "at your left",
-       "the residue left along the plinth" were six of six field alarms. "left" counts only with a departure complement
-       ("left the", "left for", "has left") AND only when nothing but an auxiliary or an adverb stands between the name and
-       it (a noun before "left" is that noun's verb — "the mule left the yard"). */
+       "the residue left along the plinth" were six of six field alarms. "left" counts only when nothing but an auxiliary
+       or an adverb stands between the name and it (a noun before "left" is that noun's verb — "the mule left the yard").
+       #521: the complement rule ("left the", "left for") lost the plainest shapes — "Daeris left.", "left without a word",
+       "left at dawn"; "left" now counts unless it is a side ("left side", "left hand", "left-handed") or an object follows
+       ("left her…", "left a coin", "left my cloak") — the gap guard below carries the six field lines. */
     if(vm&&/\bleft\b/i.test(vm[0].slice(vm[1].length))&&!/^\s*(?:(?:has|had|just|already|quietly|finally|then|now|silently|abruptly|simply|soon|,)\s*)*$/i.test(vm[1]))vm=null;
     if(vm){
       gap=vm[1];after=tail.slice(vm.index+vm[0].length);

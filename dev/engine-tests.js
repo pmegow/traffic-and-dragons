@@ -28374,6 +28374,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     for(i=0;i<neg.length;i++){var hit=detectStayBehind(neg[i],names);if(hit)return "false separation for "+hit+" on "+neg[i];}
     return true;
   });
+  t("#521 the plain departures count again: 'Daeris left.', 'left without a word', 'left at dawn', 'just left', 'had already left' — while the six field lines and 'left her side' stay no separation",function(){
+    var names=["Frizwick","Morwen Zethran","Daeris"],yes=["Daeris left.","Daeris left without a word.","Frizwick left at dawn.","Daeris just left.","Morwen had already left.","Daeris left quietly."],no=["Daeris left her side and crossed to the window.","Morwen left his hand on the table.","Frizwick left a coin on the bar.","Daeris left-handedly flips the coin.","Morwen left my cloak by the fire."],i;
+    for(i=0;i<yes.length;i++)if(!detectStayBehind(yes[i],names))return "a plain departure must count: "+yes[i];
+    for(i=0;i<no.length;i++)if(detectStayBehind(no[i],names))return "not a departure: "+no[i];
+    return true;
+  });
   t("#481 B5 a real departure still counts: left the / left for / has left",function(){
     var names=["Frizwick","Morwen Zethran","Daeris"];
     if(detectStayBehind("Daeris left the tavern before dawn.",names)!=="Daeris")return "left the";
