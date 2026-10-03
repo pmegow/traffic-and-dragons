@@ -2051,7 +2051,7 @@ var COIN_UNIT_KEY={gp:"gp",gold:"gp",sp:"sp",silver:"sp",cp:"cp",copper:"cp",pp:
 function parseCoin(str,lead){
   var s=String(str==null?"":str).toLowerCase().replace(/(\d),(?=\d{3}(?!\d))/g,"$1");
   if(lead&&!/^\s*[+-]?\d/.test(s))return null;
-  var re=/([+-]?\d+(?:\.\d+)?)(?:\s*(gp|sp|cp|pp|gold|silver|copper|platinum)(?![a-z])(?:\s+(?:pieces?|coins?)(?![a-z]))?)?/g,m,first=null,hit=null;
+  var re=/([+-]?\d+(?:\.\d+)?)(?:\s*(gp|sp|cp|pp|gold|silver|copper|platinum)s?(?![a-z])(?:\s+(?:pieces?|coins?)(?![a-z]))?)?/g,m,first=null,hit=null;/* #517: "3 coppers" is 3 cp — the plural used to fail the word boundary and read as gold */
   while((m=re.exec(s))){if(!first)first=m;if(lead)break;if(m[2]){hit=m;break;}}
   hit=(lead||!hit)?first:hit;if(!hit)return null;
   var amount=parseFloat(hit[1]);if(!lead)amount=Math.abs(amount);
@@ -3275,8 +3275,11 @@ function shopTradePlan(cat,marks){
      0 gp while the item left the pack. It is refused with the reason and nothing moves; two 3 sp whistles (6 sp) sell for 1 gp. */
   for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellGp==null)continue;q=Math.min(q,r.qty);if(Math.round(r.sellGp*q)===0){under.push(q+" "+r.name+" ("+shopFmtGp(r.sellGp*q)+")");continue;}lines.push({kind:"sell",name:r.name,qty:q,unitGp:r.sellGp,gp:r.sellGp*q});sellGp+=r.sellGp*q;}
   for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();var bq=Math.min(mb[k]|0,b.per||1);if(bq<=0||b.buyGp==null)continue;lines.push({kind:"buy",name:b.name,qty:bq,unitGp:b.buyGp,gp:b.buyGp*bq,price:b.price});buyGp+=b.buyGp*bq;}/* #481 D5: the line is the unit price times the count */
-  var net=buyGp-sellGp,rounded=net>=0?Math.round(net):-Math.round(-net);/* whole gp, halves away from zero: a half-gp sale still pays 1 gp */
-  if(buyGp>0&&net>0&&rounded===0)rounded=1;/* the keeper never gives a thing away */
+  /* #517 (Astra's fixture 2026-10-02): the net used to be rounded as ONE number, so two 3 sp whistles (0.6 gp) against a 1 gp rope
+     netted 0.4 → 0 → "never gives a thing away" → 1 gp: the hero paid full price AND handed over the whistles. Each side now
+     rounds to whole gold on its own — the sale at the D7 rule (halves up: 0.6 gp pays 1 gp), the purchase never under 1 gp —
+     and the net is the difference of the two whole numbers. */
+  var sellR=Math.round(sellGp),buyR=buyGp>0?Math.max(1,Math.round(buyGp)):0,rounded=buyR-sellR;
   var goldAfter=cat.gold-rounded,ok=lines.length>0&&goldAfter>=0&&!under.length;
   var why=under.length?"the keeper pays nothing for "+under.join(", ")+" — under half a gold piece; mark more of it, or keep it":(!lines.length?"nothing marked":(goldAfter<0?"short "+(rounded-cat.gold)+" gp":""));
   return {lines:lines,under:under,sellGp:sellGp,buyGp:buyGp,netGp:rounded,goldAfter:goldAfter,ok:ok,reason:why};

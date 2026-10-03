@@ -26408,12 +26408,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#407 ③ Complete lands through the trade gate: gold and inventory move as tags in the mutation log, bought wares leave the shelf, sold items join it at canon, tradePing arms once and buildTradeNote speaks ONCE with 'ALREADY updated'; a stale plan against a closed gate moves nothing",function(){
     shopFixture();worldState.character.gold=60;var res=shopTradeApply({sell:{"rope":3,"bone-handled knife":1},buy:{"healing potion":1}});
     if(!res.ok)return "apply: "+res.reason;
-    if(worldState.character.gold!==60-46)return "gold 60 − (50 − 4.5 = 45.5 → 46; the knife at its 3 gp offer, #481 D4): "+worldState.character.gold;
+    if(worldState.character.gold!==60-45)return "gold 60 − (buy 50 − sale 4.5→5 = 45; each side rounds on its own since #517; the knife at its 3 gp offer, #481 D4): "+worldState.character.gold;
     var inv=worldState.character.inventory.join("|");if(/Rope|Bone-handled/.test(inv)||!/Healing potion x2/.test(inv))return "inventory after: "+inv;
     var node=memory.map.nodes["The Village|the trading post"],wn=node.wares.map(function(w){return w.item+"@"+w.price;}).join(",");
     if(/Healing potion/.test(wn))return "the bought potion must leave the shelf: "+wn;
     if(!/Rope@1 gp/.test(wn)||!/Bone-handled knife@2 gp/.test(wn))return "sold items join the shelf at canon: "+wn;
-    if(!worldState.tradePing||worldState.tradePing.keeper!=="Frizwick"||worldState.tradePing.netGp!==46)return "tradePing: "+JSON.stringify(worldState.tradePing);
+    if(!worldState.tradePing||worldState.tradePing.keeper!=="Frizwick"||worldState.tradePing.netGp!==45)return "tradePing (45 since #517: 50 − 4.5→5): "+JSON.stringify(worldState.tradePing);
     if(!/Silas sold Rope x3/.test(res.line)||!/with Frizwick at the trading post/.test(res.line))return "the system line names hero and keeper: "+res.line;
     var note=buildTradeNote();if(!/TRADE DONE/.test(note)||!/ALREADY updated/.test(note)||!/ONE in-character sentence/.test(note)||!/Frizwick/.test(note))return "note: "+note.slice(0,300);
     if(buildTradeNote()!=="")return "the note speaks once";
@@ -26975,6 +26975,64 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();sessionLog=[{role:"assistant",content:"[SAY:Old Gurt]\"Nets.\""}];
     worldState.npcs.push({name:"Old Gurt",rel:"friendly",resident:true});memory.npcs["Old Gurt"]={knowledge:[],events:[],aliases:[],lastSeenAt:"Far Away"};
     if(buildElsewhereSpeechNote())return "an adventure must never fire this note";
+    return true;
+  });
+
+  section("the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)");
+  function quartetVillage(){
+    makeWorld();worldState.kind="village";worldState.character.name="Silas";worldState.world.location="The Village";worldState.world.sublocation=null;
+    memory.map={nodes:{"The Village":{firstVisit:1,visits:1,parent:null,npcs:[],items:[]}},edges:[],lastArrivalFrom:null};
+    importVillageResidents([{name:"Frizwick",gender:"F",cls:"Rogue",inventory:[],coreMemories:[]}]);villageHouseEnsure("Silas",null);
+    worldState.world.sublocation="Silas's house";worldState.stashMoves=[];return memory.map.nodes[villageHouseKey("Silas")];
+  }
+  t("#517 ① a sale bundled with a purchase: each side rounds to whole gold on its own, so two 3 sp whistles (1 gp) against a 1 gp rope nets nothing — the whistles are not given away",function(){
+    var cat={gold:10,sell:[{name:"Carved whistle",qty:2,sellGp:.3}],buy:[{name:"Rope",buyGp:1,per:1}]};
+    var both=shopTradePlan(cat,{sell:{"carved whistle":2},buy:{rope:1}}),buy=shopTradePlan(cat,{buy:{rope:1}}),sell=shopTradePlan(cat,{sell:{"carved whistle":2}});
+    if(!sell.ok||sell.netGp!==-1)return "two whistles alone sell for 1 gp (D7): "+JSON.stringify(sell);
+    if(!buy.ok||buy.netGp!==1)return "the rope alone costs 1 gp: "+JSON.stringify(buy);
+    if(!both.ok||both.netGp!==0||both.goldAfter!==10)return "bundled, the sale pays for the purchase — net 0, not the purchase alone: "+JSON.stringify(both);
+    var cheap=shopTradePlan({gold:10,sell:[],buy:[{name:"Needle",buyGp:.3,per:1}]},{buy:{needle:1}});if(cheap.netGp!==1)return "a 3 sp purchase still costs 1 gp — the keeper never gives a thing away: "+JSON.stringify(cheap);
+    var under=shopTradePlan(cat,{sell:{"carved whistle":1}});if(under.ok||!under.under.length)return "one whistle (3 sp) is still under the half-gold floor and refused";
+    return true;
+  });
+  t("#517 ② plural coin words count as their unit: [GOLD:-3 coppers] takes 3 cp, not 3 gp; silvers, copper pieces and gold coins likewise",function(){
+    var p=parseCoin("3 coppers");if(!p||p.unit!=="cp"||Math.abs(p.gp-0.03)>1e-9)return "'3 coppers' must parse as 3 cp: "+JSON.stringify(p);
+    if(parseCoin("2 silvers").unit!=="sp"||parseCoin("4 copper pieces").unit!=="cp"||parseCoin("5 gold coins").unit!=="gp"||parseCoin("1 platinum").unit!=="pp")return "the plural and the piece/coin suffix must resolve to the unit";
+    makeWorld();var before=worldState.character.gold;var r=applyMuts("[GOLD:-3 coppers]");
+    if(worldState.character.gold===before-3)return "3 coppers were taken as 3 gold: "+JSON.stringify(r.muts);
+    return true;
+  });
+  t("#518 a gift bounded by the loss: [ITEM_LOST:Torch x3] with ONE torch held gives the companion one torch, said; a full stack gives the full count; an unpaired gift is untouched",function(){
+    makeWorld();worldState.character.inventory=["Torch"];worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    var r=applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3]"),inv=findCompanionChar("Bram").inventory;
+    if(inv.join()!=="Torch")return "one torch out of the pack means one torch into Bram's: "+JSON.stringify(inv)+" "+JSON.stringify(r.muts);
+    if(!r.muts.some(function(m){return /cut to/.test(m)&&/Torch/.test(m);}))return "the short gift must be said: "+JSON.stringify(r.muts);
+    worldState.character.inventory=["Torch x3"];findCompanionChar("Bram").inventory=[];applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3]");
+    if(findCompanionChar("Bram").inventory.join()!=="Torch x3")return "a full stack moves whole: "+JSON.stringify(findCompanionChar("Bram").inventory);
+    findCompanionChar("Bram").inventory=[];applyMuts("[COMPANION_ITEM_GAINED:Bram|Torch x2]");
+    if(findCompanionChar("Bram").inventory.join()!=="Torch x2")return "a gift with no loss half (found, bought) is not capped: "+JSON.stringify(findCompanionChar("Bram").inventory);
+    return true;
+  });
+  t("#519 the spoken undo after a hero swap: the stowed spear stays in the chest and the undo refuses with the reason, instead of returning ok with the spear in nobody's pack",function(){
+    var house=quartetVillage();worldState.character.inventory=["Sihedron ritual spear"];
+    applyMuts("[ITEM_LOST:Sihedron ritual spear][LOCATION_ITEM:Sihedron ritual spear|placed]");
+    if(!house.items.some(function(i){return /Sihedron/.test(i.name)&&!i.taken;}))return "fixture: the spear is not in the chest";
+    var swap=swapPlayerCharacter("Frizwick");if(!swap.ok)return "fixture: swap failed "+JSON.stringify(swap);
+    var undo=undoLastItemMove();
+    if(undo.ok)return "the undo must refuse — Silas is no longer the hero and not in the party: "+JSON.stringify(undo);
+    if(!/^Silas is no longer/.test(undo.reason))return "the refusal opens with who the spear belonged to (the house's name does not count): "+undo.reason;
+    if(!house.items.some(function(i){return /Sihedron/.test(i.name)&&!i.taken&&(i.qty||1)>0;}))return "the spear must still be in the chest";
+    if(JSON.stringify(worldState.character.inventory).indexOf("Sihedron")>=0)return "the spear must not land in the new hero's pack";
+    return true;
+  });
+  t("#511 a same-world footer after an arrival is not a move: [SUBLOCATION:the tavern][LOCATION:The Village] leaves the hero in the tavern; a lone same-world [LOCATION:] keeps its old reading",function(){
+    quartetVillage();worldState.world.sublocation=null;var r=applyMuts("[SUBLOCATION:the tavern][LOCATION:The Village]");
+    if(worldState.world.sublocation!=="the tavern")return "the footer cleared the arrival: "+JSON.stringify(worldState.world)+" "+JSON.stringify(r.muts);
+    if(!r.muts.some(function(m){return /re-stated/.test(m);}))return "the no-move must be said: "+JSON.stringify(r.muts);
+    if(r.muts.some(function(m){return /^-> The Village/.test(m);}))return "a re-statement is not an arrival: "+JSON.stringify(r.muts);
+    if(r.muts.some(function(m){return /passed through/.test(m);}))return "the tavern is where the party ends up, not a passed-through place: "+JSON.stringify(r.muts);
+    var r2=applyMuts("[LOCATION:The Village]");if(worldState.world.sublocation!==null)return "a lone same-world [LOCATION:] with no arrival in the reply still reads as leaving the venue (unchanged): "+JSON.stringify(worldState.world);
+    quartetVillage();worldState.world.sublocation=null;applyMuts("[SUBLOCATION:the tavern][LOCATION:Sandpoint]");if(worldState.world.location!=="Sandpoint"||worldState.world.sublocation!==null)return "a real move to another world still moves: "+JSON.stringify(worldState.world);
     return true;
   });
 

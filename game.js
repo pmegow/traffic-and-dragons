@@ -1749,6 +1749,9 @@ function _stashUndoInverse(e,curKey,curWorld){
   var q=!!(typeof kindDef==="function"&&kindDef().stashQuantities),sk=(typeof stashKey==="function")?stashKey(e.name):String(e.name).toLowerCase(),i,row=null;
   for(i=0;i<node.items.length;i++)if(((typeof stashKey==="function")?stashKey(node.items[i].name):String(node.items[i].name).toLowerCase())===sk){row=node.items[i];break;}
   var hero=worldState.character&&worldState.character.name,t="",cnt=q?_stashUndoQty(e.units):"";
+  /* #519 (Astra's fixture 2026-10-02): the record names who moved the item; after a hero swap that person is a resident, not the
+     hero and not a companion, and the inverse tags landed on nobody while reporting ok. The item stays where it is, said. */
+  if(e.pack&&e.by&&e.by!==hero&&!(typeof findCompanionChar==="function"&&findCompanionChar(e.by)))return {ok:false,reason:e.by+" is no longer the hero or in the party — "+e.name+" stays "+(e.action==="placed"?"in "+leaf:"where it is")+" until "+e.by+" plays again"};
   if(e.action==="placed"){
     var held=row&&!row.taken&&(!q||(row.qty||1)>=e.units);if(!held)return {ok:false,reason:e.name+" is no longer in "+leaf};
     if(e.pack)t+=(e.by&&e.by!==hero)?"[COMPANION_ITEM_GAINED:"+e.by+"|"+e.pack.name+_stashUndoQty(e.pack.units)+"]":"[ITEM_GAINED:"+e.pack.name+_stashUndoQty(e.pack.units)+"]";

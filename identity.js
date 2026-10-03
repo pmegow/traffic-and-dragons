@@ -230,13 +230,17 @@ function placeTimeline(text,startWorld,startSub){
   var world=(startWorld!==undefined)?startWorld:(ws.location||null),sub=(startSub!==undefined)?startSub:(ws.sublocation||null);
   if(world)world=locResolve(world);
   function key(w,s){if(!w)return null;return locResolve(s?w+"|"+s:w);}
-  var t=String(text==null?"":text),re=/\[(LOCATION|SUBLOCATION):([^\]]+)\]|\[SUBLOCATION_LEAVE\]/g,m,states=[{off:-1,world:world,sub:sub,key:key(world,sub)}],events=[];
+  var t=String(text==null?"":text),re=/\[(LOCATION|SUBLOCATION):([^\]]+)\]|\[SUBLOCATION_LEAVE\]/g,m,states=[{off:-1,world:world,sub:sub,key:key(world,sub)}],events=[],subSeen=false;
   while((m=re.exec(t))!==null){
     var ev={off:m.index,fromWorld:world,fromSub:sub};
-    if(m[1]==="LOCATION"){var nm=locResolve(normalizeEndpointPair(m[2].trim())),tw=locationWorldTwinConflict(nm,world);ev.kind="world";ev.name=nm;if(tw)ev.twin=tw;else{world=nm;sub=null;}}
+    if(m[1]==="LOCATION"){var nm=locResolve(normalizeEndpointPair(m[2].trim())),tw=locationWorldTwinConflict(nm,world);ev.kind="world";ev.name=nm;
+      /* #511 (Astra's fixture 2026-10-02): a footer that re-states the world the party is already in, AFTER an arrival in the same
+         reply, is no move — it used to clear the sub-location just filed. A same-world tag with no arrival before it keeps its old
+         reading (leaving the venue to the streets), so a GM that skips [SUBLOCATION_LEAVE] is not newly wrong. */
+      if(tw)ev.twin=tw;else if(nm===world&&subSeen)ev.restate=true;else{world=nm;sub=null;}}
     else if(m[1]==="SUBLOCATION"){var raw=m[2].trim(),nmS=raw,rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world):null;
       ev.kind="sub";ev.raw=raw;ev.world=world;if(rp&&world&&rp.key.indexOf(world+"|")===0){ev.rp=rp;nmS=placeKeyLeaf(rp.key);}
-      ev.name=nmS;sub=nmS;}
+      ev.name=nmS;sub=nmS;subSeen=true;}
     else{ev.kind="leave";sub=null;}
     events.push(ev);states.push({off:m.index,world:world,sub:sub,key:key(world,sub)});
   }
