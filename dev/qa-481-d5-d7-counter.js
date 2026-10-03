@@ -2,14 +2,16 @@
 // dev/cdp-browser.js (no Playwright, no server: the repo is served from disk on a fake origin; a fresh profile, so no
 // signed-in state and no campaign writes). The village fixture at the trading post with the keeper present:
 //   D5 — travel rations (canon 5 sp) sell by the unit; a 25 cp honey cake and a bundle of arrows ("1 gp per 20") are priced.
-//   D7 — one 3 sp whistle alone is refused with the reason and Complete stays locked; two sell for 1 gp.
+//   D7 → #598 — a wanted 3 sp whistle sells for 3 sp (no floor in copper) and the want buys ONE: the second tap on the row
+//   clears the mark (#481 D4 / #497 wrap), so Complete locks again on "nothing marked". (#592: the old script expected two
+//   taps to select two whistles and a 1 gp floor; both rules are gone.)
 // Writes screenshots and a receipt to QA_OUT (default: the OS temp dir).
 //   node dev/qa-481-d5-d7-counter.js
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..'),out=process.env.QA_OUT||path.join(require('os').tmpdir(),'tnd-qa-481-counter');fs.mkdirSync(out,{recursive:true});
 const engine=require(root+'/dev/load-engine.js');engine.loadEngine();engine.makeTestWorld({kind:'village',clock:{min:12*1440+10*60}});
-worldState.world.location='The Village';worldState.world.sublocation='the trading post';worldState.character.name='Silas';worldState.character.gold=60;
+worldState.world.location='The Village';worldState.world.sublocation='the trading post';worldState.character.name='Silas';worldState.character.coin=6000;
 worldState.character.inventory=['Rope x3','Travel rations x4','Carved whistle x2'];
 memory.map={nodes:{},edges:[],lastArrivalFrom:null};
 memory.map.nodes['The Village']={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:'small'};
@@ -28,16 +30,16 @@ const fixture=JSON.parse(JSON.stringify({world:worldState,memory}));
  await page.waitForSelector('#shop-modal');
  const rows=await page.evaluate(()=>[...document.querySelectorAll('#shop-modal .shop-row')].map(e=>e.getAttribute('data-side')+':'+e.textContent.trim()));
  const rations=rows.filter(r=>/Travel rations/.test(r))[0]||'',cake=rows.filter(r=>/Honey cake/.test(r))[0]||'',arrows=rows.filter(r=>/Arrows/.test(r))[0]||'';
- assert.match(rations,/25 cp/,'D5: rations sell at half of 5 sp, shown in copper');assert.match(cake,/25 cp/,'D5: the cake is priced');assert.match(arrows,/20/,'D5: the arrow bundle row offers twenty');
+ assert.match(rations,/2 sp 5 cp/,'D5: rations sell at half of 5 sp, shown in silver and copper (#598)');assert.match(cake,/25 cp/,'D5: the cake is priced');assert.match(arrows,/20/,'D5: the arrow bundle row offers twenty');
  await page.locator('#shop-modal .shop-row[data-side="left"][data-key="carved whistle"]').click();
- const lone=await page.evaluate(()=>({status:document.querySelector('#shop-modal').innerText.split('\n').filter(l=>/half a gold/.test(l))[0]||'',go:document.querySelector('#ledger-go').disabled}));
- assert.match(lone.status,/whistle/i,'D7: the reason names the item');assert.equal(lone.go,true,'D7: Complete is locked');
+ const lone=await page.evaluate(()=>({total:document.querySelector('#shop-modal .shop-total').innerText,go:document.querySelector('#ledger-go').disabled}));
+ assert.match(lone.total,/\+3 sp/,'D7→#598: one wanted whistle sells for 3 sp');assert.equal(lone.go,false,'D7→#598: Complete unlocks — no floor');
  await page.screenshot({path:path.join(out,'d7-lone-whistle.png')});
  await page.locator('#shop-modal .shop-row[data-side="left"][data-key="carved whistle"]').click();
  const pair=await page.evaluate(()=>({total:document.querySelector('#shop-modal .shop-total').innerText,go:document.querySelector('#ledger-go').disabled}));
- assert.match(pair.total,/\+1 gp/,'D7: two whistles sell for 1 gp');assert.equal(pair.go,false,'D7: Complete unlocks');
+ assert.doesNotMatch(pair.total,/sp|gp/,'D4/#497: the want buys ONE — the second tap clears the mark');assert.equal(pair.go,true,'#592: Complete locks again on nothing marked');
  await page.screenshot({path:path.join(out,'d7-pair.png')});
  assert.deepEqual(errors,[]);
- const receipt={result:'COUNTER QA GREEN (#481 D5+D7)',rows,lone,pair,shots:[path.join(out,'d7-lone-whistle.png'),path.join(out,'d7-pair.png')]};
+ const receipt={result:'COUNTER QA GREEN (#481 D5 + D7→#598 + #592)',rows,lone,pair,shots:[path.join(out,'d7-lone-whistle.png'),path.join(out,'d7-pair.png')]};
  fs.writeFileSync(path.join(out,'receipt.json'),JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt,null,2));
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1);});
