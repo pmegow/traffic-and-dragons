@@ -28636,6 +28636,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var r2=shopTradeCatalog().sell.filter(function(r){return r.name==="Warded ring";})[0];
     return (r2&&!r2.wanted&&r2.sellCp==null)?true:"the second ring is priced like any other (no canon: none): "+JSON.stringify(r2);
   });
+  t("#591 a discarded or consumed wanted item retires nothing: [ITEM_LOST:] with no coin in the reply leaves the want standing; the next real sale still meets it",function(){
+    var n=d4Fixture();var r=quiet(function(){return applyMuts("Frizwick watches as you toss the ring into the hearth. [ITEM_LOST:Warded ring]");}).r;
+    if(d4Wants(n).indexOf("Warded ring")<0)return "a loss without a sale must not retire the want: "+JSON.stringify(r.muts);
+    if((r.muts||[]).some(function(m){return /Want met/.test(m);}))return "no 'Want met' receipt without coin: "+JSON.stringify(r.muts);
+    var r2=quiet(function(){return applyMuts("Frizwick counts out the coin. [SAY:Frizwick|pleased]Done.[/SAY] [GOLD:+40][ITEM_LOST:Warded ring]");}).r;
+    return (d4Wants(n).indexOf("Warded ring")<0&&(r2.muts||[]).indexOf("Want met: Warded ring (Frizwick)")>=0)?true:"the real sale after it still meets the want: "+JSON.stringify(r2.muts)+" "+JSON.stringify(n.wanted);
+  });
   t("#481 D4 a GM-narrated sale in the shop retires the want too",function(){
     var n=d4Fixture();var r=quiet(function(){return applyMuts("Frizwick turns the ring in the light and counts out the coin. [SAY:Frizwick|pleased]Done.[/SAY] [GOLD:+40][ITEM_LOST:Warded ring]");}).r;
     if(d4Wants(n).indexOf("Warded ring")>=0)return "the GM's sale retires it: "+JSON.stringify(r.muts);
