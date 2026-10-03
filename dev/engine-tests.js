@@ -26400,12 +26400,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[WORN:Silas|Healing potion|off]");cat=shopTradeCatalog();
     p=shopTradePlan(cat,{sell:{},buy:{"lantern oil":1}});if(p.ok||p.reason!=="nothing marked")return "an unbuyable ware marks nothing: "+JSON.stringify(p);
     p=shopTradePlan(cat,{sell:{},buy:{}});if(p.ok||p.reason!=="nothing marked")return "empty plan is not completable";
-    var tags=shopTradeTagText(shopTradePlan(cat,{sell:{"rope":3,"bone-handled knife":1},buy:{"rope":1}}));
-    if(tags!=="[GOLD:+4][ITEM_LOST:Rope x3][ITEM_LOST:Bone-handled knife][ITEM_GAINED:Rope]")return "tag text (1 − 4.5 = −3.5 → +4; #481 D4): "+tags;
-    var big=shopTradeTagText({netGp:0,lines:[{kind:"sell",name:"Arrow",qty:12}]});if(big!=="[ITEM_LOST:Arrow x12]")return "a stack of twelve rides ONE tag now (#481 D3: the parser reads any count; re-baselined from the x9 chunking): "+big;
+    var pl=shopTradePlan(cat,{sell:{"rope":3,"bone-handled knife":1},buy:{"rope":1}}),pls=pl.lines.map(function(l){return l.kind+":"+l.name+":"+l.qty;}).join(",");
+    if(pl.netGp!==-4||pls!=="sell:Rope:3,sell:Bone-handled knife:1,buy:Rope:1")return "the plan (1 − 4.5 = −3.5 → +4 to the hero; #481 D4; #597: lines, no tag text): "+JSON.stringify(pl);
     return true;
   });
-  t("#407 ③ Complete lands through the trade gate: gold and inventory move as tags in the mutation log, bought wares leave the shelf, sold items join it at canon, tradePing arms once and buildTradeNote speaks ONCE with 'ALREADY updated'; a stale plan against a closed gate moves nothing",function(){
+  t("#407 ③ Complete lands through ledgerApply (#597): gold and inventory move with receipts in the log, bought wares leave the shelf, sold items join it at canon, tradePing arms once and buildTradeNote speaks ONCE with 'ALREADY updated'; a stale plan against a closed gate moves nothing",function(){
     shopFixture();worldState.character.gold=60;var res=shopTradeApply({sell:{"rope":3,"bone-handled knife":1},buy:{"healing potion":1}});
     if(!res.ok)return "apply: "+res.reason;
     if(worldState.character.gold!==60-45)return "gold 60 − (buy 50 − sale 4.5→5 = 45; each side rounds on its own since #517; the knife at its 3 gp offer, #481 D4): "+worldState.character.gold;
@@ -26484,13 +26483,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.world.sublocation="the tavern";if(stashTradeCatalog().ok)return "a shop is not a house";
     return true;
   });
-  t("#6 E11 ② the plan and its tags: stow caps at the stack and skips worn, take caps at the chest; stow = ITEM_LOST + one placed per unit, take = one ITEM_GAINED per unit (the gated auto-take); Move lands both ways through applyMuts and the log; a stale plan against another house moves nothing",function(){
+  t("#6 E11 ② the plan: stow caps at the stack and skips worn, take caps at the chest; Move lands both ways through ledgerApply (#597) and the log; a stale plan against another house moves nothing",function(){
     villageEF();memory.map.nodes[villageHouseKey("Silas")]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null,owner:"Silas"};
     worldState.world.sublocation="the tavern";applyMuts("[LOCATION_ITEM:Old boots|placed|Silas's house][LOCATION_ITEM:Old boots|placed|Silas's house]");
     worldState.character.inventory=["Rope x3","Longsword"];applyMuts("[WORN:Silas|Longsword|on]");worldState.world.sublocation="Silas's house";
     var cat=stashTradeCatalog(),p=stashTradePlan(cat,{stow:{"rope":9,"longsword":1},take:{"old boots":5}});
     if(p.lines.map(function(l){return l.kind+":"+l.name+":"+l.qty;}).join(",")!=="stow:Rope:3,take:Old boots:2"||p.stowed!==3||p.taken!==2||!p.ok)return "plan: "+JSON.stringify(p);
-    var tags=stashTradeTagText(p);if(tags!=="[ITEM_LOST:Rope x3][LOCATION_ITEM:Rope|placed][LOCATION_ITEM:Rope|placed][LOCATION_ITEM:Rope|placed][ITEM_GAINED:Old boots][ITEM_GAINED:Old boots]")return "tags: "+tags;
     if(stashTradePlan(cat,{stow:{},take:{}}).ok)return "empty plan is not completable";
     var res=quiet(function(){return stashTradeApply({stow:{"rope":2},take:{"old boots":1}});}).r;if(!res.ok)return "apply: "+res.reason;
     var inv=worldState.character.inventory.join("|");if(!/Rope$|Rope\|/.test(inv)||/Rope x/.test(inv)||!/Old boots/.test(inv))return "inventory after: "+inv;
@@ -26978,6 +26976,56 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#597 the counter writes state directly (owner ruling 2026-10-03: Simplicity = strength)");
+  t("#597 ① the counter, the chest and the undo never reach applyMuts: with the parser replaced by a trap, a sale with a purchase, a stow with a take, and the undo all land",function(){
+    var h=quartetVillage(),c=worldState.character;c.inventory=["Rope x3","Old boots"];h.items=[{name:"Lantern",placed:1,taken:false,qty:2,by:"Silas",min:0}];
+    var _am=applyMuts,trapped=0;applyMuts=function(){trapped++;throw new Error("the player's hand reached the parser");};
+    var st,un;try{st=quiet(function(){return stashTradeApply({stow:{"rope":2},take:{"lantern":1}});}).r;un=quiet(function(){return undoLastItemMove();}).r;}finally{applyMuts=_am;}
+    if(trapped)return "the parser was reached "+trapped+" time(s)";
+    if(!st.ok||st.muts.join("|")!=="-Rope x2|Left: Rope ×2|+Lantern|Taken: Lantern")return "the chest lands with receipts: "+JSON.stringify(st);
+    if(!un.ok||un.said!=="Rope x2 is back with you. Lantern is back where it was.")return "the undo lands and says what happened, oldest first: "+JSON.stringify(un);
+    if(c.inventory.join()!=="Rope x3,Old boots"||h.items[0].qty!==2)return "and everything is back: "+JSON.stringify(c.inventory)+" "+JSON.stringify(h.items);
+    shopFixture();worldState.character.gold=60;_am=applyMuts;applyMuts=function(){trapped++;throw new Error("trap");};var sh;
+    try{sh=quiet(function(){return shopTradeApply({sell:{"rope":3},buy:{"healing potion":1}});}).r;}finally{applyMuts=_am;}
+    if(trapped||!sh.ok||worldState.character.gold!==60-48)return "the counter lands without the parser (50 − 1.5→2 = 48): "+JSON.stringify(sh)+" gold "+worldState.character.gold;
+    if(sh.muts.indexOf("-Rope x3")<0||sh.muts.indexOf("+Healing potion")<0||sh.muts.indexOf("-48 gp")<0)return "the receipts name every move: "+JSON.stringify(sh.muts);
+    var e=worldState.tagLog[worldState.tagLog.length-1];return (e.src==="ledger"&&e.tags.length===0&&e.m.indexOf("-48 gp")>=0)?true:"the provenance ring carries the ledger entry: "+JSON.stringify(e);
+  });
+  t("#597 ② a stale plan is refused WHOLE: the pack shrank under the open counter — nothing moves and the reason names the row; the chest likewise; a short purse likewise",function(){
+    shopFixture();worldState.character.gold=60;var cat=shopTradeCatalog(),plan=shopTradePlan(cat,{sell:{"rope":3},buy:{"healing potion":1}});if(!plan.ok)return "fixture plan: "+plan.reason;
+    worldState.character.inventory=worldState.character.inventory.map(function(x){return x==="Rope x3"?"Rope":x;});var inv=worldState.character.inventory.slice();
+    var r=ledgerApply(plan,{key:cat.key});if(r.ok||!/only 1 of Rope x3 is in the pack/.test(r.reason))return "refused with the row named: "+JSON.stringify(r);
+    if(worldState.character.gold!==60||worldState.character.inventory.join()!==inv.join())return "nothing moved: "+worldState.character.gold+" "+JSON.stringify(worldState.character.inventory);
+    worldState.character.gold=10;var r2=ledgerApply(shopTradePlan(cat,{buy:{"healing potion":1}}),{key:cat.key});if(r2.ok||!/short 40 gp/.test(r2.reason)||worldState.character.gold!==10)return "a short purse refuses whole: "+JSON.stringify(r2);
+    var h=quartetVillage(),c=worldState.character;c.inventory=[];h.items=[{name:"Lantern",placed:1,taken:false,qty:2,by:"Silas",min:0}];
+    var sc=stashTradeCatalog(),sp=stashTradePlan(sc,{take:{"lantern":2}});h.items[0].qty=1;
+    var r3=ledgerApply(sp,{key:sc.key});return (!r3.ok&&/only 1 of Lantern x2 is in the chest/.test(r3.reason)&&c.inventory.length===0&&h.items[0].qty===1)?true:"the chest refuses whole: "+JSON.stringify(r3)+" "+JSON.stringify(c.inventory);
+  });
+  t("#597 ③ what the tag path did for a sale is kept: the keeper's want retires with a Want met line, nothing worn leaves, and a trade ends the chance to undo the stow before it",function(){
+    shopFixture();var c=worldState.character;c.gold=60;var node=memory.map.nodes["The Village|the trading post"];/* the fixture's want: the knife at 3 gp */
+    var r=quiet(function(){return shopTradeApply({sell:{"bone-handled knife":1},buy:{}});}).r;if(!r.ok||r.muts.indexOf("+3 gp")<0)return "the sale at the keeper's offer: "+JSON.stringify(r);
+    if(!r.muts.some(function(m){return /^Want met: Bone-handled knife/.test(m);})||nodeWantedLive(node).length)return "the want retires at the counter (#481 D4): "+JSON.stringify(r.muts)+" "+JSON.stringify(node.wanted);
+    var h=quartetVillage();c=worldState.character;c.inventory=["Rope","Cloak"];applyMuts("[WORN:Silas|Cloak|on]");
+    quiet(function(){stashTradeApply({stow:{"rope":1}});});if(!worldState.stashUndoGrp)return "the stow arms the undo";
+    var r2=ledgerApply({netGp:0,lines:[{kind:"sell",name:"Cloak",qty:1}]},{key:null});if(!r2.ok||c.worn.length)return "a sold cloak is no longer worn (wornPrune): "+JSON.stringify(c.worn);
+    return worldState.stashUndoGrp?"a trade ends the chance to undo what came before (#481 D1)":true;
+  });
+  t("#597 ④ the undo's sentence is the engine's: a row the story placed with no pack half leaves the record and nobody is told it is back with them; a companion's pack half is back with the companion (#519 remainder)",function(){
+    var h=quartetVillage(),c=worldState.character;c.inventory=["Longsword"];
+    applyMuts("[LOCATION_ITEM:Old boots|placed]");var u=quiet(function(){return undoLastItemMove();}).r;
+    if(!u.ok||u.pack!==false||!/Old boots is off the record here/.test(u.said)||/back with/.test(u.said))return "a row-only undo says so: "+JSON.stringify(u);
+    if(c.inventory.join()!=="Longsword")return "and the pack is untouched: "+JSON.stringify(c.inventory);
+    worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:["Torch"]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    worldState.stashMoves=[{name:"Torch",units:1,action:"placed",key:villageHouseKey("Silas"),by:"Bram",pack:{name:"Torch",units:1},turn:worldState.turn,grp:7}];worldState.stashUndoGrp=7;
+    h.items.push({name:"Torch",placed:worldState.turn,taken:false,qty:1,by:"Bram",min:0});
+    var u2=quiet(function(){return undoLastItemMove();}).r;
+    return (u2.ok&&u2.said==="Torch is back with Bram."&&findCompanionChar("Bram").inventory.join()==="Torch x2"&&c.inventory.join()==="Longsword")?true:"the companion's half returns to the companion: "+JSON.stringify(u2)+" "+JSON.stringify(findCompanionChar("Bram").inventory);
+  });
+  t("#597 ⑤ Car Mode speaks the engine's sentence for the undo and words nothing itself",function(){
+    var cm=__fsForTests.readFileSync(__rootForTests+"/ui-carmode.js","utf8"),br=cm.slice(cm.indexOf("cmd.kind === \"undoItem\""),cm.indexOf("cmd.kind === \"roll\""));
+    if(br.indexOf('"Never mind — " + _u.said')<0||br.indexOf('"Never mind. " + _u.said')<0)return "both the banner and the spoken line carry _u.said";
+    return /back with you|back where it was|stays where it was/.test(br)?"Car Mode must not word the outcome itself (#597)":true;
+  });
   section("the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)");
   function quartetVillage(){
     makeWorld();worldState.kind="village";worldState.character.name="Silas";worldState.world.location="The Village";worldState.world.sublocation=null;
@@ -27644,11 +27692,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[COMPANION_ITEM_LOST:Bram|Torch x2]");
     return findCompanionChar("Bram").inventory[0]==="Torch x2"?true:"x2 must remove two: "+JSON.stringify(findCompanionChar("Bram").inventory);
   });
-  t("#481 D3 the counter's tag text round-trips a stack of thirteen through the parser",function(){
+  t("#481 D3 the counter lands a stack of thirteen in one line (#597: ledgerApply, no tag text)",function(){
     makeWorld();var c=worldState.character;c.inventory=["Arrow x13"];
-    var tags=shopTradeTagText({netGp:0,lines:[{kind:"sell",name:"Arrow",qty:13}]});
-    if(tags!=="[ITEM_LOST:Arrow x13]")return "one tag for thirteen: "+tags;
-    applyMuts(tags);return c.inventory.length===0?true:"all thirteen must leave the pack: "+JSON.stringify(c.inventory);
+    var r=ledgerApply({netGp:0,lines:[{kind:"sell",name:"Arrow",qty:13}]},{key:null});
+    if(!r.ok||r.muts.join()!=="-Arrow x13")return "one line for thirteen: "+JSON.stringify(r);
+    return c.inventory.length===0?true:"all thirteen must leave the pack: "+JSON.stringify(c.inventory);
   });
 
   // ── #481 D2 (audit 2026-09-29, Fable-approved): the chest and the pack agree on what an item IS. Stash rows matched the
@@ -27715,14 +27763,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!res.ok||worldState.character.inventory.indexOf("Healing potion x2")<0)return "the buy lands: "+JSON.stringify(res)+" "+JSON.stringify(worldState.character.inventory);
     return ((res.muts||[]).some(function(m){return /DUPLICATE ITEM/.test(m);})||worldState.dupItemPending)?"a counter buy is no duplicate grant: "+JSON.stringify(res.muts):true;
   });
-  t("#481 D6 the same grant from the GM still raises the alarm, and an unknown source is loud and runs as the GM",function(){
+  t("#481 D6 the same grant from the GM still raises the alarm (#597: the GM is applyMuts's only source now — no policy table)",function(){
     d2House();worldState.character.inventory=["Iron ring"];delete worldState.dupItemPending;
     var R=quiet(function(){return applyMuts("[ITEM_GAINED:Iron ring]");}).r;
     if(!R.muts.some(function(m){return /DUPLICATE ITEM/.test(m);})||!worldState.dupItemPending)return "a GM grant keeps the alarm: "+JSON.stringify(R.muts);
-    worldState.character.inventory=["Iron ring"];delete worldState.dupItemPending;
-    var q=quiet(function(){return applyMuts("[ITEM_GAINED:Iron ring]",{source:"ledgr"});});
-    if(!q.warns.some(function(w){return /unknown mutation source .ledgr./.test(w);}))return "an unknown source warns: "+JSON.stringify(q.warns);
-    return worldState.dupItemPending?true:"an unknown source runs with the GM policy (the alarm stays)";
+    var tt=__fsForTests.readFileSync(__rootForTests+"/tag_table.js","utf8");
+    return (/MUT_SOURCES|mutPolicy\(/.test(tt))?"the source-policy table is retired (#597)":true;
   });
 
   section("#481 D9 the village move record");
@@ -27734,6 +27780,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var e=m[0];if(e.name!=="Sihedron ritual spear"||e.units!==1||e.action!=="placed"||e.key!==villageHouseKey("Silas")||e.by!=="Silas"||!e.pack||e.pack.name!=="Sihedron ritual spear"||e.pack.units!==1||typeof e.at!=="number")return "the move names what moved: "+JSON.stringify(e);
     quiet(function(){stashTradeApply({stow:{"rope":3}});});
     if(m.length!==2||m[1].units!==3||!m[1].pack||m[1].pack.units!==3)return "a ledger stow of three ropes is ONE move of three: "+JSON.stringify(m);
+    c.inventory.push("Torch x3");applyMuts("[ITEM_LOST:Torch x3][LOCATION_ITEM:Torch|placed][LOCATION_ITEM:Torch|placed][LOCATION_ITEM:Torch|placed]");
+    if(m.length!==3||m[2].name!=="Torch"||m[2].units!==3||!m[2].pack||m[2].pack.units!==3)return "three GM placements of one item in one reply fold into ONE move of three: "+JSON.stringify(m.slice(2));m.pop();c.inventory.pop();
+    applyMuts("[ITEM_GAINED:Rope]");if(m.length!==3||m[2].action!=="taken"||m[2].name!=="Rope"||m[2].units!==1||!m[2].pack||m[2].pack.units!==1)return "a GM gain of what lies in the chest is recorded as a take with its pack half: "+JSON.stringify(m.slice(2));m.pop();removeInventoryItem(c.inventory,"Rope");h.items.filter(function(it){return stashKey(it.name)==="rope";})[0].qty+=1;
     quiet(function(){stashTradeApply({take:{"rope":2}});});
     if(m.length!==3||m[2].action!=="taken"||m[2].units!==2||!m[2].pack||m[2].pack.units!==2||m[2].by!=="Silas")return "a ledger take of two is ONE move of two: "+JSON.stringify(m[2]);
     return (c.stashMarks&&c.stashMarks.camp_V===m[2].at)?true:"the hero sheet carries the mark of the latest move: "+JSON.stringify(c.stashMarks);
@@ -28332,10 +28381,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var h=summaryLineHTML(["Time +10m (8:10)","⚠ Stash refused — <b>","Here: Lantern"]);
     return h==="Time +10m (8:10) | <span class=\"sum-warn\">⚠ Stash refused — &lt;b&gt;</span> | Here: Lantern"?true:"render: "+h;
   });
-  t("#481 A7 the consumers that sort refusals from receipts key on the glyph, not on words: the chest, the counter, the undo, the sheet sync",function(){
+  t("#481 A7 the consumers that sort refusals from receipts key on the glyph, not on words: the sheet sync; the chest, the counter and the undo no longer read a parser log at all (#597)",function(){
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),u=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
     if(/\/\^Stash refused|\/\^Trade refused/.test(g))return "game.js still sorts refusals by their words";
-    if((g.match(/filter\(mutLineWarns\)/g)||[]).length<3)return "the chest, the counter and the undo must filter with mutLineWarns";
+    if(/applyMuts\(/.test(g.slice(g.indexOf("function ledgerApply("),g.indexOf("function buildSceneManifest(")))||/applyMuts\(/.test(g.slice(g.indexOf("function _stashUndoCheck("),g.indexOf("function stashMovesReplay("))))return "the counter, the chest and the undo never reach the parser (#597)";
     if(/\/REFUSED\/i\.test/.test(u))return "the sheet sync still sorts by the word REFUSED";
     return /mutLineWarns\(/.test(u)?true:"the sheet sync must key on the glyph";
   });
@@ -28455,7 +28504,6 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!arrowRow||arrowRow.max!==20)return "a bundle ware buys up to its bundle: "+JSON.stringify(arrowRow);
     var p=shopTradePlan(cat,{sell:{"travel rations":4},buy:{}});if(p.netGp!==-1)return "four rations pay 1 gp: "+JSON.stringify(p);
     var p2=shopTradePlan(cat,{sell:{},buy:{"arrows":20}});if(p2.netGp!==1||!p2.lines[0]||p2.lines[0].qty!==20)return "twenty arrows cost 1 gp: "+JSON.stringify(p2);
-    if(shopTradeTagText(p2).indexOf("[ITEM_GAINED:Arrows x20]")<0)return "the tag carries the count: "+shopTradeTagText(p2);
     var fm=[[0.25,"25 cp"],[0.5,"5 sp"],[0.05,"5 cp"],[12,"12 gp"],[1.5,"1.5 gp"]],i;for(i=0;i<fm.length;i++)if(shopFmtGp(fm[i][0])!==fm[i][1])return "shopFmtGp("+fm[i][0]+") → "+shopFmtGp(fm[i][0]);
     return true;
   });

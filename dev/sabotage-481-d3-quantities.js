@@ -21,10 +21,10 @@ prove("tag_table.js", [
     find: "for(cIlqi=0;cIlqi<cIlq.n;cIlqi++){if(removeInventoryItem(cIlCs.inventory,cIlq.base))cIlHit++;else break;}", replace: "if(removeInventoryItem(cIlCs.inventory,cIlq.base))cIlHit++;",
     mustFail: "the companion twins read the count" }
 ]);
-prove("helpers.js", [
-  { label: "the counter chunks at nine again",
-    find: 'if(l.qty>0)t+="["+(l.kind==="sell"?"ITEM_LOST":"ITEM_GAINED")+":"+l.name+(l.qty>1?" x"+l.qty:"")+"]";}',
-    replace: 'var n=l.qty;while(n>0){var chunk=Math.min(n,9);t+="["+(l.kind==="sell"?"ITEM_LOST":"ITEM_GAINED")+":"+l.name+(chunk>1?" x"+chunk:"")+"]";n-=chunk;}}',
-    mustFail: "round-trips a stack of thirteen" }
+prove("game.js", [
+  { label: "the counter moves at most nine of a line again (#597: ledgerApply lands any count)",
+    find: 'if(ln.kind==="sell"||ln.kind==="stow"){for(j=0;j<n;j++)removeInventoryItem(c.inventory,ln.name);muts.push("-"+ln.name+qs);}',
+    replace: 'if(ln.kind==="sell"||ln.kind==="stow"){for(j=0;j<Math.min(n,9);j++)removeInventoryItem(c.inventory,ln.name);muts.push("-"+ln.name+qs);}',
+    mustFail: "the counter lands a stack of thirteen" }
 ]);
 process.exit(code);

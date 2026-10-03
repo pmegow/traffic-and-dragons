@@ -775,7 +775,8 @@ function fileLocationItem(name,action,turn,place,room,at){
 }
 /* #481 D9 + D1 (audit 2026-09-29, Fable-approved): THE item-move record — one ring, worldState.stashMoves, of what actually
    moved between a pack and a place: {name, units, action, key, by, pack:{name,units}|null, turn, grp[, at]}. Written by
-   LOCATION_ITEM and the auto-take path (a source whose policy records; never the undo). One applyMuts call is ONE group,
+   LOCATION_ITEM and the auto-take path for the GM's reply, and by ledgerApply (game.js) for the counter and the chest (#597);
+   never by the undo. One applyMuts call is ONE group,
    and units of one item in a group fold into one entry (a ledger plan of N units is ONE move). Two consumers: the Car Mode
    undo reverses the tail group (D1), and a library refresh re-applies the moves a library copy never saw (D9). Only where
    the kind populates from the library does an entry carry the wall clock `at`, and the actor's sheet the mark

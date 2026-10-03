@@ -3244,8 +3244,8 @@ function shopOpportunity(){
    village's own teeth: villageTradeContext (a shop with its keeper present), the shop node's LIVE wares and WANTED list,
    and bible canon. Sell price = HALF canon, FULL when the keeper WANTS it (a WANTED offer prices a no-canon item); with
    neither, the item is not sellable at the counter (ask the keeper in prose). Buy price = the ware's pinned price; each
-   ware row is one unit. Coin is whole gp ([GOLD:] is an integer): the total rounds to the nearest gp and a non-zero
-   purchase never rounds to free. Nothing here writes state — shopTradeApply (game.js) lands the plan as tags. */
+   ware row is one unit. Coin is whole gp: each side rounds on its own (#517) and a non-zero purchase never rounds to
+   free. Nothing here writes state — shopTradeApply (game.js) lands the plan through ledgerApply (#597). */
 var SHOP_SELL_FRACTION=0.5;
 function shopTradeCatalog(){
   var vtc=(typeof villageTradeContext==="function")?villageTradeContext():{ok:false,reason:"no trade context"};
@@ -3284,12 +3284,6 @@ function shopTradePlan(cat,marks){
   var why=under.length?"the keeper pays nothing for "+under.join(", ")+" — under half a gold piece; mark more of it, or keep it":(!lines.length?"nothing marked":(goldAfter<0?"short "+(rounded-cat.gold)+" gp":""));
   return {lines:lines,under:under,sellGp:sellGp,buyGp:buyGp,netGp:rounded,goldAfter:goldAfter,ok:ok,reason:why};
 }
-/* The plan as the tags the parser already understands — every move lands in the mutation log through the trade gate. */
-function shopTradeTagText(plan){
-  var t="",i;if(plan.netGp!==0)t+="[GOLD:"+(plan.netGp>0?"-":"+")+Math.abs(plan.netGp)+"]";
-  for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];if(l.qty>0)t+="["+(l.kind==="sell"?"ITEM_LOST":"ITEM_GAINED")+":"+l.name+(l.qty>1?" x"+l.qty:"")+"]";}/* #481 D3: the parser reads any count — no x9 chunking */
-  return t;
-}
 function shopFmtGp(gp){
   var a=Math.abs(gp);if(a>0&&a<1){var sp=a*10;return (gp<0?"-":"")+(Math.abs(sp-Math.round(sp))<1e-9?Math.round(sp)+" sp":Math.max(1,Math.round(a*100))+" cp");}/* #481 D5: under a gold piece, in silver or copper */
   var v=Math.round(gp*10)/10;return (v%1===0?String(v):v.toFixed(1))+" gp";}
@@ -3318,8 +3312,7 @@ function shopLedgerRows(cat){
   return {left:sell,right:buy};
 }
 /* THE STASH LEDGER (#6 E11) — carried on the left (stow: green), in the house on the right (take: pink). Only in the hero's
-   OWN house (node.owner = the hero); the tags it emits are the ones the stash already honours: [ITEM_LOST:] + a
-   [LOCATION_ITEM:x|placed] per unit to stow, [ITEM_GAINED:] per unit to take (the gated auto-take path, E5). */
+   OWN house (node.owner = the hero). The plan lands through ledgerApply (game.js, #597). */
 function stashTradeCatalog(){
   var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.stashQuantities)return {ok:false,reason:"no stash in this campaign"};
   var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||null;if(!c||!worldState.world)return {ok:false,reason:"no hero"};
@@ -3344,12 +3337,6 @@ function stashTradePlan(cat,marks){
   for(i=0;i<cat.carried.length;i++){var r=cat.carried[i];var q=_mk(ms,r.name);if(q<=0||r.worn)continue;q=Math.min(q,r.qty);lines.push({kind:"stow",name:r.name,qty:q});stow+=q;}
   for(i=0;i<cat.stored.length;i++){var s=cat.stored[i];var tq=_mk(mt,s.name);if(tq<=0)continue;tq=Math.min(tq,s.qty);lines.push({kind:"take",name:s.name,qty:tq});take+=tq;}
   return {lines:lines,stowed:stow,taken:take,ok:lines.length>0,reason:lines.length?"":"nothing marked"};
-}
-function stashTradeTagText(plan){
-  var t="",i,j;for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];
-    if(l.kind==="stow"){if(l.qty>0)t+="[ITEM_LOST:"+l.name+(l.qty>1?" x"+l.qty:"")+"]";/* #481 D3: one tag, any count */for(j=0;j<l.qty;j++)t+="[LOCATION_ITEM:"+l.name+"|placed]";}
-    else{for(j=0;j<l.qty;j++)t+="[ITEM_GAINED:"+l.name+"]";}}
-  return t;
 }
 /* #6 E8: the stash as data — the untaken rows of a node with qty and provenance. Pure; the geo block, the inventory panel
    and Car Mode all read this one function. */

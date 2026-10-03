@@ -56,13 +56,13 @@ prove("tag_table.js", [
     find: 'if(R.villageTradeRefused&&igTags.length){', replace: 'if(false){',
     mustFail: "#6F5 trade only in a shop" },
   { label: "`taken` lands in the village",
-    find: 'if(_lact==="taken"&&!mutPolicy(R).handTake&&typeof kindDef==="function"&&kindDef().stashQuantities){', replace: 'if(false){',
+    find: 'if(_lact==="taken"&&typeof kindDef==="function"&&kindDef().stashQuantities){', replace: 'if(false){',
     mustFail: "#6E4 `taken` carries no actor" },
   { label: "the stash refusal leaves the mutation log",
     find: 'R.muts.push("⚠ Stash refused — "+_lnm+" ("+(_lplace||"here")+"): "+_lwhy);', replace: '',
     mustFail: "#6E3 a missing node refuses LOUDLY" },
   { label: "the move is not recorded for the undo (#481 D1: the move record replaced lastItemMove)",
-    find: 'if(!_lst.noop&&mutPolicy(R).record){', replace: 'if(false){',
+    find: 'if(!_lst.noop){', replace: 'if(false){',
     mustFail: "#6E9 Car Mode undo" },
   { label: "a leave erases an arrival that came after it (table order again)",
     find: '  if(subTouched)worldState.world.sublocation=end.sub;', replace: '  if(subTouched)worldState.world.sublocation=(lastLeave>=0)?null:end.sub;',
@@ -99,7 +99,7 @@ prove("game.js", [
     find: 'if(!_vts.ok)return {rule:"trade-outside-shop",detail:_vts.reason};', replace: 'if(!_vts.ok)return null;',
     mustFail: "#6F7 suggestions obey the same rule" },
   { label: "the undo leaves the item where it was placed (#481 D1: once-only is now structural — see sabotage-481-d1-d9-move-record.js)",
-    find: 't+="[LOCATION_ITEM:"+e.name+cnt+"|taken"+op+"]";', replace: '',
+    find: '  if(e.action==="placed"){fileLocationItem(e.name+qs,"taken",worldState.turn,null,null,{key:e.key});', replace: '  if(e.action==="placed"){',
     mustFail: "#6E9 Car Mode undo" }
 ]);
 prove("identity.js", [

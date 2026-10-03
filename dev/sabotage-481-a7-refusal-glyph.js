@@ -38,8 +38,8 @@ prove("api.js", [
     mustFail: "#481 A7 source" }
 ]);
 prove("game.js", [
-  { label: "the chest sorts its refusals by the words again",
-    find: "refused=muts.filter(mutLineWarns);/* #481 A7: the glyph, never the words */", replace: "refused=muts.filter(function(m){return /^Stash refused|kept/.test(String(m));});",
+  { label: "the chest reaches the parser again (#597: the player's hand never does)",
+    find: "  var R=ledgerApply(plan,{key:cat.key}),muts=R.muts,refused=R.ok?[]:[R.reason];/* #597 */", replace: "  var R=ledgerApply(plan,{key:cat.key}),muts=R.muts,refused=R.ok?[]:[R.reason];if(false)applyMuts(\"\");",
     mustFail: "the consumers that sort refusals" }
 ]);
 prove("ui-modals.js", [

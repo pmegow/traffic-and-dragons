@@ -30,7 +30,7 @@ prove("helpers.js", [
     mustFail: "#6 E11 \u2460 the chest opens only" },
   { label: "stow takes one unit whatever the mark (the stack cap is the mark)",
     find: "q=Math.min(q,r.qty);lines.push({kind:\"stow\",name:r.name,qty:q});stow+=q;", replace: "q=1;lines.push({kind:\"stow\",name:r.name,qty:q});stow+=q;",
-    mustFail: "#6 E11 \u2461 the plan and its tags" }
+    mustFail: "#6 E11 \u2461 the plan" }
 ]);
 prove("game.js", [
   { label: "a bought ware stays on the shelf",

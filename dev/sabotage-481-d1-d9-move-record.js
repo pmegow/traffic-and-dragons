@@ -7,9 +7,9 @@
 var sabotage = require("./sabotage.js"), code = 0;
 function prove(file, filter, cases) { if (!code) code = sabotage.prove({ file: file, command: ["node", ["dev/run-tests.js", filter]], cases: cases }); }
 prove("memory.js", "#481 D9", [
-  { label: "a ledger plan of N units is N moves again",
+  { label: "three GM placements of one item in one reply are three moves again (#597: a ledger plan is ONE entry by construction)",
     find: "  if(tail&&tail.grp===R.moveGrp&&tail.name===mv.name", replace: "  if(false&&tail.grp===R.moveGrp&&tail.name===mv.name",
-    mustFail: "a ledger stow of three ropes is ONE move" },
+    mustFail: "three GM placements of one item" },
   { label: "the sheet no longer carries its mark",
     find: "sh.stashMarks[stashMarkKey()]=e.at;", replace: "void 0;",
     mustFail: "the hero sheet carries the mark" },
@@ -41,46 +41,41 @@ prove("game.js", "#481 D9", [
     mustFail: "counted once" }
 ]);
 prove("game.js", "#481 D1", [
-  { label: "the undo drops the inverse re-add (the Sihedron spear is destroyed again)",
-    find: "    if(e.pack)t+=(e.by&&e.by!==hero)?\"[COMPANION_ITEM_GAINED:\"", replace: "    if(false)t+=(e.by&&e.by!==hero)?\"[COMPANION_ITEM_GAINED:\"",
+  { label: "the undo drops the pack half (the Sihedron spear is destroyed again)",
+    find: "    if(sh){for(j=0;j<e.pack.units;j++)addInventoryItem(sh.inventory,e.pack.name);", replace: "    if(false){for(j=0;j<e.pack.units;j++)addInventoryItem(sh.inventory,e.pack.name);",
     mustFail: "the spear is back with you" },
   { label: "the undo runs mid-turn",
     find: "  if(typeof busy!==\"undefined\"&&busy)return {ok:false,reason:\"wait for the turn to finish\"};\n  if(typeof worldState===\"undefined\"||!worldState)return {ok:false,reason:\"no campaign\"};",
     replace: "  if(typeof worldState===\"undefined\"||!worldState)return {ok:false,reason:\"no campaign\"};",
     mustFail: "a turn in flight refuses the undo" },
   { label: "the undo mints a unit the chest no longer holds",
-    find: "if(!held)return {ok:false,reason:e.name+\" is no longer in \"+leaf};", replace: "",
+    find: "  if(e.action===\"placed\"){if(held<e.units)return {ok:false,reason:e.name+\" is no longer in \"+leaf};}", replace: "  if(e.action===\"placed\"){}",
     mustFail: "must not mint a lantern" },
   { label: "the undone moves stay in the record (a refresh would replay them)",
-    find: "  ring.splice(ring.length-grp.length,grp.length);", replace: "",
+    find: "  ring.splice(ring.length-grp.length,grp.length);delete worldState.stashUndoGrp;", replace: "  delete worldState.stashUndoGrp;",
     mustFail: "the undone move leaves the record" },
-  { label: "the undo applies as a GM turn",
-    find: "applyMuts(text,{source:\"undo\",deferSave:true})", replace: "applyMuts(text,{deferSave:true})",
+  { label: "the undo forgets the provenance ring (#597: it writes its own entry)",
+    find: "  ledgerLog(muts,\"undo\");", replace: "",
     mustFail: "never mind after a stow" },
   { label: "a take is undone on the pack alone (the ropes never reach the chest)",
-    find: "    t+=\"[LOCATION_ITEM:\"+e.name+cnt+\"|placed\"+op+\"]\";", replace: "",
+    find: "    fileLocationItem(e.name+qs,\"placed\",worldState.turn,null,null,{key:e.key});muts.push(\"Left: \"", replace: "    muts.push(\"Left: \"",
     mustFail: "all three ropes go back in ONE undo" },
   { label: "a sibling place cannot be reached from where you stand",
-    find: "op=\"|\"+leaf;}", replace: "}",
-    mustFail: "the core comes back from the hall" }
+    find: "  if(e.key!==curKey&&(!node.parent||R2(node.parent)!==curWorld))return", replace: "  if(e.key!==curKey)return",
+    mustFail: "the core comes back from the hall" },
+  { label: "the undo lands half a group when the other half is gone (#597: checked whole first)",
+    find: "  for(i=0;i<grp.length;i++){var chk=_stashUndoCheck(grp[i],curKey,curWorld);if(!chk.ok){", replace: "  for(i=0;i<0;i++){var chk=_stashUndoCheck(grp[i],curKey,curWorld);if(!chk.ok){",
+    mustFail: "must not mint a lantern" }
 ]);
 prove("api.js", "#481 D1", [
   { label: "the pointer outlives the next GM turn",
     find: "  if(R.moveGrp)worldState.stashUndoGrp=R.moveGrp;else delete worldState.stashUndoGrp;", replace: "  if(R.moveGrp)worldState.stashUndoGrp=R.moveGrp;",
     mustFail: "a GM turn later there is nothing to undo" }
 ]);
-prove("tag_table.js", "#481 D1", [
-  { label: "the undo's gain takes from the chest by itself (a double take)",
-    find: "  undo:{dupAlarm:false,defineAsk:false,autoTake:false,handTake:true,record:false}", replace: "  undo:{dupAlarm:false,defineAsk:false,autoTake:true,handTake:true,record:false}",
-    mustFail: "never mind after a stow" },
-  { label: "the undo's hand cannot take from a stash",
-    find: "  undo:{dupAlarm:false,defineAsk:false,autoTake:false,handTake:true,record:false}", replace: "  undo:{dupAlarm:false,defineAsk:false,autoTake:false,handTake:false,record:false}",
-    mustFail: "never mind after a stow" }
-]);
 prove("tag_table.js", "#481 D9", [
   { label: "a chest take is not recorded",
     find: "if(_at&&_at.taken)stashMoveRecord(R,{name:_at.name,", replace: "if(false)stashMoveRecord(R,{name:_at.name,",
-    mustFail: "a ledger take of two is ONE move of two" },
+    mustFail: "a GM gain of what lies in the chest" },
   { label: "a stow records no pack half",
     find: "for(_mpi=0;_mpi<_mu;_mpi++){var _mpx=itemPairTake(", replace: "for(_mpi=0;_mpi<0;_mpi++){var _mpx=itemPairTake(",
     mustFail: "the move names what moved" }

@@ -358,31 +358,68 @@ function waysSplit(ways,cap){
 }
 
 
-/* #6 E11: land a stash plan — the same tags the stash already honours, through applyMuts, so provenance, qty, worn
-   pruning and the gated auto-take apply as for a GM turn. A refusal in the log is reported, never hidden. One system
-   line; no GM note — the geo block already serves the STASH line every turn. */
+/* #597 (owner ruling 2026-10-03, "Simplicity = strength"): THE ONE WRITER for the player's own hand on the sheet — the counter
+   and the chest. A plan is a list of lines {kind: sell|buy|stow|take, name, qty} (+ netGp for the counter). The player's
+   click is not an unreliable narrator: it used to be turned into GM tags and re-judged by the trade gate, the #510 whole-sale
+   precheck and the item pairing, so a fix on one side kept breaking the other. Now: every line is CHECKED against the live
+   state first (the modal may be stale — the stock shrank, a GM turn moved the pack), then every line lands, or none does.
+   What the tag path did for a move is kept here on purpose: the stack helpers, nothing worn leaves (wornPrune), a sale
+   retires the keeper's want (#481 D4) and clears a pending consumable check, a stow or take writes the move record (#481
+   D9/D1) and the undo pointer, and the provenance ring gets an entry with src "ledger". Nothing here reaches applyMuts. */
+function ledgerLog(muts,src){
+  if(!worldState)return;var m=muts.slice(0,10);if(muts.length>10)m.push("+"+(muts.length-10)+" more");
+  if(!worldState.tagLog)worldState.tagLog=[];worldState.tagLog.push({t:worldState.turn,tags:[],m:m,src:src});
+  if(worldState.tagLog.length>TAG_LOG_CAP)worldState.tagLog=worldState.tagLog.slice(worldState.tagLog.length-TAG_LOG_CAP);
+}
+function ledgerApply(plan,ctx){
+  var c=worldState&&worldState.character;if(!c||!plan||!plan.lines||!plan.lines.length)return {ok:false,reason:"nothing marked",muts:[]};
+  var key=ctx&&ctx.key,net=plan.netGp|0,lines=plan.lines,muts=[],i,j,q;
+  /* check: every removal against a copy of the pack, the coin against the purse, every take against the row */
+  var sim=c.inventory.slice(),node=key&&memory&&memory.map?memory.map.nodes[key]:null;
+  for(i=0;i<lines.length;i++){var l=lines[i];
+    if(l.kind==="sell"||l.kind==="stow"){for(j=0;j<l.qty;j++)if(!removeInventoryItem(sim,l.name))return {ok:false,reason:(j?"only "+j+" of "+l.name+" x"+l.qty+" is in the pack":l.name+" is no longer in the pack")+" — nothing moved",muts:[]};}
+    if(l.kind==="stow"||l.kind==="take"){if(!node)return {ok:false,reason:"no place on record — nothing moved",muts:[]};}
+    if(l.kind==="take"){var have=0,sk=stashKey(l.name);for(j=0;j<node.items.length;j++){var it=node.items[j];if(!it.taken&&stashKey(it.name)===sk)have+=(it.qty||1);}if(have<l.qty)return {ok:false,reason:(have?"only "+have+" of "+l.name+" x"+l.qty+" is in the chest":l.name+" is no longer in the chest")+" — nothing moved",muts:[]};}}
+  if(net>0&&(Number(c.gold)||0)<net)return {ok:false,reason:"short "+(net-(Number(c.gold)||0))+" gp — nothing moved",muts:[]};
+  /* land: the pack, the purse, the rows, the record */
+  var R={turn:worldState.turn,moveGrp:null},moved=false;
+  for(i=0;i<lines.length;i++){var ln=lines[i],n=ln.qty,qs=n>1?" x"+n:"";
+    if(ln.kind==="sell"||ln.kind==="stow"){for(j=0;j<n;j++)removeInventoryItem(c.inventory,ln.name);muts.push("-"+ln.name+qs);}
+    if(ln.kind==="buy"||ln.kind==="take"){for(j=0;j<n;j++)addInventoryItem(c.inventory,ln.name);muts.push("+"+ln.name+qs);}
+    if(ln.kind==="sell"){var w=(typeof retireWantedAt==="function")?retireWantedAt({key:key},ln.name):null;if(w)muts.push("Want met: "+w.item+(w.by?" ("+w.by+")":""));if(typeof _clearConsumablePending==="function")_clearConsumablePending(null,ln.name);}
+    if(ln.kind==="stow"){var st=fileLocationItem(ln.name+qs,"placed",R.turn,null,null,{key:key});muts.push("Left: "+ln.name+(st.qty>1?" ×"+st.qty:""));stashMoveRecord(R,{name:ln.name,units:n,action:"placed",key:st.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}
+    if(ln.kind==="take"){var tk=fileLocationItem(ln.name+qs,"taken",R.turn,null,null,{key:key});muts.push("Taken: "+ln.name+(n>1?" ×"+n:""));stashMoveRecord(R,{name:ln.name,units:tk.n||n,action:"taken",key:tk.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}}
+  if(net){c.gold=(Number(c.gold)||0)-net;muts.push((net<0?"+":"-")+Math.abs(net)+" gp");}
+  if(typeof wornPrune==="function")wornPrune(c);
+  if(moved&&R.moveGrp)worldState.stashUndoGrp=R.moveGrp;else delete worldState.stashUndoGrp;/* #481 D1: a trade ends the chance to undo what came before */
+  ledgerLog(muts,"ledger");
+  return {ok:true,muts:muts,grp:R.moveGrp||null};
+}
+/* #6 E11: land a stash plan through ledgerApply. A refusal is reported, never hidden. One system line; no GM note — the geo
+   block already serves the STASH line every turn. */
 function stashTradeApply(marks){
   if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[stash] move refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and its saveAll)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1: every other state-mutating entry point is busy-gated; this one was not */
   var cat=(typeof stashTradeCatalog==="function")?stashTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=stashTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
-  var R=applyMuts(stashTradeTagText(plan),{deferSave:true,source:"ledger"}),/* #481 D6: the player's own hand — no duplicate alarm, no define ask */muts=(R&&R.muts)||[],refused=muts.filter(mutLineWarns);/* #481 A7: the glyph, never the words */
+  var R=ledgerApply(plan,{key:cat.key}),muts=R.muts,refused=R.ok?[]:[R.reason];/* #597 */
+  if(refused.length){if(typeof console!=="undefined")console.warn("[stash] "+refused[0]);return {ok:false,reason:refused[0],muts:muts,plan:plan};}
   if(typeof saveAll==="function")saveAll();
   var i,st=[],tk=[];for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];(l.kind==="stow"?st:tk).push(l.name+(l.qty>1?" x"+l.qty:""));}
-  var line=cat.hero+(st.length?" stowed "+st.join(", "):"")+(st.length&&tk.length?" and":"")+(tk.length?" took "+tk.join(", "):"")+" at "+cat.house+"."+(refused.length?" Refused: "+refused.join("; "):"");
+  var line=cat.hero+(st.length?" stowed "+st.join(", "):"")+(st.length&&tk.length?" and":"")+(tk.length?" took "+tk.join(", "):"")+" at "+cat.house+".";
   if(typeof document!=="undefined"&&typeof addMsg==="function")addMsg("system",line);
   if(typeof syncUI==="function")syncUI();
-  return {ok:!refused.length,reason:refused.length?refused[0]:"",plan:plan,muts:muts,line:line};
+  return {ok:true,reason:"",plan:plan,muts:muts,line:line};
 }
-/* #407: land a shop plan. The tags run through applyMuts, so the trade gate, the stack helpers, worn pruning and the
-   mutation log all apply exactly as for a GM turn; a refusal is loud and nothing else moves. Then the shelf: a bought
-   ware leaves it, a sold item joins it (fileWare pins to canon; no canon = the price paid) so it can be bought back.
-   One system line in the log names hero and keeper; tradePing arms the ONE in-character sentence for the next turn. */
+/* #407: land a shop plan through ledgerApply (#597: the player's hand, never the GM's tag gates); a refusal is loud and
+   nothing moves. Then the shelf: a bought ware leaves it, a sold item joins it (fileWare pins to canon; no canon = the price
+   paid) so it can be bought back. One system line in the log names hero and keeper; tradePing arms the ONE in-character
+   sentence for the next turn. */
 function shopTradeApply(marks){
   if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[shop] trade refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and overwrite the one-shot tradePing)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1 */
   var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
   var plan=shopTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
-  var R=applyMuts(shopTradeTagText(plan),{deferSave:true,source:"ledger"}),/* #481 D6 */muts=(R&&R.muts)||[],refused=muts.filter(mutLineWarns);/* #481 A7 */
-  if(refused.length){if(typeof console!=="undefined")console.warn("[shop] "+refused[0]);return {ok:false,reason:refused[0],muts:muts};}
+  var R=ledgerApply(plan,{key:cat.key}),muts=R.muts;/* #597 */
+  if(!R.ok){if(typeof console!=="undefined")console.warn("[shop] "+R.reason);return {ok:false,reason:R.reason,muts:muts,plan:plan};}
   var i,node=cat.node,sold=[],bought=[],hero=(worldState.character&&worldState.character.name)||"the hero";
   for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];
     if(l.kind==="buy"){bought.push(l.qty>1?l.name+" x"+l.qty+" ("+shopFmtGp(l.gp)+")":l.name+" ("+l.price+")");/* #481 D5: a bundle buy names its count */var wi;for(wi=0;wi<(node.wares||[]).length;wi++)if(String(node.wares[wi].item).toLowerCase()===l.name.toLowerCase()){node.wares.splice(wi,1);break;}}
@@ -1735,36 +1772,38 @@ function stampCampaignFates(text){
   stamp(worldState.character);var comps=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],j;for(j=0;j<comps.length;j++)stamp(comps[j].charSheet||comps[j]);
   return n;
 }
-/* #6 E9 → #481 D1 (audit 2026-09-29, Fable-approved): Car Mode's spoken undo reverses the LAST group of item moves — the tail
-   of the move record (stashMoves, memory.js) while the pointer stashUndoGrp still names it; every applyMuts call sets or
-   clears the pointer, so the next GM turn, a trade or the undo itself ends it. The inverse derives from the halves that
-   landed and applies through applyMuts with the undo source (no auto-take; the hand may take from a stash), so both halves
-   move on one path with receipts. Every half is checked first; one that is no longer there refuses the whole undo, loudly,
-   before anything moves. Busy-gated like every other state-mutating entry point. */
-function _stashUndoQty(n){return n>1?" x"+n:"";}
-function _stashUndoInverse(e,curKey,curWorld){
+/* #6 E9 → #481 D1 → #597: Car Mode's spoken undo reverses the LAST group of item moves — the tail of the move record
+   (stashMoves, memory.js) while the pointer stashUndoGrp still names it; a GM turn (applyMuts), a ledger move or the undo
+   itself ends it. Each entry is checked first — the row still holds the units, the mover still holds the pack half, the
+   mover is still the hero or a companion (#519) — and one refusal refuses the whole undo before anything moves. Then each
+   entry is reversed on the rows and the mover's sheet directly (#597: no inverse tags, no parser). The engine says what
+   happened in one sentence (`said`) so Car Mode never has to guess: a row the story placed without a pack half leaves the
+   record and nobody is told it is "back with you" (Astra's #519 remainder). Busy-gated like every state-mutating entry. */
+function _stashUndoCheck(e,curKey,curWorld){
   var nodes=(memory&&memory.map&&memory.map.nodes)||{},node=nodes[e.key];if(!node)return {ok:false,reason:e.key+" is no longer on the map"};
-  var R2=function(k){return (typeof locResolve==="function")?locResolve(k):k;},op="",leaf=String(e.key).split("|").pop();
-  if(e.key!==curKey){if(!node.parent||R2(node.parent)!==curWorld)return {ok:false,reason:"you are no longer where "+e.name+" was moved"};op="|"+leaf;}
-  var q=!!(typeof kindDef==="function"&&kindDef().stashQuantities),sk=(typeof stashKey==="function")?stashKey(e.name):String(e.name).toLowerCase(),i,row=null;
-  for(i=0;i<node.items.length;i++)if(((typeof stashKey==="function")?stashKey(node.items[i].name):String(node.items[i].name).toLowerCase())===sk){row=node.items[i];break;}
-  var hero=worldState.character&&worldState.character.name,t="",cnt=q?_stashUndoQty(e.units):"";
-  /* #519 (Astra's fixture 2026-10-02): the record names who moved the item; after a hero swap that person is a resident, not the
-     hero and not a companion, and the inverse tags landed on nobody while reporting ok. The item stays where it is, said. */
+  var R2=function(k){return (typeof locResolve==="function")?locResolve(k):k;},leaf=String(e.key).split("|").pop();
+  if(e.key!==curKey&&(!node.parent||R2(node.parent)!==curWorld))return {ok:false,reason:"you are no longer where "+e.name+" was moved"};
+  var hero=worldState.character&&worldState.character.name;
   if(e.pack&&e.by&&e.by!==hero&&!(typeof findCompanionChar==="function"&&findCompanionChar(e.by)))return {ok:false,reason:e.by+" is no longer the hero or in the party — "+e.name+" stays "+(e.action==="placed"?"in "+leaf:"where it is")+" until "+e.by+" plays again"};
-  if(e.action==="placed"){
-    var held=row&&!row.taken&&(!q||(row.qty||1)>=e.units);if(!held)return {ok:false,reason:e.name+" is no longer in "+leaf};
-    if(e.pack)t+=(e.by&&e.by!==hero)?"[COMPANION_ITEM_GAINED:"+e.by+"|"+e.pack.name+_stashUndoQty(e.pack.units)+"]":"[ITEM_GAINED:"+e.pack.name+_stashUndoQty(e.pack.units)+"]";
-    t+="[LOCATION_ITEM:"+e.name+cnt+"|taken"+op+"]";
-  }else{
-    if(!row)return {ok:false,reason:e.name+" is no longer on record in "+leaf};
-    if(e.pack){var sh=(typeof stashActorSheet==="function")?stashActorSheet(e.by||hero):null,inv=(sh&&sh.inventory)||[],j,have=0,pk=(typeof stashKey==="function")?stashKey(e.pack.name):e.pack.name;
-      for(j=0;j<inv.length;j++)if(((typeof stashKey==="function")?stashKey(_invBase(inv[j])):_invBase(inv[j]))===pk)have+=_invCount(inv[j]);
-      if(have<e.pack.units)return {ok:false,reason:e.pack.name+" is no longer in "+((e.by&&e.by!==hero)?e.by+"'s":"your")+" pack"};
-      t+=(e.by&&e.by!==hero)?"[COMPANION_ITEM_LOST:"+e.by+"|"+e.pack.name+_stashUndoQty(e.pack.units)+"]":"[ITEM_LOST:"+e.pack.name+_stashUndoQty(e.pack.units)+"]";}
-    t+="[LOCATION_ITEM:"+e.name+cnt+"|placed"+op+"]";
-  }
-  return {ok:true,tags:t};
+  var sk=stashKey(e.name),held=0,i;for(i=0;i<node.items.length;i++){var it=node.items[i];if(!it.taken&&stashKey(it.name)===sk)held+=(it.qty||1);}
+  if(e.action==="placed"){if(held<e.units)return {ok:false,reason:e.name+" is no longer in "+leaf};}
+  else if(e.pack){var sh=stashActorSheet(e.by||hero),inv=(sh&&sh.inventory)||[],have=0,pk=stashKey(e.pack.name),j;
+    for(j=0;j<inv.length;j++)if(stashKey(_invBase(inv[j]))===pk)have+=_invCount(inv[j]);
+    if(have<e.pack.units)return {ok:false,reason:e.pack.name+" is no longer in "+((e.by&&e.by!==hero)?e.by+"'s":"your")+" pack"};}
+  return {ok:true};
+}
+function _stashUndoApply(e,muts){
+  var hero=worldState.character&&worldState.character.name,sh=e.pack?stashActorSheet(e.by||hero):null,j,qs=e.units>1?" x"+e.units:"";
+  if(e.action==="placed"){fileLocationItem(e.name+qs,"taken",worldState.turn,null,null,{key:e.key});muts.push("Taken: "+e.name+(e.units>1?" ×"+e.units:""));
+    if(sh){for(j=0;j<e.pack.units;j++)addInventoryItem(sh.inventory,e.pack.name);muts.push("+"+e.pack.name+(e.pack.units>1?" x"+e.pack.units:"")+((e.by&&e.by!==hero)?" ("+e.by+")":""));}}
+  else{if(sh){for(j=0;j<e.pack.units;j++)removeInventoryItem(sh.inventory,e.pack.name);muts.push("-"+e.pack.name+(e.pack.units>1?" x"+e.pack.units:"")+((e.by&&e.by!==hero)?" ("+e.by+")":""));if(typeof wornPrune==="function")wornPrune(sh);}
+    fileLocationItem(e.name+qs,"placed",worldState.turn,null,null,{key:e.key});muts.push("Left: "+e.name+(e.units>1?" ×"+e.units:""));}
+}
+function _stashUndoSaid(e){
+  var hero=worldState.character&&worldState.character.name,nm=e.name+(e.units>1?" x"+e.units:"");
+  if(e.action!=="placed")return nm+" is back where it was.";
+  if(!e.pack)return nm+" is off the record here — the story placed it; nobody's pack held it.";
+  return nm+" is back with "+((e.by&&e.by!==hero)?e.by:"you")+".";
 }
 function undoLastItemMove(){
   if(typeof busy!=="undefined"&&busy)return {ok:false,reason:"wait for the turn to finish"};
@@ -1773,19 +1812,14 @@ function undoLastItemMove(){
   if(g==null||!tail||tail.grp!==g)return {ok:false,reason:"nothing to undo"};
   var grp=[];for(i=ring.length-1;i>=0&&ring[i].grp===g;i--)grp.push(ring[i]);/* newest first — undone in reverse */
   var cur=currentNodeKey(),curKey=(typeof locResolve==="function")?locResolve(cur):cur,curWorld=(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location;
-  var text="";for(i=0;i<grp.length;i++){var inv=_stashUndoInverse(grp[i],curKey,curWorld);if(!inv.ok){if(typeof console!=="undefined")console.warn("[stash] undo refused — "+inv.reason+"; nothing moved (#481 D1)");return {ok:false,reason:inv.reason};}text+=inv.tags;}
-  ring.splice(ring.length-grp.length,grp.length);/* the undone moves leave the record — a refresh must not re-apply them */
-  var R=applyMuts(text,{source:"undo",deferSave:true}),bad=((R&&R.muts)||[]).filter(mutLineWarns);/* #481 A7 */
-  if(bad.length){if(typeof console!=="undefined")console.error("[stash] undo partly refused after its checks passed — "+bad.join("; ")+" (#481 D1)");return {ok:false,reason:"the undo was partly refused: "+bad[0]};}
-  return {ok:true,name:grp.map(function(e){return e.name;}).reverse().join(", "),action:tail.action,key:tail.key,units:tail.units};
+  for(i=0;i<grp.length;i++){var chk=_stashUndoCheck(grp[i],curKey,curWorld);if(!chk.ok){if(typeof console!=="undefined")console.warn("[stash] undo refused — "+chk.reason+"; nothing moved (#481 D1)");return {ok:false,reason:chk.reason};}}
+  var muts=[];for(i=0;i<grp.length;i++)_stashUndoApply(grp[i],muts);
+  ring.splice(ring.length-grp.length,grp.length);delete worldState.stashUndoGrp;/* the undone moves leave the record — a refresh must not re-apply them */
+  ledgerLog(muts,"undo");
+  var said=grp.slice().reverse().map(_stashUndoSaid).join(" ");
+  if(typeof syncUI==="function")syncUI();if(typeof saveAll==="function")saveAll();
+  return {ok:true,name:grp.map(function(e){return e.name;}).reverse().join(", "),action:tail.action,key:tail.key,units:tail.units,pack:!!tail.pack,muts:muts,said:said};
 }
-/* #481 D9 (owner ruling 2026-09-29, Fable-approved): a library refresh replaces a sheet wholesale, so the moves this campaign
-   recorded since the copy was made are re-applied to the refreshed sheet — a stowed item is not back in the pack, a taken
-   one is not lost. Which moves a copy already holds is read from the COPY's own mark (stashMarks[campId], stamped on the live
-   sheet at every clocked move, so every export carries it): a copy exported from here holds its moves up to the mark; a copy
-   with no mark never saw this campaign, so every recorded move by that actor is re-applied. (The mark refines the approval's
-   "at > the copy's updatedAt": a copy made elsewhere after a village move is newer yet never saw it.) Moves made before the
-   record existed cannot be re-applied — counted once per actor, loudly. Returns {applied, missed, legacy}. */
 function stashMovesReplay(sheet,copyMark){
   var out={applied:0,missed:[],legacy:0};if(!sheet||typeof worldState==="undefined"||!worldState||typeof kindDef!=="function"||!kindDef().populateFromLibrary)return out;
   if(!sheet.inventory)sheet.inventory=[];
