@@ -3310,7 +3310,7 @@ function shopLedgerRows(cat){
   var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(1,r.qty):r.qty,/* #481 D4: a want buys one */worn:r.worn,off:r.worn||r.sellGp==null,unit:r.sellGp,
     offReason:r.worn?"Worn \u2014 take it off first":(r.sellGp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});
   sell.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});/* stable in ES2019+; a priced row never sinks below an unpriced one */
-  var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */worn:false,off:b.buyGp==null,unit:b.buyGp,offReason:b.buyGp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
+  var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */worn:false,off:b.buyGp==null,unit:b.buyGp,offReason:b.buyGp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",note:b.note||"",/* #558: the keeper's own line rides to the card */hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
   buy.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});
   return {left:sell,right:buy};
 }

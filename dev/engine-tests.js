@@ -24365,6 +24365,29 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[WARES:Ale|1 gp|Ameiko]");if(!memory.map.nodes["Sandpoint"].wares||memory.map.nodes["Sandpoint"].wares.length!==1)return "adventure wares must still file on the world node";
     return true;
   });
+  t("#558 a shop stocks at least five: the ask names the floor, a thin shelf gets ONE top-up in the window, a full shelf none, and the adventure market is untouched (owner 2026-10-02: the cheese shop)",function(){
+    if(typeof WARES_MIN_SHOP!=="number"||WARES_MIN_SHOP<5||WARES_CAP_SHOP<WARES_MIN_SHOP)return "WARES_MIN_SHOP must be at least 5 and under the cap: "+JSON.stringify([WARES_MIN_SHOP,WARES_CAP_SHOP]);
+    villageEF();delete worldState.marketAsk;worldState.turn=40;
+    var ask=buildMarketNote();if(!ask||ask.indexOf("at least "+WARES_MIN_SHOP+" and up to "+WARES_CAP_SHOP+" [WARES:")<0)return "the first ask must name the floor and the cap: "+ask;
+    if(/one or two \[WARES/.test(ask))return "the cheese-shop wording is back: "+ask;
+    applyMuts("[WARES:Smoked fish|1 gp|Frizwick][WARES:Pear cider|2 gp|Frizwick]");
+    var top=buildMarketNote();if(!top||top.indexOf("has only 2 wares on its shelf")<0||top.indexOf("emit 3 or more further [WARES:")<0)return "a thin shelf must be asked to fill once: "+top;
+    if(buildMarketNote()!=="")return "the top-up must not repeat in the window";
+    if(!worldState.marketAsk.topped)return "the top-up latches on the same marketAsk record";
+    delete worldState.marketAsk;var shop=memory.map.nodes["The Village|the tavern"];shop.wares.length=0;
+    buildMarketNote();applyMuts("[WARES:A|1 gp|F][WARES:B|1 gp|F][WARES:C|1 gp|F][WARES:D|1 gp|F][WARES:E|1 gp|F]");
+    if(buildMarketNote()!=="")return "five on the shelf is a shop: no top-up";
+    /* the adventure market: the settlement ask is the week-long one and gets no shop top-up */
+    makeWorld();worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={size:"town",wares:[],visits:1,parent:null};delete worldState.marketAsk;
+    var a1=buildMarketNote();if(/at least /.test(a1)&&/on its shelf/.test(a1))return "the settlement ask must not carry the shop floor: "+a1;
+    applyMuts("[WARES:Rope|1 gp|a vendor]");if(/has only/.test(buildMarketNote()))return "no top-up outside the per-shop kind";
+    /* the ledger: every row carries the eye, and the eye opens the item card without marking the row */
+    var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
+    if(um.indexOf("<button type='button' class='shop-eye' data-eye='\"+escHtml(r.label)+\"' data-note='\"+escHtml(r.note||\"\")+\"'")<0)return "every ledger row must carry an inspect button keyed by its label, with the keeper's note";
+    if(um.indexOf("ev.stopPropagation();ev.preventDefault();var nm=eye.getAttribute(\"data-eye\")")<0||um.indexOf("showItemCard(nm,{note:nt});")<0)return "the eye must open the item card (with the keeper's note) and stop the row's own click";
+    var ih=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");if(ih.indexOf(".shop-eye{")<0)return "the eye has no style";
+    return true;
+  });
   t("#6F3 restock on the clock, per shop: an expired ware is not served from that shop; the market ask and the FOR SALE line read the SHOP node in the village and fire per shop",function(){
     villageEF();applyMuts("[WARES:Smoked fish|1 gp|Frizwick]");
     var geo=buildGeoBlock();if(!/FOR SALE HERE: Smoked fish/.test(geo))return "the shop's wares must be served in the shop: "+geo;

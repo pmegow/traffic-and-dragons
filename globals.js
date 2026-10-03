@@ -80,7 +80,8 @@ var WARES_RESTOCK_DAYS=7;
 var WARES_CAP_BY_SIZE={small:2,medium:4,large:6,vast:10,unknown:2};
 var WANTED_CAP=4;
 var WARES_PRICE_BAND=3;
-var WARES_CAP_SHOP=6;
+var WARES_CAP_SHOP=8;/* #558: a shop asks for at least WARES_MIN_SHOP and holds up to this (was 6) */
+var WARES_MIN_SHOP=5;/* #558 (owner 2026-10-02: "at LEAST 5 items in the shop … not much of a shop at 2 or 3") */
 var EXCHANGE_EVERY=8;/* #6 D2: turns between asks for an exchange between two residents the hero witnesses *//* #6 F2 (2026-09-12): in the village wares live on the SHOP sub-location, capped per shop with a loud eviction */
 var MOOD_AUDIT_TURNS=12;    // v1.381: a party member's recorded MOOD older than this is due for a re-check (buildMoodAudit, api.js). Deliberately far shorter than REL_AUDIT_TURNS below: bonds shift on a ~100-turn scale, mood is scene-scale, and auditing a volatile field on a slow field's clock is what let "watchful, tense" sit pinned on Frizwick for an entire arc. ~12 turns ≈ one play session at the observed rate. An EMPTY mood is eligible immediately — no age wait — since a party member in every scene with no recorded mood is a gap now, not in 12 turns.
 var MOOD_AUDIT_COOLDOWN=12; // v1.381: at most one mood audit per this many turns. Frequency is the real lever on churn — every audit invites re-emission, and re-emission is where vocabulary leaks enter, so a fast audit would keep rolling the corruption dice on characters that were fine.
@@ -409,7 +410,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.1120";
+var APP_VERSION="v1.1121";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

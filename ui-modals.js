@@ -44,7 +44,7 @@ function showLedgerModal(spec){
     for(i=0;i<rows.length;i++){var r=rows[i],q=marks[side][r.key]|0,amt=q?spec.amount(side,r,q):spec.dim(side,r);
       /* owner 2026-09-16: the amount sits on the side the goods MOVE TOWARD — the shop keeps both on the right (coin);
          the chest puts "← you" at the LEFT edge of the take column so the arrow points where the item goes */
-      var lead=!!(spec.amountAt&&spec.amountAt[side]==="left"),nameHtml="<span class='shop-name'>"+escHtml(r.label)+(r.max>1?" <span class='shop-qty' data-clear='1' title='Clear'>"+(q?q+"/":"")+r.max+"</span>":"")+(r.tag?" <span class='shop-tag'>"+escHtml(r.tag)+"</span>":"")+"</span>",amtHtml="<span class='shop-amt'>"+amt+"</span>";
+      var lead=!!(spec.amountAt&&spec.amountAt[side]==="left"),nameHtml="<span class='shop-name'><button type='button' class='shop-eye' data-eye='"+escHtml(r.label)+"' data-note='"+escHtml(r.note||"")+"' title='Inspect "+escHtml(r.label)+"' aria-label='Inspect "+escHtml(r.label)+"'>&#128065;</button>"+escHtml(r.label)+(r.max>1?" <span class='shop-qty' data-clear='1' title='Clear'>"+(q?q+"/":"")+r.max+"</span>":"")+(r.tag?" <span class='shop-tag'>"+escHtml(r.tag)+"</span>":"")+"</span>",amtHtml="<span class='shop-amt'>"+amt+"</span>";
       h+="<div class='shop-row"+(q?(side==="left"?" sel-sell":" sel-buy"):"")+(r.off?" off":"")+(lead?" lead":"")+"' data-side='"+side+"' data-key='"+escHtml(r.key)+"' title='"+escHtml(r.off?r.offReason:r.hint)+"'>"+(lead?amtHtml+nameHtml:nameHtml+amtHtml)+"</div>";}
     return h;}
   function render(){
@@ -61,6 +61,11 @@ function showLedgerModal(spec){
     box.style.position="relative";box.innerHTML=h;
     box.querySelector("#ledger-x").addEventListener("click",function(){modal.remove();});
     var closeBtn=box.querySelector("#ledger-close"),spacer=box.querySelector("#ledger-spacer");if(closeBtn){closeBtn.addEventListener("click",function(){modal.remove();});if(spacer)spacer.style.width=closeBtn.offsetWidth+"px";}
+    /* #558 (owner 2026-10-02: "a vial of healing salve for 25 gp — could be a great price or a terrible one, no way to know"): every row's
+       eye opens the item card (the bible or the campaign's own canon; nothing on record → the card says so and offers Define from
+       story). The row's own click is not reached: the button stops the event. Both sides, selling and buying. */
+    var eyes=box.querySelectorAll(".shop-eye"),ei;
+    for(ei=0;ei<eyes.length;ei++)(function(eye){eye.addEventListener("click",function(ev){ev.stopPropagation();ev.preventDefault();var nm=eye.getAttribute("data-eye"),nt=eye.getAttribute("data-note")||"";if(typeof showItemCard!=="function"){showToast("The item card is unavailable — reload and try again.",4000);console.warn("[ledger] showItemCard missing");return;}showItemCard(nm,{note:nt});});})(eyes[ei]);
     var rows=box.querySelectorAll(".shop-row"),n;
     for(n=0;n<rows.length;n++)(function(row){row.addEventListener("click",function(ev){if(row.classList.contains("off"))return;var side=row.getAttribute("data-side"),key=row.getAttribute("data-key");
       if(ev.target&&ev.target.getAttribute&&ev.target.getAttribute("data-clear")){delete marks[side][key];render();return;}

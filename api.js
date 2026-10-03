@@ -718,13 +718,24 @@ function buildMarketNote(){
     var tier=waresSizeTier(node.size);if(!tier)return"";
   }
   var now=(typeof clockNow==="function")?clockNow():0,win=WARES_RESTOCK_DAYS*MIN_PER_DAY;
-  if(nodeWaresLive(node).length)return"";
+  var _live=nodeWaresLive(node).length;
+  if(_live){
+    /* #558: a shop that answered with fewer than WARES_MIN_SHOP wares is asked ONCE more in the window to fill the shelf — the first
+       ask used to say "one or two", so two or three was the whole stock. Village shops only (the per-shop kind); the latch is the
+       same marketAsk record, with `topped` so the top-up never repeats. */
+    var _ma0=worldState.marketAsk;
+    if(_perShop&&_live<WARES_MIN_SHOP&&_ma0&&_ma0.node===key&&!_ma0.topped&&typeof _ma0.askedMin==="number"&&now-_ma0.askedMin<win){
+      _ma0.topped=true;var _lbl=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
+      return"[ENGINE NOTE — MARKET (not a player action): "+_lbl+" has only "+_live+" ware"+(_live===1?"":"s")+" on its shelf. A shop stocks at least "+WARES_MIN_SHOP+": emit "+(WARES_MIN_SHOP-_live)+" or more further [WARES:item|price|note] lines for what it genuinely sells (up to "+WARES_CAP_SHOP+" in all; name the keeper in the note; price at VALUE), different from what is already listed.]\n";
+    }
+    return"";
+  }
   if(node.waresNone&&now-(node.waresNone.min||0)<win)return"";
   var ma=worldState.marketAsk;
   if(ma&&ma.node===key&&typeof ma.askedMin==="number"&&now-ma.askedMin<win)return"";
   worldState.marketAsk={node:key,askedMin:now,askedTurn:worldState.turn};
   var cap=_perShop?WARES_CAP_SHOP:waresCapFor(node),label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
-  if(_perShop)return"[ENGINE NOTE — MARKET (not a player action): "+label+" is a shop with nothing on record for sale. Emit one or two [WARES:item|price|note] lines for what this shop genuinely sells (up to "+cap+" on its shelf; name the keeper in the note; price at VALUE). If it sells nothing, emit [WARES:none]. If the keeper wants something the hero carries, [WANTED:item|offer|by].]\n";
+  if(_perShop)return"[ENGINE NOTE — MARKET (not a player action): "+label+" is a shop with nothing on record for sale. Emit at least "+WARES_MIN_SHOP+" and up to "+cap+" [WARES:item|price|note] lines for what this shop genuinely sells — a real shelf, not two things (name the keeper in the note; price at VALUE). If it sells nothing, emit [WARES:none]. If the keeper wants something the hero carries, [WANTED:item|offer|by].]\n";
   return"[ENGINE NOTE — MARKET (not a player action): "+label+" is a "+node.size+" place and nothing is on record for sale here. If it is a settlement, emit one or two [WARES:item|price|note] lines for what is genuinely sold here (up to "+cap+" over the week; name the seller in the note; price at VALUE, never the party's purse). If nothing is sold here — wilderness, a ruin — emit [WARES:none]. If someone here wants something the party carries, [WANTED:item|offer|by].]\n";
 }
 // ── #341 PARTY HISTORIES — the companions' authored past reaches the GM ────────────────────
