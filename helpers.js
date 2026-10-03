@@ -3529,13 +3529,33 @@ var SAY_MOOD_MAX=40;
    a stage direction, not a feeling: the speech verb is dropped, a bare pacing phrase is dropped (the model over-renders
    pace), a feeling passes, and volume (whisper, shout, softly) stays because the model renders it well. Pure; the Inworld
    prefix (tts.js _markupPrefix) routes every non-sound part through it. The doc may still teach "slow and measured" —
-   other readers render pace sanely; this is the one boundary where it does harm. */
+   other readers render pace sanely; this is the one boundary where it does harm. #555 made the pass an allow-list (below). */
 var SAY_SPEECH_VERB_RE=/^(speak|speaking|speaks|say|saying|says|sound|sounding|sounds|talk|talking|talks|tell|telling|tells|voice|voiced|tone|toned|reply|replying|replies|answer|answering|answers|add|adding|adds|note|noting|notes|remark|remarking|remarks|observe|observing|observes)\b\s*/i;
-var SAY_PACING_RE=/^(careful|carefully|slow|slowly|deliberate|deliberately|halting|haltingly|measured|even|evenly|flat|flatly|clipped|precise|precisely|methodical|methodically|pointed|pointedly|hesitant|hesitantly|hesitating|steady|steadily|unhurried|unhurriedly|thoughtful|thoughtfully|paced|pacing|slow and measured|slow and steady|slow and careful|slow and deliberate)$/i;
+/* #555 (owner 2026-10-02, Village t264: Nyla's |low, practical| reached Inworld as "[speak low, practical]" and she dragged like a
+   dirge again — the second failure of the #477 class). A deny-list of pacing words cannot enumerate the ways an adjective slows
+   the model ("low" is volume AND energy; "practical" reads as flat and deliberate), so the gate is now an ALLOW-list: a part
+   steers only when every word of it is a FEELING that renders as a feeling, or a VOLUME word (whisper, shout, softly); anything
+   else — pace, energy, pitch, manner, gravity ("solemn" and "grave" push tempo, so they are out; "sad" and "mournful" stay,
+   a sad line should sound sad) — is dropped and logged by the prefix. Adding a word that proves to render well is one entry. */
+var SAY_STEER_WORDS=(function(){var o={};("amused fond warm warmly cheerful cheery happy glad delighted pleased excited eager enthusiastic playful teasing wry sly smug proud "
+  +"curious interested intrigued surprised startled astonished alarmed afraid scared frightened terrified nervous anxious worried uneasy tense "
+  +"angry furious annoyed irritated exasperated bitter cold stern firm sharp impatient urgent desperate pleading hopeful relieved grateful "
+  +"tender gentle kind affectionate sad sorrowful mournful grieving hurt weary tired bored scornful mocking sarcastic sardonic dry deadpan "
+  +"giddy giggling laughing breathless confident calm serious earnest sincere apologetic embarrassed sheepish shy coy flirtatious suspicious wary "
+  +"bright brightly light lightly merry jovial jolly gleeful upbeat brisk crisp lively animated spirited fierce heated indignant outraged aghast dismayed "
+  +"wistful nostalgic rueful regretful remorseful guilty ashamed humble modest gracious polite courteous friendly welcoming reassuring soothing patient "
+  +"doubtful skeptical sceptical dubious puzzled baffled bewildered confused thoughtful pensive distracted dreamy awed reverent fervent passionate "
+  +"longing yearning lovesick jealous envious possessive protective fatherly motherly brotherly sisterly "
+  +"disgusted horrified shocked thrilled triumphant defiant stubborn sulky grumpy cheeky mischievous "
+  +"whisper whispering whispered whispers softly soft quietly quiet hushed murmuring murmured muttering muttered loud loudly louder shouting shouted shouts yelling yelled yells bellowing bellowed hissing hissed growling growled snapping snapped "
+  /* the non-verbal sounds: a reader with a sound table routes them to their own bracket before the steer; a reader without one keeps them as steering (#462) */
+  +"laugh laughs laughing giggle giggles giggling chuckle chuckles chuckling sigh sighs sighing breathe breathing gasp gasps gasping clear throat cough coughs coughing yawn yawns yawning sob sobs sobbing groan groans groaning").split(" ").forEach(function(w){if(w)o[w]=1;});return o;})();
 function sayMoodSteer(part){
   var p=String(part||"").replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
   p=p.replace(SAY_SPEECH_VERB_RE,"");
-  if(!p||SAY_PACING_RE.test(p))return "";
+  if(!p)return "";
+  var words=p.toLowerCase().split(/[\s-]+/).filter(function(w){return !!w;}),i;
+  for(i=0;i<words.length;i++)if(!SAY_STEER_WORDS[words[i].replace(/[^a-z]/g,"")])return "";/* one word outside the list and the part is a stage direction, not a feeling */
   return p;
 }
 /* #481 C4 (audit 2026-09-29, Fable-approved): the ONE skeleton title key — the prompt SHOWS acts and arcs as "Act 1: title" /

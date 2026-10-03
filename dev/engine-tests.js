@@ -13477,6 +13477,19 @@ function runEngineTests(R){
     if(P("surprised, laugh")!=="[speak surprised] [laugh] ")return "#462 shape untouched: "+JSON.stringify(P("surprised, laugh"));
     return true;
   });
+  t("#555 the Inworld steer is an ALLOW-list of feelings and volume words (owner 2026-10-02, Village t264: Nyla's |low, practical| dragged like a dirge — the second failure of the #477 class)",function(){
+    if(typeof SAY_STEER_WORDS!=="object")return "SAY_STEER_WORDS missing (helpers.js)";
+    if(sayMoodSteer("low")!==""||sayMoodSteer("practical")!=="")return "'low' and 'practical' must vanish: "+JSON.stringify([sayMoodSteer("low"),sayMoodSteer("practical")]);
+    if(sayMoodSteer("solemn")!==""||sayMoodSteer("grave")!==""||sayMoodSteer("flat")!==""||sayMoodSteer("hollow")!=="")return "a gravity or energy word must vanish";
+    if(sayMoodSteer("morbidly amused")!==""||sayMoodSteer("under her breath")!==""||sayMoodSteer("low and warm")!=="")return "one word outside the list drops the whole part (a stage direction, not a feeling)";
+    if(sayMoodSteer("calm")!=="calm"||sayMoodSteer("fond")!=="fond"||sayMoodSteer("sad")!=="sad"||sayMoodSteer("mournful")!=="mournful")return "a feeling that renders as a feeling passes";
+    if(sayMoodSteer("Amused")!=="Amused")return "the list is case-free; the part keeps its spelling";
+    var iw=TTS.settings.models.inworld,P=function(m){return TTS._markupPrefix(iw,m);};
+    if(P("low, practical")!=="")return "the t264 prefix must carry nothing: "+JSON.stringify(P("low, practical"));
+    if(P("low, laugh")!=="[laugh] ")return "the sound still fires beside a dropped word: "+JSON.stringify(P("low, laugh"));
+    if(P("calm, fond")!=="[speak calm, fond] ")return "two feelings fold into one steering bracket: "+JSON.stringify(P("calm, fond"));
+    return true;
+  });
   t("#458 the SAY doc line teaches the optional |mood: the form, the shape, only when the feeling is not obvious, never every line, and the example list (emotions, delivery, non-verbals)",function(){
     var d=buildStateTagsDoc(),need=["[SAY:Character Name|mood]","not obvious from the words","never on every line","weary","slow and measured","clear throat","giggle","at most 40 characters","never a sentence"],i;
     for(i=0;i<need.length;i++)if(d.indexOf(need[i])<0)return "doc lacks "+JSON.stringify(need[i]);

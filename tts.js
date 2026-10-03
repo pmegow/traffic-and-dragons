@@ -890,7 +890,7 @@ var TTS = (function() {
     for (i = 0; i < parts.length; i++) {
       p = parts[i].replace(/^\s+|\s+$/g, ""); if (!p) continue;
       k = p.toLowerCase().replace(/\s+/g, " ");
-      if (table.indexOf(k) >= 0) { if (sounds.indexOf(k) < 0) sounds.push(k); } else { var sp = (typeof sayMoodSteer === "function") ? sayMoodSteer(p) : p; if (sp) steer.push(sp); else console.info("[tts] #477 mood part dropped — a manner of speaking, not a feeling: " + p); }
+      if (table.indexOf(k) >= 0) { if (sounds.indexOf(k) < 0) sounds.push(k); } else { var sp = (typeof sayMoodSteer === "function") ? sayMoodSteer(p) : p; if (sp) steer.push(sp); else console.info("[tts] #477/#555 mood part dropped — not a feeling or a volume word, so a stage direction Inworld would over-render: " + p); }
     }
     var out = steer.length ? "[speak " + steer.join(", ") + "] " : "";
     for (i = 0; i < sounds.length; i++) out += "[" + sounds[i] + "] ";
