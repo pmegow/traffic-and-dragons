@@ -27954,6 +27954,19 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   section("#481 A4 the place sequencer");
+  t("#512 a description written before the move describes the place the reply started at (Magnimar, not the bathhouse); written after the move it describes the new place; a town whose description already stands keeps it",function(){
+    makeWorld();delete worldState.kind;worldState.world.location="Magnimar";worldState.world.sublocation=null;memory.map={nodes:{"Magnimar":{firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"vast"}},edges:[],lastArrivalFrom:null};
+    quiet(function(){applyMuts("The city sprawls. [LOCATION_DESC:Magnimar is a sprawling coastal metropolis of stone bridges.][ITEM_LOST:Nothing][SUBLOCATION:The Silk and Steam Bathhouse]");});
+    var m=memory.map.nodes["Magnimar"],b=memory.map.nodes["Magnimar|The Silk and Steam Bathhouse"];
+    if(!m.description||!/coastal metropolis/.test(m.description))return "the town takes its own description: "+JSON.stringify(m.description);
+    if(b&&b.description)return "the bathhouse must not take the town's words: "+JSON.stringify(b.description);
+    quiet(function(){applyMuts("Steam rolls over you. [LOCATION_DESC:Tiled pools under a copper ceiling, thick with steam.]");});
+    b=memory.map.nodes["Magnimar|The Silk and Steam Bathhouse"];if(!b||!/copper ceiling/.test(b.description||""))return "a description written in the place describes it: "+JSON.stringify(b&&b.description);
+    quiet(function(){applyMuts("[SUBLOCATION_LEAVE][LOCATION_DESC:Magnimar again, rewritten.]");});
+    if(!/coastal metropolis/.test(memory.map.nodes["Magnimar"].description))return "write-once: the first description stands";
+    quiet(function(){applyMuts("[LOCATION_DESC:A harbour inn of tarred beams.][SUBLOCATION:The Gull's Rest]");});
+    var g=memory.map.nodes["Magnimar|The Gull's Rest"];return (!g||!g.description)?true:"a description before the move never lands on the place being entered: "+JSON.stringify(g.description);
+  });
   t("#481 A4 pay-then-leave lands: a coin paid at the counter before walking out is paid in the shop (t198)",function(){
     shopFixture();var g=worldState.character.coin;
     var r=quiet(function(){return applyMuts("[SAY:Frizwick]\"A copper, love.\" You pay. [GOLD:-1] You step back out. [SUBLOCATION_LEAVE]");}).r;

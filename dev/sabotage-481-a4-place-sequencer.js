@@ -7,6 +7,9 @@ var sabotage = require("./sabotage.js"), code = 0;
 var CMD = ["node", ["dev/run-tests.js", "#481 A4"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 prove("tag_table.js", [
+  { label: "#512 a description files on the place the reply ENDS at again (the town's words land on the bathhouse)",
+    find: "if(ldesc)fileLocationDesc(ldesc[1],rPlaceAt(R,ldesc.index));", replace: "if(ldesc)fileLocationDesc(ldesc[1]);",
+    mustFail: "#512 a description written before the move" },
   { label: "placeAt returns the end state (Fable's named clause)",
     find: "R.placeAt=function(off){return R.places?placeStateAt(R.places,off):null;};", replace: "R.placeAt=function(off){return R.places?placeStateAt(R.places,null):null;};",
     mustFail: "place-then-leave files the item" },

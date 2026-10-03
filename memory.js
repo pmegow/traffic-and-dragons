@@ -578,9 +578,9 @@ function resolveExitsAfterMove(R){
   }
   if(keep.length)node.exits=keep;else delete node.exits;
 }
-function fileLocationDesc(desc){
+function fileLocationDesc(desc,at){/* #512: `at` = the reply's place where the tag happened ({key}); absent = the live pointer */
   if(!memory.map||!worldState||!worldState.world)return;
-  var key=currentNodeKey();/* UA9 */
+  var key=(at&&at.key)?at.key:currentNodeKey();/* UA9 */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   if(!memory.map.nodes[key])return;
   if(!memory.map.nodes[key].description)memory.map.nodes[key].description=desc;
