@@ -27,6 +27,15 @@ try {
   console.error("DOC LINKS CONTRACT FAILED: " + e.message);
   process.exit(1);
 }
+// #523: the storage-key table in DOC/contracts/sync.md is DERIVED from the root .js files by dev/storage-keys.js — a key
+// added or renamed without `node dev/storage-keys.js --write` fails here, so the census never rots.
+try {
+  var _skOut = require("child_process").execFileSync(process.execPath, [require("path").join(__dirname, "storage-keys.js")], { cwd: require("path").join(__dirname, ".."), stdio: ["ignore", "pipe", "pipe"] }).toString("utf8").trim();
+  console.log(_skOut);
+} catch (e) {
+  console.error("STORAGE KEYS CONTRACT FAILED: " + ((e.stderr && e.stderr.toString()) || e.message).trim());
+  process.exit(1);
+}
 // #481 G9: CLAUDE.md's hand-copied facts are DERIVED — its script load order must equal index.html's <script src> order (the
 // ENGINE MANIFEST CONTRACT's shape, for the doc), and a script-tag count written in the index.html row must be true.
 try {
