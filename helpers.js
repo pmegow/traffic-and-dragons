@@ -2183,6 +2183,20 @@ function personaCapture(sheet,ws){
   if(typeof console!=="undefined")console.info("[persona] "+sheet.name+": "+picked.length+" voice lines captured from "+(camp||"this campaign"));
   return sheet;
 }
+/* #553. Pure: the residents (not party, not dead) who hold a [SAY:] line in `reply` and are not in `localSet` (lower-cased
+   names of who is in the hero's place). Names resolve through the roster's own spelling and aliases; the hero's own
+   name and anyone not on the roster are ignored — the rule is about residents, and a stranger is the GM's to name. */
+function elsewhereSpeakers(reply,npcs,localSet){
+  var out=[],seen={},re=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g,m;
+  var byLow={},i;for(i=0;i<(npcs||[]).length;i++){var n=npcs[i];if(!n||!n.name)continue;byLow[String(n.name).toLowerCase()]=n;(n.aliases||[]).forEach(function(a){if(a)byLow[String(a).toLowerCase()]=n;});}
+  while((m=re.exec(String(reply||"")))){
+    var nm=String(m[1]).replace(/^\s+|\s+$/g,"").toLowerCase(),n=byLow[nm];
+    if(!n||!n.resident||n.partyMember||(typeof npcIsDead==="function"&&npcIsDead(n)))continue;
+    if(localSet&&localSet[String(n.name).toLowerCase()])continue;
+    if(!seen[n.name]){seen[n.name]=1;out.push(n.name);}
+  }
+  return out;
+}
 /* ONE renderer for the prompt: the bits a sheet's persona adds wherever the sheet already reaches the GM — the
    present-resident roster line, the companion block, the legacy block. Up to PERSONA_SERVE_LINES lines, each cut to
    PERSONA_SERVE_CHARS, plus the manner line when the owner wrote one. Empty when the sheet carries neither. */

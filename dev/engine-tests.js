@@ -26866,6 +26866,63 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#553 the Village: a resident who is elsewhere is silent");
+  t("#553 the roster leads an ABSENT resident's entry with ELSEWHERE and their place; a present one is unmarked; the preamble states the rule; an adventure is byte-identical",function(){
+    carriedEF();var _la=lastAction;
+    try{
+      memory.npcs["Silas Morne"].lastSeenAt="The Village|Silas Morne's house";memory.npcs["Silas Morne"].lastSeenTurn=worldState.turn;memory.npcs["Silas Morne"].lastMentioned=worldState.turn;
+      if(!kindDef().residentsSilentElsewhere)return "the village kind must carry residentsSilentElsewhere";
+      var _siRow=worldState.npcs.filter(function(n){return n.name==="Silas Morne";})[0];if(_siRow){_siRow.status="walking the night lane";_siRow.statusTurn=worldState.turn;}/* a mood on his row, so the mark must get AHEAD of it */
+      lastAction="Stoke the fire.";var p=buildSysPrompt(),m=p.volatile.match(/\nNPCs: ([^\n]*)/);if(!m)return "no roster line";
+      var ents=m[1].split(/; (?=[A-Z])/),ny=ents.filter(function(x){return /^Nyla Lorrath/.test(x);})[0]||"",si=ents.filter(function(x){return /^Silas Morne/.test(x);})[0]||"";
+      if(si.indexOf("Silas Morne (ELSEWHERE")!==0)return "the absent resident's entry must LEAD with ELSEWHERE (it is the first thing the GM reads about him): "+si.slice(0,160);
+      if(!/not in this scene: silent this turn, does not come to the hero/.test(si))return "the mark lost its wording: "+si.slice(0,200);
+      if(/ELSEWHERE/.test(ny))return "the PRESENT resident was marked elsewhere: "+ny.slice(0,160);
+      if(p.stable.indexOf("a resident marked ELSEWHERE on the roster is silent this turn and does not come to the hero")<0)return "the village preamble does not state the rule";
+      if(/ELSEWHERE/.test(p.stable.replace(/marked ELSEWHERE on the roster/,"")))return "the per-turn mark leaked into the stable half";
+    }finally{lastAction=_la;}
+    /* an adventure: the flag is off, no resident is marked, the preamble has no such sentence */
+    makeWorld();sessionLog=[];
+    worldState.npcs.push({name:"Old Gurt",rel:"friendly",status:"mending nets",statusTurn:worldState.turn,resident:true});memory.npcs["Old Gurt"]={knowledge:[],events:[],aliases:[],lastSeenAt:"Far Away",lastSeenTurn:worldState.turn,lastMentioned:worldState.turn};
+    if(kindDef().residentsSilentElsewhere)return "an adventure must not carry the flag";
+    var q=buildSysPrompt();if(/ELSEWHERE/.test(q.volatile)||/ELSEWHERE/.test(q.stable))return "an adventure roster or preamble carries the village mark";
+    return true;
+  });
+  t("#553 elsewhereSpeakers: a resident with a [SAY:] line who is not local is named once; a local one, a party member, the hero, a stranger and the dead are not; aliases resolve",function(){
+    if(typeof elsewhereSpeakers!=="function")return "elsewhereSpeakers missing";
+    var npcs=[{name:"Silas Morne",resident:true,aliases:["the cleric"]},{name:"Thessa Saltborn",resident:true},{name:"Bram",resident:true,partyMember:true},{name:"Dead Orrin",resident:true,dead:12},{name:"Ammut"}];
+    var reply="[SAY:Silas Morne]\"Good day.\" [SAY:Thessa Saltborn|warm]\"Cider?\" [SAY:Bram]\"Bees.\" [SAY:Dead Orrin]\"...\" [SAY:Ammut]\"Hm.\" [SAY:A Stranger]\"Who?\" [SAY:the cleric]\"Again.\"";
+    var got=elsewhereSpeakers(reply,npcs,{"thessa saltborn":1});
+    if(got.join(",")!=="Silas Morne")return "expected Silas alone (once, through his alias too): "+JSON.stringify(got);
+    if(elsewhereSpeakers("[SAY:the cleric]\"Only by alias.\"",npcs,{}).join(",")!=="Silas Morne")return "a line tagged with the alias alone must resolve to the resident";
+    if(elsewhereSpeakers(reply,npcs,{"thessa saltborn":1,"silas morne":1}).length)return "a local resident was named";
+    if(elsewhereSpeakers("No tags at all.",npcs,{}).length)return "a reply with no [SAY:] names someone";
+    return true;
+  });
+  t("#553 the note fires on the turn after a resident spoke from elsewhere, names them with their place and the hero's, is silent when they are local or when the kind is an adventure, and writes nothing",function(){
+    carriedEF();var _la=lastAction;
+    try{
+      memory.npcs["Silas Morne"].lastSeenAt="The Village|Silas Morne's house";memory.npcs["Silas Morne"].lastSeenTurn=worldState.turn;memory.npcs["Silas Morne"].lastMentioned=worldState.turn;
+      sessionLog.push({role:"assistant",content:"Silas pauses on the lane. [SAY:Silas Morne]\"Good day, Ammut.\" [SAY:Nyla Lorrath]\"Mint?\""});
+      buildSceneManifest();if(typeof residentWhereabouts==="function")residentWhereabouts("Silas Morne");/* warm the shared readers' memos: the note itself must add nothing */
+      var before=JSON.stringify(worldState),note=buildElsewhereSpeechNote();
+      if(!/SPOKE FROM ELSEWHERE/.test(note)||!/Silas Morne/.test(note))return "the note did not name Silas: "+note.slice(0,200);
+      if(/Nyla Lorrath/.test(note))return "the PRESENT resident was named: "+note.slice(0,300);
+      if(!/the hero is at /.test(note))return "the note does not say where the hero is";
+      if(JSON.stringify(worldState)!==before)return "the note wrote state (it must be latch-free)";
+      if(NOTE_BUILDERS.indexOf(buildElsewhereSpeechNote)<0)return "not in NOTE_BUILDERS";
+      /* engine notes ride the turn's user message (sendAction → buildEngineNotes), not the system prompt; builder 7 of 84 keeps it inside the delivery cap */
+      if(buildEngineNotes().indexOf("SPOKE FROM ELSEWHERE")<0)return "the note does not reach the turn: "+JSON.stringify(lastEngineNotesBuilt());
+      /* the GM walked him into the room by tag: he is local now, so no note */
+      memory.npcs["Silas Morne"].lastSeenAt=currentNodeKey();
+      if(buildElsewhereSpeechNote())return "a resident who is local now must not be named";
+    }finally{lastAction=_la;}
+    makeWorld();sessionLog=[{role:"assistant",content:"[SAY:Old Gurt]\"Nets.\""}];
+    worldState.npcs.push({name:"Old Gurt",rel:"friendly",resident:true});memory.npcs["Old Gurt"]={knowledge:[],events:[],aliases:[],lastSeenAt:"Far Away"};
+    if(buildElsewhereSpeechNote())return "an adventure must never fire this note";
+    return true;
+  });
+
   // ── #372: the register guard's reach — three channels the #355 narration census cannot see ──
   section("#459 / #460 — records never recited; the sheet outranks the GM's memory (owner field reports 2026-09-25)");
   /* the owner's real Necrotic Dungeon skeleton (t35 save), shortened: the register lives in the premise, the act goals, a
