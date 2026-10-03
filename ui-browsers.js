@@ -509,7 +509,7 @@ function showCharImportPreview(char, onAccept, onCancel){
     +"<div style='display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:var(--bg2);border-radius:8px;padding:10px;margin-bottom:14px;'>"+statRow+"</div>"
     +"<div style='display:flex;gap:16px;margin-bottom:14px;font-size:12px;'>"
     +"<span style='color:var(--hp);'>HP "+char.hp+"/"+char.maxHp+"</span>"
-    +"<span style='color:var(--gold);'>"+char.gold+"gp</span>"
+    +"<span style='color:var(--gold);'>"+fmtCoin(char.coin||(char.gold||0)*100)+"</span>"
     +"<span style='color:var(--t1);'>"+escHtml(alignLabel(char.alignLaw||0,char.alignGood||0))+"</span>"
     +"</div>"
     +(char.appear?"<div style='font-size:11px;color:var(--t2);margin-bottom:10px;font-style:italic;'>"+escHtml(char.appear)+(char.mark?" — "+escHtml(char.mark):"")+"</div>":"")

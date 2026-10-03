@@ -18,7 +18,7 @@ prove("game.js", [
     replace: "if(false)return {ok:false,reason:(have?\"only \"+have+\" of \"+l.name+\" x\"+l.qty+\" is in the chest\":l.name+\" is no longer in the chest\")+\" — nothing moved\",muts:[]};",
     mustFail: "#597 ② a stale plan is refused WHOLE" },
   { label: "the purse is no longer checked (a short purse goes negative)",
-    find: "  if(net>0&&(Number(c.gold)||0)<net)return {ok:false,reason:\"short \"+(net-(Number(c.gold)||0))+\" gp — nothing moved\",muts:[]};", replace: "",
+    find: "  if(net>0&&(Number(c.coin)||0)<net)return {ok:false,reason:\"short \"+fmtCoin(net-(Number(c.coin)||0))+\" — nothing moved\",muts:[]};/* #598: copper */", replace: "",
     mustFail: "#597 ② a stale plan is refused WHOLE" },
   { label: "a sale no longer retires the keeper's want",
     find: "var w=(typeof retireWantedAt===\"function\")?retireWantedAt({key:key},ln.name):null;", replace: "var w=null;",

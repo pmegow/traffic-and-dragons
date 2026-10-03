@@ -2040,39 +2040,62 @@ function nameContains(hay,needle){
   }
   return false;
 }
-/* #481 D5 (audit 2026-09-29, Fable-approved): ONE coin parser for every price the economy reads — the item bible's value,
-   a ware's price, a wanted offer, the [GOLD:] tag and the quest-reward parses. Gold, silver, copper, platinum (1 gp = 10 sp
-   = 100 cp; 1 pp = 10 gp; "gp"/"gold"/"gold pieces"…), thousands commas, and a BUNDLE: "1 gp per 20" / "for 20" prices one
-   of twenty; "each" prices one. A price is the first number that carries a unit (a sign is no part of it — "2-3 gp" is 3);
-   `lead` reads a [GOLD:] body by its LEADING signed number and only the unit written right after it ("-2 (2 sp change)" is
-   -2, unit-less). → {amount, unit: "gp"|"sp"|"cp"|"pp"|null, gp: the amount in gold, per, unitGp: gold for ONE unit}, or
-   null when there is no number at all ("N/A", "beyond price"). Pure. */
+/* #598 (owner ruling 2026-10-03, "under the hood, everything should be expressed as copper"): ONE unit — COPPER. Every price
+   is parsed ONCE where it is filed (a ware, a want, the bible value through its cache) into whole copper per unit; the purse
+   (character.coin) holds copper; arithmetic is integer subtraction; gold and silver are DISPLAY (fmtCoin). 1 gp = 10 sp =
+   100 cp; 1 pp = 10 gp. parseCoin(str) → {cp: the whole price in copper, unit: the first unit word's key or null, per,
+   unitCp: copper for ONE unit}, or null when there is no number at all ("N/A", "beyond price"). A price is the SUM of its
+   unit terms ("1 gp 5 sp" = 150); a bare number is gold; a BUNDLE prices one of N — "1 gp per 20", "for 20", "20 for 1 gp",
+   "per dozen", "a dozen" — and "each" prices one. `lead` reads a [GOLD:] body by its LEADING signed number and only the
+   unit written right after it ("-2 (2 sp change)" is -200). Pure. (#481 D5 wrote the one parser; #598 made it copper.) */
+var COIN_UNIT_CP={gp:100,gold:100,sp:10,silver:10,cp:1,copper:1,pp:1000,platinum:1000};
 var COIN_UNIT_KEY={gp:"gp",gold:"gp",sp:"sp",silver:"sp",cp:"cp",copper:"cp",pp:"pp",platinum:"pp"};
 function parseCoin(str,lead){
   var s=String(str==null?"":str).toLowerCase().replace(/(\d),(?=\d{3}(?!\d))/g,"$1");
-  if(lead&&!/^\s*[+-]?\d/.test(s))return null;
-  var re=/([+-]?\d+(?:\.\d+)?)(?:\s*(gp|sp|cp|pp|gold|silver|copper|platinum)s?(?![a-z])(?:\s+(?:pieces?|coins?)(?![a-z]))?)?/g,m,first=null,hit=null;/* #517: "3 coppers" is 3 cp — the plural used to fail the word boundary and read as gold */
-  while((m=re.exec(s))){if(!first)first=m;if(lead)break;if(m[2]){hit=m;break;}}
-  hit=(lead||!hit)?first:hit;if(!hit)return null;
-  var amount=parseFloat(hit[1]);if(!lead)amount=Math.abs(amount);
-  var unit=hit[2]?COIN_UNIT_KEY[hit[2]]:null,gp=unit==="sp"?amount/10:unit==="cp"?amount/100:unit==="pp"?amount*10:amount;
-  var pm=s.slice(hit.index+hit[0].length).match(/^\s*(?:per|for|\/)\s*(\d+)(?![\d.])/),per=pm?Math.max(1,parseInt(pm[1],10)):1;
-  return {amount:amount,unit:unit,gp:gp,per:per,unitGp:gp/per};
+  var re=/([+-]?\d+(?:\.\d+)?)(?:\s*(gp|sp|cp|pp|gold|silver|copper|platinum)s?(?![a-z])(?:\s+(?:pieces?|coins?)(?![a-z]))?)?/g,m,terms=[],first=null;
+  if(lead){if(!/^\s*[+-]?\d/.test(s))return null;var lm=re.exec(s),lv=parseFloat(lm[1]),lcp=Math.round(lv*(lm[2]?COIN_UNIT_CP[lm[2]]:100));return {cp:lcp,unit:lm[2]?COIN_UNIT_KEY[lm[2]]:null,per:1,unitCp:lcp};}
+  while((m=re.exec(s))){if(!first)first=m;if(m[2])terms.push(m);}
+  if(!first)return null;
+  var cp=0,unit=null,end,i;
+  if(terms.length){for(i=0;i<terms.length;i++)cp+=Math.abs(parseFloat(terms[i][1]))*COIN_UNIT_CP[terms[i][2]];unit=COIN_UNIT_KEY[terms[0][2]];end=terms[terms.length-1].index+terms[terms.length-1][0].length;}
+  else{cp=Math.abs(parseFloat(first[1]))*100;end=first.index+first[0].length;}
+  cp=Math.round(cp);
+  var per=1,pm=s.slice(end).match(/^\s*(?:per|for|\/|a)\s*(\d+|dozen)(?![\d.])/);
+  if(pm)per=pm[1]==="dozen"?12:Math.max(1,parseInt(pm[1],10));
+  else if(terms.length){var bm=s.slice(0,terms[0].index).match(/(\d+)\s+for\s*$/);if(bm)per=Math.max(1,parseInt(bm[1],10));}/* "20 for 1 gp" */
+  return {cp:cp,unit:unit,per:per,unitCp:Math.round(cp/per)};
 }
-/* #481 D5: a [GOLD:] tag as the purse reads it — whole gold pieces (the leading number, truncated as before). A coin in
-   another unit is NOT gold: {ok:false} and the GOLD handler refuses it (never converts). */
+/* #598: copper → the player's words. Whole gold reads exactly as before ("12 gp"); below that the smaller coins follow
+   ("12 gp 5 sp", "25 cp"); zero is "0 gp"; a negative keeps its sign. The ONE formatter: HUD, sheets, prompt, counter, receipts. */
+function fmtCoin(cp){
+  cp=Math.round(Number(cp)||0);var neg=cp<0,a=Math.abs(cp),g=Math.floor(a/100),s=Math.floor((a%100)/10),c=a%10,p=[];
+  if(g)p.push(g+" gp");if(s)p.push(s+" sp");if(c)p.push(c+" cp");if(!p.length)p.push("0 gp");
+  return (neg?"-":"")+p.join(" ");
+}
+/* #598: a [GOLD:] tag as the purse reads it — the leading signed number in the unit written after it (none = gold), in
+   copper. The GM writes the coin it narrated ([GOLD:-5 sp], [GOLD:-3 coppers], [GOLD:+2]); nothing is refused for its unit. */
 function goldTagParse(tag){
   var raw=String(tag==null?"":tag),body=raw.replace(/^\s*\[GOLD:/i,"").replace(/\]\s*$/,""),c=parseCoin(body,true);
-  if(!c)return {ok:false,raw:raw,unit:null,n:0};
-  var n=c.amount<0?Math.ceil(c.amount):Math.floor(c.amount);
-  return {ok:!c.unit||c.unit==="gp",raw:raw,unit:c.unit,n:n};
+  return c?{ok:true,raw:raw,unit:c.unit,cp:c.cp}:{ok:false,raw:raw,unit:null,cp:0};
 }
-/* #481 D5: the reward a reply pays — the first [GOLD:+N] the purse would accept (a deduction or a coin in another unit is
-   no reward). One reader for the completion toast, the archive's paid record and the re-completion double-pay check. */
+/* The reward a reply pays, in copper — the first [GOLD:+N…] (a deduction is no reward). One reader for the completion
+   toast, the archive's paid record and the re-completion double-pay check. */
 function goldRewardIn(text){
   var tags=String(text==null?"":text).match(/\[GOLD:\s*\+?\d[^\]]*\]/gi)||[],i;
-  for(i=0;i<tags.length;i++){var g=goldTagParse(tags[i]);if(g.ok&&g.n>0)return g.n;}
+  for(i=0;i<tags.length;i++){var g=goldTagParse(tags[i]);if(g.ok&&g.cp>0)return g.cp;}
   return 0;
+}
+/* #598: the purse heal — one-way, idempotent: a sheet with the old whole-gold `gold` gets `coin` (copper) and loses `gold`;
+   a sheet with neither gets 0. Runs on the hero and every companion at load and before every turn (healAbilitySheets), on
+   every imported sheet, and on the quest archive's paid record. Returns true when it changed anything. */
+/* #598: a quest record's paid coin — `coin` (copper) on a record written since v1.1125, `gold` ×100 on an older one. */
+function _paidCoin(p){if(!p)return 0;if(typeof p.coin==="number")return p.coin;return typeof p.gold==="number"?Math.round(p.gold*100):0;}
+function coinHeal(sheet){
+  if(!sheet||typeof sheet!=="object")return false;var ch=false;
+  if(typeof sheet.gold==="number"&&!isNaN(sheet.gold)){if(typeof sheet.coin!=="number"||isNaN(sheet.coin))sheet.coin=Math.round(sheet.gold*100);delete sheet.gold;ch=true;}
+  else if("gold" in sheet){delete sheet.gold;ch=true;}
+  if(typeof sheet.coin!=="number"||isNaN(sheet.coin)){sheet.coin=0;ch=true;}
+  return ch;
 }
 /* #481 C11: a narration snippet as a SENTENCE, never a cut word (the Necrotic t35 "First met: … to the rightmo"). Text
    that already ends a sentence stands; otherwise it ends at the last sentence end — a closing quote rides with its period,
@@ -2086,7 +2109,10 @@ function snippetAtSentence(text,max){
   if(end>20)return s.slice(0,end);/* a real sentence, not a bare "Hi." */
   var sp=s.lastIndexOf(" ");return (sp>0?s.slice(0,sp):s).replace(/[\s,;:\u2014\u2013-]+$/,"")+"\u2026";
 }
-function itemValueGp(entry){if(!entry||!entry.value)return null;var c=parseCoin(entry.value);return (c&&c.unit)?c.unitGp:null;}/* #481 D5: ONE unit, in gold */
+/* #598: a bible value in copper per unit — parsed once per distinct value string (the cache IS the boundary; nothing is
+   written on the entry, so an overlay export never carries a parse). A value with no unit word is no price. */
+var _coinValueCache={};
+function itemValueCp(entry){if(!entry||!entry.value)return null;var v=String(entry.value);if(!(v in _coinValueCache)){var c=parseCoin(v);_coinValueCache[v]=(c&&c.unit)?c.unitCp:null;}return _coinValueCache[v];}
 // #303: LOCATION_SIZE text → the wares-cap tier. The GM's vocabulary is physical scale (small /
 // medium / large / vast — measured on the t2097 map); settlement words are folded in as a courtesy.
 // null when the node carries no size at all — an unsized place never gets a market ask.
@@ -2450,7 +2476,7 @@ function _rewardClaimTake(id){
 function _rewardTargetRead(g,c){
   if(!g||!c)return null;
   if(g.kind==="xp")return Number(c.xp)||0;
-  if(g.kind==="gold")return Number(c.gold)||0;
+  if(g.kind==="gold")return Number(c.coin)||0;/* #598: in copper */
   if(g.kind==="item")return (typeof inventoryCountOf==="function")?inventoryCountOf(c.inventory,g.key):null;
   return null;
 }
@@ -3242,52 +3268,41 @@ function shopOpportunity(){
 
 /* #407 THE SHOP INTERFACE (owner drawing 2026-09-16; four rulings in the TODO row). A pure view model and plan over the
    village's own teeth: villageTradeContext (a shop with its keeper present), the shop node's LIVE wares and WANTED list,
-   and bible canon. Sell price = HALF canon, FULL when the keeper WANTS it (a WANTED offer prices a no-canon item); with
-   neither, the item is not sellable at the counter (ask the keeper in prose). Buy price = the ware's pinned price; each
-   ware row is one unit. Coin is whole gp: each side rounds on its own (#517) and a non-zero purchase never rounds to
-   free. Nothing here writes state — shopTradeApply (game.js) lands the plan through ledgerApply (#597). */
+   and bible canon. Sell price = HALF canon, the keeper's stated OFFER when the keeper WANTS it (an offer in words is no
+   counter price); with neither, the item is not sellable at the counter (ask the keeper in prose). Buy price = the ware's
+   pinned price, per unit of its bundle. #598: every figure is COPPER (a ware row's `cp`/`per`, a want's `cp`, the bible
+   through itemValueCp) and the net is integer subtraction — no rounding, no floor, no "never free" bump. Nothing here
+   writes state — shopTradeApply (game.js) lands the plan through ledgerApply (#597). */
 var SHOP_SELL_FRACTION=0.5;
 function shopTradeCatalog(){
   var vtc=(typeof villageTradeContext==="function")?villageTradeContext():{ok:false,reason:"no trade context"};
   if(!vtc.ok||!vtc.node)return {ok:false,reason:vtc.reason||"not in a shop"};
   var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||{},inv=c.inventory||[],hero={},order=[],i;
   for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=base.toLowerCase();
-    if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonGp:null,wanted:false,sellGp:null};order.push(k);}
+    if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}
     hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))hero[k].worn=true;}
   var wanted={},wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++)wanted[String(wl[i].item||"").toLowerCase()]=wl[i];
-  var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,gp=(typeof itemValueGp==="function")?itemValueGp(canon):null;
+  var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,cp=(typeof itemValueCp==="function")?itemValueCp(canon):null;
     var w=wanted[order[i]]||wanted[String((typeof itemBaseName==="function")?itemBaseName(r.name):r.name).toLowerCase()]||null;
-    r.canonGp=gp;r.wanted=!!w;
-    /* #481 D4 (ruled 2026-09-29; amends #407 ruling ①): a WANTED item sells at the keeper's STATED offer, parsed by the one
-       coin parser, for ONE unit (the want retires when met); an offer in words is no counter price — ask the keeper. */
-    if(w){var oc=(typeof parseCoin==="function")?parseCoin(w.offer):null;r.offer=String(w.offer||"");if(oc&&oc.unit)r.sellGp=oc.unitGp;else r.offerWords=true;}
-    else if(gp)r.sellGp=gp*SHOP_SELL_FRACTION;
+    r.canonCp=cp;r.wanted=!!w;
+    /* #481 D4 (ruled 2026-09-29; amends #407 ruling ①): a WANTED item sells at the keeper's STATED offer, parsed once when
+       the want was filed (its `cp`), for ONE unit (the want retires when met); an offer in words is no counter price. */
+    if(w){r.offer=String(w.offer||"");if(w.cp!=null)r.sellCp=w.cp;else r.offerWords=true;}
+    else if(cp!=null)r.sellCp=Math.floor(cp*SHOP_SELL_FRACTION);
     sell.push(r);}
   var live=(typeof nodeWaresLive==="function")?nodeWaresLive(vtc.node):(vtc.node.wares||[]),buy=[];
-  for(i=0;i<live.length;i++){var ware=live[i],bg=(typeof itemValueGp==="function")?itemValueGp({value:ware.price}):null,pc=(typeof parseCoin==="function")?parseCoin(ware.price):null;
-    buy.push({name:ware.item,price:ware.price,buyGp:bg,per:(bg!=null&&pc&&pc.per>1)?pc.per:1,note:ware.note||""});}/* #481 D5: "1 gp per 20" sells by the one, up to twenty */
-  return {ok:true,keeper:vtc.keeper,shop:vtc.shop,key:vtc.key,node:vtc.node,gold:Number(c.gold)||0,sell:sell,buy:buy};
+  for(i=0;i<live.length;i++){var ware=live[i];buy.push({name:ware.item,price:ware.price,cp:(ware.cp!=null?ware.cp:null),per:ware.per||1,note:ware.note||""});}/* #481 D5: "1 gp per 20" sells by the one, up to twenty */
+  return {ok:true,keeper:vtc.keeper,shop:vtc.shop,key:vtc.key,node:vtc.node,coin:Number(c.coin)||0,sell:sell,buy:buy};
 }
-/* marks = {sell:{<lowercase name>:qty}, buy:{<lowercase name>:1}} — what the player has clicked. */
+/* marks = {sell:{<lowercase name>:qty}, buy:{<lowercase name>:qty}} — what the player has clicked. */
 function shopTradePlan(cat,marks){
-  marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],under=[],sellGp=0,buyGp=0,i,k;
-  /* #481 D7 (ruled 2026-09-29): the floor is on the LINE total — a sale line worth under half a gold piece would round to
-     0 gp while the item left the pack. It is refused with the reason and nothing moves; two 3 sp whistles (6 sp) sell for 1 gp. */
-  for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellGp==null)continue;q=Math.min(q,r.qty);if(Math.round(r.sellGp*q)===0){under.push(q+" "+r.name+" ("+shopFmtGp(r.sellGp*q)+")");continue;}lines.push({kind:"sell",name:r.name,qty:q,unitGp:r.sellGp,gp:r.sellGp*q});sellGp+=r.sellGp*q;}
-  for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();var bq=Math.min(mb[k]|0,b.per||1);if(bq<=0||b.buyGp==null)continue;lines.push({kind:"buy",name:b.name,qty:bq,unitGp:b.buyGp,gp:b.buyGp*bq,price:b.price});buyGp+=b.buyGp*bq;}/* #481 D5: the line is the unit price times the count */
-  /* #517 (Astra's fixture 2026-10-02): the net used to be rounded as ONE number, so two 3 sp whistles (0.6 gp) against a 1 gp rope
-     netted 0.4 → 0 → "never gives a thing away" → 1 gp: the hero paid full price AND handed over the whistles. Each side now
-     rounds to whole gold on its own — the sale at the D7 rule (halves up: 0.6 gp pays 1 gp), the purchase never under 1 gp —
-     and the net is the difference of the two whole numbers. */
-  var sellR=Math.round(sellGp),buyR=buyGp>0?Math.max(1,Math.round(buyGp)):0,rounded=buyR-sellR;
-  var goldAfter=cat.gold-rounded,ok=lines.length>0&&goldAfter>=0&&!under.length;
-  var why=under.length?"the keeper pays nothing for "+under.join(", ")+" — under half a gold piece; mark more of it, or keep it":(!lines.length?"nothing marked":(goldAfter<0?"short "+(rounded-cat.gold)+" gp":""));
-  return {lines:lines,under:under,sellGp:sellGp,buyGp:buyGp,netGp:rounded,goldAfter:goldAfter,ok:ok,reason:why};
+  marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellCp=0,buyCp=0,i,k;
+  for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellCp==null)continue;q=Math.min(q,r.qty);lines.push({kind:"sell",name:r.name,qty:q,unitCp:r.sellCp,cp:r.sellCp*q});sellCp+=r.sellCp*q;}
+  for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();var bq=Math.min(mb[k]|0,b.per||1);if(bq<=0||b.cp==null)continue;var lc=Math.round(b.cp*bq/(b.per||1));lines.push({kind:"buy",name:b.name,qty:bq,unitCp:Math.round(b.cp/(b.per||1)),cp:lc,price:b.price});buyCp+=lc;}/* a bundle line is the bundle price times its share */
+  var netCp=buyCp-sellCp,coinAfter=cat.coin-netCp,ok=lines.length>0&&coinAfter>=0;
+  var why=!lines.length?"nothing marked":(coinAfter<0?"short "+fmtCoin(netCp-cat.coin):"");
+  return {lines:lines,sellCp:sellCp,buyCp:buyCp,netCp:netCp,coinAfter:coinAfter,ok:ok,reason:why};
 }
-function shopFmtGp(gp){
-  var a=Math.abs(gp);if(a>0&&a<1){var sp=a*10;return (gp<0?"-":"")+(Math.abs(sp-Math.round(sp))<1e-9?Math.round(sp)+" sp":Math.max(1,Math.round(a*100))+" cp");}/* #481 D5: under a gold piece, in silver or copper */
-  var v=Math.round(gp*10)/10;return (v%1===0?String(v):v.toFixed(1))+" gp";}
-
 /* #407 ⑤ (owner 2026-09-16): ONE two-column LEDGER shape, used by the shop and the stash (and whatever comes next).
    A spec is data: two titled columns of rows {key,label,max,worn,off,offReason,tag,sub}, an amount rule, a plan and a
    complete function. showLedgerModal (ui-modals) renders any spec; the builders below stay pure and engine-tested.
@@ -3304,13 +3319,15 @@ function visibleAuthors(list,selectedId){
   return (list||[]).filter(function(a){return a&&(!a.hidden||(selectedId!=null&&a.id===selectedId));});
 }
 function shopLedgerRows(cat){
-  var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(1,r.qty):r.qty,/* #481 D4: a want buys one */worn:r.worn,off:r.worn||r.sellGp==null,unit:r.sellGp,
-    offReason:r.worn?"Worn \u2014 take it off first":(r.sellGp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});
+  var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(1,r.qty):r.qty,/* #481 D4: a want buys one */worn:r.worn,off:r.worn||r.sellCp==null,unit:r.sellCp,cp:r.sellCp,per:1,
+    offReason:r.worn?"Worn \u2014 take it off first":(r.sellCp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});
   sell.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});/* stable in ES2019+; a priced row never sinks below an unpriced one */
-  var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */worn:false,off:b.buyGp==null,unit:b.buyGp,offReason:b.buyGp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",note:b.note||"",/* #558: the keeper's own line rides to the card */hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
+  var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */worn:false,off:b.cp==null,unit:b.cp==null?null:Math.round(b.cp/(b.per||1)),cp:b.cp,per:b.per||1,offReason:b.cp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",note:b.note||"",/* #558: the keeper's own line rides to the card */hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
   buy.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});
   return {left:sell,right:buy};
 }
+/* #598: a ledger row's amount for q units — the bundle price times its share, in copper, formatted once. */
+function ledgerRowAmount(r,q){return fmtCoin(Math.round((r.cp||0)*q/(r.per||1)));}
 /* THE STASH LEDGER (#6 E11) — carried on the left (stow: green), in the house on the right (take: pink). Only in the hero's
    OWN house (node.owner = the hero). The plan lands through ledgerApply (game.js, #597). */
 function stashTradeCatalog(){
@@ -3464,7 +3481,7 @@ function closeMenuVisible(){var def=(typeof kindDef==="function")?kindDef():null
 function villageRecapText(){
   var ws=worldState,c=ws.character||{},v=(ws.world&&ws.world.location)||"The Village",sub=ws.world&&ws.world.sublocation;
   var dn=(typeof clockDayNumber==="function")?clockDayNumber():1,tod=(typeof clockTimeOfDay==="function")?clockTimeOfDay():"";/* the ONE player-facing stamp, same as the caption */
-  var s="You are "+(c.name||"the hero")+", in "+v+(sub?", at "+sub:"")+". Day "+dn+(tod?", "+tod:"")+". "+(c.gold||0)+" gold.";
+  var s="You are "+(c.name||"the hero")+", in "+v+(sub?", at "+sub:"")+". Day "+dn+(tod?", "+tod:"")+". "+fmtCoin(c.coin||0)+".";
   var st=(typeof villageStash==="function")?villageStash(villageHouseKey(c.name)):[];
   s+=st.length?" Your house holds "+st.map(function(r){return r.name+(r.qty>1?", "+r.qty+" of them":"");}).join("; ")+".":" Your house holds nothing.";
   var about=[],i,npcs=ws.npcs||[];for(i=0;i<npcs.length&&about.length<3;i++){var n=npcs[i];if(!n.resident||(typeof npcIsDead==="function"&&npcIsDead(n)))continue;var w=residentWhereabouts(n.name);if(w&&!(typeof scenePresentNow==="function"&&scenePresentNow(n.name)))about.push(residentWhereText(n.name,w));/* #481 B6: one renderer; nobody in the scene gets whereabouts */}

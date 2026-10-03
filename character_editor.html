@@ -119,7 +119,7 @@ table.list td.x button:hover{color:var(--dng);}
   // ── the blank v10 sheet ────────────────────────────────────────────────────
   function blankChar(){
     var c={name:"",gender:"M",age:"",appear:"",mark:"",backstory:"",ancestry:"human",subrace:"",subraceNm:"",heritageVariant:"",
-      cls:"Warrior",stats:{str:10,dex:10,con:10,int:10,wis:10,cha:10},hp:10,maxHp:10,gold:10,inventory:[],level:1,xp:0,
+      cls:"Warrior",stats:{str:10,dex:10,con:10,int:10,wis:10,cha:10},hp:10,maxHp:10,coin:1000,inventory:[],level:1,xp:0,
       abilities:[],spells:[],mana:undefined,archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,
       deity:"",trait:"",flaw:"",motivation:"",manner:"",voiceLines:[],languages:[{name:"Common",broken:false}],skills:(typeof initSkills==="function")?initSkills():{},
       conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],coreMemories:[],partyMember:true};
@@ -136,6 +136,7 @@ table.list td.x button:hover{color:var(--dng);}
     if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(c);
     if(typeof migrateSpellDisplayNames==="function")migrateSpellDisplayNames(c);
     if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(c,"@editor:"+(c.name||"character"),{portable:true});
+    if(typeof coinHeal==="function")coinHeal(c);/* #598: identity.js is not loaded here, so the purse heal is called by name — a legacy whole-gold .char opens in copper */
     return c;
   }
 
@@ -159,7 +160,7 @@ table.list td.x button:hover{color:var(--dng);}
       {k:"cls",l:"Class",t:"select",opts:classOpts,onchange:function(){ch.archetype="";ch.archetypeNm="";}},
       {k:"archetype",l:"Archetype",t:"select",opts:archOpts,onchange:function(v){var d=classDef(ch.cls),i;ch.archetypeNm="";if(d&&d.archetypes)for(i=0;i<d.archetypes.length;i++)if(d.archetypes[i].id===v)ch.archetypeNm=d.archetypes[i].nm;}},
       {k:"level",l:"Level",t:"num",min:1,max:20},{k:"xp",l:"XP",t:"num",min:0},
-      {k:"hp",l:"HP",t:"num",min:0},{k:"maxHp",l:"Max HP",t:"num",min:1},{k:"gold",l:"Gold",t:"num",min:0},
+      {k:"hp",l:"HP",t:"num",min:0},{k:"maxHp",l:"Max HP",t:"num",min:1},{k:"coin",l:"Coin (copper; 100 = 1 gp)",t:"num",min:0},
       {k:"mana",l:"Mana (blank = full)",t:"num",min:0,opt:true},
       {k:"statedAlignment",l:"Stated alignment",t:"select",opts:ALIGN_LABELS.map(function(a){return {v:a,l:a};})},
       {k:"actualAlignment",l:"Actual alignment",t:"select",opts:ALIGN_LABELS.map(function(a){return {v:a,l:a};}),onchange:function(v){if(typeof alignSeedAxes==="function"){var ax=alignSeedAxes(v);if(ax){ch.alignLaw=ax.law!=null?ax.law:ax[0];ch.alignGood=ax.good!=null?ax.good:ax[1];}}}},

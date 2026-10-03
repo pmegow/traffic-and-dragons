@@ -174,7 +174,7 @@ function ttStateBlock(){
   s.push("CAMPAIGN FACTS (engine-stored — these are the ONLY facts you may state as certain):");
   s.push("Campaign: "+(worldState.campName||"(unnamed)")+" | Turn: "+(worldState.turn||0));
   s.push("Player character: "+c.name+" — level "+c.level+" "+(c.ancestry||"")+" "+(c.cls||"")
-    +" | HP "+c.hp+"/"+c.maxHp+" | gold "+c.gold+" | XP "+c.xp);
+    +" | HP "+c.hp+"/"+c.maxHp+" | coin "+fmtCoin(c.coin||0)+" | XP "+c.xp);
   s.push("Location: "+(w.location||"unknown")+(w.sublocation?" — "+w.sublocation:"")
     +" | time: "+worldTimeDisplay()+" | weather: "+(w.weather||"not set"));
   // #73 campaign clock: elapsed time + scheduled-deadline countdowns are now REAL, computed data.

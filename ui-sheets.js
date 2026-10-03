@@ -383,7 +383,7 @@ function showCharSheet(){
     +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
     +" &nbsp;·&nbsp; "+vitalSpanHtml("hp",c.hp,c.maxHp,"HP")/* #352c: the sheet paints vitals with the HUD's readout */
     +(manaMax(c)>0?" &nbsp;·&nbsp; "+vitalSpanHtml("mp",manaCur(c),manaMax(c),"MP"):"")
-    +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+c.gold+" gp</span>"
+    +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+fmtCoin(c.coin)+"</span>"
     +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
     +"</div>"
     +"<div class='cs-xp-wrap'>"
@@ -485,7 +485,7 @@ async function generateNpcSheet(name,doneCb){
     if(!sheet.stats||typeof sheet.stats!=="object")sheet.stats={STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10};
     ["STR","DEX","CON","INT","WIS","CHA"].forEach(function(s){sheet.stats[s]=parseInt(sheet.stats[s])||10;});
     sheet.hp=parseInt(sheet.hp)||8;sheet.maxHp=parseInt(sheet.maxHp)||8;
-    sheet.level=parseInt(sheet.level)||1;sheet.gold=parseInt(sheet.gold)||0;sheet.xp=parseInt(sheet.xp)||0;
+    sheet.level=parseInt(sheet.level)||1;if(typeof coinHeal==="function")coinHeal(sheet);sheet.xp=parseInt(sheet.xp)||0;/* #598 */
     if(!sheet.abilities)sheet.abilities=[];
     if(!sheet.spells)sheet.spells=[];
     sheet.inventory=sanitizeModelInventory(sheet.inventory);/* #50d: this regeneration path copied the model's inventory array VERBATIM (no type check, no dedupe) — the byte-identical-pairs faucet */
@@ -586,7 +586,7 @@ function showNpcSheet(name){
       +"<span style='color:var(--acc)'>Lv "+lvl+"</span>"
       +" &nbsp;·&nbsp; "+vitalSpanHtml("hp",sheet.hp||0,sheet.maxHp||0,"HP")/* #352c */
       +(manaMax(sheet)>0?" &nbsp;·&nbsp; "+vitalSpanHtml("mp",manaCur(sheet),manaMax(sheet),"MP"):"")
-      +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+(sheet.gold||0)+" gp</span>"
+      +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+fmtCoin(sheet.coin||0)+"</span>"
       +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(sheet.actualAlignment||sheet.statedAlignment||"Neutral")+"</span></div>"
       +"<div class='cs-xp-wrap'><div class='cs-xp-lbl'><span>"+xpm.lbl+"</span>"
       +"<span>"+xpm.tail+"</span></div>"
@@ -814,7 +814,7 @@ function showReadOnlyCharSheet(c,opts){
     +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
     +" &nbsp;·&nbsp; "+vitalSpanHtml("hp",c.hp,c.maxHp,"HP")/* #352c: a dash for an unknown value, the readout's hue otherwise */
     +(manaMax(c)>0?" &nbsp;·&nbsp; "+vitalSpanHtml("mp",manaCur(c),manaMax(c),"MP"):"")
-    +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+(c.gold!=null?c.gold:0)+" gp</span>"
+    +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+fmtCoin(c.coin||0)+"</span>"
     +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
     +"</div>"
     +"<div class='cs-xp-wrap'>"

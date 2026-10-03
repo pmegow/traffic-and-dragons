@@ -84,11 +84,11 @@ function showShopModal(){
   if(!cat.ok){showToast("Trade: "+cat.reason);return;}
   var rows=shopLedgerRows(cat);
   function toMarks(m){return {sell:m.left,buy:m.right};}
-  showLedgerModal({id:"shop-modal",left:{name:worldState.character.name,sub:cat.gold+" gp",gold:true,head:"Sell"},right:{name:cat.keeper,sub:cat.shop,head:"Buy"},rows:rows,
+  showLedgerModal({id:"shop-modal",left:{name:worldState.character.name,sub:fmtCoin(cat.coin),gold:true,head:"Sell"},right:{name:cat.keeper,sub:cat.shop,head:"Buy"},rows:rows,
     empty:{left:"Nothing carried",right:"Nothing on the shelf"},hintIdle:"Tap items to mark them",completeLabel:"Complete transaction",refusedPrefix:"Trade refused \u2014 ",
-    amount:function(side,r,q){return side==="left"?"+"+shopFmtGp(r.unit*q):"\u2212"+shopFmtGp(r.unit*q);},
-    dim:function(side,r){return r.unit==null?"":"<span class='shop-dim'>"+escHtml(side==="left"?shopFmtGp(r.unit):r.price)+"</span>";},
-    plan:function(m){var p=shopTradePlan(cat,toMarks(m));return {ok:p.ok,reason:p.reason,marked:p.lines.length>0||!!(p.under&&p.under.length),/* #481 D7: a refused line is still a mark — its reason shows */total:p.lines.length?((p.netGp>0?"\u2212":p.netGp<0?"+":"")+Math.abs(p.netGp)+" gp"):"",after:"After: "+p.goldAfter+" gp"};},
+    amount:function(side,r,q){return (side==="left"?"+":"\u2212")+ledgerRowAmount(r,q);},/* #598 */
+    dim:function(side,r){return r.unit==null?"":"<span class='shop-dim'>"+escHtml(side==="left"?fmtCoin(r.unit):r.price)+"</span>";},
+    plan:function(m){var p=shopTradePlan(cat,toMarks(m));return {ok:p.ok,reason:p.reason,marked:p.lines.length>0,total:p.lines.length?((p.netCp>0?"\u2212":p.netCp<0?"+":"")+fmtCoin(Math.abs(p.netCp))):"",after:"After: "+fmtCoin(p.coinAfter)};},/* #598 */
     complete:function(m){return shopTradeApply(toMarks(m));}});
 }
 /* #6 E11 the chest: the stash spec over stashTradeCatalog / stashTradePlan / stashTradeApply — own house only. */
@@ -192,12 +192,12 @@ function showSyncModal(){
   function renderSync(){
     var c=worldState.character,w=worldState.world,isUI=(dir==="ui"),ro=isUI?"":"readonly";
     inner.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Sync World State</span><button id='sc-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-      +"<div style='font-size:11px;color:var(--t2);font-family:var(--font-mono);background:var(--bg2);padding:6px 10px;border-radius:4px;margin-bottom:14px;'>Lv "+c.level+" | XP "+c.xp+" | HP "+c.hp+"/"+c.maxHp+" | Gold "+c.gold+" | Turn "+worldState.turn+"</div>"
+      +"<div style='font-size:11px;color:var(--t2);font-family:var(--font-mono);background:var(--bg2);padding:6px 10px;border-radius:4px;margin-bottom:14px;'>Lv "+c.level+" | XP "+c.xp+" | HP "+c.hp+"/"+c.maxHp+" | "+fmtCoin(c.coin)+" | Turn "+worldState.turn+"</div>"
       +"<div style='display:flex;gap:8px;margin-bottom:16px;'><button id='sc-ui' class='sc-dir"+(isUI?" active":"")+"'>UI -> Game</button><button id='sc-gm' class='sc-dir"+(!isUI?" active":"")+"'>Game -> UI</button></div>"
       +"<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;'>"
       +"<div><label class='sc-lbl'>HP</label><input id='sc-hp' type='number' class='sc-inp' value='"+c.hp+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>Max HP</label><input id='sc-maxhp' type='number' class='sc-inp' value='"+c.maxHp+"' "+ro+"/></div>"
-      +"<div><label class='sc-lbl'>Gold</label><input id='sc-gold' type='number' class='sc-inp' value='"+c.gold+"' "+ro+"/></div>"
+      +"<div><label class='sc-lbl'>Coin</label><input id='sc-gold' type='text' class='sc-inp' value='"+escHtml(fmtCoin(c.coin))+"' placeholder='12 gp 5 sp' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>XP</label><input id='sc-xp' type='number' class='sc-inp' value='"+c.xp+"' "+ro+"/></div>"
       +((typeof manaMax==="function"&&manaMax(c)>0)?"<div><label class='sc-lbl'>Mana (max "+manaMax(c)+")</label><input id='sc-mana' type='number' min='0' max='"+manaMax(c)+"' class='sc-inp' value='"+manaCur(c)+"' "+ro+"/></div>":"")/* #110: the manual patch path for a desynced pool */
       +"<div><label class='sc-lbl'>Level</label><input id='sc-level' type='number' min='1' max='"+classXpLevels().length+"' class='sc-inp' value='"+c.level+"' "+ro+"/></div>"/* audit E11: the spinner's cap IS the curve length the handler accepts */
@@ -214,14 +214,14 @@ function showSyncModal(){
     if(isUI){document.getElementById("sc-apply").addEventListener("click",function(){
       var c2=worldState.character,w2=worldState.world;
       var hp2=parseInt(document.getElementById("sc-hp").value),mhp2=parseInt(document.getElementById("sc-maxhp").value);
-      var gld2=parseInt(document.getElementById("sc-gold").value),xp2=parseInt(document.getElementById("sc-xp").value),lvl2=parseInt(document.getElementById("sc-level").value);
+      var _gc=parseCoin(document.getElementById("sc-gold").value),gld2=_gc?_gc.cp:NaN,/* #598: "12 gp 5 sp" → copper */xp2=parseInt(document.getElementById("sc-xp").value),lvl2=parseInt(document.getElementById("sc-level").value);
       var loc2=document.getElementById("sc-loc").value.trim(),tm2=document.getElementById("sc-time").value.trim(),wx2=document.getElementById("sc-weather").value.trim();
       var _scSub=document.getElementById("sc-sub"),sub2=_scSub?_scSub.value.trim():((w2.sublocation)||"");
       var rawInv=document.getElementById("sc-inv").value.trim();
       var inv2=rawInv?rawInv.split("\n").map(function(x){return x.trim();}).filter(function(x){return x.length>0;}):[];
       var notes=[];/* audit E2: a refused or adjusted patch is reported in the modal, never silently dropped */
       if(!isNaN(mhp2)&&mhp2>0)c2.maxHp=mhp2;if(!isNaN(hp2))c2.hp=Math.min(c2.maxHp,Math.max(0,hp2));
-      if(!isNaN(gld2))c2.gold=Math.max(0,gld2);if(!isNaN(xp2))c2.xp=Math.max(0,xp2);
+      if(!isNaN(gld2))c2.coin=Math.max(0,gld2);if(!isNaN(xp2))c2.xp=Math.max(0,xp2);
       /* audit E2: the LEVEL goes through the same grant path a played level-up uses — the pure
          syncLevelPatchPlan decides, checkLevelUp({land:true}) lands the class/archetype features, the
          HP, the stat-bump queue and the spell-tier picks. The XP lift is visible: the field repaints

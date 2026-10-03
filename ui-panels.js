@@ -125,7 +125,7 @@ function updateHUD(){
   if(_hudMana){var _hmMx=(typeof manaMax==="function")?manaMax(c):0;
     _hudMana.style.display=_hmMx>0?"":"none";
     if(_hmMx>0){var _mpR=mpReadout(manaCur(c),_hmMx);_hudMana.textContent=manaCur(c)+"/"+_hmMx+" MP";_hudMana.style.color=_mpR.color;_hudMana.classList.toggle("hp-crit",_mpR.crit);}}/* #352: the number carries the pool signal */
-  document.getElementById("hud-gold").textContent=(c.gold!=null?c.gold:0)+" gp";/* companion sheets may lack gold */
+  document.getElementById("hud-gold").textContent=fmtCoin(c.coin||0);/* #598: copper, shown as coin */
   document.getElementById("hud-align").textContent=c.actualAlignment||c.statedAlignment||"Neutral";
   document.getElementById("hud-loc").textContent=pcEffectiveLoc(c).location;/* P5: camera follows the spotlight PC (a split PC shows THEIR location) */
   renderWaysRow();/* #413: the party's position and the recorded ways, from the same map the GM reads */
@@ -309,9 +309,9 @@ function _invLedgerRow(name,label,title){
   return '<div class="ii inv-ledger" data-open="'+escHtml(name)+'" onclick="invLedgerOpen(this.dataset.open)" style="cursor:pointer;color:var(--acc);font-size:11px;padding-top:6px;" title="'+escHtml(title)+'">'+label+'</div>';
 }
 function updateInvPanel(){
-  if(!worldState)return;var _ap=activePlayer(),inv=_ap.inventory||[],gold=(_ap.gold!=null?_ap.gold:0);/* P2: panel follows the spotlight PC */
+  if(!worldState)return;var _ap=activePlayer(),inv=_ap.inventory||[],gold=fmtCoin(_ap.coin||0);/* P2: panel follows the spotlight PC; #598 copper */
   document.getElementById("inv-cnt").textContent=inv.length;/* badge stays the stored-row count — never the stack sum (Sol §6.2) */
-  document.getElementById("inv-gold").textContent=gold+" gp";
+  document.getElementById("inv-gold").textContent=gold;
   /* #157: item-bible-driven grouping through the ONE shared view model — the old substring
      weapon/armor guess is retired (canon decides; a miss shows honestly as Unclassified).
      Weapon/armor row emphasis (.eq) now derives from the SELECTED canonical section. */

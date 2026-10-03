@@ -651,7 +651,7 @@ function sceneAntagonists(){
 }
 function buildMoneyNote(){
   if(!worldState||worldState.combat||!worldState.world||!worldState.world.location||typeof memory==="undefined"||!memory||!memory.map)return"";
-  var c=worldState.character;if(!c||!(c.gold>0))return"";
+  var c=worldState.character;if(!c||!(c.coin>0))return"";
   var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];if(!node||!node.size)return"";
   var every=(typeof MONEY_EVERY==="number")?MONEY_EVERY:24,ma=worldState.moneyAsk;if(ma&&typeof ma.turn==="number"&&worldState.turn-ma.turn<every)return"";
   /* #375b (owner, 2026-09-10: "right away a highwayman is asking for a handout"): the FIRST ask waits for a record to draw from —
@@ -661,7 +661,7 @@ function buildMoneyNote(){
   var dec=(memory.keyDecisions||[]).slice(-4).map(function(d){return "t"+d.turn+": "+d.desc;}),carry=(c.inventory||[]).slice(0,6).map(function(x){return (typeof _invBase==="function")?_invBase(x):String(x);});
   var label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
   worldState.moneyAsk={turn:worldState.turn,node:key};
-  return "[ENGINE NOTE \u2014 MONEY AT STAKE (not a player action): the party carries "+c.gold+" gp at "+label+" and nothing has cost them coin in a long while. Let THIS scene put some of it at risk, in the fiction and from the record: a bribe demanded, a fine, a shakedown, a ransom, a debt called in, a ruined thing to replace"+(foes.length?" \u2014 "+foes.join(", ")+" is in the scene and has cause":"")+(dec.length?". What they did lately: "+dec.join("; "):"")+(carry.length?". What they carry: "+carry.join(", "):"")+". Settle it through [GOLD:-N] only if they pay; a refused demand is a scene too. NEVER a tax, upkeep, rent, ledger or bookkeeping \u2014 a price with a face and a reason, once. Never mention this note.]\n";
+  return "[ENGINE NOTE \u2014 MONEY AT STAKE (not a player action): the party carries "+fmtCoin(c.coin)+" at "+label+" and nothing has cost them coin in a long while. Let THIS scene put some of it at risk, in the fiction and from the record: a bribe demanded, a fine, a shakedown, a ransom, a debt called in, a ruined thing to replace"+(foes.length?" \u2014 "+foes.join(", ")+" is in the scene and has cause":"")+(dec.length?". What they did lately: "+dec.join("; "):"")+(carry.length?". What they carry: "+carry.join(", "):"")+". Settle it through [GOLD:-N] only if they pay; a refused demand is a scene too. NEVER a tax, upkeep, rent, ledger or bookkeeping \u2014 a price with a face and a reason, once. Never mention this note.]\n";
 }
 /* #373 (owner ruling 2026-09-07): after the spine, a companion's want may become an OFFERED quest \u2014 only in a coda
    (#366), only with no quest open, only when a defining moment or a story beat within AGENDA_OFFER_ANCHOR_TURNS names the
@@ -1807,7 +1807,7 @@ var buildReturnNote=oneShotPing("returnPing",{name:"buildReturnNote",text:functi
 }});
 /* #407 ④: the counter spoke — ONE in-character sentence next turn, never a re-tally; gold and items already moved. */
 var buildTradeNote=oneShotPing("tradePing",{name:"buildTradeNote",text:function(q){
-  return "[ENGINE NOTE \u2014 TRADE DONE (not a player action): at "+q.shop+", "+q.hero+" and "+q.keeper+" completed a transaction at the counter: "+(q.sold&&q.sold.length?"sold "+q.sold.join(", "):"")+(q.sold&&q.sold.length&&q.bought&&q.bought.length?"; ":"")+(q.bought&&q.bought.length?"bought "+q.bought.join(", "):"")+" \u2014 net "+(q.netGp>0?"-":q.netGp<0?"+":"")+Math.abs(q.netGp)+" gp. Gold and inventory are ALREADY updated: emit NO [GOLD:], [ITEM_GAINED:] or [ITEM_LOST:] for this trade. Acknowledge it in ONE in-character sentence \u2014 "+q.keeper+"'s word or the scene's \u2014 then carry on; never list the items back.]";
+  return "[ENGINE NOTE \u2014 TRADE DONE (not a player action): at "+q.shop+", "+q.hero+" and "+q.keeper+" completed a transaction at the counter: "+(q.sold&&q.sold.length?"sold "+q.sold.join(", "):"")+(q.sold&&q.sold.length&&q.bought&&q.bought.length?"; ":"")+(q.bought&&q.bought.length?"bought "+q.bought.join(", "):"")+" \u2014 net "+(q.netCp>0?"-":q.netCp<0?"+":"")+fmtCoin(Math.abs(q.netCp))+". Coin and inventory are ALREADY updated: emit NO [GOLD:], [ITEM_GAINED:] or [ITEM_LOST:] for this trade. Acknowledge it in ONE in-character sentence \u2014 "+q.keeper+"'s word or the scene's \u2014 then carry on; never list the items back.]";
 }});
 /* #6 D2: one exchange between two residents, the hero as witness — a cooldown ask on exchangeAsk, village only. */
 function buildResidentExchangeNote(){
@@ -2697,7 +2697,7 @@ function buildSysPrompt(){
     +buildPartyHistoriesBlock();/* #341: companions' authored past — constant between recruit/death/import, ""-clean without one */
   var volatile_=identity+switchBlock+mpEndBlock+abandonBlock+wallSweepBlock+leftBlock+buildCompanionInitiativeLine()/* #386: "" outside the window — byte-identical */
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
-    +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
+    +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+fmtCoin(c.coin)+" | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
     +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"
     +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:"")+"\n":"")+(c.deity?"Deity: "+c.deity+"\n":"")/* trailing \n so "Motivation:" doesn't glue to the next line (audit E54) */
     +"Abilities: "+abilstr+"\nSpells: "+spstr+"\n"+manaStr+"Inventory: "+c.inventory.join(", ")+"\n"
@@ -3226,7 +3226,7 @@ function rewardAwardTargets(tokens){
     tk=String(tokens[i]==null?"":tokens[i]);
     kind="unknown";key=tk;expect=0;
     if((m=tk.match(/\[XP:\s*\+?(\d+)/i))){kind="xp";key="xp";expect=parseInt(m[1],10);}
-    else if((m=tk.match(/\[GOLD:\s*[+-]?\d[^\]]*\]/i))){var _gt=goldTagParse(m[0]);if(_gt.ok){kind="gold";key="gold";expect=_gt.n;}}/* #481 D5: a coin the GOLD handler refuses can never land — it keeps its own group and reports missed */
+    else if((m=tk.match(/\[GOLD:\s*[+-]?\d[^\]]*\]/i))){var _gt=goldTagParse(m[0]);if(_gt.ok){kind="gold";key="gold";expect=_gt.cp;}}/* #481 D5: a coin the GOLD handler refuses can never land — it keeps its own group and reports missed */
     else if((m=tk.match(/\[ITEM_GAINED:([^\]]+)\]/i))){q=_qtyParse(m[1]);kind="item";key=q.base;expect=q.n;}
     /* Tokens sharing one target are ONE group with a summed expectation — two [ITEM_GAINED:Rope]
        must move the count by 2, not merely "move it". */

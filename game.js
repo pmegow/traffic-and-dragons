@@ -205,7 +205,7 @@ function engineFourthAction(){
   /* The buy rung — a kind WITHOUT a counter only (the adventure). A tradeOnlyInShops kind trades through the counter: its
      "Buy the X (price) from Y." and "Sell your X to Y" rungs (#6 F6, #481 D4) were retired by #496, their choices are inside it. */
   var _tk=(typeof kindDef==="function")?kindDef():null;
-  if(!(_tk&&_tk.tradeOnlyInShops)&&(c.gold||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){
+  if(!(_tk&&_tk.tradeOnlyInShops)&&(c.coin||0)>0&&memory&&memory.map&&worldState.world&&worldState.world.location){
     var key=worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);var node=memory.map.nodes[key];var live=(node&&typeof waresOfferedHere==="function")?waresOfferedHere(node,buildSceneManifest().local):[];/* a seller or their shop must be IN the scene (2026-09-03); #392: the SCENE, not the town */var _ab=firstWareNotHeld(live,c.inventory);/* #492: never the item just bought */if(_ab)return {kind:"buy",text:"Buy the "+_ab.item+" ("+_ab.price+")."};}
   if(montageDue()){if(kindDef().montage)return {kind:"montage",text:"Skip ahead — a montage to the next real decision."};/* #308 */
     if(typeof console!=="undefined")console.info("[village] montage would be due at t"+worldState.turn+" — off in v1 for the village kind, logged for the measure");}/* #6 phase B: off but measured (Laws: do not mute on theory) */
@@ -359,7 +359,7 @@ function waysSplit(ways,cap){
 
 
 /* #597 (owner ruling 2026-10-03, "Simplicity = strength"): THE ONE WRITER for the player's own hand on the sheet — the counter
-   and the chest. A plan is a list of lines {kind: sell|buy|stow|take, name, qty} (+ netGp for the counter). The player's
+   and the chest. A plan is a list of lines {kind: sell|buy|stow|take, name, qty} (+ netCp for the counter, #598). The player's
    click is not an unreliable narrator: it used to be turned into GM tags and re-judged by the trade gate, the #510 whole-sale
    precheck and the item pairing, so a fix on one side kept breaking the other. Now: every line is CHECKED against the live
    state first (the modal may be stale — the stock shrank, a GM turn moved the pack), then every line lands, or none does.
@@ -373,14 +373,14 @@ function ledgerLog(muts,src){
 }
 function ledgerApply(plan,ctx){
   var c=worldState&&worldState.character;if(!c||!plan||!plan.lines||!plan.lines.length)return {ok:false,reason:"nothing marked",muts:[]};
-  var key=ctx&&ctx.key,net=plan.netGp|0,lines=plan.lines,muts=[],i,j,q;
+  var key=ctx&&ctx.key,net=plan.netCp|0,lines=plan.lines,muts=[],i,j,q;
   /* check: every removal against a copy of the pack, the coin against the purse, every take against the row */
   var sim=c.inventory.slice(),node=key&&memory&&memory.map?memory.map.nodes[key]:null;
   for(i=0;i<lines.length;i++){var l=lines[i];
     if(l.kind==="sell"||l.kind==="stow"){for(j=0;j<l.qty;j++)if(!removeInventoryItem(sim,l.name))return {ok:false,reason:(j?"only "+j+" of "+l.name+" x"+l.qty+" is in the pack":l.name+" is no longer in the pack")+" — nothing moved",muts:[]};}
     if(l.kind==="stow"||l.kind==="take"){if(!node)return {ok:false,reason:"no place on record — nothing moved",muts:[]};}
     if(l.kind==="take"){var have=0,sk=stashKey(l.name);for(j=0;j<node.items.length;j++){var it=node.items[j];if(!it.taken&&stashKey(it.name)===sk)have+=(it.qty||1);}if(have<l.qty)return {ok:false,reason:(have?"only "+have+" of "+l.name+" x"+l.qty+" is in the chest":l.name+" is no longer in the chest")+" — nothing moved",muts:[]};}}
-  if(net>0&&(Number(c.gold)||0)<net)return {ok:false,reason:"short "+(net-(Number(c.gold)||0))+" gp — nothing moved",muts:[]};
+  if(net>0&&(Number(c.coin)||0)<net)return {ok:false,reason:"short "+fmtCoin(net-(Number(c.coin)||0))+" — nothing moved",muts:[]};/* #598: copper */
   /* land: the pack, the purse, the rows, the record */
   var R={turn:worldState.turn,moveGrp:null},moved=false;
   for(i=0;i<lines.length;i++){var ln=lines[i],n=ln.qty,qs=n>1?" x"+n:"";
@@ -389,7 +389,7 @@ function ledgerApply(plan,ctx){
     if(ln.kind==="sell"){var w=(typeof retireWantedAt==="function")?retireWantedAt({key:key},ln.name):null;if(w)muts.push("Want met: "+w.item+(w.by?" ("+w.by+")":""));if(typeof _clearConsumablePending==="function")_clearConsumablePending(null,ln.name);}
     if(ln.kind==="stow"){var st=fileLocationItem(ln.name+qs,"placed",R.turn,null,null,{key:key});muts.push("Left: "+ln.name+(st.qty>1?" ×"+st.qty:""));stashMoveRecord(R,{name:ln.name,units:n,action:"placed",key:st.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}
     if(ln.kind==="take"){var tk=fileLocationItem(ln.name+qs,"taken",R.turn,null,null,{key:key});muts.push("Taken: "+ln.name+(n>1?" ×"+n:""));stashMoveRecord(R,{name:ln.name,units:tk.n||n,action:"taken",key:tk.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}}
-  if(net){c.gold=(Number(c.gold)||0)-net;muts.push((net<0?"+":"-")+Math.abs(net)+" gp");}
+  if(net){c.coin=(Number(c.coin)||0)-net;muts.push((net<0?"+":"-")+fmtCoin(Math.abs(net)));}
   if(typeof wornPrune==="function")wornPrune(c);
   if(moved&&R.moveGrp)worldState.stashUndoGrp=R.moveGrp;else delete worldState.stashUndoGrp;/* #481 D1: a trade ends the chance to undo what came before */
   ledgerLog(muts,"ledger");
@@ -422,10 +422,10 @@ function shopTradeApply(marks){
   if(!R.ok){if(typeof console!=="undefined")console.warn("[shop] "+R.reason);return {ok:false,reason:R.reason,muts:muts,plan:plan};}
   var i,node=cat.node,sold=[],bought=[],hero=(worldState.character&&worldState.character.name)||"the hero";
   for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];
-    if(l.kind==="buy"){bought.push(l.qty>1?l.name+" x"+l.qty+" ("+shopFmtGp(l.gp)+")":l.name+" ("+l.price+")");/* #481 D5: a bundle buy names its count */var wi;for(wi=0;wi<(node.wares||[]).length;wi++)if(String(node.wares[wi].item).toLowerCase()===l.name.toLowerCase()){node.wares.splice(wi,1);break;}}
-    else{sold.push(l.name+(l.qty>1?" x"+l.qty:"")+" ("+shopFmtGp(l.gp)+")");if(typeof fileWare==="function"){var out={};fileWare(l.name,shopFmtGp(l.unitGp),"sold by "+hero,worldState.turn,out);if(out.evicted&&out.evicted.length)muts.push("Shelf full — dropped: "+out.evicted.join(", "));}}}
-  var line=hero+(sold.length?" sold "+sold.join(", "):"")+(sold.length&&bought.length?" and":"")+(bought.length?" bought "+bought.join(", "):"")+" — "+(plan.netGp>0?"-":plan.netGp<0?"+":"")+Math.abs(plan.netGp)+" gp, with "+cat.keeper+" at "+cat.shop+".";
-  worldState.tradePing={turn:worldState.turn,keeper:cat.keeper,shop:cat.shop,hero:hero,sold:sold,bought:bought,netGp:plan.netGp};
+    if(l.kind==="buy"){bought.push(l.qty>1?l.name+" x"+l.qty+" ("+fmtCoin(l.cp)+")":l.name+" ("+l.price+")");/* #481 D5: a bundle buy names its count */var wi;for(wi=0;wi<(node.wares||[]).length;wi++)if(String(node.wares[wi].item).toLowerCase()===l.name.toLowerCase()){node.wares.splice(wi,1);break;}}
+    else{sold.push(l.name+(l.qty>1?" x"+l.qty:"")+" ("+fmtCoin(l.cp)+")");if(typeof fileWare==="function"){var out={};fileWare(l.name,fmtCoin(l.unitCp),"sold by "+hero,worldState.turn,out);if(out.evicted&&out.evicted.length)muts.push("Shelf full — dropped: "+out.evicted.join(", "));}}}
+  var line=hero+(sold.length?" sold "+sold.join(", "):"")+(sold.length&&bought.length?" and":"")+(bought.length?" bought "+bought.join(", "):"")+" — "+(plan.netCp>0?"-":plan.netCp<0?"+":"")+fmtCoin(Math.abs(plan.netCp))+", with "+cat.keeper+" at "+cat.shop+".";
+  worldState.tradePing={turn:worldState.turn,keeper:cat.keeper,shop:cat.shop,hero:hero,sold:sold,bought:bought,netCp:plan.netCp};
   if(typeof saveAll==="function")saveAll();
   if(typeof document!=="undefined"&&typeof addMsg==="function")addMsg("system",line);
   if(typeof syncUI==="function")syncUI();
@@ -722,7 +722,7 @@ function suggestionFallback(man,taken){
   if(c&&typeof c.hp==="number"&&c.hp<c.maxHp/2)cands.push("Bind your wounds and rest.");
   for(i=0;i<man.npcs.length;i++)cands.push("Check on "+man.npcs[i]+".");
   if(c&&memory&&memory.map&&worldState.world&&worldState.world.location&&typeof nodeWaresLive==="function"){var _wk=worldState.world.location;if(typeof locResolve==="function")_wk=locResolve(_wk);var _wn=memory.map.nodes[_wk];if(_wn&&nodeWaresLive(_wn).length)cands.push("Look over what's for sale here.");}
-  if(c&&(c.gold||0)>0)cands.push("Count your coin and think.");
+  if(c&&(c.coin||0)>0)cands.push("Count your coin and think.");
   for(i=0;i<man.npcs.length;i++)cands.push("Talk things over with "+man.npcs[i]+".");
   cands.push("Rest and take stock of the situation.");
   cands.push("Study your surroundings carefully.");
@@ -1181,6 +1181,7 @@ function relevelOnLoad(){
   if(!worldState||!worldState.character)return;
   var c=worldState.character;
   healAbilitySheets();/* #487: the sheets are whole before any level lands on them */
+  healCoin();/* #598: every purse in copper, however the sheet arrived */
   if(typeof c.xp==="number"&&typeof getLvl==="function"&&getLvl(c.xp)>(c.level||1))checkLevelUp();
   var i,ns=worldState.npcs||[];
   for(i=0;i<ns.length;i++){var n=ns[i];if(!n||!n.partyMember||!n.charSheet)continue;if(typeof npcIsDead==="function"&&npcIsDead(n))continue;checkCompanionLevelUp(n.charSheet);}
@@ -1345,6 +1346,14 @@ function companionAutoPickSpells(cs,unlocks){
 // gets the archetype's own spell bench and the tiers it has crossed, exactly as a level-up would
 // have given them. Idempotent; runs from relevelOnLoad (boot + before every turn), so a companion
 // who joins tomorrow is healed before their first level. Says what it did — never silent.
+/* #598: the purse heal over the hero and every companion and resident sheet — one call, at boot and before every turn, so a
+   sheet that arrived by any road (library, .char, companion import, a model-written stub) is in copper before it is read. */
+function healCoin(){
+  if(!worldState||!worldState.character||typeof coinHeal!=="function")return 0;
+  var n=coinHeal(worldState.character)?1:0,ns=worldState.npcs||[],i;
+  for(i=0;i<ns.length;i++)if(ns[i]&&ns[i].charSheet&&coinHeal(ns[i].charSheet))n++;
+  return n;
+}
 function healAbilitySheets(){
   if(!worldState||!worldState.character||typeof abilitySheetHeal!=="function")return 0;
   var turn=worldState.turn||0,changed=0,i,ns=worldState.npcs||[];
@@ -1452,7 +1461,7 @@ function buildCompanionSheetStub(npcName){
   var gender=npc.pronouns==="she/her"?"F":npc.pronouns==="they/them"?"NB":"M";
   var hp=companionBaselineHp(cls,lvl,0);
   return {name:npcName,gender:gender,age:"adult",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:null,subraceNm:null,heritageVariant:null,
-    cls:cls,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},hp:hp,maxHp:hp,gold:0,inventory:[],level:lvl,xp:classXpLevels()[lvl-1]||0,
+    cls:cls,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},hp:hp,maxHp:hp,coin:0,inventory:[],level:lvl,xp:classXpLevels()[lvl-1]||0,
     abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:null,
     trait:null,flaw:null,motivation:null,languages:[{name:"Common",broken:false}],skills:initSkills(),conditions:[],relationships:[],saveModifiers:[],
     portrait:null,storyBeats:[],coreMemories:[],partyMember:true};
@@ -1469,7 +1478,7 @@ function normalizeCompanionSheet(raw,npcName){
   for(i=0;i<strF.length;i++){if(typeof raw[strF[i]]==="string"&&raw[strF[i]])s[strF[i]]=raw[strF[i]];}
   if(typeof raw.cls==="string"){var cd=classDef(raw.cls);if(cd)s.cls=cd.id;}/* #72 C6 ①: classDef's CI+trim fallback = the old loop */
   if(raw.stats&&typeof raw.stats==="object"){var ks=["STR","DEX","CON","INT","WIS","CHA"];for(i=0;i<ks.length;i++){var v=parseInt(raw.stats[ks[i]]);if(!isNaN(v))s.stats[ks[i]]=Math.max(3,Math.min(20,v));}}
-  if(typeof raw.gold==="number"&&raw.gold>=0)s.gold=Math.min(10000,Math.floor(raw.gold));
+  if(typeof raw.gold==="number"&&raw.gold>=0)s.coin=Math.min(10000,Math.floor(raw.gold))*100;/* #598: the model writes gold; the sheet holds copper */
   if(raw.inventory&&raw.inventory.length)s.inventory=sanitizeModelInventory(raw.inventory,12);/* #50d: model arrays arrive verbatim — stack duplicates on arrival, never push raw */
   if(raw.abilities&&raw.abilities.length){s.abilities=[];for(i=0;i<raw.abilities.length&&s.abilities.length<6;i++){var ab=raw.abilities[i];if(ab&&typeof ab.nm==="string")s.abilities.push({nm:ab.nm,ds:typeof ab.ds==="string"?ab.ds:"",gained:worldState?worldState.turn:0});}}
   if(raw.spells&&raw.spells.length){s.spells=[];for(i=0;i<raw.spells.length&&s.spells.length<10;i++){var sp=raw.spells[i];if(sp&&typeof sp.nm==="string")s.spells.push({nm:sp.nm,lvl:parseInt(sp.lvl)||0,used:false});}}
@@ -1612,7 +1621,7 @@ function adoptLibraryCompanion(n,c,at){
 function libReplaceSummary(cur,lib){
   var c=cur||{},l=lib||{};function row(label,a,b){return {label:label,from:a,to:b,changed:String(a)!==String(b)};}
   function hp(s){return (s.hp!=null?s.hp:"?")+"/"+(s.maxHp!=null?s.maxHp:"?");}
-  return [row("Level",c.level||0,l.level||0),row("XP",c.xp||0,l.xp||0),row("HP",hp(c),hp(l)),row("Gold",c.gold||0,l.gold||0),row("Items",(c.inventory||[]).length,(l.inventory||[]).length),row("Spells",(c.spells||[]).length,(l.spells||[]).length),row("Defining moments",(c.coreMemories||[]).length,(l.coreMemories||[]).length)];
+  return [row("Level",c.level||0,l.level||0),row("XP",c.xp||0,l.xp||0),row("HP",hp(c),hp(l)),row("Coin",fmtCoin(c.coin||0),fmtCoin(l.coin||0)),row("Items",(c.inventory||[]).length,(l.inventory||[]).length),row("Spells",(c.spells||[]).length,(l.spells||[]).length),row("Defining moments",(c.coreMemories||[]).length,(l.coreMemories||[]).length)];
 }
 function libReplaceApply(name,lib,at){
   if(!worldState)return {ok:false,reason:"no active campaign"};

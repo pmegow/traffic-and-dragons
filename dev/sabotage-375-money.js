@@ -11,7 +11,7 @@ process.exit(sabotage.prove({
     { label: "the note fires in combat",
       find: 'function buildMoneyNote(){\n  if(!worldState||worldState.combat||', replace: 'function buildMoneyNote(){\n  if(!worldState||' },
     { label: "the note fires with no coin to lose",
-      find: 'var c=worldState.character;if(!c||!(c.gold>0))return"";', replace: 'var c=worldState.character;if(!c)return"";' },
+      find: 'var c=worldState.character;if(!c||!(c.coin>0))return"";', replace: 'var c=worldState.character;if(!c)return"";' },
     { label: "the cooldown is dropped (a price every turn — the tax the ruling forbids)",
       find: 'if(ma&&typeof ma.turn==="number"&&worldState.turn-ma.turn<every)return"";', replace: '' },
     { label: "the first ask no longer waits for a record (turn one of a new campaign gets a highwayman)",

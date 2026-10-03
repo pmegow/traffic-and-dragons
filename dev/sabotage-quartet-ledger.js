@@ -6,12 +6,9 @@
 var sabotage = require("./sabotage.js"), code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: ["node", ["dev/run-tests.js", "the ledger quartet"]], cases: cases }); }
 prove("helpers.js", [
-  { label: "#517 ① the net is rounded as one number again (the whistles are given away and the rope paid in full)",
-    find: "rounded=buyR-sellR;", replace: "rounded=Math.round(buyGp-sellGp);if(buyGp>0&&buyGp-sellGp>0&&rounded===0)rounded=1;",
-    mustFail: "#517 ① a sale bundled" },
-  { label: "#517 ① the purchase side loses its 1 gp floor (a 3 sp needle is free)",
-    find: "buyR=buyGp>0?Math.max(1,Math.round(buyGp)):0,", replace: "buyR=Math.round(buyGp),",
-    mustFail: "#517 ① a sale bundled" },
+  { label: "#517 ① → #598 the net is rounded to whole gold again (the whistles are given away)",
+    find: "  var netCp=buyCp-sellCp,coinAfter=cat.coin-netCp,ok=lines.length>0&&coinAfter>=0;", replace: "  var netCp=Math.round((buyCp-sellCp)/100)*100,coinAfter=cat.coin-netCp,ok=lines.length>0&&coinAfter>=0;",
+    mustFail: "#517 ① → #598 a sale bundled" },
   { label: "#517 ② the plural coin word fails the boundary again ('3 coppers' reads as 3 gp)",
     find: "(gp|sp|cp|pp|gold|silver|copper|platinum)s?(?![a-z])", replace: "(gp|sp|cp|pp|gold|silver|copper|platinum)(?![a-z])",
     mustFail: "#517 ② plural coin words" }

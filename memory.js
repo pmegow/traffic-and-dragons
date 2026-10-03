@@ -626,11 +626,12 @@ function fileWare(item,price,note,turn,out,at){
   for(i=0;i<node.wares.length;i++)if(String(node.wares[i].item).toLowerCase()===low){row=node.wares.splice(i,1)[0];break;}/* a re-stated ware refreshes, never twins */
   var prior=row?row.price:null,def=(typeof kindDef==="function")?kindDef():null;
   if(def&&def.pinPrices){/* #6 F4: canon pins the price; without canon the first quote anchors */
-    var _pc=(typeof itemLookup==="function")?itemLookup(it):null,_pg=(typeof itemValueGp==="function")?itemValueGp(_pc):null;
-    if(_pg!=null){var _pinTo=String(_pc.value).trim(),_qg=itemValueGp({value:pr});if(out&&(_qg==null||Math.abs(_qg-_pg)>1e-9))out.pinned={from:pr,to:_pinTo};pr=_pinTo;}/* #481 D5: canon's own words ("5 sp", "1 gp per 20"), compared by the unit price */
+    var _pc=(typeof itemLookup==="function")?itemLookup(it):null,_pg=(typeof itemValueCp==="function")?itemValueCp(_pc):null;
+    if(_pg!=null){var _pinTo=String(_pc.value).trim(),_qg=itemValueCp({value:pr});if(out&&(_qg==null||_qg!==_pg))out.pinned={from:pr,to:_pinTo};pr=_pinTo;}/* #481 D5: canon's own words ("5 sp", "1 gp per 20"), compared by the unit price (#598: copper) */
     else if(prior&&prior!==pr){if(out)out.anchored={kept:prior,quoted:pr};pr=prior;}
   }
   if(!row)row={item:it};row.item=it;row.price=pr;row.note=String(note||"").trim().slice(0,120);row.t=turn;row.min=now;
+  var _wc=(typeof parseCoin==="function")?parseCoin(pr):null;row.cp=(_wc&&_wc.unit)?_wc.cp:null;row.per=_wc?_wc.per:1;/* #598: parsed ONCE here — the counter reads cp/per, never the words */
   row.at=(worldState&&worldState.world&&worldState.world.sublocation)||null;/* where it was filed — the shop, when the GM answered from inside one (offer rule below) */
   node.wares.push(row);
   var cap=(def&&def.waresPerShop&&typeof WARES_CAP_SHOP==="number")?WARES_CAP_SHOP:waresCapFor(node);
@@ -657,7 +658,7 @@ function waresOfferedHere(node,presentNames){
 function nodeWaresLive(node){
   if(!node||!node.wares||!node.wares.length)return [];
   var now=(typeof clockNow==="function")?clockNow():0,win=((typeof WARES_RESTOCK_DAYS!=="undefined")?WARES_RESTOCK_DAYS:7)*((typeof MIN_PER_DAY!=="undefined")?MIN_PER_DAY:1440);
-  return node.wares.filter(function(w){return typeof w.min!=="number"||now-w.min<win;});
+  return node.wares.filter(function(w){if(w.cp===undefined){var c=(typeof parseCoin==="function")?parseCoin(w.price):null;w.cp=(c&&c.unit)?c.cp:null;w.per=c?c.per:1;}/* #598: a row filed before copper is parsed ONCE here and keeps it */return typeof w.min!=="number"||now-w.min<win;});
 }
 /* #481 D4 (audit 2026-09-29, ruled): a want lives on the clock like a ware (the same restock window) and RETIRES when met.
    Every reader of a node's wants goes through nodeWantedLive — the geo block, the counter and the fourth-button rungs — so
@@ -665,7 +666,7 @@ function nodeWaresLive(node){
 function nodeWantedLive(node){
   if(!node||!node.wanted||!node.wanted.length)return [];
   var now=(typeof clockNow==="function")?clockNow():0,win=((typeof WARES_RESTOCK_DAYS!=="undefined")?WARES_RESTOCK_DAYS:7)*((typeof MIN_PER_DAY!=="undefined")?MIN_PER_DAY:1440);
-  return node.wanted.filter(function(w){return typeof w.min!=="number"||now-w.min<win;});
+  return node.wanted.filter(function(w){if(w.cp===undefined){var c=(typeof parseCoin==="function")?parseCoin(w.offer):null;w.cp=(c&&c.unit)?c.unitCp:null;}/* #598 */return typeof w.min!=="number"||now-w.min<win;});
 }
 /* The node whose wants a place sees — the read-only twin of waresNodeFor (the shop in a waresPerShop kind, else the
    settlement); it never mints. `at` = {key, world} from R.placeAt, absent = the live pointer. */
@@ -687,7 +688,8 @@ function fileWanted(item,offer,by,turn,at){
   var it=String(item||"").trim();if(!it)return null;
   if(!node.wanted)node.wanted=[];
   var low=it.toLowerCase(),i;for(i=0;i<node.wanted.length;i++)if(String(node.wanted[i].item).toLowerCase()===low){node.wanted.splice(i,1);break;}
-  var row={item:it,offer:String(offer||"").trim().slice(0,120),by:String(by||"").trim().slice(0,60),t:turn,min:(typeof clockNow==="function")?clockNow():0};
+  var _oc=(typeof parseCoin==="function")?parseCoin(offer):null;
+  var row={item:it,offer:String(offer||"").trim().slice(0,120),cp:(_oc&&_oc.unit)?_oc.unitCp:null,/* #598: the offer in copper, once; null = in words */by:String(by||"").trim().slice(0,60),t:turn,min:(typeof clockNow==="function")?clockNow():0};
   node.wanted.push(row);var cap=(typeof WANTED_CAP!=="undefined")?WANTED_CAP:4;fileWanted.lastEvicted=[];
   /* audit C8: the one eviction in the map tier that said nothing — a standing offer dropped with zero trace. Loud now:
      the console names it and the handler reads fileWanted.lastEvicted for the mutation log. */

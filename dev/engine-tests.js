@@ -44,7 +44,7 @@ function runEngineTests(R){
     memory=blankMemory();sessionLog=[];
     worldState={ver:10,campId:null,campName:"Test",legacyCharsUsed:[],pendingLegacy:null,
       character:{name:"Tess",gender:"F",age:"30",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:"northlander",subraceNm:"Northlander",heritageVariant:"",
-        cls:"Warrior",stats:{STR:15,DEX:12,CON:14,INT:10,WIS:10,CHA:10},hp:14,maxHp:14,gold:25,
+        cls:"Warrior",stats:{STR:15,DEX:12,CON:14,INT:10,WIS:10,CHA:10},hp:14,maxHp:14,coin:2500,
         inventory:["Longsword","Travel ration"],level:1,xp:0,abilities:[],spells:[{nm:"Faerie Fire (racial, 1/day)",lvl:1,used:false}],
         archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:"",
         trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:initSkills(),
@@ -342,7 +342,7 @@ function runEngineTests(R){
       {nm:"Zargle's Custom Zap (9d9 chaos)",lvl:1,used:false},
       {nm:"Fog Bank",lvl:1,used:false}];
     worldState.npcs.push({name:"Sparks",status:"ally",rel:"companion",partyMember:true,
-      charSheet:{name:"Sparks",cls:"Sorcerer",level:3,hp:12,maxHp:12,gold:0,stats:{STR:8,DEX:12,CON:12,INT:16,WIS:10,CHA:10},
+      charSheet:{name:"Sparks",cls:"Sorcerer",level:3,hp:12,maxHp:12,coin:0,stats:{STR:8,DEX:12,CON:12,INT:16,WIS:10,CHA:10},
         inventory:[],abilities:[],spells:[{nm:"Fire Bolt (d10 fire, 120ft)",lvl:0,used:false}],conditions:[],relationships:[],
         saveModifiers:[],skills:{},coreMemories:[],partyMember:true}});
     migrateWorldState();
@@ -1100,13 +1100,13 @@ function runEngineTests(R){
     var T0="[TIME_CHECK:evening]\n[TIME_ADVANCE:10m]\n[SCENE_CAST:none]\n[QUEST:An Unwanted Reunion|active]\n[QUEST_STEP:An Unwanted Reunion|Survive the ambush and identify the attackers|false]\n\nThe lead raider turns, lowering his notched broadsword.";
     var T1="[TIME_CHECK:evening]\n[TIME_ADVANCE:2m]\n[SCENE_REF:lead_slaver|Aldric Saltborn]\n[NPC:Aldric Saltborn|hostile, mocking|enemy]\n[NPC_PRONOUN:Aldric Saltborn|he/him]\n[COMBAT_START:Aldric Saltborn|18|13|4|1d8+2|7]\n[COMBAT_STATS:STR:15|DEX:12|CON:14|INT:10|WIS:10|CHA:12|CR:1/2]\n\nYou launch yourself across the blood-soaked ash.\n\n[DICE:Strength check|17|success]\n[SKILL_SUCCESS:Sprinting]\n[ENEMY_HP:Aldric Saltborn|-7]\n\nYour iron shoulder crashes into his chest.";
     var T2="[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[COMBAT_ROUND:2]\n[SKILL_SUCCESS:Lore]\n\nYou put all the weight of your shoulders into a murderous overhead cut. If your edge goes wide, his counterstroke will split your ribs.\n\n[DICE:Strength attack roll|16|success]\n[ENEMY_HP:Aldric Saltborn|-12]\n\nCANON_TXN_BEGIN:txn_aldric_death_001|npc-death|Aldric Saltborn|lead_slaver|An Unwanted Reunion\n[SCENE_DEATH:lead_slaver]\n[NPC:Aldric Saltborn|dead|enemy]\n[QUEST_STEP:An Unwanted Reunion|Survive the ambush and identify the attackers|true]\n[QUEST:An Unwanted Reunion|completed]\n[ARC_COMPLETE:An Unwanted Reunion]\n[ITEM_GAINED:Iron Slaver's Key]\n[GOLD:+8]\nCANON_TXN_END:txn_aldric_death_001\n[COMBAT_END:victory]\n[QUEST:The Gilded Cage|offered|Investigate the fighting arena in Ashenveil to trace the sorcerous brands]\n\nThe heavy steel shears through Aldric's raised guard and bites deep into his neck. He collapses into the churned dirt with a wet gasp, the unholy glow in his brand flickering out like drowned embers. The remaining raiders scatter into the gathering dark at the sight of their fallen captain. You tear an iron key from his belt and kick over his body, finding a purse of heavy coin stamped with the mark of Ashenveil's fighting pits. \n\n[SUGGEST:Search the ruined merchant wagon|Examine the dead slavers' gear|Take the South Road toward Ashenveil]";
-    makeWorld();worldState.turn=0;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];worldState.character.gold=40;
+    makeWorld();worldState.turn=0;worldState.sceneRefs={active:{frames:[]},sealed:[]};worldState.identityConflicts=[];worldState.canonTxns=[];worldState.character.coin=4000;
     applyMuts(T0);worldState.turn=1;applyMuts(T1);worldState.turn=2;
     var _w=console.warn,warned=[],r;console.warn=function(){warned.push(Array.prototype.join.call(arguments," "));};
     try{r=applyMuts(T2);}finally{console.warn=_w;}
     var tx=(worldState.canonTxns||[]).filter(function(x){return x.id==="txn_aldric_death_001";})[0];
     if(!tx||tx.status!=="committed")return "the envelope did not commit: "+JSON.stringify(tx)+" | "+warned.join(" / ").slice(0,260);
-    if(worldState.character.gold!==48)return "the purse did not land: gold "+worldState.character.gold;
+    if(worldState.character.coin!==4800)return "the purse did not land: gold "+worldState.character.coin;
     if(worldState.character.inventory.indexOf("Iron Slaver's Key")<0)return "the key did not land: "+JSON.stringify(worldState.character.inventory);
     if((worldState.questLog||[]).some(function(q){return q.title==="An Unwanted Reunion"&&q.status==="active";}))return "the quest is still active";
     var ald=wsNpcByName("Aldric Saltborn");if(!ald||!ald.dead)return "Aldric is not dead on the record: "+JSON.stringify(ald&&{status:ald.status,dead:ald.dead});
@@ -1185,7 +1185,7 @@ function runEngineTests(R){
     worldState.tagLog=worldState.tagLog.slice(1);return montageDue()?"due on a window one short":true;
   });
   t("#308 the fourth button offers the montage when due (after rest/use/accept/buy, before the wildcard); sending it arms montagePing and buildMontageNote fires once with the compression contract; registered",function(){
-    makeWorld();worldState.turn=WILDCARD_EVERY;var c=worldState.character;c.hp=c.maxHp;c.inventory=[];c.gold=0;worldState.questLog=[];
+    makeWorld();worldState.turn=WILDCARD_EVERY;var c=worldState.character;c.hp=c.maxHp;c.inventory=[];c.coin=0;worldState.questLog=[];
     var i;worldState.tagLog=[];for(i=0;i<MONTAGE_AFTER_TURNS;i++)worldState.tagLog.push({t:worldState.turn-MONTAGE_AFTER_TURNS+i,tags:["SAY"],m:[]});
     var a=engineFourthAction();if(!a||a.kind!=="montage")return "montage should outrank the wildcard: "+JSON.stringify(a);
     c.hp=1;if(engineFourthAction().kind!=="rest")return "rest must outrank the montage";c.hp=c.maxHp;
@@ -1263,7 +1263,7 @@ function runEngineTests(R){
   });
   // ── #305 the fourth, engine-authored button ──────────────────────────────────
   t("#305 engineFourthAction: rest when HP is under half (never in combat), else use a carried consumable with a defined effect, else accept an offered quest, else buy when a want is on the table, else the periodic wildcard, else nothing",function(){
-    makeWorld();var c=worldState.character;c.hp=14;c.maxHp=14;c.inventory=[];c.gold=0;worldState.questLog=[];worldState.turn=1;
+    makeWorld();var c=worldState.character;c.hp=14;c.maxHp=14;c.inventory=[];c.coin=0;worldState.questLog=[];worldState.turn=1;
     if(engineFourthAction()!==null)return "idle should be null";
     c.hp=5;var a=engineFourthAction();if(!a||!/rest/i.test(a.text)||a.kind!=="rest")return "rest: "+JSON.stringify(a);
     worldState.combat={round:1,engaged:null,foes:[{name:"Rat",hp:2,maxHp:2}]};if(engineFourthAction()&&engineFourthAction().kind==="rest")return "rest offered in combat";worldState.combat=null;
@@ -1282,16 +1282,16 @@ function runEngineTests(R){
     worldState.turn=4;if(engineFourthAction().text!==r1)return "rotation is not periodic over the candidates (#305c)";
     worldState.turn=1;c.hp=14;c.inventory=[];delete worldState.itemBible;
     c.inventory=[];worldState.questLog=[{title:"The Bell Below",status:"offered",desc:"",objectives:[],started:1}];a=engineFourthAction();if(!a||a.kind!=="accept"||!/Bell Below/.test(a.text))return "accept: "+JSON.stringify(a);
-    worldState.questLog=[];c.gold=30;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",wares:[{item:"Healing salve",price:"8 gp",note:"sold by Old Maud at her stall",t:1,min:(typeof clockNow==="function")?clockNow():0}]};
+    worldState.questLog=[];c.coin=3000;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",wares:[{item:"Healing salve",price:"8 gp",note:"sold by Old Maud at her stall",t:1,min:(typeof clockNow==="function")?clockNow():0}]};
     a=engineFourthAction();if(a&&a.kind==="buy")return "buy offered with no seller in the scene (the High Spire lift-terminal defect)";
     worldState.npcs.push({name:"Old Maud",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Old Maud"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
     a=engineFourthAction();if(!a||a.kind!=="buy"||!/Healing salve/.test(a.text))return "buy: "+JSON.stringify(a);
-    c.gold=0;a=engineFourthAction();if(a&&a.kind==="buy")return "cannot buy with no coin";
+    c.coin=0;a=engineFourthAction();if(a&&a.kind==="buy")return "cannot buy with no coin";
     memory.map.nodes["Sandpoint"].wares=[];worldState.turn=WILDCARD_EVERY;a=engineFourthAction();if(!a||a.kind!=="wild"||!/reckless/i.test(a.text))return "wildcard: "+JSON.stringify(a);
     worldState.turn=WILDCARD_EVERY+1;return engineFourthAction()===null?true:"wildcard off-cycle";
   });
   t("#305/#303 a purchase is offered ONLY with the seller in front of you (owner report 2026-09-03, the High Spire lift terminal): a ware filed at a sub-location remembers it; the fourth button and the suggestion gate both refuse a buy when neither the seller nor their shop is in the scene; the geo line says so to the GM",function(){
-    makeWorld();var c=worldState.character;c.hp=14;c.maxHp=14;c.inventory=[];c.gold=40;worldState.questLog=[];worldState.turn=49;
+    makeWorld();var c=worldState.character;c.hp=14;c.maxHp=14;c.inventory=[];c.coin=4000;worldState.questLog=[];worldState.turn=49;
     worldState.world.location="High Spire";worldState.world.sublocation="The Gilded Cask";
     memory.map.nodes["High Spire"]={firstVisit:40,visits:2,description:null,parent:null,npcs:[],items:[],size:"large"};
     memory.map.nodes["High Spire|The Gilded Cask"]={firstVisit:48,visits:1,description:null,parent:"High Spire",npcs:[],items:[]};
@@ -1314,7 +1314,7 @@ function runEngineTests(R){
     var g=buildGeoBlock();return /FOR SALE HERE/.test(g)&&/seller or their shop is in the scene/i.test(g)?true:"geo line does not tell the GM: "+g.slice(g.indexOf("FOR SALE"),g.indexOf("FOR SALE")+260);
   });
   t("#392 a seller last seen at ANOTHER sub-location of the same town is not in the scene: no buy button, the suggestion gate rejects the buy, and the seller stepping into the active frame's observed list re-opens both (The Long Walk t105–t132: smelling salts offered at the family gate for thirty turns)",function(){
-    makeWorld();var c=worldState.character;c.hp=14;c.maxHp=14;c.inventory=[];c.gold=40;worldState.questLog=[];worldState.turn=100;
+    makeWorld();var c=worldState.character;c.hp=14;c.maxHp=14;c.inventory=[];c.coin=4000;worldState.questLog=[];worldState.turn=100;
     worldState.world.location="High Reach";worldState.world.sublocation="The Bleeding Lily Apothecary";
     memory.map.nodes["High Reach"]={firstVisit:90,visits:2,description:null,parent:null,npcs:[],items:[],size:"small"};
     memory.map.nodes["High Reach|The Bleeding Lily Apothecary"]={firstVisit:100,visits:1,description:null,parent:"High Reach",npcs:[],items:[]};
@@ -1586,7 +1586,7 @@ function runEngineTests(R){
     return true;
   });
   t("#375 money at stake: the note fires once per MONEY_EVERY window at a sized settlement with coin to lose, drawn from the record, settled by [GOLD:-N], never a tax; silent in combat, unsized, broke, and in a coda unless an antagonist is in the scene; registry wired",function(){
-    makeWorld();worldState.turn=60;var c=worldState.character;c.gold=40;c.inventory=["Weeping willow signet ring","mace"];worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    makeWorld();worldState.turn=60;var c=worldState.character;c.coin=4000;c.inventory=["Weeping willow signet ring","mace"];worldState.world.location="Sandpoint";worldState.world.sublocation=null;
     memory.map.nodes["Sandpoint"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"medium"};
     memory.keyDecisions=[{turn:50,desc:"Spared the raider captain"},{turn:55,desc:"Burned the toll bridge"}];delete worldState.moneyAsk;delete worldState.spineComplete;worldState.skeleton=null;
     /* #375b: the first ask waits for a record — turn one of a new campaign is never a shakedown */
@@ -1596,7 +1596,7 @@ function runEngineTests(R){
     if(buildMoneyNote()!=="")return "fired twice inside the window";
     worldState.turn=60+MONEY_EVERY;if(buildMoneyNote()==="")return "did not fire again after the window";
     delete worldState.moneyAsk;worldState.combat={round:1};if(buildMoneyNote()!=="")return "fired in combat";worldState.combat=null;
-    c.gold=0;if(buildMoneyNote()!=="")return "fired with no coin to lose";c.gold=40;
+    c.coin=0;if(buildMoneyNote()!=="")return "fired with no coin to lose";c.coin=4000;
     memory.map.nodes["Sandpoint"].size=null;if(buildMoneyNote()!=="")return "fired at an unsized node";memory.map.nodes["Sandpoint"].size="medium";
     worldState.spineComplete={turn:40};if(buildMoneyNote()!=="")return "fired in a coda with no antagonist present";
     worldState.npcs.push({name:"Brother Tuck",status:"hunting you with a knife",statusTurn:59,rel:"hostile",met:30,pronouns:"he/him"});memory.npcs["Brother Tuck"]={attitude:"murderous, hunting",knowledge:[],events:[],lastSeenAt:"Sandpoint"};
@@ -2207,7 +2207,7 @@ function runEngineTests(R){
   });
   t("#357 companions earn their own skill ladder: [COMPANION_SKILL_SUCCESS:Name|skill] bumps the named companion's counter (never the hero's), resolves a lowercased id, drops an unknown name or skill loudly, announces a ladder step with the name; the hero path is unchanged; a companion's earned skills ride the party block as one compact line and a zero sheet adds nothing; the tag is taught and stripped",function(){
     makeWorld();worldState.character.skills=initSkills();
-    worldState.npcs.push({name:"Daeris",status:"alive",rel:"companion",partyMember:true,met:1,pronouns:"she/her",charSheet:{name:"Daeris",cls:"Cleric",level:3,hp:20,maxHp:20,gold:5,stats:{STR:9,DEX:12,CON:13,INT:14,WIS:17,CHA:12},skills:initSkills(),abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    worldState.npcs.push({name:"Daeris",status:"alive",rel:"companion",partyMember:true,met:1,pronouns:"she/her",charSheet:{name:"Daeris",cls:"Cleric",level:3,hp:20,maxHp:20,coin:500,stats:{STR:9,DEX:12,CON:13,INT:14,WIS:17,CHA:12},skills:initSkills(),abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
     var ds=findCompanionChar("Daeris");if(!ds)return "fixture: companion not resolvable";
     var r=applyMuts("She slips past. [COMPANION_SKILL_SUCCESS:Daeris|Stealth]");
     if(ds.skills.Stealth!==1)return "companion counter: "+ds.skills.Stealth;
@@ -2252,13 +2252,13 @@ function runEngineTests(R){
     v=buildSysPrompt().volatile;di=v.indexOf("Daeris — ");blk=v.slice(di,v.indexOf("\n\n",di)>0?v.indexOf("\n\n",di):v.length);
     if(blk.indexOf("Languages:")>=0||blk.indexOf("Deity:")>=0)return "absent fields must add no line";
   });
-  t("#360 the currency rule matches what the GOLD parser can store: whole gold only, small change is scene colour, never a fraction; the parser still drops fractions rather than misreading them",function(){
-    var rule=DEFAULT_RULES.filter(function(r){return /Currency is tracked/.test(r);})[0];if(!rule)return "no currency rule";
-    if(!/WHOLE gold pieces/.test(rule)||!/NEVER emit a fraction/.test(rule)||!/do NOT emit \[GOLD:\] for anything under one gold piece/.test(rule))return "rule wording: "+rule;
-    if(/convert to gp first/.test(rule))return "the old convert-then-emit instruction promised a precision the parser cannot honour";
-    makeWorld();worldState.character.gold=25;applyMuts("[GOLD:-0.5]");if(worldState.character.gold!==25)return "a fractional tag must not move whole gold: "+worldState.character.gold;
-    applyMuts("[GOLD:-1.5]");if(worldState.character.gold!==24)return "the integer prefix still applies: "+worldState.character.gold;
-    applyMuts("[GOLD:+3 gp]");if(worldState.character.gold!==27)return "positive control";
+  t("#360 → #598 the currency rule matches what the purse can store: every copper — the GM tags the unit it narrated, a bare number is gold, a fraction of a gold piece is its copper",function(){
+    var rule=DEFAULT_RULES.filter(function(r){return /^Currency:/.test(r);})[0];if(!rule)return "no currency rule";
+    if(!/1 gp = 10 sp = 100 cp/.test(rule)||!/keeps every copper/.test(rule)||!/\[GOLD:-5 sp\]/.test(rule)||!/no unit is gold/.test(rule))return "rule wording: "+rule;
+    if(/WHOLE gold pieces|NEVER emit a fraction|convert before tagging/.test(rule))return "the whole-gold rule is retired (#598)";
+    makeWorld();worldState.character.coin=2500;applyMuts("[GOLD:-0.5]");if(worldState.character.coin!==2450)return "half a gold piece is 50 cp: "+worldState.character.coin;
+    applyMuts("[GOLD:-1.5]");if(worldState.character.coin!==2300)return "1.5 gp is 150 cp: "+worldState.character.coin;
+    applyMuts("[GOLD:+3 gp]");if(worldState.character.coin!==2600)return "positive control";
   });
   t("#361 one used-spell gate: only a used RACIAL 1/day spell is unavailable; the character preview, Table Talk and the default rule all read it (the slot-era consumers are gone)",function(){
     if(spellUnavailable({nm:"Fire Bolt",used:true})||spellUnavailable({nm:"Faerie Fire",racial:true,used:false})||!spellUnavailable({nm:"Faerie Fire",racial:true,used:true})||spellUnavailable(null))return "gate";
@@ -2392,7 +2392,7 @@ function runEngineTests(R){
     return /buy|purchas|for sale/i.test(b)&&/rest/i.test(b)&&/carried item|use an item|using a/i.test(b)&&/accept/i.test(b)?true:"steering line missing";
   });
   t("#305 flavoured fallbacks: the gate's replacements read from state — wounded → bind wounds, coin → count it, a market → look over the wares, a companion → check on them by name",function(){
-    makeWorld();worldState.world.location="Sandpoint";var c=worldState.character;c.hp=4;c.maxHp=14;c.gold=12;
+    makeWorld();worldState.world.location="Sandpoint";var c=worldState.character;c.hp=4;c.maxHp=14;c.coin=1200;
     worldState.npcs.push({name:"Morwen",status:"alive",rel:"ally",partyMember:true,charSheet:{name:"Morwen",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{},abilities:[],spells:[],inventory:[],conditions:[]}});
     memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",wares:[{item:"Healing salve",price:"8 gp",note:"",t:1,min:(typeof clockNow==="function")?clockNow():0}]};
     var man=buildSceneManifest(),got=[],i;
@@ -2891,7 +2891,7 @@ function runEngineTests(R){
     for(var i=0;i<armors.length;i++){var e=ITEM_BIBLE[armors[i]];if(/\bAC\b|armor class/i.test(e.effect))return armors[i]+" still carries AC text: "+e.effect;if(!/\d+ gp/.test(e.value))return armors[i]+" has no gp value";}
     var need=["healing salve","greater healing potion","antitoxin","smelling salts"];
     for(i=0;i<need.length;i++){var it=itemLookup(need[i]);if(!it)return need[i]+" does not resolve";if(it.category!=="consumable"||!/\d+ gp/.test(it.value)||it.effect==="N/A")return need[i]+": "+JSON.stringify(it);}
-    return typeof itemValueGp==="function"&&itemValueGp(ITEM_BIBLE["healing potion"])===50?true:"itemValueGp broken";
+    return typeof itemValueCp==="function"&&itemValueCp(ITEM_BIBLE["healing potion"])===5000?true:"itemValueCp broken (#598: copper)";
   });
   t("#302/#349 re-level on load: a character whose XP now clears a higher gate is marked READY on load (no level, one toast) and lands at the next long rest, companions too; a second load call changes nothing",function(){
     makeWorld();var c=worldState.character;c.level=3;c.xp=CLASS_XP_LEVELS[4]+5;c.abilities=[];__toasts.length=0;
@@ -3280,7 +3280,7 @@ function runEngineTests(R){
     makeWorld();
     worldState.character.cls="Berserker";worldState.character.archetype="totem";worldState.character.archetypeNm="Totem Warrior";
     worldState.npcs.push({name:"Grok",status:"ally",rel:"companion",partyMember:true,
-      charSheet:{name:"Grok",cls:"Berserker",archetype:"stormherald",archetypeNm:"Storm Herald",level:3,hp:20,maxHp:20,gold:0,
+      charSheet:{name:"Grok",cls:"Berserker",archetype:"stormherald",archetypeNm:"Storm Herald",level:3,hp:20,maxHp:20,coin:0,
         stats:{STR:16,DEX:10,CON:14,INT:8,WIS:10,CHA:8},inventory:[],abilities:[],spells:[],conditions:[],relationships:[],saveModifiers:[],skills:{},coreMemories:[],partyMember:true}});
     if(!migrateWorldState())return "migrate reported no change";
     var c=worldState.character;
@@ -3403,7 +3403,7 @@ function runEngineTests(R){
   t("[COMPANION_SPELL_USED:] spends from the COMPANION's own pool; the player's is untouched",function(){
     makeWorld();var c=worldState.character;c.spells=[{nm:"Bless",lvl:1}];c.cls="Cleric";delete c.mana;
     worldState.npcs.push({name:"Lyra",status:"ally",rel:"companion",partyMember:true,
-      charSheet:{name:"Lyra",cls:"Cleric",level:5,hp:20,maxHp:20,gold:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},
+      charSheet:{name:"Lyra",cls:"Cleric",level:5,hp:20,maxHp:20,coin:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},
         inventory:[],abilities:[],spells:[{nm:"Bless",lvl:1},{nm:"Spirit Guardians",lvl:3}],conditions:[],relationships:[],saveModifiers:[],skills:{},coreMemories:[],partyMember:true}});
     applyMuts("[COMPANION_SPELL_USED:Lyra|Spirit Guardians]");
     var cs=worldState.npcs[0].charSheet;
@@ -3413,10 +3413,10 @@ function runEngineTests(R){
   t("rest refills every LIVING party pool to max; the dead stay empty (the no-rest-for-the-dead ruling)",function(){
     makeWorld();var c=worldState.character;c.cls="Cleric";c.spells=[{nm:"Bless",lvl:1},{nm:"Revivify",lvl:3}];c.mana=0;
     worldState.npcs.push({name:"Lyra",status:"ally",rel:"companion",partyMember:true,
-      charSheet:{name:"Lyra",cls:"Cleric",level:5,hp:20,maxHp:20,gold:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},
+      charSheet:{name:"Lyra",cls:"Cleric",level:5,hp:20,maxHp:20,coin:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},
         inventory:[],abilities:[],spells:[{nm:"Bless",lvl:1}],conditions:[],relationships:[],saveModifiers:[],skills:{},coreMemories:[],partyMember:true,mana:0}});
     worldState.npcs.push({name:"Ghost",status:"dead",rel:"companion",partyMember:true,dead:3,
-      charSheet:{name:"Ghost",cls:"Cleric",level:5,hp:0,maxHp:20,gold:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},
+      charSheet:{name:"Ghost",cls:"Cleric",level:5,hp:0,maxHp:20,coin:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},
         inventory:[],abilities:[],spells:[{nm:"Bless",lvl:1}],conditions:[],relationships:[],saveModifiers:[],skills:{},coreMemories:[],partyMember:true,mana:0}});
     restSpells();
     if(c.mana!==4)return "player pool not refilled, got "+c.mana;
@@ -3582,7 +3582,7 @@ function runEngineTests(R){
   t("HP clamps to [0,maxHp]",function(){makeWorld();applyMuts("[HP:-99]");if(worldState.character.hp!==0)return "floor failed: "+worldState.character.hp;applyMuts("[HP:+99]");return eq(worldState.character.hp,14,"ceiling");});
   t("UA8: [HP:] heals a NaN hp that escaped migration (no permanent NaN)",function(){makeWorld();worldState.character.hp=NaN;applyMuts("[HP:-3]");return eq(worldState.character.hp,11);});
   t("UA8: [HP:] heals a NaN maxHp FIRST, then clamps (E71 order)",function(){makeWorld();worldState.character.maxHp=NaN;worldState.character.hp=10;applyMuts("[HP:+5]");if(worldState.character.maxHp!==10)return "maxHp not healed to positive hp: "+worldState.character.maxHp;return eq(worldState.character.hp,10,"clamp to healed maxHp");});
-  t("GOLD parses '-5 gp' variant and floors at 0",function(){makeWorld();applyMuts("[GOLD:-5 gp]");if(worldState.character.gold!==20)return "got "+worldState.character.gold;applyMuts("[GOLD:-999]");return eq(worldState.character.gold,0,"floor");});
+  t("GOLD parses '-5 gp' variant and floors at 0",function(){makeWorld();applyMuts("[GOLD:-5 gp]");if(worldState.character.coin!==2000)return "got "+worldState.character.coin;applyMuts("[GOLD:-999]");return eq(worldState.character.coin,0,"floor");});
   t("signed [XP:+25] parses (v1.144 regression)",function(){makeWorld();worldState.character.level=3;worldState.character.xp=CLASS_XP_LEVELS[2];applyMuts("[XP:+25]");return eq(worldState.character.xp,CLASS_XP_LEVELS[2]+25);});
   t("XP level-up applies HP gain",function(){makeWorld();worldState.character.xp=CLASS_XP_LEVELS[1]-5;applyMuts("[XP:10]");if(worldState.character.level!==1||worldState.character.levelReady!==2)return "#349: should be READY for 2, not landed: "+worldState.character.level;landOwedLevels();return eq(worldState.character.level,2)===true?(worldState.character.maxHp>14?true:"maxHp not raised"):"level "+worldState.character.level;});
   t("ITEM_GAINED duplicate stacks to x2",function(){makeWorld();applyMuts("[ITEM_GAINED:Longsword]");var f=worldState.character.inventory.filter(function(x){return x.indexOf("Longsword")===0;});return eq(f.length,1)===true?eq(f[0],"Longsword x2"):"dup entries: "+JSON.stringify(f);});
@@ -3807,7 +3807,7 @@ function runEngineTests(R){
     worldState={character:{name:"Old",cls:"Rogue",stats:{STR:8,DEX:15,CON:10,INT:12,WIS:10,CHA:13},maxHp:8},world:{location:"Somewhere"},questLog:[{title:"Q"}]};
     migrateWorldState();
     var c=worldState.character;
-    if(typeof c.level!=="number"||typeof c.hp!=="number"||typeof c.gold!=="number")return "numerics missing";
+    if(typeof c.level!=="number"||typeof c.hp!=="number"||typeof c.coin!=="number")return "numerics missing";
     if(!worldState.npcs||!worldState.eventHistory||!worldState.transcript||!worldState.legacyCharsUsed)return "arrays missing";
     if(worldState.pendingLegacy!==null)return "pendingLegacy";
     if(!worldState.campName)return "campName";
@@ -4332,7 +4332,7 @@ function runEngineTests(R){
   });
   t("stable half is byte-identical across per-turn state mutations (the cache invariant)",function(){
     makeWorld();var a=buildSysPrompt().stable;
-    worldState.turn++;worldState.character.hp-=3;worldState.character.gold+=17;worldState.character.xp+=50;
+    worldState.turn++;worldState.character.hp-=3;worldState.character.coin+=17;worldState.character.xp+=50;
     worldState.npcs.push({name:"Newcomer",status:"wary",rel:"stranger"});
     memory.chapters.push({turn:worldState.turn,summary:"Things happened."});
     worldState.world.time="midnight";worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
@@ -4735,7 +4735,7 @@ function runEngineTests(R){
   });
   t("MP-P2: activePlayer() resolves a living isPC party member's charSheet; setActivePC round-trips",function(){
     makeWorld();
-    var cs={name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,gold:12,stats:{STR:8,DEX:12,CON:12,INT:14,WIS:10,CHA:16},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    var cs={name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,coin:1200,stats:{STR:8,DEX:12,CON:12,INT:14,WIS:10,CHA:16},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
     worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:cs});
     if(!setActivePC("Morwen"))return "setActivePC rejected a valid PC";
     if(activePlayer()!==cs)return "pointer did not resolve to the companion charSheet";
@@ -6573,7 +6573,7 @@ function runEngineTests(R){
     makeWorld();
     worldState.deepTime=[{name:"Thassilon",when:"fell ten thousand years ago",note:""}];
     var a=buildSysPrompt().stable;
-    worldState.turn++;worldState.character.hp-=3;worldState.character.gold+=17;
+    worldState.turn++;worldState.character.hp-=3;worldState.character.coin+=17;
     worldState.npcs.push({name:"Newcomer",status:"wary",rel:"stranger"});
     memory.chapters.push({turn:worldState.turn,summary:"Things happened."});
     worldState.clock={min:2483,schedule:[]};
@@ -8332,7 +8332,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===329803738&&d.length===30870)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===-1589675154&&d.length===30886)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #598 (v1.1125): the GOLD doc line says the coin is tagged in its own unit (gp|sp|cp), +16 chars. #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -8516,7 +8516,7 @@ function runEngineTests(R){
       +"[QUEST:The Drowned Bell|offered|Raise the bell from the deep.][QUEST:Eel Debts|active][QUEST_STEP:Eel Debts|Meet Borin at the forge|true]"
       +"[ALIGNMENT:good+1][SPELL_USED:Faerie Fire][SPELL_DEF:Marsh Light|range=60ft|targets=one point|duration=10 min|effect=A bobbing witch-light|cost=at-will|magical=yes]"
       +"[COMBAT_START:Marsh Wight|18|13|+4|d8+2|fights until dawn][COMBAT_STATS:STR:14|DEX:12|CON:16|INT:6|WIS:10|CHA:8|CR:2][COMBAT_IMMUNE:poison][COMBAT_RESIST:cold, necrotic][COMBAT_VULN:fire][ENEMY_HP:-5 slashing][COMBAT_ROUND:2]");
-    if(worldState.character.hp!==11||worldState.character.gold!==35)return "sanity: core muts wrong";
+    if(worldState.character.hp!==11||worldState.character.coin!==3500)return "sanity: core muts wrong";
     return worldState.combat&&worldState.combat.foes[0].hp===13?true:"sanity: combat state wrong";
   });
   t("battery B: closures, removals, merge, factions, rest, party join",function(){
@@ -8805,10 +8805,10 @@ function runEngineTests(R){
   });
   t("#211: [NO_CHANGE] is deliberately parse-less — zero mutation, no unknown-tag warn",function(){
     makeWorld();
-    var g=worldState.character.gold,h=worldState.character.hp;
+    var g=worldState.character.coin,h=worldState.character.hp;
     var R=applyMutsTable("[NO_CHANGE:presence and bonds verified]");
     if((R.muts||[]).length)return "the ack mutated something: "+JSON.stringify(R.muts);
-    if(worldState.character.gold!==g||worldState.character.hp!==h)return "state changed";
+    if(worldState.character.coin!==g||worldState.character.hp!==h)return "state changed";
     return TAG_NO_HANDLER.indexOf("NO_CHANGE")>=0?true:"NO_CHANGE missing from TAG_NO_HANDLER — the unknown-tag scan would warn on every honest ack";
   });
   t("#211: the ENGINE NOTES PROTOCOL teaches the channel — the leak class ('X unchanged, nothing to correct' in prose) is named",function(){
@@ -9142,7 +9142,7 @@ function runEngineTests(R){
     worldState.questLog=null; // QUEST handler will throw on .length — the malformed-state injection
     var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
     var R;try{R=applyMuts("[QUEST:Broken|active][GOLD:+7]");}finally{console.warn=_w;worldState.questLog=[];}
-    if(worldState.character.gold!==32)return "GOLD after the throwing handler did not apply: "+worldState.character.gold;
+    if(worldState.character.coin!==3200)return "GOLD after the throwing handler did not apply: "+worldState.character.coin;
     return R&&R.errors&&R.errors.length===1?true:"R.errors wrong: "+JSON.stringify(R&&R.errors);
   });
   t("post-retirement burst: complex multi-tag response mutates correctly through the veneer",function(){
@@ -9344,7 +9344,7 @@ function runEngineTests(R){
     applyMuts("[QUEST:Hunt|active]");
     applyMuts("[QUEST:Hunt|completed][XP:50][GOLD:+10]");
     var p=memory.quests["Hunt"]&&memory.quests["Hunt"].paid;
-    if(!p||p.xp!==50||p.gold!==10)return "paid record wrong: "+JSON.stringify(p);
+    if(!p||p.xp!==50||p.coin!==1000)return "paid record wrong: "+JSON.stringify(p);
     applyMuts("[QUEST:Dry Job|active]");
     applyMuts("[QUEST:Dry Job|failed]");
     return memory.quests["Dry Job"]&&!memory.quests["Dry Job"].paid?true:"reward-less close grew a paid record";
@@ -9353,7 +9353,7 @@ function runEngineTests(R){
     makeWorld();__toasts.length=0;worldState.character.level=5;worldState.character.xp=CLASS_XP_LEVELS[4];
     applyMuts("[QUEST:Hunt|active]");
     applyMuts("[QUEST:Hunt|completed][XP:50][GOLD:+10]");
-    var xpBefore=worldState.character.xp,goldBefore=worldState.character.gold;
+    var xpBefore=worldState.character.xp,goldBefore=worldState.character.coin;
     var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
     try{applyMuts("[RETCON:completed too early][QUEST:Hunt|completed][XP:50][GOLD:+10]");}finally{console.warn=_w;}
     if(warns.filter(function(m){return m.indexOf("possible double payment")>=0;}).length!==1)return "double-pay warn missing: "+warns.join(" / ");
@@ -9362,7 +9362,7 @@ function runEngineTests(R){
     if(toast[0].indexOf("+50 XP")<0||toast[0].indexOf("+10 gp")<0)return "toast doesn't name the amounts: "+toast[0];
     // detection is deliberately warn-only — the rewards DID apply (reversal would fight table
     // order + the XP mirror); the doc line is the prevention, this is the loud backstop
-    return worldState.character.xp===xpBefore+50&&worldState.character.gold===goldBefore+10?true:"expected warn-only behavior (xp Δ"+(worldState.character.xp-xpBefore)+", gold Δ"+(worldState.character.gold-goldBefore)+")";
+    return worldState.character.xp===xpBefore+50&&worldState.character.coin===goldBefore+1000?true:"expected warn-only behavior (xp Δ"+(worldState.character.xp-xpBefore)+", gold Δ"+(worldState.character.coin-goldBefore)+")";
   });
   t("P3-F2 (v1.277 widening): NON-matching rewards on a blocked re-emission warn with the amounts-differ wording (the live t10 evasion)",function(){
     makeWorld();__toasts.length=0;
@@ -12206,13 +12206,13 @@ function runEngineTests(R){
   section("Update from library (#161)");
   function mk161Lib(over){
     var base={name:"Daeris",gender:"F",age:"47",appear:"Tall and spare",mark:"Iron clasp pin",backstory:"A ledger-keeper of unwritten debts",trait:"Precise",flaw:"Unforgiving",motivation:"Repay what is owed",deity:"The Unwritten",portrait:"data:image/jpeg;base64,LIBPORTRAIT",portraitOffset:{x:0.4,y:0.6,zoom:1.2},
-      level:3,xp:900,hp:20,maxHp:20,gold:15,cls:"Cleric",archetypeNm:"Arbiter",stats:{STR:10,DEX:10,CON:10,INT:14,WIS:16,CHA:12},inventory:["Ink kit"],spells:[{nm:"Bless",lvl:1}],abilities:[{nm:"Turn Undead",ds:"x"}],skills:{persuasion:3}};
+      level:3,xp:900,hp:20,maxHp:20,coin:1500,cls:"Cleric",archetypeNm:"Arbiter",stats:{STR:10,DEX:10,CON:10,INT:14,WIS:16,CHA:12},inventory:["Ink kit"],spells:[{nm:"Bless",lvl:1}],abilities:[{nm:"Turn Undead",ds:"x"}],skills:{persuasion:3}};
     if(over)Object.keys(over).forEach(function(k){if(over[k]===undefined)delete base[k];else base[k]=over[k];});
     return base;
   }
   function mk161Cur(){
     return {name:"Daeris",gender:"F",age:"67",appear:"Old appearance text",mark:"",backstory:"Old story",trait:"Old trait",flaw:"Old flaw",motivation:"Old drive",deity:"Old god",portrait:"data:image/jpeg;base64,CURPORTRAIT",portraitOffset:{x:0.5,y:0.5,zoom:1},
-      level:9,xp:48000,hp:61,maxHp:66,gold:230,cls:"Cleric",archetypeNm:"Arbiter of Unwritten Things",stats:{STR:12,DEX:12,CON:14,INT:16,WIS:18,CHA:14},inventory:["Iron clasp pin","Ledger fragment"],spells:[{nm:"Bless",lvl:1,used:true}],abilities:[{nm:"Turn Undead",ds:"x"}],skills:{persuasion:9},conditions:[{name:"Blessed",duration:"1h"}],relationships:[{entity:"Ammut",descriptor:"Wife"}]};
+      level:9,xp:48000,hp:61,maxHp:66,coin:23000,cls:"Cleric",archetypeNm:"Arbiter of Unwritten Things",stats:{STR:12,DEX:12,CON:14,INT:16,WIS:18,CHA:14},inventory:["Iron clasp pin","Ledger fragment"],spells:[{nm:"Bless",lvl:1,used:true}],abilities:[{nm:"Turn Undead",ds:"x"}],skills:{persuasion:9},conditions:[{name:"Blessed",duration:"1h"}],relationships:[{entity:"Ammut",descriptor:"Wife"}]};
   }
   t("#161: identity fields flow from the library copy — and ONLY the differing ones appear in the diff",function(){
     var cur=mk161Cur(),lib=mk161Lib();
@@ -12226,11 +12226,11 @@ function runEngineTests(R){
     return cur.portraitOffset.zoom===1.2?true:"portraitOffset not applied: "+JSON.stringify(cur.portraitOffset);
   });
   t("#161: progression, inventory, spells, stats and NAME are never touched — even when the library copy disagrees",function(){
-    var cur=mk161Cur(),lib=mk161Lib({name:"Imposter",level:20,gold:99999,cls:"Necromancer"});
+    var cur=mk161Cur(),lib=mk161Lib({name:"Imposter",level:20,coin:9999900,cls:"Necromancer"});
     var d=libUpdateApply(cur,lib);
     for(var i=0;i<d.length;i++)if(["name","level","xp","gold","cls","inventory","spells","stats","hp"].indexOf(d[i].k)>=0)return "forbidden field in diff: "+d[i].k;
     if(cur.name!=="Daeris")return "NAME was rewritten: "+cur.name;
-    if(cur.level!==9||cur.xp!==48000||cur.gold!==230)return "progression clobbered: Lv"+cur.level+" xp"+cur.xp+" gold"+cur.gold;
+    if(cur.level!==9||cur.xp!==48000||cur.coin!==23000)return "progression clobbered: Lv"+cur.level+" xp"+cur.xp+" gold"+cur.coin;
     if(cur.inventory.length!==2)return "inventory clobbered: "+JSON.stringify(cur.inventory);
     if(cur.spells[0].used!==true)return "spell used-flag clobbered";
     if(cur.stats.WIS!==18)return "stats clobbered";
@@ -14711,8 +14711,8 @@ function runEngineTests(R){
 
   t("(d) onMutated fires AFTER applyMuts has mutated state (the E82 latch point)",function(){
     makeWorld();var goldAtLatch=-1;
-    commitGmTurn("You pay the toll. [GOLD:-5]",{userMsg:"u",playerTxt:"p",onMutated:function(){goldAtLatch=worldState.character.gold;}});
-    return goldAtLatch===20?true:"gold at onMutated = "+goldAtLatch+" (want 20 — mutation must precede the latch)";
+    commitGmTurn("You pay the toll. [GOLD:-5]",{userMsg:"u",playerTxt:"p",onMutated:function(){goldAtLatch=worldState.character.coin;}});
+    return goldAtLatch===2000?true:"coin at onMutated = "+goldAtLatch+" (want 2000 cp — mutation must precede the latch; #598)";
   });
 
   t("(e) returns the narrator element",function(){
@@ -14774,7 +14774,7 @@ function runEngineTests(R){
     var raw="[HP:-5] [GOLD:+10]\nI cannot continue generating content for this scene. If you would like to advance the narrative toward other story events, let me know how you wish to proceed.";
     commitGmTurn(raw,{userMsg:"u",playerTxt:"p"});
     if(worldState.character.hp!==14)return "HP tag applied on a refusal turn: "+worldState.character.hp;
-    if(worldState.character.gold!==25)return "GOLD tag applied on a refusal turn: "+worldState.character.gold;
+    if(worldState.character.coin!==2500)return "GOLD tag applied on a refusal turn: "+worldState.character.coin;
     if(worldState.turn!==6)return "turn did not advance (the exchange still happened): "+worldState.turn;
     var tl=worldState.transcript,last=tl[tl.length-1];
     if(!last||last.r!=="gm")return "gm transcript entry missing";
@@ -14845,7 +14845,7 @@ function runEngineTests(R){
     memory=blankMemory();sessionLog=[];
     worldState={ver:10,campId:null,campName:"B8",legacyCharsUsed:[],pendingLegacy:null,
       character:{name:"Vex",gender:"NB",age:"27",appear:"",mark:"",backstory:"",ancestry:"Elf",subrace:"wood",subraceNm:"Wood Elf",heritageVariant:"",
-        cls:"Ranger",stats:{STR:10,DEX:16,CON:12,INT:11,WIS:14,CHA:9},hp:11,maxHp:11,gold:12,
+        cls:"Ranger",stats:{STR:10,DEX:16,CON:12,INT:11,WIS:14,CHA:9},hp:11,maxHp:11,coin:1200,
         inventory:["Shortbow"],level:1,xp:0,abilities:[],spells:[],
         archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:"",
         trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:initSkills(),
@@ -18682,7 +18682,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     memory=blankMemory();sessionLog=[];
     worldState={ver:10,campId:null,campName:"Test",legacyCharsUsed:[],pendingLegacy:null,
       character:{name:"Tess",gender:"F",age:"30",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:"northlander",subraceNm:"Northlander",heritageVariant:"",
-        cls:"Warrior",stats:{STR:15,DEX:12,CON:14,INT:10,WIS:10,CHA:10},hp:14,maxHp:14,gold:25,
+        cls:"Warrior",stats:{STR:15,DEX:12,CON:14,INT:10,WIS:10,CHA:10},hp:14,maxHp:14,coin:2500,
         inventory:[],level:1,xp:0,abilities:[],spells:[],archetype:"",archetypeNm:"",
         statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:"",
         trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:initSkills(),
@@ -20227,13 +20227,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();worldState.world.location="Jorgenfist";w2Npc("Karg");
     worldState.questLog.push({title:"Boss Hunt",status:"active",desc:"Kill Karg",objectives:[{text:"Kill Karg",done:false}],started:1});
     w2Frame("brute","Karg",10);
-    worldState.turn=11;var g0=worldState.character.gold;applyMuts("[COMBAT_START:Karg|30|14|+4|1d8|high]");
+    worldState.turn=11;var g0=worldState.character.coin;applyMuts("[COMBAT_START:Karg|30|14|+4|1d8|high]");
     applyMuts(w2Txn("karg-death","npc-death","Karg","brute","Boss Hunt","[SCENE_DEATH:brute][NPC:Karg|dead|enemy][COMBAT_END:victory][XP:100][QUEST:Boss Hunt|completed][GOLD:50]"));
     var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="karg-death";})[0];
     if(!tx)return "no receipt written";
     if(tx.status!=="committed")return "the envelope was refused: "+tx.status+" / "+tx.reason+" — one incidental tag still voids a death and its rewards";
     if(worldState.character.xp<100)return "XP did not land: "+worldState.character.xp;/* #302: the engine's own milestone rides on top — this asserts the payout LANDED */
-    if(worldState.character.gold!==g0+50)return "GOLD did not land: "+worldState.character.gold;
+    if(worldState.character.coin!==g0+5000)return "GOLD did not land: "+worldState.character.coin;
     if(!npcIsDead(wsNpcByName("Karg")))return "the death itself did not commit";
     if(worldState.questLog.some(function(q){return q.title==="Boss Hunt";}))return "the quest completion did not archive";
     if(worldState.combat)return "the ejected COMBAT_END was not applied as an ordinary tag";
@@ -20256,11 +20256,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=20;applyMuts("[SCENE_REF:watcher|?]");/* sceneRefs ACTIVE, so evidence rules are in force */
     wsNpcByName("Mokmurian").dead=15;memory.npcs.Mokmurian.dead=15;/* the death is established canon */
     worldState.identityConflicts=[{subject:"Mokmurian",handle:"-",reason:"r",turn:16,lastTurn:16,attempts:2,resolved:false}];/* the heal must work on the RE-ASSERTION leg too — the stamp path cannot resolve an already-dead subject */
-    worldState.turn=21;var xp0=worldState.character.xp,g0=worldState.character.gold;
+    worldState.turn=21;var xp0=worldState.character.xp,g0=worldState.character.coin;
     applyMuts(w2Txn("true-death","npc-death","Mokmurian","-","Mokmurian's Army","[NPC:Mokmurian|dead|enemy][XP:2200][QUEST:Mokmurian's Army|completed][GOLD:1500]"));
     var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="true-death";})[0];
     if(!tx||tx.status!=="committed")return "the re-assertion was refused: "+(tx?tx.reason:"no receipt")+" — closing bookkeeping on an established death is impossible";
-    if(worldState.character.xp<xp0+2200||worldState.character.gold!==g0+1500)return "the owed rewards did not land";/* #302: the engine's own milestone rides on top — this asserts the payout LANDED */
+    if(worldState.character.xp<xp0+2200||worldState.character.coin!==g0+150000)return "the owed rewards did not land";/* #302: the engine's own milestone rides on top — this asserts the payout LANDED */
     if((worldState.identityConflicts||[]).some(function(c){return c.subject==="Mokmurian"&&!c.resolved;}))return "the re-assertion commit did not heal the standing conflict (the api.js leg)";
     return worldState.questLog.some(function(q){return q.title==="Mokmurian's Army";})?"quest did not archive":true;
   });
@@ -20289,13 +20289,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.questLog.push({title:"Whispers of Jorgenfist",status:"active",desc:"",objectives:[],started:1});
     worldState.identityConflicts=[{subject:"Mokmurian",handle:"-",reason:"unsupported operation COMBAT_END inside npc-death transaction",turn:1742,lastTurn:1742,attempts:14,resolved:false}];
     worldState.canonTxns=[{id:"mokmurian_true_death",claim:"npc-death",subject:"Mokmurian",evidence:"-",quest:"Mokmurian's Army",status:"quarantined",operations:[],turn:1742,reason:"unsupported operation COMBAT_END inside npc-death transaction",quarantinedTurn:1742}];
-    worldState.turn=1782;var xp0=worldState.character.xp,g0=worldState.character.gold;
+    worldState.turn=1782;var xp0=worldState.character.xp,g0=worldState.character.coin;
     applyMuts("Mokmurian's death stays exactly as narrated. [QUEST:Mokmurian's Army|completed] [QUEST:Whispers of Jorgenfist|completed] [XP:400] [GOLD:200]");
     if(worldState.questLog.some(function(q){return q.title==="Whispers of Jorgenfist";}))return "the UNRELATED quest's completion was destroyed by the name-keyed blackout (the t1782 field failure)";
     /* co-emitted rewards are WITHHELD alongside the disputed completion (the pinned laundering
        rule) — temporary by construction: a valid re-emission heals, an unanswered dispute goes stale */
     if(worldState.character.xp!==xp0+MILESTONE_XP.quest)return "a disputed completion's co-emitted reward landed: xp "+worldState.character.xp;/* #302: the UNDISPUTED completion pays its engine milestone (50×L1); the disputed quest's GM reward must still be withheld */
-    if(worldState.character.gold!==g0)return "a disputed completion's co-emitted gold landed";
+    if(worldState.character.coin!==g0)return "a disputed completion's co-emitted gold landed";
     if(!worldState.questLog.some(function(q){return q.title==="Mokmurian's Army";}))return "the DISPUTED quest's completion landed while its claim is quarantined — the protection is gone entirely";
     return true;
   });
@@ -20526,7 +20526,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=91;var bad=w2Txn("bad-one","npc-death","Mokmurian","scholar","-","[SCENE_DEATH:scholar][XP:600]");
     var good=w2Txn("courier-one","quest-outcome","-","-","Courier Run","[QUEST_STEP:Courier Run|Deliver the sealed letter|true][XP:50][GOLD:+10][ITEM_GAINED:Courier's token]");
     applyMuts(bad+good);
-    if(npcIsDead(wsNpcByName("Mokmurian"))||worldState.character.xp!==50||worldState.character.gold!==35)return "transaction isolation failed: "+JSON.stringify({dead:npcIsDead(wsNpcByName("Mokmurian")),xp:worldState.character.xp,gold:worldState.character.gold});
+    if(npcIsDead(wsNpcByName("Mokmurian"))||worldState.character.xp!==50||worldState.character.coin!==3500)return "transaction isolation failed: "+JSON.stringify({dead:npcIsDead(wsNpcByName("Mokmurian")),xp:worldState.character.xp,gold:worldState.character.coin});
     if(worldState.character.inventory.indexOf("Courier's token")<0||!worldState.questLog[0].objectives[0].done)return "valid unrelated envelope was swallowed";
     return true;
   });
@@ -20805,7 +20805,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
     worldState.turn=71;
     var out=__w2Toasts(function(){applyMuts("[NPC:Mokmurian|dead|enemy][QUEST:The Giants of Jorgenfist|completed][XP:600][GOLD:+100]");});
-    if(worldState.character.xp!==0||worldState.character.gold!==25)return "fixture broke: the reward was not withheld";
+    if(worldState.character.xp!==0||worldState.character.coin!==2500)return "fixture broke: the reward was not withheld";
     if(out.indexOf("Mokmurian")<0)return "the withhold toast never names the victim: "+out;
     if(out.indexOf(W2_REFUSAL_FALLBACK)>=0)return "the withhold toast fell through to the generic fallback instead of naming the cause: "+out;
     if(!/never showed was there/i.test(out))return "the withhold toast carries the wrong player-language reason: "+out;
@@ -20894,7 +20894,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
 
   t("#215 accepting a claim actually pays it out — xp, gold and item all land, and the queue drains",function(){
     makeWorld();
-    var xp0=worldState.character.xp,g0=worldState.character.gold,inv0=worldState.character.inventory.length;
+    var xp0=worldState.character.xp,g0=worldState.character.coin,inv0=worldState.character.inventory.length;
     __xpCapOff();rewardClaimQueue("Mokmurian",["[XP:600]","[GOLD:+100]","[ITEM_GAINED:Giantbane]"],"named death has no prior positive scene binding");
     var q=worldState.pendingRewardClaims;
     if(!q||q.length!==1)return "queue did not accept the claim";
@@ -20902,7 +20902,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var ok;try{ok=rewardClaimAccept(q[0].id);}finally{if(_t)showToast=_t;}
     if(!ok)return "accept reported failure";
     if(worldState.character.xp!==xp0+600)return "xp not awarded: "+worldState.character.xp;
-    if(worldState.character.gold!==g0+100)return "gold not awarded: "+worldState.character.gold;
+    if(worldState.character.coin!==g0+10000)return "gold not awarded: "+worldState.character.coin;
     if(worldState.character.inventory.length!==inv0+1)return "item not awarded";
     return !(worldState.pendingRewardClaims||[]).length?true:"the claim stayed queued after payout";
   });
@@ -21238,7 +21238,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();worldState.turn=50;sceneRefsEnsure();
     worldState.questLog=[{title:"The Hunt",status:"active",desc:"",objectives:[],started:40}];
     worldState.transcript=[{t:49,r:"gm",x:"An earlier scene."}];
-    var trRef=worldState.transcript,preLen=trRef.length,preGold=worldState.character.gold;
+    var trRef=worldState.transcript,preLen=trRef.length,preGold=worldState.character.coin;
     var _se=_w2StageEffects;
     _w2StageEffects=function(fn){worldState.transcript.push({t:50,r:"gm",x:"ROGUE APPEND"});return _se(fn);};
     var _w=console.warn;console.warn=function(){};
@@ -21248,7 +21248,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!tx||tx.status!=="quarantined")return "the rogue append did not fail the envelope: "+(tx?tx.status:"no receipt");
     if(trRef.length!==preLen)return "the shared array kept the rogue entry: "+trRef.length;
     if(worldState.transcript!==trRef)return "rollback lost the one true transcript array";
-    return worldState.character.gold===preGold?true:"the failed envelope's GOLD landed anyway";
+    return worldState.character.coin===preGold?true:"the failed envelope's GOLD landed anyway";
   });
   t("#272 D5: merge pre-images carry an honest portrait marker, never the image bytes",function(){
     makeWorld();worldState.turn=50;
@@ -21710,7 +21710,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#267: the completed-quest drift limb is unchanged (pin)",function(){
     makeWorld();worldState.turn=100;
     worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[{title:"The Skinsaw Man",objective:"o",status:"active",startTurn:20}]}]};
-    memory.quests["The Skinsaw Man"]={title:"The Skinsaw Man",desc:"",objectives:[],status:"completed",turn:90,paid:{xp:100,gold:0}};
+    memory.quests["The Skinsaw Man"]={title:"The Skinsaw Man",desc:"",objectives:[],status:"completed",turn:90,paid:{xp:100,coin:0}};
     var n=buildArcDriftNudge();
     return n&&n.indexOf("already been completed")>=0?true:"the completed limb changed: "+String(n).slice(0,120);
   });
@@ -21830,7 +21830,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#265②: a step against an ARCHIVED quest says so honestly — not the mis-title accusation",function(){
     makeWorld();worldState.turn=30;
-    memory.quests["Closed Business"]={title:"Closed Business",desc:"",objectives:[],status:"completed",turn:20,paid:{xp:100,gold:0}};
+    memory.quests["Closed Business"]={title:"Closed Business",desc:"",objectives:[],status:"completed",turn:20,paid:{xp:100,coin:0}};
     var R=applyMuts("[QUEST_STEP:Closed Business|Late addendum|true]");
     var line=(R&&R.muts?R.muts:[]).filter(function(m){return m.indexOf("Closed Business")>=0;})[0];
     if(!line)return "no player-visible line for the archived-step drop";
@@ -22457,11 +22457,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("R1: a refused bare death cannot leak its co-emitted quest completion and rewards when the victim is named only inside the stripped tag",function(){
     makeWorld();r168Npc("Ilma");r168Quest("Clear the Cellar","Sweep the lower vault");
     worldState.turn=40;applyMuts("[SCENE_REF:bystander|?]");
-    worldState.turn=41;var xp0=worldState.character.xp,g0=worldState.character.gold;
+    worldState.turn=41;var xp0=worldState.character.xp,g0=worldState.character.coin;
     applyMuts("The vault falls silent. [NPC:Ilma|dead|enemy][XP:250][GOLD:+300][QUEST_STEP:Clear the Cellar|Sweep the lower vault|true]");
     var q=worldState.questLog[0];
     if(npcIsDead(wsNpcByName("Ilma")))return "unauthorized death committed";
-    if(worldState.character.xp!==xp0||worldState.character.gold!==g0)return "refused death still paid rewards: xp+"+(worldState.character.xp-xp0)+" gold+"+(worldState.character.gold-g0);
+    if(worldState.character.xp!==xp0||worldState.character.coin!==g0)return "refused death still paid rewards: xp+"+(worldState.character.xp-xp0)+" gold+"+(worldState.character.coin-g0);
     if(!q||q.objectives[0].done)return "refused death still completed the objective";
     return true;
   });
@@ -24138,7 +24138,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("#6B the fourth button in the village: the montage rung is off (and logs that it would have been due) and the reckless wildcard is off; the adventure ladder is unchanged",function(){
-    makeWorld();delete worldState.kind;var c=worldState.character;c.hp=c.maxHp;c.inventory=[];c.gold=0;worldState.questLog=[];worldState.turn=WILDCARD_EVERY;
+    makeWorld();delete worldState.kind;var c=worldState.character;c.hp=c.maxHp;c.inventory=[];c.coin=0;worldState.questLog=[];worldState.turn=WILDCARD_EVERY;
     var a=engineFourthAction();if(!a||a.kind!=="wild")return "fixture: the adventure wildcard should fire on its turn: "+JSON.stringify(a);
     worldState.kind="village";var v=engineFourthAction();if(v&&v.kind==="wild")return "the wildcard fired in the village";
     worldState.turn=MONTAGE_AFTER_TURNS+1;worldState.tagLog=[];var i;for(i=0;i<MONTAGE_AFTER_TURNS;i++)worldState.tagLog.push({t:i+1,tags:["SAY"]});
@@ -24212,7 +24212,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   section("#6 the village — phase E/F: houses, the stash and the shops (list I, 2026-09-12)");
   /* shared fixture: a village with two residents (houses), a tavern sub-location with Frizwick present, the hero in the tavern */
   function villageEF(){
-    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation=null;worldState.character.name="Silas";worldState.character.gold=25;
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation=null;worldState.character.name="Silas";worldState.character.coin=2500;
     if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
     memory.map.nodes["The Village"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
     importVillageResidents([{name:"Frizwick",gender:"F",cls:"Rogue"},{name:"Daeris",gender:"F",cls:"Cleric"}]);
@@ -24401,31 +24401,31 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("#6F4 prices pinned: a village ware with a bible value is recorded at the bible value (the quote noted); a re-stated ware with no canon keeps its first quote; adventure prices stay as narrated",function(){
-    var key=Object.keys(ITEM_BIBLE).filter(function(k){return itemValueGp(ITEM_BIBLE[k]);})[0];if(!key)return "fixture: no priced bible item";
-    var canon=itemValueGp(ITEM_BIBLE[key]),name=ITEM_BIBLE[key].name||key;
-    villageEF();var r=applyMuts("[WARES:"+name+"|"+(canon*2)+" gp|Frizwick]");
-    var w=memory.map.nodes["The Village|the tavern"].wares[0];if(itemValueGp({value:w.price})!==canon)return "the recorded price must be the bible value: "+JSON.stringify(w)+" canon "+canon;
+    var key=Object.keys(ITEM_BIBLE).filter(function(k){return itemValueCp(ITEM_BIBLE[k]);})[0];if(!key)return "fixture: no priced bible item";
+    var canon=itemValueCp(ITEM_BIBLE[key]),name=ITEM_BIBLE[key].name||key;
+    villageEF();var r=applyMuts("[WARES:"+name+"|"+(canon*2/100)+" gp|Frizwick]");
+    var w=memory.map.nodes["The Village|the tavern"].wares[0];if(itemValueCp({value:w.price})!==canon||w.cp!==canon)return "the recorded price must be the bible value, in copper on the row (#598): "+JSON.stringify(w)+" canon "+canon;
     if(!(r.muts||[]).some(function(m){return /pinned/i.test(m);}))return "the log must say the price was pinned: "+JSON.stringify(r.muts);
     applyMuts("[WARES:Grandmother's jam|3 gp|Frizwick]");applyMuts("[WARES:Grandmother's jam|9 gp|Frizwick]");
     var jam=memory.map.nodes["The Village|the tavern"].wares.filter(function(x){return /jam/i.test(x.item);})[0];if(!jam||jam.price!=="3 gp")return "a re-stated ware without canon keeps its first quote: "+JSON.stringify(jam);
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
-    applyMuts("[WARES:"+name+"|"+(canon*2)+" gp|a hawker]");if(itemValueGp({value:memory.map.nodes["Sandpoint"].wares[0].price})!==canon*2)return "adventure prices stay as narrated";
+    applyMuts("[WARES:"+name+"|"+(canon*2/100)+" gp|a hawker]");if(itemValueCp({value:memory.map.nodes["Sandpoint"].wares[0].price})!==canon*2)return "adventure prices stay as narrated";
     return true;
   });
   t("#6F5 trade only in a shop, with a counterparty: village [GOLD:±N] lands only in a shop sub-location with a present living non-party NPC; elsewhere it is refused by name and an item riding the same response is refused with it; adventure gold untouched",function(){
     villageEF();var r=applyMuts("Frizwick takes your coin. [GOLD:-2][ITEM_GAINED:Smoked fish]");
-    if(worldState.character.gold!==23||worldState.character.inventory.indexOf("Smoked fish")<0)return "a purchase in a shop with the keeper present must land: "+worldState.character.gold+" "+JSON.stringify(worldState.character.inventory);
+    if(worldState.character.coin!==2300||worldState.character.inventory.indexOf("Smoked fish")<0)return "a purchase in a shop with the keeper present must land: "+worldState.character.coin+" "+JSON.stringify(worldState.character.inventory);
     worldState.world.sublocation="the Village Hall";var q=quiet(function(){return applyMuts("You pay the warden. [GOLD:-5][ITEM_GAINED:Relic]");});
-    if(worldState.character.gold!==23)return "gold moved at the Hall: "+worldState.character.gold;
+    if(worldState.character.coin!==2300)return "gold moved at the Hall: "+worldState.character.coin;
     if(worldState.character.inventory.indexOf("Relic")>=0)return "the item riding a refused trade must be refused with it";
     if(!(q.r.muts||[]).some(function(m){return /Trade refused/.test(m);}))return "the log must name the refusal: "+JSON.stringify(q.r.muts);
     if(!q.warns.some(function(w){return /GOLD/.test(w)&&/shop|counterparty/i.test(w);}))return "console must warn";
     worldState.world.sublocation="the tavern";memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");
-    var q2=quiet(function(){return applyMuts("You leave coin on the bar. [GOLD:-1]");});if(worldState.character.gold!==23)return "a shop with no counterparty present must refuse: "+worldState.character.gold;
+    var q2=quiet(function(){return applyMuts("You leave coin on the bar. [GOLD:-1]");});if(worldState.character.coin!==2300)return "a shop with no counterparty present must refuse: "+worldState.character.coin;
     if(!(q2.r.muts||[]).some(function(m){return /counterparty|no one/i.test(m);}))return "the refusal must say no counterparty: "+JSON.stringify(q2.r.muts);
     worldState.world.sublocation=null;applyMuts("[ITEM_GAINED:Wild apple]");if(worldState.character.inventory.indexOf("Wild apple")<0)return "an item with no gold is a gift, never refused";
     var doc=buildStateTagsDoc();if(!/GOLD/.test(doc.slice(doc.indexOf("THE VILLAGE")))||!/shop/i.test(doc.slice(doc.indexOf("THE VILLAGE"))))return "the village tag doc must tell the GM where trade happens";
-    makeWorld();delete worldState.kind;worldState.character.gold=25;applyMuts("[GOLD:-5]");if(worldState.character.gold!==20)return "adventure gold must still move";
+    makeWorld();delete worldState.kind;worldState.character.coin=2500;applyMuts("[GOLD:-5]");if(worldState.character.coin!==2000)return "adventure gold must still move";
     return true;
   });
   t("#501 the counter is reached from the narration's own Shop button, by ONE rule (shopOpportunity: a kind with a counter, a shop, someone to trade with); in a shop the fourth button is the ladder's again — never Shop, Buy or Sell",function(){
@@ -24483,13 +24483,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(us.indexOf("b.onclick=function(ev){ev.stopPropagation();invLedgerOpen(\"showShopModal\");};")<0)return "the Shop button must open the counter through invLedgerOpen";
     if(ub.indexOf("engineActionOpener")>=0)return "the long-press handler must not ask for an opener any more";
     /* the adventure: no counter, no opportunity; its buy text and its ladder are unchanged */
-    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";var ac=worldState.character;ac.hp=ac.maxHp;ac.inventory=["Longsword"];ac.gold=10;worldState.questLog=[];worldState.turn=3;
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";var ac=worldState.character;ac.hp=ac.maxHp;ac.inventory=["Longsword"];ac.coin=1000;worldState.questLog=[];worldState.turn=3;
     memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};memory.map.nodes["Sandpoint|the market"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null};
     worldState.npcs.push({name:"Ameiko",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Ameiko"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint|the market"};
     applyMuts("[WARES:Ale|1 gp|Ameiko][WANTED:Longsword|4 gp|Ameiko]");
     if(shopOpportunity())return "the adventure has no counter: no opportunity";
     var adv=engineFourthAction();if(!adv||adv.kind!=="buy"||adv.text!=="Buy the Ale (1 gp).")return "the adventure buy text must not change: "+JSON.stringify(adv);
-    ac.gold=0;var adv2=engineFourthAction();if(adv2&&(adv2.kind==="sell"||adv2.kind==="shop"))return "the adventure ladder has no sell or shop rung";
+    ac.coin=0;var adv2=engineFourthAction();if(adv2&&(adv2.kind==="sell"||adv2.kind==="shop"))return "the adventure ladder has no sell or shop rung";
     return true;
   });
   t("#492 the Buy button names the first ware the hero does not hold: a just-bought item is not offered again, and when every ware is held the buy rung steps aside",function(){
@@ -24497,7 +24497,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
        t10 while leather armor was also for sale; in the second run it was the buckler. The rung named the first ware on the
        list without looking in the pack. The button's wording and triggers are owner-validated and unchanged. */
     makeWorld();delete worldState.kind;var c=worldState.character,a,now=(typeof clockNow==="function")?clockNow():0;
-    c.hp=c.maxHp;c.conditions=[];c.inventory=["Longsword","Chainmail"];c.gold=30;worldState.questLog=[];worldState.turn=1;worldState.world.location="Ashenveil";worldState.world.sublocation=null;
+    c.hp=c.maxHp;c.conditions=[];c.inventory=["Longsword","Chainmail"];c.coin=3000;worldState.questLog=[];worldState.turn=1;worldState.world.location="Ashenveil";worldState.world.sublocation=null;
     memory.map.nodes["Ashenveil"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"large",travelMins:null,wares:[{item:"Dagger",price:"2 gp",note:"sold by Torvan Urnvale",t:1,min:now},{item:"Leather Armor",price:"10 gp",note:"sold by Torvan Urnvale",t:1,min:now}]};
     worldState.npcs.push({name:"Torvan Urnvale",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"he/him"});memory.npcs["Torvan Urnvale"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Ashenveil"};
     a=engineFourthAction();if(!a||a.kind!=="buy"||a.text!=="Buy the Dagger (2 gp).")return "nothing held: the first ware, as before: "+JSON.stringify(a);
@@ -24542,30 +24542,30 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(worldState.tradeRefusedPing)return "a one-shot note burns its latch";
     if(/TRADE REFUSED/.test(buildEngineNotes()))return "the note fires once";
     if(!NOTE_SHAPES.buildTradeRefusedNudge||NOTE_SHAPES.buildTradeRefusedNudge.village!=="fires")return "the note needs a registry row that fires in the village";
-    makeWorld();delete worldState.kind;worldState.character.gold=25;applyMuts("[GOLD:-5]");if(worldState.tradeRefusedPing||/TRADE REFUSED/.test(buildEngineNotes()))return "the adventure never arms the trade note";
+    makeWorld();delete worldState.kind;worldState.character.coin=2500;applyMuts("[GOLD:-5]");if(worldState.tradeRefusedPing||/TRADE REFUSED/.test(buildEngineNotes()))return "the adventure never arms the trade note";
     return true;
   });
 
   t("#6F10 the trade gate reads the response's OWN arrival and speakers: the handler table runs GOLD before SUBLOCATION, so a response that walks into the shop, has the keeper speak and sells in one breath must land — the arrival is the last [SUBLOCATION:] not followed by a leave, the keeper any rostered non-party living [SAY:] speaker; a response that arrives with nobody speaking still refuses (no counterparty); the state-only call (the fourth button) is unchanged",function(){
     villageEF();worldState.world.sublocation="the Village Hall";memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");
     var r=applyMuts("You cross to the tavern. [SUBLOCATION:the tavern] [SAY:Frizwick]\"Two coppers.\" [GOLD:-2][ITEM_GAINED:Dried nettle]");
-    if(worldState.character.gold!==23||worldState.character.inventory.indexOf("Dried nettle")<0)return "a same-response arrival with the keeper speaking must land: gold "+worldState.character.gold+" "+JSON.stringify(r.muts);
+    if(worldState.character.coin!==2300||worldState.character.inventory.indexOf("Dried nettle")<0)return "a same-response arrival with the keeper speaking must land: gold "+worldState.character.coin+" "+JSON.stringify(r.muts);
     worldState.world.sublocation="the Village Hall";var r2=applyMuts("You cross to the tavern; it is empty. [SUBLOCATION:the tavern] [GOLD:-2]");
-    if(worldState.character.gold!==23||!(r2.muts||[]).some(function(m){return /counterparty|no one/i.test(m);}))return "an arrival with no speaker is still no counterparty: "+JSON.stringify(r2.muts);
+    if(worldState.character.coin!==2300||!(r2.muts||[]).some(function(m){return /counterparty|no one/i.test(m);}))return "an arrival with no speaker is still no counterparty: "+JSON.stringify(r2.muts);
     worldState.world.sublocation="the tavern";var r3=applyMuts("You step out. [SUBLOCATION_LEAVE] [SAY:Frizwick]\"Wait!\" [GOLD:-2]");
-    if(worldState.character.gold!==23||!(r3.muts||[]).some(function(m){return /Trade refused/.test(m);}))return "a leave in the response means the trade happens outside: "+JSON.stringify(r3.muts);
+    if(worldState.character.coin!==2300||!(r3.muts||[]).some(function(m){return /Trade refused/.test(m);}))return "a leave in the response means the trade happens outside: "+JSON.stringify(r3.muts);
     worldState.world.sublocation="the Village Hall";var st=villageTradeContext();if(st.ok)return "the state-only call must not invent an arrival";
     return true;
   });
   t("#458 the trade gate reads a mooded [SAY:Name|mood] keeper by NAME — the mood is never part of the counterparty (the one SAY consumer outside the deriver that split on the whole payload)",function(){
     villageEF();worldState.world.sublocation="the Village Hall";memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");
     var r=applyMuts("You cross to the tavern. [SUBLOCATION:the tavern] [SAY:Frizwick|bright]\"Two coppers.\" [GOLD:-2]");
-    return worldState.character.gold===23?true:"a mooded keeper must still be the counterparty: gold "+worldState.character.gold+" "+JSON.stringify(r.muts);
+    return worldState.character.coin===2300?true:"a mooded keeper must still be the counterparty: gold "+worldState.character.coin+" "+JSON.stringify(r.muts);
   });
 
   section("#6 the village — phase C/D/G/H: arrival, residents, the Hall, rewards (list I, 2026-09-13)");
   function villageCD(){
-    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation=null;worldState.character.name="Silas";worldState.character.gold=25;worldState.character.coreMemories=[{kind:"ending",text:"Silas broke the runelord's crown on the last stair.",turn:900,who:"Silas"}];
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";worldState.world.sublocation=null;worldState.character.name="Silas";worldState.character.coin=2500;worldState.character.coreMemories=[{kind:"ending",text:"Silas broke the runelord's crown on the last stair.",turn:900,who:"Silas"}];
     if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
     memory.map.nodes["The Village"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"small",travelMins:null};
     memory.map.nodes["The Village|the tavern"]={firstVisit:1,visits:2,description:null,parent:"The Village",npcs:[],items:[],size:"small",travelMins:null};
@@ -24599,7 +24599,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#6C3 Car Mode speaks STATE in the village: carRecapText names the hero, the place, the day and hour, the gold, the house's stash and who is about — no chapter summary; the adventure recap is byte-identical",function(){
     villageCD();memory.chapters=[{turn:3,summary:"Tobin returned to the Village on an ash-scented morning."}];
     memory.map.nodes[villageHouseKey("Silas")]={firstVisit:null,visits:0,description:null,parent:"The Village",npcs:[],items:[{name:"Old boots",placed:2,taken:false,qty:2,by:"Silas"}],size:"small",travelMins:null,owner:"Silas"};
-    var v=carRecapText();if(!/Silas/.test(v)||!/Village/.test(v)||!/[Dd]ay 13/.test(v)||!/25 gold/.test(v))return "the village recap must speak the state: "+v;
+    var v=carRecapText();if(!/Silas/.test(v)||!/Village/.test(v)||!/[Dd]ay 13/.test(v)||!/25 gp/.test(v))return "the village recap must speak the state: "+v;
     if(!/Old boots/.test(v)||!/Frizwick|Daeris/.test(v))return "the recap must name the house's stash and who is about: "+v;
     if(/Previously:|ash-scented/.test(v))return "the village recap is state, not a chapter: "+v;
     makeWorld();delete worldState.kind;memory.chapters=[{turn:3,summary:"The road climbed."}];worldState.world.location="Sandpoint";
@@ -24619,7 +24619,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=14;var b2=engineFourthAction();if(!b2||b2.kind!=="village"||b2.text===a.text)return "the village rung rotates its offer by turn: "+JSON.stringify([a,b2]);
     memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");worldState.turn=14;var seen={},i;for(i=0;i<8;i++){worldState.turn=14+i;var x=engineFourthAction();if(x&&x.kind==="village")seen[x.text]=1;}/* #556: one more commons (the riverbank) in the rotation, so one full lap is eight offers */
     if(!Object.keys(seen).some(function(k){return /Call on Daeris/.test(k);}))return "an absent resident must come up for a call within a few turns: "+JSON.stringify(seen);
-    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";var ac=worldState.character;ac.hp=ac.maxHp;ac.inventory=[];ac.gold=10;worldState.questLog=[];worldState.turn=3;
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";var ac=worldState.character;ac.hp=ac.maxHp;ac.inventory=[];ac.coin=1000;worldState.questLog=[];worldState.turn=3;
     memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};memory.map.nodes["Sandpoint|the market"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null};
     worldState.npcs.push({name:"Ameiko",status:"",statusTurn:0,rel:"neutral",met:1,pronouns:"she/her"});memory.npcs["Ameiko"]={attitude:"",knowledge:[],events:[],lastSeenAt:"Sandpoint|the market"};applyMuts("[WARES:Ale|1 gp|Ameiko]");
     var adv=engineFourthAction();if(!adv||adv.kind!=="buy")return "the adventure ladder must go straight to buy: "+JSON.stringify(adv);
@@ -24874,14 +24874,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // lost by design (village saves are disposable, owner 2026-09-14). The stamps (heroLibraryAt / a resident's libraryAt)
   // travel with a swap both ways, so "newer than what I moved in with" keeps meaning that.
   section("#427 library upstream");
-  function __libEntry(name,at,extra){var c={name:name,gender:"M",cls:"Rogue",level:18,xp:180000,gold:500,inventory:["Cleaver"],coreMemories:[{text:"Slew Karzoug.",turn:2331,kind:"gm",camp:"Runelords"}]};var k;for(k in (extra||{}))c[k]=extra[k];return {character:c,updatedAt:at};}
+  function __libEntry(name,at,extra){var c={name:name,gender:"M",cls:"Rogue",level:18,xp:180000,coin:50000,inventory:["Cleaver"],coreMemories:[{text:"Slew Karzoug.",turn:2331,kind:"gm",camp:"Runelords"}]};var k;for(k in (extra||{}))c[k]=extra[k];return {character:c,updatedAt:at};}
   t("#427 the played hero refreshes: a newer library copy replaces worldState.character wholesale (level, gold, inventory, memories) as a copy and stamps heroLibraryAt; an older, equal or undated copy is kept; the same copy never refreshes twice",function(){
-    villageCD();worldState.character.level=17;worldState.character.gold=100;worldState.heroLibraryAt=1000;var nm=worldState.character.name;
+    villageCD();worldState.character.level=17;worldState.character.coin=10000;worldState.heroLibraryAt=1000;var nm=worldState.character.name;
     var r=villageRefreshFromLibrary([__libEntry(nm,900)]);if(r.hero||worldState.character.level!==17)return "an older copy must be kept: "+JSON.stringify(r);
     r=villageRefreshFromLibrary([__libEntry(nm,1000)]);if(r.hero||worldState.character.level!==17)return "an equal copy must be kept";
     r=villageRefreshFromLibrary([__libEntry(nm,null)]);if(r.hero||worldState.character.level!==17)return "an undated copy must be kept";
     var e=__libEntry(nm,2000);r=villageRefreshFromLibrary([e]);if(r.hero!==nm||r.refreshed.indexOf(nm)<0)return "a newer copy must refresh the hero: "+JSON.stringify(r);
-    var c=worldState.character;if(c.name!==nm||c.level!==18||c.gold!==500||c.inventory[0]!=="Cleaver"||!c.coreMemories||c.coreMemories[0].text!=="Slew Karzoug.")return "the hero was not replaced wholesale: "+JSON.stringify({level:c.level,gold:c.gold});
+    var c=worldState.character;if(c.name!==nm||c.level!==18||c.coin!==50000||c.inventory[0]!=="Cleaver"||!c.coreMemories||c.coreMemories[0].text!=="Slew Karzoug.")return "the hero was not replaced wholesale: "+JSON.stringify({level:c.level,gold:c.coin});
     if(c===e.character)return "the hero must be a copy of the library entry";
     if(!c.skills||!c.conditions||!c.storyBeats)return "the v10 arrays must be ensured on the refreshed hero";
     if(worldState.heroLibraryAt!==2000)return "heroLibraryAt not stamped: "+worldState.heroLibraryAt;
@@ -24919,7 +24919,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // list, now one helper), item canon adopted, relationships through the axis adapter, framing kept, the stamp set.
   // The confirm shows what changes (libReplaceSummary) and says play-earned state in THIS campaign is replaced.
   section("#428 replace from library");
-  function __libCopy(name,extra){var c={name:name,gender:"F",cls:"Rogue",level:18,xp:180000,hp:99,maxHp:120,gold:500,inventory:["Cleaver","Rope"],spells:[{nm:"Silence"}],coreMemories:[{text:"Slew Karzoug.",turn:1,kind:"gm",camp:"R"}],appear:"Silver hair."};var k;for(k in (extra||{}))c[k]=extra[k];return c;}
+  function __libCopy(name,extra){var c={name:name,gender:"F",cls:"Rogue",level:18,xp:180000,hp:99,maxHp:120,coin:50000,inventory:["Cleaver","Rope"],spells:[{nm:"Silence"}],coreMemories:[{text:"Slew Karzoug.",turn:1,kind:"gm",camp:"R"}],appear:"Silver hair."};var k;for(k in (extra||{}))c[k]=extra[k];return c;}
   t("#428 ensureV10Arrays fills every missing v10 array/field and never touches a present one; startGame uses it",function(){
     var s={name:"X",skills:{a:1},inventory:["Rope"]};ensureV10Arrays(s);
     if(s.skills.a!==1||!s.conditions||!s.relationships||!s.saveModifiers||!s.languages||s.portrait!==null||s.backstory!==""||!s.storyBeats||!s.coreMemories)return "arrays not ensured: "+JSON.stringify(s);
@@ -24928,10 +24928,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("#428 libReplaceSummary: one row per headline field with a changed flag; tolerant of missing fields",function(){
-    var rows=libReplaceSummary({name:"A",level:17,gold:100,inventory:["a"],hp:10,maxHp:20},__libCopy("A"));
+    var rows=libReplaceSummary({name:"A",level:17,coin:10000,inventory:["a"],hp:10,maxHp:20},__libCopy("A"));
     var by={};rows.forEach(function(r){by[r.label]=r;});
     if(!by.Level||!by.Level.changed||by.Level.from!==17||by.Level.to!==18)return "level row: "+JSON.stringify(by.Level);
-    if(!by.Gold.changed||!by.Items.changed||!by.HP.changed||!by["Defining moments"].changed)return "changed flags: "+JSON.stringify(rows);
+    if(!by.Coin.changed||!by.Items.changed||!by.HP.changed||!by["Defining moments"].changed)return "changed flags: "+JSON.stringify(rows);
     var same=libReplaceSummary(__libCopy("A"),__libCopy("A"));if(same.some(function(r){return r.changed;}))return "identical copies must show no change";
     if(!libReplaceSummary(null,null).length)return "null-safe rows";
     return true;
@@ -24941,7 +24941,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var lib=__libCopy(nm.toUpperCase(),{itemDefs:{cleaver:{category:"weapon",effect:"N/A"}}});delete lib.portraitOffset;
     var r=libReplaceApply(nm,lib,4242);if(!r.ok||r.host!=="hero")return "apply: "+JSON.stringify(r);
     var c=worldState.character;if(c===lib)return "must be a copy";if(c.name!==nm)return "the local name is the identity key: "+c.name;
-    if(c.level!==18||c.gold!==500||c.inventory.length!==2||c.appear!=="Silver hair."||c.coreMemories[0].text!=="Slew Karzoug.")return "not replaced wholesale";
+    if(c.level!==18||c.coin!==50000||c.inventory.length!==2||c.appear!=="Silver hair."||c.coreMemories[0].text!=="Slew Karzoug.")return "not replaced wholesale";
     if(!c.skills||!c.conditions||!c.storyBeats)return "v10 arrays not ensured";
     if(!worldState.itemBible||!worldState.itemBible.cleaver)return "the copy's item canon not adopted";
     if(!c.portraitOffset||c.portraitOffset.zoom!==2)return "the framing must survive when the copy has none";
@@ -26369,63 +26369,63 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       wares:[{item:"Rope",price:"1 gp",note:"",t:1,min:clockNow(),at:"the trading post"},{item:"Healing potion",price:"50 gp",note:"",t:1,min:clockNow(),at:"the trading post"},{item:"Lantern oil",price:"a handful of copper",note:"",t:1,min:clockNow(),at:"the trading post"}],
       wanted:[{item:"Bone-handled knife",offer:"3 gp",by:"Frizwick",t:1,min:clockNow()}]};
     memory.npcs["Frizwick"].lastSeenAt="The Village|the trading post";
-    worldState.character.inventory=["Rope x3","Bone-handled knife","Longsword","Healing potion"];worldState.character.gold=25;
+    worldState.character.inventory=["Rope x3","Bone-handled knife","Longsword","Healing potion"];worldState.character.coin=2500;
     applyMuts("[WORN:Silas|Longsword|on]");
   }
   t("#407 ① the catalog reads the village teeth: only in a shop with its keeper; sell = half canon, the keeper's STATED offer when WANTED (#481 D4 amends ruling ①), unsellable without either; worn items flagged; buy rows = the shop's live wares with their pinned price, word-priced wares unbuyable",function(){
     shopFixture();var cat=shopTradeCatalog();if(!cat.ok)return "catalog: "+cat.reason;
-    if(cat.keeper!=="Frizwick"||cat.shop!=="the trading post"||cat.gold!==25)return "header: "+JSON.stringify([cat.keeper,cat.shop,cat.gold]);
+    if(cat.keeper!=="Frizwick"||cat.shop!=="the trading post"||cat.coin!==2500)return "header: "+JSON.stringify([cat.keeper,cat.shop,cat.coin]);
     var by={};cat.sell.forEach(function(r){by[r.name]=r;});
-    if(!by["Rope"]||by["Rope"].qty!==3||by["Rope"].sellGp!==0.5)return "rope: half of 1 gp canon, stack of 3: "+JSON.stringify(by["Rope"]);
-    if(!by["Bone-handled knife"]||!by["Bone-handled knife"].wanted||by["Bone-handled knife"].sellGp!==3)return "the WANTED knife sells at the keeper's offer (3 gp; #481 D4 re-baseline from full canon 2 gp): "+JSON.stringify(by["Bone-handled knife"]);
-    if(!by["Longsword"]||by["Longsword"].sellGp!==null)return "no canon and not wanted = not sellable here: "+JSON.stringify(by["Longsword"]);
+    if(!by["Rope"]||by["Rope"].qty!==3||by["Rope"].sellCp!==50)return "rope: half of 1 gp canon (50 cp), stack of 3: "+JSON.stringify(by["Rope"]);
+    if(!by["Bone-handled knife"]||!by["Bone-handled knife"].wanted||by["Bone-handled knife"].sellCp!==300)return "the WANTED knife sells at the keeper's offer (3 gp; #481 D4 re-baseline from full canon 2 gp): "+JSON.stringify(by["Bone-handled knife"]);
+    if(!by["Longsword"]||by["Longsword"].sellCp!==null)return "no canon and not wanted = not sellable here: "+JSON.stringify(by["Longsword"]);
     if(!by["Longsword"].worn)return "the worn longsword must be flagged";
-    if(!by["Healing potion"]||by["Healing potion"].sellGp!==25)return "potion: half of 50";
+    if(!by["Healing potion"]||by["Healing potion"].sellCp!==2500)return "potion: half of 50 gp";
     var bb={};cat.buy.forEach(function(b){bb[b.name]=b;});
-    if(!bb["Rope"]||bb["Rope"].buyGp!==1||!bb["Healing potion"]||bb["Healing potion"].buyGp!==50)return "buy rows must carry the pinned gp: "+JSON.stringify(cat.buy);
-    if(!bb["Lantern oil"]||bb["Lantern oil"].buyGp!==null)return "a word-priced ware is listed but unbuyable at the counter";
+    if(!bb["Rope"]||bb["Rope"].cp!==100||!bb["Healing potion"]||bb["Healing potion"].cp!==5000)return "buy rows must carry the pinned copper: "+JSON.stringify(cat.buy);
+    if(!bb["Lantern oil"]||bb["Lantern oil"].cp!==null)return "a word-priced ware is listed but unbuyable at the counter";
     worldState.world.sublocation=null;if(shopTradeCatalog().ok)return "no shop, no catalog";
     worldState.world.sublocation="the trading post";memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";if(shopTradeCatalog().ok)return "no keeper present, no catalog";
     return true;
   });
-  t("#407 ② the plan: a stack click counts up to the stack, worn and unpriced rows never enter, whole-gp totals with halves away from zero, a purchase never rounds to free, and Complete locks with the shortfall named",function(){
+  t("#407 ② the plan: a stack click counts up to the stack, worn and unpriced rows never enter, the net is copper subtraction (#598: no rounding), and Complete locks with the shortfall named",function(){
     shopFixture();var cat=shopTradeCatalog();
     var p=shopTradePlan(cat,{sell:{"rope":9,"longsword":1,"bone-handled knife":1},buy:{}});
     var names=p.lines.map(function(l){return l.name+":"+l.qty;}).join(",");if(names!=="Rope:3,Bone-handled knife:1")return "lines: "+names;
-    if(p.sellGp!==4.5||p.netGp!==-5||p.goldAfter!==30||!p.ok)return "sell 1.5 + 3 (the knife's offer, #481 D4) = 4.5 → the hero is paid 5 (halves away from zero): "+JSON.stringify([p.sellGp,p.netGp,p.goldAfter,p.ok]);
-    p=shopTradePlan(cat,{sell:{"rope":1},buy:{}});if(p.netGp!==-1)return "a half-gp sale still pays 1 gp: "+p.netGp;
-    p=shopTradePlan(cat,{sell:{},buy:{"healing potion":1}});if(p.ok||!/short 25 gp/.test(p.reason)||p.netGp!==50)return "50 gp potion on 25 gp: locked, shortfall named: "+JSON.stringify(p);
-    p=shopTradePlan(cat,{sell:{"healing potion":1},buy:{"healing potion":1}});if(!p.ok||p.netGp!==25)return "sell the potion (25) and buy one (50): net 25: "+JSON.stringify(p);
+    if(p.sellCp!==450||p.netCp!==-450||p.coinAfter!==2950||!p.ok)return "sell 1.5 gp + 3 gp (the knife's offer, #481 D4) = 4 gp 5 sp, paid exactly (#598): "+JSON.stringify([p.sellCp,p.netCp,p.coinAfter,p.ok]);
+    p=shopTradePlan(cat,{sell:{"rope":1},buy:{}});if(p.netCp!==-50)return "a half-gp sale pays 5 sp (#598: no rounding): "+p.netCp;
+    p=shopTradePlan(cat,{sell:{},buy:{"healing potion":1}});if(p.ok||!/short 25 gp/.test(p.reason)||p.netCp!==5000)return "50 gp potion on 25 gp: locked, shortfall named: "+JSON.stringify(p);
+    p=shopTradePlan(cat,{sell:{"healing potion":1},buy:{"healing potion":1}});if(!p.ok||p.netCp!==2500)return "sell the potion (25) and buy one (50): net 25 gp: "+JSON.stringify(p);
     applyMuts("[WORN:Silas|Healing potion|on]");cat=shopTradeCatalog();p=shopTradePlan(cat,{sell:{"healing potion":1},buy:{}});if(p.ok||p.lines.length)return "a WORN item (with canon) never enters the plan: "+JSON.stringify(p);
     applyMuts("[WORN:Silas|Healing potion|off]");cat=shopTradeCatalog();
     p=shopTradePlan(cat,{sell:{},buy:{"lantern oil":1}});if(p.ok||p.reason!=="nothing marked")return "an unbuyable ware marks nothing: "+JSON.stringify(p);
     p=shopTradePlan(cat,{sell:{},buy:{}});if(p.ok||p.reason!=="nothing marked")return "empty plan is not completable";
     var pl=shopTradePlan(cat,{sell:{"rope":3,"bone-handled knife":1},buy:{"rope":1}}),pls=pl.lines.map(function(l){return l.kind+":"+l.name+":"+l.qty;}).join(",");
-    if(pl.netGp!==-4||pls!=="sell:Rope:3,sell:Bone-handled knife:1,buy:Rope:1")return "the plan (1 − 4.5 = −3.5 → +4 to the hero; #481 D4; #597: lines, no tag text): "+JSON.stringify(pl);
+    if(pl.netCp!==-350||pls!=="sell:Rope:3,sell:Bone-handled knife:1,buy:Rope:1")return "the plan (1 gp − 4.5 gp = 3 gp 5 sp to the hero, exactly; #481 D4; #597/#598): "+JSON.stringify(pl);
     return true;
   });
   t("#407 ③ Complete lands through ledgerApply (#597): gold and inventory move with receipts in the log, bought wares leave the shelf, sold items join it at canon, tradePing arms once and buildTradeNote speaks ONCE with 'ALREADY updated'; a stale plan against a closed gate moves nothing",function(){
-    shopFixture();worldState.character.gold=60;var res=shopTradeApply({sell:{"rope":3,"bone-handled knife":1},buy:{"healing potion":1}});
+    shopFixture();worldState.character.coin=6000;var res=shopTradeApply({sell:{"rope":3,"bone-handled knife":1},buy:{"healing potion":1}});
     if(!res.ok)return "apply: "+res.reason;
-    if(worldState.character.gold!==60-45)return "gold 60 − (buy 50 − sale 4.5→5 = 45; each side rounds on its own since #517; the knife at its 3 gp offer, #481 D4): "+worldState.character.gold;
+    if(worldState.character.coin!==6000-4550)return "60 gp − (buy 50 gp − sale 4 gp 5 sp) = 14 gp 5 sp, exactly (#598; the knife at its 3 gp offer, #481 D4): "+worldState.character.coin;
     var inv=worldState.character.inventory.join("|");if(/Rope|Bone-handled/.test(inv)||!/Healing potion x2/.test(inv))return "inventory after: "+inv;
     var node=memory.map.nodes["The Village|the trading post"],wn=node.wares.map(function(w){return w.item+"@"+w.price;}).join(",");
     if(/Healing potion/.test(wn))return "the bought potion must leave the shelf: "+wn;
     if(!/Rope@1 gp/.test(wn)||!/Bone-handled knife@2 gp/.test(wn))return "sold items join the shelf at canon: "+wn;
-    if(!worldState.tradePing||worldState.tradePing.keeper!=="Frizwick"||worldState.tradePing.netGp!==45)return "tradePing (45 since #517: 50 − 4.5→5): "+JSON.stringify(worldState.tradePing);
+    if(!worldState.tradePing||worldState.tradePing.keeper!=="Frizwick"||worldState.tradePing.netCp!==4550)return "tradePing in copper (#598): "+JSON.stringify(worldState.tradePing);
     if(!/Silas sold Rope x3/.test(res.line)||!/with Frizwick at the trading post/.test(res.line))return "the system line names hero and keeper: "+res.line;
     var note=buildTradeNote();if(!/TRADE DONE/.test(note)||!/ALREADY updated/.test(note)||!/ONE in-character sentence/.test(note)||!/Frizwick/.test(note))return "note: "+note.slice(0,300);
     if(buildTradeNote()!=="")return "the note speaks once";
     var en=buildEngineNotes();if(/TRADE DONE/.test(en))return "consumed pings do not reach the orchestrator";
-    worldState.tradePing={turn:worldState.turn,keeper:"Frizwick",shop:"the trading post",hero:"Silas",sold:[],bought:["Rope (1 gp)"],netGp:1};
+    worldState.tradePing={turn:worldState.turn,keeper:"Frizwick",shop:"the trading post",hero:"Silas",sold:[],bought:["Rope (1 gp)"],netCp:100};
     if(!/TRADE DONE/.test(buildEngineNotes()))return "an armed ping reaches the GM through the orchestrator";
-    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";var g=worldState.character.gold,inv2=worldState.character.inventory.slice();
-    var r2=shopTradeApply({sell:{},buy:{"rope":1}});if(r2.ok||worldState.character.gold!==g||worldState.character.inventory.join("|")!==inv2.join("|"))return "keeper gone: nothing moves, and it says why: "+JSON.stringify(r2);
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";var g=worldState.character.coin,inv2=worldState.character.inventory.slice();
+    var r2=shopTradeApply({sell:{},buy:{"rope":1}});if(r2.ok||worldState.character.coin!==g||worldState.character.inventory.join("|")!==inv2.join("|"))return "keeper gone: nothing moves, and it says why: "+JSON.stringify(r2);
     return true;
   });
   t("#407 ④ registry and identity: buildTradeNote is a village-firing one-shot on tradePing; the adventure never opens the counter (no waresPerShop) and its prompt is untouched; the modal is a thin shell that plans and applies through the engine pair and never touches applyMuts itself",function(){
     if(!NOTE_SHAPES.buildTradeNote||NOTE_SHAPES.buildTradeNote.village!=="fires"||NOTE_LATCH_FIELDS.indexOf("tradePing")<0||NOTE_BUILDERS.indexOf(buildTradeNote)<0)return "registry row missing";
-    makeWorld();delete worldState.kind;var a=buildSysPrompt().stable;worldState.tradePing={turn:1,keeper:"X",shop:"Y",hero:"Z",sold:[],bought:[],netGp:0};
+    makeWorld();delete worldState.kind;var a=buildSysPrompt().stable;worldState.tradePing={turn:1,keeper:"X",shop:"Y",hero:"Z",sold:[],bought:[],netCp:0};
     if(buildSysPrompt().stable!==a)return "an armed ping must never touch the stable half";delete worldState.tradePing;
     if(CAMPAIGN_KINDS.adventure.waresPerShop)return "the counter is village-only in v1";
     if(typeof __fsForTests==="undefined")return true;
@@ -26435,7 +26435,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/function showLedgerModal\(spec\)/.test(body)||body.split("showLedgerModal(").length!==4)return "one ledger renderer (its definition) called by exactly two specs (shop, stash)";
     if(!/shopTradeCatalog\(\)/.test(body)||!/shopTradePlan\(cat,toMarks\(m\)\)/.test(body)||!/shopTradeApply\(toMarks\(m\)\)/.test(body))return "the shop spec must plan and apply through its engine pair";
     if(!/stashTradeCatalog\(\)/.test(body)||!/stashTradePlan\(cat,toMarks\(m\)\)/.test(body)||!/stashTradeApply\(toMarks\(m\)\)/.test(body))return "the stash spec must plan and apply through its engine pair";
-    if(/applyMuts\(|\.gold\s*=|\.inventory\s*=|fileWare\(|fileLocationItem\(/.test(body))return "the shells write nothing themselves";
+    if(/applyMuts\(|\.coin\s*=|\.inventory\s*=|fileWare\(|fileLocationItem\(/.test(body))return "the shells write nothing themselves";
     if(!/igold/.test(body))return "the hero's gold rides under the name in the gold style";
     if(!/\.shop-col\+\.shop-col\{border-left:1px solid var\(--brd\)\}/.test(html)||!/\.shop-party\{text-align:center/.test(html))return "a centre rule divides the halves and each party is centred over their column";
     var pn=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");if(!/\?shopOpportunity\(\):null;[^\n]*if\(_so\)h\+=_invLedgerRow\("showShopModal"/.test(pn))return "the inventory panel opens the counter only where the gate is open (through the one rule, shopOpportunity — #501)";
@@ -26601,7 +26601,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
        wrote 24 separate [ITEM_GAINED:Crossbow bolt] tags, so the line printed "+CROSSBOW BOLT" 24 times. */
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation=null;
     memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
-    var c=worldState.character;c.gold=10;c.inventory=["Longsword"];
+    var c=worldState.character;c.coin=1000;c.inventory=["Longsword"];
     var text="He slides the bundles over. [GOLD:-2]",i;for(i=0;i<24;i++)text+="[ITEM_GAINED:Crossbow bolt]";
     var _am=addMsg,cap=[],r;addMsg=function(ty,h){if(ty==="system")cap.push(String(h));return _am(ty,h);};
     try{r=applyMuts(text);}finally{addMsg=_am;}
@@ -26976,6 +26976,48 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#598 the purse in copper (owner ruling 2026-10-03: under the hood everything is copper; player-facing gold and silver)");
+  t("#598 ① the purse heals to copper on every road a sheet arrives by — the boot heal (hero and companions), the sheet adapter, a model-written companion — once, never twice",function(){
+    makeWorld();var c=worldState.character;delete c.coin;c.gold=12;worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",gold:3.5,inventory:[]}});
+    var n=healCoin();if(n!==2||c.coin!==1200||("gold" in c)||findCompanionChar("Bram").coin!==350||("gold" in findCompanionChar("Bram")))return "the boot heal converts hero and companion and drops the old field: "+n+" "+JSON.stringify([c.coin,c.gold,findCompanionChar("Bram")]);
+    if(healCoin()!==0||c.coin!==1200)return "a second heal changes nothing: "+c.coin;
+    var sh={name:"Nyla",hp:8,gold:7,inventory:[]};relationshipMigrateSheet(sh,"Nyla");if(sh.coin!==700||("gold" in sh))return "the adapter every import passes through heals the purse: "+JSON.stringify(sh);
+    var ms=normalizeCompanionSheet({gold:4,cls:"Warrior"},"Tess");if(ms.coin!==400||("gold" in ms))return "a model-written companion (the model writes gold) is held in copper: "+JSON.stringify([ms.coin,ms.gold]);
+    var both={name:"Both",gold:12,coin:1234};coinHeal(both);if(both.coin!==1234||("gold" in both))return "a sheet carrying both fields keeps its copper and drops the old gold: "+JSON.stringify(both);
+    var bare={name:"Old",hp:5};coinHeal(bare);return bare.coin===0?true:"a sheet with no purse gets 0: "+JSON.stringify(bare);
+  });
+  t("#598 ② a ware and a want carry their copper from the moment they are filed — parsed ONCE; a row filed before copper is parsed once at its first read and keeps it",function(){
+    villageEF();quiet(function(){applyMuts("[WARES:Grandmother's jam|3 sp 5 cp|Frizwick][WARES:Arrows|1 gp per 20|Frizwick][WANTED:Carved whistle|4 sp|Frizwick][WANTED:Old map|a story for it|Frizwick]");});
+    var node=memory.map.nodes["The Village|the tavern"],w={},q={};node.wares.forEach(function(x){w[x.item]=x;});node.wanted.forEach(function(x){q[x.item]=x;});
+    if(!w["Grandmother's jam"]||w["Grandmother's jam"].cp!==35||w["Grandmother's jam"].per!==1)return "the jam's row holds 35 cp: "+JSON.stringify(w["Grandmother's jam"]);
+    if(!w["Arrows"]||w["Arrows"].cp!==100||w["Arrows"].per!==20)return "the arrows' row holds the bundle (100 cp per 20): "+JSON.stringify(w["Arrows"]);
+    if(!q["Carved whistle"]||q["Carved whistle"].cp!==40||q["Old map"].cp!==null)return "a want holds its offer in copper, words hold null: "+JSON.stringify(node.wanted);
+    node.wares.push({item:"Lantern",price:"2 sp",note:"",t:1,min:clockNow(),at:"the tavern"});var live=nodeWaresLive(node),lan=live.filter(function(x){return x.item==="Lantern";})[0];
+    if(!lan||lan.cp!==20)return "a pre-copper row is parsed once at its first read: "+JSON.stringify(lan);
+    lan.price="9 gp";if(nodeWaresLive(node).filter(function(x){return x.item==="Lantern";})[0].cp!==20)return "and keeps it — the words are never re-read";
+    return true;
+  });
+  t("#598 ③ the one formatter: the HUD, the sheet, the prompt and the counter all show copper as gold, silver and copper; a whole-gold purse reads exactly as before",function(){
+    makeWorld();var c=worldState.character;c.coin=2500;var sp=buildSysPrompt(),st=sp.stable+" "+sp.volatile;if(!/Gold: 25 gp \|/.test(st))return "the prompt line for a whole-gold purse is unchanged: "+(st.match(/Gold: [^|]*\|/)||[""])[0];
+    c.coin=2537;sp=buildSysPrompt();st=sp.stable+" "+sp.volatile;if(!/Gold: 25 gp 3 sp 7 cp \|/.test(st))return "below a gold piece the smaller coins follow: "+(st.match(/Gold: [^|]*\|/)||[""])[0];
+    var cases=[[0,"0 gp"],[7,"7 cp"],[10,"1 sp"],[99,"9 sp 9 cp"],[100,"1 gp"],[101,"1 gp 1 cp"],[12345,"123 gp 4 sp 5 cp"],[-150,"-1 gp 5 sp"]],i;for(i=0;i<cases.length;i++)if(fmtCoin(cases[i][0])!==cases[i][1])return "fmtCoin("+cases[i][0]+") → "+fmtCoin(cases[i][0])+" (want "+cases[i][1]+")";
+    return true;
+  });
+  t("#598 ④ an old quest record's paid gold is read ×100; a new record is written in copper; the double-pay check compares like with like",function(){
+    if(_paidCoin({xp:10,gold:10})!==1000||_paidCoin({xp:10,coin:250})!==250||_paidCoin(null)!==0)return "the paid reader: "+_paidCoin({xp:10,gold:10});
+    makeWorld();worldState.questLog=[{title:"The Toll",status:"active",desc:"",objectives:[]}];quiet(function(){applyMuts("[QUEST:The Toll|completed][GOLD:+25 sp]");});
+    var q=memory.quests["The Toll"];if(!q||!q.paid||q.paid.coin!==250||("gold" in q.paid))return "the new record is copper: "+JSON.stringify(q&&q.paid);
+    memory.quests["The Toll"].paid={xp:0,gold:10};var r=quiet(function(){return applyMuts("[RETCON:x][QUEST:The Toll|completed][GOLD:+10]");});
+    return (r.warns||[]).concat(r.r.muts||[]).some(function(m){return /10 gp/.test(String(m));})?true:"an old gold record still matches a 10 gp re-emission: "+JSON.stringify(r.r.muts)+" "+JSON.stringify(r.warns);
+  });
+  t("#598 ⑤ the GM writes the coin it narrated: [GOLD:-5 sp], [GOLD:-3 coppers], [GOLD:+2], [GOLD:+1.5 gp] all land exactly with receipts in the player's coin; the whole-gold rule is gone from the prompt",function(){
+    makeWorld();var c=worldState.character;c.coin=1000;var r=quiet(function(){return applyMuts("[GOLD:-5 sp][GOLD:-3 coppers][GOLD:+2][GOLD:+1.5 gp]");}).r;
+    if(c.coin!==1000-50-3+200+150)return "every unit lands exactly: "+c.coin;
+    var m=r.muts.join("|");if(m.indexOf("-5 sp")<0||m.indexOf("-3 cp")<0||m.indexOf("+2 gp")<0||m.indexOf("+1 gp 5 sp")<0)return "receipts in the player's coin: "+m;
+    var rule=DEFAULT_RULES.join("\n");if(/WHOLE gold pieces|convert before tagging|NEVER emit a fraction/.test(rule)||!/keeps every copper/.test(rule))return "the prompt's currency rule is the copper rule";
+    if(!/gp\|sp\|cp/.test(buildStateTagsDoc()))return "the tag doc teaches the unit";
+    return true;
+  });
   section("#597 the counter writes state directly (owner ruling 2026-10-03: Simplicity = strength)");
   t("#597 ① the counter, the chest and the undo never reach applyMuts: with the parser replaced by a trap, a sale with a purchase, a stow with a take, and the undo all land",function(){
     var h=quartetVillage(),c=worldState.character;c.inventory=["Rope x3","Old boots"];h.items=[{name:"Lantern",placed:1,taken:false,qty:2,by:"Silas",min:0}];
@@ -26985,29 +27027,29 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!st.ok||st.muts.join("|")!=="-Rope x2|Left: Rope ×2|+Lantern|Taken: Lantern")return "the chest lands with receipts: "+JSON.stringify(st);
     if(!un.ok||un.said!=="Rope x2 is back with you. Lantern is back where it was.")return "the undo lands and says what happened, oldest first: "+JSON.stringify(un);
     if(c.inventory.join()!=="Rope x3,Old boots"||h.items[0].qty!==2)return "and everything is back: "+JSON.stringify(c.inventory)+" "+JSON.stringify(h.items);
-    shopFixture();worldState.character.gold=60;_am=applyMuts;applyMuts=function(){trapped++;throw new Error("trap");};var sh;
+    shopFixture();worldState.character.coin=6000;_am=applyMuts;applyMuts=function(){trapped++;throw new Error("trap");};var sh;
     try{sh=quiet(function(){return shopTradeApply({sell:{"rope":3},buy:{"healing potion":1}});}).r;}finally{applyMuts=_am;}
-    if(trapped||!sh.ok||worldState.character.gold!==60-48)return "the counter lands without the parser (50 − 1.5→2 = 48): "+JSON.stringify(sh)+" gold "+worldState.character.gold;
-    if(sh.muts.indexOf("-Rope x3")<0||sh.muts.indexOf("+Healing potion")<0||sh.muts.indexOf("-48 gp")<0)return "the receipts name every move: "+JSON.stringify(sh.muts);
-    var e=worldState.tagLog[worldState.tagLog.length-1];return (e.src==="ledger"&&e.tags.length===0&&e.m.indexOf("-48 gp")>=0)?true:"the provenance ring carries the ledger entry: "+JSON.stringify(e);
+    if(trapped||!sh.ok||worldState.character.coin!==6000-4850)return "the counter lands without the parser (50 gp − 1 gp 5 sp = 48 gp 5 sp, exactly): "+JSON.stringify(sh)+" coin "+worldState.character.coin;
+    if(sh.muts.indexOf("-Rope x3")<0||sh.muts.indexOf("+Healing potion")<0||sh.muts.indexOf("-48 gp 5 sp")<0)return "the receipts name every move: "+JSON.stringify(sh.muts);
+    var e=worldState.tagLog[worldState.tagLog.length-1];return (e.src==="ledger"&&e.tags.length===0&&e.m.indexOf("-48 gp 5 sp")>=0)?true:"the provenance ring carries the ledger entry: "+JSON.stringify(e);
   });
   t("#597 ② a stale plan is refused WHOLE: the pack shrank under the open counter — nothing moves and the reason names the row; the chest likewise; a short purse likewise",function(){
-    shopFixture();worldState.character.gold=60;var cat=shopTradeCatalog(),plan=shopTradePlan(cat,{sell:{"rope":3},buy:{"healing potion":1}});if(!plan.ok)return "fixture plan: "+plan.reason;
+    shopFixture();worldState.character.coin=6000;var cat=shopTradeCatalog(),plan=shopTradePlan(cat,{sell:{"rope":3},buy:{"healing potion":1}});if(!plan.ok)return "fixture plan: "+plan.reason;
     worldState.character.inventory=worldState.character.inventory.map(function(x){return x==="Rope x3"?"Rope":x;});var inv=worldState.character.inventory.slice();
     var r=ledgerApply(plan,{key:cat.key});if(r.ok||!/only 1 of Rope x3 is in the pack/.test(r.reason))return "refused with the row named: "+JSON.stringify(r);
-    if(worldState.character.gold!==60||worldState.character.inventory.join()!==inv.join())return "nothing moved: "+worldState.character.gold+" "+JSON.stringify(worldState.character.inventory);
-    worldState.character.gold=10;var r2=ledgerApply(shopTradePlan(cat,{buy:{"healing potion":1}}),{key:cat.key});if(r2.ok||!/short 40 gp/.test(r2.reason)||worldState.character.gold!==10)return "a short purse refuses whole: "+JSON.stringify(r2);
+    if(worldState.character.coin!==6000||worldState.character.inventory.join()!==inv.join())return "nothing moved: "+worldState.character.coin+" "+JSON.stringify(worldState.character.inventory);
+    worldState.character.coin=1000;var r2=ledgerApply(shopTradePlan(cat,{buy:{"healing potion":1}}),{key:cat.key});if(r2.ok||!/short 40 gp/.test(r2.reason)||worldState.character.coin!==1000)return "a short purse refuses whole: "+JSON.stringify(r2);
     var h=quartetVillage(),c=worldState.character;c.inventory=[];h.items=[{name:"Lantern",placed:1,taken:false,qty:2,by:"Silas",min:0}];
     var sc=stashTradeCatalog(),sp=stashTradePlan(sc,{take:{"lantern":2}});h.items[0].qty=1;
     var r3=ledgerApply(sp,{key:sc.key});return (!r3.ok&&/only 1 of Lantern x2 is in the chest/.test(r3.reason)&&c.inventory.length===0&&h.items[0].qty===1)?true:"the chest refuses whole: "+JSON.stringify(r3)+" "+JSON.stringify(c.inventory);
   });
   t("#597 ③ what the tag path did for a sale is kept: the keeper's want retires with a Want met line, nothing worn leaves, and a trade ends the chance to undo the stow before it",function(){
-    shopFixture();var c=worldState.character;c.gold=60;var node=memory.map.nodes["The Village|the trading post"];/* the fixture's want: the knife at 3 gp */
+    shopFixture();var c=worldState.character;c.coin=6000;var node=memory.map.nodes["The Village|the trading post"];/* the fixture's want: the knife at 3 gp */
     var r=quiet(function(){return shopTradeApply({sell:{"bone-handled knife":1},buy:{}});}).r;if(!r.ok||r.muts.indexOf("+3 gp")<0)return "the sale at the keeper's offer: "+JSON.stringify(r);
     if(!r.muts.some(function(m){return /^Want met: Bone-handled knife/.test(m);})||nodeWantedLive(node).length)return "the want retires at the counter (#481 D4): "+JSON.stringify(r.muts)+" "+JSON.stringify(node.wanted);
     var h=quartetVillage();c=worldState.character;c.inventory=["Rope","Cloak"];applyMuts("[WORN:Silas|Cloak|on]");
     quiet(function(){stashTradeApply({stow:{"rope":1}});});if(!worldState.stashUndoGrp)return "the stow arms the undo";
-    var r2=ledgerApply({netGp:0,lines:[{kind:"sell",name:"Cloak",qty:1}]},{key:null});if(!r2.ok||c.worn.length)return "a sold cloak is no longer worn (wornPrune): "+JSON.stringify(c.worn);
+    var r2=ledgerApply({netCp:0,lines:[{kind:"sell",name:"Cloak",qty:1}]},{key:null});if(!r2.ok||c.worn.length)return "a sold cloak is no longer worn (wornPrune): "+JSON.stringify(c.worn);
     return worldState.stashUndoGrp?"a trade ends the chance to undo what came before (#481 D1)":true;
   });
   t("#597 ④ the undo's sentence is the engine's: a row the story placed with no pack half leaves the record and nobody is told it is back with them; a companion's pack half is back with the companion (#519 remainder)",function(){
@@ -27033,21 +27075,21 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     importVillageResidents([{name:"Frizwick",gender:"F",cls:"Rogue",inventory:[],coreMemories:[]}]);villageHouseEnsure("Silas",null);
     worldState.world.sublocation="Silas's house";worldState.stashMoves=[];return memory.map.nodes[villageHouseKey("Silas")];
   }
-  t("#517 ① a sale bundled with a purchase: each side rounds to whole gold on its own, so two 3 sp whistles (1 gp) against a 1 gp rope nets nothing — the whistles are not given away",function(){
-    var cat={gold:10,sell:[{name:"Carved whistle",qty:2,sellGp:.3}],buy:[{name:"Rope",buyGp:1,per:1}]};
+  t("#517 ① → #598 a sale bundled with a purchase is plain subtraction: two 3 sp whistles (6 sp) against a 1 gp rope nets 4 sp to the keeper, exactly; one whistle sells for 3 sp; a 3 sp needle costs 3 sp",function(){
+    var cat={coin:1000,sell:[{name:"Carved whistle",qty:2,sellCp:30}],buy:[{name:"Rope",cp:100,per:1}]};
     var both=shopTradePlan(cat,{sell:{"carved whistle":2},buy:{rope:1}}),buy=shopTradePlan(cat,{buy:{rope:1}}),sell=shopTradePlan(cat,{sell:{"carved whistle":2}});
-    if(!sell.ok||sell.netGp!==-1)return "two whistles alone sell for 1 gp (D7): "+JSON.stringify(sell);
-    if(!buy.ok||buy.netGp!==1)return "the rope alone costs 1 gp: "+JSON.stringify(buy);
-    if(!both.ok||both.netGp!==0||both.goldAfter!==10)return "bundled, the sale pays for the purchase — net 0, not the purchase alone: "+JSON.stringify(both);
-    var cheap=shopTradePlan({gold:10,sell:[],buy:[{name:"Needle",buyGp:.3,per:1}]},{buy:{needle:1}});if(cheap.netGp!==1)return "a 3 sp purchase still costs 1 gp — the keeper never gives a thing away: "+JSON.stringify(cheap);
-    var under=shopTradePlan(cat,{sell:{"carved whistle":1}});if(under.ok||!under.under.length)return "one whistle (3 sp) is still under the half-gold floor and refused";
+    if(!sell.ok||sell.netCp!==-60)return "two whistles sell for 6 sp: "+JSON.stringify(sell);
+    if(!buy.ok||buy.netCp!==100)return "the rope alone costs 1 gp: "+JSON.stringify(buy);
+    if(!both.ok||both.netCp!==40||both.coinAfter!==960)return "bundled: 1 gp − 6 sp = 4 sp, exactly: "+JSON.stringify(both);
+    var cheap=shopTradePlan({coin:1000,sell:[],buy:[{name:"Needle",cp:30,per:1}]},{buy:{needle:1}});if(cheap.netCp!==30)return "a 3 sp purchase costs 3 sp: "+JSON.stringify(cheap);
+    var one=shopTradePlan(cat,{sell:{"carved whistle":1}});if(!one.ok||one.netCp!==-30)return "one whistle sells for 3 sp — no floor (#598): "+JSON.stringify(one);
     return true;
   });
   t("#517 ② plural coin words count as their unit: [GOLD:-3 coppers] takes 3 cp, not 3 gp; silvers, copper pieces and gold coins likewise",function(){
-    var p=parseCoin("3 coppers");if(!p||p.unit!=="cp"||Math.abs(p.gp-0.03)>1e-9)return "'3 coppers' must parse as 3 cp: "+JSON.stringify(p);
+    var p=parseCoin("3 coppers");if(!p||p.unit!=="cp"||p.cp!==3)return "'3 coppers' must parse as 3 cp: "+JSON.stringify(p);
     if(parseCoin("2 silvers").unit!=="sp"||parseCoin("4 copper pieces").unit!=="cp"||parseCoin("5 gold coins").unit!=="gp"||parseCoin("1 platinum").unit!=="pp")return "the plural and the piece/coin suffix must resolve to the unit";
-    makeWorld();var before=worldState.character.gold;var r=applyMuts("[GOLD:-3 coppers]");
-    if(worldState.character.gold===before-3)return "3 coppers were taken as 3 gold: "+JSON.stringify(r.muts);
+    makeWorld();var before=worldState.character.coin;var r=applyMuts("[GOLD:-3 coppers]");
+    if(worldState.character.coin!==before-3)return "3 coppers take 3 copper (#598): "+JSON.stringify(r.muts)+" "+worldState.character.coin;
     return true;
   });
   t("#518 a gift bounded by the loss: [ITEM_LOST:Torch x3] with ONE torch held gives the companion one torch, said; a full stack gives the full count; an unpaired gift is untouched",function(){
@@ -27621,15 +27663,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return c.inventory.length===1?true:"the hero holds the one vial: "+JSON.stringify(c.inventory);
   });
   t("#481 A2 the village sale pair: a sale whose item misses moves no coin",function(){
-    villageEF();var c=worldState.character;c.inventory=["Lantern"];var g0=c.gold;
+    villageEF();var c=worldState.character;c.inventory=["Lantern"];var g0=c.coin;
     var q=quiet(function(){return applyMuts("You sell it to Frizwick at the counter. [GOLD:+30][ITEM_LOST:Golvak's medallion]");});
-    if(c.gold!==g0)return "the coin must be withheld: "+g0+" -> "+c.gold+" "+JSON.stringify(q.r.muts);
+    if(c.coin!==g0)return "the coin must be withheld: "+g0+" -> "+c.coin+" "+JSON.stringify(q.r.muts);
     return (q.r.muts||[]).some(function(m){return /^⚠/.test(m)&&/medallion/.test(m);})?true:"the withheld sale must be said: "+JSON.stringify(q.r.muts);
   });
   t("#481 A2 the adventure never withholds a reward: a missed loss keeps the coin, says so, and asks the GM",function(){
-    makeWorld();var c=worldState.character;c.gold=25;delete worldState.itemNotHeldPing;
+    makeWorld();var c=worldState.character;c.coin=2500;delete worldState.itemNotHeldPing;
     var q=quiet(function(){return applyMuts("[GOLD:+30][ITEM_LOST:Torch]");});
-    if(c.gold!==55)return "the reward must land: "+c.gold;
+    if(c.coin!==5500)return "the reward must land: "+c.coin;
     if(!(q.r.muts||[]).some(function(m){return /^⚠/.test(m)&&/Torch/.test(m)&&/not on the sheet/.test(m);}))return "the miss must be said: "+JSON.stringify(q.r.muts);
     if(!worldState.itemNotHeldPing)return "the GM must be asked (itemNotHeldPing)";
     var n=buildEngineNotes();return /Torch/.test(n)?true:"the note must name the item: "+n.slice(0,300);
@@ -27694,7 +27736,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#481 D3 the counter lands a stack of thirteen in one line (#597: ledgerApply, no tag text)",function(){
     makeWorld();var c=worldState.character;c.inventory=["Arrow x13"];
-    var r=ledgerApply({netGp:0,lines:[{kind:"sell",name:"Arrow",qty:13}]},{key:null});
+    var r=ledgerApply({netCp:0,lines:[{kind:"sell",name:"Arrow",qty:13}]},{key:null});
     if(!r.ok||r.muts.join()!=="-Arrow x13")return "one line for thirteen: "+JSON.stringify(r);
     return c.inventory.length===0?true:"all thirteen must leave the pack: "+JSON.stringify(c.inventory);
   });
@@ -27758,7 +27800,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (nl>n0&&e.src==="ledger"&&!worldState.tagLog[worldState.tagLog.length-1].src)?true:"the provenance ring names the ledger: "+JSON.stringify(e);
   });
   t("#481 D6 buying a second salve at the counter is no duplicate grant",function(){
-    shopFixture();delete worldState.dupItemPending;worldState.character.gold=60;
+    shopFixture();delete worldState.dupItemPending;worldState.character.coin=6000;
     var res=quiet(function(){return shopTradeApply({sell:{},buy:{"healing potion":1}});}).r;
     if(!res.ok||worldState.character.inventory.indexOf("Healing potion x2")<0)return "the buy lands: "+JSON.stringify(res)+" "+JSON.stringify(worldState.character.inventory);
     return ((res.muts||[]).some(function(m){return /DUPLICATE ITEM/.test(m);})||worldState.dupItemPending)?"a counter buy is no duplicate grant: "+JSON.stringify(res.muts):true;
@@ -27893,9 +27935,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
 
   section("#481 A4 the place sequencer");
   t("#481 A4 pay-then-leave lands: a coin paid at the counter before walking out is paid in the shop (t198)",function(){
-    shopFixture();var g=worldState.character.gold;
+    shopFixture();var g=worldState.character.coin;
     var r=quiet(function(){return applyMuts("[SAY:Frizwick]\"A copper, love.\" You pay. [GOLD:-1] You step back out. [SUBLOCATION_LEAVE]");}).r;
-    if(worldState.character.gold!==g-1)return "the coin paid inside must land: gold "+worldState.character.gold+" "+JSON.stringify(r.muts);
+    if(worldState.character.coin!==g-100)return "the coin paid inside must land: coin "+worldState.character.coin+" "+JSON.stringify(r.muts);
     return worldState.world.sublocation===null?true:"and the party ends outside: "+worldState.world.sublocation;
   });
   t("#481 A4 place-then-leave files the item in the house it was set down in",function(){
@@ -28457,66 +28499,67 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // bundle price is per unit; the counter multiplies by quantity. (d) The overspend receipt states what actually moved.
   section("#481 D5 one coin parser");
   t("#481 D5 parseCoin reads gold, silver, copper and platinum, a bundle and each; a price without a coin is null; a GOLD body is read by its LEADING number",function(){
-    function u(s,lead){var c=parseCoin(s,lead);return c?Math.round(c.unitGp*10000)/10000:null;}
-    var cases=[["25 cp",0.25],["5 sp",0.5],["2 sp",0.2],["1 cp",0.01],["1 gp per 20",0.05],["1 gp for 20 arrows",0.05],["2 gp each",2],["50 gp",50],["1,000 gp",1000],["12 gold pieces",12],["3 silver",0.3],["2 pp",20],["about 2-3 gp",3],["N/A",null],["beyond price — a Runelord's personal signet",null],["a handful of copper",null]],bad=[],i;
+    function u(s,lead){var c=parseCoin(s,lead);return c?c.unitCp:null;}
+    var cases=[["25 cp",25],["5 sp",50],["2 sp",20],["1 cp",1],["1 gp per 20",5],["1 gp for 20 arrows",5],["20 for 1 gp",5],["2 gp each",200],["50 gp",5000],["1,000 gp",100000],["12 gold pieces",1200],["3 silver",30],["2 pp",2000],["about 2-3 gp",300],["1 gp 5 sp",150],["5 gp per dozen",42],["N/A",null],["beyond price — a Runelord's personal signet",null],["a handful of copper",null]],bad=[],i;
     for(i=0;i<cases.length;i++){var got=u(cases[i][0]);if(got!==cases[i][1])bad.push(cases[i][0]+" → "+got+" (want "+cases[i][1]+")");}
     var g1=parseCoin("-25 cp",true),g2=parseCoin("+5",true),g3=parseCoin("-2 (2 sp change)",true);
-    if(!g1||g1.unit!=="cp"||g1.amount!==-25)bad.push("lead -25 cp: "+JSON.stringify(g1));
-    if(!g2||g2.unit!==null||g2.amount!==5)bad.push("lead +5 is a bare number: "+JSON.stringify(g2));
-    if(!g3||g3.unit!==null||g3.amount!==-2)bad.push("lead -2 keeps its own (absent) unit; the note's sp is not it: "+JSON.stringify(g3));
+    if(!g1||g1.unit!=="cp"||g1.cp!==-25)bad.push("lead -25 cp: "+JSON.stringify(g1));
+    if(!g2||g2.unit!==null||g2.cp!==500)bad.push("lead +5 is a bare number — gold: "+JSON.stringify(g2));
+    if(!g3||g3.unit!==null||g3.cp!==-200)bad.push("lead -2 keeps its own (absent) unit; the note's sp is not it: "+JSON.stringify(g3));
+    if(parseCoin("1 gp 5 sp").cp!==150||parseCoin("+1.5",true).cp!==150)bad.push("mixed units sum; a decimal gold lead is its copper");
     if(parseCoin("25 cp").per!==1||parseCoin("1 gp per 20").per!==20)bad.push("per");
     return bad.length?bad.join("; "):true;
   });
-  t("#481 D5 itemValueGp prices ONE unit from the item bible: travel rations 5 sp, a torch 1 cp, an arrow 1 gp per 20, a silvered arrow 1 gp each",function(){
-    makeWorld();var want={"Travel rations":0.5,"Torch":0.01,"Bottle of wine":0.2,"Arrow":0.05,"Silvered arrow":1,"Throwing knives":2},bad=[];
-    Object.keys(want).forEach(function(n){var v=itemValueGp(itemLookup(n));if(v==null||Math.abs(v-want[n])>1e-9)bad.push(n+" → "+v+" (want "+want[n]+")");});
-    if(itemValueGp({value:"N/A"})!==null)bad.push("N/A must stay unpriced");
+  t("#481 D5 itemValueCp prices ONE unit from the item bible in copper: travel rations 5 sp, a torch 1 cp, an arrow 1 gp per 20, a silvered arrow 1 gp each",function(){
+    makeWorld();var want={"Travel rations":50,"Torch":1,"Bottle of wine":20,"Arrow":5,"Silvered arrow":100,"Throwing knives":200},bad=[];
+    Object.keys(want).forEach(function(n){var v=itemValueCp(itemLookup(n));if(v!==want[n])bad.push(n+" → "+v+" (want "+want[n]+")");});
+    if(itemValueCp({value:"N/A"})!==null)bad.push("N/A must stay unpriced");
     return bad.length?bad.join("; "):true;
   });
-  t("#481 D5 [GOLD:] refuses a coin that is not gold and never converts; the overspend receipt states what moved and says what it could not",function(){
-    makeWorld();delete worldState.kind;var c=worldState.character;c.gold=100;
+  t("#481 D5 → #598 [GOLD:] lands the coin in the unit the GM wrote — 25 cp is 25 copper; the overspend receipt states what moved and says what it could not",function(){
+    makeWorld();delete worldState.kind;var c=worldState.character;c.coin=10000;
     var r=quiet(function(){return applyMuts("[GOLD:-25 cp]");}).r;
-    if(c.gold!==100)return "25 copper charged "+(100-c.gold)+" gold";
-    if(!(r.muts||[]).some(function(m){return mutLineWarns(m)&&/Gold refused/.test(m)&&/cp/.test(m);}))return "the refusal is loud and names the unit: "+JSON.stringify(r.muts);
-    c.gold=3;r=quiet(function(){return applyMuts("[GOLD:-10]");}).r;
-    if(c.gold!==0)return "the floor stays: "+c.gold;
+    if(c.coin!==9975)return "25 copper must take 25 copper: "+c.coin;
+    if((r.muts||[]).indexOf("-2 sp 5 cp")<0)return "the receipt is in the player's coin (25 cp = 2 sp 5 cp): "+JSON.stringify(r.muts);
+    c.coin=300;r=quiet(function(){return applyMuts("[GOLD:-10]");}).r;
+    if(c.coin!==0)return "the floor stays: "+c.coin;
     if((r.muts||[]).indexOf("-3 gp")<0)return "the receipt states what moved (-3 gp): "+JSON.stringify(r.muts);
     if(!(r.muts||[]).some(function(m){return mutLineWarns(m)&&/10/.test(m)&&/3/.test(m);}))return "the shortfall is said (asked 10, held 3): "+JSON.stringify(r.muts);
     r=quiet(function(){return applyMuts("[GOLD:-4]");}).r;
     if((r.muts||[]).some(function(m){return /^-\d+ gp$|^-0 gp$/.test(m);}))return "an empty purse moves nothing, so no receipt claims a spend: "+JSON.stringify(r.muts);
-    c.gold=10;quiet(function(){applyMuts("[GOLD:+5 gp][GOLD:+2 gold pieces][GOLD:-2 (2 sp change)]");});
-    return c.gold===15?true:"gold units and a note's silver are read as gold: "+c.gold;
+    c.coin=1000;quiet(function(){applyMuts("[GOLD:+5 gp][GOLD:+2 gold pieces][GOLD:-2 (2 sp change)]");});
+    return c.coin===1500?true:"gold units and a note's silver are read as gold: "+c.coin;
   });
-  t("#481 D5 in the village a coin in the wrong unit refuses the trade it rode with: nothing is gained for free",function(){
-    shopFixture();var c=worldState.character,g=c.gold,n=c.inventory.length;
+  t("#481 D5 → #598 in the village a coin in silver is a sale like any other: 5 sp leaves the purse and the bread arrives",function(){
+    shopFixture();var c=worldState.character,g=c.coin,n=c.inventory.length;
     var r=quiet(function(){return applyMuts("[GOLD:-5 sp][ITEM_GAINED:Bread]");}).r;
-    if(c.gold!==g||c.inventory.length!==n||c.inventory.some(function(x){return /bread/i.test(x);}))return "no coin and no bread may move: "+c.gold+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
-    return (r.muts||[]).filter(mutLineWarns).length>=2?true:"the coin and its rider are both refused out loud: "+JSON.stringify(r.muts);
+    if(c.coin!==g-50||c.inventory.length!==n+1||!c.inventory.some(function(x){return /bread/i.test(x);}))return "5 sp and the bread both move: "+c.coin+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
+    return (r.muts||[]).indexOf("-5 sp")>=0?true:"the receipt in silver: "+JSON.stringify(r.muts);
   });
   t("#481 D5 the counter trades in silver and copper: rations sell by the unit, a 25 cp cake is buyable, a bundle of arrows buys by the arrow; small sums read as sp/cp",function(){
     shopFixture();var node=memory.map.nodes["The Village|the trading post"];
     node.wares.push({item:"Honey cake",price:"25 cp",note:"",t:1,min:clockNow(),at:"the trading post"},{item:"Arrows",price:"1 gp per 20",note:"",t:1,min:clockNow(),at:"the trading post"});
     worldState.character.inventory.push("Travel rations x4");
     var cat=shopTradeCatalog(),by={},bb={};cat.sell.forEach(function(r){by[r.name]=r;});cat.buy.forEach(function(b){bb[b.name]=b;});
-    if(!by["Travel rations"]||Math.abs(by["Travel rations"].sellGp-0.25)>1e-9)return "rations sell at half of 5 sp: "+JSON.stringify(by["Travel rations"]);
-    if(!bb["Honey cake"]||Math.abs(bb["Honey cake"].buyGp-0.25)>1e-9)return "a 25 cp cake is priced: "+JSON.stringify(bb["Honey cake"]);
+    if(!by["Travel rations"]||by["Travel rations"].sellCp!==25)return "rations sell at half of 5 sp (25 cp): "+JSON.stringify(by["Travel rations"]);
+    if(!bb["Honey cake"]||bb["Honey cake"].cp!==25)return "a 25 cp cake is priced: "+JSON.stringify(bb["Honey cake"]);
     var rows=shopLedgerRows(cat),arrowRow=rows.right.filter(function(x){return x.label==="Arrows";})[0];
     if(!arrowRow||arrowRow.max!==20)return "a bundle ware buys up to its bundle: "+JSON.stringify(arrowRow);
-    var p=shopTradePlan(cat,{sell:{"travel rations":4},buy:{}});if(p.netGp!==-1)return "four rations pay 1 gp: "+JSON.stringify(p);
-    var p2=shopTradePlan(cat,{sell:{},buy:{"arrows":20}});if(p2.netGp!==1||!p2.lines[0]||p2.lines[0].qty!==20)return "twenty arrows cost 1 gp: "+JSON.stringify(p2);
-    var fm=[[0.25,"25 cp"],[0.5,"5 sp"],[0.05,"5 cp"],[12,"12 gp"],[1.5,"1.5 gp"]],i;for(i=0;i<fm.length;i++)if(shopFmtGp(fm[i][0])!==fm[i][1])return "shopFmtGp("+fm[i][0]+") → "+shopFmtGp(fm[i][0]);
+    var p=shopTradePlan(cat,{sell:{"travel rations":4},buy:{}});if(p.netCp!==-100)return "four rations pay 1 gp: "+JSON.stringify(p);
+    var p2=shopTradePlan(cat,{sell:{},buy:{"arrows":20}});if(p2.netCp!==100||!p2.lines[0]||p2.lines[0].qty!==20)return "twenty arrows cost 1 gp: "+JSON.stringify(p2);
+    var p3=shopTradePlan(cat,{sell:{},buy:{"arrows":7}});if(p3.netCp!==35)return "seven arrows cost 35 cp (the bundle's share, #598): "+JSON.stringify(p3);
+    var fm=[[25,"2 sp 5 cp"],[50,"5 sp"],[5,"5 cp"],[1200,"12 gp"],[150,"1 gp 5 sp"],[1234,"12 gp 3 sp 4 cp"],[0,"0 gp"],[-250,"-2 gp 5 sp"]],i;for(i=0;i<fm.length;i++)if(fmtCoin(fm[i][0])!==fm[i][1])return "fmtCoin("+fm[i][0]+") → "+fmtCoin(fm[i][0]);
     return true;
   });
-  t("#481 D5 the quest reward parses read the same coin: a reward in silver is no paid gold, and the payout verifier gives it its own (missed) group",function(){
-    makeWorld();delete worldState.kind;worldState.character.gold=10;
+  t("#481 D5 → #598 the quest reward parses read the same coin: a reward in silver is paid in silver, recorded in copper, and the payout verifier sums every coin token into ONE group",function(){
+    makeWorld();delete worldState.kind;worldState.character.coin=1000;
     worldState.questLog=[{title:"The Toll",status:"active",desc:"",objectives:[]}];
     quiet(function(){applyMuts("[QUEST:The Toll|completed][GOLD:+50 sp]");});
     var q=memory.quests&&(memory.quests["The Toll"]||null);if(!q)return "fixture: the quest archives: "+JSON.stringify(Object.keys(memory.quests||{}));
-    if(worldState.character.gold!==10)return "silver never lands as gold: "+worldState.character.gold;
-    if(q.paid&&q.paid.gold)return "a refused coin is no paid reward: "+JSON.stringify(q.paid);
+    if(worldState.character.coin!==1500)return "50 sp lands as 500 cp: "+worldState.character.coin;
+    if(!q.paid||q.paid.coin!==500)return "the paid record is in copper: "+JSON.stringify(q.paid);
     var gr=rewardAwardTargets(["[GOLD:+5]","[GOLD:+2 gp]","[GOLD:+50 sp]"]),gold=gr.filter(function(x){return x.kind==="gold";});
-    if(gold.length!==1||gold[0].expect!==7)return "gold tokens group with their gold sum: "+JSON.stringify(gr);
-    return gr.some(function(x){return x.kind!=="gold"&&x.tokens[0]==="[GOLD:+50 sp]";})?true:"the silver token is its own group, so the +7 can still land: "+JSON.stringify(gr);
+    return (gold.length===1&&gold[0].expect===1200)?true:"coin tokens group with their copper sum (500 + 200 + 500): "+JSON.stringify(gr);
   });
   t("#481 D5 a pinned ware keeps canon's own words, and the price band quotes them: rations pin to 5 sp; wine at 2 gp is ten times its 2 sp",function(){
     shopFixture();quiet(function(){applyMuts("[WARES:Travel rations|1 gp]");});
@@ -28527,29 +28570,23 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (r.muts||[]).some(function(m){return /Bottle of wine/.test(m)&&/\(canon 2 sp\)/.test(m);})?true:"the band receipt quotes canon: "+JSON.stringify(r.muts);
   });
 
-  // ── #481 D7 (audit 2026-09-29, ruled): a counter sale worth under half a gold piece rounded to 0 gp — the item left the
-  // pack and nothing was paid. (a) The floor applies to the LINE total (count × unit price): two 0.3 gp items sell for
-  // 1 gp; a lone one is refused with the reason, and it stays in the pack.
-  section("#481 D7 a sale worth nothing is refused, not given away");
+  // ── #481 D7 (audit 2026-09-29, ruled) → #598 (owner ruling 2026-10-03): the half-gold floor existed because the purse was
+  // whole gold; in copper a 3 sp whistle sells for 3 sp and nothing is ever rounded to nothing. The floor and its reason are
+  // retired; what remains is the proof that small coin moves exactly.
+  section("#481 D7 → #598 a small sale pays its copper");
   function d7Fixture(){shopFixture();var n=memory.map.nodes["The Village|the trading post"];n.wanted.push({item:"Carved whistle",offer:"3 sp",by:"Frizwick",t:1,min:clockNow()});worldState.character.inventory.push("Carved whistle x2");}
-  t("#481 D7 a lone 3 sp whistle is refused with the reason and stays in the pack; nothing is paid",function(){
-    d7Fixture();var c=worldState.character,g=c.gold,inv=c.inventory.slice(),cat=shopTradeCatalog();
-    var p=shopTradePlan(cat,{sell:{"carved whistle":1},buy:{}});
-    if(p.ok)return "the plan must refuse a line worth under half a gold piece: "+JSON.stringify(p);
-    if(!/whistle/i.test(p.reason)||!/half a gold/i.test(p.reason))return "the reason names the item and the floor: "+p.reason;
+  t("#481 D7 → #598 a lone 3 sp whistle sells for 3 sp: the plan has no floor, the purse gains 30 copper, the whistle leaves",function(){
+    d7Fixture();var c=worldState.character,g=c.coin,cat=shopTradeCatalog();
+    var p=shopTradePlan(cat,{sell:{"carved whistle":1},buy:{}});if(!p.ok||p.netCp!==-30||p.under)return "no floor, no refusal: "+JSON.stringify(p);
     var res=quiet(function(){return shopTradeApply({sell:{"carved whistle":1},buy:{}});}).r;
-    if(res.ok)return "the apply refuses too";
-    if(c.gold!==g||c.inventory.join("|")!==inv.join("|"))return "nothing may move: "+c.gold+" "+JSON.stringify(c.inventory);
-    /* beside a good line the whole plan still waits — a partial trade would leave the whistle's mark silently unsold */
-    var p2=shopTradePlan(cat,{sell:{"carved whistle":1,"rope":1},buy:{}});if(p2.ok)return "a refused line holds the whole plan: "+JSON.stringify(p2);
-    res=quiet(function(){return shopTradeApply({sell:{"carved whistle":1,"rope":1},buy:{}});}).r;
-    return (!res.ok&&c.gold===g&&c.inventory.join("|")===inv.join("|"))?true:"the mixed plan moved something: "+c.gold+" "+JSON.stringify(c.inventory);
+    if(!res.ok||c.coin!==g+30)return "+3 sp: "+c.coin+" "+JSON.stringify(res);
+    if(res.muts.indexOf("+3 sp")<0)return "the receipt in silver: "+JSON.stringify(res.muts);
+    return c.inventory.some(function(x){return /whistle x2/i.test(x);})?"one whistle leaves":true;
   });
-  t("#481 D7 two whistles are one line worth 6 sp, and they sell for 1 gp",function(){
-    d7Fixture();var c=worldState.character,g=c.gold;
-    var res=quiet(function(){return shopTradeApply({sell:{"carved whistle":2},buy:{}});}).r;
-    if(!res.ok)return "the pair sells: "+res.reason;
-    return (c.gold===g+1&&!c.inventory.some(function(x){return /whistle/i.test(x);}))?true:"+1 gp and the whistles gone: "+c.gold+" "+JSON.stringify(c.inventory);
+  t("#481 D7 → #598 a mixed plan with a tiny line lands whole: whistle (3 sp) and rope (5 sp) sell for 8 sp",function(){
+    d7Fixture();var c=worldState.character,g=c.coin;
+    var res=quiet(function(){return shopTradeApply({sell:{"carved whistle":1,"rope":1},buy:{}});}).r;
+    return (res.ok&&c.coin===g+80&&res.muts.indexOf("+8 sp")>=0)?true:"8 sp exactly: "+c.coin+" "+JSON.stringify(res.muts);
   });
 
   // ── #481 D4 (audit 2026-09-29, ruled): a met "wanted" offer was never retired — the GM kept being told the keeper wants
@@ -28561,17 +28598,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   function d4Fixture(offer){shopFixture();var n=memory.map.nodes["The Village|the trading post"];n.wanted.push({item:"Warded ring",offer:offer||"40 gp",by:"Frizwick",t:1,min:clockNow()});worldState.character.inventory.push("Warded ring x2");return n;}
   function d4Wants(n){return (n.wanted||[]).map(function(w){return w.item;});}
   t("#481 D4 the counter pays the keeper's offer for ONE ring, the want retires with a receipt, and the GM is no longer told it; the second ring has no price",function(){
-    var n=d4Fixture(),c=worldState.character,g=c.gold,cat=shopTradeCatalog(),row=cat.sell.filter(function(r){return r.name==="Warded ring";})[0];
-    if(!row||!row.wanted||row.sellGp!==40)return "the ring sells at the offer: "+JSON.stringify(row);
+    var n=d4Fixture(),c=worldState.character,g=c.coin,cat=shopTradeCatalog(),row=cat.sell.filter(function(r){return r.name==="Warded ring";})[0];
+    if(!row||!row.wanted||row.sellCp!==4000)return "the ring sells at the offer: "+JSON.stringify(row);
     var lr=shopLedgerRows(cat).left.filter(function(r){return r.label==="Warded ring";})[0];if(!lr||lr.max!==1)return "the want buys one: "+JSON.stringify(lr);
     var cap=[],_am=addMsg;addMsg=function(ty,h){if(ty==="system")cap.push(String(h));return _am(ty,h);};
     var res;try{res=quiet(function(){return shopTradeApply({sell:{"warded ring":1},buy:{}});}).r;}finally{addMsg=_am;}
-    if(!res.ok||c.gold!==g+40)return "+40 gp for one ring: "+c.gold+" "+JSON.stringify(res);
+    if(!res.ok||c.coin!==g+4000)return "+40 gp for one ring: "+c.coin+" "+JSON.stringify(res);
     if(d4Wants(n).indexOf("Warded ring")>=0)return "the met want retires: "+JSON.stringify(n.wanted);
     if(!(res.muts||[]).some(function(m){return m==="Want met: Warded ring (Frizwick)";}))return "the receipt: "+JSON.stringify(res.muts);
     var _geo=buildGeoBlock();if(/WANTED HERE:[^\n]*Warded ring/.test(_geo))return "the GM is still told the keeper wants it: "+_geo;/* the sold ring joins the shelf as a ware (#407) — only the WANT must go */
     var r2=shopTradeCatalog().sell.filter(function(r){return r.name==="Warded ring";})[0];
-    return (r2&&!r2.wanted&&r2.sellGp==null)?true:"the second ring is priced like any other (no canon: none): "+JSON.stringify(r2);
+    return (r2&&!r2.wanted&&r2.sellCp==null)?true:"the second ring is priced like any other (no canon: none): "+JSON.stringify(r2);
   });
   t("#481 D4 a GM-narrated sale in the shop retires the want too",function(){
     var n=d4Fixture();var r=quiet(function(){return applyMuts("Frizwick turns the ring in the light and counts out the coin. [SAY:Frizwick|pleased]Done.[/SAY] [GOLD:+40][ITEM_LOST:Warded ring]");}).r;
@@ -28581,7 +28618,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#481 D4 an offer in words is unsellable at the counter, with the reason; the knife's 3 gp offer beats its 2 gp canon",function(){
     d4Fixture("a fair price, he says");var cat=shopTradeCatalog(),rows=shopLedgerRows(cat).left,ring=rows.filter(function(r){return r.label==="Warded ring";})[0],knife=cat.sell.filter(function(r){return r.name==="Bone-handled knife";})[0];
     if(!ring||!ring.off||!/a fair price/.test(ring.offReason))return "the words offer is refused with its text: "+JSON.stringify(ring);
-    return (knife&&knife.sellGp===3)?true:"the stated offer is paid (3 gp), not canon: "+JSON.stringify(knife);
+    return (knife&&knife.sellCp===300)?true:"the stated offer is paid (3 gp), not canon: "+JSON.stringify(knife);
   });
   t("#481 D4 a want expires on the clock like a ware: after a week the GM is not told and the counter pays no offer",function(){
     var n=d4Fixture();n.wanted.forEach(function(w){w.min=clockNow()-8*1440;});
@@ -29303,10 +29340,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#510 the repro: one item held and one not — the held one stays, the coin goes back, and the GM's 'pack unchanged' is true (either tag order)",function(){
     var orders=["[GOLD:+10][ITEM_LOST:Dagger][ITEM_LOST:Old boot]","[GOLD:+10][ITEM_LOST:Old boot][ITEM_LOST:Dagger]"],i;
     for(i=0;i<orders.length;i++){
-      villageEF();var c=worldState.character;c.inventory=["Dagger","Lantern"];var g0=c.gold;
+      villageEF();var c=worldState.character;c.inventory=["Dagger","Lantern"];var g0=c.coin;
       var q=quiet(function(){return applyMuts("You sell them to Frizwick at the counter. "+orders[i]);});
       if(c.inventory.indexOf("Dagger")<0)return "order "+i+": the Dagger left the pack for nothing: "+JSON.stringify(c.inventory)+" "+JSON.stringify(q.r.muts);
-      if(c.gold!==g0)return "order "+i+": the coin must go back: "+g0+" -> "+c.gold;
+      if(c.coin!==g0)return "order "+i+": the coin must go back: "+g0+" -> "+c.coin;
       var m=JSON.stringify(q.r.muts);
       if(!/Sale withheld/.test(m)||!/Old boot/.test(m))return "order "+i+": the withheld sale names the missing item: "+m;
       if(/-Dagger/.test(m))return "order "+i+": the summary must not say the Dagger left: "+m;
@@ -29315,9 +29352,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("#510 a count the pack cannot cover refuses the sale whole: ten arrows held, twelve sold — all ten stay",function(){
-    villageEF();var c=worldState.character;c.inventory=["Arrow x10"];var g0=c.gold;
+    villageEF();var c=worldState.character;c.inventory=["Arrow x10"];var g0=c.coin;
     var q=quiet(function(){return applyMuts("[GOLD:+1][ITEM_LOST:Arrow x12]");});
-    if(c.inventory[0]!=="Arrow x10"||c.gold!==g0)return "the pack and the purse must be as before: "+JSON.stringify(c.inventory)+" gold "+c.gold;
+    if(c.inventory[0]!=="Arrow x10"||c.coin!==g0)return "the pack and the purse must be as before: "+JSON.stringify(c.inventory)+" gold "+c.coin;
     var m=JSON.stringify(q.r.muts);return /Arrow x12. is more than the sheet holds/.test(m)?true:"a short count is said as one: "+m;
   });
   t("#510 the refused sale's items are misses for pairing: a gift riding with it does not mint the item for the companion",function(){
@@ -29329,15 +29366,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return c.inventory.indexOf("Dagger")>=0?true:"the hero keeps the Dagger";
   });
   t("#510 an ambiguous name in a village sale is said, and the sale is withheld whole",function(){
-    villageEF();var c=worldState.character;c.inventory=["Dagger (silver)","Dagger (bone)","Lantern"];var g0=c.gold;
+    villageEF();var c=worldState.character;c.inventory=["Dagger (silver)","Dagger (bone)","Lantern"];var g0=c.coin;
     var q=quiet(function(){return applyMuts("[GOLD:+12][ITEM_LOST:Lantern][ITEM_LOST:Dagger]");});
-    if(c.inventory.length!==3||c.gold!==g0)return "nothing leaves and no coin moves: "+JSON.stringify(c.inventory)+" gold "+c.gold;
+    if(c.inventory.length!==3||c.coin!==g0)return "nothing leaves and no coin moves: "+JSON.stringify(c.inventory)+" gold "+c.coin;
     var m=JSON.stringify(q.r.muts);return /Dagger.{0,4} is ambiguous/.test(m)?true:"the ambiguity is said: "+m;
   });
   t("#510 a sale the pack covers still lands whole: both items leave, the coin arrives",function(){
-    villageEF();var c=worldState.character;c.inventory=["Dagger","Lantern","Rope"];var g0=c.gold;
+    villageEF();var c=worldState.character;c.inventory=["Dagger","Lantern","Rope"];var g0=c.coin;
     var q=quiet(function(){return applyMuts("[GOLD:+10][ITEM_LOST:Dagger][ITEM_LOST:Lantern]");});
-    if(c.gold!==g0+10)return "the coin must arrive: "+g0+" -> "+c.gold+" "+JSON.stringify(q.r.muts);
+    if(c.coin!==g0+1000)return "the coin must arrive: "+g0+" -> "+c.coin+" "+JSON.stringify(q.r.muts);
     return JSON.stringify(c.inventory)==='["Rope"]'?true:"both items leave: "+JSON.stringify(c.inventory);
   });
 

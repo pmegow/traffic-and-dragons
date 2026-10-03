@@ -61,7 +61,7 @@ function makeTestWorld(overrides) {
   memory = blankMemory(); sessionLog = [];
   var ws = { ver: 10, campId: null, campName: "Test", legacyCharsUsed: [], pendingLegacy: null,
     character: { name: "Tess", gender: "F", age: "30", appear: "", mark: "", backstory: "", ancestry: "Human", subrace: "northlander", subraceNm: "Northlander", heritageVariant: "",
-      cls: "Warrior", stats: { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 10 }, hp: 14, maxHp: 14, gold: 25,
+      cls: "Warrior", stats: { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 10 }, hp: 14, maxHp: 14, coin: 2500,
       inventory: ["Longsword", "Travel ration"], level: 1, xp: 0, abilities: [], spells: [{ nm: "Faerie Fire (racial, 1/day)", lvl: 1, used: false }],
       archetype: "", archetypeNm: "", statedAlignment: "True Neutral", actualAlignment: "True Neutral", alignLaw: 0, alignGood: 0, deity: "",
       trait: "", flaw: "", motivation: "", languages: [{ name: "Common", broken: false }], skills: initSkills(),

@@ -24,7 +24,7 @@ failed += sabotage.prove({ file: "game.js", command: NODE, cases: [
     find: "  if(!worldState.combat&&typeof c.hp===\"number\"&&typeof c.maxHp===\"number\"&&c.hp<c.maxHp/2)return {kind:\"rest\"", replace: "  var _sv=shopOpportunity();if(_sv)return {kind:\"shop\",text:\"Shop at \"+_sv.shop+\".\"};\n  if(!worldState.combat&&typeof c.hp===\"number\"&&typeof c.maxHp===\"number\"&&c.hp<c.maxHp/2)return {kind:\"rest\"",
     mustFail: T },
   { label: "the village's own Buy rung comes back beside the counter",
-    find: "  if(!(_tk&&_tk.tradeOnlyInShops)&&(c.gold||0)>0&&memory&&memory.map", replace: "  if((c.gold||0)>0&&memory&&memory.map",
+    find: "  if(!(_tk&&_tk.tradeOnlyInShops)&&(c.coin||0)>0&&memory&&memory.map", replace: "  if((c.coin||0)>0&&memory&&memory.map",
     mustFail: T },
   { label: "a suggestion that says \"Shop at …\" opens the counter instead of being sent",
     find: "  if(ev&&(ev.ctrlKey||ev.metaKey)){if(!busy)sendAction(toFirstPerson(action));return;}", replace: "  if(/^Shop at /.test(action)){invLedgerOpen(\"showShopModal\");return;}\n  if(ev&&(ev.ctrlKey||ev.metaKey)){if(!busy)sendAction(toFirstPerson(action));return;}",

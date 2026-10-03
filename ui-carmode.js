@@ -368,7 +368,7 @@ function _carUpdate() {
   }
   var vit = document.getElementById("car-vitals"); // rank 22 — glanceable HP/gold under the party dots
   if (vit) { var _cvMx = (typeof manaMax === "function") ? manaMax(c) : 0; /* #110: MP rides the glance line for casters */
-    vit.textContent = "HP " + c.hp + "/" + c.maxHp + (_cvMx > 0 ? " · MP " + manaCur(c) + "/" + _cvMx : "") + " · " + (c.gold != null ? c.gold : 0) + " gp"; }
+    vit.textContent = "HP " + c.hp + "/" + c.maxHp + (_cvMx > 0 ? " · MP " + manaCur(c) + "/" + _cvMx : "") + " · " + fmtCoin(c.coin || 0);/* #598 */ }
   _carUpdateParty();
   _carMediaSession();
 }

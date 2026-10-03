@@ -326,7 +326,7 @@ function erReportContext(userText){
   try{
     if(w&&w.character){
       var c=w.character;
-      out.push("STATE: "+c.name+" ("+c.cls+" Lv"+c.level+") HP "+c.hp+"/"+c.maxHp+", "+c.gold+" gp — "
+      out.push("STATE: "+c.name+" ("+c.cls+" Lv"+c.level+") HP "+c.hp+"/"+c.maxHp+", "+(typeof fmtCoin==="function"?fmtCoin(c.coin||0):(c.coin||0)+" cp")+" — "
         +((w.world&&w.world.location)||"?")+(w.world&&w.world.sublocation?" / "+w.world.sublocation:"")
         +", "+(typeof worldTimeDisplay==="function"?worldTimeDisplay():((w.world&&w.world.time)||"?"))+" — turn "+w.turn);
     }else out.push("STATE: no active campaign");

@@ -34,7 +34,7 @@ function fixture() {
     TTS: tts, STT: stt, carMode: true, busy: false, worldState: world,
     store: { get: () => '', set() {}, del() {} }, showToast() {}, closeAllMenus() {},
     erCrumb: (evt, data) => crumbs.push(evt + ' ' + data),
-    activePlayer: () => world.character, escHtml: s => s, PREVIOUSLY_AFTER_MS: 7200000, carRecapText: () => 'FULL RECAP', sendAction() {}, retryLast() {},
+    activePlayer: () => world.character, escHtml: s => s, fmtCoin: cp => cp + ' cp', PREVIOUSLY_AFTER_MS: 7200000, carRecapText: () => 'FULL RECAP', sendAction() {}, retryLast() {},
     carSceneBrief: () => brief
   };
   vm.createContext(c);

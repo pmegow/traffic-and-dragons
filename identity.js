@@ -567,6 +567,7 @@ function _relationshipPortableAxis(sheet,entity,value,kind){
 }
 function relationshipMigrateSheet(sheet,who,opts){
   if(!sheet)return [];
+  if(typeof coinHeal==="function"&&("gold" in sheet||"coin" in sheet||"hp" in sheet))coinHeal(sheet);/* #598: every sheet enters through this adapter — the purse arrives in copper (a legacy `gold` is converted once) */
   if(sheet.relationshipAxisProposals&&!(opts&&opts.portable)&&worldState){var _pa=sheet.relationshipAxisProposals,_pk=[];for(var _pi=0;_pi<_pa.length;_pi++){if(!_relationshipQueueAxis(who,_pa[_pi].entity,_pa[_pi].value,_pa[_pi].kind,null))_pk.push(_pa[_pi]);}if(_pk.length)sheet.relationshipAxisProposals=_pk;else delete sheet.relationshipAxisProposals;}
   var src=Array.isArray(sheet.relationships)?sheet.relationships:[],out=[],i,j;
   for(i=0;i<src.length;i++){

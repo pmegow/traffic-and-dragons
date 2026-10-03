@@ -7,7 +7,7 @@ var CMD = ["node", ["dev/run-tests.js", "#481 D4"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 prove("memory.js", [
   { label: "a want never expires",
-    find: "  return node.wanted.filter(function(w){return typeof w.min!==\"number\"||now-w.min<win;});\n}\n/* The node whose wants", replace: "  return node.wanted.slice();\n}\n/* The node whose wants",
+    find: "return typeof w.min!==\"number\"||now-w.min<win;});\n}\n/* The node whose wants", replace: "return true;});\n}\n/* The node whose wants",
     mustFail: "a want expires on the clock" }
 ]);
 prove("tag_table.js", [
@@ -28,7 +28,7 @@ prove("helpers.js", [
     find: "max:r.wanted?Math.min(1,r.qty):r.qty,", replace: "max:r.qty,",
     mustFail: "the counter pays the keeper's offer for ONE ring" },
   { label: "an offer in words says nothing of itself",
-    find: "if(oc&&oc.unit)r.sellGp=oc.unitGp;else r.offerWords=true;}", replace: "if(oc&&oc.unit)r.sellGp=oc.unitGp;}",
+    find: "if(w.cp!=null)r.sellCp=w.cp;else r.offerWords=true;}", replace: "if(w.cp!=null)r.sellCp=w.cp;}",
     mustFail: "an offer in words is unsellable at the counter" }
 ]);
 process.exit(code);

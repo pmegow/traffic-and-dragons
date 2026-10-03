@@ -9,16 +9,16 @@ prove("helpers.js", [
     find: "var SHOP_SELL_FRACTION=0.5;", replace: "var SHOP_SELL_FRACTION=1;",
     mustFail: "#407 ① the catalog" },
   { label: "the WANTED list no longer pays the keeper's stated offer (#481 D4 amends ruling ①)",
-    find: "if(oc&&oc.unit)r.sellGp=oc.unitGp;else r.offerWords=true;", replace: "if(oc&&oc.unit&&!gp)r.sellGp=oc.unitGp;else if(gp)r.sellGp=gp*SHOP_SELL_FRACTION;else r.offerWords=true;",
+    find: "if(w){r.offer=String(w.offer||\"\");if(w.cp!=null)r.sellCp=w.cp;else r.offerWords=true;}", replace: "if(w){r.offer=String(w.offer||\"\");if(w.cp!=null&&cp==null)r.sellCp=w.cp;else if(cp!=null)r.sellCp=Math.floor(cp*SHOP_SELL_FRACTION);else r.offerWords=true;}",
     mustFail: "#407 ① the catalog" },
   { label: "worn items can be sold off the hero's back",
-    find: "if(q<=0||r.worn||r.sellGp==null)continue;", replace: "if(q<=0||r.sellGp==null)continue;",
+    find: "if(q<=0||r.worn||r.sellCp==null)continue;", replace: "if(q<=0||r.sellCp==null)continue;",
     mustFail: "#407 ② the plan" },
   { label: "the affordability lock is gone",
-    find: "var goldAfter=cat.gold-rounded,ok=lines.length>0&&goldAfter>=0&&!under.length;", replace: "var goldAfter=cat.gold-rounded,ok=lines.length>0&&!under.length;",/* #481 D7 re-anchor: the plan also refuses a sub-half-gold line */
+    find: "var netCp=buyCp-sellCp,coinAfter=cat.coin-netCp,ok=lines.length>0&&coinAfter>=0;", replace: "var netCp=buyCp-sellCp,coinAfter=cat.coin-netCp,ok=lines.length>0;",
     mustFail: "#407 ② the plan" },
-  { label: "a half-gp sale rounds to nothing",
-    find: "sellR=Math.round(sellGp),", replace: "sellR=Math.floor(sellGp),",/* #517 re-anchor: the sale side rounds on its own now */
+  { label: "a half-gp sale rounds to nothing (#598: it pays its silver)",
+    find: "else if(cp!=null)r.sellCp=Math.floor(cp*SHOP_SELL_FRACTION);", replace: "else if(cp!=null)r.sellCp=Math.floor(cp*SHOP_SELL_FRACTION/100)*100;",
     mustFail: "#407 ② the plan" }
 ]);
 prove("helpers.js", [
@@ -40,7 +40,7 @@ prove("game.js", [
     find: "worldState.tradePing={turn:worldState.turn,keeper:cat.keeper,", replace: "worldState.tradePingX={turn:worldState.turn,keeper:cat.keeper,",
     mustFail: "#407 ③ Complete lands" },
   { label: "the system line stops naming the keeper and the shop (owner ruling: every transaction names both parties)",
-    find: "+\" gp, with \"+cat.keeper+\" at \"+cat.shop+\".\";", replace: "+\" gp.\";",
+    find: "+\", with \"+cat.keeper+\" at \"+cat.shop+\".\";", replace: "+\".\";",
     mustFail: "#407 ③ Complete lands" }
 ]);
 prove("api.js", [
