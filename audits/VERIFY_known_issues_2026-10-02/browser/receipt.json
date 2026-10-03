@@ -1,0 +1,21 @@
+{
+  "result": "COUNTER QA GREEN (#481 D5+D7)",
+  "rows": [
+    "left:👁Rope 35 sp",
+    "left:👁Travel rations 625 cp",
+    "right:👁Honey cake25 cp",
+    "right:👁Arrows 201 gp per 20"
+  ],
+  "lone": {
+    "status": "the keeper pays nothing for 1 Travel rations (25 cp) — under half a gold piece; mark more of it, or keep it",
+    "go": true
+  },
+  "pair": {
+    "total": "Total\n+1 gp",
+    "go": false
+  },
+  "shots": [
+    "C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-known-issues\\browser\\d7-lone-whistle.png",
+    "C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-known-issues\\browser\\d7-pair.png"
+  ]
+}

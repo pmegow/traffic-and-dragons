@@ -1,0 +1,164 @@
+[
+  {
+    "path": "root.ws.character.xp",
+    "expected": "1200",
+    "actual": "1140"
+  },
+  {
+    "path": "root.ws.character.relationships",
+    "expected": "[{\"entity\":\"Maeve Yarwick\",\"descriptor\":\"Allied\"}]",
+    "actual": "[]"
+  },
+  {
+    "path": "root.ws.character.storyBeats",
+    "expected": "[{\"text\":\"Harn discovers the murdered waystation keeper and the Pale Ledger's brand, signalling the road has already turned hostile\",\"turn\":1,\"camp\":\"",
+    "actual": "[{\"text\":\"Harn discovers the murdered waystation keeper and the Pale Ledger's brand, signalling the road has already turned hostile\",\"turn\":1,\"camp\":\""
+  },
+  {
+    "path": "root.ws.questLog",
+    "expected": "[{\"title\":\"Waystation Dogs\",\"status\":\"active\",\"desc\":\"\",\"objectives\":[{\"text\":\"Identify the Pale Ledger's internal structure\",\"done\":false}],\"started\"",
+    "actual": "[{\"title\":\"Waystation Dogs\",\"status\":\"active\",\"desc\":\"\",\"objectives\":[{\"text\":\"Identify the Pale Ledger's internal structure\",\"done\":false}],\"started\""
+  },
+  {
+    "path": "root.ws.tagLog",
+    "expected": "[{\"t\":1,\"tags\":[\"LOCATION\",\"LOCATION_DESC\",\"LOCATION_SIZE\",\"TIME\",\"WEATHER\"],\"m\":[\"-> The Crossroads of Ashenveil, The Blighted Reach\",\"Time: dusk\",\"W",
+    "actual": "[{\"t\":1,\"tags\":[\"LOCATION\",\"LOCATION_DESC\",\"LOCATION_SIZE\",\"TIME\",\"WEATHER\"],\"m\":[\"-> The Crossroads of Ashenveil, The Blighted Reach\",\"Time: dusk\",\"W"
+  },
+  {
+    "path": "root.ws.reconcileSkip",
+    "actual": "{\"label\":\"night\",\"delta\":900,\"turn\":5,\"sameDay\":true}"
+  },
+  {
+    "path": "root.ws.diceLog",
+    "actual": "[{\"t\":1,\"by\":\"gm\",\"label\":\"Perception check\",\"face\":null,\"mod\":null,\"dc\":null,\"total\":17,\"outcome\":\"success\"},{\"t\":2,\"by\":\"gm\",\"label\":\"Investigation "
+  },
+  {
+    "path": "root.ws.itemDefCandidate",
+    "actual": "{\"key\":\"brass route marker\",\"turn\":3}"
+  },
+  {
+    "path": "root.ws.relAxisChoices",
+    "actual": "[{\"who\":null,\"entity\":\"Maeve Yarwick\",\"value\":\"Allied\",\"kind\":\"legacy-write\",\"turn\":9,\"lastFire\":null}]"
+  },
+  {
+    "path": "root.ws.combatSlain",
+    "actual": "[{\"name\":\"Ledger Revenant\",\"turn\":14}]"
+  },
+  {
+    "path": "root.ws.checkpointDue",
+    "actual": "\"rest\""
+  },
+  {
+    "path": "root.mem.npcs.Waystation Keeper.firstEncounter",
+    "expected": "\"Harn's longsword clears its scabbard with a sound like tearing cloth, the familiar weight settling into his fist.\"",
+    "actual": "\"Harn's longsword clears its scabbard with a sound like tearing cloth, the familiar weight settling into his fist. He shoulders the waystation door op"
+  },
+  {
+    "path": "root.mem.npcs.Waystation Keeper.lastSeenAt",
+    "expected": "\"The Crossroads of Ashenveil, The Blighted Reach\""
+  },
+  {
+    "path": "root.mem.npcs.Waystation Keeper.lastMentioned",
+    "actual": "1"
+  },
+  {
+    "path": "root.mem.npcs.Maeve Yarwick.firstEncounter",
+    "expected": "\"The nod is all the keeper gets, and it is more than most. Harn steps over him, tucks the manifest inside his coat, and walks out into the last of the",
+    "actual": "\"The nod is all the keeper gets, and it is more than most. Harn steps over him, tucks the manifest inside his coat, and walks out into the last of the"
+  },
+  {
+    "path": "root.mem.npcs.Maeve Yarwick.lastSeenAt",
+    "expected": "\"The Crossroads of Ashenveil, The Blighted Reach\""
+  },
+  {
+    "path": "root.mem.npcs.Maeve Yarwick.lastMentioned",
+    "actual": "9"
+  },
+  {
+    "path": "root.mem.npcs.Draven Ashvane.firstEncounter",
+    "expected": "\"The nod is all the keeper gets, and it is more than most. Harn steps over him, tucks the manifest inside his coat, and walks out into the last of the",
+    "actual": "\"The nod is all the keeper gets, and it is more than most. Harn steps over him, tucks the manifest inside his coat, and walks out into the last of the"
+  },
+  {
+    "path": "root.mem.npcs.Draven Ashvane.lastSeenAt",
+    "expected": "\"The Crossroads of Ashenveil, The Blighted Reach\""
+  },
+  {
+    "path": "root.mem.npcs.Draven Ashvane.lastMentioned",
+    "actual": "8"
+  },
+  {
+    "path": "root.mem.lore",
+    "expected": "[\"The Pale Ledger uses a burned scales-and-circle brand as a mark; the waystation keeper was murdered and all recent manifests torn away\",\"The missing",
+    "actual": "[\"The Pale Ledger uses a burned scales-and-circle brand as a mark; the waystation keeper was murdered and all recent manifests torn away\",\"The missing"
+  },
+  {
+    "path": "root.mem.map.nodes.The Crossroads of Ashenveil, The Blighted Reach.lastVisit",
+    "actual": "1"
+  },
+  {
+    "path": "root.mem.map.nodes.The Crossroads of Ashenveil, The Blighted Reach.guestbook",
+    "actual": "{\"Vex Marrowlight\":{\"turns\":[1],\"resident\":false,\"by\":{\"1\":\"arrive\"}}}"
+  },
+  {
+    "path": "root.mem.map.nodes.The Crossroads of Ashenveil, The Blighted Reach.mentions",
+    "actual": "[{\"n\":\"Waystation Keeper\",\"t\":1},{\"n\":\"Draven Ashvane\",\"t\":8},{\"n\":\"Maeve Yarwick\",\"t\":9}]"
+  },
+  {
+    "path": "root.mem.archive.lore",
+    "expected": "[]",
+    "actual": "[{\"fact\":\"The sounds from inside the caravan wagons suggested living cargo, not goods; Waymark Seven on the Ashenveil South Road is reportedly sealed "
+  },
+  {
+    "path": "root.mem.archive.superseded",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.expiredSchedules",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.npcKnowledge",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.npcEvents",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.retconPins",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.locationStates",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.futureEvents",
+    "actual": "[{\"when\":\"immediately, during the confrontation with Maeve and Draven\",\"who\":\"\",\"what\":\"Something stalks the Grey Ford camp from the blighted flats\",\""
+  },
+  {
+    "path": "root.mem.archive.npcForgotten",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.identityMerges",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.identityQuarantines",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.relDowngrades",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.npcDeathCorrections",
+    "actual": "[]"
+  },
+  {
+    "path": "root.mem.archive.quarantinedReceipts",
+    "actual": "[]"
+  }
+]

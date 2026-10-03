@@ -1,0 +1,594 @@
+{
+  "anchor": "27d4d6c2",
+  "version": "v1.1122",
+  "date": "2026-10-02",
+  "fixed": {
+    "484": "tests-484-earcon-pause.js plus car-driver e8-paused-read: synthetic narration stays paused after spoken pause and resumes on tap.",
+    "491": "Full gate replays corpus_playtest_v11078_gemini37_cache turn 2 verbatim: death, quest, key and 8 gp commit; markers strip. Sabotage 8/8.",
+    "498": "tests-audit-voice.js: all three #498 checks pass; chosen paid/device voices add no false skip crumb, real fallback still reports.",
+    "502": "tests-502-ambience-insecure-page.js: 7/7; real insecure Chrome page visibly gives the plain-http reason (browser screenshots).",
+    "503": "#503: 11/11; Princess t89 loaded read-only with pre-fusion pronouns reconstructed in memory: King and princess remain separate.",
+    "505": "#505: 4/4; sheeted Bram dies, all recognized death words survive the trim, Village harm refuses and dead-tired remains living.",
+    "509": "#509: 5/5; imported/re-homed campaign moments follow the new id, foreign moments stay foreign. Stash marks remain separately open in #527(27).",
+    "510": "#510: 5/5; missing-item and short-count sales preserve both purse and pack; the complete valid sale still lands.",
+    "513": "#513: 3/3; silent arrival rotates presence before the next notes; departure evidence stays sealed and legacy worlds remain legacy.",
+    "514": "#514: 5/5; none clears old sightings across thirty turns, a same-reply speaker reappears, companions and named casts remain correct.",
+    "533": "#533: 3/3; Malrik the Constructor no longer breaks short-name/death tags, retrieval terms or future-event fingerprints.",
+    "535": "#535: 2/2 and sabotage 3/3; uppercase/mixed-case/spaced MERGE domains still require confirmation.",
+    "537": "#537: 2/2 and sabotage 2/2; self-merge preserves Bram and warns; normal merge remains valid.",
+    "561": "#407: 8/8 including A6; Chrome at 1280x900 and 390x844 visibly names Here: Brass lantern in the Hall; own-house count verified by fixture.",
+    "562": "#481 B4 sections pass, including 11 keeper tests; stale tavern sightings expire while the recorded keeper trades only under the hours/presence rule.",
+    "563": "#481 C1/C2 pass; read-only Village t218, simulated three-hour absence: return fact is village-local, no soul-tax lien, greeting at the door.",
+    "564": "#481 C1/C2 pass; Village t218 return-note probe leaves map/history byte-identical and requests no LOCATION_STATE write.",
+    "565": "#481 C3: final step and quest completion in one reply land without a false warning; existing closed quest remains closed.",
+    "566": "#481 C4: numbered/unnumbered act and arc closes land; true title mismatch stays open with visible warning. Separate advice lead #527(12) remains.",
+    "567": "#481 C5: foreign outfit/dynamic data is excluded at campaign boundaries; current-campaign data and lasting bonds stay intact. No within-campaign aging claim.",
+    "568": "#481 C6: cake purchase exposes neither carried record nor note; explicit history question and Hall do; adventure behavior preserved.",
+    "569": "tests-481-c7-record-names.js plus tests-516-deferred-queue.js pass: exact canonical names survive, free clerical prose stays guarded and deferred lines persist.",
+    "570": "#481 C8: campaign-id moments stay current after rename; legacy own-name stamps move and foreign moments remain foreign.",
+    "571": "#481 C9 and register-scrub coverage pass: canonical labels are exempt, free register words still caught, questLog traversed and own examples clean.",
+    "572": "prompt caching split: 15/15, sabotage 2/2; default in-band suggestions cache only stable text, separate-suggestion mode retains volatile caching.",
+    "573": "#481 C11: village crisis rule omitted, note newline preserved, start place visited, first encounter ends at sentence boundary and imported residents skip it. #483 remains separate.",
+    "579": "#481 D7 passes; isolated Chrome ordinary rations stack: lone 25 cp sale visibly refused, two-unit sale enables +1 gp at desktop/phone widths. Stale wanted-whistle QA filed #592.",
+    "580": "#481 D8: two acquisitions queue in order, defined/stale items skip, sixth proposal refuses visibly without consuming its ask.",
+    "582": "#428: 7/7 including D10; replacement clears old hero owed choices and delete marks while other owners remain unchanged.",
+    "583": "Interior hearth defaults: 9/9 including E2; classified square/yard/green select beds at 06:00, 12:00, 16:40; hush and veto rules preserved. Sound selection verified, not listening.",
+    "584": "tests-accent-layer.js passes: load completion under disabled/hidden/mic/paused gates cannot schedule accents; the spacing rule survives blocking.",
+    "585": "tests-481-e4-campaign-switch.js passes: campaign activation stops TTS and clears replay text; repeat cannot speak the previous campaign.",
+    "586": "Interior hearth defaults: 9/9 including E7; stale valid house selects hearth and re-asks, invalid profile remains silent.",
+    "587": "tests-481-f1-campaign-folders.js passes: same-name campaigns export separately, legacy folders adopt safely, refused rename preserves original target.",
+    "588": "#481 F2 tests plus Chrome malicious NPC portrait at desktop/phone widths: no injected script, no onerror attribute; unsafe image discarded.",
+    "590": "tests-438-folder-rename.js passes: post-copy removal failure names the complete destination and switches handle there; copy failure preserves source."
+  },
+  "special": {
+    "511": "Still broken: same-world footer after tavern arrival clears sublocation (synthetic village t5).",
+    "517": "Still broken: 6 sp sale plus 1 gp purchase charges the same as purchase alone; GOLD:-3 coppers removes 3 gp (synthetic t5).",
+    "518": "Still broken: one torch transferred as Torch x3 gives Bram three (synthetic t5).",
+    "519": "Still broken: stow spear, swap to Frizwick, undo returns ok with spear in neither pack nor chest (synthetic village t5).",
+    "527": "Lead (26) confirmed on synthetic village t5 and graduated to #591. Other leads were not individually adjudicated in this pass.",
+    "528": "Coverage gaps remain open; targeted green tests are not proof that all missing mutations are now guarded.",
+    "543": "Five structural voice-preservation tests pass; audible replacement check and required Fable skim still outstanding.",
+    "560": "Original inline-tag cases pass, but #511 is reproduced and #529 remains open; place sequencing is not complete.",
+    "574": "Ordinary stow/undo tests pass, but hero-swap item destruction #519 is reproduced; do not close.",
+    "575": "D2 original quantity/legacy-row fixtures pass; transfer/auto-take gaps in #518 remain, so broader item conservation is not verified.",
+    "576": "D3 standalone gain/loss fixtures pass; paired transfer still creates three torches from one (#518), so completion remains held.",
+    "577": "Ordinary paid-sale/expiry tests pass; discarding an item retires its want with no payment (confirmed #591).",
+    "578": "Abbreviated gp/sp/cp fixtures and browser prices pass, but plural coppers and mixed trade fail (#517).",
+    "581": "D9 ordinary refresh fixtures pass; re-keyed stash marks #527(27), transfer defects #518 and recorded coverage gaps #528 prevent a solid broader sign-off.",
+    "589": "Client slug/hash tests pass, including punctuation/accent names. Live Replace/Update against the deployed server was not exercised; no account/library writes authorized by this verification pass."
+  },
+  "entries": [
+    {
+      "id": 483,
+      "title": "About 730 characters of every turn's prompt say the same thing twice (split out of #481 C11 by Fable, 2026-09-29). ",
+      "originalStatus": "○ not started",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 484,
+      "title": "A spoken \"pause\" mid-read acks with an earcon that un-pauses the story (found by the #481 E8 Car Mode driver, 2026-09-29). ",
+      "originalStatus": "◉ **Built v1.1065.** An earcon skips while the read is paused. Tests red first (`dev/tests-484-earcon-pause.js`: the repro, and an earcon still sounds idle and mid-read); `dev/sabotage-484-earcon-pause.js` 2/2; the driver's `e8-paused-read` now resumes on the tap. **Owner check:** in Car Mode, a spoken \"pause\" that lands mid-read stops the story, and a tap resumes it.",
+      "verdict": "Verified complete",
+      "evidence": "tests-484-earcon-pause.js plus car-driver e8-paused-read: synthetic narration stays paused after spoken pause and resumes on tap."
+    },
+    {
+      "id": 485,
+      "title": "Ten manual-QA browser scripts still need Playwright, which the repo does not install (split from #481 G11, Fable 2026-09-29). ",
+      "originalStatus": "○ not started",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 491,
+      "title": "A death's loot is lost, and engine markers print in the story, when the GM writes a transaction's two markers without brackets (playtest v1.1078, the cache-on run, 2026-09-30). ",
+      "originalStatus": "◉ **Built v1.1081 (owner 2026-09-30: \"build them\").** `tagRestoreBareMarkers(text)` (tag_table.js) puts the brackets back on a line that is exactly a bare `CANON_TXN_BEGIN:` (five fields) or `CANON_TXN_END:` (one id) marker. It runs first in `applyMuts` and in `cleanTxt`, so the parser and the story strip agree; the parse says it once on the console, and the transcript keeps what the GM wrote. A marker inside a sentence, or followed by prose on its line, is left alone and fails closed as before. **Proof:** one engine test replays the playtest's turn 2 verbatim (red first, with the live refusal): the death, the quest close, the key and the 8 gold commit as one transaction, and the story shows no marker. `dev/sabotage-491-bare-markers.js` 8/8. The four replay baselines are unchanged, and the playtest corpus now replays without the quarantine. Owner check: none needed unless a marker ever shows in a story again.",
+      "verdict": "Verified complete",
+      "evidence": "Full gate replays corpus_playtest_v11078_gemini37_cache turn 2 verbatim: death, quest, key and 8 gp commit; markers strip. Sabotage 8/8."
+    },
+    {
+      "id": 498,
+      "title": "Every read with a paid voice logged \"server tier skipped: availability re-check failed\" — a failure that never happened — and wrote it into bug reports (owner's console 2026-09-30: \"There's an awful lot in the console, Is this a problem?\"). ",
+      "originalStatus": "◉ **Built v1.1087.** ONE pure rule, `_serverSkipWhy(engine, primary, serverErr, online)`: nothing was skipped at or above the server tier, nor by the device voice when the player chose it; a read that fell below the tier still reports, with the recorded failure first. **Proof:** three tests in `dev/tests-audit-voice.js` (red first, with the exact line from the reports), `dev/sabotage-498-tts-skip-line.js` 6/6. Owner check: play a turn with the voice on and look for the line in the console (it should be gone).",
+      "verdict": "Verified complete",
+      "evidence": "tests-audit-voice.js: all three #498 checks pass; chosen paid/device voices add no false skip crumb, real fallback still reports."
+    },
+    {
+      "id": 502,
+      "title": "On a plain-http page ambience failed in engine words and downloaded every scene's audio for nothing (seen 2026-10-01 in a real-browser test page: \"Ambience: Cannot read properties of undefined (reading 'digest')\"). ",
+      "originalStatus": "◉ **Built v1.1096.** ONE rule, `audioVerifyRefusal(crypto)` with `audioPageRefusal()` for this page (audio-loader.js), and three readers: the loader refuses before it downloads, the checksum refuses in plain words (it is never skipped), and the ambience shell's `pageRefusal()` (ui-ambient.js; the local-file test moved into it) says it once and starts no audio. The player now reads \"Ambience: This page is not secure (plain http), so the audio cannot be verified. Open the hosted game or localhost.\" **Proof:** `dev/tests-502-ambience-insecure-page.js` (7 checks, 4 red first), `dev/sabotage-502-ambience-insecure-page.js` 8/8, and a real browser before and after on an insecure host with localhost as the control: before, the engine-words toast and three audio downloads; after, the plain reason at page load and no download; localhost plays as before. Owner check: none, unless you serve the game over plain http.",
+      "verdict": "Verified complete",
+      "evidence": "tests-502-ambience-insecure-page.js: 7/7; real insecure Chrome page visibly gives the plain-http reason (browser screenshots)."
+    },
+    {
+      "id": 503,
+      "title": "Two characters who share a surname were filed as one person: the King's tags overwrote the princess's record (The Princess, t85 and t89; found by the Thursday read, 2026-10-01). ",
+      "originalStatus": "◉ **Built v1.1097.** ONE veto in the one consolidation scan, `npcKeptApart` (memory.js): a name is never matched to a record it contradicts. Three contradictions count: sex (a title in the name, the record's pronouns, or the pronouns the same reply states for the name), age (old against young), and a crown's generation when only the surname is shared (the king beside Prince Aldric Underbough; \"King Aldric\" is still the same man, crowned). Nothing else changes: no signal, or the same signal, consolidates as before, and a registered alias or an exact name always wins. A title word that is the person's surname (\"Marla King\") and someone else's title (\"the Queen's Champion Aldric\") are not read as claims. The `[NPC:]` and `[NPC_PRONOUN:]` handlers say it once in the turn summary: \"⚠ King Underbough is not Wilhelmina Underbough (he, not she) — filed as a separate person\". **Proof:** 11 tests (8 red first); `dev/sabotage-503-npc-kept-apart.js` 23/23; the owner's save replayed in memory with its own t85 tags (shipped engine: one record, her pronouns flipped; fixed: two records); the full suite; the four replays, three unchanged and v1271's end state regenerated because its turn-1 fusion is gone (the whole change is \"Refugee man\" as his own row and the woman's mood and pronouns restored). The prompt is untouched. **Not repaired:** records already fused in a save. **Left open:** #504. Owner check: none needed; in play, a second family member under a title now appears as their own row in the character list.",
+      "verdict": "Verified complete",
+      "evidence": "#503: 11/11; Princess t89 loaded read-only with pre-fusion pronouns reconstructed in memory: King and princess remain separate."
+    },
+    {
+      "id": 504,
+      "title": "Same-sex relatives under a bare title still merge: \"Queen Underbough\" lands on \"Wilhelmina Underbough\" when her record states no rank (the residue of #503; needs a ruling). ",
+      "originalStatus": "◐ **Ruled 2026-10-01: (b), ask the GM. Built on a branch and held (2026-10-02).** The build files the name provisionally and asks through the name-collision note. Two independent reviews found defects in successive versions, the second in the fixes for the first: the \"another person\" answer could fuse the two people, and other spellings of the name still reached the established record. By the two-failures rule it is not on master. Branch `claude/504-titled-relative`; redesign row #534; record [audits/AUDIT_2026_10_02_504_titled_relative.md](audits/AUDIT_2026_10_02_504_titled_relative.md). **Field:** of 208 names across the owner's eight campaigns, none has this shape today.",
+      "verdict": "Held / unfinished build",
+      "evidence": "Held/unfinished branch work per current tracker; this pass verifies the shared checkout, not held branches."
+    },
+    {
+      "id": 505,
+      "title": "A character with a generated sheet could not die by the standard death tag: `[NPC:Bram",
+      "originalStatus": "◉ **Built v1.1098 (Opus 5.5, probation).** A death status (`npcDeadStatus`) skips the trim, so the death stamp sees it. Everything else trims as before (\"dead tired, mending a net\" keeps only \"mending a net\"). In the Village the peace rule now refuses a resident's death with its own line (\"⚠ Harm refused\") instead of the misleading mood note. **Proof:** 4 tests (2 red first; the Village one pins the refusal line, one pins that #460 still trims a living mood); `dev/sabotage-505-sheeted-death.js` 3/3; full suite; the four replays unchanged. No prompt text changed. **Not repaired:** a death that was lost before this fix stays lost; read the save's roster if a character you saw die still acts. **Left open:** #506 (conditions such as unconscious or captured are still trimmed). Owner check: none needed.",
+      "verdict": "Verified complete",
+      "evidence": "#505: 4/4; sheeted Bram dies, all recognized death words survive the trim, Village harm refuses and dead-tired remains living."
+    },
+    {
+      "id": 509,
+      "title": "A save imported on a device that did not hold its campaign showed its own defining moments as \"an earlier adventure\" (Thursday review 2026-10-01; #481 C8 with #423). ",
+      "originalStatus": "◉ **Built v1.1100 (Opus 5.5, probation).** ONE walk over every stamped record, `campStampedEach` (helpers.js): the three moment lists on every sheet and each sheet's outfit. It serves the rename (`campRestamp`, which now re-stamps the outfit too) and the new `campRestampId(ws,oldId,newId)`. The re-minted import and the re-home call it, so every record stamped with the old id follows; another campaign's records keep their own ids. **Proof:** 6 tests (5 red first); `dev/sabotage-509-campaign-id-restamp.js` 6/6; the C8, C5 and #423 tests green; full suite; 90 standalone suites; the four replays unchanged. **Not repaired:** a save already imported with a new id since v1.1018 keeps the old labels; importing the original file again repairs it. **Left open:** the per-campaign stash marks on sheets are keyed by the old id and are not moved (lead 27 in #527). Owner check: none needed.",
+      "verdict": "Verified complete",
+      "evidence": "#509: 5/5; imported/re-homed campaign moments follow the new id, foreign moments stay foreign. Stash marks remain separately open in #527(27)."
+    },
+    {
+      "id": 510,
+      "title": "A Village sale with one wrong item name took the right items anyway: the coin went back, the items were gone, and the GM was told the pack was unchanged (Thursday review 2026-10-01; two reviewers found it). ",
+      "originalStatus": "◉ **Built v1.1101 (Opus 5.5, probation).** Where trade is gated, a sale (coin in) is checked whole against a copy of the pack before anything leaves it. One miss refuses every `[ITEM_LOST:]` of the reply: nothing leaves the pack, the coin returns, each tag is a miss for pairing (a gift riding with it does not mint the item), and the GM is asked. The line names the cause (\"⚠ Sale withheld — 'Old boot' is not on the sheet\" or \"'Arrow x12' is more than the sheet holds; nothing leaves the pack and no coin changes hands\"). The adventure's rule is unchanged: a reward and an unrelated miss share a reply, so the coin is kept and the GM is asked. **Proof:** 6 tests (2 red first; the short count was found while writing them); `dev/sabotage-510-withheld-sale.js` 6/6; two A2 battery clauses re-anchored on the moved lines with the same mutations (9/9 plus 1/1); full suite; 90 standalone suites; the four replays unchanged. **Not repaired:** items already lost this way stay lost; check the pack after a refused sale. Owner check: none needed.",
+      "verdict": "Verified complete",
+      "evidence": "#510: 5/5; missing-item and short-count sales preserve both purse and pack; the complete valid sale still lands."
+    },
+    {
+      "id": 511,
+      "title": "A tag block written ahead of a move is read at the old place: wares file on the wrong shop, and a Village footer that re-states the world loses the sub-location (Thursday review 2026-10-01; #481 A4). ",
+      "originalStatus": "○ Filed. Not built.",
+      "verdict": "Open / limited verification",
+      "evidence": "Still broken: same-world footer after tavern arrival clears sublocation (synthetic village t5)."
+    },
+    {
+      "id": 512,
+      "title": "A town's description written just before moving into one of its places is filed on that place: your Rise of the Runelords save gives the Silk and Steam Bathhouse Magnimar's city description (Thursday review 2026-10-01). ",
+      "originalStatus": "○ Filed. Not built.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 513,
+      "title": "On the turn the party arrives somewhere, \"who is here\" still reads the old scene, so the next Village SMALL TALK note asks absent residents to greet the hero (Thursday review 2026-10-01; #481 B4). ",
+      "originalStatus": "◉ **Built v1.1102 (Opus 5.5, probation).** `derivePresenceFromResponse` (identity.js) turns the frame over where the reply ends, when the world has scene refs; the departing frame is sealed exactly as the next send would seal it. On your Village t254 save, a silent walk back into the tavern used to read Thessa Saltborn as present from a sighting one turn old; it now reads nobody until someone is seen, as the #481 B4 ruling says. **Proof:** 3 tests (1 red first; one pins that the departing frame's evidence is sealed, one that a world from before #168 is not given scene refs); `dev/sabotage-513-arrival-frame.js` 2/2; the presence, B1, B3, B4, W2, #168 and #194 sections green; full suite; 90 standalone suites; the four replays unchanged. **Known limit:** a save written just after a silent arrival by an older version reads the old scene until the first send. Owner check: in the Village, walk somewhere quiet and see that the next turn's small talk comes from people actually there.",
+      "verdict": "Verified complete",
+      "evidence": "#513: 3/3; silent arrival rotates presence before the next notes; departure evidence stays sealed and legacy worlds remain legacy."
+    },
+    {
+      "id": 514,
+      "title": "`[SCENE_CAST:none]` never ends anyone's presence, though the doc says it means \"the whole party is here and no one else\" (needs a ruling; Thursday review 2026-10-01). ",
+      "originalStatus": "◉ **Built v1.1105 (Fable). Ruled 2026-10-01: \"none\" clears the room.** A none-only cast is now recorded as the party alone (`worldState.castLast`, marked `none`), and `scenePresentNow` leaves out everyone last seen before it. They are present again the moment they speak or are named. Someone who speaks in the none reply itself is still placed: in all six real replies where that happens (five in the corpora, one in your Village save), the GM writes the cast in the header, before the prose where that person then speaks. The doc line is unchanged. On your Village t254 save a none reply now empties the tavern scene (Thessa was the one counted); as its keeper she still serves at the counter while the tavern is open. **Proof:** 5 tests (2 red first); `dev/sabotage-514-none-cast.js` 6/6; the older test that pinned \"none leaves the last one standing\" is rewritten to the ruling; the #481 B1 test (a speaker under none is placed) passes unchanged; full suite; 93 standalone suites; the four replays unchanged. **Known limit:** a goodbye followed by a cast of none at the END of a reply still leaves that speaker counted until the next cast; no real reply does this. **Reviewed independently (2026-10-02): no new defect.** Two old behaviours noted: a companion who split off after being seen in the scene is not cleared by none, and `[SCENE_CAST:none.]` or `nobody` is read as a named cast (no real reply writes either). The commit message says the keeper \"still counts at the counter\" on the Village t254 save; at that save's hour the tavern is closed, and \"while the tavern is open\" above is the accurate statement. Owner check: in the Village, stay somewhere after everyone has left and see that the buttons stop offering them.",
+      "verdict": "Verified complete",
+      "evidence": "#514: 5/5; none clears old sightings across thirty turns, a same-reply speaker reappears, companions and named casts remain correct."
+    },
+    {
+      "id": 515,
+      "title": "A companion's purpose changed by the GM's tag is filed a second time by the summary's fallback, and \"none\" becomes the purpose (Thursday review 2026-10-01; #437). ",
+      "originalStatus": "○ Filed. The fallback reproduced on master; the keyword case was reproduced by two reviewers.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 517,
+      "title": "The counter's arithmetic: a sale bundled with a purchase gives the sold items away, and several coin and count shapes pay the wrong amount (Thursday review 2026-10-01). ",
+      "originalStatus": "○ Filed. The mixed plan reproduced on master; the rest by reviewers on a clean copy.",
+      "verdict": "Open / limited verification",
+      "evidence": "Still broken: 6 sp sale plus 1 gp purchase charges the same as purchase alone; GOLD:-3 coppers removes 3 gp (synthetic t5)."
+    },
+    {
+      "id": 518,
+      "title": "Item moves with a count, and gifts at home, move the wrong number of units (Thursday review 2026-10-01; #481 A2, D1, D2). ",
+      "originalStatus": "○ Filed. The loot case reproduced on master; the rest by a reviewer on a clean copy.",
+      "verdict": "Open / limited verification",
+      "evidence": "Still broken: one torch transferred as Torch x3 gives Bram three (synthetic t5)."
+    },
+    {
+      "id": 519,
+      "title": "The spoken undo can destroy an item: after a hero swap the stowed spear is in nobody's pack, and the undo says it worked (Thursday review 2026-10-01; #481 D1). ",
+      "originalStatus": "○ Filed. Reproduced on master.",
+      "verdict": "Open / limited verification",
+      "evidence": "Still broken: stow spear, swap to Frizwick, undo returns ok with spear in neither pack nor chest (synthetic village t5)."
+    },
+    {
+      "id": 520,
+      "title": "A hero ability tag is re-filed onto a companion when its description merely opens with their name (Thursday review 2026-10-01; #490). ",
+      "originalStatus": "○ Filed. Reproduced by two reviewers on a clean copy.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 521,
+      "title": "\"Daeris left.\" is no longer read as a companion leaving (Thursday review 2026-10-01; fc63ae9). ",
+      "originalStatus": "○ Filed. Reproduced by a reviewer on a clean copy; the reviewer checked the remedy against the suite's eight negatives.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 522,
+      "title": "Seven definitions are never called; six were named in last week's review and never filed (Thursday review 2026-10-01). ",
+      "originalStatus": "○ Filed.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 523,
+      "title": "Census housekeeping: the storage-key convention line is false and most keys are undocumented, and the server's /health does not say its version (Thursday review 2026-10-01). ",
+      "originalStatus": "○ Filed. Unchanged from last week.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 525,
+      "title": "The Princess's ending was written in the hero's first person with game words (\"level one\", \"nineteen levels\", \"the narrator\") and modern idiom (needs a ruling; Thursday read). ",
+      "originalStatus": "◐ **Ruled twice on 2026-10-01; built on a branch and held (2026-10-02).** The first ruling (\"second person, no game words\") stood on a wrong reading: The Princess ran the Matt Dinniman voice, which you chose and which calls for a modern register and jokes about the game's rules, so \"nineteen levels\" was that voice at work. Only the first person was unasked for. The second ruling stands: **second person; the campaign's voice decides the rest.** **One more defect found while building:** the ending's closing paragraph is filed as a defining moment in the prose's own person, on the hero AND every companion; Morwen, Daeris and Frizwick carry Ammut's \"I spent nineteen levels…\" as their own memory. **The build:** both ending prompts ask for \"you\"; the reply ends with a hidden line, \"RECORD: <one third-person sentence naming the hero>\", which becomes the moment; a load-time repair puts old endings under the hero's name. **Why it is held:** two independent reviews. The first found the repair stacked another prefix on every load for a hero name with an accent or a title (\"José\", \"Mr. Fox\"), and that other shapes of the RECORD line reached the screen. The fixes for those were reviewed again and had brought new faults: a shared surname gave one person another's line, an ending in Arabic, Hebrew or Hindi was deleted whole, and a record ending in a quote lost it. By the two-failures rule it was taken out of the push. Branch `claude/525-ending-voice`; record [audits/AUDIT_2026_10_02_525_ending_voice.md](audits/AUDIT_2026_10_02_525_ending_voice.md). **Your saves:** neither fault touches them; the repair, when it ships, changes Ammut's ending on four sheets and Silas Morne's on two.",
+      "verdict": "Held / unfinished build",
+      "evidence": "Held/unfinished branch work per current tracker; this pass verifies the shared checkout, not held branches."
+    },
+    {
+      "id": 526,
+      "title": "The W2 death guard working as designed files as a bug report (32 reports in B29; Thursday read). ",
+      "originalStatus": "○ Filed.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 527,
+      "title": "Review leads: smaller defects the 2026-10-01 reviewers reproduced on a clean copy of master; each needs a hand check before it becomes its own row. ",
+      "originalStatus": "○ Leads. Hand-check each, then file it or drop it.",
+      "verdict": "Open / limited verification",
+      "evidence": "Lead (26) confirmed on synthetic village t5 and graduated to #591. Other leads were not individually adjudicated in this pass."
+    },
+    {
+      "id": 528,
+      "title": "Proof gaps: behaviour the week's commit messages state that no test pins (Thursday review 2026-10-01). ",
+      "originalStatus": "○ Filed.",
+      "verdict": "Open / limited verification",
+      "evidence": "Coverage gaps remain open; targeted green tests are not proof that all missing mutations are now guarded."
+    },
+    {
+      "id": 529,
+      "title": "On a repaired map, arriving at a place counts the visit on the real place but points at a twin (Fable skim 2026-10-01; #481 A1 with A4). ",
+      "originalStatus": "○ Filed. Reproduced on master.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 530,
+      "title": "The \"different person\" answer to a name-collision note never lands while scene refs are active (latent; found building #504). ",
+      "originalStatus": "○ Filed. Reproduced on master.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 531,
+      "title": "A death that names a relative by title lands on the person who shares the surname (found building #504). ",
+      "originalStatus": "○ Filed. Reproduced on master (three probes through the real engine).",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 532,
+      "title": "A merge drops the voice a character was pinned with (found building #504). ",
+      "originalStatus": "◐ **Built, not pushed.** On branch `claude/532-538-voice-hero` (v1.1112, reworked v1.1115 after an independent review; a better build than `9df0d386`). Full suite and battery green. A second review round and the range sweep are owed before a push. Record: [audits/AUDIT_2026_10_02_532_538_reviews.md](audits/AUDIT_2026_10_02_532_538_reviews.md). Marked for the next Thursday run.",
+      "verdict": "Held / unfinished build",
+      "evidence": "Held/unfinished branch work per current tracker; this pass verifies the shared checkout, not held branches."
+    },
+    {
+      "id": 533,
+      "title": "An NPC whose name contains the word \"constructor\" broke the tag parser (live since #503, v1.1097; found by the #504 review). ",
+      "originalStatus": "◉ **Fixed v1.1107 (Fable).** **Proof:** 3 tests (all red first); `dev/sabotage-533-name-word-tables.js` 12/12; reviewed independently twice (thirteen tags, the resolver, the variant scan, suggestions, the death gate and the prompt build: no throw; 6,000 differential cases: no difference on text without the word); full suite; the standalone suites; the four replays unchanged. No prompt text changed. Owner check: none needed.",
+      "verdict": "Verified complete",
+      "evidence": "#533: 3/3; Malrik the Constructor no longer breaks short-name/death tags, retrieval terms or future-event fingerprints."
+    },
+    {
+      "id": 534,
+      "title": "The name-collision answer path needs a redesign before #504 can ship (two independent reviews, 2026-10-02). ",
+      "originalStatus": "○ Filed. The first build is on branch `claude/504-titled-relative`.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 535,
+      "title": "`[MERGE:NPC\\|a\\|b]` skipped the merge gate and fused two established people with no confirmation (found by the #504 review; it predates that work). ",
+      "originalStatus": "◉ **Fixed v1.1108 (Fable).** **Proof:** 2 tests (both red first); `dev/sabotage-535-merge-gate-spelling.js` 3/3; reviewed independently twice (86,800 spellings against an earlier form: no fusion, 4,622 before; 9,408 against this one: none, other domains untouched); full suite; the standalone suites; the four replays unchanged. No prompt text changed. Owner check: none needed.",
+      "verdict": "Verified complete",
+      "evidence": "#535: 2/2 and sabotage 3/3; uppercase/mixed-case/spaced MERGE domains still require confirmation."
+    },
+    {
+      "id": 536,
+      "title": "A tag whose operand is one of JavaScript's built-in object keys crashes handlers, and `__proto__` poisons every record for the session (found by the #504 review; the wider class behind #533). ",
+      "originalStatus": "◐ **First build held (2026-10-02).** It filtered the reply's text (branch `claude/536-reserved-words`); an independent review showed that is the wrong layer. Record: [audits/AUDIT_2026_10_02_536_reserved_words.md](audits/AUDIT_2026_10_02_536_reserved_words.md). The redesign is #545. No urgency: none of the words occurs in 277 MB of real play text.",
+      "verdict": "Held / unfinished build",
+      "evidence": "Held/unfinished branch work per current tracker; this pass verifies the shared checkout, not held branches."
+    },
+    {
+      "id": 537,
+      "title": "A merge of a person into themselves ran away and deleted them (found by the #504 reviews; old). ",
+      "originalStatus": "◉ **Fixed v1.1109 (Fable).** **Proof:** 2 tests (the repro red first); `dev/sabotage-537-self-merge.js` 2/2; reviewed independently (spacing variants are ignored the same way; `Bram\\|bram` is two records in this engine, a rename, no runaway); full suite; the standalone suites; the four replays unchanged. No prompt text changed. Owner check: none needed.",
+      "verdict": "Verified complete",
+      "evidence": "#537: 2/2 and sabotage 2/2; self-merge preserves Bram and warns; normal merge remains valid."
+    },
+    {
+      "id": 538,
+      "title": "Three tags file the hero as an NPC (found by the #504 review). ",
+      "originalStatus": "◐ **Built, not pushed.** On branch `claude/532-538-voice-hero` (v1.1114, reworked v1.1116 after an independent review; the rework changes the name resolver). Full suite and battery green. A second review round and the range sweep are owed before a push. Record: [audits/AUDIT_2026_10_02_532_538_reviews.md](audits/AUDIT_2026_10_02_532_538_reviews.md). Marked for the next Thursday run.",
+      "verdict": "Held / unfinished build",
+      "evidence": "Held/unfinished branch work per current tracker; this pass verifies the shared checkout, not held branches."
+    },
+    {
+      "id": 539,
+      "title": "A character's delivery direction and speed are lost when their sheet is made or regenerated (found building #532). ",
+      "originalStatus": "◐ **Built, not pushed.** On branch `claude/532-538-voice-hero` (v1.1113); it lands with #532.",
+      "verdict": "Held / unfinished build",
+      "evidence": "Held/unfinished branch work per current tracker; this pass verifies the shared checkout, not held branches."
+    },
+    {
+      "id": 540,
+      "title": "The reserved words of #536 also arrive without a tag: through the summary's extraction and through a blueprint (found building #536). ",
+      "originalStatus": "◐ **First build held** with #536. Covered by the redesign, #545.",
+      "verdict": "Held / unfinished build",
+      "evidence": "Held/unfinished branch work per current tracker; this pass verifies the shared checkout, not held branches."
+    },
+    {
+      "id": 541,
+      "title": "A hero or a library character can be named a reserved word (found building #540). ",
+      "originalStatus": "○ Filed. Probed through the real engine.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 542,
+      "title": "The hero's epithets: the remaining ways an epithet and an NPC's name can meet (from the independent review of #538). ",
+      "originalStatus": "○ Filed. Each case reproduced through the real engine. Build it after #538 lands.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 543,
+      "title": "Replace from library, the Village's refresh and a fallen companion's rejoin drop the voice settings (from the independent review of #532). ",
+      "originalStatus": "◉ Built 2026-10-02 by Opus 5.5 on the owner's instruction (v1.1112). Both adopters keep a voice field the copy lacks through `voicePinsFill` (helpers.js), before the hero's cast. A kept voice of the known other sex is refused (`voicePinFitsGender` over the new `TTS.pinnedVoiceGender`), so a copy whose sex changed is cast again, matched. The rejoin takes every voice field from the live card (`voicePinsMirror`), a clear included. The three shared helpers and `pinnedVoiceGender` have the same bodies as on the parked #532 branch, so its rebase keeps one copy. Proof: 5 tests in `#543 voice settings across a sheet swap`, failing first for the reported reasons; `dev/sabotage-543-voice-keep.js` catches all 9 mutations. Owed: a play check (replace a voiced companion from the library and hear her keep her voice), and the Fable skim in the Off-Fable log.",
+      "verdict": "Open / limited verification",
+      "evidence": "Five structural voice-preservation tests pass; audible replacement check and required Fable skim still outstanding."
+    },
+    {
+      "id": 544,
+      "title": "After a reveal one person can keep two names (from the independent review of #532). ",
+      "originalStatus": "○ Filed. Reproduced through the real engine.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 545,
+      "title": "Redesign: make the name-keyed stores immune to JavaScript's built-in object keys (covers #536, #540, #541). ",
+      "originalStatus": "○ Filed. No urgency.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 546,
+      "title": "The merge studio page stops mid-merge: a script is missing (from the independent review of #532). ",
+      "originalStatus": "○ Filed. Reproduced.",
+      "verdict": "Unverified / no landed fix established",
+      "evidence": "No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing."
+    },
+    {
+      "id": 560,
+      "title": "Audit #481 A4 — One reply, one place: every tag is judged where the reply ends, not where it happens (high, wrong outcome; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1027",
+      "verdict": "Open / limited verification",
+      "evidence": "Original inline-tag cases pass, but #511 is reproduced and #529 remains open; place sequencing is not complete."
+    },
+    {
+      "id": 561,
+      "title": "Audit #481 A6 — \"Here: Item stash (N items)\" at places whose contents cannot be opened (low, UX · ruled; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1041",
+      "verdict": "Verified complete",
+      "evidence": "#407: 8/8 including A6; Chrome at 1280x900 and 390x844 visibly names Here: Brass lantern in the Hall; own-house count verified by fixture."
+    },
+    {
+      "id": 562,
+      "title": "Audit #481 B4 — \"In the scene\" never expires (medium, wrong outcome · ruled; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1030 (the scene predicate) and v1.1077 (the keeper of record, built on the owner's go 2026-09-30). The ruling is now enforced: a shop carries a keeper of record, filed by the engine-only [SHOP_KEEPER:Name] (asked once per keeperless shop by buildKeeperNote). The trade gate counts the keeper at the counter while the shop is open (its hours; no hours = open); anyone else, and the keeper out of hours, trades only in the scene now or speaking in the reply. A shop with no keeper on record keeps the old rule until the GM files one. The geo block names the keeper and whether they are at the counter. Proof: 11 tests in \"#481 B4 keeper\" (8 red first); dev/sabotage-481-b4-keeper.js 13/13; the strip golden and its frozen hash re-baselined (+SHOP_KEEPER); the four replays unchanged. The real Village t218 save's prompt is byte-identical at HEAD and now, and with the hero moved into the tavern the keeper ask is the only new note.",
+      "verdict": "Verified complete",
+      "evidence": "#481 B4 sections pass, including 11 keeper tests; stale tavern sightings expire while the recorded keeper trades only under the hours/presence rule."
+    },
+    {
+      "id": 563,
+      "title": "Audit #481 C1 — The welcome-back note hands the GM the held-back \"soul-tax lien\" sentence — the source of all six recitals (high, drift hole; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ built v1.1019 — ready to test: after 2+ hours away, the greeting names a village fact (never the lien line), at the door, never through a window",
+      "verdict": "Verified complete",
+      "evidence": "#481 C1/C2 pass; read-only Village t218, simulated three-hour absence: return fact is village-local, no soul-tax lien, greeting at the door."
+    },
+    {
+      "id": 564,
+      "title": "Audit #481 C2 — The welcome-back note files non-changes as permanent place history, on the wrong place (high, silent canon corruption; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ built v1.1019 — ready to test: a return files no place history (the house's notes stop churning)",
+      "verdict": "Verified complete",
+      "evidence": "#481 C1/C2 pass; Village t218 return-note probe leaves map/history byte-identical and requests no LOCATION_STATE write."
+    },
+    {
+      "id": 565,
+      "title": "Audit #481 C3 — Finishing a quest loses its last step and shows a false ⚠ (medium, wrong outcome; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1039",
+      "verdict": "Verified complete",
+      "evidence": "#481 C3: final step and quest completion in one reply land without a false warning; existing closed quest remains closed."
+    },
+    {
+      "id": 566,
+      "title": "Audit #481 C4 — An act or arc close that drops the \"Act 1:\" prefix is ignored with only a console line (medium, silent failure; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1040",
+      "verdict": "Verified complete",
+      "evidence": "#481 C4: numbered/unnumbered act and arc closes land; true title mismatch stays open with visible warning. Separate advice lead #527(12) remains."
+    },
+    {
+      "id": 567,
+      "title": "Audit #481 C5 — Last campaign's private scene follows the hero: outfit and \"current dynamic\" carry across campaigns and never age (medium, stale canon; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1056",
+      "verdict": "Verified complete",
+      "evidence": "#481 C5: foreign outfit/dynamic data is excluded at campaign boundaries; current-campaign data and lasting bonds stay intact. No within-campaign aging claim."
+    },
+    {
+      "id": 568,
+      "title": "Audit #481 C6 — CARRIED HISTORY and the CARRIED RECORD note ignore the held-past gate (medium, drift hole; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1053",
+      "verdict": "Verified complete",
+      "evidence": "#481 C6: cake purchase exposes neither carried record nor note; explicit history question and Hall do; adventure behavior preserved."
+    },
+    {
+      "id": 569,
+      "title": "Audit #481 C7 — The record guard throws away core-plot lore whose proper nouns contain banned words (medium, silent failure · ruled; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1054",
+      "verdict": "Verified complete",
+      "evidence": "tests-481-c7-record-names.js plus tests-516-deferred-queue.js pass: exact canonical names survive, free clerical prose stays guarded and deferred lines persist."
+    },
+    {
+      "id": 570,
+      "title": "Audit #481 C8 — Renaming a campaign turns its own memories into \"an earlier adventure\" (medium, wrong outcome; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ built v1.1018 — ready to test: rename a campaign; its own moments stay its own (no \"an earlier adventure\")",
+      "verdict": "Verified complete",
+      "evidence": "#481 C8: campaign-id moments stay current after rename; legacy own-name stamps move and foreign moments remain foreign."
+    },
+    {
+      "id": 571,
+      "title": "Audit #481 C9 — The register cleanup can't finish, and the engine's own examples use banned words (low, contradiction · test gap; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1055",
+      "verdict": "Verified complete",
+      "evidence": "#481 C9 and register-scrub coverage pass: canonical labels are exempt, free register words still caught, questLog traversed and own examples clean."
+    },
+    {
+      "id": 572,
+      "title": "Audit #481 C10 — On Claude, every turn pays to cache the per-turn prompt half for a reader that rarely comes (low, resource; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1050",
+      "verdict": "Verified complete",
+      "evidence": "prompt caching split: 15/15, sabotage 2/2; default in-band suggestions cache only stable text, separate-suggestion mode retains volatile caching."
+    },
+    {
+      "id": 573,
+      "title": "Audit #481 C11 — Small prompt defects: a start place \"never visited\", truncated \"First met\", joined templates, adventure crisis rules in the village (low, cosmetic · redundancy; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1051 (stable text + notes) and v1.1052 (volatile text + start stamp); the ~730-char duplication is #483",
+      "verdict": "Verified complete",
+      "evidence": "#481 C11: village crisis rule omitted, note newline preserved, start place visited, first encounter ends at sentence boundary and imported residents skip it. #483 remains separate."
+    },
+    {
+      "id": 574,
+      "title": "Audit #481 D1 — Car Mode's \"never mind\" destroys the last stowed item and says it is back with you (high, silent failure; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1026",
+      "verdict": "Open / limited verification",
+      "evidence": "Ordinary stow/undo tests pass, but hero-swap item destruction #519 is reproduced; do not close."
+    },
+    {
+      "id": 575,
+      "title": "Audit #481 D2 — The chest and the pack disagree on an item's name — a \"Hemp rope x2\" row is a copy machine (medium, duplication; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1024",
+      "verdict": "Open / limited verification",
+      "evidence": "D2 original quantity/legacy-row fixtures pass; transfer/auto-take gaps in #518 remain, so broader item conservation is not verified."
+    },
+    {
+      "id": 576,
+      "title": "Audit #481 D3 — Quantities of ten or more, and any quantity on a companion, move one unit while the log claims the full number (medium, wrong outcome; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ built v1.1023 — ready to test: item counts of 10+ and companion counts move exactly what the tag says; the counter sends one tag per stack",
+      "verdict": "Open / limited verification",
+      "evidence": "D3 standalone gain/loss fixtures pass; paired transfer still creates three torches from one (#518), so completion remains held."
+    },
+    {
+      "id": 577,
+      "title": "Audit #481 D4 — A met \"wanted\" offer is never retired — the counter pays full price again and again (medium, drift hole · ruled; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1047",
+      "verdict": "Open / limited verification",
+      "evidence": "Ordinary paid-sale/expiry tests pass; discarding an item retires its want with no payment (confirmed #591)."
+    },
+    {
+      "id": 578,
+      "title": "Audit #481 D5 — Prices in silver or copper are invisible to the economy, and [GOLD:] ignores its unit (medium, wrong outcome; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1045",
+      "verdict": "Open / limited verification",
+      "evidence": "Abbreviated gp/sp/cp fixtures and browser prices pass, but plural coppers and mixed trade fail (#517)."
+    },
+    {
+      "id": 579,
+      "title": "Audit #481 D7 — A counter sale worth under half a gold deletes the item and pays nothing (low, ruled; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1046",
+      "verdict": "Verified complete",
+      "evidence": "#481 D7 passes; isolated Chrome ordinary rations stack: lone 25 cp sale visibly refused, two-unit sale enables +1 gp at desktop/phone widths. Stale wanted-whistle QA filed #592."
+    },
+    {
+      "id": 580,
+      "title": "Audit #481 D8 — The undefined-item question keeps one slot per reply, and a sixth proposal is dropped silently (low, silent failure; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1049",
+      "verdict": "Verified complete",
+      "evidence": "#481 D8: two acquisitions queue in order, defined/stale items skip, sixth proposal refuses visibly without consuming its ask."
+    },
+    {
+      "id": 581,
+      "title": "Audit #481 D9 — A library refresh duplicates items you stashed in the village (medium, latent · ruled; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1026",
+      "verdict": "Open / limited verification",
+      "evidence": "D9 ordinary refresh fixtures pass; re-keyed stash marks #527(27), transfer defects #518 and recorded coverage gaps #528 prevent a solid broader sign-off."
+    },
+    {
+      "id": 582,
+      "title": "Audit #481 D10 — \"Replace from library\" keeps the old sheet's owed level-up choices (low, wrong outcome; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1048",
+      "verdict": "Verified complete",
+      "evidence": "#428: 7/7 including D10; replacement clears old hero owed choices and delete marks while other owners remain unchanged."
+    },
+    {
+      "id": 583,
+      "title": "Audit #481 E2 — Village daytime ambience goes silent once a place has been classified (medium, wrong outcome; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1058",
+      "verdict": "Verified complete",
+      "evidence": "Interior hearth defaults: 9/9 including E2; classified square/yard/green select beds at 06:00, 12:00, 16:40; hush and veto rules preserved. Sound selection verified, not listening."
+    },
+    {
+      "id": 584,
+      "title": "Audit #481 E3 — An accent that finishes loading while the layer is blocked plays anyway (medium, race; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1059",
+      "verdict": "Verified complete",
+      "evidence": "tests-accent-layer.js passes: load completion under disabled/hidden/mic/paused gates cannot schedule accents; the spacing rule survives blocking."
+    },
+    {
+      "id": 585,
+      "title": "Audit #481 E4 — Switching campaigns keeps the old narration playing, and \"repeat\" replays the old campaign (medium, state across a switch; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1060",
+      "verdict": "Verified complete",
+      "evidence": "tests-481-e4-campaign-switch.js passes: campaign activation stops TTS and clears replay text; repeat cannot speak the previous campaign."
+    },
+    {
+      "id": 586,
+      "title": "Audit #481 E7 — A stale soundscape silences your own house (low, wrong outcome; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1057",
+      "verdict": "Verified complete",
+      "evidence": "Interior hearth defaults: 9/9 including E7; stale valid house selects hearth and re-asks, invalid profile remains silent."
+    },
+    {
+      "id": 587,
+      "title": "Audit #481 F1 — Campaign folders are keyed by campaign name — two of your Village campaigns already share one folder (high, silent loss on disk; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1038",
+      "verdict": "Verified complete",
+      "evidence": "tests-481-f1-campaign-folders.js passes: same-name campaigns export separately, legacy folders adopt safely, refused rename preserves original target."
+    },
+    {
+      "id": 588,
+      "title": "Audit #481 F2 — Portrait strings go into the page unescaped — a crafted save can run script when you open any NPC's sheet (medium, security; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1036",
+      "verdict": "Verified complete",
+      "evidence": "#481 F2 tests plus Chrome malicious NPC portrait at desktop/phone widths: no injected script, no onerror attribute; unsafe image discarded."
+    },
+    {
+      "id": 589,
+      "title": "Audit #481 F5 — The server and the client build library slugs differently (medium, silent overwrite; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ both halves shipped, owner check pending — v1.1075: library-slug.js is the ONE slug (both edge underscores trimmed; the blueprint id keeps the designer's 120-character cut); the game's two slug sites delegate to it; its SHA-256 (line endings normalized) is pinned for the vendored server copy. Proof: dev/tests-481-f5-library-slug.js (red first), dev/sabotage-481-f5-library-slug.js 4/4. Server half: server PR #3 (vendored library-slug.cjs, charSlug/bpSlug through it, a collision-safe v7 slug migration, test-library-slug.mjs red→green, npm test green). Fable reviewed #3 on 2026-09-30: APPROVE WITH CHANGES. All four binding conditions were met in the code. The requested changes are in 50c1712, server v1.7.0: a test for the guard's second half (two long blueprint names cut to one free slug; deleting the taken-set line had left the tests green, and now it fails), a re-run test, the version bump, and a README entry. The live window, with the client half deployed and the server half not, was judged benign: the client's slug output did not change. Its flaky CI check is fixed in server PR #4 , also Fable-reviewed. Owner steps, in Fable's order: rehearse with restore-drill.yml, merge, Fly snapshot, flyctl deploy --ha=false, then check the [migrate v7] log lines. Rehearsed 2026-09-30 ( restore-drill run , the branch at 50c1712, on a fresh copy of the live data): success. 0 slugs renamed and 0 left in both tables, so nothing in production needs renaming today and the deploy stamps v7 without changing a row. The server was healthy; integrity_check ok before and after; row counts unchanged (2 users, 18 campaigns, 17 characters, 7 blueprints). Deployed 2026-09-30 as server v1.7.0, Fly release v50 (merge 26f61c0; receipt 5d4aca1). First a fresh off-Fly backup, then snapshot vs_mKZ7wKbPmyAFyV9L5zXy. The boot log shows migration v7 applied, 0 renamed and 0 left in both tables, schema v7; /health 200; an unauthenticated /api/account 401. Owner check: in the game, Replace or Update from library on a name that begins and ends with punctuation, such as \"(Ammut)\". It should now find its library copy.",
+      "verdict": "Open / limited verification",
+      "evidence": "Client slug/hash tests pass, including punctuation/accent names. Live Replace/Update against the deployed server was not exercised; no account/library writes authorized by this verification pass."
+    },
+    {
+      "id": 590,
+      "title": "Audit #481 F6 — When a folder rename half-fails, the toast points you at the wrong folder (medium, misleading error; split out of the #481 umbrella 2026-10-02 at the owner's ask). ",
+      "originalStatus": "◉ ready to test — v1.1037",
+      "verdict": "Verified complete",
+      "evidence": "tests-438-folder-rename.js passes: post-copy removal failure names the complete destination and switches handle there; copy failure preserves source."
+    }
+  ]
+}

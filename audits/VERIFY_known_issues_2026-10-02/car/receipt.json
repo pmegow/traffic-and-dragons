@@ -1,0 +1,118 @@
+{
+  "at": "2026-10-03T05:46:50.295Z",
+  "pcmSeconds": 1.5,
+  "scenarios": {
+    "e8-paused-read": {
+      "log": [
+        {
+          "t": "0.3s",
+          "step": "enter Car Mode",
+          "tts": "playing",
+          "held": false,
+          "mic": false,
+          "status": "Your options…",
+          "crumbs": [],
+          "micOpens": [
+            {
+              "kind": "recognizer",
+              "ttsPlaying": false
+            }
+          ]
+        },
+        {
+          "t": "2.7s",
+          "step": "entry settled, mic open",
+          "tts": "idle",
+          "held": false,
+          "mic": true,
+          "status": "Listening…",
+          "crumbs": [],
+          "micOpens": [
+            {
+              "kind": "recognizer",
+              "ttsPlaying": false
+            }
+          ]
+        },
+        {
+          "t": "2.9s",
+          "step": "mic closes (driver silent)",
+          "tts": "idle",
+          "held": false,
+          "mic": false,
+          "status": "Tap to speak",
+          "crumbs": [],
+          "micOpens": []
+        },
+        {
+          "t": "3.2s",
+          "step": "narrate",
+          "tts": "playing",
+          "held": false,
+          "mic": false,
+          "status": "Tap to speak",
+          "crumbs": [],
+          "micOpens": []
+        },
+        {
+          "t": "3.4s",
+          "step": "car sends PAUSE",
+          "tts": "paused",
+          "held": false,
+          "mic": false,
+          "status": "Paused",
+          "crumbs": [
+            "media-action pause playing #1"
+          ],
+          "micOpens": []
+        },
+        {
+          "t": "3.7s",
+          "step": "car sends PLAY",
+          "tts": "playing",
+          "held": false,
+          "mic": false,
+          "status": "Narrator speaking…",
+          "crumbs": [
+            "media-action play paused #1"
+          ],
+          "micOpens": []
+        },
+        {
+          "t": "4.0s",
+          "step": "say \"pause\"",
+          "tts": "paused",
+          "held": true,
+          "mic": false,
+          "status": "Paused",
+          "crumbs": [],
+          "micOpens": []
+        },
+        {
+          "t": "4.2s",
+          "step": "car sends PLAY",
+          "tts": "paused",
+          "held": true,
+          "mic": false,
+          "status": "Paused",
+          "crumbs": [
+            "media-action play held #2"
+          ],
+          "micOpens": []
+        },
+        {
+          "t": "4.5s",
+          "step": "tap",
+          "tts": "playing",
+          "held": false,
+          "mic": false,
+          "status": "Narrator speaking…",
+          "crumbs": [],
+          "micOpens": []
+        }
+      ],
+      "pageErrors": []
+    }
+  },
+  "failures": []
+}

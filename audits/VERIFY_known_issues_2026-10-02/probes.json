@@ -1,0 +1,142 @@
+[
+  {
+    "id": 519,
+    "name": "stow, swap hero, undo",
+    "result": "STILL BROKEN",
+    "undo": {
+      "ok": true,
+      "name": "Sihedron ritual spear",
+      "action": "placed",
+      "key": "The Village|Silas's house",
+      "units": 1
+    },
+    "inventories": [
+      [],
+      []
+    ],
+    "chest": [],
+    "turn": 5
+  },
+  {
+    "id": 518,
+    "name": "one torch pays for gift of three",
+    "result": "STILL BROKEN",
+    "inventory": [
+      "Torch x3"
+    ],
+    "muts": [
+      "-Torch",
+      "Bram: +Torch x3"
+    ],
+    "turn": 5
+  },
+  {
+    "id": 511,
+    "name": "same-world footer after sublocation",
+    "result": "STILL BROKEN",
+    "world": {
+      "location": "The Village",
+      "region": "The Reach",
+      "time": "dusk",
+      "weather": "rain",
+      "threat": "low",
+      "sublocation": null
+    },
+    "turn": 5
+  },
+  {
+    "id": 517,
+    "name": "sale bundled with purchase",
+    "result": "STILL BROKEN",
+    "combined": {
+      "lines": [
+        {
+          "kind": "sell",
+          "name": "Carved whistle",
+          "qty": 2,
+          "unitGp": 0.3,
+          "gp": 0.6
+        },
+        {
+          "kind": "buy",
+          "name": "Rope",
+          "qty": 1,
+          "unitGp": 1,
+          "gp": 1
+        }
+      ],
+      "under": [],
+      "sellGp": 0.6,
+      "buyGp": 1,
+      "netGp": 1,
+      "goldAfter": 9,
+      "ok": true,
+      "reason": ""
+    },
+    "buy": {
+      "lines": [
+        {
+          "kind": "buy",
+          "name": "Rope",
+          "qty": 1,
+          "unitGp": 1,
+          "gp": 1
+        }
+      ],
+      "under": [],
+      "sellGp": 0,
+      "buyGp": 1,
+      "netGp": 1,
+      "goldAfter": 9,
+      "ok": true,
+      "reason": ""
+    },
+    "turn": 5
+  },
+  {
+    "id": 517,
+    "name": "plural copper units",
+    "result": "STILL BROKEN",
+    "before": 25,
+    "after": 22,
+    "muts": [
+      "-3 gp"
+    ],
+    "turn": 5
+  },
+  {
+    "id": 527,
+    "name": "lead 26: wanted item consumed without sale",
+    "result": "STILL BROKEN",
+    "goldChange": 0,
+    "wanted": [],
+    "muts": [
+      "-Carved whistle",
+      "Want met: Carved whistle (Frizwick)"
+    ],
+    "turn": 5
+  },
+  {
+    "id": 503,
+    "name": "Princess t89 read-only save; replay King tags with separate princess fixture",
+    "result": "PASS",
+    "fixture": "Campaigns\\The_Princess_Is_Not_In_Danger__Ammut_\\saves\\The_Princess_Is_Not_In_Danger__Ammut__Ammut_t89.tnd",
+    "note": "in-memory reconstruction of pre-fusion pronouns; historical damage is not repaired",
+    "muts": [
+      "⚠ King Underbough is not Wilhelmina Underbough (he, not she) — filed as a separate person",
+      "NPC: King Underbough",
+      "Pronouns: King Underbough (he/him)"
+    ]
+  },
+  {
+    "id": 563,
+    "name": "Village t218 return note and history stability",
+    "result": "PASS",
+    "also": [
+      564
+    ],
+    "fixture": "Campaigns\\The_Village__Ammut_\\saves\\The_Village__Ammut__Ammut_t218.tnd",
+    "fact": "Ammut chose to return home to sleep alongside his wives rather than linger at the tavern.",
+    "note": "[ENGINE NOTE — RETURN (not a player action): the player has been away 3 hours of real time. Open THIS response with a greeting from a resident who is here, or who calls at the door or crosses the hero's path when the hero steps out — never through a window or shutters; the greeting may touch ONE thing from this village's own record, in the neighbour's own words, one passing clause, never the record's wording: \"Ammut chose to return home to sleep alongside his wives rather than linger at the tavern.\". Show ONE visible change since the last visit: it is night now — show it in the scene; it is not a lasting change to any place, so file nothing for it. Then the scene as usual. Never mention this note.]\n"
+  }
+]
