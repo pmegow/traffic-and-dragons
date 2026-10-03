@@ -7565,6 +7565,19 @@ function runEngineTests(R){
 
   // ── #207① the hour shapes the world (the 2:36 AM bathhouse) ────────────────────────────────
   section("#207 hour-shapes-the-world rule");
+  t("#557 the movement rule files EVERY named place the party stands in, outdoors included, in every kind (owner ruling 2026-10-02: \"space occupied by the player is space occupied by the player no matter what the description is\")",function(){
+    var rule=DEFAULT_RULES.filter(function(r){return /^LOCATION TAGS ARE MOVEMENT UPKEEP/.test(r);})[0];if(!rule)return "the movement rule is gone from DEFAULT_RULES";
+    if(/entering any named venue/.test(rule))return "the rule still limits [SUBLOCATION:] to venues — open ground was the settlement itself, and the riverbank never became a place (the Village t271)";
+    if(!/ANY named place within the current location, indoors or out/.test(rule)||!/a riverbank, a clearing, a bridge/.test(rule))return "the rule must name outdoor places as places";
+    if(!/wherever they stand, whatever the description/.test(rule)||!/can be returned to later/.test(rule))return "the rule must carry the owner's principle and its reason";
+    if(!/only unnamed transit/.test(rule))return "unnamed transit stays the location itself";
+    if(getRulesBlock().indexOf("indoors or out")<0)return "the rule must reach the rules block (stable half)";
+    /* the engine already files any named sub-location in an adventure: the rule was the only thing holding the riverbank back */
+    makeWorld();worldState.world.location="Sandpoint";applyMuts("[SUBLOCATION:the riverbank]");
+    if(worldState.world.sublocation!=="the riverbank"||!memory.map.nodes["Sandpoint|the riverbank"])return "an outdoor place files as a node in an adventure: "+JSON.stringify([worldState.world.sublocation,Object.keys(memory.map.nodes)]);
+    applyMuts("[SUBLOCATION_LEAVE]");if(!memory.map.nodes["Sandpoint|the riverbank"])return "leaving a place must not delete it — it can be returned to";
+    return true;
+  });
   t("#207①: the DEFAULT_RULES carry the hour rule, colored-not-gated",function(){
     var joined=DEFAULT_RULES.join("\n");
     if(joined.indexOf("THE HOUR SHAPES THE WORLD")<0)return "hour rule missing from DEFAULT_RULES";
