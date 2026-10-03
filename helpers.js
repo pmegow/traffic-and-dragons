@@ -349,7 +349,7 @@ function companionGrow(cs,oldFlaw,newFlaw,turn){
    belt, the character editor. Birth: the story only (#347 — never manufactured), every filing toasts, and the write
    path REFUSES a paperwork purpose (the #372 label list). Retired lines archive on the sheet (P12 — nothing vanishes)
    and travel with it. The hero's purpose is the player's and never passes through here. */
-var MOTIVATION_SETTLED_RE=/^\s*(settled|fulfilled|done|closed|abandoned|outgrown)\b\s*[:—\-]?\s*/i;
+var MOTIVATION_SETTLED_RE=/^\s*(settled|fulfilled|done|closed|abandoned|outgrown)\b\s*(?:[:—\-]\s*|$)/i;/* #515: the keyword needs its separator or the end of the text — "Done running: she will…" is a new purpose */
 /* #481 C8 (audit 2026-09-29, Fable-approved): a campaign stamp is the display name (camp) AND the id (campId). Every
    reader used to compare display names, so renaming a campaign turned its own moments into "an earlier adventure"
    (fae t89). ONE stamper and ONE comparator. campStampOn(obj[, name]) stamps the current campaign; an explicit name

@@ -9,6 +9,10 @@ rc|=sabotage.prove({
   file:"helpers.js",
   command:CMD,
   cases:[
+    { label:"#515: the settle keyword matches without its separator again ('Done running: …' settles instead of standing)",
+      mustFail:"#515 the summary's fallback",
+      find:"var MOTIVATION_SETTLED_RE=/^\\s*(settled|fulfilled|done|closed|abandoned|outgrown)\\b\\s*(?:[:—\\-]\\s*|$)/i;",
+      replace:"var MOTIVATION_SETTLED_RE=/^\\s*(settled|fulfilled|done|closed|abandoned|outgrown)\\b\\s*[:—\\-]?\\s*/i;" },
     { label:"#437: a settled purpose is dropped instead of archived",
       mustFail:"#437 pure: motivationSettle",
       find:"  cs.motivationHistory.push(rec);cs.motivation=\"\";return rec;",
@@ -62,7 +66,15 @@ rc|=sabotage.prove({
     { label:"#437: the extraction schema forgets the field",
       mustFail:"#437 belt: the extractor's motivationChanges",
       find:'\\"motivationChanges\\":[{\\"name\\":\\"party member\\",',
-      replace:'\\"motivationChangesX\\":[{\\"name\\":\\"party member\\",' }
+      replace:'\\"motivationChangesX\\":[{\\"name\\":\\"party member\\",' },
+    { label:"#515: the belt births over a standing purpose again (the tagged purpose is archived as replaced, a second toast follows)",
+      mustFail:"#515 the summary's fallback",
+      find:"if(typeof _mc.now===\"string\"&&_mc.now.trim()&&typeof _mcCs.motivation===\"string\"&&_mcCs.motivation.trim()){",
+      replace:"if(false){" },
+    { label:"#515: 'none' becomes the purpose again",
+      mustFail:"#515 the summary's fallback",
+      find:"if(typeof _mc.now===\"string\"&&/^(none|n\\/a|na|unknown|unchanged|same|—|-)$/i.test(_mc.now.trim())){",
+      replace:"if(false){" }
   ]
 });
 rc|=sabotage.prove({

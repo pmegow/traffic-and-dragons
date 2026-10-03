@@ -27457,6 +27457,26 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(__mlBlock(buildSysPrompt().stable,"Daeris").indexOf("(settled in The Necrotic Dungeon: the one she hunted was found and the debt paid);")<0)return "outside a small-talk kind the how must return";
     return true;
   });
+  t("#515 the summary's fallback births a purpose only when none stands and never files filler; the settle keyword needs its separator or the end of the text",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),f=findCompanionChar("Frizwick"),tl=[],_st=showToast,warns=[],_w=console.warn;showToast=function(m){tl.push(String(m));};console.warn=function(m){warns.push(String(m));};
+    try{
+      applyMuts("Daeris looks at the roofline. [COMPANION_GROWTH:Daeris|motivation|To make a home in the village with Ammut]");
+      if(d.motivation!=="To make a home in the village with Ammut")return "fixture: the tag lands: "+d.motivation;var hist=(d.motivationHistory||[]).length,n0=tl.length;
+      applySummaryExtract({chapterSummary:"",motivationChanges:[{name:"Daeris",now:"Build a home with Ammut in the village."},{name:"Frizwick",now:"none"}]},null);
+      if(d.motivation!=="To make a home in the village with Ammut"||(d.motivationHistory||[]).length!==hist)return "a paraphrase of a standing purpose is no new purpose: "+d.motivation+" / "+JSON.stringify(d.motivationHistory);
+      if(tl.length!==n0)return "no second toast: "+JSON.stringify(tl.slice(n0));
+      if(!warns.some(function(w){return /Daeris/.test(w)&&/stands/.test(w);}))return "the skip is said: "+JSON.stringify(warns);
+      if(f.motivation)return "'none' is filler, never a purpose: "+JSON.stringify(f.motivation);
+      applySummaryExtract({chapterSummary:"",motivationChanges:[{name:"Frizwick",now:"n/a"},{name:"Frizwick",now:"To find a place where leaving costs nothing vital."}]},null);
+      if(f.motivation!=="To find a place where leaving costs nothing vital.")return "with none standing the fallback births (filler skipped first): "+JSON.stringify(f.motivation);
+      applyMuts("Daeris sets her jaw. [COMPANION_GROWTH:Daeris|motivation|Done running: she will stand and face her father]");
+      if(d.motivation!=="Done running: she will stand and face her father")return "'Done running:' is a new purpose, not a settle: "+JSON.stringify([d.motivation,d.motivationHistory]);
+      applyMuts("Daeris exhales. [COMPANION_GROWTH:Daeris|motivation|Done: she faced him]");
+      if(d.motivation!==""||!(d.motivationHistory||[]).some(function(h){return /she faced him/.test(h.how);}))return "'Done:' with its colon settles: "+JSON.stringify([d.motivation,d.motivationHistory]);
+      applyMuts("Frizwick smiles. [COMPANION_GROWTH:Frizwick|motivation|fulfilled]");
+      return f.motivation===""?true:"a bare keyword at the end of the text settles: "+JSON.stringify(f.motivation);
+    }finally{showToast=_st;console.warn=_w;}
+  });
   t("#437 belt: the extractor's motivationChanges settle and birth through the same helpers — companions only (the hero and a stranger are dropped loudly, a paperwork purpose is refused loudly, every filing toasts) — and the extraction schema names the field with its ONLY-if guards",function(){
     __mlWorld();var d=findCompanionChar("Daeris"),f=findCompanionChar("Frizwick"),c=worldState.character;c.motivation="To prove yourself worthy of something lost";
     var warns=[],_w=console.warn,tl=[],_st=showToast;console.warn=function(m){warns.push(String(m));};showToast=function(m){tl.push(String(m));};
