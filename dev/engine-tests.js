@@ -20687,6 +20687,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return memory.npcs.Mokmurian.knowledge.length===0?true:"NPC details partially committed";
   });
 
+  t("#526 a W2 death refusal in the summary is a guard working: strikes one and two send NO error report (the console and the drift-health line still say it); the third strike, which quarantines the window, still reports; an ordinary extraction failure always reports",function(){
+    if(typeof summaryFailureReportWanted!=="function")return "summaryFailureReportWanted missing";
+    var w2=new Error("W2 referential integrity: Rinn Toldrath - no scene handle");w2.w2Identity=true;w2.subject="Rinn Toldrath";
+    var si=new Error("summary identity");si.summaryIdentity=true;var plain=new Error("Network: Load failed");
+    if(summaryFailureReportWanted(w2,1)||summaryFailureReportWanted(w2,2)||summaryFailureReportWanted(si,1))return "a guard working as designed is no crash report";
+    if(!summaryFailureReportWanted(w2,3)||!summaryFailureReportWanted(si,3))return "the third strike leaves a quarantined window behind — that is reported";
+    if(!summaryFailureReportWanted(plain,1)||!summaryFailureReportWanted(plain,2))return "an ordinary extraction failure reports at once";
+    var src=__fsForTests.readFileSync(__rootForTests+"/memory.js","utf8"),cb=src.slice(src.indexOf("async function summarize("),src.indexOf("function audioFileCandidates("));
+    if(cb.indexOf('if(summaryFailureReportWanted(e,_sumFails)&&typeof reportError==="function")reportError("summarize"')<0)return "summarize's catch must gate its report through summaryFailureReportWanted";
+    return true;
+  });
   t("W2 summary death requires cited scene evidence and a death-like chapter cannot bypass npcDeaths",function(){
     makeWorld();worldState.world.location="Ashfen";w2Npc("Rinn Toldrath");worldState.turn=170;applyMuts("[SCENE_REF:rinn|Rinn Toldrath]");
     worldState.turn=171;/* #168R6: summarize() runs on the NEXT action, so an honest citation is always prior-turn — same-turn evidence now refuses like the tag path */

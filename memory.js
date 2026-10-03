@@ -2616,6 +2616,14 @@ function buildExtractWindow(caps,elide){
   return {raw:raw,txt:txt};
 }
 var _sumFails=0; // runtime mirror of worldState.summaryFailure.count; persisted state is authoritative across reloads
+/* #526 (Thursday read 2026-10-01; 32 B29 reports): a W2 or summary-identity refusal is the guard WORKING — a named NPC
+   killed in narration with no scene handle is exactly what it exists to refuse — so it is a console line and the #17
+   drift-health line, not a mailed crash. It is reported once it has consequences: the third strike, which quarantines the
+   window. Every other extraction failure (network, parse, a thrown handler) reports at once as before. Pure. */
+function summaryFailureReportWanted(e,strikes){
+  var guard=!!(e&&(e.w2Identity||e.summaryIdentity));
+  return !guard||(strikes|0)>=3;
+}
 function summaryFailureBump(e){
   var old=worldState&&worldState.summaryFailure,prior=old&&typeof old.count==="number"?old.count:0,isIdentity=!!(e&&(e.summaryIdentity||e.w2Identity)),msg="unknown";try{msg=(e&&e.message!=null)?String(e.message):String(e);}catch(_sfb){}
   /* #190ⓔ: a DEFERRED identity failure (subject owned by an open tag-lane conflict) never advances
@@ -2769,7 +2777,8 @@ async function summarize(){
     var _eMsg="unknown",_eStk="";
     try{_eMsg=(e&&e.message!=null)?String(e.message):String(e);}catch(_ee){}
     try{_eStk=(e&&e.stack!=null)?String(e.stack):"";}catch(_ee2){}
-    if(typeof reportError==="function")reportError("summarize",_eMsg,_dbg+"\n"+_eStk);/* #16 */
+    if(summaryFailureReportWanted(e,_sumFails)&&typeof reportError==="function")reportError("summarize",_eMsg,_dbg+"\n"+_eStk);/* #16; #526: a guard working is no crash */
+    else if(typeof console!=="undefined")console.warn("[memory] summary refused by the identity guard (strike "+_sumFails+" of 3, no report — the drift-health line carries it; #526): "+_eMsg);
     if(_sumFails>=3&&((e&&(e.w2Identity||e.summaryIdentity))||(worldState.summaryFailure&&worldState.summaryFailure.identityValidation))){
       var _iqBits=[],_iqi;for(_iqi=sessKeptStart();_iqi<sessionLog.length;_iqi++){if(sessionLog[_iqi]&&!sessionLog[_iqi].bk&&sessionLog[_iqi].role==="assistant")_iqBits.push(String(sessionLog[_iqi].content||"").slice(0,200));}
       summaryIdentityQuarantine(e,_iqBits,_sumFails);
