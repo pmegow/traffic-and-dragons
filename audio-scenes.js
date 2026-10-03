@@ -2,6 +2,7 @@
 var AUDIO_EXTERIORS = {village:["the square","the animal handler's yard"]};
 var AUDIO_SCENES = [
   {id:"smithy",bind:{kind:"village",common:"the smithy"}},
+  {id:"alchemist",bind:{kind:"village",common:"the alchemist's"},accents:["alchemist-glass"]},
   {id:"village-morning",bind:{kind:"village",exterior:true,from:300,to:600}},
   {id:"village-day",bind:{kind:"village",exterior:true,from:600,to:1080}},
   {id:"village-dusk-noctina",bind:{kind:"village",exterior:true,from:1080,to:1260}},

@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-02 · #559 activation · Codex, owner listened to calmer v2 and requested installation: two catalog entries and one Village seed binding, using existing playback policy unchanged. App/cache markers bumped to v1.1122; CC0 provenance records approval.
+
 - 2026-10-02 · #559 · Codex, owner-requested alchemist audio: CC0 source recordings, prepared simmer and four glass clinks with license/hash receipts; busy first mix rejected, calmer v2 awaits listening approval. No engine changes or activation yet.
 
 - 2026-10-02 · #553 contrast · Codex, owner-requested website v1.0.4: reduced the outer parchment color value by 25% (#eaddb9 to #b0a68b), placed the original paper fill on the bordered cover, and made the wrapper transparent so every outer margin uses the darker surround. No engine changes.

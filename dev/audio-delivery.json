@@ -790,6 +790,130 @@
       "recipe": "mono; DC removal; 1 s tail/head crossfade; RMS -32 dBFS; libmp3lame 128 kbps",
       "seedOnly": true,
       "defaultFor": "habitable-interior"
+    },
+    {
+      "cohort": "starter-1",
+      "enclosures": [
+        "sealed"
+      ],
+      "settings": [
+        "interior"
+      ],
+      "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "seedOnly": true,
+      "id": "alchemist",
+      "label": "Alchemist’s quiet simmer",
+      "role": "feature",
+      "contains": [
+        "water"
+      ],
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "mix": true,
+        "loop": true
+      },
+      "source": {
+        "sha256": "65d72c6fe9be3ce94aed509fd36efbffdf894d17e7babf84ecb105e2d205fb68",
+        "url": "https://bigsoundbank.com/boiling-water-s0149.html",
+        "author": "Joseph SARDIN",
+        "license": "CC0-1.0"
+      },
+      "recipe": "Only source 0149, high-pass 100 Hz and low-pass 2400 Hz; no straw-bubble layer. Existing preparation: 1.5 s crossfade, RMS -35, peak ceiling -10 dBFS.",
+      "bed": {
+        "url": "sfx/alchemist-bubbles-v2.mp3",
+        "gain": 0.55,
+        "loopStart": 0,
+        "loopEnd": 11.841,
+        "maxSeconds": 15,
+        "channels": 1,
+        "maxBytes": 250000,
+        "maxDecodedBytes": 6000000
+      }
+    },
+    {
+      "cohort": "starter-1",
+      "enclosures": [
+        "sealed"
+      ],
+      "settings": [
+        "interior"
+      ],
+      "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "seedOnly": true,
+      "id": "alchemist-glass",
+      "label": "Alchemist’s gentle glass clinks",
+      "role": "accent",
+      "contains": [],
+      "needsAny": [],
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "mix": true
+      },
+      "source": {
+        "sha256": "9482ce19c5ba9c264c516c166ec6d5668aec6fc94f23e27307e1fb2a1c355e1d",
+        "url": "https://bigsoundbank.com/bottle-clink-s0487.html",
+        "author": "Joseph SARDIN",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -32 dBFS, peak ceiling -12 dBFS; raised-cosine fades 3 ms in / 40 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "trigger": "ambient",
+      "rain": "play",
+      "pattern": {
+        "kind": "single"
+      },
+      "gap": [
+        45,
+        90
+      ],
+      "sprite": {
+        "url": "sfx/accent-alchemist-glass-v1.mp3",
+        "gain": [
+          0.35,
+          0.55
+        ],
+        "cuts": [
+          [
+            0.25,
+            0.703
+          ],
+          [
+            0.953,
+            1.4125
+          ],
+          [
+            1.6625,
+            2.3369
+          ],
+          [
+            2.5869,
+            3.3186
+          ]
+        ],
+        "maxSeconds": 5,
+        "channels": 1,
+        "maxBytes": 100000,
+        "maxDecodedBytes": 2000000
+      }
     }
   ]
 }

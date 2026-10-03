@@ -40,7 +40,7 @@ Prepared with `dev/prepare-accent-sprite.py`: per step mono mean, DC removal, tr
 
 `accent-chimes-koshi-v1.mp3` (six 5 s phrases, Kinoton Koshi 376001/378431), `accent-chimes-metal-v1.mp3` (five 5 s phrases, janbezouska 266951), `accent-bowl-small-v1.mp3` (one strike, inoshirodesign 271370) and `accent-bell-church-v1.mp3` (first 14 s of bassimat 857912 with a 2.5 s fade). **CC0 1.0**, each verified on its Freesound page and owner-approved by listening 2026-09-22. The chime phrases are cut from continuous takes at their quietest edges (300 ms fade in, 1.5 s fade out); RMS −30 dBFS. Catalog: `chimes-koshi`, `chimes-metal` and `bowl-small` play where a place's SOUNDSCAPE allows `chimes`; `bell-church` only in the open settlement where it allows `bells` (owner ruling). Each set's `mix` approval waits for the owner hearing it in `dev/accent-audition.html`. Provenance: `interior-and-layer-provenance.json`.
 
-## Alchemist: a quiet simmer and gentle glass handling (prepared, awaiting mix approval)
+## Alchemist: a quiet simmer and gentle glass handling (owner-approved, v1.1122)
 
 `alchemist-bubbles-v2.mp3`: 11.841 s seamless mono simmer; `accent-alchemist-glass-v1.mp3`:
 four short bottle clinks in one 3.569 s mono sprite. No breaking-glass recording is used.
@@ -55,9 +55,16 @@ and 13.4–14.6 s of 0487, RMS -32 dBFS, peak ceiling -12 dBFS, 3 ms attack and 
 The existing preparation tools encode mono 128 kbps MP3 with gapless headers. Source hashes,
 delivery hashes, sprite cuts and processing receipts: `alchemist-provenance.json`.
 
-Proposed Village mix: bed gain 0.55; one glass sound at gain 0.35–0.55 every 45–90 seconds,
+Approved Village mix: bed gain 0.55; one glass sound at gain 0.35–0.55 every 45–90 seconds,
 through the existing accent scheduler (arrival quiet, no accents during narration or mic capture).
 Bind only to the open `the alchemist's` Village common. No new SOUNDSCAPE vocabulary is needed.
-**Not enabled pending owner listening approval.** Local masters, license-page receipts and the
+**Owner approved the calmer v2 mix and requested installation on 2026-10-02.**
+Catalog entries `alchemist` and `alchemist-glass` are bound through `audio-scenes.js`;
+other shops and generic interiors cannot select these seed-only assets. Local masters, license-page receipts and the
 35-second audition are under `Audio/CC0/Alchemist/` and `Audio/Prepared/` (ignored). The audition
 condenses glass gaps to 4, 14 and 26 s; it is not the proposed in-game frequency.
+
+Installation verification: the real browser loader verified and decoded both catalog files,
+started the simmer and one scheduled clink, suppressed accents during narration and mic
+capture, stopped on mute/pause, resumed, and released both buffers when the shop closed.
+Selection checks also cover wrong campaign/shop, unknown hours and profile prohibitions.
