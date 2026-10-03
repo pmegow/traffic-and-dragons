@@ -1,0 +1,11 @@
+Smoke-replaying 12 raw GM responses through the table parser…
+[tags] ITEM_LOST: no inventory entry matches 'Silver signet ring (looted from a dead bandit)' — nothing removed, no receipt minted (#136⑤, the live t1530 -none class)
+[tags] ITEM_LOST: no inventory entry matches 'Bandit's engraved dagger (loot)' — nothing removed, no receipt minted (#136⑤, the live t1530 -none class)
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[quest] QUEST_STEP names no known quest: 'The Welcome Tax' — objective 'Confront Saltmen collection racket in outer district' dropped (mis-title? the ACTIVE block's titles are authoritative) (#265②)
+[clock] reconcile SKIPPED — 'dusk' is 11h ahead on the same day with no [TIME_ADVANCE:]; mislabel presumed. Real skips need [REST:long] or [TIME_ADVANCE:] (#142/#368)
+[xp] GM award 100 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[sound] 'click_glass' skipped — no AudioContext
+── smoke-replay complete ── handler errors: 0
+end-state sanity: hp 24/24 | xp 1165 | quests archived 1 | npcs 7 | spells Mage Hand:ok, Message:ok, Charm Person:ok, Silent Image:ok
+end state matches committed baseline -> dev/corpus_playtest_v1276.json.endstate.json

@@ -1,0 +1,416 @@
+[
+  {
+    "row": 511,
+    "caseName": "fixed: same-world footer",
+    "turn": 5,
+    "result": "FIXED",
+    "sublocation": "the tavern",
+    "muts": [
+      "Sub: the tavern",
+      "Location re-stated (no move): The Village"
+    ]
+  },
+  {
+    "row": 517,
+    "caseName": "fixed: mixed sale and purchase",
+    "turn": 5,
+    "result": "FIXED",
+    "plan": {
+      "lines": [
+        {
+          "kind": "sell",
+          "name": "Carved whistle",
+          "qty": 2,
+          "unitGp": 0.3,
+          "gp": 0.6
+        },
+        {
+          "kind": "buy",
+          "name": "Rope",
+          "qty": 1,
+          "unitGp": 1,
+          "gp": 1
+        }
+      ],
+      "under": [],
+      "sellGp": 0.6,
+      "buyGp": 1,
+      "netGp": 0,
+      "goldAfter": 10,
+      "ok": true,
+      "reason": ""
+    }
+  },
+  {
+    "row": 517,
+    "caseName": "fixed: coppers parsed as cp and refused, not charged as gp",
+    "turn": 5,
+    "result": "FIXED",
+    "before": 25,
+    "after": 25,
+    "muts": [
+      "⚠ Gold refused — [GOLD:-3 coppers] is cp, not gold; the purse counts whole gold pieces and never converts (nothing moved)"
+    ]
+  },
+  {
+    "row": 518,
+    "caseName": "fixed: one-unit gift cap; two-unit boundary",
+    "turn": 5,
+    "result": "FIXED",
+    "observed": [
+      {
+        "held": 1,
+        "received": [
+          "Torch"
+        ],
+        "muts": [
+          "-Torch",
+          "⚠ Gift of Torch x3 cut to one — the pack held 1 (#518)",
+          "Bram: +Torch"
+        ]
+      },
+      {
+        "held": 2,
+        "received": [
+          "Torch x2"
+        ],
+        "muts": [
+          "-Torch x2",
+          "⚠ Gift of Torch x3 cut to x2 — the pack held 2 (#518)",
+          "Bram: +Torch x2"
+        ]
+      },
+      {
+        "held": 3,
+        "received": [
+          "Torch x3"
+        ],
+        "muts": [
+          "-Torch x3",
+          "Bram: +Torch x3"
+        ]
+      }
+    ]
+  },
+  {
+    "row": 519,
+    "caseName": "fixed: hero-swap undo preserves spear; returning hero can undo",
+    "turn": 5,
+    "result": "FIXED",
+    "blocked": {
+      "ok": false,
+      "reason": "Silas is no longer the hero or in the party — Sihedron ritual spear stays in Silas's house until Silas plays again"
+    },
+    "retry": {
+      "ok": true,
+      "name": "Sihedron ritual spear",
+      "action": "placed",
+      "key": "The Village|Silas's house",
+      "units": 1
+    },
+    "inventory": [
+      "Sihedron ritual spear"
+    ]
+  },
+  {
+    "row": 511,
+    "caseName": "remaining: trade tag block before arrival",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "oldShopWares": [
+      {
+        "item": "Brass comb",
+        "price": "3 gp",
+        "note": "Frizwick",
+        "t": 5,
+        "min": 17880,
+        "at": "The Iron Cauldron"
+      }
+    ],
+    "newShopWares": [],
+    "muts": [
+      "Sub: The Iron Cauldron",
+      "For sale: Brass comb — 3 gp"
+    ]
+  },
+  {
+    "row": 518,
+    "caseName": "remaining: empty companion reverse transfer creates units",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "hero": [
+      "Torch x2"
+    ],
+    "companion": [],
+    "muts": [
+      "+Torch x3",
+      "⚠ Nothing moved — 'Torch x3' is not on Bram's sheet"
+    ]
+  },
+  {
+    "row": 518,
+    "caseName": "remaining: gift at home also consumes chest copy",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "hero": [],
+    "companion": [
+      "Healing potion"
+    ],
+    "chest": [
+      {
+        "name": "Healing potion",
+        "placed": 1,
+        "taken": true,
+        "qty": 0,
+        "by": "Silas",
+        "min": 0
+      }
+    ],
+    "muts": [
+      "-Healing potion",
+      "Bram: +Healing potion",
+      "From the stash: Healing potion (Bram)"
+    ]
+  },
+  {
+    "row": 518,
+    "caseName": "remaining: independent loot collides with missing companion throw",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "hero": [],
+    "muts": [
+      "+Dagger",
+      "⚠ Nothing moved — 'Dagger' is not on Bram's sheet"
+    ]
+  },
+  {
+    "row": 519,
+    "caseName": "remaining: unpaired placement undo destroys item",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "undo": {
+      "ok": true,
+      "name": "Sihedron ritual spear",
+      "action": "placed",
+      "key": "The Village|Silas's house",
+      "units": 1
+    },
+    "hero": [],
+    "chest": [
+      {
+        "name": "Sihedron ritual spear",
+        "placed": 5,
+        "taken": true,
+        "qty": 0,
+        "by": "Silas",
+        "min": 17880
+      }
+    ]
+  },
+  {
+    "row": 517,
+    "caseName": "remaining: unsupported price forms",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "prices": [
+      {
+        "input": "20 for 1 gp",
+        "parsed": {
+          "amount": 1,
+          "unit": "gp",
+          "gp": 1,
+          "per": 1,
+          "unitGp": 1
+        }
+      },
+      {
+        "input": "5 gp per dozen",
+        "parsed": {
+          "amount": 5,
+          "unit": "gp",
+          "gp": 5,
+          "per": 1,
+          "unitGp": 5
+        }
+      },
+      {
+        "input": "1 gp 5 sp",
+        "parsed": {
+          "amount": 1,
+          "unit": "gp",
+          "gp": 1,
+          "per": 1,
+          "unitGp": 1
+        }
+      }
+    ]
+  },
+  {
+    "row": 517,
+    "caseName": "remaining: repeated wanted base names",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "sell": [
+      {
+        "name": "Warded ring",
+        "qty": 1,
+        "worn": false,
+        "canonGp": null,
+        "wanted": true,
+        "sellGp": 40,
+        "offer": "40 gp"
+      },
+      {
+        "name": "Warded ring — taken from the crypt",
+        "qty": 1,
+        "worn": false,
+        "canonGp": null,
+        "wanted": true,
+        "sellGp": 40,
+        "offer": "40 gp"
+      },
+      {
+        "name": "Warded ring (cracked)",
+        "qty": 1,
+        "worn": false,
+        "canonGp": null,
+        "wanted": true,
+        "sellGp": 40,
+        "offer": "40 gp"
+      }
+    ],
+    "plan": {
+      "lines": [
+        {
+          "kind": "sell",
+          "name": "Warded ring",
+          "qty": 1,
+          "unitGp": 40,
+          "gp": 40
+        },
+        {
+          "kind": "sell",
+          "name": "Warded ring — taken from the crypt",
+          "qty": 1,
+          "unitGp": 40,
+          "gp": 40
+        },
+        {
+          "kind": "sell",
+          "name": "Warded ring (cracked)",
+          "qty": 1,
+          "unitGp": 40,
+          "gp": 40
+        }
+      ],
+      "under": [],
+      "sellGp": 120,
+      "buyGp": 0,
+      "netGp": -120,
+      "goldAfter": 145,
+      "ok": true,
+      "reason": ""
+    }
+  },
+  {
+    "row": 517,
+    "caseName": "remaining: counted ware name doubles bundle",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "buy": [
+      {
+        "name": "Arrow x20",
+        "price": "1 gp per 20",
+        "buyGp": 0.05,
+        "per": 20,
+        "note": ""
+      }
+    ],
+    "trade": {
+      "ok": true,
+      "plan": {
+        "lines": [
+          {
+            "kind": "buy",
+            "name": "Arrow x20",
+            "qty": 20,
+            "unitGp": 0.05,
+            "gp": 1,
+            "price": "1 gp per 20"
+          }
+        ],
+        "under": [],
+        "sellGp": 0,
+        "buyGp": 1,
+        "netGp": 1,
+        "goldAfter": 24,
+        "ok": true,
+        "reason": ""
+      },
+      "muts": [
+        "-1 gp",
+        "+Arrow x20 x20"
+      ],
+      "line": "Silas bought Arrow x20 x20 (1 gp) — -1 gp, with Frizwick at the trading post."
+    },
+    "hero": [
+      "Arrow x39"
+    ]
+  },
+  {
+    "row": 517,
+    "caseName": "remaining: per-five wanted offer cannot select a payable bundle",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "rows": [
+      {
+        "key": "iron ore",
+        "label": "Iron ore",
+        "max": 1,
+        "worn": false,
+        "off": false,
+        "unit": 0.2,
+        "offReason": "",
+        "tag": "wanted",
+        "hint": "Wanted here: the keeper's offer (1 gp per 5), for one"
+      }
+    ],
+    "plan": {
+      "lines": [],
+      "under": [
+        "1 Iron ore (2 sp)"
+      ],
+      "sellGp": 0,
+      "buyGp": 0,
+      "netGp": 0,
+      "goldAfter": 25,
+      "ok": false,
+      "reason": "the keeper pays nothing for 1 Iron ore (2 sp) — under half a gold piece; mark more of it, or keep it"
+    }
+  },
+  {
+    "row": 517,
+    "caseName": "remaining: adventure wrong-unit coin has no GM ping",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "gold": 25,
+    "ping": null,
+    "muts": [
+      "⚠ Gold refused — [GOLD:-5 sp] is sp, not gold; the purse counts whole gold pieces and never converts (nothing moved)"
+    ]
+  },
+  {
+    "row": 517,
+    "caseName": "remaining: paid empty companion take says nothing moved",
+    "turn": 5,
+    "result": "STILL BROKEN",
+    "before": 25,
+    "after": 23,
+    "hero": [],
+    "muts": [
+      "-2 gp",
+      "+Torch",
+      "⚠ Nothing moved — 'Torch' is not on Bram's sheet"
+    ]
+  }
+]

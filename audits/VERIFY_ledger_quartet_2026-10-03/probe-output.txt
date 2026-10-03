@@ -1,0 +1,22 @@
+[tags] GOLD refused (unit cp): [GOLD:-3 coppers]
+[stash] undo refused — Silas is no longer the hero or in the party — Sihedron ritual spear stays in Silas's house until Silas plays again; nothing moved (#481 D1)
+[tags] COMPANION_ITEM_LOST: 'Torch x3' not in Bram's inventory — no receipt (#136⑤)
+[tags] COMPANION_ITEM_LOST: 'Dagger' not in Bram's inventory — no receipt (#136⑤)
+[tags] GOLD refused (unit sp): [GOLD:-5 sp]
+[tags] COMPANION_ITEM_LOST: 'Torch' not in Bram's inventory — no receipt (#136⑤)
+511 FIXED fixed: same-world footer
+517 FIXED fixed: mixed sale and purchase
+517 FIXED fixed: coppers parsed as cp and refused, not charged as gp
+518 FIXED fixed: one-unit gift cap; two-unit boundary
+519 FIXED fixed: hero-swap undo preserves spear; returning hero can undo
+511 STILL BROKEN remaining: trade tag block before arrival
+518 STILL BROKEN remaining: empty companion reverse transfer creates units
+518 STILL BROKEN remaining: gift at home also consumes chest copy
+518 STILL BROKEN remaining: independent loot collides with missing companion throw
+519 STILL BROKEN remaining: unpaired placement undo destroys item
+517 STILL BROKEN remaining: unsupported price forms
+517 STILL BROKEN remaining: repeated wanted base names
+517 STILL BROKEN remaining: counted ware name doubles bundle
+517 STILL BROKEN remaining: per-five wanted offer cannot select a payable bundle
+517 STILL BROKEN remaining: adventure wrong-unit coin has no GM ping
+517 STILL BROKEN remaining: paid empty companion take says nothing moved

@@ -1,0 +1,30 @@
+
+  sabotage — helpers.js
+   ✓ caught      #517 ① the net is rounded as one number again (the whistles are given away and the rope paid in full)
+   ✓ caught      #517 ① the purchase side loses its 1 gp floor (a 3 sp needle is free)
+   ✓ caught      #517 ② the plural coin word fails the boundary again ('3 coppers' reads as 3 gp)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      #518 the gift is no longer bounded by what left the pack
+   ✓ caught      #518 the cut is applied but not said
+   ✓ caught      #511 a re-stated world still counts as the last arrival (the tavern becomes passed-through)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      #511 the timeline never marks a re-statement (the footer clears the sub-location again)
+   ✓ caught      #511 a lone same-world footer with no arrival before it is treated as a re-statement too (the old reading is lost)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      #519 the undo no longer refuses when the recorded actor is neither hero nor companion
+   ✓ caught      #519 the refusal no longer names who the item belonged to
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
