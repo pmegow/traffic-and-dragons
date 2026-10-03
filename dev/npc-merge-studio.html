@@ -118,15 +118,17 @@ Everything runs locally in this page with the real game engine; nothing is uploa
   </div>
 </div></div>
 
-<script src="../globals.js"></script>
-<script src="../compress.js"></script>
-<script src="../data.js"></script>
-<script src="../capability_bible.js"></script>
-<script src="../helpers.js"></script>
-<script src="../state.js"></script>
-<script src="../storage-adapter.js"></script>
-<script src="../memory.js"></script>
-<script src="../tag_table.js"></script>
+<!-- #546: the engine, GENERATED from dev/engine-manifest.js — the same ordered list the command-line tool
+     (npc-merge-tool.js via load-engine.js) and test.html load. The old hand-picked nine skipped clock.js, identity.js
+     and api.js, so the live merge handler threw `relationshipRekeyEntity is not defined` partway through a merge. -->
+<script src="engine-manifest.js"></script>
+<script>
+for(var __mi=0;__mi<ENGINE_MANIFEST.length;__mi++){document.write('<script src="../'+ENGINE_MANIFEST[__mi].file+'"><\/script>');}
+</script>
+<script>
+(function(){var __missing=[];for(var i=0;i<ENGINE_MANIFEST.length;i++){if(typeof window[ENGINE_MANIFEST[i].sym]==="undefined")__missing.push(ENGINE_MANIFEST[i].file);}
+  if(__missing.length){var d=document.createElement("div");d.style.cssText="background:#5a1e1e;color:#fff;padding:10px 14px;font-family:monospace;";d.textContent="merge studio: engine file(s) failed to load — "+__missing.join(", ")+" (open this page from the repo, not a copy)";document.body.insertBefore(d,document.body.firstChild);}})();
+</script>
 <script src="npc-merge-core.js"></script>
 <script>
 var tnd=null,fileName="",built=null,customMerges=[],applied=false;
