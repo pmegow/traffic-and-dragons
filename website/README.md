@@ -24,8 +24,8 @@ Git source: `pmegow/traffic-and-dragons`, production branch `master`, output dir
 disabled. Future pushed changes in this folder deploy automatically.
 
 The initial approved deployment is `dbdcc755`, source commit `8f980160`, website
-version 1.0.0. The previous `landing/` folder is retained for reference; `website/`
-is the source for the public site. The game remains a separate Pages project at its
+version 1.0.0. A first `landing/` page (Fable, the same day) was deleted once this one
+went live; `website/` is the one source for the public site. The game remains a separate Pages project at its
 original address, preserving existing player storage.
 
 Each domain has proxied CNAMEs for its apex and `www`, targeting
