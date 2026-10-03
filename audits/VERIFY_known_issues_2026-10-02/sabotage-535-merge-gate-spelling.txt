@@ -1,0 +1,8 @@
+
+  sabotage — identity.js
+   ✓ caught      the gate is case-exact again ([MERGE:NPC|…] passes unseen)
+   ✓ caught      the gate is spacing-exact again ([MERGE: npc |…] passes unseen)
+   ✓ caught      the whole tag is read in any case (a lower-case tag no handler reads is queued as a proposal)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+

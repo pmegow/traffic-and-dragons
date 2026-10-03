@@ -1,0 +1,7 @@
+
+  sabotage — tag_table.js
+   ✓ caught      a self-merge runs the fold again (the runaway and the deletion)
+   ✓ caught      a self-merge is ignored without a word
+   ✓ file restored byte-identical
+   2/2 clauses proven
+

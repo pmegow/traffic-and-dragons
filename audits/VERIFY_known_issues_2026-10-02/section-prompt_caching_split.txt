@@ -1,0 +1,20 @@
+[#264] review-call whitelist contract OK — both review sites gated, sheet sync ungated
+[#405] manual QA header contract OK — 18 dev/qa-*.js scripts declare themselves manual
+[#481 G1] testRuns ignore contract OK — testRuns/ is gitignored
+[#481 F2] image src contract OK — 16 concatenated <img> src sites, all through safeImgSrc
+[#213] refusal-copy census OK — 36 registry rows, 30 shipped reasons, 0 unmapped
+[#311] engine-only tag tier OK — 14 tag(s), each taught by an engine note
+[voice-lab] contract OK — 14 voices × 12 dials, prompts and the shipped table name-free (75 forbidden words)
+[blueprint-designer] contract OK — class roster + World Ages + secret gates wired, seam present, save-free/publish-gated, gateway-aware
+[#312] satellite palette contract OK — 19 page(s) on satellite.css, no forked :root tokens
+[#290] home page contract OK — read-only surface, shared handoff key, 8 curated original(s)
+[#62] character editor contract OK — portable-sheet surface, wrapper pinned, 9 list fields registered
+[#337] campaign slot writer contract OK — transport paths AND snapshotActiveCamp use writeCampaignSlot/writeLiveKeys; the switch frees the target slot before the snapshot
+[#289] menu tier contract OK — 8 operator rows flagged, toggle re-applied on account load
+[#423] import ownership contract OK — shell routes through importSaveData, resolver asks ownership, sync re-homes once on reason foreign_campaign
+[#429] batch drop battery registered
+[#430] ledger rows live battery registered
+[#467] retired OpenAI voice battery registered
+[bug-tracker] contract OK — report fields stay inert and browser seam is present
+[syntax] script syntax contract OK — every <script src> in index.html parses
+FILTERED GREEN — "prompt caching split": 1 section(s) matched, 15 assertions passed — NOT the full suite

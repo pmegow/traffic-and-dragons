@@ -1,0 +1,18 @@
+
+  sabotage — api.js
+   ✓ caught      the parser never restores the markers (the death is refused and the loot withheld again)
+   ✓ caught      the strip never restores them (the markers print in the story)
+   ✓ caught      the strip warns on every repaint
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      a marker inside a sentence is restored (prose is read as a tag)
+   ✓ caught      a marker followed by prose on its line is restored
+   ✓ caught      a three-field line counts as a BEGIN marker
+   ✓ caught      the slip is silent (nobody learns the GM dropped its brackets)
+   ✓ caught      a non-string input is coerced instead of passed through
+   ✓ file restored byte-identical
+   5/5 clauses proven
+

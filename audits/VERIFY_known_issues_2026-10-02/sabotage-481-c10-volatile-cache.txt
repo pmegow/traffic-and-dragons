@@ -1,0 +1,7 @@
+
+  sabotage — globals.js
+   ✓ caught      every turn writes the volatile again (the gate is gone)
+   ✓ caught      the volatile is never cached, even when the suggestion call reads it every turn
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
