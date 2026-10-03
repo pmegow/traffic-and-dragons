@@ -386,7 +386,7 @@ function campIsCurrent(rec){
 }
 /* #509: every record campStampOn stamps — the three moment lists on every sheet (the hero and every charSheet), and each
    sheet's outfit. ONE walk, read by both re-stamps below. */
-var CAMP_STAMPED_LISTS=["coreMemories","storyBeats","motivationHistory"];
+var CAMP_STAMPED_LISTS=["coreMemories","storyBeats","motivationHistory","voiceLines"/* #552 */];
 function campStampedEach(ws,fn){
   if(!ws)return;
   var sheets=[ws.character],i;
@@ -2106,7 +2106,92 @@ function portableSheet(sheet){
   if(!sheet||typeof sheet!=="object")return sheet;
   var copy=JSON.parse(JSON.stringify(sheet)),defs=sheetItemDefs(sheet),k,any=false;for(k in defs){any=true;break;}
   if(any)copy.itemDefs=JSON.parse(JSON.stringify(defs));else delete copy.itemDefs;
+  personaCapture(copy,(typeof worldState!=="undefined"&&worldState)?worldState:null);/* #552: the voice travels with the sheet */
   return copy;
+}
+
+/* ── #552: the portable persona (owner 2026-10-02: "a system to keep a personality between campaigns") ───────────────
+   The library carries DESCRIPTIONS (trait, flaw, motivation, look) and those travel; the REGISTER — how a character
+   actually talks — lived only in the source campaign's memory record and never left it, so the next campaign met a
+   stranger (village Nyla, #434/#461). #104 showed the mechanism: a description is averaged, a sample is a pointer. So a
+   sheet now carries `voiceLines` — verbatim lines the character spoke, picked from the transcript's own speaker map
+   (the #96 [SAY:] attribution, stamped per entry as sp.s: unit index → speaker) — and `manner`, one owner-written line
+   on how they speak (the editor; never invented here). Rulings: lines + manner; captured automatically at Save to
+   library (portableSheet, the one road); residents and companions only — the hero speaks through the player. */
+var PERSONA_LINES_MAX=5,PERSONA_LINES_MIN=3,PERSONA_LINE_CHARS=200,PERSONA_SERVE_LINES=3,PERSONA_SERVE_CHARS=120;
+/* Pure. Every line `name` (or an alias) spoke in `transcript`, oldest first: consecutive units of one quoted span
+   joined back into the sentence the GM wrote. Reads the SAME splitter the speaker map was stamped against (TTS's);
+   without it there is nothing to read, and the caller is told so. */
+function personaLines(transcript,name,aliases){
+  var tp=(typeof TTS!=="undefined"&&TTS&&TTS._textPrep&&typeof TTS._textPrep.splitSentences==="function")?TTS._textPrep:null;
+  if(!tp)return {lines:[],reason:"the sentence splitter is not loaded"};
+  var want={},i;[name].concat(aliases||[]).forEach(function(n){n=String(n||"").replace(/^\s+|\s+$/g,"").toLowerCase();if(n)want[n]=1;});
+  var out=[];
+  for(i=0;i<(transcript||[]).length;i++){
+    var e=transcript[i];if(!e||e.r!=="gm"||!e.sp||!e.sp.s||!e.x)continue;
+    var text=String(e.x),units=tp.splitSentences(text,null,true),cur=null,j;
+    /* The splitter's units are TTS-normalised (a hyphen becomes a space, a dash a comma), so the WORDS come from the
+       entry's own quoted runs: the k-th dialogue span the splitter numbers is the k-th quoted run in the text, both
+       walking the same double quotes in order. When the counts disagree (a quote left open across paragraphs), the
+       unit text stands in. */
+    var runs=[],rm,RUN=/["\u201C]([^"\u201C\u201D\n]*)["\u201D]/g;while((rm=RUN.exec(text)))runs.push(rm[1]);
+    var spans=[],seenSpan={};for(j=0;j<units.length;j++){var sj=units[j]&&units[j].spk;if(sj!==null&&sj!==undefined&&!seenSpan[sj]){seenSpan[sj]=1;spans.push(sj);}}
+    var verbatim=(spans.length===runs.length);
+    for(j=0;j<units.length;j++){
+      var u=units[j],who=Object.prototype.hasOwnProperty.call(e.sp.s,j)?String(e.sp.s[j]).toLowerCase():null;
+      var mine=!!(u&&who&&want[who]);
+      if(mine&&cur&&cur.spk===u.spk&&cur.last===j-1){if(!cur.verbatim)cur.text+=" "+u.text;cur.last=j;continue;}
+      if(mine){var k=spans.indexOf(u.spk);cur={text:(verbatim&&k>=0)?runs[k]:String(u.text||""),verbatim:verbatim&&k>=0,spk:u.spk,last:j,turn:e.t|0};out.push(cur);}
+      else cur=null;
+    }
+  }
+  /* a fallback unit keeps the GM's quote marks; the sheet stores the words, the renderer adds one pair */
+  return {lines:out.map(function(l){return {text:l.text.replace(/\s+/g," ").replace(/^[\s"“”]+|[\s"“”]+$/g,""),turn:l.turn};}),reason:""};
+}
+/* Pure. The lines worth carrying: real speech (three words or more, under PERSONA_LINE_CHARS), no repeats, at most one
+   per turn, the most characteristic first by a fixed score — recency, length up to a cap, a question or an outburst —
+   then returned oldest first so the sheet reads as a history. Deterministic: the same transcript picks the same lines. */
+function personaPick(lines,max){
+  max=max||PERSONA_LINES_MAX;
+  var seen={},byTurn={},cands=[],i,maxTurn=0;
+  for(i=0;i<(lines||[]).length;i++){var t=lines[i].turn|0;if(t>maxTurn)maxTurn=t;}
+  for(i=0;i<(lines||[]).length;i++){
+    var l=lines[i],text=String(l.text||""),words=text.split(/\s+/).filter(function(w){return /[A-Za-z]/.test(w);}).length;
+    if(words<3||text.length>PERSONA_LINE_CHARS)continue;
+    var key=text.toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ");if(seen[key])continue;seen[key]=1;
+    var score=(maxTurn?(l.turn|0)/maxTurn:0)+Math.min(text.length,120)/120*0.6+(/[!?…]/.test(text)?0.3:0);
+    var t2=l.turn|0;if(byTurn[t2]!=null){if(cands[byTurn[t2]].score>=score)continue;cands[byTurn[t2]]=null;}
+    byTurn[t2]=cands.length;cands.push({text:text,turn:t2,score:score});
+  }
+  cands=cands.filter(function(c){return !!c;}).sort(function(a,b){return b.score-a.score||b.turn-a.turn;}).slice(0,max);
+  return cands.sort(function(a,b){return a.turn-b.turn;}).map(function(c){return {text:c.text,turn:c.turn};});
+}
+/* The capture at export: a NON-HERO sheet with PERSONA_LINES_MIN or more usable lines in this campaign gets a fresh
+   `voiceLines` (camp-stamped — the list rides CAMP_STAMPED_LISTS); with fewer, the lines it arrived with stay, so a
+   quiet cameo never erases a character's carried voice. The hero is skipped. Mutates `sheet` (the caller's copy). */
+function personaCapture(sheet,ws){
+  if(!sheet||!ws||!sheet.name)return sheet;
+  var hero=ws.character;if(hero&&(sheet===hero||(hero.name&&String(hero.name).toLowerCase()===String(sheet.name).toLowerCase())))return sheet;
+  var aliases=sheet.aliases||[],row=null,i;for(i=0;i<(ws.npcs||[]).length;i++){if(ws.npcs[i]&&ws.npcs[i].name===sheet.name){row=ws.npcs[i];break;}}
+  if(row&&row.aliases)aliases=aliases.concat(row.aliases);
+  var got=personaLines(ws.transcript||[],sheet.name,aliases);
+  if(got.reason){if(typeof console!=="undefined")console.warn("[persona] "+sheet.name+": voice lines not captured — "+got.reason);return sheet;}
+  var picked=personaPick(got.lines);
+  if(picked.length<PERSONA_LINES_MIN){if(typeof console!=="undefined")console.info("[persona] "+sheet.name+": "+picked.length+" usable line(s) in this campaign — the carried voice lines stay");return sheet;}
+  var camp=String(ws.campName||"");
+  sheet.voiceLines=picked.map(function(l){return {text:l.text,turn:l.turn,camp:camp};});
+  if(typeof console!=="undefined")console.info("[persona] "+sheet.name+": "+picked.length+" voice lines captured from "+(camp||"this campaign"));
+  return sheet;
+}
+/* ONE renderer for the prompt: the bits a sheet's persona adds wherever the sheet already reaches the GM — the
+   present-resident roster line, the companion block, the legacy block. Up to PERSONA_SERVE_LINES lines, each cut to
+   PERSONA_SERVE_CHARS, plus the manner line when the owner wrote one. Empty when the sheet carries neither. */
+function personaPromptBits(cs){
+  var bits=[];if(!cs)return bits;
+  var ls=Array.isArray(cs.voiceLines)?cs.voiceLines.filter(function(l){return l&&l.text;}).slice(-PERSONA_SERVE_LINES):[];
+  if(ls.length)bits.push("says: "+ls.map(function(l){var t=String(l.text).replace(/\s+/g," ");return "“"+(t.length>PERSONA_SERVE_CHARS?t.slice(0,PERSONA_SERVE_CHARS-1)+"…":t)+"”";}).join(" / "));
+  if(typeof cs.manner==="string"&&cs.manner.replace(/\s+/g,""))bits.push("manner: "+cs.manner.replace(/\s+/g," ").replace(/^\s+|\s+$/g,""));
+  return bits;
 }
 function adoptSheetItemDefs(sheet){
   if(!sheet||typeof sheet!=="object"||!sheet.itemDefs||typeof sheet.itemDefs!=="object"||typeof worldState==="undefined"||!worldState)return 0;

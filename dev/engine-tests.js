@@ -26774,6 +26774,98 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#552 the portable persona — a character keeps their voice between campaigns");
+  /* a transcript the way the game stores it: clean text per GM entry plus the speaker map the #96 [SAY:] pass stamps
+     (sp.s: unit index → speaker, against TTS's own splitter). Built here by the same splitter, so the oracle is real. */
+  function personaFixture(){
+    var tp=TTS._textPrep,mk=function(turn,text,bySpan){var units=tp.splitSentences(text,null,true),sp={},i;for(i=0;i<units.length;i++){var u=units[i];if(u&&u.spk!==null&&u.spk!==undefined&&bySpan[u.spk])sp[i]=bySpan[u.spk];}return {t:turn,r:"gm",x:text,sp:{n:units.length,s:sp}};};
+    return [
+      mk(3,"Nyla spits into the dust. \"Don't flatter yourself, bone-boy. I have seen prettier corpses!\" Thessa sighs. \"Leave him be, Nyla.\"",{0:"Nyla Lorrath",1:"Thessa Saltborn"}),
+      mk(4,"The healer does not look up. \"Fine.\" Then, louder: \"Touch my herbs again and you lose the hand.\"",{0:"the healer",1:"the healer"}),
+      mk(5,"\"Don't flatter yourself, bone-boy. I have seen prettier corpses!\" she says again, word for word.",{0:"Nyla Lorrath"}),
+      mk(6,"Nyla grins. \"You walk like a man who owes money, Ammut.\" She tilts her head. \"Everyone here does.\"",{0:"Nyla Lorrath",1:"Nyla Lorrath"}),
+      {t:7,r:"you",x:"I ask about the herbs."},
+      mk(8,"\"Morning.\" Nyla waves the knife. \"Buy something or bleed somewhere else, the floor is clean for once.\"",{0:"Nyla Lorrath",1:"Nyla Lorrath"}),
+      /* the hero speaks too (the capture must skip him) */
+      mk(9,"Ammut shrugs. \"I owe nobody anything, healer.\"",{0:"Ammut"}),mk(10,"\"Then sell me the mint and stop talking.\" Ammut sets down a coin.",{0:"Ammut"}),mk(11,"\"The bread is for the smith, not for you.\" Ammut turns away.",{0:"Ammut"}),
+      /* a line break INSIDE a quote: the quoted-run walk cannot see it, so the words come from the joined units (TTS-normalised: the hyphen becomes a space) */
+      mk(12,"Nyla leans in. \"Come here, bone-boy,\nand listen to me for once in your life.\"",{0:"Nyla Lorrath"})
+    ];
+  }
+  t("#552 personaLines returns only the named speaker's lines, joined back into the sentence the GM wrote, quotes stripped, aliases honoured",function(){
+    if(typeof personaLines!=="function"||typeof personaPick!=="function")return "personaLines/personaPick missing";
+    var got=personaLines(personaFixture(),"Nyla Lorrath",["the healer"]);
+    if(got.reason)return "unexpected reason: "+got.reason;
+    var texts=got.lines.map(function(l){return l.text;});
+    if(texts.some(function(x){return /Leave him be/.test(x);}))return "Thessa's line was taken: "+JSON.stringify(texts);
+    if(!texts.some(function(x){return x==="Don't flatter yourself, bone-boy. I have seen prettier corpses!";}))return "the comma-split span was not joined back, or the quotes stayed on: "+JSON.stringify(texts);
+    if(!texts.some(function(x){return /Touch my herbs again/.test(x);}))return "the alias (the healer) was not honoured: "+JSON.stringify(texts);
+    if(texts.some(function(x){return /^["\u201C]/.test(x)||/["\u201D]$/.test(x);}))return "a line kept its quote marks: "+JSON.stringify(texts);
+    var turns=got.lines.map(function(l){return l.turn;});if(turns.join(",")!==turns.slice().sort(function(a,b){return a-b;}).join(","))return "lines are not oldest first: "+turns.join(",");
+    if(!texts.some(function(x){return /Come here, bone boy, and listen to me for once in your life/.test(x);}))return "a quote with a line break inside was not joined back from the units: "+JSON.stringify(texts);
+    if(personaLines([{t:1,r:"gm",x:"\"Hello.\"",sp:{n:1,s:{0:"Nyla Lorrath"}}}],"Nyla Lorrath",[]).lines.length!==1)return "a lone one-unit line is lost";
+    if(personaLines([{t:1,r:"gm",x:"\"Hello.\""}],"Nyla Lorrath",[]).lines.length!==0)return "an entry with no speaker map must yield nothing";
+    return true;
+  });
+  t("#552 personaPick keeps real speech only, no repeats, one line per turn, at most five, oldest first, and the same input picks the same lines",function(){
+    var lines=personaLines(personaFixture(),"Nyla Lorrath",["the healer"]).lines,p=personaPick(lines);
+    var texts=p.map(function(l){return l.text;});
+    if(texts.indexOf("Fine.")>=0||texts.indexOf("Morning.")>=0||personaPick([{text:"Fine.",turn:1},{text:"No, you.",turn:2}]).length)return "a one-word line is not speech worth carrying: "+JSON.stringify(texts);
+    if(texts.filter(function(x){return /prettier corpses/.test(x);}).length!==1)return "the repeated line must appear once: "+JSON.stringify(texts);
+    var turns=p.map(function(l){return l.turn;}),seen={},i;for(i=0;i<turns.length;i++){if(seen[turns[i]])return "two lines from one turn: "+turns.join(",");seen[turns[i]]=1;}
+    if(turns.join(",")!==turns.slice().sort(function(a,b){return a-b;}).join(","))return "not oldest first: "+turns.join(",");
+    if(p.length>5)return "more than five";
+    var many=[];for(i=1;i<=12;i++)many.push({text:"Line number "+i+" of the long record, said plainly.",turn:i});
+    var top=personaPick(many);if(top.length!==5||top[4].turn!==12||top[0].turn!==8)return "with twelve usable turns the five most recent are kept, oldest first: "+JSON.stringify(top.map(function(l){return l.turn;}));
+    if(JSON.stringify(personaPick(lines))!==JSON.stringify(p))return "the pick is not deterministic";
+    if(personaPick([{text:"x".repeat(300)+" long long",turn:1}]).length)return "an over-long line is dropped";
+    return true;
+  });
+  t("#552 the capture at export: a non-hero sheet with three or more usable lines gets camp-stamped voiceLines; fewer keeps the carried ones; the hero is skipped; portableSheet is the road",function(){
+    var ws={campName:"The Long Walk",character:{name:"Ammut",inventory:[]},npcs:[{name:"Nyla Lorrath",aliases:["the healer"],charSheet:{name:"Nyla Lorrath",inventory:[]}}],transcript:personaFixture()};
+    var _ws=worldState;worldState=ws;
+    try{
+      var ps=portableSheet(ws.npcs[0].charSheet);
+      if(!Array.isArray(ps.voiceLines)||ps.voiceLines.length<3)return "voiceLines not captured: "+JSON.stringify(ps.voiceLines);
+      if(ps.voiceLines.some(function(l){return l.camp!=="The Long Walk"||!l.text||!l.turn;}))return "a voice line lacks its camp stamp, text or turn: "+JSON.stringify(ps.voiceLines);
+      if(ws.npcs[0].charSheet.voiceLines)return "the capture wrote into the live sheet instead of the copy";
+      if(portableSheet(ws.character).voiceLines)return "the hero was captured — the hero speaks through the player";
+      var carried={name:"Nyla Lorrath",inventory:[],voiceLines:[{text:"Older words.",turn:9,camp:"Elsewhere"}]};
+      ws.transcript=personaFixture().slice(0,1);/* one line here: too few */
+      var keep=portableSheet(carried);if(keep.voiceLines.length!==1||keep.voiceLines[0].camp!=="Elsewhere")return "a quiet cameo erased the carried voice: "+JSON.stringify(keep.voiceLines);
+      if(CAMP_STAMPED_LISTS.indexOf("voiceLines")<0)return "voiceLines must ride CAMP_STAMPED_LISTS (one walk re-stamps every carried list)";
+    }finally{worldState=_ws;}
+    return true;
+  });
+  t("#552 personaPromptBits: the last three lines, each cut to 120 characters, then the manner line; nothing for a sheet without either",function(){
+    if(personaPromptBits({name:"x"}).length||personaPromptBits(null).length)return "a bare sheet must add nothing";
+    var cs={voiceLines:[{text:"one two three"},{text:"four five six"},{text:"seven eight nine"},{text:"a".repeat(150)}],manner:"  snarls, never above a murmur  "};
+    var b=personaPromptBits(cs);if(b.length!==2)return "two bits expected: "+JSON.stringify(b);
+    if(/one two three/.test(b[0]))return "more than the last three lines were served";
+    if(!/\u201Cfour five six\u201D \/ \u201Cseven eight nine\u201D \/ \u201Ca{119}\u2026\u201D/.test(b[0]))return "the lines are not quoted, slash-joined and cut at 120: "+b[0];
+    if(b[1]!=="manner: snarls, never above a murmur")return "the manner line is not trimmed: "+b[1];
+    if(personaPromptBits({manner:"   "}).length)return "a blank manner line must not serve";
+    return true;
+  });
+  t("#552 the prompt: a PRESENT resident's voice lines and manner ride the roster line; an absent one stays bare; a party member's ride the companion block; volatile only",function(){
+    carriedEF();var _la=lastAction;
+    try{
+      memory.npcs["Silas Morne"].lastSeenAt="The Village|Silas Morne's house";memory.npcs["Silas Morne"].lastSeenTurn=worldState.turn;memory.npcs["Silas Morne"].lastMentioned=worldState.turn;
+      var ny=worldState.npcs.filter(function(n){return n.name==="Nyla Lorrath";})[0],si=worldState.npcs.filter(function(n){return n.name==="Silas Morne";})[0];
+      ny.charSheet.voiceLines=[{text:"Don't flatter yourself, bone-boy.",turn:3,camp:"The Long Walk"}];ny.charSheet.manner="snarls through her teeth";
+      si.charSheet.voiceLines=[{text:"The light forgives.",turn:2,camp:"Elsewhere"}];
+      worldState.npcs.push({name:"Bram",rel:"companion",partyMember:true,status:"ally",statusTurn:worldState.turn,charSheet:{name:"Bram",inventory:[],trait:"Whistles when nervous.",voiceLines:[{text:"Bees never lie to me.",turn:1,camp:"Elsewhere"}]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true,pronouns:"he/him"};
+      lastAction="Stoke the fire.";var p=buildSysPrompt(),m=p.volatile.match(/\nNPCs: ([^\n]*)/);if(!m)return "no roster line";
+      var ents=m[1].split(/; (?=[A-Z])/),nyE=ents.filter(function(x){return /^Nyla Lorrath/.test(x);})[0]||"",siE=ents.filter(function(x){return /^Silas Morne/.test(x);})[0]||"";
+      if(!/says: \u201CDon't flatter yourself, bone-boy\.\u201D/.test(nyE)||!/manner: snarls through her teeth/.test(nyE))return "the present resident's voice is missing from the roster: "+nyE;
+      if(/says:|manner:/.test(siE))return "an ABSENT character's voice rode the roster: "+siE;
+      /* the companion block is in the STABLE half by design (#341: constant between recruit/death/import, one cache re-write each) — a party member's carried voice is cache-safe there, like their backstory */
+      if(!/Bram:[\s\S]*Personality:[^\n]*says: \u201CBees never lie to me\.\u201D/.test(p.stable))return "the party member's voice is missing from the companion block (stable half)";
+      if(/bone-boy|snarls through/.test(p.stable))return "a present resident's voice line leaked into the stable half";
+    }finally{lastAction=_la;}
+    return true;
+  });
+
   // ── #372: the register guard's reach — three channels the #355 narration census cannot see ──
   section("#459 / #460 — records never recited; the sheet outranks the GM's memory (owner field reports 2026-09-25)");
   /* the owner's real Necrotic Dungeon skeleton (t35 save), shortened: the register lives in the premise, the act goals, a

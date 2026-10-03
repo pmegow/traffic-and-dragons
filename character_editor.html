@@ -121,7 +121,7 @@ table.list td.x button:hover{color:var(--dng);}
     var c={name:"",gender:"M",age:"",appear:"",mark:"",backstory:"",ancestry:"human",subrace:"",subraceNm:"",heritageVariant:"",
       cls:"Warrior",stats:{str:10,dex:10,con:10,int:10,wis:10,cha:10},hp:10,maxHp:10,gold:10,inventory:[],level:1,xp:0,
       abilities:[],spells:[],mana:undefined,archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,
-      deity:"",trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:(typeof initSkills==="function")?initSkills():{},
+      deity:"",trait:"",flaw:"",motivation:"",manner:"",voiceLines:[],languages:[{name:"Common",broken:false}],skills:(typeof initSkills==="function")?initSkills():{},
       conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],coreMemories:[],partyMember:true};
     delete c.mana;return c;
   }
@@ -152,7 +152,8 @@ table.list td.x button:hover{color:var(--dng);}
       {k:"ancestry",l:"Ancestry",t:"select",opts:ancOpts},
       {k:"subrace",l:"Subrace id",t:"text"},{k:"subraceNm",l:"Subrace name",t:"text"},{k:"heritageVariant",l:"Heritage variant",t:"text"},
       {k:"appear",l:"Appearance",t:"textarea"},{k:"mark",l:"Distinguishing mark",t:"text"},{k:"backstory",l:"Backstory",t:"textarea"},
-      {k:"trait",l:"Trait",t:"text"},{k:"flaw",l:"Flaw",t:"text"},{k:"motivation",l:"Motivation",t:"text"},{k:"deity",l:"Deity",t:"text"}
+      {k:"trait",l:"Trait",t:"text"},{k:"flaw",l:"Flaw",t:"text"},{k:"motivation",l:"Motivation",t:"text"},{k:"deity",l:"Deity",t:"text"},
+      {k:"manner",l:"Manner of speaking",t:"text"}/* #552: one line on how they talk; served beside the voice lines */
     ],
     build:[
       {k:"cls",l:"Class",t:"select",opts:classOpts,onchange:function(){ch.archetype="";ch.archetypeNm="";}},
@@ -176,6 +177,7 @@ table.list td.x button:hover{color:var(--dng);}
     {k:"relationships",title:"Relationships",cols:[{k:"entity",l:"Who",w:"30%"},{k:"bond",l:"Bond (durable)"},{k:"dynamic",l:"Dynamic (current)"}],blank:function(){return {entity:"",bond:"",dynamic:""};},hint:"W7 axes: bond is the durable fact (kin, oath, enmity); dynamic is today's posture. Turn stamps are set by the game."},
     {k:"saveModifiers",title:"Save modifiers",cols:[{k:"source",l:"Source",w:"40%"},{k:"type",l:"Save",w:"30%"},{k:"amount",l:"Amount",t:"num",w:"70px"}],blank:function(){return {source:"",type:"",amount:1};}},
     {k:"storyBeats",title:"Story beats",cols:[{k:"text",l:"Beat"},{k:"turn",l:"Turn",t:"num",w:"70px"}],blank:function(){return {text:"",turn:0};}},
+    {k:"voiceLines",title:"Voice lines (verbatim, carried between campaigns)",cols:[{k:"text",l:"Line"},{k:"camp",l:"Campaign",w:"110px"},{k:"turn",l:"Turn",t:"num",w:"64px"}],blank:function(){return {text:"",camp:"",turn:0};},hint:"#552: what this character actually said in play — a sample is a pointer, a description gets averaged. Captured at Save to library; edit freely."},
     {k:"coreMemories",title:"Defining moments",cols:[{k:"text",l:"Moment"},{k:"kind",l:"Kind",w:"90px"},{k:"who",l:"Who",w:"110px"},{k:"camp",l:"Campaign",w:"110px"},{k:"turn",l:"Turn",t:"num",w:"64px"}],blank:function(){return {text:"",turn:0,kind:"authored",who:"",camp:""};},hint:"Portable across campaigns (#63): a foreign campaign stamp renders as an earlier adventure."}
   ];
 

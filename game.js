@@ -1531,7 +1531,7 @@ function importVillageResidents(list){
 function ensureV10Arrays(s){
   if(!s)return s;
   if(!s.skills)s.skills=initSkills();if(!s.conditions)s.conditions=[];if(!s.relationships)s.relationships=[];if(!s.saveModifiers)s.saveModifiers=[];if(!s.languages)s.languages=[];
-  if(s.portrait===undefined)s.portrait=null;if(!s.backstory)s.backstory="";if(!s.storyBeats)s.storyBeats=[];if(!s.coreMemories)s.coreMemories=[];
+  if(s.portrait===undefined)s.portrait=null;if(!s.backstory)s.backstory="";if(!s.storyBeats)s.storyBeats=[];if(!s.coreMemories)s.coreMemories=[];if(!Array.isArray(s.voiceLines))s.voiceLines=[];if(typeof s.manner!=="string")s.manner="";/* #552 */
   return s;
 }
 /* #427/#428: ONE adopter per host for a library copy — the village's stamp-gated refresh and the sheet's explicit

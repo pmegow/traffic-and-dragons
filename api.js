@@ -746,6 +746,7 @@ function buildPartyHistoriesBlock(){
   for(i=0;i<party.length;i++){var cs=party[i].charSheet||{},ml=(typeof motivationSettledLine==="function")?motivationSettledLine(cs):"";if(ml&&typeof kindDef==="function"&&kindDef().smallTalk)ml=ml.replace(/:\s[\s\S]*$/,"");/* #469 ⑤: the how is the moment's own sentence — in a small-talk kind the campaign alone is served (the Village t191 Silas line rode this every turn) */
     if(!(cs.backstory||cs.trait||cs.flaw||cs.motivation||ml))continue;
     var pers="";if(cs.trait)pers+=" trait — "+cs.trait+";";if(cs.flaw)pers+=" flaw — "+cs.flaw+";";if(cs.motivation)pers+=" motivation — "+cs.motivation+";";else if(ml)pers+=" motivation — none standing ("+ml+");";/* #437: a settled purpose is named as closed, so the GM cannot re-derive it from the backstory */
+    var _pb=(typeof personaPromptBits==="function")?personaPromptBits(cs):[];if(_pb.length)pers+=" "+_pb.join("; ")+";";/* #552: the voice rides with the personality */
     L.push("- "+party[i].name+": "+(cs.backstory||"(no recorded history)")+(pers?"\n  Personality:"+pers:""));}
   if(!L.length)return"";
   return "PARTY HISTORIES — who each of the party was before this story and what drives them (authored canon — the player first, then each companion; a character's own wants, remarks and refusals grow from THIS, never from invention). A companion's FLAW must cost the party something visible now and then — a refusal, a withheld truth, a concession not given — and a companion may be right where the player is wrong, and refuse; trait and flaw govern how they speak in quiet and intimate scenes too. A flaw is not forever: when a companion acts AGAINST it at a defining moment, on screen and unasked, file [COMPANION_GROWTH:Name|the flaw|what replaced it] — rare, earned, never requested. And a compulsion-shaped flaw may act ON ITS OWN: now and then a companion does the thing it drives them to, unbidden — pockets what glitters, freezes before the priest, blurts the truth — resolved in the open with a filed roll and its consequence on THEIR sheet (their item, their condition, the shopkeeper's regard, a price paid), and recorded with [COMPANION_INITIATIVE:Name|what they did]. Rarely (the flaw is a person, not a tic), never on a turn the player has already stepped in to stop it, and never as the player's decision to make:\n"+L.join("\n")+"\n\n";
@@ -2407,7 +2408,8 @@ function buildSysPrompt(){
            they are doing; the NPC tag handler keeps it to that). A resident without a trait keeps the mood-first entry. */
         if(_pcs.trait){npcBits.push("plays as: "+_pcs.trait);if(_pcs.flaw)npcBits.push("flaw: "+_pcs.flaw);if(_moodBit)npcBits.push("now: "+_moodBit);_moodPushed=true;}
         else{if(_moodBit)npcBits.push("mood: "+_moodBit);_moodPushed=true;if(_pcs.flaw)npcBits.push("flaw: "+_pcs.flaw);}
-        if(_pcs.appear)npcBits.push("look: "+String(_pcs.appear).slice(0,140));if(_pcs.motivation)npcBits.push("motivation: "+_pcs.motivation);}
+        if(_pcs.appear)npcBits.push("look: "+String(_pcs.appear).slice(0,140));if(_pcs.motivation)npcBits.push("motivation: "+_pcs.motivation);
+        if(typeof personaPromptBits==="function")Array.prototype.push.apply(npcBits,personaPromptBits(_pcs));/* #552: how they talk, verbatim — presence-gated like the rest */}
     }
     if(!_moodPushed&&_moodBit)npcBits.push("mood: "+_moodBit);
     if(npcRel)npcBits.push("bond: "+npcRel);else if(!npc.partyMember&&npc.rel&&npc.rel!=="unknown")npcBits.push("NPC stance: "+npc.rel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
@@ -2556,6 +2558,7 @@ function buildSysPrompt(){
     var _lrows=relationshipMigrateSheet(_lc,"@legacy:"+(_lc.name||"character"),{portable:true}),_lrels=[];for(var _lri=0;_lri<_lrows.length;_lri++){if(_lrows[_lri].bond)_lrels.push(_lrows[_lri].entity+" (bond: "+_lrows[_lri].bond+")");if(_lrows[_lri].dynamic)_lrels.push(_lrows[_lri].entity+" (current dynamic: "+_lrows[_lri].dynamic+")");}var _lrel=_lrels.join(", ");
     var _linv=(_lc.inventory&&_lc.inventory.length)?_lc.inventory.join(", "):"";
     var _lpers="";if(_lc.trait)_lpers+=" trait — "+_lc.trait+";";if(_lc.flaw)_lpers+=" flaw — "+_lc.flaw+";";if(_lc.motivation)_lpers+=" motivation — "+_lc.motivation+";";
+    var _lpb=(typeof personaPromptBits==="function")?personaPromptBits(_lc):[];if(_lpb.length)_lpers+=" "+_lpb.join("; ")+";";/* #552 */
     legacyBlock=(_lc.introduced?"LEGACY CHARACTER RELATIONSHIP RESIDUE — already introduced; preserve these unresolved carried facts until the engine can transfer them:\n":"LEGACY CHARACTER — INTRODUCE THIS SESSION:\n")
       +"A figure from another story walks this world: "+_lc.name+", "+(_lgw?"("+_lgw+", pronouns "+_lpron+") ":"")+"a "+(_lc.ancestry?_lc.ancestry+" ":"")+_lc.cls+" (Level "+_lc.level+")"+(_lc.age?", "+_lc.age:"")+".\n"
       +(_lc.appear?"Appearance: "+_lc.appear+"\n":"")

@@ -99,6 +99,8 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
   worn[],                 // #388: STORED inventory strings currently worn/held-ready — never an item not in inventory (wornSet refuses; ITEM_LOST prunes; ITEM_RENAMED follows). Audit E4 (2026-09-18): the two UI removal paths prune too — dropMarkedItems (ui-sheets; #429 replaced the per-item dropInvItem with the batch commit) and the Sync modal's inventory assign; every path that can shorten an inventory calls wornPrune. Companion charSheets carry the same two fields
   outfit,                 // #388: null | {text, turn} — the mundane layer beneath or instead of gear, one dated line, replaced never appended
   coreMemories[],         // {text, turn, kind, who, camp} — #63: defining moments, witnessed-by-all, portable across campaigns (see §8c)
+  voiceLines[],           // {text, turn, camp} — #552: verbatim lines the character SPOKE, picked from the transcript's speaker map at Save to library (portableSheet → personaCapture; non-hero only; a quiet cameo keeps the carried lines); the register that travels, where trait/flaw are the description
+  manner,                 // string — #552: one owner-written line on how they speak (the editor); served beside the voice lines, never invented by the engine
   partyMember             // bool — always true for the player character
 }
 ```
