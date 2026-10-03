@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-03 · #600 · Codex, owner-requested alchemist entrance bell: cued catalog asset and committed-scene entry tracking in existing audio layer; no story parsing, core edits or live-save writes. UI forwards the existing commit reason. Single short-sound voice, five-second deadline, mic/mute/pause/exit controls and narration ducking. [Receipt](audits/VERIFY_600_alchemist_entry.md).
+
 - 2026-10-03 · #559 · Codex: catalog compatibility correction v1.1134; actual Ammut t279 covered/interior profile rejected sealed-only alchemist assets and fell back to hearth. Two catalog entries widened; no scene-policy or live-save changes. Failing-first regression, copied-save browser playback and full gate pass. [Receipt](audits/VERIFY_559_covered_alchemist.md).
 
 - 2026-10-03 · #511 #517 #518 #519 recheck · Codex, read/run only: five repaired cases verified, eleven remaining-case probes reproduce defects. All four stay partial. Full gate 2,616 assertions + 93 standalone suites; quartet sabotage 10/10; four replay baselines unchanged. [Receipt](audits/VERIFY_ledger_quartet_2026-10-03.md). No runtime edits or live-save writes.

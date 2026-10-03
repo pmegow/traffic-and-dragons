@@ -76,3 +76,9 @@ accept sealed and covered interiors. A failing-first regression covers this exac
 profile, sealed compatibility and closure/campaign/shop/quiet/prohibition gates.
 Isolated Chromium verified the copied save starts the simmer and decodes/schedules
 the glass sprite. See [verification receipt](../audits/VERIFY_559_covered_alchemist.md).
+
+## Alchemist entry bell
+
+`alchemist-entry-bell-v1.mp3`: Joseph SARDIN's [Shop doorbell chime, 3588](https://bigsoundbank.com/carillon-commercant-s3588.html), CC0 1.0. A 3.2844 s trimmed mono doorbell phrase, RMS -31.87 dBFS / peak -12 dBFS, played once at gain 0.65 times the ambience volume; narrator duck factor 0.5. The existing preparation tool supplies 8 ms fades and a gapless 128 kbps MP3. Source and processing hashes: [receipt](alchemist-entry-bell-provenance.json).
+
+The alchemist seed names this `cued` asset through its `entry` field. Only a committed turn from another node in the same campaign/generation can ring. Reload, save, resume and profile edits establish state without ringing. Bell and random accents share one short-sound voice. Mic, pause, mute and exit stop it; a load arriving more than five seconds late is discarded as an entry cue. The modest bell ducks under speech; random glass still waits for silence. No narration text is parsed and no campaign state is written. Owner audition pending.

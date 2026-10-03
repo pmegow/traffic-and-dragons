@@ -40,11 +40,11 @@ var Ambient = (function() {
     if (location.protocol === "file:") return "Open the hosted game or localhost to use ambience";
     return typeof audioPageRefusal === "function" ? audioPageRefusal() : null;
   }
-  function sync() {
+  function sync(event) {
     if (!initialized) return;
     var s = snapshot(), p = ambientPlan(s, AUDIO_SCENES), refused = pageRefusal();
     if (controller) controller.update(s);
-    if (accents) accents.update(s);
+    if (accents) accents.update(s, event && event.detail && event.detail.reason);
     if (!enabled) status = "Off";
     else if (refused) { report(new Error(refused)); return; }
     else if (!unlocked) status = "Tap anywhere to start ambience";
@@ -123,6 +123,12 @@ var Ambient = (function() {
           source.start(t0 + step.at, cut[0], cut[1] - cut[0]); voice.sources.push(source);
         });
         return voice;
+      },
+      gain: function(voice, value) {
+        if (voice.done) return;
+        var p = voice.gain.gain; p.cancelScheduledValues(ctx.currentTime);
+        if (value === 0) p.setValueAtTime(0, ctx.currentTime);
+        else p.setTargetAtTime(value, ctx.currentTime, AMBIENT_DUCK_ATTACK_SECONDS);
       },
       stop: function(voice, seconds) {
         if (voice.done) return;

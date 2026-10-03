@@ -2,10 +2,11 @@
 // short sound that belongs there — a few footsteps on a wooden floor, a chime. Pure selection and scheduling policy,
 // plus a controller over an injected driver that runs BESIDE the bed controller (ambient.js), never inside it.
 
-// Every layer kind in one table; the bed row mirrors the shipped bed constants. Weather, event and music join as rows.
+// Every layer kind in one table; the bed row mirrors the shipped bed constants. Weather and music join as rows.
 var AUDIO_LAYER_KINDS = {
   bed:    {loops:true,  narration:"duck", voices:2, transitionSeconds:AMBIENT_FADE_SECONDS, optional:false},
-  accent: {loops:false, narration:"gap",  voices:1, transitionSeconds:0.15, optional:true}
+  accent: {loops:false, narration:"gap",  voices:1, transitionSeconds:0.15, optional:true},
+  event:  {loops:false, narration:"duck", voices:1, transitionSeconds:0.15, optional:true}
 };
 var ACCENT_ARRIVAL_QUIET_MS = 20000;   /* nothing for the first 20 s in a place: the bed fades in first */
 var ACCENT_SETTLE_MS = 3000;           /* narration must have been silent this long — TTS breathes between sentences */
@@ -117,15 +118,42 @@ function accentGain(s, level) {
   return level * Math.max(0, Math.min(1, Number(s.volume) || 0)) * (s.profile && s.profile.quiet === "hushed" ? 0.5 : 1);
 }
 
+/* A committed move is the only entry cue. Loading, changing hero/campaign, unlocking or reclassifying a room only
+   establishes a baseline. Consume suppressed entrances too, so unmuting cannot replay an old door opening. */
+function createAudioEntryTracker(catalog, registry) {
+  var previous = null;
+  return function(s, reason) {
+    var before = previous;
+    previous = {campaignId:s.campaignId, generation:s.generation, nodeKey:s.nodeKey};
+    if (reason !== "turn" || !before || !before.nodeKey || !s.nodeKey || before.nodeKey === s.nodeKey ||
+        before.campaignId !== s.campaignId || before.generation !== s.generation ||
+        s.capturing || s.hidden || !(s.volume > 0)) return null;
+    return audioEntryFor(s, catalog, registry);
+  };
+}
+function audioEntryFor(s, catalog, registry) {
+  if (s.capturing || s.hidden || !(s.volume > 0)) return null;
+  var seed = accentSeedFor(s, registry), a = seed && seed.entry && catalog.assets.filter(function(x) { return x.id === seed.entry; })[0];
+  if (!a || a.trigger !== "cued" || a.role !== "accent" || !a.approval ||
+      !a.approval.recording || !a.approval.rights || !a.approval.contents || !a.approval.mix) return null;
+  if (s.profile && (a.contains || []).some(function(c) { return s.profile.forbid.indexOf(c) >= 0; })) return null;
+  return a;
+}
+var AUDIO_ENTRY_DEADLINE_MS = 5000; /* a slow download must never ring a door long after arrival */
+function audioEntryGain(s, set) {
+  return set.sprite.gain[0] * Math.max(0, Math.min(1, Number(s.volume) || 0)) * (s.speaking ? AMBIENT_DUCK : 1) * (s.profile && s.profile.quiet === "hushed" ? 0.5 : 1);
+}
 /* driver: now, later, cancel, abort, idle, load, release, play(buffer,set,steps,gain)->voice, stop(voice,seconds),
-   error, warn, rng, [bedPending()]. Buffers live while the place is current and are released when it is left. */
+   [gain(voice,value)], error, warn, rng, [bedPending()]. Buffers live while the place is current and are released when it is left. */
 function createAccentController(driver, catalog, registry) {
   var key = "", sets = [], buffers = {}, failed = {}, st = null, timer = null, voice = null, loading = null, disposed = false;
+  var entryTrack = createAudioEntryTracker(catalog, registry), entry = null, entryVoice = null;
   var env = {speaking: false, quietSince: -Infinity, raining: false}, snapshot = {};
   function blocked(s) { return !s.enabled || !s.unlocked || !s.visible || s.held || s.paused || s.capturing || s.hidden; }
   function clearTimer() { if (timer) { driver.cancel(timer); timer = null; } }
-  function hush(seconds) { if (voice) { driver.stop(voice, seconds); voice = null; } }
+  function hush(seconds) { entryVoice = null; if (voice) { driver.stop(voice, seconds); voice = null; } }
   function releaseAll() {
+    entry = null;
     if (loading) { loading.abort.abort(); loading = null; }
     Object.keys(buffers).forEach(function(id) { driver.release(buffers[id]); }); buffers = {};
   }
@@ -133,7 +161,8 @@ function createAccentController(driver, catalog, registry) {
   /* Returns true when a set still waits for the bed's decode slot. Nothing calls update() when the bed settles, so
      plan() re-checks on a short timer while this is true (field-found in Chrome: the footsteps never loaded). */
   function load() {
-    var set = sets.filter(function(x) { return !buffers[x.id] && !failed[x.id]; })[0];
+    var wanted = entry ? [entry.set].concat(sets) : sets;
+    var set = wanted.filter(function(x) { return !buffers[x.id] && !failed[x.id]; })[0];
     if (!set || loading || disposed) return false;
     if ((driver.bedPending && driver.bedPending()) || !driver.idle()) return true;
     var job = {key: key, set: set, abort: driver.abort()};
@@ -157,7 +186,17 @@ function createAccentController(driver, catalog, registry) {
     clearTimer();
     if (disposed || !key) return;
     if (blocked(snapshot)) return;   /* #481 E3: a load that settles while the layer is blocked schedules nothing (§21.4: blocked states cancel at once) */
-    var waiting = load(), ready = loaded(), now = driver.now(), retry = waiting ? now + ACCENT_RETRY_MS : Infinity;
+    var now = driver.now();
+    if (entry && (now > entry.deadline || failed[entry.set.id])) entry = null;
+    var waiting = load(), ready = loaded(), retry = waiting ? now + ACCENT_RETRY_MS : Infinity;
+    if (entry) {
+      if (buffers[entry.set.id]) {
+        var cue = entry.set; entry = null; hush(0);
+        voice = driver.play(buffers[cue.id], cue, accentSteps(cue, null, driver.rng), audioEntryGain(snapshot, cue)); entryVoice = cue;
+      }
+      timer = driver.later(tick, ACCENT_RETRY_MS); return;
+    }
+    if (entryVoice && voice && !voice.done) { timer = driver.later(tick, ACCENT_RETRY_MS); return; }
     if (!ready.length) { if (waiting) timer = driver.later(tick, ACCENT_RETRY_MS); return; }
     if (!st) st = accentStart(ready, now, driver.rng); else ready.forEach(function(set) { accentAdmit(st, set, now, driver.rng); });
     var r = accentNext(st, ready, env, now, driver.rng);
@@ -166,14 +205,17 @@ function createAccentController(driver, catalog, registry) {
     if (wake < Infinity) timer = driver.later(tick, Math.max(0, wake - now));
   }
   return {
-    update: function(s) {
+    update: function(s, reason) {
       if (disposed) return;
       snapshot = s || {};
+      var arrived = entryTrack(snapshot, reason);
       var now = driver.now(), speaking = !!snapshot.speaking;
-      if (speaking && !env.speaking) hush(AUDIO_LAYER_KINDS.accent.transitionSeconds);   /* narration began: a burst in progress fades out */
+      var layer = AUDIO_LAYER_KINDS[entryVoice ? "event" : "accent"];
+      if (speaking && !env.speaking && layer.narration === "gap") hush(layer.transitionSeconds);   /* narration began: a burst in progress fades out */
       if (!speaking && env.speaking) env.quietSince = now;
       env.speaking = speaking; env.raining = !!snapshot.raining;
       if (blocked(snapshot)) {                     /* mic, pause, hidden, OFF: cut now; the gap timer starts over after */
+        entry = null;
         clearTimer(); hush(0);
         if (loading) { loading.abort.abort(); loading = null; }   /* #481 E3: the in-flight load is aborted, as the bed's invalidate() does */
         if (st) st.due = {};                       /* #481 E3: only the due times reset — lastPlay stays, so the 30 s spacing survives a short capture */
@@ -181,15 +223,18 @@ function createAccentController(driver, catalog, registry) {
       }
       var seed = accentSeedFor(snapshot, registry);/* #481 E2: the seed the plan chose, classified or not */
       var next = audioSelectAccents(snapshot, catalog, seed);
-      var nextKey = next.length ? [snapshot.campaignId, snapshot.nodeKey, snapshot.generation, next.map(function(x) { return x.id; }).join(",")].join("|") : "";
+      var nextKey = (next.length || (seed && seed.entry)) ? [snapshot.campaignId, snapshot.nodeKey, snapshot.generation, next.map(function(x) { return x.id; }).join(",")].join("|") : "";
       if (nextKey !== key) { clearTimer(); hush(0); releaseAll(); st = null; failed = {}; key = nextKey; sets = next; }
+      if ((entry || entryVoice) && !audioEntryFor(snapshot, catalog, registry)) { entry = null; if(entryVoice)hush(0); }
+      if (arrived) entry = {set:arrived, deadline:now + AUDIO_ENTRY_DEADLINE_MS};
+      if (entryVoice && voice && !voice.done && driver.gain) driver.gain(voice, audioEntryGain(snapshot, entryVoice));
       plan();
     },
     /* The bed outranks accents for memory: shed every accent buffer, keep the key so they reload once there is room. */
     shed: function() { clearTimer(); hush(0); releaseAll(); st = null; },
     dispose: function() { disposed = true; clearTimer(); hush(0); releaseAll(); key = ""; sets = []; },
     inspect: function() {
-      return {key: key, sets: sets.map(function(x) { return x.id; }), buffers: Object.keys(buffers).length, loading: loading ? 1 : 0,
+      return {entryPending:entry ? entry.set.id : null, entryPlaying:entryVoice && voice && !voice.done ? entryVoice.id : null, key: key, sets: sets.map(function(x) { return x.id; }), buffers: Object.keys(buffers).length, loading: loading ? 1 : 0,
         playing: voice && !voice.done ? 1 : 0, scheduled: timer ? 1 : 0, due: st ? Object.assign({}, st.due) : null};
     }
   };

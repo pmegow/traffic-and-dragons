@@ -947,7 +947,75 @@ var AUDIO_CATALOG = {
       },
       "sha256": "48a9d058d0d32cb591218a5cf023805543c65825a44ca24d6b2e9e5aef4c1ed1",
       "bytes": 57984
+    },
+    {
+      "cohort": "starter-1",
+      "enclosures": [
+        "sealed",
+        "covered"
+      ],
+      "settings": [
+        "interior"
+      ],
+      "biomes": [
+        "temperate",
+        "arid",
+        "tropical",
+        "frozen",
+        "unspecified"
+      ],
+      "from": 0,
+      "to": 1440,
+      "seedOnly": true,
+      "id": "alchemist-entry-bell",
+      "label": "Alchemist door bell",
+      "role": "accent",
+      "contains": [
+        "bells"
+      ],
+      "needsAny": [],
+      "approval": {
+        "recording": true,
+        "rights": true,
+        "contents": true,
+        "mix": true
+      },
+      "source": {
+        "sha256": "4f69082ff4c06c728efa39bbe7cc1b5b9513bf2ea5619767e860872fd3e3f43f",
+        "url": "https://bigsoundbank.com/carillon-commercant-s3588.html",
+        "author": "Joseph SARDIN",
+        "license": "CC0-1.0"
+      },
+      "recipe": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -12 dBFS; raised-cosine fades 8 ms in / 8 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "trigger": "cued",
+      "rain": "play",
+      "pattern": {
+        "kind": "single"
+      },
+      "gap": [
+        45,
+        90
+      ],
+      "sprite": {
+        "url": "sfx/alchemist-entry-bell-v1.mp3",
+        "gain": [
+          0.65,
+          0.65
+        ],
+        "cuts": [
+          [
+            0.25,
+            3.5344
+          ]
+        ],
+        "maxSeconds": 4,
+        "channels": 1,
+        "maxBytes": 70000,
+        "maxDecodedBytes": 800000
+      },
+      "sha256": "00b6b00aaba57f98359d87438d2f022995ccee0b00f42631cd18f850695763f4",
+      "bytes": 61440
     }
   ],
-  "version": "ffc9b7074d980fed7765"
+  "version": "5a84990a2941bbb961ae"
 };

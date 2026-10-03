@@ -26224,6 +26224,32 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("Alchemist entry bell");
+  function entryScene(extra){return Object.assign({enabled:true,unlocked:true,visible:true,volume:0.45,campaignKind:"village",campaignId:"entry-test",generation:1,nodeKey:"The Village|the alchemist's",common:"the alchemist's",open:true,minuteOfDay:835,classified:true,profile:{enclosure:"covered",setting:"interior",biome:"temperate",quiet:"normal",allows:["fire","machinery","voices"],forbid:["rain","thunder"]}},extra||{});}
+  t("Entry bell follows committed entrances, never reloads or repeated saves",function(){
+    if(typeof createAudioEntryTracker!=="function")return "entry tracker missing";
+    var track=createAudioEntryTracker(AUDIO_CATALOG,AUDIO_SCENES),inside=entryScene(),outside=entryScene({nodeKey:"The Village",common:null,exterior:true});
+    if(track(inside,"load"))return "load rings";if(track(inside,"turn"))return "standing still rings";
+    track(outside,"turn");var a=track(inside,"turn");if(!a||a.id!=="alchemist-entry-bell")return "entrance did not ring";
+    if(track(inside,"save")||track(inside,"turn"))return "duplicate rings";
+    track(outside,"turn");if(!track(inside,"turn"))return "second visit did not ring";
+    track(outside,"turn");if(track(inside,"save"))return "save transition rings";
+    track(outside,"turn");if(track(inside,"load"))return "load transition rings";
+    track(outside,"turn");if(track(entryScene({generation:2}),"load"))return "reload rings";
+    track(outside,"turn");if(track(entryScene({campaignId:"other"}),"turn"))return "campaign switch rings";return true;
+  });
+  t("Entry bell honors blocked playback and profile vetoes without delayed replay",function(){
+    if(typeof createAudioEntryTracker!=="function")return "entry tracker missing";
+    var gates=[{enabled:false},{volume:0},{unlocked:false},{visible:false},{hidden:true},{capturing:true},{paused:true},{held:true},{open:false},{open:null},{profile:roomProfile({quiet:"silent"})},{profile:roomProfile({forbid:["bells"]})}];
+    for(var i=0;i<gates.length;i++){var tr=createAudioEntryTracker(AUDIO_CATALOG,AUDIO_SCENES);tr(entryScene({nodeKey:"The Village",common:null}),"load");if(tr(entryScene(gates[i]),"turn"))return "ignored gate "+i;if(tr(entryScene(),"turn"))return "late replay "+i;}
+    return true;
+  });
+  t("Entry bell is a cued asset and never joins the random glass schedule",function(){
+    var s=entryScene(),seed=accentSeedFor(s,AUDIO_SCENES),a=AUDIO_CATALOG.assets.filter(function(x){return x.id==="alchemist-entry-bell";})[0];
+    if(!a||a.trigger!=="cued"||seed.entry!==a.id)return "entry binding absent";
+    return audioSelectAccents(s,AUDIO_CATALOG,seed).map(function(x){return x.id;}).join(",")==="alchemist-glass"?true:"bell randomly scheduled";
+  });
+
   section("L7 accent layer");
   /* Proposal_general_audio.html §21 (owner-approved 2026-09-22): occasional short sounds within a place — from its profile
      or an authored seed, never over narration, footsteps only where people are about, footsteps stop under rain. */

@@ -150,7 +150,28 @@ async function blockedRace(){
  assert(plays2[1]-first>=scope.ACCENT_SPACING_MS,'the 30 s spacing survives a 1 s capture: '+(plays2[1]-first)+' ms');
 }
 
+async function entryBell(){
+ let now=0,blockedBed=false;const timers=[],loads=[],plays=[],stops=[],released=[],levels=[],errors=[];
+ const d={now:()=>now,later:(fn,ms)=>{const h={at:now+ms,fn};timers.push(h);return h;},cancel:h=>h.cancelled=true,abort:()=>new AbortController(),idle:()=>true,bedPending:()=>blockedBed,rng:()=>0,
+ load:(set,signal)=>new Promise((ok,no)=>loads.push({set,signal,ok,no})),release:b=>released.push(b),play:(b,set,steps,gain)=>{const v={set,steps,gain,done:false};plays.push(v);return v;},stop:(v,sec)=>{v.done=true;stops.push(sec);},gain:(v,n)=>levels.push(n),error:e=>errors.push(e.message),warn:e=>errors.push(e)};
+ const inside={enabled:true,unlocked:true,visible:true,volume:0.45,campaignKind:'village',campaignId:'one',generation:1,nodeKey:"The Village|the alchemist's",common:"the alchemist's",open:true,minuteOfDay:835,classified:true,profile:{enclosure:'covered',setting:'interior',biome:'temperate',quiet:'normal',allows:['fire','machinery','voices'],forbid:['rain','thunder']}};
+ const outside={...inside,nodeKey:'The Village',common:null,exterior:true,profile:null,classified:false};
+ const c=scope.createAccentController(d,catalog(),scope.AUDIO_SCENES);
+ function advance(ms){const end=now+ms;for(let i=0;i<10000;i++){const t=timers.filter(x=>!x.cancelled&&!x.fired&&x.at<=end).sort((a,b)=>a.at-b.at)[0];if(!t)break;now=t.at;t.fired=true;t.fn();}now=end;}
+ async function enter(){c.update(outside,'turn');c.update(inside,'turn');await flush();return loads.at(-1);}
+ c.update(outside,'load');const j=await enter();assert.equal(j.set.id,'alchemist-entry-bell','ENTRY loads the door cue before random glass');j.ok({id:'bell'});await flush();await flush();
+ assert.equal(plays.length,1,'ENTRY plays once on entry');assert.equal(c.inspect().entryPlaying,'alchemist-entry-bell');assert.equal(plays[0].gain,0.65*0.45);
+ c.update({...inside,speaking:true});assert.equal(stops.length,0,'ENTRY narration ducks rather than cuts the door bell');assert.equal(levels.at(-1),0.65*0.45*scope.AMBIENT_DUCK,'ENTRY bell gain ducks under narration');
+ c.update({...inside,profile:{...inside.profile,forbid:['bells']}});assert.equal(c.inspect().entryPlaying,null,'ENTRY changing the profile to forbid bells cuts the current cue');
+ c.update(inside,'save');c.update(inside,'turn');assert.equal(plays.length,1,'ENTRY saves and repeated commits never ring again');
+ const late=await enter();c.update({...inside,capturing:true});assert(late.signal.aborted,'ENTRY mic aborts its load');late.ok({id:'cancelled'});await flush();c.update(inside);assert.equal(plays.length,1,'ENTRY mic release never replays');assert(released.some(x=>x.id==='cancelled'),'ENTRY late decoded buffer released');
+ const slow=await enter();advance(scope.AUDIO_ENTRY_DEADLINE_MS+1);slow.ok({id:'slow'});await flush();assert.equal(plays.length,1,'ENTRY late download never rings');
+ blockedBed=true;const count=loads.length;c.update(outside,'turn');c.update(inside,'turn');advance(scope.AUDIO_ENTRY_DEADLINE_MS+1000);blockedBed=false;advance(1000);await flush();assert(!loads.slice(count).some(x=>x.set.id==='alchemist-entry-bell'),'ENTRY no late cue after bed takes too long');
+ const end=await enter();end.ok({id:'second-bell'});await flush();assert.equal(plays.length,2,'ENTRY a fresh visit rings again');c.update({...inside,enabled:false});assert.equal(stops.at(-1),0,'ENTRY mute cuts immediately');c.update(inside);assert.equal(plays.length,2,'ENTRY unmute never replays');c.dispose();assert.equal(c.inspect().buffers,0);assert.deepEqual(errors,[]);
+ console.log('ENTRY controller checks passed');
+}
+
 (async()=>{
- await controller();await blockedRace();builder();await delivery();
+ await controller();await blockedRace();builder();await delivery();await entryBell();
  console.log('ACCENT LAYER GREEN: controller (bed first, narration, mic, leaving, memory), catalog refusals, sprite loader and cache');
 })().catch(e=>{console.error(e);process.exitCode=1});
