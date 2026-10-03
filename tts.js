@@ -638,18 +638,6 @@ var TTS = (function() {
       }
     };
   }
-  // Narrator dropdown. Calm voices first and labelled, because the subdued end is the point —
-  // the performative half is still selectable, just not the path of least resistance.
-  function _geminiVoiceOptions(sel) {
-    var calm = "", loud = "", i, v, o;
-    for (i = 0; i < GEMINI_VOICES.length; i++) {
-      v = GEMINI_VOICES[i];
-      o = "<option value='" + escHtml(v.id) + "'" + (v.id === sel ? " selected" : "") + ">"
-        + escHtml(v.id + " · " + v.note + " (" + v.g + ")") + "</option>";
-      if (v.calm) calm += o; else loud += o;
-    }
-    return "<optgroup label='Subdued'>" + calm + "</optgroup><optgroup label='More expressive'>" + loud + "</optgroup>";
-  }
   function _geminiEndpoint(model) {
     return "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
   }
@@ -1310,7 +1298,6 @@ var TTS = (function() {
   // rules below — splitQuotePieces toggles on exactly these three, so the balance test and the
   // toggle can never drift apart.
   var QUOTE_GLYPH   = /["“”]/;
-  var QUOTE_GLYPH_G = /["“”]/g;
   var HAS_WORD      = /[A-Za-z0-9]/;
   // Sentence-terminal punctuation, tolerating trailing closers — the same tail the sentence-split
   // regex accepts. Its ABSENCE at the end of a response is the output-cap truncation signature.
@@ -3848,7 +3835,7 @@ var TTS = (function() {
   // informational "not downloaded yet" note. Deliberately
   // synchronous (no await/init here — this file's async surface is confined to the four Piper
   // adapter functions, see the header comment): _piperDownloaded is session-local best-effort
-  // memory populated by _piperEnsureVoice/_piperRefreshDownloaded, not a live OPFS query, so
+  // memory populated by _piperEnsureVoice (and the OPFS listing below), not a live OPFS query, so
   // opening the settings modal never forces an engine load just to paint this indicator.
   // #90: the server-tier line in Voice Settings — off (not connected) / active / degraded-with-
   // reason. Self-no-ops when the modal isn't open (same contract as _updatePiperErr).
@@ -3902,25 +3889,7 @@ var TTS = (function() {
                                (_ortMem() === null ? "" : ", ORT " + _ortMem() + "MB") : "");
   }
 
-  // Non-blocking refresh of _piperDownloaded from the REAL on-disk store. v1.331: reads OPFS
-  // directly (same 'piper' directory vits-web's stored() lists) so the modal's "not downloaded
-  // yet" line is TRUTHFUL without engine init — the old engine-warm-only refresh left the line
-  // pessimistic on fresh sessions, and that mis-read cost two rounds of on-phone diagnosis
-  // (the model was on the device the whole time). Falls back to the engine listing when OPFS
-  // isn't available. Plain .then() callbacks per the file's async-surface convention.
-  function _piperRefreshDownloaded() {
-    _piperOpfsIds().then(function(ids) {
-      for (var i = 0; i < ids.length; i++) _piperDownloaded[ids[i]] = true;
-      _updatePiperErr();
-    });
-    if (!_piperMod || typeof _piperMod.stored !== "function") return;
-    _piperMod.stored().then(function(stored) {
-      for (var i = 0; i < stored.length; i++) _piperDownloaded[stored[i]] = true;
-      _updatePiperErr();
-    }).catch(function() {});
-  }
-
-  // Shared OPFS voice listing (factored from _piperRefreshDownloaded for the #66 slot UI): resolves
+  // Shared OPFS voice listing (for the #66 slot UI): resolves
   // the resident voice ids WITHOUT engine init, [] on any failure (no OPFS dir yet = none resident).
   function _piperOpfsIds() {
     if (!(navigator.storage && navigator.storage.getDirectory)) return Promise.resolve([]);
@@ -4090,20 +4059,6 @@ var TTS = (function() {
     return html;
   }
 
-  // Audition a native voice by NAME (reads the live dropdown choice, not the saved one).
-  function _testNativeVoice(name) {
-    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
-      if (typeof showToast === "function") showToast("No browser speech support."); return;
-    }
-    try {
-      speechSynthesis.cancel();
-      try { if (speechSynthesis.paused) speechSynthesis.resume(); } catch(e0) {}   // v1.329: unstick an iOS-paused engine
-      var u = new SpeechSynthesisUtterance(TTS_TEST_LINE);
-      var v = _findNativeVoice(name); if (v) u.voice = v;
-      u.rate = getRate();
-      speechSynthesis.speak(u);
-    } catch (e) {}
-  }
 
   // ── #95 S5: the starred cast ─────────────────────────────────────────────────────────────────
   // Device-level store written by speaker_browser.html (the audition satellite): [{id,label}] with

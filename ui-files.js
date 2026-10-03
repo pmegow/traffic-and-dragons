@@ -144,8 +144,6 @@ function campaignFolderFor(id,campName,create){
     });
   },function(e){if(e&&e.name==="NotFoundError"&&create===false)return null;throw e;});
 }
-/* the active campaign's folder (the #336 accessor): the resolver, with the old per-slug cache kept for the rename */
-function campaignFolderSlug(){return activeCampFolderName();}
 function campaignFolder(create){
   if(!_campRootHandle)return Promise.resolve(null);
   var id=(typeof getActiveCampId==="function")?getActiveCampId():null;

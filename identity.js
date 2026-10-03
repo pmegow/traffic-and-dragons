@@ -616,8 +616,6 @@ function relationshipFind(sheet,entity,who){
   for(i=0;i<rows.length;i++)if(rows[i].entity===ent)return rows[i];return null;
 }
 function relationshipRows(sheet,who,opts){return relationshipMigrateSheet(sheet,who,opts).filter(function(x){return !x.axisUnmigrated&&!!(x.bond||x.dynamic);});}
-function relationshipBond(row){return row&&row.bond?row.bond:"";}
-function relationshipDynamic(row){return row&&row.dynamic?row.dynamic:"";}
 function _relationshipPending(who,entity,next,pair){
   var q=worldState.relBondChanges||[],key=relationshipEdgeKey(who,entity),i;for(i=0;i<q.length;i++)if(q[i].key===key&&(next===undefined||(q[i].next===next&&!!q[i].pair===!!pair)))return q[i];return null;
 }
@@ -1407,7 +1405,6 @@ function _w2ResolveConflicts(subject,handle){var q=worldState&&worldState.identi
    refusedVictim; standing disputes key on _w2DisputedQuests — receipt-scoped, never prose-scoped.) */
 function w2MergeAllowed(canonical,duplicate){if(!worldState||!worldState.sceneRefs)return true;var c=resolveNpcName(canonical),m=memory.npcs&&memory.npcs[duplicate];if(m&&m.provisional&&resolveNpcName(m.provisional.of)===c)return true;var a=worldState.mergeConfirmArmed;return !!(a&&a.turn===worldState.turn&&a.canonical===canonical&&a.duplicate===duplicate);}
 function w2MergePropose(canonical,duplicate){if(typeof _queueMergeHint==="function")_queueMergeHint(canonical,duplicate);if(typeof console!=="undefined")console.warn("[identity] merge proposed, not applied: "+duplicate+" -> "+canonical+" (awaiting exact-pair confirmation)");}
-function w2MergeCommitted(canonical,duplicate){var a=worldState&&worldState.mergeConfirmArmed;if(a&&a.canonical===canonical&&a.duplicate===duplicate)delete worldState.mergeConfirmArmed;}
 function _w2TxnFind(id){var a=worldState&&worldState.canonTxns||[],i;for(i=0;i<a.length;i++)if(a[i].id===id)return a[i];return null;}
 function _w2TxnMetaSame(r,m){return r.claim===m.claim&&r.subject===m.subject&&r.evidence===m.evidence&&r.quest===m.quest;}
 function _w2Compact(v){return String(v==null?"":v).replace(/\s+/g," ").trim().toLowerCase();}
