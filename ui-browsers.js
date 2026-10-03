@@ -654,6 +654,9 @@ function populateVillageFromLibrary(done){
 var _villageSignedOutSaid=false;
 function villageRefreshOnEntry(){
   if(!worldState||typeof kindDef!=="function"||!kindDef().populateFromLibrary||typeof villageRefreshFromLibrary!=="function")return;
+  /* #556: the commons seed runs on EVERY entry, signed in or not (idempotent) — a commons added to the kind's list after this
+     village was made (the riverbank) used to exist only in new villages; the owner's never gained it. Said when it mints. */
+  if(typeof villageCommonsSeed==="function"){var _cs=villageCommonsSeed();if(_cs&&_cs.minted){showToast("\u2795 "+_cs.minted+" new place"+(_cs.minted===1?"":"s")+" added to the village map.",5000);if(typeof saveAll==="function")saveAll();}}
   var sa=(typeof storageAdapter!=="undefined")?storageAdapter:null;
   if(!sa||typeof sa.listCharacterLibrary!=="function"||!(typeof sa.isServerMode==="function"&&sa.isServerMode())||!(typeof sa.hasToken==="function"&&sa.hasToken())){console.info("[village] refresh on entry skipped — not signed in");if(!_villageSignedOutSaid){_villageSignedOutSaid=true;if(typeof showToast==="function")showToast("Signed out — the village was not refreshed from the character library.",6000);}return;}
   sa.listCharacterLibrary(function(err,list){

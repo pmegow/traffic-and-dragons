@@ -24581,7 +24581,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(/Call on (Frizwick|Daeris)/.test(a.text))return "never call on a resident already in the scene: "+a.text;
     worldState.turn=13;var b=engineFourthAction();if(!b||b.kind!=="village")return "the village rung takes turns with nothing — every turn is its own: "+JSON.stringify(b);
     worldState.turn=14;var b2=engineFourthAction();if(!b2||b2.kind!=="village"||b2.text===a.text)return "the village rung rotates its offer by turn: "+JSON.stringify([a,b2]);
-    memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");worldState.turn=14;var seen={},i;for(i=0;i<6;i++){worldState.turn=14+i;var x=engineFourthAction();if(x&&x.kind==="village")seen[x.text]=1;}
+    memory.npcs["Daeris"].lastSeenAt=villageHouseKey("Daeris");worldState.turn=14;var seen={},i;for(i=0;i<8;i++){worldState.turn=14+i;var x=engineFourthAction();if(x&&x.kind==="village")seen[x.text]=1;}/* #556: one more commons (the riverbank) in the rotation, so one full lap is eight offers */
     if(!Object.keys(seen).some(function(k){return /Call on Daeris/.test(k);}))return "an absent resident must come up for a call within a few turns: "+JSON.stringify(seen);
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";var ac=worldState.character;ac.hp=ac.maxHp;ac.inventory=[];ac.gold=10;worldState.questLog=[];worldState.turn=3;
     memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};memory.map.nodes["Sandpoint|the market"]={firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null};
@@ -24763,6 +24763,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[SUBLOCATION:the alchemist's shop with the green door]");if(worldState.world.sublocation!=="the alchemist's")return "the alchemist's shop folds: "+worldState.world.sublocation;
     applyMuts("[SUBLOCATION:the well house]");if(worldState.world.sublocation!=="the well house")return "a name with no commons word files as named";
     var before=Object.keys(n).length;var r=villageCommonsSeed();if(Object.keys(n).length!==before)return "re-seeding is idempotent: "+JSON.stringify(r);
+    /* #556: the riverbank is a commons — open ground with no hours, no shop, no keeper; "down by the river" folds into it; an older village gains it on the next seed */
+    if(!n["The Village|the riverbank"]||n["The Village|the riverbank"].shop||n["The Village|the riverbank"].hours)return "the riverbank is minted as open ground: "+JSON.stringify(n["The Village|the riverbank"]);
+    applyMuts("[SUBLOCATION:the riverbank]");if(worldState.world.sublocation!=="the riverbank")return "the GM can arrive at the riverbank: "+worldState.world.sublocation;
+    delete n["The Village|the riverbank"];var r2=villageCommonsSeed();if(r2.minted!==1||!n["The Village|the riverbank"])return "an older village without the riverbank gains it from one seed: "+JSON.stringify(r2);
+    var ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8"),at=ub.indexOf("function villageRefreshOnEntry()"),seedAt=ub.indexOf("if(typeof villageCommonsSeed===\"function\"){var _cs=villageCommonsSeed();",at),gateAt=ub.indexOf("listCharacterLibrary",at);
+    if(at<0||seedAt<0||gateAt<0||seedAt>gateAt)return "villageRefreshOnEntry must run the commons seed BEFORE the sign-in gate, so a signed-out entry still gains new places";
     makeWorld();applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Plain",startingLocation:"Sandpoint",acts:[]}));if(Object.keys(memory.map.nodes).some(function(k){return /\|the tavern$/.test(k);}))return "the adventure mints no commons";
     return true;
   });
