@@ -1,0 +1,157 @@
+{
+  "sources": [
+    {
+      "id": "0149",
+      "title": "Boiling water",
+      "author": "Joseph SARDIN",
+      "page": "https://bigsoundbank.com/boiling-water-s0149.html",
+      "license": "CC0-1.0",
+      "sha256": "65d72c6fe9be3ce94aed509fd36efbffdf894d17e7babf84ecb105e2d205fb68",
+      "bytes": 1177804
+    },
+    {
+      "id": "0150",
+      "title": "Water bubbles",
+      "author": "Joseph SARDIN",
+      "page": "https://bigsoundbank.com/bulles-d-eau-s0150.html",
+      "license": "CC0-1.0",
+      "sha256": "339d8870803ceb8d83dbd4f2ad3e673c6dceb8614db412b56b89b5367b069d81",
+      "bytes": 2303034,
+      "use": "Rejected v1 bubbling layer; retained only in the local source library."
+    },
+    {
+      "id": "0487",
+      "title": "Bottle clink",
+      "author": "Joseph SARDIN",
+      "page": "https://bigsoundbank.com/bottle-clink-s0487.html",
+      "license": "CC0-1.0",
+      "sha256": "9482ce19c5ba9c264c516c166ec6d5668aec6fc94f23e27307e1fb2a1c355e1d",
+      "bytes": 2080620
+    }
+  ],
+  "bedMasterRecipe": "Only source 0149, high-pass 100 Hz and low-pass 2400 Hz; no straw-bubble layer. Existing preparation: 1.5 s crossfade, RMS -35, peak ceiling -10 dBFS.",
+  "bed": {
+    "source": "Audio/Prepared/alchemist-simmer-filtered.wav",
+    "sourceSha256": "4dae04ef78a77b83837ead2fece8b0f3731ca8388e97afa764a1cf9490388738",
+    "sourceLicense": "CC0-1.0",
+    "sourceUrl": "https://bigsoundbank.com/boiling-water-s0149.html",
+    "author": "Joseph SARDIN / BigSoundBank",
+    "sourceStartSeconds": 0.0,
+    "sourceSeconds": 13.341,
+    "crossfadeSeconds": 1.5,
+    "method": "mono mean; DC removal; 1.50-second raised-cosine overlap of tail/head; RMS target -35 dBFS with peak ceiling -10 dBFS; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+    "gainDb": -6.307,
+    "durationSeconds": 11.841473922902495,
+    "sampleRate": 44100,
+    "channels": 1,
+    "rmsDb": -35.0,
+    "peakDb": -11.24,
+    "boundaryStep": 0.0005757853365477798,
+    "adjacentStepP99": 0.0069832426766133285,
+    "loopEndSeconds": 11.841,
+    "loopEndPolicy": "Round down to a whole millisecond to stay within sample-rate-dependent decoder length.",
+    "wavSha256": "a407117d8d8b882ecf6db0e40d7e14777683428b1337db4ccff63f8a59abe85a",
+    "mp3Sha256": "f25b24d399700bb9a7654b6e70a050c124270be04ebe9547be1e39bf2e6d8245",
+    "mp3Bytes": 190588,
+    "mp3LameTag": true,
+    "encoder": "ffmpeg bundled Audio/Downloader libmp3lame",
+    "delivered": "sfx/alchemist-bubbles-v2.mp3"
+  },
+  "glass": {
+    "name": "accent-alchemist-glass-v1",
+    "sampleRate": 48000,
+    "channels": 1,
+    "seconds": 3.5686,
+    "cuts": [
+      [
+        0.25,
+        0.703
+      ],
+      [
+        0.953,
+        1.4125
+      ],
+      [
+        1.6625,
+        2.3369
+      ],
+      [
+        2.5869,
+        3.3186
+      ]
+    ],
+    "samples": [
+      {
+        "source": "Audio/CC0/Alchemist/bsb-0487.wav",
+        "cut": [
+          1.2,
+          1.8
+        ],
+        "sourceSha256": "9482ce19c5ba9c264c516c166ec6d5668aec6fc94f23e27307e1fb2a1c355e1d",
+        "gainDb": 1.83,
+        "seconds": 0.453,
+        "rmsDbfs": -37.1,
+        "peakDbfs": -12.0
+      },
+      {
+        "source": "Audio/CC0/Alchemist/bsb-0487.wav",
+        "cut": [
+          7.0,
+          7.8
+        ],
+        "sourceSha256": "9482ce19c5ba9c264c516c166ec6d5668aec6fc94f23e27307e1fb2a1c355e1d",
+        "gainDb": -5.67,
+        "seconds": 0.4595,
+        "rmsDbfs": -32.0,
+        "peakDbfs": -13.94
+      },
+      {
+        "source": "Audio/CC0/Alchemist/bsb-0487.wav",
+        "cut": [
+          10.5,
+          11.4
+        ],
+        "sourceSha256": "9482ce19c5ba9c264c516c166ec6d5668aec6fc94f23e27307e1fb2a1c355e1d",
+        "gainDb": -10.55,
+        "seconds": 0.6745,
+        "rmsDbfs": -36.22,
+        "peakDbfs": -12.0
+      },
+      {
+        "source": "Audio/CC0/Alchemist/bsb-0487.wav",
+        "cut": [
+          13.4,
+          14.6
+        ],
+        "sourceSha256": "9482ce19c5ba9c264c516c166ec6d5668aec6fc94f23e27307e1fb2a1c355e1d",
+        "gainDb": -12.0,
+        "seconds": 0.7317,
+        "rmsDbfs": -40.46,
+        "peakDbfs": -12.0
+      }
+    ],
+    "method": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -32 dBFS, peak ceiling -12 dBFS; raised-cosine fades 3 ms in / 40 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+    "license": "CC0-1.0",
+    "sourceUrl": "https://bigsoundbank.com/bottle-clink-s0487.html",
+    "author": "Joseph SARDIN / BigSoundBank",
+    "wavSha256": "882d23f4a8f07190a5bd9532a098f3769ad90e2f84851d846d05611df5dccf9a",
+    "mp3Sha256": "48a9d058d0d32cb591218a5cf023805543c65825a44ca24d6b2e9e5aef4c1ed1",
+    "bytes": 57984,
+    "delivery": "sfx/accent-alchemist-glass-v1.mp3"
+  },
+  "proposedMix": {
+    "bedGain": 0.55,
+    "glassGain": [
+      0.35,
+      0.55
+    ],
+    "glassGapSeconds": [
+      45,
+      90
+    ],
+    "seedCommon": "the alchemist's",
+    "mixApproved": false
+  },
+  "preview": "35 s, bed gain .55, glass gain .45; gaps condensed to clinks at 4, 14 and 26 s for audition; game proposal uses 45\u201390 s gaps and narration/mic/pause gates.",
+  "review": "Owner rejected v1 bubbling as too busy. v2 uses a single softer simmer, pending listening."
+}

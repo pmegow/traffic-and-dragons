@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-02 · #559 · Codex, owner-requested alchemist audio: CC0 source recordings, prepared simmer and four glass clinks with license/hash receipts; busy first mix rejected, calmer v2 awaits listening approval. No engine changes or activation yet.
+
 - 2026-10-02 · #553 contrast · Codex, owner-requested website v1.0.4: reduced the outer parchment color value by 25% (#eaddb9 to #b0a68b), placed the original paper fill on the bordered cover, and made the wrapper transparent so every outer margin uses the darker surround. No engine changes.
 
 - 2026-10-02 · #553 · Codex, owner-requested website v1.0.3: swapped page and link-preview artwork to the supplied coffee image, matching its dimensions and updating website cache markers. No engine changes.
