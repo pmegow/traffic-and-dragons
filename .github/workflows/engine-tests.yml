@@ -85,7 +85,7 @@ jobs:
         run: node dev/cdp-browser.js --check
       # #481 G6: the three blueprint browser suites gate on their own — they used to run only when a sabotage battery
       # happened to call them, so a red one could sit unseen for weeks.
-      - name: Capability naming drafts and Bible links in a real browser (#221)
+      - name: Capability naming drafts and game-card modals in a real browser (#221)
         run: node dev/tests-221-capability-names-browser.js
       - name: Blueprint catalog in a real browser
         run: node dev/tests-blueprint-catalog-browser.js

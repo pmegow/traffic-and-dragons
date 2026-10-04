@@ -12,21 +12,23 @@ h1{font-weight:normal;font-size:36px;line-height:1.15;margin:12px 0}p{color:var(
 .tools{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:26px 0 14px}.search{flex:1;min-width:180px}label{display:block;font-size:13px;color:var(--t1)}
 input,button{font:16px var(--font);color:var(--t0);border:1px solid var(--brd2);border-radius:5px;background:var(--bg1);min-height:44px;padding:10px 12px}
 input{width:100%}button{cursor:pointer;white-space:nowrap}button.primary{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}button:disabled{opacity:.5;cursor:default}
-a{color:var(--acc);text-underline-offset:3px}a:hover{color:var(--t0)}.meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px;color:var(--t1);padding:0 0 16px}
-.notice{margin:10px 0;color:var(--warn);font-size:14px}.notice:empty{display:none}table{border-collapse:collapse;width:100%;table-layout:fixed;border:1px solid var(--brd)}
-th{text-align:left;background:var(--bg2);color:var(--t1);font-size:13px;font-weight:normal;letter-spacing:.4px;padding:14px 18px;position:sticky;top:0;z-index:1}
-th:first-child{width:45%}td{padding:14px 18px;border-top:1px solid var(--brd);vertical-align:top;background:var(--bg1);overflow-wrap:anywhere}
-td+td{border-left:1px solid var(--brd)}.kind{display:block;color:var(--t1);font:11px var(--font-mono);margin-top:5px}.changed td{background:var(--acc-bg)}
+.cap-name{color:var(--acc);text-decoration:underline;text-underline-offset:3px;background:none;border:0;padding:0;min-height:24px;text-align:left;white-space:normal;overflow-wrap:anywhere}.cap-name:hover{color:var(--t0)}.meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px;color:var(--t1);padding:0 0 16px}
+.notice{margin:10px 0;color:var(--warn);font-size:14px}.notice:empty{display:none}.names-table{border-collapse:collapse;width:100%;table-layout:fixed;border:1px solid var(--brd)}
+.names-table th{text-align:left;background:var(--bg2);color:var(--t1);font-size:13px;font-weight:normal;letter-spacing:.4px;padding:14px 18px;position:sticky;top:0;z-index:1}
+.names-table th:first-child{width:45%}.names-table td{padding:14px 18px;border-top:1px solid var(--brd);vertical-align:top;background:var(--bg1);overflow-wrap:anywhere}
+.names-table td+td{border-left:1px solid var(--brd)}.kind{display:block;color:var(--t1);font:11px var(--font-mono);margin-top:5px}.changed td{background:var(--acc-bg)}
 .issue{color:var(--warn);font-size:12px;margin-top:5px}.issue:empty{display:none}input[aria-invalid="true"]{border-color:var(--warn)}
 #no-matches{color:var(--t1);padding:20px 0}footer{color:var(--t1);font-size:13px;margin-top:22px}#import-file{display:none}
-@media(max-width:560px){main{padding:24px 12px 50px}h1{font-size:29px}td,th{padding:12px 10px}th:first-child{width:42%}td input{padding:9px 8px;font-size:16px}.search{flex-basis:100%}.tools button{flex:1;font-size:15px}}
+@media(max-width:560px){main{padding:24px 12px 50px}h1{font-size:29px}.names-table td,.names-table th{padding:12px 10px}.names-table th:first-child{width:42%}.names-table td input{padding:9px 8px;font-size:16px}.search{flex-basis:100%}.tools button{flex:1;font-size:15px}}
+#name-card-content>div>div:first-child{padding-right:26px}
+#name-card-close{position:absolute;top:4px;right:4px;width:44px;height:44px;padding:0;border:0;background:none;color:var(--t1);font-size:26px;line-height:1}
 </style>
 </head>
 <body>
 <main>
 <div class="eyebrow">Traffic &amp; Dragons / Naming worksheet</div>
 <h1>Give every capability its name.</h1>
-<p>Open an original name to read its Bible card. Enter a name for every row. To keep a name, type the original again. Blank rows are still awaiting your decision. Export a draft whenever you stop; names can only be applied once every row is complete and valid.</p>
+<p>Click an original name to read its game card here. Enter a name for every row. To keep a name, type the original again. Blank rows are still awaiting your decision. Export a draft whenever you stop; names can only be applied once every row is complete and valid.</p>
 <div class="tools">
 <div class="search"><label for="search">Find an original or new name</label><input id="search" type="search" placeholder="Search names…" autocomplete="off"></div>
 <button id="import" type="button" disabled>Import names…</button>
@@ -36,13 +38,13 @@ td+td{border-left:1px solid var(--brd)}.kind{display:block;color:var(--t1);font:
 <div class="meta"><span id="count">Loading capabilities…</span><span id="save-state" role="status"></span></div>
 <div id="readiness" class="notice" role="status"></div>
 <div id="notice" class="notice" role="alert"></div>
-<table aria-label="Original and proposed capability names"><thead><tr><th scope="col">Original name ↗</th><th scope="col">New name</th></tr></thead><tbody id="names"></tbody></table>
+<table class="names-table" aria-label="Original and proposed capability names"><thead><tr><th scope="col">Original name</th><th scope="col">New name</th></tr></thead><tbody id="names"></tbody></table>
 <div id="no-matches" hidden>No names match your search.</div>
 <footer>Drafts save in this browser on this device. Export a JSON backup to keep or share your choices. Import restores a backup. Your choices will be applied to the game in a separate step.</footer>
 <noscript><p>Enable JavaScript to load the capabilities and edit names.</p></noscript>
 </main>
 <script>
-(function(){document.write('<script src="capability_bible.js?fresh='+Date.now()+'"><\/script>');})();
+(function(){var files=["capability_bible.js","helpers.js","ui-shell.js"],fresh="?fresh="+Date.now();files.forEach(function(file){document.write('<script src="'+file+fresh+'"><\/script>');});})();
 </script>
 <script id="names-core">
 // Pure rules shared by the page and the #221 tests. Saving a draft never implies approval to apply it.
@@ -109,12 +111,21 @@ var CapabilityNames=(function(){
     el("export").disabled=false;
     el("readiness").textContent=invalid?"Draft — saving and exporting are available. "+invalid+" rows still need a valid name before implementation.":"Ready for implementation review — every row has a valid name.";
   }
+  function openCard(name){
+    try{
+      var modal=modalShell("name-card-modal",
+        '<div id="name-card-content">'+bibleCardHTML(name,CAPABILITY_BIBLE[name])+'</div><button id="name-card-close" type="button" aria-label="Close card">&times;</button>',
+        {z:400,bg:".9",boxCss:"background:var(--modal-bg,var(--bg1));border:1px solid var(--acc);border-radius:12px;max-width:420px;width:100%;position:relative;max-height:calc(100vh - 40px);overflow-y:auto;",closeId:"name-card-close",outside:true});
+      modal.setAttribute("aria-label",name+" — capability card");
+    }catch(error){fail("The card could not be opened. Reload the page and try again. "+error.message,error);}
+  }
   function render(){
     var body=el("names");body.textContent="";views=[];
     list.forEach(function(row,i){
-      var tr=document.createElement("tr"),left=document.createElement("td"),right=document.createElement("td"),link=document.createElement("a"),kind=document.createElement("span"),input=document.createElement("input"),issue=document.createElement("div"),entry=CAPABILITY_BIBLE[row.from];
-      link.textContent=row.from;link.href="bible_study.html#"+encodeURIComponent("capability-"+row.from);link.target="capability-bible";
-      link.setAttribute("aria-label",row.from+" — open Bible card in another tab");
+      var tr=document.createElement("tr"),left=document.createElement("td"),right=document.createElement("td"),link=document.createElement("button"),kind=document.createElement("span"),input=document.createElement("input"),issue=document.createElement("div"),entry=CAPABILITY_BIBLE[row.from];
+      link.textContent=row.from;link.type="button";link.className="cap-name";
+      link.setAttribute("aria-label",row.from+" — open capability card");link.setAttribute("aria-haspopup","dialog");
+      link.addEventListener("click",function(){openCard(row.from);});
       kind.className="kind";kind.textContent=(entry.kind==="ability"?"ABILITY":"SPELL")+" · TIER "+(entry.tier||0);
       input.type="text";input.required=true;input.placeholder="New name or original";input.value=row.to;input.autocomplete="off";input.spellcheck=false;input.setAttribute("aria-label","New name for "+row.from);
       issue.className="issue";issue.id="issue-"+i;input.setAttribute("aria-describedby",issue.id);
