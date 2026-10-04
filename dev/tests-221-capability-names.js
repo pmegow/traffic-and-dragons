@@ -66,4 +66,26 @@ check('bad imports and changed bible cannot discard choices', () => {
   assert.throws(() => api.read(JSON.stringify(valid), newer), /bible|missing/i);
   assert.equal(JSON.stringify(original), snapshot);
 });
+
+check('usage includes class levels archetypes and racial lineages without prose guesses', () => {
+  const fixture={'creeping vines':{kind:'spell',tier:2},'secret root':{kind:'ability',tier:1},'unused':{kind:'spell'}};
+  const classes={Druid:{nm:'Druid',abilities:[{nm:'Creeping Vines'}],levels:{2:{features:[{nm:'Secret Root'}]}},spells:{2:['Creeping Vines']},archetypes:[{id:'wild',nm:'Wild',levels:{3:{features:[{nm:'Secret Root'}]}}}]},Ranger:{nm:'Ranger',spells:{2:['Creeping Vines']}}};
+  const races=[{nm:'Elf',subraces:[{nm:'Forest Elf',racial_caps:[{cap:'Creeping Vines',use:'1/day'}]}]},{nm:'Half-Blood',subraces:[{nm:'Half-Elven',lineages:[{nm:'Forest Elf',racial_caps:['Creeping Vines']}]}]}];
+  const result=api.usage(fixture,classes,races,{},{});
+  assert.deepEqual(JSON.parse(JSON.stringify(result['creeping vines'].users)),['Druid','Forest Elf','Half-Elven (Forest Elf)','Ranger']);
+  assert.equal(result['creeping vines'].racial,true);
+  assert.ok(api.usageLabel(fixture['creeping vines'],result['creeping vines']).startsWith('Spell / Racial Ability — Tier 2 — [ '));
+  assert.deepEqual(JSON.parse(JSON.stringify(result['secret root'].users)),['Druid','Druid (Wild)']);
+  assert.match(api.usageLabel(fixture.unused,result.unused),/No listed class or race/);
+});
+check('usage resolves real class spell pools and nested racial grants', () => {
+  ['data.js','class_bible.js'].forEach(f=>vm.runInNewContext(fs.readFileSync(path.join(root,f),'utf8'),box));
+  const result=api.usage(bible,box.CLASS_BIBLE,box.ANCS,box.SPELLS,box.ARCH_SPELLS);
+  assert.ok(result['faerie fire'].users.includes('Druid'));
+  assert.ok(result['faerie fire'].users.includes('Drow'));
+  assert.ok(result['faerie fire'].users.includes('Half-Elven (Drow)'));
+  assert.ok(result['totem spirit'].users.includes('Primal (Totemborn)'));
+  assert.ok(result['booming blade'].users.includes('Warrior (Eldritch Knight)'));
+  assert.ok(result['action surge'].users.includes('Warrior'));
+});
 process.exitCode = failures ? 1 : 0;

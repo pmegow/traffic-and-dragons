@@ -16,7 +16,7 @@ input{width:100%}button{cursor:pointer;white-space:nowrap}button.primary{backgro
 .notice{margin:10px 0;color:var(--warn);font-size:14px}.notice:empty{display:none}.names-table{border-collapse:collapse;width:100%;table-layout:fixed;border:1px solid var(--brd)}
 .names-table th{text-align:left;background:var(--bg2);color:var(--t1);font-size:13px;font-weight:normal;letter-spacing:.4px;padding:14px 18px;position:sticky;top:0;z-index:1}
 .names-table th:first-child{width:45%}.names-table td{padding:14px 18px;border-top:1px solid var(--brd);vertical-align:top;background:var(--bg1);overflow-wrap:anywhere}
-.names-table td+td{border-left:1px solid var(--brd)}.kind{display:block;color:var(--t1);font:11px var(--font-mono);margin-top:5px}.changed td{background:var(--acc-bg)}
+.names-table td+td{border-left:1px solid var(--brd)}.kind{display:block;color:var(--t1);font:12px var(--font-mono);line-height:1.45;margin-top:5px}.changed td{background:var(--acc-bg)}
 .issue{color:var(--warn);font-size:12px;margin-top:5px}.issue:empty{display:none}input[aria-invalid="true"]{border-color:var(--warn)}
 #no-matches{color:var(--t1);padding:20px 0}footer{color:var(--t1);font-size:13px;margin-top:22px}#import-file{display:none}
 @media(max-width:560px){main{padding:24px 12px 50px}h1{font-size:29px}.names-table td,.names-table th{padding:12px 10px}.names-table th:first-child{width:42%}.names-table td input{padding:9px 8px;font-size:16px}.search{flex-basis:100%}.tools button{flex:1;font-size:15px}}
@@ -28,23 +28,24 @@ input{width:100%}button{cursor:pointer;white-space:nowrap}button.primary{backgro
 <main>
 <div class="eyebrow">Traffic &amp; Dragons / Naming worksheet</div>
 <h1>Give every capability its name.</h1>
-<p>Click an original name to read its game card here. Enter a name for every row. To keep a name, type the original again. Blank rows are still awaiting your decision. Export a draft whenever you stop; names can only be applied once every row is complete and valid.</p>
+<p>Click an original name to read its game card here. Enter a name for every row. To keep a name, type the original again. Blank rows are still awaiting your decision. Save a draft whenever you stop; names can only be applied once every row is complete and valid.</p>
 <div class="tools">
 <div class="search"><label for="search">Find an original or new name</label><input id="search" type="search" placeholder="Search names…" autocomplete="off"></div>
 <button id="import" type="button" disabled>Import names…</button>
-<button id="export" class="primary" type="button" disabled>Export names</button>
+<button id="save" class="primary" type="button" disabled>Save</button>
 <input id="import-file" type="file" accept=".json,application/json" aria-label="Import a names file">
 </div>
 <div class="meta"><span id="count">Loading capabilities…</span><span id="save-state" role="status"></span></div>
+<div id="file-state" class="meta" role="status">Connecting to the project list…</div>
 <div id="readiness" class="notice" role="status"></div>
 <div id="notice" class="notice" role="alert"></div>
 <table class="names-table" aria-label="Original and proposed capability names"><thead><tr><th scope="col">Original name</th><th scope="col">New name</th></tr></thead><tbody id="names"></tbody></table>
 <div id="no-matches" hidden>No names match your search.</div>
-<footer>Drafts save in this browser on this device. Export a JSON backup to keep or share your choices. Import restores a backup. Your choices will be applied to the game in a separate step.</footer>
+<footer>Save updates the single capability-names.json file in this project, including unfinished work. Use Capability Names.cmd to open this worksheet with project saving. Import can restore an earlier downloaded list. Browser drafts provide a recovery copy. Names are applied to the game in a separate step.</footer>
 <noscript><p>Enable JavaScript to load the capabilities and edit names.</p></noscript>
 </main>
 <script>
-(function(){var files=["capability_bible.js","helpers.js","ui-shell.js"],fresh="?fresh="+Date.now();files.forEach(function(file){document.write('<script src="'+file+fresh+'"><\/script>');});})();
+(function(){var files=["data.js","capability_bible.js","class_bible.js","helpers.js","ui-shell.js","dev/bible-helper-version.js"],fresh="?fresh="+Date.now();files.forEach(function(file){document.write('<script src="'+file+fresh+'"><\/script>');});})();
 </script>
 <script id="names-core">
 // Pure rules shared by the page and the #221 tests. Saving a draft never implies approval to apply it.
@@ -83,19 +84,50 @@ var CapabilityNames=(function(){
       return {from:row.from,to:byName[row.from]};
     });
   }
-  return {rows:rows,issues:issues,pack:pack,read:read,forImplementation:forImplementation};
+  function usage(bible,classes,races,spellPools,archPools){
+    var out=Object.create(null);
+    Object.keys(bible).forEach(function(key){out[key]={users:[],racial:false,classFeature:false};});
+    function add(ref,owner,racial,feature){
+      var key=capBaseName(typeof ref==="string"?ref:ref&&(ref.cap||ref.nm)),entry=out[key];if(!entry)return;
+      if(entry.users.indexOf(owner)<0)entry.users.push(owner);
+      if(racial)entry.racial=true;if(feature)entry.classFeature=true;
+    }
+    function pool(spells,owner){Object.keys(spells||{}).forEach(function(tier){(spells[tier]||[]).forEach(function(ref){add(ref,owner,false,false);});});}
+    function progression(def,owner){
+      (def.abilities||[]).forEach(function(ref){add(ref,owner,false,true);});
+      Object.keys(def.levels||{}).forEach(function(level){(def.levels[level].features||[]).forEach(function(ref){add(ref,owner,false,true);});});
+      pool(def.spells,owner);
+    }
+    Object.keys(classes||{}).forEach(function(key){
+      var def=classes[key],owner=def.nm||key;progression(def,owner);pool((spellPools||{})[key],owner);
+      (def.archetypes||[]).forEach(function(arch){var label=owner+" ("+arch.nm+")";progression(arch,label);pool((archPools||{})[arch.id],label);});
+    });
+    function ancestry(node,owner){
+      (node.racial_caps||[]).forEach(function(ref){add(ref,owner,true,false);});
+      (node.subraces||[]).forEach(function(child){ancestry(child,child.nm);});
+      (node.lineages||[]).forEach(function(child){ancestry(child,owner+" ("+child.nm+")");});
+    }
+    (races||[]).forEach(function(race){ancestry(race,race.nm);});
+    Object.keys(out).forEach(function(key){out[key].users.sort();});return out;
+  }
+  function usageLabel(entry,usage){
+    var kind=entry.kind==="ability"?"Ability":"Spell";
+    if(usage.racial)kind=entry.kind==="ability"&&!usage.classFeature?"Racial Ability":kind+" / Racial Ability";
+    return kind+" — Tier "+(entry.tier||0)+" — [ "+(usage.users.length?usage.users.join(", "):"No listed class or race")+" ]";
+  }
+  return {rows:rows,issues:issues,pack:pack,read:read,forImplementation:forImplementation,usage:usage,usageLabel:usageLabel};
 })();
 </script>
 <script>
 (function(){
-  var KEY="tnd_capability_names_v1",list=[],views=[],canSave=true,unsaved=false;
+  var KEY="tnd_capability_names_v1",list=[],views=[],canSave=true,unsaved=false,usage={},revision=null,fileReady=false,saving=false,cachedDraft=null,editSeq=0;
   function el(id){return document.getElementById(id);}
   function fail(message,error){el("notice").textContent=message;console.warn("Capability names: "+message,error);}
-  function save(){
+  function saveDraft(){
     unsaved=true;
-    if(!canSave){el("save-state").textContent="Draft not saved — export to keep these edits.";return;}
+    if(!canSave){el("save-state").textContent="Draft not saved — use Save to keep these edits.";return;}
     try{localStorage.setItem(KEY,CapabilityNames.pack(list));unsaved=false;el("save-state").textContent="Draft saved in this browser.";}
-    catch(error){el("save-state").textContent="Draft not saved.";fail("Browser storage is unavailable or full. Export to keep your choices.",error);}
+    catch(error){el("save-state").textContent="Draft not saved.";fail("Browser storage is unavailable or full. Use Save to keep your choices.",error);}
   }
   function refresh(){
     var issues=CapabilityNames.issues(list),changed=0,completed=0,invalid=0,shown=0,query=el("search").value.toLowerCase().trim();
@@ -104,12 +136,12 @@ var CapabilityNames=(function(){
       if(different)changed++;if(filled)completed++;if(issues[i])invalid++;
       view.tr.className=different?"changed":"";
       view.input.setAttribute("aria-invalid",filled&&issues[i]?"true":"false");view.issue.textContent=filled?issues[i]:"";
-      view.tr.hidden=!!query&&(row.from+" "+row.to).toLowerCase().indexOf(query)<0;if(!view.tr.hidden)shown++;
+      view.tr.hidden=!!query&&(row.from+" "+row.to+" "+CapabilityNames.usageLabel(CAPABILITY_BIBLE[row.from],usage[row.from])).toLowerCase().indexOf(query)<0;if(!view.tr.hidden)shown++;
     });
     el("count").textContent=completed+" of "+list.length+" named · "+changed+" renamed"+(query?" · "+shown+" shown":"");
     el("no-matches").hidden=shown>0;
-    el("export").disabled=false;
-    el("readiness").textContent=invalid?"Draft — saving and exporting are available. "+invalid+" rows still need a valid name before implementation.":"Ready for implementation review — every row has a valid name.";
+    el("save").disabled=!fileReady||saving;
+    el("readiness").textContent=invalid?"Draft — partial work can be saved. "+invalid+" rows still need a valid name before implementation.":"Ready for implementation review — every row has a valid name.";
   }
   function openCard(name){
     try{
@@ -126,28 +158,54 @@ var CapabilityNames=(function(){
       link.textContent=row.from;link.type="button";link.className="cap-name";
       link.setAttribute("aria-label",row.from+" — open capability card");link.setAttribute("aria-haspopup","dialog");
       link.addEventListener("click",function(){openCard(row.from);});
-      kind.className="kind";kind.textContent=(entry.kind==="ability"?"ABILITY":"SPELL")+" · TIER "+(entry.tier||0);
+      kind.className="kind";kind.textContent=CapabilityNames.usageLabel(entry,usage[row.from]);
       input.type="text";input.required=true;input.placeholder="New name or original";input.value=row.to;input.autocomplete="off";input.spellcheck=false;input.setAttribute("aria-label","New name for "+row.from);
       issue.className="issue";issue.id="issue-"+i;input.setAttribute("aria-describedby",issue.id);
-      input.addEventListener("input",function(){row.to=input.value;refresh();save();});
+      input.addEventListener("input",function(){row.to=input.value;editSeq++;refresh();saveDraft();el("file-state").textContent="Unsaved changes — Save updates capability-names.json.";});
       left.appendChild(link);left.appendChild(kind);right.appendChild(input);right.appendChild(issue);tr.appendChild(left);tr.appendChild(right);body.appendChild(tr);
       views.push({tr:tr,input:input,issue:issue});
     });
     refresh();
   }
   if(typeof CAPABILITY_BIBLE==="undefined"||!Object.keys(CAPABILITY_BIBLE).length){el("count").textContent="Capabilities could not be loaded.";fail("The capability Bible did not load. Reopen this page alongside capability_bible.js.");return;}
+  usage=CapabilityNames.usage(CAPABILITY_BIBLE,CLASS_BIBLE,ANCS,SPELLS,ARCH_SPELLS);
   list=CapabilityNames.rows(CAPABILITY_BIBLE);
-  try{var saved=localStorage.getItem(KEY);if(saved){list=CapabilityNames.read(saved,CAPABILITY_BIBLE);el("save-state").textContent="Saved draft restored.";}else{el("save-state").textContent="Every row starts blank. Edits save automatically.";}}
-  catch(error){canSave=false;el("save-state").textContent="Saved draft unavailable.";fail("The saved draft could not be read. It has been preserved. Import a matching backup to resume saving, or export this worksheet to keep new edits.",error);}
+  try{var saved=localStorage.getItem(KEY);if(saved){list=CapabilityNames.read(saved,CAPABILITY_BIBLE);cachedDraft=CapabilityNames.pack(list);el("save-state").textContent="Saved draft restored.";}else{el("save-state").textContent="Every row starts blank. Edits save automatically.";}}
+  catch(error){canSave=false;el("save-state").textContent="Saved draft unavailable.";fail("The saved draft could not be read. It has been preserved. Import a matching backup to resume saving, or use Save to keep new edits.",error);}
   render();el("import").disabled=false;
   el("search").addEventListener("input",refresh);
-  el("export").addEventListener("click",function(){
-    try{
-      var text=CapabilityNames.pack(list),url=URL.createObjectURL(new Blob([text],{type:"application/json"})),link=document.createElement("a");
-      link.href=url;link.download="capability-names.json";document.body.appendChild(link);link.click();link.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);
-      unsaved=false;
-    }catch(error){fail("Names could not be exported: "+error.message,error);}
+  function projectRequest(method,payload){
+    var control=new AbortController(),timer=setTimeout(function(){control.abort();},10000);
+    return fetch("/capability-names",{method:method,cache:"no-store",signal:control.signal,headers:{"Content-Type":"application/json","X-Bible-Helper-Version":BIBLE_HELPER_VERSION},body:payload?JSON.stringify(payload):undefined})
+      .then(function(response){return response.json().then(function(data){if(!response.ok||!data.ok)throw new Error(data.output||"Project save failed.");return data;});})
+      .then(function(data){clearTimeout(timer);return data;},function(error){clearTimeout(timer);throw error;});
+  }
+  function loadProject(){
+    if(location.protocol!=="http:"||!(/^(localhost|127\.0\.0\.1)$/).test(location.hostname)){
+      el("file-state").textContent="Open Capability Names.cmd in the project to enable Save.";return;
+    }
+    projectRequest("GET").then(function(data){
+      revision=data.revision;var disk=data.text===null?null:CapabilityNames.read(data.text,CAPABILITY_BIBLE),lastSaved=null;
+      try{lastSaved=localStorage.getItem(KEY+"_saved");}catch(error){console.warn("Capability names: saved-file receipt unavailable",error);}
+      if(disk&&!editSeq&&(!cachedDraft||cachedDraft===lastSaved)){
+        list=disk;render();saveDraft();
+        try{localStorage.setItem(KEY+"_saved",CapabilityNames.pack(list));}catch(error){console.warn("Capability names: saved-file receipt could not be stored",error);}
+        el("file-state").textContent="Loaded capability-names.json from this project.";
+      }else{el("file-state").textContent=cachedDraft?"Browser draft restored — Save updates capability-names.json in this project.":"Save will create capability-names.json in this project.";}
+      fileReady=true;refresh();
+    })["catch"](function(error){fail("The project list could not be loaded. Reopen Capability Names.cmd. "+error.message,error);el("file-state").textContent="Project saving unavailable; your browser draft is preserved.";});
+  }
+  el("save").addEventListener("click",function(){
+    if(!fileReady||saving)return;
+    var text=CapabilityNames.pack(list);saving=true;refresh();el("file-state").textContent="Saving capability-names.json…";
+    projectRequest("POST",{text:text,revision:revision}).then(function(data){
+      revision=data.revision;if(CapabilityNames.pack(list)===text)unsaved=false;el("notice").textContent="";
+      try{localStorage.setItem(KEY+"_saved",text);}catch(error){console.warn("Capability names: saved-file receipt could not be stored",error);}
+      el("file-state").textContent=CapabilityNames.pack(list)===text?"Saved capability-names.json in this project.":"Saved earlier changes; newer edits still need Save.";
+    })["catch"](function(error){fail("Save failed. Your draft is still here. "+error.message,error);el("file-state").textContent="The project file was not confirmed saved.";})
+      .then(function(){saving=false;refresh();});
   });
+  loadProject();
   el("import").addEventListener("click",function(){el("import-file").click();});
   el("import-file").addEventListener("change",function(){
     var file=this.files[0];this.value="";if(!file)return;
@@ -157,7 +215,7 @@ var CapabilityNames=(function(){
       try{
         var incoming=CapabilityNames.read(reader.result,CAPABILITY_BIBLE);
         if(list.some(function(row){return !!row.to;})&&!window.confirm("Replace your current name choices with this file?"))return;
-        list=incoming;canSave=true;el("notice").textContent="";render();save();
+        list=incoming;canSave=true;el("notice").textContent="";render();saveDraft();el("file-state").textContent="Imported names — Save updates capability-names.json.";
       }catch(error){fail("Import stopped. Your current choices are unchanged. "+error.message,error);}
     };
     reader.readAsText(file);

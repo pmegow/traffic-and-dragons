@@ -1,0 +1,2034 @@
+{
+  "format": "traffic-and-dragons/capability-names/v1",
+  "readyToApply": false,
+  "names": [
+    {
+      "from": "a call to arms",
+      "to": ""
+    },
+    {
+      "from": "a natural death",
+      "to": ""
+    },
+    {
+      "from": "absorb elements",
+      "to": ""
+    },
+    {
+      "from": "abyssal fury",
+      "to": ""
+    },
+    {
+      "from": "accelerated decay",
+      "to": ""
+    },
+    {
+      "from": "action surge",
+      "to": ""
+    },
+    {
+      "from": "age",
+      "to": ""
+    },
+    {
+      "from": "aid",
+      "to": ""
+    },
+    {
+      "from": "anchored soul",
+      "to": ""
+    },
+    {
+      "from": "angel of death",
+      "to": ""
+    },
+    {
+      "from": "apex predator",
+      "to": ""
+    },
+    {
+      "from": "arcane bolt",
+      "to": ""
+    },
+    {
+      "from": "arcane lock",
+      "to": ""
+    },
+    {
+      "from": "arcane shield",
+      "to": ""
+    },
+    {
+      "from": "arcane sight",
+      "to": ""
+    },
+    {
+      "from": "archmage hand",
+      "to": ""
+    },
+    {
+      "from": "army of bone",
+      "to": ""
+    },
+    {
+      "from": "aspect of the reaper",
+      "to": ""
+    },
+    {
+      "from": "aspect of the undead",
+      "to": ""
+    },
+    {
+      "from": "astral steed",
+      "to": ""
+    },
+    {
+      "from": "augury",
+      "to": ""
+    },
+    {
+      "from": "aura of courage",
+      "to": ""
+    },
+    {
+      "from": "aura of life",
+      "to": ""
+    },
+    {
+      "from": "aura of protection",
+      "to": ""
+    },
+    {
+      "from": "aura of vitality",
+      "to": ""
+    },
+    {
+      "from": "avalanche of one",
+      "to": ""
+    },
+    {
+      "from": "avatar of the totem",
+      "to": ""
+    },
+    {
+      "from": "awaken",
+      "to": ""
+    },
+    {
+      "from": "banishment",
+      "to": ""
+    },
+    {
+      "from": "barkskin",
+      "to": ""
+    },
+    {
+      "from": "battlefield miracle",
+      "to": ""
+    },
+    {
+      "from": "beacon of honesty",
+      "to": ""
+    },
+    {
+      "from": "beast spells",
+      "to": ""
+    },
+    {
+      "from": "bend luck",
+      "to": ""
+    },
+    {
+      "from": "bestow curse",
+      "to": ""
+    },
+    {
+      "from": "bigger they are",
+      "to": ""
+    },
+    {
+      "from": "binding ward",
+      "to": ""
+    },
+    {
+      "from": "blade barrier",
+      "to": ""
+    },
+    {
+      "from": "blade of corruption",
+      "to": ""
+    },
+    {
+      "from": "bleed",
+      "to": ""
+    },
+    {
+      "from": "bless",
+      "to": ""
+    },
+    {
+      "from": "blight",
+      "to": ""
+    },
+    {
+      "from": "blindness",
+      "to": ""
+    },
+    {
+      "from": "blindsense",
+      "to": ""
+    },
+    {
+      "from": "blink",
+      "to": ""
+    },
+    {
+      "from": "blood armour",
+      "to": ""
+    },
+    {
+      "from": "blood price",
+      "to": ""
+    },
+    {
+      "from": "blood to blood",
+      "to": ""
+    },
+    {
+      "from": "blur",
+      "to": ""
+    },
+    {
+      "from": "body of magic",
+      "to": ""
+    },
+    {
+      "from": "bonded companion",
+      "to": ""
+    },
+    {
+      "from": "bone armor",
+      "to": ""
+    },
+    {
+      "from": "bone dragon",
+      "to": ""
+    },
+    {
+      "from": "bone golem",
+      "to": ""
+    },
+    {
+      "from": "bone shards",
+      "to": ""
+    },
+    {
+      "from": "bone structure",
+      "to": ""
+    },
+    {
+      "from": "bone whisper",
+      "to": ""
+    },
+    {
+      "from": "booming blade",
+      "to": ""
+    },
+    {
+      "from": "breathe water",
+      "to": ""
+    },
+    {
+      "from": "brutal critical",
+      "to": ""
+    },
+    {
+      "from": "call lightning",
+      "to": ""
+    },
+    {
+      "from": "call the bolt",
+      "to": ""
+    },
+    {
+      "from": "call the dawn",
+      "to": ""
+    },
+    {
+      "from": "camouflage",
+      "to": ""
+    },
+    {
+      "from": "catastrophic wound",
+      "to": ""
+    },
+    {
+      "from": "cause fear",
+      "to": ""
+    },
+    {
+      "from": "chain lightning",
+      "to": ""
+    },
+    {
+      "from": "channel divinity: weight of account",
+      "to": ""
+    },
+    {
+      "from": "chaos feeds you",
+      "to": ""
+    },
+    {
+      "from": "charm monster",
+      "to": ""
+    },
+    {
+      "from": "charm person",
+      "to": ""
+    },
+    {
+      "from": "charybdis",
+      "to": ""
+    },
+    {
+      "from": "chill touch",
+      "to": ""
+    },
+    {
+      "from": "chromatic orb",
+      "to": ""
+    },
+    {
+      "from": "cleanse",
+      "to": ""
+    },
+    {
+      "from": "cleansing burn",
+      "to": ""
+    },
+    {
+      "from": "cold reading",
+      "to": ""
+    },
+    {
+      "from": "combine undead",
+      "to": ""
+    },
+    {
+      "from": "command",
+      "to": ""
+    },
+    {
+      "from": "commune with dead",
+      "to": ""
+    },
+    {
+      "from": "companion of legend",
+      "to": ""
+    },
+    {
+      "from": "comprehend languages",
+      "to": ""
+    },
+    {
+      "from": "cone of cold",
+      "to": ""
+    },
+    {
+      "from": "confusion",
+      "to": ""
+    },
+    {
+      "from": "conjure animals",
+      "to": ""
+    },
+    {
+      "from": "conjure barrage",
+      "to": ""
+    },
+    {
+      "from": "conscript undead",
+      "to": ""
+    },
+    {
+      "from": "consecrated arms",
+      "to": ""
+    },
+    {
+      "from": "consecrated ground",
+      "to": ""
+    },
+    {
+      "from": "control water",
+      "to": ""
+    },
+    {
+      "from": "controlled chaos",
+      "to": ""
+    },
+    {
+      "from": "counter attack",
+      "to": ""
+    },
+    {
+      "from": "counterspell",
+      "to": ""
+    },
+    {
+      "from": "creeping death",
+      "to": ""
+    },
+    {
+      "from": "cull the herd",
+      "to": ""
+    },
+    {
+      "from": "cunning action",
+      "to": ""
+    },
+    {
+      "from": "cure wounds",
+      "to": ""
+    },
+    {
+      "from": "damn",
+      "to": ""
+    },
+    {
+      "from": "dancing lights",
+      "to": ""
+    },
+    {
+      "from": "dark immunity",
+      "to": ""
+    },
+    {
+      "from": "darkness",
+      "to": ""
+    },
+    {
+      "from": "darkvision",
+      "to": ""
+    },
+    {
+      "from": "death sight",
+      "to": ""
+    },
+    {
+      "from": "death waits",
+      "to": ""
+    },
+    {
+      "from": "death walk",
+      "to": ""
+    },
+    {
+      "from": "death ward",
+      "to": ""
+    },
+    {
+      "from": "decide the battle",
+      "to": ""
+    },
+    {
+      "from": "destroy undead",
+      "to": ""
+    },
+    {
+      "from": "detect magic",
+      "to": ""
+    },
+    {
+      "from": "devil's trap",
+      "to": ""
+    },
+    {
+      "from": "diamond skin",
+      "to": ""
+    },
+    {
+      "from": "dire cremation",
+      "to": ""
+    },
+    {
+      "from": "dire phylactery",
+      "to": ""
+    },
+    {
+      "from": "disciple of life",
+      "to": ""
+    },
+    {
+      "from": "disguise self",
+      "to": ""
+    },
+    {
+      "from": "disintegrate",
+      "to": ""
+    },
+    {
+      "from": "dispel magic",
+      "to": ""
+    },
+    {
+      "from": "divination",
+      "to": ""
+    },
+    {
+      "from": "divine intervention",
+      "to": ""
+    },
+    {
+      "from": "divine sense",
+      "to": ""
+    },
+    {
+      "from": "divine smite",
+      "to": ""
+    },
+    {
+      "from": "divine strike",
+      "to": ""
+    },
+    {
+      "from": "dominate beast",
+      "to": ""
+    },
+    {
+      "from": "door that opens",
+      "to": ""
+    },
+    {
+      "from": "double attack",
+      "to": ""
+    },
+    {
+      "from": "draconic breath",
+      "to": ""
+    },
+    {
+      "from": "drag them back",
+      "to": ""
+    },
+    {
+      "from": "drain life",
+      "to": ""
+    },
+    {
+      "from": "druidcraft",
+      "to": ""
+    },
+    {
+      "from": "druidic",
+      "to": ""
+    },
+    {
+      "from": "dwarven toughness",
+      "to": ""
+    },
+    {
+      "from": "earthquake",
+      "to": ""
+    },
+    {
+      "from": "eject soul",
+      "to": ""
+    },
+    {
+      "from": "eldritch tendrils",
+      "to": ""
+    },
+    {
+      "from": "elemental resistance",
+      "to": ""
+    },
+    {
+      "from": "elemental vein",
+      "to": ""
+    },
+    {
+      "from": "ensnaring strike",
+      "to": ""
+    },
+    {
+      "from": "entangle",
+      "to": ""
+    },
+    {
+      "from": "entropy incarnate",
+      "to": ""
+    },
+    {
+      "from": "escape artist",
+      "to": ""
+    },
+    {
+      "from": "evasion",
+      "to": ""
+    },
+    {
+      "from": "expertise",
+      "to": ""
+    },
+    {
+      "from": "expertise — deception",
+      "to": ""
+    },
+    {
+      "from": "expertise — stealth",
+      "to": ""
+    },
+    {
+      "from": "exploding corpse",
+      "to": ""
+    },
+    {
+      "from": "extra attack",
+      "to": ""
+    },
+    {
+      "from": "eye of the storm",
+      "to": ""
+    },
+    {
+      "from": "eyes of the dark",
+      "to": ""
+    },
+    {
+      "from": "faerie fire",
+      "to": ""
+    },
+    {
+      "from": "false life",
+      "to": ""
+    },
+    {
+      "from": "fang and focus",
+      "to": ""
+    },
+    {
+      "from": "favored quarry",
+      "to": ""
+    },
+    {
+      "from": "fear",
+      "to": ""
+    },
+    {
+      "from": "feather fall",
+      "to": ""
+    },
+    {
+      "from": "feral instinct",
+      "to": ""
+    },
+    {
+      "from": "fey ancestry",
+      "to": ""
+    },
+    {
+      "from": "field intelligence",
+      "to": ""
+    },
+    {
+      "from": "field of entropy",
+      "to": ""
+    },
+    {
+      "from": "fighting style",
+      "to": ""
+    },
+    {
+      "from": "find steed",
+      "to": ""
+    },
+    {
+      "from": "fire bolt",
+      "to": ""
+    },
+    {
+      "from": "fire lance",
+      "to": ""
+    },
+    {
+      "from": "fire resistance",
+      "to": ""
+    },
+    {
+      "from": "fireball",
+      "to": ""
+    },
+    {
+      "from": "firestorm shepherd",
+      "to": ""
+    },
+    {
+      "from": "flame strike",
+      "to": ""
+    },
+    {
+      "from": "flamestep",
+      "to": ""
+    },
+    {
+      "from": "flash",
+      "to": ""
+    },
+    {
+      "from": "flash flood",
+      "to": ""
+    },
+    {
+      "from": "flesh golem",
+      "to": ""
+    },
+    {
+      "from": "fletch",
+      "to": ""
+    },
+    {
+      "from": "fly",
+      "to": ""
+    },
+    {
+      "from": "fog bank",
+      "to": ""
+    },
+    {
+      "from": "font of magic",
+      "to": ""
+    },
+    {
+      "from": "freedom of movement",
+      "to": ""
+    },
+    {
+      "from": "furious leap",
+      "to": ""
+    },
+    {
+      "from": "gathering rage",
+      "to": ""
+    },
+    {
+      "from": "gemstone warriors",
+      "to": ""
+    },
+    {
+      "from": "giant insect",
+      "to": ""
+    },
+    {
+      "from": "globe of invulnerability",
+      "to": ""
+    },
+    {
+      "from": "gnomish cunning",
+      "to": ""
+    },
+    {
+      "from": "grave touch",
+      "to": ""
+    },
+    {
+      "from": "grease",
+      "to": ""
+    },
+    {
+      "from": "greater invisibility",
+      "to": ""
+    },
+    {
+      "from": "greater restoration",
+      "to": ""
+    },
+    {
+      "from": "greater vessels",
+      "to": ""
+    },
+    {
+      "from": "grim harvest",
+      "to": ""
+    },
+    {
+      "from": "grim totem",
+      "to": ""
+    },
+    {
+      "from": "group telepathy",
+      "to": ""
+    },
+    {
+      "from": "guardian of faith",
+      "to": ""
+    },
+    {
+      "from": "guardian of nature",
+      "to": ""
+    },
+    {
+      "from": "guidance",
+      "to": ""
+    },
+    {
+      "from": "guided strike",
+      "to": ""
+    },
+    {
+      "from": "guiding bolt",
+      "to": ""
+    },
+    {
+      "from": "hail of thorns",
+      "to": ""
+    },
+    {
+      "from": "half made of night",
+      "to": ""
+    },
+    {
+      "from": "half-fey charm",
+      "to": ""
+    },
+    {
+      "from": "haunting",
+      "to": ""
+    },
+    {
+      "from": "heal",
+      "to": ""
+    },
+    {
+      "from": "healing word",
+      "to": ""
+    },
+    {
+      "from": "hellish rebuke",
+      "to": ""
+    },
+    {
+      "from": "hemorrhage",
+      "to": ""
+    },
+    {
+      "from": "heroes' feast",
+      "to": ""
+    },
+    {
+      "from": "hide from undead",
+      "to": ""
+    },
+    {
+      "from": "hide in plain sight",
+      "to": ""
+    },
+    {
+      "from": "hold monster",
+      "to": ""
+    },
+    {
+      "from": "hold person",
+      "to": ""
+    },
+    {
+      "from": "hold undead",
+      "to": ""
+    },
+    {
+      "from": "hole",
+      "to": ""
+    },
+    {
+      "from": "holy ground",
+      "to": ""
+    },
+    {
+      "from": "horrid wilting",
+      "to": ""
+    },
+    {
+      "from": "hound of ill omen",
+      "to": ""
+    },
+    {
+      "from": "hunter's mark",
+      "to": ""
+    },
+    {
+      "from": "ice storm",
+      "to": ""
+    },
+    {
+      "from": "identify",
+      "to": ""
+    },
+    {
+      "from": "identify plants and animals",
+      "to": ""
+    },
+    {
+      "from": "implant memory",
+      "to": ""
+    },
+    {
+      "from": "indomitable",
+      "to": ""
+    },
+    {
+      "from": "inflict wounds",
+      "to": ""
+    },
+    {
+      "from": "insect plague",
+      "to": ""
+    },
+    {
+      "from": "intimidating presence",
+      "to": ""
+    },
+    {
+      "from": "invisibility",
+      "to": ""
+    },
+    {
+      "from": "iron constitution",
+      "to": ""
+    },
+    {
+      "from": "it was their idea",
+      "to": ""
+    },
+    {
+      "from": "judge of the dead",
+      "to": ""
+    },
+    {
+      "from": "judgment's eye",
+      "to": ""
+    },
+    {
+      "from": "keen senses",
+      "to": ""
+    },
+    {
+      "from": "kindled heart",
+      "to": ""
+    },
+    {
+      "from": "kinship of the wild",
+      "to": ""
+    },
+    {
+      "from": "knock",
+      "to": ""
+    },
+    {
+      "from": "land's stride",
+      "to": ""
+    },
+    {
+      "from": "last one standing",
+      "to": ""
+    },
+    {
+      "from": "lay on hands",
+      "to": ""
+    },
+    {
+      "from": "layout memory",
+      "to": ""
+    },
+    {
+      "from": "leap",
+      "to": ""
+    },
+    {
+      "from": "leave no witness",
+      "to": ""
+    },
+    {
+      "from": "ledger memory",
+      "to": ""
+    },
+    {
+      "from": "legerdemain",
+      "to": ""
+    },
+    {
+      "from": "lesser restoration",
+      "to": ""
+    },
+    {
+      "from": "lethe's kiss",
+      "to": ""
+    },
+    {
+      "from": "light",
+      "to": ""
+    },
+    {
+      "from": "light undimmed",
+      "to": ""
+    },
+    {
+      "from": "lightning arrow",
+      "to": ""
+    },
+    {
+      "from": "locate creature",
+      "to": ""
+    },
+    {
+      "from": "lockpick",
+      "to": ""
+    },
+    {
+      "from": "mage hand",
+      "to": ""
+    },
+    {
+      "from": "magic missile",
+      "to": ""
+    },
+    {
+      "from": "magic weapon",
+      "to": ""
+    },
+    {
+      "from": "mana burn",
+      "to": ""
+    },
+    {
+      "from": "mana leech",
+      "to": ""
+    },
+    {
+      "from": "mask of the wild",
+      "to": ""
+    },
+    {
+      "from": "mass charm",
+      "to": ""
+    },
+    {
+      "from": "mass cure wounds",
+      "to": ""
+    },
+    {
+      "from": "master poisoner",
+      "to": ""
+    },
+    {
+      "from": "message",
+      "to": ""
+    },
+    {
+      "from": "metamagic",
+      "to": ""
+    },
+    {
+      "from": "miasma",
+      "to": ""
+    },
+    {
+      "from": "minor illusion",
+      "to": ""
+    },
+    {
+      "from": "minor miracle",
+      "to": ""
+    },
+    {
+      "from": "mirror image",
+      "to": ""
+    },
+    {
+      "from": "misty step",
+      "to": ""
+    },
+    {
+      "from": "moonbeam",
+      "to": ""
+    },
+    {
+      "from": "more than mortal",
+      "to": ""
+    },
+    {
+      "from": "necrotic nova",
+      "to": ""
+    },
+    {
+      "from": "necrotic resilience",
+      "to": ""
+    },
+    {
+      "from": "necrotic resistance",
+      "to": ""
+    },
+    {
+      "from": "never caught",
+      "to": ""
+    },
+    {
+      "from": "no light needed",
+      "to": ""
+    },
+    {
+      "from": "no lock holds",
+      "to": ""
+    },
+    {
+      "from": "no rest for the wicked",
+      "to": ""
+    },
+    {
+      "from": "nowhere soft to land",
+      "to": ""
+    },
+    {
+      "from": "oathlight",
+      "to": ""
+    },
+    {
+      "from": "old blood",
+      "to": ""
+    },
+    {
+      "from": "one against many",
+      "to": ""
+    },
+    {
+      "from": "one with the wild",
+      "to": ""
+    },
+    {
+      "from": "operative's read",
+      "to": ""
+    },
+    {
+      "from": "oubliate",
+      "to": ""
+    },
+    {
+      "from": "overchannel",
+      "to": ""
+    },
+    {
+      "from": "pack of two",
+      "to": ""
+    },
+    {
+      "from": "pass without trace",
+      "to": ""
+    },
+    {
+      "from": "path of the lich",
+      "to": ""
+    },
+    {
+      "from": "peak of the body",
+      "to": ""
+    },
+    {
+      "from": "penance",
+      "to": ""
+    },
+    {
+      "from": "phantasmal force",
+      "to": ""
+    },
+    {
+      "from": "plant growth",
+      "to": ""
+    },
+    {
+      "from": "poison immunity",
+      "to": ""
+    },
+    {
+      "from": "poison resistance",
+      "to": ""
+    },
+    {
+      "from": "polymorph",
+      "to": ""
+    },
+    {
+      "from": "possess thrall",
+      "to": ""
+    },
+    {
+      "from": "power strike",
+      "to": ""
+    },
+    {
+      "from": "presence of the wyrm",
+      "to": ""
+    },
+    {
+      "from": "preserve life",
+      "to": ""
+    },
+    {
+      "from": "prestidigitation",
+      "to": ""
+    },
+    {
+      "from": "produce flame",
+      "to": ""
+    },
+    {
+      "from": "quills",
+      "to": ""
+    },
+    {
+      "from": "rage",
+      "to": ""
+    },
+    {
+      "from": "rage undying",
+      "to": ""
+    },
+    {
+      "from": "rage without end",
+      "to": ""
+    },
+    {
+      "from": "raise thrall",
+      "to": ""
+    },
+    {
+      "from": "ray of enfeeblement",
+      "to": ""
+    },
+    {
+      "from": "ray of frost",
+      "to": ""
+    },
+    {
+      "from": "ray of sickness",
+      "to": ""
+    },
+    {
+      "from": "read the beast",
+      "to": ""
+    },
+    {
+      "from": "read the night",
+      "to": ""
+    },
+    {
+      "from": "reap the field",
+      "to": ""
+    },
+    {
+      "from": "reckless attack",
+      "to": ""
+    },
+    {
+      "from": "relentless endurance",
+      "to": ""
+    },
+    {
+      "from": "resilience",
+      "to": ""
+    },
+    {
+      "from": "restore limb",
+      "to": ""
+    },
+    {
+      "from": "resurrection",
+      "to": ""
+    },
+    {
+      "from": "revivify",
+      "to": ""
+    },
+    {
+      "from": "rewrite the odds",
+      "to": ""
+    },
+    {
+      "from": "ride the wind",
+      "to": ""
+    },
+    {
+      "from": "rigor mortis",
+      "to": ""
+    },
+    {
+      "from": "ritual working",
+      "to": ""
+    },
+    {
+      "from": "root and branch",
+      "to": ""
+    },
+    {
+      "from": "roots of the world",
+      "to": ""
+    },
+    {
+      "from": "rot",
+      "to": ""
+    },
+    {
+      "from": "ruin",
+      "to": ""
+    },
+    {
+      "from": "rust in the air",
+      "to": ""
+    },
+    {
+      "from": "sacred flame",
+      "to": ""
+    },
+    {
+      "from": "saint's vessel",
+      "to": ""
+    },
+    {
+      "from": "sanctuary",
+      "to": ""
+    },
+    {
+      "from": "sap and stone",
+      "to": ""
+    },
+    {
+      "from": "scorching ray",
+      "to": ""
+    },
+    {
+      "from": "season of wrath",
+      "to": ""
+    },
+    {
+      "from": "season's champion",
+      "to": ""
+    },
+    {
+      "from": "second skin",
+      "to": ""
+    },
+    {
+      "from": "see in magical darkness",
+      "to": ""
+    },
+    {
+      "from": "see invisible",
+      "to": ""
+    },
+    {
+      "from": "sentence passed",
+      "to": ""
+    },
+    {
+      "from": "seventy-two shapes",
+      "to": ""
+    },
+    {
+      "from": "shackles of bone",
+      "to": ""
+    },
+    {
+      "from": "shadow blade",
+      "to": ""
+    },
+    {
+      "from": "shadow step",
+      "to": ""
+    },
+    {
+      "from": "shadow walk",
+      "to": ""
+    },
+    {
+      "from": "shape of the world",
+      "to": ""
+    },
+    {
+      "from": "shape shift",
+      "to": ""
+    },
+    {
+      "from": "shapes of the ice years",
+      "to": ""
+    },
+    {
+      "from": "shared senses",
+      "to": ""
+    },
+    {
+      "from": "shield",
+      "to": ""
+    },
+    {
+      "from": "shield of faith",
+      "to": ""
+    },
+    {
+      "from": "shield the weak",
+      "to": ""
+    },
+    {
+      "from": "shield wall",
+      "to": ""
+    },
+    {
+      "from": "shillelagh",
+      "to": ""
+    },
+    {
+      "from": "shrink",
+      "to": ""
+    },
+    {
+      "from": "shrug it off",
+      "to": ""
+    },
+    {
+      "from": "sigil reading",
+      "to": ""
+    },
+    {
+      "from": "silence",
+      "to": ""
+    },
+    {
+      "from": "silent image",
+      "to": ""
+    },
+    {
+      "from": "silent stalker",
+      "to": ""
+    },
+    {
+      "from": "siphon life",
+      "to": ""
+    },
+    {
+      "from": "slayer of legends",
+      "to": ""
+    },
+    {
+      "from": "sleep",
+      "to": ""
+    },
+    {
+      "from": "sleep of the dead",
+      "to": ""
+    },
+    {
+      "from": "slow",
+      "to": ""
+    },
+    {
+      "from": "small size",
+      "to": ""
+    },
+    {
+      "from": "smite",
+      "to": ""
+    },
+    {
+      "from": "sneak attack",
+      "to": ""
+    },
+    {
+      "from": "sorcerous restoration",
+      "to": ""
+    },
+    {
+      "from": "soul cage",
+      "to": ""
+    },
+    {
+      "from": "soul puppet",
+      "to": ""
+    },
+    {
+      "from": "soul steal",
+      "to": ""
+    },
+    {
+      "from": "soulfire",
+      "to": ""
+    },
+    {
+      "from": "sovereign of the night",
+      "to": ""
+    },
+    {
+      "from": "spare the dying",
+      "to": ""
+    },
+    {
+      "from": "speak with animals",
+      "to": ""
+    },
+    {
+      "from": "speak with dead",
+      "to": ""
+    },
+    {
+      "from": "spellblade",
+      "to": ""
+    },
+    {
+      "from": "spider climb",
+      "to": ""
+    },
+    {
+      "from": "spike growth",
+      "to": ""
+    },
+    {
+      "from": "spirit guardians",
+      "to": ""
+    },
+    {
+      "from": "spirit walk",
+      "to": ""
+    },
+    {
+      "from": "spiritual weapon",
+      "to": ""
+    },
+    {
+      "from": "split weave",
+      "to": ""
+    },
+    {
+      "from": "staggering smite",
+      "to": ""
+    },
+    {
+      "from": "star fall",
+      "to": ""
+    },
+    {
+      "from": "stolen voice",
+      "to": ""
+    },
+    {
+      "from": "stonecunning",
+      "to": ""
+    },
+    {
+      "from": "storm shroud",
+      "to": ""
+    },
+    {
+      "from": "strength of legend",
+      "to": ""
+    },
+    {
+      "from": "stunning blow",
+      "to": ""
+    },
+    {
+      "from": "succor",
+      "to": ""
+    },
+    {
+      "from": "summon item",
+      "to": ""
+    },
+    {
+      "from": "sunbeam",
+      "to": ""
+    },
+    {
+      "from": "sundering stroke",
+      "to": ""
+    },
+    {
+      "from": "sunlight sensitivity",
+      "to": ""
+    },
+    {
+      "from": "superior darkvision",
+      "to": ""
+    },
+    {
+      "from": "sure shot",
+      "to": ""
+    },
+    {
+      "from": "swift quiver",
+      "to": ""
+    },
+    {
+      "from": "taunt",
+      "to": ""
+    },
+    {
+      "from": "telekinesis",
+      "to": ""
+    },
+    {
+      "from": "telepathy",
+      "to": ""
+    },
+    {
+      "from": "terrifying frenzy",
+      "to": ""
+    },
+    {
+      "from": "terror in the dark",
+      "to": ""
+    },
+    {
+      "from": "thaumaturgy",
+      "to": ""
+    },
+    {
+      "from": "the battlefield is a board",
+      "to": ""
+    },
+    {
+      "from": "the beast beneath",
+      "to": ""
+    },
+    {
+      "from": "the blade keeps faith",
+      "to": ""
+    },
+    {
+      "from": "the blessing holds",
+      "to": ""
+    },
+    {
+      "from": "the casing eye",
+      "to": ""
+    },
+    {
+      "from": "the challenge",
+      "to": ""
+    },
+    {
+      "from": "the dark between",
+      "to": ""
+    },
+    {
+      "from": "the falling star",
+      "to": ""
+    },
+    {
+      "from": "the final accounting",
+      "to": ""
+    },
+    {
+      "from": "the first beast",
+      "to": ""
+    },
+    {
+      "from": "the first blow is the last",
+      "to": ""
+    },
+    {
+      "from": "the first fire",
+      "to": ""
+    },
+    {
+      "from": "the gentle hand",
+      "to": ""
+    },
+    {
+      "from": "the god of battle attends",
+      "to": ""
+    },
+    {
+      "from": "the great spirit's voice",
+      "to": ""
+    },
+    {
+      "from": "the green ash",
+      "to": ""
+    },
+    {
+      "from": "the green vow",
+      "to": ""
+    },
+    {
+      "from": "the half-form",
+      "to": ""
+    },
+    {
+      "from": "the impossible shot",
+      "to": ""
+    },
+    {
+      "from": "the impossible theft",
+      "to": ""
+    },
+    {
+      "from": "the inevitable end",
+      "to": ""
+    },
+    {
+      "from": "the knee",
+      "to": ""
+    },
+    {
+      "from": "the last great hunt",
+      "to": ""
+    },
+    {
+      "from": "the last red day",
+      "to": ""
+    },
+    {
+      "from": "the law",
+      "to": ""
+    },
+    {
+      "from": "the line holds",
+      "to": ""
+    },
+    {
+      "from": "the long hunt",
+      "to": ""
+    },
+    {
+      "from": "the long night",
+      "to": ""
+    },
+    {
+      "from": "the missive",
+      "to": ""
+    },
+    {
+      "from": "the moving heavens",
+      "to": ""
+    },
+    {
+      "from": "the named enemy",
+      "to": ""
+    },
+    {
+      "from": "the oath",
+      "to": ""
+    },
+    {
+      "from": "the old light",
+      "to": ""
+    },
+    {
+      "from": "the old switcheroo",
+      "to": ""
+    },
+    {
+      "from": "the plan holds",
+      "to": ""
+    },
+    {
+      "from": "the progenitor's due",
+      "to": ""
+    },
+    {
+      "from": "the read",
+      "to": ""
+    },
+    {
+      "from": "the return",
+      "to": ""
+    },
+    {
+      "from": "the shadow half",
+      "to": ""
+    },
+    {
+      "from": "the shirt off your back",
+      "to": ""
+    },
+    {
+      "from": "the sky entire",
+      "to": ""
+    },
+    {
+      "from": "the standing ward",
+      "to": ""
+    },
+    {
+      "from": "the story runs ahead",
+      "to": ""
+    },
+    {
+      "from": "the telling blow",
+      "to": ""
+    },
+    {
+      "from": "the turning move",
+      "to": ""
+    },
+    {
+      "from": "the unbroken line",
+      "to": ""
+    },
+    {
+      "from": "the unseen path",
+      "to": ""
+    },
+    {
+      "from": "the walking tempest",
+      "to": ""
+    },
+    {
+      "from": "the wild run",
+      "to": ""
+    },
+    {
+      "from": "the word",
+      "to": ""
+    },
+    {
+      "from": "the yoke",
+      "to": ""
+    },
+    {
+      "from": "thorn whip",
+      "to": ""
+    },
+    {
+      "from": "threat taxonomy",
+      "to": ""
+    },
+    {
+      "from": "three sisters",
+      "to": ""
+    },
+    {
+      "from": "thunderwave",
+      "to": ""
+    },
+    {
+      "from": "tide of shapes",
+      "to": ""
+    },
+    {
+      "from": "tides of chaos",
+      "to": ""
+    },
+    {
+      "from": "toll the dead",
+      "to": ""
+    },
+    {
+      "from": "totem aspect",
+      "to": ""
+    },
+    {
+      "from": "totem spirit",
+      "to": ""
+    },
+    {
+      "from": "trackless step",
+      "to": ""
+    },
+    {
+      "from": "trance",
+      "to": ""
+    },
+    {
+      "from": "travelling wounds",
+      "to": ""
+    },
+    {
+      "from": "tree stride",
+      "to": ""
+    },
+    {
+      "from": "turn undead",
+      "to": ""
+    },
+    {
+      "from": "turnabout",
+      "to": ""
+    },
+    {
+      "from": "two hearts, one life",
+      "to": ""
+    },
+    {
+      "from": "two totems",
+      "to": ""
+    },
+    {
+      "from": "uncanny dodge",
+      "to": ""
+    },
+    {
+      "from": "undead sense",
+      "to": ""
+    },
+    {
+      "from": "undead thrall",
+      "to": ""
+    },
+    {
+      "from": "undying green",
+      "to": ""
+    },
+    {
+      "from": "unmoored sense",
+      "to": ""
+    },
+    {
+      "from": "unraveling",
+      "to": ""
+    },
+    {
+      "from": "unraveling presence",
+      "to": ""
+    },
+    {
+      "from": "unsettling presence",
+      "to": ""
+    },
+    {
+      "from": "unstoppable",
+      "to": ""
+    },
+    {
+      "from": "vampiric assault",
+      "to": ""
+    },
+    {
+      "from": "vampiric charm",
+      "to": ""
+    },
+    {
+      "from": "vampiric courtesan",
+      "to": ""
+    },
+    {
+      "from": "vampiric touch",
+      "to": ""
+    },
+    {
+      "from": "venomous undergrowth",
+      "to": ""
+    },
+    {
+      "from": "ventriloquism",
+      "to": ""
+    },
+    {
+      "from": "visitation",
+      "to": ""
+    },
+    {
+      "from": "voice of the land",
+      "to": ""
+    },
+    {
+      "from": "volley",
+      "to": ""
+    },
+    {
+      "from": "wall of  thorns",
+      "to": ""
+    },
+    {
+      "from": "wall of fire",
+      "to": ""
+    },
+    {
+      "from": "wall of force",
+      "to": ""
+    },
+    {
+      "from": "wall of misdirection",
+      "to": ""
+    },
+    {
+      "from": "wall of stone",
+      "to": ""
+    },
+    {
+      "from": "wall of thorns",
+      "to": ""
+    },
+    {
+      "from": "war priest",
+      "to": ""
+    },
+    {
+      "from": "war shape",
+      "to": ""
+    },
+    {
+      "from": "ward architecture",
+      "to": ""
+    },
+    {
+      "from": "wave of scarabs",
+      "to": ""
+    },
+    {
+      "from": "weapon bond",
+      "to": ""
+    },
+    {
+      "from": "weapon mastery",
+      "to": ""
+    },
+    {
+      "from": "wear the sky",
+      "to": ""
+    },
+    {
+      "from": "where lights die",
+      "to": ""
+    },
+    {
+      "from": "whirl of bones",
+      "to": ""
+    },
+    {
+      "from": "wild shape",
+      "to": ""
+    },
+    {
+      "from": "wind walk",
+      "to": ""
+    },
+    {
+      "from": "wings",
+      "to": ""
+    },
+    {
+      "from": "wither",
+      "to": ""
+    },
+    {
+      "from": "witnessed once, worked once",
+      "to": ""
+    },
+    {
+      "from": "word of the score",
+      "to": ""
+    },
+    {
+      "from": "wordless command",
+      "to": ""
+    },
+    {
+      "from": "wrath that walks",
+      "to": ""
+    },
+    {
+      "from": "wyrmform",
+      "to": ""
+    },
+    {
+      "from": "zone of truth",
+      "to": ""
+    }
+  ]
+}

@@ -12,8 +12,8 @@
 // and opens the editor FROM this server, so same-origin saves need no token or file-picker dance.
 // Direct use remains available: node dev/bible-server.js
 //
-// Security posture: binds 127.0.0.1 only, writes only via install-bible.js (which decides the
-// target from the file's own content). WRITE AUTH (#72 workflow overhaul, 2026-08-14): an
+// Security posture: binds 127.0.0.1 only. Bible writes go through install-bible.js; the naming
+// worksheet writes only capability-names.json through its validated store. WRITE AUTH (#72 workflow overhaul, 2026-08-14): an
 // ORIGIN allow-list replaces the token-paste for the standard flows — a request with no Origin
 // header (curl/node: a local process, and loopback binding already restricts to this machine)
 // or an Origin on http://localhost / http://127.0.0.1 (any port — the editor served locally;
@@ -46,6 +46,9 @@ var EDITOR_ASSETS = {
   "/class_bible.js": "class_bible.js",
   "/satellite.css": "satellite.css"   // #312: the shared satellite palette — missing here = an unstyled editor (2026-09-03)
 };
+var namesStore = require("./capability-names-store.js").createStore(ROOT);
+EDITOR_ASSETS["/capability-names.html"] = "capability-names.html";
+EDITOR_ASSETS["/ui-shell.js"] = "ui-shell.js";
 var MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css" };
 var CORS = {
   "Access-Control-Allow-Origin": "*",          // the pages run from file:// (Origin: null)
@@ -129,9 +132,28 @@ var server = http.createServer(function (req, res) {
     return;
   }
 
+  // The naming worksheet writes one fixed JSON file; Bible installation keeps its own route.
+  if (req.url === "/capability-names" && (req.method === "GET" || req.method === "POST")) {
+    if (req.method === "GET") {
+      try { send(200, namesStore.read()); } catch (e) { send(500, {ok:false,output:e.message}); }
+      return;
+    }
+    var namesOrigin = req.headers.origin;
+    if (namesOrigin && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(namesOrigin)) { send(403,{ok:false,output:"Project saves require the local Capability Names launcher."}); return; }
+    if (req.headers["x-bible-helper-version"] !== HELPER_VERSION) { send(409,{ok:false,output:"Save helper version changed. Reopen Capability Names.cmd."}); return; }
+    var namesBody = "", namesTooLarge = false;
+    req.on("data",function(chunk){if(namesTooLarge)return;namesBody+=chunk;if(Buffer.byteLength(namesBody)>1000000){namesTooLarge=true;send(413,{ok:false,output:"The names document exceeds 1 MB."});}});
+    req.on("end",function(){
+      if(namesTooLarge)return;
+      try { send(200,namesStore.write(JSON.parse(namesBody))); }
+      catch(e){console.warn("[capability-names] save refused: "+e.message);send(e.status||422,{ok:false,output:e.message});}
+    });
+    return;
+  }
+
   if (req.method === "GET" && serveEditorAsset(req, res)) return;
 
-  send(404, { ok: false, output: "unknown route (this server serves the Bible editor plus /bible and /install)" });
+  send(404, { ok: false, output: "unknown route (local Bible and capability naming tools only)" });
 }).on("error", function (e) {
   // Loud, named failure instead of a raw stack (2026-08-02 field confusion): the common case is
   // a still-running older instance — which after the token change is ALSO a security problem,
