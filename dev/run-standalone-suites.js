@@ -19,6 +19,7 @@ var SUITES = [
   "dev/tests-general-audio.js",
   "dev/tests-audio-cache.js",
   "dev/tests-accent-layer.js",
+  "dev/tests-audio-envelope.js",
   "dev/tests-502-ambience-insecure-page.js",
   "dev/tests-516-deferred-queue.js",
   "dev/tests-l7-ambient.js",
