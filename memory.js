@@ -1971,10 +1971,8 @@ function buildNpcGraph(){
     addAdj(edges[i].a,edges[i].b,edges[i].rel,edges[i].turn);
     addAdj(edges[i].b,edges[i].a,edges[i].rel,edges[i].turn);
   }
-  // Player→NPC from character.relationships
-  for(ri=0;ri<rels.length;ri++){
-    if(rels[ri].bond)addAdj(player,rels[ri].entity,rels[ri].bond,rels[ri].bondTurn||0);
-  }
+  /* #483: the player's own bonds are no longer added to the adjacency — the graph renders no PLAYER row (the sheet block's
+     Bond line is that renderer), and a player-only adjacency fed nothing else. `bonded` above still suppresses the legacy edge. */
   var nodes=Object.keys(adj).filter(function(n){return n!==player;});
   if(!nodes.length)return"";
   var lines=["NPC GRAPH:"];

@@ -118,16 +118,8 @@ rc|=sabotage.prove({
   ]
 });
 
-rc|=sabotage.prove({
-  file:"memory.js",
-  command:["node",["dev/run-tests.js"]],
-  cases:[
-    {label:"NPC graph authority uses current dynamic instead of durable bond",
-    mustFail:"W7 dynamic state is visible but cannot feed roster authority, reciproc",
-      find:"if(rels[ri].bond)addAdj(player,rels[ri].entity,rels[ri].bond,rels[ri].bondTurn||0);",
-      replace:"if(rels[ri].dynamic)addAdj(player,rels[ri].entity,rels[ri].dynamic,rels[ri].dynamicTurn||0);"}
-  ]
-});
+/* The memory.js group ("NPC graph authority uses current dynamic instead of durable bond") retired with #483 (v1.1137): the graph
+   renders no PLAYER row, so the player's bond or dynamic never reaches it; the W7 test still pins that the dynamic is absent. */
 
 rc|=sabotage.prove({
   file:"api.js",

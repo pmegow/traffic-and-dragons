@@ -37,7 +37,7 @@ rc |= sabotage.prove({
       replace: "      var win=(f.length>ex.length?f:ex),lose=(win===f)?ex:f;" },
 
     { label: "the graph bond precedence is dropped — the legacy edge serves beside the W7 bond as a rival claim again (#269②)",
-      mustFail: "stale legacy edge still serves beside the bond",
+      mustFail: "the reverse edge still serves on the NPC row",/* #483: no PLAYER row — the suppression shows on the NPC's row */
       find: "    if((edges[i].a===player&&bonded[edges[i].b])||(edges[i].b===player&&bonded[edges[i].a]))continue;",
       replace: "    if(false)continue;" },
 
