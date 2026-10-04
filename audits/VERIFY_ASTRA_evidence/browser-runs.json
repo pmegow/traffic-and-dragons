@@ -1,0 +1,62 @@
+[
+  {
+    "job": "qa-407-shop",
+    "code": 0,
+    "seconds": 4
+  },
+  {
+    "job": "qa-6-stash",
+    "code": 0,
+    "seconds": 4
+  },
+  {
+    "job": "qa-413-ways",
+    "code": 0,
+    "seconds": 4
+  },
+  {
+    "job": "qa-l7-ambient",
+    "code": 0,
+    "seconds": 20
+  },
+  {
+    "job": "qa-l7-reload",
+    "code": 0,
+    "seconds": 8
+  },
+  {
+    "job": "qa-l7-transitions",
+    "code": 0,
+    "seconds": 26
+  },
+  {
+    "job": "qa-audio-cache",
+    "code": 1,
+    "seconds": 3
+  },
+  {
+    "job": "qa-general-audio",
+    "code": 0,
+    "seconds": 7
+  },
+  {
+    "job": "qa-hearth",
+    "code": 0,
+    "seconds": 14
+  },
+  {
+    "job": "qa-noctina",
+    "code": 0,
+    "seconds": 11
+  },
+  {
+    "job": "qa-481-d5-d7-counter",
+    "code": 0,
+    "seconds": 4
+  },
+  {
+    "job": "tests-designer-creatures-browser",
+    "code": 0,
+    "seconds": 5
+  }
+]

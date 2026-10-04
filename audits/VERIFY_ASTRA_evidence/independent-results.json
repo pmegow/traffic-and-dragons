@@ -1,0 +1,449 @@
+[
+  {
+    "rows": [
+      511,
+      560
+    ],
+    "name": "trade block arrives before wares are filed; footer preserves sublocation",
+    "result": "PASS",
+    "oldWares": [],
+    "newWares": [
+      {
+        "item": "Brass comb",
+        "price": "3 gp",
+        "note": "Frizwick",
+        "t": 5,
+        "min": 17880,
+        "cp": 300,
+        "per": 1,
+        "at": "The Iron Cauldron"
+      }
+    ],
+    "world": {
+      "location": "The Village",
+      "region": "The Reach",
+      "time": "dusk",
+      "weather": "rain",
+      "threat": "low",
+      "sublocation": "The Iron Cauldron"
+    },
+    "muts": [
+      "Sub: The Iron Cauldron",
+      "Location re-stated (no move): The Village",
+      "For sale: Brass comb — 3 gp"
+    ]
+  },
+  {
+    "rows": [
+      512,
+      560
+    ],
+    "name": "description before move files on town",
+    "result": "PASS",
+    "town": "Mud streets and smoke.",
+    "bathhouse": {
+      "firstVisit": 5,
+      "visits": 1,
+      "description": null,
+      "parent": "The Village",
+      "npcs": [],
+      "items": [],
+      "size": null,
+      "travelMins": null,
+      "lastVisit": 5,
+      "guestbook": {
+        "Silas": {
+          "turns": [
+            5
+          ],
+          "resident": false,
+          "by": {
+            "5": "arrive"
+          }
+        }
+      }
+    },
+    "muts": [
+      "Sub: The Silk and Steam Bathhouse"
+    ]
+  },
+  {
+    "rows": [
+      574
+    ],
+    "name": "stow, hero swap, refuse undo; swap back and restore",
+    "result": "PASS",
+    "refused": {
+      "ok": false,
+      "reason": "Silas is no longer the hero or in the party — Sihedron ritual spear stays in Silas's house until Silas plays again"
+    },
+    "restored": {
+      "ok": true,
+      "name": "Sihedron ritual spear",
+      "action": "placed",
+      "key": "The Village|Silas's house",
+      "units": 1,
+      "pack": true,
+      "muts": [
+        "Taken: Sihedron ritual spear",
+        "+Sihedron ritual spear"
+      ],
+      "said": "Sihedron ritual spear is back with you."
+    },
+    "chest": [
+      {
+        "name": "Sihedron ritual spear",
+        "placed": 5,
+        "taken": true,
+        "qty": 0,
+        "by": "Silas",
+        "min": 17880
+      }
+    ],
+    "inventory": [
+      "Sihedron ritual spear"
+    ]
+  },
+  {
+    "rows": [
+      574
+    ],
+    "name": "unpaired placement undo must not claim an item was returned",
+    "result": "PASS",
+    "undo": {
+      "ok": true,
+      "name": "Sihedron ritual spear",
+      "action": "placed",
+      "key": "The Village|Silas's house",
+      "units": 1,
+      "pack": false,
+      "muts": [
+        "Taken: Sihedron ritual spear"
+      ],
+      "said": "Sihedron ritual spear is off the record here — the story placed it; nobody's pack held it."
+    },
+    "hero": [],
+    "chest": [
+      {
+        "name": "Sihedron ritual spear",
+        "placed": 5,
+        "taken": true,
+        "qty": 0,
+        "by": "Silas",
+        "min": 17880
+      }
+    ]
+  },
+  {
+    "rows": [
+      575,
+      576
+    ],
+    "name": "empty companion reverse transfer conserves zero torches",
+    "result": "PASS",
+    "hero": [],
+    "companion": [],
+    "muts": [
+      "+Torch x3",
+      "⚠ Nothing moved — 'Torch x3' is not on Bram's sheet"
+    ]
+  },
+  {
+    "rows": [
+      575,
+      576
+    ],
+    "name": "gift from pack leaves identical chest copy alone",
+    "result": "PASS",
+    "hero": [],
+    "companion": [
+      "Healing potion"
+    ],
+    "chest": [
+      {
+        "name": "Healing potion",
+        "placed": 1,
+        "taken": false,
+        "qty": 1,
+        "by": "Silas",
+        "min": 0
+      }
+    ],
+    "muts": [
+      "-Healing potion",
+      "Bram: +Healing potion"
+    ]
+  },
+  {
+    "rows": [
+      575,
+      576
+    ],
+    "name": "independent loot survives missing companion throw",
+    "result": "FAIL",
+    "hero": [],
+    "muts": [
+      "+Dagger",
+      "⚠ Nothing moved — 'Dagger' is not on Bram's sheet"
+    ]
+  },
+  {
+    "rows": [
+      577,
+      591
+    ],
+    "name": "discard without coin keeps wanted offer",
+    "result": "PASS",
+    "wanted": [
+      {
+        "item": "Warded ring",
+        "offer": "40 gp",
+        "by": "Frizwick",
+        "t": 1,
+        "min": 17880
+      }
+    ],
+    "muts": [
+      "-Warded ring"
+    ]
+  },
+  {
+    "rows": [
+      577,
+      591
+    ],
+    "name": "unrelated coin receipt must not make a discarded ring a sale",
+    "result": "FAIL",
+    "coin": 2501,
+    "wanted": [],
+    "muts": [
+      "+1 cp",
+      "-Warded ring",
+      "Want met: Warded ring (Frizwick)",
+      "Present: Frizwick (say)"
+    ]
+  },
+  {
+    "rows": [
+      577
+    ],
+    "name": "one wanted offer pays once across three decorated names",
+    "result": "FAIL",
+    "deltaCp": 12000,
+    "trade": {
+      "ok": true,
+      "plan": {
+        "lines": [
+          {
+            "kind": "sell",
+            "name": "Warded ring",
+            "qty": 1,
+            "unitCp": 4000,
+            "cp": 4000
+          },
+          {
+            "kind": "sell",
+            "name": "Warded ring — taken from the crypt",
+            "qty": 1,
+            "unitCp": 4000,
+            "cp": 4000
+          },
+          {
+            "kind": "sell",
+            "name": "Warded ring (cracked)",
+            "qty": 1,
+            "unitCp": 4000,
+            "cp": 4000
+          }
+        ],
+        "sellCp": 12000,
+        "buyCp": 0,
+        "netCp": -12000,
+        "coinAfter": 14500,
+        "ok": true,
+        "reason": ""
+      },
+      "muts": [
+        "-Warded ring",
+        "Want met: Warded ring (Frizwick)",
+        "-Warded ring — taken from the crypt",
+        "-Warded ring (cracked)",
+        "+120 gp"
+      ],
+      "line": "Silas sold Warded ring (40 gp), Warded ring — taken from the crypt (40 gp), Warded ring (cracked) (40 gp) — +120 gp, with Frizwick at the trading post."
+    },
+    "inventory": []
+  },
+  {
+    "rows": [
+      578
+    ],
+    "name": "plural coin units debit copper exactly",
+    "result": "PASS",
+    "before": 2500,
+    "after": 2497,
+    "parsed": {
+      "cp": 3,
+      "unit": "cp",
+      "per": 1,
+      "unitCp": 3
+    },
+    "muts": [
+      "-3 cp"
+    ]
+  },
+  {
+    "rows": [
+      578
+    ],
+    "name": "mixed sale and buy preserve fractional gold value",
+    "result": "PASS",
+    "plan": {
+      "lines": [
+        {
+          "kind": "sell",
+          "name": "Carved whistle",
+          "qty": 2,
+          "unitCp": 30,
+          "cp": 60
+        },
+        {
+          "kind": "buy",
+          "name": "Rope",
+          "qty": 1,
+          "unitCp": 100,
+          "cp": 100
+        }
+      ],
+      "sellCp": 60,
+      "buyCp": 100,
+      "netCp": 40,
+      "coinAfter": 960,
+      "ok": true,
+      "reason": ""
+    }
+  },
+  {
+    "rows": [
+      578
+    ],
+    "name": "compound and bundle price forms are accurate or refused",
+    "result": "PASS",
+    "prices": [
+      {
+        "input": "20 for 1 gp",
+        "expected": {
+          "total": 100,
+          "per": 20
+        },
+        "parsed": {
+          "cp": 100,
+          "unit": "gp",
+          "per": 20,
+          "unitCp": 5
+        }
+      },
+      {
+        "input": "5 gp per dozen",
+        "expected": {
+          "total": 500,
+          "per": 12
+        },
+        "parsed": {
+          "cp": 500,
+          "unit": "gp",
+          "per": 12,
+          "unitCp": 42
+        }
+      },
+      {
+        "input": "1 gp 5 sp",
+        "expected": {
+          "total": 150,
+          "per": 1
+        },
+        "parsed": {
+          "cp": 150,
+          "unit": "gp",
+          "per": 1,
+          "unitCp": 150
+        }
+      }
+    ]
+  },
+  {
+    "rows": [
+      578,
+      575
+    ],
+    "name": "counted ware purchased as twenty yields twenty arrows",
+    "result": "FAIL",
+    "buy": [
+      {
+        "name": "Arrow x20",
+        "price": "1 gp per 20",
+        "cp": 100,
+        "per": 20,
+        "note": ""
+      }
+    ],
+    "trade": {
+      "ok": true,
+      "plan": {
+        "lines": [
+          {
+            "kind": "buy",
+            "name": "Arrow x20",
+            "qty": 20,
+            "unitCp": 5,
+            "cp": 100,
+            "price": "1 gp per 20"
+          }
+        ],
+        "sellCp": 0,
+        "buyCp": 100,
+        "netCp": 100,
+        "coinAfter": 2400,
+        "ok": true,
+        "reason": ""
+      },
+      "muts": [
+        "+Arrow x20 x20",
+        "-1 gp"
+      ],
+      "line": "Silas bought Arrow x20 x20 (1 gp) — -1 gp, with Frizwick at the trading post."
+    },
+    "hero": [
+      "Arrow x39"
+    ]
+  },
+  {
+    "rows": [
+      581
+    ],
+    "name": "exported stash mark prevents double replay after campaign id changes",
+    "result": "FAIL",
+    "before": [
+      "Blasting charge x4"
+    ],
+    "after": [
+      "Blasting charge x3"
+    ],
+    "marks": {
+      "astra-original": 1791092481921
+    },
+    "replay": {
+      "refreshed": [
+        "Silas"
+      ],
+      "kept": [],
+      "unknown": [],
+      "hero": "Silas",
+      "replay": {
+        "applied": 1,
+        "missed": [],
+        "legacy": 0
+      }
+    }
+  }
+]

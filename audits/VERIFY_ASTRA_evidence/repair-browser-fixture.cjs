@@ -1,0 +1,1 @@
+const fs=require('fs'),path=require('path'),p=path.join(__dirname,'supplemental-browser.cjs');let s=fs.readFileSync(p,'utf8').replace("engine.makeTestWorld();applyMuts(","engine.makeTestWorld();global.syncUI=()=>{};global.saveAll=()=>{};applyMuts(");fs.writeFileSync(p,s);

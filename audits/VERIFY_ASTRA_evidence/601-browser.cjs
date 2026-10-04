@@ -1,0 +1,22 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const root=path.resolve(__dirname,'../..'),{chromium}=require(root+'/dev/cdp-browser.js');
+const url=process.env.ASTRA_QA_URL+'/dev/audio-envelope-editor.html?src=../Audio/Prepared/alchemist-entry-bell-v1.wav&start=0.25&end=1.5343958333333334&fade=0.4&label=Alchemist%20bell';
+(async()=>{const browser=await chromium.launch({headless:true});try{
+ const c=await browser.newContext({viewport:{width:1100,height:1100},serviceWorkers:'block'}),p=await c.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));
+ await p.goto(url);await p.waitForFunction(()=>!document.getElementById('play').disabled);
+ const init=await p.evaluate(()=>window.__audioEnvelopeEditorTest.getState());assert.equal(init.points[1].time,.4);assert.equal(init.source.start,.25);
+ await p.screenshot({path:path.join(__dirname,'envelope-editor-desktop.png')});
+ const box=await p.locator('.point[data-index="1"]').boundingBox();const x=box.x+box.width/2,y=box.y+box.height/2;
+ await p._send('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});await p._send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x+70,y:y+40,button:'left',buttons:1});await p._send('Input.dispatchMouseEvent',{type:'mouseReleased',x:x+70,y:y+40,button:'left',clickCount:1});
+ const moved=await p.evaluate(()=>window.__audioEnvelopeEditorTest.getState());assert(moved.points[1].time>.4,'drag moves time');assert(moved.points[1].gain<1,'drag moves volume');
+ await p.locator('#reset').click();await p.locator('#point-time').fill('0.32');assert.equal(await p.evaluate(()=>window.__audioEnvelopeEditorTest.getState().points[1].time),.32,'exact time editing');
+ await p.locator('#add').click();assert.equal(await p.evaluate(()=>window.__audioEnvelopeEditorTest.getState().points.length),4);await p.locator('#remove').click();assert.equal(await p.evaluate(()=>window.__audioEnvelopeEditorTest.getState().points.length),3);
+ await p.locator('#shape').selectOption('linear');assert.equal(await p.evaluate(()=>window.__audioEnvelopeEditorTest.getState().shape),'linear');
+ await p.locator('#play').click();await p.waitForFunction(()=>window.__audioEnvelopeEditorTest.playing());await p.locator('#stop').click();assert.equal(await p.evaluate(()=>window.__audioEnvelopeEditorTest.playing()),false);
+ const dl=p.waitForEvent('download');await p.locator('#export-wav').click();const downloaded=await(await dl).path(),wav=fs.readFileSync(downloaded);assert.equal(wav.toString('ascii',0,4),'RIFF');assert.equal(wav.readInt16LE(wav.length-2),0);
+ const before=await p.evaluate(()=>window.__audioEnvelopeEditorTest.getState());const invalid=await p.evaluate(()=>{const t=window.__audioEnvelopeEditorTest,s=t.getState();s.points[1].time=NaN;try{t.applyPreset(s);return false;}catch(e){return true;}});assert(invalid);assert.deepEqual(await p.evaluate(()=>window.__audioEnvelopeEditorTest.getState()),before,'invalid preset leaves curve intact');
+ await p.evaluate(s=>window.__audioEnvelopeEditorTest.applyPreset(s),init);
+ await p.setViewportSize({width:390,height:1000});await p.screenshot({path:path.join(__dirname,'envelope-editor-phone.png')});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'phone has no horizontal overflow');
+ await p.locator('#audio-file').setInputFiles(path.join(root,'sfx/alchemist-bubbles-v2.mp3'));await p.waitForFunction(()=>document.getElementById('source-name').textContent==='alchemist-bubbles-v2.mp3');assert((await p.evaluate(()=>window.__audioEnvelopeEditorTest.getState())).source.end>10,'generic audio picker accepts a different recording');
+ assert.deepEqual(errors,[]);console.log(JSON.stringify({result:'PASS',initialFade:.4,drag: true,exactValues:true,addRemove:true,shapes:true,playback:true,wavBytes:wav.length,invalidPreset:true,phone:true,genericAudio:true},null,2));
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

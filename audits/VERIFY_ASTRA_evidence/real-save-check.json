@@ -1,0 +1,47 @@
+{
+  "version": "v1.1141",
+  "turn": 279,
+  "sourceSha256": "fe23a70b826c2e8d331af6641e3fac7241c3e3eac9f4d7692a466f2c4f67480d",
+  "sourceUnchanged": true,
+  "persona": {
+    "count": 5,
+    "lines": [
+      {
+        "text": "Morning to the four of you! Fresh out of the hearth oven not ten minutes ago, still warm enough to melt butter.",
+        "turn": 197,
+        "camp": "The Village (Ammut)"
+      },
+      {
+        "text": "Morning, Silas! What a gift to see Daeris resting undisturbed in her own home, now that her soul-tax lien and necrotic tether to the Reach's engines are completely extinguished.",
+        "turn": 212,
+        "camp": "The Village (Ammut)"
+      },
+      {
+        "text": "Morning, Ammut. That bread smells wonderful. What brings you by the shop today?",
+        "turn": 248,
+        "camp": "The Village (Ammut)"
+      },
+      {
+        "text": "Good mid-morning to you all. The frost is finally clearing off the roof. What brings the whole household across the square today?",
+        "turn": 261,
+        "camp": "The Village (Ammut)"
+      },
+      {
+        "text": "Lucky bolts, is it? Well, I suppose the sill could use the luck, though they tend to roll if Peet slams the shutters.",
+        "turn": 263,
+        "camp": "The Village (Ammut)"
+      }
+    ],
+    "allSelectedFromNamedSpeaker": true,
+    "liveSheetUnchanged": true
+  },
+  "prompt": {
+    "stableChars": 58638,
+    "volatileChars": 66507,
+    "stableSha256": "c846525e77b2d8b38587a767cff1d35cb64c7efa6931704f9eb12bb2b205982c",
+    "knownLines": [
+      "Known sub-locations: the Village Hall"
+    ],
+    "graph": ""
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "result": "COUNTER QA GREEN (#481 D5 + D7→#598 + #592)",
+  "rows": [
+    "left:👁Rope 35 sp",
+    "left:👁Travel rations 42 sp 5 cp",
+    "left:👁Carved whistle wanted3 sp",
+    "right:👁Honey cake25 cp",
+    "right:👁Arrows 201 gp per 20"
+  ],
+  "lone": {
+    "total": "Total\n+3 sp",
+    "go": false
+  },
+  "pair": {
+    "total": "Total\n—",
+    "go": true
+  },
+  "shots": [
+    "C:\\Projects\\traffic-and-dragons\\audits\\VERIFY_ASTRA_evidence\\qa-481-d5-d7-counter\\d7-lone-whistle.png",
+    "C:\\Projects\\traffic-and-dragons\\audits\\VERIFY_ASTRA_evidence\\qa-481-d5-d7-counter\\d7-pair.png"
+  ]
+}

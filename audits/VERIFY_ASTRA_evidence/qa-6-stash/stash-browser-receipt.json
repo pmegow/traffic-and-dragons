@@ -1,0 +1,29 @@
+{
+  "result": "STASH BROWSER GREEN",
+  "url": "http://127.0.0.1:49169",
+  "door": [
+    "⇅ Stow and take"
+  ],
+  "marked": {
+    "sell": [
+      "👁Rope 2/3→ house ×2"
+    ],
+    "buy": [
+      "← you👁Old boots 1/2"
+    ],
+    "total": "Moving\n2 in, 1 out",
+    "go": false
+  },
+  "after": {
+    "inv": [
+      "Bone-handled knife",
+      "Old boots",
+      "Rope"
+    ],
+    "stash": [
+      "Lantern:1",
+      "Old boots:1",
+      "Rope:2"
+    ]
+  }
+}

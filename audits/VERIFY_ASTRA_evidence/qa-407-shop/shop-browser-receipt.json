@@ -1,0 +1,29 @@
+{
+  "result": "SHOP BROWSER GREEN",
+  "url": "http://127.0.0.1:49169",
+  "door": [
+    "⇆ Trade with Frizwick"
+  ],
+  "marked": {
+    "sell": [
+      "👁Rope 2/3+1 gp",
+      "👁Bone-handled knife wanted+3 gp"
+    ],
+    "buy": [
+      "👁Healing potion−50 gp"
+    ],
+    "total": "Total\n−46 gp",
+    "go": false
+  },
+  "after": {
+    "coin": 1400,
+    "inv": [
+      "Healing potion x2",
+      "Rope"
+    ],
+    "wares": [
+      "Rope@1 gp",
+      "Bone-handled knife@2 gp"
+    ]
+  }
+}

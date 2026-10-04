@@ -1,0 +1,42 @@
+{
+  "result": "WAYS BROWSER GREEN",
+  "url": "http://127.0.0.1:49169",
+  "inside": [
+    {
+      "label": "out to The Village",
+      "unexplored": false,
+      "action": "Step back out to The Village."
+    },
+    {
+      "label": "the smithy",
+      "unexplored": false,
+      "action": "Head to the smithy."
+    },
+    {
+      "label": "Healer's Garden ?",
+      "unexplored": true,
+      "action": "Head to Healer's Garden."
+    }
+  ],
+  "outside": [
+    "the smithy",
+    "the tavern",
+    "Healer's Garden ?",
+    "Marrowgate"
+  ],
+  "capped": [
+    "stall 0",
+    "stall 1",
+    "stall 2",
+    "stall 3",
+    "+6 more ▾"
+  ],
+  "menuRows": [
+    "stall 4",
+    "stall 5",
+    "the smithy",
+    "the tavern",
+    "Healer's Garden ?",
+    "Marrowgate"
+  ]
+}

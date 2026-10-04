@@ -1,0 +1,31 @@
+{
+  "decoded": {
+    "duration": 9.0050625,
+    "sampleRate": 48000,
+    "channels": 1,
+    "bytes": 1728972,
+    "loopStart": 0,
+    "loopEnd": 9.005,
+    "boundaryStep": 0.012011947110295296,
+    "peak": 0.279147744178772
+  },
+  "errors": [],
+  "checks": [
+    "untagged saved smithy stays silent",
+    "loaded-save location reminder",
+    "explicit GM tag starts fire",
+    "default on and silent without a scene",
+    "real enabling gesture",
+    "independent UI-sounds preference",
+    "real MP3 decode",
+    "idempotent UI",
+    "car pause/resume",
+    "8am open/6pm closed",
+    "leave/reenter",
+    "three loop boundaries",
+    "real TTS duck and restore",
+    "legacy plus additive callbacks",
+    "showChar release",
+    "file origin unavailable"
+  ]
+}

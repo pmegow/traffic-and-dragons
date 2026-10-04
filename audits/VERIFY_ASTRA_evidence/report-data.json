@@ -1,0 +1,440 @@
+{
+  "meta": {
+    "commit": "395ad21c83b896da63f8f54c42be80716edd8e5b",
+    "version": "v1.1141",
+    "rows": [
+      19,
+      370,
+      410,
+      434,
+      437,
+      552,
+      601,
+      600,
+      559,
+      483,
+      485,
+      511,
+      512,
+      515,
+      518,
+      520,
+      521,
+      522,
+      526,
+      529,
+      543,
+      546,
+      560,
+      574,
+      575,
+      576,
+      577,
+      578,
+      581,
+      589,
+      591,
+      592,
+      547
+    ],
+    "counts": {
+      "FIELD CHECK": 9,
+      "PASS": 17,
+      "FAIL": 4,
+      "PARTIAL": 3
+    }
+  },
+  "rows": [
+    {
+      "id": 19,
+      "title": "CarPlay / Bluetooth narration",
+      "status": "FIELD CHECK",
+      "test": "Reran audio-session handoff, transport and scene-brief checks in the full gate.",
+      "result": "Automated checks pass. No iPhone 12 Pro Max or actual CarPlay route was available; the reported stutter is not verified fixed.",
+      "next": "On the same car route, compare a native-voice turn with synthesized speech, then wired versus wireless CarPlay. Capture read-route diagnostics. Direct Bluetooth is the tracker’s demonstrated workaround. There is not enough evidence here to prescribe a new engine fix.",
+      "files": [
+        "final-full-gate.txt"
+      ]
+    },
+    {
+      "id": 370,
+      "title": "Companion flaws and earned growth",
+      "status": "FIELD CHECK",
+      "test": "Reran on-screen growth, off-screen refusal, wrong/unchanged flaw rejection, speaker aliases and companion-impulse cadence.",
+      "result": "All tested rules pass. Valid tags update the flaw and retain history. This proves the route works, not that the GM chooses earned growth in real play.",
+      "next": "Keep the existing single impulse channel. Judge a filing after a genuine defining moment; do not add another scheduler or prompt without a reproduced failure.",
+      "files": [
+        "named-engine-tests.json"
+      ]
+    },
+    {
+      "id": 410,
+      "title": "Spoken pause and resume",
+      "status": "FIELD CHECK",
+      "test": "Reran exact utterances and hold/resume dispatch, including ordinary-sentence negatives and bare continue.",
+      "result": "Vocabulary and dispatch pass; executor wiring is source-checked. No real microphone, steering-wheel control or car session was exercised.",
+      "next": "While parked, say pause with the mic open, verify it stays held across a turn, then exercise the supported resume/tap route. Native recognition normally opens after narration, so narrator interruption needs its own real-route check.",
+      "files": [
+        "named-engine-tests.json"
+      ]
+    },
+    {
+      "id": 434,
+      "title": "Present resident personality",
+      "status": "FIELD CHECK",
+      "test": "Reran present/absent/party roster fixtures for trait, flaw, appearance and motivation, including stable-prompt isolation.",
+      "result": "The serving fix passes. It cannot turn a sheet and memory describing a guarded, polite vendor into the feral character the owner remembers.",
+      "next": "Review the intended sheet/persona, export from the source campaign and refresh the Village. Contradictory historical Village memory needs the existing reviewed resident-reset path on a copy. Avoid a special-case Nyla prompt.",
+      "files": [
+        "named-engine-tests.json",
+        "real-save-check.json"
+      ]
+    },
+    {
+      "id": 437,
+      "title": "Motivation retirement and rebirth",
+      "status": "FIELD CHECK",
+      "test": "Reran settlement, birth, retained history, on-screen guards, paperwork rejection, fallback, prompt and sheet cases.",
+      "result": "Pass: settlement empties the standing field, keeps history and serves none standing. A new purpose uses the same lifecycle helpers. Story appropriateness remains a play judgement.",
+      "next": "In play, verify the settlement toast and sheet, then that a new purpose comes from the story. Keep one lifecycle; #515 checks the summary fallback regression.",
+      "files": [
+        "named-engine-tests.json"
+      ]
+    },
+    {
+      "id": 552,
+      "title": "Portable persona",
+      "status": "FIELD CHECK",
+      "test": "Reran five persona groups. Independently exported Nyla through portableSheet from an in-memory copy of Village Ammut t279 and compared selected lines with named-speaker extraction.",
+      "result": "Five lines captured, all from that speaker’s extraction. Source save stayed byte-identical. Tests cover other-speaker exclusion, sparse-history retention, hero exclusion and presence-gated serving. A real server-library round-trip and resulting dialogue were not tested.",
+      "next": "Export a known character from the source campaign, inspect Voice lines/Manner, refresh the destination and judge the next dialogue. Keep the shared capture and renderer unless that play check reveals a failure.",
+      "files": [
+        "named-engine-tests.json",
+        "real-save-check.json"
+      ]
+    },
+    {
+      "id": 601,
+      "title": "Audio envelope editor",
+      "status": "PASS",
+      "test": "Drove Chrome: drag point, exact time, add/remove, shape selection, play/stop, WAV download, invalid preset, 390 px viewport and a different recording.",
+      "result": "Passed. WAV was 123,346 bytes with a silent final sample. Phone screenshot is readable with no horizontal overflow. Screenshots were visually inspected.",
+      "next": "No defect reproduced. Interaction/export works; this is not a new subjective listening judgement of every curve.",
+      "files": [
+        "601-browser.txt",
+        "envelope-editor-phone.png",
+        "envelope-editor-desktop.png"
+      ]
+    },
+    {
+      "id": 600,
+      "title": "Alchemist entrance bell",
+      "status": "FIELD CHECK",
+      "test": "On final v1.1141, loaded the copied t279 scene: load is silent; entrance rings once; repeated commits do not ring; pause/exit cut it; resume does not replay; re-entry rings once.",
+      "result": "Passed with no page errors. Reran after another session’s bell-volume update. Playback-state checks cannot judge final loudness on the owner’s device.",
+      "next": "Listen to the final v1.1141 mix alongside narration at normal ambience volume. No code defect was reproduced.",
+      "files": [
+        "600-final-browser.txt",
+        "600-browser.cjs"
+      ]
+    },
+    {
+      "id": 559,
+      "title": "Alchemist bubbling and glass",
+      "status": "PASS",
+      "test": "Loaded the actual covered/interior t279 alchemist scene in isolated Chrome; checked correct bed, decoded glass accent and no page errors. Also ran ambience transition/control scripts.",
+      "result": "Passed. The original covered-versus-sealed mismatch no longer selects the hearth. Owner approval of the calmer mix is historical tracker evidence, not a fresh listening claim.",
+      "next": "No new defect reproduced. Local Chromium selection/playback passes; deployment cache and iOS listening remain outside this pass.",
+      "files": [
+        "559-browser.txt",
+        "qa-l7-transitions/run.txt"
+      ]
+    },
+    {
+      "id": 483,
+      "title": "Duplicate prompt facts",
+      "status": "PASS",
+      "test": "Reran both duplication groups: one hero bond, preserved NPC/bond-less edges, Village location residue and unchanged adventure list. Captured actual Village t279 prompt.",
+      "result": "Passed. Current prompt: 58,638 stable characters, 66,507 volatile characters. Receipt includes graph and location lines. The earlier 762-character saving was not independently remeasured against old code.",
+      "next": "Keep one rendering location per fact and the omission guards. No further abstraction is needed.",
+      "files": [
+        "named-engine-tests.json",
+        "real-save-check.json"
+      ]
+    },
+    {
+      "id": 485,
+      "title": "Ten browser scripts without Playwright",
+      "status": "PASS",
+      "test": "Ran shop, stash, ways, ambient, reload, transitions, audio cache, general audio, hearth and noctina using system Chrome.",
+      "result": "All ten pass. First cache run failed because my temporary server did not map / to index.html. After correcting that route, the unchanged project script passed, including offline reload.",
+      "next": "Keep the shared cdp-browser driver. No dependency install or separate driver per script is needed.",
+      "files": [
+        "browser-runs.json",
+        "cache-rerun.json",
+        "qa-audio-cache/rerun.txt"
+      ]
+    },
+    {
+      "id": 511,
+      "title": "Trade tags before arrival",
+      "status": "PASS",
+      "test": "Tested [WARES:Brass comb|3 gp|Frizwick][SUBLOCATION:The Iron Cauldron][LOCATION:The Village], plus prose boundaries and wanted/keeper/item/coin regressions.",
+      "result": "Passed: comb files on the Cauldron, not the old shop; sublocation remains The Iron Cauldron. Description tags retain their separate chronological rule.",
+      "next": "Older still-open paragraphs predate the built fix. Use the existing block-aware lookup, not another place sequencer.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json"
+      ]
+    },
+    {
+      "id": 512,
+      "title": "Town description filed on destination",
+      "status": "PASS",
+      "test": "Tested LOCATION_DESC before and after a move, and write-once behavior.",
+      "result": "Passed: before-move description files on the town; bathhouse remains undescribed. After-move description targets the destination.",
+      "next": "The fix prevents new damage. Historical Runelords descriptions still require the existing map cleanup tool on a copied save. This pass did not repair them.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json"
+      ]
+    },
+    {
+      "id": 515,
+      "title": "Summary invents a second motivation",
+      "status": "PASS",
+      "test": "Reran tagged standing purpose followed by a paraphrased summary, filler on empty purpose, and Done running versus Done: / fulfilled.",
+      "result": "Pass: standing purpose remains, filler is dropped and Done running does not settle it.",
+      "next": "Keep the summary as a fallback to the same helpers, not a second authority.",
+      "files": [
+        "named-engine-tests.json"
+      ]
+    },
+    {
+      "id": 518,
+      "title": "Counted transfers and same-name collisions",
+      "status": "FAIL",
+      "test": "Tested forward quantity limits, empty reverse transfers, gift at home with a matching chest item, and independent loot beside a companion throw.",
+      "result": "Counts and chest cases pass. Still broken: “You loot a dagger. [ITEM_GAINED:Dagger] Bram throws his dagger. [COMPANION_ITEM_LOST:Bram|Dagger]” ends with an empty hero pack and an earlier +Dagger receipt.",
+      "next": "Cause: tag_table.js consumes matching igHits across the whole reply and rolls back the hero’s gain without proving a transfer. Use one explicit {from,to,item,qty} transfer and commit both sides together. Until that path exists, never reconcile across intervening prose merely by name. Same-block ambiguity should refuse visibly. Preserve the passing quantity caps.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json"
+      ]
+    },
+    {
+      "id": 520,
+      "title": "Teacher or adjective steals a hero ability",
+      "status": "PASS",
+      "test": "Reran Daeris showed/gave/teaches, Sable cloak and Will saves, actual third-person companion abilities and hero/you guards.",
+      "result": "Pass: reported teaching/common-word cases stay on the hero; recognized companion subjects still route.",
+      "next": "Keep the decision in one subject resolver. These tested language shapes do not prove every possible English sentence.",
+      "files": [
+        "named-engine-tests.json"
+      ]
+    },
+    {
+      "id": 521,
+      "title": "Plain companion departures",
+      "status": "PASS",
+      "test": "Reran six departure positives and five object/body-side negatives: left., left without a word, left at dawn, just left, had already left.",
+      "result": "Pass: plain departures count; left her side, left hand and object-bearing negatives remain protected.",
+      "next": "Keep the one clause recognizer and paired positive/negative fixtures.",
+      "files": [
+        "named-engine-tests.json"
+      ]
+    },
+    {
+      "id": 522,
+      "title": "Unused definitions",
+      "status": "PASS",
+      "test": "Ran tokenizer self-test and current tracked-file census, plus full gate.",
+      "result": "Four tokenizer checks pass. Census: 3,969 line-start declarations, 655 scanned files, none dead. Named removed definitions are absent.",
+      "next": "No further deletion indicated. This is a conservative token census with strings retained, not a whole-program reachability proof.",
+      "files": [
+        "dead-census.txt",
+        "dead-self-test.txt"
+      ]
+    },
+    {
+      "id": 526,
+      "title": "Expected refusals sent as crash reports",
+      "status": "PASS",
+      "test": "Reran W2/summary-identity refusal strikes 1/2/3 and ordinary extraction failures; source-checked summarize catch wiring.",
+      "result": "Pass: strikes 1/2 suppress mail; quarantine strike 3 reports; other extraction failures report immediately. No webhook/email was sent and production reports were not sampled.",
+      "next": "Keep one reporting decision at the boundary. Confirm fewer duplicate reports on the next real refusal; this pass does not claim end-to-end delivery.",
+      "files": [
+        "named-engine-tests.json"
+      ]
+    },
+    {
+      "id": 529,
+      "title": "Repaired-map arrival points at a twin",
+      "status": "PASS",
+      "test": "Reran a node whose old key prefix differs from its current parent: arrival pointer, visit, item, state note and geo list.",
+      "result": "Pass: composed world/leaf alias resolves to the real node; no twin is created. Included after correctly parsing code-span pipes in its status.",
+      "next": "Keep existing alias registration. No per-consumer special-case lookup is needed.",
+      "files": [
+        "named-engine-tests.json"
+      ]
+    },
+    {
+      "id": 543,
+      "title": "Voice continuity across sheet replacement",
+      "status": "FIELD CHECK",
+      "test": "Reran five groups: hero/companion adoption, missing versus explicit library fields, changed-gender casting and fallen-companion rejoin including clears.",
+      "result": "All five pass structurally. No synthesized before/after line from a live replacement was heard. The tracker’s separate review requirement is not fulfilled by this pass.",
+      "next": "Replace a voiced companion and listen to the next line. Keep the shared voice-field helpers, rather than new provider-specific branches.",
+      "files": [
+        "named-engine-tests.json"
+      ]
+    },
+    {
+      "id": 546,
+      "title": "Merge studio missing script",
+      "status": "PASS",
+      "test": "Opened actual studio in Chrome, loaded two distinct synthetic records, ran runApply, checked mandatory verification and merged download.",
+      "result": "Pass: 30 manifest files load; two records become one; verified result and download appear; no page errors. No transcript/RAG excerpts exist in this fixture, so its RAG probe is explicitly vacuous.",
+      "next": "Missing-script failure is resolved. Keep the canonical manifest; do not interpret this as RAG coverage.",
+      "files": [
+        "supplemental-browser.json",
+        "merge-studio.png"
+      ]
+    },
+    {
+      "id": 560,
+      "title": "Place sequencing across a reply",
+      "status": "PASS",
+      "test": "Reran A4 plus current #511 block semantics, #512 descriptions and #529 repaired-map arrival.",
+      "result": "All tested cases pass. Earlier blockers #511 and #529 have passing current-build tests. Trade tags use their block arrival; descriptions use their own text position.",
+      "next": "No remaining failure reproduced in these fixtures. Keep one timeline with the deliberate tag-boundary lookup rules.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json"
+      ]
+    },
+    {
+      "id": 574,
+      "title": "Car Mode undo loses a stowed item",
+      "status": "PASS",
+      "test": "Tested ordinary undo, swapped-away hero, switching back, grouped moves, expiry/busy refusal and unpaired story placement.",
+      "result": "Pass: hero swap refuses without losing spear; switching back restores it. Unpaired placement returns pack:false and says off the record here / nobody’s pack held it; it no longer says back with you.",
+      "next": "Initial independent expectation was stale: #597 deliberately permits record-only undo. Corrected assertion checks that contract and the honest sentence. No reported code failure remains.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json"
+      ]
+    },
+    {
+      "id": 575,
+      "title": "Chest quantities and identity",
+      "status": "PARTIAL",
+      "test": "Reran D2 counted take, plural/dash normalization and legacy healing; retested transfers and counted wares.",
+      "result": "Original chest copy-machine cases pass. Broader conservation still fails: Arrow x20 purchase yields Arrow x39; independent same-name loot can be rolled back by a companion’s failed throw.",
+      "next": "Normalize a ware once to {baseName,qty,priceCp,pricePer}. Add bare Arrow twenty times, never a counted label twenty times. Use the explicit transfer boundary in #518 for cross-owner movement.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json"
+      ]
+    },
+    {
+      "id": 576,
+      "title": "Large and companion quantities",
+      "status": "PARTIAL",
+      "test": "Reran x12/x10 hero changes, Torch x3/x2 companion changes, one-line stack trade, empty reverse transfer and gift at home.",
+      "result": "Quantity grammar and newly bounded transfers pass. Broader hold remains justified by #518’s Dagger collision: correct arithmetic cannot rescue incorrectly paired actions.",
+      "next": "Keep the shared quantity grammar. Fix transfer association once, without adding per-handler quantity exceptions.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json"
+      ]
+    },
+    {
+      "id": 577,
+      "title": "One wanted offer pays repeatedly",
+      "status": "FAIL",
+      "test": "Tested ordinary retirement, expiry and no-payment discard, then three decorated names matching one Warded ring want in the planner and actual browser clicks.",
+      "result": "Failed: one 40 gp offer paid 120 gp. Every row receives its own one-item allowance and the whole plan is priced before shared-want retirement. Also inherits #591’s unrelated-coin failure.",
+      "next": "One remaining quantity per wanted offer must govern the whole plan. Each matching row consumes the same allowance; reject extra unpriced units or use their independent ordinary value with an explicit receipt. Retire only from an accepted paid-sale line.",
+      "files": [
+        "independent-results.json",
+        "supplemental-browser.json",
+        "wanted-three-times.png"
+      ]
+    },
+    {
+      "id": 578,
+      "title": "Silver, copper and price units",
+      "status": "PARTIAL",
+      "test": "Tested plural coppers, mixed sale/buy, 20 for 1 gp, 5 gp per dozen, 1 gp 5 sp, counter prices and counted ware through WARES/shopTradeApply.",
+      "result": "Copper/parser checks pass: -3 coppers subtracts 3 cp; two 30 cp sales against a 100 cp buy cost 40 cp. Bundle/compound forms parse. Arrow x20 still yields 39 arrows for a twenty-arrow charge.",
+      "next": "Keep copper accounting and one coin parser. Fix name/count normalization as in #575. A non-divisible bundle’s displayed unit price rounds, while its plan uses the bundle share; that is distinct from the reproduced item-count defect.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json",
+        "qa-481-d5-d7-counter/run.txt"
+      ]
+    },
+    {
+      "id": 581,
+      "title": "Library refresh replays stash twice",
+      "status": "FAIL",
+      "test": "Reran ordinary and already-exported-mark cases. Stowed one of five Blasting charges, exported the four-charge sheet, changed the in-memory campaign ID, then refreshed that same sheet.",
+      "result": "Failed: four charges become three. stashMarkKey uses campId, so the carried mark under the old ID is missed and the existing move replays. Same-ID refresh passes.",
+      "next": "Use a stable stash-journal origin key that survives campaign rekey/import, and the same key on sheet marks. Migrate the old mark once. Never replay from zero just because a storage ID changed. Add a real import/rekey round-trip regression before shipping; this probe isolates the boundary in memory.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json"
+      ]
+    },
+    {
+      "id": 589,
+      "title": "Client/server slug mismatch",
+      "status": "FIELD CHECK",
+      "test": "Full gate ran shared slug/hash tests: (Ammut) → ammut, Åsa Lindé → sa_lind; both client call sites delegate; blueprint trimming/length remain pinned.",
+      "result": "Client checks pass. No fresh deployed-server connection or authenticated Replace/Update was performed. Historical deployment receipt is not a new live check.",
+      "next": "Check a punctuation-edged character name against the deployed library. Keep one shared implementation and vendoring hash; no new slug rule is needed.",
+      "files": [
+        "final-full-gate.txt"
+      ]
+    },
+    {
+      "id": 591,
+      "title": "Discard retires wanted offer",
+      "status": "FAIL",
+      "test": "Original no-coin discard passes. Added: Frizwick returns 1 cp change, then hero discards a wanted 40 gp ring in the same reply.",
+      "result": "Failed: +1 cp, ring removed, wanted list empty, receipt Want met. R.goldIn > 0 means some money arrived; it does not mean this item was sold.",
+      "next": "Retire only from an identified completed sale: offer, item, quantity, payment. The counter already has this boundary. If GM tags cannot prove the association, keep the want and surface uncertainty. Another discard-word exception would be fragile.",
+      "files": [
+        "named-engine-tests.json",
+        "independent-results.json"
+      ]
+    },
+    {
+      "id": 592,
+      "title": "Counter QA assumes two wanted units",
+      "status": "PASS",
+      "test": "Ran real counter QA: one 3 sp wanted whistle, second tap clears selection, and silver/copper prices for ration/cake/arrows.",
+      "result": "Pass: first click enables Complete at +3 sp; second clears and disables it. Rations show 2 sp 5 cp. Screenshots generated.",
+      "next": "The harness matches the current rule. Its green result does not cover several decorated rows sharing one want; #577 reproduces that separate defect.",
+      "files": [
+        "qa-481-d5-d7-counter/run.txt",
+        "qa-481-d5-d7-counter/d7-lone-whistle.png",
+        "qa-481-d5-d7-counter/d7-pair.png"
+      ]
+    },
+    {
+      "id": 547,
+      "title": "Designer clips at 800 characters",
+      "status": "PASS",
+      "test": "Ran actual Designer with exact 836-character magistrate text: full load/breakout, sentence revision, original retention, failed/late revision, draft reload and automatic Apply. Full gate runs seven pure revision checks.",
+      "result": "Pass: original ends safe-passage promise.; revision ends safe passage. Both renders visually inspected. Invalid/late output preserves original/newer text. Model responses were fixtures, not a live quality evaluation.",
+      "next": "Keep lossless authoring and one explicit revision pass, with original retained and runtime bounds unchanged. No clipping reproduced.",
+      "files": [
+        "tests-designer-creatures-browser/run.txt",
+        "full-npc-before-shortening.png",
+        "complete-npc-after-shortening.png"
+      ]
+    }
+  ]
+}

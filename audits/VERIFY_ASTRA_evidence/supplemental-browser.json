@@ -1,0 +1,16 @@
+{
+  "merge": {
+    "title": "Apply log — verified ✓",
+    "log": "⬇ Download astra-synthetic.merged.tndAPPLYING 1 merge group(s)…GROUP: \"Bram Stone\" absorbs 1 dupe(s)merging \"Old Bram\" ⇒ \"Bram Stone\"handler: Merged: Old Bram -> Bram StonePOST-MERGE VERIFICATION (mandatory)✓ A. resolveNpcName(\"Old Bram\") → \"Bram Stone\"✓ B. I10 holds post-merge: no alias claimed twice, none shadowed by a live key~ C. \"Bram Stone\": no ragRetrieve-eligible transcript entries stamped with a merged dupe — probe vacuous (nothing for the bridge to carry). PASS with note.✓ D. no dangling references at the swept sitesNext: import the downloaded file in-game (File ▸ Save / Load ▸ Import), spot-check the merged NPC's sheet and a recall question, and keep the original until satisfied.",
+    "keys": [
+      "Bram Stone"
+    ],
+    "scripts": 30
+  },
+  "wanted": {
+    "coin": 14500,
+    "inventory": []
+  },
+  "total": "Total\n+120 gp",
+  "errors": []
+}

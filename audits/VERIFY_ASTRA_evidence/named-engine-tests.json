@@ -1,0 +1,476 @@
+[
+  {
+    "section": "helpers",
+    "name": "#410 parseCarCommand hears pause / GM pause and resume / unpause / GM resume / GM continue as WHOLE utterances; 'I pause at the door', bare 'continue' and 'resume the search' stay actions",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "helpers",
+    "name": "#410 carHoldDispatch is the pure table: pause while the narrator plays = ttsPause; pause with the mic open = hold (auto-mic stays closed); resume releases a TTS pause first, then a hold; resume with nothing held says nothingPaused; unknown kinds are a no-op that keeps the hold",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#370 — companions: flaws that cost, flaws outgrown, the dynamic beside the bond, one speaker per companion",
+    "name": "#370 the party block tells the GM a flaw must cost, a companion may refuse and be right, trait and flaw govern quiet scenes, and growth is filed only on screen; the relationship audit prints the current dynamic beside the bond and offers non-combat postures",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#370 — companions: flaws that cost, flaws outgrown, the dynamic beside the bond, one speaker per companion",
+    "name": "#370 growth: [COMPANION_GROWTH:Name|flaw|replacement] rewrites the sheet's flaw, keeps the old one in growth[], files a growth defining moment and toasts; refused when the companion is not on screen in the prose, when the stated flaw is not the sheet's, or when nothing changes; unknown companions are ignored; the tag is stripped and documented",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#168 W2: referential integrity transactions",
+    "name": "#526 a W2 death refusal in the summary is a guard working: strikes one and two send NO error report (the console and the drift-health line still say it); the third strike, which quarantines the window, still reports; an ordinary extraction failure always reports",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#543 voice settings across a sheet swap",
+    "name": "#543 Replace from library on a companion: a voice field the copy lacks keeps the live value (an empty one counts as lacking); a value the copy carries replaces it",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#543 voice settings across a sheet swap",
+    "name": "#543 the Village refresh keeps a resident's voice settings when the newer library copy carries none",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#543 voice settings across a sheet swap",
+    "name": "#543 Replace from library on the hero keeps the hero's voices (never cast again) when the copy has none, and takes the copy's own where it has one",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#543 voice settings across a sheet swap",
+    "name": "#543 a kept voice of the known other sex is not carried onto a copy whose sex changed: the hero is cast again matched, a companion's slot is left for the next line's cast; direction and speed still carry",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#543 voice settings across a sheet swap",
+    "name": "#543 a fallen companion rejoins with the voice settings on his card, set or cleared while he was down; the rest of the parked sheet comes back as before",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#407 the shop interface",
+    "name": "#407 ① the catalog reads the village teeth: only in a shop with its keeper; sell = half canon, the keeper's STATED offer when WANTED (#481 D4 amends ruling ①), unsellable without either; worn items flagged; buy rows = the shop's live wares with their pinned price, word-priced wares unbuyable",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#431 here line",
+    "name": "#386/#370 the companion impulse ask (owner 2026-09-24): fires once per COMPANION_INITIATIVE_EVERY turns when a flawed companion is at the player's side, names each flaw and both tags, yields in combat, to a split companion, to a recent unbidden act and inside the window; registered with its latch",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#434 roster personality",
+    "name": "#434 a present resident's trait/flaw/look/motivation ride the roster entry; an absent one on the roster keeps the one-liner; a party member is not doubled; volatile only",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#552 the portable persona — a character keeps their voice between campaigns",
+    "name": "#552 personaLines returns only the named speaker's lines, joined back into the sentence the GM wrote, quotes stripped, aliases honoured",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#552 the portable persona — a character keeps their voice between campaigns",
+    "name": "#552 personaPick keeps real speech only, no repeats, one line per turn, at most five, oldest first, and the same input picks the same lines",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#552 the portable persona — a character keeps their voice between campaigns",
+    "name": "#552 the capture at export: a non-hero sheet with three or more usable lines gets camp-stamped voiceLines; fewer keeps the carried ones; the hero is skipped; portableSheet is the road",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#552 the portable persona — a character keeps their voice between campaigns",
+    "name": "#552 personaPromptBits: the last three lines, each cut to 120 characters, then the manner line; nothing for a sheet without either",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#552 the portable persona — a character keeps their voice between campaigns",
+    "name": "#552 the prompt: a PRESENT resident's voice lines and manner ride the roster line; an absent one stays bare; a party member's ride the companion block; volatile only",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#483 one renderer per fact in the per-turn prompt",
+    "name": "#483 the NPC GRAPH has no PLAYER row — the hero's bonds are the sheet block's Bond line, once; NPC↔NPC rows and a bond-less player edge still serve",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#483 one renderer per fact in the per-turn prompt",
+    "name": "#483 in the Village 'Known sub-locations' lists only what COMMONS and HOUSES do not already name — the residue, never the same twenty names twice",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)",
+    "name": "#517 ① → #598 a sale bundled with a purchase is plain subtraction: two 3 sp whistles (6 sp) against a 1 gp rope nets 4 sp to the keeper, exactly; one whistle sells for 3 sp; a 3 sp needle costs 3 sp",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)",
+    "name": "#517 ② plural coin words count as their unit: [GOLD:-3 coppers] takes 3 cp, not 3 gp; silvers, copper pieces and gold coins likewise",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)",
+    "name": "#518 a gift bounded by the loss: [ITEM_LOST:Torch x3] with ONE torch held gives the companion one torch, said; a full stack gives the full count; an unpaired gift is untouched",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)",
+    "name": "#518 ② the take pair is bounded by what the companion held: [COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3] with Bram holding one gives the hero ONE (said); with Bram holding none nothing moves; a gift at home of a potion held in the pack AND the chest takes one from the pack only",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)",
+    "name": "#519 the spoken undo after a hero swap: the stowed spear stays in the chest and the undo refuses with the reason, instead of returning ok with the spear in nobody's pack",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)",
+    "name": "#511 ② a block of tags with no prose between them is ONE instant for the trade tags: wares, wants, coin, a placed item and the keeper written ahead of the block's arrival file on the arrival; prose between breaks the block; a description before the move still describes the place being left (#512)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)",
+    "name": "#511 a same-world footer after an arrival is not a move: [SUBLOCATION:the tavern][LOCATION:The Village] leaves the hero in the tavern; a lone same-world [LOCATION:] keeps its old reading",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#437 motivation lifecycle",
+    "name": "#437 pure: motivationSettle retires the standing purpose into motivationHistory (text, how, turn, campaign) and empties the field; nothing standing → null; motivationBirth sets a new one, archives a standing one as replaced, refuses a paperwork purpose and never writes it, no-ops on the same text; motivationSettledLine names how and where it was settled, never the old words",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#437 motivation lifecycle",
+    "name": "#437 tag: [COMPANION_GROWTH:Name|motivation|settled: how] retires the purpose on screen (empty field, history, growth defining moment, toast, muts); off screen → refused; nothing standing → loud no-op; [COMPANION_GROWTH:Name|motivation|new purpose] births one (toast, defining moment); a paperwork purpose gets a ⚠ muts line and is never written; the flaw form still works; the doc line teaches both forms",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#437 motivation lifecycle",
+    "name": "#437 prompt: PARTY HISTORIES serves 'motivation — none standing (settled in <campaign>: how)' for a settled purpose, the standing text otherwise, and nothing for a sheet that never had one; the line lives in the stable half and never repeats the old words; the ending's companion line says the purpose was settled; the sheet renders it",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#437 motivation lifecycle",
+    "name": "#469 ⑤ in a small-talk kind the settled motivation keeps its campaign but not its HOW — the how is the moment's own sentence and rode the stable half every turn (the Village t191 Silas line)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#437 motivation lifecycle",
+    "name": "#515 the summary's fallback births a purpose only when none stands and never files filler; the settle keyword needs its separator or the end of the text",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#437 motivation lifecycle",
+    "name": "#437 belt: the extractor's motivationChanges settle and birth through the same helpers — companions only (the hero and a stranger are dropped loudly, a paperwork purpose is refused loudly, every filing toasts) — and the extraction schema names the field with its ONLY-if guards",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#437 motivation lifecycle",
+    "name": "#437 generator: the freeform skeleton prompt carries the no-books rule (a settled debt in the record is closed history) and the reviewer carries a REGISTER dimension in both the bare and the character-bearing forms",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A1 place resolver",
+    "name": "#529 on a repaired map an arrival at a place whose key prefix differs from its parent counts the visit on the real place AND points at it: the composed world|leaf becomes the real key's alias, so a placed item, a state note and the geo block all land on one node and no twin is minted",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D3 quantity grammar",
+    "name": "#481 D3 the hero: x12 and x10 move twelve and ten; x1 is one unit, never a name; an absurd count is clamped LOUDLY",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D3 quantity grammar",
+    "name": "#481 D3 the companion twins read the count: Torch x3 onto one torch gives four with no duplicate alarm; x2 removes two",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D3 quantity grammar",
+    "name": "#481 D3 the counter lands a stack of thirteen in one line (#597: ledgerApply, no tag text)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D2 stash identity",
+    "name": "#481 D2 taking 'x2' takes two from the chest; a GM stow of 'Hemp rope x2' is ONE row of two and the chest cannot copy",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D2 stash identity",
+    "name": "#481 D2 a counted take on the record moves that many units, never more than the row holds",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D2 stash identity",
+    "name": "#481 D2 a plural or dash variant reaches the right row",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D2 stash identity",
+    "name": "#481 D2 legacy '…xN' village rows heal at load, idempotently; adventure rows are never touched",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D9 the village move record",
+    "name": "#481 D9 a village move is recorded once, a ledger plan is ONE move, and the sheet carries the mark of the moves it reflects",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D9 the village move record",
+    "name": "#481 D9 a refresh from a library copy that never saw the village re-applies its moves: a stowed item is not back in the pack, a taken one is not lost",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D9 the village move record",
+    "name": "#481 D9 a refresh from the village own export re-applies nothing it already holds (no second charge lost)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D9 the village move record",
+    "name": "#481 D9 stash rows stowed before the record existed are not re-applied; they are counted once, loudly",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D9 the village move record",
+    "name": "#481 D9 the record is capped, and evicting a move a refresh would need is loud",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D9 the village move record",
+    "name": "#481 D9 the adventure records its moves without a clock stamp or a sheet mark (replays stay deterministic)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D1 the Car Mode undo",
+    "name": "#481 D1 never mind after a stow puts the item back in the pack and off the chest, through the one parser",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D1 the Car Mode undo",
+    "name": "#481 D1 never mind after a chest take puts it back in the chest; a ledger plan of three is ONE move",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D1 the Car Mode undo",
+    "name": "#481 D1 the undo refuses mid-turn, undoes once, and expires with the next GM turn",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D1 the Car Mode undo",
+    "name": "#481 D1 a placement the pack never paid for undoes on the row alone; the retired pointer of an old save drives nothing",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D1 the Car Mode undo",
+    "name": "#481 D1 an undo whose other half is gone refuses loudly and moves nothing",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D1 the Car Mode undo",
+    "name": "#481 D1 a stow into a sibling place undoes from where you stand (the Village Hall core)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#512 a description written before the move describes the place the reply started at (Magnimar, not the bathhouse); written after the move it describes the new place; a town whose description already stands keeps it",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 pay-then-leave lands: a coin paid at the counter before walking out is paid in the shop (t198)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 place-then-leave files the item in the house it was set down in",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 arrive-then-hours files on the shop, never the settlement",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 fight-then-ride anchors the aftermath at the fight",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 two moves in one reply end at the second; both are filed and the road between them is on the map",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 a sub-location named before a world move belongs to the OLD world; the party ends at the new one with no sub-location",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 a pending hours ask keeps answering to its own node when the answer comes before the leave",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 wares and a state note filed before a leave land on the shop they were filed in",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 arrive-then-take takes from where the hero arrived",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 A4 the place sequencer",
+    "name": "#481 A4 the timeline is pure and answers any offset: before, between and after the moves",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 B5 left is a side, not a departure",
+    "name": "#521 the plain departures count again: 'Daeris left.', 'left without a word', 'left at dawn', 'just left', 'had already left' — while the six field lines and 'left her side' stay no separation",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D5 one coin parser",
+    "name": "#481 D5 parseCoin reads gold, silver, copper and platinum, a bundle and each; a price without a coin is null; a GOLD body is read by its LEADING number",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D5 one coin parser",
+    "name": "#481 D5 itemValueCp prices ONE unit from the item bible in copper: travel rations 5 sp, a torch 1 cp, an arrow 1 gp per 20, a silvered arrow 1 gp each",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D5 one coin parser",
+    "name": "#481 D5 → #598 [GOLD:] lands the coin in the unit the GM wrote — 25 cp is 25 copper; the overspend receipt states what moved and says what it could not",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D5 one coin parser",
+    "name": "#481 D5 → #598 in the village a coin in silver is a sale like any other: 5 sp leaves the purse and the bread arrives",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D5 one coin parser",
+    "name": "#481 D5 the counter trades in silver and copper: rations sell by the unit, a 25 cp cake is buyable, a bundle of arrows buys by the arrow; small sums read as sp/cp",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D5 one coin parser",
+    "name": "#481 D5 → #598 the quest reward parses read the same coin: a reward in silver is paid in silver, recorded in copper, and the payout verifier sums every coin token into ONE group",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D5 one coin parser",
+    "name": "#481 D5 a pinned ware keeps canon's own words, and the price band quotes them: rations pin to 5 sp; wine at 2 gp is ten times its 2 sp",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D4 a met want retires",
+    "name": "#481 D4 the counter pays the keeper's offer for ONE ring, the want retires with a receipt, and the GM is no longer told it; the second ring has no price",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D4 a met want retires",
+    "name": "#591 a discarded or consumed wanted item retires nothing: [ITEM_LOST:] with no coin in the reply leaves the want standing; the next real sale still meets it",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D4 a met want retires",
+    "name": "#481 D4 a GM-narrated sale in the shop retires the want too",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D4 a met want retires",
+    "name": "#481 D4 an offer in words is unsellable at the counter, with the reason; the knife's 3 gp offer beats its 2 gp canon",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#481 D4 a met want retires",
+    "name": "#481 D4 a want expires on the clock like a ware: after a week the GM is not told and the counter pays no offer",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "section": "#490 a hero ability tag that describes a companion lands on the companion",
+    "name": "#520 a description that merely OPENS with a member's name stays the hero's: a teaching verb (showed, gave, teaches), a first name that is also a word (Sable cloak…, Will saves…), a noun after the name; a third-person verb still routes",
+    "pass": true,
+    "detail": ""
+  }
+]
