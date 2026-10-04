@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-03 · #600 bell level · Codex: owner confirmed playback and requested a slightly louder mix. v1.1141 raises only the bell catalog gain 0.65 → 0.78 (+1.58 dB); original audio, cosine envelope and narration duck factor preserved. Existing playback/duck assertions updated and proven red at the old level.
+
 - 2026-10-03 · #600 bell curve · Codex: v1.1140 applies the owner-selected smooth cosine envelope from 0.001 s to the 1.2844 s phrase end, rendered from the lossless v1 master with the editor math. Saved reusable preset, refreshed catalog/provenance and cache markers. Supersedes the uncommitted 200 ms fade.
 
 - 2026-10-03 · #600 bell trim · Codex: owner requested removal of the final two seconds of echo; v1.1136 delivers a 1.2844 s phrase with a 20 ms fade, rendered from the lossless master at unchanged gain. Updated sprite cuts, checksums and cache markers; loader and browser entry/re-entry/pause/exit checks pass.

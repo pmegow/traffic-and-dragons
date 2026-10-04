@@ -160,8 +160,8 @@ async function entryBell(){
  function advance(ms){const end=now+ms;for(let i=0;i<10000;i++){const t=timers.filter(x=>!x.cancelled&&!x.fired&&x.at<=end).sort((a,b)=>a.at-b.at)[0];if(!t)break;now=t.at;t.fired=true;t.fn();}now=end;}
  async function enter(){c.update(outside,'turn');c.update(inside,'turn');await flush();return loads.at(-1);}
  c.update(outside,'load');const j=await enter();assert.equal(j.set.id,'alchemist-entry-bell','ENTRY loads the door cue before random glass');j.ok({id:'bell'});await flush();await flush();
- assert.equal(plays.length,1,'ENTRY plays once on entry');assert.equal(c.inspect().entryPlaying,'alchemist-entry-bell');assert.equal(plays[0].gain,0.65*0.45);
- c.update({...inside,speaking:true});assert.equal(stops.length,0,'ENTRY narration ducks rather than cuts the door bell');assert.equal(levels.at(-1),0.65*0.45*scope.AMBIENT_DUCK,'ENTRY bell gain ducks under narration');
+ assert.equal(plays.length,1,'ENTRY plays once on entry');assert.equal(c.inspect().entryPlaying,'alchemist-entry-bell');assert.equal(plays[0].gain,0.78*0.45);
+ c.update({...inside,speaking:true});assert.equal(stops.length,0,'ENTRY narration ducks rather than cuts the door bell');assert.equal(levels.at(-1),0.78*0.45*scope.AMBIENT_DUCK,'ENTRY bell gain ducks under narration');
  c.update({...inside,profile:{...inside.profile,forbid:['bells']}});assert.equal(c.inspect().entryPlaying,null,'ENTRY changing the profile to forbid bells cuts the current cue');
  c.update(inside,'save');c.update(inside,'turn');assert.equal(plays.length,1,'ENTRY saves and repeated commits never ring again');
  const late=await enter();c.update({...inside,capturing:true});assert(late.signal.aborted,'ENTRY mic aborts its load');late.ok({id:'cancelled'});await flush();c.update(inside);assert.equal(plays.length,1,'ENTRY mic release never replays');assert(released.some(x=>x.id==='cancelled'),'ENTRY late decoded buffer released');

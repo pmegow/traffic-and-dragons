@@ -407,8 +407,8 @@
             15.75
           ],
           [
-            16.0,
-            21.0
+            16,
+            21
           ],
           [
             21.25,
@@ -498,8 +498,8 @@
             15.75
           ],
           [
-            16.0,
-            21.0
+            16,
+            21
           ],
           [
             21.25,
@@ -811,7 +811,7 @@
       "to": 1440,
       "seedOnly": true,
       "id": "alchemist",
-      "label": "Alchemist\u00e2\u20ac\u2122s quiet simmer",
+      "label": "Alchemistâ€™s quiet simmer",
       "role": "feature",
       "contains": [
         "water"
@@ -861,7 +861,7 @@
       "to": 1440,
       "seedOnly": true,
       "id": "alchemist-glass",
-      "label": "Alchemist\u00e2\u20ac\u2122s gentle glass clinks",
+      "label": "Alchemistâ€™s gentle glass clinks",
       "role": "accent",
       "contains": [],
       "needsAny": [],
@@ -968,8 +968,8 @@
       "sprite": {
         "url": "sfx/alchemist-entry-bell-v5.mp3",
         "gain": [
-          0.65,
-          0.65
+          0.78,
+          0.78
         ],
         "cuts": [
           [

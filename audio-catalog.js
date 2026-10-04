@@ -999,8 +999,8 @@ var AUDIO_CATALOG = {
       "sprite": {
         "url": "sfx/alchemist-entry-bell-v5.mp3",
         "gain": [
-          0.65,
-          0.65
+          0.78,
+          0.78
         ],
         "cuts": [
           [
@@ -1017,5 +1017,5 @@ var AUDIO_CATALOG = {
       "bytes": 29568
     }
   ],
-  "version": "d019d9c713c84510b38c"
+  "version": "713e07c055affa7af13b"
 };
