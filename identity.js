@@ -480,16 +480,16 @@ function locSplit(fusedKey,spec,R){
   if(typeof console!=="undefined")console.info("[identity] location split: '"+fusedKey+"' -> "+succ.length+" successors (pre-image archived)");
   return true;
 }
-function locAliasRegister(canonical,alias,R){
+function locAliasRegister(canonical,alias,R){/* #529: R may be null — the arrival's own alias (fileSubLocation) has no mutation log to write to */
   canonical=locResolve(canonical);
-  if(!memory.map.nodes[canonical]){if(typeof console!=="undefined")console.warn("[identity] location alias refused — canonical '"+canonical+"' not on the map");R.muts.push("⚠ location alias refused (unknown canonical)");return false;}
-  if(memory.map.nodes[alias]){if(typeof console!=="undefined")console.warn("[identity] location alias refused — '"+alias+"' is a LIVE map node (exact-key beats alias; merge instead)");R.muts.push("⚠ location alias refused (live key)");return false;}
+  if(!memory.map.nodes[canonical]){if(typeof console!=="undefined")console.warn("[identity] location alias refused — canonical '"+canonical+"' not on the map");if(R)R.muts.push("⚠ location alias refused (unknown canonical)");return false;}
+  if(memory.map.nodes[alias]){if(typeof console!=="undefined")console.warn("[identity] location alias refused — '"+alias+"' is a LIVE map node (exact-key beats alias; merge instead)");if(R)R.muts.push("⚠ location alias refused (live key)");return false;}
   var entries=_locEntriesEnsure();
   var e=entries[canonical]||(entries[canonical]={});
   e.aliases=e.aliases||[];
   if(e.aliases.indexOf(alias)<0)e.aliases.push(alias);
   _locResGen++;
-  R.muts.push("Location alias: "+alias+" -> "+canonical);
+  if(R)R.muts.push("Location alias: "+alias+" -> "+canonical);
   return true;
 }
 

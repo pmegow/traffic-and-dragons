@@ -429,6 +429,11 @@ function fileSubLocation(name,turn,inWorld){/* #481 A4: `inWorld` = the world th
   var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(name,parent):null;
   if(_rp){key=_rp.key;if(_rp.via==="house"&&!memory.map.nodes[key]&&typeof villageHouseEnsure==="function")villageHouseEnsure(_rp.owner,parent);}
   if(typeof locResolve==="function")key=locResolve(key);/* the composed sub key may itself be merged */
+  /* #529: on a repaired map the real place can keep an old key prefix ("Sandpoint Town|Cathedral" under the merged "Sandpoint").
+     The pointer the party carries is world|leaf, so every later read through currentNodeKey would name a twin that is no
+     place. The arrival registers world|leaf as the real key's ALIAS, so the pointer, a placed item, a state note and the geo
+     block all land on the one node. (Last week's engine put everything on the twin — wrong but consistent.) */
+  var _composed=parent+"|"+name;if(key!==_composed&&!memory.map.nodes[_composed]&&typeof locAliasRegister==="function"&&typeof locResolve==="function"&&locResolve(_composed)!==key)locAliasRegister(key,_composed,null);
   if(!memory.map.nodes[key]){memory.map.nodes[key]=newMapNode(turn,parent);if(typeof _exitNoteCreated==="function")_exitNoteCreated(key);/* #415: a NEW place this parse */}
   memory.map.nodes[key].visits++;memory.map.nodes[key].lastVisit=turn;// stamp recency so buildGeoBlock keeps a re-visited sub-location listed (audit E53)
   guestbookNoteArrival(key,turn);/* #173: same post-handler commit as the world arrival */

@@ -27647,6 +27647,21 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // (identity.js): identity overlay → the kind's canonicalisers (data: placeCanon) → a case/article-insensitive leaf
   // match → null. The arrival mints on null; the item filer refuses loudly on null.
   section("#481 A1 place resolver");
+  t("#529 on a repaired map an arrival at a place whose key prefix differs from its parent counts the visit on the real place AND points at it: the composed world|leaf becomes the real key's alias, so a placed item, a state note and the geo block all land on one node and no twin is minted",function(){
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    memory.map={nodes:{"Sandpoint":{firstVisit:1,visits:2,description:"A town.",parent:null,npcs:[],items:[],size:"medium"},"Sandpoint Town|Cathedral":{firstVisit:1,visits:1,description:"Vaulted stone and candle smoke.",parent:"Sandpoint",npcs:[],items:[]}},edges:[],lastArrivalFrom:null};
+    var r=quiet(function(){return applyMuts("You climb the steps. [SUBLOCATION:Cathedral]");}).r,real=memory.map.nodes["Sandpoint Town|Cathedral"];
+    if(real.visits!==2)return "the visit counts on the real place: "+JSON.stringify(real);
+    if(memory.map.nodes["Sandpoint|Cathedral"])return "no twin is minted: "+JSON.stringify(Object.keys(memory.map.nodes));
+    if(locResolve("Sandpoint|Cathedral")!=="Sandpoint Town|Cathedral")return "the composed key resolves to the real place: "+locResolve("Sandpoint|Cathedral");
+    var cur=locResolve(currentNodeKey());if(cur!=="Sandpoint Town|Cathedral")return "the party's pointer resolves to the real place: "+cur;
+    quiet(function(){applyMuts("[LOCATION_ITEM:Rusted key|placed][LOCATION_STATE:the font is cracked]");});
+    if(!(real.items||[]).some(function(i){return i.name==="Rusted key";}))return "an item placed here lands on the real place: "+JSON.stringify(real.items)+" "+JSON.stringify(Object.keys(memory.map.nodes));
+    if(!(real.stateNotes||[]).some(function(n){return /font/.test(n.n);}))return "a state note lands on the real place";
+    if(memory.map.nodes["Sandpoint|Cathedral"])return "still no twin after the item and the note";
+    var geo=buildGeoBlock();var m=geo.match(/Known sub-locations: ([^\n]*)/);if(m&&(m[1].split(", ").filter(function(x){return /Cathedral/.test(x);}).length!==1))return "the GM is told of ONE Cathedral: "+m[0];
+    return /Vaulted stone/.test(geo)?true:"the real place's description is shown: "+geo.slice(0,300);
+  });
   t("#481 A1 the item filer accepts every naming the arrival accepts: The Village Hall, the hall, my house and The Tavern file on the canonical node; an unknown place still refuses loudly",function(){
     villageEF();villageHouseEnsure("Silas",null);
     var hall="The Village|the Village Hall",home=villageHouseKey("Silas"),tav="The Village|the tavern";

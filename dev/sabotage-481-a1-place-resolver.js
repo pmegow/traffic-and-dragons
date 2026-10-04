@@ -8,6 +8,9 @@ var sabotage = require("./sabotage.js"), code = 0;
 var CMD = ["node", ["dev/run-tests.js", "#481 A1"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 prove("memory.js", [
+  { label: "#529 the arrival no longer registers world|leaf as the real key's alias (the pointer names a twin again)",
+    find: "locResolve(_composed)!==key)locAliasRegister(key,_composed,null);", replace: "locResolve(_composed)!==key)void 0;",
+    mustFail: "#529 on a repaired map" },
   { label: "the item filer composes its key raw again (the t216 refusal)",
     find: '    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw):null;\n', replace: '    var _rp=null;\n',
     mustFail: "the item filer accepts every naming the arrival accepts" },
