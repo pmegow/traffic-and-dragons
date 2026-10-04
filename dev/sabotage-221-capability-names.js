@@ -3,6 +3,7 @@
 var sabotage=require('./sabotage.js'),verdict=require('./battery-verdict.js');
 var chrome=require('./cdp-browser.js').locateChrome(),failed=0;
 failed+=sabotage.prove({file:'capability-names.html',command:['node',['dev/tests-221-capability-names.js']],cases:[
+ {label:'copied names lose title capitalization',find:'return word.charAt(0).toUpperCase()+word.slice(1);',replace:'return word;',mustFail:'copied original names use title case'},
  {label:'class spell lists stop contributing usage',find:'pool(def.spells,owner);',replace:'',mustFail:'usage includes class levels'},
  {label:'class level features disappear from usage',find:'Object.keys(def.levels||{})',replace:'Object.keys({})',mustFail:'usage includes class levels'},
  {label:'racial lineages disappear from usage',find:'(node.lineages||[]).forEach',replace:'[].forEach',mustFail:'usage includes class levels'},
@@ -14,6 +15,10 @@ failed+=sabotage.prove({file:'capability-names.html',command:['node',['dev/tests
  {label:'malformed imported names bypass shape validation',find:'typeof row.to!=="string"||',replace:'',mustFail:'bad imports and changed bible cannot discard choices'}
 ]});
 failed+=sabotage.prove({file:'capability-names.html',skip:!chrome.path,command:['node',['dev/tests-221-capability-names-browser.js']],cases:[
+ {label:'copy button does not copy the original',find:'updateName(CapabilityNames.titleName(row.from));input.focus();',replace:'input.focus();',mustFail:'middle copy buttons keep one original explicitly'},
+ {label:'copy button goes after the new-name column',find:'tr.appendChild(left);tr.appendChild(middle);tr.appendChild(right);',replace:'tr.appendChild(left);tr.appendChild(right);tr.appendChild(middle);',mustFail:'middle copy buttons keep one original explicitly'},
+ {label:'copying capitalization counts as a rename',find:'different=filled&&capBaseName(row.to)!==capBaseName(row.from)',replace:'different=filled&&row.to!==row.from',mustFail:'middle copy buttons keep one original explicitly'},
+ {label:'spelling suggestions are disabled',find:'input.spellcheck=true;',replace:'input.spellcheck=false;',mustFail:'new-name fields enable English spellchecking'},
  {label:'Save reads the project file without writing it',find:'projectRequest("POST",{text:text,revision:revision})',replace:'projectRequest("GET")',mustFail:'unfinished edits survive reload and project save'},
  {label:'drafts report saved without writing storage',find:'localStorage.setItem(KEY,CapabilityNames.pack(list));',replace:'',mustFail:'unfinished edits survive reload and project save'},
  {label:'the modal renders a different capability',find:'bibleCardHTML(name,CAPABILITY_BIBLE[name])',replace:'bibleCardHTML(name,CAPABILITY_BIBLE["zone of truth"])',mustFail:'original names open the game card'},
@@ -32,5 +37,5 @@ failed+=sabotage.prove({file:'dev/bible-server.js',command:['node',['dev/tests-2
  {label:'foreign pages can write the names file',find:'if (namesOrigin && !',replace:'if (false && !',mustFail:'project save endpoint refuses foreign origins'},
  {label:'stale pages bypass the helper version check',find:'if (req.headers["x-bible-helper-version"] !== HELPER_VERSION)',replace:'if (false)',mustFail:'project save endpoint refuses foreign origins'}
 ]});
-if(!chrome.path&&!failed){verdict.reportSkip('sabotage-221-capability-names.js',6,chrome.why);process.exit(verdict.SKIP_EXIT);}
+if(!chrome.path&&!failed){verdict.reportSkip('sabotage-221-capability-names.js',10,chrome.why);process.exit(verdict.SKIP_EXIT);}
 process.exit(failed?1:0);

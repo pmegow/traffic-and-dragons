@@ -11,6 +11,10 @@ let failures = 0;
 function check(name, fn) { try { fn(); console.log('PASS #221 ' + name); } catch (e) { failures++; console.error('FAIL #221 ' + name + ': ' + e.message); } }
 function blankRows() { return api.rows(bible); }
 function rows() { return blankRows().map(r => ({from:r.from,to:r.from})); }
+check('copied original names use title case with small words and possessives intact', () => {
+  for(const [from,to] of [["a call to arms","A Call to Arms"],["aspect of the reaper","Aspect of the Reaper"],["hunter's mark","Hunter's Mark"],["will-o'-wisp","Will-o'-Wisp"],["death ward","Death Ward"],["  fire bolt  ","Fire Bolt"]])assert.equal(api.titleName(from),to);
+  assert.equal(api.titleName(''),'');
+});
 check('blank defaults require an explicit decision on every capability', () => {
   const list = blankRows();
   assert.equal(list.length, Object.keys(bible).length);

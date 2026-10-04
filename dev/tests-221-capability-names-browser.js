@@ -30,7 +30,30 @@ async function check(name,fn){try{await fn();console.log('PASS #221 '+name);}cat
     const first='#names tr:first-child input',second='#names tr:nth-child(2) input';
     await check('every real capability starts blank and drafts can save',async()=>{
       const s=await page.evaluate(()=>({names:[...document.querySelectorAll('#names .cap-name')].map(a=>a.textContent),blank:[...document.querySelectorAll('#names input')].every(e=>e.value===''),disabled:document.getElementById('save').disabled,count:document.getElementById('count').textContent}));
-      assert.deepEqual(s.names,originals);assert.ok(s.blank);assert.equal(s.disabled,false);assert.match(s.count,/0 of/);
+      assert.deepEqual(s.names,await page.evaluate(()=>Object.keys(CAPABILITY_BIBLE).sort().map(CapabilityNames.titleName)));assert.ok(s.blank);assert.equal(s.disabled,false);assert.match(s.count,/0 of/);
+    });
+    await check('middle copy buttons keep one original explicitly and persist the choice',async()=>{
+      assert.equal(await page.locator('#names .keep-name').count(),originals.length,'one copy button per row');
+      await page.locator(first).fill('An earlier choice');
+      await page.locator('#names tr:first-child .keep-name').click();
+      assert.equal(await page.locator(first).inputValue(),'A Call to Arms');
+      assert.equal(await page.locator(second).inputValue(),'');
+      assert.match(await page.locator('#count').textContent(),/1 of .* · 0 renamed/);
+      assert.ok(await page.evaluate(()=>document.activeElement===document.querySelector('#names input')));
+      const saved=await savePage(page);assert.equal(saved.names[0].from,originals[0]);assert.equal(saved.names[0].to,'A Call to Arms');assert.equal(saved.readyToApply,false);
+      await page.reload();await page.waitForFunction(()=>!document.getElementById('save').disabled);
+      assert.equal(await page.locator(first).inputValue(),'A Call to Arms');
+      assert.equal(await page.locator(second).inputValue(),'');
+      for(const width of [1150,320]){
+        await page.setViewportSize({width,height:850});
+        const placement=await page.evaluate(()=>{const row=document.querySelector('#names tr'),cells=row.cells,button=row.querySelector('.keep-name').getBoundingClientRect();return {cells:cells.length,middle:cells[1].contains(row.querySelector('.keep-name')),left:cells[0].getBoundingClientRect().right,right:cells[2].getBoundingClientRect().left,x:button.left,end:button.right,width:innerWidth,scroll:document.documentElement.scrollWidth};});
+        assert.equal(placement.cells,3);assert.ok(placement.middle);assert.ok(placement.x>=placement.left&&placement.end<=placement.right,JSON.stringify(placement));assert.ok(placement.scroll<=width,JSON.stringify(placement));
+        if(process.env.NAMES_SCREENSHOT_DIR){fs.mkdirSync(process.env.NAMES_SCREENSHOT_DIR,{recursive:true});await page.evaluate(()=>document.querySelector('#names').scrollIntoView({block:'start'}));await page.screenshot({path:path.join(process.env.NAMES_SCREENSHOT_DIR,'names-copy-'+width+'.png')});}
+      }
+      await page.setViewportSize({width:1150,height:900});
+    });
+    await check('new-name fields enable English spellchecking',async()=>{
+      assert.ok(await page.evaluate(()=>Array.from(document.querySelectorAll('#names input')).every(e=>e.spellcheck&&e.lang==='en')));
     });
     await check('unfinished edits survive reload and project save',async()=>{
       await page.locator(first).fill('Ashen Memory');await page.reload();
@@ -112,7 +135,7 @@ async function check(name,fn){try{await fn();console.log('PASS #221 '+name);}cat
       await page.setViewportSize({width:320,height:360});
       const longest=await page.evaluate(()=>Object.keys(CAPABILITY_BIBLE).sort((a,b)=>CAPABILITY_BIBLE[b].effect.length-CAPABILITY_BIBLE[a].effect.length)[0]);
       await page.locator('#search').fill(longest);
-      await page.evaluate(name=>[...document.querySelectorAll('#names .cap-name')].find(b=>b.textContent===name).click(),longest);
+      await page.evaluate(name=>[...document.querySelectorAll('#names .cap-name')].find(b=>b.textContent===CapabilityNames.titleName(name)).click(),longest);
       const size=await page.evaluate(()=>{const box=document.getElementById('name-card-modal').firstChild,close=document.getElementById('name-card-close').getBoundingClientRect(),r=box.getBoundingClientRect();
         return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:innerWidth,height:innerHeight,scrollWidth:box.scrollWidth,clientWidth:box.clientWidth,scrollHeight:box.scrollHeight,clientHeight:box.clientHeight,closeTop:close.top,closeBottom:close.bottom};});
       assert.ok(size.left>=0&&size.right<=size.width&&size.top>=0&&size.bottom<=size.height,JSON.stringify(size));
@@ -121,7 +144,7 @@ async function check(name,fn){try{await fn();console.log('PASS #221 '+name);}cat
       await page.evaluate(()=>{const box=document.getElementById('name-card-modal').firstChild;box.scrollTop=box.scrollHeight;});
       if(process.env.NAMES_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.NAMES_SCREENSHOT_DIR,'names-card-mobile-scrolled.png')});
       await page.locator('#name-card-close').click();await page.setViewportSize({width:1150,height:900});
-      await page.evaluate(name=>[...document.querySelectorAll('#names .cap-name')].find(b=>b.textContent===name).click(),longest);
+      await page.evaluate(name=>[...document.querySelectorAll('#names .cap-name')].find(b=>b.textContent===CapabilityNames.titleName(name)).click(),longest);
       if(process.env.NAMES_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.NAMES_SCREENSHOT_DIR,'names-card-desktop.png')});
       await page.locator('#name-card-close').click();await page.locator('#search').fill('');
     });
@@ -147,7 +170,7 @@ async function check(name,fn){try{await fn();console.log('PASS #221 '+name);}cat
     });
     await check('usage appears by tier and is searchable by race or class',async()=>{
       await page.locator('#search').fill('faerie fire');
-      const label=await page.evaluate(()=>[...document.querySelectorAll('#names tr')].find(r=>r.querySelector('.cap-name').textContent==='faerie fire').querySelector('.kind').textContent);
+      const label=await page.evaluate(()=>[...document.querySelectorAll('#names tr')].find(r=>r.querySelector('.cap-name').textContent==='Faerie Fire').querySelector('.kind').textContent);
       assert.match(label,/Spell \/ Racial Ability/);assert.match(label,/Druid/);assert.match(label,/Half-Elven \(Drow\)/);
       await page.locator('#search').fill('Primal (Totemborn)');assert.ok(await page.evaluate(()=>[...document.querySelectorAll('#names tr')].filter(r=>!r.hidden).length>0));
       await page.locator('#search').fill('');

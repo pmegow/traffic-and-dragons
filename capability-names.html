@@ -15,11 +15,11 @@ input{width:100%}button{cursor:pointer;white-space:nowrap}button.primary{backgro
 .cap-name{color:var(--acc);text-decoration:underline;text-underline-offset:3px;background:none;border:0;padding:0;min-height:24px;text-align:left;white-space:normal;overflow-wrap:anywhere}.cap-name:hover{color:var(--t0)}.meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px;color:var(--t1);padding:0 0 16px}
 .notice{margin:10px 0;color:var(--warn);font-size:14px}.notice:empty{display:none}.names-table{border-collapse:collapse;width:100%;table-layout:fixed;border:1px solid var(--brd)}
 .names-table th{text-align:left;background:var(--bg2);color:var(--t1);font-size:13px;font-weight:normal;letter-spacing:.4px;padding:14px 18px;position:sticky;top:0;z-index:1}
-.names-table th:first-child{width:45%}.names-table td{padding:14px 18px;border-top:1px solid var(--brd);vertical-align:top;background:var(--bg1);overflow-wrap:anywhere}
+.names-table th:first-child{width:42%}.names-table .copy-column{width:56px}.names-table td.copy-cell{padding:14px 6px;text-align:center}.keep-name{width:44px;padding:0;font-size:22px;color:var(--acc)}.names-table td{padding:14px 18px;border-top:1px solid var(--brd);vertical-align:top;background:var(--bg1);overflow-wrap:anywhere}
 .names-table td+td{border-left:1px solid var(--brd)}.kind{display:block;color:var(--t1);font:12px var(--font-mono);line-height:1.45;margin-top:5px}.changed td{background:var(--acc-bg)}
 .issue{color:var(--warn);font-size:12px;margin-top:5px}.issue:empty{display:none}input[aria-invalid="true"]{border-color:var(--warn)}
 #no-matches{color:var(--t1);padding:20px 0}footer{color:var(--t1);font-size:13px;margin-top:22px}#import-file{display:none}
-@media(max-width:560px){main{padding:24px 12px 50px}h1{font-size:29px}.names-table td,.names-table th{padding:12px 10px}.names-table th:first-child{width:42%}.names-table td input{padding:9px 8px;font-size:16px}.search{flex-basis:100%}.tools button{flex:1;font-size:15px}}
+@media(max-width:560px){main{padding:24px 12px 50px}h1{font-size:29px}.names-table td,.names-table th{padding:12px 10px}.names-table th:first-child{width:38%}.names-table td.copy-cell{padding:12px 6px}.names-table td input{padding:9px 8px;font-size:16px}.search{flex-basis:100%}.tools button{flex:1;font-size:15px}}
 #name-card-content>div>div:first-child{padding-right:26px}
 #name-card-close{position:absolute;top:4px;right:4px;width:44px;height:44px;padding:0;border:0;background:none;color:var(--t1);font-size:26px;line-height:1}
 </style>
@@ -28,7 +28,7 @@ input{width:100%}button{cursor:pointer;white-space:nowrap}button.primary{backgro
 <main>
 <div class="eyebrow">Traffic &amp; Dragons / Naming worksheet</div>
 <h1>Give every capability its name.</h1>
-<p>Click an original name to read its game card here. Enter a name for every row. To keep a name, type the original again. Blank rows are still awaiting your decision. Save a draft whenever you stop; names can only be applied once every row is complete and valid.</p>
+<p>Click an original name to read its game card here. Enter a name for every row. To keep a name, click its &gt; button. Copied names use title capitalization; spelling suggestions are enabled in the text fields. Blank rows are still awaiting your decision. Save a draft whenever you stop; names can only be applied once every row is complete and valid.</p>
 <div class="tools">
 <div class="search"><label for="search">Find an original or new name</label><input id="search" type="search" placeholder="Search names…" autocomplete="off"></div>
 <button id="import" type="button" disabled>Import names…</button>
@@ -39,7 +39,7 @@ input{width:100%}button{cursor:pointer;white-space:nowrap}button.primary{backgro
 <div id="file-state" class="meta" role="status">Connecting to the project list…</div>
 <div id="readiness" class="notice" role="status"></div>
 <div id="notice" class="notice" role="alert"></div>
-<table class="names-table" aria-label="Original and proposed capability names"><thead><tr><th scope="col">Original name</th><th scope="col">New name</th></tr></thead><tbody id="names"></tbody></table>
+<table class="names-table" aria-label="Original and proposed capability names"><thead><tr><th scope="col">Original name</th><th scope="col" class="copy-column" aria-label="Keep original name"></th><th scope="col">New name</th></tr></thead><tbody id="names"></tbody></table>
 <div id="no-matches" hidden>No names match your search.</div>
 <footer>Save updates the single capability-names.json file in this project, including unfinished work. Use Capability Names.cmd to open this worksheet with project saving. Import can restore an earlier downloaded list. Browser drafts provide a recovery copy. Names are applied to the game in a separate step.</footer>
 <noscript><p>Enable JavaScript to load the capabilities and edit names.</p></noscript>
@@ -51,6 +51,13 @@ input{width:100%}button{cursor:pointer;white-space:nowrap}button.primary{backgro
 // Pure rules shared by the page and the #221 tests. Saving a draft never implies approval to apply it.
 var CapabilityNames=(function(){
   var FORMAT="traffic-and-dragons/capability-names/v1";
+  function titleName(name){
+    var text=name.trim().toLowerCase();
+    return text.replace(/[a-z][a-z'’]*/g,function(word,offset){
+      if(offset>0&&offset+word.length<text.length&&/^(a|an|and|as|at|but|by|for|from|in|nor|of|on|or|the|to|with|o')$/.test(word))return word;
+      return word.charAt(0).toUpperCase()+word.slice(1);
+    });
+  }
   function rows(bible){return Object.keys(bible).sort().map(function(key){return {from:key,to:""};});}
   function issues(list){
     var errors=list.map(function(){return "";}),seen=Object.create(null);
@@ -115,7 +122,7 @@ var CapabilityNames=(function(){
     if(usage.racial)kind=entry.kind==="ability"&&!usage.classFeature?"Racial Ability":kind+" / Racial Ability";
     return kind+" — Tier "+(entry.tier||0)+" — [ "+(usage.users.length?usage.users.join(", "):"No listed class or race")+" ]";
   }
-  return {rows:rows,issues:issues,pack:pack,read:read,forImplementation:forImplementation,usage:usage,usageLabel:usageLabel};
+  return {titleName:titleName,rows:rows,issues:issues,pack:pack,read:read,forImplementation:forImplementation,usage:usage,usageLabel:usageLabel};
 })();
 </script>
 <script>
@@ -132,7 +139,7 @@ var CapabilityNames=(function(){
   function refresh(){
     var issues=CapabilityNames.issues(list),changed=0,completed=0,invalid=0,shown=0,query=el("search").value.toLowerCase().trim();
     list.forEach(function(row,i){
-      var view=views[i],filled=!!row.to.trim(),different=filled&&row.to!==row.from;
+      var view=views[i],filled=!!row.to.trim(),different=filled&&capBaseName(row.to)!==capBaseName(row.from);
       if(different)changed++;if(filled)completed++;if(issues[i])invalid++;
       view.tr.className=different?"changed":"";
       view.input.setAttribute("aria-invalid",filled&&issues[i]?"true":"false");view.issue.textContent=filled?issues[i]:"";
@@ -154,15 +161,20 @@ var CapabilityNames=(function(){
   function render(){
     var body=el("names");body.textContent="";views=[];
     list.forEach(function(row,i){
-      var tr=document.createElement("tr"),left=document.createElement("td"),right=document.createElement("td"),link=document.createElement("button"),kind=document.createElement("span"),input=document.createElement("input"),issue=document.createElement("div"),entry=CAPABILITY_BIBLE[row.from];
-      link.textContent=row.from;link.type="button";link.className="cap-name";
+      var tr=document.createElement("tr"),left=document.createElement("td"),right=document.createElement("td"),middle=document.createElement("td"),copy=document.createElement("button"),link=document.createElement("button"),kind=document.createElement("span"),input=document.createElement("input"),issue=document.createElement("div"),entry=CAPABILITY_BIBLE[row.from];
+      link.textContent=CapabilityNames.titleName(row.from);link.type="button";link.className="cap-name";
       link.setAttribute("aria-label",row.from+" — open capability card");link.setAttribute("aria-haspopup","dialog");
       link.addEventListener("click",function(){openCard(row.from);});
       kind.className="kind";kind.textContent=CapabilityNames.usageLabel(entry,usage[row.from]);
-      input.type="text";input.required=true;input.placeholder="New name or original";input.value=row.to;input.autocomplete="off";input.spellcheck=false;input.setAttribute("aria-label","New name for "+row.from);
+      input.type="text";input.required=true;input.placeholder="New name or original";input.value=row.to;input.autocomplete="off";input.spellcheck=true;input.lang="en";input.setAttribute("aria-label","New name for "+row.from);
       issue.className="issue";issue.id="issue-"+i;input.setAttribute("aria-describedby",issue.id);
-      input.addEventListener("input",function(){row.to=input.value;editSeq++;refresh();saveDraft();el("file-state").textContent="Unsaved changes — Save updates capability-names.json.";});
-      left.appendChild(link);left.appendChild(kind);right.appendChild(input);right.appendChild(issue);tr.appendChild(left);tr.appendChild(right);body.appendChild(tr);
+      function updateName(value){input.value=value;row.to=value;editSeq++;refresh();saveDraft();el("file-state").textContent="Unsaved changes — Save updates capability-names.json.";}
+      input.addEventListener("input",function(){updateName(input.value);});
+      middle.className="copy-cell";copy.type="button";copy.className="keep-name";copy.textContent=">";
+      copy.title="Keep "+link.textContent;copy.setAttribute("aria-label",copy.title);
+      copy.addEventListener("click",function(){updateName(CapabilityNames.titleName(row.from));input.focus();});
+      middle.appendChild(copy);
+      left.appendChild(link);left.appendChild(kind);right.appendChild(input);right.appendChild(issue);tr.appendChild(left);tr.appendChild(middle);tr.appendChild(right);body.appendChild(tr);
       views.push({tr:tr,input:input,issue:issue});
     });
     refresh();
