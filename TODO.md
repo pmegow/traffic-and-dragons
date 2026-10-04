@@ -4,6 +4,8 @@
 
 **Status glyphs (owner rule 2026-09-02):** ○ not started · ◐ partially complete, work remains (builder acts) · ◉ built, ready to test (owner plays it) · ✅ complete — the row moves to [DOC/TODO_ARCHIVE.md](DOC/TODO_ARCHIVE.md) in its own commit. A row with ANY unfinished work is never ✅.
 
+**Tier eligibility (owner, 2026-10-04):** `Fable` includes Astra for tasks and reviews, with the same review and verification requirements; see [CLAUDE.md](CLAUDE.md).
+
 ## Feature backlog
 
 | # | Task | Effort | Tier | Status |

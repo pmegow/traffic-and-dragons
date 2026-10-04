@@ -1,5 +1,7 @@
 # todo_checkWithFable.md
 
+**Current eligibility (owner, 2026-10-04):** Fable-level tasks and reviews may be handled by Fable or Astra under the same requirements in [CLAUDE.md](CLAUDE.md). Astra is not an off-Fable model for this queue. An independent review still requires an independent reviewer; historical entries and attributions remain unchanged.
+
 **Purpose:** work done by a **non-Fable model** (Opus, Sonnet, Haiku) that deserves Fable-eyed
 review lands here with its supporting documentation. Two intake classes:
 

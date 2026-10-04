@@ -1,4 +1,4 @@
-# AGENTS.md — ground rules for external agents (Sol / Codex)
+# AGENTS.md — ground rules for external agents (Astra / Sol / Codex)
 
 This file is the entry point for non-Claude engineering agents working in this repo.
 It deliberately contains NO architecture documentation — the earlier version of this file was a
@@ -11,12 +11,23 @@ replaced (2026-08-03). The rule now:
 > sessions about tier policy apply to you as the boundary rules below.) Open work lives only in
 > [TODO.md](TODO.md). Your current assignments live in [DOC/todos_completed/SOL_TASKS.md](DOC/todos_completed/SOL_TASKS.md).
 
-## Hard boundaries — the drift-protection surface (READ-ONLY for you)
+## Fable-tier eligibility
+
+**Owner ruling 2026-10-04: Astra is eligible for Fable-level tasks and reviews.** Existing
+`Fable` tier labels include Astra; the same critical pre-review and thorough verification
+requirements apply (see [CLAUDE.md](CLAUDE.md), drift-protection change policy). When an
+authorized task calls for it, Astra may edit the protected and ask-first files below without
+separate permission solely because it is an external agent. Task-specific owner decisions
+and independent-review requirements still apply. This exception does not extend to Sol or
+other models.
+
+## Hard boundaries — the drift-protection surface (read-only for other external agents)
 
 This project's core value is its anti-drift stack (state tags → parser → memory tiers → prompt
 injection), and that stack's failure modes are SILENT: degraded canon, a dead prompt cache,
 fused NPCs. By standing owner decree (2026-07-09), changes to it go through a specific reviewed
-workflow that external agents are not part of. **Read these files freely; never edit them:**
+workflow that Astra may perform under the eligibility rule above. **Other external agents
+may read these files freely but must not edit them:**
 
 - `tag_table.js` — THE tag parser, strip registry, byte-frozen STATE TAGS prompt docs
 - `api.js` — prompt construction (stable/volatile cache split), engine-note builders
@@ -25,12 +36,12 @@ workflow that external agents are not part of. **Read these files freely; never 
 - `clock.js` · `table-talk.js` · `campaign_generator.js` — scheduler, help-agent isolation, skeleton prompts
 - `capability_bible.js` · `class_bible.js` — content canon; their file FORMATS are contract-pinned by tests
 
-**Ask-first files** — possible to edit, but get explicit owner sign-off before starting:
+**Ask-first files for other external agents** — get explicit owner sign-off before starting:
 `state.js`, `game.js`, `storage-adapter.js`, `index.html`, and `globals.js`/`sw.js` beyond the
 version-marker bumps described below. Everything else (`ui-*.js`, `tts.js`, `stt.js`, satellite
 `.html` tools, `dev/` tooling, `DOC/`) is normal working territory when a task brief covers it.
 
-If a task turns out to require touching a read-only file, **stop and report** — do not work
+If your model is not eligible and a task requires a read-only file, **stop and report** — do not work
 around the boundary by duplicating its logic somewhere else.
 
 ## Non-negotiable conventions
