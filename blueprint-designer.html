@@ -158,7 +158,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.59";
+var BP_DESIGNER_VERSION="v0.60";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -809,8 +809,16 @@ function updateTextLimits(){
   note.hidden=!long.length;note.textContent=long.length+" field(s) exceed their text limits. Full text is preserved; shorten before publishing.";
   document.getElementById("btn-original-text").hidden=!bp._textOriginal;
 }
-async function fitDesignerText(){
-  var fields=DesignerProse.overflows(blueprintTextFields(bp));if(!fields.length)return true;
+// An AI write revises ONLY what it wrote (#547: "imported/manual text stays whole with an explicit shortening control").
+// `written` is the caller's predicate over a text field — a creature batch passes its new entries, Apply passes
+// `writtenSince(before)` — and the Shorten button passes none: every overlong field. Without the scope, one new
+// creature sent every long note the author had loaded off to the model (the G5 waits suite caught it, 2026-10-04).
+function textSnapshot(){return blueprintTextFields(bp).map(function(f){return {owner:f.owner,key:f.key,value:f.owner[f.key]};});}
+function writtenSince(before){ // by owner identity, not path: applyPatches merges in place and may delete, shifting indexes
+  return function(f){return !before.some(function(b){return b.owner===f.owner&&b.key===f.key&&b.value===f.owner[f.key];});};
+}
+async function fitDesignerText(written){
+  var fields=DesignerProse.overflows(blueprintTextFields(bp));if(written)fields=fields.filter(written);if(!fields.length)return true;
   if(proseFitJob){setStatus("Text shortening is already running; the full draft is preserved.","warn");return false;}
   if(!llmReady())return false;
   var target=bp,stamp=JSON.stringify(DesignerCreatures.textBlueprint(bp)),job={cancelled:false},ticker=null;
@@ -1018,7 +1026,7 @@ function openCreatureGenerator(){
       timer.stop();modal.remove();
       var opener=document.querySelector("[data-op='gencreature']");if(opener)opener.focus();
       setStatus("Added "+entries.length+" new creature"+(entries.length===1?"":"s")+" — review the cards and add portraits as you like.","ok");
-      await fitDesignerText();
+      await fitDesignerText(function(f){return entries.indexOf(f.owner)>=0;});
     }catch(err){timer.stop();if(document.body.contains(modal)){console.warn("[designer creatures] "+err.message);status.textContent="Generation failed: "+err.message;setStatus(status.textContent,"err");}}
     finally{go.disabled=false;Array.prototype.forEach.call(controls,function(el){el.disabled=false;});var cancel=modal.querySelector("#creature-gen-cancel");if(cancel)cancel.textContent="Cancel";}
   });
@@ -1359,6 +1367,7 @@ async function applyFinding(idx){
     var patch=JSON.parse(repairModelJson(resp));
     if(!patch||!patch.patches||!patch.patches.length)throw new Error("model returned no patches");
     snapshot=JSON.parse(JSON.stringify(bp));
+    var before=textSnapshot(); // taken at the write, not at the request: the author's edits during the wait are theirs
     var res=applyPatches(bp,patch.patches); // in-place merge by identity; throws (→ rollback) on a bad patch
     normalizeBlueprint(bp,{preserveProse:true});
     var err=validateBlueprint(bp);
@@ -1369,7 +1378,7 @@ async function applyFinding(idx){
     if(patch.note)bp.review.findings[idx].note=String(patch.note);
     markDirty();render();
     setStatus("Applied ("+res.labels.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
-    snapshot=null;if(!_applyingAll)await fitDesignerText();
+    snapshot=null;if(!_applyingAll)await fitDesignerText(writtenSince(before));
   }catch(e){
     if(_at)_at.stop();
     if(snapshot)bp=snapshot; // undo any partial in-place merge
@@ -1417,7 +1426,7 @@ function findingTargetKey(f){
 async function applyAllFindings(){
   if(_applyingAll||!llmReady()||!bp.review)return;
   _applyingAll=true;_batchDeleted={};render(); // fresh deleted-set for the run; accumulates across findings (resurrection guard)
-  var sel=[],i;
+  var before=textSnapshot(),sel=[],i; // the batch revises once, over what its findings wrote
   for(i=0;i<bp.review.findings.length;i++){var bf=bp.review.findings[i];if(bf&&!bf.status&&typeof bf._sel==="number")sel.push(i);}
   var groups={},order=[],CONS="consistency";
   for(i=0;i<sel.length;i++){var key=findingTargetKey(bp.review.findings[sel[i]]);if(!groups[key]){groups[key]=[];order.push(key);}groups[key].push(sel[i]);}
@@ -1448,7 +1457,7 @@ async function applyAllFindings(){
   var sum="Applied "+ok+" selected fix"+(ok===1?"":"es");
   if(fails.length)sum+="; "+fails.length+" failed and stayed selected — "+((bp.review.findings[fails[0].idx].section||"")+": "+fails[0].err).slice(0,140);
   setStatus(sum+".",fails.length?"err":"ok");
-  if(ok)await fitDesignerText();
+  if(ok)await fitDesignerText(writtenSince(before));
 }
 
 // ── Consult / Ask (v0.16) ──────────────────────────────────────────────────────

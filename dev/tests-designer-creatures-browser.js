@@ -23,7 +23,12 @@ await context.route('**/*',async route=>{
 });
 const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
 await page.goto('http://creature.test/blueprint-designer.html');await page.waitForFunction(()=>window.__bpdTest);
-await page.evaluate(()=>{__bpdTest.load({format:'tnd-blueprint-v1',name:'The Lantern Fen',premise:'A marsh village loses its lights each night.',acts:[],npcs:[],locations:[],creatures:[],rules:[]});secOpen.creatures=true;__bpdTest.rerender();});
+// A loaded (imported) note over the 800-character field cap: an AI write elsewhere must leave it whole and spend nothing on it
+// (#547's own contract — "imported/manual text stays whole with an explicit shortening control"; the G5 waits suite found the
+// automatic pass shortening the whole blueprint after one creature landed).
+const importedLong='The warden walks the causeway every dusk with a shuttered lamp and a ledger of lights. '.repeat(11);
+await page.evaluate(long=>{__bpdTest.load({format:'tnd-blueprint-v1',name:'The Lantern Fen',premise:'A marsh village loses its lights each night.',acts:[],npcs:[{name:'Marsh Warden',role:'keeper of the causeway lights',notes:long}],locations:[],creatures:[],rules:[]});secOpen.creatures=true;__bpdTest.rerender();},importedLong);
+assert(importedLong.length>800&&await page.evaluate(()=>bp.npcs[0].notes.length>800),'loaded NPC notes preserve the exact reported tail beyond 800 — the fixture note must still overflow after load');
 await page.evaluate(()=>document.querySelector('[data-op="gencreature"]').scrollIntoView({block:'center'}));
 if(before){await page.screenshot({path:path.join(out,'before.png')});console.log('PASS before: original immediate-generation button captured');return;}
 await page.locator('[data-op="gencreature"]').click();assert.equal(calls.length,0,'opening the modal must not spend a model request');
@@ -33,7 +38,7 @@ await page.screenshot({path:path.join(out,'modal-desktop.png')});
 await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'modal-mobile.png')});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'modal has no horizontal overflow');
 await page.locator('#creature-count').fill('1.5');await page.locator('#creature-gen-go').click();assert.equal(calls.length,0,'fractional counts blocked before network');
 await page.locator('#creature-count').fill('3');await page.locator('#creature-gen-go').click();await page.waitForFunction(()=>__bpdTest.getBp().creatures.length===3);
-assert.equal(calls.length,3);assert(await page.evaluate(()=>document.activeElement.getAttribute('data-op')==='gencreature'),'focus returns to the rebuilt opener');assert.equal(images,0,'text generation never auto-generates portraits');
+assert.equal(calls.length,3,'three creatures cost three calls — the imported note was not sent for shortening');assert.equal(await page.evaluate(()=>bp.npcs[0].notes),importedLong,'an AI write never shortens text it did not write');assert(await page.evaluate(()=>document.activeElement.getAttribute('data-op')==='gencreature'),'focus returns to the rebuilt opener');assert.equal(images,0,'text generation never auto-generates portraits');
 assert(await page.evaluate(()=>__bpdTest.getBp().creatures.every(c=>c.kind==='Beast'&&c.threat==='Safe'&&c.notes.indexOf('Frequency: rare.')===0)));
 await page.setViewportSize({width:1050,height:900});
 png=await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=768;canvas.height=1024;const ctx=canvas.getContext('2d');ctx.fillStyle='#133942';ctx.fillRect(0,0,768,1024);ctx.fillStyle='#eadf9d';ctx.beginPath();ctx.ellipse(384,512,260,115,0,0,Math.PI*2);ctx.fill();return canvas.toDataURL('image/png');});

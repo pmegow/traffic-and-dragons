@@ -14,7 +14,8 @@ failed+=sabotage.prove({file:'game.js',command:['node',['dev/run-tests.js','clas
 failed+=sabotage.prove({file:'blueprint-designer.html',skip:!chrome.path,command:['node',['dev/tests-designer-creatures-browser.js']],cases:[
  {label:'catalog publishes newly overlong draft',find:'var readiness=designerValidate();if(readiness){error.textContent=readiness;return;}',replace:'',mustFail:'catalog rechecks text limits at confirmation after a draft changes'},
  {label:'file load loses authoring mode',find:'bp=normalizeBlueprint(obj,{preserveProse:true});',replace:'bp=normalizeBlueprint(obj);',mustFail:'loaded NPC notes preserve the exact reported tail beyond 800'},
- {label:'AI fix skips its revision pass',find:'snapshot=null;if(!_applyingAll)await fitDesignerText();',replace:'snapshot=null;',mustFail:'AI fixes draft in full then revise before finalizing'}
+ {label:'AI fix skips its revision pass',find:'snapshot=null;if(!_applyingAll)await fitDesignerText(writtenSince(before));',replace:'snapshot=null;',mustFail:'AI fixes draft in full then revise before finalizing'},
+ {label:'an AI write shortens text it did not write',find:'if(written)fields=fields.filter(written);',replace:'',mustFail:'the imported note was not sent for shortening'}
 ]});
 if(!chrome.path&&!failed){verdict.reportSkip('sabotage-547-designer-prose.js',3,chrome.why);process.exit(verdict.SKIP_EXIT);}
 process.exit(failed?1:0);
