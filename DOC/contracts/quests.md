@@ -4,6 +4,16 @@
 
 Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version stamps and history links inside are the record as written — the contract lines are current unless a newer commit says otherwise.
 
+## Files
+
+### game.js
+
+Status: ✅ Extracted
+
+Moved here from CLAUDE.md's file table on 2026-10-03 (the clutter pass): the stamps are the record as written.
+
+`sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, `showArchetypeModal`, `pickArchetype`, `showStatBumpModal`, `restSpells`, `doRender`, `newGame`, `syncCharSheet`, `checkLegacyCharacter`, `checkCompanionLevelUp`, `healAbilitySheets` (#487: companion archetype pick + missed archetype rows + ability-list cleanup, at boot and before every turn → [contract](quests.md))
+
 ## 10b. Quest system
 
 Quests are GM-emergent and **player-gated**. Live quests live in `worldState.questLog[]` as `{title, status, desc, objectives:[{text,done}], started}`; finished ones archive to `memory.quests{}`.

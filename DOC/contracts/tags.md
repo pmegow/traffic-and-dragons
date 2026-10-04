@@ -14,6 +14,14 @@ Status: ✅ Active (UA1)
 
 ⛨ **THE tag registry** — one ordered table (`TAG_TABLE`, **124 handlers**: 121 literal entries plus 3 built by `combatAttrEntry`; the "~57" this line carried until audit A11, 2026-09-18, was stale by more than 2×) from which three formerly hand-synced surfaces DERIVE: `applyMutsTable()` (THE parser), `buildCtTags()`/`buildCtBare()` (cleanTxt's strip regexes), and `buildStateTagsDoc()` (the STATE TAGS prompt block, frozen by engine tests). **SOLE PARSER** — the legacy parser is DELETED after a zero-diff validation arc ([history](../CLAUDE_HISTORY.md#tag_tablejs--the-ua1-validation-arc)); rollback is `git revert`, not a flag. Retained tripwires: `__tagUnknownScan` (unknown tags warn), `__tagNoCombatWarns` (UA27), coverage guards + frozen strip/doc hashes in the suite. Adding a tag = one table entry (parse+strip+docs land together, phantom class impossible). `TAG_NO_HANDLER` documents the deliberate parse-less names. Smoke-replay tool: `dev/diff-replay.js <corpus.json>`
 
+### api.js
+
+Status: ✅ Extracted
+
+Moved here from CLAUDE.md's file table on 2026-10-03 (the clutter pass): the stamps are the record as written.
+
+`callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts` (THE tag-application boundary: the #264 review-call whitelist strips out-of-scope tags first; a canon marker line written without brackets is restored before anything else (#491, `tagRestoreBareMarkers`, shared with `cleanTxt`); W2 splits the reply into ordinary tags — `applyMutsTable()` — and canon-claim transactions, each staged on a detached clone, then committed with a receipt or rolled back and quarantined; then `__tagUnknownScan()`, the bare-tag scan and the #137 provenance ring. The legacy parser is deleted), `findCompanionChar`, `cleanTxt` (regexes derived from tag_table), `diceTxt`, `parseActions`, `buildGeoBlock`
+
 ## 7. State tag system (`applyMuts`)
 
 The GM embeds hidden tags in every response. `applyMuts(text)` parses them and mutates `worldState` and `memory`. Tags are stripped from displayed text by `cleanTxt()`. **Chained bodies (#6 F11, v1.945):** a tag written as `[WARES:a|1 gp|n]|b|1 gp|m]` files every chained body through the WARES handler (a loud warn names the form; one tag per ware stays the contract), and `cleanTxt` strips any orphan pipe-led tail `|…|…]` that a first-`]` strip leaves behind — a lone pipe in prose or `[sic]` is never touched.

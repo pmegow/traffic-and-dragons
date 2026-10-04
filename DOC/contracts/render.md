@@ -1,10 +1,44 @@
 # Rendering, portraits and the character sheet
 
-**Read this when** you touch doRender, the fal.ai models, portrait paths or the sheet modal.
+**Read this when** you touch doRender, the fal.ai models, portrait paths, the sheet modal, the live panels or the utility modals.
 
 **A portrait is an image, never markup (#481 F2, v1.1036).** Every `<img>` whose `src` is concatenated goes through `safeImgSrc(url)` (helpers.js): it admits an image data URL (`png|jpeg|jpg|gif|webp`, base64), `https:` or `blob:`, returns it HTML-escaped, and returns "" with one console line for anything else — a crafted save could otherwise close `src` and add an event handler. The IMAGE SRC CONTRACT in run-tests.js scans root `*.js` AND `*.html` and fails on a raw concatenated `<img>` src. The import boundaries drop a failing portrait with a toast through `portraitAdmit` / `portraitsSanitizeWorld`: `importSaveData`, the `.char`/library preview funnel (`showCharImportPreview`), both library adopters, `fillPortraitsFromBlob` and the quick start. All 318 real portraits in the owner saves (JPEG data URLs) pass unchanged. Pinned by `#481 F2` + `dev/sabotage-481-f2-safe-img.js`.
 
 Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version stamps and history links inside are the record as written — the contract lines are current unless a newer commit says otherwise.
+
+## Files
+
+### ui-shell.js
+
+Status: ✅
+
+Moved here from CLAUDE.md's file table on 2026-10-03 (the clutter pass): the stamps are the record as written.
+
+toasts, screen switching, message log (`showToast`, `addMsg`, `showGame`/`showChar`, `switchTab`, `closeAllMenus`) — loads first; called by nearly every other file. **#501:** `syncShopButton()` keeps ONE Shop button on the newest scene's Render row while `shopOpportunity()` holds — painted from the live state by `syncUI` and by `addMsg` for a narration, never stored with a turn
+
+### ui-panels.js
+
+Status: ✅
+
+Moved here from CLAUDE.md's file table on 2026-10-03 (the clutter pass): the stamps are the record as written.
+
+`syncUI` + the live panels (HUD, party, quest, inventory/abilities/spells, combat, membar + the #17 drift-health dot, sync badge). **#489:** the abilities panel paints through `abPanelHTML`, grouped Racial / Class / Archetype / Story by the sheet's own `abilityGroups`. **#430:** the inventory panel's ledger rows (counter, chest) route through ONE click-time gate `invLedgerOpen(name)` — nothing about `busy` is baked into the paint (the turn's repaint runs before busy clears). **#501:** the counter has two doors over ONE rule, `shopOpportunity()` (helpers.js) — this panel's Trade row and the narration's Shop button (`syncShopButton`, ui-shell.js). **#431:** what lies at the current node rides the turn's summary line ("Here: …", `hereItemsLine` in helpers.js via `mutsSummaryEmit` in tag_table.js, every kind, UI only); the panel's "Your house" item group is retired. **#495:** the summary line says a repeated label once with its count ("+Crossbow bolt (x24)", `mutsCollapseRepeats` in tag_table.js) — display only; `R.muts` and the provenance ring keep every label. **#481 A6:** decided by the NODE — the hero's own house (`node.owner` = the hero) shows "chest (N items)"; every other node names its items
+
+### ui-sheets.js
+
+Status: ✅
+
+Moved here from CLAUDE.md's file table on 2026-10-03 (the clutter pass): the stamps are the record as written.
+
+char/NPC sheet rendering (`csSheetSections` one-renderer-three-hosts), `showCharSheet`/`showNpcSheet`, `generateNpcSheet`, `_switchPlayerCharacter`, `showCapabilityCard`; **#489:** the ability list is grouped under Racial / Class / Archetype / Story headings by `abilityGroups` (helpers.js, derived from the name → [contract](render.md)); **#429 batch drop:** the inventory × MARKS a row red (`markInvItem`), one "Delete N items" button at the foot of the list commits every mark (`dropMarkedItems`; the copy says DELETE because nothing is placed in the world — owner ruling 2026-09-21) through the pure `invDropPlan`/`invDropApply` (helpers.js) — marks are session state resolved against the live inventory at render and at commit — and at the click: the × carries its row's name beside its index and `invMarkResolve` (helpers.js) prefers the name when a GM turn moved the pack under an open sheet (#481 F8; it used to mark the neighbour); no per-item confirm; closing a sheet discards pending marks with a toast (`_invDropDiscard` via modalShell `onClose`)
+
+### ui-modals.js
+
+Status: ✅
+
+Moved here from CLAUDE.md's file table on 2026-10-03 (the clutter pass): the stamps are the record as written.
+
+settings & utility modals (rules, sync, render options, provider, usage, prose, quest journal, bug report, #17 drift health, the #426 stake modal at Begin — `showStakeModal(done)`, asked only when `stakeAskWanted`, latches `done()` once); the #407 ledger modal (`showLedgerModal`: the shop's counter and the chest) — **#497:** a row's count steps through the pure `ledgerNextMark` (helpers.js): up by one to the row's maximum, then back to none
 
 ## 18. Render feature
 
