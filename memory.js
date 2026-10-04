@@ -1975,18 +1975,16 @@ function buildNpcGraph(){
   for(ri=0;ri<rels.length;ri++){
     if(rels[ri].bond)addAdj(player,rels[ri].entity,rels[ri].bond,rels[ri].bondTurn||0);
   }
-  var nodes=Object.keys(adj);
+  var nodes=Object.keys(adj).filter(function(n){return n!==player;});
   if(!nodes.length)return"";
   var lines=["NPC GRAPH:"];
-  // Player row first if has connections
-  if(adj[player]){
-    var plinks=adj[player].map(function(e){return e.other+"("+e.rel+")";}).join(", ");
-    lines.push(player+" [PLAYER]: "+plinks);
-  }
+  /* #483 (Thursday review 2026-10-01, C11): the PLAYER row used to restate the hero's bonds — the same relationshipRows the
+     sheet block's "Bond:" line (#61, the protected relationship grounding) renders two screens up, label for label, every
+     turn (~200 chars on Village t279). ONE renderer per fact: the sheet carries the hero's bonds; the graph is who knows
+     WHOM among the others. The #269② suppression of a legacy player edge beside a live bond stays as it was. */
   // NPC rows
   for(var ni=0;ni<nodes.length;ni++){
     var name=nodes[ni];
-    if(name===player)continue;
     var npc=memory.npcs[name]||{};
     var wsNpc=wsNpcByName(name);/* #7: shared lookup */
     var meta=[];

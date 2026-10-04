@@ -89,7 +89,10 @@ function buildGeoBlock(){
      listed past the recency window — the GM could not name a place to re-enter it while the filers kept refusing "already
      on record" against it. The bare, stale ones still fold (prompt lean). */
   var _subCanon=function(n){return !!(n.layout||(n.exits&&n.exits.length)||n.owner||(n.wares&&n.wares.length)||(n.stateNotes&&n.stateNotes.length)||(n.items&&n.items.some(function(it){return it&&!it.taken&&it.qty!==0;})));};
-  for(i=0;i<nKeys.length;i++){var sn=memory.map.nodes[nKeys[i]];if(sn.parent&&locSame(sn.parent,wKey)&&(((sn.lastVisit||sn.firstVisit)>=cutoff)||_subCanon(sn)))subLocs.push(locDisplayLeaf(nKeys[i]));}/* filter on RECENCY, not first visit, so a frequently-used sub-location doesn't vanish 20 turns after first entry (audit E53); #156B: parent compare resolves (reparented children list correctly) and the display is the LEAF (fixes the 3-segment split("|")[1] bug) */
+  /* #483: in a kind that serves COMMONS and HOUSES (the village) those two lines already name every shop and house as a
+     sub-location with its arrival tag; the plain list repeated them (360 of its 400 chars on t279). It keeps only the residue. */
+  var _named={};if(_stashKind){(typeof _cm2!=="undefined"?_cm2:[]).concat(typeof _hk2!=="undefined"?_hk2:[]).forEach(function(x){_named[String(x).toLowerCase()]=1;});}
+  for(i=0;i<nKeys.length;i++){var sn=memory.map.nodes[nKeys[i]];if(sn.parent&&locSame(sn.parent,wKey)&&(((sn.lastVisit||sn.firstVisit)>=cutoff)||_subCanon(sn))){var _leaf=locDisplayLeaf(nKeys[i]);if(!_named[String(_leaf).toLowerCase()])subLocs.push(_leaf);}}/* filter on RECENCY, not first visit, so a frequently-used sub-location doesn't vanish 20 turns after first entry (audit E53); #156B: parent compare resolves (reparented children list correctly) and the display is the LEAF (fixes the 3-segment split("|")[1] bug) */
   if(subLocs.length)lines.push("Known sub-locations: "+subLocs.join(", "));
   // Connections + arrival
   if(memory.map.lastArrivalFrom)lines.push("Arrived from: "+locResolve(memory.map.lastArrivalFrom));

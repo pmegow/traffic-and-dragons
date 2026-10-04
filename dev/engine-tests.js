@@ -21557,8 +21557,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     npcLinkUpsert("Tess","Morwen","companions");
     worldState.character.relationships=[{entity:"Morwen",bond:"Wife",bondTurn:50,dynamic:""}];
     var g=buildNpcGraph();
-    if(g.indexOf("Morwen(Wife)")<0)return "bond row missing from the graph: "+g;
+    if(g.indexOf("[PLAYER]")>=0||g.indexOf("Morwen(Wife)")>=0)return "#483: the hero's bonds are the sheet's Bond line, never a graph row: "+g;
     if(g.indexOf("Morwen(companions)")>=0)return "stale legacy edge still serves beside the bond: "+g;
+    if(buildSysPrompt().volatile.indexOf("Bond: Morwen (Wife)")<0)return "the sheet block carries the bond once";
     return g.indexOf("Tess(companions)")<0?true:"the reverse edge still serves on the NPC row: "+g;
   });
   t("#269②: a bond-less entity keeps its legacy edge; NPC↔NPC edges are untouched (pin)",function(){
@@ -21566,7 +21567,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     npcLinkUpsert("Tess","Frizwick","companions");
     npcLinkUpsert("Morwen","Daeris","sisters-in-arms");
     var g=buildNpcGraph();
-    if(g.indexOf("Frizwick(companions)")<0)return "bond-less player edge was over-suppressed: "+g;
+    if(g.indexOf("Frizwick: ↔ Tess(companions)")<0)return "bond-less player edge was over-suppressed (it rides the NPC's row, #483): "+g;
     return g.indexOf("Daeris(sisters-in-arms)")>=0?true:"NPC-to-NPC edge lost: "+g;
   });
   t("#269③: MEMORY DIRECTORY serves no raw storage key — pipe paths render ' — ', entries join '; ', resolved twins dedupe",function(){
@@ -22320,7 +22321,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var s=buildSysPrompt().volatile,g=buildNpcGraph(),a=buildRelationshipAudit();
     if(s.indexOf("Bond: Frizwick (Wife)")<0||s.indexOf("Current dynamic: Frizwick (Resentful wife after tonight's betrayal)")<0)return "axes not separately labeled in prompt: "+s.slice(0,500);
     var roster=(s.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";if(roster.indexOf("bond: Wife")<0||roster.indexOf("Resentful wife")>=0)return "dynamic leaked into roster authority: "+roster;
-    if(g.indexOf("Frizwick(Wife)")<0||g.indexOf("Resentful wife")>=0)return "dynamic leaked into graph: "+g;
+    if(g.indexOf("Frizwick(Wife)")>=0||g.indexOf("Resentful wife")>=0)return "the graph carries neither the bond (the sheet does, #483) nor the dynamic: "+g;
     if(a.indexOf('Tess → Frizwick: "Wife"')<0||a.indexOf("Resentful wife")>=0)return "dynamic leaked into durable audit: "+a;
     worldState.npcs[0].charSheet.relationships=[];delete worldState.reciprocityNudged;
     var n=buildReciprocityNudge();
@@ -27115,6 +27116,26 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var cm=__fsForTests.readFileSync(__rootForTests+"/ui-carmode.js","utf8"),br=cm.slice(cm.indexOf("cmd.kind === \"undoItem\""),cm.indexOf("cmd.kind === \"roll\""));
     if(br.indexOf('"Never mind — " + _u.said')<0||br.indexOf('"Never mind. " + _u.said')<0)return "both the banner and the spoken line carry _u.said";
     return /back with you|back where it was|stays where it was/.test(br)?"Car Mode must not word the outcome itself (#597)":true;
+  });
+  section("#483 one renderer per fact in the per-turn prompt");
+  t("#483 the NPC GRAPH has no PLAYER row — the hero's bonds are the sheet block's Bond line, once; NPC↔NPC rows and a bond-less player edge still serve",function(){
+    makeWorld();worldState.turn=60;memory.npcs["Morwen"]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs["Daeris"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    worldState.character.relationships=[{entity:"Morwen",bond:"Wife",bondTurn:50,dynamic:""}];npcLinkUpsert("Morwen","Daeris","sisters-in-arms");npcLinkUpsert(worldState.character.name,"Daeris","companions");
+    var v=buildSysPrompt().volatile,g=buildNpcGraph();
+    if((v.match(/Morwen ?\(Wife\)/g)||[]).length!==1)return "the bond is served exactly once, on the sheet: "+(v.match(/Morwen ?\(Wife\)/g)||[]).length;
+    if(g.indexOf("[PLAYER]")>=0)return "no PLAYER row: "+g;
+    return (g.indexOf("Daeris(sisters-in-arms)")>=0&&g.indexOf("(companions)")>=0)?true:"NPC rows and the bond-less player edge still serve: "+g;
+  });
+  t("#483 in the Village 'Known sub-locations' lists only what COMMONS and HOUSES do not already name — the residue, never the same twenty names twice",function(){
+    villageEF();villageHouseEnsure("Silas",null);villageHouseEnsure("Frizwick",null);memory.map.nodes["The Village|the Village Hall"]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],layout:{rooms:[{name:"hall"}]}};
+    function lineAfter(txt,label){var i=txt.indexOf(label);if(i<0)return "";var j=txt.indexOf(": ",i),k=txt.indexOf("\n",j);return txt.slice(j+2,k<0?undefined:k);}
+    var geo=buildGeoBlock(),known=lineAfter(geo,"Known sub-locations"),commons=lineAfter(geo,"COMMONS here"),houses=lineAfter(geo,"HOUSES here");
+    if(!commons||!houses)return "fixture: the village serves COMMONS and HOUSES: "+geo.slice(0,400);
+    var named=commons.split(", ").concat(houses.split(", ")).map(function(x){return x.toLowerCase();}),dup=known.split(", ").filter(function(x){return x&&named.indexOf(x.toLowerCase())>=0;});
+    if(dup.length)return "names already served by COMMONS/HOUSES must not repeat: "+dup.join(", ");
+    if(!/the Village Hall/.test(known))return "the residue (the Hall, which neither line names) still serves: "+JSON.stringify(known);
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map={nodes:{"Sandpoint":{firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[]},"Sandpoint|Rusty Dragon":{firstVisit:1,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[],lastVisit:1}},edges:[],lastArrivalFrom:null};
+    return /Known sub-locations: Rusty Dragon/.test(buildGeoBlock())?true:"an adventure keeps its full list (no COMMONS/HOUSES there)";
   });
   section("the ledger quartet — #511 #517 #518 #519 (Astra's verification fixtures, 2026-10-02)");
   function quartetVillage(){
