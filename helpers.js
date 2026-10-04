@@ -3294,6 +3294,10 @@ function tagBlockEnd(text,off){
    through itemValueCp) and the net is integer subtraction — no rounding, no floor, no "never free" bump. Nothing here
    writes state — shopTradeApply (game.js) lands the plan through ledgerApply (#597). */
 var SHOP_SELL_FRACTION=0.5;
+/* #481 D4 (ruled 2026-09-29): a keeper's want buys this many units at its stated offer, then retires. #577: it is ONE
+   allowance per want for the whole trade, shared by every row that meets the want — decorated copies of the item ("— taken
+   from the crypt", "(cracked)") are separate rows, and each used to get its own allowance (one 40 gp want paid 120 gp). */
+var WANT_BUYS=1;
 function shopTradeCatalog(){
   var vtc=(typeof villageTradeContext==="function")?villageTradeContext():{ok:false,reason:"no trade context"};
   if(!vtc.ok||!vtc.node)return {ok:false,reason:vtc.reason||"not in a shop"};
@@ -3304,7 +3308,7 @@ function shopTradeCatalog(){
   var wanted={},wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++)wanted[String(wl[i].item||"").toLowerCase()]=wl[i];
   var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,cp=(typeof itemValueCp==="function")?itemValueCp(canon):null;
     var w=wanted[order[i]]||wanted[String((typeof itemBaseName==="function")?itemBaseName(r.name):r.name).toLowerCase()]||null;
-    r.canonCp=cp;r.wanted=!!w;
+    r.canonCp=cp;r.wanted=!!w;r.want=w?{key:String(w.item||"").toLowerCase(),item:String(w.item||""),by:w.by||""}:null;/* #577: the want this row meets */
     /* #481 D4 (ruled 2026-09-29; amends #407 ruling ①): a WANTED item sells at the keeper's STATED offer, parsed once when
        the want was filed (its `cp`), for ONE unit (the want retires when met); an offer in words is no counter price. */
     if(w){r.offer=String(w.offer||"");if(w.cp!=null)r.sellCp=w.cp;else r.offerWords=true;}
@@ -3316,11 +3320,15 @@ function shopTradeCatalog(){
 }
 /* marks = {sell:{<lowercase name>:qty}, buy:{<lowercase name>:qty}} — what the player has clicked. */
 function shopTradePlan(cat,marks){
-  marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellCp=0,buyCp=0,i,k;
-  for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellCp==null)continue;q=Math.min(q,r.qty);lines.push({kind:"sell",name:r.name,qty:q,unitCp:r.sellCp,cp:r.sellCp*q});sellCp+=r.sellCp*q;}
+  marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellCp=0,buyCp=0,i,k,wantLeft={},overWant=null;
+  for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellCp==null)continue;q=Math.min(q,r.qty);
+    if(r.want){var wl=(r.want.key in wantLeft)?wantLeft[r.want.key]:WANT_BUYS;if(q>wl&&!overWant)overWant=r.want;wantLeft[r.want.key]=wl-q;}/* #577: one allowance per want */
+    lines.push({kind:"sell",name:r.name,qty:q,unitCp:r.sellCp,cp:r.sellCp*q});sellCp+=r.sellCp*q;}
   for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();var bq=Math.min(mb[k]|0,b.per||1);if(bq<=0||b.cp==null)continue;var lc=Math.round(b.cp*bq/(b.per||1));lines.push({kind:"buy",name:b.name,qty:bq,unitCp:Math.round(b.cp/(b.per||1)),cp:lc,price:b.price});buyCp+=lc;}/* a bundle line is the bundle price times its share */
   var netCp=buyCp-sellCp,coinAfter=cat.coin-netCp,ok=lines.length>0&&coinAfter>=0;
   var why=!lines.length?"nothing marked":(coinAfter<0?"short "+fmtCoin(netCp-cat.coin):"");
+  /* #577: past a want's allowance the trade is refused, never trimmed — a silently dropped line would sell less than was marked */
+  if(overWant){var nw=WANT_BUYS===1?"one":String(WANT_BUYS);ok=false;why=(overWant.by||cat.keeper)+" wants "+nw+" "+overWant.item+" — the offer pays once; mark just "+nw;}
   return {lines:lines,sellCp:sellCp,buyCp:buyCp,netCp:netCp,coinAfter:coinAfter,ok:ok,reason:why};
 }
 /* #407 ⑤ (owner 2026-09-16): ONE two-column LEDGER shape, used by the shop and the stash (and whatever comes next).
@@ -3339,7 +3347,7 @@ function visibleAuthors(list,selectedId){
   return (list||[]).filter(function(a){return a&&(!a.hidden||(selectedId!=null&&a.id===selectedId));});
 }
 function shopLedgerRows(cat){
-  var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(1,r.qty):r.qty,/* #481 D4: a want buys one */worn:r.worn,off:r.worn||r.sellCp==null,unit:r.sellCp,cp:r.sellCp,per:1,
+  var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(WANT_BUYS,r.qty):r.qty,/* #481 D4: a want buys one */worn:r.worn,off:r.worn||r.sellCp==null,unit:r.sellCp,cp:r.sellCp,per:1,
     offReason:r.worn?"Worn \u2014 take it off first":(r.sellCp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});
   sell.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});/* stable in ES2019+; a priced row never sinks below an unpriced one */
   var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */worn:false,off:b.cp==null,unit:b.cp==null?null:Math.round(b.cp/(b.per||1)),cp:b.cp,per:b.per||1,offReason:b.cp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",note:b.note||"",/* #558: the keeper's own line rides to the card */hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});

@@ -28765,6 +28765,28 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var r2=shopTradeCatalog().sell.filter(function(r){return r.name==="Warded ring";})[0];
     return (r2&&!r2.wanted&&r2.sellCp==null)?true:"the second ring is priced like any other (no canon: none): "+JSON.stringify(r2);
   });
+  // #577 (Astra's verification 2026-10-03): the counter gave each row that met a want its own one-unit allowance — three
+  // decorated rings ("Warded ring", "— taken from the crypt", "(cracked)") each sold at the 40 gp offer, 120 gp for one want.
+  // ONE allowance per wanted offer governs the whole plan; marking past it refuses the trade, loudly, and nothing moves.
+  t("#577 one wanted offer pays once across every row that meets it: two decorated rings marked are refused with the reason and nothing moves; one ring sells at the offer and the want retires",function(){
+    var n=d4Fixture(),c=worldState.character;c.inventory.push("Warded ring — taken from the crypt","Warded ring (cracked)");
+    var g=c.coin,inv0=c.inventory.slice(),cat=shopTradeCatalog();
+    var rings=cat.sell.filter(function(r){return /^Warded ring/.test(r.name);});
+    if(rings.length!==3||!rings.every(function(r){return r.wanted&&r.sellCp===4000;}))return "three rows meet the one want at its offer: "+JSON.stringify(rings);
+    var three={sell:{"warded ring":1,"warded ring — taken from the crypt":1,"warded ring (cracked)":1},buy:{}};
+    var p=shopTradePlan(cat,three);
+    if(p.ok)return "one 40 gp want must not pay three times: "+JSON.stringify(p);
+    if(!/Frizwick/.test(p.reason)||!/Warded ring/.test(p.reason))return "the refusal names the keeper and the item: "+p.reason;
+    var res=quiet(function(){return shopTradeApply(three);}).r;
+    if(res.ok||c.coin!==g||c.inventory.join("|")!==inv0.join("|")||d4Wants(n).indexOf("Warded ring")<0)return "a refused trade moves nothing: "+JSON.stringify(res)+" coin "+c.coin+" inv "+JSON.stringify(c.inventory)+" wants "+JSON.stringify(n.wanted);
+    if(shopTradePlan(cat,{sell:{"warded ring":2},buy:{}}).ok)return "two units from one stack spend the same one allowance";
+    var mixed=shopTradePlan(cat,{sell:{"warded ring (cracked)":1,"bone-handled knife":1},buy:{}});
+    if(!mixed.ok||mixed.sellCp!==4300)return "a different want keeps its own allowance (ring 40 gp + knife 3 gp): "+JSON.stringify(mixed);
+    var one=quiet(function(){return shopTradeApply({sell:{"warded ring (cracked)":1},buy:{}});}).r;
+    if(!one.ok||c.coin!==g+4000)return "one decorated ring sells at the offer: "+JSON.stringify(one)+" coin "+c.coin;
+    if(d4Wants(n).indexOf("Warded ring")>=0)return "the met want retires: "+JSON.stringify(n.wanted);
+    return shopTradeCatalog().sell.some(function(r){return /^Warded ring/.test(r.name)&&r.wanted;})?"no ring is wanted once the want is met":true;
+  });
   t("#591 a discarded or consumed wanted item retires nothing: [ITEM_LOST:] with no coin in the reply leaves the want standing; the next real sale still meets it",function(){
     var n=d4Fixture();var r=quiet(function(){return applyMuts("Frizwick watches as you toss the ring into the hearth. [ITEM_LOST:Warded ring]");}).r;
     if(d4Wants(n).indexOf("Warded ring")<0)return "a loss without a sale must not retire the want: "+JSON.stringify(r.muts);

@@ -1,6 +1,7 @@
 // dev/sabotage-481-d4-want-met.js — proves the #481 D4 guards are guarded: a want lives on the clock and every reader sees
 // only live wants; a met want retires (the counter's sale and the GM's both, through ITEM_LOST); the counter pays the
-// keeper's stated offer for one unit, and an offer in words is refused with its text. Each mutation runs in a disposable clone.
+// keeper's stated offer for one unit — one allowance per want across the whole trade (#577) — and an offer in words is
+// refused with its text. Each mutation runs in a disposable clone.
 //   node dev/sabotage-481-d4-want-met.js
 var sabotage = require("./sabotage.js"), code = 0;
 var CMD = ["node", ["dev/run-tests.js", "#481 D4"]];
@@ -28,8 +29,11 @@ prove("helpers.js", [
     find: "wl=(typeof nodeWantedLive===\"function\")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);", replace: "wl=vtc.node.wanted||[];",
     mustFail: "a want expires on the clock" },
   { label: "a want buys the whole stack at the offer",
-    find: "max:r.wanted?Math.min(1,r.qty):r.qty,", replace: "max:r.qty,",
+    find: "max:r.wanted?Math.min(WANT_BUYS,r.qty):r.qty,", replace: "max:r.qty,",
     mustFail: "the counter pays the keeper's offer for ONE ring" },
+  { label: "#577 every row that meets a want gets its own allowance again",
+    find: "if(q>wl&&!overWant)overWant=r.want;", replace: "",
+    mustFail: "#577 one wanted offer pays once" },
   { label: "an offer in words says nothing of itself",
     find: "if(w.cp!=null)r.sellCp=w.cp;else r.offerWords=true;}", replace: "if(w.cp!=null)r.sellCp=w.cp;}",
     mustFail: "an offer in words is unsellable at the counter" }

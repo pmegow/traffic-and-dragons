@@ -496,7 +496,7 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
-(queue empty — entry 34 adjudicated 2026-09-11; entries 14, 18–34 in audits/FABLE_REVIEW_RECORDS.md)
+**37 · #577 one allowance per wanted offer (v1.1146, Opus 5.5, owner-approved off-Fable build 2026-10-04).** Tier Fable (the audit's D4 "drift hole"); the owner chose to build on Opus with this skim queued. Scope: helpers.js only — `WANT_BUYS`, `r.want` on catalog rows, the per-want allowance and refusal in `shopTradePlan`, and `shopLedgerRows`' max reading the constant. No applyMuts, prompt or memory path; `ledgerApply`'s retirement is unchanged and now sees at most one line per want. Proof: the `#577` test in the #481 D4 section (red first: one 40 gp want paid 120 gp) and a new clause in `dev/sabotage-481-d4-want-met.js` (8/8). Skim for: (a) a want matched by base name across two DIFFERENT wants with one base ("Warded ring" and "Warded ring (silver)" in one shop) — each keeps its own allowance here, but `retireWantedAt` retires by base name; (b) whether refusing the whole trade, rather than selling the extra copies at half canon, is the right counter behaviour.
 
 
 ## Reviewed index
