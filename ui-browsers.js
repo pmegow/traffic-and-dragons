@@ -480,6 +480,7 @@ function showCharacterBrowser(initialMode){
 }
 // ── Character import preview modal ───────────────────────────────────────────
 function showCharImportPreview(char, onAccept, onCancel){
+  migrateAncestryNames(char);
   migrateCharClassNames(char);/* #100: .char files + library entries may predate the Berserker→Primal rename; every import path funnels through this preview, so heal here once */
   if(typeof portraitAdmit==="function"&&portraitAdmit(char,"character import")&&typeof showToast==="function")showToast("⚠ "+(char.name||"The character")+"'s portrait was dropped — not an image");/* #481 F2 */
   if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(char);/* #221: a portable sheet may carry a renamed capability's old name */

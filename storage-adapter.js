@@ -1157,7 +1157,14 @@ var storageAdapter = (function() {
   function putMemento(id, snapshot, cb) { _apiJson("/api/mementos/" + encodeURIComponent(id), "PUT", snapshot, cb, true); }
   function deleteMemento(id, cb) { _apiJson("/api/mementos/" + encodeURIComponent(id), "DELETE", null, cb, true); }
 
-  function listCharacterLibrary(cb)         { _apiJson("/api/characters", "GET", null, cb); }
+  function listCharacterLibrary(cb) {
+    _apiJson("/api/characters", "GET", null, function(err,list){
+      if(!err&&Array.isArray(list)&&typeof migrateAncestryNames==="function")list.forEach(function(entry){
+        migrateAncestryNames(entry);if(entry)migrateAncestryNames(entry.character);
+      });
+      cb(err,list);
+    });
+  }
   function saveCharacterToLibrary(char, cb) { _apiJson("/api/characters", "POST", { character: char }, cb); }
   function deleteCharacterFromLibrary(slug, cb) { _apiJson("/api/characters/" + encodeURIComponent(slug), "DELETE", null, cb); }
 

@@ -3230,6 +3230,40 @@ function runEngineTests(R){
     return s&&s.cls!=="Bard"?true:"unknown cls was accepted verbatim";
   });
 
+  section("Cambion ancestry rename (#221)");
+  t("Cambion replaces the ancestry name and id without changing racial mechanics",function(){
+    var a=ANCS.filter(function(r){return r.id==="cambion";})[0];
+    if(!a||a.nm!=="Cambion")return "Cambion ancestry missing";
+    if(ANCS.some(function(r){return /tiefling/i.test(r.id+" "+r.nm+" "+r.desc);}))return "retired race remains in creation";
+    if(JSON.stringify(a.stats)!==JSON.stringify({CHA:2,INT:1})||a.fc!==0)return "racial stats changed";
+    if(JSON.stringify(a.racial_caps)!==JSON.stringify(["Darkvision","Fire Resistance",{cap:"Hellish Rebuke",use:"1/day"}]))return "base racial grants changed";
+    var grants=a.subraces.map(function(r){return [r.id,r.nm,r.racial_caps];});
+    return JSON.stringify(grants)===JSON.stringify([["infernal","Infernal",[{cap:"Disguise Self",use:"1/day"}]],["abyssal","Abyssal",["Abyssal Fury"]],["fey_tie","Fey-touched",[{cap:"Misty Step",use:"1/day"}]]])?true:"subrace choices or grants changed";
+  });
+  t("ancestry migration accepts old name and editor id, preserves the rest, and is idempotent",function(){
+    var cases=[["Tiefling","Cambion"],["tiefling","cambion"]];
+    for(var i=0;i<cases.length;i++){
+      var c={ancestry:cases[i][0],subrace:"fey_tie",subraceNm:"Fey-touched",backstory:"A tiefling traveller.",spells:[{nm:"Misty Step",used:true,racial:true}],stats:{CHA:17},hp:3};
+      var want=JSON.parse(JSON.stringify(c));want.ancestry=cases[i][1];
+      if(!migrateAncestryNames(c)||JSON.stringify(c)!==JSON.stringify(want))return "lost fields or missed rename: "+JSON.stringify(c);
+      if(migrateAncestryNames(c))return "repeat migration reported a change";
+    }
+    var other={ancestry:"Tiefling-descended custom",backstory:"Tiefling"},before=JSON.stringify(other);
+    if(migrateAncestryNames(other)||JSON.stringify(other)!==before||migrateAncestryNames(null)||migrateAncestryNames({ancestry:"toString"}))return "nonmatching ancestry changed";
+    return true;
+  });
+  t("save migration renames hero, NPC metadata and sheets without rewriting history",function(){
+    makeWorld();worldState.character.ancestry="Tiefling";
+    worldState.npcs=[{name:"Old",ancestry:"Tiefling",charSheet:{name:"Old",ancestry:"tiefling"}},{name:"Unsheeted",ancestry:"Tiefling"}];
+    worldState.transcript=[{x:"The tiefling arrives.",r:"gm",t:1}];var before=JSON.stringify(worldState.transcript);
+    if(!migrateWorldState()||worldState.character.ancestry!=="Cambion")return "hero migration missing";
+    if(worldState.npcs[0].charSheet.ancestry!=="cambion"||worldState.npcs.some(function(n){return n.ancestry!=="Cambion";}))return "NPC migration missing";
+    return JSON.stringify(worldState.transcript)===before?true:"history was rewritten";
+  });
+  t("default GM rules call the ancestry cambions",function(){
+    var rules=DEFAULT_RULES.join("\n");return /cambions/.test(rules)&&!/tieflings/i.test(rules)?true:"default rules still teach the retired name";
+  });
+
   // ── Primal rename (#100, v1.473) + archetype id↔nm alignment (user decree 2026-07-31) ──
   // The class spans rage/beast/weather; "Berserker" survives only as its rage
   // archetype. THE LAW CHANGED at v1.506: an archetype id must be a word OF its

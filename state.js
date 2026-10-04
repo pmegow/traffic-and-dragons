@@ -497,15 +497,25 @@ function migrateCharClassNames(c){
   if(c.archetype&&ARCHETYPE_ID_RENAMES[c.archetype]){console.info("[migrate] archetype id "+(c.name||"character")+" "+c.archetype+" → "+ARCHETYPE_ID_RENAMES[c.archetype]+" (id↔nm alignment, v1.506)");c.archetype=ARCHETYPE_ID_RENAMES[c.archetype];hit=true;}
   return hit;
 }
+/* Saved game sheets use display names; the standalone editor also writes ancestry ids.
+   Exact field matches preserve custom ancestry text and historical narration. */
+var ANCESTRY_RENAMES={"Tiefling":"Cambion","tiefling":"cambion"};
+function migrateAncestryNames(c){
+  if(!c||!Object.prototype.hasOwnProperty.call(ANCESTRY_RENAMES,c.ancestry))return false;
+  var next=ANCESTRY_RENAMES[c.ancestry];
+  console.info("[migrate] ancestry rename on "+(c.name||"character")+": "+c.ancestry+" → "+next);
+  c.ancestry=next;return true;
+}
 function migrateWorldState(){
   if(!worldState||!worldState.character)return false;
   var c=worldState.character,_mig=false;
   /* #100: class rename + spell-label re-sync — player and every NPC sheet (companions AND former
      companions keep working). Both are display-half heals; the injected canon was never wrong. */
+  if(migrateAncestryNames(c))_mig=true;
   if(migrateCharClassNames(c))_mig=true;
   if(migrateSpellDisplayNames(c))_mig=true;
   if(migrateCapabilityRenames(c))_mig=true;/* #221 */
-  if(worldState.npcs){var _cri,_crs;for(_cri=0;_cri<worldState.npcs.length;_cri++){_crs=worldState.npcs[_cri]&&worldState.npcs[_cri].charSheet;if(!_crs)continue;if(migrateCharClassNames(_crs))_mig=true;if(migrateSpellDisplayNames(_crs))_mig=true;if(migrateCapabilityRenames(_crs))_mig=true;}}
+  if(worldState.npcs){var _cri,_crs;for(_cri=0;_cri<worldState.npcs.length;_cri++){if(migrateAncestryNames(worldState.npcs[_cri]))_mig=true;_crs=worldState.npcs[_cri]&&worldState.npcs[_cri].charSheet;if(!_crs)continue;if(migrateAncestryNames(_crs))_mig=true;if(migrateCharClassNames(_crs))_mig=true;if(migrateSpellDisplayNames(_crs))_mig=true;if(migrateCapabilityRenames(_crs))_mig=true;}}
   /* #139: alignment axes must AGREE with the displayed label. Creation used to seed 0,0 under a
      non-neutral label, and model-generated companion sheets carry labels with NO axes at all —
      either way the first [ALIGNMENT:] shift recomputed the label from coordinates that never

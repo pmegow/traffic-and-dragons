@@ -20,8 +20,8 @@ var SPECS = [
   {
     suite: "tests-c13-adapter.js",
     file: "storage-adapter.js",
-    find: 'function listCharacterLibrary(cb)         { _apiJson("/api/characters", "GET", null, cb); }',
-    replace: 'function listCharacterLibrary(cb)         { _apiJson("/api/people", "GET", null, cb); }',
+    find: '_apiJson("/api/characters", "GET", null, function(err,list){',
+    replace: '_apiJson("/api/people", "GET", null, function(err,list){',
     mustFail: "listCharacterLibrary",
     label: "C13 detects a regressed library route"
   },

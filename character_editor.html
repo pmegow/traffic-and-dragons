@@ -132,6 +132,7 @@ table.list td.x button:hover{color:var(--dng);}
     ["inventory","abilities","spells","languages","conditions","relationships","saveModifiers","storyBeats","coreMemories"].forEach(function(k){if(!Array.isArray(c[k]))c[k]=[];});
     if(!c.stats)c.stats={};STAT_IDS.forEach(function(s){if(typeof c.stats[s]!=="number")c.stats[s]=10;});
     if(c.portrait===undefined)c.portrait=null;
+    if(typeof migrateAncestryNames==="function")migrateAncestryNames(c);
     if(typeof migrateCharClassNames==="function")migrateCharClassNames(c);
     if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(c);
     if(typeof migrateSpellDisplayNames==="function")migrateSpellDisplayNames(c);
@@ -143,7 +144,7 @@ table.list td.x button:hover{color:var(--dng);}
   // ── the field registry — ONE table renders every scalar field ──────────────
   var ALIGN_LABELS=["Lawful Good","Neutral Good","Chaotic Good","Lawful Neutral","True Neutral","Chaotic Neutral","Lawful Evil","Neutral Evil","Chaotic Evil"];
   function classOpts(){var out=[];try{classDefs().forEach(function(d){out.push({v:d.id,l:d.nm||d.id});});}catch(e){}return out;}
-  function ancOpts(){var out=[],i;for(i=0;i<ANCS.length;i++)out.push({v:ANCS[i].id,l:ANCS[i].nm||ANCS[i].name||ANCS[i].id});return out;}
+  function ancOpts(){var out=[],i;for(i=0;i<ANCS.length;i++)out.push({v:ch.ancestry===ANCS[i].nm?ANCS[i].nm:ANCS[i].id,l:ANCS[i].nm||ANCS[i].name||ANCS[i].id});return out;}
   function archOpts(){var out=[{v:"",l:"(none)"}];try{var d=classDef(ch.cls);if(d&&d.archetypes)d.archetypes.forEach(function(a){out.push({v:a.id,l:a.nm});});}catch(e){}return out;}
   var FIELDS={
     identity:[

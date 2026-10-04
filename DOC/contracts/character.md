@@ -29,7 +29,7 @@ Status: ✅ Active (#59)
 | Step | Content |
 |---|---|
 | 1 – Tone | Choose world tone: High Fantasy, Gritty, Sword and Sorcery, Dark Horror, Political Intrigue, or Custom, plus prose-voice pick. Bottom of step has "⚙ Load blueprint" (the redundant ↩ Import-existing-save input was removed at #23① — File ▸ Import covers it). |
-| 2 – Identity | **Merged with Ancestry (TODO #25).** Gender (M/F/NB), age, then an Ancestry picker inline below: 7 ancestries (Human, Elf, Dwarf, Gnome, Half-Blood, Hollow-Born, Tiefling), each with 2–3 subraces; Half-Blood has nested lineage selection via `#lineage-popup`. Picking an ancestry swaps the grid (`#anc-grid-wrap`) for a detail view (`#anc-detail`) in place — "← All ancestries" (`anc-back-detail`/`hideAncDetail()`) returns to the grid without leaving the step. Single Back/Next pair (`id-back`/`anc-next`) for the whole step; `anc-next` validates ancestry + subrace + lineage (if applicable) + flex stat picks before advancing. |
+| 2 – Identity | **Merged with Ancestry (TODO #25).** Gender (M/F/NB), age, then an Ancestry picker inline below: 7 ancestries (Human, Elf, Dwarf, Gnome, Half-Blood, Hollow-Born, Cambion), each with 2–3 subraces; Half-Blood has nested lineage selection via `#lineage-popup`. Picking an ancestry swaps the grid (`#anc-grid-wrap`) for a detail view (`#anc-detail`) in place — "← All ancestries" (`anc-back-detail`/`hideAncDetail()`) returns to the grid without leaving the step. Single Back/Next pair (`id-back`/`anc-next`) for the whole step; `anc-next` validates ancestry + subrace + lineage (if applicable) + flex stat picks before advancing. |
 | 3 – Class | 9 classes (Warrior, Rogue, Sorcerer, Ranger, Primal, Paladin, Cleric, Druid, Necromancer) |
 | 4 – Attributes | Roll 4d6 drop-lowest (auto-assigned by the class's bible `statPriority`) or Point Buy (27 pts, using `PBC` cost table); stated alignment; auto-suggested deity for Cleric/Paladin/Druid |
 | 5 – Finishing Touches | Physical description, backstory, portrait (upload / render from sheet / derive appearance from portrait) |
@@ -41,7 +41,7 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 
 **Starting languages** are derived automatically in `confirmChar()` from ancestry/subrace and stored in `char.languages[]`:
 - All characters start with Common
-- `ancLangMap`: elf→Elvish, dwarf→Dwarvish, gnome→Gnomish, tiefling→Infernal, hollow→Umbral
+- `ancLangMap`: elf→Elvish, dwarf→Dwarvish, gnome→Gnomish, cambion→Infernal, hollow→Umbral
 - `subLangMap` (halfblood subraces): half_elven→Elvish, half_orcish→Orcish, half_draconic→Draconic, half_infernal→Infernal, half_fey→Sylvan, half_gnomish→Gnomish
 
 ## 2. Game data constants (all in `data.js`)

@@ -7,7 +7,7 @@
 // prevent. The happy-path subject is "Misty Step", chosen because it is the one capability that
 // exercises every rewrite path at once: it is a capability_bible key, it sits in three
 // class_bible spell arrays (class + two archetypes), in SPELLS.Sorcerer.2, in
-// ARCH_SPELLS.eldritchknight.2, AND in an ANCS racial_caps {cap,use} object (tiefling/fey_tie).
+// ARCH_SPELLS.eldritchknight.2, AND in an ANCS racial_caps {cap,use} object (cambion/fey_tie).
 
 "use strict";
 
@@ -91,7 +91,7 @@ try {
     if (sites !== 2) fail("expected 2 creation-pool sites rewritten, saw " + sites);
     pass("all 3 class_bible sites and both creation-pool sites carry the new name");
 
-    var tief = ctx.ANCS.filter(function (a) { return a.id === "tiefling"; })[0];
+    var tief = ctx.ANCS.filter(function (a) { return a.id === "cambion"; })[0];
     var fey = tief.subraces.filter(function (s) { return s.id === "fey_tie"; })[0];
     if (fey.racial_caps[0].cap !== TARGET) fail("the racial_caps {cap,use} reference was not rewritten: " + JSON.stringify(fey.racial_caps));
     if (fey.racial_caps[0].use !== "1/day") fail("the racial_caps `use` field was collaterally edited");
@@ -179,7 +179,7 @@ try {
     // the rewrite, the residue sweep catches it, and the whole rename must roll back.
     var d = read(dir, "data.js").replace('traits:["Darkvision 60ft","Fire Resistance -- half damage from fire"',
       'traits:["Darkvision 60ft","Misty Step","Fire Resistance -- half damage from fire"');
-    if (d === read(dir, "data.js")) fail("the orphan fixture did not apply — the tiefling traits line moved");
+    if (d === read(dir, "data.js")) fail("the orphan fixture did not apply — the cambion traits line moved");
     fs.writeFileSync(path.join(dir, "data.js"), d);
     var before = hashes(dir);
 

@@ -37,7 +37,7 @@
         {"title": "The Brothel for Slaking Intellectual Lusts", "objective": "Meet Fall-from-Grace and learn what no past self thought to write down", "type": "companion", "status": "pending"},
         {"title": "The Civic Festhall", "objective": "Access the Sensate memory repository where a past incarnation stored something you need", "type": "main", "status": "pending"},
         {"title": "Ignus the Burning", "objective": "Free the mage who burns eternally and cannot die — a punishment a past you devised", "type": "companion", "status": "pending"},
-        {"title": "Annah of the Planes", "objective": "Earn the trust of the tiefling thief who fears the attachment she already feels", "type": "companion", "status": "pending"},
+        {"title": "Annah of the Planes", "objective": "Earn the trust of the cambion thief who fears the attachment she already feels", "type": "companion", "status": "pending"},
         {"title": "The Black-Barbed Maze", "objective": "Survive the Lady of Pain's labyrinth — most who enter never leave", "type": "main", "status": "pending"},
         {"title": "Finding Ravel's Portal", "objective": "Discover the key that opens the way into Ravel's personal prison", "type": "main", "status": "pending"}
       ]
@@ -83,7 +83,7 @@
     {
       "name": "Annah-of-the-Planes",
       "role": "ally",
-      "notes": "Half-fiend tiefling thief raised by Pharod in Ragpicker's Square. Prickly, fierce, and deeply uncomfortable with anything that feels like genuine attachment. She fears what she feels and expresses care through sharpness.",
+      "notes": "Half-fiend cambion thief raised by Pharod in Ragpicker's Square. Prickly, fierce, and deeply uncomfortable with anything that feels like genuine attachment. She fears what she feels and expresses care through sharpness.",
       "pronouns": "she/her"
     },
     {

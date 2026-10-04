@@ -465,7 +465,7 @@ async function generateNpcSheet(name,doneCb){
     +"Be creative but strictly consistent with all known facts listed below.\n\nKnown information:\n"+ctx+"\n"
     +"Output ONLY a single valid JSON object — no markdown, no code fences, no commentary:\n"
     +'{"gender":"M/F/NB","age":"age as string","appear":"full physical description","mark":"distinguishing mark or empty string","backstory":"2-3 sentence backstory consistent with known events",'
-    +'"ancestry":"Human/Elf/Dwarf/Gnome/Tiefling/Hollow-Born/Half-Blood","subraceNm":"specific subrace name",'
+    +'"ancestry":"Human/Elf/Dwarf/Gnome/Cambion/Hollow-Born/Half-Blood","subraceNm":"specific subrace name",'
     +'"cls":"Warrior/Rogue/Sorcerer/Ranger/Primal/Paladin/Cleric/Druid","archetypeNm":"archetype or empty string",'
     +'"stats":{"STR":10,"DEX":10,"CON":10,"INT":10,"WIS":10,"CHA":10},'
     +'"hp":20,"maxHp":20,"gold":10,"level":1,"xp":0,'

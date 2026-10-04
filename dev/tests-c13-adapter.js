@@ -111,6 +111,17 @@ t("all wrappers ride _tFetch — abort signal armed on each request (the #24 tim
 // ── #13 (a) error-string parity ──────────────────────────────────────────────
 section("#13 _apiJson — error-string parity");
 
+tAsync("Cambion library migration heals list metadata and sheets before any consumer", function () {
+  var list=[{name:"Old",ancestry:"Tiefling",character:{name:"Old",ancestry:"tiefling",subrace:"fey_tie",backstory:"A tiefling."}},{name:"Human",ancestry:"Human",character:{ancestry:"Human"}}];
+  nextResponse=okJson(list);calls.length=0;
+  return new Promise(function(res){storageAdapter.listCharacterLibrary(function(err,d){
+    if(err)return res(err);
+    if(d[0].ancestry!=="Cambion"||d[0].character.ancestry!=="cambion")return res("old ancestry reached a library consumer");
+    if(d[0].character.subrace!=="fey_tie"||d[0].character.backstory!=="A tiefling."||d[1].ancestry!=="Human")return res("unrelated library fields changed");
+    return res(calls.length===1&&!lastCall().opts.method?true:"library read must not write to the server");
+  });});
+});
+
 tAsync("cb(null, data) on 200", function () {
   nextResponse = okJson([{ name: "Ammut" }]);
   return new Promise(function (res) { storageAdapter.listCharacterLibrary(function (err, d) { res(err === null && d && d[0] && d[0].name === "Ammut" ? true : "err=" + err + " d=" + JSON.stringify(d)); }); });
