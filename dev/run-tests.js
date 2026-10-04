@@ -2114,18 +2114,13 @@ try {
     console.error("BIBLE-SERVER WRITE-AUTH: Access-Control-Allow-Headers lost X-Bible-Token — the browser preflight would strip auth and every save 403s.");
     process.exit(1);
   }
-  // ④ Both clients keep one POST boundary. The supported editor has NO credential UI; the
-  //    legacy file:// necro tool retains the token fallback until it gains its own launcher.
+  // ④ The one client keeps one POST boundary and NO credential UI. (The file:// necro conversion page,
+  //    the only other client, was deleted 2026-10-03 once its shortlist was installed — clutter pass.)
   var _editorAuth = _stripComments(_fsB.readFileSync(_pathB.join(_rootB, "bible_editor.html"), "utf8"));
   if ((_editorAuth.match(/\/install"/g) || []).length !== 1 ||
       _editorAuth.indexOf("X-Bible-Token") >= 0 || _editorAuth.indexOf("srvToken") >= 0 ||
       _editorAuth.indexOf("bible-server write token") >= 0) {
     console.error("BIBLE-SERVER WRITE-AUTH: bible_editor.html must have one /install boundary and ZERO write-token headers/prompts — Bible Editor.cmd supplies localhost authority.");
-    process.exit(1);
-  }
-  var _necroAuth = _stripComments(_fsB.readFileSync(_pathB.join(_rootB, "necro_spells_TMP.html"), "utf8"));
-  if ((_necroAuth.match(/\/install"/g) || []).length !== 1 || _necroAuth.indexOf("X-Bible-Token") < 0) {
-    console.error("BIBLE-SERVER WRITE-AUTH: necro_spells_TMP.html lost its single authenticated /install boundary.");
     process.exit(1);
   }
 } catch (e) { console.error("BIBLE-SERVER WRITE-AUTH CHECK FAILED: " + e.message); process.exit(1); }

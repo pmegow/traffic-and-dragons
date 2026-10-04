@@ -5,8 +5,8 @@
 Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version stamps and history links inside are the record as written — the contract lines are current unless a newer commit says otherwise.
 
 **Every page, derived (#481 G5).** `dev/class-guards.js` reads the tracked root `*.html` files, not a list:
-- **The palette.** Each page links `satellite.css` or carries a reasoned `EXEMPT.palette` entry. Today's exemptions: index.html (the palette's source), piper-host.html (no UI), test.html, timeline_day1.html.
-- **The service worker.** Each page outside `APP_SHELL` matches sw.js's network-first regex. A new page cannot be served cache-first by omission. `necro_spells_TMP.html` was, until G5.
+- **The palette.** Each page links `satellite.css` or carries a reasoned `EXEMPT.palette` entry. Today's exemptions: index.html (the palette's source), piper-host.html (no UI), test.html.
+- **The service worker.** Each page outside `APP_SHELL` matches sw.js's network-first regex. A new page cannot be served cache-first by omission.
 - **Model waits.** Every model or image wait's status counts seconds (#356), on any page.
 - **Stale exemptions fail too.** The registry must stay the truth.
 - **Proof.** `dev/tests-481-g5-class-guards.js`, plus its browser half `dev/tests-481-g5-waits-browser.js`.

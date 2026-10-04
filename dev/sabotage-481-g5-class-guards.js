@@ -24,8 +24,8 @@ failed += sabotage.prove({ file: "story_compiler.html", command: NODE, cases: [
     mustFail: "the live tree" }
 ]});
 failed += sabotage.prove({ file: "sw.js", command: NODE, cases: [
-  { label: "the necro page is served cache-first again",
-    find: "|timeline_day1|necro_spells_TMP|", replace: "|timeline_day1|",
+  { label: "the story compiler is served cache-first again",
+    find: "|map_cleanup|story_compiler|", replace: "|map_cleanup|",
     mustFail: "the live tree" }
 ]});
 // The scanner itself: each rule that makes it a CLASS guard.
