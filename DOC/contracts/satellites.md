@@ -25,6 +25,14 @@ Status: ✅ Active
 
 Satellite viewer (TODO #10) for the `*_bible` registries — open directly (like `blueprint-designer.html`, NOT in the SW app shell). Loads the bible data + helpers, renders every spell/ability via the shared `bibleCardHTML` and every skill via `skillCardHTML` (#52 — Skills section with the level-ladder header); live name/text filter. **Deliberately READ-ONLY** (user call 2026-07-27): the bibles may become player-facing, so the mutable surface lives in `bible_editor.html`, never here
 
+### capability-names.html
+
+Status: Active naming worksheet (#221). [Open the worksheet](../../capability-names.html).
+
+One row per own key in `CAPABILITY_BIBLE`, alphabetically: original name links to `bible_study.html#capability-<encoded name>`; the proposed name starts blank, including names the owner intends to retain. Bible Study assigns stable card IDs and reveals/focuses a linked card after clearing its filter.
+
+Drafts persist under `tnd_capability_names_v1`. JSON export/import includes ALL rows and permits blanks so authoring can span sessions. Invalid imports leave the current choices intact; unreadable stored drafts are preserved and autosave pauses until a valid import. `readyToApply` is advisory: before applying any exported mapping, call the pure seam `CapabilityNames.forImplementation(text, CAPABILITY_BIBLE)`, which validates the entire current key set and refuses any blank, pipe-bearing or engine-normalized duplicate name. The owner explicitly requires every row to be considered before implementation. This worksheet never mutates a Bible or a save. A complete map still needs rename/migration review before application; the existing single-rename CLI is not a batch-map executor. Pure guards run through run-tests; browser guards run in CI.
+
 ### bible_editor.html
 
 Status: ✅ Active (#72)

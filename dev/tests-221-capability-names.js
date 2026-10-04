@@ -1,0 +1,69 @@
+// #221: the worksheet must preserve a complete rename map, including unchanged names.
+const fs = require('fs'), path = require('path'), vm = require('vm'), assert = require('assert/strict');
+const root = path.resolve(__dirname, '..'), box = {};
+vm.runInNewContext(fs.readFileSync(path.join(root, 'capability_bible.js'), 'utf8'), box);
+const html = fs.readFileSync(path.join(root, 'capability-names.html'), 'utf8');
+const core = html.match(/<script id="names-core">([\s\S]*?)<\/script>/);
+assert.ok(core, 'worksheet exposes its pure naming rules');
+vm.runInNewContext(core[1], box);
+const api = box.CapabilityNames, bible = box.CAPABILITY_BIBLE;
+let failures = 0;
+function check(name, fn) { try { fn(); console.log('PASS #221 ' + name); } catch (e) { failures++; console.error('FAIL #221 ' + name + ': ' + e.message); } }
+function blankRows() { return api.rows(bible); }
+function rows() { return blankRows().map(r => ({from:r.from,to:r.from})); }
+check('blank defaults require an explicit decision on every capability', () => {
+  const list = blankRows();
+  assert.equal(list.length, Object.keys(bible).length);
+  assert.ok(list.some(r => bible[r.from].kind === 'ability'));
+  assert.ok(list.some(r => bible[r.from].kind === 'spell'));
+  assert.ok(list.every(r => r.to === ""));
+  assert.equal(JSON.parse(api.pack(list)).readyToApply, false);
+  assert.throws(() => api.forImplementation(api.pack(list), bible), /name/i);
+  const explicit = rows();
+  assert.deepEqual(JSON.parse(api.pack(explicit)).names, JSON.parse(JSON.stringify(explicit)));
+});
+check('blank and delimiter names block implementation but can be saved', () => {
+  for (const value of ['', '  ', '(only a suffix)', 'new|name']) {
+    const list = rows(); list[0].to = value;
+    assert.ok(api.issues(list)[0], 'accepted ' + value);
+    assert.equal(JSON.parse(api.pack(list)).readyToApply, false);
+    assert.throws(() => api.forImplementation(api.pack(list), bible), /name/i);
+  }
+});
+check('engine-normalized collisions mark both rows', () => {
+  const list = rows(); list[0].to = list[1].from.toUpperCase() + ' (Tier 2)';
+  const errors = api.issues(list);
+  assert.match(errors[0], /same/i); assert.match(errors[1], /same/i);
+  assert.throws(() => api.forImplementation(api.pack(list), bible), /name/i);
+});
+check('draft round trip preserves unfinished and literal text', () => {
+  const list = rows(); list[0].to = ''; list[1].to = '<img src=x onerror=alert(1)>';
+  assert.equal(JSON.stringify(api.read(api.pack(list), bible)), JSON.stringify(list));
+});
+check('changed export retains every unchanged row', () => {
+  const list = rows(); list[0].to = 'Quiet Ember';
+  const out = JSON.parse(api.pack(list));
+  assert.equal(out.names.length, Object.keys(bible).length);
+  assert.equal(out.names[0].to, 'Quiet Ember');
+  assert.equal(out.readyToApply, true);
+  assert.equal(api.forImplementation(JSON.stringify(out), bible).length, list.length);
+  assert.ok(out.names.slice(1).every(r => r.from === r.to));
+  assert.equal(JSON.stringify(api.read(JSON.stringify(out), bible)), JSON.stringify(list));
+});
+check('readiness cannot be forged on an unfinished export', () => {
+  const data = JSON.parse(api.pack(blankRows())); data.readyToApply = true;
+  assert.throws(() => api.forImplementation(JSON.stringify(data), bible), /complete/i);
+});
+check('bad imports and changed bible cannot discard choices', () => {
+  const original = rows(), snapshot = JSON.stringify(original);
+  const valid = JSON.parse(api.pack(original));
+  const bad = ['{', JSON.stringify({names: original}), JSON.stringify({...valid, names: original.slice(1)}),
+    JSON.stringify({...valid, names: original.concat(original[0])}),
+    JSON.stringify({...valid, names: original.map((r,i) => i ? r : {from:'missing spell',to:'Choice'})}),
+    JSON.stringify({...valid, names: original.map((r,i) => i ? r : {from:r.from,to:42})})];
+  for (const text of bad) assert.throws(() => api.read(text, bible));
+  const newer = Object.assign({}, bible, {'future spell':{kind:'spell'}});
+  assert.throws(() => api.read(JSON.stringify(valid), newer), /bible|missing/i);
+  assert.equal(JSON.stringify(original), snapshot);
+});
+process.exitCode = failures ? 1 : 0;

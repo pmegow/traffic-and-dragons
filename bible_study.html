@@ -24,6 +24,7 @@
   .card{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;transition:border-color .12s;}
   .card:hover{border-color:var(--acc);}
   .empty{color:var(--t2);font-style:italic;padding:24px 0;}
+.card:target{outline:2px solid var(--acc);outline-offset:3px;scroll-margin:24px}
 </style>
 </head>
 <body>
@@ -43,7 +44,7 @@ for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');}
   function collect(){var out=[];var reg=(typeof CAPABILITY_BIBLE!=="undefined")?CAPABILITY_BIBLE:null;if(reg)for(var k in reg)out.push({key:k,name:titleCase(k),e:reg[k]});return out;}
   function byTierName(a,b){return (a.e.tier||0)-(b.e.tier||0)||(a.name<b.name?-1:1);}
   function byName(a,b){return a.name<b.name?-1:1;}
-  function section(title,items){if(!items.length)return"";var h='<h2>'+title+' ('+items.length+')</h2><div class="grid">';for(var i=0;i<items.length;i++)h+='<div class="card">'+bibleCardHTML(items[i].name,items[i].e)+'</div>';return h+'</div>';}
+  function section(title,items){if(!items.length)return"";var h='<h2>'+title+' ('+items.length+')</h2><div class="grid">';for(var i=0;i<items.length;i++)h+='<div class="card" id="'+escHtml('capability-'+items[i].key)+'" tabindex="-1">'+bibleCardHTML(items[i].name,items[i].e)+'</div>';return h+'</div>';}
   // #52: the skills_bible section — same viewer, skillCardHTML renderer. The ladder line is
   // the ONE global mechanic, shown once above the cards rather than repeated on each.
   function ladderHTML(){
@@ -88,6 +89,15 @@ for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');}
   }
   document.getElementById("q").addEventListener("input",function(){render(this.value);});
   render("");
+  // #221: a worksheet link always reveals and focuses its exact capability card.
+  function revealCapability(){
+    var id;try{id=decodeURIComponent(location.hash.slice(1));}catch(error){console.warn("Bible card link could not be read",error);return;}
+    if(id.indexOf("capability-")!==0)return;
+    document.getElementById("q").value="";render("");
+    var card=document.getElementById(id);if(card){card.focus();card.scrollIntoView({block:"center"});}
+  }
+  window.addEventListener("hashchange",revealCapability);
+  revealCapability();
 </script>
 </body>
 </html>

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capability names — Traffic &amp; Dragons</title>
+<link rel="stylesheet" href="satellite.css">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg0);color:var(--t0);font-family:var(--font);line-height:1.5}
+main{max-width:1040px;margin:auto;padding:40px 24px 80px}.eyebrow{color:var(--gold);font:12px var(--font-mono);letter-spacing:2px;text-transform:uppercase}
+h1{font-weight:normal;font-size:36px;line-height:1.15;margin:12px 0}p{color:var(--t1);margin:12px 0 20px;max-width:740px}
+.tools{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:26px 0 14px}.search{flex:1;min-width:180px}label{display:block;font-size:13px;color:var(--t1)}
+input,button{font:16px var(--font);color:var(--t0);border:1px solid var(--brd2);border-radius:5px;background:var(--bg1);min-height:44px;padding:10px 12px}
+input{width:100%}button{cursor:pointer;white-space:nowrap}button.primary{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}button:disabled{opacity:.5;cursor:default}
+a{color:var(--acc);text-underline-offset:3px}a:hover{color:var(--t0)}.meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px;color:var(--t1);padding:0 0 16px}
+.notice{margin:10px 0;color:var(--warn);font-size:14px}.notice:empty{display:none}table{border-collapse:collapse;width:100%;table-layout:fixed;border:1px solid var(--brd)}
+th{text-align:left;background:var(--bg2);color:var(--t1);font-size:13px;font-weight:normal;letter-spacing:.4px;padding:14px 18px;position:sticky;top:0;z-index:1}
+th:first-child{width:45%}td{padding:14px 18px;border-top:1px solid var(--brd);vertical-align:top;background:var(--bg1);overflow-wrap:anywhere}
+td+td{border-left:1px solid var(--brd)}.kind{display:block;color:var(--t1);font:11px var(--font-mono);margin-top:5px}.changed td{background:var(--acc-bg)}
+.issue{color:var(--warn);font-size:12px;margin-top:5px}.issue:empty{display:none}input[aria-invalid="true"]{border-color:var(--warn)}
+#no-matches{color:var(--t1);padding:20px 0}footer{color:var(--t1);font-size:13px;margin-top:22px}#import-file{display:none}
+@media(max-width:560px){main{padding:24px 12px 50px}h1{font-size:29px}td,th{padding:12px 10px}th:first-child{width:42%}td input{padding:9px 8px;font-size:16px}.search{flex-basis:100%}.tools button{flex:1;font-size:15px}}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Traffic &amp; Dragons / Naming worksheet</div>
+<h1>Give every capability its name.</h1>
+<p>Open an original name to read its Bible card. Enter a name for every row. To keep a name, type the original again. Blank rows are still awaiting your decision. Export a draft whenever you stop; names can only be applied once every row is complete and valid.</p>
+<div class="tools">
+<div class="search"><label for="search">Find an original or new name</label><input id="search" type="search" placeholder="Search names…" autocomplete="off"></div>
+<button id="import" type="button" disabled>Import names…</button>
+<button id="export" class="primary" type="button" disabled>Export names</button>
+<input id="import-file" type="file" accept=".json,application/json" aria-label="Import a names file">
+</div>
+<div class="meta"><span id="count">Loading capabilities…</span><span id="save-state" role="status"></span></div>
+<div id="readiness" class="notice" role="status"></div>
+<div id="notice" class="notice" role="alert"></div>
+<table aria-label="Original and proposed capability names"><thead><tr><th scope="col">Original name ↗</th><th scope="col">New name</th></tr></thead><tbody id="names"></tbody></table>
+<div id="no-matches" hidden>No names match your search.</div>
+<footer>Drafts save in this browser on this device. Export a JSON backup to keep or share your choices. Import restores a backup. Your choices will be applied to the game in a separate step.</footer>
+<noscript><p>Enable JavaScript to load the capabilities and edit names.</p></noscript>
+</main>
+<script>
+(function(){document.write('<script src="capability_bible.js?fresh='+Date.now()+'"><\/script>');})();
+</script>
+<script id="names-core">
+// Pure rules shared by the page and the #221 tests. Saving a draft never implies approval to apply it.
+var CapabilityNames=(function(){
+  var FORMAT="traffic-and-dragons/capability-names/v1";
+  function rows(bible){return Object.keys(bible).sort().map(function(key){return {from:key,to:""};});}
+  function issues(list){
+    var errors=list.map(function(){return "";}),seen=Object.create(null);
+    list.forEach(function(row,i){
+      var key=capBaseName(row.to);
+      if(!key){errors[i]="Enter a name, or keep the original.";return;}
+      if(row.to.indexOf("|")>=0){errors[i]="Names cannot contain a | character.";return;}
+      if(Object.prototype.hasOwnProperty.call(seen,key)){
+        errors[i]="This resolves to the same name as another row.";
+        errors[seen[key]]="This resolves to the same name as another row.";
+      }else{seen[key]=i;}
+    });
+    return errors;
+  }
+  function pack(list){return JSON.stringify({format:FORMAT,readyToApply:!issues(list).some(function(error){return !!error;}),names:list},null,2);}
+  function forImplementation(text,bible){
+    var list=read(text,bible);
+    if(issues(list).some(function(error){return !!error;}))throw new Error("Names cannot be applied until every row is complete and valid.");
+    return list;
+  }
+  function read(text,bible){
+    var data=JSON.parse(text),expected=rows(bible),byName=Object.create(null);
+    if(!data||data.format!==FORMAT||!Array.isArray(data.names))throw new Error("This is not a capability names file.");
+    if(data.names.length!==expected.length)throw new Error("The file does not match this Bible. Keep the file so its choices can be reconciled.");
+    data.names.forEach(function(row){
+      if(!row||typeof row.from!=="string"||typeof row.to!=="string"||!Object.prototype.hasOwnProperty.call(bible,row.from)||Object.prototype.hasOwnProperty.call(byName,row.from))throw new Error("The file has an unknown, repeated, or malformed original name.");
+      byName[row.from]=row.to;
+    });
+    return expected.map(function(row){
+      if(!Object.prototype.hasOwnProperty.call(byName,row.from))throw new Error("The file is missing a Bible name: "+row.from);
+      return {from:row.from,to:byName[row.from]};
+    });
+  }
+  return {rows:rows,issues:issues,pack:pack,read:read,forImplementation:forImplementation};
+})();
+</script>
+<script>
+(function(){
+  var KEY="tnd_capability_names_v1",list=[],views=[],canSave=true,unsaved=false;
+  function el(id){return document.getElementById(id);}
+  function fail(message,error){el("notice").textContent=message;console.warn("Capability names: "+message,error);}
+  function save(){
+    unsaved=true;
+    if(!canSave){el("save-state").textContent="Draft not saved — export to keep these edits.";return;}
+    try{localStorage.setItem(KEY,CapabilityNames.pack(list));unsaved=false;el("save-state").textContent="Draft saved in this browser.";}
+    catch(error){el("save-state").textContent="Draft not saved.";fail("Browser storage is unavailable or full. Export to keep your choices.",error);}
+  }
+  function refresh(){
+    var issues=CapabilityNames.issues(list),changed=0,completed=0,invalid=0,shown=0,query=el("search").value.toLowerCase().trim();
+    list.forEach(function(row,i){
+      var view=views[i],filled=!!row.to.trim(),different=filled&&row.to!==row.from;
+      if(different)changed++;if(filled)completed++;if(issues[i])invalid++;
+      view.tr.className=different?"changed":"";
+      view.input.setAttribute("aria-invalid",filled&&issues[i]?"true":"false");view.issue.textContent=filled?issues[i]:"";
+      view.tr.hidden=!!query&&(row.from+" "+row.to).toLowerCase().indexOf(query)<0;if(!view.tr.hidden)shown++;
+    });
+    el("count").textContent=completed+" of "+list.length+" named · "+changed+" renamed"+(query?" · "+shown+" shown":"");
+    el("no-matches").hidden=shown>0;
+    el("export").disabled=false;
+    el("readiness").textContent=invalid?"Draft — saving and exporting are available. "+invalid+" rows still need a valid name before implementation.":"Ready for implementation review — every row has a valid name.";
+  }
+  function render(){
+    var body=el("names");body.textContent="";views=[];
+    list.forEach(function(row,i){
+      var tr=document.createElement("tr"),left=document.createElement("td"),right=document.createElement("td"),link=document.createElement("a"),kind=document.createElement("span"),input=document.createElement("input"),issue=document.createElement("div"),entry=CAPABILITY_BIBLE[row.from];
+      link.textContent=row.from;link.href="bible_study.html#"+encodeURIComponent("capability-"+row.from);link.target="capability-bible";
+      link.setAttribute("aria-label",row.from+" — open Bible card in another tab");
+      kind.className="kind";kind.textContent=(entry.kind==="ability"?"ABILITY":"SPELL")+" · TIER "+(entry.tier||0);
+      input.type="text";input.required=true;input.placeholder="New name or original";input.value=row.to;input.autocomplete="off";input.spellcheck=false;input.setAttribute("aria-label","New name for "+row.from);
+      issue.className="issue";issue.id="issue-"+i;input.setAttribute("aria-describedby",issue.id);
+      input.addEventListener("input",function(){row.to=input.value;refresh();save();});
+      left.appendChild(link);left.appendChild(kind);right.appendChild(input);right.appendChild(issue);tr.appendChild(left);tr.appendChild(right);body.appendChild(tr);
+      views.push({tr:tr,input:input,issue:issue});
+    });
+    refresh();
+  }
+  if(typeof CAPABILITY_BIBLE==="undefined"||!Object.keys(CAPABILITY_BIBLE).length){el("count").textContent="Capabilities could not be loaded.";fail("The capability Bible did not load. Reopen this page alongside capability_bible.js.");return;}
+  list=CapabilityNames.rows(CAPABILITY_BIBLE);
+  try{var saved=localStorage.getItem(KEY);if(saved){list=CapabilityNames.read(saved,CAPABILITY_BIBLE);el("save-state").textContent="Saved draft restored.";}else{el("save-state").textContent="Every row starts blank. Edits save automatically.";}}
+  catch(error){canSave=false;el("save-state").textContent="Saved draft unavailable.";fail("The saved draft could not be read. It has been preserved. Import a matching backup to resume saving, or export this worksheet to keep new edits.",error);}
+  render();el("import").disabled=false;
+  el("search").addEventListener("input",refresh);
+  el("export").addEventListener("click",function(){
+    try{
+      var text=CapabilityNames.pack(list),url=URL.createObjectURL(new Blob([text],{type:"application/json"})),link=document.createElement("a");
+      link.href=url;link.download="capability-names.json";document.body.appendChild(link);link.click();link.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);
+      unsaved=false;
+    }catch(error){fail("Names could not be exported: "+error.message,error);}
+  });
+  el("import").addEventListener("click",function(){el("import-file").click();});
+  el("import-file").addEventListener("change",function(){
+    var file=this.files[0];this.value="";if(!file)return;
+    var reader=new FileReader();
+    reader.onerror=function(){fail("The names file could not be read. Your current choices are unchanged.",reader.error);};
+    reader.onload=function(){
+      try{
+        var incoming=CapabilityNames.read(reader.result,CAPABILITY_BIBLE);
+        if(list.some(function(row){return !!row.to;})&&!window.confirm("Replace your current name choices with this file?"))return;
+        list=incoming;canSave=true;el("notice").textContent="";render();save();
+      }catch(error){fail("Import stopped. Your current choices are unchanged. "+error.message,error);}
+    };
+    reader.readAsText(file);
+  });
+  window.addEventListener("beforeunload",function(event){if(unsaved){event.preventDefault();event.returnValue="";}});
+})();
+</script>
+</body>
+</html>
