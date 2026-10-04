@@ -59,15 +59,8 @@
     /* Ready to test row */
     tr.rtt td{background:rgba(200,146,42,.07);}
     tr.rtt:hover td{background:rgba(200,146,42,.14);}
-    /* Resizable status column */
-    th.resizable{position:sticky;right:0;overflow:visible;background:var(--bg1);z-index:3;}
-    .col-resize-handle{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;}
-    .col-resize-handle:hover,.col-resize-handle.dragging{background:var(--acc);opacity:0.4;}
-    /* Status cell sticky-right (the complete/delete columns that sat beside it are gone — #481 G3) */
-    td.status-td{position:sticky;right:0;background:var(--bg1);z-index:1;}
-    tr:hover td.status-td{background:var(--bg2);}
-    tr.rtt td.status-td{background:rgba(184,147,90,.07);}
-    tr.rtt:hover td.status-td{background:rgba(184,147,90,.14);}
+    /* v0.6: no Status column — the dot carries the state; an expanded row shows the status text under its task */
+    .task-status{display:block;margin-top:8px;padding-top:6px;border-top:1px solid var(--brd);}
     /* Lock task column — don't let it shrink */
     td.task-td,th.task-th{min-width:400px;}
     .task-table{table-layout:fixed;width:100%;}
@@ -125,7 +118,7 @@
 
 <script>
 var _sections = [];
-var TODO_VIEWER_VERSION = "v0.5";  // bump on every todo-viewer change (satellite versioning,
+var TODO_VIEWER_VERSION = "v0.6";  // bump on every todo-viewer change (satellite versioning,
                                    // the BP_DESIGNER_VERSION precedent — this page is NOT in
                                    // the SW app shell, so APP_VERSION/CACHE stay put for it)
 // #481 G3 (owner ruling 2026-09-29): TRULY read-only. The viewer used to export TODO.md in place (a no-edit save changed four
@@ -136,7 +129,6 @@ var _tasks = [];
 var _fileHandle = null;
 var _startHandle = null; // last-stored TODO handle, kept even when read permission has lapsed — used ONLY as the picker's startIn anchor (startIn needs no permission), so "Select TODO…" opens IN the project directory instead of the browser default
 var _fileName = ""; // name of the file being viewed (File System Access API exposes no directory path)
-var _statusColW = 240;
 var _hasEffort = false;
 var _compOpen = {}; // track which completed sections are open, keyed by section idx
 var _secOpen = {};  // track which top-level (##) sections are open, keyed by heading title
@@ -421,7 +413,6 @@ function renderPage() {
   if (cur) body += renderSectionGroup(cur);
 
   document.getElementById("root").innerHTML = html + body;
-  wireTaskTable();
   wireSectionToggles();
 }
 
@@ -517,13 +508,18 @@ function toggleTaskExpand(i) {
   renderPage();
 }
 
+// An expanded row's status text, under the task (the Status column is gone — v0.6). Nothing when the row has none.
+function statusBlock(t, cls) {
+  return t.status ? "<span class='task-status " + cls + "'>" + inline(t.status) + "</span>" : "";
+}
+
 function renderTaskTable(sec) {
   var hasEff = sec.hasEffort, hasTier = sec.hasTier;
   var h = "<table class='task-table'>"
     + "<thead><tr><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
     + (hasEff ? "<th class='effort-th'>Effort</th>" : "")
     + (hasTier ? "<th class='tier-th'>Tier</th>" : "")
-    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status<div class='col-resize-handle'></div></th></tr></thead>"
+    + "</tr></thead>"
     + "<tbody class='tt-body' data-sec='"+sec.idx+"'>";
   for (var i = 0; i < _tasks.length; i++) {
     if (_tasks[i].sec !== sec.idx || _tasks[i].completed) continue;
@@ -537,7 +533,7 @@ function renderTaskTable(sec) {
     var dotTitle = done ? "complete" : rtt ? "ready to test" : part ? "partially complete" : "not started";
     var expanded = !!t._expanded;
     var taskBody = expanded
-      ? "<span class='task-body'>" + inline(t.task) + "</span>"
+      ? "<span class='task-body'>" + inline(t.task) + statusBlock(t, sCls) + "</span>"
       : "<span class='task-body task-head' onclick='toggleTaskExpand(" + i + ")'>" + inline(taskHeadline(t.task)) + "</span>";
     var taskCell = "<td class='task-td'><div class='task-cell-inner'>"
           + "<span class='task-arr" + (expanded ? " open" : "") + "' onclick='toggleTaskExpand(" + i + ")' title='Expand / collapse'>&#9654;</span>"
@@ -549,7 +545,6 @@ function renderTaskTable(sec) {
       + taskCell
       + (hasEff ? "<td class='effort-td'>" + effortBadge(t.effort) + "</td>" : "")
       + (hasTier ? "<td class='tier-td'>" + tierBadge(t.tier) + "</td>" : "")
-      + "<td class='status-td " + sCls + "'>" + (expanded ? inline(t.status) : "") + "</td>"
       + "</tr>";
   }
   h += "</tbody></table>";
@@ -575,13 +570,13 @@ function renderCompletedSection(sec) {
     + "<thead><tr><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
     + (hasEff ? "<th class='effort-th'>Effort</th>" : "")
     + (hasTier ? "<th class='tier-th'>Tier</th>" : "")
-    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status</th></tr></thead>"
+    + "</tr></thead>"
     + "<tbody>";
   for (var j = 0; j < compTasks.length; j++) {
     var t = compTasks[j].task, gi = compTasks[j].idx;
     var cExpanded = !!t._expanded;
     var cBody = cExpanded
-      ? "<span class='task-body'>" + inline(t.task) + "</span>"
+      ? "<span class='task-body'>" + inline(t.task) + statusBlock(t, "status sdone") + "</span>"
       : "<span class='task-body task-head' onclick='toggleTaskExpand(" + gi + ")'>" + inline(taskHeadline(t.task)) + "</span>";
     h += "<tr data-idx='" + gi + "'>"
       + "<td class='check-cell'><span style='color:var(--grn);font-size:13px;'>&#10003;</span></td>"
@@ -591,41 +586,10 @@ function renderCompletedSection(sec) {
         + cBody + "</div></td>"
       + (hasEff ? "<td class='effort-td'>" + effortBadge(t.effort) + "</td>" : "")
       + (hasTier ? "<td class='tier-td'>" + tierBadge(t.tier) + "</td>" : "")
-      + "<td class='status-td status sdone'>" + (cExpanded ? inline(t.status) : "") + "</td>"
       + "</tr>";
   }
   h += "</tbody></table></div></div>";
   return h;
-}
-
-function wireTaskTable() {
-  initColResize();
-}
-
-function initColResize() {
-  var handles = document.querySelectorAll('.col-resize-handle');
-  for (var k = 0; k < handles.length; k++) wireColResize(handles[k]);
-}
-function wireColResize(handle) {
-  handle.addEventListener('mousedown', function(e) {
-    e.preventDefault();
-    var startX = e.clientX;
-    var startW = handle.parentElement.offsetWidth;
-    handle.classList.add('dragging');
-    function onMove(e) {
-      var newW = Math.max(60, startW + (e.clientX - startX));
-      _statusColW = newW;
-      var ths = document.querySelectorAll('th.resizable');
-      for (var j = 0; j < ths.length; j++) ths[j].style.width = newW + 'px';
-    }
-    function onUp() {
-      handle.classList.remove('dragging');
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  });
 }
 
 function toggleCompletedSection(secIdx) {
