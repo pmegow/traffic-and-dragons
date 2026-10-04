@@ -29,16 +29,16 @@ prove("tag_table.js", [
     find: "var key=rPlaceAt(R,lh.index).key;", replace: "var key=rPlaceAt(R,-1).key;",
     mustFail: "arrive-then-hours files on the shop" },
   { label: "the item files where the reply ends",
-    find: "fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom,rPlaceAt(R,liOff[lii]));", replace: "fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom);",
+    find: "fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom,rPlaceAtBlock(R,text,liOff[lii]));", replace: "fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom);",
     mustFail: "place-then-leave files the item" },
   { label: "the fight anchors where the reply ends",
     find: "node:rPlaceAt(R,csOff[csi]).key};", replace: "node:rPlaceAt(R,null).key};",
     mustFail: "fight-then-ride anchors the aftermath" },
   { label: "the gain takes from where the party stood before the reply",
-    find: "autoTakeLocationItem(igq.base,null,igq.n,rPlaceAt(R,igOff[igi]).key)", replace: "autoTakeLocationItem(igq.base,null,igq.n,null)",
+    find: "autoTakeLocationItem(igq.base,null,igq.n,rPlaceAtBlock(R,text,igOff[igi]).key)", replace: "autoTakeLocationItem(igq.base,null,igq.n,null)",
     mustFail: "arrive-then-take takes from where the hero arrived" },
   { label: "wares file where the reply ends",
-    find: "_wat=rPlaceAt(R,wtOff[wi]);", replace: "_wat=rPlaceAt(R,null);",
+    find: "_wat=rPlaceAtBlock(R,text,wtOff[wi]);", replace: "_wat=rPlaceAt(R,null);",
     mustFail: "wares and a state note filed before a leave" },
   { label: "a state note files where the reply ends",
     find: "var lsAt=rPlaceAt(R,lsOff[lsi]),", replace: "var lsAt=rPlaceAt(R,null),",/* #481 A5: the handler parses the place operand now */
@@ -46,7 +46,7 @@ prove("tag_table.js", [
 ]);
 prove("helpers.js", [
   { label: "the trade gate judges the reply's end",
-    find: "_st=placeStateAt(_tl,_go>=0?_go:null)", replace: "_st=placeStateAt(_tl,null)",
+    find: "_st=placeStateAt(_tl,_go>=0?tagBlockEnd(_t,_go):null)", replace: "_st=placeStateAt(_tl,null)",
     mustFail: "pay-then-leave lands" }
 ]);
 prove("identity.js", [

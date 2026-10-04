@@ -27163,6 +27163,24 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(JSON.stringify(worldState.character.inventory).indexOf("Sihedron")>=0)return "the spear must not land in the new hero's pack";
     return true;
   });
+  t("#511 ② a block of tags with no prose between them is ONE instant for the trade tags: wares, wants, coin, a placed item and the keeper written ahead of the block's arrival file on the arrival; prose between breaks the block; a description before the move still describes the place being left (#512)",function(){
+    quartetVillage();worldState.world.sublocation=null;var tp="The Village|the trading post";if(!memory.map.nodes[tp])memory.map.nodes[tp]={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[],size:"small",shop:true,wares:[],wanted:[]};
+    memory.npcs["Frizwick"].lastSeenAt=tp;
+    var r=quiet(function(){return applyMuts("[WARES:Brass comb|2 sp|Frizwick][WANTED:Old map|1 gp|Frizwick][SHOP_KEEPER:Frizwick][SUBLOCATION:the trading post]");}).r,node=memory.map.nodes[tp];
+    if(!(node.wares||[]).some(function(w){return w.item==="Brass comb";}))return "the ware written ahead of the arrival files on the shop: "+JSON.stringify(r.muts);
+    if(!(node.wanted||[]).some(function(w){return w.item==="Old map";}))return "the want too: "+JSON.stringify(node.wanted);
+    if(node.keeper!=="Frizwick")return "the keeper of record too: "+JSON.stringify(node.keeper);
+    if(worldState.world.sublocation!=="the trading post")return "and the party ends in the shop";
+    worldState.character.coin=1000;worldState.character.inventory=[];worldState.world.sublocation=null;
+    r=quiet(function(){return applyMuts("[GOLD:-2][ITEM_GAINED:Brass comb][SUBLOCATION:the trading post]");}).r;
+    if(worldState.character.coin!==800||worldState.character.inventory.indexOf("Brass comb")<0)return "the coin and its rider ahead of the arrival are judged in the shop: "+worldState.character.coin+" "+JSON.stringify(r.muts);
+    worldState.world.sublocation=null;node.wares=[];
+    r=quiet(function(){return applyMuts("[WARES:Tin cup|1 sp|Frizwick] You push through the door. [SUBLOCATION:the trading post]");}).r;
+    if((node.wares||[]).some(function(w){return w.item==="Tin cup";})||!r.muts.some(function(m){return /Wares refused/.test(m);}))return "prose between the tags breaks the block — the ware is judged where it was written (outside): "+JSON.stringify(r.muts);
+    worldState.world.sublocation=null;memory.map.nodes["The Village"].description=null;
+    quiet(function(){applyMuts("[LOCATION_DESC:Mud streets and smoke.][SUBLOCATION:the trading post]");});
+    return (memory.map.nodes["The Village"].description==="Mud streets and smoke."&&!node.description)?true:"a description in the block still describes the place being left (#512): "+JSON.stringify([memory.map.nodes["The Village"].description,node.description]);
+  });
   t("#511 a same-world footer after an arrival is not a move: [SUBLOCATION:the tavern][LOCATION:The Village] leaves the hero in the tavern; a lone same-world [LOCATION:] keeps its old reading",function(){
     quartetVillage();worldState.world.sublocation=null;var r=applyMuts("[SUBLOCATION:the tavern][LOCATION:The Village]");
     if(worldState.world.sublocation!=="the tavern")return "the footer cleared the arrival: "+JSON.stringify(worldState.world)+" "+JSON.stringify(r.muts);

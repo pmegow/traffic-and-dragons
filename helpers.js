@@ -3250,9 +3250,9 @@ function villageTradeContext(text,R){
      keeper rule stays: an arrival in the reply before the coin moved resets the room, and only the reply's own speakers are
      known to be inside. State-only callers pass nothing. */
   var _t=String(text||""),_spk=[],_arrived=false;
-  if(_t){var _tl=(R&&R.places)?R.places:placeTimeline(_t),_go=_t.search(/\[GOLD:/),_st=placeStateAt(_tl,_go>=0?_go:null),_ei;
+  if(_t){var _tl=(R&&R.places)?R.places:placeTimeline(_t),_go=_t.search(/\[GOLD:/),_st=placeStateAt(_tl,_go>=0?tagBlockEnd(_t,_go):null),_ei;/* #511 ②: the coin is judged at its block's arrival */
     if(_st&&_st.key)key=_st.key;
-    for(_ei=0;_ei<_tl.events.length;_ei++){var _e=_tl.events[_ei];if((_go<0||_e.off<_go)&&(_e.kind==="sub"||(_e.kind==="world"&&!_e.twin)))_arrived=true;}
+    for(_ei=0;_ei<_tl.events.length;_ei++){var _e=_tl.events[_ei];if((_go<0||_e.off<tagBlockEnd(_t,_go))&&(_e.kind==="sub"||(_e.kind==="world"&&!_e.twin)))_arrived=true;}
     var _sm=_t.match(/\[SAY:[^\]]+\]/g)||[],_si;for(_si=0;_si<_sm.length;_si++)_spk.push(_sm[_si].slice(5,-1).split("|")[0].trim());/* #458: the |mood is not part of the name — "Name|bright" is nobody on the roster */}
   var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk],leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk;
   if(!isShopNode(rk,node))return {ok:false,reason:"not in a shop ("+leaf+")"};
@@ -3278,6 +3278,14 @@ function shopOpportunity(){
   return (t&&t.ok&&t.shop)?{shop:t.shop,keeper:t.keeper}:null;
 }
 
+/* #511 ②: a tag's BLOCK — the run of tags with nothing but whitespace between them that starts at `off` — and the offset just
+   past its LAST movement tag ([LOCATION:], [SUBLOCATION:], [SUBLOCATION_LEAVE]); `off` itself when the block moves nowhere.
+   Pure. The trade tags read their place at that offset (rPlaceAtBlock, tag_table.js). */
+function tagBlockEnd(text,off){
+  var t=String(text==null?"":text),p=off|0,last=-1;
+  while(p<t.length){var m=t.slice(p).match(/^\s*(\[[^\]]*\])/);if(!m)break;var q=p+m[0].length;if(/^\[(?:LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)[:\]]/.test(m[1]))last=q;p=q;}
+  return last>=0?last:(off|0);
+}
 /* #407 THE SHOP INTERFACE (owner drawing 2026-09-16; four rulings in the TODO row). A pure view model and plan over the
    village's own teeth: villageTradeContext (a shop with its keeper present), the shop node's LIVE wares and WANTED list,
    and bible canon. Sell price = HALF canon, the keeper's stated OFFER when the keeper WANTS it (an offer in words is no

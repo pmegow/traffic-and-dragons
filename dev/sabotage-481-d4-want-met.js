@@ -12,10 +12,10 @@ prove("memory.js", [
 ]);
 prove("tag_table.js", [
   { label: "a met want is never retired",
-    find: "var _wmet=(R.goldIn>0&&typeof retireWantedAt===\"function\")?retireWantedAt(rPlaceAt(R,ilOff[ili]),ilq.base):null;", replace: "var _wmet=null;",
+    find: "var _wmet=(R.goldIn>0&&typeof retireWantedAt===\"function\")?retireWantedAt(rPlaceAtBlock(R,text,ilOff[ili]),ilq.base):null;", replace: "var _wmet=null;",
     mustFail: "a GM-narrated sale in the shop retires the want" },
   { label: "#591 a discarded wanted item retires the want again (no coin needed)",
-    find: "var _wmet=(R.goldIn>0&&typeof retireWantedAt===\"function\")?retireWantedAt(rPlaceAt(R,ilOff[ili]),ilq.base):null;", replace: "var _wmet=(typeof retireWantedAt===\"function\")?retireWantedAt(rPlaceAt(R,ilOff[ili]),ilq.base):null;",
+    find: "var _wmet=(R.goldIn>0&&typeof retireWantedAt===\"function\")?retireWantedAt(rPlaceAtBlock(R,text,ilOff[ili]),ilq.base):null;", replace: "var _wmet=(typeof retireWantedAt===\"function\")?retireWantedAt(rPlaceAtBlock(R,text,ilOff[ili]),ilq.base):null;",
     mustFail: "#591 a discarded or consumed wanted item" }
 ]);
 prove("api.js", [

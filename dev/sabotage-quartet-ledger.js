@@ -6,6 +6,12 @@
 var sabotage = require("./sabotage.js"), code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: ["node", ["dev/run-tests.js", "the ledger quartet"]], cases: cases }); }
 prove("helpers.js", [
+  { label: "#511 ② prose between the tags no longer breaks the block (a ware written outside files on the shop)",
+    find: "while(p<t.length){var m=t.slice(p).match(/^\\s*(\\[[^\\]]*\\])/);if(!m)break;", replace: "while(p<t.length){var m=t.slice(p).match(/^[^\\[]*(\\[[^\\]]*\\])/);if(!m)break;",
+    mustFail: "#511 ② a block of tags" },
+  { label: "#511 ② the coin is judged where it was written, not at its block's arrival",
+    find: "_st=placeStateAt(_tl,_go>=0?tagBlockEnd(_t,_go):null),_ei;", replace: "_st=placeStateAt(_tl,_go>=0?_go:null),_ei;",
+    mustFail: "#511 ② a block of tags" },
   { label: "#517 ① → #598 the net is rounded to whole gold again (the whistles are given away)",
     find: "  var netCp=buyCp-sellCp,coinAfter=cat.coin-netCp,ok=lines.length>0&&coinAfter>=0;", replace: "  var netCp=Math.round((buyCp-sellCp)/100)*100,coinAfter=cat.coin-netCp,ok=lines.length>0&&coinAfter>=0;",
     mustFail: "#517 ① → #598 a sale bundled" },
@@ -14,6 +20,12 @@ prove("helpers.js", [
     mustFail: "#517 ② plural coin words" }
 ]);
 prove("tag_table.js", [
+  { label: "#511 ② the trade tags read their own offset again (a ware ahead of the arrival files on the street)",
+    find: "function rPlaceAtBlock(R,text,off){return rPlaceAt(R,(typeof tagBlockEnd===\"function\")?tagBlockEnd(text,off):off);}", replace: "function rPlaceAtBlock(R,text,off){return rPlaceAt(R,off);}",
+    mustFail: "#511 ② a block of tags" },
+  { label: "#511 ② a description joins the block rule (it describes the place being entered)",
+    find: "if(ldesc)fileLocationDesc(ldesc[1],rPlaceAt(R,ldesc.index));", replace: "if(ldesc)fileLocationDesc(ldesc[1],rPlaceAtBlock(R,text,ldesc.index));",
+    mustFail: "#511 ② a block of tags" },
   { label: "#518 the gift is no longer bounded by what left the pack",
     find: "if(_gHits!==null&&_gHits<cIq.n){", replace: "if(false){",
     mustFail: "#518 a gift bounded" },
