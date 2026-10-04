@@ -1,7 +1,7 @@
-// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: CHROME_PATH or the default install, driven by dev/cdp-browser.js — no Playwright (#485)); run by hand, and its receipt is the audit that cites it (#405).
 // Isolated browser fixture: saved audio preferences persist across real reloads.
 const assert=require('assert/strict'), fs=require('fs'), path=require('path');
-const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');
+const {chromium}=require('./cdp-browser.js');
 const root=path.join(__dirname,'..'),url=process.env.AMBIENT_QA_URL||'http://127.0.0.1:8124';
 const engine=require('./load-engine.js');engine.loadEngine();engine.makeTestWorld({kind:'village',clock:{min:205}});
 worldState.world.location='The Village';worldState.world.sublocation='the square';
@@ -9,7 +9,7 @@ memory.map.nodes['The Village']={parent:null};memory.map.nodes['The Village|the 
 const fixture=JSON.parse(JSON.stringify({world:worldState,memory}));
 (async()=>{
 for(const [allowed,touch] of [[true,false],[false,false],[false,true]]){
- const browser=await chromium.launch({channel:'chrome',headless:true,args:[allowed?'--autoplay-policy=no-user-gesture-required':'--autoplay-policy=document-user-activation-required']});
+ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined),headless:true,args:[allowed?'--autoplay-policy=no-user-gesture-required':'--autoplay-policy=document-user-activation-required']});
  try {
   const context=await browser.newContext({serviceWorkers:'block',hasTouch:touch}),page=await context.newPage(),errors=[];
   await context.route('**/*',r=>r.request().url().startsWith(url)?r.continue():r.abort());page.on('pageerror',e=>errors.push(e.message));

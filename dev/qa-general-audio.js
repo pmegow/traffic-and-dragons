@@ -1,9 +1,9 @@
-// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
-const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: CHROME_PATH or the default install, driven by dev/cdp-browser.js — no Playwright (#485)); run by hand, and its receipt is the audit that cites it (#405).
+const {chromium}=require('./cdp-browser.js');
 const assert=require('assert/strict'),fs=require('fs');const engine=require('./load-engine');engine.loadEngine();engine.makeTestWorld({kind:'adventure',clock:{min:340}});
 worldState.world.location='Ashfen';worldState.world.sublocation=null;memory.map.nodes.Ashfen={parent:null,visits:1};
 const fixture=JSON.parse(JSON.stringify({world:worldState,memory})),url=process.env.AMBIENT_QA_URL||'http://127.0.0.1:8124';
-(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required']});try{
+(async()=>{const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined),headless:true,args:['--autoplay-policy=no-user-gesture-required']});try{
 const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),errors=[];
 await context.route('**/*',r=>r.request().url().startsWith(url)?r.continue():r.abort());page.on('pageerror',e=>errors.push(e.message));
 await page.addInitScript(()=>{localStorage.setItem('tnd_ambient_enabled_v1','1');localStorage.setItem('tnd_ak_v1','fixture-never-sent');window.__voices=[];const create=AudioContext.prototype.createBufferSource;AudioContext.prototype.createBufferSource=function(){const v=create.call(this),start=v.start.bind(v),stop=v.stop.bind(v);v.start=function(...args){if(v.loop)__voices.push(v);return start(...args)};v.stop=function(...args){v.__stopped=true;return stop(...args)};return v};});

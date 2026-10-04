@@ -1,6 +1,6 @@
-// MANUAL QA — not run by CI; requires PLAYWRIGHT_PATH and Chrome. Isolated local fixture, no remote requests or saved-campaign access.
+// MANUAL QA — not run by CI; requires Chrome (CHROME_PATH or the default install), driven by dev/cdp-browser.js — no Playwright (#485). Isolated local fixture, no remote requests or saved-campaign access.
 const fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert/strict'),crypto=require('crypto');
-const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
+const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..');
 const engine=require('./load-engine');engine.loadEngine();engine.makeTestWorld({kind:'village',clock:{min:0}});
 worldState.world.location='The Village';worldState.world.sublocation=null;
@@ -14,7 +14,7 @@ const fixture=JSON.parse(JSON.stringify(saved?{world:saved.worldState,memory:sav
 const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(!p.startsWith(root+path.sep)){res.writeHead(403);return res.end()};fs.readFile(p,(e,b)=>{res.writeHead(e?404:200,{'Content-Type':({'.js':'application/javascript','.html':'text/html','.css':'text/css','.mp3':'audio/mpeg'})[path.extname(p)]||'application/octet-stream'});res.end(e?'missing':b)})});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const url=process.env.NOCTINA_QA_URL||'http://127.0.0.1:'+server.address().port;let browser;
 try{
- browser=await chromium.launch({channel:'chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required']});const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),errors=[],requests=[];
+ browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined),headless:true,args:['--autoplay-policy=no-user-gesture-required']});const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),errors=[],requests=[];
  await context.route('**/*',r=>r.request().url().startsWith(url)?r.continue():r.abort());page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/sfx/'))requests.push(r.url())});
  await page.addInitScript(()=>{localStorage.setItem('tnd_ambient_enabled_v1','1');window.__loops=[];const create=AudioContext.prototype.createBufferSource;AudioContext.prototype.createBufferSource=function(){const s=create.call(this),start=s.start.bind(s),connect=s.connect.bind(s);s.connect=function(n){s.__gain=n;return connect(n)};s.start=function(...a){if(s.loop)__loops.push(s);return start(...a)};return s};});
  await page.goto(url+'/index.html');await page.waitForFunction(()=>typeof Ambient!=='undefined');
@@ -31,6 +31,6 @@ try{
  await page.waitForFunction(()=>Ambient.inspect().key.endsWith('|village-night')&&Ambient.inspect().sources===1&&!Ambient.inspect().pending,null,{timeout:10000});
  assert(requests.some(u=>u.endsWith('/sfx/village-night-noctina-v1.mp3')),'full wildlife mix starts at 21:00 with the saved profile');
  await page.evaluate(()=>{worldState.world.sublocation='unrecorded room';memory.map.nodes['The Village|unrecorded room']={parent:'The Village'};saveLocal();syncUI()});await page.waitForFunction(()=>Ambient.inspect().sources===0,null,{timeout:6000});assert.equal(await page.evaluate(()=>Ambient.inspect().decodedBytes),0);
- await page.evaluate(()=>{worldState.world.sublocation=null;worldState.clock.min=23*60;saveLocal();syncUI()});await page.waitForFunction(()=>Ambient.inspect().sources===0&&!Ambient.inspect().pending,null,{timeout:10000});
+ await page.evaluate(()=>{worldState.world.sublocation=null;worldState.clock.min+=(1380-clockMinuteOfDay()+1440)%1440;saveLocal();syncUI()});/* 23:00 by minute-of-day — clock.min counts from dawn, so a bare 23*60 was 05:00 */await page.waitForFunction(()=>Ambient.inspect().key.endsWith('|village-night')&&Ambient.inspect().sources===1&&!Ambient.inspect().pending,null,{timeout:10000});/* #485: the night bed runs 21:00–05:00 now (audio-scenes.js), so 23:00 outdoors is the same ONE night source — the old 'silence at 23:00' predates it */
  assert.deepEqual(errors,[]);if(savedBytes)assert(savedBytes.equals(fs.readFileSync(process.env.NOCTINA_SAVE)),'original save must remain byte-identical');fs.writeFileSync(path.join(root,'Audio/Music/Village-Night/browser-dusk-check.json'),JSON.stringify({pass:true,sourceSaveSha256:savedBytes?crypto.createHash('sha256').update(savedBytes).digest('hex'):null,...receipt,checks:['saved-profile dusk MP3 request and decode','saved-profile night transition at 21:00','night loop bounds','mono memory budget','narration duck','pause/resume','indoor silence and buffer release','05:00 soundtrack stops'],errors},null,2));console.log('NOCTINA BROWSER GREEN: saved-profile dusk/night playback, decoded bounds, duck, pause/resume, indoor release, morning stop.');
 }finally{if(browser)await browser.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});

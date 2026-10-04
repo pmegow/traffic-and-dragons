@@ -1,6 +1,6 @@
-// MANUAL QA — not run by CI; requires PLAYWRIGHT_PATH and Chrome. Isolated copy of a local save; external requests blocked, original save verified byte-identical.
+// MANUAL QA — not run by CI; requires Chrome (CHROME_PATH or the default install), driven by dev/cdp-browser.js — no Playwright (#485). Isolated copy of a local save; external requests blocked, original save verified byte-identical.
 const fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert/strict'),crypto=require('crypto');
-const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
+const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..');
 const savePath=process.env.HEARTH_SAVE||path.join(root,'Campaigns/The_Village__Ammut_/saves/The_Village__Ammut__Ammut_t205.tnd');
 const savedBytes=fs.readFileSync(savePath);
@@ -9,7 +9,7 @@ const fixture=JSON.parse(JSON.stringify({world:saved.worldState,memory:saved.mem
 const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(!p.startsWith(root+path.sep)){res.writeHead(403);return res.end()};fs.readFile(p,(e,b)=>{res.writeHead(e?404:200,{'Content-Type':({'.js':'application/javascript','.html':'text/html','.css':'text/css','.mp3':'audio/mpeg'})[path.extname(p)]||'application/octet-stream'});res.end(e?'missing':b)})});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const url=process.env.HEARTH_QA_URL||'http://127.0.0.1:'+server.address().port;let browser;
 try{
- browser=await chromium.launch({channel:'chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required']});const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),errors=[],requests=[];
+ browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined),headless:true,args:['--autoplay-policy=no-user-gesture-required']});const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),errors=[],requests=[];
  await context.route('**/*',r=>r.request().url().startsWith(url)?r.continue():r.abort());page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/sfx/'))requests.push(r.url())});
  await page.addInitScript(()=>{localStorage.setItem('tnd_ambient_enabled_v1','1');window.__loops=[];const create=AudioContext.prototype.createBufferSource;AudioContext.prototype.createBufferSource=function(){const s=create.call(this),start=s.start.bind(s),connect=s.connect.bind(s);s.connect=function(n){s.__gain=n;return connect(n)};s.start=function(...a){if(s.loop)__loops.push(s);return start(...a)};return s};});
  await page.goto(url+'/index.html');await page.waitForFunction(()=>typeof Ambient!=='undefined');

@@ -98,6 +98,8 @@ async function launch(opts) {
   // A hosted Linux CI runner may refuse Chrome's sandbox (AppArmor user namespaces); the pages here are local fixtures
   // behind a request interceptor that aborts every foreign host, so dropping it there costs nothing.
   if (process.platform === "linux" && (process.env.CI || (process.getuid && process.getuid() === 0))) args.push("--no-sandbox", "--disable-dev-shm-usage");
+  // #485: a caller's own flags (the audio QA scripts pass --autoplay-policy); Playwright's `args` option, honoured here too.
+  if (Array.isArray(opts.args)) opts.args.forEach(function (a) { if (typeof a === "string" && a && args.indexOf(a) < 0) args.push(a); });
   args.push("about:blank");
   const child = cp.spawn(exe, args, { stdio: ["ignore", "ignore", "pipe"], windowsHide: true });
   let stderr = ""; child.stderr.on("data", d => { if (stderr.length < 4000) stderr += d; });
@@ -154,12 +156,26 @@ class Context {
     // nothing to register anyway; this keeps the promise if a test ever serves from localhost).
     if (opts.serviceWorkers === "block") this.initScripts.push("if(navigator.serviceWorker)navigator.serviceWorker.register=function(){return Promise.reject(new DOMException('service workers are blocked in this test context','SecurityError'));};");
   }
-  async route(pattern, handler) { checkPattern(pattern); this.routes.unshift({ handler: handler }); for (const p of this.pages) await p._interceptRequests(); }
+  async route(pattern, handler) { checkPattern(pattern); this.routes.unshift({ handler: handler, match: patternMatcher(pattern) }); for (const p of this.pages) await p._interceptRequests(); }
   async addInitScript(fn, arg) { const src = scriptOf(fn, arg); this.initScripts.push(src); for (const p of this.pages) await p._send("Page.addScriptToEvaluateOnNewDocument", { source: src }); }
-  async newPage() { const p = await Page._create(this); this.pages.push(p); this.browser.pages.push(p); return p; }
+  // #485: context.setOffline(bool) — Playwright's shape; emulates offline on every page of the context (and pages opened later).
+  async setOffline(offline) { this.offline = !!offline; for (const p of this.pages) await p._send("Network.enable").then(() => p._send("Network.emulateNetworkConditions", { offline: this.offline, latency: 0, downloadThroughput: -1, uploadThroughput: -1 })); }
+  async newPage() { const p = await Page._create(this); this.pages.push(p); if (this.offline) await this.setOffline(true); this.browser.pages.push(p); return p; }
 }
 
-function checkPattern(pattern) { if (pattern !== "**/*") throw new Error("cdp-browser: only the '**/*' route pattern is supported (got " + JSON.stringify(pattern) + ")"); }
+// #485: a route pattern is the everything-glob (two stars, slash, star), an exact URL, or a glob where one star matches
+// any run without a slash and two stars any run — the Playwright subset the QA scripts use. Routes are tried newest
+// first; a route whose pattern does not match falls through to the next.
+function checkPattern(pattern) { if (typeof pattern !== "string" || !pattern) throw new Error("cdp-browser: a route pattern must be a non-empty string (got " + JSON.stringify(pattern) + ")"); }
+function patternMatcher(pattern) {
+  if (pattern === "**/*") return function () { return true; };
+  if (!/[*?]/.test(pattern)) return function (u) { return u === pattern || u.split("?")[0] === pattern; };
+  const src = pattern.split("**").map(function (part) {
+    return part.split("*").map(function (lit) { return lit.replace(/[.+^${}()|[\]\\?]/g, "\\$&"); }).join("[^/]*");
+  }).join(".*");
+  const re = new RegExp("^" + src + "$");
+  return function (u) { return re.test(u); };
+}
 function scriptOf(fn, arg) { return typeof fn === "function" ? "(" + fn + ")(" + (arg === undefined ? "" : JSON.stringify(arg)) + ")" : String(fn); }
 
 // ── Page ────────────────────────────────────────────────────────────────────────────────────────
@@ -177,7 +193,7 @@ class Page {
   }
   constructor(ctx, targetId, sessionId) {
     this.ctx = ctx; this.conn = ctx.browser.conn; this.targetId = targetId; this.sessionId = sessionId;
-    this.routes = []; this.listeners = { pageerror: [], dialog: [], download: [] }; this.intercepting = false;
+    this.routes = []; this.listeners = { pageerror: [], dialog: [], download: [], console: [], request: [] }; this.intercepting = false;
   }
   _send(method, params) { return this.conn.send(method, params, this.sessionId); }
   _on(method, fn) { return this.conn.on(this.sessionId, method, fn); }
@@ -187,6 +203,8 @@ class Page {
       const text = String(ex.description || ex.value || d.text || "page error").split("\n")[0].replace(/^Uncaught (\(in promise\) )?/, "");
       this._emit("pageerror", new Error(text.replace(/^[A-Za-z]*Error: /, "")));
     });
+    // #485: page.on("console") as Playwright shapes it — {type(), text()} — the audio QA scripts read the ambience log.
+    this._on("Runtime.consoleAPICalled", p => { const type = p.type === "warning" ? "warning" : p.type, text = (p.args || []).map(a => a.value !== undefined ? (typeof a.value === "string" ? a.value : JSON.stringify(a.value)) : (a.description || a.type)).join(" "); this._emit("console", { type: () => type, text: () => text }); });
     // Mirror Playwright: with no listener a beforeunload is ACCEPTED (so reload/goto proceed) and every other dialog dismissed.
     this._on("Page.javascriptDialogOpening", p => { const d = new Dialog(this, p); if (!this._emit("dialog", d)) (p.type === "beforeunload" ? d.accept() : d.dismiss()).catch(() => {}); });
     this._on("Fetch.requestPaused", p => this._request(p));
@@ -215,7 +233,8 @@ class Page {
       route._settle("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 204, responseHeaders: h, body: "" }).catch(e => console.error("[cdp-browser] preflight reply failed: " + e.message));
       return;
     }
-    const r = this.routes[0] || this.ctx.routes[0];
+    this._emit("request", { url: () => p.request.url, method: () => p.request.method });/* #485: page.on("request") — only while intercepting (a route is set), which is when the QA scripts listen */
+    const r = this.routes.concat(this.ctx.routes).filter(function (x) { return x.match(p.request.url); })[0];
     if (!r) { route.continue().catch(e => console.error("[cdp-browser] continue failed: " + e.message)); return; }
     Promise.resolve().then(() => r.handler(route)).catch(e => { console.error("[cdp-browser] route handler threw: " + (e && e.stack || e)); route.abort().catch(() => {}); });
   }
@@ -231,7 +250,7 @@ class Page {
       this._listen(name, v => { clearTimeout(timer); resolve(v); }, true);
     });
   }
-  async route(pattern, handler) { checkPattern(pattern); this.routes.unshift({ handler: handler }); await this._interceptRequests(); }
+  async route(pattern, handler) { checkPattern(pattern); this.routes.unshift({ handler: handler, match: patternMatcher(pattern) }); await this._interceptRequests(); }
   async addInitScript(fn, arg) { await this._send("Page.addScriptToEvaluateOnNewDocument", { source: scriptOf(fn, arg) }); }
   async _navigated(start, what) {
     let off, timer;
@@ -324,7 +343,27 @@ class Locator {
       await sleep(30);
     }
   }
-  click() { return this._one("el.click();return true;", { visible: true, enabled: true }, true); }
+  /* #485: a REAL click — scrolled into view, then CDP mouse events at the element's centre — so the page sees pointerdown/
+     mousedown/mouseup/click as a trusted user gesture (Chrome's autoplay policy and the ambience "tap to start" gate accept
+     nothing less; the in-page el.click() under userGesture did not satisfy them). An element with no box (display:none
+     children of a visible parent, a 0×0 anchor) falls back to el.click(). tap() is the touch twin; check() is Playwright's. */
+  async _centre() { return this._one("el.scrollIntoView({block:'center',inline:'center'});var r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height};", { visible: true, enabled: true }); }
+  async click() {
+    const b = await this._centre();
+    if (!(b.w > 0 && b.h > 0)) return this._one("el.click();return true;", { visible: true, enabled: true }, true);
+    await this.page._send("Input.dispatchMouseEvent", { type: "mouseMoved", x: b.x, y: b.y });
+    await this.page._send("Input.dispatchMouseEvent", { type: "mousePressed", x: b.x, y: b.y, button: "left", clickCount: 1 });
+    await this.page._send("Input.dispatchMouseEvent", { type: "mouseReleased", x: b.x, y: b.y, button: "left", clickCount: 1 });
+    return true;
+  }
+  async tap() {
+    const b = await this._centre();
+    await this.page._send("Emulation.setTouchEmulationEnabled", { enabled: true });
+    await this.page._send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: b.x, y: b.y }] });
+    await this.page._send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    return true;
+  }
+  async check() { const on = await this._one("return !!el.checked;", {}); if (!on) await this.click(); return this._one("return !!el.checked;", {}); }
   fill(value) {
     return this._one("el.focus();if(el.isContentEditable)el.textContent=" + JSON.stringify(String(value)) + ";else el.value=" + JSON.stringify(String(value)) +
       ";el.dispatchEvent(new InputEvent('input',{bubbles:true,composed:true,inputType:'insertText',data:" + JSON.stringify(String(value)) + "}));return true;", { visible: true, enabled: true }, true);

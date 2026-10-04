@@ -1,8 +1,8 @@
-// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: CHROME_PATH or the default install, driven by dev/cdp-browser.js — no Playwright (#485)); run by hand, and its receipt is the audit that cites it (#405).
 // #413 browser QA: the ways row paints from the real map in a real Chrome, and a chip tap PREFILLS the input.
 // Local fixture only — no campaign writes, no paid calls. Serve the repo on 127.0.0.1:8124 (or set AMBIENT_QA_URL),
-// set PLAYWRIGHT_PATH to an installed Playwright module, and QA_OUT to a folder for the screenshots + receipt.
-const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');
+// set QA_OUT to a folder for the screenshots + receipt.
+const {chromium}=require('./cdp-browser.js');
 const assert=require('assert/strict'),fs=require('fs'),path=require('path'),root=path.join(__dirname,'..');
 const engine=require(root+'/dev/load-engine.js');engine.loadEngine();engine.makeTestWorld({kind:'village',clock:{min:625}});
 worldState.world.location='The Village';worldState.world.sublocation='the tavern';
@@ -14,7 +14,7 @@ memory.map.nodes["The Village|Healer's Garden"]={firstVisit:1,visits:0,descripti
 memory.map.nodes['Marrowgate']={firstVisit:4,visits:1,description:null,parent:null,npcs:[],items:[],size:'large',travelMins:null};
 memory.map.edges=[{from:'The Village',to:'Marrowgate',turn:4}];
 const fixture=JSON.parse(JSON.stringify({world:worldState,memory})),url=process.env.AMBIENT_QA_URL||'http://127.0.0.1:8124',out=process.env.QA_OUT||root;
-(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true});try{
+(async()=>{const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined),headless:true});try{
  const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),errors=[];
  await context.route('**/*',r=>r.request().url().startsWith(url)?r.continue():r.abort());page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url+'/index.html');await page.waitForFunction(()=>typeof waysFromHere==='function');

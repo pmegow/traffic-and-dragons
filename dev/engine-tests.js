@@ -25663,7 +25663,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     f.events.pagehide();f.events.pageshow();if(!f.app.snapshot().unlocked||f.created()!==2)return "page restore did not rebuild the disposed controller";
     var off=setup(false,true);off.app.init();off.events.pageshow();if(off.calls()||off.created())return "disabled reload attempted playback";
     var blocked=setup(true,false);blocked.app.init();if(blocked.calls()!==1||blocked.app.snapshot().unlocked)return "blocked reload did not attempt then wait";
-    blocked.allow();blocked.events.pointerdown();blocked.resolve();if(blocked.calls()!==2||!blocked.app.snapshot().unlocked||blocked.created()!==1)return "pending autoplay blocked the interaction retry or duplicated the controller";
+    blocked.allow();if(blocked.events.pointerdown)return "#485: the unlock must listen on pointerup (touch grants activation at pointerup, never pointerdown)";blocked.events.pointerup();blocked.resolve();if(blocked.calls()!==2||!blocked.app.snapshot().unlocked||blocked.created()!==1)return "pending autoplay blocked the interaction retry or duplicated the controller";
     return true;
   });
 

@@ -1,11 +1,11 @@
-// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
-const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: CHROME_PATH or the default install, driven by dev/cdp-browser.js — no Playwright (#485)); run by hand, and its receipt is the audit that cites it (#405).
+const {chromium}=require('./cdp-browser.js');
 const assert=require('assert/strict'),fs=require('fs'),root=require('path').join(__dirname,'..');
 const engine=require(root+'/dev/load-engine.js');engine.loadEngine();engine.makeTestWorld({kind:'village',clock:{min:205}});
 worldState.world.location='The Village';worldState.world.sublocation='the smithy';memory.map.nodes['The Village']={parent:null};memory.map.nodes['The Village|the smithy']={parent:'The Village',hours:{open:6,close:20}};
 memory.map.nodes['The Village|the square']={parent:'The Village'};
 const fixture=JSON.parse(JSON.stringify({world:worldState,memory})),url=process.env.AMBIENT_QA_URL||'http://127.0.0.1:8124';
-(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true});try{
+(async()=>{const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined),headless:true});try{
 const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),errors=[];await context.route('**/*',r=>r.request().url().startsWith(url)?r.continue():r.abort());page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='warning'||m.type()==='error')console.log('BROWSER '+m.text())});
 await page.addInitScript(()=>{
 window.__voices=[];window.__maxVoices=0;window.__maxBytes=0;const create=AudioContext.prototype.createBufferSource;

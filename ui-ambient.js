@@ -211,7 +211,10 @@ var Ambient = (function() {
     document.addEventListener("visibilitychange", sync);
     window.addEventListener("pagehide", dispose);
     window.addEventListener("pageshow", function() { subscribe(); sync(); if (enabled && !unlocked) unlock(); });
-    document.addEventListener("pointerdown", function() { if (enabled && !unlocked) unlock(true); }, true);
+    /* #485 (found by the ported qa-l7-reload touch branch): on a TOUCH tap the browser grants user activation at pointerup/touchend,
+       not at pointerdown — a pointerdown unlock asked the context to wake before the activation existed, so a phone's first tap
+       could never start the ambience ("Tap anywhere" stayed). pointerup carries the activation for mouse and touch alike. */
+    document.addEventListener("pointerup", function() { if (enabled && !unlocked) unlock(true); }, true);
     document.addEventListener("keydown", function() { if (enabled && !unlocked) unlock(true); }, true);
     eachMenuEl("ambient-cb", function(el) { el.addEventListener("change", function() { enabled = el.checked; lastError = ""; save(); sync(); if (enabled) unlock(true); }); });
     eachMenuEl("ambient-volume", function(el) { el.addEventListener("input", function() { volume = Number(el.value) / 100; save(); sync(); }); });

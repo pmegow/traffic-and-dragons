@@ -1,7 +1,7 @@
-// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: PLAYWRIGHT_PATH, or the Chrome path in dev/browser-voice-qa.js); run by hand, and its receipt is the audit that cites it (#405).
+// MANUAL QA — not run by dev/run-tests.js or CI (needs a local Chrome: CHROME_PATH or the default install, driven by dev/cdp-browser.js — no Playwright (#485)); run by hand, and its receipt is the audit that cites it (#405).
 // Local fixture only: no campaign writes, paid calls, or installed app/browser state.
 const fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert/strict');
-const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');
+const {chromium}=require('./cdp-browser.js');
 const root=path.join(__dirname,'..'),out=process.env.AUDIO_QA_OUT || path.join(root,'Audio','Prepared');
 const engine=require('./load-engine.js');engine.loadEngine();engine.makeTestWorld({kind:'village',clock:{min:240}});
 worldState.world.location='The Village';worldState.world.sublocation=null;
@@ -12,7 +12,7 @@ const types={'.js':'application/javascript','.html':'text/html','.css':'text/css
 const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname==='/'?'/index.html':new URL(req.url,'http://localhost').pathname));if(!p.startsWith(root+path.sep)){res.writeHead(403);return res.end()};fs.readFile(p,(e,b)=>{res.writeHead(e?404:200,{'Content-Type':types[path.extname(p)]||'application/octet-stream'});res.end(e?'missing':b)})});
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const url=process.env.AMBIENT_QA_URL || 'http://127.0.0.1:'+server.address().port;
- const browser=await chromium.launch({channel:'chrome',headless:true});
+ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined),headless:true});
  try{
   const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),errors=[];
   await context.route('**/*',route=>route.request().url().startsWith(url)||route.request().url().startsWith('file:')?route.continue():route.abort());
@@ -28,7 +28,7 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   await page.locator('#file-btn').click();await page.locator('#fm-devmode').click();await page.locator('#fm-ambient-cb').check();
   await page.locator('#file-btn').click();await page.waitForFunction(()=>Ambient.snapshot().unlocked);/* default-on: the menu tap is the unlocking gesture and resume() settles asynchronously */
   assert.equal(await page.evaluate(()=>__loops.filter(s=>Math.abs(s.buffer.duration-AUDIO_SCENES[0].bed.loopEnd)<0.05).length),0,'untagged smithy narration must not start fire');
-  assert.match(await page.locator('#fm-ambient-status').textContent(),/Village day/);
+  assert.match(await page.locator('#fm-ambient-status').textContent(),/Daytime birds and insects|Village day/);/* the day bed's label as the catalog names it now (#485) */
   assert.match(await page.evaluate(()=>buildEngineNotes()),/\[SUBLOCATION:the smithy\]/,'loaded-save repair must ask for the missing tag');
   assert.equal(await page.evaluate(()=>worldState.world.sublocation),null,'reminder must not move the party');
   // The real parser receives the GM's explicit filing; no paid model request or live save.
