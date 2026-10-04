@@ -1,5 +1,5 @@
 const sabotage=require('./sabotage.js');let rc=0;
-const also=['audio-scenes.js','audio-catalog.js','dev/audio-delivery.json','sfx/alchemist-entry-bell-v2.mp3'];
+const also=['audio-scenes.js','audio-catalog.js','dev/audio-delivery.json','sfx/alchemist-entry-bell-v5.mp3'];
 rc|=sabotage.prove({also,file:'audio-accents.js',command:['node',['dev/run-tests.js','Alchemist entry bell']],cases:[
  {label:'every repeated turn rings the bell',mustFail:'Entry bell follows committed entrances',find:'before.nodeKey === s.nodeKey ||',replace:''},
  {label:'reload counts as entering',mustFail:'Entry bell follows committed entrances',find:'reason !== "turn" ||',replace:''},

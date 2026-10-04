@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "source": {
+    "name": "alchemist-entry-bell-v1.wav",
+    "start": 0.25,
+    "end": 1.5343958333333334
+  },
+  "shape": "cosine",
+  "strength": 6.907755,
+  "points": [
+    {
+      "time": 0,
+      "gain": 1
+    },
+    {
+      "time": 0.001,
+      "gain": 1
+    },
+    {
+      "time": 1.2843958333333334,
+      "gain": 0
+    }
+  ]
+}

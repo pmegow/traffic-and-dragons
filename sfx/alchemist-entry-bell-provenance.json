@@ -1,5 +1,5 @@
 {
-  "name": "alchemist-entry-bell-v2",
+  "name": "alchemist-entry-bell-v5",
   "sampleRate": 48000,
   "channels": 1,
   "seconds": 1.7844,
@@ -16,18 +16,18 @@
       "sourceSha256": "17e631c77b8613213e98451d691cb026dcb473426a6cbcce7d1b19f41facb4ae",
       "gainDb": -12,
       "seconds": 1.2844,
-      "rmsDbfs": -27.87,
-      "peakDbfs": -12.0
+      "rmsDbfs": -29.48,
+      "peakDbfs": -12.34
     }
   ],
-  "method": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -12 dBFS; raised-cosine fades 8 ms in / 8 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3; owner revision: remove exactly 2 seconds from the audible tail of the prepared lossless v1 master, retain original gain and leading/trailing 0.25 s padding, replace end fade with 20 ms raised-cosine fade, re-encode once from PCM",
+  "method": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -12 dBFS; raised-cosine fades 8 ms in / 8 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3; owner-selected editor curve: original prepared lossless v1 region [0.25, 1.5343958333333334]; cosine points (0,1), (0.001,1), (1.2843958333333334,0), rendered with dev/audio-envelope.js; preserve 0.25 s padding each side and original source level; encode once from PCM",
   "license": "CC0 1.0",
   "sourceUrl": "https://bigsoundbank.com/carillon-commercant-s3588.html",
   "author": "Joseph SARDIN",
-  "wavSha256": "eb65d6712c2e498f0f8bd15d4a3c58bea053b487ee5f9799386840bde9a2e3dd",
-  "mp3Sha256": "6de44b7763641761d01c0d1060bb86d9d50540efe1316fbe711b7991998be3fc",
+  "wavSha256": "52e30447d5fc88072859b4d269e0bcc2a3264eda78d5a3ee6e8d28782bf6cc2f",
+  "mp3Sha256": "25672994894ba24531164c8ac0731548373b9cd7b65ca61733e55cdb5534caa7",
   "bytes": 29568,
-  "delivery": "sfx/alchemist-entry-bell-v2.mp3",
+  "delivery": "sfx/alchemist-entry-bell-v5.mp3",
   "downloadUrl": "https://bigsoundbank.com/UPLOAD/mp3/3588.mp3",
   "downloadSha256": "4f69082ff4c06c728efa39bbe7cc1b5b9513bf2ea5619767e860872fd3e3f43f",
   "licenseVerified": "2026-10-03; source page states CC0, permits editing and redistribution, including games and commercial use",
@@ -42,5 +42,6 @@
         3.5344
       ]
     ]
-  }
+  },
+  "envelopePreset": "sfx/alchemist-entry-bell-envelope.json"
 }

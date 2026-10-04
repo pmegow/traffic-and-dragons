@@ -21,3 +21,13 @@ Final gates: 2,636 engine assertions and 93 standalone verifier suites passed. E
 ## Owner trim revision — v1.1136
 
 Removed exactly 96,000 samples (two seconds at 48 kHz) from the audible end of the prepared lossless v1 phrase. Kept the original level and 0.25 s padding on each side, applied a 20 ms raised-cosine end fade, and encoded v2 directly from PCM. Audible phrase 3.2844 → 1.2844 s; decoded sprite 3.7843958333 → 1.7843958333 s. Catalog cuts are [0.25, 1.5344], with tighter byte/duration/memory limits and new checksum. No entry-policy changes. Loader/controller checks and the two-visit isolated-browser check passed; [trim receipt](VERIFY_600_alchemist_entry_trim.json). Revised owner audition and deployment pending.
+
+## Earlier fade revision — v1.1137
+
+Owner found the trimmed ending abrupt. V3 preserves the 1.2844 s phrase and original gain, but fades over its final 200 ms instead of 20 ms (starts 180 ms earlier). Rendered again from the lossless v1 master, with unchanged padding and sprite cuts. Updated delivery URL, checksum and provenance. Loader/controller checks pass.
+
+## Owner-selected editor curve — v1.1140
+
+The owner selected smooth cosine with points (0 s, 100%), (0.001 s, 100%), (1.2843958333333334 s, 0%). V5 renders the original lossless v1 region [0.25, 1.5343958333333334] through `dev/audio-envelope.js`, the same function used by editor preview and export. No cumulative fades or level normalization. Preserved 0.25 s padding each side. The 61,651-sample phrase ends at exact zero; midpoint gain is 50%. [Preset](../sfx/alchemist-entry-bell-envelope.json). The owner emphasized the shape: cosine eases into and out of the fade (zero endpoint slopes), unlike the sharp initial exponential drop. The earlier v3 was an uncommitted audition; v4 was an exponential audition only. Deployment pending.
+
+V5 validation: 2,641 engine assertions and 94 standalone verifier suites ALL GREEN; catalog checksum regeneration verified; isolated copied-save Chromium entry/re-entry, repeat, pause/resume and exit checks PASS ([receipt](VERIFY_600_alchemist_entry_curve.json)). Headless playback is muted; the curve itself was selected by owner audition.

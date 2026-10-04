@@ -838,7 +838,7 @@ var AUDIO_CATALOG = {
       "to": 1440,
       "seedOnly": true,
       "id": "alchemist",
-      "label": "Alchemist’s quiet simmer",
+      "label": "Alchemistâ€™s quiet simmer",
       "role": "feature",
       "contains": [
         "water"
@@ -890,7 +890,7 @@ var AUDIO_CATALOG = {
       "to": 1440,
       "seedOnly": true,
       "id": "alchemist-glass",
-      "label": "Alchemist’s gentle glass clinks",
+      "label": "Alchemistâ€™s gentle glass clinks",
       "role": "accent",
       "contains": [],
       "needsAny": [],
@@ -986,7 +986,7 @@ var AUDIO_CATALOG = {
         "author": "Joseph SARDIN",
         "license": "CC0-1.0"
       },
-      "recipe": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -12 dBFS; raised-cosine fades 8 ms in / 8 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3; owner revision: remove exactly 2 seconds from the audible tail of the prepared lossless v1 master, retain original gain and leading/trailing 0.25 s padding, replace end fade with 20 ms raised-cosine fade, re-encode once from PCM",
+      "recipe": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -12 dBFS; raised-cosine fades 8 ms in / 8 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3; owner-selected editor curve: original prepared lossless v1 region [0.25, 1.5343958333333334]; cosine points (0,1), (0.001,1), (1.2843958333333334,0), rendered with dev/audio-envelope.js; preserve 0.25 s padding each side and original source level; encode once from PCM",
       "trigger": "cued",
       "rain": "play",
       "pattern": {
@@ -997,7 +997,7 @@ var AUDIO_CATALOG = {
         90
       ],
       "sprite": {
-        "url": "sfx/alchemist-entry-bell-v2.mp3",
+        "url": "sfx/alchemist-entry-bell-v5.mp3",
         "gain": [
           0.65,
           0.65
@@ -1013,9 +1013,9 @@ var AUDIO_CATALOG = {
         "maxBytes": 40000,
         "maxDecodedBytes": 400000
       },
-      "sha256": "6de44b7763641761d01c0d1060bb86d9d50540efe1316fbe711b7991998be3fc",
+      "sha256": "25672994894ba24531164c8ac0731548373b9cd7b65ca61733e55cdb5534caa7",
       "bytes": 29568
     }
   ],
-  "version": "15779254ae202f29f2c6"
+  "version": "d019d9c713c84510b38c"
 };

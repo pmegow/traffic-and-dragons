@@ -329,6 +329,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-03 · #600 bell curve · Codex: v1.1140 applies the owner-selected smooth cosine envelope from 0.001 s to the 1.2844 s phrase end, rendered from the lossless v1 master with the editor math. Saved reusable preset, refreshed catalog/provenance and cache markers. Supersedes the uncommitted 200 ms fade.
+
 - 2026-10-03 · #600 bell trim · Codex: owner requested removal of the final two seconds of echo; v1.1136 delivers a 1.2844 s phrase with a 20 ms fade, rendered from the lossless master at unchanged gain. Updated sprite cuts, checksums and cache markers; loader and browser entry/re-entry/pause/exit checks pass.
 
 - 2026-10-03 · #600 · Codex, owner-requested alchemist entrance bell: cued catalog asset and committed-scene entry tracking in existing audio layer; no story parsing, core edits or live-save writes. UI forwards the existing commit reason. Single short-sound voice, five-second deadline, mic/mute/pause/exit controls and narration ducking. [Receipt](audits/VERIFY_600_alchemist_entry.md).
