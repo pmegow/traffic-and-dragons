@@ -17,3 +17,7 @@ Mutation proof: `node dev/sabotage-entry-bell.js`. The first reload mutation was
 Local implementation; deployment and owner audition pending.
 
 Final gates: 2,636 engine assertions and 93 standalone verifier suites passed. Entry-bell mutations 6/6, existing accent mutations 21/21, Noctina mutations 2/2. All 2,372 retained mutation anchors apply. Initial full run failed only on the two changed Noctina anchors; after updating them the full run passed. Catalog rebuild and loader checks passed with the bell-specific source hash and processing recipe.
+
+## Owner trim revision — v1.1136
+
+Removed exactly 96,000 samples (two seconds at 48 kHz) from the audible end of the prepared lossless v1 phrase. Kept the original level and 0.25 s padding on each side, applied a 20 ms raised-cosine end fade, and encoded v2 directly from PCM. Audible phrase 3.2844 → 1.2844 s; decoded sprite 3.7843958333 → 1.7843958333 s. Catalog cuts are [0.25, 1.5344], with tighter byte/duration/memory limits and new checksum. No entry-policy changes. Loader/controller checks and the two-visit isolated-browser check passed; [trim receipt](VERIFY_600_alchemist_entry_trim.json). Revised owner audition and deployment pending.

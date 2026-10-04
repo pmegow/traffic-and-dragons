@@ -1,0 +1,37 @@
+{
+  "result": "PASS",
+  "version": "v1.1136",
+  "firstEntry": {
+    "state": {
+      "key": "camp_1789338232587_9271|feature|alchemist",
+      "sources": 1,
+      "buffers": 1,
+      "pending": 0,
+      "failed": false,
+      "transitioning": false,
+      "decodedBytes": 3301344,
+      "reservedDecodes": 0,
+      "bufferRecords": 3,
+      "accents": {
+        "entryPending": null,
+        "entryPlaying": "alchemist-entry-bell",
+        "key": "camp_1789338232587_9271|The Village|the alchemist's|2|alchemist-glass",
+        "sets": [
+          "alchemist-glass"
+        ],
+        "buffers": 2,
+        "loading": 0,
+        "playing": 1,
+        "scheduled": 1,
+        "due": null
+      }
+    },
+    "starts": [
+      1.7843958333333334
+    ]
+  },
+  "secondEntry": true,
+  "pauseResume": true,
+  "exit": true,
+  "errors": []
+}

@@ -986,7 +986,7 @@ var AUDIO_CATALOG = {
         "author": "Joseph SARDIN",
         "license": "CC0-1.0"
       },
-      "recipe": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -12 dBFS; raised-cosine fades 8 ms in / 8 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3",
+      "recipe": "mono mean; DC removal; trim below -50 dB of sample peak with 20 ms pre-roll; RMS -30 dBFS, peak ceiling -12 dBFS; raised-cosine fades 8 ms in / 8 ms out; 0.25 s silence between samples; libmp3lame 128 kbps mono with Xing/LAME gapless header, no ID3; owner revision: remove exactly 2 seconds from the audible tail of the prepared lossless v1 master, retain original gain and leading/trailing 0.25 s padding, replace end fade with 20 ms raised-cosine fade, re-encode once from PCM",
       "trigger": "cued",
       "rain": "play",
       "pattern": {
@@ -997,7 +997,7 @@ var AUDIO_CATALOG = {
         90
       ],
       "sprite": {
-        "url": "sfx/alchemist-entry-bell-v1.mp3",
+        "url": "sfx/alchemist-entry-bell-v2.mp3",
         "gain": [
           0.65,
           0.65
@@ -1005,17 +1005,17 @@ var AUDIO_CATALOG = {
         "cuts": [
           [
             0.25,
-            3.5344
+            1.5344
           ]
         ],
-        "maxSeconds": 4,
+        "maxSeconds": 2,
         "channels": 1,
-        "maxBytes": 70000,
-        "maxDecodedBytes": 800000
+        "maxBytes": 40000,
+        "maxDecodedBytes": 400000
       },
-      "sha256": "00b6b00aaba57f98359d87438d2f022995ccee0b00f42631cd18f850695763f4",
-      "bytes": 61440
+      "sha256": "6de44b7763641761d01c0d1060bb86d9d50540efe1316fbe711b7991998be3fc",
+      "bytes": 29568
     }
   ],
-  "version": "5a84990a2941bbb961ae"
+  "version": "15779254ae202f29f2c6"
 };
