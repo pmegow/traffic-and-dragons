@@ -34,7 +34,7 @@ prove("tag_table.js", [
     find: 'var _gpb=itemPairTake(R,"ilHits",cIgm[2]);if(_gpb){', replace: 'var _gpb=null;if(_gpb){',
     mustFail: "a gift to someone who is not a party member" },
   { label: "a take the companion never held reaches the hero",
-    find: 'var _tpb=itemPairTake(R,"igHits",cIlm[2]);if(_tpb){', replace: 'var _tpb=null;if(_tpb){',
+    find: 'var _tpb=itemPairTake(R,"igHits",cIlm[2]),_tpn=0;while(_tpb){', replace: 'var _tpb=null,_tpn=0;while(_tpb){',
     mustFail: "a take from a companion whose loss misses" },
   { label: "the village mints coin for a sale of nothing",
     find: 'if(R.goldIn>0&&typeof kindDef==="function"&&kindDef().tradeOnlyInShops){var _sSim=',

@@ -27151,6 +27151,20 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(findCompanionChar("Bram").inventory.join()!=="Torch x2")return "a gift with no loss half (found, bought) is not capped: "+JSON.stringify(findCompanionChar("Bram").inventory);
     return true;
   });
+  t("#518 ② the take pair is bounded by what the companion held: [COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3] with Bram holding one gives the hero ONE (said); with Bram holding none nothing moves; a gift at home of a potion held in the pack AND the chest takes one from the pack only",function(){
+    makeWorld();var c=worldState.character;c.inventory=[];worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:["Torch"]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    var r=quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3]");}).r;
+    if(c.inventory.join()!=="Torch"||findCompanionChar("Bram").inventory.length)return "one torch out of Bram's pack means one torch into the hero's: "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
+    if(!r.muts.some(function(m){return /cut to one/.test(m)&&/Torch/.test(m);}))return "the short take is said: "+JSON.stringify(r.muts);
+    c.inventory=[];r=quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3]");}).r;
+    if(c.inventory.length)return "Bram holding none: nothing moves, the hero keeps nothing: "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
+    if(!r.muts.some(function(m){return /Nothing moved/.test(m);}))return "and it is said: "+JSON.stringify(r.muts);
+    var h=quartetVillage();c=worldState.character;c.inventory=["Healing potion"];h.items=[{name:"Healing potion",placed:1,taken:false,qty:1,by:"Silas",min:0}];
+    worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    r=quiet(function(){return applyMuts("[ITEM_LOST:Healing potion][COMPANION_ITEM_GAINED:Bram|Healing potion]");}).r;
+    if(findCompanionChar("Bram").inventory.join()!=="Healing potion"||c.inventory.length)return "the gift moves one potion from the pack: "+JSON.stringify([c.inventory,findCompanionChar("Bram").inventory,r.muts]);
+    return (h.items[0].qty===1&&!h.items[0].taken)?true:"the chest's potion stays — the gift came from the pack, not the chest: "+JSON.stringify(h.items)+" "+JSON.stringify(r.muts);
+  });
   t("#519 the spoken undo after a hero swap: the stowed spear stays in the chest and the undo refuses with the reason, instead of returning ok with the spear in nobody's pack",function(){
     var house=quartetVillage();worldState.character.inventory=["Sihedron ritual spear"];
     applyMuts("[ITEM_LOST:Sihedron ritual spear][LOCATION_ITEM:Sihedron ritual spear|placed]");

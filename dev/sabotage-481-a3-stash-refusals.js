@@ -14,7 +14,7 @@ prove("tag_table.js", [
     find: 'worldState.stashRefusedPing={turn:R.turn,item:_lnm,action:"taken",reason:"a stash take names no actor"};/* #481 A3: the GM is told */', replace: "",
     mustFail: "a refused placement and a refused take each arm" },
   { label: "a companion's gain no longer takes from where the item lies",
-    find: "    var _cAt=autoTakeLocationItem(cIq.base,cIgCs.name||cOwner,cIq.n,rPlaceAtBlock(R,text,cIgOff[cIgi]).key);", replace: "    var _cAt=null;",
+    find: "    var _cAt=(_gHits!==null)?null:autoTakeLocationItem(cIq.base,cIgCs.name||cOwner,cIq.n,rPlaceAtBlock(R,text,cIgOff[cIgi]).key);", replace: "    var _cAt=null;",
     mustFail: "the household: a companion who lives in the hero's house" }
 ]);
 prove("memory.js", [
