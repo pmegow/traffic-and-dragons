@@ -36,6 +36,14 @@ await check('all 507 rows are available and priority findings are the default',a
  await page.locator('#search').fill('');await page.evaluate(()=>{document.getElementById('scope').value='wording';document.getElementById('scope').dispatchEvent(new Event('change'));});
  if(process.env.REVIEW_SCREENSHOT_DIR){fs.mkdirSync(process.env.REVIEW_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.REVIEW_SCREENSHOT_DIR,'review-desktop.png')});}
 });
+await check('duration findings leave flagged filters but remain available for optional editing',async()=>{
+ const shield=manifest.rows.findIndex(r=>r.key==='shield');
+ await page.evaluate(()=>{document.getElementById('scope').value='flagged';document.getElementById('scope').dispatchEvent(new Event('change'));});assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),59);assert.equal(await page.evaluate(i=>document.getElementById('cap-'+i).hidden,shield),true);
+ assert.match(await page.locator('#scope').textContent(),/All flagged descriptions \(59\)/);
+ await page.evaluate(()=>{document.getElementById('scope').value='unflagged';document.getElementById('scope').dispatchEvent(new Event('change'));});assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),448);assert.equal(await page.evaluate(i=>document.getElementById('cap-'+i).hidden,shield),false);
+ assert.match(await page.locator('#cap-'+shield+' .reason').textContent(),/excluded/);
+ await page.evaluate(()=>{document.getElementById('scope').value='wording';document.getElementById('scope').dispatchEvent(new Event('change'));});
+});
 await check('editing an awaiting-decision row does not hide the active field',async()=>{
  await page.evaluate(()=>{document.getElementById('status').value='pending';document.getElementById('status').dispatchEvent(new Event('change'));});
  try{await page.locator(first).fill('Still typing');assert.equal(await page.evaluate(()=>document.getElementById('cap-0').hidden),false);}
@@ -70,12 +78,12 @@ await check('long literal edits fit a narrow viewport and remain text',async()=>
 });
 await check('vulnerability progress ignores optional rows and survives save/reload',async()=>{
  const review={format:'traffic-and-dragons/capability-review/v1',audit:manifest.id,reviews:manifest.rows.map((r,i)=>({key:r.key,decision:i<6?'rewrite':'pending',replacement:i<6?'Reviewed wording: '+r.effect:r.effect,notes:''}))};
- const imported=path.join(scratch,'completion.json');fs.writeFileSync(imported,JSON.stringify(review));await page.locator('#import-file').setInputFiles(imported);await page.waitForFunction(()=>document.getElementById('completion').textContent==='6/90 vulnerabilities addressed.');
+ const imported=path.join(scratch,'completion.json');fs.writeFileSync(imported,JSON.stringify(review));await page.locator('#import-file').setInputFiles(imported);await page.waitForFunction(()=>document.getElementById('completion').textContent==='6/59 vulnerabilities addressed.');
  assert.match(await page.locator('#count').textContent(),/6 of 507 decisions/);
  await page.evaluate(()=>{document.getElementById('scope').value='flagged';document.getElementById('scope').dispatchEvent(new Event('change'));window.scrollTo(0,0);});
  for(const width of [1280,320]){await page.setViewportSize({width,height:900});const size=await page.evaluate(()=>({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,saveBottom:document.getElementById('file-state').getBoundingClientRect().bottom,progressTop:document.getElementById('completion').getBoundingClientRect().top}));assert.ok(size.scroll<=size.width);assert.ok(size.progressTop>=size.saveBottom,JSON.stringify(size));if(process.env.REVIEW_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.REVIEW_SCREENSHOT_DIR,'review-completion-'+width+'.png')});}
- await page.setViewportSize({width:1280,height:1000});review.reviews.forEach((r,i)=>{if(manifest.rows[i].level!=='unflagged'){r.decision='keep';r.replacement=manifest.rows[i].effect;}});fs.writeFileSync(imported,JSON.stringify(review));await page.locator('#import-file').setInputFiles(imported);await page.waitForFunction(()=>document.getElementById('completion').textContent==='90/90 vulnerabilities addressed.');await save();
- assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).reviews.filter(r=>r.decision==='pending').length,417);await page.reload();await page.waitForFunction(()=>!document.getElementById('save').disabled);assert.equal(await page.locator('#completion').textContent(),'90/90 vulnerabilities addressed.');
+ await page.setViewportSize({width:1280,height:1000});review.reviews.forEach((r,i)=>{if(manifest.rows[i].level!=='unflagged'){r.decision='keep';r.replacement=manifest.rows[i].effect;}});fs.writeFileSync(imported,JSON.stringify(review));await page.locator('#import-file').setInputFiles(imported);await page.waitForFunction(()=>document.getElementById('completion').textContent==='59/59 vulnerabilities addressed.');await save();
+ assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).reviews.filter(r=>r.decision==='pending').length,448);await page.reload();await page.waitForFunction(()=>!document.getElementById('save').disabled);assert.equal(await page.locator('#completion').textContent(),'59/59 vulnerabilities addressed.');
 });
 await check('browser-storage refusal is visible and project Save still works',async()=>{
  await page.evaluate(()=>{Storage.prototype.setItem=function(){throw Error('storage disabled');};});await page.locator(first).fill('Project save despite storage refusal');assert.match(await page.locator('#draft-state').textContent(),/recovery unavailable/);await save();assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).reviews[0].replacement,'Project save despite storage refusal');
