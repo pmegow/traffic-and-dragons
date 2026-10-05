@@ -46,9 +46,10 @@ var EDITOR_ASSETS = {
   "/class_bible.js": "class_bible.js",
   "/satellite.css": "satellite.css"   // #312: the shared satellite palette — missing here = an unstyled editor (2026-09-03)
 };
-var namesStore = require("./capability-names-store.js").createStore(ROOT);
+var WORKSHEETS = {"/capability-names":"./capability-names-store.js","/capability-review":"./capability-review-store.js"};
 EDITOR_ASSETS["/capability-names.html"] = "capability-names.html";
 EDITOR_ASSETS["/ui-shell.js"] = "ui-shell.js";
+EDITOR_ASSETS["/audits/capability_vulnerabilities.html"] = "audits/capability_vulnerabilities.html";
 var MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css" };
 var CORS = {
   "Access-Control-Allow-Origin": "*",          // the pages run from file:// (Origin: null)
@@ -132,21 +133,24 @@ var server = http.createServer(function (req, res) {
     return;
   }
 
-  // The naming worksheet writes one fixed JSON file; Bible installation keeps its own route.
-  if (req.url === "/capability-names" && (req.method === "GET" || req.method === "POST")) {
+  // Each worksheet store owns one fixed JSON file; shared request guards protect every writer.
+  if (Object.prototype.hasOwnProperty.call(WORKSHEETS, req.url) && (req.method === "GET" || req.method === "POST")) {
+    var namesStore;
+    try { namesStore = require(WORKSHEETS[req.url]).createStore(ROOT); }
+    catch (e) { send(500,{ok:false,output:"Worksheet store unavailable: "+e.message}); return; }
     if (req.method === "GET") {
       try { send(200, namesStore.read()); } catch (e) { send(500, {ok:false,output:e.message}); }
       return;
     }
     var namesOrigin = req.headers.origin;
-    if (namesOrigin && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(namesOrigin)) { send(403,{ok:false,output:"Project saves require the local Capability Names launcher."}); return; }
-    if (req.headers["x-bible-helper-version"] !== HELPER_VERSION) { send(409,{ok:false,output:"Save helper version changed. Reopen Capability Names.cmd."}); return; }
+    if (namesOrigin && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(namesOrigin)) { send(403,{ok:false,output:"Project saves require the local worksheet launcher."}); return; }
+    if (req.headers["x-bible-helper-version"] !== HELPER_VERSION) { send(409,{ok:false,output:"Save helper version changed. Reopen the worksheet launcher."}); return; }
     var namesBody = "", namesTooLarge = false;
-    req.on("data",function(chunk){if(namesTooLarge)return;namesBody+=chunk;if(Buffer.byteLength(namesBody)>1000000){namesTooLarge=true;send(413,{ok:false,output:"The names document exceeds 1 MB."});}});
+    req.on("data",function(chunk){if(namesTooLarge)return;namesBody+=chunk;if(Buffer.byteLength(namesBody)>1000000){namesTooLarge=true;send(413,{ok:false,output:"The worksheet document exceeds 1 MB."});}});
     req.on("end",function(){
       if(namesTooLarge)return;
       try { send(200,namesStore.write(JSON.parse(namesBody))); }
-      catch(e){console.warn("[capability-names] save refused: "+e.message);send(e.status||422,{ok:false,output:e.message});}
+      catch(e){console.warn("["+req.url+"] save refused: "+e.message);send(e.status||422,{ok:false,output:e.message});}
     });
     return;
   }

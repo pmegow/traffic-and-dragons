@@ -13,8 +13,8 @@ var HELPER_VERSION = require("./bible-helper-version.js");
 
 var ROOT = path.join(__dirname, "..");
 var PORT = process.env.BIBLE_PORT === undefined ? 7373 : Number(process.env.BIBLE_PORT);
-var LAUNCH_URLS = {editor:"http://127.0.0.1:" + PORT + "/bible_editor.html",names:"http://127.0.0.1:" + PORT + "/capability-names.html"};
-var EDITOR_URL = LAUNCH_URLS[process.argv.indexOf("--names") >= 0 ? "names" : "editor"];
+var LAUNCH_URLS = {editor:"http://127.0.0.1:" + PORT + "/bible_editor.html",names:"http://127.0.0.1:" + PORT + "/capability-names.html",review:"http://127.0.0.1:" + PORT + "/audits/capability_vulnerabilities.html"};
+var EDITOR_URL = LAUNCH_URLS[process.argv.indexOf("--review") >= 0 ? "review" : process.argv.indexOf("--names") >= 0 ? "names" : "editor"];
 var HEALTH = { host: "127.0.0.1", port: PORT, path: "/health", timeout: 500 };
 var SERVER_SCRIPT = path.join(__dirname, "bible-server.js");
 

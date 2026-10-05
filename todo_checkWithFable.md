@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-05 · #603 · Codex: owner-requested description audit and editable satellite, local helper route registry and validated fixed-file store. 507 entries screened; 17 wording/provenance flags and 73 common-rules matches, source coverage and secondary-source limitations disclosed. Saves are atomic with revision checks; no gameplay prose or engine algorithms changed. Monotonic resources: one overwritten browser-draft key per audit snapshot, replaced DOM rows/listeners, revoked export URLs, bounded request bodies and cleaned temporary files; no per-turn/campaign accumulation. Test-first store and filter/viewport failures reproduced; browser and mutation guards verified.
+
 - 2026-10-04 · #221 · Codex, explicit owner request to implement the completed names list: v1.1151 applies 53 collision-free renames through the existing atomic tool; definition hashes pin all 507 mechanics/descriptions, player/companion migration and idempotence are exercised, legacy worksheet drafts remain readable. Existing empty-migration-table tests now verify append/rollback over the shipped entries. No engine algorithm or prompt instruction changes. Receipt: audits/capability_renames_applied.json.
 
 - 2026-10-04 · #602 · Codex: read-only TODO viewer v0.8 adds category row counts in the heading color (owner clarification; matching hover brightness) derived from rendered table bodies, recalculated on refresh/expansion. Browser regression covers wrapped/completed/multiple/empty/ordinary tables and reload; shared stylesheet MIME corrected in browser fixture for visual verification.
